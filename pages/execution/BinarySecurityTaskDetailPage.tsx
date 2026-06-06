@@ -2828,8 +2828,8 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
     });
     clearExecutionReturnContext();
     if (item.stage_name === 'firmware_unpack') {
-      sessionStorage.setItem('secflow:firmwareUnpackerTaskId', downstreamTaskId);
-      window.dispatchEvent(new CustomEvent('secflow-navigate-view', {
+      sessionStorage.setItem('chimera:firmwareUnpackerTaskId', downstreamTaskId);
+      window.dispatchEvent(new CustomEvent('chimera-navigate-view', {
         detail: {
           view: 'pentest-exec-firmware-unpacker',
           firmwareUnpackerTaskId: downstreamTaskId,
@@ -2838,22 +2838,22 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
       return;
     }
     if (item.stage_name === 'system_analysis') {
-      window.dispatchEvent(new CustomEvent('secflow-navigate-view', { detail: { view: 'system-analysis-detail', systemAnalysisTaskId: downstreamTaskId } }));
+      window.dispatchEvent(new CustomEvent('chimera-navigate-view', { detail: { view: 'system-analysis-detail', systemAnalysisTaskId: downstreamTaskId } }));
       return;
     }
     if (item.stage_name === 'binary_to_source') {
-      window.dispatchEvent(new CustomEvent('secflow-navigate-view', { detail: { view: 'pentest-exec-b2s-detail', b2sTaskId: downstreamTaskId } }));
+      window.dispatchEvent(new CustomEvent('chimera-navigate-view', { detail: { view: 'pentest-exec-b2s-detail', b2sTaskId: downstreamTaskId } }));
       return;
     }
     if (item.stage_name === 'entry_analysis') {
-      window.dispatchEvent(new CustomEvent('secflow-navigate-view', { detail: { view: 'entry-analysis-detail', entryAnalysisTaskId: downstreamTaskId } }));
+      window.dispatchEvent(new CustomEvent('chimera-navigate-view', { detail: { view: 'entry-analysis-detail', entryAnalysisTaskId: downstreamTaskId } }));
       return;
     }
     if (item.stage_name === 'dataflow_analysis') {
-      window.dispatchEvent(new CustomEvent('secflow-navigate-view', { detail: { view: 'dataflow-analysis-detail', dataflowAnalysisTaskId: downstreamTaskId } }));
+      window.dispatchEvent(new CustomEvent('chimera-navigate-view', { detail: { view: 'dataflow-analysis-detail', dataflowAnalysisTaskId: downstreamTaskId } }));
       return;
     }
-    sessionStorage.setItem('secflow:dataflowVulnTaskId', downstreamTaskId);
+    sessionStorage.setItem('chimera:dataflowVulnTaskId', downstreamTaskId);
     navigate(`/pentest-exec-dataflow-vuln-task-detail/${encodeURIComponent(downstreamTaskId)}`);
   };
 

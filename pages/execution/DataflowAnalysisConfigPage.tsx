@@ -362,7 +362,7 @@ export const DataflowAnalysisConfigPage: React.FC<{ projectId: string; embedded?
           <p className="text-xs font-black uppercase tracking-[0.3em] text-violet-600">Dataflow Analysis</p>
           <h1 className="mt-3 text-3xl font-black tracking-tight text-slate-900">分析配置</h1>
           <p className="mt-2 text-sm text-slate-500">
-            配置 secflow-app-dataflow-analyse 数据流分析引擎的运行参数，修改后点击「保存配置」生效。
+            配置 chimera-app-dataflow-analyse 数据流分析引擎的运行参数，修改后点击「保存配置」生效。
           </p>
           {config.updated_at && (
             <p className="mt-1 text-xs text-slate-400">上次保存：{new Date(config.updated_at).toLocaleString()}</p>
@@ -376,11 +376,11 @@ export const DataflowAnalysisConfigPage: React.FC<{ projectId: string; embedded?
                 <Settings size={18} className="text-rose-600" />
                 <h2 className="text-xl font-black text-slate-900">数据流分析参数配置</h2>
                 <span className="rounded-full border border-rose-200 bg-rose-50 px-3 py-1 text-[11px] font-black tracking-[0.12em] text-rose-700">
-                  secflow-app-dataflow-analyse
+                  chimera-app-dataflow-analyse
                 </span>
               </div>
               <p className="mt-2 text-sm text-slate-500">
-                当前 Tab 中的全部配置项都归属于 `secflow-app-dataflow-analyse` 微服务，用于控制数据流分析服务的追踪深度、轮次、重试和 Agent 模型行为。
+                当前 Tab 中的全部配置项都归属于 `chimera-app-dataflow-analyse` 微服务，用于控制数据流分析服务的追踪深度、轮次、重试和 Agent 模型行为。
               </p>
               {config.updated_at && (
                 <p className="mt-1 text-xs text-slate-400">上次保存：{new Date(config.updated_at).toLocaleString()}</p>
@@ -451,7 +451,7 @@ export const DataflowAnalysisConfigPage: React.FC<{ projectId: string; embedded?
                 </select>
               </FieldRow>
               <p className="text-xs leading-5 text-slate-500">
-                该配置作用于单个 `secflow-app-dataflow-analyse` 子任务；默认值为 `treat_as_passed`，
+                该配置作用于单个 `chimera-app-dataflow-analyse` 子任务；默认值为 `treat_as_passed`，
                 即当子任务达到 `max_rounds_exceeded` 时，不再按失败处理，而是按通过收敛并继续后续流程。
               </p>
             </div>

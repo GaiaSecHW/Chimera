@@ -208,10 +208,10 @@ export const TemplateLlmBindingEditor: React.FC<TemplateLlmBindingEditorProps> =
   };
 
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-4 space-y-4">
+    <div className="rounded-2xl border border-theme-border bg-theme-surface p-4 space-y-4">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <h4 className="text-sm font-black text-slate-800">{title}</h4>
+          <h4 className="text-sm font-black text-theme-text-primary">{title}</h4>
           <p className="text-xs text-slate-500 mt-1">{description}</p>
         </div>
         {providersLoading && <Loader2 size={16} className="animate-spin text-slate-400 shrink-0" />}
@@ -223,7 +223,7 @@ export const TemplateLlmBindingEditor: React.FC<TemplateLlmBindingEditorProps> =
               value={providerToAdd}
               disabled={disabled || providers.length === 0}
               onChange={(e) => setProviderToAdd(e.target.value)}
-              className="flex-1 px-3 py-2 text-xs border border-slate-200 rounded-xl outline-none focus:ring-2 ring-blue-500/10"
+              className="flex-1 px-3 py-2 text-xs border border-theme-border rounded-xl outline-none focus:ring-2 ring-blue-500/10"
             >
               {providers.length === 0 && <option value="">暂无可用 Provider</option>}
               {providers.map((provider) => (
@@ -249,14 +249,14 @@ export const TemplateLlmBindingEditor: React.FC<TemplateLlmBindingEditorProps> =
               selectedProviderKeys.map((providerKey, index) => {
                 const provider = providerMap.get(providerKey);
                 return (
-                  <div key={providerKey} className="flex items-center justify-between gap-3 rounded-xl border border-slate-200 px-3 py-2">
+                  <div key={providerKey} className="flex items-center justify-between gap-3 rounded-xl border border-theme-border px-3 py-2">
                     <div className="min-w-0">
-                      <div className="text-xs font-black text-slate-800 truncate">{provider?.display_name || providerKey}</div>
+                      <div className="text-xs font-black text-theme-text-primary truncate">{provider?.display_name || providerKey}</div>
                       <div className="text-[11px] text-slate-500 truncate">{providerKey} · {provider?.provider_type || 'unknown'}</div>
                     </div>
                     <div className="flex items-center gap-1 shrink-0">
-                      <button type="button" disabled={disabled || index === 0} onClick={() => moveProvider(index, -1)} className="p-2 rounded-lg text-slate-500 hover:bg-slate-100 disabled:opacity-40"><ArrowUp size={14} /></button>
-                      <button type="button" disabled={disabled || index === selectedProviderKeys.length - 1} onClick={() => moveProvider(index, 1)} className="p-2 rounded-lg text-slate-500 hover:bg-slate-100 disabled:opacity-40"><ArrowDown size={14} /></button>
+                      <button type="button" disabled={disabled || index === 0} onClick={() => moveProvider(index, -1)} className="p-2 rounded-lg text-theme-text-faint hover:bg-theme-elevated disabled:opacity-40"><ArrowUp size={14} /></button>
+                      <button type="button" disabled={disabled || index === selectedProviderKeys.length - 1} onClick={() => moveProvider(index, 1)} className="p-2 rounded-lg text-theme-text-faint hover:bg-theme-elevated disabled:opacity-40"><ArrowDown size={14} /></button>
                       <button type="button" disabled={disabled} onClick={() => removeProvider(providerKey)} className="p-2 rounded-lg text-red-500 hover:bg-red-50 disabled:opacity-40"><Trash2 size={14} /></button>
                     </div>
                   </div>
@@ -265,9 +265,9 @@ export const TemplateLlmBindingEditor: React.FC<TemplateLlmBindingEditorProps> =
             )}
           </div>
 
-          <div className="rounded-xl border border-slate-200 p-3 space-y-3">
-            <div className="text-xs font-black text-slate-700">注入目标</div>
-            <label className="flex items-center gap-2 text-xs text-slate-700">
+          <div className="rounded-xl border border-theme-border p-3 space-y-3">
+            <div className="text-xs font-black text-theme-text-primary">注入目标</div>
+            <label className="flex items-center gap-2 text-xs text-theme-text-primary">
               <input
                 type="radio"
                 checked={targetServices === '*'}
@@ -277,7 +277,7 @@ export const TemplateLlmBindingEditor: React.FC<TemplateLlmBindingEditorProps> =
               />
               全部 service
             </label>
-            <label className="flex items-center gap-2 text-xs text-slate-700">
+            <label className="flex items-center gap-2 text-xs text-theme-text-primary">
               <input
                 type="radio"
                 checked={targetServices !== '*'}
@@ -290,7 +290,7 @@ export const TemplateLlmBindingEditor: React.FC<TemplateLlmBindingEditorProps> =
             {targetServices !== '*' && (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-2 pt-1">
                 {canSelectSpecificServices ? serviceOptions.map((serviceName) => (
-                  <label key={serviceName} className="flex items-center gap-2 text-xs text-slate-700">
+                  <label key={serviceName} className="flex items-center gap-2 text-xs text-theme-text-primary">
                     <input
                       type="checkbox"
                       checked={Array.isArray(targetServices) && targetServices.includes(serviceName)}
@@ -307,10 +307,10 @@ export const TemplateLlmBindingEditor: React.FC<TemplateLlmBindingEditorProps> =
             )}
           </div>
 
-          <div className="rounded-xl border border-slate-200 p-3 space-y-3">
+          <div className="rounded-xl border border-theme-border p-3 space-y-3">
             <div className="flex items-center justify-between gap-3">
               <div>
-                <div className="text-xs font-black text-slate-700">最终环境变量预览</div>
+                <div className="text-xs font-black text-theme-text-primary">最终环境变量预览</div>
                 <div className="text-[11px] text-slate-500 mt-1">按当前 Provider 顺序合并，后者覆盖前者。</div>
               </div>
               {previewLoading && <Loader2 size={14} className="animate-spin text-slate-400" />}
@@ -321,23 +321,23 @@ export const TemplateLlmBindingEditor: React.FC<TemplateLlmBindingEditorProps> =
             )}
             {!previewError && preview && Object.keys(preview.merged_env || {}).length > 0 && (
               <div className="space-y-2 max-h-56 overflow-auto">
-                <div className="flex items-center gap-2 text-[11px] text-slate-500">
+                <div className="flex items-center gap-2 text-[11px] text-theme-text-secondary">
                   <Link2 size={13} /> 注入键数量: {preview.mapped_env_keys.length}
                 </div>
                 {Object.entries(preview.merged_env).map(([key, val]) => (
-                  <div key={key} className="grid grid-cols-[minmax(0,180px)_1fr] gap-3 text-[11px] font-mono bg-slate-50 rounded-lg px-3 py-2">
-                    <div className="text-slate-700 truncate">{key}</div>
-                    <div className="text-slate-500 break-all">{String(val)}</div>
+                  <div key={key} className="grid grid-cols-[minmax(0,180px)_1fr] gap-3 text-[11px] font-mono bg-theme-elevated rounded-lg px-3 py-2">
+                    <div className="text-theme-text-primary truncate">{key}</div>
+                    <div className="text-theme-text-secondary break-all">{String(val)}</div>
                   </div>
                 ))}
               </div>
             )}
           </div>
 
-          <div className="rounded-xl border border-slate-200 p-3 space-y-3">
+          <div className="rounded-xl border border-theme-border p-3 space-y-3">
             <div className="flex items-center justify-between gap-3">
               <div>
-                <div className="text-xs font-black text-slate-700">最终文件注入预览</div>
+                <div className="text-xs font-black text-theme-text-primary">最终文件注入预览</div>
                 <div className="text-[11px] text-slate-500 mt-1">按当前 Provider 顺序合并，同路径后者覆盖前者。</div>
               </div>
               {previewLoading && <Loader2 size={14} className="animate-spin text-slate-400" />}
@@ -348,15 +348,15 @@ export const TemplateLlmBindingEditor: React.FC<TemplateLlmBindingEditorProps> =
             )}
             {!previewError && preview && Array.isArray(preview.mapped_file_paths) && preview.mapped_file_paths.length > 0 && (
               <div className="space-y-2 max-h-56 overflow-auto">
-                <div className="flex items-center gap-2 text-[11px] text-slate-500">
+                <div className="flex items-center gap-2 text-[11px] text-theme-text-secondary">
                   <FileText size={13} /> 注入文件数量: {preview.mapped_file_paths.length}
                 </div>
                 {preview.mapped_file_paths.map((filePath) => {
                   const from = (preview.merged_files || []).find((item) => item.path === filePath)?.provider_key;
                   return (
-                    <div key={filePath} className="grid grid-cols-[minmax(0,1fr)_auto] gap-3 text-[11px] font-mono bg-slate-50 rounded-lg px-3 py-2">
-                      <div className="text-slate-700 truncate">{filePath}</div>
-                      <div className="text-slate-500">{from ? `from ${from}` : '-'}</div>
+                    <div key={filePath} className="grid grid-cols-[minmax(0,1fr)_auto] gap-3 text-[11px] font-mono bg-theme-elevated rounded-lg px-3 py-2">
+                      <div className="text-theme-text-primary truncate">{filePath}</div>
+                      <div className="text-theme-text-secondary">{from ? `from ${from}` : '-'}</div>
                     </div>
                   );
                 })}

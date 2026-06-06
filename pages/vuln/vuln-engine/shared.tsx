@@ -247,7 +247,7 @@ export const decisionTone: Record<string, string> = {
   observe: 'bg-blue-100 text-blue-700',
 };
 
-export const cardClass = 'bg-white border border-slate-200 rounded-[2rem] shadow-sm overflow-hidden';
+export const cardClass = 'bg-[var(--bg-surface)] border border-[rgba(255,255,255,0.08)] rounded-[2rem] shadow-sm overflow-hidden';
 
 export const toneOf = (value: string, mapper: Record<string, string>) => mapper[value] || 'bg-slate-100 text-slate-600';
 

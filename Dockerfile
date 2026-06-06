@@ -12,7 +12,7 @@ RUN npm run build
 
 FROM public.ecr.aws/docker/library/nginx:alpine
 
-COPY nginx-secflow-debug.conf /etc/nginx/conf.d/default.conf
+COPY nginx-chimera-debug.conf /etc/nginx/conf.d/default.conf
 COPY --from=builder /app/dist /usr/share/nginx/html
 
 EXPOSE 80

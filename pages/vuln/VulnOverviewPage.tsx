@@ -93,7 +93,7 @@ export const VulnOverviewPage: React.FC<VulnPageProps> = ({ projectId }) => {
 
   return (
     <div className="animate-in fade-in space-y-5 p-6 pb-16 duration-500 xl:p-8 xl:pb-20">
-      <section className="overflow-hidden rounded-[2rem] border border-slate-200 bg-[radial-gradient(circle_at_top_left,_rgba(244,63,94,0.12),_transparent_28%),radial-gradient(circle_at_top_right,_rgba(59,130,246,0.12),_transparent_24%),linear-gradient(180deg,_#ffffff_0%,_#f8fafc_100%)] shadow-sm">
+      <section className="overflow-hidden rounded-[2rem] border border-[rgba(255,255,255,0.08)] bg-[radial-gradient(circle_at_top_left,_rgba(244,63,94,0.08),_transparent_28%),radial-gradient(circle_at_top_right,_rgba(59,130,246,0.08),_transparent_24%),var(--bg-surface)] shadow-sm">
         <div className="flex flex-col gap-5 px-5 py-5 xl:flex-row xl:items-start xl:justify-between xl:px-6">
           <div className="min-w-0">
             <div className="inline-flex items-center gap-2 rounded-full bg-rose-50 px-3 py-1.5 text-[11px] font-black uppercase tracking-[0.2em] text-rose-700">
@@ -106,7 +106,7 @@ export const VulnOverviewPage: React.FC<VulnPageProps> = ({ projectId }) => {
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            <div className="rounded-xl border border-slate-200 bg-white/90 px-3 py-2">
+            <div className="rounded-xl border border-slate-200 bg-[var(--bg-surface)] px-3 py-2">
               <div className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-400">项目</div>
               <div className="mt-1 text-sm font-black text-slate-800">{projectId || 'n/a'}</div>
             </div>
@@ -121,7 +121,7 @@ export const VulnOverviewPage: React.FC<VulnPageProps> = ({ projectId }) => {
         </div>
 
         <div className="grid gap-3 border-t border-slate-100 px-5 py-4 md:grid-cols-2 xl:grid-cols-5 xl:px-6">
-          <div className="rounded-[1.4rem] border border-slate-200 bg-white/90 px-4 py-3 shadow-sm">
+          <div className="rounded-[1.4rem] border border-slate-200 bg-[var(--bg-surface)] px-4 py-3 shadow-sm">
             <div className="flex items-center justify-between">
               <span className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-400">漏洞总数</span>
               <ShieldAlert className="text-rose-200" size={18} />
@@ -130,7 +130,7 @@ export const VulnOverviewPage: React.FC<VulnPageProps> = ({ projectId }) => {
             <div className="mt-1 text-xs text-slate-500">生命周期纳管总量</div>
           </div>
 
-          <div className="rounded-[1.4rem] border border-slate-200 bg-white/90 px-4 py-3 shadow-sm">
+          <div className="rounded-[1.4rem] border border-slate-200 bg-[var(--bg-surface)] px-4 py-3 shadow-sm">
             <div className="flex items-center justify-between">
               <span className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-400">高危占比</span>
               <AlertTriangle className="text-orange-200" size={18} />
@@ -139,7 +139,7 @@ export const VulnOverviewPage: React.FC<VulnPageProps> = ({ projectId }) => {
             <div className="mt-1 text-xs text-slate-500">{highRiskCount} 个严重 / 高危</div>
           </div>
 
-          <div className="rounded-[1.4rem] border border-slate-200 bg-white/90 px-4 py-3 shadow-sm">
+          <div className="rounded-[1.4rem] border border-slate-200 bg-[var(--bg-surface)] px-4 py-3 shadow-sm">
             <div className="flex items-center justify-between">
               <span className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-400">外部等待</span>
               <Activity className="text-indigo-200" size={18} />
@@ -148,7 +148,7 @@ export const VulnOverviewPage: React.FC<VulnPageProps> = ({ projectId }) => {
             <div className="mt-1 text-xs text-slate-500">外部模块尚未回传</div>
           </div>
 
-          <div className="rounded-[1.4rem] border border-slate-200 bg-white/90 px-4 py-3 shadow-sm">
+          <div className="rounded-[1.4rem] border border-slate-200 bg-[var(--bg-surface)] px-4 py-3 shadow-sm">
             <div className="flex items-center justify-between">
               <span className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-400">结束占比</span>
               <TrendingUp className="text-emerald-300" size={18} />
@@ -184,7 +184,7 @@ export const VulnOverviewPage: React.FC<VulnPageProps> = ({ projectId }) => {
             <div className="p-5">
               <div className="grid gap-3 md:grid-cols-4">
                 {STAGE_ORDER.map((stage, index) => (
-                  <div key={stage} className="relative rounded-[1.2rem] border border-slate-200 bg-slate-50/80 px-4 py-3">
+                  <div key={stage} className="relative rounded-[1.2rem] border border-slate-200 bg-[rgba(255,255,255,0.04)] px-4 py-3">
                     {index < STAGE_ORDER.length - 1 && (
                       <div className="absolute -right-2 top-1/2 hidden h-px w-4 -translate-y-1/2 bg-slate-300 md:block" />
                     )}
@@ -211,7 +211,7 @@ export const VulnOverviewPage: React.FC<VulnPageProps> = ({ projectId }) => {
             </div>
             <div className="grid gap-3 p-5">
               {stageItems.map((item) => (
-                <div key={item.stage} className="rounded-[1.2rem] border border-slate-200 bg-slate-50/70 px-4 py-3">
+                <div key={item.stage} className="rounded-[1.2rem] border border-slate-200 bg-[rgba(255,255,255,0.04)] px-4 py-3">
                   <div className="flex items-center justify-between gap-4">
                     <div className="flex min-w-0 items-center gap-3">
                       <span className={`rounded-lg px-2.5 py-1 text-[10px] font-black uppercase tracking-widest ${toneOf(item.stage, stageTone)}`}>
@@ -263,7 +263,7 @@ export const VulnOverviewPage: React.FC<VulnPageProps> = ({ projectId }) => {
               </div>
               <div className="grid gap-3 p-5">
                 {severityItems.map((item) => (
-                  <div key={item.severity} className="flex items-center justify-between rounded-[1.2rem] border border-slate-200 bg-slate-50/70 px-4 py-3">
+                  <div key={item.severity} className="flex items-center justify-between rounded-[1.2rem] border border-slate-200 bg-[rgba(255,255,255,0.04)] px-4 py-3">
                     <div className="flex items-center gap-3">
                       <span className={`h-3 w-3 rounded-full ${severityPalette[item.severity] || 'bg-slate-400'}`} />
                       <span className="text-sm font-black tracking-[0.08em] text-slate-700">{labelOf(item.severity, SEVERITY_LABELS)}</span>
@@ -283,20 +283,20 @@ export const VulnOverviewPage: React.FC<VulnPageProps> = ({ projectId }) => {
               <p className="mt-1 text-xs text-slate-500">服务供给、动作队列和运行中案例的即时状态。</p>
             </div>
             <div className="grid gap-3 p-5 sm:grid-cols-2">
-              <div className="rounded-[1.2rem] border border-slate-200 bg-slate-50/70 px-4 py-3">
+              <div className="rounded-[1.2rem] border border-slate-200 bg-[rgba(255,255,255,0.04)] px-4 py-3">
                 <div className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-400">运行中 Case</div>
                 <div className="mt-2 text-3xl font-black text-slate-900">{runningCases}</div>
               </div>
-              <div className="rounded-[1.2rem] border border-slate-200 bg-slate-50/70 px-4 py-3">
+              <div className="rounded-[1.2rem] border border-slate-200 bg-[rgba(255,255,255,0.04)] px-4 py-3">
                 <div className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-400">排队动作</div>
                 <div className="mt-2 text-3xl font-black text-slate-900">{queuedActions}</div>
               </div>
-              <div className="rounded-[1.2rem] border border-slate-200 bg-slate-50/70 px-4 py-3">
+              <div className="rounded-[1.2rem] border border-slate-200 bg-[rgba(255,255,255,0.04)] px-4 py-3">
                 <div className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-400">活跃服务</div>
                 <div className="mt-2 text-3xl font-black text-slate-900">{activeServices}</div>
                 <div className="mt-1 text-xs text-slate-500">注册 {registeredServices}</div>
               </div>
-              <div className="rounded-[1.2rem] border border-slate-200 bg-slate-50/70 px-4 py-3">
+              <div className="rounded-[1.2rem] border border-slate-200 bg-[rgba(255,255,255,0.04)] px-4 py-3">
                 <div className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-400">服务可用率</div>
                 <div className="mt-2 text-3xl font-black text-slate-900">{serviceAvailabilityRate}%</div>
               </div>

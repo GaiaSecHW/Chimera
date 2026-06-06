@@ -9,9 +9,9 @@ interface ExecutionWorkPlatformPageProps {
 }
 
 export const ExecutionWorkPlatformPage: React.FC<ExecutionWorkPlatformPageProps> = ({ projectId }) => {
-  const token = localStorage.getItem('secflow_token') || '';
+  const token = localStorage.getItem('chimera_token') || '';
   // 动态构建带有 project_id 和 token 的 URL
-  const targetUrl = `https://secflow.ai.icsl.huawei.com/gaiasec/?project_id=${encodeURIComponent(projectId)}&token=${encodeURIComponent(token)}`;
+  const targetUrl = `https://chimera.ai.icsl.huawei.com/gaiasec/?project_id=${encodeURIComponent(projectId)}&token=${encodeURIComponent(token)}`;
 
   return (
     <div className="h-full w-full flex flex-col animate-in fade-in duration-500 bg-white overflow-hidden relative">

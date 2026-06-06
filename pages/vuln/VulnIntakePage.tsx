@@ -201,7 +201,7 @@ const ARTIFACT_GUIDE = [
   { title: '清单与引用混合', detail: '可以在一个 artifacts 数组中同时放目录清单、文本文件和 content_ref 引用。' },
 ];
 
-const ANALYSIS_DETAIL_TARGET_KEY = 'secflow-vuln-open-case-id';
+const ANALYSIS_DETAIL_TARGET_KEY = 'chimera-vuln-open-case-id';
 
 type EditableCaseIntake = {
   title: string;
@@ -635,8 +635,8 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId }) => {
         project_id: selectedDetail.project_id,
         items: selectedLinkedPaths,
       });
-      sessionStorage.setItem('secflow:archiveTaskFocus', resp.task_id);
-      window.dispatchEvent(new CustomEvent('secflow-navigate-view', { detail: { view: 'fileserver-archive-tasks' } }));
+      sessionStorage.setItem('chimera:archiveTaskFocus', resp.task_id);
+      window.dispatchEvent(new CustomEvent('chimera-navigate-view', { detail: { view: 'fileserver-archive-tasks' } }));
     } catch (err: any) {
       setError(err?.message || '创建打包任务失败');
     } finally {
@@ -1401,7 +1401,7 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId }) => {
                   <div className="rounded-xl bg-slate-50 px-4 py-4 text-sm text-slate-400">暂无时间线数据</div>
                 ) : (
                   selectedTimeline.map((item: any) => (
-                    <div key={item.id} className="rounded-xl border border-slate-200 bg-slate-50/70 px-4 py-3">
+                    <div key={item.id} className="rounded-xl border border-slate-200 bg-[rgba(255,255,255,0.04)] px-4 py-3">
                       <div className="flex items-center justify-between gap-3">
                         <div className="text-sm font-black text-slate-800">
                           {item.payload?.summary || item.payload?.event_type || item.item_type}
@@ -2117,7 +2117,7 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId }) => {
           <div className="space-y-8">
             <div className="grid gap-5 xl:grid-cols-2 2xl:grid-cols-4">
               {(catalog?.items || []).map((item: any) => (
-                <div key={item.kind} className="rounded-[1.75rem] border border-slate-200 bg-slate-50/80 p-6 shadow-sm">
+                <div key={item.kind} className="rounded-[1.75rem] border border-slate-200 bg-[rgba(255,255,255,0.04)] p-6 shadow-sm">
                   <div className="flex items-start justify-between gap-4">
                     <div className="flex items-center gap-3">
                       <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-slate-900 text-white">
@@ -2180,7 +2180,7 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId }) => {
                   <div className="text-[11px] font-black uppercase tracking-[0.22em] text-slate-400">自定义元数据</div>
                   <div className="mt-4 space-y-3">
                     {METADATA_GUIDE.map((item) => (
-                      <div key={item.key} className="rounded-[1.25rem] border border-slate-200 bg-slate-50/80 px-4 py-4">
+                      <div key={item.key} className="rounded-[1.25rem] border border-slate-200 bg-[rgba(255,255,255,0.04)] px-4 py-4">
                         <div className="font-mono text-xs font-black text-slate-800">{item.key}</div>
                         <div className="mt-2 text-sm leading-6 text-slate-600">{item.value}</div>
                       </div>
@@ -2192,7 +2192,7 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId }) => {
                   <div className="text-[11px] font-black uppercase tracking-[0.22em] text-slate-400">文件与文件夹上报</div>
                   <div className="mt-4 space-y-3">
                     {ARTIFACT_GUIDE.map((item) => (
-                      <div key={item.title} className="rounded-[1.25rem] border border-slate-200 bg-slate-50/80 px-4 py-4">
+                      <div key={item.title} className="rounded-[1.25rem] border border-slate-200 bg-[rgba(255,255,255,0.04)] px-4 py-4">
                         <div className="text-sm font-black text-slate-800">{item.title}</div>
                         <div className="mt-2 text-sm leading-6 text-slate-600">{item.detail}</div>
                       </div>

@@ -91,7 +91,7 @@ export const ComposeViewer: React.FC<ComposeViewerProps> = ({
       {/* Networks 展示 */}
       {parsedCompose.networks && Object.keys(parsedCompose.networks).length > 0 && (
         <div>
-          <h4 className="text-lg font-black text-slate-800 mb-4 flex items-center gap-2">
+          <h4 className="text-lg font-black text-theme-text-primary mb-4 flex items-center gap-2">
             <Network size={20} className="text-purple-600" />
             Networks ({networksCount})
           </h4>

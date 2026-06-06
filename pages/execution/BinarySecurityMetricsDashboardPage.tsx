@@ -536,8 +536,8 @@ const CHART_COLOR = '#0f766e';
 const AI_CHART_COLOR = '#7c3aed';
 const CHART_GRID = '#e2e8f0';
 const INITIAL_STATE: MetricsState = { loading: false, rawText: '', error: null, refreshedAt: null };
-const ENTRY_ANALYSIS_STAGE_FOCUS_STORAGE_KEY = 'secflow:entryAnalysisStageFocus';
-const ENTRY_ANALYSIS_RISK_FOCUS_STORAGE_KEY = 'secflow:entryAnalysisRiskFocus';
+const ENTRY_ANALYSIS_STAGE_FOCUS_STORAGE_KEY = 'chimera:entryAnalysisStageFocus';
+const ENTRY_ANALYSIS_RISK_FOCUS_STORAGE_KEY = 'chimera:entryAnalysisRiskFocus';
 
 function entryAnalysisRiskKeyFromLabel(label: string): string {
   if (label === '排队堆积') return 'queue-pressure';
@@ -636,7 +636,7 @@ const isAiMetric = (metric: ParsedMetricSample) => {
 };
 
 const metricGroupingFingerprint = (metric: ParsedMetricSample) => {
-  const serviceNeutralName = metric.name.replace(/^firmware_unpacker_/u, '').replace(/^secflow_/u, '');
+  const serviceNeutralName = metric.name.replace(/^firmware_unpacker_/u, '').replace(/^chimera_/u, '');
   return `${serviceNeutralName} ${Object.keys(metric.labels).join(' ')} ${Object.values(metric.labels).join(' ')}`.toLowerCase();
 };
 
@@ -683,7 +683,7 @@ const labelTextForMetric = (labels: Record<string, string>) => {
   return entries.map(([key, value]) => `${key}=${value}`).join(', ');
 };
 
-const metricDisplayName = (metric: ParsedMetricSample) => metric.name.replace(/^secflow_/u, '').replace(/_/gu, ' ');
+const metricDisplayName = (metric: ParsedMetricSample) => metric.name.replace(/^chimera_/u, '').replace(/_/gu, ' ');
 
 const scoreMetric = (metric: DisplayMetricRow, service: BinarySecurityMetricsServiceDefinition) => {
   const groupOrder = service.preferredGroups.indexOf(metric.group);
@@ -761,10 +761,10 @@ const buildServiceViewModel = (rawText: string, service: BinarySecurityMetricsSe
 
 const buildAggregateCoverageSummary = (rows: DisplayMetricRow[], serviceKey: BinarySecurityMetricsServiceKey): AggregateCoverageSummary | null => {
   if (serviceKey !== 'binary-security') return null;
-  const expectedRows = rows.filter((row) => row.name === 'secflow_binary_security_metrics_aggregate_role_expected');
-  const coveredRows = rows.filter((row) => row.name === 'secflow_binary_security_metrics_aggregate_role_covered');
-  const attemptedRows = rows.filter((row) => row.name === 'secflow_binary_security_metrics_aggregate_scrape_targets');
-  const successRows = rows.filter((row) => row.name === 'secflow_binary_security_metrics_aggregate_scrape_success_targets');
+  const expectedRows = rows.filter((row) => row.name === 'chimera_binary_security_metrics_aggregate_role_expected');
+  const coveredRows = rows.filter((row) => row.name === 'chimera_binary_security_metrics_aggregate_role_covered');
+  const attemptedRows = rows.filter((row) => row.name === 'chimera_binary_security_metrics_aggregate_scrape_targets');
+  const successRows = rows.filter((row) => row.name === 'chimera_binary_security_metrics_aggregate_scrape_success_targets');
   const useCanonicalRoleCoverage = expectedRows.length > 0 || coveredRows.length > 0;
   if (!useCanonicalRoleCoverage && !attemptedRows.length && !successRows.length) return null;
   const roles = new Set<string>();
@@ -789,8 +789,8 @@ const buildAggregateCoverageSummary = (rows: DisplayMetricRow[], serviceKey: Bin
   const attempted = attemptedByRole.reduce((sum, item) => sum + item.attempted, 0);
   const successful = attemptedByRole.reduce((sum, item) => sum + item.successful, 0);
   const partialRow =
-    rows.find((row) => row.name === 'secflow_binary_security_health_aggregate_partial') ||
-    rows.find((row) => row.name === 'secflow_binary_security_metrics_aggregate_partial');
+    rows.find((row) => row.name === 'chimera_binary_security_health_aggregate_partial') ||
+    rows.find((row) => row.name === 'chimera_binary_security_metrics_aggregate_partial');
   return {
     attempted,
     successful,
@@ -804,56 +804,56 @@ const buildBinarySecurityObservabilityViewModel = (
   aggregateCoverage: AggregateCoverageSummary | null,
 ): BinarySecurityObservabilityViewModel => {
   const pendingDepth = firstMetricValue(rows, [
-    { name: 'secflow_binary_security_health_pending_event_depth' },
-    { name: 'secflow_binary_security_state_event_queue_depth', labels: { status: 'pending' } },
+    { name: 'chimera_binary_security_health_pending_event_depth' },
+    { name: 'chimera_binary_security_state_event_queue_depth', labels: { status: 'pending' } },
   ]);
-  const retryableDepth = metricValueByName(rows, 'secflow_binary_security_state_event_queue_depth', { status: 'retryable' });
+  const retryableDepth = metricValueByName(rows, 'chimera_binary_security_state_event_queue_depth', { status: 'retryable' });
   const deadLetterDepth = firstMetricValue(rows, [
-    { name: 'secflow_binary_security_health_dead_letter_depth' },
-    { name: 'secflow_binary_security_state_event_queue_depth', labels: { status: 'dead_letter' } },
+    { name: 'chimera_binary_security_health_dead_letter_depth' },
+    { name: 'chimera_binary_security_state_event_queue_depth', labels: { status: 'dead_letter' } },
   ]);
   const oldestPendingAge = firstMetricValue(rows, [
-    { name: 'secflow_binary_security_health_oldest_pending_age_seconds' },
-    { name: 'secflow_binary_security_state_event_oldest_age_seconds', labels: { status: 'pending' } },
+    { name: 'chimera_binary_security_health_oldest_pending_age_seconds' },
+    { name: 'chimera_binary_security_state_event_oldest_age_seconds', labels: { status: 'pending' } },
   ]);
   const reducerAvgDuration =
-    firstMetricValue(rows, [{ name: 'secflow_binary_security_health_reducer_avg_duration_seconds' }]) ??
-    histogramAverage(rows, 'secflow_binary_security_state_reducer_duration_seconds');
+    firstMetricValue(rows, [{ name: 'chimera_binary_security_health_reducer_avg_duration_seconds' }]) ??
+    histogramAverage(rows, 'chimera_binary_security_state_reducer_duration_seconds');
   const eventAvgLag =
-    firstMetricValue(rows, [{ name: 'secflow_binary_security_health_event_avg_lag_seconds' }]) ??
-    histogramAverage(rows, 'secflow_binary_security_state_event_lag_seconds');
+    firstMetricValue(rows, [{ name: 'chimera_binary_security_health_event_avg_lag_seconds' }]) ??
+    histogramAverage(rows, 'chimera_binary_security_state_event_lag_seconds');
   const lockWaitAvg =
-    firstMetricValue(rows, [{ name: 'secflow_binary_security_health_lock_wait_avg_seconds' }]) ??
-    histogramAverage(rows, 'secflow_binary_security_task_state_lock_wait_seconds');
+    firstMetricValue(rows, [{ name: 'chimera_binary_security_health_lock_wait_avg_seconds' }]) ??
+    histogramAverage(rows, 'chimera_binary_security_task_state_lock_wait_seconds');
   const lockHeldAvg =
-    firstMetricValue(rows, [{ name: 'secflow_binary_security_health_lock_held_avg_seconds' }]) ??
-    histogramAverage(rows, 'secflow_binary_security_task_state_lock_held_seconds');
-  const activeLocks = sumMetric(rows, (row) => row.name === 'secflow_binary_security_task_state_lock_active');
-  const deadLettersTotal = sumMetric(rows, (row) => row.name === 'secflow_binary_security_state_dead_letters_total');
-  const reducerRunFailed = sumMetric(rows, (row) => row.name === 'secflow_binary_security_state_reducer_runs_total' && row.labels.result === 'failed');
-  const reducerRunLockBusy = sumMetric(rows, (row) => row.name === 'secflow_binary_security_state_reducer_runs_total' && row.labels.result === 'lock_busy');
+    firstMetricValue(rows, [{ name: 'chimera_binary_security_health_lock_held_avg_seconds' }]) ??
+    histogramAverage(rows, 'chimera_binary_security_task_state_lock_held_seconds');
+  const activeLocks = sumMetric(rows, (row) => row.name === 'chimera_binary_security_task_state_lock_active');
+  const deadLettersTotal = sumMetric(rows, (row) => row.name === 'chimera_binary_security_state_dead_letters_total');
+  const reducerRunFailed = sumMetric(rows, (row) => row.name === 'chimera_binary_security_state_reducer_runs_total' && row.labels.result === 'failed');
+  const reducerRunLockBusy = sumMetric(rows, (row) => row.name === 'chimera_binary_security_state_reducer_runs_total' && row.labels.result === 'lock_busy');
   const archiveQueued =
-    firstMetricValue(rows, [{ name: 'secflow_binary_security_health_archive_queued_jobs' }]) ??
-    sumMetric(rows, (row) => row.name === 'secflow_binary_security_archive_jobs_by_status' && row.labels.status === 'queued');
+    firstMetricValue(rows, [{ name: 'chimera_binary_security_health_archive_queued_jobs' }]) ??
+    sumMetric(rows, (row) => row.name === 'chimera_binary_security_archive_jobs_by_status' && row.labels.status === 'queued');
   const archiveRunning =
-    firstMetricValue(rows, [{ name: 'secflow_binary_security_health_archive_running_jobs' }]) ??
-    sumMetric(rows, (row) => row.name === 'secflow_binary_security_archive_jobs_by_status' && row.labels.status === 'running');
-  const runningWorkers = sumMetric(rows, (row) => row.name === 'secflow_binary_security_active_workers' && row.labels.kind === 'running');
-  const pendingWorkers = sumMetric(rows, (row) => row.name === 'secflow_binary_security_active_workers' && row.labels.kind === 'pending');
-  const dispatchWorkers = sumMetric(rows, (row) => row.name === 'secflow_binary_security_active_workers' && row.labels.kind === 'dispatch');
+    firstMetricValue(rows, [{ name: 'chimera_binary_security_health_archive_running_jobs' }]) ??
+    sumMetric(rows, (row) => row.name === 'chimera_binary_security_archive_jobs_by_status' && row.labels.status === 'running');
+  const runningWorkers = sumMetric(rows, (row) => row.name === 'chimera_binary_security_active_workers' && row.labels.kind === 'running');
+  const pendingWorkers = sumMetric(rows, (row) => row.name === 'chimera_binary_security_active_workers' && row.labels.kind === 'pending');
+  const dispatchWorkers = sumMetric(rows, (row) => row.name === 'chimera_binary_security_active_workers' && row.labels.kind === 'dispatch');
   const alerts: Array<{ label: string; text: string; tone: string }> = [];
-  const reconcileCandidates = metricValueByName(rows, 'secflow_binary_security_task_readless_reconcile_candidates');
-  const reconcileLastAttempted = metricValueByName(rows, 'secflow_binary_security_task_readless_reconcile_last_attempted');
-  const reconcileLastChanged = metricValueByName(rows, 'secflow_binary_security_task_readless_reconcile_last_changed');
-  const reconcileLastFailed = metricValueByName(rows, 'secflow_binary_security_task_readless_reconcile_last_failed');
-  const reconcileLastRunAt = metricValueByName(rows, 'secflow_binary_security_task_readless_reconcile_last_run_timestamp');
-  const reconcileChangedTotal = metricValueByName(rows, 'secflow_binary_security_task_readless_reconcile_tasks_total', { result: 'changed' });
-  const reconcileFailedTotal = metricValueByName(rows, 'secflow_binary_security_task_readless_reconcile_tasks_total', { result: 'failed' });
-  const listQueryTotal = sumMetric(rows, (row) => row.name === 'secflow_binary_security_task_list_queries_total');
-  const listQueryErrors = sumMetric(rows, (row) => row.name === 'secflow_binary_security_task_list_queries_total' && row.labels.result === 'error');
-  const listQueryAvgSeconds = histogramAverage(rows, 'secflow_binary_security_task_list_query_duration_seconds');
-  const listQueryP50Seconds = histogramQuantile(rows, 'secflow_binary_security_task_list_query_duration_seconds', 0.5);
-  const listQueryP95Seconds = histogramQuantile(rows, 'secflow_binary_security_task_list_query_duration_seconds', 0.95);
+  const reconcileCandidates = metricValueByName(rows, 'chimera_binary_security_task_readless_reconcile_candidates');
+  const reconcileLastAttempted = metricValueByName(rows, 'chimera_binary_security_task_readless_reconcile_last_attempted');
+  const reconcileLastChanged = metricValueByName(rows, 'chimera_binary_security_task_readless_reconcile_last_changed');
+  const reconcileLastFailed = metricValueByName(rows, 'chimera_binary_security_task_readless_reconcile_last_failed');
+  const reconcileLastRunAt = metricValueByName(rows, 'chimera_binary_security_task_readless_reconcile_last_run_timestamp');
+  const reconcileChangedTotal = metricValueByName(rows, 'chimera_binary_security_task_readless_reconcile_tasks_total', { result: 'changed' });
+  const reconcileFailedTotal = metricValueByName(rows, 'chimera_binary_security_task_readless_reconcile_tasks_total', { result: 'failed' });
+  const listQueryTotal = sumMetric(rows, (row) => row.name === 'chimera_binary_security_task_list_queries_total');
+  const listQueryErrors = sumMetric(rows, (row) => row.name === 'chimera_binary_security_task_list_queries_total' && row.labels.result === 'error');
+  const listQueryAvgSeconds = histogramAverage(rows, 'chimera_binary_security_task_list_query_duration_seconds');
+  const listQueryP50Seconds = histogramQuantile(rows, 'chimera_binary_security_task_list_query_duration_seconds', 0.5);
+  const listQueryP95Seconds = histogramQuantile(rows, 'chimera_binary_security_task_list_query_duration_seconds', 0.95);
   const taskListPerfStageKeys = [
     'count',
     'page_items',
@@ -879,9 +879,9 @@ const buildBinarySecurityObservabilityViewModel = (
   };
   const taskListStageRows = taskListPerfStageKeys
     .map((stage) => {
-      const p95Seconds = histogramQuantile(rows, 'secflow_binary_security_task_list_query_stage_duration_seconds', 0.95, { stage });
-      const avgSeconds = histogramAverage(rows, 'secflow_binary_security_task_list_query_stage_duration_seconds', { stage });
-      const count = metricValueByName(rows, 'secflow_binary_security_task_list_query_stage_duration_seconds_count', { stage });
+      const p95Seconds = histogramQuantile(rows, 'chimera_binary_security_task_list_query_stage_duration_seconds', 0.95, { stage });
+      const avgSeconds = histogramAverage(rows, 'chimera_binary_security_task_list_query_stage_duration_seconds', { stage });
+      const count = metricValueByName(rows, 'chimera_binary_security_task_list_query_stage_duration_seconds_count', { stage });
       const severity = Math.max(p95Seconds || 0, avgSeconds || 0);
       const tone =
         severity > 1
@@ -1137,23 +1137,23 @@ const buildRestApiViewModel = (rows: DisplayMetricRow[]): RestApiViewModel => {
     item.avgSeconds =
       histogramAverage(rows, 'http_request_duration_seconds', { route: item.route, method: item.method }) ??
       histogramAverage(rows, 'api_request_duration_seconds', { route: item.route, method: item.method }) ??
-      histogramAverage(rows, 'secflow_http_request_duration_seconds', { route: item.route, method: item.method }) ??
-      histogramAverage(rows, 'secflow_api_request_duration_seconds', { route: item.route, method: item.method });
+      histogramAverage(rows, 'chimera_http_request_duration_seconds', { route: item.route, method: item.method }) ??
+      histogramAverage(rows, 'chimera_api_request_duration_seconds', { route: item.route, method: item.method });
     item.p50Seconds =
       histogramQuantile(rows, 'http_request_duration_seconds', 0.5, { route: item.route, method: item.method }) ??
       histogramQuantile(rows, 'api_request_duration_seconds', 0.5, { route: item.route, method: item.method }) ??
-      histogramQuantile(rows, 'secflow_http_request_duration_seconds', 0.5, { route: item.route, method: item.method }) ??
-      histogramQuantile(rows, 'secflow_api_request_duration_seconds', 0.5, { route: item.route, method: item.method });
+      histogramQuantile(rows, 'chimera_http_request_duration_seconds', 0.5, { route: item.route, method: item.method }) ??
+      histogramQuantile(rows, 'chimera_api_request_duration_seconds', 0.5, { route: item.route, method: item.method });
     item.p95Seconds =
       histogramQuantile(rows, 'http_request_duration_seconds', 0.95, { route: item.route, method: item.method }) ??
       histogramQuantile(rows, 'api_request_duration_seconds', 0.95, { route: item.route, method: item.method }) ??
-      histogramQuantile(rows, 'secflow_http_request_duration_seconds', 0.95, { route: item.route, method: item.method }) ??
-      histogramQuantile(rows, 'secflow_api_request_duration_seconds', 0.95, { route: item.route, method: item.method });
+      histogramQuantile(rows, 'chimera_http_request_duration_seconds', 0.95, { route: item.route, method: item.method }) ??
+      histogramQuantile(rows, 'chimera_api_request_duration_seconds', 0.95, { route: item.route, method: item.method });
     item.p99Seconds =
       histogramQuantile(rows, 'http_request_duration_seconds', 0.99, { route: item.route, method: item.method }) ??
       histogramQuantile(rows, 'api_request_duration_seconds', 0.99, { route: item.route, method: item.method }) ??
-      histogramQuantile(rows, 'secflow_http_request_duration_seconds', 0.99, { route: item.route, method: item.method }) ??
-      histogramQuantile(rows, 'secflow_api_request_duration_seconds', 0.99, { route: item.route, method: item.method });
+      histogramQuantile(rows, 'chimera_http_request_duration_seconds', 0.99, { route: item.route, method: item.method }) ??
+      histogramQuantile(rows, 'chimera_api_request_duration_seconds', 0.99, { route: item.route, method: item.method });
     item.approxMaxSeconds = Math.max(item.p99Seconds || 0, item.p95Seconds || 0, item.avgSeconds || 0) || null;
   }
 
@@ -1370,47 +1370,47 @@ const averageFromSummary = (rows: DisplayMetricRow[], familyName: string, labels
 };
 
 const buildSystemAnalysisViewModel = (rows: DisplayMetricRow[]): SystemAnalysisViewModel => {
-  const running = valueOrZero(metricValueByName(rows, 'secflow_sa_tasks_running'));
-  const pending = valueOrZero(metricValueByName(rows, 'secflow_sa_tasks_pending'));
-  const finished = valueOrZero(metricValueByName(rows, 'secflow_sa_tasks_finished'));
-  const queueWaitAvg = averageFromSummary(rows, 'secflow_sa_queue_wait_seconds');
-  const executionAvg = averageFromSummary(rows, 'secflow_sa_execution_seconds');
-  const turnaroundAvg = averageFromSummary(rows, 'secflow_sa_turnaround_seconds');
-  const workerCapacity = metricValueByName(rows, 'secflow_sa_worker_runtime', { kind: 'capacity' });
-  const workerRunning = metricValueByName(rows, 'secflow_sa_worker_runtime', { kind: 'running' });
-  const workerAvailableSlots = metricValueByName(rows, 'secflow_sa_worker_runtime', { kind: 'available_slots' });
-  const workerRuntimeUtilization = metricValueByName(rows, 'secflow_sa_worker_utilization_ratio');
-  const workers = valueOrZero(workerCapacity ?? metricValueByName(rows, 'secflow_sa_workers'));
-  const judges = valueOrZero(metricValueByName(rows, 'secflow_sa_judges'));
-  const sessions = valueOrZero(metricValueByName(rows, 'secflow_sa_sessions'));
-  const retryTotal = valueOrZero(metricValueByName(rows, 'secflow_sa_retry_total'));
-  const timeoutTotal = valueOrZero(metricValueByName(rows, 'secflow_sa_timeout_total'));
-  const cancelTotal = valueOrZero(metricValueByName(rows, 'secflow_sa_cancel_total'));
-  const tokenInputTotal = valueOrZero(metricValueByName(rows, 'secflow_sa_token_input_total'));
-  const tokenOutputTotal = valueOrZero(metricValueByName(rows, 'secflow_sa_token_output_total'));
-  const tokenCostTotal = metricValueByName(rows, 'secflow_sa_token_cost_total');
-  const tokenInputRunning = valueOrZero(metricValueByName(rows, 'secflow_sa_token_input_running'));
-  const tokenOutputRunning = valueOrZero(metricValueByName(rows, 'secflow_sa_token_output_running'));
-  const tokenCostRunning = metricValueByName(rows, 'secflow_sa_token_cost_running');
-  const moduleTotal = valueOrZero(metricValueByName(rows, 'secflow_sa_module_total'));
-  const moduleCompletedTotal = valueOrZero(metricValueByName(rows, 'secflow_sa_module_completed_total'));
-  const moduleFailedTotal = valueOrZero(metricValueByName(rows, 'secflow_sa_module_failed_total'));
-  const checkpointAnyTasks = valueOrZero(metricValueByName(rows, 'secflow_sa_checkpoint_tasks', { state: 'any' }));
-  const checkpointPartialTasks = valueOrZero(metricValueByName(rows, 'secflow_sa_checkpoint_tasks', { state: 'partial' }));
-  const checkpointOverallDoneTasks = valueOrZero(metricValueByName(rows, 'secflow_sa_checkpoint_tasks', { state: 'overall_done' }));
-  const firstRoundPassRate = averageFromSummary(rows, 'secflow_sa_effectiveness_first_round_pass_rate');
-  const finalModulePassRate = averageFromSummary(rows, 'secflow_sa_effectiveness_final_module_pass_rate');
-  const multiRoundPassRate = averageFromSummary(rows, 'secflow_sa_effectiveness_multi_round_pass_rate');
-  const reflectionRounds = valueOrZero(metricValueByName(rows, 'secflow_sa_effectiveness_reflection_round_total'));
-  const reclassifyTotal = valueOrZero(metricValueByName(rows, 'secflow_sa_effectiveness_reclassify_total'));
+  const running = valueOrZero(metricValueByName(rows, 'chimera_sa_tasks_running'));
+  const pending = valueOrZero(metricValueByName(rows, 'chimera_sa_tasks_pending'));
+  const finished = valueOrZero(metricValueByName(rows, 'chimera_sa_tasks_finished'));
+  const queueWaitAvg = averageFromSummary(rows, 'chimera_sa_queue_wait_seconds');
+  const executionAvg = averageFromSummary(rows, 'chimera_sa_execution_seconds');
+  const turnaroundAvg = averageFromSummary(rows, 'chimera_sa_turnaround_seconds');
+  const workerCapacity = metricValueByName(rows, 'chimera_sa_worker_runtime', { kind: 'capacity' });
+  const workerRunning = metricValueByName(rows, 'chimera_sa_worker_runtime', { kind: 'running' });
+  const workerAvailableSlots = metricValueByName(rows, 'chimera_sa_worker_runtime', { kind: 'available_slots' });
+  const workerRuntimeUtilization = metricValueByName(rows, 'chimera_sa_worker_utilization_ratio');
+  const workers = valueOrZero(workerCapacity ?? metricValueByName(rows, 'chimera_sa_workers'));
+  const judges = valueOrZero(metricValueByName(rows, 'chimera_sa_judges'));
+  const sessions = valueOrZero(metricValueByName(rows, 'chimera_sa_sessions'));
+  const retryTotal = valueOrZero(metricValueByName(rows, 'chimera_sa_retry_total'));
+  const timeoutTotal = valueOrZero(metricValueByName(rows, 'chimera_sa_timeout_total'));
+  const cancelTotal = valueOrZero(metricValueByName(rows, 'chimera_sa_cancel_total'));
+  const tokenInputTotal = valueOrZero(metricValueByName(rows, 'chimera_sa_token_input_total'));
+  const tokenOutputTotal = valueOrZero(metricValueByName(rows, 'chimera_sa_token_output_total'));
+  const tokenCostTotal = metricValueByName(rows, 'chimera_sa_token_cost_total');
+  const tokenInputRunning = valueOrZero(metricValueByName(rows, 'chimera_sa_token_input_running'));
+  const tokenOutputRunning = valueOrZero(metricValueByName(rows, 'chimera_sa_token_output_running'));
+  const tokenCostRunning = metricValueByName(rows, 'chimera_sa_token_cost_running');
+  const moduleTotal = valueOrZero(metricValueByName(rows, 'chimera_sa_module_total'));
+  const moduleCompletedTotal = valueOrZero(metricValueByName(rows, 'chimera_sa_module_completed_total'));
+  const moduleFailedTotal = valueOrZero(metricValueByName(rows, 'chimera_sa_module_failed_total'));
+  const checkpointAnyTasks = valueOrZero(metricValueByName(rows, 'chimera_sa_checkpoint_tasks', { state: 'any' }));
+  const checkpointPartialTasks = valueOrZero(metricValueByName(rows, 'chimera_sa_checkpoint_tasks', { state: 'partial' }));
+  const checkpointOverallDoneTasks = valueOrZero(metricValueByName(rows, 'chimera_sa_checkpoint_tasks', { state: 'overall_done' }));
+  const firstRoundPassRate = averageFromSummary(rows, 'chimera_sa_effectiveness_first_round_pass_rate');
+  const finalModulePassRate = averageFromSummary(rows, 'chimera_sa_effectiveness_final_module_pass_rate');
+  const multiRoundPassRate = averageFromSummary(rows, 'chimera_sa_effectiveness_multi_round_pass_rate');
+  const reflectionRounds = valueOrZero(metricValueByName(rows, 'chimera_sa_effectiveness_reflection_round_total'));
+  const reclassifyTotal = valueOrZero(metricValueByName(rows, 'chimera_sa_effectiveness_reclassify_total'));
   const checkpointStageRows = rows
-    .filter((row) => row.name === 'secflow_sa_checkpoint_stage_done_total')
+    .filter((row) => row.name === 'chimera_sa_checkpoint_stage_done_total')
     .sort((left, right) => left.labels.stage?.localeCompare(right.labels.stage || '', 'zh-CN') || 0);
-  const checkpointS2Modules = valueOrZero(metricValueByName(rows, 'secflow_sa_checkpoint_module_done_total', { stage: 's2' }));
-  const checkpointS3Modules = valueOrZero(metricValueByName(rows, 'secflow_sa_checkpoint_module_done_total', { stage: 's3' }));
+  const checkpointS2Modules = valueOrZero(metricValueByName(rows, 'chimera_sa_checkpoint_module_done_total', { stage: 's2' }));
+  const checkpointS3Modules = valueOrZero(metricValueByName(rows, 'chimera_sa_checkpoint_module_done_total', { stage: 's3' }));
 
   const failureCategories = rows
-    .filter((row) => row.name === 'secflow_sa_failure_category_total')
+    .filter((row) => row.name === 'chimera_sa_failure_category_total')
     .sort((left, right) => right.value - left.value)
     .map((row) => ({
       label: row.labels.category || 'unknown',
@@ -1418,7 +1418,7 @@ const buildSystemAnalysisViewModel = (rows: DisplayMetricRow[]): SystemAnalysisV
       tone: row.labels.category === 'timeout' ? 'text-amber-700' : 'text-rose-700',
     }));
 
-  const stageNames = Array.from(new Set(rows.filter((row) => row.name === 'secflow_sa_stage_rounds').map((row) => row.labels.stage || 'unknown'))).sort((left, right) =>
+  const stageNames = Array.from(new Set(rows.filter((row) => row.name === 'chimera_sa_stage_rounds').map((row) => row.labels.stage || 'unknown'))).sort((left, right) =>
     left.localeCompare(right, 'zh-CN'),
   );
   const terminalStatuses = new Set(['passed', 'success', 'failed', 'error', 'cancelled', 'timeout']);
@@ -1426,46 +1426,46 @@ const buildSystemAnalysisViewModel = (rows: DisplayMetricRow[]): SystemAnalysisV
     const stageEntries = rows.filter(
       (row) =>
         [
-          'secflow_sa_stage_rounds',
-          'secflow_sa_stage_records_total',
-          'secflow_sa_stage_duration_seconds',
-          'secflow_sa_stage_token_total',
-          'secflow_sa_stage_cost_total',
-          'secflow_sa_stage_vote_pass_total',
-          'secflow_sa_stage_vote_fail_total',
-          'secflow_sa_stage_judge_score_sum',
-          'secflow_sa_stage_judge_score_count',
-          'secflow_sa_stage_review_pass_rate_sum',
-          'secflow_sa_stage_review_pass_rate_count',
-          'secflow_sa_stage_round_index_sum',
-          'secflow_sa_stage_round_index_count',
+          'chimera_sa_stage_rounds',
+          'chimera_sa_stage_records_total',
+          'chimera_sa_stage_duration_seconds',
+          'chimera_sa_stage_token_total',
+          'chimera_sa_stage_cost_total',
+          'chimera_sa_stage_vote_pass_total',
+          'chimera_sa_stage_vote_fail_total',
+          'chimera_sa_stage_judge_score_sum',
+          'chimera_sa_stage_judge_score_count',
+          'chimera_sa_stage_review_pass_rate_sum',
+          'chimera_sa_stage_review_pass_rate_count',
+          'chimera_sa_stage_round_index_sum',
+          'chimera_sa_stage_round_index_count',
         ].includes(row.name) && row.labels.stage === stage,
     );
     const statusValues = Array.from(new Set(stageEntries.map((row) => row.labels.status || 'unknown')));
     const totalRuns = statusValues.reduce((sum, status) => {
-      const explicit = metricValueByName(rows, 'secflow_sa_stage_records_total', { stage, status });
-      return sum + valueOrZero(explicit ?? metricValueByName(rows, 'secflow_sa_stage_rounds', { stage, status }));
+      const explicit = metricValueByName(rows, 'chimera_sa_stage_records_total', { stage, status });
+      return sum + valueOrZero(explicit ?? metricValueByName(rows, 'chimera_sa_stage_rounds', { stage, status }));
     }, 0);
     const successRuns = statusValues.reduce((sum, status) => {
-      const explicit = metricValueByName(rows, 'secflow_sa_stage_vote_pass_total', { stage, status });
+      const explicit = metricValueByName(rows, 'chimera_sa_stage_vote_pass_total', { stage, status });
       if (explicit != null) return sum + valueOrZero(explicit);
-      return sum + (['passed', 'success', 'completed'].includes(status) ? valueOrZero(metricValueByName(rows, 'secflow_sa_stage_rounds', { stage, status })) : 0);
+      return sum + (['passed', 'success', 'completed'].includes(status) ? valueOrZero(metricValueByName(rows, 'chimera_sa_stage_rounds', { stage, status })) : 0);
     }, 0);
     const failedRuns = statusValues.reduce((sum, status) => {
-      const explicit = metricValueByName(rows, 'secflow_sa_stage_vote_fail_total', { stage, status });
+      const explicit = metricValueByName(rows, 'chimera_sa_stage_vote_fail_total', { stage, status });
       if (explicit != null) return sum + valueOrZero(explicit);
-      return sum + (['failed', 'error', 'timeout', 'cancelled'].includes(status) ? valueOrZero(metricValueByName(rows, 'secflow_sa_stage_rounds', { stage, status })) : 0);
+      return sum + (['failed', 'error', 'timeout', 'cancelled'].includes(status) ? valueOrZero(metricValueByName(rows, 'chimera_sa_stage_rounds', { stage, status })) : 0);
     }, 0);
     const runningRuns = statusValues
       .filter((status) => !terminalStatuses.has(status))
-      .reduce((sum, status) => sum + valueOrZero(metricValueByName(rows, 'secflow_sa_stage_records_total', { stage, status }) ?? metricValueByName(rows, 'secflow_sa_stage_rounds', { stage, status })), 0);
-    const totalDuration = statusValues.reduce((sum, status) => sum + valueOrZero(metricValueByName(rows, 'secflow_sa_stage_duration_seconds', { stage, status })), 0);
-    const totalTokens = statusValues.reduce((sum, status) => sum + valueOrZero(metricValueByName(rows, 'secflow_sa_stage_token_total', { stage, status })), 0);
-    const totalCost = statusValues.reduce((sum, status) => sum + valueOrZero(metricValueByName(rows, 'secflow_sa_stage_cost_total', { stage, status })), 0);
-    const scoreSum = statusValues.reduce((sum, status) => sum + valueOrZero(metricValueByName(rows, 'secflow_sa_stage_judge_score_sum', { stage, status })), 0);
-    const scoreCount = statusValues.reduce((sum, status) => sum + valueOrZero(metricValueByName(rows, 'secflow_sa_stage_judge_score_count', { stage, status })), 0);
-    const roundIndexSum = statusValues.reduce((sum, status) => sum + valueOrZero(metricValueByName(rows, 'secflow_sa_stage_round_index_sum', { stage, status })), 0);
-    const roundIndexCount = statusValues.reduce((sum, status) => sum + valueOrZero(metricValueByName(rows, 'secflow_sa_stage_round_index_count', { stage, status })), 0);
+      .reduce((sum, status) => sum + valueOrZero(metricValueByName(rows, 'chimera_sa_stage_records_total', { stage, status }) ?? metricValueByName(rows, 'chimera_sa_stage_rounds', { stage, status })), 0);
+    const totalDuration = statusValues.reduce((sum, status) => sum + valueOrZero(metricValueByName(rows, 'chimera_sa_stage_duration_seconds', { stage, status })), 0);
+    const totalTokens = statusValues.reduce((sum, status) => sum + valueOrZero(metricValueByName(rows, 'chimera_sa_stage_token_total', { stage, status })), 0);
+    const totalCost = statusValues.reduce((sum, status) => sum + valueOrZero(metricValueByName(rows, 'chimera_sa_stage_cost_total', { stage, status })), 0);
+    const scoreSum = statusValues.reduce((sum, status) => sum + valueOrZero(metricValueByName(rows, 'chimera_sa_stage_judge_score_sum', { stage, status })), 0);
+    const scoreCount = statusValues.reduce((sum, status) => sum + valueOrZero(metricValueByName(rows, 'chimera_sa_stage_judge_score_count', { stage, status })), 0);
+    const roundIndexSum = statusValues.reduce((sum, status) => sum + valueOrZero(metricValueByName(rows, 'chimera_sa_stage_round_index_sum', { stage, status })), 0);
+    const roundIndexCount = statusValues.reduce((sum, status) => sum + valueOrZero(metricValueByName(rows, 'chimera_sa_stage_round_index_count', { stage, status })), 0);
     const avgDurationSeconds = totalRuns > 0 ? totalDuration / totalRuns : null;
     const avgTokens = totalRuns > 0 ? totalTokens / totalRuns : null;
     const avgCost = totalRuns > 0 ? totalCost / totalRuns : null;
@@ -1661,81 +1661,81 @@ const buildSystemAnalysisViewModel = (rows: DisplayMetricRow[]): SystemAnalysisV
 
 const buildBinarySecurityReducerSnapshot = (rows: DisplayMetricRow[]): BinarySecurityReducerSnapshot => ({
   capturedAt: Date.now(),
-  pendingDepth: metricValueByName(rows, 'secflow_binary_security_state_event_queue_depth', { status: 'pending' }),
-  processingDepth: metricValueByName(rows, 'secflow_binary_security_state_event_queue_depth', { status: 'processing' }),
-  retryableDepth: metricValueByName(rows, 'secflow_binary_security_state_event_queue_depth', { status: 'retryable' }),
-  deadLetterDepth: metricValueByName(rows, 'secflow_binary_security_state_event_queue_depth', { status: 'dead_letter' }),
-  processedDepth: metricValueByName(rows, 'secflow_binary_security_state_event_queue_depth', { status: 'processed' }),
-  oldestPendingAge: metricValueByName(rows, 'secflow_binary_security_state_event_oldest_age_seconds', { status: 'pending' }),
-  oldestProcessingAge: metricValueByName(rows, 'secflow_binary_security_state_event_oldest_age_seconds', { status: 'processing' }),
-  oldestRetryableAge: metricValueByName(rows, 'secflow_binary_security_state_event_oldest_age_seconds', { status: 'retryable' }),
-  oldestDeadLetterAge: metricValueByName(rows, 'secflow_binary_security_state_event_oldest_age_seconds', { status: 'dead_letter' }),
-  reducerRunSuccess: metricValueByName(rows, 'secflow_binary_security_state_reducer_runs_total', { result: 'success' }),
-  reducerRunFailed: metricValueByName(rows, 'secflow_binary_security_state_reducer_runs_total', { result: 'failed' }),
-  reducerRunLockBusy: metricValueByName(rows, 'secflow_binary_security_state_reducer_runs_total', { result: 'lock_busy' }),
-  reducerRunSkipped: metricValueByName(rows, 'secflow_binary_security_state_reducer_runs_total', { result: 'skipped' }),
-  reducerAvgDurationSeconds: histogramAverage(rows, 'secflow_binary_security_state_reducer_duration_seconds'),
-  eventAvgLagSeconds: histogramAverage(rows, 'secflow_binary_security_state_event_lag_seconds'),
-  lockWaitAvgSeconds: histogramAverage(rows, 'secflow_binary_security_task_state_lock_wait_seconds'),
-  lockHeldAvgSeconds: histogramAverage(rows, 'secflow_binary_security_task_state_lock_held_seconds'),
+  pendingDepth: metricValueByName(rows, 'chimera_binary_security_state_event_queue_depth', { status: 'pending' }),
+  processingDepth: metricValueByName(rows, 'chimera_binary_security_state_event_queue_depth', { status: 'processing' }),
+  retryableDepth: metricValueByName(rows, 'chimera_binary_security_state_event_queue_depth', { status: 'retryable' }),
+  deadLetterDepth: metricValueByName(rows, 'chimera_binary_security_state_event_queue_depth', { status: 'dead_letter' }),
+  processedDepth: metricValueByName(rows, 'chimera_binary_security_state_event_queue_depth', { status: 'processed' }),
+  oldestPendingAge: metricValueByName(rows, 'chimera_binary_security_state_event_oldest_age_seconds', { status: 'pending' }),
+  oldestProcessingAge: metricValueByName(rows, 'chimera_binary_security_state_event_oldest_age_seconds', { status: 'processing' }),
+  oldestRetryableAge: metricValueByName(rows, 'chimera_binary_security_state_event_oldest_age_seconds', { status: 'retryable' }),
+  oldestDeadLetterAge: metricValueByName(rows, 'chimera_binary_security_state_event_oldest_age_seconds', { status: 'dead_letter' }),
+  reducerRunSuccess: metricValueByName(rows, 'chimera_binary_security_state_reducer_runs_total', { result: 'success' }),
+  reducerRunFailed: metricValueByName(rows, 'chimera_binary_security_state_reducer_runs_total', { result: 'failed' }),
+  reducerRunLockBusy: metricValueByName(rows, 'chimera_binary_security_state_reducer_runs_total', { result: 'lock_busy' }),
+  reducerRunSkipped: metricValueByName(rows, 'chimera_binary_security_state_reducer_runs_total', { result: 'skipped' }),
+  reducerAvgDurationSeconds: histogramAverage(rows, 'chimera_binary_security_state_reducer_duration_seconds'),
+  eventAvgLagSeconds: histogramAverage(rows, 'chimera_binary_security_state_event_lag_seconds'),
+  lockWaitAvgSeconds: histogramAverage(rows, 'chimera_binary_security_task_state_lock_wait_seconds'),
+  lockHeldAvgSeconds: histogramAverage(rows, 'chimera_binary_security_task_state_lock_held_seconds'),
 });
 
 const buildBinarySecurityReducerSnapshotMeta = (rows: DisplayMetricRow[]) => ({
-  available: (metricValueByName(rows, 'secflow_binary_security_reducer_snapshot_available') || 0) > 0,
-  stale: (metricValueByName(rows, 'secflow_binary_security_reducer_snapshot_stale') || 0) > 0,
-  ageSeconds: metricValueByName(rows, 'secflow_binary_security_reducer_snapshot_age_seconds'),
-  sourcePod: rows.find((row) => row.name === 'secflow_binary_security_reducer_snapshot_source_info')?.labels.pod || null,
-  generatedAtTimestamp: metricValueByName(rows, 'secflow_binary_security_reducer_snapshot_generated_at_timestamp_seconds'),
+  available: (metricValueByName(rows, 'chimera_binary_security_reducer_snapshot_available') || 0) > 0,
+  stale: (metricValueByName(rows, 'chimera_binary_security_reducer_snapshot_stale') || 0) > 0,
+  ageSeconds: metricValueByName(rows, 'chimera_binary_security_reducer_snapshot_age_seconds'),
+  sourcePod: rows.find((row) => row.name === 'chimera_binary_security_reducer_snapshot_source_info')?.labels.pod || null,
+  generatedAtTimestamp: metricValueByName(rows, 'chimera_binary_security_reducer_snapshot_generated_at_timestamp_seconds'),
 });
 
 const buildB2SBusinessViewModel = (rows: DisplayMetricRow[]): B2SBusinessViewModel => {
   const availableItems =
-    metricValueByName(rows, 'secflow_binary_to_source_runtime_metric_available_items') ??
-    metricValueByName(rows, 'secflow_binary_to_source_business_metric_available_items');
-  const legacyMissing = metricValueByName(rows, 'secflow_binary_to_source_business_metric_missing_items');
+    metricValueByName(rows, 'chimera_binary_to_source_runtime_metric_available_items') ??
+    metricValueByName(rows, 'chimera_binary_to_source_business_metric_available_items');
+  const legacyMissing = metricValueByName(rows, 'chimera_binary_to_source_business_metric_missing_items');
   const missingReasons = rows
-    .filter((row) => row.name === 'secflow_binary_to_source_runtime_metric_missing_items' && row.labels.reason !== 'none')
+    .filter((row) => row.name === 'chimera_binary_to_source_runtime_metric_missing_items' && row.labels.reason !== 'none')
     .map((row) => ({ reason: row.labels.reason || 'unknown', value: row.value }))
     .sort((left, right) => right.value - left.value);
   const missingItems = missingReasons.length ? missingReasons.reduce((sum, item) => sum + item.value, 0) : legacyMissing;
   const totalItems = (availableItems || 0) + (missingItems || 0);
-  const latestSeenSeconds = metricValueByName(rows, 'secflow_binary_to_source_latest_runtime_metric_seen_timestamp');
+  const latestSeenSeconds = metricValueByName(rows, 'chimera_binary_to_source_latest_runtime_metric_seen_timestamp');
   return {
     availableItems,
     missingItems,
     coverageRate: totalItems > 0 ? ((availableItems || 0) / totalItems) * 100 : null,
     headerAvgSeconds:
-      histogramAverage(rows, 'secflow_binary_to_source_completed_phase_duration_seconds', { phase: 'header_synthesis' }) ??
-      histogramAverage(rows, 'secflow_binary_to_source_header_recovery_duration_seconds'),
+      histogramAverage(rows, 'chimera_binary_to_source_completed_phase_duration_seconds', { phase: 'header_synthesis' }) ??
+      histogramAverage(rows, 'chimera_binary_to_source_header_recovery_duration_seconds'),
     bodyAvgSeconds:
-      histogramAverage(rows, 'secflow_binary_to_source_completed_phase_duration_seconds', { phase: 'body_generation' }) ??
-      histogramAverage(rows, 'secflow_binary_to_source_body_recovery_duration_seconds'),
-    batchAvgSeconds: histogramAverage(rows, 'secflow_binary_to_source_batch_recovery_duration_seconds'),
-    runningHeaderAvgSeconds: histogramAverage(rows, 'secflow_binary_to_source_running_phase_duration_seconds', { phase: 'header_synthesis' }),
-    runningBodyAvgSeconds: histogramAverage(rows, 'secflow_binary_to_source_running_phase_duration_seconds', { phase: 'body_generation' }),
-    functionThroughput: metricValueByName(rows, 'secflow_binary_to_source_function_throughput'),
-    weightedFunctionThroughput: metricValueByName(rows, 'secflow_binary_to_source_weighted_function_throughput'),
-    batchRetryRate: metricValueByName(rows, 'secflow_binary_to_source_batch_retry_rate'),
-    batchValidationPassRate: metricValueByName(rows, 'secflow_binary_to_source_batch_validation_pass_rate'),
-    batchFailureRate: metricValueByName(rows, 'secflow_binary_to_source_batch_failure_rate'),
-    avgAttemptsPerBatch: metricValueByName(rows, 'secflow_binary_to_source_avg_attempts_per_batch'),
-    batchAttempts: metricValueByName(rows, 'secflow_binary_to_source_batch_attempts_total'),
-    batchValidation: metricValueByName(rows, 'secflow_binary_to_source_batch_validation_total'),
-    artifactBytes: metricValueByName(rows, 'secflow_binary_to_source_artifact_bytes'),
-    tokenTotal: metricValueByName(rows, 'secflow_binary_to_source_llm_token_usage_total'),
-    costTotal: metricValueByName(rows, 'secflow_binary_to_source_llm_token_cost_total'),
+      histogramAverage(rows, 'chimera_binary_to_source_completed_phase_duration_seconds', { phase: 'body_generation' }) ??
+      histogramAverage(rows, 'chimera_binary_to_source_body_recovery_duration_seconds'),
+    batchAvgSeconds: histogramAverage(rows, 'chimera_binary_to_source_batch_recovery_duration_seconds'),
+    runningHeaderAvgSeconds: histogramAverage(rows, 'chimera_binary_to_source_running_phase_duration_seconds', { phase: 'header_synthesis' }),
+    runningBodyAvgSeconds: histogramAverage(rows, 'chimera_binary_to_source_running_phase_duration_seconds', { phase: 'body_generation' }),
+    functionThroughput: metricValueByName(rows, 'chimera_binary_to_source_function_throughput'),
+    weightedFunctionThroughput: metricValueByName(rows, 'chimera_binary_to_source_weighted_function_throughput'),
+    batchRetryRate: metricValueByName(rows, 'chimera_binary_to_source_batch_retry_rate'),
+    batchValidationPassRate: metricValueByName(rows, 'chimera_binary_to_source_batch_validation_pass_rate'),
+    batchFailureRate: metricValueByName(rows, 'chimera_binary_to_source_batch_failure_rate'),
+    avgAttemptsPerBatch: metricValueByName(rows, 'chimera_binary_to_source_avg_attempts_per_batch'),
+    batchAttempts: metricValueByName(rows, 'chimera_binary_to_source_batch_attempts_total'),
+    batchValidation: metricValueByName(rows, 'chimera_binary_to_source_batch_validation_total'),
+    artifactBytes: metricValueByName(rows, 'chimera_binary_to_source_artifact_bytes'),
+    tokenTotal: metricValueByName(rows, 'chimera_binary_to_source_llm_token_usage_total'),
+    costTotal: metricValueByName(rows, 'chimera_binary_to_source_llm_token_cost_total'),
     latestSeenAt: latestSeenSeconds && latestSeenSeconds > 0 ? latestSeenSeconds * 1000 : null,
     missingReasons,
   };
 };
 
 const buildB2SCacheViewModel = (rows: DisplayMetricRow[]): B2SCacheViewModel => {
-  const requests = metricValueByName(rows, 'secflow_binary_to_source_cache_requests_total');
-  const hits = metricValueByName(rows, 'secflow_binary_to_source_cache_hits_total');
-  const misses = metricValueByName(rows, 'secflow_binary_to_source_cache_misses_total');
-  const bypassed = metricValueByName(rows, 'secflow_binary_to_source_cache_bypassed_total');
-  const replaced = metricValueByName(rows, 'secflow_binary_to_source_cache_replace_total');
-  const entries = metricValueByName(rows, 'secflow_binary_to_source_cache_entries');
+  const requests = metricValueByName(rows, 'chimera_binary_to_source_cache_requests_total');
+  const hits = metricValueByName(rows, 'chimera_binary_to_source_cache_hits_total');
+  const misses = metricValueByName(rows, 'chimera_binary_to_source_cache_misses_total');
+  const bypassed = metricValueByName(rows, 'chimera_binary_to_source_cache_bypassed_total');
+  const replaced = metricValueByName(rows, 'chimera_binary_to_source_cache_replace_total');
+  const entries = metricValueByName(rows, 'chimera_binary_to_source_cache_entries');
   const denominator = (hits || 0) + (misses || 0);
   return {
     requestsTotal: requests,
@@ -1887,30 +1887,30 @@ const buildFirmwareUnpackerViewModel = (rows: DisplayMetricRow[]): FirmwareUnpac
 };
 
 const buildEntryAnalysisViewModel = (rows: DisplayMetricRow[]): EntryAnalysisViewModel => {
-  const pending = metricValueByName(rows, 'secflow_ea_tasks_pending');
-  const running = metricValueByName(rows, 'secflow_ea_tasks_running');
-  const finished = metricValueByName(rows, 'secflow_ea_tasks_finished');
-  const avgQueueWait = histogramAverage(rows, 'secflow_ea_queue_wait_seconds');
-  const avgExecution = histogramAverage(rows, 'secflow_ea_execution_seconds');
-  const avgTurnaround = histogramAverage(rows, 'secflow_ea_turnaround_seconds');
-  const avgRoundDuration = histogramAverage(rows, 'secflow_ea_round_duration_seconds');
-  const avgWorkerDuration = histogramAverage(rows, 'secflow_ea_worker_duration_seconds');
-  const avgJudgeDuration = histogramAverage(rows, 'secflow_ea_judge_duration_seconds');
-  const sessions = metricValueByName(rows, 'secflow_ea_sessions');
-  const workers = metricValueByName(rows, 'secflow_ea_workers');
-  const judges = metricValueByName(rows, 'secflow_ea_judges');
-  const retryTotal = metricValueByName(rows, 'secflow_ea_retry_total');
-  const timeoutTotal = metricValueByName(rows, 'secflow_ea_timeout_total');
-  const cancelTotal = metricValueByName(rows, 'secflow_ea_cancel_total');
-  const fileTotal = metricValueByName(rows, 'secflow_ea_file_total');
-  const tokenInputTotal = metricValueByName(rows, 'secflow_ea_token_input_total');
-  const tokenOutputTotal = metricValueByName(rows, 'secflow_ea_token_output_total');
-  const tokenCostTotal = metricValueByName(rows, 'secflow_ea_token_cost_total');
-  const tokenRunning = valueOrZero(metricValueByName(rows, 'secflow_ea_token_input_running')) + valueOrZero(metricValueByName(rows, 'secflow_ea_token_output_running'));
-  const schedulerRunning = metricValueByName(rows, 'secflow_ea_scheduler_running');
-  const workerServiceRunning = metricValueByName(rows, 'secflow_ea_worker_service_running');
+  const pending = metricValueByName(rows, 'chimera_ea_tasks_pending');
+  const running = metricValueByName(rows, 'chimera_ea_tasks_running');
+  const finished = metricValueByName(rows, 'chimera_ea_tasks_finished');
+  const avgQueueWait = histogramAverage(rows, 'chimera_ea_queue_wait_seconds');
+  const avgExecution = histogramAverage(rows, 'chimera_ea_execution_seconds');
+  const avgTurnaround = histogramAverage(rows, 'chimera_ea_turnaround_seconds');
+  const avgRoundDuration = histogramAverage(rows, 'chimera_ea_round_duration_seconds');
+  const avgWorkerDuration = histogramAverage(rows, 'chimera_ea_worker_duration_seconds');
+  const avgJudgeDuration = histogramAverage(rows, 'chimera_ea_judge_duration_seconds');
+  const sessions = metricValueByName(rows, 'chimera_ea_sessions');
+  const workers = metricValueByName(rows, 'chimera_ea_workers');
+  const judges = metricValueByName(rows, 'chimera_ea_judges');
+  const retryTotal = metricValueByName(rows, 'chimera_ea_retry_total');
+  const timeoutTotal = metricValueByName(rows, 'chimera_ea_timeout_total');
+  const cancelTotal = metricValueByName(rows, 'chimera_ea_cancel_total');
+  const fileTotal = metricValueByName(rows, 'chimera_ea_file_total');
+  const tokenInputTotal = metricValueByName(rows, 'chimera_ea_token_input_total');
+  const tokenOutputTotal = metricValueByName(rows, 'chimera_ea_token_output_total');
+  const tokenCostTotal = metricValueByName(rows, 'chimera_ea_token_cost_total');
+  const tokenRunning = valueOrZero(metricValueByName(rows, 'chimera_ea_token_input_running')) + valueOrZero(metricValueByName(rows, 'chimera_ea_token_output_running'));
+  const schedulerRunning = metricValueByName(rows, 'chimera_ea_scheduler_running');
+  const workerServiceRunning = metricValueByName(rows, 'chimera_ea_worker_service_running');
   const failureSummary = rows
-    .filter((row) => row.name === 'secflow_ea_failure_category_total')
+    .filter((row) => row.name === 'chimera_ea_failure_category_total')
     .sort((left, right) => right.value - left.value)
     .slice(0, 6)
     .map((row) => ({
@@ -1920,7 +1920,7 @@ const buildEntryAnalysisViewModel = (rows: DisplayMetricRow[]): EntryAnalysisVie
       tone: row.labels.category === 'timeout' || row.labels.category === 'error' ? 'text-rose-700' : 'text-amber-700',
     }));
   const topModules = rows
-    .filter((row) => row.name === 'secflow_ea_module_total')
+    .filter((row) => row.name === 'chimera_ea_module_total')
     .sort((left, right) => right.value - left.value)
     .slice(0, 6)
     .map((row) => ({
@@ -1929,23 +1929,23 @@ const buildEntryAnalysisViewModel = (rows: DisplayMetricRow[]): EntryAnalysisVie
     }));
   const stageRows = ['r1', 'r2', 'r3', 'r4']
     .map((stage) => {
-      const passedRuns = valueOrZero(metricValueByName(rows, 'secflow_ea_stage_rounds', { stage, status: 'passed' }));
-      const failedRuns = valueOrZero(metricValueByName(rows, 'secflow_ea_stage_rounds', { stage, status: 'failed' }));
-      const retryRuns = valueOrZero(metricValueByName(rows, 'secflow_ea_stage_rounds', { stage, status: 'retry' }));
-      const runningRuns = valueOrZero(metricValueByName(rows, 'secflow_ea_stage_rounds', { stage, status: 'running' }));
+      const passedRuns = valueOrZero(metricValueByName(rows, 'chimera_ea_stage_rounds', { stage, status: 'passed' }));
+      const failedRuns = valueOrZero(metricValueByName(rows, 'chimera_ea_stage_rounds', { stage, status: 'failed' }));
+      const retryRuns = valueOrZero(metricValueByName(rows, 'chimera_ea_stage_rounds', { stage, status: 'retry' }));
+      const runningRuns = valueOrZero(metricValueByName(rows, 'chimera_ea_stage_rounds', { stage, status: 'running' }));
       const totalRuns = passedRuns + failedRuns + retryRuns + runningRuns;
       const durationSum =
-        valueOrZero(metricValueByName(rows, 'secflow_ea_stage_duration_seconds_sum', { stage, status: 'passed' })) +
-        valueOrZero(metricValueByName(rows, 'secflow_ea_stage_duration_seconds_sum', { stage, status: 'failed' })) +
-        valueOrZero(metricValueByName(rows, 'secflow_ea_stage_duration_seconds_sum', { stage, status: 'completed' }));
+        valueOrZero(metricValueByName(rows, 'chimera_ea_stage_duration_seconds_sum', { stage, status: 'passed' })) +
+        valueOrZero(metricValueByName(rows, 'chimera_ea_stage_duration_seconds_sum', { stage, status: 'failed' })) +
+        valueOrZero(metricValueByName(rows, 'chimera_ea_stage_duration_seconds_sum', { stage, status: 'completed' }));
       const durationCount =
-        valueOrZero(metricValueByName(rows, 'secflow_ea_stage_duration_seconds_count', { stage, status: 'passed' })) +
-        valueOrZero(metricValueByName(rows, 'secflow_ea_stage_duration_seconds_count', { stage, status: 'failed' })) +
-        valueOrZero(metricValueByName(rows, 'secflow_ea_stage_duration_seconds_count', { stage, status: 'completed' }));
+        valueOrZero(metricValueByName(rows, 'chimera_ea_stage_duration_seconds_count', { stage, status: 'passed' })) +
+        valueOrZero(metricValueByName(rows, 'chimera_ea_stage_duration_seconds_count', { stage, status: 'failed' })) +
+        valueOrZero(metricValueByName(rows, 'chimera_ea_stage_duration_seconds_count', { stage, status: 'completed' }));
       const avgDurationSeconds = durationCount > 0 ? durationSum / durationCount : null;
-      const workerCalls = valueOrZero(metricValueByName(rows, 'secflow_ea_stage_role_total', { stage, role: 'worker' }));
-      const judgeCalls = valueOrZero(metricValueByName(rows, 'secflow_ea_stage_role_total', { stage, role: 'judge' }));
-      const sessionCount = valueOrZero(metricValueByName(rows, 'secflow_ea_stage_session_total', { stage }));
+      const workerCalls = valueOrZero(metricValueByName(rows, 'chimera_ea_stage_role_total', { stage, role: 'worker' }));
+      const judgeCalls = valueOrZero(metricValueByName(rows, 'chimera_ea_stage_role_total', { stage, role: 'judge' }));
+      const sessionCount = valueOrZero(metricValueByName(rows, 'chimera_ea_stage_session_total', { stage }));
       const failPressure = failedRuns + retryRuns;
       const healthTone =
         failPressure > passedRuns
@@ -2100,44 +2100,44 @@ const buildEntryAnalysisViewModel = (rows: DisplayMetricRow[]): EntryAnalysisVie
 };
 
 const buildDataflowAnalysisViewModel = (rows: DisplayMetricRow[]): DataflowAnalysisViewModel => {
-  const pending = metricValueByName(rows, 'secflow_dfa_cluster_tasks_pending');
-  const running = metricValueByName(rows, 'secflow_dfa_cluster_tasks_running');
-  const terminal = metricValueByName(rows, 'secflow_dfa_cluster_tasks_terminal');
-  const leased = metricValueByName(rows, 'secflow_dfa_cluster_leased_tasks');
-  const staleLeases = metricValueByName(rows, 'secflow_dfa_cluster_stale_leases');
-  const heartbeatLive = metricValueByName(rows, 'secflow_dfa_cluster_heartbeat_live_tasks');
-  const heartbeatStale = metricValueByName(rows, 'secflow_dfa_cluster_heartbeat_stale_tasks');
-  const heartbeatAgeMax = metricValueByName(rows, 'secflow_dfa_cluster_heartbeat_age_seconds_max');
-  const retryCount = metricValueByName(rows, 'secflow_dfa_cluster_retry_count');
-  const timeoutCount = metricValueByName(rows, 'secflow_dfa_cluster_timeout_count');
-  const cancelCount = metricValueByName(rows, 'secflow_dfa_cluster_cancel_count');
-  const configuredWorkers = metricValueByName(rows, 'secflow_dfa_cluster_workers', { state: 'configured' });
-  const observedActiveOwners = metricValueByName(rows, 'secflow_dfa_cluster_workers', { state: 'observed_active_owner' });
-  const observedHeartbeatOwners = metricValueByName(rows, 'secflow_dfa_cluster_workers', { state: 'observed_live_heartbeat_owner' });
-  const workerSlotCapacity = metricValueByName(rows, 'secflow_dfa_cluster_worker_slots', { kind: 'capacity' });
-  const workerSlotBusy = metricValueByName(rows, 'secflow_dfa_cluster_worker_slots', { kind: 'busy' });
-  const workerSlotFree = metricValueByName(rows, 'secflow_dfa_cluster_worker_slots', { kind: 'free' });
-  const workerCapacityPerPod = metricValueByName(rows, 'secflow_dfa_cluster_worker_capacity_per_pod');
-  const slotUtilizationRatio = metricValueByName(rows, 'secflow_dfa_cluster_worker_slot_utilization_ratio');
-  const observedCoverageRatio = metricValueByName(rows, 'secflow_dfa_cluster_worker_observed_coverage_ratio');
-  const queuePressureRatio = metricValueByName(rows, 'secflow_dfa_cluster_queue_pressure_ratio');
-  const rounds = metricValueByName(rows, 'secflow_dfa_cluster_rounds');
-  const judges = metricValueByName(rows, 'secflow_dfa_cluster_judges');
-  const functions = metricValueByName(rows, 'secflow_dfa_cluster_functions');
-  const traceDepthMax = metricValueByName(rows, 'secflow_dfa_cluster_trace_depth_max');
-  const traceCallees = metricValueByName(rows, 'secflow_dfa_cluster_trace_callees');
-  const tokenTotal = metricValueByName(rows, 'secflow_dfa_cluster_token_usage', { type: 'total' });
-  const tokenRunning = metricValueByName(rows, 'secflow_dfa_cluster_running_token_usage', { type: 'total' });
-  const tokenCost = metricValueByName(rows, 'secflow_dfa_cluster_token_cost');
-  const runningCost = metricValueByName(rows, 'secflow_dfa_cluster_running_token_cost');
-  const avgQueueWait = averageFromSummary(rows, 'secflow_dfa_cluster_queue_wait_seconds');
-  const avgExecution = averageFromSummary(rows, 'secflow_dfa_cluster_execution_seconds');
-  const avgTurnaround = averageFromSummary(rows, 'secflow_dfa_cluster_turnaround_seconds');
-  const avgRoundDuration = averageFromSummary(rows, 'secflow_dfa_cluster_round_duration_seconds');
-  const avgJudgeDuration = averageFromSummary(rows, 'secflow_dfa_cluster_judge_duration_seconds');
+  const pending = metricValueByName(rows, 'chimera_dfa_cluster_tasks_pending');
+  const running = metricValueByName(rows, 'chimera_dfa_cluster_tasks_running');
+  const terminal = metricValueByName(rows, 'chimera_dfa_cluster_tasks_terminal');
+  const leased = metricValueByName(rows, 'chimera_dfa_cluster_leased_tasks');
+  const staleLeases = metricValueByName(rows, 'chimera_dfa_cluster_stale_leases');
+  const heartbeatLive = metricValueByName(rows, 'chimera_dfa_cluster_heartbeat_live_tasks');
+  const heartbeatStale = metricValueByName(rows, 'chimera_dfa_cluster_heartbeat_stale_tasks');
+  const heartbeatAgeMax = metricValueByName(rows, 'chimera_dfa_cluster_heartbeat_age_seconds_max');
+  const retryCount = metricValueByName(rows, 'chimera_dfa_cluster_retry_count');
+  const timeoutCount = metricValueByName(rows, 'chimera_dfa_cluster_timeout_count');
+  const cancelCount = metricValueByName(rows, 'chimera_dfa_cluster_cancel_count');
+  const configuredWorkers = metricValueByName(rows, 'chimera_dfa_cluster_workers', { state: 'configured' });
+  const observedActiveOwners = metricValueByName(rows, 'chimera_dfa_cluster_workers', { state: 'observed_active_owner' });
+  const observedHeartbeatOwners = metricValueByName(rows, 'chimera_dfa_cluster_workers', { state: 'observed_live_heartbeat_owner' });
+  const workerSlotCapacity = metricValueByName(rows, 'chimera_dfa_cluster_worker_slots', { kind: 'capacity' });
+  const workerSlotBusy = metricValueByName(rows, 'chimera_dfa_cluster_worker_slots', { kind: 'busy' });
+  const workerSlotFree = metricValueByName(rows, 'chimera_dfa_cluster_worker_slots', { kind: 'free' });
+  const workerCapacityPerPod = metricValueByName(rows, 'chimera_dfa_cluster_worker_capacity_per_pod');
+  const slotUtilizationRatio = metricValueByName(rows, 'chimera_dfa_cluster_worker_slot_utilization_ratio');
+  const observedCoverageRatio = metricValueByName(rows, 'chimera_dfa_cluster_worker_observed_coverage_ratio');
+  const queuePressureRatio = metricValueByName(rows, 'chimera_dfa_cluster_queue_pressure_ratio');
+  const rounds = metricValueByName(rows, 'chimera_dfa_cluster_rounds');
+  const judges = metricValueByName(rows, 'chimera_dfa_cluster_judges');
+  const functions = metricValueByName(rows, 'chimera_dfa_cluster_functions');
+  const traceDepthMax = metricValueByName(rows, 'chimera_dfa_cluster_trace_depth_max');
+  const traceCallees = metricValueByName(rows, 'chimera_dfa_cluster_trace_callees');
+  const tokenTotal = metricValueByName(rows, 'chimera_dfa_cluster_token_usage', { type: 'total' });
+  const tokenRunning = metricValueByName(rows, 'chimera_dfa_cluster_running_token_usage', { type: 'total' });
+  const tokenCost = metricValueByName(rows, 'chimera_dfa_cluster_token_cost');
+  const runningCost = metricValueByName(rows, 'chimera_dfa_cluster_running_token_cost');
+  const avgQueueWait = averageFromSummary(rows, 'chimera_dfa_cluster_queue_wait_seconds');
+  const avgExecution = averageFromSummary(rows, 'chimera_dfa_cluster_execution_seconds');
+  const avgTurnaround = averageFromSummary(rows, 'chimera_dfa_cluster_turnaround_seconds');
+  const avgRoundDuration = averageFromSummary(rows, 'chimera_dfa_cluster_round_duration_seconds');
+  const avgJudgeDuration = averageFromSummary(rows, 'chimera_dfa_cluster_judge_duration_seconds');
 
   const failureCategories = rows
-    .filter((row) => row.name === 'secflow_dfa_cluster_failure_category')
+    .filter((row) => row.name === 'chimera_dfa_cluster_failure_category')
     .sort((left, right) => right.value - left.value)
     .map((row) => ({
       label: row.labels.category || 'unknown',
@@ -2146,7 +2146,7 @@ const buildDataflowAnalysisViewModel = (rows: DisplayMetricRow[]): DataflowAnaly
     }));
 
   const dispatchSummary = rows
-    .filter((row) => row.name === 'secflow_dfa_cluster_dispatch_status')
+    .filter((row) => row.name === 'chimera_dfa_cluster_dispatch_status')
     .sort((left, right) => right.value - left.value)
     .map((row) => ({
       label: row.labels.status || 'unknown',
@@ -2264,7 +2264,7 @@ const buildBinarySecurityReducerViewModel = (rows: DisplayMetricRow[], history: 
   const snapshot = buildBinarySecurityReducerSnapshot(rows);
   const snapshotMeta = buildBinarySecurityReducerSnapshotMeta(rows);
   const deadLetters = rows
-    .filter((row) => row.name === 'secflow_binary_security_state_dead_letters_total')
+    .filter((row) => row.name === 'chimera_binary_security_state_dead_letters_total')
     .sort((left, right) => right.value - left.value)
     .slice(0, 6)
     .map((row) => ({
@@ -2273,7 +2273,7 @@ const buildBinarySecurityReducerViewModel = (rows: DisplayMetricRow[], history: 
       tone: (row.value || 0) > 0 ? 'text-rose-700' : 'text-slate-500',
     }));
   const reducerEventResults = rows
-    .filter((row) => row.name === 'secflow_binary_security_state_reducer_events_total')
+    .filter((row) => row.name === 'chimera_binary_security_state_reducer_events_total')
     .sort((left, right) => right.value - left.value)
     .slice(0, 8)
     .map((row) => ({
@@ -2282,7 +2282,7 @@ const buildBinarySecurityReducerViewModel = (rows: DisplayMetricRow[], history: 
       tone: row.labels.result === 'processed' ? 'text-emerald-700' : 'text-rose-700',
     }));
   const fileWriteResults = rows
-    .filter((row) => row.name === 'secflow_binary_security_state_file_writes_total')
+    .filter((row) => row.name === 'chimera_binary_security_state_file_writes_total')
     .sort((left, right) => right.value - left.value)
     .slice(0, 6)
     .map((row) => ({
@@ -2291,7 +2291,7 @@ const buildBinarySecurityReducerViewModel = (rows: DisplayMetricRow[], history: 
       tone: row.labels.result === 'success' ? 'text-emerald-700' : 'text-amber-700',
     }));
   const activeLocks = rows
-    .filter((row) => row.name === 'secflow_binary_security_task_state_lock_active')
+    .filter((row) => row.name === 'chimera_binary_security_task_state_lock_active')
     .sort((left, right) => right.value - left.value)
     .map((row) => ({
       label: row.labels.operation || 'unknown',
@@ -3982,8 +3982,8 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
                   </p>
                 </div>
                 <span className="inline-flex rounded-full border border-teal-200 bg-white/80 px-3 py-1 text-xs font-black text-teal-800">
-                  aggregate {formatMetricValue(metricValueByName(viewModel.rows, 'secflow_dfa_metrics_aggregate_up') ?? Number.NaN)} / db{' '}
-                  {formatMetricValue(metricValueByName(viewModel.rows, 'secflow_dfa_db_up') ?? Number.NaN)}
+                  aggregate {formatMetricValue(metricValueByName(viewModel.rows, 'chimera_dfa_metrics_aggregate_up') ?? Number.NaN)} / db{' '}
+                  {formatMetricValue(metricValueByName(viewModel.rows, 'chimera_dfa_db_up') ?? Number.NaN)}
                 </span>
               </div>
 
@@ -4196,7 +4196,7 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
                   </p>
                 </div>
                 <span className="inline-flex rounded-full border border-indigo-200 bg-white/80 px-3 py-1 text-xs font-black text-indigo-800">
-                  retry {formatNumber(metricValueByName(viewModel.rows, 'secflow_ea_retry_total'))} / timeout {formatNumber(metricValueByName(viewModel.rows, 'secflow_ea_timeout_total'))}
+                  retry {formatNumber(metricValueByName(viewModel.rows, 'chimera_ea_retry_total'))} / timeout {formatNumber(metricValueByName(viewModel.rows, 'chimera_ea_timeout_total'))}
                 </span>
               </div>
 
@@ -4225,7 +4225,7 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
                           if (focus && focus !== 'all') sessionStorage.setItem(ENTRY_ANALYSIS_STAGE_FOCUS_STORAGE_KEY, String(focus));
                           else sessionStorage.removeItem(ENTRY_ANALYSIS_STAGE_FOCUS_STORAGE_KEY);
                           sessionStorage.setItem(ENTRY_ANALYSIS_RISK_FOCUS_STORAGE_KEY, entryAnalysisRiskKeyFromLabel(alert.label));
-                          window.dispatchEvent(new CustomEvent('secflow-navigate-view', { detail: { view: 'entry-analysis-task' } }));
+                          window.dispatchEvent(new CustomEvent('chimera-navigate-view', { detail: { view: 'entry-analysis-task' } }));
                         }}
                         className="rounded-xl border border-current/20 bg-white/70 px-3 py-2 text-[11px] font-black transition hover:bg-white"
                       >
@@ -4500,7 +4500,7 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
                       if (focus && focus !== 'all') sessionStorage.setItem(ENTRY_ANALYSIS_STAGE_FOCUS_STORAGE_KEY, String(focus));
                       else sessionStorage.removeItem(ENTRY_ANALYSIS_STAGE_FOCUS_STORAGE_KEY);
                       sessionStorage.removeItem(ENTRY_ANALYSIS_RISK_FOCUS_STORAGE_KEY);
-                      window.dispatchEvent(new CustomEvent('secflow-navigate-view', { detail: { view: 'entry-analysis-task' } }));
+                      window.dispatchEvent(new CustomEvent('chimera-navigate-view', { detail: { view: 'entry-analysis-task' } }));
                     }}
                     className="rounded-xl border border-indigo-200 bg-indigo-50 px-3 py-2 text-xs font-black text-indigo-700 transition hover:bg-indigo-100"
                   >
@@ -5960,7 +5960,7 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
                                   <td className="px-3 py-3 align-top">
                                     <button
                                       type="button"
-                                      onClick={() => window.dispatchEvent(new CustomEvent('secflow-navigate-view', {
+                                      onClick={() => window.dispatchEvent(new CustomEvent('chimera-navigate-view', {
                                         detail: activeServiceKey === 'dataflow-analysis'
                                           ? { view: 'dataflow-analysis-detail', dataflowAnalysisTaskId: task.task_id }
                                           : activeServiceKey === 'entry-analysis'
@@ -6063,7 +6063,7 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
                                     {process.task_id ? (
                                       <button
                                         type="button"
-                                        onClick={() => window.dispatchEvent(new CustomEvent('secflow-navigate-view', {
+                                        onClick={() => window.dispatchEvent(new CustomEvent('chimera-navigate-view', {
                                           detail: activeServiceKey === 'dataflow-analysis'
                                             ? { view: 'dataflow-analysis-detail', dataflowAnalysisTaskId: process.task_id }
                                             : activeServiceKey === 'entry-analysis'

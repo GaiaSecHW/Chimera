@@ -8,9 +8,9 @@ import { AgentResponse, AgentTraceEvent, AiAgentSession, AiHelperService, AiSess
 import { useUiFeedback } from '../../components/UiFeedback';
 import { EmptyState, buildHelperKey, navigateToAppView, parseHelperKey, useAiHelpers } from './ai-agent/shared';
 
-const SESSION_AUTO_SYNC_ENABLED_KEY = 'secflow_ai_session_auto_sync_enabled';
-const SESSION_AUTO_SYNC_INTERVAL_KEY = 'secflow_ai_session_auto_sync_interval_ms';
-const SESSION_MODE_KEY = 'secflow_ai_session_mode';
+const SESSION_AUTO_SYNC_ENABLED_KEY = 'chimera_ai_session_auto_sync_enabled';
+const SESSION_AUTO_SYNC_INTERVAL_KEY = 'chimera_ai_session_auto_sync_interval_ms';
+const SESSION_MODE_KEY = 'chimera_ai_session_mode';
 
 const compactTime = (value?: string) => {
   if (!value) return '-';

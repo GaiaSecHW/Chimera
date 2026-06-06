@@ -390,7 +390,7 @@ export const EntryAnalysisConfigPage: React.FC<{ projectId: string; embedded?: b
         <section className="rounded-[2rem] border border-slate-200 bg-white/90 p-6 shadow-sm">
           <p className="text-xs font-black uppercase tracking-[0.3em] text-violet-600">Entry Analysis</p>
           <h1 className="mt-3 text-3xl font-black tracking-tight text-slate-900">分析配置</h1>
-          <p className="mt-2 text-sm text-slate-500">配置 secflow-app-entry-analyse 分析引擎的运行参数，修改后点击「保存配置」生效。</p>
+          <p className="mt-2 text-sm text-slate-500">配置 chimera-app-entry-analyse 分析引擎的运行参数，修改后点击「保存配置」生效。</p>
           {config.updated_at && (
             <p className="mt-1 text-xs text-slate-400">上次保存：{new Date(config.updated_at).toLocaleString()}</p>
           )}

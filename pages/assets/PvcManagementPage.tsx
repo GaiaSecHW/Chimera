@@ -152,7 +152,7 @@ const getParentPath = (path: string) => {
 };
 
 const joinPath = (parent: string, name: string) => (parent === '/' ? `/${name}` : `${parent}/${name}`);
-const getRecentPvcStorageKey = (projectId: string) => `secflow:pvc-management:recent:${projectId}`;
+const getRecentPvcStorageKey = (projectId: string) => `chimera:pvc-management:recent:${projectId}`;
 const RESOURCE_TYPE_LABEL: Record<'document' | 'software' | 'code' | 'other' | 'output_pvc', string> = {
   document: '文档',
   software: '软件包',

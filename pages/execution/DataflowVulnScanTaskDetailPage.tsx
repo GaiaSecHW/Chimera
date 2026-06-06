@@ -88,8 +88,8 @@ function normalizeJoinPath(basePath: string, relativePath: string): string {
 
 function openInFileExplorer(fsPath: string) {
   const normalizedPath = fsPath.startsWith('/') ? fsPath : `/${fsPath}`;
-  sessionStorage.setItem('secflow:fileExplorerNavigatePath', normalizedPath);
-  window.dispatchEvent(new CustomEvent('secflow-navigate-view', { detail: { view: 'project-file-explorer', path: normalizedPath } }));
+  sessionStorage.setItem('chimera:fileExplorerNavigatePath', normalizedPath);
+  window.dispatchEvent(new CustomEvent('chimera-navigate-view', { detail: { view: 'project-file-explorer', path: normalizedPath } }));
 }
 
 function formatDuration(startedAt?: string | null, finishedAt?: string | null): string {
@@ -1304,14 +1304,14 @@ export const DataflowVulnScanTaskDetailPage: React.FC<{ projectId: string; taskI
                             <th className="px-3 py-3">任务实际开始时间</th>
                           </tr>
                         </thead>
-                        <tbody className="divide-y divide-slate-100 bg-white">
+                        <tbody className="divide-y divide-slate-200 bg-slate-800">
                           {filteredRounds.map((round) => (
-                            <tr key={evaluationRoundKey(round)} onClick={() => setSelectedEvaluationRoundKey(evaluationRoundKey(round))} className="cursor-pointer hover:bg-slate-50">
-                              <td className="px-3 py-3 font-mono text-slate-700">{round.round}</td>
-                              <td className="px-3 py-3 font-semibold text-slate-700">{stageLabel(round.stage)}</td>
-                              <td className="px-3 py-3 font-mono text-slate-700">{round.module_name || round.function || round.func || round.entry || '-'}</td>
+                            <tr key={evaluationRoundKey(round)} onClick={() => setSelectedEvaluationRoundKey(evaluationRoundKey(round))} className="cursor-pointer hover:bg-slate-700">
+                              <td className="px-3 py-3 font-mono text-slate-300">{round.round}</td>
+                              <td className="px-3 py-3 font-semibold text-slate-300">{stageLabel(round.stage)}</td>
+                              <td className="px-3 py-3 font-mono text-slate-300">{round.module_name || round.function || round.func || round.entry || '-'}</td>
                               <td className="px-3 py-3"><span className={`rounded-full border px-2 py-0.5 font-bold ${evaluationStatusTone(round.status)}`}>{round.status || '-'}</span></td>
-                              <td className="px-3 py-3 text-slate-600">{formatMs(round.duration_ms)}</td>
+                              <td className="px-3 py-3 text-slate-400">{formatMs(round.duration_ms)}</td>
                               <td className="px-3 py-3">{formatNumber(round.metrics?.avg_judge_score, 1)}</td>
                               <td className="px-3 py-3">{formatRate(round.metrics?.review_pass_rate)}</td>
                               <td className="px-3 py-3">{formatNumber(round.metrics?.token_total)}</td>
@@ -1332,7 +1332,7 @@ export const DataflowVulnScanTaskDetailPage: React.FC<{ projectId: string; taskI
 
       {activeAgentSessionPath ? (
         <div className="fixed inset-0 z-[280] bg-slate-950/70 p-4 backdrop-blur-sm">
-          <div className="mx-auto flex h-full max-w-6xl flex-col overflow-hidden rounded-[2rem] border border-slate-200 bg-[linear-gradient(180deg,#f8fafc_0%,#ffffff_100%)] shadow-[0_32px_120px_rgba(15,23,42,0.35)]">
+          <div className="mx-auto flex h-full max-w-6xl flex-col overflow-hidden rounded-[2rem] border border-slate-200 bg-slate-900 shadow-panel">
             <AgentSessionDialogHeader
               title={activeAgentSessionMeta?.display_name || activeAgentSessionPath}
               subtitle={activeAgentSessionMeta?.relative_path || activeAgentSessionPath}

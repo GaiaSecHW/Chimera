@@ -252,7 +252,7 @@ export const AppWorkflowLlmBindingsEditor: React.FC<AppWorkflowLlmBindingsEditor
             type="button"
             onClick={() => void loadProviders()}
             disabled={disabled || loadingProviders}
-            className="inline-flex items-center gap-2 rounded-xl border border-sky-200 bg-white px-3 py-2 text-xs font-bold text-slate-700 hover:border-sky-300 disabled:opacity-50"
+            className="inline-flex items-center gap-2 rounded-xl border border-sky-200 bg-theme-elevated px-3 py-2 text-xs font-bold text-theme-text-primary hover:border-sky-300 disabled:opacity-50"
           >
             {loadingProviders ? <Loader2 size={14} className="animate-spin" /> : <RefreshCw size={14} />}
             刷新
@@ -270,7 +270,7 @@ export const AppWorkflowLlmBindingsEditor: React.FC<AppWorkflowLlmBindingsEditor
             type="button"
             onClick={addCustomBinding}
             disabled={disabled}
-            className="inline-flex items-center gap-2 rounded-xl border border-sky-200 bg-white px-3 py-2 text-xs font-bold text-sky-700 hover:border-sky-300 disabled:opacity-50"
+            className="inline-flex items-center gap-2 rounded-xl border border-sky-200 bg-theme-elevated px-3 py-2 text-xs font-bold text-sky-700 hover:border-sky-300 disabled:opacity-50"
           >
             <Braces size={14} />
             自定义
@@ -279,7 +279,7 @@ export const AppWorkflowLlmBindingsEditor: React.FC<AppWorkflowLlmBindingsEditor
       </div>
 
       {bindings.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-sky-200 bg-white/80 px-4 py-4 text-sm text-sky-700">
+        <div className="rounded-xl border border-dashed border-sky-200 bg-theme-elevated/80 px-4 py-4 text-sm text-sky-700">
           当前未绑定 LLM 配置。可以添加多个配置中心 Provider，或新增自定义 JSON 配置。
         </div>
       ) : (
@@ -290,10 +290,10 @@ export const AppWorkflowLlmBindingsEditor: React.FC<AppWorkflowLlmBindingsEditor
               ? normalizeLlmProviderDetail(binding.config)
               : (providerDetails[providerKey] || null);
             return (
-              <div key={`${binding.source}-${providerKey || 'custom'}-${index}`} className="rounded-xl border border-sky-200 bg-white p-4">
+              <div key={`${binding.source}-${providerKey || 'custom'}-${index}`} className="rounded-xl border border-sky-200 bg-theme-surface p-4">
                 <div className="mb-3 flex items-center justify-between gap-3">
                   <div className="flex items-center gap-2">
-                    <span className="rounded-full bg-sky-100 px-2.5 py-1 text-[11px] font-black text-sky-700">#{index + 1}</span>
+                    <span className="rounded-full bg-sky-100/10 px-2.5 py-1 text-[11px] font-black text-sky-700">#{index + 1}</span>
                     <select
                       value={binding.source}
                       disabled={disabled}
@@ -305,7 +305,7 @@ export const AppWorkflowLlmBindingsEditor: React.FC<AppWorkflowLlmBindingsEditor
                           replaceBinding(index, { source: 'config_center', provider_key: providers[0]?.provider_key || '' });
                         }
                       }}
-                      className="rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-sky-500"
+                      className="rounded-lg border border-theme-border px-3 py-2 text-sm outline-none focus:border-sky-500"
                     >
                       <option value="config_center">配置中心</option>
                       <option value="custom">自定义 JSON</option>
@@ -328,7 +328,7 @@ export const AppWorkflowLlmBindingsEditor: React.FC<AppWorkflowLlmBindingsEditor
                       value={providerKey}
                       disabled={disabled || loadingProviders}
                       onChange={(event) => updateBinding(index, { provider_key: event.target.value, config: undefined })}
-                      className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-sky-500"
+                      className="w-full rounded-lg border border-theme-border px-3 py-2 text-sm outline-none focus:border-sky-500"
                     >
                       <option value="">选择 LLM Provider</option>
                       {providers.map((provider) => (
@@ -337,7 +337,7 @@ export const AppWorkflowLlmBindingsEditor: React.FC<AppWorkflowLlmBindingsEditor
                         </option>
                       ))}
                     </select>
-                    <div className="rounded-xl bg-slate-50 p-4 text-sm text-slate-700">
+                    <div className="rounded-xl bg-theme-elevated p-4 text-sm text-theme-text-primary">
                       {configDetail ? (
                         <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
                           <div><span className="font-bold">Provider Key：</span>{configDetail.provider_key || '-'}</div>
@@ -348,14 +348,14 @@ export const AppWorkflowLlmBindingsEditor: React.FC<AppWorkflowLlmBindingsEditor
                           <div><span className="font-bold">文件注入：</span>{countEnabledFiles(configDetail)} 个启用文件</div>
                         </div>
                       ) : (
-                        <div className="text-slate-500">选择 Provider 后会展示环境变量与文件注入摘要。</div>
+                        <div className="text-theme-text-faint">选择 Provider 后会展示环境变量与文件注入摘要。</div>
                       )}
                     </div>
                   </div>
                 ) : (
                   <div className="space-y-3">
                     <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-                      <div className="text-sm text-slate-600">自定义绑定会按配置中心一致的数据结构进行保存，支持 `env_bindings` 和 `file_bindings`。</div>
+                      <div className="text-sm text-theme-text-secondary">自定义绑定会按配置中心一致的数据结构进行保存，支持 `env_bindings` 和 `file_bindings`。</div>
                       <button
                         type="button"
                         onClick={() => openCustomEditor(index)}
@@ -365,26 +365,26 @@ export const AppWorkflowLlmBindingsEditor: React.FC<AppWorkflowLlmBindingsEditor
                         编辑 JSON
                       </button>
                     </div>
-                    <div className="rounded-xl bg-slate-50 p-4 text-sm text-slate-700">
+                    <div className="rounded-xl bg-theme-elevated p-4 text-sm text-theme-text-primary">
                       <div><span className="font-bold">Provider Key：</span>{configDetail?.provider_key || '-'}</div>
                       <div className="mt-1"><span className="font-bold">显示名：</span>{configDetail?.display_name || '-'}</div>
                       <div className="mt-1"><span className="font-bold">模型：</span>{configDetail?.model || '-'}</div>
                       <div className="mt-1"><span className="font-bold">文件注入：</span>{countEnabledFiles(configDetail)} 个启用文件</div>
                     </div>
-                    <div className="rounded-xl border border-slate-200 bg-slate-50/80 p-4">
+                    <div className="rounded-xl border border-theme-border bg-theme-elevated/80 p-4">
                       <div className="mb-3 flex items-center justify-between gap-3">
                         <div>
-                          <div className="flex items-center gap-2 text-sm font-black text-slate-800">
+                          <div className="flex items-center gap-2 text-sm font-black text-theme-text-primary">
                             <FileCode2 size={15} className="text-sky-600" />
                             配置文件注入
                           </div>
-                          <div className="mt-1 text-xs text-slate-500">可直接为当前绑定增加多个配置文件，实例创建时会一并写入 `file_bindings`。</div>
+                          <div className="mt-1 text-xs text-theme-text-faint">可直接为当前绑定增加多个配置文件，实例创建时会一并写入 `file_bindings`。</div>
                         </div>
                         <button
                           type="button"
                           onClick={() => addCustomFileBinding(index)}
                           disabled={disabled}
-                          className="inline-flex items-center gap-2 rounded-xl border border-sky-200 bg-white px-3 py-2 text-xs font-bold text-sky-700 hover:border-sky-300 disabled:opacity-50"
+                          className="inline-flex items-center gap-2 rounded-xl border border-sky-200 bg-theme-elevated px-3 py-2 text-xs font-bold text-sky-700 hover:border-sky-300 disabled:opacity-50"
                         >
                           <Plus size={14} />
                           新增文件
@@ -392,20 +392,20 @@ export const AppWorkflowLlmBindingsEditor: React.FC<AppWorkflowLlmBindingsEditor
                       </div>
 
                       {(configDetail?.file_bindings || []).length === 0 ? (
-                        <div className="rounded-xl border border-dashed border-slate-200 bg-white px-4 py-4 text-xs text-slate-500">
+                        <div className="rounded-xl border border-dashed border-theme-border bg-theme-elevated px-4 py-4 text-xs text-theme-text-faint">
                           当前没有配置文件注入项，可以直接新增并填写文件路径、格式和内容。
                         </div>
                       ) : (
                         <div className="space-y-3">
                           {(configDetail?.file_bindings || []).map((fileBinding, fileIndex) => (
-                            <div key={`${fileBinding.path}-${fileIndex}`} className="rounded-xl border border-slate-200 bg-white p-4">
+                            <div key={`${fileBinding.path}-${fileIndex}`} className="rounded-xl border border-theme-border bg-theme-elevated p-4">
                               <div className="mb-3 flex items-center justify-between gap-3">
-                                <div className="text-xs font-bold text-slate-500">文件 #{fileIndex + 1}</div>
+                                <div className="text-xs font-bold text-theme-text-faint">文件 #{fileIndex + 1}</div>
                                 <button
                                   type="button"
                                   onClick={() => removeCustomFileBinding(index, fileIndex)}
                                   disabled={disabled}
-                                  className="rounded-lg p-2 text-red-500 hover:bg-red-50 disabled:opacity-50"
+                                  className="rounded-lg p-2 text-red-500 hover:bg-red-50/10 disabled:opacity-50"
                                   title="删除文件"
                                 >
                                   <Trash2 size={15} />
@@ -417,32 +417,32 @@ export const AppWorkflowLlmBindingsEditor: React.FC<AppWorkflowLlmBindingsEditor
                                   disabled={disabled}
                                   onChange={(event) => updateCustomFileBinding(index, fileIndex, { name: event.target.value })}
                                   placeholder="provider-config.yaml"
-                                  className="rounded-xl border border-slate-200 px-3 py-2 text-sm outline-none focus:border-sky-500"
+                                  className="rounded-xl border border-theme-border px-3 py-2 text-sm outline-none focus:border-sky-500"
                                 />
                                 <input
                                   value={fileBinding.path}
                                   disabled={disabled}
                                   onChange={(event) => updateCustomFileBinding(index, fileIndex, { path: event.target.value })}
                                   placeholder="/etc/llm/provider-config.yaml"
-                                  className="rounded-xl border border-slate-200 px-3 py-2 text-sm outline-none focus:border-sky-500"
+                                  className="rounded-xl border border-theme-border px-3 py-2 text-sm outline-none focus:border-sky-500"
                                 />
                                 <select
                                   value={fileBinding.format}
                                   disabled={disabled}
                                   onChange={(event) => updateCustomFileBinding(index, fileIndex, { format: event.target.value as LlmProviderFileBinding['format'] })}
-                                  className="rounded-xl border border-slate-200 px-3 py-2 text-sm outline-none focus:border-sky-500"
+                                  className="rounded-xl border border-theme-border px-3 py-2 text-sm outline-none focus:border-sky-500"
                                 >
                                   {fileFormatOptions.map((item) => (
                                     <option key={item} value={item}>{item}</option>
                                   ))}
                                 </select>
-                                <label className="flex items-center gap-2 rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-700">
+                                <label className="flex items-center gap-2 rounded-xl border border-theme-border px-3 py-2 text-sm text-theme-text-primary">
                                   <input
                                     type="checkbox"
                                     checked={fileBinding.enabled}
                                     disabled={disabled}
                                     onChange={(event) => updateCustomFileBinding(index, fileIndex, { enabled: event.target.checked })}
-                                    className="h-4 w-4 rounded border-slate-300"
+                                    className="h-4 w-4 rounded border-theme-border"
                                   />
                                   启用该文件
                                 </label>
@@ -452,7 +452,7 @@ export const AppWorkflowLlmBindingsEditor: React.FC<AppWorkflowLlmBindingsEditor
                                 disabled={disabled}
                                 onChange={(event) => updateCustomFileBinding(index, fileIndex, { content: event.target.value })}
                                 placeholder="填写注入到容器内的文件内容"
-                                className="mt-3 min-h-[140px] w-full rounded-xl border border-slate-200 bg-slate-950 p-3 font-mono text-sm text-emerald-300 outline-none focus:border-sky-500"
+                                className="mt-3 min-h-[140px] w-full rounded-xl border border-theme-border bg-slate-950 p-3 font-mono text-sm text-emerald-300 outline-none focus:border-sky-500"
                                 spellCheck={false}
                               />
                             </div>
@@ -478,10 +478,10 @@ export const AppWorkflowLlmBindingsEditor: React.FC<AppWorkflowLlmBindingsEditor
 
       {customEditorIndex !== null && (
         <div className="fixed inset-0 z-[70] flex items-center justify-center bg-slate-950/60 p-6">
-          <div className="flex max-h-[90vh] w-full max-w-4xl flex-col overflow-hidden rounded-3xl bg-white shadow-2xl">
-            <div className="border-b border-slate-100 p-6">
-              <h3 className="text-2xl font-black text-slate-900">自定义 LLM JSON 配置</h3>
-              <p className="mt-1 text-sm text-slate-500">支持配置 `env_bindings` 与 `file_bindings`，保存后会作为当前实例的绑定快照。</p>
+          <div className="flex max-h-[90vh] w-full max-w-4xl flex-col overflow-hidden rounded-3xl bg-theme-surface shadow-2xl">
+            <div className="border-b border-theme-border p-6">
+              <h3 className="text-2xl font-black text-theme-text-primary">自定义 LLM JSON 配置</h3>
+              <p className="mt-1 text-sm text-theme-text-secondary">支持配置 `env_bindings` 与 `file_bindings`，保存后会作为当前实例的绑定快照。</p>
             </div>
             <div className="flex-1 overflow-auto p-6">
               <textarea
@@ -490,7 +490,7 @@ export const AppWorkflowLlmBindingsEditor: React.FC<AppWorkflowLlmBindingsEditor
                   setCustomJsonText(event.target.value);
                   if (customJsonError) setCustomJsonError('');
                 }}
-                className="min-h-[420px] w-full rounded-2xl border border-slate-200 bg-slate-950 p-4 font-mono text-sm text-emerald-300 outline-none focus:border-sky-500"
+                className="min-h-[420px] w-full rounded-2xl border border-theme-border bg-slate-950 p-4 font-mono text-sm text-emerald-300 outline-none focus:border-sky-500"
                 spellCheck={false}
               />
               {customJsonError && (
@@ -499,8 +499,8 @@ export const AppWorkflowLlmBindingsEditor: React.FC<AppWorkflowLlmBindingsEditor
                 </div>
               )}
             </div>
-            <div className="flex items-center justify-between border-t border-slate-100 p-6">
-              <div className="text-xs text-slate-500">建议至少填写 `provider_key`、`display_name`、`provider_type`、`api_base`、`model`、`api_key`，如需文件注入可补充 `file_bindings`。</div>
+            <div className="flex items-center justify-between border-t border-theme-border p-6">
+              <div className="text-xs text-theme-text-secondary">建议至少填写 `provider_key`、`display_name`、`provider_type`、`api_base`、`model`、`api_key`，如需文件注入可补充 `file_bindings`。</div>
               <div className="flex items-center gap-3">
                 <button
                   type="button"
@@ -508,7 +508,7 @@ export const AppWorkflowLlmBindingsEditor: React.FC<AppWorkflowLlmBindingsEditor
                     setCustomEditorIndex(null);
                     setCustomJsonError('');
                   }}
-                  className="px-5 py-3 text-sm font-medium text-slate-600 hover:text-slate-800"
+                  className="px-5 py-3 text-sm font-medium text-theme-text-secondary hover:text-theme-text-primary"
                 >
                   取消
                 </button>

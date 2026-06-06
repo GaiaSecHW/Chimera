@@ -2,14 +2,14 @@ import { expect, test, type Page } from '@playwright/test';
 import { bootstrapSession, loginByApi } from '../fixtures/auth';
 import { E2E_PROJECT_ID } from '../fixtures/project';
 
-const baseURL = process.env.E2E_BASE_URL || 'https://secflow.ai.icsl.huawei.com';
+const baseURL = process.env.E2E_BASE_URL || 'https://chimera.ai.icsl.huawei.com';
 
 const openVulnParameterConfigPage = async (page: Page) => {
   await page.goto('/');
   await page.waitForTimeout(1500);
   await page.evaluate(() => {
     window.dispatchEvent(
-      new CustomEvent('secflow-navigate-view', {
+      new CustomEvent('chimera-navigate-view', {
         detail: { view: 'vuln-parameter-config' },
       })
     );

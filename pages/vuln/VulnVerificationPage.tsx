@@ -31,7 +31,7 @@ export const VulnVerificationPage: React.FC<VulnPageProps> = ({ projectId, onNav
     preferredActionType="validation"
     preferredTaskType="manual_validation"
     detailTargetView="vuln-verification-detail"
-    detailStorageKey="secflow-vuln-open-verification-case-id"
+    detailStorageKey="chimera-vuln-open-verification-case-id"
     detailEntryLabel="查看验证详情"
   />
 );

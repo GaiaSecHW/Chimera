@@ -136,7 +136,7 @@ export const MachineTokenPage: React.FC = () => {
   };
 
   return (
-    <div className="h-full overflow-y-auto bg-[radial-gradient(circle_at_top_left,_rgba(59,130,246,0.12),_transparent_28%),radial-gradient(circle_at_top_right,_rgba(15,23,42,0.16),_transparent_24%),linear-gradient(180deg,_#f8fafc_0%,_#eef2ff_100%)] px-6 py-8 md:px-8 xl:px-10">
+    <div className="h-full overflow-y-auto bg-theme-app px-6 py-8 md:px-8 xl:px-10">
       <div className="flex w-full flex-col gap-6 pb-24">
         <section className="relative overflow-hidden rounded-[2rem] border border-slate-200/80 bg-[linear-gradient(135deg,_#0f172a,_#1e293b_55%,_#1d4ed8)] px-8 py-8 text-white shadow-[0_32px_80px_-48px_rgba(15,23,42,0.95)] md:px-10">
           <div className="absolute inset-y-0 right-0 w-1/2 bg-[radial-gradient(circle_at_center,_rgba(147,197,253,0.18),_transparent_58%)]" />

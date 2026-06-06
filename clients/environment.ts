@@ -322,7 +322,7 @@ export const environmentApi = {
   getTasks: async (projectId: string, params: { type?: string; status?: string; agent_key?: string } = {}): Promise<{ task: AsyncTask[]; total: number }> => {
     const query = new URLSearchParams({ ...params as any, project_id: projectId }).toString();
     const raw = await handleResponse(await fetch(`${API_BASE}/api/agent/task?${query}`, { headers: getHeaders() }));
-    const list = (raw?.task || raw?.tasks || raw?.secflow_agent_tasks || []).map((item: any) => normalizeTask(item));
+    const list = (raw?.task || raw?.tasks || raw?.chimera_agent_tasks || []).map((item: any) => normalizeTask(item));
     return {
       ...raw,
       task: list,

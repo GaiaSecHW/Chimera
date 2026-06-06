@@ -811,8 +811,8 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
           module_risk_levels: isBinaryModuleTask ? undefined : moduleRiskLevels,
         },
       });
-      const inputDir = created.summary?.input_dir || `/data/files/${projectId}/app/secflow-app-binary-security/${prepared.task_id}/input`;
-      const tempUploadDir = created.summary?.temp_upload_dir || `/data/files/${projectId}/app/secflow-app-binary-security/${prepared.task_id}/run/upload-tmp`;
+      const inputDir = created.summary?.input_dir || `/data/files/${projectId}/app/chimera-app-binary-security/${prepared.task_id}/input`;
+      const tempUploadDir = created.summary?.temp_upload_dir || `/data/files/${projectId}/app/chimera-app-binary-security/${prepared.task_id}/run/upload-tmp`;
       const ensuredDirs = new Set<string>();
       const ensureUploadSubdirectories = async (basePath: string, relativeDir: string) => {
         if (!basePath || !relativeDir) return;

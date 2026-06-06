@@ -314,7 +314,7 @@ export const DepartmentMemberPage: React.FC = () => {
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
-      link.download = 'secflow-department-member-import-template.csv';
+      link.download = 'chimera-department-member-import-template.csv';
       link.click();
       URL.revokeObjectURL(url);
     } catch (err: any) {
@@ -436,7 +436,7 @@ export const DepartmentMemberPage: React.FC = () => {
   }, [members]);
 
   return (
-    <div className="p-10 space-y-8 animate-in fade-in duration-500 pb-24 h-full overflow-y-auto bg-[radial-gradient(circle_at_top_left,_rgba(59,130,246,0.08),_transparent_32%),radial-gradient(circle_at_top_right,_rgba(14,165,233,0.07),_transparent_24%),linear-gradient(180deg,_rgba(248,250,252,0.96),_rgba(255,255,255,1))]">
+    <div className="p-10 space-y-8 animate-in fade-in duration-500 pb-24 h-full overflow-y-auto bg-theme-app">
       <div className="flex justify-between items-end">
         <div className="space-y-1">
           <div className="flex items-center gap-3">

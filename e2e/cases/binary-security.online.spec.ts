@@ -2,7 +2,7 @@ import { expect, test, type Page } from '@playwright/test';
 import { bootstrapSession, loginByApi } from '../fixtures/auth';
 import { E2E_PROJECT_ID } from '../fixtures/project';
 
-const baseURL = process.env.E2E_BASE_URL || 'https://secflow.ai.icsl.huawei.com';
+const baseURL = process.env.E2E_BASE_URL || 'https://chimera.ai.icsl.huawei.com';
 
 const fetchJson = async (page: Page, url: string, token: string) => {
   const response = await page.request.get(url, {
@@ -24,7 +24,7 @@ const openBinarySecurityDetail = async (page: Page, taskId: string) => {
   await page.waitForTimeout(1500);
   await page.evaluate(({ taskId }) => {
     window.dispatchEvent(
-      new CustomEvent('secflow-navigate-view', {
+      new CustomEvent('chimera-navigate-view', {
         detail: { view: 'source-security-detail', taskId, sourceSecurityTaskId: taskId },
       }),
     );
@@ -36,7 +36,7 @@ const openBinarySecurityOverview = async (page: Page) => {
   await page.waitForTimeout(1500);
   await page.evaluate(() => {
     window.dispatchEvent(
-      new CustomEvent('secflow-navigate-view', {
+      new CustomEvent('chimera-navigate-view', {
         detail: { view: 'binary-security' },
       }),
     );
@@ -48,7 +48,7 @@ const openBinarySecurityConfig = async (page: Page) => {
   await page.waitForTimeout(1500);
   await page.evaluate(() => {
     window.dispatchEvent(
-      new CustomEvent('secflow-navigate-view', {
+      new CustomEvent('chimera-navigate-view', {
         detail: { view: 'binary-security-config' },
       }),
     );

@@ -2,7 +2,7 @@ export const API_BASE = '';
 const nativeFetch = globalThis.fetch.bind(globalThis);
 
 export const getHeaders = () => {
-  const token = localStorage.getItem('secflow_token');
+  const token = localStorage.getItem('chimera_token');
   return {
     'Content-Type': 'application/json',
     ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
@@ -10,7 +10,7 @@ export const getHeaders = () => {
 };
 
 export const getAuthHeaders = () => {
-  const token = localStorage.getItem('secflow_token');
+  const token = localStorage.getItem('chimera_token');
   return token ? { 'Authorization': `Bearer ${token}` } : {};
 };
 
@@ -80,9 +80,9 @@ export const handleResponse = async (response: Response) => {
     const isLoginRequest = response.url.includes('/api/auth/login');
     if (!isLoginRequest) {
       // 清除本地存储
-      localStorage.removeItem('secflow_token');
+      localStorage.removeItem('chimera_token');
       // 派发全局事件通知 UI 层
-      window.dispatchEvent(new Event('secflow-unauthorized'));
+      window.dispatchEvent(new Event('chimera-unauthorized'));
       throw new Error('登录会话已过期，请重新登录');
     }
   }
@@ -193,7 +193,7 @@ const hasAbortSignal = (input: RequestInfo | URL, init?: RequestInit): boolean =
 const hasDedupeBypassHeader = (input: RequestInfo | URL, init?: RequestInit): boolean => {
   const requestHeaders = input instanceof Request ? input.headers : undefined;
   const headers = new Headers(init?.headers || requestHeaders || undefined);
-  return headers.get('x-secflow-no-request-dedupe') === '1';
+  return headers.get('x-chimera-no-request-dedupe') === '1';
 };
 
 export const fetchWithGetDedupe = async (
@@ -468,8 +468,8 @@ export const xhrUpload = <TResult,>(params: {
       const status = xhr.status;
       const payload = parseXhrResponse(xhr);
       if (status === 401) {
-        localStorage.removeItem('secflow_token');
-        window.dispatchEvent(new Event('secflow-unauthorized'));
+        localStorage.removeItem('chimera_token');
+        window.dispatchEvent(new Event('chimera-unauthorized'));
         rejectOnce(new Error('登录会话已过期，请重新登录'));
         return;
       }

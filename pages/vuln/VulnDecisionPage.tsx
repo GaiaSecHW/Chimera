@@ -29,7 +29,7 @@ export const VulnDecisionPage: React.FC<VulnPageProps> = ({ projectId, onNavigat
     showCreateCaseForm={false}
     preferredTaskType="manual_decision"
     detailTargetView="vuln-decision-detail"
-    detailStorageKey="secflow-vuln-open-decision-case-id"
+    detailStorageKey="chimera-vuln-open-decision-case-id"
     detailEntryLabel="查看结束详情"
   />
 );

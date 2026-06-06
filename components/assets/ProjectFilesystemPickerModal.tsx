@@ -192,7 +192,7 @@ export const ProjectFilesystemPickerModal: React.FC<{
         <div key={node.id}>
           <div
             className={`flex items-center gap-2 rounded-xl px-3 py-2 text-sm ${
-              active ? 'bg-cyan-100 text-cyan-700' : 'text-slate-700 hover:bg-slate-100'
+              active ? 'bg-cyan-100/10 text-cyan-700' : 'text-theme-text-primary hover:bg-theme-elevated'
             }`}
             style={{ paddingLeft: `${depth * 18 + 12}px` }}
             onClick={() => allowMultiple ? toggleMultiSelect(node) : setSelectedId(node.id)}
@@ -209,7 +209,7 @@ export const ProjectFilesystemPickerModal: React.FC<{
             ) : null}
             <button
               type="button"
-              className="flex h-5 w-5 items-center justify-center rounded text-slate-400 hover:bg-slate-200"
+              className="flex h-5 w-5 items-center justify-center rounded text-slate-400 hover:bg-theme-elevated"
               onClick={(event) => {
                 event.stopPropagation();
                 void toggleExpand(node);
@@ -233,7 +233,7 @@ export const ProjectFilesystemPickerModal: React.FC<{
             )}
             <span className="min-w-0 flex-1 truncate">{node.name}</span>
             {node.special_badge ? (
-              <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-bold text-slate-500">{node.special_badge}</span>
+              <span className="rounded-full bg-slate-100/10 px-2 py-0.5 text-[10px] font-bold text-theme-text-faint">{node.special_badge}</span>
             ) : null}
           </div>
           {expanded && node.children.length > 0 ? renderTree(node.children, depth + 1) : null}
@@ -246,19 +246,19 @@ export const ProjectFilesystemPickerModal: React.FC<{
 
   return (
     <div className="fixed inset-0 z-[300] flex items-center justify-center bg-slate-950/60 p-4 backdrop-blur-sm">
-      <div className="flex max-h-[86vh] w-full max-w-5xl flex-col overflow-hidden rounded-[2rem] bg-white shadow-2xl">
-        <div className="flex items-center justify-between border-b border-slate-100 px-8 py-6">
+      <div className="flex max-h-[86vh] w-full max-w-5xl flex-col overflow-hidden rounded-[2rem] bg-theme-surface shadow-2xl">
+        <div className="flex items-center justify-between border-b border-theme-border px-8 py-6">
           <div>
-            <h3 className="text-xl font-black text-slate-900">{title}</h3>
-            <p className="mt-1 text-sm text-slate-500">{description}</p>
+            <h3 className="text-xl font-black text-theme-text-primary">{title}</h3>
+            <p className="mt-1 text-sm text-theme-text-secondary">{description}</p>
           </div>
-          <button onClick={onClose} className="rounded-2xl p-3 text-slate-400 hover:bg-slate-100 hover:text-slate-700">
+          <button onClick={onClose} className="rounded-2xl p-3 text-slate-400 hover:bg-theme-elevated hover:text-theme-text-primary">
             <X size={18} />
           </button>
         </div>
 
         <div className="grid min-h-0 flex-1 grid-cols-1 md:grid-cols-[1.45fr_1fr]">
-          <div className="min-h-0 overflow-y-auto border-b border-slate-100 p-6 md:border-b-0 md:border-r">
+          <div className="min-h-0 overflow-y-auto border-b border-theme-border p-6 md:border-b-0 md:border-r">
             {loading ? (
               <div className="flex items-center justify-center py-16">
                 <Loader2 className="animate-spin text-cyan-700" size={28} />
@@ -274,30 +274,30 @@ export const ProjectFilesystemPickerModal: React.FC<{
             <div>
               <div className="text-xs font-black uppercase tracking-widest text-slate-400">{allowMultiple ? '已选路径' : '已选路径'}</div>
               {allowMultiple ? (
-                <div className="mt-4 rounded-2xl border border-cyan-100 bg-cyan-50 p-5">
-                  <div className="text-sm font-bold text-slate-800">已选择 {selectedValidNodes.length} 个{selectionMode === 'file' ? '文件' : '目录'}</div>
+                <div className="mt-4 rounded-2xl border border-cyan-100 bg-cyan-50/10 p-5">
+                  <div className="text-sm font-bold text-theme-text-primary">已选择 {selectedValidNodes.length} 个{selectionMode === 'file' ? '文件' : '目录'}</div>
                   <div className="mt-4 max-h-72 space-y-2 overflow-auto">
                     {selectedValidNodes.length === 0 ? (
-                      <div className="rounded-xl border border-dashed border-cyan-200 bg-white/70 px-3 py-4 text-sm text-slate-400">
+                      <div className="rounded-xl border border-dashed border-cyan-200 bg-theme-elevated/70 px-3 py-4 text-sm text-theme-text-faint">
                         从左侧树中勾选一个或多个{selectionMode === 'file' ? '文件' : '目录'}。
                       </div>
                     ) : selectedValidNodes.map((node) => (
-                      <div key={node.id} className="rounded-xl bg-white px-3 py-2">
-                        <div className="truncate text-sm font-bold text-slate-800">{node.name}</div>
-                        <div className="mt-1 break-all font-mono text-xs text-slate-500">{node.path}</div>
+                      <div key={node.id} className="rounded-xl bg-theme-elevated px-3 py-2">
+                        <div className="truncate text-sm font-bold text-theme-text-primary">{node.name}</div>
+                        <div className="mt-1 break-all font-mono text-xs text-theme-text-secondary">{node.path}</div>
                       </div>
                     ))}
                   </div>
                 </div>
               ) : selectedNode ? (
-                <div className="mt-4 space-y-4 rounded-2xl border border-cyan-100 bg-cyan-50 p-5">
+                <div className="mt-4 space-y-4 rounded-2xl border border-cyan-100 bg-cyan-50/10 p-5">
                   <div>
                     <div className="text-xs font-black uppercase tracking-widest text-cyan-600">类型</div>
-                    <div className="mt-1 text-sm font-bold text-slate-800">{formatNodeType(selectedNode.node_type)}</div>
+                    <div className="mt-1 text-sm font-bold text-theme-text-primary">{formatNodeType(selectedNode.node_type)}</div>
                   </div>
                   <div>
                     <div className="text-xs font-black uppercase tracking-widest text-cyan-600">路径</div>
-                    <div className="mt-1 break-all rounded-xl bg-white px-3 py-2 font-mono text-sm text-slate-700">
+                    <div className="mt-1 break-all rounded-xl bg-theme-elevated px-3 py-2 font-mono text-sm text-theme-text-primary">
                       {selectedNode.path}
                     </div>
                   </div>
@@ -308,14 +308,14 @@ export const ProjectFilesystemPickerModal: React.FC<{
                   ) : null}
                 </div>
               ) : (
-                <div className="mt-4 rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-4 py-6 text-sm text-slate-400">
+                <div className="mt-4 rounded-2xl border border-dashed border-theme-border bg-theme-elevated px-4 py-6 text-sm text-theme-text-faint">
                   从左侧树中选择一个{selectionMode === 'file' ? '文件' : '目录'}。
                 </div>
               )}
             </div>
 
             <div className="mt-6 flex items-center justify-end gap-3">
-              <button onClick={onClose} className="px-5 py-3 text-sm font-bold text-slate-500 hover:text-slate-700">
+              <button onClick={onClose} className="px-5 py-3 text-sm font-bold text-theme-text-faint hover:text-theme-text-primary">
                 取消
               </button>
               <button

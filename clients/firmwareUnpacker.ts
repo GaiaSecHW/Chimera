@@ -1379,7 +1379,7 @@ const normalizeRuntimeFileList = (value: unknown): FirmwareRuntimeFileList => {
   const record = asRecord(value);
   const items = asArray(record.items).map(normalizeRuntimeFileItem);
   return {
-    root: asString(record.root, '/data/secflow-app-firmware-unpacker'),
+    root: asString(record.root, '/data/chimera-app-firmware-unpacker'),
     total: asNumber(record.total, items.length),
     truncated: asBoolean(record.truncated),
     items,

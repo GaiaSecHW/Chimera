@@ -75,7 +75,7 @@ const SOURCE_LABEL: Record<SourceKind, string> = {
 const DEFAULT_BUTTON_CLASS =
   'inline-flex items-center gap-1.5 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-700 hover:bg-emerald-100 disabled:cursor-not-allowed disabled:opacity-50';
 
-const DEFAULT_DATAFLOW_VULN_RUNS_ROOT = '/app/secflow-app-dataflow-vuln-scanner';
+const DEFAULT_DATAFLOW_VULN_RUNS_ROOT = '/app/chimera-app-dataflow-vuln-scanner';
 const DEFAULT_DATAFLOW_VULN_MODEL = 'local_minimax/MiniMax/MiniMax-M2.5';
 const FORM_INPUT_CLASS = 'w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm font-semibold text-slate-800 outline-none focus:border-emerald-500';
 const REVIEW_PROFILE_OPTIONS = [
@@ -324,19 +324,19 @@ function navigateTo(targetStage: TargetStage, id: string, navigate: ReturnType<t
   if (!id) return;
   clearExecutionReturnContext();
   if (targetStage === 'system_analysis') {
-    window.dispatchEvent(new CustomEvent('secflow-navigate-view', { detail: { view: 'system-analysis-detail', systemAnalysisTaskId: id } }));
+    window.dispatchEvent(new CustomEvent('chimera-navigate-view', { detail: { view: 'system-analysis-detail', systemAnalysisTaskId: id } }));
     return;
   }
   if (targetStage === 'binary_to_source') {
-    window.dispatchEvent(new CustomEvent('secflow-navigate-view', { detail: { view: 'pentest-exec-b2s-detail', b2sTaskId: id } }));
+    window.dispatchEvent(new CustomEvent('chimera-navigate-view', { detail: { view: 'pentest-exec-b2s-detail', b2sTaskId: id } }));
     return;
   }
   if (targetStage === 'entry_analysis') {
-    window.dispatchEvent(new CustomEvent('secflow-navigate-view', { detail: { view: 'entry-analysis-detail', entryAnalysisTaskId: id } }));
+    window.dispatchEvent(new CustomEvent('chimera-navigate-view', { detail: { view: 'entry-analysis-detail', entryAnalysisTaskId: id } }));
     return;
   }
   if (targetStage === 'dataflow_analysis') {
-    window.dispatchEvent(new CustomEvent('secflow-navigate-view', { detail: { view: 'dataflow-analysis-detail', dataflowAnalysisTaskId: id } }));
+    window.dispatchEvent(new CustomEvent('chimera-navigate-view', { detail: { view: 'dataflow-analysis-detail', dataflowAnalysisTaskId: id } }));
     return;
   }
   navigate(`/pentest-exec-dataflow-vuln-task-detail/${encodeURIComponent(id)}`);
@@ -940,7 +940,7 @@ export const DownstreamTaskCreator: React.FC<Props> = ({
                                 <FolderOpen size={16} />
                                 Runs 根目录
                               </div>
-                              <div className="mt-2 text-xs leading-5 text-slate-500">默认填充为当前项目的 /app/secflow-app-dataflow-vuln-scanner，但你仍可修改。</div>
+                              <div className="mt-2 text-xs leading-5 text-slate-500">默认填充为当前项目的 /app/chimera-app-dataflow-vuln-scanner，但你仍可修改。</div>
                               <div className="mt-3 flex gap-2">
                                 <input
                                   value={vulnCreateState.workspacePath}

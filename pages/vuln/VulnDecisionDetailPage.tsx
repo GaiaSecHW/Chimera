@@ -7,7 +7,7 @@ interface VulnPageProps {
   onNavigateToView?: (view: string) => void;
 }
 
-const DECISION_DETAIL_TARGET_KEY = 'secflow-vuln-open-decision-case-id';
+const DECISION_DETAIL_TARGET_KEY = 'chimera-vuln-open-decision-case-id';
 
 export const VulnDecisionDetailPage: React.FC<VulnPageProps> = ({ projectId, onNavigateToView }) => {
   const targetCaseId = useMemo(() => localStorage.getItem(DECISION_DETAIL_TARGET_KEY) || '', []);

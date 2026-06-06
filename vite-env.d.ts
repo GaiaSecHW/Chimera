@@ -1,3 +1,3 @@
 /// <reference types="vite/client" />
 
-declare const __SECFLOW_BUILD_VERSION__: string | undefined;
+declare const __CHIMERA_BUILD_VERSION__: string | undefined;

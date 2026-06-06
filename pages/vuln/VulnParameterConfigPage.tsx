@@ -368,7 +368,7 @@ export const VulnParameterConfigPage: React.FC<VulnPageProps> = ({ projectId, on
             </div>
           </div>
         </div>
-        <div className="border-t border-slate-200 bg-slate-50/70 px-8 py-4">
+        <div className="border-t border-slate-200 bg-[rgba(255,255,255,0.04)] px-8 py-4">
           <div className="flex flex-wrap items-center gap-3 text-xs text-slate-500">
             <span>最近保存：{updatedAt ? new Date(updatedAt).toLocaleString() : '尚未保存'}</span>
             <span>保存人：{updatedBy || '系统默认'}</span>
@@ -454,7 +454,7 @@ export const VulnParameterConfigPage: React.FC<VulnPageProps> = ({ projectId, on
                 </div>
               </div>
             </div>
-            <div className="border-t border-slate-100 bg-slate-50/70 px-6 py-4 text-xs text-slate-500">
+            <div className="border-t border-slate-100 bg-[rgba(255,255,255,0.04)] px-6 py-4 text-xs text-slate-500">
               当前正在编辑 {activePhase.fields.length} 个动态参数字段。阶段参数会与默认结构深度合并，避免因局部更新导致其它阶段配置丢失。
             </div>
           </div>

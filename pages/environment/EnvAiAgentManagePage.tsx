@@ -1429,13 +1429,13 @@ const SingleAgentLlmModal: React.FC<{
       compactHeight
     >
       <div className="space-y-6">
-        <div className="rounded-2xl border border-slate-200 bg-[linear-gradient(165deg,#f8fafc_0%,#ecfeff_100%)] p-4">
-          <div className="text-[11px] font-black uppercase tracking-[0.2em] text-cyan-700">Target Agent</div>
-          <div className="mt-2 text-xl font-black text-slate-900">{agent.agent_id}</div>
-          <div className="mt-1 text-sm text-slate-600">{agent.agent_hostname || agent.agent_key} · {agent.service_name}</div>
+        <div className="rounded-2xl border border-slate-200 bg-slate-800 p-4">
+          <div className="text-[11px] font-black uppercase tracking-[0.2em] text-cyan-400">Target Agent</div>
+          <div className="mt-2 text-xl font-black text-slate-200">{agent.agent_id}</div>
+          <div className="mt-1 text-sm text-slate-400">{agent.agent_hostname || agent.agent_key} · {agent.service_name}</div>
           <div className="mt-3 flex flex-wrap gap-2">
-            <span className="rounded-full bg-white px-2.5 py-1 text-[11px] font-black uppercase tracking-[0.14em] text-slate-700 ring-1 ring-slate-200">{agent.backend_type}</span>
-            <span className="rounded-full bg-white px-2.5 py-1 text-[11px] font-semibold text-slate-700 ring-1 ring-slate-200">当前: {currentBindingName}</span>
+            <span className="rounded-full bg-slate-700 px-2.5 py-1 text-[11px] font-black uppercase tracking-[0.14em] text-slate-300 ring-1 ring-slate-200">{agent.backend_type}</span>
+            <span className="rounded-full bg-slate-700 px-2.5 py-1 text-[11px] font-semibold text-slate-300 ring-1 ring-slate-200">当前: {currentBindingName}</span>
           </div>
         </div>
 
@@ -1813,16 +1813,16 @@ const AgentDetailDrawer: React.FC<{
   const [showArgImportModal, setShowArgImportModal] = useState(false);
 
   return (
-    <div className="fixed inset-y-0 right-0 z-[210] w-full max-w-[840px] border-l border-slate-200 bg-white shadow-[-24px_0_60px_rgba(15,23,42,0.16)]">
+    <div className="fixed inset-y-0 right-0 z-[210] w-full max-w-[840px] border-l border-slate-200 bg-slate-900 shadow-panel">
       <div className="flex h-full flex-col">
-        <div className="border-b border-slate-200 bg-[linear-gradient(160deg,#ffffff_0%,#f8fafc_55%,#ecfeff_100%)] px-6 py-5">
+        <div className="border-b border-slate-200 bg-slate-800 px-6 py-5">
           <div className="flex items-start justify-between gap-4">
             <div>
-              <div className="text-xs font-black uppercase tracking-[0.24em] text-cyan-600">AI Agent Detail</div>
-              <h2 className="mt-2 text-2xl font-black tracking-tight text-slate-900">{agent.agent_id}</h2>
-              <div className="mt-2 text-sm text-slate-600">{agent.agent_hostname || agent.agent_key} · {agent.service_name} · {agent.backend_type}</div>
+              <div className="text-xs font-black uppercase tracking-[0.24em] text-cyan-400">AI Agent Detail</div>
+              <h2 className="mt-2 text-2xl font-black tracking-tight text-slate-200">{agent.agent_id}</h2>
+              <div className="mt-2 text-sm text-slate-400">{agent.agent_hostname || agent.agent_key} · {agent.service_name} · {agent.backend_type}</div>
               <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-slate-500">
-                <span className="rounded-full bg-white px-2.5 py-1 font-semibold ring-1 ring-slate-200">当前 LLM: {formatProviderText(agent.llm_provider_snapshot || { provider_key: agent.llm_provider_key })}</span>
+                <span className="rounded-full bg-slate-700 px-2.5 py-1 font-semibold ring-1 ring-slate-200">当前 LLM: {formatProviderText(agent.llm_provider_snapshot || { provider_key: agent.llm_provider_key })}</span>
                 <span className="rounded-full bg-white px-2.5 py-1 font-semibold ring-1 ring-slate-200">最近应用: {formatTimestamp(agent.llm_provider_applied_at)}</span>
                 <span className="rounded-full bg-white px-2.5 py-1 font-semibold ring-1 ring-slate-200">命令: {agent.command || '-'}</span>
               </div>

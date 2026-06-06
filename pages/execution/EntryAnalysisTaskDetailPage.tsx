@@ -613,8 +613,8 @@ function extractFsRelPath(path: string, projectId: string): string | null {
 
 function openInFileExplorer(fsPath: string) {
   const normalizedPath = fsPath.startsWith('/') ? fsPath : `/${fsPath}`;
-  sessionStorage.setItem('secflow:fileExplorerNavigatePath', normalizedPath);
-  window.dispatchEvent(new CustomEvent('secflow-navigate-view', { detail: { view: 'project-file-explorer', path: normalizedPath } }));
+  sessionStorage.setItem('chimera:fileExplorerNavigatePath', normalizedPath);
+  window.dispatchEvent(new CustomEvent('chimera-navigate-view', { detail: { view: 'project-file-explorer', path: normalizedPath } }));
 }
 
 function asRecord(value: unknown): Record<string, any> {
@@ -1531,8 +1531,8 @@ export const EntryAnalysisTaskDetailPage: React.FC<{ projectId: string; taskId: 
   const appApi = api.domains.execution.appEntryAnalyse;
   const fileserverApi = api.domains.assets.fileserver;
   const { notify, feedbackNodes } = useUiFeedback();
-  const stageFocusStorageKey = 'secflow:entryAnalysisStageFocus';
-  const riskFocusStorageKey = 'secflow:entryAnalysisRiskFocus';
+  const stageFocusStorageKey = 'chimera:entryAnalysisStageFocus';
+  const riskFocusStorageKey = 'chimera:entryAnalysisRiskFocus';
   const [detail, setDetail] = useState<AppEaTaskDetail | null>(null);
   const [runtimeSummary, setRuntimeSummary] = useState<AppEaTaskRuntimeSummary | null>(null);
   const [logs, setLogs] = useState<AppEaStagesJson>({ events: [] });

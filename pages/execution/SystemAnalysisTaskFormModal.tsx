@@ -53,7 +53,7 @@ export function buildDefaultSystemAnalysisTaskForm(projectId: string): SystemAna
   return {
     task_name: '',
     input_path: '',
-    output_path: `/data/files/${projectId}/app/secflow-app-system-analyse`,
+    output_path: `/data/files/${projectId}/app/chimera-app-system-analyse`,
     task_description: '',
     prompt_content: '',
     analysis_mode: 'binary',
@@ -73,7 +73,7 @@ export function buildCloneFormFromTask(detail: AppSaTaskDetail, projectId: strin
   return {
     task_name: `${detail.task_name}-copy`,
     input_path: detail.input_path || '',
-    output_path: `/data/files/${projectId}/app/secflow-app-system-analyse`,
+    output_path: `/data/files/${projectId}/app/chimera-app-system-analyse`,
     task_description: detail.task_description || '',
     prompt_content: detail.prompt_content || '',
     analysis_mode: analysisMode,

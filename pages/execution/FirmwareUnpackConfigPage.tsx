@@ -385,11 +385,11 @@ export const FirmwareUnpackConfigPage: React.FC<Props> = ({ projectId: _projectI
               <Settings size={18} className="text-rose-600" />
               <h2 className="text-xl font-black text-slate-900">{embedded ? '固件解包参数配置' : '动态配置参数'}</h2>
               <span className="rounded-full border border-rose-200 bg-rose-50 px-3 py-1 text-[11px] font-black tracking-[0.12em] text-rose-700">
-                secflow-app-firmware-unpacker
+                chimera-app-firmware-unpacker
               </span>
             </div>
             <p className="mt-2 text-sm text-slate-500">
-              当前面板配置项归属于 `secflow-app-firmware-unpacker` 微服务，用于控制固件解包服务的集群并发和运行时参数。
+              当前面板配置项归属于 `chimera-app-firmware-unpacker` 微服务，用于控制固件解包服务的集群并发和运行时参数。
             </p>
           </div>
           <button onClick={() => { loadConfig(); loadCluster(); loadLlmConfigFiles(); }} disabled={configLoading || clusterLoading || llmLoading}

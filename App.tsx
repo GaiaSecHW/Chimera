@@ -30,7 +30,11 @@ const AppShell: React.FC = () => {
   const queryParams = new URLSearchParams(window.location.search);
   const isServiceTerminalWindow = queryParams.get('service_terminal') === '1';
 
-  const [token, setToken] = useState<string | null>(localStorage.getItem('secflow_token'));
+  const [token, setToken] = useState<string | null>(() => {
+    const v = localStorage.getItem('chimera_token') || localStorage.getItem('secflow_token');
+    if (v) { localStorage.setItem('chimera_token', v); localStorage.removeItem('secflow_token'); }
+    return v;
+  });
   const [user, setUser] = useState<UserInfo | null>(null);
   const [currentView, setCurrentView] = useState<ViewType | string>(routeView);
   const [projects, setProjects] = useState<SecurityProject[]>([]);
@@ -136,8 +140,8 @@ const AppShell: React.FC = () => {
     const handleUnauthorized = () => {
       handleLogout();
     };
-    window.addEventListener('secflow-unauthorized', handleUnauthorized);
-    return () => window.removeEventListener('secflow-unauthorized', handleUnauthorized);
+    window.addEventListener('chimera-unauthorized', handleUnauthorized);
+    return () => window.removeEventListener('chimera-unauthorized', handleUnauthorized);
   }, []);
 
   useEffect(() => {
@@ -228,8 +232,8 @@ const AppShell: React.FC = () => {
         setActiveProcessMonitorServiceKey(processMonitorServiceKey);
       }
     };
-    window.addEventListener('secflow-navigate-view', handleNavigateView as EventListener);
-    return () => window.removeEventListener('secflow-navigate-view', handleNavigateView as EventListener);
+    window.addEventListener('chimera-navigate-view', handleNavigateView as EventListener);
+    return () => window.removeEventListener('chimera-navigate-view', handleNavigateView as EventListener);
   }, [navigateToView]);
 
   useEffect(() => {
@@ -253,14 +257,14 @@ const AppShell: React.FC = () => {
     try {
       const summary = await platformApi.menu.getServiceHealthSummary();
       const services = summary.services || {};
-      setResourceServiceHealthy(resolveMenuServiceHealth(services, ['secflow-resource', 'secflow-platform-resource']));
-      setStaticPackageHealthy(resolveMenuServiceHealth(services, ['secflow-static-binary', 'secflow-platform-static-binary']));
-      setProjectServiceHealthy(resolveMenuServiceHealth(services, ['secflow-project', 'secflow-platform-project']));
-      setEnvServiceHealthy(resolveMenuServiceHealth(services, ['secflow-k8s', 'secflow-platform-k8s']));
-      setCodeAuditServiceHealthy(resolveMenuServiceHealth(services, ['vscode-web-manager', 'secflow-app-code-server']));
-      setWorkflowServiceHealthy(resolveMenuServiceHealth(services, ['secflow-workflow', 'secflow-platform-workflow', 'secflow-workflow-status']));
-      setVulnServiceHealthy(resolveMenuServiceHealth(services, ['secflow-platform-vuln']));
-      setConfigCenterServiceHealthy(resolveMenuServiceHealth(services, ['secflow-platform-configcenter']));
+      setResourceServiceHealthy(resolveMenuServiceHealth(services, ['chimera-resource', 'chimera-platform-resource']));
+      setStaticPackageHealthy(resolveMenuServiceHealth(services, ['chimera-static-binary', 'chimera-platform-static-binary']));
+      setProjectServiceHealthy(resolveMenuServiceHealth(services, ['chimera-project', 'chimera-platform-project']));
+      setEnvServiceHealthy(resolveMenuServiceHealth(services, ['chimera-k8s', 'chimera-platform-k8s']));
+      setCodeAuditServiceHealthy(resolveMenuServiceHealth(services, ['vscode-web-manager', 'chimera-app-code-server']));
+      setWorkflowServiceHealthy(resolveMenuServiceHealth(services, ['chimera-workflow', 'chimera-platform-workflow', 'chimera-workflow-status']));
+      setVulnServiceHealthy(resolveMenuServiceHealth(services, ['chimera-platform-vuln']));
+      setConfigCenterServiceHealthy(resolveMenuServiceHealth(services, ['chimera-platform-configcenter']));
     } catch (e) {
       setResourceServiceHealthy(false);
       setStaticPackageHealthy(false);
@@ -378,7 +382,7 @@ const AppShell: React.FC = () => {
     
     try {
       const data = await platformApi.auth.login(credentials);
-      localStorage.setItem('secflow_token', data.access_token);
+      localStorage.setItem('chimera_token', data.access_token);
       setToken(data.access_token);
     } catch (err: any) {
       setLoginError(err.message || "登录失败，请检查用户名和密码");
@@ -388,7 +392,7 @@ const AppShell: React.FC = () => {
   };
 
   const handleLogout = () => {
-    localStorage.removeItem('secflow_token');
+    localStorage.removeItem('chimera_token');
     setToken(null);
     setUser(null);
     setProjects([]);
@@ -432,7 +436,7 @@ const AppShell: React.FC = () => {
             className="absolute inset-0"
             style={{
               background:
-                'radial-gradient(circle at 20% 18%, rgba(212,160,48,0.18), transparent 18%), radial-gradient(circle at 82% 76%, rgba(42,90,143,0.22), transparent 24%), linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0))',
+                'radial-gradient(circle at 20% 18%, rgba(212,160,48,0.18), transparent 18%), radial-gradient(circle at 82% 76%, rgba(42,90,143,0.22), transparent 24%), linear-gradient(180deg, rgba(255,255,255,0.02), transparent)',
             }}
           />
         </div>
@@ -440,7 +444,6 @@ const AppShell: React.FC = () => {
         <div className="w-full max-w-md p-10 backdrop-blur-xl rounded-[2.5rem] shadow-brand relative z-10" style={{ backgroundColor: 'var(--bg-login-card)', border: '1px solid var(--login-border)' }}>
           <div className="flex flex-col items-center mb-10 text-center">
             <ThemeLogo size="large" showBadge />
-            <p className="text-theme-text-faint mt-4 font-medium uppercase tracking-[0.28em] text-[10px]">专业安全测试流程引擎</p>
           </div>
 
           {loginError && (
@@ -463,10 +466,6 @@ const AppShell: React.FC = () => {
               {isLoading ? <Loader2 className="animate-spin" size={20} /> : '进入平台'}
             </button>
           </form>
-
-          <p className="mt-8 text-center text-[10px] text-theme-text-faint font-medium leading-relaxed">
-            &copy; 2025 SecFlow 极速安全测试平台 <br/> 受信任的二进制分发与自动化渗透环境
-          </p>
         </div>
       </div>
       <DialogViewport />
@@ -636,8 +635,8 @@ const AppShell: React.FC = () => {
           </main>
         </div>
         <style>{`
-          .custom-scrollbar::-webkit-scrollbar { width: 6px; } 
-          .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.1); border-radius: 10px; }
+          .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+          .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 10px; }
           @keyframes zoom-fade-in {
             from { opacity: 0; transform: scale(0.96); }
             to { opacity: 1; transform: scale(1); }
