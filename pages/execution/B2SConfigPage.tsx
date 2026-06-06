@@ -7,6 +7,7 @@ import {
   B2SCacheEntry,
   B2SLlmProviderSummary,
   B2SCacheSummary,
+  B2SRunMode,
   B2SServiceConfig,
 } from '../../clients/binaryToSource';
 import { showConfirm } from '../../components/DialogService';
@@ -20,9 +21,16 @@ const defaultConfig = (projectId: string): B2SServiceConfig => ({
   project_id: projectId,
   budget_exhausted_action: 'treat_as_passed',
   concurrency: 8,
+  default_mode: 'turbo',
   llm_provider_key: null,
   effective_llm_provider: null,
 });
+
+const defaultModeOptions: Array<{ value: B2SRunMode; label: string; description: string }> = [
+  { value: 'turbo', label: 'turbo / 极速', description: '优先命中缓存和极速收敛，适合大批量快速扫一遍。' },
+  { value: 'fast', label: 'fast / 快速', description: '速度与质量折中，适合常规批量逆向。' },
+  { value: 'deep', label: 'deep / 深度', description: '更偏高质量还原，耗时更长。' },
+];
 
 const defaultCacheSummary: B2SCacheSummary = {
   visible_entries: 0,
@@ -293,6 +301,16 @@ export const B2SConfigPage: React.FC<{ projectId: string; embedded?: boolean }> 
     );
   };
 
+  const saveDefaultModeConfig = async () => {
+    await persistConfig(
+      {
+        ...savedConfig,
+        default_mode: config.default_mode || defaultConfig(projectId).default_mode,
+      },
+      '默认模式配置已保存',
+    );
+  };
+
   const resetProviderConfig = () => {
     setConfig((prev) => ({ ...prev, llm_provider_key: null }));
     notify('LLM / Agent 配置已重置为默认值（尚未保存）', 'info');
@@ -306,6 +324,11 @@ export const B2SConfigPage: React.FC<{ projectId: string; embedded?: boolean }> 
   const resetConcurrencyConfig = () => {
     setConfig((prev) => ({ ...prev, concurrency: defaultConfig(projectId).concurrency }));
     notify('批次并发已重置为默认值（尚未保存）', 'info');
+  };
+
+  const resetDefaultModeConfig = () => {
+    setConfig((prev) => ({ ...prev, default_mode: defaultConfig(projectId).default_mode }));
+    notify('默认模式已重置为默认值（尚未保存）', 'info');
   };
 
   const resetCacheFilters = () => {
@@ -550,6 +573,34 @@ export const B2SConfigPage: React.FC<{ projectId: string; embedded?: boolean }> 
               </FieldRow>
               <p className="text-xs leading-5 text-slate-500">
                 这里维护的是项目默认并发。新任务创建时会默认带出该值；如果用户在创建弹窗里手工修改，只影响本次任务。
+              </p>
+            </SectionCard>
+            <SectionCard
+              title="默认还原模式"
+              subtitle="配置项目级默认逆向模式。保存后仅影响后续新建任务，不影响已创建、运行中或重试/重跑任务。"
+              actions={<PanelActions saving={saving} onSave={() => { void saveDefaultModeConfig(); }} onReset={resetDefaultModeConfig} />}
+            >
+              <FieldRow label="default_mode" hint="新建任务未显式指定 mode 时生效">
+                <div className="grid gap-3 md:grid-cols-3">
+                  {defaultModeOptions.map((option) => (
+                    <button
+                      key={option.value}
+                      type="button"
+                      onClick={() => setConfig((prev) => ({ ...prev, default_mode: option.value }))}
+                      className={`rounded-2xl border px-4 py-4 text-left transition ${
+                        config.default_mode === option.value
+                          ? 'border-cyan-300 bg-cyan-50 ring-2 ring-cyan-100'
+                          : 'border-slate-200 bg-white hover:bg-slate-50'
+                      }`}
+                    >
+                      <div className="text-sm font-black text-slate-900">{option.label}</div>
+                      <div className="mt-2 text-xs font-semibold leading-5 text-slate-500">{option.description}</div>
+                    </button>
+                  ))}
+                </div>
+              </FieldRow>
+              <p className="text-xs leading-5 text-slate-500">
+                如果创建任务时没有手工覆盖 `mode`，后端会自动回退到这里配置的项目默认模式；当前后端默认值为 `turbo`。
               </p>
             </SectionCard>
             <SectionCard

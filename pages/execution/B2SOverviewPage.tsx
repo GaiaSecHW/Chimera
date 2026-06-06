@@ -49,6 +49,12 @@ const normalizeB2STaskStatus = (status?: string | null) => {
   return normalized;
 };
 
+const B2S_MODE_LABELS: Record<B2SRunMode, string> = {
+  turbo: '极速模式',
+  fast: '快速模式',
+  deep: '深度模式',
+};
+
 const formatDurationMs = (durationMs?: number | null) => {
   if (durationMs === undefined || durationMs === null || Number.isNaN(durationMs) || durationMs < 0) return '-';
   const seconds = Math.round(durationMs / 1000);
@@ -103,7 +109,9 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
   const [nameEdited, setNameEdited] = useState(false);
   const [concurrency, setConcurrency] = useState(8);
   const [projectDefaultConcurrency, setProjectDefaultConcurrency] = useState(8);
-  const [runMode, setRunMode] = useState<B2SRunMode>('fast');
+  const [projectDefaultMode, setProjectDefaultMode] = useState<B2SRunMode>('turbo');
+  const [runMode, setRunMode] = useState<B2SRunMode>('turbo');
+  const [modeOverridden, setModeOverridden] = useState(false);
   const [llmProviderKey, setLlmProviderKey] = useState('');
   const [reuseCache, setReuseCache] = useState(true);
   const [llmProviders, setLlmProviders] = useState<B2SLlmProviderSummary[]>([]);
@@ -376,7 +384,8 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
     setName('');
     setNameEdited(false);
     setConcurrency(projectDefaultConcurrency);
-    setRunMode('fast');
+    setRunMode(projectDefaultMode);
+    setModeOverridden(false);
     setLlmProviderKey('');
     setReuseCache(true);
     setSelectedFiles([]);
@@ -397,11 +406,20 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
       const providers = (data.items || []).filter((item) => item.enabled);
       const projectProviderKey = String(projectConfig?.llm_provider_key || '').trim();
       const nextProjectDefaultConcurrency = Math.max(1, Math.min(16, Number(projectConfig?.concurrency) || 8));
+      const nextProjectDefaultMode = (['turbo', 'fast', 'deep'].includes(String(projectConfig?.default_mode || '').trim())
+        ? String(projectConfig?.default_mode || '').trim()
+        : 'turbo') as B2SRunMode;
       setProjectDefaultConcurrency(nextProjectDefaultConcurrency);
       setConcurrency(nextProjectDefaultConcurrency);
+      setProjectDefaultMode(nextProjectDefaultMode);
+      setRunMode(nextProjectDefaultMode);
+      setModeOverridden(false);
       setLlmProviders(providers);
       setLlmProviderKey((current) => current || projectProviderKey || data.default_provider_key || providers.find((item) => item.is_default)?.provider_key || providers[0]?.provider_key || '');
     } catch (e: any) {
+      setProjectDefaultMode('turbo');
+      setRunMode('turbo');
+      setModeOverridden(false);
       setCreateError(e?.message || '加载LLM Provider失败');
     } finally {
       setLlmProvidersLoading(false);
@@ -519,7 +537,7 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
         tags: ['reverse', 'binary-to-source'],
         llm_provider_key: llmProviderKey || undefined,
         concurrency: safeConcurrency,
-        mode: runMode,
+        mode: modeOverridden ? runMode : undefined,
         reuse_cache: reuseCache,
         elf_tasks: elfTasks,
       });
@@ -1026,6 +1044,7 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
                         </div>
                       </div>
                     </ExecutionTableTh>
+                    <ExecutionTableTh>模式</ExecutionTableTh>
                     <ExecutionTableTh>总体进度</ExecutionTableTh>
                     <ExecutionTableTh>函数处理</ExecutionTableTh>
                     <ExecutionTableTh>异常项</ExecutionTableTh>
@@ -1061,6 +1080,7 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
                     const sourceLabel = String(task.task_origin_type || 'manual').trim() === 'binary_security'
                       ? (String(task.origin_label || '').trim() || '二进制安全任务')
                       : '手动创建';
+                    const modeLabel = String(task.mode_label || '').trim() || String(task.mode || '').trim() || '-';
                     const normalizedTaskStatus = normalizeB2STaskStatus(task.status);
                     const totalFunctions = safeCount(task.total_functions ?? detail?.overall_progress?.total_functions);
                     const completedFunctions = safeCount(task.completed_functions ?? detail?.overall_progress?.completed_functions);
@@ -1144,6 +1164,11 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
                           ) : (
                             <span className="font-mono text-xs font-semibold text-slate-400">-</span>
                           )}
+                        </ExecutionTableTd>
+                        <ExecutionTableTd>
+                          <span className="inline-flex rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-semibold text-slate-700">
+                            {modeLabel}
+                          </span>
                         </ExecutionTableTd>
                         <ExecutionTableTd className="min-w-[220px]">
                           <div className="flex items-center justify-between gap-2 text-xs">
@@ -1289,10 +1314,28 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
               <div className="space-y-3">
                 <div>
                   <div className="text-sm font-bold text-slate-700">还原模式</div>
-                  <div className="mt-2 grid grid-cols-1 gap-3 md:grid-cols-2">
+                  <div className="mt-2 grid grid-cols-1 gap-3 md:grid-cols-3">
                     <button
                       type="button"
-                      onClick={() => setRunMode('fast')}
+                      onClick={() => {
+                        setRunMode('turbo');
+                        setModeOverridden(true);
+                      }}
+                      disabled={submitting}
+                      className={`rounded-3xl border px-4 py-4 text-left transition-all ${runMode === 'turbo' ? 'border-amber-300 bg-amber-50 ring-2 ring-amber-100' : 'border-slate-200 bg-white hover:bg-slate-50'} disabled:opacity-60`}
+                    >
+                      <div className="flex items-center justify-between gap-3">
+                        <div className="text-sm font-black text-slate-900">极速模式</div>
+                        <div className="rounded-full bg-white px-2.5 py-1 text-[10px] font-black tracking-[0.08em] text-amber-700 ring-1 ring-amber-100">极速</div>
+                      </div>
+                      <div className="mt-2 text-xs font-semibold leading-5 text-slate-500">优先命中缓存和极速收敛，适合大批量快速扫一遍。</div>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setRunMode('fast');
+                        setModeOverridden(true);
+                      }}
                       disabled={submitting}
                       className={`rounded-3xl border px-4 py-4 text-left transition-all ${runMode === 'fast' ? 'border-cyan-300 bg-cyan-50 ring-2 ring-cyan-100' : 'border-slate-200 bg-white hover:bg-slate-50'} disabled:opacity-60`}
                     >
@@ -1304,7 +1347,10 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
                     </button>
                     <button
                       type="button"
-                      onClick={() => setRunMode('deep')}
+                      onClick={() => {
+                        setRunMode('deep');
+                        setModeOverridden(true);
+                      }}
                       disabled={submitting}
                       className={`rounded-3xl border px-4 py-4 text-left transition-all ${runMode === 'deep' ? 'border-violet-300 bg-violet-50 ring-2 ring-violet-100' : 'border-slate-200 bg-white hover:bg-slate-50'} disabled:opacity-60`}
                     >
@@ -1314,6 +1360,9 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
                       </div>
                       <div className="mt-2 text-xs font-semibold leading-5 text-slate-500">使用 Agent 深度推理，速度较慢，适合关键二进制和高质量还原。</div>
                     </button>
+                  </div>
+                  <div className="mt-2 text-xs font-semibold text-slate-500">
+                    当前项目默认模式：{B2S_MODE_LABELS[projectDefaultMode]}。若未手动切换模式，创建请求不会显式传 `mode`，由后端按项目默认模式自动决策。
                   </div>
                 </div>
 
@@ -1343,7 +1392,7 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
                     <div>
                       <div className="text-sm font-black text-slate-900">复用已有缓存</div>
                       <div className="mt-1 text-xs font-semibold leading-5 text-slate-600">
-                        默认开启。关闭后，本次会忽略历史缓存；如果任务成功，会覆盖当前 ELF 在 {runMode === 'deep' ? '深度模式' : '快速模式'} 下的缓存结果。
+                        默认开启。关闭后，本次会忽略历史缓存；如果任务成功，会覆盖当前 ELF 在 {B2S_MODE_LABELS[runMode]} 下的缓存结果。
                       </div>
                     </div>
                     <label className="inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-white px-3 py-1.5 text-xs font-black text-emerald-700">

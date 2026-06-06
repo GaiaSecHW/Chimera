@@ -15,6 +15,7 @@ export interface B2SServiceConfig {
   project_id: string;
   budget_exhausted_action: B2SBudgetExhaustedAction;
   concurrency: number;
+  default_mode: B2SRunMode;
   llm_provider_key?: string | null;
   effective_llm_provider?: B2SLlmProviderSummary | null;
   updated_at?: string | null;
