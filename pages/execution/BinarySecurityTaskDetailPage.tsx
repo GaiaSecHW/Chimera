@@ -2332,23 +2332,35 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
     return () => observer.disconnect();
   }, [activeTab, stageSequence]);
 
-  const runAction = async (action: 'cancel' | 'retry' | 'continue' | 'delete') => {
+  const runAction = async (action: 'cancel' | 'retry' | 'continue' | 'delete', options?: { force?: boolean }) => {
     if (!projectId || !taskId) return;
     if (action === 'delete') {
-      const confirmed = await showConfirm({
-        title: '删除任务',
-        message: '删除会先取消并删除所有下游阶段任务，然后删除当前任务记录并清空任务目录。删除后不可恢复，是否继续？',
-        confirmText: '确认删除',
-        cancelText: '取消',
-        danger: true,
-      });
+      const confirmed = await showConfirm(
+        options?.force
+          ? {
+              title: '强制删除任务',
+              message:
+                '强制删除会忽略下游任务删除失败，继续清理当前主任务和本地工作区。该操作可能留下孤儿下游任务，且不可恢复，是否继续？',
+              confirmText: '确认强制删除',
+              cancelText: '取消',
+              danger: true,
+            }
+          : {
+              title: '删除任务',
+              message: '删除会先取消并删除所有下游阶段任务，然后删除当前任务记录并清空任务目录。删除后不可恢复，是否继续？',
+              confirmText: '确认删除',
+              cancelText: '取消',
+              danger: true,
+            },
+      );
       if (!confirmed) return;
     }
     setActionLoading(action);
     try {
       if (action === 'cancel') await executionApi.binarySecurity.cancelTask(projectId, taskId);
       if (action === 'delete') {
-        await executionApi.binarySecurity.deleteTask(projectId, taskId);
+        const result = await executionApi.binarySecurity.deleteTask(projectId, taskId, options);
+        setNotice(result?.message || (options?.force ? '强制删除已受理，后台正在处理中' : '删除已受理，后台正在处理中'));
         onBack();
         return;
       }
@@ -3220,6 +3232,15 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
             {actionLoading === 'retry_failed_items' ? '重试中...' : '重试失败项'}
           </button>
           <button type="button" title={taskDeleteSupported ? undefined : (manualOperationState?.blocking_reason || '当前任务不可删除')} onClick={() => void runAction('delete')} disabled={actionLoading !== '' || !taskDeleteSupported || isManualOperationInProgress} className="rounded-xl border border-rose-300 bg-white px-4 py-2.5 text-sm font-bold text-rose-700 disabled:opacity-60">删除</button>
+          <button
+            type="button"
+            title={taskDeleteSupported ? '忽略下游删除失败并强制删除主任务' : (manualOperationState?.blocking_reason || '当前任务不可强制删除')}
+            onClick={() => void runAction('delete', { force: true })}
+            disabled={actionLoading !== '' || !taskDeleteSupported || isManualOperationInProgress}
+            className="rounded-xl border border-rose-500 bg-rose-600 px-4 py-2.5 text-sm font-bold text-white disabled:opacity-60"
+          >
+            强制删除
+          </button>
         </div>
       </div>
 
