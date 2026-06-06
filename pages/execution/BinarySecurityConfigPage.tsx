@@ -162,14 +162,22 @@ export const BinarySecurityConfigPage: React.FC<{ projectId: string; initialTab?
     setError(null);
     setMessage(null);
     try {
-      const [serviceDataRaw, projectDataRaw, evolutionConfigRaw] = await Promise.all([
+      const [serviceDataRaw, projectDataRaw] = await Promise.all([
         executionApi.binarySecurity.getServiceConfig(),
         executionApi.binarySecurity.getProjectConfig(projectId),
-        executionApi.binaryEvolution.getConfig(),
       ]);
       const serviceConfig = normalizeBinarySecurityServiceConfig(serviceDataRaw);
       const projectConfig = normalizeBinarySecurityProjectConfig(projectDataRaw);
-      const evolutionConfig = normalizeBinaryEvolutionConfig(evolutionConfigRaw);
+      let evolutionConfig = DEFAULT_BINARY_EVOLUTION_CONFIG;
+      try {
+        const evolutionConfigRaw = await executionApi.binaryEvolution.getConfig();
+        evolutionConfig = normalizeBinaryEvolutionConfig(evolutionConfigRaw);
+      } catch (e: any) {
+        console.warn('binary evolution config is unavailable, using defaults', e);
+        if (activeTab === 'binary-evolution') {
+          setError(e?.message || '加载进化中心配置失败');
+        }
+      }
       setSavedEvolutionConfig(evolutionConfig);
       setMaxConcurrentTasks(serviceConfig.max_concurrent_tasks);
       setDispatchTimeoutSeconds(serviceConfig.dispatch_timeout_seconds);

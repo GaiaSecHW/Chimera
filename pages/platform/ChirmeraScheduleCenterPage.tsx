@@ -110,7 +110,7 @@ const parseStatuses = (raw: string) =>
 
 const executionTone = (status: string) => {
   if (status === 'succeeded') return 'bg-emerald-100 text-emerald-700 border-emerald-200';
-  if (status === 'dispatching' || status === 'pending') return 'bg-sky-100 text-sky-700 border-sky-200';
+  if (['queued', 'leased', 'dispatching', 'retry_wait'].includes(status)) return 'bg-sky-100 text-sky-700 border-sky-200';
   if (status === 'timeout') return 'bg-amber-100 text-amber-700 border-amber-200';
   return 'bg-rose-100 text-rose-700 border-rose-200';
 };
@@ -322,7 +322,7 @@ export const ChirmeraScheduleCenterPage: React.FC<ChirmeraScheduleCenterPageProp
   }, [selectedExecutionId, projectId]);
 
   const jobStats = useMemo(() => {
-    const running = executions.filter((item) => item.status === 'dispatching' || item.status === 'pending').length;
+    const running = executions.filter((item) => ['queued', 'leased', 'dispatching', 'retry_wait'].includes(item.status)).length;
     const success = executions.filter((item) => item.status === 'succeeded').length;
     const failed = executions.filter((item) => item.status === 'failed' || item.status === 'timeout').length;
     return { running, success, failed };
