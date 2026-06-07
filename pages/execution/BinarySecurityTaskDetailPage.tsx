@@ -285,6 +285,18 @@ const formatDownstreamStatus = (status?: string | null) => {
   return formatBinarySecurityStatus(status);
 };
 
+const isTailControlPlaneSyncTransition = (item: BinarySecurityTaskDetail['stage_items'][number]) => {
+  const errorType = String(item.last_sync_error_type || item.sync_observation_error_type || '').trim().toLowerCase();
+  const errorMessage = String(item.last_sync_error_message || item.sync_observation_error_message || '').trim().toLowerCase();
+  if (errorType === 'staletaskexecution') return true;
+  return (
+    errorMessage.includes('tail 收敛 owner 已变更'.toLowerCase()) ||
+    errorMessage.includes('tail 收敛 lease 已失效'.toLowerCase()) ||
+    errorMessage.includes('当前 tail 收敛 owner 已变更'.toLowerCase()) ||
+    errorMessage.includes('当前 tail 收敛 lease 已失效'.toLowerCase())
+  );
+};
+
 const formatStageItemSyncStatus = (status?: string | null) => {
   switch (status) {
     case 'observed':
@@ -304,12 +316,15 @@ const formatStageItemSyncStatus = (status?: string | null) => {
   }
 };
 
-const formatStageItemSyncFreshness = (state?: string | null) => {
+const formatStageItemSyncFreshness = (
+  state?: string | null,
+  item?: BinarySecurityTaskDetail['stage_items'][number],
+) => {
   switch (String(state || '').trim().toLowerCase()) {
     case 'healthy':
       return '同步正常';
     case 'failing_after_success':
-      return '同步失败中';
+      return item && isTailControlPlaneSyncTransition(item) ? '收敛切换中' : '同步失败中';
     case 'stale_success':
       return '仅历史成功';
     case 'never_succeeded':
@@ -327,7 +342,7 @@ const stageItemSyncFreshnessTone = (item: BinarySecurityTaskDetail['stage_items'
     case 'healthy':
       return 'success';
     case 'failing_after_success':
-      return 'failed';
+      return isTailControlPlaneSyncTransition(item) ? 'pending' : 'failed';
     case 'stale_success':
       return 'pending';
     case 'never_succeeded':
@@ -2903,7 +2918,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
     clearExecutionReturnContext();
     if (item.stage_name === 'firmware_unpack') {
       sessionStorage.setItem('secflow:firmwareUnpackerTaskId', downstreamTaskId);
-      window.dispatchEvent(new CustomEvent('secflow-navigate-view', {
+      window.dispatchEvent(new CustomEvent('chimera-navigate-view', {
         detail: {
           view: 'pentest-exec-firmware-unpacker',
           firmwareUnpackerTaskId: downstreamTaskId,
@@ -2912,19 +2927,19 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
       return;
     }
     if (item.stage_name === 'system_analysis') {
-      window.dispatchEvent(new CustomEvent('secflow-navigate-view', { detail: { view: 'system-analysis-detail', systemAnalysisTaskId: downstreamTaskId } }));
+      window.dispatchEvent(new CustomEvent('chimera-navigate-view', { detail: { view: 'system-analysis-detail', systemAnalysisTaskId: downstreamTaskId } }));
       return;
     }
     if (item.stage_name === 'binary_to_source') {
-      window.dispatchEvent(new CustomEvent('secflow-navigate-view', { detail: { view: 'pentest-exec-b2s-detail', b2sTaskId: downstreamTaskId } }));
+      window.dispatchEvent(new CustomEvent('chimera-navigate-view', { detail: { view: 'pentest-exec-b2s-detail', b2sTaskId: downstreamTaskId } }));
       return;
     }
     if (item.stage_name === 'entry_analysis') {
-      window.dispatchEvent(new CustomEvent('secflow-navigate-view', { detail: { view: 'entry-analysis-detail', entryAnalysisTaskId: downstreamTaskId } }));
+      window.dispatchEvent(new CustomEvent('chimera-navigate-view', { detail: { view: 'entry-analysis-detail', entryAnalysisTaskId: downstreamTaskId } }));
       return;
     }
     if (item.stage_name === 'dataflow_vuln_scan') {
-      window.dispatchEvent(new CustomEvent('secflow-navigate-view', { detail: { view: 'dataflow-vuln-scan-detail', dataflowVulnScanTaskId: downstreamTaskId } }));
+      window.dispatchEvent(new CustomEvent('chimera-navigate-view', { detail: { view: 'dataflow-vuln-scan-detail', dataflowVulnScanTaskId: downstreamTaskId } }));
       return;
     }
   };
@@ -4674,7 +4689,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                                 <td className="px-3 py-3">
                                   <div className="flex flex-col gap-2">
                                     <span className={`inline-flex w-fit rounded-full border px-3 py-1 text-xs font-black ${statusTone(stageItemSyncFreshnessTone(item))}`}>
-                                      {formatStageItemSyncFreshness(item.sync_freshness_state)}
+                                      {formatStageItemSyncFreshness(item.sync_freshness_state, item)}
                                     </span>
                                     <span className={`inline-flex w-fit rounded-full border px-3 py-1 text-xs font-black ${statusTone(
                                       item.sync_status === 'transport_error'
@@ -4799,7 +4814,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                                               </div>
                                               <div>
                                                 <div className="text-slate-400">当前同步结论</div>
-                                                <div className="mt-1 text-slate-800">{formatStageItemSyncFreshness(item.sync_freshness_state)}</div>
+                                                <div className="mt-1 text-slate-800">{formatStageItemSyncFreshness(item.sync_freshness_state, item)}</div>
                                               </div>
                                               <div>
                                                 <div className="text-slate-400">最近尝试</div>
