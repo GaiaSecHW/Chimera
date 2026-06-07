@@ -253,6 +253,15 @@ export interface BinarySecurityTask {
   abnormal_reason_code?: string | null;
   abnormal_reason_category?: string | null;
   abnormal_reason?: BinarySecurityAbnormalReason | null;
+  cleanup_state?: {
+    status?: string | null;
+    partial_failed?: boolean;
+    deferred_ref_count?: number;
+    blocking_ref_count?: number;
+    last_error?: string | null;
+    last_attempt_at?: string | null;
+    next_retry_at?: string | null;
+  };
   manual_operation_state?: {
     overall: 'ready' | 'blocked' | 'in_progress' | string;
     summary: string;
@@ -269,9 +278,13 @@ export interface BinarySecurityTask {
     target_stage?: string | null;
     error_code?: string | null;
     error_message?: string | null;
+    cleanup_partial_failed?: boolean;
     downstream_cleanup_result_count?: number;
     downstream_cleanup_blocking_count?: number;
     downstream_cleanup_blocking_refs?: Array<Record<string, any>>;
+    downstream_cleanup_deferred_count?: number;
+    downstream_cleanup_deferred_refs?: Array<Record<string, any>>;
+    downstream_cleanup_warning_summary?: string | null;
     can_cancel: boolean;
     can_continue: boolean;
     can_retry: boolean;
@@ -306,6 +319,20 @@ export interface BinarySecurityCleanupSnapshot {
     state_events_deleted?: number;
     [key: string]: number | undefined;
   };
+  delete_cleanup_status?: string | null;
+  workspace_root?: string | null;
+  downstream_ref_count?: number;
+  deleted_downstream_count?: number;
+  force_delete?: boolean;
+  cleanup_partial_failed?: boolean;
+  downstream_cleanup_results?: Array<Record<string, any>>;
+  downstream_cleanup_blocking_refs?: Array<Record<string, any>>;
+  deferred_downstream_refs?: Array<Record<string, any>>;
+  deferred_cleanup_attempts?: number;
+  deferred_cleanup_last_error?: string | null;
+  deferred_cleanup_last_attempt_at?: string | null;
+  deferred_cleanup_next_retry_at?: string | null;
+  deferred_cleanup_status?: string | null;
 }
 
 export interface BinarySecurityProjectStats {

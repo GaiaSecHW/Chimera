@@ -174,6 +174,7 @@ export const renderCurrentView = (ctx: ViewRegistryContext): React.ReactNode => 
       return (
         <ProjectMgmtPage
           projects={ctx.projects}
+          setSelectedProjectId={ctx.setSelectedProjectId}
           setActiveProjectId={ctx.setActiveProjectId}
           setCurrentView={ctx.setCurrentView}
           refreshProjects={ctx.fetchProjects}

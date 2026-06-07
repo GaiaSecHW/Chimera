@@ -1151,14 +1151,14 @@ export const DataflowAnalysisTaskDetailPage: React.FC<{ projectId: string; taskI
                             <ArrowLeft size={14} />
                             返回轮次列表
                           </button>
-                          <div className="mt-4 text-xs font-black uppercase tracking-[0.2em] text-cyan-600">Round Detail</div>
+                          <div className="mt-4 text-xs font-black uppercase tracking-[0.2em] text-cyan-600">轮次详情</div>
                           <h2 className="mt-2 text-2xl font-black tracking-tight text-slate-900">
                             #{selectedEvaluationRound.round ?? '-'} · {selectedEvaluationRound.module_name || selectedEvaluationRound.function || selectedEvaluationRound.func || selectedEvaluationRound.entry || '数据流分析'}
                           </h2>
                           <div className="mt-2 flex flex-wrap gap-2 text-xs">
                             <span className={`rounded-full border px-3 py-1 font-bold ${evaluationStatusTone(selectedEvaluationRound.status)}`}>{selectedEvaluationRound.status || '-'}</span>
                             <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 font-bold text-slate-600">{stageLabel(selectedEvaluationRound.stage)}</span>
-                            <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 font-mono font-bold text-slate-600">Stage Round {selectedEvaluationRound.stage_round ?? '-'}</span>
+                            <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 font-mono font-bold text-slate-600">阶段轮次 {selectedEvaluationRound.stage_round ?? '-'}</span>
                           </div>
                         </div>
                         <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-xs text-slate-500">
@@ -1266,7 +1266,7 @@ export const DataflowAnalysisTaskDetailPage: React.FC<{ projectId: string; taskI
                       <table className="min-w-full divide-y divide-slate-200 text-left text-xs">
                         <thead className="bg-slate-50 text-slate-500">
                           <tr>
-                            <th className="px-3 py-3">Round</th>
+                            <th className="px-3 py-3">轮次</th>
                             <th className="px-3 py-3">阶段</th>
                             <th className="px-3 py-3">函数</th>
                             <th className="px-3 py-3">状态</th>

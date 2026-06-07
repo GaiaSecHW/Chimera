@@ -268,13 +268,13 @@ function formatEventLog(evt: AppDfaStageEvent): string {
     case 'trace_callees':
       return `[${ts}]   发现 ${(d.callees ?? []).length} 个被调函数`;
     case 'round_start':
-      return `[${ts}] \u25b6 Round ${d.round ?? ''}  Workers=${d.worker_ids?.length ?? 0}`;
+      return `[${ts}] \u25b6 第 ${d.round ?? ''} 轮  工作节点=${d.worker_ids?.length ?? 0}`;
     case 'round_end':
-      return `[${ts}] \u2713 Round ${d.round ?? ''} 完成  passed=${d.passed ?? false}`;
+      return `[${ts}] \u2713 第 ${d.round ?? ''} 轮完成  通过=${d.passed ?? false}`;
     case 'worker_start':
-      return `[${ts}]   Worker ${d.worker_id ?? ''}  model=${d.model ?? ''}`;
+      return `[${ts}]   工作节点 ${d.worker_id ?? ''}  模型=${d.model ?? ''}`;
     case 'worker_done':
-      return `[${ts}] \u2713 Worker ${d.worker_id ?? ''} 完成`;
+      return `[${ts}] \u2713 工作节点 ${d.worker_id ?? ''} 完成`;
     case 'agent_stream': {
       const text = (d.text ?? '').replace(/\n+/g, ' ').trim().slice(0, 120);
       if (!text) return '';
@@ -286,9 +286,9 @@ function formatEventLog(evt: AppDfaStageEvent): string {
       return `[${ts}] \u2713 ${text}`;
     }
     case 'judge_start':
-      return `[${ts}] \u25b6 Judge 评估  结果数=${d.worker_count ?? 0}`;
+      return `[${ts}] \u25b6 评审阶段  结果数=${d.worker_count ?? 0}`;
     case 'judge_eval':
-      return `[${ts}]   Judge ${d.judge_id ?? ''}: passed=${d.passed ?? false}`;
+      return `[${ts}]   评审 ${d.judge_id ?? ''}: 通过=${d.passed ?? false}`;
     case 'judge_summary':
       return `[${ts}] \u2713 评估汇总: passed=${d.passed ?? false}  score=${d.score ?? '-'}`;
     case 'round_reflection': {
@@ -1571,7 +1571,7 @@ export const DataflowVulnScanTaskPage: React.FC<{ projectId: string; onOpenTask?
 
       {/* ── Page header ─────────────────────────────────────────────────────── */}
       <section className="rounded-[2rem] border border-slate-200 bg-white/90 p-6 shadow-sm">
-        <p className="text-xs font-black uppercase tracking-[0.3em] text-violet-600">Dataflow Vulnerability Mining</p>
+        <p className="text-xs font-black uppercase tracking-[0.3em] text-violet-600">数据流漏洞挖掘</p>
         <ServicePageTitle title="数据流漏洞挖掘任务" version={buildVersion} />
         <p className="mt-2 text-sm text-slate-500">单 Worker 同时跟踪函数内所有污点，脚本校验结构化图谱，并挖掘潜在漏洞。</p>
         <div className="mt-4 flex flex-wrap gap-2">
@@ -1724,7 +1724,7 @@ export const DataflowVulnScanTaskPage: React.FC<{ projectId: string; onOpenTask?
           <div className="w-full max-w-5xl rounded-[2rem] border border-slate-200 bg-[linear-gradient(180deg,#ffffff_0%,#f8fafc_100%)] shadow-[0_30px_100px_rgba(15,23,42,0.35)]" onClick={(event) => event.stopPropagation()}>
             <div className="flex items-start justify-between gap-4 border-b border-slate-200 px-6 py-5">
               <div>
-                <div className="text-[11px] font-black uppercase tracking-[0.24em] text-cyan-700">Slot Detail</div>
+                <div className="text-[11px] font-black uppercase tracking-[0.24em] text-cyan-700">槽位详情</div>
                 <h3 className="mt-2 text-2xl font-black tracking-tight text-slate-900">执行槽位详情</h3>
                 <p className="mt-2 text-sm text-slate-500">按 worker 展示当前执行中的数据流漏洞挖掘任务与租约心跳状态。</p>
               </div>

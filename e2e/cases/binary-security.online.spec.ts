@@ -95,7 +95,7 @@ test.describe('Binary security online smoke', () => {
 
     const stageItemsResp = await fetchJson(
       page,
-      `${baseURL}/api/app/binary-security/projects/${E2E_PROJECT_ID}/tasks/${sourceTask.id}/stage-items?stage_name=dataflow_analysis&page=1&per_page=5`,
+      `${baseURL}/api/app/binary-security/projects/${E2E_PROJECT_ID}/tasks/${sourceTask.id}/stage-items?stage_name=dataflow_vuln_scan&page=1&per_page=10`,
       token,
     );
 

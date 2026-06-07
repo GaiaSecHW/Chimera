@@ -3,22 +3,18 @@ import {
   AlertTriangle,
   ArrowRight,
   Building2,
-  Calendar,
   CheckCircle2,
   CheckSquare,
   Edit3,
-  FileText,
   Globe,
   Layers,
   Loader2,
   Lock,
-  Package,
   Plus,
   RefreshCw,
   Search,
   Square,
   Trash2,
-  User,
   GitBranch,
 } from 'lucide-react';
 import { api } from '../../clients/api';
@@ -28,6 +24,7 @@ import { StatusBadge } from '../../components/StatusBadge';
 
 interface ProjectMgmtPageProps {
   projects: SecurityProject[];
+  setSelectedProjectId: (id: string) => void;
   setActiveProjectId: (id: string) => void;
   setCurrentView: (view: string) => void;
   refreshProjects: (showRefresh?: boolean) => Promise<void>;
@@ -51,6 +48,7 @@ const EMPTY_FORM: ProjectFormState = {
 
 export const ProjectMgmtPage: React.FC<ProjectMgmtPageProps> = ({
   projects,
+  setSelectedProjectId,
   setActiveProjectId,
   setCurrentView,
   refreshProjects,
@@ -154,6 +152,22 @@ export const ProjectMgmtPage: React.FC<ProjectMgmtPageProps> = ({
   const manageableProjects = useMemo(
     () => filteredProjects.filter((project) => project.can_manage),
     [filteredProjects]
+  );
+  const productCount = useMemo(
+    () => new Set(
+      projects
+        .map((project) => String(project.product_id || project.product_name || project.product_path || '').trim())
+        .filter(Boolean)
+    ).size,
+    [projects]
+  );
+  const versionCount = useMemo(
+    () => new Set(
+      projects
+        .map((project) => String(project.product_version_id || project.product_version || project.product_version_name || '').trim())
+        .filter(Boolean)
+    ).size,
+    [projects]
   );
 
   const isAllSelected = manageableProjects.length > 0 && manageableProjects.every((project) => selectedIds.has(project.id));
@@ -300,7 +314,12 @@ export const ProjectMgmtPage: React.FC<ProjectMgmtPageProps> = ({
     }
   };
 
+  const switchToProject = (id: string) => {
+    setSelectedProjectId(id);
+  };
+
   const handleRowClick = (id: string) => {
+    switchToProject(id);
     setActiveProjectId(id);
     setCurrentView('project-detail');
   };
@@ -345,123 +364,136 @@ export const ProjectMgmtPage: React.FC<ProjectMgmtPageProps> = ({
         </div>
 
         {projectsInSection.length > 0 ? (
-          <div className="grid grid-cols-1 xl:grid-cols-2 gap-5 p-6">
-            {projectsInSection.map((project) => {
-              const selected = selectedIds.has(project.id);
-              return (
-                <article
-                  key={project.id}
-                  onClick={() => handleRowClick(project.id)}
-                  className={`group rounded-[2rem] border bg-[var(--bg-surface)] backdrop-blur-sm p-6 transition-all cursor-pointer shadow-sm hover:shadow-xl hover:-translate-y-1 ${
-                    selected ? 'border-blue-500 ring-4 ring-blue-500/10' : 'border-slate-200'
-                  }`}
-                >
-                  <div className="flex items-start gap-4">
-                    <button
-                      onClick={(event) => toggleSelect(event, project)}
-                      disabled={!project.can_manage}
-                      className={`mt-1 p-2 rounded-xl transition-all ${
-                        project.can_manage ? 'hover:bg-slate-100' : 'cursor-not-allowed opacity-40'
+          <div className="overflow-x-auto p-6">
+            <table className="min-w-full overflow-hidden rounded-[2rem] bg-white shadow-sm">
+              <thead className="bg-slate-50">
+                <tr className="text-left text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">
+                  <th className="w-16 px-4 py-4">选择</th>
+                  <th className="min-w-[260px] px-4 py-4">项目</th>
+                  <th className="min-w-[120px] px-4 py-4">可见性</th>
+                  <th className="min-w-[150px] px-4 py-4">归属部门</th>
+                  <th className="min-w-[120px] px-4 py-4">负责人</th>
+                  <th className="min-w-[220px] px-4 py-4">产品版本</th>
+                  <th className="min-w-[200px] px-4 py-4">命名空间</th>
+                  <th className="min-w-[110px] px-4 py-4">状态</th>
+                  <th className="min-w-[150px] px-4 py-4">创建时间</th>
+                  <th className="w-40 px-4 py-4 text-right">操作</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {projectsInSection.map((project) => {
+                  const selected = selectedIds.has(project.id);
+                  return (
+                    <tr
+                      key={project.id}
+                      onClick={() => handleRowClick(project.id)}
+                      className={`cursor-pointer transition-colors hover:bg-slate-50 ${
+                        selected ? 'bg-blue-50/70' : 'bg-white'
                       }`}
-                      title={project.can_manage ? '选择项目' : '仅可查看，无法批量操作'}
                     >
-                      {selected ? <CheckSquare size={18} className="text-blue-600" /> : <Square size={18} className="text-slate-300" />}
-                    </button>
-
-                    <div className="flex-1 min-w-0 space-y-4">
-                      <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
-                        <div className="space-y-2 min-w-0">
+                      <td className="px-4 py-4 align-top">
+                        <button
+                          onClick={(event) => toggleSelect(event, project)}
+                          disabled={!project.can_manage}
+                          className={project.can_manage ? 'rounded-xl p-2 hover:bg-slate-100 transition-all' : 'cursor-not-allowed rounded-xl p-2 opacity-40'}
+                          title={project.can_manage ? '选择项目' : '仅可查看，无法批量操作'}
+                        >
+                          {selected ? <CheckSquare size={18} className="text-blue-600" /> : <Square size={18} className="text-slate-300" />}
+                        </button>
+                      </td>
+                      <td className="px-4 py-4 align-top">
+                        <div className="min-w-0 space-y-2">
                           <div className="flex flex-wrap items-center gap-2">
-                            <h4 className="text-xl font-black text-slate-800 truncate">{project.name}</h4>
-                            <span className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-[11px] font-black ${accentClasses.badge}`}>
-                              {project.is_public ? <Globe size={12} /> : <Lock size={12} />}
-                              {project.is_public ? '公开项目' : '部门项目'}
-                            </span>
+                            <div className="truncate text-sm font-black text-slate-800">{project.name}</div>
                             {project.can_manage ? (
-                              <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-blue-100 text-blue-700 text-[11px] font-black">
+                              <span className="inline-flex items-center gap-1 rounded-full bg-blue-100 px-2.5 py-1 text-[11px] font-black text-blue-700">
                                 <Edit3 size={12} />
                                 可管理
                               </span>
                             ) : (
-                              <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-[rgba(255,255,255,0.06)] text-slate-400 text-[11px] font-black">
+                              <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-black text-slate-500">
                                 <Lock size={12} />
-                                只读可见
+                                只读
                               </span>
                             )}
                           </div>
-                          <div className="flex flex-wrap items-center gap-3 text-xs font-semibold text-slate-500">
-                            <span className="inline-flex items-center gap-1.5">
-                              <Building2 size={14} className="text-slate-300" />
-                              {project.department_name || '未绑定归属部门'}
-                            </span>
-                            <span className="inline-flex items-center gap-1.5">
-                              <User size={14} className="text-slate-300" />
-                              {project.owner_name || '未知负责人'}
-                            </span>
-                            <span className="inline-flex items-center gap-1.5">
-                              <Calendar size={14} className="text-slate-300" />
-                              {project.created_at ? new Date(project.created_at).toLocaleDateString() : '未知时间'}
-                            </span>
+                          <div className="line-clamp-2 text-xs leading-5 text-slate-500">
+                            {project.description || '未填写项目描述。'}
+                          </div>
+                          <div className="text-xs font-medium text-slate-400">
+                            ID: <span className="font-mono">{project.id}</span>
                           </div>
                         </div>
-
-                        <div className="flex items-center gap-2 self-start md:self-center">
+                      </td>
+                      <td className="px-4 py-4 align-top">
+                        <span className={`inline-flex items-center gap-1 rounded-full px-3 py-1 text-[11px] font-black ${accentClasses.badge}`}>
+                          {project.is_public ? <Globe size={12} /> : <Lock size={12} />}
+                          {project.is_public ? '公开项目' : '部门项目'}
+                        </span>
+                      </td>
+                      <td className="px-4 py-4 align-top text-sm font-semibold text-slate-600">
+                        {project.department_name || '未绑定归属部门'}
+                      </td>
+                      <td className="px-4 py-4 align-top text-sm font-semibold text-slate-600">
+                        {project.owner_name || '未知负责人'}
+                      </td>
+                      <td className="px-4 py-4 align-top">
+                        <div className="space-y-1 text-sm text-slate-600">
+                          <div className="font-semibold">{project.product_version || project.product_version_name || '未归属版本'}</div>
+                          <div className="text-xs text-slate-400 break-all">{project.product_path || '未归属版本'}</div>
+                        </div>
+                      </td>
+                      <td className="px-4 py-4 align-top">
+                        <div className="max-w-[220px] break-all text-sm font-medium text-slate-600">
+                          {project.k8s_namespace || '系统自动生成'}
+                        </div>
+                      </td>
+                      <td className="px-4 py-4 align-top">
+                        <StatusBadge status={project.status || 'active'} />
+                      </td>
+                      <td className="px-4 py-4 align-top text-sm font-medium text-slate-500">
+                        {project.created_at ? new Date(project.created_at).toLocaleString() : '未知时间'}
+                      </td>
+                      <td className="px-4 py-4 align-top">
+                        <div className="flex items-center justify-end gap-2">
+                          <button
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              switchToProject(project.id);
+                            }}
+                            className="rounded-xl px-3 py-2 text-xs font-black text-slate-600 transition-all hover:bg-slate-100 hover:text-slate-900"
+                            title="切换到此项目"
+                          >
+                            切换到此项目
+                          </button>
                           {project.can_manage && (
                             <>
                               <button
                                 onClick={(event) => openEditModal(event, project)}
-                                className="p-3 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-2xl transition-all"
+                                className="rounded-xl p-2.5 text-slate-400 transition-all hover:bg-blue-50 hover:text-blue-600"
                                 title="编辑项目"
                               >
-                                <Edit3 size={18} />
+                                <Edit3 size={16} />
                               </button>
                               <button
                                 onClick={(event) => handleDeleteClick(event, [project.id])}
-                                className="p-3 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-2xl transition-all"
+                                className="rounded-xl p-2.5 text-slate-400 transition-all hover:bg-red-50 hover:text-red-500"
                                 title="删除项目"
                               >
-                                <Trash2 size={18} />
+                                <Trash2 size={16} />
                               </button>
                             </>
                           )}
-                          <div className={`p-3 rounded-2xl bg-slate-100 ${accentClasses.action}`}>
-                            <ArrowRight size={18} />
+                          <div className={`rounded-xl bg-slate-100 p-2.5 ${accentClasses.action}`}>
+                            <ArrowRight size={16} />
                           </div>
                         </div>
-                      </div>
-
-                      <div className="flex items-start gap-3 text-sm text-slate-600">
-                        <FileText size={16} className="text-slate-300 shrink-0 mt-0.5" />
-                        <p className="line-clamp-2 leading-relaxed">
-                          {project.description || '未填写项目描述。'}
-                        </p>
-                      </div>
-
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                        <div className="rounded-2xl bg-slate-50 px-4 py-3">
-                          <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">产品路径</p>
-                          <p className="text-sm font-bold text-slate-700 mt-1 break-all">{project.product_path || '未归属版本'}</p>
-                        </div>
-                        <div className="rounded-2xl bg-slate-50 px-4 py-3">
-                          <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">产品版本</p>
-                          <p className="text-sm font-bold text-slate-700 mt-1 break-all">{project.product_version || project.product_version_name || '未归属版本'}</p>
-                        </div>
-                        <div className="rounded-2xl bg-slate-50 px-4 py-3">
-                          <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">命名空间</p>
-                          <p className="text-sm font-bold text-slate-700 mt-1 break-all">{project.k8s_namespace || '系统自动生成'}</p>
-                        </div>
-                        <div className="rounded-2xl bg-slate-50 px-4 py-3">
-                          <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">状态</p>
-                          <div className="mt-2">
-                            <StatusBadge status={project.status || 'active'} />
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </article>
-              );
-            })}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
           </div>
         ) : (
           <div className="py-20 text-center">
@@ -576,41 +608,27 @@ export const ProjectMgmtPage: React.FC<ProjectMgmtPageProps> = ({
         </div>
       )}
 
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div className="bg-white p-6 rounded-[2rem] border border-slate-200 shadow-sm flex items-center justify-between">
           <div>
-            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">总项目数</p>
-            <h3 className="text-3xl font-black text-slate-800 mt-1">{projects.length}</h3>
+            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">产品数</p>
+            <h3 className="text-3xl font-black text-slate-800 mt-1">{productCount}</h3>
           </div>
           <Layers className="text-blue-600/20" size={40} />
         </div>
         <div className="bg-white p-6 rounded-[2rem] border border-slate-200 shadow-sm flex items-center justify-between">
           <div>
-            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">公开项目</p>
-            <h3 className="text-3xl font-black text-green-600 mt-1">{projects.filter((project) => project.is_public).length}</h3>
+            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">版本数</p>
+            <h3 className="text-3xl font-black text-green-600 mt-1">{versionCount}</h3>
           </div>
-          <Globe className="text-green-600/20" size={40} />
+          <GitBranch className="text-green-600/20" size={40} />
         </div>
         <div className="bg-white p-6 rounded-[2rem] border border-slate-200 shadow-sm flex items-center justify-between">
           <div>
-            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">部门项目</p>
-            <h3 className="text-3xl font-black text-amber-600 mt-1">{projects.filter((project) => !project.is_public).length}</h3>
+            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">项目总数</p>
+            <h3 className="text-3xl font-black text-amber-600 mt-1">{projects.length}</h3>
           </div>
           <Building2 className="text-amber-600/20" size={40} />
-        </div>
-        <div className="bg-white p-6 rounded-[2rem] border border-slate-200 shadow-sm flex items-center justify-between">
-          <div>
-            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">可管理项目</p>
-            <h3 className="text-3xl font-black text-blue-600 mt-1">{projects.filter((project) => project.can_manage).length}</h3>
-          </div>
-          <Edit3 className="text-blue-600/20" size={40} />
-        </div>
-        <div className="bg-white p-6 rounded-[2rem] border border-slate-200 shadow-sm flex items-center justify-between">
-          <div>
-            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">未归属版本</p>
-            <h3 className="text-3xl font-black text-slate-800 mt-1">{projects.filter((project) => !project.product_version_id).length}</h3>
-          </div>
-          <GitBranch className="text-slate-100" size={40} />
         </div>
       </div>
 

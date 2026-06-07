@@ -1278,13 +1278,19 @@ function deriveTaskStatusReason(detail: BinarySecurityTaskDetail): TaskStatusRea
   }
 
   if (detail.status === 'cancelled') {
+    const cleanupPartialFailed = Boolean(detail.cleanup_state?.partial_failed);
     return {
       tone: 'muted',
       title: '任务已取消',
-      description: firstText(detail.last_error) || '用户或编排器已取消任务，未完成阶段和仍在运行的子任务会被标记为取消。',
+      description: cleanupPartialFailed
+        ? '任务已取消，部分历史下游资源仍在后台清理，不影响当前分析结果。'
+        : firstText(detail.last_error) || '用户或编排器已取消任务，未完成阶段和仍在运行的子任务会被标记为取消。',
       evidence: [
         { label: '取消阶段', value: cancelledStages.map((stage) => STAGE_LABELS[stage.stage_name] || stage.stage_name).join(' / ') || '-' },
         { label: '取消子任务', value: summarizeCount(cancelledItems.length) },
+        ...(cleanupPartialFailed
+          ? [{ label: '待补偿下游', value: summarizeCount(Number(detail.cleanup_state?.deferred_ref_count || 0)) }]
+          : []),
       ],
     };
   }
@@ -1505,7 +1511,9 @@ function manualOperationLabel(overall: string) {
 
 function ManualOperationStateCard({ state }: { state: ManualOperationState }) {
   const blockingRefs = Array.isArray(state.downstream_cleanup_blocking_refs) ? state.downstream_cleanup_blocking_refs : [];
+  const deferredRefs = Array.isArray(state.downstream_cleanup_deferred_refs) ? state.downstream_cleanup_deferred_refs : [];
   const firstBlockingRef = blockingRefs[0];
+  const firstDeferredRef = deferredRefs[0];
   return (
     <div className={`rounded-2xl border px-4 py-3 ${manualOperationTone(state.overall)}`}>
       <div className="flex flex-wrap items-center gap-3">
@@ -1547,12 +1555,23 @@ function ManualOperationStateCard({ state }: { state: ManualOperationState }) {
           <div className="mt-1 font-semibold">
             已记录 {state.downstream_cleanup_result_count} 个清理目标
             {Number(state.downstream_cleanup_blocking_count || 0) > 0 ? `，阻塞 ${state.downstream_cleanup_blocking_count} 个` : ''}
+            {Number(state.downstream_cleanup_deferred_count || 0) > 0 ? `，待补偿 ${state.downstream_cleanup_deferred_count} 个` : ''}
           </div>
           {firstBlockingRef ? (
             <div className="mt-1 break-all font-mono text-[11px] opacity-80">
               阻塞目标：{String(firstBlockingRef.service || firstBlockingRef.downstream_service || '-')}/{String(firstBlockingRef.task_id || firstBlockingRef.downstream_task_id || '-')}，状态：{String(firstBlockingRef.observed_status || firstBlockingRef.delete_status || '-')}
             </div>
           ) : null}
+          {!firstBlockingRef && firstDeferredRef ? (
+            <div className="mt-1 break-all font-mono text-[11px] opacity-80">
+              待补偿目标：{String(firstDeferredRef.service || firstDeferredRef.downstream_service || '-')}/{String(firstDeferredRef.task_id || firstDeferredRef.downstream_task_id || '-')}，原因：{String(firstDeferredRef.deferred_reason || firstDeferredRef.error || '-')}
+            </div>
+          ) : null}
+        </div>
+      ) : null}
+      {state.cleanup_partial_failed ? (
+        <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-800">
+          {state.downstream_cleanup_warning_summary || '下游清理部分失败，系统会后台重试，不影响当前分析结果。'}
         </div>
       ) : null}
       {state.blocking_reason ? (
@@ -1770,6 +1789,9 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
   const cleanupSnapshot = detail?.cleanup_snapshot || null;
   const cleanupCounts = cleanupSnapshot?.cleanup_counts || {};
   const cleanupDownstreamRefs = Array.isArray(cleanupSnapshot?.downstream_refs) ? cleanupSnapshot.downstream_refs : [];
+  const cleanupState = detail?.cleanup_state || null;
+  const cleanupDeferredCount = Number(cleanupState?.deferred_ref_count || 0);
+  const cleanupPartialFailed = Boolean(cleanupState?.partial_failed);
   const runtimeHealth = detail?.runtime_health || null;
   const runtimeHealthSummary = runtimeHealth?.summary || null;
   const runtimeHealthUnits = runtimeHealth?.units || [];
@@ -3320,6 +3342,14 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                 {manualOperationState ? (
                   <div className="mt-4">
                     <ManualOperationStateCard state={manualOperationState} />
+                  </div>
+                ) : null}
+                {cleanupPartialFailed ? (
+                  <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+                    <div className="font-black">下游清理部分失败，系统会后台重试，不影响当前分析结果</div>
+                    <div className="mt-1 text-xs text-amber-800">
+                      待补偿下游任务数：{cleanupDeferredCount}；最近错误：{cleanupState?.last_error || '-'}；下次重试：{fmt(cleanupState?.next_retry_at)}
+                    </div>
                   </div>
                 ) : null}
                 <div className="mt-4 grid gap-2">
