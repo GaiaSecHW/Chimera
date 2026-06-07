@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Eye, FileText, Pencil, Plus, RefreshCw, Save, TestTube2, Trash2, X } from 'lucide-react';
 import { api } from '../../clients/api';
 import { showConfirm } from '../../components/DialogService';
+import { AigwLogDetailsDialog } from '../../components/platform/AigwLogDetailsDialog';
 import { useUiFeedback } from '../../components/UiFeedback';
 import {
   AiGatewayBackendUnit,
@@ -1467,54 +1468,12 @@ export const AiGatewayPage: React.FC = () => {
         </div>
       ) : null}
 
-      {detailOpen && selectedLog ? (
-        <div className="fixed inset-0 z-[300] flex items-center justify-center bg-slate-950/60 p-6">
-          <div className="max-h-[90vh] w-full max-w-6xl overflow-hidden rounded-[2rem] bg-white shadow-2xl">
-            <div className="flex items-center justify-between border-b border-slate-200 px-6 py-5">
-              <div>
-                <h3 className="text-xl font-black text-slate-900">日志详情 #{selectedLog.id}</h3>
-                <p className="mt-1 text-sm text-slate-500">{selectedLog.model_name} · {selectedLog.backend_model_name || '-'}</p>
-              </div>
-              <button onClick={() => setDetailOpen(false)} className="rounded-2xl bg-slate-100 px-4 py-2 text-sm font-bold text-slate-700">关闭</button>
-            </div>
-            <div className="grid max-h-[calc(90vh-88px)] gap-0 overflow-auto lg:grid-cols-2">
-              <div className="border-r border-slate-200 p-6">
-                <div className="grid gap-3 text-sm">
-                  <div className="rounded-2xl bg-slate-50 px-4 py-3">时间: {formatDateTime(selectedLog.created_at)}</div>
-                  <div className="rounded-2xl bg-slate-50 px-4 py-3">状态: {selectedLog.status_code}</div>
-                  <div className="rounded-2xl bg-slate-50 px-4 py-3">Endpoint: {selectedLog.endpoint || '-'}</div>
-                  <div className="rounded-2xl bg-slate-50 px-4 py-3">任务: <span className="font-mono">{selectedLog.task_id || '-'}</span> / <span className="font-mono">{selectedLog.sub_task_id || '-'}</span></div>
-                  <div className="rounded-2xl bg-slate-50 px-4 py-3">别名 / 单元: A{selectedLog.model_alias_id || '-'} / U{selectedLog.backend_unit_id || '-'} / B{selectedLog.backend_config_id || '-'}</div>
-                  <div className="rounded-2xl bg-slate-50 px-4 py-3">LLM Key: {selectedLog.llm_key_prefix || '-'} · Task Key: {selectedLog.task_key_prefix || '-'}</div>
-                  <div className="rounded-2xl bg-slate-50 px-4 py-3">延迟: {selectedLog.response_time || 0} ms / 首 Token {selectedLog.first_token_latency || 0} ms / 平均 Token {Math.round(selectedLog.avg_token_latency || 0)} ms</div>
-                  <div className="rounded-2xl bg-slate-50 px-4 py-3">流量: request {selectedLog.request_bytes || 0} B / response {selectedLog.response_bytes || 0} B / stream {selectedLog.stream_bytes || 0} B</div>
-                  <div className="rounded-2xl bg-slate-50 px-4 py-3">Tokens: prompt {selectedLog.prompt_tokens || 0}, completion {selectedLog.completion_tokens || 0}, total {selectedLog.total_tokens || 0}</div>
-                  <div className="rounded-2xl bg-slate-50 px-4 py-3">Provider Cache: cached {selectedLog.provider_cached_tokens || 0} / hit {selectedLog.provider_cache_hit_tokens || 0} / miss {selectedLog.provider_cache_miss_tokens || 0}</div>
-                  <div className="rounded-2xl bg-slate-50 px-4 py-3">Gateway Cache: {selectedLog.gateway_cache_hit ? 'hit' : 'miss'} {selectedLog.gateway_cache_key ? `· ${selectedLog.gateway_cache_key}` : ''}</div>
-                  <div className="rounded-2xl bg-slate-50 px-4 py-3">计费: {selectedLog.usage_source || '-'} / {selectedLog.pricing_version || '-'} / {typeof selectedLog.estimated_cost === 'number' ? selectedLog.estimated_cost : '-'}</div>
-                  <div className="rounded-2xl bg-slate-50 px-4 py-3">上游: {selectedLog.backend_api_base_url || '-'}</div>
-                </div>
-              </div>
-              <div className="grid gap-4 p-6">
-                <div>
-                  <div className="mb-2 flex items-center justify-between gap-3 text-sm font-black text-slate-800">
-                    <span>Request</span>
-                    <button onClick={() => void copyText(selectedLog.request || '', '请求内容已复制')} className="rounded-xl bg-slate-100 px-3 py-1.5 text-[11px] font-bold text-slate-700">复制</button>
-                  </div>
-                  <pre className="max-h-[260px] overflow-auto rounded-2xl bg-slate-950 p-4 text-xs text-slate-100">{formatJsonBlock(selectedLog.request)}</pre>
-                </div>
-                <div>
-                  <div className="mb-2 flex items-center justify-between gap-3 text-sm font-black text-slate-800">
-                    <span>Response</span>
-                    <button onClick={() => void copyText(selectedLog.response || selectedLog.stream_response || '', '响应内容已复制')} className="rounded-xl bg-slate-100 px-3 py-1.5 text-[11px] font-bold text-slate-700">复制</button>
-                  </div>
-                  <pre className="max-h-[260px] overflow-auto rounded-2xl bg-slate-950 p-4 text-xs text-slate-100">{formatJsonBlock(selectedLog.response || selectedLog.stream_response)}</pre>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      ) : null}
+      <AigwLogDetailsDialog
+        open={detailOpen}
+        log={selectedLog}
+        onClose={() => setDetailOpen(false)}
+        onCopy={copyText}
+      />
 
       {replayOpen && replayResult ? (
         <div className="fixed inset-0 z-[300] flex items-center justify-center bg-slate-950/60 p-6">
