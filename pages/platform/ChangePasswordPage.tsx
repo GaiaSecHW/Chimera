@@ -160,7 +160,7 @@ export const ChangePasswordPage: React.FC<ChangePasswordPageProps> = ({ user }) 
   );
 
   return (
-    <div className="min-h-full bg-[radial-gradient(circle_at_top_left,_rgba(14,165,233,0.18),_transparent_28%),radial-gradient(circle_at_bottom_right,_rgba(249,115,22,0.12),_transparent_26%),linear-gradient(180deg,_#f8fafc_0%,_#eef6ff_48%,_#f8fafc_100%)] px-6 py-8 xl:px-10">
+    <div className="min-h-full bg-theme-app px-6 py-8 xl:px-10">
       <div className="mx-auto max-w-3xl">
         <section className="rounded-[2.75rem] border border-slate-200 bg-white/85 p-8 shadow-[0_24px_80px_rgba(15,23,42,0.10)] backdrop-blur xl:p-10">
           <div className="flex items-start justify-between gap-4">
@@ -180,11 +180,11 @@ export const ChangePasswordPage: React.FC<ChangePasswordPageProps> = ({ user }) 
             </div>
           </div>
 
-          <div className="mt-8 rounded-[2rem] border border-slate-200 bg-[linear-gradient(180deg,#ffffff_0%,#f8fafc_100%)] p-5">
+          <div className="mt-8 rounded-[2rem] border border-slate-200 bg-slate-800 p-5">
             <div className="flex items-center justify-between gap-4">
               <div>
-                <p className="text-sm font-black text-slate-900">密码强度趋势</p>
-                <p className="mt-1 text-sm text-slate-500">达到 5 条以上建议后，再提交体验会更顺畅。</p>
+                <p className="text-sm font-black text-slate-200">密码强度趋势</p>
+                <p className="mt-1 text-sm text-slate-400">达到 5 条以上建议后，再提交体验会更顺畅。</p>
               </div>
               <span className={`rounded-full border px-3 py-1 text-[10px] font-black uppercase tracking-[0.2em] ${strengthMeta[strengthLevel].panel}`}>
                 {strengthMeta[strengthLevel].label}

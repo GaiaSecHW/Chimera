@@ -117,7 +117,7 @@ export const AppInstanceDetailPage: React.FC<{
     return [
       { label: 'Service', value: accessInfo?.name || instance.service_name || '-' },
       { label: '类型', value: accessInfo?.type || instance.service_type || '-' },
-      { label: '命名空间', value: accessInfo?.namespace || `secflow-${instance.project_id}` },
+      { label: '命名空间', value: accessInfo?.namespace || `chimera-${instance.project_id}` },
       { label: '域名', value: displayHost }
     ];
   }, [accessInfo, instance]);

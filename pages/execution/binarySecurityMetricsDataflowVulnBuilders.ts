@@ -18,43 +18,43 @@ type BuilderDeps = {
 
 export const matchesDataflowVulnSampleScope = (row: Pick<MetricRowLike, 'name'>, scope: DataflowVulnSampleScope) => {
   if (scope === 'all') return true;
-  if (scope === 'cycle') return row.name.includes('secflow_dataflow_cycle_') || row.name === 'secflow_dataflow_run_summary_total' || row.name === 'secflow_dataflow_run_status';
-  if (scope === 'runtime') return row.name.includes('secflow_dataflow_runtime_trace_') || row.name.includes('secflow_dataflow_token_usage_total');
-  if (scope === 'ai') return row.name.includes('secflow_dataflow_ai_');
-  if (scope === 'plugin') return row.name.includes('secflow_dataflow_plugin_');
+  if (scope === 'cycle') return row.name.includes('chimera_dataflow_cycle_') || row.name === 'chimera_dataflow_run_summary_total' || row.name === 'chimera_dataflow_run_status';
+  if (scope === 'runtime') return row.name.includes('chimera_dataflow_runtime_trace_') || row.name.includes('chimera_dataflow_token_usage_total');
+  if (scope === 'ai') return row.name.includes('chimera_dataflow_ai_');
+  if (scope === 'plugin') return row.name.includes('chimera_dataflow_plugin_');
   return (
     matchesDataflowVulnSampleScope(row, 'cycle') ||
     matchesDataflowVulnSampleScope(row, 'runtime') ||
     matchesDataflowVulnSampleScope(row, 'ai') ||
     matchesDataflowVulnSampleScope(row, 'plugin') ||
-    row.name.includes('secflow_dataflow_execution_') ||
-    row.name.includes('secflow_dataflow_queue_depth')
+    row.name.includes('chimera_dataflow_execution_') ||
+    row.name.includes('chimera_dataflow_queue_depth')
   );
 };
 
 export const buildDataflowVulnOverviewViewModel = (rows: MetricRowLike[], deps: BuilderDeps): DataflowVulnOverviewViewModel => {
   const { averageFromSummary, formatMetricValue, formatNumber, formatSeconds, metricValueByName, sumMetric, valueOrZero } = deps;
-  const runningRuns = metricValueByName(rows, 'secflow_dataflow_run_status', { status: 'running' });
-  const runQueueDepth = metricValueByName(rows, 'secflow_dataflow_queue_depth', { kind: 'run' });
-  const executionQueueDepth = metricValueByName(rows, 'secflow_dataflow_queue_depth', { kind: 'execution' });
-  const dispatchAvg = averageFromSummary(rows, 'secflow_dataflow_execution_dispatch_duration_seconds');
-  const processAvg = averageFromSummary(rows, 'secflow_dataflow_execution_process_duration_seconds');
-  const failedExecutions = metricValueByName(rows, 'secflow_dataflow_execution_status', { status: 'failed' });
-  const cancelledExecutions = metricValueByName(rows, 'secflow_dataflow_execution_status', { status: 'cancelled' });
-  const retryEvents = metricValueByName(rows, 'secflow_dataflow_execution_events_total', { event: 'retry' });
-  const aiFailures = metricValueByName(rows, 'secflow_dataflow_ai_failure_total', { category: 'runtime' });
-  const aiRetries = metricValueByName(rows, 'secflow_dataflow_ai_retry_total', { reason: 'retry' });
-  const resultCount = metricValueByName(rows, 'secflow_dataflow_run_summary_total', { field: 'result_count' });
-  const passedCount = metricValueByName(rows, 'secflow_dataflow_run_summary_total', { field: 'passed_count' });
-  const failedCount = metricValueByName(rows, 'secflow_dataflow_run_summary_total', { field: 'failed_count' });
-  const cyclesUsed = metricValueByName(rows, 'secflow_dataflow_run_summary_total', { field: 'cycles_used' });
-  const runtimeTimeouts = sumMetric(rows, (row) => row.name === 'secflow_dataflow_runtime_trace_total' && row.labels.field === 'timeout_failures');
-  const runtimeTruncations = sumMetric(rows, (row) => row.name === 'secflow_dataflow_runtime_trace_total' && row.labels.field === 'stdout_truncated');
-  const runtimeOutputBytes = sumMetric(rows, (row) => row.name === 'secflow_dataflow_runtime_trace_total' && row.labels.field === 'output_bytes');
+  const runningRuns = metricValueByName(rows, 'chimera_dataflow_run_status', { status: 'running' });
+  const runQueueDepth = metricValueByName(rows, 'chimera_dataflow_queue_depth', { kind: 'run' });
+  const executionQueueDepth = metricValueByName(rows, 'chimera_dataflow_queue_depth', { kind: 'execution' });
+  const dispatchAvg = averageFromSummary(rows, 'chimera_dataflow_execution_dispatch_duration_seconds');
+  const processAvg = averageFromSummary(rows, 'chimera_dataflow_execution_process_duration_seconds');
+  const failedExecutions = metricValueByName(rows, 'chimera_dataflow_execution_status', { status: 'failed' });
+  const cancelledExecutions = metricValueByName(rows, 'chimera_dataflow_execution_status', { status: 'cancelled' });
+  const retryEvents = metricValueByName(rows, 'chimera_dataflow_execution_events_total', { event: 'retry' });
+  const aiFailures = metricValueByName(rows, 'chimera_dataflow_ai_failure_total', { category: 'runtime' });
+  const aiRetries = metricValueByName(rows, 'chimera_dataflow_ai_retry_total', { reason: 'retry' });
+  const resultCount = metricValueByName(rows, 'chimera_dataflow_run_summary_total', { field: 'result_count' });
+  const passedCount = metricValueByName(rows, 'chimera_dataflow_run_summary_total', { field: 'passed_count' });
+  const failedCount = metricValueByName(rows, 'chimera_dataflow_run_summary_total', { field: 'failed_count' });
+  const cyclesUsed = metricValueByName(rows, 'chimera_dataflow_run_summary_total', { field: 'cycles_used' });
+  const runtimeTimeouts = sumMetric(rows, (row) => row.name === 'chimera_dataflow_runtime_trace_total' && row.labels.field === 'timeout_failures');
+  const runtimeTruncations = sumMetric(rows, (row) => row.name === 'chimera_dataflow_runtime_trace_total' && row.labels.field === 'stdout_truncated');
+  const runtimeOutputBytes = sumMetric(rows, (row) => row.name === 'chimera_dataflow_runtime_trace_total' && row.labels.field === 'output_bytes');
 
-  const cycleField = (field: string) => metricValueByName(rows, 'secflow_dataflow_cycle_metrics', { field });
-  const plateauFlag = (flag: string) => metricValueByName(rows, 'secflow_dataflow_cycle_plateau_flags', { flag });
-  const runtimeField = (mode: string, field: string) => metricValueByName(rows, 'secflow_dataflow_runtime_trace_total', { mode, field });
+  const cycleField = (field: string) => metricValueByName(rows, 'chimera_dataflow_cycle_metrics', { field });
+  const plateauFlag = (flag: string) => metricValueByName(rows, 'chimera_dataflow_cycle_plateau_flags', { flag });
+  const runtimeField = (mode: string, field: string) => metricValueByName(rows, 'chimera_dataflow_runtime_trace_total', { mode, field });
 
   const plateauHints: Record<string, string> = {
     stagnant: '周期指标长时间不再推进',
@@ -67,7 +67,7 @@ export const buildDataflowVulnOverviewViewModel = (rows: MetricRowLike[], deps: 
     summary_repair_deferred_abort: '摘要修复被延迟并终止',
   };
 
-  const runtimeModes = Array.from(new Set(rows.filter((row) => row.name === 'secflow_dataflow_runtime_trace_total').map((row) => row.labels.mode || 'unknown')))
+  const runtimeModes = Array.from(new Set(rows.filter((row) => row.name === 'chimera_dataflow_runtime_trace_total').map((row) => row.labels.mode || 'unknown')))
     .sort((left, right) => left.localeCompare(right, 'zh-CN'))
     .map((mode) => {
       const calls = runtimeField(mode, 'calls');
@@ -169,28 +169,28 @@ export const buildDataflowVulnOverviewViewModel = (rows: MetricRowLike[], deps: 
 
 export const buildDataflowVulnAiViewModel = (rows: MetricRowLike[], deps: BuilderDeps): DataflowVulnAiViewModel => {
   const { formatMetricValue, formatNumber, formatSeconds, metricValueByName, sumMetric, valueOrZero } = deps;
-  const roleValue = (role: string) => metricValueByName(rows, 'secflow_dataflow_ai_role_count', { role });
-  const tokenValue = (type: string) => metricValueByName(rows, 'secflow_dataflow_ai_token_usage_total', { type });
-  const cycleRounds = metricValueByName(rows, 'secflow_dataflow_ai_round_total', { kind: 'cycle' });
-  const reviewRounds = metricValueByName(rows, 'secflow_dataflow_ai_round_total', { kind: 'review' });
-  const retryTotal = metricValueByName(rows, 'secflow_dataflow_ai_retry_total', { reason: 'retry' });
-  const timeoutTotal = metricValueByName(rows, 'secflow_dataflow_ai_timeout_total', { scope: 'plugin' });
-  const failureTotal = metricValueByName(rows, 'secflow_dataflow_ai_failure_total', { category: 'runtime' });
-  const reviewPartial = metricValueByName(rows, 'secflow_dataflow_ai_review_total', { result: 'partial' });
-  const sessionTotal = metricValueByName(rows, 'secflow_dataflow_ai_session_total', { role: 'agent' });
-  const costTotal = metricValueByName(rows, 'secflow_dataflow_ai_token_cost_total');
+  const roleValue = (role: string) => metricValueByName(rows, 'chimera_dataflow_ai_role_count', { role });
+  const tokenValue = (type: string) => metricValueByName(rows, 'chimera_dataflow_ai_token_usage_total', { type });
+  const cycleRounds = metricValueByName(rows, 'chimera_dataflow_ai_round_total', { kind: 'cycle' });
+  const reviewRounds = metricValueByName(rows, 'chimera_dataflow_ai_round_total', { kind: 'review' });
+  const retryTotal = metricValueByName(rows, 'chimera_dataflow_ai_retry_total', { reason: 'retry' });
+  const timeoutTotal = metricValueByName(rows, 'chimera_dataflow_ai_timeout_total', { scope: 'plugin' });
+  const failureTotal = metricValueByName(rows, 'chimera_dataflow_ai_failure_total', { category: 'runtime' });
+  const reviewPartial = metricValueByName(rows, 'chimera_dataflow_ai_review_total', { result: 'partial' });
+  const sessionTotal = metricValueByName(rows, 'chimera_dataflow_ai_session_total', { role: 'agent' });
+  const costTotal = metricValueByName(rows, 'chimera_dataflow_ai_token_cost_total');
   const inputTokens = tokenValue('input');
   const outputTokens = tokenValue('output');
   const cacheReadTokens = tokenValue('cache_read');
   const cacheWriteTokens = tokenValue('cache_write');
   const totalTokens = tokenValue('total');
-  const runtimeCalls = sumMetric(rows, (row) => row.name === 'secflow_dataflow_runtime_trace_total' && row.labels.field === 'calls');
-  const runtimeTimeouts = sumMetric(rows, (row) => row.name === 'secflow_dataflow_runtime_trace_total' && row.labels.field === 'timeout_failures');
-  const runtimeApiFailures = sumMetric(rows, (row) => row.name === 'secflow_dataflow_runtime_trace_total' && row.labels.field === 'api_failures');
-  const runtimePiFailures = sumMetric(rows, (row) => row.name === 'secflow_dataflow_runtime_trace_total' && row.labels.field === 'pi_failures');
-  const runtimeDuration = sumMetric(rows, (row) => row.name === 'secflow_dataflow_runtime_trace_total' && row.labels.field === 'duration_seconds');
+  const runtimeCalls = sumMetric(rows, (row) => row.name === 'chimera_dataflow_runtime_trace_total' && row.labels.field === 'calls');
+  const runtimeTimeouts = sumMetric(rows, (row) => row.name === 'chimera_dataflow_runtime_trace_total' && row.labels.field === 'timeout_failures');
+  const runtimeApiFailures = sumMetric(rows, (row) => row.name === 'chimera_dataflow_runtime_trace_total' && row.labels.field === 'api_failures');
+  const runtimePiFailures = sumMetric(rows, (row) => row.name === 'chimera_dataflow_runtime_trace_total' && row.labels.field === 'pi_failures');
+  const runtimeDuration = sumMetric(rows, (row) => row.name === 'chimera_dataflow_runtime_trace_total' && row.labels.field === 'duration_seconds');
   const pluginResults = rows
-    .filter((row) => row.name === 'secflow_dataflow_plugin_results_total')
+    .filter((row) => row.name === 'chimera_dataflow_plugin_results_total')
     .sort((left, right) => right.value - left.value)
     .slice(0, 4);
 

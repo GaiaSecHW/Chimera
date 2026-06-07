@@ -108,7 +108,7 @@ export const WorkflowPage: React.FC<{ projectId: string }> = ({ projectId }) => 
              <div>
                 <h4 className="text-lg font-black text-slate-800 tracking-tight">AI 辅助测试编排已开启</h4>
                 <p className="text-sm text-slate-400 mt-1 font-medium leading-relaxed max-w-2xl">
-                   SecFlow 工作流支持基于 LLM 的意图识别。您可以直接描述测试目标，系统将自动从「环境服务」与「脚本库」中提取最匹配的资产进行编排。
+                   Chimera 工作流支持基于 LLM 的意图识别。您可以直接描述测试目标，系统将自动从「环境服务」与「脚本库」中提取最匹配的资产进行编排。
                 </p>
              </div>
              <div className="flex gap-4">

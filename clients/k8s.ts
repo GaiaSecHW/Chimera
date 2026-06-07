@@ -63,14 +63,14 @@ export const k8sApi = {
 
   proxyServiceUrl: (projectId: string, serviceName: string, port: number, path = ''): string => {
     const normalizedPath = path.replace(/^\/+/, '');
-    const token = localStorage.getItem('secflow_token') || '';
+    const token = localStorage.getItem('chimera_token') || '';
     const qs = new URLSearchParams({ project_id: projectId });
     if (token) qs.append('token', token);
     return `${API_BASE}/api/k8s/services/${encodeURIComponent(serviceName)}/proxy/${port}/${normalizedPath}?${qs.toString()}`;
   },
 
   createTerminalConnection: (projectId: string, podName: string, containerName?: string): WebSocket => {
-    const token = localStorage.getItem('secflow_token');
+    const token = localStorage.getItem('chimera_token');
     const params = new URLSearchParams({ project_id: projectId });
     if (containerName) params.append('container', containerName);
     if (token) params.append('token', token);

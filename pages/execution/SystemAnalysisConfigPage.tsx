@@ -184,7 +184,7 @@ const defaultConfig = (projectId: string): SystemAnalysisServiceConfig => ({
   self_reflection: {
     enabled: false,
     model: '',
-    output_dir: `/data/files/${projectId}/app/secflow-app-system-analyse/self-reflection`,
+    output_dir: `/data/files/${projectId}/app/chimera-app-system-analyse/self-reflection`,
     max_session_lines: 1000,
   },
 });
@@ -743,11 +743,11 @@ export const SystemAnalysisConfigPage: React.FC<{ projectId: string; embedded?: 
                 <Settings size={18} className="text-rose-600" />
                 <h2 className="text-xl font-black text-slate-900">系统分析参数配置</h2>
                 <span className="rounded-full border border-rose-200 bg-rose-50 px-3 py-1 text-[11px] font-black tracking-[0.12em] text-rose-700">
-                  secflow-app-system-analyse
+                  chimera-app-system-analyse
                 </span>
               </div>
               <p className="mt-2 text-sm text-slate-500">
-                当前 Tab 中的全部配置项都归属于 `secflow-app-system-analyse` 微服务，用于控制系统分析服务的并发、重试、阶段循环和 Agent 模型行为。
+                当前 Tab 中的全部配置项都归属于 `chimera-app-system-analyse` 微服务，用于控制系统分析服务的并发、重试、阶段循环和 Agent 模型行为。
               </p>
               <p className="mt-1 text-xs text-slate-400">提示：分析范围（文件类型 / 架构 / 安全维度 / 模块粒度）可在此设置服务级默认值，也可在「新建任务」弹窗中单独覆盖。</p>
               {config.updated_at && (
@@ -1184,7 +1184,7 @@ export const SystemAnalysisConfigPage: React.FC<{ projectId: string; embedded?: 
               <div className="relative flex items-center gap-2">
                 <input
                   type="text"
-                  value={config.self_reflection?.output_dir ?? `/data/files/${projectId}/app/secflow-app-system-analyse/self-reflection`}
+                  value={config.self_reflection?.output_dir ?? `/data/files/${projectId}/app/chimera-app-system-analyse/self-reflection`}
                   onChange={(e) => patch({
                     self_reflection: {
                       ...(config.self_reflection ?? {}),
@@ -1198,7 +1198,7 @@ export const SystemAnalysisConfigPage: React.FC<{ projectId: string; embedded?: 
                   onClick={() => patch({
                     self_reflection: {
                       ...(config.self_reflection ?? {}),
-                      output_dir: `/data/files/${projectId}/app/secflow-app-system-analyse/self-reflection`,
+                      output_dir: `/data/files/${projectId}/app/chimera-app-system-analyse/self-reflection`,
                     } as SystemAnalysisSelfReflectionConfig,
                   })}
                   className="shrink-0 rounded-lg border border-slate-200 px-3 py-2 text-xs text-slate-500 hover:bg-slate-50 hover:text-slate-700"

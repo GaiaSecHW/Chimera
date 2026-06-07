@@ -111,7 +111,7 @@ export const BINARY_SECURITY_METRICS_SERVICES: BinarySecurityMetricsServiceDefin
   {
     key: 'binary-security',
     label: '二进制安全编排器',
-    serviceName: 'secflow-app-binary-security',
+    serviceName: 'chimera-app-binary-security',
     metricsPath: `${API_BASE}/api/app/binary-security/metrics/aggregate`,
     preferredGroups: ['health', 'orchestration', 'reducer', 'lock', 'queue', 'worker', 'task', 'error-retry-timeout', 'duration', 'http', 'ai-agent', 'llm-token-cost', 'service-specific', 'other'],
     serviceSpecificKeywords: ['stage', 'dispatch', 'downstream', 'archive', 'module', 'state', 'reducer', 'lock', 'dead_letter'],
@@ -119,7 +119,7 @@ export const BINARY_SECURITY_METRICS_SERVICES: BinarySecurityMetricsServiceDefin
   {
     key: 'binary-evolution',
     label: '进化中心',
-    serviceName: 'secflow-app-binary-evolution-center',
+    serviceName: 'chimera-app-binary-evolution-center',
     metricsPath: `${API_BASE}/api/app/binary-evolution/metrics`,
     preferredGroups: ['task', 'worker', 'duration', 'llm-token-cost', 'ai-agent', 'error-retry-timeout', 'http', 'queue', 'service-specific'],
     serviceSpecificKeywords: ['round', 'score', 'selection', 'source_task', 'evolution'],
@@ -127,7 +127,7 @@ export const BINARY_SECURITY_METRICS_SERVICES: BinarySecurityMetricsServiceDefin
   {
     key: 'firmware-unpacker',
     label: '固件解包',
-    serviceName: 'secflow-app-firmware-unpacker',
+    serviceName: 'chimera-app-firmware-unpacker',
     metricsPath: `${API_BASE}/api/app/firmware-unpacker/metrics`,
     preferredGroups: ['task', 'duration', 'worker', 'error-retry-timeout', 'queue', 'http', 'llm-token-cost', 'ai-agent', 'service-specific'],
     serviceSpecificKeywords: ['evolution', 'skill', 'cleanup', 'orphan', 'maintenance'],
@@ -135,7 +135,7 @@ export const BINARY_SECURITY_METRICS_SERVICES: BinarySecurityMetricsServiceDefin
   {
     key: 'system-analysis',
     label: '系统分析',
-    serviceName: 'secflow-app-system-analyse',
+    serviceName: 'chimera-app-system-analyse',
     metricsPath: `${API_BASE}/api/app/system-analyse/metrics`,
     preferredGroups: ['task', 'duration', 'llm-token-cost', 'ai-agent', 'worker', 'error-retry-timeout', 'http', 'queue', 'service-specific'],
     serviceSpecificKeywords: ['session', 'round', 'review', 'judge', 'timeout', 'system'],
@@ -143,7 +143,7 @@ export const BINARY_SECURITY_METRICS_SERVICES: BinarySecurityMetricsServiceDefin
   {
     key: 'binary-to-source',
     label: '二进制逆向',
-    serviceName: 'secflow-app-binary-to-source',
+    serviceName: 'chimera-app-binary-to-source',
     metricsPath: `${API_BASE}/api/app/binary-to-source/metrics`,
     preferredGroups: ['task', 'duration', 'llm-token-cost', 'ai-agent', 'error-retry-timeout', 'http', 'worker', 'queue', 'service-specific'],
     serviceSpecificKeywords: ['review', 'quality', 'attempt', 'artifact', 'function', 'business', 'header', 'body', 'batch', 'recovery', 'throughput', 'cache'],
@@ -151,7 +151,7 @@ export const BINARY_SECURITY_METRICS_SERVICES: BinarySecurityMetricsServiceDefin
   {
     key: 'entry-analysis',
     label: '入口分析',
-    serviceName: 'secflow-app-entry-analyse',
+    serviceName: 'chimera-app-entry-analyse',
     metricsPath: `${API_BASE}/api/app/entry-analyse/metrics`,
     preferredGroups: ['task', 'duration', 'llm-token-cost', 'ai-agent', 'worker', 'error-retry-timeout', 'http', 'queue', 'service-specific'],
     serviceSpecificKeywords: ['entry', 'r1', 'r2', 'r3', 'r4', 'module'],
@@ -159,14 +159,14 @@ export const BINARY_SECURITY_METRICS_SERVICES: BinarySecurityMetricsServiceDefin
   {
     key: 'dataflow-analysis',
     label: '数据流分析',
-    serviceName: 'secflow-app-dataflow-analyse',
+    serviceName: 'chimera-app-dataflow-analyse',
     metricsPath: `${API_BASE}/api/app/dataflow-analyse/metrics/aggregate`,
     preferredGroups: ['task', 'duration', 'llm-token-cost', 'ai-agent', 'worker', 'error-retry-timeout', 'http', 'queue', 'service-specific'],
     serviceSpecificKeywords: ['session', 'round', 'review', 'judge', 'trace', 'dataflow'],
   },
   {
     key: 'dataflow-vuln-scan',
-    label: '数据流漏洞挖掘(114)',
+    label: '数据流漏洞挖掘',
     serviceName: 'secflow-app-dataflow-vuln-scan',
     metricsPath: `${API_BASE}/api/app/dataflow-vuln-scan/metrics/aggregate`,
     preferredGroups: ['task', 'duration', 'llm-token-cost', 'ai-agent', 'worker', 'error-retry-timeout', 'http', 'queue', 'service-specific'],
@@ -175,8 +175,8 @@ export const BINARY_SECURITY_METRICS_SERVICES: BinarySecurityMetricsServiceDefin
   {
     key: 'dataflow-vuln',
     label: '数据流漏洞挖掘',
-    serviceName: 'secflow-app-dataflow-vuln-scanner',
-    metricsPath: `${API_BASE}/api/app/dataflow-vuln-scanner/metrics`,
+    serviceName: 'secflow-app-dataflow-vuln-scan',
+    metricsPath: `${API_BASE}/api/app/dataflow-vuln-scan/metrics`,
     preferredGroups: ['task', 'duration', 'llm-token-cost', 'ai-agent', 'queue', 'worker', 'error-retry-timeout', 'http', 'service-specific'],
     serviceSpecificKeywords: ['cycle', 'candidate', 'issue', 'judge', 'vuln', 'execution'],
   },
@@ -193,11 +193,11 @@ const getSummaryServicePath = (serviceKey: BinarySecurityMetricsServiceKey): str
     : serviceKey === 'system-analysis'
       ? 'system-analyse'
       : serviceKey === 'dataflow-analysis'
-        ? 'dataflow-analyse'
+        ? 'dataflow-vuln-scan'
         : serviceKey === 'dataflow-vuln-scan'
           ? 'dataflow-vuln-scan'
         : serviceKey === 'dataflow-vuln'
-          ? 'dataflow-vuln-scanner'
+          ? 'dataflow-vuln-scan'
         : serviceKey;
 
 const getSummaryBasePath = (serviceKey: BinarySecurityMetricsServiceKey): string =>
@@ -213,7 +213,7 @@ const getAgentServicePath = (serviceKey: BinarySecurityMetricsServiceKey): strin
     : serviceKey === 'system-analysis'
       ? 'system-analyse'
       : serviceKey === 'dataflow-analysis'
-        ? 'dataflow-analyse'
+        ? 'dataflow-vuln-scan'
         : serviceKey === 'dataflow-vuln-scan'
           ? 'dataflow-vuln-scan'
         : '';

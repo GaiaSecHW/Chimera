@@ -2993,20 +2993,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
         </div>
       );
     }
-    const task = detailState.data;
-    return (
-      <div className="space-y-3">
-        <div className="grid grid-cols-1 gap-3 text-xs text-slate-600 xl:grid-cols-2">
-          <div className={detailPanelTone}>标题：{task.title || '-'}</div>
-          <div className={detailPanelTone}>最近执行：{task.latest_execution_id || '-'}</div>
-        </div>
-        <div className="grid grid-cols-1 gap-3 text-xs text-slate-600 xl:grid-cols-2">
-          <div className={detailPanelTone}>重试次数：{task.retry_count} / {task.max_retry_count}</div>
-          <div className={detailPanelTone}>执行尝试数：{task.attempts?.length || 0}</div>
-        </div>
-        <DownstreamSummaryGrid payload={task.task_metadata} preferredKeys={VULN_METADATA_KEYS} emptyText="当前数据流漏洞挖掘任务尚未记录元数据摘要。" />
-      </div>
-    );
+    return null;
   };
 
   const renderModuleTable = (

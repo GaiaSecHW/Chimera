@@ -207,7 +207,7 @@ export const resourcesApi = {
   },
 
   downloadFile: (uuid: string) => {
-    return `${API_BASE}/api/resource/resources/${uuid}/file?token=${localStorage.getItem('secflow_token')}`;
+    return `${API_BASE}/api/resource/resources/${uuid}/file?token=${localStorage.getItem('chimera_token')}`;
   },
 
   createOutputPvc: async (payload: { name: string; description?: string; project_id: string; pvc_size?: number }): Promise<any> => {

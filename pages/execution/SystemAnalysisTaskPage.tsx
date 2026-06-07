@@ -163,8 +163,8 @@ export const SystemAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask: (
   const appApi = api.domains.execution.appSystemAnalyse;
   const buildVersion = useServiceBuildVersion(appApi.getHealth);
   const { notify, feedbackNodes } = useUiFeedback();
-  const autoRefreshStorageKey = `secflow:systemAnalysis:autoRefresh:${projectId || 'default'}`;
-  const refreshIntervalStorageKey = `secflow:systemAnalysis:refreshInterval:${projectId || 'default'}`;
+  const autoRefreshStorageKey = `chimera:systemAnalysis:autoRefresh:${projectId || 'default'}`;
+  const refreshIntervalStorageKey = `chimera:systemAnalysis:refreshInterval:${projectId || 'default'}`;
 
   const [loading, setLoading] = useState(true);
   const [batchDeleting, setBatchDeleting] = useState(false);
@@ -230,9 +230,9 @@ export const SystemAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask: (
 
   // Pre-fill input_path from FileExplorer right-click
   useEffect(() => {
-    const stored = sessionStorage.getItem('secflow:systemAnalysisInputPath');
+    const stored = sessionStorage.getItem('chimera:systemAnalysisInputPath');
     if (stored) {
-      sessionStorage.removeItem('secflow:systemAnalysisInputPath');
+      sessionStorage.removeItem('chimera:systemAnalysisInputPath');
       setCreateModalOpen(true);
       setCreateModalInitialForm({
         ...buildDefaultSystemAnalysisTaskForm(projectId),
@@ -243,9 +243,9 @@ export const SystemAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask: (
   }, []);
 
   useEffect(() => {
-    const storedTaskId = sessionStorage.getItem('secflow:systemAnalysisTaskId');
+    const storedTaskId = sessionStorage.getItem('chimera:systemAnalysisTaskId');
     if (!storedTaskId) return;
-    sessionStorage.removeItem('secflow:systemAnalysisTaskId');
+    sessionStorage.removeItem('chimera:systemAnalysisTaskId');
     onOpenTask(storedTaskId);
   }, [onOpenTask]);
 

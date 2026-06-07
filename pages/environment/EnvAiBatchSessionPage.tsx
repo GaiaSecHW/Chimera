@@ -8,7 +8,7 @@ import { AgentResponse, AgentTraceEvent, AiAgentItem, AiBatchRound, AiBatchSessi
 import { useUiFeedback } from '../../components/UiFeedback';
 import { EmptyState, buildHelperKey, prettyJson, useAiHelpers } from './ai-agent/shared';
 
-const BATCH_SESSION_MODE_KEY = 'secflow_ai_batch_session_mode';
+const BATCH_SESSION_MODE_KEY = 'chimera_ai_batch_session_mode';
 
 const compactTime = (value?: string) => {
   if (!value) return '-';

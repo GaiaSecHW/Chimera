@@ -530,7 +530,7 @@ Output audited result json path: ${defaultCustomGraphAuditedResultPath}
 PoC report language: 简体中文. Do not translate code blocks, paths, identifiers, or classification tokens.
 
 Container PoC runtime rules:
-- You are already inside the secflow-app-ipc-audit container.
+- You are already inside the chimera-app-ipc-audit container.
 - Do not start an additional service/OHEMU Docker container. Do not call ohemu-container.sh, docker run, docker exec, or docker compose.
 - Use the in-container QEMU helper: [[ task.poc_runtime.helper_bin ]]
 - The helper sources OpenHarmony QEMU scripts from: [[ task.poc_runtime.ohemu_src ]]
@@ -1788,7 +1788,7 @@ const modelHintForExecutor = (mode?: string | null, providerModel?: string | nul
   if (mode === 'agentflow_cli') {
     return providerModel
       ? `可留空，AgentFlow 节点会优先复用当前 Provider 的模型 ${providerModel}；图内如有更细粒度配置，以图定义为准。`
-      : '可留空；若未选择 Provider，secflow 不会注入任何 provider/model，节点将直接使用 CLI 自带默认模型或图内配置。';
+      : '可留空；若未选择 Provider，chimera 不会注入任何 provider/model，节点将直接使用 CLI 自带默认模型或图内配置。';
   }
   if (mode === 'opencode_cli') {
     return providerModel
@@ -4124,7 +4124,7 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
             </p>
           </div>
           <div className="grid w-full gap-3 sm:grid-cols-2 xl:max-w-4xl xl:grid-cols-4">
-            <MetricCard label="服务状态" value={baseDataLoading ? 'Loading' : readyState?.ready ? 'Ready' : readyState?.status || 'Unknown'} sub={capabilities?.service || 'secflow-app-ipc-audit'} />
+            <MetricCard label="服务状态" value={baseDataLoading ? 'Loading' : readyState?.ready ? 'Ready' : readyState?.status || 'Unknown'} sub={capabilities?.service || 'chimera-app-ipc-audit'} />
             <MetricCard label="工作区" value={baseDataLoading ? '加载中' : selectedWorkspace?.display_name || '-'} sub={baseDataLoading ? '等待工作区' : selectedWorkspace?.workspace_id || '未选择'} />
             <div className="rounded-lg border border-slate-200 bg-slate-50/90 px-4 py-3">
               <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-500">并发上限</div>
@@ -5397,8 +5397,8 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
                     </div>
 
                     <div className="mt-3 rounded-lg border border-sky-200 bg-white px-3 py-2 text-xs font-medium leading-6 text-slate-600">
-                      <div>这里填写的是原始 AgentFlow 图定义。secflow 只会预渲染 `[[ ... ]]`，然后把剩余内容原样交给 AgentFlow。</div>
-                      <div className="mt-2">提交前由 secflow 渲染：`[[ task.repo_root ]]`、`[[ task.project_path ]]`、`[[ task.attempt_root ]]`、`[[ task.report_outputs["audit_report"].absolute_path ]]`、`[[ task.poc_runtime.hdc_bin ]]`、`[[ task.poc_runtime.helper_bin ]]`。</div>
+                      <div>这里填写的是原始 AgentFlow 图定义。chimera 只会预渲染 `[[ ... ]]`，然后把剩余内容原样交给 AgentFlow。</div>
+                      <div className="mt-2">提交前由 chimera 渲染：`[[ task.repo_root ]]`、`[[ task.project_path ]]`、`[[ task.attempt_root ]]`、`[[ task.report_outputs["audit_report"].absolute_path ]]`、`[[ task.poc_runtime.hdc_bin ]]`、`[[ task.poc_runtime.helper_bin ]]`。</div>
                       <div className="mt-2">
                         运行时由 AgentFlow 自己渲染：
                         <code className="mx-1 rounded bg-slate-100 px-1.5 py-0.5 text-[11px] text-slate-700">{'{{ nodes.audit.output }}'}</code>
@@ -5649,7 +5649,7 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
                       <div>
                         <div className="text-xs font-black uppercase tracking-[0.18em] text-slate-500">LLM Provider</div>
                         <div className="mt-1 text-xs font-medium text-slate-500">
-                          每个任务最多绑定一个 Provider；不选时 secflow 不会注入任何 Provider 环境变量、配置文件或模型。
+                          每个任务最多绑定一个 Provider；不选时 chimera 不会注入任何 Provider 环境变量、配置文件或模型。
                         </div>
                       </div>
                       <button
@@ -5701,7 +5701,7 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
                         </div>
                       ) : !selectedProvider ? (
                         <div className="rounded-lg border border-dashed border-slate-200 bg-white px-4 py-4 text-sm font-semibold text-slate-500">
-                          当前未选择 Provider。secflow 不会注入任何 provider env/file/model，AgentFlow 或 OpenCode 将按自身默认行为执行。
+                          当前未选择 Provider。chimera 不会注入任何 provider env/file/model，AgentFlow 或 OpenCode 将按自身默认行为执行。
                         </div>
                       ) : (
                         <div className="rounded-lg border border-slate-200 bg-white px-4 py-3">

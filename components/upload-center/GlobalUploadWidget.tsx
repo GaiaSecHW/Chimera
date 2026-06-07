@@ -47,13 +47,13 @@ const statusLabel = (task: UploadTask): string => {
 const statusClass = (task: UploadTask): string => {
   switch (task.status) {
     case 'uploading':
-      return 'text-blue-700 bg-blue-100';
+      return 'text-blue-700 bg-blue-100/10';
     case 'processing':
-      return 'text-amber-700 bg-amber-100';
+      return 'text-amber-700 bg-amber-100/10';
     case 'success':
-      return 'text-emerald-700 bg-emerald-100';
+      return 'text-emerald-700 bg-emerald-100/10';
     case 'failed':
-      return 'text-red-700 bg-red-100';
+      return 'text-red-700 bg-red-100/10';
     case 'canceled':
       return 'text-theme-text-secondary bg-theme-elevated';
     default:

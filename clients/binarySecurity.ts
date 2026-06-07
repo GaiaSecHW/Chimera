@@ -17,6 +17,7 @@ export interface BinarySecurityInputFile {
 
 export type BinarySecurityTaskType = 'binary' | 'source' | 'binary_module';
 export type BinarySecurityModuleSelectionMode = 'auto' | 'manual_confirm' | string;
+export type BinarySecurityEntrySelectionMode = 'auto' | 'manual_confirm' | string;
 export type BinarySecurityPipelineMode = 'barrier' | 'mixed_streaming';
 
 export interface BinarySecurityStageOption {
@@ -32,6 +33,7 @@ export interface BinarySecurityTaskPolicy {
   stage_parallelism?: Record<string, number>;
   stage_options?: Record<string, BinarySecurityStageOption>;
   module_selection_mode?: BinarySecurityModuleSelectionMode;
+  entry_selection_mode?: BinarySecurityEntrySelectionMode;
   module_risk_levels?: string[];
   [key: string]: any;
 }
@@ -208,6 +210,9 @@ export interface BinarySecurityTask {
   selected_module_count: number;
   selected_risk_levels: string[];
   module_selection_mode: BinarySecurityModuleSelectionMode;
+  entry_selection_mode: BinarySecurityEntrySelectionMode;
+  candidate_entry_count: number;
+  selected_entry_count: number;
   entry_count: number;
   vuln_result_count: number;
   firmware_item_count: number;
@@ -349,6 +354,7 @@ export interface BinarySecurityTaskDetail extends BinarySecurityTask {
   output_root: string;
   workspace_root: string;
   fileserver_subproject_name?: string | null;
+  candidate_entry_count?: number;
   policy: BinarySecurityTaskPolicy;
   summary: Record<string, any> & {
     selected_modules?: BinarySecurityModuleContract[];
@@ -599,6 +605,18 @@ export interface BinarySecurityModuleSelection {
   system_analysis_modules: BinarySecurityModuleContract[];
   candidate_modules: BinarySecurityModuleContract[];
   selected_modules: BinarySecurityModuleContract[];
+}
+
+export interface BinarySecurityEntrySelection {
+  task_id: string;
+  status: string;
+  selection_mode: BinarySecurityEntrySelectionMode;
+  requires_confirmation: boolean;
+  candidate_entries: BinarySecurityEntryContract[];
+  selected_entry_keys: string[];
+  selected_entries: BinarySecurityEntryContract[];
+  entry_results: BinarySecurityEntryOutputContract[];
+  confirmed_at?: string | null;
 }
 
 export interface BinarySecurityTimeline {
@@ -886,6 +904,7 @@ export const binarySecurityApi = {
       partial_success_stage_advancement?: Record<string, boolean>;
       stage_parallelism?: Record<string, number>;
       module_selection_mode?: BinarySecurityModuleSelectionMode;
+      entry_selection_mode?: BinarySecurityEntrySelectionMode;
       module_risk_levels?: string[];
     },
   ): Promise<BinarySecurityTaskDetail> => {
@@ -956,6 +975,7 @@ export const binarySecurityApi = {
         partial_success_stage_advancement?: Record<string, boolean>;
         stage_parallelism?: Record<string, number>;
         module_selection_mode?: 'auto' | 'manual_confirm';
+        entry_selection_mode?: 'auto' | 'manual_confirm';
         module_risk_levels?: string[];
       };
     },
@@ -1110,6 +1130,23 @@ export const binarySecurityApi = {
       method: 'POST',
       headers: getHeaders(),
       body: JSON.stringify({ selected_module_keys: selectedModuleKeys }),
+    });
+    return handleResponse(resp);
+  },
+
+  getEntrySelection: async (projectId: string, taskId: string): Promise<BinarySecurityEntrySelection> => {
+    const resp = await fetch(`${API_BASE}/api/app/binary-security/projects/${projectId}/tasks/${taskId}/entry-selection`, {
+      headers: getHeaders(),
+      cache: 'no-store',
+    });
+    return handleResponse(resp);
+  },
+
+  confirmEntrySelection: async (projectId: string, taskId: string, selectedEntryKeys: string[]): Promise<BinarySecurityTaskDetail> => {
+    const resp = await fetch(`${API_BASE}/api/app/binary-security/projects/${projectId}/tasks/${taskId}/entry-selection/confirm`, {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify({ selected_entry_keys: selectedEntryKeys }),
     });
     return handleResponse(resp);
   },

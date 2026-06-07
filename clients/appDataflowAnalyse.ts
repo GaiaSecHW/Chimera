@@ -16,7 +16,7 @@ import {
   AppDfaTaskResult,
 } from '../types/types';
 
-const BASE = `${API_BASE}/api/app/dataflow-analyse`;
+const BASE = `${API_BASE}/api/app/dataflow-vuln-scan`;
 
 export const appDataflowAnalyseApi = {
   // ── Health ────────────────────────────────────────────────────────────────

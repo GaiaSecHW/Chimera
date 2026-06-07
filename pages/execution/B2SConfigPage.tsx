@@ -449,7 +449,7 @@ export const B2SConfigPage: React.FC<{ projectId: string; embedded?: boolean }> 
                 <Settings size={18} className="text-rose-600" />
                 <h2 className="text-xl font-black text-slate-900">二进制逆向参数配置</h2>
                 <span className="rounded-full border border-rose-200 bg-rose-50 px-3 py-1 text-[11px] font-black tracking-[0.12em] text-rose-700">
-                  secflow-app-binary-to-source
+                  chimera-app-binary-to-source
                 </span>
               </div>
               <p className="mt-2 text-sm text-slate-500">

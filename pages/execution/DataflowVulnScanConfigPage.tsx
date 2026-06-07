@@ -355,7 +355,7 @@ export const DataflowVulnScanConfigPage: React.FC<{ projectId: string; embedded?
           <p className="text-xs font-black uppercase tracking-[0.3em] text-violet-600">Dataflow Analysis</p>
           <h1 className="mt-3 text-3xl font-black tracking-tight text-slate-900">分析配置</h1>
           <p className="mt-2 text-sm text-slate-500">
-            配置 secflow-app-dataflow-vuln-scan 数据流漏洞挖掘引擎的运行参数，修改后点击「保存配置」生效。
+            配置 chimera-app-dataflow-vuln-scan 数据流漏洞挖掘引擎的运行参数，修改后点击「保存配置」生效。
           </p>
           {config.updated_at && (
             <p className="mt-1 text-xs text-slate-400">上次保存：{new Date(config.updated_at).toLocaleString()}</p>
@@ -369,11 +369,11 @@ export const DataflowVulnScanConfigPage: React.FC<{ projectId: string; embedded?
                 <Settings size={18} className="text-rose-600" />
                 <h2 className="text-xl font-black text-slate-900">数据流漏洞挖掘参数配置</h2>
                 <span className="rounded-full border border-rose-200 bg-rose-50 px-3 py-1 text-[11px] font-black tracking-[0.12em] text-rose-700">
-                  secflow-app-dataflow-vuln-scan
+                  chimera-app-dataflow-vuln-scan
                 </span>
               </div>
               <p className="mt-2 text-sm text-slate-500">
-                当前 Tab 中的全部配置项都归属于 `secflow-app-dataflow-vuln-scan` 微服务，用于控制数据流漏洞挖掘服务的追踪深度、轮次、重试和 Agent 模型行为。
+                当前 Tab 中的全部配置项都归属于 `chimera-app-dataflow-vuln-scan` 微服务，用于控制数据流漏洞挖掘服务的追踪深度、轮次、重试和 Agent 模型行为。
               </p>
               {config.updated_at && (
                 <p className="mt-1 text-xs text-slate-400">上次保存：{new Date(config.updated_at).toLocaleString()}</p>

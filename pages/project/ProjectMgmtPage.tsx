@@ -314,21 +314,21 @@ export const ProjectMgmtPage: React.FC<ProjectMgmtPageProps> = ({
   ) => {
     const accentClasses = accent === 'green'
       ? {
-          panel: 'border-green-100 bg-gradient-to-br from-green-50 via-white to-emerald-50',
+          panel: 'border-[rgba(16,185,129,0.18)] bg-[rgba(16,185,129,0.04)]',
           icon: 'bg-green-600 text-white',
-          badge: 'bg-green-100 text-green-700',
-          action: 'text-green-700',
+          badge: 'bg-[rgba(16,185,129,0.12)] text-green-400',
+          action: 'text-green-400',
         }
       : {
-          panel: 'border-amber-100 bg-gradient-to-br from-amber-50 via-white to-orange-50',
+          panel: 'border-[rgba(245,158,11,0.18)] bg-[rgba(245,158,11,0.04)]',
           icon: 'bg-amber-600 text-white',
-          badge: 'bg-amber-100 text-amber-700',
-          action: 'text-amber-700',
+          badge: 'bg-[rgba(245,158,11,0.12)] text-amber-400',
+          action: 'text-amber-400',
         };
 
     return (
       <section className={`border rounded-[2.5rem] shadow-sm overflow-hidden ${accentClasses.panel}`}>
-        <div className="px-8 py-6 border-b border-white/80 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <div className="px-8 py-6 border-b border-theme-border flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div className="flex items-center gap-4">
             <div className={`w-14 h-14 rounded-[1.25rem] flex items-center justify-center shadow-lg ${accentClasses.icon}`}>
               {accent === 'green' ? <Globe size={26} /> : <Building2 size={26} />}
@@ -352,7 +352,7 @@ export const ProjectMgmtPage: React.FC<ProjectMgmtPageProps> = ({
                 <article
                   key={project.id}
                   onClick={() => handleRowClick(project.id)}
-                  className={`group rounded-[2rem] border bg-white/90 backdrop-blur-sm p-6 transition-all cursor-pointer shadow-sm hover:shadow-xl hover:-translate-y-1 ${
+                  className={`group rounded-[2rem] border bg-[var(--bg-surface)] backdrop-blur-sm p-6 transition-all cursor-pointer shadow-sm hover:shadow-xl hover:-translate-y-1 ${
                     selected ? 'border-blue-500 ring-4 ring-blue-500/10' : 'border-slate-200'
                   }`}
                 >
@@ -383,7 +383,7 @@ export const ProjectMgmtPage: React.FC<ProjectMgmtPageProps> = ({
                                 可管理
                               </span>
                             ) : (
-                              <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-slate-100 text-slate-500 text-[11px] font-black">
+                              <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-[rgba(255,255,255,0.06)] text-slate-400 text-[11px] font-black">
                                 <Lock size={12} />
                                 只读可见
                               </span>
@@ -465,7 +465,7 @@ export const ProjectMgmtPage: React.FC<ProjectMgmtPageProps> = ({
           </div>
         ) : (
           <div className="py-20 text-center">
-            <div className="w-16 h-16 bg-white rounded-full shadow-sm flex items-center justify-center mx-auto mb-4 text-slate-300">
+            <div className="w-16 h-16 bg-[var(--bg-surface)] rounded-full shadow-sm flex items-center justify-center mx-auto mb-4 text-slate-400">
               {accent === 'green' ? <Globe size={30} /> : <Building2 size={30} />}
             </div>
             <p className="text-sm font-black text-slate-400 uppercase tracking-widest">{emptyText}</p>
@@ -485,7 +485,7 @@ export const ProjectMgmtPage: React.FC<ProjectMgmtPageProps> = ({
       <select
         value={value}
         onChange={(event) => onChange(event.target.value)}
-        className="w-full px-6 py-4 bg-slate-50 rounded-2xl border-none outline-none focus:ring-4 ring-blue-500/10 font-bold text-slate-800 transition-all"
+        className="w-full px-6 py-4 bg-[rgba(255,255,255,0.04)] rounded-2xl border-none outline-none focus:ring-4 ring-blue-500/10 font-bold transition-all"
       >
         <option value="">请选择归属部门</option>
         {selectableDepartments.map((department) => (
@@ -582,28 +582,28 @@ export const ProjectMgmtPage: React.FC<ProjectMgmtPageProps> = ({
             <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">总项目数</p>
             <h3 className="text-3xl font-black text-slate-800 mt-1">{projects.length}</h3>
           </div>
-          <Layers className="text-blue-100" size={40} />
+          <Layers className="text-blue-600/20" size={40} />
         </div>
         <div className="bg-white p-6 rounded-[2rem] border border-slate-200 shadow-sm flex items-center justify-between">
           <div>
             <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">公开项目</p>
             <h3 className="text-3xl font-black text-green-600 mt-1">{projects.filter((project) => project.is_public).length}</h3>
           </div>
-          <Globe className="text-green-100" size={40} />
+          <Globe className="text-green-600/20" size={40} />
         </div>
         <div className="bg-white p-6 rounded-[2rem] border border-slate-200 shadow-sm flex items-center justify-between">
           <div>
             <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">部门项目</p>
             <h3 className="text-3xl font-black text-amber-600 mt-1">{projects.filter((project) => !project.is_public).length}</h3>
           </div>
-          <Building2 className="text-amber-100" size={40} />
+          <Building2 className="text-amber-600/20" size={40} />
         </div>
         <div className="bg-white p-6 rounded-[2rem] border border-slate-200 shadow-sm flex items-center justify-between">
           <div>
             <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">可管理项目</p>
             <h3 className="text-3xl font-black text-blue-600 mt-1">{projects.filter((project) => project.can_manage).length}</h3>
           </div>
-          <Edit3 className="text-blue-100" size={40} />
+          <Edit3 className="text-blue-600/20" size={40} />
         </div>
         <div className="bg-white p-6 rounded-[2rem] border border-slate-200 shadow-sm flex items-center justify-between">
           <div>
@@ -676,7 +676,7 @@ export const ProjectMgmtPage: React.FC<ProjectMgmtPageProps> = ({
                 <input
                   required
                   placeholder="例如：核心业务 API 渗透测试"
-                  className="w-full px-6 py-4 bg-slate-50 rounded-2xl border-none outline-none focus:ring-4 ring-blue-500/10 font-bold text-slate-800 transition-all"
+                  className="w-full px-6 py-4 bg-[rgba(255,255,255,0.04)] rounded-2xl border-none outline-none focus:ring-4 ring-blue-500/10 font-bold transition-all"
                   value={newProject.name}
                   onChange={(event) => setNewProject({ ...newProject, name: event.target.value })}
                 />
@@ -686,7 +686,7 @@ export const ProjectMgmtPage: React.FC<ProjectMgmtPageProps> = ({
                 <textarea
                   rows={3}
                   placeholder="描述该项目的评估目标与范围..."
-                  className="w-full px-6 py-4 bg-slate-50 rounded-2xl border-none outline-none focus:ring-4 ring-blue-500/10 font-bold text-slate-800 transition-all resize-none"
+                  className="w-full px-6 py-4 bg-[rgba(255,255,255,0.04)] rounded-2xl border-none outline-none focus:ring-4 ring-blue-500/10 font-bold transition-all resize-none"
                   value={newProject.description}
                   onChange={(event) => setNewProject({ ...newProject, description: event.target.value })}
                 />
@@ -713,7 +713,7 @@ export const ProjectMgmtPage: React.FC<ProjectMgmtPageProps> = ({
                     className={`flex-1 py-4 rounded-2xl font-black transition-all ${
                       newProject.is_public
                         ? 'bg-green-600 text-white shadow-lg shadow-green-500/20'
-                        : 'bg-slate-100 text-slate-400'
+                        : 'bg-[rgba(255,255,255,0.06)] text-slate-400'
                     }`}
                   >
                     <Globe size={20} className="mx-auto mb-2" />
@@ -725,7 +725,7 @@ export const ProjectMgmtPage: React.FC<ProjectMgmtPageProps> = ({
                     className={`flex-1 py-4 rounded-2xl font-black transition-all ${
                       !newProject.is_public
                         ? 'bg-amber-600 text-white shadow-lg shadow-amber-500/20'
-                        : 'bg-slate-100 text-slate-400'
+                        : 'bg-[rgba(255,255,255,0.06)] text-slate-400'
                     }`}
                   >
                     <Lock size={20} className="mx-auto mb-2" />
@@ -743,7 +743,7 @@ export const ProjectMgmtPage: React.FC<ProjectMgmtPageProps> = ({
                 <button
                   type="button"
                   onClick={() => setIsCreateModalOpen(false)}
-                  className="flex-1 py-4 bg-slate-100 text-slate-600 rounded-2xl font-black hover:bg-slate-200 transition-all"
+                  className="flex-1 py-4 bg-[rgba(255,255,255,0.06)] text-slate-400 rounded-2xl font-black hover:bg-[rgba(255,255,255,0.10)] transition-all"
                 >
                   取消
                 </button>
@@ -817,7 +817,7 @@ export const ProjectMgmtPage: React.FC<ProjectMgmtPageProps> = ({
                 <input
                   required
                   placeholder="例如：核心业务 API 渗透测试"
-                  className="w-full px-6 py-4 bg-slate-50 rounded-2xl border-none outline-none focus:ring-4 ring-amber-500/10 font-bold text-slate-800 transition-all"
+                  className="w-full px-6 py-4 bg-[rgba(255,255,255,0.04)] rounded-2xl border-none outline-none focus:ring-4 ring-amber-500/10 font-bold transition-all"
                   value={editForm.name}
                   onChange={(event) => setEditForm({ ...editForm, name: event.target.value })}
                 />
@@ -827,7 +827,7 @@ export const ProjectMgmtPage: React.FC<ProjectMgmtPageProps> = ({
                 <textarea
                   rows={3}
                   placeholder="描述该项目的评估目标与范围..."
-                  className="w-full px-6 py-4 bg-slate-50 rounded-2xl border-none outline-none focus:ring-4 ring-amber-500/10 font-bold text-slate-800 transition-all resize-none"
+                  className="w-full px-6 py-4 bg-[rgba(255,255,255,0.04)] rounded-2xl border-none outline-none focus:ring-4 ring-amber-500/10 font-bold transition-all resize-none"
                   value={editForm.description}
                   onChange={(event) => setEditForm({ ...editForm, description: event.target.value })}
                 />
@@ -854,7 +854,7 @@ export const ProjectMgmtPage: React.FC<ProjectMgmtPageProps> = ({
                     className={`flex-1 py-4 rounded-2xl font-black transition-all ${
                       editForm.is_public
                         ? 'bg-green-600 text-white shadow-lg shadow-green-500/20'
-                        : 'bg-slate-100 text-slate-400'
+                        : 'bg-[rgba(255,255,255,0.06)] text-slate-400'
                     }`}
                   >
                     <Globe size={20} className="mx-auto mb-2" />
@@ -866,7 +866,7 @@ export const ProjectMgmtPage: React.FC<ProjectMgmtPageProps> = ({
                     className={`flex-1 py-4 rounded-2xl font-black transition-all ${
                       !editForm.is_public
                         ? 'bg-amber-600 text-white shadow-lg shadow-amber-500/20'
-                        : 'bg-slate-100 text-slate-400'
+                        : 'bg-[rgba(255,255,255,0.06)] text-slate-400'
                     }`}
                   >
                     <Lock size={20} className="mx-auto mb-2" />
@@ -884,7 +884,7 @@ export const ProjectMgmtPage: React.FC<ProjectMgmtPageProps> = ({
                 <button
                   type="button"
                   onClick={() => setIsEditModalOpen(false)}
-                  className="flex-1 py-4 bg-slate-100 text-slate-600 rounded-2xl font-black hover:bg-slate-200 transition-all"
+                  className="flex-1 py-4 bg-[rgba(255,255,255,0.06)] text-slate-400 rounded-2xl font-black hover:bg-[rgba(255,255,255,0.10)] transition-all"
                 >
                   取消
                 </button>

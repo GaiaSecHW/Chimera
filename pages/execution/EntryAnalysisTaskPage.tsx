@@ -105,8 +105,8 @@ function extractFsRelPath(outputPath: string, projectId: string): string | null 
 
 function openInFileExplorer(fsPath: string) {
   const normalizedPath = fsPath.startsWith('/') ? fsPath : `/${fsPath}`;
-  sessionStorage.setItem('secflow:fileExplorerNavigatePath', normalizedPath);
-  window.dispatchEvent(new CustomEvent('secflow-navigate-view', { detail: { view: 'project-file-explorer', path: normalizedPath } }));
+  sessionStorage.setItem('chimera:fileExplorerNavigatePath', normalizedPath);
+  window.dispatchEvent(new CustomEvent('chimera-navigate-view', { detail: { view: 'project-file-explorer', path: normalizedPath } }));
 }
 
 function getTaskMode(task: Pick<AppEaTaskItem, 'task_origin_type' | 'parent_task_type'>): 'manual' | 'binary' | 'source' {
@@ -401,10 +401,10 @@ export const EntryAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?: (
   const appApi = api.domains.execution.appEntryAnalyse;
   const buildVersion = useServiceBuildVersion(appApi.getHealth);
   const { notify, feedbackNodes } = useUiFeedback();
-  const stageFocusStorageKey = 'secflow:entryAnalysisStageFocus';
-  const riskFocusStorageKey = 'secflow:entryAnalysisRiskFocus';
-  const autoRefreshStorageKey = `secflow:entryAnalysis:autoRefresh:${projectId || 'default'}`;
-  const refreshIntervalStorageKey = `secflow:entryAnalysis:refreshInterval:${projectId || 'default'}`;
+  const stageFocusStorageKey = 'chimera:entryAnalysisStageFocus';
+  const riskFocusStorageKey = 'chimera:entryAnalysisRiskFocus';
+  const autoRefreshStorageKey = `chimera:entryAnalysis:autoRefresh:${projectId || 'default'}`;
+  const refreshIntervalStorageKey = `chimera:entryAnalysis:refreshInterval:${projectId || 'default'}`;
 
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
@@ -488,12 +488,12 @@ export const EntryAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?: (
 
   // Pre-fill input_path from FileExplorer right-click
   useEffect(() => {
-    const stored = sessionStorage.getItem('secflow:entryAnalysisInputPath');
+    const stored = sessionStorage.getItem('chimera:entryAnalysisInputPath');
     if (stored) {
-      sessionStorage.removeItem('secflow:entryAnalysisInputPath');
+      sessionStorage.removeItem('chimera:entryAnalysisInputPath');
       setCreateModalOpen(true);
       setSelectedTaskId('');
-      const newForm = { ...emptyForm, input_path: stored, output_path: `/data/files/${projectId}/app/secflow-app-entry-analyse` };
+      const newForm = { ...emptyForm, input_path: stored, output_path: `/data/files/${projectId}/app/chimera-app-entry-analyse` };
       setForm(newForm);
       void loadModulesForPath(stored);
     }
@@ -501,9 +501,9 @@ export const EntryAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?: (
   }, []);
 
   useEffect(() => {
-    const storedTaskId = sessionStorage.getItem('secflow:entryAnalysisTaskId');
+    const storedTaskId = sessionStorage.getItem('chimera:entryAnalysisTaskId');
     if (!storedTaskId) return;
-    sessionStorage.removeItem('secflow:entryAnalysisTaskId');
+    sessionStorage.removeItem('chimera:entryAnalysisTaskId');
     if (onOpenTask) onOpenTask(storedTaskId);
   }, [onOpenTask]);
 
@@ -663,7 +663,7 @@ export const EntryAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?: (
       return;
     }
     saveExecutionReturnContext({ view: 'entry-analysis-task' });
-    window.dispatchEvent(new CustomEvent('secflow-navigate-view', { detail: { view: 'entry-analysis-detail', entryAnalysisTaskId: taskId } }));
+    window.dispatchEvent(new CustomEvent('chimera-navigate-view', { detail: { view: 'entry-analysis-detail', entryAnalysisTaskId: taskId } }));
   };
 
   // ── Auto-poll when tasks are running or pending ─────────────────────────
@@ -1774,7 +1774,7 @@ export const EntryAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?: (
               <RefreshCw size={14} />
             </button>
             <button
-              onClick={() => { setCreateModalOpen(true); setAvailableModules([]); setForm({ ...emptyForm, output_path: `/data/files/${projectId}/app/secflow-app-entry-analyse` }); }}
+              onClick={() => { setCreateModalOpen(true); setAvailableModules([]); setForm({ ...emptyForm, output_path: `/data/files/${projectId}/app/chimera-app-entry-analyse` }); }}
               className="inline-flex items-center gap-1.5 rounded-lg bg-slate-900 px-3 py-1.5 text-xs font-semibold text-white hover:bg-slate-700"
             >
               <Plus size={13} />新建任务

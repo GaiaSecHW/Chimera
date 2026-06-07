@@ -15,7 +15,7 @@ interface Props {
   onOpenTask: (taskId: string) => void;
 }
 
-const B2S_APP_ROOT = 'app/secflow-app-binary-to-source';
+const B2S_APP_ROOT = 'app/chimera-app-binary-to-source';
 const FILESERVER_STORAGE_ROOT = '/data';
 const standardInputPath = (taskId: string, sequenceNo: number): string => `/${B2S_APP_ROOT}/${taskId}/${sequenceNo}/input`;
 const safeCount = (value: unknown): number | null => {
@@ -80,8 +80,8 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
   const executionApi = api.domains.execution;
   const assetApi = api.domains.assets;
   const buildVersion = useServiceBuildVersion(executionApi.binaryToSource.getHealth);
-  const autoRefreshStorageKey = `secflow:b2s:autoRefresh:${projectId || 'default'}`;
-  const refreshIntervalStorageKey = `secflow:b2s:refreshInterval:${projectId || 'default'}`;
+  const autoRefreshStorageKey = `chimera:b2s:autoRefresh:${projectId || 'default'}`;
+  const refreshIntervalStorageKey = `chimera:b2s:refreshInterval:${projectId || 'default'}`;
   const [items, setItems] = useState<B2STask[]>([]);
   const [taskStats, setTaskStats] = useState<B2STaskListStats>({ total: 0, pending: 0, running: 0, success: 0, partial: 0, failed: 0, cancelled: 0 });
   const [piClusterCapacity, setPiClusterCapacity] = useState<B2SPiClusterCapacity | null>(null);
@@ -176,9 +176,9 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
   }, [loadPiClusterCapacity]);
 
   useEffect(() => {
-    const storedTaskId = sessionStorage.getItem('secflow:b2sTaskId');
+    const storedTaskId = sessionStorage.getItem('chimera:b2sTaskId');
     if (!storedTaskId) return;
-    sessionStorage.removeItem('secflow:b2sTaskId');
+    sessionStorage.removeItem('chimera:b2sTaskId');
     onOpenTask(storedTaskId);
   }, [onOpenTask]);
 
@@ -695,12 +695,12 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
 
       {showSlotDetailModal ? (
         <div className="fixed inset-0 z-[180] flex items-center justify-center bg-slate-950/65 p-4 backdrop-blur-sm" onClick={() => setShowSlotDetailModal(false)}>
-          <div className="w-full max-w-5xl rounded-[2rem] border border-slate-200 bg-[linear-gradient(180deg,#ffffff_0%,#f8fafc_100%)] shadow-[0_30px_100px_rgba(15,23,42,0.35)]" onClick={(event) => event.stopPropagation()}>
+          <div className="w-full max-w-5xl rounded-[2rem] border border-slate-200 bg-slate-800 shadow-panel" onClick={(event) => event.stopPropagation()}>
             <div className="flex items-start justify-between gap-4 border-b border-slate-200 px-6 py-5">
               <div>
-                <div className="text-[11px] font-black uppercase tracking-[0.24em] text-cyan-700">Slot Detail</div>
-                <h3 className="mt-2 text-2xl font-black tracking-tight text-slate-900">执行槽位详情</h3>
-                <p className="mt-2 text-sm text-slate-500">按 worker 展示当前正在执行的逆向任务；点击每个 worker 头部展开或收起详细信息。</p>
+                <div className="text-[11px] font-black uppercase tracking-[0.24em] text-cyan-400">Slot Detail</div>
+                <h3 className="mt-2 text-2xl font-black tracking-tight text-slate-200">执行槽位详情</h3>
+                <p className="mt-2 text-sm text-slate-400">按 worker 展示当前正在执行的逆向任务；点击每个 worker 头部展开或收起详细信息。</p>
               </div>
               <div className="flex items-center gap-3">
                 <div className="text-right text-xs text-slate-400">
@@ -807,7 +807,7 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
                                       </div>
                                     </div>
                                     <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-                                      <div className="rounded-xl border border-white/80 bg-white px-3 py-3">
+                                      <div className="rounded-xl border border-slate-200 bg-slate-700 px-3 py-3">
                                         <div className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">归属任务</div>
                                         {job.mapped && job.task_id ? (
                                           <>
@@ -817,39 +817,39 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
                                                 setShowSlotDetailModal(false);
                                                 onOpenTask(job.task_id as string);
                                               }}
-                                              className="mt-2 text-left text-sm font-bold text-cyan-700 hover:text-cyan-800"
+                                              className="mt-2 text-left text-sm font-bold text-cyan-400 hover:text-cyan-300"
                                             >
                                               {job.task_name || job.task_id}
                                             </button>
-                                            <div className="mt-1 break-all font-mono text-[11px] text-slate-500">{job.task_id}</div>
+                                            <div className="mt-1 break-all font-mono text-[11px] text-slate-400">{job.task_id}</div>
                                           </>
                                         ) : (
-                                          <div className="mt-2 text-sm font-semibold text-amber-800">未关联 B2S 任务</div>
+                                          <div className="mt-2 text-sm font-semibold text-amber-400">未关联 B2S 任务</div>
                                         )}
                                       </div>
-                                      <div className="rounded-xl border border-white/80 bg-white px-3 py-3">
+                                      <div className="rounded-xl border border-slate-200 bg-slate-700 px-3 py-3">
                                         <div className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">总任务 ID</div>
-                                        <div className="mt-2 break-all font-mono text-sm text-slate-700">{job.parent_task_id || '-'}</div>
+                                        <div className="mt-2 break-all font-mono text-sm text-slate-300">{job.parent_task_id || '-'}</div>
                                       </div>
-                                      <div className="rounded-xl border border-white/80 bg-white px-3 py-3">
+                                      <div className="rounded-xl border border-slate-200 bg-slate-700 px-3 py-3">
                                         <div className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">执行位置</div>
-                                        <div className="mt-2 text-sm font-semibold text-slate-700">{formatPiJobStage(job)}</div>
-                                        <div className="mt-1 text-[11px] text-slate-500">{job.current_function || '当前函数信息暂缺'}</div>
+                                        <div className="mt-2 text-sm font-semibold text-slate-300">{formatPiJobStage(job)}</div>
+                                        <div className="mt-1 text-[11px] text-slate-400">{job.current_function || '当前函数信息暂缺'}</div>
                                       </div>
-                                      <div className="rounded-xl border border-white/80 bg-white px-3 py-3">
+                                      <div className="rounded-xl border border-slate-200 bg-slate-700 px-3 py-3">
                                         <div className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">开始时间</div>
-                                        <div className="mt-2 text-sm font-semibold text-slate-700">{formatDateTime(job.started_at)}</div>
+                                        <div className="mt-2 text-sm font-semibold text-slate-300">{formatDateTime(job.started_at)}</div>
                                       </div>
-                                      <div className="rounded-xl border border-white/80 bg-white px-3 py-3">
+                                      <div className="rounded-xl border border-slate-200 bg-slate-700 px-3 py-3">
                                         <div className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">最近更新时间</div>
-                                        <div className="mt-2 text-sm font-semibold text-slate-700">{formatDateTime(job.updated_at)}</div>
+                                        <div className="mt-2 text-sm font-semibold text-slate-300">{formatDateTime(job.updated_at)}</div>
                                       </div>
-                                      <div className="rounded-xl border border-white/80 bg-white px-3 py-3">
+                                      <div className="rounded-xl border border-slate-200 bg-slate-700 px-3 py-3">
                                         <div className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">任务项</div>
-                                        <div className="mt-2 text-sm font-semibold text-slate-700">
+                                        <div className="mt-2 text-sm font-semibold text-slate-300">
                                           {job.sequence_no != null ? `#${job.sequence_no}` : '-'}
                                         </div>
-                                        <div className="mt-1 break-all font-mono text-[11px] text-slate-500">{job.item_id || '-'}</div>
+                                        <div className="mt-1 break-all font-mono text-[11px] text-slate-400">{job.item_id || '-'}</div>
                                       </div>
                                     </div>
                                   </div>

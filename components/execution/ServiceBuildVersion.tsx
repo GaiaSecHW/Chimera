@@ -49,7 +49,7 @@ export const ServiceBuildVersionBadge: React.FC<{
   if (!normalized) return null;
   return (
     <span
-      className={`inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-[11px] font-bold text-slate-600 ${className}`.trim()}
+      className={`inline-flex items-center rounded-full border border-theme-border bg-theme-elevated px-2.5 py-1 text-[11px] font-bold text-theme-text-secondary ${className}`.trim()}
     >
       {normalized}
     </span>
@@ -66,7 +66,7 @@ export const ServicePageTitle: React.FC<{
   title,
   version,
   className = 'mt-3',
-  titleClassName = 'text-3xl font-black tracking-tight text-slate-900',
+  titleClassName = 'text-3xl font-black tracking-tight text-theme-text-primary',
   badgeClassName = '',
 }) => (
   <div className={`flex flex-wrap items-center gap-3 ${className}`.trim()}>

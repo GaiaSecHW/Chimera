@@ -1,5 +1,8 @@
 FROM public.ecr.aws/docker/library/node:20-alpine AS builder
 
+ARG SECFLOW_BUILD_VERSION=dev
+ENV SECFLOW_BUILD_VERSION=${SECFLOW_BUILD_VERSION}
+
 WORKDIR /app
 
 COPY package*.json ./
@@ -12,7 +15,7 @@ RUN npm run build
 
 FROM public.ecr.aws/docker/library/nginx:alpine
 
-COPY nginx-secflow-debug.conf /etc/nginx/conf.d/default.conf
+COPY nginx-chimera-debug.conf /etc/nginx/conf.d/default.conf
 COPY --from=builder /app/dist /usr/share/nginx/html
 
 EXPOSE 80

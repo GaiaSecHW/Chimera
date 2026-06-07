@@ -5,8 +5,8 @@ import {
   ProjectFilesystemRootResponse,
 } from '../types/types';
 
-const PREFIX = `${API_BASE}/api/dataflow-vuln-scanner`;
-const MANAGER_PREFIX = `${API_BASE}/api/dataflow-vuln-scanner-admin-proxy`;
+const PREFIX = `${API_BASE}/api/dataflow-vuln-scan`;
+const MANAGER_PREFIX = `${API_BASE}/api/dataflow-vuln-scan-admin-proxy`;
 
 export interface DataflowProfileConfigPayload {
   model: string;
@@ -70,7 +70,7 @@ export interface DataflowAgentStateRootPayload {
   root_dir: DataflowInputRef;
 }
 
-export type DataflowVulnScannerHealth = {
+export type DataflowVulnScanHealth = {
   status: string;
   pod_id: string;
   database: string;
@@ -652,7 +652,7 @@ const unwrapPagedList = <T,>(
 };
 
 export const dataflowVulnScannerApi = {
-  getHealth: async (): Promise<DataflowVulnScannerHealth> => {
+  getHealth: async (): Promise<DataflowVulnScanHealth> => {
     const response = await fetch(`${PREFIX}/health`, { headers: getHeaders() });
     return handleResponse(response);
   },

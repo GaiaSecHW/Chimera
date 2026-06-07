@@ -1,4 +1,4 @@
-export type ThemeId = 'secflow-classic' | 'chimera';
+export type ThemeId = 'chimera-classic' | 'chimera';
 
 export interface ThemeDefinition {
   id: ThemeId;
@@ -7,13 +7,13 @@ export interface ThemeDefinition {
   logoVariant: 'classic' | 'chimera';
 }
 
-export const THEME_STORAGE_KEY = 'secflow_theme';
-export const DEFAULT_THEME_ID: ThemeId = 'secflow-classic';
+export const THEME_STORAGE_KEY = 'chimera_theme';
+export const DEFAULT_THEME_ID: ThemeId = 'chimera-classic';
 
 export const THEME_DEFINITIONS: ThemeDefinition[] = [
   {
-    id: 'secflow-classic',
-    label: 'SecFlow Classic',
+    id: 'chimera-classic',
+    label: 'Chimera Classic',
     badgeText: 'Security Platform',
     logoVariant: 'classic',
   },
@@ -26,7 +26,7 @@ export const THEME_DEFINITIONS: ThemeDefinition[] = [
 ];
 
 export const isThemeId = (value: string | null | undefined): value is ThemeId =>
-  value === 'secflow-classic' || value === 'chimera';
+  value === 'chimera-classic' || value === 'chimera';
 
 export const getThemeDefinition = (themeId: ThemeId): ThemeDefinition =>
   THEME_DEFINITIONS.find((item) => item.id === themeId) || THEME_DEFINITIONS[0];

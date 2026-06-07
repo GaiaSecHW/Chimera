@@ -1,15 +1,15 @@
 
-import { API_BASE, handleResponse, getAuthHeaders, getHeaders } from './base';
+import { API_BASE, handleResponse, getAuthHeaders, getHeaders, fetchWithRetry } from './base';
 import { UserInfo, Role, UserSession, DetailedSession, MachineToken, UserImportPreviewResponse, UserImportCommitResponse } from '../types/types';
 
 export const authApi = {
   // 3.1 认证与令牌接口
   login: async (credentials: any) => {
-    const response = await fetch(`${API_BASE}/api/auth/login`, {
+    const response = await fetchWithRetry(`${API_BASE}/api/auth/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(credentials),
-    });
+    }, { retries: 2, retryDelayMs: 300, retryOnStatus: [502, 503, 504] });
     return handleResponse(response);
   },
   

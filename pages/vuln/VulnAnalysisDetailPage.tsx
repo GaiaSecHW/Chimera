@@ -7,7 +7,7 @@ interface VulnPageProps {
   onNavigateToView?: (view: string) => void;
 }
 
-const ANALYSIS_DETAIL_TARGET_KEY = 'secflow-vuln-open-case-id';
+const ANALYSIS_DETAIL_TARGET_KEY = 'chimera-vuln-open-case-id';
 
 export const VulnAnalysisDetailPage: React.FC<VulnPageProps> = ({ projectId, onNavigateToView }) => {
   const targetCaseId = useMemo(() => localStorage.getItem(ANALYSIS_DETAIL_TARGET_KEY) || '', []);

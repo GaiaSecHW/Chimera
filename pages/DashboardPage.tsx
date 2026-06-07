@@ -68,7 +68,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
 
   return (
     <div className="p-8 space-y-8 animate-in fade-in duration-500">
-      <h1 className="text-3xl font-black text-slate-800 tracking-tight">SecFlow 控制台</h1>
+      <h1 className="text-3xl font-black text-slate-800 tracking-tight">Chimera 控制台</h1>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6">
         {stats.map(stat => (
           <div 
@@ -119,7 +119,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
            <div className="absolute right-[-20px] top-[-20px] w-40 h-40 bg-blue-500 opacity-10 rounded-full blur-[80px]" />
            <h3 className="text-xl font-black mb-6 relative z-10">快速开始安全测试</h3>
            <p className="text-slate-400 text-sm leading-relaxed mb-8 relative z-10">
-             欢迎使用 SecFlow。请首先在「项目空间」中初始化一个安全测试目标，随后在「环境服务」中编排您的渗透沙箱。
+             欢迎使用 Chimera。请首先在「项目空间」中初始化一个安全测试目标，随后在「环境服务」中编排您的渗透沙箱。
            </p>
            <button 
              onClick={() => setCurrentView('project-mgmt')}

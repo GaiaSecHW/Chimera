@@ -187,27 +187,27 @@ export const DialogViewport: React.FC = () => {
     const style = alertStyles[tone];
     return (
       <div className="fixed inset-0 z-[320] flex items-center justify-center bg-slate-950/65 backdrop-blur-md p-6">
-        <div className="w-full max-w-xl overflow-hidden rounded-[2rem] border border-slate-200 bg-[linear-gradient(160deg,#ffffff_0%,#f8fafc_55%,#eef2ff_100%)] shadow-[0_30px_120px_rgba(15,23,42,0.32)] animate-in fade-in zoom-in-95 duration-200">
-          <div className="border-b border-slate-200/80 px-8 py-7">
+        <div className="w-full max-w-xl overflow-hidden rounded-[2rem] border border-theme-border bg-theme-surface shadow-[0_30px_120px_rgba(15,23,42,0.32)] animate-in fade-in zoom-in-95 duration-200">
+          <div className="border-b border-theme-border px-8 py-7">
             <div className="flex items-center gap-3">
-              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white shadow-sm ring-1 ring-slate-200">
+              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-theme-elevated shadow-sm ring-1 ring-theme-border">
                 {active.kind === 'prompt' ? <MessageSquareQuote size={20} className="text-violet-600" /> : style.icon}
               </div>
               <div>
                 <div className={`inline-flex rounded-full border px-3 py-1 text-[10px] font-black uppercase tracking-[0.24em] ${style.chip}`}>
                   {active.kind === 'alert' ? 'Notice' : active.kind === 'confirm' ? 'Confirm' : 'Input'}
                 </div>
-                <h3 className="mt-3 text-2xl font-black tracking-tight text-slate-900">{active.title}</h3>
+                <h3 className="mt-3 text-2xl font-black tracking-tight text-theme-text-primary">{active.title}</h3>
               </div>
             </div>
-            <p className="mt-5 whitespace-pre-wrap text-sm font-medium leading-7 text-slate-600">{active.message}</p>
+            <p className="mt-5 whitespace-pre-wrap text-sm font-medium leading-7 text-theme-text-secondary">{active.message}</p>
             {active.kind === 'prompt' && (
               <input
                 autoFocus
                 value={promptValue}
                 onChange={(event) => setPromptValue(event.target.value)}
                 placeholder={active.placeholder}
-                className="mt-6 w-full rounded-2xl border border-slate-200 bg-white px-5 py-4 text-sm font-semibold text-slate-800 outline-none ring-0 transition-all focus:border-violet-300 focus:shadow-[0_0_0_4px_rgba(139,92,246,0.08)]"
+                className="mt-6 w-full rounded-2xl border border-theme-border bg-theme-elevated px-5 py-4 text-sm font-semibold text-theme-text-primary outline-none ring-0 transition-all focus:border-violet-300 focus:shadow-[0_0_0_4px_rgba(139,92,246,0.08)]"
                 onKeyDown={(event) => {
                   if (event.key === 'Escape') resolvePrompt(null);
                   if (event.key === 'Enter') resolvePrompt(promptValue.trim());
@@ -215,7 +215,7 @@ export const DialogViewport: React.FC = () => {
               />
             )}
           </div>
-          <div className="flex flex-wrap items-center justify-end gap-3 bg-white/75 px-8 py-6">
+          <div className="flex flex-wrap items-center justify-end gap-3 bg-theme-surface/75 px-8 py-6">
             {active.kind === 'alert' ? (
               <button
                 onClick={closeAlert}
@@ -227,7 +227,7 @@ export const DialogViewport: React.FC = () => {
               <>
                 <button
                   onClick={() => resolveConfirm(false)}
-                  className="rounded-2xl bg-slate-100 px-5 py-3 text-sm font-black text-slate-700 transition-all hover:bg-slate-200"
+                  className="rounded-2xl bg-theme-elevated px-5 py-3 text-sm font-black text-theme-text-primary transition-all hover:bg-theme-surface"
                 >
                   {active.cancelText}
                 </button>
@@ -242,7 +242,7 @@ export const DialogViewport: React.FC = () => {
               <>
                 <button
                   onClick={() => resolvePrompt(null)}
-                  className="rounded-2xl bg-slate-100 px-5 py-3 text-sm font-black text-slate-700 transition-all hover:bg-slate-200"
+                  className="rounded-2xl bg-theme-elevated px-5 py-3 text-sm font-black text-theme-text-primary transition-all hover:bg-theme-surface"
                 >
                   {active.cancelText}
                 </button>

@@ -21,6 +21,9 @@ export default defineConfig(({ mode }) => {
     const keepAliveHttpAgent = new http.Agent({ keepAlive: true, maxSockets: 50, keepAliveMsecs: 3000 });
     const keepAliveHttpsAgent = new https.Agent({ keepAlive: true, maxSockets: 50, keepAliveMsecs: 3000 });
     const buildVersion = String(env.SECFLOW_BUILD_VERSION || '').trim() || 'dev';
+    const aigwProxyTarget = String(env.VITE_AIGW_PROXY_TARGET || 'https://secflow.ai.icsl.huawei.com').trim();
+    const aigwProxyIsHttps = aigwProxyTarget.startsWith('https://');
+    const aigwProxyAgent = aigwProxyIsHttps ? keepAliveHttpsAgent : keepAliveHttpAgent;
     return {
       // Use an absolute base in dev so HMR/module requests stay rooted at the
       // Vite server, while production builds keep relative assets for static hosting.
@@ -30,6 +33,23 @@ export default defineConfig(({ mode }) => {
         host: '0.0.0.0',
         sourcemapIgnoreList: (sourcePath) => sourcePath.includes('node_modules'),
         proxy: {
+          '/api/aigw': {
+            target: aigwProxyTarget,
+            changeOrigin: true,
+            secure: false,
+            ws: true,
+            agent: aigwProxyAgent,
+            configure: (proxy) => {
+              proxy.on('error', (err: Error & { code?: string }, _req, res) => {
+                if (err.code === 'ECONNRESET' && res && !('headersSent' in res && (res as any).headersSent)) {
+                  try {
+                    (res as any).writeHead(503, { 'Content-Type': 'application/json' });
+                    (res as any).end(JSON.stringify({ detail: 'aigw upstream reset – retrying' }));
+                  } catch { /* already committed */ }
+                }
+              });
+            },
+          },
           '/api/app/kernel-scan': {
             target: 'https://secflow.ai.icsl.huawei.com',
             changeOrigin: true,
@@ -72,7 +92,7 @@ export default defineConfig(({ mode }) => {
       plugins: [react(), stripMonacoSourcemaps],
       define: {
         __BUILD_TIME__: JSON.stringify(buildTime),
-        __SECFLOW_BUILD_VERSION__: JSON.stringify(buildVersion),
+        __CHIMERA_BUILD_VERSION__: JSON.stringify(buildVersion),
         'process.env.API_KEY': JSON.stringify(env.GEMINI_API_KEY),
         'process.env.GEMINI_API_KEY': JSON.stringify(env.GEMINI_API_KEY)
       },

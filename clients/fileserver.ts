@@ -319,7 +319,7 @@ export const fileserverApi = {
   },
 
   openProjectFileWatchWebSocket: (projectId: string, path: string, options: FileWatchOpenOptions = {}): WebSocket => {
-    const token = localStorage.getItem('secflow_token');
+    const token = localStorage.getItem('chimera_token');
     const params = new URLSearchParams({
       project_id: projectId,
       path,

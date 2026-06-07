@@ -386,7 +386,7 @@ export const workflowApi = {
     containerName?: string,
     command: string = '/bin/bash'
   ): WebSocket => {
-    const token = localStorage.getItem('secflow_token');
+    const token = localStorage.getItem('chimera_token');
     const params = new URLSearchParams({ project_id: projectId, command });
     if (containerName) params.append('container', containerName);
     if (token) params.append('token', token);

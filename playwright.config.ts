@@ -7,7 +7,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 dotenv.config({ path: path.resolve(__dirname, '.env.e2e'), quiet: true });
 
-const baseURL = process.env.E2E_BASE_URL || 'https://secflow.ai.icsl.huawei.com';
+const baseURL = process.env.E2E_BASE_URL || 'https://chimera.ai.icsl.huawei.com';
 const timeoutMinutes = Number(process.env.E2E_TIMEOUT_MINUTES || '8');
 
 export default defineConfig({

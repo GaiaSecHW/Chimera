@@ -13,7 +13,7 @@ import {
   DataflowVulnReportResponse,
 } from './dataflowVulnScanner';
 
-export const DEFAULT_DATAFLOW_FILESERVER_RUNS_ROOT = '/dataflow-vuln-scanner/runs';
+export const DEFAULT_DATAFLOW_FILESERVER_RUNS_ROOT = '/dataflow-vuln-scan/runs';
 
 export type DataflowFileserverRunFile = DataflowRunFile;
 export type DataflowFileserverRunSession = DataflowRunSession;

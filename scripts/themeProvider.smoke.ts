@@ -40,9 +40,9 @@ const assert = (condition: unknown, message: string) => {
 };
 
 const initialTheme = bootTheme();
-assert(initialTheme === 'secflow-classic', 'default theme should be secflow-classic');
-assert(documentElement.dataset.theme === 'secflow-classic', 'dataset should use default theme');
-assert(localStorage.getItem(THEME_STORAGE_KEY) === 'secflow-classic', 'storage should persist default theme');
+assert(initialTheme === 'chimera-classic', 'default theme should be chimera-classic');
+assert(documentElement.dataset.theme === 'chimera-classic', 'dataset should use default theme');
+assert(localStorage.getItem(THEME_STORAGE_KEY) === 'chimera-classic', 'storage should persist default theme');
 
 applyTheme('chimera');
 assert(documentElement.dataset.theme === 'chimera', 'dataset should switch to chimera');

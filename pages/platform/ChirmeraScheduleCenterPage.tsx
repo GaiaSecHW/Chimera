@@ -327,6 +327,10 @@ export const ChirmeraScheduleCenterPage: React.FC<ChirmeraScheduleCenterPageProp
     const failed = executions.filter((item) => item.status === 'failed' || item.status === 'timeout').length;
     return { running, success, failed };
   }, [executions]);
+  const runtimeStats = runtimeOverview?.stats;
+  const runtimeWorkers = runtimeOverview?.workers;
+  const runtimeQueue = runtimeOverview?.queue;
+  const runtimeLeader = runtimeOverview?.leader;
 
   const handleSaveJob = async () => {
     if (!projectId) {
@@ -470,7 +474,7 @@ export const ChirmeraScheduleCenterPage: React.FC<ChirmeraScheduleCenterPageProp
   };
 
   return (
-    <div className="min-h-full bg-[radial-gradient(circle_at_top_left,#dbeafe_0%,#f8fafc_32%,#f8fafc_68%,#ede9fe_100%)] p-6 md:p-8">
+    <div className="min-h-full bg-theme-app p-6 md:p-8">
       <div className="mx-auto max-w-[1680px] space-y-6">
         <section className="overflow-hidden rounded-[2.5rem] border border-slate-200/80 bg-[linear-gradient(135deg,rgba(15,23,42,0.96)_0%,rgba(30,41,59,0.94)_34%,rgba(15,118,110,0.88)_100%)] p-8 text-white shadow-[0_40px_120px_rgba(15,23,42,0.32)]">
           <div className="flex flex-col gap-8 xl:flex-row xl:items-end xl:justify-between">
@@ -489,8 +493,8 @@ export const ChirmeraScheduleCenterPage: React.FC<ChirmeraScheduleCenterPageProp
             <div className="grid gap-4 sm:grid-cols-3">
               <div className="rounded-[1.75rem] border border-white/15 bg-white/10 p-5 backdrop-blur-sm">
                 <div className="text-xs font-black uppercase tracking-[0.2em] text-slate-300">任务总数</div>
-                <div className="mt-3 text-3xl font-black">{runtimeOverview?.stats.jobs_total ?? jobs.length}</div>
-                <div className="mt-2 text-xs text-slate-200">运行 {runtimeOverview?.workers.inflight_executions ?? jobStats.running} · 成功 {runtimeOverview?.stats.succeeded_total ?? jobStats.success}</div>
+                <div className="mt-3 text-3xl font-black">{runtimeStats?.jobs_total ?? jobs.length}</div>
+                <div className="mt-2 text-xs text-slate-200">运行 {runtimeWorkers?.inflight_executions ?? jobStats.running} · 成功 {runtimeStats?.succeeded_total ?? jobStats.success}</div>
               </div>
               <div className="rounded-[1.75rem] border border-white/15 bg-white/10 p-5 backdrop-blur-sm">
                 <div className="text-xs font-black uppercase tracking-[0.2em] text-slate-300">Key 总数</div>
@@ -503,7 +507,7 @@ export const ChirmeraScheduleCenterPage: React.FC<ChirmeraScheduleCenterPageProp
                   {health?.status === 'ok' ? <CheckCircle2 className="text-emerald-300" /> : <Siren className="text-amber-300" />}
                   {health?.status || 'unknown'}
                 </div>
-                <div className="mt-2 text-xs text-slate-200">{runtimeOverview?.redis_available ? 'Redis Ready' : 'Redis Fallback'} · {runtimeOverview?.leader.is_local ? 'Leader Local' : 'Follower'}</div>
+                <div className="mt-2 text-xs text-slate-200">{runtimeOverview?.redis_available ? 'Redis Ready' : 'Redis Fallback'} · {runtimeLeader?.is_local ? 'Leader Local' : 'Follower'}</div>
               </div>
             </div>
           </div>
@@ -512,22 +516,22 @@ export const ChirmeraScheduleCenterPage: React.FC<ChirmeraScheduleCenterPageProp
         <section className="grid gap-4 md:grid-cols-4">
           <div className="rounded-[1.75rem] border border-slate-200 bg-white/85 p-5 shadow-sm">
             <div className="text-xs font-black uppercase tracking-[0.2em] text-slate-500">Ready Queue</div>
-            <div className="mt-3 text-3xl font-black text-slate-900">{runtimeOverview?.queue.length ?? 0}</div>
-            <div className="mt-2 text-xs text-slate-500">backend {runtimeOverview?.queue.backend || 'unknown'}</div>
+            <div className="mt-3 text-3xl font-black text-slate-900">{runtimeQueue?.length ?? 0}</div>
+            <div className="mt-2 text-xs text-slate-500">backend {runtimeQueue?.backend || 'unknown'}</div>
           </div>
           <div className="rounded-[1.75rem] border border-slate-200 bg-white/85 p-5 shadow-sm">
             <div className="text-xs font-black uppercase tracking-[0.2em] text-slate-500">Oldest Age</div>
-            <div className="mt-3 text-3xl font-black text-slate-900">{Math.round(runtimeOverview?.queue.oldest_age_seconds ?? 0)}s</div>
+            <div className="mt-3 text-3xl font-black text-slate-900">{Math.round(runtimeQueue?.oldest_age_seconds ?? 0)}s</div>
             <div className="mt-2 text-xs text-slate-500">队列最老等待时间</div>
           </div>
           <div className="rounded-[1.75rem] border border-slate-200 bg-white/85 p-5 shadow-sm">
             <div className="text-xs font-black uppercase tracking-[0.2em] text-slate-500">Worker Concurrency</div>
-            <div className="mt-3 text-3xl font-black text-slate-900">{runtimeOverview?.workers.concurrency ?? 0}</div>
+            <div className="mt-3 text-3xl font-black text-slate-900">{runtimeWorkers?.concurrency ?? 0}</div>
             <div className="mt-2 text-xs text-slate-500">本实例并发槽位</div>
           </div>
           <div className="rounded-[1.75rem] border border-slate-200 bg-white/85 p-5 shadow-sm">
             <div className="text-xs font-black uppercase tracking-[0.2em] text-slate-500">Failures</div>
-            <div className="mt-3 text-3xl font-black text-slate-900">{runtimeOverview?.stats.failed_total ?? jobStats.failed}</div>
+            <div className="mt-3 text-3xl font-black text-slate-900">{runtimeStats?.failed_total ?? jobStats.failed}</div>
             <div className="mt-2 text-xs text-slate-500">累计失败/超时执行</div>
           </div>
         </section>
@@ -546,15 +550,15 @@ export const ChirmeraScheduleCenterPage: React.FC<ChirmeraScheduleCenterPageProp
               ))}
             </select>
           </div>
-          <div className="rounded-[1.5rem] border border-slate-200 bg-[linear-gradient(135deg,#f8fafc_0%,#ecfeff_55%,#eef2ff_100%)] px-5 py-4">
-            <div className="flex flex-wrap items-center gap-3 text-sm font-bold text-slate-700">
-              <Shield size={16} className="text-cyan-600" />
+          <div className="rounded-[1.5rem] border border-slate-200 bg-slate-800 px-5 py-4">
+            <div className="flex flex-wrap items-center gap-3 text-sm font-bold text-slate-300">
+              <Shield size={16} className="text-cyan-400" />
               当前页面为项目级控制台
-              <span className="rounded-full bg-white px-3 py-1 text-xs font-black uppercase tracking-[0.18em] text-slate-500">
+              <span className="rounded-full bg-slate-700 px-3 py-1 text-xs font-black uppercase tracking-[0.18em] text-slate-400">
                 {projectId || 'No Project'}
               </span>
             </div>
-            <div className="mt-2 text-xs text-slate-500">
+            <div className="mt-2 text-xs text-slate-400">
               切换项目会重置当前选中的调度任务、执行记录与 Key 视图。
             </div>
           </div>
@@ -583,13 +587,13 @@ export const ChirmeraScheduleCenterPage: React.FC<ChirmeraScheduleCenterPageProp
           </div>
         ) : null}
         {revealedKey ? (
-          <div className="rounded-[2rem] border border-amber-200 bg-[linear-gradient(135deg,#fffbeb_0%,#fff7ed_100%)] px-6 py-5 shadow-sm">
+          <div className="rounded-[2rem] border border-amber-500/30 bg-amber-950 px-6 py-5 shadow-sm">
             <div className="flex flex-wrap items-center gap-3">
-              <KeyRound className="text-amber-600" />
-              <div className="text-sm font-black text-amber-800">一次性明文 Key</div>
-              <div className="rounded-full bg-white px-3 py-1 text-[11px] font-black uppercase tracking-[0.18em] text-amber-700">Only Once</div>
+              <KeyRound className="text-amber-500" />
+              <div className="text-sm font-black text-amber-200">一次性明文 Key</div>
+              <div className="rounded-full bg-amber-900/50 px-3 py-1 text-[11px] font-black uppercase tracking-[0.18em] text-amber-400">Only Once</div>
             </div>
-            <div className="mt-4 rounded-2xl bg-slate-950 px-4 py-4 font-mono text-sm text-emerald-300">
+            <div className="mt-4 rounded-2xl bg-slate-900 px-4 py-4 font-mono text-sm text-emerald-300">
               {revealedKey}
             </div>
             <div className="mt-3 text-xs font-bold text-amber-700">
@@ -785,14 +789,14 @@ export const ChirmeraScheduleCenterPage: React.FC<ChirmeraScheduleCenterPageProp
                   ) : null}
                 </div>
 
-                <div className="rounded-[1.75rem] border border-slate-200 bg-[linear-gradient(180deg,#f8fafc_0%,#ffffff_100%)] p-5">
-                  <div className="flex items-center gap-2 text-sm font-black text-slate-900">
+                <div className="rounded-[1.75rem] border border-slate-200 bg-slate-800 p-5">
+                  <div className="flex items-center gap-2 text-sm font-black text-slate-200">
                     <Eye size={16} />
                     选中执行详情
                   </div>
                   {selectedExecution ? (
                     <div className="mt-4 space-y-4">
-                      <div className="rounded-2xl border border-slate-200 bg-white p-4">
+                      <div className="rounded-2xl border border-slate-200 bg-slate-700 p-4">
                         <div className="text-xs font-black uppercase tracking-[0.18em] text-slate-500">Request Snapshot</div>
                         <pre className="mt-3 overflow-auto rounded-xl bg-slate-950 p-3 text-[11px] text-cyan-200">{JSON.stringify(selectedExecution.request_snapshot || {}, null, 2)}</pre>
                       </div>

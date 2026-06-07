@@ -302,8 +302,8 @@ function normalizeJoinPath(basePath: string, relativePath: string): string {
 
 function openInFileExplorer(fsPath: string) {
   const normalizedPath = fsPath.startsWith('/') ? fsPath : `/${fsPath}`;
-  sessionStorage.setItem('secflow:fileExplorerNavigatePath', normalizedPath);
-  window.dispatchEvent(new CustomEvent('secflow-navigate-view', { detail: { view: 'project-file-explorer', path: normalizedPath } }));
+  sessionStorage.setItem('chimera:fileExplorerNavigatePath', normalizedPath);
+  window.dispatchEvent(new CustomEvent('chimera-navigate-view', { detail: { view: 'project-file-explorer', path: normalizedPath } }));
 }
 
 function formatSessionMtime(value?: number) {

@@ -249,8 +249,8 @@ function extractFsRelPath(outputPath: string, projectId: string): string | null 
 
 function openInFileExplorer(fsPath: string) {
   const normalizedPath = fsPath.startsWith('/') ? fsPath : `/${fsPath}`;
-  sessionStorage.setItem('secflow:fileExplorerNavigatePath', normalizedPath);
-  window.dispatchEvent(new CustomEvent('secflow-navigate-view', { detail: { view: 'project-file-explorer', path: normalizedPath } }));
+  sessionStorage.setItem('chimera:fileExplorerNavigatePath', normalizedPath);
+  window.dispatchEvent(new CustomEvent('chimera-navigate-view', { detail: { view: 'project-file-explorer', path: normalizedPath } }));
 }
 
 function formatEventLog(evt: AppDfaStageEvent): string {
@@ -624,8 +624,8 @@ export const DataflowVulnScanTaskPage: React.FC<{ projectId: string; onOpenTask?
   const appApi = api.domains.execution.appDataflowVulnScan;
   const buildVersion = useServiceBuildVersion(appApi.getHealth);
   const { notify, feedbackNodes } = useUiFeedback();
-  const autoRefreshStorageKey = `secflow:dataflowAnalysis:autoRefresh:${projectId || 'default'}`;
-  const refreshIntervalStorageKey = `secflow:dataflowAnalysis:refreshInterval:${projectId || 'default'}`;
+  const autoRefreshStorageKey = `chimera:dataflowAnalysis:autoRefresh:${projectId || 'default'}`;
+  const refreshIntervalStorageKey = `chimera:dataflowAnalysis:refreshInterval:${projectId || 'default'}`;
 
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
@@ -713,13 +713,13 @@ export const DataflowVulnScanTaskPage: React.FC<{ projectId: string; onOpenTask?
 
   // Pre-fill input_path from FileExplorer right-click
   useEffect(() => {
-    const stored = sessionStorage.getItem('secflow:dataflowAnalysisInputPath');
+    const stored = sessionStorage.getItem('chimera:dataflowAnalysisInputPath');
     if (stored) {
-      sessionStorage.removeItem('secflow:dataflowAnalysisInputPath');
+      sessionStorage.removeItem('chimera:dataflowAnalysisInputPath');
       setCreateModalOpen(true);
       setSelectedTaskId('');
       const entryListPath = `${stored.replace(/\/+$/, '')}/functions.list`;
-      setForm({ ...emptyForm, input_path: stored, output_path: `/data/files/${projectId}/app/secflow-app-dataflow-vuln-scan`, entry_list_path: entryListPath });
+      setForm({ ...emptyForm, input_path: stored, output_path: `/data/files/${projectId}/app/chimera-app-dataflow-vuln-scan`, entry_list_path: entryListPath });
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -844,7 +844,7 @@ export const DataflowVulnScanTaskPage: React.FC<{ projectId: string; onOpenTask?
       return;
     }
     saveExecutionReturnContext({ view: 'dataflow-vuln-scan-task' });
-    window.dispatchEvent(new CustomEvent('secflow-navigate-view', {
+    window.dispatchEvent(new CustomEvent('chimera-navigate-view', {
       detail: { view: 'dataflow-vuln-scan-detail', dataflowVulnScanTaskId: taskId },
     }));
   };
@@ -1577,7 +1577,7 @@ export const DataflowVulnScanTaskPage: React.FC<{ projectId: string; onOpenTask?
         <div className="mt-4 flex flex-wrap gap-2">
           <button
             type="button"
-            onClick={() => window.dispatchEvent(new CustomEvent('secflow-navigate-view', { detail: { view: 'dataflow-vuln-scan-config' } }))}
+            onClick={() => window.dispatchEvent(new CustomEvent('chimera-navigate-view', { detail: { view: 'dataflow-vuln-scan-config' } }))}
             className="inline-flex items-center gap-2 rounded-xl border border-violet-200 bg-violet-50 px-4 py-2 text-sm font-bold text-violet-700 hover:bg-violet-100"
           >
             参数配置
@@ -1999,7 +1999,7 @@ export const DataflowVulnScanTaskPage: React.FC<{ projectId: string; onOpenTask?
               onClick={() => {
                 setCreateModalOpen(true);
                 setEntryList([]);
-                setForm({ ...emptyForm, output_path: `/data/files/${projectId}/app/secflow-app-dataflow-vuln-scan` });
+                setForm({ ...emptyForm, output_path: `/data/files/${projectId}/app/chimera-app-dataflow-vuln-scan` });
               }}
               className="inline-flex items-center gap-1.5 rounded-lg bg-violet-700 px-3 py-1.5 text-xs font-semibold text-white hover:bg-violet-800"
             >
@@ -2439,7 +2439,7 @@ export const DataflowVulnScanTaskPage: React.FC<{ projectId: string; onOpenTask?
                     className="flex-1 rounded-lg border border-slate-200 px-3 py-2 text-sm font-mono"
                     value={form.output_path}
                     onChange={(e) => setForm((p) => ({ ...p, output_path: e.target.value }))}
-                    placeholder="/data/files/<project>/app/secflow-app-dataflow-vuln-scan"
+                    placeholder="/data/files/<project>/app/chimera-app-dataflow-vuln-scan"
                   />
                   <button
                     type="button"

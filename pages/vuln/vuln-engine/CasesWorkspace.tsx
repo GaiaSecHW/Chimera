@@ -124,7 +124,7 @@ export const CasesWorkspace: React.FC<any> = ({
   onClearBulkSelection,
   bulkActionBar,
 }) => {
-  const panelStorageKey = `secflow-vuln-analysis-panels-${selectedCaseDetail?.project_id || selectedCase?.project_id || 'global'}`;
+  const panelStorageKey = `chimera-vuln-analysis-panels-${selectedCaseDetail?.project_id || selectedCase?.project_id || 'global'}`;
   const [customPanels, setCustomPanels] = React.useState<Array<{ id: string; title: string; content: string }>>([]);
   const [showPanelEditor, setShowPanelEditor] = React.useState(false);
   const [newPanelTitle, setNewPanelTitle] = React.useState('');
@@ -561,7 +561,7 @@ export const CasesWorkspace: React.FC<any> = ({
                 </div>
                 <div className="space-y-2">
                   {consistencyAlerts.map((item, index) => (
-                    <div key={`consistency-${index}`} className="rounded-xl bg-white/80 px-3 py-3 text-sm text-slate-700">
+                    <div key={`consistency-${index}`} className="rounded-xl bg-[var(--bg-surface)] px-3 py-3 text-sm text-slate-700">
                       {item}
                     </div>
                   ))}
@@ -785,7 +785,7 @@ export const CasesWorkspace: React.FC<any> = ({
             )}
 
             {selectedCaseDetail.current_stage === 'finished' && (
-              <div className="rounded-[1.5rem] border border-slate-200 bg-slate-50/70 p-4 space-y-4">
+              <div className="rounded-[1.5rem] border border-slate-200 bg-[rgba(255,255,255,0.04)] p-4 space-y-4">
                 <div className="flex items-center gap-2"><CheckCheck size={16} className="text-slate-700" /><h5 className="font-black text-slate-800">终态闭环卡</h5></div>
                 <div className="grid grid-cols-1 xl:grid-cols-4 gap-3">
                   <div className="rounded-2xl bg-white px-4 py-3 border border-slate-200">
@@ -951,7 +951,7 @@ export const CasesWorkspace: React.FC<any> = ({
                   <div className="text-sm text-slate-400">暂无时间线数据</div>
                 ) : (
                   selectedTimeline.map((item: any) => (
-                    <div key={item.id} className="rounded-[1.5rem] border border-slate-200 px-4 py-4 bg-slate-50/70">
+                    <div key={item.id} className="rounded-[1.5rem] border border-slate-200 px-4 py-4 bg-[rgba(255,255,255,0.04)]">
                       <div className="flex items-center justify-between gap-4">
                         <div className="flex items-center gap-2">
                           <span className="px-2 py-1 rounded-lg bg-blue-100 text-[10px] font-black uppercase tracking-widest text-blue-700">{item.item_type}</span>
@@ -1084,7 +1084,7 @@ export const CasesWorkspace: React.FC<any> = ({
                     <div className="text-sm text-slate-400">当前案例还没有人工任务</div>
                   ) : (
                     taskItems.map((item: any) => (
-                      <div key={item.id} className="rounded-[1.5rem] border border-slate-200 px-4 py-4 bg-slate-50/70">
+                      <div key={item.id} className="rounded-[1.5rem] border border-slate-200 px-4 py-4 bg-[rgba(255,255,255,0.04)]">
                         <div className="flex items-center justify-between gap-3">
                           <div>
                             <p className="text-sm font-black text-slate-800">{item.title}</p>
@@ -1124,7 +1124,7 @@ export const CasesWorkspace: React.FC<any> = ({
                   </button>
                 </div>
                 {showPanelEditor && (
-                  <div className="rounded-xl border border-slate-200 bg-slate-50/80 p-3 space-y-2">
+                  <div className="rounded-xl border border-slate-200 bg-[rgba(255,255,255,0.04)] p-3 space-y-2">
                     <input
                       value={newPanelTitle}
                       onChange={(event) => setNewPanelTitle(event.target.value)}

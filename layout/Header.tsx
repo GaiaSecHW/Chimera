@@ -7,7 +7,7 @@ import { useTheme } from '../theme/ThemeProvider';
 import { ThemeLogo } from '../components/ThemeLogo';
 
 const FRONTEND_BUILD_VERSION = String(
-  typeof __SECFLOW_BUILD_VERSION__ !== 'undefined' ? __SECFLOW_BUILD_VERSION__ : '',
+  typeof __CHIMERA_BUILD_VERSION__ !== 'undefined' ? __CHIMERA_BUILD_VERSION__ : '',
 ).trim() || 'dev';
 
 interface HeaderProps {

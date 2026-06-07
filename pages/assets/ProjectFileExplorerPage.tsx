@@ -541,10 +541,10 @@ export const ProjectFileExplorerPage: React.FC<{ projectId: string; projects: Se
   const [dragHoverNodeId, setDragHoverNodeId] = useState<string | null>(null);
   const [gatewayLoadingNodeIds, setGatewayLoadingNodeIds] = useState<Set<string>>(new Set());
 
-  // Pending navigation path from task output button (secflow:fileExplorerNavigatePath)
+  // Pending navigation path from task output button (chimera:fileExplorerNavigatePath)
   const [pendingNavPath, setPendingNavPath] = useState<string | null>(() => {
-    const p = sessionStorage.getItem('secflow:fileExplorerNavigatePath');
-    if (p) sessionStorage.removeItem('secflow:fileExplorerNavigatePath');
+    const p = sessionStorage.getItem('chimera:fileExplorerNavigatePath');
+    if (p) sessionStorage.removeItem('chimera:fileExplorerNavigatePath');
     return p;
   });
   const [pendingUrlPath, setPendingUrlPath] = useState<string | null>(() => getUrlRequestedFsPath());
@@ -601,14 +601,14 @@ export const ProjectFileExplorerPage: React.FC<{ projectId: string; projects: Se
         setPendingUrlPath(normalizeFsPathForOpen(eventPath));
         return;
       }
-      const p = sessionStorage.getItem('secflow:fileExplorerNavigatePath');
+      const p = sessionStorage.getItem('chimera:fileExplorerNavigatePath');
       if (p) {
-        sessionStorage.removeItem('secflow:fileExplorerNavigatePath');
+        sessionStorage.removeItem('chimera:fileExplorerNavigatePath');
         setPendingNavPath(p);
       }
     };
-    window.addEventListener('secflow-navigate-view', handler as EventListener);
-    return () => window.removeEventListener('secflow-navigate-view', handler as EventListener);
+    window.addEventListener('chimera-navigate-view', handler as EventListener);
+    return () => window.removeEventListener('chimera-navigate-view', handler as EventListener);
   }, []);
 
   // When a pending nav path is ready and the explorer has finished loading, navigate to it
@@ -1681,8 +1681,8 @@ const getPvcDirectoryPath = (target: UnifiedExplorerNode) => {
         items: paths,
       });
       setSelectedListNodeIds(new Set());
-      sessionStorage.setItem('secflow:archiveTaskFocus', resp.task_id);
-      window.dispatchEvent(new CustomEvent('secflow-navigate-view', { detail: { view: 'fileserver-archive-tasks' } }));
+      sessionStorage.setItem('chimera:archiveTaskFocus', resp.task_id);
+      window.dispatchEvent(new CustomEvent('chimera-navigate-view', { detail: { view: 'fileserver-archive-tasks' } }));
     } catch (error: any) {
       alert(error?.message || '创建打包任务失败');
     } finally {
@@ -1723,7 +1723,7 @@ const getPvcDirectoryPath = (target: UnifiedExplorerNode) => {
           style={{ paddingLeft: `${depth * 14 + 8}px` }}
           draggable={node.nodeType !== 'workspace' && node.nodeType !== 'fileserver-root' && node.nodeType !== 'pvc-root' && node.nodeType !== 'pvc' && node.nodeType !== 'subproject'}
           onDragStart={(event) => {
-            event.dataTransfer.setData('application/secflow-node', node.id);
+            event.dataTransfer.setData('application/chimera-node', node.id);
             event.dataTransfer.effectAllowed = 'move';
           }}
           onDragOver={(event) => {
@@ -1735,7 +1735,7 @@ const getPvcDirectoryPath = (target: UnifiedExplorerNode) => {
           onDragLeave={() => setDragHoverNodeId((prev) => (prev === node.id ? null : prev))}
           onDrop={async (event) => {
             event.preventDefault();
-            const nodeId = event.dataTransfer.getData('application/secflow-node');
+            const nodeId = event.dataTransfer.getData('application/chimera-node');
             setDragHoverNodeId(null);
             if (nodeId) {
               await handleNodeDrop(nodeId, node);
@@ -1884,8 +1884,8 @@ const getPvcDirectoryPath = (target: UnifiedExplorerNode) => {
           const dirPath = getFileserverDirectoryPath(node);
           if (dirPath !== null) {
             const containerPath = `/data/files/${projectId}${dirPath === '/' ? '' : dirPath}`;
-            sessionStorage.setItem('secflow:systemAnalysisInputPath', containerPath);
-            window.dispatchEvent(new CustomEvent('secflow-navigate-view', { detail: { view: 'system-analysis-task' } }));
+            sessionStorage.setItem('chimera:systemAnalysisInputPath', containerPath);
+            window.dispatchEvent(new CustomEvent('chimera-navigate-view', { detail: { view: 'system-analysis-task' } }));
           }
         },
       });
@@ -1907,8 +1907,8 @@ const getPvcDirectoryPath = (target: UnifiedExplorerNode) => {
             const dirPath = getFileserverDirectoryPath(node);
             if (dirPath !== null) {
               const containerPath = `/data/files/${projectId}${dirPath === '/' ? '' : dirPath}`;
-              sessionStorage.setItem('secflow:systemAnalysisInputPath', containerPath);
-              window.dispatchEvent(new CustomEvent('secflow-navigate-view', { detail: { view: 'system-analysis-task' } }));
+              sessionStorage.setItem('chimera:systemAnalysisInputPath', containerPath);
+              window.dispatchEvent(new CustomEvent('chimera-navigate-view', { detail: { view: 'system-analysis-task' } }));
             }
           },
         });
@@ -2157,7 +2157,7 @@ const getPvcDirectoryPath = (target: UnifiedExplorerNode) => {
                         } ${dragHoverNodeId === item.id ? 'ring-1 ring-amber-300' : ''}`}
                         draggable={item.nodeType !== 'pvc' && item.nodeType !== 'subproject'}
                         onDragStart={(event) => {
-                          event.dataTransfer.setData('application/secflow-node', item.id);
+                          event.dataTransfer.setData('application/chimera-node', item.id);
                           event.dataTransfer.effectAllowed = 'move';
                         }}
                         onDragOver={(event) => {
@@ -2169,7 +2169,7 @@ const getPvcDirectoryPath = (target: UnifiedExplorerNode) => {
                         onDragLeave={() => setDragHoverNodeId((prev) => (prev === item.id ? null : prev))}
                         onDrop={async (event) => {
                           event.preventDefault();
-                          const nodeId = event.dataTransfer.getData('application/secflow-node');
+                          const nodeId = event.dataTransfer.getData('application/chimera-node');
                           setDragHoverNodeId(null);
                           if (nodeId) {
                             await handleNodeDrop(nodeId, item);

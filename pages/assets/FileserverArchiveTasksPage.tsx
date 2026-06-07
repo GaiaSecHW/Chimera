@@ -50,9 +50,9 @@ export const FileserverArchiveTasksPage: React.FC<Props> = ({ projectId }) => {
   }, [projectId]);
 
   useEffect(() => {
-    const focus = sessionStorage.getItem('secflow:archiveTaskFocus');
+    const focus = sessionStorage.getItem('chimera:archiveTaskFocus');
     if (focus) {
-      sessionStorage.removeItem('secflow:archiveTaskFocus');
+      sessionStorage.removeItem('chimera:archiveTaskFocus');
       setFocusTaskId(focus);
     }
   }, []);
@@ -83,9 +83,9 @@ export const FileserverArchiveTasksPage: React.FC<Props> = ({ projectId }) => {
   };
 
   return (
-    <div className="h-full overflow-auto bg-[linear-gradient(180deg,#f8fbff_0%,#f1f5f9_100%)] p-6">
+    <div className="h-full overflow-auto p-6">
       <div className="mx-auto max-w-[1400px] space-y-4">
-        <div className="rounded-3xl border border-white/70 bg-white/90 p-5 shadow-[0_18px_50px_rgba(15,23,42,0.08)]">
+        <div className="rounded-3xl border border-slate-200 bg-slate-800 p-5 shadow-panel">
           <div className="flex items-center justify-between">
             <div>
               <div className="text-[11px] font-black uppercase tracking-[0.26em] text-slate-400">Fileserver Archive Tasks</div>
@@ -105,8 +105,8 @@ export const FileserverArchiveTasksPage: React.FC<Props> = ({ projectId }) => {
 
         {error ? <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700">{error}</div> : null}
 
-        <div className="overflow-hidden rounded-3xl border border-white/70 bg-white/95 shadow-[0_18px_50px_rgba(15,23,42,0.08)]">
-          <div className="grid grid-cols-[1.7fr_1fr_0.8fr_0.7fr_0.8fr_1fr_1fr_0.9fr] gap-3 border-b border-slate-200 bg-slate-50 px-4 py-3 text-[11px] font-black uppercase tracking-[0.18em] text-slate-500">
+        <div className="overflow-hidden rounded-3xl border border-slate-200 bg-slate-800 shadow-panel">
+          <div className="grid grid-cols-[1.7fr_1fr_0.8fr_0.7fr_0.8fr_1fr_1fr_0.9fr] gap-3 border-b border-slate-200 bg-slate-700 px-4 py-3 text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">
             <div>任务ID</div>
             <div>提交时间</div>
             <div>状态</div>
@@ -127,11 +127,11 @@ export const FileserverArchiveTasksPage: React.FC<Props> = ({ projectId }) => {
               return (
                 <div
                   key={task.task_id}
-                  className={`grid grid-cols-[1.7fr_1fr_0.8fr_0.7fr_0.8fr_1fr_1fr_0.9fr] gap-3 border-b border-slate-100 px-4 py-3 text-sm last:border-b-0 ${isFocus ? 'bg-sky-50' : 'bg-white'}`}
+                  className={`grid grid-cols-[1.7fr_1fr_0.8fr_0.7fr_0.8fr_1fr_1fr_0.9fr] gap-3 border-b border-slate-200 px-4 py-3 text-sm last:border-b-0 ${isFocus ? 'bg-brand-soft' : 'bg-slate-800'}`}
                 >
-                  <div className="truncate font-mono text-xs font-semibold text-slate-700">{task.task_id}</div>
-                  <div className="text-xs text-slate-600">{fmt(task.accepted_at)}</div>
-                  <div className="text-xs font-black text-slate-700">{task.status}</div>
+                  <div className="truncate font-mono text-xs font-semibold text-slate-300">{task.task_id}</div>
+                  <div className="text-xs text-slate-400">{fmt(task.accepted_at)}</div>
+                  <div className="text-xs font-black text-slate-300">{task.status}</div>
                   <div className="text-xs text-slate-600">{Number(task?.result?.file_count || 0)}</div>
                   <div className="text-xs text-slate-600">{Number(task?.result?.archive_size || 0)} bytes</div>
                   <div className="text-xs text-slate-600">{fmt(task?.result?.expires_at)}</div>

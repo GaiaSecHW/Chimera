@@ -67,7 +67,7 @@ const ORIGIN_MODE_OPTIONS = [
 const PAGE_SIZE_OPTIONS = [10, 50, 100, 200, 500, 1000];
 
 const FILESERVER_CONTAINER_ROOT = '/data/files';
-const TASK_WORKSPACE_SEGMENT = 'app/secflow-app-firmware-unpacker';
+const TASK_WORKSPACE_SEGMENT = 'app/chimera-app-firmware-unpacker';
 type DetailTab = 'overview' | 'task-config' | 'metrics' | 'events' | 'session' | 'evolution' | 'result';
 
 function sameJsonValue(left: unknown, right: unknown) {
@@ -3983,7 +3983,7 @@ export const FirmwareUnpackerPage: React.FC<Props> = ({ projectId, projects = []
               <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4">
                 <p className="text-sm font-semibold text-slate-700">任务工作目录</p>
                 <p className="mt-2 text-xs leading-6 text-slate-500">
-                  提交后会在当前项目根目录自动创建 `app/secflow-app-firmware-unpacker/&lt;task-id&gt;`，
+                  提交后会在当前项目根目录自动创建 `app/chimera-app-firmware-unpacker/&lt;task-id&gt;`，
                   并在其中生成 `input`、`output`、`run` 三个目录。`input` 目录中只会写入一份 JSON 清单，记录原始固件路径、
                   输出目录和运行日志目录，解包时直接使用原始固件文件。
                 </p>

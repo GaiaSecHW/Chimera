@@ -52,7 +52,7 @@ export const OverviewWorkspace: React.FC<{
         </div>
         <div className="p-6 space-y-3 max-h-[28rem] overflow-y-auto">
           {projectActions.slice(0, 6).map((item) => (
-            <div key={`overview-${item.id}`} className="rounded-[1.5rem] border border-slate-200 px-4 py-4 bg-slate-50/70">
+            <div key={`overview-${item.id}`} className="rounded-[1.5rem] border border-slate-200 px-4 py-4 bg-[rgba(255,255,255,0.04)]">
               <div className="flex items-center justify-between gap-3">
                 <div className="min-w-0">
                   <p className="text-sm font-black text-slate-800 truncate">{item.case_title}</p>
@@ -251,7 +251,7 @@ export const ServicesWorkspace: React.FC<{
             </select>
           </div>
 
-          <div className="rounded-[1.25rem] border border-slate-200 bg-slate-50/70 p-4 space-y-3">
+          <div className="rounded-[1.25rem] border border-slate-200 bg-[rgba(255,255,255,0.04)] p-4 space-y-3">
             <button
               type="button"
               onClick={() => setShowAdvanced((prev) => !prev)}
@@ -447,7 +447,7 @@ export const ServicesWorkspace: React.FC<{
 
                 <div className="grid grid-cols-1 gap-3">
                   {(item.capabilities || []).map((cap: any) => (
-                    <div key={`${item.service_id}-${cap.capability_code}`} className="rounded-[1.25rem] border border-slate-200 bg-slate-50/70 px-4 py-4">
+                    <div key={`${item.service_id}-${cap.capability_code}`} className="rounded-[1.25rem] border border-slate-200 bg-[rgba(255,255,255,0.04)] px-4 py-4">
                       <div className="flex items-start justify-between gap-3">
                         <div className="space-y-2 min-w-0">
                           <div className="flex flex-wrap gap-2">
@@ -836,7 +836,7 @@ export const QueueWorkspace: React.FC<{
             </div>
           )}
 
-          <div className="rounded-[1.5rem] border border-slate-200 bg-slate-50/70 p-4 space-y-3">
+          <div className="rounded-[1.5rem] border border-slate-200 bg-[rgba(255,255,255,0.04)] p-4 space-y-3">
             <div className="grid grid-cols-1 xl:grid-cols-[1.1fr_repeat(3,minmax(0,0.5fr))_auto] gap-3">
               <label className="relative block">
                 <Search size={14} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
@@ -936,7 +936,7 @@ export const QueueWorkspace: React.FC<{
               ) : (
                 groupedActions.map((group) => (
                   <div key={group.key} className="space-y-3">
-                    <div className="sticky top-0 z-10 rounded-[1.4rem] border border-slate-200 bg-white/95 px-4 py-3 backdrop-blur">
+                    <div className="sticky top-0 z-10 rounded-[1.4rem] border border-slate-200 bg-[var(--bg-surface)] px-4 py-3 backdrop-blur">
                       <div className="flex items-center justify-between gap-3">
                         <div>
                           <div className="text-sm font-black text-slate-800">{group.title}</div>
@@ -947,7 +947,7 @@ export const QueueWorkspace: React.FC<{
                     </div>
 
                     {group.items.map((item) => (
-                      <div key={`queue-${item.id}`} className={`rounded-[1.5rem] border px-4 py-4 ${item.execution_status === 'failed' || item.isTimedOut ? 'border-rose-200 bg-rose-50/50' : 'border-slate-200 bg-slate-50/70'}`}>
+                      <div key={`queue-${item.id}`} className={`rounded-[1.5rem] border px-4 py-4 ${item.execution_status === 'failed' || item.isTimedOut ? 'border-rose-200 bg-[rgba(239,68,68,0.08)]' : 'border-slate-200 bg-[rgba(255,255,255,0.04)]'}`}>
                         <div className="flex items-start justify-between gap-3">
                           <div className="space-y-3 min-w-0">
                             <div className="flex flex-wrap items-center gap-2">
@@ -1024,7 +1024,7 @@ export const QueueWorkspace: React.FC<{
             </div>
 
             <div className="space-y-4">
-              <div className="rounded-[1.5rem] border border-slate-200 bg-slate-50/70 p-4">
+              <div className="rounded-[1.5rem] border border-slate-200 bg-[rgba(255,255,255,0.04)] p-4">
                 <div className="text-[10px] font-black uppercase tracking-widest text-slate-400">运行判断</div>
                 <div className="mt-3 space-y-2 text-sm text-slate-600">
                   <p>项目运行中案例 {overview?.metrics?.running_cases || 0} 个，等待外部回调 {overview?.metrics?.waiting_external || 0} 个。</p>
@@ -1426,7 +1426,7 @@ export const ReproConfigWorkspace: React.FC<{
           </div>
           <div className="px-6 pb-6 grid grid-cols-1 xl:grid-cols-3 gap-4">
             {stageMatrix.map((item) => (
-              <div key={`coverage-${item.stage}`} className="rounded-[1.5rem] border border-slate-200 bg-slate-50/70 px-4 py-4">
+              <div key={`coverage-${item.stage}`} className="rounded-[1.5rem] border border-slate-200 bg-[rgba(255,255,255,0.04)] px-4 py-4">
                 <div className="text-[10px] font-black uppercase tracking-widest text-slate-400">{labelOf(item.stage, STAGE_LABELS)}</div>
                 <div className="mt-2 text-3xl font-black text-slate-800">{item.services.length}</div>
                 <div className="mt-2 text-xs text-slate-500">
@@ -1443,7 +1443,7 @@ export const ReproConfigWorkspace: React.FC<{
             <p className="mt-1 text-xs text-slate-500">按关键动作确认验证链路和终态回传链路是否完整，而不只是看有没有服务。</p>
           </div>
           <div className="px-6 pt-6">
-            <div className="rounded-[1.5rem] border border-slate-200 bg-slate-50/70 p-4">
+            <div className="rounded-[1.5rem] border border-slate-200 bg-[rgba(255,255,255,0.04)] p-4">
               <div className="text-[10px] font-black uppercase tracking-widest text-slate-400">阶段动作流</div>
               <div className="mt-3 grid grid-cols-1 xl:grid-cols-4 gap-3">
                 {flowStatus.map((item) => (
@@ -1458,7 +1458,7 @@ export const ReproConfigWorkspace: React.FC<{
           </div>
           <div className="p-6 space-y-4">
             {coverageMatrix.map((group) => (
-              <div key={`coverage-group-${group.stage}`} className="rounded-[1.5rem] border border-slate-200 bg-slate-50/70 p-4">
+              <div key={`coverage-group-${group.stage}`} className="rounded-[1.5rem] border border-slate-200 bg-[rgba(255,255,255,0.04)] p-4">
                 <div className="flex items-center justify-between gap-3">
                   <div className="text-sm font-black text-slate-800">{labelOf(group.stage, STAGE_LABELS)}</div>
                   <div className="text-[11px] text-slate-400">{group.rows.filter((row) => row.matchedServices.length > 0).length} / {group.rows.length} 已覆盖</div>
@@ -1521,7 +1521,7 @@ export const ReproConfigWorkspace: React.FC<{
           </div>
           <div className="p-6 grid grid-cols-1 xl:grid-cols-3 gap-4">
             {stageMatrix.map((item) => (
-              <div key={item.stage} className="rounded-[1.5rem] border border-slate-200 bg-slate-50/70 px-4 py-4">
+              <div key={item.stage} className="rounded-[1.5rem] border border-slate-200 bg-[rgba(255,255,255,0.04)] px-4 py-4">
                 <div className="text-[10px] font-black uppercase tracking-widest text-slate-400">{labelOf(item.stage, STAGE_LABELS)}</div>
                 <div className="mt-2 text-2xl font-black text-slate-800">{item.services.length}</div>
                 <div className="mt-3 space-y-2">

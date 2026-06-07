@@ -3,7 +3,7 @@ import { bootstrapSession, loginByApi, openPvcManagement } from '../fixtures/aut
 import { deleteResourceById } from '../helpers/resource';
 import { uniqueName, searchAndOpenPvcDetail } from '../helpers/ui';
 
-const baseURL = process.env.E2E_BASE_URL || 'https://secflow.ai.icsl.huawei.com';
+const baseURL = process.env.E2E_BASE_URL || 'https://chimera.ai.icsl.huawei.com';
 
 test.describe('PVC blank flow', () => {
   test('create blank pvc and manage content in detail page', async ({ page, request }) => {

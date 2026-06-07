@@ -178,7 +178,7 @@ export const ProjectDetailPage: React.FC<ProjectDetailPageProps> = ({ projectId,
       {/* Header */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
         <div className="flex items-center gap-6">
-          <button onClick={onBack} className="p-4 bg-white border border-slate-200 rounded-2xl hover:bg-slate-50 transition-all shadow-sm group active:scale-95">
+          <button onClick={onBack} className="p-4 bg-[var(--bg-surface)] border border-[rgba(255,255,255,0.08)] rounded-2xl hover:bg-[rgba(255,255,255,0.06)] transition-all shadow-sm group active:scale-95">
             <ChevronLeft size={20} className="group-hover:-translate-x-1 transition-transform" />
           </button>
           <div>
@@ -198,7 +198,7 @@ export const ProjectDetailPage: React.FC<ProjectDetailPageProps> = ({ projectId,
           </div>
         </div>
         <div className="flex gap-3">
-          <button onClick={loadAllData} className="p-4 bg-white border border-slate-200 text-slate-500 rounded-2xl hover:bg-slate-50 transition-all shadow-sm">
+          <button onClick={loadAllData} className="p-4 bg-[var(--bg-surface)] border border-[rgba(255,255,255,0.08)] text-slate-500 rounded-2xl hover:bg-[rgba(255,255,255,0.06)] transition-all shadow-sm">
             <RefreshCw size={20} />
           </button>
         </div>
@@ -212,8 +212,8 @@ export const ProjectDetailPage: React.FC<ProjectDetailPageProps> = ({ projectId,
           { label: '存储卷', value: resources?.pvcs.length, icon: <Database size={20} />, color: 'text-amber-600' },
           { label: '外部入口', value: resources?.ingresses.length, icon: <Globe size={20} />, color: 'text-purple-600' },
         ].map((stat, i) => (
-          <div key={i} className="bg-white p-6 rounded-[2rem] border border-slate-200 shadow-sm flex items-center gap-5">
-             <div className={`w-12 h-12 rounded-2xl bg-slate-50 ${stat.color} flex items-center justify-center`}>
+          <div key={i} className="bg-[var(--bg-surface)] p-6 rounded-[2rem] border border-[rgba(255,255,255,0.08)] shadow-sm flex items-center gap-5">
+             <div className={`w-12 h-12 rounded-2xl bg-[rgba(255,255,255,0.04)] ${stat.color} flex items-center justify-center`}>
                {stat.icon}
              </div>
              <div>
@@ -225,7 +225,7 @@ export const ProjectDetailPage: React.FC<ProjectDetailPageProps> = ({ projectId,
       </div>
 
       {/* Action Bar */}
-      <div className="flex flex-wrap items-center gap-3 rounded-[1.75rem] border border-slate-200 bg-white px-4 py-3 shadow-sm">
+      <div className="flex flex-wrap items-center gap-3 rounded-[1.75rem] border border-[rgba(255,255,255,0.08)] bg-[var(--bg-surface)] px-4 py-3 shadow-sm">
         <button
           onClick={() => void rebuildIngressTls()}
           disabled={tlsRebuildLoading || !project?.can_manage}
@@ -241,20 +241,20 @@ export const ProjectDetailPage: React.FC<ProjectDetailPageProps> = ({ projectId,
         </button>
         <button
           disabled
-          className="px-5 py-2.5 rounded-xl text-xs font-black border border-dashed border-slate-300 text-slate-400 bg-slate-50 cursor-not-allowed"
+          className="px-5 py-2.5 rounded-xl text-xs font-black border border-dashed border-[rgba(255,255,255,0.12)] text-slate-500 bg-[rgba(255,255,255,0.03)] cursor-not-allowed"
         >
           功能预留
         </button>
         <button
           disabled
-          className="px-5 py-2.5 rounded-xl text-xs font-black border border-dashed border-slate-300 text-slate-400 bg-slate-50 cursor-not-allowed"
+          className="px-5 py-2.5 rounded-xl text-xs font-black border border-dashed border-[rgba(255,255,255,0.12)] text-slate-500 bg-[rgba(255,255,255,0.03)] cursor-not-allowed"
         >
           功能预留
         </button>
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-2 p-1.5 bg-slate-100 rounded-[1.5rem] w-fit">
+      <div className="flex gap-2 p-1.5 bg-[rgba(255,255,255,0.04)] rounded-[1.5rem] w-fit">
         {[
           { id: 'overview', label: '项目详情与概览', icon: <Info size={16} /> },
           { id: 'pods', label: '工作负载 (Pods)', icon: <Layers size={16} /> },
@@ -264,7 +264,7 @@ export const ProjectDetailPage: React.FC<ProjectDetailPageProps> = ({ projectId,
           <button 
             key={tab.id}
             onClick={() => setActiveTab(tab.id as any)}
-            className={`flex items-center gap-2 px-8 py-3 rounded-2xl font-black text-xs transition-all ${activeTab === tab.id ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+            className={`flex items-center gap-2 px-8 py-3 rounded-2xl font-black text-xs transition-all ${activeTab === tab.id ? 'bg-[var(--brand-primary)] text-white shadow-sm' : 'text-slate-500 hover:text-slate-400'}`}
           >
             {tab.icon} {tab.label}
           </button>
@@ -272,7 +272,7 @@ export const ProjectDetailPage: React.FC<ProjectDetailPageProps> = ({ projectId,
       </div>
 
       {/* Content Area */}
-      <div className="bg-white border border-slate-200 rounded-[3rem] shadow-sm overflow-hidden min-h-[500px]">
+      <div className="bg-[var(--bg-surface)] border border-[rgba(255,255,255,0.08)] rounded-[3rem] shadow-sm overflow-hidden min-h-[500px]">
         
         {activeTab === 'overview' && (
           <div className="p-10 space-y-10 animate-in fade-in slide-in-from-bottom-4">
@@ -282,13 +282,13 @@ export const ProjectDetailPage: React.FC<ProjectDetailPageProps> = ({ projectId,
                   <h3 className="text-xl font-black text-slate-800 flex items-center gap-2">
                     <Box size={20} className="text-blue-600" /> 项目元数据信息
                   </h3>
-                  <div className="bg-slate-50 rounded-[2.5rem] border border-slate-100 p-8 space-y-8">
+                  <div className="bg-[rgba(255,255,255,0.03)] rounded-[2.5rem] border border-[rgba(255,255,255,0.06)] p-8 space-y-8">
                      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                         <div className="space-y-1.5">
                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
                               <Hash size={10} /> 项目唯一标识 ID
                            </p>
-                           <p className="text-sm font-mono font-black text-blue-600 bg-white px-3 py-2 rounded-xl border border-slate-200 w-fit">
+                           <p className="text-sm font-mono font-black text-blue-400 bg-[rgba(59,130,246,0.08)] px-3 py-2 rounded-xl border border-[rgba(59,130,246,0.18)] w-fit">
                               {project?.id}
                            </p>
                         </div>
@@ -331,7 +331,7 @@ export const ProjectDetailPage: React.FC<ProjectDetailPageProps> = ({ projectId,
                         <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1.5 mb-3">
                            <FileText size={10} /> 项目详细描述
                         </p>
-                        <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-inner">
+                        <div className="bg-[rgba(255,255,255,0.03)] p-6 rounded-3xl border border-[rgba(255,255,255,0.06)] shadow-inner">
                            <p className="text-sm text-slate-600 leading-relaxed font-medium">
                               {project?.description || "该项目暂未填写详细描述信息。项目空间用于隔离不同安全评估目标的 K8S 运行环境与存储卷。"}
                            </p>
@@ -345,7 +345,7 @@ export const ProjectDetailPage: React.FC<ProjectDetailPageProps> = ({ projectId,
                    <h3 className="text-xl font-black text-slate-800 flex items-center gap-2">
                      <ShieldCheck size={20} className="text-blue-600" /> 安全审计摘要
                    </h3>
-                   <div className="p-8 bg-slate-50 rounded-[2.5rem] border border-slate-100 space-y-6">
+                   <div className="p-8 bg-[rgba(255,255,255,0.03)] rounded-[2.5rem] border border-[rgba(255,255,255,0.06)] space-y-6">
                      <div className="flex justify-between items-center">
                        <span className="text-sm font-bold text-slate-500">隔离状态</span>
                        <span className="text-xs font-black text-green-600 bg-green-50 px-3 py-1 rounded-full uppercase">K8S Namespaced</span>
@@ -371,7 +371,7 @@ export const ProjectDetailPage: React.FC<ProjectDetailPageProps> = ({ projectId,
                    </h3>
                    <div className="grid grid-cols-1 gap-4">
                      {resources?.deployments.map(dep => (
-                       <div key={dep.name} className="p-6 bg-white border border-slate-100 rounded-2xl flex items-center justify-between hover:shadow-lg transition-all">
+                       <div key={dep.name} className="p-6 bg-[var(--bg-surface)] border border-[rgba(255,255,255,0.06)] rounded-2xl flex items-center justify-between hover:shadow-lg transition-all">
                          <div className="flex items-center gap-4">
                            <div className="w-10 h-10 bg-indigo-50 text-indigo-600 rounded-xl flex items-center justify-center">
                              <Cpu size={18} />
@@ -397,7 +397,7 @@ export const ProjectDetailPage: React.FC<ProjectDetailPageProps> = ({ projectId,
                    <h3 className="text-xl font-black text-slate-800 flex items-center gap-2">
                      <Key size={20} className="text-blue-600" /> 项目 SDK Token
                    </h3>
-                   <div className="p-8 bg-slate-50 rounded-[2.5rem] border border-slate-100 space-y-5">
+                   <div className="p-8 bg-[rgba(255,255,255,0.03)] rounded-[2.5rem] border border-[rgba(255,255,255,0.06)] space-y-5">
                      {!project?.can_manage && (
                        <div className="text-sm font-bold text-slate-500 leading-relaxed">
                          仅项目管理员可查看和手动刷新项目级 SDK Token。
@@ -415,7 +415,7 @@ export const ProjectDetailPage: React.FC<ProjectDetailPageProps> = ({ projectId,
                            <button
                              onClick={refreshProjectToken}
                              disabled={tokenLoading}
-                             className="px-4 py-2 rounded-xl bg-white border border-slate-200 text-slate-600 text-xs font-black flex items-center gap-2 hover:bg-slate-100 transition-all"
+                             className="px-4 py-2 rounded-xl bg-[rgba(255,255,255,0.04)] border border-[rgba(255,255,255,0.08)] text-slate-400 text-xs font-black flex items-center gap-2 hover:bg-[rgba(255,255,255,0.08)] transition-all"
                            >
                              {tokenLoading ? <Loader2 size={14} className="animate-spin" /> : <RefreshCw size={14} />}
                              手动刷新
@@ -456,7 +456,7 @@ export const ProjectDetailPage: React.FC<ProjectDetailPageProps> = ({ projectId,
         {activeTab === 'pods' && (
           <div className="animate-in fade-in slide-in-from-bottom-4 duration-300">
              <table className="w-full text-left">
-               <thead className="bg-slate-50/50 border-b border-slate-100 font-black text-[10px] text-slate-400 uppercase tracking-widest">
+               <thead className="bg-[rgba(255,255,255,0.03)] border-b border-[rgba(255,255,255,0.06)] font-black text-[10px] text-slate-400 uppercase tracking-widest">
                  <tr>
                    <th className="px-8 py-6">Pod 实例名称</th>
                    <th className="px-6 py-6">节点 (Node)</th>
@@ -467,7 +467,7 @@ export const ProjectDetailPage: React.FC<ProjectDetailPageProps> = ({ projectId,
                </thead>
                <tbody className="divide-y divide-slate-50">
                  {resources?.pods.map(pod => (
-                   <tr key={pod.name} className="hover:bg-slate-50/50 transition-all group">
+                   <tr key={pod.name} className="hover:bg-[rgba(255,255,255,0.03)] transition-all group">
                      <td className="px-8 py-6">
                        <div className="flex items-center gap-4">
                          <div className="w-10 h-10 bg-blue-50 text-blue-500 rounded-xl flex items-center justify-center">
@@ -505,10 +505,10 @@ export const ProjectDetailPage: React.FC<ProjectDetailPageProps> = ({ projectId,
                </h4>
                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                  {resources?.services.map(svc => (
-                   <div key={svc.name} className="p-6 bg-slate-50 rounded-3xl border border-slate-100 space-y-4">
+                   <div key={svc.name} className="p-6 bg-[rgba(255,255,255,0.03)] rounded-3xl border border-[rgba(255,255,255,0.06)] space-y-4">
                      <div className="flex justify-between items-center">
                        <h5 className="text-sm font-black text-slate-800">{svc.name}</h5>
-                       <span className="text-[10px] font-black px-2 py-1 bg-white border border-slate-100 rounded-lg text-slate-500">{svc.type}</span>
+                       <span className="text-[10px] font-black px-2 py-1 bg-[var(--bg-elevated)] border border-[rgba(255,255,255,0.06)] rounded-lg text-slate-400">{svc.type}</span>
                      </div>
                      <div className="space-y-2">
                        <div className="flex justify-between text-xs">
@@ -531,7 +531,7 @@ export const ProjectDetailPage: React.FC<ProjectDetailPageProps> = ({ projectId,
                </h4>
                <div className="grid grid-cols-1 gap-4">
                  {resources?.ingresses.map(ing => (
-                   <div key={ing.name} className="p-6 bg-white border border-slate-100 rounded-3xl flex flex-col md:flex-row md:items-center justify-between gap-4">
+                   <div key={ing.name} className="p-6 bg-[var(--bg-surface)] border border-[rgba(255,255,255,0.06)] rounded-3xl flex flex-col md:flex-row md:items-center justify-between gap-4">
                      <div className="flex items-center gap-4">
                        <div className="w-10 h-10 bg-purple-50 text-purple-600 rounded-xl flex items-center justify-center">
                          <Globe size={18} />
@@ -562,7 +562,7 @@ export const ProjectDetailPage: React.FC<ProjectDetailPageProps> = ({ projectId,
         {activeTab === 'storage' && (
           <div className="animate-in fade-in slide-in-from-bottom-4 duration-300">
              <table className="w-full text-left">
-               <thead className="bg-slate-50/50 border-b border-slate-100 font-black text-[10px] text-slate-400 uppercase tracking-widest">
+               <thead className="bg-[rgba(255,255,255,0.03)] border-b border-[rgba(255,255,255,0.06)] font-black text-[10px] text-slate-400 uppercase tracking-widest">
                  <tr>
                    <th className="px-8 py-6">存储卷名称 (PVC)</th>
                    <th className="px-6 py-6">存储类 (Storage Class)</th>
@@ -573,7 +573,7 @@ export const ProjectDetailPage: React.FC<ProjectDetailPageProps> = ({ projectId,
                </thead>
                <tbody className="divide-y divide-slate-50">
                  {resources?.pvcs.map(pvc => (
-                   <tr key={pvc.name} className="hover:bg-slate-50/50 transition-all group">
+                   <tr key={pvc.name} className="hover:bg-[rgba(255,255,255,0.03)] transition-all group">
                      <td className="px-8 py-6">
                        <div className="flex items-center gap-4">
                          <div className="w-10 h-10 bg-amber-50 text-amber-600 rounded-xl flex items-center justify-center">
@@ -597,7 +597,7 @@ export const ProjectDetailPage: React.FC<ProjectDetailPageProps> = ({ projectId,
                  {(!resources?.pvcs || resources.pvcs.length === 0) && (
                    <tr>
                      <td colSpan={5} className="py-32 text-center">
-                        <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-4 text-slate-200">
+                        <div className="w-16 h-16 bg-[rgba(255,255,255,0.04)] rounded-full flex items-center justify-center mx-auto mb-4 text-slate-500">
                            <HardDrive size={32} />
                         </div>
                         <p className="text-slate-400 font-black uppercase text-xs tracking-widest">No persistent volumes mapped</p>

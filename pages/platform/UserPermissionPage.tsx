@@ -273,7 +273,7 @@ export const UserPermissionPage: React.FC = () => {
   };
 
   return (
-    <div className="h-full overflow-y-auto bg-[radial-gradient(circle_at_top_left,_rgba(14,165,233,0.12),_transparent_32%),radial-gradient(circle_at_top_right,_rgba(245,158,11,0.14),_transparent_28%),linear-gradient(180deg,_#f8fafc_0%,_#eef4ff_100%)] px-6 py-8 md:px-8 xl:px-10">
+    <div className="h-full overflow-y-auto bg-theme-app px-6 py-8 md:px-8 xl:px-10">
       <div className="flex w-full flex-col gap-6 pb-24">
         <section className="relative overflow-hidden rounded-[2rem] border border-slate-200/80 bg-slate-950 px-8 py-8 text-white shadow-[0_32px_80px_-48px_rgba(15,23,42,0.9)] md:px-10">
           <div className="absolute inset-y-0 right-0 w-1/2 bg-[radial-gradient(circle_at_center,_rgba(56,189,248,0.22),_transparent_56%)]" />

@@ -7,8 +7,8 @@ import { AiAgentSession } from '../../types/types';
 import { ProjectAiAgentSessionBatchTerminateResult, ProjectAiAgentSessionItem } from '../../types/types';
 import { EmptyState } from './ai-agent/shared';
 
-const GLOBAL_AUTO_SYNC_ENABLED_KEY = 'secflow_ai_global_session_auto_sync_enabled';
-const GLOBAL_AUTO_SYNC_INTERVAL_KEY = 'secflow_ai_global_session_auto_sync_interval_ms';
+const GLOBAL_AUTO_SYNC_ENABLED_KEY = 'chimera_ai_global_session_auto_sync_enabled';
+const GLOBAL_AUTO_SYNC_INTERVAL_KEY = 'chimera_ai_global_session_auto_sync_interval_ms';
 
 const buildSessionKey = (item: Pick<ProjectAiAgentSessionItem, 'agent_key' | 'service_name' | 'session_id'>) =>
   `${item.agent_key}::${item.service_name}::${item.session_id}`;

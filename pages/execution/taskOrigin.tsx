@@ -30,8 +30,7 @@ const STAGE_LABELS: Record<string, string> = {
   system_analysis: '系统分析',
   binary_to_source: '二进制逆向',
   entry_analysis: '入口分析',
-  dataflow_analysis: '数据流分析',
-  vuln_scan: '数据流漏洞挖掘',
+  dataflow_vuln_scan: '数据流漏洞挖掘',
 };
 
 export function navigateToParentBinarySecurityTask(origin: OriginInfo) {

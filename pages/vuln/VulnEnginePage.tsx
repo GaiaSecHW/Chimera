@@ -484,7 +484,7 @@ export const VulnEnginePage: React.FC<VulnEnginePageProps> = ({
       setShowEvolutionDialog(false);
       setEvolutionPreview(null);
       setSelectedEvolutionCaseIds([]);
-      window.dispatchEvent(new CustomEvent('secflow-navigate-view', {
+      window.dispatchEvent(new CustomEvent('chimera-navigate-view', {
         detail: {
           view: 'binary-evolution-dataflow-vuln',
           binaryEvolutionTaskId: created.task_id,
@@ -1022,13 +1022,13 @@ export const VulnEnginePage: React.FC<VulnEnginePageProps> = ({
                 className={`rounded-[1.5rem] border px-4 py-4 text-left transition-all ${
                   currentViewId === item.view
                     ? 'border-slate-900 bg-slate-900 text-white shadow-lg shadow-slate-900/10'
-                    : 'border-slate-200 bg-slate-50/80 hover:bg-slate-100'
+                    : 'border-slate-200 bg-[rgba(255,255,255,0.04)] hover:bg-slate-100'
                 }`}
               >
                 <div className="flex items-center justify-between gap-3">
                   <div className={`text-sm font-black ${currentViewId === item.view ? 'text-white' : 'text-slate-800'}`}>{item.label}</div>
                   <span className={`px-2 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest ${
-                    currentViewId === item.view ? 'bg-white/10 text-white' : 'bg-slate-200 text-slate-700'
+                    currentViewId === item.view ? 'bg-[rgba(255,255,255,0.08)] text-white' : 'bg-slate-200 text-slate-700'
                   }`}>
                     {countForLifecycleView(item.view)}
                   </span>
@@ -1069,11 +1069,11 @@ export const VulnEnginePage: React.FC<VulnEnginePageProps> = ({
             </div>
             {stageScope?.length ? (
               <div className="mt-4 grid grid-cols-2 gap-3">
-                <div className="rounded-[1.25rem] border border-slate-200 bg-slate-50/70 px-4 py-3">
+                <div className="rounded-[1.25rem] border border-slate-200 bg-[rgba(255,255,255,0.04)] px-4 py-3">
                   <div className="text-[10px] font-black uppercase tracking-widest text-slate-400">阶段内案例</div>
                   <div className="mt-1 text-2xl font-black text-slate-800">{stageScopeCount}</div>
                 </div>
-                <div className="rounded-[1.25rem] border border-slate-200 bg-slate-50/70 px-4 py-3">
+                <div className="rounded-[1.25rem] border border-slate-200 bg-[rgba(255,255,255,0.04)] px-4 py-3">
                   <div className="text-[10px] font-black uppercase tracking-widest text-slate-400">覆盖阶段数</div>
                   <div className="mt-1 text-2xl font-black text-slate-800">{stageScope.length}</div>
                 </div>
@@ -1081,7 +1081,7 @@ export const VulnEnginePage: React.FC<VulnEnginePageProps> = ({
             ) : null}
             <div className="mt-5 space-y-3">
               {phaseHighlights.map((item) => (
-                <div key={item} className="rounded-[1.25rem] border border-slate-200 bg-slate-50/70 px-4 py-3 text-sm text-slate-700">
+                <div key={item} className="rounded-[1.25rem] border border-slate-200 bg-[rgba(255,255,255,0.04)] px-4 py-3 text-sm text-slate-700">
                   {item}
                 </div>
               ))}
@@ -1329,7 +1329,7 @@ export const VulnEnginePage: React.FC<VulnEnginePageProps> = ({
 
             <div className="mt-6 grid gap-4 xl:grid-cols-[0.9fr_1.1fr]">
               <div className="space-y-4">
-                <div className="rounded-[1.5rem] border border-slate-200 bg-slate-50/70 p-4">
+                <div className="rounded-[1.5rem] border border-slate-200 bg-[rgba(255,255,255,0.04)] p-4">
                   <div className="text-sm font-black text-slate-900">已选案例</div>
                   <div className="mt-2 text-xs text-slate-500">共 {selectedEvolutionCaseIds.length} 个。</div>
                   <div className="mt-3 max-h-64 space-y-2 overflow-y-auto">
@@ -1395,7 +1395,7 @@ export const VulnEnginePage: React.FC<VulnEnginePageProps> = ({
                     预览结果会在这里展示。
                   </div>
                 ) : (
-                  <div className="rounded-[1.5rem] border border-slate-200 bg-slate-50/70 p-4">
+                  <div className="rounded-[1.5rem] border border-slate-200 bg-[rgba(255,255,255,0.04)] p-4">
                     <div className="flex items-center gap-2">
                       {evolutionPreview.can_create ? <CheckCircle2 size={16} className="text-emerald-600" /> : <AlertTriangle size={16} className="text-rose-600" />}
                       <div className="font-black text-slate-900">{evolutionPreview.can_create ? '预览通过，可创建' : '预览未通过'}</div>

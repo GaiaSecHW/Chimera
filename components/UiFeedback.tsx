@@ -124,7 +124,7 @@ export const useUiFeedback = () => {
                 </div>
                 <button
                   onClick={() => setNotice(null)}
-                  className="ml-auto p-1 rounded-lg hover:bg-white/50 transition-all"
+                  className="ml-auto p-1 rounded-lg hover:bg-theme-elevated/50 transition-all"
                 >
                   <X size={14} />
                 </button>
@@ -147,7 +147,7 @@ export const useUiFeedback = () => {
                     confirmState.resolve(false);
                     setConfirmState(null);
                   }}
-                  className="px-5 py-2.5 rounded-xl bg-theme-elevated text-theme-text-secondary font-bold hover:bg-slate-200 transition-all"
+                  className="px-5 py-2.5 rounded-xl bg-theme-elevated text-theme-text-secondary font-bold hover:bg-theme-surface transition-all"
                 >
                   {confirmState.cancelText}
                 </button>
@@ -194,7 +194,7 @@ export const useUiFeedback = () => {
                     promptState.resolve(null);
                     setPromptState(null);
                   }}
-                  className="px-5 py-2.5 rounded-xl bg-theme-elevated text-theme-text-secondary font-bold hover:bg-slate-200 transition-all"
+                  className="px-5 py-2.5 rounded-xl bg-theme-elevated text-theme-text-secondary font-bold hover:bg-theme-surface transition-all"
                 >
                   {promptState.cancelText}
                 </button>

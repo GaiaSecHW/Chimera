@@ -5,7 +5,7 @@ import { api } from '../../clients/api';
 import { FirmwareUnpackConfigPage } from './FirmwareUnpackConfigPage';
 import { SystemAnalysisConfigPage } from './SystemAnalysisConfigPage';
 import { EntryAnalysisConfigPage } from './EntryAnalysisConfigPage';
-import { DataflowVulnScanConfigPage } from './DataflowVulnScanConfigPage';
+import { DataflowVulnConfigPage } from './DataflowVulnScannerPage';
 import { B2SConfigPage } from './B2SConfigPage';
 
 type ConfigTab = 'binary-security' | 'binary-evolution' | 'firmware-unpacker' | 'system-analysis' | 'binary-to-source' | 'entry-analysis' | 'dataflow-vuln';
@@ -14,13 +14,12 @@ const ORCHESTRATOR_STAGE_FIELDS = [
   { key: 'system_analysis', label: '系统分析' },
   { key: 'binary_to_source', label: '二进制逆向' },
   { key: 'entry_analysis', label: '入口分析' },
-  { key: 'dataflow_analysis', label: '数据流分析' },
-  { key: 'vuln_scan', label: '数据流漏洞挖掘' },
+  { key: 'dataflow_vuln_scan', label: '数据流漏洞挖掘' },
 ] as const;
 const PARTIAL_SUCCESS_ADVANCEMENT_FIELDS = [
   { key: 'binary_to_source', label: '二进制逆向部分成功后继续推进' },
   { key: 'entry_analysis', label: '入口分析部分成功后继续推进' },
-  { key: 'dataflow_analysis', label: '数据流分析部分成功后继续推进' },
+  { key: 'dataflow_vuln_scan', label: '数据流漏洞挖掘部分成功后继续推进' },
 ] as const;
 const DEFAULT_PARTIAL_SUCCESS_STAGE_ADVANCEMENT = Object.fromEntries(
   PARTIAL_SUCCESS_ADVANCEMENT_FIELDS.map((field) => [field.key, false]),
@@ -58,6 +57,24 @@ const DEFAULT_BINARY_EVOLUTION_CONFIG = {
 const asRecord = (value: unknown): Record<string, any> =>
   value && typeof value === 'object' && !Array.isArray(value) ? (value as Record<string, any>) : {};
 
+const normalizePartialSuccessStageAdvancement = (value: unknown) => {
+  const config = asRecord(value);
+  const normalized = { ...DEFAULT_PARTIAL_SUCCESS_STAGE_ADVANCEMENT };
+  if (config.dataflow_vuln_scan !== undefined) {
+    normalized.dataflow_vuln_scan = config.dataflow_vuln_scan !== false;
+  } else if (config.dataflow_analysis !== undefined) {
+    normalized.dataflow_vuln_scan = config.dataflow_analysis !== false;
+  } else if (config.vuln_scan !== undefined) {
+    normalized.dataflow_vuln_scan = config.vuln_scan !== false;
+  }
+  for (const field of PARTIAL_SUCCESS_ADVANCEMENT_FIELDS) {
+    if (config[field.key] !== undefined) {
+      normalized[field.key] = config[field.key] !== false;
+    }
+  }
+  return normalized;
+};
+
 const pickConfigRecord = (value: unknown): Record<string, any> => {
   const root = asRecord(value);
   const nestedConfig = asRecord(root.config);
@@ -77,10 +94,7 @@ const normalizeBinarySecurityProjectConfig = (value: unknown) => {
   return {
     ...DEFAULT_BINARY_SECURITY_PROJECT_CONFIG,
     ...config,
-    partial_success_stage_advancement: {
-      ...DEFAULT_PARTIAL_SUCCESS_STAGE_ADVANCEMENT,
-      ...asRecord(config.partial_success_stage_advancement),
-    },
+    partial_success_stage_advancement: normalizePartialSuccessStageAdvancement(config.partial_success_stage_advancement),
     stage_parallelism: asRecord(config.stage_parallelism),
     stage_options: asRecord(config.stage_options),
   };
@@ -451,37 +465,37 @@ export const BinarySecurityConfigPage: React.FC<{ projectId: string; initialTab?
             {
               id: 'binary-security' as ConfigTab,
               label: '二进制安全编排器',
-              service: 'secflow-app-binary-security',
+              service: 'chimera-app-binary-security',
             },
             {
               id: 'binary-evolution' as ConfigTab,
               label: '进化中心',
-              service: 'secflow-app-binary-evolution-center',
+              service: 'chimera-app-binary-evolution-center',
             },
             {
               id: 'firmware-unpacker' as ConfigTab,
               label: '固件解包',
-              service: 'secflow-app-firmware-unpacker',
+              service: 'chimera-app-firmware-unpacker',
             },
             {
               id: 'system-analysis' as ConfigTab,
               label: '系统分析',
-              service: 'secflow-app-system-analyse',
+              service: 'chimera-app-system-analyse',
             },
             {
               id: 'binary-to-source' as ConfigTab,
               label: '二进制逆向',
-              service: 'secflow-app-binary-to-source',
+              service: 'chimera-app-binary-to-source',
             },
             {
               id: 'entry-analysis' as ConfigTab,
               label: '入口分析',
-              service: 'secflow-app-entry-analyse',
+              service: 'chimera-app-entry-analyse',
             },
             {
               id: 'dataflow-vuln' as ConfigTab,
               label: '数据流漏洞挖掘',
-              service: 'secflow-app-dataflow-vuln-scan',
+              service: 'chimera-app-dataflow-vuln-scanner',
             },
           ].map((tab) => (
             <button
@@ -509,11 +523,11 @@ export const BinarySecurityConfigPage: React.FC<{ projectId: string; initialTab?
             <Settings size={18} className="text-rose-600" />
             <h2 className="text-xl font-black text-slate-900">队列控制</h2>
             <span className="rounded-full border border-rose-200 bg-rose-50 px-3 py-1 text-[11px] font-black tracking-[0.12em] text-rose-700">
-              secflow-app-binary-security
+              chimera-app-binary-security
             </span>
           </div>
           <p className="mt-2 text-sm text-slate-500">
-            当前 Tab 中的全部配置项都归属于 `secflow-app-binary-security` 微服务，用于控制该服务在多实例部署下的全局任务调度行为。
+            当前 Tab 中的全部配置项都归属于 `chimera-app-binary-security` 微服务，用于控制该服务在多实例部署下的全局任务调度行为。
           </p>
 
           {error && <div className="mt-4 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700">{error}</div>}
@@ -638,7 +652,7 @@ export const BinarySecurityConfigPage: React.FC<{ projectId: string; initialTab?
             <Settings size={18} className="text-amber-600" />
             <h2 className="text-xl font-black text-slate-900">进化中心调度配置</h2>
             <span className="rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-[11px] font-black tracking-[0.12em] text-amber-700">
-              secflow-app-binary-evolution-center
+              chimera-app-binary-evolution-center
             </span>
           </div>
           <p className="mt-2 text-sm text-slate-500">
@@ -710,7 +724,7 @@ export const BinarySecurityConfigPage: React.FC<{ projectId: string; initialTab?
       ) : activeTab === 'entry-analysis' ? (
         <EntryAnalysisConfigPage projectId={projectId} embedded />
       ) : (
-        <DataflowVulnScanConfigPage projectId={projectId} embedded />
+        <DataflowVulnConfigPage projectId={projectId} embedded />
       )}
     </div>
   );

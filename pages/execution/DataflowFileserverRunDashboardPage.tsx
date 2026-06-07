@@ -159,8 +159,8 @@ const DASHBOARD_HTML = `
 </div>
 `;
 
-const DATAFLOW_DASHBOARD_SECFLOW_REFRESH_CSS = `
-/* SecFlow visual refresh */
+const DATAFLOW_DASHBOARD_CHIMERA_REFRESH_CSS = `
+/* Chimera visual refresh */
 :host {
   display: block;
   --bg: #f8fafc;
@@ -2755,7 +2755,7 @@ const DATAFLOW_DASHBOARD_SECFLOW_REFRESH_CSS = `
 }
 `;
 
-const DATAFLOW_DASHBOARD_STYLES = `${DATAFLOW_DASHBOARD_MIRROR_CSS}\n${DATAFLOW_DASHBOARD_SECFLOW_REFRESH_CSS}`;
+const DATAFLOW_DASHBOARD_STYLES = `${DATAFLOW_DASHBOARD_MIRROR_CSS}\n${DATAFLOW_DASHBOARD_CHIMERA_REFRESH_CSS}`;
 
 const normalizeProjectPath = (value: string) => {
   const text = String(value || '/').trim() || '/';

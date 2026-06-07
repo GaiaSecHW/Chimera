@@ -4,97 +4,97 @@
 
 @layer base {
   :root,
-  :root[data-theme='secflow-classic'] {
-    --bg-app: #f8fafc;
-    --bg-surface: #ffffff;
-    --bg-elevated: #f8fafc;
-    --bg-sidebar: #0f172a;
-    --bg-sidebar-muted: #1e293b;
-    --bg-header: #0f172a;
+  :root[data-theme='chimera-classic'] {
+    --bg-app: #0f172a;
+    --bg-surface: #1e293b;
+    --bg-elevated: #253348;
+    --bg-sidebar: #0b1120;
+    --bg-sidebar-muted: #162033;
+    --bg-header: #0b1120;
     --bg-login: #020617;
-    --bg-login-card: rgba(255, 255, 255, 0.06);
-    --bg-login-input: rgba(255, 255, 255, 0.08);
-    --login-border: rgba(255, 255, 255, 0.12);
-    --text-primary: #0f172a;
-    --text-secondary: #475569;
-    --text-muted: #64748b;
-    --text-faint: #94a3b8;
-    --text-inverse: #ffffff;
+    --bg-login-card: rgba(255, 255, 255, 0.04);
+    --bg-login-input: rgba(255, 255, 255, 0.06);
+    --login-border: rgba(255, 255, 255, 0.10);
+    --text-primary: #f1f5f9;
+    --text-secondary: #94a3b8;
+    --text-muted: #7a8a9e;
+    --text-faint: #5a6a7e;
+    --text-inverse: #f1f5f9;
     --text-soft: #cbd5e1;
-    --border-default: #e2e8f0;
-    --border-strong: #cbd5e1;
-    --brand-primary: #2563eb;
-    --brand-primary-hover: #1d4ed8;
-    --brand-secondary: #1d4ed8;
-    --brand-accent: #4f46e5;
-    --brand-soft: #dbeafe;
-    --brand-border: #bfdbfe;
-    --success: #059669;
-    --warning: #d97706;
-    --danger: #dc2626;
-    --info: #2563eb;
-    --success-soft: #d1fae5;
-    --warning-soft: #fef3c7;
-    --danger-soft: #fee2e2;
-    --info-soft: #dbeafe;
-    --success-border: #a7f3d0;
-    --warning-border: #fde68a;
-    --danger-border: #fecaca;
-    --info-border: #bfdbfe;
-    --logo-surface: linear-gradient(135deg, #2563eb 0%, #3b82f6 100%);
-    --gradient-brand: radial-gradient(circle at top left, rgba(37, 99, 235, 0.12), transparent 30%), linear-gradient(135deg, #ffffff 0%, #f8fafc 46%, #eef6ff 100%);
-    --shadow-panel: 0 18px 45px rgba(15, 23, 42, 0.08);
-    --shadow-section: 0 28px 80px rgba(15, 23, 42, 0.12);
-    --shadow-brand: 0 18px 44px rgba(37, 99, 235, 0.18);
-    --xterm-bg: #1a1a2e;
-    --xterm-fg: #eaeaea;
-    --xterm-cursor: #00ff88;
+    --border-default: rgba(255, 255, 255, 0.08);
+    --border-strong: rgba(255, 255, 255, 0.14);
+    --brand-primary: #3b82f6;
+    --brand-primary-hover: #60a5fa;
+    --brand-secondary: #2563eb;
+    --brand-accent: #6366f1;
+    --brand-soft: rgba(59, 130, 246, 0.12);
+    --brand-border: rgba(59, 130, 246, 0.28);
+    --success: #10b981;
+    --warning: #f59e0b;
+    --danger: #ef4444;
+    --info: #3b82f6;
+    --success-soft: rgba(16, 185, 129, 0.12);
+    --warning-soft: rgba(245, 158, 11, 0.12);
+    --danger-soft: rgba(239, 68, 68, 0.12);
+    --info-soft: rgba(59, 130, 246, 0.12);
+    --success-border: rgba(16, 185, 129, 0.28);
+    --warning-border: rgba(245, 158, 11, 0.28);
+    --danger-border: rgba(239, 68, 68, 0.28);
+    --info-border: rgba(59, 130, 246, 0.28);
+    --logo-surface: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+    --gradient-brand: radial-gradient(circle at top left, rgba(59, 130, 246, 0.08), transparent 30%), linear-gradient(135deg, #0f172a 0%, #111c30 50%, #0f172a 100%);
+    --shadow-panel: 0 8px 32px rgba(0, 0, 0, 0.28);
+    --shadow-section: 0 16px 48px rgba(0, 0, 0, 0.36);
+    --shadow-brand: 0 8px 24px rgba(59, 130, 246, 0.16);
+    --xterm-bg: #0b1120;
+    --xterm-fg: #e2e8f0;
+    --xterm-cursor: #3b82f6;
   }
 
   :root[data-theme='chimera'] {
-    --bg-app: #f1ece2;
-    --bg-surface: #fdf9f1;
-    --bg-elevated: #f6efe2;
-    --bg-sidebar: #0d1b2a;
-    --bg-sidebar-muted: #14293f;
-    --bg-header: #1e3a5f;
-    --bg-login: #0a0a14;
-    --bg-login-card: rgba(13, 27, 42, 0.78);
-    --bg-login-input: rgba(255, 248, 234, 0.06);
-    --login-border: rgba(212, 160, 48, 0.32);
-    --text-primary: #1d2632;
-    --text-secondary: #525d6b;
-    --text-muted: #677383;
-    --text-faint: #98a3b3;
-    --text-inverse: #fffdf7;
-    --text-soft: #c3cfdd;
-    --border-default: #e1d4bd;
-    --border-strong: #cdb792;
+    --bg-app: #0d1b2a;
+    --bg-surface: #152238;
+    --bg-elevated: #1c2d44;
+    --bg-sidebar: #0a1628;
+    --bg-sidebar-muted: #12203a;
+    --bg-header: #0a1628;
+    --bg-login: #060d18;
+    --bg-login-card: rgba(212, 160, 48, 0.04);
+    --bg-login-input: rgba(255, 248, 234, 0.05);
+    --login-border: rgba(212, 160, 48, 0.22);
+    --text-primary: #f0ebe0;
+    --text-secondary: #b8ad9a;
+    --text-muted: #8a7e6e;
+    --text-faint: #6b6050;
+    --text-inverse: #f0ebe0;
+    --text-soft: #c3b8a0;
+    --border-default: rgba(212, 160, 48, 0.10);
+    --border-strong: rgba(212, 160, 48, 0.20);
     --brand-primary: #d4a030;
     --brand-primary-hover: #e8c04a;
     --brand-secondary: #ff6b2b;
     --brand-accent: #2a5a8f;
-    --brand-soft: #f4e4bc;
-    --brand-border: #dcc082;
+    --brand-soft: rgba(212, 160, 48, 0.12);
+    --brand-border: rgba(212, 160, 48, 0.28);
     --success: #2e8b57;
     --warning: #d97706;
     --danger: #c2410c;
     --info: #2a5a8f;
-    --success-soft: #d8f3e3;
-    --warning-soft: #fef0cf;
-    --danger-soft: #fde7df;
-    --info-soft: #dbe7f6;
-    --success-border: #b7e4cc;
-    --warning-border: #f7d89a;
-    --danger-border: #f4c7b6;
-    --info-border: #bdd0ea;
-    --logo-surface: radial-gradient(circle at 50% 45%, rgba(232, 192, 74, 0.18), rgba(212, 160, 48, 0.06) 42%, rgba(10, 10, 20, 0) 70%), linear-gradient(180deg, #0d1b2a 0%, #14293f 100%);
-    --gradient-brand: radial-gradient(circle at top left, rgba(212, 160, 48, 0.15), transparent 28%), linear-gradient(135deg, #fdf9f1 0%, #f6efe2 44%, #ece1cd 100%);
-    --shadow-panel: 0 18px 45px rgba(13, 27, 42, 0.10);
-    --shadow-section: 0 28px 80px rgba(13, 27, 42, 0.16);
-    --shadow-brand: 0 16px 36px rgba(20, 41, 63, 0.34);
-    --xterm-bg: #151b2d;
-    --xterm-fg: #f8f5ee;
+    --success-soft: rgba(46, 139, 87, 0.12);
+    --warning-soft: rgba(217, 119, 6, 0.12);
+    --danger-soft: rgba(194, 65, 12, 0.12);
+    --info-soft: rgba(42, 90, 143, 0.12);
+    --success-border: rgba(46, 139, 87, 0.28);
+    --warning-border: rgba(217, 119, 6, 0.28);
+    --danger-border: rgba(194, 65, 12, 0.28);
+    --info-border: rgba(42, 90, 143, 0.28);
+    --logo-surface: radial-gradient(circle at 50% 45%, rgba(232, 192, 74, 0.14), rgba(212, 160, 48, 0.04) 42%, rgba(10, 10, 20, 0) 70%), linear-gradient(180deg, #0a1628 0%, #12203a 100%);
+    --gradient-brand: radial-gradient(circle at top left, rgba(212, 160, 48, 0.08), transparent 28%), linear-gradient(135deg, #0d1b2a 0%, #111e32 50%, #0d1b2a 100%);
+    --shadow-panel: 0 8px 32px rgba(0, 0, 0, 0.32);
+    --shadow-section: 0 16px 48px rgba(0, 0, 0, 0.40);
+    --shadow-brand: 0 8px 24px rgba(212, 160, 48, 0.14);
+    --xterm-bg: #0a1628;
+    --xterm-fg: #f0ebe0;
     --xterm-cursor: #e8c04a;
   }
 
@@ -120,23 +120,23 @@
   .bg-theme-login { background-color: var(--bg-login); }
   .bg-logo-surface { background: var(--logo-surface); }
   .theme-brand-chip {
-    background: color-mix(in srgb, var(--brand-primary) 14%, transparent);
-    border: 1px solid color-mix(in srgb, var(--brand-primary) 38%, transparent);
+    background: var(--brand-soft);
+    border: 1px solid var(--brand-border);
     color: var(--brand-primary);
   }
   .theme-shell-active {
-    background: linear-gradient(135deg, color-mix(in srgb, var(--brand-primary) 92%, #ffffff 8%) 0%, color-mix(in srgb, var(--brand-secondary) 82%, var(--brand-primary) 18%) 100%);
-    color: var(--text-inverse);
-    box-shadow: var(--shadow-brand);
+    background: var(--brand-primary);
+    color: #ffffff;
+    box-shadow: 0 2px 12px rgba(59, 130, 246, 0.32);
   }
   .theme-shell-muted {
-    background: color-mix(in srgb, var(--bg-sidebar) 84%, var(--bg-sidebar-muted));
-    color: var(--text-soft);
-    border: 1px solid color-mix(in srgb, var(--brand-primary) 12%, rgba(255,255,255,0.08));
+    background: transparent;
+    color: var(--text-secondary);
+    border: 1px solid transparent;
   }
   .theme-shell-muted:hover {
-    background: color-mix(in srgb, var(--bg-sidebar-muted) 90%, var(--brand-accent) 10%);
-    color: var(--text-inverse);
+    background: rgba(255, 255, 255, 0.06);
+    color: var(--text-primary);
   }
   .text-theme-text-primary { color: var(--text-primary); }
   .text-theme-text-secondary { color: var(--text-secondary); }
@@ -159,31 +159,31 @@
   .shadow-panel { box-shadow: var(--shadow-panel); }
   .shadow-brand { box-shadow: var(--shadow-brand); }
   .theme-primary-button {
-    @apply rounded-2xl font-black transition-all flex items-center justify-center text-white;
-    background: var(--logo-surface);
-    box-shadow: var(--shadow-brand);
-    border: 1px solid color-mix(in srgb, var(--brand-primary) 32%, transparent);
+    @apply rounded-xl font-black transition-all flex items-center justify-center text-white;
+    background: var(--brand-primary);
+    box-shadow: 0 2px 12px rgba(59, 130, 246, 0.28);
+    border: none;
   }
   .theme-primary-button:hover {
-    background: linear-gradient(135deg, var(--brand-primary-hover) 0%, var(--brand-secondary) 100%);
+    background: var(--brand-primary-hover);
+    box-shadow: 0 4px 18px rgba(59, 130, 246, 0.36);
   }
   .theme-form-input {
-    @apply rounded-2xl border outline-none font-semibold transition-all;
-    background-color: var(--bg-elevated);
+    @apply rounded-xl border outline-none font-semibold transition-all;
+    background-color: rgba(255, 255, 255, 0.04);
     border-color: var(--border-default);
     color: var(--text-primary);
-    box-shadow: inset 0 1px 0 rgba(255,255,255,0.32);
   }
   .theme-login-input {
-    @apply w-full px-5 py-4 rounded-2xl border outline-none transition-all;
+    @apply w-full px-5 py-4 rounded-xl border outline-none transition-all;
     background-color: var(--bg-login-input);
     border-color: var(--login-border);
-    color: var(--text-inverse);
+    color: #f1f5f9;
   }
   .theme-form-input:focus,
   .theme-login-input:focus {
     border-color: var(--brand-primary);
-    box-shadow: 0 0 0 4px color-mix(in srgb, var(--brand-primary) 14%, transparent);
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.18);
   }
   .theme-login-input::placeholder {
     color: var(--text-faint);
@@ -192,46 +192,116 @@
 
 @layer utilities {
   :root .bg-white { background-color: var(--bg-surface); }
+  :root .bg-white\/5 { background-color: rgba(255, 255, 255, 0.05); }
+  :root .bg-white\/10 { background-color: rgba(255, 255, 255, 0.10); }
+  :root .bg-white\/20 { background-color: rgba(255, 255, 255, 0.20); }
+  :root .bg-white\/30 { background-color: rgba(255, 255, 255, 0.30); }
+  :root .bg-white\/40 { background-color: rgba(255, 255, 255, 0.40); }
+  :root .bg-white\/50 { background-color: rgba(255, 255, 255, 0.50); }
+  :root .bg-white\/60 { background-color: color-mix(in srgb, var(--bg-surface) 60%, transparent); }
+  :root .bg-white\/70 { background-color: color-mix(in srgb, var(--bg-surface) 70%, transparent); }
+  :root .bg-white\/75 { background-color: color-mix(in srgb, var(--bg-surface) 75%, transparent); }
+  :root .bg-white\/80 { background-color: color-mix(in srgb, var(--bg-surface) 80%, transparent); }
+  :root .bg-white\/85 { background-color: color-mix(in srgb, var(--bg-surface) 85%, transparent); }
+  :root .bg-white\/90 { background-color: color-mix(in srgb, var(--bg-surface) 90%, transparent); }
+  :root .bg-white\/92 { background-color: color-mix(in srgb, var(--bg-surface) 92%, transparent); }
+  :root .bg-white\/95 { background-color: color-mix(in srgb, var(--bg-surface) 95%, transparent); }
   :root .bg-slate-50 { background-color: var(--bg-elevated); }
-  :root .bg-slate-100 { background-color: color-mix(in srgb, var(--bg-elevated) 88%, var(--border-default)); }
-  :root .bg-slate-200 { background-color: color-mix(in srgb, var(--bg-elevated) 72%, var(--border-strong)); }
+  :root .bg-slate-50\/30 { background-color: color-mix(in srgb, var(--bg-elevated) 30%, transparent); }
+  :root .bg-slate-50\/40 { background-color: color-mix(in srgb, var(--bg-elevated) 40%, transparent); }
+  :root .bg-slate-50\/50 { background-color: color-mix(in srgb, var(--bg-elevated) 50%, transparent); }
+  :root .bg-slate-50\/60 { background-color: color-mix(in srgb, var(--bg-elevated) 60%, transparent); }
+  :root .bg-slate-50\/70 { background-color: color-mix(in srgb, var(--bg-elevated) 70%, transparent); }
+  :root .bg-slate-50\/80 { background-color: color-mix(in srgb, var(--bg-elevated) 80%, transparent); }
+  :root .bg-slate-50\/90 { background-color: color-mix(in srgb, var(--bg-elevated) 90%, transparent); }
+  :root .bg-slate-100 { background-color: rgba(255, 255, 255, 0.04); }
+  :root .bg-slate-100\/10 { background-color: rgba(255, 255, 255, 0.04); }
+  :root .bg-slate-200 { background-color: rgba(255, 255, 255, 0.06); }
+  :root .bg-slate-300 { background-color: rgba(255, 255, 255, 0.08); }
+  :root .bg-slate-700 { background-color: var(--bg-elevated); }
   :root .bg-slate-800 { background-color: var(--bg-sidebar-muted); }
   :root .bg-slate-900 { background-color: var(--bg-sidebar); }
+  :root .bg-slate-900\/60,
+  :root .bg-slate-950\/60 { background-color: rgba(2, 6, 23, 0.72); }
   :root .bg-slate-950 { background-color: var(--bg-login); }
   :root .bg-blue-50 { background-color: var(--info-soft); }
-  :root .bg-blue-100 { background-color: color-mix(in srgb, var(--info-soft) 80%, white); }
+  :root .bg-blue-50\/10,
+  :root .bg-blue-50\/30,
+  :root .bg-blue-50\/50 { background-color: var(--info-soft); }
+  :root .bg-blue-100 { background-color: rgba(59, 130, 246, 0.08); }
+  :root .bg-blue-100\/10 { background-color: rgba(59, 130, 246, 0.10); }
   :root .bg-blue-600 { background-color: var(--brand-primary); }
   :root .bg-blue-700 { background-color: var(--brand-primary-hover); }
   :root .bg-amber-50 { background-color: var(--warning-soft); }
-  :root .bg-amber-100 { background-color: color-mix(in srgb, var(--warning-soft) 80%, white); }
+  :root .bg-amber-100 { background-color: rgba(245, 158, 11, 0.08); }
+  :root .bg-amber-100\/10 { background-color: rgba(245, 158, 11, 0.10); }
   :root .bg-amber-500,
   :root .bg-amber-600 { background-color: var(--warning); }
   :root .bg-amber-700 { background-color: color-mix(in srgb, var(--warning) 85%, black); }
-  :root .bg-emerald-50,
-  :root .bg-green-50 { background-color: var(--success-soft); }
-  :root .bg-emerald-100,
-  :root .bg-green-100 { background-color: color-mix(in srgb, var(--success-soft) 80%, white); }
   :root .bg-emerald-500,
   :root .bg-green-500 { background-color: var(--success); }
+  :root .bg-blue-500 { background-color: var(--brand-primary-hover); }
+  :root .bg-indigo-100 { background-color: rgba(99, 102, 241, 0.10); }
+  :root .bg-indigo-500 { background-color: var(--brand-accent); }
+  :root .bg-emerald-50,
+  :root .bg-green-50 { background-color: var(--success-soft); }
+  :root .bg-emerald-50\/50,
+  :root .bg-green-50\/50 { background-color: var(--success-soft); }
+  :root .bg-emerald-100,
+  :root .bg-green-100 { background-color: rgba(16, 185, 129, 0.08); }
+  :root .bg-emerald-100\/10,
+  :root .bg-green-100\/10 { background-color: rgba(16, 185, 129, 0.10); }
   :root .bg-rose-50,
   :root .bg-red-50 { background-color: var(--danger-soft); }
+  :root .bg-rose-50\/50,
+  :root .bg-red-50\/50 { background-color: var(--danger-soft); }
   :root .bg-rose-100,
-  :root .bg-red-100 { background-color: color-mix(in srgb, var(--danger-soft) 80%, white); }
+  :root .bg-red-100 { background-color: rgba(239, 68, 68, 0.08); }
+  :root .bg-rose-100\/10,
+  :root .bg-red-100\/10 { background-color: rgba(239, 68, 68, 0.10); }
   :root .bg-rose-500,
   :root .bg-red-500 { background-color: var(--danger); }
-  :root .bg-purple-100 { background-color: color-mix(in srgb, var(--brand-accent) 18%, white); }
+  :root .bg-purple-100 { background-color: rgba(99, 102, 241, 0.10); }
+  :root .bg-purple-100\/10 { background-color: rgba(99, 102, 241, 0.10); }
   :root .bg-orange-100 { background-color: var(--warning-soft); }
-  :root .text-white { color: var(--text-inverse); }
+  :root .bg-gray-50 { background-color: var(--bg-elevated); }
+  :root .bg-gray-100 { background-color: rgba(255, 255, 255, 0.04); }
+  :root .bg-gray-200 { background-color: rgba(255, 255, 255, 0.08); }
+  :root .bg-gray-300 { background-color: rgba(255, 255, 255, 0.06); }
+  :root .hover\:bg-white:hover { background-color: var(--bg-surface); }
+  :root .hover\:bg-white\/10:hover { background-color: rgba(255, 255, 255, 0.10); }
+  :root .hover\:bg-slate-50:hover { background-color: var(--bg-elevated); }
+  :root .hover\:bg-slate-100:hover { background-color: rgba(255, 255, 255, 0.04); }
+  :root .hover\:bg-slate-700:hover { background-color: var(--bg-elevated); }
+  :root .hover\:bg-blue-50:hover { background-color: var(--info-soft); }
+  :root .hover\:bg-blue-100:hover { background-color: rgba(59, 130, 246, 0.10); }
+  :root .hover\:bg-blue-500:hover,
+  :root .hover\:bg-blue-600:hover { background-color: var(--brand-primary-hover); }
+  :root .hover\:bg-amber-100:hover { background-color: rgba(245, 158, 11, 0.10); }
+  :root .hover\:bg-gray-50:hover,
+  :root .hover\:bg-gray-100:hover { background-color: var(--bg-elevated); }
+  :root .hover\:border-blue-200:hover,
+  :root .hover\:border-blue-300:hover { border-color: var(--brand-border); }
+  :root .text-white { color: #f1f5f9; }
+  :root .text-slate-200 { color: var(--text-secondary); }
   :root .text-slate-300 { color: var(--text-soft); }
   :root .text-slate-400 { color: var(--text-faint); }
   :root .text-slate-500 { color: var(--text-muted); }
   :root .text-slate-600 { color: var(--text-secondary); }
-  :root .text-slate-700 { color: color-mix(in srgb, var(--text-primary) 82%, var(--text-secondary)); }
+  :root .text-slate-700 { color: color-mix(in srgb, var(--text-primary) 70%, var(--text-secondary)); }
   :root .text-slate-800,
   :root .text-slate-900 { color: var(--text-primary); }
+  :root .text-gray-300,
+  :root .text-gray-400 { color: var(--text-faint); }
+  :root .text-gray-500 { color: var(--text-muted); }
+  :root .text-gray-600 { color: var(--text-secondary); }
+  :root .text-gray-700 { color: color-mix(in srgb, var(--text-primary) 70%, var(--text-secondary)); }
+  :root .text-gray-800,
+  :root .text-gray-900 { color: var(--text-primary); }
   :root .text-blue-400,
   :root .text-blue-600,
-  :root .text-blue-700 { color: var(--brand-primary); }
+  :root .text-blue-700,
+  :root .text-blue-800 { color: var(--brand-primary); }
   :root .text-amber-700,
   :root .text-orange-700 { color: var(--warning); }
   :root .text-emerald-600,
@@ -245,9 +315,40 @@
   :root .text-red-700 { color: var(--danger); }
   :root .text-purple-600,
   :root .text-purple-800 { color: var(--brand-accent); }
-  :root .border-slate-100 { border-color: color-mix(in srgb, var(--border-default) 60%, white); }
+  :root .border-slate-100 { border-color: rgba(255, 255, 255, 0.06); }
+  :root .border-white\/10,
+  :root .border-white\/20,
+  :root .border-white\/30,
+  :root .border-white\/40,
+  :root .border-white\/50,
+  :root .border-white\/60,
+  :root .border-white\/70,
+  :root .border-white\/80,
+  :root .border-white\/90 { border-color: var(--border-default); }
+  :root .from-white,
+  :root .from-slate-50 {
+    --tw-gradient-from: var(--bg-surface) var(--tw-gradient-from-position);
+    --tw-gradient-to: color-mix(in srgb, var(--bg-surface) 0%, transparent) var(--tw-gradient-to-position);
+    --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to);
+  }
+  :root .via-white,
+  :root .via-slate-50 {
+    --tw-gradient-to: color-mix(in srgb, var(--bg-elevated) 0%, transparent) var(--tw-gradient-to-position);
+    --tw-gradient-stops: var(--tw-gradient-from), var(--bg-elevated) var(--tw-gradient-via-position), var(--tw-gradient-to);
+  }
+  :root .to-white,
+  :root .to-slate-50 {
+    --tw-gradient-to: var(--bg-elevated) var(--tw-gradient-to-position);
+  }
   :root .border-slate-200 { border-color: var(--border-default); }
   :root .border-slate-300 { border-color: var(--border-strong); }
+  :root .border-gray-100,
+  :root .border-gray-200 { border-color: var(--border-default); }
+  :root .border-gray-300 { border-color: var(--border-strong); }
+  :root .divide-slate-50 > :not([hidden]) ~ :not([hidden]),
+  :root .divide-slate-100 > :not([hidden]) ~ :not([hidden]),
+  :root .divide-gray-100 > :not([hidden]) ~ :not([hidden]),
+  :root .divide-gray-200 > :not([hidden]) ~ :not([hidden]) { border-color: rgba(255, 255, 255, 0.06); }
   :root .border-slate-700,
   :root .border-slate-800 { border-color: rgba(255,255,255,0.08); }
   :root .border-blue-100,
@@ -264,4 +365,7 @@
   :root .shadow-lg,
   :root .shadow-xl,
   :root .shadow-2xl { box-shadow: var(--shadow-panel); }
+  :root .after\:bg-white::after { background-color: var(--bg-elevated); }
+  :root .after\:border-white::after { border-color: var(--border-strong); }
+  :root .peer:checked ~ .peer-checked\:after\:border-white::after { border-color: var(--brand-primary); }
 }

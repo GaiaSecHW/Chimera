@@ -27,8 +27,8 @@ export type BinarySecurityTaskOrigin = {
   parent_task_type?: string | null;
 };
 
-const STORAGE_KEY = 'secflow:binarySecurityReturnContext';
-const EXECUTION_RETURN_STORAGE_KEY = 'secflow:executionReturnContext';
+const STORAGE_KEY = 'chimera:binarySecurityReturnContext';
+const EXECUTION_RETURN_STORAGE_KEY = 'chimera:executionReturnContext';
 
 export const saveBinarySecurityReturnContext = (context: BinarySecurityReturnContext) => {
   sessionStorage.setItem(STORAGE_KEY, JSON.stringify(context));
@@ -121,7 +121,7 @@ const navigateToBinarySecurityContext = (context: BinarySecurityReturnContext): 
     context.taskType === 'source'
       ? { view: context.view, sourceSecurityTaskId: context.taskId }
       : { view: context.view, binarySecurityTaskId: context.taskId };
-  window.dispatchEvent(new CustomEvent<NavigateDetail>('secflow-navigate-view', { detail }));
+  window.dispatchEvent(new CustomEvent<NavigateDetail>('chimera-navigate-view', { detail }));
   return true;
 };
 
@@ -144,7 +144,7 @@ const navigateToExecutionContext = (context: ExecutionReturnContext): boolean =>
     context.view === 'pentest-exec-b2s-detail'
       ? { view: context.view, b2sTaskId: context.b2sTaskId }
       : { view: context.view };
-  window.dispatchEvent(new CustomEvent<NavigateDetail>('secflow-navigate-view', { detail }));
+  window.dispatchEvent(new CustomEvent<NavigateDetail>('chimera-navigate-view', { detail }));
   return true;
 };
 

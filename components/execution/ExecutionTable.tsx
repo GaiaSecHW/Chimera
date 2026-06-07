@@ -1,13 +1,13 @@
 import React from 'react';
 
 export const executionTableHeaderClassName =
-  'border-b border-slate-200 bg-slate-100/80 text-[11px] font-black uppercase tracking-[0.18em] text-slate-500';
+  'border-b border-theme-border bg-theme-elevated/80 text-[11px] font-black uppercase tracking-[0.18em] text-theme-text-faint';
 
 export const executionTableCellClassName =
-  'border-b border-slate-100 px-4 py-3 align-top text-sm text-slate-600';
+  'border-b border-theme-border px-4 py-3 align-top text-sm text-theme-text-secondary';
 
 export const executionTableRowClassName =
-  'group transition-colors hover:bg-slate-50';
+  'group transition-colors hover:bg-theme-elevated';
 
 export const executionTableInteractiveRowClassName =
   `${executionTableRowClassName} cursor-pointer`;
@@ -22,9 +22,9 @@ export function ExecutionTable({
   className?: string;
 }) {
   return (
-    <div className={`overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm ${className}`.trim()}>
+    <div className={`overflow-hidden rounded-2xl border border-theme-border bg-theme-surface shadow-sm ${className}`.trim()}>
       <div className="overflow-x-auto">
-        <table className="w-full text-left text-sm text-slate-600" style={{ minWidth }}>
+        <table className="w-full text-left text-sm text-theme-text-secondary" style={{ minWidth }}>
           {children}
         </table>
       </div>

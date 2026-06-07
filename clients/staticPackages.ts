@@ -46,8 +46,8 @@ export const staticPackagesApi = {
 
   // Helper for generating download links (including token for secure download)
   getDownloadUrl: (id: string) => 
-    `${API_BASE}/api/packages/${id}/download?token=${localStorage.getItem('secflow_token')}`,
+    `${API_BASE}/api/packages/${id}/download?token=${localStorage.getItem('chimera_token')}`,
     
   getFileDownloadUrl: (id: string, path: string) => 
-    `${API_BASE}/api/packages/${id}/files/download?path=${encodeURIComponent(path)}&token=${localStorage.getItem('secflow_token')}`
+    `${API_BASE}/api/packages/${id}/files/download?path=${encodeURIComponent(path)}&token=${localStorage.getItem('chimera_token')}`
 };

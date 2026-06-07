@@ -24,21 +24,21 @@ interface SummaryServiceItem {
 }
 
 const SERVICE_CATALOG: ServiceCatalogItem[] = [
-  { id: 'secflow-platform-frontend', displayName: '前端门户', endpoint: '/api/frontend/health' },
-  { id: 'secflow-platform-menu', displayName: '菜单中心', endpoint: '/api/menu/health' },
-  { id: 'secflow-platform-auth', displayName: '认证服务', endpoint: '/api/auth/health' },
-  { id: 'secflow-platform-project', displayName: '项目管理', endpoint: '/api/project/health' },
-  { id: 'secflow-platform-resource', displayName: '资源管理', endpoint: '/api/resource/health' },
-  { id: 'secflow-static-binary', displayName: '静态二进制包', endpoint: '/api/packages/health', aliases: ['secflow-platform-static-binary'] },
-  { id: 'secflow-platform-fileserver', displayName: '文件服务', endpoint: '/api/fileserver/health' },
-  { id: 'secflow-platform-deploy-script', displayName: '部署脚本', endpoint: '/api/deploy-script/health' },
-  { id: 'secflow-k8s', displayName: 'K8S 资源管理', endpoint: '/api/k8s/health', aliases: ['secflow-platform-k8s'] },
-  { id: 'secflow-workflow', displayName: '工作流', endpoint: '/api/workflow/health', aliases: ['secflow-platform-workflow'] },
-  { id: 'secflow-platform-workflow-status', displayName: '工作流状态服务', endpoint: '/api/workflow-status/health', aliases: ['secflow-workflow-status'] },
-  { id: 'secflow-platform-configcenter', displayName: '配置中心', endpoint: '/api/configcenter/health' },
-  { id: 'secflow-platform-agent', displayName: 'Agent 中心', endpoint: '/api/agent/health' },
-  { id: 'secflow-platform-vuln', displayName: '漏洞生命周期引擎', endpoint: '/api/vuln/health' },
-  { id: 'secflow-app-code-server', displayName: 'Code Server', endpoint: '/api/app/code-server/health' },
+  { id: 'chimera-platform-frontend', displayName: '前端门户', endpoint: '/api/frontend/health' },
+  { id: 'chimera-platform-menu', displayName: '菜单中心', endpoint: '/api/menu/health' },
+  { id: 'chimera-platform-auth', displayName: '认证服务', endpoint: '/api/auth/health' },
+  { id: 'chimera-platform-project', displayName: '项目管理', endpoint: '/api/project/health' },
+  { id: 'chimera-platform-resource', displayName: '资源管理', endpoint: '/api/resource/health' },
+  { id: 'chimera-static-binary', displayName: '静态二进制包', endpoint: '/api/packages/health', aliases: ['chimera-platform-static-binary'] },
+  { id: 'chimera-platform-fileserver', displayName: '文件服务', endpoint: '/api/fileserver/health' },
+  { id: 'chimera-platform-deploy-script', displayName: '部署脚本', endpoint: '/api/deploy-script/health' },
+  { id: 'chimera-k8s', displayName: 'K8S 资源管理', endpoint: '/api/k8s/health', aliases: ['chimera-platform-k8s'] },
+  { id: 'chimera-workflow', displayName: '工作流', endpoint: '/api/workflow/health', aliases: ['chimera-platform-workflow'] },
+  { id: 'chimera-platform-workflow-status', displayName: '工作流状态服务', endpoint: '/api/workflow-status/health', aliases: ['chimera-workflow-status'] },
+  { id: 'chimera-platform-configcenter', displayName: '配置中心', endpoint: '/api/configcenter/health' },
+  { id: 'chimera-platform-agent', displayName: 'Agent 中心', endpoint: '/api/agent/health' },
+  { id: 'chimera-platform-vuln', displayName: '漏洞生命周期引擎', endpoint: '/api/vuln/health' },
+  { id: 'chimera-app-code-server', displayName: 'Code Server', endpoint: '/api/app/code-server/health' },
 ];
 
 const HEALTHY_STATUS_HTTP_CODES = new Set([200]);

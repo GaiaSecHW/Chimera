@@ -588,9 +588,9 @@ export const FirmwareEvolutionCenterPage: React.FC<Props> = ({ projectId }) => {
   const runtimeRootPath = useMemo(() => {
     if (showingDetail) {
       const candidate = String(activeJob?.run_root || '').trim();
-      return candidate || '/data/secflow-app-firmware-unpacker';
+      return candidate || '/data/chimera-app-firmware-unpacker';
     }
-    return '/data/secflow-app-firmware-unpacker';
+    return '/data/chimera-app-firmware-unpacker';
   }, [activeJob?.run_root, showingDetail]);
   const canConfirmReplacement = Boolean(
     activeJob
@@ -1635,7 +1635,7 @@ export const FirmwareEvolutionCenterPage: React.FC<Props> = ({ projectId }) => {
                 <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">Runtime Explorer</div>
                 <h3 className="mt-1 text-sm font-bold text-slate-800">运行时文件</h3>
                 <p className="mt-1 text-xs text-slate-400">
-                  当前展示 <span className="font-mono">{runtimeFiles?.root || '/data/secflow-app-firmware-unpacker'}</span> 下的文件与目录。
+                  当前展示 <span className="font-mono">{runtimeFiles?.root || '/data/chimera-app-firmware-unpacker'}</span> 下的文件与目录。
                 </p>
               </div>
               <button onClick={() => void loadRuntimeFiles()} className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-50">

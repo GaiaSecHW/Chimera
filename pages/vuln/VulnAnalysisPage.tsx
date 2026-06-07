@@ -29,7 +29,7 @@ export const VulnAnalysisPage: React.FC<VulnPageProps> = ({ projectId, onNavigat
     listEntryMode
     preserveLifecycleProgressBand
     detailTargetView="vuln-analysis-detail"
-    detailStorageKey="secflow-vuln-open-case-id"
+    detailStorageKey="chimera-vuln-open-case-id"
     detailEntryLabel="查看研判详情"
     phaseHighlights={[
       '围绕研判结论、时间线和推荐动作形成稳定判断，不急于结束。',

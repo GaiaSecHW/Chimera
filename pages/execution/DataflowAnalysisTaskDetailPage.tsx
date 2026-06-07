@@ -88,8 +88,8 @@ function normalizeJoinPath(basePath: string, relativePath: string): string {
 
 function openInFileExplorer(fsPath: string) {
   const normalizedPath = fsPath.startsWith('/') ? fsPath : `/${fsPath}`;
-  sessionStorage.setItem('secflow:fileExplorerNavigatePath', normalizedPath);
-  window.dispatchEvent(new CustomEvent('secflow-navigate-view', { detail: { view: 'project-file-explorer', path: normalizedPath } }));
+  sessionStorage.setItem('chimera:fileExplorerNavigatePath', normalizedPath);
+  window.dispatchEvent(new CustomEvent('chimera-navigate-view', { detail: { view: 'project-file-explorer', path: normalizedPath } }));
 }
 
 function formatDuration(startedAt?: string | null, finishedAt?: string | null): string {
@@ -1305,7 +1305,7 @@ export const DataflowAnalysisTaskDetailPage: React.FC<{ projectId: string; taskI
 
       {activeAgentSessionPath ? (
         <div className="fixed inset-0 z-[280] bg-slate-950/70 p-4 backdrop-blur-sm">
-          <div className="mx-auto flex h-full max-w-6xl flex-col overflow-hidden rounded-[2rem] border border-slate-200 bg-[linear-gradient(180deg,#f8fafc_0%,#ffffff_100%)] shadow-[0_32px_120px_rgba(15,23,42,0.35)]">
+          <div className="mx-auto flex h-full max-w-6xl flex-col overflow-hidden rounded-[2rem] border border-slate-200 bg-slate-900 shadow-panel">
             <AgentSessionDialogHeader
               title={activeAgentSessionMeta?.display_name || activeAgentSessionPath}
               subtitle={activeAgentSessionMeta?.relative_path || activeAgentSessionPath}

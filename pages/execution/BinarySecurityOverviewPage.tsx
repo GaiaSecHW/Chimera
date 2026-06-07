@@ -16,9 +16,9 @@ interface Props {
 type CreateDialogTab = 'basic' | 'files' | 'strategy' | 'parallelism';
 
 const TERMINAL = new Set(['success', 'partial_success', 'failed', 'cancelled']);
-const BINARY_STAGES = ['firmware_unpack', 'system_analysis', 'binary_to_source', 'entry_analysis', 'dataflow_analysis', 'vuln_scan'];
-const SOURCE_STAGES = ['system_analysis', 'entry_analysis', 'dataflow_analysis', 'vuln_scan'];
-const MODULE_STAGES = ['binary_to_source', 'entry_analysis', 'dataflow_analysis', 'vuln_scan'];
+const BINARY_STAGES = ['firmware_unpack', 'system_analysis', 'binary_to_source', 'entry_analysis', 'dataflow_vuln_scan'];
+const SOURCE_STAGES = ['system_analysis', 'entry_analysis', 'dataflow_vuln_scan'];
+const MODULE_STAGES = ['binary_to_source', 'entry_analysis', 'dataflow_vuln_scan'];
 
 type ManualOperationDisplayState = {
   operation_in_progress?: boolean;
@@ -76,8 +76,7 @@ const formatStageLabel = (value?: string | null) => {
     system_analysis: '系统分析',
     binary_to_source: '二进制反编译',
     entry_analysis: '入口分析',
-    dataflow_analysis: '数据流分析',
-    vuln_scan: '漏洞扫描',
+    dataflow_vuln_scan: '数据流漏洞挖掘',
   };
   return map[value || ''] || (value || '-');
 };
@@ -105,8 +104,7 @@ const STAGE_PARALLELISM_FIELDS: Array<{ key: string; label: string }> = [
   { key: 'system_analysis', label: '系统分析最大并行数' },
   { key: 'binary_to_source', label: '二进制逆向最大并行数' },
   { key: 'entry_analysis', label: '入口分析最大并行数' },
-  { key: 'dataflow_analysis', label: '数据流分析最大并行数' },
-  { key: 'vuln_scan', label: '数据流漏洞挖掘最大并行数' },
+  { key: 'dataflow_vuln_scan', label: '数据流漏洞挖掘最大并行数' },
 ];
 const SOURCE_ARCHIVE_ACCEPT = '.zip,.tar,.tar.gz,.tgz,.tar.bz2,.tbz2,.tar.xz,.txz';
 const MODULE_RISK_OPTIONS = ['高', '中', '低'] as const;
@@ -120,12 +118,12 @@ const PIPELINE_MODE_OPTIONS: Array<{
   description: string;
 }> = [
   { value: 'barrier', label: '广度优先（Barrier）', description: '按阶段聚合推进，上一阶段完成后再开始下一阶段。' },
-  { value: 'mixed_streaming', label: '深度优化（Mixed Streaming）', description: '入口分析完成后，立即推进对应的数据流分析和漏洞挖掘。' },
+  { value: 'mixed_streaming', label: '深度优化（Mixed Streaming）', description: '入口分析完成后，立即推进对应的数据流漏洞挖掘和漏洞挖掘。' },
 ];
 const PARTIAL_SUCCESS_ADVANCEMENT_FIELDS = [
   { key: 'binary_to_source', label: '二进制逆向部分成功后继续推进' },
   { key: 'entry_analysis', label: '入口分析部分成功后继续推进' },
-  { key: 'dataflow_analysis', label: '数据流分析部分成功后继续推进' },
+  { key: 'dataflow_vuln_scan', label: '数据流漏洞挖掘部分成功后继续推进' },
 ] as const;
 const DEFAULT_PARTIAL_SUCCESS_STAGE_ADVANCEMENT = Object.fromEntries(
   PARTIAL_SUCCESS_ADVANCEMENT_FIELDS.map((field) => [field.key, false]),
@@ -135,8 +133,24 @@ const DEFAULT_STAGE_PARALLELISM = {
   system_analysis: 4,
   binary_to_source: 4,
   entry_analysis: 4,
-  dataflow_analysis: 4,
-  vuln_scan: 4,
+  dataflow_vuln_scan: 4,
+};
+const normalizePartialSuccessStageAdvancement = (value: unknown) => {
+  const config = value && typeof value === 'object' && !Array.isArray(value) ? (value as Record<string, any>) : {};
+  const normalized = { ...DEFAULT_PARTIAL_SUCCESS_STAGE_ADVANCEMENT };
+  if (config.dataflow_vuln_scan !== undefined) {
+    normalized.dataflow_vuln_scan = config.dataflow_vuln_scan !== false;
+  } else if (config.dataflow_analysis !== undefined) {
+    normalized.dataflow_vuln_scan = config.dataflow_analysis !== false;
+  } else if (config.vuln_scan !== undefined) {
+    normalized.dataflow_vuln_scan = config.vuln_scan !== false;
+  }
+  for (const field of PARTIAL_SUCCESS_ADVANCEMENT_FIELDS) {
+    if (config[field.key] !== undefined) {
+      normalized[field.key] = config[field.key] !== false;
+    }
+  }
+  return normalized;
 };
 const CREATE_DIALOG_TABS: Array<{ key: CreateDialogTab; label: string; hint: string }> = [
   { key: 'basic', label: '基础信息', hint: '名称、描述、模块名' },
@@ -207,8 +221,7 @@ const stageAccent = (stageName: string) => {
     system_analysis: 'border-l-sky-400',
     binary_to_source: 'border-l-cyan-400',
     entry_analysis: 'border-l-amber-400',
-    dataflow_analysis: 'border-l-indigo-400',
-    vuln_scan: 'border-l-rose-400',
+    dataflow_vuln_scan: 'border-l-rose-400',
   };
   return map[stageName] || 'border-l-slate-300';
 };
@@ -685,10 +698,7 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
       maxRetries: projectConfig.config.max_retries_per_item ?? 2,
       continueOnFailure: projectConfig.config.continue_on_item_failure ?? true,
       pipelineMode: (projectConfig.config.pipeline_mode === 'mixed_streaming' ? 'mixed_streaming' : 'barrier') as BinarySecurityPipelineMode,
-      partialSuccessStageAdvancement: {
-        ...DEFAULT_PARTIAL_SUCCESS_STAGE_ADVANCEMENT,
-        ...(projectConfig.config.partial_success_stage_advancement || {}),
-      },
+      partialSuccessStageAdvancement: normalizePartialSuccessStageAdvancement(projectConfig.config.partial_success_stage_advancement),
     };
   };
 
@@ -700,7 +710,7 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
     try {
       defaults = await loadCreateDefaults();
     } catch (e: any) {
-      defaultsError = e?.message ? `项目默认配置加载失败，已使用系统默认值：${e.message}` : '项目默认配置加载失败，已使用系统默认值';
+      defaultsError = e?.message ? `项目默认配置已自动兼容旧阶段配置，并使用系统默认值补全：${e.message}` : '项目默认配置已自动兼容旧阶段配置，并使用系统默认值补全';
     }
     applyCreateDefaults(defaults);
     resetCreateForm(defaults);
@@ -811,8 +821,8 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
           module_risk_levels: isBinaryModuleTask ? undefined : moduleRiskLevels,
         },
       });
-      const inputDir = created.summary?.input_dir || `/data/files/${projectId}/app/secflow-app-binary-security/${prepared.task_id}/input`;
-      const tempUploadDir = created.summary?.temp_upload_dir || `/data/files/${projectId}/app/secflow-app-binary-security/${prepared.task_id}/run/upload-tmp`;
+      const inputDir = created.summary?.input_dir || `/data/files/${projectId}/app/chimera-app-binary-security/${prepared.task_id}/input`;
+      const tempUploadDir = created.summary?.temp_upload_dir || `/data/files/${projectId}/app/chimera-app-binary-security/${prepared.task_id}/run/upload-tmp`;
       const ensuredDirs = new Set<string>();
       const ensureUploadSubdirectories = async (basePath: string, relativeDir: string) => {
         if (!basePath || !relativeDir) return;
@@ -883,10 +893,10 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
             <ServicePageTitle title={pageTitle} version={buildVersion} />
             <p className="mt-2 max-w-3xl text-sm text-slate-500">
               {isSourceTask
-                ? '为当前项目统一编排系统分析、入口分析、数据流分析和漏洞扫描，聚合查看源码工程任务的阶段状态与结果。'
+                ? '为当前项目统一编排系统分析、入口分析、数据流漏洞挖掘和数据流漏洞挖掘，聚合查看源码工程任务的阶段状态与结果。'
                 : isBinaryModuleTask
-                  ? '为当前项目统一编排模块级二进制逆向、入口分析、数据流分析和漏洞扫描，直接以单模块下的多个 ELF 作为输入自动推进。'
-                : '为当前项目统一编排固件解包、系统分析、反编译、入口分析、数据流分析和漏洞扫描，聚合查看多固件任务的阶段状态与结果。'}
+                  ? '为当前项目统一编排模块级二进制逆向、入口分析、数据流漏洞挖掘和数据流漏洞挖掘，直接以单模块下的多个 ELF 作为输入自动推进。'
+                : '为当前项目统一编排固件解包、系统分析、反编译、入口分析、数据流漏洞挖掘和数据流漏洞挖掘，聚合查看多固件任务的阶段状态与结果。'}
             </p>
           </div>
           <div className="flex items-center gap-3">

@@ -38,7 +38,7 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   };
 
   const toggleTheme = () => {
-    setThemeState((current) => (current === 'secflow-classic' ? 'chimera' : 'secflow-classic'));
+    setThemeState((current) => (current === 'chimera-classic' ? 'chimera' : 'chimera-classic'));
   };
 
   const value = useMemo<ThemeContextValue>(

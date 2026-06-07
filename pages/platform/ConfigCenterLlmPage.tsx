@@ -1372,14 +1372,14 @@ API_TIMEOUT_MS=600000`}
 
       {showUsageGuide && (
         <div className="fixed inset-0 z-[320] flex items-center justify-center bg-slate-950/65 backdrop-blur-md p-6" onClick={() => setShowUsageGuide(false)}>
-          <div className="w-full max-w-4xl overflow-hidden rounded-[2rem] border border-slate-200 bg-[linear-gradient(160deg,#ffffff_0%,#f8fafc_55%,#eef2ff_100%)] shadow-[0_30px_120px_rgba(15,23,42,0.32)]" onClick={(event) => event.stopPropagation()}>
+          <div className="w-full max-w-4xl overflow-hidden rounded-[2rem] border border-slate-200 bg-slate-800 shadow-panel" onClick={(event) => event.stopPropagation()}>
             <div className="flex items-start justify-between gap-4 border-b border-slate-200/80 px-8 py-7">
               <div>
-                <div className="inline-flex rounded-full border border-blue-200 bg-blue-50 px-3 py-1 text-[10px] font-black uppercase tracking-[0.24em] text-blue-700">
+                <div className="inline-flex rounded-full border border-blue-500/30 bg-blue-950 px-3 py-1 text-[10px] font-black uppercase tracking-[0.24em] text-blue-400">
                   Guide
                 </div>
-                <h3 className="mt-3 text-2xl font-black tracking-tight text-slate-900">如何获取和使用 LLM 对接配置</h3>
-                <p className="mt-3 text-sm leading-7 text-slate-600">
+                <h3 className="mt-3 text-2xl font-black tracking-tight text-slate-200">如何获取和使用 LLM 对接配置</h3>
+                <p className="mt-3 text-sm leading-7 text-slate-400">
                   这个弹窗面向需要消费配置中心的开发者、运维或其它微服务维护者，用来快速说明如何读取系统当前支持的 LLM Provider，以及如何拿到某个 Provider 的完整配置。
                 </p>
               </div>
@@ -1452,10 +1452,10 @@ API_TIMEOUT_MS=600000`}
                 <h4 className="text-sm font-black text-slate-900">5. curl 示例</h4>
                 <code className="mt-4 block whitespace-pre-wrap break-all rounded-[1.5rem] bg-slate-950 px-5 py-4 text-xs leading-6 text-slate-100">
 {`curl -H "Authorization: Bearer <machine-token>" \\
-  https://secflow.ai.icsl.huawei.com/api/configcenter/service/llm/providers
+  https://chimera.ai.icsl.huawei.com/api/configcenter/service/llm/providers
 
 curl -H "Authorization: Bearer <machine-token>" \\
-  https://secflow.ai.icsl.huawei.com/api/configcenter/service/llm/providers/openai-prod`}
+  https://chimera.ai.icsl.huawei.com/api/configcenter/service/llm/providers/openai-prod`}
                 </code>
               </section>
 

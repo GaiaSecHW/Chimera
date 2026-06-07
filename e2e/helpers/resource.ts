@@ -125,7 +125,7 @@ export const deleteResourceById = async (
 };
 
 export const buildSampleTarGz = (): { archivePath: string; cleanup: () => void } => {
-  const tmpRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'secflow-e2e-'));
+  const tmpRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'chimera-e2e-'));
   const sampleRoot = path.join(tmpRoot, 'sample');
   fs.mkdirSync(path.join(sampleRoot, 'dir1', 'dir2'), { recursive: true });
   fs.writeFileSync(path.join(sampleRoot, 'README.txt'), 'sample archive root file\n', 'utf-8');

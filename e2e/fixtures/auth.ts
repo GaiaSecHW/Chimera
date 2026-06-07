@@ -24,7 +24,7 @@ export const loginByApi = async (request: APIRequestContext, baseURL: string): P
 export const bootstrapSession = async (page: Page, token: string) => {
   await page.addInitScript(
     ({ accessToken, projectId }) => {
-      localStorage.setItem('secflow_token', accessToken);
+      localStorage.setItem('chimera_token', accessToken);
       localStorage.setItem('last_project_id', projectId);
     },
     { accessToken: token, projectId: E2E_PROJECT_ID }
@@ -35,7 +35,7 @@ export const openPvcManagement = async (page: Page) => {
   await page.goto('/');
   await page.evaluate(() => {
     window.dispatchEvent(
-      new CustomEvent('secflow-navigate-view', {
+      new CustomEvent('chimera-navigate-view', {
         detail: { view: 'public-resource-pvc-management' },
       })
     );
