@@ -7,9 +7,9 @@ import {
 } from 'lucide-react';
 
 import { api } from '../../clients/api';
+import type { DataflowVulnTraceTreeNode } from '../../clients/appDataflowVulnScan';
 import { FileWatchMessage } from '../../clients/fileserver';
 import {
-  AppDfaEvaluationRound,
   AppDfaSessionEvent,
   AppDfaSessionIndex,
   AppDfaSessionMeta,
@@ -17,7 +17,6 @@ import {
   AppDfaStageEvent,
   AppDfaTaskDetail,
   AppDfaTaskEvent,
-  AppDfaTaskEvaluation,
   AppDfaTaskResult,
 } from '../../types/types';
 import { showConfirm } from '../../components/DialogService';
@@ -157,14 +156,6 @@ function stageLabel(stage?: string): string {
   return labels[stage || ''] || stage || '-';
 }
 
-function evaluationStatusTone(status?: string) {
-  if (status === 'passed') return 'border-emerald-200 bg-emerald-50 text-emerald-700';
-  if (status === 'failed') return 'border-red-200 bg-red-50 text-red-700';
-  if (status === 'running') return 'border-blue-200 bg-blue-50 text-blue-700';
-  if (status === 'skipped') return 'border-amber-200 bg-amber-50 text-amber-700';
-  return 'border-slate-200 bg-slate-100 text-slate-600';
-}
-
 function timelineLevelTone(level?: string | null) {
   const normalized = String(level || '').toLowerCase();
   if (normalized === 'error') return 'border-rose-200 bg-rose-50 text-rose-700';
@@ -252,16 +243,6 @@ function timelineMessageSummary(event: AppDfaTaskEvent) {
   const payload = event.payload || {};
   const summary = timelineAuditSummary(payload);
   return summary || event.message || '-';
-}
-
-function evaluationRoundKey(round: AppDfaEvaluationRound): string {
-  return [
-    round.round ?? '',
-    round.stage_round ?? '',
-    round.stage ?? '',
-    round.module_name ?? round.function ?? round.func ?? round.entry ?? '',
-    round.source_path ?? '',
-  ].join('::');
 }
 
 function deriveStepStatuses(taskStatus: string, events: AppDfaStageEvent[]): StepStatus[] {
@@ -379,6 +360,62 @@ function MetricCard({ label, value, icon }: { label: string; value: React.ReactN
   return <div className="rounded-2xl border border-slate-200 bg-white px-4 py-4 shadow-sm"><div className="flex items-center justify-between gap-3"><div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">{label}</div><div className="text-slate-400">{icon}</div></div><div className="mt-3 text-2xl font-black text-slate-900">{value}</div></div>;
 }
 
+function traceNodeTone(status?: string) {
+  if (status === 'passed' || status === 'completed') return 'border-emerald-200 bg-emerald-50 text-emerald-700';
+  if (status === 'running' || status === 'queued') return 'border-blue-200 bg-blue-50 text-blue-700';
+  if (status === 'failed' || status === 'error') return 'border-rose-200 bg-rose-50 text-rose-700';
+  if (status === 'depth_limit' || status === 'cycle' || status === 'skipped') return 'border-amber-200 bg-amber-50 text-amber-700';
+  return 'border-slate-200 bg-slate-50 text-slate-600';
+}
+
+function flattenTraceTree(node?: DataflowVulnTraceTreeNode | null): DataflowVulnTraceTreeNode[] {
+  if (!node) return [];
+  return [node, ...node.children.flatMap((child) => flattenTraceTree(child))];
+}
+
+function TraceTreeNodeCard({
+  node,
+  selectedRunId,
+  onSelect,
+  level = 0,
+}: {
+  node: DataflowVulnTraceTreeNode;
+  selectedRunId?: string;
+  onSelect: (node: DataflowVulnTraceTreeNode) => void;
+  level?: number;
+}) {
+  const selected = selectedRunId === node.run_id || (!selectedRunId && level === 0);
+  return (
+    <div className="space-y-2">
+      <button
+        type="button"
+        onClick={() => onSelect(node)}
+        className={`w-full rounded-2xl border px-4 py-3 text-left transition ${selected ? 'border-slate-900 bg-slate-900 text-white' : 'border-slate-200 bg-white hover:bg-slate-50'}`}
+        style={{ marginLeft: `${level * 16}px` }}
+      >
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <div className="truncate font-mono text-sm font-black">{node.function_name || '-'}</div>
+            <div className={`mt-1 truncate text-[11px] ${selected ? 'text-slate-300' : 'text-slate-500'}`}>{node.source_file || '-'} {node.line_hint || ''}</div>
+            <div className={`mt-2 text-xs ${selected ? 'text-slate-300' : 'text-slate-600'}`}>污点: {node.taint_inputs?.length ? node.taint_inputs.map((item) => item.symbol).join(', ') : '未识别'}</div>
+          </div>
+          <div className="flex shrink-0 flex-col items-end gap-2">
+            <span className={`inline-flex rounded-full border px-2 py-0.5 text-[10px] font-bold ${selected ? 'border-white/20 bg-white/10 text-white' : traceNodeTone(node.followup_status || node.status)}`}>{node.followup_status || node.status || '-'}</span>
+            <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${selected ? 'bg-white/10 text-white' : 'bg-slate-100 text-slate-600'}`}>漏洞 {node.findings_count || 0}</span>
+          </div>
+        </div>
+      </button>
+      {node.children?.length ? (
+        <div className="space-y-2">
+          {node.children.map((child) => (
+            <TraceTreeNodeCard key={`${child.run_id || child.function_name}-${child.line_hint}-${level + 1}`} node={child} selectedRunId={selectedRunId} onSelect={onSelect} level={level + 1} />
+          ))}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
 function MarkdownContent({ content }: { content: string }) {
   return <article className="prose prose-slate max-w-none prose-headings:font-black prose-pre:bg-slate-950 prose-pre:text-slate-100 prose-code:text-rose-700"><ReactMarkdown remarkPlugins={[remarkGfm]}>{content}</ReactMarkdown></article>;
 }
@@ -406,11 +443,7 @@ export const DataflowVulnScanTaskDetailPage: React.FC<{ projectId: string; taskI
   const [resultLoading, setResultLoading] = useState(false);
   const [resultView, setResultView] = useState<'final' | 'report' | 'dataflow' | 'json'>('final');
   const [selectedDataflowFile, setSelectedDataflowFile] = useState<string>('');
-  const [evaluation, setEvaluation] = useState<AppDfaTaskEvaluation | null>(null);
-  const [evaluationLoading, setEvaluationLoading] = useState(false);
-  const [evaluationKeyword, setEvaluationKeyword] = useState('');
-  const [evaluationStatus, setEvaluationStatus] = useState('');
-  const [selectedEvaluationRoundKey, setSelectedEvaluationRoundKey] = useState<string | null>(null);
+  const [selectedTraceRunId, setSelectedTraceRunId] = useState<string | null>(null);
   const [sessions, setSessions] = useState<AppDfaSessionMeta[]>([]);
   const [sessionIndex, setSessionIndex] = useState<AppDfaSessionIndex | null>(null);
   const [sessionsLoading, setSessionsLoading] = useState(false);
@@ -468,23 +501,13 @@ export const DataflowVulnScanTaskDetailPage: React.FC<{ projectId: string; taskI
     if (!taskId || vulnGraphLoading) return;
     setVulnGraphLoading(true);
     try {
-      setVulnGraph(await appApi.getVulnGraph(taskId));
+      const data = await appApi.getVulnGraph(taskId);
+      setVulnGraph(data);
+      setSelectedTraceRunId((current) => current || data.trace_tree?.run_id || null);
     } catch (err: any) {
       notify(`加载漏洞图谱失败: ${err?.message || err}`, 'error');
     } finally {
       setVulnGraphLoading(false);
-    }
-  };
-
-  const loadEvaluation = async () => {
-    if (!taskId || evaluationLoading) return;
-    setEvaluationLoading(true);
-    try {
-      setEvaluation(await appApi.getTaskEvaluation(taskId));
-    } catch (err: any) {
-      notify(`加载观测指标失败: ${err?.message || err}`, 'error');
-    } finally {
-      setEvaluationLoading(false);
     }
   };
 
@@ -602,7 +625,7 @@ export const DataflowVulnScanTaskDetailPage: React.FC<{ projectId: string; taskI
     if (activeTab === 'timeline' && timeline.length === 0 && !timelineLoading) void loadTimeline();
     if (activeTab === 'result' && !result && !resultLoading) void loadResult();
     if (activeTab === 'vuln-graph' && !vulnGraph && !vulnGraphLoading) void loadVulnGraph();
-    if (activeTab === 'evaluation' && !evaluation && !evaluationLoading) void loadEvaluation();
+    if (activeTab === 'evaluation' && !vulnGraph && !vulnGraphLoading) void loadVulnGraph();
     if ((activeTab === 'overview' || activeTab === 'session' || activeTab === 'relationship' || Boolean(activeAgentSessionPath)) && sessions.length === 0 && !sessionsLoading) void loadSessions();
   }, [activeTab, activeAgentSessionPath]);
   useEffect(() => {
@@ -751,6 +774,12 @@ export const DataflowVulnScanTaskDetailPage: React.FC<{ projectId: string; taskI
   );
   const resultRootFsPath = result?.output_root ? extractFsRelPath(result.output_root, projectId) : null;
   const selectedDataflow = result?.dataflow_files?.find((file) => file.relative_path === selectedDataflowFile) || result?.dataflow_files?.[0] || null;
+  const traceTreeRoot = vulnGraph?.trace_tree || null;
+  const traceTreeNodes = useMemo(() => flattenTraceTree(traceTreeRoot), [traceTreeRoot]);
+  const selectedTraceNode = useMemo(
+    () => traceTreeNodes.find((node) => node.run_id === selectedTraceRunId) || traceTreeNodes[0] || null,
+    [selectedTraceRunId, traceTreeNodes],
+  );
   const resultContent = resultView === 'final'
     ? result?.result_markdown || ''
     : resultView === 'report'
@@ -758,28 +787,6 @@ export const DataflowVulnScanTaskDetailPage: React.FC<{ projectId: string; taskI
       : resultView === 'dataflow'
         ? selectedDataflow?.markdown || ''
         : JSON.stringify(result?.result_json || {}, null, 2);
-  const evaluationRounds = evaluation?.rounds || [];
-  const evaluationStatuses = useMemo(
-    () => Array.from(new Set(evaluationRounds.map((item) => item.status).filter(Boolean) as string[])).sort(),
-    [evaluationRounds],
-  );
-  const filteredRounds = useMemo(() => {
-    const keyword = evaluationKeyword.trim().toLowerCase();
-    return evaluationRounds.filter((round) => {
-      if (evaluationStatus && round.status !== evaluationStatus) return false;
-      if (!keyword) return true;
-      return JSON.stringify(round).toLowerCase().includes(keyword);
-    });
-  }, [evaluationKeyword, evaluationRounds, evaluationStatus]);
-  const avgJudgeScore = useMemo(() => {
-    const scores = evaluationRounds.map((item) => Number(item.metrics?.avg_judge_score)).filter(Number.isFinite);
-    if (!scores.length) return null;
-    return scores.reduce((sum, item) => sum + item, 0) / scores.length;
-  }, [evaluationRounds]);
-  const selectedEvaluationRound = useMemo(
-    () => evaluationRounds.find((item) => evaluationRoundKey(item) === selectedEvaluationRoundKey) || null,
-    [evaluationRounds, selectedEvaluationRoundKey],
-  );
   const hasReturnContext = hasExecutionReturnContext() || hasBinarySecurityReturnTarget(detail);
 
   useEffect(() => {
@@ -835,7 +842,7 @@ export const DataflowVulnScanTaskDetailPage: React.FC<{ projectId: string; taskI
               {detail ? <span className={`rounded-full px-3 py-1 text-xs font-bold ${STATUS_COLOR[detail.status] || 'bg-slate-100 text-slate-600'}`}>{STATUS_LABEL[detail.status] || detail.status}</span> : null}
               {hasReturnContext ? <span className="rounded-full border border-cyan-200 bg-cyan-50 px-3 py-1 text-xs font-bold text-cyan-700">来自二进制安全总任务</span> : null}
             </div>
-            <p className="mt-2 text-sm text-slate-500">查看数据流追踪、智能体会话、结果产物和观测指标。</p>
+            <p className="mt-2 text-sm text-slate-500">查看数据流追踪、智能体会话、结果产物和树状跟踪过程。</p>
           </div>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -857,7 +864,7 @@ export const DataflowVulnScanTaskDetailPage: React.FC<{ projectId: string; taskI
           ['relationship', '智能体关系'],
           ['result', '结果'],
           ['vuln-graph', '漏洞图谱'],
-          ['evaluation', '观测指标'],
+          ['evaluation', '跟踪过程'],
         ].map(([id, label]) => <button key={id} onClick={() => setActiveTab(id as DetailTab)} className={`rounded-xl px-4 py-2 text-sm font-bold transition ${activeTab === id ? 'bg-slate-900 text-white shadow-sm' : 'text-slate-500 hover:bg-slate-50'}`}>{label}</button>)}
       </div>
 
@@ -1149,181 +1156,98 @@ export const DataflowVulnScanTaskDetailPage: React.FC<{ projectId: string; taskI
           </section>
         ) : (
           <section className="space-y-4">
-            {evaluationLoading ? (
-              <section className="rounded-2xl border border-slate-200 bg-white p-10 text-center text-sm text-slate-500 shadow-sm">加载观测指标中...</section>
-            ) : !evaluation || !evaluation.available ? (
+            {vulnGraphLoading ? (
+              <section className="rounded-2xl border border-slate-200 bg-white p-10 text-center text-sm text-slate-500 shadow-sm">加载跟踪过程图谱中...</section>
+            ) : !vulnGraph?.available || !traceTreeRoot ? (
               <section className="rounded-2xl border border-dashed border-slate-300 bg-white p-10 text-center shadow-sm">
                 <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-slate-100 text-slate-500"><BarChart3 size={20} /></div>
-                <div className="mt-4 text-base font-bold text-slate-800">当前任务尚未生成观测指标</div>
-                <div className="mt-2 text-sm text-slate-500">任务至少完成一个 Worker/Judge 轮次后会出现观测数据。</div>
+                <div className="mt-4 text-base font-bold text-slate-800">当前任务尚未生成跟踪过程</div>
+                <div className="mt-2 text-sm text-slate-500">任务至少完成根函数分析后，才会生成函数调用树与污点跟踪过程。</div>
               </section>
             ) : (
               <>
-                <WarningListPanel title="部分观测文件读取异常" items={evaluation.warnings} />
                 <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-                  <MetricCard label="总轮数" value={formatNumber(evaluation.summary?.round_count ?? evaluationRounds.length)} icon={<BarChart3 size={18} />} />
-                  <MetricCard label="通过轮次" value={formatNumber(evaluation.summary?.passed_round_count)} icon={<CheckCircle2 size={18} />} />
-                  <MetricCard label="追踪函数" value={formatNumber(evaluation.summary?.function_count)} icon={<ScrollText size={18} />} />
-                  <MetricCard label="总 Token" value={formatNumber(evaluation.summary?.total_tokens)} icon={<ScrollText size={18} />} />
-                  <MetricCard label="实际开始时间" value={detail?.started_at ? new Date(detail.started_at).toLocaleString('zh-CN') : '-'} icon={<ScrollText size={18} />} />
-                  <MetricCard label="平均 Judge 分" value={avgJudgeScore == null ? '-' : formatNumber(avgJudgeScore, 1)} icon={<BarChart3 size={18} />} />
-                  <MetricCard label="最终通过率" value={formatRate(evaluation.summary?.effectiveness?.final_round_pass_rate)} icon={<CheckCircle2 size={18} />} />
+                  <MetricCard label="跟踪函数" value={formatNumber(vulnGraph?.summary?.runs)} icon={<ScrollText size={18} />} />
+                  <MetricCard label="跟入节点" value={formatNumber(vulnGraph?.summary?.followups)} icon={<ChevronDown size={18} />} />
+                  <MetricCard label="已执行跟入" value={formatNumber(vulnGraph?.summary?.executed_followups)} icon={<CheckCircle2 size={18} />} />
+                  <MetricCard label="漏洞发现" value={formatNumber(vulnGraph?.summary?.findings)} icon={<BarChart3 size={18} />} />
                 </section>
-                {selectedEvaluationRound ? (
-                  <section className="space-y-4">
-                    <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-                      <div className="flex flex-wrap items-start justify-between gap-4">
-                        <div>
-                          <button type="button" onClick={() => setSelectedEvaluationRoundKey(null)} className="inline-flex items-center gap-2 rounded-xl border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-50">
-                            <ArrowLeft size={14} />
-                            返回轮次列表
-                          </button>
-                          <div className="mt-4 text-xs font-black uppercase tracking-[0.2em] text-cyan-600">Round Detail</div>
-                          <h2 className="mt-2 text-2xl font-black tracking-tight text-slate-900">
-                            #{selectedEvaluationRound.round ?? '-'} · {selectedEvaluationRound.module_name || selectedEvaluationRound.function || selectedEvaluationRound.func || selectedEvaluationRound.entry || '数据流漏洞挖掘'}
-                          </h2>
-                          <div className="mt-2 flex flex-wrap gap-2 text-xs">
-                            <span className={`rounded-full border px-3 py-1 font-bold ${evaluationStatusTone(selectedEvaluationRound.status)}`}>{selectedEvaluationRound.status || '-'}</span>
-                            <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 font-bold text-slate-600">{stageLabel(selectedEvaluationRound.stage)}</span>
-                            <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 font-mono font-bold text-slate-600">Stage Round {selectedEvaluationRound.stage_round ?? '-'}</span>
-                          </div>
-                        </div>
-                        <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-xs text-slate-500">
-                          <div className="font-black text-slate-700">来源文件</div>
-                          <div className="mt-1 max-w-xl break-all font-mono">{selectedEvaluationRound.source_path || '-'}</div>
-                        </div>
-                      </div>
-                    </section>
-                    <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-                      <MetricCard label="耗时" value={formatMs(selectedEvaluationRound.duration_ms)} icon={<BarChart3 size={18} />} />
-                      <MetricCard label="Token" value={formatNumber(selectedEvaluationRound.metrics?.token_total)} icon={<ScrollText size={18} />} />
-                      <MetricCard label="任务实际开始时间" value={detail?.started_at ? new Date(detail.started_at).toLocaleString('zh-CN') : '-'} icon={<ScrollText size={18} />} />
-                      <MetricCard label="Judge 均分" value={formatNumber(selectedEvaluationRound.metrics?.avg_judge_score, 1)} icon={<CheckCircle2 size={18} />} />
-                    </section>
-                    <section className="grid gap-4 xl:grid-cols-[0.9fr_1.1fr]">
-                      <div className="space-y-4">
-                        <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-                          <h3 className="text-sm font-black uppercase tracking-[0.18em] text-slate-500">本轮执行摘要</h3>
-                          <div className="mt-4 space-y-3">
-                            <InfoRow label="开始时间" value={selectedEvaluationRound.started_at ? new Date(selectedEvaluationRound.started_at).toLocaleString('zh-CN') : '-'} />
-                            <InfoRow label="结束时间" value={selectedEvaluationRound.ended_at ? new Date(selectedEvaluationRound.ended_at).toLocaleString('zh-CN') : '-'} />
-                            <InfoRow label="完成原因" value={selectedEvaluationRound.completion_reason || '-'} />
-                            <InfoRow label="函数完成" value={selectedEvaluationRound.module_completed ? '是' : '否'} />
-                            <InfoRow label="通过投票" value={selectedEvaluationRound.metrics?.passed_by_vote ? '通过' : '未通过'} />
-                            <InfoRow label="通过率" value={formatRate(selectedEvaluationRound.metrics?.review_pass_rate)} />
-                          </div>
-                        </section>
-                        <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-                          <h3 className="text-sm font-black uppercase tracking-[0.18em] text-slate-500">Worker</h3>
-                          <div className="mt-4 space-y-3">
-                            <InfoRow label="模型" value={<span className="break-all font-mono">{selectedEvaluationRound.worker?.model || '-'}</span>} />
-                            <InfoRow label="会话文件" value={<span className="break-all font-mono">{selectedEvaluationRound.worker?.session_file || '-'}</span>} />
-                            <InfoRow label="错误" value={selectedEvaluationRound.worker?.error || '-'} />
-                          </div>
-                          {Array.isArray(selectedEvaluationRound.worker?.artifact_paths) && selectedEvaluationRound.worker.artifact_paths.length > 0 ? (
-                            <div className="mt-4">
-                              <div className="text-xs font-bold text-slate-500">产物路径</div>
-                              <div className="mt-2 space-y-2">
-                                {(selectedEvaluationRound.worker?.artifact_paths || []).slice(0, 8).map((path: string) => (
-                                  <div key={path} className="break-all rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 font-mono text-[11px] text-slate-600">{path}</div>
-                                ))}
-                              </div>
-                            </div>
-                          ) : null}
-                        </section>
-                      </div>
-                      <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-                        <div className="flex items-center justify-between gap-3">
-                          <div>
-                            <h3 className="text-sm font-black uppercase tracking-[0.18em] text-slate-500">Judge 评审</h3>
-                            <p className="mt-1 text-xs text-slate-400">展示本轮所有 Judge 的评分、通过状态和反馈摘要</p>
-                          </div>
-                          <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-bold text-slate-600">{selectedEvaluationRound.judges?.length || 0} 个 Judge</span>
-                        </div>
-                        <div className="mt-4 space-y-3">
-                          {(selectedEvaluationRound.judges || []).map((judge: any, index: number) => (
-                            <div key={`${judge.judge_id || index}-${judge.model || ''}`} className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                              <div className="flex flex-wrap items-center justify-between gap-2">
-                                <div className="font-mono text-xs font-bold text-slate-700">{judge.judge_id || `judge-${index + 1}`}</div>
-                                <div className="flex flex-wrap gap-2 text-[11px]">
-                                  <span className={`rounded-full px-2 py-0.5 font-bold ${judge.passed ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'}`}>{judge.passed ? '通过' : '未通过'}</span>
-                                  <span className="rounded-full bg-white px-2 py-0.5 font-bold text-slate-600">评分 {formatNumber(judge.score)}</span>
-                                </div>
-                              </div>
-                              <div className="mt-2 break-all font-mono text-[11px] text-slate-500">{judge.model || '-'}</div>
-                              <div className="mt-2 break-all font-mono text-[11px] text-slate-500">{judge.session_file || '未记录会话文件'}</div>
-                              {judge.feedback_excerpt ? <div className="mt-3 max-h-40 overflow-auto whitespace-pre-wrap rounded-xl border border-slate-200 bg-white px-3 py-3 text-xs leading-6 text-slate-700">{judge.feedback_excerpt}</div> : null}
-                            </div>
-                          ))}
-                          {(selectedEvaluationRound.judges || []).length === 0 ? (
-                            <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-4 py-10 text-center text-sm text-slate-500">本轮没有 Judge 明细</div>
-                          ) : null}
-                        </div>
-                      </section>
-                    </section>
-                    <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-                      <div className="flex items-center justify-between gap-3">
-                        <div>
-                          <h3 className="text-sm font-black uppercase tracking-[0.18em] text-slate-500">原始 JSON</h3>
-                          <p className="mt-1 text-xs text-slate-400">保留完整观测文件内容，便于核对字段。</p>
-                        </div>
-                      </div>
-                      <pre className="mt-4 max-h-[480px] overflow-auto rounded-2xl bg-slate-950 p-4 text-xs text-slate-100">{JSON.stringify(selectedEvaluationRound, null, 2)}</pre>
-                    </section>
-                  </section>
-                ) : (
+                <section className="grid gap-4 xl:grid-cols-[minmax(0,0.95fr)_minmax(360px,1.05fr)]">
                   <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-                    <div className="flex flex-wrap items-start justify-between gap-4">
+                    <div className="flex items-center justify-between gap-3">
                       <div>
-                        <h2 className="text-sm font-black uppercase tracking-[0.2em] text-slate-500">轮次明细</h2>
-                        <p className="mt-1 text-xs text-slate-400">展示每一轮 Worker/Judge 的观测指标，点击行进入轮次详情页</p>
+                        <h2 className="text-sm font-black uppercase tracking-[0.2em] text-slate-500">函数调用树</h2>
+                        <p className="mt-1 text-xs text-slate-400">按调用深度展示整个污点跟踪过程，点击节点查看详情。</p>
                       </div>
-                      <div className="flex flex-wrap gap-2">
-                        <div className="relative">
-                          <Search size={13} className="pointer-events-none absolute left-3 top-2.5 text-slate-400" />
-                          <input value={evaluationKeyword} onChange={(e) => setEvaluationKeyword(e.target.value)} placeholder="函数过滤" className="rounded-xl border border-slate-200 py-2 pl-8 pr-3 text-xs" />
-                        </div>
-                        <select value={evaluationStatus} onChange={(e) => setEvaluationStatus(e.target.value)} className="rounded-xl border border-slate-200 px-3 py-2 text-xs">
-                          <option value="">全部状态</option>
-                          {evaluationStatuses.map((status) => <option key={status} value={status}>{status}</option>)}
-                        </select>
-                      </div>
+                      <button onClick={() => void loadVulnGraph()} className="inline-flex items-center gap-2 rounded-xl border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-50">
+                        <RefreshCw size={14} className={vulnGraphLoading ? 'animate-spin' : ''} />
+                        刷新
+                      </button>
                     </div>
-                    <div className="mt-4 overflow-auto rounded-2xl border border-slate-200">
-                      <table className="min-w-full divide-y divide-slate-200 text-left text-xs">
-                        <thead className="bg-slate-50 text-slate-500">
-                          <tr>
-                            <th className="px-3 py-3">Round</th>
-                            <th className="px-3 py-3">阶段</th>
-                            <th className="px-3 py-3">函数</th>
-                            <th className="px-3 py-3">状态</th>
-                            <th className="px-3 py-3">耗时</th>
-                            <th className="px-3 py-3">Judge 分</th>
-                            <th className="px-3 py-3">通过率</th>
-                            <th className="px-3 py-3">Token</th>
-                            <th className="px-3 py-3">任务实际开始时间</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-slate-200 bg-slate-800">
-                          {filteredRounds.map((round) => (
-                            <tr key={evaluationRoundKey(round)} onClick={() => setSelectedEvaluationRoundKey(evaluationRoundKey(round))} className="cursor-pointer hover:bg-slate-700">
-                              <td className="px-3 py-3 font-mono text-slate-300">{round.round}</td>
-                              <td className="px-3 py-3 font-semibold text-slate-300">{stageLabel(round.stage)}</td>
-                              <td className="px-3 py-3 font-mono text-slate-300">{round.module_name || round.function || round.func || round.entry || '-'}</td>
-                              <td className="px-3 py-3"><span className={`rounded-full border px-2 py-0.5 font-bold ${evaluationStatusTone(round.status)}`}>{round.status || '-'}</span></td>
-                              <td className="px-3 py-3 text-slate-400">{formatMs(round.duration_ms)}</td>
-                              <td className="px-3 py-3">{formatNumber(round.metrics?.avg_judge_score, 1)}</td>
-                              <td className="px-3 py-3">{formatRate(round.metrics?.review_pass_rate)}</td>
-                              <td className="px-3 py-3">{formatNumber(round.metrics?.token_total)}</td>
-                              <td className="px-3 py-3">{detail?.started_at ? new Date(detail.started_at).toLocaleString('zh-CN') : '-'}</td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                      {filteredRounds.length === 0 ? <div className="px-4 py-10 text-center text-sm text-slate-500">没有符合过滤条件的轮次</div> : null}
+                    <div className="mt-4 space-y-3">
+                      <TraceTreeNodeCard node={traceTreeRoot} selectedRunId={selectedTraceNode?.run_id} onSelect={(node) => setSelectedTraceRunId(node.run_id || null)} />
                     </div>
                   </section>
-                )}
+                  <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <h2 className="text-sm font-black uppercase tracking-[0.2em] text-slate-500">节点详情</h2>
+                        <p className="mt-1 text-xs text-slate-400">展示当前函数的污点输入、传播摘要、终止原因和子调用状态。</p>
+                      </div>
+                      {selectedTraceNode ? <span className={`rounded-full border px-3 py-1 text-xs font-bold ${traceNodeTone(selectedTraceNode.followup_status || selectedTraceNode.status)}`}>{selectedTraceNode.followup_status || selectedTraceNode.status || '-'}</span> : null}
+                    </div>
+                    {!selectedTraceNode ? (
+                      <div className="mt-6 rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-4 py-10 text-center text-sm text-slate-500">请选择一个函数节点</div>
+                    ) : (
+                      <div className="mt-4 space-y-5">
+                        <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4">
+                          <div className="font-mono text-sm font-black text-slate-900">{selectedTraceNode.function_name || '-'}</div>
+                          <div className="mt-2 break-all text-xs text-slate-500">{selectedTraceNode.source_file || '-'} {selectedTraceNode.line_hint || ''}</div>
+                        </div>
+                        <div className="space-y-3">
+                          <InfoRow label="深度" value={selectedTraceNode.depth} />
+                          <InfoRow label="漏洞数量" value={selectedTraceNode.findings_count} />
+                          <InfoRow label="子节点数" value={selectedTraceNode.child_count} />
+                          <InfoRow label="Run ID" value={<span className="break-all font-mono">{selectedTraceNode.run_id || '-'}</span>} />
+                          <InfoRow label="跟入原因" value={selectedTraceNode.followup_reason || '-'} />
+                        </div>
+                        <div>
+                          <div className="text-xs font-black uppercase tracking-[0.18em] text-slate-400">污点输入</div>
+                          <div className="mt-3 space-y-2">
+                            {selectedTraceNode.taint_inputs?.length ? selectedTraceNode.taint_inputs.map((item, index) => (
+                              <div key={`${item.symbol}-${index}`} className="rounded-xl border border-slate-200 bg-white px-3 py-3 text-xs">
+                                <div className="font-mono font-bold text-slate-800">{item.symbol}</div>
+                                <div className="mt-1 text-slate-500">{item.kind || 'param'} {item.line ? `· ${item.line}` : ''}</div>
+                                {item.description ? <div className="mt-2 text-slate-600">{item.description}</div> : null}
+                              </div>
+                            )) : <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 px-3 py-6 text-center text-xs text-slate-500">未记录污点输入</div>}
+                          </div>
+                        </div>
+                        <div>
+                          <div className="text-xs font-black uppercase tracking-[0.18em] text-slate-400">关键传播摘要</div>
+                          <div className="mt-3 space-y-2">
+                            {selectedTraceNode.taint_summary?.length ? selectedTraceNode.taint_summary.map((item, index) => (
+                              <div key={`${item.from_symbol}-${item.to_symbol}-${index}`} className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 text-xs">
+                                <div className="font-mono font-bold text-slate-800">{item.from_symbol || '-'} → {item.to_symbol || '-'}</div>
+                                <div className="mt-1 text-slate-500">{item.operation || 'unknown'} {item.line ? `· ${item.line}` : ''}</div>
+                                {item.evidence ? <div className="mt-2 text-slate-600">{item.evidence}</div> : null}
+                                {item.termination_reason ? <div className="mt-2 text-amber-700">终止原因：{item.termination_reason}</div> : null}
+                              </div>
+                            )) : <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 px-3 py-6 text-center text-xs text-slate-500">当前节点暂无传播摘要</div>}
+                          </div>
+                        </div>
+                        <div>
+                          <div className="text-xs font-black uppercase tracking-[0.18em] text-slate-400">终止原因</div>
+                          <div className="mt-3 flex flex-wrap gap-2">
+                            {selectedTraceNode.termination_reasons?.length ? selectedTraceNode.termination_reasons.map((item) => (
+                              <span key={item} className="rounded-full bg-amber-100 px-3 py-1 text-xs font-bold text-amber-700">{item}</span>
+                            )) : <span className="text-xs text-slate-500">无明确终止原因</span>}
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </section>
+                </section>
               </>
             )}
           </section>

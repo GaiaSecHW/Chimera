@@ -18,6 +18,44 @@ import {
 
 const BASE = `${API_BASE}/api/app/dataflow-vuln-scan`;
 
+export interface DataflowVulnTraceTreeNode {
+  run_id: string;
+  function_name: string;
+  source_file: string;
+  line_hint: string;
+  depth: number;
+  status: string;
+  taint_inputs: Array<{
+    symbol: string;
+    kind: string;
+    line?: string;
+    description?: string;
+  }>;
+  taint_summary: Array<{
+    from_symbol: string;
+    to_symbol: string;
+    line: string;
+    operation: string;
+    evidence: string;
+    termination_reason?: string;
+  }>;
+  child_count: number;
+  followup_status: string;
+  followup_reason?: string;
+  findings_count: number;
+  termination_reasons: string[];
+  children: DataflowVulnTraceTreeNode[];
+}
+
+export interface DataflowVulnGraphResponse {
+  task_id: string;
+  available: boolean;
+  run_root: string;
+  summary: Record<string, number>;
+  trace_tree?: DataflowVulnTraceTreeNode | null;
+  graph: Record<string, any>;
+}
+
 export const appDataflowVulnScanApi = {
   // ── Health ────────────────────────────────────────────────────────────────
   getHealth: async (): Promise<{ status: string } & ServiceHealthMeta> =>
@@ -115,7 +153,7 @@ export const appDataflowVulnScanApi = {
   getTaskEvaluation: async (taskId: string): Promise<AppDfaTaskEvaluation> =>
     handleResponse(await fetch(`${BASE}/tasks/${encodeURIComponent(taskId)}/evaluation`, { headers: getHeaders() })),
 
-  getVulnGraph: async (taskId: string): Promise<any> =>
+  getVulnGraph: async (taskId: string): Promise<DataflowVulnGraphResponse> =>
     handleResponse(await fetch(`${BASE}/tasks/${encodeURIComponent(taskId)}/vuln-graph`, { headers: getHeaders() })),
 
   getVulnFindings: async (taskId: string): Promise<any> =>
