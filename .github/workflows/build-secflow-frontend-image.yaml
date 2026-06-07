@@ -79,8 +79,8 @@ jobs:
             --cache-from type=gha,scope=chimera-frontend-amd64 \
             --cache-to type=gha,scope=chimera-frontend-amd64,mode=max \
             --file ./Dockerfile \
-            --tag ghcr.io/gaiasechw/chimera-deploy:amd64-latest \
-            --tag ghcr.io/gaiasechw/chimera-deploy:amd64-${{ needs.prepare.outputs.date_tag }} \
+            --tag ghcr.io/gaiasechw/chimera-frontend:amd64-latest \
+            --tag ghcr.io/gaiasechw/chimera-frontend:amd64-${{ needs.prepare.outputs.date_tag }} \
             --push \
             .
 
@@ -111,8 +111,8 @@ jobs:
             --cache-from type=gha,scope=chimera-frontend-arm64 \
             --cache-to type=gha,scope=chimera-frontend-arm64,mode=max \
             --file ./Dockerfile \
-            --tag ghcr.io/gaiasechw/chimera-deploy:arm64-latest \
-            --tag ghcr.io/gaiasechw/chimera-deploy:arm64-${{ needs.prepare.outputs.date_tag }} \
+            --tag ghcr.io/gaiasechw/chimera-frontend:arm64-latest \
+            --tag ghcr.io/gaiasechw/chimera-frontend:arm64-${{ needs.prepare.outputs.date_tag }} \
             --push \
             .
 
@@ -135,13 +135,13 @@ jobs:
       - name: Create and push multi-arch manifest (latest)
         run: |
           docker buildx imagetools create \
-            --tag ghcr.io/gaiasechw/chimera-deploy:latest \
-            ghcr.io/gaiasechw/chimera-deploy:amd64-latest \
-            ghcr.io/gaiasechw/chimera-deploy:arm64-latest
+            --tag ghcr.io/gaiasechw/chimera-frontend:latest \
+            ghcr.io/gaiasechw/chimera-frontend:amd64-latest \
+            ghcr.io/gaiasechw/chimera-frontend:arm64-latest
 
       - name: Create and push multi-arch manifest (date tag)
         run: |
           docker buildx imagetools create \
-            --tag ghcr.io/gaiasechw/chimera-deploy:${{ needs.prepare.outputs.date_tag }} \
-            ghcr.io/gaiasechw/chimera-deploy:amd64-${{ needs.prepare.outputs.date_tag }} \
-            ghcr.io/gaiasechw/chimera-deploy:arm64-${{ needs.prepare.outputs.date_tag }}
+            --tag ghcr.io/gaiasechw/chimera-frontend:${{ needs.prepare.outputs.date_tag }} \
+            ghcr.io/gaiasechw/chimera-frontend:amd64-${{ needs.prepare.outputs.date_tag }} \
+            ghcr.io/gaiasechw/chimera-frontend:arm64-${{ needs.prepare.outputs.date_tag }}
