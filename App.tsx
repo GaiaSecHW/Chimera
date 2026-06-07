@@ -605,6 +605,7 @@ const AppShell: React.FC = () => {
                     activeBinaryModuleSecurityTaskId,
                     selectedStaticPkgIds,
                     setCurrentView: navigateToView,
+                    setSelectedProjectId: (id) => setSelectedProjectId(id),
                     setActiveProjectId: (id) => setActiveProjectId(id),
                     setActivePackageId: (id) => setActivePackageId(id),
                     setActiveInstanceId: (id) => setActiveInstanceId(id),

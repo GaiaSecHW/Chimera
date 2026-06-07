@@ -48,6 +48,8 @@ export type TopLevelNavKey =
   | 'dashboard'
   | 'project'
   | 'assets'
+  | 'task'
+  | 'developer'
   | 'environment'
   | 'orchestration'
   | 'execution'
@@ -98,6 +100,8 @@ export const TOP_LEVEL_NAV_ITEMS: TopLevelNavItem[] = [
   { id: 'dashboard', label: '控制台' },
   { id: 'project', label: '项目' },
   { id: 'assets', label: '资产' },
+  { id: 'task', label: '任务' },
+  { id: 'developer', label: '开发者' },
   { id: 'environment', label: '环境' },
   { id: 'orchestration', label: '编排' },
   { id: 'execution', label: '执行' },
@@ -192,6 +196,13 @@ export const PROJECT_REQUIRED_VIEWS = new Set<string>([
   'vuln-services',
   'vuln-repro-config',
   'vuln-parameter-config',
+  'task-nuzhua',
+  'task-smart-jar',
+  'task-apk-smart-scan',
+  'task-binary-end-to-end',
+  'task-web-end-to-end',
+  'developer-atomic-capability',
+  'developer-tools',
 ]);
 
 export const getTopLevelNavForView = (view: string): TopLevelNavKey => {
@@ -229,6 +240,18 @@ export const getTopLevelNavForView = (view: string): TopLevelNavKey => {
   }
 
   if (
+    view.startsWith('task-')
+  ) {
+    return 'task';
+  }
+
+  if (
+    view.startsWith('developer-')
+  ) {
+    return 'developer';
+  }
+
+  if (
     view === 'security-assessment' ||
     view === 'kernel-scan' ||
     view.startsWith('binary-security') ||
@@ -262,6 +285,10 @@ export const getTopLevelDefaultView = (nav: TopLevelNavKey, user: UserInfo | nul
       return 'project-mgmt';
     case 'assets':
       return 'public-resource-pvc-management';
+    case 'task':
+      return 'task-nuzhua';
+    case 'developer':
+      return 'developer-atomic-capability';
     case 'environment':
       return 'env-agent';
     case 'orchestration':
@@ -304,6 +331,27 @@ export const SIDEBAR_SECTIONS: Record<TopLevelNavKey, NavSection[]> = {
         { id: 'fileserver-archive-tasks', label: '打包下载任务', icon: Archive, requiresProject: true },
         { id: 'public-resource-pvc-management', label: 'PVC 管理', icon: HardDrive, requiresProject: true },
         { id: 'public-resource-task-management', label: '资源任务', icon: ListTodo, requiresProject: true },
+      ],
+    },
+  ],
+  task: [
+    {
+      title: '任务中心',
+      items: [
+        { id: 'task-nuzhua', label: 'NUZHUA', icon: Activity, requiresProject: true },
+        { id: 'task-smart-jar', label: '智JAR', icon: Archive, requiresProject: true },
+        { id: 'task-apk-smart-scan', label: 'APK智能扫描', icon: Shield, requiresProject: true },
+        { id: 'task-binary-end-to-end', label: '二进制端到端', icon: Cpu, requiresProject: true },
+        { id: 'task-web-end-to-end', label: 'WEB端到端', icon: Globe, requiresProject: true },
+      ],
+    },
+  ],
+  developer: [
+    {
+      title: '开发者中心',
+      items: [
+        { id: 'developer-atomic-capability', label: '原子能力', icon: Zap, requiresProject: true },
+        { id: 'developer-tools', label: '工具', icon: Settings, requiresProject: true },
       ],
     },
   ],

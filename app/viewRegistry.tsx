@@ -1,5 +1,5 @@
 import React from 'react';
-import { FileSearch, Lock, Settings, Zap } from 'lucide-react';
+import { Settings } from 'lucide-react';
 import { api } from '../clients/api';
 import { WorkflowPlaceholder } from '../components/WorkflowPlaceholder';
 import { DashboardPage } from '../pages/DashboardPage';
@@ -124,6 +124,7 @@ export interface ViewRegistryContext {
   activeBinaryModuleSecurityTaskId: string;
   selectedStaticPkgIds: Set<string>;
   setCurrentView: (view: string) => void;
+  setSelectedProjectId: (id: string) => void;
   setActiveProjectId: (id: string) => void;
   setActivePackageId: (id: string) => void;
   setActiveInstanceId: (id: string) => void;
@@ -145,6 +146,12 @@ export interface ViewRegistryContext {
   fetchAdminStats: () => Promise<void>;
   refreshStaticPackages: () => Promise<void>;
 }
+
+const EmptyPlaceholderPage: React.FC<{ title: string }> = ({ title }) => (
+  <div className="p-10 h-full flex items-center justify-center">
+    <h2 className="text-2xl font-black text-theme-text-faint">{title}</h2>
+  </div>
+);
 
 export const renderCurrentView = (ctx: ViewRegistryContext): React.ReactNode => {
   switch (ctx.currentView) {
@@ -184,6 +191,20 @@ export const renderCurrentView = (ctx: ViewRegistryContext): React.ReactNode => 
       return <ProjectDetailPage projectId={ctx.activeProjectId} projects={ctx.projects} onBack={() => ctx.setCurrentView('project-mgmt')} />;
     case 'product-mgmt':
       return <ProductMgmtPage />;
+    case 'task-nuzhua':
+      return <EmptyPlaceholderPage title="NUZHUA" />;
+    case 'task-smart-jar':
+      return <EmptyPlaceholderPage title="智JAR" />;
+    case 'task-apk-smart-scan':
+      return <EmptyPlaceholderPage title="APK智能扫描" />;
+    case 'task-binary-end-to-end':
+      return <EmptyPlaceholderPage title="二进制端到端" />;
+    case 'task-web-end-to-end':
+      return <EmptyPlaceholderPage title="WEB端到端" />;
+    case 'developer-atomic-capability':
+      return <EmptyPlaceholderPage title="原子能力" />;
+    case 'developer-tools':
+      return <EmptyPlaceholderPage title="工具" />;
     case 'static-packages':
       return (
         <StaticPackagesPage
