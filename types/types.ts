@@ -3712,6 +3712,26 @@ export interface AppEaEntryDetail {
   entry_reason?: string;
 }
 
+export interface AppEaResultFunctionListItem {
+  tag?: string;
+  file?: string;
+  line?: number;
+  function: string;
+  taints?: string[];
+  entry_source_lines?: { line?: number; code?: string }[];
+  function_description?: string;
+  entry_reason?: string;
+  taint_details?: { name: string; description?: string; source_kind?: string; description_source?: string }[];
+  func_hash?: string;
+  signature?: string;
+  start_line?: number;
+  end_line?: number;
+  body_lines?: number;
+  entry_category?: string;
+  entry_role?: string;
+  entry_confidence?: number;
+}
+
 export interface AppEaTaskResultSummary {
   module_name?: string | null;
   function_count: number;
@@ -3733,6 +3753,7 @@ export interface AppEaTaskResult {
   run_result_path?: string | null;
   result_markdown?: string | null;
   functions_list_markdown?: string | null;
+  functions_list_items?: AppEaResultFunctionListItem[];
   functions: string[];
   entry_details?: AppEaEntryDetail[];
   run_report_markdown?: string | null;
