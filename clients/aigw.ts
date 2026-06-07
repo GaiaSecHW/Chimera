@@ -156,6 +156,29 @@ export const aigwApi = {
       headers: getHeaders(),
     })),
 
+  listCapacityPoolBackendBindings: async (): Promise<any> =>
+    handleResponse(await fetch(`${API_BASE}/api/aigw/capacity-pool-backend-bindings`, { headers: getHeaders() })),
+
+  createCapacityPoolBackendBinding: async (payload: any): Promise<any> =>
+    handleResponse(await fetch(`${API_BASE}/api/aigw/capacity-pool-backend-bindings`, {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify(payload),
+    })),
+
+  updateCapacityPoolBackendBinding: async (id: number | string, payload: any): Promise<any> =>
+    handleResponse(await fetch(`${API_BASE}/api/aigw/capacity-pool-backend-bindings/${id}`, {
+      method: 'PUT',
+      headers: getHeaders(),
+      body: JSON.stringify(payload),
+    })),
+
+  deleteCapacityPoolBackendBinding: async (id: number | string): Promise<any> =>
+    handleResponse(await fetch(`${API_BASE}/api/aigw/capacity-pool-backend-bindings/${id}`, {
+      method: 'DELETE',
+      headers: getHeaders(),
+    })),
+
   listLlmKeys: async (): Promise<any> =>
     handleResponse(await fetch(`${API_BASE}/api/aigw/llm-keys`, { headers: getHeaders() })),
 

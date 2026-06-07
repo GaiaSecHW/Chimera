@@ -5,6 +5,7 @@ import { showConfirm } from '../../components/DialogService';
 import { useUiFeedback } from '../../components/UiFeedback';
 import {
   AiGatewayBackendUnit,
+  AiGatewayCapacityPoolBackendBinding,
   AiGatewayCapacityPool,
   AiGatewayCapacityPoolModelBinding,
   AiGatewayConnectionTestResult,
@@ -19,6 +20,10 @@ import {
   AiGatewayProviderStat,
   AiGatewayReplayResponse,
 } from '../../types/types';
+
+type AiGatewayBackendUnitForm = Omit<AiGatewayBackendUnit, 'id' | 'provider_type'> & {
+  provider_type?: string;
+};
 
 type PageView = 'config' | 'keys';
 type LogDrawerPreset = {
@@ -35,9 +40,8 @@ const emptyAlias = (): Omit<AiGatewayModelAlias, 'id'> => ({
   enabled: true,
 });
 
-const emptyBackendUnit = (): Omit<AiGatewayBackendUnit, 'id'> => ({
+const emptyBackendUnit = (): AiGatewayBackendUnitForm => ({
   unit_code: '',
-  provider_type: 'openai',
   api_base_url: '',
   model_name: '',
   api_key_ciphertext: '',
@@ -69,6 +73,7 @@ const emptyLlmKeyForm = (): AiGatewayLlmKeyCreatePayload => ({
   enabled: true,
   expires_at: null,
   description: '',
+  capacity_pool_ids: [],
   model_alias_ids: [],
   task_bindings: [],
 });
@@ -108,12 +113,14 @@ export const AiGatewayPage: React.FC = () => {
   const [bindings, setBindings] = useState<AiGatewayModelAliasBinding[]>([]);
   const [capacityPools, setCapacityPools] = useState<AiGatewayCapacityPool[]>([]);
   const [capacityPoolBindings, setCapacityPoolBindings] = useState<AiGatewayCapacityPoolModelBinding[]>([]);
+  const [capacityPoolBackendBindings, setCapacityPoolBackendBindings] = useState<AiGatewayCapacityPoolBackendBinding[]>([]);
   const [llmKeys, setLlmKeys] = useState<AiGatewayLlmKey[]>([]);
   const [editingAliasId, setEditingAliasId] = useState<number | null>(null);
   const [editingBackendUnitId, setEditingBackendUnitId] = useState<number | null>(null);
+  const [pendingBackendPoolId, setPendingBackendPoolId] = useState<number | null>(null);
   const [editingBindingId, setEditingBindingId] = useState<number | null>(null);
   const [aliasForm, setAliasForm] = useState<Omit<AiGatewayModelAlias, 'id'>>(emptyAlias());
-  const [backendUnitForm, setBackendUnitForm] = useState<Omit<AiGatewayBackendUnit, 'id'>>(emptyBackendUnit());
+  const [backendUnitForm, setBackendUnitForm] = useState<AiGatewayBackendUnitForm>(emptyBackendUnit());
   const [bindingForm, setBindingForm] = useState<Omit<AiGatewayModelAliasBinding, 'id'>>(emptyBinding());
   const [capacityPoolForm, setCapacityPoolForm] = useState<Omit<AiGatewayCapacityPool, 'id'>>(emptyCapacityPool());
   const [llmKeyForm, setLlmKeyForm] = useState<AiGatewayLlmKeyCreatePayload>(emptyLlmKeyForm());
@@ -182,6 +189,26 @@ export const AiGatewayPage: React.FC = () => {
     };
   }), [backendUnits, bindings, modelAliases, providerStatByBackendId]);
   const selectedAliasPoolBindings = useMemo(() => capacityPoolBindings.filter((item) => item.model_alias_id === selectedAliasId), [capacityPoolBindings, selectedAliasId]);
+  const poolBackendBindingsByPoolId = useMemo(() => {
+    const map = new Map<number, AiGatewayCapacityPoolBackendBinding[]>();
+    capacityPoolBackendBindings.forEach((binding) => {
+      const list = map.get(binding.capacity_pool_id) || [];
+      list.push(binding);
+      map.set(binding.capacity_pool_id, list);
+    });
+    return map;
+  }, [capacityPoolBackendBindings]);
+  const poolUnitsByPoolId = useMemo(() => {
+    const map = new Map<number, AiGatewayBackendUnit[]>();
+    poolBackendBindingsByPoolId.forEach((bindingsForPool, poolId) => {
+      const units = bindingsForPool
+        .filter((binding) => binding.enabled)
+        .map((binding) => backendUnits.find((unit) => unit.id === binding.backend_unit_id))
+        .filter((item): item is AiGatewayBackendUnit => Boolean(item));
+      map.set(poolId, units);
+    });
+    return map;
+  }, [backendUnits, poolBackendBindingsByPoolId]);
   const selectedAliasPools = useMemo(() => selectedAliasPoolBindings.map((binding) => ({
     binding,
     pool: capacityPools.find((pool) => pool.id === binding.capacity_pool_id) || null,
@@ -200,13 +227,14 @@ export const AiGatewayPage: React.FC = () => {
     const requestId = ++loadDataRequestIdRef.current;
     setError('');
     try {
-      const [providerItems, aliases, units, bindingItems, poolItems, poolBindingItems, llmKeyItems] = await Promise.all([
+      const [providerItems, aliases, units, bindingItems, poolItems, poolBindingItems, poolBackendBindingItems, llmKeyItems] = await Promise.all([
         platformApi.aigw.listProviderStats(),
         platformApi.aigw.listModelAliases(),
         platformApi.aigw.listBackendUnits(),
         platformApi.aigw.listBindings(),
         platformApi.aigw.listCapacityPools(),
         platformApi.aigw.listCapacityPoolBindings(),
+        platformApi.aigw.listCapacityPoolBackendBindings(),
         platformApi.aigw.listLlmKeys(),
       ]);
       if (requestId !== loadDataRequestIdRef.current) return;
@@ -216,6 +244,7 @@ export const AiGatewayPage: React.FC = () => {
       setBindings(Array.isArray(bindingItems) ? bindingItems : []);
       setCapacityPools(Array.isArray(poolItems) ? poolItems : []);
       setCapacityPoolBindings(Array.isArray(poolBindingItems) ? poolBindingItems : []);
+      setCapacityPoolBackendBindings(Array.isArray(poolBackendBindingItems) ? poolBackendBindingItems : []);
       setLlmKeys(Array.isArray(llmKeyItems) ? llmKeyItems : []);
     } catch (err: any) {
       if (requestId !== loadDataRequestIdRef.current) return;
@@ -328,10 +357,10 @@ export const AiGatewayPage: React.FC = () => {
 
   const openBackendModal = (item?: AiGatewayBackendUnit) => {
     if (item) {
+      setPendingBackendPoolId(null);
       setEditingBackendUnitId(item.id);
       setBackendUnitForm({
         unit_code: item.unit_code,
-        provider_type: item.provider_type,
         api_base_url: item.api_base_url,
         model_name: item.model_name,
         api_key_ciphertext: '',
@@ -346,6 +375,7 @@ export const AiGatewayPage: React.FC = () => {
       });
     } else {
       setEditingBackendUnitId(null);
+      setPendingBackendPoolId(null);
       setBackendUnitForm(emptyBackendUnit());
     }
     setBackendModalOpen(true);
@@ -393,6 +423,7 @@ export const AiGatewayPage: React.FC = () => {
 
   const resetBackendUnitForm = () => {
     setEditingBackendUnitId(null);
+    setPendingBackendPoolId(null);
     setBackendUnitForm(emptyBackendUnit());
     setBackendModalOpen(false);
   };
@@ -457,11 +488,33 @@ export const AiGatewayPage: React.FC = () => {
       if (!backendUnitForm.supports_chat_completions && !backendUnitForm.supports_responses && !backendUnitForm.supports_messages) {
         throw new Error('至少选择一种支持接口');
       }
+      const payload = {
+        unit_code: backendUnitForm.unit_code,
+        api_base_url: backendUnitForm.api_base_url,
+        model_name: backendUnitForm.model_name,
+        api_key_ciphertext: backendUnitForm.api_key_ciphertext,
+        api_key_fingerprint: backendUnitForm.api_key_fingerprint,
+        total_max_concurrency: backendUnitForm.total_max_concurrency,
+        priority_default: backendUnitForm.priority_default,
+        supports_chat_completions: backendUnitForm.supports_chat_completions,
+        supports_responses: backendUnitForm.supports_responses,
+        supports_messages: backendUnitForm.supports_messages,
+        enabled: backendUnitForm.enabled,
+        description: backendUnitForm.description,
+      };
       if (editingBackendUnitId) {
-        await platformApi.aigw.updateBackendUnit(editingBackendUnitId, backendUnitForm);
+        await platformApi.aigw.updateBackendUnit(editingBackendUnitId, payload);
         notify('模型已更新', 'success');
       } else {
-        await platformApi.aigw.createBackendUnit(backendUnitForm);
+        const created = await platformApi.aigw.createBackendUnit(payload) as AiGatewayBackendUnit;
+        if (pendingBackendPoolId && created?.id) {
+          await platformApi.aigw.createCapacityPoolBackendBinding({
+            capacity_pool_id: pendingBackendPoolId,
+            backend_unit_id: created.id,
+            priority: 0,
+            enabled: true,
+          });
+        }
         notify('模型已创建', 'success');
       }
       resetBackendUnitForm();
@@ -1027,7 +1080,7 @@ export const AiGatewayPage: React.FC = () => {
                 <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
                   {selectedAliasPools.map(({ binding, pool }) => {
                     if (!pool) return null;
-                    const poolUnits = backendUnits.filter((unit) => unit.description?.includes(`所属算力池：${pool.pool_name}`));
+                    const poolUnits = poolUnitsByPoolId.get(pool.id) || [];
                     const poolStats = poolUnits
                       .map((unit) => providerStatByBackendId.get(unit.id))
                       .filter(Boolean);
@@ -1110,11 +1163,8 @@ export const AiGatewayPage: React.FC = () => {
                       <button
                         type="button"
                         onClick={() => {
-                          setBackendUnitForm((current) => ({
-                            ...current,
-                            provider_type: current.provider_type || 'openai',
-                            description: current.description || `所属算力池：${pool.pool_name}`,
-                          }));
+                          setBackendUnitForm(emptyBackendUnit());
+                          setPendingBackendPoolId(pool.id);
                           setEditingBackendUnitId(null);
                           setBackendModalOpen(true);
                         }}
@@ -1142,7 +1192,7 @@ export const AiGatewayPage: React.FC = () => {
                     </div>
                   </div>
                   <div className="mt-3 space-y-2">
-                    {backendUnits.filter((unit) => unit.description?.includes(`所属算力池：${pool.pool_name}`)).map((unit) => (
+                    {(poolUnitsByPoolId.get(pool.id) || []).map((unit) => (
                       <div
                         key={unit.id}
                         draggable
@@ -1245,16 +1295,13 @@ export const AiGatewayPage: React.FC = () => {
             <div className="space-y-4 p-6">
               <div className="text-[11px] font-black uppercase tracking-[0.2em] text-slate-400">模型</div>
               <div className="grid gap-4 sm:grid-cols-2">
-                <label className="block text-sm font-bold text-slate-600">提供方类型<input value={backendUnitForm.provider_type} onChange={(e) => setBackendUnitForm((v) => ({ ...v, provider_type: e.target.value }))} placeholder="默认 openai" className="mt-1 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 outline-none" /></label>
                 <label className="block text-sm font-bold text-slate-600">模型名称<input value={backendUnitForm.model_name} onChange={(e) => setBackendUnitForm((v) => ({ ...v, model_name: e.target.value }))} placeholder="实际下游模型名" className="mt-1 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 outline-none" /></label>
                 <label className="block text-sm font-bold text-slate-600">API 地址<input value={backendUnitForm.api_base_url} onChange={(e) => setBackendUnitForm((v) => ({ ...v, api_base_url: e.target.value }))} placeholder="https://..." className="mt-1 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 outline-none" /></label>
-              </div>
-              <p className="-mt-1 text-xs text-slate-400">一个模型对应一个真实的接入点，容量、优先级和密钥都在这里维护。</p>
-              <label className="block text-sm font-bold text-slate-600">API 密钥<input type="password" value={backendUnitForm.api_key_ciphertext || ''} onChange={(e) => setBackendUnitForm((v) => ({ ...v, api_key_ciphertext: e.target.value }))} placeholder={editingBackendUnitId ? '留空则保持现有 API 密钥' : ''} className="mt-1 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 outline-none" /></label>
-              <div className="grid gap-4 sm:grid-cols-2">
                 <label className="block text-sm font-bold text-slate-600">最大并发<input type="number" value={backendUnitForm.total_max_concurrency} onChange={(e) => setBackendUnitForm((v) => ({ ...v, total_max_concurrency: Number(e.target.value) || 0 }))} className="mt-1 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 outline-none" /></label>
                 <label className="block text-sm font-bold text-slate-600">默认优先级<input type="number" value={backendUnitForm.priority_default} onChange={(e) => setBackendUnitForm((v) => ({ ...v, priority_default: Number(e.target.value) || 0 }))} className="mt-1 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 outline-none" /></label>
               </div>
+              <p className="-mt-1 text-xs text-slate-400">一个模型对应一个真实的接入点，下面的 Chat / Responses / Messages 开关会直接写入 `gaiasec-llm-gateway` 的真实后端能力字段。</p>
+              <label className="block text-sm font-bold text-slate-600">API 密钥<input type="password" value={backendUnitForm.api_key_ciphertext || ''} onChange={(e) => setBackendUnitForm((v) => ({ ...v, api_key_ciphertext: e.target.value }))} placeholder={editingBackendUnitId ? '留空则保持现有 API 密钥' : ''} className="mt-1 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 outline-none" /></label>
               <div className="grid gap-3 sm:grid-cols-3">
                 <label className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold text-slate-700">
                   <input type="checkbox" checked={backendUnitForm.supports_chat_completions} onChange={(e) => setBackendUnitForm((v) => ({ ...v, supports_chat_completions: e.target.checked }))} />
@@ -1505,7 +1552,7 @@ export const AiGatewayPage: React.FC = () => {
             <div className="flex items-center justify-between border-b border-slate-200 px-6 py-5">
               <div>
                 <h3 className="text-xl font-black text-slate-900">新建调用密钥</h3>
-                <p className="mt-1 text-sm text-slate-500">为调用方创建一个虚拟访问密钥，并配置允许访问的模型别名。</p>
+                <p className="mt-1 text-sm text-slate-500">为调用方创建一个虚拟访问密钥，并配置允许访问的算力池。</p>
               </div>
               <button onClick={resetLlmKeyForm} className="rounded-2xl bg-slate-100 p-2 text-slate-600 hover:bg-slate-200"><X className="h-5 w-5" /></button>
             </div>
@@ -1527,10 +1574,10 @@ export const AiGatewayPage: React.FC = () => {
                 <label className="block text-sm font-bold text-slate-600">任务 ID<input value={llmKeyForm.task_id} onChange={(e) => setLlmKeyForm((v) => ({ ...v, task_id: e.target.value }))} className="mt-1 w-full rounded-2xl border border-slate-200 px-4 py-3 outline-none" /></label>
                 <label className="block text-sm font-bold text-slate-600">子任务 ID<input value={llmKeyForm.sub_task_id} onChange={(e) => setLlmKeyForm((v) => ({ ...v, sub_task_id: e.target.value }))} className="mt-1 w-full rounded-2xl border border-slate-200 px-4 py-3 outline-none" /></label>
               </div>
-              <label className="block text-sm font-bold text-slate-600">允许访问的模型别名
+              <label className="block text-sm font-bold text-slate-600">允许访问的算力池
                 <div className="mt-2 flex flex-wrap gap-2 rounded-2xl border border-slate-200 p-3">
-                  {modelAliases.map((item) => {
-                    const checked = llmKeyForm.model_alias_ids.includes(item.id);
+                  {capacityPools.map((item) => {
+                    const checked = llmKeyForm.capacity_pool_ids.includes(item.id);
                     return (
                       <label key={item.id} className={`rounded-full border px-3 py-1.5 text-xs font-bold ${checked ? 'border-slate-900 bg-slate-900 text-white' : 'border-slate-200 bg-slate-50 text-slate-600'}`}>
                         <input
@@ -1539,12 +1586,12 @@ export const AiGatewayPage: React.FC = () => {
                           checked={checked}
                           onChange={(e) => setLlmKeyForm((current) => ({
                             ...current,
-                            model_alias_ids: e.target.checked
-                              ? [...current.model_alias_ids, item.id]
-                              : current.model_alias_ids.filter((id) => id !== item.id),
+                            capacity_pool_ids: e.target.checked
+                              ? [...current.capacity_pool_ids, item.id]
+                              : current.capacity_pool_ids.filter((id) => id !== item.id),
                           }))}
                         />
-                        {item.alias_name}
+                        {item.pool_name}
                       </label>
                     );
                   })}
@@ -1594,6 +1641,7 @@ export const AiGatewayPage: React.FC = () => {
               <div className="rounded-2xl bg-slate-50 px-4 py-3">类型：<span className="font-bold text-slate-900">{selectedLlmKey.key_type === 'task' ? '任务密钥' : selectedLlmKey.key_type === 'work' ? '工作密钥' : selectedLlmKey.key_type}</span></div>
               <div className="rounded-2xl bg-slate-50 px-4 py-3">最大并发：<span className="font-bold text-slate-900">{selectedLlmKey.max_concurrency || 0}</span></div>
               <div className="rounded-2xl bg-slate-50 px-4 py-3">任务范围：<span className="font-bold text-slate-900">{selectedLlmKey.task_id ? `${selectedLlmKey.task_id}${selectedLlmKey.sub_task_id ? ` / ${selectedLlmKey.sub_task_id}` : ''}` : '-'}</span></div>
+              <div className="rounded-2xl bg-slate-50 px-4 py-3">授权算力池：<span className="font-bold text-slate-900">{selectedLlmKey.capacity_pool_ids?.length ? selectedLlmKey.capacity_pool_ids.map((id) => capacityPools.find((pool) => pool.id === id)?.pool_name || `#${id}`).join(' / ') : '-'}</span></div>
               <div className="rounded-2xl bg-slate-50 px-4 py-3">备注：<span className="font-bold text-slate-900">{selectedLlmKey.description || '-'}</span></div>
             </div>
           </div>

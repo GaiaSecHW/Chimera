@@ -2158,6 +2158,9 @@ export interface AiGatewayLlmKey {
   enabled: boolean;
   expires_at?: string | null;
   description: string;
+  capacity_pool_ids: number[];
+  model_alias_ids: number[];
+  task_bindings: AiGatewayLlmKeyTaskBindingInput[];
   created_at: string;
   updated_at: string;
 }
@@ -2177,6 +2180,7 @@ export interface AiGatewayLlmKeyCreatePayload {
   enabled: boolean;
   expires_at?: string | null;
   description: string;
+  capacity_pool_ids: number[];
   model_alias_ids: number[];
   task_bindings: AiGatewayLlmKeyTaskBindingInput[];
 }
@@ -2199,6 +2203,16 @@ export interface AiGatewayCapacityPoolModelBinding {
   id: number;
   capacity_pool_id: number;
   model_alias_id: number;
+  priority: number;
+  enabled: boolean;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface AiGatewayCapacityPoolBackendBinding {
+  id: number;
+  capacity_pool_id: number;
+  backend_unit_id: number;
   priority: number;
   enabled: boolean;
   created_at?: string;
@@ -2230,6 +2244,7 @@ export interface AiGatewayLogSummary {
   task_id: string;
   sub_task_id: string;
   model_alias_id: number;
+  capacity_pool_id: number;
   backend_unit_id: number;
   backend_config_id: number;
   backend_model_name: string;
