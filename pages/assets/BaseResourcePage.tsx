@@ -21,6 +21,13 @@ import {
 import { api } from '../../clients/api';
 import { StatusBadge } from '../../components/StatusBadge';
 import { ProjectInputUploadRecord, ProjectInputUploadStats } from '../../types/types';
+import {
+  filterUploadRecords,
+  formatUploadBytes,
+  getLatestBatchSummary,
+  getUploadModeLabel,
+  isAllowedArchiveFileName,
+} from './baseResourcePageModel';
 
 interface BaseResourcePageProps {
   type: 'document' | 'software' | 'code' | 'other';
@@ -37,21 +44,6 @@ interface UploadQueueItem {
   error?: string;
 }
 
-const ALLOWED_SUFFIXES = ['.zip', '.tar', '.tar.gz', '.tgz', '.tar.bz2', '.tbz2', '.tar.xz', '.txz'];
-
-const formatBytes = (value?: number | null) => {
-  const size = Number(value || 0);
-  if (!size) return '0 B';
-  const units = ['B', 'KB', 'MB', 'GB', 'TB'];
-  let next = size;
-  let unitIndex = 0;
-  while (next >= 1024 && unitIndex < units.length - 1) {
-    next /= 1024;
-    unitIndex += 1;
-  }
-  return `${next.toFixed(next >= 10 || unitIndex === 0 ? 0 : 1)} ${units[unitIndex]}`;
-};
-
 const formatDateTime = (value?: string | null) => {
   if (!value) return '-';
   const date = new Date(value);
@@ -59,19 +51,7 @@ const formatDateTime = (value?: string | null) => {
   return date.toLocaleString();
 };
 
-const isAllowedArchiveFile = (file: File) => {
-  const lowered = (file.name || '').toLowerCase();
-  return ALLOWED_SUFFIXES.some((suffix) => lowered.endsWith(suffix));
-};
-
-const getUploadModeLabel = (keepOriginal: boolean) => (keepOriginal ? '保留原始文件' : '解压导入');
-
-const getLatestBatchSummary = (record: ProjectInputUploadRecord) => {
-  const batch = record.latest_batch;
-  if (!batch) return '暂无批次信息';
-  const modeLabel = batch.mode === 'append' ? '追加上传' : '首次上传';
-  return `${modeLabel} · ${batch.submitted_file_count} 个压缩包`;
-};
+const isAllowedArchiveFile = (file: File) => isAllowedArchiveFileName(file.name || '');
 
 export const BaseResourcePage: React.FC<BaseResourcePageProps> = ({ type, title, subtitle, projectId }) => {
   const fileserverApi = api.domains.assets.fileserver;
@@ -237,16 +217,7 @@ export const BaseResourcePage: React.FC<BaseResourcePageProps> = ({ type, title,
   };
 
   const filteredRecords = useMemo(() => {
-    const keyword = searchTerm.trim().toLowerCase();
-    if (!keyword) return records;
-    return records.filter((record) => {
-      const latestError = `${record.last_error || ''} ${record.latest_batch?.error_summary || ''}`.toLowerCase();
-      return (
-        record.upload_id.toLowerCase().includes(keyword) ||
-        record.target_path.toLowerCase().includes(keyword) ||
-        latestError.includes(keyword)
-      );
-    });
+    return filterUploadRecords(records, searchTerm);
   }, [records, searchTerm]);
 
   const toggleSelectAll = () => {
@@ -336,7 +307,7 @@ export const BaseResourcePage: React.FC<BaseResourcePageProps> = ({ type, title,
             <HardDrive size={16} />
             <span>总大小</span>
           </div>
-          <p className="text-3xl font-black text-slate-800 mt-4">{formatBytes(stats?.stored_total_size_bytes)}</p>
+          <p className="text-3xl font-black text-slate-800 mt-4">{formatUploadBytes(stats?.stored_total_size_bytes)}</p>
         </div>
       </div>
 
@@ -450,7 +421,7 @@ export const BaseResourcePage: React.FC<BaseResourcePageProps> = ({ type, title,
                     <td className="px-4 py-6">
                       <div className="space-y-1">
                         <p className="text-xs font-black text-slate-700">{record.stored_file_count} 个文件</p>
-                        <p className="text-[10px] text-slate-400 font-medium">{formatBytes(record.stored_total_size_bytes)}</p>
+                        <p className="text-[10px] text-slate-400 font-medium">{formatUploadBytes(record.stored_total_size_bytes)}</p>
                       </div>
                     </td>
                     <td className="px-4 py-6">
@@ -609,7 +580,7 @@ export const BaseResourcePage: React.FC<BaseResourcePageProps> = ({ type, title,
                           </div>
                           <div className="min-w-0">
                             <p className="text-xs font-black text-slate-800 truncate">{item.file.name}</p>
-                            <p className="text-[10px] text-slate-400">{formatBytes(item.file.size)}</p>
+                            <p className="text-[10px] text-slate-400">{formatUploadBytes(item.file.size)}</p>
                           </div>
                         </div>
                         <div className="flex items-center gap-4 shrink-0">

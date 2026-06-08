@@ -397,18 +397,37 @@ const DialogShell: React.FC<{
 const DetailMetricCard: React.FC<{
   label: string;
   value: React.ReactNode;
-  helper?: React.ReactNode;
-}> = ({ label, value, helper }) => (
+  hint?: React.ReactNode;
+}> = ({ label, value, hint }) => (
   <div className="rounded-[1.35rem] border border-slate-200 bg-white px-4 py-4 shadow-sm">
     <div className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-400">{label}</div>
     <div className="mt-2 text-xl font-black text-slate-900">{value}</div>
-    {helper ? <div className="mt-1 text-xs text-slate-500">{helper}</div> : null}
+    {hint ? <div className="mt-1 text-xs text-slate-500">{hint}</div> : null}
   </div>
 );
 
 const MarkdownContent: React.FC<{ content: string }> = ({ content }) => (
   <div className="markdown-body break-words leading-7 text-sm text-slate-700">
     <ReactMarkdown remarkPlugins={[remarkGfm]}>{content}</ReactMarkdown>
+  </div>
+);
+
+const DetailSectionCard: React.FC<{
+  title: string;
+  subtitle?: string;
+  children: React.ReactNode;
+  actions?: React.ReactNode;
+  compact?: boolean;
+}> = ({ title, subtitle, children, actions, compact = false }) => (
+  <div className={`rounded-[1.5rem] border border-slate-200 bg-white ${compact ? 'p-4' : 'p-5'}`}>
+    <div className="flex flex-wrap items-start justify-between gap-3">
+      <div>
+        <div className="text-[11px] font-black uppercase tracking-[0.2em] text-slate-400">{title}</div>
+        {subtitle ? <div className="mt-1 text-xs leading-5 text-slate-500">{subtitle}</div> : null}
+      </div>
+      {actions ? <div className="shrink-0">{actions}</div> : null}
+    </div>
+    <div className="mt-4">{children}</div>
   </div>
 );
 
@@ -1224,6 +1243,51 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId }) => {
         </div>
       );
     }
+    const overviewCards = [
+      { label: '当前阶段', value: toStageText(selectedDetail.current_stage), hint: selectedDetail.current_stage || 'n/a' },
+      { label: '当前状态', value: toStatusText(selectedDetail.current_status), hint: selectedDetail.current_status || 'n/a' },
+      { label: '置信度', value: selectedDetail.confidence ?? 'n/a', hint: `决策：${toDecisionText(selectedDetail.decision_status)}` },
+      { label: 'CVSS', value: Number(selectedDetail.cvss_score || 0).toFixed(1), hint: selectedDetail.severity || 'n/a' },
+      { label: '上报者', value: selectedDetail.reporter?.name || '未提供', hint: selectedDetail.reporter?.type || '未知类型' },
+      { label: '文件根路径', value: selectedDetail.files_root_path || '未分配', hint: workspaceSummary?.files_root_path || '暂无工作区摘要' },
+    ];
+
+    const detailTabs: Array<{ key: IntakeDetailTab; label: string; icon: React.ReactNode }> = [
+      { key: 'overview', label: '疑点总览', icon: <Layers3 size={14} /> },
+      { key: 'report', label: '疑点报告', icon: <ScrollText size={14} /> },
+      { key: 'evidence', label: '证据与文件', icon: <FolderOpen size={14} /> },
+      { key: 'process', label: '处置过程', icon: <Activity size={14} /> },
+      { key: 'context', label: '关联上下文', icon: <FileClock size={14} /> },
+    ];
+
+    const parsedArtifacts = (() => {
+      try {
+        return JSON.parse(editableDetail?.artifacts_text || '[]');
+      } catch {
+        return selectedDetail.artifacts;
+      }
+    })();
+
+    const parsedMetadata = (() => {
+      try {
+        return JSON.parse(editableDetail?.metadata_text || '{}');
+      } catch {
+        return selectedDetail.metadata;
+      }
+    })();
+
+    const rawContext = {
+      reporter: editableDetail?.reporter || selectedDetail.reporter,
+      subject: editableDetail?.subject || selectedDetail.subject,
+      evidence: {
+        summary: editableDetail?.evidence_summary ?? selectedDetail?.evidence?.summary,
+        reproduction_hint: editableDetail?.evidence_reproduction_hint ?? selectedDetail?.evidence?.reproduction_hint,
+      },
+      artifacts: parsedArtifacts,
+      metadata: parsedMetadata,
+      workspace_summary: workspaceSummary,
+      result_summary: resultSummary,
+    };
 
     return (
       <div className="overflow-hidden rounded-[2rem] border border-slate-200 bg-white shadow-sm">
@@ -1348,502 +1412,596 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId }) => {
           </div>
         </div>
 
-        <div className="grid gap-4 p-6 xl:grid-cols-[1.25fr_0.75fr] xl:p-8">
-          <div className="space-y-4">
-            <div className="rounded-[1.5rem] border border-slate-200 p-4">
-              <div className="text-[11px] font-black uppercase tracking-[0.2em] text-slate-400">上报字段</div>
-              <div className="mt-3 grid gap-2.5 md:grid-cols-2">
-                <label className="grid gap-1">
-                  <span className="text-[11px] font-black text-slate-500">标题</span>
-                  <input
-                    value={editableDetail?.title || ''}
-                    onChange={(event) => setEditableDetail((prev) => (prev ? { ...prev, title: event.target.value } : prev))}
-                    disabled={!detailEditMode || detailSaving}
-                    className="rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none disabled:bg-slate-50"
-                  />
-                </label>
-                <label className="grid gap-1">
-                  <span className="text-[11px] font-black text-slate-500">严重程度</span>
-                  <select
-                    value={editableDetail?.severity || 'medium'}
-                    onChange={(event) => setEditableDetail((prev) => (prev ? { ...prev, severity: event.target.value } : prev))}
-                    disabled={!detailEditMode || detailSaving}
-                    className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none disabled:bg-slate-50"
-                  >
-                    <option value="critical">critical</option>
-                    <option value="high">high</option>
-                    <option value="medium">medium</option>
-                    <option value="low">low</option>
-                  </select>
-                </label>
-                <label className="grid gap-1 md:col-span-2">
-                  <span className="text-[11px] font-black text-slate-500">摘要</span>
-                  <textarea
-                    value={editableDetail?.summary || ''}
-                    onChange={(event) => setEditableDetail((prev) => (prev ? { ...prev, summary: event.target.value } : prev))}
-                    disabled={!detailEditMode || detailSaving}
-                    className="min-h-[76px] rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none disabled:bg-slate-50"
-                  />
-                </label>
-                <label className="grid gap-1">
-                  <span className="text-[11px] font-black text-slate-500">CVSS</span>
-                  <input
-                    type="number"
-                    min={0}
-                    max={10}
-                    step={0.1}
-                    value={editableDetail?.cvss_score ?? 0}
-                    onChange={(event) => setEditableDetail((prev) => (prev ? { ...prev, cvss_score: Number(event.target.value) } : prev))}
-                    disabled={!detailEditMode || detailSaving}
-                    className="rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none disabled:bg-slate-50"
-                  />
-                </label>
-                <label className="grid gap-1">
-                  <span className="text-[11px] font-black text-slate-500">置信度</span>
-                  <input
-                    type="number"
-                    min={0}
-                    max={100}
-                    value={editableDetail?.confidence ?? 0}
-                    onChange={(event) => setEditableDetail((prev) => (prev ? { ...prev, confidence: Number(event.target.value) } : prev))}
-                    disabled={!detailEditMode || detailSaving}
-                    className="rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none disabled:bg-slate-50"
-                  />
-                </label>
-                <label className="grid gap-1">
-                  <span className="text-[11px] font-black text-slate-500">状态</span>
-                  <select
-                    value={editableDetail?.state || 'suspected'}
-                    onChange={(event) => setEditableDetail((prev) => (prev ? { ...prev, state: event.target.value } : prev))}
-                    disabled={!detailEditMode || detailSaving}
-                    className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none disabled:bg-slate-50"
-                  >
-                    <option value="suspected">suspected</option>
-                    <option value="confirmed">confirmed</option>
-                    <option value="rejected">rejected</option>
-                  </select>
-                </label>
-                <label className="grid gap-1">
-                  <span className="text-[11px] font-black text-slate-500">上报时间</span>
-                  <input
-                    type="datetime-local"
-                    value={editableDetail?.reported_at || ''}
-                    onChange={(event) => setEditableDetail((prev) => (prev ? { ...prev, reported_at: event.target.value } : prev))}
-                    disabled={!detailEditMode || detailSaving}
-                    className="rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none disabled:bg-slate-50"
-                  />
-                </label>
-                <label className="grid gap-1">
-                  <span className="text-[11px] font-black text-slate-500">分类</span>
-                  <input
-                    value={editableDetail?.category || ''}
-                    onChange={(event) => setEditableDetail((prev) => (prev ? { ...prev, category: event.target.value } : prev))}
-                    disabled={!detailEditMode || detailSaving}
-                    className="rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none disabled:bg-slate-50"
-                  />
-                </label>
-                <label className="grid gap-1">
-                  <span className="text-[11px] font-black text-slate-500">规则 ID</span>
-                  <input
-                    value={editableDetail?.rule_id || ''}
-                    onChange={(event) => setEditableDetail((prev) => (prev ? { ...prev, rule_id: event.target.value } : prev))}
-                    disabled={!detailEditMode || detailSaving}
-                    className="rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none disabled:bg-slate-50"
-                  />
-                </label>
-                <label className="grid gap-1">
-                  <span className="text-[11px] font-black text-slate-500">规则名称</span>
-                  <input
-                    value={editableDetail?.rule_name || ''}
-                    onChange={(event) => setEditableDetail((prev) => (prev ? { ...prev, rule_name: event.target.value } : prev))}
-                    disabled={!detailEditMode || detailSaving}
-                    className="rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none disabled:bg-slate-50"
-                  />
-                </label>
-                <label className="grid gap-1 md:col-span-2">
-                  <span className="text-[11px] font-black text-slate-500">指纹</span>
-                  <input
-                    value={editableDetail?.fingerprint || ''}
-                    onChange={(event) => setEditableDetail((prev) => (prev ? { ...prev, fingerprint: event.target.value } : prev))}
-                    disabled={!detailEditMode || detailSaving}
-                    className="rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none disabled:bg-slate-50"
-                  />
-                </label>
-                <div className="rounded-lg bg-slate-50 px-3 py-2 text-xs text-slate-600 md:col-span-2">
-                  <span className="font-black text-slate-700">疑点 ID:</span> <span className="font-mono">{selectedDetail.id}</span>
-                  <span className="ml-3 font-black text-slate-700">创建:</span> {formatTime(selectedDetail.created_at)}
-                  <span className="ml-3 font-black text-slate-700">更新:</span> {formatTime(selectedDetail.updated_at)}
-                </div>
-              </div>
+        <div className="border-b border-slate-100 bg-slate-50/70 px-5 pt-4 xl:px-6">
+          <div className="mb-3 flex items-center justify-between gap-3">
+            <div>
+              <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">详情视图</div>
+              <div className="mt-1 text-sm text-slate-500">先看结论，再查看报告、证据、过程和关联上下文。</div>
             </div>
+            <div className="hidden rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-500 xl:block">
+              当前：{detailTabs.find((tab) => tab.key === detailActiveTab)?.label}
+            </div>
+          </div>
+          <div className="flex gap-2 overflow-x-auto pb-3">
+            {detailTabs.map((tab) => {
+              const active = detailActiveTab === tab.key;
+              return (
+                <button
+                  key={tab.key}
+                  type="button"
+                  onClick={() => setDetailActiveTab(tab.key)}
+                  className={`inline-flex shrink-0 items-center gap-2 rounded-xl border px-4 py-2.5 text-sm font-black transition ${
+                    active
+                      ? 'border-slate-900 bg-slate-900 text-white shadow-lg shadow-slate-900/10'
+                      : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:text-slate-900'
+                  }`}
+                >
+                  {tab.icon}
+                  {tab.label}
+                </button>
+              );
+            })}
+          </div>
+        </div>
 
-            <div className="rounded-[1.5rem] border border-slate-200 p-4">
-              <div className="text-[11px] font-black uppercase tracking-[0.2em] text-slate-400">时间线</div>
-              <div className="mt-3 space-y-2.5">
-                {selectedTimeline.length === 0 ? (
-                  <div className="rounded-xl bg-slate-50 px-4 py-4 text-sm text-slate-400">暂无时间线数据</div>
-                ) : (
-                  selectedTimeline.map((item: any) => (
-                    <div key={item.id} className="rounded-xl border border-slate-200 bg-[rgba(255,255,255,0.04)] px-4 py-3">
-                      <div className="flex items-center justify-between gap-3">
-                        <div className="text-sm font-black text-slate-800">
-                          {item.payload?.summary || item.payload?.event_type || item.item_type}
+        <div className="p-6 xl:p-8">
+          {detailActiveTab === 'overview' && (
+            <div className="space-y-4">
+              <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+                {overviewCards.map((card) => (
+                  <DetailMetricCard key={card.label} label={card.label} value={card.value} hint={card.hint} />
+                ))}
+              </div>
+              <div className="grid gap-4 xl:grid-cols-[1.15fr_0.85fr]">
+                <div className="space-y-4">
+                  <DetailSectionCard title="疑点摘要" subtitle="先看本条疑点的结论、摘要和对象定位。">
+                    <div className="mt-3 space-y-3 text-sm leading-7 text-slate-600">
+                      <div>{displaySummary?.subtitle || selectedDetail.summary || '暂无摘要说明'}</div>
+                      <div className="rounded-2xl bg-slate-50 p-4">
+                        <div className="text-xs font-black text-slate-500">当前结论</div>
+                        <div className="mt-1 text-sm font-semibold text-slate-800">
+                          {displaySummary?.validation_result || resultSummary?.summary || toDecisionText(selectedDetail.decision_status)}
                         </div>
-                        <div className="text-[11px] font-semibold text-slate-400">{formatTime(item.created_at)}</div>
                       </div>
-                      <div className="mt-1.5 text-xs text-slate-500">
-                        类型：{item.item_type}
-                        {item.payload?.status ? ` · 状态：${item.payload.status}` : ''}
+                      <div className="rounded-2xl bg-slate-50 p-4">
+                        <div className="text-xs font-black text-slate-500">对象定位</div>
+                        <div className="mt-1 break-all text-sm font-semibold text-slate-800">{selectedDetail.subject?.locator || '未提供定位信息'}</div>
                       </div>
                     </div>
-                  ))
-                )}
+                  </DetailSectionCard>
+                  <DetailSectionCard title="阶段流转与来源" subtitle="展示当前阶段、处置状态和来源任务上下文。">
+                    <div className="mt-4 grid gap-3 md:grid-cols-2">
+                      <DetailMetricCard label="当前阶段" value={toStageText(selectedDetail.current_stage)} hint={selectedDetail.current_status || 'n/a'} />
+                      <DetailMetricCard label="处置状态" value={toDecisionText(selectedDetail.decision_status)} hint={selectedDetail.validation_result || '未验证'} />
+                      <DetailMetricCard label="来源服务" value={selectedDetail.source_service || displaySummary?.source_task?.service_name || '未提供'} hint={selectedDetail.created_by_type || 'n/a'} />
+                      <DetailMetricCard label="来源任务" value={selectedDetail.source_task_id || displaySummary?.source_task?.task_id || '未提供'} hint={selectedDetail.source_execution_id || '无执行引用'} />
+                    </div>
+                  </DetailSectionCard>
+                </div>
+                <div className="space-y-4">
+                  <DetailSectionCard title="识别信息" subtitle="用于快速识别、排查和交叉检索本条疑点。">
+                    <div className="mt-3 space-y-2 text-sm text-slate-600">
+                      <div><span className="font-black text-slate-700">疑点 ID：</span><span className="font-mono">{selectedDetail.id}</span></div>
+                      <div><span className="font-black text-slate-700">Finding ID：</span>{selectedDetail.finding_id || '未提供'}</div>
+                      <div><span className="font-black text-slate-700">全局漏洞 ID：</span>{selectedDetail.global_vuln_id || '未提供'}</div>
+                      <div><span className="font-black text-slate-700">当前报告：</span>{displaySummary?.current_report_title || displaySummary?.current_report_id || '未关联'}</div>
+                      <div><span className="font-black text-slate-700">报告更新时间：</span>{formatTime(displaySummary?.current_report_updated_at || selectedDetail.current_report_updated_at)}</div>
+                      <div><span className="font-black text-slate-700">创建时间：</span>{formatTime(selectedDetail.created_at)}</div>
+                      <div><span className="font-black text-slate-700">最近更新：</span>{formatTime(selectedDetail.updated_at)}</div>
+                    </div>
+                  </DetailSectionCard>
+                  <DetailSectionCard title="关键提示" subtitle="从报告和结果中提炼出的要点，方便快速浏览。">
+                    <div className="mt-3 space-y-2">
+                      {(Array.isArray(displaySummary?.key_points) ? displaySummary.key_points : []).length > 0 ? (
+                        (displaySummary.key_points as string[]).map((point, index) => (
+                          <div key={`${point}-${index}`} className="rounded-xl bg-slate-50 px-4 py-3 text-sm text-slate-700">
+                            {point}
+                          </div>
+                        ))
+                      ) : (
+                        <div className="rounded-xl bg-slate-50 px-4 py-4 text-sm text-slate-400">当前没有提炼出的关键提示。</div>
+                      )}
+                    </div>
+                  </DetailSectionCard>
+                </div>
               </div>
             </div>
+          )}
 
-            <div className="rounded-[1.5rem] border border-slate-200 p-4">
-              <div className="flex items-center justify-between gap-3">
-                <div>
-                  <div className="text-[11px] font-black uppercase tracking-[0.2em] text-slate-400">疑点文件</div>
-                  <div className="mt-1 text-xs font-semibold text-slate-500">{selectedDetail.files_root_path || '未分配文件根路径'}</div>
-                </div>
-                {linkedFiles?.root_path ? (
-                  <button
-                    type="button"
-                    onClick={() => openLinkedFilesPath(linkedFiles.root_path)}
-                    className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-black text-slate-700"
-                  >
-                    根目录
-                  </button>
-                ) : null}
-              </div>
-              <div className="mt-3 overflow-hidden rounded-[1.25rem] border border-slate-200 bg-white shadow-sm">
-                {linkedFilesLoading ? (
-                  <div className="px-4 py-8 text-sm text-slate-400">正在加载关联文件...</div>
-                ) : !linkedFiles ? (
-                  <div className="px-4 py-8 text-sm text-slate-400">当前疑点还没有可展示的文件目录。</div>
-                ) : (
-                  <div className="flex h-full min-h-[360px] flex-col">
-                    <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 bg-slate-50 px-4 py-3">
-                      <div className="truncate text-xs font-bold text-slate-500">当前路径：{linkedFiles.current_path}</div>
-                      <div className="flex flex-wrap items-center gap-2">
-                        <button
-                          type="button"
-                          onClick={() => void handleCreateLinkedArchiveTask()}
-                          disabled={selectedLinkedPaths.length === 0 || linkedArchiveSubmitting}
-                          className="rounded-lg bg-sky-600 px-3 py-1.5 text-xs font-black text-white disabled:opacity-40"
-                        >
-                          {linkedArchiveSubmitting ? '提交中...' : `打包下载(${selectedLinkedPaths.length})`}
-                        </button>
-                        <div className="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5">
-                          <Search size={12} className="text-slate-400" />
-                          <input
-                            value={linkedFileSearch}
-                            onChange={(event) => setLinkedFileSearch(event.target.value)}
-                            placeholder="搜索文件名/路径"
-                            className="w-36 bg-transparent text-xs font-semibold text-slate-700 outline-none placeholder:text-slate-400"
-                          />
-                        </div>
-                        {linkedFiles.current_path !== linkedFiles.root_path && (
+          {detailActiveTab === 'report' && (
+            <div className="grid gap-4 xl:grid-cols-[340px_minmax(0,1fr)]">
+              <div className="space-y-3">
+                <DetailSectionCard title="报告列表" subtitle="选择不同阶段或不同来源生成的疑点报告。" compact>
+                  <div className="mt-3 space-y-2.5">
+                    {reportItems.length === 0 ? (
+                      <div className="rounded-xl bg-slate-50 px-4 py-4 text-sm text-slate-400">当前疑点还没有生成正式报告，可先查看证据与文件。</div>
+                    ) : (
+                      reportItems.map((item: any) => {
+                        const active = selectedReportId === item.report_id;
+                        return (
                           <button
+                            key={item.report_id}
                             type="button"
-                            onClick={() => {
-                              const current = String(linkedFiles.current_path || '');
-                              const parts = current.split('/').filter(Boolean);
-                              const parent = parts.length <= 2 ? linkedFiles.root_path : `/${parts.slice(0, -1).join('/')}`;
-                              openLinkedFilesPath(parent);
-                            }}
-                            className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-black text-slate-700"
+                            onClick={() => setSelectedReportId(item.report_id)}
+                            className={`w-full rounded-2xl border p-4 text-left transition ${
+                              active ? 'border-slate-900 bg-slate-900 text-white shadow-lg shadow-slate-900/10' : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50'
+                            }`}
                           >
-                            上级目录
+                            <div className="flex items-center justify-between gap-3">
+                              <div className="text-sm font-black">{item.title || item.report_id}</div>
+                              <span className={`rounded-lg px-2 py-1 text-[10px] font-black ${active ? 'bg-white/10 text-slate-100' : 'bg-slate-100 text-slate-500'}`}>
+                                {toStageText(item.stage)}
+                              </span>
+                            </div>
+                            <div className={`mt-1 text-xs ${active ? 'text-slate-200' : 'text-slate-500'}`}>{toStageText(item.stage)} · {item.generated_at ? formatTime(item.generated_at) : '未记录时间'}</div>
+                            <div className={`mt-2 line-clamp-3 text-xs leading-5 ${active ? 'text-slate-200' : 'text-slate-500'}`}>{item.excerpt || item.source_service_id || '暂无摘要'}</div>
                           </button>
+                        );
+                      })
+                    )}
+                  </div>
+                </DetailSectionCard>
+              </div>
+              <div className="rounded-[1.5rem] border border-slate-200 bg-white p-5">
+                <div className="flex flex-wrap items-start justify-between gap-3 border-b border-slate-100 pb-4">
+                  <div>
+                    <div className="text-[11px] font-black uppercase tracking-[0.2em] text-slate-400">疑点报告</div>
+                    <div className="mt-1 text-lg font-black text-slate-900">{reportDocument?.title || reportItems.find((item) => item.report_id === selectedReportId)?.title || '未选择报告'}</div>
+                    <div className="mt-1 text-xs text-slate-500">
+                      阶段：{toStageText(reportDocument?.stage || reportItems.find((item) => item.report_id === selectedReportId)?.stage)} · 来源：{reportDocument?.source_service_id || reportItems.find((item) => item.report_id === selectedReportId)?.source_service_id || '未提供'}
+                    </div>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {reportDocument?.storage_path ? <div className="rounded-xl bg-slate-50 px-3 py-2 text-xs text-slate-500">存储路径：{reportDocument.storage_path}</div> : null}
+                    {reportDocument?.generated_at ? <div className="rounded-xl bg-slate-50 px-3 py-2 text-xs text-slate-500">生成时间：{formatTime(reportDocument.generated_at)}</div> : null}
+                  </div>
+                </div>
+                <div className="mt-5 min-h-[28rem]">
+                  {reportLoading ? (
+                    <div className="flex items-center gap-2 text-sm text-slate-400"><Loader2 size={16} className="animate-spin" /> 正在加载报告...</div>
+                  ) : reportError ? (
+                    <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">{reportError}</div>
+                  ) : reportItems.length === 0 ? (
+                    <div className="rounded-2xl border border-dashed border-slate-200 px-6 py-12 text-center text-sm text-slate-400">暂无正式报告，请切换到“证据与文件”查看原始材料与文件目录。</div>
+                  ) : (
+                    <MarkdownContent content={reportDocument?.content || ''} />
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {detailActiveTab === 'evidence' && (
+            <div className="space-y-4">
+              <div className="grid gap-4 xl:grid-cols-[0.9fr_1.1fr]">
+                <div className="space-y-4">
+                  <DetailSectionCard title="证据摘要" subtitle="用于快速了解当前疑点的核心证据、复现提示和引用材料。">
+                    <div className="mt-3 space-y-3 text-sm text-slate-600">
+                      <div className="rounded-2xl bg-slate-50 p-4">{evidenceSummary?.summary || selectedDetail?.evidence?.summary || '暂无证据摘要'}</div>
+                      <div className="rounded-2xl bg-slate-50 p-4">
+                        <div className="text-xs font-black text-slate-500">复现提示</div>
+                        <div className="mt-1 whitespace-pre-wrap leading-6">{evidenceSummary?.reproduction_hint || selectedDetail?.evidence?.reproduction_hint || '暂无复现提示'}</div>
+                      </div>
+                      <div className="rounded-2xl bg-slate-50 p-4">
+                        <div className="text-xs font-black text-slate-500">证据引用</div>
+                        {Array.isArray(evidenceSummary?.references) && evidenceSummary.references.length > 0 ? (
+                          <div className="mt-2 space-y-2">
+                            {evidenceSummary.references.map((reference: any, index: number) => (
+                              <div key={index} className="rounded-xl bg-white px-3 py-2 text-xs text-slate-600">{typeof reference === 'string' ? reference : JSON.stringify(reference)}</div>
+                            ))}
+                          </div>
+                        ) : (
+                          <div className="mt-1 text-sm text-slate-400">暂无证据引用</div>
                         )}
-                        <button
-                          type="button"
-                          onClick={() => openLinkedFilesPath(linkedFiles.current_path)}
-                          className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-black text-slate-700"
-                        >
-                          刷新
-                        </button>
                       </div>
                     </div>
-                    <div className="grid min-h-0 flex-1 grid-cols-[360px_minmax(0,1fr)]">
-                      <div className="min-h-0 overflow-auto border-r border-slate-100 p-3">
-                        <div className="grid grid-cols-[24px_minmax(0,1fr)_70px] gap-3 rounded-xl bg-slate-50 px-3 py-2 text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">
-                          <div>选</div>
-                          <div>名称</div>
-                          <div>大小</div>
-                        </div>
-                        <div className="mt-2 space-y-1">
-                          {linkedDirectoryItems.map((directory: any) => (
-                            <div
-                              key={directory.id}
-                              className="grid w-full grid-cols-[24px_minmax(0,1fr)_70px] items-center gap-3 rounded-xl px-3 py-2 text-left hover:bg-slate-50"
-                            >
-                              <input
-                                type="checkbox"
-                                checked={selectedLinkedPaths.includes(directory.path)}
-                                onChange={() => toggleLinkedPathSelection(directory.path)}
-                                className="h-4 w-4"
-                                aria-label={`选择目录 ${directory.name}`}
-                              />
-                              <span className="inline-flex min-w-0 items-center gap-2 truncate text-sm font-semibold text-slate-800">
-                                <FolderOpen size={14} className="shrink-0 text-amber-500" />
-                                <button
-                                  type="button"
-                                  onClick={() => openLinkedFilesPath(directory.path)}
-                                  className="truncate text-left"
-                                >
-                                  {directory.name}
-                                </button>
-                              </span>
-                              <span className="text-xs text-slate-400">--</span>
+                  </DetailSectionCard>
+                  <DetailSectionCard title="Artifact 清单" subtitle="按材料清单查看原始文件、引用路径和媒介类型。">
+                    <div className="mt-3 space-y-2">
+                      {(Array.isArray(selectedDetail.artifacts) ? selectedDetail.artifacts : []).length > 0 ? (
+                        (selectedDetail.artifacts as any[]).map((artifact, index) => (
+                          <div key={`${artifact?.name || artifact?.path || index}`} className="rounded-2xl border border-slate-200 px-4 py-3">
+                            <div className="flex flex-wrap items-center justify-between gap-3">
+                              <div className="text-sm font-black text-slate-800">{artifact?.name || artifact?.path || `artifact-${index + 1}`}</div>
+                              <span className="rounded-lg bg-slate-100 px-2.5 py-1 text-[10px] font-black uppercase tracking-wider text-slate-500">{artifact?.kind || 'unknown'}</span>
                             </div>
-                          ))}
-                          {linkedFileItems.map((file: any) => {
-                            const active = selectedLinkedFile?.id === file.id;
-                            return (
-                              <div
-                                key={file.id}
-                                className={`grid grid-cols-[24px_minmax(0,1fr)_70px] items-center gap-3 rounded-xl px-3 py-2 ${active ? 'bg-sky-50' : 'hover:bg-slate-50'}`}
-                              >
-                                <input
-                                  type="checkbox"
-                                  checked={selectedLinkedPaths.includes(file.path)}
-                                  onChange={() => toggleLinkedPathSelection(file.path)}
-                                  className="h-4 w-4"
-                                  aria-label={`选择文件 ${file.filename}`}
-                                />
-                                <button
-                                  type="button"
-                                  onClick={() => openLinkedTextPreview(file)}
-                                  className="min-w-0 text-left"
-                                >
-                                  <div className="inline-flex min-w-0 items-center gap-2">
-                                    <FileCode2 size={13} className="shrink-0 text-slate-500" />
-                                    <span className="truncate text-sm font-semibold text-slate-800">{file.filename}</span>
-                                  </div>
-                                  <div className="mt-0.5 truncate text-[10px] text-slate-400">{file.path}</div>
-                                </button>
-                                <span className="text-xs text-slate-500">{Math.max(0, Math.round((Number(file.size || 0)) / 1024))}KB</span>
-                              </div>
-                            );
-                          })}
-                          {linkedDirectoryItems.length === 0 && linkedFileItems.length === 0 && (
-                            <div className="rounded-xl border border-dashed border-slate-200 px-4 py-8 text-center text-sm text-slate-400">
-                              当前目录没有匹配的文件或文件夹
-                            </div>
-                          )}
-                        </div>
+                            <div className="mt-1 text-xs text-slate-500">{artifact?.media_type ? `媒体类型：${artifact.media_type}` : '未提供媒体类型'}</div>
+                            {artifact?.path || artifact?.content_ref ? <div className="mt-2 break-all text-xs text-slate-500">{artifact.path || artifact.content_ref}</div> : null}
+                          </div>
+                        ))
+                      ) : (
+                        <div className="rounded-xl bg-slate-50 px-4 py-4 text-sm text-slate-400">暂无 artifact 清单</div>
+                      )}
+                    </div>
+                  </DetailSectionCard>
+                </div>
+                <div className="space-y-4">
+                  <DetailSectionCard title="上报者 / 目标对象 / 证据编辑" subtitle="编辑模式下可直接调整上报字段；只读模式下用于集中查看。">
+                    <div className="mt-3 grid gap-2.5">
+                      <div className="grid grid-cols-2 gap-2.5">
+                        <label className="grid gap-1">
+                          <span className="text-[11px] font-black text-slate-500">上报者名称（reporter.name）</span>
+                          <input value={editableDetail?.reporter?.name || ''} onChange={(event) => setEditableDetail((prev) => (prev ? { ...prev, reporter: { ...prev.reporter, name: event.target.value } } : prev))} disabled={!detailEditMode || detailSaving} className="rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none disabled:bg-slate-50" />
+                        </label>
+                        <label className="grid gap-1">
+                          <span className="text-[11px] font-black text-slate-500">上报者版本（reporter.version）</span>
+                          <input value={editableDetail?.reporter?.version || ''} onChange={(event) => setEditableDetail((prev) => (prev ? { ...prev, reporter: { ...prev.reporter, version: event.target.value } } : prev))} disabled={!detailEditMode || detailSaving} className="rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none disabled:bg-slate-50" />
+                        </label>
+                        <label className="grid gap-1">
+                          <span className="text-[11px] font-black text-slate-500">上报方式（reporter.type）</span>
+                          <input value={editableDetail?.reporter?.type || ''} onChange={(event) => setEditableDetail((prev) => (prev ? { ...prev, reporter: { ...prev.reporter, type: event.target.value } } : prev))} disabled={!detailEditMode || detailSaving} className="rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none disabled:bg-slate-50" />
+                        </label>
+                        <label className="grid gap-1">
+                          <span className="text-[11px] font-black text-slate-500">上报入口（reporter.endpoint）</span>
+                          <input value={editableDetail?.reporter?.endpoint || ''} onChange={(event) => setEditableDetail((prev) => (prev ? { ...prev, reporter: { ...prev.reporter, endpoint: event.target.value } } : prev))} disabled={!detailEditMode || detailSaving} className="rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none disabled:bg-slate-50" />
+                        </label>
                       </div>
-                      <div className="min-h-0">
-                        {selectedLinkedFile ? (
-                          <div className="grid h-full min-h-0 grid-cols-[minmax(0,1fr)_240px]">
-                            <div className="min-h-0 border-r border-slate-100 p-4">
-                              <div className="mb-3 inline-flex items-center gap-2 text-xs font-semibold text-slate-500">
-                                <FileCode2 size={13} />
-                                {selectedLinkedFile.filename}
-                              </div>
-                              <div className="h-[calc(100%-1.5rem)] min-h-[260px] overflow-auto">
-                                {linkedFilePreviewLoading ? (
-                                  <div className="text-sm text-slate-400">正在加载文件内容...</div>
-                                ) : linkedFilePreviewError ? (
-                                  <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700">{linkedFilePreviewError}</div>
-                                ) : (
-                                  <pre className="h-full overflow-auto rounded-2xl bg-slate-950 p-5 font-mono text-[12px] whitespace-pre-wrap text-slate-100">{linkedFilePreview || ''}</pre>
-                                )}
-                              </div>
-                            </div>
-                            <div className="p-4 text-sm text-slate-600">
-                              <div className="text-[11px] font-black uppercase tracking-[0.24em] text-slate-400">文件信息</div>
-                              <div className="mt-4 space-y-3">
-                                <div><div className="text-xs text-slate-400">文件名</div><div className="font-bold text-slate-900 break-all">{selectedLinkedFile.filename}</div></div>
-                                <div><div className="text-xs text-slate-400">内容类型</div><div className="font-semibold">{selectedLinkedFile.content_type || '未知类型'}</div></div>
-                                <div><div className="text-xs text-slate-400">大小</div><div className="font-semibold">{Number(selectedLinkedFile.size || 0)} bytes</div></div>
-                                <div><div className="text-xs text-slate-400">路径</div><div className="font-semibold break-all">{selectedLinkedFile.path || '-'}</div></div>
-                              </div>
+                      <div className="grid grid-cols-2 gap-2.5">
+                        <label className="grid gap-1">
+                          <span className="text-[11px] font-black text-slate-500">对象类型（subject.type）</span>
+                          <input value={editableDetail?.subject?.type || ''} onChange={(event) => setEditableDetail((prev) => (prev ? { ...prev, subject: { ...prev.subject, type: event.target.value } } : prev))} disabled={!detailEditMode || detailSaving} className="rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none disabled:bg-slate-50" />
+                        </label>
+                        <label className="grid gap-1">
+                          <span className="text-[11px] font-black text-slate-500">对象名称（subject.name）</span>
+                          <input value={editableDetail?.subject?.name || ''} onChange={(event) => setEditableDetail((prev) => (prev ? { ...prev, subject: { ...prev.subject, name: event.target.value } } : prev))} disabled={!detailEditMode || detailSaving} className="rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none disabled:bg-slate-50" />
+                        </label>
+                        <label className="grid gap-1 col-span-2">
+                          <span className="text-[11px] font-black text-slate-500">对象定位（subject.locator）</span>
+                          <input value={editableDetail?.subject?.locator || ''} onChange={(event) => setEditableDetail((prev) => (prev ? { ...prev, subject: { ...prev.subject, locator: event.target.value } } : prev))} disabled={!detailEditMode || detailSaving} className="rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none disabled:bg-slate-50" />
+                        </label>
+                      </div>
+                      <label className="grid gap-1">
+                        <span className="text-[11px] font-black text-slate-500">证据摘要（evidence.summary）</span>
+                        <textarea value={editableDetail?.evidence_summary || ''} onChange={(event) => setEditableDetail((prev) => (prev ? { ...prev, evidence_summary: event.target.value } : prev))} disabled={!detailEditMode || detailSaving} className="min-h-[66px] rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none disabled:bg-slate-50" />
+                      </label>
+                      <label className="grid gap-1">
+                        <span className="text-[11px] font-black text-slate-500">复现提示（evidence.reproduction_hint）</span>
+                        <textarea value={editableDetail?.evidence_reproduction_hint || ''} onChange={(event) => setEditableDetail((prev) => (prev ? { ...prev, evidence_reproduction_hint: event.target.value } : prev))} disabled={!detailEditMode || detailSaving} className="min-h-[66px] rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none disabled:bg-slate-50" />
+                      </label>
+                    </div>
+                  </DetailSectionCard>
+                  <DetailSectionCard
+                    title="疑点文件"
+                    subtitle={selectedDetail.files_root_path || '未分配文件根路径'}
+                    compact
+                    actions={
+                      linkedFiles?.root_path ? (
+                        <button
+                          type="button"
+                          onClick={() => openLinkedFilesPath(linkedFiles.root_path)}
+                          className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-black text-slate-700"
+                        >
+                          根目录
+                        </button>
+                      ) : null
+                    }
+                  >
+                    <div className="mt-3 overflow-hidden rounded-[1.25rem] border border-slate-200 bg-white shadow-sm">
+                      {linkedFilesLoading ? (
+                        <div className="px-4 py-8 text-sm text-slate-400">正在加载关联文件...</div>
+                      ) : !linkedFiles ? (
+                        <div className="px-4 py-8 text-sm text-slate-400">当前疑点还没有可展示的文件目录。</div>
+                      ) : (
+                        <div className="flex h-full min-h-[360px] flex-col">
+                          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 bg-slate-50 px-4 py-3">
+                            <div className="truncate text-xs font-bold text-slate-500">当前路径：{linkedFiles.current_path}</div>
+                            <div className="flex flex-wrap items-center gap-2">
                               <button
                                 type="button"
-                                onClick={() => handleLinkedFileDownload(selectedLinkedFile.id, selectedLinkedFile.filename)}
-                                className="mt-6 inline-flex items-center gap-2 rounded-xl bg-slate-900 px-4 py-2 text-xs font-black text-white"
+                                onClick={() => void handleCreateLinkedArchiveTask()}
+                                disabled={selectedLinkedPaths.length === 0 || linkedArchiveSubmitting}
+                                className="rounded-lg bg-sky-600 px-3 py-1.5 text-xs font-black text-white disabled:opacity-40"
                               >
-                                <Download size={14} />
-                                下载文件
+                                {linkedArchiveSubmitting ? '提交中...' : `打包下载(${selectedLinkedPaths.length})`}
+                              </button>
+                              <div className="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5">
+                                <Search size={12} className="text-slate-400" />
+                                <input
+                                  value={linkedFileSearch}
+                                  onChange={(event) => setLinkedFileSearch(event.target.value)}
+                                  placeholder="搜索文件名/路径"
+                                  className="w-36 bg-transparent text-xs font-semibold text-slate-700 outline-none placeholder:text-slate-400"
+                                />
+                              </div>
+                              {linkedFiles.current_path !== linkedFiles.root_path && (
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    const current = String(linkedFiles.current_path || '');
+                                    const parts = current.split('/').filter(Boolean);
+                                    const parent = parts.length <= 2 ? linkedFiles.root_path : `/${parts.slice(0, -1).join('/')}`;
+                                    openLinkedFilesPath(parent);
+                                  }}
+                                  className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-black text-slate-700"
+                                >
+                                  上级目录
+                                </button>
+                              )}
+                              <button
+                                type="button"
+                                onClick={() => openLinkedFilesPath(linkedFiles.current_path)}
+                                className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-black text-slate-700"
+                              >
+                                刷新
                               </button>
                             </div>
                           </div>
-                        ) : (
-                          <div className="flex h-full min-h-[320px] items-center justify-center text-sm text-slate-400">
-                            从左侧列表选择文件进行预览
+                          <div className="grid min-h-0 flex-1 xl:grid-cols-[360px_minmax(0,1fr)]">
+                            <div className="min-h-0 overflow-auto border-r border-slate-100 p-3">
+                              <div className="grid grid-cols-[24px_minmax(0,1fr)_70px] gap-3 rounded-xl bg-slate-50 px-3 py-2 text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">
+                                <div>选</div>
+                                <div>名称</div>
+                                <div>大小</div>
+                              </div>
+                              <div className="mt-2 space-y-1">
+                                {linkedDirectoryItems.map((directory: any) => (
+                                  <div
+                                    key={directory.id}
+                                    className="grid w-full grid-cols-[24px_minmax(0,1fr)_70px] items-center gap-3 rounded-xl px-3 py-2 text-left hover:bg-slate-50"
+                                  >
+                                    <input
+                                      type="checkbox"
+                                      checked={selectedLinkedPaths.includes(directory.path)}
+                                      onChange={() => toggleLinkedPathSelection(directory.path)}
+                                      className="h-4 w-4"
+                                      aria-label={`选择目录 ${directory.name}`}
+                                    />
+                                    <span className="inline-flex min-w-0 items-center gap-2 truncate text-sm font-semibold text-slate-800">
+                                      <FolderOpen size={14} className="shrink-0 text-amber-500" />
+                                      <button
+                                        type="button"
+                                        onClick={() => openLinkedFilesPath(directory.path)}
+                                        className="truncate text-left"
+                                      >
+                                        {directory.name}
+                                      </button>
+                                    </span>
+                                    <span className="text-xs text-slate-400">--</span>
+                                  </div>
+                                ))}
+                                {linkedFileItems.map((file: any) => {
+                                  const active = selectedLinkedFile?.id === file.id;
+                                  return (
+                                    <div
+                                      key={file.id}
+                                      className={`grid grid-cols-[24px_minmax(0,1fr)_70px] items-center gap-3 rounded-xl px-3 py-2 ${active ? 'bg-sky-50' : 'hover:bg-slate-50'}`}
+                                    >
+                                      <input
+                                        type="checkbox"
+                                        checked={selectedLinkedPaths.includes(file.path)}
+                                        onChange={() => toggleLinkedPathSelection(file.path)}
+                                        className="h-4 w-4"
+                                        aria-label={`选择文件 ${file.filename}`}
+                                      />
+                                      <button
+                                        type="button"
+                                        onClick={() => openLinkedTextPreview(file)}
+                                        className="min-w-0 text-left"
+                                      >
+                                        <div className="inline-flex min-w-0 items-center gap-2">
+                                          <FileCode2 size={13} className="shrink-0 text-slate-500" />
+                                          <span className="truncate text-sm font-semibold text-slate-800">{file.filename}</span>
+                                        </div>
+                                        <div className="mt-0.5 truncate text-[10px] text-slate-400">{file.path}</div>
+                                      </button>
+                                      <span className="text-xs text-slate-500">{Math.max(0, Math.round(Number(file.size || 0) / 1024))}KB</span>
+                                    </div>
+                                  );
+                                })}
+                                {linkedDirectoryItems.length === 0 && linkedFileItems.length === 0 && (
+                                  <div className="rounded-xl border border-dashed border-slate-200 px-4 py-8 text-center text-sm text-slate-400">
+                                    当前目录没有匹配的文件或文件夹
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                            <div className="min-h-0">
+                              {selectedLinkedFile ? (
+                                <div className="grid h-full min-h-0 xl:grid-cols-[minmax(0,1fr)_240px]">
+                                  <div className="min-h-0 border-r border-slate-100 p-4">
+                                    <div className="mb-3 inline-flex items-center gap-2 text-xs font-semibold text-slate-500">
+                                      <FileCode2 size={13} />
+                                      {selectedLinkedFile.filename}
+                                    </div>
+                                    <div className="h-[calc(100%-1.5rem)] min-h-[260px] overflow-auto">
+                                      {linkedFilePreviewLoading ? (
+                                        <div className="text-sm text-slate-400">正在加载文件内容...</div>
+                                      ) : linkedFilePreviewError ? (
+                                        <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700">{linkedFilePreviewError}</div>
+                                      ) : (
+                                        <pre className="h-full overflow-auto rounded-2xl bg-slate-950 p-5 font-mono text-[12px] whitespace-pre-wrap text-slate-100">{linkedFilePreview || ''}</pre>
+                                      )}
+                                    </div>
+                                  </div>
+                                  <div className="p-4 text-sm text-slate-600">
+                                    <div className="text-[11px] font-black uppercase tracking-[0.24em] text-slate-400">文件信息</div>
+                                    <div className="mt-4 space-y-3">
+                                      <div><div className="text-xs text-slate-400">文件名</div><div className="font-bold text-slate-900 break-all">{selectedLinkedFile.filename}</div></div>
+                                      <div><div className="text-xs text-slate-400">内容类型</div><div className="font-semibold">{selectedLinkedFile.content_type || '未知类型'}</div></div>
+                                      <div><div className="text-xs text-slate-400">大小</div><div className="font-semibold">{Number(selectedLinkedFile.size || 0)} bytes</div></div>
+                                      <div><div className="text-xs text-slate-400">路径</div><div className="font-semibold break-all">{selectedLinkedFile.path || '-'}</div></div>
+                                    </div>
+                                    <button
+                                      type="button"
+                                      onClick={() => handleLinkedFileDownload(selectedLinkedFile.id, selectedLinkedFile.filename)}
+                                      className="mt-6 inline-flex items-center gap-2 rounded-xl bg-slate-900 px-4 py-2 text-xs font-black text-white"
+                                    >
+                                      <Download size={14} />
+                                      下载文件
+                                    </button>
+                                  </div>
+                                </div>
+                              ) : (
+                                <div className="flex h-full min-h-[320px] items-center justify-center text-sm text-slate-400">
+                                  从左侧列表选择文件进行预览
+                                </div>
+                              )}
+                            </div>
                           </div>
-                        )}
-                      </div>
+                        </div>
+                      )}
                     </div>
+                  </DetailSectionCard>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {detailActiveTab === 'process' && (
+            <div className="space-y-4">
+              <div className="grid gap-3 md:grid-cols-3">
+                <DetailMetricCard label="时间线事件" value={selectedTimeline.length} hint="阶段变化、裁决与系统事件" />
+                <DetailMetricCard label="动作记录" value={processActions.length} hint={`运行中 ${runningProcessActions} 项`} />
+                <DetailMetricCard label="人工任务" value={processManualTasks.length} hint={`未完成 ${openProcessTasks} 项`} />
+              </div>
+              <div className="grid gap-4 xl:grid-cols-[0.95fr_1.05fr]">
+                <DetailSectionCard title="时间线事件" subtitle="按时间顺序查看阶段变化、裁决、系统事件和执行人。">
+                  <div className="mt-3 space-y-2.5">
+                    {selectedTimeline.length === 0 ? (
+                      <div className="rounded-xl bg-slate-50 px-4 py-4 text-sm text-slate-400">暂无时间线数据</div>
+                    ) : (
+                      selectedTimeline.map((item: any) => (
+                        <div key={item.id} className="rounded-xl border border-slate-200 px-4 py-3">
+                          <div className="flex items-center justify-between gap-3">
+                            <div className="text-sm font-black text-slate-800">{item.payload?.summary || item.payload?.event_type || item.item_type}</div>
+                            <div className="text-[11px] font-semibold text-slate-400">{formatTime(item.created_at)}</div>
+                          </div>
+                          <div className="mt-1.5 text-xs text-slate-500">
+                            类型：{item.item_type}
+                            {item.payload?.status ? ` · 状态：${item.payload.status}` : ''}
+                            {item.payload?.actor ? ` · 执行者：${item.payload.actor}` : ''}
+                          </div>
+                        </div>
+                      ))
+                    )}
                   </div>
-                )}
-              </div>
-            </div>
-          </div>
-
-          <div className="space-y-4">
-            <div className="rounded-[1.5rem] border border-slate-200 p-4">
-              <div className="text-[11px] font-black uppercase tracking-[0.2em] text-slate-400">上报者 / 目标对象 / 证据</div>
-              <div className="mt-3 grid gap-2.5">
-                <div className="grid grid-cols-2 gap-2.5">
-                  <label className="grid gap-1">
-                    <span className="text-[11px] font-black text-slate-500">上报者名称（reporter.name）</span>
-                    <input
-                      value={editableDetail?.reporter?.name || ''}
-                      onChange={(event) => setEditableDetail((prev) => (prev ? { ...prev, reporter: { ...prev.reporter, name: event.target.value } } : prev))}
-                      disabled={!detailEditMode || detailSaving}
-                      className="rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none disabled:bg-slate-50"
-                    />
-                  </label>
-                  <label className="grid gap-1">
-                    <span className="text-[11px] font-black text-slate-500">上报者版本（reporter.version）</span>
-                    <input
-                      value={editableDetail?.reporter?.version || ''}
-                      onChange={(event) => setEditableDetail((prev) => (prev ? { ...prev, reporter: { ...prev.reporter, version: event.target.value } } : prev))}
-                      disabled={!detailEditMode || detailSaving}
-                      className="rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none disabled:bg-slate-50"
-                    />
-                  </label>
-                  <label className="grid gap-1">
-                    <span className="text-[11px] font-black text-slate-500">上报方式（reporter.type）</span>
-                    <input
-                      value={editableDetail?.reporter?.type || ''}
-                      onChange={(event) => setEditableDetail((prev) => (prev ? { ...prev, reporter: { ...prev.reporter, type: event.target.value } } : prev))}
-                      disabled={!detailEditMode || detailSaving}
-                      className="rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none disabled:bg-slate-50"
-                    />
-                  </label>
-                  <label className="grid gap-1">
-                    <span className="text-[11px] font-black text-slate-500">上报入口（reporter.endpoint）</span>
-                    <input
-                      value={editableDetail?.reporter?.endpoint || ''}
-                      onChange={(event) => setEditableDetail((prev) => (prev ? { ...prev, reporter: { ...prev.reporter, endpoint: event.target.value } } : prev))}
-                      disabled={!detailEditMode || detailSaving}
-                      className="rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none disabled:bg-slate-50"
-                    />
-                  </label>
+                </DetailSectionCard>
+                <div className="space-y-4">
+                  <DetailSectionCard title="协同记录 / 动作" subtitle="展示自动动作、执行状态和摘要信息。">
+                    <div className="mt-3 space-y-2.5">
+                      {processActions.length === 0 ? (
+                        <div className="rounded-xl bg-slate-50 px-4 py-4 text-sm text-slate-400">暂无动作记录</div>
+                      ) : (
+                        processActions.map((action: any, index: number) => (
+                          <div key={action.id || index} className="rounded-xl border border-slate-200 px-4 py-3">
+                            <div className="flex items-center justify-between gap-3">
+                              <div className="text-sm font-black text-slate-800">{action.title || action.action_type || action.name || `动作 ${index + 1}`}</div>
+                              <div className="text-[11px] text-slate-400">{action.execution_status || action.status || 'unknown'}</div>
+                            </div>
+                            <div className="mt-1 text-xs text-slate-500">{action.summary || action.description || action.owner || '暂无摘要'}</div>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  </DetailSectionCard>
+                  <DetailSectionCard title="协同记录 / 人工任务" subtitle="展示人工介入项、状态和当前说明。">
+                    <div className="mt-3 space-y-2.5">
+                      {processManualTasks.length === 0 ? (
+                        <div className="rounded-xl bg-slate-50 px-4 py-4 text-sm text-slate-400">暂无人工任务</div>
+                      ) : (
+                        processManualTasks.map((task: any, index: number) => (
+                          <div key={task.id || index} className="rounded-xl border border-slate-200 px-4 py-3">
+                            <div className="flex items-center justify-between gap-3">
+                              <div className="text-sm font-black text-slate-800">{task.title || task.name || `人工任务 ${index + 1}`}</div>
+                              <div className="text-[11px] text-slate-400">{task.status || 'unknown'}</div>
+                            </div>
+                            <div className="mt-1 text-xs text-slate-500">{task.summary || task.description || task.assignee || '暂无说明'}</div>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  </DetailSectionCard>
                 </div>
-                <div className="grid grid-cols-2 gap-2.5">
-                  <label className="grid gap-1">
-                    <span className="text-[11px] font-black text-slate-500">对象类型（subject.type）</span>
-                    <input
-                      value={editableDetail?.subject?.type || ''}
-                      onChange={(event) => setEditableDetail((prev) => (prev ? { ...prev, subject: { ...prev.subject, type: event.target.value } } : prev))}
-                      disabled={!detailEditMode || detailSaving}
-                      className="rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none disabled:bg-slate-50"
-                    />
-                  </label>
-                  <label className="grid gap-1">
-                    <span className="text-[11px] font-black text-slate-500">对象名称（subject.name）</span>
-                    <input
-                      value={editableDetail?.subject?.name || ''}
-                      onChange={(event) => setEditableDetail((prev) => (prev ? { ...prev, subject: { ...prev.subject, name: event.target.value } } : prev))}
-                      disabled={!detailEditMode || detailSaving}
-                      className="rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none disabled:bg-slate-50"
-                    />
-                  </label>
-                  <label className="grid gap-1 col-span-2">
-                    <span className="text-[11px] font-black text-slate-500">对象定位（subject.locator）</span>
-                    <input
-                      value={editableDetail?.subject?.locator || ''}
-                      onChange={(event) => setEditableDetail((prev) => (prev ? { ...prev, subject: { ...prev.subject, locator: event.target.value } } : prev))}
-                      disabled={!detailEditMode || detailSaving}
-                      className="rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none disabled:bg-slate-50"
-                    />
-                  </label>
-                </div>
-                <label className="grid gap-1">
-                  <span className="text-[11px] font-black text-slate-500">证据摘要（evidence.summary）</span>
-                  <textarea
-                    value={editableDetail?.evidence_summary || ''}
-                    onChange={(event) => setEditableDetail((prev) => (prev ? { ...prev, evidence_summary: event.target.value } : prev))}
-                    disabled={!detailEditMode || detailSaving}
-                    className="min-h-[66px] rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none disabled:bg-slate-50"
-                  />
-                </label>
-                <label className="grid gap-1">
-                  <span className="text-[11px] font-black text-slate-500">复现提示（evidence.reproduction_hint）</span>
-                  <textarea
-                    value={editableDetail?.evidence_reproduction_hint || ''}
-                    onChange={(event) => setEditableDetail((prev) => (prev ? { ...prev, evidence_reproduction_hint: event.target.value } : prev))}
-                    disabled={!detailEditMode || detailSaving}
-                    className="min-h-[66px] rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none disabled:bg-slate-50"
-                  />
-                </label>
               </div>
             </div>
+          )}
 
-            <div className="rounded-[1.5rem] border border-slate-200 p-4">
-              <div className="text-[11px] font-black uppercase tracking-[0.2em] text-slate-400">JSON 字段</div>
-              <div className="mt-3 space-y-2.5">
-                <label className="grid gap-1">
-                  <span className="text-[11px] font-black text-slate-500">证据引用（evidence.references，JSON 数组）</span>
-                  <textarea
-                    value={editableDetail?.evidence_references_text || '[]'}
-                    onChange={(event) => setEditableDetail((prev) => (prev ? { ...prev, evidence_references_text: event.target.value } : prev))}
-                    disabled={!detailEditMode || detailSaving}
-                    className="min-h-[90px] rounded-lg border border-slate-200 bg-slate-950 p-3 font-mono text-xs leading-5 text-slate-200 outline-none disabled:opacity-80"
-                  />
-                </label>
-                <label className="grid gap-1">
-                  <span className="text-[11px] font-black text-slate-500">文件清单（artifacts，JSON 数组）</span>
-                  <textarea
-                    value={editableDetail?.artifacts_text || '[]'}
-                    onChange={(event) => setEditableDetail((prev) => (prev ? { ...prev, artifacts_text: event.target.value } : prev))}
-                    disabled={!detailEditMode || detailSaving}
-                    className="min-h-[120px] rounded-lg border border-slate-200 bg-slate-950 p-3 font-mono text-xs leading-5 text-slate-200 outline-none disabled:opacity-80"
-                  />
-                </label>
-                <label className="grid gap-1">
-                  <span className="text-[11px] font-black text-slate-500">扩展元数据（metadata，JSON 对象）</span>
-                  <textarea
-                    value={editableDetail?.metadata_text || '{}'}
-                    onChange={(event) => setEditableDetail((prev) => (prev ? { ...prev, metadata_text: event.target.value } : prev))}
-                    disabled={!detailEditMode || detailSaving}
-                    className="min-h-[120px] rounded-lg border border-slate-200 bg-slate-950 p-3 font-mono text-xs leading-5 text-slate-200 outline-none disabled:opacity-80"
-                  />
-                </label>
+          {detailActiveTab === 'context' && (
+            <div className="space-y-4">
+              <div className="grid gap-4 xl:grid-cols-2">
+                <DetailSectionCard title="关联上下文" subtitle="集中展示来源任务、对象、执行引用与存储位置。">
+                  <div className="mt-3 space-y-2 text-sm text-slate-600">
+                    <div><span className="font-black text-slate-700">上报者：</span>{selectedDetail.reporter?.name || '未提供'} / {selectedDetail.reporter?.type || 'unknown'}</div>
+                    <div><span className="font-black text-slate-700">目标对象：</span>{selectedDetail.subject?.type || '未提供'} / {selectedDetail.subject?.name || selectedDetail.subject?.locator || '未提供'}</div>
+                    <div><span className="font-black text-slate-700">来源报告 ID：</span>{Array.isArray(displaySummary?.source_report_ids) && displaySummary.source_report_ids.length > 0 ? displaySummary.source_report_ids.join(', ') : '未提供'}</div>
+                    <div><span className="font-black text-slate-700">来源任务 ID：</span>{selectedDetail.source_task_id || '未提供'}</div>
+                    <div><span className="font-black text-slate-700">来源执行引用：</span>{selectedDetail.source_execution_id || '未提供'}</div>
+                    <div><span className="font-black text-slate-700">文件根路径：</span>{selectedDetail.files_root_path || workspaceSummary?.files_root_path || '未提供'}</div>
+                    <div><span className="font-black text-slate-700">当前报告存储路径：</span>{reportDocument?.storage_path || '未提供'}</div>
+                  </div>
+                </DetailSectionCard>
+                <DetailSectionCard
+                  title="相关执行引用"
+                  subtitle="用于排查和交叉定位上下游任务、执行链路和结果。"
+                  actions={
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        await navigator.clipboard.writeText(JSON.stringify(relatedRefs, null, 2));
+                        setSuccessMessage('已复制相关执行引用。');
+                      }}
+                      className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-black text-slate-700"
+                    >
+                      <Copy size={13} />
+                      复制
+                    </button>
+                  }
+                >
+                  <div className="mt-3 space-y-2">
+                    {relatedRefs.length === 0 ? (
+                      <div className="rounded-xl bg-slate-50 px-4 py-4 text-sm text-slate-400">暂无关联执行引用</div>
+                    ) : (
+                      relatedRefs.map((ref: any, index: number) => (
+                        <div key={`${ref?.key || 'ref'}-${index}`} className="rounded-xl bg-slate-50 px-4 py-3 text-sm text-slate-700">
+                          <div className="font-black text-slate-800">{ref?.key || `ref-${index + 1}`}</div>
+                          <div className="mt-1 break-all text-xs text-slate-500">{ref?.value || '-'}</div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </DetailSectionCard>
+              </div>
+              <div className="grid gap-4 xl:grid-cols-2">
+                <DetailSectionCard title="JSON 字段" subtitle="用于编辑或查看结构化扩展字段。">
+                  <div className="mt-3 space-y-2.5">
+                    <label className="grid gap-1">
+                      <span className="text-[11px] font-black text-slate-500">证据引用（evidence.references，JSON 数组）</span>
+                      <textarea value={editableDetail?.evidence_references_text || '[]'} onChange={(event) => setEditableDetail((prev) => (prev ? { ...prev, evidence_references_text: event.target.value } : prev))} disabled={!detailEditMode || detailSaving} className="min-h-[90px] rounded-lg border border-slate-200 bg-slate-950 p-3 font-mono text-xs leading-5 text-slate-200 outline-none disabled:opacity-80" />
+                    </label>
+                    <label className="grid gap-1">
+                      <span className="text-[11px] font-black text-slate-500">文件清单（artifacts，JSON 数组）</span>
+                      <textarea value={editableDetail?.artifacts_text || '[]'} onChange={(event) => setEditableDetail((prev) => (prev ? { ...prev, artifacts_text: event.target.value } : prev))} disabled={!detailEditMode || detailSaving} className="min-h-[120px] rounded-lg border border-slate-200 bg-slate-950 p-3 font-mono text-xs leading-5 text-slate-200 outline-none disabled:opacity-80" />
+                    </label>
+                    <label className="grid gap-1">
+                      <span className="text-[11px] font-black text-slate-500">扩展元数据（metadata，JSON 对象）</span>
+                      <textarea value={editableDetail?.metadata_text || '{}'} onChange={(event) => setEditableDetail((prev) => (prev ? { ...prev, metadata_text: event.target.value } : prev))} disabled={!detailEditMode || detailSaving} className="min-h-[120px] rounded-lg border border-slate-200 bg-slate-950 p-3 font-mono text-xs leading-5 text-slate-200 outline-none disabled:opacity-80" />
+                    </label>
+                  </div>
+                </DetailSectionCard>
+                <DetailSectionCard
+                  title="完整原始数据"
+                  subtitle="调试与审计视图，包含 reporter / subject / evidence / artifact / metadata。"
+                  actions={
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        await navigator.clipboard.writeText(JSON.stringify(rawContext, null, 2));
+                        setSuccessMessage('已复制完整原始数据。');
+                      }}
+                      className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-black text-slate-700"
+                    >
+                      <Copy size={13} />
+                      复制
+                    </button>
+                  }
+                >
+                  <div className="mt-3 rounded-xl bg-slate-950 p-3 text-xs leading-5 text-slate-200">
+                    <pre className="max-h-[24rem] overflow-auto whitespace-pre-wrap break-all">{JSON.stringify(rawContext, null, 2)}</pre>
+                  </div>
+                </DetailSectionCard>
               </div>
             </div>
-
-            <div className="rounded-[1.5rem] border border-slate-200 p-4">
-              <div className="text-[11px] font-black uppercase tracking-[0.2em] text-slate-400">完整原始数据</div>
-              <div className="mt-3 rounded-xl bg-slate-950 p-3 text-xs leading-5 text-slate-200">
-                <pre className="max-h-[18rem] overflow-auto whitespace-pre-wrap break-all">
-                  {JSON.stringify(
-                    {
-                      reporter: editableDetail?.reporter || selectedDetail.reporter,
-                      subject: editableDetail?.subject || selectedDetail.subject,
-                      evidence: {
-                        summary: editableDetail?.evidence_summary ?? selectedDetail?.evidence?.summary,
-                        reproduction_hint: editableDetail?.evidence_reproduction_hint ?? selectedDetail?.evidence?.reproduction_hint,
-                      },
-                      artifacts: (() => {
-                        try {
-                          return JSON.parse(editableDetail?.artifacts_text || '[]');
-                        } catch {
-                          return selectedDetail.artifacts;
-                        }
-                      })(),
-                      metadata: (() => {
-                        try {
-                          return JSON.parse(editableDetail?.metadata_text || '{}');
-                        } catch {
-                          return selectedDetail.metadata;
-                        }
-                      })(),
-                    },
-                    null,
-                    2,
-                  )}
-                </pre>
-              </div>
-            </div>
-          </div>
+          )}
         </div>
       </div>
     );
