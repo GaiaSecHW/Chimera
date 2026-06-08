@@ -63,6 +63,41 @@ export interface VulnCaseReportListResponse {
   current_report_id?: string | null;
 }
 
+export interface DownloadCenterJob {
+  job_id: string;
+  project_id: string;
+  source_type: string;
+  scope_type: 'single' | 'batch' | string;
+  status: 'pending' | 'processing' | 'succeeded' | 'failed' | 'expired' | string;
+  report_ids: string[];
+  report_count: number;
+  output_format: string;
+  output_filename?: string | null;
+  output_size_bytes: number;
+  created_by?: string | null;
+  created_at: string;
+  started_at?: string | null;
+  finished_at?: string | null;
+  expires_at?: string | null;
+  last_error?: string | null;
+  downloadable: boolean;
+}
+
+export interface DownloadCenterJobListResponse {
+  items: DownloadCenterJob[];
+  total: number;
+}
+
+export interface DownloadCenterStatsResponse {
+  total: number;
+  pending: number;
+  processing: number;
+  succeeded: number;
+  failed: number;
+  expired: number;
+  downloadable: number;
+}
+
 const publicJson = async (url: string, init?: RequestInit) => {
   const response = await fetch(url, init);
   if (!response.ok) {
@@ -142,6 +177,45 @@ export const vulnApi = {
 
   listCaseReports: async (caseId: string): Promise<VulnCaseReportListResponse> =>
     handleResponse(await fetch(`${API_BASE}/api/vuln/cases/${caseId}/reports`, { headers: getHeaders() })),
+
+  listDownloadJobs: async (projectId: string): Promise<DownloadCenterJobListResponse> =>
+    handleResponse(await fetch(`${API_BASE}/api/vuln/cases/download-center/jobs?project_id=${encodeURIComponent(projectId)}`, { headers: getHeaders() })),
+
+  getDownloadJobStats: async (projectId: string): Promise<DownloadCenterStatsResponse> =>
+    handleResponse(await fetch(`${API_BASE}/api/vuln/cases/download-center/stats?project_id=${encodeURIComponent(projectId)}`, { headers: getHeaders() })),
+
+  createDownloadJob: async (payload: { project_id: string; report_ids: string[] }): Promise<DownloadCenterJob> =>
+    handleResponse(await fetch(`${API_BASE}/api/vuln/cases/download-center/jobs`, {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify(payload),
+    })),
+
+  getDownloadJob: async (jobId: string): Promise<DownloadCenterJob> =>
+    handleResponse(await fetch(`${API_BASE}/api/vuln/cases/download-center/jobs/${encodeURIComponent(jobId)}`, { headers: getHeaders() })),
+
+  retryDownloadJob: async (jobId: string): Promise<DownloadCenterJob> =>
+    handleResponse(await fetch(`${API_BASE}/api/vuln/cases/download-center/jobs/${encodeURIComponent(jobId)}/retry`, {
+      method: 'POST',
+      headers: getHeaders(),
+    })),
+
+  deleteDownloadJob: async (jobId: string): Promise<DownloadCenterJob> =>
+    handleResponse(await fetch(`${API_BASE}/api/vuln/cases/download-center/jobs/${encodeURIComponent(jobId)}`, {
+      method: 'DELETE',
+      headers: getHeaders(),
+    })),
+
+  downloadDownloadJobBlob: async (jobId: string): Promise<Blob> => {
+    const response = await fetch(`${API_BASE}/api/vuln/cases/download-center/jobs/${encodeURIComponent(jobId)}/download`, {
+      headers: getHeaders(),
+    });
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({ detail: 'Unknown error' }));
+      throw new Error(errorData.detail || errorData.error || errorData.message || `API Error (${response.status})`);
+    }
+    return response.blob();
+  },
 
   updateCase: async (caseId: string, payload: any): Promise<any> =>
     handleResponse(await fetch(`${API_BASE}/api/vuln/cases/${caseId}`, {

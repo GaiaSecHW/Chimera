@@ -46,6 +46,7 @@ type AuthExampleMode = 'simple' | 'normal';
 type SortField = 'title' | 'current_stage' | 'severity' | 'reporter' | 'subject' | 'updated_at' | 'confidence' | 'cvss_score';
 type SortDirection = 'asc' | 'desc';
 type IntakeDetailTab = 'overview' | 'report' | 'evidence' | 'process' | 'context';
+type IntakeRootTab = 'cases' | 'download-center';
 
 const METHOD_ICONS: Record<PublicKind, React.ReactNode> = {
   cli: <TerminalSquare size={18} />,
@@ -313,6 +314,29 @@ const toStageText = (value?: string) => (value ? STAGE_TEXT[value] || value : '�
 const toStatusText = (value?: string) => (value ? STATUS_TEXT[value] || value : '未知');
 const toDecisionText = (value?: string) => (value ? DECISION_TEXT[value] || value : '未知');
 
+const DOWNLOAD_STATUS_TEXT: Record<string, string> = {
+  pending: '等待处理中',
+  processing: '后台处理中',
+  succeeded: '可下载',
+  failed: '下载失败',
+  expired: '已过期',
+};
+
+const formatBytes = (value?: number | null) => {
+  const size = Number(value || 0);
+  if (!Number.isFinite(size) || size <= 0) return '0 B';
+  const units = ['B', 'KB', 'MB', 'GB', 'TB'];
+  let current = size;
+  let unitIndex = 0;
+  while (current >= 1024 && unitIndex < units.length - 1) {
+    current /= 1024;
+    unitIndex += 1;
+  }
+  return `${current >= 10 || unitIndex === 0 ? current.toFixed(0) : current.toFixed(1)} ${units[unitIndex]}`;
+};
+
+const toDownloadStatusText = (value?: string) => (value ? DOWNLOAD_STATUS_TEXT[value] || value : '未知');
+
 const TEXT_FILE_EXTENSIONS = [
   '.txt', '.log', '.md', '.markdown', '.json', '.yaml', '.yml', '.xml', '.csv', '.ts', '.tsx', '.js', '.jsx',
   '.py', '.java', '.go', '.rs', '.c', '.cc', '.cpp', '.h', '.hpp', '.sh', '.bash', '.zsh', '.sql', '.ini',
@@ -451,6 +475,7 @@ const DetailSectionCard: React.FC<{
 );
 
 export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId }) => {
+  const [rootTab, setRootTab] = useState<IntakeRootTab>('cases');
   const [loading, setLoading] = useState(true);
   const [detailLoading, setDetailLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -498,6 +523,19 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId }) => {
   const [selectedSuspicionIds, setSelectedSuspicionIds] = useState<string[]>([]);
   const [bulkDeleting, setBulkDeleting] = useState(false);
   const [rowDeletingId, setRowDeletingId] = useState<string | null>(null);
+  const [downloadJobs, setDownloadJobs] = useState<any[]>([]);
+  const [downloadStats, setDownloadStats] = useState<any>({
+    total: 0,
+    pending: 0,
+    processing: 0,
+    succeeded: 0,
+    failed: 0,
+    expired: 0,
+    downloadable: 0,
+  });
+  const [downloadJobsLoading, setDownloadJobsLoading] = useState(false);
+  const [creatingDownload, setCreatingDownload] = useState(false);
+  const [downloadActionJobId, setDownloadActionJobId] = useState<string | null>(null);
   const [detailEditMode, setDetailEditMode] = useState(false);
   const [detailSaving, setDetailSaving] = useState(false);
   const [editableDetail, setEditableDetail] = useState<EditableCaseIntake | null>(null);
@@ -640,6 +678,41 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId }) => {
       setError(err?.message || '加载疑点列表失败');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadDownloadCenter = async (options?: { silent?: boolean }) => {
+    if (!projectId) {
+      setDownloadJobs([]);
+      setDownloadStats({
+        total: 0,
+        pending: 0,
+        processing: 0,
+        succeeded: 0,
+        failed: 0,
+        expired: 0,
+        downloadable: 0,
+      });
+      return;
+    }
+    if (!options?.silent) {
+      setDownloadJobsLoading(true);
+    }
+    try {
+      const [jobsResp, statsResp] = await Promise.all([
+        vulnApi.vuln.listDownloadJobs(projectId),
+        vulnApi.vuln.getDownloadJobStats(projectId),
+      ]);
+      setDownloadJobs(Array.isArray(jobsResp?.items) ? jobsResp.items : []);
+      setDownloadStats(statsResp || {});
+    } catch (err: any) {
+      if (!options?.silent) {
+        setError(err?.message || '加载下载中心失败');
+      }
+    } finally {
+      if (!options?.silent) {
+        setDownloadJobsLoading(false);
+      }
     }
   };
 
@@ -867,6 +940,15 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId }) => {
   }, [projectId]);
 
   useEffect(() => {
+    if (rootTab !== 'download-center') return;
+    void loadDownloadCenter();
+    const timer = window.setInterval(() => {
+      void loadDownloadCenter({ silent: true });
+    }, 5000);
+    return () => window.clearInterval(timer);
+  }, [projectId, rootTab]);
+
+  useEffect(() => {
     setSelectedSuspicionId('');
     setSelectedDetail(null);
     setSelectedTimeline([]);
@@ -876,6 +958,7 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId }) => {
     setLinkedFilePreviewError(null);
     setSelectedSuspicionIds([]);
     setCurrentPage(1);
+    setRootTab('cases');
   }, [projectId]);
 
   useEffect(() => {
@@ -1247,6 +1330,79 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId }) => {
     }
   };
 
+  const handleCreateDownloadJob = async (reportIds: string[], mode: 'single' | 'batch') => {
+    if (!projectId || reportIds.length === 0) return;
+    setCreatingDownload(true);
+    setError(null);
+    setSuccessMessage(null);
+    try {
+      await vulnApi.vuln.createDownloadJob({
+        project_id: projectId,
+        report_ids: reportIds,
+      });
+      setRootTab('download-center');
+      await loadDownloadCenter();
+      setSuccessMessage(mode === 'single' ? '下载任务已创建，请到下载中心查看。' : '打包下载任务已创建，请到下载中心查看。');
+    } catch (err: any) {
+      setError(err?.message || '创建下载任务失败');
+    } finally {
+      setCreatingDownload(false);
+    }
+  };
+
+  const handleDownloadJobFile = async (job: any) => {
+    if (!job?.job_id) return;
+    setDownloadActionJobId(job.job_id);
+    setError(null);
+    try {
+      const blob = await vulnApi.vuln.downloadDownloadJobBlob(job.job_id);
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement('a');
+      anchor.href = url;
+      anchor.download = job.output_filename || `${job.job_id}.zip`;
+      document.body.appendChild(anchor);
+      anchor.click();
+      anchor.remove();
+      URL.revokeObjectURL(url);
+    } catch (err: any) {
+      setError(err?.message || '下载压缩包失败');
+    } finally {
+      setDownloadActionJobId(null);
+    }
+  };
+
+  const handleRetryDownloadJob = async (jobId: string) => {
+    setDownloadActionJobId(jobId);
+    setError(null);
+    setSuccessMessage(null);
+    try {
+      await vulnApi.vuln.retryDownloadJob(jobId);
+      await loadDownloadCenter();
+      setSuccessMessage('下载任务已重新入队。');
+    } catch (err: any) {
+      setError(err?.message || '重试下载任务失败');
+    } finally {
+      setDownloadActionJobId(null);
+    }
+  };
+
+  const handleDeleteDownloadJob = async (jobId: string) => {
+    const confirmed = window.confirm('确认删除这个下载任务吗？产物文件也会一起删除。');
+    if (!confirmed) return;
+    setDownloadActionJobId(jobId);
+    setError(null);
+    setSuccessMessage(null);
+    try {
+      await vulnApi.vuln.deleteDownloadJob(jobId);
+      await loadDownloadCenter();
+      setSuccessMessage('下载任务已删除。');
+    } catch (err: any) {
+      setError(err?.message || '删除下载任务失败');
+    } finally {
+      setDownloadActionJobId(null);
+    }
+  };
+
   const handleSortChange = (field: SortField) => {
     if (sortField === field) {
       setSortDirection((prev) => (prev === 'asc' ? 'desc' : 'asc'));
@@ -1284,6 +1440,126 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId }) => {
       {label}
       <ArrowUpDown size={12} className={sortField === field ? 'text-slate-800' : 'text-slate-300'} />
     </button>
+  );
+
+  const renderDownloadCenter = () => (
+    <div className="space-y-4">
+      <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-5">
+        <div className="rounded-[1.5rem] border border-slate-200 bg-white px-4 py-3.5 shadow-sm">
+          <div className="text-[10px] font-black uppercase tracking-[0.22em] text-slate-400">下载任务总数</div>
+          <div className="mt-2 text-3xl font-black text-slate-900">{downloadStats.total || 0}</div>
+        </div>
+        <div className="rounded-[1.5rem] border border-slate-200 bg-white px-4 py-3.5 shadow-sm">
+          <div className="text-[10px] font-black uppercase tracking-[0.22em] text-slate-400">处理中</div>
+          <div className="mt-2 text-3xl font-black text-amber-600">{(downloadStats.pending || 0) + (downloadStats.processing || 0)}</div>
+        </div>
+        <div className="rounded-[1.5rem] border border-slate-200 bg-white px-4 py-3.5 shadow-sm">
+          <div className="text-[10px] font-black uppercase tracking-[0.22em] text-slate-400">可下载</div>
+          <div className="mt-2 text-3xl font-black text-emerald-600">{downloadStats.downloadable || 0}</div>
+        </div>
+        <div className="rounded-[1.5rem] border border-slate-200 bg-white px-4 py-3.5 shadow-sm">
+          <div className="text-[10px] font-black uppercase tracking-[0.22em] text-slate-400">失败</div>
+          <div className="mt-2 text-3xl font-black text-rose-600">{downloadStats.failed || 0}</div>
+        </div>
+        <div className="rounded-[1.5rem] border border-slate-200 bg-white px-4 py-3.5 shadow-sm">
+          <div className="text-[10px] font-black uppercase tracking-[0.22em] text-slate-400">已过期</div>
+          <div className="mt-2 text-3xl font-black text-slate-700">{downloadStats.expired || 0}</div>
+        </div>
+      </div>
+
+      <div className="rounded-[2rem] border border-slate-200 bg-white shadow-sm overflow-hidden">
+        <div className="border-b border-slate-100 px-5 py-4 xl:px-6">
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+            <div>
+              <div className="text-[11px] font-black uppercase tracking-[0.22em] text-slate-400">下载中心</div>
+              <h3 className="mt-1 text-xl font-black text-slate-900">疑点报告异步下载任务</h3>
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              <div className="rounded-xl bg-slate-100 px-3 py-2 text-[11px] font-black uppercase tracking-[0.18em] text-slate-500">
+                {downloadJobs.length} 条记录
+              </div>
+              <button
+                type="button"
+                onClick={() => loadDownloadCenter()}
+                className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-black text-slate-700"
+              >
+                <RefreshCw size={14} />
+                刷新
+              </button>
+            </div>
+          </div>
+        </div>
+        <div className="overflow-hidden">
+          <div className="grid grid-cols-[1.2fr_0.8fr_0.7fr_0.8fr_1.2fr_0.8fr_0.8fr_1fr_1fr_1fr_1.2fr_1.2fr] gap-3 border-b border-slate-200 bg-slate-50 px-4 py-2.5">
+            {['任务 ID', '类型', '报告数', '状态', '文件名', '大小', '创建人', '创建时间', '完成时间', '过期时间', '错误摘要', '操作'].map((label) => (
+              <div key={label} className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-500">{label}</div>
+            ))}
+          </div>
+          {downloadJobsLoading ? (
+            <div className="bg-slate-50 px-4 py-8 text-sm text-slate-400">正在加载下载任务...</div>
+          ) : downloadJobs.length === 0 ? (
+            <div className="bg-slate-50 px-4 py-8 text-sm text-slate-400">当前项目还没有下载任务。</div>
+          ) : (
+            downloadJobs.map((job) => (
+              <div key={job.job_id} className="grid grid-cols-[1.2fr_0.8fr_0.7fr_0.8fr_1.2fr_0.8fr_0.8fr_1fr_1fr_1fr_1.2fr_1.2fr] gap-3 border-b border-slate-100 bg-white px-4 py-3 text-sm last:border-b-0">
+                <div className="min-w-0">
+                  <div className="truncate font-mono font-bold text-slate-800">{job.job_id}</div>
+                </div>
+                <div className="font-semibold text-slate-700">{job.scope_type === 'single' ? '单个' : '批量'}</div>
+                <div className="font-black text-slate-900">{job.report_count}</div>
+                <div>
+                  <span className={`rounded-lg px-2.5 py-1 text-[10px] font-black uppercase tracking-widest ${job.status === 'succeeded' ? 'bg-emerald-100 text-emerald-700' : job.status === 'failed' ? 'bg-rose-100 text-rose-700' : job.status === 'expired' ? 'bg-slate-200 text-slate-700' : 'bg-amber-100 text-amber-700'}`}>
+                    {toDownloadStatusText(job.status)}
+                  </span>
+                </div>
+                <div className="truncate text-slate-600">{job.output_filename || '-'}</div>
+                <div className="font-semibold text-slate-700">{formatBytes(job.output_size_bytes)}</div>
+                <div className="truncate text-slate-600">{job.created_by || '-'}</div>
+                <div className="text-slate-500">{formatTime(job.created_at)}</div>
+                <div className="text-slate-500">{formatTime(job.finished_at)}</div>
+                <div className="text-slate-500">{formatTime(job.expires_at)}</div>
+                <div className="truncate text-xs text-rose-600">{job.last_error || '-'}</div>
+                <div className="flex flex-wrap gap-1.5">
+                  {job.downloadable ? (
+                    <button
+                      type="button"
+                      onClick={() => handleDownloadJobFile(job)}
+                      disabled={downloadActionJobId === job.job_id}
+                      className="inline-flex items-center gap-1 rounded-lg border border-emerald-200 bg-emerald-50 px-2.5 py-1.5 text-[11px] font-black text-emerald-700 disabled:opacity-50"
+                    >
+                      <Download size={12} />
+                      下载
+                    </button>
+                  ) : null}
+                  {job.status === 'failed' ? (
+                    <button
+                      type="button"
+                      onClick={() => handleRetryDownloadJob(job.job_id)}
+                      disabled={downloadActionJobId === job.job_id}
+                      className="inline-flex items-center gap-1 rounded-lg border border-amber-200 bg-amber-50 px-2.5 py-1.5 text-[11px] font-black text-amber-700 disabled:opacity-50"
+                    >
+                      <RefreshCw size={12} />
+                      重试
+                    </button>
+                  ) : null}
+                  {['succeeded', 'failed', 'expired'].includes(job.status) ? (
+                    <button
+                      type="button"
+                      onClick={() => handleDeleteDownloadJob(job.job_id)}
+                      disabled={downloadActionJobId === job.job_id}
+                      className="inline-flex items-center gap-1 rounded-lg border border-rose-200 bg-rose-50 px-2.5 py-1.5 text-[11px] font-black text-rose-700 disabled:opacity-50"
+                    >
+                      <Trash2 size={12} />
+                      删除
+                    </button>
+                  ) : null}
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+      </div>
+    </div>
   );
 
   const renderDetailView = () => {
@@ -2128,7 +2404,33 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId }) => {
         </div>
       )}
 
+      {!selectedSuspicionId && (
+        <div className="flex flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={() => setRootTab('cases')}
+            className={`inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-black ${
+              rootTab === 'cases' ? 'bg-slate-900 text-white' : 'border border-slate-200 bg-white text-slate-700'
+            }`}
+          >
+            <ShieldAlert size={14} />
+            疑点列表
+          </button>
+          <button
+            type="button"
+            onClick={() => setRootTab('download-center')}
+            className={`inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-black ${
+              rootTab === 'download-center' ? 'bg-slate-900 text-white' : 'border border-slate-200 bg-white text-slate-700'
+            }`}
+          >
+            <Download size={14} />
+            下载中心
+          </button>
+        </div>
+      )}
+
       {!selectedSuspicionId ? (
+        rootTab === 'download-center' ? renderDownloadCenter() : (
         <>
           <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
             <div className="rounded-[1.5rem] border border-slate-200 bg-white px-4 py-3.5 shadow-sm">
@@ -2174,6 +2476,15 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId }) => {
                   >
                     <Trash2 size={14} />
                     {bulkDeleting ? '删除中...' : `删除选中 (${selectedSuspicionIds.length})`}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleCreateDownloadJob(selectedSuspicionIds, 'batch')}
+                    disabled={selectedSuspicionIds.length === 0 || creatingDownload}
+                    className="inline-flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-black text-emerald-700 disabled:opacity-50"
+                  >
+                    <Download size={14} />
+                    {creatingDownload ? '创建中...' : `打包下载 (${selectedSuspicionIds.length})`}
                   </button>
                   <button
                     type="button"
@@ -2352,18 +2663,32 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId }) => {
                       <div className="text-sm text-slate-500">{formatTime(item.updated_at || item.created_at)}</div>
                       <div className="text-right text-xl font-black text-slate-900">{item.confidence}</div>
                       <div>
-                        <button
-                          type="button"
-                          onClick={(event) => {
-                            event.stopPropagation();
-                            handleDeleteSingleFromList(item.id, item.title);
-                          }}
-                          disabled={bulkDeleting || rowDeletingId === item.id}
-                          className="inline-flex items-center gap-1.5 rounded-lg border border-rose-200 bg-rose-50 px-2.5 py-1.5 text-[11px] font-black text-rose-700 disabled:opacity-50"
-                        >
-                          <Trash2 size={12} />
-                          {rowDeletingId === item.id ? '删除中' : '删除'}
-                        </button>
+                        <div className="flex flex-wrap gap-1.5">
+                          <button
+                            type="button"
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              handleCreateDownloadJob([item.id], 'single');
+                            }}
+                            disabled={creatingDownload}
+                            className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-200 bg-emerald-50 px-2.5 py-1.5 text-[11px] font-black text-emerald-700 disabled:opacity-50"
+                          >
+                            <Download size={12} />
+                            下载
+                          </button>
+                          <button
+                            type="button"
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              handleDeleteSingleFromList(item.id, item.title);
+                            }}
+                            disabled={bulkDeleting || rowDeletingId === item.id}
+                            className="inline-flex items-center gap-1.5 rounded-lg border border-rose-200 bg-rose-50 px-2.5 py-1.5 text-[11px] font-black text-rose-700 disabled:opacity-50"
+                          >
+                            <Trash2 size={12} />
+                            {rowDeletingId === item.id ? '删除中' : '删除'}
+                          </button>
+                        </div>
                       </div>
                     </div>
                   ))
@@ -2429,6 +2754,7 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId }) => {
             </div>
           </div>
         </>
+        )
       ) : (
         renderDetailView()
       )}
