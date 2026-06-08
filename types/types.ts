@@ -2103,6 +2103,7 @@ export type ViewType =
   | 'pentest-root' | 'pentest-system'
   | 'pentest-threat' | 'pentest-exec-code' | 'pentest-exec-work' | 'pentest-dataflow'
   | 'pentest-dataflow-vuln-scan'
+  | 'pentest-vuln-verify' | 'vuln-verify-task'
   | 'pentest-exec-firmware-unpacker' | 'pentest-exec-firmware-task-list' | 'pentest-exec-firmware-config'
   | 'pentest-exec-b2s' | 'pentest-exec-b2s-root' | 'pentest-exec-b2s-task-list' | 'pentest-exec-b2s-create' | 'pentest-exec-b2s-queue' | 'pentest-exec-b2s-result' | 'pentest-exec-b2s-detail' | 'pentest-exec-b2s-advanced'
   | 'binary-security' | 'binary-security-root' | 'binary-security-task-list' | 'binary-security-detail' | 'binary-security-config'

@@ -159,6 +159,8 @@ export const PROJECT_REQUIRED_VIEWS = new Set<string>([
   'dataflow-vuln-scan-task',
   'dataflow-vuln-scan-detail',
   'dataflow-vuln-scan-config',
+  'pentest-vuln-verify',
+  'vuln-verify-task',
   'entry-analysis-root',
   'entry-analysis-task',
   'entry-analysis-config',
@@ -245,6 +247,8 @@ const DEVELOPER_ATOMIC_CAPABILITY_VIEWS = new Set<string>([
   'dataflow-vuln-scan-task',
   'dataflow-vuln-scan-detail',
   'dataflow-vuln-scan-config',
+  'pentest-vuln-verify',
+  'vuln-verify-task',
 ]);
 
 const DEVELOPER_TOOL_VIEWS = new Set<string>([
@@ -460,6 +464,13 @@ export const SIDEBAR_SECTIONS: Record<TopLevelNavKey, NavSection[]> = {
           label: '数据流漏洞挖掘',
           icon: Zap,
           aliases: ['dataflow-vuln-scan-task', 'dataflow-vuln-scan-detail', 'dataflow-vuln-scan-config'],
+          requiresProject: true,
+        },
+        {
+          id: 'pentest-vuln-verify',
+          label: '漏洞验证',
+          icon: Zap,
+          aliases: ['vuln-verify-task'],
           requiresProject: true,
         },
       ],

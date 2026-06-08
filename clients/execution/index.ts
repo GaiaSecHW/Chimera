@@ -12,6 +12,7 @@ import { firmwareUnpackerApi } from '../firmwareUnpacker';
 import { ipcAuditApi } from '../ipcAudit';
 import { kernelScanApi } from '../kernelScan';
 import { systemAnalysisApi } from '../systemAnalysis';
+import { vulnVerifyApi } from '../vulnVerify';
 
 export { appDataflowAnalyseApi } from '../appDataflowAnalyse';
 export { appDataflowVulnScanApi } from '../appDataflowVulnScan';
@@ -21,6 +22,7 @@ export { binaryEvolutionApi } from '../binaryEvolution';
 export { binarySecurityMetricsApi } from '../binarySecurityMetrics';
 export { binarySecurityApi } from '../binarySecurity';
 export { systemAnalysisApi } from '../systemAnalysis';
+export { vulnVerifyApi } from '../vulnVerify';
 export { codeServerApi } from '../codeServer';
 export { dataflowVulnScannerApi } from '../dataflowVulnScanner';
 export { firmwareUnpackerApi } from '../firmwareUnpacker';
@@ -43,4 +45,5 @@ export const executionClients = {
   metrics: binarySecurityMetricsApi,
   binarySecurity: binarySecurityApi,
   binaryToSource: binaryToSourceApi,
+  vulnVerify: vulnVerifyApi,
 };

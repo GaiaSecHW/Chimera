@@ -1,4 +1,4 @@
-import { type LucideIcon, Boxes, Bug, Cpu, FileArchive, GitBranchPlus, Radar } from 'lucide-react';
+import { type LucideIcon, Boxes, Bug, Cpu, FileArchive, GitBranchPlus, Radar, ShieldCheck } from 'lucide-react';
 import type { ViewType } from '../../types/types';
 
 export interface AtomicCapabilityEndpoint {
@@ -612,6 +612,48 @@ export const atomicCapabilityCatalog: AtomicCapabilityDescriptor[] = [
             requestSummary: '查询参数 project_id。',
             responseSummary: '返回模型、并发与运行控制配置。',
           },
+        ],
+      },
+    ],
+  },
+  {
+    id: 'vuln-verify',
+    name: '漏洞验证',
+    summary: '接收扫描报告、源码、二进制与威胁模型，执行自动化漏洞验证与结果产物归档。',
+    inputDescription: '报告目录、源码根目录、二进制根目录、威胁模型文件、模型与并发参数。',
+    outputDescription: 'verify.log、分组上下文、verifier_output 结果 JSON、stdout/stderr 与任务事件。',
+    tags: ['漏洞验证', 'Verifier', 'LLM', '报告审定'],
+    viewId: 'pentest-vuln-verify',
+    icon: ShieldCheck,
+    serviceName: 'secflow-app-vuln-verify',
+    k8sServiceHost: 'secflow-app-vuln-verify',
+    port: 80,
+    apiPrefix: '/api/app/vuln-verify',
+    docsPath: '/docs',
+    openapiPath: '/openapi.json',
+    redocPath: '/redoc',
+    platformDocsCandidates: ['/api/app/vuln-verify/docs'],
+    platformOpenapiCandidates: ['/api/app/vuln-verify/openapi.json'],
+    platformRedocCandidates: ['/api/app/vuln-verify/redoc'],
+    apiGroups: [
+      {
+        groupName: '健康与任务',
+        description: '服务健康、任务创建、任务列表与状态查询。',
+        endpoints: [
+          { method: 'GET', path: '/health', purpose: '获取服务健康状态。', requestSummary: '无请求体。', responseSummary: '返回 status 与 service。' },
+          { method: 'POST', path: '/projects/{project_id}/tasks', purpose: '创建漏洞验证任务。', requestSummary: '提交 reports_dir、source_root、binary_root、threat_path、model、concurrency。', responseSummary: '返回任务状态、输出目录和进度。' },
+          { method: 'GET', path: '/projects/{project_id}/tasks', purpose: '查询任务列表。', requestSummary: '支持 status、search、limit、offset。', responseSummary: '返回任务列表和总数。' },
+          { method: 'GET', path: '/projects/{project_id}/tasks/{task_id}', purpose: '查看任务详情和事件。', requestSummary: '路径参数 project_id/task_id。', responseSummary: '返回任务详情、进度和事件列表。' },
+        ],
+      },
+      {
+        groupName: '结果与产物',
+        description: '查看 verifier 输出、产物文件与任务控制。',
+        endpoints: [
+          { method: 'GET', path: '/projects/{project_id}/tasks/{task_id}/result', purpose: '获取结果摘要与 result_*.json。', requestSummary: '路径参数 project_id/task_id。', responseSummary: '返回 result_count、summary 和结果数组。' },
+          { method: 'GET', path: '/projects/{project_id}/tasks/{task_id}/artifacts', purpose: '列出任务产物。', requestSummary: '路径参数 project_id/task_id。', responseSummary: '返回 output_dir 和产物文件列表。' },
+          { method: 'POST', path: '/projects/{project_id}/tasks/{task_id}/terminate', purpose: '取消运行中任务。', requestSummary: '路径参数 project_id/task_id。', responseSummary: '返回操作结果。' },
+          { method: 'POST', path: '/projects/{project_id}/tasks/{task_id}/rerun', purpose: '清空输出并重跑终态任务。', requestSummary: '路径参数 project_id/task_id。', responseSummary: '返回操作结果。' },
         ],
       },
     ],

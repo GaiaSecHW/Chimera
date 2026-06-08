@@ -34,6 +34,7 @@ import { SystemAnalysisConfigPage } from '../pages/execution/SystemAnalysisConfi
 import { DataflowVulnScanTaskPage } from '../pages/execution/DataflowVulnScanTaskPage';
 import { DataflowVulnScanTaskDetailPage } from '../pages/execution/DataflowVulnScanTaskDetailPage';
 import { DataflowVulnScanConfigPage } from '../pages/execution/DataflowVulnScanConfigPage';
+import { VulnVerifyTaskPage } from '../pages/execution/VulnVerifyTaskPage';
 import { EntryAnalysisTaskPage } from '../pages/execution/EntryAnalysisTaskPage';
 import { EntryAnalysisTaskDetailPage } from '../pages/execution/EntryAnalysisTaskDetailPage';
 import { EntryAnalysisConfigPage } from '../pages/execution/EntryAnalysisConfigPage';
@@ -331,6 +332,9 @@ export const renderCurrentView = (ctx: ViewRegistryContext): React.ReactNode => 
       );
     case 'dataflow-vuln-scan-config':
       return <DataflowVulnScanConfigPage projectId={ctx.selectedProjectId} />;
+    case 'pentest-vuln-verify':
+    case 'vuln-verify-task':
+      return <VulnVerifyTaskPage projectId={ctx.selectedProjectId} />;
     case 'workflow-instances':
       return (
         <WorkflowInstancePage
