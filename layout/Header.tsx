@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { ChevronDown, Lock, LogOut, RotateCw, Settings, UserCog } from 'lucide-react';
-import { TopLevelNavKey, TOP_LEVEL_NAV_ITEMS } from '../app/navigation';
+import { getVisibleTopLevelNavItems, TopLevelNavKey } from '../app/navigation';
 import { SecurityProject, UserInfo, ViewType } from '../types/types';
 import { getPlatformRoleLabel, getUserAccess, getUserCenterDefaultView } from '../utils/rbac';
 import { ThemeLogo } from '../components/ThemeLogo';
@@ -43,6 +43,7 @@ export const Header: React.FC<HeaderProps> = ({
   handleLogout,
 }) => {
   const userAccess = getUserAccess(user);
+  const visibleTopLevelNavItems = getVisibleTopLevelNavItems(user);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const userMenuRef = useRef<HTMLDivElement>(null);
 
@@ -67,7 +68,7 @@ export const Header: React.FC<HeaderProps> = ({
 
         <div className="flex justify-center min-w-0">
           <nav className="flex items-center gap-2 overflow-x-auto no-scrollbar max-w-full">
-            {TOP_LEVEL_NAV_ITEMS.map((item) => {
+            {visibleTopLevelNavItems.map((item) => {
               const isActive = currentTopLevelNav === item.id;
               return (
                 <button

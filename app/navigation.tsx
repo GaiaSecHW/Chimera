@@ -42,7 +42,7 @@ import {
   Zap,
 } from 'lucide-react';
 import { UserInfo } from '../types/types';
-import { getUserAccess, getUserCenterDefaultView } from '../utils/rbac';
+import { getPlatformRole, getUserAccess, getUserCenterDefaultView } from '../utils/rbac';
 
 export type TopLevelNavKey =
   | 'dashboard'
@@ -108,6 +108,22 @@ export const TOP_LEVEL_NAV_ITEMS: TopLevelNavItem[] = [
   { id: 'vuln', label: '漏洞' },
   { id: 'platform', label: '平台' },
 ];
+
+const ORDINARY_USER_HIDDEN_TOP_LEVEL_NAVS = new Set<TopLevelNavKey>([
+  'developer',
+  'environment',
+  'assets',
+  'orchestration',
+  'execution',
+]);
+
+export const getVisibleTopLevelNavItems = (user: UserInfo | null | undefined): TopLevelNavItem[] => {
+  const platformRole = getPlatformRole(user);
+  if (platformRole !== 'ordinary_user') {
+    return TOP_LEVEL_NAV_ITEMS;
+  }
+  return TOP_LEVEL_NAV_ITEMS.filter((item) => !ORDINARY_USER_HIDDEN_TOP_LEVEL_NAVS.has(item.id));
+};
 
 export const PROJECT_REQUIRED_VIEWS = new Set<string>([
   'project-file-explorer',

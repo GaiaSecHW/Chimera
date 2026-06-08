@@ -269,8 +269,9 @@ export const UserMgmtPage: React.FC = () => {
     const total = users.length;
     const active = users.filter((user) => user.is_active).length;
     const ordinaryAdmin = users.filter((user) => user.platform_role === 'ordinary_admin').length;
+    const developer = users.filter((user) => user.platform_role === 'developer').length;
     const departmentBound = users.filter((user) => !!user.department_name).length;
-    return { total, active, ordinaryAdmin, departmentBound };
+    return { total, active, ordinaryAdmin, developer, departmentBound };
   }, [users]);
 
   useEffect(() => {
@@ -326,10 +327,14 @@ export const UserMgmtPage: React.FC = () => {
         </div>
         <div className="bg-white/90 backdrop-blur p-8 rounded-[3rem] border border-indigo-100 shadow-sm flex flex-col justify-between">
           <p className="text-slate-400 text-[10px] font-black uppercase tracking-widest">账号分布</p>
-          <div className="mt-4 grid grid-cols-2 gap-4">
+          <div className="mt-4 grid grid-cols-3 gap-4">
             <div className="rounded-[1.75rem] bg-indigo-50 px-5 py-4">
               <p className="text-[10px] font-black uppercase tracking-widest text-indigo-400">普通管理员</p>
               <p className="mt-2 text-3xl font-black text-indigo-700">{userStats.ordinaryAdmin}</p>
+            </div>
+            <div className="rounded-[1.75rem] bg-fuchsia-50 px-5 py-4">
+              <p className="text-[10px] font-black uppercase tracking-widest text-fuchsia-400">开发者</p>
+              <p className="mt-2 text-3xl font-black text-fuchsia-700">{userStats.developer}</p>
             </div>
             <div className="rounded-[1.75rem] bg-blue-50 px-5 py-4">
               <p className="text-[10px] font-black uppercase tracking-widest text-blue-400">已绑定部门</p>
@@ -397,6 +402,8 @@ export const UserMgmtPage: React.FC = () => {
                             ? 'bg-rose-50 text-rose-700 border-rose-100'
                             : user.platform_role === 'ordinary_admin'
                               ? 'bg-indigo-50 text-indigo-700 border-indigo-100'
+                              : user.platform_role === 'developer'
+                                ? 'bg-fuchsia-50 text-fuchsia-700 border-fuchsia-100'
                               : 'bg-slate-100 text-slate-600 border-slate-200'
                         }`}>
                           {getPlatformRoleLabel((user.platform_role || 'ordinary_user') as any)}
@@ -670,7 +677,7 @@ export const UserMgmtPage: React.FC = () => {
                     <div className="space-y-3 text-sm font-medium text-slate-600">
                       <p>1. 只允许超级管理员执行导入。</p>
                       <p>2. 推荐直接下载 Excel 模板，按示例替换数据即可；也兼容 CSV 文件。</p>
-                      <p>3. 平台角色只支持 `ordinary_admin` 和 `ordinary_user`，留空默认普通用户。</p>
+                      <p>3. 平台角色支持 `ordinary_admin`、`developer` 和 `ordinary_user`，留空默认普通用户。</p>
                       <p>4. `role_names` 仅填写已存在的普通角色，多个角色用逗号分隔；部门名称也必须已存在。</p>
                       <p>5. 行内密码为空时，系统会优先使用“统一初始密码”；如果统一密码也为空，则自动生成随机密码并在导入结果中仅展示一次。</p>
                       <p>6. 勾选“首次登录强制改密”后，测试账号首次登录会被要求先完成改密。</p>

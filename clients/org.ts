@@ -5,7 +5,7 @@ import { Department, DepartmentMember, DepartmentMemberImportCommitResponse, Dep
 export interface UserPermissionInfo {
   user_id: number;
   is_admin: boolean;
-  platform_role: 'super_admin' | 'ordinary_admin' | 'ordinary_user';
+  platform_role: 'super_admin' | 'ordinary_admin' | 'developer' | 'ordinary_user';
   department_ids: number[];
   manageable_department_ids: number[];
   department_structure_manageable_ids: number[];

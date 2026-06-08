@@ -1,6 +1,6 @@
 import { UserInfo, ViewType } from '../types/types';
 
-export type PlatformRole = 'super_admin' | 'ordinary_admin' | 'ordinary_user';
+export type PlatformRole = 'super_admin' | 'ordinary_admin' | 'developer' | 'ordinary_user';
 
 export interface UserAccess {
   platformRole: PlatformRole;
@@ -21,6 +21,8 @@ const PLATFORM_ROLE_ALIASES: Record<string, PlatformRole> = {
   '超级管理员': 'super_admin',
   ordinary_admin: 'ordinary_admin',
   '普通管理员': 'ordinary_admin',
+  developer: 'developer',
+  '开发者': 'developer',
   ordinary_user: 'ordinary_user',
   user: 'ordinary_user',
   '普通用户': 'ordinary_user',
@@ -45,6 +47,10 @@ export const getPlatformRole = (user: UserInfo | null | undefined): PlatformRole
   for (const name of names) {
     const normalized = PLATFORM_ROLE_ALIASES[name] || PLATFORM_ROLE_ALIASES[name.toLowerCase()];
     if (normalized === 'ordinary_admin') return normalized;
+  }
+  for (const name of names) {
+    const normalized = PLATFORM_ROLE_ALIASES[name] || PLATFORM_ROLE_ALIASES[name.toLowerCase()];
+    if (normalized === 'developer') return normalized;
   }
 
   return 'ordinary_user';
@@ -78,6 +84,20 @@ export const getUserAccess = (user: UserInfo | null | undefined): UserAccess => 
       canManageDepartments: false,
       canManageDepartmentMembers: true,
       canManageOrgProjects: true,
+    };
+  }
+
+  if (platformRole === 'developer') {
+    return {
+      platformRole,
+      canAccessUserCenter: false,
+      canAccessAdminDashboard: false,
+      canAccessConfigCenter: false,
+      canManageUsers: false,
+      canManageRoles: false,
+      canManageDepartments: false,
+      canManageDepartmentMembers: false,
+      canManageOrgProjects: false,
     };
   }
 
@@ -141,5 +161,6 @@ export const getUserCenterDefaultView = (user: UserInfo | null | undefined): Vie
 export const getPlatformRoleLabel = (platformRole: PlatformRole): string => {
   if (platformRole === 'super_admin') return '超级管理员';
   if (platformRole === 'ordinary_admin') return '普通管理员';
+  if (platformRole === 'developer') return '开发者';
   return '普通用户';
 };

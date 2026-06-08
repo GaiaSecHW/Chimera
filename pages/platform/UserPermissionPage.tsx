@@ -5,11 +5,11 @@ import { Department, UserInfo } from '../../types/types';
 import { getPlatformRoleLabel } from '../../utils/rbac';
 
 interface UserDraft {
-  platformRole: 'ordinary_admin' | 'ordinary_user';
+  platformRole: 'ordinary_admin' | 'developer' | 'ordinary_user';
   departmentId: string;
 }
 
-type RoleFilter = 'all' | 'super_admin' | 'ordinary_admin' | 'ordinary_user' | 'changed';
+type RoleFilter = 'all' | 'super_admin' | 'ordinary_admin' | 'developer' | 'ordinary_user' | 'changed';
 
 const isEditableUser = (user: UserInfo) => user.platform_role !== 'super_admin' && Number(user.id) !== 1;
 
@@ -22,6 +22,8 @@ const buildDrafts = (items: UserInfo[]): Record<number, UserDraft> => (
           ? 'ordinary_user'
           : user.platform_role === 'ordinary_admin'
             ? 'ordinary_admin'
+            : user.platform_role === 'developer'
+              ? 'developer'
             : 'ordinary_user',
         departmentId: user.department_id ? String(user.department_id) : '',
       },
@@ -138,6 +140,7 @@ export const UserPermissionPage: React.FC = () => {
   const roleStats = useMemo(() => ({
     superAdmin: users.filter((user) => user.platform_role === 'super_admin').length,
     ordinaryAdmin: users.filter((user) => user.platform_role === 'ordinary_admin').length,
+    developer: users.filter((user) => user.platform_role === 'developer').length,
     ordinaryUser: users.filter((user) => (user.platform_role || 'ordinary_user') === 'ordinary_user').length,
     changed: users.filter((user) => getDraftChanged(user, drafts[user.id])).length,
   }), [drafts, users]);
@@ -146,6 +149,7 @@ export const UserPermissionPage: React.FC = () => {
     { key: 'all', label: '全部账号', count: users.length },
     { key: 'super_admin', label: '超级管理员', count: roleStats.superAdmin },
     { key: 'ordinary_admin', label: '普通管理员', count: roleStats.ordinaryAdmin },
+    { key: 'developer', label: '开发者', count: roleStats.developer },
     { key: 'ordinary_user', label: '普通用户', count: roleStats.ordinaryUser },
     { key: 'changed', label: '待保存变更', count: roleStats.changed },
   ];
@@ -179,7 +183,11 @@ export const UserPermissionPage: React.FC = () => {
     setDrafts((prev) => ({
       ...prev,
       [userId]: {
-        platformRole: nextUser.platform_role === 'ordinary_admin' ? 'ordinary_admin' : 'ordinary_user',
+        platformRole: nextUser.platform_role === 'ordinary_admin'
+          ? 'ordinary_admin'
+          : nextUser.platform_role === 'developer'
+            ? 'developer'
+            : 'ordinary_user',
         departmentId: nextUser.department_id ? String(nextUser.department_id) : '',
       },
     }));
@@ -303,10 +311,17 @@ export const UserPermissionPage: React.FC = () => {
                 <p className="text-[10px] font-black uppercase tracking-[0.25em] text-amber-100/80">普通管理员</p>
                 <p className="mt-3 text-3xl font-black text-amber-200">{roleStats.ordinaryAdmin}</p>
               </div>
+              <div className="rounded-[1.6rem] border border-fuchsia-400/15 bg-fuchsia-400/10 px-5 py-4">
+                <p className="text-[10px] font-black uppercase tracking-[0.25em] text-fuchsia-100/80">开发者</p>
+                <p className="mt-3 text-3xl font-black text-fuchsia-200">{roleStats.developer}</p>
+              </div>
               <div className="rounded-[1.6rem] border border-sky-400/15 bg-sky-400/10 px-5 py-4">
                 <p className="text-[10px] font-black uppercase tracking-[0.25em] text-sky-100/80">普通用户</p>
                 <p className="mt-3 text-3xl font-black text-sky-200">{roleStats.ordinaryUser}</p>
               </div>
+            </div>
+
+            <div className="mt-3 grid grid-cols-1 gap-3 md:max-w-[14rem]">
               <div className="rounded-[1.6rem] border border-emerald-400/15 bg-emerald-400/10 px-5 py-4">
                 <p className="text-[10px] font-black uppercase tracking-[0.25em] text-emerald-100/80">待保存</p>
                 <p className="mt-3 text-3xl font-black text-emerald-200">{roleStats.changed}</p>
@@ -449,6 +464,8 @@ export const UserPermissionPage: React.FC = () => {
                                 ? 'border-slate-900 bg-slate-900 text-white'
                                 : user.platform_role === 'ordinary_admin'
                                   ? 'border-amber-200 bg-amber-50 text-amber-700'
+                                  : user.platform_role === 'developer'
+                                    ? 'border-fuchsia-200 bg-fuchsia-50 text-fuchsia-700'
                                   : 'border-sky-200 bg-sky-50 text-sky-700'
                             }`}
                           >
@@ -464,6 +481,7 @@ export const UserPermissionPage: React.FC = () => {
                             className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-medium text-slate-700 outline-none transition focus:border-sky-300 focus:bg-white focus:ring-4 focus:ring-sky-500/10 disabled:cursor-not-allowed disabled:opacity-60"
                           >
                             <option value="ordinary_user">普通用户</option>
+                            <option value="developer">开发者</option>
                             <option value="ordinary_admin">普通管理员</option>
                           </select>
                         </td>

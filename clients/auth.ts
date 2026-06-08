@@ -207,7 +207,7 @@ export const authApi = {
     return handleResponse(response);
   },
 
-  updateUserPlatformRole: async (userId: number, roleName: 'ordinary_admin' | 'ordinary_user'): Promise<any> => {
+  updateUserPlatformRole: async (userId: number, roleName: 'ordinary_admin' | 'developer' | 'ordinary_user'): Promise<any> => {
     const response = await fetch(`${API_BASE}/api/auth/users/${userId}/platform-role`, {
       method: 'PUT',
       headers: getHeaders(),
