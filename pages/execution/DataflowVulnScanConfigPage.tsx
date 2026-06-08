@@ -55,6 +55,7 @@ const defaultConfig = (projectId: string): AppDfaServiceConfig => ({
   pi_max_retries: -1,
   pi_retry_delay: 10,
   max_trace_depth: 5,
+  deep_trace_enabled: false,
   callee_concurrency: 4,
   workers: defaultRole(),
   judges: { ...defaultRole(), agents: [] },
@@ -186,6 +187,7 @@ const applyDfaPanel = (
       return {
         ...base,
         max_trace_depth: source.max_trace_depth,
+        deep_trace_enabled: source.deep_trace_enabled,
         callee_concurrency: source.callee_concurrency,
       };
     case 'retry':
@@ -462,8 +464,18 @@ export const DataflowVulnScanConfigPage: React.FC<{ projectId: string; embedded?
             )}
           >
             <div className="grid grid-cols-2 gap-4">
-              <FieldRow label="max_trace_depth" hint="最大追踪深度">
-                <NumberInput value={config.max_trace_depth} min={1} max={20} onChange={(v) => patch({ max_trace_depth: v })} />
+              <FieldRow label="max_trace_depth" hint={config.deep_trace_enabled ? '深度探索模式已开启，此值仅作显示/回退' : '最大追踪深度'}>
+                <NumberInput value={config.max_trace_depth} min={1} max={1000} onChange={(v) => patch({ max_trace_depth: v })} />
+              </FieldRow>
+              <FieldRow label="deep_trace_enabled" hint="开启后不按 max_trace_depth 截断，依赖污点收敛去重">
+                <label className="inline-flex cursor-pointer items-center gap-3 rounded-lg border border-slate-200 px-3 py-2">
+                  <div className="relative">
+                    <input type="checkbox" className="peer sr-only" checked={!!config.deep_trace_enabled} onChange={(e) => patch({ deep_trace_enabled: e.target.checked })} />
+                    <div className="h-6 w-11 rounded-full bg-slate-200 peer-checked:bg-violet-600 transition-colors" />
+                    <div className="absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform peer-checked:translate-x-5" />
+                  </div>
+                  <span className="text-sm text-slate-600">{config.deep_trace_enabled ? '深度探索开启' : '深度探索关闭'}</span>
+                </label>
               </FieldRow>
               <FieldRow label="callee_concurrency" hint="BFS 并行度 1-64">
                 <NumberInput value={config.callee_concurrency} min={1} max={64} onChange={(v) => patch({ callee_concurrency: v })} />

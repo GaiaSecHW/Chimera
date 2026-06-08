@@ -4301,6 +4301,7 @@ export interface AppDfaServiceConfig {
   pi_max_retries: number;
   pi_retry_delay: number;
   max_trace_depth: number;
+  deep_trace_enabled: boolean;
   callee_concurrency: number;
   workers: AppDfaRoleConfig;
   judges: AppDfaRoleConfig;
