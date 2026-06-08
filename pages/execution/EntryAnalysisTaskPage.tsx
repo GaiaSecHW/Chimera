@@ -1041,15 +1041,14 @@ export const EntryAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?: (
     { label: '智能体等待', value: slotCluster.agent_waiting_requests, className: 'bg-orange-50 border-orange-200 text-orange-700' },
     { label: '智能体RSS', value: formatBytes(slotCluster.agent_rss_total_bytes || 0), className: 'bg-cyan-50 border-cyan-200 text-cyan-700' },
   ] : [];
-  const slotWorkerTotalPages = Math.max(1, Math.ceil((slotCluster?.workers.length || 0) / SLOT_WORKER_PAGE_SIZE));
+  const slotWorkers = slotCluster?.workers || [];
+  const slotWorkerTotalPages = Math.max(1, Math.ceil(slotWorkers.length / SLOT_WORKER_PAGE_SIZE));
   const slotWorkerPageSafe = Math.min(slotWorkerPage, slotWorkerTotalPages);
-  const pagedSlotWorkers = slotCluster
-    ? slotCluster.workers.slice((slotWorkerPageSafe - 1) * SLOT_WORKER_PAGE_SIZE, slotWorkerPageSafe * SLOT_WORKER_PAGE_SIZE)
-    : [];
+  const pagedSlotWorkers = slotWorkers.slice((slotWorkerPageSafe - 1) * SLOT_WORKER_PAGE_SIZE, slotWorkerPageSafe * SLOT_WORKER_PAGE_SIZE);
 
   useEffect(() => {
     setSlotWorkerPage(1);
-  }, [slotCluster?.updated_at, slotCluster?.workers.length]);
+  }, [slotCluster?.updated_at, slotWorkers.length]);
 
   useEffect(() => {
     if (slotWorkerPage > slotWorkerTotalPages) {
@@ -1570,14 +1569,14 @@ export const EntryAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?: (
                   </div>
                 ))}
               </div>
-              {slotCluster.workers.length > SLOT_WORKER_PAGE_SIZE ? (
+              {slotWorkers.length > SLOT_WORKER_PAGE_SIZE ? (
                 <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
                   <div className="text-xs text-slate-500">
-                    当前显示 {Math.min((slotWorkerPageSafe - 1) * SLOT_WORKER_PAGE_SIZE + 1, slotCluster.workers.length)}
+                    当前显示 {Math.min((slotWorkerPageSafe - 1) * SLOT_WORKER_PAGE_SIZE + 1, slotWorkers.length)}
                     {' - '}
-                    {Math.min(slotWorkerPageSafe * SLOT_WORKER_PAGE_SIZE, slotCluster.workers.length)}
+                    {Math.min(slotWorkerPageSafe * SLOT_WORKER_PAGE_SIZE, slotWorkers.length)}
                     {' / '}
-                    {slotCluster.workers.length} 个 Worker
+                    {slotWorkers.length} 个 Worker
                   </div>
                   <div className="flex items-center gap-2 text-xs">
                     <button
@@ -2041,7 +2040,7 @@ export const EntryAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?: (
                             {t.owner_role_guess === 'api' ? 'api owner' : 'invalid owner'}
                           </span>
                         ) : null}
-                        {slotCluster?.workers.some((worker) => worker.pod_name === t.owner_pod && !worker.healthy) ? (
+                        {slotWorkers.some((worker) => worker.pod_name === t.owner_pod && !worker.healthy) ? (
                           <span className="inline-flex rounded-full border border-rose-200 bg-rose-50 px-2 py-0.5 text-[10px] font-bold text-rose-700">
                             stale owner
                           </span>

@@ -207,10 +207,10 @@ export const ProjectDetailPage: React.FC<ProjectDetailPageProps> = ({ projectId,
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
         {[
-          { label: 'POD 实例', value: resources?.pods.length, icon: <Layers size={20} />, color: 'text-blue-600' },
-          { label: '服务节点', value: resources?.services.length, icon: <Share2 size={20} />, color: 'text-indigo-600' },
-          { label: '存储卷', value: resources?.pvcs.length, icon: <Database size={20} />, color: 'text-amber-600' },
-          { label: '外部入口', value: resources?.ingresses.length, icon: <Globe size={20} />, color: 'text-purple-600' },
+          { label: 'POD 实例', value: (resources?.pods || []).length, icon: <Layers size={20} />, color: 'text-blue-600' },
+          { label: '服务节点', value: (resources?.services || []).length, icon: <Share2 size={20} />, color: 'text-indigo-600' },
+          { label: '存储卷', value: (resources?.pvcs || []).length, icon: <Database size={20} />, color: 'text-amber-600' },
+          { label: '外部入口', value: (resources?.ingresses || []).length, icon: <Globe size={20} />, color: 'text-purple-600' },
         ].map((stat, i) => (
           <div key={i} className="bg-[var(--bg-surface)] p-6 rounded-[2rem] border border-[rgba(255,255,255,0.08)] shadow-sm flex items-center gap-5">
              <div className={`w-12 h-12 rounded-2xl bg-[rgba(255,255,255,0.04)] ${stat.color} flex items-center justify-center`}>
@@ -356,11 +356,11 @@ export const ProjectDetailPage: React.FC<ProjectDetailPageProps> = ({ projectId,
                      </div>
                      <div className="flex justify-between items-center">
                        <span className="text-sm font-bold text-slate-500">关联 ConfigMaps</span>
-                       <span className="text-xs font-black text-slate-800">{resources?.configmaps.length || 0}</span>
+                       <span className="text-xs font-black text-slate-800">{(resources?.configmaps || []).length}</span>
                      </div>
                      <div className="flex justify-between items-center">
                        <span className="text-sm font-bold text-slate-500">关联 Secrets</span>
-                       <span className="text-xs font-black text-amber-600">{resources?.secrets.length || 0} 密文</span>
+                       <span className="text-xs font-black text-amber-600">{(resources?.secrets || []).length} 密文</span>
                      </div>
                    </div>
                  </div>
@@ -370,7 +370,7 @@ export const ProjectDetailPage: React.FC<ProjectDetailPageProps> = ({ projectId,
                      <Activity size={20} className="text-blue-600" /> 活跃部署拓扑
                    </h3>
                    <div className="grid grid-cols-1 gap-4">
-                     {resources?.deployments.map(dep => (
+                     {(resources?.deployments || []).map(dep => (
                        <div key={dep.name} className="p-6 bg-[var(--bg-surface)] border border-[rgba(255,255,255,0.06)] rounded-2xl flex items-center justify-between hover:shadow-lg transition-all">
                          <div className="flex items-center gap-4">
                            <div className="w-10 h-10 bg-indigo-50 text-indigo-600 rounded-xl flex items-center justify-center">

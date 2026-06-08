@@ -1239,15 +1239,14 @@ export const DataflowVulnScanTaskPage: React.FC<{ projectId: string; onOpenTask?
       text: 'text-amber-700',
     },
   ], [slotSummary]);
-  const slotWorkerTotalPages = Math.max(1, Math.ceil((slotSummary?.workers.length || 0) / SLOT_WORKER_PAGE_SIZE));
+  const slotWorkers = slotSummary?.workers || [];
+  const slotWorkerTotalPages = Math.max(1, Math.ceil(slotWorkers.length / SLOT_WORKER_PAGE_SIZE));
   const slotWorkerPageSafe = Math.min(slotWorkerPage, slotWorkerTotalPages);
-  const pagedSlotWorkers = slotSummary
-    ? slotSummary.workers.slice((slotWorkerPageSafe - 1) * SLOT_WORKER_PAGE_SIZE, slotWorkerPageSafe * SLOT_WORKER_PAGE_SIZE)
-    : [];
+  const pagedSlotWorkers = slotWorkers.slice((slotWorkerPageSafe - 1) * SLOT_WORKER_PAGE_SIZE, slotWorkerPageSafe * SLOT_WORKER_PAGE_SIZE);
 
   useEffect(() => {
     setSlotWorkerPage(1);
-  }, [slotSummary?.updated_at, slotSummary?.workers.length]);
+  }, [slotSummary?.updated_at, slotWorkers.length]);
 
   useEffect(() => {
     if (slotWorkerPage > slotWorkerTotalPages) {
@@ -1673,20 +1672,20 @@ export const DataflowVulnScanTaskPage: React.FC<{ projectId: string; onOpenTask?
                     ) : null}
                   </div>
                 ))}
-                {slotSummary && (slotSummary.workers || []).length === 0 ? (
+                {slotSummary && slotWorkers.length === 0 ? (
                   <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-4 py-6 text-sm text-slate-400">
                     当前未发现可用的数据流漏洞挖掘 worker。
                   </div>
                 ) : null}
               </div>
-              {slotSummary && slotSummary.workers.length > SLOT_WORKER_PAGE_SIZE ? (
+              {slotSummary && slotWorkers.length > SLOT_WORKER_PAGE_SIZE ? (
                 <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
                   <div className="text-xs text-slate-500">
-                    当前显示 {Math.min((slotWorkerPageSafe - 1) * SLOT_WORKER_PAGE_SIZE + 1, slotSummary.workers.length)}
+                    当前显示 {Math.min((slotWorkerPageSafe - 1) * SLOT_WORKER_PAGE_SIZE + 1, slotWorkers.length)}
                     {' - '}
-                    {Math.min(slotWorkerPageSafe * SLOT_WORKER_PAGE_SIZE, slotSummary.workers.length)}
+                    {Math.min(slotWorkerPageSafe * SLOT_WORKER_PAGE_SIZE, slotWorkers.length)}
                     {' / '}
-                    {slotSummary.workers.length} 个 Worker
+                    {slotWorkers.length} 个 Worker
                   </div>
                   <div className="flex items-center gap-2 text-xs">
                     <button
@@ -1763,7 +1762,7 @@ export const DataflowVulnScanTaskPage: React.FC<{ projectId: string; onOpenTask?
               </div>
             </div>
             <div className="max-h-[75vh] overflow-auto px-6 py-5">
-              {(slotSummary?.workers || []).length === 0 ? (
+              {slotWorkers.length === 0 ? (
                 <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-4 py-10 text-center text-sm text-slate-400">
                   当前未发现可用的数据流漏洞挖掘 worker。
                 </div>
@@ -1871,14 +1870,14 @@ export const DataflowVulnScanTaskPage: React.FC<{ projectId: string; onOpenTask?
                   })}
                 </div>
               )}
-              {slotSummary && slotSummary.workers.length > SLOT_WORKER_PAGE_SIZE ? (
+              {slotSummary && slotWorkers.length > SLOT_WORKER_PAGE_SIZE ? (
                 <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
                   <div className="text-xs text-slate-500">
-                    当前显示 {Math.min((slotWorkerPageSafe - 1) * SLOT_WORKER_PAGE_SIZE + 1, slotSummary.workers.length)}
+                    当前显示 {Math.min((slotWorkerPageSafe - 1) * SLOT_WORKER_PAGE_SIZE + 1, slotWorkers.length)}
                     {' - '}
-                    {Math.min(slotWorkerPageSafe * SLOT_WORKER_PAGE_SIZE, slotSummary.workers.length)}
+                    {Math.min(slotWorkerPageSafe * SLOT_WORKER_PAGE_SIZE, slotWorkers.length)}
                     {' / '}
-                    {slotSummary.workers.length} 个 Worker
+                    {slotWorkers.length} 个 Worker
                   </div>
                   <div className="flex items-center gap-2 text-xs">
                     <button
