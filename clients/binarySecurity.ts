@@ -381,7 +381,7 @@ export interface BinarySecurityTaskDetail extends BinarySecurityTask {
   output_root: string;
   workspace_root: string;
   fileserver_subproject_name?: string | null;
-  candidate_entry_count?: number;
+  candidate_entry_count: number;
   policy: BinarySecurityTaskPolicy;
   summary: Record<string, any> & {
     selected_modules?: BinarySecurityModuleContract[];

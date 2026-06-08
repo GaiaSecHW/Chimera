@@ -2041,7 +2041,7 @@ export interface DeployScriptListResponse {
 export type ViewType =
   | 'dashboard' | 'admin-dashboard' | 'project-mgmt' | 'project-detail' | 'product-mgmt' | 'static-packages' | 'static-package-detail' | 'deploy-script-mgmt'
   | 'task-nuzhua' | 'task-smart-jar' | 'task-apk-smart-scan' | 'task-binary-end-to-end' | 'task-web-end-to-end'
-  | 'developer-atomic-capability' | 'developer-tools'
+  | 'developer-atomic-capability' | 'developer-atomic-capability-overview' | 'developer-tools' | 'developer-tools-overview'
   | 'public-resource-pvc-management' | 'public-resource-task-management' | 'test-input-release' | 'test-input-code' | 'test-input-doc' | 'test-input-tasks' | 'test-input-other' | 'pvc-management' | 'project-file-explorer' | 'fileserver-archive-tasks'
   | 'config-center-root' | 'config-center-llm' | 'config-center-llm-chat' | 'aigw-admin' | 'chirmera-platform-schedule'
   | 'env-mgmt' | 'env-agent' | 'env-service' | 'env-ai-agent' | 'env-ai-agent-overview' | 'env-ai-helper' | 'env-ai-agent-manage' | 'env-ai-agent-session-manage' | 'env-ai-session' | 'env-ai-batch-session' | 'env-template' | 'env-tasks'
@@ -2050,6 +2050,7 @@ export type ViewType =
   | 'workflow-instances' | 'workflow-instance-detail' | 'workflow-instance-logs' | 'workflow-jobs' | 'workflow-job-detail' | 'workflow-apps' | 'workflow-app-detail' | 'workflow-app-instances' | 'workflow-app-instance-detail'
   | 'pentest-root' | 'pentest-system'
   | 'pentest-threat' | 'pentest-exec-code' | 'pentest-exec-work' | 'pentest-dataflow'
+  | 'pentest-dataflow-vuln-scan'
   | 'pentest-exec-firmware-unpacker' | 'pentest-exec-firmware-task-list' | 'pentest-exec-firmware-config'
   | 'pentest-exec-b2s' | 'pentest-exec-b2s-root' | 'pentest-exec-b2s-task-list' | 'pentest-exec-b2s-create' | 'pentest-exec-b2s-queue' | 'pentest-exec-b2s-result' | 'pentest-exec-b2s-detail' | 'pentest-exec-b2s-advanced'
   | 'binary-security' | 'binary-security-root' | 'binary-security-task-list' | 'binary-security-detail' | 'binary-security-config'

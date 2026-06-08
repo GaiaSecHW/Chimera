@@ -51,6 +51,7 @@ import { ExecutionWorkPlatformPage } from '../pages/execution/ExecutionWorkPlatf
 import { FirmwareUnpackerPage } from '../pages/execution/FirmwareUnpackerPage';
 import { FirmwareEvolutionCenterPage } from '../pages/execution/FirmwareEvolutionCenterPage';
 import { ReportsPage } from '../pages/execution/ReportsPage';
+import { TestInputPage } from '../pages/TestInputPage';
 // [DISABLED] DataflowVulnTask import - 方便后续复用
 // import { DataflowVulnTaskDetailPage, DataflowVulnTaskListPage } from '../pages/execution/DataflowVulnScanPage';
 import { BinaryEvolutionCenterPage } from '../pages/execution/BinaryEvolutionCenterPage';
@@ -60,6 +61,8 @@ import BinarySecurityMetricsDashboardPage from '../pages/execution/BinarySecurit
 import { BinarySecurityTaskDetailPage } from '../pages/execution/BinarySecurityTaskDetailPage';
 import { MobileSecurityIpcVulnPage } from '../pages/execution/MobileSecurityIpcVulnPage';
 import { KernelScanPage } from '../pages/execution/KernelScanPage';
+import { AtomicCapabilityOverviewPage } from '../pages/execution/AtomicCapabilityOverviewPage';
+import { ToolOverviewPage } from '../pages/execution/ToolOverviewPage';
 import { VulnOverviewPage } from '../pages/vuln/VulnOverviewPage';
 import { VulnIntakePage } from '../pages/vuln/VulnIntakePage';
 import { VulnAnalysisPage } from '../pages/vuln/VulnAnalysisPage';
@@ -202,9 +205,11 @@ export const renderCurrentView = (ctx: ViewRegistryContext): React.ReactNode => 
     case 'task-web-end-to-end':
       return <EmptyPlaceholderPage title="WEB端到端" />;
     case 'developer-atomic-capability':
-      return <EmptyPlaceholderPage title="原子能力" />;
+    case 'developer-atomic-capability-overview':
+      return <AtomicCapabilityOverviewPage projectId={ctx.selectedProjectId} onNavigate={ctx.setCurrentView} />;
     case 'developer-tools':
-      return <EmptyPlaceholderPage title="工具" />;
+    case 'developer-tools-overview':
+      return <ToolOverviewPage projectId={ctx.selectedProjectId} onNavigate={ctx.setCurrentView} />;
     case 'static-packages':
       return (
         <StaticPackagesPage
@@ -236,6 +241,7 @@ export const renderCurrentView = (ctx: ViewRegistryContext): React.ReactNode => 
     case 'test-input-code':
     case 'test-input-doc':
     case 'test-input-other':
+      return <TestInputPage currentView={ctx.currentView} />;
     case 'pvc-management':
       return <PublicResourceManagementPage projectId={ctx.selectedProjectId} initialTab="pvc" />;
     case 'test-input-tasks':

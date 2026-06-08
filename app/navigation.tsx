@@ -99,10 +99,10 @@ export type HealthStatusKey = keyof SidebarHealthStatus;
 export const TOP_LEVEL_NAV_ITEMS: TopLevelNavItem[] = [
   { id: 'dashboard', label: '控制台' },
   { id: 'project', label: '项目' },
-  { id: 'assets', label: '资产' },
   { id: 'task', label: '任务' },
   { id: 'developer', label: '开发者' },
   { id: 'environment', label: '环境' },
+  { id: 'assets', label: '资产' },
   { id: 'orchestration', label: '编排' },
   { id: 'execution', label: '执行' },
   { id: 'vuln', label: '漏洞' },
@@ -202,7 +202,44 @@ export const PROJECT_REQUIRED_VIEWS = new Set<string>([
   'task-binary-end-to-end',
   'task-web-end-to-end',
   'developer-atomic-capability',
+  'developer-atomic-capability-overview',
   'developer-tools',
+  'developer-tools-overview',
+]);
+
+const DEVELOPER_ATOMIC_CAPABILITY_VIEWS = new Set<string>([
+  'pentest-exec-firmware-unpacker',
+  'pentest-system',
+  'pentest-exec-b2s',
+  'pentest-threat',
+  'pentest-dataflow-vuln-scan',
+  'pentest-exec-firmware-task-list',
+  'system-analysis-task',
+  'system-analysis-detail',
+  'pentest-exec-b2s-root',
+  'pentest-exec-b2s-task-list',
+  'pentest-exec-b2s-create',
+  'pentest-exec-b2s-queue',
+  'pentest-exec-b2s-result',
+  'pentest-exec-b2s-detail',
+  'pentest-exec-b2s-advanced',
+  'entry-analysis-root',
+  'entry-analysis-task',
+  'entry-analysis-detail',
+  'dataflow-vuln-scan-task',
+  'dataflow-vuln-scan-detail',
+  'dataflow-vuln-scan-config',
+]);
+
+const DEVELOPER_TOOL_VIEWS = new Set<string>([
+  'binary-security',
+  'binary-security-root',
+  'binary-security-task-list',
+  'binary-security-detail',
+  'source-security',
+  'source-security-detail',
+  'binary-module-security',
+  'binary-module-security-detail',
 ]);
 
 export const getTopLevelNavForView = (view: string): TopLevelNavKey => {
@@ -243,6 +280,14 @@ export const getTopLevelNavForView = (view: string): TopLevelNavKey => {
     view.startsWith('task-')
   ) {
     return 'task';
+  }
+
+  if (DEVELOPER_ATOMIC_CAPABILITY_VIEWS.has(view)) {
+    return 'developer';
+  }
+
+  if (DEVELOPER_TOOL_VIEWS.has(view)) {
+    return 'developer';
   }
 
   if (
@@ -288,7 +333,7 @@ export const getTopLevelDefaultView = (nav: TopLevelNavKey, user: UserInfo | nul
     case 'task':
       return 'task-nuzhua';
     case 'developer':
-      return 'developer-atomic-capability';
+      return 'developer-atomic-capability-overview';
     case 'environment':
       return 'env-agent';
     case 'orchestration':
@@ -336,6 +381,15 @@ export const SIDEBAR_SECTIONS: Record<TopLevelNavKey, NavSection[]> = {
   ],
   task: [
     {
+      title: '任务输入',
+      items: [
+        { id: 'test-input-code', label: '源码', icon: Code2, requiresProject: true },
+        { id: 'test-input-doc', label: '文档', icon: FileText, requiresProject: true },
+        { id: 'test-input-release', label: '软件包', icon: Package, requiresProject: true },
+        { id: 'test-input-other', label: '其他', icon: FileBox, requiresProject: true },
+      ],
+    },
+    {
       title: '任务中心',
       items: [
         { id: 'task-nuzhua', label: 'NUZHUA', icon: Activity, requiresProject: true },
@@ -350,8 +404,32 @@ export const SIDEBAR_SECTIONS: Record<TopLevelNavKey, NavSection[]> = {
     {
       title: '开发者中心',
       items: [
-        { id: 'developer-atomic-capability', label: '原子能力', icon: Zap, requiresProject: true },
-        { id: 'developer-tools', label: '工具', icon: Settings, requiresProject: true },
+        {
+          id: 'developer-atomic-capability',
+          label: '原子能力',
+          icon: Zap,
+          requiresProject: true,
+          subItems: [
+            { id: 'developer-atomic-capability-overview', label: '原子能力总览', aliases: ['developer-atomic-capability'], requiresProject: true },
+            { id: 'pentest-exec-firmware-unpacker', label: '固件解包', aliases: ['pentest-exec-firmware-task-list'], requiresProject: true },
+            { id: 'pentest-system', label: '系统分析', aliases: ['system-analysis-task', 'system-analysis-detail'], requiresProject: true },
+            { id: 'pentest-exec-b2s', label: '二进制逆向', aliases: ['pentest-exec-b2s-root', 'pentest-exec-b2s-task-list', 'pentest-exec-b2s-create', 'pentest-exec-b2s-queue', 'pentest-exec-b2s-result', 'pentest-exec-b2s-detail', 'pentest-exec-b2s-advanced'], requiresProject: true },
+            { id: 'pentest-threat', label: '入口分析', aliases: ['entry-analysis-root', 'entry-analysis-task', 'entry-analysis-detail'], requiresProject: true },
+            { id: 'pentest-dataflow-vuln-scan', label: '数据流漏洞挖掘', aliases: ['dataflow-vuln-scan-task', 'dataflow-vuln-scan-detail', 'dataflow-vuln-scan-config'], requiresProject: true },
+          ],
+        },
+        {
+          id: 'developer-tools',
+          label: '工具',
+          icon: Settings,
+          requiresProject: true,
+          subItems: [
+            { id: 'developer-tools-overview', label: '工具总览', aliases: ['developer-tools'], requiresProject: true },
+            { id: 'binary-security', label: '二进制固件端到端扫描', aliases: ['binary-security-root', 'binary-security-task-list', 'binary-security-detail'], requiresProject: true },
+            { id: 'source-security', label: '源码端到端扫描', aliases: ['source-security-detail'], requiresProject: true },
+            { id: 'binary-module-security', label: '二进制模块端到端扫描', aliases: ['binary-module-security-detail'], requiresProject: true },
+          ],
+        },
       ],
     },
   ],
@@ -402,14 +480,6 @@ export const SIDEBAR_SECTIONS: Record<TopLevelNavKey, NavSection[]> = {
     {
       title: '二进制安全',
       items: [
-        { id: 'binary-security', label: '二进制任务总览', icon: ShieldAlert, aliases: ['binary-security-root', 'binary-security-task-list', 'binary-security-detail'], requiresProject: true },
-        { id: 'source-security', label: '源码任务总览', icon: FileSearch, aliases: ['source-security-detail'], requiresProject: true },
-        { id: 'binary-module-security', label: '二进制模块任务总览', icon: Layers3, aliases: ['binary-module-security-detail'], requiresProject: true },
-        { id: 'pentest-exec-firmware-unpacker', label: '固件解包', icon: Package, aliases: ['pentest-exec-firmware-task-list'], requiresProject: true },
-        { id: 'pentest-system', label: '系统分析', icon: Activity, aliases: ['system-analysis-task', 'system-analysis-detail'], requiresProject: true },
-        { id: 'pentest-exec-b2s', label: '二进制逆向', icon: FileSearch, aliases: ['pentest-exec-b2s-root', 'pentest-exec-b2s-task-list', 'pentest-exec-b2s-create', 'pentest-exec-b2s-queue', 'pentest-exec-b2s-result', 'pentest-exec-b2s-detail', 'pentest-exec-b2s-advanced'], requiresProject: true },
-        { id: 'pentest-threat', label: '入口分析', icon: Zap, aliases: ['entry-analysis-root', 'entry-analysis-task', 'entry-analysis-detail'], requiresProject: true },
-        { id: 'pentest-dataflow-vuln-scan', label: '数据流漏洞挖掘', icon: Shield, aliases: ['dataflow-vuln-scan-task', 'dataflow-vuln-scan-detail', 'dataflow-vuln-scan-config'], requiresProject: true },
         // [DISABLED] 数据流漏洞挖掘 - 方便后续复用
         // { id: 'pentest-exec-dataflow-vuln', label: '数据流漏洞挖掘', icon: Shield, aliases: ['pentest-exec-dataflow-vuln-task-list', 'pentest-exec-dataflow-vuln-task-detail'], requiresProject: true },
         {

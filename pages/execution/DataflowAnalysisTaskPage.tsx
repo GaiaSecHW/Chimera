@@ -2431,7 +2431,6 @@ export const DataflowAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?
                     value={form.output_path}
                     onChange={(e) => setForm((p) => ({ ...p, output_path: e.target.value }))}
                     placeholder="/data/files/<project>/app/chimera-app-dataflow-analyse"
-                    placeholder="/data/files/<project>/app/chimera-app-dataflow-analyse"
                   />
                   <button
                     type="button"
