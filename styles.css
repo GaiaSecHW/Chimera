@@ -8,9 +8,9 @@
     --bg-app: #0f172a;
     --bg-surface: #1e293b;
     --bg-elevated: #253348;
-    --bg-sidebar: #0b1120;
-    --bg-sidebar-muted: #162033;
-    --bg-header: #0b1120;
+    --bg-sidebar: #101a2f;
+    --bg-sidebar-muted: #18243a;
+    --bg-header: #10192d;
     --bg-login: #020617;
     --bg-login-card: rgba(255, 255, 255, 0.04);
     --bg-login-input: rgba(255, 255, 255, 0.06);
@@ -49,6 +49,8 @@
     --xterm-bg: #0b1120;
     --xterm-fg: #e2e8f0;
     --xterm-cursor: #3b82f6;
+    --shell-muted-bg: rgba(24, 36, 58, 0.92);
+    --shell-muted-hover-bg: #22314b;
   }
 
   :root[data-theme='chimera'] {
@@ -96,6 +98,8 @@
     --xterm-bg: #0a1628;
     --xterm-fg: #f0ebe0;
     --xterm-cursor: #e8c04a;
+    --shell-muted-bg: rgba(255, 253, 248, 0.72);
+    --shell-muted-hover-bg: var(--bg-elevated);
   }
 
   * {
@@ -155,12 +159,12 @@
     box-shadow: 0 2px 12px rgba(59, 130, 246, 0.32);
   }
   .theme-shell-muted {
-    background: rgba(255, 253, 248, 0.72);
+    background: var(--shell-muted-bg);
     color: var(--text-secondary);
     border: 1px solid var(--border-default);
   }
   .theme-shell-muted:hover {
-    background: var(--bg-elevated);
+    background: var(--shell-muted-hover-bg);
     color: var(--text-primary);
   }
   .text-theme-text-primary { color: var(--text-primary); }
