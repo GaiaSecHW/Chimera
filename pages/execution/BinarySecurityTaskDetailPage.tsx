@@ -361,11 +361,13 @@ function renderStageItemDetailValue(label: string, value: string, projectId?: st
 }
 
 function archiveJobSourcePath(job: {
+  archive_source_primary_path?: string | null;
+  archive_source_paths?: string[];
   source_root_path?: string | null;
   source_root?: string | null;
   source_dir?: string | null;
 }): string | null {
-  return job.source_root_path || job.source_root || job.source_dir || null;
+  return job.archive_source_primary_path || job.archive_source_paths?.[0] || null;
 }
 
 const stageItemTone = (selected: boolean) => (
@@ -4460,6 +4462,16 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                             <ProjectDirectoryValue path={archiveJobSourcePath(job)} projectId={projectId} />
                           </div>
                         </div>
+                        {(job.archive_source_paths || []).length > 1 ? (
+                          <div className="rounded-xl border border-slate-200 bg-white/80 px-3 py-2 xl:col-span-2">
+                            <span className="text-slate-400">归档源路径（全部）</span>
+                            <div className="mt-1 space-y-1">
+                              {(job.archive_source_paths || []).map((path, index) => (
+                                <ProjectDirectoryValue key={`${job.id}-archive-source-${index}`} path={path} projectId={projectId} />
+                              ))}
+                            </div>
+                          </div>
+                        ) : null}
                         <div className="rounded-xl border border-slate-200 bg-white/80 px-3 py-2 xl:col-span-2">
                           <span className="text-slate-400">归档路径</span>
                           <div className="mt-1">

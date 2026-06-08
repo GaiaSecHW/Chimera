@@ -457,6 +457,8 @@ export interface BinarySecurityTaskDetail extends BinarySecurityTask {
     item_key?: string | null;
     downstream_service?: string | null;
     downstream_task_id?: string | null;
+    archive_source_primary_path?: string | null;
+    archive_source_paths?: string[];
     source_root?: string | null;
     source_root_path?: string | null;
     source_dir?: string | null;
