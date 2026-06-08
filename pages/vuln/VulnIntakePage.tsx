@@ -1,19 +1,26 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import {
+  Activity,
   ArrowLeft,
   ArrowUpDown,
   BookOpen,
   Check,
+  ClipboardCopy,
   Copy,
   Download,
   FileCode2,
+  FileClock,
   Filter,
   FolderOpen,
   Key,
+  Layers3,
   Loader2,
   Plus,
   Puzzle,
   RefreshCw,
+  ScrollText,
   Search,
   Send,
   ShieldAlert,
@@ -38,6 +45,7 @@ type PublicKind = 'cli' | 'plugin' | 'skill' | 'openapi';
 type AuthExampleMode = 'simple' | 'normal';
 type SortField = 'title' | 'current_stage' | 'severity' | 'reporter' | 'subject' | 'updated_at' | 'confidence' | 'cvss_score';
 type SortDirection = 'asc' | 'desc';
+type IntakeDetailTab = 'overview' | 'report' | 'evidence' | 'process' | 'context';
 
 const METHOD_ICONS: Record<PublicKind, React.ReactNode> = {
   cli: <TerminalSquare size={18} />,
@@ -386,6 +394,24 @@ const DialogShell: React.FC<{
   </div>
 );
 
+const DetailMetricCard: React.FC<{
+  label: string;
+  value: React.ReactNode;
+  helper?: React.ReactNode;
+}> = ({ label, value, helper }) => (
+  <div className="rounded-[1.35rem] border border-slate-200 bg-white px-4 py-4 shadow-sm">
+    <div className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-400">{label}</div>
+    <div className="mt-2 text-xl font-black text-slate-900">{value}</div>
+    {helper ? <div className="mt-1 text-xs text-slate-500">{helper}</div> : null}
+  </div>
+);
+
+const MarkdownContent: React.FC<{ content: string }> = ({ content }) => (
+  <div className="markdown-body break-words leading-7 text-sm text-slate-700">
+    <ReactMarkdown remarkPlugins={[remarkGfm]}>{content}</ReactMarkdown>
+  </div>
+);
+
 export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId }) => {
   const [loading, setLoading] = useState(true);
   const [detailLoading, setDetailLoading] = useState(false);
@@ -437,6 +463,12 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId }) => {
   const [detailEditMode, setDetailEditMode] = useState(false);
   const [detailSaving, setDetailSaving] = useState(false);
   const [editableDetail, setEditableDetail] = useState<EditableCaseIntake | null>(null);
+  const [detailActiveTab, setDetailActiveTab] = useState<IntakeDetailTab>('overview');
+  const [reportItems, setReportItems] = useState<any[]>([]);
+  const [selectedReportId, setSelectedReportId] = useState('');
+  const [reportDocument, setReportDocument] = useState<any | null>(null);
+  const [reportLoading, setReportLoading] = useState(false);
+  const [reportError, setReportError] = useState<string | null>(null);
 
   const stageScopedSuspicions = useMemo(() => suspicions, [suspicions]);
 
@@ -538,6 +570,16 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId }) => {
     };
   }, [selectedDetail, stageScopedSuspicions]);
 
+  const displaySummary = selectedDetail?.display_summary || {};
+  const evidenceSummary = selectedDetail?.evidence_summary || {};
+  const workspaceSummary = selectedDetail?.workspace_summary || {};
+  const resultSummary = selectedDetail?.result_summary || {};
+  const relatedRefs = Array.isArray(workspaceSummary.related_execution_refs) ? workspaceSummary.related_execution_refs : [];
+  const processManualTasks = Array.isArray(selectedDetail?.manual_tasks) ? selectedDetail.manual_tasks : [];
+  const processActions = Array.isArray(selectedDetail?.actions) ? selectedDetail.actions : [];
+  const openProcessTasks = processManualTasks.filter((item: any) => !['completed', 'closed'].includes(item.status));
+  const runningProcessActions = processActions.filter((item: any) => ['queued', 'running'].includes(item.execution_status));
+
   const loadSuspicions = async () => {
     if (!projectId) {
       setSuspicions([]);
@@ -566,17 +608,26 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId }) => {
       setSelectedDetail(null);
       setSelectedTimeline([]);
       setLinkedFiles(null);
+      setReportItems([]);
+      setSelectedReportId('');
+      setReportDocument(null);
+      setReportError(null);
       return;
     }
     setDetailLoading(true);
     setError(null);
     try {
-      const [detail, timeline] = await Promise.all([
+      const [detail, timeline, reports] = await Promise.all([
         vulnApi.vuln.getCaseDetail(suspicionId),
         vulnApi.vuln.getCaseTimeline(suspicionId),
+        vulnApi.vuln.listCaseReports(suspicionId),
       ]);
       setSelectedDetail(detail);
       setSelectedTimeline(timeline.items || []);
+      const items = reports?.items || [];
+      const initialReportId = reports?.current_report_id || detail?.display_summary?.current_report_id || items[0]?.report_id || '';
+      setReportItems(items);
+      setSelectedReportId(initialReportId);
       if (detail?.files_root_path) {
         setLinkedFilesLoading(true);
         try {
@@ -600,6 +651,25 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId }) => {
       setError(err?.message || '加载疑点详情失败');
     } finally {
       setDetailLoading(false);
+    }
+  };
+
+  const loadSuspicionReport = async (suspicionId: string, reportId: string) => {
+    if (!suspicionId || !reportId) {
+      setReportDocument(null);
+      setReportError(null);
+      return;
+    }
+    setReportLoading(true);
+    setReportError(null);
+    try {
+      const payload = await vulnApi.vuln.getCaseReport(suspicionId, reportId);
+      setReportDocument(payload);
+    } catch (err: any) {
+      setReportDocument(null);
+      setReportError(err?.message || '加载疑点报告失败');
+    } finally {
+      setReportLoading(false);
     }
   };
 
@@ -790,6 +860,19 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId }) => {
     setEditableDetail(makeEditableCaseIntake(selectedDetail));
     setDetailEditMode(false);
   }, [selectedDetail?.id]);
+
+  useEffect(() => {
+    setDetailActiveTab('overview');
+  }, [selectedDetail?.id]);
+
+  useEffect(() => {
+    if (!selectedSuspicionId || !selectedReportId) {
+      setReportDocument(null);
+      setReportError(null);
+      return;
+    }
+    void loadSuspicionReport(selectedSuspicionId, selectedReportId);
+  }, [selectedSuspicionId, selectedReportId]);
 
   useEffect(() => {
     setSelectedSuspicionIds((previous) => previous.filter((id) => suspicions.some((item) => item.id === id)));

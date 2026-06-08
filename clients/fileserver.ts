@@ -5,6 +5,9 @@ import {
   FileDirectory,
   FileSubproject,
   ManagedFile,
+  ProjectInputUploadDetail,
+  ProjectInputUploadListResponse,
+  ProjectInputUploadStats,
   ProjectFilesystemChildrenResponse,
   ProjectFilesystemEntry,
   ProjectFilesystemRootResponse,
@@ -97,6 +100,15 @@ export interface ArchiveTaskCreateRequest {
 
 export interface ArchiveTaskSubmitResponse {
   task_id: string;
+  status: string;
+  accepted_at: string;
+  request_id?: string;
+  queue_class?: string;
+}
+
+export interface ProjectInputUploadAcceptedResponse {
+  upload_id: string;
+  batch_id: string;
   status: string;
   accepted_at: string;
   request_id?: string;
@@ -285,6 +297,119 @@ export const fileserverApi = {
   createProjectFilesystemArchiveTask: async (payload: ArchiveTaskCreateRequest): Promise<ArchiveTaskSubmitResponse> => {
     const response = await fetch(`${API_BASE}/api/fileserver/project-filesystem/archive-tasks`, {
       method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify(payload),
+    });
+    return handleResponse(response);
+  },
+
+  listProjectInputUploads: async (projectId: string, inputType: string): Promise<ProjectInputUploadListResponse> => {
+    const query = new URLSearchParams({ project_id: projectId, input_type: inputType }).toString();
+    const response = await fetch(`${API_BASE}/api/fileserver/project-input/uploads?${query}`, {
+      headers: getHeaders(),
+    });
+    return handleResponse(response);
+  },
+
+  getProjectInputUploadStats: async (projectId: string, inputType: string): Promise<ProjectInputUploadStats> => {
+    const query = new URLSearchParams({ project_id: projectId, input_type: inputType }).toString();
+    const response = await fetch(`${API_BASE}/api/fileserver/project-input/uploads/stats?${query}`, {
+      headers: getHeaders(),
+    });
+    return handleResponse(response);
+  },
+
+  getProjectInputUploadDetail: async (uploadId: string): Promise<ProjectInputUploadDetail> => {
+    const response = await fetch(`${API_BASE}/api/fileserver/project-input/uploads/${encodeURIComponent(uploadId)}`, {
+      headers: getHeaders(),
+    });
+    return handleResponse(response);
+  },
+
+  createProjectInputUpload: async (payload: {
+    project_id: string;
+    input_type: string;
+    keep_original?: boolean;
+    files: File[];
+  }, options?: {
+    onProgress?: (progress: FileserverUploadProgress) => void;
+    signal?: AbortSignal;
+    trackGlobal?: boolean;
+    sourceLabel?: string;
+  }): Promise<ProjectInputUploadAcceptedResponse> => {
+    const formData = new FormData();
+    formData.append('project_id', payload.project_id);
+    formData.append('input_type', payload.input_type);
+    formData.append('keep_original', payload.keep_original ? 'true' : 'false');
+    for (const file of payload.files) {
+      formData.append('files', file);
+    }
+    const totalSize = payload.files.reduce((sum, file) => sum + (file.size || 0), 0);
+    const execute = (params?: { signal?: AbortSignal; onProgress?: (progress: FileserverUploadProgress) => void }) => xhrUpload<ProjectInputUploadAcceptedResponse>({
+      url: `${API_BASE}/api/fileserver/project-input/uploads`,
+      method: 'POST',
+      headers: getUploadHeaders(),
+      formData,
+      signal: params?.signal ?? options?.signal,
+      onProgress: (event) => {
+        const progress = toUploadProgress(event);
+        options?.onProgress?.(progress);
+        params?.onProgress?.(progress);
+      },
+    });
+    if (options?.trackGlobal === false) return execute();
+    return trackUploadTask({
+      source: options?.sourceLabel || '外部输入上传',
+      name: payload.files.map((file) => file.name || 'file').join(', '),
+      size: totalSize,
+      run: ({ signal, onProgress }) => execute({ signal, onProgress }),
+    });
+  },
+
+  appendProjectInputUpload: async (payload: {
+    upload_id: string;
+    keep_original?: boolean;
+    files: File[];
+  }, options?: {
+    onProgress?: (progress: FileserverUploadProgress) => void;
+    signal?: AbortSignal;
+    trackGlobal?: boolean;
+    sourceLabel?: string;
+  }): Promise<ProjectInputUploadAcceptedResponse> => {
+    const formData = new FormData();
+    formData.append('keep_original', payload.keep_original ? 'true' : 'false');
+    for (const file of payload.files) {
+      formData.append('files', file);
+    }
+    const totalSize = payload.files.reduce((sum, file) => sum + (file.size || 0), 0);
+    const execute = (params?: { signal?: AbortSignal; onProgress?: (progress: FileserverUploadProgress) => void }) => xhrUpload<ProjectInputUploadAcceptedResponse>({
+      url: `${API_BASE}/api/fileserver/project-input/uploads/${encodeURIComponent(payload.upload_id)}/append`,
+      method: 'POST',
+      headers: getUploadHeaders(),
+      formData,
+      signal: params?.signal ?? options?.signal,
+      onProgress: (event) => {
+        const progress = toUploadProgress(event);
+        options?.onProgress?.(progress);
+        params?.onProgress?.(progress);
+      },
+    });
+    if (options?.trackGlobal === false) return execute();
+    return trackUploadTask({
+      source: options?.sourceLabel || '外部输入追加上传',
+      name: payload.files.map((file) => file.name || 'file').join(', '),
+      size: totalSize,
+      run: ({ signal, onProgress }) => execute({ signal, onProgress }),
+    });
+  },
+
+  deleteProjectInputUploads: async (payload: {
+    project_id: string;
+    input_type: string;
+    upload_ids: string[];
+  }): Promise<{ deleted_ids: string[]; failed_items: Array<{ upload_id: string; message: string }> }> => {
+    const response = await fetch(`${API_BASE}/api/fileserver/project-input/uploads`, {
+      method: 'DELETE',
       headers: getHeaders(),
       body: JSON.stringify(payload),
     });

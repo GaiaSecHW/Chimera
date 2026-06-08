@@ -928,6 +928,58 @@ export interface ProjectFilesystemChildrenResponse {
   files: ProjectFilesystemEntry[];
 }
 
+export interface ProjectInputUploadBatchSummary {
+  batch_id: string;
+  status: 'pending' | 'processing' | 'succeeded' | 'partial_failed' | 'failed';
+  mode: 'create' | 'append' | string;
+  keep_original: boolean;
+  submitted_file_count: number;
+  processed_file_count: number;
+  processed_size_bytes: number;
+  error_summary?: string | null;
+  created_at: string;
+  finished_at?: string | null;
+}
+
+export interface ProjectInputUploadRecord {
+  upload_id: string;
+  project_id: string;
+  input_type: 'code' | 'document' | 'software' | 'other' | string;
+  status: 'pending' | 'processing' | 'succeeded' | 'partial_failed' | 'failed';
+  keep_original: boolean;
+  source_archive_count: number;
+  stored_file_count: number;
+  stored_total_size_bytes: number;
+  target_path: string;
+  last_error?: string | null;
+  created_by?: string | null;
+  created_at: string;
+  updated_at: string;
+  finished_at?: string | null;
+  latest_batch?: ProjectInputUploadBatchSummary | null;
+}
+
+export interface ProjectInputUploadListResponse {
+  total: number;
+  items: ProjectInputUploadRecord[];
+}
+
+export interface ProjectInputUploadStats {
+  project_id: string;
+  input_type: 'code' | 'document' | 'software' | 'other' | string;
+  total_uploads: number;
+  processing_uploads: number;
+  succeeded_uploads: number;
+  partial_failed_uploads: number;
+  failed_uploads: number;
+  stored_file_count: number;
+  stored_total_size_bytes: number;
+}
+
+export interface ProjectInputUploadDetail extends ProjectInputUploadRecord {
+  batches: ProjectInputUploadBatchSummary[];
+}
+
 export interface VulnFileserverRoot {
   root_path: string;
   root_name: string;
