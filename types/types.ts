@@ -2169,8 +2169,6 @@ export interface AdminDashboardStats {
 
 export interface AiGatewayBackendUnit {
   id: number;
-  unit_code: string;
-  provider_type: string;
   capacity_pool_id: number;
   api_base_url: string;
   model_name: string;
@@ -2207,17 +2205,6 @@ export interface AiGatewayModelAliasBinding {
   enabled: boolean;
   created_at?: string;
   updated_at?: string;
-}
-
-export interface AiGatewayStatsOverview {
-  total_requests: number;
-  active_models: number;
-  model_mappings: number;
-  avg_response_time: number;
-  avg_first_token_latency: number;
-  avg_token_latency: number;
-  active_requests: number;
-  waiting_requests: number;
 }
 
 export interface AiGatewayProviderStat {
