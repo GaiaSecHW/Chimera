@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
-import { ChevronDown, ChevronRight, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
+import React, { useEffect, useRef, useState } from 'react';
+import { Check, ChevronDown, ChevronRight, Palette, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
 import { SIDEBAR_SECTIONS, SidebarHealthStatus } from '../app/navigation';
 import { UserInfo, ViewType } from '../types/types';
 import { canAccessView } from '../utils/rbac';
+import { useTheme } from '../theme/ThemeProvider';
 
 interface SidebarProps {
   user: UserInfo | null;
@@ -39,8 +40,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
   vulnHealth = null,
   configCenterHealth = null,
 }) => {
+  const { theme, themes, setTheme } = useTheme();
   const projectGuard = !hasSelectedProject;
   const projectGuardTitle = '请先选择项目';
+  const [isThemeMenuOpen, setIsThemeMenuOpen] = useState(false);
+  const themeMenuRef = useRef<HTMLDivElement>(null);
 
   const healthStatusMap: SidebarHealthStatus = {
     resourceHealth,
@@ -77,6 +81,16 @@ export const Sidebar: React.FC<SidebarProps> = ({
       return next;
     });
   };
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (themeMenuRef.current && !themeMenuRef.current.contains(event.target as Node)) {
+        setIsThemeMenuOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   return (
     <aside className={`${isSidebarCollapsed ? 'w-24' : 'w-60'} bg-theme-sidebar text-theme-text-soft flex flex-col transition-all duration-300 z-30 shadow-brand shrink-0`}>
@@ -170,7 +184,65 @@ export const Sidebar: React.FC<SidebarProps> = ({
         </div>
       </nav>
 
-      <div className="p-5 border-t border-theme-sidebar">
+      <div className="space-y-3 border-t border-theme-sidebar p-5">
+        <div className="relative" ref={themeMenuRef}>
+          <button
+            type="button"
+            onClick={() => setIsThemeMenuOpen((prev) => !prev)}
+            className={`w-full rounded-2xl border border-theme-sidebar bg-theme-sidebar-muted/60 px-3 py-3 text-left transition-all hover:bg-theme-sidebar-muted ${
+              isSidebarCollapsed ? 'flex justify-center' : 'flex items-center gap-3'
+            }`}
+            title={isSidebarCollapsed ? '切换主题' : undefined}
+          >
+            <Palette size={18} className="shrink-0 text-theme-text-faint" />
+            {!isSidebarCollapsed ? (
+              <>
+                <div className="min-w-0 flex-1">
+                  <div className="text-[10px] font-black uppercase tracking-[0.2em] text-theme-text-faint">Theme</div>
+                  <div className="mt-1 truncate text-sm font-bold text-theme-text-inverse">
+                    {themes.find((item) => item.id === theme)?.label || 'Theme'}
+                  </div>
+                </div>
+                <ChevronDown size={14} className={`shrink-0 text-theme-text-faint transition-transform ${isThemeMenuOpen ? 'rotate-180' : ''}`} />
+              </>
+            ) : null}
+          </button>
+
+          {isThemeMenuOpen && (
+            <div
+              className={`absolute bottom-full mb-3 rounded-3xl border border-theme-border bg-theme-surface p-2 shadow-brand z-50 ${
+                isSidebarCollapsed ? 'left-0 w-60' : 'left-0 right-0'
+              }`}
+            >
+              <div className="px-3 py-2 text-[10px] font-black uppercase tracking-[0.2em] text-theme-text-faint">Theme</div>
+              {themes.map((item) => {
+                const active = item.id === theme;
+                return (
+                  <button
+                    key={item.id}
+                    type="button"
+                    onClick={() => {
+                      setTheme(item.id);
+                      setIsThemeMenuOpen(false);
+                    }}
+                    className={`w-full flex items-center justify-between rounded-2xl px-3 py-3 text-left transition-all ${
+                      active ? 'theme-shell-active' : 'text-theme-text-primary hover:bg-theme-elevated'
+                    }`}
+                  >
+                    <div className="min-w-0">
+                      <div className="text-sm font-black">{item.label}</div>
+                      <div className={`text-[10px] font-semibold uppercase tracking-[0.16em] ${active ? 'text-theme-text-inverse/80' : 'text-theme-text-faint'}`}>
+                        {item.badgeText}
+                      </div>
+                    </div>
+                    {active ? <Check size={14} className="shrink-0" /> : null}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
         {!isSidebarCollapsed ? (
           <div className="flex justify-end">
             <button onClick={() => setIsSidebarCollapsed(true)} className="p-3 rounded-2xl bg-theme-sidebar-muted/60 text-theme-text-faint hover:text-theme-text-inverse hover:bg-theme-sidebar-muted transition-colors">

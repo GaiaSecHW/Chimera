@@ -1,9 +1,8 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { ChevronDown, Lock, LogOut, Palette, RotateCw, Settings, UserCog } from 'lucide-react';
+import { ChevronDown, Lock, LogOut, RotateCw, Settings, UserCog } from 'lucide-react';
 import { TopLevelNavKey, TOP_LEVEL_NAV_ITEMS } from '../app/navigation';
 import { SecurityProject, UserInfo, ViewType } from '../types/types';
 import { getPlatformRoleLabel, getUserAccess, getUserCenterDefaultView } from '../utils/rbac';
-import { useTheme } from '../theme/ThemeProvider';
 import { ThemeLogo } from '../components/ThemeLogo';
 
 const FRONTEND_BUILD_VERSION = String(
@@ -45,10 +44,7 @@ export const Header: React.FC<HeaderProps> = ({
 }) => {
   const userAccess = getUserAccess(user);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
-  const [isThemeMenuOpen, setIsThemeMenuOpen] = useState(false);
   const userMenuRef = useRef<HTMLDivElement>(null);
-  const themeMenuRef = useRef<HTMLDivElement>(null);
-  const { theme, themes, setTheme } = useTheme();
 
   const currentProject = projects.find((p) => p.id === selectedProjectId) || { name: '选择项目' };
 
@@ -56,9 +52,6 @@ export const Header: React.FC<HeaderProps> = ({
     const handleClickOutside = (event: MouseEvent) => {
       if (userMenuRef.current && !userMenuRef.current.contains(event.target as Node)) {
         setIsUserMenuOpen(false);
-      }
-      if (themeMenuRef.current && !themeMenuRef.current.contains(event.target as Node)) {
-        setIsThemeMenuOpen(false);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
@@ -133,47 +126,6 @@ export const Header: React.FC<HeaderProps> = ({
           <button onClick={() => fetchProjects(true)} className="p-3 text-theme-text-faint hover:text-brand-primary transition-all shrink-0">
             <RotateCw size={20} className={isRefreshing ? 'animate-spin' : ''} />
           </button>
-
-          <div className="relative shrink-0" ref={themeMenuRef}>
-            <button
-              onClick={() => setIsThemeMenuOpen((prev) => !prev)}
-              className="inline-flex items-center gap-2 px-3 py-2.5 rounded-2xl theme-shell-muted transition-all"
-            >
-              <Palette size={16} />
-              <span className="hidden lg:inline text-xs font-black">
-                {themes.find((item) => item.id === theme)?.label || 'Theme'}
-              </span>
-              <ChevronDown size={14} className={`transition-transform ${isThemeMenuOpen ? 'rotate-180' : ''}`} />
-            </button>
-            {isThemeMenuOpen && (
-              <div className="absolute top-full right-0 mt-3 w-56 rounded-3xl border border-theme-border bg-theme-surface shadow-brand p-2 z-50">
-                <div className="px-3 py-2 text-[10px] font-black uppercase tracking-[0.2em] text-theme-text-faint">Theme</div>
-                {themes.map((item) => {
-                  const active = item.id === theme;
-                  return (
-                    <button
-                      key={item.id}
-                      onClick={() => {
-                        setTheme(item.id);
-                        setIsThemeMenuOpen(false);
-                      }}
-                      className={`w-full flex items-center justify-between px-3 py-3 rounded-2xl text-left transition-all ${
-                        active ? 'theme-shell-active' : 'text-theme-text-primary hover:bg-theme-elevated'
-                      }`}
-                    >
-                      <div>
-                        <div className="text-sm font-black">{item.label}</div>
-                        <div className={`text-[10px] font-semibold uppercase tracking-[0.16em] ${active ? 'text-theme-text-inverse/80' : 'text-theme-text-faint'}`}>
-                          {item.badgeText}
-                        </div>
-                      </div>
-                      {active ? <span className="text-[10px] font-black uppercase tracking-[0.16em]">Active</span> : null}
-                    </button>
-                  );
-                })}
-              </div>
-            )}
-          </div>
 
           <div className="relative shrink-0" ref={userMenuRef}>
             <button
