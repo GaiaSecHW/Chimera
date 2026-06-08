@@ -1,14 +1,8 @@
 import { API_BASE, getHeaders, handleResponse } from './base';
 
 export const aigwApi = {
-  getStats: async (): Promise<any> =>
-    handleResponse(await fetch(`${API_BASE}/api/aigw/stats`, { headers: getHeaders() })),
-
   listProviderStats: async (): Promise<any> =>
     handleResponse(await fetch(`${API_BASE}/api/aigw/stats/providers`, { headers: getHeaders() })),
-
-  listModelStats: async (): Promise<any> =>
-    handleResponse(await fetch(`${API_BASE}/api/aigw/stats/models`, { headers: getHeaders() })),
 
   listRequestLogs: async (params?: Record<string, string | number>): Promise<any> => {
     const query = new URLSearchParams();
