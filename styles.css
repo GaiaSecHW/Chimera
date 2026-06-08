@@ -15,12 +15,12 @@
     --bg-login-card: rgba(255, 255, 255, 0.04);
     --bg-login-input: rgba(255, 255, 255, 0.06);
     --login-border: rgba(255, 255, 255, 0.10);
-    --text-primary: #f1f5f9;
-    --text-secondary: #94a3b8;
-    --text-muted: #7a8a9e;
-    --text-faint: #5a6a7e;
-    --text-inverse: #f1f5f9;
-    --text-soft: #cbd5e1;
+    --text-primary: #f8fbff;
+    --text-secondary: #d4deeb;
+    --text-muted: #b4c1d2;
+    --text-faint: #92a3b8;
+    --text-inverse: #f8fbff;
+    --text-soft: #e2eaf4;
     --border-default: rgba(255, 255, 255, 0.08);
     --border-strong: rgba(255, 255, 255, 0.14);
     --brand-primary: #3b82f6;
@@ -283,18 +283,18 @@
   :root .hover\:border-blue-200:hover,
   :root .hover\:border-blue-300:hover { border-color: var(--brand-border); }
   :root .text-white { color: #f1f5f9; }
-  :root .text-slate-200 { color: var(--text-secondary); }
+  :root .text-slate-200 { color: var(--text-soft); }
   :root .text-slate-300 { color: var(--text-soft); }
-  :root .text-slate-400 { color: var(--text-faint); }
-  :root .text-slate-500 { color: var(--text-muted); }
-  :root .text-slate-600 { color: var(--text-secondary); }
+  :root .text-slate-400 { color: var(--text-muted); }
+  :root .text-slate-500 { color: var(--text-secondary); }
+  :root .text-slate-600 { color: color-mix(in srgb, var(--text-primary) 58%, var(--text-secondary)); }
   :root .text-slate-700 { color: color-mix(in srgb, var(--text-primary) 70%, var(--text-secondary)); }
   :root .text-slate-800,
   :root .text-slate-900 { color: var(--text-primary); }
   :root .text-gray-300,
-  :root .text-gray-400 { color: var(--text-faint); }
-  :root .text-gray-500 { color: var(--text-muted); }
-  :root .text-gray-600 { color: var(--text-secondary); }
+  :root .text-gray-400 { color: var(--text-muted); }
+  :root .text-gray-500 { color: var(--text-secondary); }
+  :root .text-gray-600 { color: color-mix(in srgb, var(--text-primary) 58%, var(--text-secondary)); }
   :root .text-gray-700 { color: color-mix(in srgb, var(--text-primary) 70%, var(--text-secondary)); }
   :root .text-gray-800,
   :root .text-gray-900 { color: var(--text-primary); }

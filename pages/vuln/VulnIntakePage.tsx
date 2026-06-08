@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import {
@@ -406,8 +406,27 @@ const DetailMetricCard: React.FC<{
   </div>
 );
 
+const slugifyHeading = (value: string) =>
+  value
+    .toLowerCase()
+    .trim()
+    .replace(/[^\w\u4e00-\u9fa5\s-]/g, '')
+    .replace(/\s+/g, '-')
+    .replace(/-+/g, '-');
+
+const extractMarkdownHeadings = (content: string) =>
+  content
+    .split('\n')
+    .map((line) => line.match(/^(#{1,4})\s+(.+?)\s*$/))
+    .filter(Boolean)
+    .map((match) => ({
+      level: match![1].length,
+      text: match![2].trim(),
+      id: slugifyHeading(match![2].trim()),
+    }));
+
 const MarkdownContent: React.FC<{ content: string }> = ({ content }) => (
-  <div className="markdown-body break-words leading-7 text-sm text-slate-700">
+  <div className="markdown-body break-words leading-7 text-sm text-slate-700 [&_h1]:mt-8 [&_h1]:scroll-mt-24 [&_h1]:text-2xl [&_h1]:font-black [&_h1]:text-slate-900 [&_h2]:mt-7 [&_h2]:scroll-mt-24 [&_h2]:text-xl [&_h2]:font-black [&_h2]:text-slate-900 [&_h3]:mt-6 [&_h3]:scroll-mt-24 [&_h3]:text-lg [&_h3]:font-black [&_h3]:text-slate-900 [&_h4]:mt-5 [&_h4]:scroll-mt-24 [&_h4]:text-base [&_h4]:font-black [&_h4]:text-slate-900 [&_p]:my-3 [&_table]:my-4 [&_table]:block [&_table]:w-full [&_table]:overflow-x-auto [&_table]:border-collapse [&_thead]:bg-slate-100 [&_th]:border [&_th]:border-slate-200 [&_th]:px-3 [&_th]:py-2 [&_th]:text-xs [&_th]:font-black [&_th]:uppercase [&_th]:tracking-wide [&_th]:text-slate-600 [&_td]:border [&_td]:border-slate-200 [&_td]:px-3 [&_td]:py-2 [&_td]:align-top [&_td]:text-sm [&_td]:text-slate-700 [&_pre]:my-4 [&_pre]:overflow-x-auto [&_pre]:rounded-2xl [&_pre]:bg-slate-950 [&_pre]:p-4 [&_pre]:text-xs [&_pre]:text-slate-100 [&_code]:font-mono [&_p_code]:rounded [&_p_code]:bg-slate-100 [&_p_code]:px-1.5 [&_p_code]:py-0.5 [&_p_code]:text-[0.9em] [&_li_code]:rounded [&_li_code]:bg-slate-100 [&_li_code]:px-1.5 [&_li_code]:py-0.5">
     <ReactMarkdown remarkPlugins={[remarkGfm]}>{content}</ReactMarkdown>
   </div>
 );
@@ -488,6 +507,8 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId }) => {
   const [reportDocument, setReportDocument] = useState<any | null>(null);
   const [reportLoading, setReportLoading] = useState(false);
   const [reportError, setReportError] = useState<string | null>(null);
+  const reportScrollRef = useRef<HTMLDivElement | null>(null);
+  const [activeReportHeadingId, setActiveReportHeadingId] = useState('');
 
   const stageScopedSuspicions = useMemo(() => suspicions, [suspicions]);
 
@@ -888,10 +909,40 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId }) => {
     if (!selectedSuspicionId || !selectedReportId) {
       setReportDocument(null);
       setReportError(null);
+      setActiveReportHeadingId('');
       return;
     }
     void loadSuspicionReport(selectedSuspicionId, selectedReportId);
   }, [selectedSuspicionId, selectedReportId]);
+
+  useEffect(() => {
+    if (detailActiveTab !== 'report') return;
+    const container = reportScrollRef.current;
+    if (!container) return;
+    const headings = Array.from(container.querySelectorAll('h1[id], h2[id], h3[id], h4[id]')) as HTMLElement[];
+    if (headings.length === 0) {
+      setActiveReportHeadingId('');
+      return;
+    }
+
+    const updateActiveHeading = () => {
+      const containerTop = container.getBoundingClientRect().top;
+      let currentId = headings[0].id;
+      for (const heading of headings) {
+        const offset = heading.getBoundingClientRect().top - containerTop;
+        if (offset <= 80) {
+          currentId = heading.id;
+        } else {
+          break;
+        }
+      }
+      setActiveReportHeadingId(currentId);
+    };
+
+    updateActiveHeading();
+    container.addEventListener('scroll', updateActiveHeading, { passive: true });
+    return () => container.removeEventListener('scroll', updateActiveHeading);
+  }, [detailActiveTab, reportDocument?.content]);
 
   useEffect(() => {
     setSelectedSuspicionIds((previous) => previous.filter((id) => suspicions.some((item) => item.id === id)));
@@ -1288,6 +1339,15 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId }) => {
       workspace_summary: workspaceSummary,
       result_summary: resultSummary,
     };
+    const reportHeadings = (reportDocument?.content || '')
+      .split('\n')
+      .map((line) => line.match(/^(#{1,4})\s+(.+?)\s*$/))
+      .filter(Boolean)
+      .map((match) => ({
+        level: match![1].length,
+        text: match![2].trim(),
+        id: slugifyHeading(match![2].trim()),
+      }));
 
     return (
       <div className="overflow-hidden rounded-[2rem] border border-slate-200 bg-white shadow-sm">
@@ -1415,10 +1475,10 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId }) => {
         <div className="border-b border-slate-100 bg-slate-50/70 px-5 pt-4 xl:px-6">
           <div className="mb-3 flex items-center justify-between gap-3">
             <div>
-              <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">详情视图</div>
-              <div className="mt-1 text-sm text-slate-500">先看结论，再查看报告、证据、过程和关联上下文。</div>
+              <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-500">详情视图</div>
+              <div className="mt-1 text-sm text-slate-600">先看结论，再查看报告、证据、过程和关联上下文。</div>
             </div>
-            <div className="hidden rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-500 xl:block">
+            <div className="hidden rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 xl:block">
               当前：{detailTabs.find((tab) => tab.key === detailActiveTab)?.label}
             </div>
           </div>
@@ -1455,7 +1515,7 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId }) => {
               <div className="grid gap-4 xl:grid-cols-[1.15fr_0.85fr]">
                 <div className="space-y-4">
                   <DetailSectionCard title="疑点摘要" subtitle="先看本条疑点的结论、摘要和对象定位。">
-                    <div className="mt-3 space-y-3 text-sm leading-7 text-slate-600">
+                    <div className="mt-3 space-y-3 text-sm leading-7 text-slate-700">
                       <div>{displaySummary?.subtitle || selectedDetail.summary || '暂无摘要说明'}</div>
                       <div className="rounded-2xl bg-slate-50 p-4">
                         <div className="text-xs font-black text-slate-500">当前结论</div>
@@ -1480,7 +1540,7 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId }) => {
                 </div>
                 <div className="space-y-4">
                   <DetailSectionCard title="识别信息" subtitle="用于快速识别、排查和交叉检索本条疑点。">
-                    <div className="mt-3 space-y-2 text-sm text-slate-600">
+                    <div className="mt-3 space-y-2 text-sm text-slate-700">
                       <div><span className="font-black text-slate-700">疑点 ID：</span><span className="font-mono">{selectedDetail.id}</span></div>
                       <div><span className="font-black text-slate-700">Finding ID：</span>{selectedDetail.finding_id || '未提供'}</div>
                       <div><span className="font-black text-slate-700">全局漏洞 ID：</span>{selectedDetail.global_vuln_id || '未提供'}</div>
@@ -1499,7 +1559,7 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId }) => {
                           </div>
                         ))
                       ) : (
-                        <div className="rounded-xl bg-slate-50 px-4 py-4 text-sm text-slate-400">当前没有提炼出的关键提示。</div>
+                        <div className="rounded-xl bg-slate-50 px-4 py-4 text-sm text-slate-600">当前没有提炼出的关键提示。</div>
                       )}
                     </div>
                   </DetailSectionCard>
@@ -1514,7 +1574,7 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId }) => {
                 <DetailSectionCard title="报告列表" subtitle="选择不同阶段或不同来源生成的疑点报告。" compact>
                   <div className="mt-3 space-y-2.5">
                     {reportItems.length === 0 ? (
-                      <div className="rounded-xl bg-slate-50 px-4 py-4 text-sm text-slate-400">当前疑点还没有生成正式报告，可先查看证据与文件。</div>
+                      <div className="rounded-xl bg-slate-50 px-4 py-4 text-sm text-slate-600">当前疑点还没有生成正式报告，可先查看证据与文件。</div>
                     ) : (
                       reportItems.map((item: any) => {
                         const active = selectedReportId === item.report_id;
@@ -1541,28 +1601,51 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId }) => {
                     )}
                   </div>
                 </DetailSectionCard>
+                {reportHeadings.length > 0 ? (
+                  <DetailSectionCard title="报告目录" subtitle="点击标题快速跳转到对应章节。" compact>
+                    <div className="mt-2 space-y-1">
+                      {reportHeadings.map((heading) => (
+                        <button
+                          key={`${heading.id}-${heading.level}`}
+                          type="button"
+                          onClick={() => {
+                            document.getElementById(heading.id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                          }}
+                          className={`block w-full rounded-xl px-3 py-2 text-left text-sm transition ${
+                            activeReportHeadingId === heading.id
+                              ? 'bg-slate-900 font-black text-white'
+                              : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
+                          }`}
+                          style={{ paddingLeft: `${heading.level * 12}px` }}
+                        >
+                          {heading.text}
+                        </button>
+                      ))}
+                    </div>
+                  </DetailSectionCard>
+                ) : null}
               </div>
               <div className="rounded-[1.5rem] border border-slate-200 bg-white p-5">
                 <div className="flex flex-wrap items-start justify-between gap-3 border-b border-slate-100 pb-4">
                   <div>
-                    <div className="text-[11px] font-black uppercase tracking-[0.2em] text-slate-400">疑点报告</div>
+                    <div className="text-[11px] font-black uppercase tracking-[0.2em] text-slate-500">疑点报告</div>
                     <div className="mt-1 text-lg font-black text-slate-900">{reportDocument?.title || reportItems.find((item) => item.report_id === selectedReportId)?.title || '未选择报告'}</div>
-                    <div className="mt-1 text-xs text-slate-500">
+                    <div className="mt-1 text-xs text-slate-600">
                       阶段：{toStageText(reportDocument?.stage || reportItems.find((item) => item.report_id === selectedReportId)?.stage)} · 来源：{reportDocument?.source_service_id || reportItems.find((item) => item.report_id === selectedReportId)?.source_service_id || '未提供'}
                     </div>
                   </div>
                   <div className="flex flex-wrap gap-2">
-                    {reportDocument?.storage_path ? <div className="rounded-xl bg-slate-50 px-3 py-2 text-xs text-slate-500">存储路径：{reportDocument.storage_path}</div> : null}
-                    {reportDocument?.generated_at ? <div className="rounded-xl bg-slate-50 px-3 py-2 text-xs text-slate-500">生成时间：{formatTime(reportDocument.generated_at)}</div> : null}
+                    {reportDocument?.storage_path ? <div className="rounded-xl bg-slate-50 px-3 py-2 text-xs text-slate-600">存储路径：{reportDocument.storage_path}</div> : null}
+                    {reportDocument?.generated_at ? <div className="rounded-xl bg-slate-50 px-3 py-2 text-xs text-slate-600">生成时间：{formatTime(reportDocument.generated_at)}</div> : null}
                   </div>
                 </div>
-                <div className="mt-5 min-h-[28rem]">
+                <div ref={reportScrollRef} className="mt-5 min-h-[28rem] max-h-[calc(100vh-22rem)] overflow-auto pr-1">
                   {reportLoading ? (
-                    <div className="flex items-center gap-2 text-sm text-slate-400"><Loader2 size={16} className="animate-spin" /> 正在加载报告...</div>
+                    <div className="flex items-center gap-2 text-sm text-slate-600"><Loader2 size={16} className="animate-spin" /> 正在加载报告...</div>
                   ) : reportError ? (
                     <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">{reportError}</div>
                   ) : reportItems.length === 0 ? (
-                    <div className="rounded-2xl border border-dashed border-slate-200 px-6 py-12 text-center text-sm text-slate-400">暂无正式报告，请切换到“证据与文件”查看原始材料与文件目录。</div>
+                    <div className="rounded-2xl border border-dashed border-slate-200 px-6 py-12 text-center text-sm text-slate-600">暂无正式报告，请切换到“证据与文件”查看原始材料与文件目录。</div>
                   ) : (
                     <MarkdownContent content={reportDocument?.content || ''} />
                   )}
@@ -1576,7 +1659,7 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId }) => {
               <div className="grid gap-4 xl:grid-cols-[0.9fr_1.1fr]">
                 <div className="space-y-4">
                   <DetailSectionCard title="证据摘要" subtitle="用于快速了解当前疑点的核心证据、复现提示和引用材料。">
-                    <div className="mt-3 space-y-3 text-sm text-slate-600">
+                    <div className="mt-3 space-y-3 text-sm text-slate-700">
                       <div className="rounded-2xl bg-slate-50 p-4">{evidenceSummary?.summary || selectedDetail?.evidence?.summary || '暂无证据摘要'}</div>
                       <div className="rounded-2xl bg-slate-50 p-4">
                         <div className="text-xs font-black text-slate-500">复现提示</div>
@@ -1591,7 +1674,7 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId }) => {
                             ))}
                           </div>
                         ) : (
-                          <div className="mt-1 text-sm text-slate-400">暂无证据引用</div>
+                          <div className="mt-1 text-sm text-slate-600">暂无证据引用</div>
                         )}
                       </div>
                     </div>
@@ -1610,7 +1693,7 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId }) => {
                           </div>
                         ))
                       ) : (
-                        <div className="rounded-xl bg-slate-50 px-4 py-4 text-sm text-slate-400">暂无 artifact 清单</div>
+                        <div className="rounded-xl bg-slate-50 px-4 py-4 text-sm text-slate-600">暂无 artifact 清单</div>
                       )}
                     </div>
                   </DetailSectionCard>
@@ -1620,43 +1703,43 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId }) => {
                     <div className="mt-3 grid gap-2.5">
                       <div className="grid grid-cols-2 gap-2.5">
                         <label className="grid gap-1">
-                          <span className="text-[11px] font-black text-slate-500">上报者名称（reporter.name）</span>
-                          <input value={editableDetail?.reporter?.name || ''} onChange={(event) => setEditableDetail((prev) => (prev ? { ...prev, reporter: { ...prev.reporter, name: event.target.value } } : prev))} disabled={!detailEditMode || detailSaving} className="rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none disabled:bg-slate-50" />
+                          <span className="text-[11px] font-black text-slate-600">上报者名称（reporter.name）</span>
+                          <input value={editableDetail?.reporter?.name || ''} onChange={(event) => setEditableDetail((prev) => (prev ? { ...prev, reporter: { ...prev.reporter, name: event.target.value } } : prev))} disabled={!detailEditMode || detailSaving} className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800 outline-none disabled:bg-slate-50 disabled:text-slate-500" />
                         </label>
                         <label className="grid gap-1">
-                          <span className="text-[11px] font-black text-slate-500">上报者版本（reporter.version）</span>
-                          <input value={editableDetail?.reporter?.version || ''} onChange={(event) => setEditableDetail((prev) => (prev ? { ...prev, reporter: { ...prev.reporter, version: event.target.value } } : prev))} disabled={!detailEditMode || detailSaving} className="rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none disabled:bg-slate-50" />
+                          <span className="text-[11px] font-black text-slate-600">上报者版本（reporter.version）</span>
+                          <input value={editableDetail?.reporter?.version || ''} onChange={(event) => setEditableDetail((prev) => (prev ? { ...prev, reporter: { ...prev.reporter, version: event.target.value } } : prev))} disabled={!detailEditMode || detailSaving} className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800 outline-none disabled:bg-slate-50 disabled:text-slate-500" />
                         </label>
                         <label className="grid gap-1">
-                          <span className="text-[11px] font-black text-slate-500">上报方式（reporter.type）</span>
-                          <input value={editableDetail?.reporter?.type || ''} onChange={(event) => setEditableDetail((prev) => (prev ? { ...prev, reporter: { ...prev.reporter, type: event.target.value } } : prev))} disabled={!detailEditMode || detailSaving} className="rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none disabled:bg-slate-50" />
+                          <span className="text-[11px] font-black text-slate-600">上报方式（reporter.type）</span>
+                          <input value={editableDetail?.reporter?.type || ''} onChange={(event) => setEditableDetail((prev) => (prev ? { ...prev, reporter: { ...prev.reporter, type: event.target.value } } : prev))} disabled={!detailEditMode || detailSaving} className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800 outline-none disabled:bg-slate-50 disabled:text-slate-500" />
                         </label>
                         <label className="grid gap-1">
-                          <span className="text-[11px] font-black text-slate-500">上报入口（reporter.endpoint）</span>
-                          <input value={editableDetail?.reporter?.endpoint || ''} onChange={(event) => setEditableDetail((prev) => (prev ? { ...prev, reporter: { ...prev.reporter, endpoint: event.target.value } } : prev))} disabled={!detailEditMode || detailSaving} className="rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none disabled:bg-slate-50" />
+                          <span className="text-[11px] font-black text-slate-600">上报入口（reporter.endpoint）</span>
+                          <input value={editableDetail?.reporter?.endpoint || ''} onChange={(event) => setEditableDetail((prev) => (prev ? { ...prev, reporter: { ...prev.reporter, endpoint: event.target.value } } : prev))} disabled={!detailEditMode || detailSaving} className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800 outline-none disabled:bg-slate-50 disabled:text-slate-500" />
                         </label>
                       </div>
                       <div className="grid grid-cols-2 gap-2.5">
                         <label className="grid gap-1">
-                          <span className="text-[11px] font-black text-slate-500">对象类型（subject.type）</span>
-                          <input value={editableDetail?.subject?.type || ''} onChange={(event) => setEditableDetail((prev) => (prev ? { ...prev, subject: { ...prev.subject, type: event.target.value } } : prev))} disabled={!detailEditMode || detailSaving} className="rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none disabled:bg-slate-50" />
+                          <span className="text-[11px] font-black text-slate-600">对象类型（subject.type）</span>
+                          <input value={editableDetail?.subject?.type || ''} onChange={(event) => setEditableDetail((prev) => (prev ? { ...prev, subject: { ...prev.subject, type: event.target.value } } : prev))} disabled={!detailEditMode || detailSaving} className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800 outline-none disabled:bg-slate-50 disabled:text-slate-500" />
                         </label>
                         <label className="grid gap-1">
-                          <span className="text-[11px] font-black text-slate-500">对象名称（subject.name）</span>
-                          <input value={editableDetail?.subject?.name || ''} onChange={(event) => setEditableDetail((prev) => (prev ? { ...prev, subject: { ...prev.subject, name: event.target.value } } : prev))} disabled={!detailEditMode || detailSaving} className="rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none disabled:bg-slate-50" />
+                          <span className="text-[11px] font-black text-slate-600">对象名称（subject.name）</span>
+                          <input value={editableDetail?.subject?.name || ''} onChange={(event) => setEditableDetail((prev) => (prev ? { ...prev, subject: { ...prev.subject, name: event.target.value } } : prev))} disabled={!detailEditMode || detailSaving} className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800 outline-none disabled:bg-slate-50 disabled:text-slate-500" />
                         </label>
                         <label className="grid gap-1 col-span-2">
-                          <span className="text-[11px] font-black text-slate-500">对象定位（subject.locator）</span>
-                          <input value={editableDetail?.subject?.locator || ''} onChange={(event) => setEditableDetail((prev) => (prev ? { ...prev, subject: { ...prev.subject, locator: event.target.value } } : prev))} disabled={!detailEditMode || detailSaving} className="rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none disabled:bg-slate-50" />
+                          <span className="text-[11px] font-black text-slate-600">对象定位（subject.locator）</span>
+                          <input value={editableDetail?.subject?.locator || ''} onChange={(event) => setEditableDetail((prev) => (prev ? { ...prev, subject: { ...prev.subject, locator: event.target.value } } : prev))} disabled={!detailEditMode || detailSaving} className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800 outline-none disabled:bg-slate-50 disabled:text-slate-500" />
                         </label>
                       </div>
                       <label className="grid gap-1">
-                        <span className="text-[11px] font-black text-slate-500">证据摘要（evidence.summary）</span>
-                        <textarea value={editableDetail?.evidence_summary || ''} onChange={(event) => setEditableDetail((prev) => (prev ? { ...prev, evidence_summary: event.target.value } : prev))} disabled={!detailEditMode || detailSaving} className="min-h-[66px] rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none disabled:bg-slate-50" />
+                        <span className="text-[11px] font-black text-slate-600">证据摘要（evidence.summary）</span>
+                        <textarea value={editableDetail?.evidence_summary || ''} onChange={(event) => setEditableDetail((prev) => (prev ? { ...prev, evidence_summary: event.target.value } : prev))} disabled={!detailEditMode || detailSaving} className="min-h-[66px] rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800 outline-none disabled:bg-slate-50 disabled:text-slate-500" />
                       </label>
                       <label className="grid gap-1">
-                        <span className="text-[11px] font-black text-slate-500">复现提示（evidence.reproduction_hint）</span>
-                        <textarea value={editableDetail?.evidence_reproduction_hint || ''} onChange={(event) => setEditableDetail((prev) => (prev ? { ...prev, evidence_reproduction_hint: event.target.value } : prev))} disabled={!detailEditMode || detailSaving} className="min-h-[66px] rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none disabled:bg-slate-50" />
+                        <span className="text-[11px] font-black text-slate-600">复现提示（evidence.reproduction_hint）</span>
+                        <textarea value={editableDetail?.evidence_reproduction_hint || ''} onChange={(event) => setEditableDetail((prev) => (prev ? { ...prev, evidence_reproduction_hint: event.target.value } : prev))} disabled={!detailEditMode || detailSaving} className="min-h-[66px] rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800 outline-none disabled:bg-slate-50 disabled:text-slate-500" />
                       </label>
                     </div>
                   </DetailSectionCard>
@@ -1678,13 +1761,13 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId }) => {
                   >
                     <div className="mt-3 overflow-hidden rounded-[1.25rem] border border-slate-200 bg-white shadow-sm">
                       {linkedFilesLoading ? (
-                        <div className="px-4 py-8 text-sm text-slate-400">正在加载关联文件...</div>
+                        <div className="px-4 py-8 text-sm text-slate-600">正在加载关联文件...</div>
                       ) : !linkedFiles ? (
-                        <div className="px-4 py-8 text-sm text-slate-400">当前疑点还没有可展示的文件目录。</div>
+                        <div className="px-4 py-8 text-sm text-slate-600">当前疑点还没有可展示的文件目录。</div>
                       ) : (
                         <div className="flex h-full min-h-[360px] flex-col">
                           <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 bg-slate-50 px-4 py-3">
-                            <div className="truncate text-xs font-bold text-slate-500">当前路径：{linkedFiles.current_path}</div>
+                            <div className="truncate text-xs font-bold text-slate-700">当前路径：{linkedFiles.current_path}</div>
                             <div className="flex flex-wrap items-center gap-2">
                               <button
                                 type="button"
@@ -1728,7 +1811,7 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId }) => {
                           </div>
                           <div className="grid min-h-0 flex-1 xl:grid-cols-[360px_minmax(0,1fr)]">
                             <div className="min-h-0 overflow-auto border-r border-slate-100 p-3">
-                              <div className="grid grid-cols-[24px_minmax(0,1fr)_70px] gap-3 rounded-xl bg-slate-50 px-3 py-2 text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">
+                              <div className="grid grid-cols-[24px_minmax(0,1fr)_70px] gap-3 rounded-xl bg-slate-50 px-3 py-2 text-[11px] font-black uppercase tracking-[0.18em] text-slate-600">
                                 <div>选</div>
                                 <div>名称</div>
                                 <div>大小</div>
@@ -1756,7 +1839,7 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId }) => {
                                         {directory.name}
                                       </button>
                                     </span>
-                                    <span className="text-xs text-slate-400">--</span>
+                                    <span className="text-xs text-slate-500">--</span>
                                   </div>
                                 ))}
                                 {linkedFileItems.map((file: any) => {
@@ -1782,14 +1865,14 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId }) => {
                                           <FileCode2 size={13} className="shrink-0 text-slate-500" />
                                           <span className="truncate text-sm font-semibold text-slate-800">{file.filename}</span>
                                         </div>
-                                        <div className="mt-0.5 truncate text-[10px] text-slate-400">{file.path}</div>
+                                        <div className="mt-0.5 truncate text-[10px] text-slate-500">{file.path}</div>
                                       </button>
                                       <span className="text-xs text-slate-500">{Math.max(0, Math.round(Number(file.size || 0) / 1024))}KB</span>
                                     </div>
                                   );
                                 })}
                                 {linkedDirectoryItems.length === 0 && linkedFileItems.length === 0 && (
-                                  <div className="rounded-xl border border-dashed border-slate-200 px-4 py-8 text-center text-sm text-slate-400">
+                                  <div className="rounded-xl border border-dashed border-slate-200 px-4 py-8 text-center text-sm text-slate-600">
                                     当前目录没有匹配的文件或文件夹
                                   </div>
                                 )}
@@ -1799,13 +1882,13 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId }) => {
                               {selectedLinkedFile ? (
                                 <div className="grid h-full min-h-0 xl:grid-cols-[minmax(0,1fr)_240px]">
                                   <div className="min-h-0 border-r border-slate-100 p-4">
-                                    <div className="mb-3 inline-flex items-center gap-2 text-xs font-semibold text-slate-500">
+                                    <div className="mb-3 inline-flex items-center gap-2 text-xs font-semibold text-slate-700">
                                       <FileCode2 size={13} />
                                       {selectedLinkedFile.filename}
                                     </div>
                                     <div className="h-[calc(100%-1.5rem)] min-h-[260px] overflow-auto">
                                       {linkedFilePreviewLoading ? (
-                                        <div className="text-sm text-slate-400">正在加载文件内容...</div>
+                                        <div className="text-sm text-slate-600">正在加载文件内容...</div>
                                       ) : linkedFilePreviewError ? (
                                         <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700">{linkedFilePreviewError}</div>
                                       ) : (
@@ -1813,13 +1896,13 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId }) => {
                                       )}
                                     </div>
                                   </div>
-                                  <div className="p-4 text-sm text-slate-600">
-                                    <div className="text-[11px] font-black uppercase tracking-[0.24em] text-slate-400">文件信息</div>
+                                  <div className="p-4 text-sm text-slate-700">
+                                    <div className="text-[11px] font-black uppercase tracking-[0.24em] text-slate-500">文件信息</div>
                                     <div className="mt-4 space-y-3">
-                                      <div><div className="text-xs text-slate-400">文件名</div><div className="font-bold text-slate-900 break-all">{selectedLinkedFile.filename}</div></div>
-                                      <div><div className="text-xs text-slate-400">内容类型</div><div className="font-semibold">{selectedLinkedFile.content_type || '未知类型'}</div></div>
-                                      <div><div className="text-xs text-slate-400">大小</div><div className="font-semibold">{Number(selectedLinkedFile.size || 0)} bytes</div></div>
-                                      <div><div className="text-xs text-slate-400">路径</div><div className="font-semibold break-all">{selectedLinkedFile.path || '-'}</div></div>
+                                      <div><div className="text-xs text-slate-500">文件名</div><div className="break-all font-bold text-slate-900">{selectedLinkedFile.filename}</div></div>
+                                      <div><div className="text-xs text-slate-500">内容类型</div><div className="font-semibold text-slate-800">{selectedLinkedFile.content_type || '未知类型'}</div></div>
+                                      <div><div className="text-xs text-slate-500">大小</div><div className="font-semibold text-slate-800">{Number(selectedLinkedFile.size || 0)} bytes</div></div>
+                                      <div><div className="text-xs text-slate-500">路径</div><div className="break-all font-semibold text-slate-800">{selectedLinkedFile.path || '-'}</div></div>
                                     </div>
                                     <button
                                       type="button"
@@ -1832,7 +1915,7 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId }) => {
                                   </div>
                                 </div>
                               ) : (
-                                <div className="flex h-full min-h-[320px] items-center justify-center text-sm text-slate-400">
+                                <div className="flex h-full min-h-[320px] items-center justify-center text-sm text-slate-600">
                                   从左侧列表选择文件进行预览
                                 </div>
                               )}
@@ -1858,13 +1941,13 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId }) => {
                 <DetailSectionCard title="时间线事件" subtitle="按时间顺序查看阶段变化、裁决、系统事件和执行人。">
                   <div className="mt-3 space-y-2.5">
                     {selectedTimeline.length === 0 ? (
-                      <div className="rounded-xl bg-slate-50 px-4 py-4 text-sm text-slate-400">暂无时间线数据</div>
+                      <div className="rounded-xl bg-slate-50 px-4 py-4 text-sm text-slate-600">暂无时间线数据</div>
                     ) : (
                       selectedTimeline.map((item: any) => (
                         <div key={item.id} className="rounded-xl border border-slate-200 px-4 py-3">
                           <div className="flex items-center justify-between gap-3">
                             <div className="text-sm font-black text-slate-800">{item.payload?.summary || item.payload?.event_type || item.item_type}</div>
-                            <div className="text-[11px] font-semibold text-slate-400">{formatTime(item.created_at)}</div>
+                            <div className="text-[11px] font-semibold text-slate-500">{formatTime(item.created_at)}</div>
                           </div>
                           <div className="mt-1.5 text-xs text-slate-500">
                             类型：{item.item_type}
@@ -1880,13 +1963,13 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId }) => {
                   <DetailSectionCard title="协同记录 / 动作" subtitle="展示自动动作、执行状态和摘要信息。">
                     <div className="mt-3 space-y-2.5">
                       {processActions.length === 0 ? (
-                        <div className="rounded-xl bg-slate-50 px-4 py-4 text-sm text-slate-400">暂无动作记录</div>
+                        <div className="rounded-xl bg-slate-50 px-4 py-4 text-sm text-slate-600">暂无动作记录</div>
                       ) : (
                         processActions.map((action: any, index: number) => (
                           <div key={action.id || index} className="rounded-xl border border-slate-200 px-4 py-3">
                             <div className="flex items-center justify-between gap-3">
                               <div className="text-sm font-black text-slate-800">{action.title || action.action_type || action.name || `动作 ${index + 1}`}</div>
-                              <div className="text-[11px] text-slate-400">{action.execution_status || action.status || 'unknown'}</div>
+                              <div className="text-[11px] text-slate-500">{action.execution_status || action.status || 'unknown'}</div>
                             </div>
                             <div className="mt-1 text-xs text-slate-500">{action.summary || action.description || action.owner || '暂无摘要'}</div>
                           </div>
@@ -1897,13 +1980,13 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId }) => {
                   <DetailSectionCard title="协同记录 / 人工任务" subtitle="展示人工介入项、状态和当前说明。">
                     <div className="mt-3 space-y-2.5">
                       {processManualTasks.length === 0 ? (
-                        <div className="rounded-xl bg-slate-50 px-4 py-4 text-sm text-slate-400">暂无人工任务</div>
+                        <div className="rounded-xl bg-slate-50 px-4 py-4 text-sm text-slate-600">暂无人工任务</div>
                       ) : (
                         processManualTasks.map((task: any, index: number) => (
                           <div key={task.id || index} className="rounded-xl border border-slate-200 px-4 py-3">
                             <div className="flex items-center justify-between gap-3">
                               <div className="text-sm font-black text-slate-800">{task.title || task.name || `人工任务 ${index + 1}`}</div>
-                              <div className="text-[11px] text-slate-400">{task.status || 'unknown'}</div>
+                              <div className="text-[11px] text-slate-500">{task.status || 'unknown'}</div>
                             </div>
                             <div className="mt-1 text-xs text-slate-500">{task.summary || task.description || task.assignee || '暂无说明'}</div>
                           </div>
@@ -1920,7 +2003,7 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId }) => {
             <div className="space-y-4">
               <div className="grid gap-4 xl:grid-cols-2">
                 <DetailSectionCard title="关联上下文" subtitle="集中展示来源任务、对象、执行引用与存储位置。">
-                  <div className="mt-3 space-y-2 text-sm text-slate-600">
+                  <div className="mt-3 space-y-2 text-sm text-slate-700">
                     <div><span className="font-black text-slate-700">上报者：</span>{selectedDetail.reporter?.name || '未提供'} / {selectedDetail.reporter?.type || 'unknown'}</div>
                     <div><span className="font-black text-slate-700">目标对象：</span>{selectedDetail.subject?.type || '未提供'} / {selectedDetail.subject?.name || selectedDetail.subject?.locator || '未提供'}</div>
                     <div><span className="font-black text-slate-700">来源报告 ID：</span>{Array.isArray(displaySummary?.source_report_ids) && displaySummary.source_report_ids.length > 0 ? displaySummary.source_report_ids.join(', ') : '未提供'}</div>
@@ -1949,12 +2032,12 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId }) => {
                 >
                   <div className="mt-3 space-y-2">
                     {relatedRefs.length === 0 ? (
-                      <div className="rounded-xl bg-slate-50 px-4 py-4 text-sm text-slate-400">暂无关联执行引用</div>
+                      <div className="rounded-xl bg-slate-50 px-4 py-4 text-sm text-slate-600">暂无关联执行引用</div>
                     ) : (
                       relatedRefs.map((ref: any, index: number) => (
                         <div key={`${ref?.key || 'ref'}-${index}`} className="rounded-xl bg-slate-50 px-4 py-3 text-sm text-slate-700">
                           <div className="font-black text-slate-800">{ref?.key || `ref-${index + 1}`}</div>
-                          <div className="mt-1 break-all text-xs text-slate-500">{ref?.value || '-'}</div>
+                          <div className="mt-1 break-all text-xs text-slate-600">{ref?.value || '-'}</div>
                         </div>
                       ))
                     )}
