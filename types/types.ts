@@ -2171,6 +2171,7 @@ export interface AiGatewayBackendUnit {
   id: number;
   unit_code: string;
   provider_type: string;
+  capacity_pool_id: number;
   api_base_url: string;
   model_name: string;
   api_key_ciphertext?: string;
@@ -2289,26 +2290,6 @@ export interface AiGatewayCapacityPool {
   pool_name: string;
   enabled: boolean;
   description: string;
-  created_at?: string;
-  updated_at?: string;
-}
-
-export interface AiGatewayCapacityPoolModelBinding {
-  id: number;
-  capacity_pool_id: number;
-  model_alias_id: number;
-  priority: number;
-  enabled: boolean;
-  created_at?: string;
-  updated_at?: string;
-}
-
-export interface AiGatewayCapacityPoolBackendBinding {
-  id: number;
-  capacity_pool_id: number;
-  backend_unit_id: number;
-  priority: number;
-  enabled: boolean;
   created_at?: string;
   updated_at?: string;
 }
