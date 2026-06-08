@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { ArrowLeft, Info, Loader2, RefreshCw, SlidersHorizontal, Trash2 } from 'lucide-react';
+import { ArrowLeft, ExternalLink, Info, Loader2, RefreshCw, SlidersHorizontal, Trash2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 import {
@@ -263,6 +263,110 @@ const stageConnectorTone = (status: string) => {
       return 'text-slate-400';
   }
 };
+
+function normalizeProjectFileExplorerPath(path: string, projectId?: string | null): string {
+  const normalizedPath = String(path || '').trim();
+  if (!normalizedPath) return '';
+  const normalizedProjectId = String(projectId || '').trim();
+  const projectRoot = normalizedProjectId ? `/data/files/${normalizedProjectId}` : '';
+  if (projectRoot && normalizedPath.startsWith(projectRoot)) {
+    const relativePath = normalizedPath.slice(projectRoot.length).replace(/\/+$/, '');
+    if (!relativePath) return '/';
+    return relativePath.startsWith('/') ? relativePath : `/${relativePath}`;
+  }
+  return normalizedPath.startsWith('/') ? normalizedPath : `/${normalizedPath}`;
+}
+
+function buildProjectFileExplorerUrl(fsPath: string, projectId?: string | null): string {
+  return `#/project-file-explorer?path=${encodeURIComponent(normalizeProjectFileExplorerPath(fsPath, projectId))}`;
+}
+
+const ProjectDirectoryValue: React.FC<{ path?: string | null; projectId?: string | null }> = ({ path, projectId }) => {
+  const normalizedPath = String(path || '').trim();
+  if (!normalizedPath) return <>-</>;
+  const explorerPath = normalizeProjectFileExplorerPath(normalizedPath, projectId);
+  const showRawPath = explorerPath !== normalizedPath;
+  return (
+    <div className="flex flex-wrap items-center gap-2">
+      <div className="min-w-0">
+        <div className="break-all font-mono text-xs text-slate-800">{explorerPath}</div>
+        {showRawPath ? <div className="mt-1 break-all font-mono text-[11px] text-slate-400">{normalizedPath}</div> : null}
+      </div>
+      <button
+        type="button"
+        onClick={() => window.open(buildProjectFileExplorerUrl(normalizedPath, projectId), '_blank', 'noopener,noreferrer')}
+        className="inline-flex items-center gap-1 rounded-lg border border-violet-200 px-2 py-1 text-[11px] font-semibold text-violet-700 hover:bg-violet-50"
+      >
+        <ExternalLink size={11} />
+        项目文件
+      </button>
+    </div>
+  );
+};
+
+const STAGE_ITEM_PATH_LABEL_KEYWORDS = [
+  'path',
+  'root',
+  'dir',
+  'directory',
+  'files_list',
+  'files-list',
+  'archive',
+  'artifact',
+  'source_file',
+];
+
+function isProjectFilePathLike(value: string): boolean {
+  const normalized = String(value || '').trim();
+  if (!normalized) return false;
+  if (normalized.startsWith('/data/files/')) return true;
+  if (normalized.startsWith('/')) return true;
+  if (normalized.startsWith('./') || normalized.startsWith('../')) return true;
+  return normalized.includes('/');
+}
+
+function shouldRenderStageItemValueAsProjectPath(label: string, value: string): boolean {
+  const normalizedLabel = String(label || '').trim().toLowerCase();
+  if (!normalizedLabel) return false;
+  if (!STAGE_ITEM_PATH_LABEL_KEYWORDS.some((keyword) => normalizedLabel.includes(keyword))) {
+    return false;
+  }
+  const lines = value
+    .split('\n')
+    .map((line) => line.trim())
+    .filter(Boolean);
+  return lines.length > 0 && lines.every((line) => isProjectFilePathLike(line));
+}
+
+function renderStageItemDetailValue(label: string, value: string, projectId?: string | null) {
+  if (!shouldRenderStageItemValueAsProjectPath(label, value)) {
+    return renderContractValue(value);
+  }
+  const lines = value
+    .split('\n')
+    .map((line) => line.trim())
+    .filter(Boolean);
+  if (lines.length <= 1) {
+    return <div className="mt-1"><ProjectDirectoryValue path={lines[0] || value} projectId={projectId} /></div>;
+  }
+  return (
+    <div className="mt-2 space-y-2">
+      {lines.map((line, index) => (
+        <div key={`${label}-${line}-${index}`} className="rounded-lg border border-slate-200 bg-white px-2 py-2">
+          <ProjectDirectoryValue path={line} projectId={projectId} />
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function archiveJobSourcePath(job: {
+  source_root_path?: string | null;
+  source_root?: string | null;
+  source_dir?: string | null;
+}): string | null {
+  return job.source_root_path || job.source_root || job.source_dir || null;
+}
 
 const stageItemTone = (selected: boolean) => (
   selected
@@ -4351,8 +4455,16 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                           <div className="mt-1 break-all font-mono text-slate-800">{job.downstream_task_id || '-'}</div>
                         </div>
                         <div className="rounded-xl border border-slate-200 bg-white/80 px-3 py-2 xl:col-span-2">
+                          <span className="text-slate-400">归档源路径</span>
+                          <div className="mt-1">
+                            <ProjectDirectoryValue path={archiveJobSourcePath(job)} projectId={projectId} />
+                          </div>
+                        </div>
+                        <div className="rounded-xl border border-slate-200 bg-white/80 px-3 py-2 xl:col-span-2">
                           <span className="text-slate-400">归档路径</span>
-                          <div className="mt-1 break-all font-mono text-slate-800">{job.archive_root || '-'}</div>
+                          <div className="mt-1">
+                            <ProjectDirectoryValue path={job.archive_root} projectId={projectId} />
+                          </div>
                         </div>
                       </div>
                       {job.copy_stats ? (
@@ -4882,7 +4994,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                                                   {inputContractRows.length > 0 ? inputContractRows.map((row) => (
                                                     <div key={`${item.id}-input-${row.label}`} className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
                                                       <div className="text-[11px] font-bold uppercase tracking-[0.12em] text-slate-400">{row.label}</div>
-                                                      {renderContractValue(row.value)}
+                                                      {renderStageItemDetailValue(row.label, row.value, projectId)}
                                                     </div>
                                                   )) : (
                                                     <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50 px-3 py-3 text-xs text-slate-400">
@@ -4908,7 +5020,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                                                   {contractRows.output.length > 0 ? contractRows.output.map((row) => (
                                                     <div key={`${item.id}-output-${row.label}`} className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
                                                       <div className="text-[11px] font-bold uppercase tracking-[0.12em] text-slate-400">{row.label}</div>
-                                                      {renderContractValue(row.value)}
+                                                      {renderStageItemDetailValue(row.label, row.value, projectId)}
                                                     </div>
                                                   )) : (
                                                     <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50 px-3 py-3 text-xs text-slate-400">
