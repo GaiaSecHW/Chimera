@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Eye, FileText, Pencil, Plus, RefreshCw, Save, TestTube2, Trash2, X } from 'lucide-react';
+import { Eye, FileText, Pencil, Plus, RefreshCw, Save, Trash2, X } from 'lucide-react';
 import { api } from '../../clients/api';
 import { showConfirm } from '../../components/DialogService';
 import { AigwLogDetailsDialog } from '../../components/platform/AigwLogDetailsDialog';
@@ -11,7 +11,6 @@ import {
   AiGatewayCapacityPoolModelBinding,
   AiGatewayConnectionTestResult,
   AiGatewayLlmKey,
-  AiGatewayLlmKeyCreatePayload,
   AiGatewayLlmKeyCreateResponse,
   AiGatewayLogDetail,
   AiGatewayLogListResponse,
@@ -20,10 +19,23 @@ import {
   AiGatewayModelAliasBinding,
   AiGatewayProviderStat,
   AiGatewayReplayResponse,
+  AiGatewayStatsOverview,
 } from '../../types/types';
 
 type AiGatewayBackendUnitForm = Omit<AiGatewayBackendUnit, 'id' | 'provider_type'> & {
   provider_type?: string;
+};
+type AiGatewayLlmKeyForm = {
+  key_name: string;
+  key_type: 'task' | 'work';
+  parent_key_id?: number | null;
+  max_concurrency: number;
+  task_id: string;
+  sub_task_id: string;
+  enabled: boolean;
+  expires_at?: string | null;
+  description: string;
+  capacity_pool_ids: number[];
 };
 
 type PageView = 'config' | 'keys';
@@ -64,7 +76,7 @@ const emptyBinding = (): Omit<AiGatewayModelAliasBinding, 'id'> => ({
   enabled: true,
 });
 
-const emptyLlmKeyForm = (): AiGatewayLlmKeyCreatePayload => ({
+const emptyLlmKeyForm = (): AiGatewayLlmKeyForm => ({
   key_name: '',
   key_type: 'task',
   parent_key_id: null,
@@ -75,8 +87,6 @@ const emptyLlmKeyForm = (): AiGatewayLlmKeyCreatePayload => ({
   expires_at: null,
   description: '',
   capacity_pool_ids: [],
-  model_alias_ids: [],
-  task_bindings: [],
 });
 
 const emptyCapacityPool = (): Omit<AiGatewayCapacityPool, 'id'> => ({
@@ -88,6 +98,7 @@ const emptyCapacityPool = (): Omit<AiGatewayCapacityPool, 'id'> => ({
 });
 
 const formatDateTime = (value?: string | null) => value ? new Date(value).toLocaleString('zh-CN') : '-';
+const formatDateTimeInput = (value?: string | null) => value ? new Date(value).toISOString().slice(0, 16) : '';
 const formatJsonBlock = (value?: string | null) => {
   const text = String(value || '').trim();
   if (!text) return '-';
@@ -109,6 +120,8 @@ export const AiGatewayPage: React.FC = () => {
   const [error, setError] = useState('');
   const [pageView, setPageView] = useState<PageView>('config');
   const [providerStats, setProviderStats] = useState<AiGatewayProviderStat[]>([]);
+  const [statsOverview, setStatsOverview] = useState<AiGatewayStatsOverview | null>(null);
+  const [modelStats, setModelStats] = useState<AiGatewayProviderStat[]>([]);
   const [modelAliases, setModelAliases] = useState<AiGatewayModelAlias[]>([]);
   const [backendUnits, setBackendUnits] = useState<AiGatewayBackendUnit[]>([]);
   const [bindings, setBindings] = useState<AiGatewayModelAliasBinding[]>([]);
@@ -116,6 +129,7 @@ export const AiGatewayPage: React.FC = () => {
   const [capacityPoolBindings, setCapacityPoolBindings] = useState<AiGatewayCapacityPoolModelBinding[]>([]);
   const [capacityPoolBackendBindings, setCapacityPoolBackendBindings] = useState<AiGatewayCapacityPoolBackendBinding[]>([]);
   const [llmKeys, setLlmKeys] = useState<AiGatewayLlmKey[]>([]);
+  const [editingLlmKeyId, setEditingLlmKeyId] = useState<number | null>(null);
   const [editingAliasId, setEditingAliasId] = useState<number | null>(null);
   const [editingBackendUnitId, setEditingBackendUnitId] = useState<number | null>(null);
   const [pendingBackendPoolId, setPendingBackendPoolId] = useState<number | null>(null);
@@ -124,7 +138,7 @@ export const AiGatewayPage: React.FC = () => {
   const [backendUnitForm, setBackendUnitForm] = useState<AiGatewayBackendUnitForm>(emptyBackendUnit());
   const [bindingForm, setBindingForm] = useState<Omit<AiGatewayModelAliasBinding, 'id'>>(emptyBinding());
   const [capacityPoolForm, setCapacityPoolForm] = useState<Omit<AiGatewayCapacityPool, 'id'>>(emptyCapacityPool());
-  const [llmKeyForm, setLlmKeyForm] = useState<AiGatewayLlmKeyCreatePayload>(emptyLlmKeyForm());
+  const [llmKeyForm, setLlmKeyForm] = useState<AiGatewayLlmKeyForm>(emptyLlmKeyForm());
   const [testingBackendId, setTestingBackendId] = useState<number | null>(null);
   const [testResult, setTestResult] = useState<AiGatewayConnectionTestResult | null>(null);
   const [logs, setLogs] = useState<AiGatewayLogSummary[]>([]);
@@ -136,7 +150,9 @@ export const AiGatewayPage: React.FC = () => {
   const [logBackendModel, setLogBackendModel] = useState('');
   const [logAliasId, setLogAliasId] = useState('');
   const [logBackendUnitId, setLogBackendUnitId] = useState('');
-  const [logEndpoint, setLogEndpoint] = useState('');
+  const [logLlmKeyId, setLogLlmKeyId] = useState('');
+  const [logTaskKeyId, setLogTaskKeyId] = useState('');
+  const [logCapacityPoolId, setLogCapacityPoolId] = useState('');
   const [logTaskId, setLogTaskId] = useState('');
   const [logSubTaskId, setLogSubTaskId] = useState('');
   const [logStartDate, setLogStartDate] = useState('');
@@ -155,6 +171,8 @@ export const AiGatewayPage: React.FC = () => {
   const [selectedAliasId, setSelectedAliasId] = useState<number | null>(null);
   const [draggingBackendUnitId, setDraggingBackendUnitId] = useState<number | null>(null);
   const [editingWorkspaceBindingId, setEditingWorkspaceBindingId] = useState<number | null>(null);
+  const [editingPoolBackendBindingId, setEditingPoolBackendBindingId] = useState<number | null>(null);
+  const [poolAttachBackendDraft, setPoolAttachBackendDraft] = useState<Record<number, string>>({});
   const [capacityPoolModalOpen, setCapacityPoolModalOpen] = useState(false);
   const [editingCapacityPoolId, setEditingCapacityPoolId] = useState<number | null>(null);
   const [llmKeyModalOpen, setLlmKeyModalOpen] = useState(false);
@@ -168,7 +186,7 @@ export const AiGatewayPage: React.FC = () => {
   const aliasNameById = useMemo(() => new Map(modelAliases.map((item) => [item.id, item.alias_name])), [modelAliases]);
   const backendNameById = useMemo(() => new Map(backendUnits.map((item) => [item.id, `${item.model_name} · ${item.provider_type}`])), [backendUnits]);
   const providerStatByBackendId = useMemo(() => new Map(providerStats.map((item) => [Number(item.backend_unit_id || item.backend_config_id || 0), item])), [providerStats]);
-  const logEndpoints = useMemo(() => Array.from(new Set(logs.map((item) => item.endpoint).filter(Boolean))).sort((a, b) => a.localeCompare(b)), [logs]);
+  const taskKeys = useMemo(() => llmKeys.filter((item) => item.key_type === 'task'), [llmKeys]);
   const backendModels = useMemo(() => Array.from(new Set(backendUnits.map((item) => item.model_name).filter(Boolean))).sort((a, b) => a.localeCompare(b)), [backendUnits]);
   const aliasOptions = useMemo(() => modelAliases.map((item) => ({ value: String(item.id), label: `${item.alias_name} (#${item.id})` })), [modelAliases]);
   const backendUnitOptions = useMemo(() => backendUnits.map((item) => ({ value: String(item.id), label: `${item.model_name} · ${item.provider_type} (#${item.id})` })), [backendUnits]);
@@ -216,6 +234,24 @@ export const AiGatewayPage: React.FC = () => {
   })).filter((item) => item.pool), [capacityPools, selectedAliasPoolBindings]);
   const selectedAlias = useMemo(() => modelAliases.find((item) => item.id === selectedAliasId) || null, [modelAliases, selectedAliasId]);
   const selectedAliasBindings = useMemo(() => bindings.filter((item) => item.model_alias_id === selectedAliasId), [bindings, selectedAliasId]);
+  const selectedAliasBindingCards = useMemo(() => selectedAliasBindings.map((binding) => ({
+    binding,
+    unit: backendUnits.find((unit) => unit.id === binding.backend_unit_id) || null,
+    stat: providerStatByBackendId.get(binding.backend_unit_id) || null,
+    poolNames: (capacityPoolBackendBindings
+      .filter((item) => item.backend_unit_id === binding.backend_unit_id && item.enabled)
+      .map((item) => capacityPools.find((pool) => pool.id === item.capacity_pool_id)?.pool_name)
+      .filter((item): item is string => Boolean(item))),
+  })), [backendUnits, capacityPoolBackendBindings, capacityPools, providerStatByBackendId, selectedAliasBindings]);
+  const topModelStats = useMemo(() => modelStats.slice(0, 6), [modelStats]);
+  const availableBackendUnitsByPoolId = useMemo(() => {
+    const map = new Map<number, AiGatewayBackendUnit[]>();
+    capacityPools.forEach((pool) => {
+      const boundIds = new Set((poolBackendBindingsByPoolId.get(pool.id) || []).map((item) => item.backend_unit_id));
+      map.set(pool.id, backendUnits.filter((unit) => !boundIds.has(unit.id)));
+    });
+    return map;
+  }, [backendUnits, capacityPools, poolBackendBindingsByPoolId]);
 
   useEffect(() => {
     if (!selectedAliasId && modelAliases[0]?.id) setSelectedAliasId(modelAliases[0].id);
@@ -228,8 +264,10 @@ export const AiGatewayPage: React.FC = () => {
     const requestId = ++loadDataRequestIdRef.current;
     setError('');
     try {
-      const [providerItems, aliases, units, bindingItems, poolItems, poolBindingItems, poolBackendBindingItems, llmKeyItems] = await Promise.all([
+      const [overview, providerItems, modelStatItems, aliases, units, bindingItems, poolItems, poolBindingItems, poolBackendBindingItems, llmKeyItems] = await Promise.all([
+        platformApi.aigw.getStats(),
         platformApi.aigw.listProviderStats(),
+        platformApi.aigw.listModelStats(),
         platformApi.aigw.listModelAliases(),
         platformApi.aigw.listBackendUnits(),
         platformApi.aigw.listBindings(),
@@ -239,7 +277,9 @@ export const AiGatewayPage: React.FC = () => {
         platformApi.aigw.listLlmKeys(),
       ]);
       if (requestId !== loadDataRequestIdRef.current) return;
+      setStatsOverview(overview || null);
       setProviderStats(Array.isArray(providerItems) ? providerItems : []);
+      setModelStats(Array.isArray(modelStatItems) ? modelStatItems : []);
       setModelAliases(Array.isArray(aliases) ? aliases : []);
       setBackendUnits(Array.isArray(units) ? units : []);
       setBindings(Array.isArray(bindingItems) ? bindingItems : []);
@@ -264,7 +304,9 @@ export const AiGatewayPage: React.FC = () => {
         ...(logBackendModel ? { backend_model: logBackendModel } : {}),
         ...(logAliasId ? { model_alias_id: logAliasId } : {}),
         ...(logBackendUnitId ? { backend_unit_id: logBackendUnitId } : {}),
-        ...(logEndpoint ? { endpoint: logEndpoint } : {}),
+        ...(logLlmKeyId ? { llm_key_id: logLlmKeyId } : {}),
+        ...(logTaskKeyId ? { task_key_id: logTaskKeyId } : {}),
+        ...(logCapacityPoolId ? { capacity_pool_id: logCapacityPoolId } : {}),
         ...(logTaskId ? { task_id: logTaskId } : {}),
         ...(logSubTaskId ? { sub_task_id: logSubTaskId } : {}),
         ...(logStartDate ? { start_date: new Date(logStartDate).toISOString() } : {}),
@@ -317,7 +359,9 @@ export const AiGatewayPage: React.FC = () => {
     logBackendModel,
     logAliasId,
     logBackendUnitId,
-    logEndpoint,
+    logLlmKeyId,
+    logTaskKeyId,
+    logCapacityPoolId,
     logTaskId,
     logSubTaskId,
     logStartDate,
@@ -362,6 +406,7 @@ export const AiGatewayPage: React.FC = () => {
       setEditingBackendUnitId(item.id);
       setBackendUnitForm({
         unit_code: item.unit_code,
+        provider_type: item.provider_type,
         api_base_url: item.api_base_url,
         model_name: item.model_name,
         api_key_ciphertext: '',
@@ -440,9 +485,65 @@ export const AiGatewayPage: React.FC = () => {
   };
 
   const resetLlmKeyForm = () => {
+    setEditingLlmKeyId(null);
     setLlmKeyForm(emptyLlmKeyForm());
     setLlmKeyModalOpen(false);
   };
+
+  const openLlmKeyModal = (item?: AiGatewayLlmKey) => {
+    if (item) {
+      setEditingLlmKeyId(item.id);
+      setLlmKeyForm({
+        key_name: item.key_name || '',
+        key_type: item.key_type === 'work' ? 'work' : 'task',
+        parent_key_id: item.parent_key_id || null,
+        max_concurrency: item.max_concurrency || 0,
+        task_id: item.task_id || '',
+        sub_task_id: item.sub_task_id || '',
+        enabled: item.enabled,
+        expires_at: formatDateTimeInput(item.expires_at),
+        description: item.description || '',
+        capacity_pool_ids: Array.isArray(item.capacity_pool_ids) ? item.capacity_pool_ids : [],
+      });
+    } else {
+      setEditingLlmKeyId(null);
+      setLlmKeyForm(emptyLlmKeyForm());
+    }
+    setLlmKeyModalOpen(true);
+  };
+
+  useEffect(() => {
+    if (llmKeyForm.key_type !== 'work') {
+      if (llmKeyForm.parent_key_id !== null || llmKeyForm.capacity_pool_ids.length > 0) {
+        setLlmKeyForm((current) => ({
+          ...current,
+          parent_key_id: null,
+          capacity_pool_ids: current.key_type === 'work' ? [] : current.capacity_pool_ids,
+        }));
+      }
+      return;
+    }
+
+    const parent = taskKeys.find((item) => item.id === llmKeyForm.parent_key_id) || null;
+    if (!parent && taskKeys[0]) {
+      setLlmKeyForm((current) => ({
+        ...current,
+        parent_key_id: taskKeys[0].id,
+        task_id: taskKeys[0].task_id || '',
+        sub_task_id: taskKeys[0].sub_task_id || '',
+        capacity_pool_ids: [],
+      }));
+      return;
+    }
+    if (parent && (llmKeyForm.task_id !== parent.task_id || llmKeyForm.sub_task_id !== parent.sub_task_id || llmKeyForm.capacity_pool_ids.length > 0)) {
+      setLlmKeyForm((current) => ({
+        ...current,
+        task_id: parent.task_id || '',
+        sub_task_id: parent.sub_task_id || '',
+        capacity_pool_ids: [],
+      }));
+    }
+  }, [llmKeyForm.capacity_pool_ids.length, llmKeyForm.key_type, llmKeyForm.parent_key_id, llmKeyForm.sub_task_id, llmKeyForm.task_id, taskKeys]);
 
   const resetCapacityPoolForm = () => {
     setEditingCapacityPoolId(null);
@@ -491,6 +592,7 @@ export const AiGatewayPage: React.FC = () => {
       }
       const payload = {
         unit_code: backendUnitForm.unit_code,
+        provider_type: backendUnitForm.provider_type,
         api_base_url: backendUnitForm.api_base_url,
         model_name: backendUnitForm.model_name,
         api_key_ciphertext: backendUnitForm.api_key_ciphertext,
@@ -612,29 +714,109 @@ export const AiGatewayPage: React.FC = () => {
     }
   };
 
+  const savePoolBackendBinding = async (binding: AiGatewayCapacityPoolBackendBinding) => {
+    setSaving(true);
+    setError('');
+    try {
+      await platformApi.aigw.updateCapacityPoolBackendBinding(binding.id, {
+        capacity_pool_id: binding.capacity_pool_id,
+        backend_unit_id: binding.backend_unit_id,
+        priority: binding.priority,
+        enabled: binding.enabled,
+      });
+      notify('池内模型绑定已更新', 'success');
+      setEditingPoolBackendBindingId(null);
+      await loadData();
+    } catch (err: any) {
+      setError(err.message || '更新池内模型绑定失败');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const removePoolBackendBinding = async (binding: AiGatewayCapacityPoolBackendBinding) => {
+    const confirmed = await showConfirm({
+      title: '移出算力池',
+      message: `确认将模型 U${binding.backend_unit_id} 从算力池 #${binding.capacity_pool_id} 中移出吗？`,
+      confirmText: '移出',
+      cancelText: '取消',
+      danger: true,
+    });
+    if (!confirmed) return;
+    try {
+      await platformApi.aigw.deleteCapacityPoolBackendBinding(binding.id);
+      notify('池内模型绑定已删除', 'success');
+      await loadData();
+    } catch (err: any) {
+      setError(err.message || '删除池内模型绑定失败');
+    }
+  };
+
+  const addExistingBackendToPool = async (poolId: number) => {
+    const backendUnitId = Number(poolAttachBackendDraft[poolId] || 0);
+    if (!backendUnitId) {
+      setError('请选择要加入算力池的模型');
+      return;
+    }
+    setSaving(true);
+    setError('');
+    try {
+      await platformApi.aigw.createCapacityPoolBackendBinding({
+        capacity_pool_id: poolId,
+        backend_unit_id: backendUnitId,
+        priority: 0,
+        enabled: true,
+      });
+      notify('已有模型已加入算力池', 'success');
+      setPoolAttachBackendDraft((current) => ({ ...current, [poolId]: '' }));
+      await loadData();
+    } catch (err: any) {
+      setError(err.message || '加入算力池失败');
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const submitLlmKey = async () => {
     setSaving(true);
     setError('');
     try {
       if (!llmKeyForm.key_name.trim()) throw new Error('密钥名称不能为空');
-      const payload: AiGatewayLlmKeyCreatePayload = {
-        ...llmKeyForm,
+      if (!llmKeyForm.task_id.trim()) throw new Error('任务 ID 不能为空');
+      if (llmKeyForm.key_type === 'work' && !llmKeyForm.parent_key_id) throw new Error('工作密钥必须选择父任务密钥');
+      const payload = {
         key_name: llmKeyForm.key_name.trim(),
+        key_type: llmKeyForm.key_type,
+        max_concurrency: llmKeyForm.max_concurrency,
         task_id: llmKeyForm.task_id.trim(),
         sub_task_id: llmKeyForm.sub_task_id.trim(),
+        enabled: llmKeyForm.enabled,
         description: llmKeyForm.description.trim(),
         parent_key_id: llmKeyForm.parent_key_id || null,
         expires_at: llmKeyForm.expires_at || null,
+        capacity_pool_ids: llmKeyForm.key_type === 'work' ? [] : llmKeyForm.capacity_pool_ids,
       };
-      const response = await platformApi.aigw.createLlmKey(payload) as AiGatewayLlmKeyCreateResponse;
-      setCreatedLlmKeyMeta(response?.key || null);
-      setCreatedLlmKeySecret(String(response?.secret || ''));
-      setLlmKeyResultOpen(true);
-      notify('调用密钥已创建', 'success');
+      if (editingLlmKeyId) {
+        await platformApi.aigw.updateLlmKey(editingLlmKeyId, {
+          key_name: payload.key_name,
+          max_concurrency: payload.max_concurrency,
+          enabled: payload.enabled,
+          expires_at: payload.expires_at || null,
+          description: payload.description,
+          capacity_pool_ids: payload.key_type === 'work' ? [] : payload.capacity_pool_ids,
+        });
+        notify('调用密钥已更新', 'success');
+      } else {
+        const response = await platformApi.aigw.createLlmKey(payload) as AiGatewayLlmKeyCreateResponse;
+        setCreatedLlmKeyMeta(response?.key || null);
+        setCreatedLlmKeySecret(String(response?.secret || ''));
+        setLlmKeyResultOpen(true);
+        notify('调用密钥已创建', 'success');
+      }
       resetLlmKeyForm();
       await loadData();
     } catch (err: any) {
-      setError(err.message || '创建调用密钥失败');
+      setError(err.message || (editingLlmKeyId ? '更新调用密钥失败' : '创建调用密钥失败'));
     } finally {
       setSaving(false);
     }
@@ -755,12 +937,21 @@ export const AiGatewayPage: React.FC = () => {
     setError('');
     setTestResult(null);
     try {
-      const result = await platformApi.aigw.testBackendUnit(id);
-      setTestResult(result || null);
-      if (result?.success || result?.reachable) {
+      const rawResult = await platformApi.aigw.testBackendUnit(id) as any;
+      const nested = rawResult?.data || rawResult;
+      const normalized: AiGatewayConnectionTestResult = {
+        success: Boolean(nested?.success),
+        reachable: Boolean(nested?.success),
+        message: nested?.message || rawResult?.message,
+        error: nested?.output?.error || rawResult?.error,
+        status_code: typeof nested?.output?.status_code === 'number' ? nested.output.status_code : undefined,
+        latency_ms: typeof nested?.output?.duration_ms === 'number' ? nested.output.duration_ms : undefined,
+      };
+      setTestResult(normalized);
+      if (normalized.success || normalized.reachable) {
         notify('连通性测试成功', 'success');
       } else {
-        setError(result?.error_message || result?.error || '连通性测试失败');
+        setError(normalized.message || normalized.error || '连通性测试失败');
       }
     } catch (err: any) {
       setError(err.message || '连通性测试失败');
@@ -846,10 +1037,15 @@ export const AiGatewayPage: React.FC = () => {
           <option value="">模型</option>
           {backendUnitOptions.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}
         </select>
-        <select value={logEndpoint} onChange={(e) => setLogEndpoint(e.target.value)} className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none">
-          <option value="">Endpoint</option>
-          {logEndpoints.map((item) => <option key={item} value={item}>{item}</option>)}
+        <select value={logLlmKeyId} onChange={(e) => setLogLlmKeyId(e.target.value)} className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none">
+          <option value="">调用密钥</option>
+          {llmKeys.map((item) => <option key={item.id} value={item.id}>{item.key_name || `#${item.id}`}</option>)}
         </select>
+        <select value={logCapacityPoolId} onChange={(e) => setLogCapacityPoolId(e.target.value)} className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none">
+          <option value="">算力池</option>
+          {capacityPools.map((item) => <option key={item.id} value={item.id}>{item.pool_name}</option>)}
+        </select>
+        <input value={logTaskKeyId} onChange={(e) => setLogTaskKeyId(e.target.value)} placeholder="任务密钥 ID" className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none" />
         <input value={logTaskId} onChange={(e) => setLogTaskId(e.target.value)} placeholder="任务 ID" className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none" />
         <input value={logSubTaskId} onChange={(e) => setLogSubTaskId(e.target.value)} placeholder="子任务 ID" className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none" />
         <input type="datetime-local" value={logStartDate} onChange={(e) => setLogStartDate(e.target.value)} className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none" />
@@ -859,7 +1055,7 @@ export const AiGatewayPage: React.FC = () => {
       <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-2">
           <button onClick={() => { setLogPage(1); void loadLogs(); }} disabled={logsLoading} className="rounded-2xl bg-slate-900 px-4 py-2 text-sm font-bold text-white disabled:opacity-50">查询</button>
-          <button onClick={() => { setLogModel(''); setLogBackendModel(''); setLogAliasId(''); setLogBackendUnitId(''); setLogEndpoint(''); setLogTaskId(''); setLogSubTaskId(''); setLogStartDate(''); setLogEndDate(''); setLogPage(1); void loadLogs(); }} className="rounded-2xl bg-slate-100 px-4 py-2 text-sm font-bold text-slate-700">重置</button>
+          <button onClick={() => { setLogModel(''); setLogBackendModel(''); setLogAliasId(''); setLogBackendUnitId(''); setLogLlmKeyId(''); setLogTaskKeyId(''); setLogCapacityPoolId(''); setLogTaskId(''); setLogSubTaskId(''); setLogStartDate(''); setLogEndDate(''); setLogPage(1); void loadLogs(); }} className="rounded-2xl bg-slate-100 px-4 py-2 text-sm font-bold text-slate-700">重置</button>
         </div>
         <div className="text-xs font-bold text-slate-400">
           {logsLoading ? '日志加载中...' : `当前第 ${logPage} 页，共 ${logsTotal} 条`}
@@ -933,6 +1129,90 @@ export const AiGatewayPage: React.FC = () => {
     </section>
   );
 
+  const renderStatsOverview = () => (
+    <section className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
+      <div className="mb-5 flex items-start justify-between gap-4">
+        <div>
+          <div className="text-[11px] font-black uppercase tracking-[0.2em] text-slate-400">网关观测</div>
+          <h2 className="mt-2 text-xl font-black text-slate-900">运行概览</h2>
+          <p className="mt-1 text-sm text-slate-500">基于 `/api/aigw/stats`、`/stats/providers`、`/stats/models` 汇总当前网关健康度。</p>
+        </div>
+      </div>
+
+      <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+        {[
+          { label: '总请求数', value: statsOverview?.total_requests ?? 0, hint: '最近统计窗口' },
+          { label: '活跃模型数', value: statsOverview?.active_models ?? 0, hint: '启用中的公开别名' },
+          { label: '真实路由数', value: statsOverview?.model_mappings ?? 0, hint: 'model_alias_bindings' },
+          { label: '活跃请求', value: statsOverview?.active_requests ?? 0, hint: `排队 ${statsOverview?.waiting_requests ?? 0}` },
+          { label: '平均响应时延', value: `${Math.round(Number(statsOverview?.avg_response_time || 0))} ms`, hint: 'avg response time' },
+          { label: '平均首 Token', value: `${Math.round(Number(statsOverview?.avg_first_token_latency || 0))} ms`, hint: 'first token latency' },
+          { label: '平均 Token 时延', value: `${Math.round(Number(statsOverview?.avg_token_latency || 0))} ms`, hint: 'avg token latency' },
+          { label: '已接入后端', value: backendUnits.length, hint: `算力池 ${capacityPools.length}` },
+        ].map((item) => (
+          <div key={item.label} className="rounded-[1.5rem] border border-slate-200 bg-slate-50 px-4 py-4">
+            <div className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-400">{item.label}</div>
+            <div className="mt-2 text-2xl font-black text-slate-900">{item.value}</div>
+            <div className="mt-1 text-xs font-bold text-slate-500">{item.hint}</div>
+          </div>
+        ))}
+      </div>
+
+      <div className="mt-6 grid gap-4 xl:grid-cols-2">
+        <div className="rounded-[1.5rem] border border-slate-200 bg-slate-50 p-4">
+          <div className="mb-3 text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">Provider Stats</div>
+          <div className="space-y-2">
+            {providerStats.slice(0, 6).map((item, index) => (
+              <div key={`${item.backend_unit_id || item.backend_config_id || index}`} className="rounded-2xl border border-slate-200 bg-white px-4 py-3">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <div className="font-black text-slate-900">{item.backend_model_name || item.model_name || '-'}</div>
+                    <div className="mt-1 text-xs text-slate-500">U{item.backend_unit_id || item.backend_config_id || '-'} · {item.backend_api_base_url || '-'}</div>
+                  </div>
+                  <div className="text-right text-xs font-bold text-slate-500">
+                    <div>活跃 {Number(item.active_requests || 0)}</div>
+                    <div>排队 {Number(item.waiting_requests || 0)}</div>
+                  </div>
+                </div>
+                <div className="mt-3 grid grid-cols-3 gap-2 text-sm">
+                  <div className="rounded-xl bg-slate-50 px-3 py-2"><div className="text-[11px] font-bold text-slate-400">请求量</div><div className="mt-0.5 font-black text-slate-900">{Number(item.request_count || 0)}</div></div>
+                  <div className="rounded-xl bg-slate-50 px-3 py-2"><div className="text-[11px] font-bold text-slate-400">平均时延</div><div className="mt-0.5 font-black text-slate-900">{Math.round(Number(item.avg_response_time || 0))} ms</div></div>
+                  <div className="rounded-xl bg-slate-50 px-3 py-2"><div className="text-[11px] font-bold text-slate-400">成功率</div><div className="mt-0.5 font-black text-slate-900">{item.success_rate ? `${Math.round(Number(item.success_rate) * 100)}%` : '-'}</div></div>
+                </div>
+              </div>
+            ))}
+            {!providerStats.length ? <div className="rounded-2xl border border-dashed border-slate-300 bg-white px-4 py-12 text-center text-sm text-slate-500">暂无 provider 统计</div> : null}
+          </div>
+        </div>
+
+        <div className="rounded-[1.5rem] border border-slate-200 bg-slate-50 p-4">
+          <div className="mb-3 text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">Model Stats</div>
+          <div className="space-y-2">
+            {topModelStats.map((item, index) => (
+              <div key={`${item.model_alias_id || index}-${item.model_name}`} className="rounded-2xl border border-slate-200 bg-white px-4 py-3">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <div className="font-black text-slate-900">{item.model_name || aliasNameById.get(Number(item.model_alias_id || 0)) || '-'}</div>
+                    <div className="mt-1 text-xs text-slate-500">A{item.model_alias_id || '-'} · {aliasNameById.get(Number(item.model_alias_id || 0)) || '未命名别名'}</div>
+                  </div>
+                  <div className="text-right text-xs font-bold text-slate-500">
+                    <div>请求量 {Number(item.request_count || 0)}</div>
+                  </div>
+                </div>
+                <div className="mt-3 grid grid-cols-3 gap-2 text-sm">
+                  <div className="rounded-xl bg-slate-50 px-3 py-2"><div className="text-[11px] font-bold text-slate-400">平均时延</div><div className="mt-0.5 font-black text-slate-900">{Math.round(Number(item.avg_response_time || 0))} ms</div></div>
+                  <div className="rounded-xl bg-slate-50 px-3 py-2"><div className="text-[11px] font-bold text-slate-400">首 Token</div><div className="mt-0.5 font-black text-slate-900">{Math.round(Number(item.avg_first_token_latency || 0))} ms</div></div>
+                  <div className="rounded-xl bg-slate-50 px-3 py-2"><div className="text-[11px] font-bold text-slate-400">Token 时延</div><div className="mt-0.5 font-black text-slate-900">{Math.round(Number(item.avg_token_latency || 0))} ms</div></div>
+                </div>
+              </div>
+            ))}
+            {!topModelStats.length ? <div className="rounded-2xl border border-dashed border-slate-300 bg-white px-4 py-12 text-center text-sm text-slate-500">暂无模型统计</div> : null}
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+
   return (
     <div className="space-y-6 p-8">
       {feedbackNodes}
@@ -975,11 +1255,13 @@ export const AiGatewayPage: React.FC = () => {
       </div>
 
       {pageView === 'config' ? (
+      <>
+      {renderStatsOverview()}
       <section className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
         <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
           <div>
             <h2 className="text-xl font-black text-slate-900">模型配置工作台</h2>
-            <p className="mt-1 text-sm text-slate-500">左侧选别名，中间配绑定，右侧维护算力池和池内模型。</p>
+            <p className="mt-1 text-sm text-slate-500">左侧选公开别名，中间维护真实路由绑定，右侧管理算力池与池内后端。</p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
             <button onClick={() => openAliasModal()} className="inline-flex items-center gap-2 rounded-2xl bg-slate-900 px-4 py-2.5 text-sm font-bold text-white">
@@ -1060,83 +1342,148 @@ export const AiGatewayPage: React.FC = () => {
             <div className="flex items-center justify-between gap-3">
               <div>
                 <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">绑定区</div>
-                <h3 className="mt-1 text-lg font-black text-slate-900">{selectedAlias ? `${selectedAlias.alias_name} 的绑定算力池` : '请选择模型别名'}</h3>
+                <h3 className="mt-1 text-lg font-black text-slate-900">{selectedAlias ? `${selectedAlias.alias_name} 的真实路由绑定` : '请选择模型别名'}</h3>
+                <p className="mt-1 text-xs text-slate-500">这里维护的是 `model_alias_bindings`，会直接决定网关请求实际可路由到哪些 backend unit。</p>
               </div>
+              {selectedAlias ? (
+                <button
+                  onClick={() => openBindingModal(undefined, { modelAliasId: selectedAlias.id })}
+                  className="inline-flex items-center gap-2 rounded-2xl bg-slate-900 px-4 py-2 text-sm font-bold text-white"
+                >
+                  <Plus className="h-4 w-4" />
+                  新增真实路由
+                </button>
+              ) : null}
             </div>
             <div
-              onDragOver={(e) => {
-                if (!selectedAliasId) return;
-                e.preventDefault();
-              }}
-              onDrop={(e) => {
-                e.preventDefault();
-                if (!selectedAliasId) return;
-                const capacityPoolId = Number(e.dataTransfer.getData('text/capacity-pool-id') || 0);
-                if (!capacityPoolId) return;
-                void createPoolBindingForAlias(selectedAliasId, capacityPoolId);
-              }}
-              className={`mt-4 min-h-[420px] rounded-[1.5rem] border-2 border-dashed p-4 ${selectedAliasId ? 'border-slate-300 bg-slate-50' : 'border-slate-200 bg-slate-50/60'}`}
+              className={`mt-4 min-h-[420px] rounded-[1.5rem] border p-4 ${selectedAliasId ? 'border-slate-200 bg-slate-50' : 'border-slate-200 bg-slate-50/60'}`}
             >
               {selectedAliasId ? (
-                <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-                  {selectedAliasPools.map(({ binding, pool }) => {
-                    if (!pool) return null;
-                    const poolUnits = poolUnitsByPoolId.get(pool.id) || [];
-                    const poolStats = poolUnits
-                      .map((unit) => providerStatByBackendId.get(unit.id))
-                      .filter(Boolean);
-                    const editing = editingWorkspaceBindingId === binding.id;
-                    return (
-                      <div key={binding.id} className="rounded-[1.25rem] border border-slate-200 bg-white p-3.5 shadow-sm">
-                        <div className="flex items-start justify-between gap-3">
-                          <div>
-                            <div className="text-sm font-black text-slate-900">{pool.pool_name}</div>
-                            <div className="mt-1 text-xs text-slate-500">{pool.enabled ? '启用中' : '已禁用'}</div>
-                          </div>
-                          <span className={`rounded-full px-2.5 py-1 text-xs font-bold ${binding.enabled ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500'}`}>{binding.enabled ? 'on' : 'off'}</span>
-                        </div>
-                        <div className="mt-2.5 flex flex-wrap gap-2 text-[11px] font-bold text-slate-500">
-                          {editing ? (
-                            <label className="rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1">
-                              优先级
-                              <input
-                                type="number"
-                                value={binding.priority}
-                                onChange={(e) => setCapacityPoolBindings((items) => items.map((item) => item.id === binding.id ? { ...item, priority: Number(e.target.value) || 0 } : item))}
-                                className="ml-2 w-16 bg-transparent outline-none"
-                              />
-                            </label>
-                          ) : <span className="rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1">优先级 {binding.priority}</span>}
-                          <label className="rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1">
-                            <input
-                              type="checkbox"
-                              checked={binding.enabled}
-                              onChange={(e) => setCapacityPoolBindings((items) => items.map((item) => item.id === binding.id ? { ...item, enabled: e.target.checked } : item))}
-                              className="mr-1"
-                            />
-                            启用
-                          </label>
-                        </div>
-                        <div className="mt-3 grid grid-cols-2 gap-2 text-sm">
-                          <div className="rounded-xl bg-slate-50 px-3 py-2"><div className="text-[11px] font-bold text-slate-400">池内模型</div><div className="mt-0.5 font-black text-slate-900">{poolUnits.length}</div></div>
-                          <div className="rounded-xl bg-slate-50 px-3 py-2"><div className="text-[11px] font-bold text-slate-400">活跃统计</div><div className="mt-0.5 font-black text-slate-900">{poolStats.length}</div></div>
-                        </div>
-                        <div className="mt-2.5 flex flex-wrap gap-2">
-                          {editing ? (
-                            <button onClick={() => void saveWorkspaceBinding(binding)} className="rounded-xl bg-slate-900 px-2.5 py-1.5 text-[11px] font-bold text-white">保存绑定</button>
-                          ) : (
-                            <button onClick={() => setEditingWorkspaceBindingId(binding.id)} className="rounded-xl bg-slate-100 px-2.5 py-1.5 text-[11px] font-bold text-slate-700">编辑</button>
-                          )}
-                          <button onClick={() => void removeWorkspaceBinding(binding)} className="rounded-xl bg-rose-100 px-2.5 py-1.5 text-[11px] font-bold text-rose-700">解绑</button>
-                          <button onClick={() => openLogsDrawer({ title: `${pool.pool_name} 的请求日志`, aliasId: String(binding.model_alias_id) })} className="rounded-xl bg-slate-100 px-2.5 py-1.5 text-[11px] font-bold text-slate-700">日志</button>
-                        </div>
-                      </div>
-                    );
-                  })}
-                  {!selectedAliasPools.length ? (
-                    <div className="col-span-full rounded-[1.5rem] border border-dashed border-slate-300 bg-white px-4 py-16 text-center text-sm text-slate-500">
+                <div className="space-y-6">
+                  <div>
+                    <div className="mb-3 flex items-center justify-between gap-3">
+                      <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">真实路由</div>
+                      <div className="text-xs font-bold text-slate-500">{selectedAliasBindingCards.length} 个 backend unit</div>
                     </div>
-                  ) : null}
+                    <div className="grid gap-3 md:grid-cols-2">
+                      {selectedAliasBindingCards.map(({ binding, unit, stat, poolNames }) => (
+                        <div key={binding.id} className="rounded-[1.25rem] border border-slate-200 bg-white p-3.5 shadow-sm">
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="min-w-0">
+                              <div className="text-sm font-black text-slate-900">{unit?.model_name || `U${binding.backend_unit_id}`}</div>
+                              <div className="mt-1 text-xs text-slate-500">{unit ? `${unit.provider_type} · #${unit.id}` : '后端单元不存在'}</div>
+                            </div>
+                            <span className={`rounded-full px-2.5 py-1 text-xs font-bold ${binding.enabled ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500'}`}>{binding.enabled ? 'on' : 'off'}</span>
+                          </div>
+                          <div className="mt-3 flex flex-wrap gap-2 text-[11px] font-bold text-slate-500">
+                            <span className="rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1">优先级 {binding.priority}</span>
+                            <span className="rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1">权重 {binding.weight}</span>
+                            {poolNames.map((name) => <span key={`${binding.id}-${name}`} className="rounded-full border border-sky-200 bg-sky-50 px-2.5 py-1 text-sky-700">{name}</span>)}
+                          </div>
+                          <div className="mt-3 grid grid-cols-3 gap-2 text-sm">
+                            <div className="rounded-xl bg-slate-50 px-3 py-2"><div className="text-[11px] font-bold text-slate-400">活跃</div><div className="mt-0.5 font-black text-slate-900">{Number(stat?.active_requests || 0)}</div></div>
+                            <div className="rounded-xl bg-slate-50 px-3 py-2"><div className="text-[11px] font-bold text-slate-400">排队</div><div className="mt-0.5 font-black text-slate-900">{Number(stat?.waiting_requests || 0)}</div></div>
+                            <div className="rounded-xl bg-slate-50 px-3 py-2"><div className="text-[11px] font-bold text-slate-400">成功率</div><div className="mt-0.5 font-black text-slate-900">{stat?.success_rate ? `${Math.round(Number(stat.success_rate) * 100)}%` : '-'}</div></div>
+                          </div>
+                          <div className="mt-3 flex flex-wrap gap-2">
+                            <button onClick={() => openBindingModal(binding)} className="rounded-xl bg-slate-100 px-2.5 py-1.5 text-[11px] font-bold text-slate-700">编辑</button>
+                            {unit ? <button onClick={() => openLogsDrawer({ title: `${unit.model_name} 的请求日志`, aliasId: String(binding.model_alias_id), backendUnitId: String(binding.backend_unit_id) })} className="rounded-xl bg-slate-100 px-2.5 py-1.5 text-[11px] font-bold text-slate-700">日志</button> : null}
+                            <button onClick={() => void deleteItem('binding', binding.id, `真实路由绑定 #${binding.id}`)} className="rounded-xl bg-rose-100 px-2.5 py-1.5 text-[11px] font-bold text-rose-700">删除</button>
+                          </div>
+                        </div>
+                      ))}
+                      {!selectedAliasBindingCards.length ? (
+                        <div className="col-span-full rounded-[1.5rem] border border-dashed border-slate-300 bg-white px-4 py-16 text-center text-sm text-slate-500">
+                          当前公开模型还没有真实路由绑定。新增 `model_alias_binding` 后，请求才会实际命中 backend unit。
+                        </div>
+                      ) : null}
+                    </div>
+                  </div>
+
+                  <div className="border-t border-slate-200 pt-5">
+                    <div className="mb-3 flex items-center justify-between gap-3">
+                      <div>
+                        <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">算力池授权视图</div>
+                        <p className="mt-1 text-xs text-slate-500">这一层维护的是 alias 在哪些算力池中可见，主要影响 `/v1/models` 与密钥授权，不直接替代真实路由绑定。</p>
+                      </div>
+                    </div>
+                    <div
+                      onDragOver={(e) => {
+                        if (!selectedAliasId) return;
+                        e.preventDefault();
+                      }}
+                      onDrop={(e) => {
+                        e.preventDefault();
+                        if (!selectedAliasId) return;
+                        const capacityPoolId = Number(e.dataTransfer.getData('text/capacity-pool-id') || 0);
+                        if (!capacityPoolId) return;
+                        void createPoolBindingForAlias(selectedAliasId, capacityPoolId);
+                      }}
+                      className="rounded-[1.5rem] border-2 border-dashed border-slate-300 bg-slate-50 p-4"
+                    >
+                      <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+                        {selectedAliasPools.map(({ binding, pool }) => {
+                          if (!pool) return null;
+                          const poolUnits = poolUnitsByPoolId.get(pool.id) || [];
+                          const poolStats = poolUnits
+                            .map((unit) => providerStatByBackendId.get(unit.id))
+                            .filter(Boolean);
+                          const editing = editingWorkspaceBindingId === binding.id;
+                          return (
+                            <div key={binding.id} className="rounded-[1.25rem] border border-slate-200 bg-white p-3.5 shadow-sm">
+                              <div className="flex items-start justify-between gap-3">
+                                <div>
+                                  <div className="text-sm font-black text-slate-900">{pool.pool_name}</div>
+                                  <div className="mt-1 text-xs text-slate-500">{pool.enabled ? '启用中' : '已禁用'}</div>
+                                </div>
+                                <span className={`rounded-full px-2.5 py-1 text-xs font-bold ${binding.enabled ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500'}`}>{binding.enabled ? 'on' : 'off'}</span>
+                              </div>
+                              <div className="mt-2.5 flex flex-wrap gap-2 text-[11px] font-bold text-slate-500">
+                                {editing ? (
+                                  <label className="rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1">
+                                    优先级
+                                    <input
+                                      type="number"
+                                      value={binding.priority}
+                                      onChange={(e) => setCapacityPoolBindings((items) => items.map((item) => item.id === binding.id ? { ...item, priority: Number(e.target.value) || 0 } : item))}
+                                      className="ml-2 w-16 bg-transparent outline-none"
+                                    />
+                                  </label>
+                                ) : <span className="rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1">优先级 {binding.priority}</span>}
+                                <label className="rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1">
+                                  <input
+                                    type="checkbox"
+                                    checked={binding.enabled}
+                                    onChange={(e) => setCapacityPoolBindings((items) => items.map((item) => item.id === binding.id ? { ...item, enabled: e.target.checked } : item))}
+                                    className="mr-1"
+                                  />
+                                  启用
+                                </label>
+                              </div>
+                              <div className="mt-3 grid grid-cols-2 gap-2 text-sm">
+                                <div className="rounded-xl bg-slate-50 px-3 py-2"><div className="text-[11px] font-bold text-slate-400">池内模型</div><div className="mt-0.5 font-black text-slate-900">{poolUnits.length}</div></div>
+                                <div className="rounded-xl bg-slate-50 px-3 py-2"><div className="text-[11px] font-bold text-slate-400">活跃统计</div><div className="mt-0.5 font-black text-slate-900">{poolStats.length}</div></div>
+                              </div>
+                              <div className="mt-2.5 flex flex-wrap gap-2">
+                                {editing ? (
+                                  <button onClick={() => void saveWorkspaceBinding(binding)} className="rounded-xl bg-slate-900 px-2.5 py-1.5 text-[11px] font-bold text-white">保存绑定</button>
+                                ) : (
+                                  <button onClick={() => setEditingWorkspaceBindingId(binding.id)} className="rounded-xl bg-slate-100 px-2.5 py-1.5 text-[11px] font-bold text-slate-700">编辑</button>
+                                )}
+                                <button onClick={() => void removeWorkspaceBinding(binding)} className="rounded-xl bg-rose-100 px-2.5 py-1.5 text-[11px] font-bold text-rose-700">解绑</button>
+                                <button onClick={() => openLogsDrawer({ title: `${pool.pool_name} 的请求日志`, aliasId: String(binding.model_alias_id) })} className="rounded-xl bg-slate-100 px-2.5 py-1.5 text-[11px] font-bold text-slate-700">日志</button>
+                              </div>
+                            </div>
+                          );
+                        })}
+                        {!selectedAliasPools.length ? (
+                          <div className="col-span-full rounded-[1.5rem] border border-dashed border-slate-300 bg-white px-4 py-16 text-center text-sm text-slate-500">
+                            把右侧算力池拖到这里，可让当前公开模型在对应算力池中可见。
+                          </div>
+                        ) : null}
+                      </div>
+                    </div>
+                  </div>
                 </div>
               ) : (
                 <div className="flex h-full min-h-[360px] items-center justify-center text-sm text-slate-500">请先从左侧选择一个模型别名</div>
@@ -1193,9 +1540,24 @@ export const AiGatewayPage: React.FC = () => {
                     </div>
                   </div>
                   <div className="mt-3 space-y-2">
-                    {(poolUnitsByPoolId.get(pool.id) || []).map((unit) => (
+                    <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50 px-3 py-3">
+                      <div className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-400">加入已有模型</div>
+                      <div className="mt-2 flex items-center gap-2">
+                        <select value={poolAttachBackendDraft[pool.id] || ''} onChange={(e) => setPoolAttachBackendDraft((current) => ({ ...current, [pool.id]: e.target.value }))} className="min-w-0 flex-1 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm outline-none">
+                          <option value="">选择已有 backend unit</option>
+                          {(availableBackendUnitsByPoolId.get(pool.id) || []).map((unit) => <option key={unit.id} value={unit.id}>{unit.model_name} · {unit.provider_type} (#${unit.id})</option>)}
+                        </select>
+                        <button onClick={() => void addExistingBackendToPool(pool.id)} disabled={saving || !(availableBackendUnitsByPoolId.get(pool.id) || []).length} className="rounded-xl bg-slate-900 px-3 py-2 text-xs font-bold text-white disabled:opacity-40">加入</button>
+                      </div>
+                      {!(availableBackendUnitsByPoolId.get(pool.id) || []).length ? <div className="mt-2 text-xs text-slate-500">当前所有 backend unit 都已在该算力池中。</div> : null}
+                    </div>
+                    {(poolBackendBindingsByPoolId.get(pool.id) || []).map((binding) => {
+                      const unit = backendUnits.find((item) => item.id === binding.backend_unit_id);
+                      if (!unit) return null;
+                      const editing = editingPoolBackendBindingId === binding.id;
+                      return (
                       <div
-                        key={unit.id}
+                        key={binding.id}
                         draggable
                         onDragStart={(e) => {
                           setDraggingBackendUnitId(unit.id);
@@ -1222,18 +1584,29 @@ export const AiGatewayPage: React.FC = () => {
                             >
                               <Pencil className="h-3.5 w-3.5" />
                             </button>
-                            <button
-                              type="button"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                void deleteItem('backend', unit.id, `模型 ${unit.model_name}`);
-                              }}
-                              className="rounded-xl bg-rose-100 p-1.5 text-rose-700 hover:bg-rose-200"
-                              aria-label={`删除模型 ${unit.model_name}`}
-                            >
-                              <Trash2 className="h-3.5 w-3.5" />
-                            </button>
                           </div>
+                        </div>
+                        <div className="mt-2 flex flex-wrap gap-2 text-[11px] font-bold text-slate-500">
+                          {editing ? (
+                            <label className="rounded-full border border-slate-200 bg-white px-2.5 py-1">
+                              优先级
+                              <input
+                                type="number"
+                                value={binding.priority}
+                                onChange={(e) => setCapacityPoolBackendBindings((items) => items.map((item) => item.id === binding.id ? { ...item, priority: Number(e.target.value) || 0 } : item))}
+                                className="ml-2 w-16 bg-transparent outline-none"
+                              />
+                            </label>
+                          ) : <span className="rounded-full border border-slate-200 bg-white px-2.5 py-1">优先级 {binding.priority}</span>}
+                          <label className="rounded-full border border-slate-200 bg-white px-2.5 py-1">
+                            <input
+                              type="checkbox"
+                              checked={binding.enabled}
+                              onChange={(e) => setCapacityPoolBackendBindings((items) => items.map((item) => item.id === binding.id ? { ...item, enabled: e.target.checked } : item))}
+                              className="mr-1"
+                            />
+                            启用
+                          </label>
                         </div>
                         {unit.supports_chat_completions || unit.supports_responses || unit.supports_messages ? (
                           <div className="mt-2 flex flex-wrap gap-1.5">
@@ -1242,8 +1615,17 @@ export const AiGatewayPage: React.FC = () => {
                             {unit.supports_messages ? <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-bold text-amber-700">Messages</span> : null}
                           </div>
                         ) : null}
+                        <div className="mt-3 flex flex-wrap gap-2">
+                          {editing ? (
+                            <button onClick={() => void savePoolBackendBinding(binding)} className="rounded-xl bg-slate-900 px-2.5 py-1.5 text-[11px] font-bold text-white">保存池内绑定</button>
+                          ) : (
+                            <button onClick={() => setEditingPoolBackendBindingId(binding.id)} className="rounded-xl bg-slate-100 px-2.5 py-1.5 text-[11px] font-bold text-slate-700">编辑池内绑定</button>
+                          )}
+                          <button onClick={() => void removePoolBackendBinding(binding)} className="rounded-xl bg-rose-100 px-2.5 py-1.5 text-[11px] font-bold text-rose-700">移出算力池</button>
+                          <button onClick={() => void deleteItem('backend', unit.id, `模型 ${unit.model_name}`)} className="rounded-xl bg-rose-100 px-2.5 py-1.5 text-[11px] font-bold text-rose-700">删除模型</button>
+                        </div>
                       </div>
-                    ))}
+                    )})}
                   </div>
                 </div>
               ))}
@@ -1251,6 +1633,7 @@ export const AiGatewayPage: React.FC = () => {
           </aside>
         </div>
       </section>
+      </>
       ) : null}
 
       {aliasModalOpen ? (
@@ -1296,6 +1679,13 @@ export const AiGatewayPage: React.FC = () => {
             <div className="space-y-4 p-6">
               <div className="text-[11px] font-black uppercase tracking-[0.2em] text-slate-400">模型</div>
               <div className="grid gap-4 sm:grid-cols-2">
+                <label className="block text-sm font-bold text-slate-600">Unit Code<input value={backendUnitForm.unit_code} onChange={(e) => setBackendUnitForm((v) => ({ ...v, unit_code: e.target.value }))} placeholder="留空则由网关生成" className="mt-1 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 outline-none" /></label>
+                <label className="block text-sm font-bold text-slate-600">Provider Type
+                  <select value={backendUnitForm.provider_type || 'openai'} onChange={(e) => setBackendUnitForm((v) => ({ ...v, provider_type: e.target.value }))} className="mt-1 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 outline-none">
+                    <option value="openai">openai</option>
+                    <option value="anthropic">anthropic</option>
+                  </select>
+                </label>
                 <label className="block text-sm font-bold text-slate-600">模型名称<input value={backendUnitForm.model_name} onChange={(e) => setBackendUnitForm((v) => ({ ...v, model_name: e.target.value }))} placeholder="实际下游模型名" className="mt-1 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 outline-none" /></label>
                 <label className="block text-sm font-bold text-slate-600">API 地址<input value={backendUnitForm.api_base_url} onChange={(e) => setBackendUnitForm((v) => ({ ...v, api_base_url: e.target.value }))} placeholder="https://..." className="mt-1 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 outline-none" /></label>
                 <label className="block text-sm font-bold text-slate-600">最大并发<input type="number" value={backendUnitForm.total_max_concurrency} onChange={(e) => setBackendUnitForm((v) => ({ ...v, total_max_concurrency: Number(e.target.value) || 0 }))} className="mt-1 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 outline-none" /></label>
@@ -1397,7 +1787,7 @@ export const AiGatewayPage: React.FC = () => {
             <div className="text-[11px] font-black uppercase tracking-[0.2em] text-slate-400">调用凭证</div>
             <h2 className="mt-2 text-xl font-black text-slate-900">调用密钥管理</h2>
           </div>
-          <button onClick={() => setLlmKeyModalOpen(true)} className="inline-flex items-center gap-2 rounded-2xl bg-slate-900 px-4 py-2.5 text-sm font-bold text-white">
+          <button onClick={() => openLlmKeyModal()} className="inline-flex items-center gap-2 rounded-2xl bg-slate-900 px-4 py-2.5 text-sm font-bold text-white">
             <Plus className="h-4 w-4" />
             新建调用密钥
           </button>
@@ -1431,6 +1821,7 @@ export const AiGatewayPage: React.FC = () => {
                   <td className="px-3 py-3 text-slate-700">{item.updated_at ? new Date(item.updated_at).toLocaleString('zh-CN') : '-'}</td>
                   <td className="px-3 py-3">
                     <div className="flex items-center gap-2">
+                      <button onClick={() => openLlmKeyModal(item)} className="rounded-xl bg-slate-100 px-3 py-2 text-xs font-bold text-slate-700 hover:bg-slate-200">编辑</button>
                       <button onClick={() => openLlmKeyDetail(item.id)} className="rounded-xl bg-slate-100 px-3 py-2 text-xs font-bold text-slate-700 hover:bg-slate-200">查看</button>
                       <button onClick={() => deleteLlmKey(item)} className="rounded-xl bg-rose-100 px-3 py-2 text-xs font-bold text-rose-700 hover:bg-rose-200"><Trash2 className="h-3.5 w-3.5" /></button>
                     </div>
@@ -1510,8 +1901,8 @@ export const AiGatewayPage: React.FC = () => {
           <div className="w-full max-w-3xl overflow-hidden rounded-[2rem] bg-white shadow-2xl">
             <div className="flex items-center justify-between border-b border-slate-200 px-6 py-5">
               <div>
-                <h3 className="text-xl font-black text-slate-900">新建调用密钥</h3>
-                <p className="mt-1 text-sm text-slate-500">为调用方创建一个虚拟访问密钥，并配置允许访问的算力池。</p>
+                <h3 className="text-xl font-black text-slate-900">{editingLlmKeyId ? '编辑调用密钥' : '新建调用密钥'}</h3>
+                <p className="mt-1 text-sm text-slate-500">{editingLlmKeyId ? '更新可变字段，任务边界与 key 类型保持后端约束。' : '为调用方创建一个虚拟访问密钥，并配置允许访问的算力池。'}</p>
               </div>
               <button onClick={resetLlmKeyForm} className="rounded-2xl bg-slate-100 p-2 text-slate-600 hover:bg-slate-200"><X className="h-5 w-5" /></button>
             </div>
@@ -1519,7 +1910,7 @@ export const AiGatewayPage: React.FC = () => {
               <div className="grid gap-4 sm:grid-cols-2">
                 <label className="block text-sm font-bold text-slate-600">密钥名称<input value={llmKeyForm.key_name} onChange={(e) => setLlmKeyForm((v) => ({ ...v, key_name: e.target.value }))} className="mt-1 w-full rounded-2xl border border-slate-200 px-4 py-3 outline-none" /></label>
                 <label className="block text-sm font-bold text-slate-600">密钥类型
-                  <select value={llmKeyForm.key_type} onChange={(e) => setLlmKeyForm((v) => ({ ...v, key_type: e.target.value as 'task' | 'work' }))} className="mt-1 w-full rounded-2xl border border-slate-200 px-4 py-3 outline-none">
+                  <select value={llmKeyForm.key_type} disabled={Boolean(editingLlmKeyId)} onChange={(e) => setLlmKeyForm((v) => ({ ...v, key_type: e.target.value as 'task' | 'work' }))} className="mt-1 w-full rounded-2xl border border-slate-200 px-4 py-3 outline-none disabled:bg-slate-100 disabled:text-slate-500">
                     <option value="task">任务密钥</option>
                     <option value="work">工作密钥</option>
                   </select>
@@ -1530,19 +1921,40 @@ export const AiGatewayPage: React.FC = () => {
                 <label className="flex items-center gap-3 pt-8 text-sm font-bold text-slate-700"><input type="checkbox" checked={llmKeyForm.enabled} onChange={(e) => setLlmKeyForm((v) => ({ ...v, enabled: e.target.checked }))} />创建后立即启用</label>
               </div>
               <div className="grid gap-4 sm:grid-cols-2">
-                <label className="block text-sm font-bold text-slate-600">任务 ID<input value={llmKeyForm.task_id} onChange={(e) => setLlmKeyForm((v) => ({ ...v, task_id: e.target.value }))} className="mt-1 w-full rounded-2xl border border-slate-200 px-4 py-3 outline-none" /></label>
-                <label className="block text-sm font-bold text-slate-600">子任务 ID<input value={llmKeyForm.sub_task_id} onChange={(e) => setLlmKeyForm((v) => ({ ...v, sub_task_id: e.target.value }))} className="mt-1 w-full rounded-2xl border border-slate-200 px-4 py-3 outline-none" /></label>
+                <label className="block text-sm font-bold text-slate-600">过期时间<input type="datetime-local" value={String(llmKeyForm.expires_at || '')} onChange={(e) => setLlmKeyForm((v) => ({ ...v, expires_at: e.target.value || null }))} className="mt-1 w-full rounded-2xl border border-slate-200 px-4 py-3 outline-none" /></label>
+                {llmKeyForm.key_type === 'work' ? (
+                  <label className="block text-sm font-bold text-slate-600">父任务密钥
+                    <select value={String(llmKeyForm.parent_key_id || '')} disabled={Boolean(editingLlmKeyId)} onChange={(e) => {
+                      const parentId = Number(e.target.value) || null;
+                      const parent = taskKeys.find((item) => item.id === parentId) || null;
+                      setLlmKeyForm((current) => ({
+                        ...current,
+                        parent_key_id: parentId,
+                        task_id: parent?.task_id || '',
+                        sub_task_id: parent?.sub_task_id || '',
+                      }));
+                    }} className="mt-1 w-full rounded-2xl border border-slate-200 px-4 py-3 outline-none disabled:bg-slate-100 disabled:text-slate-500">
+                      <option value="">选择父任务密钥</option>
+                      {taskKeys.map((item) => <option key={item.id} value={item.id}>{item.key_name} · {item.task_id}{item.sub_task_id ? ` / ${item.sub_task_id}` : ''}</option>)}
+                    </select>
+                  </label>
+                ) : <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-500">任务密钥可直接配置授权算力池；工作密钥会继承父任务密钥的任务边界。</div>}
+              </div>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <label className="block text-sm font-bold text-slate-600">任务 ID<input value={llmKeyForm.task_id} disabled={llmKeyForm.key_type === 'work' || Boolean(editingLlmKeyId)} onChange={(e) => setLlmKeyForm((v) => ({ ...v, task_id: e.target.value }))} className="mt-1 w-full rounded-2xl border border-slate-200 px-4 py-3 outline-none disabled:bg-slate-100 disabled:text-slate-500" /></label>
+                <label className="block text-sm font-bold text-slate-600">子任务 ID<input value={llmKeyForm.sub_task_id} disabled={llmKeyForm.key_type === 'work' || Boolean(editingLlmKeyId)} onChange={(e) => setLlmKeyForm((v) => ({ ...v, sub_task_id: e.target.value }))} className="mt-1 w-full rounded-2xl border border-slate-200 px-4 py-3 outline-none disabled:bg-slate-100 disabled:text-slate-500" /></label>
               </div>
               <label className="block text-sm font-bold text-slate-600">允许访问的算力池
                 <div className="mt-2 flex flex-wrap gap-2 rounded-2xl border border-slate-200 p-3">
                   {capacityPools.map((item) => {
                     const checked = llmKeyForm.capacity_pool_ids.includes(item.id);
                     return (
-                      <label key={item.id} className={`rounded-full border px-3 py-1.5 text-xs font-bold ${checked ? 'border-slate-900 bg-slate-900 text-white' : 'border-slate-200 bg-slate-50 text-slate-600'}`}>
+                      <label key={item.id} className={`rounded-full border px-3 py-1.5 text-xs font-bold ${checked ? 'border-slate-900 bg-slate-900 text-white' : 'border-slate-200 bg-slate-50 text-slate-600'} ${llmKeyForm.key_type === 'work' ? 'opacity-50' : ''}`}>
                         <input
                           type="checkbox"
                           className="hidden"
                           checked={checked}
+                          disabled={llmKeyForm.key_type === 'work'}
                           onChange={(e) => setLlmKeyForm((current) => ({
                             ...current,
                             capacity_pool_ids: e.target.checked
@@ -1555,12 +1967,13 @@ export const AiGatewayPage: React.FC = () => {
                     );
                   })}
                 </div>
+                {llmKeyForm.key_type === 'work' ? <div className="mt-2 text-xs text-slate-500">工作密钥不能单独定义算力池范围，会继承父任务密钥授权。</div> : null}
               </label>
               <label className="block text-sm font-bold text-slate-600">备注<textarea value={llmKeyForm.description} onChange={(e) => setLlmKeyForm((v) => ({ ...v, description: e.target.value }))} className="mt-1 min-h-24 w-full rounded-2xl border border-slate-200 px-4 py-3 outline-none" /></label>
             </div>
             <div className="flex items-center justify-end gap-3 border-t border-slate-200 px-6 py-4">
               <button onClick={resetLlmKeyForm} className="rounded-2xl bg-slate-100 px-4 py-2.5 text-sm font-bold text-slate-700">取消</button>
-              <button onClick={submitLlmKey} disabled={saving} className="inline-flex items-center gap-2 rounded-2xl bg-slate-900 px-4 py-2.5 text-sm font-bold text-white disabled:opacity-50"><Save className="h-4 w-4" />创建密钥</button>
+              <button onClick={submitLlmKey} disabled={saving} className="inline-flex items-center gap-2 rounded-2xl bg-slate-900 px-4 py-2.5 text-sm font-bold text-white disabled:opacity-50"><Save className="h-4 w-4" />{editingLlmKeyId ? '保存修改' : '创建密钥'}</button>
             </div>
           </div>
         </div>
@@ -1598,8 +2011,10 @@ export const AiGatewayPage: React.FC = () => {
             <div className="grid gap-3 p-6 text-sm">
               <div className="rounded-2xl bg-slate-50 px-4 py-3">前缀：<span className="font-mono font-bold text-slate-900">{selectedLlmKey.key_prefix || '-'}</span></div>
               <div className="rounded-2xl bg-slate-50 px-4 py-3">类型：<span className="font-bold text-slate-900">{selectedLlmKey.key_type === 'task' ? '任务密钥' : selectedLlmKey.key_type === 'work' ? '工作密钥' : selectedLlmKey.key_type}</span></div>
+              <div className="rounded-2xl bg-slate-50 px-4 py-3">父任务密钥：<span className="font-bold text-slate-900">{selectedLlmKey.parent_key_id ? `#${selectedLlmKey.parent_key_id}` : '-'}</span></div>
               <div className="rounded-2xl bg-slate-50 px-4 py-3">最大并发：<span className="font-bold text-slate-900">{selectedLlmKey.max_concurrency || 0}</span></div>
               <div className="rounded-2xl bg-slate-50 px-4 py-3">任务范围：<span className="font-bold text-slate-900">{selectedLlmKey.task_id ? `${selectedLlmKey.task_id}${selectedLlmKey.sub_task_id ? ` / ${selectedLlmKey.sub_task_id}` : ''}` : '-'}</span></div>
+              <div className="rounded-2xl bg-slate-50 px-4 py-3">过期时间：<span className="font-bold text-slate-900">{formatDateTime(selectedLlmKey.expires_at)}</span></div>
               <div className="rounded-2xl bg-slate-50 px-4 py-3">授权算力池：<span className="font-bold text-slate-900">{selectedLlmKey.capacity_pool_ids?.length ? selectedLlmKey.capacity_pool_ids.map((id) => capacityPools.find((pool) => pool.id === id)?.pool_name || `#${id}`).join(' / ') : '-'}</span></div>
               <div className="rounded-2xl bg-slate-50 px-4 py-3">备注：<span className="font-bold text-slate-900">{selectedLlmKey.description || '-'}</span></div>
             </div>

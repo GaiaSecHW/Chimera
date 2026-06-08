@@ -2196,7 +2196,9 @@ export interface AiGatewayLlmKey {
   expires_at?: string | null;
   description: string;
   capacity_pool_ids: number[];
+  // Legacy compatibility field; current aigw admin flow is capacity-pool scoped.
   model_alias_ids: number[];
+  // Legacy compatibility field; current aigw admin flow does not edit task_bindings.
   task_bindings: AiGatewayLlmKeyTaskBindingInput[];
   created_at: string;
   updated_at: string;
@@ -2218,7 +2220,9 @@ export interface AiGatewayLlmKeyCreatePayload {
   expires_at?: string | null;
   description: string;
   capacity_pool_ids: number[];
+  // Legacy compatibility field; retained for backend/client compatibility only.
   model_alias_ids: number[];
+  // Legacy compatibility field; retained for backend/client compatibility only.
   task_bindings: AiGatewayLlmKeyTaskBindingInput[];
 }
 
