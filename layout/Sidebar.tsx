@@ -93,7 +93,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   }, []);
 
   return (
-    <aside className={`${isSidebarCollapsed ? 'w-24' : 'w-60'} bg-theme-sidebar text-theme-text-soft flex flex-col transition-all duration-300 z-30 shadow-brand shrink-0`}>
+    <aside className={`${isSidebarCollapsed ? 'w-24' : 'w-60'} bg-theme-sidebar text-theme-text-soft flex flex-col transition-all duration-300 z-30 shadow-panel shrink-0`}>
       <nav className="flex-1 px-4 py-5 overflow-y-auto custom-scrollbar">
         <div className="space-y-5">
           {sections.map((section) => (
@@ -127,18 +127,18 @@ export const Sidebar: React.FC<SidebarProps> = ({
                         title={disabled ? projectGuardTitle : undefined}
                         className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-2xl text-left transition-all ${
                           disabled
-                            ? 'bg-theme-sidebar/50 text-theme-text-faint cursor-not-allowed opacity-60'
+                            ? 'bg-theme-elevated text-theme-text-faint cursor-not-allowed opacity-60'
                             : hasActiveSubItem
-                              ? 'theme-shell-muted text-theme-text-inverse'
+                              ? 'theme-shell-muted text-theme-text-primary'
                               : isActive
                                 ? 'theme-shell-active'
-                                : 'text-theme-text-soft hover:bg-theme-sidebar-muted hover:text-theme-text-inverse'
+                                : 'text-theme-text-soft hover:bg-theme-sidebar-muted hover:text-theme-text-primary'
                         }`}
                       >
                         <span className={`shrink-0 ${!isActive && !hasActiveSubItem ? healthColor : ''}`}><Icon size={16} /></span>
                         {!isSidebarCollapsed && (
                           <>
-                            <span className={`flex-1 text-sm font-bold truncate ${isActive || hasActiveSubItem ? 'text-theme-text-inverse' : ''}`}>{item.label}</span>
+                            <span className={`flex-1 truncate text-sm font-bold ${isActive || hasActiveSubItem ? 'text-theme-text-primary' : ''}`}>{item.label}</span>
                             {hasSubItems && (
                               <span className="shrink-0 text-theme-text-faint">
                                 {isExpanded ? <ChevronDown size={13} /> : <ChevronRight size={13} />}
@@ -150,7 +150,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
                       {/* Sub-items */}
                       {hasSubItems && isExpanded && !isSidebarCollapsed && (
-                        <div className="mt-1 ml-4 space-y-0.5 border-l border-theme-sidebar pl-3">
+                        <div className="mt-1 ml-4 space-y-0.5 border-l border-theme-border pl-3">
                           {item.subItems!
                             .filter((sub) => canAccessView(user, sub.id))
                             .map((sub) => {
@@ -166,7 +166,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                                       ? 'text-theme-text-faint cursor-not-allowed opacity-60'
                                       : subActive
                                         ? 'theme-shell-active font-semibold'
-                                        : 'text-theme-text-faint hover:bg-theme-sidebar-muted hover:text-theme-text-inverse font-medium'
+                                        : 'text-theme-text-faint hover:bg-theme-sidebar-muted hover:text-theme-text-primary font-medium'
                                   }`}
                                 >
                                   {sub.label}
@@ -189,7 +189,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           <button
             type="button"
             onClick={() => setIsThemeMenuOpen((prev) => !prev)}
-            className={`w-full rounded-2xl border border-theme-sidebar bg-theme-sidebar-muted/60 px-3 py-3 text-left transition-all hover:bg-theme-sidebar-muted ${
+            className={`w-full rounded-2xl border border-theme-border bg-theme-sidebar-muted/60 px-3 py-3 text-left transition-all hover:bg-theme-sidebar-muted ${
               isSidebarCollapsed ? 'flex justify-center' : 'flex items-center gap-3'
             }`}
             title={isSidebarCollapsed ? '切换主题' : undefined}
@@ -199,7 +199,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
               <>
                 <div className="min-w-0 flex-1">
                   <div className="text-[10px] font-black uppercase tracking-[0.2em] text-theme-text-faint">Theme</div>
-                  <div className="mt-1 truncate text-sm font-bold text-theme-text-inverse">
+                  <div className="mt-1 truncate text-sm font-bold text-theme-text-primary">
                     {themes.find((item) => item.id === theme)?.label || 'Theme'}
                   </div>
                 </div>
@@ -210,7 +210,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
           {isThemeMenuOpen && (
             <div
-              className={`absolute bottom-full mb-3 rounded-3xl border border-theme-border bg-theme-surface p-2 shadow-brand z-50 ${
+              className={`absolute bottom-full mb-3 rounded-3xl border border-theme-border bg-theme-surface p-2 shadow-panel z-50 ${
                 isSidebarCollapsed ? 'left-0 w-60' : 'left-0 right-0'
               }`}
             >
@@ -231,7 +231,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   >
                     <div className="min-w-0">
                       <div className="text-sm font-black">{item.label}</div>
-                      <div className={`text-[10px] font-semibold uppercase tracking-[0.16em] ${active ? 'text-theme-text-inverse/80' : 'text-theme-text-faint'}`}>
+                      <div className={`text-[10px] font-semibold uppercase tracking-[0.16em] ${active ? 'text-theme-text-secondary' : 'text-theme-text-faint'}`}>
                         {item.badgeText}
                       </div>
                     </div>
@@ -245,12 +245,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
         {!isSidebarCollapsed ? (
           <div className="flex justify-end">
-            <button onClick={() => setIsSidebarCollapsed(true)} className="p-3 rounded-2xl bg-theme-sidebar-muted/60 text-theme-text-faint hover:text-theme-text-inverse hover:bg-theme-sidebar-muted transition-colors">
+            <button onClick={() => setIsSidebarCollapsed(true)} className="p-3 rounded-2xl bg-theme-sidebar-muted/60 text-theme-text-faint hover:text-theme-text-primary hover:bg-theme-sidebar-muted transition-colors">
               <PanelLeftClose size={18} />
             </button>
           </div>
         ) : (
-          <button onClick={() => setIsSidebarCollapsed(false)} className="w-full flex justify-center p-3 text-theme-text-faint hover:text-theme-text-inverse transition-colors">
+          <button onClick={() => setIsSidebarCollapsed(false)} className="w-full flex justify-center p-3 text-theme-text-faint hover:text-theme-text-primary transition-colors">
             <PanelLeftOpen size={22} />
           </button>
         )}

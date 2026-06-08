@@ -38,10 +38,12 @@ export const ThemeLogo: React.FC<ThemeLogoProps> = ({
   buildVersion,
   forceDarkWordmark = false,
 }) => {
-  const { themeDefinition } = useTheme();
+  const { theme, themeDefinition } = useTheme();
   const sizing = SIZE_MAP[size];
   const isClassic = themeDefinition.logoVariant === 'classic';
-  const wordmarkClass = forceDarkWordmark ? 'text-theme-text-primary' : 'text-theme-text-inverse';
+  const wordmarkClass = forceDarkWordmark || theme === 'chimera'
+    ? 'text-theme-text-primary'
+    : 'text-theme-text-inverse';
 
   return (
     <div className="flex items-center gap-4 min-w-0">

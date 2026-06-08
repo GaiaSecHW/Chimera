@@ -52,47 +52,47 @@
   }
 
   :root[data-theme='chimera'] {
-    --bg-app: #0d1b2a;
-    --bg-surface: #152238;
-    --bg-elevated: #1c2d44;
-    --bg-sidebar: #0a1628;
-    --bg-sidebar-muted: #12203a;
-    --bg-header: #0a1628;
-    --bg-login: #060d18;
-    --bg-login-card: rgba(212, 160, 48, 0.04);
-    --bg-login-input: rgba(255, 248, 234, 0.05);
-    --login-border: rgba(212, 160, 48, 0.22);
-    --text-primary: #f0ebe0;
-    --text-secondary: #b8ad9a;
-    --text-muted: #8a7e6e;
-    --text-faint: #6b6050;
-    --text-inverse: #f0ebe0;
-    --text-soft: #c3b8a0;
-    --border-default: rgba(212, 160, 48, 0.10);
-    --border-strong: rgba(212, 160, 48, 0.20);
-    --brand-primary: #d4a030;
-    --brand-primary-hover: #e8c04a;
-    --brand-secondary: #ff6b2b;
-    --brand-accent: #2a5a8f;
-    --brand-soft: rgba(212, 160, 48, 0.12);
-    --brand-border: rgba(212, 160, 48, 0.28);
-    --success: #2e8b57;
-    --warning: #d97706;
-    --danger: #c2410c;
-    --info: #2a5a8f;
+    --bg-app: #f7f3ea;
+    --bg-surface: #fffdf8;
+    --bg-elevated: #f2eadb;
+    --bg-sidebar: #fbf6ec;
+    --bg-sidebar-muted: #f0e5d1;
+    --bg-header: rgba(255, 252, 245, 0.94);
+    --bg-login: #f6efe3;
+    --bg-login-card: rgba(255, 252, 246, 0.92);
+    --bg-login-input: #fffaf0;
+    --login-border: rgba(176, 126, 31, 0.20);
+    --text-primary: #2f2418;
+    --text-secondary: #5b4a38;
+    --text-muted: #7f6b56;
+    --text-faint: #a18c73;
+    --text-inverse: #fffdf8;
+    --text-soft: #4c3d2e;
+    --border-default: rgba(134, 104, 58, 0.16);
+    --border-strong: rgba(134, 104, 58, 0.28);
+    --brand-primary: #b7791f;
+    --brand-primary-hover: #c68a2a;
+    --brand-secondary: #d97706;
+    --brand-accent: #8b5e34;
+    --brand-soft: rgba(183, 121, 31, 0.12);
+    --brand-border: rgba(183, 121, 31, 0.28);
+    --success: #2f855a;
+    --warning: #b7791f;
+    --danger: #c05621;
+    --info: #9c6b2f;
     --success-soft: rgba(46, 139, 87, 0.12);
     --warning-soft: rgba(217, 119, 6, 0.12);
     --danger-soft: rgba(194, 65, 12, 0.12);
-    --info-soft: rgba(42, 90, 143, 0.12);
+    --info-soft: rgba(156, 107, 47, 0.12);
     --success-border: rgba(46, 139, 87, 0.28);
     --warning-border: rgba(217, 119, 6, 0.28);
     --danger-border: rgba(194, 65, 12, 0.28);
-    --info-border: rgba(42, 90, 143, 0.28);
-    --logo-surface: radial-gradient(circle at 50% 45%, rgba(232, 192, 74, 0.14), rgba(212, 160, 48, 0.04) 42%, rgba(10, 10, 20, 0) 70%), linear-gradient(180deg, #0a1628 0%, #12203a 100%);
-    --gradient-brand: radial-gradient(circle at top left, rgba(212, 160, 48, 0.08), transparent 28%), linear-gradient(135deg, #0d1b2a 0%, #111e32 50%, #0d1b2a 100%);
-    --shadow-panel: 0 8px 32px rgba(0, 0, 0, 0.32);
-    --shadow-section: 0 16px 48px rgba(0, 0, 0, 0.40);
-    --shadow-brand: 0 8px 24px rgba(212, 160, 48, 0.14);
+    --info-border: rgba(156, 107, 47, 0.28);
+    --logo-surface: radial-gradient(circle at 45% 35%, rgba(247, 214, 129, 0.44), rgba(255, 252, 246, 0.18) 38%, rgba(255, 255, 255, 0) 70%), linear-gradient(180deg, #fffaf1 0%, #ecd9b8 100%);
+    --gradient-brand: radial-gradient(circle at top left, rgba(214, 163, 63, 0.12), transparent 26%), linear-gradient(135deg, #faf5ec 0%, #f7f0e2 52%, #f4ebdc 100%);
+    --shadow-panel: 0 14px 36px rgba(108, 79, 37, 0.10);
+    --shadow-section: 0 24px 64px rgba(108, 79, 37, 0.14);
+    --shadow-brand: 0 12px 28px rgba(183, 121, 31, 0.16);
     --xterm-bg: #0a1628;
     --xterm-fg: #f0ebe0;
     --xterm-cursor: #e8c04a;
@@ -107,6 +107,31 @@
       'Microsoft YaHei', 'Noto Sans CJK SC', 'Noto Sans SC', Arial, sans-serif;
     background-color: var(--bg-app);
     color: var(--text-primary);
+  }
+
+  input:not([type='checkbox']):not([type='radio']):not([type='range']):not([type='color']):not([type='file']),
+  textarea,
+  select {
+    color: var(--text-primary);
+    caret-color: var(--text-primary);
+  }
+
+  input:not([type='checkbox']):not([type='radio']):not([type='range']):not([type='color']):not([type='file'])::placeholder,
+  textarea::placeholder {
+    color: var(--text-faint);
+    opacity: 1;
+  }
+
+  input:not([type='checkbox']):not([type='radio']):not([type='range']):not([type='color']):not([type='file']):disabled,
+  textarea:disabled,
+  select:disabled {
+    color: var(--text-muted);
+    -webkit-text-fill-color: var(--text-muted);
+  }
+
+  select option {
+    color: #0f172a;
+    background-color: #ffffff;
   }
 }
 
@@ -130,12 +155,12 @@
     box-shadow: 0 2px 12px rgba(59, 130, 246, 0.32);
   }
   .theme-shell-muted {
-    background: transparent;
+    background: rgba(255, 253, 248, 0.72);
     color: var(--text-secondary);
-    border: 1px solid transparent;
+    border: 1px solid var(--border-default);
   }
   .theme-shell-muted:hover {
-    background: rgba(255, 255, 255, 0.06);
+    background: var(--bg-elevated);
     color: var(--text-primary);
   }
   .text-theme-text-primary { color: var(--text-primary); }
@@ -145,7 +170,7 @@
   .text-theme-text-inverse { color: var(--text-inverse); }
   .text-theme-text-soft { color: var(--text-soft); }
   .border-theme-border { border-color: var(--border-default); }
-  .border-theme-sidebar { border-color: rgba(255,255,255,0.08); }
+  .border-theme-sidebar { border-color: var(--border-default); }
   .text-brand-primary { color: var(--brand-primary); }
   .bg-brand-primary { background-color: var(--brand-primary); }
   .bg-brand-soft { background-color: var(--brand-soft); }
@@ -170,7 +195,7 @@
   }
   .theme-form-input {
     @apply rounded-xl border outline-none font-semibold transition-all;
-    background-color: rgba(255, 255, 255, 0.04);
+    background-color: var(--bg-surface);
     border-color: var(--border-default);
     color: var(--text-primary);
   }
@@ -214,10 +239,10 @@
   :root .bg-slate-50\/70 { background-color: color-mix(in srgb, var(--bg-elevated) 70%, transparent); }
   :root .bg-slate-50\/80 { background-color: color-mix(in srgb, var(--bg-elevated) 80%, transparent); }
   :root .bg-slate-50\/90 { background-color: color-mix(in srgb, var(--bg-elevated) 90%, transparent); }
-  :root .bg-slate-100 { background-color: rgba(255, 255, 255, 0.04); }
-  :root .bg-slate-100\/10 { background-color: rgba(255, 255, 255, 0.04); }
-  :root .bg-slate-200 { background-color: rgba(255, 255, 255, 0.06); }
-  :root .bg-slate-300 { background-color: rgba(255, 255, 255, 0.08); }
+  :root .bg-slate-100 { background-color: rgba(183, 121, 31, 0.08); }
+  :root .bg-slate-100\/10 { background-color: rgba(183, 121, 31, 0.08); }
+  :root .bg-slate-200 { background-color: rgba(134, 104, 58, 0.10); }
+  :root .bg-slate-300 { background-color: rgba(134, 104, 58, 0.14); }
   :root .bg-slate-700 { background-color: var(--bg-elevated); }
   :root .bg-slate-800 { background-color: var(--bg-sidebar-muted); }
   :root .bg-slate-900 { background-color: var(--bg-sidebar); }
@@ -265,13 +290,13 @@
   :root .bg-purple-100\/10 { background-color: rgba(99, 102, 241, 0.10); }
   :root .bg-orange-100 { background-color: var(--warning-soft); }
   :root .bg-gray-50 { background-color: var(--bg-elevated); }
-  :root .bg-gray-100 { background-color: rgba(255, 255, 255, 0.04); }
-  :root .bg-gray-200 { background-color: rgba(255, 255, 255, 0.08); }
-  :root .bg-gray-300 { background-color: rgba(255, 255, 255, 0.06); }
+  :root .bg-gray-100 { background-color: rgba(183, 121, 31, 0.08); }
+  :root .bg-gray-200 { background-color: rgba(134, 104, 58, 0.14); }
+  :root .bg-gray-300 { background-color: rgba(134, 104, 58, 0.10); }
   :root .hover\:bg-white:hover { background-color: var(--bg-surface); }
   :root .hover\:bg-white\/10:hover { background-color: rgba(255, 255, 255, 0.10); }
   :root .hover\:bg-slate-50:hover { background-color: var(--bg-elevated); }
-  :root .hover\:bg-slate-100:hover { background-color: rgba(255, 255, 255, 0.04); }
+  :root .hover\:bg-slate-100:hover { background-color: rgba(183, 121, 31, 0.08); }
   :root .hover\:bg-slate-700:hover { background-color: var(--bg-elevated); }
   :root .hover\:bg-blue-50:hover { background-color: var(--info-soft); }
   :root .hover\:bg-blue-100:hover { background-color: rgba(59, 130, 246, 0.10); }
@@ -282,7 +307,7 @@
   :root .hover\:bg-gray-100:hover { background-color: var(--bg-elevated); }
   :root .hover\:border-blue-200:hover,
   :root .hover\:border-blue-300:hover { border-color: var(--brand-border); }
-  :root .text-white { color: #f1f5f9; }
+  :root .text-white { color: var(--text-inverse); }
   :root .text-slate-200 { color: var(--text-soft); }
   :root .text-slate-300 { color: var(--text-soft); }
   :root .text-slate-400 { color: var(--text-muted); }
@@ -315,7 +340,7 @@
   :root .text-red-700 { color: var(--danger); }
   :root .text-purple-600,
   :root .text-purple-800 { color: var(--brand-accent); }
-  :root .border-slate-100 { border-color: rgba(255, 255, 255, 0.06); }
+  :root .border-slate-100 { border-color: color-mix(in srgb, var(--border-default) 70%, transparent); }
   :root .border-white\/10,
   :root .border-white\/20,
   :root .border-white\/30,
@@ -348,9 +373,9 @@
   :root .divide-slate-50 > :not([hidden]) ~ :not([hidden]),
   :root .divide-slate-100 > :not([hidden]) ~ :not([hidden]),
   :root .divide-gray-100 > :not([hidden]) ~ :not([hidden]),
-  :root .divide-gray-200 > :not([hidden]) ~ :not([hidden]) { border-color: rgba(255, 255, 255, 0.06); }
+  :root .divide-gray-200 > :not([hidden]) ~ :not([hidden]) { border-color: color-mix(in srgb, var(--border-default) 70%, transparent); }
   :root .border-slate-700,
-  :root .border-slate-800 { border-color: rgba(255,255,255,0.08); }
+  :root .border-slate-800 { border-color: var(--border-strong); }
   :root .border-blue-100,
   :root .border-blue-200,
   :root .border-blue-500 { border-color: var(--brand-border); }
@@ -368,4 +393,27 @@
   :root .after\:bg-white::after { background-color: var(--bg-elevated); }
   :root .after\:border-white::after { border-color: var(--border-strong); }
   :root .peer:checked ~ .peer-checked\:after\:border-white::after { border-color: var(--brand-primary); }
+
+  :root[data-theme='chimera'] .bg-white\/5 { background-color: rgba(255, 253, 248, 0.68); }
+  :root[data-theme='chimera'] .bg-white\/10 { background-color: rgba(255, 253, 248, 0.78); }
+  :root[data-theme='chimera'] .bg-white\/20 { background-color: rgba(255, 253, 248, 0.86); }
+  :root[data-theme='chimera'] .bg-white\/30 { background-color: rgba(255, 253, 248, 0.92); }
+  :root[data-theme='chimera'] .bg-white\/40 { background-color: rgba(255, 253, 248, 0.96); }
+  :root[data-theme='chimera'] .bg-white\/50 { background-color: rgba(255, 253, 248, 0.98); }
+  :root[data-theme='chimera'] .bg-slate-800 { background-color: #6b5136; }
+  :root[data-theme='chimera'] .bg-slate-900 { background-color: #4b3724; }
+  :root[data-theme='chimera'] .bg-slate-900\/60,
+  :root[data-theme='chimera'] .bg-slate-950\/60 { background-color: rgba(46, 33, 19, 0.68); }
+  :root[data-theme='chimera'] .hover\:bg-white\/10:hover { background-color: rgba(255, 253, 248, 0.86); }
+  :root[data-theme='chimera'] .border-white\/10,
+  :root[data-theme='chimera'] .border-white\/20,
+  :root[data-theme='chimera'] .border-white\/30,
+  :root[data-theme='chimera'] .border-white\/40,
+  :root[data-theme='chimera'] .border-white\/50,
+  :root[data-theme='chimera'] .border-white\/60,
+  :root[data-theme='chimera'] .border-white\/70,
+  :root[data-theme='chimera'] .border-white\/80,
+  :root[data-theme='chimera'] .border-white\/90 { border-color: rgba(120, 88, 43, 0.18); }
+  :root[data-theme='chimera'] .text-emerald-50,
+  :root[data-theme='chimera'] .text-emerald-100 { color: #fff6e8; }
 }

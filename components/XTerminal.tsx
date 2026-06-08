@@ -235,10 +235,10 @@ export const XTerminal: React.FC<XTerminalProps> = ({
     <div className="flex flex-col h-full">
       {/* 终端标题栏 */}
       {showHeader && (
-        <div className="flex items-center justify-between px-4 py-2 bg-theme-sidebar border-b border-theme-sidebar">
+        <div className="flex items-center justify-between border-b border-theme-border bg-theme-elevated px-4 py-2">
           <div className="flex items-center gap-3">
             <div className={`w-3 h-3 rounded-full ${connected ? 'bg-green-500 animate-pulse' : 'bg-red-500'}`}></div>
-            <span className="text-theme-text-soft font-mono text-sm">{podName}</span>
+            <span className="font-mono text-sm text-theme-text-primary">{podName}</span>
           </div>
           <div className="flex items-center gap-2">
             <span className={`px-2 py-0.5 rounded text-xs font-medium ${
@@ -250,7 +250,7 @@ export const XTerminal: React.FC<XTerminalProps> = ({
             </span>
             <button
               onClick={onClose}
-              className="p-1.5 text-theme-text-faint hover:text-theme-text-inverse hover:bg-theme-sidebar-muted rounded transition-all"
+              className="rounded transition-all p-1.5 text-theme-text-faint hover:bg-theme-sidebar-muted hover:text-theme-text-primary"
               title="关闭终端"
             >
               <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

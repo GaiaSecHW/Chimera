@@ -19,8 +19,8 @@ export const THEME_DEFINITIONS: ThemeDefinition[] = [
   },
   {
     id: 'chimera',
-    label: 'Chimera',
-    badgeText: 'Vintage Engraving',
+    label: 'Chimera Light',
+    badgeText: 'Warm Light',
     logoVariant: 'chimera',
   },
 ];
