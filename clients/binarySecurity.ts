@@ -185,6 +185,11 @@ export interface BinarySecurityTask {
   execution_epoch: number;
   current_stage?: string | null;
   last_error?: string | null;
+  terminal_failure?: boolean;
+  requeue_suppressed?: boolean;
+  failure_code?: string | null;
+  failure_category?: string | null;
+  failure_message?: string | null;
   last_successful_downstream_sync_at?: string | null;
   last_sync_attempt_at?: string | null;
   last_sync_error_at?: string | null;

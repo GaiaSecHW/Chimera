@@ -1227,6 +1227,29 @@ function deriveTaskStatusReason(detail: BinarySecurityTaskDetail): TaskStatusRea
     };
   }
 
+  if (detail.terminal_failure) {
+    const failedStageName = latestFailedStage?.stage_name || latestFailedItem?.stage_name || latestFailedArchive?.stage_name || detail.current_stage;
+    const reason = firstText(
+      detail.failure_message,
+      detail.last_error,
+      latestFailedStage?.last_error,
+      latestFailedItem?.error_message,
+      latestMissingItem?.error_message,
+      latestFailedArchive?.error_message,
+    );
+    return {
+      tone: 'error',
+      title: `业务终态失败：${STAGE_LABELS[failedStageName || ''] || failedStageName || '当前阶段'}`,
+      description: reason || '当前阶段已得出不可自动恢复的业务失败结论，任务不会再自动重排或继续调度。',
+      evidence: [
+        { label: '失败阶段', value: STAGE_LABELS[failedStageName || ''] || failedStageName || '-' },
+        { label: '失败类型', value: detail.failure_category || 'business' },
+        { label: '失败代码', value: detail.failure_code || '-' },
+        { label: '自动重排', value: detail.requeue_suppressed ? '已禁止' : '未禁止' },
+      ],
+    };
+  }
+
   if (detail.status === 'failed') {
     const reason = firstText(
       detail.last_error,
