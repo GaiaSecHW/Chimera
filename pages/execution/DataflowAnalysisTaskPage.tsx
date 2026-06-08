@@ -72,7 +72,7 @@ function formatDateTime(value?: string | null): string {
 }
 
 function getTaskExecutionAttemptCount(task: AppDfaTaskItem): number {
-  return Math.max(0, Number(task.execution_epoch || 0));
+  return Math.max(0, Number(task.rerun_count || 0));
 }
 
 // ── DFA Stage Steps ───────────────────────────────────────────────────────────
@@ -2184,7 +2184,7 @@ export const DataflowAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?
                   </ExecutionTableTd>
                   <ExecutionTableTd className="whitespace-nowrap text-xs text-slate-600">
                     <span
-                      title={`执行代次 ${Math.max(0, Number(t.execution_epoch || 0))} · 控制面重跑 ${Math.max(0, Number(t.control_version || 0))} · lease_lost 回收 ${Math.max(0, Number(t.lease_lost_count || 0))}`}
+                      title={`重跑次数 ${Math.max(0, Number(t.rerun_count || 0))} · 执行代次 ${Math.max(0, Number(t.execution_epoch || 0))} · 控制面重跑 ${Math.max(0, Number(t.control_version || 0))} · lease_lost 回收 ${Math.max(0, Number(t.lease_lost_count || 0))}`}
                     >
                       {getTaskExecutionAttemptCount(t)}
                     </span>

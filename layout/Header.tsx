@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { ChevronDown, Lock, LogOut, RotateCw, Settings, UserCog } from 'lucide-react';
-import { getVisibleTopLevelNavItems, TopLevelNavKey } from '../app/navigation';
+import { TopLevelNavKey, TOP_LEVEL_NAV_ITEMS } from '../app/navigation';
 import { SecurityProject, UserInfo, ViewType } from '../types/types';
 import { getPlatformRoleLabel, getUserAccess, getUserCenterDefaultView } from '../utils/rbac';
 import { ThemeLogo } from '../components/ThemeLogo';
@@ -43,7 +43,6 @@ export const Header: React.FC<HeaderProps> = ({
   handleLogout,
 }) => {
   const userAccess = getUserAccess(user);
-  const visibleTopLevelNavItems = getVisibleTopLevelNavItems(user);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const userMenuRef = useRef<HTMLDivElement>(null);
 
@@ -60,7 +59,7 @@ export const Header: React.FC<HeaderProps> = ({
   }, []);
 
   return (
-    <header className="bg-theme-header border-b border-theme-sidebar shadow-panel z-20 sticky top-0 backdrop-blur">
+    <header className="bg-theme-header border-b border-theme-sidebar shadow-brand z-20 sticky top-0">
       <div className="h-20 px-6 xl:px-10 grid grid-cols-[1fr_auto_1fr] items-center gap-4">
         <div className="flex items-center gap-4 min-w-0">
           <ThemeLogo buildVersion={FRONTEND_BUILD_VERSION} />
@@ -68,7 +67,7 @@ export const Header: React.FC<HeaderProps> = ({
 
         <div className="flex justify-center min-w-0">
           <nav className="flex items-center gap-2 overflow-x-auto no-scrollbar max-w-full">
-            {visibleTopLevelNavItems.map((item) => {
+            {TOP_LEVEL_NAV_ITEMS.map((item) => {
               const isActive = currentTopLevelNav === item.id;
               return (
                 <button
@@ -98,10 +97,10 @@ export const Header: React.FC<HeaderProps> = ({
               <ChevronDown size={16} className="shrink-0" />
             </button>
             {isProjectDropdownOpen && (
-              <div className="absolute top-full right-0 mt-3 w-80 bg-theme-surface border border-theme-border rounded-3xl shadow-panel p-3 z-50">
+              <div className="absolute top-full right-0 mt-3 w-80 bg-theme-header border border-theme-sidebar rounded-3xl shadow-brand p-3 z-50">
                 <input
                   placeholder="过滤项目..."
-                  className="w-full px-4 py-3 bg-theme-elevated text-theme-text-primary rounded-2xl text-xs outline-none placeholder:text-theme-text-faint"
+                  className="w-full px-4 py-3 bg-theme-sidebar text-theme-text-inverse rounded-2xl text-xs outline-none placeholder:text-theme-text-faint"
                   onChange={(e) => setSearchQuery(e.target.value)}
                 />
                 <div className="max-h-60 overflow-y-auto mt-2 space-y-1">
@@ -113,7 +112,7 @@ export const Header: React.FC<HeaderProps> = ({
                         setIsProjectDropdownOpen(false);
                       }}
                       className={`w-full text-left px-4 py-3 rounded-xl text-xs font-bold ${
-                        selectedProjectId === p.id ? 'theme-shell-active' : 'text-theme-text-soft hover:bg-theme-elevated hover:text-theme-text-primary'
+                        selectedProjectId === p.id ? 'theme-shell-active' : 'text-theme-text-soft hover:bg-theme-sidebar hover:text-theme-text-inverse'
                       }`}
                     >
                       {p.name}
@@ -131,13 +130,13 @@ export const Header: React.FC<HeaderProps> = ({
           <div className="relative shrink-0" ref={userMenuRef}>
             <button
               onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
-              className="group flex items-center gap-3 p-1 pr-4 bg-theme-header rounded-2xl hover:bg-theme-elevated transition-all active:scale-95 shadow-panel"
+              className="group flex items-center gap-3 p-1 pr-4 bg-theme-header rounded-2xl hover:bg-theme-sidebar transition-all active:scale-95 shadow-brand"
             >
               <div className="w-10 h-10 rounded-xl bg-logo-surface flex items-center justify-center text-theme-text-inverse font-black text-sm border shadow-inner group-hover:rotate-6 transition-transform" style={{ borderColor: 'color-mix(in srgb, var(--brand-primary) 42%, rgba(255,255,255,0.08))' }}>
                 {user?.username?.[0]?.toUpperCase()}
               </div>
               <div className="text-left hidden md:block">
-                <p className="text-[10px] font-black text-theme-text-primary leading-tight">{user?.username}</p>
+                <p className="text-[10px] font-black text-theme-text-inverse leading-tight">{user?.username}</p>
                 <p className="text-[8px] font-bold text-theme-text-faint uppercase tracking-widest">{getPlatformRoleLabel(userAccess.platformRole)}</p>
               </div>
               <ChevronDown size={14} className={`text-theme-text-faint transition-transform ${isUserMenuOpen ? 'rotate-180' : ''}`} />

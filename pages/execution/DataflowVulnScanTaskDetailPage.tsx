@@ -922,6 +922,10 @@ export const DataflowVulnScanTaskDetailPage: React.FC<{ projectId: string; taskI
                   <InfoRow label="输出路径" value={detail.output_path ? <span className="font-mono">{detail.output_path}</span> : '-'} />
                   <InfoRow label="开始时间" value={detail.started_at ? new Date(detail.started_at).toLocaleString('zh-CN') : '-'} />
                   <InfoRow label="完成时间" value={detail.finished_at ? new Date(detail.finished_at).toLocaleString('zh-CN') : '-'} />
+                  <InfoRow label="重跑次数" value={Math.max(0, Number(detail.rerun_count || 0))} />
+                  <InfoRow label="执行代次" value={`第 ${Math.max(0, Number(detail.execution_epoch || 0))} 轮`} />
+                  <InfoRow label="控制面重跑" value={Math.max(0, Number(detail.control_version || 0))} />
+                  <InfoRow label="lease_lost 回收" value={Math.max(0, Number(detail.lease_lost_count || 0))} />
                   <InfoRow label="最近事件时间" value={timeline[0]?.created_at ? new Date(timeline[0].created_at).toLocaleString('zh-CN') : '-'} />
                   <InfoRow label="耗时" value={detail.finished_at ? formatDuration(detail.started_at, detail.finished_at) : formatLiveDuration(detail.started_at, clockNow)} />
                   <InfoRow label="描述" value={detail.task_description || '-'} />
