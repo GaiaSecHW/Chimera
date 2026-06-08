@@ -107,6 +107,35 @@ const publicJson = async (url: string, init?: RequestInit) => {
   return response.json();
 };
 
+export interface VulnCaseListParams {
+  project_id?: string;
+  current_stage?: string;
+  severity?: string;
+  reporter_type?: string;
+  cvss_band?: string;
+  search?: string;
+  sort_field?: string;
+  sort_direction?: 'asc' | 'desc';
+  page?: number;
+  page_size?: number;
+  limit?: number;
+  offset?: number;
+  source_service_name?: string;
+  source_task_id?: string;
+  source_execution_id?: string;
+  pool_type?: string;
+  evolution_task_id?: string;
+  evolution_round?: number;
+  global_vuln_id?: string;
+}
+
+export interface VulnCaseListResponse {
+  items: any[];
+  total: number;
+  page: number;
+  page_size: number;
+}
+
 export const vulnApi = {
   getHealth: async (): Promise<{ status: string; service: string }> =>
     handleResponse(await fetch(`${API_BASE}/api/vuln/health`, { headers: getHeaders() })),
@@ -162,7 +191,7 @@ export const vulnApi = {
       body: JSON.stringify(payload)
     })),
 
-  listCases: async (params: { project_id?: string; current_stage?: string; source_service_name?: string; source_task_id?: string; source_execution_id?: string; pool_type?: string; evolution_task_id?: string; evolution_round?: number } = {}): Promise<{ items: any[]; total: number }> => {
+  listCases: async (params: VulnCaseListParams = {}): Promise<VulnCaseListResponse> => {
     const query = new URLSearchParams(params as any).toString();
     return handleResponse(await fetch(`${API_BASE}/api/vuln/cases?${query}`, { headers: getHeaders() }));
   },

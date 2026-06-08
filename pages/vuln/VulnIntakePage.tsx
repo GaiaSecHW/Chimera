@@ -481,6 +481,8 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId }) => {
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [suspicions, setSuspicions] = useState<any[]>([]);
+  const [overview, setOverview] = useState<any | null>(null);
+  const [listTotal, setListTotal] = useState(0);
   const [selectedSuspicionId, setSelectedSuspicionId] = useState('');
   const [selectedDetail, setSelectedDetail] = useState<any | null>(null);
   const [selectedTimeline, setSelectedTimeline] = useState<any[]>([]);
@@ -548,62 +550,6 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId }) => {
   const reportScrollRef = useRef<HTMLDivElement | null>(null);
   const [activeReportHeadingId, setActiveReportHeadingId] = useState('');
 
-  const stageScopedSuspicions = useMemo(() => suspicions, [suspicions]);
-
-  const filteredSuspicions = useMemo(() => {
-    const filtered = stageScopedSuspicions.filter((item) => {
-      if (stageFilter !== 'all' && item.current_stage !== stageFilter) return false;
-      if (severityFilter !== 'all' && item.severity !== severityFilter) return false;
-      if (reporterTypeFilter !== 'all' && item.reporter?.type !== reporterTypeFilter) return false;
-      if (cvssBandFilter !== 'all') {
-        const cvss = Number(item.cvss_score || 0);
-        const band = cvss >= 9.0 ? 'critical' : cvss >= 7.0 ? 'high' : cvss >= 4.0 ? 'medium' : 'low';
-        if (band !== cvssBandFilter) return false;
-      }
-      if (!search.trim()) return true;
-      const keyword = search.trim().toLowerCase();
-      return [
-        item.title,
-        item.summary,
-        item.subject?.locator,
-        item.reporter?.name,
-        item.reporter?.type,
-      ]
-        .filter(Boolean)
-        .some((field) => String(field).toLowerCase().includes(keyword));
-    });
-    const getSortValue = (item: any) => {
-      switch (sortField) {
-        case 'title':
-          return item.title || '';
-        case 'current_stage':
-          return item.current_stage || '';
-        case 'severity':
-          return item.severity || '';
-        case 'reporter':
-          return item.reporter?.name || '';
-        case 'subject':
-          return item.subject?.locator || '';
-        case 'confidence':
-          return Number(item.confidence || 0);
-        case 'cvss_score':
-          return Number(item.cvss_score || 0);
-        case 'updated_at':
-        default:
-          return new Date(item.updated_at || item.created_at || 0).getTime();
-      }
-    };
-    return [...filtered].sort((left, right) => {
-      const a = getSortValue(left);
-      const b = getSortValue(right);
-      const direction = sortDirection === 'asc' ? 1 : -1;
-      if (typeof a === 'number' && typeof b === 'number') {
-        return (a - b) * direction;
-      }
-      return String(a).localeCompare(String(b), 'zh-CN') * direction;
-    });
-  }, [search, stageFilter, severityFilter, reporterTypeFilter, cvssBandFilter, stageScopedSuspicions, sortField, sortDirection]);
-
   const selectedExamplePayload = useMemo(() => examples[selectedExample], [examples, selectedExample]);
 
   const linkedDirectoryItems = useMemo(() => {
@@ -626,27 +572,24 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId }) => {
     });
   }, [linkedFiles, linkedFileSearch]);
 
-  const totalFiltered = filteredSuspicions.length;
+  const totalFiltered = listTotal;
   const totalPages = Math.max(1, Math.ceil(totalFiltered / Math.max(1, pageSize)));
   const normalizedPage = Math.min(Math.max(1, currentPage), totalPages);
   const pageStart = (normalizedPage - 1) * pageSize;
-  const pagedSuspicions = useMemo(
-    () => filteredSuspicions.slice(pageStart, pageStart + pageSize),
-    [filteredSuspicions, pageStart, pageSize],
-  );
+  const pagedSuspicions = suspicions;
 
   const stats = useMemo(() => {
     const openTasks = (selectedDetail?.manual_tasks || []).filter(
       (item: any) => !['completed', 'closed'].includes(item.status),
     ).length;
     return {
-      total: stageScopedSuspicions.length,
-      highRisk: stageScopedSuspicions.filter((item) => ['critical', 'high'].includes(item.severity)).length,
-      pendingAnalyze: stageScopedSuspicions.filter((item) => item.current_stage === 'triage').length,
-      authenticated: stageScopedSuspicions.filter((item) => item.created_by_type === 'human').length,
+      total: Number(overview?.metrics?.total_cases || 0),
+      highRisk: Number(overview?.severity_counts?.critical || 0) + Number(overview?.severity_counts?.high || 0),
+      pendingAnalyze: Number(overview?.stage_counts?.triage || 0),
+      authenticated: Number(overview?.created_by_type_counts?.human || 0),
       openTasks,
     };
-  }, [selectedDetail, stageScopedSuspicions]);
+  }, [overview, selectedDetail]);
 
   const displaySummary = selectedDetail?.display_summary || {};
   const evidenceSummary = selectedDetail?.evidence_summary || {};
@@ -658,9 +601,24 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId }) => {
   const openProcessTasks = processManualTasks.filter((item: any) => !['completed', 'closed'].includes(item.status));
   const runningProcessActions = processActions.filter((item: any) => ['queued', 'running'].includes(item.execution_status));
 
-  const loadSuspicions = async () => {
+  const loadOverview = async () => {
+    if (!projectId) {
+      setOverview(null);
+      return;
+    }
+    try {
+      const response = await vulnApi.vuln.getOverview(projectId);
+      setOverview(response);
+    } catch (err: any) {
+      setError(err?.message || '加载疑点总览失败');
+    }
+  };
+
+  const loadSuspicions = async (pageOverride?: number) => {
     if (!projectId) {
       setSuspicions([]);
+      setOverview(null);
+      setListTotal(0);
       setSelectedSuspicionIds([]);
       setSelectedSuspicionId('');
       setSelectedDetail(null);
@@ -672,8 +630,23 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId }) => {
     setLoading(true);
     setError(null);
     try {
-      const response = await vulnApi.vuln.listCases({ project_id: projectId });
+      const response = await vulnApi.vuln.listCases({
+        project_id: projectId,
+        current_stage: stageFilter === 'all' ? undefined : stageFilter,
+        severity: severityFilter === 'all' ? undefined : severityFilter,
+        reporter_type: reporterTypeFilter === 'all' ? undefined : reporterTypeFilter,
+        cvss_band: cvssBandFilter === 'all' ? undefined : cvssBandFilter,
+        search: search.trim() || undefined,
+        sort_field: sortField,
+        sort_direction: sortDirection,
+        page: pageOverride ?? currentPage,
+        page_size: pageSize,
+      });
       setSuspicions(response.items || []);
+      setListTotal(Number(response.total || 0));
+      if (response.page && response.page !== currentPage) {
+        setCurrentPage(response.page);
+      }
     } catch (err: any) {
       setError(err?.message || '加载疑点列表失败');
     } finally {
@@ -936,8 +909,12 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId }) => {
   };
 
   useEffect(() => {
-    loadSuspicions();
+    void loadOverview();
   }, [projectId]);
+
+  useEffect(() => {
+    void loadSuspicions();
+  }, [projectId, currentPage, pageSize, search, stageFilter, severityFilter, reporterTypeFilter, cvssBandFilter, sortField, sortDirection]);
 
   useEffect(() => {
     if (rootTab !== 'download-center') return;
@@ -1045,7 +1022,7 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId }) => {
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [search, stageFilter, severityFilter, reporterTypeFilter, cvssBandFilter, pageSize]);
+  }, [search, stageFilter, severityFilter, reporterTypeFilter, cvssBandFilter, pageSize, sortField, sortDirection]);
 
   useEffect(() => {
     if (currentPage > totalPages) {
@@ -1114,7 +1091,7 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId }) => {
       });
       setSuspicionForm(DEFAULT_SUSPICION_FORM);
       setShowCreateDialog(false);
-      await loadSuspicions();
+      await Promise.all([loadOverview(), loadSuspicions(1)]);
       setSelectedSuspicionId(created.id);
       setSuccessMessage(`疑点 "${created.title}" 已创建。`);
     } catch (err: any) {
@@ -1177,7 +1154,7 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId }) => {
         metadata,
       };
       await vulnApi.vuln.updateCase(selectedDetail.id, payload);
-      await loadSuspicions();
+      await Promise.all([loadOverview(), loadSuspicions()]);
       await loadSuspicionDetail(selectedDetail.id);
       setDetailEditMode(false);
       setSuccessMessage('疑点上报字段已更新。');
@@ -1202,7 +1179,7 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId }) => {
       const payload = JSON.parse(authPayloadText);
       const result = await vulnApi.vuln.submitAuthenticatedIntake(payload);
       setAuthResult(result);
-      await loadSuspicions();
+      await Promise.all([loadOverview(), loadSuspicions(1)]);
     } catch (err: any) {
       setError(err?.message || '认证正式上报失败');
     } finally {
@@ -1220,7 +1197,7 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId }) => {
         to_stage: 'triage',
         reason: 'manual_enter_triage',
       });
-      await loadSuspicions();
+      await Promise.all([loadOverview(), loadSuspicions()]);
       await loadSuspicionDetail(selectedDetail.id);
       setSuccessMessage('疑点已手动转入研判阶段。');
     } catch (err: any) {
@@ -1240,7 +1217,7 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId }) => {
         receive_status: 'ready_for_triage',
         summary: '接收阶段信息已补齐，标记为待研判',
       });
-      await loadSuspicions();
+      await Promise.all([loadOverview(), loadSuspicions()]);
       await loadSuspicionDetail(selectedDetail.id);
       setSuccessMessage('疑点已标记为待研判。');
     } catch (err: any) {
@@ -1260,7 +1237,7 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId }) => {
         decision_status: 'non_issue',
         summary: '在疑点上报中心手动判定为非问题',
       });
-      await loadSuspicions();
+      await Promise.all([loadOverview(), loadSuspicions()]);
       await loadSuspicionDetail(selectedDetail.id);
       setSuccessMessage('疑点已手动标记为非问题。');
     } catch (err: any) {
@@ -1283,7 +1260,8 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId }) => {
       setSelectedSuspicionId('');
       setSelectedDetail(null);
       setSelectedTimeline([]);
-      await loadSuspicions();
+      const nextPage = pagedSuspicions.length <= 1 && currentPage > 1 ? currentPage - 1 : currentPage;
+      await Promise.all([loadOverview(), loadSuspicions(nextPage)]);
       setSuccessMessage(`疑点“${deletedTitle}”已删除。`);
     } catch (err: any) {
       setError(err?.message || '删除疑点失败');
@@ -1300,7 +1278,8 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId }) => {
     setSuccessMessage(null);
     try {
       await vulnApi.vuln.deleteCase(caseId);
-      await loadSuspicions();
+      const nextPage = pagedSuspicions.length <= 1 && currentPage > 1 ? currentPage - 1 : currentPage;
+      await Promise.all([loadOverview(), loadSuspicions(nextPage)]);
       setSelectedSuspicionIds((previous) => previous.filter((id) => id !== caseId));
       setSuccessMessage(`疑点“${title}”已删除。`);
     } catch (err: any) {
@@ -1321,7 +1300,8 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId }) => {
       await Promise.all(selectedSuspicionIds.map((id) => vulnApi.vuln.deleteCase(id)));
       const deletedCount = selectedSuspicionIds.length;
       setSelectedSuspicionIds([]);
-      await loadSuspicions();
+      const nextPage = pagedSuspicions.length <= deletedCount && currentPage > 1 ? currentPage - 1 : currentPage;
+      await Promise.all([loadOverview(), loadSuspicions(nextPage)]);
       setSuccessMessage(`已删除 ${deletedCount} 条疑点。`);
     } catch (err: any) {
       setError(err?.message || '批量删除疑点失败');
@@ -2460,7 +2440,7 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId }) => {
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
                   <div className="rounded-xl bg-slate-100 px-3 py-2 text-[11px] font-black uppercase tracking-[0.18em] text-slate-500">
-                    {filteredSuspicions.length} / {stats.total}
+                    {suspicions.length} / {totalFiltered}
                   </div>
                   <div className="rounded-xl bg-emerald-50 px-3 py-2 text-[11px] font-black uppercase tracking-[0.18em] text-emerald-700">
                     第 {normalizedPage}/{totalPages} 页
@@ -2488,7 +2468,7 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId }) => {
                   </button>
                   <button
                     type="button"
-                    onClick={loadSuspicions}
+                    onClick={() => void loadSuspicions()}
                     className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-black text-slate-700"
                   >
                     <Send size={14} />
@@ -2587,7 +2567,7 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId }) => {
                 </div>
                 {loading ? (
                   <div className="bg-slate-50 px-4 py-8 text-sm text-slate-400">正在加载疑点列表...</div>
-                ) : filteredSuspicions.length === 0 ? (
+                ) : pagedSuspicions.length === 0 ? (
                   <div className="bg-slate-50 px-4 py-8 text-sm text-slate-400">当前筛选条件下没有疑点。</div>
                 ) : (
                   pagedSuspicions.map((item) => (
@@ -2620,7 +2600,7 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId }) => {
                         <div className="mt-1.5 line-clamp-2 text-xs leading-5 text-slate-500">{item.summary || '暂无摘要'}</div>
                       </div>
                       <div className="flex items-start justify-center">
-                        {hasArtifactFiles(item.artifacts) ? (
+                        {item.has_artifact_files || hasArtifactFiles(item.artifacts) ? (
                           <span title="含文件/文件夹" className="inline-flex items-center justify-center rounded-md bg-emerald-100 p-1 text-emerald-700">
                             <FolderOpen size={14} />
                           </span>
