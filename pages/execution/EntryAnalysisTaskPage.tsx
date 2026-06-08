@@ -9,6 +9,7 @@ import { ServicePageTitle, useServiceBuildVersion } from '../../components/execu
 import { useUiFeedback } from '../../components/UiFeedback';
 import { FileServerPickerModal } from '../../components/assets/FileServerPickerModal';
 import { TaskOriginCard } from './taskOrigin';
+import { SlotResourceBlock } from './slotResourceBlock';
 import { saveExecutionReturnContext } from '../../utils/executionReturnContext';
 
 const STATUS_LABEL: Record<string, string> = {
@@ -1115,6 +1116,18 @@ export const EntryAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?: (
                         <div className="mt-1 text-xs text-slate-500">
                           首次发现 {formatDateTime(worker.first_seen_at)} · 已存在 {formatDuration(worker.first_seen_at, undefined, clockNow)}
                         </div>
+                        <div className="mt-2">
+                          <SlotResourceBlock
+                            cpuUsage={worker.pod_cpu_usage_millicores}
+                            cpuLimit={worker.pod_cpu_limit_millicores}
+                            cpuRequest={worker.pod_cpu_request_millicores}
+                            memoryUsage={worker.pod_memory_usage_bytes}
+                            memoryLimit={worker.pod_memory_limit_bytes}
+                            memoryRequest={worker.pod_memory_request_bytes}
+                            metricsAt={worker.pod_metrics_at}
+                            formatDateTime={formatDateTime}
+                          />
+                        </div>
                         {worker.error ? <div className="mt-1 text-xs text-rose-600">{worker.error}</div> : null}
                       </div>
                       <div className="flex flex-wrap items-center gap-2 text-xs">
@@ -1555,6 +1568,18 @@ export const EntryAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?: (
                     </div>
                     <div className="mt-1 text-[11px] text-slate-500">
                       首次发现：{formatDateTime(worker.first_seen_at)} · 已存在 {formatDuration(worker.first_seen_at, undefined, clockNow)}
+                    </div>
+                    <div className="mt-2">
+                      <SlotResourceBlock
+                        cpuUsage={worker.pod_cpu_usage_millicores}
+                        cpuLimit={worker.pod_cpu_limit_millicores}
+                        cpuRequest={worker.pod_cpu_request_millicores}
+                        memoryUsage={worker.pod_memory_usage_bytes}
+                        memoryLimit={worker.pod_memory_limit_bytes}
+                        memoryRequest={worker.pod_memory_request_bytes}
+                        metricsAt={worker.pod_metrics_at}
+                        formatDateTime={formatDateTime}
+                      />
                     </div>
                     <div className="mt-1 text-[11px] text-slate-400">
                       来源：{worker.source || 'worker_registry'} · 状态 {worker.worker_role_state || 'healthy'} · 活动任务 {worker.active_tasks.length}

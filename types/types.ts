@@ -3415,6 +3415,15 @@ export interface AppSaWorkerCapacity {
   queued_jobs?: number;
   source: string;
   last_heartbeat_at?: string | null;
+  pod_created_at?: string | null;
+  pod_started_at?: string | null;
+  pod_metrics_at?: string | null;
+  pod_cpu_usage_millicores?: number | null;
+  pod_memory_usage_bytes?: number | null;
+  pod_cpu_request_millicores?: number | null;
+  pod_memory_request_bytes?: number | null;
+  pod_cpu_limit_millicores?: number | null;
+  pod_memory_limit_bytes?: number | null;
   agent_process_limit?: number;
   agent_process_in_use?: number;
   agent_process_available?: number;
@@ -3542,6 +3551,15 @@ export interface EntryAnalyseWorkerSlot {
   worker_role_state?: string;
   source: string;
   error?: string | null;
+  pod_created_at?: string | null;
+  pod_started_at?: string | null;
+  pod_metrics_at?: string | null;
+  pod_cpu_usage_millicores?: number | null;
+  pod_memory_usage_bytes?: number | null;
+  pod_cpu_request_millicores?: number | null;
+  pod_memory_request_bytes?: number | null;
+  pod_cpu_limit_millicores?: number | null;
+  pod_memory_limit_bytes?: number | null;
   active_tasks: EntryAnalyseActiveTaskRef[];
   active_jobs?: Array<Record<string, any>>;
 }
@@ -4070,6 +4088,15 @@ export interface AppDfaWorkerCapacity {
   available_slots: number;
   source: string;
   last_heartbeat_at?: string | null;
+  pod_created_at?: string | null;
+  pod_started_at?: string | null;
+  pod_metrics_at?: string | null;
+  pod_cpu_usage_millicores?: number | null;
+  pod_memory_usage_bytes?: number | null;
+  pod_cpu_request_millicores?: number | null;
+  pod_memory_request_bytes?: number | null;
+  pod_cpu_limit_millicores?: number | null;
+  pod_memory_limit_bytes?: number | null;
   active_jobs: AppDfaWorkerActiveJob[];
   error?: string | null;
 }

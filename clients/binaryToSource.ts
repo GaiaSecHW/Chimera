@@ -199,11 +199,22 @@ export interface B2SActionResult {
 export interface B2SPiWorkerCapacity {
   worker_id: string;
   url: string;
+  pod_name?: string | null;
+  pod_ip?: string | null;
   healthy: boolean;
   max_concurrent_jobs: number;
   running_jobs: number;
   queued_jobs: number;
   available_slots: number;
+  pod_created_at?: string | null;
+  pod_started_at?: string | null;
+  pod_metrics_at?: string | null;
+  pod_cpu_usage_millicores?: number | null;
+  pod_memory_usage_bytes?: number | null;
+  pod_cpu_request_millicores?: number | null;
+  pod_memory_request_bytes?: number | null;
+  pod_cpu_limit_millicores?: number | null;
+  pod_memory_limit_bytes?: number | null;
   source?: string;
   error?: string | null;
   active_jobs?: B2SPiWorkerActiveJob[];

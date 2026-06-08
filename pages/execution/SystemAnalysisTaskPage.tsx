@@ -8,6 +8,7 @@ import { ExecutionTable, ExecutionTableHead, ExecutionTableTh, ExecutionTableTd,
 import { ServicePageTitle, useServiceBuildVersion } from '../../components/execution/ServiceBuildVersion';
 import { useUiFeedback } from '../../components/UiFeedback';
 import { buildDefaultSystemAnalysisTaskForm, SystemAnalysisTaskFormModal, SystemAnalysisTaskFormState } from './SystemAnalysisTaskFormModal';
+import { SlotResourceBlock } from './slotResourceBlock';
 import { saveExecutionReturnContext } from '../../utils/executionReturnContext';
 
 const STATUS_LABEL: Record<string, string> = {
@@ -1116,6 +1117,18 @@ export const SystemAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask: (
                               <span>空闲 {worker.available_slots}</span>
                               <span>来源 {worker.source || 'runner_registry'}</span>
                               <span>心跳 {formatDateTime(worker.last_heartbeat_at)}</span>
+                            </div>
+                            <div className="mt-2 max-w-md">
+                              <SlotResourceBlock
+                                cpuUsage={worker.pod_cpu_usage_millicores}
+                                cpuLimit={worker.pod_cpu_limit_millicores}
+                                cpuRequest={worker.pod_cpu_request_millicores}
+                                memoryUsage={worker.pod_memory_usage_bytes}
+                                memoryLimit={worker.pod_memory_limit_bytes}
+                                memoryRequest={worker.pod_memory_request_bytes}
+                                metricsAt={worker.pod_metrics_at}
+                                formatDateTime={formatDateTime}
+                              />
                             </div>
                           </div>
                           <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-500">

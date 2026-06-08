@@ -9,6 +9,7 @@ import { ExecutionTable, ExecutionTableHead, ExecutionTableTh, ExecutionTableTd,
 import { ServicePageTitle, useServiceBuildVersion } from '../../components/execution/ServiceBuildVersion';
 import { useUiFeedback } from '../../components/UiFeedback';
 import { FileServerPickerModal } from '../../components/assets/FileServerPickerModal';
+import { SlotResourceBlock } from './slotResourceBlock';
 import { TaskOriginCard } from './taskOrigin';
 import { saveExecutionReturnContext } from '../../utils/executionReturnContext';
 
@@ -1667,6 +1668,18 @@ export const DataflowVulnScanTaskPage: React.FC<{ projectId: string; onOpenTask?
                     <div className="mt-1 text-xs text-slate-400">
                       来源 {worker.source || 'worker_registry'} · 心跳 {formatDateTime(worker.last_heartbeat_at)}
                     </div>
+                    <div className="mt-2">
+                      <SlotResourceBlock
+                        cpuUsage={worker.pod_cpu_usage_millicores}
+                        cpuLimit={worker.pod_cpu_limit_millicores}
+                        cpuRequest={worker.pod_cpu_request_millicores}
+                        memoryUsage={worker.pod_memory_usage_bytes}
+                        memoryLimit={worker.pod_memory_limit_bytes}
+                        memoryRequest={worker.pod_memory_request_bytes}
+                        metricsAt={worker.pod_metrics_at}
+                        formatDateTime={formatDateTime}
+                      />
+                    </div>
                     {worker.error ? (
                       <div className="mt-2 break-all text-[11px] text-rose-600">{worker.error}</div>
                     ) : null}
@@ -1801,6 +1814,18 @@ export const DataflowVulnScanTaskPage: React.FC<{ projectId: string; onOpenTask?
                               <span>空闲 {worker.available_slots}</span>
                               <span>来源 {worker.source || 'worker_registry'}</span>
                               <span>心跳 {formatDateTime(worker.last_heartbeat_at)}</span>
+                            </div>
+                            <div className="mt-2 max-w-md">
+                              <SlotResourceBlock
+                                cpuUsage={worker.pod_cpu_usage_millicores}
+                                cpuLimit={worker.pod_cpu_limit_millicores}
+                                cpuRequest={worker.pod_cpu_request_millicores}
+                                memoryUsage={worker.pod_memory_usage_bytes}
+                                memoryLimit={worker.pod_memory_limit_bytes}
+                                memoryRequest={worker.pod_memory_request_bytes}
+                                metricsAt={worker.pod_metrics_at}
+                                formatDateTime={formatDateTime}
+                              />
                             </div>
                           </div>
                           <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-500">
