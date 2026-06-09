@@ -1524,6 +1524,30 @@ function deriveTaskStatusReason(detail: BinarySecurityTaskDetail): TaskStatusRea
     };
   }
 
+  if (detail.queue_state === 'db_pending_not_enqueued') {
+    return {
+      tone: 'warn',
+      title: '任务待补偿回填',
+      description: '数据库中任务仍处于待执行状态，但当前未出现在 Redis 调度队列中，编排器正在执行补偿或等待下一轮回填。',
+      evidence: [
+        { label: '恢复原因', value: detail.recoverable_reason || '-' },
+        { label: '最近回填检查', value: detail.last_reconcile_at || '-' },
+      ],
+    };
+  }
+
+  if (detail.queue_state === 'tail_reconciling' || detail.tail_reconcile_state === 'handoff_waiting') {
+    return {
+      tone: 'info',
+      title: '任务正在收口切换',
+      description: '当前任务处于 tail reconcile handoff 阶段，编排器正在等待新的 owner 接管或完成下游状态同步。',
+      evidence: [
+        { label: '收口状态', value: detail.tail_reconcile_state || '-' },
+        { label: '恢复原因', value: detail.recoverable_reason || '-' },
+      ],
+    };
+  }
+
   if (detail.status === 'ready_to_start' || detail.status === 'pending') {
     return {
       tone: 'info',

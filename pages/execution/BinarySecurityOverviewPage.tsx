@@ -948,7 +948,7 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
         <div className="mt-2 text-sm text-slate-500">任务、输入和结果统计基于当前项目；运行中、排队中和最大并发为服务全局队列指标。</div>
         <div className="mt-5 grid grid-cols-2 gap-3 xl:grid-cols-6">
           <ProjectStatCard label="任务总数" value={stats.total} hint={`成功 ${stats.success} · 部分成功 ${stats.partial_success} · 失败 ${stats.failed}`} />
-          <ProjectStatCard label="运行中任务" value={stats.running} hint={`全局运行 ${runningCount} · 排队 ${queuedCount}`} />
+          <ProjectStatCard label="运行中任务" value={stats.running} hint={`全局运行 ${runningCount} · 已入队 ${queuedCount}`} />
           <ProjectStatCard label={isSourceTask ? '源码输入' : isBinaryModuleTask ? 'ELF 输入' : '固件输入'} value={stats.input_count} hint={isSourceTask ? '当前项目源码输入总量' : isBinaryModuleTask ? '当前项目模块级 ELF 输入总量' : `已解包 ${stats.unpacked_firmware_count} · 失败 ${stats.failed_firmware_count}`} />
           <ProjectStatCard label={isBinaryModuleTask ? '模块任务' : '已选模块'} value={stats.selected_module_count} hint={isBinaryModuleTask ? `固定模块 ${stats.candidate_module_count}` : `候选 ${stats.candidate_module_count} · 高危 ${stats.high_risk_module_count}`} />
           <ProjectStatCard label="入口结果" value={stats.entry_count} hint="入口分析产出总量" />

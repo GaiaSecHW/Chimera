@@ -182,6 +182,7 @@ export interface BinarySecurityTask {
   task_type: BinarySecurityTaskType;
   name: string;
   status: string;
+  tail_reconcile_state?: string;
   execution_epoch: number;
   current_stage?: string | null;
   last_error?: string | null;
@@ -202,6 +203,9 @@ export interface BinarySecurityTask {
   stage_sequence: string[];
   is_queued: boolean;
   queue_position?: number | null;
+  queue_state?: 'queued' | 'db_pending_not_enqueued' | 'leased' | 'dispatching' | 'tail_reconciling' | 'idle' | string;
+  recoverable_reason?: string | null;
+  last_reconcile_at?: string | null;
   dispatcher_instance_id?: string | null;
   created_by?: string | null;
   created_at?: string | null;
