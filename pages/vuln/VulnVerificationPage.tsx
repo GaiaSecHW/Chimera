@@ -17,6 +17,7 @@ export const VulnVerificationPage: React.FC<VulnPageProps> = ({ projectId, onNav
     showStats={false}
     showWorkspaceTabs={false}
     hidePhaseContext
+    fullscreenLayout
     compactCaseLayout
     listEntryMode
     preserveLifecycleProgressBand
