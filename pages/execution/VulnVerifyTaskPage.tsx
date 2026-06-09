@@ -586,9 +586,9 @@ export const VulnVerifyTaskPage: React.FC<{ projectId: string }> = ({ projectId 
                     <div className="rounded-2xl border border-slate-200 bg-white p-4">
                       <h3 className="text-sm font-black text-slate-900">{artifactContent?.path || '结果预览'}</h3>
                       {artifactContent ? (
-                        <pre className="mt-3 max-h-[420px] overflow-auto rounded-2xl bg-slate-950 p-4 text-xs leading-6 text-slate-100">{artifactContent.content}{artifactContent.truncated ? '\n\n... truncated ...' : ''}</pre>
+                        <pre className="mt-3 max-h-[420px] overflow-auto rounded-2xl border border-theme-border bg-theme-elevated p-4 font-mono text-xs leading-6 text-theme-text-primary">{artifactContent.content}{artifactContent.truncated ? '\n\n... truncated ...' : ''}</pre>
                       ) : result?.results?.length ? (
-                        <pre className="mt-3 max-h-[420px] overflow-auto rounded-2xl bg-slate-950 p-4 text-xs leading-6 text-slate-100">{JSON.stringify(result.results, null, 2)}</pre>
+                        <pre className="mt-3 max-h-[420px] overflow-auto rounded-2xl border border-theme-border bg-theme-elevated p-4 font-mono text-xs leading-6 text-theme-text-primary">{JSON.stringify(result.results, null, 2)}</pre>
                       ) : (
                         <div className="mt-3 rounded-2xl border border-dashed border-slate-200 p-12 text-center text-sm text-slate-400">选择左侧产物或等待任务生成结果。</div>
                       )}
