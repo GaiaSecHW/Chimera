@@ -13,8 +13,8 @@ export const VulnVerificationDetailPage: React.FC<VulnPageProps> = ({ projectId,
   const targetCaseId = useMemo(() => localStorage.getItem(VERIFICATION_DETAIL_TARGET_KEY) || '', []);
 
   return (
-    <div className="animate-in fade-in duration-300">
-      <div className="px-6 pt-6 xl:px-8">
+    <div className="min-h-screen bg-[linear-gradient(180deg,#f8fafc_0%,#eef2ff_100%)] animate-in fade-in duration-300">
+      <div className="px-4 pt-4 xl:px-6 2xl:px-8">
         <button
           type="button"
           onClick={() => onNavigateToView?.('vuln-verification')}
@@ -37,6 +37,7 @@ export const VulnVerificationDetailPage: React.FC<VulnPageProps> = ({ projectId,
         showStats={false}
         showWorkspaceTabs={false}
         showPhasePreset={false}
+        fullscreenLayout
         casePoolTitle="验证案例"
         casePoolDescription="围绕当前选中案例查看验证结果、动作、时间线与人工验证任务。"
         stageScope={['validation']}

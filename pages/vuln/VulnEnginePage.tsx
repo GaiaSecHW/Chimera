@@ -67,6 +67,7 @@ interface VulnEnginePageProps {
   preferredActionType?: string;
   preferredTaskType?: string;
   compactCaseLayout?: boolean;
+  fullscreenLayout?: boolean;
   showPhasePreset?: boolean;
   listEntryMode?: boolean;
   preserveLifecycleProgressBand?: boolean;
@@ -108,6 +109,7 @@ export const VulnEnginePage: React.FC<VulnEnginePageProps> = ({
   preferredActionType,
   preferredTaskType,
   compactCaseLayout = false,
+  fullscreenLayout = false,
   showPhasePreset = true,
   listEntryMode = false,
   preserveLifecycleProgressBand = false,
@@ -945,7 +947,13 @@ export const VulnEnginePage: React.FC<VulnEnginePageProps> = ({
   };
 
   return (
-    <div className={`${effectiveListEntryMode ? 'p-6 pb-16 space-y-5' : 'p-10 pb-24 space-y-8'} animate-in fade-in duration-500`}>
+    <div className={`${
+      fullscreenLayout
+        ? 'px-4 py-5 pb-12 space-y-5 xl:px-6 2xl:px-8'
+        : effectiveListEntryMode
+          ? 'p-6 pb-16 space-y-5'
+          : 'p-10 pb-24 space-y-8'
+    } animate-in fade-in duration-500`}>
       <div className="flex flex-col 2xl:flex-row 2xl:items-end 2xl:justify-between gap-6">
         <div>
           <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-blue-50 text-blue-700 text-xs font-black tracking-widest uppercase">
@@ -1201,6 +1209,7 @@ export const VulnEnginePage: React.FC<VulnEnginePageProps> = ({
           refreshAll={refreshAll}
           overview={overview}
           compactLayout={effectiveCompactCaseLayout}
+          fullscreenLayout={fullscreenLayout}
           listOnlyMode={effectiveListEntryMode}
           onOpenCaseDetail={effectiveListEntryMode && detailTargetView && detailStorageKey ? handleOpenCaseDetail : undefined}
           hideCasePool={hideCasePool}

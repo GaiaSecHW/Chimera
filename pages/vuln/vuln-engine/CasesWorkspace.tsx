@@ -111,6 +111,7 @@ export const CasesWorkspace: React.FC<any> = ({
   refreshAll,
   overview,
   compactLayout = false,
+  fullscreenLayout = false,
   listOnlyMode = false,
   hideCasePool = false,
   detailEntryLabel = '查看详情',
@@ -283,6 +284,8 @@ export const CasesWorkspace: React.FC<any> = ({
       ? 'grid grid-cols-1 gap-4 items-start'
       : listOnlyMode
         ? 'grid grid-cols-1 gap-4 items-start'
+        : fullscreenLayout
+          ? 'grid grid-cols-1 min-[1680px]:grid-cols-[1.1fr_1.9fr] 2xl:grid-cols-[1fr_2.15fr] gap-5 items-start'
         : compactLayout
           ? 'grid grid-cols-1 2xl:grid-cols-[0.95fr_1.65fr] gap-4 items-start'
           : 'grid grid-cols-1 2xl:grid-cols-[1.15fr_1.45fr_1fr] gap-6 items-start'
@@ -345,14 +348,14 @@ export const CasesWorkspace: React.FC<any> = ({
             </div>
           )}
         </div>
-        <div className={compactLayout ? 'max-h-[42rem] overflow-y-auto' : 'divide-y divide-slate-100 max-h-[38rem] overflow-y-auto'}>
+        <div className={fullscreenLayout ? 'max-h-[calc(100vh-18rem)] overflow-y-auto' : compactLayout ? 'max-h-[42rem] overflow-y-auto' : 'divide-y divide-slate-100 max-h-[38rem] overflow-y-auto'}>
           {loading ? (
             <div className={compactLayout ? 'px-4 py-6 text-sm text-slate-400' : 'px-6 py-8 text-sm text-slate-400'}>加载中...</div>
           ) : filteredCases.length === 0 ? (
             <div className={compactLayout ? 'px-4 py-6 text-sm text-slate-400' : 'px-6 py-8 text-sm text-slate-400'}>{emptyStateText}</div>
           ) : compactLayout ? (
             <div className="overflow-hidden rounded-[1.25rem] border border-slate-200">
-              <div className={`grid gap-3 border-b border-slate-200 bg-slate-50 px-4 py-2.5 ${enableBulkSelection ? 'grid-cols-[0.4fr_2.1fr_0.85fr_0.9fr_0.8fr_1fr]' : 'grid-cols-[2.1fr_0.85fr_0.9fr_0.8fr_1fr]'}`}>
+              <div className={`grid gap-3 border-b border-slate-200 bg-slate-50 px-4 py-2.5 ${fullscreenLayout ? (enableBulkSelection ? 'grid-cols-[0.4fr_2.6fr_0.9fr_1fr_0.85fr_1.1fr]' : 'grid-cols-[2.6fr_0.9fr_1fr_0.85fr_1.1fr]') : (enableBulkSelection ? 'grid-cols-[0.4fr_2.1fr_0.85fr_0.9fr_0.8fr_1fr]' : 'grid-cols-[2.1fr_0.85fr_0.9fr_0.8fr_1fr]')}`}>
                 {enableBulkSelection && (
                   <label className="flex items-center justify-center">
                     <input type="checkbox" checked={allVisibleSelected} onChange={(event) => onToggleAllVisibleCaseIds?.(event.target.checked, prioritizedCases.map((item: any) => item.id))} />
@@ -375,7 +378,9 @@ export const CasesWorkspace: React.FC<any> = ({
                   setSelectedCaseId(item.id);
                 }}
                 className={`grid w-full gap-3 border-b border-slate-100 px-4 py-3 text-left transition hover:bg-slate-50 last:border-b-0 ${
-                  enableBulkSelection ? 'grid-cols-[0.4fr_2.1fr_0.85fr_0.9fr_0.8fr_1fr]' : 'grid-cols-[2.1fr_0.85fr_0.9fr_0.8fr_1fr]'
+                  fullscreenLayout
+                    ? (enableBulkSelection ? 'grid-cols-[0.4fr_2.6fr_0.9fr_1fr_0.85fr_1.1fr]' : 'grid-cols-[2.6fr_0.9fr_1fr_0.85fr_1.1fr]')
+                    : (enableBulkSelection ? 'grid-cols-[0.4fr_2.1fr_0.85fr_0.9fr_0.8fr_1fr]' : 'grid-cols-[2.1fr_0.85fr_0.9fr_0.8fr_1fr]')
                 } ${
                   selectedCaseId === item.id ? 'bg-blue-50' : 'bg-white'
                 }`}
@@ -514,7 +519,7 @@ export const CasesWorkspace: React.FC<any> = ({
     </div>}
 
     {!listOnlyMode && (
-    <div className="space-y-6">
+    <div className={fullscreenLayout ? 'space-y-5 min-w-0' : 'space-y-6'}>
       <div className={cardClass}>
         <div className={compactLayout ? 'px-4 py-3 border-b border-slate-100 flex items-center justify-between gap-3' : 'px-6 py-5 border-b border-slate-100 flex items-center justify-between gap-4'}>
           <div>
@@ -538,7 +543,7 @@ export const CasesWorkspace: React.FC<any> = ({
         {!selectedCaseDetail ? (
           <div className={compactLayout ? 'px-4 py-8 text-sm text-slate-400' : 'px-6 py-10 text-sm text-slate-400'}>从左侧选择一个案例查看当前研判详情</div>
         ) : detailContent ? (
-          <div className={compactLayout ? 'p-4' : 'p-6'}>{detailContent}</div>
+          <div className={fullscreenLayout ? 'p-5 xl:p-6' : compactLayout ? 'p-4' : 'p-6'}>{detailContent}</div>
         ) : (
           <div className={compactLayout ? 'p-4 space-y-4' : 'p-6 space-y-6'}>
             <div className={compactLayout ? 'space-y-2' : 'space-y-3'}>
