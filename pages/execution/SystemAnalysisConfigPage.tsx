@@ -1058,7 +1058,7 @@ export const SystemAnalysisConfigPage: React.FC<{ projectId: string; embedded?: 
                 desc="API 重试的首次等待时间（秒），后续以指数退避递增（delay × 2ⁿ），最大上限 300 秒。对于频繁限流的服务，适当加大此值可减少无效重试。">
                 <NumberInput value={config.agent_retry_delay} min={0} step={0.5} onChange={(v) => patch({ agent_retry_delay: v })} />
               </FieldRow>
-              <FieldRow label="agent_timeout_seconds（秒）" hint="单次会话硬超时"
+              <FieldRow label="agent_timeout_seconds（秒）" hint="兼容字段，已废弃"
                 desc="单个 Worker / Judge 智能体会话的最大等待时间。超过该阈值后，系统会主动中断当前会话并将当前阶段按超时失败处理，防止某个会话卡住拖死整个系统分析流程。该项为服务级在线配置，保存后对后续任务统一生效。">
                 <NumberInput value={config.agent_timeout_seconds} min={60} step={1} onChange={(v) => patch({ agent_timeout_seconds: v })} />
               </FieldRow>
@@ -1070,8 +1070,8 @@ export const SystemAnalysisConfigPage: React.FC<{ projectId: string; embedded?: 
                 desc="pi 进程崩溃后重启前的等待时间（秒），给系统留出资源回收时间，避免崩溃-重启循环过于密集导致资源耗尽。">
                 <NumberInput value={config.pi_retry_delay} min={0} step={0.5} onChange={(v) => patch({ pi_retry_delay: v })} />
               </FieldRow>
-              <FieldRow label="model_stuck_timeout（秒）" hint="单 pi 进程无 token 超时"
-                desc="单个 pi 进程在这么多秒内没有任何 token 输出（session 文件未发生变化），则被认定为后端模型卡死。系统会 kill 当前 pi 并重新拆起，继承 session 发送「继续」将模型唤醒。考虑模型排队延迟，默认 1800（30 分钟）。设为 0 禁用该机制。">
+              <FieldRow label="model_stuck_timeout（秒）" hint="单 pi 进程空闲超时"
+                desc="单个 pi 进程在这么多秒内没有任何 token 输出、没有会话事件推进时，才被认定为后端模型卡死。只要持续有输出，就不会因为总耗时长而触发。系统会 kill 当前 pi 并重新拆起，继承 session 发送「继续」将模型唤醒。默认 1800（30 分钟），设为 0 禁用该机制。">
                 <NumberInput value={config.model_stuck_timeout ?? 1800} min={0} step={60} onChange={(v) => patch({ model_stuck_timeout: v })} />
               </FieldRow>
               <FieldRow label="model_stuck_max_activations" hint="激活次数上限"

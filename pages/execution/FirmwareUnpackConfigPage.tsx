@@ -38,6 +38,11 @@ const MAX_RETRIES_ACTION_OPTIONS = [
   { value: 'success', label: '通过', description: '达到最大重试次数后，任务按成功收敛。' },
   { value: 'failed', label: '失败', description: '达到最大重试次数后，任务按失败收敛。' },
 ] as const;
+const PI_RPCCLIENT_DEFAULTS = {
+  timeoutSeconds: '1800',
+  retryEnabled: 'true',
+  maxRetries: '20',
+} as const;
 
 const FIRMWARE_UNPACK_FLOW = {
   title: '固件解包阶段推进关系',
@@ -196,6 +201,14 @@ export const FirmwareUnpackConfigPage: React.FC<Props> = ({ projectId: _projectI
     ]),
     [],
   );
+  const piRpcClientKeys = useMemo(
+    () => new Set([
+      'agent_run_timeout_seconds',
+      'agent_timeout_retry_enabled',
+      'agent_timeout_max_retries',
+    ]),
+    [],
+  );
   const configMap = useMemo(
     () => new Map(configItems.map((item) => [item.key, item])),
     [configItems],
@@ -203,11 +216,17 @@ export const FirmwareUnpackConfigPage: React.FC<Props> = ({ projectId: _projectI
   const concurrencyMode = configMap.get('concurrency_mode')?.value || cluster?.concurrency.mode || 'auto';
   const isManualMode = concurrencyMode === 'manual';
   const podConcurrencyItems = configItems.filter((item) => podConcurrencyKeys.has(item.key));
-  const genericConfigItems = configItems.filter((item) => !hiddenConfigKeys.has(item.key) && !podConcurrencyKeys.has(item.key) && !retryPolicyKeys.has(item.key));
+  const genericConfigItems = configItems.filter((item) => !hiddenConfigKeys.has(item.key) && !podConcurrencyKeys.has(item.key) && !retryPolicyKeys.has(item.key) && !piRpcClientKeys.has(item.key));
   const maxRetriesEntry = configMap.get('max_retries') || null;
   const maxRetriesActionEntry = configMap.get('max_retries_reached_action') || null;
   const maxRetriesValue = draftValues.max_retries ?? maxRetriesEntry?.value ?? '';
   const maxRetriesActionValue = draftValues.max_retries_reached_action ?? maxRetriesActionEntry?.value ?? 'success';
+  const piRpcTimeoutEntry = configMap.get('agent_run_timeout_seconds') || null;
+  const piRpcRetryEnabledEntry = configMap.get('agent_timeout_retry_enabled') || null;
+  const piRpcMaxRetriesEntry = configMap.get('agent_timeout_max_retries') || null;
+  const piRpcTimeoutValue = draftValues.agent_run_timeout_seconds ?? piRpcTimeoutEntry?.value ?? PI_RPCCLIENT_DEFAULTS.timeoutSeconds;
+  const piRpcRetryEnabledValue = String(draftValues.agent_timeout_retry_enabled ?? piRpcRetryEnabledEntry?.value ?? PI_RPCCLIENT_DEFAULTS.retryEnabled).toLowerCase();
+  const piRpcMaxRetriesValue = draftValues.agent_timeout_max_retries ?? piRpcMaxRetriesEntry?.value ?? PI_RPCCLIENT_DEFAULTS.maxRetries;
   const llmRoleConfigs = LLM_ROLE_FIELDS.map((field) => ({
     ...field,
     entry: configMap.get(field.key) || null,
@@ -235,6 +254,10 @@ export const FirmwareUnpackConfigPage: React.FC<Props> = ({ projectId: _projectI
   const retryPanelKeys = useMemo(
     () => [maxRetriesEntry?.key, maxRetriesActionEntry?.key].filter((value): value is string => Boolean(value)),
     [maxRetriesActionEntry?.key, maxRetriesEntry?.key],
+  );
+  const piRpcClientPanelKeys = useMemo(
+    () => [piRpcTimeoutEntry?.key, piRpcRetryEnabledEntry?.key, piRpcMaxRetriesEntry?.key].filter((value): value is string => Boolean(value)),
+    [piRpcMaxRetriesEntry?.key, piRpcRetryEnabledEntry?.key, piRpcTimeoutEntry?.key],
   );
   const genericPanelKeys = useMemo(() => genericConfigItems.map((item) => item.key), [genericConfigItems]);
 
@@ -710,6 +733,121 @@ export const FirmwareUnpackConfigPage: React.FC<Props> = ({ projectId: _projectI
                   <p className="mt-2 text-[10px] text-slate-400">
                     更新于 {fmtTime(maxRetriesActionEntry.updated_at)}
                   </p>
+                </div>
+              )}
+            </div>
+          </SectionCard>
+        )}
+
+        {piRpcClientPanelKeys.length > 0 && (
+          <SectionCard
+            title="PiRpcClient 运行策略"
+            subtitle="控制 PiRpcClient 单次调用的空闲超时，以及空闲超时后的自动重试次数。"
+            actions={<PanelActions saving={savingPanel === 'pirpc-runtime'} disabled={!hasPanelChanges(piRpcClientPanelKeys)} onSave={() => { void saveConfigPanel('pirpc-runtime', 'PiRpcClient 运行策略', piRpcClientPanelKeys); }} onReset={() => resetConfigPanel('PiRpcClient 运行策略', piRpcClientPanelKeys)} />}
+          >
+            <div className="rounded-2xl border border-sky-100 bg-sky-50 px-4 py-3 text-xs text-sky-800">
+              PiRpcClient 默认空闲超时为 1800 秒，默认空闲超时自动重试 20 次。只要持续有消息、事件或工具调用输出，就不会因为总耗时长而被认定超时。
+            </div>
+            <div className="mt-4 grid grid-cols-1 gap-4 xl:grid-cols-2">
+              {piRpcTimeoutEntry && (
+                <div className="rounded-2xl bg-white p-5">
+                  <div className="mb-1 flex items-center gap-2">
+                    <span className="text-xs font-black font-mono text-slate-700">{piRpcTimeoutEntry.key}</span>
+                    <span className="text-[10px] rounded-full bg-slate-100 px-1.5 py-0.5 text-slate-500">{piRpcTimeoutEntry.value_type}</span>
+                    {piRpcTimeoutValue !== piRpcTimeoutEntry.value && <span className="text-[10px] font-semibold text-amber-600">未保存</span>}
+                  </div>
+                  <p className="mb-3 text-[11px] text-slate-400">
+                    {piRpcTimeoutEntry.description || 'PiRpcClient 单次调用允许的最大空闲时长。'}
+                  </p>
+                  <label className="text-xs font-semibold text-slate-700" htmlFor="pirpc-timeout-seconds">
+                    PiRpcClient 空闲超时（秒）
+                  </label>
+                  <input
+                    id="pirpc-timeout-seconds"
+                    type="number"
+                    min={-1}
+                    step={1}
+                    value={piRpcTimeoutValue}
+                    onChange={(e) => updateDraftValue(piRpcTimeoutEntry.key, e.target.value)}
+                    className={`mt-2 w-full rounded-lg border px-3 py-2 text-sm font-mono outline-none transition ${
+                      piRpcTimeoutValue !== piRpcTimeoutEntry.value ? 'border-blue-300 ring-1 ring-blue-100' : 'border-slate-200'
+                    }`}
+                  />
+                  <p className="mt-2 text-[10px] text-slate-400">
+                    默认 1800 秒。只有在完全没有输出、没有事件、没有工具调用结果持续超过该时长时，才会判定超时。设置为 `-1` 表示不限制。
+                  </p>
+                  <p className="mt-2 text-[10px] text-slate-400">更新于 {fmtTime(piRpcTimeoutEntry.updated_at)}</p>
+                </div>
+              )}
+              {piRpcRetryEnabledEntry && (
+                <div className="rounded-2xl bg-white p-5">
+                  <div className="mb-1 flex items-center gap-2">
+                    <span className="text-xs font-black font-mono text-slate-700">{piRpcRetryEnabledEntry.key}</span>
+                    <span className="text-[10px] rounded-full bg-slate-100 px-1.5 py-0.5 text-slate-500">{piRpcRetryEnabledEntry.value_type}</span>
+                    {piRpcRetryEnabledValue !== String(piRpcRetryEnabledEntry.value ?? PI_RPCCLIENT_DEFAULTS.retryEnabled).toLowerCase() && <span className="text-[10px] font-semibold text-amber-600">未保存</span>}
+                  </div>
+                  <p className="mb-3 text-[11px] text-slate-400">
+                    {piRpcRetryEnabledEntry.description || 'PiRpcClient 单次调用发生空闲超时后是否自动重试。'}
+                  </p>
+                  <div className="space-y-2">
+                    {[
+                      { value: 'true', label: '开启空闲超时自动重试', description: '发生空闲超时后继续按最大重试次数重试。' },
+                      { value: 'false', label: '关闭空闲超时自动重试', description: '发生空闲超时后直接按失败处理本次调用。' },
+                    ].map((option) => {
+                      const active = piRpcRetryEnabledValue === option.value;
+                      return (
+                        <button
+                          key={option.value}
+                          type="button"
+                          onClick={() => updateDraftValue(piRpcRetryEnabledEntry.key, option.value)}
+                          className={`flex w-full items-start justify-between rounded-xl border px-4 py-3 text-left transition ${
+                            active
+                              ? 'border-slate-900 bg-slate-900 text-white'
+                              : 'border-slate-200 bg-slate-50 text-slate-700 hover:bg-white'
+                          }`}
+                        >
+                          <div>
+                            <div className="text-sm font-bold">{option.label}</div>
+                            <div className={`mt-1 text-[11px] ${active ? 'text-slate-300' : 'text-slate-500'}`}>{option.description}</div>
+                          </div>
+                          <span className={`rounded-full px-2 py-1 text-[10px] font-black ${active ? 'bg-white/10 text-white' : 'bg-white text-slate-500 ring-1 ring-slate-200'}`}>
+                            {option.value}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                  <p className="mt-2 text-[10px] text-slate-400">更新于 {fmtTime(piRpcRetryEnabledEntry.updated_at)}</p>
+                </div>
+              )}
+              {piRpcMaxRetriesEntry && (
+                <div className="rounded-2xl bg-white p-5 xl:col-span-2">
+                  <div className="mb-1 flex items-center gap-2">
+                    <span className="text-xs font-black font-mono text-slate-700">{piRpcMaxRetriesEntry.key}</span>
+                    <span className="text-[10px] rounded-full bg-slate-100 px-1.5 py-0.5 text-slate-500">{piRpcMaxRetriesEntry.value_type}</span>
+                    {piRpcMaxRetriesValue !== piRpcMaxRetriesEntry.value && <span className="text-[10px] font-semibold text-amber-600">未保存</span>}
+                  </div>
+                  <p className="mb-3 text-[11px] text-slate-400">
+                    {piRpcMaxRetriesEntry.description || 'PiRpcClient 空闲超时后的最大自动重试次数。'}
+                  </p>
+                  <label className="text-xs font-semibold text-slate-700" htmlFor="pirpc-timeout-max-retries">
+                    PiRpcClient 空闲超时重试次数
+                  </label>
+                  <input
+                    id="pirpc-timeout-max-retries"
+                    type="number"
+                    min={-1}
+                    step={1}
+                    value={piRpcMaxRetriesValue}
+                    onChange={(e) => updateDraftValue(piRpcMaxRetriesEntry.key, e.target.value)}
+                    className={`mt-2 w-full rounded-lg border px-3 py-2 text-sm font-mono outline-none transition ${
+                      piRpcMaxRetriesValue !== piRpcMaxRetriesEntry.value ? 'border-blue-300 ring-1 ring-blue-100' : 'border-slate-200'
+                    }`}
+                  />
+                  <p className="mt-2 text-[10px] text-slate-400">
+                    默认 20 次。设置为 `-1` 表示无限重试，建议只在确认下游会最终恢复时使用。
+                  </p>
+                  <p className="mt-2 text-[10px] text-slate-400">更新于 {fmtTime(piRpcMaxRetriesEntry.updated_at)}</p>
                 </div>
               )}
             </div>
