@@ -1,12 +1,14 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { AlertCircle, CheckCircle2, FileText, Loader2, Play, RefreshCw, RotateCcw, ShieldCheck, Square, XCircle } from 'lucide-react';
+import { AlertCircle, CheckCircle2, Clock3, Eye, FileText, Loader2, Plus, RefreshCw, RotateCcw, Search, ShieldCheck, Square, X, XCircle } from 'lucide-react';
 import { vulnVerifyApi, VulnVerifyArtifact, VulnVerifyResult, VulnVerifyTask, VulnVerifyTaskDetail } from '../../clients/vulnVerify';
+import { ExecutionTable, ExecutionTableHead, ExecutionTableTh, ExecutionTableTd, executionTableInteractiveRowClassName } from '../../components/execution/ExecutionTable';
 import { ServicePageTitle, useServiceBuildVersion } from '../../components/execution/ServiceBuildVersion';
 
 const DEFAULT_MODEL = 'local_minimax/MiniMax/MiniMax-M2.5';
-const TERMINAL = new Set(['success', 'failed', 'cancelled']);
+const ACTIVE_STATUSES = new Set(['pending', 'running', 'cancelling']);
+const TERMINAL_STATUSES = new Set(['success', 'failed', 'cancelled']);
 
-const statusLabel: Record<string, string> = {
+const STATUS_LABEL: Record<string, string> = {
   pending: '等待中',
   running: '执行中',
   success: '成功',
@@ -15,30 +17,107 @@ const statusLabel: Record<string, string> = {
   cancelling: '取消中',
 };
 
-function statusClass(status?: string) {
-  if (status === 'success') return 'border-emerald-200 bg-emerald-50 text-emerald-700';
-  if (status === 'failed') return 'border-rose-200 bg-rose-50 text-rose-700';
-  if (status === 'running') return 'border-blue-200 bg-blue-50 text-blue-700';
-  if (status === 'cancelled' || status === 'cancelling') return 'border-amber-200 bg-amber-50 text-amber-700';
-  return 'border-slate-200 bg-slate-50 text-slate-600';
+const STATUS_BADGE_CLASS: Record<string, string> = {
+  pending: 'bg-slate-100 text-slate-600 border-slate-200',
+  running: 'bg-blue-50 text-blue-700 border-blue-200',
+  success: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+  failed: 'bg-rose-50 text-rose-700 border-rose-200',
+  cancelled: 'bg-amber-50 text-amber-700 border-amber-200',
+  cancelling: 'bg-amber-50 text-amber-700 border-amber-200',
+};
+
+interface CreateFormState {
+  name: string;
+  description: string;
+  reports_dir: string;
+  source_root: string;
+  binary_root: string;
+  threat_path: string;
+  model: string;
+  concurrency: number;
 }
 
-function formatDate(value?: string | null) {
+function makeDefaultForm(projectId: string): CreateFormState {
+  return {
+    name: `漏洞验证任务-${new Date().toLocaleString('zh-CN', { hour12: false })}`,
+    description: '',
+    reports_dir: `/data/files/${projectId}/vuln-verify/reports`,
+    source_root: `/data/files/${projectId}/source`,
+    binary_root: `/data/files/${projectId}/binary`,
+    threat_path: `/data/files/${projectId}/vuln-verify/threat_model.md`,
+    model: DEFAULT_MODEL,
+    concurrency: 1,
+  };
+}
+
+function formatDate(value?: string | null): string {
   if (!value) return '-';
-  try { return new Date(value).toLocaleString(); } catch { return value; }
+  const d = new Date(value);
+  return Number.isFinite(d.getTime()) ? d.toLocaleString('zh-CN') : value;
 }
 
-function formatBytes(value?: number) {
+function formatBytes(value?: number): string {
   const n = Number(value || 0);
   if (n < 1024) return `${n} B`;
   if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KB`;
   return `${(n / 1024 / 1024).toFixed(1)} MB`;
 }
 
-const StatCard: React.FC<{ label: string; value: React.ReactNode; tone?: string }> = ({ label, value, tone = 'slate' }) => (
-  <div className={`rounded-2xl border bg-white p-4 shadow-sm border-${tone}-100`}>
-    <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">{label}</div>
-    <div className="mt-2 text-2xl font-black text-slate-900">{value}</div>
+function formatDuration(startedAt?: string | null, finishedAt?: string | null): string {
+  if (!startedAt) return '-';
+  const started = new Date(startedAt).getTime();
+  const finished = finishedAt ? new Date(finishedAt).getTime() : Date.now();
+  if (!Number.isFinite(started) || !Number.isFinite(finished) || finished < started) return '-';
+  const secs = Math.floor((finished - started) / 1000);
+  if (secs < 60) return `${secs}s`;
+  const mins = Math.floor(secs / 60);
+  const rest = secs % 60;
+  if (mins < 60) return `${mins}m${rest}s`;
+  const hours = Math.floor(mins / 60);
+  return `${hours}h${mins % 60}m`;
+}
+
+function getStatusLabel(status?: string): string {
+  return STATUS_LABEL[status || ''] || status || '-';
+}
+
+function getStatusClass(status?: string): string {
+  return STATUS_BADGE_CLASS[status || ''] || 'bg-slate-100 text-slate-600 border-slate-200';
+}
+
+function getProgressText(task: VulnVerifyTask): string {
+  const progress = task.progress || {};
+  const message = String(progress.message || progress.stage || '').trim();
+  if (message) return message;
+  if (task.error_reason) return task.error_reason;
+  const groupCount = task.result_summary?.group_count;
+  const doneGroupCount = task.result_summary?.done_group_count;
+  if (groupCount != null || doneGroupCount != null) return `分组 ${doneGroupCount ?? 0}/${groupCount ?? 0}`;
+  return task.output_dir || '-';
+}
+
+const SummaryCard: React.FC<{ label: string; value: React.ReactNode; hint?: React.ReactNode; accent?: 'violet' | 'blue' | 'emerald' | 'rose' | 'slate' }> = ({ label, value, hint, accent = 'slate' }) => {
+  const accentClass = accent === 'violet' ? 'text-violet-600' : accent === 'blue' ? 'text-blue-600' : accent === 'emerald' ? 'text-emerald-600' : accent === 'rose' ? 'text-rose-600' : 'text-slate-900';
+  return (
+    <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+      <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">{label}</div>
+      <div className={`mt-2 text-2xl font-black ${accentClass}`}>{value}</div>
+      {hint ? <div className="mt-1 text-xs text-slate-400">{hint}</div> : null}
+    </div>
+  );
+};
+
+const StatusBadge: React.FC<{ status?: string }> = ({ status }) => (
+  <span className={`inline-flex shrink-0 items-center rounded-full border px-2.5 py-1 text-xs font-black ${getStatusClass(status)}`}>
+    {status === 'running' || status === 'cancelling' ? <Loader2 size={12} className="mr-1 animate-spin" /> : null}
+    {getStatusLabel(status)}
+  </span>
+);
+
+const InfoRow: React.FC<{ label: string; value: React.ReactNode }> = ({ label, value }) => (
+  <div className="rounded-2xl bg-slate-50 p-3">
+    <div className="text-[10px] font-black uppercase tracking-widest text-slate-400">{label}</div>
+    <div className="mt-1 break-all text-xs font-bold text-slate-700">{value || '-'}</div>
   </div>
 );
 
@@ -46,24 +125,32 @@ export const VulnVerifyTaskPage: React.FC<{ projectId: string }> = ({ projectId 
   const buildVersion = useServiceBuildVersion(vulnVerifyApi.getHealth);
   const [tasks, setTasks] = useState<VulnVerifyTask[]>([]);
   const [total, setTotal] = useState(0);
-  const [selectedId, setSelectedId] = useState('');
+  const [health, setHealth] = useState('unknown');
+  const [loading, setLoading] = useState(false);
+  const [message, setMessage] = useState<string | null>(null);
+
+  const [statusFilter, setStatusFilter] = useState('');
+  const [search, setSearch] = useState('');
+  const [page, setPage] = useState(1);
+  const [perPage, setPerPage] = useState(20);
+  const [autoRefreshEnabled, setAutoRefreshEnabled] = useState(true);
+  const [refreshIntervalSec, setRefreshIntervalSec] = useState(10);
+
+  const [createModalOpen, setCreateModalOpen] = useState(false);
+  const [creating, setCreating] = useState(false);
+  const [form, setForm] = useState<CreateFormState>(() => makeDefaultForm(projectId));
+
+  const [detailModalOpen, setDetailModalOpen] = useState(false);
+  const [selectedTaskId, setSelectedTaskId] = useState('');
   const [detail, setDetail] = useState<VulnVerifyTaskDetail | null>(null);
   const [result, setResult] = useState<VulnVerifyResult | null>(null);
   const [artifacts, setArtifacts] = useState<VulnVerifyArtifact[]>([]);
   const [artifactContent, setArtifactContent] = useState<{ path: string; content: string; truncated: boolean } | null>(null);
-  const [health, setHealth] = useState<string>('unknown');
-  const [loading, setLoading] = useState(false);
-  const [creating, setCreating] = useState(false);
-  const [message, setMessage] = useState<string | null>(null);
-  const [form, setForm] = useState({
-    name: '漏洞验证任务',
-    reports_dir: '',
-    source_root: '',
-    binary_root: '',
-    threat_path: '',
-    model: DEFAULT_MODEL,
-    concurrency: 1,
-  });
+  const [detailLoading, setDetailLoading] = useState(false);
+
+  const offset = (page - 1) * perPage;
+  const totalPages = Math.max(1, Math.ceil(total / perPage));
+  const hasActiveTasks = tasks.some((task) => ACTIVE_STATUSES.has(task.status));
 
   const summary = useMemo(() => {
     const counts = tasks.reduce<Record<string, number>>((acc, task) => {
@@ -71,34 +158,40 @@ export const VulnVerifyTaskPage: React.FC<{ projectId: string }> = ({ projectId 
       return acc;
     }, {});
     return {
-      total,
       running: counts.running || 0,
+      pending: counts.pending || 0,
       success: counts.success || 0,
       failed: counts.failed || 0,
     };
-  }, [tasks, total]);
+  }, [tasks]);
 
-  const refreshList = useCallback(async () => {
+  const loadTasks = useCallback(async () => {
     if (!projectId) return;
     setLoading(true);
     try {
       const [healthPayload, list] = await Promise.all([
         vulnVerifyApi.getHealth().catch(() => ({ status: 'unhealthy' })),
-        vulnVerifyApi.listTasks(projectId, { limit: 50 }),
+        vulnVerifyApi.listTasks(projectId, {
+          status: statusFilter || undefined,
+          search: search.trim() || undefined,
+          limit: perPage,
+          offset,
+        }),
       ]);
       setHealth(healthPayload.status || 'unknown');
       setTasks(list.items || []);
       setTotal(list.total || 0);
-      if (!selectedId && list.items?.[0]) setSelectedId(list.items[0].id);
+      setMessage(null);
     } catch (error: any) {
       setMessage(error?.message || String(error));
     } finally {
       setLoading(false);
     }
-  }, [projectId, selectedId]);
+  }, [projectId, statusFilter, search, perPage, offset]);
 
-  const refreshDetail = useCallback(async (taskId: string) => {
+  const loadDetail = useCallback(async (taskId: string) => {
     if (!projectId || !taskId) return;
+    setDetailLoading(true);
     try {
       const [nextDetail, nextResult, nextArtifacts] = await Promise.all([
         vulnVerifyApi.getTask(projectId, taskId),
@@ -108,20 +201,41 @@ export const VulnVerifyTaskPage: React.FC<{ projectId: string }> = ({ projectId 
       setDetail(nextDetail);
       setResult(nextResult);
       setArtifacts(nextArtifacts.items || []);
+      setArtifactContent(null);
     } catch (error: any) {
       setMessage(error?.message || String(error));
+    } finally {
+      setDetailLoading(false);
     }
   }, [projectId]);
 
-  useEffect(() => { refreshList(); }, [refreshList]);
-  useEffect(() => { if (selectedId) refreshDetail(selectedId); }, [selectedId, refreshDetail]);
+  useEffect(() => { void loadTasks(); }, [loadTasks]);
+
   useEffect(() => {
+    if (!autoRefreshEnabled) return undefined;
+    const intervalMs = Math.max(5, refreshIntervalSec) * 1000;
     const timer = window.setInterval(() => {
-      refreshList();
-      if (selectedId) refreshDetail(selectedId);
-    }, 10000);
+      if (hasActiveTasks) void loadTasks();
+      if (detailModalOpen && selectedTaskId) void loadDetail(selectedTaskId);
+    }, intervalMs);
     return () => window.clearInterval(timer);
-  }, [refreshList, refreshDetail, selectedId]);
+  }, [autoRefreshEnabled, refreshIntervalSec, hasActiveTasks, detailModalOpen, selectedTaskId, loadTasks, loadDetail]);
+
+  useEffect(() => {
+    setForm(makeDefaultForm(projectId));
+    setPage(1);
+  }, [projectId]);
+
+  const openCreateModal = () => {
+    setForm(makeDefaultForm(projectId));
+    setCreateModalOpen(true);
+  };
+
+  const openDetailModal = async (taskId: string) => {
+    setSelectedTaskId(taskId);
+    setDetailModalOpen(true);
+    await loadDetail(taskId);
+  };
 
   const createTask = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -130,18 +244,20 @@ export const VulnVerifyTaskPage: React.FC<{ projectId: string }> = ({ projectId 
     setMessage(null);
     try {
       const created = await vulnVerifyApi.createTask(projectId, {
-        name: form.name,
-        reports_dir: form.reports_dir,
-        source_root: form.source_root,
-        binary_root: form.binary_root,
-        threat_path: form.threat_path,
-        model: form.model || DEFAULT_MODEL,
+        name: form.name.trim() || '漏洞验证任务',
+        description: form.description.trim() || undefined,
+        reports_dir: form.reports_dir.trim(),
+        source_root: form.source_root.trim(),
+        binary_root: form.binary_root.trim(),
+        threat_path: form.threat_path.trim(),
+        model: form.model.trim() || DEFAULT_MODEL,
         concurrency: Number(form.concurrency || 1),
         resume: false,
       });
-      setSelectedId(created.id);
-      await refreshList();
-      await refreshDetail(created.id);
+      setCreateModalOpen(false);
+      setPage(1);
+      await loadTasks();
+      await openDetailModal(created.id);
       setMessage(`任务已创建: ${created.id}`);
     } catch (error: any) {
       setMessage(error?.message || String(error));
@@ -150,23 +266,33 @@ export const VulnVerifyTaskPage: React.FC<{ projectId: string }> = ({ projectId 
     }
   };
 
-  const terminate = async () => {
-    if (!selectedId || !projectId) return;
-    await vulnVerifyApi.terminateTask(projectId, selectedId);
-    await refreshDetail(selectedId);
-    await refreshList();
+  const terminateTask = async (taskId: string) => {
+    if (!projectId || !taskId) return;
+    if (!window.confirm('确认取消该漏洞验证任务？')) return;
+    try {
+      await vulnVerifyApi.terminateTask(projectId, taskId);
+      await loadTasks();
+      if (selectedTaskId === taskId) await loadDetail(taskId);
+    } catch (error: any) {
+      setMessage(error?.message || String(error));
+    }
   };
 
-  const rerun = async () => {
-    if (!selectedId || !projectId) return;
-    await vulnVerifyApi.rerunTask(projectId, selectedId);
-    await refreshDetail(selectedId);
-    await refreshList();
+  const rerunTask = async (taskId: string) => {
+    if (!projectId || !taskId) return;
+    if (!window.confirm('确认清空输出并重跑该任务？')) return;
+    try {
+      await vulnVerifyApi.rerunTask(projectId, taskId);
+      await loadTasks();
+      if (selectedTaskId === taskId) await loadDetail(taskId);
+    } catch (error: any) {
+      setMessage(error?.message || String(error));
+    }
   };
 
   const openArtifact = async (path: string) => {
-    if (!selectedId || !projectId) return;
-    const payload = await vulnVerifyApi.getArtifactContent(projectId, selectedId, path);
+    if (!selectedTaskId || !projectId) return;
+    const payload = await vulnVerifyApi.getArtifactContent(projectId, selectedTaskId, path);
     setArtifactContent({ path, content: payload.content, truncated: payload.truncated });
   };
 
@@ -178,145 +304,319 @@ export const VulnVerifyTaskPage: React.FC<{ projectId: string }> = ({ projectId 
             <div>
               <p className="text-xs font-black uppercase tracking-[0.3em] text-violet-600">漏洞验证原子能力</p>
               <ServicePageTitle title="漏洞验证任务" version={buildVersion} />
-              <p className="mt-2 max-w-3xl text-sm text-slate-500">封装 vuln-verify：输入扫描报告、源码、二进制根目录与威胁模型，自动执行 Router → Verifier，输出 JSON 研判结果与执行产物。</p>
+              <p className="mt-2 max-w-3xl text-sm text-slate-500">
+                参考数据流漏洞挖掘的任务列表模式：集中查看任务状态，点击任务进入详情，使用右上角「新建任务」提交报告目录、源码、二进制与威胁模型。
+              </p>
             </div>
-            <button onClick={refreshList} className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm font-black text-slate-700 shadow-sm hover:bg-slate-50">
-              <RefreshCw size={16} className={loading ? 'animate-spin' : ''} /> 刷新
-            </button>
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                type="button"
+                onClick={() => void loadTasks()}
+                className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-black text-slate-700 shadow-sm hover:bg-slate-50"
+              >
+                <RefreshCw size={16} className={loading ? 'animate-spin' : ''} /> 刷新
+              </button>
+              <button
+                type="button"
+                onClick={openCreateModal}
+                className="inline-flex items-center gap-2 rounded-xl bg-violet-700 px-4 py-2 text-sm font-black text-white shadow-sm hover:bg-violet-800"
+              >
+                <Plus size={16} /> 新建任务
+              </button>
+            </div>
           </div>
         </header>
 
-        {message ? <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-bold text-amber-800">{message}</div> : null}
+        {message ? (
+          <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-bold text-amber-800">
+            {message}
+          </div>
+        ) : null}
 
-        <section className="grid gap-4 md:grid-cols-4">
-          <StatCard label="服务健康" value={<span className={health === 'ok' ? 'text-emerald-600' : 'text-rose-600'}>{health}</span>} />
-          <StatCard label="任务总数" value={summary.total} />
-          <StatCard label="运行中" value={summary.running} />
-          <StatCard label="成功 / 失败" value={`${summary.success} / ${summary.failed}`} />
+        <section className="grid gap-4 md:grid-cols-5">
+          <SummaryCard label="服务健康" value={health} accent={health === 'ok' ? 'emerald' : 'rose'} hint="/api/app/vuln-verify/health" />
+          <SummaryCard label="任务总数" value={total} accent="violet" hint="当前筛选结果" />
+          <SummaryCard label="运行中" value={summary.running} accent="blue" hint={`等待中 ${summary.pending}`} />
+          <SummaryCard label="成功" value={summary.success} accent="emerald" hint="当前页统计" />
+          <SummaryCard label="失败" value={summary.failed} accent="rose" hint="当前页统计" />
         </section>
 
-        <section className="grid gap-6 xl:grid-cols-[420px_minmax(0,1fr)]">
-          <div className="space-y-6">
-            <form onSubmit={createTask} className="rounded-[2rem] border border-slate-200 bg-white p-5 shadow-sm">
-              <div className="flex items-center gap-3">
-                <div className="rounded-2xl bg-violet-600 p-3 text-white"><Play size={18} /></div>
-                <div>
-                  <h2 className="text-lg font-black text-slate-900">新建验证任务</h2>
-                  <p className="text-xs text-slate-500">所有路径必须位于当前项目 /data/files/{projectId} 下。</p>
-                </div>
+        <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          <div className="mb-4 flex flex-wrap items-start justify-between gap-4">
+            <div>
+              <h2 className="text-lg font-black text-slate-900">任务列表 <span className="text-sm font-normal text-slate-400">({total})</span></h2>
+              <p className="mt-1 text-xs text-slate-400">点击任务名称或查看按钮打开任务详情、结果和产物。</p>
+            </div>
+            <div className="flex flex-wrap items-center justify-end gap-2">
+              <label className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs text-slate-600">
+                <input type="checkbox" checked={autoRefreshEnabled} onChange={(e) => setAutoRefreshEnabled(e.target.checked)} />
+                自动刷新
+              </label>
+              <label className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs text-slate-600">
+                间隔
+                <input
+                  type="number"
+                  min={5}
+                  value={refreshIntervalSec}
+                  onChange={(e) => setRefreshIntervalSec(Math.max(5, Number(e.target.value || 5)))}
+                  className="w-16 rounded border border-slate-200 bg-white px-2 py-1 text-xs text-slate-700"
+                />
+                秒
+              </label>
+              <select
+                value={statusFilter}
+                onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
+                className="rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-xs text-slate-600"
+              >
+                <option value="">全部状态</option>
+                {Object.entries(STATUS_LABEL).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+              </select>
+              <div className="relative">
+                <Search size={13} className="pointer-events-none absolute left-2.5 top-2 text-slate-400" />
+                <input
+                  value={search}
+                  onChange={(e) => { setSearch(e.target.value); setPage(1); }}
+                  placeholder="搜索任务"
+                  className="w-48 rounded-lg border border-slate-200 bg-white py-1.5 pl-8 pr-3 text-xs text-slate-600 placeholder:text-slate-400"
+                />
               </div>
-              <div className="mt-5 space-y-3">
-                {[
-                  ['name', '任务名称', '漏洞验证任务'],
-                  ['reports_dir', '报告目录', `/data/files/${projectId}/vuln-verify/reports`],
-                  ['source_root', '源码根目录', `/data/files/${projectId}/source`],
-                  ['binary_root', '二进制根目录', `/data/files/${projectId}/binary`],
-                  ['threat_path', '威胁模型文件', `/data/files/${projectId}/vuln-verify/threat_model.md`],
-                  ['model', '模型', DEFAULT_MODEL],
-                ].map(([key, label, placeholder]) => (
-                  <label key={key} className="block">
-                    <span className="text-[11px] font-black uppercase tracking-widest text-slate-400">{label}</span>
-                    <input
-                      className="mt-1 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-700 outline-none focus:border-violet-300 focus:bg-white"
-                      value={(form as any)[key]}
-                      placeholder={placeholder}
-                      onChange={(e) => setForm({ ...form, [key]: e.target.value })}
-                      required={key !== 'model'}
-                    />
-                  </label>
-                ))}
-                <label className="block">
-                  <span className="text-[11px] font-black uppercase tracking-widest text-slate-400">并发</span>
-                  <input type="number" min={1} max={16} className="mt-1 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold" value={form.concurrency} onChange={(e) => setForm({ ...form, concurrency: Number(e.target.value || 1) })} />
-                </label>
-                <button disabled={creating} className="w-full rounded-2xl bg-violet-600 px-4 py-3 text-sm font-black text-white shadow-sm hover:bg-violet-700 disabled:opacity-60">
-                  {creating ? <Loader2 className="mx-auto animate-spin" size={18} /> : '创建漏洞验证任务'}
-                </button>
-              </div>
-            </form>
-
-            <div className="rounded-[2rem] border border-slate-200 bg-white p-4 shadow-sm">
-              <h2 className="px-2 text-lg font-black text-slate-900">任务列表</h2>
-              <div className="mt-3 max-h-[520px] space-y-2 overflow-auto pr-1">
-                {tasks.length === 0 ? <div className="rounded-2xl border border-dashed border-slate-200 p-8 text-center text-sm text-slate-400">暂无任务</div> : tasks.map((task) => (
-                  <button key={task.id} onClick={() => setSelectedId(task.id)} className={`w-full rounded-2xl border p-4 text-left transition ${selectedId === task.id ? 'border-violet-300 bg-violet-50' : 'border-slate-200 bg-white hover:bg-slate-50'}`}>
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="min-w-0">
-                        <div className="truncate text-sm font-black text-slate-900">{task.name}</div>
-                        <div className="mt-1 font-mono text-[11px] text-slate-400">{task.id}</div>
-                      </div>
-                      <span className={`shrink-0 rounded-full border px-2 py-1 text-[11px] font-black ${statusClass(task.status)}`}>{statusLabel[task.status] || task.status}</span>
-                    </div>
-                    <div className="mt-2 truncate text-xs text-slate-500">{task.progress?.message || task.error_reason || task.output_dir}</div>
-                  </button>
-                ))}
-              </div>
+              <select
+                value={perPage}
+                onChange={(e) => { setPerPage(Number(e.target.value)); setPage(1); }}
+                className="rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-xs text-slate-600"
+              >
+                {[10, 20, 50, 100].map((n) => <option key={n} value={n}>{n}条/页</option>)}
+              </select>
+              <button onClick={() => void loadTasks()} className="rounded-lg border border-slate-200 p-2 text-slate-500 hover:bg-slate-50">
+                <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
+              </button>
+              <button onClick={openCreateModal} className="inline-flex items-center gap-1.5 rounded-lg bg-violet-700 px-3 py-1.5 text-xs font-semibold text-white hover:bg-violet-800">
+                <Plus size={13} />新建任务
+              </button>
             </div>
           </div>
 
-          <div className="space-y-6">
-            {!detail ? (
-              <div className="rounded-[2rem] border border-dashed border-slate-300 bg-white p-16 text-center text-slate-400">请选择任务查看详情</div>
-            ) : (
-              <>
-                <section className="rounded-[2rem] border border-slate-200 bg-white p-5 shadow-sm">
-                  <div className="flex flex-wrap items-start justify-between gap-4">
-                    <div>
-                      <div className="flex items-center gap-3">
-                        {detail.status === 'success' ? <CheckCircle2 className="text-emerald-500" /> : detail.status === 'failed' ? <XCircle className="text-rose-500" /> : detail.status === 'running' ? <Loader2 className="animate-spin text-blue-500" /> : <ShieldCheck className="text-violet-500" />}
-                        <h2 className="text-xl font-black text-slate-900">{detail.name}</h2>
-                        <span className={`rounded-full border px-3 py-1 text-xs font-black ${statusClass(detail.status)}`}>{statusLabel[detail.status] || detail.status}</span>
+          <div className="mb-4 flex flex-wrap items-center gap-3 text-xs text-slate-500">
+            <span>自动刷新：{autoRefreshEnabled ? `开启（${Math.max(5, refreshIntervalSec)}s）` : '关闭'}</span>
+            {autoRefreshEnabled && !hasActiveTasks ? <span className="text-amber-600">当前页无活跃任务，自动刷新暂不触发列表刷新</span> : null}
+            {autoRefreshEnabled && hasActiveTasks ? <span className="text-violet-600">检测到活跃任务，按设定间隔刷新</span> : null}
+          </div>
+
+          {loading ? (
+            <div className="flex items-center gap-2 py-10 text-sm text-slate-500"><Loader2 size={14} className="animate-spin" />加载中...</div>
+          ) : tasks.length === 0 ? (
+            <div className="py-16 text-center text-sm text-slate-400">暂无任务，点击右上角「新建任务」创建。</div>
+          ) : (
+            <ExecutionTable minWidth={1180}>
+              <ExecutionTableHead>
+                <tr>
+                  <ExecutionTableTh>任务</ExecutionTableTh>
+                  <ExecutionTableTh>状态</ExecutionTableTh>
+                  <ExecutionTableTh>进度/原因</ExecutionTableTh>
+                  <ExecutionTableTh>模型</ExecutionTableTh>
+                  <ExecutionTableTh>并发</ExecutionTableTh>
+                  <ExecutionTableTh>结果</ExecutionTableTh>
+                  <ExecutionTableTh>创建时间</ExecutionTableTh>
+                  <ExecutionTableTh>耗时</ExecutionTableTh>
+                  <ExecutionTableTh className="text-right">操作</ExecutionTableTh>
+                </tr>
+              </ExecutionTableHead>
+              <tbody>
+                {tasks.map((task) => (
+                  <tr key={task.id} className={executionTableInteractiveRowClassName} onClick={() => void openDetailModal(task.id)}>
+                    <ExecutionTableTd className="min-w-[220px]">
+                      <button type="button" className="text-left text-sm font-black text-slate-900 hover:text-violet-700" onClick={(e) => { e.stopPropagation(); void openDetailModal(task.id); }}>
+                        {task.name}
+                      </button>
+                      <div className="mt-1 font-mono text-[11px] text-slate-400">{task.id}</div>
+                      <div className="mt-1 max-w-[360px] truncate text-[11px] text-slate-400" title={task.output_dir}>输出：{task.output_dir || '-'}</div>
+                    </ExecutionTableTd>
+                    <ExecutionTableTd><StatusBadge status={task.status} /></ExecutionTableTd>
+                    <ExecutionTableTd className="max-w-[260px]"><div className="truncate text-xs text-slate-600" title={getProgressText(task)}>{getProgressText(task)}</div></ExecutionTableTd>
+                    <ExecutionTableTd className="max-w-[220px]"><div className="truncate font-mono text-xs text-slate-600" title={task.model || DEFAULT_MODEL}>{task.model || '-'}</div></ExecutionTableTd>
+                    <ExecutionTableTd className="text-xs text-slate-600">{task.concurrency}</ExecutionTableTd>
+                    <ExecutionTableTd className="text-xs text-slate-600">
+                      <div>结果 {task.result_summary?.result_count ?? '-'}</div>
+                      <div className="text-slate-400">分组 {task.result_summary?.done_group_count ?? 0}/{task.result_summary?.group_count ?? 0}</div>
+                    </ExecutionTableTd>
+                    <ExecutionTableTd className="whitespace-nowrap text-xs text-slate-500">{formatDate(task.created_at)}</ExecutionTableTd>
+                    <ExecutionTableTd className="whitespace-nowrap text-xs text-slate-500">{formatDuration(task.started_at, task.finished_at)}</ExecutionTableTd>
+                    <ExecutionTableTd className="text-right">
+                      <div className="inline-flex items-center justify-end gap-1">
+                        <button type="button" onClick={(e) => { e.stopPropagation(); void openDetailModal(task.id); }} title="查看详情" className="rounded-lg p-1.5 text-slate-400 hover:bg-violet-50 hover:text-violet-600"><Eye size={14} /></button>
+                        {ACTIVE_STATUSES.has(task.status) ? (
+                          <button type="button" onClick={(e) => { e.stopPropagation(); void terminateTask(task.id); }} title="取消任务" className="rounded-lg p-1.5 text-slate-400 hover:bg-rose-50 hover:text-rose-600"><Square size={14} /></button>
+                        ) : null}
+                        {TERMINAL_STATUSES.has(task.status) ? (
+                          <button type="button" onClick={(e) => { e.stopPropagation(); void rerunTask(task.id); }} title="重跑任务" className="rounded-lg p-1.5 text-slate-400 hover:bg-violet-50 hover:text-violet-600"><RotateCcw size={14} /></button>
+                        ) : null}
                       </div>
-                      <p className="mt-2 font-mono text-xs text-slate-400">{detail.id}</p>
-                    </div>
-                    <div className="flex gap-2">
-                      {!TERMINAL.has(detail.status) ? <button onClick={terminate} className="inline-flex items-center gap-2 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-2 text-sm font-black text-rose-700"><Square size={14} />取消</button> : null}
-                      {TERMINAL.has(detail.status) ? <button onClick={rerun} className="inline-flex items-center gap-2 rounded-2xl border border-violet-200 bg-violet-50 px-4 py-2 text-sm font-black text-violet-700"><RotateCcw size={14} />重跑</button> : null}
-                    </div>
-                  </div>
-                  {detail.error_reason ? <div className="mt-4 flex gap-2 rounded-2xl border border-rose-200 bg-rose-50 p-3 text-sm font-bold text-rose-700"><AlertCircle size={16} />{detail.error_reason}</div> : null}
-                  <div className="mt-5 grid gap-3 md:grid-cols-2">
-                    {[
-                      ['模型', detail.model || '-'], ['Worker', detail.worker_id || '-'], ['输出目录', detail.output_dir], ['创建时间', formatDate(detail.created_at)], ['开始时间', formatDate(detail.started_at)], ['结束时间', formatDate(detail.finished_at)],
-                    ].map(([label, value]) => <div key={label} className="rounded-2xl bg-slate-50 p-3"><div className="text-[10px] font-black uppercase tracking-widest text-slate-400">{label}</div><div className="mt-1 break-all text-xs font-bold text-slate-700">{value}</div></div>)}
-                  </div>
-                </section>
+                    </ExecutionTableTd>
+                  </tr>
+                ))}
+              </tbody>
+            </ExecutionTable>
+          )}
 
-                <section className="grid gap-4 md:grid-cols-4">
-                  <StatCard label="报告结果" value={result?.result_count ?? 0} />
-                  <StatCard label="分组" value={result?.summary?.group_count ?? detail.result_summary?.group_count ?? 0} />
-                  <StatCard label="完成分组" value={result?.summary?.done_group_count ?? detail.result_summary?.done_group_count ?? 0} />
-                  <StatCard label="产物数" value={artifacts.length} />
-                </section>
-
-                <section className="grid gap-6 xl:grid-cols-[320px_minmax(0,1fr)]">
-                  <div className="rounded-[2rem] border border-slate-200 bg-white p-4 shadow-sm">
-                    <h3 className="text-sm font-black text-slate-900">产物文件</h3>
-                    <div className="mt-3 max-h-[520px] space-y-2 overflow-auto pr-1">
-                      {artifacts.length === 0 ? <div className="rounded-2xl border border-dashed border-slate-200 p-8 text-center text-xs text-slate-400">暂无产物</div> : artifacts.map((file) => (
-                        <button key={file.path} onClick={() => openArtifact(file.path)} className="w-full rounded-2xl border border-slate-200 bg-white p-3 text-left hover:bg-slate-50">
-                          <div className="flex items-center gap-2 text-xs font-black text-slate-700"><FileText size={14} /> <span className="break-all">{file.path}</span></div>
-                          <div className="mt-1 text-[10px] text-slate-400">{formatBytes(file.size)}</div>
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                  <div className="rounded-[2rem] border border-slate-200 bg-white p-4 shadow-sm">
-                    <h3 className="text-sm font-black text-slate-900">{artifactContent?.path || '结果预览'}</h3>
-                    {artifactContent ? (
-                      <pre className="mt-3 max-h-[520px] overflow-auto rounded-2xl bg-slate-950 p-4 text-xs leading-6 text-slate-100">{artifactContent.content}{artifactContent.truncated ? '\n\n... truncated ...' : ''}</pre>
-                    ) : result?.results?.length ? (
-                      <pre className="mt-3 max-h-[520px] overflow-auto rounded-2xl bg-slate-950 p-4 text-xs leading-6 text-slate-100">{JSON.stringify(result.results, null, 2)}</pre>
-                    ) : (
-                      <div className="mt-3 rounded-2xl border border-dashed border-slate-200 p-12 text-center text-sm text-slate-400">选择左侧产物或等待任务生成结果。</div>
-                    )}
-                  </div>
-                </section>
-              </>
-            )}
+          <div className="mt-4 flex flex-wrap items-center justify-between gap-3 text-sm">
+            <span className="text-xs text-slate-400">当前显示 {tasks.length ? offset + 1 : 0} - {offset + tasks.length} / {total}</span>
+            <div className="flex items-center justify-center gap-2">
+              <button onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page <= 1} className="rounded-lg border border-slate-200 px-3 py-1.5 text-slate-600 disabled:opacity-40">上一页</button>
+              <span className="text-slate-500">{page} / {totalPages}</span>
+              <button onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={page >= totalPages} className="rounded-lg border border-slate-200 px-3 py-1.5 text-slate-600 disabled:opacity-40">下一页</button>
+            </div>
           </div>
         </section>
       </div>
+
+      {createModalOpen ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setCreateModalOpen(false)} />
+          <div className="relative z-10 max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-2xl border border-slate-200 bg-white shadow-2xl">
+            <form onSubmit={createTask} className="space-y-4 p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-lg font-black text-slate-900">新建漏洞验证任务</h2>
+                  <p className="mt-1 text-xs text-slate-400">所有输入路径必须位于当前项目数据目录下。</p>
+                </div>
+                <button type="button" onClick={() => setCreateModalOpen(false)} className="rounded-lg p-1 text-slate-400 hover:text-slate-700"><X size={16} /></button>
+              </div>
+
+              <label className="block text-sm font-semibold text-slate-600">
+                任务名称 <span className="text-rose-500">*</span>
+                <input className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" value={form.name} onChange={(e) => setForm((p) => ({ ...p, name: e.target.value }))} required />
+              </label>
+              <label className="block text-sm font-semibold text-slate-600">
+                描述
+                <textarea className="mt-1 min-h-20 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" value={form.description} onChange={(e) => setForm((p) => ({ ...p, description: e.target.value }))} placeholder="可选：说明本次验证范围或报告来源" />
+              </label>
+              {[
+                ['reports_dir', '报告目录', '扫描报告所在目录'],
+                ['source_root', '源码根目录', '源码文件根目录'],
+                ['binary_root', '二进制根目录', '二进制文件根目录'],
+                ['threat_path', '威胁模型文件', 'threat_model.md 路径'],
+                ['model', '模型', DEFAULT_MODEL],
+              ].map(([key, label, help]) => (
+                <label key={key} className="block text-sm font-semibold text-slate-600">
+                  {label} {key !== 'model' ? <span className="text-rose-500">*</span> : null}
+                  <input
+                    className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 font-mono text-xs"
+                    value={(form as any)[key]}
+                    onChange={(e) => setForm((p) => ({ ...p, [key]: e.target.value }))}
+                    placeholder={help}
+                    required={key !== 'model'}
+                  />
+                </label>
+              ))}
+              <label className="block text-sm font-semibold text-slate-600">
+                并发
+                <input type="number" min={1} max={16} className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" value={form.concurrency} onChange={(e) => setForm((p) => ({ ...p, concurrency: Number(e.target.value || 1) }))} />
+              </label>
+
+              <div className="flex justify-end gap-2 pt-2">
+                <button type="button" onClick={() => setCreateModalOpen(false)} className="rounded-xl border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-50">取消</button>
+                <button type="submit" disabled={creating} className="inline-flex items-center gap-2 rounded-xl bg-violet-700 px-4 py-2 text-sm font-black text-white hover:bg-violet-800 disabled:opacity-50">
+                  {creating ? <Loader2 size={14} className="animate-spin" /> : <Plus size={14} />}创建任务
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      ) : null}
+
+      {detailModalOpen ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setDetailModalOpen(false)} />
+          <div className="relative z-10 flex max-h-[92vh] w-full max-w-6xl flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl">
+            <div className="flex flex-wrap items-start justify-between gap-4 border-b border-slate-200 p-5">
+              <div>
+                <div className="flex flex-wrap items-center gap-3">
+                  {detail?.status === 'success' ? <CheckCircle2 className="text-emerald-500" /> : detail?.status === 'failed' ? <XCircle className="text-rose-500" /> : detail?.status === 'running' ? <Loader2 className="animate-spin text-blue-500" /> : <ShieldCheck className="text-violet-500" />}
+                  <h2 className="text-xl font-black text-slate-900">{detail?.name || selectedTaskId}</h2>
+                  <StatusBadge status={detail?.status} />
+                </div>
+                <div className="mt-2 font-mono text-xs text-slate-400">{selectedTaskId}</div>
+              </div>
+              <div className="flex items-center gap-2">
+                {detail && ACTIVE_STATUSES.has(detail.status) ? <button onClick={() => void terminateTask(detail.id)} className="inline-flex items-center gap-2 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-sm font-black text-rose-700"><Square size={14} />取消</button> : null}
+                {detail && TERMINAL_STATUSES.has(detail.status) ? <button onClick={() => void rerunTask(detail.id)} className="inline-flex items-center gap-2 rounded-xl border border-violet-200 bg-violet-50 px-3 py-2 text-sm font-black text-violet-700"><RotateCcw size={14} />重跑</button> : null}
+                <button onClick={() => detail && void loadDetail(detail.id)} className="rounded-xl border border-slate-200 p-2 text-slate-500 hover:bg-slate-50"><RefreshCw size={15} className={detailLoading ? 'animate-spin' : ''} /></button>
+                <button onClick={() => setDetailModalOpen(false)} className="rounded-xl p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-700"><X size={16} /></button>
+              </div>
+            </div>
+
+            <div className="overflow-y-auto p-5">
+              {detailLoading && !detail ? (
+                <div className="flex items-center gap-2 py-12 text-sm text-slate-500"><Loader2 size={14} className="animate-spin" />加载任务详情...</div>
+              ) : detail ? (
+                <div className="space-y-5">
+                  {detail.error_reason ? <div className="flex gap-2 rounded-2xl border border-rose-200 bg-rose-50 p-3 text-sm font-bold text-rose-700"><AlertCircle size={16} />{detail.error_reason}</div> : null}
+
+                  <div className="grid gap-3 md:grid-cols-3">
+                    <InfoRow label="模型" value={detail.model || '-'} />
+                    <InfoRow label="Worker" value={detail.worker_id || '-'} />
+                    <InfoRow label="输出目录" value={detail.output_dir} />
+                    <InfoRow label="报告目录" value={detail.reports_dir} />
+                    <InfoRow label="源码根目录" value={detail.source_root} />
+                    <InfoRow label="二进制根目录" value={detail.binary_root} />
+                    <InfoRow label="创建时间" value={formatDate(detail.created_at)} />
+                    <InfoRow label="开始/结束" value={`${formatDate(detail.started_at)} / ${formatDate(detail.finished_at)}`} />
+                    <InfoRow label="耗时" value={<span className="inline-flex items-center gap-1"><Clock3 size={12} />{formatDuration(detail.started_at, detail.finished_at)}</span>} />
+                  </div>
+
+                  <div className="grid gap-4 md:grid-cols-4">
+                    <SummaryCard label="报告结果" value={result?.result_count ?? detail.result_summary?.result_count ?? 0} />
+                    <SummaryCard label="分组" value={result?.summary?.group_count ?? detail.result_summary?.group_count ?? 0} />
+                    <SummaryCard label="完成分组" value={result?.summary?.done_group_count ?? detail.result_summary?.done_group_count ?? 0} />
+                    <SummaryCard label="产物数" value={artifacts.length} />
+                  </div>
+
+                  <div className="grid gap-5 xl:grid-cols-[320px_minmax(0,1fr)]">
+                    <div className="rounded-2xl border border-slate-200 bg-white p-4">
+                      <h3 className="text-sm font-black text-slate-900">产物文件</h3>
+                      <div className="mt-3 max-h-[420px] space-y-2 overflow-auto pr-1">
+                        {artifacts.length === 0 ? <div className="rounded-2xl border border-dashed border-slate-200 p-8 text-center text-xs text-slate-400">暂无产物</div> : artifacts.map((file) => (
+                          <button key={file.path} onClick={() => void openArtifact(file.path)} className="w-full rounded-2xl border border-slate-200 bg-white p-3 text-left hover:bg-slate-50">
+                            <div className="flex items-center gap-2 text-xs font-black text-slate-700"><FileText size={14} /> <span className="break-all">{file.path}</span></div>
+                            <div className="mt-1 text-[10px] text-slate-400">{formatBytes(file.size)}</div>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                    <div className="rounded-2xl border border-slate-200 bg-white p-4">
+                      <h3 className="text-sm font-black text-slate-900">{artifactContent?.path || '结果预览'}</h3>
+                      {artifactContent ? (
+                        <pre className="mt-3 max-h-[420px] overflow-auto rounded-2xl bg-slate-950 p-4 text-xs leading-6 text-slate-100">{artifactContent.content}{artifactContent.truncated ? '\n\n... truncated ...' : ''}</pre>
+                      ) : result?.results?.length ? (
+                        <pre className="mt-3 max-h-[420px] overflow-auto rounded-2xl bg-slate-950 p-4 text-xs leading-6 text-slate-100">{JSON.stringify(result.results, null, 2)}</pre>
+                      ) : (
+                        <div className="mt-3 rounded-2xl border border-dashed border-slate-200 p-12 text-center text-sm text-slate-400">选择左侧产物或等待任务生成结果。</div>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="rounded-2xl border border-slate-200 bg-white p-4">
+                    <h3 className="text-sm font-black text-slate-900">事件</h3>
+                    <div className="mt-3 max-h-56 space-y-2 overflow-auto pr-1">
+                      {detail.events?.length ? detail.events.map((event) => (
+                        <div key={event.id} className="rounded-xl bg-slate-50 p-3 text-xs">
+                          <div className="flex flex-wrap items-center justify-between gap-2">
+                            <span className="font-black text-slate-700">{event.event_type}</span>
+                            <span className="text-slate-400">{formatDate(event.created_at)}</span>
+                          </div>
+                          <div className="mt-1 text-slate-600">{event.message}</div>
+                        </div>
+                      )) : <div className="rounded-2xl border border-dashed border-slate-200 p-8 text-center text-xs text-slate-400">暂无事件</div>}
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="py-12 text-center text-sm text-slate-400">暂无详情</div>
+              )}
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 };

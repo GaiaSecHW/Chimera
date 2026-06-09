@@ -55,6 +55,7 @@ const defaultConfig = (projectId: string): AppDfaServiceConfig => ({
   pi_max_retries: -1,
   pi_retry_delay: 10,
   max_trace_depth: 5,
+  deep_trace_enabled: false,
   callee_concurrency: 4,
   workers: defaultRole(),
   judges: defaultRole(),
