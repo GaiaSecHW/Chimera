@@ -41,7 +41,7 @@ export const VulnReproConfigPage: React.FC<VulnPageProps> = ({ projectId, onNavi
     ]}
     phaseActionLinks={[
       { label: '去验证复现', view: 'vuln-verification' },
-      { label: '去结束管理', view: 'vuln-decision' },
+      { label: '去漏洞中心', view: 'vuln-decision' },
       { label: '去能力注册', view: 'vuln-services' },
     ]}
   />

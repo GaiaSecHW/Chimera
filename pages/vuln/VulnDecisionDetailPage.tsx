@@ -21,7 +21,7 @@ export const VulnDecisionDetailPage: React.FC<VulnPageProps> = ({ projectId, onN
           className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-black text-slate-700 shadow-sm"
         >
           <ArrowLeft size={16} />
-          返回结束列表
+          返回漏洞中心
         </button>
       </div>
       <VulnEnginePage
@@ -29,16 +29,16 @@ export const VulnDecisionDetailPage: React.FC<VulnPageProps> = ({ projectId, onN
         currentViewId="vuln-decision-detail"
         onNavigateToView={onNavigateToView}
         initialWorkspaceView="cases"
-        pageTitle="结束详情"
-        pageDescription="聚焦单个终态案例，查看结束原因、时间线证据、人工任务与结果闭环。"
+        pageTitle="漏洞详情"
+        pageDescription="聚焦单个已收敛案例，查看它是如何经过研判或验证形成最终漏洞结论、非漏洞结论或观察结论。"
         hideLifecycleChrome
         hidePhaseContext
         hideCasePool
         showStats={false}
         showWorkspaceTabs={false}
         showPhasePreset={false}
-        casePoolTitle="结束案例"
-        casePoolDescription="围绕当前选中案例查看终态结果、时间线与人工任务。"
+        casePoolTitle="漏洞案例"
+        casePoolDescription="围绕当前选中案例查看最终结论、时间线证据与人工任务。"
         stageScope={['finished']}
         defaultStageFilter="finished"
         lockStageFilter

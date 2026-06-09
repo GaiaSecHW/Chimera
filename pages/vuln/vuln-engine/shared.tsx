@@ -95,8 +95,8 @@ export const LIFECYCLE_NAV_ITEMS = [
   },
   {
     view: 'vuln-decision',
-    label: '结束管理',
-    description: '管理已结束案例与结束结论，统一查看生命周期终态。',
+    label: '漏洞中心',
+    description: '统一查看已经过研判或验证收敛的案例，只有形成明确结论后才在这里作为漏洞结果管理。',
   },
   {
     view: 'vuln-queue',
@@ -136,7 +136,7 @@ export const LIFECYCLE_STAGE_FLOW = [
   { view: 'vuln-intake', label: '上报' },
   { view: 'vuln-analysis', label: '研判' },
   { view: 'vuln-verification', label: '验证' },
-  { view: 'vuln-decision', label: '结束' },
+  { view: 'vuln-decision', label: '漏洞' },
 ] as const;
 
 export const severityTone: Record<string, string> = {

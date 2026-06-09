@@ -12,16 +12,16 @@ export const VulnDecisionPage: React.FC<VulnPageProps> = ({ projectId, onNavigat
     currentViewId="vuln-decision"
     onNavigateToView={onNavigateToView}
     initialWorkspaceView="cases"
-    pageTitle="结束管理中心"
-    pageDescription="紧凑查看已结束实例，点击后进入结束详情页核对结束原因、证据链与时间线闭环。"
+    pageTitle="漏洞中心"
+    pageDescription="集中查看已完成研判或验证收敛的案例，只有在形成明确结论后，才在这里作为漏洞或非漏洞结果统一管理。"
     showStats={false}
     showWorkspaceTabs={false}
     hidePhaseContext
     compactCaseLayout
     listEntryMode
     preserveLifecycleProgressBand
-    casePoolTitle="已结束案例"
-    casePoolDescription="只展示 finished 终态实例，点击后进入结束详情。"
+    casePoolTitle="已收敛案例"
+    casePoolDescription="只展示已经过研判或验证收敛的 finished 实例，点击后进入漏洞详情。"
     stageScope={['finished']}
     defaultStageFilter="finished"
     lockStageFilter
@@ -30,6 +30,6 @@ export const VulnDecisionPage: React.FC<VulnPageProps> = ({ projectId, onNavigat
     preferredTaskType="manual_decision"
     detailTargetView="vuln-decision-detail"
     detailStorageKey="chimera-vuln-open-decision-case-id"
-    detailEntryLabel="查看结束详情"
+    detailEntryLabel="查看漏洞详情"
   />
 );
