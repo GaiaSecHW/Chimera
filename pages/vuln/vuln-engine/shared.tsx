@@ -80,12 +80,12 @@ export const LIFECYCLE_NAV_ITEMS = [
   },
   {
     view: 'vuln-intake',
-    label: '疑点上报',
+    label: '疑点中心',
     description: '聚焦接收阶段，处理新上报疑点与纳管准备。',
   },
   {
     view: 'vuln-analysis',
-    label: '研判阶段',
+    label: '研判中心',
     description: '围绕研判阶段调度 AI/人工研判，支持多轮研判与人工放行。',
   },
   {

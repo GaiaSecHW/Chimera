@@ -611,19 +611,8 @@ export const SIDEBAR_SECTIONS: Record<TopLevelNavKey, NavSection[]> = {
       title: '漏洞闭环',
       items: [
         { id: 'vuln-overview', label: '生命周期总览', icon: Cpu, aliases: ['vuln-engine'], requiresProject: true, healthKey: 'vulnHealth' },
-        { id: 'vuln-intake', label: '疑点上报', icon: FolderOpen, requiresProject: true },
-        {
-          id: 'vuln-analysis',
-          label: '研判阶段',
-          icon: GitBranch,
-          aliases: ['vuln-analysis-detail'],
-          requiresProject: true,
-          subItems: [
-            { id: 'vuln-analysis', label: '研判工作台', aliases: ['vuln-analysis-detail'], requiresProject: true },
-            // [DISABLED] 评审研判 - 方便后续复用
-            // { id: 'vuln-review-judgment', label: '评审研判', aliases: ['vuln-review-judgment-detail'], requiresProject: true },
-          ],
-        },
+        { id: 'vuln-intake', label: '疑点中心', icon: FolderOpen, requiresProject: true },
+        { id: 'vuln-analysis', label: '研判中心', icon: GitBranch, aliases: ['vuln-analysis-detail'], requiresProject: true },
         { id: 'vuln-verification', label: '验证阶段', icon: ShieldCheck, aliases: ['vuln-verification-detail'], requiresProject: true },
         { id: 'vuln-decision', label: '结束管理', icon: ShieldAlert, aliases: ['vuln-decision-detail'], requiresProject: true },
         { id: 'vuln-queue', label: '运行队列', icon: Workflow, requiresProject: true },
