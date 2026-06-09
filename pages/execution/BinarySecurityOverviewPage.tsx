@@ -1221,7 +1221,7 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
 
       {showCreateDialog && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/40 px-4">
-          <div className="w-full max-w-5xl rounded-[2rem] border border-slate-200 bg-white shadow-2xl">
+          <div className="w-full max-w-5xl rounded-[2rem] border border-slate-200 bg-white text-slate-900 shadow-2xl">
             <div className="flex items-center justify-between border-b border-slate-200 px-6 py-5">
               <div>
                 <h3 className="text-xl font-black text-slate-900">{createTitle}</h3>
@@ -1271,12 +1271,22 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
                         setNameEdited(true);
                       }}
                       placeholder="任务名称"
-                      className="rounded-xl border border-slate-200 px-4 py-3 text-sm"
+                      className="rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 placeholder:text-slate-400"
                     />
-                    <input value={description} onChange={(e) => setDescription(e.target.value)} placeholder="任务描述（可选）" className="rounded-xl border border-slate-200 px-4 py-3 text-sm" />
+                    <input
+                      value={description}
+                      onChange={(e) => setDescription(e.target.value)}
+                      placeholder="任务描述（可选）"
+                      className="rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 placeholder:text-slate-400"
+                    />
                   </div>
                   {isBinaryModuleTask ? (
-                    <input value={moduleName} onChange={(e) => setModuleName(e.target.value)} placeholder="模块名" className="rounded-xl border border-slate-200 px-4 py-3 text-sm" />
+                    <input
+                      value={moduleName}
+                      onChange={(e) => setModuleName(e.target.value)}
+                      placeholder="模块名"
+                      className="rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 placeholder:text-slate-400"
+                    />
                   ) : null}
                 </>
               ) : null}
@@ -1357,15 +1367,16 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
                       <div className="text-sm font-black text-slate-900">模块推进方式</div>
                       <div className="mt-3 grid gap-2">
                         {MODULE_SELECTION_OPTIONS.map((option) => (
-                          <label key={option.value} className="flex items-center gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700">
-                            <input
-                              type="radio"
-                              name="moduleSelectionMode"
-                              checked={moduleSelectionMode === option.value}
-                              onChange={() => setModuleSelectionMode(option.value)}
-                            />
-                            {option.label}
-                          </label>
+                        <label key={option.value} className="flex items-center gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700">
+                          <input
+                            type="radio"
+                            name="moduleSelectionMode"
+                            checked={moduleSelectionMode === option.value}
+                            onChange={() => setModuleSelectionMode(option.value)}
+                            className="h-4 w-4 border-slate-300 text-slate-900 focus:ring-slate-900"
+                          />
+                          {option.label}
+                        </label>
                         ))}
                       </div>
                     </div>
@@ -1373,19 +1384,20 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
                       <div className="text-sm font-black text-slate-900">后续分析模块风险等级</div>
                       <div className="mt-3 grid grid-cols-3 gap-2">
                         {MODULE_RISK_OPTIONS.map((risk) => (
-                          <label key={risk} className="flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700">
-                            <input
-                              type="checkbox"
-                              checked={moduleRiskLevels.includes(risk)}
-                              onChange={(event) => {
-                                setModuleRiskLevels((current) => {
-                                  if (event.target.checked) return current.includes(risk) ? current : current.concat(risk);
-                                  return current.filter((item) => item !== risk);
-                                });
-                              }}
-                            />
-                            {risk}
-                          </label>
+                        <label key={risk} className="flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700">
+                          <input
+                            type="checkbox"
+                            checked={moduleRiskLevels.includes(risk)}
+                            onChange={(event) => {
+                              setModuleRiskLevels((current) => {
+                                if (event.target.checked) return current.includes(risk) ? current : current.concat(risk);
+                                return current.filter((item) => item !== risk);
+                              });
+                            }}
+                            className="h-4 w-4 rounded border-slate-300 text-slate-900 focus:ring-slate-900"
+                          />
+                          {risk}
+                        </label>
                         ))}
                       </div>
                       <div className="mt-2 text-xs text-slate-500">
@@ -1409,6 +1421,7 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
                           name="taskPipelineMode"
                           checked={pipelineMode === option.value}
                           onChange={() => setPipelineMode(option.value)}
+                          className="mt-1 h-4 w-4 border-slate-300 text-slate-900 focus:ring-slate-900"
                         />
                         <span>
                           <span className="block font-semibold">{option.label}</span>
@@ -1434,29 +1447,37 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
                         max={16}
                         value={stageParallelism[field.key] ?? 1}
                         onChange={(e) => setStageParallelism((current) => ({ ...current, [field.key]: Number(e.target.value || 1) }))}
-                        className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm"
+                        className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900"
                       />
                     </div>
                   ))}
                   <div>
                     <div className="mb-2 text-sm font-bold text-slate-700">子任务重试次数</div>
-                    <input type="number" min={0} max={10} value={maxRetries} onChange={(e) => setMaxRetries(Number(e.target.value || 0))} className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm" />
+                    <input
+                      type="number"
+                      min={0}
+                      max={10}
+                      value={maxRetries}
+                      onChange={(e) => setMaxRetries(Number(e.target.value || 0))}
+                      className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900"
+                    />
                   </div>
                 </div>
                 <label className="mt-4 flex items-center gap-3 text-sm font-semibold text-slate-700">
                   <input type="checkbox" checked={continueOnFailure} onChange={(e) => setContinueOnFailure(e.target.checked)} />
                   子任务失败时继续推进其他子任务
                 </label>
-                <div className="mt-4 grid grid-cols-1 gap-3 xl:grid-cols-2">
-                  {PARTIAL_SUCCESS_ADVANCEMENT_FIELDS.filter((field) => stages.includes(field.key)).map((field) => (
-                    <label key={field.key} className="flex items-center gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700">
-                      <input
-                        type="checkbox"
-                        checked={partialSuccessStageAdvancement[field.key] !== false}
-                        onChange={(e) => setPartialSuccessStageAdvancement((current) => ({ ...current, [field.key]: e.target.checked }))}
-                      />
-                      {field.label}
-                    </label>
+                  <div className="mt-4 grid grid-cols-1 gap-3 xl:grid-cols-2">
+                    {PARTIAL_SUCCESS_ADVANCEMENT_FIELDS.filter((field) => stages.includes(field.key)).map((field) => (
+                      <label key={field.key} className="flex items-center gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700">
+                        <input
+                          type="checkbox"
+                          checked={partialSuccessStageAdvancement[field.key] !== false}
+                          onChange={(e) => setPartialSuccessStageAdvancement((current) => ({ ...current, [field.key]: e.target.checked }))}
+                          className="h-4 w-4 rounded border-slate-300 text-slate-900 focus:ring-slate-900"
+                        />
+                        {field.label}
+                      </label>
                   ))}
                 </div>
                 </div>
