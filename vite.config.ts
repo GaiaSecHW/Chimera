@@ -50,6 +50,13 @@ export default defineConfig(({ mode }) => {
               });
             },
           },
+          '/api/agent-apps': {
+            target: 'http://127.0.0.1:13002',
+            changeOrigin: true,
+            secure: false,
+            ws: true,
+            agent: keepAliveHttpAgent,
+          },
           '/api/app/kernel-scan': {
             target: 'https://secflow.ai.icsl.huawei.com',
             changeOrigin: true,

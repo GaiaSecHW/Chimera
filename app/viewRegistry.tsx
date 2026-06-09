@@ -211,7 +211,7 @@ export const renderCurrentView = (ctx: ViewRegistryContext): React.ReactNode => 
       return <AtomicCapabilityOverviewPage projectId={ctx.selectedProjectId} onNavigate={ctx.setCurrentView} />;
     case 'developer-tools':
     case 'developer-tools-overview':
-      return <ToolOverviewPage projectId={ctx.selectedProjectId} onNavigate={ctx.setCurrentView} />;
+      return <ToolOverviewPage projectId={ctx.selectedProjectId} user={ctx.user} onNavigate={ctx.setCurrentView} />;
     case 'static-packages':
       return (
         <StaticPackagesPage
