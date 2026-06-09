@@ -86,6 +86,7 @@ const STAGE_STEPS = [
 
 type StepStatus = 'pending' | 'running' | 'completed' | 'failed';
 type DetailTab = 'overview' | 'timeline' | 'run-config' | 'session' | 'relationship' | 'result' | 'evaluation';
+type TimelineAutoRefreshValue = 'off' | '15' | '30' | '60';
 type ResultSelection = { type: 'report' } | { type: 'module'; moduleName: string };
 type StageOverviewMetric = { label: string; value: string };
 type EvaluationRoundContextMenu = {
@@ -807,6 +808,7 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
   const [timelineLevelFilter, setTimelineLevelFilter] = useState<string>('__all__');
   const [timelinePage, setTimelinePage] = useState(1);
   const [timelinePageSize, setTimelinePageSize] = useState(200);
+  const [timelineAutoRefresh, setTimelineAutoRefresh] = useState<TimelineAutoRefreshValue>('off');
   const [selection, setSelection] = useState<ResultSelection>({ type: 'report' });
   const logScrollRef = useRef<HTMLDivElement>(null);
   const [sessions, setSessions] = useState<AppSaSessionMeta[]>([]);
@@ -1087,10 +1089,11 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
   }, []);
 
   useEffect(() => {
+    if (activeTab === 'timeline') return;
     if (!detail || !['running', 'pending'].includes(detail.status)) return;
     const timer = window.setInterval(() => void loadDetail(), 5000);
     return () => window.clearInterval(timer);
-  }, [detail?.status, taskId]);
+  }, [activeTab, detail?.status, taskId]);
 
   useEffect(() => {
     if (!detail || !['running', 'pending'].includes(detail.status)) return;
@@ -1103,10 +1106,12 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
   }, [activeTab, taskId]);
 
   useEffect(() => {
-    if (activeTab !== 'timeline' || !detail || !['pending', 'running'].includes(detail.status)) return;
-    const timer = window.setInterval(() => void loadTimeline(), 12000);
+    if (activeTab !== 'timeline' || timelineAutoRefresh === 'off') return;
+    const intervalMs = Number(timelineAutoRefresh) * 1000;
+    if (!Number.isFinite(intervalMs) || intervalMs <= 0) return;
+    const timer = window.setInterval(() => void loadTimeline(), intervalMs);
     return () => window.clearInterval(timer);
-  }, [activeTab, detail?.status, taskId]);
+  }, [activeTab, taskId, timelineAutoRefresh]);
 
   useEffect(() => {
     if (logsExpanded && logScrollRef.current) {
@@ -2188,10 +2193,40 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
                     <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-500">
                       展示 {timelineRangeStart}-{timelineRangeEnd} / {filteredTimeline.length}
                     </div>
+                    <div className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-500">
+                      <button
+                        type="button"
+                        onClick={() => setTimelinePage((current) => Math.max(1, current - 1))}
+                        disabled={timelineLoading || normalizedTimelinePage <= 1}
+                        className="rounded-lg border border-slate-200 px-2 py-1 text-xs font-bold text-slate-700 hover:bg-slate-50 disabled:opacity-40"
+                      >
+                        上一页
+                      </button>
+                      <span>
+                        第 {normalizedTimelinePage} / {timelineTotalPages} 页
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => setTimelinePage((current) => Math.min(timelineTotalPages, current + 1))}
+                        disabled={timelineLoading || normalizedTimelinePage >= timelineTotalPages}
+                        className="rounded-lg border border-slate-200 px-2 py-1 text-xs font-bold text-slate-700 hover:bg-slate-50 disabled:opacity-40"
+                      >
+                        下一页
+                      </button>
+                    </div>
                     <label className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-500">
                       每页
                       <select value={timelinePageSize} onChange={(event) => setTimelinePageSize(Math.min(2000, Math.max(50, Number(event.target.value) || 200)))} className="ml-2 rounded-lg border border-slate-200 bg-white px-2 py-1 text-xs font-bold text-slate-700">
                         {[50, 100, 200, 500].map((size) => <option key={size} value={size}>{size}</option>)}
+                      </select>
+                    </label>
+                    <label className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-500">
+                      自动刷新
+                      <select value={timelineAutoRefresh} onChange={(event) => setTimelineAutoRefresh(event.target.value as TimelineAutoRefreshValue)} className="ml-2 rounded-lg border border-slate-200 bg-white px-2 py-1 text-xs font-bold text-slate-700">
+                        <option value="off">关闭</option>
+                        <option value="15">15s</option>
+                        <option value="30">30s</option>
+                        <option value="60">60s</option>
                       </select>
                     </label>
                     <button onClick={() => void loadTimeline()} disabled={timelineLoading} className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-50 disabled:opacity-50">
@@ -2290,6 +2325,27 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
                           })}
                         </tbody>
                       </table>
+                    </div>
+                    <div className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-200 bg-slate-50 px-4 py-3 text-xs font-semibold text-slate-500">
+                      <div>第 {normalizedTimelinePage} / {timelineTotalPages} 页</div>
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setTimelinePage((current) => Math.max(1, current - 1))}
+                          disabled={normalizedTimelinePage <= 1}
+                          className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-bold text-slate-700 hover:bg-slate-100 disabled:opacity-40"
+                        >
+                          上一页
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setTimelinePage((current) => Math.min(timelineTotalPages, current + 1))}
+                          disabled={normalizedTimelinePage >= timelineTotalPages}
+                          className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-bold text-slate-700 hover:bg-slate-100 disabled:opacity-40"
+                        >
+                          下一页
+                        </button>
+                      </div>
                     </div>
                   </div>
                 )}
