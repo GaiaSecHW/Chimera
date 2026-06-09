@@ -173,7 +173,8 @@ export const AgentSessionViewer: React.FC<{
   loading?: boolean;
   live?: boolean;
   error?: string | null;
-}> = ({ sessionMeta, sessionHeader, events, loading = false, live = false, error = null }) => {
+  sessionMetric?: { queue_ms?: number; exec_ms?: number; total_tokens?: number } | null;
+}> = ({ sessionMeta, sessionHeader, events, loading = false, live = false, error = null, sessionMetric }) => {
   const merged = useMemo(() => mergeAgentSessionToolResults(events), [events]);
   const scrollerRef = useRef<HTMLDivElement>(null);
   const [viewportHeight, setViewportHeight] = useState(720);
@@ -306,6 +307,24 @@ export const AgentSessionViewer: React.FC<{
             <div className="mt-1 text-xs text-slate-700">{events.length}</div>
           </div>
         </div>
+        {sessionMetric && (Number(sessionMetric.queue_ms || 0) + Number(sessionMetric.exec_ms || 0)) > 0 && (
+        <div className="mt-3 flex flex-wrap items-center gap-3">
+          <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-2">
+            <div className="text-[10px] font-black uppercase tracking-[0.16em] text-amber-600">排队耗时</div>
+            <div className="mt-1 text-sm font-bold text-amber-800">{((Number(sessionMetric.queue_ms || 0)) / 1000).toFixed(1)}s</div>
+          </div>
+          <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-2">
+            <div className="text-[10px] font-black uppercase tracking-[0.16em] text-emerald-600">计算耗时</div>
+            <div className="mt-1 text-sm font-bold text-emerald-800">{((Number(sessionMetric.exec_ms || 0)) / 1000).toFixed(1)}s</div>
+          </div>
+          {Number(sessionMetric.total_tokens || 0) > 0 && (
+          <div className="rounded-2xl border border-slate-200 bg-white px-4 py-2">
+            <div className="text-[10px] font-black uppercase tracking-[0.16em] text-slate-400">Est. Tokens</div>
+            <div className="mt-1 text-sm font-bold text-slate-700">{sessionMetric.total_tokens}</div>
+          </div>
+          )}
+        </div>
+        )}
         <div className="mt-4 flex flex-wrap gap-5 text-xs font-semibold text-slate-500">
           <span>User {userCount}</span>
           <span>Assistant {assistantCount}</span>
