@@ -64,6 +64,7 @@ const DEFAULT_SUSPICION_FORM = {
   source_service: 'manual-intake',
   asset_type: 'http',
   asset_locator: '',
+  raw_report_markdown: '',
 };
 
 const SIMPLE_AUTH_PAYLOAD = {
@@ -229,6 +230,7 @@ type EditableCaseIntake = {
   evidence_summary: string;
   evidence_reproduction_hint: string;
   evidence_references_text: string;
+  raw_report_markdown: string;
   artifacts_text: string;
   metadata_text: string;
 };
@@ -254,6 +256,7 @@ const makeEditableCaseIntake = (detail: any): EditableCaseIntake => {
     evidence_summary: detail?.evidence?.summary || '',
     evidence_reproduction_hint: detail?.evidence?.reproduction_hint || '',
     evidence_references_text: toPrettyJson(references),
+    raw_report_markdown: detail?.raw_report?.markdown || '',
     artifacts_text: toPrettyJson(Array.isArray(detail?.artifacts) ? detail.artifacts : []),
     metadata_text: toPrettyJson(detail?.metadata || {}),
   };
@@ -711,7 +714,8 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId }) => {
       setSelectedDetail(detail);
       setSelectedTimeline(timeline.items || []);
       const items = reports?.items || [];
-      const initialReportId = reports?.current_report_id || detail?.display_summary?.current_report_id || items[0]?.report_id || '';
+      const rawReportId = detail?.raw_report_summary?.report_id || detail?.display_summary?.current_report_id || '';
+      const initialReportId = rawReportId || reports?.current_report_id || items[0]?.report_id || '';
       setReportItems(items);
       setSelectedReportId(initialReportId);
       if (detail?.files_root_path) {
@@ -1079,6 +1083,14 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId }) => {
           references: [],
         },
         artifacts: [],
+        raw_report: suspicionForm.raw_report_markdown
+          ? {
+              markdown: suspicionForm.raw_report_markdown,
+              title: suspicionForm.title || '原始漏洞报告',
+              report_id: `raw-${Date.now()}`,
+              source: 'manual-intake',
+            }
+          : undefined,
         metadata: {
           source: {
             source_service: suspicionForm.source_service,
@@ -1150,6 +1162,14 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId }) => {
           reproduction_hint: editableDetail.evidence_reproduction_hint || null,
           references: evidenceReferences,
         },
+        raw_report: editableDetail.raw_report_markdown.trim()
+          ? {
+              markdown: editableDetail.raw_report_markdown,
+              title: editableDetail.title || '原始漏洞报告',
+              report_id: selectedDetail.raw_report?.report_id || `raw-${selectedDetail.id}`,
+              source: selectedDetail.raw_report?.source || selectedDetail.created_by || 'manual-edit',
+            }
+          : undefined,
         artifacts,
         metadata,
       };
@@ -1607,7 +1627,13 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId }) => {
 
     return (
       <div className="overflow-hidden rounded-[2rem] border border-slate-200 bg-white shadow-sm">
-        <div className="border-b border-slate-100 bg-[radial-gradient(circle_at_top_left,_rgba(59,130,246,0.12),_transparent_35%),linear-gradient(180deg,_#ffffff_0%,_#f8fafc_100%)] px-5 py-4 xl:px-6">
+        <div
+          className="border-b border-slate-100 px-5 py-4 xl:px-6"
+          style={{
+            background:
+              'radial-gradient(circle at top left, rgba(59,130,246,0.12), transparent 35%), linear-gradient(180deg, var(--bg-surface) 0%, var(--bg-elevated) 100%)',
+          }}
+        >
           <div className="flex flex-wrap items-center justify-between gap-3">
             <button
               type="button"
@@ -1834,6 +1860,7 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId }) => {
                     ) : (
                       reportItems.map((item: any) => {
                         const active = selectedReportId === item.report_id;
+                        const isRawReport = item.report_kind === 'imported_raw';
                         return (
                           <button
                             key={item.report_id}
@@ -1844,12 +1871,12 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId }) => {
                             }`}
                           >
                             <div className="flex items-center justify-between gap-3">
-                              <div className="text-sm font-black">{item.title || item.report_id}</div>
+                              <div className="text-sm font-black">{isRawReport ? '原始漏洞报告' : (item.title || item.report_id)}</div>
                               <span className={`rounded-lg px-2 py-1 text-[10px] font-black ${active ? 'bg-white/10 text-slate-100' : 'bg-slate-100 text-slate-500'}`}>
                                 {toStageText(item.stage)}
                               </span>
                             </div>
-                            <div className={`mt-1 text-xs ${active ? 'text-slate-200' : 'text-slate-500'}`}>{toStageText(item.stage)} · {item.generated_at ? formatTime(item.generated_at) : '未记录时间'}</div>
+                            <div className={`mt-1 text-xs ${active ? 'text-slate-200' : 'text-slate-500'}`}>{(isRawReport ? '原始报告' : toStageText(item.stage))} · {item.generated_at ? formatTime(item.generated_at) : '未记录时间'}</div>
                             <div className={`mt-2 line-clamp-3 text-xs leading-5 ${active ? 'text-slate-200' : 'text-slate-500'}`}>{item.excerpt || item.source_service_id || '暂无摘要'}</div>
                           </button>
                         );
@@ -1887,7 +1914,7 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId }) => {
                     <div className="text-[11px] font-black uppercase tracking-[0.2em] text-slate-500">疑点报告</div>
                     <div className="mt-1 text-lg font-black text-slate-900">{reportDocument?.title || reportItems.find((item) => item.report_id === selectedReportId)?.title || '未选择报告'}</div>
                     <div className="mt-1 text-xs text-slate-600">
-                      阶段：{toStageText(reportDocument?.stage || reportItems.find((item) => item.report_id === selectedReportId)?.stage)} · 来源：{reportDocument?.source_service_id || reportItems.find((item) => item.report_id === selectedReportId)?.source_service_id || '未提供'}
+                      类型：{reportDocument?.report_kind || reportItems.find((item) => item.report_id === selectedReportId)?.report_kind || 'unknown'} · 阶段：{toStageText(reportDocument?.stage || reportItems.find((item) => item.report_id === selectedReportId)?.stage)} · 来源：{reportDocument?.source_service_id || reportItems.find((item) => item.report_id === selectedReportId)?.source_service_id || '未提供'}
                     </div>
                   </div>
                   <div className="flex flex-wrap gap-2">
@@ -2306,6 +2333,10 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId }) => {
                     <label className="grid gap-1">
                       <span className="text-[11px] font-black text-slate-500">证据引用（evidence.references，JSON 数组）</span>
                       <textarea value={editableDetail?.evidence_references_text || '[]'} onChange={(event) => setEditableDetail((prev) => (prev ? { ...prev, evidence_references_text: event.target.value } : prev))} disabled={!detailEditMode || detailSaving} className="min-h-[90px] rounded-lg border border-slate-200 bg-slate-950 p-3 font-mono text-xs leading-5 text-slate-200 outline-none disabled:opacity-80" />
+                    </label>
+                    <label className="grid gap-1">
+                      <span className="text-[11px] font-black text-slate-500">原始漏洞报告（Markdown）</span>
+                      <textarea value={editableDetail?.raw_report_markdown || ''} onChange={(event) => setEditableDetail((prev) => (prev ? { ...prev, raw_report_markdown: event.target.value } : prev))} disabled={!detailEditMode || detailSaving} className="min-h-[180px] rounded-lg border border-slate-200 bg-slate-950 p-3 font-mono text-xs leading-5 text-slate-200 outline-none disabled:opacity-80" />
                     </label>
                     <label className="grid gap-1">
                       <span className="text-[11px] font-black text-slate-500">文件清单（artifacts，JSON 数组）</span>
@@ -3000,6 +3031,12 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId }) => {
               onChange={(event) => setSuspicionForm({ ...suspicionForm, summary: event.target.value })}
               placeholder="疑点摘要"
               className="min-h-[8rem] rounded-2xl border border-slate-200 px-4 py-3 outline-none"
+            />
+            <textarea
+              value={suspicionForm.raw_report_markdown}
+              onChange={(event) => setSuspicionForm({ ...suspicionForm, raw_report_markdown: event.target.value })}
+              placeholder="原始漏洞报告 Markdown"
+              className="min-h-[10rem] rounded-2xl border border-slate-200 px-4 py-3 font-mono text-xs outline-none"
             />
             <div className="grid gap-4 md:grid-cols-2">
                 <select

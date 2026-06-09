@@ -136,6 +136,17 @@ export interface VulnCaseListResponse {
   page_size: number;
 }
 
+const buildQueryString = (params: Record<string, any>): string => {
+  const query = new URLSearchParams();
+  for (const [key, rawValue] of Object.entries(params)) {
+    if (rawValue === undefined || rawValue === null) continue;
+    const value = String(rawValue).trim();
+    if (!value || value === 'undefined' || value === 'null') continue;
+    query.set(key, value);
+  }
+  return query.toString();
+};
+
 export const vulnApi = {
   getHealth: async (): Promise<{ status: string; service: string }> =>
     handleResponse(await fetch(`${API_BASE}/api/vuln/health`, { headers: getHeaders() })),
@@ -192,7 +203,7 @@ export const vulnApi = {
     })),
 
   listCases: async (params: VulnCaseListParams = {}): Promise<VulnCaseListResponse> => {
-    const query = new URLSearchParams(params as any).toString();
+    const query = buildQueryString(params as any);
     return handleResponse(await fetch(`${API_BASE}/api/vuln/cases?${query}`, { headers: getHeaders() }));
   },
 
@@ -266,12 +277,12 @@ export const vulnApi = {
     handleResponse(await fetch(`${API_BASE}/api/vuln/cases/${caseId}/recommended-actions`, { headers: getHeaders() })),
 
   listActionQueue: async (params: { project_id?: string; execution_status?: string } = {}): Promise<{ items: any[]; total: number }> => {
-    const query = new URLSearchParams(params as any).toString();
+    const query = buildQueryString(params as any);
     return handleResponse(await fetch(`${API_BASE}/api/vuln/actions/ops/queue?${query}`, { headers: getHeaders() }));
   },
 
   reconcileActionTimeouts: async (params: { project_id?: string } = {}): Promise<{ status: string; count: number; items: any[] }> => {
-    const query = new URLSearchParams(params as any).toString();
+    const query = buildQueryString(params as any);
     return handleResponse(await fetch(`${API_BASE}/api/vuln/actions/ops/queue/reconcile-timeouts?${query}`, {
       method: 'POST',
       headers: getHeaders()
@@ -279,7 +290,7 @@ export const vulnApi = {
   },
 
   listManualTasks: async (params: { project_id?: string; status?: string } = {}): Promise<{ items: any[]; total: number }> => {
-    const query = new URLSearchParams(params as any).toString();
+    const query = buildQueryString(params as any);
     return handleResponse(await fetch(`${API_BASE}/api/vuln/cases/ops/manual-tasks?${query}`, { headers: getHeaders() }));
   },
 
