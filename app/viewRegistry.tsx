@@ -72,8 +72,9 @@ import { VulnVerificationPage } from '../pages/vuln/VulnVerificationPage';
 import { VulnVerificationDetailPage } from '../pages/vuln/VulnVerificationDetailPage';
 import { VulnDecisionPage } from '../pages/vuln/VulnDecisionPage';
 import { VulnDecisionDetailPage } from '../pages/vuln/VulnDecisionDetailPage';
-import { ReviewJudgmentPage } from '../pages/vuln/ReviewJudgmentPage';
-import { ReviewJudgmentDetailPage } from '../pages/vuln/ReviewJudgmentDetailPage';
+// [DISABLED] 评审研判 - 方便后续复用
+// import { ReviewJudgmentPage } from '../pages/vuln/ReviewJudgmentPage';
+// import { ReviewJudgmentDetailPage } from '../pages/vuln/ReviewJudgmentDetailPage';
 import { VulnQueuePage } from '../pages/vuln/VulnQueuePage';
 import { VulnServicesPage } from '../pages/vuln/VulnServicesPage';
 import { VulnReproConfigPage } from '../pages/vuln/VulnReproConfigPage';
@@ -619,10 +620,11 @@ export const renderCurrentView = (ctx: ViewRegistryContext): React.ReactNode => 
       return <VulnDecisionPage projectId={ctx.selectedProjectId} onNavigateToView={ctx.setCurrentView} />;
     case 'vuln-decision-detail':
       return <VulnDecisionDetailPage projectId={ctx.selectedProjectId} onNavigateToView={ctx.setCurrentView} />;
-    case 'vuln-review-judgment':
-      return <ReviewJudgmentPage projectId={ctx.selectedProjectId} onNavigateToView={ctx.setCurrentView} />;
-    case 'vuln-review-judgment-detail':
-      return <ReviewJudgmentDetailPage projectId={ctx.selectedProjectId} onNavigateToView={ctx.setCurrentView} />;
+    // [DISABLED] 评审研判 - 方便后续复用
+    // case 'vuln-review-judgment':
+    //   return <ReviewJudgmentPage projectId={ctx.selectedProjectId} onNavigateToView={ctx.setCurrentView} />;
+    // case 'vuln-review-judgment-detail':
+    //   return <ReviewJudgmentDetailPage projectId={ctx.selectedProjectId} onNavigateToView={ctx.setCurrentView} />;
     case 'vuln-queue':
       return <VulnQueuePage projectId={ctx.selectedProjectId} onNavigateToView={ctx.setCurrentView} />;
     case 'vuln-services':

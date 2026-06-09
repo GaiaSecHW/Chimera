@@ -208,8 +208,9 @@ export const PROJECT_REQUIRED_VIEWS = new Set<string>([
   'vuln-verification-detail',
   'vuln-decision',
   'vuln-decision-detail',
-  'vuln-review-judgment',
-  'vuln-review-judgment-detail',
+  // [DISABLED] 评审研判 - 方便后续复用
+  // 'vuln-review-judgment',
+  // 'vuln-review-judgment-detail',
   'vuln-queue',
   'vuln-services',
   'vuln-repro-config',
@@ -619,7 +620,8 @@ export const SIDEBAR_SECTIONS: Record<TopLevelNavKey, NavSection[]> = {
           requiresProject: true,
           subItems: [
             { id: 'vuln-analysis', label: '研判工作台', aliases: ['vuln-analysis-detail'], requiresProject: true },
-            { id: 'vuln-review-judgment', label: '评审研判', aliases: ['vuln-review-judgment-detail'], requiresProject: true },
+            // [DISABLED] 评审研判 - 方便后续复用
+            // { id: 'vuln-review-judgment', label: '评审研判', aliases: ['vuln-review-judgment-detail'], requiresProject: true },
           ],
         },
         { id: 'vuln-verification', label: '验证阶段', icon: ShieldCheck, aliases: ['vuln-verification-detail'], requiresProject: true },
