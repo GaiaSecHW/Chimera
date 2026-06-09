@@ -45,6 +45,18 @@ export interface DataflowVulnTraceTreeNode {
   findings_count: number;
   termination_reasons: string[];
   children: DataflowVulnTraceTreeNode[];
+  /** Pruned branch marker */
+  pruned?: boolean;
+  /** Reason this branch was pruned (skipped/merged/cycle/depth_limit) */
+  prune_reason?: string;
+  /** Taint constraints inferred at callsite (for pruned branches) */
+  taint_constraints?: Array<{
+    kind: string;
+    target_symbol: string;
+    target_arg_index: number;
+    evidence: string;
+    confidence: string;
+  }>;
 }
 
 export interface DataflowVulnGraphResponse {

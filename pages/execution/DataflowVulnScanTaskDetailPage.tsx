@@ -373,6 +373,43 @@ function flattenTraceTree(node?: DataflowVulnTraceTreeNode | null): DataflowVuln
   return [node, ...node.children.flatMap((child) => flattenTraceTree(child))];
 }
 
+const PRUNE_LABELS: Record<string, string> = {
+  skipped: '已跳过',
+  merged_equivalent_taint_validation: '等价合并',
+  cycle: '循环检测',
+  depth_limit: '深度限制',
+  external: '外部函数',
+  not_in_source_root_funcdb: '非源码根',
+  already_analyzed: '已分析',
+};
+
+function PrunedBranchBadge({ node, level = 0 }: { node: DataflowVulnTraceTreeNode; level?: number }) {
+  const reasonLabel = PRUNE_LABELS[node.prune_reason || ''] || node.prune_reason || node.followup_status;
+  const tooltipLines: string[] = [];
+  tooltipLines.push(`剪枝原因: ${reasonLabel}`);
+  if (node.followup_reason) tooltipLines.push(`详细: ${node.followup_reason}`);
+  if (node.taint_constraints?.length) {
+    tooltipLines.push('');
+    tooltipLines.push('调用点约束:');
+    for (const c of node.taint_constraints) {
+      tooltipLines.push(`  • ${c.kind} ${c.target_symbol || `arg${c.target_arg_index}`}: ${c.evidence || c.confidence}`);
+    }
+  }
+  return (
+    <div className="group relative" style={{ marginLeft: `${level * 16}px` }}>
+      <div className="inline-flex items-center gap-2 rounded-xl border border-dashed border-slate-300 bg-slate-50 px-3 py-2 text-xs text-slate-400 cursor-help">
+        <span className="font-mono font-semibold text-slate-500">{node.function_name || '-'}</span>
+        <span className="text-[10px] text-slate-400">↵</span>
+        <span className="text-[10px] text-amber-600">{reasonLabel}</span>
+      </div>
+      {/* Tooltip */}
+      <div className="pointer-events-none absolute left-0 top-full z-50 mt-1 min-w-[220px] rounded-xl border border-slate-300 bg-slate-900 px-3 py-2 text-[11px] leading-relaxed text-slate-100 shadow-lg opacity-0 transition-opacity group-hover:opacity-100 whitespace-pre-wrap">
+        {tooltipLines.join('\n')}
+      </div>
+    </div>
+  );
+}
+
 function TraceTreeNodeCard({
   node,
   selectedRunId,
@@ -385,6 +422,9 @@ function TraceTreeNodeCard({
   level?: number;
 }) {
   const selected = selectedRunId === node.run_id || (!selectedRunId && level === 0);
+  if (node.pruned) {
+    return <PrunedBranchBadge node={node} level={level} />;
+  }
   return (
     <div className="space-y-2">
       <button
