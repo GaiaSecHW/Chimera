@@ -420,4 +420,117 @@
   :root[data-theme='chimera'] .border-white\/90 { border-color: rgba(120, 88, 43, 0.18); }
   :root[data-theme='chimera'] .text-emerald-50,
   :root[data-theme='chimera'] .text-emerald-100 { color: #fff6e8; }
+
+  :root[data-theme='chimera-classic'] .bg-slate-50,
+  :root[data-theme='chimera-classic'] .bg-slate-50\/30,
+  :root[data-theme='chimera-classic'] .bg-slate-50\/40,
+  :root[data-theme='chimera-classic'] .bg-slate-50\/50,
+  :root[data-theme='chimera-classic'] .bg-slate-50\/60,
+  :root[data-theme='chimera-classic'] .bg-slate-50\/70,
+  :root[data-theme='chimera-classic'] .bg-slate-50\/80,
+  :root[data-theme='chimera-classic'] .bg-slate-50\/90,
+  :root[data-theme='chimera-classic'] .bg-gray-50 {
+    background-color: var(--bg-elevated);
+  }
+
+  :root[data-theme='chimera-classic'] .bg-slate-100,
+  :root[data-theme='chimera-classic'] .bg-slate-100\/10,
+  :root[data-theme='chimera-classic'] .bg-gray-100 {
+    background-color: color-mix(in srgb, var(--bg-elevated) 82%, var(--brand-soft));
+  }
+
+  :root[data-theme='chimera-classic'] .bg-slate-200,
+  :root[data-theme='chimera-classic'] .bg-slate-300,
+  :root[data-theme='chimera-classic'] .bg-gray-200,
+  :root[data-theme='chimera-classic'] .bg-gray-300 {
+    background-color: color-mix(in srgb, var(--bg-sidebar-muted) 72%, var(--brand-soft));
+  }
+
+  :root[data-theme='chimera-classic'] .hover\:bg-slate-50:hover,
+  :root[data-theme='chimera-classic'] .hover\:bg-gray-50:hover,
+  :root[data-theme='chimera-classic'] .hover\:bg-white:hover {
+    background-color: color-mix(in srgb, var(--bg-surface) 88%, var(--brand-soft));
+  }
+
+  :root[data-theme='chimera-classic'] .hover\:bg-slate-100:hover,
+  :root[data-theme='chimera-classic'] .hover\:bg-gray-100:hover,
+  :root[data-theme='chimera-classic'] .hover\:bg-slate-200:hover {
+    background-color: color-mix(in srgb, var(--bg-sidebar-muted) 76%, var(--brand-soft));
+  }
+
+  :root[data-theme='chimera-classic'] .disabled\:bg-slate-50:disabled,
+  :root[data-theme='chimera-classic'] .disabled\:bg-slate-100:disabled,
+  :root[data-theme='chimera-classic'] .disabled\:bg-gray-100:disabled {
+    background-color: color-mix(in srgb, var(--bg-elevated) 88%, var(--bg-app));
+  }
+
+  :root[data-theme='chimera-classic'] .binary-security-detail-shell .bg-white,
+  :root[data-theme='chimera-classic'] .binary-security-detail-shell .bg-white\/90,
+  :root[data-theme='chimera-classic'] .binary-security-detail-shell .bg-white\/80 {
+    background-color: var(--bg-surface);
+  }
+
+  :root[data-theme='chimera-classic'] .binary-security-detail-shell .bg-slate-50,
+  :root[data-theme='chimera-classic'] .binary-security-detail-shell .bg-slate-50\/70,
+  :root[data-theme='chimera-classic'] .binary-security-detail-shell .bg-slate-50\/80,
+  :root[data-theme='chimera-classic'] .binary-security-detail-shell .bg-slate-50\/90,
+  :root[data-theme='chimera-classic'] .binary-security-detail-shell .bg-slate-100 {
+    background-color: var(--bg-elevated);
+  }
+
+  :root[data-theme='chimera-classic'] .binary-security-detail-shell .hover\:bg-slate-50:hover,
+  :root[data-theme='chimera-classic'] .binary-security-detail-shell .hover\:bg-slate-100:hover,
+  :root[data-theme='chimera-classic'] .binary-security-detail-shell .hover\:bg-white:hover {
+    background-color: color-mix(in srgb, var(--bg-elevated) 82%, var(--brand-soft));
+  }
+
+  :root[data-theme='chimera-classic'] .binary-security-detail-shell .binary-security-modules-confirmation,
+  :root[data-theme='chimera-classic'] .binary-security-detail-shell .binary-security-modules-table {
+    background-color: color-mix(in srgb, var(--bg-surface) 90%, var(--brand-soft));
+    border-color: color-mix(in srgb, var(--border-subtle) 82%, var(--brand-soft));
+  }
+
+  :root[data-theme='chimera-classic'] .binary-security-detail-shell .binary-security-modules-confirmation.bg-amber-50\/70 {
+    background-color: color-mix(in srgb, var(--bg-surface) 78%, rgba(245, 158, 11, 0.28));
+    border-color: color-mix(in srgb, rgba(245, 158, 11, 0.7) 55%, var(--border-subtle));
+  }
+
+  :root[data-theme='chimera-classic'] .binary-security-detail-shell .binary-security-modules-confirmation .bg-slate-50,
+  :root[data-theme='chimera-classic'] .binary-security-detail-shell .binary-security-modules-table .bg-slate-50,
+  :root[data-theme='chimera-classic'] .binary-security-detail-shell .binary-security-modules-table .bg-slate-50\/70,
+  :root[data-theme='chimera-classic'] .binary-security-detail-shell .binary-security-modules-table .bg-slate-50\/80,
+  :root[data-theme='chimera-classic'] .binary-security-detail-shell .binary-security-modules-table .bg-slate-100,
+  :root[data-theme='chimera-classic'] .binary-security-detail-shell .binary-security-modules-confirmation .bg-white,
+  :root[data-theme='chimera-classic'] .binary-security-detail-shell .binary-security-modules-table .bg-white,
+  :root[data-theme='chimera-classic'] .binary-security-detail-shell .binary-security-modules-table .bg-white\/90,
+  :root[data-theme='chimera-classic'] .binary-security-detail-shell .binary-security-modules-table .bg-white\/80 {
+    background-color: color-mix(in srgb, var(--bg-elevated) 86%, var(--brand-soft));
+  }
+
+  :root[data-theme='chimera-classic'] .binary-security-detail-shell .binary-security-modules-table thead.bg-slate-50,
+  :root[data-theme='chimera-classic'] .binary-security-detail-shell .binary-security-modules-table .bg-slate-50.text-\[11px\] {
+    background-color: color-mix(in srgb, var(--bg-sidebar-muted) 84%, var(--brand-soft));
+  }
+
+  :root[data-theme='chimera-classic'] .binary-security-detail-shell .binary-security-modules-table tbody.bg-white,
+  :root[data-theme='chimera-classic'] .binary-security-detail-shell .binary-security-modules-table tr.bg-white,
+  :root[data-theme='chimera-classic'] .binary-security-detail-shell .binary-security-modules-table tr.bg-slate-50\/70 {
+    background-color: color-mix(in srgb, var(--bg-surface) 88%, var(--brand-soft));
+  }
+
+  :root[data-theme='chimera-classic'] .binary-security-detail-shell .binary-security-modules-table tr.hover\:bg-slate-50\/80:hover,
+  :root[data-theme='chimera-classic'] .binary-security-detail-shell .binary-security-modules-table .hover\:bg-slate-50\/80:hover {
+    background-color: color-mix(in srgb, var(--bg-sidebar-muted) 76%, var(--brand-soft));
+  }
+
+  :root[data-theme='chimera-classic'] .binary-security-detail-shell .binary-security-modules-confirmation .border-slate-200,
+  :root[data-theme='chimera-classic'] .binary-security-detail-shell .binary-security-modules-table .border-slate-200,
+  :root[data-theme='chimera-classic'] .binary-security-detail-shell .binary-security-modules-table .divide-slate-100 {
+    border-color: color-mix(in srgb, var(--border-subtle) 82%, var(--brand-soft));
+  }
+
+  :root[data-theme='chimera-classic'] .binary-security-detail-shell .binary-security-modules-table .border-dashed.border-slate-300,
+  :root[data-theme='chimera-classic'] .binary-security-detail-shell .binary-security-modules-confirmation .border-dashed.border-slate-300 {
+    border-color: color-mix(in srgb, var(--border-subtle) 72%, var(--brand-soft));
+  }
 }
