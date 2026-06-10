@@ -318,6 +318,10 @@ const OBSERVE_VIEWS = new Set([
 ]);
 
 const AIGW_VIEWS = new Set([
+  'aigw-dashboard',
+  'aigw-config',
+  'aigw-keys',
+  'aigw-logs',
   'aigw-admin',
   'config-center-llm',
   'config-center-root',
@@ -415,9 +419,7 @@ export const getTopLevelDefaultView = (nav: TopLevelNavKey, user: UserInfo | nul
     case 'skill': return 'mobile-security-ipc-vuln';
     case 'tools': return 'developer-tools-overview';
     case 'atomic': return 'developer-atomic-capability-overview';
-    case 'aigw':
-      if (access.canAccessAdminDashboard) return 'admin-dashboard';
-      return 'aigw-admin';
+    case 'aigw': return 'aigw-dashboard';
     case 'schedule': return 'chirmera-platform-schedule';
     case 'evolution': return 'binary-evolution-center';
     case 'tenant':
@@ -608,11 +610,11 @@ export const SIDEBAR_SECTIONS: Record<TopLevelNavKey, NavSection[]> = {
     {
       title: 'AI 网关',
       items: [
-        { id: 'aigw-admin', label: 'AI 网关管理', icon: Activity },
-        { id: 'config-center-llm', label: '配置中心', icon: Key, aliases: ['config-center-root', 'config-center-llm-chat'], healthKey: 'configCenterHealth' },
-        { id: 'admin-dashboard', label: '管理员控制台', icon: ShieldAlert },
-        { id: 'sys-settings', label: '系统设置', icon: Settings },
-        { id: 'change-password', label: '修改密码', icon: Lock },
+        { id: 'aigw-dashboard', label: 'Dashboard', icon: LayoutDashboard, aliases: ['aigw-admin'] },
+        { id: 'aigw-config', label: '网关配置', icon: Settings },
+        { id: 'aigw-keys', label: '密钥管理', icon: Key },
+        { id: 'aigw-logs', label: '查看日志', icon: FileText },
+        { id: 'config-center-llm', label: '模型配置中心', icon: Activity, aliases: ['config-center-root', 'config-center-llm-chat'], healthKey: 'configCenterHealth' },
       ],
     },
   ],

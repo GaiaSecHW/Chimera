@@ -47,6 +47,11 @@ type LogDrawerPreset = {
   backendUnitId?: string;
 };
 
+interface AiGatewayPageProps {
+  entryView?: string;
+  onNavigate?: (view: string) => void;
+}
+
 const emptyAlias = (): Omit<AiGatewayModelAlias, 'id'> => ({
   alias_name: '',
   max_tokens_default: 8192,
@@ -112,7 +117,7 @@ const formatJsonBlock = (value?: string | null) => {
   }
 };
 
-export const AiGatewayPage: React.FC = () => {
+export const AiGatewayPage: React.FC<AiGatewayPageProps> = ({ entryView = 'aigw-config', onNavigate }) => {
   const platformApi = api.domains.platform;
   const { notify, feedbackNodes } = useUiFeedback();
   const loadDataRequestIdRef = useRef(0);
@@ -217,6 +222,7 @@ export const AiGatewayPage: React.FC = () => {
     binding,
     unit: backendUnits.find((unit) => unit.id === binding.backend_unit_id) || null,
   })), [backendUnits, selectedAliasBindings]);
+
   useEffect(() => {
     if (!selectedAliasId && modelAliases[0]?.id) setSelectedAliasId(modelAliases[0].id);
     if (selectedAliasId && !modelAliases.some((item) => item.id === selectedAliasId)) {
@@ -1007,12 +1013,80 @@ export const AiGatewayPage: React.FC = () => {
     </section>
   );
 
+  const renderKeyManagementSection = (options?: { onClose?: () => void }) => (
+    <section className="flex h-full min-h-0 flex-col rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
+      <div className="mb-5 flex shrink-0 items-start justify-between gap-4">
+        <div>
+          <div className="text-[11px] font-black uppercase tracking-[0.2em] text-slate-400">调用凭证</div>
+          <h2 className="mt-2 text-xl font-black text-slate-900">调用密钥管理</h2>
+        </div>
+        <div className="flex items-center gap-2">
+          <button onClick={() => openLlmKeyModal()} className="inline-flex items-center gap-2 rounded-2xl bg-slate-900 px-4 py-2.5 text-sm font-bold text-white">
+            <Plus className="h-4 w-4" />
+            新建调用密钥
+          </button>
+          {options?.onClose ? (
+            <button onClick={options.onClose} className="rounded-2xl bg-slate-100 p-2 text-slate-600 hover:bg-slate-200">
+              <X className="h-5 w-5" />
+            </button>
+          ) : null}
+        </div>
+      </div>
+      <div className="min-h-0 flex-1 overflow-auto">
+        <table className="min-w-full text-sm">
+          <thead>
+            <tr className="border-b border-slate-200 text-left text-slate-500">
+              <th className="px-3 py-3 font-bold">名称</th>
+              <th className="px-3 py-3 font-bold">前缀</th>
+              <th className="px-3 py-3 font-bold">类型</th>
+              <th className="px-3 py-3 font-bold">最大并发</th>
+              <th className="px-3 py-3 font-bold">任务范围</th>
+              <th className="px-3 py-3 font-bold">状态</th>
+              <th className="px-3 py-3 font-bold">更新时间</th>
+              <th className="px-3 py-3 font-bold">操作</th>
+            </tr>
+          </thead>
+          <tbody>
+            {llmKeys.map((item) => (
+              <tr key={item.id} className="border-b border-slate-100">
+                <td className="px-3 py-3">
+                  <div className="font-bold text-slate-900">{item.key_name || `密钥 #${item.id}`}</div>
+                  <div className="text-xs text-slate-500">{item.description || '无备注'}</div>
+                </td>
+                <td className="px-3 py-3 font-mono text-slate-700">{item.key_prefix || '-'}</td>
+                <td className="px-3 py-3 text-slate-700">{item.key_type === 'task' ? '任务密钥' : item.key_type === 'work' ? '工作密钥' : item.key_type}</td>
+                <td className="px-3 py-3 text-slate-700">{item.max_concurrency || 0}</td>
+                <td className="px-3 py-3 text-slate-700">{item.task_id ? (item.key_type === 'work' && item.sub_task_id ? `${item.task_id} / ${item.sub_task_id}` : item.task_id) : '-'}</td>
+                <td className="px-3 py-3"><span className={`rounded-full px-2.5 py-1 text-xs font-bold ${item.enabled ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500'}`}>{item.enabled ? '启用' : '禁用'}</span></td>
+                <td className="px-3 py-3 text-slate-700">{item.updated_at ? new Date(item.updated_at).toLocaleString('zh-CN') : '-'}</td>
+                <td className="px-3 py-3">
+                  <div className="flex items-center gap-2">
+                    <button onClick={() => openLlmKeyModal(item)} className="rounded-xl bg-slate-100 px-3 py-2 text-xs font-bold text-slate-700 hover:bg-slate-200">编辑</button>
+                    <button onClick={() => openLlmKeyDetail(item.id)} className="rounded-xl bg-slate-100 px-3 py-2 text-xs font-bold text-slate-700 hover:bg-slate-200">查看</button>
+                    <button onClick={() => deleteLlmKey(item)} className="rounded-xl bg-rose-100 px-3 py-2 text-xs font-bold text-rose-700 hover:bg-rose-200"><Trash2 className="h-3.5 w-3.5" /></button>
+                  </div>
+                </td>
+              </tr>
+            ))}
+            {!llmKeys.length && !loading ? (
+              <tr>
+                <td colSpan={8} className="px-3 py-10 text-center text-slate-400">暂无调用密钥</td>
+              </tr>
+            ) : null}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  );
+
+  const pageTitle = entryView === 'aigw-keys' ? '密钥管理' : entryView === 'aigw-logs' ? '请求日志' : '网关配置';
+
   return (
     <div className="flex min-h-full flex-col gap-6 p-8">
       {feedbackNodes}
       <div className="flex shrink-0 items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-black tracking-tight text-slate-900">AI 网关</h1>
+          <h1 className="text-3xl font-black tracking-tight text-slate-900">{pageTitle}</h1>
         </div>
         <button
           onClick={refreshData}
@@ -1033,17 +1107,26 @@ export const AiGatewayPage: React.FC = () => {
         </div>
       ) : null}
 
+      {entryView === 'aigw-keys' ? (
+        <div className="min-h-[680px] flex-1">
+          {renderKeyManagementSection()}
+        </div>
+      ) : entryView === 'aigw-logs' ? (
+        <div className="min-h-[680px] flex-1">
+          {renderLogsSection()}
+        </div>
+      ) : (
       <section className="flex min-h-[680px] flex-1 flex-col rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
         <div className="mb-5 flex shrink-0 flex-wrap items-center justify-between gap-3">
           <div>
             <h2 className="text-xl font-black text-slate-900">模型配置工作台</h2>
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            <button onClick={() => setKeyManagementOpen(true)} className="inline-flex items-center gap-2 rounded-2xl bg-slate-100 px-4 py-2.5 text-sm font-bold text-slate-700 hover:bg-slate-200">
+            <button onClick={() => onNavigate ? onNavigate('aigw-keys') : setKeyManagementOpen(true)} className="inline-flex items-center gap-2 rounded-2xl bg-slate-100 px-4 py-2.5 text-sm font-bold text-slate-700 hover:bg-slate-200">
               <KeyRound className="h-4 w-4" />
               密钥管理
             </button>
-            <button onClick={() => openLogsDrawer()} className="inline-flex items-center gap-2 rounded-2xl bg-slate-100 px-4 py-2.5 text-sm font-bold text-slate-700 hover:bg-slate-200">
+            <button onClick={() => onNavigate ? onNavigate('aigw-logs') : openLogsDrawer()} className="inline-flex items-center gap-2 rounded-2xl bg-slate-100 px-4 py-2.5 text-sm font-bold text-slate-700 hover:bg-slate-200">
               <FileText className="h-4 w-4" />
               查看日志
             </button>
@@ -1291,6 +1374,7 @@ export const AiGatewayPage: React.FC = () => {
           </aside>
         </div>
       </section>
+      )}
 
       {aliasModalOpen ? (
         <div className="fixed inset-0 z-[280] flex items-center justify-center bg-slate-950/60 p-6 backdrop-blur-sm">
