@@ -590,9 +590,9 @@ export const SIDEBAR_SECTIONS: Record<TopLevelNavKey, NavSection[]> = {
       title: '开发者工具',
       items: [
         { id: 'developer-tools-overview', label: '工具总览', icon: Settings, requiresProject: true, aliases: ['developer-tools'] },
-        { id: 'binary-security', label: '二进制固件端到端扫描', icon: Settings, aliases: ['binary-security-root', 'binary-security-task-list', 'binary-security-detail'], requiresProject: true },
-        { id: 'source-security', label: '源码端到端扫描', icon: Settings, aliases: ['source-security-detail'], requiresProject: true },
-        { id: 'binary-module-security', label: '二进制模块端到端扫描', icon: Settings, aliases: ['binary-module-security-detail'], requiresProject: true },
+        { id: 'binary-security', label: '盖亚-二进制固件', icon: Settings, aliases: ['binary-security-root', 'binary-security-task-list', 'binary-security-detail'], requiresProject: true },
+        { id: 'source-security', label: '盖亚-源码', icon: Settings, aliases: ['source-security-detail'], requiresProject: true },
+        { id: 'binary-module-security', label: '盖亚-二进制模块', icon: Settings, aliases: ['binary-module-security-detail'], requiresProject: true },
         { id: 'redline-verification', label: '红线验证', icon: ShieldCheck, aliases: ['redline-verification-detail'], requiresProject: true },
       ],
     },

@@ -19,7 +19,7 @@ import {
 import { useNavigate } from 'react-router-dom';
 import { api } from '../clients/api';
 import { StatusBadge } from '../components/StatusBadge';
-import type { ProjectInputOverview, ProjectInputUploadDetail, ProjectInputUploadRecord, ProjectInputUploadStats } from '../types/types';
+import type { ProjectInputOverview, ProjectInputUploadDetail, ProjectInputUploadRecord, ProjectInputUploadStats, UserInfo } from '../types/types';
 import { formatUploadBytes, getLatestBatchSummary, getUploadModeLabel, isAllowedArchiveFileName } from './assets/baseResourcePageModel';
 
 type InputType = 'document' | 'code' | 'software' | 'other';
@@ -27,6 +27,7 @@ type InputType = 'document' | 'code' | 'software' | 'other';
 interface TestInputPageProps {
   currentView: string;
   selectedProjectId?: string;
+  user?: UserInfo | null;
 }
 
 interface UploadQueueItem {
@@ -62,6 +63,11 @@ const normalizeType = (value: string): InputType => {
   return 'other';
 };
 
+const getUploadRecordDisplayName = (record: Pick<ProjectInputUploadRecord, 'display_name'>) => {
+  const displayName = String(record.display_name || '').trim();
+  return displayName || 'null';
+};
+
 const emptyStats = (projectId: string, inputType: InputType): ProjectInputUploadStats => ({
   project_id: projectId,
   input_type: inputType,
@@ -74,7 +80,7 @@ const emptyStats = (projectId: string, inputType: InputType): ProjectInputUpload
   stored_total_size_bytes: 0,
 });
 
-export const TestInputPage: React.FC<TestInputPageProps> = ({ selectedProjectId }) => {
+export const TestInputPage: React.FC<TestInputPageProps> = ({ selectedProjectId, user = null }) => {
   const navigate = useNavigate();
   const fileserverApi = api.domains.assets.fileserver;
   const projectId = selectedProjectId || localStorage.getItem('last_project_id') || localStorage.getItem('selectedProjectId') || '';
@@ -201,6 +207,7 @@ export const TestInputPage: React.FC<TestInputPageProps> = ({ selectedProjectId 
     return records.filter((record) => {
       const typeLabel = INPUT_TYPE_META[normalizeType(record.input_type)].label.toLowerCase();
       return (
+        getUploadRecordDisplayName(record).toLowerCase().includes(keyword) ||
         record.upload_id.toLowerCase().includes(keyword) ||
         record.target_path.toLowerCase().includes(keyword) ||
         typeLabel.includes(keyword) ||
@@ -310,10 +317,15 @@ export const TestInputPage: React.FC<TestInputPageProps> = ({ selectedProjectId 
     }
   };
 
+  const canOpenDirectory = useMemo(() => {
+    const platformRole = String(user?.platform_role || '').trim().toLowerCase();
+    return platformRole === 'developer' || platformRole === 'ordinary_admin' || platformRole === 'super_admin';
+  }, [user]);
+
   const openProjectPath = (path: string) => {
-    localStorage.setItem('projectFileExplorerInitialPath', path);
-    navigate('/app');
-    window.dispatchEvent(new CustomEvent('chimera:setCurrentView', { detail: { view: 'project-file-explorer' } }));
+    const normalizedPath = path.startsWith('/') ? path : `/${path}`;
+    const targetHash = `#/project-file-explorer?path=${encodeURIComponent(normalizedPath)}`;
+    window.open(targetHash, '_blank', 'noopener,noreferrer');
   };
 
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
@@ -485,7 +497,8 @@ export const TestInputPage: React.FC<TestInputPageProps> = ({ selectedProjectId 
                                 <ChevronDown size={16} className={isExpanded ? 'rotate-180 transition-transform' : 'transition-transform'} />
                               </button>
                               <div className="min-w-0">
-                                <div className="font-black text-slate-900">{record.upload_id}</div>
+                                <div className="font-black text-slate-900">{getUploadRecordDisplayName(record)}</div>
+                                <div className="mt-1 text-xs font-mono text-slate-500">{record.upload_id}</div>
                                 <div className="mt-1 text-xs text-slate-500">{record.source_archive_count} 个源压缩包</div>
                               </div>
                             </div>
@@ -510,10 +523,12 @@ export const TestInputPage: React.FC<TestInputPageProps> = ({ selectedProjectId 
                                 <Eye size={14} className="mr-1 inline-block" />
                                 详情
                               </button>
-                              <button onClick={() => openProjectPath(record.target_path)} className="rounded-xl border border-slate-200 px-3 py-2 text-xs font-black text-slate-600 hover:bg-slate-100">
-                                <HardDrive size={14} className="mr-1 inline-block" />
-                                打开目录
-                              </button>
+                              {canOpenDirectory ? (
+                                <button onClick={() => openProjectPath(record.target_path)} className="rounded-xl border border-slate-200 px-3 py-2 text-xs font-black text-slate-600 hover:bg-slate-100">
+                                  <HardDrive size={14} className="mr-1 inline-block" />
+                                  打开目录
+                                </button>
+                              ) : null}
                               <button onClick={() => openAppendModal(record)} className="rounded-xl border border-slate-200 px-3 py-2 text-xs font-black text-slate-600 hover:bg-slate-100">
                                 <Plus size={14} className="mr-1 inline-block" />
                                 追加
@@ -639,8 +654,9 @@ export const TestInputPage: React.FC<TestInputPageProps> = ({ selectedProjectId 
               <div className="flex items-start justify-between gap-4 border-b border-slate-100 px-6 py-5">
                 <div>
                   <div className="text-sm font-black uppercase tracking-[0.18em] text-slate-500">上传记录详情</div>
-                  <div className="mt-2 text-2xl font-black text-slate-900">{record.upload_id}</div>
+                  <div className="mt-2 text-2xl font-black text-slate-900">{getUploadRecordDisplayName(record)}</div>
                   <div className="mt-2 flex flex-wrap items-center gap-2 text-xs">
+                    <span className="rounded-full bg-slate-100 px-3 py-1 font-mono text-slate-600">{record.upload_id}</span>
                     <StatusBadge status={record.status} />
                     {latestBatch ? <span className="rounded-full bg-slate-100 px-3 py-1 font-semibold text-slate-600">最新批次：{latestBatch.status}</span> : null}
                     <span className="rounded-full bg-slate-100 px-3 py-1 font-semibold text-slate-600">类型：{INPUT_TYPE_META[normalizeType(record.input_type)].label}</span>
@@ -655,7 +671,7 @@ export const TestInputPage: React.FC<TestInputPageProps> = ({ selectedProjectId 
                 </button>
               </div>
 
-              <div className="grid gap-5 overflow-y-auto px-6 py-6 lg:grid-cols-[1.1fr_0.9fr]">
+              <div className="overflow-y-auto px-6 py-6">
                 <div className="space-y-5">
                   <section className="rounded-[1.5rem] border border-slate-200 bg-slate-50 p-5">
                     <div className="text-sm font-black text-slate-900">基础信息</div>
@@ -695,16 +711,6 @@ export const TestInputPage: React.FC<TestInputPageProps> = ({ selectedProjectId 
                     </div>
                   </section>
 
-                  <section className="rounded-[1.5rem] border border-slate-200 bg-white p-5">
-                    <div className="text-sm font-black text-slate-900">错误与结果</div>
-                    <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4">
-                      <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">错误摘要</div>
-                      <div className="mt-2 text-sm leading-6 text-slate-700">{record.last_error || latestBatch?.error_summary || '无'}</div>
-                    </div>
-                  </section>
-                </div>
-
-                <div className="space-y-5">
                   <section className="rounded-[1.5rem] border border-slate-200 bg-white p-5">
                     <div className="text-sm font-black text-slate-900">批次历史</div>
                     {isDetailLoading ? (
@@ -764,9 +770,11 @@ export const TestInputPage: React.FC<TestInputPageProps> = ({ selectedProjectId 
                 <button type="button" onClick={() => setDetailDialogTarget(null)} className="rounded-2xl border border-slate-200 px-4 py-3 text-sm font-black text-slate-600">
                   关闭
                 </button>
-                <button type="button" onClick={() => openProjectPath(record.target_path)} className="rounded-2xl bg-slate-950 px-4 py-3 text-sm font-black text-white">
-                  打开目录
-                </button>
+                {canOpenDirectory ? (
+                  <button type="button" onClick={() => openProjectPath(record.target_path)} className="rounded-2xl bg-slate-950 px-4 py-3 text-sm font-black text-white">
+                    打开目录
+                  </button>
+                ) : null}
               </div>
             </div>
           </div>

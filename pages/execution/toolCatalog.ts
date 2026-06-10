@@ -22,7 +22,7 @@ export interface ToolDescriptor {
 export const toolCatalog: ToolDescriptor[] = [
   {
     id: 'binary-security',
-    name: '二进制固件端到端扫描',
+    name: '盖亚-二进制固件',
     summary: '面向整包固件执行端到端编排，从解包、系统分析到漏洞挖掘统一串联。',
     thumbnailDescription: '适合对固件包做全流程自动化安全扫描与结果收敛。',
     inputDescription: '输入固件镜像、项目上下文、扫描策略、执行参数与可选编排配置。',
@@ -47,7 +47,7 @@ export const toolCatalog: ToolDescriptor[] = [
   },
   {
     id: 'source-security',
-    name: '源码端到端扫描',
+    name: '盖亚-源码',
     summary: '针对源码工程执行端到端安全扫描，聚焦源码输入下的分析、漏洞发现和结果归并。',
     thumbnailDescription: '适合对源码目录做一体化安全分析和漏洞结果汇总。',
     inputDescription: '输入源码目录、项目上下文、扫描策略、阶段参数以及源码侧分析配置。',
@@ -72,7 +72,7 @@ export const toolCatalog: ToolDescriptor[] = [
   },
   {
     id: 'binary-module-security',
-    name: '二进制模块端到端扫描',
+    name: '盖亚-二进制模块',
     summary: '面向单个二进制模块执行端到端扫描，更适合对指定模块进行聚焦式编排和结果分析。',
     thumbnailDescription: '适合对某个二进制模块做精细化安全扫描与结果核查。',
     inputDescription: '输入模块文件、模块上下文、项目信息、任务配置和模块级执行参数。',

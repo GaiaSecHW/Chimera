@@ -6,6 +6,8 @@ import {
   FileSubproject,
   ManagedFile,
   ProjectInputUploadDetail,
+  ProjectInputUploadBrowseResponse,
+  ProjectInputUploadResolveResponse,
   ProjectInputUploadListResponse,
   ProjectInputOverview,
   ProjectInputUploadStats,
@@ -343,6 +345,22 @@ export const fileserverApi = {
 
   getProjectInputUploadDetail: async (uploadId: string): Promise<ProjectInputUploadDetail> => {
     const response = await fetch(`${API_BASE}/api/fileserver/project-input/uploads/${encodeURIComponent(uploadId)}`, {
+      headers: getHeaders(),
+    });
+    return handleResponse(response);
+  },
+
+  browseProjectInputUpload: async (projectId: string, uploadId: string, relativePath = ''): Promise<ProjectInputUploadBrowseResponse> => {
+    const query = new URLSearchParams({ project_id: projectId, relative_path: relativePath }).toString();
+    const response = await fetch(`${API_BASE}/api/fileserver/project-input/uploads/${encodeURIComponent(uploadId)}/browse?${query}`, {
+      headers: getHeaders(),
+    });
+    return handleResponse(response);
+  },
+
+  resolveProjectInputUpload: async (projectId: string, uploadId: string, relativePath = ''): Promise<ProjectInputUploadResolveResponse> => {
+    const query = new URLSearchParams({ project_id: projectId, relative_path: relativePath }).toString();
+    const response = await fetch(`${API_BASE}/api/fileserver/project-input/uploads/${encodeURIComponent(uploadId)}/resolve?${query}`, {
       headers: getHeaders(),
     });
     return handleResponse(response);

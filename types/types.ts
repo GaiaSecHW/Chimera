@@ -946,6 +946,7 @@ export interface ProjectInputUploadRecord {
   project_id: string;
   input_type: 'code' | 'document' | 'software' | 'other' | string;
   status: 'pending' | 'processing' | 'succeeded' | 'partial_failed' | 'failed';
+  display_name?: string | null;
   keep_original: boolean;
   batch_count: number;
   source_archive_count: number;
@@ -986,6 +987,46 @@ export interface ProjectInputOverview {
 
 export interface ProjectInputUploadDetail extends ProjectInputUploadRecord {
   batches: ProjectInputUploadBatchSummary[];
+}
+
+export interface ProjectInputUploadBrowseEntry {
+  name: string;
+  relative_path: string;
+  absolute_path: string;
+  node_type: 'file' | 'directory' | string;
+  size?: number | null;
+  updated_at?: string | null;
+  has_children: boolean;
+  content_type?: string | null;
+}
+
+export interface ProjectInputUploadBrowseResponse {
+  project_id: string;
+  upload_id: string;
+  input_type: string;
+  target_path: string;
+  current_relative_path: string;
+  current_absolute_path: string;
+  root_relative_path: string;
+  root_absolute_path: string;
+  current_name: string;
+  breadcrumbs: ProjectFilesystemBreadcrumbItem[];
+  directories: ProjectInputUploadBrowseEntry[];
+  files: ProjectInputUploadBrowseEntry[];
+}
+
+export interface ProjectInputUploadResolveResponse {
+  project_id: string;
+  upload_id: string;
+  input_type: string;
+  target_path: string;
+  relative_path: string;
+  absolute_path: string;
+  node_type: 'file' | 'directory' | string;
+  name: string;
+  size?: number | null;
+  updated_at?: string | null;
+  content_type?: string | null;
 }
 
 export interface VulnFileserverRoot {
@@ -2088,6 +2129,11 @@ export interface ScheduleCenterUserTaskInput {
   target_path: string;
   latest_batch_id?: string | null;
   keep_original: boolean;
+  selection_type?: 'file' | 'file_list' | 'directory' | string;
+  relative_path?: string | null;
+  relative_paths?: string[] | null;
+  resolved_path?: string | null;
+  display_name?: string | null;
 }
 
 export interface ScheduleCenterUserTask {
@@ -2096,6 +2142,7 @@ export interface ScheduleCenterUserTask {
   task_type: ScheduleCenterUserTaskType | string;
   name: string;
   description?: string | null;
+  module_name?: string | null;
   create_status: string;
   dispatch_status: string;
   business_status: string;
@@ -2122,6 +2169,12 @@ export interface ScheduleCenterUserTaskCreatePayload {
   name: string;
   description?: string;
   input_upload_ids: string[];
+  input_binding?: {
+    upload_id: string;
+    selection_type: 'file' | 'file_list' | 'directory';
+    relative_path?: string;
+    relative_paths?: string[];
+  };
   policy: Record<string, any>;
   dispatch_policy: Record<string, any>;
   task_key_ref: string;
