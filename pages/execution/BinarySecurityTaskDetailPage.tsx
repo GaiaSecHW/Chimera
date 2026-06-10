@@ -1905,6 +1905,11 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
   const [stageItemsCurrentPage, setStageItemsCurrentPage] = useState(1);
   const [stageItemsPerPage, setStageItemsPerPage] = useState(DEFAULT_STAGE_ITEMS_PER_PAGE);
   const [moduleSelectionLoading, setModuleSelectionLoading] = useState(false);
+  const [moduleTableNameFilter, setModuleTableNameFilter] = useState('');
+  const [moduleTableRiskFilter, setModuleTableRiskFilter] = useState<'all' | '高' | '中' | '低'>('all');
+  const [moduleTableSourceFilter, setModuleTableSourceFilter] = useState<'all' | '系统分析' | '候选' | '已选'>('all');
+  const [moduleTableSortKey, setModuleTableSortKey] = useState<'module_name' | 'risk_level' | 'risk_score' | 'file_count' | 'module_key'>('risk_score');
+  const [moduleTableSortDirection, setModuleTableSortDirection] = useState<'asc' | 'desc'>('desc');
   const [moduleSelection, setModuleSelection] = useState<BinarySecurityModuleSelection | null>(null);
   const [selectedModuleKeys, setSelectedModuleKeys] = useState<string[]>([]);
   const [entrySelectionLoading, setEntrySelectionLoading] = useState(false);
@@ -2912,6 +2917,53 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
       );
     });
   }, [candidateModules, selectedModules, systemAnalysisModules]);
+  const overviewModuleRows = useMemo(() => {
+    const rows = systemAnalysisModules.length > 0 ? systemAnalysisModules : mergedModuleRows.map((row) => row.module);
+    return rows.map((module, index) => {
+      const moduleKey = moduleContractKey(module, index);
+      return {
+        module,
+        moduleKey,
+        sourceTags: ['系统分析'],
+        candidate: candidateModules.some((candidate, candidateIndex) => moduleContractKey(candidate, candidateIndex) === moduleKey),
+        selected: selectedModules.some((selected, selectedIndex) => moduleContractKey(selected, selectedIndex) === moduleKey),
+      };
+    });
+  }, [candidateModules, mergedModuleRows, selectedModules, systemAnalysisModules]);
+  const filteredAndSortedModuleRows = useMemo(() => {
+    const normalizedNameFilter = moduleTableNameFilter.trim().toLowerCase();
+    const filtered = overviewModuleRows.filter((row) => {
+      const moduleName = moduleContractText(row.module, 'module_name') || row.moduleKey;
+      const moduleKey = row.moduleKey || '';
+      const riskLevel = moduleContractText(row.module, 'risk_level') || '';
+      if (moduleTableRiskFilter !== 'all' && riskLevel !== moduleTableRiskFilter) return false;
+      if (moduleTableSourceFilter !== 'all' && !row.sourceTags.includes(moduleTableSourceFilter)) return false;
+      if (normalizedNameFilter) {
+        const haystack = `${moduleName} ${moduleKey} ${row.sourceTags.join(' ')}`.toLowerCase();
+        if (!haystack.includes(normalizedNameFilter)) return false;
+      }
+      return true;
+    });
+    const sorted = [...filtered].sort((left, right) => {
+      const direction = moduleTableSortDirection === 'asc' ? 1 : -1;
+      const leftModuleName = moduleContractText(left.module, 'module_name') || left.moduleKey || '';
+      const rightModuleName = moduleContractText(right.module, 'module_name') || right.moduleKey || '';
+      const leftRiskLevel = moduleContractText(left.module, 'risk_level') || '';
+      const rightRiskLevel = moduleContractText(right.module, 'risk_level') || '';
+      const leftRiskScore = moduleContractNumber(left.module, 'risk_score') ?? -1;
+      const rightRiskScore = moduleContractNumber(right.module, 'risk_score') ?? -1;
+      const leftFileCount = moduleContractNumber(left.module, 'file_count') ?? -1;
+      const rightFileCount = moduleContractNumber(right.module, 'file_count') ?? -1;
+      const leftModuleKey = left.moduleKey || '';
+      const rightModuleKey = right.moduleKey || '';
+      if (moduleTableSortKey === 'module_name') return leftModuleName.localeCompare(rightModuleName, 'zh-Hans-CN') * direction;
+      if (moduleTableSortKey === 'risk_level') return leftRiskLevel.localeCompare(rightRiskLevel, 'zh-Hans-CN') * direction;
+      if (moduleTableSortKey === 'risk_score') return (leftRiskScore - rightRiskScore) * direction;
+      if (moduleTableSortKey === 'file_count') return (leftFileCount - rightFileCount) * direction;
+      return leftModuleKey.localeCompare(rightModuleKey, 'zh-Hans-CN') * direction;
+    });
+    return sorted;
+  }, [moduleTableNameFilter, moduleTableRiskFilter, moduleTableSourceFilter, moduleTableSortDirection, moduleTableSortKey, overviewModuleRows]);
 
   const copyModuleReportValue = async (value: string, successMessage: string) => {
     if (!value.trim()) {
@@ -3302,7 +3354,38 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
           ) : null}
         </div>
       </div>
-      {rows.length === 0 ? (
+      <div className="flex flex-col gap-3 border-b border-slate-100 px-5 py-4 lg:flex-row lg:items-center lg:justify-between">
+        <div className="flex flex-1 flex-col gap-3 lg:flex-row lg:items-center">
+          <input
+            value={moduleTableNameFilter}
+            onChange={(event) => setModuleTableNameFilter(event.target.value)}
+            placeholder="按模块名/模块键快速筛选"
+            className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 outline-none lg:max-w-sm"
+          />
+          <select
+            value={moduleTableRiskFilter}
+            onChange={(event) => setModuleTableRiskFilter(event.target.value as 'all' | '高' | '中' | '低')}
+            className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-bold text-slate-700 outline-none"
+          >
+            <option value="all">全部风险</option>
+            <option value="高">高</option>
+            <option value="中">中</option>
+            <option value="低">低</option>
+          </select>
+          <select
+            value={moduleTableSourceFilter}
+            onChange={(event) => setModuleTableSourceFilter(event.target.value as 'all' | '系统分析' | '候选' | '已选')}
+            className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-bold text-slate-700 outline-none"
+          >
+            <option value="all">全部来源</option>
+            <option value="系统分析">系统分析</option>
+            <option value="候选">候选</option>
+            <option value="已选">已选</option>
+          </select>
+        </div>
+        <div className="text-xs font-bold text-slate-500">当前显示 {filteredAndSortedModuleRows.length} / {rows.length}</div>
+      </div>
+      {filteredAndSortedModuleRows.length === 0 ? (
         <div className="px-5 py-10 text-center text-sm text-slate-400">{emptyText}</div>
       ) : (
         <div className="overflow-x-auto">
@@ -3310,17 +3393,27 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
             <thead className="bg-slate-50 text-[11px] font-black uppercase tracking-[0.12em] text-slate-400">
               <tr>
                 {requiresModuleConfirmation ? <th className="w-16 px-4 py-3">勾选</th> : null}
-                <th className="min-w-[220px] px-4 py-3">模块</th>
+                <th className="min-w-[220px] px-4 py-3">
+                  <button type="button" onClick={() => { setModuleTableSortKey('module_name'); setModuleTableSortDirection((current) => moduleTableSortKey === 'module_name' && current === 'asc' ? 'desc' : 'asc'); }} className="font-black text-slate-500 hover:text-slate-900">模块</button>
+                </th>
+                <th className="w-28 px-4 py-3">
+                  <button type="button" onClick={() => { setModuleTableSortKey('risk_level'); setModuleTableSortDirection((current) => moduleTableSortKey === 'risk_level' && current === 'asc' ? 'desc' : 'asc'); }} className="font-black text-slate-500 hover:text-slate-900">风险高危程度</button>
+                </th>
                 <th className="w-44 px-4 py-3">模块归类</th>
                 <th className="w-36 px-4 py-3">模块报告</th>
-                <th className="w-24 px-4 py-3">风险</th>
-                <th className="w-24 px-4 py-3">分数</th>
-                <th className="w-24 px-4 py-3">文件数</th>
-                <th className="min-w-[220px] px-4 py-3">模块键</th>
+                <th className="w-24 px-4 py-3">
+                  <button type="button" onClick={() => { setModuleTableSortKey('risk_score'); setModuleTableSortDirection((current) => moduleTableSortKey === 'risk_score' && current === 'asc' ? 'desc' : 'asc'); }} className="font-black text-slate-500 hover:text-slate-900">分数</button>
+                </th>
+                <th className="w-24 px-4 py-3">
+                  <button type="button" onClick={() => { setModuleTableSortKey('file_count'); setModuleTableSortDirection((current) => moduleTableSortKey === 'file_count' && current === 'asc' ? 'desc' : 'asc'); }} className="font-black text-slate-500 hover:text-slate-900">文件数</button>
+                </th>
+                <th className="min-w-[220px] px-4 py-3">
+                  <button type="button" onClick={() => { setModuleTableSortKey('module_key'); setModuleTableSortDirection((current) => moduleTableSortKey === 'module_key' && current === 'asc' ? 'desc' : 'asc'); }} className="font-black text-slate-500 hover:text-slate-900">模块键</button>
+                </th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 bg-white">
-              {rows.map(({ module, moduleKey, sourceTags, candidate, selected }) => {
+              {filteredAndSortedModuleRows.map(({ module, moduleKey, sourceTags, candidate, selected }) => {
                 const checked = selectedModuleKeys.includes(moduleKey);
                 const fileCount = moduleContractNumber(module, 'file_count');
                 const selectable = requiresModuleConfirmation && candidate;
@@ -3364,6 +3457,11 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                       <div className="mt-1 text-[11px] text-slate-500">{moduleContractText(module, 'module_type', 'language') || '-'}</div>
                     </td>
                     <td className="px-4 py-3 align-top">
+                      <span className={`inline-flex rounded-full border px-2 py-1 font-bold ${statusTone(moduleContractText(module, 'risk_level') || 'pending')}`}>
+                        {moduleContractText(module, 'risk_level') || '-'}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 align-top">
                       <div className="flex flex-wrap gap-1.5">
                         {sourceTags.map((tag) => (
                           <span
@@ -3391,11 +3489,6 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                         <FileText size={12} />
                         {reportStatusLabel}
                       </div>
-                    </td>
-                    <td className="px-4 py-3 align-top">
-                      <span className={`inline-flex rounded-full border px-2 py-1 font-bold ${statusTone(moduleContractText(module, 'risk_level') || 'pending')}`}>
-                        {moduleContractText(module, 'risk_level') || '-'}
-                      </span>
                     </td>
                     <td className="px-4 py-3 align-top font-bold text-slate-700">{moduleContractNumber(module, 'risk_score') ?? '-'}</td>
                     <td className="px-4 py-3 align-top font-bold text-slate-700">{fileCount ?? '-'}</td>
@@ -5378,10 +5471,10 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                     </span>
                     <button
                       type="button"
-                      onClick={() => setSelectedModuleKeys(candidateModules.map((module, index) => moduleContractKey(module, index)).filter(Boolean))}
+                      onClick={() => setSelectedModuleKeys(overviewModuleRows.map((row) => row.moduleKey).filter(Boolean))}
                       className="rounded-full border border-slate-200 bg-white px-3 py-2 text-xs font-black text-slate-700"
                     >
-                      全选候选模块
+                      全选全部模块
                     </button>
                     <button
                       type="button"
@@ -5411,7 +5504,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                 </section>
               ) : (
                 renderModuleTable(
-                  mergedModuleRows,
+                  overviewModuleRows,
                   isBinaryModuleTask ? '当前任务未生成可展示的模块输入表。' : '当前任务尚未生成可展示的高危模块表。',
                 )
               )}
