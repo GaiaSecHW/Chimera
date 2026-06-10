@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import rehypeRaw from 'rehype-raw';
+
 import { ArrowLeft, Loader2, X } from 'lucide-react';
 import { redlineVerificationApi } from '../../../clients/redlineVerification';
 import type { RedlineReportHistory } from '../../../clients/redlineVerification';
@@ -65,7 +65,7 @@ export const ReportHistoryPanel: React.FC<Props> = ({ taskId, visible, onClose }
           ))}
           {!loading && selectedReport && (
             <div className="prose prose-sm prose-invert max-w-none">
-              <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeRaw]}>
+              <ReactMarkdown remarkPlugins={[remarkGfm]} >
                 {selectedReport.reportContent || '无报告内容'}
               </ReactMarkdown>
             </div>
