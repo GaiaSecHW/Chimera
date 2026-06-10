@@ -11,6 +11,7 @@ import {
   ListTodo,
   RefreshCw,
   ScrollText,
+  ShieldCheck,
   Sparkles,
 } from 'lucide-react';
 
@@ -75,6 +76,7 @@ export const VulnCaseDetailLayout: React.FC<{
   selectedReportId: string;
   onSelectReport: (reportId: string) => void;
   onRefresh: () => void;
+  onCreateAutoVerify?: () => void;
   stageActionContent?: React.ReactNode;
 }> = ({
   projectId,
@@ -91,6 +93,7 @@ export const VulnCaseDetailLayout: React.FC<{
   selectedReportId,
   onSelectReport,
   onRefresh,
+  onCreateAutoVerify,
   stageActionContent,
 }) => {
   const [activeTab, setActiveTab] = useState<DetailTab>('report');
@@ -149,6 +152,12 @@ export const VulnCaseDetailLayout: React.FC<{
             </div>
           </div>
           <div className="flex shrink-0 flex-wrap gap-2">
+            {onCreateAutoVerify ? (
+              <button onClick={onCreateAutoVerify} className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-4 py-2 text-xs font-black text-white shadow-sm shadow-blue-500/20 transition hover:bg-blue-700">
+                <ShieldCheck size={14} />
+                新建自动化验证任务
+              </button>
+            ) : null}
             <button onClick={onRefresh} className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-black text-slate-700">
               <RefreshCw size={14} />
               刷新

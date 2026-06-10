@@ -946,6 +946,12 @@ export const VulnEnginePage: React.FC<VulnEnginePageProps> = ({
     onNavigateToView?.(detailTargetView);
   };
 
+  const handleOpenAutoVerifyCreate = (caseId: string) => {
+    localStorage.setItem('chimera-vuln-auto-verify-case-id', caseId);
+    localStorage.setItem('chimera-vuln-open-case-id', caseId);
+    onNavigateToView?.('vuln-analysis-verify-create');
+  };
+
   return (
     <div className={`${
       fullscreenLayout
@@ -1231,6 +1237,7 @@ export const VulnEnginePage: React.FC<VulnEnginePageProps> = ({
               selectedReportId={selectedReportId}
               onSelectReport={setSelectedReportId}
               onRefresh={refreshAll}
+              onCreateAutoVerify={selectedCaseDetail?.current_stage === 'triage' ? () => handleOpenAutoVerifyCreate(selectedCaseDetail.id) : undefined}
               stageActionContent={stageSpecificPanel}
             />
           ) : undefined}

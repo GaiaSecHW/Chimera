@@ -69,6 +69,7 @@ import { VulnOverviewPage } from '../pages/vuln/VulnOverviewPage';
 import { VulnIntakePage } from '../pages/vuln/VulnIntakePage';
 import { VulnAnalysisPage } from '../pages/vuln/VulnAnalysisPage';
 import { VulnAnalysisDetailPage } from '../pages/vuln/VulnAnalysisDetailPage';
+import { VulnAutoVerifyCreatePage } from '../pages/vuln/VulnAutoVerifyCreatePage';
 import { VulnVerificationPage } from '../pages/vuln/VulnVerificationPage';
 import { VulnVerificationDetailPage } from '../pages/vuln/VulnVerificationDetailPage';
 import { VulnDecisionPage } from '../pages/vuln/VulnDecisionPage';
@@ -615,6 +616,8 @@ export const renderCurrentView = (ctx: ViewRegistryContext): React.ReactNode => 
       return <VulnAnalysisPage projectId={ctx.selectedProjectId} onNavigateToView={ctx.setCurrentView} />;
     case 'vuln-analysis-detail':
       return <VulnAnalysisDetailPage projectId={ctx.selectedProjectId} onNavigateToView={ctx.setCurrentView} />;
+    case 'vuln-analysis-verify-create':
+      return <VulnAutoVerifyCreatePage projectId={ctx.selectedProjectId} onNavigateToView={ctx.setCurrentView} />;
     case 'vuln-verification':
       return <VulnVerificationPage projectId={ctx.selectedProjectId} onNavigateToView={ctx.setCurrentView} />;
     case 'vuln-verification-detail':

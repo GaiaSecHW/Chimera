@@ -98,6 +98,47 @@ export interface DownloadCenterStatsResponse {
   downloadable: number;
 }
 
+export interface VulnThreatModelTemplate {
+  id: string;
+  scope: string;
+  name: string;
+  description?: string;
+}
+
+export interface VulnAutoVerifyContext {
+  case_id: string;
+  project_id: string;
+  case_title: string;
+  source_root?: string | null;
+  binary_root?: string | null;
+  report_id?: string | null;
+  report_preview?: string;
+  path_status: Record<string, { ok: boolean; source?: string | null; message?: string | null }>;
+  default_task_name: string;
+  default_model: string;
+  default_concurrency: number;
+}
+
+export interface VulnAutoVerifyTaskCreatePayload {
+  name: string;
+  threat_model_markdown: string;
+  template_id?: string | null;
+  model: string;
+  concurrency: number;
+  advance_to_validation: boolean;
+}
+
+export interface VulnAutoVerifyTaskCreateResponse {
+  case_id: string;
+  project_id: string;
+  vuln_verify_task_id?: string;
+  report_data_url?: string | null;
+  materialized_root?: string;
+  reports_dir?: string;
+  threat_path?: string;
+  task?: any;
+}
+
 const publicJson = async (url: string, init?: RequestInit) => {
   const response = await fetch(url, init);
   if (!response.ok) {
@@ -217,6 +258,28 @@ export const vulnApi = {
 
   listCaseReports: async (caseId: string): Promise<VulnCaseReportListResponse> =>
     handleResponse(await fetch(`${API_BASE}/api/vuln/cases/${caseId}/reports`, { headers: getHeaders() })),
+
+  getAutoVerifyContext: async (caseId: string): Promise<VulnAutoVerifyContext> =>
+    handleResponse(await fetch(`${API_BASE}/api/vuln/cases/${encodeURIComponent(caseId)}/auto-verify/context`, { headers: getHeaders() })),
+
+  createAutoVerifyTask: async (caseId: string, payload: VulnAutoVerifyTaskCreatePayload): Promise<VulnAutoVerifyTaskCreateResponse> =>
+    handleResponse(await fetch(`${API_BASE}/api/vuln/cases/${encodeURIComponent(caseId)}/auto-verify/tasks`, {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify(payload),
+    })),
+
+  listThreatModelTemplates: async (projectId?: string): Promise<{ items: VulnThreatModelTemplate[]; total: number }> => {
+    const query = projectId ? `?project_id=${encodeURIComponent(projectId)}` : '';
+    return handleResponse(await fetch(`${API_BASE}/api/vuln/threat-model-templates${query}`, { headers: getHeaders() }));
+  },
+
+  renderThreatModelTemplate: async (templateId: string, payload: { case_id: string; variables?: Record<string, any> }): Promise<{ template_id: string; name: string; content: string; variables: Record<string, string> }> =>
+    handleResponse(await fetch(`${API_BASE}/api/vuln/threat-model-templates/${encodeURIComponent(templateId)}/render`, {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify(payload),
+    })),
 
   listDownloadJobs: async (projectId: string): Promise<DownloadCenterJobListResponse> =>
     handleResponse(await fetch(`${API_BASE}/api/vuln/cases/download-center/jobs?project_id=${encodeURIComponent(projectId)}`, { headers: getHeaders() })),

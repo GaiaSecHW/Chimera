@@ -89,7 +89,7 @@ export const BaseResourcePage: React.FC<BaseResourcePageProps> = ({ type, title,
     if (showSpinner) setLoading(true);
     try {
       const [listResp, statsResp] = await Promise.all([
-        fileserverApi.listProjectInputUploads(projectId, type),
+        fileserverApi.listProjectInputUploads(projectId, { inputType: type }),
         fileserverApi.getProjectInputUploadStats(projectId, type),
       ]);
       setRecords(Array.isArray(listResp?.items) ? listResp.items : []);
