@@ -139,6 +139,26 @@ export interface VulnAutoVerifyTaskCreateResponse {
   task?: any;
 }
 
+export interface VulnAutoVerifyTaskSyncPayload {
+  vuln_verify_task_id?: string;
+}
+
+export interface VulnAutoVerifyTaskSyncResponse {
+  case_id: string;
+  project_id: string;
+  vuln_verify_task_id: string;
+  task_status: string;
+  case_stage: string;
+  case_status: string;
+  validation_result: 'vulnerable' | 'not_vulnerable' | 'inconclusive' | string;
+  report_data_url?: string | null;
+  verdicts: Record<string, number>;
+  total_reports?: number;
+  task?: any;
+  report_data?: any;
+  report_error?: string | null;
+}
+
 const publicJson = async (url: string, init?: RequestInit) => {
   const response = await fetch(url, init);
   if (!response.ok) {
@@ -264,6 +284,13 @@ export const vulnApi = {
 
   createAutoVerifyTask: async (caseId: string, payload: VulnAutoVerifyTaskCreatePayload): Promise<VulnAutoVerifyTaskCreateResponse> =>
     handleResponse(await fetch(`${API_BASE}/api/vuln/cases/${encodeURIComponent(caseId)}/auto-verify/tasks`, {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify(payload),
+    })),
+
+  syncAutoVerifyTask: async (caseId: string, payload: VulnAutoVerifyTaskSyncPayload = {}): Promise<VulnAutoVerifyTaskSyncResponse> =>
+    handleResponse(await fetch(`${API_BASE}/api/vuln/cases/${encodeURIComponent(caseId)}/auto-verify/sync`, {
       method: 'POST',
       headers: getHeaders(),
       body: JSON.stringify(payload),

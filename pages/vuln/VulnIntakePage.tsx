@@ -580,7 +580,8 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
   const [tokenCopied, setTokenCopied] = useState(false);
   const [suspicionForm, setSuspicionForm] = useState(DEFAULT_SUSPICION_FORM);
   const [creating, setCreating] = useState(false);
-  const [processingAction, setProcessingAction] = useState<'verify' | 'ready_for_triage' | 'false_positive' | 'delete' | null>(null);
+  const [processingAction, setProcessingAction] = useState<'verify' | 'sync_verify' | 'ready_for_triage' | 'false_positive' | 'delete' | null>(null);
+  const autoVerifySyncGuardRef = useRef<string>('');
   const [selectedSuspicionIds, setSelectedSuspicionIds] = useState<string[]>([]);
   const [bulkDeleting, setBulkDeleting] = useState(false);
   const [rowDeletingId, setRowDeletingId] = useState<string | null>(null);
@@ -1094,6 +1095,15 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
     }
   }, [currentPage, totalPages]);
 
+  useEffect(() => {
+    if (!selectedDetail?.id || !latestAutoVerifyTask?.taskId) return;
+    const shouldSync =
+      selectedDetail.current_stage === 'validation' &&
+      !['validation_completed', 'finished'].includes(String(selectedDetail.current_status || ''));
+    if (!shouldSync) return;
+    void syncLatestAutoVerifyTask({ silent: true });
+  }, [selectedDetail?.id, selectedDetail?.updated_at, selectedDetail?.current_stage, selectedDetail?.current_status, latestAutoVerifyTask?.taskId]);
+
   const applyAuthExampleMode = (mode: AuthExampleMode) => {
     const template = mode === 'simple' ? SIMPLE_AUTH_PAYLOAD : NORMAL_AUTH_PAYLOAD;
     setAuthExampleMode(mode);
@@ -1287,6 +1297,42 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
     } finally {
       setProcessingAction(null);
     }
+  };
+
+  const syncLatestAutoVerifyTask = async (options?: { silent?: boolean; force?: boolean }) => {
+    if (!selectedDetail?.id || !latestAutoVerifyTask?.taskId) return null;
+    const guardKey = `${selectedDetail.id}:${latestAutoVerifyTask.taskId}:${selectedDetail.updated_at || ''}:${selectedDetail.current_status || ''}`;
+    if (!options?.force && autoVerifySyncGuardRef.current === guardKey) return null;
+    autoVerifySyncGuardRef.current = guardKey;
+    if (!options?.silent) {
+      setProcessingAction('sync_verify');
+      setError(null);
+      setSuccessMessage(null);
+    }
+    try {
+      const response = await vulnApi.vuln.syncAutoVerifyTask(selectedDetail.id, {
+        vuln_verify_task_id: latestAutoVerifyTask.taskId,
+      });
+      await Promise.all([loadOverview(), loadSuspicions()]);
+      await loadSuspicionDetail(selectedDetail.id);
+      if (!options?.silent) {
+        setSuccessMessage(`验证结果已同步：${response.validation_result || 'inconclusive'}`);
+      }
+      return response;
+    } catch (err: any) {
+      if (!options?.silent) {
+        setError(err?.message || '同步验证结果失败');
+      }
+      return null;
+    } finally {
+      if (!options?.silent) {
+        setProcessingAction(null);
+      }
+    }
+  };
+
+  const handleSyncAutoVerifyTask = async () => {
+    await syncLatestAutoVerifyTask({ force: true });
   };
 
   const handleMarkReadyForTriage = async () => {
@@ -1795,6 +1841,17 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
               <FolderOpen size={15} />
               {processingAction === 'verify' ? '处理中...' : latestAutoVerifyTask ? '跳转验证任务' : '生成验证任务'}
             </button>
+            {latestAutoVerifyTask ? (
+              <button
+                type="button"
+                onClick={handleSyncAutoVerifyTask}
+                disabled={processingAction !== null || !selectedDetail?.id}
+                className="inline-flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-3.5 py-2.5 text-sm font-black text-emerald-700 disabled:opacity-50"
+              >
+                <RefreshCw size={15} className={processingAction === 'sync_verify' ? 'animate-spin' : ''} />
+                {processingAction === 'sync_verify' ? '同步中...' : '同步验证结果'}
+              </button>
+            ) : null}
             <button
               type="button"
               onClick={handleMarkFalsePositive}
