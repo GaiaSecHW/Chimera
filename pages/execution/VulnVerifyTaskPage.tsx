@@ -306,7 +306,7 @@ export const VulnVerifyTaskPage: React.FC<{ projectId: string }> = ({ projectId 
 
   return (
     <div className="min-h-full bg-slate-50 p-6">
-      <div className="mx-auto max-w-7xl space-y-6">
+      <div className="w-full space-y-6">
         <header className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div>
