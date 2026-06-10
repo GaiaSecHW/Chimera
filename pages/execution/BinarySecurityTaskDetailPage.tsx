@@ -2856,6 +2856,49 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
   const selectedModules = moduleSelection?.selected_modules || [];
   const moduleRiskLevels = (moduleSelection?.risk_levels?.length ? moduleSelection.risk_levels : detail?.selected_risk_levels) || [];
   const systemAnalysisModuleCount = systemAnalysisModules.length || Number(detail?.summary?.system_analysis_module_count || 0);
+  const mergedModuleRows = useMemo(() => {
+    const merged = new Map<string, {
+      module: BinarySecurityModuleContract;
+      moduleKey: string;
+      sourceTags: string[];
+      candidate: boolean;
+      selected: boolean;
+    }>();
+    const upsert = (modules: BinarySecurityModuleContract[], sourceTag: string, flags: { candidate?: boolean; selected?: boolean }) => {
+      modules.forEach((module, index) => {
+        const moduleKey = moduleContractKey(module, index);
+        if (!moduleKey) return;
+        const existing = merged.get(moduleKey);
+        if (existing) {
+          if (!existing.sourceTags.includes(sourceTag)) existing.sourceTags.push(sourceTag);
+          existing.candidate = existing.candidate || Boolean(flags.candidate);
+          existing.selected = existing.selected || Boolean(flags.selected);
+          return;
+        }
+        merged.set(moduleKey, {
+          module,
+          moduleKey,
+          sourceTags: [sourceTag],
+          candidate: Boolean(flags.candidate),
+          selected: Boolean(flags.selected),
+        });
+      });
+    };
+    upsert(systemAnalysisModules, '系统分析', {});
+    upsert(candidateModules, '候选', { candidate: true });
+    upsert(selectedModules, '已选', { selected: true });
+    return Array.from(merged.values()).sort((left, right) => {
+      const leftScore = moduleContractNumber(left.module, 'risk_score') ?? -1;
+      const rightScore = moduleContractNumber(right.module, 'risk_score') ?? -1;
+      if (left.candidate !== right.candidate) return left.candidate ? -1 : 1;
+      if (left.selected !== right.selected) return left.selected ? -1 : 1;
+      if (leftScore !== rightScore) return rightScore - leftScore;
+      return (moduleContractText(left.module, 'module_name') || left.moduleKey).localeCompare(
+        moduleContractText(right.module, 'module_name') || right.moduleKey,
+        'zh-Hans-CN',
+      );
+    });
+  }, [candidateModules, selectedModules, systemAnalysisModules]);
   const entryAnalysisEntryCountByItemKey = useMemo(() => {
     const mapping = new Map<string, number>();
     const entryResults = Array.isArray(detail?.summary?.entry_results) ? detail.summary.entry_results : [];
@@ -3187,16 +3230,30 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
   };
 
   const renderModuleTable = (
-    title: string,
-    rows: BinarySecurityModuleContract[],
+    rows: Array<{
+      module: BinarySecurityModuleContract;
+      moduleKey: string;
+      sourceTags: string[];
+      candidate: boolean;
+      selected: boolean;
+    }>,
     emptyText: string,
-    options?: { selectable?: boolean },
   ) => (
     <section className="rounded-[1.75rem] border border-slate-200 bg-white shadow-sm">
-      <div className="flex items-center justify-between gap-3 border-b border-slate-100 px-5 py-4">
+      <div className="flex flex-col gap-3 border-b border-slate-100 px-5 py-4 lg:flex-row lg:items-center lg:justify-between">
         <div>
-          <div className="text-sm font-black text-slate-900">{title}</div>
-          <div className="mt-1 text-xs text-slate-500">{rows.length} 个模块</div>
+          <div className="text-sm font-black text-slate-900">{isBinaryModuleTask ? '模块输入表' : '高危模块表'}</div>
+          <div className="mt-1 text-xs text-slate-500">
+            用统一表格展示系统分析模块、候选高危模块和已确认模块；确认态可直接勾选后继续推进。
+          </div>
+        </div>
+        <div className="flex flex-wrap gap-2 text-[11px] font-bold">
+          <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-slate-700">总计 {rows.length}</span>
+          <span className="rounded-full border border-rose-200 bg-rose-50 px-3 py-1.5 text-rose-700">候选 {rows.filter((row) => row.candidate).length}</span>
+          <span className="rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-emerald-700">已选 {rows.filter((row) => row.selected).length}</span>
+          {requiresModuleConfirmation ? (
+            <span className="rounded-full border border-amber-200 bg-amber-50 px-3 py-1.5 text-amber-700">已勾选 {selectedModuleKeys.length}</span>
+          ) : null}
         </div>
       </div>
       {rows.length === 0 ? (
@@ -3206,32 +3263,36 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
           <table className="min-w-full divide-y divide-slate-100 text-left text-xs">
             <thead className="bg-slate-50 text-[11px] font-black uppercase tracking-[0.12em] text-slate-400">
               <tr>
-                {options?.selectable ? <th className="w-14 px-4 py-3">选择</th> : null}
+                {requiresModuleConfirmation ? <th className="w-16 px-4 py-3">勾选</th> : null}
                 <th className="min-w-[220px] px-4 py-3">模块</th>
+                <th className="w-44 px-4 py-3">模块归类</th>
                 <th className="w-32 px-4 py-3">主结果类型</th>
                 <th className="min-w-[220px] px-4 py-3">结果类型</th>
-                <th className="min-w-[220px] px-4 py-3">类型计数</th>
+                <th className="min-w-[180px] px-4 py-3">类型计数</th>
                 <th className="w-24 px-4 py-3">风险</th>
                 <th className="w-24 px-4 py-3">分数</th>
-                <th className="min-w-[280px] px-4 py-3">输入 Contract</th>
+                <th className="w-24 px-4 py-3">文件数</th>
+                <th className="min-w-[260px] px-4 py-3">输入 Contract</th>
                 <th className="min-w-[220px] px-4 py-3">模块键</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 bg-white">
-              {rows.map((module, index) => {
-                const moduleKey = moduleContractKey(module, index);
+              {rows.map(({ module, moduleKey, sourceTags, candidate, selected }) => {
                 const checked = selectedModuleKeys.includes(moduleKey);
                 const primaryResultKind = moduleContractText(module, 'primary_result_kind') || '';
                 const resultKinds = moduleContractList(module, 'result_kinds');
                 const artifactKindSummary = moduleArtifactKindSummary(module);
                 const contractRows = moduleContractInputRows(module);
+                const fileCount = moduleContractNumber(module, 'file_count');
+                const selectable = requiresModuleConfirmation && candidate;
                 return (
-                  <tr key={moduleKey} className={checked ? 'bg-amber-50/50' : 'bg-white'}>
-                    {options?.selectable ? (
+                  <tr key={moduleKey} className={checked ? 'bg-amber-50/60' : selected ? 'bg-emerald-50/40' : 'bg-white'}>
+                    {requiresModuleConfirmation ? (
                       <td className="px-4 py-3 align-top">
                         <input
                           type="checkbox"
                           checked={checked}
+                          disabled={!selectable}
                           onChange={(event) => {
                             setSelectedModuleKeys((current) => {
                               if (event.target.checked) return current.includes(moduleKey) ? current : current.concat(moduleKey);
@@ -3244,6 +3305,29 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                     <td className="px-4 py-3 align-top">
                       <div className="font-bold text-slate-900">{moduleContractText(module, 'module_name') || moduleKey}</div>
                       <div className="mt-1 text-[11px] text-slate-500">{moduleContractText(module, 'module_type', 'language') || '-'}</div>
+                    </td>
+                    <td className="px-4 py-3 align-top">
+                      <div className="flex flex-wrap gap-1.5">
+                        {sourceTags.map((tag) => (
+                          <span
+                            key={`${moduleKey}-${tag}`}
+                            className={`inline-flex rounded-full border px-2 py-1 text-[11px] font-bold ${
+                              tag === '候选'
+                                ? 'border-rose-200 bg-rose-50 text-rose-700'
+                                : tag === '已选'
+                                  ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
+                                  : 'border-slate-200 bg-slate-50 text-slate-600'
+                            }`}
+                          >
+                            {tag}
+                          </span>
+                        ))}
+                        {!selectable && requiresModuleConfirmation ? (
+                          <span className="inline-flex rounded-full border border-slate-200 bg-slate-50 px-2 py-1 text-[11px] font-semibold text-slate-500">
+                            不可勾选
+                          </span>
+                        ) : null}
+                      </div>
                     </td>
                     <td className="px-4 py-3 align-top">
                       <span className="inline-flex rounded-full border border-sky-200 bg-sky-50 px-2 py-1 font-bold text-sky-700">
@@ -3275,14 +3359,15 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                       </span>
                     </td>
                     <td className="px-4 py-3 align-top font-bold text-slate-700">{moduleContractNumber(module, 'risk_score') ?? '-'}</td>
+                    <td className="px-4 py-3 align-top font-bold text-slate-700">{fileCount ?? '-'}</td>
                     <td className="px-4 py-3 align-top text-[11px] text-slate-500">
                       <div className="space-y-1 font-mono">
-                        {contractRows.map((row) => (
+                        {contractRows.length ? contractRows.map((row) => (
                           <div key={`${moduleKey}-${row.label}`} className="break-all">
                             <span className="font-semibold text-slate-400">{row.label}:</span>{' '}
                             {row.value}
                           </div>
-                        ))}
+                        )) : <span className="text-slate-400">-</span>}
                       </div>
                     </td>
                     <td className="px-4 py-3 align-top font-mono text-[11px] text-slate-500">{moduleKey}</td>
@@ -3498,7 +3583,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                     正在准备重试。后台正在按当前选择的重试类型清理阶段、归档和下游任务，完成后会自动重新排队。
                   </div>
                 ) : null}
-                {detail.abnormal_reason ? (
+                {detail.abnormal_reason && !requiresModuleConfirmation ? (
                   <div className="mt-4">
                     <AbnormalReasonCard reason={detail.abnormal_reason} history={detail.abnormal_reason_history} />
                   </div>
@@ -5192,11 +5277,10 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                   {isBinaryModuleTask ? '当前任务未生成额外模块表数据，可继续通过总览与阶段详情查看该模块的 ELF 输入和执行进度。' : '当前任务尚未生成可展示的模块确认数据。'}
                 </section>
               ) : (
-                <div className="grid gap-6 xl:grid-cols-3">
-                  {renderModuleTable('全部系统分析模块', systemAnalysisModules, '当前任务尚未记录系统分析模块。')}
-                  {renderModuleTable('候选高危模块', candidateModules, '当前没有候选高危模块。', { selectable: requiresModuleConfirmation })}
-                  {renderModuleTable('已选高危模块', selectedModules, '当前还没有已确认的模块。')}
-                </div>
+                renderModuleTable(
+                  mergedModuleRows,
+                  isBinaryModuleTask ? '当前任务未生成可展示的模块输入表。' : '当前任务尚未生成可展示的高危模块表。',
+                )
               )}
             </div>
           ) : null}
