@@ -1,24 +1,14 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
-  Bell,
   Bot,
   Box,
-  CheckCircle,
-  ChevronDown,
-  ChevronRight,
-  Clock,
   Edit2,
   ExternalLink,
-  GitBranch,
-  GitPullRequest,
   Globe,
   Loader2,
   Lock,
-  Percent,
-  Play,
   Plus,
   RefreshCw,
-  ShieldAlert,
   Sparkles,
   Trash2,
   Upload,
@@ -40,20 +30,14 @@ interface ToolOverviewPageProps {
 type AgentAppEngine = 'opencode' | 'claudecode' | 'agentflow';
 type AgentHarnessFileType = 'folder' | 'archive';
 
-interface AgentAppMetrics {
-  runCount: number;
-  successRate: number | null;
-  lastRunAt: string | null;
-  vulnCount: number;
-  alertCount: number;
-  falsePositiveRate: number | null;
-}
-
 interface AgentApp {
   id: string;
+  userId: string;
   name: string;
   engine: AgentAppEngine | string;
   agentHarnessPath?: string | null;
+  agentHarnessRepoName?: string | null;
+  agentHarnessGiteaUrl?: string | null;
   defaultAgentName: string;
   startCommand?: string | null;
   inputRequirements?: string | null;
@@ -63,10 +47,7 @@ interface AgentApp {
   tenantId?: string | null;
   departmentId?: number | string | null;
   modelAliasId?: number | null;
-  Tenant?: { name: string } | null;
-  User?: { name: string | null; username: string };
-  _metrics?: AgentAppMetrics;
-  notes?: string;
+  notes?: string | null;
   createdAt?: string;
   updatedAt: string;
 }
@@ -154,13 +135,18 @@ const engineTone = (engine: string): string => {
   return 'from-slate-500 to-slate-700';
 };
 
-const loadAgentApps = async (): Promise<AgentApp[]> => {
-  const response = await fetch('/api/agent-apps', { headers: getAuthHeaders() });
+const loadAgentApps = async (departmentId?: number | string | null, tenantId?: number | string | null): Promise<AgentApp[]> => {
+  const params = new URLSearchParams();
+  if (departmentId) params.set('departmentId', String(departmentId));
+  if (tenantId) params.set('tenantId', String(tenantId));
+  const qs = params.toString();
+  const url = `/api/agent-apps${qs ? `?${qs}` : ''}`;
+  const response = await fetch(url, { headers: getAuthHeaders() });
   const payload = await handleResponse(response);
   return Array.isArray(payload?.apps) ? payload.apps : [];
 };
 
-const loadHarnessBranches = async (appId: string): Promise<Array<{ name: string; giteaUrl: string }>> => {
+const loadHarnessBranches = async (appId: string): Promise<Array<{ name: string; commit: Record<string, unknown>; protected: boolean }>> => {
   const response = await fetch(`/api/agent-apps/${encodeURIComponent(appId)}/branches`, { headers: getAuthHeaders() });
   const payload = await handleResponse(response);
   return Array.isArray(payload?.branches) ? payload.branches : [];
@@ -248,7 +234,7 @@ const deleteAgentApp = async (id: string): Promise<void> => {
   await handleResponse(response);
 };
 
-const syncAgentRepos = async (): Promise<{ successCount?: number; total?: number }> => {
+const syncAgentRepos = async (): Promise<{ success: boolean; message?: string }> => {
   const response = await fetch('/api/agent-apps/sync', { method: 'POST', headers: getAuthHeaders() });
   return handleResponse(response);
 };
@@ -599,7 +585,7 @@ export const ToolOverviewPage: React.FC<ToolOverviewPageProps> = ({ projectId, u
   const [createOpen, setCreateOpen] = useState(false);
   const [selectedAppId, setSelectedAppId] = useState('');
   const [expandedHarness, setExpandedHarness] = useState('');
-  const [harnessBranches, setHarnessBranches] = useState<Record<string, Array<{ name: string; giteaUrl: string }>>>({});
+  const [harnessBranches, setHarnessBranches] = useState<Record<string, Array<{ name: string; commit: Record<string, unknown>; protected: boolean }>>>({});
   const [pipelineApp, setPipelineApp] = useState<AgentApp | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
 
@@ -618,7 +604,7 @@ export const ToolOverviewPage: React.FC<ToolOverviewPageProps> = ({ projectId, u
     setLoading(true);
     setMessage(null);
     try {
-      const nextApps = await loadAgentApps();
+      const nextApps = await loadAgentApps(user?.department_id, user?.department_id);
       setApps(nextApps);
       const branchEntries = await Promise.all(nextApps.filter((app) => app.agentHarnessPath).map(async (app) => {
         try {
@@ -627,7 +613,7 @@ export const ToolOverviewPage: React.FC<ToolOverviewPageProps> = ({ projectId, u
           return null;
         }
       }));
-      setHarnessBranches((current) => ({ ...current, ...Object.fromEntries(branchEntries.filter((entry): entry is readonly [string, Array<{ name: string; giteaUrl: string }>] => Boolean(entry))) }));
+      setHarnessBranches((current) => ({ ...current, ...Object.fromEntries(branchEntries.filter((entry): entry is readonly [string, Array<{ name: string; commit: Record<string, unknown>; protected: boolean }>] => Boolean(entry))) }));
     } catch (error) {
       setMessage({ type: 'error', text: error instanceof Error ? error.message : 'Agent 列表加载失败' });
     } finally {
@@ -680,7 +666,7 @@ export const ToolOverviewPage: React.FC<ToolOverviewPageProps> = ({ projectId, u
     setMessage(null);
     try {
       const result = await syncAgentRepos();
-      setMessage({ type: 'success', text: `同步完成${result.total != null ? `：${result.successCount ?? 0}/${result.total} 成功` : ''}` });
+      setMessage({ type: 'success', text: result.message || '同步完成' });
       await refreshApps();
     } catch (error) {
       setMessage({ type: 'error', text: error instanceof Error ? error.message : '同步失败' });
@@ -755,13 +741,10 @@ export const ToolOverviewPage: React.FC<ToolOverviewPageProps> = ({ projectId, u
   };
 
   const visibleMetrics = (app: AgentApp) => [
-    { icon: <Play size={12} />, value: app._metrics?.runCount ?? 0, label: '运行次数', color: 'text-blue-600', show: true },
-    { icon: <ShieldAlert size={12} />, value: app._metrics?.vulnCount ?? 0, label: '确认漏洞', color: 'text-rose-600', show: true },
-    { icon: <Bell size={12} />, value: app._metrics?.alertCount ?? 0, label: '告警数量', color: 'text-amber-600', show: true },
-    { icon: <CheckCircle size={12} />, value: formatPercent(app._metrics?.successRate), label: '成功率', color: 'text-emerald-600', show: isAdmin },
-    { icon: <Percent size={12} />, value: formatPercent(app._metrics?.falsePositiveRate, true), label: '准确率', color: 'text-violet-600', show: isAdmin },
-    { icon: <Clock size={12} />, value: formatDate(app._metrics?.lastRunAt), label: '最近运行', color: 'text-slate-600', show: true },
-  ].filter((item) => item.show);
+    { icon: <Bot size={12} />, value: engineLabel(app.engine), label: "引擎", color: "text-cyan-600", show: true },
+    { icon: <Globe size={12} />, value: app.isPublic ? "公开" : "私有", label: "范围", color: app.isPublic ? "text-emerald-600" : "text-amber-600", show: true },
+    { icon: <Lock size={12} />, value: formatDate(app.updatedAt), label: "更新时间", color: "text-slate-600", show: true },
+  ];
 
   return (
     <div className="px-8 pb-10 pt-8">
@@ -801,7 +784,7 @@ export const ToolOverviewPage: React.FC<ToolOverviewPageProps> = ({ projectId, u
             </button>
             {isAdmin ? (
               <button type="button" onClick={() => void handleSync()} disabled={syncing} className="inline-flex items-center gap-2 rounded-2xl border border-teal-200 bg-teal-50 px-4 py-3 text-sm font-black text-teal-700 transition hover:bg-teal-100 disabled:opacity-60">
-                {syncing ? <RefreshCw size={16} className="animate-spin" /> : <GitPullRequest size={16} />}
+                {syncing ? <RefreshCw size={16} className="animate-spin" /> : <RefreshCw size={16} />}
                 同步仓库
               </button>
             ) : null}
@@ -833,7 +816,7 @@ export const ToolOverviewPage: React.FC<ToolOverviewPageProps> = ({ projectId, u
                     <h3 className="truncate text-lg font-black text-slate-900">{app.name}</h3>
                     <div className="mt-1 flex flex-wrap items-center gap-2">
                       <span className="rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-[11px] font-black text-slate-600">{engineLabel(app.engine)}</span>
-                      <span className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-bold text-slate-500">{app.isPublic ? <Globe size={11} className="text-emerald-600" /> : <Lock size={11} />}{app.isPublic ? '公开' : `私有 · ${app.Tenant?.name || user?.department_name || `部门${app.departmentId ?? ''}`}`}</span>
+                      <span className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-bold text-slate-500">{app.isPublic ? <Globe size={11} className="text-emerald-600" /> : <Lock size={11} />}{app.isPublic ? '公开' : `私有 · ${user?.department_name || `部门${app.departmentId ?? ''}`}`}</span>
                     </div>
                   </button>
                   <div className="flex shrink-0 items-center gap-1">
@@ -857,7 +840,6 @@ export const ToolOverviewPage: React.FC<ToolOverviewPageProps> = ({ projectId, u
                 <div className="mx-5 border-t border-slate-100" />
                 <div className="flex items-center justify-between gap-3 px-5 py-4 text-xs font-semibold text-slate-500">
                   <span className="truncate">开发者：{user?.username || '-'}</span>
-                  <span className="shrink-0">更新：{formatDate(app.updatedAt)}</span>
                 </div>
               </article>
             ))}
