@@ -53,6 +53,7 @@ import { FirmwareUnpackerPage } from '../pages/execution/FirmwareUnpackerPage';
 import { FirmwareEvolutionCenterPage } from '../pages/execution/FirmwareEvolutionCenterPage';
 import { ReportsPage } from '../pages/execution/ReportsPage';
 import { TestInputPage } from '../pages/TestInputPage';
+import { WebEndToEndPage } from '../pages/task/WebEndToEndPage';
 // [DISABLED] DataflowVulnTask import - 方便后续复用
 // import { DataflowVulnTaskDetailPage, DataflowVulnTaskListPage } from '../pages/execution/DataflowVulnScanPage';
 import { BinaryEvolutionCenterPage } from '../pages/execution/BinaryEvolutionCenterPage';
@@ -205,7 +206,7 @@ export const renderCurrentView = (ctx: ViewRegistryContext): React.ReactNode => 
     case 'task-binary-end-to-end':
       return <EmptyPlaceholderPage title="二进制端到端" />;
     case 'task-web-end-to-end':
-      return <EmptyPlaceholderPage title="WEB端到端" />;
+      return <WebEndToEndPage projectId={ctx.selectedProjectId} />;
     case 'developer-atomic-capability':
     case 'developer-atomic-capability-overview':
       return <AtomicCapabilityOverviewPage projectId={ctx.selectedProjectId} onNavigate={ctx.setCurrentView} />;
