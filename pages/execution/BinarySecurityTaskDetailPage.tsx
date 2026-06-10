@@ -3337,12 +3337,12 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
     }>,
     emptyText: string,
   ) => (
-    <section className="rounded-[1.75rem] border border-slate-200 bg-white shadow-sm">
+    <section className="binary-security-modules-table rounded-[1.75rem] border border-slate-200 bg-white shadow-sm">
       <div className="flex flex-col gap-3 border-b border-slate-100 px-5 py-4 lg:flex-row lg:items-center lg:justify-between">
         <div>
-          <div className="text-sm font-black text-slate-900">{isBinaryModuleTask ? '模块输入表' : '高危模块表'}</div>
+          <div className="text-sm font-black text-slate-900">{isBinaryModuleTask ? '模块输入表' : '全部模块表'}</div>
           <div className="mt-1 text-xs text-slate-500">
-            用统一表格展示系统分析模块、候选高危模块和已确认模块；确认态可直接勾选后继续推进。
+            用统一表格展示系统分析产出的全部模块、候选推进模块和已确认模块；确认态可直接勾选后继续推进。
           </div>
         </div>
         <div className="flex flex-wrap gap-2 text-[11px] font-bold">
@@ -3510,7 +3510,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
   const tabs: Array<{ key: DetailTab; label: string; hint: string }> = [
     { key: 'overview', label: '总览', hint: '任务基础信息与阶段任务' },
     { key: 'strategy', label: '任务策略', hint: '仅影响后续阶段与下次运行' },
-    { key: 'modules', label: '高危模块', hint: '系统分析候选、已选与确认操作' },
+    { key: 'modules', label: '全部模块', hint: '系统分析全部模块、候选与确认操作' },
     { key: 'orchestration', label: '编排观测', hint: 'Reducer、事件队列、锁与归档健康' },
     { key: 'runtime_health', label: '线程与协程健康', hint: '任务 scoped 运行单元健康' },
     { key: 'timeline', label: '事件时间线', hint: '编排事件记录' },
@@ -3521,7 +3521,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
   const modalRunning = Boolean(blockingAction);
 
   return (
-    <div className="px-8 pb-10 pt-8 space-y-6">
+    <div className="binary-security-detail-shell px-8 pb-10 pt-8 space-y-6">
       {moduleReportDialogOpen && selectedModuleReportTarget ? (
         <div className="fixed inset-0 z-[125] bg-slate-950/55 backdrop-blur-sm" onClick={() => setModuleReportDialogOpen(false)}>
           <div className="flex h-full w-full items-center justify-center p-4 sm:p-6">
@@ -3859,7 +3859,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                   <div className="mt-1 break-words text-lg font-black text-slate-900">{isBinaryModuleTask ? Math.max(1, detail.selected_module_count || 1) : detail.selected_module_count}</div>
                 </div>
                 <div className="min-w-0 rounded-2xl bg-slate-50 px-3 py-2.5 text-xs text-slate-600">
-                  <div className="text-slate-400">{isBinaryModuleTask ? '候选模块' : '高危模块'}</div>
+                  <div className="text-slate-400">{isBinaryModuleTask ? '候选模块' : '全部模块'}</div>
                   <div className="mt-1 break-words text-lg font-black text-slate-900">{isBinaryModuleTask ? Math.max(1, detail.candidate_module_count || 1) : detail.high_risk_module_count}</div>
                 </div>
                 <div className="min-w-0 rounded-2xl bg-slate-50 px-3 py-2.5 text-xs text-slate-600">
@@ -5433,16 +5433,16 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
 
           {activeTab === 'modules' ? (
             <div className="space-y-6">
-              <section className={`rounded-[2rem] border p-6 shadow-sm ${requiresModuleConfirmation ? 'border-amber-200 bg-amber-50/70' : 'border-slate-200 bg-white'}`}>
+              <section className={`binary-security-modules-confirmation rounded-[2rem] border p-6 shadow-sm ${requiresModuleConfirmation ? 'border-amber-200 bg-amber-50/70' : 'border-slate-200 bg-white'}`}>
                 <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
                   <div>
-                    <h2 className="text-xl font-black text-slate-900">{isBinaryModuleTask ? '模块输入' : '高危模块确认'}</h2>
+                    <h2 className="text-xl font-black text-slate-900">{isBinaryModuleTask ? '模块输入' : '模块确认'}</h2>
                     <p className="mt-1 text-sm text-slate-600">
                       {isBinaryModuleTask
                         ? '当前任务绕过系统分析，直接以手工输入的单模块多 ELF 作为后续阶段的统一输入。'
                         : requiresModuleConfirmation
-                        ? '系统分析已经产出候选高危模块。请确认需要继续推进的数据范围，确认后任务会继续进入后续阶段。'
-                        : '展示系统分析产出的全部模块、候选高危模块和当前已确认模块。'}
+                        ? '系统分析已经产出可推进模块。请确认需要继续推进的数据范围，确认后任务会继续进入后续阶段。'
+                        : '展示系统分析产出的全部模块、候选推进模块和当前已确认模块。'}
                     </p>
                   </div>
                   <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
@@ -5505,7 +5505,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
               ) : (
                 renderModuleTable(
                   overviewModuleRows,
-                  isBinaryModuleTask ? '当前任务未生成可展示的模块输入表。' : '当前任务尚未生成可展示的高危模块表。',
+                  isBinaryModuleTask ? '当前任务未生成可展示的模块输入表。' : '当前任务尚未生成可展示的全部模块表。',
                 )
               )}
             </div>
