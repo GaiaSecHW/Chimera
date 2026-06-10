@@ -240,15 +240,15 @@ export const renderCurrentView = (ctx: ViewRegistryContext): React.ReactNode => 
       return <PublicResourceManagementPage projectId={ctx.selectedProjectId} initialTab="pvc" />;
     case 'public-resource-task-management':
       return <PublicResourceManagementPage projectId={ctx.selectedProjectId} initialTab="tasks" />;
+    case 'test-input-root':
     case 'test-input-release':
     case 'test-input-code':
     case 'test-input-doc':
     case 'test-input-other':
+    case 'test-input-tasks':
       return <TestInputPage currentView={ctx.currentView} />;
     case 'pvc-management':
       return <PublicResourceManagementPage projectId={ctx.selectedProjectId} initialTab="pvc" />;
-    case 'test-input-tasks':
-      return <PublicResourceManagementPage projectId={ctx.selectedProjectId} initialTab="tasks" />;
     case 'project-file-explorer':
       return <ProjectFileExplorerPage projectId={ctx.selectedProjectId} projects={ctx.projects} />;
     case 'fileserver-archive-tasks':

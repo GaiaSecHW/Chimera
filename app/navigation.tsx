@@ -365,9 +365,10 @@ export const getTopLevelNavForView = (view: string): TopLevelNavKey => {
     view === 'fileserver-archive-tasks' ||
     view === 'public-resource-pvc-management' ||
     view === 'public-resource-task-management' ||
-    view === 'pvc-management' ||
-    view.startsWith('test-input-')
+    view === 'pvc-management'
   ) return 'assets';
+
+  if (view.startsWith('test-input-')) return 'task';
 
   if (view.startsWith('task-')) return 'task';
 
@@ -476,12 +477,9 @@ export const SIDEBAR_SECTIONS: Record<TopLevelNavKey, NavSection[]> = {
   ],
   task: [
     {
-      title: '任务输入',
+      title: '输入',
       items: [
-        { id: 'test-input-code', label: '源码', icon: Code2, requiresProject: true },
-        { id: 'test-input-doc', label: '文档', icon: FileText, requiresProject: true },
-        { id: 'test-input-release', label: '软件包', icon: Package, requiresProject: true },
-        { id: 'test-input-other', label: '其他', icon: FileBox, requiresProject: true },
+        { id: 'test-input-root', label: '任务输入', icon: FileBox, requiresProject: true },
       ],
     },
     {

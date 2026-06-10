@@ -947,6 +947,7 @@ export interface ProjectInputUploadRecord {
   input_type: 'code' | 'document' | 'software' | 'other' | string;
   status: 'pending' | 'processing' | 'succeeded' | 'partial_failed' | 'failed';
   keep_original: boolean;
+  batch_count: number;
   source_archive_count: number;
   stored_file_count: number;
   stored_total_size_bytes: number;
@@ -962,6 +963,8 @@ export interface ProjectInputUploadRecord {
 export interface ProjectInputUploadListResponse {
   total: number;
   items: ProjectInputUploadRecord[];
+  page: number;
+  page_size: number;
 }
 
 export interface ProjectInputUploadStats {
@@ -974,6 +977,11 @@ export interface ProjectInputUploadStats {
   failed_uploads: number;
   stored_file_count: number;
   stored_total_size_bytes: number;
+}
+
+export interface ProjectInputOverview {
+  project_id: string;
+  categories: ProjectInputUploadStats[];
 }
 
 export interface ProjectInputUploadDetail extends ProjectInputUploadRecord {
