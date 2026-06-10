@@ -44,6 +44,7 @@ const DEFAULT_CONFIG = {
   },
   receive: {
     auto_accept_authenticated_reports: true,
+    intake_require_project_token_auth: false,
     intake_require_fingerprint: false,
     intake_dedup_mode: 'fingerprint_first',
     minimum_confidence_for_auto_intake: 40,
@@ -91,6 +92,7 @@ const PHASES: PhaseDefinition[] = [
       { key: 'duplicate_window_hours', label: '重复疑点窗口（小时）', type: 'number', helper: '在该时间窗内优先做聚合或去重，而不是重复创建案例。', min: 1, max: 168, step: 1 },
       { key: 'service_health_grace_seconds', label: '服务健康宽限期（秒）', type: 'number', helper: '超过该宽限期没有心跳的能力服务会被视为待检查。', min: 30, max: 3600, step: 10 },
       { key: 'escalation_keywords', label: '高优先升级关键词', type: 'tags', helper: '命中这些关键词的案例会更容易进入高优先级处理路径。' },
+      { key: 'intake_require_project_token_auth', label: '漏洞上报要求项目 Token 认证', type: 'boolean', helper: '关闭时，漏洞上报接口默认不要求项目 Token；开启后，必须使用当前项目绑定的项目级 Token 才能上报。' },
     ],
   },
   {

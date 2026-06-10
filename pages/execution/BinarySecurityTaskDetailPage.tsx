@@ -2964,6 +2964,22 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
     });
     return sorted;
   }, [moduleTableNameFilter, moduleTableRiskFilter, moduleTableSourceFilter, moduleTableSortDirection, moduleTableSortKey, overviewModuleRows]);
+  const selectableModuleKeys = useMemo(
+    () => overviewModuleRows.filter((row) => !requiresModuleConfirmation || row.candidate).map((row) => row.moduleKey).filter(Boolean),
+    [overviewModuleRows, requiresModuleConfirmation],
+  );
+  const selectableFilteredModuleKeys = useMemo(
+    () => filteredAndSortedModuleRows.filter((row) => !requiresModuleConfirmation || row.candidate).map((row) => row.moduleKey).filter(Boolean),
+    [filteredAndSortedModuleRows, requiresModuleConfirmation],
+  );
+
+  const selectAllVisibleModules = () => {
+    setSelectedModuleKeys(selectableFilteredModuleKeys);
+  };
+
+  const clearAllSelectedModules = () => {
+    setSelectedModuleKeys([]);
+  };
 
   const copyModuleReportValue = async (value: string, successMessage: string) => {
     if (!value.trim()) {
@@ -3382,6 +3398,26 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
             <option value="候选">候选</option>
             <option value="已选">已选</option>
           </select>
+          {requiresModuleConfirmation ? (
+            <>
+              <button
+                type="button"
+                onClick={selectAllVisibleModules}
+                disabled={selectableFilteredModuleKeys.length === 0}
+                className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-bold text-slate-700 outline-none disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                一键全选
+              </button>
+              <button
+                type="button"
+                onClick={clearAllSelectedModules}
+                disabled={selectedModuleKeys.length === 0}
+                className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-bold text-slate-700 outline-none disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                一键清除全选
+              </button>
+            </>
+          ) : null}
         </div>
         <div className="text-xs font-bold text-slate-500">当前显示 {filteredAndSortedModuleRows.length} / {rows.length}</div>
       </div>
@@ -5471,14 +5507,16 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                     </span>
                     <button
                       type="button"
-                      onClick={() => setSelectedModuleKeys(overviewModuleRows.map((row) => row.moduleKey).filter(Boolean))}
+                      onClick={selectAllVisibleModules}
+                      disabled={selectableModuleKeys.length === 0}
                       className="rounded-full border border-slate-200 bg-white px-3 py-2 text-xs font-black text-slate-700"
                     >
                       全选全部模块
                     </button>
                     <button
                       type="button"
-                      onClick={() => setSelectedModuleKeys([])}
+                      onClick={clearAllSelectedModules}
+                      disabled={selectedModuleKeys.length === 0}
                       className="rounded-full border border-slate-200 bg-white px-3 py-2 text-xs font-black text-slate-700"
                     >
                       清空勾选
