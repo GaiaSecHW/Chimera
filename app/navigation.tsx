@@ -254,6 +254,8 @@ export const PROJECT_REQUIRED_VIEWS = new Set<string>([
   'developer-atomic-capability-overview',
   'developer-tools',
   'developer-tools-overview',
+  'redline-verification',
+  'redline-verification-detail',
 ]);
 
 const DEVELOPER_ATOMIC_CAPABILITY_VIEWS = new Set<string>([
@@ -291,6 +293,8 @@ const DEVELOPER_TOOL_VIEWS = new Set<string>([
   'source-security-detail',
   'binary-module-security',
   'binary-module-security-detail',
+  'redline-verification',
+  'redline-verification-detail',
 ]);
 
 const ASSESSMENT_VIEWS = new Set([
@@ -587,6 +591,7 @@ export const SIDEBAR_SECTIONS: Record<TopLevelNavKey, NavSection[]> = {
         { id: 'binary-security', label: '二进制固件端到端扫描', icon: Settings, aliases: ['binary-security-root', 'binary-security-task-list', 'binary-security-detail'], requiresProject: true },
         { id: 'source-security', label: '源码端到端扫描', icon: Settings, aliases: ['source-security-detail'], requiresProject: true },
         { id: 'binary-module-security', label: '二进制模块端到端扫描', icon: Settings, aliases: ['binary-module-security-detail'], requiresProject: true },
+        { id: 'redline-verification', label: '红线验证', icon: ShieldCheck, aliases: ['redline-verification-detail'], requiresProject: true },
       ],
     },
   ],

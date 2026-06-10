@@ -85,6 +85,8 @@ import { B2SOverviewPage } from '../pages/execution/B2SOverviewPage';
 import { B2STaskAdvancedPage } from '../pages/execution/B2STaskAdvancedPage';
 import { saveExecutionReturnContext } from '../utils/executionReturnContext';
 import { B2STaskDetailPage } from '../pages/execution/B2STaskDetailPage';
+import { RedlineOverviewPage } from '../pages/redline/RedlineOverviewPage';
+import { RedlineTaskDetailPage } from '../pages/redline/RedlineTaskDetailPage';
 import { UserMgmtPage } from '../pages/platform/UserMgmtPage';
 import { RoleMgmtPage } from '../pages/platform/RoleMgmtPage';
 import { PermMgmtPage } from '../pages/platform/PermMgmtPage';
@@ -129,6 +131,7 @@ export interface ViewRegistryContext {
   activeBinarySecurityTaskId: string;
   activeSourceSecurityTaskId: string;
   activeBinaryModuleSecurityTaskId: string;
+  activeRedlineTaskId: string;
   selectedStaticPkgIds: Set<string>;
   setCurrentView: (view: string) => void;
   setSelectedProjectId: (id: string) => void;
@@ -148,6 +151,7 @@ export interface ViewRegistryContext {
   setActiveBinarySecurityTaskId: (id: string) => void;
   setActiveSourceSecurityTaskId: (id: string) => void;
   setActiveBinaryModuleSecurityTaskId: (id: string) => void;
+  setActiveRedlineTaskId: (id: string) => void;
   setSelectedStaticPkgIds: (ids: Set<string>) => void;
   fetchProjects: (refresh?: boolean) => Promise<void>;
   fetchAdminStats: () => Promise<void>;
@@ -577,6 +581,35 @@ export const renderCurrentView = (ctx: ViewRegistryContext): React.ReactNode => 
           taskId={ctx.activeBinaryModuleSecurityTaskId}
           taskType="binary_module"
           onBack={() => ctx.setCurrentView('binary-module-security')}
+        />
+      );
+    case 'redline-verification':
+      return (
+        <RedlineOverviewPage
+          projectId={ctx.selectedProjectId}
+          onOpenTask={(taskId) => {
+            ctx.setActiveRedlineTaskId(taskId);
+            ctx.setCurrentView('redline-verification-detail');
+          }}
+        />
+      );
+    case 'redline-verification-detail':
+      if (!ctx.activeRedlineTaskId) {
+        return (
+          <RedlineOverviewPage
+            projectId={ctx.selectedProjectId}
+            onOpenTask={(taskId) => {
+              ctx.setActiveRedlineTaskId(taskId);
+              ctx.setCurrentView('redline-verification-detail');
+            }}
+          />
+        );
+      }
+      return (
+        <RedlineTaskDetailPage
+          projectId={ctx.selectedProjectId}
+          taskId={ctx.activeRedlineTaskId}
+          onBack={() => ctx.setCurrentView('redline-verification')}
         />
       );
     case 'binary-security-config':

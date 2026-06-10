@@ -92,6 +92,7 @@ const AppShell: React.FC = () => {
   const [activeBinarySecurityTaskId, setActiveBinarySecurityTaskId] = useState<string>('');
   const [activeSourceSecurityTaskId, setActiveSourceSecurityTaskId] = useState<string>('');
   const [activeBinaryModuleSecurityTaskId, setActiveBinaryModuleSecurityTaskId] = useState<string>('');
+  const [activeRedlineTaskId, setActiveRedlineTaskId] = useState<string>('');
   const [isLoading, setIsLoading] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -672,6 +673,7 @@ const AppShell: React.FC = () => {
                     activeBinarySecurityTaskId,
                     activeSourceSecurityTaskId,
                     activeBinaryModuleSecurityTaskId,
+                    activeRedlineTaskId,
                     selectedStaticPkgIds,
                     setCurrentView: navigateToView,
                     setSelectedProjectId: (id) => setSelectedProjectId(id),
@@ -691,6 +693,7 @@ const AppShell: React.FC = () => {
                     setActiveBinarySecurityTaskId: (id) => setActiveBinarySecurityTaskId(id),
                     setActiveSourceSecurityTaskId: (id) => setActiveSourceSecurityTaskId(id),
                     setActiveBinaryModuleSecurityTaskId: (id) => setActiveBinaryModuleSecurityTaskId(id),
+                    setActiveRedlineTaskId: (id) => setActiveRedlineTaskId(id),
                     setSelectedStaticPkgIds: (ids) => setSelectedStaticPkgIds(ids),
                     fetchProjects,
                     fetchAdminStats,
