@@ -44,21 +44,32 @@ import {
 import { UserInfo } from '../types/types';
 import { getPlatformRole, getUserAccess, getUserCenterDefaultView } from '../utils/rbac';
 
+export type NavRole = 'user' | 'developer' | 'admin' | null;
+
 export type TopLevelNavKey =
   | 'dashboard'
   | 'project'
   | 'assets'
   | 'task'
-  | 'developer'
   | 'environment'
-  | 'orchestration'
-  | 'execution'
   | 'vuln'
-  | 'platform';
+  | 'assessment'
+  | 'observe'
+  | 'skill'
+  | 'tools'
+  | 'atomic'
+  | 'aigw'
+  | 'schedule'
+  | 'evolution'
+  | 'tenant'
+  | 'role'
+  | 'user-mgmt';
 
 export interface TopLevelNavItem {
   id: TopLevelNavKey;
   label: string;
+  role: NavRole;
+  showDividerBefore?: boolean;
 }
 
 export interface SubNavItem {
@@ -96,33 +107,51 @@ export interface SidebarHealthStatus {
 
 export type HealthStatusKey = keyof SidebarHealthStatus;
 
+export const NAV_ROLE_CONFIG: Record<string, { label: string; color: string; activeBg: string; bg: string; border: string }> = {
+  user: { label: '使用者视图', color: '#d97706', activeBg: '#d97706', bg: 'rgba(217,119,6,0.12)', border: 'rgba(217,119,6,0.2)' },
+  developer: { label: '开发者视图', color: '#3b82f6', activeBg: '#3b82f6', bg: 'rgba(59,130,246,0.12)', border: 'rgba(59,130,246,0.2)' },
+  admin: { label: '管理员视图', color: '#ef4444', activeBg: '#ef4444', bg: 'rgba(239,68,68,0.12)', border: 'rgba(239,68,68,0.2)' },
+};
+
 export const TOP_LEVEL_NAV_ITEMS: TopLevelNavItem[] = [
-  { id: 'dashboard', label: '控制台' },
-  { id: 'project', label: '项目' },
-  { id: 'task', label: '任务' },
-  { id: 'developer', label: '开发者' },
-  { id: 'environment', label: '环境' },
-  { id: 'assets', label: '资产' },
-  { id: 'orchestration', label: '编排' },
-  { id: 'execution', label: '执行' },
-  { id: 'vuln', label: '漏洞' },
-  { id: 'platform', label: '平台' },
+  { id: 'dashboard', label: '仪表盘', role: null },
+  { id: 'project', label: '项目', role: 'user' },
+  { id: 'assets', label: '资产', role: 'user' },
+  { id: 'task', label: '任务', role: 'user' },
+  { id: 'environment', label: '环境', role: 'user' },
+  { id: 'vuln', label: '漏洞', role: 'user' },
+  { id: 'assessment', label: '评测', role: 'developer', showDividerBefore: true },
+  { id: 'observe', label: '观测', role: 'developer' },
+  { id: 'skill', label: '技能', role: 'developer' },
+  { id: 'tools', label: '工具', role: 'developer' },
+  { id: 'atomic', label: '原子能力', role: 'developer' },
+  { id: 'aigw', label: 'AI网关', role: 'admin', showDividerBefore: true },
+  { id: 'schedule', label: '任务调度', role: 'admin' },
+  { id: 'evolution', label: '进化', role: 'admin' },
+  { id: 'tenant', label: '租户', role: 'admin' },
+  { id: 'role', label: '角色', role: 'admin' },
+  { id: 'user-mgmt', label: '用户', role: 'admin' },
 ];
 
-const ORDINARY_USER_HIDDEN_TOP_LEVEL_NAVS = new Set<TopLevelNavKey>([
-  'developer',
-  'environment',
-  'assets',
-  'orchestration',
-  'execution',
-]);
+const ROLE_TAB_ACCESS: Record<string, Set<string>> = {
+  ordinary_user: new Set(['user']),
+  developer: new Set(['user', 'developer']),
+  ordinary_admin: new Set(['user', 'developer', 'admin']),
+  super_admin: new Set(['user', 'developer', 'admin']),
+};
 
-export const getVisibleTopLevelNavItems = (user: UserInfo | null | undefined): TopLevelNavItem[] => {
+export const getVisibleTopLevelNavItems = (
+  user: UserInfo | null | undefined,
+  visibleRoles?: Set<NavRole>,
+): TopLevelNavItem[] => {
   const platformRole = getPlatformRole(user);
-  if (platformRole !== 'ordinary_user') {
-    return TOP_LEVEL_NAV_ITEMS;
-  }
-  return TOP_LEVEL_NAV_ITEMS.filter((item) => !ORDINARY_USER_HIDDEN_TOP_LEVEL_NAVS.has(item.id));
+  const accessibleRoles = ROLE_TAB_ACCESS[platformRole] || ROLE_TAB_ACCESS.ordinary_user;
+  return TOP_LEVEL_NAV_ITEMS.filter((item) => {
+    if (item.id === 'dashboard') return true;
+    if (item.role && !accessibleRoles.has(item.role)) return false;
+    if (visibleRoles && item.role && !visibleRoles.has(item.role)) return false;
+    return true;
+  });
 };
 
 export const PROJECT_REQUIRED_VIEWS = new Set<string>([
@@ -263,12 +292,73 @@ const DEVELOPER_TOOL_VIEWS = new Set<string>([
   'binary-module-security-detail',
 ]);
 
+const ASSESSMENT_VIEWS = new Set([
+  'pentest-exec-code',
+  'security-assessment',
+  'pentest-report',
+]);
+
+const SKILL_VIEWS = new Set([
+  'mobile-security-ipc-vuln',
+  'kernel-scan',
+  'pentest-exec-work',
+]);
+
+const OBSERVE_VIEWS = new Set([
+  'workflow-apps',
+  'workflow-app-detail',
+  'workflow-app-instances',
+  'workflow-app-instance-detail',
+  'workflow-jobs',
+  'workflow-job-detail',
+  'workflow-instances',
+  'workflow-instance-detail',
+  'workflow-instance-logs',
+]);
+
+const AIGW_VIEWS = new Set([
+  'aigw-admin',
+  'config-center-llm',
+  'config-center-root',
+  'config-center-llm-chat',
+  'admin-dashboard',
+  'sys-settings',
+  'change-password',
+]);
+
+const SCHEDULE_VIEWS = new Set([
+  'chirmera-platform-schedule',
+  'static-packages',
+  'static-package-detail',
+  'deploy-script-mgmt',
+]);
+
+const EVOLUTION_VIEWS = new Set([
+  'binary-evolution-center',
+  'binary-evolution-firmware-unpacker',
+  'binary-security-config',
+  'binary-security-metrics',
+]);
+
+const TENANT_VIEWS = new Set([
+  'user-mgmt-access',
+  'user-mgmt-users',
+  'user-mgmt-online',
+  'user-mgmt-machine',
+  'org-mgmt-departments',
+  'org-mgmt-members',
+  'org-mgmt-projects',
+]);
+
+const ROLE_VIEWS = new Set([
+  'user-mgmt-roles',
+  'user-mgmt-perms',
+]);
+
 export const getTopLevelNavForView = (view: string): TopLevelNavKey => {
   if (view === 'dashboard') return 'dashboard';
 
-  if (view === 'project-mgmt' || view === 'project-detail' || view === 'product-mgmt') {
-    return 'project';
-  }
+  if (view === 'project-mgmt' || view === 'project-detail' || view === 'product-mgmt') return 'project';
 
   if (
     view === 'project-file-explorer' ||
@@ -277,101 +367,85 @@ export const getTopLevelNavForView = (view: string): TopLevelNavKey => {
     view === 'public-resource-task-management' ||
     view === 'pvc-management' ||
     view.startsWith('test-input-')
-  ) {
-    return 'assets';
-  }
+  ) return 'assets';
 
-  if (
-    view === 'static-packages' ||
-    view === 'static-package-detail' ||
-    view === 'deploy-script-mgmt'
-  ) {
-    return 'platform';
-  }
+  if (view.startsWith('task-')) return 'task';
 
-  if (view.startsWith('env-')) {
-    return 'environment';
-  }
+  if (view.startsWith('env-')) return 'environment';
 
-  if (view.startsWith('workflow-')) {
-    return 'orchestration';
-  }
+  if (view === 'vuln-engine' || view.startsWith('vuln-')) return 'vuln';
 
-  if (
-    view.startsWith('task-')
-  ) {
-    return 'task';
-  }
+  if (ASSESSMENT_VIEWS.has(view)) return 'assessment';
 
-  if (DEVELOPER_ATOMIC_CAPABILITY_VIEWS.has(view)) {
-    return 'developer';
-  }
+  if (OBSERVE_VIEWS.has(view) || view.startsWith('workflow-')) return 'observe';
 
-  if (DEVELOPER_TOOL_VIEWS.has(view)) {
-    return 'developer';
-  }
+  if (SKILL_VIEWS.has(view)) return 'skill';
 
-  if (
-    view.startsWith('developer-')
-  ) {
-    return 'developer';
-  }
+  if (DEVELOPER_TOOL_VIEWS.has(view) || view === 'developer-tools-overview' || view === 'developer-tools') return 'tools';
 
-  if (
-    view === 'security-assessment' ||
-    view === 'kernel-scan' ||
-    view.startsWith('binary-security') ||
-    view.startsWith('binary-module-security') ||
-    view.startsWith('binary-evolution') ||
-    view.startsWith('source-security') ||
-    view.startsWith('mobile-security-') ||
-    view.startsWith('pentest-') ||
-    view.startsWith('entry-analysis-') ||
-    view.startsWith('system-analysis-') ||
-    view.startsWith('dataflow-vuln-scan-') ||
-    view.startsWith('dataflow-analysis-')
-  ) {
-    return 'execution';
-  }
+  if (DEVELOPER_ATOMIC_CAPABILITY_VIEWS.has(view) || view.startsWith('developer-atomic-capability') || view.startsWith('developer-')) return 'atomic';
 
-  if (view === 'vuln-engine' || view.startsWith('vuln-')) {
-    return 'vuln';
-  }
+  if (EVOLUTION_VIEWS.has(view) || view.startsWith('binary-evolution-')) return 'evolution';
 
-  return 'platform';
+  if (AIGW_VIEWS.has(view)) return 'aigw';
+
+  if (SCHEDULE_VIEWS.has(view)) return 'schedule';
+
+  if (TENANT_VIEWS.has(view)) return 'tenant';
+
+  if (ROLE_VIEWS.has(view)) return 'role';
+
+  return 'dashboard';
 };
 
 export const getTopLevelDefaultView = (nav: TopLevelNavKey, user: UserInfo | null): string => {
   const access = getUserAccess(user);
 
   switch (nav) {
-    case 'dashboard':
-      return 'dashboard';
-    case 'project':
-      return 'project-mgmt';
-    case 'assets':
-      return 'public-resource-pvc-management';
-    case 'task':
-      return 'task-nuzhua';
-    case 'developer':
-      return 'developer-atomic-capability-overview';
-    case 'environment':
-      return 'env-agent';
-    case 'orchestration':
-      return 'workflow-apps';
-    case 'execution':
-      return 'pentest-exec-code';
-    case 'vuln':
-      return 'vuln-overview';
-    case 'platform':
+    case 'dashboard': return 'dashboard';
+    case 'project': return 'project-mgmt';
+    case 'assets': return 'public-resource-pvc-management';
+    case 'task': return 'task-nuzhua';
+    case 'environment': return 'env-agent';
+    case 'vuln': return 'vuln-overview';
+    case 'assessment': return 'pentest-exec-code';
+    case 'observe': return 'workflow-apps';
+    case 'skill': return 'mobile-security-ipc-vuln';
+    case 'tools': return 'developer-tools-overview';
+    case 'atomic': return 'developer-atomic-capability-overview';
+    case 'aigw':
       if (access.canAccessAdminDashboard) return 'admin-dashboard';
-      if (access.canAccessConfigCenter) return 'config-center-llm';
+      return 'aigw-admin';
+    case 'schedule': return 'chirmera-platform-schedule';
+    case 'evolution': return 'binary-evolution-center';
+    case 'tenant':
       if (access.canAccessUserCenter) return String(getUserCenterDefaultView(user));
-      return 'sys-settings';
-    default:
-      return 'dashboard';
+      return 'user-mgmt-access';
+    case 'role': return 'user-mgmt-roles';
+    case 'user-mgmt': return 'user-mgmt-users';
+    default: return 'dashboard';
   }
 };
+
+const PLATFORM_ACCOUNT_ORG_SECTIONS: NavSection[] = [
+  {
+    title: '账号与权限',
+    items: [
+      { id: 'user-mgmt-access', label: '用户权限管理', icon: Shield },
+      { id: 'user-mgmt-users', label: '用户账号管理', icon: Users },
+      { id: 'user-mgmt-online', label: '在线会话监控', icon: Globe },
+      { id: 'user-mgmt-machine', label: '机机凭证管理', icon: Cpu },
+    ],
+  },
+  {
+    title: '组织架构',
+    items: [
+      { id: 'org-mgmt-departments', label: '部门结构管理', icon: Building2 },
+      { id: 'org-mgmt-members', label: '部门成员管理', icon: UserCog },
+      { id: 'org-mgmt-projects', label: '项目权限管理', icon: Briefcase },
+    ],
+  },
+];
 
 export const SIDEBAR_SECTIONS: Record<TopLevelNavKey, NavSection[]> = {
   dashboard: [
@@ -421,95 +495,6 @@ export const SIDEBAR_SECTIONS: Record<TopLevelNavKey, NavSection[]> = {
       ],
     },
   ],
-  developer: [
-    {
-      title: '原子能力',
-      items: [
-        {
-          id: 'developer-atomic-capability-overview',
-          label: '原子能力总览',
-          icon: Zap,
-          requiresProject: true,
-          aliases: ['developer-atomic-capability'],
-        },
-        {
-          id: 'pentest-exec-firmware-unpacker',
-          label: '固件解包',
-          icon: Zap,
-          aliases: ['pentest-exec-firmware-task-list'],
-          requiresProject: true,
-        },
-        {
-          id: 'pentest-system',
-          label: '系统分析',
-          icon: Zap,
-          aliases: ['system-analysis-task', 'system-analysis-detail'],
-          requiresProject: true,
-        },
-        {
-          id: 'pentest-exec-b2s',
-          label: '二进制逆向',
-          icon: Zap,
-          aliases: ['pentest-exec-b2s-root', 'pentest-exec-b2s-task-list', 'pentest-exec-b2s-create', 'pentest-exec-b2s-queue', 'pentest-exec-b2s-result', 'pentest-exec-b2s-detail', 'pentest-exec-b2s-advanced'],
-          requiresProject: true,
-        },
-        {
-          id: 'pentest-threat',
-          label: '入口分析',
-          icon: Zap,
-          aliases: ['entry-analysis-root', 'entry-analysis-task', 'entry-analysis-detail'],
-          requiresProject: true,
-        },
-        {
-          id: 'pentest-dataflow-vuln-scan',
-          label: '数据流漏洞挖掘',
-          icon: Zap,
-          aliases: ['dataflow-vuln-scan-task', 'dataflow-vuln-scan-detail', 'dataflow-vuln-scan-config'],
-          requiresProject: true,
-        },
-        {
-          id: 'pentest-vuln-verify',
-          label: '漏洞验证',
-          icon: Zap,
-          aliases: ['vuln-verify-task'],
-          requiresProject: true,
-        },
-      ],
-    },
-    {
-      title: '工具',
-      items: [
-        {
-          id: 'developer-tools-overview',
-          label: '工具总览',
-          icon: Settings,
-          requiresProject: true,
-          aliases: ['developer-tools'],
-        },
-        {
-          id: 'binary-security',
-          label: '二进制固件端到端扫描',
-          icon: Settings,
-          aliases: ['binary-security-root', 'binary-security-task-list', 'binary-security-detail'],
-          requiresProject: true,
-        },
-        {
-          id: 'source-security',
-          label: '源码端到端扫描',
-          icon: Settings,
-          aliases: ['source-security-detail'],
-          requiresProject: true,
-        },
-        {
-          id: 'binary-module-security',
-          label: '二进制模块端到端扫描',
-          icon: Settings,
-          aliases: ['binary-module-security-detail'],
-          requiresProject: true,
-        },
-      ],
-    },
-  ],
   environment: [
     {
       title: '执行环境',
@@ -537,75 +522,6 @@ export const SIDEBAR_SECTIONS: Record<TopLevelNavKey, NavSection[]> = {
       ],
     },
   ],
-  orchestration: [
-    {
-      title: '工作流模板',
-      items: [
-        { id: 'workflow-apps', label: '应用模板', icon: Layers, aliases: ['workflow-app-detail'], requiresProject: true, healthKey: 'workflowHealth' },
-        { id: 'workflow-jobs', label: '任务模板', icon: Zap, aliases: ['workflow-job-detail'], requiresProject: true },
-      ],
-    },
-    {
-      title: '工作流运行',
-      items: [
-        { id: 'workflow-app-instances', label: '应用实例', icon: Box, aliases: ['workflow-app-instance-detail'], requiresProject: true },
-        { id: 'workflow-instances', label: '工作流实例', icon: Workflow, aliases: ['workflow-instance-detail', 'workflow-instance-logs'], requiresProject: true },
-      ],
-    },
-  ],
-  execution: [
-    {
-      title: '二进制安全',
-      items: [
-        // [DISABLED] 数据流漏洞挖掘 - 方便后续复用
-        // { id: 'pentest-exec-dataflow-vuln', label: '数据流漏洞挖掘', icon: Shield, aliases: ['pentest-exec-dataflow-vuln-task-list', 'pentest-exec-dataflow-vuln-task-detail'], requiresProject: true },
-        {
-          id: 'binary-evolution-center',
-          label: '进化中心',
-          icon: Sparkles,
-          requiresProject: true,
-          subItems: [
-            // [DISABLED] 进化数据流漏洞挖掘 - 方便后续复用
-            // {
-            //   id: 'binary-evolution-dataflow-vuln',
-            //   label: '进化数据流漏洞挖掘',
-            //   aliases: ['binary-evolution-center'],
-            //   requiresProject: true,
-            // },
-            {
-              id: 'binary-evolution-firmware-unpacker',
-              label: '进化固件解包',
-              requiresProject: true,
-            },
-          ],
-        },
-        // [DISABLED] alias pentest-exec-dataflow-vuln-system-config - 方便后续复用
-        { id: 'binary-security-config', label: '参数配置', icon: Settings, requiresProject: true },
-        { id: 'binary-security-metrics', label: '性能看板', icon: Monitor, requiresProject: true },
-      ],
-    },
-    {
-      title: 'WEB安全',
-      items: [
-        { id: 'pentest-exec-work', label: '知微工作台', icon: Target, requiresProject: true },
-      ],
-    },
-    {
-      title: '终端安全',
-      items: [
-        { id: 'mobile-security-ipc-vuln', label: '鸿蒙框架漏洞挖掘', icon: Terminal, requiresProject: true },
-        { id: 'kernel-scan', label: '内核扫描', icon: Shield, requiresProject: true },
-      ],
-    },
-    {
-      title: '安全执行',
-      items: [
-        { id: 'pentest-exec-code', label: '在线代码审计', icon: Code2, requiresProject: true, healthKey: 'codeAuditHealth' },
-        { id: 'security-assessment', label: '安全评估', icon: ClipboardCheck, requiresProject: true },
-        { id: 'pentest-report', label: '测试报告', icon: FileText, requiresProject: true },
-      ],
-    },
-  ],
   vuln: [
     {
       title: '漏洞闭环',
@@ -622,36 +538,115 @@ export const SIDEBAR_SECTIONS: Record<TopLevelNavKey, NavSection[]> = {
       ],
     },
   ],
-  platform: [
+  assessment: [
     {
-      title: '平台配置',
+      title: '安全评测',
       items: [
-        { id: 'admin-dashboard', label: '管理员控制台', icon: ShieldAlert },
-        { id: 'aigw-admin', label: 'AI 网关', icon: Activity },
+        { id: 'pentest-exec-code', label: '在线代码审计', icon: Code2, requiresProject: true, healthKey: 'codeAuditHealth' },
+        { id: 'security-assessment', label: '安全评估', icon: ClipboardCheck, requiresProject: true },
+        { id: 'pentest-report', label: '测试报告', icon: FileText, requiresProject: true },
+      ],
+    },
+  ],
+  observe: [
+    {
+      title: '工作流模板',
+      items: [
+        { id: 'workflow-apps', label: '应用模板', icon: Layers, aliases: ['workflow-app-detail'], requiresProject: true, healthKey: 'workflowHealth' },
+        { id: 'workflow-jobs', label: '任务模板', icon: Zap, aliases: ['workflow-job-detail'], requiresProject: true },
+      ],
+    },
+    {
+      title: '工作流运行',
+      items: [
+        { id: 'workflow-app-instances', label: '应用实例', icon: Box, aliases: ['workflow-app-instance-detail'], requiresProject: true },
+        { id: 'workflow-instances', label: '工作流实例', icon: Workflow, aliases: ['workflow-instance-detail', 'workflow-instance-logs'], requiresProject: true },
+      ],
+    },
+  ],
+  skill: [
+    {
+      title: '终端安全',
+      items: [
+        { id: 'mobile-security-ipc-vuln', label: '鸿蒙框架漏洞挖掘', icon: Terminal, requiresProject: true },
+        { id: 'kernel-scan', label: '内核扫描', icon: Shield, requiresProject: true },
+      ],
+    },
+    {
+      title: 'WEB安全',
+      items: [
+        { id: 'pentest-exec-work', label: '知微工作台', icon: Target, requiresProject: true },
+      ],
+    },
+  ],
+  tools: [
+    {
+      title: '开发者工具',
+      items: [
+        { id: 'developer-tools-overview', label: '工具总览', icon: Settings, requiresProject: true, aliases: ['developer-tools'] },
+        { id: 'binary-security', label: '二进制固件端到端扫描', icon: Settings, aliases: ['binary-security-root', 'binary-security-task-list', 'binary-security-detail'], requiresProject: true },
+        { id: 'source-security', label: '源码端到端扫描', icon: Settings, aliases: ['source-security-detail'], requiresProject: true },
+        { id: 'binary-module-security', label: '二进制模块端到端扫描', icon: Settings, aliases: ['binary-module-security-detail'], requiresProject: true },
+      ],
+    },
+  ],
+  atomic: [
+    {
+      title: '原子能力',
+      items: [
+        { id: 'developer-atomic-capability-overview', label: '原子能力总览', icon: Zap, requiresProject: true, aliases: ['developer-atomic-capability'] },
+        { id: 'pentest-exec-firmware-unpacker', label: '固件解包', icon: Zap, aliases: ['pentest-exec-firmware-task-list'], requiresProject: true },
+        { id: 'pentest-system', label: '系统分析', icon: Zap, aliases: ['system-analysis-task', 'system-analysis-detail'], requiresProject: true },
+        { id: 'pentest-exec-b2s', label: '二进制逆向', icon: Zap, aliases: ['pentest-exec-b2s-root', 'pentest-exec-b2s-task-list', 'pentest-exec-b2s-create', 'pentest-exec-b2s-queue', 'pentest-exec-b2s-result', 'pentest-exec-b2s-detail', 'pentest-exec-b2s-advanced'], requiresProject: true },
+        { id: 'pentest-threat', label: '入口分析', icon: Zap, aliases: ['entry-analysis-root', 'entry-analysis-task', 'entry-analysis-detail'], requiresProject: true },
+        { id: 'pentest-dataflow-vuln-scan', label: '数据流漏洞挖掘', icon: Zap, aliases: ['dataflow-vuln-scan-task', 'dataflow-vuln-scan-detail', 'dataflow-vuln-scan-config'], requiresProject: true },
+        { id: 'pentest-vuln-verify', label: '漏洞验证', icon: Zap, aliases: ['vuln-verify-task'], requiresProject: true },
+      ],
+    },
+  ],
+  aigw: [
+    {
+      title: 'AI 网关',
+      items: [
+        { id: 'aigw-admin', label: 'AI 网关管理', icon: Activity },
         { id: 'config-center-llm', label: '配置中心', icon: Key, aliases: ['config-center-root', 'config-center-llm-chat'], healthKey: 'configCenterHealth' },
-        { id: 'chirmera-platform-schedule', label: '调度中心', icon: Workflow },
-        { id: 'static-packages', label: '静态软件包', icon: Package, aliases: ['static-package-detail'], healthKey: 'staticPackageHealth' },
-        { id: 'deploy-script-mgmt', label: '部署脚本', icon: Terminal },
+        { id: 'admin-dashboard', label: '管理员控制台', icon: ShieldAlert },
         { id: 'sys-settings', label: '系统设置', icon: Settings },
         { id: 'change-password', label: '修改密码', icon: Lock },
       ],
     },
+  ],
+  schedule: [
     {
-      title: '账号与权限',
+      title: '任务调度',
       items: [
-        { id: 'user-mgmt-access', label: '用户权限管理', icon: Shield },
-        { id: 'user-mgmt-users', label: '用户账号管理', icon: Users },
-        { id: 'user-mgmt-online', label: '在线会话监控', icon: Globe },
-        { id: 'user-mgmt-machine', label: '机机凭证管理', icon: Cpu },
-      ],
-    },
-    {
-      title: '组织架构',
-      items: [
-        { id: 'org-mgmt-departments', label: '部门结构管理', icon: Building2 },
-        { id: 'org-mgmt-members', label: '部门成员管理', icon: UserCog },
-        { id: 'org-mgmt-projects', label: '项目权限管理', icon: Briefcase },
+        { id: 'chirmera-platform-schedule', label: '调度中心', icon: Workflow },
+        { id: 'static-packages', label: '静态软件包', icon: Package, aliases: ['static-package-detail'], healthKey: 'staticPackageHealth' },
+        { id: 'deploy-script-mgmt', label: '部署脚本', icon: Terminal },
       ],
     },
   ],
+  evolution: [
+    {
+      title: '二进制进化',
+      items: [
+        { id: 'binary-evolution-center', label: '进化中心', icon: Sparkles, requiresProject: true, subItems: [
+          { id: 'binary-evolution-firmware-unpacker', label: '进化固件解包', requiresProject: true },
+        ] },
+        { id: 'binary-security-config', label: '参数配置', icon: Settings, requiresProject: true },
+        { id: 'binary-security-metrics', label: '性能看板', icon: Monitor, requiresProject: true },
+      ],
+    },
+  ],
+  tenant: PLATFORM_ACCOUNT_ORG_SECTIONS,
+  role: [
+    {
+      title: '角色管理',
+      items: [
+        { id: 'user-mgmt-roles', label: '角色列表', icon: Shield },
+        { id: 'user-mgmt-perms', label: '权限分配', icon: Users },
+      ],
+    },
+  ],
+  'user-mgmt': PLATFORM_ACCOUNT_ORG_SECTIONS,
 };

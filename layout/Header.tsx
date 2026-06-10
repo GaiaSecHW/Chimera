@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { ChevronDown, Lock, LogOut, RotateCw, Settings, UserCog } from 'lucide-react';
-import { TopLevelNavKey, TOP_LEVEL_NAV_ITEMS } from '../app/navigation';
+import { ChevronDown, Lock, LogOut, RotateCw, Settings, UserCog, Users } from 'lucide-react';
+import { TopLevelNavKey, TopLevelNavItem, NAV_ROLE_CONFIG, getVisibleTopLevelNavItems } from '../app/navigation';
 import { SecurityProject, UserInfo, ViewType } from '../types/types';
 import { getPlatformRoleLabel, getUserAccess, getUserCenterDefaultView } from '../utils/rbac';
 import { ThemeLogo } from '../components/ThemeLogo';
@@ -8,6 +8,19 @@ import { ThemeLogo } from '../components/ThemeLogo';
 const FRONTEND_BUILD_VERSION = String(
   typeof __CHIMERA_BUILD_VERSION__ !== 'undefined' ? __CHIMERA_BUILD_VERSION__ : '',
 ).trim() || 'dev';
+
+const getTabStyle = (item: TopLevelNavItem, isActive: boolean): React.CSSProperties => {
+  if (isActive) {
+    if (!item.role) return { background: '#6366f1', color: '#fff', boxShadow: '0 2px 12px rgba(99,102,241,0.32)' };
+    const cfg = NAV_ROLE_CONFIG[item.role!];
+    return { background: cfg.activeBg, color: '#fff', boxShadow: `0 2px 12px ${cfg.color}52` };
+  }
+  if (item.role) {
+    const cfg = NAV_ROLE_CONFIG[item.role];
+    return { background: cfg.bg, color: cfg.color, border: `1px solid ${cfg.border}` };
+  }
+  return {};
+};
 
 interface HeaderProps {
   user: UserInfo | null;
@@ -44,49 +57,98 @@ export const Header: React.FC<HeaderProps> = ({
 }) => {
   const userAccess = getUserAccess(user);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
+  const [visibleRoles, setVisibleRoles] = useState<Set<string>>(new Set(['user', 'developer', 'admin']));
+  const [isRoleDropdownOpen, setIsRoleDropdownOpen] = useState(false);
   const userMenuRef = useRef<HTMLDivElement>(null);
+  const roleDropdownRef = useRef<HTMLDivElement>(null);
 
   const currentProject = projects.find((p) => p.id === selectedProjectId) || { name: '选择项目' };
 
+  const visibleNavItems = getVisibleTopLevelNavItems(user, visibleRoles as any);
+
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (userMenuRef.current && !userMenuRef.current.contains(event.target as Node)) {
-        setIsUserMenuOpen(false);
-      }
+      if (userMenuRef.current && !userMenuRef.current.contains(event.target as Node)) setIsUserMenuOpen(false);
+      if (roleDropdownRef.current && !roleDropdownRef.current.contains(event.target as Node)) setIsRoleDropdownOpen(false);
     };
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  const toggleRole = (role: string) => {
+    setVisibleRoles((prev) => {
+      const next = new Set(prev);
+      if (next.has(role)) next.delete(role); else next.add(role);
+      return next;
+    });
+  };
+
   return (
     <header className="bg-theme-header border-b border-theme-sidebar shadow-brand z-20 sticky top-0">
-      <div className="h-20 px-6 xl:px-10 grid grid-cols-[1fr_auto_1fr] items-center gap-4">
+      <div className="h-14 px-6 xl:px-10 grid grid-cols-[1fr_auto_1fr] items-center gap-4">
         <div className="flex items-center gap-4 min-w-0">
-          <ThemeLogo buildVersion={FRONTEND_BUILD_VERSION} />
+          <ThemeLogo size="small" buildVersion={FRONTEND_BUILD_VERSION} />
         </div>
 
         <div className="flex justify-center min-w-0">
-          <nav className="flex items-center gap-2 overflow-x-auto no-scrollbar max-w-full">
-            {TOP_LEVEL_NAV_ITEMS.map((item) => {
+          <nav className="flex items-center gap-1 overflow-x-auto no-scrollbar max-w-full">
+            {visibleNavItems.map((item) => {
               const isActive = currentTopLevelNav === item.id;
               return (
-                <button
-                  key={item.id}
-                  onClick={() => onSelectTopLevelNav(item.id)}
-                  className={`px-5 py-3 rounded-2xl text-sm font-black whitespace-nowrap transition-all ${
-                    isActive
-                      ? 'theme-shell-active'
-                      : 'theme-shell-muted'
-                  }`}
-                >
-                  {item.label}
-                </button>
+                <React.Fragment key={item.id}>
+                  {item.showDividerBefore && (
+                    <div className="w-px h-4 bg-theme-text-faint/20 mx-1.5 shrink-0" />
+                  )}
+                  <button
+                    onClick={() => onSelectTopLevelNav(item.id)}
+                    style={getTabStyle(item, isActive)}
+                    className={`px-3 py-1.5 rounded-xl text-sm font-bold whitespace-nowrap transition-all ${
+                      isActive ? '' : 'hover:bg-theme-sidebar-muted hover:text-theme-text-inverse'
+                    }`}
+                  >
+                    {item.label}
+                  </button>
+                </React.Fragment>
               );
             })}
           </nav>
         </div>
 
         <div className="flex items-center justify-end gap-3 min-w-0">
+          <div className="relative shrink-0" ref={roleDropdownRef}>
+            <button
+              onClick={() => setIsRoleDropdownOpen(!isRoleDropdownOpen)}
+              className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-bold text-theme-text-soft bg-theme-sidebar-muted/60 rounded-xl hover:bg-theme-sidebar-muted transition-all"
+            >
+              <Users size={14} />
+              角色
+              <ChevronDown size={12} className={`transition-transform ${isRoleDropdownOpen ? 'rotate-180' : ''}`} />
+            </button>
+            {isRoleDropdownOpen && (
+              <div className="absolute top-full right-0 mt-2 w-44 bg-theme-surface border border-theme-border rounded-2xl shadow-brand p-2 z-50">
+                {(['user', 'developer', 'admin'] as const).map((role) => {
+                  const cfg = NAV_ROLE_CONFIG[role];
+                  const checked = visibleRoles.has(role);
+                  return (
+                    <button
+                      key={role}
+                      onClick={() => toggleRole(role)}
+                      className="w-full flex items-center gap-2.5 px-3 py-2.5 text-xs font-bold text-theme-text-secondary hover:bg-theme-elevated rounded-xl transition-all"
+                    >
+                      <span className={`w-4 h-4 rounded-md border-2 flex items-center justify-center shrink-0 transition-all ${
+                        checked ? 'border-blue-500 bg-blue-500/15' : 'border-theme-text-faint/30'
+                      }`}>
+                        {checked && <span className="w-2 h-1.5 border-l-2 border-b-2 border-blue-500 -rotate-45 -translate-y-px" />}
+                      </span>
+                      <span className="w-2 h-2 rounded-full shrink-0" style={{ background: cfg.color }} />
+                      {cfg.label.replace('视图', '')}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
           <div className="relative min-w-0 max-w-[18rem]">
             <button
               onClick={() => setIsProjectDropdownOpen(!isProjectDropdownOpen)}

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { ChevronDown, ChevronRight, MoonStar, PanelLeftClose, PanelLeftOpen, SunMedium } from 'lucide-react';
-import { SIDEBAR_SECTIONS, SidebarHealthStatus } from '../app/navigation';
+import { SIDEBAR_SECTIONS, SidebarHealthStatus, TOP_LEVEL_NAV_ITEMS, NAV_ROLE_CONFIG } from '../app/navigation';
 import { useTheme } from '../theme/ThemeProvider';
 import { UserInfo, ViewType } from '../types/types';
 import { canAccessView } from '../utils/rbac';
@@ -80,8 +80,19 @@ export const Sidebar: React.FC<SidebarProps> = ({
     });
   };
 
+  const navRole = TOP_LEVEL_NAV_ITEMS.find((i) => i.id === activeTopLevelNav)?.role;
+  const roleConfig = navRole ? NAV_ROLE_CONFIG[navRole] : null;
+
   return (
     <aside className={`${isSidebarCollapsed ? 'w-24' : 'w-60'} bg-theme-sidebar text-theme-text-soft flex flex-col transition-all duration-300 z-30 shadow-brand shrink-0`}>
+      {!isSidebarCollapsed && roleConfig && (
+        <div className="px-5 pt-4 pb-1 flex items-center gap-2">
+          <span className="w-1.5 h-1.5 rounded-full" style={{ background: roleConfig.color }} />
+          <span className="text-[10px] font-black uppercase tracking-[0.22em]" style={{ color: roleConfig.color }}>
+            {roleConfig.label}
+          </span>
+        </div>
+      )}
       <nav className="flex-1 px-4 py-5 overflow-y-auto custom-scrollbar">
         <div className="space-y-5">
           {sections.map((section) => (

@@ -1,5 +1,4 @@
 import React from 'react';
-import { Shield } from 'lucide-react';
 import { useTheme } from '../theme/ThemeProvider';
 
 interface ThemeLogoProps {
@@ -12,21 +11,18 @@ interface ThemeLogoProps {
 
 const SIZE_MAP = {
   small: {
-    box: 'w-10 h-10 rounded-2xl',
-    icon: 20,
-    image: 'w-8 h-8',
+    box: 'w-14 h-14 rounded-2xl',
+    image: 'w-12 h-12',
     title: 'text-lg',
   },
   medium: {
-    box: 'w-11 h-11 rounded-2xl',
-    icon: 24,
-    image: 'w-9 h-9',
+    box: 'w-16 h-16 rounded-2xl',
+    image: 'w-14 h-14',
     title: 'text-xl',
   },
   large: {
-    box: 'w-20 h-20 rounded-3xl',
-    icon: 40,
-    image: 'w-16 h-16',
+    box: 'w-28 h-28 rounded-3xl',
+    image: 'w-24 h-24',
     title: 'text-4xl',
   },
 } as const;
@@ -40,7 +36,6 @@ export const ThemeLogo: React.FC<ThemeLogoProps> = ({
 }) => {
   const { theme, themeDefinition } = useTheme();
   const sizing = SIZE_MAP[size];
-  const isClassic = themeDefinition.logoVariant === 'classic';
   const wordmarkClass = forceDarkWordmark || theme === 'chimera'
     ? 'text-theme-text-primary'
     : 'text-theme-text-inverse';
@@ -49,23 +44,18 @@ export const ThemeLogo: React.FC<ThemeLogoProps> = ({
     <div className="flex items-center gap-4 min-w-0">
       <div
         className={`${sizing.box} bg-logo-surface flex items-center justify-center shrink-0 shadow-brand overflow-hidden`}
-        style={!isClassic ? { border: '1px solid color-mix(in srgb, var(--brand-primary) 44%, rgba(255,255,255,0.1))' } : undefined}
       >
-        {isClassic ? (
-          <Shield className="text-theme-text-inverse" size={sizing.icon} />
-        ) : (
-          <img
-            src={size === 'large' ? '/chimera-logo-full.svg' : size === 'small' ? '/chimera-logo-small.svg' : '/chimera-logo-medium.svg'}
-            alt="Chimera"
-            className={size === 'large' ? 'w-[4.5rem] h-[4.5rem]' : sizing.image}
-          />
-        )}
+        <img
+          src="/logo.png"
+          alt="Chimera"
+          className={size === 'large' ? 'w-24 h-24' : sizing.image}
+        />
       </div>
       {showWordmark ? (
         <div className="min-w-0">
           <div className="flex items-baseline gap-2">
             <span className={`block ${sizing.title} font-black ${wordmarkClass} tracking-[0.02em]`}>
-              {isClassic ? 'Chimera' : 'Chimera'}
+              Chimera
             </span>
             {buildVersion ? (
               <span className="text-[10px] font-black text-theme-text-faint uppercase tracking-[0.2em]">
@@ -74,7 +64,7 @@ export const ThemeLogo: React.FC<ThemeLogoProps> = ({
             ) : null}
           </div>
           {showBadge ? (
-            <span className={`inline-flex mt-1 px-2 py-1 rounded-full text-[10px] font-black uppercase tracking-[0.25em] truncate ${isClassic ? 'text-brand-primary' : 'theme-brand-chip'}`}>
+            <span className={`inline-flex mt-1 px-2 py-1 rounded-full text-[10px] font-black uppercase tracking-[0.25em] truncate theme-brand-chip`}>
               {themeDefinition.badgeText}
             </span>
           ) : null}
