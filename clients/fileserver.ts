@@ -7,6 +7,7 @@ import {
   ManagedFile,
   ProjectInputUploadDetail,
   ProjectInputUploadListResponse,
+  ProjectInputOverview,
   ProjectInputUploadStats,
   ProjectFilesystemChildrenResponse,
   ProjectFilesystemEntry,
@@ -303,8 +304,20 @@ export const fileserverApi = {
     return handleResponse(response);
   },
 
-  listProjectInputUploads: async (projectId: string, inputType: string): Promise<ProjectInputUploadListResponse> => {
-    const query = new URLSearchParams({ project_id: projectId, input_type: inputType }).toString();
+  listProjectInputUploads: async (
+    projectId: string,
+    options?: {
+      inputType?: string;
+      status?: string;
+      page?: number;
+      pageSize?: number;
+    },
+  ): Promise<ProjectInputUploadListResponse> => {
+    const query = new URLSearchParams({ project_id: projectId });
+    if (options?.inputType) query.set('input_type', options.inputType);
+    if (options?.status) query.set('status', options.status);
+    if (options?.page) query.set('page', String(options.page));
+    if (options?.pageSize) query.set('page_size', String(options.pageSize));
     const response = await fetch(`${API_BASE}/api/fileserver/project-input/uploads?${query}`, {
       headers: getHeaders(),
     });
@@ -314,6 +327,14 @@ export const fileserverApi = {
   getProjectInputUploadStats: async (projectId: string, inputType: string): Promise<ProjectInputUploadStats> => {
     const query = new URLSearchParams({ project_id: projectId, input_type: inputType }).toString();
     const response = await fetch(`${API_BASE}/api/fileserver/project-input/uploads/stats?${query}`, {
+      headers: getHeaders(),
+    });
+    return handleResponse(response);
+  },
+
+  getProjectInputOverview: async (projectId: string): Promise<ProjectInputOverview> => {
+    const query = new URLSearchParams({ project_id: projectId }).toString();
+    const response = await fetch(`${API_BASE}/api/fileserver/project-input/uploads/overview?${query}`, {
       headers: getHeaders(),
     });
     return handleResponse(response);
