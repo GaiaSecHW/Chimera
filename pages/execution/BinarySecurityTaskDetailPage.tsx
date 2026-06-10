@@ -901,6 +901,9 @@ const buildStrategyDraft = (policy: BinarySecurityTaskPolicy | undefined, stages
   const normalizedRiskLevels = Array.isArray(nextPolicy.module_risk_levels) && nextPolicy.module_risk_levels.length > 0
     ? nextPolicy.module_risk_levels.filter((item) => MODULE_RISK_OPTIONS.includes(String(item)))
     : ['高'];
+  const effectiveRiskLevels = normalizedMode === 'manual_confirm'
+    ? [...MODULE_RISK_OPTIONS]
+    : (normalizedRiskLevels.length > 0 ? normalizedRiskLevels : ['高']);
   const normalizedEntryMode = String(nextPolicy.entry_selection_mode || 'auto') === 'manual_confirm' ? 'manual_confirm' : 'auto';
   return {
     stage_options: Object.fromEntries(stages.map((stageName) => [
@@ -924,7 +927,7 @@ const buildStrategyDraft = (policy: BinarySecurityTaskPolicy | undefined, stages
     ),
     module_selection_mode: normalizedMode,
     entry_selection_mode: normalizedEntryMode,
-    module_risk_levels: normalizedRiskLevels.length > 0 ? normalizedRiskLevels : ['高'],
+    module_risk_levels: effectiveRiskLevels,
   };
 };
 
@@ -3979,7 +3982,15 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                               name="taskStrategyModuleSelection"
                               checked={strategyDraft.module_selection_mode === option.value}
                               disabled={!strategyEditable || Boolean(strategySavingSection)}
-                              onChange={() => setStrategyDraft((current) => (current ? { ...current, module_selection_mode: option.value as 'auto' | 'manual_confirm' } : current))}
+                              onChange={() => setStrategyDraft((current) => {
+                                if (!current) return current;
+                                const nextMode = option.value as 'auto' | 'manual_confirm';
+                                return {
+                                  ...current,
+                                  module_selection_mode: nextMode,
+                                  module_risk_levels: nextMode === 'manual_confirm' ? [...MODULE_RISK_OPTIONS] : current.module_risk_levels,
+                                };
+                              })}
                             />
                             {option.label}
                           </label>
@@ -3994,10 +4005,13 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                             <input
                               type="checkbox"
                               checked={strategyDraft.module_risk_levels.includes(risk)}
-                              disabled={!strategyEditable || Boolean(strategySavingSection)}
+                              disabled={!strategyEditable || Boolean(strategySavingSection) || strategyDraft.module_selection_mode === 'manual_confirm'}
                               onChange={(event) => {
                                 setStrategyDraft((current) => {
                                   if (!current) return current;
+                                  if (current.module_selection_mode === 'manual_confirm') {
+                                    return { ...current, module_risk_levels: [...MODULE_RISK_OPTIONS] };
+                                  }
                                   const nextLevels = event.target.checked
                                     ? (current.module_risk_levels.includes(risk) ? current.module_risk_levels : current.module_risk_levels.concat(risk))
                                     : current.module_risk_levels.filter((item) => item !== risk);
@@ -4010,7 +4024,9 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                         ))}
                       </div>
                       <div className="mt-2 text-xs text-slate-500">
-                        至少选择一个风险等级；若选择人工确认，系统分析完成后再确认最终推进模块。
+                        {strategyDraft.module_selection_mode === 'manual_confirm'
+                          ? '人工确认模块时默认展示全部高中低风险模块，风险等级筛选不再生效。'
+                          : '至少选择一个风险等级；系统会按所选风险等级自动推进模块。'}
                       </div>
                     </div>
                   </div>
