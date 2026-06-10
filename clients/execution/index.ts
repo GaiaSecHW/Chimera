@@ -11,6 +11,7 @@ import { dataflowVulnScannerApi } from '../dataflowVulnScanner';
 import { firmwareUnpackerApi } from '../firmwareUnpacker';
 import { ipcAuditApi } from '../ipcAudit';
 import { kernelScanApi } from '../kernelScan';
+import { redlineVerificationApi } from '../redlineVerification';
 import { systemAnalysisApi } from '../systemAnalysis';
 import { vulnVerifyApi } from '../vulnVerify';
 
@@ -29,6 +30,7 @@ export { firmwareUnpackerApi } from '../firmwareUnpacker';
 export { ipcAuditApi } from '../ipcAudit';
 export { kernelScanApi } from '../kernelScan';
 export { binaryToSourceApi } from '../binaryToSource';
+export { redlineVerificationApi } from '../redlineVerification';
 
 export const executionClients = {
   appDataflowAnalyse: appDataflowAnalyseApi,
@@ -45,5 +47,6 @@ export const executionClients = {
   metrics: binarySecurityMetricsApi,
   binarySecurity: binarySecurityApi,
   binaryToSource: binaryToSourceApi,
+  redlineVerification: redlineVerificationApi,
   vulnVerify: vulnVerifyApi,
 };
