@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { ChevronDown, ChevronRight, Loader2, Plus, RefreshCw, Trash2, UploadCloud, X } from 'lucide-react';
 
-import { B2SElfTaskInput, B2SLlmProviderSummary, B2SPiClusterCapacity, B2SPiWorkerActiveJob, B2SRunMode, B2STask, B2STaskDetail, B2STaskListStats } from '../../clients/binaryToSource';
+import { B2SElfTaskInput, B2SLlmProviderSummary, B2SPiClusterCapacity, B2SPiWorkerActiveJob, B2SRunMode, B2STask, B2STaskListStats } from '../../clients/binaryToSource';
 import { api } from '../../clients/api';
 import { B2SStatsHeader, emptyB2SStats, summarizeB2STasks } from './B2SStatsHeader';
 import { ProjectFilesystemPickerModal, ProjectFilesystemSelection } from '../../components/assets/ProjectFilesystemPickerModal';
@@ -31,11 +31,8 @@ const formatBytes = (value: number): string => {
   return `${value} B`;
 };
 
-const buildProgressLabel = (task: B2STask, detail?: B2STaskDetail | null) => {
+const buildProgressLabel = (task: B2STask) => {
   const total = task.total_items || 0;
-  if (detail?.overall_progress?.percent !== undefined && detail.overall_progress.percent !== null) {
-    return `${pct(detail.overall_progress.percent).toFixed(1)}% · ${formatB2SOverallProgressBasis(detail.overall_progress.percent_basis)}`;
-  }
   if (total <= 0) return '-';
   return `${task.success_items || 0}/${total}`;
 };
@@ -86,7 +83,6 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
   const [items, setItems] = useState<B2STask[]>([]);
   const [taskStats, setTaskStats] = useState<B2STaskListStats>({ total: 0, pending: 0, running: 0, success: 0, partial: 0, failed: 0, cancelled: 0 });
   const [piClusterCapacity, setPiClusterCapacity] = useState<B2SPiClusterCapacity | null>(null);
-  const [activeTaskDetails, setActiveTaskDetails] = useState<Record<string, B2STaskDetail>>({});
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -125,6 +121,9 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
   const [createResult, setCreateResult] = useState<string>('');
   const [uploadProgress, setUploadProgress] = useState('');
   const hasSelectedProviderInList = !llmProviderKey || llmProviders.some((item) => item.provider_key === llmProviderKey);
+  const piClusterSnapshotTime = piClusterCapacity?.snapshot_refreshed_at || piClusterCapacity?.updated_at || null;
+  const piClusterSnapshotExpired = Boolean(piClusterCapacity?.snapshot_stale);
+  const piClusterSnapshotError = piClusterCapacity?.snapshot_last_error || '';
 
   const listQuery = useMemo(() => ({
     status: statusFilter || undefined,
@@ -164,7 +163,7 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
       const snapshot = await executionApi.binaryToSource.getPiClusterCapacity();
       setPiClusterCapacity(snapshot);
     } catch {
-      setPiClusterCapacity(null);
+      return;
     }
   }, [executionApi.binaryToSource, projectId]);
 
@@ -352,34 +351,6 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
       setPage(totalPages);
     }
   }, [page, totalPages]);
-
-  useEffect(() => {
-    const tasksNeedingDetails = pagedItems.filter((task) => (
-      !B2S_TERMINAL_STATUSES.has(task.status)
-      || task.total_functions == null
-      || task.completed_functions == null
-      || task.uncompleted_functions == null
-    ));
-    let cancelled = false;
-    if (tasksNeedingDetails.length === 0) {
-      setActiveTaskDetails({});
-      return;
-    }
-    void (async () => {
-      const details = await Promise.allSettled(tasksNeedingDetails.map((task) => executionApi.binaryToSource.getTask(projectId, task.id)));
-      if (cancelled) return;
-      const nextDetails: Record<string, B2STaskDetail> = {};
-      details.forEach((result) => {
-        if (result.status === 'fulfilled') {
-          nextDetails[result.value.id] = result.value;
-        }
-      });
-      setActiveTaskDetails(nextDetails);
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [executionApi.binaryToSource, pagedItems, projectId, refreshing]);
 
   const resetCreateForm = () => {
     setName('');
@@ -613,11 +584,12 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
         >
           <div>
             <h2 className="text-xl font-black text-slate-900">执行槽位</h2>
-            <p className="mt-1 text-sm text-slate-500">展示当前 PI RE Agent 集群的实时执行槽位、运行中的 job 数量和各 worker 健康度。</p>
+            <p className="mt-1 text-sm text-slate-500">展示当前 PI RE Agent 集群的缓存快照、运行中的 job 数量和各 worker 健康度。</p>
           </div>
           <div className="flex flex-wrap items-center gap-3">
             <div className="text-xs text-slate-400">
-              最近同步 {formatDateTime(piClusterCapacity?.updated_at)}
+              快照时间 {formatDateTime(piClusterSnapshotTime)}
+              {piClusterSnapshotExpired ? <span className="ml-2 rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-[10px] font-bold text-amber-700">缓存已过期</span> : null}
             </div>
             <button
               type="button"
@@ -717,8 +689,10 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
               </div>
               <div className="flex items-center gap-3">
                 <div className="text-right text-xs text-slate-400">
-                  <div>最近同步</div>
-                  <div className="mt-1 font-semibold text-slate-500">{formatDateTime(piClusterCapacity?.updated_at)}</div>
+                  <div>快照时间</div>
+                  <div className="mt-1 font-semibold text-slate-500">{formatDateTime(piClusterSnapshotTime)}</div>
+                  {piClusterSnapshotExpired ? <div className="mt-1 text-amber-400">缓存已过期，等待后台刷新</div> : null}
+                  {piClusterSnapshotError ? <div className="mt-1 max-w-[18rem] break-all text-rose-300">最近错误：{piClusterSnapshotError}</div> : null}
                 </div>
                 <button
                   type="button"
@@ -897,7 +871,9 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
         <div className="flex items-center justify-between gap-3 border-b border-slate-100 pb-4">
           <div>
             <h2 className="text-xl font-black text-slate-900">任务列表</h2>
-            <p className="mt-1 text-sm text-slate-500">展示任务状态、进度、阶段摘要与最近更新时间，并支持筛选、分页和自动刷新。</p>
+            <p className="mt-1 text-sm text-slate-500">
+              展示任务状态、进度、阶段摘要与最近更新时间，并支持筛选、分页和自动刷新。点击“任务”列进入详情；点击“状态”或“总任务 ID”单元格可快速切换筛选。
+            </p>
           </div>
         </div>
 
@@ -911,10 +887,6 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
         ) : (
           <div className="mt-5">
             <div className="mb-4 flex flex-wrap items-start justify-between gap-4">
-              <div>
-                <h2 className="text-xl font-black text-slate-900">任务列表</h2>
-                <p className="mt-1 text-sm text-slate-500">点击“任务”列进入详情；点击“状态”或“总任务 ID”单元格可快速切换筛选。</p>
-              </div>
               <div className="flex flex-wrap items-center justify-end gap-2">
                 <label className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs text-slate-600">
                   <input
@@ -1095,20 +1067,19 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
                 </ExecutionTableHead>
                 <tbody>
                   {pagedItems.map((task) => {
-                    const detail = activeTaskDetails[task.id];
                     const inputFilenames = task.input_filenames || [];
                     const inputsExpanded = expandedInputTaskIds.includes(task.id);
                     const visibleInputFilenames = inputsExpanded ? inputFilenames : inputFilenames.slice(0, 3);
-                    const progressValue = detail?.overall_progress?.percent ?? (task.total_items ? ((task.success_items + task.partial_items) / task.total_items) * 100 : 0);
-                    const progressBasisLabel = formatB2SOverallProgressBasis(detail?.overall_progress?.percent_basis);
+                    const progressValue = task.total_items ? ((task.success_items + task.partial_items) / task.total_items) * 100 : 0;
+                    const progressBasisLabel = formatB2SOverallProgressBasis(undefined);
                     const parentTaskId = String(task.parent_task_id || '').trim();
                     const sourceLabel = String(task.task_origin_type || 'manual').trim() === 'binary_security'
                       ? (String(task.origin_label || '').trim() || '二进制安全任务')
                       : '手动创建';
                     const modeLabel = String(task.mode_label || '').trim() || String(task.mode || '').trim() || '-';
                     const normalizedTaskStatus = normalizeB2STaskStatus(task.status);
-                    const totalFunctions = safeCount(task.total_functions ?? detail?.overall_progress?.total_functions);
-                    const completedFunctions = safeCount(task.completed_functions ?? detail?.overall_progress?.completed_functions);
+                    const totalFunctions = safeCount(task.total_functions);
+                    const completedFunctions = safeCount(task.completed_functions);
                     const uncompletedFunctions = safeCount(task.uncompleted_functions) ?? (
                       totalFunctions !== null && completedFunctions !== null ? Math.max(0, totalFunctions - completedFunctions) : null
                     );
@@ -1197,11 +1168,11 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
                         </ExecutionTableTd>
                         <ExecutionTableTd className="min-w-[220px]">
                           <div className="flex items-center justify-between gap-2 text-xs">
-                            <span className="font-semibold text-slate-700">{buildProgressLabel(task, detail)}</span>
+                            <span className="font-semibold text-slate-700">{buildProgressLabel(task)}</span>
                             <span className="text-slate-400">{progressBasisLabel}</span>
                           </div>
                           <div className="mt-2 flex items-center justify-between text-[11px] text-slate-400">
-                            <span>ELF {detail?.overall_progress?.completed_items ?? task.success_items ?? 0}/{task.total_items || 0}</span>
+                            <span>ELF {task.success_items ?? 0}/{task.total_items || 0}</span>
                             <span>取消中 {task.cancelling_items || 0} · 已取消 {task.cancelled_items}</span>
                           </div>
                         </ExecutionTableTd>

@@ -249,6 +249,10 @@ export interface B2SPiClusterCapacity {
   queued_jobs: number;
   available_slots: number;
   updated_at?: string | null;
+  snapshot_refreshed_at?: string | null;
+  snapshot_expires_at?: string | null;
+  snapshot_stale?: boolean;
+  snapshot_last_error?: string | null;
   workers: B2SPiWorkerCapacity[];
 }
 
