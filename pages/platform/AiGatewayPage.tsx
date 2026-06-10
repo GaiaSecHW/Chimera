@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Eye, FileText, KeyRound, Pencil, Plus, RefreshCw, Save, Trash2, X } from 'lucide-react';
 import { api } from '../../clients/api';
 import { showConfirm } from '../../components/DialogService';
@@ -45,6 +46,11 @@ type LogDrawerPreset = {
   aliasId?: string;
   backendUnitId?: string;
 };
+
+interface AiGatewayPageProps {
+  entryView?: string;
+  onNavigate?: (view: string) => void;
+}
 
 const emptyAlias = (): Omit<AiGatewayModelAlias, 'id'> => ({
   alias_name: '',
@@ -111,7 +117,7 @@ const formatJsonBlock = (value?: string | null) => {
   }
 };
 
-export const AiGatewayPage: React.FC = () => {
+export const AiGatewayPage: React.FC<AiGatewayPageProps> = ({ entryView = 'aigw-config', onNavigate }) => {
   const platformApi = api.domains.platform;
   const { notify, feedbackNodes } = useUiFeedback();
   const loadDataRequestIdRef = useRef(0);
@@ -216,6 +222,7 @@ export const AiGatewayPage: React.FC = () => {
     binding,
     unit: backendUnits.find((unit) => unit.id === binding.backend_unit_id) || null,
   })), [backendUnits, selectedAliasBindings]);
+
   useEffect(() => {
     if (!selectedAliasId && modelAliases[0]?.id) setSelectedAliasId(modelAliases[0].id);
     if (selectedAliasId && !modelAliases.some((item) => item.id === selectedAliasId)) {
@@ -322,6 +329,28 @@ export const AiGatewayPage: React.FC = () => {
     logStartDate,
     logEndDate,
   ]);
+
+  useEffect(() => {
+    if (!logDrawerOpen || detailOpen || replayOpen) return;
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape') return;
+      event.preventDefault();
+      setLogDrawerOpen(false);
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [detailOpen, logDrawerOpen, replayOpen]);
+
+  useEffect(() => {
+    if (!keyManagementOpen || llmKeyModalOpen || llmKeyResultOpen || llmKeyDetailOpen) return;
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape') return;
+      event.preventDefault();
+      setKeyManagementOpen(false);
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [keyManagementOpen, llmKeyDetailOpen, llmKeyModalOpen, llmKeyResultOpen]);
 
   const copyText = async (value: string, successMessage = '内容已复制') => {
     try {
@@ -861,8 +890,8 @@ export const AiGatewayPage: React.FC = () => {
   };
 
   const renderLogsSection = () => (
-    <section className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
-      <div className="mb-5 flex items-start justify-between gap-4">
+    <section className="flex h-full min-h-0 flex-col rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
+      <div className="mb-5 flex shrink-0 items-start justify-between gap-4">
         <div>
           <div className="text-[11px] font-black uppercase tracking-[0.2em] text-slate-400">日志工作区</div>
           <h2 className="mt-2 text-xl font-black text-slate-900">请求日志</h2>
@@ -876,7 +905,7 @@ export const AiGatewayPage: React.FC = () => {
         </div>
       </div>
 
-      <div className="mb-5 rounded-[1.5rem] border border-slate-200 bg-slate-50 p-4">
+      <div className="mb-5 shrink-0 rounded-[1.5rem] border border-slate-200 bg-slate-50 p-4">
         <div className="mb-3 text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">筛选条件</div>
         <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-5">
         <input value={logModel} onChange={(e) => setLogModel(e.target.value)} placeholder="公开模型" className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none" />
@@ -907,7 +936,7 @@ export const AiGatewayPage: React.FC = () => {
         <input type="datetime-local" value={logEndDate} onChange={(e) => setLogEndDate(e.target.value)} className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none" />
         </div>
       </div>
-      <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
+      <div className="mb-5 flex shrink-0 flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-2">
           <button onClick={() => { setLogPage(1); void loadLogs(); }} disabled={logsLoading} className="rounded-2xl bg-slate-900 px-4 py-2 text-sm font-bold text-white disabled:opacity-50">查询</button>
           <button onClick={() => { setLogModel(''); setLogBackendModel(''); setLogAliasId(''); setLogBackendUnitId(''); setLogLlmKeyId(''); setLogTaskKeyId(''); setLogCapacityPoolId(''); setLogTaskId(''); setLogSubTaskId(''); setLogStartDate(''); setLogEndDate(''); setLogPage(1); void loadLogs(); }} className="rounded-2xl bg-slate-100 px-4 py-2 text-sm font-bold text-slate-700">重置</button>
@@ -917,7 +946,7 @@ export const AiGatewayPage: React.FC = () => {
         </div>
       </div>
 
-      <div className="overflow-x-auto">
+      <div className="min-h-0 flex-1 overflow-auto">
         <table className="min-w-full text-sm">
           <thead>
             <tr className="border-b border-slate-200 text-left text-slate-500">
@@ -969,7 +998,7 @@ export const AiGatewayPage: React.FC = () => {
         </table>
       </div>
 
-      <div className="mt-5 flex items-center justify-between">
+      <div className="mt-5 flex shrink-0 items-center justify-between">
         <div className="text-sm text-slate-500">共 {logsTotal} 条</div>
         <div className="flex items-center gap-2">
           <button onClick={clearLogs} className="rounded-xl bg-rose-100 px-3 py-2 text-sm font-bold text-rose-700 hover:bg-rose-200">清空日志</button>
@@ -984,12 +1013,80 @@ export const AiGatewayPage: React.FC = () => {
     </section>
   );
 
-  return (
-    <div className="space-y-6 p-8">
-      {feedbackNodes}
-      <div className="flex items-center justify-between gap-4">
+  const renderKeyManagementSection = (options?: { onClose?: () => void }) => (
+    <section className="flex h-full min-h-0 flex-col rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
+      <div className="mb-5 flex shrink-0 items-start justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-black tracking-tight text-slate-900">AI 网关</h1>
+          <div className="text-[11px] font-black uppercase tracking-[0.2em] text-slate-400">调用凭证</div>
+          <h2 className="mt-2 text-xl font-black text-slate-900">调用密钥管理</h2>
+        </div>
+        <div className="flex items-center gap-2">
+          <button onClick={() => openLlmKeyModal()} className="inline-flex items-center gap-2 rounded-2xl bg-slate-900 px-4 py-2.5 text-sm font-bold text-white">
+            <Plus className="h-4 w-4" />
+            新建调用密钥
+          </button>
+          {options?.onClose ? (
+            <button onClick={options.onClose} className="rounded-2xl bg-slate-100 p-2 text-slate-600 hover:bg-slate-200">
+              <X className="h-5 w-5" />
+            </button>
+          ) : null}
+        </div>
+      </div>
+      <div className="min-h-0 flex-1 overflow-auto">
+        <table className="min-w-full text-sm">
+          <thead>
+            <tr className="border-b border-slate-200 text-left text-slate-500">
+              <th className="px-3 py-3 font-bold">名称</th>
+              <th className="px-3 py-3 font-bold">前缀</th>
+              <th className="px-3 py-3 font-bold">类型</th>
+              <th className="px-3 py-3 font-bold">最大并发</th>
+              <th className="px-3 py-3 font-bold">任务范围</th>
+              <th className="px-3 py-3 font-bold">状态</th>
+              <th className="px-3 py-3 font-bold">更新时间</th>
+              <th className="px-3 py-3 font-bold">操作</th>
+            </tr>
+          </thead>
+          <tbody>
+            {llmKeys.map((item) => (
+              <tr key={item.id} className="border-b border-slate-100">
+                <td className="px-3 py-3">
+                  <div className="font-bold text-slate-900">{item.key_name || `密钥 #${item.id}`}</div>
+                  <div className="text-xs text-slate-500">{item.description || '无备注'}</div>
+                </td>
+                <td className="px-3 py-3 font-mono text-slate-700">{item.key_prefix || '-'}</td>
+                <td className="px-3 py-3 text-slate-700">{item.key_type === 'task' ? '任务密钥' : item.key_type === 'work' ? '工作密钥' : item.key_type}</td>
+                <td className="px-3 py-3 text-slate-700">{item.max_concurrency || 0}</td>
+                <td className="px-3 py-3 text-slate-700">{item.task_id ? (item.key_type === 'work' && item.sub_task_id ? `${item.task_id} / ${item.sub_task_id}` : item.task_id) : '-'}</td>
+                <td className="px-3 py-3"><span className={`rounded-full px-2.5 py-1 text-xs font-bold ${item.enabled ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500'}`}>{item.enabled ? '启用' : '禁用'}</span></td>
+                <td className="px-3 py-3 text-slate-700">{item.updated_at ? new Date(item.updated_at).toLocaleString('zh-CN') : '-'}</td>
+                <td className="px-3 py-3">
+                  <div className="flex items-center gap-2">
+                    <button onClick={() => openLlmKeyModal(item)} className="rounded-xl bg-slate-100 px-3 py-2 text-xs font-bold text-slate-700 hover:bg-slate-200">编辑</button>
+                    <button onClick={() => openLlmKeyDetail(item.id)} className="rounded-xl bg-slate-100 px-3 py-2 text-xs font-bold text-slate-700 hover:bg-slate-200">查看</button>
+                    <button onClick={() => deleteLlmKey(item)} className="rounded-xl bg-rose-100 px-3 py-2 text-xs font-bold text-rose-700 hover:bg-rose-200"><Trash2 className="h-3.5 w-3.5" /></button>
+                  </div>
+                </td>
+              </tr>
+            ))}
+            {!llmKeys.length && !loading ? (
+              <tr>
+                <td colSpan={8} className="px-3 py-10 text-center text-slate-400">暂无调用密钥</td>
+              </tr>
+            ) : null}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  );
+
+  const pageTitle = entryView === 'aigw-keys' ? '密钥管理' : entryView === 'aigw-logs' ? '请求日志' : '网关配置';
+
+  return (
+    <div className="flex min-h-full flex-col gap-6 p-8">
+      {feedbackNodes}
+      <div className="flex shrink-0 items-center justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-black tracking-tight text-slate-900">{pageTitle}</h1>
         </div>
         <button
           onClick={refreshData}
@@ -1010,24 +1107,33 @@ export const AiGatewayPage: React.FC = () => {
         </div>
       ) : null}
 
-      <section className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
-        <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
+      {entryView === 'aigw-keys' ? (
+        <div className="min-h-[680px] flex-1">
+          {renderKeyManagementSection()}
+        </div>
+      ) : entryView === 'aigw-logs' ? (
+        <div className="min-h-[680px] flex-1">
+          {renderLogsSection()}
+        </div>
+      ) : (
+      <section className="flex min-h-[680px] flex-1 flex-col rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
+        <div className="mb-5 flex shrink-0 flex-wrap items-center justify-between gap-3">
           <div>
             <h2 className="text-xl font-black text-slate-900">模型配置工作台</h2>
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            <button onClick={() => setKeyManagementOpen(true)} className="inline-flex items-center gap-2 rounded-2xl bg-slate-100 px-4 py-2.5 text-sm font-bold text-slate-700 hover:bg-slate-200">
+            <button onClick={() => onNavigate ? onNavigate('aigw-keys') : setKeyManagementOpen(true)} className="inline-flex items-center gap-2 rounded-2xl bg-slate-100 px-4 py-2.5 text-sm font-bold text-slate-700 hover:bg-slate-200">
               <KeyRound className="h-4 w-4" />
               密钥管理
             </button>
-            <button onClick={() => openLogsDrawer()} className="inline-flex items-center gap-2 rounded-2xl bg-slate-100 px-4 py-2.5 text-sm font-bold text-slate-700 hover:bg-slate-200">
+            <button onClick={() => onNavigate ? onNavigate('aigw-logs') : openLogsDrawer()} className="inline-flex items-center gap-2 rounded-2xl bg-slate-100 px-4 py-2.5 text-sm font-bold text-slate-700 hover:bg-slate-200">
               <FileText className="h-4 w-4" />
               查看日志
             </button>
           </div>
         </div>
-        <div className="grid gap-4 xl:grid-cols-[240px,1fr,360px]">
-          <aside className="rounded-[1.5rem] border border-slate-200 bg-slate-50 p-4">
+        <div className="grid min-h-0 flex-1 gap-4 xl:grid-cols-[240px,1fr,360px]">
+          <aside className="flex min-h-0 flex-col rounded-[1.5rem] border border-slate-200 bg-slate-50 p-4">
             <div className="flex items-start justify-between gap-3">
               <div>
                 <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">别名列</div>
@@ -1043,7 +1149,7 @@ export const AiGatewayPage: React.FC = () => {
                 <Plus className="h-4 w-4" />
               </button>
             </div>
-            <div className="mt-4 space-y-2">
+            <div className="mt-4 min-h-0 flex-1 space-y-2 overflow-auto">
               {aliasGroups.map((group) => {
                 const active = selectedAliasId === group.alias.id;
                 return (
@@ -1097,8 +1203,8 @@ export const AiGatewayPage: React.FC = () => {
             </div>
           </aside>
 
-          <section className="rounded-[1.5rem] border border-slate-200 bg-white p-4">
-            <div className="flex items-center justify-between gap-3">
+          <section className="flex min-h-0 flex-col rounded-[1.5rem] border border-slate-200 bg-white p-4">
+            <div className="flex shrink-0 items-center justify-between gap-3">
               <div>
                 <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">绑定区</div>
                 <h3 className="mt-1 text-lg font-black text-slate-900">{selectedAlias ? `${selectedAlias.alias_name} 的真实路由绑定` : '请选择模型别名'}</h3>
@@ -1118,7 +1224,7 @@ export const AiGatewayPage: React.FC = () => {
                 if (selectedAliasId && draggingBackendUnitId) event.preventDefault();
               }}
               onDrop={createBindingFromDrop}
-              className={`mt-4 min-h-[420px] rounded-[1.5rem] border p-4 transition ${selectedAliasId && draggingBackendUnitId ? 'border-sky-300 bg-sky-50/70' : selectedAliasId ? 'border-slate-200 bg-slate-50' : 'border-slate-200 bg-slate-50/60'}`}
+              className={`mt-4 min-h-[420px] flex-1 overflow-auto rounded-[1.5rem] border p-4 transition ${selectedAliasId && draggingBackendUnitId ? 'border-sky-300 bg-sky-50/70' : selectedAliasId ? 'border-slate-200 bg-slate-50' : 'border-slate-200 bg-slate-50/60'}`}
             >
               {selectedAliasId ? (
                 <div className="space-y-6">
@@ -1158,7 +1264,7 @@ export const AiGatewayPage: React.FC = () => {
             </div>
           </section>
 
-          <aside className="rounded-[1.5rem] border border-slate-200 bg-slate-50 p-4">
+          <aside className="flex min-h-0 flex-col rounded-[1.5rem] border border-slate-200 bg-slate-50 p-4">
             <div className="flex items-start justify-between gap-3">
               <div>
                 <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">模型库</div>
@@ -1174,7 +1280,7 @@ export const AiGatewayPage: React.FC = () => {
                 <Plus className="h-4 w-4" />
               </button>
             </div>
-            <div className="mt-4 space-y-4">
+            <div className="mt-4 min-h-0 flex-1 space-y-4 overflow-auto">
               {capacityPools.map((pool) => (
                 <div
                   key={pool.id}
@@ -1268,6 +1374,7 @@ export const AiGatewayPage: React.FC = () => {
           </aside>
         </div>
       </section>
+      )}
 
       {aliasModalOpen ? (
         <div className="fixed inset-0 z-[280] flex items-center justify-center bg-slate-950/60 p-6 backdrop-blur-sm">
@@ -1406,10 +1513,10 @@ export const AiGatewayPage: React.FC = () => {
         </div>
       ) : null}
 
-      {keyManagementOpen ? (
-        <div className="fixed inset-0 z-[260] flex items-center justify-center bg-slate-950/50 p-6 backdrop-blur-sm">
-          <div className="absolute inset-0" onClick={() => setKeyManagementOpen(false)} />
-          <section className="relative flex max-h-[88vh] w-full max-w-6xl flex-col overflow-hidden rounded-[2rem] border border-slate-200 bg-white p-6 shadow-2xl">
+      {keyManagementOpen ? createPortal((
+        <div className="fixed inset-0 z-[260]">
+          <div className="absolute inset-0 bg-slate-950/40" onClick={() => setKeyManagementOpen(false)} />
+          <section className="absolute inset-0 flex h-full w-full flex-col overflow-hidden bg-white p-6 shadow-2xl">
         <div className="mb-5 flex items-start justify-between gap-4">
           <div>
             <div className="text-[11px] font-black uppercase tracking-[0.2em] text-slate-400">调用凭证</div>
@@ -1471,12 +1578,12 @@ export const AiGatewayPage: React.FC = () => {
         </div>
           </section>
         </div>
-      ) : null}
+      ), document.body) : null}
 
-      {logDrawerOpen ? (
+      {logDrawerOpen ? createPortal((
         <div className="fixed inset-0 z-[260]">
           <div className="absolute inset-0 bg-slate-950/40" onClick={() => setLogDrawerOpen(false)} />
-          <div className="absolute right-0 top-0 h-full w-full max-w-[min(100vw,1180px)] overflow-hidden border-l border-slate-200 bg-white shadow-2xl">
+          <div className="absolute inset-0 h-full w-full overflow-hidden bg-white shadow-2xl">
             <div className="flex h-full flex-col">
               <div className="flex items-center justify-between border-b border-slate-200 bg-slate-50 px-6 py-5">
                 <div>
@@ -1487,11 +1594,11 @@ export const AiGatewayPage: React.FC = () => {
                   <X className="h-5 w-5" />
                 </button>
               </div>
-              <div className="flex-1 overflow-auto p-6">{renderLogsSection()}</div>
+              <div className="min-h-0 flex-1 overflow-hidden p-6">{renderLogsSection()}</div>
             </div>
           </div>
         </div>
-      ) : null}
+      ), document.body) : null}
 
       <AigwLogDetailsDialog
         open={detailOpen}

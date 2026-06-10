@@ -116,6 +116,10 @@ export const getUserAccess = (user: UserInfo | null | undefined): UserAccess => 
 
 const SUPER_ADMIN_ONLY_VIEWS = new Set<string>([
   'admin-dashboard',
+  'aigw-dashboard',
+  'aigw-config',
+  'aigw-keys',
+  'aigw-logs',
   'aigw-admin',
   'config-center-root',
   'config-center-llm',

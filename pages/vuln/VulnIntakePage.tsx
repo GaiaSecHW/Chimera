@@ -212,6 +212,16 @@ const ARTIFACT_GUIDE = [
 ];
 
 const ANALYSIS_DETAIL_TARGET_KEY = 'chimera-vuln-open-case-id';
+const AUTO_VERIFY_CASE_TARGET_KEY = 'chimera-vuln-auto-verify-case-id';
+const VERIFY_OPEN_TASK_ID_KEY = 'chimera-vuln-verify-open-task-id';
+const VERIFY_OPEN_PROJECT_ID_KEY = 'chimera-vuln-verify-open-project-id';
+
+type AutoVerifyTaskRef = {
+  taskId: string;
+  projectId?: string;
+  reportDataUrl?: string | null;
+  createdAt?: string;
+};
 
 type EditableCaseIntake = {
   title: string;
@@ -278,6 +288,52 @@ const formatTime = (value?: string) => {
   } catch {
     return value;
   }
+};
+
+const parseTimeMs = (value?: string) => {
+  if (!value) return 0;
+  const ts = new Date(value).getTime();
+  return Number.isFinite(ts) ? ts : 0;
+};
+
+const collectArray = (value: any): any[] => {
+  if (Array.isArray(value)) return value;
+  if (Array.isArray(value?.items)) return value.items;
+  return [];
+};
+
+const normalizeAutoVerifyTaskEvent = (item: any, fallbackProjectId?: string): AutoVerifyTaskRef | null => {
+  const eventType = item?.event_type || item?.type || item?.payload?.event_type || item?.payload?.type;
+  if (eventType !== 'auto_verify_task_created') return null;
+  const eventPayload = item?.payload?.payload && typeof item.payload.payload === 'object'
+    ? item.payload.payload
+    : item?.payload && typeof item.payload === 'object'
+      ? item.payload
+      : item;
+  const taskId = String(eventPayload?.vuln_verify_task_id || eventPayload?.task_id || '').trim();
+  if (!taskId) return null;
+  return {
+    taskId,
+    projectId: String(eventPayload?.project_id || item?.project_id || fallbackProjectId || '').trim() || undefined,
+    reportDataUrl: eventPayload?.report_data_url || null,
+    createdAt: item?.created_at || eventPayload?.created_at,
+  };
+};
+
+const getLatestAutoVerifyTaskRef = (detail: any, timeline: any[], fallbackProjectId?: string): AutoVerifyTaskRef | null => {
+  const candidates = [
+    ...collectArray(detail?.timeline),
+    ...collectArray(detail?.events),
+    ...collectArray(detail?.case_events),
+    ...collectArray(detail?.display_summary?.timeline),
+    ...collectArray(detail?.display_summary?.events),
+    ...collectArray(timeline),
+  ]
+    .map((item) => normalizeAutoVerifyTaskEvent(item, detail?.project_id || fallbackProjectId))
+    .filter((item): item is AutoVerifyTaskRef => Boolean(item));
+
+  if (!candidates.length) return null;
+  return [...candidates].sort((a, b) => parseTimeMs(b.createdAt) - parseTimeMs(a.createdAt))[0];
 };
 
 const STAGE_TEXT: Record<string, string> = {
@@ -477,7 +533,7 @@ const DetailSectionCard: React.FC<{
   </div>
 );
 
-export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId }) => {
+export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateToView }) => {
   const [rootTab, setRootTab] = useState<IntakeRootTab>('cases');
   const [loading, setLoading] = useState(true);
   const [detailLoading, setDetailLoading] = useState(false);
@@ -524,7 +580,7 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId }) => {
   const [tokenCopied, setTokenCopied] = useState(false);
   const [suspicionForm, setSuspicionForm] = useState(DEFAULT_SUSPICION_FORM);
   const [creating, setCreating] = useState(false);
-  const [processingAction, setProcessingAction] = useState<'analyze' | 'ready_for_triage' | 'false_positive' | 'delete' | null>(null);
+  const [processingAction, setProcessingAction] = useState<'verify' | 'ready_for_triage' | 'false_positive' | 'delete' | null>(null);
   const [selectedSuspicionIds, setSelectedSuspicionIds] = useState<string[]>([]);
   const [bulkDeleting, setBulkDeleting] = useState(false);
   const [rowDeletingId, setRowDeletingId] = useState<string | null>(null);
@@ -598,6 +654,10 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId }) => {
   const evidenceSummary = selectedDetail?.evidence_summary || {};
   const workspaceSummary = selectedDetail?.workspace_summary || {};
   const resultSummary = selectedDetail?.result_summary || {};
+  const latestAutoVerifyTask = useMemo(
+    () => getLatestAutoVerifyTaskRef(selectedDetail, selectedTimeline, projectId),
+    [selectedDetail, selectedTimeline, projectId],
+  );
   const relatedRefs = Array.isArray(workspaceSummary.related_execution_refs) ? workspaceSummary.related_execution_refs : [];
   const processManualTasks = Array.isArray(selectedDetail?.manual_tasks) ? selectedDetail.manual_tasks : [];
   const processActions = Array.isArray(selectedDetail?.actions) ? selectedDetail.actions : [];
@@ -1207,21 +1267,23 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId }) => {
     }
   };
 
-  const handlePromoteToAnalyze = async () => {
+  const handleOpenAutoVerifyTask = () => {
     if (!selectedDetail?.id) return;
-    setProcessingAction('analyze');
+    setProcessingAction('verify');
     setError(null);
     setSuccessMessage(null);
     try {
-      await vulnApi.vuln.transitionStage(selectedDetail.id, {
-        to_stage: 'triage',
-        reason: 'manual_enter_triage',
-      });
-      await Promise.all([loadOverview(), loadSuspicions()]);
-      await loadSuspicionDetail(selectedDetail.id);
-      setSuccessMessage('疑点已手动转入研判阶段。');
+      if (latestAutoVerifyTask?.taskId) {
+        localStorage.setItem(VERIFY_OPEN_TASK_ID_KEY, latestAutoVerifyTask.taskId);
+        localStorage.setItem(VERIFY_OPEN_PROJECT_ID_KEY, latestAutoVerifyTask.projectId || selectedDetail.project_id || projectId);
+        onNavigateToView?.('pentest-vuln-verify');
+        return;
+      }
+      localStorage.setItem(AUTO_VERIFY_CASE_TARGET_KEY, selectedDetail.id);
+      localStorage.setItem(ANALYSIS_DETAIL_TARGET_KEY, selectedDetail.id);
+      onNavigateToView?.('vuln-analysis-verify-create');
     } catch (err: any) {
-      setError(err?.message || '手动转入研判阶段失败');
+      setError(err?.message || '打开验证任务页面失败');
     } finally {
       setProcessingAction(null);
     }
@@ -1726,12 +1788,12 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId }) => {
             </button>
             <button
               type="button"
-              onClick={handlePromoteToAnalyze}
-              disabled={processingAction !== null || selectedDetail.current_stage !== 'receive'}
+              onClick={handleOpenAutoVerifyTask}
+              disabled={processingAction !== null || !selectedDetail?.id || (!latestAutoVerifyTask && selectedDetail.current_stage === 'finished')}
               className="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-3.5 py-2.5 text-sm font-black text-white disabled:opacity-50"
             >
               <FolderOpen size={15} />
-              {processingAction === 'analyze' ? '处理中...' : '进入研判阶段'}
+              {processingAction === 'verify' ? '处理中...' : latestAutoVerifyTask ? '跳转验证任务' : '生成验证任务'}
             </button>
             <button
               type="button"

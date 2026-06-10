@@ -53,6 +53,7 @@ import { FirmwareUnpackerPage } from '../pages/execution/FirmwareUnpackerPage';
 import { FirmwareEvolutionCenterPage } from '../pages/execution/FirmwareEvolutionCenterPage';
 import { ReportsPage } from '../pages/execution/ReportsPage';
 import { TestInputPage } from '../pages/TestInputPage';
+import { TaskCenterPage } from '../pages/task/TaskCenterPage';
 import { WebEndToEndPage } from '../pages/task/WebEndToEndPage';
 // [DISABLED] DataflowVulnTask import - 方便后续复用
 // import { DataflowVulnTaskDetailPage, DataflowVulnTaskListPage } from '../pages/execution/DataflowVulnScanPage';
@@ -97,6 +98,7 @@ import { DepartmentPage } from '../pages/platform/DepartmentPage';
 import { DepartmentMemberPage } from '../pages/platform/DepartmentMemberPage';
 import { ProjectPage } from '../pages/platform/ProjectPage';
 import { AdminDashboardPage } from '../pages/platform/AdminDashboardPage';
+import { AiGatewayDashboardPage } from '../pages/platform/AiGatewayDashboardPage';
 import { AiGatewayPage } from '../pages/platform/AiGatewayPage';
 import { ChangePasswordPage } from '../pages/platform/ChangePasswordPage';
 import { Agent, AdminDashboardStats, EnvTemplate, SecurityProject, StaticPackage, PackageStats, UserInfo } from '../types/types';
@@ -186,8 +188,13 @@ export const renderCurrentView = (ctx: ViewRegistryContext): React.ReactNode => 
           setCurrentView={ctx.setCurrentView}
         />
       );
+    case 'aigw-dashboard':
+      return <AiGatewayDashboardPage onNavigate={ctx.setCurrentView} />;
+    case 'aigw-config':
+    case 'aigw-keys':
+    case 'aigw-logs':
     case 'aigw-admin':
-      return <AiGatewayPage />;
+      return <AiGatewayPage entryView={ctx.currentView} onNavigate={ctx.setCurrentView} />;
     case 'project-mgmt':
       return (
         <ProjectMgmtPage
@@ -205,7 +212,7 @@ export const renderCurrentView = (ctx: ViewRegistryContext): React.ReactNode => 
     case 'task-nuzhua':
       return <EmptyPlaceholderPage title="NUZHUA" />;
     case 'task-list':
-      return <EmptyPlaceholderPage title="任务列表" />;
+      return <TaskCenterPage projectId={ctx.selectedProjectId} projects={ctx.projects} />;
     case 'task-smart-jar':
       return <EmptyPlaceholderPage title="智JAR" />;
     case 'task-apk-smart-scan':

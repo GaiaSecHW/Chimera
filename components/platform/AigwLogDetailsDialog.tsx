@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { Bot, Boxes, Braces, CheckCircle2, Copy, Cpu, FileJson2, Hash, Layers3, MessageSquareText, Route, ScrollText, X } from 'lucide-react';
+import { Bot, Boxes, Braces, Check, CheckCircle2, ChevronDown, ChevronUp, Copy, Cpu, FileJson2, Hash, Image as ImageIcon, Layers3, MessageSquareText, Route, ScrollText, X } from 'lucide-react';
 
 import { AiGatewayLogDetail } from '../../types/types';
 
@@ -13,9 +13,22 @@ interface AigwLogDetailsDialogProps {
 type DetailTab = 'visual' | 'request' | 'response' | 'stream';
 
 type VisualEntry =
-  | { kind: 'message'; role: string; title: string; body: string; raw?: unknown }
-  | { kind: 'tool-call'; role: string; title: string; body: string; raw?: unknown }
-  | { kind: 'meta'; role: string; title: string; body: string; raw?: unknown };
+  | { kind: 'message'; role: string; title: string; body: string; raw?: unknown; source?: 'request' | 'response'; reasoningContent?: string; finishReason?: string; toolCalls?: unknown[]; parts?: MessagePart[] }
+  | { kind: 'tool-call'; role: string; title: string; body: string; raw?: unknown; source?: 'request' | 'response' }
+  | { kind: 'meta'; role: string; title: string; body: string; raw?: unknown; source?: 'request' | 'response' };
+
+type MessagePart = {
+  type?: string;
+  text?: string;
+  image_url?: { url?: string };
+};
+
+type ResponseUsage = {
+  promptTokens: number;
+  completionTokens: number;
+  totalTokens: number;
+  cacheHitTokens: number;
+};
 
 const formatDateTime = (value?: string | null) => value ? new Date(value).toLocaleString('zh-CN') : '-';
 const formatCost = (value?: number) => typeof value === 'number' ? `$${value.toFixed(8)}` : '-';
@@ -63,6 +76,61 @@ const flattenContentText = (content: unknown): string => {
   return stringifyPretty(content);
 };
 
+const getContentParts = (content: unknown): MessagePart[] => {
+  if (!content) return [];
+  if (typeof content === 'string') return [{ type: 'text', text: content }];
+  if (Array.isArray(content)) {
+    return content.map((item) => {
+      if (typeof item === 'string') return { type: 'text', text: item };
+      if (item && typeof item === 'object') return item as MessagePart;
+      return { type: 'text', text: stringifyPretty(item) };
+    });
+  }
+  return [{ type: 'text', text: flattenContentText(content) }];
+};
+
+const getNestedString = (record: Record<string, unknown>, keys: string[]) => {
+  for (const key of keys) {
+    const value = record[key];
+    if (typeof value === 'string' && value.trim()) return value;
+  }
+  return '';
+};
+
+const getResponseUsage = (responseJson: unknown): ResponseUsage | null => {
+  if (!responseJson || typeof responseJson !== 'object') return null;
+  const usage = (responseJson as Record<string, unknown>).usage;
+  if (!usage || typeof usage !== 'object') return null;
+  const data = usage as Record<string, unknown>;
+  const numberValue = (...keys: string[]) => {
+    for (const key of keys) {
+      const value = data[key];
+      if (typeof value === 'number') return value;
+    }
+    return 0;
+  };
+  return {
+    promptTokens: numberValue('prompt_tokens', 'promptTokens'),
+    completionTokens: numberValue('completion_tokens', 'completionTokens'),
+    totalTokens: numberValue('total_tokens', 'totalTokens'),
+    cacheHitTokens: numberValue('prompt_cache_hit_tokens', 'promptCacheHitTokens', 'cache_read_input_tokens'),
+  };
+};
+
+const extractRequestTools = (requestJson: unknown): Record<string, unknown>[] => {
+  if (!requestJson || typeof requestJson !== 'object') return [];
+  const tools = (requestJson as Record<string, unknown>).tools;
+  return Array.isArray(tools) ? tools.filter((item): item is Record<string, unknown> => Boolean(item && typeof item === 'object')) : [];
+};
+
+const formatToolArguments = (value: unknown) => {
+  if (typeof value === 'string') {
+    const parsed = parseJsonMaybe(value);
+    return parsed === null ? value : stringifyPretty(parsed);
+  }
+  return stringifyPretty(value);
+};
+
 const extractRequestVisualEntries = (requestJson: unknown): VisualEntry[] => {
   if (!requestJson || typeof requestJson !== 'object') return [];
   const request = requestJson as Record<string, unknown>;
@@ -80,16 +148,9 @@ const extractRequestVisualEntries = (requestJson: unknown): VisualEntry[] => {
         title: `Request · ${role}`,
         body: body || '(empty)',
         raw: message,
-      });
-      const toolCalls = Array.isArray(message.tool_calls) ? message.tool_calls : [];
-      toolCalls.forEach((toolCall, toolIndex) => {
-        entries.push({
-          kind: 'tool-call',
-          role: 'tool-call',
-          title: `Tool Call ${toolIndex + 1}`,
-          body: stringifyPretty(toolCall),
-          raw: toolCall,
-        });
+        source: 'request',
+        toolCalls: Array.isArray(message.tool_calls) ? message.tool_calls : [],
+        parts: getContentParts(message.content),
       });
     });
   }
@@ -106,17 +167,9 @@ const extractRequestVisualEntries = (requestJson: unknown): VisualEntry[] => {
         title: `Input ${index + 1} · ${role}`,
         body: body || '(empty)',
         raw: inputItem,
+        source: 'request',
+        parts: getContentParts(inputItem.content ?? inputItem.input ?? inputItem.text),
       });
-    });
-  }
-
-  if (Array.isArray(request.tools) && request.tools.length > 0) {
-    entries.push({
-      kind: 'meta',
-      role: 'tools',
-      title: `Tools (${request.tools.length})`,
-      body: stringifyPretty(request.tools),
-      raw: request.tools,
     });
   }
 
@@ -127,6 +180,8 @@ const extractRequestVisualEntries = (requestJson: unknown): VisualEntry[] => {
       title: 'Prompt',
       body: flattenContentText(request.prompt),
       raw: request.prompt,
+      source: 'request',
+      parts: getContentParts(request.prompt),
     });
   }
 
@@ -151,17 +206,32 @@ const extractResponseVisualEntries = (responseJson: unknown): VisualEntry[] => {
           title: `Choice ${index + 1}`,
           body: flattenContentText(msg.content),
           raw: msg,
+          source: 'response',
+          reasoningContent: getNestedString(msg, ['reasoning_content', 'reasoningContent']),
+          finishReason: typeof choiceRecord.finish_reason === 'string' ? choiceRecord.finish_reason : typeof choiceRecord.finishReason === 'string' ? choiceRecord.finishReason : '',
+          toolCalls: Array.isArray(msg.tool_calls) ? msg.tool_calls : [],
+          parts: getContentParts(msg.content),
         });
-        const toolCalls = Array.isArray(msg.tool_calls) ? msg.tool_calls : [];
-        toolCalls.forEach((toolCall, toolIndex) => {
+      }
+      const delta = choiceRecord.delta;
+      if (delta && typeof delta === 'object') {
+        const deltaRecord = delta as Record<string, unknown>;
+        const body = flattenContentText(deltaRecord.content);
+        const reasoningContent = getNestedString(deltaRecord, ['reasoning_content', 'reasoningContent']);
+        if (body || reasoningContent || Array.isArray(deltaRecord.tool_calls)) {
           entries.push({
-            kind: 'tool-call',
-            role: 'tool-call',
-            title: `Choice ${index + 1} · Tool Call ${toolIndex + 1}`,
-            body: stringifyPretty(toolCall),
-            raw: toolCall,
+            kind: 'message',
+            role: typeof deltaRecord.role === 'string' ? deltaRecord.role : 'assistant',
+            title: `Choice ${index + 1} Delta`,
+            body: body || '(empty delta)',
+            raw: deltaRecord,
+            source: 'response',
+            reasoningContent,
+            finishReason: typeof choiceRecord.finish_reason === 'string' ? choiceRecord.finish_reason : typeof choiceRecord.finishReason === 'string' ? choiceRecord.finishReason : '',
+            toolCalls: Array.isArray(deltaRecord.tool_calls) ? deltaRecord.tool_calls : [],
+            parts: getContentParts(deltaRecord.content),
           });
-        });
+        }
       }
       if (typeof choiceRecord.text === 'string') {
         entries.push({
@@ -170,6 +240,9 @@ const extractResponseVisualEntries = (responseJson: unknown): VisualEntry[] => {
           title: `Choice ${index + 1} Text`,
           body: choiceRecord.text,
           raw: choiceRecord.text,
+          source: 'response',
+          finishReason: typeof choiceRecord.finish_reason === 'string' ? choiceRecord.finish_reason : typeof choiceRecord.finishReason === 'string' ? choiceRecord.finishReason : '',
+          parts: getContentParts(choiceRecord.text),
         });
       }
     });
@@ -187,6 +260,9 @@ const extractResponseVisualEntries = (responseJson: unknown): VisualEntry[] => {
         title: `Output ${index + 1} · ${itemType}`,
         body: body || stringifyPretty(outputItem),
         raw: outputItem,
+        source: 'response',
+        reasoningContent: getNestedString(outputItem, ['reasoning_content', 'reasoningContent']),
+        parts: getContentParts(outputItem.content ?? outputItem.text ?? outputItem.arguments ?? outputItem.output),
       });
     });
   }
@@ -198,6 +274,21 @@ const extractResponseVisualEntries = (responseJson: unknown): VisualEntry[] => {
       title: 'Response Content',
       body: response.content,
       raw: response.content,
+      source: 'response',
+      parts: getContentParts(response.content),
+    });
+  }
+
+  if (entries.length === 0 && (typeof response.completion === 'string' || typeof response.rawText === 'string')) {
+    const body = typeof response.completion === 'string' ? response.completion : String(response.rawText || '');
+    entries.push({
+      kind: 'message',
+      role: 'assistant',
+      title: 'Response Text',
+      body,
+      raw: body,
+      source: 'response',
+      parts: getContentParts(body),
     });
   }
 
@@ -207,17 +298,85 @@ const extractResponseVisualEntries = (responseJson: unknown): VisualEntry[] => {
 const getRoleTone = (role: string) => {
   switch (role) {
     case 'system':
-      return 'border-amber-200 bg-amber-50 text-amber-900';
+      return 'border-slate-200 bg-white text-slate-900';
     case 'user':
-      return 'border-sky-200 bg-sky-50 text-sky-900';
+      return 'border-slate-200 bg-white text-slate-900';
     case 'assistant':
-      return 'border-emerald-200 bg-emerald-50 text-emerald-900';
+      return 'border-slate-200 bg-white text-slate-900';
     case 'tool':
     case 'tool-call':
     case 'tools':
-      return 'border-violet-200 bg-violet-50 text-violet-900';
+      return 'border-slate-200 bg-white text-slate-900';
     default:
-      return 'border-slate-200 bg-slate-50 text-slate-900';
+      return 'border-slate-200 bg-white text-slate-900';
+  }
+};
+
+const getRoleAccentTone = (role: string) => {
+  switch (role) {
+    case 'system':
+      return 'border-l-amber-400';
+    case 'user':
+      return 'border-l-sky-500';
+    case 'assistant':
+      return 'border-l-emerald-500';
+    case 'tool':
+    case 'tool-call':
+    case 'tools':
+      return 'border-l-violet-500';
+    default:
+      return 'border-l-slate-300';
+  }
+};
+
+const getRoleBadgeTone = (role: string) => {
+  switch (role) {
+    case 'system':
+      return 'bg-amber-50 text-amber-800 ring-amber-200';
+    case 'user':
+      return 'bg-sky-50 text-sky-800 ring-sky-200';
+    case 'assistant':
+      return 'bg-emerald-50 text-emerald-800 ring-emerald-200';
+    case 'tool':
+    case 'tool-call':
+    case 'tools':
+      return 'bg-violet-50 text-violet-800 ring-violet-200';
+    default:
+      return 'bg-slate-50 text-slate-700 ring-slate-200';
+  }
+};
+
+const getRoleLabel = (role: string) => {
+  switch (role) {
+    case 'system':
+      return 'System';
+    case 'user':
+      return 'User';
+    case 'assistant':
+      return 'Assistant';
+    case 'tool':
+      return 'Tool';
+    case 'tool-call':
+      return 'Tool Call';
+    case 'tools':
+      return 'Tools';
+    default:
+      return role || 'Message';
+  }
+};
+
+const getFinishReasonTone = (reason?: string) => {
+  switch (reason) {
+    case 'stop':
+      return 'border-emerald-200 bg-emerald-50 text-emerald-700';
+    case 'length':
+      return 'border-amber-200 bg-amber-50 text-amber-700';
+    case 'tool_calls':
+      return 'border-violet-200 bg-violet-50 text-violet-700';
+    case 'content_filter':
+      return 'border-red-200 bg-red-50 text-red-700';
+    default:
+      return 'border-slate-200 bg-slate-50 text-slate-600';
   }
 };
 
@@ -304,6 +463,7 @@ const SectionCard: React.FC<{ title: string; icon: React.ReactNode; children: Re
 
 export const AigwLogDetailsDialog: React.FC<AigwLogDetailsDialogProps> = ({ log, open, onClose, onCopy }) => {
   const [activeTab, setActiveTab] = useState<DetailTab>('visual');
+  const [expandedKeys, setExpandedKeys] = useState<Set<string>>(new Set());
 
   const requestJson = useMemo(() => parseJsonMaybe(log?.request), [log?.request]);
   const responseJson = useMemo(() => parseJsonMaybe(log?.response), [log?.response]);
@@ -315,6 +475,8 @@ export const AigwLogDetailsDialog: React.FC<AigwLogDetailsDialogProps> = ({ log,
       ...extractResponseVisualEntries(responseJson),
     ];
   }, [log, requestJson, responseJson]);
+  const requestTools = useMemo(() => extractRequestTools(requestJson), [requestJson]);
+  const responseUsage = useMemo(() => getResponseUsage(responseJson), [responseJson]);
   const streamEvents = useMemo(() => parseStreamEvents(log?.stream_response), [log?.stream_response]);
 
   if (!open || !log) return null;
@@ -333,9 +495,57 @@ export const AigwLogDetailsDialog: React.FC<AigwLogDetailsDialogProps> = ({ log,
     </button>
   );
 
+  const toggleExpanded = (key: string) => {
+    setExpandedKeys((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  };
+
+  const renderTextBlock = (text: string, key: string) => {
+    const long = text.length > 700;
+    const expanded = expandedKeys.has(key);
+    const displayText = long && !expanded ? `${text.slice(0, 520)}...` : text;
+    return (
+      <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+        <pre className="whitespace-pre-wrap break-words font-mono text-[12px] leading-6 text-slate-800">{displayText}</pre>
+        {long ? (
+          <button onClick={() => toggleExpanded(key)} className="mt-3 inline-flex items-center gap-1 rounded-xl bg-slate-900 px-3 py-1.5 text-[11px] font-bold text-white hover:bg-slate-700">
+            {expanded ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+            {expanded ? '收起' : '展开完整内容'}
+          </button>
+        ) : null}
+      </div>
+    );
+  };
+
+  const renderMessageContent = (entry: VisualEntry, index: number) => {
+    if (entry.kind !== 'message') return renderTextBlock(entry.body, `entry-${index}`);
+    const parts = entry.parts?.length ? entry.parts : getContentParts(entry.body);
+    return (
+      <div className="mt-3 space-y-3">
+        {parts.map((part, partIndex) => {
+          const key = `entry-${index}-part-${partIndex}`;
+          if (part.type === 'image_url') {
+            return (
+              <div key={key} className="flex items-start gap-2 rounded-xl border border-slate-200 bg-slate-50 p-4 text-xs text-slate-700">
+                <ImageIcon className="mt-0.5 h-4 w-4 shrink-0 text-slate-500" />
+                <span className="break-all font-mono">{part.image_url?.url || 'Image data'}</span>
+              </div>
+            );
+          }
+          const text = part.type === 'text' ? part.text || '' : flattenContentText(part);
+          return <div key={key}>{renderTextBlock(text || '(empty)', key)}</div>;
+        })}
+      </div>
+    );
+  };
+
   return (
     <div className="fixed inset-0 z-[300] flex items-center justify-center bg-slate-950/60 p-6 backdrop-blur-sm">
-      <div className="flex max-h-[92vh] w-full max-w-[min(96vw,1380px)] flex-col overflow-hidden rounded-[2rem] bg-slate-100 shadow-2xl">
+      <div className="flex max-h-[92vh] w-full max-w-[min(96vw,1380px)] flex-col overflow-hidden rounded-[2rem] bg-slate-50 shadow-2xl">
         <div className="flex items-start justify-between gap-4 border-b border-slate-200 bg-white px-6 py-5">
           <div>
             <div className="text-[11px] font-black uppercase tracking-[0.2em] text-slate-400">日志详情工作区</div>
@@ -428,24 +638,116 @@ export const AigwLogDetailsDialog: React.FC<AigwLogDetailsDialogProps> = ({ log,
             </div>
 
             {activeTab === 'visual' ? (
-              <div className="space-y-3">
-                {visualEntries.length ? visualEntries.map((entry, index) => (
-                  <div key={`${entry.kind}-${index}`} className={`rounded-[1.25rem] border px-4 py-4 ${getRoleTone(entry.role)}`}>
-                    <div className="flex items-center justify-between gap-3">
-                      <div>
-                        <div className="text-[11px] font-black uppercase tracking-[0.18em] opacity-70">{entry.kind}</div>
-                        <div className="mt-1 text-sm font-black">{entry.title}</div>
-                      </div>
-                      <button
-                        onClick={() => void onCopy(entry.body, `${entry.title} 已复制`)}
-                        className="rounded-xl bg-white/60 px-3 py-1.5 text-[11px] font-bold text-slate-700 hover:bg-white"
-                      >
-                        <Copy className="h-3.5 w-3.5" />
-                      </button>
+              <div className="space-y-4">
+                {requestTools.length > 0 ? (
+                  <SectionCard title={`Tools (${requestTools.length})`} icon={<Cpu className="h-4 w-4" />}>
+                    <div className="space-y-3">
+                      {requestTools.map((tool, index) => {
+                        const fn = tool.function && typeof tool.function === 'object' ? tool.function as Record<string, unknown> : {};
+                        const name = typeof fn.name === 'string' ? fn.name : 'Unknown';
+                        return (
+                          <details key={`${name}-${index}`} className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
+                            <summary className="flex cursor-pointer list-none items-center justify-between gap-3 text-sm font-black text-slate-900 marker:hidden">
+                              <span className="flex items-center gap-2">
+                                <span className="rounded-lg bg-violet-50 px-2 py-1 text-[11px] uppercase tracking-[0.14em] text-violet-700 ring-1 ring-violet-200">{String(tool.type || 'function')}</span>
+                                {name}
+                              </span>
+                              <ChevronDown className="h-4 w-4 text-slate-500" />
+                            </summary>
+                            {typeof fn.description === 'string' && fn.description ? (
+                              <p className="mt-3 text-sm leading-6 text-slate-700">{fn.description}</p>
+                            ) : null}
+                            {fn.parameters ? (
+                              <pre className="mt-3 whitespace-pre-wrap break-words rounded-xl border border-slate-200 bg-white p-3 font-mono text-[12px] leading-6 text-slate-800">{stringifyPretty(fn.parameters)}</pre>
+                            ) : null}
+                          </details>
+                        );
+                      })}
                     </div>
-                    <pre className="mt-3 whitespace-pre-wrap break-words rounded-2xl bg-white/70 p-4 font-mono text-xs leading-6 text-slate-800">{entry.body}</pre>
-                  </div>
-                )) : (
+                  </SectionCard>
+                ) : null}
+
+                {responseUsage ? (
+                  <SectionCard title="Token Usage" icon={<ScrollText className="h-4 w-4" />}>
+                    <div className="grid gap-3 md:grid-cols-4">
+                      <MetricCard icon={<ScrollText className="h-4 w-4" />} label="Prompt" value={formatNumber(responseUsage.promptTokens)} />
+                      <MetricCard icon={<ScrollText className="h-4 w-4" />} label="Completion" value={formatNumber(responseUsage.completionTokens)} />
+                      <MetricCard icon={<ScrollText className="h-4 w-4" />} label="Total" value={formatNumber(responseUsage.totalTokens)} />
+                      <MetricCard icon={<CheckCircle2 className="h-4 w-4" />} label="Cache Hit" value={formatNumber(responseUsage.cacheHitTokens)} />
+                    </div>
+                  </SectionCard>
+                ) : null}
+
+                {visualEntries.length ? (
+                  <SectionCard title={`Conversation (${visualEntries.length})`} icon={<MessageSquareText className="h-4 w-4" />}>
+                    <div className="space-y-3">
+                      {visualEntries.map((entry, index) => (
+                        <div key={`${entry.kind}-${index}`} className={`rounded-xl border border-l-4 px-4 py-4 shadow-sm ${getRoleTone(entry.role)} ${getRoleAccentTone(entry.role)}`}>
+                          <div className="flex flex-wrap items-center justify-between gap-3">
+                            <div className="min-w-0">
+                              <div className="flex flex-wrap items-center gap-2">
+                                <span className={`rounded-lg px-2.5 py-1 text-[11px] font-black uppercase tracking-[0.14em] ring-1 ${getRoleBadgeTone(entry.role)}`}>{getRoleLabel(entry.role)}</span>
+                                {entry.source ? <span className="rounded-lg bg-slate-50 px-2.5 py-1 text-[11px] font-bold uppercase tracking-[0.14em] text-slate-600 ring-1 ring-slate-200">{entry.source}</span> : null}
+                                {'finishReason' in entry && entry.finishReason ? (
+                                  <span className={`rounded-xl border px-2.5 py-1 text-[11px] font-bold ${getFinishReasonTone(entry.finishReason)}`}>{entry.finishReason}</span>
+                                ) : null}
+                              </div>
+                              <div className="mt-2 text-sm font-black">{entry.title}</div>
+                            </div>
+                            <button
+                              onClick={() => void onCopy(entry.body, `${entry.title} 已复制`)}
+                              className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-[11px] font-bold text-slate-700 hover:bg-slate-50"
+                            >
+                              <Copy className="h-3.5 w-3.5" />
+                              复制
+                            </button>
+                          </div>
+
+                          {'reasoningContent' in entry && entry.reasoningContent ? (
+                            <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 p-3">
+                              <button onClick={() => toggleExpanded(`reasoning-${index}`)} className="flex w-full items-center justify-between gap-3 text-left text-xs font-black text-amber-900">
+                                <span className="inline-flex items-center gap-2"><Check className="h-4 w-4" /> Reasoning Content</span>
+                                {expandedKeys.has(`reasoning-${index}`) ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                              </button>
+                              {expandedKeys.has(`reasoning-${index}`) ? (
+                                <pre className="mt-3 whitespace-pre-wrap break-words font-mono text-xs leading-6 text-amber-950">{entry.reasoningContent}</pre>
+                              ) : null}
+                            </div>
+                          ) : null}
+
+                          {renderMessageContent(entry, index)}
+
+                          {'toolCalls' in entry && entry.toolCalls?.length ? (
+                            <div className="mt-3 space-y-2">
+                              <div className="flex items-center gap-2 text-xs font-black text-slate-700">
+                                <Cpu className="h-4 w-4" />
+                                Tool Calls ({entry.toolCalls.length})
+                              </div>
+                              {entry.toolCalls.map((toolCall, toolIndex) => {
+                                const call = toolCall && typeof toolCall === 'object' ? toolCall as Record<string, unknown> : {};
+                                const fn = call.function && typeof call.function === 'object' ? call.function as Record<string, unknown> : {};
+                                return (
+                                  <div key={toolIndex} className="rounded-xl border border-slate-200 bg-slate-50 p-3">
+                                    <div className="flex flex-wrap items-center gap-2 text-xs">
+                                      <span className="rounded-lg bg-violet-100 px-2 py-1 font-black text-violet-800">{String(fn.name || 'Unknown')}</span>
+                                      {typeof call.id === 'string' ? <span className="break-all font-mono text-slate-500">ID: {call.id}</span> : null}
+                                    </div>
+                                    {fn.arguments ? (
+                                      <div className="mt-3 overflow-hidden rounded-xl border border-violet-200 bg-white">
+                                        <div className="border-b border-violet-100 bg-violet-50 px-3 py-2 text-[11px] font-black uppercase tracking-[0.14em] text-violet-800">请求参数</div>
+                                        <pre className="whitespace-pre-wrap break-words p-3 font-mono text-[12px] leading-6 text-slate-800">{formatToolArguments(fn.arguments)}</pre>
+                                      </div>
+                                    ) : null}
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          ) : null}
+                        </div>
+                      ))}
+                    </div>
+                  </SectionCard>
+                ) : (
                   <div className="rounded-[1.25rem] border border-dashed border-slate-300 bg-slate-50 px-4 py-10 text-center text-sm text-slate-500">
                     当前日志缺少可识别的会话结构，建议切到 JSON 或 Stream 视图查看原始内容。
                   </div>

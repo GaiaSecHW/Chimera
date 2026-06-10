@@ -8,6 +8,8 @@ import { VulnVerifyReportView } from './VulnVerifyReportView';
 const DEFAULT_MODEL = 'local_minimax/MiniMax/MiniMax-M2.5';
 const ACTIVE_STATUSES = new Set(['pending', 'running', 'cancelling']);
 const TERMINAL_STATUSES = new Set(['success', 'failed', 'cancelled']);
+const VERIFY_OPEN_TASK_ID_KEY = 'chimera-vuln-verify-open-task-id';
+const VERIFY_OPEN_PROJECT_ID_KEY = 'chimera-vuln-verify-open-project-id';
 
 const STATUS_LABEL: Record<string, string> = {
   pending: '等待中',
@@ -150,6 +152,8 @@ export const VulnVerifyTaskPage: React.FC<{ projectId: string }> = ({ projectId 
   const [reportDataError, setReportDataError] = useState<string | null>(null);
   const [artifactContent, setArtifactContent] = useState<{ path: string; content: string; truncated: boolean } | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
+  const [pendingOpenTaskId, setPendingOpenTaskId] = useState<string | null>(null);
+  const [pendingOpenAttempted, setPendingOpenAttempted] = useState(false);
 
   const offset = (page - 1) * perPage;
   const totalPages = Math.max(1, Math.ceil(total / perPage));
@@ -237,13 +241,36 @@ export const VulnVerifyTaskPage: React.FC<{ projectId: string }> = ({ projectId 
     setCreateModalOpen(true);
   };
 
-  const openDetailModal = async (taskId: string) => {
+  const openDetailModal = useCallback(async (taskId: string) => {
     setSelectedTaskId(taskId);
     setReportData(null);
     setReportDataError(null);
     setDetailModalOpen(true);
     await loadDetail(taskId);
-  };
+  }, [loadDetail]);
+
+  useEffect(() => {
+    if (!projectId) return;
+    const taskId = localStorage.getItem(VERIFY_OPEN_TASK_ID_KEY)?.trim();
+    if (!taskId) return;
+    const targetProjectId = localStorage.getItem(VERIFY_OPEN_PROJECT_ID_KEY)?.trim();
+    if (targetProjectId && targetProjectId !== projectId) return;
+    localStorage.removeItem(VERIFY_OPEN_TASK_ID_KEY);
+    localStorage.removeItem(VERIFY_OPEN_PROJECT_ID_KEY);
+    setPendingOpenTaskId(taskId);
+    setPendingOpenAttempted(false);
+  }, [projectId]);
+
+  useEffect(() => {
+    if (!pendingOpenTaskId || pendingOpenAttempted || !projectId) return;
+    if (loading) return;
+    const existsInCurrentList = tasks.some((task) => task.id === pendingOpenTaskId);
+    if (!existsInCurrentList && tasks.length > 0) {
+      setMessage('正在直接打开指定验证任务详情...');
+    }
+    setPendingOpenAttempted(true);
+    void openDetailModal(pendingOpenTaskId).finally(() => setPendingOpenTaskId(null));
+  }, [pendingOpenTaskId, pendingOpenAttempted, projectId, loading, tasks, openDetailModal]);
 
   const createTask = async (event: React.FormEvent) => {
     event.preventDefault();

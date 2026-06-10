@@ -14,6 +14,7 @@ import {
   Search,
   Trash2,
   Upload,
+  X,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../clients/api';
@@ -34,6 +35,11 @@ interface UploadQueueItem {
   status: 'pending' | 'uploading' | 'completed' | 'failed';
   progress: number;
   error?: string;
+}
+
+interface UploadDetailDialogState {
+  uploadId: string;
+  record: ProjectInputUploadRecord;
 }
 
 const INPUT_TYPE_META: Record<InputType, { label: string; icon: React.ReactNode; tone: string }> = {
@@ -95,6 +101,7 @@ export const TestInputPage: React.FC<TestInputPageProps> = ({ selectedProjectId 
   const [uploadDetailCache, setUploadDetailCache] = useState<Record<string, ProjectInputUploadDetail | undefined>>({});
   const [detailLoadingIds, setDetailLoadingIds] = useState<string[]>([]);
   const [detailErrors, setDetailErrors] = useState<Record<string, string>>({});
+  const [detailDialogTarget, setDetailDialogTarget] = useState<UploadDetailDialogState | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -172,6 +179,11 @@ export const TestInputPage: React.FC<TestInputPageProps> = ({ selectedProjectId 
     if (!uploadDetailCache[uploadId]) {
       await loadUploadDetail(uploadId);
     }
+  };
+
+  const openUploadDetailDialog = async (record: ProjectInputUploadRecord) => {
+    setDetailDialogTarget({ uploadId: record.upload_id, record });
+    await loadUploadDetail(record.upload_id);
   };
 
   const statsMap = useMemo(() => {
@@ -434,19 +446,17 @@ export const TestInputPage: React.FC<TestInputPageProps> = ({ selectedProjectId 
                   <tr>
                     <th className="px-4 py-4">类型</th>
                     <th className="px-4 py-4">上传记录</th>
-                    <th className="px-4 py-4">状态</th>
                     <th className="px-4 py-4">批次 / 模式</th>
                     <th className="px-4 py-4">文件 / 容量</th>
-                    <th className="px-4 py-4">目标路径</th>
                     <th className="px-4 py-4">创建信息</th>
                     <th className="px-4 py-4 text-right">操作</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 bg-white text-sm">
                   {loading ? (
-                    <tr><td colSpan={8} className="px-6 py-20 text-center"><Loader2 className="mx-auto animate-spin text-slate-400" size={32} /></td></tr>
+                    <tr><td colSpan={6} className="px-6 py-20 text-center"><Loader2 className="mx-auto animate-spin text-slate-400" size={32} /></td></tr>
                   ) : filteredRecords.length === 0 ? (
-                    <tr><td colSpan={8} className="px-6 py-20 text-center text-slate-400">暂无上传记录</td></tr>
+                    <tr><td colSpan={6} className="px-6 py-20 text-center text-slate-400">暂无上传记录</td></tr>
                   ) : filteredRecords.map((record) => {
                     const inputType = normalizeType(record.input_type);
                     const isExpanded = expandedUploadIds.includes(record.upload_id);
@@ -456,7 +466,7 @@ export const TestInputPage: React.FC<TestInputPageProps> = ({ selectedProjectId 
                     const batches = detail?.batches || [];
                     return (
                       <React.Fragment key={record.upload_id}>
-                        <tr className="align-top hover:bg-slate-50/80">
+                        <tr className="cursor-pointer align-top hover:bg-slate-50/80" onClick={() => { void openUploadDetailDialog(record); }}>
                           <td className="px-4 py-4">
                             <span className={`inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-black ${INPUT_TYPE_META[inputType].tone}`}>
                               {INPUT_TYPE_META[inputType].icon}
@@ -467,7 +477,7 @@ export const TestInputPage: React.FC<TestInputPageProps> = ({ selectedProjectId 
                             <div className="flex items-start gap-3">
                               <button
                                 type="button"
-                                onClick={() => { void toggleUploadDetail(record.upload_id); }}
+                                onClick={(event) => { event.stopPropagation(); void toggleUploadDetail(record.upload_id); }}
                                 className="mt-0.5 inline-flex h-8 w-8 flex-none items-center justify-center rounded-xl border border-slate-200 bg-slate-50 text-slate-600 transition hover:border-slate-300 hover:bg-slate-100"
                                 aria-expanded={isExpanded}
                                 aria-label={isExpanded ? '收起批次历史' : '展开批次历史'}
@@ -481,10 +491,6 @@ export const TestInputPage: React.FC<TestInputPageProps> = ({ selectedProjectId 
                             </div>
                           </td>
                           <td className="px-4 py-4">
-                            <StatusBadge status={record.status} />
-                            {record.last_error ? <div className="mt-2 max-w-[240px] text-xs leading-5 text-rose-600">{record.last_error}</div> : null}
-                          </td>
-                          <td className="px-4 py-4">
                             <div className="font-semibold text-slate-800">{record.batch_count || (record.latest_batch ? 1 : 0)} 批次</div>
                             <div className="mt-1 text-xs text-slate-500">{getUploadModeLabel(record.keep_original)}</div>
                             <div className="mt-1 text-xs text-slate-400">{getLatestBatchSummary(record)}</div>
@@ -494,34 +500,26 @@ export const TestInputPage: React.FC<TestInputPageProps> = ({ selectedProjectId 
                             <div className="mt-1 text-xs text-slate-500">{formatUploadBytes(record.stored_total_size_bytes)}</div>
                           </td>
                           <td className="px-4 py-4">
-                            <button
-                              onClick={() => openProjectPath(record.target_path)}
-                              className="max-w-[260px] truncate rounded-xl bg-slate-100 px-3 py-2 text-left text-xs font-mono text-slate-700 transition hover:bg-slate-200"
-                            >
-                              {record.target_path}
-                            </button>
-                          </td>
-                          <td className="px-4 py-4">
                             <div className="font-semibold text-slate-800">{record.created_by || '-'}</div>
                             <div className="mt-1 text-xs text-slate-500">创建 {formatDateTime(record.created_at)}</div>
                             <div className="mt-1 text-xs text-slate-400">完成 {formatDateTime(record.finished_at)}</div>
                           </td>
                           <td className="px-4 py-4">
-                            <div className="flex justify-end gap-2">
-                              <button onClick={() => { void toggleUploadDetail(record.upload_id); }} className="rounded-xl border border-slate-200 px-3 py-2 text-xs font-black text-slate-600 hover:bg-slate-100">
-                                <Eye size={14} className="inline-block mr-1" />
-                                {isExpanded ? '收起' : '详情'}
+                            <div className="flex justify-end gap-2" onClick={(event) => event.stopPropagation()}>
+                              <button onClick={() => { void openUploadDetailDialog(record); }} className="rounded-xl border border-slate-200 px-3 py-2 text-xs font-black text-slate-600 hover:bg-slate-100">
+                                <Eye size={14} className="mr-1 inline-block" />
+                                详情
                               </button>
                               <button onClick={() => openProjectPath(record.target_path)} className="rounded-xl border border-slate-200 px-3 py-2 text-xs font-black text-slate-600 hover:bg-slate-100">
-                                <Eye size={14} className="inline-block mr-1" />
-                                查看
+                                <HardDrive size={14} className="mr-1 inline-block" />
+                                打开目录
                               </button>
                               <button onClick={() => openAppendModal(record)} className="rounded-xl border border-slate-200 px-3 py-2 text-xs font-black text-slate-600 hover:bg-slate-100">
-                                <Upload size={14} className="inline-block mr-1" />
+                                <Plus size={14} className="mr-1 inline-block" />
                                 追加
                               </button>
                               <button onClick={() => setDeleteTarget(record)} className="rounded-xl border border-rose-200 px-3 py-2 text-xs font-black text-rose-600 hover:bg-rose-50">
-                                <Trash2 size={14} className="inline-block mr-1" />
+                                <Trash2 size={14} className="mr-1 inline-block" />
                                 删除
                               </button>
                             </div>
@@ -529,18 +527,15 @@ export const TestInputPage: React.FC<TestInputPageProps> = ({ selectedProjectId 
                         </tr>
                         {isExpanded ? (
                           <tr className="bg-slate-50/70">
-                            <td colSpan={8} className="px-4 py-4">
-                              <div className="rounded-[1.5rem] border border-slate-200 bg-white p-5 shadow-sm">
+                            <td colSpan={6} className="px-6 py-5">
+                              <div className="rounded-[1.5rem] border border-slate-200 bg-white p-5">
                                 <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
                                   <div>
-                                    <div className="text-sm font-black text-slate-900">批次历史详情</div>
-                                    <div className="mt-1 text-xs text-slate-500">
-                                      {record.upload_id} · {batches.length > 0 ? `${batches.length} 个批次` : '暂无批次明细'}
-                                    </div>
+                                    <div className="text-sm font-black text-slate-900">批次历史</div>
+                                    <div className="mt-1 text-xs text-slate-500">{record.upload_id} · {batches.length > 0 ? `${batches.length} 个批次` : '暂无批次明细'}</div>
                                   </div>
                                   <div className="flex flex-wrap gap-2 text-xs font-semibold text-slate-500">
                                     <span className="rounded-full bg-slate-100 px-3 py-1">模式：{getUploadModeLabel(record.keep_original)}</span>
-                                    <span className="rounded-full bg-slate-100 px-3 py-1">路径：{record.target_path}</span>
                                   </div>
                                 </div>
 
@@ -568,9 +563,7 @@ export const TestInputPage: React.FC<TestInputPageProps> = ({ selectedProjectId 
                                               <StatusBadge status={batch.status} />
                                               <span className="rounded-full bg-white px-3 py-1 text-[11px] font-black uppercase tracking-[0.18em] text-slate-500">{batch.mode}</span>
                                             </div>
-                                            <div className="mt-2 text-xs text-slate-500">
-                                              batch_id: <span className="font-mono text-slate-700">{batch.batch_id}</span>
-                                            </div>
+                                            <div className="mt-2 text-xs text-slate-500">batch_id: <span className="font-mono text-slate-700">{batch.batch_id}</span></div>
                                           </div>
                                           <div className="flex flex-wrap gap-2 text-xs font-semibold text-slate-500">
                                             <span className="rounded-full bg-white px-3 py-1">提交 {batch.submitted_file_count} 个</span>
@@ -632,6 +625,153 @@ export const TestInputPage: React.FC<TestInputPageProps> = ({ selectedProjectId 
           </div>
         </section>
       </div>
+
+      {detailDialogTarget ? (() => {
+        const { uploadId, record } = detailDialogTarget;
+        const detail = uploadDetailCache[uploadId];
+        const isDetailLoading = detailLoadingIds.includes(uploadId);
+        const detailError = detailErrors[uploadId];
+        const batches = detail?.batches || [];
+        const latestBatch = detail?.latest_batch || record.latest_batch || null;
+        return (
+          <div className="fixed inset-0 z-[125] flex items-center justify-center bg-slate-950/60 p-6 backdrop-blur-sm">
+            <div className="flex max-h-[90vh] w-full max-w-5xl flex-col overflow-hidden rounded-[2rem] bg-white shadow-[0_30px_100px_rgba(15,23,42,0.22)]">
+              <div className="flex items-start justify-between gap-4 border-b border-slate-100 px-6 py-5">
+                <div>
+                  <div className="text-sm font-black uppercase tracking-[0.18em] text-slate-500">上传记录详情</div>
+                  <div className="mt-2 text-2xl font-black text-slate-900">{record.upload_id}</div>
+                  <div className="mt-2 flex flex-wrap items-center gap-2 text-xs">
+                    <StatusBadge status={record.status} />
+                    {latestBatch ? <span className="rounded-full bg-slate-100 px-3 py-1 font-semibold text-slate-600">最新批次：{latestBatch.status}</span> : null}
+                    <span className="rounded-full bg-slate-100 px-3 py-1 font-semibold text-slate-600">类型：{INPUT_TYPE_META[normalizeType(record.input_type)].label}</span>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setDetailDialogTarget(null)}
+                  className="inline-flex h-10 w-10 items-center justify-center rounded-2xl border border-slate-200 text-slate-500 hover:bg-slate-50"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+
+              <div className="grid gap-5 overflow-y-auto px-6 py-6 lg:grid-cols-[1.1fr_0.9fr]">
+                <div className="space-y-5">
+                  <section className="rounded-[1.5rem] border border-slate-200 bg-slate-50 p-5">
+                    <div className="text-sm font-black text-slate-900">基础信息</div>
+                    <div className="mt-4 grid gap-4 md:grid-cols-2">
+                      <div>
+                        <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">目标路径</div>
+                        <div className="mt-1 break-all text-sm font-mono text-slate-700">{record.target_path}</div>
+                      </div>
+                      <div>
+                        <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">上传模式</div>
+                        <div className="mt-1 text-sm font-semibold text-slate-700">{getUploadModeLabel(record.keep_original)}</div>
+                      </div>
+                      <div>
+                        <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">创建人</div>
+                        <div className="mt-1 text-sm font-semibold text-slate-700">{record.created_by || '-'}</div>
+                      </div>
+                      <div>
+                        <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">创建时间</div>
+                        <div className="mt-1 text-sm font-semibold text-slate-700">{formatDateTime(record.created_at)}</div>
+                      </div>
+                      <div>
+                        <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">完成时间</div>
+                        <div className="mt-1 text-sm font-semibold text-slate-700">{formatDateTime(record.finished_at)}</div>
+                      </div>
+                      <div>
+                        <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">源压缩包</div>
+                        <div className="mt-1 text-sm font-semibold text-slate-700">{record.source_archive_count}</div>
+                      </div>
+                      <div>
+                        <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">落盘文件</div>
+                        <div className="mt-1 text-sm font-semibold text-slate-700">{record.stored_file_count}</div>
+                      </div>
+                      <div>
+                        <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">落盘容量</div>
+                        <div className="mt-1 text-sm font-semibold text-slate-700">{formatUploadBytes(record.stored_total_size_bytes)}</div>
+                      </div>
+                    </div>
+                  </section>
+
+                  <section className="rounded-[1.5rem] border border-slate-200 bg-white p-5">
+                    <div className="text-sm font-black text-slate-900">错误与结果</div>
+                    <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4">
+                      <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">错误摘要</div>
+                      <div className="mt-2 text-sm leading-6 text-slate-700">{record.last_error || latestBatch?.error_summary || '无'}</div>
+                    </div>
+                  </section>
+                </div>
+
+                <div className="space-y-5">
+                  <section className="rounded-[1.5rem] border border-slate-200 bg-white p-5">
+                    <div className="text-sm font-black text-slate-900">批次历史</div>
+                    {isDetailLoading ? (
+                      <div className="mt-5 rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-4 py-8 text-center text-sm text-slate-500">
+                        <Loader2 className="mx-auto mb-3 animate-spin text-slate-400" size={24} />
+                        正在加载批次历史...
+                      </div>
+                    ) : detailError ? (
+                      <div className="mt-5 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-4 text-sm text-rose-700">
+                        {detailError}
+                      </div>
+                    ) : batches.length === 0 ? (
+                      <div className="mt-5 rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-4 py-8 text-center text-sm text-slate-500">
+                        该上传记录暂无批次历史。
+                      </div>
+                    ) : (
+                      <div className="mt-5 space-y-3">
+                        {batches.map((batch, index) => (
+                          <div key={batch.batch_id} className="rounded-[1.25rem] border border-slate-200 bg-slate-50 p-4">
+                            <div className="flex flex-wrap items-center gap-2">
+                              <span className="text-sm font-black text-slate-900">批次 #{index + 1}</span>
+                              <StatusBadge status={batch.status} />
+                              <span className="rounded-full bg-white px-3 py-1 text-[11px] font-black uppercase tracking-[0.18em] text-slate-500">{batch.mode}</span>
+                            </div>
+                            <div className="mt-2 text-xs text-slate-500">batch_id: <span className="font-mono text-slate-700">{batch.batch_id}</span></div>
+                            <div className="mt-4 grid gap-3 md:grid-cols-2">
+                              <div>
+                                <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">提交 / 处理</div>
+                                <div className="mt-1 text-sm font-semibold text-slate-700">{batch.submitted_file_count} / {batch.processed_file_count}</div>
+                              </div>
+                              <div>
+                                <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">容量</div>
+                                <div className="mt-1 text-sm font-semibold text-slate-700">{formatUploadBytes(batch.processed_size_bytes)}</div>
+                              </div>
+                              <div>
+                                <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">创建时间</div>
+                                <div className="mt-1 text-sm font-semibold text-slate-700">{formatDateTime(batch.created_at)}</div>
+                              </div>
+                              <div>
+                                <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">完成时间</div>
+                                <div className="mt-1 text-sm font-semibold text-slate-700">{formatDateTime(batch.finished_at)}</div>
+                              </div>
+                              <div className="md:col-span-2">
+                                <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">错误摘要</div>
+                                <div className="mt-1 text-sm font-semibold text-slate-700">{batch.error_summary || '-'}</div>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </section>
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-3 border-t border-slate-100 px-6 py-5">
+                <button type="button" onClick={() => setDetailDialogTarget(null)} className="rounded-2xl border border-slate-200 px-4 py-3 text-sm font-black text-slate-600">
+                  关闭
+                </button>
+                <button type="button" onClick={() => openProjectPath(record.target_path)} className="rounded-2xl bg-slate-950 px-4 py-3 text-sm font-black text-white">
+                  打开目录
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      })() : null}
 
       {isUploadModalOpen ? (
         <div className="fixed inset-0 z-[120] flex items-center justify-center bg-slate-950/60 p-6 backdrop-blur-sm">
