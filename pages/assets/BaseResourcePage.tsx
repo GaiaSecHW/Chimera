@@ -26,6 +26,7 @@ import {
   formatUploadBytes,
   getLatestBatchSummary,
   getUploadModeLabel,
+  getUploadRecordDisplayName,
   isAllowedArchiveFileName,
 } from './baseResourcePageModel';
 
@@ -70,6 +71,8 @@ export const BaseResourcePage: React.FC<BaseResourcePageProps> = ({ type, title,
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
   const [isAppendMode, setIsAppendMode] = useState(false);
   const [activeUploadId, setActiveUploadId] = useState<string | null>(null);
+  const [uploadDisplayName, setUploadDisplayName] = useState('');
+  const [uploadErrorMessage, setUploadErrorMessage] = useState<string | null>(null);
   const [isUploadingBatch, setIsUploadingBatch] = useState(false);
   const [keepOriginal, setKeepOriginal] = useState(false);
   const [uploadQueue, setUploadQueue] = useState<UploadQueueItem[]>([]);
@@ -106,6 +109,8 @@ export const BaseResourcePage: React.FC<BaseResourcePageProps> = ({ type, title,
   const openCreateModal = () => {
     setActiveUploadId(null);
     setIsAppendMode(false);
+    setUploadDisplayName('');
+    setUploadErrorMessage(null);
     setKeepOriginal(false);
     setUploadQueue([]);
     setIsUploadModalOpen(true);
@@ -114,6 +119,8 @@ export const BaseResourcePage: React.FC<BaseResourcePageProps> = ({ type, title,
   const openAppendModal = (uploadId: string, recordKeepOriginal: boolean) => {
     setActiveUploadId(uploadId);
     setIsAppendMode(true);
+    setUploadDisplayName('');
+    setUploadErrorMessage(null);
     setKeepOriginal(recordKeepOriginal);
     setUploadQueue([]);
     setIsUploadModalOpen(true);
@@ -123,7 +130,7 @@ export const BaseResourcePage: React.FC<BaseResourcePageProps> = ({ type, title,
     if (!files) return;
     const accepted: UploadQueueItem[] = [];
     Array.from(files).forEach((file) => {
-      if (isAllowedArchiveFile(file)) {
+      if (keepOriginal || isAllowedArchiveFile(file)) {
         accepted.push({
           file,
           id: Math.random().toString(36).slice(2),
@@ -152,7 +159,13 @@ export const BaseResourcePage: React.FC<BaseResourcePageProps> = ({ type, title,
     e.preventDefault();
     const readyItems = uploadQueue.filter((item) => item.status !== 'failed');
     if (!projectId || readyItems.length === 0) return;
+    const normalizedDisplayName = uploadDisplayName.trim();
+    if (!isAppendMode && !normalizedDisplayName) {
+      setUploadErrorMessage('请填写上传记录名称');
+      return;
+    }
     setIsUploadingBatch(true);
+    setUploadErrorMessage(null);
     setUploadQueue((prev) => prev.map((item) => (item.status === 'failed' ? item : { ...item, status: 'uploading', progress: 35 })));
     try {
       if (isAppendMode && activeUploadId) {
@@ -162,20 +175,31 @@ export const BaseResourcePage: React.FC<BaseResourcePageProps> = ({ type, title,
           files: readyItems.map((item) => item.file),
         });
       } else {
-        await fileserverApi.createProjectInputUpload({
+        const created = await fileserverApi.createProjectInputUpload({
           project_id: projectId,
           input_type: type,
           keep_original: keepOriginal,
           files: readyItems.map((item) => item.file),
         });
+        try {
+          await fileserverApi.updateProjectInputUploadDisplayName({
+            upload_id: created.upload_id,
+            project_id: projectId,
+            display_name: normalizedDisplayName,
+          });
+        } catch (renameError: any) {
+          throw new Error(renameError?.message || '文件已上传，但上传记录名称保存失败');
+        }
       }
       setUploadQueue((prev) => prev.map((item) => (item.status === 'failed' ? item : { ...item, status: 'completed', progress: 100 })));
       setIsUploadModalOpen(false);
       setUploadQueue([]);
+      setUploadDisplayName('');
       await loadData(false);
     } catch (error: any) {
       const message = error?.message || '上传失败';
       setUploadQueue((prev) => prev.map((item) => (item.status === 'failed' ? item : { ...item, status: 'failed', progress: 0, error: message })));
+      setUploadErrorMessage(message);
     } finally {
       setIsUploadingBatch(false);
     }
@@ -404,7 +428,8 @@ export const BaseResourcePage: React.FC<BaseResourcePageProps> = ({ type, title,
                           <FileArchive size={18} />
                         </div>
                         <div className="min-w-0">
-                          <p className="text-sm font-black text-slate-800 truncate">{record.upload_id}</p>
+                          <p className="text-sm font-black text-slate-800 truncate">{getUploadRecordDisplayName(record)}</p>
+                          <p className="text-[10px] font-mono text-slate-500 truncate mt-0.5">{record.upload_id}</p>
                           <p className="text-[10px] font-mono text-slate-400 uppercase truncate mt-0.5">{formatDateTime(record.created_at)}</p>
                         </div>
                       </div>
@@ -527,6 +552,20 @@ export const BaseResourcePage: React.FC<BaseResourcePageProps> = ({ type, title,
             </div>
 
             <div className="flex-1 overflow-y-auto p-10 space-y-8 custom-scrollbar">
+              {!isAppendMode ? (
+                <div className="bg-slate-50 p-6 rounded-[2rem] border border-slate-100 space-y-3">
+                  <label className="block">
+                    <p className="text-sm font-black text-slate-700">上传记录名称</p>
+                    <input
+                      value={uploadDisplayName}
+                      onChange={(e) => setUploadDisplayName(e.target.value)}
+                      className="mt-3 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-800 outline-none focus:border-blue-400"
+                      placeholder="请输入上传记录名称"
+                    />
+                  </label>
+                </div>
+              ) : null}
+
               <div className="bg-slate-50 p-6 rounded-[2rem] border border-slate-100 space-y-4">
                 <label className="flex items-center gap-3 cursor-pointer">
                   <input
@@ -536,8 +575,8 @@ export const BaseResourcePage: React.FC<BaseResourcePageProps> = ({ type, title,
                     className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
                   />
                   <div>
-                    <p className="text-sm font-black text-slate-700">保留原始文件上传</p>
-                    <p className="text-xs text-slate-500">勾选后不解压，直接将用户上传的压缩包写入记录目录</p>
+                    <p className="text-sm font-black text-slate-700">保留原始文件，不自动解压</p>
+                    <p className="text-xs text-slate-500">勾选后不解压，直接将用户上传的原始文件写入记录目录</p>
                   </div>
                 </label>
               </div>
@@ -554,6 +593,7 @@ export const BaseResourcePage: React.FC<BaseResourcePageProps> = ({ type, title,
                 <input
                   type="file"
                   multiple
+                  accept={keepOriginal ? undefined : '.zip,.tar,.tar.gz,.tgz,.tar.bz2,.tbz2,.tar.xz,.txz'}
                   className="hidden"
                   ref={fileInputRef}
                   onChange={(e) => addFilesToQueue(e.target.files)}
@@ -561,8 +601,10 @@ export const BaseResourcePage: React.FC<BaseResourcePageProps> = ({ type, title,
                 <div className="w-20 h-20 bg-blue-50 text-blue-600 rounded-3xl flex items-center justify-center mx-auto mb-6 group-hover:scale-110 transition-transform">
                   <Plus size={40} />
                 </div>
-                <h4 className="text-lg font-black text-slate-800">点击或拖拽压缩包至此</h4>
-                <p className="text-sm text-slate-400 mt-2 font-medium">支持 zip / tar / tar.gz / tgz / tar.bz2 / tar.xz</p>
+                <h4 className="text-lg font-black text-slate-800">{keepOriginal ? '点击或拖拽原始文件至此' : '点击或拖拽压缩包至此'}</h4>
+                <p className="text-sm text-slate-400 mt-2 font-medium">
+                  {keepOriginal ? '当前保留原始文件模式下，支持任意文件格式。' : '支持 zip / tar / tar.gz / tgz / tar.bz2 / tar.xz'}
+                </p>
               </div>
 
               {uploadQueue.length > 0 && (
@@ -607,6 +649,12 @@ export const BaseResourcePage: React.FC<BaseResourcePageProps> = ({ type, title,
                   </div>
                 </div>
               )}
+
+              {uploadErrorMessage ? (
+                <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700">
+                  {uploadErrorMessage}
+                </div>
+              ) : null}
             </div>
 
             <div className="p-10 border-t border-slate-50 bg-slate-50/50 flex gap-4 shrink-0">
@@ -620,7 +668,7 @@ export const BaseResourcePage: React.FC<BaseResourcePageProps> = ({ type, title,
               </button>
               <button
                 onClick={handleUploadSubmit}
-                disabled={isUploadingBatch || uploadQueue.filter((item) => item.status !== 'failed').length === 0}
+                disabled={isUploadingBatch || uploadQueue.filter((item) => item.status !== 'failed').length === 0 || (!isAppendMode && !uploadDisplayName.trim())}
                 className="flex-1 py-4 bg-blue-600 text-white rounded-2xl font-black hover:bg-blue-700 shadow-xl shadow-blue-500/20 transition-all flex items-center justify-center gap-2 active:scale-95 disabled:opacity-50"
               >
                 {isUploadingBatch ? <Loader2 className="animate-spin" size={20} /> : <Upload size={20} />}

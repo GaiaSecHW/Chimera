@@ -9,6 +9,7 @@ import {
   ProjectInputUploadBrowseResponse,
   ProjectInputUploadResolveResponse,
   ProjectInputUploadListResponse,
+  ProjectInputUploadRecord,
   ProjectInputOverview,
   ProjectInputUploadStats,
   ProjectFilesystemChildrenResponse,
@@ -441,6 +442,22 @@ export const fileserverApi = {
       size: totalSize,
       run: ({ signal, onProgress }) => execute({ signal, onProgress }),
     });
+  },
+
+  updateProjectInputUploadDisplayName: async (payload: {
+    upload_id: string;
+    project_id: string;
+    display_name: string;
+  }): Promise<ProjectInputUploadRecord> => {
+    const response = await fetch(`${API_BASE}/api/fileserver/project-input/uploads/${encodeURIComponent(payload.upload_id)}/display-name`, {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify({
+        project_id: payload.project_id,
+        display_name: payload.display_name,
+      }),
+    });
+    return handleResponse(response);
   },
 
   deleteProjectInputUploads: async (payload: {

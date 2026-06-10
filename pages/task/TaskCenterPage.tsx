@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { ArrowRight, CheckCircle2, ChevronRight, Folder, FolderOpen, Loader2, Plus, RefreshCw, Rocket, Search, Shield, Square, SquareCheck, X } from 'lucide-react';
 import { api } from '../../clients/api';
+import { getUploadRecordDisplayName } from '../assets/baseResourcePageModel';
 import {
   AiGatewayLlmKey,
   ProjectInputUploadBrowseEntry,
@@ -487,7 +488,7 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects }) => {
                 <div className="space-y-4">
                   <label className="block text-sm font-semibold text-theme-text-secondary">任务输入记录
                     <select value={selectedInputId} onChange={(e) => setSelectedInputId(e.target.value)} className="mt-1 w-full rounded-xl border border-theme-border bg-theme-surface px-3 py-2 text-theme-text-primary">
-                      {selectableInputs.map((item) => <option key={item.upload_id} value={item.upload_id}>{item.target_path} · {item.status}</option>)}
+                      {selectableInputs.map((item) => <option key={item.upload_id} value={item.upload_id}>{`${getUploadRecordDisplayName(item)} · ${item.status}`}</option>)}
                     </select>
                   </label>
                   <div className="rounded-2xl border border-theme-border bg-theme-elevated px-4 py-3 text-sm text-theme-text-secondary">

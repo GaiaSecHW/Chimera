@@ -20,7 +20,7 @@ import { useNavigate } from 'react-router-dom';
 import { api } from '../clients/api';
 import { StatusBadge } from '../components/StatusBadge';
 import type { ProjectInputOverview, ProjectInputUploadDetail, ProjectInputUploadRecord, ProjectInputUploadStats, UserInfo } from '../types/types';
-import { formatUploadBytes, getLatestBatchSummary, getUploadModeLabel, isAllowedArchiveFileName } from './assets/baseResourcePageModel';
+import { formatUploadBytes, getLatestBatchSummary, getUploadModeLabel, getUploadRecordDisplayName, isAllowedArchiveFileName } from './assets/baseResourcePageModel';
 
 type InputType = 'document' | 'code' | 'software' | 'other';
 
@@ -63,11 +63,6 @@ const normalizeType = (value: string): InputType => {
   return 'other';
 };
 
-const getUploadRecordDisplayName = (record: Pick<ProjectInputUploadRecord, 'display_name'>) => {
-  const displayName = String(record.display_name || '').trim();
-  return displayName || 'null';
-};
-
 const emptyStats = (projectId: string, inputType: InputType): ProjectInputUploadStats => ({
   project_id: projectId,
   input_type: inputType,
@@ -98,6 +93,7 @@ export const TestInputPage: React.FC<TestInputPageProps> = ({ selectedProjectId,
   const [isAppendMode, setIsAppendMode] = useState(false);
   const [activeUploadId, setActiveUploadId] = useState<string | null>(null);
   const [activeInputType, setActiveInputType] = useState<InputType>('document');
+  const [uploadDisplayName, setUploadDisplayName] = useState('');
   const [keepOriginal, setKeepOriginal] = useState(false);
   const [uploadQueue, setUploadQueue] = useState<UploadQueueItem[]>([]);
   const [isUploading, setIsUploading] = useState(false);
@@ -219,13 +215,16 @@ export const TestInputPage: React.FC<TestInputPageProps> = ({ selectedProjectId,
 
   const addFilesToQueue = (files: FileList | null) => {
     if (!files) return;
-    const next: UploadQueueItem[] = Array.from(files).map((file) => ({
-      id: `${file.name}-${file.size}-${Math.random().toString(36).slice(2)}`,
-      file,
-      status: isAllowedArchiveFileName(file.name || '') ? 'pending' : 'failed',
-      progress: 0,
-      error: isAllowedArchiveFileName(file.name || '') ? undefined : '仅支持压缩包上传',
-    }));
+    const next: UploadQueueItem[] = Array.from(files).map((file) => {
+      const allowed = keepOriginal || isAllowedArchiveFileName(file.name || '');
+      return {
+        id: `${file.name}-${file.size}-${Math.random().toString(36).slice(2)}`,
+        file,
+        status: allowed ? 'pending' : 'failed',
+        progress: 0,
+        error: allowed ? undefined : '仅支持压缩包上传',
+      };
+    });
     setUploadQueue((current) => [...current, ...next]);
   };
 
@@ -233,6 +232,7 @@ export const TestInputPage: React.FC<TestInputPageProps> = ({ selectedProjectId,
     setIsAppendMode(false);
     setActiveUploadId(null);
     setActiveInputType(type);
+    setUploadDisplayName('');
     setKeepOriginal(false);
     setUploadQueue([]);
     setIsUploadModalOpen(true);
@@ -243,6 +243,7 @@ export const TestInputPage: React.FC<TestInputPageProps> = ({ selectedProjectId,
     setIsAppendMode(true);
     setActiveUploadId(record.upload_id);
     setActiveInputType(normalizeType(record.input_type));
+    setUploadDisplayName('');
     setKeepOriginal(record.keep_original);
     setUploadQueue([]);
     setIsUploadModalOpen(true);
@@ -253,6 +254,11 @@ export const TestInputPage: React.FC<TestInputPageProps> = ({ selectedProjectId,
     event.preventDefault();
     const readyFiles = uploadQueue.filter((item) => item.status !== 'failed').map((item) => item.file);
     if (!projectId || readyFiles.length === 0) return;
+    const normalizedDisplayName = uploadDisplayName.trim();
+    if (!isAppendMode && !normalizedDisplayName) {
+      setErrorMessage('请填写上传记录名称');
+      return;
+    }
     setIsUploading(true);
     setUploadQueue((current) => current.map((item) => item.status === 'failed' ? item : { ...item, status: 'uploading', progress: 40 }));
     try {
@@ -270,10 +276,22 @@ export const TestInputPage: React.FC<TestInputPageProps> = ({ selectedProjectId,
           keep_original: keepOriginal,
           files: readyFiles,
         });
+        if (result?.upload_id) {
+          try {
+            await fileserverApi.updateProjectInputUploadDisplayName({
+              upload_id: result.upload_id,
+              project_id: projectId,
+              display_name: normalizedDisplayName,
+            });
+          } catch (renameError: any) {
+            throw new Error(renameError?.message || '文件已上传，但上传记录名称保存失败');
+          }
+        }
       }
       setUploadQueue((current) => current.map((item) => item.status === 'failed' ? item : { ...item, status: 'completed', progress: 100 }));
       setIsUploadModalOpen(false);
       setUploadQueue([]);
+      setUploadDisplayName('');
       if (result?.upload_id) {
         setUploadDetailCache((current) => {
           const next = { ...current };
@@ -790,7 +808,16 @@ export const TestInputPage: React.FC<TestInputPageProps> = ({ selectedProjectId,
             </div>
             <div className="space-y-5 px-6 py-6">
               {!isAppendMode ? (
-                <div>
+                <div className="space-y-5">
+                  <div>
+                    <label className="mb-2 block text-sm font-black text-slate-700">上传记录名称</label>
+                    <input
+                      value={uploadDisplayName}
+                      onChange={(event) => setUploadDisplayName(event.target.value)}
+                      className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-800"
+                      placeholder="请输入上传记录名称"
+                    />
+                  </div>
                   <label className="mb-2 block text-sm font-black text-slate-700">输入类型</label>
                   <select
                     value={activeInputType}
@@ -811,15 +838,19 @@ export const TestInputPage: React.FC<TestInputPageProps> = ({ selectedProjectId,
                   onChange={(event) => setKeepOriginal(event.target.checked)}
                   className="h-4 w-4 rounded border-slate-300"
                 />
-                保留原始压缩包，不自动解压
+                保留原始文件，不自动解压
               </label>
 
               <div className="rounded-[1.5rem] border border-dashed border-slate-300 bg-slate-50 px-5 py-8 text-center">
                 <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-white text-slate-700 shadow-sm">
                   <Upload size={22} />
                 </div>
-                <div className="mt-4 text-sm font-black text-slate-900">上传压缩包</div>
-                <div className="mt-2 text-xs leading-6 text-slate-500">支持 `zip / tar / tar.gz / tgz / tar.bz2 / tbz2 / tar.xz / txz`，一次可选择多个文件。</div>
+                <div className="mt-4 text-sm font-black text-slate-900">{keepOriginal ? '上传原始文件' : '上传压缩包'}</div>
+                <div className="mt-2 text-xs leading-6 text-slate-500">
+                  {keepOriginal
+                    ? '当前保留原始文件模式下，支持上传任意文件，一次可选择多个文件。'
+                    : '支持 `zip / tar / tar.gz / tgz / tar.bz2 / tbz2 / tar.xz / txz`，一次可选择多个文件。'}
+                </div>
                 <div className="mt-5">
                   <button
                     type="button"
@@ -832,7 +863,7 @@ export const TestInputPage: React.FC<TestInputPageProps> = ({ selectedProjectId,
                     ref={fileInputRef}
                     type="file"
                     multiple
-                    accept=".zip,.tar,.tar.gz,.tgz,.tar.bz2,.tbz2,.tar.xz,.txz"
+                    accept={keepOriginal ? undefined : '.zip,.tar,.tar.gz,.tgz,.tar.bz2,.tbz2,.tar.xz,.txz'}
                     className="hidden"
                     onChange={(event) => addFilesToQueue(event.target.files)}
                   />
@@ -862,7 +893,7 @@ export const TestInputPage: React.FC<TestInputPageProps> = ({ selectedProjectId,
               <button type="button" onClick={() => setIsUploadModalOpen(false)} className="rounded-2xl border border-slate-200 px-4 py-3 text-sm font-black text-slate-600">
                 取消
               </button>
-              <button type="submit" disabled={isUploading || uploadQueue.length === 0} className="rounded-2xl bg-slate-950 px-4 py-3 text-sm font-black text-white disabled:opacity-50">
+              <button type="submit" disabled={isUploading || uploadQueue.length === 0 || (!isAppendMode && !uploadDisplayName.trim())} className="rounded-2xl bg-slate-950 px-4 py-3 text-sm font-black text-white disabled:opacity-50">
                 {isUploading ? <Loader2 size={16} className="mr-2 inline-block animate-spin" /> : null}
                 {isAppendMode ? '提交追加上传' : '创建上传记录'}
               </button>

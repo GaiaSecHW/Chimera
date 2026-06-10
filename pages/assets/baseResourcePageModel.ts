@@ -29,12 +29,22 @@ export const getLatestBatchSummary = (record: ProjectInputUploadRecord) => {
   return `${modeLabel} · ${batch.submitted_file_count} 个压缩包`;
 };
 
+export const getUploadRecordDisplayName = (record: Pick<ProjectInputUploadRecord, 'display_name' | 'upload_id' | 'target_path'>) => {
+  const displayName = String(record.display_name || '').trim();
+  if (displayName) return displayName;
+  const uploadId = String(record.upload_id || '').trim();
+  if (uploadId) return uploadId;
+  const targetPath = String(record.target_path || '').trim();
+  return targetPath || '未命名上传记录';
+};
+
 export const filterUploadRecords = (records: ProjectInputUploadRecord[], searchTerm: string) => {
   const keyword = searchTerm.trim().toLowerCase();
   if (!keyword) return records;
   return records.filter((record) => {
     const latestError = `${record.last_error || ''} ${record.latest_batch?.error_summary || ''}`.toLowerCase();
     return (
+      getUploadRecordDisplayName(record).toLowerCase().includes(keyword) ||
       record.upload_id.toLowerCase().includes(keyword) ||
       record.target_path.toLowerCase().includes(keyword) ||
       latestError.includes(keyword)
