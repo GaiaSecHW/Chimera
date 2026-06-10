@@ -648,6 +648,21 @@ export interface BinarySecurityModuleSelection {
   selected_modules: BinarySecurityModuleContract[];
 }
 
+export interface BinarySecurityModuleReportDetail {
+  task_id: string;
+  module_key: string;
+  module_name: string;
+  module_report_path?: string | null;
+  module_report_markdown?: string | null;
+  risk_level?: string | null;
+  risk_score?: number | null;
+  file_count?: number | null;
+  source_tags?: string[];
+  available: boolean;
+  warning?: string | null;
+  error_message?: string | null;
+}
+
 export interface BinarySecurityEntrySelection {
   task_id: string;
   status: string;
@@ -1160,6 +1175,14 @@ export const binarySecurityApi = {
 
   getModuleSelection: async (projectId: string, taskId: string): Promise<BinarySecurityModuleSelection> => {
     const resp = await fetch(`${API_BASE}/api/app/binary-security/projects/${projectId}/tasks/${taskId}/module-selection`, {
+      headers: getHeaders(),
+      cache: 'no-store',
+    });
+    return handleResponse(resp);
+  },
+
+  getModuleReport: async (projectId: string, taskId: string, moduleKey: string): Promise<BinarySecurityModuleReportDetail> => {
+    const resp = await fetch(`${API_BASE}/api/app/binary-security/projects/${projectId}/tasks/${taskId}/module-report?module_key=${encodeURIComponent(moduleKey)}`, {
       headers: getHeaders(),
       cache: 'no-store',
     });

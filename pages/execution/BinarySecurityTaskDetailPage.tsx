@@ -1,5 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { ArrowLeft, ExternalLink, Info, Loader2, RefreshCw, SlidersHorizontal, Trash2 } from 'lucide-react';
+import { ArrowLeft, Copy, ExternalLink, FileText, Info, Loader2, RefreshCw, SlidersHorizontal, Trash2, X } from 'lucide-react';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import { useNavigate } from 'react-router-dom';
 
 import {
@@ -7,6 +9,7 @@ import {
   BinarySecurityAbnormalReasonEventSummary,
   BinarySecurityEntryContract,
   BinarySecurityModuleContract,
+  BinarySecurityModuleReportDetail,
   BinarySecurityModuleSelection,
   BinarySecurityOrchestrationObservability,
   BinarySecurityOverviewNode,
@@ -26,10 +29,7 @@ import {
   contractText,
   dfaInputContractRows,
   dfaOutputContractRows,
-  moduleArtifactKindSummary,
-  moduleContractInputRows,
   moduleContractKey,
-  moduleContractList,
   moduleContractNumber,
   moduleContractText,
   renderContractValue,
@@ -79,6 +79,10 @@ const STAGE_ITEMS_PER_PAGE_OPTIONS = [10, 20, 50, 100];
 type StageItemTimeSortKey = 'started_at' | 'finished_at' | 'duration' | 'last_sync_attempt_at' | 'last_sync_success_at' | 'last_sync_error_at';
 type SortDirection = 'asc' | 'desc';
 type StageItemTimeSort = { key: StageItemTimeSortKey; direction: SortDirection } | null;
+type ModuleReportDialogTarget = {
+  moduleKey: string;
+  moduleName: string;
+};
 
 const STAGE_LABELS: Record<string, string> = {
   firmware_unpack: '固件解包',
@@ -1922,6 +1926,11 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
   const [strategySavedSnapshot, setStrategySavedSnapshot] = useState<TaskStrategyDraft | null>(null);
   const [strategySavingSection, setStrategySavingSection] = useState<StrategySectionKey | ''>('');
   const [activeTab, setActiveTab] = useState<DetailTab>('overview');
+  const [selectedModuleReportTarget, setSelectedModuleReportTarget] = useState<ModuleReportDialogTarget | null>(null);
+  const [moduleReportDialogOpen, setModuleReportDialogOpen] = useState(false);
+  const [moduleReportLoading, setModuleReportLoading] = useState(false);
+  const [moduleReportError, setModuleReportError] = useState<string | null>(null);
+  const [moduleReportCache, setModuleReportCache] = useState<Record<string, BinarySecurityModuleReportDetail>>({});
   const [selectedStage, setSelectedStage] = useState<string>(DEFAULT_BINARY_STAGE_SEQUENCE[0]);
   const [selectedNodeKind, setSelectedNodeKind] = useState<StageNodeKind>('business');
   const [downstreamByItemId, setDownstreamByItemId] = useState<Record<string, DownstreamTaskState>>({});
@@ -2856,6 +2865,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
   const selectedModules = moduleSelection?.selected_modules || [];
   const moduleRiskLevels = (moduleSelection?.risk_levels?.length ? moduleSelection.risk_levels : detail?.selected_risk_levels) || [];
   const systemAnalysisModuleCount = systemAnalysisModules.length || Number(detail?.summary?.system_analysis_module_count || 0);
+  const selectedModuleReportDetail = selectedModuleReportTarget ? moduleReportCache[selectedModuleReportTarget.moduleKey] || null : null;
   const mergedModuleRows = useMemo(() => {
     const merged = new Map<string, {
       module: BinarySecurityModuleContract;
@@ -2899,6 +2909,39 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
       );
     });
   }, [candidateModules, selectedModules, systemAnalysisModules]);
+
+  const copyModuleReportValue = async (value: string, successMessage: string) => {
+    if (!value.trim()) {
+      setNotice('没有可复制的内容');
+      return;
+    }
+    try {
+      await navigator.clipboard?.writeText(value);
+      setNotice(successMessage);
+    } catch {
+      setNotice('复制失败，请手动复制');
+    }
+  };
+
+  const openModuleReportDialog = async (moduleKey: string, moduleName: string) => {
+    const normalizedKey = moduleKey.trim();
+    if (!normalizedKey) return;
+    setSelectedModuleReportTarget({ moduleKey: normalizedKey, moduleName });
+    setModuleReportDialogOpen(true);
+    setModuleReportError(null);
+    if (moduleReportCache[normalizedKey]) {
+      return;
+    }
+    setModuleReportLoading(true);
+    try {
+      const payload = await api.binarySecurity.getModuleReport(projectId, taskId, normalizedKey);
+      setModuleReportCache((current) => ({ ...current, [normalizedKey]: payload }));
+    } catch (error: any) {
+      setModuleReportError(error?.message || '模块报告读取失败');
+    } finally {
+      setModuleReportLoading(false);
+    }
+  };
   const entryAnalysisEntryCountByItemKey = useMemo(() => {
     const mapping = new Map<string, number>();
     const entryResults = Array.isArray(detail?.summary?.entry_results) ? detail.summary.entry_results : [];
@@ -3266,33 +3309,44 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                 {requiresModuleConfirmation ? <th className="w-16 px-4 py-3">勾选</th> : null}
                 <th className="min-w-[220px] px-4 py-3">模块</th>
                 <th className="w-44 px-4 py-3">模块归类</th>
-                <th className="w-32 px-4 py-3">主结果类型</th>
-                <th className="min-w-[220px] px-4 py-3">结果类型</th>
-                <th className="min-w-[180px] px-4 py-3">类型计数</th>
+                <th className="w-36 px-4 py-3">模块报告</th>
                 <th className="w-24 px-4 py-3">风险</th>
                 <th className="w-24 px-4 py-3">分数</th>
                 <th className="w-24 px-4 py-3">文件数</th>
-                <th className="min-w-[260px] px-4 py-3">输入 Contract</th>
                 <th className="min-w-[220px] px-4 py-3">模块键</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 bg-white">
               {rows.map(({ module, moduleKey, sourceTags, candidate, selected }) => {
                 const checked = selectedModuleKeys.includes(moduleKey);
-                const primaryResultKind = moduleContractText(module, 'primary_result_kind') || '';
-                const resultKinds = moduleContractList(module, 'result_kinds');
-                const artifactKindSummary = moduleArtifactKindSummary(module);
-                const contractRows = moduleContractInputRows(module);
                 const fileCount = moduleContractNumber(module, 'file_count');
                 const selectable = requiresModuleConfirmation && candidate;
+                const cachedReport = moduleReportCache[moduleKey];
+                const rowActive = selectedModuleReportTarget?.moduleKey === moduleKey && moduleReportDialogOpen;
+                const reportStatusLabel = cachedReport
+                  ? cachedReport.available
+                    ? '可查看报告'
+                    : cachedReport.error_message
+                      ? '报告缺失'
+                      : '查看报告'
+                  : (moduleContractText(module, 'module_report') || moduleContractText(module, 'module_dir') || moduleContractText(module, 'source_dir'))
+                    ? '点击查看'
+                    : '待检查';
                 return (
-                  <tr key={moduleKey} className={checked ? 'bg-amber-50/60' : selected ? 'bg-emerald-50/40' : 'bg-white'}>
+                  <tr
+                    key={moduleKey}
+                    onClick={() => void openModuleReportDialog(moduleKey, moduleContractText(module, 'module_name') || moduleKey)}
+                    className={`cursor-pointer transition hover:bg-sky-50/70 ${
+                      rowActive ? 'bg-sky-50/80 ring-1 ring-inset ring-sky-200' : checked ? 'bg-amber-50/60' : selected ? 'bg-emerald-50/40' : 'bg-white'
+                    }`}
+                  >
                     {requiresModuleConfirmation ? (
                       <td className="px-4 py-3 align-top">
                         <input
                           type="checkbox"
                           checked={checked}
                           disabled={!selectable}
+                          onClick={(event) => event.stopPropagation()}
                           onChange={(event) => {
                             setSelectedModuleKeys((current) => {
                               if (event.target.checked) return current.includes(moduleKey) ? current : current.concat(moduleKey);
@@ -3330,27 +3384,9 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                       </div>
                     </td>
                     <td className="px-4 py-3 align-top">
-                      <span className="inline-flex rounded-full border border-sky-200 bg-sky-50 px-2 py-1 font-bold text-sky-700">
-                        {RESULT_KIND_LABELS[primaryResultKind] || primaryResultKind || '-'}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 align-top">
-                      <div className="flex flex-wrap gap-1.5">
-                        {resultKinds.length ? resultKinds.map((kind) => (
-                          <span key={kind} className="inline-flex rounded-full border border-slate-200 bg-slate-50 px-2 py-1 text-[11px] font-semibold text-slate-600">
-                            {RESULT_KIND_LABELS[kind] || kind}
-                          </span>
-                        )) : <span className="text-slate-400">-</span>}
-                      </div>
-                    </td>
-                    <td className="px-4 py-3 align-top text-[11px] text-slate-600">
-                      <div className="space-y-1">
-                        {artifactKindSummary.length ? artifactKindSummary.map(([kind, value]) => (
-                          <div key={kind} className="flex items-center justify-between gap-3 rounded-lg bg-slate-50 px-2.5 py-1.5">
-                            <span className="font-medium text-slate-500">{kind}</span>
-                            <span className="font-black text-slate-800">{String(value ?? 0)}</span>
-                          </div>
-                        )) : <span className="text-slate-400">-</span>}
+                      <div className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-[11px] font-bold text-slate-700">
+                        <FileText size={12} />
+                        {reportStatusLabel}
                       </div>
                     </td>
                     <td className="px-4 py-3 align-top">
@@ -3360,16 +3396,6 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                     </td>
                     <td className="px-4 py-3 align-top font-bold text-slate-700">{moduleContractNumber(module, 'risk_score') ?? '-'}</td>
                     <td className="px-4 py-3 align-top font-bold text-slate-700">{fileCount ?? '-'}</td>
-                    <td className="px-4 py-3 align-top text-[11px] text-slate-500">
-                      <div className="space-y-1 font-mono">
-                        {contractRows.length ? contractRows.map((row) => (
-                          <div key={`${moduleKey}-${row.label}`} className="break-all">
-                            <span className="font-semibold text-slate-400">{row.label}:</span>{' '}
-                            {row.value}
-                          </div>
-                        )) : <span className="text-slate-400">-</span>}
-                      </div>
-                    </td>
                     <td className="px-4 py-3 align-top font-mono text-[11px] text-slate-500">{moduleKey}</td>
                   </tr>
                 );
@@ -3400,6 +3426,97 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
 
   return (
     <div className="px-8 pb-10 pt-8 space-y-6">
+      {moduleReportDialogOpen && selectedModuleReportTarget ? (
+        <div className="fixed inset-0 z-[125] bg-slate-950/55 backdrop-blur-sm" onClick={() => setModuleReportDialogOpen(false)}>
+          <div className="flex h-full w-full items-center justify-center p-4 sm:p-6">
+            <div
+              className="flex max-h-[calc(100vh-2.5rem)] w-full max-w-6xl flex-col overflow-hidden rounded-[2rem] border border-slate-200 bg-white shadow-[0_32px_120px_-32px_rgba(15,23,42,0.7)]"
+              onClick={(event) => event.stopPropagation()}
+            >
+              <div className="flex flex-wrap items-start justify-between gap-4 border-b border-slate-200 bg-slate-50/80 px-6 py-5 sm:px-8">
+                <div>
+                  <div className="text-[11px] font-black uppercase tracking-[0.28em] text-slate-400">Module Report</div>
+                  <h3 className="mt-2 text-2xl font-black tracking-tight text-slate-900">{selectedModuleReportDetail?.module_name || selectedModuleReportTarget.moduleName}</h3>
+                  <div className="mt-3 flex flex-wrap gap-2 text-[11px] font-bold">
+                    <span className="rounded-full border border-slate-200 bg-white px-3 py-1 text-slate-600">{selectedModuleReportTarget.moduleKey}</span>
+                    {selectedModuleReportDetail?.risk_level ? <span className="rounded-full border border-rose-200 bg-rose-50 px-3 py-1 text-rose-700">风险 {selectedModuleReportDetail.risk_level}</span> : null}
+                    {selectedModuleReportDetail?.risk_score !== undefined && selectedModuleReportDetail?.risk_score !== null ? <span className="rounded-full border border-slate-200 bg-white px-3 py-1 text-slate-600">分数 {selectedModuleReportDetail.risk_score}</span> : null}
+                    {selectedModuleReportDetail?.file_count !== undefined && selectedModuleReportDetail?.file_count !== null ? <span className="rounded-full border border-slate-200 bg-white px-3 py-1 text-slate-600">文件 {selectedModuleReportDetail.file_count}</span> : null}
+                    {(selectedModuleReportDetail?.source_tags || []).map((tag) => (
+                      <span key={`${selectedModuleReportTarget.moduleKey}-${tag}`} className="rounded-full border border-sky-200 bg-sky-50 px-3 py-1 text-sky-700">{tag}</span>
+                    ))}
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => void copyModuleReportValue(selectedModuleReportTarget.moduleKey, '模块键已复制')}
+                    className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50"
+                  >
+                    <Copy size={14} />
+                    复制模块键
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => void copyModuleReportValue(selectedModuleReportDetail?.module_report_path || '', '报告路径已复制')}
+                    className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50"
+                  >
+                    <Copy size={14} />
+                    复制路径
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setModuleReportDialogOpen(false)}
+                    className="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-3 py-2 text-xs font-bold text-white hover:bg-slate-800"
+                  >
+                    <X size={14} />
+                    关闭
+                  </button>
+                </div>
+              </div>
+              <div className="flex-1 overflow-y-auto px-6 py-6 sm:px-8">
+                {moduleReportLoading ? (
+                  <div className="flex min-h-[240px] items-center justify-center gap-3 rounded-[1.5rem] border border-slate-200 bg-slate-50 text-slate-500">
+                    <Loader2 size={18} className="animate-spin" />
+                    正在加载模块报告...
+                  </div>
+                ) : moduleReportError ? (
+                  <div className="rounded-[1.5rem] border border-rose-200 bg-rose-50 px-6 py-8 text-sm text-rose-700">{moduleReportError}</div>
+                ) : selectedModuleReportDetail?.available && selectedModuleReportDetail.module_report_markdown ? (
+                  <div className="space-y-4">
+                    {selectedModuleReportDetail.warning ? (
+                      <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">{selectedModuleReportDetail.warning}</div>
+                    ) : null}
+                    {selectedModuleReportDetail.module_report_path ? (
+                      <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-xs text-slate-600">
+                        <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">报告路径</div>
+                        <div className="mt-2 break-all font-mono">{selectedModuleReportDetail.module_report_path}</div>
+                      </div>
+                    ) : null}
+                    <div className="markdown-body break-words rounded-[1.5rem] border border-slate-200 bg-white px-6 py-6 text-sm leading-7 text-slate-700">
+                      <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                        {selectedModuleReportDetail.module_report_markdown}
+                      </ReactMarkdown>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {selectedModuleReportDetail?.module_report_path ? (
+                      <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-xs text-slate-600">
+                        <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">报告路径</div>
+                        <div className="mt-2 break-all font-mono">{selectedModuleReportDetail.module_report_path}</div>
+                      </div>
+                    ) : null}
+                    <div className="rounded-[1.5rem] border border-dashed border-slate-300 bg-slate-50 px-6 py-10 text-center text-sm text-slate-500">
+                      {selectedModuleReportDetail?.error_message || '该模块尚未生成可展示的系统分析报告'}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : null}
       {modalAction && modalCopy ? (
         <div className="fixed inset-0 z-[120] bg-slate-950/50 backdrop-blur-sm">
           <div className="flex h-full w-full items-center justify-center p-4 sm:p-6">
