@@ -18,11 +18,47 @@ import { ThemeLogo } from './components/ThemeLogo';
 
 const DEFAULT_VIEW = 'dashboard';
 
+type DeepLinkTarget = {
+  view: string;
+  projectId?: string;
+  taskId?: string;
+};
+
+const parseDeepLinkPath = (pathname: string): DeepLinkTarget | null => {
+  const normalized = String(pathname || '').trim();
+  const patterns: Array<{ regex: RegExp; view: string }> = [
+    {
+      regex: /^\/binary-security\/projects\/([^/]+)\/tasks\/([^/]+)\/?$/i,
+      view: 'binary-security-detail',
+    },
+    {
+      regex: /^\/source-security\/projects\/([^/]+)\/tasks\/([^/]+)\/?$/i,
+      view: 'source-security-detail',
+    },
+    {
+      regex: /^\/binary-module-security\/projects\/([^/]+)\/tasks\/([^/]+)\/?$/i,
+      view: 'binary-module-security-detail',
+    },
+  ];
+  for (const pattern of patterns) {
+    const matched = normalized.match(pattern.regex);
+    if (matched) {
+      return {
+        view: pattern.view,
+        projectId: decodeURIComponent(matched[1] || ''),
+        taskId: decodeURIComponent(matched[2] || ''),
+      };
+    }
+  }
+  return null;
+};
+
 const AppShell: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { view } = useParams<{ view?: string }>();
-  const routeView = view || DEFAULT_VIEW;
+  const deepLinkTarget = parseDeepLinkPath(location.pathname);
+  const routeView = deepLinkTarget?.view || view || DEFAULT_VIEW;
   const platformApi = api.domains.platform;
   const projectApi = api.domains.project;
   const assetApi = api.domains.assets;
@@ -151,6 +187,39 @@ const AppShell: React.FC = () => {
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isServiceTerminalWindow, routeView]);
+
+  useEffect(() => {
+    if (isServiceTerminalWindow || !deepLinkTarget) return;
+    if (deepLinkTarget.projectId && deepLinkTarget.projectId !== selectedProjectId) {
+      setSelectedProjectId(deepLinkTarget.projectId);
+    }
+    switch (deepLinkTarget.view) {
+      case 'binary-security-detail':
+        if (deepLinkTarget.taskId && deepLinkTarget.taskId !== activeBinarySecurityTaskId) {
+          setActiveBinarySecurityTaskId(deepLinkTarget.taskId);
+        }
+        break;
+      case 'source-security-detail':
+        if (deepLinkTarget.taskId && deepLinkTarget.taskId !== activeSourceSecurityTaskId) {
+          setActiveSourceSecurityTaskId(deepLinkTarget.taskId);
+        }
+        break;
+      case 'binary-module-security-detail':
+        if (deepLinkTarget.taskId && deepLinkTarget.taskId !== activeBinaryModuleSecurityTaskId) {
+          setActiveBinaryModuleSecurityTaskId(deepLinkTarget.taskId);
+        }
+        break;
+      default:
+        break;
+    }
+  }, [
+    activeBinaryModuleSecurityTaskId,
+    activeBinarySecurityTaskId,
+    activeSourceSecurityTaskId,
+    deepLinkTarget,
+    isServiceTerminalWindow,
+    selectedProjectId,
+  ]);
 
   useEffect(() => {
     if (isServiceTerminalWindow) return;
@@ -664,6 +733,7 @@ const App: React.FC = () => (
       <Route path="/" element={<AppShell />} />
       <Route path="/:view" element={<AppShell />} />
       <Route path="/:view/:taskId" element={<AppShell />} />
+      <Route path="*" element={<AppShell />} />
     </Routes>
   </HashRouter>
 );
