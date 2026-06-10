@@ -199,6 +199,8 @@ export const renderCurrentView = (ctx: ViewRegistryContext): React.ReactNode => 
       return <ProductMgmtPage />;
     case 'task-nuzhua':
       return <EmptyPlaceholderPage title="NUZHUA" />;
+    case 'task-list':
+      return <EmptyPlaceholderPage title="任务列表" />;
     case 'task-smart-jar':
       return <EmptyPlaceholderPage title="智JAR" />;
     case 'task-apk-smart-scan':
@@ -246,7 +248,7 @@ export const renderCurrentView = (ctx: ViewRegistryContext): React.ReactNode => 
     case 'test-input-doc':
     case 'test-input-other':
     case 'test-input-tasks':
-      return <TestInputPage currentView={ctx.currentView} />;
+      return <TestInputPage currentView={ctx.currentView} selectedProjectId={ctx.selectedProjectId} />;
     case 'pvc-management':
       return <PublicResourceManagementPage projectId={ctx.selectedProjectId} initialTab="pvc" />;
     case 'project-file-explorer':

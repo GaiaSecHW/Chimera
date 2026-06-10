@@ -2,10 +2,8 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   AlertCircle,
   ChevronDown,
-  Clock3,
   Code2,
   Eye,
-  FileArchive,
   FileBox,
   FileText,
   HardDrive,
@@ -27,6 +25,7 @@ type InputType = 'document' | 'code' | 'software' | 'other';
 
 interface TestInputPageProps {
   currentView: string;
+  selectedProjectId?: string;
 }
 
 interface UploadQueueItem {
@@ -69,10 +68,10 @@ const emptyStats = (projectId: string, inputType: InputType): ProjectInputUpload
   stored_total_size_bytes: 0,
 });
 
-export const TestInputPage: React.FC<TestInputPageProps> = () => {
+export const TestInputPage: React.FC<TestInputPageProps> = ({ selectedProjectId }) => {
   const navigate = useNavigate();
   const fileserverApi = api.domains.assets.fileserver;
-  const projectId = localStorage.getItem('selectedProjectId') || '';
+  const projectId = selectedProjectId || localStorage.getItem('last_project_id') || localStorage.getItem('selectedProjectId') || '';
   const [overview, setOverview] = useState<ProjectInputOverview | null>(null);
   const [records, setRecords] = useState<ProjectInputUploadRecord[]>([]);
   const [loading, setLoading] = useState(false);
@@ -322,41 +321,8 @@ export const TestInputPage: React.FC<TestInputPageProps> = () => {
   }
 
   return (
-    <div className="min-h-[calc(100vh-5rem)] bg-[radial-gradient(circle_at_top_left,_rgba(14,165,233,0.14),_transparent_28%),radial-gradient(circle_at_top_right,_rgba(16,185,129,0.12),_transparent_30%),linear-gradient(180deg,_#f8fbff_0%,_#f3f6fb_100%)] p-6 md:p-10">
-      <div className="mx-auto max-w-7xl space-y-6">
-        <section className="rounded-[2rem] border border-white/70 bg-white/90 p-6 shadow-[0_20px_60px_rgba(15,23,42,0.08)] backdrop-blur">
-          <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
-            <div>
-              <div className="inline-flex items-center gap-2 rounded-full border border-sky-200 bg-sky-50 px-3 py-1 text-[11px] font-black uppercase tracking-[0.24em] text-sky-700">
-                <FileArchive size={14} />
-                任务输入控制台
-              </div>
-              <h1 className="mt-4 text-4xl font-black tracking-tight text-slate-900">项目输入总览</h1>
-              <p className="mt-3 max-w-3xl text-sm font-medium leading-6 text-slate-500">
-                统一管理项目文件空间 `user_input` 下的文档、代码、软件包和其他输入。每次上传创建一条记录，可继续追加并回溯到项目文件目录。
-              </p>
-            </div>
-            <div className="flex flex-wrap gap-3">
-              <button
-                onClick={() => {
-                  void Promise.all([loadOverview(), loadRecords()]);
-                }}
-                className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-black text-slate-600 shadow-sm transition hover:border-slate-300 hover:text-slate-900"
-              >
-                <RefreshCw size={16} className={(loading || overviewLoading) ? 'animate-spin' : ''} />
-                刷新
-              </button>
-              <button
-                onClick={() => openCreateModal(selectedType === 'all' ? 'document' : selectedType)}
-                className="inline-flex items-center gap-2 rounded-2xl bg-slate-950 px-4 py-3 text-sm font-black text-white shadow-[0_12px_30px_rgba(15,23,42,0.18)] transition hover:bg-slate-800"
-              >
-                <Plus size={16} />
-                新建上传
-              </button>
-            </div>
-          </div>
-        </section>
-
+    <div className="min-h-[calc(100vh-5rem)] bg-[radial-gradient(circle_at_top_left,_rgba(14,165,233,0.14),_transparent_28%),radial-gradient(circle_at_top_right,_rgba(16,185,129,0.12),_transparent_30%),linear-gradient(180deg,_#f8fbff_0%,_#f3f6fb_100%)] p-4 md:p-6 xl:p-8">
+      <div className="flex min-h-[calc(100vh-7rem)] w-full flex-col gap-5">
         <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
           {INPUT_TYPE_ORDER.map((inputType) => {
             const stats = statsMap.get(inputType) || emptyStats(projectId, inputType);
@@ -371,55 +337,57 @@ export const TestInputPage: React.FC<TestInputPageProps> = () => {
                 }}
                 className={`rounded-[2rem] border p-5 text-left shadow-sm transition ${selectedType === inputType ? 'border-slate-900 bg-slate-900 text-white' : 'border-white/70 bg-white/90 text-slate-900 hover:border-slate-200'}`}
               >
-                <div className="flex items-center justify-between">
-                  <div className={`inline-flex items-center gap-2 rounded-full border px-3 py-1 text-[11px] font-black uppercase tracking-[0.2em] ${selectedType === inputType ? 'border-white/20 bg-white/10 text-white' : meta.tone}`}>
-                    {meta.icon}
-                    {meta.label}
-                  </div>
-                  <button
-                    type="button"
-                    onClick={(event) => {
-                      event.stopPropagation();
-                      openCreateModal(inputType);
-                    }}
-                    className={`rounded-xl px-3 py-2 text-xs font-black ${selectedType === inputType ? 'bg-white/10 text-white hover:bg-white/20' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'}`}
-                  >
-                    上传
-                  </button>
+                <div className={`inline-flex items-center gap-2 rounded-full border px-3 py-1 text-[11px] font-black uppercase tracking-[0.2em] ${selectedType === inputType ? 'border-white/20 bg-white/10 text-white' : meta.tone}`}>
+                  {meta.icon}
+                  {meta.label}
                 </div>
-                <div className="mt-5 flex items-end justify-between gap-4">
-                  <div>
-                    <div className="text-[11px] font-black uppercase tracking-[0.18em] opacity-70">上传记录</div>
-                    <div className="mt-2 text-3xl font-black">{stats.total_uploads}</div>
+                <div className="mt-4 flex items-center justify-between gap-4">
+                  <div className="text-[11px] font-black uppercase tracking-[0.18em] opacity-70">上传记录</div>
+                  <div className="flex items-baseline gap-3 text-right">
+                    <div className="text-3xl font-black">{stats.total_uploads}</div>
+                    <div className="text-xs font-semibold opacity-80">{formatUploadBytes(stats.stored_total_size_bytes)}</div>
                   </div>
-                  <div className="text-right text-xs font-semibold opacity-80">
-                    <div>{stats.stored_file_count} 个文件</div>
-                    <div>{formatUploadBytes(stats.stored_total_size_bytes)}</div>
-                  </div>
-                </div>
-                <div className="mt-4 flex items-center gap-4 text-xs font-semibold">
-                  <span className="inline-flex items-center gap-1"><Clock3 size={13} /> 处理中 {stats.processing_uploads}</span>
-                  <span>失败 {stats.failed_uploads + stats.partial_failed_uploads}</span>
                 </div>
               </button>
             );
           })}
         </section>
 
-        <section className="rounded-[2rem] border border-white/70 bg-white/92 p-5 shadow-[0_20px_50px_rgba(15,23,42,0.06)]">
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-            <div>
-              <h2 className="text-2xl font-black text-slate-900">上传记录</h2>
-              <p className="mt-1 text-sm font-medium text-slate-500">查看各类任务输入上传批次、容量、状态和落盘路径。</p>
+        <section className="flex min-h-[calc(100vh-22rem)] flex-1 flex-col rounded-[2rem] border border-white/70 bg-white/92 p-5 shadow-[0_20px_50px_rgba(15,23,42,0.06)]">
+          <div className="flex flex-col gap-4 border-b border-slate-100 pb-5">
+            <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
+              <div>
+                <h2 className="text-2xl font-black text-slate-900">上传记录</h2>
+                <p className="mt-1 text-sm font-medium text-slate-500">查看各类任务输入上传批次、容量、状态和落盘路径。</p>
+              </div>
+              <div className="flex flex-wrap gap-3">
+                <button
+                  onClick={() => {
+                    void Promise.all([loadOverview(), loadRecords()]);
+                  }}
+                  className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-black text-slate-600 shadow-sm transition hover:border-slate-300 hover:text-slate-900"
+                >
+                  <RefreshCw size={16} className={(loading || overviewLoading) ? 'animate-spin' : ''} />
+                  刷新
+                </button>
+                <button
+                  onClick={() => openCreateModal(selectedType === 'all' ? 'document' : selectedType)}
+                  className="inline-flex items-center gap-2 rounded-2xl bg-slate-950 px-4 py-3 text-sm font-black text-white shadow-[0_12px_30px_rgba(15,23,42,0.18)] transition hover:bg-slate-800"
+                >
+                  <Plus size={16} />
+                  新建上传
+                </button>
+              </div>
             </div>
-            <div className="flex flex-wrap gap-3">
-              <div className="relative min-w-[240px]">
+
+            <div className="flex flex-col gap-3 lg:flex-row lg:flex-wrap lg:items-center">
+              <div className="relative w-full lg:max-w-sm lg:flex-1">
                 <Search className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" size={16} />
                 <input
                   value={searchTerm}
                   onChange={(event) => setSearchTerm(event.target.value)}
                   placeholder="搜索记录、路径或错误信息"
-                  className="w-full rounded-2xl border border-slate-200 bg-slate-50 pl-11 pr-4 py-3 text-sm font-medium text-slate-700 outline-none transition focus:border-slate-400"
+                  className="w-full rounded-2xl border border-slate-200 bg-slate-50 py-3 pl-11 pr-4 text-sm font-medium text-slate-700 outline-none transition focus:border-slate-400"
                 />
               </div>
               <select
@@ -428,7 +396,7 @@ export const TestInputPage: React.FC<TestInputPageProps> = () => {
                   setSelectedType(event.target.value as InputType | 'all');
                   setPage(1);
                 }}
-                className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-700 outline-none"
+                className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-700 outline-none sm:w-auto"
               >
                 <option value="all">全部类型</option>
                 {INPUT_TYPE_ORDER.map((type) => (
@@ -441,7 +409,7 @@ export const TestInputPage: React.FC<TestInputPageProps> = () => {
                   setSelectedStatus(event.target.value);
                   setPage(1);
                 }}
-                className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-700 outline-none"
+                className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-700 outline-none sm:w-auto"
               >
                 <option value="all">全部状态</option>
                 <option value="pending">pending</option>
@@ -459,8 +427,8 @@ export const TestInputPage: React.FC<TestInputPageProps> = () => {
             </div>
           ) : null}
 
-          <div className="mt-5 overflow-hidden rounded-[1.5rem] border border-slate-200">
-            <div className="overflow-x-auto">
+          <div className="mt-5 flex-1 overflow-hidden rounded-[1.5rem] border border-slate-200 bg-white">
+            <div className="h-full overflow-auto">
               <table className="min-w-full divide-y divide-slate-200">
                 <thead className="bg-slate-50 text-left text-[11px] font-black uppercase tracking-[0.18em] text-slate-500">
                   <tr>

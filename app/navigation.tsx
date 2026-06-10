@@ -245,6 +245,7 @@ export const PROJECT_REQUIRED_VIEWS = new Set<string>([
   'vuln-repro-config',
   'vuln-parameter-config',
   'task-nuzhua',
+  'task-list',
   'task-smart-jar',
   'task-apk-smart-scan',
   'task-binary-end-to-end',
@@ -486,6 +487,7 @@ export const SIDEBAR_SECTIONS: Record<TopLevelNavKey, NavSection[]> = {
       title: '任务中心',
       items: [
         { id: 'task-nuzhua', label: 'NUZHUA', icon: Activity, requiresProject: true },
+        { id: 'task-list', label: '任务列表', icon: ListTodo, requiresProject: true },
         { id: 'task-smart-jar', label: '智JAR', icon: Archive, requiresProject: true },
         { id: 'task-apk-smart-scan', label: 'APK智能扫描', icon: Shield, requiresProject: true },
         { id: 'task-binary-end-to-end', label: '二进制端到端', icon: Cpu, requiresProject: true },
