@@ -18,7 +18,6 @@ const sampleRecord: ProjectInputUploadRecord = {
   keep_original: false,
   batch_count: 1,
   source_archive_count: 2,
-  batch_count: 1,
   stored_file_count: 12,
   stored_total_size_bytes: 5 * 1024 * 1024,
   target_path: '/user_input/code/upload-001',
