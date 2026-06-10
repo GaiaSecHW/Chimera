@@ -37,6 +37,7 @@ const INPUT_MODES: Record<string, 'file' | 'file_list' | 'directory'> = {
 };
 
 const formatDateTime = (value?: string | null) => (value ? new Date(value).toLocaleString('zh-CN') : '—');
+const getTaskKeyDisplay = (task: Pick<ScheduleCenterUserTask, 'task_key_ref'>) => task.task_key_ref || '—';
 
 export const TaskCenterPage: React.FC<Props> = ({ projectId, projects }) => {
   const scheduleApi = api.domains.platform.scheduleCenter;
@@ -389,7 +390,7 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects }) => {
               <th className="px-4 py-3">分发状态</th>
               <th className="px-4 py-3">业务状态</th>
               <th className="px-4 py-3">输入记录数</th>
-              <th className="px-4 py-3">work key</th>
+              <th className="px-4 py-3">task key</th>
               <th className="px-4 py-3">下游任务 ID</th>
               <th className="px-4 py-3">更新时间</th>
               <th className="px-4 py-3">操作</th>
@@ -406,7 +407,7 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects }) => {
                 <td className="px-4 py-3">{task.dispatch_status}</td>
                 <td className="px-4 py-3">{task.business_status}</td>
                 <td className="px-4 py-3">{task.input_upload_count}</td>
-                <td className="px-4 py-3 font-mono text-xs">{task.active_work_key_prefix || '—'}</td>
+                <td className="px-4 py-3 font-mono text-xs">{getTaskKeyDisplay(task)}</td>
                 <td className="px-4 py-3 font-mono text-xs">{task.downstream_task_id || '—'}</td>
                 <td className="px-4 py-3">{formatDateTime(task.updated_at)}</td>
                 <td className="px-4 py-3">
@@ -585,8 +586,8 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects }) => {
                   </div>
                   <div className="rounded-2xl border border-theme-border bg-theme-elevated px-4 py-3">
                     <div className="text-xs font-bold uppercase tracking-[0.18em] text-theme-text-faint">手动分发</div>
-                    <div className="mt-2 text-sm font-semibold text-theme-text-primary">创建后再申请 Work Key</div>
-                    <div className="mt-1 text-xs text-theme-text-faint">只有点击“分发”后，才会真正申请 work key 并启动下游任务。</div>
+                    <div className="mt-2 text-sm font-semibold text-theme-text-primary">创建后使用 Task Key 分发</div>
+                    <div className="mt-1 text-xs text-theme-text-faint">只有点击“分发”后，才会真正使用已选 task key 推进下游任务启动。</div>
                   </div>
                   <div className="rounded-2xl border border-theme-border bg-theme-surface px-4 py-3 md:col-span-2">
                     <div className="text-xs font-bold uppercase tracking-[0.18em] text-theme-text-faint">创建摘要</div>

@@ -244,12 +244,7 @@ export const PROJECT_REQUIRED_VIEWS = new Set<string>([
   'vuln-services',
   'vuln-repro-config',
   'vuln-parameter-config',
-  'task-nuzhua',
   'task-list',
-  'task-smart-jar',
-  'task-apk-smart-scan',
-  'task-binary-end-to-end',
-  'task-web-end-to-end',
   'developer-atomic-capability',
   'developer-atomic-capability-overview',
   'developer-tools',
@@ -415,7 +410,7 @@ export const getTopLevelDefaultView = (nav: TopLevelNavKey, user: UserInfo | nul
     case 'dashboard': return 'dashboard';
     case 'project': return 'project-mgmt';
     case 'assets': return 'public-resource-pvc-management';
-    case 'task': return 'task-nuzhua';
+    case 'task': return 'task-list';
     case 'environment': return 'env-agent';
     case 'vuln': return 'vuln-overview';
     case 'assessment': return 'pentest-exec-code';
@@ -492,12 +487,7 @@ export const SIDEBAR_SECTIONS: Record<TopLevelNavKey, NavSection[]> = {
     {
       title: '任务中心',
       items: [
-        { id: 'task-nuzhua', label: 'NUZHUA', icon: Activity, requiresProject: true },
         { id: 'task-list', label: '任务列表', icon: ListTodo, requiresProject: true },
-        { id: 'task-smart-jar', label: '智JAR', icon: Archive, requiresProject: true },
-        { id: 'task-apk-smart-scan', label: 'APK智能扫描', icon: Shield, requiresProject: true },
-        { id: 'task-binary-end-to-end', label: '二进制端到端', icon: Cpu, requiresProject: true },
-        { id: 'task-web-end-to-end', label: 'WEB端到端', icon: Globe, requiresProject: true },
       ],
     },
   ],

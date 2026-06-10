@@ -2091,6 +2091,84 @@ export interface ScheduleRuntimeOverview {
   redis_available: boolean;
 }
 
+export interface ScheduleGlobalTaskOverview {
+  stats: {
+    total_tasks: number;
+    unprocessed_tasks: number;
+    scheduled_tasks: number;
+    queued_tasks: number;
+    retry_wait_tasks: number;
+    running_tasks: number;
+    succeeded_tasks: number;
+    failed_tasks: number;
+    cancelled_tasks: number;
+  };
+  queue: {
+    depth: number;
+    oldest_age_seconds: number;
+    backend?: string | null;
+  };
+  workers: {
+    active: number;
+    concurrency: number;
+    inflight: number;
+  };
+  health: {
+    status: string;
+    redis_available: boolean;
+  };
+  refreshed_at?: string | null;
+}
+
+export interface ScheduleGlobalTaskListItem {
+  task_id: string;
+  project_id?: string | null;
+  project_name?: string | null;
+  task_name: string;
+  task_type?: string | null;
+  task_key_ref?: string | null;
+  create_status?: string | null;
+  dispatch_status?: string | null;
+  business_status?: string | null;
+  queue_state?: string | null;
+  current_status?: string | null;
+  display_status_group?: string | null;
+  attempt_no?: number | null;
+  retry_count?: number | null;
+  is_retrying?: boolean | null;
+  queue_depth_position?: number | null;
+  downstream_task_id?: string | null;
+  downstream_detail_view?: string | null;
+  active_task_key_prefix?: string | null;
+  created_by?: string | null;
+  created_at?: string | null;
+  updated_at?: string | null;
+  scheduled_at?: string | null;
+  started_at?: string | null;
+  finished_at?: string | null;
+  last_error?: string | null;
+}
+
+export interface ScheduleGlobalTaskListResponse {
+  items: ScheduleGlobalTaskListItem[];
+  total: number;
+  page: number;
+  page_size: number;
+  sort_field?: string | null;
+  sort_direction?: string | null;
+}
+
+export interface ScheduleGlobalTaskDetail extends ScheduleGlobalTaskListItem {
+  project_display_name?: string | null;
+  status_summary?: Record<string, any> | null;
+  current_dispatch?: Record<string, any> | null;
+  latest_dispatch?: Record<string, any> | null;
+  current_execution?: Record<string, any> | null;
+  latest_execution?: Record<string, any> | null;
+  recent_events?: Array<Record<string, any>>;
+  latest_failure?: Record<string, any> | null;
+}
+
 export interface ScheduleJobRuntime {
   job_id: string;
   project_id: string;
@@ -2149,7 +2227,7 @@ export interface ScheduleCenterUserTask {
   input_upload_count: number;
   inputs: ScheduleCenterUserTaskInput[];
   task_key_ref: string;
-  active_work_key_prefix?: string | null;
+  active_task_key_prefix?: string | null;
   downstream_task_id?: string | null;
   downstream_detail_view?: string | null;
   last_error?: string | null;
@@ -2187,8 +2265,8 @@ export interface ScheduleCenterUserTaskDispatch {
   project_id: string;
   dispatch_status: string;
   task_key_ref: string;
-  work_key_id?: string | null;
-  work_key_prefix?: string | null;
+  task_key_id?: string | null;
+  task_key_prefix?: string | null;
   downstream_task_id?: string | null;
   downstream_detail_view?: string | null;
   last_error?: string | null;

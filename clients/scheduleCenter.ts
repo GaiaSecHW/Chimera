@@ -7,6 +7,22 @@ export const scheduleCenterApi = {
   getRuntimeOverview: async (): Promise<any> =>
     handleResponse(await fetch(`${API_BASE}/api/chirmera-platform-schedule/runtime/overview`, { headers: getHeaders() })),
 
+  getTaskOverview: async (): Promise<any> =>
+    handleResponse(await fetch(`${API_BASE}/api/chirmera-platform-schedule/runtime/task-overview`, { headers: getHeaders() })),
+
+  listGlobalTasks: async (params: Record<string, string | number | boolean | undefined | null>): Promise<any> => {
+    const query = new URLSearchParams();
+    Object.entries(params).forEach(([key, value]) => {
+      if (value === undefined || value === null || value === '') return;
+      query.set(key, String(value));
+    });
+    const suffix = query.toString();
+    return handleResponse(await fetch(`${API_BASE}/api/chirmera-platform-schedule/tasks${suffix ? `?${suffix}` : ''}`, { headers: getHeaders() }));
+  },
+
+  getGlobalTask: async (taskId: string): Promise<any> =>
+    handleResponse(await fetch(`${API_BASE}/api/chirmera-platform-schedule/tasks/${encodeURIComponent(taskId)}`, { headers: getHeaders() })),
+
   listJobs: async (projectId: string): Promise<any> =>
     handleResponse(await fetch(`${API_BASE}/api/chirmera-platform-schedule/projects/${encodeURIComponent(projectId)}/jobs`, { headers: getHeaders() })),
 

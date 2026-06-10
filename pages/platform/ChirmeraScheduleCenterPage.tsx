@@ -1,33 +1,28 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { startTransition, useDeferredValue, useEffect, useMemo, useState } from 'react';
 import {
   Activity,
-  AlarmClock,
-  CalendarClock,
-  CheckCircle2,
-  Clock3,
-  Eye,
-  KeyRound,
-  Loader2,
-  PauseCircle,
-  PlayCircle,
-  Plus,
+  AlertCircle,
+  ArrowUpDown,
+  ChevronLeft,
+  ChevronRight,
+  FolderKanban,
+  Layers3,
   RefreshCw,
-  Rocket,
-  Shield,
-  Siren,
-  Waypoints,
-  XCircle,
+  Search,
+  ServerCog,
+  TimerReset,
+  Workflow,
+  X,
 } from 'lucide-react';
 import { api } from '../../clients/api';
-import { showAlert, showConfirm } from '../../components/DialogService';
+import { showAlert } from '../../components/DialogService';
 import {
-  ScheduleExecution,
-  ScheduleExecutionEvent,
-  ScheduleJobDetail,
+  ScheduleGlobalTaskDetail,
+  ScheduleGlobalTaskListItem,
+  ScheduleGlobalTaskListResponse,
+  ScheduleGlobalTaskOverview,
   ScheduleRuntimeOverview,
   SecurityProject,
-  VirtualKey,
-  VirtualKeyCreateResult,
 } from '../../types/types';
 
 interface ChirmeraScheduleCenterPageProps {
@@ -35,550 +30,620 @@ interface ChirmeraScheduleCenterPageProps {
   initialProjectId?: string;
 }
 
-type JobDraft = {
-  name: string;
-  description: string;
-  enabled: boolean;
-  trigger_type: 'manual' | 'interval' | 'cron';
-  cron_expr: string;
-  interval_seconds: number | '';
-  timezone: string;
-  target_method: string;
-  target_url: string;
-  auth_mode: 'none' | 'bearer_passthrough' | 'machine_token' | 'static_bearer';
-  static_bearer_token: string;
-  response_task_id_path: string;
-  dedupe_window_seconds: number | '';
-  success_status_codes: string;
-  target_headers: string;
-  target_query: string;
-  target_body_template: string;
+type SortField = 'updated_at' | 'created_at' | 'scheduled_at' | 'started_at' | 'finished_at';
+type SortDirection = 'asc' | 'desc';
+
+type TaskFilters = {
+  status: string;
+  taskType: string;
+  projectId: string;
+  isRetrying: boolean;
+  hasError: boolean;
+  search: string;
 };
 
-type KeyDraft = {
-  name: string;
-  alias: string;
-  models: string;
-  metadata: string;
-  duration: string;
-  max_budget: string;
-};
+type OverviewNav = 'overview' | 'job-templates' | 'execution-log' | 'key-vault';
 
-const createJobDraft = (): JobDraft => ({
-  name: '',
-  description: '',
-  enabled: true,
-  trigger_type: 'manual',
-  cron_expr: '',
-  interval_seconds: '',
-  timezone: 'UTC',
-  target_method: 'POST',
-  target_url: '',
-  auth_mode: 'machine_token',
-  static_bearer_token: '',
-  response_task_id_path: 'task_id',
-  dedupe_window_seconds: 0,
-  success_status_codes: '200,201,202',
-  target_headers: '{\n  "Content-Type": "application/json"\n}',
-  target_query: '{}',
-  target_body_template: '{\n  "project_id": "{project_id}",\n  "execution_id": "{execution_id}"\n}',
+const STATUS_OPTIONS = [
+  { value: '', label: '全部状态' },
+  { value: 'created', label: '未处理' },
+  { value: 'scheduled', label: '计划中' },
+  { value: 'queued', label: '排队中' },
+  { value: 'retry_wait', label: '重试中' },
+  { value: 'running', label: '进行中' },
+  { value: 'succeeded', label: '成功' },
+  { value: 'failed', label: '失败' },
+  { value: 'cancelled', label: '已取消' },
+];
+
+const TASK_TYPE_OPTIONS = [
+  { value: '', label: '全部任务类型' },
+  { value: 'binary_firmware_e2e', label: '二进制固件端到端' },
+  { value: 'source_scan_e2e', label: '源码扫描端到端' },
+  { value: 'binary_module_e2e', label: '二进制模块端到端' },
+];
+
+const PAGE_SIZE_OPTIONS = [20, 50, 100];
+
+const SORT_FIELDS: Array<{ value: SortField; label: string }> = [
+  { value: 'updated_at', label: '更新时间' },
+  { value: 'created_at', label: '创建时间' },
+  { value: 'scheduled_at', label: '计划时间' },
+  { value: 'started_at', label: '开始时间' },
+  { value: 'finished_at', label: '结束时间' },
+];
+
+const NAV_ITEMS: Array<{ key: OverviewNav; label: string; icon: React.ComponentType<{ size?: number; className?: string }> }> = [
+  { key: 'overview', label: '全局任务', icon: Workflow },
+  { key: 'job-templates', label: '作业模板', icon: FolderKanban },
+  { key: 'execution-log', label: '执行记录', icon: Activity },
+  { key: 'key-vault', label: 'Key 管理', icon: ServerCog },
+];
+
+const createEmptyOverview = (): ScheduleGlobalTaskOverview => ({
+  stats: {
+    total_tasks: 0,
+    unprocessed_tasks: 0,
+    scheduled_tasks: 0,
+    queued_tasks: 0,
+    retry_wait_tasks: 0,
+    running_tasks: 0,
+    succeeded_tasks: 0,
+    failed_tasks: 0,
+    cancelled_tasks: 0,
+  },
+  queue: {
+    depth: 0,
+    oldest_age_seconds: 0,
+    backend: 'unknown',
+  },
+  workers: {
+    active: 0,
+    concurrency: 0,
+    inflight: 0,
+  },
+  health: {
+    status: 'unknown',
+    redis_available: false,
+  },
+  refreshed_at: null,
 });
-
-const createKeyDraft = (): KeyDraft => ({
-  name: '',
-  alias: '',
-  models: 'gpt-4o-mini',
-  metadata: '{\n  "owner": "platform"\n}',
-  duration: '30d',
-  max_budget: '10',
-});
-
-const safeParseJson = (raw: string, fallback: any) => {
-  try {
-    const value = JSON.parse(raw || '');
-    return value && typeof value === 'object' ? value : fallback;
-  } catch {
-    return fallback;
-  }
-};
-
-const parseStatuses = (raw: string) =>
-  raw
-    .split(',')
-    .map((item) => Number(item.trim()))
-    .filter((item) => Number.isFinite(item) && item > 0);
-
-const executionTone = (status: string) => {
-  if (status === 'succeeded') return 'bg-emerald-100 text-emerald-700 border-emerald-200';
-  if (['queued', 'leased', 'dispatching', 'retry_wait'].includes(status)) return 'bg-sky-100 text-sky-700 border-sky-200';
-  if (status === 'timeout') return 'bg-amber-100 text-amber-700 border-amber-200';
-  return 'bg-rose-100 text-rose-700 border-rose-200';
-};
-
-const keyTone = (status: string) => {
-  if (status === 'active') return 'bg-emerald-100 text-emerald-700 border-emerald-200';
-  if (status === 'disabled') return 'bg-slate-100 text-slate-700 border-slate-200';
-  return 'bg-amber-100 text-amber-700 border-amber-200';
-};
-
-const triggerLabel = (job: ScheduleJobDetail) => {
-  if (job.trigger_type === 'cron') return job.cron_expr || 'Cron';
-  if (job.trigger_type === 'interval') return `${job.interval_seconds || 0}s`;
-  return 'Manual';
-};
 
 const formatTime = (value?: string | null) => {
-  if (!value) return '—';
+  if (!value) return '-';
   const date = new Date(value);
   return Number.isNaN(date.getTime()) ? value : date.toLocaleString('zh-CN');
 };
 
-export const ChirmeraScheduleCenterPage: React.FC<ChirmeraScheduleCenterPageProps> = ({
-  projects,
-  initialProjectId,
-}) => {
+const formatCount = (value?: number | null) => `${Number(value || 0)}`;
+
+const formatDurationSeconds = (value?: number | null) => {
+  const seconds = Number(value || 0);
+  if (!seconds) return '0s';
+  if (seconds < 60) return `${seconds}s`;
+  if (seconds < 3600) return `${Math.floor(seconds / 60)}m`;
+  return `${Math.floor(seconds / 3600)}h ${Math.floor((seconds % 3600) / 60)}m`;
+};
+
+const summarizeStatus = (item: Partial<ScheduleGlobalTaskListItem> | null | undefined) => {
+  return (
+    item?.display_status_group ||
+    item?.current_status ||
+    item?.business_status ||
+    item?.dispatch_status ||
+    item?.create_status ||
+    '-'
+  );
+};
+
+const getTaskKeyValue = (item: Partial<ScheduleGlobalTaskListItem> | null | undefined) => {
+  return item?.task_key_ref || '-';
+};
+
+const statusTone = (label?: string | null) => {
+  if (label === '成功' || label === 'succeeded') return 'border-emerald-200 bg-emerald-50 text-emerald-700';
+  if (label === '失败' || label === 'failed' || label === 'timeout') return 'border-rose-200 bg-rose-50 text-rose-700';
+  if (label === '重试中' || label === 'retry_wait') return 'border-amber-200 bg-amber-50 text-amber-700';
+  if (label === '进行中' || label === 'running' || label === 'dispatching') return 'border-sky-200 bg-sky-50 text-sky-700';
+  if (label === '排队中' || label === 'queued' || label === 'leased') return 'border-cyan-200 bg-cyan-50 text-cyan-700';
+  return 'border-slate-200 bg-slate-100 text-slate-700';
+};
+
+const metricTone = (key: string) => {
+  if (key === 'success') return 'from-emerald-50 via-white to-emerald-100/70 border-emerald-200/70';
+  if (key === 'failed') return 'from-rose-50 via-white to-rose-100/70 border-rose-200/70';
+  if (key === 'running') return 'from-sky-50 via-white to-sky-100/70 border-sky-200/70';
+  if (key === 'retry') return 'from-amber-50 via-white to-amber-100/70 border-amber-200/70';
+  if (key === 'queue') return 'from-cyan-50 via-white to-cyan-100/70 border-cyan-200/70';
+  return 'from-slate-50 via-white to-slate-100/70 border-slate-200/70';
+};
+
+const fallbackOverviewFromRuntime = (
+  runtime: ScheduleRuntimeOverview | null,
+  healthStatus?: string | null,
+): ScheduleGlobalTaskOverview => ({
+  stats: {
+    total_tasks: runtime?.stats?.jobs_total ?? 0,
+    unprocessed_tasks: 0,
+    scheduled_tasks: 0,
+    queued_tasks: runtime?.queue?.length ?? 0,
+    retry_wait_tasks: 0,
+    running_tasks: runtime?.workers?.inflight_executions ?? runtime?.stats?.active_jobs ?? 0,
+    succeeded_tasks: runtime?.stats?.succeeded_total ?? 0,
+    failed_tasks: runtime?.stats?.failed_total ?? 0,
+    cancelled_tasks: 0,
+  },
+  queue: {
+    depth: runtime?.queue?.length ?? 0,
+    oldest_age_seconds: runtime?.queue?.oldest_age_seconds ?? 0,
+    backend: runtime?.queue?.backend ?? 'unknown',
+  },
+  workers: {
+    active: runtime?.workers?.local_pod ? 1 : 0,
+    concurrency: runtime?.workers?.concurrency ?? 0,
+    inflight: runtime?.workers?.inflight_executions ?? 0,
+  },
+  health: {
+    status: healthStatus || 'unknown',
+    redis_available: Boolean(runtime?.redis_available),
+  },
+  refreshed_at: new Date().toISOString(),
+});
+
+const normalizeOverviewPayload = (
+  payload: Partial<ScheduleGlobalTaskOverview> | null | undefined,
+  runtime: ScheduleRuntimeOverview | null,
+  healthStatus?: string | null,
+): ScheduleGlobalTaskOverview => {
+  const fallback = fallbackOverviewFromRuntime(runtime, healthStatus);
+  return {
+    stats: {
+      ...fallback.stats,
+      ...(payload?.stats || {}),
+    },
+    queue: {
+      ...fallback.queue,
+      ...(payload?.queue || {}),
+    },
+    workers: {
+      ...fallback.workers,
+      ...(payload?.workers || {}),
+    },
+    health: {
+      ...fallback.health,
+      ...(payload?.health || {}),
+    },
+    refreshed_at: payload?.refreshed_at ?? fallback.refreshed_at,
+  };
+};
+
+const sortIndicator = (sortField: SortField, activeField: SortField, direction: SortDirection) => {
+  if (sortField !== activeField) return <ArrowUpDown size={14} className="text-slate-400" />;
+  return (
+    <span className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-500">
+      {direction}
+    </span>
+  );
+};
+
+const DetailDrawer: React.FC<{
+  detail: ScheduleGlobalTaskDetail | null;
+  open: boolean;
+  loading: boolean;
+  onClose: () => void;
+  onRetryDispatch: () => void;
+}> = ({ detail, open, loading, onClose, onRetryDispatch }) => {
+  if (!open) return null;
+  return (
+    <div className="fixed inset-0 z-50 flex justify-end bg-slate-950/40 backdrop-blur-[2px]">
+      <button className="flex-1" aria-label="关闭详情抽屉" onClick={onClose} />
+      <aside className="relative h-full w-full max-w-[540px] overflow-y-auto border-l border-slate-200 bg-white shadow-[0_24px_80px_rgba(15,23,42,0.18)]">
+        <div className="sticky top-0 z-10 border-b border-slate-200 bg-white/95 px-6 py-5 backdrop-blur">
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <div className="text-xs font-black uppercase tracking-[0.24em] text-slate-500">Task Detail</div>
+              <h2 className="mt-2 text-2xl font-black text-slate-900">{detail?.task_name || '加载任务详情'}</h2>
+              <div className="mt-2 flex flex-wrap gap-2">
+                <span className={`rounded-full border px-3 py-1 text-[11px] font-black uppercase tracking-[0.18em] ${statusTone(detail?.display_status_group)}`}>
+                  {summarizeStatus(detail || {})}
+                </span>
+                {detail?.task_type ? (
+                  <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-[11px] font-black uppercase tracking-[0.18em] text-slate-600">
+                    {detail.task_type}
+                  </span>
+                ) : null}
+              </div>
+            </div>
+            <button onClick={onClose} className="rounded-2xl border border-slate-200 p-2 text-slate-500 transition hover:bg-slate-50 hover:text-slate-900">
+              <X size={18} />
+            </button>
+          </div>
+        </div>
+
+        <div className="space-y-6 px-6 py-6">
+          {loading ? (
+            <div className="rounded-3xl border border-slate-200 bg-slate-50 px-6 py-10 text-center text-sm font-bold text-slate-500">
+              任务详情加载中...
+            </div>
+          ) : detail ? (
+            <>
+              <section className="rounded-3xl border border-slate-200 bg-slate-50 p-5">
+                <div className="text-xs font-black uppercase tracking-[0.2em] text-slate-500">基本信息</div>
+                <div className="mt-4 grid gap-3 text-sm text-slate-700">
+                  <div><span className="font-black text-slate-900">任务 ID：</span>{detail.task_id}</div>
+                  <div><span className="font-black text-slate-900">项目：</span>{detail.project_name || detail.project_display_name || detail.project_id || '-'}</div>
+                  <div><span className="font-black text-slate-900">创建人：</span>{detail.created_by || '-'}</div>
+                  <div><span className="font-black text-slate-900">Task Key：</span>{getTaskKeyValue(detail)}</div>
+                  <div><span className="font-black text-slate-900">下游任务：</span>{detail.downstream_task_id || '-'}</div>
+                </div>
+              </section>
+
+              <section className="rounded-3xl border border-slate-200 bg-white p-5">
+                <div className="text-xs font-black uppercase tracking-[0.2em] text-slate-500">状态摘要</div>
+                <div className="mt-4 grid gap-3 md:grid-cols-2">
+                  <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm"><span className="font-black text-slate-900">创建态：</span>{detail.create_status || '-'}</div>
+                  <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm"><span className="font-black text-slate-900">分发态：</span>{detail.dispatch_status || '-'}</div>
+                  <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm"><span className="font-black text-slate-900">业务态：</span>{detail.business_status || '-'}</div>
+                  <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm"><span className="font-black text-slate-900">当前态：</span>{detail.current_status || '-'}</div>
+                  <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm"><span className="font-black text-slate-900">重试次数：</span>{detail.retry_count ?? 0}</div>
+                  <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm"><span className="font-black text-slate-900">最近尝试：</span>{detail.attempt_no ?? '-'}</div>
+                </div>
+              </section>
+
+              <section className="rounded-3xl border border-slate-200 bg-white p-5">
+                <div className="text-xs font-black uppercase tracking-[0.2em] text-slate-500">执行窗口</div>
+                <div className="mt-4 grid gap-3 text-sm text-slate-700">
+                  <div><span className="font-black text-slate-900">计划时间：</span>{formatTime(detail.scheduled_at)}</div>
+                  <div><span className="font-black text-slate-900">开始时间：</span>{formatTime(detail.started_at)}</div>
+                  <div><span className="font-black text-slate-900">结束时间：</span>{formatTime(detail.finished_at)}</div>
+                  <div><span className="font-black text-slate-900">最近失败：</span>{detail.last_error || detail.latest_failure?.message || '-'}</div>
+                </div>
+              </section>
+
+              <section className="rounded-3xl border border-slate-200 bg-white p-5">
+                <div className="text-xs font-black uppercase tracking-[0.2em] text-slate-500">最近调度与执行</div>
+                <div className="mt-4 space-y-3">
+                  <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm">
+                    <div className="font-black text-slate-900">最近 Dispatch</div>
+                    <pre className="mt-2 overflow-auto whitespace-pre-wrap break-all text-xs text-slate-600">{JSON.stringify(detail.latest_dispatch || detail.current_dispatch || {}, null, 2)}</pre>
+                  </div>
+                  <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm">
+                    <div className="font-black text-slate-900">最近 Execution</div>
+                    <pre className="mt-2 overflow-auto whitespace-pre-wrap break-all text-xs text-slate-600">{JSON.stringify(detail.latest_execution || detail.current_execution || {}, null, 2)}</pre>
+                  </div>
+                </div>
+              </section>
+
+              <section className="rounded-3xl border border-slate-200 bg-white p-5">
+                <div className="text-xs font-black uppercase tracking-[0.2em] text-slate-500">最近事件摘要</div>
+                <div className="mt-4 space-y-3">
+                  {(detail.recent_events || []).length ? (
+                    (detail.recent_events || []).map((event, index) => (
+                      <div key={`${event.id || event.created_at || index}`} className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700">
+                        <div className="flex items-center justify-between gap-3">
+                          <span className="font-black text-slate-900">{event.event_type || event.type || 'event'}</span>
+                          <span className="text-xs text-slate-500">{formatTime(event.created_at || event.ts)}</span>
+                        </div>
+                        <div className="mt-2 text-xs text-slate-600">{event.message || JSON.stringify(event.payload || event)}</div>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-4 py-6 text-center text-sm font-bold text-slate-500">
+                      暂无可展示的事件摘要
+                    </div>
+                  )}
+                </div>
+              </section>
+
+              <div className="flex flex-wrap gap-3">
+                <button
+                  onClick={onRetryDispatch}
+                  className="inline-flex items-center gap-2 rounded-2xl bg-slate-900 px-4 py-3 text-sm font-black text-white transition hover:bg-slate-800"
+                >
+                  <TimerReset size={16} />
+                  重试分发
+                </button>
+                {detail.downstream_detail_view ? (
+                  <button
+                    onClick={() => window.open(detail.downstream_detail_view || '', '_blank', 'noopener,noreferrer')}
+                    className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 px-4 py-3 text-sm font-black text-slate-700 transition hover:bg-slate-50"
+                  >
+                    <Waypoints size={16} />
+                    跳转下游任务
+                  </button>
+                ) : null}
+              </div>
+            </>
+          ) : (
+            <div className="rounded-3xl border border-dashed border-slate-300 bg-slate-50 px-6 py-10 text-center text-sm font-bold text-slate-500">
+              当前任务详情暂不可用
+            </div>
+          )}
+        </div>
+      </aside>
+    </div>
+  );
+};
+
+export const ChirmeraScheduleCenterPage: React.FC<ChirmeraScheduleCenterPageProps> = ({ projects }) => {
   const scheduleApi = api.domains.platform.scheduleCenter;
-  const [projectId, setProjectId] = useState(initialProjectId || projects[0]?.id || '');
-  const [jobs, setJobs] = useState<ScheduleJobDetail[]>([]);
-  const [keys, setKeys] = useState<VirtualKey[]>([]);
-  const [executions, setExecutions] = useState<ScheduleExecution[]>([]);
-  const [executionEvents, setExecutionEvents] = useState<ScheduleExecutionEvent[]>([]);
-  const [selectedJobId, setSelectedJobId] = useState('');
-  const [selectedExecutionId, setSelectedExecutionId] = useState('');
-  const [selectedKeyId, setSelectedKeyId] = useState('');
-  const [jobDraft, setJobDraft] = useState<JobDraft>(createJobDraft());
-  const [keyDraft, setKeyDraft] = useState<KeyDraft>(createKeyDraft());
+  const [nav, setNav] = useState<OverviewNav>('overview');
   const [health, setHealth] = useState<{ status?: string; service_name?: string } | null>(null);
   const [runtimeOverview, setRuntimeOverview] = useState<ScheduleRuntimeOverview | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [savingJob, setSavingJob] = useState(false);
-  const [savingKey, setSavingKey] = useState(false);
-  const [message, setMessage] = useState('');
+  const [overview, setOverview] = useState<ScheduleGlobalTaskOverview>(createEmptyOverview());
+  const [tableItems, setTableItems] = useState<ScheduleGlobalTaskListItem[]>([]);
+  const [total, setTotal] = useState(0);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
+  const [sortField, setSortField] = useState<SortField>('updated_at');
+  const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
+  const [filters, setFilters] = useState<TaskFilters>({
+    status: '',
+    taskType: '',
+    projectId: '',
+    isRetrying: false,
+    hasError: false,
+    search: '',
+  });
+  const [selectedTaskId, setSelectedTaskId] = useState('');
+  const [selectedTaskDetail, setSelectedTaskDetail] = useState<ScheduleGlobalTaskDetail | null>(null);
+  const [detailOpen, setDetailOpen] = useState(false);
+  const [loadingOverview, setLoadingOverview] = useState(false);
+  const [loadingTable, setLoadingTable] = useState(false);
+  const [loadingDetail, setLoadingDetail] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+  const [notice, setNotice] = useState('');
   const [error, setError] = useState('');
-  const [revealedKey, setRevealedKey] = useState<string | null>(null);
+  const deferredQuery = useDeferredValue(filters.search);
 
-  const selectedJob = useMemo(
-    () => jobs.find((job) => job.id === selectedJobId) || null,
-    [jobs, selectedJobId],
-  );
-
-  const selectedExecution = useMemo(
-    () => executions.find((execution) => execution.id === selectedExecutionId) || null,
-    [executions, selectedExecutionId],
-  );
-
-  const selectedKey = useMemo(
-    () => keys.find((item) => item.id === selectedKeyId) || null,
-    [keys, selectedKeyId],
-  );
+  const projectNameMap = useMemo(() => {
+    const map = new Map<string, string>();
+    projects.forEach((project) => {
+      map.set(project.id, project.name || project.id);
+    });
+    return map;
+  }, [projects]);
 
   const projectOptions = useMemo(
-    () => projects.map((project) => ({ id: project.id, label: project.name || project.id })),
+    () => [{ id: '', label: '全部项目' }, ...projects.map((project) => ({ id: project.id, label: project.name || project.id }))],
     [projects],
   );
 
-  const applyJobToDraft = (job: ScheduleJobDetail | null) => {
-    if (!job) {
-      setJobDraft(createJobDraft());
-      return;
-    }
-    setJobDraft({
-      name: job.name,
-      description: job.description || '',
-      enabled: job.enabled,
-      trigger_type: job.trigger_type,
-      cron_expr: job.cron_expr || '',
-      interval_seconds: job.interval_seconds || '',
-      timezone: job.timezone || 'UTC',
-      target_method: job.target_method,
-      target_url: job.target_url,
-      auth_mode: job.auth_mode,
-      static_bearer_token: job.static_bearer_token || '',
-      response_task_id_path: job.response_task_id_path || '',
-      dedupe_window_seconds: job.dedupe_window_seconds ?? 0,
-      success_status_codes: (job.success_status_codes || []).join(','),
-      target_headers: JSON.stringify(job.target_headers || {}, null, 2),
-      target_query: JSON.stringify(job.target_query || {}, null, 2),
-      target_body_template: JSON.stringify(job.target_body_template || {}, null, 2),
-    });
-  };
+  const totalPages = Math.max(1, Math.ceil(total / pageSize));
 
-  const loadHealth = async () => {
+  const statCards = useMemo(() => {
+    const items = [
+      { key: 'total', label: '任务总数', value: overview.stats.total_tasks, hint: '全部调度任务实例' },
+      { key: 'neutral', label: '未处理', value: overview.stats.unprocessed_tasks, hint: 'created / ready_for_dispatch' },
+      { key: 'neutral', label: '计划中', value: overview.stats.scheduled_tasks, hint: '已计划但尚未入队' },
+      { key: 'queue', label: '排队中', value: overview.stats.queued_tasks, hint: 'queued / leased' },
+      { key: 'retry', label: '重试中', value: overview.stats.retry_wait_tasks, hint: '等待重试窗口' },
+      { key: 'running', label: '进行中', value: overview.stats.running_tasks, hint: 'dispatching / running' },
+      { key: 'success', label: '成功', value: overview.stats.succeeded_tasks, hint: '已完成任务' },
+      { key: 'failed', label: '失败', value: overview.stats.failed_tasks, hint: 'failed / timeout' },
+      { key: 'queue', label: '当前队列深度', value: overview.queue.depth, hint: `backend ${overview.queue.backend || 'unknown'}` },
+      { key: 'neutral', label: '最老等待时长', value: formatDurationSeconds(overview.queue.oldest_age_seconds), hint: 'ready queue oldest age' },
+      { key: 'neutral', label: '活跃 worker 数', value: overview.workers.active, hint: '当前可用调度执行器' },
+      { key: 'neutral', label: 'worker 并发总量', value: overview.workers.concurrency, hint: '调度槽位总量' },
+      { key: 'running', label: '当前 inflight', value: overview.workers.inflight, hint: '当前飞行中执行数' },
+      { key: 'neutral', label: '已取消', value: overview.stats.cancelled_tasks, hint: 'cancelled' },
+      { key: 'neutral', label: '最近刷新时间', value: overview.refreshed_at ? formatTime(overview.refreshed_at) : '-', hint: 'overview snapshot' },
+      { key: overview.health.status === 'ok' ? 'success' : 'failed', label: '服务健康', value: overview.health.status || 'unknown', hint: overview.health.redis_available ? 'Redis Ready' : 'Redis Unavailable' },
+    ];
+    return items;
+  }, [overview]);
+
+  const loadHealthAndOverview = async (manual = false) => {
+    setLoadingOverview(true);
+    if (manual) setRefreshing(true);
     try {
-      const [payload, runtime] = await Promise.all([
-        scheduleApi.getHealth(),
+      const [healthPayload, runtimePayload, overviewPayload] = await Promise.all([
+        scheduleApi.getHealth().catch(() => null),
         scheduleApi.getRuntimeOverview().catch(() => null),
+        scheduleApi.getTaskOverview().catch(() => null),
       ]);
-      setHealth(payload);
-      setRuntimeOverview(runtime);
-    } catch {
-      setHealth({ status: 'error' });
-      setRuntimeOverview(null);
-    }
-  };
-
-  const loadProjectData = async (nextProjectId: string, nextSelectedJobId?: string) => {
-    if (!nextProjectId) {
-      setJobs([]);
-      setKeys([]);
-      setExecutions([]);
-      setExecutionEvents([]);
-      setSelectedJobId('');
-      setSelectedExecutionId('');
-      setSelectedKeyId('');
-      return;
-    }
-    setLoading(true);
-    setError('');
-    try {
-      const [jobResp, keyResp] = await Promise.all([
-        scheduleApi.listJobs(nextProjectId),
-        scheduleApi.listKeys(nextProjectId),
-      ]);
-      const nextJobs = jobResp.items || [];
-      const nextKeys = keyResp.items || [];
-      setJobs(nextJobs);
-      setKeys(nextKeys);
-      const resolvedJobId = nextSelectedJobId && nextJobs.some((item: ScheduleJobDetail) => item.id === nextSelectedJobId)
-        ? nextSelectedJobId
-        : nextJobs[0]?.id || '';
-      setSelectedJobId(resolvedJobId);
-      setSelectedKeyId(nextKeys[0]?.id || '');
-      const resolvedJob = nextJobs.find((item: ScheduleJobDetail) => item.id === resolvedJobId) || null;
-      applyJobToDraft(resolvedJob);
-      if (resolvedJobId) {
-        const executionResp = await scheduleApi.listExecutions(nextProjectId, resolvedJobId);
-        const nextExecutions = executionResp.items || [];
-        setExecutions(nextExecutions);
-        const nextExecutionId = nextExecutions[0]?.id || '';
-        setSelectedExecutionId(nextExecutionId);
-        if (nextExecutionId) {
-          const eventResp = await scheduleApi.listExecutionEvents(nextProjectId, nextExecutionId);
-          setExecutionEvents(eventResp.items || []);
-        } else {
-          setExecutionEvents([]);
-        }
+      setHealth(healthPayload);
+      setRuntimeOverview(runtimePayload);
+      if (overviewPayload && typeof overviewPayload === 'object') {
+        setOverview(
+          normalizeOverviewPayload(
+            overviewPayload as Partial<ScheduleGlobalTaskOverview>,
+            runtimePayload as ScheduleRuntimeOverview | null,
+            healthPayload?.status,
+          ),
+        );
+        setNotice('');
       } else {
-        setExecutions([]);
-        setExecutionEvents([]);
-        applyJobToDraft(null);
+        setOverview(fallbackOverviewFromRuntime(runtimePayload as ScheduleRuntimeOverview | null, healthPayload?.status));
+        setNotice('全局统计接口尚未就绪，当前展示的是运行时降级视图。');
       }
     } catch (err: any) {
-      setError(err.message || '加载调度中心数据失败');
+      setOverview(fallbackOverviewFromRuntime(runtimeOverview, health?.status));
+      setNotice('调度中心全局统计暂时不可用，已退回基础运行时信息。');
+      setError(err?.message || '加载调度中心统计失败');
     } finally {
-      setLoading(false);
+      setLoadingOverview(false);
+      if (manual) setRefreshing(false);
+    }
+  };
+
+  const loadTasks = async (manual = false) => {
+    setLoadingTable(true);
+    if (manual) setRefreshing(true);
+    try {
+      const payload = await scheduleApi.listGlobalTasks({
+        page,
+        page_size: pageSize,
+        sort_field: sortField,
+        sort_direction: sortDirection,
+        status: filters.status,
+        task_type: filters.taskType,
+        project_id: filters.projectId,
+        is_retrying: filters.isRetrying ? true : undefined,
+        has_error: filters.hasError ? true : undefined,
+        search: deferredQuery,
+      }) as ScheduleGlobalTaskListResponse;
+      const items = (payload.items || []).map((item) => ({
+        ...item,
+        project_name: item.project_name || (item.project_id ? projectNameMap.get(item.project_id) : undefined) || item.project_id || '-',
+      }));
+      setTableItems(items);
+      setTotal(Number(payload.total || 0));
+      setNotice((current) => (current.includes('全局任务列表接口尚未就绪') ? '' : current));
+    } catch (err: any) {
+      setTableItems([]);
+      setTotal(0);
+      setNotice('全局任务列表接口尚未就绪，当前仅展示监控框架与筛选结构。');
+      setError(err?.message || '加载全局任务列表失败');
+    } finally {
+      setLoadingTable(false);
+      if (manual) setRefreshing(false);
     }
   };
 
   useEffect(() => {
-    void loadHealth();
+    void loadHealthAndOverview();
   }, []);
 
   useEffect(() => {
-    void loadProjectData(projectId);
-  }, [projectId]);
+    void loadTasks();
+  }, [page, pageSize, sortField, sortDirection, filters.status, filters.taskType, filters.projectId, filters.isRetrying, filters.hasError, deferredQuery, projectNameMap]);
 
-  useEffect(() => {
-    if (!selectedJobId || !projectId) {
-      setExecutions([]);
-      setExecutionEvents([]);
-      applyJobToDraft(null);
-      return;
-    }
-    const currentJob = jobs.find((job) => job.id === selectedJobId) || null;
-    applyJobToDraft(currentJob);
-    void (async () => {
-      try {
-        const executionResp = await scheduleApi.listExecutions(projectId, selectedJobId);
-        const nextExecutions = executionResp.items || [];
-        setExecutions(nextExecutions);
-        const nextExecutionId = nextExecutions[0]?.id || '';
-        setSelectedExecutionId(nextExecutionId);
-        if (nextExecutionId) {
-          const eventResp = await scheduleApi.listExecutionEvents(projectId, nextExecutionId);
-          setExecutionEvents(eventResp.items || []);
-        } else {
-          setExecutionEvents([]);
+  const handleRefresh = async () => {
+    setError('');
+    await Promise.all([loadHealthAndOverview(true), loadTasks(true)]);
+    if (detailOpen && selectedTaskId) {
+      await (async () => {
+        try {
+          setLoadingDetail(true);
+          const detail = await scheduleApi.getGlobalTask(selectedTaskId);
+          setSelectedTaskDetail(detail);
+        } catch {
+          // Keep current detail snapshot when refresh detail fails.
+        } finally {
+          setLoadingDetail(false);
         }
-      } catch (err: any) {
-        setError(err.message || '加载执行记录失败');
-      }
-    })();
-  }, [selectedJobId, projectId, jobs]);
-
-  useEffect(() => {
-    if (!selectedExecutionId || !projectId) {
-      setExecutionEvents([]);
-      return;
-    }
-    void (async () => {
-      try {
-        const eventResp = await scheduleApi.listExecutionEvents(projectId, selectedExecutionId);
-        setExecutionEvents(eventResp.items || []);
-      } catch (err: any) {
-        setError(err.message || '加载执行事件失败');
-      }
-    })();
-  }, [selectedExecutionId, projectId]);
-
-  const jobStats = useMemo(() => {
-    const running = executions.filter((item) => ['queued', 'leased', 'dispatching', 'retry_wait'].includes(item.status)).length;
-    const success = executions.filter((item) => item.status === 'succeeded').length;
-    const failed = executions.filter((item) => item.status === 'failed' || item.status === 'timeout').length;
-    return { running, success, failed };
-  }, [executions]);
-  const runtimeStats = runtimeOverview?.stats;
-  const runtimeWorkers = runtimeOverview?.workers;
-  const runtimeQueue = runtimeOverview?.queue;
-  const runtimeLeader = runtimeOverview?.leader;
-
-  const handleSaveJob = async () => {
-    if (!projectId) {
-      setError('请先选择项目');
-      return;
-    }
-    setSavingJob(true);
-    setError('');
-    setMessage('');
-    try {
-      const payload = {
-        name: jobDraft.name,
-        description: jobDraft.description,
-        enabled: jobDraft.enabled,
-        trigger_type: jobDraft.trigger_type,
-        cron_expr: jobDraft.trigger_type === 'cron' ? jobDraft.cron_expr : null,
-        interval_seconds: jobDraft.trigger_type === 'interval' ? Number(jobDraft.interval_seconds || 0) : null,
-        timezone: jobDraft.timezone,
-        target_method: jobDraft.target_method,
-        target_url: jobDraft.target_url,
-        auth_mode: jobDraft.auth_mode,
-        static_bearer_token: jobDraft.auth_mode === 'static_bearer' ? jobDraft.static_bearer_token : null,
-        response_task_id_path: jobDraft.response_task_id_path || null,
-        dedupe_window_seconds: Number(jobDraft.dedupe_window_seconds || 0),
-        success_status_codes: parseStatuses(jobDraft.success_status_codes),
-        target_headers: safeParseJson(jobDraft.target_headers, {}),
-        target_query: safeParseJson(jobDraft.target_query, {}),
-        target_body_template: safeParseJson(jobDraft.target_body_template, {}),
-      };
-      let savedJob: ScheduleJobDetail;
-      if (selectedJob) {
-        savedJob = await scheduleApi.updateJob(projectId, selectedJob.id, payload);
-      } else {
-        savedJob = await scheduleApi.createJob(projectId, payload);
-      }
-      setMessage(selectedJob ? '调度任务已更新' : '调度任务已创建');
-      await loadProjectData(projectId, savedJob.id);
-    } catch (err: any) {
-      setError(err.message || '保存调度任务失败');
-    } finally {
-      setSavingJob(false);
+      })();
     }
   };
 
-  const handleToggleJob = async (job: ScheduleJobDetail, enable: boolean) => {
-    if (!projectId) return;
-    try {
-      if (enable) {
-        await scheduleApi.enableJob(projectId, job.id);
-      } else {
-        await scheduleApi.disableJob(projectId, job.id);
-      }
-      await loadProjectData(projectId, job.id);
-    } catch (err: any) {
-      setError(err.message || '更新调度任务状态失败');
-    }
-  };
-
-  const handleTriggerJob = async (job: ScheduleJobDetail) => {
-    if (!projectId) return;
-    try {
-      await scheduleApi.triggerJob(projectId, job.id, { trigger_source: 'manual' });
-      setMessage('手动触发成功，正在刷新执行记录');
-      await loadProjectData(projectId, job.id);
-    } catch (err: any) {
-      setError(err.message || '手动触发失败');
-    }
-  };
-
-  const handleCreateKey = async () => {
-    if (!projectId) {
-      setError('请先选择项目');
-      return;
-    }
-    setSavingKey(true);
-    setError('');
-    setMessage('');
-    try {
-      const result: VirtualKeyCreateResult = await scheduleApi.createKey(projectId, {
-        name: keyDraft.name,
-        alias: keyDraft.alias || null,
-        models: keyDraft.models.split(',').map((item) => item.trim()).filter(Boolean),
-        metadata: safeParseJson(keyDraft.metadata, {}),
-        duration: keyDraft.duration,
-        budget_config: { max_budget: Number(keyDraft.max_budget || 0) || null },
-      });
-      setMessage('LiteLLM Key 创建成功');
-      setRevealedKey(result.plain_text_key || null);
-      setKeyDraft(createKeyDraft());
-      await loadProjectData(projectId, selectedJobId || undefined);
-      if (result.id) {
-        setSelectedKeyId(result.id);
-      }
-    } catch (err: any) {
-      setError(err.message || '创建 LiteLLM Key 失败');
-    } finally {
-      setSavingKey(false);
-    }
-  };
-
-  const handleDisableKey = async (item: VirtualKey) => {
-    if (!projectId) return;
-    const confirmed = await showConfirm({
-      title: '禁用 Key',
-      message: `确认禁用虚拟 Key「${item.name}」吗？`,
-      confirmText: '禁用',
-      danger: true,
+  const openTaskDetail = async (taskId: string) => {
+    startTransition(() => {
+      setSelectedTaskId(taskId);
+      setDetailOpen(true);
+      setLoadingDetail(true);
     });
-    if (!confirmed) return;
     try {
-      await scheduleApi.disableKey(projectId, item.id);
-      await loadProjectData(projectId, selectedJobId || undefined);
+      const detail = await scheduleApi.getGlobalTask(taskId);
+      setSelectedTaskDetail(detail as ScheduleGlobalTaskDetail);
     } catch (err: any) {
-      setError(err.message || '禁用 Key 失败');
+      setSelectedTaskDetail(null);
+      setError(err?.message || '加载任务详情失败');
+    } finally {
+      setLoadingDetail(false);
     }
   };
 
-  const handleSyncKey = async (item: VirtualKey) => {
-    if (!projectId) return;
-    try {
-      await scheduleApi.syncKey(projectId, item.id);
-      await loadProjectData(projectId, selectedJobId || undefined);
-    } catch (err: any) {
-      setError(err.message || '同步 Key 失败');
-    }
-  };
-
-  const handleShowKeyEvents = async (item: VirtualKey) => {
-    if (!projectId) return;
-    try {
-      const payload = await scheduleApi.listKeyEvents(projectId, item.id);
+  const handleRetryDispatch = async (item: ScheduleGlobalTaskListItem | ScheduleGlobalTaskDetail | null) => {
+    if (!item?.project_id || !item.task_id) {
       await showAlert({
-        title: `${item.name} 事件流`,
-        message: JSON.stringify(payload.items || [], null, 2),
+        title: '缺少任务上下文',
+        message: '当前任务缺少 project_id 或 task_id，暂时无法发起重试分发。',
+        tone: 'warning',
+      });
+      return;
+    }
+    try {
+      await scheduleApi.retryDispatchUserTask(item.project_id, item.task_id, {});
+      await showAlert({
+        title: '重试已提交',
+        message: `任务 ${item.task_name || item.task_id} 的重试分发请求已提交。`,
+        tone: 'success',
+      });
+      await handleRefresh();
+    } catch (err: any) {
+      setError(err?.message || '重试分发失败');
+    }
+  };
+
+  const handleLegacyNav = (target: OverviewNav) => {
+    setNav(target);
+    setDetailOpen(false);
+  };
+
+  const handleViewExecution = async (item: ScheduleGlobalTaskListItem) => {
+    try {
+      const detail = await scheduleApi.getGlobalTask(item.task_id);
+      await showAlert({
+        title: `${item.task_name} 最近执行摘要`,
+        message: JSON.stringify((detail as ScheduleGlobalTaskDetail).latest_execution || (detail as ScheduleGlobalTaskDetail).current_execution || {}, null, 2),
         confirmText: '关闭',
         tone: 'info',
       });
     } catch (err: any) {
-      setError(err.message || '加载 Key 事件失败');
+      setError(err?.message || '加载执行摘要失败');
     }
   };
 
+  const legacySectionContent: Record<Exclude<OverviewNav, 'overview'>, { title: string; summary: string; bullets: string[] }> = {
+    'job-templates': {
+      title: '作业模板',
+      summary: '原首页中的项目内调度作业控制台已从主视图下沉。当前首页专注全局任务监控，模板编辑能力作为二级能力保留。',
+      bullets: [
+        '这里后续承接项目级 job 配置、触发策略和目标编排编辑。',
+        '本轮首页已经把跨项目任务监控与项目内模板编辑彻底拆开，避免同页混合。',
+        '旧接口能力保持兼容，后续可在独立子页恢复完整编辑台。',
+      ],
+    },
+    'execution-log': {
+      title: '执行记录',
+      summary: '执行记录和完整事件流不再占据首页主布局，避免首页退回到旧三栏控制台模式。',
+      bullets: [
+        '首页保留“查看详情”和“查看执行记录”入口，用于快速定位单任务运行态。',
+        '完整 execution timeline 后续建议收敛到独立执行记录子页。',
+        '当前全局任务详情抽屉已经承接最近 dispatch、execution 和事件摘要。',
+      ],
+    },
+    'key-vault': {
+      title: 'Key 管理',
+      summary: 'Key 管理能力仍保留，但不再和全局任务监控并排混布，避免首页信息层级失衡。',
+      bullets: [
+        '首页只展示与任务实例直接相关的 Task Key 摘要。',
+        '完整 key 生命周期、同步和禁用操作建议保留在专门的二级管理页。',
+        '现有接口路径不变，后续可直接挂接独立的 Key 管理子页。',
+      ],
+    },
+  };
+
+  const renderNavButtons = () => (
+    <div className="flex flex-wrap gap-3">
+      {NAV_ITEMS.map((item) => {
+        const Icon = item.icon;
+        const active = item.key === nav;
+        return (
+          <button
+            key={item.key}
+            onClick={() => handleLegacyNav(item.key)}
+            className={`inline-flex items-center gap-2 rounded-2xl px-4 py-3 text-sm font-black transition ${
+              active
+                ? 'bg-slate-900 text-white shadow-[0_10px_30px_rgba(15,23,42,0.18)]'
+                : 'border border-slate-200 bg-white text-slate-700 hover:bg-slate-50'
+            }`}
+          >
+            <Icon size={16} />
+            {item.label}
+          </button>
+        );
+      })}
+    </div>
+  );
+
   return (
-    <div className="min-h-full bg-theme-app p-6 md:p-8">
-      <div className="mx-auto max-w-[1680px] space-y-6">
-        <section className="overflow-hidden rounded-[2.5rem] border border-slate-200/80 bg-[linear-gradient(135deg,rgba(15,23,42,0.96)_0%,rgba(30,41,59,0.94)_34%,rgba(15,118,110,0.88)_100%)] p-8 text-white shadow-[0_40px_120px_rgba(15,23,42,0.32)]">
-          <div className="flex flex-col gap-8 xl:flex-row xl:items-end xl:justify-between">
-            <div className="max-w-3xl">
-              <div className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-4 py-2 text-[11px] font-black uppercase tracking-[0.24em] text-cyan-100">
-                <Waypoints size={14} />
-                Chirmera Control Tower
-              </div>
-              <h1 className="mt-5 text-4xl font-black tracking-tight md:text-5xl">
-                调度中心
-              </h1>
-              <p className="mt-4 max-w-2xl text-sm leading-7 text-slate-200 md:text-base">
-                用一个平台页管理 REST 调度任务、执行轨迹和 LiteLLM 虚拟 Key。它更像一座调度舱，而不是普通后台表格页。
-              </p>
-            </div>
-            <div className="grid gap-4 sm:grid-cols-3">
-              <div className="rounded-[1.75rem] border border-white/15 bg-white/10 p-5 backdrop-blur-sm">
-                <div className="text-xs font-black uppercase tracking-[0.2em] text-slate-300">任务总数</div>
-                <div className="mt-3 text-3xl font-black">{runtimeStats?.jobs_total ?? jobs.length}</div>
-                <div className="mt-2 text-xs text-slate-200">运行 {runtimeWorkers?.inflight_executions ?? jobStats.running} · 成功 {runtimeStats?.succeeded_total ?? jobStats.success}</div>
-              </div>
-              <div className="rounded-[1.75rem] border border-white/15 bg-white/10 p-5 backdrop-blur-sm">
-                <div className="text-xs font-black uppercase tracking-[0.2em] text-slate-300">Key 总数</div>
-                <div className="mt-3 text-3xl font-black">{keys.length}</div>
-                <div className="mt-2 text-xs text-slate-200">激活 {keys.filter((item) => item.status === 'active').length}</div>
-              </div>
-              <div className="rounded-[1.75rem] border border-white/15 bg-white/10 p-5 backdrop-blur-sm">
-                <div className="text-xs font-black uppercase tracking-[0.2em] text-slate-300">服务健康</div>
-                <div className="mt-3 flex items-center gap-2 text-2xl font-black">
-                  {health?.status === 'ok' ? <CheckCircle2 className="text-emerald-300" /> : <Siren className="text-amber-300" />}
-                  {health?.status || 'unknown'}
-                </div>
-                <div className="mt-2 text-xs text-slate-200">{runtimeOverview?.redis_available ? 'Redis Ready' : 'Redis Fallback'} · {runtimeLeader?.is_local ? 'Leader Local' : 'Follower'}</div>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        <section className="grid gap-4 md:grid-cols-4">
-          <div className="rounded-[1.75rem] border border-slate-200 bg-white/85 p-5 shadow-sm">
-            <div className="text-xs font-black uppercase tracking-[0.2em] text-slate-500">Ready Queue</div>
-            <div className="mt-3 text-3xl font-black text-slate-900">{runtimeQueue?.length ?? 0}</div>
-            <div className="mt-2 text-xs text-slate-500">backend {runtimeQueue?.backend || 'unknown'}</div>
-          </div>
-          <div className="rounded-[1.75rem] border border-slate-200 bg-white/85 p-5 shadow-sm">
-            <div className="text-xs font-black uppercase tracking-[0.2em] text-slate-500">Oldest Age</div>
-            <div className="mt-3 text-3xl font-black text-slate-900">{Math.round(runtimeQueue?.oldest_age_seconds ?? 0)}s</div>
-            <div className="mt-2 text-xs text-slate-500">队列最老等待时间</div>
-          </div>
-          <div className="rounded-[1.75rem] border border-slate-200 bg-white/85 p-5 shadow-sm">
-            <div className="text-xs font-black uppercase tracking-[0.2em] text-slate-500">Worker Concurrency</div>
-            <div className="mt-3 text-3xl font-black text-slate-900">{runtimeWorkers?.concurrency ?? 0}</div>
-            <div className="mt-2 text-xs text-slate-500">本实例并发槽位</div>
-          </div>
-          <div className="rounded-[1.75rem] border border-slate-200 bg-white/85 p-5 shadow-sm">
-            <div className="text-xs font-black uppercase tracking-[0.2em] text-slate-500">Failures</div>
-            <div className="mt-3 text-3xl font-black text-slate-900">{runtimeStats?.failed_total ?? jobStats.failed}</div>
-            <div className="mt-2 text-xs text-slate-500">累计失败/超时执行</div>
-          </div>
-        </section>
-
-        <section className="grid gap-4 rounded-[2rem] border border-slate-200 bg-white/80 p-5 shadow-sm backdrop-blur md:grid-cols-[minmax(220px,320px)_1fr_auto] md:items-center">
-          <div>
-            <div className="text-xs font-black uppercase tracking-[0.24em] text-slate-500">Project Context</div>
-            <select
-              value={projectId}
-              onChange={(event) => setProjectId(event.target.value)}
-              className="mt-3 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold text-slate-800 outline-none focus:border-cyan-300"
-            >
-              {!projectOptions.length ? <option value="">暂无项目</option> : null}
-              {projectOptions.map((item) => (
-                <option key={item.id} value={item.id}>{item.label}</option>
-              ))}
-            </select>
-          </div>
-          <div className="rounded-[1.5rem] border border-slate-200 bg-slate-800 px-5 py-4">
-            <div className="flex flex-wrap items-center gap-3 text-sm font-bold text-slate-300">
-              <Shield size={16} className="text-cyan-400" />
-              当前页面为项目级控制台
-              <span className="rounded-full bg-slate-700 px-3 py-1 text-xs font-black uppercase tracking-[0.18em] text-slate-400">
-                {projectId || 'No Project'}
-              </span>
-            </div>
-            <div className="mt-2 text-xs text-slate-400">
-              切换项目会重置当前选中的调度任务、执行记录与 Key 视图。
-            </div>
-          </div>
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => {
-                void loadHealth();
-                void loadProjectData(projectId, selectedJobId || undefined);
-              }}
-              className="inline-flex items-center gap-2 rounded-2xl bg-slate-900 px-4 py-3 text-sm font-black text-white transition hover:bg-slate-800"
-            >
-              <RefreshCw size={16} />
-              刷新
-            </button>
-          </div>
-        </section>
-
-        {message ? (
-          <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-5 py-4 text-sm font-bold text-emerald-700">
-            {message}
+    <div className="min-h-full bg-[radial-gradient(circle_at_top_left,rgba(14,165,233,0.10),transparent_24%),linear-gradient(180deg,#f8fafc_0%,#eef2f7_100%)] px-4 py-6 md:px-8">
+      <div className="mx-auto max-w-[1760px] space-y-6">
+        {notice ? (
+          <div className="rounded-2xl border border-amber-200 bg-amber-50 px-5 py-4 text-sm font-bold text-amber-800">
+            {notice}
           </div>
         ) : null}
         {error ? (
@@ -586,357 +651,411 @@ export const ChirmeraScheduleCenterPage: React.FC<ChirmeraScheduleCenterPageProp
             {error}
           </div>
         ) : null}
-        {revealedKey ? (
-          <div className="rounded-[2rem] border border-amber-500/30 bg-amber-950 px-6 py-5 shadow-sm">
-            <div className="flex flex-wrap items-center gap-3">
-              <KeyRound className="text-amber-500" />
-              <div className="text-sm font-black text-amber-200">一次性明文 Key</div>
-              <div className="rounded-full bg-amber-900/50 px-3 py-1 text-[11px] font-black uppercase tracking-[0.18em] text-amber-400">Only Once</div>
-            </div>
-            <div className="mt-4 rounded-2xl bg-slate-900 px-4 py-4 font-mono text-sm text-emerald-300">
-              {revealedKey}
-            </div>
-            <div className="mt-3 text-xs font-bold text-amber-700">
-              该明文 Key 只在本次创建成功后展示一次，离开后不可再次查看。
-            </div>
-          </div>
-        ) : null}
 
-        <div className="grid gap-6 xl:grid-cols-[340px_minmax(0,1fr)_380px]">
-          <section className="rounded-[2rem] border border-slate-200 bg-white p-5 shadow-sm">
-            <div className="flex items-center justify-between">
-              <div>
-                <div className="text-xs font-black uppercase tracking-[0.24em] text-slate-500">Schedule Jobs</div>
-                <h2 className="mt-2 text-2xl font-black text-slate-900">调度任务</h2>
-              </div>
-              <button
-                onClick={() => {
-                  setSelectedJobId('');
-                  setJobDraft(createJobDraft());
-                }}
-                className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 px-4 py-2 text-sm font-black text-slate-700 transition hover:bg-slate-50"
-              >
-                <Plus size={16} />
-                新建
-              </button>
-            </div>
-            <div className="mt-5 space-y-3">
-              {jobs.map((job) => (
-                <button
-                  key={job.id}
-                  onClick={() => setSelectedJobId(job.id)}
-                  className={`w-full rounded-[1.6rem] border p-4 text-left transition ${
-                    selectedJobId === job.id
-                      ? 'border-cyan-300 bg-cyan-50 shadow-[0_12px_30px_rgba(8,145,178,0.12)]'
-                      : 'border-slate-200 bg-slate-50 hover:border-slate-300 hover:bg-white'
-                  }`}
+        {nav === 'overview' ? (
+          <>
+            <section className="grid gap-4 md:grid-cols-2 2xl:grid-cols-4">
+              {statCards.map((card, index) => (
+                <article
+                  key={`${card.label}-${index}`}
+                  className={`rounded-[1.6rem] border bg-gradient-to-br p-5 shadow-sm ${metricTone(card.key)}`}
                 >
-                  <div className="flex items-start justify-between gap-3">
-                    <div>
-                      <div className="text-sm font-black text-slate-900">{job.name}</div>
-                      <div className="mt-1 text-xs text-slate-500">{job.description || '未填写描述'}</div>
-                    </div>
-                    <div className={`rounded-full border px-3 py-1 text-[11px] font-black uppercase tracking-[0.18em] ${job.enabled ? 'border-emerald-200 bg-emerald-100 text-emerald-700' : 'border-slate-200 bg-slate-100 text-slate-600'}`}>
-                      {job.enabled ? 'Active' : 'Paused'}
-                    </div>
-                  </div>
-                  <div className="mt-4 flex items-center justify-between text-xs font-bold text-slate-600">
-                    <span>{triggerLabel(job)}</span>
-                    <span>{formatTime(job.next_run_at)}</span>
-                  </div>
-                </button>
+                  <div className="text-xs font-black uppercase tracking-[0.2em] text-slate-500">{card.label}</div>
+                  <div className="mt-3 break-all text-3xl font-black text-slate-900">{typeof card.value === 'string' ? card.value : formatCount(card.value as number)}</div>
+                  <div className="mt-2 text-xs font-bold text-slate-500">{card.hint}</div>
+                </article>
               ))}
-              {!jobs.length ? (
-                <div className="rounded-[1.6rem] border border-dashed border-slate-300 bg-slate-50 px-5 py-8 text-center text-sm font-bold text-slate-500">
-                  还没有调度任务。先创建一个 REST 调度入口。
-                </div>
-              ) : null}
-            </div>
-          </section>
+            </section>
 
-          <section className="space-y-6">
-            <div className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
-              <div className="flex flex-wrap items-start justify-between gap-4">
-                <div>
-                  <div className="text-xs font-black uppercase tracking-[0.24em] text-slate-500">Mission Editor</div>
-                  <h2 className="mt-2 text-2xl font-black text-slate-900">
-                    {selectedJob ? `编辑 · ${selectedJob.name}` : '新建调度任务'}
-                  </h2>
-                </div>
-                <div className="flex flex-wrap items-center gap-3">
-                  {selectedJob ? (
-                    <>
-                      <button
-                        onClick={() => void handleTriggerJob(selectedJob)}
-                        className="inline-flex items-center gap-2 rounded-2xl bg-cyan-600 px-4 py-3 text-sm font-black text-white transition hover:bg-cyan-500"
-                      >
-                        <Rocket size={16} />
-                        手动触发
-                      </button>
-                      <button
-                        onClick={() => void handleToggleJob(selectedJob, !selectedJob.enabled)}
-                        className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 px-4 py-3 text-sm font-black text-slate-700 transition hover:bg-slate-50"
-                      >
-                        {selectedJob.enabled ? <PauseCircle size={16} /> : <PlayCircle size={16} />}
-                        {selectedJob.enabled ? '禁用' : '启用'}
-                      </button>
-                    </>
-                  ) : null}
-                  <button
-                    onClick={() => void handleSaveJob()}
-                    disabled={savingJob}
-                    className="inline-flex items-center gap-2 rounded-2xl bg-slate-900 px-4 py-3 text-sm font-black text-white transition hover:bg-slate-800 disabled:opacity-60"
-                  >
-                    {savingJob ? <Loader2 size={16} className="animate-spin" /> : <CheckCircle2 size={16} />}
-                    保存任务
-                  </button>
-                </div>
-              </div>
-
-              <div className="mt-6 grid gap-4 md:grid-cols-2">
-                <input value={jobDraft.name} onChange={(e) => setJobDraft((v) => ({ ...v, name: e.target.value }))} placeholder="任务名称" className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold text-slate-800 outline-none focus:border-cyan-300" />
-                <input value={jobDraft.target_url} onChange={(e) => setJobDraft((v) => ({ ...v, target_url: e.target.value }))} placeholder="目标 URL" className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold text-slate-800 outline-none focus:border-cyan-300" />
-                <textarea value={jobDraft.description} onChange={(e) => setJobDraft((v) => ({ ...v, description: e.target.value }))} placeholder="任务描述" rows={3} className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold text-slate-800 outline-none focus:border-cyan-300 md:col-span-2" />
-                <select value={jobDraft.trigger_type} onChange={(e) => setJobDraft((v) => ({ ...v, trigger_type: e.target.value as JobDraft['trigger_type'] }))} className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold text-slate-800 outline-none focus:border-cyan-300">
-                  <option value="manual">manual</option>
-                  <option value="interval">interval</option>
-                  <option value="cron">cron</option>
-                </select>
-                <select value={jobDraft.target_method} onChange={(e) => setJobDraft((v) => ({ ...v, target_method: e.target.value }))} className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold text-slate-800 outline-none focus:border-cyan-300">
-                  {['GET', 'POST', 'PUT', 'PATCH', 'DELETE'].map((item) => <option key={item} value={item}>{item}</option>)}
-                </select>
-                <select value={jobDraft.auth_mode} onChange={(e) => setJobDraft((v) => ({ ...v, auth_mode: e.target.value as JobDraft['auth_mode'] }))} className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold text-slate-800 outline-none focus:border-cyan-300">
-                  <option value="machine_token">machine_token</option>
-                  <option value="bearer_passthrough">bearer_passthrough</option>
-                  <option value="none">none</option>
-                  <option value="static_bearer">static_bearer</option>
-                </select>
-                <input value={jobDraft.timezone} onChange={(e) => setJobDraft((v) => ({ ...v, timezone: e.target.value }))} placeholder="Timezone" className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold text-slate-800 outline-none focus:border-cyan-300" />
-                {jobDraft.trigger_type === 'cron' ? (
-                  <input value={jobDraft.cron_expr} onChange={(e) => setJobDraft((v) => ({ ...v, cron_expr: e.target.value }))} placeholder="*/10 * * * *" className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold text-slate-800 outline-none focus:border-cyan-300 md:col-span-2" />
-                ) : null}
-                {jobDraft.trigger_type === 'interval' ? (
-                  <input value={jobDraft.interval_seconds} onChange={(e) => setJobDraft((v) => ({ ...v, interval_seconds: e.target.value === '' ? '' : Number(e.target.value) }))} placeholder="间隔秒数" type="number" className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold text-slate-800 outline-none focus:border-cyan-300 md:col-span-2" />
-                ) : null}
-                {jobDraft.auth_mode === 'static_bearer' ? (
-                  <input value={jobDraft.static_bearer_token} onChange={(e) => setJobDraft((v) => ({ ...v, static_bearer_token: e.target.value }))} placeholder="静态 Bearer Token" className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold text-slate-800 outline-none focus:border-cyan-300 md:col-span-2" />
-                ) : null}
-                <input value={jobDraft.response_task_id_path} onChange={(e) => setJobDraft((v) => ({ ...v, response_task_id_path: e.target.value }))} placeholder="task_id / data.task_id" className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold text-slate-800 outline-none focus:border-cyan-300" />
-                <input value={jobDraft.dedupe_window_seconds} onChange={(e) => setJobDraft((v) => ({ ...v, dedupe_window_seconds: e.target.value === '' ? '' : Number(e.target.value) }))} placeholder="去重窗口秒数" type="number" className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold text-slate-800 outline-none focus:border-cyan-300" />
-              </div>
-
-              <div className="mt-6 grid gap-4 xl:grid-cols-3">
-                <div>
-                  <div className="mb-2 text-xs font-black uppercase tracking-[0.2em] text-slate-500">Headers</div>
-                  <textarea value={jobDraft.target_headers} onChange={(e) => setJobDraft((v) => ({ ...v, target_headers: e.target.value }))} rows={10} className="w-full rounded-2xl border border-slate-200 bg-slate-950 px-4 py-4 font-mono text-xs text-cyan-200 outline-none focus:border-cyan-400" />
-                </div>
-                <div>
-                  <div className="mb-2 text-xs font-black uppercase tracking-[0.2em] text-slate-500">Query</div>
-                  <textarea value={jobDraft.target_query} onChange={(e) => setJobDraft((v) => ({ ...v, target_query: e.target.value }))} rows={10} className="w-full rounded-2xl border border-slate-200 bg-slate-950 px-4 py-4 font-mono text-xs text-cyan-200 outline-none focus:border-cyan-400" />
-                </div>
-                <div>
-                  <div className="mb-2 text-xs font-black uppercase tracking-[0.2em] text-slate-500">Body Template</div>
-                  <textarea value={jobDraft.target_body_template} onChange={(e) => setJobDraft((v) => ({ ...v, target_body_template: e.target.value }))} rows={10} className="w-full rounded-2xl border border-slate-200 bg-slate-950 px-4 py-4 font-mono text-xs text-cyan-200 outline-none focus:border-cyan-400" />
-                </div>
-              </div>
-            </div>
-
-            <div className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
-              <div className="flex flex-wrap items-center justify-between gap-4">
-                <div>
-                  <div className="text-xs font-black uppercase tracking-[0.24em] text-slate-500">Execution Deck</div>
-                  <h2 className="mt-2 text-2xl font-black text-slate-900">执行记录</h2>
-                </div>
-                <div className="flex gap-3">
-                  <div className="rounded-2xl border border-sky-200 bg-sky-50 px-4 py-3 text-xs font-black uppercase tracking-[0.18em] text-sky-700">Running {jobStats.running}</div>
-                  <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-xs font-black uppercase tracking-[0.18em] text-emerald-700">Succeeded {jobStats.success}</div>
-                  <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-xs font-black uppercase tracking-[0.18em] text-rose-700">Failed {jobStats.failed}</div>
-                </div>
-              </div>
-
-              <div className="mt-6 grid gap-5 2xl:grid-cols-[minmax(0,1fr)_340px]">
-                <div className="space-y-3">
-                  {executions.map((execution) => (
+            <section className="rounded-[2rem] border border-slate-200/70 bg-white/90 shadow-[0_18px_60px_rgba(15,23,42,0.08)] backdrop-blur">
+              <div className="border-b border-slate-200 px-5 py-5 md:px-6">
+                <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
+                  <div>
+                    <div className="text-xs font-black uppercase tracking-[0.24em] text-slate-500">Global Task Overview</div>
+                    <h2 className="mt-2 text-2xl font-black text-slate-900">全局任务总览</h2>
+                    <div className="mt-2 text-sm text-slate-500">默认按更新时间倒序展示全部调度任务实例，不再按项目隔离首页视图。</div>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-3">
+                    {renderNavButtons()}
+                    <div className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold text-slate-600">
+                      <Layers3 size={16} />
+                      总计 {formatCount(total)}
+                    </div>
                     <button
-                      key={execution.id}
-                      onClick={() => setSelectedExecutionId(execution.id)}
-                      className={`w-full rounded-[1.5rem] border p-4 text-left transition ${
-                        selectedExecutionId === execution.id ? 'border-cyan-300 bg-cyan-50' : 'border-slate-200 bg-slate-50 hover:bg-white'
-                      }`}
+                      onClick={() => void handleRefresh()}
+                      className="inline-flex items-center gap-2 rounded-2xl bg-slate-900 px-4 py-3 text-sm font-black text-white transition hover:bg-slate-800 disabled:opacity-60"
+                      disabled={refreshing}
                     >
-                      <div className="flex items-start justify-between gap-3">
-                        <div>
-                          <div className="text-sm font-black text-slate-900">{execution.downstream_task_id || execution.id}</div>
-                          <div className="mt-1 text-xs text-slate-500">
-                            {execution.trigger_source} · {formatTime(execution.started_at || execution.created_at)}
-                          </div>
-                        </div>
-                        <div className={`rounded-full border px-3 py-1 text-[11px] font-black uppercase tracking-[0.18em] ${executionTone(execution.status)}`}>
-                          {execution.status}
-                        </div>
-                      </div>
-                      <div className="mt-3 flex flex-wrap gap-3 text-xs font-bold text-slate-600">
-                        <span>HTTP {execution.http_status || '—'}</span>
-                        <span>时长 {execution.duration_ms ?? '—'} ms</span>
-                        <span>下游 {execution.downstream_task_name || execution.downstream_task_id || '—'}</span>
-                      </div>
+                      <RefreshCw size={16} className={refreshing ? 'animate-spin' : ''} />
+                      刷新
                     </button>
-                  ))}
-                  {!executions.length ? (
-                    <div className="rounded-[1.5rem] border border-dashed border-slate-300 bg-slate-50 px-5 py-8 text-center text-sm font-bold text-slate-500">
-                      当前任务还没有执行记录。
-                    </div>
-                  ) : null}
-                </div>
-
-                <div className="rounded-[1.75rem] border border-slate-200 bg-slate-800 p-5">
-                  <div className="flex items-center gap-2 text-sm font-black text-slate-200">
-                    <Eye size={16} />
-                    选中执行详情
                   </div>
-                  {selectedExecution ? (
-                    <div className="mt-4 space-y-4">
-                      <div className="rounded-2xl border border-slate-200 bg-slate-700 p-4">
-                        <div className="text-xs font-black uppercase tracking-[0.18em] text-slate-500">Request Snapshot</div>
-                        <pre className="mt-3 overflow-auto rounded-xl bg-slate-950 p-3 text-[11px] text-cyan-200">{JSON.stringify(selectedExecution.request_snapshot || {}, null, 2)}</pre>
-                      </div>
-                      <div className="rounded-2xl border border-slate-200 bg-white p-4">
-                        <div className="text-xs font-black uppercase tracking-[0.18em] text-slate-500">Response Snapshot</div>
-                        <pre className="mt-3 overflow-auto rounded-xl bg-slate-950 p-3 text-[11px] text-emerald-200">{JSON.stringify(selectedExecution.response_snapshot || {}, null, 2)}</pre>
-                      </div>
-                      <div className="rounded-2xl border border-slate-200 bg-white p-4">
-                        <div className="text-xs font-black uppercase tracking-[0.18em] text-slate-500">Event Timeline</div>
-                        <div className="mt-3 space-y-3">
-                          {executionEvents.map((event) => (
-                            <div key={event.id} className="rounded-xl border border-slate-200 bg-slate-50 p-3">
-                              <div className="flex items-center justify-between gap-3">
-                                <div className="text-xs font-black uppercase tracking-[0.18em] text-slate-700">{event.event_type}</div>
-                                <div className="text-[11px] font-bold text-slate-500">{formatTime(event.created_at)}</div>
-                              </div>
-                              <div className="mt-2 text-xs font-medium text-slate-600">{event.message}</div>
+                </div>
+              </div>
+
+              <div className="border-b border-slate-200 px-5 py-5 md:px-6">
+                <div className="grid gap-4 xl:grid-cols-[1.45fr_0.95fr_1fr_1fr_0.95fr_0.8fr_auto] xl:items-end">
+                  <label className="block">
+                    <span className="text-xs font-black uppercase tracking-[0.18em] text-slate-500">关键词搜索</span>
+                    <div className="mt-2 flex items-center gap-2 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
+                      <Search size={16} className="text-slate-400" />
+                      <input
+                        value={filters.search}
+                        onChange={(event) => {
+                          const next = event.target.value;
+                          setFilters((current) => ({ ...current, search: next }));
+                          if (page !== 1) setPage(1);
+                        }}
+                        placeholder="任务名 / 下游任务 ID / 创建人"
+                        className="w-full bg-transparent text-sm font-semibold text-slate-800 outline-none placeholder:text-slate-400"
+                      />
+                    </div>
+                  </label>
+
+                  <label className="block">
+                    <span className="text-xs font-black uppercase tracking-[0.18em] text-slate-500">状态</span>
+                    <select
+                      value={filters.status}
+                      onChange={(event) => {
+                        setFilters((current) => ({ ...current, status: event.target.value }));
+                        setPage(1);
+                      }}
+                      className="mt-2 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-800 outline-none"
+                    >
+                      {STATUS_OPTIONS.map((item) => (
+                        <option key={item.value} value={item.value}>{item.label}</option>
+                      ))}
+                    </select>
+                  </label>
+
+                  <label className="block">
+                    <span className="text-xs font-black uppercase tracking-[0.18em] text-slate-500">任务类型</span>
+                    <select
+                      value={filters.taskType}
+                      onChange={(event) => {
+                        setFilters((current) => ({ ...current, taskType: event.target.value }));
+                        setPage(1);
+                      }}
+                      className="mt-2 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-800 outline-none"
+                    >
+                      {TASK_TYPE_OPTIONS.map((item) => (
+                        <option key={item.value} value={item.value}>{item.label}</option>
+                      ))}
+                    </select>
+                  </label>
+
+                  <label className="block">
+                    <span className="text-xs font-black uppercase tracking-[0.18em] text-slate-500">项目过滤</span>
+                    <select
+                      value={filters.projectId}
+                      onChange={(event) => {
+                        setFilters((current) => ({ ...current, projectId: event.target.value }));
+                        setPage(1);
+                      }}
+                      className="mt-2 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-800 outline-none"
+                    >
+                      {projectOptions.map((item) => (
+                        <option key={item.id} value={item.id}>{item.label}</option>
+                      ))}
+                    </select>
+                  </label>
+
+                  <label className="block">
+                    <span className="text-xs font-black uppercase tracking-[0.18em] text-slate-500">排序字段</span>
+                    <select
+                      value={sortField}
+                      onChange={(event) => {
+                        setSortField(event.target.value as SortField);
+                        setPage(1);
+                      }}
+                      className="mt-2 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-800 outline-none"
+                    >
+                      {SORT_FIELDS.map((item) => (
+                        <option key={item.value} value={item.value}>{item.label}</option>
+                      ))}
+                    </select>
+                  </label>
+
+                  <label className="block">
+                    <span className="text-xs font-black uppercase tracking-[0.18em] text-slate-500">每页条数</span>
+                    <select
+                      value={pageSize}
+                      onChange={(event) => {
+                        setPageSize(Number(event.target.value));
+                        setPage(1);
+                      }}
+                      className="mt-2 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-800 outline-none"
+                    >
+                      {PAGE_SIZE_OPTIONS.map((value) => (
+                        <option key={value} value={value}>{value}</option>
+                      ))}
+                    </select>
+                  </label>
+
+                  <div className="flex flex-wrap items-center gap-3 xl:justify-end">
+                    <label className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-700">
+                      <input
+                        type="checkbox"
+                        checked={filters.isRetrying}
+                        onChange={(event) => {
+                          setFilters((current) => ({ ...current, isRetrying: event.target.checked }));
+                          setPage(1);
+                        }}
+                        className="h-4 w-4 rounded border-slate-300"
+                      />
+                      仅重试中
+                    </label>
+                    <label className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-700">
+                      <input
+                        type="checkbox"
+                        checked={filters.hasError}
+                        onChange={(event) => {
+                          setFilters((current) => ({ ...current, hasError: event.target.checked }));
+                          setPage(1);
+                        }}
+                        className="h-4 w-4 rounded border-slate-300"
+                      />
+                      仅失败
+                    </label>
+                  </div>
+                </div>
+              </div>
+
+              <div className="overflow-x-auto px-5 py-5 md:px-6">
+                <table className="min-w-full border-separate border-spacing-y-3">
+                  <thead>
+                    <tr className="text-left text-xs font-black uppercase tracking-[0.18em] text-slate-500">
+                      <th className="px-4 py-2">任务名称</th>
+                      <th className="px-4 py-2">任务类型</th>
+                      <th className="px-4 py-2">当前状态</th>
+                      <th className="px-4 py-2">展示状态</th>
+                      <th className="px-4 py-2">项目</th>
+                      <th className="px-4 py-2">队列状态</th>
+                      <th className="px-4 py-2">重试次数</th>
+                      <th className="px-4 py-2">下游任务 ID</th>
+                      <th className="px-4 py-2">Task Key</th>
+                      <th className="px-4 py-2">创建人</th>
+                      <th className="px-4 py-2">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setSortField('created_at');
+                            setSortDirection((current) => (sortField === 'created_at' && current === 'desc' ? 'asc' : 'desc'));
+                            setPage(1);
+                          }}
+                          className="inline-flex items-center gap-2"
+                        >
+                          创建时间
+                          {sortIndicator('created_at', sortField, sortDirection)}
+                        </button>
+                      </th>
+                      <th className="px-4 py-2">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setSortField('updated_at');
+                            setSortDirection((current) => (sortField === 'updated_at' && current === 'desc' ? 'asc' : 'desc'));
+                            setPage(1);
+                          }}
+                          className="inline-flex items-center gap-2"
+                        >
+                          更新时间
+                          {sortIndicator('updated_at', sortField, sortDirection)}
+                        </button>
+                      </th>
+                      <th className="px-4 py-2">开始时间</th>
+                      <th className="px-4 py-2">结束时间</th>
+                      <th className="px-4 py-2">失败原因</th>
+                      <th className="px-4 py-2">操作</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {loadingTable ? (
+                      <tr>
+                        <td colSpan={16} className="px-4 py-12 text-center text-sm font-bold text-slate-500">
+                          全局任务列表加载中...
+                        </td>
+                      </tr>
+                    ) : tableItems.length ? (
+                      tableItems.map((item) => (
+                        <tr key={item.task_id} className="rounded-3xl bg-white shadow-[0_8px_24px_rgba(15,23,42,0.06)]">
+                          <td className="rounded-l-[1.5rem] px-4 py-4 align-top">
+                            <div className="font-black text-slate-900">{item.task_name || item.task_id}</div>
+                            <div className="mt-1 text-xs text-slate-500">{item.task_id}</div>
+                          </td>
+                          <td className="px-4 py-4 align-top text-sm font-semibold text-slate-700">{item.task_type || '-'}</td>
+                          <td className="px-4 py-4 align-top text-sm font-semibold text-slate-700">{item.current_status || '-'}</td>
+                          <td className="px-4 py-4 align-top">
+                            <span className={`rounded-full border px-3 py-1 text-[11px] font-black uppercase tracking-[0.18em] ${statusTone(item.display_status_group)}`}>
+                              {summarizeStatus(item)}
+                            </span>
+                          </td>
+                          <td className="px-4 py-4 align-top text-sm font-semibold text-slate-700">{item.project_name || item.project_id || '-'}</td>
+                          <td className="px-4 py-4 align-top text-sm font-semibold text-slate-700">{item.queue_state || '-'}</td>
+                          <td className="px-4 py-4 align-top text-sm font-semibold text-slate-700">{item.retry_count ?? 0}</td>
+                          <td className="px-4 py-4 align-top text-xs font-bold text-slate-600">{item.downstream_task_id || '-'}</td>
+                          <td className="px-4 py-4 align-top text-xs font-bold text-slate-600">{getTaskKeyValue(item)}</td>
+                          <td className="px-4 py-4 align-top text-sm font-semibold text-slate-700">{item.created_by || '-'}</td>
+                          <td className="px-4 py-4 align-top text-xs font-semibold text-slate-600">{formatTime(item.created_at)}</td>
+                          <td className="px-4 py-4 align-top text-xs font-semibold text-slate-600">{formatTime(item.updated_at)}</td>
+                          <td className="px-4 py-4 align-top text-xs font-semibold text-slate-600">{formatTime(item.started_at)}</td>
+                          <td className="px-4 py-4 align-top text-xs font-semibold text-slate-600">{formatTime(item.finished_at)}</td>
+                          <td className="max-w-[220px] px-4 py-4 align-top text-xs font-semibold text-rose-700">{item.last_error || '-'}</td>
+                          <td className="rounded-r-[1.5rem] px-4 py-4 align-top">
+                            <div className="flex flex-col gap-2">
+                              <button
+                                onClick={() => void openTaskDetail(item.task_id)}
+                                className="rounded-xl border border-slate-200 px-3 py-2 text-xs font-black text-slate-700 transition hover:bg-slate-50"
+                              >
+                                查看详情
+                              </button>
+                              <button
+                                onClick={() => void handleViewExecution(item)}
+                                className="rounded-xl border border-slate-200 px-3 py-2 text-xs font-black text-slate-700 transition hover:bg-slate-50"
+                              >
+                                查看执行记录
+                              </button>
+                              <button
+                                onClick={() => void handleRetryDispatch(item)}
+                                className="rounded-xl bg-slate-900 px-3 py-2 text-xs font-black text-white transition hover:bg-slate-800"
+                              >
+                                重试分发
+                              </button>
+                              {item.downstream_detail_view ? (
+                                <button
+                                  onClick={() => window.open(item.downstream_detail_view || '', '_blank', 'noopener,noreferrer')}
+                                  className="rounded-xl border border-slate-200 px-3 py-2 text-xs font-black text-slate-700 transition hover:bg-slate-50"
+                                >
+                                  跳转下游任务
+                                </button>
+                              ) : null}
                             </div>
-                          ))}
-                          {!executionEvents.length ? <div className="text-xs font-bold text-slate-500">暂无事件</div> : null}
-                        </div>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="mt-4 rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-4 py-8 text-center text-sm font-bold text-slate-500">
-                      选择一条执行记录查看请求、响应与时间线。
-                    </div>
-                  )}
-                </div>
+                          </td>
+                        </tr>
+                      ))
+                    ) : (
+                      <tr>
+                        <td colSpan={16} className="px-4 py-12">
+                          <div className="rounded-[2rem] border border-dashed border-slate-300 bg-slate-50 px-6 py-10 text-center">
+                            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-white shadow-sm">
+                              <AlertCircle className="text-slate-400" size={24} />
+                            </div>
+                            <div className="mt-4 text-lg font-black text-slate-900">当前没有可展示的全局任务</div>
+                            <div className="mt-2 text-sm font-semibold text-slate-500">
+                              如果后端全局列表接口尚未发布，这里会先保持空态，同时保留完整的筛选、统计和详情框架。
+                            </div>
+                          </div>
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
               </div>
-            </div>
-          </section>
 
-          <section className="space-y-6">
-            <div className="rounded-[2rem] border border-slate-200 bg-white p-5 shadow-sm">
-              <div className="flex items-center justify-between">
-                <div>
-                  <div className="text-xs font-black uppercase tracking-[0.24em] text-slate-500">LiteLLM Vault</div>
-                  <h2 className="mt-2 text-2xl font-black text-slate-900">虚拟 Key</h2>
-                </div>
-                <div className="rounded-full bg-amber-100 px-3 py-1 text-[11px] font-black uppercase tracking-[0.18em] text-amber-700">One-time Reveal</div>
-              </div>
-              <div className="mt-5 space-y-3">
-                {keys.map((item) => (
-                  <button
-                    key={item.id}
-                    onClick={() => setSelectedKeyId(item.id)}
-                    className={`w-full rounded-[1.5rem] border p-4 text-left transition ${
-                      selectedKeyId === item.id ? 'border-violet-300 bg-violet-50' : 'border-slate-200 bg-slate-50 hover:bg-white'
-                    }`}
-                  >
-                    <div className="flex items-start justify-between gap-3">
-                      <div>
-                        <div className="text-sm font-black text-slate-900">{item.name}</div>
-                        <div className="mt-1 text-xs text-slate-500">suffix {item.key_suffix || '—'} · {item.alias || 'no-alias'}</div>
-                      </div>
-                      <div className={`rounded-full border px-3 py-1 text-[11px] font-black uppercase tracking-[0.18em] ${keyTone(item.status)}`}>
-                        {item.status}
-                      </div>
-                    </div>
-                  </button>
-                ))}
-                {!keys.length ? (
-                  <div className="rounded-[1.5rem] border border-dashed border-slate-300 bg-slate-50 px-5 py-8 text-center text-sm font-bold text-slate-500">
-                    当前项目还没有 LiteLLM 虚拟 Key。
+              <div className="border-t border-slate-200 px-5 py-4 md:px-6">
+                <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+                  <div className="text-sm font-semibold text-slate-500">
+                    第 {page} / {totalPages} 页，共 {formatCount(total)} 条
                   </div>
-                ) : null}
-              </div>
-            </div>
-
-            <div className="rounded-[2rem] border border-slate-200 bg-white p-5 shadow-sm">
-              <div className="flex items-center gap-2 text-sm font-black text-slate-900">
-                <KeyRound size={16} />
-                新建虚拟 Key
-              </div>
-              <div className="mt-4 space-y-3">
-                <input value={keyDraft.name} onChange={(e) => setKeyDraft((v) => ({ ...v, name: e.target.value }))} placeholder="Key 名称" className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold text-slate-800 outline-none focus:border-violet-300" />
-                <input value={keyDraft.alias} onChange={(e) => setKeyDraft((v) => ({ ...v, alias: e.target.value }))} placeholder="Alias" className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold text-slate-800 outline-none focus:border-violet-300" />
-                <input value={keyDraft.models} onChange={(e) => setKeyDraft((v) => ({ ...v, models: e.target.value }))} placeholder="gpt-4o-mini,deepseek-chat" className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold text-slate-800 outline-none focus:border-violet-300" />
-                <div className="grid gap-3 md:grid-cols-2">
-                  <input value={keyDraft.duration} onChange={(e) => setKeyDraft((v) => ({ ...v, duration: e.target.value }))} placeholder="30d" className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold text-slate-800 outline-none focus:border-violet-300" />
-                  <input value={keyDraft.max_budget} onChange={(e) => setKeyDraft((v) => ({ ...v, max_budget: e.target.value }))} placeholder="10" className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold text-slate-800 outline-none focus:border-violet-300" />
+                  <div className="flex items-center gap-3">
+                    <button
+                      onClick={() => setPage((current) => Math.max(1, current - 1))}
+                      disabled={page <= 1}
+                      className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 px-4 py-2 text-sm font-black text-slate-700 transition hover:bg-slate-50 disabled:opacity-50"
+                    >
+                      <ChevronLeft size={16} />
+                      上一页
+                    </button>
+                    <button
+                      onClick={() => setPage((current) => Math.min(totalPages, current + 1))}
+                      disabled={page >= totalPages}
+                      className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 px-4 py-2 text-sm font-black text-slate-700 transition hover:bg-slate-50 disabled:opacity-50"
+                    >
+                      下一页
+                      <ChevronRight size={16} />
+                    </button>
+                  </div>
                 </div>
-                <textarea value={keyDraft.metadata} onChange={(e) => setKeyDraft((v) => ({ ...v, metadata: e.target.value }))} rows={8} className="w-full rounded-2xl border border-slate-200 bg-slate-950 px-4 py-4 font-mono text-xs text-violet-200 outline-none focus:border-violet-400" />
+              </div>
+            </section>
+          </>
+        ) : (
+          <section className="rounded-[2rem] border border-slate-200/70 bg-white/90 p-6 shadow-[0_18px_60px_rgba(15,23,42,0.08)] backdrop-blur md:p-8">
+            <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
+              <div className="max-w-3xl">
+                <div className="text-xs font-black uppercase tracking-[0.24em] text-slate-500">Secondary Capability</div>
+                <h2 className="mt-2 text-3xl font-black text-slate-900">{legacySectionContent[nav as Exclude<OverviewNav, 'overview'>].title}</h2>
+                <p className="mt-4 text-sm leading-7 text-slate-600">
+                  {legacySectionContent[nav as Exclude<OverviewNav, 'overview'>].summary}
+                </p>
+              </div>
+              <div className="flex flex-wrap gap-3">
+                {renderNavButtons()}
                 <button
-                  onClick={() => void handleCreateKey()}
-                  disabled={savingKey}
-                  className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-violet-600 px-4 py-3 text-sm font-black text-white transition hover:bg-violet-500 disabled:opacity-60"
+                  onClick={() => void handleRefresh()}
+                  className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-black text-slate-700 transition hover:bg-slate-50"
                 >
-                  {savingKey ? <Loader2 size={16} className="animate-spin" /> : <Plus size={16} />}
-                  创建 Key
+                  <RefreshCw size={16} className={refreshing ? 'animate-spin' : ''} />
+                  刷新总览数据
                 </button>
               </div>
             </div>
 
-            {selectedKey ? (
-              <div className="rounded-[2rem] border border-slate-200 bg-white p-5 shadow-sm">
-                <div className="flex items-center justify-between gap-3">
-                  <div>
-                    <div className="text-xs font-black uppercase tracking-[0.24em] text-slate-500">Selected Key</div>
-                    <h3 className="mt-2 text-xl font-black text-slate-900">{selectedKey.name}</h3>
-                  </div>
-                  <div className={`rounded-full border px-3 py-1 text-[11px] font-black uppercase tracking-[0.18em] ${keyTone(selectedKey.status)}`}>
-                    {selectedKey.status}
-                  </div>
-                </div>
-                <div className="mt-4 grid gap-3 text-sm font-bold text-slate-700">
-                  <div className="rounded-2xl bg-slate-50 px-4 py-3">Suffix: {selectedKey.key_suffix || '—'}</div>
-                  <div className="rounded-2xl bg-slate-50 px-4 py-3">Alias: {selectedKey.alias || '—'}</div>
-                  <div className="rounded-2xl bg-slate-50 px-4 py-3">Models: {(selectedKey.models || []).join(', ') || '—'}</div>
-                  <div className="rounded-2xl bg-slate-50 px-4 py-3">Last Sync: {formatTime(selectedKey.last_synced_at)}</div>
-                </div>
-                <div className="mt-4 flex flex-wrap gap-3">
-                  <button onClick={() => void handleSyncKey(selectedKey)} className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 px-4 py-3 text-sm font-black text-slate-700 transition hover:bg-slate-50">
-                    <RefreshCw size={16} />
-                    同步
-                  </button>
-                  <button onClick={() => void handleShowKeyEvents(selectedKey)} className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 px-4 py-3 text-sm font-black text-slate-700 transition hover:bg-slate-50">
-                    <Activity size={16} />
-                    查看事件
-                  </button>
-                  {selectedKey.status !== 'disabled' ? (
-                    <button onClick={() => void handleDisableKey(selectedKey)} className="inline-flex items-center gap-2 rounded-2xl bg-rose-600 px-4 py-3 text-sm font-black text-white transition hover:bg-rose-500">
-                      <XCircle size={16} />
-                      禁用
-                    </button>
-                  ) : null}
+            <div className="mt-8 grid gap-4 xl:grid-cols-[1.2fr_0.8fr]">
+              <div className="rounded-[1.6rem] border border-slate-200 bg-slate-50 p-5">
+                <div className="text-xs font-black uppercase tracking-[0.2em] text-slate-500">能力迁移说明</div>
+                <div className="mt-4 space-y-3">
+                  {legacySectionContent[nav as Exclude<OverviewNav, 'overview'>].bullets.map((bullet) => (
+                    <div key={bullet} className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700">
+                      {bullet}
+                    </div>
+                  ))}
                 </div>
               </div>
-            ) : null}
-          </section>
-        </div>
 
-        {loading ? (
-          <div className="fixed bottom-6 right-6 inline-flex items-center gap-3 rounded-full bg-slate-950 px-5 py-3 text-sm font-black text-white shadow-2xl">
-            <Loader2 className="animate-spin" size={16} />
-            同步调度舱数据中
-          </div>
-        ) : null}
+              <div className="rounded-[1.6rem] border border-slate-200 bg-white p-5">
+                <div className="text-xs font-black uppercase tracking-[0.2em] text-slate-500">当前全局快照</div>
+                <div className="mt-4 grid gap-3">
+                  <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm">
+                    <span className="font-black text-slate-900">任务总数：</span>{formatCount(overview.stats.total_tasks)}
+                  </div>
+                  <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm">
+                    <span className="font-black text-slate-900">进行中：</span>{formatCount(overview.stats.running_tasks)}
+                  </div>
+                  <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm">
+                    <span className="font-black text-slate-900">队列深度：</span>{formatCount(overview.queue.depth)}
+                  </div>
+                  <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm">
+                    <span className="font-black text-slate-900">最近刷新：</span>{overview.refreshed_at ? formatTime(overview.refreshed_at) : '-'}
+                  </div>
+                  <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm">
+                    <span className="font-black text-slate-900">服务健康：</span>{overview.health.status || health?.status || 'unknown'}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+        )}
       </div>
+
+      <DetailDrawer
+        detail={selectedTaskDetail}
+        open={detailOpen}
+        loading={loadingDetail}
+        onClose={() => {
+          setDetailOpen(false);
+          setSelectedTaskDetail(null);
+          setSelectedTaskId('');
+        }}
+        onRetryDispatch={() => void handleRetryDispatch(selectedTaskDetail)}
+      />
+
+      {(loadingOverview || refreshing) ? (
+        <div className="fixed bottom-6 right-6 inline-flex items-center gap-3 rounded-full bg-slate-950 px-5 py-3 text-sm font-black text-white shadow-2xl">
+          <RefreshCw className="animate-spin" size={16} />
+          同步全局调度总览中
+        </div>
+      ) : null}
     </div>
   );
 };

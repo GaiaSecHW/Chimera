@@ -54,7 +54,6 @@ import { FirmwareEvolutionCenterPage } from '../pages/execution/FirmwareEvolutio
 import { ReportsPage } from '../pages/execution/ReportsPage';
 import { TestInputPage } from '../pages/TestInputPage';
 import { TaskCenterPage } from '../pages/task/TaskCenterPage';
-import { WebEndToEndPage } from '../pages/task/WebEndToEndPage';
 // [DISABLED] DataflowVulnTask import - 方便后续复用
 // import { DataflowVulnTaskDetailPage, DataflowVulnTaskListPage } from '../pages/execution/DataflowVulnScanPage';
 import { BinaryEvolutionCenterPage } from '../pages/execution/BinaryEvolutionCenterPage';
@@ -209,18 +208,8 @@ export const renderCurrentView = (ctx: ViewRegistryContext): React.ReactNode => 
       return <ProjectDetailPage projectId={ctx.activeProjectId} projects={ctx.projects} onBack={() => ctx.setCurrentView('project-mgmt')} />;
     case 'product-mgmt':
       return <ProductMgmtPage />;
-    case 'task-nuzhua':
-      return <EmptyPlaceholderPage title="NUZHUA" />;
     case 'task-list':
       return <TaskCenterPage projectId={ctx.selectedProjectId} projects={ctx.projects} />;
-    case 'task-smart-jar':
-      return <EmptyPlaceholderPage title="智JAR" />;
-    case 'task-apk-smart-scan':
-      return <EmptyPlaceholderPage title="APK智能扫描" />;
-    case 'task-binary-end-to-end':
-      return <EmptyPlaceholderPage title="二进制端到端" />;
-    case 'task-web-end-to-end':
-      return <WebEndToEndPage projectId={ctx.selectedProjectId} />;
     case 'developer-atomic-capability':
     case 'developer-atomic-capability-overview':
       return <AtomicCapabilityOverviewPage projectId={ctx.selectedProjectId} onNavigate={ctx.setCurrentView} />;
