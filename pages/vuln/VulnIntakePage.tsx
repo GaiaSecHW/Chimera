@@ -477,7 +477,7 @@ const DetailSectionCard: React.FC<{
   </div>
 );
 
-export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId }) => {
+export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateToView }) => {
   const [rootTab, setRootTab] = useState<IntakeRootTab>('cases');
   const [loading, setLoading] = useState(true);
   const [detailLoading, setDetailLoading] = useState(false);
@@ -524,7 +524,7 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId }) => {
   const [tokenCopied, setTokenCopied] = useState(false);
   const [suspicionForm, setSuspicionForm] = useState(DEFAULT_SUSPICION_FORM);
   const [creating, setCreating] = useState(false);
-  const [processingAction, setProcessingAction] = useState<'analyze' | 'ready_for_triage' | 'false_positive' | 'delete' | null>(null);
+  const [processingAction, setProcessingAction] = useState<'verify' | 'ready_for_triage' | 'false_positive' | 'delete' | null>(null);
   const [selectedSuspicionIds, setSelectedSuspicionIds] = useState<string[]>([]);
   const [bulkDeleting, setBulkDeleting] = useState(false);
   const [rowDeletingId, setRowDeletingId] = useState<string | null>(null);
@@ -1207,21 +1207,17 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId }) => {
     }
   };
 
-  const handlePromoteToAnalyze = async () => {
+  const handleOpenAutoVerifyCreate = () => {
     if (!selectedDetail?.id) return;
-    setProcessingAction('analyze');
+    setProcessingAction('verify');
     setError(null);
     setSuccessMessage(null);
     try {
-      await vulnApi.vuln.transitionStage(selectedDetail.id, {
-        to_stage: 'triage',
-        reason: 'manual_enter_triage',
-      });
-      await Promise.all([loadOverview(), loadSuspicions()]);
-      await loadSuspicionDetail(selectedDetail.id);
-      setSuccessMessage('疑点已手动转入研判阶段。');
+      localStorage.setItem('chimera-vuln-auto-verify-case-id', selectedDetail.id);
+      localStorage.setItem('chimera-vuln-open-case-id', selectedDetail.id);
+      onNavigateToView?.('vuln-analysis-verify-create');
     } catch (err: any) {
-      setError(err?.message || '手动转入研判阶段失败');
+      setError(err?.message || '打开验证任务创建页失败');
     } finally {
       setProcessingAction(null);
     }
@@ -1726,12 +1722,12 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId }) => {
             </button>
             <button
               type="button"
-              onClick={handlePromoteToAnalyze}
-              disabled={processingAction !== null || selectedDetail.current_stage !== 'receive'}
+              onClick={handleOpenAutoVerifyCreate}
+              disabled={processingAction !== null || !selectedDetail?.id || selectedDetail.current_stage === 'finished'}
               className="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-3.5 py-2.5 text-sm font-black text-white disabled:opacity-50"
             >
               <FolderOpen size={15} />
-              {processingAction === 'analyze' ? '处理中...' : '进入研判阶段'}
+              {processingAction === 'verify' ? '处理中...' : '生成验证任务'}
             </button>
             <button
               type="button"
