@@ -306,18 +306,19 @@ export const fileserverApi = {
 
   listProjectInputUploads: async (
     projectId: string,
-    options?: {
+    options?: string | {
       inputType?: string;
       status?: string;
       page?: number;
       pageSize?: number;
     },
   ): Promise<ProjectInputUploadListResponse> => {
+    const normalizedOptions = typeof options === 'string' ? { inputType: options } : options;
     const query = new URLSearchParams({ project_id: projectId });
-    if (options?.inputType) query.set('input_type', options.inputType);
-    if (options?.status) query.set('status', options.status);
-    if (options?.page) query.set('page', String(options.page));
-    if (options?.pageSize) query.set('page_size', String(options.pageSize));
+    if (normalizedOptions?.inputType) query.set('input_type', normalizedOptions.inputType);
+    if (normalizedOptions?.status) query.set('status', normalizedOptions.status);
+    if (normalizedOptions?.page) query.set('page', String(normalizedOptions.page));
+    if (normalizedOptions?.pageSize) query.set('page_size', String(normalizedOptions.pageSize));
     const response = await fetch(`${API_BASE}/api/fileserver/project-input/uploads?${query}`, {
       headers: getHeaders(),
     });

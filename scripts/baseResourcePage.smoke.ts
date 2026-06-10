@@ -16,6 +16,7 @@ const sampleRecord: ProjectInputUploadRecord = {
   input_type: 'code',
   status: 'partial_failed',
   keep_original: false,
+  batch_count: 1,
   source_archive_count: 2,
   batch_count: 1,
   stored_file_count: 12,
