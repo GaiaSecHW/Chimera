@@ -21,6 +21,8 @@ import {
 
 type AiGatewayBackendUnitWithPool = AiGatewayBackendUnit & {
   capacity_pool_id?: number | null;
+  unit_code?: string | null;
+  provider_type?: string | null;
 };
 type AiGatewayBackendUnitForm = Omit<AiGatewayBackendUnitWithPool, 'id'> & {
   capacity_pool_id: number;

@@ -75,6 +75,59 @@ export interface VulnVerifyResult {
   summary: Record<string, any>;
 }
 
+export interface VulnVerifyReportDimension {
+  status?: boolean | null;
+  detail: string;
+}
+
+export interface VulnVerifyReportExploitability {
+  preconditions?: string;
+  complexity?: string;
+  impact?: string;
+}
+
+export interface VulnVerifyReportEvidence {
+  type: string;
+  claim: string;
+  finding: string;
+}
+
+export interface VulnVerifyReportItem {
+  id: string;
+  title: string;
+  severity: string;
+  verdict: string;
+  ruled_out_by?: string | null;
+  dimensions?: Record<string, VulnVerifyReportDimension>;
+  root_cause?: string;
+  exploit?: VulnVerifyReportExploitability | null;
+  evidence?: VulnVerifyReportEvidence[];
+  raw_result?: Record<string, any> | null;
+}
+
+export interface VulnVerifyReportGroup {
+  id: string;
+  file: string;
+  function: string;
+  report_count: number;
+  verdicts: Record<string, number>;
+  dominant: string;
+  reports: VulnVerifyReportItem[];
+}
+
+export interface VulnVerifyReportData {
+  task_id: string;
+  status: string;
+  title: string;
+  target: string;
+  total_verified: number;
+  total_reports: number;
+  total_groups: number;
+  verdicts: Record<string, number>;
+  severities: Record<string, number>;
+  groups: VulnVerifyReportGroup[];
+}
+
 export const vulnVerifyApi = {
   getHealth: async (): Promise<{ status: string; service?: string } & ServiceHealthMeta> =>
     getJsonWithDedupe(`${BASE}/health`, { headers: getHeaders() }),
@@ -113,6 +166,9 @@ export const vulnVerifyApi = {
 
   getResult: async (projectId: string, taskId: string): Promise<VulnVerifyResult> =>
     handleResponse(await fetch(`${BASE}/projects/${encodeURIComponent(projectId)}/tasks/${encodeURIComponent(taskId)}/result`, { headers: getHeaders() })),
+
+  getReportData: async (projectId: string, taskId: string): Promise<VulnVerifyReportData> =>
+    handleResponse(await fetch(`${BASE}/projects/${encodeURIComponent(projectId)}/tasks/${encodeURIComponent(taskId)}/report-data`, { headers: getHeaders() })),
 
   listArtifacts: async (projectId: string, taskId: string): Promise<{ task_id: string; output_dir: string; items: VulnVerifyArtifact[] }> =>
     handleResponse(await fetch(`${BASE}/projects/${encodeURIComponent(projectId)}/tasks/${encodeURIComponent(taskId)}/artifacts`, { headers: getHeaders() })),

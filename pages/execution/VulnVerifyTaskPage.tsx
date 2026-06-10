@@ -1,8 +1,9 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { AlertCircle, CheckCircle2, Clock3, Eye, FileText, Loader2, Plus, RefreshCw, RotateCcw, Search, ShieldCheck, Square, X, XCircle } from 'lucide-react';
-import { vulnVerifyApi, VulnVerifyArtifact, VulnVerifyResult, VulnVerifyTask, VulnVerifyTaskDetail } from '../../clients/vulnVerify';
+import { vulnVerifyApi, VulnVerifyArtifact, VulnVerifyReportData, VulnVerifyResult, VulnVerifyTask, VulnVerifyTaskDetail } from '../../clients/vulnVerify';
 import { ExecutionTable, ExecutionTableHead, ExecutionTableTh, ExecutionTableTd, executionTableInteractiveRowClassName } from '../../components/execution/ExecutionTable';
 import { ServicePageTitle, useServiceBuildVersion } from '../../components/execution/ServiceBuildVersion';
+import { VulnVerifyReportView } from './VulnVerifyReportView';
 
 const DEFAULT_MODEL = 'local_minimax/MiniMax/MiniMax-M2.5';
 const ACTIVE_STATUSES = new Set(['pending', 'running', 'cancelling']);
@@ -145,6 +146,8 @@ export const VulnVerifyTaskPage: React.FC<{ projectId: string }> = ({ projectId 
   const [detail, setDetail] = useState<VulnVerifyTaskDetail | null>(null);
   const [result, setResult] = useState<VulnVerifyResult | null>(null);
   const [artifacts, setArtifacts] = useState<VulnVerifyArtifact[]>([]);
+  const [reportData, setReportData] = useState<VulnVerifyReportData | null>(null);
+  const [reportDataError, setReportDataError] = useState<string | null>(null);
   const [artifactContent, setArtifactContent] = useState<{ path: string; content: string; truncated: boolean } | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
 
@@ -193,14 +196,17 @@ export const VulnVerifyTaskPage: React.FC<{ projectId: string }> = ({ projectId 
     if (!projectId || !taskId) return;
     setDetailLoading(true);
     try {
-      const [nextDetail, nextResult, nextArtifacts] = await Promise.all([
+      const [nextDetail, nextResult, nextArtifacts, nextReportData] = await Promise.all([
         vulnVerifyApi.getTask(projectId, taskId),
         vulnVerifyApi.getResult(projectId, taskId).catch(() => null),
         vulnVerifyApi.listArtifacts(projectId, taskId).catch(() => ({ items: [] })),
+        vulnVerifyApi.getReportData(projectId, taskId).then((payload) => ({ payload, error: null as string | null })).catch((error: any) => ({ payload: null, error: error?.message || String(error) })),
       ]);
       setDetail(nextDetail);
       setResult(nextResult);
       setArtifacts(nextArtifacts.items || []);
+      setReportData(nextReportData.payload);
+      setReportDataError(nextReportData.error);
       setArtifactContent(null);
     } catch (error: any) {
       setMessage(error?.message || String(error));
@@ -233,6 +239,8 @@ export const VulnVerifyTaskPage: React.FC<{ projectId: string }> = ({ projectId 
 
   const openDetailModal = async (taskId: string) => {
     setSelectedTaskId(taskId);
+    setReportData(null);
+    setReportDataError(null);
     setDetailModalOpen(true);
     await loadDetail(taskId);
   };
@@ -570,6 +578,8 @@ export const VulnVerifyTaskPage: React.FC<{ projectId: string }> = ({ projectId 
                     <SummaryCard label="完成分组" value={result?.summary?.done_group_count ?? detail.result_summary?.done_group_count ?? 0} />
                     <SummaryCard label="产物数" value={artifacts.length} />
                   </div>
+
+                  <VulnVerifyReportView data={reportData} loading={detailLoading && !reportData} error={reportDataError} />
 
                   <div className="grid gap-5 xl:grid-cols-[320px_minmax(0,1fr)]">
                     <div className="rounded-2xl border border-slate-200 bg-white p-4">
