@@ -104,7 +104,7 @@ export const TaskReportStep: React.FC<Props> = ({ taskId, task, onTaskUpdated, o
   };
 
   const getResultForClause = (clauseId: string, agentId: string): RedlineRedLineResult | undefined => {
-    return results.find((r) => r.redLineClauseId === clauseId);
+    return results.find((r) => r.redLineClauseId === clauseId && r.executionId === agentId);
   };
 
   const handleRedLineToggle = async (
@@ -122,8 +122,8 @@ export const TaskReportStep: React.FC<Props> = ({ taskId, task, onTaskUpdated, o
           prev.map((r) => (r.id === existing.id ? { ...r, status } : r)),
         );
       } else {
-        const res = await redlineVerificationApi.batchSaveRedLineResults(taskId, [
-          { redLineClauseId: clause.id, status, executionId: agent.id, executionResult: agent.result || '' },
+        const res = await redlineVerificationApi.batchSaveRedLineResults(taskId, agent.id, [
+          { redLineClauseId: clause.id, status, executionResult: agent.result || '' },
         ]);
         if (res.code === 200) {
           // Reload results to get IDs

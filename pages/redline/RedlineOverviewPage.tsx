@@ -57,7 +57,7 @@ export const RedlineOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) 
   const [formName, setFormName] = useState('');
   const [formProduct, setFormProduct] = useState('');
   const [formVersion, setFormVersion] = useState('');
-  const [products, setProducts] = useState<RedlineProductInfo[]>([]);
+  const [products, setProducts] = useState<string[]>([]);
   const [versions, setVersions] = useState<RedlineProductInfo[]>([]);
   const [submitting, setSubmitting] = useState(false);
 
@@ -186,7 +186,7 @@ export const RedlineOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) 
   };
 
   // --- Unique product names for select ---
-  const uniqueProducts = Array.from(new Set(products.map((p) => p.product)));
+  const uniqueProducts = products;
 
   // --- Render ---
 

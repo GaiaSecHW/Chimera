@@ -267,11 +267,11 @@ export const redlineVerificationApi = {
     return handleResponse(resp);
   },
 
-  batchSaveRedLineResults: async (taskId: string, results: Partial<RedlineRedLineResult>[]): Promise<{ code: number; message: string; data: any }> => {
+  batchSaveRedLineResults: async (taskId: string, executionId: string, results: Partial<RedlineRedLineResult>[]): Promise<{ code: number; message: string; data: any }> => {
     const resp = await fetch(`${BASE}/tasks/${taskId}/red-line-results/batch`, {
       method: 'POST',
       headers: getHeaders(),
-      body: JSON.stringify(results),
+      body: JSON.stringify({ executionId, results }),
     });
     return handleResponse(resp);
   },
@@ -310,7 +310,7 @@ export const redlineVerificationApi = {
     return handleResponse(resp);
   },
 
-  getProducts: async (): Promise<{ code: number; message: string; data: RedlineProductInfo[] }> => {
+  getProducts: async (): Promise<{ code: number; message: string; data: string[] }> => {
     const resp = await fetch(`${BASE}/product-info/products`, { headers: getHeaders() });
     return handleResponse(resp);
   },
