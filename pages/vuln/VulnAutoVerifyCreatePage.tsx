@@ -11,6 +11,19 @@ interface VulnAutoVerifyCreatePageProps {
 const CASE_ID_KEY = 'chimera-vuln-auto-verify-case-id';
 const ANALYSIS_DETAIL_TARGET_KEY = 'chimera-vuln-open-case-id';
 const DEFAULT_MODEL = 'local_minimax/MiniMax/MiniMax-M2.5';
+const DEFAULT_THREAT_MODEL = `# 威胁模型
+
+## 攻击者假设
+<!-- 攻击者在哪里？拥有什么能力？ -->
+
+## 攻击面
+<!-- 哪些入口点暴露给攻击者？无需前置认证的协议解析入口、网络包处理路径等 -->
+
+## 信任边界与补偿控制
+<!-- 可信域范围，已知的防御措施（认证门、输入校验层、W^X 等） -->
+
+## 排除范围
+<!-- 不在分析范围内的代码：测试代码、mock 文件、第三方库、debug 路径等 -->`;
 
 const statusTone = (ok?: boolean) => ok
   ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
@@ -65,7 +78,7 @@ export const VulnAutoVerifyCreatePage: React.FC<VulnAutoVerifyCreatePageProps> =
         setSelectedTemplateId(firstTemplate.id);
         await renderTemplate(firstTemplate.id, targetCaseId.trim(), false);
       } else {
-        setThreatModel(`# Threat Model: ${ctx.case_title || targetCaseId}\n\n请描述攻击者能力、安全边界、入口点、信任域、验证重点与证伪条件。\n`);
+        setThreatModel(DEFAULT_THREAT_MODEL);
       }
     } catch (err: any) {
       setError(err?.message || '加载自动化验证上下文失败');
@@ -80,8 +93,9 @@ export const VulnAutoVerifyCreatePage: React.FC<VulnAutoVerifyCreatePageProps> =
     setError('');
     try {
       const rendered = await vulnApi.renderThreatModelTemplate(templateId, { case_id: targetCaseId.trim() });
-      setThreatModel(rendered.content || '');
+      setThreatModel(rendered.content || DEFAULT_THREAT_MODEL);
     } catch (err: any) {
+      setThreatModel(DEFAULT_THREAT_MODEL);
       setError(err?.message || '渲染威胁模型模板失败');
     } finally {
       if (showLoading) setTemplateLoading(false);
