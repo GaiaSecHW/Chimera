@@ -62,6 +62,11 @@ export default defineConfig(({ mode }) => {
             changeOrigin: true,
             secure: false,
           },
+          '/api/app/ai4red/chimera/redline': {
+            target: 'http://localhost:12345',
+            changeOrigin: true,
+            secure: false,
+          },
           '/api': {
             target: 'https://secflow.ai.icsl.huawei.com',
             changeOrigin: true,
