@@ -3141,6 +3141,8 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
       _index: index + 1,
       _eventLabel: formatTimelineEventTypeLabel(event.event_type),
       _sourceLabel: event.item_key || event.item_id || event.payload?.item_key || event.payload?.downstream_task_id || '-',
+      _repeatCount: Math.max(1, Number(event.repeat_count || 1)),
+      _isCompressed: Boolean(event.compressed),
     }));
   }, [timeline]);
   const timelineTotalPages = useMemo(
@@ -5719,6 +5721,11 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                                 <td className="max-w-[360px] px-3 py-2">
                                   <div className="truncate font-bold text-slate-800" title={event.message || '系统事件'}>
                                     {event.message || '系统事件'}
+                                    {event._isCompressed ? (
+                                      <span className="ml-2 rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-[10px] font-black text-amber-700">
+                                        x{event._repeatCount}
+                                      </span>
+                                    ) : null}
                                   </div>
                                 </td>
                                 <td className="px-3 py-2 text-[11px] text-slate-500">
@@ -5749,9 +5756,9 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                               {expanded ? (
                                 <tr className="bg-slate-50/60">
                                   <td colSpan={8} className="px-3 py-3">
-                                    <TimelineDetailBlock payload={event.payload} />
-                                  </td>
-                                </tr>
+                                  <TimelineDetailBlock payload={event.payload} />
+                                </td>
+                              </tr>
                               ) : null}
                             </React.Fragment>
                           );

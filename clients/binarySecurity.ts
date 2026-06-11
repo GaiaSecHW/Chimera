@@ -686,6 +686,8 @@ export interface BinarySecurityTimeline {
     event_type: string;
     message: string;
     payload: Record<string, any>;
+    compressed?: boolean;
+    repeat_count?: number;
     created_at: string;
   }>;
 }

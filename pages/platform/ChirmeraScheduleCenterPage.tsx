@@ -7,6 +7,7 @@ import {
   ChevronRight,
   FolderKanban,
   Layers3,
+  Waypoints,
   RefreshCw,
   Search,
   ServerCog,
@@ -137,7 +138,7 @@ const summarizeStatus = (item: Partial<ScheduleGlobalTaskListItem> | null | unde
 };
 
 const getTaskKeyValue = (item: Partial<ScheduleGlobalTaskListItem> | null | undefined) => {
-  return item?.task_key_ref || '-';
+  return item?.dispatched_task_key_prefix || item?.parent_task_key_prefix || '-';
 };
 
 const statusTone = (label?: string | null) => {

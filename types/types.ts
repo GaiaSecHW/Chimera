@@ -2126,7 +2126,8 @@ export interface ScheduleGlobalTaskListItem {
   project_name?: string | null;
   task_name: string;
   task_type?: string | null;
-  task_key_ref?: string | null;
+  parent_task_key_prefix?: string | null;
+  dispatched_task_key_prefix?: string | null;
   create_status?: string | null;
   dispatch_status?: string | null;
   business_status?: string | null;
@@ -2226,8 +2227,13 @@ export interface ScheduleCenterUserTask {
   business_status: string;
   input_upload_count: number;
   inputs: ScheduleCenterUserTaskInput[];
-  task_key_ref: string;
-  active_task_key_prefix?: string | null;
+  parent_task_key_id: string;
+  parent_task_key_name: string;
+  parent_task_key_prefix: string;
+  parent_task_capacity_pool_ids: number[];
+  dispatched_task_key_id?: string | null;
+  dispatched_task_key_name?: string | null;
+  dispatched_task_key_prefix?: string | null;
   downstream_task_id?: string | null;
   downstream_detail_view?: string | null;
   last_error?: string | null;
@@ -2255,7 +2261,11 @@ export interface ScheduleCenterUserTaskCreatePayload {
   };
   policy: Record<string, any>;
   dispatch_policy: Record<string, any>;
-  task_key_ref: string;
+  parent_task_key_id: string;
+  parent_task_key_name: string;
+  parent_task_key_prefix: string;
+  parent_task_key_secret: string;
+  parent_task_capacity_pool_ids: number[];
   module_name?: string;
 }
 
@@ -2264,9 +2274,9 @@ export interface ScheduleCenterUserTaskDispatch {
   user_task_id: string;
   project_id: string;
   dispatch_status: string;
-  task_key_ref: string;
-  task_key_id?: string | null;
-  task_key_prefix?: string | null;
+  dispatched_task_key_id?: string | null;
+  dispatched_task_key_name?: string | null;
+  dispatched_task_key_prefix?: string | null;
   downstream_task_id?: string | null;
   downstream_detail_view?: string | null;
   last_error?: string | null;
