@@ -155,8 +155,7 @@ export const BaseResourcePage: React.FC<BaseResourcePageProps> = ({ type, title,
     setUploadQueue((prev) => prev.filter((item) => item.id !== id));
   };
 
-  const handleUploadSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleUploadSubmit = async (options?: { runInBackground?: boolean }) => {
     const readyItems = uploadQueue.filter((item) => item.status !== 'failed');
     if (!projectId || readyItems.length === 0) return;
     const normalizedDisplayName = uploadDisplayName.trim();
@@ -165,6 +164,9 @@ export const BaseResourcePage: React.FC<BaseResourcePageProps> = ({ type, title,
       return;
     }
     setIsUploadingBatch(true);
+    if (options?.runInBackground) {
+      setIsUploadModalOpen(false);
+    }
     setUploadErrorMessage(null);
     setUploadQueue((prev) => prev.map((item) => (item.status === 'failed' ? item : { ...item, status: 'uploading', progress: 35 })));
     try {
@@ -669,7 +671,16 @@ export const BaseResourcePage: React.FC<BaseResourcePageProps> = ({ type, title,
                 取消
               </button>
               <button
-                onClick={handleUploadSubmit}
+                type="button"
+                onClick={() => { void handleUploadSubmit({ runInBackground: true }); }}
+                disabled={isUploadingBatch || uploadQueue.filter((item) => item.status !== 'failed').length === 0 || (!isAppendMode && !uploadDisplayName.trim())}
+                className="flex-1 py-4 bg-white border border-slate-300 text-slate-700 rounded-2xl font-black hover:bg-slate-100 transition-all disabled:opacity-50"
+              >
+                后台运行
+              </button>
+              <button
+                type="button"
+                onClick={() => { void handleUploadSubmit(); }}
                 disabled={isUploadingBatch || uploadQueue.filter((item) => item.status !== 'failed').length === 0 || (!isAppendMode && !uploadDisplayName.trim())}
                 className="flex-1 py-4 bg-blue-600 text-white rounded-2xl font-black hover:bg-blue-700 shadow-xl shadow-blue-500/20 transition-all flex items-center justify-center gap-2 active:scale-95 disabled:opacity-50"
               >

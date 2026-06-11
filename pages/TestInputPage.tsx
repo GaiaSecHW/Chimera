@@ -267,8 +267,7 @@ export const TestInputPage: React.FC<TestInputPageProps> = ({ selectedProjectId,
     setErrorMessage(null);
   };
 
-  const submitUpload = async (event: React.FormEvent) => {
-    event.preventDefault();
+  const submitUpload = async (options?: { runInBackground?: boolean }) => {
     const readyFiles = uploadQueue.filter((item) => item.status !== 'failed').map((item) => item.file);
     if (!projectId || readyFiles.length === 0) return;
     const normalizedDisplayName = uploadDisplayName.trim();
@@ -277,6 +276,9 @@ export const TestInputPage: React.FC<TestInputPageProps> = ({ selectedProjectId,
       return;
     }
     setIsUploading(true);
+    if (options?.runInBackground) {
+      setIsUploadModalOpen(false);
+    }
     setUploadQueue((current) => current.map((item) => item.status === 'failed' ? item : { ...item, status: 'uploading', progress: 40, speedBytesPerSec: 0 }));
     try {
       let result: { upload_id: string } | undefined;
@@ -844,7 +846,10 @@ export const TestInputPage: React.FC<TestInputPageProps> = ({ selectedProjectId,
 
       {isUploadModalOpen ? (
         <div className="fixed inset-0 z-[120] flex items-center justify-center bg-slate-950/60 p-6 backdrop-blur-sm">
-          <form onSubmit={submitUpload} className="w-full max-w-2xl overflow-hidden rounded-[2rem] bg-white shadow-[0_30px_100px_rgba(15,23,42,0.2)]">
+          <form onSubmit={(event) => {
+            event.preventDefault();
+            void submitUpload();
+          }} className="w-full max-w-2xl overflow-hidden rounded-[2rem] bg-white shadow-[0_30px_100px_rgba(15,23,42,0.2)]">
             <div className="border-b border-slate-100 px-6 py-5">
               <div className="text-sm font-black uppercase tracking-[0.2em] text-slate-500">{isAppendMode ? '追加上传' : '新建上传'}</div>
               <div className="mt-2 text-2xl font-black text-slate-900">{INPUT_TYPE_META[activeInputType].label}任务输入</div>
@@ -940,6 +945,14 @@ export const TestInputPage: React.FC<TestInputPageProps> = ({ selectedProjectId,
             <div className="flex justify-end gap-3 border-t border-slate-100 px-6 py-5">
               <button type="button" onClick={() => setIsUploadModalOpen(false)} className="rounded-2xl border border-slate-200 px-4 py-3 text-sm font-black text-slate-600">
                 取消
+              </button>
+              <button
+                type="button"
+                onClick={() => { void submitUpload({ runInBackground: true }); }}
+                disabled={isUploading || uploadQueue.length === 0 || (!isAppendMode && !uploadDisplayName.trim())}
+                className="rounded-2xl border border-slate-300 px-4 py-3 text-sm font-black text-slate-700 disabled:opacity-50"
+              >
+                后台运行
               </button>
               <button type="submit" disabled={isUploading || uploadQueue.length === 0 || (!isAppendMode && !uploadDisplayName.trim())} className="rounded-2xl bg-slate-950 px-4 py-3 text-sm font-black text-white disabled:opacity-50">
                 {isUploading ? <Loader2 size={16} className="mr-2 inline-block animate-spin" /> : null}
