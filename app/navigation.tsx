@@ -488,6 +488,7 @@ export const SIDEBAR_SECTIONS: Record<TopLevelNavKey, NavSection[]> = {
       title: '任务中心',
       items: [
         { id: 'task-list', label: '任务列表', icon: ListTodo, requiresProject: true },
+        { id: 'task-web-end-to-end', label: 'WEB端到端', icon: Globe, requiresProject: true },
       ],
     },
   ],
