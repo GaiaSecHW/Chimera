@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { ArrowLeft, RefreshCw, Download, Loader2, Pencil } from 'lucide-react';
-import ReactMarkdown from 'react-markdown';
+import ReactMarkdown, { Components } from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import {
   redlineVerificationApi,
@@ -37,6 +37,27 @@ function extractTestResult(resultStr?: string): string {
   if (afterKeyword.includes('通过')) return '通过';
   return '-';
 }
+
+const mdComponents: Components = {
+  p: ({ children }) => <p className="mb-3 last:mb-0 text-theme-text-primary">{children}</p>,
+  a: ({ children, href }) => <a href={href} target="_blank" rel="noreferrer" className="font-semibold text-cyan-400 underline">{children}</a>,
+  ul: ({ children }) => <ul className="mb-3 list-disc space-y-1 pl-5 last:mb-0 text-theme-text-primary">{children}</ul>,
+  ol: ({ children }) => <ol className="mb-3 list-decimal space-y-1 pl-5 last:mb-0 text-theme-text-primary">{children}</ol>,
+  h1: ({ children }) => <h1 className="mb-3 text-xl font-bold text-theme-text-primary last:mb-0">{children}</h1>,
+  h2: ({ children }) => <h2 className="mb-3 text-lg font-bold text-theme-text-primary last:mb-0">{children}</h2>,
+  h3: ({ children }) => <h3 className="mb-2 text-base font-bold text-theme-text-primary last:mb-0">{children}</h3>,
+  h4: ({ children }) => <h4 className="mb-2 text-sm font-bold text-theme-text-primary last:mb-0">{children}</h4>,
+  blockquote: ({ children }) => <blockquote className="mb-3 border-l-4 border-slate-500 bg-theme-surface px-4 py-2 italic text-theme-text-secondary last:mb-0">{children}</blockquote>,
+  table: ({ children }) => <div className="mb-3 overflow-x-auto last:mb-0"><table className="min-w-full border-collapse text-left text-xs">{children}</table></div>,
+  thead: ({ children }) => <thead className="bg-theme-surface">{children}</thead>,
+  th: ({ children }) => <th className="border border-theme-border px-3 py-2 font-bold text-theme-text-primary">{children}</th>,
+  td: ({ children }) => <td className="border border-theme-border px-3 py-2 align-top text-theme-text-primary">{children}</td>,
+  code: ({ children, className }) => className
+    ? <code className="block overflow-x-auto rounded-lg bg-slate-900 px-4 py-3 font-mono text-xs text-slate-100">{children}</code>
+    : <code className="rounded bg-theme-surface px-1.5 py-0.5 font-mono text-[0.9em] text-theme-text-primary">{children}</code>,
+  pre: ({ children }) => <pre className="mb-3 last:mb-0">{children}</pre>,
+  hr: () => <hr className="my-4 border-theme-border" />,
+};
 
 export const TaskReportStep: React.FC<Props> = ({ taskId, task, onTaskUpdated, onPrev }) => {
   const [agents, setAgents] = useState<RedlineTaskAgent[]>([]);
@@ -296,9 +317,9 @@ export const TaskReportStep: React.FC<Props> = ({ taskId, task, onTaskUpdated, o
                 </h3>
 
                 {/* Markdown rendered result */}
-                <div className="prose prose-sm prose-invert max-w-none mb-6">
+                <div className="break-words leading-6 mb-6">
                   {text ? (
-                    <ReactMarkdown remarkPlugins={[remarkGfm]}>{text}</ReactMarkdown>
+                    <ReactMarkdown remarkPlugins={[remarkGfm]} components={mdComponents}>{text}</ReactMarkdown>
                   ) : (
                     <p className="text-theme-text-secondary italic">无结果</p>
                   )}
