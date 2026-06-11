@@ -164,7 +164,42 @@ export const TaskRunningStep: React.FC<Props> = ({ taskId, task, onTaskUpdated, 
   }
 
   return (
-    <div className="space-y-6">
+    <div className="flex flex-col h-full">
+      {/* Header toolbar — same style as TaskReportStep */}
+      <div className="flex items-center gap-3 px-6 py-3 border-b border-theme-border">
+        <button
+          onClick={onPrev}
+          disabled={!allDone}
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-lg border border-theme-border text-theme-text-secondary hover:bg-theme-surface-hover disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent"
+        >
+          <ArrowLeft className="w-3.5 h-3.5" />
+          返回配置
+        </button>
+        <button
+          onClick={handleResetAndExecute}
+          disabled={actionLoading === 'reset-all' || (!allDone && !hasFailed)}
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-lg border border-theme-border text-theme-text-secondary hover:bg-theme-surface-hover disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent"
+        >
+          {actionLoading === 'reset-all' ? (
+            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+          ) : (
+            <RotateCcw className="w-3.5 h-3.5" />
+          )}
+          重新执行全部
+        </button>
+        {allDone && (
+          <button
+            onClick={onNext}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-lg border border-theme-border text-theme-text-secondary hover:bg-theme-surface-hover"
+          >
+            查看报告
+            <ArrowRight className="w-3.5 h-3.5" />
+          </button>
+        )}
+      </div>
+
+      {/* Content */}
+      <div className="flex-1 overflow-y-auto p-6 space-y-6">
       {/* Progress section */}
       <div className="space-y-2">
         <div className="flex items-center justify-between text-sm">
@@ -293,41 +328,6 @@ export const TaskRunningStep: React.FC<Props> = ({ taskId, task, onTaskUpdated, 
           );
         })}
       </div>
-
-      {/* Action buttons */}
-      <div className="flex items-center gap-3 pt-4 border-t border-theme-border">
-        <button
-          className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-theme-text-secondary bg-theme-surface border border-theme-border rounded-lg hover:bg-theme-surface-hover transition-colors"
-          onClick={onPrev}
-        >
-          <ArrowLeft className="w-4 h-4" />
-          返回配置
-        </button>
-
-        <button
-          className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-amber-700 bg-amber-50 border border-amber-200 rounded-lg hover:bg-amber-100 transition-colors disabled:opacity-50"
-          onClick={handleResetAndExecute}
-          disabled={actionLoading === 'reset-all' || (!allDone && !hasFailed)}
-        >
-          {actionLoading === 'reset-all' ? (
-            <Loader2 className="w-4 h-4 animate-spin" />
-          ) : (
-            <RotateCcw className="w-4 h-4" />
-          )}
-          重新执行全部
-        </button>
-
-        <div className="flex-1" />
-
-        {allDone && (
-          <button
-            className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors"
-            onClick={onNext}
-          >
-            查看报告
-            <ArrowRight className="w-4 h-4" />
-          </button>
-        )}
       </div>
     </div>
   );
