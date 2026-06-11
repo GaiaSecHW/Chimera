@@ -65,7 +65,7 @@ export default defineConfig(({ mode }) => {
             secure: false,
           },
           '/api/app/ai4red': {
-            target: 'http://ai4red.secflow.ai.icsl.huawei.com:12345/',
+            target: 'http://ai4red.secflow.ai.icsl.huawei.com/',
             changeOrigin: true,
             secure: false,
             ws: true,
