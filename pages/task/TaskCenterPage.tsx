@@ -22,6 +22,7 @@ const TASK_TYPES = [
   { value: 'source_scan_e2e', label: '盖亚-源码', downstreamView: 'source-security-detail' },
   { value: 'binary_module_e2e', label: '盖亚-二进制模块', downstreamView: 'binary-module-security-detail' },
   { value: 'ai4red', label: 'AI4Red 红线验证', downstreamView: 'ai4red-detail' },
+  { value: 'ai4apk', label: 'AI4APK 应用安全扫描' },
   { value: 'redline_verification_e2e', label: '盖亚-红线验证', downstreamView: 'redline-verification-detail' },
 ] as const;
 
@@ -35,6 +36,7 @@ const INPUT_MODES: Record<string, 'file' | 'file_list' | 'directory'> = {
   binary_module_e2e: 'file_list',
   source_scan_e2e: 'directory',
   ai4red: 'directory',
+  ai4apk: 'file',
   redline_verification_e2e: 'file',
 };
 
@@ -267,7 +269,7 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects }) => {
 
   const openTask = (task: ScheduleCenterUserTask) => {
     const meta = TASK_TYPES.find((item) => item.value === task.task_type);
-    if (!meta) return;
+    if (!meta || !meta.downstreamView) return;
     const taskIdentifier = task.downstream_task_id || task.id;
     if (meta.downstreamView === 'ai4red-detail') {
       window.dispatchEvent(new CustomEvent('chimera-navigate-view', {
@@ -427,7 +429,9 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects }) => {
                 <td className="px-4 py-3">{formatDateTime(task.updated_at)}</td>
                 <td className="px-4 py-3">
                   <div className="flex items-center gap-2">
-                    <button onClick={() => openTask(task)} className="inline-flex items-center gap-1 rounded-lg border px-3 py-1.5 text-xs font-semibold">查看任务 <ArrowRight size={12} /></button>
+                    {task.task_type !== 'ai4apk' ? (
+                      <button onClick={() => openTask(task)} className="inline-flex items-center gap-1 rounded-lg border px-3 py-1.5 text-xs font-semibold">查看任务 <ArrowRight size={12} /></button>
+                    ) : null}
                     {task.dispatch_status === 'ready_for_dispatch' || task.dispatch_status === 'dispatch_failed' ? (
                       <button onClick={() => void dispatchTask(task)} disabled={dispatchingId === task.id} className="inline-flex items-center gap-1 rounded-lg bg-slate-900 px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-60">
                         {dispatchingId === task.id ? <Loader2 size={12} className="animate-spin" /> : <Rocket size={12} />} 分发

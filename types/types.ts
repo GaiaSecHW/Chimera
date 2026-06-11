@@ -2205,6 +2205,7 @@ export type ScheduleCenterUserTaskType =
   | 'source_scan_e2e'
   | 'binary_module_e2e'
   | 'ai4red'
+  | 'ai4apk'
   | 'redline_verification_e2e';
 
 export interface ScheduleCenterUserTaskInput {
