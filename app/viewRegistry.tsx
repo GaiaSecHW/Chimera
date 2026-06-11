@@ -86,7 +86,7 @@ import { VulnReproConfigPage } from '../pages/vuln/VulnReproConfigPage';
 import { VulnParameterConfigPage } from '../pages/vuln/VulnParameterConfigPage';
 import { B2SOverviewPage } from '../pages/execution/B2SOverviewPage';
 import { B2STaskAdvancedPage } from '../pages/execution/B2STaskAdvancedPage';
-import { saveExecutionReturnContext } from '../utils/executionReturnContext';
+import { consumeTaskCenterReturnContext, saveExecutionReturnContext } from '../utils/executionReturnContext';
 import { B2STaskDetailPage } from '../pages/execution/B2STaskDetailPage';
 import { RedlineOverviewPage } from '../pages/redline/RedlineOverviewPage';
 import { RedlineTaskDetailPage } from '../pages/redline/RedlineTaskDetailPage';
@@ -519,7 +519,7 @@ export const renderCurrentView = (ctx: ViewRegistryContext): React.ReactNode => 
           projectId={ctx.selectedProjectId}
           taskId={ctx.activeBinarySecurityTaskId}
           taskType="binary"
-          onBack={() => ctx.setCurrentView('binary-security')}
+          onBack={() => ctx.setCurrentView(consumeTaskCenterReturnContext() ? 'task-list' : 'binary-security')}
         />
       );
     case 'source-security':
@@ -551,7 +551,7 @@ export const renderCurrentView = (ctx: ViewRegistryContext): React.ReactNode => 
           projectId={ctx.selectedProjectId}
           taskId={ctx.activeSourceSecurityTaskId}
           taskType="source"
-          onBack={() => ctx.setCurrentView('source-security')}
+          onBack={() => ctx.setCurrentView(consumeTaskCenterReturnContext() ? 'task-list' : 'source-security')}
         />
       );
     case 'binary-module-security':
@@ -583,7 +583,7 @@ export const renderCurrentView = (ctx: ViewRegistryContext): React.ReactNode => 
           projectId={ctx.selectedProjectId}
           taskId={ctx.activeBinaryModuleSecurityTaskId}
           taskType="binary_module"
-          onBack={() => ctx.setCurrentView('binary-module-security')}
+          onBack={() => ctx.setCurrentView(consumeTaskCenterReturnContext() ? 'task-list' : 'binary-module-security')}
         />
       );
     case 'app-security-scan':

@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { ArrowRight, CheckCircle2, ChevronRight, Folder, FolderOpen, Loader2, Plus, RefreshCw, Rocket, Search, Shield, Square, SquareCheck, X } from 'lucide-react';
 import { api } from '../../clients/api';
 import { getUploadRecordDisplayName } from '../assets/baseResourcePageModel';
+import { saveTaskCenterReturnContext } from '../../utils/executionReturnContext';
 import {
   ProjectInputUploadBrowseEntry,
   ProjectInputUploadBrowseResponse,
@@ -21,7 +22,6 @@ const TASK_TYPES = [
   { value: 'binary_firmware_e2e', label: '盖亚-二进制固件', downstreamView: 'binary-security-detail' },
   { value: 'source_scan_e2e', label: '盖亚-源码', downstreamView: 'source-security-detail' },
   { value: 'binary_module_e2e', label: '盖亚-二进制模块', downstreamView: 'binary-module-security-detail' },
-  { value: 'ai4red', label: 'AI4Red 红线验证', downstreamView: 'ai4red-detail' },
   { value: 'ai4apk', label: 'AI4APK 应用安全扫描' },
 ] as const;
 
@@ -47,7 +47,6 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects }) => {
   const fileserverApi = api.domains.assets.fileserver;
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [dispatchingId, setDispatchingId] = useState<string | null>(null);
   const [tasks, setTasks] = useState<ScheduleCenterUserTask[]>([]);
   const [stats, setStats] = useState<Record<string, number>>({});
   const [inputs, setInputs] = useState<ProjectInputUploadRecord[]>([]);
@@ -252,23 +251,11 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects }) => {
     }
   };
 
-  const dispatchTask = async (task: ScheduleCenterUserTask) => {
-    setDispatchingId(task.id);
-    setError('');
-    try {
-      await scheduleApi.dispatchUserTask(projectId, task.id, {});
-      await loadData();
-    } catch (err: any) {
-      setError(err?.message || '分发失败');
-    } finally {
-      setDispatchingId(null);
-    }
-  };
-
   const openTask = (task: ScheduleCenterUserTask) => {
     const meta = TASK_TYPES.find((item) => item.value === task.task_type);
     if (!meta || !meta.downstreamView) return;
     const taskIdentifier = task.downstream_task_id || task.id;
+    saveTaskCenterReturnContext();
     if (meta.downstreamView === 'ai4red-detail') {
       window.dispatchEvent(new CustomEvent('chimera-navigate-view', {
         detail: {
@@ -430,11 +417,6 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects }) => {
                     {task.task_type !== 'ai4apk' ? (
                       <button onClick={() => openTask(task)} className="inline-flex items-center gap-1 rounded-lg border px-3 py-1.5 text-xs font-semibold">查看任务 <ArrowRight size={12} /></button>
                     ) : null}
-                    {task.dispatch_status === 'ready_for_dispatch' || task.dispatch_status === 'dispatch_failed' ? (
-                      <button onClick={() => void dispatchTask(task)} disabled={dispatchingId === task.id} className="inline-flex items-center gap-1 rounded-lg bg-slate-900 px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-60">
-                        {dispatchingId === task.id ? <Loader2 size={12} className="animate-spin" /> : <Rocket size={12} />} 分发
-                      </button>
-                    ) : null}
                   </div>
                 </td>
               </tr>
@@ -592,13 +574,13 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects }) => {
               <div className="mt-6 grid gap-4 md:grid-cols-2">
                 <div className="rounded-2xl border border-theme-border bg-theme-elevated px-4 py-3">
                   <div className="text-xs font-bold uppercase tracking-[0.18em] text-theme-text-faint">创建后状态</div>
-                  <div className="mt-2 text-sm font-semibold text-theme-text-primary">created / ready_for_dispatch</div>
+                  <div className="mt-2 text-sm font-semibold text-theme-text-primary">created / ready_for_dispatch / 自动进入分发队列</div>
                   <div className="mt-1 text-xs text-theme-text-faint">创建阶段只登记业务任务，不要求手动填写 Task Key、Secret 或算力池。</div>
                 </div>
                 <div className="rounded-2xl border border-theme-border bg-theme-elevated px-4 py-3">
-                  <div className="text-xs font-bold uppercase tracking-[0.18em] text-theme-text-faint">手动分发</div>
-                  <div className="mt-2 text-sm font-semibold text-theme-text-primary">分发时自动申请 Root Task Key</div>
-                  <div className="mt-1 text-xs text-theme-text-faint">调度中心会在分发期创建 root task key，并直接传给下游；是否换 work key 由下游自己决定。</div>
+                  <div className="text-xs font-bold uppercase tracking-[0.18em] text-theme-text-faint">自动分发</div>
+                  <div className="mt-2 text-sm font-semibold text-theme-text-primary">调度中心后台排队并执行分发</div>
+                  <div className="mt-1 text-xs text-theme-text-faint">创建成功后任务会自动进入分发队列；调度中心会在分发期创建 root task key，并直接传给下游。</div>
                 </div>
                 <div className="rounded-2xl border border-theme-border bg-theme-surface px-4 py-3 md:col-span-2">
                   <div className="text-xs font-bold uppercase tracking-[0.18em] text-theme-text-faint">创建摘要</div>
