@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { ArrowLeft, RefreshCw, Download, Loader2 } from 'lucide-react';
+import { ArrowLeft, RefreshCw, Download, Loader2, Pencil } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import {
@@ -17,11 +17,22 @@ interface Props {
   onPrev: () => void;
 }
 
-function extractTestResult(result?: string): string {
-  if (!result) return '-';
-  const idx = result.indexOf('用例结果');
+function extractTextFromResult(resultStr?: string): string {
+  if (!resultStr) return '';
+  try {
+    const result = JSON.parse(resultStr);
+    return result.data?.outputs?.text || '';
+  } catch {
+    return resultStr;
+  }
+}
+
+function extractTestResult(resultStr?: string): string {
+  const text = extractTextFromResult(resultStr);
+  if (!text) return '-';
+  const idx = text.indexOf('用例结果');
   if (idx === -1) return '-';
-  const afterKeyword = result.substring(idx);
+  const afterKeyword = text.substring(idx + '用例结果'.length);
   if (afterKeyword.includes('不通过')) return '不通过';
   if (afterKeyword.includes('通过')) return '通过';
   return '-';
@@ -31,9 +42,35 @@ export const TaskReportStep: React.FC<Props> = ({ taskId, task, onTaskUpdated, o
   const [agents, setAgents] = useState<RedlineTaskAgent[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeToc, setActiveToc] = useState('summary');
-  const [clauseMap, setClauseMap] = useState<Record<string, RedlineRedLineClause[]>>({});
+  // clauseDetailsMap: agentId -> { clauseId -> full clause detail }
+  const [clauseDetailsMap, setClauseDetailsMap] = useState<Record<string, Record<string, RedlineRedLineClause>>>({});
+  const [loadingClauses, setLoadingClauses] = useState<Record<string, boolean>>({});
   const [results, setResults] = useState<RedlineRedLineResult[]>([]);
   const [savingResult, setSavingResult] = useState<string | null>(null);
+  const [editingClause, setEditingClause] = useState<string | null>(null);
+
+  const loadClauseDetailsForAgent = useCallback(async (agentId: string) => {
+    if (loadingClauses[agentId]) return;
+    setLoadingClauses((prev) => ({ ...prev, [agentId]: true }));
+    try {
+      const clauseRes = await redlineVerificationApi.getAgentRedLineClauses(agentId);
+      if (clauseRes.code === 200 && clauseRes.data && clauseRes.data.length > 0) {
+        const clauseIds = clauseRes.data.map((c) => c.id);
+        const detailRes = await redlineVerificationApi.getRedLineClausesByIds(clauseIds);
+        if (detailRes.code === 200 && detailRes.data) {
+          const map: Record<string, RedlineRedLineClause> = {};
+          detailRes.data.forEach((c) => { map[c.id] = c; });
+          setClauseDetailsMap((prev) => ({ ...prev, [agentId]: map }));
+        }
+      } else {
+        setClauseDetailsMap((prev) => ({ ...prev, [agentId]: {} }));
+      }
+    } catch {
+      setClauseDetailsMap((prev) => ({ ...prev, [agentId]: {} }));
+    } finally {
+      setLoadingClauses((prev) => ({ ...prev, [agentId]: false }));
+    }
+  }, [loadingClauses]);
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -41,24 +78,11 @@ export const TaskReportStep: React.FC<Props> = ({ taskId, task, onTaskUpdated, o
       const statusRes = await redlineVerificationApi.getExecutionStatus(taskId);
       if (statusRes.code === 200 && statusRes.data) {
         setAgents(statusRes.data);
-        // Load clauses for each agent
-        const clauseEntries: Record<string, RedlineRedLineClause[]> = {};
-        await Promise.all(
-          statusRes.data.map(async (agent) => {
-            try {
-              const clauseRes = await redlineVerificationApi.getAgentRedLineClauses(agent.agentId);
-              if (clauseRes.code === 200 && clauseRes.data) {
-                clauseEntries[agent.agentId] = clauseRes.data;
-              }
-            } catch {
-              // ignore clause loading errors
-            }
-          }),
-        );
-        setClauseMap(clauseEntries);
+        // Load clause details for each agent
+        for (const agent of statusRes.data) {
+          loadClauseDetailsForAgent(agent.agentId);
+        }
       }
-
-      // Load existing red-line results
       const resultsRes = await redlineVerificationApi.getRedLineResults(taskId);
       if (resultsRes.code === 200 && resultsRes.data) {
         setResults(resultsRes.data);
@@ -68,11 +92,45 @@ export const TaskReportStep: React.FC<Props> = ({ taskId, task, onTaskUpdated, o
     } finally {
       setLoading(false);
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [taskId]);
 
   useEffect(() => {
     loadData();
   }, [loadData]);
+
+  // executionId = agent.id (TaskAgent record ID), NOT agent.agentId
+  const getResultForClause = (clauseId: string, executionId: string): RedlineRedLineResult | undefined => {
+    return results.find((r) => r.redLineClauseId === clauseId && r.executionId === executionId);
+  };
+
+  const handleConfirm = async (
+    agent: RedlineTaskAgent,
+    clauseId: string,
+    status: 'PASS' | 'FAIL',
+  ) => {
+    const key = `${clauseId}-${agent.id}-${status}`;
+    setSavingResult(key);
+    try {
+      const existing = getResultForClause(clauseId, agent.id);
+      if (existing) {
+        await redlineVerificationApi.updateRedLineResult(existing.id, { status });
+      } else {
+        await redlineVerificationApi.batchSaveRedLineResults(taskId, agent.id, [
+          { redLineClauseId: clauseId, status },
+        ]);
+      }
+      const refreshed = await redlineVerificationApi.getRedLineResults(taskId);
+      if (refreshed.code === 200 && refreshed.data) {
+        setResults(refreshed.data);
+      }
+      setEditingClause(null);
+    } catch (err) {
+      console.error('Failed to save red-line result', err);
+    } finally {
+      setSavingResult(null);
+    }
+  };
 
   const handleExport = () => {
     let content = `# ${task.name} - 测试报告\n\n`;
@@ -86,8 +144,9 @@ export const TaskReportStep: React.FC<Props> = ({ taskId, task, onTaskUpdated, o
     }
     content += '\n';
     for (const agent of agents) {
+      const text = extractTextFromResult(agent.result);
       content += `## ${agent.agentName || agent.agentId}\n\n`;
-      content += (agent.result || '无结果') + '\n\n';
+      content += (text || '无结果') + '\n\n';
     }
     const blob = new Blob([content], { type: 'text/markdown' });
     const url = URL.createObjectURL(blob);
@@ -103,57 +162,20 @@ export const TaskReportStep: React.FC<Props> = ({ taskId, task, onTaskUpdated, o
     document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' });
   };
 
-  const getResultForClause = (clauseId: string, agentId: string): RedlineRedLineResult | undefined => {
-    return results.find((r) => r.redLineClauseId === clauseId && r.executionId === agentId);
-  };
-
-  const handleRedLineToggle = async (
-    agent: RedlineTaskAgent,
-    clause: RedlineRedLineClause,
-    status: 'PASS' | 'FAIL',
-  ) => {
-    const key = `${clause.id}-${status}`;
-    setSavingResult(key);
-    try {
-      const existing = getResultForClause(clause.id, agent.agentId);
-      if (existing) {
-        await redlineVerificationApi.updateRedLineResult(existing.id, { status });
-        setResults((prev) =>
-          prev.map((r) => (r.id === existing.id ? { ...r, status } : r)),
-        );
-      } else {
-        const res = await redlineVerificationApi.batchSaveRedLineResults(taskId, agent.id, [
-          { redLineClauseId: clause.id, status, executionResult: agent.result || '' },
-        ]);
-        if (res.code === 200) {
-          // Reload results to get IDs
-          const refreshed = await redlineVerificationApi.getRedLineResults(taskId);
-          if (refreshed.code === 200 && refreshed.data) {
-            setResults(refreshed.data);
-          }
-        }
-      }
-    } catch (err) {
-      console.error('Failed to save red-line result', err);
-    } finally {
-      setSavingResult(null);
-    }
-  };
-
-  // Compute red-line stats per agent
-  const getRedLineStats = (agentId: string): string => {
-    const clauses = clauseMap[agentId] || [];
-    if (clauses.length === 0) return '-';
-    const agentResults = clauses
-      .map((c) => getResultForClause(c.id, agentId))
+  const getRedLineStats = (agent: RedlineTaskAgent): string => {
+    const clauseMap = clauseDetailsMap[agent.agentId];
+    if (!clauseMap) return '-';
+    const clauseIds = Object.keys(clauseMap);
+    if (clauseIds.length === 0) return '-';
+    const agentResults = clauseIds
+      .map((cid) => getResultForClause(cid, agent.id))
       .filter(Boolean) as RedlineRedLineResult[];
     const passCount = agentResults.filter((r) => r.status === 'PASS').length;
-    const total = clauses.length;
-    const allPassed = passCount === total && total > 0;
-    const hasFail = agentResults.some((r) => r.status === 'FAIL');
-    if (hasFail) return `${passCount}/${total} FAIL`;
-    if (allPassed) return `${passCount}/${total} PASS`;
-    return `${passCount}/${total}`;
+    const failCount = agentResults.filter((r) => r.status === 'FAIL').length;
+    const total = clauseIds.length;
+    if (failCount > 0) return `${passCount}/${total} (有不通过)`;
+    if (passCount === total && total > 0) return `${passCount}/${total} 全部通过`;
+    return `${agentResults.length}/${total}`;
   };
 
   if (loading) {
@@ -238,41 +260,23 @@ export const TaskReportStep: React.FC<Props> = ({ taskId, task, onTaskUpdated, o
                   const execResult =
                     agent.isSuccess === true ? '成功' : agent.isSuccess === false ? '失败' : '-';
                   const testResult = extractTestResult(agent.result);
-                  const redLineStat = getRedLineStats(agent.agentId);
+                  const redLineStat = getRedLineStats(agent);
                   return (
                     <tr key={agent.id} className="border-b border-theme-border/50">
                       <td className="py-2 px-3 text-theme-text-primary">
                         {agent.agentName || agent.agentId}
                       </td>
                       <td className="py-2 px-3">
-                        <span
-                          className={
-                            execResult === '成功'
-                              ? 'text-emerald-500'
-                              : execResult === '失败'
-                                ? 'text-rose-500'
-                                : 'text-theme-text-secondary'
-                          }
-                        >
+                        <span className={execResult === '成功' ? 'text-emerald-500' : execResult === '失败' ? 'text-rose-500' : 'text-theme-text-secondary'}>
                           {execResult}
                         </span>
                       </td>
                       <td className="py-2 px-3">
-                        <span
-                          className={
-                            testResult === '通过'
-                              ? 'text-emerald-500'
-                              : testResult === '不通过'
-                                ? 'text-rose-500'
-                                : 'text-theme-text-secondary'
-                          }
-                        >
+                        <span className={testResult === '通过' ? 'text-emerald-500' : testResult === '不通过' ? 'text-rose-500' : 'text-theme-text-secondary'}>
                           {testResult}
                         </span>
                       </td>
-                      <td className="py-2 px-3 text-theme-text-secondary text-xs">
-                        {redLineStat}
-                      </td>
+                      <td className="py-2 px-3 text-theme-text-secondary text-xs">{redLineStat}</td>
                     </tr>
                   );
                 })}
@@ -280,75 +284,101 @@ export const TaskReportStep: React.FC<Props> = ({ taskId, task, onTaskUpdated, o
             </table>
           </section>
 
-          {/* Per-agent report sections */}
+          {/* Per-agent sections */}
           {agents.map((agent) => {
-            const agentClauses = clauseMap[agent.agentId] || [];
+            const text = extractTextFromResult(agent.result);
+            const clauseMap = clauseDetailsMap[agent.agentId] || {};
+            const clauseList = Object.values(clauseMap);
             return (
-              <section
-                key={agent.id}
-                id={`agent-${agent.agentId}`}
-                className="mt-8 pt-6 border-t border-theme-border"
-              >
+              <section key={agent.id} id={`agent-${agent.agentId}`} className="mt-8 pt-6 border-t border-theme-border">
                 <h3 className="text-base font-semibold text-theme-text-primary mb-4">
                   {agent.agentName || agent.agentId} 报告
                 </h3>
 
                 {/* Markdown rendered result */}
                 <div className="prose prose-sm prose-invert max-w-none mb-6">
-                  {agent.result ? (
-                    <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                      {agent.result}
-                    </ReactMarkdown>
+                  {text ? (
+                    <ReactMarkdown remarkPlugins={[remarkGfm]}>{text}</ReactMarkdown>
                   ) : (
                     <p className="text-theme-text-secondary italic">无结果</p>
                   )}
                 </div>
 
-                {/* Red-line clause confirmation */}
-                {agentClauses.length > 0 && (
+                {/* Red-line clause table */}
+                {clauseList.length > 0 && (
                   <div className="mt-4">
-                    <h4 className="text-sm font-medium text-theme-text-primary mb-3">
-                      红线条款确认
-                    </h4>
-                    <div className="space-y-2">
-                      {agentClauses.map((clause) => {
-                        const existingResult = getResultForClause(clause.id, agent.agentId);
-                        const currentStatus = existingResult?.status;
-                        const isPass = currentStatus === 'PASS';
-                        const isFail = currentStatus === 'FAIL';
-                        return (
-                          <div
-                            key={clause.id}
-                            className="flex items-center gap-3 px-3 py-2 rounded-lg bg-theme-surface-secondary"
-                          >
-                            <span className="flex-1 text-xs text-theme-text-primary truncate" title={clause.content || clause.name}>
-                              {clause.name}
-                            </span>
-                            <button
-                              onClick={() => handleRedLineToggle(agent, clause, 'PASS')}
-                              disabled={savingResult !== null}
-                              className={`px-3 py-1 text-xs rounded-lg transition-colors ${
-                                isPass
-                                  ? 'bg-emerald-600 text-white'
-                                  : 'border border-emerald-500 text-emerald-500 hover:bg-emerald-500/10'
-                              }`}
-                            >
-                              PASS
-                            </button>
-                            <button
-                              onClick={() => handleRedLineToggle(agent, clause, 'FAIL')}
-                              disabled={savingResult !== null}
-                              className={`px-3 py-1 text-xs rounded-lg transition-colors ${
-                                isFail
-                                  ? 'bg-rose-600 text-white'
-                                  : 'border border-rose-500 text-rose-500 hover:bg-rose-500/10'
-                              }`}
-                            >
-                              FAIL
-                            </button>
-                          </div>
-                        );
-                      })}
+                    <h4 className="text-sm font-medium text-theme-text-primary mb-3">红线条款确认</h4>
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-xs border-collapse border border-theme-border">
+                        <thead>
+                          <tr className="bg-theme-surface">
+                            <th className="border border-theme-border px-2 py-2 text-left text-theme-text-secondary font-medium w-24">解读编号</th>
+                            <th className="border border-theme-border px-2 py-2 text-left text-theme-text-secondary font-medium w-20">类别</th>
+                            <th className="border border-theme-border px-2 py-2 text-left text-theme-text-secondary font-medium">正文要求</th>
+                            <th className="border border-theme-border px-2 py-2 text-left text-theme-text-secondary font-medium">红线解读及指导</th>
+                            <th className="border border-theme-border px-2 py-2 text-center text-theme-text-secondary font-medium w-40">操作</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {clauseList.map((clause) => {
+                            const existingResult = getResultForClause(clause.id, agent.id);
+                            const currentStatus = existingResult?.status;
+                            const clauseEditKey = `${clause.id}-${agent.id}`;
+                            const isEditing = editingClause === clauseEditKey;
+                            return (
+                              <tr key={clause.id} className="border-b border-theme-border/50">
+                                <td className="border border-theme-border px-2 py-2 text-theme-text-primary">{clause.id?.slice(0, 8) || '-'}</td>
+                                <td className="border border-theme-border px-2 py-2 text-theme-text-primary">{clause.redLineCategory || clause.category || '-'}</td>
+                                <td className="border border-theme-border px-2 py-2 text-theme-text-primary whitespace-pre-wrap">{clause.bodyRequirement || clause.content || '-'}</td>
+                                <td className="border border-theme-border px-2 py-2 text-theme-text-primary whitespace-pre-wrap">{clause.interpretationGuidance || clause.description || '-'}</td>
+                                <td className="border border-theme-border px-2 py-2 text-center">
+                                  {currentStatus && !isEditing ? (
+                                    <div className="flex items-center justify-center gap-2">
+                                      <span className={`inline-flex items-center rounded px-2 py-0.5 text-xs font-medium ${
+                                        currentStatus === 'PASS' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-rose-500/20 text-rose-400'
+                                      }`}>
+                                        {currentStatus}
+                                      </span>
+                                      <button
+                                        onClick={() => setEditingClause(clauseEditKey)}
+                                        className="inline-flex items-center gap-1 px-2 py-0.5 text-xs rounded border border-theme-border text-theme-text-secondary hover:bg-theme-surface-hover"
+                                      >
+                                        <Pencil className="w-3 h-3" />
+                                        修改
+                                      </button>
+                                    </div>
+                                  ) : (
+                                    <div className="flex items-center justify-center gap-2">
+                                      <button
+                                        onClick={() => handleConfirm(agent, clause.id, 'PASS')}
+                                        disabled={savingResult !== null}
+                                        className="px-3 py-1 text-xs rounded border border-emerald-500 text-emerald-500 hover:bg-emerald-500/10 disabled:opacity-50"
+                                      >
+                                        通过
+                                      </button>
+                                      <button
+                                        onClick={() => handleConfirm(agent, clause.id, 'FAIL')}
+                                        disabled={savingResult !== null}
+                                        className="px-3 py-1 text-xs rounded border border-rose-500 text-rose-500 hover:bg-rose-500/10 disabled:opacity-50"
+                                      >
+                                        不通过
+                                      </button>
+                                      {isEditing && (
+                                        <button
+                                          onClick={() => setEditingClause(null)}
+                                          className="px-2 py-1 text-xs rounded border border-theme-border text-theme-text-secondary hover:bg-theme-surface-hover"
+                                        >
+                                          取消
+                                        </button>
+                                      )}
+                                    </div>
+                                  )}
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
                     </div>
                   </div>
                 )}
@@ -357,9 +387,7 @@ export const TaskReportStep: React.FC<Props> = ({ taskId, task, onTaskUpdated, o
           })}
 
           {agents.length === 0 && (
-            <div className="text-center py-12 text-theme-text-secondary">
-              暂无执行结果
-            </div>
+            <div className="text-center py-12 text-theme-text-secondary">暂无执行结果</div>
           )}
         </div>
       </div>
