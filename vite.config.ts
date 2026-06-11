@@ -20,6 +20,7 @@ export default defineConfig(({ mode }) => {
     const buildTime = env.BUILD_TIME || new Date().toISOString().replace('T', ' ').slice(0, 19);
     const keepAliveHttpAgent = new http.Agent({ keepAlive: true, maxSockets: 50, keepAliveMsecs: 3000 });
     const keepAliveHttpsAgent = new https.Agent({ keepAlive: true, maxSockets: 50, keepAliveMsecs: 3000 });
+    const turingHttpAgent = new http.Agent({ keepAlive: true, maxSockets: 20, keepAliveMsecs: 3000 });
     const buildVersion = String(env.SECFLOW_BUILD_VERSION || '').trim() || 'dev';
     const aigwProxyTarget = String(env.VITE_AIGW_PROXY_TARGET || 'https://secflow.ai.icsl.huawei.com').trim();
     const aigwProxyIsHttps = aigwProxyTarget.startsWith('https://');
@@ -33,6 +34,14 @@ export default defineConfig(({ mode }) => {
         host: '0.0.0.0',
         sourcemapIgnoreList: (sourcePath) => sourcePath.includes('node_modules'),
         proxy: {
+          // Turing App Security (M2M + upload) — /turing/api/* → turing backend
+          '/turing/api': {
+            target: 'http://turing.ai.icsl.huawei.com/turing-app-security',
+            changeOrigin: true,
+            secure: false,
+            agent: turingHttpAgent,
+            rewrite: (path) => path.replace(/^\/turing/, ''),
+          },
           '/api/aigw': {
             target: aigwProxyTarget,
             changeOrigin: true,

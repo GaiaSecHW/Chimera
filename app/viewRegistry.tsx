@@ -62,6 +62,8 @@ import { BinarySecurityOverviewPage } from '../pages/execution/BinarySecurityOve
 import { BinarySecurityConfigPage } from '../pages/execution/BinarySecurityConfigPage';
 import BinarySecurityMetricsDashboardPage from '../pages/execution/BinarySecurityMetricsDashboardPage';
 import { BinarySecurityTaskDetailPage } from '../pages/execution/BinarySecurityTaskDetailPage';
+import { AppScanOverviewPage } from '../pages/execution/AppScanOverviewPage';
+import { AppScanTaskDetailPage } from '../pages/execution/AppScanTaskDetailPage';
 import { MobileSecurityIpcVulnPage } from '../pages/execution/MobileSecurityIpcVulnPage';
 import { KernelScanPage } from '../pages/execution/KernelScanPage';
 import { AtomicCapabilityOverviewPage } from '../pages/execution/AtomicCapabilityOverviewPage';
@@ -133,6 +135,7 @@ export interface ViewRegistryContext {
   activeBinarySecurityTaskId: string;
   activeSourceSecurityTaskId: string;
   activeBinaryModuleSecurityTaskId: string;
+  activeAppScanTaskId: string;
   activeRedlineTaskId: string;
   selectedStaticPkgIds: Set<string>;
   setCurrentView: (view: string) => void;
@@ -153,6 +156,7 @@ export interface ViewRegistryContext {
   setActiveBinarySecurityTaskId: (id: string) => void;
   setActiveSourceSecurityTaskId: (id: string) => void;
   setActiveBinaryModuleSecurityTaskId: (id: string) => void;
+  setActiveAppScanTaskId: (id: string) => void;
   setActiveRedlineTaskId: (id: string) => void;
   setSelectedStaticPkgIds: (ids: Set<string>) => void;
   fetchProjects: (refresh?: boolean) => Promise<void>;
@@ -580,6 +584,35 @@ export const renderCurrentView = (ctx: ViewRegistryContext): React.ReactNode => 
           taskId={ctx.activeBinaryModuleSecurityTaskId}
           taskType="binary_module"
           onBack={() => ctx.setCurrentView('binary-module-security')}
+        />
+      );
+    case 'app-security-scan':
+      return (
+        <AppScanOverviewPage
+          projectId={ctx.selectedProjectId}
+          onOpenTask={(toolTaskId) => {
+            ctx.setActiveAppScanTaskId(toolTaskId);
+            ctx.setCurrentView('app-security-scan-detail');
+          }}
+        />
+      );
+    case 'app-security-scan-detail':
+      if (!ctx.activeAppScanTaskId) {
+        return (
+          <AppScanOverviewPage
+            projectId={ctx.selectedProjectId}
+            onOpenTask={(toolTaskId) => {
+              ctx.setActiveAppScanTaskId(toolTaskId);
+              ctx.setCurrentView('app-security-scan-detail');
+            }}
+          />
+        );
+      }
+      return (
+        <AppScanTaskDetailPage
+          projectId={ctx.selectedProjectId}
+          toolTaskId={ctx.activeAppScanTaskId}
+          onBack={() => ctx.setCurrentView('app-security-scan')}
         />
       );
     case 'redline-verification':

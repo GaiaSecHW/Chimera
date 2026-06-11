@@ -2344,6 +2344,7 @@ export type ViewType =
   | 'binary-security' | 'binary-security-root' | 'binary-security-task-list' | 'binary-security-detail' | 'binary-security-config'
   | 'source-security' | 'source-security-detail'
   | 'binary-module-security' | 'binary-module-security-detail'
+  | 'app-security-scan' | 'app-security-scan-detail'
   | 'mobile-security-ipc-vuln'
   // [DISABLED] 数据流漏洞挖掘 - 方便后续复用
   // | 'pentest-exec-dataflow-vuln' | 'pentest-exec-dataflow-vuln-task-list' | 'pentest-exec-dataflow-vuln-task-detail' | 'pentest-exec-dataflow-vuln-system-config'

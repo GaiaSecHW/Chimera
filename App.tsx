@@ -92,6 +92,7 @@ const AppShell: React.FC = () => {
   const [activeBinarySecurityTaskId, setActiveBinarySecurityTaskId] = useState<string>('');
   const [activeSourceSecurityTaskId, setActiveSourceSecurityTaskId] = useState<string>('');
   const [activeBinaryModuleSecurityTaskId, setActiveBinaryModuleSecurityTaskId] = useState<string>('');
+  const [activeAppScanTaskId, setActiveAppScanTaskId] = useState<string>('');
   const [activeRedlineTaskId, setActiveRedlineTaskId] = useState<string>('');
   const [isLoading, setIsLoading] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -245,6 +246,8 @@ const AppShell: React.FC = () => {
         binarySecurityTaskId?: string;
         sourceSecurityTaskId?: string;
         binaryEvolutionTaskId?: string;
+        redlineTaskId?: string;
+        appScanTaskId?: string;
         path?: string;
       }>).detail;
       const nextView = String(detail?.view || '').trim();
@@ -697,6 +700,8 @@ const AppShell: React.FC = () => {
                     setActiveBinarySecurityTaskId: (id) => setActiveBinarySecurityTaskId(id),
                     setActiveSourceSecurityTaskId: (id) => setActiveSourceSecurityTaskId(id),
                     setActiveBinaryModuleSecurityTaskId: (id) => setActiveBinaryModuleSecurityTaskId(id),
+                    activeAppScanTaskId,
+                    setActiveAppScanTaskId: (id) => setActiveAppScanTaskId(id),
                     setActiveRedlineTaskId: (id) => setActiveRedlineTaskId(id),
                     setSelectedStaticPkgIds: (ids) => setSelectedStaticPkgIds(ids),
                     fetchProjects,

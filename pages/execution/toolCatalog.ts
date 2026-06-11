@@ -1,4 +1,4 @@
-import { type LucideIcon, Boxes, FileCode2, Shield } from 'lucide-react';
+import { type LucideIcon, Boxes, FileCode2, Shield, Smartphone } from 'lucide-react';
 import type { ViewType } from '../../types/types';
 
 export interface ToolUsageSection {
@@ -92,6 +92,31 @@ export const toolCatalog: ToolDescriptor[] = [
       {
         title: '结果重点',
         description: '重点查看模块级父任务状态、阶段子项是否全部收敛、漏洞产出是否完成映射，以及是否存在下游状态正常但父项未收敛的异常。',
+      },
+    ],
+  },
+  {
+    id: 'app-security-scan',
+    name: '应用端到端扫描',
+    summary: '针对 APK/HAP 应用包执行 AI 驱动的端到端安全扫描，覆盖检测、挖掘、验证三阶段。',
+    thumbnailDescription: '适合对 Android/HarmonyOS 应用包做全流程自动化安全审计与漏洞收敛。',
+    inputDescription: '上传 APK/HAP 应用包文件，系统自动完成反编译并启动三阶段扫描流水线。',
+    resultDescription: '输出检测、挖掘、验证三阶段进度、Token 用量统计、漏洞结论与任务生命周期管理。',
+    tags: ['应用扫描', 'APK', 'HAP', '三阶段检测'],
+    viewId: 'app-security-scan',
+    icon: Smartphone,
+    usageSections: [
+      {
+        title: '适用场景',
+        description: '用于对 Android APK 或 HarmonyOS HAP 应用包发起 AI 驱动的端到端安全扫描，适合需要自动化反编译、攻击面检测、漏洞挖掘和验证的完整审计场景。',
+      },
+      {
+        title: '输入重点',
+        description: '上传 APK 或 HAP 文件，系统自动识别文件类型并启动反编译。反编译完成后自动进入检测→挖掘→验证三阶段扫描流水线。',
+      },
+      {
+        title: '结果重点',
+        description: '重点查看三阶段（检测、挖掘、验证）各阶段的任务进度与状态、Token 消耗统计、最终漏洞产出，以及任务运行时间线和异常信息。',
       },
     ],
   },
