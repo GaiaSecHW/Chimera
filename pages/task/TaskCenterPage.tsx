@@ -23,7 +23,6 @@ const TASK_TYPES = [
   { value: 'binary_module_e2e', label: '盖亚-二进制模块', downstreamView: 'binary-module-security-detail' },
   { value: 'ai4red', label: 'AI4Red 红线验证', downstreamView: 'ai4red-detail' },
   { value: 'ai4apk', label: 'AI4APK 应用安全扫描' },
-  { value: 'redline_verification_e2e', label: '盖亚-红线验证', downstreamView: 'redline-verification-detail' },
 ] as const;
 
 const CREATE_TABS = [
@@ -37,7 +36,6 @@ const INPUT_MODES: Record<string, 'file' | 'file_list' | 'directory'> = {
   source_scan_e2e: 'directory',
   ai4red: 'directory',
   ai4apk: 'file',
-  redline_verification_e2e: 'file',
 };
 
 const formatDateTime = (value?: string | null) => (value ? new Date(value).toLocaleString('zh-CN') : '—');
