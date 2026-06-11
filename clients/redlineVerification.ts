@@ -59,17 +59,19 @@ export interface RedlineDeliverableConfig {
   id: string;
   agentId: string;
   agentName?: string;
-  fileName?: string;
-  fileDescription?: string;
-  required?: boolean;
+  deliverableUrl?: string;
+  remark?: string;
 }
 
 export interface RedlineRedLineClause {
   id: string;
-  name: string;
+  name?: string;
   category?: string;
   content?: string;
   description?: string;
+  redLineCategory?: string;
+  bodyRequirement?: string;
+  interpretationGuidance?: string;
 }
 
 export interface RedlineRedLineResult {
