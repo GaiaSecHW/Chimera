@@ -2200,7 +2200,7 @@ export interface VirtualKey {
   updated_at: string;
 }
 
-export type ScheduleCenterUserTaskType = 'binary_firmware_e2e' | 'source_scan_e2e' | 'binary_module_e2e';
+export type ScheduleCenterUserTaskType = 'binary_firmware_e2e' | 'source_scan_e2e' | 'binary_module_e2e' | 'ai4red';
 
 export interface ScheduleCenterUserTaskInput {
   input_upload_id: string;
@@ -2241,6 +2241,9 @@ export interface ScheduleCenterUserTask {
   dispatched_task_key_prefix?: string | null;
   downstream_task_id?: string | null;
   downstream_detail_view?: string | null;
+  downstream_status_raw?: string | null;
+  downstream_status_mapped?: string | null;
+  downstream_report_ready?: boolean;
   last_error?: string | null;
   created_by: string;
   updated_at: string;
@@ -2283,6 +2286,9 @@ export interface ScheduleCenterUserTaskDispatch {
   dispatched_task_key_prefix?: string | null;
   downstream_task_id?: string | null;
   downstream_detail_view?: string | null;
+  downstream_status_raw?: string | null;
+  downstream_status_mapped?: string | null;
+  downstream_report_ready?: boolean;
   last_error?: string | null;
   created_by: string;
   created_at: string;

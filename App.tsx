@@ -285,6 +285,10 @@ const AppShell: React.FC = () => {
       if (sourceSecurityTaskId) {
         setActiveSourceSecurityTaskId(sourceSecurityTaskId);
       }
+      const redlineTaskId = String(detail?.redlineTaskId || '').trim();
+      if (redlineTaskId) {
+        setActiveRedlineTaskId(redlineTaskId);
+      }
       const binaryEvolutionTaskId = String(detail?.binaryEvolutionTaskId || '').trim();
       if (nextView) {
         navigateToView(nextView, {

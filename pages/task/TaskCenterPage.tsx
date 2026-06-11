@@ -21,6 +21,7 @@ const TASK_TYPES = [
   { value: 'binary_firmware_e2e', label: '盖亚-二进制固件', downstreamView: 'binary-security-detail' },
   { value: 'source_scan_e2e', label: '盖亚-源码', downstreamView: 'source-security-detail' },
   { value: 'binary_module_e2e', label: '盖亚-二进制模块', downstreamView: 'binary-module-security-detail' },
+  { value: 'ai4red', label: 'AI4Red 红线验证', downstreamView: 'ai4red-detail' },
 ] as const;
 
 const CREATE_TABS = [
@@ -32,6 +33,7 @@ const INPUT_MODES: Record<string, 'file' | 'file_list' | 'directory'> = {
   binary_firmware_e2e: 'file',
   binary_module_e2e: 'file_list',
   source_scan_e2e: 'directory',
+  ai4red: 'directory',
 };
 
 const formatDateTime = (value?: string | null) => (value ? new Date(value).toLocaleString('zh-CN') : '—');
@@ -264,6 +266,16 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects }) => {
   const openTask = (task: ScheduleCenterUserTask) => {
     const meta = TASK_TYPES.find((item) => item.value === task.task_type);
     if (!meta) return;
+    const taskIdentifier = task.downstream_task_id || task.id;
+    if (meta.downstreamView === 'ai4red-detail') {
+      window.dispatchEvent(new CustomEvent('chimera-navigate-view', {
+        detail: {
+          view: 'ai4red-detail',
+          redlineTaskId: taskIdentifier,
+        },
+      }));
+      return;
+    }
     window.dispatchEvent(new CustomEvent('chimera-navigate-view', {
       detail: {
         view: meta.downstreamView,
@@ -271,7 +283,7 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects }) => {
           ? 'binarySecurityTaskId'
           : meta.downstreamView === 'source-security-detail'
             ? 'sourceSecurityTaskId'
-            : 'binaryModuleSecurityTaskId']: task.downstream_task_id || task.id,
+            : 'binaryModuleSecurityTaskId']: taskIdentifier,
       },
     }));
   };

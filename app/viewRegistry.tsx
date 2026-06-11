@@ -611,6 +611,25 @@ export const renderCurrentView = (ctx: ViewRegistryContext): React.ReactNode => 
           onBack={() => ctx.setCurrentView('redline-verification')}
         />
       );
+    case 'ai4red-detail':
+      if (!ctx.activeRedlineTaskId) {
+        return (
+          <RedlineOverviewPage
+            projectId={ctx.selectedProjectId}
+            onOpenTask={(taskId) => {
+              ctx.setActiveRedlineTaskId(taskId);
+              ctx.setCurrentView('redline-verification-detail');
+            }}
+          />
+        );
+      }
+      return (
+        <RedlineTaskDetailPage
+          projectId={ctx.selectedProjectId}
+          taskId={ctx.activeRedlineTaskId}
+          onBack={() => ctx.setCurrentView('task-list')}
+        />
+      );
     case 'binary-security-config':
       return <BinarySecurityConfigPage projectId={ctx.selectedProjectId} />;
     case 'binary-security-metrics':
