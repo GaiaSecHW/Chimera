@@ -35,6 +35,7 @@ interface UploadQueueItem {
   file: File;
   status: 'pending' | 'uploading' | 'completed' | 'failed';
   progress: number;
+  speedBytesPerSec?: number;
   error?: string;
 }
 
@@ -56,6 +57,19 @@ const formatDateTime = (value?: string | null) => {
   if (!value) return '-';
   const date = new Date(value);
   return Number.isNaN(date.getTime()) ? value : date.toLocaleString();
+};
+
+const formatSpeed = (value?: number | null) => {
+  const bytes = Number(value || 0);
+  if (!bytes) return '0 B/s';
+  const units = ['B/s', 'KB/s', 'MB/s', 'GB/s'];
+  let next = bytes;
+  let unitIndex = 0;
+  while (next >= 1024 && unitIndex < units.length - 1) {
+    next /= 1024;
+    unitIndex += 1;
+  }
+  return `${next.toFixed(next >= 10 || unitIndex === 0 ? 0 : 1)} ${units[unitIndex]}`;
 };
 
 const normalizeType = (value: string): InputType => {
@@ -222,11 +236,14 @@ export const TestInputPage: React.FC<TestInputPageProps> = ({ selectedProjectId,
         file,
         status: allowed ? 'pending' : 'failed',
         progress: 0,
+        speedBytesPerSec: 0,
         error: allowed ? undefined : '仅支持压缩包上传',
       };
     });
     setUploadQueue((current) => [...current, ...next]);
   };
+
+  const uploadDialogError = errorMessage;
 
   const openCreateModal = (type: InputType) => {
     setIsAppendMode(false);
@@ -260,21 +277,47 @@ export const TestInputPage: React.FC<TestInputPageProps> = ({ selectedProjectId,
       return;
     }
     setIsUploading(true);
-    setUploadQueue((current) => current.map((item) => item.status === 'failed' ? item : { ...item, status: 'uploading', progress: 40 }));
+    setUploadQueue((current) => current.map((item) => item.status === 'failed' ? item : { ...item, status: 'uploading', progress: 40, speedBytesPerSec: 0 }));
     try {
       let result: { upload_id: string } | undefined;
       if (isAppendMode && activeUploadId) {
         result = await fileserverApi.appendProjectInputUpload({
           upload_id: activeUploadId,
           keep_original: keepOriginal,
+          upload_mode: keepOriginal ? 'raw' : 'archive',
           files: readyFiles,
+        }, {
+          onProgress: (progress) => {
+            setUploadQueue((current) => current.map((item) => (
+              item.status === 'failed'
+                ? item
+                : {
+                    ...item,
+                    progress: Math.max(item.progress, progress.total_bytes > 0 ? Math.round((progress.loaded_bytes / progress.total_bytes) * 100) : item.progress),
+                    speedBytesPerSec: progress.speed_bytes_per_sec || 0,
+                  }
+            )));
+          },
         });
       } else {
         result = await fileserverApi.createProjectInputUpload({
           project_id: projectId,
           input_type: activeInputType,
           keep_original: keepOriginal,
+          upload_mode: keepOriginal ? 'raw' : 'archive',
           files: readyFiles,
+        }, {
+          onProgress: (progress) => {
+            setUploadQueue((current) => current.map((item) => (
+              item.status === 'failed'
+                ? item
+                : {
+                    ...item,
+                    progress: Math.max(item.progress, progress.total_bytes > 0 ? Math.round((progress.loaded_bytes / progress.total_bytes) * 100) : item.progress),
+                    speedBytesPerSec: progress.speed_bytes_per_sec || 0,
+                  }
+            )));
+          },
         });
         if (result?.upload_id) {
           try {
@@ -288,7 +331,7 @@ export const TestInputPage: React.FC<TestInputPageProps> = ({ selectedProjectId,
           }
         }
       }
-      setUploadQueue((current) => current.map((item) => item.status === 'failed' ? item : { ...item, status: 'completed', progress: 100 }));
+      setUploadQueue((current) => current.map((item) => item.status === 'failed' ? item : { ...item, status: 'completed', progress: 100, speedBytesPerSec: 0 }));
       setIsUploadModalOpen(false);
       setUploadQueue([]);
       setUploadDisplayName('');
@@ -302,7 +345,7 @@ export const TestInputPage: React.FC<TestInputPageProps> = ({ selectedProjectId,
       await Promise.all([loadOverview(), loadRecords()]);
     } catch (error: any) {
       const message = error?.message || '上传失败';
-      setUploadQueue((current) => current.map((item) => item.status === 'failed' ? item : { ...item, status: 'failed', progress: 0, error: message }));
+      setUploadQueue((current) => current.map((item) => item.status === 'failed' ? item : { ...item, status: 'failed', progress: 0, speedBytesPerSec: 0, error: message }));
       setErrorMessage(message);
     } finally {
       setIsUploading(false);
@@ -463,7 +506,7 @@ export const TestInputPage: React.FC<TestInputPageProps> = ({ selectedProjectId,
             </div>
           </div>
 
-          {errorMessage ? (
+          {!isUploadModalOpen && errorMessage ? (
             <div className="mt-4 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-medium text-rose-700">
               {errorMessage}
             </div>
@@ -807,6 +850,11 @@ export const TestInputPage: React.FC<TestInputPageProps> = ({ selectedProjectId,
               <div className="mt-2 text-2xl font-black text-slate-900">{INPUT_TYPE_META[activeInputType].label}任务输入</div>
             </div>
             <div className="space-y-5 px-6 py-6">
+              {uploadDialogError ? (
+                <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-medium text-rose-700">
+                  {uploadDialogError}
+                </div>
+              ) : null}
               {!isAppendMode ? (
                 <div className="space-y-5">
                   <div>
@@ -841,17 +889,17 @@ export const TestInputPage: React.FC<TestInputPageProps> = ({ selectedProjectId,
                 保留原始文件，不自动解压
               </label>
 
-              <div className="rounded-[1.5rem] border border-dashed border-slate-300 bg-slate-50 px-5 py-8 text-center">
-                <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-white text-slate-700 shadow-sm">
+              <div className="rounded-[1.25rem] border border-dashed border-slate-300 bg-slate-50 px-4 py-5 text-center">
+                <div className="mx-auto flex h-11 w-11 items-center justify-center rounded-2xl bg-white text-slate-700 shadow-sm">
                   <Upload size={22} />
                 </div>
-                <div className="mt-4 text-sm font-black text-slate-900">{keepOriginal ? '上传原始文件' : '上传压缩包'}</div>
-                <div className="mt-2 text-xs leading-6 text-slate-500">
+                <div className="mt-3 text-sm font-black text-slate-900">{keepOriginal ? '上传原始文件' : '上传压缩包'}</div>
+                <div className="mt-1 text-xs leading-5 text-slate-500">
                   {keepOriginal
                     ? '当前保留原始文件模式下，支持上传任意文件，一次可选择多个文件。'
                     : '支持 `zip / tar / tar.gz / tgz / tar.bz2 / tbz2 / tar.xz / txz`，一次可选择多个文件。'}
                 </div>
-                <div className="mt-5">
+                <div className="mt-3">
                   <button
                     type="button"
                     onClick={() => fileInputRef.current?.click()}
@@ -878,7 +926,7 @@ export const TestInputPage: React.FC<TestInputPageProps> = ({ selectedProjectId,
                     <div className="flex items-center justify-between gap-3">
                       <div className="min-w-0">
                         <div className="truncate text-sm font-black text-slate-900">{item.file.name}</div>
-                        <div className="mt-1 text-xs text-slate-500">{formatUploadBytes(item.file.size)}</div>
+                        <div className="mt-1 text-xs text-slate-500">{formatUploadBytes(item.file.size)} · {formatSpeed(item.speedBytesPerSec)}</div>
                       </div>
                       <div className="text-xs font-semibold text-slate-500">{item.error || item.status}</div>
                     </div>

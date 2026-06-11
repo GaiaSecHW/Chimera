@@ -172,6 +172,7 @@ export const BaseResourcePage: React.FC<BaseResourcePageProps> = ({ type, title,
         await fileserverApi.appendProjectInputUpload({
           upload_id: activeUploadId,
           keep_original: keepOriginal,
+          upload_mode: keepOriginal ? 'raw' : 'archive',
           files: readyItems.map((item) => item.file),
         });
       } else {
@@ -179,6 +180,7 @@ export const BaseResourcePage: React.FC<BaseResourcePageProps> = ({ type, title,
           project_id: projectId,
           input_type: type,
           keep_original: keepOriginal,
+          upload_mode: keepOriginal ? 'raw' : 'archive',
           files: readyItems.map((item) => item.file),
         });
         try {
