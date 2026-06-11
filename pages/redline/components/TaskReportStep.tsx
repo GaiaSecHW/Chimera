@@ -163,13 +163,32 @@ export const TaskReportStep: React.FC<Props> = ({ taskId, task, onTaskUpdated, o
       const testResult = extractTestResult(agent.result);
       content += `| ${agent.agentName || agent.agentId} | ${execResult} | ${testResult} |\n`;
     }
-    content += '\n';
+    content += '\n---\n\n';
     for (const agent of agents) {
       const text = extractTextFromResult(agent.result);
       content += `## ${agent.agentName || agent.agentId}\n\n`;
       content += (text || '无结果') + '\n\n';
+
+      const clauseMap = clauseDetailsMap[agent.agentId] || {};
+      const clauseList = Object.values(clauseMap);
+      if (clauseList.length > 0) {
+        content += `### 关联红线条款\n\n`;
+        content += `| 解读编号 | 类别 | 正文要求 | 红线解读及指导 | 确认状态 |\n`;
+        content += `|:---|:---|:---|:---|:---|\n`;
+        for (const clause of clauseList) {
+          const result = getResultForClause(clause.id, agent.id);
+          let status = '未确认';
+          if (result) {
+            status = result.status === 'PASS' ? '已通过' : '不通过';
+          }
+          const escCell = (s?: string) => (s || '-').replace(/\|/g, '\\|').replace(/\n/g, ' ');
+          content += `| ${clause.id} | ${escCell(clause.redLineCategory || clause.category)} | ${escCell(clause.bodyRequirement || clause.content)} | ${escCell(clause.interpretationGuidance || clause.description)} | ${status} |\n`;
+        }
+        content += '\n';
+      }
+      content += '---\n\n';
     }
-    const blob = new Blob([content], { type: 'text/markdown' });
+    const blob = new Blob([content], { type: 'text/markdown;charset=utf-8' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
