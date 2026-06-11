@@ -1883,6 +1883,8 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
   const stageFlowRef = useRef<HTMLDivElement | null>(null);
   const [detail, setDetail] = useState<BinarySecurityTaskDetail | null>(null);
   const [timeline, setTimeline] = useState<any[]>([]);
+  const [timelineTotal, setTimelineTotal] = useState(0);
+  const [timelineHasMore, setTimelineHasMore] = useState(false);
   const [artifacts, setArtifacts] = useState<any | null>(null);
   const [artifactsLoaded, setArtifactsLoaded] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -2100,13 +2102,15 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
     }
   };
 
-  const loadTimeline = async () => {
+  const loadTimeline = async (page = timelinePage, pageSize = timelinePageSize) => {
     if (!projectId || !taskId) return;
     setTimelineLoading(true);
     setError(null);
     try {
-      const timelineResp = await executionApi.binarySecurity.getTimeline(projectId, taskId);
+      const timelineResp = await executionApi.binarySecurity.getTimeline(projectId, taskId, page, pageSize);
       setTimeline(timelineResp.events || []);
+      setTimelineTotal(Number(timelineResp.total || 0));
+      setTimelineHasMore(Boolean(timelineResp.has_more));
     } catch (e: any) {
       setError(e?.message || '加载事件时间线失败');
     } finally {
@@ -2129,6 +2133,8 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
     try {
       await executionApi.binarySecurity.clearTimeline(projectId, taskId);
       setTimeline([]);
+      setTimelineTotal(0);
+      setTimelineHasMore(false);
       setExpandedEventKey(null);
     } catch (e: any) {
       setError(e?.message || '清空事件时间线失败');
@@ -2328,7 +2334,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
           : '并发与失败处理';
       setNotice(`${sectionLabel}已保存，将在后续阶段生效`);
       if (activeTab === 'timeline') {
-        await loadTimeline();
+        await loadTimeline(1, timelinePageSize);
       }
     } catch (e: any) {
       setError(e?.message || '更新任务策略失败');
@@ -2354,6 +2360,8 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
       }
       if (activeTab === 'timeline') {
         setTimeline([]);
+        setTimelineTotal(0);
+        setTimelineHasMore(false);
         setExpandedEventKey(null);
       }
       if (activeTab === 'artifacts') {
@@ -2373,7 +2381,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
       }
       if (activeTab === 'modules' && refreshedTask) await loadModuleSelection();
       if ((refreshedTask?.status === 'pending_entry_confirmation') || refreshedTask?.summary?.entry_selection) await loadEntrySelection();
-      if (activeTab === 'timeline') await loadTimeline();
+      if (activeTab === 'timeline') await loadTimeline(timelinePage, timelinePageSize);
       if (activeTab === 'artifacts') await loadArtifacts();
       if (activeTab === 'orchestration') await loadOrchestrationObservability();
     } finally {
@@ -2435,12 +2443,6 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
     isBinaryModuleTask,
     taskId,
   ]);
-
-  useEffect(() => {
-    if (activeTab === 'timeline' && timeline.length === 0 && !timelineLoading) {
-      void loadTimeline();
-    }
-  }, [activeTab, timeline.length, timelineLoading, projectId, taskId]);
 
   useEffect(() => {
     if (activeTab === 'overview' && !overviewLoaded && !overviewLoading) {
@@ -3138,28 +3140,28 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
     return timeline.map((event, index) => ({
       ...event,
       _key: event.id || `${event.event_type || 'event'}-${event.created_at || index}-${index}`,
-      _index: index + 1,
+      _index: (Math.max(1, timelinePage) - 1) * Math.max(1, timelinePageSize) + index + 1,
       _eventLabel: formatTimelineEventTypeLabel(event.event_type),
       _sourceLabel: event.item_key || event.item_id || event.payload?.item_key || event.payload?.downstream_task_id || '-',
       _repeatCount: Math.max(1, Number(event.repeat_count || 1)),
       _isCompressed: Boolean(event.compressed),
     }));
-  }, [timeline]);
+  }, [timeline, timelinePage, timelinePageSize]);
   const timelineTotalPages = useMemo(
-    () => Math.max(1, Math.ceil(timelineItems.length / Math.max(1, timelinePageSize))),
-    [timelineItems.length, timelinePageSize],
+    () => Math.max(1, Math.ceil(Math.max(0, timelineTotal) / Math.max(1, timelinePageSize))),
+    [timelineTotal, timelinePageSize],
   );
   const normalizedTimelinePage = Math.min(Math.max(1, timelinePage), timelineTotalPages);
-  const pagedTimelineItems = useMemo(() => {
-    const start = (normalizedTimelinePage - 1) * Math.max(1, timelinePageSize);
-    return timelineItems.slice(start, start + Math.max(1, timelinePageSize));
-  }, [normalizedTimelinePage, timelineItems, timelinePageSize]);
-  const timelineRangeStart = timelineItems.length === 0 ? 0 : (normalizedTimelinePage - 1) * Math.max(1, timelinePageSize) + 1;
-  const timelineRangeEnd = timelineItems.length === 0 ? 0 : Math.min(normalizedTimelinePage * Math.max(1, timelinePageSize), timelineItems.length);
+  const pagedTimelineItems = timelineItems;
+  const timelineRangeStart = timelineTotal === 0 ? 0 : (normalizedTimelinePage - 1) * Math.max(1, timelinePageSize) + 1;
+  const timelineRangeEnd = timelineTotal === 0 ? 0 : timelineRangeStart + Math.max(0, pagedTimelineItems.length) - 1;
 
   useEffect(() => {
     setTimelinePage(1);
     setExpandedEventKey(null);
+    setTimeline([]);
+    setTimelineTotal(0);
+    setTimelineHasMore(false);
   }, [timelinePageSize, taskId]);
 
   useEffect(() => {
@@ -3195,8 +3197,12 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
   useEffect(() => {
     if (timelinePage > timelineTotalPages) {
       setTimelinePage(timelineTotalPages);
+      return;
     }
-  }, [timelinePage, timelineTotalPages]);
+    if (activeTab === 'timeline' && projectId && taskId) {
+      void loadTimeline(timelinePage, timelinePageSize);
+    }
+  }, [activeTab, projectId, taskId, timelinePage, timelinePageSize, timelineTotalPages]);
 
   const executeBlockingTaskAction = async (action: Exclude<BlockingActionKind, ''>) => {
     if (!projectId || !taskId) return;
@@ -5620,7 +5626,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
               <div className="flex flex-wrap items-start gap-2">
                 <div className="rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2">
                   <div className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-400">总事件数</div>
-                  <div className="mt-1 text-lg font-black text-slate-900">{timeline.length}</div>
+                  <div className="mt-1 text-lg font-black text-slate-900">{timelineTotal}</div>
                 </div>
                 <div className="rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2">
                   <div className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-400">展示区间</div>
@@ -5629,7 +5635,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                 <div className="rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2">
                   <div className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-400">分页</div>
                   <div className="mt-1 text-sm font-bold text-slate-700">
-                    {timelineRangeStart}-{timelineRangeEnd} / {timelineItems.length}
+                    {timelineRangeStart}-{timelineRangeEnd} / {timelineTotal}
                   </div>
                 </div>
                 <label className="rounded-2xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-500">
@@ -5650,7 +5656,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                 <button
                   type="button"
                   onClick={() => void clearTimeline()}
-                  disabled={timelineClearing || timelineLoading || timeline.length === 0}
+                  disabled={timelineClearing || timelineLoading || timelineTotal === 0}
                   className="inline-flex items-center gap-2 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-black text-rose-700 transition hover:bg-rose-100 disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   {timelineClearing ? <Loader2 size={16} className="animate-spin" /> : <Trash2 size={16} />}
@@ -5768,10 +5774,10 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                   </div>
                 </div>
               )}
-              {timelineItems.length > 0 ? (
+              {timelineTotal > 0 ? (
                 <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
                   <div className="text-sm text-slate-500">
-                    第 {normalizedTimelinePage} / {timelineTotalPages} 页
+                    第 {normalizedTimelinePage} / {timelineTotalPages} 页{timelineHasMore ? ' · 后续仍有更多事件' : ''}
                   </div>
                   <div className="flex items-center gap-2">
                     <button

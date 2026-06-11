@@ -677,6 +677,10 @@ export interface BinarySecurityEntrySelection {
 
 export interface BinarySecurityTimeline {
   task_id: string;
+  total: number;
+  page: number;
+  page_size: number;
+  has_more: boolean;
   events: Array<{
     id: string;
     stage_name?: string | null;
@@ -974,8 +978,9 @@ export const binarySecurityApi = {
     return handleResponse(resp);
   },
 
-  getTimeline: async (projectId: string, taskId: string): Promise<BinarySecurityTimeline> => {
-    const resp = await fetch(`${API_BASE}/api/app/binary-security/projects/${projectId}/tasks/${taskId}/timeline`, {
+  getTimeline: async (projectId: string, taskId: string, page = 1, pageSize = 200): Promise<BinarySecurityTimeline> => {
+    const params = new URLSearchParams({ page: String(page), page_size: String(pageSize) });
+    const resp = await fetch(`${API_BASE}/api/app/binary-security/projects/${projectId}/tasks/${taskId}/timeline?${params.toString()}`, {
       headers: getHeaders(),
       cache: 'no-store',
     });
