@@ -3,7 +3,6 @@ import { ArrowRight, CheckCircle2, ChevronRight, Folder, FolderOpen, Loader2, Pl
 import { api } from '../../clients/api';
 import { getUploadRecordDisplayName } from '../assets/baseResourcePageModel';
 import {
-  AiGatewayLlmKey,
   ProjectInputUploadBrowseEntry,
   ProjectInputUploadBrowseResponse,
   ProjectInputUploadRecord,
@@ -27,7 +26,6 @@ const TASK_TYPES = [
 const CREATE_TABS = [
   { key: 'basic', label: '基础信息' },
   { key: 'input', label: '输入选择' },
-  { key: 'dispatch', label: '分发配置' },
 ] as const;
 
 const INPUT_MODES: Record<string, 'file' | 'file_list' | 'directory'> = {
@@ -37,30 +35,24 @@ const INPUT_MODES: Record<string, 'file' | 'file_list' | 'directory'> = {
 };
 
 const formatDateTime = (value?: string | null) => (value ? new Date(value).toLocaleString('zh-CN') : '—');
-const getParentTaskKeyDisplay = (task: Pick<ScheduleCenterUserTask, 'parent_task_key_name' | 'parent_task_key_prefix'>) =>
-  [task.parent_task_key_name, task.parent_task_key_prefix].filter(Boolean).join(' / ') || '—';
-const getDispatchTaskKeyDisplay = (task: Pick<ScheduleCenterUserTask, 'dispatched_task_key_name' | 'dispatched_task_key_prefix'>) =>
-  [task.dispatched_task_key_name, task.dispatched_task_key_prefix].filter(Boolean).join(' / ') || '—';
+const getRootTaskKeyDisplay = (task: Pick<ScheduleCenterUserTask, 'root_task_key_name' | 'root_task_key_prefix'>) =>
+  [task.root_task_key_name, task.root_task_key_prefix].filter(Boolean).join(' / ') || '—';
 
 export const TaskCenterPage: React.FC<Props> = ({ projectId, projects }) => {
   const scheduleApi = api.domains.platform.scheduleCenter;
   const fileserverApi = api.domains.assets.fileserver;
-  const aigwApi = api.domains.platform.aigw;
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [dispatchingId, setDispatchingId] = useState<string | null>(null);
   const [tasks, setTasks] = useState<ScheduleCenterUserTask[]>([]);
   const [stats, setStats] = useState<Record<string, number>>({});
   const [inputs, setInputs] = useState<ProjectInputUploadRecord[]>([]);
-  const [taskKeys, setTaskKeys] = useState<AiGatewayLlmKey[]>([]);
   const [query, setQuery] = useState('');
   const [createOpen, setCreateOpen] = useState(false);
   const [activeCreateTab, setActiveCreateTab] = useState<(typeof CREATE_TABS)[number]['key']>('basic');
   const [taskType, setTaskType] = useState<(typeof TASK_TYPES)[number]['value']>('binary_firmware_e2e');
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
-  const [parentTaskKeyId, setParentTaskKeyId] = useState('');
-  const [parentTaskKeySecret, setParentTaskKeySecret] = useState('');
   const [selectedInputId, setSelectedInputId] = useState('');
   const [inputBrowseLoading, setInputBrowseLoading] = useState(false);
   const [inputBrowseError, setInputBrowseError] = useState('');
@@ -92,13 +84,8 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects }) => {
     if (!term) return tasks;
     return tasks.filter((item) => [item.name, item.task_type, item.business_status, item.dispatch_status, item.downstream_task_id || ''].some((value) => String(value || '').toLowerCase().includes(term)));
   }, [query, tasks]);
-  const availableTaskKeys = useMemo(() => taskKeys.filter((item) => item.key_type === 'task'), [taskKeys]);
-  const selectedParentTaskKey = useMemo(
-    () => availableTaskKeys.find((item) => String(item.id) === parentTaskKeyId) || null,
-    [availableTaskKeys, parentTaskKeyId],
-  );
   const activeCreateTabIndex = useMemo(() => CREATE_TABS.findIndex((item) => item.key === activeCreateTab), [activeCreateTab]);
-  const canCreateTask = Boolean(name && parentTaskKeyId && parentTaskKeySecret.trim() && selectedInputId && (
+  const canCreateTask = Boolean(name && selectedInputId && (
     (selectionMode === 'file' && selectedRelativePath) ||
     (selectionMode === 'file_list' && selectedRelativePaths.length > 0) ||
     (selectionMode === 'directory' && isDirectorySelectionValid)
@@ -109,18 +96,14 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects }) => {
     setLoading(true);
     setError('');
     try {
-      const [taskResp, inputResp, keyResp] = await Promise.all([
+      const [taskResp, inputResp] = await Promise.all([
         scheduleApi.listUserTasks(projectId) as Promise<ScheduleCenterUserTaskListResponse>,
         fileserverApi.listProjectInputUploads(projectId, { pageSize: 200 }) as Promise<{ items: ProjectInputUploadRecord[] }>,
-        aigwApi.listLlmKeys() as Promise<{ items: AiGatewayLlmKey[] }>,
       ]);
       const nextInputs = inputResp.items || [];
-      const nextKeys = keyResp.items || [];
       setTasks(taskResp.items || []);
       setStats(taskResp.stats || {});
       setInputs(nextInputs);
-      setTaskKeys(nextKeys);
-      setParentTaskKeyId((current) => current || nextKeys.find((item) => item.key_type === 'task')?.id?.toString() || '');
       setSelectedInputId((current) => current || nextInputs[0]?.upload_id || '');
     } catch (err: any) {
       setError(err?.message || '加载失败');
@@ -145,11 +128,20 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects }) => {
     setSelectedRelativePath(null);
     setSelectedRelativePaths([]);
     setInputCurrentPath('');
+    setExpandedPaths([]);
+    setDirectorySelectionTouched(false);
+    setInputBrowseError('');
+  }, [taskType]);
+
+  useEffect(() => {
+    setSelectedRelativePath(null);
+    setSelectedRelativePaths([]);
+    setInputCurrentPath('');
     setBrowseCache({});
     setExpandedPaths([]);
     setDirectorySelectionTouched(false);
     setInputBrowseError('');
-  }, [selectedInputId, taskType]);
+  }, [selectedInputId]);
 
   const loadBrowsePath = async (relativePath: string) => {
     if (!createOpen || !selectedInputId || !projectId) return;
@@ -178,7 +170,6 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects }) => {
   const closeCreateDialog = () => {
     setCreateOpen(false);
     setActiveCreateTab('basic');
-    setParentTaskKeySecret('');
   };
 
   const openBrowsePath = (relativePath: string) => {
@@ -238,11 +229,6 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects }) => {
         },
         policy: {},
         dispatch_policy: {},
-        parent_task_key_id: parentTaskKeyId,
-        parent_task_key_name: selectedParentTaskKey?.key_name || '',
-        parent_task_key_prefix: selectedParentTaskKey?.key_prefix || '',
-        parent_task_key_secret: parentTaskKeySecret.trim(),
-        parent_task_capacity_pool_ids: Array.isArray(selectedParentTaskKey?.capacity_pool_ids) ? selectedParentTaskKey!.capacity_pool_ids : [],
         module_name: taskType === 'binary_module_e2e' ? moduleName : undefined,
       };
       await scheduleApi.createUserTask(projectId, payload);
@@ -250,7 +236,6 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects }) => {
       setName('');
       setDescription('');
       setModuleName('');
-      setParentTaskKeySecret('');
       setSelectedRelativePath(null);
       setSelectedRelativePaths([]);
       setInputCurrentPath('');
@@ -404,16 +389,15 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects }) => {
               <th className="px-4 py-3">分发状态</th>
               <th className="px-4 py-3">业务状态</th>
               <th className="px-4 py-3">输入记录数</th>
-              <th className="px-4 py-3">父 task key</th>
-              <th className="px-4 py-3">分发 task key</th>
+              <th className="px-4 py-3">运行父凭证</th>
               <th className="px-4 py-3">下游任务 ID</th>
               <th className="px-4 py-3">更新时间</th>
               <th className="px-4 py-3">操作</th>
             </tr>
           </thead>
           <tbody>
-            {loading ? <tr><td className="px-4 py-8 text-center text-slate-500" colSpan={11}>加载中...</td></tr> : null}
-            {!loading && filteredTasks.length === 0 ? <tr><td className="px-4 py-8 text-center text-slate-500" colSpan={11}>暂无任务</td></tr> : null}
+            {loading ? <tr><td className="px-4 py-8 text-center text-slate-500" colSpan={10}>加载中...</td></tr> : null}
+            {!loading && filteredTasks.length === 0 ? <tr><td className="px-4 py-8 text-center text-slate-500" colSpan={10}>暂无任务</td></tr> : null}
             {filteredTasks.map((task) => (
               <tr key={task.id} className="border-t">
                 <td className="px-4 py-3 font-semibold">{task.name}</td>
@@ -422,8 +406,7 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects }) => {
                 <td className="px-4 py-3">{task.dispatch_status}</td>
                 <td className="px-4 py-3">{task.business_status}</td>
                 <td className="px-4 py-3">{task.input_upload_count}</td>
-                <td className="px-4 py-3 font-mono text-xs">{getParentTaskKeyDisplay(task)}</td>
-                <td className="px-4 py-3 font-mono text-xs">{getDispatchTaskKeyDisplay(task)}</td>
+                <td className="px-4 py-3 font-mono text-xs">{getRootTaskKeyDisplay(task)}</td>
                 <td className="px-4 py-3 font-mono text-xs">{task.downstream_task_id || '—'}</td>
                 <td className="px-4 py-3">{formatDateTime(task.updated_at)}</td>
                 <td className="px-4 py-3">
@@ -588,61 +571,41 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects }) => {
                 </div>
               ) : null}
 
-              {activeCreateTab === 'dispatch' ? (
-                <div className="grid gap-4 md:grid-cols-2">
-                  <label className="block text-sm font-semibold text-theme-text-secondary md:col-span-2">父 Task Key
-                    <select value={parentTaskKeyId} onChange={(e) => setParentTaskKeyId(e.target.value)} className="mt-1 w-full rounded-xl border border-theme-border bg-theme-surface px-3 py-2 text-theme-text-primary">
-                      {availableTaskKeys.map((item) => <option key={item.id} value={String(item.id)}>{item.key_name} / {item.key_prefix}</option>)}
-                    </select>
-                  </label>
-                  <label className="block text-sm font-semibold text-theme-text-secondary md:col-span-2">父 Task Key Secret
-                    <input
-                      type="password"
-                      value={parentTaskKeySecret}
-                      onChange={(e) => setParentTaskKeySecret(e.target.value)}
-                      placeholder="请输入父 task key secret"
-                      className="mt-1 w-full rounded-xl border border-theme-border bg-theme-surface px-3 py-2 text-theme-text-primary"
-                    />
-                  </label>
-                  <div className="rounded-2xl border border-theme-border bg-theme-elevated px-4 py-3">
-                    <div className="text-xs font-bold uppercase tracking-[0.18em] text-theme-text-faint">创建后状态</div>
-                    <div className="mt-2 text-sm font-semibold text-theme-text-primary">created / ready_for_dispatch</div>
-                    <div className="mt-1 text-xs text-theme-text-faint">不会自动上传文件，也不会自动启动下游任务。</div>
-                  </div>
-                  <div className="rounded-2xl border border-theme-border bg-theme-elevated px-4 py-3">
-                    <div className="text-xs font-bold uppercase tracking-[0.18em] text-theme-text-faint">手动分发</div>
-                    <div className="mt-2 text-sm font-semibold text-theme-text-primary">分发时动态申请 Task Key</div>
-                    <div className="mt-1 text-xs text-theme-text-faint">创建后只保存父 task key；点击“分发”后会动态派生本次 dispatch task key，并用它推进下游任务启动。</div>
-                  </div>
-                  <div className="rounded-2xl border border-theme-border bg-theme-surface px-4 py-3 md:col-span-2">
-                    <div className="text-xs font-bold uppercase tracking-[0.18em] text-theme-text-faint">创建摘要</div>
-                    <div className="mt-3 grid gap-3 md:grid-cols-3">
-                      <div>
-                        <div className="text-xs text-theme-text-faint">任务类型</div>
-                        <div className="mt-1 text-sm font-semibold text-theme-text-primary">{taskTypeMeta.label}</div>
-                      </div>
-                      <div>
-                        <div className="text-xs text-theme-text-faint">输入记录</div>
-                        <div className="mt-1 text-sm font-semibold text-theme-text-primary">{selectedInputId || '未选择'}</div>
-                      </div>
-                      <div>
-                        <div className="text-xs text-theme-text-faint">输入路径</div>
-                        <div className="mt-1 text-sm font-semibold text-theme-text-primary break-all">{inputSummary}</div>
-                      </div>
-                      {taskType === 'binary_module_e2e' ? (
-                        <div>
-                          <div className="text-xs text-theme-text-faint">模块名</div>
-                          <div className="mt-1 text-sm font-semibold text-theme-text-primary">{moduleName || '未填写'}</div>
-                        </div>
-                      ) : null}
-                      <div>
-                        <div className="text-xs text-theme-text-faint">父 Task Key</div>
-                        <div className="mt-1 text-sm font-semibold text-theme-text-primary">{selectedParentTaskKey ? `${selectedParentTaskKey.key_name} / ${selectedParentTaskKey.key_prefix}` : '未选择'}</div>
-                      </div>
+              <div className="mt-6 grid gap-4 md:grid-cols-2">
+                <div className="rounded-2xl border border-theme-border bg-theme-elevated px-4 py-3">
+                  <div className="text-xs font-bold uppercase tracking-[0.18em] text-theme-text-faint">创建后状态</div>
+                  <div className="mt-2 text-sm font-semibold text-theme-text-primary">created / ready_for_dispatch</div>
+                  <div className="mt-1 text-xs text-theme-text-faint">创建阶段只登记业务任务，不要求手动填写 Task Key、Secret 或算力池。</div>
+                </div>
+                <div className="rounded-2xl border border-theme-border bg-theme-elevated px-4 py-3">
+                  <div className="text-xs font-bold uppercase tracking-[0.18em] text-theme-text-faint">手动分发</div>
+                  <div className="mt-2 text-sm font-semibold text-theme-text-primary">分发时自动申请 Root Task Key</div>
+                  <div className="mt-1 text-xs text-theme-text-faint">调度中心会在分发期创建 root task key，并直接传给下游；是否换 work key 由下游自己决定。</div>
+                </div>
+                <div className="rounded-2xl border border-theme-border bg-theme-surface px-4 py-3 md:col-span-2">
+                  <div className="text-xs font-bold uppercase tracking-[0.18em] text-theme-text-faint">创建摘要</div>
+                  <div className="mt-3 grid gap-3 md:grid-cols-3">
+                    <div>
+                      <div className="text-xs text-theme-text-faint">任务类型</div>
+                      <div className="mt-1 text-sm font-semibold text-theme-text-primary">{taskTypeMeta.label}</div>
                     </div>
+                    <div>
+                      <div className="text-xs text-theme-text-faint">输入记录</div>
+                      <div className="mt-1 text-sm font-semibold text-theme-text-primary">{selectedInputId || '未选择'}</div>
+                    </div>
+                    <div>
+                      <div className="text-xs text-theme-text-faint">输入路径</div>
+                      <div className="mt-1 text-sm font-semibold text-theme-text-primary break-all">{inputSummary}</div>
+                    </div>
+                    {taskType === 'binary_module_e2e' ? (
+                      <div>
+                        <div className="text-xs text-theme-text-faint">模块名</div>
+                        <div className="mt-1 text-sm font-semibold text-theme-text-primary">{moduleName || '未填写'}</div>
+                      </div>
+                    ) : null}
                   </div>
                 </div>
-              ) : null}
+              </div>
             </div>
 
             <div className="flex items-center justify-between border-t border-theme-border px-6 py-4">

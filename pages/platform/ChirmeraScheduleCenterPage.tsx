@@ -138,7 +138,7 @@ const summarizeStatus = (item: Partial<ScheduleGlobalTaskListItem> | null | unde
 };
 
 const getTaskKeyValue = (item: Partial<ScheduleGlobalTaskListItem> | null | undefined) => {
-  return item?.dispatched_task_key_prefix || item?.parent_task_key_prefix || '-';
+  return item?.root_task_key_prefix || item?.dispatched_task_key_prefix || item?.parent_task_key_prefix || '-';
 };
 
 const statusTone = (label?: string | null) => {
@@ -274,7 +274,7 @@ const DetailDrawer: React.FC<{
                   <div><span className="font-black text-slate-900">任务 ID：</span>{detail.task_id}</div>
                   <div><span className="font-black text-slate-900">项目：</span>{detail.project_name || detail.project_display_name || detail.project_id || '-'}</div>
                   <div><span className="font-black text-slate-900">创建人：</span>{detail.created_by || '-'}</div>
-                  <div><span className="font-black text-slate-900">Task Key：</span>{getTaskKeyValue(detail)}</div>
+                  <div><span className="font-black text-slate-900">Root Task Key：</span>{getTaskKeyValue(detail)}</div>
                   <div><span className="font-black text-slate-900">下游任务：</span>{detail.downstream_task_id || '-'}</div>
                 </div>
               </section>
@@ -609,7 +609,7 @@ export const ChirmeraScheduleCenterPage: React.FC<ChirmeraScheduleCenterPageProp
       title: 'Key 管理',
       summary: 'Key 管理能力仍保留，但不再和全局任务监控并排混布，避免首页信息层级失衡。',
       bullets: [
-        '首页只展示与任务实例直接相关的 Task Key 摘要。',
+        '首页只展示与任务实例直接相关的 Root Task Key 摘要。',
         '完整 key 生命周期、同步和禁用操作建议保留在专门的二级管理页。',
         '现有接口路径不变，后续可直接挂接独立的 Key 管理子页。',
       ],
@@ -834,7 +834,7 @@ export const ChirmeraScheduleCenterPage: React.FC<ChirmeraScheduleCenterPageProp
                       <th className="px-4 py-2">队列状态</th>
                       <th className="px-4 py-2">重试次数</th>
                       <th className="px-4 py-2">下游任务 ID</th>
-                      <th className="px-4 py-2">Task Key</th>
+                      <th className="px-4 py-2">Root Task Key</th>
                       <th className="px-4 py-2">创建人</th>
                       <th className="px-4 py-2">
                         <button

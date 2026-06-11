@@ -2126,6 +2126,7 @@ export interface ScheduleGlobalTaskListItem {
   project_name?: string | null;
   task_name: string;
   task_type?: string | null;
+  root_task_key_prefix?: string | null;
   parent_task_key_prefix?: string | null;
   dispatched_task_key_prefix?: string | null;
   create_status?: string | null;
@@ -2227,10 +2228,14 @@ export interface ScheduleCenterUserTask {
   business_status: string;
   input_upload_count: number;
   inputs: ScheduleCenterUserTaskInput[];
-  parent_task_key_id: string;
-  parent_task_key_name: string;
-  parent_task_key_prefix: string;
-  parent_task_capacity_pool_ids: number[];
+  parent_task_key_id?: string | null;
+  parent_task_key_name?: string | null;
+  parent_task_key_prefix?: string | null;
+  parent_task_capacity_pool_ids?: number[];
+  root_task_key_id?: string | null;
+  root_task_key_name?: string | null;
+  root_task_key_prefix?: string | null;
+  root_task_capacity_pool_ids?: number[];
   dispatched_task_key_id?: string | null;
   dispatched_task_key_name?: string | null;
   dispatched_task_key_prefix?: string | null;
@@ -2261,11 +2266,6 @@ export interface ScheduleCenterUserTaskCreatePayload {
   };
   policy: Record<string, any>;
   dispatch_policy: Record<string, any>;
-  parent_task_key_id: string;
-  parent_task_key_name: string;
-  parent_task_key_prefix: string;
-  parent_task_key_secret: string;
-  parent_task_capacity_pool_ids: number[];
   module_name?: string;
 }
 
@@ -2274,6 +2274,10 @@ export interface ScheduleCenterUserTaskDispatch {
   user_task_id: string;
   project_id: string;
   dispatch_status: string;
+  root_task_key_id?: string | null;
+  root_task_key_name?: string | null;
+  root_task_key_prefix?: string | null;
+  root_task_capacity_pool_ids?: number[] | null;
   dispatched_task_key_id?: string | null;
   dispatched_task_key_name?: string | null;
   dispatched_task_key_prefix?: string | null;
