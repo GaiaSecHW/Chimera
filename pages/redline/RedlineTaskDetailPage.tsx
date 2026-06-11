@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { ArrowLeft, CheckCircle2, Circle, Loader2 } from 'lucide-react';
 import { redlineVerificationApi, RedlineTask } from '../../clients/redlineVerification';
 import { TaskConfigStep } from './components/TaskConfigStep';
@@ -32,13 +32,17 @@ export const RedlineTaskDetailPage: React.FC<Props> = ({ projectId, taskId, onBa
   const [task, setTask] = useState<RedlineTask | null>(null);
   const [currentStep, setCurrentStep] = useState(0);
   const [loading, setLoading] = useState(true);
+  const initialLoadDone = useRef(false);
 
   const fetchTask = useCallback(async () => {
     try {
       const res = await redlineVerificationApi.getTask(taskId);
       if (res.code === 200 && res.data) {
         setTask(res.data);
-        setCurrentStep(getStepFromStatus(res.data));
+        if (!initialLoadDone.current) {
+          setCurrentStep(getStepFromStatus(res.data));
+          initialLoadDone.current = true;
+        }
       }
     } finally {
       setLoading(false);

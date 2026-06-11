@@ -22,6 +22,7 @@ const TASK_TYPES = [
   { value: 'source_scan_e2e', label: '盖亚-源码', downstreamView: 'source-security-detail' },
   { value: 'binary_module_e2e', label: '盖亚-二进制模块', downstreamView: 'binary-module-security-detail' },
   { value: 'ai4red', label: 'AI4Red 红线验证', downstreamView: 'ai4red-detail' },
+  { value: 'redline_verification_e2e', label: '盖亚-红线验证', downstreamView: 'redline-verification-detail' },
 ] as const;
 
 const CREATE_TABS = [
@@ -34,6 +35,7 @@ const INPUT_MODES: Record<string, 'file' | 'file_list' | 'directory'> = {
   binary_module_e2e: 'file_list',
   source_scan_e2e: 'directory',
   ai4red: 'directory',
+  redline_verification_e2e: 'file',
 };
 
 const formatDateTime = (value?: string | null) => (value ? new Date(value).toLocaleString('zh-CN') : '—');
@@ -283,7 +285,9 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects }) => {
           ? 'binarySecurityTaskId'
           : meta.downstreamView === 'source-security-detail'
             ? 'sourceSecurityTaskId'
-            : 'binaryModuleSecurityTaskId']: taskIdentifier,
+            : meta.downstreamView === 'binary-module-security-detail'
+              ? 'binaryModuleSecurityTaskId'
+              : 'redlineTaskId']: taskIdentifier,
       },
     }));
   };
