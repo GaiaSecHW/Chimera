@@ -90,6 +90,16 @@ export interface FirmwareUnpackTask {
   completed_at: string | null;
 }
 
+export interface FirmwareTaskConfigSnapshot {
+  task_id: string;
+  project_id: string | null;
+  available: boolean;
+  message: string | null;
+  agent_auth_json: Record<string, any> | null;
+  provider_runtime_summary: Record<string, any> | null;
+  llm_binding_snapshot: Record<string, any> | null;
+}
+
 export interface FirmwareTaskResourceContainer {
   name: string | null;
   cpu_millicores: number;
@@ -1553,6 +1563,14 @@ export const firmwareUnpackerApi = {
   getTask: async (taskId: string): Promise<FirmwareUnpackTask> => {
     const r = await fetch(`${API_BASE}/api/app/firmware-unpacker/tasks/${taskId}`, { headers: getHeaders() });
     return normalizeTask(await handleResponse(r));
+  },
+
+  getProjectTaskConfig: async (projectId: string, taskId: string): Promise<FirmwareTaskConfigSnapshot> => {
+    const r = await fetch(
+      `${API_BASE}/api/app/firmware-unpacker/projects/${encodeURIComponent(projectId)}/tasks/${encodeURIComponent(taskId)}/task-config`,
+      { headers: getHeaders() },
+    );
+    return handleResponse(r);
   },
 
   /** GET /api/app/firmware-unpacker/tasks/{id}/resource-usage */

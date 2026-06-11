@@ -10,7 +10,7 @@ import {
   BinarySecurityEntryContract,
   BinarySecurityModuleContract,
 } from '../../clients/binarySecurity';
-import { FirmwareUnpackTask } from '../../clients/firmwareUnpacker';
+import { FirmwareTaskConfigSnapshot, FirmwareUnpackTask } from '../../clients/firmwareUnpacker';
 import {
   asBinarySecurityContract,
   contractText,
@@ -691,7 +691,12 @@ export const DataflowAnalysisTaskConfigPanel: React.FC<{ detail: AppDfaTaskDetai
   );
 };
 
-export const FirmwareUnpackerTaskConfigPanel: React.FC<{ detail: FirmwareUnpackTask }> = ({ detail }) => {
+export const FirmwareUnpackerTaskConfigPanel: React.FC<{
+  detail: FirmwareUnpackTask;
+  taskConfigSnapshot?: FirmwareTaskConfigSnapshot | null;
+  taskConfigLoading?: boolean;
+  taskConfigError?: string;
+}> = ({ detail, taskConfigSnapshot, taskConfigLoading = false, taskConfigError = '' }) => {
   const inputSummary = asRecord(detail.input_summary);
   const outputSummary = asRecord(detail.output_summary);
   const inputFirmwarePath = recordText(inputSummary, 'firmware_path');
@@ -736,6 +741,20 @@ export const FirmwareUnpackerTaskConfigPanel: React.FC<{ detail: FirmwareUnpackT
 
       <SectionCard title="任务上下文">
         <JsonPreview value={detail.task_metadata} emptyText="当前任务没有额外 task metadata。" />
+      </SectionCard>
+
+      <SectionCard title="智能体任务配置 JSON">
+        {taskConfigLoading ? (
+          <div className="text-sm text-slate-500">加载中...</div>
+        ) : taskConfigError ? (
+          <div className="text-sm text-rose-600">{taskConfigError}</div>
+        ) : !taskConfigSnapshot ? (
+          <div className="text-sm text-slate-500">当前任务没有可展示的智能体配置快照。</div>
+        ) : taskConfigSnapshot.available === false ? (
+          <div className="text-sm text-slate-500">{taskConfigSnapshot.message || '当前任务没有可展示的智能体配置快照。'}</div>
+        ) : (
+          <JsonPreview value={taskConfigSnapshot} emptyText="当前任务没有可展示的智能体配置快照。" />
+        )}
       </SectionCard>
 
       <SectionCard title="原始输入输出摘要">

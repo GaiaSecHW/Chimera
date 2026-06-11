@@ -13,6 +13,7 @@ import {
   FirmwareEvolutionJob,
   FirmwareEvolutionRound,
   FirmwareEvolutionSessionIndex,
+  FirmwareTaskConfigSnapshot,
   FirmwareTaskEvent,
   FirmwareTaskLog,
   FirmwareTaskMetrics,
@@ -1040,6 +1041,9 @@ function TaskDetailPanel({
   const [timeline, setTimeline] = useState<FirmwareTaskEvent[]>([]);
   const [timelineLoading, setTimelineLoading] = useState(false);
   const [timelineError, setTimelineError] = useState('');
+  const [taskConfigSnapshot, setTaskConfigSnapshot] = useState<FirmwareTaskConfigSnapshot | null>(null);
+  const [taskConfigLoading, setTaskConfigLoading] = useState(false);
+  const [taskConfigError, setTaskConfigError] = useState('');
   const [expandedEventKey, setExpandedEventKey] = useState<string | null>(null);
   const [metrics, setMetrics] = useState<FirmwareTaskMetrics | null>(null);
   const [metricsLoading, setMetricsLoading] = useState(false);
@@ -1235,6 +1239,29 @@ function TaskDetailPanel({
     }
   }, [task?.id]);
 
+  const loadTaskConfig = useCallback(async (options?: { silent?: boolean }) => {
+    if (!task?.id || !task?.project_id) {
+      setTaskConfigSnapshot(null);
+      setTaskConfigError('');
+      return;
+    }
+    if (!options?.silent) {
+      setTaskConfigLoading(true);
+      setTaskConfigError('');
+    }
+    try {
+      const res = await fwApi.getProjectTaskConfig(task.project_id, task.id);
+      setTaskConfigSnapshot((prev) => (sameJsonValue(prev, res) ? prev : res));
+    } catch (e: any) {
+      if (!options?.silent) {
+        setTaskConfigSnapshot(null);
+        setTaskConfigError(e?.message || '加载任务配置快照失败');
+      }
+    } finally {
+      if (!options?.silent) setTaskConfigLoading(false);
+    }
+  }, [task?.id, task?.project_id]);
+
   const loadResult = useCallback(async () => {
     if (!task?.id) return;
     setResultLoading(true);
@@ -1429,18 +1456,22 @@ function TaskDetailPanel({
   const refreshCurrentDetail = useCallback(() => {
     if (!task?.id) return;
     onRefresh(task.id);
+    if (activeTab === 'task-config') void loadTaskConfig();
     if (activeTab === 'metrics') void loadMetrics();
     if (activeTab === 'events') void loadTimeline();
     if (activeTab === 'result') void loadResult();
     if (activeTab === 'session') void loadSessions();
     if (activeTab === 'evolution') void loadEvolutionJobs();
-  }, [activeTab, loadEvolutionJobs, loadMetrics, loadResult, loadSessions, loadTimeline, onRefresh, task?.id]);
+  }, [activeTab, loadEvolutionJobs, loadMetrics, loadResult, loadSessions, loadTaskConfig, loadTimeline, onRefresh, task?.id]);
 
   useEffect(() => {
     setActiveTab('overview');
     setTimeline([]);
     setTimelineError('');
     setTimelineLoading(false);
+    setTaskConfigSnapshot(null);
+    setTaskConfigLoading(false);
+    setTaskConfigError('');
     setExpandedEventKey(null);
     setMetrics(null);
     setMetricsError('');
@@ -1484,6 +1515,11 @@ function TaskDetailPanel({
     lastRefreshRequestRef.current = next;
     refreshCurrentDetail();
   }, [refreshCurrentDetail, refreshRequest]);
+
+  useEffect(() => {
+    if (activeTab !== 'task-config' || !task?.id || !task?.project_id) return;
+    void loadTaskConfig();
+  }, [activeTab, loadTaskConfig, task?.id, task?.project_id]);
 
   useEffect(() => {
     if (activeTab !== 'events' || !task?.id) return;
@@ -2213,7 +2249,12 @@ function TaskDetailPanel({
         ) : null}
 
         {activeTab === 'task-config' ? (
-          <FirmwareUnpackerTaskConfigPanel detail={task} />
+          <FirmwareUnpackerTaskConfigPanel
+            detail={task}
+            taskConfigSnapshot={taskConfigSnapshot}
+            taskConfigLoading={taskConfigLoading}
+            taskConfigError={taskConfigError}
+          />
         ) : null}
 
         {activeTab === 'metrics' ? (
