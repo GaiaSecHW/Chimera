@@ -371,6 +371,7 @@ export const fileserverApi = {
     project_id: string;
     input_type: string;
     keep_original?: boolean;
+    upload_mode?: 'raw' | 'archive';
     files: File[];
   }, options?: {
     onProgress?: (progress: FileserverUploadProgress) => void;
@@ -382,6 +383,9 @@ export const fileserverApi = {
     formData.append('project_id', payload.project_id);
     formData.append('input_type', payload.input_type);
     formData.append('keep_original', payload.keep_original ? 'true' : 'false');
+    if (payload.upload_mode) {
+      formData.append('upload_mode', payload.upload_mode);
+    }
     for (const file of payload.files) {
       formData.append('files', file);
     }
@@ -410,6 +414,7 @@ export const fileserverApi = {
   appendProjectInputUpload: async (payload: {
     upload_id: string;
     keep_original?: boolean;
+    upload_mode?: 'raw' | 'archive';
     files: File[];
   }, options?: {
     onProgress?: (progress: FileserverUploadProgress) => void;
@@ -419,6 +424,9 @@ export const fileserverApi = {
   }): Promise<ProjectInputUploadAcceptedResponse> => {
     const formData = new FormData();
     formData.append('keep_original', payload.keep_original ? 'true' : 'false');
+    if (payload.upload_mode) {
+      formData.append('upload_mode', payload.upload_mode);
+    }
     for (const file of payload.files) {
       formData.append('files', file);
     }

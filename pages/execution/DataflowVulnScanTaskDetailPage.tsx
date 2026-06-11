@@ -375,18 +375,31 @@ function flattenTraceTree(node?: DataflowVulnTraceTreeNode | null): DataflowVuln
 
 const PRUNE_LABELS: Record<string, string> = {
   skipped: '已跳过',
-  merged_equivalent_taint_validation: '等价合并',
-  cycle: '循环检测',
-  depth_limit: '深度限制',
-  external: '外部函数',
-  not_in_source_root_funcdb: '非源码根',
+  merged_equivalent_taint_validation: '污点等价合并',
+  cycle: '递归循环',
+  depth_limit: '已达深度上限',
+  external: '外部库函数',
+  not_in_source_root_funcdb: '外部依赖（不在源码树内）',
+  invalid_name: '未解析（函数指针/宏/内联）',
   already_analyzed: '已分析',
+  recursion: '递归检测',
+  'external followup': '外部库函数',
+  'stdlib skip': '标准库',
 };
+
+function pruneReasonTone(reason?: string | null): string {
+  const r = reason || '';
+  if (r === 'merged_equivalent_taint_validation' || r === 'already_analyzed') return 'bg-emerald-50 text-emerald-700 border-emerald-200';
+  if (r === 'invalid_name') return 'bg-rose-50 text-rose-700 border-rose-200';
+  if (r === 'not_in_source_root_funcdb' || r === 'external' || r.startsWith('external') || r === 'stdlib skip') return 'bg-amber-50 text-amber-700 border-amber-200';
+  return 'bg-slate-50 text-slate-600 border-slate-200';
+}
 
 function PrunedBranchBadge({ node, level = 0 }: { node: DataflowVulnTraceTreeNode; level?: number }) {
   const reasonLabel = PRUNE_LABELS[node.prune_reason || ''] || node.prune_reason || node.followup_status;
+  const reasonTone = pruneReasonTone(node.prune_reason);
   const tooltipLines: string[] = [];
-  tooltipLines.push(`剪枝原因: ${reasonLabel}`);
+  tooltipLines.push(`未继续跟踪: ${reasonLabel}`);
   if (node.followup_reason) tooltipLines.push(`详细: ${node.followup_reason}`);
   if (node.taint_constraints?.length) {
     tooltipLines.push('');
@@ -397,10 +410,10 @@ function PrunedBranchBadge({ node, level = 0 }: { node: DataflowVulnTraceTreeNod
   }
   return (
     <div className="group relative" style={{ marginLeft: `${level * 16}px` }}>
-      <div className="inline-flex items-center gap-2 rounded-xl border border-dashed border-slate-300 bg-slate-50 px-3 py-2 text-xs text-slate-400 cursor-help">
-        <span className="font-mono font-semibold text-slate-500">{node.function_name || '-'}</span>
-        <span className="text-[10px] text-slate-400">↵</span>
-        <span className="text-[10px] text-amber-600">{reasonLabel}</span>
+      <div className={`inline-flex items-center gap-2 rounded-xl border px-3 py-2 text-xs cursor-help ${reasonTone}`}>
+        <span className="font-mono font-semibold">{node.function_name || '-'}</span>
+        <span className="text-[10px] opacity-60">↵</span>
+        <span className={`text-[10px] font-bold rounded-full px-2 py-0.5 ${reasonTone}`}>{reasonLabel}</span>
       </div>
       {/* Tooltip */}
       <div className="pointer-events-none absolute left-0 top-full z-50 mt-1 min-w-[220px] rounded-xl border border-slate-300 bg-slate-900 px-3 py-2 text-[11px] leading-relaxed text-slate-100 shadow-lg opacity-0 transition-opacity group-hover:opacity-100 whitespace-pre-wrap">

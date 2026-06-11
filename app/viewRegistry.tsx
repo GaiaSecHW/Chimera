@@ -54,6 +54,7 @@ import { FirmwareEvolutionCenterPage } from '../pages/execution/FirmwareEvolutio
 import { ReportsPage } from '../pages/execution/ReportsPage';
 import { TestInputPage } from '../pages/TestInputPage';
 import { TaskCenterPage } from '../pages/task/TaskCenterPage';
+import { WebEndToEndPage } from '../pages/task/WebEndToEndPage';
 // [DISABLED] DataflowVulnTask import - 方便后续复用
 // import { DataflowVulnTaskDetailPage, DataflowVulnTaskListPage } from '../pages/execution/DataflowVulnScanPage';
 import { BinaryEvolutionCenterPage } from '../pages/execution/BinaryEvolutionCenterPage';
@@ -210,6 +211,8 @@ export const renderCurrentView = (ctx: ViewRegistryContext): React.ReactNode => 
       return <ProductMgmtPage />;
     case 'task-list':
       return <TaskCenterPage projectId={ctx.selectedProjectId} projects={ctx.projects} />;
+    case 'task-web-end-to-end':
+      return <WebEndToEndPage projectId={ctx.selectedProjectId} />;
     case 'developer-atomic-capability':
     case 'developer-atomic-capability-overview':
       return <AtomicCapabilityOverviewPage projectId={ctx.selectedProjectId} onNavigate={ctx.setCurrentView} />;
