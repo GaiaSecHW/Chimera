@@ -33,6 +33,7 @@ const TASK_TYPES: readonly TaskTypeOption[] = [
   { value: 'source_scan_e2e', label: '盖亚-源码', downstreamView: 'source-security-detail' },
   { value: 'binary_module_e2e', label: '盖亚-二进制模块', downstreamView: 'binary-module-security-detail' },
   { value: 'ai4apk', label: 'AI4APK 应用安全扫描' },
+  { value: 'ai4red', label: 'AI4RED 红线验证' },
 ];
 
 const CREATE_TABS = [
