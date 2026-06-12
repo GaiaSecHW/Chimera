@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { ArrowRight, CheckCircle2, ChevronRight, Folder, FolderOpen, Loader2, Plus, RefreshCw, Rocket, Search, Shield, Square, SquareCheck, X } from 'lucide-react';
 import { api } from '../../clients/api';
+import { useUiFeedback } from '../../components/UiFeedback';
 import { getUploadRecordDisplayName } from '../assets/baseResourcePageModel';
 import { saveTaskCenterReturnContext } from '../../utils/executionReturnContext';
 import {
@@ -74,6 +75,9 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects }) => {
   const [directorySelectionTouched, setDirectorySelectionTouched] = useState(false);
   const [moduleName, setModuleName] = useState('');
   const [error, setError] = useState('');
+  const [selectedTaskIds, setSelectedTaskIds] = useState<string[]>([]);
+  const [deleteSubmitting, setDeleteSubmitting] = useState(false);
+  const { notify, confirm, feedbackNodes } = useUiFeedback();
 
   const projectName = useMemo(() => projects.find((item) => item.id === projectId)?.name || projectId, [projectId, projects]);
   const taskTypeMeta = useMemo(() => TASK_TYPES.find((item) => item.value === taskType) || TASK_TYPES[0], [taskType]);
@@ -94,6 +98,14 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects }) => {
     if (!term) return tasks;
     return tasks.filter((item) => [item.name, item.task_type, item.business_status, item.dispatch_status, item.downstream_task_id || ''].some((value) => String(value || '').toLowerCase().includes(term)));
   }, [query, tasks]);
+  const deletableTaskIds = useMemo(
+    () => filteredTasks.filter((task) => !['queued', 'running'].includes(String(task.delete_status || 'none'))).map((task) => task.id),
+    [filteredTasks],
+  );
+  const allVisibleSelected = useMemo(
+    () => deletableTaskIds.length > 0 && deletableTaskIds.every((taskId) => selectedTaskIds.includes(taskId)),
+    [deletableTaskIds, selectedTaskIds],
+  );
   const activeCreateTabIndex = useMemo(() => CREATE_TABS.findIndex((item) => item.key === activeCreateTab), [activeCreateTab]);
   const canCreateTask = Boolean(name && selectedInputId && (
     (selectionMode === 'file' && selectedRelativePath) ||
@@ -123,6 +135,7 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects }) => {
   };
 
   useEffect(() => { void loadData(); }, [projectId]);
+  useEffect(() => { setSelectedTaskIds([]); }, [projectId, query]);
 
   useEffect(() => {
     if (!selectableInputs.length) {
@@ -286,6 +299,49 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects }) => {
     }));
   };
 
+  const toggleTaskSelection = (taskId: string) => {
+    setSelectedTaskIds((current) => current.includes(taskId) ? current.filter((item) => item !== taskId) : [...current, taskId]);
+  };
+
+  const toggleSelectAllVisible = () => {
+    if (allVisibleSelected) {
+      setSelectedTaskIds((current) => current.filter((taskId) => !deletableTaskIds.includes(taskId)));
+      return;
+    }
+    setSelectedTaskIds((current) => Array.from(new Set([...current, ...deletableTaskIds])));
+  };
+
+  const submitDelete = async (taskIds: string[]) => {
+    if (!taskIds.length || deleteSubmitting) return;
+    const confirmed = await confirm({
+      title: '确认删除任务',
+      message: '会联动删除下游子任务，删除请求只会加入后台队列，且不可撤销。',
+      confirmText: `删除 ${taskIds.length} 项`,
+      cancelText: '取消',
+      danger: true,
+    });
+    if (!confirmed) return;
+    setDeleteSubmitting(true);
+    try {
+      await scheduleApi.bulkDeleteUserTasks(projectId, { task_ids: taskIds, select_all_matching: false });
+      notify('已加入删除队列', 'success');
+      setSelectedTaskIds([]);
+      await loadData();
+    } catch (err: any) {
+      notify(err?.message || '删除入队失败', 'error');
+    } finally {
+      setDeleteSubmitting(false);
+    }
+  };
+
+  const deleteStatusText = (task: ScheduleCenterUserTask) => {
+    const status = String(task.delete_status || 'none');
+    if (status === 'queued') return '删除排队中';
+    if (status === 'running') return '删除中';
+    if (status === 'failed') return task.delete_error || task.last_error || '删除失败';
+    return '';
+  };
+
   const goCreateTab = (step: -1 | 1) => {
     const nextTab = CREATE_TABS[activeCreateTabIndex + step];
     if (nextTab) setActiveCreateTab(nextTab.key);
@@ -387,17 +443,35 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects }) => {
         <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="搜索任务名、状态、下游任务 ID" className="w-full bg-transparent outline-none" />
       </div>
 
+      <div className="mb-4 flex items-center justify-between gap-3 rounded-2xl border bg-white px-4 py-3 shadow-sm">
+        <div className="text-sm text-slate-500">当前页已选 {selectedTaskIds.length} 项</div>
+        <button
+          onClick={() => void submitDelete(selectedTaskIds)}
+          disabled={!selectedTaskIds.length || deleteSubmitting}
+          className="inline-flex items-center gap-2 rounded-xl bg-rose-600 px-4 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          {deleteSubmitting ? <Loader2 size={14} className="animate-spin" /> : <X size={14} />}
+          批量删除（{selectedTaskIds.length}）
+        </button>
+      </div>
+
       {error ? <div className="mb-4 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">{error}</div> : null}
 
       <div className="overflow-hidden rounded-2xl border bg-white shadow-sm">
         <table className="w-full text-sm">
           <thead className="bg-slate-50 text-left text-slate-500">
             <tr>
+              <th className="px-4 py-3">
+                <button type="button" onClick={toggleSelectAllVisible} className="text-slate-500">
+                  {allVisibleSelected ? <SquareCheck size={16} /> : <Square size={16} />}
+                </button>
+              </th>
               <th className="px-4 py-3">任务名</th>
               <th className="px-4 py-3">类型</th>
               <th className="px-4 py-3">创建状态</th>
               <th className="px-4 py-3">分发状态</th>
               <th className="px-4 py-3">业务状态</th>
+              <th className="px-4 py-3">删除状态</th>
               <th className="px-4 py-3">输入记录数</th>
               <th className="px-4 py-3">运行父凭证</th>
               <th className="px-4 py-3">下游任务 ID</th>
@@ -406,15 +480,32 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects }) => {
             </tr>
           </thead>
           <tbody>
-            {loading ? <tr><td className="px-4 py-8 text-center text-slate-500" colSpan={10}>加载中...</td></tr> : null}
-            {!loading && filteredTasks.length === 0 ? <tr><td className="px-4 py-8 text-center text-slate-500" colSpan={10}>暂无任务</td></tr> : null}
+            {loading ? <tr><td className="px-4 py-8 text-center text-slate-500" colSpan={12}>加载中...</td></tr> : null}
+            {!loading && filteredTasks.length === 0 ? <tr><td className="px-4 py-8 text-center text-slate-500" colSpan={12}>暂无任务</td></tr> : null}
             {filteredTasks.map((task) => (
               <tr key={task.id} className="border-t">
+                <td className="px-4 py-3">
+                  <button
+                    type="button"
+                    onClick={() => toggleTaskSelection(task.id)}
+                    disabled={['queued', 'running'].includes(String(task.delete_status || 'none'))}
+                    className="text-slate-500 disabled:cursor-not-allowed disabled:opacity-40"
+                  >
+                    {selectedTaskIds.includes(task.id) ? <SquareCheck size={16} /> : <Square size={16} />}
+                  </button>
+                </td>
                 <td className="px-4 py-3 font-semibold">{task.name}</td>
                 <td className="px-4 py-3">{TASK_TYPES.find((item) => item.value === task.task_type)?.label || task.task_type}</td>
                 <td className="px-4 py-3">{task.create_status}</td>
                 <td className="px-4 py-3">{task.dispatch_status}</td>
                 <td className="px-4 py-3">{task.business_status}</td>
+                <td className="px-4 py-3 text-xs">
+                  {task.delete_status && task.delete_status !== 'none' ? (
+                    <span className={task.delete_status === 'failed' ? 'text-rose-600' : 'text-amber-600'}>
+                      {deleteStatusText(task)}
+                    </span>
+                  ) : '—'}
+                </td>
                 <td className="px-4 py-3">{task.input_upload_count}</td>
                 <td className="px-4 py-3 font-mono text-xs">{getRootTaskKeyDisplay(task)}</td>
                 <td className="px-4 py-3 font-mono text-xs">{task.downstream_task_id || '—'}</td>
@@ -424,6 +515,13 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects }) => {
                     {task.task_type !== 'ai4apk' ? (
                       <button onClick={() => openTask(task)} className="inline-flex items-center gap-1 rounded-lg border px-3 py-1.5 text-xs font-semibold">查看任务 <ArrowRight size={12} /></button>
                     ) : null}
+                    <button
+                      onClick={() => void submitDelete([task.id])}
+                      disabled={deleteSubmitting || ['queued', 'running'].includes(String(task.delete_status || 'none'))}
+                      className="inline-flex items-center gap-1 rounded-lg border border-rose-200 px-3 py-1.5 text-xs font-semibold text-rose-600 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      删除
+                    </button>
                   </div>
                 </td>
               </tr>
@@ -431,6 +529,7 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects }) => {
           </tbody>
         </table>
       </div>
+      {feedbackNodes}
 
       {createOpen ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/45 p-4 backdrop-blur-sm">

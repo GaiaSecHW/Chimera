@@ -762,13 +762,13 @@ export const ChimeraScheduleCenterPage: React.FC<ChimeraScheduleCenterPageProps>
           };
       const result = await scheduleApi.bulkDeleteUserTasks(filters.projectId, payload) as ScheduleCenterUserTaskBulkDeleteResult;
       const failedLines = (result.results || [])
-        .filter((item) => item.status !== 'deleted')
+        .filter((item) => !['queued', 'already_queued', 'already_deleted'].includes(item.status))
         .slice(0, 10)
         .map((item) => `${item.task_id}: ${item.message}`)
         .join('\n');
       await showAlert({
         title: '删除任务结果',
-        message: `请求 ${result.total_requested} 条，成功删除 ${result.deleted_count} 条，失败 ${result.failed_count} 条。${failedLines ? `\n\n失败详情：\n${failedLines}` : ''}`,
+        message: `请求 ${result.total_requested} 条，已入队 ${result.queued_count} 条，已在队列中 ${result.already_queued_count} 条，失败 ${result.failed_count} 条。${failedLines ? `\n\n失败详情：\n${failedLines}` : ''}`,
         tone: result.failed_count ? 'warning' : 'success',
       });
       setSelectedTaskIds([]);

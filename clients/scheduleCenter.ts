@@ -137,6 +137,13 @@ export const scheduleCenterApi = {
       body: JSON.stringify(payload || {}),
     })),
 
+  syncUserTask: async (projectId: string, taskId: string, payload?: any): Promise<any> =>
+    handleResponse(await fetch(`${API_BASE}/api/chirmera-platform-schedule/projects/${encodeURIComponent(projectId)}/user-tasks/${encodeURIComponent(taskId)}/sync`, {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify(payload || {}),
+    })),
+
   listUserTaskDispatches: async (projectId: string, taskId: string): Promise<any> =>
     handleResponse(await fetch(`${API_BASE}/api/chirmera-platform-schedule/projects/${encodeURIComponent(projectId)}/user-tasks/${encodeURIComponent(taskId)}/dispatches`, { headers: getHeaders() })),
 

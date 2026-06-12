@@ -2250,6 +2250,26 @@ export interface ScheduleCenterUserTask {
   downstream_status_raw?: string | null;
   downstream_status_mapped?: string | null;
   downstream_report_ready?: boolean;
+  display_status?: string;
+  sync_status?: string;
+  sync_queue?: string | null;
+  sync_required?: boolean;
+  sync_policy_key?: string | null;
+  last_synced_at?: string | null;
+  last_sync_started_at?: string | null;
+  next_sync_at?: string | null;
+  sync_delay_seconds?: number | null;
+  sync_attempt_count?: number;
+  sync_consecutive_error_count?: number;
+  sync_worker_id?: string | null;
+  sync_lease_expires_at?: string | null;
+  last_sync_error?: string | null;
+  last_sync_http_status?: number | null;
+  delete_status?: 'none' | 'queued' | 'running' | 'failed' | string;
+  delete_error?: string | null;
+  delete_requested_at?: string | null;
+  delete_started_at?: string | null;
+  delete_finished_at?: string | null;
   last_error?: string | null;
   created_by: string;
   updated_at: string;
@@ -2334,7 +2354,8 @@ export interface ScheduleCenterUserTaskBulkDeleteItemResult {
 
 export interface ScheduleCenterUserTaskBulkDeleteResult {
   total_requested: number;
-  deleted_count: number;
+  queued_count: number;
+  already_queued_count: number;
   failed_count: number;
   results: ScheduleCenterUserTaskBulkDeleteItemResult[];
 }
