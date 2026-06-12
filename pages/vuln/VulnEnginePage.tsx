@@ -756,11 +756,7 @@ export const VulnEnginePage: React.FC<VulnEnginePageProps> = ({
         summary: validationForm.summary || undefined,
       });
       await refreshAll();
-      setSuccessMessage(`已提交验证结论：${labelOf(validationForm.validation_result, {
-        vulnerable: '验证成立',
-        not_vulnerable: '验证不成立',
-        inconclusive: '结论不确定',
-      })}。`);
+      setSuccessMessage(`已提交验证结论：${labelOf(validationForm.validation_result, VALIDATION_RESULT_LABELS)}。`);
     } catch (err: any) {
       setError(err?.message || '提交验证结论失败');
     } finally {

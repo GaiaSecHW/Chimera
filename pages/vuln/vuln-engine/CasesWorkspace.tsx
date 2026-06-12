@@ -183,7 +183,7 @@ export const CasesWorkspace: React.FC<any> = ({
       ? `案例已结束，但仍有 ${runningActionItems.length} 个动作处于排队或运行中。`
       : null,
     selectedCaseDetail?.current_stage === 'finished' && selectedCaseDetail?.validation_result === 'vulnerable' && selectedCaseDetail?.finished_reason === 'non_issue'
-      ? '验证结论为“验证成立”，但结束原因是“研判非问题”，请复核终态一致性。'
+      ? '验证结论为“漏洞成立”，但结束原因是“研判非问题”，请复核终态一致性。'
       : null,
     selectedCaseDetail?.current_stage === 'finished' && !latestProofVerificationAction
       ? '案例已结束，但还没有发现结果回传动作，建议补发终态回传。'

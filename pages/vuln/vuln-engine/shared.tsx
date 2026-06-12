@@ -183,8 +183,8 @@ export const TRIAGE_GATE_LABELS: Record<string, string> = {
 };
 
 export const VALIDATION_RESULT_LABELS: Record<string, string> = {
-  vulnerable: '验证成立',
-  not_vulnerable: '验证不成立',
+  vulnerable: '漏洞成立',
+  not_vulnerable: '漏洞不成立',
   inconclusive: '结论不确定',
 };
 
