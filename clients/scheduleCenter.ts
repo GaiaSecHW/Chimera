@@ -8,7 +8,7 @@ export const scheduleCenterApi = {
     handleResponse(await fetch(`${API_BASE}/api/chirmera-platform-schedule/runtime/overview`, { headers: getHeaders() })),
 
   getTaskOverview: async (): Promise<any> =>
-    handleResponse(await fetch(`${API_BASE}/api/chirmera-platform-schedule/runtime/task-overview`, { headers: getHeaders() })),
+    handleResponse(await fetch(`${API_BASE}/api/chirmera-platform-schedule/runtime/overview`, { headers: getHeaders() })),
 
   listGlobalTasks: async (params: Record<string, string | number | boolean | undefined | null>): Promise<any> => {
     const query = new URLSearchParams();
