@@ -43,12 +43,20 @@ const INPUT_MODES: Record<string, 'file' | 'file_list' | 'directory'> = {
   binary_module_e2e: 'file_list',
   source_scan_e2e: 'directory',
   ai4red: 'directory',
-  ai4apk: 'file',
+  ai4apk: 'directory',
 };
 
 const formatDateTime = (value?: string | null) => (value ? new Date(value).toLocaleString('zh-CN') : '—');
 const getRootTaskKeyDisplay = (task: Pick<ScheduleCenterUserTask, 'root_task_key_name' | 'root_task_key_prefix'>) =>
   [task.root_task_key_name, task.root_task_key_prefix].filter(Boolean).join(' / ') || '—';
+const getDisplayStatus = (task: ScheduleCenterUserTask) => task.display_status || task.business_status || task.dispatch_status || task.create_status || 'unknown';
+const getSyncSummary = (task: ScheduleCenterUserTask) => {
+  const pieces = [task.sync_status || 'none'];
+  if (task.downstream_status_raw) pieces.push(`downstream=${task.downstream_status_raw}`);
+  if (task.next_sync_at) pieces.push(`next=${formatDateTime(task.next_sync_at)}`);
+  if (task.last_sync_error) pieces.push(`error=${task.last_sync_error}`);
+  return pieces.join(' | ');
+};
 
 export const TaskCenterPage: React.FC<Props> = ({ projectId, projects }) => {
   const scheduleApi = api.domains.platform.scheduleCenter;
@@ -96,7 +104,7 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects }) => {
   const filteredTasks = useMemo(() => {
     const term = query.trim().toLowerCase();
     if (!term) return tasks;
-    return tasks.filter((item) => [item.name, item.task_type, item.business_status, item.dispatch_status, item.downstream_task_id || ''].some((value) => String(value || '').toLowerCase().includes(term)));
+    return tasks.filter((item) => [item.name, item.task_type, getDisplayStatus(item), item.sync_status, item.downstream_task_id || ''].some((value) => String(value || '').toLowerCase().includes(term)));
   }, [query, tasks]);
   const deletableTaskIds = useMemo(
     () => filteredTasks.filter((task) => !['queued', 'running'].includes(String(task.delete_status || 'none'))).map((task) => task.id),
@@ -112,6 +120,13 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects }) => {
     (selectionMode === 'file_list' && selectedRelativePaths.length > 0) ||
     (selectionMode === 'directory' && isDirectorySelectionValid)
   ) && (taskType !== 'binary_module_e2e' || moduleName.trim()));
+
+  const inputSelectionHint = useMemo(() => {
+    if (taskType === 'ai4apk') return '选择 APK/HAP 所在目录，AI4APK 服务会在目录内自行发现待扫描包。';
+    if (selectionMode === 'directory') return '请选择一个目录作为任务输入。';
+    if (selectionMode === 'file_list') return '请选择一个或多个文件作为任务输入。';
+    return '请选择一个文件作为任务输入。';
+  }, [selectionMode, taskType]);
 
   const loadData = async () => {
     if (!projectId) return;
@@ -342,6 +357,16 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects }) => {
     return '';
   };
 
+  const requestSync = async (task: ScheduleCenterUserTask) => {
+    try {
+      await scheduleApi.syncUserTask(projectId, task.id, { force: true });
+      notify('已加入同步队列', 'success');
+      await loadData();
+    } catch (err: any) {
+      notify(err?.message || '加入同步队列失败', 'error');
+    }
+  };
+
   const goCreateTab = (step: -1 | 1) => {
     const nextTab = CREATE_TABS[activeCreateTabIndex + step];
     if (nextTab) setActiveCreateTab(nextTab.key);
@@ -349,7 +374,7 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects }) => {
 
   const statsCards = [
     { label: '总任务', value: stats.total || tasks.length, icon: Shield },
-    { label: '待分发', value: stats.ready_for_dispatch || 0, icon: Rocket },
+    { label: '排队中', value: stats.queued || 0, icon: Rocket },
     { label: '分发中', value: stats.dispatching || 0, icon: Loader2 },
     { label: '运行中', value: stats.running || 0, icon: CheckCircle2 },
     { label: '失败', value: stats.failed || 0, icon: X },
@@ -468,9 +493,8 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects }) => {
               </th>
               <th className="px-4 py-3">任务名</th>
               <th className="px-4 py-3">类型</th>
-              <th className="px-4 py-3">创建状态</th>
-              <th className="px-4 py-3">分发状态</th>
-              <th className="px-4 py-3">业务状态</th>
+              <th className="px-4 py-3">任务状态</th>
+              <th className="px-4 py-3">同步状态</th>
               <th className="px-4 py-3">删除状态</th>
               <th className="px-4 py-3">输入记录数</th>
               <th className="px-4 py-3">运行父凭证</th>
@@ -496,9 +520,11 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects }) => {
                 </td>
                 <td className="px-4 py-3 font-semibold">{task.name}</td>
                 <td className="px-4 py-3">{TASK_TYPES.find((item) => item.value === task.task_type)?.label || task.task_type}</td>
-                <td className="px-4 py-3">{task.create_status}</td>
-                <td className="px-4 py-3">{task.dispatch_status}</td>
-                <td className="px-4 py-3">{task.business_status}</td>
+                <td className="px-4 py-3">
+                  <div className="font-semibold">{getDisplayStatus(task)}</div>
+                  <div className="text-xs text-slate-500">{task.dispatch_status} / {task.business_status}</div>
+                </td>
+                <td className="px-4 py-3 text-xs text-slate-600">{getSyncSummary(task)}</td>
                 <td className="px-4 py-3 text-xs">
                   {task.delete_status && task.delete_status !== 'none' ? (
                     <span className={task.delete_status === 'failed' ? 'text-rose-600' : 'text-amber-600'}>
@@ -514,6 +540,12 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects }) => {
                   <div className="flex items-center gap-2">
                     {task.task_type !== 'ai4apk' ? (
                       <button onClick={() => openTask(task)} className="inline-flex items-center gap-1 rounded-lg border px-3 py-1.5 text-xs font-semibold">查看任务 <ArrowRight size={12} /></button>
+                    ) : null}
+                    {task.sync_required ? (
+                      <button onClick={() => void requestSync(task)} className="inline-flex items-center gap-1 rounded-lg border px-3 py-1.5 text-xs font-semibold">
+                        <RefreshCw size={12} />
+                        立即同步
+                      </button>
                     ) : null}
                     <button
                       onClick={() => void submitDelete([task.id])}
@@ -602,6 +634,7 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects }) => {
                     <span className="ml-2 font-semibold text-theme-text-primary">
                       {selectionMode === 'file' ? '选择单个文件' : selectionMode === 'file_list' ? '选择多个文件' : '选择文件夹'}
                     </span>
+                    <div className="mt-2 text-xs text-theme-text-faint">{inputSelectionHint}</div>
                   </div>
                   {selectableInputs.length === 0 ? (
                     <div className="rounded-2xl border border-amber-300/50 bg-amber-50 px-4 py-3 text-sm text-amber-700">
@@ -686,7 +719,11 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects }) => {
                 <div className="rounded-2xl border border-theme-border bg-theme-elevated px-4 py-3">
                   <div className="text-xs font-bold uppercase tracking-[0.18em] text-theme-text-faint">自动分发</div>
                   <div className="mt-2 text-sm font-semibold text-theme-text-primary">调度中心后台排队并执行分发</div>
-                  <div className="mt-1 text-xs text-theme-text-faint">创建成功后任务会自动进入分发队列；调度中心会在分发期创建 root task key，并直接传给下游。</div>
+                  <div className="mt-1 text-xs text-theme-text-faint">
+                    {taskType === 'ai4apk'
+                      ? '创建成功后任务会自动进入分发队列；调度中心会把所选目录路径原样传给 AI4APK，由下游在目录内自行发现 APK/HAP。'
+                      : '创建成功后任务会自动进入分发队列；调度中心会在分发期创建 root task key，并直接传给下游。'}
+                  </div>
                 </div>
                 <div className="rounded-2xl border border-theme-border bg-theme-surface px-4 py-3 md:col-span-2">
                   <div className="text-xs font-bold uppercase tracking-[0.18em] text-theme-text-faint">创建摘要</div>

@@ -144,6 +144,54 @@ export const scheduleCenterApi = {
       body: JSON.stringify(payload || {}),
     })),
 
+  listUserTaskEvents: async (
+    projectId: string,
+    taskId: string,
+    params: Record<string, string | number | boolean | undefined | null> = {},
+  ): Promise<any> => {
+    const query = new URLSearchParams();
+    Object.entries(params).forEach(([key, value]) => {
+      if (value === undefined || value === null || value === '') return;
+      query.set(key, String(value));
+    });
+    const suffix = query.toString();
+    return handleResponse(await fetch(
+      `${API_BASE}/api/chirmera-platform-schedule/projects/${encodeURIComponent(projectId)}/user-tasks/${encodeURIComponent(taskId)}/events${suffix ? `?${suffix}` : ''}`,
+      { headers: getHeaders() },
+    ));
+  },
+
+  listProjectUserTaskEvents: async (
+    projectId: string,
+    params: Record<string, string | number | boolean | undefined | null> = {},
+  ): Promise<any> => {
+    const query = new URLSearchParams();
+    Object.entries(params).forEach(([key, value]) => {
+      if (value === undefined || value === null || value === '') return;
+      query.set(key, String(value));
+    });
+    const suffix = query.toString();
+    return handleResponse(await fetch(
+      `${API_BASE}/api/chirmera-platform-schedule/projects/${encodeURIComponent(projectId)}/user-task-events${suffix ? `?${suffix}` : ''}`,
+      { headers: getHeaders() },
+    ));
+  },
+
+  listGlobalUserTaskEvents: async (
+    params: Record<string, string | number | boolean | undefined | null> = {},
+  ): Promise<any> => {
+    const query = new URLSearchParams();
+    Object.entries(params).forEach(([key, value]) => {
+      if (value === undefined || value === null || value === '') return;
+      query.set(key, String(value));
+    });
+    const suffix = query.toString();
+    return handleResponse(await fetch(
+      `${API_BASE}/api/chirmera-platform-schedule/user-task-events${suffix ? `?${suffix}` : ''}`,
+      { headers: getHeaders() },
+    ));
+  },
+
   listUserTaskDispatches: async (projectId: string, taskId: string): Promise<any> =>
     handleResponse(await fetch(`${API_BASE}/api/chirmera-platform-schedule/projects/${encodeURIComponent(projectId)}/user-tasks/${encodeURIComponent(taskId)}/dispatches`, { headers: getHeaders() })),
 

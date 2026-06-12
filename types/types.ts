@@ -2066,6 +2066,32 @@ export interface ScheduleExecutionEvent {
   created_at: string;
 }
 
+export interface ScheduleUserTaskEvent {
+  id: string;
+  project_id: string;
+  user_task_id: string;
+  task_type: string;
+  event_category: string;
+  event_type: string;
+  result_status: string;
+  event_source: string;
+  actor?: string | null;
+  message: string;
+  payload: Record<string, any>;
+  downstream_task_id?: string | null;
+  dispatch_id?: string | null;
+  sync_queue?: string | null;
+  error_code?: string | null;
+  created_at: string;
+}
+
+export interface ScheduleUserTaskEventListResponse {
+  total: number;
+  items: ScheduleUserTaskEvent[];
+  page: number;
+  page_size: number;
+}
+
 export interface ScheduleRuntimeOverview {
   queue?: {
     length: number;
