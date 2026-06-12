@@ -8,8 +8,6 @@ import {
   ProjectInputUploadBrowseEntry,
   ProjectInputUploadBrowseResponse,
   ProjectInputUploadRecord,
-  ScheduleUserTaskEvent,
-  ScheduleUserTaskEventListResponse,
   ScheduleCenterUserTask,
   ScheduleCenterUserTaskCreatePayload,
   ScheduleCenterUserTaskType,
@@ -87,11 +85,6 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects }) => {
   const [error, setError] = useState('');
   const [selectedTaskIds, setSelectedTaskIds] = useState<string[]>([]);
   const [deleteSubmitting, setDeleteSubmitting] = useState(false);
-  const [timelineTask, setTimelineTask] = useState<ScheduleCenterUserTask | null>(null);
-  const [timelineItems, setTimelineItems] = useState<ScheduleUserTaskEvent[]>([]);
-  const [timelineLoading, setTimelineLoading] = useState(false);
-  const [timelineOnlyFailed, setTimelineOnlyFailed] = useState(false);
-  const [expandedTimelineEventId, setExpandedTimelineEventId] = useState('');
   const { notify, confirm, feedbackNodes } = useUiFeedback();
 
   const projectName = useMemo(() => projects.find((item) => item.id === projectId)?.name || projectId, [projectId, projects]);
@@ -356,6 +349,33 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects }) => {
     }
   };
 
+  const submitDeleteAllFiltered = async () => {
+    if (!filteredTasks.length || deleteSubmitting) return;
+    const confirmed = await confirm({
+      title: '确认删除全部任务',
+      message: `会删除当前项目下任务列表中可删除的全部 ${deletableTaskIds.length} 项任务，并联动删除下游子任务。此操作不可撤销。`,
+      confirmText: `删除全部 ${deletableTaskIds.length} 项`,
+      cancelText: '取消',
+      danger: true,
+    });
+    if (!confirmed) return;
+    setDeleteSubmitting(true);
+    try {
+      await scheduleApi.bulkDeleteUserTasks(projectId, {
+        task_ids: [],
+        select_all_matching: true,
+        filters: {},
+      });
+      notify('已加入全部任务删除队列', 'success');
+      setSelectedTaskIds([]);
+      await loadData();
+    } catch (err: any) {
+      notify(err?.message || '全部删除入队失败', 'error');
+    } finally {
+      setDeleteSubmitting(false);
+    }
+  };
+
   const deleteStatusText = (task: ScheduleCenterUserTask) => {
     const status = String(task.delete_status || 'none');
     if (status === 'queued') return '删除排队中';
@@ -364,23 +384,13 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects }) => {
     return '';
   };
 
-  const loadTimeline = async (task: ScheduleCenterUserTask, onlyFailed = false) => {
-    setTimelineLoading(true);
-    try {
-      const payload = await scheduleApi.listUserTaskEvents(task.project_id, task.id, {
-        page: 1,
-        page_size: 100,
-        only_failed: onlyFailed || undefined,
-      }) as ScheduleUserTaskEventListResponse;
-      setTimelineTask(task);
-      setTimelineItems(payload.items || []);
-      setTimelineOnlyFailed(onlyFailed);
-      setExpandedTimelineEventId('');
-    } catch (err: any) {
-      notify(err?.message || '加载任务时间线失败', 'error');
-    } finally {
-      setTimelineLoading(false);
-    }
+  const openTimelinePage = (task: ScheduleCenterUserTask) => {
+    window.dispatchEvent(new CustomEvent('chimera-navigate-view', {
+      detail: {
+        view: 'task-center-timeline',
+        taskCenterTimelineTaskId: task.id,
+      },
+    }));
   };
 
   const requestSync = async (task: ScheduleCenterUserTask) => {
@@ -496,14 +506,25 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects }) => {
 
       <div className="mb-4 flex items-center justify-between gap-3 rounded-2xl border bg-white px-4 py-3 shadow-sm">
         <div className="text-sm text-slate-500">当前页已选 {selectedTaskIds.length} 项</div>
-        <button
-          onClick={() => void submitDelete(selectedTaskIds)}
-          disabled={!selectedTaskIds.length || deleteSubmitting}
-          className="inline-flex items-center gap-2 rounded-xl bg-rose-600 px-4 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
-        >
-          {deleteSubmitting ? <Loader2 size={14} className="animate-spin" /> : <X size={14} />}
-          批量删除（{selectedTaskIds.length}）
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => void submitDeleteAllFiltered()}
+            disabled={!deletableTaskIds.length || deleteSubmitting}
+            className="inline-flex items-center gap-2 rounded-xl border border-rose-200 px-4 py-2 text-sm font-semibold text-rose-600 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {deleteSubmitting ? <Loader2 size={14} className="animate-spin" /> : <X size={14} />}
+            删除全部任务（{deletableTaskIds.length}）
+          </button>
+          <button
+            onClick={() => void submitDelete(selectedTaskIds)}
+            disabled={!selectedTaskIds.length || deleteSubmitting}
+            className="inline-flex items-center gap-2 rounded-xl bg-rose-600 px-4 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {deleteSubmitting ? <Loader2 size={14} className="animate-spin" /> : <X size={14} />}
+            批量删除（{selectedTaskIds.length}）
+          </button>
+        </div>
       </div>
 
       {error ? <div className="mb-4 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">{error}</div> : null}
@@ -573,7 +594,7 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects }) => {
                         立即同步
                       </button>
                     ) : null}
-                    <button onClick={() => void loadTimeline(task)} className="inline-flex items-center gap-1 rounded-lg border px-3 py-1.5 text-xs font-semibold">
+                    <button onClick={() => openTimelinePage(task)} className="inline-flex items-center gap-1 rounded-lg border px-3 py-1.5 text-xs font-semibold">
                       时间线
                     </button>
                     <button
@@ -591,69 +612,6 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects }) => {
         </table>
       </div>
       {feedbackNodes}
-
-      {timelineTask ? (
-        <div className="fixed inset-y-0 right-0 z-50 flex w-full max-w-2xl flex-col border-l border-slate-200 bg-white shadow-2xl">
-          <div className="flex items-start justify-between border-b px-6 py-5">
-            <div>
-              <div className="text-lg font-black">任务时间线</div>
-              <div className="mt-1 text-xs text-slate-500">{timelineTask.name} / {timelineTask.id}</div>
-              <div className="mt-1 text-xs text-slate-500">状态：{getDisplayStatus(timelineTask)} / 下游：{timelineTask.downstream_task_id || '—'}</div>
-            </div>
-            <button
-              onClick={() => {
-                setTimelineTask(null);
-                setTimelineItems([]);
-                setExpandedTimelineEventId('');
-              }}
-              className="rounded-lg p-2 text-slate-500 hover:bg-slate-100"
-            >
-              <X size={18} />
-            </button>
-          </div>
-          <div className="flex items-center justify-between border-b px-6 py-3">
-            <label className="inline-flex items-center gap-2 text-sm">
-              <input
-                type="checkbox"
-                checked={timelineOnlyFailed}
-                onChange={(e) => { void loadTimeline(timelineTask, e.target.checked); }}
-              />
-              仅看失败事件
-            </label>
-            <button onClick={() => void loadTimeline(timelineTask, timelineOnlyFailed)} className="inline-flex items-center gap-2 rounded-lg border px-3 py-1.5 text-sm font-semibold">
-              <RefreshCw size={14} className={timelineLoading ? 'animate-spin' : ''} />
-              刷新
-            </button>
-          </div>
-          <div className="flex-1 overflow-auto px-6 py-4">
-            {timelineLoading ? <div className="py-10 text-center text-sm text-slate-500">加载中...</div> : null}
-            {!timelineLoading && timelineItems.length === 0 ? <div className="py-10 text-center text-sm text-slate-500">暂无事件</div> : null}
-            <div className="space-y-3">
-              {timelineItems.map((event) => {
-                const expanded = expandedTimelineEventId === event.id;
-                const hasPayload = !!event.payload && Object.keys(event.payload).length > 0;
-                return (
-                  <div key={event.id} className={`rounded-2xl border px-4 py-3 ${event.result_status === 'failed' ? 'border-rose-200 bg-rose-50' : 'border-slate-200 bg-slate-50'}`}>
-                    <div className="flex items-start justify-between gap-3">
-                      <div>
-                        <div className="text-sm font-black text-slate-900">{event.event_type}</div>
-                        <div className="mt-1 text-xs text-slate-500">{formatDateTime(event.created_at)} · {event.result_status} · {event.event_source}{event.actor ? ` · ${event.actor}` : ''}</div>
-                        <div className="mt-2 text-sm text-slate-700">{event.message}</div>
-                      </div>
-                      <button onClick={() => setExpandedTimelineEventId(expanded ? '' : event.id)} disabled={!hasPayload} className="text-xs font-bold text-slate-500 disabled:opacity-30">
-                        {expanded ? '收起' : '查看'}
-                      </button>
-                    </div>
-                    {expanded && hasPayload ? (
-                      <pre className="mt-3 overflow-auto rounded-xl bg-white p-3 text-xs text-slate-700">{JSON.stringify(event.payload, null, 2)}</pre>
-                    ) : null}
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        </div>
-      ) : null}
 
       {createOpen ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/45 p-4 backdrop-blur-sm">

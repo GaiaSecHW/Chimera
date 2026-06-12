@@ -1,4 +1,5 @@
 export const E2E_PROJECT_ID = process.env.E2E_PROJECT_ID || '44f9029d00650a10';
+export const E2E_OPENGAUSS_PROJECT_ID = process.env.E2E_OPENGAUSS_PROJECT_ID || 'openGauss';
 export const E2E_USERNAME = process.env.E2E_USERNAME || 'admin';
 export const E2E_PASSWORD = process.env.E2E_PASSWORD || '';
 

@@ -55,6 +55,7 @@ import { FirmwareEvolutionCenterPage } from '../pages/execution/FirmwareEvolutio
 import { ReportsPage } from '../pages/execution/ReportsPage';
 import { TestInputPage } from '../pages/TestInputPage';
 import { TaskCenterPage } from '../pages/task/TaskCenterPage';
+import { TaskCenterTimelinePage } from '../pages/task/TaskCenterTimelinePage';
 import { WebEndToEndPage } from '../pages/task/WebEndToEndPage';
 // [DISABLED] DataflowVulnTask import - 方便后续复用
 // import { DataflowVulnTaskDetailPage, DataflowVulnTaskListPage } from '../pages/execution/DataflowVulnScanPage';
@@ -139,6 +140,7 @@ export interface ViewRegistryContext {
   activeBinaryModuleSecurityTaskId: string;
   activeAppScanTaskId: string;
   activeRedlineTaskId: string;
+  activeTaskCenterTimelineTaskId: string;
   selectedStaticPkgIds: Set<string>;
   setCurrentView: (view: string) => void;
   setSelectedProjectId: (id: string) => void;
@@ -160,6 +162,7 @@ export interface ViewRegistryContext {
   setActiveBinaryModuleSecurityTaskId: (id: string) => void;
   setActiveAppScanTaskId: (id: string) => void;
   setActiveRedlineTaskId: (id: string) => void;
+  setActiveTaskCenterTimelineTaskId: (id: string) => void;
   setSelectedStaticPkgIds: (ids: Set<string>) => void;
   fetchProjects: (refresh?: boolean) => Promise<void>;
   fetchAdminStats: () => Promise<void>;
@@ -250,6 +253,14 @@ export const renderCurrentView = (ctx: ViewRegistryContext): React.ReactNode => 
       return <ChimeraScheduleCenterPage projects={ctx.projects} initialProjectId={ctx.selectedProjectId} />;
     case 'chimera-platform-schedule-config':
       return <ChimeraScheduleConfigPage />;
+    case 'task-center-timeline':
+      return (
+        <TaskCenterTimelinePage
+          projectId={ctx.selectedProjectId}
+          taskId={ctx.activeTaskCenterTimelineTaskId}
+          onBack={() => ctx.setCurrentView('task-list')}
+        />
+      );
     case 'public-resource-pvc-management':
       return <PublicResourceManagementPage projectId={ctx.selectedProjectId} initialTab="pvc" />;
     case 'public-resource-task-management':

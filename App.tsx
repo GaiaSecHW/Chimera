@@ -94,6 +94,7 @@ const AppShell: React.FC = () => {
   const [activeBinaryModuleSecurityTaskId, setActiveBinaryModuleSecurityTaskId] = useState<string>('');
   const [activeAppScanTaskId, setActiveAppScanTaskId] = useState<string>('');
   const [activeRedlineTaskId, setActiveRedlineTaskId] = useState<string>('');
+  const [activeTaskCenterTimelineTaskId, setActiveTaskCenterTimelineTaskId] = useState<string>('');
   const [isLoading, setIsLoading] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -248,6 +249,7 @@ const AppShell: React.FC = () => {
         binaryEvolutionTaskId?: string;
         redlineTaskId?: string;
         appScanTaskId?: string;
+        taskCenterTimelineTaskId?: string;
         path?: string;
       }>).detail;
       const nextView = String(detail?.view || '').trim();
@@ -291,6 +293,10 @@ const AppShell: React.FC = () => {
       const redlineTaskId = String(detail?.redlineTaskId || '').trim();
       if (redlineTaskId) {
         setActiveRedlineTaskId(redlineTaskId);
+      }
+      const taskCenterTimelineTaskId = String(detail?.taskCenterTimelineTaskId || '').trim();
+      if (taskCenterTimelineTaskId) {
+        setActiveTaskCenterTimelineTaskId(taskCenterTimelineTaskId);
       }
       const binaryEvolutionTaskId = String(detail?.binaryEvolutionTaskId || '').trim();
       if (nextView) {
@@ -680,6 +686,7 @@ const AppShell: React.FC = () => {
                     activeBinarySecurityTaskId,
                     activeSourceSecurityTaskId,
                     activeBinaryModuleSecurityTaskId,
+                    activeTaskCenterTimelineTaskId,
                     activeRedlineTaskId,
                     selectedStaticPkgIds,
                     setCurrentView: navigateToView,
@@ -703,6 +710,7 @@ const AppShell: React.FC = () => {
                     activeAppScanTaskId,
                     setActiveAppScanTaskId: (id) => setActiveAppScanTaskId(id),
                     setActiveRedlineTaskId: (id) => setActiveRedlineTaskId(id),
+                    setActiveTaskCenterTimelineTaskId: (id) => setActiveTaskCenterTimelineTaskId(id),
                     setSelectedStaticPkgIds: (ids) => setSelectedStaticPkgIds(ids),
                     fetchProjects,
                     fetchAdminStats,
