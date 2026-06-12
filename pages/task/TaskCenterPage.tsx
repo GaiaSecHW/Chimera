@@ -330,7 +330,7 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects }) => {
         input_binding: {
           upload_id: selectedInputId,
           selection_type: selectionMode,
-          relative_path: selectionMode === 'file_list' ? undefined : (selectionMode === 'directory' ? (selectedRelativePath ?? '') : (selectedRelativePath || undefined)),
+          relative_path: selectionMode === 'file_list' ? undefined : (selectionMode === 'directory' ? (selectedRelativePath ?? '/') : (selectedRelativePath || undefined)),
           relative_paths: selectionMode === 'file_list' ? selectedRelativePaths : undefined,
         },
         policy: {},
