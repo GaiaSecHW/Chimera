@@ -183,9 +183,27 @@ export const TRIAGE_GATE_LABELS: Record<string, string> = {
 };
 
 export const VALIDATION_RESULT_LABELS: Record<string, string> = {
-  vulnerable: '验证成立',
-  not_vulnerable: '验证不成立',
+  vulnerable: '漏洞成立',
+  not_vulnerable: '漏洞不成立',
   inconclusive: '结论不确定',
+};
+
+export const CASE_STATUS_LABELS: Record<string, string> = {
+  intake_created: '已接收',
+  files_collecting: '材料收集中',
+  ready_for_triage: '待研判',
+  waiting: '等待研判',
+  ai_assessing: 'AI 研判中',
+  manual_assessing: '人工研判中',
+  awaiting_manual_gate: '等待人工准入',
+  triage_completed: '研判完成',
+  queued: '排队中',
+  poc_generating: 'PoC 生成中',
+  exp_generating: 'EXP 生成中',
+  reproducing: '复现中',
+  evidence_collecting: '证据收集中',
+  validation_completed: '验证完成',
+  finished: '已结束',
 };
 
 export const ACTION_TYPE_LABELS: Record<string, string> = {

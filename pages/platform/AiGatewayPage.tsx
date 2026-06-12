@@ -1,10 +1,11 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { Eye, FileText, KeyRound, Pencil, Plus, RefreshCw, Save, Trash2, X } from 'lucide-react';
+import { ChevronDown, ChevronUp, Eye, FileText, KeyRound, Pencil, Plus, RefreshCw, Save, Trash2, X } from 'lucide-react';
 import { api } from '../../clients/api';
 import { showConfirm } from '../../components/DialogService';
 import { AigwLogDetailsDialog } from '../../components/platform/AigwLogDetailsDialog';
 import { useUiFeedback } from '../../components/UiFeedback';
+import { AiGatewayTokenStatsPage } from './AiGatewayTokenStatsPage';
 import {
   AiGatewayBackendUnit,
   AiGatewayCapacityPool,
@@ -45,6 +46,11 @@ type LogDrawerPreset = {
   model?: string;
   aliasId?: string;
   backendUnitId?: string;
+  llmKeyId?: string;
+  taskKeyId?: string;
+  capacityPoolId?: string;
+  taskId?: string;
+  subTaskId?: string;
 };
 
 interface AiGatewayPageProps {
@@ -132,6 +138,13 @@ export const AiGatewayPage: React.FC<AiGatewayPageProps> = ({ entryView = 'aigw-
   const [bindings, setBindings] = useState<AiGatewayModelAliasBinding[]>([]);
   const [capacityPools, setCapacityPools] = useState<AiGatewayCapacityPool[]>([]);
   const [llmKeys, setLlmKeys] = useState<AiGatewayLlmKey[]>([]);
+  const [llmKeysTotal, setLlmKeysTotal] = useState(0);
+  const [llmKeysLoading, setLlmKeysLoading] = useState(false);
+  const [keySearch, setKeySearch] = useState('');
+  const [keyKeyType, setKeyKeyType] = useState('');
+  const [keyEnabled, setKeyEnabled] = useState('');
+  const [keyPage, setKeyPage] = useState(1);
+  const [keyPageSize, setKeyPageSize] = useState(20);
   const [editingLlmKeyId, setEditingLlmKeyId] = useState<number | null>(null);
   const [editingAliasId, setEditingAliasId] = useState<number | null>(null);
   const [editingBackendUnitId, setEditingBackendUnitId] = useState<number | null>(null);
@@ -184,6 +197,8 @@ export const AiGatewayPage: React.FC<AiGatewayPageProps> = ({ entryView = 'aigw-
   const [selectedLlmKey, setSelectedLlmKey] = useState<AiGatewayLlmKey | null>(null);
   const [llmKeyDetailOpen, setLlmKeyDetailOpen] = useState(false);
   const [detailLoading, setDetailLoading] = useState(false);
+  const [keyFiltersExpanded, setKeyFiltersExpanded] = useState(false);
+  const [logFiltersExpanded, setLogFiltersExpanded] = useState(false);
 
   const aliasNameById = useMemo(() => new Map(modelAliases.map((item) => [item.id, item.alias_name])), [modelAliases]);
   const backendNameById = useMemo(() => new Map(backendUnits.map((item) => [item.id, `${item.model_name} (#${item.id})`])), [backendUnits]);
@@ -230,17 +245,35 @@ export const AiGatewayPage: React.FC<AiGatewayPageProps> = ({ entryView = 'aigw-
     }
   }, [modelAliases, selectedAliasId]);
 
+  const loadKeys = async () => {
+    setLlmKeysLoading(true);
+    try {
+      const response = await platformApi.aigw.listLlmKeys({
+        page: keyPage,
+        page_size: keyPageSize,
+        ...(keySearch ? { search: keySearch } : {}),
+        ...(keyKeyType ? { key_type: keyKeyType } : {}),
+        ...(keyEnabled ? { enabled: keyEnabled } : {}),
+      }) as { total: number; keys: AiGatewayLlmKey[] };
+      setLlmKeys(Array.isArray(response?.keys) ? response.keys : []);
+      setLlmKeysTotal(Number(response?.total || 0));
+    } catch (err: any) {
+      setError(err.message || '加载密钥列表失败');
+    } finally {
+      setLlmKeysLoading(false);
+    }
+  };
+
   const loadData = async () => {
     const requestId = ++loadDataRequestIdRef.current;
     setError('');
     try {
-      const [providerItems, aliases, units, bindingItems, poolItems, llmKeyItems] = await Promise.all([
+      const [providerItems, aliases, units, bindingItems, poolItems] = await Promise.all([
         platformApi.aigw.listProviderStats(),
         platformApi.aigw.listModelAliases(),
         platformApi.aigw.listBackendUnits(),
         platformApi.aigw.listBindings(),
         platformApi.aigw.listCapacityPools(),
-        platformApi.aigw.listLlmKeys(),
       ]);
       if (requestId !== loadDataRequestIdRef.current) return;
       setProviderStats(Array.isArray(providerItems) ? providerItems : []);
@@ -248,7 +281,7 @@ export const AiGatewayPage: React.FC<AiGatewayPageProps> = ({ entryView = 'aigw-
       setBackendUnits(Array.isArray(units) ? units : []);
       setBindings(Array.isArray(bindingItems) ? bindingItems : []);
       setCapacityPools(Array.isArray(poolItems) ? poolItems : []);
-      setLlmKeys(Array.isArray(llmKeyItems) ? llmKeyItems : []);
+      await loadKeys();
     } catch (err: any) {
       if (requestId !== loadDataRequestIdRef.current) return;
       setError(err.message || '加载 AI 网关数据失败');
@@ -304,6 +337,12 @@ export const AiGatewayPage: React.FC<AiGatewayPageProps> = ({ entryView = 'aigw-
     if (loading) return;
     void loadLogs();
   }, [logPage, logPageSize]);
+
+  useEffect(() => {
+    if (loading || llmKeysLoading) return;
+    void loadKeys();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [keyPage, keyPageSize, keySearch, keyKeyType, keyEnabled]);
 
   useEffect(() => {
     if (!logAutoRefresh || loading) return;
@@ -438,6 +477,11 @@ export const AiGatewayPage: React.FC<AiGatewayPageProps> = ({ entryView = 'aigw-
       setLogModel(preset.model || '');
       setLogAliasId(preset.aliasId || '');
       setLogBackendUnitId(preset.backendUnitId || '');
+      setLogLlmKeyId(preset.llmKeyId || '');
+      setLogTaskKeyId(preset.taskKeyId || '');
+      setLogCapacityPoolId(preset.capacityPoolId || '');
+      setLogTaskId(preset.taskId || '');
+      setLogSubTaskId(preset.subTaskId || '');
       setLogPage(1);
       setLogDrawerPreset(preset);
     } else {
@@ -905,42 +949,52 @@ export const AiGatewayPage: React.FC<AiGatewayPageProps> = ({ entryView = 'aigw-
         </div>
       </div>
 
-      <div className="mb-5 shrink-0 rounded-[1.5rem] border border-slate-200 bg-slate-50 p-4">
-        <div className="mb-3 text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">筛选条件</div>
-        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-5">
-        <input value={logModel} onChange={(e) => setLogModel(e.target.value)} placeholder="公开模型" className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none" />
-        <select value={logBackendModel} onChange={(e) => setLogBackendModel(e.target.value)} className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none">
-          <option value="">后端模型</option>
-          {backendModels.map((item) => <option key={item} value={item}>{item}</option>)}
-        </select>
-        <select value={logAliasId} onChange={(e) => setLogAliasId(e.target.value)} className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none">
-          <option value="">模型别名</option>
-          {aliasOptions.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}
-        </select>
-        <select value={logBackendUnitId} onChange={(e) => setLogBackendUnitId(e.target.value)} className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none">
-          <option value="">模型</option>
-          {backendUnitOptions.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}
-        </select>
-        <select value={logLlmKeyId} onChange={(e) => setLogLlmKeyId(e.target.value)} className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none">
-          <option value="">调用密钥</option>
-          {llmKeys.map((item) => <option key={item.id} value={item.id}>{item.key_name || `#${item.id}`}</option>)}
-        </select>
-        <select value={logCapacityPoolId} onChange={(e) => setLogCapacityPoolId(e.target.value)} className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none">
-          <option value="">算力池</option>
-          {capacityPools.map((item) => <option key={item.id} value={item.id}>{item.pool_name}</option>)}
-        </select>
-        <input value={logTaskKeyId} onChange={(e) => setLogTaskKeyId(e.target.value)} placeholder="任务密钥 ID" className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none" />
-        <input value={logTaskId} onChange={(e) => setLogTaskId(e.target.value)} placeholder="任务 ID" className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none" />
-        <input value={logSubTaskId} onChange={(e) => setLogSubTaskId(e.target.value)} placeholder="子任务 ID" className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none" />
-        <input type="datetime-local" value={logStartDate} onChange={(e) => setLogStartDate(e.target.value)} className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none" />
-        <input type="datetime-local" value={logEndDate} onChange={(e) => setLogEndDate(e.target.value)} className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none" />
-        </div>
+      <div className="mb-3 shrink-0 rounded-[1.5rem] border border-slate-200 bg-slate-50">
+        <button onClick={() => setLogFiltersExpanded(!logFiltersExpanded)} className="w-full flex items-center justify-between gap-3 p-3 text-left">
+          <div className="flex items-center gap-2">
+            <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">筛选条件</div>
+            {logModel || logBackendModel || logAliasId || logBackendUnitId || logLlmKeyId || logTaskKeyId || logCapacityPoolId || logTaskId || logSubTaskId || logStartDate || logEndDate ? <span className="rounded-full bg-sky-100 px-2 py-0.5 text-xs font-bold text-sky-700">已筛选</span> : null}
+          </div>
+          {logFiltersExpanded ? <ChevronUp className="h-4 w-4 text-slate-400" /> : <ChevronDown className="h-4 w-4 text-slate-400" />}
+        </button>
+        {logFiltersExpanded ? (
+          <>
+            <div className="grid gap-3 p-3 pt-0 md:grid-cols-2 xl:grid-cols-5">
+              <input value={logModel} onChange={(e) => setLogModel(e.target.value)} placeholder="公开模型" className="rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm outline-none" />
+              <select value={logBackendModel} onChange={(e) => setLogBackendModel(e.target.value)} className="rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm outline-none">
+                <option value="">后端模型</option>
+                {backendModels.map((item) => <option key={item} value={item}>{item}</option>)}
+              </select>
+              <select value={logAliasId} onChange={(e) => setLogAliasId(e.target.value)} className="rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm outline-none">
+                <option value="">模型别名</option>
+                {aliasOptions.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}
+              </select>
+              <select value={logBackendUnitId} onChange={(e) => setLogBackendUnitId(e.target.value)} className="rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm outline-none">
+                <option value="">模型</option>
+                {backendUnitOptions.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}
+              </select>
+              <select value={logLlmKeyId} onChange={(e) => setLogLlmKeyId(e.target.value)} className="rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm outline-none">
+                <option value="">调用密钥</option>
+                {llmKeys.map((item) => <option key={item.id} value={item.id}>{item.key_name || `#${item.id}`}</option>)}
+              </select>
+              <select value={logCapacityPoolId} onChange={(e) => setLogCapacityPoolId(e.target.value)} className="rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm outline-none">
+                <option value="">算力池</option>
+                {capacityPools.map((item) => <option key={item.id} value={item.id}>{item.pool_name}</option>)}
+              </select>
+              <input value={logTaskKeyId} onChange={(e) => setLogTaskKeyId(e.target.value)} placeholder="任务密钥 ID" className="rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm outline-none" />
+              <input value={logTaskId} onChange={(e) => setLogTaskId(e.target.value)} placeholder="任务 ID" className="rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm outline-none" />
+              <input value={logSubTaskId} onChange={(e) => setLogSubTaskId(e.target.value)} placeholder="子任务 ID" className="rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm outline-none" />
+              <input type="datetime-local" value={logStartDate} onChange={(e) => setLogStartDate(e.target.value)} className="rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm outline-none" />
+              <input type="datetime-local" value={logEndDate} onChange={(e) => setLogEndDate(e.target.value)} className="rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm outline-none" />
+            </div>
+            <div className="flex items-center gap-2 p-3 pt-0">
+              <button onClick={() => { setLogPage(1); void loadLogs(); }} disabled={logsLoading} className="rounded-2xl bg-slate-900 px-4 py-2 text-sm font-bold text-white disabled:opacity-50">查询</button>
+              <button onClick={() => { setLogModel(''); setLogBackendModel(''); setLogAliasId(''); setLogBackendUnitId(''); setLogLlmKeyId(''); setLogTaskKeyId(''); setLogCapacityPoolId(''); setLogTaskId(''); setLogSubTaskId(''); setLogStartDate(''); setLogEndDate(''); setLogPage(1); void loadLogs(); }} className="rounded-2xl bg-slate-100 px-4 py-2 text-sm font-bold text-slate-700">重置</button>
+            </div>
+          </>
+        ) : null}
       </div>
-      <div className="mb-5 flex shrink-0 flex-wrap items-center justify-between gap-3">
-        <div className="flex items-center gap-2">
-          <button onClick={() => { setLogPage(1); void loadLogs(); }} disabled={logsLoading} className="rounded-2xl bg-slate-900 px-4 py-2 text-sm font-bold text-white disabled:opacity-50">查询</button>
-          <button onClick={() => { setLogModel(''); setLogBackendModel(''); setLogAliasId(''); setLogBackendUnitId(''); setLogLlmKeyId(''); setLogTaskKeyId(''); setLogCapacityPoolId(''); setLogTaskId(''); setLogSubTaskId(''); setLogStartDate(''); setLogEndDate(''); setLogPage(1); void loadLogs(); }} className="rounded-2xl bg-slate-100 px-4 py-2 text-sm font-bold text-slate-700">重置</button>
-        </div>
+      <div className="mb-3 flex shrink-0 flex-wrap items-center justify-end gap-3">
         <div className="text-xs font-bold text-slate-400">
           {logsLoading ? '日志加载中...' : `当前第 ${logPage} 页，共 ${logsTotal} 条`}
         </div>
@@ -950,41 +1004,39 @@ export const AiGatewayPage: React.FC<AiGatewayPageProps> = ({ entryView = 'aigw-
         <table className="min-w-full text-sm">
           <thead>
             <tr className="border-b border-slate-200 text-left text-slate-500">
-              <th className="px-3 py-3 font-bold">时间</th>
-              <th className="px-3 py-3 font-bold">模型</th>
-              <th className="px-3 py-3 font-bold">任务</th>
-              <th className="px-3 py-3 font-bold">别名 / 单元</th>
-              <th className="px-3 py-3 font-bold">状态</th>
-              <th className="px-3 py-3 font-bold">延迟</th>
-              <th className="px-3 py-3 font-bold">请求预览</th>
-              <th className="px-3 py-3 font-bold">操作</th>
+              <th className="px-3 py-2 font-bold">时间</th>
+              <th className="px-3 py-2 font-bold">模型</th>
+              <th className="px-3 py-2 font-bold">任务</th>
+              <th className="px-3 py-2 font-bold">别名 / 单元</th>
+              <th className="px-3 py-2 font-bold">状态</th>
+              <th className="px-3 py-2 font-bold">延迟</th>
+              <th className="px-3 py-2 font-bold">请求预览</th>
+              <th className="px-3 py-2 font-bold">操作</th>
             </tr>
           </thead>
           <tbody>
             {logs.map((log) => (
               <tr key={log.id} className="border-b border-slate-100">
-                <td className="px-3 py-3 text-slate-700">{new Date(log.created_at).toLocaleString('zh-CN')}</td>
-                <td className="px-3 py-3">
-                  <div className="font-bold text-slate-900">{log.model_name || '-'}</div>
-                  <div className="text-xs text-slate-500">{log.backend_model_name || '-'}</div>
+                <td className="px-3 py-2 text-slate-700">{new Date(log.created_at).toLocaleString('zh-CN')}</td>
+                <td className="px-3 py-2">
+                  <div className="truncate font-bold text-slate-900" title={`后端: ${log.backend_model_name || '-'}`}>{log.model_name || '-'}</div>
                 </td>
-                <td className="px-3 py-3 text-slate-700">
-                  <div className="font-mono text-xs">{log.task_id || '-'}</div>
-                  <div className="font-mono text-[11px] text-slate-400">{log.sub_task_id || '-'}</div>
+                <td className="px-3 py-2">
+                  <div className="truncate font-mono text-xs text-slate-700" title={log.sub_task_id || '-'}>{log.task_id || '-'}</div>
                 </td>
-                <td className="px-3 py-3 text-slate-700">A{log.model_alias_id || '-'} / U{log.backend_unit_id || '-'}</td>
-                <td className="px-3 py-3">
-                  <div className="flex items-center gap-2">
-                    <span className={`rounded-full px-2.5 py-1 text-xs font-bold ${log.status_code >= 200 && log.status_code < 300 ? 'bg-emerald-100 text-emerald-700' : log.status_code >= 400 ? 'bg-rose-100 text-rose-700' : 'bg-slate-100 text-slate-600'}`}>{log.status_code || '-'}</span>
+                <td className="px-3 py-2 text-slate-700 text-xs">A{log.model_alias_id || '-'} / U{log.backend_unit_id || '-'}</td>
+                <td className="px-3 py-2">
+                  <div className="flex items-center gap-1.5">
+                    <span className={`rounded-full px-2 py-0.5 text-xs font-bold ${log.status_code >= 200 && log.status_code < 300 ? 'bg-emerald-100 text-emerald-700' : log.status_code >= 400 ? 'bg-rose-100 text-rose-700' : 'bg-slate-100 text-slate-600'}`}>{log.status_code || '-'}</span>
                     <span className="text-xs text-slate-500">{log.is_stream ? 'stream' : 'json'}</span>
                   </div>
                 </td>
-                <td className="px-3 py-3 text-slate-700">{log.response_time || 0} ms / 首 Token {log.first_token_latency || 0} ms</td>
-                <td className="max-w-[360px] px-3 py-3 text-slate-700"><div className="truncate" title={log.request_preview}>{log.request_preview || '-'}</div></td>
-                <td className="px-3 py-3">
-                  <div className="flex items-center gap-2">
-                    <button onClick={() => openLogDetail(log.id)} disabled={detailLoading} className="rounded-xl bg-slate-100 px-3 py-2 text-xs font-bold text-slate-700 hover:bg-slate-200 disabled:opacity-50"><Eye className="h-3.5 w-3.5" /></button>
-                    <button onClick={() => replayLog(log.id)} disabled={replayingLogId === log.id} className="rounded-xl bg-amber-100 px-3 py-2 text-xs font-bold text-amber-700 hover:bg-amber-200 disabled:opacity-50"><RefreshCw className={`h-3.5 w-3.5 ${replayingLogId === log.id ? 'animate-spin' : ''}`} /></button>
+                <td className="px-3 py-2 text-slate-700 text-xs">{log.response_time || 0} ms / 首 Token {log.first_token_latency || 0} ms</td>
+                <td className="max-w-[300px] px-3 py-2 text-slate-700"><div className="truncate text-xs" title={log.request_preview}>{log.request_preview || '-'}</div></td>
+                <td className="px-3 py-2">
+                  <div className="flex items-center gap-1.5">
+                    <button onClick={() => openLogDetail(log.id)} disabled={detailLoading} className="rounded-lg bg-slate-100 px-2 py-1 text-xs font-bold text-slate-700 hover:bg-slate-200 disabled:opacity-50"><Eye className="h-3 w-3" /></button>
+                    <button onClick={() => replayLog(log.id)} disabled={replayingLogId === log.id} className="rounded-lg bg-amber-100 px-2 py-1 text-xs font-bold text-amber-700 hover:bg-amber-200 disabled:opacity-50"><RefreshCw className={`h-3 w-3 ${replayingLogId === log.id ? 'animate-spin' : ''}`} /></button>
                   </div>
                 </td>
               </tr>
@@ -1021,6 +1073,7 @@ export const AiGatewayPage: React.FC<AiGatewayPageProps> = ({ entryView = 'aigw-
           <h2 className="mt-2 text-xl font-black text-slate-900">调用密钥管理</h2>
         </div>
         <div className="flex items-center gap-2">
+          <button onClick={() => { setKeyPage(1); void loadKeys(); }} className="rounded-2xl bg-slate-100 px-4 py-2 text-sm font-bold text-slate-700 hover:bg-slate-200">刷新</button>
           <button onClick={() => openLlmKeyModal()} className="inline-flex items-center gap-2 rounded-2xl bg-slate-900 px-4 py-2.5 text-sm font-bold text-white">
             <Plus className="h-4 w-4" />
             新建调用密钥
@@ -1032,54 +1085,97 @@ export const AiGatewayPage: React.FC<AiGatewayPageProps> = ({ entryView = 'aigw-
           ) : null}
         </div>
       </div>
+
+      <div className="mb-3 shrink-0 rounded-[1.5rem] border border-slate-200 bg-slate-50">
+        <button onClick={() => setKeyFiltersExpanded(!keyFiltersExpanded)} className="w-full flex items-center justify-between gap-3 p-3 text-left">
+          <div className="flex items-center gap-2">
+            <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">筛选条件</div>
+            {keySearch || keyKeyType || keyEnabled ? <span className="rounded-full bg-sky-100 px-2 py-0.5 text-xs font-bold text-sky-700">已筛选</span> : null}
+          </div>
+          {keyFiltersExpanded ? <ChevronUp className="h-4 w-4 text-slate-400" /> : <ChevronDown className="h-4 w-4 text-slate-400" />}
+        </button>
+        {keyFiltersExpanded ? (
+          <div className="grid gap-3 p-3 pt-0 md:grid-cols-2 xl:grid-cols-4">
+            <input value={keySearch} onChange={(e) => setKeySearch(e.target.value)} placeholder="搜索名称、任务 ID、备注..." className="rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm outline-none" />
+            <select value={keyKeyType} onChange={(e) => setKeyKeyType(e.target.value)} className="rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm outline-none">
+              <option value="">全部类型</option>
+              <option value="task">任务密钥</option>
+              <option value="work">工作密钥</option>
+            </select>
+            <select value={keyEnabled} onChange={(e) => setKeyEnabled(e.target.value)} className="rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm outline-none">
+              <option value="">全部状态</option>
+              <option value="true">启用</option>
+              <option value="false">禁用</option>
+            </select>
+            <button onClick={() => { setKeySearch(''); setKeyKeyType(''); setKeyEnabled(''); setKeyPage(1); }} className="rounded-2xl bg-slate-100 px-4 py-2 text-sm font-bold text-slate-700 hover:bg-slate-200">重置</button>
+          </div>
+        ) : null}
+      </div>
+
+      <div className="mb-3 flex shrink-0 flex-wrap items-center justify-between gap-3">
+        <div className="text-xs font-bold text-slate-400">
+          {llmKeysLoading ? '加载中...' : `当前第 ${keyPage} 页，共 ${llmKeysTotal} 条`}
+        </div>
+      </div>
+
       <div className="min-h-0 flex-1 overflow-auto">
         <table className="min-w-full text-sm">
           <thead>
             <tr className="border-b border-slate-200 text-left text-slate-500">
-              <th className="px-3 py-3 font-bold">名称</th>
-              <th className="px-3 py-3 font-bold">前缀</th>
-              <th className="px-3 py-3 font-bold">类型</th>
-              <th className="px-3 py-3 font-bold">最大并发</th>
-              <th className="px-3 py-3 font-bold">任务范围</th>
-              <th className="px-3 py-3 font-bold">状态</th>
-              <th className="px-3 py-3 font-bold">更新时间</th>
-              <th className="px-3 py-3 font-bold">操作</th>
+              <th className="px-3 py-2 font-bold">名称</th>
+              <th className="px-3 py-2 font-bold">类型</th>
+              <th className="px-3 py-2 font-bold">最大并发</th>
+              <th className="px-3 py-2 font-bold">任务范围</th>
+              <th className="px-3 py-2 font-bold">状态</th>
+              <th className="px-3 py-2 font-bold">更新时间</th>
+              <th className="px-3 py-2 font-bold">操作</th>
             </tr>
           </thead>
           <tbody>
             {llmKeys.map((item) => (
-              <tr key={item.id} className="border-b border-slate-100">
-                <td className="px-3 py-3">
-                  <div className="font-bold text-slate-900">{item.key_name || `密钥 #${item.id}`}</div>
-                  <div className="text-xs text-slate-500">{item.description || '无备注'}</div>
+              <tr className="border-b border-slate-100">
+                <td className="px-3 py-2">
+                  <div className="truncate font-bold text-slate-900" title={item.description || '无备注'}>{item.key_name || `密钥 #${item.id}`}</div>
                 </td>
-                <td className="px-3 py-3 font-mono text-slate-700">{item.key_prefix || '-'}</td>
-                <td className="px-3 py-3 text-slate-700">{item.key_type === 'task' ? '任务密钥' : item.key_type === 'work' ? '工作密钥' : item.key_type}</td>
-                <td className="px-3 py-3 text-slate-700">{item.max_concurrency || 0}</td>
-                <td className="px-3 py-3 text-slate-700">{item.task_id ? (item.key_type === 'work' && item.sub_task_id ? `${item.task_id} / ${item.sub_task_id}` : item.task_id) : '-'}</td>
-                <td className="px-3 py-3"><span className={`rounded-full px-2.5 py-1 text-xs font-bold ${item.enabled ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500'}`}>{item.enabled ? '启用' : '禁用'}</span></td>
-                <td className="px-3 py-3 text-slate-700">{item.updated_at ? new Date(item.updated_at).toLocaleString('zh-CN') : '-'}</td>
-                <td className="px-3 py-3">
-                  <div className="flex items-center gap-2">
-                    <button onClick={() => openLlmKeyModal(item)} className="rounded-xl bg-slate-100 px-3 py-2 text-xs font-bold text-slate-700 hover:bg-slate-200">编辑</button>
-                    <button onClick={() => openLlmKeyDetail(item.id)} className="rounded-xl bg-slate-100 px-3 py-2 text-xs font-bold text-slate-700 hover:bg-slate-200">查看</button>
-                    <button onClick={() => deleteLlmKey(item)} className="rounded-xl bg-rose-100 px-3 py-2 text-xs font-bold text-rose-700 hover:bg-rose-200"><Trash2 className="h-3.5 w-3.5" /></button>
+                <td className="px-3 py-2 text-slate-700">{item.key_type === 'task' ? '任务密钥' : item.key_type === 'work' ? '工作密钥' : item.key_type}</td>
+                <td className="px-3 py-2 text-slate-700">{item.max_concurrency || 0}</td>
+                <td className="px-3 py-2 text-slate-700">{item.task_id ? (item.key_type === 'work' && item.sub_task_id ? `${item.task_id} / ${item.sub_task_id}` : item.task_id) : '-'}</td>
+                <td className="px-3 py-2"><span className={`rounded-full px-2 py-0.5 text-xs font-bold ${item.enabled ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500'}`}>{item.enabled ? '启用' : '禁用'}</span></td>
+                <td className="px-3 py-2 text-slate-700">{item.updated_at ? new Date(item.updated_at).toLocaleString('zh-CN') : '-'}</td>
+                <td className="px-3 py-2">
+                  <div className="flex items-center gap-1.5">
+                    <button onClick={() => openLlmKeyModal(item)} className="rounded-lg bg-slate-100 px-2 py-1 text-xs font-bold text-slate-700 hover:bg-slate-200"><Pencil className="h-3 w-3" /></button>
+                    <button onClick={() => openLogsDrawer({ title: `${item.key_name || `密钥 #${item.id}`} 日志`, llmKeyId: String(item.id) })} className="rounded-lg bg-slate-100 px-2 py-1 text-xs font-bold text-slate-700 hover:bg-slate-200"><FileText className="h-3 w-3" /></button>
+                    <button onClick={() => openLlmKeyDetail(item.id)} className="rounded-lg bg-slate-100 px-2 py-1 text-xs font-bold text-slate-700 hover:bg-slate-200"><Eye className="h-3 w-3" /></button>
+                    <button onClick={() => deleteLlmKey(item)} className="rounded-lg bg-rose-100 px-2 py-1 text-xs font-bold text-rose-700 hover:bg-rose-200"><Trash2 className="h-3 w-3" /></button>
                   </div>
                 </td>
               </tr>
             ))}
-            {!llmKeys.length && !loading ? (
+            {!llmKeys.length && !llmKeysLoading ? (
               <tr>
-                <td colSpan={8} className="px-3 py-10 text-center text-slate-400">暂无调用密钥</td>
+                <td colSpan={7} className="px-3 py-10 text-center text-slate-400">暂无调用密钥</td>
               </tr>
             ) : null}
           </tbody>
         </table>
       </div>
+
+      <div className="mt-5 flex shrink-0 items-center justify-between">
+        <div className="text-sm text-slate-500">共 {llmKeysTotal} 条</div>
+        <div className="flex items-center gap-2">
+          <select value={keyPageSize} onChange={(e) => { setKeyPageSize(Number(e.target.value)); setKeyPage(1); }} className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm outline-none">
+            {[10, 20, 50, 100].map((size) => <option key={size} value={size}>{size} / 页</option>)}
+          </select>
+          <button disabled={keyPage <= 1} onClick={() => setKeyPage((v) => Math.max(1, v - 1))} className="rounded-xl bg-slate-100 px-3 py-2 text-sm font-bold text-slate-700 disabled:opacity-40">上一页</button>
+          <span className="text-sm font-bold text-slate-700">{keyPage}</span>
+          <button disabled={keyPage * keyPageSize >= llmKeysTotal} onClick={() => setKeyPage((v) => v + 1)} className="rounded-xl bg-slate-100 px-3 py-2 text-sm font-bold text-slate-700 disabled:opacity-40">下一页</button>
+        </div>
+      </div>
     </section>
   );
 
-  const pageTitle = entryView === 'aigw-keys' ? '密钥管理' : entryView === 'aigw-logs' ? '请求日志' : '网关配置';
+  const pageTitle = entryView === 'aigw-keys' ? '密钥管理' : entryView === 'aigw-logs' ? '请求日志' : entryView === 'aigw-token-stats' ? 'Token 统计' : '网关配置';
 
   return (
     <div className="flex min-h-full flex-col gap-6 p-8">
@@ -1115,6 +1211,8 @@ export const AiGatewayPage: React.FC<AiGatewayPageProps> = ({ entryView = 'aigw-
         <div className="min-h-[680px] flex-1">
           {renderLogsSection()}
         </div>
+      ) : entryView === 'aigw-token-stats' ? (
+        <AiGatewayTokenStatsPage onNavigate={onNavigate} />
       ) : (
       <section className="flex min-h-[680px] flex-1 flex-col rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
         <div className="mb-5 flex shrink-0 flex-wrap items-center justify-between gap-3">
@@ -1517,12 +1615,13 @@ export const AiGatewayPage: React.FC<AiGatewayPageProps> = ({ entryView = 'aigw-
         <div className="fixed inset-0 z-[260]">
           <div className="absolute inset-0 bg-slate-950/40" onClick={() => setKeyManagementOpen(false)} />
           <section className="absolute inset-0 flex h-full w-full flex-col overflow-hidden bg-white p-6 shadow-2xl">
-        <div className="mb-5 flex items-start justify-between gap-4">
+        <div className="mb-5 flex shrink-0 items-start justify-between gap-4">
           <div>
             <div className="text-[11px] font-black uppercase tracking-[0.2em] text-slate-400">调用凭证</div>
             <h2 className="mt-2 text-xl font-black text-slate-900">调用密钥管理</h2>
           </div>
           <div className="flex items-center gap-2">
+            <button onClick={() => { setKeyPage(1); void loadKeys(); }} className="rounded-2xl bg-slate-100 px-4 py-2 text-sm font-bold text-slate-700 hover:bg-slate-200">刷新</button>
             <button onClick={() => openLlmKeyModal()} className="inline-flex items-center gap-2 rounded-2xl bg-slate-900 px-4 py-2.5 text-sm font-bold text-white">
               <Plus className="h-4 w-4" />
               新建调用密钥
@@ -1532,49 +1631,93 @@ export const AiGatewayPage: React.FC<AiGatewayPageProps> = ({ entryView = 'aigw-
             </button>
           </div>
         </div>
+
+        <div className="mb-3 shrink-0 rounded-[1.5rem] border border-slate-200 bg-slate-50">
+          <button onClick={() => setKeyFiltersExpanded(!keyFiltersExpanded)} className="w-full flex items-center justify-between gap-3 p-3 text-left">
+            <div className="flex items-center gap-2">
+              <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">筛选条件</div>
+              {keySearch || keyKeyType || keyEnabled ? <span className="rounded-full bg-sky-100 px-2 py-0.5 text-xs font-bold text-sky-700">已筛选</span> : null}
+            </div>
+            {keyFiltersExpanded ? <ChevronUp className="h-4 w-4 text-slate-400" /> : <ChevronDown className="h-4 w-4 text-slate-400" />}
+          </button>
+          {keyFiltersExpanded ? (
+            <div className="grid gap-3 p-3 pt-0 md:grid-cols-2 xl:grid-cols-4">
+              <input value={keySearch} onChange={(e) => setKeySearch(e.target.value)} placeholder="搜索名称、任务 ID、备注..." className="rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm outline-none" />
+              <select value={keyKeyType} onChange={(e) => setKeyKeyType(e.target.value)} className="rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm outline-none">
+                <option value="">全部类型</option>
+                <option value="task">任务密钥</option>
+                <option value="work">工作密钥</option>
+              </select>
+              <select value={keyEnabled} onChange={(e) => setKeyEnabled(e.target.value)} className="rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm outline-none">
+                <option value="">全部状态</option>
+                <option value="true">启用</option>
+                <option value="false">禁用</option>
+              </select>
+              <button onClick={() => { setKeySearch(''); setKeyKeyType(''); setKeyEnabled(''); setKeyPage(1); }} className="rounded-2xl bg-slate-100 px-4 py-2 text-sm font-bold text-slate-700 hover:bg-slate-200">重置</button>
+            </div>
+          ) : null}
+        </div>
+
+        <div className="mb-3 flex shrink-0 flex-wrap items-center justify-between gap-3">
+          <div className="text-xs font-bold text-slate-400">
+            {llmKeysLoading ? '加载中...' : `当前第 ${keyPage} 页，共 ${llmKeysTotal} 条`}
+          </div>
+        </div>
+
         <div className="min-h-0 flex-1 overflow-auto">
           <table className="min-w-full text-sm">
             <thead>
               <tr className="border-b border-slate-200 text-left text-slate-500">
-                <th className="px-3 py-3 font-bold">名称</th>
-                <th className="px-3 py-3 font-bold">前缀</th>
-                <th className="px-3 py-3 font-bold">类型</th>
-                <th className="px-3 py-3 font-bold">最大并发</th>
-                <th className="px-3 py-3 font-bold">任务范围</th>
-                <th className="px-3 py-3 font-bold">状态</th>
-                <th className="px-3 py-3 font-bold">更新时间</th>
-                <th className="px-3 py-3 font-bold">操作</th>
+                <th className="px-3 py-2 font-bold">名称</th>
+                <th className="px-3 py-2 font-bold">前缀</th>
+                <th className="px-3 py-2 font-bold">类型</th>
+                <th className="px-3 py-2 font-bold">最大并发</th>
+                <th className="px-3 py-2 font-bold">任务范围</th>
+                <th className="px-3 py-2 font-bold">状态</th>
+                <th className="px-3 py-2 font-bold">更新时间</th>
+                <th className="px-3 py-2 font-bold">操作</th>
               </tr>
             </thead>
             <tbody>
               {llmKeys.map((item) => (
                 <tr key={item.id} className="border-b border-slate-100">
-                  <td className="px-3 py-3">
-                    <div className="font-bold text-slate-900">{item.key_name || `密钥 #${item.id}`}</div>
-                    <div className="text-xs text-slate-500">{item.description || '无备注'}</div>
+                  <td className="px-3 py-2">
+                    <div className="truncate font-bold text-slate-900" title={item.description || '无备注'}>{item.key_name || `密钥 #${item.id}`}</div>
                   </td>
-                  <td className="px-3 py-3 font-mono text-slate-700">{item.key_prefix || '-'}</td>
-                  <td className="px-3 py-3 text-slate-700">{item.key_type === 'task' ? '任务密钥' : item.key_type === 'work' ? '工作密钥' : item.key_type}</td>
-                  <td className="px-3 py-3 text-slate-700">{item.max_concurrency || 0}</td>
-                  <td className="px-3 py-3 text-slate-700">{item.task_id ? (item.key_type === 'work' && item.sub_task_id ? `${item.task_id} / ${item.sub_task_id}` : item.task_id) : '-'}</td>
-                  <td className="px-3 py-3"><span className={`rounded-full px-2.5 py-1 text-xs font-bold ${item.enabled ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500'}`}>{item.enabled ? '启用' : '禁用'}</span></td>
-                  <td className="px-3 py-3 text-slate-700">{item.updated_at ? new Date(item.updated_at).toLocaleString('zh-CN') : '-'}</td>
-                  <td className="px-3 py-3">
-                    <div className="flex items-center gap-2">
-                      <button onClick={() => openLlmKeyModal(item)} className="rounded-xl bg-slate-100 px-3 py-2 text-xs font-bold text-slate-700 hover:bg-slate-200">编辑</button>
-                      <button onClick={() => openLlmKeyDetail(item.id)} className="rounded-xl bg-slate-100 px-3 py-2 text-xs font-bold text-slate-700 hover:bg-slate-200">查看</button>
-                      <button onClick={() => deleteLlmKey(item)} className="rounded-xl bg-rose-100 px-3 py-2 text-xs font-bold text-rose-700 hover:bg-rose-200"><Trash2 className="h-3.5 w-3.5" /></button>
+                  <td className="px-3 py-2 font-mono text-xs text-slate-700">{item.key_prefix || '-'}</td>
+                  <td className="px-3 py-2 text-slate-700">{item.key_type === 'task' ? '任务密钥' : item.key_type === 'work' ? '工作密钥' : item.key_type}</td>
+                  <td className="px-3 py-2 text-slate-700">{item.max_concurrency || 0}</td>
+                  <td className="px-3 py-2 text-slate-700">{item.task_id ? (item.key_type === 'work' && item.sub_task_id ? `${item.task_id} / ${item.sub_task_id}` : item.task_id) : '-'}</td>
+                  <td className="px-3 py-2"><span className={`rounded-full px-2 py-0.5 text-xs font-bold ${item.enabled ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500'}`}>{item.enabled ? '启用' : '禁用'}</span></td>
+                  <td className="px-3 py-2 text-slate-700">{item.updated_at ? new Date(item.updated_at).toLocaleString('zh-CN') : '-'}</td>
+                  <td className="px-3 py-2">
+                    <div className="flex items-center gap-1.5">
+                      <button onClick={() => openLlmKeyModal(item)} className="rounded-lg bg-slate-100 px-2 py-1 text-xs font-bold text-slate-700 hover:bg-slate-200">编辑</button>
+                      <button onClick={() => openLlmKeyDetail(item.id)} className="rounded-lg bg-slate-100 px-2 py-1 text-xs font-bold text-slate-700 hover:bg-slate-200">查看</button>
+                      <button onClick={() => deleteLlmKey(item)} className="rounded-lg bg-rose-100 px-2 py-1 text-xs font-bold text-rose-700 hover:bg-rose-200"><Trash2 className="h-3 w-3" /></button>
                     </div>
                   </td>
                 </tr>
               ))}
-              {!llmKeys.length && !loading ? (
+              {!llmKeys.length && !llmKeysLoading ? (
                 <tr>
                   <td colSpan={8} className="px-3 py-10 text-center text-slate-400">暂无调用密钥</td>
                 </tr>
               ) : null}
             </tbody>
           </table>
+        </div>
+
+        <div className="mt-5 flex shrink-0 items-center justify-between">
+          <div className="text-sm text-slate-500">共 {llmKeysTotal} 条</div>
+          <div className="flex items-center gap-2">
+            <select value={keyPageSize} onChange={(e) => { setKeyPageSize(Number(e.target.value)); setKeyPage(1); }} className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm outline-none">
+              {[10, 20, 50, 100].map((size) => <option key={size} value={size}>{size} / 页</option>)}
+            </select>
+            <button disabled={keyPage <= 1} onClick={() => setKeyPage((v) => Math.max(1, v - 1))} className="rounded-xl bg-slate-100 px-3 py-2 text-sm font-bold text-slate-700 disabled:opacity-40">上一页</button>
+            <span className="text-sm font-bold text-slate-700">{keyPage}</span>
+            <button disabled={keyPage * keyPageSize >= llmKeysTotal} onClick={() => setKeyPage((v) => v + 1)} className="rounded-xl bg-slate-100 px-3 py-2 text-sm font-bold text-slate-700 disabled:opacity-40">下一页</button>
+          </div>
         </div>
           </section>
         </div>

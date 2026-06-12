@@ -11,6 +11,8 @@ import { buildDefaultSystemAnalysisTaskForm, SystemAnalysisTaskFormModal, System
 import { SlotResourceBlock } from './slotResourceBlock';
 import { saveExecutionReturnContext } from '../../utils/executionReturnContext';
 
+const LEASE_REFRESH_INTERVAL_MS = 30_000;
+
 const STATUS_LABEL: Record<string, string> = {
   pending: '等待中',
   running: '分析中',
@@ -252,9 +254,10 @@ export const SystemAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask: (
 
   // ── Load task list ────────────────────────────────────────────────────────
 
-  const loadTasks = useCallback(async (p = page) => {
+  const loadTasks = useCallback(async (p = page, options?: { silent?: boolean }) => {
     if (!projectId) return;
-    setLoading(true);
+    const silent = options?.silent === true;
+    if (!silent) setLoading(true);
     try {
       const resp = await appApi.listTasks({
         project_id: projectId,
@@ -269,9 +272,11 @@ export const SystemAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask: (
       setTasks(resp.items || []);
       setTotal(resp.total || 0);
     } catch (err: any) {
-      notify(`加载任务列表失败: ${err?.message || err}`, 'error');
+      if (!silent) {
+        notify(`加载任务列表失败: ${err?.message || err}`, 'error');
+      }
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   }, [projectId, page, perPage, statusFilter, analysisModeFilter, parentTaskIdFilter, sortBy, sortOrder]);
 
@@ -398,6 +403,17 @@ export const SystemAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask: (
     return () => clearInterval(timer);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [autoRefreshEnabled, refreshIntervalSec, hasActiveTasks, pageVisible, projectId, page, lastClusterSummaryLoadedAt, lastStatsLoadedAt]);
+
+  useEffect(() => {
+    if (autoRefreshEnabled) return;
+    if (!hasActiveTasks) return;
+    if (!pageVisible) return;
+    const timer = window.setInterval(() => {
+      void loadTasks(page, { silent: true });
+      void loadClusterCapacity();
+    }, LEASE_REFRESH_INTERVAL_MS);
+    return () => window.clearInterval(timer);
+  }, [autoRefreshEnabled, hasActiveTasks, pageVisible, loadTasks, loadClusterCapacity, page]);
 
   const toggleSlotWorkerExpanded = (workerId: string) => {
     setExpandedSlotWorkerIds((current) => (

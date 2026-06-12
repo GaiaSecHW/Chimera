@@ -43,7 +43,7 @@ interface Props {
   onBack: () => void;
 }
 
-const TERMINAL = new Set(['success', 'partial_success', 'failed', 'cancelled', 'downstream_missing']);
+const TERMINAL = new Set(['success', 'partial_success', 'failed', 'cancelled', 'downstream_missing', 'delete_failed']);
 const DEFAULT_BINARY_STAGE_SEQUENCE = [
   'firmware_unpack',
   'system_analysis',
@@ -181,6 +181,7 @@ const statusTone = (status: string) => {
     case 'partial_success':
       return 'bg-amber-50 text-amber-700 border-amber-200';
     case 'failed':
+    case 'delete_failed':
       return 'bg-rose-50 text-rose-700 border-rose-200';
     case 'downstream_missing':
       return 'bg-orange-50 text-orange-700 border-orange-200';
@@ -385,6 +386,7 @@ const formatBinarySecurityStatus = (status?: string | null) => {
   const normalized = String(status || '').trim().toLowerCase();
   const labels: Record<string, string> = {
     downstream_missing: '子任务不存在',
+    delete_failed: '删除失败',
     passed: '通过',
   };
   return labels[normalized] || status || '-';
@@ -1383,6 +1385,23 @@ function deriveTaskStatusReason(detail: BinarySecurityTaskDetail): TaskStatusRea
         { label: '下游真实失败', value: summarizeCount(downstreamFailedItems.length) },
         { label: '下游真实取消', value: summarizeCount(downstreamCancelledItems.length) },
         { label: '归档失败', value: summarizeCount(failedArchiveJobs.length) },
+      ],
+    };
+  }
+
+  if (detail.status === 'delete_failed') {
+    const reason = firstText(
+      detail.last_error,
+      detail.cleanup_state?.last_error,
+    );
+    return {
+      tone: 'error',
+      title: '任务删除失败',
+      description: reason || '任务主流程已结束，但删除收尾或任务目录清理失败，需要人工介入重试删除或补偿清理。',
+      evidence: [
+        { label: '当前阶段', value: currentStageLabel },
+        { label: '清理状态', value: String(detail.cleanup_state?.status || '-') },
+        { label: '待补偿下游', value: summarizeCount(Number(detail.cleanup_state?.deferred_ref_count || 0)) },
       ],
     };
   }

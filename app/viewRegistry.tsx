@@ -203,6 +203,7 @@ export const renderCurrentView = (ctx: ViewRegistryContext): React.ReactNode => 
     case 'aigw-config':
     case 'aigw-keys':
     case 'aigw-logs':
+    case 'aigw-token-stats':
     case 'aigw-admin':
       return <AiGatewayPage entryView={ctx.currentView} onNavigate={ctx.setCurrentView} />;
     case 'project-mgmt':
@@ -632,7 +633,7 @@ export const renderCurrentView = (ctx: ViewRegistryContext): React.ReactNode => 
         <AppScanTaskDetailPage
           projectId={ctx.selectedProjectId}
           toolTaskId={ctx.activeAppScanTaskId}
-          onBack={() => ctx.setCurrentView('app-security-scan')}
+          onBack={() => ctx.setCurrentView(consumeTaskCenterReturnContext() ? 'task-list' : 'app-security-scan')}
         />
       );
     case 'app-security-scan-monitor':

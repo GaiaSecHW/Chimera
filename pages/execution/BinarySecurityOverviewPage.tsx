@@ -15,7 +15,7 @@ interface Props {
 
 type CreateDialogTab = 'basic' | 'files' | 'strategy' | 'parallelism';
 
-const TERMINAL = new Set(['success', 'partial_success', 'failed', 'cancelled']);
+const TERMINAL = new Set(['success', 'partial_success', 'failed', 'cancelled', 'delete_failed']);
 const BINARY_STAGES = ['firmware_unpack', 'system_analysis', 'binary_to_source', 'entry_analysis', 'dataflow_vuln_scan'];
 const SOURCE_STAGES = ['system_analysis', 'entry_analysis', 'dataflow_vuln_scan'];
 const MODULE_STAGES = ['binary_to_source', 'entry_analysis', 'dataflow_vuln_scan'];
@@ -46,6 +46,8 @@ const statusTone = (status: string) => {
     case 'partial_success':
       return 'bg-amber-50 text-amber-700 border-amber-200';
     case 'failed':
+      return 'bg-rose-50 text-rose-700 border-rose-200';
+    case 'delete_failed':
       return 'bg-rose-50 text-rose-700 border-rose-200';
     case 'cancelled':
       return 'bg-slate-100 text-slate-500 border-slate-200';
