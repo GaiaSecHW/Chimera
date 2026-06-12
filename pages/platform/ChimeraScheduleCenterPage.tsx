@@ -24,6 +24,8 @@ import { showAlert, showConfirm } from '../../components/DialogService';
 import {
   ScheduleCenterUserTaskBulkDeleteResult,
   ScheduleCenterUserTask,
+  ScheduleUserTaskEvent,
+  ScheduleUserTaskEventListResponse,
   ScheduleCenterUserTaskListResponse,
   ScheduleGlobalTaskDetail,
   ScheduleGlobalTaskListItem,
@@ -48,6 +50,19 @@ type TaskFilters = {
   search: string;
 };
 
+type TaskEventFilters = {
+  scope: 'project' | 'global';
+  projectId: string;
+  taskId: string;
+  taskType: string;
+  eventCategory: string;
+  resultStatus: string;
+  eventSource: string;
+  downstreamTaskId: string;
+  search: string;
+  onlyFailed: boolean;
+};
+
 type BackendSortField =
   | 'updated_at'
   | 'created_at'
@@ -61,7 +76,7 @@ type BackendSortField =
 
 type ColumnFilterKey = 'taskType' | 'status' | 'hasError';
 
-type OverviewNav = 'overview' | 'job-templates' | 'execution-log' | 'key-vault';
+type OverviewNav = 'overview' | 'job-templates' | 'execution-log' | 'task-event-log' | 'key-vault';
 
 const STATUS_OPTIONS = [
   { value: '', label: '全部状态' },
@@ -88,6 +103,7 @@ const NAV_ITEMS: Array<{ key: OverviewNav; label: string; icon: React.ComponentT
   { key: 'overview', label: '全局任务', icon: Workflow },
   { key: 'job-templates', label: '作业模板', icon: FolderKanban },
   { key: 'execution-log', label: '执行记录', icon: Activity },
+  { key: 'task-event-log', label: '调度日志', icon: Layers3 },
   { key: 'key-vault', label: 'Key 管理', icon: ServerCog },
 ];
 
@@ -500,7 +516,26 @@ export const ChimeraScheduleCenterPage: React.FC<ChimeraScheduleCenterPageProps>
   const [refreshing, setRefreshing] = useState(false);
   const [notice, setNotice] = useState('');
   const [error, setError] = useState('');
+  const [taskEventItems, setTaskEventItems] = useState<ScheduleUserTaskEvent[]>([]);
+  const [taskEventTotal, setTaskEventTotal] = useState(0);
+  const [taskEventPage, setTaskEventPage] = useState(1);
+  const [taskEventPageSize, setTaskEventPageSize] = useState(50);
+  const [taskEventLoading, setTaskEventLoading] = useState(false);
+  const [selectedTaskEvent, setSelectedTaskEvent] = useState<ScheduleUserTaskEvent | null>(null);
+  const [taskEventFilters, setTaskEventFilters] = useState<TaskEventFilters>({
+    scope: 'project',
+    projectId: '',
+    taskId: '',
+    taskType: '',
+    eventCategory: '',
+    resultStatus: '',
+    eventSource: '',
+    downstreamTaskId: '',
+    search: '',
+    onlyFailed: false,
+  });
   const deferredQuery = useDeferredValue(filters.search);
+  const deferredTaskEventQuery = useDeferredValue(taskEventFilters.search);
 
   const projectNameMap = useMemo(() => {
     const map = new Map<string, string>();
@@ -618,6 +653,38 @@ export const ChimeraScheduleCenterPage: React.FC<ChimeraScheduleCenterPageProps>
     }
   };
 
+  const loadTaskEventLogs = async () => {
+    setTaskEventLoading(true);
+    try {
+      const params = {
+        task_id: taskEventFilters.taskId || undefined,
+        task_type: taskEventFilters.taskType || undefined,
+        event_category: taskEventFilters.eventCategory || undefined,
+        result_status: taskEventFilters.resultStatus || undefined,
+        event_source: taskEventFilters.eventSource || undefined,
+        downstream_task_id: taskEventFilters.downstreamTaskId || undefined,
+        search: deferredTaskEventQuery || undefined,
+        only_failed: taskEventFilters.onlyFailed || undefined,
+        page: taskEventPage,
+        page_size: taskEventPageSize,
+      };
+      const payload = taskEventFilters.scope === 'global'
+        ? await scheduleApi.listGlobalUserTaskEvents({
+            ...params,
+            project_id: taskEventFilters.projectId || undefined,
+          }) as ScheduleUserTaskEventListResponse
+        : await scheduleApi.listProjectUserTaskEvents(taskEventFilters.projectId || filters.projectId, params) as ScheduleUserTaskEventListResponse;
+      setTaskEventItems(payload.items || []);
+      setTaskEventTotal(Number(payload.total || 0));
+    } catch (err: any) {
+      setTaskEventItems([]);
+      setTaskEventTotal(0);
+      setError(err?.message || '加载调度日志失败');
+    } finally {
+      setTaskEventLoading(false);
+    }
+  };
+
   const handleToggleTaskSelection = (taskId: string, checked: boolean) => {
     setSelectAllMatching(false);
     setSelectedTaskIds((current) => (
@@ -641,6 +708,26 @@ export const ChimeraScheduleCenterPage: React.FC<ChimeraScheduleCenterPageProps>
   useEffect(() => {
     void loadTasks();
   }, [page, pageSize, sortField, sortDirection, filters.status, filters.taskType, filters.projectId, filters.isRetrying, filters.hasError, deferredQuery, projectNameMap]);
+
+  useEffect(() => {
+    if (nav !== 'task-event-log') return;
+    void loadTaskEventLogs();
+  }, [
+    nav,
+    taskEventFilters.scope,
+    taskEventFilters.projectId,
+    taskEventFilters.taskId,
+    taskEventFilters.taskType,
+    taskEventFilters.eventCategory,
+    taskEventFilters.resultStatus,
+    taskEventFilters.eventSource,
+    taskEventFilters.downstreamTaskId,
+    taskEventFilters.onlyFailed,
+    deferredTaskEventQuery,
+    taskEventPage,
+    taskEventPageSize,
+    filters.projectId,
+  ]);
 
   const handleRefresh = async () => {
     setError('');
@@ -807,6 +894,15 @@ export const ChimeraScheduleCenterPage: React.FC<ChimeraScheduleCenterPageProps>
         '首页保留“查看详情”和“查看执行记录”入口，用于快速定位单任务运行态。',
         '完整 execution timeline 后续建议收敛到独立执行记录子页。',
         '当前全局任务详情抽屉已经承接最近 dispatch、execution 和事件摘要。',
+      ],
+    },
+    'task-event-log': {
+      title: '调度日志',
+      summary: '查看 user task 维度的调度、同步、删除和状态刷新事件，支持项目范围与全局范围切换。',
+      bullets: [
+        '所有筛选都走后端查询与分页。',
+        '默认项目范围，也可切换到跨项目全局日志。',
+        '点击事件行可查看完整 payload 细节。',
       ],
     },
     'key-vault': {
@@ -1299,6 +1395,141 @@ export const ChimeraScheduleCenterPage: React.FC<ChimeraScheduleCenterPageProps>
               </div>
             </section>
           </>
+        ) : nav === 'task-event-log' ? (
+          <section className="rounded-[2rem] border border-slate-200/70 bg-white/90 p-6 shadow-[0_18px_60px_rgba(15,23,42,0.08)] backdrop-blur md:p-8">
+            <div className="flex flex-col gap-6">
+              <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
+                <div>
+                  <div className="text-xs font-black uppercase tracking-[0.24em] text-slate-500">Task Event Log</div>
+                  <h2 className="mt-2 text-3xl font-black text-slate-900">调度日志</h2>
+                  <p className="mt-3 text-sm text-slate-600">查看任务级调度、同步、删除与状态刷新事件，支持项目范围与全局范围切换。</p>
+                </div>
+                <div className="flex flex-wrap gap-3">
+                  {renderNavButtons()}
+                  <button onClick={() => void loadTaskEventLogs()} className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-black text-slate-700 transition hover:bg-slate-50">
+                    <RefreshCw size={16} className={taskEventLoading ? 'animate-spin' : ''} />
+                    刷新日志
+                  </button>
+                </div>
+              </div>
+
+              <div className="grid gap-3 rounded-[1.6rem] border border-slate-200 bg-slate-50 p-4 md:grid-cols-2 xl:grid-cols-6">
+                <label className="text-sm font-bold text-slate-600">
+                  范围
+                  <select value={taskEventFilters.scope} onChange={(e) => { setTaskEventFilters((current) => ({ ...current, scope: e.target.value as 'project' | 'global' })); setTaskEventPage(1); }} className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800">
+                    <option value="project">当前项目</option>
+                    <option value="global">全局</option>
+                  </select>
+                </label>
+                <label className="text-sm font-bold text-slate-600">
+                  项目
+                  <select value={taskEventFilters.projectId} onChange={(e) => { setTaskEventFilters((current) => ({ ...current, projectId: e.target.value })); setTaskEventPage(1); }} className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800">
+                    <option value="">{taskEventFilters.scope === 'global' ? '全部项目' : '跟随当前项目'}</option>
+                    {projects.map((project) => <option key={project.id} value={project.id}>{project.name || project.id}</option>)}
+                  </select>
+                </label>
+                <label className="text-sm font-bold text-slate-600">
+                  任务类型
+                  <input value={taskEventFilters.taskType} onChange={(e) => { setTaskEventFilters((current) => ({ ...current, taskType: e.target.value })); setTaskEventPage(1); }} className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800" placeholder="binary_firmware_e2e" />
+                </label>
+                <label className="text-sm font-bold text-slate-600">
+                  事件分类
+                  <input value={taskEventFilters.eventCategory} onChange={(e) => { setTaskEventFilters((current) => ({ ...current, eventCategory: e.target.value })); setTaskEventPage(1); }} className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800" placeholder="dispatch / sync / delete" />
+                </label>
+                <label className="text-sm font-bold text-slate-600">
+                  结果
+                  <input value={taskEventFilters.resultStatus} onChange={(e) => { setTaskEventFilters((current) => ({ ...current, resultStatus: e.target.value })); setTaskEventPage(1); }} className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800" placeholder="failed / succeeded" />
+                </label>
+                <label className="text-sm font-bold text-slate-600">
+                  来源
+                  <input value={taskEventFilters.eventSource} onChange={(e) => { setTaskEventFilters((current) => ({ ...current, eventSource: e.target.value })); setTaskEventPage(1); }} className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800" placeholder="api / worker / sync_worker" />
+                </label>
+                <label className="text-sm font-bold text-slate-600 xl:col-span-2">
+                  关键词
+                  <div className="mt-2 flex items-center rounded-xl border border-slate-200 bg-white px-3 py-2">
+                    <Search size={14} className="text-slate-400" />
+                    <input value={taskEventFilters.search} onChange={(e) => { setTaskEventFilters((current) => ({ ...current, search: e.target.value })); setTaskEventPage(1); }} className="ml-2 w-full bg-transparent text-sm text-slate-800 outline-none" placeholder="任务ID / message / actor / 下游任务ID" />
+                  </div>
+                </label>
+                <label className="text-sm font-bold text-slate-600">
+                  任务 ID
+                  <input value={taskEventFilters.taskId} onChange={(e) => { setTaskEventFilters((current) => ({ ...current, taskId: e.target.value })); setTaskEventPage(1); }} className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800" />
+                </label>
+                <label className="text-sm font-bold text-slate-600">
+                  下游任务 ID
+                  <input value={taskEventFilters.downstreamTaskId} onChange={(e) => { setTaskEventFilters((current) => ({ ...current, downstreamTaskId: e.target.value })); setTaskEventPage(1); }} className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800" />
+                </label>
+                <label className="inline-flex items-center gap-2 text-sm font-bold text-slate-600 xl:self-end">
+                  <input type="checkbox" checked={taskEventFilters.onlyFailed} onChange={(e) => { setTaskEventFilters((current) => ({ ...current, onlyFailed: e.target.checked })); setTaskEventPage(1); }} />
+                  仅失败
+                </label>
+              </div>
+
+              <div className="overflow-hidden rounded-[1.6rem] border border-slate-200 bg-white">
+                <table className="min-w-full text-sm">
+                  <thead className="bg-slate-50 text-left text-slate-500">
+                    <tr>
+                      <th className="px-4 py-3">时间</th>
+                      <th className="px-4 py-3">项目</th>
+                      <th className="px-4 py-3">任务 ID</th>
+                      <th className="px-4 py-3">任务类型</th>
+                      <th className="px-4 py-3">事件分类</th>
+                      <th className="px-4 py-3">事件类型</th>
+                      <th className="px-4 py-3">结果</th>
+                      <th className="px-4 py-3">来源</th>
+                      <th className="px-4 py-3">下游任务 ID</th>
+                      <th className="px-4 py-3">摘要</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {taskEventLoading ? <tr><td colSpan={10} className="px-4 py-10 text-center text-sm text-slate-500">调度日志加载中...</td></tr> : null}
+                    {!taskEventLoading && taskEventItems.length === 0 ? <tr><td colSpan={10} className="px-4 py-10 text-center text-sm text-slate-500">暂无调度日志</td></tr> : null}
+                    {taskEventItems.map((event) => (
+                      <tr key={event.id} className="cursor-pointer border-t hover:bg-slate-50" onClick={() => setSelectedTaskEvent(event)}>
+                        <td className="px-4 py-3 text-xs">{formatTime(event.created_at)}</td>
+                        <td className="px-4 py-3 text-xs">{event.project_id}</td>
+                        <td className="px-4 py-3 font-mono text-xs">{event.user_task_id}</td>
+                        <td className="px-4 py-3 text-xs">{event.task_type}</td>
+                        <td className="px-4 py-3 text-xs">{event.event_category}</td>
+                        <td className="px-4 py-3 text-xs font-semibold">{event.event_type}</td>
+                        <td className="px-4 py-3 text-xs">{event.result_status}</td>
+                        <td className="px-4 py-3 text-xs">{event.event_source}{event.actor ? `/${event.actor}` : ''}</td>
+                        <td className="px-4 py-3 font-mono text-xs">{event.downstream_task_id || '-'}</td>
+                        <td className="max-w-[320px] px-4 py-3 text-xs text-slate-700">{event.message}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              <div className="flex items-center justify-between">
+                <div className="text-sm font-semibold text-slate-500">第 {taskEventPage} 页，共 {Math.max(1, Math.ceil(taskEventTotal / taskEventPageSize))} 页，共 {formatCount(taskEventTotal)} 条</div>
+                <div className="flex items-center gap-3">
+                  <select value={taskEventPageSize} onChange={(e) => { setTaskEventPageSize(Number(e.target.value)); setTaskEventPage(1); }} className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700">
+                    {[20, 50, 100, 200, 500, 1000].map((size) => <option key={size} value={size}>{size} / 页</option>)}
+                  </select>
+                  <button onClick={() => setTaskEventPage((current) => Math.max(1, current - 1))} disabled={taskEventPage <= 1} className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 px-4 py-2 text-sm font-black text-slate-700 transition hover:bg-slate-50 disabled:opacity-50">
+                    <ChevronLeft size={16} />
+                    上一页
+                  </button>
+                  <button onClick={() => setTaskEventPage((current) => current + 1)} disabled={taskEventPage * taskEventPageSize >= taskEventTotal} className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 px-4 py-2 text-sm font-black text-slate-700 transition hover:bg-slate-50 disabled:opacity-50">
+                    下一页
+                    <ChevronRight size={16} />
+                  </button>
+                </div>
+              </div>
+
+              {selectedTaskEvent ? (
+                <div className="rounded-[1.6rem] border border-slate-200 bg-slate-50 p-5">
+                  <div className="flex items-center justify-between">
+                    <div className="text-sm font-black text-slate-900">事件详情：{selectedTaskEvent.event_type}</div>
+                    <button onClick={() => setSelectedTaskEvent(null)} className="rounded-lg p-1 text-slate-500 hover:bg-slate-200"><X size={16} /></button>
+                  </div>
+                  <pre className="mt-4 overflow-auto whitespace-pre-wrap break-all rounded-2xl border border-slate-200 bg-white p-4 text-xs text-slate-700">{JSON.stringify(selectedTaskEvent, null, 2)}</pre>
+                </div>
+              ) : null}
+            </div>
+          </section>
         ) : (
           <section className="rounded-[2rem] border border-slate-200/70 bg-white/90 p-6 shadow-[0_18px_60px_rgba(15,23,42,0.08)] backdrop-blur md:p-8">
             <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
