@@ -2312,6 +2312,34 @@ export interface ScheduleCenterUserTaskListResponse {
   sort_direction?: string | null;
 }
 
+export interface ScheduleCenterUserTaskDeleteQueueItem {
+  id: string;
+  project_id: string;
+  name: string;
+  task_type: ScheduleCenterUserTaskType | string;
+  display_status: string;
+  delete_status: 'queued' | 'running' | 'failed' | string;
+  delete_error?: string | null;
+  last_error?: string | null;
+  downstream_task_id?: string | null;
+  delete_requested_at?: string | null;
+  delete_started_at?: string | null;
+  delete_finished_at?: string | null;
+  updated_at: string;
+}
+
+export interface ScheduleCenterUserTaskDeleteQueueResponse {
+  total: number;
+  items: ScheduleCenterUserTaskDeleteQueueItem[];
+  page: number;
+  page_size: number;
+  stats: {
+    queued_total: number;
+    running_total: number;
+    failed_total: number;
+  };
+}
+
 export interface ScheduleCenterUserTaskCreatePayload {
   task_type: ScheduleCenterUserTaskType;
   name: string;

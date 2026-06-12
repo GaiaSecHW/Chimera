@@ -123,6 +123,22 @@ export const scheduleCenterApi = {
       body: JSON.stringify(payload),
     })),
 
+  listUserTaskDeleteQueue: async (
+    projectId: string,
+    params: Record<string, string | number | boolean | undefined | null> = {},
+  ): Promise<any> => {
+    const query = new URLSearchParams();
+    Object.entries(params).forEach(([key, value]) => {
+      if (value === undefined || value === null || value === '') return;
+      query.set(key, String(value));
+    });
+    const suffix = query.toString();
+    return handleResponse(await fetch(
+      `${API_BASE}/api/chirmera-platform-schedule/projects/${encodeURIComponent(projectId)}/user-task-delete-queue${suffix ? `?${suffix}` : ''}`,
+      { headers: getHeaders() },
+    ));
+  },
+
   dispatchUserTask: async (projectId: string, taskId: string, payload?: any): Promise<any> =>
     handleResponse(await fetch(`${API_BASE}/api/chirmera-platform-schedule/projects/${encodeURIComponent(projectId)}/user-tasks/${encodeURIComponent(taskId)}/dispatch`, {
       method: 'POST',
