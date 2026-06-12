@@ -31,6 +31,7 @@ import {
   VALIDATION_RESULT_LABELS,
   ACTION_TYPES,
   DECISION_OPTIONS,
+  CASE_STATUS_LABELS,
   cardClass,
   decisionTone,
   formatTime,
@@ -215,6 +216,12 @@ export const CasesWorkspace: React.FC<any> = ({
     if (item.current_stage === 'finished' && item.finished_reason === 'manual_terminated') return { label: '人工终止', tone: 'bg-rose-100 text-rose-700' };
     return null;
   };
+  const getCaseStatusLabel = (item: any) => labelOf(item.current_status, CASE_STATUS_LABELS, '') || item.current_status || '未知状态';
+  const getValidationConclusionLabel = (item: any) => (
+    item.current_status === 'validation_completed'
+      ? labelOf(item.validation_result, VALIDATION_RESULT_LABELS, '') || '结论不确定'
+      : '待验证'
+  );
   const resultSummaryCards = React.useMemo<Array<{
     id: string;
     title: string;
@@ -363,7 +370,7 @@ export const CasesWorkspace: React.FC<any> = ({
                 )}
                 <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-500">标题 / 摘要</div>
                 <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-500">阶段</div>
-                <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-500">状态</div>
+                <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-500">状态 / 结论</div>
                 <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-500">等级</div>
                 <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-500">更新时间</div>
               </div>
@@ -412,7 +419,12 @@ export const CasesWorkspace: React.FC<any> = ({
                     {item.display_summary?.current_report_updated_at ? <div className="mt-1 text-[11px] text-slate-400">报告更新：{formatTime(item.display_summary.current_report_updated_at)}</div> : null}
                   </div>
                   <div className="text-sm font-black text-slate-700">{labelOf(item.current_stage, STAGE_LABELS)}</div>
-                  <div className="text-sm font-semibold text-slate-600">{labelOf(item.validation_result, VALIDATION_RESULT_LABELS) || item.current_status || '未知'}</div>
+                  <div className="min-w-0">
+                    <div className="text-sm font-semibold text-slate-700">{getCaseStatusLabel(item)}</div>
+                    {item.current_stage === 'validation' && (
+                      <div className="mt-1 text-[11px] text-slate-400">结论：{getValidationConclusionLabel(item)}</div>
+                    )}
+                  </div>
                   <div>
                     <span className={`rounded-lg px-2.5 py-1 text-[10px] font-black uppercase tracking-widest ${toneOf(item.severity, severityTone)}`}>
                       {labelOf(item.severity, SEVERITY_LABELS)}
@@ -470,7 +482,8 @@ export const CasesWorkspace: React.FC<any> = ({
                     <p className="text-xs text-slate-500 line-clamp-2">{item.display_summary?.current_report_title || item.summary || '暂无摘要'}</p>
                     <div className="flex flex-wrap gap-2 text-[11px] text-slate-400">
                       {item.display_summary?.current_report_updated_at ? <span>报告更新：{formatTime(item.display_summary.current_report_updated_at)}</span> : null}
-                      {item.validation_result ? <span>验证：{labelOf(item.validation_result, VALIDATION_RESULT_LABELS)}</span> : null}
+                      <span>状态：{getCaseStatusLabel(item)}</span>
+                      {item.current_stage === 'validation' ? <span>结论：{getValidationConclusionLabel(item)}</span> : null}
                     </div>
                     <p className="text-[11px] text-slate-400 truncate">
                       {(item.subject?.type || '通用对象')} · {(item.subject?.locator || '未指定对象')}
@@ -575,7 +588,7 @@ export const CasesWorkspace: React.FC<any> = ({
             )}
 
             <div className={compactLayout ? 'grid grid-cols-2 xl:grid-cols-5 gap-2.5' : 'grid grid-cols-2 xl:grid-cols-4 gap-3'}>
-              <div className="rounded-2xl bg-slate-50 px-4 py-3"><div className="text-[10px] font-black uppercase tracking-widest text-slate-400">当前状态</div><div className="mt-1 font-black text-slate-800">{selectedCaseDetail.current_status}</div></div>
+              <div className="rounded-2xl bg-slate-50 px-4 py-3"><div className="text-[10px] font-black uppercase tracking-widest text-slate-400">当前状态</div><div className="mt-1 font-black text-slate-800">{getCaseStatusLabel(selectedCaseDetail)}</div></div>
               <div className="rounded-2xl bg-slate-50 px-4 py-3"><div className="text-[10px] font-black uppercase tracking-widest text-slate-400">流程状态</div><div className="mt-1 font-black text-slate-800">{selectedCaseDetail.workflow_run?.run_status || '暂无'}</div></div>
               <div className="rounded-2xl bg-slate-50 px-4 py-3"><div className="text-[10px] font-black uppercase tracking-widest text-slate-400">上报者</div><div className="mt-1 font-black text-slate-800">{selectedCaseDetail.reporter?.name || '未知'}</div></div>
               <div className="rounded-2xl bg-slate-50 px-4 py-3"><div className="text-[10px] font-black uppercase tracking-widest text-slate-400">对象定位</div><div className="mt-1 font-black text-slate-800 truncate">{selectedCaseDetail.subject?.locator || '暂无'}</div></div>
