@@ -81,6 +81,19 @@ export const scheduleCenterApi = {
   getUserTask: async (projectId: string, taskId: string): Promise<any> =>
     handleResponse(await fetch(`${API_BASE}/api/chirmera-platform-schedule/projects/${encodeURIComponent(projectId)}/user-tasks/${encodeURIComponent(taskId)}`, { headers: getHeaders() })),
 
+  deleteUserTask: async (projectId: string, taskId: string): Promise<any> =>
+    handleResponse(await fetch(`${API_BASE}/api/chirmera-platform-schedule/projects/${encodeURIComponent(projectId)}/user-tasks/${encodeURIComponent(taskId)}`, {
+      method: 'DELETE',
+      headers: getHeaders(),
+    })),
+
+  bulkDeleteUserTasks: async (projectId: string, payload: any): Promise<any> =>
+    handleResponse(await fetch(`${API_BASE}/api/chirmera-platform-schedule/projects/${encodeURIComponent(projectId)}/user-tasks/bulk-delete`, {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify(payload),
+    })),
+
   dispatchUserTask: async (projectId: string, taskId: string, payload?: any): Promise<any> =>
     handleResponse(await fetch(`${API_BASE}/api/chirmera-platform-schedule/projects/${encodeURIComponent(projectId)}/user-tasks/${encodeURIComponent(taskId)}/dispatch`, {
       method: 'POST',

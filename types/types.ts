@@ -2306,6 +2306,35 @@ export interface ScheduleCenterUserTaskDispatchListResponse {
   items: ScheduleCenterUserTaskDispatch[];
 }
 
+export interface ScheduleCenterUserTaskBulkDeleteFilters {
+  status?: string;
+  task_type?: string;
+  search?: string;
+  has_error?: boolean;
+  is_retrying?: boolean;
+}
+
+export interface ScheduleCenterUserTaskBulkDeleteRequest {
+  task_ids?: string[];
+  filters?: ScheduleCenterUserTaskBulkDeleteFilters;
+  select_all_matching?: boolean;
+}
+
+export interface ScheduleCenterUserTaskBulkDeleteItemResult {
+  task_id: string;
+  task_type?: string | null;
+  downstream_task_id?: string | null;
+  status: string;
+  message: string;
+}
+
+export interface ScheduleCenterUserTaskBulkDeleteResult {
+  total_requested: number;
+  deleted_count: number;
+  failed_count: number;
+  results: ScheduleCenterUserTaskBulkDeleteItemResult[];
+}
+
 export interface VirtualKeyCreateResult extends VirtualKey {
   plain_text_key?: string | null;
 }

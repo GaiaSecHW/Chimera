@@ -16,11 +16,13 @@ import {
   X,
 } from 'lucide-react';
 import { api } from '../../clients/api';
-import { showAlert } from '../../components/DialogService';
+import { showAlert, showConfirm } from '../../components/DialogService';
 import {
+  ScheduleCenterUserTaskBulkDeleteResult,
+  ScheduleCenterUserTask,
+  ScheduleCenterUserTaskListResponse,
   ScheduleGlobalTaskDetail,
   ScheduleGlobalTaskListItem,
-  ScheduleGlobalTaskListResponse,
   ScheduleGlobalTaskOverview,
   ScheduleRuntimeOverview,
   SecurityProject,
@@ -159,6 +161,85 @@ const metricTone = (key: string) => {
   return 'from-slate-50 via-white to-slate-100/70 border-slate-200/70';
 };
 
+const normalizeTaskTypeLabel = (taskType?: string | null) => {
+  if (taskType === 'binary_firmware_e2e') return '盖亚-二进制固件';
+  if (taskType === 'source_scan_e2e') return '盖亚-源码';
+  if (taskType === 'binary_module_e2e') return '盖亚-二进制模块';
+  return taskType || '-';
+};
+
+const mapUserTaskToGlobalTaskItem = (
+  task: ScheduleCenterUserTask,
+  projectNameMap: Map<string, string>,
+): ScheduleGlobalTaskListItem => ({
+  task_id: task.id,
+  project_id: task.project_id,
+  project_name: projectNameMap.get(task.project_id) || task.project_id,
+  task_name: task.name,
+  task_type: normalizeTaskTypeLabel(task.task_type),
+  root_task_key_prefix: task.root_task_key_prefix,
+  parent_task_key_prefix: task.parent_task_key_prefix,
+  dispatched_task_key_prefix: task.dispatched_task_key_prefix,
+  create_status: task.create_status,
+  dispatch_status: task.dispatch_status,
+  business_status: task.business_status,
+  queue_state: task.dispatch_status,
+  current_status: task.downstream_status_mapped || task.business_status || task.dispatch_status || task.create_status,
+  display_status_group: task.downstream_status_mapped || task.business_status || task.dispatch_status || task.create_status,
+  retry_count: 0,
+  downstream_task_id: task.downstream_task_id,
+  downstream_detail_view: task.downstream_detail_view,
+  created_by: task.created_by,
+  created_at: task.created_at,
+  updated_at: task.updated_at,
+  started_at: null,
+  finished_at: null,
+  last_error: task.last_error,
+});
+
+const mapUserTaskToGlobalTaskDetail = (
+  task: ScheduleCenterUserTask,
+  projectNameMap: Map<string, string>,
+): ScheduleGlobalTaskDetail => {
+  const item = mapUserTaskToGlobalTaskItem(task, projectNameMap);
+  return {
+    ...item,
+    project_display_name: item.project_name,
+    status_summary: {
+      create_status: task.create_status,
+      dispatch_status: task.dispatch_status,
+      business_status: task.business_status,
+      downstream_status_raw: task.downstream_status_raw,
+      downstream_status_mapped: task.downstream_status_mapped,
+    },
+    current_dispatch: {
+      downstream_task_id: task.downstream_task_id,
+      downstream_detail_view: task.downstream_detail_view,
+      dispatched_task_key_prefix: task.dispatched_task_key_prefix,
+      root_task_key_prefix: task.root_task_key_prefix,
+      parent_task_key_prefix: task.parent_task_key_prefix,
+    },
+    latest_dispatch: {
+      downstream_task_id: task.downstream_task_id,
+      downstream_detail_view: task.downstream_detail_view,
+      downstream_status_raw: task.downstream_status_raw,
+      downstream_status_mapped: task.downstream_status_mapped,
+    },
+    current_execution: {
+      inputs: task.inputs,
+      module_name: task.module_name,
+      input_upload_count: task.input_upload_count,
+    },
+    latest_execution: {
+      inputs: task.inputs,
+      module_name: task.module_name,
+      input_upload_count: task.input_upload_count,
+    },
+    recent_events: [],
+    latest_failure: task.last_error ? { message: task.last_error } : null,
+  };
+};
+
 const fallbackOverviewFromRuntime = (
   runtime: ScheduleRuntimeOverview | null,
   healthStatus?: string | null,
@@ -233,7 +314,8 @@ const DetailDrawer: React.FC<{
   loading: boolean;
   onClose: () => void;
   onRetryDispatch: () => void;
-}> = ({ detail, open, loading, onClose, onRetryDispatch }) => {
+  onDeleteTask: () => void;
+}> = ({ detail, open, loading, onClose, onRetryDispatch, onDeleteTask }) => {
   if (!open) return null;
   return (
     <div className="fixed inset-0 z-50 flex justify-end bg-slate-950/40 backdrop-blur-[2px]">
@@ -344,6 +426,12 @@ const DetailDrawer: React.FC<{
                   <TimerReset size={16} />
                   重试分发
                 </button>
+                <button
+                  onClick={onDeleteTask}
+                  className="inline-flex items-center gap-2 rounded-2xl bg-rose-600 px-4 py-3 text-sm font-black text-white transition hover:bg-rose-700"
+                >
+                  删除任务
+                </button>
                 {detail.downstream_detail_view ? (
                   <button
                     onClick={() => window.open(detail.downstream_detail_view || '', '_blank', 'noopener,noreferrer')}
@@ -388,6 +476,8 @@ export const ChirmeraScheduleCenterPage: React.FC<ChirmeraScheduleCenterPageProp
   });
   const [selectedTaskId, setSelectedTaskId] = useState('');
   const [selectedTaskDetail, setSelectedTaskDetail] = useState<ScheduleGlobalTaskDetail | null>(null);
+  const [selectedTaskIds, setSelectedTaskIds] = useState<string[]>([]);
+  const [selectAllMatching, setSelectAllMatching] = useState(false);
   const [detailOpen, setDetailOpen] = useState(false);
   const [loadingOverview, setLoadingOverview] = useState(false);
   const [loadingTable, setLoadingTable] = useState(false);
@@ -411,6 +501,7 @@ export const ChirmeraScheduleCenterPage: React.FC<ChirmeraScheduleCenterPageProp
   );
 
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
+  const allVisibleSelected = tableItems.length > 0 && tableItems.every((item) => selectedTaskIds.includes(item.task_id));
 
   const statCards = useMemo(() => {
     const items = [
@@ -472,34 +563,71 @@ export const ChirmeraScheduleCenterPage: React.FC<ChirmeraScheduleCenterPageProp
     setLoadingTable(true);
     if (manual) setRefreshing(true);
     try {
-      const payload = await scheduleApi.listGlobalTasks({
-        page,
-        page_size: pageSize,
-        sort_field: sortField,
-        sort_direction: sortDirection,
-        status: filters.status,
-        task_type: filters.taskType,
-        project_id: filters.projectId,
-        is_retrying: filters.isRetrying ? true : undefined,
-        has_error: filters.hasError ? true : undefined,
-        search: deferredQuery,
-      }) as ScheduleGlobalTaskListResponse;
-      const items = (payload.items || []).map((item) => ({
-        ...item,
-        project_name: item.project_name || (item.project_id ? projectNameMap.get(item.project_id) : undefined) || item.project_id || '-',
-      }));
-      setTableItems(items);
-      setTotal(Number(payload.total || 0));
-      setNotice((current) => (current.includes('全局任务列表接口尚未就绪') ? '' : current));
+      if (!filters.projectId) {
+        setTableItems([]);
+        setTotal(0);
+        setNotice('任务中心列表已切换为项目级任务接口，请先选择项目。');
+        return;
+      }
+      const payload = await scheduleApi.listUserTasks(filters.projectId) as ScheduleCenterUserTaskListResponse;
+      const rawItems = payload.items || [];
+      let items = rawItems.map((item) => mapUserTaskToGlobalTaskItem(item, projectNameMap));
+      if (filters.status) {
+        items = items.filter((item) =>
+          [item.current_status, item.business_status, item.dispatch_status, item.create_status].includes(filters.status)
+        );
+      }
+      if (filters.taskType) {
+        items = items.filter((item) => rawItems.find((task) => task.id === item.task_id)?.task_type === filters.taskType);
+      }
+      if (filters.hasError) {
+        items = items.filter((item) => Boolean(item.last_error));
+      }
+      if (filters.isRetrying) {
+        items = [];
+      }
+      if (deferredQuery) {
+        const keyword = deferredQuery.toLowerCase();
+        items = items.filter((item) =>
+          [item.task_name, item.task_id, item.project_name, item.project_id, item.downstream_task_id, item.last_error]
+            .some((value) => String(value || '').toLowerCase().includes(keyword))
+        );
+      }
+      items.sort((left, right) => {
+        const leftValue = String((left as Record<string, unknown>)[sortField] || '');
+        const rightValue = String((right as Record<string, unknown>)[sortField] || '');
+        return sortDirection === 'asc' ? leftValue.localeCompare(rightValue) : rightValue.localeCompare(leftValue);
+      });
+      const start = (page - 1) * pageSize;
+      setTableItems(items.slice(start, start + pageSize));
+      setTotal(items.length);
+      setSelectedTaskIds((current) => current.filter((taskId) => items.some((item) => item.task_id === taskId)));
+      setNotice('');
     } catch (err: any) {
       setTableItems([]);
       setTotal(0);
-      setNotice('全局任务列表接口尚未就绪，当前仅展示监控框架与筛选结构。');
+      setNotice('项目级任务列表暂时不可用。');
       setError(err?.message || '加载全局任务列表失败');
     } finally {
       setLoadingTable(false);
       if (manual) setRefreshing(false);
     }
+  };
+
+  const handleToggleTaskSelection = (taskId: string, checked: boolean) => {
+    setSelectAllMatching(false);
+    setSelectedTaskIds((current) => (
+      checked ? Array.from(new Set([...current, taskId])) : current.filter((id) => id !== taskId)
+    ));
+  };
+
+  const handleToggleSelectVisible = (checked: boolean) => {
+    setSelectAllMatching(false);
+    if (!checked) {
+      setSelectedTaskIds((current) => current.filter((taskId) => !tableItems.some((item) => item.task_id === taskId)));
+      return;
+    }
+    setSelectedTaskIds((current) => Array.from(new Set([...current, ...tableItems.map((item) => item.task_id)])));
   };
 
   useEffect(() => {
@@ -517,8 +645,10 @@ export const ChirmeraScheduleCenterPage: React.FC<ChirmeraScheduleCenterPageProp
       await (async () => {
         try {
           setLoadingDetail(true);
-          const detail = await scheduleApi.getGlobalTask(selectedTaskId);
-          setSelectedTaskDetail(detail);
+          const selected = tableItems.find((item) => item.task_id === selectedTaskId);
+          if (!selected?.project_id) return;
+          const detail = await scheduleApi.getUserTask(selected.project_id, selectedTaskId) as ScheduleCenterUserTask;
+          setSelectedTaskDetail(mapUserTaskToGlobalTaskDetail(detail, projectNameMap));
         } catch {
           // Keep current detail snapshot when refresh detail fails.
         } finally {
@@ -528,15 +658,18 @@ export const ChirmeraScheduleCenterPage: React.FC<ChirmeraScheduleCenterPageProp
     }
   };
 
-  const openTaskDetail = async (taskId: string) => {
+  const openTaskDetail = async (item: ScheduleGlobalTaskListItem) => {
     startTransition(() => {
-      setSelectedTaskId(taskId);
+      setSelectedTaskId(item.task_id);
       setDetailOpen(true);
       setLoadingDetail(true);
     });
     try {
-      const detail = await scheduleApi.getGlobalTask(taskId);
-      setSelectedTaskDetail(detail as ScheduleGlobalTaskDetail);
+      if (!item.project_id) {
+        throw new Error('缺少 project_id，无法加载项目任务详情');
+      }
+      const detail = await scheduleApi.getUserTask(item.project_id, item.task_id) as ScheduleCenterUserTask;
+      setSelectedTaskDetail(mapUserTaskToGlobalTaskDetail(detail, projectNameMap));
     } catch (err: any) {
       setSelectedTaskDetail(null);
       setError(err?.message || '加载任务详情失败');
@@ -574,15 +707,82 @@ export const ChirmeraScheduleCenterPage: React.FC<ChirmeraScheduleCenterPageProp
 
   const handleViewExecution = async (item: ScheduleGlobalTaskListItem) => {
     try {
-      const detail = await scheduleApi.getGlobalTask(item.task_id);
+      if (!item.project_id) {
+        throw new Error('缺少 project_id，无法加载执行摘要');
+      }
+      const detail = await scheduleApi.getUserTask(item.project_id, item.task_id) as ScheduleCenterUserTask;
       await showAlert({
         title: `${item.task_name} 最近执行摘要`,
-        message: JSON.stringify((detail as ScheduleGlobalTaskDetail).latest_execution || (detail as ScheduleGlobalTaskDetail).current_execution || {}, null, 2),
+        message: JSON.stringify({
+          inputs: detail.inputs || [],
+          module_name: detail.module_name,
+          downstream_task_id: detail.downstream_task_id,
+          downstream_status_raw: detail.downstream_status_raw,
+          downstream_status_mapped: detail.downstream_status_mapped,
+        }, null, 2),
         confirmText: '关闭',
         tone: 'info',
       });
     } catch (err: any) {
       setError(err?.message || '加载执行摘要失败');
+    }
+  };
+
+  const handleDeleteTasks = async (mode: 'selected' | 'filtered', singleItem?: ScheduleGlobalTaskListItem | ScheduleGlobalTaskDetail | null) => {
+    if (!filters.projectId) {
+      await showAlert({ title: '缺少项目', message: '请先选择项目，再执行任务删除。', tone: 'warning' });
+      return;
+    }
+    const targetCount = mode === 'filtered' ? total : singleItem ? 1 : selectedTaskIds.length;
+    if (!targetCount) {
+      await showAlert({ title: '未选择任务', message: '请先勾选任务，或选择按当前筛选结果批量删除。', tone: 'warning' });
+      return;
+    }
+    const confirmed = await showConfirm({
+      title: '确认删除任务',
+      message: `当前项目：${projectNameMap.get(filters.projectId) || filters.projectId}\n删除范围：${mode === 'filtered' ? `当前筛选命中的 ${targetCount} 条任务` : `${targetCount} 条任务`}\n\n删除会先同步删除下游任务；失败项不会删除父任务。`,
+      confirmText: '确认删除',
+      cancelText: '取消',
+      danger: true,
+    });
+    if (!confirmed) return;
+    try {
+      const payload = mode === 'filtered'
+        ? {
+            select_all_matching: true,
+            filters: {
+              status: filters.status || undefined,
+              task_type: filters.taskType || undefined,
+              search: deferredQuery || undefined,
+              has_error: filters.hasError,
+              is_retrying: filters.isRetrying,
+            },
+          }
+        : {
+            task_ids: singleItem?.task_id ? [singleItem.task_id] : selectedTaskIds,
+            select_all_matching: false,
+          };
+      const result = await scheduleApi.bulkDeleteUserTasks(filters.projectId, payload) as ScheduleCenterUserTaskBulkDeleteResult;
+      const failedLines = (result.results || [])
+        .filter((item) => item.status !== 'deleted')
+        .slice(0, 10)
+        .map((item) => `${item.task_id}: ${item.message}`)
+        .join('\n');
+      await showAlert({
+        title: '删除任务结果',
+        message: `请求 ${result.total_requested} 条，成功删除 ${result.deleted_count} 条，失败 ${result.failed_count} 条。${failedLines ? `\n\n失败详情：\n${failedLines}` : ''}`,
+        tone: result.failed_count ? 'warning' : 'success',
+      });
+      setSelectedTaskIds([]);
+      setSelectAllMatching(false);
+      if (singleItem?.task_id && selectedTaskId === singleItem.task_id) {
+        setDetailOpen(false);
+        setSelectedTaskDetail(null);
+        setSelectedTaskId('');
+      }
+      await handleRefresh();
+    } catch (err: any) {
+      setError(err?.message || '删除任务失败');
     }
   };
 
@@ -797,6 +997,18 @@ export const ChirmeraScheduleCenterPage: React.FC<ChirmeraScheduleCenterPageProp
                     <label className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-700">
                       <input
                         type="checkbox"
+                        checked={selectAllMatching}
+                        onChange={(event) => {
+                          setSelectAllMatching(event.target.checked);
+                          if (event.target.checked) setSelectedTaskIds([]);
+                        }}
+                        className="h-4 w-4 rounded border-slate-300"
+                      />
+                      删除全部筛选结果
+                    </label>
+                    <label className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-700">
+                      <input
+                        type="checkbox"
                         checked={filters.isRetrying}
                         onChange={(event) => {
                           setFilters((current) => ({ ...current, isRetrying: event.target.checked }));
@@ -818,6 +1030,14 @@ export const ChirmeraScheduleCenterPage: React.FC<ChirmeraScheduleCenterPageProp
                       />
                       仅失败
                     </label>
+                    <button
+                      type="button"
+                      onClick={() => void handleDeleteTasks(selectAllMatching ? 'filtered' : 'selected')}
+                      disabled={!filters.projectId || (!selectAllMatching && selectedTaskIds.length === 0)}
+                      className="inline-flex items-center gap-2 rounded-2xl bg-rose-600 px-4 py-3 text-sm font-black text-white transition hover:bg-rose-700 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      删除任务
+                    </button>
                   </div>
                 </div>
               </div>
@@ -826,6 +1046,14 @@ export const ChirmeraScheduleCenterPage: React.FC<ChirmeraScheduleCenterPageProp
                 <table className="min-w-full border-separate border-spacing-y-3">
                   <thead>
                     <tr className="text-left text-xs font-black uppercase tracking-[0.18em] text-slate-500">
+                      <th className="px-4 py-2">
+                        <input
+                          type="checkbox"
+                          checked={allVisibleSelected}
+                          onChange={(event) => handleToggleSelectVisible(event.target.checked)}
+                          className="h-4 w-4 rounded border-slate-300"
+                        />
+                      </th>
                       <th className="px-4 py-2">任务名称</th>
                       <th className="px-4 py-2">任务类型</th>
                       <th className="px-4 py-2">当前状态</th>
@@ -873,7 +1101,7 @@ export const ChirmeraScheduleCenterPage: React.FC<ChirmeraScheduleCenterPageProp
                   <tbody>
                     {loadingTable ? (
                       <tr>
-                        <td colSpan={16} className="px-4 py-12 text-center text-sm font-bold text-slate-500">
+                        <td colSpan={17} className="px-4 py-12 text-center text-sm font-bold text-slate-500">
                           全局任务列表加载中...
                         </td>
                       </tr>
@@ -881,6 +1109,14 @@ export const ChirmeraScheduleCenterPage: React.FC<ChirmeraScheduleCenterPageProp
                       tableItems.map((item) => (
                         <tr key={item.task_id} className="rounded-3xl bg-white shadow-[0_8px_24px_rgba(15,23,42,0.06)]">
                           <td className="rounded-l-[1.5rem] px-4 py-4 align-top">
+                            <input
+                              type="checkbox"
+                              checked={selectedTaskIds.includes(item.task_id)}
+                              onChange={(event) => handleToggleTaskSelection(item.task_id, event.target.checked)}
+                              className="h-4 w-4 rounded border-slate-300"
+                            />
+                          </td>
+                          <td className="px-4 py-4 align-top">
                             <div className="font-black text-slate-900">{item.task_name || item.task_id}</div>
                             <div className="mt-1 text-xs text-slate-500">{item.task_id}</div>
                           </td>
@@ -905,7 +1141,7 @@ export const ChirmeraScheduleCenterPage: React.FC<ChirmeraScheduleCenterPageProp
                           <td className="rounded-r-[1.5rem] px-4 py-4 align-top">
                             <div className="flex flex-col gap-2">
                               <button
-                                onClick={() => void openTaskDetail(item.task_id)}
+                                onClick={() => void openTaskDetail(item)}
                                 className="rounded-xl border border-slate-200 px-3 py-2 text-xs font-black text-slate-700 transition hover:bg-slate-50"
                               >
                                 查看详情
@@ -922,6 +1158,12 @@ export const ChirmeraScheduleCenterPage: React.FC<ChirmeraScheduleCenterPageProp
                               >
                                 重试分发
                               </button>
+                              <button
+                                onClick={() => void handleDeleteTasks('selected', item)}
+                                className="rounded-xl bg-rose-600 px-3 py-2 text-xs font-black text-white transition hover:bg-rose-700"
+                              >
+                                删除任务
+                              </button>
                               {item.downstream_detail_view ? (
                                 <button
                                   onClick={() => window.open(item.downstream_detail_view || '', '_blank', 'noopener,noreferrer')}
@@ -936,14 +1178,14 @@ export const ChirmeraScheduleCenterPage: React.FC<ChirmeraScheduleCenterPageProp
                       ))
                     ) : (
                       <tr>
-                        <td colSpan={16} className="px-4 py-12">
+                        <td colSpan={17} className="px-4 py-12">
                           <div className="rounded-[2rem] border border-dashed border-slate-300 bg-slate-50 px-6 py-10 text-center">
                             <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-white shadow-sm">
                               <AlertCircle className="text-slate-400" size={24} />
                             </div>
                             <div className="mt-4 text-lg font-black text-slate-900">当前没有可展示的全局任务</div>
                             <div className="mt-2 text-sm font-semibold text-slate-500">
-                              如果后端全局列表接口尚未发布，这里会先保持空态，同时保留完整的筛选、统计和详情框架。
+                              当前项目下没有命中筛选条件的任务，或任务已被批量删除。
                             </div>
                           </div>
                         </td>
@@ -1049,6 +1291,7 @@ export const ChirmeraScheduleCenterPage: React.FC<ChirmeraScheduleCenterPageProp
           setSelectedTaskId('');
         }}
         onRetryDispatch={() => void handleRetryDispatch(selectedTaskDetail)}
+        onDeleteTask={() => void handleDeleteTasks('selected', selectedTaskDetail)}
       />
 
       {(loadingOverview || refreshing) ? (
