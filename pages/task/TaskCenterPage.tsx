@@ -32,7 +32,7 @@ const TASK_TYPES: readonly TaskTypeOption[] = [
   { value: 'binary_firmware_e2e', label: '盖亚-二进制固件', downstreamView: 'binary-security-detail' },
   { value: 'source_scan_e2e', label: '盖亚-源码', downstreamView: 'source-security-detail' },
   { value: 'binary_module_e2e', label: '盖亚-二进制模块', downstreamView: 'binary-module-security-detail' },
-  { value: 'ai4apk', label: 'AI4APK 应用安全扫描' },
+  { value: 'ai4apk', label: 'AI4APP 应用安全扫描', downstreamView: 'app-security-scan-detail' },
   { value: 'ai4red', label: 'AI4RED 红线验证', downstreamView: 'ai4red-detail' },
 ];
 
@@ -46,7 +46,7 @@ const INPUT_MODES: Record<string, 'file' | 'file_list' | 'directory'> = {
   binary_module_e2e: 'file_list',
   source_scan_e2e: 'directory',
   ai4red: 'directory',
-  ai4apk: 'directory',
+  ai4apk: 'file',
 };
 
 const formatDateTime = (value?: string | null) => (value ? new Date(value).toLocaleString('zh-CN') : '—');
@@ -149,7 +149,7 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects }) => {
   ) && (taskType !== 'binary_module_e2e' || moduleName.trim()));
 
   const inputSelectionHint = useMemo(() => {
-    if (taskType === 'ai4apk') return '选择 APK/HAP 所在目录，AI4APK 服务会在目录内自行发现待扫描包。';
+    if (taskType === 'ai4apk') return '请选择一个 APK/HAP 安装包，或 zip/rar/tar.gz/gz 等常见压缩包作为任务输入；压缩包将作为 APK/HAP 的源码包处理。';
     if (selectionMode === 'directory') return '请选择一个目录作为任务输入。';
     if (selectionMode === 'file_list') return '请选择一个或多个文件作为任务输入。';
     return '请选择一个文件作为任务输入。';
@@ -377,7 +377,9 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects }) => {
             ? 'sourceSecurityTaskId'
             : meta.downstreamView === 'binary-module-security-detail'
               ? 'binaryModuleSecurityTaskId'
-              : 'redlineTaskId']: taskIdentifier,
+              : meta.downstreamView === 'app-security-scan-detail'
+                ? 'appScanTaskId'
+                : 'redlineTaskId']: taskIdentifier,
       },
     }));
   };
@@ -681,9 +683,7 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects }) => {
                 <td className="px-4 py-3">{formatDateTime(task.updated_at)}</td>
                 <td className="px-4 py-3">
                   <div className="flex items-center gap-2">
-                    {task.task_type !== 'ai4apk' ? (
-                      <button onClick={() => openTask(task)} className="inline-flex items-center gap-1 rounded-lg border px-3 py-1.5 text-xs font-semibold">查看任务 <ArrowRight size={12} /></button>
-                    ) : null}
+                    <button onClick={() => openTask(task)} className="inline-flex items-center gap-1 rounded-lg border px-3 py-1.5 text-xs font-semibold">查看任务 <ArrowRight size={12} /></button>
                     {task.sync_required ? (
                       <button onClick={() => void requestSync(task)} className="inline-flex items-center gap-1 rounded-lg border px-3 py-1.5 text-xs font-semibold">
                         <RefreshCw size={12} />
@@ -1017,7 +1017,7 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects }) => {
                   <div className="mt-2 text-sm font-semibold text-theme-text-primary">调度中心后台排队并执行分发</div>
                   <div className="mt-1 text-xs text-theme-text-faint">
                     {taskType === 'ai4apk'
-                      ? '创建成功后任务会自动进入分发队列；调度中心会把所选目录路径原样传给 AI4APK，由下游在目录内自行发现 APK/HAP。'
+                      ? '创建成功后任务会自动进入分发队列；调度中心会把所选文件路径（APK/HAP 安装包或其源码压缩包）直接传给 AI4APP 进行扫描。'
                       : '创建成功后任务会自动进入分发队列；调度中心会在分发期创建 root task key，并直接传给下游。'}
                   </div>
                 </div>

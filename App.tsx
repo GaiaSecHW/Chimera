@@ -298,6 +298,10 @@ const AppShell: React.FC = () => {
       if (taskCenterTimelineTaskId) {
         setActiveTaskCenterTimelineTaskId(taskCenterTimelineTaskId);
       }
+      const appScanTaskId = String(detail?.appScanTaskId || '').trim();
+      if (appScanTaskId) {
+        setActiveAppScanTaskId(appScanTaskId);
+      }
       const binaryEvolutionTaskId = String(detail?.binaryEvolutionTaskId || '').trim();
       if (nextView) {
         navigateToView(nextView, {

@@ -630,7 +630,7 @@ export const renderCurrentView = (ctx: ViewRegistryContext): React.ReactNode => 
         <AppScanTaskDetailPage
           projectId={ctx.selectedProjectId}
           toolTaskId={ctx.activeAppScanTaskId}
-          onBack={() => ctx.setCurrentView('app-security-scan')}
+          onBack={() => ctx.setCurrentView(consumeTaskCenterReturnContext() ? 'task-list' : 'app-security-scan')}
         />
       );
     case 'app-security-scan-monitor':
