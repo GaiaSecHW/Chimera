@@ -8,8 +8,8 @@ import type {
   AppScanPhaseProgress,
   AppScanStatus,
   AppScanTask,
-} from '../../clients/appScan';
-import { appScanApi } from '../../clients/appScan';
+} from './appScan';
+import { appScanApi } from './appScan';
 import { showConfirm } from '../../components/DialogService';
 
 // ---------------------------------------------------------------------------

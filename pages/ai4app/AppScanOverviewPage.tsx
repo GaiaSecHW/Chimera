@@ -1,8 +1,8 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ChevronRight, Loader2, Pause, Play, Plus, RefreshCw, Search, Smartphone, Trash2, Upload } from 'lucide-react';
+import { ChevronRight, Loader2, Monitor, Pause, Play, Plus, RefreshCw, Search, Smartphone, Trash2, Upload } from 'lucide-react';
 
-import type { AppScanStatus, AppScanTaskSummary, AppScanTaskType } from '../../clients/appScan';
-import { appScanApi } from '../../clients/appScan';
+import type { AppScanStatus, AppScanTaskSummary, AppScanTaskType } from './appScan';
+import { appScanApi } from './appScan';
 import { showConfirm } from '../../components/DialogService';
 
 // ---------------------------------------------------------------------------
@@ -11,6 +11,7 @@ import { showConfirm } from '../../components/DialogService';
 interface Props {
   projectId: string;
   onOpenTask: (toolTaskId: string) => void;
+  onOpenMonitor: () => void;
 }
 
 // ---------------------------------------------------------------------------
@@ -66,7 +67,7 @@ const guessTaskType = (filename: string): AppScanTaskType | '' => {
 // ---------------------------------------------------------------------------
 //  Component
 // ---------------------------------------------------------------------------
-export const AppScanOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
+export const AppScanOverviewPage: React.FC<Props> = ({ projectId, onOpenTask, onOpenMonitor }) => {
   // ---- State ----
   const [items, setItems] = useState<AppScanTaskSummary[]>([]);
   const [total, setTotal] = useState(0);
@@ -286,6 +287,14 @@ export const AppScanOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) 
             >
               <Plus size={16} />
               创建任务
+            </button>
+            <button
+              type="button"
+              onClick={onOpenMonitor}
+              className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-bold text-slate-700 shadow-sm hover:bg-slate-50"
+            >
+              <Monitor size={16} />
+              引擎监控
             </button>
             <button
               type="button"

@@ -1,4 +1,4 @@
-import { API_BASE, getAuthHeaders, getHeaders, handleResponse, type XhrUploadProgress, xhrUpload } from './base';
+import { API_BASE, getAuthHeaders, getHeaders, handleResponse, type XhrUploadProgress, xhrUpload } from '../../clients/base';
 
 // ---------------------------------------------------------------------------
 //  M2M prefix — turing-ui-service external task APIs
@@ -7,6 +7,7 @@ import { API_BASE, getAuthHeaders, getHeaders, handleResponse, type XhrUploadPro
 // ---------------------------------------------------------------------------
 const PREFIX = `${API_BASE}/turing/api/v1/tasks`;
 const UPLOAD_PREFIX = `${API_BASE}/turing/api/projects/upload`;
+const MONITOR_PREFIX = `${API_BASE}/turing/api`;
 
 // ---------------------------------------------------------------------------
 //  Types
@@ -145,6 +146,79 @@ export interface AppScanTaskFindings {
   status: string;
   summary: AppScanFindingsSummary;
   findings: AppScanFinding[];
+}
+
+// ---------------------------------------------------------------------------
+//  Engine monitor (system monitoring)
+// ---------------------------------------------------------------------------
+
+export interface AppScanActiveProject {
+  job_id: string;
+  project_id: string;
+  workspace: string;
+  status: string;
+  project_name: string;
+}
+
+export interface AppScanPoolStats {
+  engine_running: boolean;
+  active_projects: AppScanActiveProject[];
+  task_counts: Record<string, number>;
+  scheduling: { in_flight: number; total_dispatched: number; total_slots: number };
+  keys: Record<string, { concurrency: number; in_flight: number }>;
+  token_usage: Record<string, number>;
+  queue: { length: number; oldest_age_seconds: number };
+}
+
+export interface AppScanOcServer {
+  instance_id?: string;
+  status?: string;
+  base_url?: string;
+  provider_id?: string;
+  session_count?: number;
+  started_at_epoch?: number;
+  pid?: number;
+}
+
+export interface AppScanOcPod {
+  pod_url?: string;
+  error?: string;
+  status?: {
+    active?: number;
+    total?: number;
+    draining?: number;
+    max_pool_size?: number;
+    servers?: AppScanOcServer[];
+  };
+}
+
+export interface AppScanOpencodeInstances {
+  pods: AppScanOcPod[];
+  job_bindings: { base_url: string; job_id: string }[];
+  total_instances: number;
+  total_active: number;
+  error?: string;
+}
+
+export interface AppScanTokenJob {
+  project_id?: string;
+  project_name?: string;
+  project_display_name?: string;
+  job_id?: string;
+  status?: string;
+  model_name?: string;
+  token_input?: number;
+  token_cache_read?: number;
+  token_output?: number;
+  token_cost?: number;
+  started_at?: number;
+  created_at?: number;
+  completed_at?: number;
+}
+
+export interface AppScanTokenStats {
+  summary: { input: number; cache_read: number; output: number; cost: number };
+  jobs: AppScanTokenJob[];
 }
 
 // ---------------------------------------------------------------------------
@@ -293,6 +367,40 @@ export const appScanApi = {
       method: 'POST',
       headers: getHeaders(),
     });
+    return handleResponse(res);
+  },
+
+  // -------------------------------------------------------------------------
+  //  Engine monitor
+  // -------------------------------------------------------------------------
+
+  /**
+   * 系统监控：扫描概览 + 并发控制 + 队列状态。
+   * GET /api/pool-stats
+   */
+  async getPoolStats(): Promise<AppScanPoolStats> {
+    const url = withQuery(`${MONITOR_PREFIX}/pool-stats`, { _: Date.now() });
+    const res = await fetch(url, noStoreGetInit());
+    return handleResponse(res);
+  },
+
+  /**
+   * OpenCode 实例池监控。
+   * GET /api/opencode-instances
+   */
+  async getOpencodeInstances(): Promise<AppScanOpencodeInstances> {
+    const url = withQuery(`${MONITOR_PREFIX}/opencode-instances`, { _: Date.now() });
+    const res = await fetch(url, noStoreGetInit());
+    return handleResponse(res);
+  },
+
+  /**
+   * Token 消耗统计。
+   * GET /api/token-stats?since=&until=
+   */
+  async getTokenStats(since?: number, until?: number): Promise<AppScanTokenStats> {
+    const url = withQuery(`${MONITOR_PREFIX}/token-stats`, { since, until, _: Date.now() });
+    const res = await fetch(url, noStoreGetInit());
     return handleResponse(res);
   },
 };

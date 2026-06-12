@@ -63,8 +63,9 @@ import { BinarySecurityOverviewPage } from '../pages/execution/BinarySecurityOve
 import { BinarySecurityConfigPage } from '../pages/execution/BinarySecurityConfigPage';
 import BinarySecurityMetricsDashboardPage from '../pages/execution/BinarySecurityMetricsDashboardPage';
 import { BinarySecurityTaskDetailPage } from '../pages/execution/BinarySecurityTaskDetailPage';
-import { AppScanOverviewPage } from '../pages/execution/AppScanOverviewPage';
-import { AppScanTaskDetailPage } from '../pages/execution/AppScanTaskDetailPage';
+import { AppScanOverviewPage } from '../pages/ai4app/AppScanOverviewPage';
+import { AppScanMonitorPage } from '../pages/ai4app/AppScanMonitorPage';
+import { AppScanTaskDetailPage } from '../pages/ai4app/AppScanTaskDetailPage';
 import { MobileSecurityIpcVulnPage } from '../pages/execution/MobileSecurityIpcVulnPage';
 import { KernelScanPage } from '../pages/execution/KernelScanPage';
 import { AtomicCapabilityOverviewPage } from '../pages/execution/AtomicCapabilityOverviewPage';
@@ -597,6 +598,7 @@ export const renderCurrentView = (ctx: ViewRegistryContext): React.ReactNode => 
             ctx.setActiveAppScanTaskId(toolTaskId);
             ctx.setCurrentView('app-security-scan-detail');
           }}
+          onOpenMonitor={() => ctx.setCurrentView('app-security-scan-monitor')}
         />
       );
     case 'app-security-scan-detail':
@@ -608,6 +610,7 @@ export const renderCurrentView = (ctx: ViewRegistryContext): React.ReactNode => 
               ctx.setActiveAppScanTaskId(toolTaskId);
               ctx.setCurrentView('app-security-scan-detail');
             }}
+            onOpenMonitor={() => ctx.setCurrentView('app-security-scan-monitor')}
           />
         );
       }
@@ -618,6 +621,8 @@ export const renderCurrentView = (ctx: ViewRegistryContext): React.ReactNode => 
           onBack={() => ctx.setCurrentView('app-security-scan')}
         />
       );
+    case 'app-security-scan-monitor':
+      return <AppScanMonitorPage onBack={() => ctx.setCurrentView('app-security-scan')} />;
     case 'redline-verification':
       return (
         <RedlineOverviewPage
