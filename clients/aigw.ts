@@ -127,8 +127,14 @@ export const aigwApi = {
       headers: getHeaders(),
     })),
 
-  listLlmKeys: async (): Promise<any> =>
-    handleResponse(await fetch(`${API_BASE}/api/aigw/llm-keys`, { headers: getHeaders() })),
+  listLlmKeys: async (params?: Record<string, string | number>): Promise<any> => {
+    const query = new URLSearchParams();
+    Object.entries(params || {}).forEach(([key, value]) => {
+      if (value !== '' && value !== undefined && value !== null) query.set(key, String(value));
+    });
+    const suffix = query.toString() ? `?${query.toString()}` : '';
+    return handleResponse(await fetch(`${API_BASE}/api/aigw/llm-keys${suffix}`, { headers: getHeaders() }));
+  },
 
   getLlmKey: async (id: number | string): Promise<any> =>
     handleResponse(await fetch(`${API_BASE}/api/aigw/llm-keys/${id}`, { headers: getHeaders() })),
