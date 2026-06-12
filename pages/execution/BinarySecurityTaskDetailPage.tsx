@@ -1964,6 +1964,8 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
   const [selectedNodeKind, setSelectedNodeKind] = useState<StageNodeKind>('business');
   const [downstreamByItemId, setDownstreamByItemId] = useState<Record<string, DownstreamTaskState>>({});
   const downstreamByItemIdRef = useRef<Record<string, DownstreamTaskState>>({});
+  const entrySelectionRequestKeyRef = useRef<string | null>(null);
+  const stageItemsRequestKeyRef = useRef<string | null>(null);
   const [runtimeHealthExpanded, setRuntimeHealthExpanded] = useState(false);
   const [stageFlowLayout, setStageFlowLayout] = useState<{ mode: 'horizontal' | 'vertical'; cardWidth: number; connectorWidth: number }>({
     mode: 'horizontal',
@@ -2058,9 +2060,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
         setStrategyDraft(nextDraft);
         setStrategySavedSnapshot(nextDraft);
       }
-      if (task.status === 'pending_entry_confirmation' || task.summary?.entry_selection) {
-        void loadEntrySelection();
-      } else {
+      if (!(task.status === 'pending_entry_confirmation' || task.summary?.entry_selection)) {
         setEntrySelection(null);
         setSelectedEntryKeys([]);
       }
@@ -2104,6 +2104,9 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
 
   const loadEntrySelection = async () => {
     if (!projectId || !taskId) return;
+    const requestKey = `${projectId}:${taskId}`;
+    if (entrySelectionRequestKeyRef.current === requestKey) return;
+    entrySelectionRequestKeyRef.current = requestKey;
     setEntrySelectionLoading(true);
     try {
       const entrySelectionResp = await executionApi.binarySecurity.getEntrySelection(projectId, taskId);
@@ -2117,6 +2120,9 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
     } catch {
       setEntrySelection(null);
     } finally {
+      if (entrySelectionRequestKeyRef.current === requestKey) {
+        entrySelectionRequestKeyRef.current = null;
+      }
       setEntrySelectionLoading(false);
     }
   };
@@ -2134,6 +2140,31 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
       setError(e?.message || '加载事件时间线失败');
     } finally {
       setTimelineLoading(false);
+    }
+  };
+
+  const loadStageItemsPage = async () => {
+    if (activeTab !== 'overview' || selectedNodeKind !== 'business' || !detail || !projectId || !taskId || !selectedStage) return;
+    const requestKey = `${projectId}:${taskId}:${selectedStage}:${stageItemsCurrentPage}:${stageItemsPerPage}`;
+    if (stageItemsRequestKeyRef.current === requestKey) return;
+    stageItemsRequestKeyRef.current = requestKey;
+    setStageItemsPageLoading(true);
+    setStageItemsPageError(null);
+    try {
+      const payload = await api.binarySecurity.getTaskStageItems(projectId, taskId, {
+        stage_name: selectedStage,
+        page: stageItemsCurrentPage,
+        per_page: stageItemsPerPage,
+      });
+      setStageItemsPage(payload);
+    } catch (fetchError: any) {
+      setStageItemsPage(null);
+      setStageItemsPageError(fetchError?.message || '加载阶段子任务失败');
+    } finally {
+      if (stageItemsRequestKeyRef.current === requestKey) {
+        stageItemsRequestKeyRef.current = null;
+      }
+      setStageItemsPageLoading(false);
     }
   };
 
@@ -2399,7 +2430,6 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
         await Promise.all([loadOverview(), loadArchiveJobs()]);
       }
       if (activeTab === 'modules' && refreshedTask) await loadModuleSelection();
-      if ((refreshedTask?.status === 'pending_entry_confirmation') || refreshedTask?.summary?.entry_selection) await loadEntrySelection();
       if (activeTab === 'timeline') await loadTimeline(timelinePage, timelinePageSize);
       if (activeTab === 'artifacts') await loadArtifacts();
       if (activeTab === 'orchestration') await loadOrchestrationObservability();
@@ -2433,10 +2463,9 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
   useEffect(() => {
     if (!detail || TERMINAL.has(detail.status)) return;
     if (detail.status === 'pending_module_confirmation') return;
-    const intervalMs = detail.manual_operation_state?.operation_in_progress ? 2000 : 5000;
     const timer = window.setInterval(
       () => void loadTask({ preserveStrategyDraft: activeTab === 'strategy' && strategyDirty }),
-      intervalMs,
+      30000,
     );
     return () => window.clearInterval(timer);
   }, [activeTab, detail?.manual_operation_state?.operation_in_progress, detail?.status, projectId, strategyDirty, taskId]);
@@ -2460,6 +2489,30 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
     moduleSelectionLoading,
     projectId,
     isBinaryModuleTask,
+    taskId,
+  ]);
+
+  useEffect(() => {
+    if (!isSourceTask || activeTab !== 'modules' || !projectId || !taskId) return;
+    if (!detail) return;
+    const needsEntrySelection = detail.status === 'pending_entry_confirmation' || Boolean(detail.summary?.entry_selection);
+    if (!needsEntrySelection) {
+      if (entrySelection || selectedEntryKeys.length > 0) {
+        setEntrySelection(null);
+        setSelectedEntryKeys([]);
+      }
+      return;
+    }
+    if (entrySelection || entrySelectionLoading) return;
+    void loadEntrySelection();
+  }, [
+    activeTab,
+    detail,
+    entrySelection,
+    entrySelectionLoading,
+    isSourceTask,
+    projectId,
+    selectedEntryKeys.length,
     taskId,
   ]);
 
@@ -2538,29 +2591,16 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
   }, [activeTab, artifactsLoaded, artifactsLoading, projectId, taskId]);
 
   useEffect(() => {
-    if (activeTab !== 'overview' || selectedNodeKind !== 'business' || !detail || !projectId || !selectedStage) return;
-    let cancelled = false;
-    setStageItemsPageLoading(true);
-    setStageItemsPageError(null);
-    void api.binarySecurity.getTaskStageItems(projectId, taskId, {
-      stage_name: selectedStage,
-      page: stageItemsCurrentPage,
-      per_page: stageItemsPerPage,
-    }).then((payload) => {
-      if (cancelled) return;
-      setStageItemsPage(payload);
-    }).catch((fetchError: any) => {
-      if (cancelled) return;
-      setStageItemsPage(null);
-      setStageItemsPageError(fetchError?.message || '加载阶段子任务失败');
-    }).finally(() => {
-      if (cancelled) return;
-      setStageItemsPageLoading(false);
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, [activeTab, detail, projectId, selectedNodeKind, selectedStage, stageItemsCurrentPage, stageItemsPerPage, taskId]);
+    void loadStageItemsPage();
+  }, [activeTab, detail?.id, projectId, selectedNodeKind, selectedStage, stageItemsCurrentPage, stageItemsPerPage, taskId]);
+
+  useEffect(() => {
+    if (activeTab !== 'overview' || selectedNodeKind !== 'business' || !detail || !projectId || !taskId || !selectedStage) return;
+    const timer = window.setInterval(() => {
+      void loadStageItemsPage();
+    }, 30000);
+    return () => window.clearInterval(timer);
+  }, [activeTab, detail?.id, projectId, selectedNodeKind, selectedStage, stageItemsCurrentPage, stageItemsPerPage, taskId]);
 
   useEffect(() => {
     const node = stageFlowRef.current;
@@ -5672,6 +5712,15 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                     ))}
                   </select>
                 </label>
+                <button
+                  type="button"
+                  onClick={() => void loadTimeline(timelinePage, timelinePageSize)}
+                  disabled={timelineClearing || timelineLoading}
+                  className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-black text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {timelineLoading ? <Loader2 size={16} className="animate-spin" /> : <RefreshCw size={16} />}
+                  刷新时间线
+                </button>
                 <button
                   type="button"
                   onClick={() => void clearTimeline()}
