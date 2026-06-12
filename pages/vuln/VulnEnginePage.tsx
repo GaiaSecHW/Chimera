@@ -320,6 +320,7 @@ export const VulnEnginePage: React.FC<VulnEnginePageProps> = ({
   }, [actionItems, caseReports.length, recommendedActions, resultItems, selectedCaseDetail, taskItems]);
   const automationEvents = selectedTimeline.filter((item) => item.item_type === 'event' && item.payload?.event_type === 'automation_rule_applied');
   const allowedStageOptions = stageScope?.length ? ['all', ...stageScope] : STAGE_OPTIONS;
+  const stageScopeKey = stageScope?.join('|') || '';
   const effectiveListEntryMode = listEntryMode;
   const effectiveCompactCaseLayout = compactCaseLayout || effectiveListEntryMode;
   const effectiveShowStats = showStats ?? (workspaceView === 'overview' || workspaceView === 'cases');
@@ -358,9 +359,19 @@ export const VulnEnginePage: React.FC<VulnEnginePageProps> = ({
     setError(null);
     try {
       await vulnApi.vuln.reconcileActionTimeouts({ project_id: projectId });
+      const scopedStage = stageScope?.length === 1
+        ? stageScope[0]
+        : stageFilter !== 'all' && (!stageScope?.length || stageScope.includes(stageFilter))
+          ? stageFilter
+          : undefined;
+      const caseListParams = {
+        project_id: projectId,
+        current_stage: scopedStage,
+        ...(scopedStage || effectiveListEntryMode ? { limit: 1000, page_size: 1000 } : {}),
+      };
       const [overviewResp, caseResp, serviceResp, taskResp] = await Promise.all([
         vulnApi.vuln.getOverview(projectId),
-        vulnApi.vuln.listCases({ project_id: projectId }),
+        vulnApi.vuln.listCases(caseListParams),
         vulnApi.vuln.listServices(),
         vulnApi.vuln.listManualTasks({ project_id: projectId }),
       ]);
@@ -501,7 +512,7 @@ export const VulnEnginePage: React.FC<VulnEnginePageProps> = ({
 
   useEffect(() => {
     loadWorkspace();
-  }, [projectId, actionQueueFilter]);
+  }, [projectId, actionQueueFilter, stageFilter, stageScopeKey, effectiveListEntryMode]);
 
   useEffect(() => {
     setWorkspaceView(initialWorkspaceView);
