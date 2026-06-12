@@ -57,6 +57,7 @@ import { TestInputPage } from '../pages/TestInputPage';
 import { TaskCenterPage } from '../pages/task/TaskCenterPage';
 import { TaskCenterTimelinePage } from '../pages/task/TaskCenterTimelinePage';
 import { WebEndToEndPage } from '../pages/task/WebEndToEndPage';
+import { KnowledgeGraphPage } from '../pages/task/KnowledgeGraphPage';
 // [DISABLED] DataflowVulnTask import - 方便后续复用
 // import { DataflowVulnTaskDetailPage, DataflowVulnTaskListPage } from '../pages/execution/DataflowVulnScanPage';
 import { BinaryEvolutionCenterPage } from '../pages/execution/BinaryEvolutionCenterPage';
@@ -222,6 +223,8 @@ export const renderCurrentView = (ctx: ViewRegistryContext): React.ReactNode => 
       return <TaskCenterPage projectId={ctx.selectedProjectId} projects={ctx.projects} />;
     case 'task-web-end-to-end':
       return <WebEndToEndPage projectId={ctx.selectedProjectId} />;
+    case 'task-knowledge-graph':
+      return <KnowledgeGraphPage projectId={ctx.selectedProjectId} projects={ctx.projects} />;
     case 'developer-atomic-capability':
     case 'developer-atomic-capability-overview':
       return <AtomicCapabilityOverviewPage projectId={ctx.selectedProjectId} onNavigate={ctx.setCurrentView} />;

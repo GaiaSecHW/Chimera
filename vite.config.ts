@@ -25,6 +25,11 @@ export default defineConfig(({ mode }) => {
     const aigwProxyTarget = String(env.VITE_AIGW_PROXY_TARGET || 'https://secflow.ai.icsl.huawei.com').trim();
     const aigwProxyIsHttps = aigwProxyTarget.startsWith('https://');
     const aigwProxyAgent = aigwProxyIsHttps ? keepAliveHttpsAgent : keepAliveHttpAgent;
+    // codemap manager(知识图谱):本地 dev 经 ingress 域名访问 k8s 里的 manager,
+    // 与节点 IP 解耦(manager pod 换节点也不用改)。需在本机 /etc/hosts 加:
+    //   172.31.30.101 codemap-manager.ai.icsl.huawei.com
+    // 可用 VITE_CODEMAP_MANAGER_TARGET 覆盖(如 port-forward 时填 http://127.0.0.1:8090)。
+    const codemapManagerTarget = String(env.VITE_CODEMAP_MANAGER_TARGET || 'http://codemap-manager.ai.icsl.huawei.com').trim();
     return {
       // Use an absolute base in dev so HMR/module requests stay rooted at the
       // Vite server, while production builds keep relative assets for static hosting.
@@ -70,6 +75,16 @@ export default defineConfig(({ mode }) => {
             secure: false,
             ws: true,
             agent: keepAliveHttpAgent,
+          },
+          // codemap-lite manager(知识图谱)。本地 dev 直连 k8s 里 hostNetwork 的
+          // manager(默认节点 IP:8090)。必须排在 catch-all '/api' 之前,否则会被
+          // 代理到远程 secflow。剥掉 /api/codemap-manager 前缀 → manager 的 /tasks。
+          '/api/codemap-manager': {
+            target: codemapManagerTarget,
+            changeOrigin: true,
+            secure: false,
+            agent: keepAliveHttpAgent,
+            rewrite: (path) => path.replace(/^\/api\/codemap-manager/, ''),
           },
           '/api': {
             target: 'https://secflow.ai.icsl.huawei.com',

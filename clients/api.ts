@@ -1,4 +1,5 @@
 import { assetClients } from './assets';
+import { codemapManagerApi } from './codemapManager';
 import { environmentClients } from './environment-domain';
 import { executionClients } from './execution';
 import { orchestrationClients } from './orchestration';
@@ -42,4 +43,5 @@ export const api = {
   ipcAudit: executionClients.ipcAudit,
   redlineVerification: executionClients.redlineVerification,
   vuln: vulnClients.vuln,
+  codemapManager: codemapManagerApi,
 };

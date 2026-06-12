@@ -26,6 +26,7 @@ import {
   LucideIcon,
   MessageSquare,
   Monitor,
+  Network,
   Package,
   Play,
   ServerCog,
@@ -495,6 +496,7 @@ export const SIDEBAR_SECTIONS: Record<TopLevelNavKey, NavSection[]> = {
       items: [
         { id: 'task-list', label: '任务列表', icon: ListTodo, requiresProject: true },
         { id: 'task-web-end-to-end', label: 'WEB端到端', icon: Globe, requiresProject: true },
+        { id: 'task-knowledge-graph', label: '知识图谱', icon: Network, requiresProject: true },
       ],
     },
   ],
