@@ -93,6 +93,61 @@ export interface AppScanUploadResponse {
 }
 
 // ---------------------------------------------------------------------------
+//  Findings (漏洞报告)
+// ---------------------------------------------------------------------------
+
+export interface AppScanCallChainStep {
+  step?: number;
+  role?: string; // source | sink | check | propagation
+  description?: string;
+  action?: string;
+  file?: string;
+  line?: number;
+  location?: string;
+  code?: string;
+}
+
+export interface AppScanFinding {
+  id: string;
+  display_id: string | null;
+  vuln_type: string;
+  severity: string;
+  title: string;
+  description: string | null;
+  status: string | null;
+  validation_result: string | null;
+  confidence: number | null;
+  cvss_vector: string | null;
+  cvss_score: number | null;
+  cvss_explanation: string | null;
+  total_score: number | null;
+  call_chain: AppScanCallChainStep[] | null;
+  source: unknown;
+  sink: unknown;
+  analysis: unknown;
+  corrections: unknown;
+  fix_suggestion: unknown;
+  created_at: string | null;
+  validated_at: string | null;
+}
+
+export interface AppScanFindingsSummary {
+  total: number;
+  confirmed: number;
+  likely: number;
+  possible: number;
+  false_positive: number;
+  pending_validation: number;
+}
+
+export interface AppScanTaskFindings {
+  tool_task_id: string;
+  status: string;
+  summary: AppScanFindingsSummary;
+  findings: AppScanFinding[];
+}
+
+// ---------------------------------------------------------------------------
 //  Helpers
 // ---------------------------------------------------------------------------
 
@@ -172,6 +227,16 @@ export const appScanApi = {
    */
   async getTask(toolTaskId: string): Promise<AppScanTask> {
     const url = withQuery(`${PREFIX}/${encodeURIComponent(toolTaskId)}`, { _: Date.now() });
+    const res = await fetch(url, noStoreGetInit());
+    return handleResponse(res);
+  },
+
+  /**
+   * 查询任务关联的漏洞发现列表。
+   * GET /api/v1/tasks/{toolTaskId}/findings
+   */
+  async getTaskFindings(toolTaskId: string): Promise<AppScanTaskFindings> {
+    const url = withQuery(`${PREFIX}/${encodeURIComponent(toolTaskId)}/findings`, { _: Date.now() });
     const res = await fetch(url, noStoreGetInit());
     return handleResponse(res);
   },
