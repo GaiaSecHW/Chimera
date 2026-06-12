@@ -2117,6 +2117,37 @@ export interface ScheduleRuntimeOverview {
   redis_available: boolean;
 }
 
+export interface ScheduleRuntimeQueuePreviewItem {
+  queue_key: string;
+  queue_name: string;
+  queue_group: 'execution' | 'maintenance' | 'user_task_sync' | string;
+  queue_kind: 'fifo_ready' | 'delayed_zset' | 'sync_ready' | string;
+  description: string;
+  priority?: number | null;
+  length: number;
+  oldest_age_seconds: number;
+  consumer_runtime: 'worker_runtime' | 'delete_worker_runtime' | 'user_task_sync_worker_runtime' | 'scheduler_runtime' | string;
+  dedupe_enabled: boolean;
+  has_enqueued_at_index: boolean;
+  enabled: boolean;
+  status: 'healthy' | 'idle' | 'disabled' | 'degraded' | 'scheduled' | string;
+  backend?: string | null;
+  next_due_in_seconds?: number | null;
+}
+
+export interface ScheduleRuntimeQueuePreviewGroup {
+  group_key: 'execution' | 'maintenance' | 'user_task_sync' | string;
+  group_name: string;
+  items: ScheduleRuntimeQueuePreviewItem[];
+}
+
+export interface ScheduleRuntimeQueuePreview {
+  redis_available: boolean;
+  backend: string;
+  refreshed_at: string;
+  groups: ScheduleRuntimeQueuePreviewGroup[];
+}
+
 export interface ScheduleGlobalTaskOverview {
   stats: {
     total_tasks: number;

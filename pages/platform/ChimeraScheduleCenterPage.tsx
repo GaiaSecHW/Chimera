@@ -9,6 +9,7 @@ import {
   ChevronLeft,
   ChevronRight,
   ChevronDown,
+  Clock3,
   FolderKanban,
   Layers3,
   Waypoints,
@@ -30,6 +31,9 @@ import {
   ScheduleGlobalTaskDetail,
   ScheduleGlobalTaskListItem,
   ScheduleGlobalTaskOverview,
+  ScheduleRuntimeQueuePreview,
+  ScheduleRuntimeQueuePreviewGroup,
+  ScheduleRuntimeQueuePreviewItem,
   ScheduleRuntimeOverview,
   SecurityProject,
 } from '../../types/types';
@@ -76,7 +80,7 @@ type BackendSortField =
 
 type ColumnFilterKey = 'taskType' | 'status' | 'hasError';
 
-type OverviewNav = 'overview' | 'job-templates' | 'execution-log' | 'task-event-log' | 'key-vault';
+type OverviewNav = 'overview' | 'queue-preview' | 'job-templates' | 'execution-log' | 'task-event-log' | 'key-vault';
 
 const STATUS_OPTIONS = [
   { value: '', label: '全部状态' },
@@ -102,6 +106,7 @@ const PAGE_SIZE_OPTIONS = [20, 50, 100];
 
 const NAV_ITEMS: Array<{ key: OverviewNav; label: string; icon: React.ComponentType<{ size?: number; className?: string }> }> = [
   { key: 'overview', label: '全局任务', icon: Workflow },
+  { key: 'queue-preview', label: '调度队列', icon: Clock3 },
   { key: 'job-templates', label: '作业模板', icon: FolderKanban },
   { key: 'execution-log', label: '执行记录', icon: Activity },
   { key: 'task-event-log', label: '调度日志', icon: Layers3 },
@@ -151,6 +156,21 @@ const formatDurationSeconds = (value?: number | null) => {
   if (seconds < 60) return `${seconds}s`;
   if (seconds < 3600) return `${Math.floor(seconds / 60)}m`;
   return `${Math.floor(seconds / 3600)}h ${Math.floor((seconds % 3600) / 60)}m`;
+};
+
+const queueStatusTone = (status?: string | null) => {
+  if (status === 'healthy') return 'border-emerald-200 bg-emerald-50 text-emerald-700';
+  if (status === 'scheduled') return 'border-cyan-200 bg-cyan-50 text-cyan-700';
+  if (status === 'degraded') return 'border-rose-200 bg-rose-50 text-rose-700';
+  if (status === 'disabled') return 'border-slate-200 bg-slate-100 text-slate-500';
+  return 'border-amber-200 bg-amber-50 text-amber-700';
+};
+
+const queueKindLabel = (kind?: string | null) => {
+  if (kind === 'fifo_ready') return 'FIFO';
+  if (kind === 'delayed_zset') return 'Delay';
+  if (kind === 'sync_ready') return 'Sync';
+  return kind || '-';
 };
 
 const summarizeStatus = (item: Partial<ScheduleGlobalTaskListItem> | null | undefined) => {
@@ -491,6 +511,7 @@ export const ChimeraScheduleCenterPage: React.FC<ChimeraScheduleCenterPageProps>
   const [nav, setNav] = useState<OverviewNav>('overview');
   const [health, setHealth] = useState<{ status?: string; service_name?: string } | null>(null);
   const [runtimeOverview, setRuntimeOverview] = useState<ScheduleRuntimeOverview | null>(null);
+  const [queuePreview, setQueuePreview] = useState<ScheduleRuntimeQueuePreview | null>(null);
   const [overview, setOverview] = useState<ScheduleGlobalTaskOverview>(createEmptyOverview());
   const [tableItems, setTableItems] = useState<ScheduleGlobalTaskListItem[]>([]);
   const [total, setTotal] = useState(0);
@@ -524,6 +545,8 @@ export const ChimeraScheduleCenterPage: React.FC<ChimeraScheduleCenterPageProps>
   const [taskEventPageSize, setTaskEventPageSize] = useState(50);
   const [taskEventLoading, setTaskEventLoading] = useState(false);
   const [selectedTaskEvent, setSelectedTaskEvent] = useState<ScheduleUserTaskEvent | null>(null);
+  const [queuePreviewLoading, setQueuePreviewLoading] = useState(false);
+  const [queuePreviewAutoRefresh, setQueuePreviewAutoRefresh] = useState(true);
   const [taskEventFilters, setTaskEventFilters] = useState<TaskEventFilters>({
     scope: 'project',
     projectId: '',
@@ -551,6 +574,26 @@ export const ChimeraScheduleCenterPage: React.FC<ChimeraScheduleCenterPageProps>
     () => [{ id: '', label: '全部项目' }, ...projects.map((project) => ({ id: project.id, label: project.name || project.id }))],
     [projects],
   );
+
+  const queuePreviewItems = useMemo(
+    () => (queuePreview?.groups || []).flatMap((group) => group.items || []),
+    [queuePreview],
+  );
+
+  const queuePreviewSummary = useMemo(() => {
+    const readyItem = queuePreviewItems.find((item) => item.queue_key === 'ready');
+    const deleteItem = queuePreviewItems.find((item) => item.queue_key === 'delete:ready');
+    const delayItem = queuePreviewItems.find((item) => item.queue_key === 'delay');
+    const syncTotal = queuePreviewItems
+      .filter((item) => item.queue_group === 'user_task_sync')
+      .reduce((sum, item) => sum + Number(item.length || 0), 0);
+    return {
+      readyLength: Number(readyItem?.length || 0),
+      deleteLength: Number(deleteItem?.length || 0),
+      delayLength: Number(delayItem?.length || 0),
+      syncTotal,
+    };
+  }, [queuePreviewItems]);
 
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
   const allVisibleSelected = tableItems.length > 0 && tableItems.every((item) => selectedTaskIds.includes(item.task_id));
@@ -621,18 +664,13 @@ export const ChimeraScheduleCenterPage: React.FC<ChimeraScheduleCenterPageProps>
     setLoadingTable(true);
     if (manual) setRefreshing(true);
     try {
-      if (!filters.projectId) {
-        setTableItems([]);
-        setTotal(0);
-        setNotice('任务中心列表已切换为项目级任务接口，请先选择项目。');
-        return;
-      }
-      const payload = await scheduleApi.listUserTasks(filters.projectId, {
+      const payload = await scheduleApi.listGlobalTasks({
         search: deferredQuery || undefined,
         status: filters.status || undefined,
         task_type: filters.taskType || undefined,
         has_error: filters.hasError || undefined,
         is_retrying: filters.isRetrying || undefined,
+        project_id: filters.projectId || undefined,
         page,
         page_size: pageSize,
         sort_by: sortField,
@@ -643,11 +681,11 @@ export const ChimeraScheduleCenterPage: React.FC<ChimeraScheduleCenterPageProps>
       setTableItems(items);
       setTotal(Number(payload.total || 0));
       setSelectedTaskIds((current) => current.filter((taskId) => items.some((item) => item.task_id === taskId)));
-      setNotice('');
+      setNotice(filters.projectId ? `当前按项目过滤: ${projectNameMap.get(filters.projectId) || filters.projectId}` : '');
     } catch (err: any) {
       setTableItems([]);
       setTotal(0);
-      setNotice('项目级任务列表暂时不可用。');
+      setNotice('全局任务列表暂时不可用。');
       setError(err?.message || '加载全局任务列表失败');
     } finally {
       setLoadingTable(false);
@@ -687,6 +725,18 @@ export const ChimeraScheduleCenterPage: React.FC<ChimeraScheduleCenterPageProps>
     }
   };
 
+  const loadQueuePreview = async () => {
+    setQueuePreviewLoading(true);
+    try {
+      const payload = await scheduleApi.getRuntimeQueuePreview() as ScheduleRuntimeQueuePreview;
+      setQueuePreview(payload);
+    } catch (err: any) {
+      setError(err?.message || '加载调度队列预览失败');
+    } finally {
+      setQueuePreviewLoading(false);
+    }
+  };
+
   const handleToggleTaskSelection = (taskId: string, checked: boolean) => {
     setSelectAllMatching(false);
     setSelectedTaskIds((current) => (
@@ -705,6 +755,7 @@ export const ChimeraScheduleCenterPage: React.FC<ChimeraScheduleCenterPageProps>
 
   useEffect(() => {
     void loadHealthAndOverview();
+    void loadQueuePreview();
   }, []);
 
   useEffect(() => {
@@ -731,9 +782,17 @@ export const ChimeraScheduleCenterPage: React.FC<ChimeraScheduleCenterPageProps>
     filters.projectId,
   ]);
 
+  useEffect(() => {
+    if (nav !== 'queue-preview' || !queuePreviewAutoRefresh) return;
+    const timer = window.setInterval(() => {
+      void loadQueuePreview();
+    }, 10_000);
+    return () => window.clearInterval(timer);
+  }, [nav, queuePreviewAutoRefresh]);
+
   const handleRefresh = async () => {
     setError('');
-    await Promise.all([loadHealthAndOverview(true), loadTasks(true)]);
+    await Promise.all([loadHealthAndOverview(true), loadTasks(true), loadQueuePreview()]);
     if (detailOpen && selectedTaskId) {
       await (async () => {
         try {
@@ -822,7 +881,12 @@ export const ChimeraScheduleCenterPage: React.FC<ChimeraScheduleCenterPageProps>
   };
 
   const handleDeleteTasks = async (mode: 'selected' | 'filtered', singleItem?: ScheduleGlobalTaskListItem | ScheduleGlobalTaskDetail | null) => {
-    if (!filters.projectId) {
+    if (mode === 'filtered' && !filters.projectId) {
+      await showAlert({ title: '缺少项目', message: '全局总览中的批量删除仅支持当前项目范围，请先选择项目过滤。', tone: 'warning' });
+      return;
+    }
+    const targetProjectId = singleItem?.project_id || filters.projectId;
+    if (!targetProjectId) {
       await showAlert({ title: '缺少项目', message: '请先选择项目，再执行任务删除。', tone: 'warning' });
       return;
     }
@@ -833,7 +897,7 @@ export const ChimeraScheduleCenterPage: React.FC<ChimeraScheduleCenterPageProps>
     }
     const confirmed = await showConfirm({
       title: '确认删除任务',
-      message: `当前项目：${projectNameMap.get(filters.projectId) || filters.projectId}\n删除范围：${mode === 'filtered' ? `当前筛选命中的 ${targetCount} 条任务` : `${targetCount} 条任务`}\n\n删除会先同步删除下游任务；失败项不会删除父任务。`,
+      message: `当前项目：${projectNameMap.get(targetProjectId) || targetProjectId}\n删除范围：${mode === 'filtered' ? `当前筛选命中的 ${targetCount} 条任务` : `${targetCount} 条任务`}\n\n删除会先同步删除下游任务；失败项不会删除父任务。`,
       confirmText: '确认删除',
       cancelText: '取消',
       danger: true,
@@ -855,7 +919,7 @@ export const ChimeraScheduleCenterPage: React.FC<ChimeraScheduleCenterPageProps>
             task_ids: singleItem?.task_id ? [singleItem.task_id] : selectedTaskIds,
             select_all_matching: false,
           };
-      const result = await scheduleApi.bulkDeleteUserTasks(filters.projectId, payload) as ScheduleCenterUserTaskBulkDeleteResult;
+      const result = await scheduleApi.bulkDeleteUserTasks(targetProjectId, payload) as ScheduleCenterUserTaskBulkDeleteResult;
       const failedLines = (result.results || [])
         .filter((item) => !['queued', 'already_queued', 'already_deleted'].includes(item.status))
         .slice(0, 10)
@@ -887,6 +951,15 @@ export const ChimeraScheduleCenterPage: React.FC<ChimeraScheduleCenterPageProps>
         '这里后续承接项目级 job 配置、触发策略和目标编排编辑。',
         '本轮首页已经把跨项目任务监控与项目内模板编辑彻底拆开，避免同页混合。',
         '旧接口能力保持兼容，后续可在独立子页恢复完整编辑台。',
+      ],
+    },
+    'queue-preview': {
+      title: '调度队列',
+      summary: '集中查看调度执行、删除维护和用户任务同步队列的长度、等待时长和消费运行时。',
+      bullets: [
+        '只展示真实队列，不展示 leader、lease 和 bucket 计数器。',
+        '同步队列按固定优先级展示，便于排查状态收敛顺序。',
+        '页面支持独立自动刷新，不影响其他调度前台视图。',
       ],
     },
     'execution-log': {
@@ -1119,7 +1192,7 @@ export const ChimeraScheduleCenterPage: React.FC<ChimeraScheduleCenterPageProps>
                     <button
                       type="button"
                       onClick={() => void handleDeleteTasks(selectAllMatching ? 'filtered' : 'selected')}
-                      disabled={!filters.projectId || (!selectAllMatching && selectedTaskIds.length === 0)}
+                      disabled={(selectAllMatching && !filters.projectId) || (!selectAllMatching && selectedTaskIds.length === 0)}
                       className="inline-flex items-center gap-2 rounded-2xl bg-rose-600 px-4 py-3 text-sm font-black text-white transition hover:bg-rose-700 disabled:cursor-not-allowed disabled:opacity-50"
                     >
                       删除任务
@@ -1530,6 +1603,115 @@ export const ChimeraScheduleCenterPage: React.FC<ChimeraScheduleCenterPageProps>
                   <pre className="mt-4 overflow-auto whitespace-pre-wrap break-all rounded-2xl border border-slate-200 bg-white p-4 text-xs text-slate-700">{JSON.stringify(selectedTaskEvent, null, 2)}</pre>
                 </div>
               ) : null}
+            </div>
+          </section>
+        ) : nav === 'queue-preview' ? (
+          <section className="rounded-[2rem] border border-slate-200/70 bg-white/90 p-6 shadow-[0_18px_60px_rgba(15,23,42,0.08)] backdrop-blur md:p-8">
+            <div className="flex flex-col gap-6">
+              <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
+                <div>
+                  <div className="text-xs font-black uppercase tracking-[0.24em] text-slate-500">Queue Preview</div>
+                  <h2 className="mt-2 text-3xl font-black text-slate-900">调度队列预览</h2>
+                  <div className="mt-2 text-sm text-slate-500">查看调度执行、删除维护和用户任务同步队列的当前积压与等待时长。</div>
+                </div>
+                <div className="flex flex-wrap items-center gap-3">
+                  {renderNavButtons()}
+                  <label className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold text-slate-700">
+                    <input
+                      type="checkbox"
+                      checked={queuePreviewAutoRefresh}
+                      onChange={(event) => setQueuePreviewAutoRefresh(event.target.checked)}
+                      className="h-4 w-4 rounded border-slate-300"
+                    />
+                    自动刷新
+                  </label>
+                  <button
+                    onClick={() => void loadQueuePreview()}
+                    className="inline-flex items-center gap-2 rounded-2xl bg-slate-900 px-4 py-3 text-sm font-black text-white transition hover:bg-slate-800 disabled:opacity-60"
+                    disabled={queuePreviewLoading}
+                  >
+                    <RefreshCw size={16} className={queuePreviewLoading ? 'animate-spin' : ''} />
+                    刷新
+                  </button>
+                </div>
+              </div>
+
+              <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+                <article className={`rounded-[1.6rem] border bg-gradient-to-br p-5 shadow-sm ${metricTone('queue')}`}>
+                  <div className="text-xs font-black uppercase tracking-[0.2em] text-slate-500">Redis 状态</div>
+                  <div className="mt-3 text-3xl font-black text-slate-900">{queuePreview?.redis_available ? 'Available' : 'Fallback'}</div>
+                  <div className="mt-2 text-xs font-bold text-slate-500">Backend {queuePreview?.backend || 'unknown'}</div>
+                </article>
+                <article className={`rounded-[1.6rem] border bg-gradient-to-br p-5 shadow-sm ${metricTone('running')}`}>
+                  <div className="text-xs font-black uppercase tracking-[0.2em] text-slate-500">主执行 / 删除</div>
+                  <div className="mt-3 text-3xl font-black text-slate-900">{formatCount(queuePreviewSummary.readyLength)} / {formatCount(queuePreviewSummary.deleteLength)}</div>
+                  <div className="mt-2 text-xs font-bold text-slate-500">同步总排队 {formatCount(queuePreviewSummary.syncTotal)}</div>
+                </article>
+                <article className={`rounded-[1.6rem] border bg-gradient-to-br p-5 shadow-sm ${metricTone('retry')}`}>
+                  <div className="text-xs font-black uppercase tracking-[0.2em] text-slate-500">延迟队列</div>
+                  <div className="mt-3 text-3xl font-black text-slate-900">{formatCount(queuePreviewSummary.delayLength)}</div>
+                  <div className="mt-2 text-xs font-bold text-slate-500">最近刷新 {formatTime(queuePreview?.refreshed_at)}</div>
+                </article>
+              </section>
+
+              {queuePreviewLoading && !queuePreview ? (
+                <div className="rounded-[1.6rem] border border-slate-200 bg-slate-50 px-6 py-10 text-center text-sm font-bold text-slate-500">
+                  调度队列预览加载中...
+                </div>
+              ) : (
+                (queuePreview?.groups || []).map((group: ScheduleRuntimeQueuePreviewGroup) => (
+                  <section key={group.group_key} className="rounded-[1.6rem] border border-slate-200 bg-slate-50 p-5">
+                    <div>
+                      <div className="text-xs font-black uppercase tracking-[0.2em] text-slate-500">{group.group_key}</div>
+                      <h3 className="mt-2 text-xl font-black text-slate-900">{group.group_name}</h3>
+                    </div>
+                    <div className="mt-4 overflow-x-auto">
+                      <table className="min-w-full border-separate border-spacing-y-3">
+                        <thead>
+                          <tr className="text-left text-xs font-black uppercase tracking-[0.16em] text-slate-500">
+                            <th className="px-4 py-2">队列名称</th>
+                            <th className="px-4 py-2">队列键</th>
+                            <th className="px-4 py-2">类型</th>
+                            <th className="px-4 py-2">当前长度</th>
+                            <th className="px-4 py-2">最老等待</th>
+                            <th className="px-4 py-2">消费者</th>
+                            <th className="px-4 py-2">优先级</th>
+                            <th className="px-4 py-2">状态</th>
+                            <th className="px-4 py-2">说明</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {group.items.map((item: ScheduleRuntimeQueuePreviewItem) => (
+                            <tr key={item.queue_key} className="rounded-3xl bg-white shadow-[0_8px_24px_rgba(15,23,42,0.06)]">
+                              <td className="rounded-l-[1.5rem] px-4 py-4 align-top">
+                                <div className="font-black text-slate-900">{item.queue_name}</div>
+                                <div className="mt-1 text-xs text-slate-500">{item.backend || 'unknown'}</div>
+                              </td>
+                              <td className="px-4 py-4 align-top text-xs font-semibold text-slate-600">{item.queue_key}</td>
+                              <td className="px-4 py-4 align-top text-sm font-semibold text-slate-700">{queueKindLabel(item.queue_kind)}</td>
+                              <td className="px-4 py-4 align-top text-sm font-semibold text-slate-700">{formatCount(item.length)}</td>
+                              <td className="px-4 py-4 align-top text-sm font-semibold text-slate-700">{formatDurationSeconds(item.oldest_age_seconds)}</td>
+                              <td className="px-4 py-4 align-top text-xs font-semibold text-slate-600">{item.consumer_runtime}</td>
+                              <td className="px-4 py-4 align-top text-sm font-semibold text-slate-700">{item.priority ?? '-'}</td>
+                              <td className="px-4 py-4 align-top">
+                                <span className={`rounded-full border px-3 py-1 text-[11px] font-black uppercase tracking-[0.18em] ${queueStatusTone(item.status)}`}>
+                                  {item.status}
+                                </span>
+                              </td>
+                              <td className="rounded-r-[1.5rem] px-4 py-4 align-top text-xs font-semibold text-slate-600">
+                                {item.description}
+                                {item.queue_key === 'delay' && item.next_due_in_seconds !== null && item.next_due_in_seconds !== undefined ? (
+                                  <div className="mt-2 text-[11px] font-bold text-slate-500">next due {formatDurationSeconds(item.next_due_in_seconds)}</div>
+                                ) : null}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </section>
+                ))
+              )}
             </div>
           </section>
         ) : (
