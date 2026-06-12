@@ -202,6 +202,7 @@ export const renderCurrentView = (ctx: ViewRegistryContext): React.ReactNode => 
     case 'aigw-config':
     case 'aigw-keys':
     case 'aigw-logs':
+    case 'aigw-token-stats':
     case 'aigw-admin':
       return <AiGatewayPage entryView={ctx.currentView} onNavigate={ctx.setCurrentView} />;
     case 'project-mgmt':

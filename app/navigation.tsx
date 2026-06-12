@@ -2,6 +2,7 @@ import React from 'react';
 import {
   Activity,
   Archive,
+  BarChart3,
   Bot,
   Box,
   Briefcase,
@@ -327,6 +328,7 @@ const AIGW_VIEWS = new Set([
   'aigw-config',
   'aigw-keys',
   'aigw-logs',
+  'aigw-token-stats',
   'aigw-admin',
   'config-center-llm',
   'config-center-root',
@@ -617,6 +619,7 @@ export const SIDEBAR_SECTIONS: Record<TopLevelNavKey, NavSection[]> = {
         { id: 'aigw-config', label: '网关配置', icon: Settings },
         { id: 'aigw-keys', label: '密钥管理', icon: Key },
         { id: 'aigw-logs', label: '查看日志', icon: FileText },
+        { id: 'aigw-token-stats', label: 'Token 统计', icon: BarChart3 },
         { id: 'config-center-llm', label: '模型配置中心', icon: Activity, aliases: ['config-center-root', 'config-center-llm-chat'], healthKey: 'configCenterHealth' },
       ],
     },

@@ -2761,6 +2761,69 @@ export interface AiGatewayReplayResponse {
   error?: string;
 }
 
+export interface AiGatewayTokenStatsSummary {
+  total_requests: number;
+  total_prompt_tokens: number;
+  total_completion_tokens: number;
+  total_tokens: number;
+  total_estimated_cost: number;
+  cache_saved_tokens: number;
+  cache_saved_cost: number;
+}
+
+export interface AiGatewayProjectTokenStats {
+  project_id: string;
+  project_name: string;
+  request_count: number;
+  prompt_tokens: number;
+  completion_tokens: number;
+  total_tokens: number;
+  estimated_cost: number;
+  cache_saved_tokens: number;
+  cache_saved_cost: number;
+  task_count: number;
+}
+
+export interface AiGatewayTaskTokenStats {
+  task_id: string;
+  task_name: string;
+  project_id: string;
+  project_name: string;
+  request_count: number;
+  prompt_tokens: number;
+  completion_tokens: number;
+  total_tokens: number;
+  estimated_cost: number;
+  cache_saved_tokens: number;
+  cache_saved_cost: number;
+  sub_task_count: number;
+}
+
+export interface AiGatewaySubTaskTokenStats {
+  sub_task_id: string;
+  sub_task_name: string;
+  task_id: string;
+  task_name: string;
+  project_id: string;
+  project_name: string;
+  request_count: number;
+  prompt_tokens: number;
+  completion_tokens: number;
+  total_tokens: number;
+  estimated_cost: number;
+  cache_saved_tokens: number;
+  cache_saved_cost: number;
+}
+
+export interface AiGatewayTokenStatsTrendPoint {
+  date: string;
+  request_count: number;
+  prompt_tokens: number;
+  completion_tokens: number;
+  total_tokens: number;
+  estimated_cost: number;
+}
+
 export type AnalysisRiskLevel = 'unknown' | 'low' | 'medium' | 'high' | 'critical';
 export type AnalysisTaskStatus = 'pending' | 'preparing' | 'running' | 'partial_success' | 'success' | 'failed' | 'cancelled';
 export type AnalysisTaskType =

@@ -5,6 +5,7 @@ import { api } from '../../clients/api';
 import { showConfirm } from '../../components/DialogService';
 import { AigwLogDetailsDialog } from '../../components/platform/AigwLogDetailsDialog';
 import { useUiFeedback } from '../../components/UiFeedback';
+import { AiGatewayTokenStatsPage } from './AiGatewayTokenStatsPage';
 import {
   AiGatewayBackendUnit,
   AiGatewayCapacityPool,
@@ -45,6 +46,11 @@ type LogDrawerPreset = {
   model?: string;
   aliasId?: string;
   backendUnitId?: string;
+  llmKeyId?: string;
+  taskKeyId?: string;
+  capacityPoolId?: string;
+  taskId?: string;
+  subTaskId?: string;
 };
 
 interface AiGatewayPageProps {
@@ -438,6 +444,11 @@ export const AiGatewayPage: React.FC<AiGatewayPageProps> = ({ entryView = 'aigw-
       setLogModel(preset.model || '');
       setLogAliasId(preset.aliasId || '');
       setLogBackendUnitId(preset.backendUnitId || '');
+      setLogLlmKeyId(preset.llmKeyId || '');
+      setLogTaskKeyId(preset.taskKeyId || '');
+      setLogCapacityPoolId(preset.capacityPoolId || '');
+      setLogTaskId(preset.taskId || '');
+      setLogSubTaskId(preset.subTaskId || '');
       setLogPage(1);
       setLogDrawerPreset(preset);
     } else {
@@ -1037,7 +1048,6 @@ export const AiGatewayPage: React.FC<AiGatewayPageProps> = ({ entryView = 'aigw-
           <thead>
             <tr className="border-b border-slate-200 text-left text-slate-500">
               <th className="px-3 py-3 font-bold">名称</th>
-              <th className="px-3 py-3 font-bold">前缀</th>
               <th className="px-3 py-3 font-bold">类型</th>
               <th className="px-3 py-3 font-bold">最大并发</th>
               <th className="px-3 py-3 font-bold">任务范围</th>
@@ -1053,7 +1063,6 @@ export const AiGatewayPage: React.FC<AiGatewayPageProps> = ({ entryView = 'aigw-
                   <div className="font-bold text-slate-900">{item.key_name || `密钥 #${item.id}`}</div>
                   <div className="text-xs text-slate-500">{item.description || '无备注'}</div>
                 </td>
-                <td className="px-3 py-3 font-mono text-slate-700">{item.key_prefix || '-'}</td>
                 <td className="px-3 py-3 text-slate-700">{item.key_type === 'task' ? '任务密钥' : item.key_type === 'work' ? '工作密钥' : item.key_type}</td>
                 <td className="px-3 py-3 text-slate-700">{item.max_concurrency || 0}</td>
                 <td className="px-3 py-3 text-slate-700">{item.task_id ? (item.key_type === 'work' && item.sub_task_id ? `${item.task_id} / ${item.sub_task_id}` : item.task_id) : '-'}</td>
@@ -1061,8 +1070,9 @@ export const AiGatewayPage: React.FC<AiGatewayPageProps> = ({ entryView = 'aigw-
                 <td className="px-3 py-3 text-slate-700">{item.updated_at ? new Date(item.updated_at).toLocaleString('zh-CN') : '-'}</td>
                 <td className="px-3 py-3">
                   <div className="flex items-center gap-2">
-                    <button onClick={() => openLlmKeyModal(item)} className="rounded-xl bg-slate-100 px-3 py-2 text-xs font-bold text-slate-700 hover:bg-slate-200">编辑</button>
-                    <button onClick={() => openLlmKeyDetail(item.id)} className="rounded-xl bg-slate-100 px-3 py-2 text-xs font-bold text-slate-700 hover:bg-slate-200">查看</button>
+                    <button onClick={() => openLlmKeyModal(item)} className="rounded-xl bg-slate-100 px-3 py-2 text-xs font-bold text-slate-700 hover:bg-slate-200"><Pencil className="h-3.5 w-3.5" /></button>
+                    <button onClick={() => openLogsDrawer({ title: `${item.key_name || `密钥 #${item.id}`} 日志`, llmKeyId: String(item.id) })} className="rounded-xl bg-slate-100 px-3 py-2 text-xs font-bold text-slate-700 hover:bg-slate-200"><FileText className="h-3.5 w-3.5" /></button>
+                    <button onClick={() => openLlmKeyDetail(item.id)} className="rounded-xl bg-slate-100 px-3 py-2 text-xs font-bold text-slate-700 hover:bg-slate-200"><Eye className="h-3.5 w-3.5" /></button>
                     <button onClick={() => deleteLlmKey(item)} className="rounded-xl bg-rose-100 px-3 py-2 text-xs font-bold text-rose-700 hover:bg-rose-200"><Trash2 className="h-3.5 w-3.5" /></button>
                   </div>
                 </td>
@@ -1070,7 +1080,7 @@ export const AiGatewayPage: React.FC<AiGatewayPageProps> = ({ entryView = 'aigw-
             ))}
             {!llmKeys.length && !loading ? (
               <tr>
-                <td colSpan={8} className="px-3 py-10 text-center text-slate-400">暂无调用密钥</td>
+                <td colSpan={7} className="px-3 py-10 text-center text-slate-400">暂无调用密钥</td>
               </tr>
             ) : null}
           </tbody>
@@ -1079,7 +1089,7 @@ export const AiGatewayPage: React.FC<AiGatewayPageProps> = ({ entryView = 'aigw-
     </section>
   );
 
-  const pageTitle = entryView === 'aigw-keys' ? '密钥管理' : entryView === 'aigw-logs' ? '请求日志' : '网关配置';
+  const pageTitle = entryView === 'aigw-keys' ? '密钥管理' : entryView === 'aigw-logs' ? '请求日志' : entryView === 'aigw-token-stats' ? 'Token 统计' : '网关配置';
 
   return (
     <div className="flex min-h-full flex-col gap-6 p-8">
@@ -1115,6 +1125,8 @@ export const AiGatewayPage: React.FC<AiGatewayPageProps> = ({ entryView = 'aigw-
         <div className="min-h-[680px] flex-1">
           {renderLogsSection()}
         </div>
+      ) : entryView === 'aigw-token-stats' ? (
+        <AiGatewayTokenStatsPage onNavigate={onNavigate} />
       ) : (
       <section className="flex min-h-[680px] flex-1 flex-col rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
         <div className="mb-5 flex shrink-0 flex-wrap items-center justify-between gap-3">
