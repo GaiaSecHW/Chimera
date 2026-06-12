@@ -9,6 +9,7 @@ import {
   ProjectInputUploadRecord,
   ScheduleCenterUserTask,
   ScheduleCenterUserTaskCreatePayload,
+  ScheduleCenterUserTaskType,
   ScheduleCenterUserTaskListResponse,
   SecurityProject,
 } from '../../types/types';
@@ -18,12 +19,18 @@ interface Props {
   projects: SecurityProject[];
 }
 
-const TASK_TYPES = [
+type TaskTypeOption = {
+  value: ScheduleCenterUserTaskType;
+  label: string;
+  downstreamView?: string;
+};
+
+const TASK_TYPES: readonly TaskTypeOption[] = [
   { value: 'binary_firmware_e2e', label: '盖亚-二进制固件', downstreamView: 'binary-security-detail' },
   { value: 'source_scan_e2e', label: '盖亚-源码', downstreamView: 'source-security-detail' },
   { value: 'binary_module_e2e', label: '盖亚-二进制模块', downstreamView: 'binary-module-security-detail' },
   { value: 'ai4apk', label: 'AI4APK 应用安全扫描' },
-] as const;
+];
 
 const CREATE_TABS = [
   { key: 'basic', label: '基础信息' },

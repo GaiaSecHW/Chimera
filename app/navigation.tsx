@@ -336,7 +336,7 @@ const AIGW_VIEWS = new Set([
 ]);
 
 const SCHEDULE_VIEWS = new Set([
-  'chirmera-platform-schedule',
+  'chimera-platform-schedule',
   'static-packages',
   'static-package-detail',
   'deploy-script-mgmt',
@@ -424,7 +424,7 @@ export const getTopLevelDefaultView = (nav: TopLevelNavKey, user: UserInfo | nul
     case 'tools': return 'developer-tools-overview';
     case 'atomic': return 'developer-atomic-capability-overview';
     case 'aigw': return 'aigw-dashboard';
-    case 'schedule': return 'chirmera-platform-schedule';
+    case 'schedule': return 'chimera-platform-schedule';
     case 'evolution': return 'binary-evolution-center';
     case 'tenant':
       if (access.canAccessUserCenter) return String(getUserCenterDefaultView(user));
@@ -624,7 +624,8 @@ export const SIDEBAR_SECTIONS: Record<TopLevelNavKey, NavSection[]> = {
     {
       title: '任务调度',
       items: [
-        { id: 'chirmera-platform-schedule', label: '调度中心', icon: Workflow },
+        { id: 'chimera-platform-schedule', label: '调度中心', icon: Workflow },
+        { id: 'chimera-platform-schedule-config', label: '调度参数', icon: Settings },
         { id: 'static-packages', label: '静态软件包', icon: Package, aliases: ['static-package-detail'], healthKey: 'staticPackageHealth' },
         { id: 'deploy-script-mgmt', label: '部署脚本', icon: Terminal },
       ],

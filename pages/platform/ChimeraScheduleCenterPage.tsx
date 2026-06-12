@@ -3,8 +3,12 @@ import {
   Activity,
   AlertCircle,
   ArrowUpDown,
+  ArrowUp,
+  ArrowDown,
+  Check,
   ChevronLeft,
   ChevronRight,
+  ChevronDown,
   FolderKanban,
   Layers3,
   Waypoints,
@@ -28,12 +32,11 @@ import {
   SecurityProject,
 } from '../../types/types';
 
-interface ChirmeraScheduleCenterPageProps {
+interface ChimeraScheduleCenterPageProps {
   projects: SecurityProject[];
   initialProjectId?: string;
 }
 
-type SortField = 'updated_at' | 'created_at' | 'scheduled_at' | 'started_at' | 'finished_at';
 type SortDirection = 'asc' | 'desc';
 
 type TaskFilters = {
@@ -44,6 +47,19 @@ type TaskFilters = {
   hasError: boolean;
   search: string;
 };
+
+type BackendSortField =
+  | 'updated_at'
+  | 'created_at'
+  | 'name'
+  | 'task_type'
+  | 'dispatch_status'
+  | 'business_status'
+  | 'downstream_status_mapped'
+  | 'created_by'
+  | 'downstream_task_id';
+
+type ColumnFilterKey = 'taskType' | 'status' | 'hasError';
 
 type OverviewNav = 'overview' | 'job-templates' | 'execution-log' | 'key-vault';
 
@@ -67,14 +83,6 @@ const TASK_TYPE_OPTIONS = [
 ];
 
 const PAGE_SIZE_OPTIONS = [20, 50, 100];
-
-const SORT_FIELDS: Array<{ value: SortField; label: string }> = [
-  { value: 'updated_at', label: '更新时间' },
-  { value: 'created_at', label: '创建时间' },
-  { value: 'scheduled_at', label: '计划时间' },
-  { value: 'started_at', label: '开始时间' },
-  { value: 'finished_at', label: '结束时间' },
-];
 
 const NAV_ITEMS: Array<{ key: OverviewNav; label: string; icon: React.ComponentType<{ size?: number; className?: string }> }> = [
   { key: 'overview', label: '全局任务', icon: Workflow },
@@ -299,12 +307,12 @@ const normalizeOverviewPayload = (
   };
 };
 
-const sortIndicator = (sortField: SortField, activeField: SortField, direction: SortDirection) => {
+const sortIndicator = (sortField: BackendSortField, activeField: BackendSortField, direction: SortDirection) => {
   if (sortField !== activeField) return <ArrowUpDown size={14} className="text-slate-400" />;
   return (
-    <span className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-500">
-      {direction}
-    </span>
+    direction === 'asc'
+      ? <ArrowUp size={14} className="text-slate-700" />
+      : <ArrowDown size={14} className="text-slate-700" />
   );
 };
 
@@ -454,7 +462,7 @@ const DetailDrawer: React.FC<{
   );
 };
 
-export const ChirmeraScheduleCenterPage: React.FC<ChirmeraScheduleCenterPageProps> = ({ projects }) => {
+export const ChimeraScheduleCenterPage: React.FC<ChimeraScheduleCenterPageProps> = ({ projects }) => {
   const scheduleApi = api.domains.platform.scheduleCenter;
   const [nav, setNav] = useState<OverviewNav>('overview');
   const [health, setHealth] = useState<{ status?: string; service_name?: string } | null>(null);
@@ -464,8 +472,9 @@ export const ChirmeraScheduleCenterPage: React.FC<ChirmeraScheduleCenterPageProp
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
-  const [sortField, setSortField] = useState<SortField>('updated_at');
+  const [sortField, setSortField] = useState<BackendSortField>('updated_at');
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
+  const [openColumnFilter, setOpenColumnFilter] = useState<ColumnFilterKey | null>(null);
   const [filters, setFilters] = useState<TaskFilters>({
     status: '',
     taskType: '',
@@ -502,6 +511,12 @@ export const ChirmeraScheduleCenterPage: React.FC<ChirmeraScheduleCenterPageProp
 
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
   const allVisibleSelected = tableItems.length > 0 && tableItems.every((item) => selectedTaskIds.includes(item.task_id));
+
+  const handleSortChange = (field: BackendSortField) => {
+    setSortDirection((current) => (sortField === field ? (current === 'desc' ? 'asc' : 'desc') : 'desc'));
+    setSortField(field);
+    setPage(1);
+  };
 
   const statCards = useMemo(() => {
     const items = [
@@ -569,38 +584,21 @@ export const ChirmeraScheduleCenterPage: React.FC<ChirmeraScheduleCenterPageProp
         setNotice('任务中心列表已切换为项目级任务接口，请先选择项目。');
         return;
       }
-      const payload = await scheduleApi.listUserTasks(filters.projectId) as ScheduleCenterUserTaskListResponse;
+      const payload = await scheduleApi.listUserTasks(filters.projectId, {
+        search: deferredQuery || undefined,
+        status: filters.status || undefined,
+        task_type: filters.taskType || undefined,
+        has_error: filters.hasError || undefined,
+        is_retrying: filters.isRetrying || undefined,
+        page,
+        page_size: pageSize,
+        sort_by: sortField,
+        sort_direction: sortDirection,
+      }) as ScheduleCenterUserTaskListResponse;
       const rawItems = payload.items || [];
-      let items = rawItems.map((item) => mapUserTaskToGlobalTaskItem(item, projectNameMap));
-      if (filters.status) {
-        items = items.filter((item) =>
-          [item.current_status, item.business_status, item.dispatch_status, item.create_status].includes(filters.status)
-        );
-      }
-      if (filters.taskType) {
-        items = items.filter((item) => rawItems.find((task) => task.id === item.task_id)?.task_type === filters.taskType);
-      }
-      if (filters.hasError) {
-        items = items.filter((item) => Boolean(item.last_error));
-      }
-      if (filters.isRetrying) {
-        items = [];
-      }
-      if (deferredQuery) {
-        const keyword = deferredQuery.toLowerCase();
-        items = items.filter((item) =>
-          [item.task_name, item.task_id, item.project_name, item.project_id, item.downstream_task_id, item.last_error]
-            .some((value) => String(value || '').toLowerCase().includes(keyword))
-        );
-      }
-      items.sort((left, right) => {
-        const leftValue = String((left as Record<string, unknown>)[sortField] || '');
-        const rightValue = String((right as Record<string, unknown>)[sortField] || '');
-        return sortDirection === 'asc' ? leftValue.localeCompare(rightValue) : rightValue.localeCompare(leftValue);
-      });
-      const start = (page - 1) * pageSize;
-      setTableItems(items.slice(start, start + pageSize));
-      setTotal(items.length);
+      const items = rawItems.map((item) => mapUserTaskToGlobalTaskItem(item, projectNameMap));
+      setTableItems(items);
+      setTotal(Number(payload.total || 0));
       setSelectedTaskIds((current) => current.filter((taskId) => items.some((item) => item.task_id === taskId)));
       setNotice('');
     } catch (err: any) {
@@ -962,22 +960,6 @@ export const ChirmeraScheduleCenterPage: React.FC<ChirmeraScheduleCenterPageProp
                   </label>
 
                   <label className="block">
-                    <span className="text-xs font-black uppercase tracking-[0.18em] text-slate-500">排序字段</span>
-                    <select
-                      value={sortField}
-                      onChange={(event) => {
-                        setSortField(event.target.value as SortField);
-                        setPage(1);
-                      }}
-                      className="mt-2 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-800 outline-none"
-                    >
-                      {SORT_FIELDS.map((item) => (
-                        <option key={item.value} value={item.value}>{item.label}</option>
-                      ))}
-                    </select>
-                  </label>
-
-                  <label className="block">
                     <span className="text-xs font-black uppercase tracking-[0.18em] text-slate-500">每页条数</span>
                     <select
                       value={pageSize}
@@ -1054,23 +1036,104 @@ export const ChirmeraScheduleCenterPage: React.FC<ChirmeraScheduleCenterPageProp
                           className="h-4 w-4 rounded border-slate-300"
                         />
                       </th>
-                      <th className="px-4 py-2">任务名称</th>
-                      <th className="px-4 py-2">任务类型</th>
-                      <th className="px-4 py-2">当前状态</th>
-                      <th className="px-4 py-2">展示状态</th>
+                      <th className="px-4 py-2">
+                        <button type="button" onClick={() => handleSortChange('name')} className="inline-flex items-center gap-2">
+                          任务名称
+                          {sortIndicator('name', sortField, sortDirection)}
+                        </button>
+                      </th>
+                      <th className="relative px-4 py-2">
+                        <div className="inline-flex items-center gap-2">
+                          <button type="button" onClick={() => handleSortChange('task_type')} className="inline-flex items-center gap-2">
+                            任务类型
+                            {sortIndicator('task_type', sortField, sortDirection)}
+                          </button>
+                          <button type="button" onClick={() => setOpenColumnFilter((current) => current === 'taskType' ? null : 'taskType')} className="text-slate-400 hover:text-slate-700">
+                            <ChevronDown size={14} />
+                          </button>
+                        </div>
+                        {openColumnFilter === 'taskType' ? (
+                          <div className="absolute left-0 top-full z-20 mt-2 w-56 rounded-2xl border border-slate-200 bg-white p-2 shadow-[0_18px_40px_rgba(15,23,42,0.14)]">
+                            {TASK_TYPE_OPTIONS.map((item) => (
+                              <button
+                                key={item.value}
+                                type="button"
+                                onClick={() => {
+                                  setFilters((current) => ({ ...current, taskType: item.value }));
+                                  setOpenColumnFilter(null);
+                                  setPage(1);
+                                }}
+                                className="flex w-full items-center justify-between rounded-xl px-3 py-2 text-left text-sm font-semibold text-slate-700 hover:bg-slate-50"
+                              >
+                                <span>{item.label}</span>
+                                {filters.taskType === item.value ? <Check size={14} className="text-slate-700" /> : null}
+                              </button>
+                            ))}
+                          </div>
+                        ) : null}
+                      </th>
+                      <th className="relative px-4 py-2">
+                        <div className="inline-flex items-center gap-2">
+                          <button type="button" onClick={() => handleSortChange('dispatch_status')} className="inline-flex items-center gap-2">
+                            当前状态
+                            {sortIndicator('dispatch_status', sortField, sortDirection)}
+                          </button>
+                          <button type="button" onClick={() => setOpenColumnFilter((current) => current === 'status' ? null : 'status')} className="text-slate-400 hover:text-slate-700">
+                            <ChevronDown size={14} />
+                          </button>
+                        </div>
+                        {openColumnFilter === 'status' ? (
+                          <div className="absolute left-0 top-full z-20 mt-2 w-56 rounded-2xl border border-slate-200 bg-white p-2 shadow-[0_18px_40px_rgba(15,23,42,0.14)]">
+                            {STATUS_OPTIONS.map((item) => (
+                              <button
+                                key={item.value}
+                                type="button"
+                                onClick={() => {
+                                  setFilters((current) => ({ ...current, status: item.value }));
+                                  setOpenColumnFilter(null);
+                                  setPage(1);
+                                }}
+                                className="flex w-full items-center justify-between rounded-xl px-3 py-2 text-left text-sm font-semibold text-slate-700 hover:bg-slate-50"
+                              >
+                                <span>{item.label}</span>
+                                {filters.status === item.value ? <Check size={14} className="text-slate-700" /> : null}
+                              </button>
+                            ))}
+                          </div>
+                        ) : null}
+                      </th>
+                      <th className="px-4 py-2">
+                        <button type="button" onClick={() => handleSortChange('downstream_status_mapped')} className="inline-flex items-center gap-2">
+                          展示状态
+                          {sortIndicator('downstream_status_mapped', sortField, sortDirection)}
+                        </button>
+                      </th>
                       <th className="px-4 py-2">项目</th>
-                      <th className="px-4 py-2">队列状态</th>
+                      <th className="px-4 py-2">
+                        <button type="button" onClick={() => handleSortChange('business_status')} className="inline-flex items-center gap-2">
+                          队列状态
+                          {sortIndicator('business_status', sortField, sortDirection)}
+                        </button>
+                      </th>
                       <th className="px-4 py-2">重试次数</th>
-                      <th className="px-4 py-2">下游任务 ID</th>
+                      <th className="px-4 py-2">
+                        <button type="button" onClick={() => handleSortChange('downstream_task_id')} className="inline-flex items-center gap-2">
+                          下游任务 ID
+                          {sortIndicator('downstream_task_id', sortField, sortDirection)}
+                        </button>
+                      </th>
                       <th className="px-4 py-2">Root Task Key</th>
-                      <th className="px-4 py-2">创建人</th>
+                      <th className="px-4 py-2">
+                        <button type="button" onClick={() => handleSortChange('created_by')} className="inline-flex items-center gap-2">
+                          创建人
+                          {sortIndicator('created_by', sortField, sortDirection)}
+                        </button>
+                      </th>
                       <th className="px-4 py-2">
                         <button
                           type="button"
                           onClick={() => {
-                            setSortField('created_at');
-                            setSortDirection((current) => (sortField === 'created_at' && current === 'desc' ? 'asc' : 'desc'));
-                            setPage(1);
+                            handleSortChange('created_at');
                           }}
                           className="inline-flex items-center gap-2"
                         >
@@ -1082,9 +1145,7 @@ export const ChirmeraScheduleCenterPage: React.FC<ChirmeraScheduleCenterPageProp
                         <button
                           type="button"
                           onClick={() => {
-                            setSortField('updated_at');
-                            setSortDirection((current) => (sortField === 'updated_at' && current === 'desc' ? 'asc' : 'desc'));
-                            setPage(1);
+                            handleSortChange('updated_at');
                           }}
                           className="inline-flex items-center gap-2"
                         >
@@ -1094,7 +1155,17 @@ export const ChirmeraScheduleCenterPage: React.FC<ChirmeraScheduleCenterPageProp
                       </th>
                       <th className="px-4 py-2">开始时间</th>
                       <th className="px-4 py-2">结束时间</th>
-                      <th className="px-4 py-2">失败原因</th>
+                      <th className="relative px-4 py-2">
+                        <div className="inline-flex items-center gap-2">
+                          失败原因
+                          <button type="button" onClick={() => {
+                            setFilters((current) => ({ ...current, hasError: !current.hasError }));
+                            setPage(1);
+                          }} className={`rounded-full border px-2 py-0.5 text-[10px] font-black ${filters.hasError ? 'border-rose-300 bg-rose-50 text-rose-700' : 'border-slate-300 bg-white text-slate-500'}`}>
+                            {filters.hasError ? '仅失败' : '全部'}
+                          </button>
+                        </div>
+                      </th>
                       <th className="px-4 py-2">操作</th>
                     </tr>
                   </thead>

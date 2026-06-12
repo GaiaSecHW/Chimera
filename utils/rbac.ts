@@ -124,7 +124,7 @@ const SUPER_ADMIN_ONLY_VIEWS = new Set<string>([
   'config-center-root',
   'config-center-llm',
   'config-center-llm-chat',
-  'chirmera-platform-schedule',
+  'chimera-platform-schedule',
   'user-mgmt-users',
   'user-mgmt-access',
   'user-mgmt-online',

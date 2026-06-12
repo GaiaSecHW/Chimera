@@ -2260,6 +2260,10 @@ export interface ScheduleCenterUserTaskListResponse {
   total: number;
   items: ScheduleCenterUserTask[];
   stats: Record<string, number>;
+  page?: number;
+  page_size?: number;
+  sort_by?: string | null;
+  sort_direction?: string | null;
 }
 
 export interface ScheduleCenterUserTaskCreatePayload {
@@ -2335,6 +2339,65 @@ export interface ScheduleCenterUserTaskBulkDeleteResult {
   results: ScheduleCenterUserTaskBulkDeleteItemResult[];
 }
 
+export type ScheduleRuntimeTaskType =
+  | 'binary_firmware_e2e'
+  | 'source_scan_e2e'
+  | 'binary_module_e2e'
+  | 'ai4red'
+  | 'ai4apk';
+
+export type ScheduleDispatchMode = 'balanced' | 'fifo' | 'priority_first';
+export type ScheduleQueueStrategy = 'strict_fifo' | 'capacity_aware';
+
+export interface ScheduleRuntimeSchedulerPolicy {
+  dispatch_mode: ScheduleDispatchMode;
+  queue_strategy: ScheduleQueueStrategy;
+  project_default_concurrency: number;
+  target_default_concurrency: number;
+  worker_concurrency: number;
+  ready_backfill_batch_size: number;
+  db_fallback_batch_size: number;
+}
+
+export interface ScheduleRuntimeToolDefault {
+  task_type: ScheduleRuntimeTaskType;
+  label: string;
+  default_concurrency: number;
+  root_task_key_max_concurrency: number;
+  capacity_pool_ids: number[];
+  root_task_key_expires_at?: string | null;
+}
+
+export interface ScheduleRuntimeTimeWindow {
+  name: string;
+  enabled: boolean;
+  start_time: string;
+  end_time: string;
+  scheduler_policy?: ScheduleRuntimeSchedulerPolicy | null;
+  tool_defaults: ScheduleRuntimeToolDefault[];
+}
+
+export interface ScheduleRuntimeEffectiveConfig {
+  source: 'default' | 'database';
+  active_time_window_name?: string | null;
+  timezone: string;
+  scheduler_policy: ScheduleRuntimeSchedulerPolicy;
+  tool_defaults: ScheduleRuntimeToolDefault[];
+}
+
+export interface ScheduleRuntimeConfig {
+  config_key: string;
+  timezone: string;
+  scheduler_policy: ScheduleRuntimeSchedulerPolicy;
+  tool_defaults: ScheduleRuntimeToolDefault[];
+  time_windows: ScheduleRuntimeTimeWindow[];
+  version: number;
+  updated_by?: string | null;
+  updated_at?: string | null;
+  source: 'default' | 'database';
+  effective_now: ScheduleRuntimeEffectiveConfig;
+}
+
 export interface VirtualKeyCreateResult extends VirtualKey {
   plain_text_key?: string | null;
 }
@@ -2359,7 +2422,8 @@ export type ViewType =
   | 'task-nuzhua' | 'task-smart-jar' | 'task-apk-smart-scan' | 'task-binary-end-to-end' | 'task-web-end-to-end'
   | 'developer-atomic-capability' | 'developer-atomic-capability-overview' | 'developer-tools' | 'developer-tools-overview'
   | 'public-resource-pvc-management' | 'public-resource-task-management' | 'test-input-release' | 'test-input-code' | 'test-input-doc' | 'test-input-tasks' | 'test-input-other' | 'pvc-management' | 'project-file-explorer' | 'fileserver-archive-tasks'
-  | 'config-center-root' | 'config-center-llm' | 'config-center-llm-chat' | 'aigw-dashboard' | 'aigw-config' | 'aigw-keys' | 'aigw-logs' | 'aigw-admin' | 'chirmera-platform-schedule'
+  | 'config-center-root' | 'config-center-llm' | 'config-center-llm-chat' | 'aigw-dashboard' | 'aigw-config' | 'aigw-keys' | 'aigw-logs' | 'aigw-admin' | 'chimera-platform-schedule'
+  | 'chimera-platform-schedule-config'
   | 'env-mgmt' | 'env-agent' | 'env-service' | 'env-ai-agent' | 'env-ai-agent-overview' | 'env-ai-helper' | 'env-ai-agent-manage' | 'env-ai-agent-session-manage' | 'env-ai-session' | 'env-ai-batch-session' | 'env-template' | 'env-tasks'
   | 'env-process-monitor-root' | 'env-process-monitor-overview' | 'env-process-monitor-detail' | 'env-process-monitor-tasks'
   | 'system-analysis-root' | 'system-analysis-overview' | 'system-analysis-task' | 'system-analysis-detail' | 'system-analysis-history' | 'system-analysis-prompt' | 'system-analysis-config'
