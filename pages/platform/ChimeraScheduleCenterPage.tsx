@@ -86,6 +86,7 @@ const STATUS_OPTIONS = [
   { value: 'retry_wait', label: '重试中' },
   { value: 'running', label: '进行中' },
   { value: 'succeeded', label: '成功' },
+  { value: 'partial_success', label: '部分成功' },
   { value: 'failed', label: '失败' },
   { value: 'cancelled', label: '已取消' },
 ];
@@ -169,6 +170,7 @@ const getTaskKeyValue = (item: Partial<ScheduleGlobalTaskListItem> | null | unde
 
 const statusTone = (label?: string | null) => {
   if (label === '成功' || label === 'succeeded') return 'border-emerald-200 bg-emerald-50 text-emerald-700';
+  if (label === '部分成功' || label === 'partial_success') return 'border-amber-200 bg-amber-50 text-amber-700';
   if (label === '失败' || label === 'failed' || label === 'timeout') return 'border-rose-200 bg-rose-50 text-rose-700';
   if (label === '重试中' || label === 'retry_wait') return 'border-amber-200 bg-amber-50 text-amber-700';
   if (label === '进行中' || label === 'running' || label === 'dispatching') return 'border-sky-200 bg-sky-50 text-sky-700';
