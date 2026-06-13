@@ -181,6 +181,7 @@ export const VulnEnginePage: React.FC<VulnEnginePageProps> = ({
   const [showEvolutionDialog, setShowEvolutionDialog] = useState(false);
   const [evolutionPreview, setEvolutionPreview] = useState<any | null>(null);
   const [evolutionSubmitting, setEvolutionSubmitting] = useState(false);
+  const [batchSyncingAutoVerify, setBatchSyncingAutoVerify] = useState(false);
   const [evolutionForm, setEvolutionForm] = useState({
     title: '',
     objective: '',
@@ -462,6 +463,35 @@ export const VulnEnginePage: React.FC<VulnEnginePageProps> = ({
 
   const clearEvolutionSelection = () => {
     setSelectedEvolutionCaseIds([]);
+  };
+
+  const handleBatchSyncAutoVerify = async (caseIds: string[]) => {
+    const uniqueCaseIds = Array.from(new Set(caseIds.filter(Boolean)));
+    if (!projectId || !uniqueCaseIds.length) {
+      setError('没有可同步的验证案例。');
+      return;
+    }
+    if (uniqueCaseIds.length > 100) {
+      setError('批量同步一次最多支持 100 个案例，请减少选择后重试。');
+      return;
+    }
+    setBatchSyncingAutoVerify(true);
+    setError(null);
+    setSuccessMessage(null);
+    try {
+      const response = await vulnApi.vuln.syncAutoVerifyTasksBatch({
+        project_id: projectId,
+        case_ids: uniqueCaseIds,
+        only_with_auto_verify_task: true,
+        max_concurrency: 3,
+      });
+      await refreshAll();
+      setSuccessMessage(`批量同步完成：成功 ${response.synced}，跳过 ${response.skipped}，失败 ${response.failed}。`);
+    } catch (err: any) {
+      setError(err?.message || '批量同步自动化验证结果失败');
+    } finally {
+      setBatchSyncingAutoVerify(false);
+    }
   };
 
   const handlePreviewEvolution = async () => {
@@ -910,6 +940,8 @@ export const VulnEnginePage: React.FC<VulnEnginePageProps> = ({
       .some((field: string) => String(field).toLowerCase().includes(keyword));
   });
 
+  const currentBatchSyncCaseIds = filteredCases.map((item) => item.id).filter(Boolean).slice(0, 100);
+
   const nextStageMap: Record<string, string[]> = {
     receive: ['validation'],
     triage: ['validation', 'finished'],
@@ -1275,7 +1307,34 @@ export const VulnEnginePage: React.FC<VulnEnginePageProps> = ({
           onToggleBulkCaseId={toggleEvolutionCaseId}
           onToggleAllVisibleCaseIds={toggleAllVisibleEvolutionCaseIds}
           onClearBulkSelection={clearEvolutionSelection}
-          bulkActionBar={(
+          bulkActionBar={showValidationListFilters ? (
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div className="text-xs text-slate-600">
+                使用 vuln-verification 批量同步接口拉取当前自动化验证任务结果。
+                {filteredCases.length > 100 && ` 当前筛选 ${filteredCases.length} 条，本次最多同步前 100 条。`}
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={() => void handleBatchSyncAutoVerify(selectedEvolutionCaseIds)}
+                  disabled={batchSyncingAutoVerify || selectedEvolutionCaseIds.length === 0}
+                  className="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-3 py-2 text-xs font-black text-white disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  <RefreshCw size={14} className={batchSyncingAutoVerify ? 'animate-spin' : ''} />
+                  {batchSyncingAutoVerify ? '同步中...' : '同步选中'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => void handleBatchSyncAutoVerify(currentBatchSyncCaseIds)}
+                  disabled={batchSyncingAutoVerify || currentBatchSyncCaseIds.length === 0}
+                  className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-black text-slate-700 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  <RefreshCw size={14} className={batchSyncingAutoVerify ? 'animate-spin' : ''} />
+                  {batchSyncingAutoVerify ? '同步中...' : '同步当前筛选前100条'}
+                </button>
+              </div>
+            </div>
+          ) : (
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div className="text-xs text-slate-600">
                 支持从已人工收敛的数据流漏洞案例中，整批预览并创建进化任务。

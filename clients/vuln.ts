@@ -159,6 +159,35 @@ export interface VulnAutoVerifyTaskSyncResponse {
   report_error?: string | null;
 }
 
+export interface VulnAutoVerifyTaskBatchSyncPayload {
+  project_id: string;
+  case_ids: string[];
+  only_with_auto_verify_task?: boolean;
+  max_concurrency?: number | null;
+}
+
+export interface VulnAutoVerifyTaskBatchSyncResponse {
+  project_id: string;
+  total: number;
+  processed: number;
+  synced: number;
+  skipped: number;
+  failed: number;
+  summary: Record<string, any>;
+  items: Array<{
+    case_id: string;
+    status: 'synced' | 'skipped' | 'failed' | string;
+    message: string;
+    reason?: string | null;
+    vuln_verify_task_id?: string | null;
+    task_status?: string | null;
+    case_status?: string | null;
+    validation_result?: string | null;
+    total_reports?: number | null;
+    verdicts?: Record<string, number> | null;
+  }>;
+}
+
 const publicJson = async (url: string, init?: RequestInit) => {
   const response = await fetch(url, init);
   if (!response.ok) {
@@ -291,6 +320,13 @@ export const vulnApi = {
 
   syncAutoVerifyTask: async (caseId: string, payload: VulnAutoVerifyTaskSyncPayload = {}): Promise<VulnAutoVerifyTaskSyncResponse> =>
     handleResponse(await fetch(`${API_BASE}/api/vuln/cases/${encodeURIComponent(caseId)}/auto-verify/sync`, {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify(payload),
+    })),
+
+  syncAutoVerifyTasksBatch: async (payload: VulnAutoVerifyTaskBatchSyncPayload): Promise<VulnAutoVerifyTaskBatchSyncResponse> =>
+    handleResponse(await fetch(`${API_BASE}/api/vuln/cases/auto-verify/sync-batch`, {
       method: 'POST',
       headers: getHeaders(),
       body: JSON.stringify(payload),
