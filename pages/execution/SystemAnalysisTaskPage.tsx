@@ -670,10 +670,12 @@ export const SystemAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask: (
                 event.stopPropagation();
                 void loadClusterCapacity();
               }}
-              className="rounded-xl border border-slate-200 p-2 text-slate-500 hover:bg-slate-50"
-              title="刷新执行槽位摘要"
+              className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50"
+              title="手动刷新执行槽位"
+              aria-label="手动刷新执行槽位"
             >
               <RefreshCw size={14} className={slotLoading ? 'animate-spin' : ''} />
+              手动刷新
             </button>
             <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-[11px] font-bold text-slate-600">
               {clusterCapacitySummary ? `${clusterCapacitySummary.busy_slots} / ${clusterCapacitySummary.total_capacity} 槽位运行中` : '槽位摘要待加载'}

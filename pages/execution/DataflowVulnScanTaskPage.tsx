@@ -1620,6 +1620,19 @@ export const DataflowVulnScanTaskPage: React.FC<{ projectId: string; onOpenTask?
               >
                 查看详情
               </button>
+              <button
+                type="button"
+                onClick={(event) => {
+                  event.stopPropagation();
+                  void loadSlotSummary();
+                }}
+                className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50"
+                title="手动刷新执行槽位"
+                aria-label="手动刷新执行槽位"
+              >
+                <RefreshCw size={14} className={slotSummaryLoading ? 'animate-spin' : ''} />
+                手动刷新
+              </button>
               <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-500">
                 {slotPanelExpanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
               </div>

@@ -1500,9 +1500,12 @@ export const EntryAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?: (
                 event.stopPropagation();
                 void loadSlotCluster();
               }}
-              className="rounded-lg border border-slate-200 p-2 text-slate-500 hover:bg-slate-50"
+              className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50"
+              title="手动刷新执行槽位"
+              aria-label="手动刷新执行槽位"
             >
               <RefreshCw size={14} />
+              手动刷新
             </button>
             {slotCluster ? (
               <button
