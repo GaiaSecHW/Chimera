@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { AlertCircle, CheckCircle2, Clock3, Eye, FileText, Loader2, Plus, RefreshCw, RotateCcw, Search, ShieldCheck, Square, X, XCircle } from 'lucide-react';
-import { vulnVerifyApi, VulnVerifyArtifact, VulnVerifyReportData, VulnVerifyResult, VulnVerifyTask, VulnVerifyTaskDetail } from '../../clients/vulnVerify';
+import { vulnVerifyApi, VulnVerifyArtifact, VulnVerifyProjectStats, VulnVerifyReportData, VulnVerifyResult, VulnVerifyTask, VulnVerifyTaskDetail } from '../../clients/vulnVerify';
 import { ExecutionTable, ExecutionTableHead, ExecutionTableTh, ExecutionTableTd, executionTableInteractiveRowClassName } from '../../components/execution/ExecutionTable';
 import { ServicePageTitle, useServiceBuildVersion } from '../../components/execution/ServiceBuildVersion';
 import { VulnVerifyReportView } from './VulnVerifyReportView';
@@ -27,6 +27,21 @@ const STATUS_BADGE_CLASS: Record<string, string> = {
   failed: 'bg-rose-50 text-rose-700 border-rose-200',
   cancelled: 'bg-amber-50 text-amber-700 border-amber-200',
   cancelling: 'bg-amber-50 text-amber-700 border-amber-200',
+};
+
+const QUICK_STATUS_FILTERS: Array<{ value: string; label: string }> = [
+  { value: '', label: '全部' },
+  { value: 'pending', label: '等待中' },
+  { value: 'running', label: '执行中' },
+  { value: 'success', label: '成功' },
+  { value: 'failed', label: '失败' },
+  { value: 'cancelled', label: '已取消' },
+];
+
+const RESULT_VERDICT_LABEL: Record<string, string> = {
+  confirmed: '已确认漏洞',
+  ruled_out: '已排除漏洞',
+  unresolved: '待进一步确认',
 };
 
 interface CreateFormState {
@@ -99,8 +114,34 @@ function getProgressText(task: VulnVerifyTask): string {
   return task.output_dir || '-';
 }
 
-const SummaryCard: React.FC<{ label: string; value: React.ReactNode; hint?: React.ReactNode; accent?: 'violet' | 'blue' | 'emerald' | 'rose' | 'slate' }> = ({ label, value, hint, accent = 'slate' }) => {
-  const accentClass = accent === 'violet' ? 'text-violet-600' : accent === 'blue' ? 'text-blue-600' : accent === 'emerald' ? 'text-emerald-600' : accent === 'rose' ? 'text-rose-600' : 'text-slate-900';
+function getFilterChipClassName(active: boolean): string {
+  return active
+    ? 'border-violet-300 bg-violet-50 text-violet-700 shadow-sm'
+    : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-50';
+}
+
+function getTaskVerdictCounts(task: VulnVerifyTask): { confirmed: number; ruledOut: number; unresolved: number } {
+  const summary = task.result_summary || {};
+  const verdicts = (summary.verdicts as Record<string, number> | undefined) || {};
+  return {
+    confirmed: Number(summary.confirmed_count ?? verdicts.confirmed ?? 0),
+    ruledOut: Number(summary.ruled_out_count ?? verdicts.ruled_out ?? 0),
+    unresolved: Number(summary.unresolved_count ?? verdicts.unresolved ?? 0),
+  };
+}
+
+const SummaryCard: React.FC<{ label: string; value: React.ReactNode; hint?: React.ReactNode; accent?: 'violet' | 'blue' | 'emerald' | 'rose' | 'amber' | 'slate' }> = ({ label, value, hint, accent = 'slate' }) => {
+  const accentClass = accent === 'violet'
+    ? 'text-violet-600'
+    : accent === 'blue'
+      ? 'text-blue-600'
+      : accent === 'emerald'
+        ? 'text-emerald-600'
+        : accent === 'rose'
+          ? 'text-rose-600'
+          : accent === 'amber'
+            ? 'text-amber-600'
+            : 'text-slate-900';
   return (
     <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
       <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">{label}</div>
@@ -128,16 +169,19 @@ export const VulnVerifyTaskPage: React.FC<{ projectId: string }> = ({ projectId 
   const buildVersion = useServiceBuildVersion(vulnVerifyApi.getHealth);
   const [tasks, setTasks] = useState<VulnVerifyTask[]>([]);
   const [total, setTotal] = useState(0);
+  const [projectStats, setProjectStats] = useState<VulnVerifyProjectStats | null>(null);
   const [health, setHealth] = useState('unknown');
   const [loading, setLoading] = useState(false);
+  const [statsLoading, setStatsLoading] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
 
   const [statusFilter, setStatusFilter] = useState('');
+  const [resultVerdictFilter, setResultVerdictFilter] = useState('');
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
   const [perPage, setPerPage] = useState(20);
-  const [autoRefreshEnabled, setAutoRefreshEnabled] = useState(true);
-  const [refreshIntervalSec, setRefreshIntervalSec] = useState(10);
+  const [autoRefreshEnabled, setAutoRefreshEnabled] = useState(false);
+  const [refreshIntervalSec, setRefreshIntervalSec] = useState(15);
 
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const [creating, setCreating] = useState(false);
@@ -158,6 +202,7 @@ export const VulnVerifyTaskPage: React.FC<{ projectId: string }> = ({ projectId 
   const offset = (page - 1) * perPage;
   const totalPages = Math.max(1, Math.ceil(total / perPage));
   const hasActiveTasks = tasks.some((task) => ACTIVE_STATUSES.has(task.status));
+  const hasFilters = Boolean(statusFilter || resultVerdictFilter || search.trim());
 
   const summary = useMemo(() => {
     const counts = tasks.reduce<Record<string, number>>((acc, task) => {
@@ -172,6 +217,21 @@ export const VulnVerifyTaskPage: React.FC<{ projectId: string }> = ({ projectId 
     };
   }, [tasks]);
 
+  const loadProjectStats = useCallback(async () => {
+    if (!projectId) return;
+    setStatsLoading(true);
+    try {
+      const stats = await vulnVerifyApi.getProjectStats(projectId);
+      setProjectStats(stats);
+      setMessage(null);
+    } catch (error: any) {
+      setProjectStats(null);
+      setMessage(error?.message || String(error));
+    } finally {
+      setStatsLoading(false);
+    }
+  }, [projectId]);
+
   const loadTasks = useCallback(async () => {
     if (!projectId) return;
     setLoading(true);
@@ -181,6 +241,7 @@ export const VulnVerifyTaskPage: React.FC<{ projectId: string }> = ({ projectId 
         vulnVerifyApi.listTasks(projectId, {
           status: statusFilter || undefined,
           search: search.trim() || undefined,
+          resultVerdict: resultVerdictFilter || undefined,
           limit: perPage,
           offset,
         }),
@@ -194,7 +255,11 @@ export const VulnVerifyTaskPage: React.FC<{ projectId: string }> = ({ projectId 
     } finally {
       setLoading(false);
     }
-  }, [projectId, statusFilter, search, perPage, offset]);
+  }, [projectId, statusFilter, resultVerdictFilter, search, perPage, offset]);
+
+  const loadOverview = useCallback(async () => {
+    await Promise.all([loadTasks(), loadProjectStats()]);
+  }, [loadProjectStats, loadTasks]);
 
   const loadDetail = useCallback(async (taskId: string) => {
     if (!projectId || !taskId) return;
@@ -220,20 +285,22 @@ export const VulnVerifyTaskPage: React.FC<{ projectId: string }> = ({ projectId 
   }, [projectId]);
 
   useEffect(() => { void loadTasks(); }, [loadTasks]);
+  useEffect(() => { void loadProjectStats(); }, [loadProjectStats]);
 
   useEffect(() => {
     if (!autoRefreshEnabled) return undefined;
     const intervalMs = Math.max(5, refreshIntervalSec) * 1000;
     const timer = window.setInterval(() => {
-      if (hasActiveTasks) void loadTasks();
+      void loadOverview();
       if (detailModalOpen && selectedTaskId) void loadDetail(selectedTaskId);
     }, intervalMs);
     return () => window.clearInterval(timer);
-  }, [autoRefreshEnabled, refreshIntervalSec, hasActiveTasks, detailModalOpen, selectedTaskId, loadTasks, loadDetail]);
+  }, [autoRefreshEnabled, refreshIntervalSec, detailModalOpen, selectedTaskId, loadOverview, loadDetail]);
 
   useEffect(() => {
     setForm(makeDefaultForm(projectId));
     setPage(1);
+    setProjectStats(null);
   }, [projectId]);
 
   const openCreateModal = () => {
@@ -291,7 +358,7 @@ export const VulnVerifyTaskPage: React.FC<{ projectId: string }> = ({ projectId 
       });
       setCreateModalOpen(false);
       setPage(1);
-      await loadTasks();
+      await loadOverview();
       await openDetailModal(created.id);
       setMessage(`任务已创建: ${created.id}`);
     } catch (error: any) {
@@ -306,7 +373,7 @@ export const VulnVerifyTaskPage: React.FC<{ projectId: string }> = ({ projectId 
     if (!window.confirm('确认取消该漏洞验证任务？')) return;
     try {
       await vulnVerifyApi.terminateTask(projectId, taskId);
-      await loadTasks();
+      await loadOverview();
       if (selectedTaskId === taskId) await loadDetail(taskId);
     } catch (error: any) {
       setMessage(error?.message || String(error));
@@ -318,7 +385,7 @@ export const VulnVerifyTaskPage: React.FC<{ projectId: string }> = ({ projectId 
     if (!window.confirm('确认清空输出并重跑该任务？')) return;
     try {
       await vulnVerifyApi.rerunTask(projectId, taskId);
-      await loadTasks();
+      await loadOverview();
       if (selectedTaskId === taskId) await loadDetail(taskId);
     } catch (error: any) {
       setMessage(error?.message || String(error));
@@ -346,10 +413,10 @@ export const VulnVerifyTaskPage: React.FC<{ projectId: string }> = ({ projectId 
             <div className="flex flex-wrap items-center gap-2">
               <button
                 type="button"
-                onClick={() => void loadTasks()}
+                onClick={() => void loadOverview()}
                 className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-black text-slate-700 shadow-sm hover:bg-slate-50"
               >
-                <RefreshCw size={16} className={loading ? 'animate-spin' : ''} /> 刷新
+                <RefreshCw size={16} className={loading || statsLoading ? 'animate-spin' : ''} /> 刷新
               </button>
               <button
                 type="button"
@@ -368,12 +435,19 @@ export const VulnVerifyTaskPage: React.FC<{ projectId: string }> = ({ projectId 
           </div>
         ) : null}
 
-        <section className="grid gap-4 md:grid-cols-5">
+        <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-5">
           <SummaryCard label="服务健康" value={health} accent={health === 'ok' ? 'emerald' : 'rose'} hint="/api/app/vuln-verify/health" />
           <SummaryCard label="任务总数" value={total} accent="violet" hint="当前筛选结果" />
           <SummaryCard label="运行中" value={summary.running} accent="blue" hint={`等待中 ${summary.pending}`} />
           <SummaryCard label="成功" value={summary.success} accent="emerald" hint="当前页统计" />
           <SummaryCard label="失败" value={summary.failed} accent="rose" hint="当前页统计" />
+        </section>
+
+        <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+          <SummaryCard label="确认" value={projectStats?.confirmed_count ?? '-'} accent="rose" hint="项目级漏洞验证统计" />
+          <SummaryCard label="排除" value={projectStats?.ruled_out_count ?? '-'} accent="emerald" hint="项目级漏洞验证统计" />
+          <SummaryCard label="待确认" value={projectStats?.unresolved_count ?? '-'} accent="amber" hint="项目级漏洞验证统计" />
+          <SummaryCard label="总结果" value={projectStats?.total_results ?? '-'} accent="violet" hint={`项目全部任务${projectStats ? ` · 已验证任务 ${projectStats.verified_tasks}` : ''}`} />
         </section>
 
         <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
@@ -398,6 +472,20 @@ export const VulnVerifyTaskPage: React.FC<{ projectId: string }> = ({ projectId 
                 />
                 秒
               </label>
+              <button
+                type="button"
+                onClick={() => {
+                  setStatusFilter('');
+                  setResultVerdictFilter('');
+                  setSearch('');
+                  setPage(1);
+                }}
+                disabled={!hasFilters}
+                className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-600 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                <X size={13} />
+                清空筛选
+              </button>
               <select
                 value={statusFilter}
                 onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
@@ -405,6 +493,14 @@ export const VulnVerifyTaskPage: React.FC<{ projectId: string }> = ({ projectId 
               >
                 <option value="">全部状态</option>
                 {Object.entries(STATUS_LABEL).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+              </select>
+              <select
+                value={resultVerdictFilter}
+                onChange={(e) => { setResultVerdictFilter(e.target.value); setPage(1); }}
+                className="rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-xs text-slate-600"
+              >
+                <option value="">全部结果</option>
+                {Object.entries(RESULT_VERDICT_LABEL).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
               </select>
               <div className="relative">
                 <Search size={13} className="pointer-events-none absolute left-2.5 top-2 text-slate-400" />
@@ -422,8 +518,8 @@ export const VulnVerifyTaskPage: React.FC<{ projectId: string }> = ({ projectId 
               >
                 {[10, 20, 50, 100].map((n) => <option key={n} value={n}>{n}条/页</option>)}
               </select>
-              <button onClick={() => void loadTasks()} className="rounded-lg border border-slate-200 p-2 text-slate-500 hover:bg-slate-50">
-                <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
+              <button onClick={() => void loadOverview()} className="rounded-lg border border-slate-200 p-2 text-slate-500 hover:bg-slate-50">
+                <RefreshCw size={14} className={loading || statsLoading ? 'animate-spin' : ''} />
               </button>
               <button onClick={openCreateModal} className="inline-flex items-center gap-1.5 rounded-lg bg-violet-700 px-3 py-1.5 text-xs font-semibold text-white hover:bg-violet-800">
                 <Plus size={13} />新建任务
@@ -431,16 +527,44 @@ export const VulnVerifyTaskPage: React.FC<{ projectId: string }> = ({ projectId 
             </div>
           </div>
 
+          <div className="mb-4 flex flex-wrap items-center gap-2">
+            {QUICK_STATUS_FILTERS.map((item) => (
+              <button
+                key={item.label}
+                type="button"
+                onClick={() => {
+                  setStatusFilter(item.value);
+                  setPage(1);
+                }}
+                className={`rounded-full border px-3 py-1.5 text-xs font-bold transition-colors ${getFilterChipClassName(statusFilter === item.value)}`}
+              >
+                {item.label}
+              </button>
+            ))}
+            {resultVerdictFilter ? (
+              <span className="rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs text-emerald-700">
+                结果：{RESULT_VERDICT_LABEL[resultVerdictFilter] || resultVerdictFilter}
+              </span>
+            ) : null}
+            {search.trim() ? (
+              <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs text-slate-500">
+                关键词：{search.trim()}
+              </span>
+            ) : null}
+          </div>
+
           <div className="mb-4 flex flex-wrap items-center gap-3 text-xs text-slate-500">
             <span>自动刷新：{autoRefreshEnabled ? `开启（${Math.max(5, refreshIntervalSec)}s）` : '关闭'}</span>
-            {autoRefreshEnabled && !hasActiveTasks ? <span className="text-amber-600">当前页无活跃任务，自动刷新暂不触发列表刷新</span> : null}
-            {autoRefreshEnabled && hasActiveTasks ? <span className="text-violet-600">检测到活跃任务，按设定间隔刷新</span> : null}
+            {autoRefreshEnabled ? <span className="text-violet-600">按设定间隔刷新任务列表与项目级漏洞验证统计</span> : null}
+            {hasFilters ? <span className="text-slate-600">已按筛选条件查询表格</span> : null}
           </div>
 
           {loading ? (
             <div className="flex items-center gap-2 py-10 text-sm text-slate-500"><Loader2 size={14} className="animate-spin" />加载中...</div>
           ) : tasks.length === 0 ? (
-            <div className="py-16 text-center text-sm text-slate-400">暂无任务，点击右上角「新建任务」创建。</div>
+            <div className="py-16 text-center text-sm text-slate-400">
+              {hasFilters ? '当前筛选条件下暂无任务，建议调整状态或关键词。' : '暂无任务，点击右上角「新建任务」创建。'}
+            </div>
           ) : (
             <ExecutionTable minWidth={1180}>
               <ExecutionTableHead>
@@ -450,7 +574,7 @@ export const VulnVerifyTaskPage: React.FC<{ projectId: string }> = ({ projectId 
                   <ExecutionTableTh>进度/原因</ExecutionTableTh>
                   <ExecutionTableTh>模型</ExecutionTableTh>
                   <ExecutionTableTh>并发</ExecutionTableTh>
-                  <ExecutionTableTh>结果</ExecutionTableTh>
+                  <ExecutionTableTh>验证结果</ExecutionTableTh>
                   <ExecutionTableTh>创建时间</ExecutionTableTh>
                   <ExecutionTableTh>耗时</ExecutionTableTh>
                   <ExecutionTableTh className="text-right">操作</ExecutionTableTh>
@@ -470,9 +594,17 @@ export const VulnVerifyTaskPage: React.FC<{ projectId: string }> = ({ projectId 
                     <ExecutionTableTd className="max-w-[260px]"><div className="truncate text-xs text-slate-600" title={getProgressText(task)}>{getProgressText(task)}</div></ExecutionTableTd>
                     <ExecutionTableTd className="max-w-[220px]"><div className="truncate font-mono text-xs text-slate-600" title={task.model || DEFAULT_MODEL}>{task.model || '-'}</div></ExecutionTableTd>
                     <ExecutionTableTd className="text-xs text-slate-600">{task.concurrency}</ExecutionTableTd>
-                    <ExecutionTableTd className="text-xs text-slate-600">
-                      <div>结果 {task.result_summary?.result_count ?? '-'}</div>
-                      <div className="text-slate-400">分组 {task.result_summary?.done_group_count ?? 0}/{task.result_summary?.group_count ?? 0}</div>
+                    <ExecutionTableTd className="min-w-[180px] text-xs text-slate-600">
+                      {(() => {
+                        const verdictCounts = getTaskVerdictCounts(task);
+                        return (
+                          <>
+                            <div className="font-semibold text-rose-600">确认 {verdictCounts.confirmed}</div>
+                            <div className="mt-1 text-emerald-700">排除 {verdictCounts.ruledOut}</div>
+                            <div className="mt-1 text-slate-400">待确认 {verdictCounts.unresolved}</div>
+                          </>
+                        );
+                      })()}
                     </ExecutionTableTd>
                     <ExecutionTableTd className="whitespace-nowrap text-xs text-slate-500">{formatDate(task.created_at)}</ExecutionTableTd>
                     <ExecutionTableTd className="whitespace-nowrap text-xs text-slate-500">{formatDuration(task.started_at, task.finished_at)}</ExecutionTableTd>

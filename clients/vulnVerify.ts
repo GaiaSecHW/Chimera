@@ -128,14 +128,28 @@ export interface VulnVerifyReportData {
   groups: VulnVerifyReportGroup[];
 }
 
+export interface VulnVerifyProjectStats {
+  total_tasks: number;
+  verified_tasks: number;
+  total_results: number;
+  confirmed_count: number;
+  ruled_out_count: number;
+  unresolved_count: number;
+  unverified_count?: number;
+}
+
 export const vulnVerifyApi = {
   getHealth: async (): Promise<{ status: string; service?: string } & ServiceHealthMeta> =>
     getJsonWithDedupe(`${BASE}/health`, { headers: getHeaders() }),
 
-  listTasks: async (projectId: string, params?: { status?: string; search?: string; limit?: number; offset?: number }): Promise<{ total: number; items: VulnVerifyTask[] }> => {
+  getProjectStats: async (projectId: string): Promise<VulnVerifyProjectStats> =>
+    getJsonWithDedupe(`${BASE}/projects/${encodeURIComponent(projectId)}/stats`, { headers: getHeaders() }),
+
+  listTasks: async (projectId: string, params?: { status?: string; search?: string; resultVerdict?: string; limit?: number; offset?: number }): Promise<{ total: number; items: VulnVerifyTask[] }> => {
     const query = new URLSearchParams();
     if (params?.status) query.set('status', params.status);
     if (params?.search) query.set('search', params.search);
+    if (params?.resultVerdict) query.set('result_verdict', params.resultVerdict);
     if (params?.limit) query.set('limit', String(params.limit));
     if (params?.offset) query.set('offset', String(params.offset));
     const suffix = query.toString() ? `?${query}` : '';
