@@ -174,6 +174,24 @@ const taskDisplayStatus = (status?: string | null, operationState?: ManualOperat
   return status || '';
 };
 
+const taskRuntimeOwnerSummary = (detail: BinarySecurityTaskDetail) => {
+  const runtimePhase = String(detail.runtime_phase || '').trim();
+  const dispatcherOwner = String(detail.dispatcher_instance_id || detail.task_lease_owner_instance_id || '').trim();
+  const reconcileOwner = String(detail.reconcile_owner_instance_id || '').trim();
+  if (runtimePhase === 'tail_reconciliation') {
+    return {
+      label: '当前持有者',
+      value: reconcileOwner ? `reducer · ${reconcileOwner}` : 'reducer · -',
+      hint: detail.reconcile_lease_expires_at ? `lease 到期 ${fmt(detail.reconcile_lease_expires_at)}` : detail.tail_reconcile_state || '-',
+    };
+  }
+  return {
+    label: '当前持有者',
+    value: dispatcherOwner ? `worker · ${dispatcherOwner}` : 'worker · -',
+    hint: detail.task_lease_expires_at ? `lease 到期 ${fmt(detail.task_lease_expires_at)}` : detail.runtime_phase || '-',
+  };
+};
+
 const statusTone = (status: string) => {
   switch (status) {
     case 'success':
@@ -1525,13 +1543,14 @@ function deriveTaskStatusReason(detail: BinarySecurityTaskDetail): TaskStatusRea
   }
 
   if (detail.status === 'queued') {
+    const owner = taskRuntimeOwnerSummary(detail);
     return {
       tone: 'info',
       title: '任务正在队列中等待调度',
       description: '当前任务已经入队，但尚未获得 binary-security 编排器执行名额。',
       evidence: [
         { label: '队列位置', value: detail.queue_position ? `第 ${detail.queue_position} 位` : '-' },
-        { label: '调度实例', value: detail.dispatcher_instance_id || '-' },
+        { label: owner.label, value: owner.value },
       ],
     };
   }
@@ -1563,11 +1582,13 @@ function deriveTaskStatusReason(detail: BinarySecurityTaskDetail): TaskStatusRea
   }
 
   if (detail.queue_state === 'tail_reconciling' || detail.tail_reconcile_state === 'handoff_waiting') {
+    const owner = taskRuntimeOwnerSummary(detail);
     return {
       tone: 'info',
       title: '任务正在收口切换',
       description: '当前任务处于 tail reconcile handoff 阶段，编排器正在等待新的 owner 接管或完成下游状态同步。',
       evidence: [
+        { label: owner.label, value: owner.value },
         { label: '收口状态', value: detail.tail_reconcile_state || '-' },
         { label: '恢复原因', value: detail.recoverable_reason || '-' },
       ],
@@ -1984,6 +2005,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
   const canActOnTask = Boolean(detail);
   const manualOperationState = detail?.manual_operation_state;
   const displayTaskStatus = taskDisplayStatus(detail?.status, manualOperationState);
+  const runtimeOwner = detail ? taskRuntimeOwnerSummary(detail) : null;
   const isManualOperationInProgress = Boolean(manualOperationState?.operation_in_progress);
   const taskRetrySupported = Boolean(manualOperationState?.can_retry ?? detail?.task_retry_supported);
   const taskRetryReason = manualOperationState?.blocking_reason || detail?.task_retry_reason || '当前任务不可严格清理后从头开始';
@@ -3889,6 +3911,13 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                   <span className={`rounded-full border px-3 py-1 text-xs font-black ${statusTone(displayTaskStatus)}`}>{formatBinarySecurityStatus(displayTaskStatus)}</span>
                   <span className="text-sm text-slate-500">当前阶段：{STAGE_LABELS[detail.current_stage || ''] || detail.current_stage || '-'}</span>
                 </div>
+                {runtimeOwner ? (
+                  <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
+                    <div className="text-[10px] font-bold uppercase tracking-[0.18em] text-slate-400">{runtimeOwner.label}</div>
+                    <div className="mt-1 break-all font-mono text-xs font-bold text-slate-800">{runtimeOwner.value}</div>
+                    <div className="mt-1 text-[11px] text-slate-500">{runtimeOwner.hint}</div>
+                  </div>
+                ) : null}
                 {manualOperationState?.operation_in_progress && manualOperationState?.operation_type === 'continue' ? (
                   <div className="mt-4 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
                     正在继续任务准备。后台正在定位下一个可执行阶段并清理必要结果。
