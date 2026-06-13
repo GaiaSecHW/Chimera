@@ -346,7 +346,7 @@ const STAGE_TEXT: Record<string, string> = {
 const STATUS_TEXT: Record<string, string> = {
   intake_created: '已接收',
   files_collecting: '文件收集中',
-  ready_for_triage: '待研判',
+  ready_for_triage: '待验证',
   waiting: '等待中',
   ai_assessing: 'AI 研判中',
   manual_assessing: '人工研判中',

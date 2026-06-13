@@ -185,7 +185,7 @@ export const VALIDATION_RESULT_LABELS: Record<string, string> = {
 export const CASE_STATUS_LABELS: Record<string, string> = {
   intake_created: '已接收',
   files_collecting: '材料收集中',
-  ready_for_triage: '待研判',
+  ready_for_triage: '待验证',
   waiting: '等待研判',
   ai_assessing: 'AI 研判中',
   manual_assessing: '人工研判中',

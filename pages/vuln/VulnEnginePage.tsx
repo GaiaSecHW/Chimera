@@ -896,7 +896,7 @@ export const VulnEnginePage: React.FC<VulnEnginePageProps> = ({
   });
 
   const nextStageMap: Record<string, string[]> = {
-    receive: ['triage'],
+    receive: ['validation'],
     triage: ['validation', 'finished'],
     validation: ['finished'],
     finished: [],

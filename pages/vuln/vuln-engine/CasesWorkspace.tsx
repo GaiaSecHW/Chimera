@@ -209,7 +209,7 @@ export const CasesWorkspace: React.FC<any> = ({
     });
   }, [filteredCases]);
   const getCaseAttentionBadge = (item: any) => {
-    if (item.current_stage === 'triage' && item.triage_gate === 'pending') return { label: '待研判决策', tone: 'bg-amber-100 text-amber-700' };
+    if (item.current_stage === 'triage' && item.triage_gate === 'pending') return { label: '待验证准入', tone: 'bg-amber-100 text-amber-700' };
     if (item.current_stage === 'triage' && item.current_status === 'manual_assessing') return { label: '待人工分析', tone: 'bg-blue-100 text-blue-700' };
     if (item.current_stage === 'validation' && item.current_status === 'reproducing') return { label: '复现进行中', tone: 'bg-emerald-100 text-emerald-700' };
     if (item.current_stage === 'validation' && item.current_status === 'evidence_collecting') return { label: '待补证据', tone: 'bg-amber-100 text-amber-700' };
