@@ -19,13 +19,12 @@ interface VulnPageProps {
   onNavigateToView?: (view: string) => void;
 }
 
-const STAGE_ORDER = ['receive', 'triage', 'validation', 'finished'];
+const STAGE_ORDER = ['receive', 'validation', 'finished'];
 const SEVERITY_ORDER = ['critical', 'high', 'medium', 'low'];
 const STAGE_EXPLANATIONS: Record<string, string> = {
-  receive: '已接收漏洞，未进入研判。',
-  triage: '正在研判，尚无最终研判结果。',
+  receive: '已接收漏洞，等待进入验证。',
   validation: '正在真实验证，尚无最终验证结果。',
-  finished: '生命周期终态，已人工结束。',
+  finished: '生命周期终态，已形成漏洞或归档结论。',
 };
 
 const severityPalette: Record<string, string> = {
@@ -179,10 +178,10 @@ export const VulnOverviewPage: React.FC<VulnPageProps> = ({ projectId }) => {
           <div className={cardClass}>
             <div className="border-b border-slate-100 px-5 py-4">
               <h3 className="text-base font-black text-slate-900">生命周期流转</h3>
-              <p className="mt-1 text-xs text-slate-500">四阶段定义与当前项目分布。</p>
+              <p className="mt-1 text-xs text-slate-500">上报、验证、漏洞/归档三段主流程与当前项目分布。</p>
             </div>
             <div className="p-5">
-              <div className="grid gap-3 md:grid-cols-4">
+              <div className="grid gap-3 md:grid-cols-3">
                 {STAGE_ORDER.map((stage, index) => (
                   <div key={stage} className="relative rounded-[1.2rem] border border-slate-200 bg-[rgba(255,255,255,0.04)] px-4 py-3">
                     {index < STAGE_ORDER.length - 1 && (

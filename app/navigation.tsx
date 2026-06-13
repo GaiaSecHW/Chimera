@@ -535,7 +535,6 @@ export const SIDEBAR_SECTIONS: Record<TopLevelNavKey, NavSection[]> = {
       items: [
         { id: 'vuln-overview', label: '生命周期总览', icon: Cpu, aliases: ['vuln-engine'], requiresProject: true, healthKey: 'vulnHealth' },
         { id: 'vuln-intake', label: '疑点中心', icon: FolderOpen, requiresProject: true },
-        { id: 'vuln-analysis', label: '研判中心', icon: GitBranch, aliases: ['vuln-analysis-detail'], requiresProject: true },
         { id: 'vuln-verification', label: '验证阶段', icon: ShieldCheck, aliases: ['vuln-verification-detail'], requiresProject: true },
         { id: 'vuln-decision', label: '漏洞中心', icon: ShieldAlert, aliases: ['vuln-decision-detail'], requiresProject: true },
         { id: 'vuln-queue', label: '运行队列', icon: Workflow, requiresProject: true },

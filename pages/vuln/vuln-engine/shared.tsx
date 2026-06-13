@@ -84,11 +84,6 @@ export const LIFECYCLE_NAV_ITEMS = [
     description: '聚焦接收阶段，处理新上报疑点与纳管准备。',
   },
   {
-    view: 'vuln-analysis',
-    label: '研判中心',
-    description: '围绕研判阶段调度 AI/人工研判，支持多轮研判与人工放行。',
-  },
-  {
     view: 'vuln-verification',
     label: '验证阶段',
     description: '聚焦验证阶段，执行 POC/EXP 生成、复现与环境验证。',
@@ -134,9 +129,8 @@ export const LIFECYCLE_VIEW_STAGE_MAP: Record<string, string[]> = {
 
 export const LIFECYCLE_STAGE_FLOW = [
   { view: 'vuln-intake', label: '上报' },
-  { view: 'vuln-analysis', label: '研判' },
   { view: 'vuln-verification', label: '验证' },
-  { view: 'vuln-decision', label: '漏洞' },
+  { view: 'vuln-decision', label: '漏洞/归档' },
 ] as const;
 
 export const severityTone: Record<string, string> = {

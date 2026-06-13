@@ -56,7 +56,7 @@ export const VulnAutoVerifyCreatePage: React.FC<VulnAutoVerifyCreatePageProps> =
 
   const loadContext = async (targetCaseId = caseId) => {
     if (!targetCaseId.trim()) {
-      setError('未找到研判案例 ID，请从研判中心选择单个案例后再创建自动化验证任务。');
+      setError('未找到案例 ID，请从验证复现工作台选择单个案例后再创建自动化验证任务。');
       setLoading(false);
       return;
     }
@@ -135,7 +135,8 @@ export const VulnAutoVerifyCreatePage: React.FC<VulnAutoVerifyCreatePageProps> =
 
   const goBack = () => {
     if (context?.case_id) localStorage.setItem(ANALYSIS_DETAIL_TARGET_KEY, context.case_id);
-    onNavigateToView?.('vuln-analysis-detail');
+    localStorage.setItem('chimera-vuln-open-verification-case-id', context?.case_id || caseId);
+    onNavigateToView?.('vuln-verification-detail');
   };
 
   return (
@@ -149,12 +150,12 @@ export const VulnAutoVerifyCreatePage: React.FC<VulnAutoVerifyCreatePageProps> =
               className="inline-flex items-center gap-2 rounded-xl border border-theme-border bg-theme-surface px-4 py-2.5 text-sm font-black text-theme-text-secondary shadow-sm transition hover:text-theme-text-primary"
             >
               <ArrowLeft size={16} />
-              返回研判详情
+              返回验证详情
             </button>
             <div>
               <div className="text-[11px] font-black uppercase tracking-[0.24em] text-blue-500">Auto Verification</div>
               <h1 className="mt-1 text-2xl font-black text-theme-text-primary">新建自动化验证任务</h1>
-              <p className="mt-1 text-sm text-theme-text-secondary">从单个研判案例自动获取源码/二进制路径，编辑威胁模型后创建漏洞验证任务。</p>
+              <p className="mt-1 text-sm text-theme-text-secondary">从单个验证案例自动获取源码/二进制路径，编辑威胁模型后创建漏洞验证任务。</p>
             </div>
           </div>
           <button
@@ -178,7 +179,7 @@ export const VulnAutoVerifyCreatePage: React.FC<VulnAutoVerifyCreatePageProps> =
             </div>
             <div className="mt-4 flex flex-wrap gap-2">
               <button type="button" onClick={() => onNavigateToView?.('pentest-vuln-verify')} className="rounded-xl bg-emerald-600 px-4 py-2 text-xs font-black text-white">查看验证任务</button>
-              <button type="button" onClick={goBack} className="rounded-xl border border-emerald-200 bg-white px-4 py-2 text-xs font-black text-emerald-700">返回研判详情</button>
+              <button type="button" onClick={goBack} className="rounded-xl border border-emerald-200 bg-white px-4 py-2 text-xs font-black text-emerald-700">返回验证详情</button>
             </div>
           </div>
         ) : null}

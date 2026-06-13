@@ -1343,13 +1343,13 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
     try {
       await vulnApi.vuln.updateReceiveStatus(selectedDetail.id, {
         receive_status: 'ready_for_triage',
-        summary: '接收阶段信息已补齐，标记为待研判',
+        summary: '接收阶段信息已补齐，标记为待验证',
       });
       await Promise.all([loadOverview(), loadSuspicions()]);
       await loadSuspicionDetail(selectedDetail.id);
-      setSuccessMessage('疑点已标记为待研判。');
+      setSuccessMessage('疑点已标记为待验证。');
     } catch (err: any) {
-      setError(err?.message || '标记待研判失败');
+      setError(err?.message || '标记待验证失败');
     } finally {
       setProcessingAction(null);
     }
@@ -1830,7 +1830,7 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
               className="inline-flex items-center gap-2 rounded-xl border border-blue-200 bg-blue-50 px-3.5 py-2.5 text-sm font-black text-blue-700 disabled:opacity-50"
             >
               <Check size={15} />
-              {processingAction === 'ready_for_triage' ? '处理中...' : '标记待研判'}
+              {processingAction === 'ready_for_triage' ? '处理中...' : '标记待验证'}
             </button>
             <button
               type="button"
@@ -2572,7 +2572,7 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
               <div className="mt-2 text-3xl font-black text-rose-600">{stats.highRisk}</div>
             </div>
             <div className="rounded-[1.5rem] border border-slate-200 bg-white px-4 py-3.5 shadow-sm">
-              <div className="text-[10px] font-black uppercase tracking-[0.22em] text-slate-400">待研判</div>
+              <div className="text-[10px] font-black uppercase tracking-[0.22em] text-slate-400">待验证</div>
               <div className="mt-2 text-3xl font-black text-amber-600">{stats.pendingAnalyze}</div>
             </div>
             <div className="rounded-[1.5rem] border border-slate-200 bg-white px-4 py-3.5 shadow-sm">

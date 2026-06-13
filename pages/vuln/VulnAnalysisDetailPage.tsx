@@ -17,11 +17,11 @@ export const VulnAnalysisDetailPage: React.FC<VulnPageProps> = ({ projectId, onN
       <div className="px-6 pt-6 xl:px-8">
         <button
           type="button"
-          onClick={() => onNavigateToView?.('vuln-analysis')}
+          onClick={() => onNavigateToView?.('vuln-verification')}
           className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-black text-slate-700 shadow-sm"
         >
           <ArrowLeft size={16} />
-          返回研判列表
+          返回验证列表
         </button>
       </div>
       <VulnEnginePage
@@ -55,7 +55,6 @@ export const VulnAnalysisDetailPage: React.FC<VulnPageProps> = ({ projectId, onN
           '确认研判结论后，推进到验证阶段或结束案例。'
         ]}
         phaseActionLinks={[
-          { label: '返回研判列表', view: 'vuln-analysis' },
           { label: '去验证复现', view: 'vuln-verification' },
         ]}
         initialSelectedCaseId={targetCaseId}
