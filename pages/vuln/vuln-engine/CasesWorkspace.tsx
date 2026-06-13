@@ -61,6 +61,13 @@ export const CasesWorkspace: React.FC<any> = ({
   setCaseSearch,
   stageFilter,
   setStageFilter,
+  showValidationFilters = false,
+  validationStatusFilter = 'all',
+  setValidationStatusFilter,
+  validationConclusionFilter = 'all',
+  setValidationConclusionFilter,
+  severityFilter = 'all',
+  setSeverityFilter,
   caseForm,
   setCaseForm,
   submittingCase,
@@ -132,6 +139,13 @@ export const CasesWorkspace: React.FC<any> = ({
   const [newPanelTitle, setNewPanelTitle] = React.useState('');
   const [newPanelContent, setNewPanelContent] = React.useState('');
   const emptyStateText = hideStageFilter ? '当前阶段没有案例' : '当前筛选条件下没有案例';
+  const validationStatusOptions = ['all', 'queued', 'evidence_collecting', 'validation_completed', 'reproducing', 'failed'];
+  const validationStatusLabels = { ...CASE_STATUS_LABELS, failed: '失败' };
+  const validationConclusionOptions = ['all', 'vulnerable', 'not_vulnerable', 'inconclusive'];
+  const severityOptions = ['all', 'critical', 'high', 'medium', 'low'];
+  const filterSelectClass = compactLayout
+    ? 'min-w-[8.5rem] flex-1 rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-xs font-bold text-slate-700 outline-none'
+    : 'min-w-[10rem] flex-1 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-700 outline-none';
   const openTasks = taskItems.filter((item: any) => item.status !== 'completed' && item.status !== 'closed');
   const openManualAnalysisTasks = taskItems.filter((item: any) => ['manual_analysis', 'manual_review'].includes(item.task_type) && item.status !== 'completed' && item.status !== 'closed');
   const openManualValidationTasks = taskItems.filter((item: any) => item.task_type === 'manual_validation' && item.status !== 'completed' && item.status !== 'closed');
@@ -317,6 +331,46 @@ export const CasesWorkspace: React.FC<any> = ({
             placeholder="搜索标题、摘要、资产定位"
             className={compactLayout ? 'w-full px-3 py-2.5 rounded-xl border border-slate-200 outline-none text-sm' : 'w-full px-4 py-3 rounded-2xl border border-slate-200 outline-none'}
           />
+          {showValidationFilters && (
+            <div className="grid grid-cols-1 gap-2 md:grid-cols-3">
+              <select
+                aria-label="验证状态筛选"
+                value={validationStatusFilter}
+                onChange={(event) => setValidationStatusFilter?.(event.target.value)}
+                className={filterSelectClass}
+              >
+                {validationStatusOptions.map((option) => (
+                  <option key={option} value={option}>
+                    {option === 'all' ? '全部状态' : labelOf(option, validationStatusLabels)}
+                  </option>
+                ))}
+              </select>
+              <select
+                aria-label="验证结论筛选"
+                value={validationConclusionFilter}
+                onChange={(event) => setValidationConclusionFilter?.(event.target.value)}
+                className={filterSelectClass}
+              >
+                {validationConclusionOptions.map((option) => (
+                  <option key={option} value={option}>
+                    {option === 'all' ? '全部结论' : labelOf(option, VALIDATION_RESULT_LABELS)}
+                  </option>
+                ))}
+              </select>
+              <select
+                aria-label="漏洞等级筛选"
+                value={severityFilter}
+                onChange={(event) => setSeverityFilter?.(event.target.value)}
+                className={filterSelectClass}
+              >
+                {severityOptions.map((option) => (
+                  <option key={option} value={option}>
+                    {option === 'all' ? '全部等级' : labelOf(option, SEVERITY_LABELS)}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
           {enableBulkSelection && (
             <div className="rounded-2xl border border-amber-200 bg-amber-50/70 px-4 py-3">
               <div className="flex flex-wrap items-center justify-between gap-3">
