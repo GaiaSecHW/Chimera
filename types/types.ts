@@ -2329,6 +2329,8 @@ export interface ScheduleCenterUserTask {
   delete_finished_at?: string | null;
   last_error?: string | null;
   created_by: string;
+  started_at?: string | null;
+  finished_at?: string | null;
   updated_at: string;
   created_at: string;
 }

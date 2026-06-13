@@ -16,6 +16,11 @@ import {
   RefreshCw,
   Search,
   ServerCog,
+  Eye,
+  ListChecks,
+  RotateCcw,
+  Trash2,
+  ExternalLink,
   TimerReset,
   Workflow,
   X,
@@ -238,8 +243,8 @@ const mapUserTaskToGlobalTaskItem = (
   created_by: task.created_by,
   created_at: task.created_at,
   updated_at: task.updated_at,
-  started_at: null,
-  finished_at: null,
+  started_at: task.started_at || null,
+  finished_at: task.finished_at || null,
   last_error: task.last_error,
 });
 
@@ -1015,8 +1020,8 @@ export const ChimeraScheduleCenterPage: React.FC<ChimeraScheduleCenterPageProps>
   );
 
   return (
-    <div className="min-h-full bg-[radial-gradient(circle_at_top_left,rgba(14,165,233,0.10),transparent_24%),linear-gradient(180deg,#f8fafc_0%,#eef2f7_100%)] px-4 py-6 md:px-8">
-      <div className="mx-auto max-w-[1760px] space-y-6">
+    <div className="min-h-full bg-[radial-gradient(circle_at_top_left,rgba(14,165,233,0.10),transparent_24%),linear-gradient(180deg,#f8fafc_0%,#eef2f7_100%)] px-4 py-6 md:px-8 2xl:px-10">
+      <div className="w-full space-y-6">
         {notice ? (
           <div className="rounded-2xl border border-amber-200 bg-amber-50 px-5 py-4 text-sm font-bold text-amber-800">
             {notice}
@@ -1251,9 +1256,9 @@ export const ChimeraScheduleCenterPage: React.FC<ChimeraScheduleCenterPageProps>
                       </th>
                       <th className="relative px-4 py-2">
                         <div className="inline-flex items-center gap-2">
-                          <button type="button" onClick={() => handleSortChange('dispatch_status')} className="inline-flex items-center gap-2">
-                            当前状态
-                            {sortIndicator('dispatch_status', sortField, sortDirection)}
+                          <button type="button" onClick={() => handleSortChange('downstream_status_mapped')} className="inline-flex items-center gap-2">
+                            状态
+                            {sortIndicator('downstream_status_mapped', sortField, sortDirection)}
                           </button>
                           <button type="button" onClick={() => setOpenColumnFilter((current) => current === 'status' ? null : 'status')} className="text-slate-400 hover:text-slate-700">
                             <ChevronDown size={14} />
@@ -1279,12 +1284,6 @@ export const ChimeraScheduleCenterPage: React.FC<ChimeraScheduleCenterPageProps>
                           </div>
                         ) : null}
                       </th>
-                      <th className="px-4 py-2">
-                        <button type="button" onClick={() => handleSortChange('downstream_status_mapped')} className="inline-flex items-center gap-2">
-                          展示状态
-                          {sortIndicator('downstream_status_mapped', sortField, sortDirection)}
-                        </button>
-                      </th>
                       <th className="px-4 py-2">项目</th>
                       <th className="px-4 py-2">
                         <button type="button" onClick={() => handleSortChange('business_status')} className="inline-flex items-center gap-2">
@@ -1293,13 +1292,6 @@ export const ChimeraScheduleCenterPage: React.FC<ChimeraScheduleCenterPageProps>
                         </button>
                       </th>
                       <th className="px-4 py-2">重试次数</th>
-                      <th className="px-4 py-2">
-                        <button type="button" onClick={() => handleSortChange('downstream_task_id')} className="inline-flex items-center gap-2">
-                          下游任务 ID
-                          {sortIndicator('downstream_task_id', sortField, sortDirection)}
-                        </button>
-                      </th>
-                      <th className="px-4 py-2">Root Task Key</th>
                       <th className="px-4 py-2">
                         <button type="button" onClick={() => handleSortChange('created_by')} className="inline-flex items-center gap-2">
                           创建人
@@ -1349,7 +1341,7 @@ export const ChimeraScheduleCenterPage: React.FC<ChimeraScheduleCenterPageProps>
                   <tbody>
                     {loadingTable ? (
                       <tr>
-                        <td colSpan={17} className="px-4 py-12 text-center text-sm font-bold text-slate-500">
+                        <td colSpan={14} className="px-4 py-12 text-center text-sm font-bold text-slate-500">
                           全局任务列表加载中...
                         </td>
                       </tr>
@@ -1369,7 +1361,6 @@ export const ChimeraScheduleCenterPage: React.FC<ChimeraScheduleCenterPageProps>
                             <div className="mt-1 text-xs text-slate-500">{item.task_id}</div>
                           </td>
                           <td className="px-4 py-4 align-top text-sm font-semibold text-slate-700">{item.task_type || '-'}</td>
-                          <td className="px-4 py-4 align-top text-sm font-semibold text-slate-700">{item.current_status || '-'}</td>
                           <td className="px-4 py-4 align-top">
                             <span className={`rounded-full border px-3 py-1 text-[11px] font-black uppercase tracking-[0.18em] ${statusTone(item.display_status_group)}`}>
                               {summarizeStatus(item)}
@@ -1378,8 +1369,6 @@ export const ChimeraScheduleCenterPage: React.FC<ChimeraScheduleCenterPageProps>
                           <td className="px-4 py-4 align-top text-sm font-semibold text-slate-700">{item.project_name || item.project_id || '-'}</td>
                           <td className="px-4 py-4 align-top text-sm font-semibold text-slate-700">{item.queue_state || '-'}</td>
                           <td className="px-4 py-4 align-top text-sm font-semibold text-slate-700">{item.retry_count ?? 0}</td>
-                          <td className="px-4 py-4 align-top text-xs font-bold text-slate-600">{item.downstream_task_id || '-'}</td>
-                          <td className="px-4 py-4 align-top text-xs font-bold text-slate-600">{getTaskKeyValue(item)}</td>
                           <td className="px-4 py-4 align-top text-sm font-semibold text-slate-700">{item.created_by || '-'}</td>
                           <td className="px-4 py-4 align-top text-xs font-semibold text-slate-600">{formatTime(item.created_at)}</td>
                           <td className="px-4 py-4 align-top text-xs font-semibold text-slate-600">{formatTime(item.updated_at)}</td>
@@ -1387,37 +1376,47 @@ export const ChimeraScheduleCenterPage: React.FC<ChimeraScheduleCenterPageProps>
                           <td className="px-4 py-4 align-top text-xs font-semibold text-slate-600">{formatTime(item.finished_at)}</td>
                           <td className="max-w-[220px] px-4 py-4 align-top text-xs font-semibold text-rose-700">{item.last_error || '-'}</td>
                           <td className="rounded-r-[1.5rem] px-4 py-4 align-top">
-                            <div className="flex flex-col gap-2">
+                            <div className="flex items-center gap-2">
                               <button
                                 onClick={() => void openTaskDetail(item)}
-                                className="rounded-xl border border-slate-200 px-3 py-2 text-xs font-black text-slate-700 transition hover:bg-slate-50"
+                                title="查看详情"
+                                aria-label="查看详情"
+                                className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 text-slate-700 transition hover:bg-slate-50"
                               >
-                                查看详情
+                                <Eye size={16} />
                               </button>
                               <button
                                 onClick={() => void handleViewExecution(item)}
-                                className="rounded-xl border border-slate-200 px-3 py-2 text-xs font-black text-slate-700 transition hover:bg-slate-50"
+                                title="查看执行记录"
+                                aria-label="查看执行记录"
+                                className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 text-slate-700 transition hover:bg-slate-50"
                               >
-                                查看执行记录
+                                <ListChecks size={16} />
                               </button>
                               <button
                                 onClick={() => void handleRetryDispatch(item)}
-                                className="rounded-xl bg-slate-900 px-3 py-2 text-xs font-black text-white transition hover:bg-slate-800"
+                                title="重试分发"
+                                aria-label="重试分发"
+                                className="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-slate-900 text-white transition hover:bg-slate-800"
                               >
-                                重试分发
+                                <RotateCcw size={16} />
                               </button>
                               <button
                                 onClick={() => void handleDeleteTasks('selected', item)}
-                                className="rounded-xl bg-rose-600 px-3 py-2 text-xs font-black text-white transition hover:bg-rose-700"
+                                title="删除任务"
+                                aria-label="删除任务"
+                                className="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-rose-600 text-white transition hover:bg-rose-700"
                               >
-                                删除任务
+                                <Trash2 size={16} />
                               </button>
                               {item.downstream_detail_view ? (
                                 <button
                                   onClick={() => window.open(item.downstream_detail_view || '', '_blank', 'noopener,noreferrer')}
-                                  className="rounded-xl border border-slate-200 px-3 py-2 text-xs font-black text-slate-700 transition hover:bg-slate-50"
+                                  title="跳转下游任务"
+                                  aria-label="跳转下游任务"
+                                  className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 text-slate-700 transition hover:bg-slate-50"
                                 >
-                                  跳转下游任务
+                                  <ExternalLink size={16} />
                                 </button>
                               ) : null}
                             </div>
