@@ -439,6 +439,12 @@ function isHeartbeatExpired(heartbeatAgeSeconds?: number | null): boolean {
   return typeof heartbeatAgeSeconds === 'number' && Number.isFinite(heartbeatAgeSeconds) && heartbeatAgeSeconds > 300;
 }
 
+function isLeaseExpired(leaseUntil?: string | null): boolean {
+  if (!leaseUntil) return false;
+  const ts = new Date(leaseUntil).getTime();
+  return Number.isFinite(ts) && ts < Date.now();
+}
+
 function getExecutionSlotView(task: DataflowScanTask): {
   state: ExecutionSlotState;
   filterState: ExecutionSlotFilterState;
@@ -449,12 +455,18 @@ function getExecutionSlotView(task: DataflowScanTask): {
   className: string;
 } {
   const status = normalizeRunStatus(task.status);
-  const ownerFull = String(task.owner_pod_id || '').trim();
+  const ownerFull = String(task.execution_owner_id || task.owner_pod_id || '').trim();
   const ownerLabel = parseOwnerHost(ownerFull);
   const dispatchStatus = String(task.dispatch_status || '').trim();
-  const heartbeat = task.heartbeat_at ? `心跳 ${new Date(task.heartbeat_at).toLocaleString('zh-CN')}` : '';
+  const heartbeatAt = task.execution_heartbeat_at || task.heartbeat_at;
+  const heartbeat = heartbeatAt ? `心跳 ${new Date(heartbeatAt).toLocaleString('zh-CN')}` : '';
   const heartbeatAge = typeof task.heartbeat_age_seconds === 'number' ? `距今 ${task.heartbeat_age_seconds}s` : '';
+  const lease = task.execution_lease_until ? `租约至 ${new Date(task.execution_lease_until).toLocaleString('zh-CN')}` : '';
   const terminal = ['completed', 'failed', 'interrupted', 'cancelled'].includes(status);
+  const queued = dispatchStatus === 'queued' || dispatchStatus === 'dispatching' || dispatchStatus === 'leased' || status === 'queued';
+  const canonicalOwner = String(task.execution_owner_id || '').trim();
+  const ownerBackfilled = Boolean(canonicalOwner || ownerFull);
+  const staleOwner = Boolean(ownerBackfilled && (isLeaseExpired(task.execution_lease_until) || isHeartbeatExpired(task.heartbeat_age_seconds)));
 
   if (terminal) {
     return {
@@ -467,30 +479,29 @@ function getExecutionSlotView(task: DataflowScanTask): {
       className: 'border-slate-200 bg-slate-50 text-slate-600',
     };
   }
-  if (status === 'running' && ownerFull && isHeartbeatExpired(task.heartbeat_age_seconds)) {
+  if (status === 'running' && ownerBackfilled && staleOwner) {
     return {
       state: 'expired',
       filterState: 'bound',
       label: '状态过期',
       ownerLabel: ownerLabel || ownerFull,
       ownerFull,
-      detail: [dispatchStatus, heartbeatAge || heartbeat].filter(Boolean).slice(0, 2),
+      detail: [dispatchStatus, lease || heartbeatAge || heartbeat].filter(Boolean).slice(0, 2),
       className: 'border-orange-200 bg-orange-50 text-orange-700',
     };
   }
-  if (status === 'running' && ownerFull) {
+  if (status === 'running' && ownerBackfilled) {
     return {
       state: 'running',
       filterState: 'bound',
       label: '运行中',
       ownerLabel: ownerLabel || ownerFull,
       ownerFull,
-      detail: [dispatchStatus, heartbeat || heartbeatAge].filter(Boolean).slice(0, 2),
+      detail: [dispatchStatus, heartbeat || lease || heartbeatAge].filter(Boolean).slice(0, 2),
       className: 'border-cyan-200 bg-cyan-50 text-cyan-700',
     };
   }
   if (status === 'pending' || status === 'queued') {
-    const queued = dispatchStatus === 'queued' || dispatchStatus === 'dispatching' || status === 'queued';
     return {
       state: 'pending',
       filterState: queued ? 'queued' : 'unbound',
@@ -499,6 +510,17 @@ function getExecutionSlotView(task: DataflowScanTask): {
       ownerFull,
       detail: [dispatchStatus || status].filter(Boolean),
       className: 'border-amber-200 bg-amber-50 text-amber-700',
+    };
+  }
+  if (ownerBackfilled && queued) {
+    return {
+      state: 'pending',
+      filterState: 'bound',
+      label: '运行中',
+      ownerLabel: ownerLabel || ownerFull,
+      ownerFull,
+      detail: [dispatchStatus, heartbeat || lease || heartbeatAge].filter(Boolean).slice(0, 2),
+      className: 'border-cyan-200 bg-cyan-50 text-cyan-700',
     };
   }
   return {

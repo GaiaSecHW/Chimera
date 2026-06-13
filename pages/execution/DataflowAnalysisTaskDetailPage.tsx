@@ -1008,6 +1008,25 @@ export const DataflowAnalysisTaskDetailPage: React.FC<{ projectId: string; taskI
                       {[50, 100, 200, 500].map((size) => <option key={size} value={size}>{size}</option>)}
                     </select>
                   </label>
+                  <div className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-2 py-1.5 text-xs font-semibold text-slate-600">
+                    <button
+                      onClick={() => setTimelinePage((page) => Math.max(1, page - 1))}
+                      disabled={normalizedTimelinePage <= 1}
+                      className="rounded-lg border border-slate-200 px-2.5 py-1 text-xs font-semibold text-slate-600 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
+                    >
+                      上一页
+                    </button>
+                    <span className="min-w-16 text-center text-xs font-bold text-slate-500">
+                      {normalizedTimelinePage} / {timelineTotalPages}
+                    </span>
+                    <button
+                      onClick={() => setTimelinePage((page) => Math.min(timelineTotalPages, page + 1))}
+                      disabled={normalizedTimelinePage >= timelineTotalPages}
+                      className="rounded-lg border border-slate-200 px-2.5 py-1 text-xs font-semibold text-slate-600 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
+                    >
+                      下一页
+                    </button>
+                  </div>
                   <button onClick={() => void loadTimeline()} disabled={timelineLoading} className="inline-flex items-center gap-2 rounded-xl border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-50 disabled:opacity-60">
                     {timelineLoading ? <Loader2 size={14} className="animate-spin" /> : <RefreshCw size={14} />}
                     刷新
