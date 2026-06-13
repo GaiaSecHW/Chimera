@@ -143,6 +143,9 @@ export const VulnEnginePage: React.FC<VulnEnginePageProps> = ({
   const [workspaceView, setWorkspaceView] = useState<WorkspaceViewKey>(initialWorkspaceView);
   const [caseSearch, setCaseSearch] = useState('');
   const [stageFilter, setStageFilter] = useState(defaultStageFilter);
+  const [validationStatusFilter, setValidationStatusFilter] = useState('all');
+  const [validationConclusionFilter, setValidationConclusionFilter] = useState('all');
+  const [severityFilter, setSeverityFilter] = useState('all');
   const [actionQueueFilter, setActionQueueFilter] = useState('all');
   const [activeTab, setActiveTab] = useState<'timeline' | 'results' | 'tasks' | 'actions'>('timeline');
   const [caseForm, setCaseForm] = useState(DEFAULT_CASE_FORM);
@@ -323,6 +326,9 @@ export const VulnEnginePage: React.FC<VulnEnginePageProps> = ({
   const stageScopeKey = stageScope?.join('|') || '';
   const effectiveListEntryMode = listEntryMode;
   const effectiveCompactCaseLayout = compactCaseLayout || effectiveListEntryMode;
+  const showValidationListFilters = Boolean(
+    stageScope?.includes('validation') || currentViewId === 'vuln-verification' || defaultStageFilter === 'validation',
+  );
   const effectiveShowStats = showStats ?? (workspaceView === 'overview' || workspaceView === 'cases');
   const stageScopeCount = (stageScope?.length ? stageScope : []).reduce(
     (acc, stage) => acc + Number(overview?.stage_counts?.[stage] || 0),
@@ -881,6 +887,13 @@ export const VulnEnginePage: React.FC<VulnEnginePageProps> = ({
   const filteredCases = cases.filter((item) => {
     if (stageScope?.length && !stageScope.includes(item.current_stage)) return false;
     if (stageFilter !== 'all' && item.current_stage !== stageFilter) return false;
+    if (showValidationListFilters) {
+      if (validationStatusFilter !== 'all' && item.current_status !== validationStatusFilter) return false;
+      if (validationConclusionFilter !== 'all') {
+        if (item.current_status !== 'validation_completed' || item.validation_result !== validationConclusionFilter) return false;
+      }
+      if (severityFilter !== 'all' && item.severity !== severityFilter) return false;
+    }
     if (!caseSearch.trim()) return true;
     const keyword = caseSearch.trim().toLowerCase();
     return [
@@ -888,6 +901,8 @@ export const VulnEnginePage: React.FC<VulnEnginePageProps> = ({
       item.summary,
       item.severity,
       item.decision_status,
+      item.current_status,
+      item.validation_result,
       item.subject?.locator,
       item.reporter?.name,
     ]
@@ -896,7 +911,7 @@ export const VulnEnginePage: React.FC<VulnEnginePageProps> = ({
   });
 
   const nextStageMap: Record<string, string[]> = {
-    receive: ['triage'],
+    receive: ['validation'],
     triage: ['validation', 'finished'],
     validation: ['finished'],
     finished: [],
@@ -1171,6 +1186,13 @@ export const VulnEnginePage: React.FC<VulnEnginePageProps> = ({
           setCaseSearch={setCaseSearch}
           stageFilter={stageFilter}
           setStageFilter={setStageFilter}
+          showValidationFilters={showValidationListFilters}
+          validationStatusFilter={validationStatusFilter}
+          setValidationStatusFilter={setValidationStatusFilter}
+          validationConclusionFilter={validationConclusionFilter}
+          setValidationConclusionFilter={setValidationConclusionFilter}
+          severityFilter={severityFilter}
+          setSeverityFilter={setSeverityFilter}
           caseForm={caseForm}
           setCaseForm={setCaseForm}
           submittingCase={submittingCase}
