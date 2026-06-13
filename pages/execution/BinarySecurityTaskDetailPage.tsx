@@ -2718,7 +2718,8 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
   const retryStageFailedItems = async (stageName: string) => {
     if (!projectId || !taskId || !detail) return;
     const summary = detail.stage_summaries.find((item) => item.stage_name === stageName);
-    if (!summary || !summary.retry_failed_supported) {
+    if (!summary || !summary.retry_failed_supported || manualOperationState?.can_retry_stage_failed_items === false) {
+      setError(manualOperationState?.blocking_reason || summary?.retry_failed_reason || '当前阶段暂不可重试失败项');
       return;
     }
     const confirmed = await showConfirm({
@@ -4989,7 +4990,9 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
 	                <>
                 <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
                   <div className="text-sm font-semibold text-slate-500">
-                    业务阶段支持“重试失败项”和“阶段完全重试”；会重跑当前阶段子任务，并在完成后重新评估后续阶段推进。
+                    {manualOperationState?.can_retry_stage_failed_items === false
+                      ? (manualOperationState?.blocking_reason || '当前阶段失败项正在自动恢复中，暂不建议手工重试。')
+                      : '业务阶段支持“重试失败项”和“阶段完全重试”；会重跑当前阶段子任务，并在完成后重新评估后续阶段推进。'}
                   </div>
                   <div className="flex flex-wrap items-center gap-2">
                     <button
