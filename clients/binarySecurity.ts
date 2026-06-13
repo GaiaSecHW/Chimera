@@ -880,13 +880,27 @@ export const binarySecurityApi = {
   getTaskStageItems: async (
     projectId: string,
     taskId: string,
-    params: { stage_name: string; page?: number; per_page?: number },
+    params: {
+      stage_name: string;
+      page?: number;
+      per_page?: number;
+      status?: string;
+      downstream_status?: string;
+      sync_status?: string;
+      sort_by?: string;
+      sort_direction?: 'asc' | 'desc';
+    },
   ): Promise<BinarySecurityStageItemPage> => {
     const query = new URLSearchParams({
       stage_name: params.stage_name,
       page: String(params.page ?? 1),
       per_page: String(params.per_page ?? 100),
     });
+    if (params.status) query.set('status', params.status);
+    if (params.downstream_status) query.set('downstream_status', params.downstream_status);
+    if (params.sync_status) query.set('sync_status', params.sync_status);
+    if (params.sort_by) query.set('sort_by', params.sort_by);
+    if (params.sort_direction) query.set('sort_direction', params.sort_direction);
     const resp = await fetch(`${API_BASE}/api/app/binary-security/projects/${projectId}/tasks/${taskId}/stage-items?${query.toString()}`, {
       headers: getHeaders(),
       cache: 'no-store',

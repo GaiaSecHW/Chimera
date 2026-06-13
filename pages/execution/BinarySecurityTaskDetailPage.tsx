@@ -75,7 +75,7 @@ const DEFAULT_PARTIAL_SUCCESS_STAGE_ADVANCEMENT = Object.fromEntries(
   PARTIAL_SUCCESS_ADVANCEMENT_FIELDS.map((field) => [field.key, false]),
 ) as Record<string, boolean>;
 const DEFAULT_STAGE_ITEMS_PER_PAGE = 10;
-const STAGE_ITEMS_PER_PAGE_OPTIONS = [10, 20, 50, 100];
+const STAGE_ITEMS_PER_PAGE_OPTIONS = [10, 20, 50, 100, 200, 500, 1000, 2000];
 type StageItemTimeSortKey = 'started_at' | 'finished_at' | 'duration' | 'last_sync_attempt_at' | 'last_sync_success_at' | 'last_sync_error_at';
 type SortDirection = 'asc' | 'desc';
 type StageItemTimeSort = { key: StageItemTimeSortKey; direction: SortDirection } | null;
@@ -445,6 +445,44 @@ const formatStageItemSyncStatus = (status?: string | null) => {
       return status ? status : '-';
   }
 };
+
+const STAGE_ITEM_STATUS_FILTER_VALUES = [
+  'pending',
+  'queued',
+  'dispatching',
+  'running',
+  'success',
+  'partial_success',
+  'failed',
+  'cancelled',
+  'downstream_missing',
+] as const;
+
+const STAGE_ITEM_DOWNSTREAM_STATUS_FILTER_VALUES = [
+  '待处理',
+  '排队中',
+  '运行中',
+  '已通过',
+  '已成功',
+  '已失败',
+  '已取消',
+  '下游不存在',
+  '下游已创建，状态待同步',
+  '下游任务创建中',
+  '下游任务创建重试中',
+  '下游任务创建失败',
+  '未知',
+] as const;
+
+const STAGE_ITEM_SYNC_STATUS_FILTER_VALUES = [
+  'observed',
+  'synced',
+  'skipped',
+  'transport_error',
+  'pending',
+  'not_applicable',
+  'unknown',
+] as const;
 
 const formatStageItemSyncFreshness = (
   state?: string | null,
@@ -1221,26 +1259,6 @@ const timestampValue = (value?: string | null) => {
   if (!value) return null;
   const parsed = new Date(value).getTime();
   return Number.isFinite(parsed) ? parsed : null;
-};
-
-const stageItemDurationValue = (item: BinarySecurityTaskDetail['stage_items'][number]) => {
-  const startMs = timestampValue(item.started_at);
-  if (startMs == null) return null;
-  const endMs = timestampValue(item.finished_at) ?? Date.now();
-  return endMs >= startMs ? endMs - startMs : null;
-};
-
-const stageItemSortValue = (item: BinarySecurityTaskDetail['stage_items'][number], key: StageItemTimeSortKey) => {
-  if (key === 'duration') return stageItemDurationValue(item);
-  const value = item[key] as string | null | undefined;
-  return timestampValue(value);
-};
-
-const compareNullableNumber = (left: number | null, right: number | null, direction: SortDirection) => {
-  if (left == null && right == null) return 0;
-  if (left == null) return 1;
-  if (right == null) return -1;
-  return direction === 'asc' ? left - right : right - left;
 };
 
 const nextStageItemSort = (current: StageItemTimeSort, key: StageItemTimeSortKey): StageItemTimeSort => {
@@ -2167,7 +2185,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
 
   const loadStageItemsPage = async () => {
     if (activeTab !== 'overview' || selectedNodeKind !== 'business' || !detail || !projectId || !taskId || !selectedStage) return;
-    const requestKey = `${projectId}:${taskId}:${selectedStage}:${stageItemsCurrentPage}:${stageItemsPerPage}`;
+    const requestKey = `${projectId}:${taskId}:${selectedStage}:${stageItemsCurrentPage}:${stageItemsPerPage}:${stageStatusFilter}:${stageDownstreamStatusFilter}:${stageSyncStatusFilter}:${stageItemTimeSort?.key || ''}:${stageItemTimeSort?.direction || ''}`;
     if (stageItemsRequestKeyRef.current === requestKey) return;
     stageItemsRequestKeyRef.current = requestKey;
     setStageItemsPageLoading(true);
@@ -2177,6 +2195,11 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
         stage_name: selectedStage,
         page: stageItemsCurrentPage,
         per_page: stageItemsPerPage,
+        status: stageStatusFilter !== 'all' ? stageStatusFilter : undefined,
+        downstream_status: stageDownstreamStatusFilter !== 'all' ? stageDownstreamStatusFilter : undefined,
+        sync_status: stageSyncStatusFilter !== 'all' ? stageSyncStatusFilter : undefined,
+        sort_by: stageItemTimeSort?.key,
+        sort_direction: stageItemTimeSort?.direction,
       });
       setStageItemsPage(payload);
     } catch (fetchError: any) {
@@ -2614,7 +2637,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
 
   useEffect(() => {
     void loadStageItemsPage();
-  }, [activeTab, detail?.id, projectId, selectedNodeKind, selectedStage, stageItemsCurrentPage, stageItemsPerPage, taskId]);
+  }, [activeTab, detail?.id, projectId, selectedNodeKind, selectedStage, stageItemsCurrentPage, stageItemsPerPage, stageStatusFilter, stageDownstreamStatusFilter, stageSyncStatusFilter, stageItemTimeSort, taskId]);
 
   useEffect(() => {
     if (activeTab !== 'overview' || selectedNodeKind !== 'business' || !detail || !projectId || !taskId || !selectedStage) return;
@@ -2622,7 +2645,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
       void loadStageItemsPage();
     }, 30000);
     return () => window.clearInterval(timer);
-  }, [activeTab, detail?.id, projectId, selectedNodeKind, selectedStage, stageItemsCurrentPage, stageItemsPerPage, taskId]);
+  }, [activeTab, detail?.id, projectId, selectedNodeKind, selectedStage, stageItemsCurrentPage, stageItemsPerPage, stageStatusFilter, stageDownstreamStatusFilter, stageSyncStatusFilter, stageItemTimeSort, taskId]);
 
   useEffect(() => {
     const node = stageFlowRef.current;
@@ -3118,53 +3141,19 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
     }
     return detail.stage_items.filter((item) => item.stage_name === selectedStage);
   }, [detail, selectedNodeKind, selectedStage, stageItemsPage]);
-  const stageStatusOptions = useMemo(() => {
-    const counts = new Map<string, number>();
-    for (const item of filteredStageItems) {
-      counts.set(item.status, (counts.get(item.status) || 0) + 1);
-    }
-    return Array.from(counts.entries())
-      .sort((a, b) => a[0].localeCompare(b[0], 'zh-CN'))
-      .map(([status, count]) => ({ status, count }));
-  }, [filteredStageItems]);
-  const stageDownstreamStatusOptions = useMemo(() => {
-    const counts = new Map<string, number>();
-    for (const item of filteredStageItems) {
-      const status = stageItemDisplayDownstreamStatus(item);
-      counts.set(status, (counts.get(status) || 0) + 1);
-    }
-    return Array.from(counts.entries())
-      .sort((a, b) => a[0].localeCompare(b[0], 'zh-CN'))
-      .map(([status, count]) => ({ status, count }));
-  }, [filteredStageItems]);
-  const stageSyncStatusOptions = useMemo(() => {
-    const counts = new Map<string, number>();
-    for (const item of filteredStageItems) {
-      const status = item.sync_status || 'unknown';
-      counts.set(status, (counts.get(status) || 0) + 1);
-    }
-    return Array.from(counts.entries())
-      .sort((a, b) => a[0].localeCompare(b[0], 'zh-CN'))
-      .map(([status, count]) => ({ status, count }));
-  }, [filteredStageItems]);
-  const visibleStageItems = useMemo(() => {
-    const filtered = filteredStageItems.filter((item) => {
-      if (stageStatusFilter !== 'all' && item.status !== stageStatusFilter) return false;
-      if (stageDownstreamStatusFilter !== 'all' && stageItemDisplayDownstreamStatus(item) !== stageDownstreamStatusFilter) return false;
-      if (stageSyncStatusFilter !== 'all' && (item.sync_status || 'unknown') !== stageSyncStatusFilter) return false;
-      return true;
-    });
-    if (!stageItemTimeSort) return filtered;
-    return [...filtered].sort((left, right) => {
-      const compared = compareNullableNumber(
-        stageItemSortValue(left, stageItemTimeSort.key),
-        stageItemSortValue(right, stageItemTimeSort.key),
-        stageItemTimeSort.direction,
-      );
-      if (compared !== 0) return compared;
-      return left.id.localeCompare(right.id, 'zh-CN');
-    });
-  }, [filteredStageItems, stageDownstreamStatusFilter, stageItemTimeSort, stageStatusFilter, stageSyncStatusFilter]);
+  const stageStatusOptions = useMemo(
+    () => STAGE_ITEM_STATUS_FILTER_VALUES.map((status) => ({ status, count: null })),
+    [],
+  );
+  const stageDownstreamStatusOptions = useMemo(
+    () => STAGE_ITEM_DOWNSTREAM_STATUS_FILTER_VALUES.map((status) => ({ status, count: null })),
+    [],
+  );
+  const stageSyncStatusOptions = useMemo(
+    () => STAGE_ITEM_SYNC_STATUS_FILTER_VALUES.map((status) => ({ status, count: null })),
+    [],
+  );
+  const visibleStageItems = filteredStageItems;
   const stageItemsTotal = selectedNodeKind === 'business' && stageItemsPage?.stage_name === selectedStage
     ? Number(stageItemsPage.total || 0)
     : filteredStageItems.length;
@@ -3183,7 +3172,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
   const renderStageItemFilterSelect = (
     value: string,
     onChange: (value: string) => void,
-    options: Array<{ status: string; count: number }>,
+    options: Array<{ status: string; count: number | null }>,
     formatter: (value: string) => string,
   ) => (
     <select
@@ -3194,7 +3183,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
       <option value="all">全部</option>
       {options.map((option) => (
         <option key={option.status} value={option.status}>
-          {formatter(option.status)} ({option.count})
+          {option.count == null ? formatter(option.status) : `${formatter(option.status)} (${option.count})`}
         </option>
       ))}
     </select>
@@ -3257,16 +3246,16 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
 
   useEffect(() => {
     setStageItemsCurrentPage(1);
-  }, [stageDownstreamStatusFilter, stageItemsPerPage, stageStatusFilter, stageSyncStatusFilter]);
+  }, [stageDownstreamStatusFilter, stageItemsPerPage, stageStatusFilter, stageSyncStatusFilter, stageItemTimeSort]);
 
   useEffect(() => {
     setDownstreamByItemId({});
   }, [taskId]);
 
   useEffect(() => {
-    const validIds = new Set(filteredStageItems.map((item) => item.id));
+    const validIds = new Set(visibleStageItems.map((item) => item.id));
     setSelectedStageItemIds((current) => current.filter((id) => validIds.has(id)));
-  }, [filteredStageItems]);
+  }, [visibleStageItems]);
 
   useEffect(() => {
     if (!expandedStageItemId) return;
@@ -5056,7 +5045,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
 	                        : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
 	                    }`}
 	                  >
-	                    全部 {filteredStageItems.length}
+	                    全部 {stageItemsTotal}
 	                  </button>
 	                  {stageStatusOptions.map((option) => (
 	                    <button
@@ -5075,7 +5064,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
 	                </div>
 	                <div className="flex flex-wrap items-center gap-2 text-xs">
 	                  <span className="rounded-full border border-slate-200 bg-white px-3 py-2 font-bold text-slate-600">
-	                    已选 {selectedVisibleStageItems.length} / 当前筛选 {visibleStageItems.length}
+	                    已选 {selectedVisibleStageItems.length} / 当前页 {visibleStageItems.length}
 	                  </span>
 	                  <button
 	                    type="button"
@@ -5083,7 +5072,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
 	                    onClick={() => setSelectedStageItemIds(visibleStageItems.map((item) => item.id))}
 	                    className="rounded-full border border-slate-200 bg-white px-3 py-2 font-black text-slate-700 disabled:opacity-50"
 	                  >
-	                    全选当前筛选
+	                    全选当前页
 	                  </button>
 	                  <button
 	                    type="button"
@@ -5156,7 +5145,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
 	              ) : null}
 	              {visibleStageItems.length === 0 ? (
 	                <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-6 py-10 text-center text-sm text-slate-400">
-	                  {filteredStageItems.length === 0 ? '当前阶段暂无子任务' : '当前状态筛选下暂无子任务'}
+	                  {stageItemsTotal === 0 ? '当前阶段暂无子任务' : '当前筛选下本页暂无子任务'}
 	                </div>
 	              ) : (
 	                <div className="overflow-hidden rounded-[1.5rem] border border-slate-200">
