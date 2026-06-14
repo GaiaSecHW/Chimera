@@ -18,6 +18,7 @@ const TASK_TYPE_ORDER: ScheduleRuntimeTaskType[] = [
   'binary_module_e2e',
   'ai4red',
   'ai4apk',
+  'sechps_tool',
 ];
 
 const emptySchedulerPolicy = (): ScheduleRuntimeSchedulerPolicy => ({
