@@ -21,6 +21,15 @@ const TASK_TYPE_ORDER: ScheduleRuntimeTaskType[] = [
   'sechps_tool',
 ];
 
+const DEFAULT_CAPACITY_POOL_IDS: Record<ScheduleRuntimeTaskType, number[]> = {
+  binary_firmware_e2e: [1],
+  source_scan_e2e: [1],
+  binary_module_e2e: [1],
+  ai4red: [],
+  ai4apk: [1],
+  sechps_tool: [1],
+};
+
 const emptySchedulerPolicy = (): ScheduleRuntimeSchedulerPolicy => ({
   dispatch_mode: 'balanced',
   queue_strategy: 'capacity_aware',
@@ -36,7 +45,7 @@ const emptyToolDefault = (taskType: ScheduleRuntimeTaskType, label: string): Sch
   label,
   default_concurrency: 1,
   root_task_key_max_concurrency: 0,
-  capacity_pool_ids: [],
+  capacity_pool_ids: [...(DEFAULT_CAPACITY_POOL_IDS[taskType] || [])],
   root_task_key_expires_at: '',
 });
 
