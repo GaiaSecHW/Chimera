@@ -58,7 +58,7 @@ const defaultConfig = (projectId: string): EntryAnalysisServiceConfig => ({
   pass_threshold: 0,
   max_concurrent_tasks: 8,
   agent_process_limit: 8,
-  agent_max_retries: 100,
+  agent_max_retries: -1,
   agent_retry_delay: 30,
   agent_run_timeout_seconds: 1800,
   agent_timeout_retry_enabled: true,
@@ -530,7 +530,7 @@ export const EntryAnalysisConfigPage: React.FC<{ projectId: string; embedded?: b
             )}
           >
             <div className="grid grid-cols-2 gap-4">
-              <FieldRow label="agent_max_retries" hint="-1=无限"><NumberInput value={config.agent_max_retries} min={-1} onChange={(v) => patch({ agent_max_retries: v })} /></FieldRow>
+              <FieldRow label="agent_max_retries" hint="默认无限重试"><NumberInput value={config.agent_max_retries} min={-1} onChange={(v) => patch({ agent_max_retries: v })} /></FieldRow>
               <FieldRow label="agent_retry_delay（秒）"><NumberInput value={config.agent_retry_delay} min={0} step={0.5} onChange={(v) => patch({ agent_retry_delay: v })} /></FieldRow>
               <FieldRow label="agent_run_timeout_seconds（秒）" hint="单次会话空闲超时"><NumberInput value={config.agent_run_timeout_seconds} min={60} step={1} onChange={(v) => patch({ agent_run_timeout_seconds: Math.max(60, Math.trunc(v || 60)) })} /></FieldRow>
               <FieldRow label="agent_timeout_max_retries" hint="-1=无限"><NumberInput value={config.agent_timeout_max_retries} min={-1} onChange={(v) => patch({ agent_timeout_max_retries: v })} /></FieldRow>

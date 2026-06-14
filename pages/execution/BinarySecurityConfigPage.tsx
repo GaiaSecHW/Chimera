@@ -570,7 +570,7 @@ export const BinarySecurityConfigPage: React.FC<{ projectId: string; initialTab?
             </SectionCard>
             <SectionCard
               title="任务创建默认策略"
-              subtitle="创建二进制任务和源码任务时，阶段并发配置、子任务重试次数和失败处理策略默认取自这里。"
+              subtitle="创建二进制任务和源码任务时，阶段并发配置、子任务重试次数和失败处理策略默认取自这里。下游 API / 通信错误默认无限重试，进入 30 秒退避档后每 10 次会写一次任务时间线。"
               actions={<PanelActions saving={savingPanel === 'binary-security-policy'} onSave={() => { void saveBinarySecurityPolicy(); }} onReset={resetBinarySecurityPolicy} />}
             >
               <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
@@ -599,6 +599,7 @@ export const BinarySecurityConfigPage: React.FC<{ projectId: string; initialTab?
                     onChange={(e) => setMaxRetriesPerItem(Number(e.target.value || 0))}
                     className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm"
                   />
+                  <p className="mt-2 text-xs text-slate-500">这里只控制阶段项级别的业务重试。下游 API / 429 / transport 类可恢复错误默认无限重试，不受这里限制。</p>
                 </div>
               </div>
               <div className="mt-4">

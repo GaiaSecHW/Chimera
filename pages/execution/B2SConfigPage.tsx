@@ -68,7 +68,7 @@ const B2S_FLOW = {
   notes: [
     {
       title: '预算耗尽收敛',
-      detail: '当下游返回 max_rounds_exceeded、max_retries_reached 或 timeout_max_retries_exceeded 等预算耗尽类终态时，会由当前页面的默认策略决定按通过还是失败收敛。',
+      detail: 'binary-to-source / pi-re-agent 现在默认对 API 类错误无限重试；进入 30 秒退避档后，每 10 次重试会记录一次任务时间线。只有 max_rounds_exceeded、timeout_max_retries_exceeded 等非 API 预算耗尽类终态，才会由当前页面策略决定按通过还是失败收敛。',
       tone: 'review' as const,
     },
   ],

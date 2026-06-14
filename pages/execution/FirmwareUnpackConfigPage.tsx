@@ -845,7 +845,7 @@ export const FirmwareUnpackConfigPage: React.FC<Props> = ({ projectId: _projectI
                     }`}
                   />
                   <p className="mt-2 text-[10px] text-slate-400">
-                    默认 20 次。设置为 `-1` 表示无限重试，建议只在确认下游会最终恢复时使用。
+                    默认无限重试。发生 API/超时类可恢复错误时会持续自动重试；进入 30 秒退避档后，每 10 次重试会记录一次任务时间线。
                   </p>
                   <p className="mt-2 text-[10px] text-slate-400">更新于 {fmtTime(piRpcMaxRetriesEntry.updated_at)}</p>
                 </div>

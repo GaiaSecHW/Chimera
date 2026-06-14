@@ -160,7 +160,7 @@ const defaultConfig = (projectId: string): SystemAnalysisServiceConfig => ({
   worker_task_concurrency: 4,
   parallel_modules: 1,
   parallel_sub_workers: 1,
-  agent_max_retries: 100,
+  agent_max_retries: -1,
   agent_retry_delay: 30,
   agent_timeout_seconds: 1800,
   pi_max_retries: -1,
@@ -1050,8 +1050,8 @@ export const SystemAnalysisConfigPage: React.FC<{ projectId: string; embedded?: 
             )}
           >
             <div className="grid grid-cols-2 gap-4">
-              <FieldRow label="agent_max_retries" hint="-1=无限重试"
-                desc="LLM API 调用失败（限流 429、请求超时、5xx 服务器错误）时的最大重试次数。设为 -1 可在网络抖动时自动无限重试，适合长时间无人值守的分析任务。">
+              <FieldRow label="agent_max_retries" hint="默认无限重试"
+                desc="LLM API 调用失败（限流 429、请求超时、4xx/5xx、连接错误）默认会自动无限重试。该字段保留用于兼容展示，推荐保持 -1；进入 30 秒退避档后，每 10 次重试会记录一次任务时间线。">
                 <NumberInput value={config.agent_max_retries} min={-1} onChange={(v) => patch({ agent_max_retries: v })} />
               </FieldRow>
               <FieldRow label="agent_retry_delay（秒）" hint="首次等待，之后指数递增"
