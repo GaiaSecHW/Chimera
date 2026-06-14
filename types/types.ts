@@ -2263,7 +2263,17 @@ export type ScheduleCenterUserTaskType =
   | 'binary_module_e2e'
   | 'ai4red'
   | 'ai4apk'
+  | 'sechps_tool'
   | 'redline_verification_e2e';
+
+export interface AgentAppSummary {
+  id: string;
+  name: string;
+  engine: string;
+  agentHarnessPath?: string | null;
+  agentHarnessRepoName?: string | null;
+  defaultAgentName: string;
+}
 
 export interface ScheduleCenterUserTaskInput {
   input_upload_id: string;
@@ -2283,6 +2293,15 @@ export interface ScheduleCenterUserTask {
   id: string;
   project_id: string;
   task_type: ScheduleCenterUserTaskType | string;
+  agent_app_id?: string | null;
+  agent_app_name?: string | null;
+  agent_app_engine?: string | null;
+  agent_app_agent_name?: string | null;
+  agent_harness_path?: string | null;
+  tool_work_dir?: string | null;
+  instruction?: string | null;
+  task_subtype?: string | null;
+  task_subtype_name?: string | null;
   name: string;
   description?: string | null;
   module_name?: string | null;
@@ -2387,6 +2406,17 @@ export interface ScheduleCenterUserTaskCreatePayload {
   policy: Record<string, any>;
   dispatch_policy: Record<string, any>;
   module_name?: string;
+  agent_app_id?: string;
+  agent_app_name?: string;
+  agent_app_engine?: string;
+  agent_app_agent_name?: string;
+  agent_harness_path?: string;
+  tool_work_dir?: string;
+  instruction?: string;
+  parent_task_key_id?: string;
+  parent_task_key_name?: string;
+  parent_task_key_prefix?: string;
+  parent_task_key_secret?: string;
 }
 
 export interface ScheduleCenterUserTaskDispatch {
@@ -2420,6 +2450,7 @@ export interface ScheduleCenterUserTaskDispatchListResponse {
 export interface ScheduleCenterUserTaskBulkDeleteFilters {
   status?: string;
   task_type?: string;
+  agent_app_id?: string;
   search?: string;
   has_error?: boolean;
   is_retrying?: boolean;

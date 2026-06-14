@@ -1,10 +1,12 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { ArrowRight, CheckCircle2, ChevronRight, Folder, FolderOpen, Loader2, Plus, RefreshCw, Rocket, Search, Shield, Square, SquareCheck, X } from 'lucide-react';
 import { api } from '../../clients/api';
+import { getAuthHeaders, handleResponse } from '../../clients/base';
 import { useUiFeedback } from '../../components/UiFeedback';
 import { getUploadRecordDisplayName } from '../assets/baseResourcePageModel';
 import { saveTaskCenterReturnContext } from '../../utils/executionReturnContext';
 import {
+  AgentAppSummary,
   ProjectInputUploadBrowseEntry,
   ProjectInputUploadBrowseResponse,
   ProjectInputUploadRecord,
@@ -34,6 +36,7 @@ const TASK_TYPES: readonly TaskTypeOption[] = [
   { value: 'binary_module_e2e', label: '盖亚-二进制模块', downstreamView: 'binary-module-security-detail' },
   { value: 'ai4apk', label: 'AI4APP 应用安全扫描', downstreamView: 'app-security-scan-detail' },
   { value: 'ai4red', label: 'AI4RED 红线验证', downstreamView: 'ai4red-detail' },
+  { value: 'sechps_tool', label: 'Agent Harness 任务' },
 ];
 
 const CREATE_TABS = [
@@ -47,6 +50,17 @@ const INPUT_MODES: Record<string, 'file' | 'file_list' | 'directory'> = {
   source_scan_e2e: 'directory',
   ai4red: 'directory',
   ai4apk: 'file',
+  sechps_tool: 'file',
+};
+
+const loadAgentApps = async (departmentId?: number | string | null, tenantId?: number | string | null): Promise<AgentAppSummary[]> => {
+  const params = new URLSearchParams();
+  if (departmentId) params.set('departmentId', String(departmentId));
+  if (tenantId) params.set('tenantId', String(tenantId));
+  const qs = params.toString();
+  const response = await fetch(`/api/agent-apps${qs ? `?${qs}` : ''}`, { headers: getAuthHeaders() });
+  const payload = await handleResponse(response);
+  return Array.isArray(payload?.apps) ? payload.apps : [];
 };
 
 const formatDateTime = (value?: string | null) => (value ? new Date(value).toLocaleString('zh-CN') : '—');
@@ -61,6 +75,9 @@ const getSyncSummary = (task: ScheduleCenterUserTask) => {
   return pieces.join(' | ');
 };
 const getTaskTypeLabel = (taskType: string) => TASK_TYPES.find((item) => item.value === taskType)?.label || taskType;
+const getTaskHarnessLabel = (task: Pick<ScheduleCenterUserTask, 'task_type' | 'agent_app_name'>) =>
+  task.task_type === 'sechps_tool' ? (task.agent_app_name || 'Agent Harness') : getTaskTypeLabel(String(task.task_type || ''));
+const getDeleteQueueTypeLabel = (taskType: string) => taskType === 'sechps_tool' ? 'Agent Harness 任务' : getTaskTypeLabel(taskType);
 const truncateText = (value?: string | null, max = 80) => {
   const normalized = String(value || '').trim();
   if (!normalized) return '—';
@@ -75,7 +92,9 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects }) => {
   const [tasks, setTasks] = useState<ScheduleCenterUserTask[]>([]);
   const [stats, setStats] = useState<Record<string, number>>({});
   const [inputs, setInputs] = useState<ProjectInputUploadRecord[]>([]);
+  const [agentApps, setAgentApps] = useState<AgentAppSummary[]>([]);
   const [query, setQuery] = useState('');
+  const [selectedAgentAppFilter, setSelectedAgentAppFilter] = useState('');
   const [createOpen, setCreateOpen] = useState(false);
   const [activeCreateTab, setActiveCreateTab] = useState<(typeof CREATE_TABS)[number]['key']>('basic');
   const [taskType, setTaskType] = useState<(typeof TASK_TYPES)[number]['value']>('binary_firmware_e2e');
@@ -91,6 +110,13 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects }) => {
   const [selectedRelativePaths, setSelectedRelativePaths] = useState<string[]>([]);
   const [directorySelectionTouched, setDirectorySelectionTouched] = useState(false);
   const [moduleName, setModuleName] = useState('');
+  const [selectedAgentAppId, setSelectedAgentAppId] = useState('');
+  const [toolWorkDir, setToolWorkDir] = useState('');
+  const [instruction, setInstruction] = useState('');
+  const [parentTaskKeyId, setParentTaskKeyId] = useState('');
+  const [parentTaskKeyName, setParentTaskKeyName] = useState('');
+  const [parentTaskKeyPrefix, setParentTaskKeyPrefix] = useState('');
+  const [parentTaskKeySecret, setParentTaskKeySecret] = useState('');
   const [error, setError] = useState('');
   const [selectedTaskIds, setSelectedTaskIds] = useState<string[]>([]);
   const [deleteSubmitting, setDeleteSubmitting] = useState(false);
@@ -117,6 +143,7 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects }) => {
   const projectName = useMemo(() => projects.find((item) => item.id === projectId)?.name || projectId, [projectId, projects]);
   const taskTypeMeta = useMemo(() => TASK_TYPES.find((item) => item.value === taskType) || TASK_TYPES[0], [taskType]);
   const selectionMode = useMemo(() => INPUT_MODES[taskType] || 'file', [taskType]);
+  const selectedAgentApp = useMemo(() => agentApps.find((item) => item.id === selectedAgentAppId) || null, [agentApps, selectedAgentAppId]);
   const selectableInputs = useMemo(() => inputs, [inputs]);
   const selectedInput = useMemo(() => selectableInputs.find((item) => item.upload_id === selectedInputId) || null, [selectableInputs, selectedInputId]);
   const rootBrowse = browseCache[''] || null;
@@ -130,9 +157,13 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects }) => {
   }, [isDirectorySelectionValid, selectedInput, selectedRelativePath, selectedRelativePaths, selectionMode]);
   const filteredTasks = useMemo(() => {
     const term = query.trim().toLowerCase();
-    if (!term) return tasks;
-    return tasks.filter((item) => [item.name, item.task_type, getDisplayStatus(item), item.sync_status, item.downstream_task_id || ''].some((value) => String(value || '').toLowerCase().includes(term)));
-  }, [query, tasks]);
+    return tasks.filter((item) => {
+      if (selectedAgentAppFilter && String(item.agent_app_id || '') !== selectedAgentAppFilter) return false;
+      if (!term) return true;
+      return [item.name, item.task_type, item.agent_app_name || '', item.agent_app_id || '', getDisplayStatus(item), item.sync_status, item.downstream_task_id || '']
+        .some((value) => String(value || '').toLowerCase().includes(term));
+    });
+  }, [query, selectedAgentAppFilter, tasks]);
   const deletableTaskIds = useMemo(
     () => filteredTasks.filter((task) => !['queued', 'running'].includes(String(task.delete_status || 'none'))).map((task) => task.id),
     [filteredTasks],
@@ -142,13 +173,24 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects }) => {
     [deletableTaskIds, selectedTaskIds],
   );
   const activeCreateTabIndex = useMemo(() => CREATE_TABS.findIndex((item) => item.key === activeCreateTab), [activeCreateTab]);
-  const canCreateTask = Boolean(name && selectedInputId && (
+  const canCreateTask = taskType === 'sechps_tool'
+    ? Boolean(
+      name
+      && selectedAgentApp
+      && toolWorkDir.trim()
+      && parentTaskKeyId.trim()
+      && parentTaskKeyName.trim()
+      && parentTaskKeyPrefix.trim()
+      && parentTaskKeySecret.trim(),
+    )
+    : Boolean(name && selectedInputId && (
     (selectionMode === 'file' && selectedRelativePath) ||
     (selectionMode === 'file_list' && selectedRelativePaths.length > 0) ||
     (selectionMode === 'directory' && isDirectorySelectionValid)
   ) && (taskType !== 'binary_module_e2e' || moduleName.trim()));
 
   const inputSelectionHint = useMemo(() => {
+    if (taskType === 'sechps_tool') return '请选择一个已注册的 Agent Harness，并填写 SecHPS 可见的 toolWorkDir 与父 Task Key。';
     if (taskType === 'ai4apk') return '请选择一个 APK/HAP 安装包，或 zip/rar/tar.gz/gz 等常见压缩包作为任务输入；压缩包将作为 APK/HAP 的源码包处理。';
     if (selectionMode === 'directory') return '请选择一个目录作为任务输入。';
     if (selectionMode === 'file_list') return '请选择一个或多个文件作为任务输入。';
@@ -164,15 +206,18 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects }) => {
     setLoading(true);
     setError('');
     try {
-      const [taskResp, inputResp] = await Promise.all([
-        scheduleApi.listUserTasks(projectId) as Promise<ScheduleCenterUserTaskListResponse>,
+      const [taskResp, inputResp, appResp] = await Promise.all([
+        scheduleApi.listUserTasks(projectId, selectedAgentAppFilter ? { agent_app_id: selectedAgentAppFilter } : {}) as Promise<ScheduleCenterUserTaskListResponse>,
         fileserverApi.listProjectInputUploads(projectId, { pageSize: 200 }) as Promise<{ items: ProjectInputUploadRecord[] }>,
+        loadAgentApps(),
       ]);
       const nextInputs = inputResp.items || [];
       setTasks(taskResp.items || []);
       setStats(taskResp.stats || {});
       setInputs(nextInputs);
+      setAgentApps(appResp || []);
       setSelectedInputId((current) => current || nextInputs[0]?.upload_id || '');
+      setSelectedAgentAppId((current) => current || appResp?.[0]?.id || '');
     } catch (err: any) {
       setError(err?.message || '加载失败');
     } finally {
@@ -180,8 +225,8 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects }) => {
     }
   };
 
-  useEffect(() => { void loadData(); }, [projectId]);
-  useEffect(() => { setSelectedTaskIds([]); }, [projectId, query]);
+  useEffect(() => { void loadData(); }, [projectId, selectedAgentAppFilter]);
+  useEffect(() => { setSelectedTaskIds([]); }, [projectId, query, selectedAgentAppFilter]);
 
   const loadDeleteQueue = async (
     nextPage = deleteQueuePage,
@@ -228,6 +273,13 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects }) => {
     setExpandedPaths([]);
     setDirectorySelectionTouched(false);
     setInputBrowseError('');
+    setSelectedAgentAppId('');
+    setToolWorkDir('');
+    setInstruction('');
+    setParentTaskKeyId('');
+    setParentTaskKeyName('');
+    setParentTaskKeyPrefix('');
+    setParentTaskKeySecret('');
   }, [taskType]);
 
   useEffect(() => {
@@ -255,6 +307,7 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects }) => {
   };
 
   useEffect(() => {
+    if (taskType === 'sechps_tool') return;
     if (!createOpen || !selectedInputId || !projectId) return;
     void loadBrowsePath('');
   }, [createOpen, projectId, selectedInputId]);
@@ -326,8 +379,8 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects }) => {
         task_type: taskType,
         name,
         description,
-        input_upload_ids: [selectedInputId],
-        input_binding: {
+        input_upload_ids: taskType === 'sechps_tool' ? [] : [selectedInputId],
+        input_binding: taskType === 'sechps_tool' ? undefined : {
           upload_id: selectedInputId,
           selection_type: selectionMode,
           relative_path: selectionMode === 'file_list' ? undefined : (selectionMode === 'directory' ? (selectedRelativePath !== null ? selectedRelativePath : undefined) : (selectedRelativePath || undefined)),
@@ -336,12 +389,30 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects }) => {
         policy: {},
         dispatch_policy: {},
         module_name: taskType === 'binary_module_e2e' ? moduleName : undefined,
+        agent_app_id: taskType === 'sechps_tool' ? (selectedAgentApp?.id || undefined) : undefined,
+        agent_app_name: taskType === 'sechps_tool' ? (selectedAgentApp?.name || undefined) : undefined,
+        agent_app_engine: taskType === 'sechps_tool' ? (selectedAgentApp?.engine || undefined) : undefined,
+        agent_app_agent_name: taskType === 'sechps_tool' ? (selectedAgentApp?.defaultAgentName || undefined) : undefined,
+        agent_harness_path: taskType === 'sechps_tool' ? (selectedAgentApp?.agentHarnessPath || undefined) : undefined,
+        tool_work_dir: taskType === 'sechps_tool' ? toolWorkDir : undefined,
+        instruction: taskType === 'sechps_tool' ? instruction : undefined,
+        parent_task_key_id: taskType === 'sechps_tool' ? parentTaskKeyId : undefined,
+        parent_task_key_name: taskType === 'sechps_tool' ? parentTaskKeyName : undefined,
+        parent_task_key_prefix: taskType === 'sechps_tool' ? parentTaskKeyPrefix : undefined,
+        parent_task_key_secret: taskType === 'sechps_tool' ? parentTaskKeySecret : undefined,
       };
       await scheduleApi.createUserTask(projectId, payload);
       closeCreateDialog();
       setName('');
       setDescription('');
       setModuleName('');
+      setSelectedAgentAppId('');
+      setToolWorkDir('');
+      setInstruction('');
+      setParentTaskKeyId('');
+      setParentTaskKeyName('');
+      setParentTaskKeyPrefix('');
+      setParentTaskKeySecret('');
       setSelectedRelativePath(null);
       setSelectedRelativePaths([]);
       setInputCurrentPath('');
@@ -355,6 +426,7 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects }) => {
   };
 
   const openTask = (task: ScheduleCenterUserTask) => {
+    if (task.task_type === 'sechps_tool') return;
     const meta = TASK_TYPES.find((item) => item.value === task.task_type);
     if (!meta || !meta.downstreamView) return;
     const taskIdentifier = task.downstream_task_id || task.id;
@@ -599,7 +671,11 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects }) => {
 
       <div className="mb-4 flex items-center gap-3 rounded-2xl border bg-white px-4 py-3 shadow-sm">
         <Search size={16} className="text-slate-400" />
-        <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="搜索任务名、状态、下游任务 ID" className="w-full bg-transparent outline-none" />
+        <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="搜索任务名、Harness、状态、下游任务 ID" className="w-full bg-transparent outline-none" />
+        <select value={selectedAgentAppFilter} onChange={(e) => setSelectedAgentAppFilter(e.target.value)} className="rounded-lg border px-3 py-1 text-sm">
+          <option value="">全部 Harness</option>
+          {agentApps.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
+        </select>
       </div>
 
       <div className="mb-4 flex items-center justify-between gap-3 rounded-2xl border bg-white px-4 py-3 shadow-sm">
@@ -664,7 +740,10 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects }) => {
                   </button>
                 </td>
                 <td className="px-4 py-3 font-semibold">{task.name}</td>
-                <td className="px-4 py-3">{TASK_TYPES.find((item) => item.value === task.task_type)?.label || task.task_type}</td>
+                <td className="px-4 py-3">
+                  <div className="font-semibold">{getTaskHarnessLabel(task)}</div>
+                  {task.task_type === 'sechps_tool' ? <div className="text-xs text-slate-500">Agent Harness / {task.agent_app_engine || 'unknown'}</div> : null}
+                </td>
                 <td className="px-4 py-3">
                   <div className="font-semibold">{getDisplayStatus(task)}</div>
                   <div className="text-xs text-slate-500">{task.dispatch_status} / {task.business_status}</div>
@@ -678,12 +757,12 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects }) => {
                   ) : '—'}
                 </td>
                 <td className="px-4 py-3">{task.input_upload_count}</td>
-                <td className="px-4 py-3 font-mono text-xs">{getRootTaskKeyDisplay(task)}</td>
+                <td className="px-4 py-3 font-mono text-xs">{[task.parent_task_key_name, task.parent_task_key_prefix].filter(Boolean).join(' / ') || getRootTaskKeyDisplay(task)}</td>
                 <td className="px-4 py-3 font-mono text-xs">{task.downstream_task_id || '—'}</td>
                 <td className="px-4 py-3">{formatDateTime(task.updated_at)}</td>
                 <td className="px-4 py-3">
                   <div className="flex items-center gap-2">
-                    <button onClick={() => openTask(task)} className="inline-flex items-center gap-1 rounded-lg border px-3 py-1.5 text-xs font-semibold">查看任务 <ArrowRight size={12} /></button>
+                    {task.task_type !== 'sechps_tool' ? <button onClick={() => openTask(task)} className="inline-flex items-center gap-1 rounded-lg border px-3 py-1.5 text-xs font-semibold">查看任务 <ArrowRight size={12} /></button> : null}
                     {task.sync_required ? (
                       <button onClick={() => void requestSync(task)} className="inline-flex items-center gap-1 rounded-lg border px-3 py-1.5 text-xs font-semibold">
                         <RefreshCw size={12} />
@@ -816,7 +895,7 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects }) => {
                         }`}
                       >
                         <td className="px-4 py-3 font-semibold">{item.name}</td>
-                        <td className="px-4 py-3">{getTaskTypeLabel(String(item.task_type || ''))}</td>
+                        <td className="px-4 py-3">{getDeleteQueueTypeLabel(String(item.task_type || ''))}</td>
                         <td className="px-4 py-3">{item.display_status}</td>
                         <td className="px-4 py-3">
                           <span className={item.delete_status === 'failed' ? 'text-rose-600' : item.delete_status === 'running' ? 'text-sky-600' : 'text-amber-600'}>
@@ -902,7 +981,9 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects }) => {
                   <div className="rounded-2xl border border-theme-border bg-theme-elevated px-4 py-3">
                     <div className="text-xs font-bold uppercase tracking-[0.18em] text-theme-text-faint">项目</div>
                     <div className="mt-2 text-sm font-semibold text-theme-text-primary">{projectName}</div>
-                    <div className="mt-1 text-xs text-theme-text-faint">下游详情会跳转到 {taskTypeMeta.label} 的原任务页面。</div>
+                    <div className="mt-1 text-xs text-theme-text-faint">
+                      {taskType === 'sechps_tool' ? 'SecHPS 作为执行引擎运行具体 Agent Harness，不提供单独业务详情页。' : `下游详情会跳转到 ${taskTypeMeta.label} 的原任务页面。`}
+                    </div>
                   </div>
                   <label className="block text-sm font-semibold text-theme-text-secondary md:col-span-2">任务名称
                     <input value={name} onChange={(e) => setName(e.target.value)} className="mt-1 w-full rounded-xl border border-theme-border bg-theme-surface px-3 py-2 text-theme-text-primary" />
@@ -915,11 +996,53 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects }) => {
                       <input value={moduleName} onChange={(e) => setModuleName(e.target.value)} className="mt-1 w-full rounded-xl border border-theme-border bg-theme-surface px-3 py-2 text-theme-text-primary" />
                     </label>
                   ) : null}
+                  {taskType === 'sechps_tool' ? (
+                    <>
+                      <label className="block text-sm font-semibold text-theme-text-secondary">Agent Harness
+                        <select value={selectedAgentAppId} onChange={(e) => setSelectedAgentAppId(e.target.value)} className="mt-1 w-full rounded-xl border border-theme-border bg-theme-surface px-3 py-2 text-theme-text-primary">
+                          <option value="">请选择具体 Harness</option>
+                          {agentApps.map((item) => <option key={item.id} value={item.id}>{`${item.name} / ${item.engine}`}</option>)}
+                        </select>
+                      </label>
+                      <label className="block text-sm font-semibold text-theme-text-secondary">toolWorkDir
+                        <input value={toolWorkDir} onChange={(e) => setToolWorkDir(e.target.value)} placeholder="/mnt/tool-workspace/demo" className="mt-1 w-full rounded-xl border border-theme-border bg-theme-surface px-3 py-2 text-theme-text-primary" />
+                      </label>
+                      <label className="block text-sm font-semibold text-theme-text-secondary md:col-span-2">执行指令（可选）
+                        <textarea value={instruction} onChange={(e) => setInstruction(e.target.value)} rows={3} className="mt-1 w-full rounded-xl border border-theme-border bg-theme-surface px-3 py-2 text-theme-text-primary" />
+                      </label>
+                      <label className="block text-sm font-semibold text-theme-text-secondary">父 Task Key ID
+                        <input value={parentTaskKeyId} onChange={(e) => setParentTaskKeyId(e.target.value)} className="mt-1 w-full rounded-xl border border-theme-border bg-theme-surface px-3 py-2 text-theme-text-primary" />
+                      </label>
+                      <label className="block text-sm font-semibold text-theme-text-secondary">父 Task Key 名称
+                        <input value={parentTaskKeyName} onChange={(e) => setParentTaskKeyName(e.target.value)} className="mt-1 w-full rounded-xl border border-theme-border bg-theme-surface px-3 py-2 text-theme-text-primary" />
+                      </label>
+                      <label className="block text-sm font-semibold text-theme-text-secondary">父 Task Key Prefix
+                        <input value={parentTaskKeyPrefix} onChange={(e) => setParentTaskKeyPrefix(e.target.value)} className="mt-1 w-full rounded-xl border border-theme-border bg-theme-surface px-3 py-2 text-theme-text-primary" />
+                      </label>
+                      <label className="block text-sm font-semibold text-theme-text-secondary">父 Task Key Secret
+                        <input type="password" value={parentTaskKeySecret} onChange={(e) => setParentTaskKeySecret(e.target.value)} className="mt-1 w-full rounded-xl border border-theme-border bg-theme-surface px-3 py-2 text-theme-text-primary" />
+                      </label>
+                    </>
+                  ) : null}
                 </div>
               ) : null}
 
               {activeCreateTab === 'input' ? (
                 <div className="space-y-4">
+                  {taskType === 'sechps_tool' ? (
+                    <div className="rounded-2xl border border-theme-border bg-theme-elevated px-4 py-4 text-sm text-theme-text-secondary">
+                      该任务类型不使用“任务输入”记录。创建时直接绑定具体 Agent Harness、toolWorkDir 与父 Task Key，分发时调度中心会把父 Task Key 作为 `apiKey` 透传给 SecHPS。
+                      {selectedAgentApp ? (
+                        <div className="mt-3 rounded-xl border border-theme-border bg-theme-surface px-4 py-3 text-xs">
+                          <div>Harness: <span className="font-semibold text-theme-text-primary">{selectedAgentApp.name}</span></div>
+                          <div className="mt-1">Engine: <span className="font-semibold text-theme-text-primary">{selectedAgentApp.engine}</span></div>
+                          <div className="mt-1 break-all">Harness Path: <span className="font-semibold text-theme-text-primary">{selectedAgentApp.agentHarnessPath || '—'}</span></div>
+                        </div>
+                      ) : null}
+                    </div>
+                  ) : null}
+                  {taskType !== 'sechps_tool' ? (
+                    <>
                   <label className="block text-sm font-semibold text-theme-text-secondary">任务输入记录
                     <select value={selectedInputId} onChange={(e) => setSelectedInputId(e.target.value)} className="mt-1 w-full rounded-xl border border-theme-border bg-theme-surface px-3 py-2 text-theme-text-primary">
                       {selectableInputs.map((item) => <option key={item.upload_id} value={item.upload_id}>{`${getUploadRecordDisplayName(item)} · ${item.status}`}</option>)}
@@ -1003,6 +1126,8 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects }) => {
                       </div>
                     </div>
                   )}
+                    </>
+                  ) : null}
                 </div>
               ) : null}
 
@@ -1010,7 +1135,9 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects }) => {
                 <div className="rounded-2xl border border-theme-border bg-theme-elevated px-4 py-3">
                   <div className="text-xs font-bold uppercase tracking-[0.18em] text-theme-text-faint">创建后状态</div>
                   <div className="mt-2 text-sm font-semibold text-theme-text-primary">created / ready_for_dispatch / 自动进入分发队列</div>
-                  <div className="mt-1 text-xs text-theme-text-faint">创建阶段只登记业务任务，不要求手动填写 Task Key、Secret 或算力池。</div>
+                  <div className="mt-1 text-xs text-theme-text-faint">
+                    {taskType === 'sechps_tool' ? '创建阶段会登记具体 Agent Harness、toolWorkDir 和父 Task Key 快照。' : '创建阶段只登记业务任务，不要求手动填写 Task Key、Secret 或算力池。'}
+                  </div>
                 </div>
                 <div className="rounded-2xl border border-theme-border bg-theme-elevated px-4 py-3">
                   <div className="text-xs font-bold uppercase tracking-[0.18em] text-theme-text-faint">自动分发</div>
@@ -1018,7 +1145,9 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects }) => {
                   <div className="mt-1 text-xs text-theme-text-faint">
                     {taskType === 'ai4apk'
                       ? '创建成功后任务会自动进入分发队列；调度中心会把所选文件路径（APK/HAP 安装包或其源码压缩包）直接传给 AI4APP 进行扫描。'
-                      : '创建成功后任务会自动进入分发队列；调度中心会在分发期创建 root task key，并直接传给下游。'}
+                      : taskType === 'sechps_tool'
+                        ? '创建成功后任务会自动进入分发队列；调度中心会把父 Task Key 作为 apiKey 直接传给 SecHPS，由 SecHPS 内部再派生 work key。'
+                        : '创建成功后任务会自动进入分发队列；调度中心会在分发期创建 root task key，并直接传给下游。'}
                   </div>
                 </div>
                 <div className="rounded-2xl border border-theme-border bg-theme-surface px-4 py-3 md:col-span-2">
@@ -1030,11 +1159,11 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects }) => {
                     </div>
                     <div>
                       <div className="text-xs text-theme-text-faint">输入记录</div>
-                      <div className="mt-1 text-sm font-semibold text-theme-text-primary">{selectedInputId || '未选择'}</div>
+                      <div className="mt-1 text-sm font-semibold text-theme-text-primary">{taskType === 'sechps_tool' ? (selectedAgentApp?.name || '未选择 Harness') : (selectedInputId || '未选择')}</div>
                     </div>
                     <div>
-                      <div className="text-xs text-theme-text-faint">输入路径</div>
-                      <div className="mt-1 text-sm font-semibold text-theme-text-primary break-all">{inputSummary}</div>
+                      <div className="text-xs text-theme-text-faint">{taskType === 'sechps_tool' ? 'toolWorkDir' : '输入路径'}</div>
+                      <div className="mt-1 text-sm font-semibold text-theme-text-primary break-all">{taskType === 'sechps_tool' ? (toolWorkDir || '未填写') : inputSummary}</div>
                     </div>
                     {taskType === 'binary_module_e2e' ? (
                       <div>
