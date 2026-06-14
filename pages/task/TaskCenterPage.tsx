@@ -50,7 +50,7 @@ const INPUT_MODES: Record<string, 'file' | 'file_list' | 'directory'> = {
   source_scan_e2e: 'directory',
   ai4red: 'directory',
   ai4apk: 'file',
-  sechps_tool: 'file',
+  sechps_tool: 'directory',
 };
 
 const loadAgentApps = async (departmentId?: number | string | null, tenantId?: number | string | null): Promise<AgentAppSummary[]> => {
@@ -111,12 +111,7 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects }) => {
   const [directorySelectionTouched, setDirectorySelectionTouched] = useState(false);
   const [moduleName, setModuleName] = useState('');
   const [selectedAgentAppId, setSelectedAgentAppId] = useState('');
-  const [toolWorkDir, setToolWorkDir] = useState('');
   const [instruction, setInstruction] = useState('');
-  const [parentTaskKeyId, setParentTaskKeyId] = useState('');
-  const [parentTaskKeyName, setParentTaskKeyName] = useState('');
-  const [parentTaskKeyPrefix, setParentTaskKeyPrefix] = useState('');
-  const [parentTaskKeySecret, setParentTaskKeySecret] = useState('');
   const [error, setError] = useState('');
   const [selectedTaskIds, setSelectedTaskIds] = useState<string[]>([]);
   const [deleteSubmitting, setDeleteSubmitting] = useState(false);
@@ -141,6 +136,11 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects }) => {
   const { notify, confirm, feedbackNodes } = useUiFeedback();
 
   const projectName = useMemo(() => projects.find((item) => item.id === projectId)?.name || projectId, [projectId, projects]);
+  const createTabs = useMemo(() => CREATE_TABS.map((item) => (
+    item.key === 'input' && taskType === 'sechps_tool'
+      ? { ...item, label: '路径与 Harness' }
+      : item
+  )), [taskType]);
   const taskTypeMeta = useMemo(() => TASK_TYPES.find((item) => item.value === taskType) || TASK_TYPES[0], [taskType]);
   const selectionMode = useMemo(() => INPUT_MODES[taskType] || 'file', [taskType]);
   const selectedAgentApp = useMemo(() => agentApps.find((item) => item.id === selectedAgentAppId) || null, [agentApps, selectedAgentAppId]);
@@ -172,16 +172,13 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects }) => {
     () => deletableTaskIds.length > 0 && deletableTaskIds.every((taskId) => selectedTaskIds.includes(taskId)),
     [deletableTaskIds, selectedTaskIds],
   );
-  const activeCreateTabIndex = useMemo(() => CREATE_TABS.findIndex((item) => item.key === activeCreateTab), [activeCreateTab]);
+  const activeCreateTabIndex = useMemo(() => createTabs.findIndex((item) => item.key === activeCreateTab), [activeCreateTab, createTabs]);
   const canCreateTask = taskType === 'sechps_tool'
     ? Boolean(
       name
       && selectedAgentApp
-      && toolWorkDir.trim()
-      && parentTaskKeyId.trim()
-      && parentTaskKeyName.trim()
-      && parentTaskKeyPrefix.trim()
-      && parentTaskKeySecret.trim(),
+      && selectedInputId
+      && isDirectorySelectionValid,
     )
     : Boolean(name && selectedInputId && (
     (selectionMode === 'file' && selectedRelativePath) ||
@@ -190,7 +187,7 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects }) => {
   ) && (taskType !== 'binary_module_e2e' || moduleName.trim()));
 
   const inputSelectionHint = useMemo(() => {
-    if (taskType === 'sechps_tool') return '请选择一个已注册的 Agent Harness，并填写 SecHPS 可见的 toolWorkDir 与父 Task Key。';
+    if (taskType === 'sechps_tool') return '请选择一个已注册的 Agent Harness，并选择一个目录。调度中心会在分发时自动申请 Task Key，并把所选目录直接传给下游。';
     if (taskType === 'ai4apk') return '请选择一个 APK/HAP 安装包，或 zip/rar/tar.gz/gz 等常见压缩包作为任务输入；压缩包将作为 APK/HAP 的源码包处理。';
     if (selectionMode === 'directory') return '请选择一个目录作为任务输入。';
     if (selectionMode === 'file_list') return '请选择一个或多个文件作为任务输入。';
@@ -274,12 +271,7 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects }) => {
     setDirectorySelectionTouched(false);
     setInputBrowseError('');
     setSelectedAgentAppId('');
-    setToolWorkDir('');
     setInstruction('');
-    setParentTaskKeyId('');
-    setParentTaskKeyName('');
-    setParentTaskKeyPrefix('');
-    setParentTaskKeySecret('');
   }, [taskType]);
 
   useEffect(() => {
@@ -379,8 +371,8 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects }) => {
         task_type: taskType,
         name,
         description,
-        input_upload_ids: taskType === 'sechps_tool' ? [] : [selectedInputId],
-        input_binding: taskType === 'sechps_tool' ? undefined : {
+        input_upload_ids: [selectedInputId],
+        input_binding: {
           upload_id: selectedInputId,
           selection_type: selectionMode,
           relative_path: selectionMode === 'file_list' ? undefined : (selectionMode === 'directory' ? (selectedRelativePath !== null ? selectedRelativePath : undefined) : (selectedRelativePath || undefined)),
@@ -394,12 +386,7 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects }) => {
         agent_app_engine: taskType === 'sechps_tool' ? (selectedAgentApp?.engine || undefined) : undefined,
         agent_app_agent_name: taskType === 'sechps_tool' ? (selectedAgentApp?.defaultAgentName || undefined) : undefined,
         agent_harness_path: taskType === 'sechps_tool' ? (selectedAgentApp?.agentHarnessPath || undefined) : undefined,
-        tool_work_dir: taskType === 'sechps_tool' ? toolWorkDir : undefined,
         instruction: taskType === 'sechps_tool' ? instruction : undefined,
-        parent_task_key_id: taskType === 'sechps_tool' ? parentTaskKeyId : undefined,
-        parent_task_key_name: taskType === 'sechps_tool' ? parentTaskKeyName : undefined,
-        parent_task_key_prefix: taskType === 'sechps_tool' ? parentTaskKeyPrefix : undefined,
-        parent_task_key_secret: taskType === 'sechps_tool' ? parentTaskKeySecret : undefined,
       };
       await scheduleApi.createUserTask(projectId, payload);
       closeCreateDialog();
@@ -407,12 +394,7 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects }) => {
       setDescription('');
       setModuleName('');
       setSelectedAgentAppId('');
-      setToolWorkDir('');
       setInstruction('');
-      setParentTaskKeyId('');
-      setParentTaskKeyName('');
-      setParentTaskKeyPrefix('');
-      setParentTaskKeySecret('');
       setSelectedRelativePath(null);
       setSelectedRelativePaths([]);
       setInputCurrentPath('');
@@ -951,7 +933,7 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects }) => {
 
             <div className="border-b border-theme-border px-6 py-4">
               <div className="flex flex-wrap gap-2">
-                {CREATE_TABS.map((tab, index) => {
+                {createTabs.map((tab, index) => {
                   const active = tab.key === activeCreateTab;
                   return (
                     <button
@@ -997,32 +979,9 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects }) => {
                     </label>
                   ) : null}
                   {taskType === 'sechps_tool' ? (
-                    <>
-                      <label className="block text-sm font-semibold text-theme-text-secondary">Agent Harness
-                        <select value={selectedAgentAppId} onChange={(e) => setSelectedAgentAppId(e.target.value)} className="mt-1 w-full rounded-xl border border-theme-border bg-theme-surface px-3 py-2 text-theme-text-primary">
-                          <option value="">请选择具体 Harness</option>
-                          {agentApps.map((item) => <option key={item.id} value={item.id}>{`${item.name} / ${item.engine}`}</option>)}
-                        </select>
-                      </label>
-                      <label className="block text-sm font-semibold text-theme-text-secondary">toolWorkDir
-                        <input value={toolWorkDir} onChange={(e) => setToolWorkDir(e.target.value)} placeholder="/mnt/tool-workspace/demo" className="mt-1 w-full rounded-xl border border-theme-border bg-theme-surface px-3 py-2 text-theme-text-primary" />
-                      </label>
-                      <label className="block text-sm font-semibold text-theme-text-secondary md:col-span-2">执行指令（可选）
-                        <textarea value={instruction} onChange={(e) => setInstruction(e.target.value)} rows={3} className="mt-1 w-full rounded-xl border border-theme-border bg-theme-surface px-3 py-2 text-theme-text-primary" />
-                      </label>
-                      <label className="block text-sm font-semibold text-theme-text-secondary">父 Task Key ID
-                        <input value={parentTaskKeyId} onChange={(e) => setParentTaskKeyId(e.target.value)} className="mt-1 w-full rounded-xl border border-theme-border bg-theme-surface px-3 py-2 text-theme-text-primary" />
-                      </label>
-                      <label className="block text-sm font-semibold text-theme-text-secondary">父 Task Key 名称
-                        <input value={parentTaskKeyName} onChange={(e) => setParentTaskKeyName(e.target.value)} className="mt-1 w-full rounded-xl border border-theme-border bg-theme-surface px-3 py-2 text-theme-text-primary" />
-                      </label>
-                      <label className="block text-sm font-semibold text-theme-text-secondary">父 Task Key Prefix
-                        <input value={parentTaskKeyPrefix} onChange={(e) => setParentTaskKeyPrefix(e.target.value)} className="mt-1 w-full rounded-xl border border-theme-border bg-theme-surface px-3 py-2 text-theme-text-primary" />
-                      </label>
-                      <label className="block text-sm font-semibold text-theme-text-secondary">父 Task Key Secret
-                        <input type="password" value={parentTaskKeySecret} onChange={(e) => setParentTaskKeySecret(e.target.value)} className="mt-1 w-full rounded-xl border border-theme-border bg-theme-surface px-3 py-2 text-theme-text-primary" />
-                      </label>
-                    </>
+                    <label className="block text-sm font-semibold text-theme-text-secondary md:col-span-2">执行指令（可选）
+                      <textarea value={instruction} onChange={(e) => setInstruction(e.target.value)} rows={3} className="mt-1 w-full rounded-xl border border-theme-border bg-theme-surface px-3 py-2 text-theme-text-primary" />
+                    </label>
                   ) : null}
                 </div>
               ) : null}
@@ -1030,19 +989,25 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects }) => {
               {activeCreateTab === 'input' ? (
                 <div className="space-y-4">
                   {taskType === 'sechps_tool' ? (
-                    <div className="rounded-2xl border border-theme-border bg-theme-elevated px-4 py-4 text-sm text-theme-text-secondary">
-                      该任务类型不使用“任务输入”记录。创建时直接绑定具体 Agent Harness、toolWorkDir 与父 Task Key，分发时调度中心会把父 Task Key 作为 `apiKey` 透传给 SecHPS。
+                    <>
+                      <div className="rounded-2xl border border-theme-border bg-theme-elevated px-4 py-4 text-sm text-theme-text-secondary">
+                        先选择任务输入中的目录，再选择具体 Agent Harness。分发时调度中心会自动申请 Task Key，并把所选目录直接传给 SecHPS。
+                      </div>
+                      <label className="block text-sm font-semibold text-theme-text-secondary">Agent Harness
+                        <select value={selectedAgentAppId} onChange={(e) => setSelectedAgentAppId(e.target.value)} className="mt-1 w-full rounded-xl border border-theme-border bg-theme-surface px-3 py-2 text-theme-text-primary">
+                          <option value="">请选择具体 Harness</option>
+                          {agentApps.map((item) => <option key={item.id} value={item.id}>{`${item.name} / ${item.engine}`}</option>)}
+                        </select>
+                      </label>
                       {selectedAgentApp ? (
-                        <div className="mt-3 rounded-xl border border-theme-border bg-theme-surface px-4 py-3 text-xs">
+                        <div className="rounded-xl border border-theme-border bg-theme-surface px-4 py-3 text-xs text-theme-text-secondary">
                           <div>Harness: <span className="font-semibold text-theme-text-primary">{selectedAgentApp.name}</span></div>
                           <div className="mt-1">Engine: <span className="font-semibold text-theme-text-primary">{selectedAgentApp.engine}</span></div>
                           <div className="mt-1 break-all">Harness Path: <span className="font-semibold text-theme-text-primary">{selectedAgentApp.agentHarnessPath || '—'}</span></div>
                         </div>
                       ) : null}
-                    </div>
+                    </>
                   ) : null}
-                  {taskType !== 'sechps_tool' ? (
-                    <>
                   <label className="block text-sm font-semibold text-theme-text-secondary">任务输入记录
                     <select value={selectedInputId} onChange={(e) => setSelectedInputId(e.target.value)} className="mt-1 w-full rounded-xl border border-theme-border bg-theme-surface px-3 py-2 text-theme-text-primary">
                       {selectableInputs.map((item) => <option key={item.upload_id} value={item.upload_id}>{`${getUploadRecordDisplayName(item)} · ${item.status}`}</option>)}
@@ -1126,8 +1091,6 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects }) => {
                       </div>
                     </div>
                   )}
-                    </>
-                  ) : null}
                 </div>
               ) : null}
 
@@ -1136,7 +1099,7 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects }) => {
                   <div className="text-xs font-bold uppercase tracking-[0.18em] text-theme-text-faint">创建后状态</div>
                   <div className="mt-2 text-sm font-semibold text-theme-text-primary">created / ready_for_dispatch / 自动进入分发队列</div>
                   <div className="mt-1 text-xs text-theme-text-faint">
-                    {taskType === 'sechps_tool' ? '创建阶段会登记具体 Agent Harness、toolWorkDir 和父 Task Key 快照。' : '创建阶段只登记业务任务，不要求手动填写 Task Key、Secret 或算力池。'}
+                    {taskType === 'sechps_tool' ? '创建阶段会登记具体 Agent Harness 与目录绑定。Task Key 由调度中心在分发阶段自动申请。' : '创建阶段只登记业务任务，不要求手动填写 Task Key、Secret 或算力池。'}
                   </div>
                 </div>
                 <div className="rounded-2xl border border-theme-border bg-theme-elevated px-4 py-3">
@@ -1146,7 +1109,7 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects }) => {
                     {taskType === 'ai4apk'
                       ? '创建成功后任务会自动进入分发队列；调度中心会把所选文件路径（APK/HAP 安装包或其源码压缩包）直接传给 AI4APP 进行扫描。'
                       : taskType === 'sechps_tool'
-                        ? '创建成功后任务会自动进入分发队列；调度中心会把父 Task Key 作为 apiKey 直接传给 SecHPS，由 SecHPS 内部再派生 work key。'
+                        ? '创建成功后任务会自动进入分发队列；调度中心会动态申请 Task Key，并把所选目录与该 Task Key 一起传给 SecHPS。'
                         : '创建成功后任务会自动进入分发队列；调度中心会在分发期创建 root task key，并直接传给下游。'}
                   </div>
                 </div>
@@ -1162,8 +1125,8 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects }) => {
                       <div className="mt-1 text-sm font-semibold text-theme-text-primary">{taskType === 'sechps_tool' ? (selectedAgentApp?.name || '未选择 Harness') : (selectedInputId || '未选择')}</div>
                     </div>
                     <div>
-                      <div className="text-xs text-theme-text-faint">{taskType === 'sechps_tool' ? 'toolWorkDir' : '输入路径'}</div>
-                      <div className="mt-1 text-sm font-semibold text-theme-text-primary break-all">{taskType === 'sechps_tool' ? (toolWorkDir || '未填写') : inputSummary}</div>
+                      <div className="text-xs text-theme-text-faint">输入路径</div>
+                      <div className="mt-1 text-sm font-semibold text-theme-text-primary break-all">{inputSummary}</div>
                     </div>
                     {taskType === 'binary_module_e2e' ? (
                       <div>
@@ -1177,11 +1140,11 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects }) => {
             </div>
 
             <div className="flex items-center justify-between border-t border-theme-border px-6 py-4">
-              <div className="text-xs text-theme-text-faint">第 {activeCreateTabIndex + 1} 步 / 共 {CREATE_TABS.length} 步</div>
+              <div className="text-xs text-theme-text-faint">第 {activeCreateTabIndex + 1} 步 / 共 {createTabs.length} 步</div>
               <div className="flex items-center gap-2">
                 <button onClick={closeCreateDialog} className="rounded-xl border border-theme-border px-4 py-2 text-sm font-semibold text-theme-text-secondary">取消</button>
                 <button onClick={() => goCreateTab(-1)} disabled={activeCreateTabIndex === 0} className="rounded-xl border border-theme-border px-4 py-2 text-sm font-semibold text-theme-text-secondary disabled:opacity-40">上一步</button>
-                {activeCreateTabIndex < CREATE_TABS.length - 1 ? (
+                {activeCreateTabIndex < createTabs.length - 1 ? (
                   <button onClick={() => goCreateTab(1)} className="rounded-xl bg-theme-elevated px-4 py-2 text-sm font-semibold text-theme-text-primary">下一步</button>
                 ) : (
                   <button onClick={() => void createTask()} disabled={saving || !canCreateTask} className="rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white disabled:opacity-60">{saving ? '创建中...' : '创建任务'}</button>
