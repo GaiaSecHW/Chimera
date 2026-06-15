@@ -18,6 +18,7 @@ import {
 import JSZip from 'jszip';
 
 import { getAuthHeaders, getHeaders, handleResponse } from '../../clients/base';
+import { agentManageApiPath } from '../../clients/agentManage';
 import { aigwApi } from '../../clients/aigw';
 import type { AiGatewayModelAlias, UserInfo, ViewType } from '../../types/types';
 
@@ -140,14 +141,14 @@ const loadAgentApps = async (departmentId?: number | string | null, tenantId?: n
   if (departmentId) params.set('departmentId', String(departmentId));
   if (tenantId) params.set('tenantId', String(tenantId));
   const qs = params.toString();
-  const url = `/api/agent-apps${qs ? `?${qs}` : ''}`;
+  const url = agentManageApiPath(`/agent-apps${qs ? `?${qs}` : ''}`);
   const response = await fetch(url, { headers: getAuthHeaders() });
   const payload = await handleResponse(response);
   return Array.isArray(payload?.apps) ? payload.apps : [];
 };
 
 const loadHarnessBranches = async (appId: string): Promise<Array<{ name: string; commit: Record<string, unknown>; protected: boolean }>> => {
-  const response = await fetch(`/api/agent-apps/${encodeURIComponent(appId)}/branches`, { headers: getAuthHeaders() });
+  const response = await fetch(agentManageApiPath(`/agent-apps/${encodeURIComponent(appId)}/branches`), { headers: getAuthHeaders() });
   const payload = await handleResponse(response);
   return Array.isArray(payload?.branches) ? payload.branches : [];
 };
@@ -188,7 +189,7 @@ const createAgentApp = async (formState: AgentAppFormState, agentHarnessFile: Ag
   appendAgentFields(form, formState, isPublic);
   appendHarnessFile(form, agentHarnessFile);
 
-  const response = await fetch('/api/agent-apps', {
+  const response = await fetch(agentManageApiPath('/agent-apps'), {
     method: 'POST',
     headers: getAuthHeaders(),
     body: form,
@@ -197,7 +198,7 @@ const createAgentApp = async (formState: AgentAppFormState, agentHarnessFile: Ag
 };
 
 const updateAgentApp = async (appId: string, formState: AgentAppFormState, agentHarnessFile: AgentHarnessFileData | null, isPublic: boolean): Promise<void> => {
-  const url = `/api/agent-apps/${encodeURIComponent(appId)}`;
+  const url = agentManageApiPath(`/agent-apps/${encodeURIComponent(appId)}`);
   if (agentHarnessFile) {
     const form = new FormData();
     appendAgentFields(form, formState, isPublic);
@@ -227,7 +228,7 @@ const updateAgentApp = async (appId: string, formState: AgentAppFormState, agent
 };
 
 const deleteAgentApp = async (id: string): Promise<void> => {
-  const response = await fetch(`/api/agent-apps/${encodeURIComponent(id)}`, {
+  const response = await fetch(agentManageApiPath(`/agent-apps/${encodeURIComponent(id)}`), {
     method: 'DELETE',
     headers: getAuthHeaders(),
   });
@@ -235,7 +236,7 @@ const deleteAgentApp = async (id: string): Promise<void> => {
 };
 
 const syncAgentRepos = async (): Promise<{ success: boolean; message?: string }> => {
-  const response = await fetch('/api/agent-apps/sync', { method: 'POST', headers: getAuthHeaders() });
+  const response = await fetch(agentManageApiPath('/agent-apps/sync'), { method: 'POST', headers: getAuthHeaders() });
   return handleResponse(response);
 };
 
