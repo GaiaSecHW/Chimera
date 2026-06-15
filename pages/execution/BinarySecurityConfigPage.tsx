@@ -5,7 +5,7 @@ import { api } from '../../clients/api';
 import { FirmwareUnpackConfigPage } from './FirmwareUnpackConfigPage';
 import { SystemAnalysisConfigPage } from './SystemAnalysisConfigPage';
 import { EntryAnalysisConfigPage } from './EntryAnalysisConfigPage';
-import { DataflowVulnConfigPage } from './DataflowVulnScannerPage';
+import { DataflowVulnScanConfigPage } from './DataflowVulnScanConfigPage';
 import { B2SConfigPage } from './B2SConfigPage';
 
 type ConfigTab = 'binary-security' | 'binary-evolution' | 'firmware-unpacker' | 'system-analysis' | 'binary-to-source' | 'entry-analysis' | 'dataflow-vuln';
@@ -495,7 +495,7 @@ export const BinarySecurityConfigPage: React.FC<{ projectId: string; initialTab?
             {
               id: 'dataflow-vuln' as ConfigTab,
               label: '数据流漏洞挖掘',
-              service: 'chimera-app-dataflow-vuln-scanner',
+              service: 'secflow-app-dataflow-vuln-scan',
             },
           ].map((tab) => (
             <button
@@ -725,7 +725,7 @@ export const BinarySecurityConfigPage: React.FC<{ projectId: string; initialTab?
       ) : activeTab === 'entry-analysis' ? (
         <EntryAnalysisConfigPage projectId={projectId} embedded />
       ) : (
-        <DataflowVulnConfigPage projectId={projectId} embedded />
+        <DataflowVulnScanConfigPage projectId={projectId} embedded />
       )}
     </div>
   );
