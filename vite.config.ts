@@ -86,6 +86,24 @@ export default defineConfig(({ mode }) => {
             agent: keepAliveHttpAgent,
             rewrite: (path) => path.replace(/^\/api\/codemap-manager/, ''),
           },
+          '/api/agentmanage': {
+            target: 'https://secflow.ai.icsl.huawei.com',
+            changeOrigin: true,
+            secure: false,
+            ws: true,
+            agent: keepAliveHttpsAgent,
+            configure: (proxy) => {
+              proxy.on('error', (err: Error & { code?: string }, _req, res) => {
+                if (err.code === 'ECONNRESET' && res && !('headersSent' in res && (res as any).headersSent)) {
+                  try {
+                    (res as any).writeHead(503, { 'Content-Type': 'application/json' });
+                    (res as any).end(JSON.stringify({ detail: 'stale socket reset – retrying' }));
+                  } catch { /* already committed */ }
+                  return;
+                }
+              });
+            },
+          },
           '/api': {
             target: 'https://secflow.ai.icsl.huawei.com',
             changeOrigin: true,

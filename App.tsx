@@ -328,6 +328,7 @@ const AppShell: React.FC = () => {
       platformApi.auth.validateToken()
         .then((validatedUser) => {
           setUser(validatedUser);
+          localStorage.setItem('user', JSON.stringify(validatedUser));
           if (!validatedUser.must_change_password) {
             fetchProjects();
           }
@@ -480,6 +481,7 @@ const AppShell: React.FC = () => {
 
   const handleLogout = () => {
     localStorage.removeItem('chimera_token');
+    localStorage.removeItem('user');
     setToken(null);
     setUser(null);
     setProjects([]);

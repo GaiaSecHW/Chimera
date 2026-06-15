@@ -106,14 +106,10 @@ function parseHostName(ownerId?: string | null): string {
   return separator >= 0 ? normalized.slice(0, separator) : normalized;
 }
 
-function isLeaseExpired(leaseUntil?: string | null): boolean {
-  if (!leaseUntil) return false;
-  const ts = new Date(leaseUntil).getTime();
-  if (!Number.isFinite(ts)) return false;
-  return ts < Date.now();
-}
-
-function getExecutionSlotPresentation(task: AppSaTaskListItem): {
+function getExecutionSlotPresentation(
+  task: AppSaTaskListItem,
+  workerState?: Pick<AppSaClusterCapacity['workers'][number], 'healthy' | 'source' | 'worker_id'> | null,
+): {
   label: string;
   tone: string;
   ownerText: string;
@@ -121,7 +117,6 @@ function getExecutionSlotPresentation(task: AppSaTaskListItem): {
 } {
   const ownerId = String(task.dispatcher_instance_id || '').trim();
   const hostName = parseHostName(ownerId);
-  const leaseExpired = isLeaseExpired(task.lease_expires_at);
   if (['passed', 'failed', 'error', 'cancelled'].includes(task.status)) {
     return {
       label: '已释放',
@@ -130,20 +125,22 @@ function getExecutionSlotPresentation(task: AppSaTaskListItem): {
       detailText: '任务已结束',
     };
   }
-  if (task.status === 'running' && ownerId && !leaseExpired) {
+  if (task.status === 'running' && ownerId && workerState && !workerState.healthy) {
+    return {
+      label: '状态过期',
+      tone: 'bg-rose-100 text-rose-700',
+      ownerText: hostName || ownerId,
+      detailText: workerState.source === 'task_lease_fallback'
+        ? '服务端已判定 owner 状态异常'
+        : '服务端已判定 worker 不健康',
+    };
+  }
+  if (task.status === 'running' && ownerId) {
     return {
       label: '运行中',
       tone: 'bg-cyan-100 text-cyan-700',
       ownerText: hostName || ownerId,
       detailText: task.lease_expires_at ? `lease ${formatDateTime(task.lease_expires_at)}` : `dispatch ${formatDateTime(task.dispatch_started_at)}`,
-    };
-  }
-  if (task.status === 'running' && ownerId && leaseExpired) {
-    return {
-      label: '状态过期',
-      tone: 'bg-rose-100 text-rose-700',
-      ownerText: hostName || ownerId,
-      detailText: task.lease_expires_at ? `lease ${formatDateTime(task.lease_expires_at)}` : '租约已过期',
     };
   }
   if (task.status === 'pending' && !ownerId) {
@@ -214,6 +211,20 @@ export const SystemAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask: (
     () => (clusterCapacityDetail?.workers || []).filter((worker) => (worker.source || '').trim() === 'task_lease_fallback').length,
     [clusterCapacityDetail],
   );
+  const slotWorkerById = useMemo(() => {
+    const mapping = new Map<string, AppSaClusterCapacity['workers'][number]>();
+    for (const worker of clusterCapacityDetail?.workers || []) {
+      const workerId = String(worker.worker_id || '').trim();
+      if (workerId) {
+        mapping.set(workerId, worker);
+      }
+      const podName = String(worker.pod_name || '').trim();
+      if (podName) {
+        mapping.set(podName, worker);
+      }
+    }
+    return mapping;
+  }, [clusterCapacityDetail]);
 
   const handleHeaderSort = (field: 'task' | 'status' | 'created_at' | 'duration') => {
     const mapped = HEADER_SORT_FIELDS[field];
@@ -1131,7 +1142,10 @@ export const SystemAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask: (
                   </ExecutionTableTd>
                   <ExecutionTableTd className="min-w-[190px]">
                     {(() => {
-                      const slot = getExecutionSlotPresentation(t);
+                      const slot = getExecutionSlotPresentation(
+                        t,
+                        slotWorkerById.get(String(t.dispatcher_instance_id || '').trim()) || null,
+                      );
                       return (
                         <div className="space-y-1">
                           <span className={`inline-flex rounded-full px-2 py-0.5 text-[10px] font-bold ${slot.tone}`}>{slot.label}</span>

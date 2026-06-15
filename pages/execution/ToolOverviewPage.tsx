@@ -104,6 +104,18 @@ const emptyForm: AgentAppFormState = {
   modelAliasId: '',
 };
 
+const AGENT_APPS_API_PREFIX = '/api/agentmanage/agent-apps';
+
+const getLocalUserInfo = (): UserInfo | null => {
+  const raw = localStorage.getItem('user');
+  if (!raw) return null;
+  try {
+    return JSON.parse(raw) as UserInfo;
+  } catch {
+    return null;
+  }
+};
+
 const formatTime = (value?: string | null): string => {
   if (!value) return '-';
   const date = new Date(value);
@@ -140,14 +152,14 @@ const loadAgentApps = async (departmentId?: number | string | null, tenantId?: n
   if (departmentId) params.set('departmentId', String(departmentId));
   if (tenantId) params.set('tenantId', String(tenantId));
   const qs = params.toString();
-  const url = `/api/agent-apps${qs ? `?${qs}` : ''}`;
+  const url = `${AGENT_APPS_API_PREFIX}${qs ? `?${qs}` : ''}`;
   const response = await fetch(url, { headers: getAuthHeaders() });
   const payload = await handleResponse(response);
   return Array.isArray(payload?.apps) ? payload.apps : [];
 };
 
 const loadHarnessBranches = async (appId: string): Promise<Array<{ name: string; commit: Record<string, unknown>; protected: boolean }>> => {
-  const response = await fetch(`/api/agent-apps/${encodeURIComponent(appId)}/branches`, { headers: getAuthHeaders() });
+  const response = await fetch(`${AGENT_APPS_API_PREFIX}/${encodeURIComponent(appId)}/branches`, { headers: getAuthHeaders() });
   const payload = await handleResponse(response);
   return Array.isArray(payload?.branches) ? payload.branches : [];
 };
@@ -188,7 +200,7 @@ const createAgentApp = async (formState: AgentAppFormState, agentHarnessFile: Ag
   appendAgentFields(form, formState, isPublic);
   appendHarnessFile(form, agentHarnessFile);
 
-  const response = await fetch('/api/agent-apps', {
+  const response = await fetch(AGENT_APPS_API_PREFIX, {
     method: 'POST',
     headers: getAuthHeaders(),
     body: form,
@@ -197,7 +209,7 @@ const createAgentApp = async (formState: AgentAppFormState, agentHarnessFile: Ag
 };
 
 const updateAgentApp = async (appId: string, formState: AgentAppFormState, agentHarnessFile: AgentHarnessFileData | null, isPublic: boolean): Promise<void> => {
-  const url = `/api/agent-apps/${encodeURIComponent(appId)}`;
+  const url = `${AGENT_APPS_API_PREFIX}/${encodeURIComponent(appId)}`;
   if (agentHarnessFile) {
     const form = new FormData();
     appendAgentFields(form, formState, isPublic);
@@ -227,7 +239,7 @@ const updateAgentApp = async (appId: string, formState: AgentAppFormState, agent
 };
 
 const deleteAgentApp = async (id: string): Promise<void> => {
-  const response = await fetch(`/api/agent-apps/${encodeURIComponent(id)}`, {
+  const response = await fetch(`${AGENT_APPS_API_PREFIX}/${encodeURIComponent(id)}`, {
     method: 'DELETE',
     headers: getAuthHeaders(),
   });
@@ -235,7 +247,7 @@ const deleteAgentApp = async (id: string): Promise<void> => {
 };
 
 const syncAgentRepos = async (): Promise<{ success: boolean; message?: string }> => {
-  const response = await fetch('/api/agent-apps/sync', { method: 'POST', headers: getAuthHeaders() });
+  const response = await fetch(`${AGENT_APPS_API_PREFIX}/sync`, { method: 'POST', headers: getAuthHeaders() });
   return handleResponse(response);
 };
 
@@ -588,6 +600,7 @@ export const ToolOverviewPage: React.FC<ToolOverviewPageProps> = ({ projectId, u
   const [harnessBranches, setHarnessBranches] = useState<Record<string, Array<{ name: string; commit: Record<string, unknown>; protected: boolean }>>>({});
   const [pipelineApp, setPipelineApp] = useState<AgentApp | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
+  const effectiveUser = useMemo(() => user || getLocalUserInfo(), [user]);
 
   const selectedApp = useMemo(
     () => apps.find((item) => item.id === selectedAppId) || null,
@@ -595,16 +608,16 @@ export const ToolOverviewPage: React.FC<ToolOverviewPageProps> = ({ projectId, u
   );
 
   const departments = useMemo<DepartmentOption[]>(() => {
-    if (!user?.department_id) return [];
-    return [{ id: user.department_id, name: user.department_name || `部门 ${user.department_id}` }];
-  }, [user?.department_id, user?.department_name]);
+    if (!effectiveUser?.department_id) return [];
+    return [{ id: effectiveUser.department_id, name: effectiveUser.department_name || `部门 ${effectiveUser.department_id}` }];
+  }, [effectiveUser?.department_id, effectiveUser?.department_name]);
 
 
   const refreshApps = async () => {
     setLoading(true);
     setMessage(null);
     try {
-      const nextApps = await loadAgentApps(user?.department_id, user?.department_id);
+      const nextApps = await loadAgentApps(effectiveUser?.department_id, effectiveUser?.department_id);
       setApps(nextApps);
       const branchEntries = await Promise.all(nextApps.filter((app) => app.agentHarnessPath).map(async (app) => {
         try {
@@ -639,7 +652,7 @@ export const ToolOverviewPage: React.FC<ToolOverviewPageProps> = ({ projectId, u
     setIsAdmin(admin);
     void refreshApps();
     void refreshModelAliases();
-  }, []);
+  }, [effectiveUser?.department_id]);
 
   useEffect(() => {
     if (!selectedApp && !createOpen && !pipelineApp) return undefined;
@@ -816,7 +829,7 @@ export const ToolOverviewPage: React.FC<ToolOverviewPageProps> = ({ projectId, u
                     <h3 className="truncate text-lg font-black text-slate-900">{app.name}</h3>
                     <div className="mt-1 flex flex-wrap items-center gap-2">
                       <span className="rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-[11px] font-black text-slate-600">{engineLabel(app.engine)}</span>
-                      <span className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-bold text-slate-500">{app.isPublic ? <Globe size={11} className="text-emerald-600" /> : <Lock size={11} />}{app.isPublic ? '公开' : `私有 · ${user?.department_name || `部门${app.departmentId ?? ''}`}`}</span>
+                      <span className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-bold text-slate-500">{app.isPublic ? <Globe size={11} className="text-emerald-600" /> : <Lock size={11} />}{app.isPublic ? '公开' : `私有 · ${effectiveUser?.department_name || `部门${app.departmentId ?? ''}`}`}</span>
                     </div>
                   </button>
                   <div className="flex shrink-0 items-center gap-1">

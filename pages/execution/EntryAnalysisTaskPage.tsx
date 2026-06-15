@@ -1032,10 +1032,10 @@ export const EntryAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?: (
   const slotSummaryCards = slotCluster ? [
     { label: '总槽位', value: slotCluster.total_capacity, className: 'bg-slate-50 border-slate-200 text-slate-800' },
     { label: '占用槽位', value: slotCluster.busy_slots, className: 'bg-blue-50 border-blue-200 text-blue-700' },
-    { label: '空闲槽位', value: slotCluster.available_slots, className: 'bg-emerald-50 border-emerald-200 text-emerald-700' },
+    { label: '剩余可派发槽位', value: slotCluster.available_slots, className: 'bg-emerald-50 border-emerald-200 text-emerald-700' },
     { label: '排队任务', value: slotCluster.queued_tasks, className: 'bg-amber-50 border-amber-200 text-amber-700' },
-    { label: 'Live Pod', value: slotCluster.live_pod_count ?? slotCluster.worker_count, className: 'bg-cyan-50 border-cyan-200 text-cyan-700' },
-    { label: 'Registry Worker', value: slotCluster.registry_visible_workers ?? slotCluster.worker_count, className: 'bg-violet-50 border-violet-200 text-violet-700' },
+    { label: '在线 Pod', value: slotCluster.live_pod_count ?? slotCluster.worker_count, className: 'bg-cyan-50 border-cyan-200 text-cyan-700' },
+    { label: '已注册 Worker', value: slotCluster.registry_visible_workers ?? slotCluster.worker_count, className: 'bg-violet-50 border-violet-200 text-violet-700' },
     { label: '注册缺口', value: slotCluster.registry_missing_live_pods ?? 0, className: 'bg-rose-50 border-rose-200 text-rose-700' },
     { label: '智能体上限', value: slotCluster.agent_total_capacity, className: 'bg-violet-50 border-violet-200 text-violet-700' },
     { label: '智能体占用', value: slotCluster.agent_in_use, className: 'bg-fuchsia-50 border-fuchsia-200 text-fuchsia-700' },
@@ -1133,7 +1133,7 @@ export const EntryAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?: (
                       <div className="flex flex-wrap items-center gap-2 text-xs">
                         <span className="rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1 text-slate-700">槽位 {worker.running_jobs}/{worker.max_concurrent_jobs}</span>
                         <span className="rounded-lg border border-blue-200 bg-blue-50 px-2.5 py-1 text-blue-700">排队 {worker.queued_jobs}</span>
-                        <span className="rounded-lg border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-emerald-700">空闲 {worker.available_slots}</span>
+                        <span className="rounded-lg border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-emerald-700">剩余槽位 {worker.available_slots}</span>
                         <span className="rounded-lg border border-violet-200 bg-violet-50 px-2.5 py-1 text-violet-700">智能体 {worker.agent_process_in_use}/{worker.agent_process_limit}</span>
                         <span className="rounded-lg border border-orange-200 bg-orange-50 px-2.5 py-1 text-orange-700">等待 {worker.agent_waiting_requests}</span>
                         <span className="rounded-lg border border-cyan-200 bg-cyan-50 px-2.5 py-1 text-cyan-700">RSS {formatBytes(worker.agent_rss_total_bytes || 0)}</span>
@@ -1537,9 +1537,9 @@ export const EntryAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?: (
                 ))}
               </div>
               <div className="mt-4 flex flex-wrap items-center gap-2">
-                <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs text-slate-600">Worker {slotCluster.worker_count}</span>
-                <span className="rounded-full border border-cyan-200 bg-cyan-50 px-3 py-1 text-xs text-cyan-700">Live Pod {slotCluster.live_pod_count ?? slotCluster.worker_count}</span>
-                <span className="rounded-full border border-violet-200 bg-violet-50 px-3 py-1 text-xs text-violet-700">Registry {slotCluster.registry_visible_workers ?? slotCluster.worker_count}</span>
+                <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs text-slate-600">在线 Worker {slotCluster.worker_count}</span>
+                <span className="rounded-full border border-cyan-200 bg-cyan-50 px-3 py-1 text-xs text-cyan-700">在线 Pod {slotCluster.live_pod_count ?? slotCluster.worker_count}</span>
+                <span className="rounded-full border border-violet-200 bg-violet-50 px-3 py-1 text-xs text-violet-700">注册 Worker {slotCluster.registry_visible_workers ?? slotCluster.worker_count}</span>
                 <span className={`rounded-full px-3 py-1 text-xs ${(slotCluster.registry_missing_live_pods || 0) > 0 ? 'border border-rose-200 bg-rose-50 text-rose-700' : 'border border-slate-200 bg-slate-50 text-slate-500'}`}>缺口 {slotCluster.registry_missing_live_pods || 0}</span>
                 <span className="rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs text-emerald-700">Healthy {slotCluster.healthy_workers}</span>
                 <span className={`rounded-full px-3 py-1 text-xs ${slotCluster.stale_workers > 0 ? 'border border-rose-200 bg-rose-50 text-rose-700' : 'border border-slate-200 bg-slate-50 text-slate-500'}`}>活跃失联 {slotCluster.stale_workers}</span>
@@ -1560,7 +1560,7 @@ export const EntryAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?: (
                     <div className="mt-3 flex flex-wrap gap-2 text-[11px]">
                       <span className="rounded-lg border border-slate-200 bg-white px-2 py-1 text-slate-700">槽位 {worker.running_jobs}/{worker.max_concurrent_jobs}</span>
                       <span className="rounded-lg border border-blue-200 bg-blue-50 px-2 py-1 text-blue-700">排队 {worker.queued_jobs}</span>
-                      <span className="rounded-lg border border-emerald-200 bg-emerald-50 px-2 py-1 text-emerald-700">空闲 {worker.available_slots}</span>
+                      <span className="rounded-lg border border-emerald-200 bg-emerald-50 px-2 py-1 text-emerald-700">剩余槽位 {worker.available_slots}</span>
                       <span className="rounded-lg border border-violet-200 bg-violet-50 px-2 py-1 text-violet-700">智能体 {worker.agent_process_in_use}/{worker.agent_process_limit}</span>
                       <span className="rounded-lg border border-orange-200 bg-orange-50 px-2 py-1 text-orange-700">等待 {worker.agent_waiting_requests}</span>
                       <span className="rounded-lg border border-cyan-200 bg-cyan-50 px-2 py-1 text-cyan-700">RSS {formatBytes(worker.agent_rss_total_bytes || 0)}</span>
@@ -1585,7 +1585,7 @@ export const EntryAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?: (
                       />
                     </div>
                     <div className="mt-1 text-[11px] text-slate-400">
-                      来源：{worker.source || 'worker_registry'} · 状态 {worker.worker_role_state || 'healthy'} · 活动任务 {worker.active_tasks.length}
+                      来源：{worker.source || 'worker_registry'} · 状态 {worker.worker_role_state || 'healthy'} · 已绑定任务 {worker.active_tasks.length}
                     </div>
                     {typeof worker.last_heartbeat_duration_ms === 'number' ? (
                       <div className="mt-1 text-[11px] text-slate-400">

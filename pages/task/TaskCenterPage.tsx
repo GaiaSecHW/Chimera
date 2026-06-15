@@ -17,6 +17,7 @@ import {
   ScheduleCenterUserTaskType,
   ScheduleCenterUserTaskListResponse,
   SecurityProject,
+  UserInfo,
 } from '../../types/types';
 
 interface Props {
@@ -42,6 +43,7 @@ const TASK_TYPES: readonly TaskTypeOption[] = [
 const CREATE_TABS = [
   { key: 'basic', label: '基础信息' },
   { key: 'input', label: '输入选择' },
+  { key: 'options', label: '创建选项' },
 ] as const;
 
 const INPUT_MODES: Record<string, 'file' | 'file_list' | 'directory'> = {
@@ -53,14 +55,26 @@ const INPUT_MODES: Record<string, 'file' | 'file_list' | 'directory'> = {
   sechps_tool: 'directory',
 };
 
+const AGENT_APPS_API_PREFIX = '/api/agentmanage/agent-apps';
+
 const loadAgentApps = async (departmentId?: number | string | null, tenantId?: number | string | null): Promise<AgentAppSummary[]> => {
   const params = new URLSearchParams();
   if (departmentId) params.set('departmentId', String(departmentId));
   if (tenantId) params.set('tenantId', String(tenantId));
   const qs = params.toString();
-  const response = await fetch(`/api/agent-apps${qs ? `?${qs}` : ''}`, { headers: getAuthHeaders() });
+  const response = await fetch(`${AGENT_APPS_API_PREFIX}${qs ? `?${qs}` : ''}`, { headers: getAuthHeaders() });
   const payload = await handleResponse(response);
   return Array.isArray(payload?.apps) ? payload.apps : [];
+};
+
+const getLocalUserInfo = (): UserInfo | null => {
+  const raw = localStorage.getItem('user');
+  if (!raw) return null;
+  try {
+    return JSON.parse(raw) as UserInfo;
+  } catch {
+    return null;
+  }
 };
 
 const formatDateTime = (value?: string | null) => (value ? new Date(value).toLocaleString('zh-CN') : '—');
@@ -87,6 +101,7 @@ const truncateText = (value?: string | null, max = 80) => {
 export const TaskCenterPage: React.FC<Props> = ({ projectId, projects }) => {
   const scheduleApi = api.domains.platform.scheduleCenter;
   const fileserverApi = api.domains.assets.fileserver;
+  const currentUser = useMemo(() => getLocalUserInfo(), []);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [tasks, setTasks] = useState<ScheduleCenterUserTask[]>([]);
@@ -206,7 +221,7 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects }) => {
       const [taskResp, inputResp, appResp] = await Promise.all([
         scheduleApi.listUserTasks(projectId, selectedAgentAppFilter ? { agent_app_id: selectedAgentAppFilter } : {}) as Promise<ScheduleCenterUserTaskListResponse>,
         fileserverApi.listProjectInputUploads(projectId, { pageSize: 200 }) as Promise<{ items: ProjectInputUploadRecord[] }>,
-        loadAgentApps(),
+        loadAgentApps(currentUser?.department_id, currentUser?.department_id),
       ]);
       const nextInputs = inputResp.items || [];
       setTasks(taskResp.items || []);
@@ -270,9 +285,22 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects }) => {
     setExpandedPaths([]);
     setDirectorySelectionTouched(false);
     setInputBrowseError('');
-    setSelectedAgentAppId('');
     setInstruction('');
+    if (taskType !== 'sechps_tool') {
+      setSelectedAgentAppId('');
+    }
   }, [taskType]);
+
+  useEffect(() => {
+    if (taskType !== 'sechps_tool') return;
+    if (!agentApps.length) {
+      setSelectedAgentAppId('');
+      return;
+    }
+    if (!selectedAgentAppId || !agentApps.some((item) => item.id === selectedAgentAppId)) {
+      setSelectedAgentAppId(agentApps[0]?.id || '');
+    }
+  }, [agentApps, selectedAgentAppId, taskType]);
 
   useEffect(() => {
     setSelectedRelativePath(null);
@@ -299,10 +327,9 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects }) => {
   };
 
   useEffect(() => {
-    if (taskType === 'sechps_tool') return;
     if (!createOpen || !selectedInputId || !projectId) return;
     void loadBrowsePath('');
-  }, [createOpen, projectId, selectedInputId]);
+  }, [createOpen, projectId, selectedInputId, taskType]);
 
   const openCreateDialog = () => {
     setCreateOpen(true);
@@ -698,8 +725,6 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects }) => {
               <th className="px-4 py-3">类型</th>
               <th className="px-4 py-3">任务状态</th>
               <th className="px-4 py-3">同步状态</th>
-              <th className="px-4 py-3">删除状态</th>
-              <th className="px-4 py-3">输入记录数</th>
               <th className="px-4 py-3">运行父凭证</th>
               <th className="px-4 py-3">下游任务 ID</th>
               <th className="px-4 py-3">更新时间</th>
@@ -707,8 +732,8 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects }) => {
             </tr>
           </thead>
           <tbody>
-            {loading ? <tr><td className="px-4 py-8 text-center text-slate-500" colSpan={12}>加载中...</td></tr> : null}
-            {!loading && filteredTasks.length === 0 ? <tr><td className="px-4 py-8 text-center text-slate-500" colSpan={12}>暂无任务</td></tr> : null}
+            {loading ? <tr><td className="px-4 py-8 text-center text-slate-500" colSpan={10}>加载中...</td></tr> : null}
+            {!loading && filteredTasks.length === 0 ? <tr><td className="px-4 py-8 text-center text-slate-500" colSpan={10}>暂无任务</td></tr> : null}
             {filteredTasks.map((task) => (
               <tr key={task.id} className="border-t">
                 <td className="px-4 py-3">
@@ -730,15 +755,9 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects }) => {
                   <div className="font-semibold">{getDisplayStatus(task)}</div>
                   <div className="text-xs text-slate-500">{task.dispatch_status} / {task.business_status}</div>
                 </td>
-                <td className="px-4 py-3 text-xs text-slate-600">{getSyncSummary(task)}</td>
-                <td className="px-4 py-3 text-xs">
-                  {task.delete_status && task.delete_status !== 'none' ? (
-                    <span className={task.delete_status === 'failed' ? 'text-rose-600' : 'text-amber-600'}>
-                      {deleteStatusText(task)}
-                    </span>
-                  ) : '—'}
+                <td className="px-4 py-3 text-xs text-slate-600" title={getSyncSummary(task)}>
+                  {task.sync_status || 'none'}
                 </td>
-                <td className="px-4 py-3">{task.input_upload_count}</td>
                 <td className="px-4 py-3 font-mono text-xs">{[task.parent_task_key_name, task.parent_task_key_prefix].filter(Boolean).join(' / ') || getRootTaskKeyDisplay(task)}</td>
                 <td className="px-4 py-3 font-mono text-xs">{task.downstream_task_id || '—'}</td>
                 <td className="px-4 py-3">{formatDateTime(task.updated_at)}</td>
@@ -922,7 +941,7 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects }) => {
 
       {createOpen ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/45 p-4 backdrop-blur-sm">
-          <div className="flex w-full max-w-4xl flex-col overflow-hidden rounded-[2rem] border border-theme-border bg-theme-surface shadow-2xl">
+          <div className="flex max-h-[calc(100vh-2rem)] w-full max-w-4xl flex-col overflow-hidden rounded-[2rem] border border-theme-border bg-theme-surface shadow-2xl">
             <div className="flex items-start justify-between border-b border-theme-border px-6 py-5">
               <div>
                 <div className="text-lg font-black text-theme-text-primary">创建任务</div>
@@ -952,7 +971,7 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects }) => {
               </div>
             </div>
 
-            <div className="px-6 py-6">
+            <div className="min-h-0 flex-1 overflow-y-auto px-6 py-6">
               {activeCreateTab === 'basic' ? (
                 <div className="grid gap-4 md:grid-cols-2">
                   <label className="block text-sm font-semibold text-theme-text-secondary">任务类型
@@ -1045,7 +1064,7 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects }) => {
                       {inputBrowseError ? (
                         <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">{inputBrowseError}</div>
                       ) : null}
-                      <div className="max-h-80 overflow-auto rounded-2xl border border-theme-border bg-theme-surface">
+                      <div className="max-h-[min(24rem,45vh)] overflow-auto rounded-2xl border border-theme-border bg-theme-surface">
                         <table className="min-w-full text-sm">
                           <thead className="bg-theme-elevated text-theme-text-faint">
                             <tr>
@@ -1094,49 +1113,51 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects }) => {
                 </div>
               ) : null}
 
-              <div className="mt-6 grid gap-4 md:grid-cols-2">
-                <div className="rounded-2xl border border-theme-border bg-theme-elevated px-4 py-3">
-                  <div className="text-xs font-bold uppercase tracking-[0.18em] text-theme-text-faint">创建后状态</div>
-                  <div className="mt-2 text-sm font-semibold text-theme-text-primary">created / ready_for_dispatch / 自动进入分发队列</div>
-                  <div className="mt-1 text-xs text-theme-text-faint">
-                    {taskType === 'sechps_tool' ? '创建阶段会登记具体 Agent Harness 与目录绑定。Task Key 由调度中心在分发阶段自动申请。' : '创建阶段只登记业务任务，不要求手动填写 Task Key、Secret 或算力池。'}
+              {activeCreateTab === 'options' ? (
+                <div className="grid gap-4 md:grid-cols-2">
+                  <div className="rounded-2xl border border-theme-border bg-theme-elevated px-4 py-3">
+                    <div className="text-xs font-bold uppercase tracking-[0.18em] text-theme-text-faint">创建后状态</div>
+                    <div className="mt-2 text-sm font-semibold text-theme-text-primary">created / ready_for_dispatch / 自动进入分发队列</div>
+                    <div className="mt-1 text-xs text-theme-text-faint">
+                      {taskType === 'sechps_tool' ? '创建阶段会登记具体 Agent Harness 与目录绑定。Task Key 由调度中心在分发阶段自动申请。' : '创建阶段只登记业务任务，不要求手动填写 Task Key、Secret 或算力池。'}
+                    </div>
                   </div>
-                </div>
-                <div className="rounded-2xl border border-theme-border bg-theme-elevated px-4 py-3">
-                  <div className="text-xs font-bold uppercase tracking-[0.18em] text-theme-text-faint">自动分发</div>
-                  <div className="mt-2 text-sm font-semibold text-theme-text-primary">调度中心后台排队并执行分发</div>
-                  <div className="mt-1 text-xs text-theme-text-faint">
-                    {taskType === 'ai4apk'
-                      ? '创建成功后任务会自动进入分发队列；调度中心会把所选文件路径（APK/HAP 安装包或其源码压缩包）直接传给 AI4APP 进行扫描。'
-                      : taskType === 'sechps_tool'
-                        ? '创建成功后任务会自动进入分发队列；调度中心会动态申请 Task Key，并把所选目录与该 Task Key 一起传给 SecHPS。'
-                        : '创建成功后任务会自动进入分发队列；调度中心会在分发期创建 root task key，并直接传给下游。'}
+                  <div className="rounded-2xl border border-theme-border bg-theme-elevated px-4 py-3">
+                    <div className="text-xs font-bold uppercase tracking-[0.18em] text-theme-text-faint">自动分发</div>
+                    <div className="mt-2 text-sm font-semibold text-theme-text-primary">调度中心后台排队并执行分发</div>
+                    <div className="mt-1 text-xs text-theme-text-faint">
+                      {taskType === 'ai4apk'
+                        ? '创建成功后任务会自动进入分发队列；调度中心会把所选文件路径（APK/HAP 安装包或其源码压缩包）直接传给 AI4APP 进行扫描。'
+                        : taskType === 'sechps_tool'
+                          ? '创建成功后任务会自动进入分发队列；调度中心会动态申请 Task Key，并把所选目录与该 Task Key 一起传给 SecHPS。'
+                          : '创建成功后任务会自动进入分发队列；调度中心会在分发期创建 root task key，并直接传给下游。'}
+                    </div>
                   </div>
-                </div>
-                <div className="rounded-2xl border border-theme-border bg-theme-surface px-4 py-3 md:col-span-2">
-                  <div className="text-xs font-bold uppercase tracking-[0.18em] text-theme-text-faint">创建摘要</div>
-                  <div className="mt-3 grid gap-3 md:grid-cols-3">
-                    <div>
-                      <div className="text-xs text-theme-text-faint">任务类型</div>
-                      <div className="mt-1 text-sm font-semibold text-theme-text-primary">{taskTypeMeta.label}</div>
-                    </div>
-                    <div>
-                      <div className="text-xs text-theme-text-faint">输入记录</div>
-                      <div className="mt-1 text-sm font-semibold text-theme-text-primary">{taskType === 'sechps_tool' ? (selectedAgentApp?.name || '未选择 Harness') : (selectedInputId || '未选择')}</div>
-                    </div>
-                    <div>
-                      <div className="text-xs text-theme-text-faint">输入路径</div>
-                      <div className="mt-1 text-sm font-semibold text-theme-text-primary break-all">{inputSummary}</div>
-                    </div>
-                    {taskType === 'binary_module_e2e' ? (
+                  <div className="rounded-2xl border border-theme-border bg-theme-surface px-4 py-3 md:col-span-2">
+                    <div className="text-xs font-bold uppercase tracking-[0.18em] text-theme-text-faint">创建摘要</div>
+                    <div className="mt-3 grid gap-3 md:grid-cols-3">
                       <div>
-                        <div className="text-xs text-theme-text-faint">模块名</div>
-                        <div className="mt-1 text-sm font-semibold text-theme-text-primary">{moduleName || '未填写'}</div>
+                        <div className="text-xs text-theme-text-faint">任务类型</div>
+                        <div className="mt-1 text-sm font-semibold text-theme-text-primary">{taskTypeMeta.label}</div>
                       </div>
-                    ) : null}
+                      <div>
+                        <div className="text-xs text-theme-text-faint">输入记录</div>
+                        <div className="mt-1 text-sm font-semibold text-theme-text-primary">{taskType === 'sechps_tool' ? (selectedAgentApp?.name || '未选择 Harness') : (selectedInputId || '未选择')}</div>
+                      </div>
+                      <div>
+                        <div className="text-xs text-theme-text-faint">输入路径</div>
+                        <div className="mt-1 text-sm font-semibold text-theme-text-primary break-all">{inputSummary}</div>
+                      </div>
+                      {taskType === 'binary_module_e2e' ? (
+                        <div>
+                          <div className="text-xs text-theme-text-faint">模块名</div>
+                          <div className="mt-1 text-sm font-semibold text-theme-text-primary">{moduleName || '未填写'}</div>
+                        </div>
+                      ) : null}
+                    </div>
                   </div>
                 </div>
-              </div>
+              ) : null}
             </div>
 
             <div className="flex items-center justify-between border-t border-theme-border px-6 py-4">
