@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { ArrowRight, CheckCircle2, ChevronRight, Folder, FolderOpen, Loader2, Plus, RefreshCw, Rocket, Search, Shield, Square, SquareCheck, X } from 'lucide-react';
 import { api } from '../../clients/api';
 import { getAuthHeaders, handleResponse } from '../../clients/base';
+import { agentManageApiPath } from '../../clients/agentManage';
 import { useUiFeedback } from '../../components/UiFeedback';
 import { getUploadRecordDisplayName } from '../assets/baseResourcePageModel';
 import { saveTaskCenterReturnContext } from '../../utils/executionReturnContext';
@@ -62,7 +63,7 @@ const loadAgentApps = async (departmentId?: number | string | null, tenantId?: n
   if (departmentId) params.set('departmentId', String(departmentId));
   if (tenantId) params.set('tenantId', String(tenantId));
   const qs = params.toString();
-  const response = await fetch(`${AGENT_APPS_API_PREFIX}${qs ? `?${qs}` : ''}`, { headers: getAuthHeaders() });
+  const response = await fetch(agentManageApiPath(`/agent-apps${qs ? `?${qs}` : ''}`), { headers: getAuthHeaders() });
   const payload = await handleResponse(response);
   return Array.isArray(payload?.apps) ? payload.apps : [];
 };
