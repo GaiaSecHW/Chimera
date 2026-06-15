@@ -2270,6 +2270,7 @@ export interface AgentAppSummary {
   id: string;
   name: string;
   engine: string;
+  modelAliasId?: number | null;
   agentHarnessPath?: string | null;
   agentHarnessRepoName?: string | null;
   defaultAgentName: string;
@@ -2297,6 +2298,7 @@ export interface ScheduleCenterUserTask {
   agent_app_name?: string | null;
   agent_app_engine?: string | null;
   agent_app_agent_name?: string | null;
+  agent_model_alias_id?: number | null;
   agent_harness_path?: string | null;
   tool_work_dir?: string | null;
   instruction?: string | null;
@@ -2410,6 +2412,7 @@ export interface ScheduleCenterUserTaskCreatePayload {
   agent_app_name?: string;
   agent_app_engine?: string;
   agent_app_agent_name?: string;
+  agent_model_alias_id?: number | null;
   agent_harness_path?: string;
   tool_work_dir?: string;
   instruction?: string;
