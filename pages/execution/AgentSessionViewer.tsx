@@ -27,7 +27,7 @@ const MarkdownMessage: React.FC<{ content: string }> = ({ content }) => (
         th: ({ children }) => <th className="border border-slate-200 px-3 py-2 font-black text-slate-800">{children}</th>,
         td: ({ children }) => <td className="border border-slate-200 px-3 py-2 align-top">{children}</td>,
         code: ({ children, className }) => className
-          ? <code className="block overflow-x-auto rounded-2xl bg-slate-950 px-4 py-3 font-mono text-xs text-slate-100">{children}</code>
+          ? <code className="block overflow-x-auto rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 font-mono text-xs text-slate-900">{children}</code>
           : <code className="rounded bg-slate-100 px-1.5 py-0.5 font-mono text-[0.9em] text-slate-900">{children}</code>,
         pre: ({ children }) => <pre className="mb-3 last:mb-0">{children}</pre>,
       }}

@@ -570,7 +570,7 @@ const EmptyPanel: React.FC<{ title: string; description: string; icon?: React.Re
 );
 
 const JsonBlock: React.FC<{ value: any; maxHeight?: string }> = ({ value, maxHeight = 'max-h-80' }) => (
-  <pre className={`${maxHeight} overflow-auto rounded-lg border border-slate-800 bg-slate-950 p-4 text-xs leading-5 text-slate-100`}>
+  <pre className={`${maxHeight} overflow-auto rounded-lg border border-slate-200 bg-slate-50 p-4 text-xs leading-5 text-slate-900`}>
     {JSON.stringify(value ?? {}, null, 2)}
   </pre>
 );

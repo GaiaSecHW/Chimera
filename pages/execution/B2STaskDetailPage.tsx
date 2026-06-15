@@ -439,7 +439,7 @@ const TimelinePayloadBlock: React.FC<{ payload: Record<string, any> }> = ({ payl
       </div>
       <details>
         <summary className="cursor-pointer text-xs font-bold text-slate-500 hover:text-slate-800">查看原始 JSON</summary>
-        <pre className="mt-2 max-h-64 overflow-auto rounded-lg bg-slate-950 p-3 text-[11px] leading-5 text-slate-100">
+        <pre className="mt-2 max-h-64 overflow-auto rounded-lg border border-slate-200 bg-slate-50 p-3 text-[11px] leading-5 text-slate-900">
           {JSON.stringify(payload, null, 2)}
         </pre>
       </details>
@@ -1698,7 +1698,7 @@ export const B2STaskDetailPage: React.FC<Props> = ({ projectId, taskId, onBack, 
         <SectionCard title="原始冻结配置">
           <details>
             <summary className="cursor-pointer text-xs text-slate-500 hover:text-slate-700">展开查看冻结配置 JSON</summary>
-            <pre className="mt-3 max-h-96 overflow-auto rounded-xl bg-slate-950 p-4 text-xs leading-relaxed text-slate-100 whitespace-pre-wrap">
+            <pre className="mt-3 max-h-96 overflow-auto rounded-xl border border-slate-200 bg-slate-50 p-4 text-xs leading-relaxed text-slate-900 whitespace-pre-wrap">
               {JSON.stringify(snapshot, null, 2)}
             </pre>
           </details>

@@ -1596,7 +1596,7 @@ export const PvcManagementPage: React.FC<{ projectId: string }> = ({ projectId }
                         {preview.mode === 'empty' ? (
                           <div className="flex min-h-[130px] items-center justify-center text-center text-xs font-semibold text-slate-400">选择一个文件即可在这里预览内容。</div>
                         ) : preview.mode === 'text' ? (
-                          <pre className="max-h-[34vh] overflow-auto whitespace-pre-wrap break-words rounded-lg bg-slate-950 p-2.5 text-[11px] leading-5 text-slate-100 custom-scrollbar">{preview.text}</pre>
+                          <pre className="max-h-[34vh] overflow-auto whitespace-pre-wrap break-words rounded-lg border border-slate-200 bg-slate-50 p-2.5 text-[11px] leading-5 text-slate-900 custom-scrollbar">{preview.text}</pre>
                         ) : preview.mode === 'image' ? (
                           <img src={preview.url} alt={previewNode?.name} className="max-h-[34vh] w-full rounded-lg object-contain bg-slate-50" />
                         ) : preview.mode === 'pdf' ? (
@@ -1611,7 +1611,7 @@ export const PvcManagementPage: React.FC<{ projectId: string }> = ({ projectId }
                               已展示前 {formatBytes(preview.displayedBytes)} 二进制内容
                               {preview.truncated ? `（文件总大小 ${formatBytes(preview.size)}）` : ''}
                             </div>
-                            <pre className="max-h-[34vh] overflow-auto whitespace-pre rounded-lg bg-slate-950 p-2.5 text-[11px] leading-5 text-slate-100 custom-scrollbar">{preview.view}</pre>
+                            <pre className="max-h-[34vh] overflow-auto whitespace-pre rounded-lg border border-slate-200 bg-slate-50 p-2.5 text-[11px] leading-5 text-slate-900 custom-scrollbar">{preview.view}</pre>
                           </div>
                         ) : (
                           <div className="flex min-h-[130px] items-center justify-center text-center text-xs font-semibold text-slate-400">当前文件不支持在线预览。</div>
@@ -1644,7 +1644,7 @@ export const PvcManagementPage: React.FC<{ projectId: string }> = ({ projectId }
                   <Loader2 className="animate-spin text-blue-600" size={28} />
                 </div>
               ) : previewModalState.preview.mode === 'text' ? (
-                <pre className="h-full overflow-auto whitespace-pre-wrap break-words rounded-lg bg-slate-950 p-3 text-xs leading-6 text-slate-100 custom-scrollbar">{previewModalState.preview.text}</pre>
+                <pre className="h-full overflow-auto whitespace-pre-wrap break-words rounded-lg border border-slate-200 bg-slate-50 p-3 text-xs leading-6 text-slate-900 custom-scrollbar">{previewModalState.preview.text}</pre>
               ) : previewModalState.preview.mode === 'image' ? (
                 <img src={previewModalState.preview.url} alt={previewModalState.node?.name} className="max-h-full w-full rounded-lg object-contain bg-slate-50" />
               ) : previewModalState.preview.mode === 'pdf' ? (
@@ -1661,7 +1661,7 @@ export const PvcManagementPage: React.FC<{ projectId: string }> = ({ projectId }
                     已展示前 {formatBytes(previewModalState.preview.displayedBytes)} 二进制内容
                     {previewModalState.preview.truncated ? `（文件总大小 ${formatBytes(previewModalState.preview.size)}）` : ''}
                   </div>
-                  <pre className="h-full min-h-[70vh] overflow-auto whitespace-pre rounded-lg bg-slate-950 p-3 text-xs leading-6 text-slate-100 custom-scrollbar">{previewModalState.preview.view}</pre>
+                  <pre className="h-full min-h-[70vh] overflow-auto whitespace-pre rounded-lg border border-slate-200 bg-slate-50 p-3 text-xs leading-6 text-slate-900 custom-scrollbar">{previewModalState.preview.view}</pre>
                 </div>
               ) : (
                 <div className="flex h-full items-center justify-center text-xs font-semibold text-slate-400">该文件类型不支持弹框预览。</div>

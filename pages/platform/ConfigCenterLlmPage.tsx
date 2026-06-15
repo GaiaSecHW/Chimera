@@ -939,7 +939,7 @@ export const ConfigCenterLlmPage: React.FC<ConfigCenterLlmPageProps> = ({ onOpen
                 onChange={(event) => setJsonDraft(event.target.value)}
                 rows={28}
                 spellCheck={false}
-                className="w-full rounded-[2rem] border border-slate-200 bg-slate-950 px-5 py-4 font-mono text-sm leading-6 text-slate-100 outline-none focus:border-blue-500"
+                className="w-full rounded-[2rem] border border-slate-200 bg-slate-50 px-5 py-4 font-mono text-sm leading-6 text-slate-900 outline-none focus:border-blue-500"
               />
             </div>
           ) : (
@@ -1065,7 +1065,7 @@ export const ConfigCenterLlmPage: React.FC<ConfigCenterLlmPageProps> = ({ onOpen
                 <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">批量导入</p>
                 <p className="mt-2 text-xs leading-6 text-slate-500">
                   支持按行粘贴 `KEY=value` 文本，导入时会覆盖同名变量。示例：
-                  <span className="mt-2 block rounded-xl bg-slate-950 px-3 py-3 font-mono text-[11px] leading-5 text-slate-100">
+                  <span className="mt-2 block rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 font-mono text-[11px] leading-5 text-slate-900">
                     {`ANTHROPIC_AUTH_TOKEN=sk-12345678
 ANTHROPIC_BASE_URL=http://127.0.0.1:3456
 NO_PROXY=127.0.0.1
@@ -1408,13 +1408,13 @@ API_TIMEOUT_MS=600000`}
                 <div className="mt-4 grid gap-4 lg:grid-cols-2">
                   <div className="rounded-[1.5rem] border border-slate-200 bg-slate-50 p-4">
                     <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">列表接口</p>
-                    <code className="mt-3 block whitespace-pre-wrap break-all rounded-2xl bg-slate-950 px-4 py-4 text-xs leading-6 text-slate-100">
+                    <code className="mt-3 block whitespace-pre-wrap break-all rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 text-xs leading-6 text-slate-900">
 {`GET /api/configcenter/service/llm/providers`}
                     </code>
                   </div>
                   <div className="rounded-[1.5rem] border border-slate-200 bg-slate-50 p-4">
                     <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">详情接口</p>
-                    <code className="mt-3 block whitespace-pre-wrap break-all rounded-2xl bg-slate-950 px-4 py-4 text-xs leading-6 text-slate-100">
+                    <code className="mt-3 block whitespace-pre-wrap break-all rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 text-xs leading-6 text-slate-900">
 {`GET /api/configcenter/service/llm/providers/{provider_key}`}
                     </code>
                   </div>
@@ -1450,7 +1450,7 @@ API_TIMEOUT_MS=600000`}
 
               <section className="rounded-[1.75rem] border border-slate-200 bg-white p-5">
                 <h4 className="text-sm font-black text-slate-900">5. curl 示例</h4>
-                <code className="mt-4 block whitespace-pre-wrap break-all rounded-[1.5rem] bg-slate-950 px-5 py-4 text-xs leading-6 text-slate-100">
+                <code className="mt-4 block whitespace-pre-wrap break-all rounded-[1.5rem] border border-slate-200 bg-slate-50 px-5 py-4 text-xs leading-6 text-slate-900">
 {`curl -H "Authorization: Bearer <machine-token>" \\
   https://chimera.ai.icsl.huawei.com/api/configcenter/service/llm/providers
 
@@ -1471,14 +1471,14 @@ curl -H "Authorization: Bearer <machine-token>" \\
                 <div className="mt-4 grid gap-4 lg:grid-cols-2">
                   <div className="rounded-[1.5rem] border border-slate-200 bg-slate-50 p-4">
                     <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">请求</p>
-                    <code className="mt-3 block whitespace-pre-wrap break-all rounded-2xl bg-slate-950 px-4 py-4 text-xs leading-6 text-slate-100">
+                    <code className="mt-3 block whitespace-pre-wrap break-all rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 text-xs leading-6 text-slate-900">
 {`GET /api/configcenter/service/llm/providers
 Authorization: Bearer <machine-token>`}
                     </code>
                   </div>
                   <div className="rounded-[1.5rem] border border-slate-200 bg-slate-50 p-4">
                     <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">响应</p>
-                    <code className="mt-3 block max-h-[420px] overflow-auto whitespace-pre-wrap break-all rounded-2xl bg-slate-950 px-4 py-4 text-xs leading-6 text-slate-100">
+                    <code className="mt-3 block max-h-[420px] overflow-auto whitespace-pre-wrap break-all rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 text-xs leading-6 text-slate-900">
 {`{
   "total": 2,
   "default_provider_key": "local_litellm",
@@ -1545,14 +1545,14 @@ Authorization: Bearer <machine-token>`}
                 <div className="mt-4 grid gap-4 lg:grid-cols-2">
                   <div className="rounded-[1.5rem] border border-slate-200 bg-slate-50 p-4">
                     <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">请求</p>
-                    <code className="mt-3 block whitespace-pre-wrap break-all rounded-2xl bg-slate-950 px-4 py-4 text-xs leading-6 text-slate-100">
+                    <code className="mt-3 block whitespace-pre-wrap break-all rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 text-xs leading-6 text-slate-900">
 {`GET /api/configcenter/service/llm/providers/local_ccr
 Authorization: Bearer <machine-token>`}
                     </code>
                   </div>
                   <div className="rounded-[1.5rem] border border-slate-200 bg-slate-50 p-4">
                     <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">响应</p>
-                    <code className="mt-3 block max-h-[420px] overflow-auto whitespace-pre-wrap break-all rounded-2xl bg-slate-950 px-4 py-4 text-xs leading-6 text-slate-100">
+                    <code className="mt-3 block max-h-[420px] overflow-auto whitespace-pre-wrap break-all rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 text-xs leading-6 text-slate-900">
 {`{
   "provider_key": "local_ccr",
   "display_name": "LOCAL_CCR",

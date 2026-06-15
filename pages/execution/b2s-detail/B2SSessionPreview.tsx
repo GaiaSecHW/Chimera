@@ -118,7 +118,7 @@ const PiMessageContent: React.FC<{ entry: PiSessionEntry; entries: PiSessionEntr
     return (
       <>
         {content.map((block: any, idx: number) => {
-          if (block?.type === 'text' && block.text?.trim()) return <div key={idx} className="whitespace-pre-wrap break-words text-sm leading-6 text-slate-100">{block.text}</div>;
+          if (block?.type === 'text' && block.text?.trim()) return <div key={idx} className="whitespace-pre-wrap break-words text-sm leading-6 text-slate-900">{block.text}</div>;
           if (block?.type === 'thinking' && block.thinking?.trim()) return <div key={idx} className="rounded-xl bg-slate-950/40 p-3 text-sm italic leading-6 text-slate-400">{block.thinking}</div>;
           return null;
         })}
@@ -132,7 +132,7 @@ const PiMessageContent: React.FC<{ entry: PiSessionEntry; entries: PiSessionEntr
   if (msg.role === 'bashExecution') {
     return <PiToolExecution call={{ id: entry.id, name: 'bash', arguments: { command: msg.command } }} result={{ content: [{ type: 'text', text: msg.output || '' }], isError: msg.cancelled || (msg.exitCode !== 0 && msg.exitCode !== null) }} />;
   }
-  return <pre className="whitespace-pre-wrap break-words text-sm leading-6 text-slate-100">{textFromContent(content)}</pre>;
+  return <pre className="whitespace-pre-wrap break-words text-sm leading-6 text-slate-900">{textFromContent(content)}</pre>;
 };
 
 export const B2SSessionPreview: React.FC<{

@@ -209,7 +209,7 @@ const JsonPreview: React.FC<{ value: unknown; emptyText?: string }> = ({ value, 
   return (
     <details>
       <summary className="cursor-pointer text-xs text-slate-500 hover:text-slate-700">展开查看原始 JSON</summary>
-      <pre className="mt-3 max-h-80 overflow-auto rounded-xl bg-slate-950 p-4 text-xs leading-relaxed text-slate-100 whitespace-pre-wrap">
+      <pre className="mt-3 max-h-80 overflow-auto rounded-xl bg-slate-950 p-4 text-xs leading-relaxed text-black whitespace-pre-wrap">
         {JSON.stringify(value, null, 2)}
       </pre>
     </details>

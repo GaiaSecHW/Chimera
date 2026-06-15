@@ -1801,10 +1801,10 @@ export const ServiceMgmtPage: React.FC<{ projectId: string }> = ({ projectId }) 
                 </div>
               </div>
 
-              <div className="bg-slate-950 text-slate-100 rounded-2xl border border-slate-800 p-4">
+              <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-slate-900">
                   <div className="flex items-center justify-between mb-2">
                     <p className="text-[10px] font-black tracking-widest text-slate-400 uppercase">服务日志</p>
-                    <button onClick={() => void loadServiceLogs(selectedService)} className="text-[10px] px-2 py-1 rounded-lg bg-slate-800 text-slate-300">刷新</button>
+                    <button onClick={() => void loadServiceLogs(selectedService)} className="rounded-lg border border-slate-200 bg-white px-2 py-1 text-[10px] text-slate-600">刷新</button>
                   </div>
                   <pre className="text-[11px] leading-tight font-mono whitespace-pre-wrap break-words h-[40vh] overflow-auto">{serviceLogs || '暂无日志输出'}</pre>
               </div>

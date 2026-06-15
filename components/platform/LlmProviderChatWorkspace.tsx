@@ -66,7 +66,7 @@ const MarkdownMessage: React.FC<{ content: string }> = ({ content }) => (
           const isBlock = Boolean(className);
           if (isBlock) {
             return (
-              <code className="block overflow-x-auto rounded-2xl bg-slate-950 px-4 py-3 font-mono text-xs text-slate-100">
+              <code className="block overflow-x-auto rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 font-mono text-xs text-slate-900">
                 {children}
               </code>
             );

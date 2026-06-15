@@ -39,7 +39,7 @@ export const AgentStateBadges: React.FC<{ agent: Pick<AiAgentItem, 'installed' |
 export const JsonBlock: React.FC<{ title?: string; value: any; className?: string }> = ({ title, value, className = '' }) => (
   <div className={`rounded-2xl border border-theme-border bg-theme-elevated p-4 ${className}`}>
     {title ? <div className="text-sm font-bold text-theme-text-primary">{title}</div> : null}
-    <pre className="mt-3 overflow-auto rounded-xl bg-slate-950 p-3 text-xs text-slate-100">{prettyJson(value)}</pre>
+    <pre className="mt-3 overflow-auto rounded-xl border border-slate-200 bg-slate-50 p-3 text-xs text-slate-900">{prettyJson(value)}</pre>
   </div>
 );
 

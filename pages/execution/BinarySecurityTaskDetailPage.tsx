@@ -5478,7 +5478,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                                                     <summary className="cursor-pointer text-xs font-bold text-slate-500 hover:text-slate-800">
                                                       查看原始 JSON
                                                     </summary>
-                                                    <pre className="mt-2 max-h-72 overflow-auto rounded-xl border border-slate-200 bg-slate-950 px-3 py-3 text-xs leading-6 text-slate-100">
+                                                    <pre className="mt-2 max-h-72 overflow-auto rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 text-xs leading-6 text-slate-900">
                                                       {JSON.stringify(item.input_ref, null, 2)}
                                                     </pre>
                                                   </details>
@@ -5508,7 +5508,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                                                       {item.output_ref ? (
                                                         <div>
                                                           <div className="mb-1 text-[11px] font-bold uppercase tracking-[0.12em] text-slate-400">output_ref</div>
-                                                          <pre className="max-h-56 overflow-auto rounded-xl border border-slate-200 bg-slate-950 px-3 py-3 text-xs leading-6 text-slate-100">
+                                                          <pre className="max-h-56 overflow-auto rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 text-xs leading-6 text-slate-900">
                                                             {JSON.stringify(item.output_ref, null, 2)}
                                                           </pre>
                                                         </div>
@@ -5516,7 +5516,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                                                       {item.result ? (
                                                         <div>
                                                           <div className="mb-1 text-[11px] font-bold uppercase tracking-[0.12em] text-slate-400">result</div>
-                                                          <pre className="max-h-56 overflow-auto rounded-xl border border-slate-200 bg-slate-950 px-3 py-3 text-xs leading-6 text-slate-100">
+                                                          <pre className="max-h-56 overflow-auto rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 text-xs leading-6 text-slate-900">
                                                             {JSON.stringify(item.result, null, 2)}
                                                           </pre>
                                                         </div>

@@ -433,7 +433,7 @@ export const VulnCaseDetailLayout: React.FC<{
 
           {activeTab === 'raw' ? (
             <div className="space-y-4">
-              <div className="rounded-[1.5rem] border border-slate-200 bg-slate-950 p-4 text-xs text-slate-100 overflow-auto">
+              <div className="overflow-auto rounded-[1.5rem] border border-slate-200 bg-slate-50 p-4 text-xs text-slate-900">
                 <pre className="whitespace-pre-wrap break-words">{JSON.stringify(rawPayload, null, 2)}</pre>
               </div>
             </div>

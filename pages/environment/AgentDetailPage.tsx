@@ -1657,15 +1657,15 @@ export const AgentDetailPage: React.FC<AgentDetailPageProps> = ({ agentKey, proj
 
                   <div className="space-y-3">
                     <p className="text-slate-500 text-[10px] font-black uppercase tracking-widest">实时日志</p>
-                    <div className="bg-black/40 rounded-2xl p-4 max-h-72 overflow-auto text-[11px] font-mono whitespace-pre-wrap break-words text-slate-100 border border-white/10">
+                    <div className="max-h-72 overflow-auto rounded-2xl border border-slate-200 bg-slate-50 p-4 text-[11px] font-mono whitespace-pre-wrap break-words text-slate-900">
                       {selectedNodeServiceLogs || '暂无日志'}
                     </div>
                   </div>
 
                   <div className="space-y-3">
                     <p className="text-slate-500 text-[10px] font-black uppercase tracking-widest">运行态详情</p>
-                    <div className="bg-white/5 rounded-2xl p-4 max-h-80 overflow-auto border border-white/10">
-                      <pre className="text-[11px] text-slate-100 whitespace-pre-wrap break-words">
+                    <div className="max-h-80 overflow-auto rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                      <pre className="whitespace-pre-wrap break-words text-[11px] text-slate-900">
                         {JSON.stringify(selectedNodeServiceDetail || {}, null, 2)}
                       </pre>
                     </div>

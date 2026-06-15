@@ -1838,15 +1838,15 @@ const TaskGraphCanvasNode: React.FC<NodeProps<TaskGraphCanvasNodeType>> = ({ dat
 const taskGraphNodeTypes = { taskGraphNode: TaskGraphCanvasNode };
 
 const SessionTextViewer: React.FC<{ title: string; content?: string | null; truncated?: boolean }> = ({ title, content, truncated }) => (
-  <div className="h-full overflow-auto rounded-2xl bg-slate-950 p-4 text-slate-100">
-    <div className="mb-3 flex items-center justify-between gap-3 border-b border-slate-800 pb-3">
+  <div className="h-full overflow-auto rounded-2xl border border-slate-200 bg-slate-50 p-4 text-slate-900">
+    <div className="mb-3 flex items-center justify-between gap-3 border-b border-slate-200 pb-3">
       <div className="min-w-0">
         <div className="text-xs font-black uppercase tracking-[0.18em] text-slate-400">Session File</div>
-        <div className="mt-1 break-all font-mono text-xs text-slate-300">{title}</div>
+        <div className="mt-1 break-all font-mono text-xs text-slate-600">{title}</div>
       </div>
-      {truncated ? <span className="rounded-full border border-amber-500/30 bg-amber-500/10 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.16em] text-amber-300">已截断</span> : null}
+      {truncated ? <span className="rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.16em] text-amber-700">已截断</span> : null}
     </div>
-    <pre className="whitespace-pre-wrap break-words font-mono text-[12px] leading-6 text-slate-100">{content || ''}</pre>
+    <pre className="whitespace-pre-wrap break-words font-mono text-[12px] leading-6 text-slate-900">{content || ''}</pre>
   </div>
 );
 
@@ -1875,7 +1875,7 @@ const SessionMarkdownMessage: React.FC<{ content: string }> = ({ content }) => (
         th: ({ children }) => <th className="border border-slate-200 px-3 py-2 font-black text-slate-800">{children}</th>,
         td: ({ children }) => <td className="border border-slate-200 px-3 py-2 align-top">{children}</td>,
         code: ({ children, className }) => className
-          ? <code className="block overflow-x-auto rounded-2xl bg-slate-950 px-4 py-3 font-mono text-xs text-slate-100">{children}</code>
+          ? <code className="block overflow-x-auto rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 font-mono text-xs text-slate-900">{children}</code>
           : <code className="rounded bg-slate-100 px-1.5 py-0.5 font-mono text-[0.9em] text-slate-900">{children}</code>,
         pre: ({ children }) => <pre className="mb-3 last:mb-0">{children}</pre>,
       }}
@@ -2161,7 +2161,7 @@ const ArtifactPreviewBody: React.FC<{ artifact: IpcAuditArtifact; content: IpcAu
     );
   }
   return (
-    <pre className="max-h-[68vh] overflow-auto whitespace-pre-wrap break-words rounded-2xl bg-slate-950 px-5 py-4 font-mono text-[12px] leading-6 text-slate-100">
+    <pre className="max-h-[68vh] overflow-auto whitespace-pre-wrap break-words rounded-2xl border border-slate-200 bg-slate-50 px-5 py-4 font-mono text-[12px] leading-6 text-slate-900">
       {formatted || ' '}
     </pre>
   );
@@ -4963,8 +4963,8 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
                       <Server size={16} />
                       阶段日志
                     </div>
-                    <div className="mt-3 rounded-2xl bg-slate-950 p-4 text-slate-100">
-                      <div className="mb-3 flex flex-wrap items-center justify-between gap-3 border-b border-slate-800 pb-3">
+                    <div className="mt-3 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-slate-900">
+                      <div className="mb-3 flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 pb-3">
                         <div className="text-xs font-black uppercase tracking-[0.18em] text-slate-400">
                           {formatStageLabel(selectedStage)} stdout / log
                         </div>
@@ -4974,7 +4974,7 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
                           </span>
                         ) : null}
                       </div>
-                      <pre className="max-h-[320px] overflow-auto whitespace-pre-wrap break-words font-mono text-[12px] leading-6 text-slate-100">
+                      <pre className="max-h-[320px] overflow-auto whitespace-pre-wrap break-words font-mono text-[12px] leading-6 text-slate-900">
                         {selectedStageLog?.content || '当前阶段暂无日志输出。'}
                       </pre>
                     </div>
@@ -5019,7 +5019,7 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
                               </div>
                               {eventTypes ? <div className="mt-3 text-xs font-semibold text-slate-500">{eventTypes}</div> : null}
                               {preview ? (
-                                <pre className="mt-3 max-h-[180px] overflow-auto whitespace-pre-wrap break-words rounded-xl bg-slate-950 px-3 py-3 font-mono text-[12px] leading-6 text-slate-100">
+                                <pre className="mt-3 max-h-[180px] overflow-auto whitespace-pre-wrap break-words rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 font-mono text-[12px] leading-6 text-slate-900">
                                   {preview}
                                 </pre>
                               ) : null}

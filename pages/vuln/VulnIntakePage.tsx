@@ -509,7 +509,7 @@ const extractMarkdownHeadings = (content: string) =>
     }));
 
 const MarkdownContent: React.FC<{ content: string }> = ({ content }) => (
-  <div className="markdown-body break-words leading-7 text-sm text-slate-700 [&_h1]:mt-8 [&_h1]:scroll-mt-24 [&_h1]:text-2xl [&_h1]:font-black [&_h1]:text-slate-900 [&_h2]:mt-7 [&_h2]:scroll-mt-24 [&_h2]:text-xl [&_h2]:font-black [&_h2]:text-slate-900 [&_h3]:mt-6 [&_h3]:scroll-mt-24 [&_h3]:text-lg [&_h3]:font-black [&_h3]:text-slate-900 [&_h4]:mt-5 [&_h4]:scroll-mt-24 [&_h4]:text-base [&_h4]:font-black [&_h4]:text-slate-900 [&_p]:my-3 [&_table]:my-4 [&_table]:block [&_table]:w-full [&_table]:overflow-x-auto [&_table]:border-collapse [&_thead]:bg-slate-100 [&_th]:border [&_th]:border-slate-200 [&_th]:px-3 [&_th]:py-2 [&_th]:text-xs [&_th]:font-black [&_th]:uppercase [&_th]:tracking-wide [&_th]:text-slate-600 [&_td]:border [&_td]:border-slate-200 [&_td]:px-3 [&_td]:py-2 [&_td]:align-top [&_td]:text-sm [&_td]:text-slate-700 [&_pre]:my-4 [&_pre]:overflow-x-auto [&_pre]:rounded-2xl [&_pre]:bg-slate-950 [&_pre]:p-4 [&_pre]:text-xs [&_pre]:text-slate-100 [&_code]:font-mono [&_p_code]:rounded [&_p_code]:bg-slate-100 [&_p_code]:px-1.5 [&_p_code]:py-0.5 [&_p_code]:text-[0.9em] [&_li_code]:rounded [&_li_code]:bg-slate-100 [&_li_code]:px-1.5 [&_li_code]:py-0.5">
+  <div className="markdown-body break-words leading-7 text-sm text-slate-700 [&_h1]:mt-8 [&_h1]:scroll-mt-24 [&_h1]:text-2xl [&_h1]:font-black [&_h1]:text-slate-900 [&_h2]:mt-7 [&_h2]:scroll-mt-24 [&_h2]:text-xl [&_h2]:font-black [&_h2]:text-slate-900 [&_h3]:mt-6 [&_h3]:scroll-mt-24 [&_h3]:text-lg [&_h3]:font-black [&_h3]:text-slate-900 [&_h4]:mt-5 [&_h4]:scroll-mt-24 [&_h4]:text-base [&_h4]:font-black [&_h4]:text-slate-900 [&_p]:my-3 [&_table]:my-4 [&_table]:block [&_table]:w-full [&_table]:overflow-x-auto [&_table]:border-collapse [&_thead]:bg-slate-100 [&_th]:border [&_th]:border-slate-200 [&_th]:px-3 [&_th]:py-2 [&_th]:text-xs [&_th]:font-black [&_th]:uppercase [&_th]:tracking-wide [&_th]:text-slate-600 [&_td]:border [&_td]:border-slate-200 [&_td]:px-3 [&_td]:py-2 [&_td]:align-top [&_td]:text-sm [&_td]:text-slate-700 [&_pre]:my-4 [&_pre]:overflow-x-auto [&_pre]:rounded-2xl [&_pre]:border [&_pre]:border-slate-200 [&_pre]:bg-slate-50 [&_pre]:p-4 [&_pre]:text-xs [&_pre]:text-slate-900 [&_code]:font-mono [&_p_code]:rounded [&_p_code]:bg-slate-100 [&_p_code]:px-1.5 [&_p_code]:py-0.5 [&_p_code]:text-[0.9em] [&_li_code]:rounded [&_li_code]:bg-slate-100 [&_li_code]:px-1.5 [&_li_code]:py-0.5">
     <ReactMarkdown remarkPlugins={[remarkGfm]}>{content}</ReactMarkdown>
   </div>
 );
@@ -2294,7 +2294,7 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
                                       ) : linkedFilePreviewError ? (
                                         <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700">{linkedFilePreviewError}</div>
                                       ) : (
-                                        <pre className="h-full overflow-auto rounded-2xl bg-slate-950 p-5 font-mono text-[12px] whitespace-pre-wrap text-slate-100">{linkedFilePreview || ''}</pre>
+                                        <pre className="h-full overflow-auto rounded-2xl border border-slate-200 bg-slate-50 p-5 font-mono text-[12px] whitespace-pre-wrap text-slate-900">{linkedFilePreview || ''}</pre>
                                       )}
                                     </div>
                                   </div>
@@ -2484,7 +2484,7 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
                     </button>
                   }
                 >
-                  <div className="mt-3 rounded-xl bg-slate-950 p-3 text-xs leading-5 text-slate-200">
+                  <div className="mt-3 rounded-xl border border-slate-200 bg-slate-50 p-3 text-xs leading-5 text-slate-900">
                     <pre className="max-h-[24rem] overflow-auto whitespace-pre-wrap break-all">{JSON.stringify(rawContext, null, 2)}</pre>
                   </div>
                 </DetailSectionCard>
@@ -3109,7 +3109,7 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
               <textarea
                 value={authPayloadText}
                 onChange={(event) => setAuthPayloadText(event.target.value)}
-                className="mt-5 h-72 w-full rounded-[1.5rem] border border-slate-200 bg-slate-950 p-5 font-mono text-xs leading-6 text-slate-100 outline-none"
+                className="mt-5 h-72 w-full rounded-[1.5rem] border border-slate-200 bg-slate-50 p-5 font-mono text-xs leading-6 text-slate-900 outline-none"
               />
               <div className="mt-4 flex flex-wrap gap-3">
                 <button

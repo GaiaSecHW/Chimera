@@ -899,15 +899,15 @@ export const B2SConfigPage: React.FC<{ projectId: string; embedded?: boolean }> 
                   </SectionCard>
 
                   <SectionCard title="generated_files 预览">
-                    <pre className="max-h-64 overflow-auto rounded-2xl bg-slate-950 p-4 text-xs text-slate-100">{JSON.stringify(cacheDetail.generated_files, null, 2)}</pre>
+                    <pre className="max-h-64 overflow-auto rounded-2xl border border-slate-200 bg-slate-50 p-4 text-xs text-slate-900">{JSON.stringify(cacheDetail.generated_files, null, 2)}</pre>
                   </SectionCard>
 
                   <SectionCard title="manifest.json 预览" subtitle={cacheDetail.manifest_parse_error ? `解析失败：${cacheDetail.manifest_parse_error}` : undefined}>
-                    <pre className="max-h-64 overflow-auto rounded-2xl bg-slate-950 p-4 text-xs text-slate-100">{JSON.stringify(cacheDetail.manifest, null, 2)}</pre>
+                    <pre className="max-h-64 overflow-auto rounded-2xl border border-slate-200 bg-slate-50 p-4 text-xs text-slate-900">{JSON.stringify(cacheDetail.manifest, null, 2)}</pre>
                   </SectionCard>
 
                   <SectionCard title="source_metadata 预览">
-                    <pre className="max-h-64 overflow-auto rounded-2xl bg-slate-950 p-4 text-xs text-slate-100">{JSON.stringify(cacheDetail.source_metadata, null, 2)}</pre>
+                    <pre className="max-h-64 overflow-auto rounded-2xl border border-slate-200 bg-slate-50 p-4 text-xs text-slate-900">{JSON.stringify(cacheDetail.source_metadata, null, 2)}</pre>
                   </SectionCard>
                 </div>
               )}

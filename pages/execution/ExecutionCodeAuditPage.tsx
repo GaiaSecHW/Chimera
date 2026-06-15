@@ -1999,8 +1999,8 @@ export const ExecutionCodeAuditPage: React.FC<ExecutionCodeAuditPageProps> = ({ 
                 <X size={16} />
               </button>
             </div>
-            <div className="min-h-0 flex-1 overflow-auto bg-slate-900 p-3 custom-scrollbar">
-              <pre className="text-[11px] leading-relaxed text-slate-100 whitespace-pre-wrap break-words">{payloadPreviewText || '{}'}</pre>
+            <div className="min-h-0 flex-1 overflow-auto bg-slate-50 p-3 custom-scrollbar">
+              <pre className="whitespace-pre-wrap break-words text-[11px] leading-relaxed text-slate-900">{payloadPreviewText || '{}'}</pre>
             </div>
             <div className="flex justify-end gap-2 border-t border-slate-200 bg-slate-50 px-4 py-3">
               <button

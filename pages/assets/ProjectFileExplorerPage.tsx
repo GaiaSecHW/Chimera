@@ -1811,7 +1811,7 @@ const getPvcDirectoryPath = (target: UnifiedExplorerNode) => {
                   th: ({ children }) => <th className="border border-slate-300 px-3 py-1.5 font-bold text-slate-700">{children}</th>,
                   td: ({ children }) => <td className="border border-slate-300 px-3 py-1.5 align-top text-sm">{children}</td>,
                   code: ({ children, className }) => className
-                    ? <code className="block overflow-x-auto rounded-lg bg-slate-950 px-3 py-2 font-mono text-[12px] text-slate-100">{children}</code>
+                    ? <code className="block overflow-x-auto rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 font-mono text-[12px] text-slate-900">{children}</code>
                     : <code className="rounded bg-slate-100 px-1 py-0.5 font-mono text-[0.9em] text-slate-800">{children}</code>,
                   pre: ({ children }) => <pre className="mb-2 last:mb-0">{children}</pre>,
                 }}
@@ -1822,7 +1822,7 @@ const getPvcDirectoryPath = (target: UnifiedExplorerNode) => {
           </div>
         );
       }
-      return <pre className="h-full overflow-auto rounded-2xl bg-slate-950 p-5 text-[12px] text-slate-100 whitespace-pre-wrap">{preview.text || ''}</pre>;
+      return <pre className="h-full overflow-auto rounded-2xl border border-slate-200 bg-slate-50 p-5 text-[12px] text-slate-900 whitespace-pre-wrap">{preview.text || ''}</pre>;
     }
     if (preview.mode === 'image' && preview.url) {
       return <div className="flex h-full items-center justify-center"><img src={preview.url} alt={previewFile.filename} className="max-h-full max-w-full rounded-xl shadow-xl" /></div>;
@@ -1843,7 +1843,7 @@ const getPvcDirectoryPath = (target: UnifiedExplorerNode) => {
             已展示前 {preview.displayedBytes || 0} bytes
             {preview.truncated && typeof preview.size === 'number' ? `（总大小 ${preview.size} bytes）` : ''}
           </div>
-          <pre className="min-h-0 flex-1 overflow-auto rounded-2xl bg-slate-950 p-4 text-[11px] leading-5 text-slate-100">
+          <pre className="min-h-0 flex-1 overflow-auto rounded-2xl border border-slate-200 bg-slate-50 p-4 text-[11px] leading-5 text-slate-900">
             {preview.view || ''}
           </pre>
         </div>

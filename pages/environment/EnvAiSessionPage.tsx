@@ -140,7 +140,7 @@ const MarkdownContent: React.FC<{ content: string }> = ({ content }) => (
         ol: ({ children }) => <ol className="mb-2 list-decimal space-y-1 pl-5 last:mb-0">{children}</ol>,
         blockquote: ({ children }) => <blockquote className="mb-2 border-l-4 border-slate-300 bg-slate-100 px-3 py-1.5 italic last:mb-0">{children}</blockquote>,
         code: ({ children, className }) => (className
-          ? <code className="block overflow-x-auto rounded-xl bg-slate-950 px-3 py-2 font-mono text-xs text-slate-100">{children}</code>
+          ? <code className="block overflow-x-auto rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 font-mono text-xs text-slate-900">{children}</code>
           : <code className="rounded bg-slate-200 px-1.5 py-0.5 font-mono text-[0.9em]">{children}</code>),
         pre: ({ children }) => <pre className="mb-2 last:mb-0">{children}</pre>,
       }}
@@ -870,7 +870,7 @@ export const EnvAiSessionPage: React.FC<{ projectId: string }> = ({ projectId })
                               <div className="font-semibold text-slate-900">{item.category}</div>
                               {item.message ? <div className="mt-1 whitespace-pre-wrap">{item.message}</div> : null}
                               {item.payload !== undefined ? (
-                                <pre className="mt-2 overflow-auto rounded bg-slate-950 p-2 text-[11px] text-slate-100">{JSON.stringify(item.payload, null, 2)}</pre>
+                                <pre className="mt-2 overflow-auto rounded border border-slate-200 bg-slate-50 p-2 text-[11px] text-slate-900">{JSON.stringify(item.payload, null, 2)}</pre>
                               ) : null}
                             </div>
                           ))}

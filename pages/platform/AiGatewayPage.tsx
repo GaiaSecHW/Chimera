@@ -1766,14 +1766,14 @@ export const AiGatewayPage: React.FC<AiGatewayPageProps> = ({ entryView = 'aigw-
                   <span>Modified Request</span>
                   <button onClick={() => void copyText(replayResult.modified_request || '', '重放请求已复制')} className="rounded-xl bg-slate-100 px-3 py-1.5 text-[11px] font-bold text-slate-700">复制</button>
                 </div>
-                <pre className="max-h-[320px] overflow-auto rounded-2xl bg-slate-950 p-4 text-xs text-slate-100">{formatJsonBlock(replayResult.modified_request)}</pre>
+                <pre className="max-h-[320px] overflow-auto rounded-2xl border border-slate-200 bg-slate-50 p-4 text-xs text-slate-900">{formatJsonBlock(replayResult.modified_request)}</pre>
               </div>
               <div>
                 <div className="mb-2 flex items-center justify-between gap-3 text-sm font-black text-slate-800">
                   <span>New Response</span>
                   <button onClick={() => void copyText(replayResult.error || replayResult.new_response || '', '重放响应已复制')} className="rounded-xl bg-slate-100 px-3 py-1.5 text-[11px] font-bold text-slate-700">复制</button>
                 </div>
-                <pre className="max-h-[320px] overflow-auto rounded-2xl bg-slate-950 p-4 text-xs text-slate-100">{formatJsonBlock(replayResult.error || replayResult.new_response)}</pre>
+                <pre className="max-h-[320px] overflow-auto rounded-2xl border border-slate-200 bg-slate-50 p-4 text-xs text-slate-900">{formatJsonBlock(replayResult.error || replayResult.new_response)}</pre>
               </div>
             </div>
           </div>
@@ -1875,7 +1875,7 @@ export const AiGatewayPage: React.FC<AiGatewayPageProps> = ({ entryView = 'aigw-
             </div>
             <div className="space-y-4 p-6">
               <div className="rounded-2xl bg-slate-50 px-4 py-3 text-sm">名称：<span className="font-black text-slate-900">{createdLlmKeyMeta.key_name}</span></div>
-              <div className="rounded-2xl bg-slate-950 px-4 py-4 font-mono text-sm text-slate-100 break-all">{createdLlmKeySecret || '-'}</div>
+              <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 font-mono text-sm text-slate-900 break-all">{createdLlmKeySecret || '-'}</div>
             </div>
             <div className="flex items-center justify-end gap-3 border-t border-slate-200 px-6 py-4">
               <button onClick={() => { navigator.clipboard?.writeText(createdLlmKeySecret || ''); }} className="rounded-2xl bg-slate-100 px-4 py-2.5 text-sm font-bold text-slate-700">复制密钥</button>

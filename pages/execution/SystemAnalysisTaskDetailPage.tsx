@@ -350,7 +350,7 @@ function MarkdownContent({ content }: { content: string }) {
           code: ({ children, className }) => {
             const isBlock = Boolean(className);
             if (isBlock) {
-              return <code className="block overflow-x-auto rounded-2xl bg-slate-950 px-4 py-3 font-mono text-xs text-slate-100">{children}</code>;
+              return <code className="block overflow-x-auto rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 font-mono text-xs text-slate-900">{children}</code>;
             }
             return <code className="rounded bg-slate-100 px-1.5 py-0.5 font-mono text-[0.9em] text-slate-900">{children}</code>;
           },
@@ -2157,20 +2157,20 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
                   ) : (
                     <div
                       ref={logScrollRef}
-                      className="mt-4 max-h-[420px] overflow-auto rounded-xl border border-slate-800 bg-slate-950 px-3 py-3 font-mono text-xs leading-relaxed text-slate-300"
+                      className="mt-4 max-h-[420px] overflow-auto rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 font-mono text-xs leading-relaxed text-slate-700"
                     >
                       {logLines.map((line, idx) => (
                         <div
                           key={idx}
                           className={
                             !line ? 'h-1'
-                              : line.includes('✗') ? 'text-red-400'
-                                : line.includes('▶') ? 'text-cyan-300'
-                                  : line.includes('✓') ? 'text-emerald-400'
-                                    : line.includes('│') && line.includes('脚本') ? 'text-yellow-300'
-                                      : line.includes('│') ? 'text-slate-400 text-[11px]'
-                                        : line.includes('模型') ? 'text-slate-400'
-                                          : 'text-slate-300'
+                              : line.includes('✗') ? 'text-red-500'
+                                : line.includes('▶') ? 'text-cyan-700'
+                                  : line.includes('✓') ? 'text-emerald-700'
+                                    : line.includes('│') && line.includes('脚本') ? 'text-yellow-700'
+                                      : line.includes('│') ? 'text-slate-500 text-[11px]'
+                                        : line.includes('模型') ? 'text-slate-500'
+                                          : 'text-slate-700'
                           }
                         >
                           {line}
@@ -2316,7 +2316,7 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
                                           </div>
                                         ))}
                                       </div>
-                                      <pre className="mt-3 overflow-auto rounded-xl border border-slate-200 bg-slate-950 px-3 py-3 text-xs leading-relaxed text-slate-200">{JSON.stringify(payload, null, 2)}</pre>
+                                      <pre className="mt-3 overflow-auto rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 text-xs leading-relaxed text-slate-900">{JSON.stringify(payload, null, 2)}</pre>
                                     </td>
                                   </tr>
                                 ) : null}

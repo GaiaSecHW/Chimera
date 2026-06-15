@@ -461,7 +461,7 @@ const DeployScriptBlock: React.FC<{
         复制
       </button>
     </div>
-    <pre className={`mt-3 overflow-auto rounded-xl bg-slate-950 p-4 font-mono text-xs leading-5 text-slate-100 ${compact ? 'max-h-44' : 'max-h-80'}`}>
+    <pre className={`mt-3 overflow-auto rounded-xl border border-slate-200 bg-slate-50 p-4 font-mono text-xs leading-5 text-slate-900 ${compact ? 'max-h-44' : 'max-h-80'}`}>
       {content}
     </pre>
   </div>

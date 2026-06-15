@@ -846,7 +846,7 @@ function RoundDetailModal({
             <summary className="cursor-pointer text-sm font-black text-slate-700">
               查看原始 results.json
             </summary>
-            <pre className="mt-3 max-h-[420px] overflow-auto rounded-2xl bg-slate-950 px-4 py-4 text-[12px] leading-6 text-slate-100 whitespace-pre-wrap break-words">
+            <pre className="mt-3 max-h-[420px] overflow-auto rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 text-[12px] leading-6 text-slate-900 whitespace-pre-wrap break-words">
               {JSON.stringify(round.raw || round, null, 2)}
             </pre>
           </details>
@@ -3342,7 +3342,7 @@ function TaskDetailPanel({
                                       prose-blockquote:border-l-4 prose-blockquote:border-amber-300 prose-blockquote:bg-amber-50 prose-blockquote:px-4 prose-blockquote:py-3 prose-blockquote:italic prose-blockquote:text-slate-700
                                       prose-hr:border-slate-200
                                       prose-code:rounded prose-code:bg-slate-100 prose-code:px-1.5 prose-code:py-0.5 prose-code:text-[13px] prose-code:font-semibold prose-code:text-rose-700
-                                      prose-pre:overflow-x-auto prose-pre:rounded-[1.25rem] prose-pre:border prose-pre:border-slate-800 prose-pre:bg-slate-950 prose-pre:px-4 prose-pre:py-4 prose-pre:text-[13px] prose-pre:leading-6 prose-pre:text-slate-100
+                                      prose-pre:overflow-x-auto prose-pre:rounded-[1.25rem] prose-pre:border prose-pre:border-slate-200 prose-pre:bg-slate-50 prose-pre:px-4 prose-pre:py-4 prose-pre:text-[13px] prose-pre:leading-6 prose-pre:text-slate-900
                                       prose-pre:shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]
                                       prose-table:block prose-table:w-full prose-table:overflow-x-auto
                                       prose-thead:border-b prose-thead:border-slate-200
@@ -3434,7 +3434,7 @@ function TaskDetailPanel({
                       <p className="mt-1 break-all font-mono text-xs text-slate-700">{taskLog.files?.join(', ') || '-'}</p>
                     </div>
                   </div>
-                  <pre className="min-h-[320px] overflow-auto rounded-2xl bg-slate-950 px-4 py-4 text-[12px] leading-6 text-slate-100 whitespace-pre-wrap break-words">{taskLog.log_text || taskLog.message || '暂无日志内容'}</pre>
+                  <pre className="min-h-[320px] overflow-auto rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 text-[12px] leading-6 text-slate-900 whitespace-pre-wrap break-words">{taskLog.log_text || taskLog.message || '暂无日志内容'}</pre>
                 </>
               )}
             </div>
@@ -3480,7 +3480,7 @@ function TaskDetailPanel({
                       <p className="mt-1 break-all font-mono text-xs text-slate-700">{evolutionLog.files?.join(', ') || '-'}</p>
                     </div>
                   </div>
-                  <pre className="min-h-[320px] overflow-auto rounded-2xl bg-slate-950 px-4 py-4 text-[12px] leading-6 text-slate-100 whitespace-pre-wrap break-words">{evolutionLog.log_text || evolutionLog.message || '暂无日志内容'}</pre>
+                  <pre className="min-h-[320px] overflow-auto rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 text-[12px] leading-6 text-slate-900 whitespace-pre-wrap break-words">{evolutionLog.log_text || evolutionLog.message || '暂无日志内容'}</pre>
                 </>
               )}
             </div>

@@ -406,10 +406,10 @@ const JsonNode: React.FC<{ label?: string; value: unknown; depth?: number }> = (
 
   if (!isObject) {
     return (
-      <div className="font-mono text-xs leading-6 text-slate-200">
-        {label ? <span className="text-sky-300">"{label}"</span> : null}
+      <div className="font-mono text-xs leading-6 text-slate-700">
+        {label ? <span className="text-sky-700">"{label}"</span> : null}
         {label ? <span className="text-slate-500">: </span> : null}
-        <span className={typeof value === 'string' ? 'text-emerald-300' : 'text-amber-300'}>
+        <span className={typeof value === 'string' ? 'text-emerald-700' : 'text-amber-700'}>
           {typeof value === 'string' ? `"${value}"` : String(value)}
         </span>
       </div>
@@ -422,13 +422,13 @@ const JsonNode: React.FC<{ label?: string; value: unknown; depth?: number }> = (
   const summary = Array.isArray(value) ? `Array(${entries.length})` : `Object(${entries.length})`;
 
   return (
-    <details open={depth < 1} className="font-mono text-xs text-slate-100">
-      <summary className="cursor-pointer list-none select-none text-slate-200 marker:hidden">
-        {label ? <span className="text-sky-300">"{label}"</span> : null}
+    <details open={depth < 1} className="font-mono text-xs text-slate-700">
+      <summary className="cursor-pointer list-none select-none text-slate-700 marker:hidden">
+        {label ? <span className="text-sky-700">"{label}"</span> : null}
         {label ? <span className="text-slate-500">: </span> : null}
-        <span className="text-violet-300">{summary}</span>
+        <span className="text-violet-700">{summary}</span>
       </summary>
-      <div className="mt-2 space-y-1 border-l border-slate-800 pl-4">
+      <div className="mt-2 space-y-1 border-l border-slate-200 pl-4">
         {entries.map(([childKey, childValue]) => (
           <JsonNode key={childKey} label={childKey} value={childValue} depth={depth + 1} />
         ))}
@@ -762,11 +762,11 @@ export const AigwLogDetailsDialog: React.FC<AigwLogDetailsDialogProps> = ({ log,
                 action={<button onClick={() => void onCopy(log.request || '', '请求内容已复制')} className="rounded-xl bg-slate-100 px-3 py-1.5 text-[11px] font-bold text-slate-700 hover:bg-slate-200">复制 Request</button>}
               >
                 {requestJson !== null ? (
-                  <div className="rounded-2xl bg-slate-950 p-4">
+                  <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
                     <JsonNode value={requestJson} />
                   </div>
                 ) : (
-                  <pre className="rounded-2xl bg-slate-950 p-4 font-mono text-xs leading-6 text-slate-100">{log.request || '暂无 request 内容'}</pre>
+                  <pre className="rounded-2xl border border-slate-200 bg-slate-50 p-4 font-mono text-xs leading-6 text-slate-900">{log.request || '暂无 request 内容'}</pre>
                 )}
               </SectionCard>
             ) : null}
@@ -778,11 +778,11 @@ export const AigwLogDetailsDialog: React.FC<AigwLogDetailsDialogProps> = ({ log,
                 action={<button onClick={() => void onCopy(log.response || '', '响应内容已复制')} className="rounded-xl bg-slate-100 px-3 py-1.5 text-[11px] font-bold text-slate-700 hover:bg-slate-200">复制 Response</button>}
               >
                 {responseJson !== null ? (
-                  <div className="rounded-2xl bg-slate-950 p-4">
+                  <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
                     <JsonNode value={responseJson} />
                   </div>
                 ) : (
-                  <pre className="rounded-2xl bg-slate-950 p-4 font-mono text-xs leading-6 text-slate-100">{log.response || '暂无 response 内容'}</pre>
+                  <pre className="rounded-2xl border border-slate-200 bg-slate-50 p-4 font-mono text-xs leading-6 text-slate-900">{log.response || '暂无 response 内容'}</pre>
                 )}
               </SectionCard>
             ) : null}
@@ -806,17 +806,17 @@ export const AigwLogDetailsDialog: React.FC<AigwLogDetailsDialogProps> = ({ log,
                     {streamEvents.map((event) => (
                       <SectionCard key={event.index} title={`Event ${event.index}${event.eventName ? ` · ${event.eventName}` : ''}`} icon={<Bot className="h-4 w-4" />}>
                         {event.dataJson !== null ? (
-                          <div className="rounded-2xl bg-slate-950 p-4">
+                          <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
                             <JsonNode value={event.dataJson} />
                           </div>
                         ) : (
-                          <pre className="rounded-2xl bg-slate-950 p-4 font-mono text-xs leading-6 text-slate-100">{event.dataText || event.raw}</pre>
+                          <pre className="rounded-2xl border border-slate-200 bg-slate-50 p-4 font-mono text-xs leading-6 text-slate-900">{event.dataText || event.raw}</pre>
                         )}
                       </SectionCard>
                     ))}
                   </div>
                 ) : (
-                  <pre className="rounded-2xl bg-slate-950 p-4 font-mono text-xs leading-6 text-slate-100">{streamJson !== null ? stringifyPretty(streamJson) : (log.stream_response || '暂无 stream_response 内容')}</pre>
+                  <pre className="rounded-2xl border border-slate-200 bg-slate-50 p-4 font-mono text-xs leading-6 text-slate-900">{streamJson !== null ? stringifyPretty(streamJson) : (log.stream_response || '暂无 stream_response 内容')}</pre>
                 )}
               </div>
             ) : null}

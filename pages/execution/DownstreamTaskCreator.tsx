@@ -1241,7 +1241,7 @@ export const DownstreamTaskCreator: React.FC<Props> = ({
                         结果原始摘要
                         {showRaw ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
                       </button>
-                      {showRaw ? <pre className="mt-3 max-h-52 overflow-auto rounded-xl bg-slate-950 p-3 text-[10px] text-slate-100">{JSON.stringify(result, null, 2)}</pre> : null}
+                      {showRaw ? <pre className="mt-3 max-h-52 overflow-auto rounded-xl border border-slate-200 bg-slate-50 p-3 text-[10px] text-slate-900">{JSON.stringify(result, null, 2)}</pre> : null}
                     </div>
                   ) : null}
                 </aside>

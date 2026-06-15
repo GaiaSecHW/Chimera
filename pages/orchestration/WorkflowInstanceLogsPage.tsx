@@ -189,7 +189,7 @@ export const WorkflowInstanceLogsPage: React.FC<{ instanceId: string; onBack: ()
                   <div className="text-xs font-semibold text-slate-400">
                     抓取时间: {formatTime(record.init_logs?.fetched_at)}
                   </div>
-                  <pre className="min-h-[220px] max-h-[420px] overflow-auto rounded-2xl bg-slate-950 text-slate-100 p-5 text-xs leading-6 whitespace-pre-wrap break-words">
+                  <pre className="min-h-[220px] max-h-[420px] overflow-auto rounded-2xl border border-slate-200 bg-slate-50 text-slate-900 p-5 text-xs leading-6 whitespace-pre-wrap break-words">
                     {renderLogText(record, 'init_logs')}
                   </pre>
                 </div>
@@ -202,7 +202,7 @@ export const WorkflowInstanceLogsPage: React.FC<{ instanceId: string; onBack: ()
                   <div className="text-xs font-semibold text-slate-400">
                     抓取时间: {formatTime(record.execution_logs?.fetched_at)}
                   </div>
-                  <pre className="min-h-[220px] max-h-[420px] overflow-auto rounded-2xl bg-slate-950 text-slate-100 p-5 text-xs leading-6 whitespace-pre-wrap break-words">
+                  <pre className="min-h-[220px] max-h-[420px] overflow-auto rounded-2xl border border-slate-200 bg-slate-50 text-slate-900 p-5 text-xs leading-6 whitespace-pre-wrap break-words">
                     {renderLogText(record, 'execution_logs')}
                   </pre>
                 </div>

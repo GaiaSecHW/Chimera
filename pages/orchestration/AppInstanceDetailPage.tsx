@@ -322,7 +322,7 @@ export const AppInstanceDetailPage: React.FC<{
                 <div><div className="mb-1 text-xs text-slate-400">资源名称</div><div className="font-mono text-sm text-slate-800">{node.k8s_resource_name || '-'}</div></div>
               </div>
               {node.message && <div className="mt-4 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-600">{node.message}</div>}
-              {node.init_logs && <div className="mt-4"><div className="mb-2 text-xs font-black uppercase text-slate-500">初始化日志摘要</div><pre className="max-h-64 overflow-auto rounded-2xl bg-slate-900 p-4 text-xs text-green-400 whitespace-pre-wrap">{node.init_logs}</pre></div>}
+              {node.init_logs && <div className="mt-4"><div className="mb-2 text-xs font-black uppercase text-slate-500">初始化日志摘要</div><pre className="max-h-64 overflow-auto rounded-2xl border border-slate-200 bg-slate-50 p-4 text-xs text-slate-900 whitespace-pre-wrap">{node.init_logs}</pre></div>}
             </div>
           </div>
         )}
@@ -441,7 +441,7 @@ export const AppInstanceDetailPage: React.FC<{
                         </div>
                         <div className="mt-4">
                           <div className="mb-2 text-xs font-black uppercase text-slate-500">完整配置 JSON</div>
-                          <pre className="max-h-[320px] overflow-auto rounded-2xl bg-slate-900 p-4 text-xs text-emerald-300 whitespace-pre-wrap">
+                          <pre className="max-h-[320px] overflow-auto rounded-2xl border border-slate-200 bg-slate-50 p-4 text-xs text-slate-900 whitespace-pre-wrap">
                             {JSON.stringify(binding.config, null, 2)}
                           </pre>
                         </div>

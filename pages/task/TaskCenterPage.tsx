@@ -56,8 +56,6 @@ const INPUT_MODES: Record<string, 'file' | 'file_list' | 'directory'> = {
   sechps_tool: 'directory',
 };
 
-const AGENT_APPS_API_PREFIX = '/api/agentmanage/agent-apps';
-
 const loadAgentApps = async (departmentId?: number | string | null, tenantId?: number | string | null): Promise<AgentAppSummary[]> => {
   const params = new URLSearchParams();
   if (departmentId) params.set('departmentId', String(departmentId));

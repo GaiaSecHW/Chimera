@@ -105,8 +105,6 @@ const emptyForm: AgentAppFormState = {
   modelAliasId: '',
 };
 
-const AGENT_APPS_API_PREFIX = '/api/agentmanage/agent-apps';
-
 const getLocalUserInfo = (): UserInfo | null => {
   const raw = localStorage.getItem('user');
   if (!raw) return null;
