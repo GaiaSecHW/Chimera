@@ -2274,6 +2274,7 @@ export interface AgentAppSummary {
   agentHarnessPath?: string | null;
   agentHarnessRepoName?: string | null;
   defaultAgentName: string;
+  startCommand?: string | null;
 }
 
 export interface ScheduleCenterUserTaskInput {

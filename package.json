@@ -12,6 +12,7 @@
     "smoke:base-resource-page": "node --experimental-strip-types scripts/baseResourcePage.smoke.ts",
     "smoke:agent-runtime-view-model": "node --experimental-strip-types scripts/agentRuntimeViewModel.smoke.ts",
     "smoke:agent-manage-api-path": "node --experimental-strip-types scripts/agentManageApiPath.smoke.ts",
+    "smoke:task-center-instruction": "node --experimental-strip-types scripts/taskCenterInstruction.smoke.ts",
     "smoke:dataflow-vuln-metrics": "node --experimental-strip-types scripts/dataflowVulnMetrics.smoke.ts",
     "e2e": "playwright test",
     "e2e:headed": "playwright test --headed",

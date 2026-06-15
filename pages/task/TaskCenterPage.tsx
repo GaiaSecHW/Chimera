@@ -6,6 +6,7 @@ import { agentManageApiPath } from '../../clients/agentManage';
 import { useUiFeedback } from '../../components/UiFeedback';
 import { getUploadRecordDisplayName } from '../assets/baseResourcePageModel';
 import { saveTaskCenterReturnContext } from '../../utils/executionReturnContext';
+import { resolveSechpsInstruction } from './taskCenterInstruction';
 import {
   AgentAppSummary,
   ProjectInputUploadBrowseEntry,
@@ -393,6 +394,9 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects }) => {
     setSaving(true);
     setError('');
     try {
+      const sechpsInstruction = taskType === 'sechps_tool'
+        ? resolveSechpsInstruction(instruction, selectedAgentApp?.startCommand)
+        : '';
       const payload: ScheduleCenterUserTaskCreatePayload = {
         task_type: taskType,
         name,
@@ -413,7 +417,7 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects }) => {
         agent_app_agent_name: taskType === 'sechps_tool' ? (selectedAgentApp?.defaultAgentName || undefined) : undefined,
         agent_model_alias_id: taskType === 'sechps_tool' ? (selectedAgentApp?.modelAliasId || undefined) : undefined,
         agent_harness_path: taskType === 'sechps_tool' ? (selectedAgentApp?.agentHarnessPath || undefined) : undefined,
-        instruction: taskType === 'sechps_tool' ? instruction : undefined,
+        instruction: taskType === 'sechps_tool' ? (sechpsInstruction || undefined) : undefined,
       };
       await scheduleApi.createUserTask(projectId, payload);
       closeCreateDialog();
@@ -998,8 +1002,8 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects }) => {
                     </label>
                   ) : null}
                   {taskType === 'sechps_tool' ? (
-                    <label className="block text-sm font-semibold text-theme-text-secondary md:col-span-2">执行指令（可选）
-                      <textarea value={instruction} onChange={(e) => setInstruction(e.target.value)} rows={3} className="mt-1 w-full rounded-xl border border-theme-border bg-theme-surface px-3 py-2 text-theme-text-primary" />
+                    <label className="block text-sm font-semibold text-theme-text-secondary md:col-span-2">执行指令（可选，不填则使用 Agent Harness 注册的启动命令）
+                      <textarea value={instruction} onChange={(e) => setInstruction(e.target.value)} rows={3} className="mt-1 w-full rounded-xl border border-theme-border bg-theme-surface px-3 py-2 text-theme-text-primary" placeholder="不填时使用 Agent Harness 的启动命令，例如 /project:xxx" />
                     </label>
                   ) : null}
                 </div>
