@@ -2483,7 +2483,8 @@ export type ScheduleRuntimeTaskType =
   | 'source_scan_e2e'
   | 'binary_module_e2e'
   | 'ai4red'
-  | 'ai4apk';
+  | 'ai4apk'
+  | 'sechps_tool';
 
 export type ScheduleDispatchMode = 'balanced' | 'fifo' | 'priority_first';
 export type ScheduleQueueStrategy = 'strict_fifo' | 'capacity_aware';
@@ -3469,6 +3470,10 @@ export interface AppSaTaskDetail extends AppSaTaskItem {
   } | null;
   stages_json?: AppSaStagesJson | null;
   task_config_json?: { analyse_targets?: string[]; binary_arch?: string[]; security_focus_categories?: string[]; module_granularity?: string; filter_engine?: 'script' | 'agent'; enable_final_check?: boolean; continue_on_module_failure?: boolean; start_stage?: number; resume_workspace?: string; resolved_config_snapshot?: Record<string, any> } | null;
+  agent_auth_json?: Record<string, any> | null;
+  role_config_snapshot?: Record<string, any> | null;
+  provider_runtime_summary?: Record<string, any> | null;
+  llm_binding_snapshot?: Record<string, any> | null;
   /** 实际生效配置（task_config_json 覆盖项目配置后的合并结果） */
   effective_config_json?: { analyse_targets?: string[]; binary_arch?: string[]; security_focus_categories?: string[]; module_granularity?: string; filter_engine?: 'script' | 'agent'; enable_final_check?: boolean; continue_on_module_failure?: boolean } | null;
   /** 每个字段的来源："task" = 任务级覆盖，"project" = 项目默认 */
@@ -4229,6 +4234,10 @@ export interface AppEaTaskDetail extends AppEaTaskItem {
   result_json?: Record<string, any> | null;
   stages_json?: AppEaStagesJsonSummary | null;
   task_config_json?: Record<string, any> | null;
+  agent_auth_json?: Record<string, any> | null;
+  role_config_snapshot?: Record<string, any> | null;
+  provider_runtime_summary?: Record<string, any> | null;
+  llm_binding_snapshot?: Record<string, any> | null;
   function_catalog?: AppEaFunctionCatalogItem[] | null;
   lean_mode?: boolean | null;
   task_root?: string | null;
@@ -4532,6 +4541,10 @@ export interface AppDfaTaskItem {
   abnormal_reason?: ExecutionAbnormalReason | null;
   stages_json?: AppDfaStagesJson | null;
   task_config_json?: Record<string, any> | null;
+  agent_auth_json?: Record<string, any> | null;
+  role_config_snapshot?: Record<string, any> | null;
+  provider_runtime_summary?: Record<string, any> | null;
+  llm_binding_snapshot?: Record<string, any> | null;
   created_by?: string | null;
   created_at: string;
   updated_at: string;

@@ -111,6 +111,30 @@ const TagList: React.FC<{ items: string[]; labelMap?: Record<string, string>; em
   );
 };
 
+const FIRMWARE_ROLE_LABELS: Record<string, string> = {
+  executor: '执行器',
+  reviewer: '评审器',
+  cleaner: '清理器',
+  skill_author: '技能生成器',
+  skill_executor: '技能执行器',
+  evolution_improver: '进化改进器',
+};
+
+const SYSTEM_ANALYSIS_ROLE_LABELS: Record<string, string> = {
+  workers: '分析 Worker',
+  judges: '评审 Judge',
+};
+
+const ENTRY_ANALYSIS_ROLE_LABELS: Record<string, string> = {
+  workers: '入口分析 Worker',
+  judges: '入口分析 Judge',
+};
+
+const DATAFLOW_ROLE_LABELS: Record<string, string> = {
+  workers: 'DFA Worker',
+  judges: 'DFA Judge',
+};
+
 function asRecord(value: unknown): Record<string, any> {
   return value && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, any> : {};
 }
@@ -250,7 +274,25 @@ const PathSummarySection: React.FC<{
 export const SystemAnalysisTaskConfigPanel: React.FC<{ detail: AppSaTaskDetail }> = ({ detail }) => {
   const taskConfig = asRecord(detail.task_config_json);
   const resolved = asRecord(taskConfig.resolved_config_snapshot || detail.effective_config_json);
+  const agentAuthJson = asRecord(detail.agent_auth_json || taskConfig.agent_auth_json);
+  const roleConfigSnapshot = asRecord(detail.role_config_snapshot || taskConfig.role_config_snapshot);
+  const providerRuntimeSummary = asRecord(detail.provider_runtime_summary || taskConfig.provider_runtime_summary);
+  const llmBindingSnapshot = asRecord(detail.llm_binding_snapshot || taskConfig.llm_binding_snapshot);
   const hasResolved = Object.keys(resolved).length > 0;
+  const roleKeys = Array.from(
+    new Set([
+      ...Object.keys(roleConfigSnapshot),
+      ...Object.keys(providerRuntimeSummary),
+      ...Object.keys(asRecord(llmBindingSnapshot.roles)),
+    ]),
+  ).sort((left, right) => {
+    const leftIndex = Object.keys(SYSTEM_ANALYSIS_ROLE_LABELS).indexOf(left);
+    const rightIndex = Object.keys(SYSTEM_ANALYSIS_ROLE_LABELS).indexOf(right);
+    if (leftIndex === -1 && rightIndex === -1) return left.localeCompare(right);
+    if (leftIndex === -1) return 1;
+    if (rightIndex === -1) return -1;
+    return leftIndex - rightIndex;
+  });
   const analyseTargets = recordStringArray(taskConfig, 'analyse_targets');
   const binaryArch = recordStringArray(taskConfig, 'binary_arch');
   const securityFocusCategories = recordStringArray(taskConfig, 'security_focus_categories');
@@ -377,6 +419,78 @@ export const SystemAnalysisTaskConfigPanel: React.FC<{ detail: AppSaTaskDetail }
         </SectionCard>
       ) : null}
 
+      <SectionCard title="智能体认证">
+        {Object.keys(agentAuthJson).length === 0 ? (
+          <EmptyState text="当前任务没有冻结的智能体认证快照。" />
+        ) : (
+          <div className="divide-y divide-slate-100">
+            <ConfigRow label="Task Key ID"><span className="break-all font-mono text-xs">{String(agentAuthJson.agent_task_key_id || '-')}</span></ConfigRow>
+            <Divider />
+            <ConfigRow label="名称">{String(agentAuthJson.agent_task_key_name || '-')}</ConfigRow>
+            <Divider />
+            <ConfigRow label="前缀">{String(agentAuthJson.agent_task_key_prefix || '-')}</ConfigRow>
+            <Divider />
+            <ConfigRow label="来源">{String(agentAuthJson.agent_task_key_source || '-')}</ConfigRow>
+            <Divider />
+            <ConfigRow label="Secret"><span className="break-all font-mono text-xs">{String(agentAuthJson.agent_task_key_secret || '-')}</span></ConfigRow>
+          </div>
+        )}
+      </SectionCard>
+
+      <SectionCard title="角色配置">
+        {roleKeys.length === 0 ? (
+          <EmptyState text="该任务未保存角色级运行快照，历史任务可继续参考下方实际运行快照与原始 JSON。" />
+        ) : (
+          <div className="grid gap-4 xl:grid-cols-2">
+            {roleKeys.map((roleKey) => {
+              const roleRuntime = asRecord(providerRuntimeSummary[roleKey]);
+              const roleSnapshot = asRecord(roleConfigSnapshot[roleKey] || asRecord(llmBindingSnapshot.roles)[roleKey]);
+              const agents = Array.isArray(roleRuntime.agents) ? roleRuntime.agents : (Array.isArray(roleSnapshot.agents) ? roleSnapshot.agents : []);
+              const stageModels = asRecord(roleRuntime.stage_models || roleSnapshot.stage_models);
+              return (
+                <div key={roleKey} className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                  <div>
+                    <div className="text-sm font-black text-slate-900">{SYSTEM_ANALYSIS_ROLE_LABELS[roleKey] || roleKey}</div>
+                    <div className="mt-1 font-mono text-[11px] text-slate-400">{roleKey}</div>
+                  </div>
+                  <div className="mt-4 divide-y divide-slate-200">
+                    <ConfigRow label="默认模型">{String(roleRuntime.default_model || roleRuntime.model || roleSnapshot.default_model || '-')}</ConfigRow>
+                    <Divider />
+                    <ConfigRow label="默认工具">
+                      <JsonPreview value={roleRuntime.default_tools ?? roleSnapshot.default_tools ?? null} emptyText="当前角色没有默认工具配置。" />
+                    </ConfigRow>
+                    <Divider />
+                    <ConfigRow label="默认思考级别">{String(roleRuntime.default_thinking_level || roleSnapshot.default_thinking_level || '-')}</ConfigRow>
+                    <Divider />
+                    <ConfigRow label="Prompt 目录"><span className="break-all font-mono text-xs">{String(roleRuntime.system_prompt_dir || roleSnapshot.system_prompt_dir || '-')}</span></ConfigRow>
+                    <Divider />
+                    <ConfigRow label="阶段模型覆盖">
+                      <JsonPreview value={Object.keys(stageModels).length > 0 ? stageModels : null} emptyText="当前角色没有阶段模型覆盖。" />
+                    </ConfigRow>
+                    <Divider />
+                    <ConfigRow label="运行时 models.json">
+                      <JsonPreview value={roleRuntime.models_json ?? null} emptyText="当前任务没有冻结 models.json 快照。" />
+                    </ConfigRow>
+                    <Divider />
+                    <ConfigRow label="运行时 settings.json">
+                      <JsonPreview value={roleRuntime.settings_json ?? null} emptyText="当前任务没有冻结 settings.json 快照。" />
+                    </ConfigRow>
+                    <Divider />
+                    <ConfigRow label="角色实例">
+                      <JsonPreview value={agents} emptyText="当前角色没有 agent 实例配置。" />
+                    </ConfigRow>
+                    <Divider />
+                    <ConfigRow label="角色原始 JSON">
+                      <JsonPreview value={Object.keys(roleSnapshot).length > 0 ? roleSnapshot : roleRuntime} emptyText="当前角色没有原始配置快照。" />
+                    </ConfigRow>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </SectionCard>
+
       {hasResolved ? (
         <SectionCard title="实际运行快照">
           <div className="divide-y divide-slate-100">
@@ -412,6 +526,10 @@ export const SystemAnalysisTaskConfigPanel: React.FC<{ detail: AppSaTaskDetail }
 
 export const EntryAnalysisTaskConfigPanel: React.FC<{ detail: AppEaTaskDetail }> = ({ detail }) => {
   const taskConfig = asRecord(detail.task_config_json);
+  const agentAuthJson = asRecord(detail.agent_auth_json || taskConfig.agent_auth_json);
+  const roleConfigSnapshot = asRecord(detail.role_config_snapshot || taskConfig.role_config_snapshot);
+  const providerRuntimeSummary = asRecord(detail.provider_runtime_summary || taskConfig.provider_runtime_summary);
+  const llmBindingSnapshot = asRecord(detail.llm_binding_snapshot || taskConfig.llm_binding_snapshot);
   const outputSummary = asRecord(detail.output_summary);
   const inputSummary = asRecord(detail.input_summary);
   const inputContract = asBinarySecurityContract(taskConfig.input_contract);
@@ -421,9 +539,24 @@ export const EntryAnalysisTaskConfigPanel: React.FC<{ detail: AppEaTaskDetail }>
   const filesListPath = entryContractFilesListPath(inputContract)
     || recordText(inputSummary, 'files_list_path')
     || null;
+  const runtimeMode = String((detail as any).agent_runtime_mode || '').trim() || (Object.keys(agentAuthJson).length > 0 ? 'task_scoped' : 'global');
   const resumeTaskId = recordText(taskConfig, 'resume_task_id');
   const resumeStage = recordText(taskConfig, 'resume_stage');
   const resumeWorkspace = recordText(taskConfig, 'resume_workspace');
+  const roleKeys = Array.from(
+    new Set([
+      ...Object.keys(roleConfigSnapshot),
+      ...Object.keys(providerRuntimeSummary),
+      ...Object.keys(asRecord(llmBindingSnapshot.roles)),
+    ]),
+  ).sort((left, right) => {
+    const leftIndex = Object.keys(ENTRY_ANALYSIS_ROLE_LABELS).indexOf(left);
+    const rightIndex = Object.keys(ENTRY_ANALYSIS_ROLE_LABELS).indexOf(right);
+    if (leftIndex === -1 && rightIndex === -1) return left.localeCompare(right);
+    if (leftIndex === -1) return 1;
+    if (rightIndex === -1) return -1;
+    return leftIndex - rightIndex;
+  });
   return (
     <div className="space-y-4">
       <TaskIdentitySection
@@ -493,6 +626,80 @@ export const EntryAnalysisTaskConfigPanel: React.FC<{ detail: AppEaTaskDetail }>
         )}
       </SectionCard>
 
+      <SectionCard title="智能体认证">
+        <div className="mb-3 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-600">
+          {runtimeMode === 'task_scoped'
+            ? '当前展示的是任务级运行时快照。'
+            : Object.keys(agentAuthJson).length === 0 && roleKeys.length > 0
+              ? '当前任务未配置任务级 key，以下展示的是当时全局运行时快照。'
+              : '当前任务未生成任务级 runtime，以下展示的是当时全局运行时快照。'}
+        </div>
+        {Object.keys(agentAuthJson).length === 0 ? (
+          <EmptyState text="当前任务没有冻结的智能体认证快照。" />
+        ) : (
+          <div className="divide-y divide-slate-100">
+            <ConfigRow label="Task Key ID"><span className="break-all font-mono text-xs">{String(agentAuthJson.agent_task_key_id || '-')}</span></ConfigRow>
+            <Divider />
+            <ConfigRow label="名称">{String(agentAuthJson.agent_task_key_name || '-')}</ConfigRow>
+            <Divider />
+            <ConfigRow label="前缀">{String(agentAuthJson.agent_task_key_prefix || '-')}</ConfigRow>
+            <Divider />
+            <ConfigRow label="来源">{String(agentAuthJson.agent_task_key_source || '-')}</ConfigRow>
+            <Divider />
+            <ConfigRow label="Secret"><span className="break-all font-mono text-xs">{String(agentAuthJson.agent_task_key_secret || '-')}</span></ConfigRow>
+          </div>
+        )}
+      </SectionCard>
+
+      <SectionCard title="角色配置">
+        {roleKeys.length === 0 ? (
+          <EmptyState text="该任务未保存角色级运行快照，历史任务可继续参考下方原始 JSON。" />
+        ) : (
+          <div className="grid gap-4 xl:grid-cols-2">
+            {roleKeys.map((roleKey) => {
+              const roleRuntime = asRecord(providerRuntimeSummary[roleKey]);
+              const roleSnapshot = asRecord(roleConfigSnapshot[roleKey] || asRecord(llmBindingSnapshot.roles)[roleKey]);
+              const agents = Array.isArray(roleRuntime.agents) ? roleRuntime.agents : (Array.isArray(roleSnapshot.agents) ? roleSnapshot.agents : []);
+              return (
+                <div key={roleKey} className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                  <div>
+                    <div className="text-sm font-black text-slate-900">{ENTRY_ANALYSIS_ROLE_LABELS[roleKey] || roleKey}</div>
+                    <div className="mt-1 font-mono text-[11px] text-slate-400">{roleKey}</div>
+                  </div>
+                  <div className="mt-4 divide-y divide-slate-200">
+                    <ConfigRow label="默认模型">{String(roleRuntime.default_model || roleSnapshot.default_model || '-')}</ConfigRow>
+                    <Divider />
+                    <ConfigRow label="默认工具">
+                      <JsonPreview value={roleRuntime.default_tools ?? roleSnapshot.default_tools ?? null} emptyText="当前角色没有默认工具配置。" />
+                    </ConfigRow>
+                    <Divider />
+                    <ConfigRow label="默认思考级别">{String(roleRuntime.default_thinking_level || roleSnapshot.default_thinking_level || '-')}</ConfigRow>
+                    <Divider />
+                    <ConfigRow label="Prompt 目录"><span className="break-all font-mono text-xs">{String(roleRuntime.system_prompt_dir || roleSnapshot.system_prompt_dir || '-')}</span></ConfigRow>
+                    <Divider />
+                    <ConfigRow label="运行时 models.json">
+                      <JsonPreview value={roleRuntime.models_json ?? null} emptyText="当前任务没有冻结 models.json 快照。" />
+                    </ConfigRow>
+                    <Divider />
+                    <ConfigRow label="运行时 settings.json">
+                      <JsonPreview value={roleRuntime.settings_json ?? null} emptyText="当前任务没有冻结 settings.json 快照。" />
+                    </ConfigRow>
+                    <Divider />
+                    <ConfigRow label="角色实例">
+                      <JsonPreview value={agents} emptyText="当前角色没有 agent 实例配置。" />
+                    </ConfigRow>
+                    <Divider />
+                    <ConfigRow label="角色原始 JSON">
+                      <JsonPreview value={Object.keys(roleSnapshot).length > 0 ? roleSnapshot : roleRuntime} emptyText="当前角色没有原始配置快照。" />
+                    </ConfigRow>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </SectionCard>
+
       <SectionCard title="原始任务配置 JSON">
         <JsonPreview value={detail.task_config_json} />
       </SectionCard>
@@ -502,6 +709,10 @@ export const EntryAnalysisTaskConfigPanel: React.FC<{ detail: AppEaTaskDetail }>
 
 export const DataflowAnalysisTaskConfigPanel: React.FC<{ detail: AppDfaTaskDetail }> = ({ detail }) => {
   const taskConfig = asRecord(detail.task_config_json);
+  const agentAuthJson = asRecord((detail as any).agent_auth_json || taskConfig.agent_auth_json);
+  const roleConfigSnapshot = asRecord((detail as any).role_config_snapshot || taskConfig.role_config_snapshot);
+  const providerRuntimeSummary = asRecord((detail as any).provider_runtime_summary || taskConfig.provider_runtime_summary);
+  const llmBindingSnapshot = asRecord((detail as any).llm_binding_snapshot || taskConfig.llm_binding_snapshot);
   const inputSummary = asRecord(detail.input_summary);
   const outputSummary = asRecord(detail.output_summary);
   const inputContract = asBinarySecurityContract(taskConfig.input_contract);
@@ -518,6 +729,21 @@ export const DataflowAnalysisTaskConfigPanel: React.FC<{ detail: AppDfaTaskDetai
   const taintParams = Array.isArray(taskConfig.taint_params) ? taskConfig.taint_params.map((item: any) => String(item || '').trim()).filter(Boolean) : [];
   const taintDetails = Array.isArray(taskConfig.taint_details) ? taskConfig.taint_details.filter((item: any) => item && typeof item === 'object') : [];
   const resumeWorkspace = recordText(taskConfig, 'resume_workspace');
+  const runtimeMode = String((detail as any).agent_runtime_mode || '').trim() || (Object.keys(agentAuthJson).length > 0 ? 'task_scoped' : 'global');
+  const roleKeys = Array.from(
+    new Set([
+      ...Object.keys(roleConfigSnapshot),
+      ...Object.keys(providerRuntimeSummary),
+      ...Object.keys(asRecord(llmBindingSnapshot.roles)),
+    ]),
+  ).sort((left, right) => {
+    const leftIndex = Object.keys(DATAFLOW_ROLE_LABELS).indexOf(left);
+    const rightIndex = Object.keys(DATAFLOW_ROLE_LABELS).indexOf(right);
+    if (leftIndex === -1 && rightIndex === -1) return left.localeCompare(right);
+    if (leftIndex === -1) return 1;
+    if (rightIndex === -1) return -1;
+    return leftIndex - rightIndex;
+  });
   return (
     <div className="space-y-4">
       <TaskIdentitySection
@@ -680,6 +906,85 @@ export const DataflowAnalysisTaskConfigPanel: React.FC<{ detail: AppDfaTaskDetai
         )}
       </SectionCard>
 
+      <SectionCard title="智能体认证">
+        <div className="mb-3 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-600">
+          {runtimeMode === 'task_scoped'
+            ? '当前展示的是任务级运行时快照。'
+            : Object.keys(agentAuthJson).length === 0 && roleKeys.length > 0
+              ? '当前任务未配置任务级 key，以下展示的是当时全局运行时快照。'
+              : '当前任务未生成任务级 runtime，以下展示的是当时全局运行时快照。'}
+        </div>
+        {Object.keys(agentAuthJson).length === 0 ? (
+          <EmptyState text="当前任务没有冻结的智能体认证快照。" />
+        ) : (
+          <div className="divide-y divide-slate-100">
+            <ConfigRow label="Task Key ID"><span className="break-all font-mono text-xs">{String(agentAuthJson.agent_task_key_id || '-')}</span></ConfigRow>
+            <Divider />
+            <ConfigRow label="名称">{String(agentAuthJson.agent_task_key_name || '-')}</ConfigRow>
+            <Divider />
+            <ConfigRow label="前缀">{String(agentAuthJson.agent_task_key_prefix || '-')}</ConfigRow>
+            <Divider />
+            <ConfigRow label="来源">{String(agentAuthJson.agent_task_key_source || '-')}</ConfigRow>
+            <Divider />
+            <ConfigRow label="Secret"><span className="break-all font-mono text-xs">{String(agentAuthJson.agent_task_key_secret || '-')}</span></ConfigRow>
+          </div>
+        )}
+      </SectionCard>
+
+      <SectionCard title="角色配置">
+        {roleKeys.length === 0 ? (
+          <EmptyState text="该任务未保存角色级运行快照，历史任务可继续参考下方原始 JSON。" />
+        ) : (
+          <div className="grid gap-4 xl:grid-cols-2">
+            {roleKeys.map((roleKey) => {
+              const roleRuntime = asRecord(providerRuntimeSummary[roleKey]);
+              const roleSnapshot = asRecord(roleConfigSnapshot[roleKey] || asRecord(llmBindingSnapshot.roles)[roleKey]);
+              const agents = Array.isArray(roleRuntime.agents) ? roleRuntime.agents : (Array.isArray(roleSnapshot.agents) ? roleSnapshot.agents : []);
+              const stageModels = asRecord(roleRuntime.stage_models || roleSnapshot.stage_models);
+              return (
+                <div key={roleKey} className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                  <div>
+                    <div className="text-sm font-black text-slate-900">{DATAFLOW_ROLE_LABELS[roleKey] || roleKey}</div>
+                    <div className="mt-1 font-mono text-[11px] text-slate-400">{roleKey}</div>
+                  </div>
+                  <div className="mt-4 divide-y divide-slate-200">
+                    <ConfigRow label="默认模型">{String(roleRuntime.default_model || roleSnapshot.default_model || '-')}</ConfigRow>
+                    <Divider />
+                    <ConfigRow label="默认工具">
+                      <JsonPreview value={roleRuntime.default_tools ?? roleSnapshot.default_tools ?? null} emptyText="当前角色没有默认工具配置。" />
+                    </ConfigRow>
+                    <Divider />
+                    <ConfigRow label="默认思考级别">{String(roleRuntime.default_thinking_level || roleSnapshot.default_thinking_level || '-')}</ConfigRow>
+                    <Divider />
+                    <ConfigRow label="Prompt 目录"><span className="break-all font-mono text-xs">{String(roleRuntime.system_prompt_dir || roleSnapshot.system_prompt_dir || '-')}</span></ConfigRow>
+                    <Divider />
+                    <ConfigRow label="阶段模型覆盖">
+                      <JsonPreview value={Object.keys(stageModels).length > 0 ? stageModels : null} emptyText="当前角色没有阶段模型覆盖。" />
+                    </ConfigRow>
+                    <Divider />
+                    <ConfigRow label="运行时 models.json">
+                      <JsonPreview value={roleRuntime.models_json ?? null} emptyText="当前任务没有冻结 models.json 快照。" />
+                    </ConfigRow>
+                    <Divider />
+                    <ConfigRow label="运行时 settings.json">
+                      <JsonPreview value={roleRuntime.settings_json ?? null} emptyText="当前任务没有冻结 settings.json 快照。" />
+                    </ConfigRow>
+                    <Divider />
+                    <ConfigRow label="角色实例">
+                      <JsonPreview value={agents} emptyText="当前角色没有 agent 实例配置。" />
+                    </ConfigRow>
+                    <Divider />
+                    <ConfigRow label="角色原始 JSON">
+                      <JsonPreview value={Object.keys(roleSnapshot).length > 0 ? roleSnapshot : roleRuntime} emptyText="当前角色没有原始配置快照。" />
+                    </ConfigRow>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </SectionCard>
+
       <SectionCard title="原始任务配置 JSON">
         <JsonPreview value={detail.task_config_json} />
       </SectionCard>
@@ -701,6 +1006,23 @@ export const FirmwareUnpackerTaskConfigPanel: React.FC<{
   const outputSummary = asRecord(detail.output_summary);
   const inputFirmwarePath = recordText(inputSummary, 'firmware_path');
   const workspaceRoot = recordText(outputSummary, 'workspace_root');
+  const providerRuntimeSummary = asRecord(taskConfigSnapshot?.provider_runtime_summary);
+  const llmBindingSnapshot = asRecord(taskConfigSnapshot?.llm_binding_snapshot);
+  const roleSnapshots = asRecord(llmBindingSnapshot.roles);
+  const roleKeys = Array.from(
+    new Set([
+      ...Object.keys(providerRuntimeSummary),
+      ...Object.keys(roleSnapshots),
+    ]),
+  ).sort((left, right) => {
+    const leftIndex = Object.keys(FIRMWARE_ROLE_LABELS).indexOf(left);
+    const rightIndex = Object.keys(FIRMWARE_ROLE_LABELS).indexOf(right);
+    if (leftIndex === -1 && rightIndex === -1) return left.localeCompare(right);
+    if (leftIndex === -1) return 1;
+    if (rightIndex === -1) return -1;
+    return leftIndex - rightIndex;
+  });
+
   return (
     <div className="space-y-4">
       <TaskIdentitySection
@@ -741,6 +1063,80 @@ export const FirmwareUnpackerTaskConfigPanel: React.FC<{
 
       <SectionCard title="任务上下文">
         <JsonPreview value={detail.task_metadata} emptyText="当前任务没有额外 task metadata。" />
+      </SectionCard>
+
+      <SectionCard title="智能体认证">
+        {taskConfigLoading ? (
+          <div className="text-sm text-slate-500">加载中...</div>
+        ) : taskConfigError ? (
+          <div className="text-sm text-rose-600">{taskConfigError}</div>
+        ) : !taskConfigSnapshot || taskConfigSnapshot.available === false ? (
+          <div className="text-sm text-slate-500">{taskConfigSnapshot?.message || '当前任务没有可展示的智能体认证快照。'}</div>
+        ) : !taskConfigSnapshot.agent_auth_json ? (
+          <EmptyState text="当前任务没有冻结的智能体认证信息。" />
+        ) : (
+          <div className="divide-y divide-slate-100">
+            <ConfigRow label="Task Key ID"><span className="break-all font-mono text-xs">{String(taskConfigSnapshot.agent_auth_json.agent_task_key_id || '-')}</span></ConfigRow>
+            <Divider />
+            <ConfigRow label="名称">{String(taskConfigSnapshot.agent_auth_json.agent_task_key_name || '-')}</ConfigRow>
+            <Divider />
+            <ConfigRow label="前缀">{String(taskConfigSnapshot.agent_auth_json.agent_task_key_prefix || '-')}</ConfigRow>
+            <Divider />
+            <ConfigRow label="来源">{String(taskConfigSnapshot.agent_auth_json.agent_task_key_source || '-')}</ConfigRow>
+            <Divider />
+            <ConfigRow label="Secret"><span className="break-all font-mono text-xs">{String(taskConfigSnapshot.agent_auth_json.agent_task_key_secret || '-')}</span></ConfigRow>
+          </div>
+        )}
+      </SectionCard>
+
+      <SectionCard title="角色配置">
+        {taskConfigLoading ? (
+          <div className="text-sm text-slate-500">加载中...</div>
+        ) : taskConfigError ? (
+          <div className="text-sm text-rose-600">{taskConfigError}</div>
+        ) : !taskConfigSnapshot || taskConfigSnapshot.available === false ? (
+          <div className="text-sm text-slate-500">{taskConfigSnapshot?.message || '当前任务没有可展示的角色配置快照。'}</div>
+        ) : roleKeys.length === 0 ? (
+          <EmptyState text="当前任务没有冻结的角色级配置。" />
+        ) : (
+          <div className="grid gap-4 xl:grid-cols-2">
+            {roleKeys.map((roleKey) => {
+              const runtimeSummary = asRecord(providerRuntimeSummary[roleKey]);
+              const roleSnapshot = asRecord(roleSnapshots[roleKey]);
+              return (
+                <div key={roleKey} className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                  <div className="flex items-center justify-between gap-3">
+                    <div>
+                      <div className="text-sm font-black text-slate-900">{FIRMWARE_ROLE_LABELS[roleKey] || roleKey}</div>
+                      <div className="mt-1 font-mono text-[11px] text-slate-400">{roleKey}</div>
+                    </div>
+                  </div>
+                  <div className="mt-4 divide-y divide-slate-200">
+                    <ConfigRow label="配置文件 Key">{String(runtimeSummary.config_file_key || roleSnapshot.config_file_key || '-')}</ConfigRow>
+                    <Divider />
+                    <ConfigRow label="Provider Key">{String(runtimeSummary.provider_key || roleSnapshot.provider_key || '-')}</ConfigRow>
+                    <Divider />
+                    <ConfigRow label="模型">{String(runtimeSummary.model || roleSnapshot.model || '-')}</ConfigRow>
+                    <Divider />
+                    <ConfigRow label="模型选择器">{String(runtimeSummary.model_selector || roleSnapshot.model_selector || '-')}</ConfigRow>
+                    <Divider />
+                    <ConfigRow label="models.json">
+                      <JsonPreview value={runtimeSummary.models_json ?? roleSnapshot.models_json ?? null} emptyText="当前角色没有 models.json 快照。" />
+                    </ConfigRow>
+                    <Divider />
+                    <ConfigRow label="settings.json">
+                      <JsonPreview value={runtimeSummary.settings_json ?? roleSnapshot.settings_json ?? null} emptyText="当前角色没有 settings.json 快照。" />
+                    </ConfigRow>
+                    <Divider />
+                    <ConfigRow label="角色原始 JSON">
+                      <JsonPreview value={Object.keys(roleSnapshot).length > 0 ? roleSnapshot : runtimeSummary} emptyText="当前角色没有原始配置快照。" />
+                    </ConfigRow>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
       </SectionCard>
 
       <SectionCard title="智能体任务配置 JSON">
