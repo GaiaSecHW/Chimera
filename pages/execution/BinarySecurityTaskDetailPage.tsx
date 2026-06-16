@@ -409,7 +409,7 @@ const stageItemTone = (selected: boolean) => (
     : 'border-slate-200 bg-slate-50/70 hover:border-slate-300 hover:bg-white'
 );
 
-const detailPanelTone = 'rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs text-slate-700';
+const detailPanelTone = { borderRadius: '8px', border: `1px solid ${LK.border}`, backgroundColor: LK.surface, padding: '8px 12px', fontSize: '12px', color: LK.inkSoft };
 const formatBinarySecurityStatus = (status?: string | null) => {
   const normalized = String(status || '').trim().toLowerCase();
   const labels: Record<string, string> = {
@@ -1874,7 +1874,7 @@ function OrchestrationObservabilityPanel({ detail }: { detail: BinarySecurityTas
                 <div className="font-black text-slate-800">{STAGE_LABELS[stage] || stage}</div>
                 <div className="mt-2 flex flex-wrap gap-2 text-xs">
                   {Object.entries(counts || {}).map(([status, count]) => (
-                    <span key={status} className={`rounded-full border px-2 py-1 font-bold ${statusTone(status)}`}>{formatBinarySecurityStatus(status)} {count}</span>
+                    <span key={status} style={{ borderRadius: '9999px', border: '1px solid', padding: '4px 8px', fontWeight: 600, ...statusTone(status), borderColor: statusTone(status).borderColor }}>{formatBinarySecurityStatus(status)} {count}</span>
                   ))}
                 </div>
               </div>
@@ -1897,7 +1897,7 @@ function OrchestrationObservabilityPanel({ detail }: { detail: BinarySecurityTas
               <div key={event.id} className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs">
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <span className="font-mono font-black text-slate-800">{event.event_type}</span>
-                  <span className={`rounded-full border px-2 py-0.5 font-bold ${statusTone(event.status)}`}>{event.status}</span>
+                  <span style={{ borderRadius: '9999px', border: '1px solid', padding: '2px 8px', fontWeight: 600, ...statusTone(event.status), borderColor: statusTone(event.status).borderColor }}>{event.status}</span>
                 </div>
                 <div className="mt-1 break-all text-slate-500">owner={event.leased_by || '-'} · attempts={event.attempts ?? 0} · {fmt(event.created_at)}</div>
                 {event.error_message ? <div className="mt-1 break-all text-rose-600">{event.error_message}</div> : null}
@@ -3363,10 +3363,10 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
       const task = detailState.data;
       return (
         <div className="grid grid-cols-1 gap-3 text-xs text-slate-600 xl:grid-cols-2">
-          <div className={detailPanelTone}>固件路径：{task.firmware_path || '-'}</div>
-          <div className={detailPanelTone}>输出目录：{task.output_path || '-'}</div>
-          <div className={detailPanelTone}>结果状态：{task.result_status || '-'}</div>
-          <div className={detailPanelTone}>结果信息：{task.result_message || task.error_message || '-'}</div>
+          <div style={detailPanelTone}>固件路径：{task.firmware_path || '-'}</div>
+          <div style={detailPanelTone}>输出目录：{task.output_path || '-'}</div>
+          <div style={detailPanelTone}>结果状态：{task.result_status || '-'}</div>
+          <div style={detailPanelTone}>结果信息：{task.result_message || task.error_message || '-'}</div>
         </div>
       );
     }
@@ -3375,8 +3375,8 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
       return (
         <div className="space-y-3">
           <div className="grid grid-cols-1 gap-3 text-xs text-slate-600 xl:grid-cols-2">
-            <div className={detailPanelTone}>输入目录：{task.input_path || '-'}</div>
-            <div className={detailPanelTone}>输出目录：{task.output_path || '-'}</div>
+            <div style={detailPanelTone}>输入目录：{task.input_path || '-'}</div>
+            <div style={detailPanelTone}>输出目录：{task.output_path || '-'}</div>
           </div>
           <DownstreamSummaryGrid payload={task.result_json} preferredKeys={RESULT_SUMMARY_KEYS} />
         </div>
@@ -3387,8 +3387,8 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
       return (
         <div className="space-y-3">
           <div className="grid grid-cols-1 gap-3 text-xs text-slate-600 xl:grid-cols-2">
-            <div className={detailPanelTone}>总项目数：{task.total_items}</div>
-            <div className={detailPanelTone}>成功/失败：{task.success_items} / {task.failed_items}</div>
+            <div style={detailPanelTone}>总项目数：{task.total_items}</div>
+            <div style={detailPanelTone}>成功/失败：{task.success_items} / {task.failed_items}</div>
           </div>
           <div className="space-y-2">
             {task.items.slice(0, 4).map((taskItem) => (
@@ -3410,8 +3410,8 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
       return (
         <div className="space-y-3">
           <div className="grid grid-cols-1 gap-3 text-xs text-slate-600 xl:grid-cols-2">
-            <div className={detailPanelTone}>输入目录：{task.input_path || '-'}</div>
-            <div className={detailPanelTone}>输出目录：{task.output_path || '-'}</div>
+            <div style={detailPanelTone}>输入目录：{task.input_path || '-'}</div>
+            <div style={detailPanelTone}>输出目录：{task.output_path || '-'}</div>
           </div>
           <DownstreamSummaryGrid payload={task.result_json} preferredKeys={RESULT_SUMMARY_KEYS} />
         </div>
@@ -3422,8 +3422,8 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
       return (
         <div className="space-y-3">
           <div className="grid grid-cols-1 gap-3 text-xs text-slate-600 xl:grid-cols-2">
-            <div className={detailPanelTone}>输入目录：{task.input_path || '-'}</div>
-            <div className={detailPanelTone}>输出目录：{task.output_path || '-'}</div>
+            <div style={detailPanelTone}>输入目录：{task.input_path || '-'}</div>
+            <div style={detailPanelTone}>输出目录：{task.output_path || '-'}</div>
           </div>
           <DownstreamSummaryGrid payload={task.result_json} preferredKeys={RESULT_SUMMARY_KEYS} />
         </div>
@@ -3582,7 +3582,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                       <div className="mt-1 text-[11px] text-slate-500">{moduleContractText(module, 'module_type', 'language') || '-'}</div>
                     </td>
                     <td className="px-4 py-3 align-top">
-                      <span className={`inline-flex rounded-full border px-2 py-1 font-bold ${statusTone(moduleContractText(module, 'risk_level') || 'pending')}`}>
+                      <span style={{ display: 'inline-flex', borderRadius: '9999px', border: '1px solid', padding: '4px 8px', fontWeight: 600, ...statusTone(moduleContractText(module, 'risk_level') || 'pending'), borderColor: statusTone(moduleContractText(module, 'risk_level') || 'pending').borderColor }}>
                         {moduleContractText(module, 'risk_level') || '-'}
                       </span>
                     </td>
@@ -3795,7 +3795,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                       <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3">
                         <div className="text-xs font-bold text-slate-400">当前状态</div>
                         <div className="mt-2">
-                          <span className={`inline-flex rounded-full border px-3 py-1 text-xs font-black ${statusTone(taskDisplayStatus(detail?.status, detail?.manual_operation_state))}`}>
+                          <span style={{ display: 'inline-flex', borderRadius: '9999px', border: '1px solid', padding: '4px 12px', fontSize: '12px', fontWeight: 600, ...statusTone(taskDisplayStatus(detail?.status, detail?.manual_operation_state)), borderColor: statusTone(taskDisplayStatus(detail?.status, detail?.manual_operation_state)).borderColor }}>
                             {formatBinarySecurityStatus(taskDisplayStatus(detail?.status, detail?.manual_operation_state))}
                           </span>
                         </div>
@@ -3908,7 +3908,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                 <h1 className="mt-2 text-2xl font-black tracking-tight text-slate-900">{detail.name}</h1>
                 <div className="mt-2 break-all font-mono text-xs text-slate-400">{detail.id}</div>
                 <div className="mt-3 flex flex-wrap items-center gap-3">
-                  <span className={`rounded-full border px-3 py-1 text-xs font-black ${statusTone(displayTaskStatus)}`}>{formatBinarySecurityStatus(displayTaskStatus)}</span>
+                  <span style={{ borderRadius: '9999px', border: '1px solid', padding: '4px 12px', fontSize: '12px', fontWeight: 600, ...statusTone(displayTaskStatus), borderColor: statusTone(displayTaskStatus).borderColor }}>{formatBinarySecurityStatus(displayTaskStatus)}</span>
                   <span className="text-sm text-slate-500">当前阶段：{STAGE_LABELS[detail.current_stage || ''] || detail.current_stage || '-'}</span>
                 </div>
                 {runtimeOwner ? (
@@ -4446,7 +4446,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                   <h2 className="text-xl font-black text-slate-900">线程与协程健康</h2>
                   <p className="mt-2 text-sm text-slate-500">仅展示当前 binary-security 父任务自身相关的 task-scoped 运行单元。</p>
                 </div>
-                <span className={`inline-flex rounded-full border px-3 py-1 text-xs font-black ${runtimeHealthTone(runtimeHealthSummary?.overall_status)}`}>
+                <span style={{ display: 'inline-flex', borderRadius: '9999px', border: '1px solid', padding: '4px 12px', fontSize: '12px', fontWeight: 600, ...runtimeHealthTone(runtimeHealthSummary?.overall_status), borderColor: runtimeHealthTone(runtimeHealthSummary?.overall_status).borderColor }}>
                   {formatRuntimeHealthStatus(runtimeHealthSummary?.overall_status)}
                 </span>
               </div>
@@ -4496,7 +4496,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                           </td>
                           <td className="px-4 py-3 align-top text-slate-600">{formatRuntimeUnitKind(unit.unit_kind)}</td>
                           <td className="px-4 py-3 align-top">
-                            <span className={`inline-flex rounded-full border px-2.5 py-1 font-bold ${runtimeHealthTone(unit.status)}`}>
+                            <span style={{ display: 'inline-flex', borderRadius: '9999px', border: '1px solid', padding: '4px 10px', fontWeight: 600, ...runtimeHealthTone(unit.status), borderColor: runtimeHealthTone(unit.status).borderColor }}>
                               {formatRuntimeHealthStatus(unit.status)}
                             </span>
                           </td>

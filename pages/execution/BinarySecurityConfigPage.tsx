@@ -464,7 +464,7 @@ export const BinarySecurityConfigPage: React.FC<{ projectId: string; initialTab?
           <button
             type="button"
             onClick={() => void load()}
-            className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-bold text-slate-700 shadow-sm hover:bg-slate-50"
+            style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', borderRadius: '12px', border: `1px solid ${LK.border}`, backgroundColor: LK.surface, padding: '10px 16px', fontSize: '14px', fontWeight: 600, color: LK.inkSoft, cursor: 'pointer' }}
           >
             <RefreshCw size={16} />
             刷新
@@ -472,8 +472,8 @@ export const BinarySecurityConfigPage: React.FC<{ projectId: string; initialTab?
         </div>
       </section>
 
-      <section className="rounded-[2rem] border border-slate-200 bg-white p-2 shadow-sm">
-        <div className="flex flex-wrap items-center gap-2">
+      <section style={{ borderRadius: '24px', border: `1px solid ${LK.border}`, backgroundColor: LK.surface, padding: '8px' }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '8px' }}>
           {[
             {
               id: 'binary-security' as ConfigTab,
@@ -515,14 +515,19 @@ export const BinarySecurityConfigPage: React.FC<{ projectId: string; initialTab?
               key={tab.id}
               type="button"
               onClick={() => setActiveTab(tab.id)}
-              className={`rounded-2xl px-5 py-3 text-sm font-black transition ${
-                activeTab === tab.id
-                  ? 'bg-slate-900 text-white shadow-sm'
-                  : 'text-slate-500 hover:bg-slate-50 hover:text-slate-700'
-              }`}
+              style={{
+                borderRadius: '12px',
+                padding: '12px 20px',
+                fontSize: '14px',
+                fontWeight: 600,
+                transition: 'all 0.2s',
+                backgroundColor: activeTab === tab.id ? LK.primary : 'transparent',
+                color: activeTab === tab.id ? '#ffffff' : LK.body,
+                cursor: 'pointer'
+              }}
             >
               <div>{tab.label}</div>
-              <div className={`mt-1 text-[11px] font-semibold ${activeTab === tab.id ? 'text-slate-300' : 'text-slate-400'}`}>
+              <div style={{ marginTop: '4px', fontSize: '11px', fontWeight: 600, color: activeTab === tab.id ? LK.mutedSoft : LK.muted }}>
                 {tab.service}
               </div>
             </button>
@@ -531,20 +536,20 @@ export const BinarySecurityConfigPage: React.FC<{ projectId: string; initialTab?
       </section>
 
       {activeTab === 'binary-security' ? (
-        <section className="rounded-[2rem] border border-slate-200 bg-slate-50/70 p-6 shadow-sm">
-          <div className="flex flex-wrap items-center gap-2">
-            <Settings size={18} className="text-rose-600" />
-            <h2 className="text-xl font-black text-slate-900">队列控制</h2>
-            <span className="rounded-full border border-rose-200 bg-rose-50 px-3 py-1 text-[11px] font-black tracking-[0.12em] text-rose-700">
+        <section style={{ borderRadius: '24px', border: `1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised, padding: '24px' }}>
+          <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '8px' }}>
+            <Settings size={18} style={{ color: LK.error }} />
+            <h2 style={{ fontSize: '20px', fontWeight: 600, color: LK.ink }}>队列控制</h2>
+            <span style={{ borderRadius: '999px', border: `1px solid ${LK.error}`, backgroundColor: LK.primaryMuted.replace('0.14', '0.08').replace('79, 115, 255', '241, 93, 93'), padding: '4px 12px', fontSize: '11px', fontWeight: 600, letterSpacing: '0.12em', color: LK.error }}>
               chimera-app-binary-security
             </span>
           </div>
-          <p className="mt-2 text-sm text-slate-500">
+          <p style={{ marginTop: '8px', fontSize: '14px', color: LK.body }}>
             当前 Tab 中的全部配置项都归属于 `chimera-app-binary-security` 微服务，用于控制该服务在多实例部署下的全局任务调度行为。
           </p>
 
-          {error && <div className="mt-4 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700">{error}</div>}
-          {message && <div className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-700">{message}</div>}
+          {error && <div style={{ marginTop: '16px', borderRadius: '8px', border: `1px solid ${LK.error}`, backgroundColor: LK.primaryMuted.replace('0.14', '0.08').replace('79, 115, 255', '241, 93, 93'), padding: '12px 16px', fontSize: '14px', fontWeight: 600, color: LK.error }}>{error}</div>}
+          {message && <div style={{ marginTop: '16px', borderRadius: '8px', border: `1px solid ${LK.success}`, backgroundColor: LK.primaryMuted.replace('0.14', '0.08').replace('79, 115, 255', '69, 192, 111'), padding: '12px 16px', fontSize: '14px', fontWeight: 600, color: LK.success }}>{message}</div>}
 
           <div className="mt-5 grid grid-cols-1 gap-4">
             <SectionCard
@@ -669,12 +674,12 @@ export const BinarySecurityConfigPage: React.FC<{ projectId: string; initialTab?
               chimera-app-binary-evolution-center
             </span>
           </div>
-          <p className="mt-2 text-sm text-slate-500">
+          <p style={{ marginTop: '8px', fontSize: '14px', color: LK.body }}>
             这里控制进化中心的服务级任务并发、单个进化任务的轮内并发，以及进化智能体的默认模型和轮次策略。
           </p>
 
-          {error && <div className="mt-4 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700">{error}</div>}
-          {message && <div className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-700">{message}</div>}
+          {error && <div style={{ marginTop: '16px', borderRadius: '8px', border: `1px solid ${LK.error}`, backgroundColor: LK.primaryMuted.replace('0.14', '0.08').replace('79, 115, 255', '241, 93, 93'), padding: '12px 16px', fontSize: '14px', fontWeight: 600, color: LK.error }}>{error}</div>}
+          {message && <div style={{ marginTop: '16px', borderRadius: '8px', border: `1px solid ${LK.success}`, backgroundColor: LK.primaryMuted.replace('0.14', '0.08').replace('79, 115, 255', '69, 192, 111'), padding: '12px 16px', fontSize: '14px', fontWeight: 600, color: LK.success }}>{message}</div>}
 
           <div className="mt-5 grid grid-cols-1 gap-4">
             <SectionCard
