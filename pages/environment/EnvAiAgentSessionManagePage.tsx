@@ -10,14 +10,13 @@ import { EmptyState } from './ai-agent/shared';
 const GLOBAL_AUTO_SYNC_ENABLED_KEY = 'chimera_ai_global_session_auto_sync_enabled';
 const GLOBAL_AUTO_SYNC_INTERVAL_KEY = 'chimera_ai_global_session_auto_sync_interval_ms';
 
-const buildSessionKey = (item: Pick<ProjectAiAgentSessionItem, 'agent_key' | 'service_name' | 'session_id'>) =>
-  `${item.agent_key}::${item.service_name}::${item.session_id}`;
+const buildSessionKey = (item: Pick<ProjectAiAgentSessionItem, 'agent_key' | 'service_name' | 'session_id'>) =>`${item.agent_key}::${item.service_name}::${item.session_id}`;
 
 const compactTime = (value?: string | null) => {
   if (!value) return '-';
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return value;
-  return `${date.toLocaleDateString()} ${date.toLocaleTimeString()}`;
+  return`${date.toLocaleDateString()} ${date.toLocaleTimeString()}`;
 };
 
 const statusBadge = (value?: string) => {
@@ -30,11 +29,11 @@ const statusBadge = (value?: string) => {
 
 const parseInvalidReason = (reason: string) => {
   const text = String(reason || '');
-  if (text.startsWith('status_not_ready:')) return `状态异常(${text.replace('status_not_ready:', '') || 'unknown'})`;
+  if (text.startsWith('status_not_ready:')) return`状态异常(${text.replace('status_not_ready:', '') || 'unknown'})`;
   if (text === 'pty_missing') return 'PTY 缺失';
   if (text === 'backend_pid_missing') return 'Backend PID 缺失';
   if (text === 'backend_not_found_in_helper_agents') return 'backend 不在当前 helper agent 列表';
-  if (text.startsWith('agent_ids_not_found:')) return `agent_ids 不匹配(${text.replace('agent_ids_not_found:', '')})`;
+  if (text.startsWith('agent_ids_not_found:')) return`agent_ids 不匹配(${text.replace('agent_ids_not_found:', '')})`;
   return text || '未知异常';
 };
 
@@ -172,7 +171,7 @@ export const EnvAiAgentSessionManagePage: React.FC<{ projectId: string }> = ({ p
     setOrDelete('aasm_invalid_filter', invalidFilter);
     setOrDelete('aasm_reason', reasonFilter);
     const nextQuery = params.toString();
-    const nextUrl = `${window.location.pathname}${nextQuery ? `?${nextQuery}` : ''}${window.location.hash || ''}`;
+    const nextUrl =`${window.location.pathname}${nextQuery ?`?${nextQuery}` : ''}${window.location.hash || ''}`;
     window.history.replaceState(window.history.state, '', nextUrl);
   };
 
@@ -350,14 +349,14 @@ export const EnvAiAgentSessionManagePage: React.FC<{ projectId: string }> = ({ p
       setShowResultModal(true);
       notify(
         result.failed_count > 0
-          ? `批量终止部分成功（${result.success_count}/${result.total}）`
-          : `批量终止成功（${result.success_count}/${result.total}）`,
+          ?`批量终止部分成功（${result.success_count}/${result.total}）`
+          :`批量终止成功（${result.success_count}/${result.total}）`,
         result.failed_count > 0 ? 'warning' : 'success',
       );
       const deletedKeySet = new Set(
         (result.results || [])
           .filter((item) => item.success)
-          .map((item) => `${item.agent_key}::${item.service_name}::${item.session_id}`),
+          .map((item) =>`${item.agent_key}::${item.service_name}::${item.session_id}`),
       );
       setSelectedKeys((prev) => prev.filter((key) => !deletedKeySet.has(key)));
       await loadData(false);
@@ -380,7 +379,7 @@ export const EnvAiAgentSessionManagePage: React.FC<{ projectId: string }> = ({ p
       return;
     }
     const text = failed
-      .map((item) => `${item.agent_key}/${item.service_name}/${item.session_id} | ${item.error || 'unknown error'}`)
+      .map((item) =>`${item.agent_key}/${item.service_name}/${item.session_id} | ${item.error || 'unknown error'}`)
       .join('\n');
     try {
       await navigator.clipboard.writeText(text);
@@ -408,7 +407,7 @@ export const EnvAiAgentSessionManagePage: React.FC<{ projectId: string }> = ({ p
     <div className="px-6 pt-6 pb-8">
       <div className="space-y-4">
         {feedbackNodes}
-        <section className="rounded-3xl border border-slate-200 bg-white/95 p-5 shadow-sm">
+ <section className="rounded-3xl border border-slate-200 bg-slate-50 p-5">
           <div className="flex items-center justify-between gap-3 flex-wrap">
             <div>
               <p className="text-[11px] font-black uppercase tracking-[0.28em] text-cyan-600">AI Agent Workspace</p>
@@ -444,19 +443,19 @@ export const EnvAiAgentSessionManagePage: React.FC<{ projectId: string }> = ({ p
         </section>
 
         <section className="grid grid-cols-2 gap-3 md:grid-cols-4">
-          <div className="rounded-2xl border border-slate-200 bg-white p-3 shadow-sm">
+ <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3">
             <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-500">总会话</div>
             <div className="mt-1 text-2xl font-black text-slate-900">{stats.total_sessions}</div>
           </div>
-          <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-3 shadow-sm">
+ <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-3">
             <div className="text-[11px] font-black uppercase tracking-[0.18em] text-emerald-700">正常</div>
             <div className="mt-1 text-2xl font-black text-emerald-800">{stats.normal_count}</div>
           </div>
-          <div className="rounded-2xl border border-amber-200 bg-amber-50 p-3 shadow-sm">
+ <div className="rounded-2xl border border-amber-200 bg-amber-50 p-3">
             <div className="text-[11px] font-black uppercase tracking-[0.18em] text-amber-700">异常</div>
             <div className="mt-1 text-2xl font-black text-amber-800">{stats.invalid_count}</div>
           </div>
-          <div className="rounded-2xl border border-rose-200 bg-rose-50 p-3 shadow-sm">
+ <div className="rounded-2xl border border-rose-200 bg-rose-50 p-3">
             <div className="text-[11px] font-black uppercase tracking-[0.18em] text-rose-700">Helper不可达</div>
             <div className="mt-1 text-2xl font-black text-rose-800">{stats.helper_unreachable_count}</div>
           </div>
@@ -475,7 +474,7 @@ export const EnvAiAgentSessionManagePage: React.FC<{ projectId: string }> = ({ p
           </section>
         ) : null}
 
-        <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+ <section className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
           <div className="grid grid-cols-1 gap-2 xl:grid-cols-7">
             <input
               value={searchInput}
@@ -551,7 +550,7 @@ export const EnvAiAgentSessionManagePage: React.FC<{ projectId: string }> = ({ p
                 ) : items.map((item) => {
                   const rowKey = buildSessionKey(item);
                   return (
-                    <tr key={rowKey} className={item.is_invalid ? 'bg-amber-50/40' : 'bg-white'}>
+                    <tr key={rowKey} className={item.is_invalid ? 'bg-amber-50/40' : 'bg-slate-50'}>
                       <td className="px-2 py-2.5 align-top"><input type="checkbox" checked={selectedKeys.includes(rowKey)} onChange={(event) => toggleSelected(item, event.target.checked)} /></td>
                       <td className="px-2 py-2.5 align-top"><div className="font-semibold text-slate-800">{item.agent_hostname || item.agent_key}</div><div className="text-slate-500">{item.agent_key}</div></td>
                       <td className="px-2 py-2.5 align-top">{item.service_name}</td>
@@ -585,7 +584,7 @@ export const EnvAiAgentSessionManagePage: React.FC<{ projectId: string }> = ({ p
                         <button
                           onClick={() => void openSessionDetail(item)}
                           disabled={!!busyKey}
-                          className="mr-1 inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2 py-1 text-[11px] font-semibold text-slate-700 disabled:cursor-not-allowed disabled:opacity-60"
+                          className="mr-1 inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-slate-50 px-2 py-1 text-[11px] font-semibold text-slate-700 disabled:cursor-not-allowed disabled:opacity-60"
                         >
                           详情
                         </button>
@@ -630,7 +629,7 @@ export const EnvAiAgentSessionManagePage: React.FC<{ projectId: string }> = ({ p
 
       {showResultModal && lastBatchResult ? (
         <div className="fixed inset-0 z-[300] flex items-center justify-center bg-slate-950/35 p-4">
-          <div className="w-full max-w-3xl rounded-2xl border border-slate-200 bg-white shadow-2xl">
+ <div className="w-full max-w-3xl rounded-2xl border border-slate-200 bg-slate-50">
             <div className="flex items-center justify-between border-b border-slate-200 px-5 py-3">
               <div>
                 <div className="text-sm font-black text-slate-900">批量终止结果</div>
@@ -667,7 +666,7 @@ export const EnvAiAgentSessionManagePage: React.FC<{ projectId: string }> = ({ p
                   <div key={`${item.agent_key}::${item.service_name}::${item.session_id}`} className={`rounded-lg border px-3 py-2 ${item.success ? 'border-emerald-200 bg-emerald-50/50' : 'border-rose-200 bg-rose-50/50'}`}>
                     <div className="font-mono text-[11px]">{item.agent_key}/{item.service_name}/{item.session_id}</div>
                     <div className={item.success ? 'text-emerald-700' : 'text-rose-700'}>
-                      {item.success ? '终止成功' : `终止失败: ${item.error || 'unknown error'}`}
+                      {item.success ? '终止成功' :`终止失败: ${item.error || 'unknown error'}`}
                     </div>
                   </div>
                 ))}
@@ -679,7 +678,7 @@ export const EnvAiAgentSessionManagePage: React.FC<{ projectId: string }> = ({ p
 
       {detailTarget ? (
         <div className="fixed inset-0 z-[305] flex items-center justify-center bg-slate-950/40 p-4">
-          <div className="w-full max-w-4xl rounded-2xl border border-slate-200 bg-white shadow-2xl">
+ <div className="w-full max-w-4xl rounded-2xl border border-slate-200 bg-slate-50">
             <div className="flex items-center justify-between border-b border-slate-200 px-5 py-3">
               <div>
                 <div className="text-sm font-black text-slate-900">会话详情</div>

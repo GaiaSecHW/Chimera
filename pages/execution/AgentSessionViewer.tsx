@@ -129,7 +129,7 @@ const SessionMessage: React.FC<{ event: AppSaSessionEvent & { _toolResults?: App
 
   if (event.role === 'assistant') {
     return (
-      <div className="space-y-3 rounded-xl border px-5 py-4 shadow-sm"
+ <div className="space-y-3 rounded-xl border px-5 py-4"
         style={{ backgroundColor: LK.surface, borderColor: LK.border }}>
         <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.12em]" style={{ color: LK.muted }}>
           <Bot size={13} />
@@ -279,7 +279,7 @@ export const AgentSessionViewer: React.FC<{
 
   if (loading) {
     return (
-      <div className="flex min-h-[420px] items-center justify-center rounded-xl border text-sm shadow-sm"
+ <div className="flex min-h-[420px] items-center justify-center rounded-xl border text-sm"
         style={{ backgroundColor: LK.surface, borderColor: LK.border, color: LK.muted }}>
         <Loader2 size={16} className="mr-2 animate-spin" />
         加载会话中...
@@ -289,7 +289,7 @@ export const AgentSessionViewer: React.FC<{
 
   if (error) {
     return (
-      <div className="rounded-xl border px-6 py-10 text-sm shadow-sm"
+ <div className="rounded-xl border px-6 py-10 text-sm"
         style={{ backgroundColor: 'rgba(241, 93, 93, 0.12)', borderColor: LK.error, color: LK.error }}>
         {error}
       </div>
@@ -306,7 +306,7 @@ export const AgentSessionViewer: React.FC<{
   }
 
   return (
-    <div className="rounded-xl border shadow-sm"
+ <div className="rounded-xl border"
       style={{ backgroundColor: 'rgba(17, 26, 43, 0.6)', borderColor: LK.border }}>
       <div className="border-b px-6 py-5" style={{ borderColor: LK.borderSoft }}>
         <div className="flex flex-wrap items-center gap-3">

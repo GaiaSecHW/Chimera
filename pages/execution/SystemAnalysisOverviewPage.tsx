@@ -102,7 +102,7 @@ export const SystemAnalysisOverviewPage: React.FC<{ projectId: string }> = ({ pr
             <h2 className="text-base font-semibold" style={{ color: LK.ink }}>节点能力矩阵</h2>
             <table className="mt-4 w-full min-w-[900px] text-sm">
               <thead>
-                <tr className="text-left" style={{ borderBottom: `1px solid ${LK.borderSoft}` }}>
+                <tr className="text-left" style={{ borderBottom:`1px solid ${LK.borderSoft}` }}>
                   <th className="py-2 pr-2" style={{ color: LK.muted }}>节点</th>
                   <th className="py-2 pr-2" style={{ color: LK.muted }}>状态</th>
                   <th className="py-2 pr-2" style={{ color: LK.muted }}>Helper</th>
@@ -112,13 +112,13 @@ export const SystemAnalysisOverviewPage: React.FC<{ projectId: string }> = ({ pr
               </thead>
               <tbody>
                 {(capabilities?.items || []).map((item) => (
-                  <tr key={item.agent_key} style={{ borderBottom: `1px solid ${LK.borderSoft}` }}>
+                  <tr key={item.agent_key} style={{ borderBottom:`1px solid ${LK.borderSoft}` }}>
                     <td className="py-3 pr-2">
                       <div className="font-medium" style={{ color: LK.ink }}>{item.agent_hostname || item.agent_key}</div>
                       <div className="text-xs" style={{ color: LK.muted }}>{item.agent_key} · {item.agent_ip || '-'}</div>
                     </td>
                     <td className="py-3 pr-2">{item.agent_status}</td>
-                    <td className="py-3 pr-2">{item.helper_installed ? `${item.helper_service_name || '-'} (${item.helper_status || 'unknown'})` : '未部署'}</td>
+                    <td className="py-3 pr-2">{item.helper_installed ?`${item.helper_service_name || '-'} (${item.helper_status || 'unknown'})` : '未部署'}</td>
                     <td className="py-3 pr-2">{item.available_ai_agents.length}</td>
                     <td className="py-3 pr-2" style={{ color: LK.body }}>{item.last_analysis_summary || '-'}</td>
                   </tr>

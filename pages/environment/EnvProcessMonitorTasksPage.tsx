@@ -138,7 +138,7 @@ export const EnvProcessMonitorTasksPage: React.FC<{ projectId: string }> = ({ pr
   useEffect(() => {
     if (mode !== 'live') return;
     const valid = new Set(
-      liveItems.map((item) => `${String(item?.agent_key || '')}:${String(item?.service_name || '')}:${String(item?.node_task_id || item?.task?.task_id || '')}`)
+      liveItems.map((item) =>`${String(item?.agent_key || '')}:${String(item?.service_name || '')}:${String(item?.node_task_id || item?.task?.task_id || '')}`)
     );
     setSelectedLiveTaskKeys((prev) => {
       const next = new Set<string>();
@@ -181,10 +181,10 @@ export const EnvProcessMonitorTasksPage: React.FC<{ projectId: string }> = ({ pr
       message:
         mode === 'platform'
           ? (scope === 'selected'
-            ? `将清理选中的 ${selectedHistorySyncIds.size} 条平台记录（仅已结束任务），确认继续？`
+            ?`将清理选中的 ${selectedHistorySyncIds.size} 条平台记录（仅已结束任务），确认继续？`
             : '将全量清理平台记录中的已结束任务，确认继续？')
           : (scope === 'selected'
-            ? `将清理选中的 ${selectedLiveTaskIds.length} 个实时任务（仅已结束任务），确认继续？`
+            ?`将清理选中的 ${selectedLiveTaskIds.length} 个实时任务（仅已结束任务），确认继续？`
             : scope === 'filtered'
               ? '将清理当前筛选节点上的已结束任务，确认继续？'
               : '将清理全部节点上的已结束任务，确认继续？'),
@@ -305,7 +305,7 @@ export const EnvProcessMonitorTasksPage: React.FC<{ projectId: string }> = ({ pr
             <button
               onClick={() => void loadData()}
               disabled={loading || !projectId}
-              className="px-4 py-3 rounded-2xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-600 text-xs font-bold uppercase tracking-wider flex items-center gap-2"
+              className="px-4 py-3 rounded-2xl border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-600 text-xs font-bold uppercase tracking-wider flex items-center gap-2"
             >
               {loading ? <Loader2 size={16} className="animate-spin" /> : <RefreshCw size={16} />}
               刷新
@@ -331,7 +331,7 @@ export const EnvProcessMonitorTasksPage: React.FC<{ projectId: string }> = ({ pr
             <button
               onClick={() => void clearCurrent('all')}
               disabled={!projectId || clearing}
-              className="px-4 py-3 rounded-2xl border border-rose-300 bg-white hover:bg-rose-600 hover:text-white text-rose-700 text-xs font-bold uppercase tracking-wider flex items-center gap-2 disabled:opacity-50"
+              className="px-4 py-3 rounded-2xl border border-rose-300 bg-slate-50 hover:bg-rose-600 hover:text-white text-rose-700 text-xs font-bold uppercase tracking-wider flex items-center gap-2 disabled:opacity-50"
             >
               {clearing ? <Loader2 size={16} className="animate-spin" /> : <Trash2 size={16} />}
               全量清理
@@ -355,7 +355,7 @@ export const EnvProcessMonitorTasksPage: React.FC<{ projectId: string }> = ({ pr
         </div>
 
         {mode === 'live' && (
-          <div className="rounded-2xl border border-slate-200 bg-white p-4">
+          <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
             <div className="text-xs font-black uppercase tracking-widest text-slate-500 mb-3">节点筛选（可多选）</div>
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-2">
               {nodes.map((node) => {
@@ -365,7 +365,7 @@ export const EnvProcessMonitorTasksPage: React.FC<{ projectId: string }> = ({ pr
                     key={`${node.agent_key}:${node.service_name}`}
                     type="button"
                     onClick={() => toggleAgent(node.agent_key)}
-                    className={`text-left p-3 rounded-xl border ${checked ? 'border-blue-400 bg-blue-50' : 'border-slate-200 bg-white hover:bg-slate-50'}`}
+                    className={`text-left p-3 rounded-xl border ${checked ? 'border-blue-400 bg-blue-50' : 'border-slate-200 bg-slate-50 hover:bg-slate-100'}`}
                   >
                     <div className="flex items-center gap-2">
                       {checked ? <CheckSquare size={14} className="text-blue-600" /> : <Square size={14} className="text-slate-400" />}
@@ -379,7 +379,7 @@ export const EnvProcessMonitorTasksPage: React.FC<{ projectId: string }> = ({ pr
           </div>
         )}
 
-        <div className="rounded-3xl border border-slate-200 bg-white overflow-hidden">
+        <div className="rounded-3xl border border-slate-200 bg-slate-50 overflow-hidden">
           <table className="w-full text-left">
             <thead className="bg-slate-50 text-[11px] uppercase tracking-widest text-slate-500">
               <tr>
@@ -413,7 +413,7 @@ export const EnvProcessMonitorTasksPage: React.FC<{ projectId: string }> = ({ pr
                       <button
                         type="button"
                         onClick={() => {
-                          const all = new Set(liveItems.map((item) => `${String(item?.agent_key || '')}:${String(item?.service_name || '')}:${String(item?.node_task_id || item?.task?.task_id || '')}`));
+                          const all = new Set(liveItems.map((item) =>`${String(item?.agent_key || '')}:${String(item?.service_name || '')}:${String(item?.node_task_id || item?.task?.task_id || '')}`));
                           setSelectedLiveTaskKeys((prev) => (prev.size === all.size ? new Set() : all));
                         }}
                         className="text-slate-500 hover:text-blue-600"
@@ -442,7 +442,7 @@ export const EnvProcessMonitorTasksPage: React.FC<{ projectId: string }> = ({ pr
                 ) : historyItems.map((item) => (
                   <tr
                     key={item.sync_id}
-                    className="border-t border-slate-100 hover:bg-slate-50 cursor-pointer"
+                    className="border-t border-slate-100 hover:bg-slate-100 cursor-pointer"
                     onClick={() => void openPlatformDetail(item)}
                     title="单击查看任务详情"
                   >
@@ -489,7 +489,7 @@ export const EnvProcessMonitorTasksPage: React.FC<{ projectId: string }> = ({ pr
                 ) : liveItems.map((item) => (
                   <tr
                     key={`${item.agent_key}:${item.service_name}:${item.node_task_id || ''}`}
-                    className="border-t border-slate-100 hover:bg-slate-50 cursor-pointer"
+                    className="border-t border-slate-100 hover:bg-slate-100 cursor-pointer"
                     onClick={() => void openLiveDetail(item)}
                     title="单击查看任务详情"
                   >
@@ -498,7 +498,7 @@ export const EnvProcessMonitorTasksPage: React.FC<{ projectId: string }> = ({ pr
                         type="button"
                         onClick={(event) => {
                           event.stopPropagation();
-                          const rowKey = `${String(item?.agent_key || '')}:${String(item?.service_name || '')}:${String(item?.node_task_id || item?.task?.task_id || '')}`;
+                          const rowKey =`${String(item?.agent_key || '')}:${String(item?.service_name || '')}:${String(item?.node_task_id || item?.task?.task_id || '')}`;
                           setSelectedLiveTaskKeys((prev) => {
                             const next = new Set(prev);
                             if (next.has(rowKey)) next.delete(rowKey);
@@ -532,7 +532,7 @@ export const EnvProcessMonitorTasksPage: React.FC<{ projectId: string }> = ({ pr
 
       {detailOpen && (
         <div className="fixed inset-0 z-50 bg-black/30" onClick={() => setDetailOpen(false)}>
-          <div className="absolute inset-y-0 right-0 w-[min(980px,92vw)] bg-white border-l border-slate-200 shadow-2xl flex flex-col" onClick={(event) => event.stopPropagation()}>
+ <div className="absolute inset-y-0 right-0 w-[min(980px,92vw)] bg-slate-50 border-l border-slate-200 flex flex-col" onClick={(event) => event.stopPropagation()}>
             <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
               <div>
                 <h3 className="text-xl font-black text-slate-800">同步任务详情</h3>

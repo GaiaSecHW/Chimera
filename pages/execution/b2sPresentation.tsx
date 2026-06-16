@@ -70,7 +70,7 @@ export const formatB2SStatus = (status?: string) => STATUS_LABELS[status || ''] 
 
 export const formatBytes = (value?: number | null) => {
   if (value === undefined || value === null || Number.isNaN(value)) return '-';
-  if (value < 1024) return `${value} B`;
+  if (value < 1024) return`${value} B`;
   const units = ['KB', 'MB', 'GB', 'TB'];
   let next = value / 1024;
   let idx = 0;
@@ -78,7 +78,7 @@ export const formatBytes = (value?: number | null) => {
     next /= 1024;
     idx += 1;
   }
-  return `${next.toFixed(next >= 10 ? 1 : 2)} ${units[idx]}`;
+  return`${next.toFixed(next >= 10 ? 1 : 2)} ${units[idx]}`;
 };
 
 export const formatDateTime = (value?: string | null) => {
@@ -108,7 +108,7 @@ export const formatB2SOverallProgressBasis = (basis?: string | null) => {
 export const formatB2SOverallProgressSummary = (overall?: B2SOverallProgress | null) => {
   const value = pct(overall?.percent);
   const basisLabel = formatB2SOverallProgressBasis(overall?.percent_basis);
-  return `${value.toFixed(1)}% · ${basisLabel}`;
+  return`${value.toFixed(1)}% · ${basisLabel}`;
 };
 
 export const B2SStatusBadge: React.FC<{ status?: string; className?: string }> = ({ status, className = '' }) => {

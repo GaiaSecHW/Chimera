@@ -36,7 +36,7 @@ export const ShareDialog: React.FC<Props> = ({ taskId, visible, onClose }) => {
 
   return (
     <div className="fixed inset-0 z-[120] flex items-center justify-center bg-black/50" onClick={onClose}>
-      <div className="bg-theme-surface rounded-2xl p-6 w-96 shadow-xl border border-theme-border" onClick={e => e.stopPropagation()}>
+ <div className="bg-theme-surface rounded-2xl p-6 w-96 border border-theme-border" onClick={e => e.stopPropagation()}>
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-base font-semibold text-theme-text-primary">分享任务</h3>
           <button onClick={onClose} className="p-1 rounded-lg hover:bg-theme-surface-hover">

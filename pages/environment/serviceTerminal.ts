@@ -30,7 +30,7 @@ export const buildServiceTerminalWindowUrl = ({
     fallback_shell: fallbackShell.trim() || '/bin/sh',
   });
 
-  return `${window.location.origin}${window.location.pathname}?${params.toString()}`;
+  return`${window.location.origin}${window.location.pathname}?${params.toString()}`;
 };
 
 export const openServiceTerminalWindow = (options: OpenServiceTerminalWindowOptions): Window | null => {

@@ -79,13 +79,13 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
   const [selectedNode, setSelectedNode] = useState<Node<any> | null>(null);
   const [selectedNodeTemplateDetails, setSelectedNodeTemplateDetails] = useState<any>(null);
   const [loadingTemplate, setLoadingTemplate] = useState(false);
-  
+
   const [menu, setMenu] = useState<{ id: string; top: number; left: number; right: number; bottom: number } | null>(null);
   const [isLogsModalOpen, setIsLogsModalOpen] = useState(false);
   const [isUninitModalOpen, setIsUninitModalOpen] = useState(false);
   const [nodeLogs, setNodeLogs] = useState<string>('');
   const [loadingLogs, setLoadingLogs] = useState(false);
-  
+
   // 新增：节点交互操作状态
   const [isStatusModalOpen, setIsStatusModalOpen] = useState(false);
   const [isEventsModalOpen, setIsEventsModalOpen] = useState(false);
@@ -98,7 +98,7 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
   const [loadingMetrics, setLoadingMetrics] = useState(false);
   const [restarting, setRestarting] = useState(false);
   const [recreating, setRecreating] = useState(false);
-  
+
   // 终端相关状态 (使用xterm.js)
   const [isTerminalModalOpen, setIsTerminalModalOpen] = useState(false);
   const [terminalWs, setTerminalWs] = useState<WebSocket | null>(null);
@@ -140,7 +140,7 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
   const [isAccessModalOpen, setIsAccessModalOpen] = useState(false);
   const [serviceAccessInfo, setServiceAccessInfo] = useState<any>(null);
   const [loadingAccess, setLoadingAccess] = useState(false);
-  
+
   const [initialNodes, setInitialNodes] = useState<Node[]>([]);
   const [initialEdges, setInitialEdges] = useState<Edge[]>([]);
   const [showUnsavedChangesModal, setShowUnsavedChangesModal] = useState(false);
@@ -205,13 +205,13 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
     try {
       const data = await orchestrationApi.workflow.getInstance(instanceId);
       setInstance(data);
-      
+
       // Transform nodes for React Flow
       const flowNodes: Node[] = (data.nodes || []).map((n: any, index: number) => ({
         id: n.id,
         type: 'default',
         position: n.position || { x: 250, y: index * 100 + 50 },
-        data: { 
+        data: {
           label: (
             <div className="flex flex-col items-center p-2">
               <div className="font-bold text-sm">{n.name}</div>
@@ -227,7 +227,7 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
           border: `2px solid ${nodeColor(n.status)}`,
           borderRadius: '12px',
           padding: '10px',
-          background: '#fff',
+ background: '#111a2b',
           minWidth: '150px'
         }
       }));
@@ -236,7 +236,7 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
       let flowEdges: Edge[] = [];
       if (data.edges && data.edges.length > 0) {
         flowEdges = data.edges.map((e: any) => ({
-          id: e.edge_id || `${e.source}-${e.target}`,
+          id: e.edge_id ||`${e.source}-${e.target}`,
           source: e.source,
           target: e.target,
           animated: data.status === 'running',
@@ -249,7 +249,7 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
           if (n.depends_on && n.depends_on.length > 0) {
             n.depends_on.forEach((dep: string) => {
               flowEdges.push({
-                id: `${dep}-${n.id}`,
+                id:`${dep}-${n.id}`,
                 source: dep,
                 target: n.id,
                 animated: data.status === 'running',
@@ -263,7 +263,7 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
 
       setNodes(flowNodes);
       setEdges(flowEdges);
-      
+
       if (updateBaseline) {
         setInitialNodes(flowNodes);
         setInitialEdges(flowEdges);
@@ -376,7 +376,7 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
     if (!isEditMode) return;
     const newEdge: Edge = {
       ...params,
-      id: `edge-${params.source}-${params.target}`,
+      id:`edge-${params.source}-${params.target}`,
       markerEnd: { type: MarkerType.ArrowClosed },
       style: { stroke: '#94a3b8', strokeWidth: 2 }
     };
@@ -414,7 +414,7 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
     }
 
     for (const edge of edges) {
-      const key = `${edge.source}-${edge.target}`;
+      const key =`${edge.source}-${edge.target}`;
       if (!initialEdgeMap.has(key)) return true;
     }
 
@@ -432,12 +432,12 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
   const handleSave = async () => {
     try {
       setLoading(true);
-      
+
       // 1. Get current state from backend
       const currentInstance = await orchestrationApi.workflow.getInstance(instanceId);
       const currentNodes = currentInstance.nodes || [];
       const currentEdges = currentInstance.edges || [];
-      
+
       // 2. Process Nodes (Create/Update/Delete)
       // Nodes to delete
       const flowNodeIds = new Set(nodes.map(n => n.id));
@@ -456,7 +456,7 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
             position: node.position
           });
         } else {
-          // This case should be handled by handleCreateNode now, 
+          // This case should be handled by handleCreateNode now,
           // but keeping it as fallback for any nodes added via other means
           await orchestrationApi.workflow.createNode(instanceId, {
             node_type: node.data.node_type,
@@ -491,11 +491,11 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
           });
         }
       }
-      
+
       await loadInstance(true);
-      showToast("保存成功", "success");
+      showToast("保存成功","success");
     } catch (e: any) {
-      showToast("保存失败: " + e.message, "error");
+      showToast("保存失败:" + e.message,"error");
     } finally {
       setLoading(false);
     }
@@ -508,11 +508,11 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
         template.type === 'app' ? orchestrationApi.workflow.getAppTemplate(template.id, instance?.project_id) : orchestrationApi.workflow.getJobTemplate(template.id, instance?.project_id),
         loadPvcs()
       ]);
-      
+
       setSelectedTemplate(template);
       setTemplateDetails(details);
       const appDetails = template.type === 'app' ? (details as AppTemplate) : null;
-      
+
       // Initialize config with required inputs
       const envVars: { name: string, value: string }[] = [];
       details.containers.forEach((c: any) => {
@@ -526,7 +526,7 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
       });
 
       const servicePortsFromTemplate = ((appDetails?.service_ports) || []).map((port: any, index: number) => ({
-        name: port.name || `port-${port.port || port.target_port || index + 1}`,
+        name: port.name ||`port-${port.port || port.target_port || index + 1}`,
         port: Number(port.port || port.target_port || 0),
         target_port: Number(port.target_port || port.targetPort || port.port || 0),
         protocol: port.protocol || 'TCP',
@@ -539,7 +539,7 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
             const containerPort = Number(p.container_port || p.containerPort || p.port || 0);
             if (containerPort > 0 && !servicePortsFromContainers.find(sp => sp.port === containerPort)) {
               servicePortsFromContainers.push({
-                name: p.name || `port-${containerPort}`,
+                name: p.name ||`port-${containerPort}`,
                 port: containerPort,
                 target_port: containerPort,
                 protocol: p.protocol || 'TCP'
@@ -553,10 +553,10 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
       const servicePorts = shouldCreateService
         ? (servicePortsFromTemplate.length > 0 ? servicePortsFromTemplate : servicePortsFromContainers)
         : [];
-      
+
       const autoServiceName = template.name.toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
       const volumeMounts = buildTemplateMountConfigs(details);
-      
+
       setNewNodeConfig({
         name: template.name,
         env_vars: envVars,
@@ -572,11 +572,11 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
         ingress_ip: '',
         timeout_seconds: null
       });
-      
+
       setAddNodeStep('configure');
     } catch (e) {
       console.error(e);
-      showToast("获取模板详情失败", "error");
+      showToast("获取模板详情失败","error");
     } finally {
       setLoading(false);
     }
@@ -584,7 +584,7 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
 
   const handleCreateNode = async () => {
     if (!selectedTemplate || !newNodeConfig.name) {
-      showToast("请填写完整信息", "warning");
+      showToast("请填写完整信息","warning");
       return;
     }
 
@@ -593,41 +593,41 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
     const missingVolumes = newNodeConfig.volume_mounts.filter(v => !hasNodeMountSource(v));
 
     if (missingEnvVars.length > 0 || missingVolumes.length > 0) {
-      let errorMsg = "请完善以下必填项:\n";
+      let errorMsg ="请完善以下必填项:\n";
       if (missingEnvVars.length > 0) {
-        errorMsg += "\n环境变量:\n" + missingEnvVars.map(e => ` - ${e.name}`).join('\n');
+        errorMsg +="\n环境变量:\n" + missingEnvVars.map(e =>` - ${e.name}`).join('\n');
       }
       if (missingVolumes.length > 0) {
-        errorMsg += "\n存储挂载:\n" + missingVolumes.map(v => ` - ${v.mount_path}`).join('\n');
+        errorMsg +="\n存储挂载:\n" + missingVolumes.map(v =>` - ${v.mount_path}`).join('\n');
       }
-      showToast(errorMsg, "error");
+      showToast(errorMsg,"error");
       return;
     }
 
     if (selectedTemplate.type === 'app' && newNodeConfig.create_service) {
       if (!newNodeConfig.service_name || !newNodeConfig.service_name.trim()) {
-        showToast("服务名称不能为空", "warning");
+        showToast("服务名称不能为空","warning");
         return;
       }
       if (newNodeConfig.service_ports.length === 0) {
-        showToast("请至少添加一个服务端口", "warning");
+        showToast("请至少添加一个服务端口","warning");
         return;
       }
       const invalidPorts = newNodeConfig.service_ports.filter(sp => !sp.port || !sp.target_port);
       if (invalidPorts.length > 0) {
-        showToast("服务端口配置不完整，请检查端口号", "warning");
+        showToast("服务端口配置不完整，请检查端口号","warning");
         return;
       }
     }
       if (newNodeConfig.create_ingress && newNodeConfig.ingress_type !== 'nginx') {
-        showToast("请选择 Nginx Ingress 类型", "warning");
+        showToast("请选择 Nginx Ingress 类型","warning");
         return;
       }
 
     try {
       setLoading(true);
       const mountPayloads = splitNodeMountPayloads(newNodeConfig.volume_mounts);
-      
+
       if (isEditingNode && editingNodeId) {
         await orchestrationApi.workflow.updateNode(instanceId, editingNodeId, {
           name: newNodeConfig.name,
@@ -641,7 +641,7 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
           create_ingress: newNodeConfig.create_service ? newNodeConfig.create_ingress : false,
           ingress_type: newNodeConfig.create_service && newNodeConfig.create_ingress ? 'nginx' : undefined,
         });
-        showToast("更新成功", "success");
+        showToast("更新成功","success");
       } else {
         const payload: any = {
           node_type: selectedTemplate.type,
@@ -652,7 +652,7 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
           volume_mounts: mountPayloads.volume_mounts,
           project_file_mounts: mountPayloads.project_file_mounts
         };
-        
+
         if (selectedTemplate.type === 'app') {
           payload.create_service = newNodeConfig.create_service;
           if (newNodeConfig.create_service) {
@@ -665,15 +665,15 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
             }
           }
         }
-        
+
         if (newNodeConfig.timeout_seconds) {
           payload.timeout_seconds = newNodeConfig.timeout_seconds;
         }
-        
+
         await orchestrationApi.workflow.createNode(instanceId, payload);
-        showToast("创建成功", "success");
+        showToast("创建成功","success");
       }
-      
+
       setIsAddNodeModalOpen(false);
       setIsEditingNode(false);
       setEditingNodeId(null);
@@ -683,14 +683,14 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
       setDirectoryPickerTarget(null);
       await loadInstance();
     } catch (e: any) {
-      let errorMsg = (isEditingNode ? "更新" : "创建") + "节点失败: " + e.message;
+      let errorMsg = (isEditingNode ?"更新" :"创建") +"节点失败:" + e.message;
       if (e.details && Array.isArray(e.details)) {
-        errorMsg += "\n\n详细错误信息:\n";
+        errorMsg +="\n\n详细错误信息:\n";
         e.details.forEach((d: any) => {
-           errorMsg += ` - [${d.type}] ${d.container}: ${d.message}\n`;
+           errorMsg +=` - [${d.type}] ${d.container}: ${d.message}\n`;
         });
       }
-      showToast(errorMsg, "error");
+      showToast(errorMsg,"error");
     } finally {
       setLoading(false);
     }
@@ -740,9 +740,9 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
       await orchestrationApi.workflow.uninitializeInstance(instanceId);
       setIsUninitModalOpen(false);
       await loadInstance();
-      showToast("反初始化成功", "success");
+      showToast("反初始化成功","success");
     } catch (e: any) {
-      showToast("反初始化失败: " + e.message, "error");
+      showToast("反初始化失败:" + e.message,"error");
     } finally {
       setLoading(false);
     }
@@ -754,10 +754,10 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
       setLoading(true);
       // 1. Fetch the latest node details from backend
       const nodeDetails = await orchestrationApi.workflow.getNode(instanceId, nodeId);
-      
+
       setIsEditingNode(false);
       setEditingNodeId(null);
-      
+
       // 2. Fetch template details to know what inputs are required
       let details;
       if (nodeDetails.node_type === 'app') {
@@ -765,12 +765,12 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
       } else {
         details = await orchestrationApi.workflow.getJobTemplate(nodeDetails.template_id, instance?.project_id);
       }
-      
+
       await loadPvcs();
-      
+
       setSelectedTemplate({ id: nodeDetails.template_id, name: details.name, type: nodeDetails.node_type });
       setTemplateDetails(details);
-      
+
       // 3. Populate config from node details
       const envVars: { name: string, value: string }[] = [];
 
@@ -787,12 +787,12 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
       const volumeMounts = buildTemplateMountConfigs(details, nodeDetails);
 
       setNewNodeConfig({
-        name: `${nodeDetails.name} (Copy)`,
+        name:`${nodeDetails.name} (Copy)`,
         env_vars: envVars,
         volume_mounts: volumeMounts,
-        position: { 
-          x: (nodeDetails.position?.x || 0) + 50, 
-          y: (nodeDetails.position?.y || 0) + 50 
+        position: {
+          x: (nodeDetails.position?.x || 0) + 50,
+          y: (nodeDetails.position?.y || 0) + 50
         },
         create_service: nodeDetails.create_service ?? true,
         service_name: nodeDetails.service_name || '',
@@ -804,11 +804,11 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
         ingress_ip: nodeDetails.ingress_ip || '',
         timeout_seconds: nodeDetails.timeout_seconds || null
       });
-      
+
       setAddNodeStep('configure');
       setIsAddNodeModalOpen(true);
     } catch (e: any) {
-      showToast("复制节点失败: " + e.message, "error");
+      showToast("复制节点失败:" + e.message,"error");
     } finally {
       setLoading(false);
     }
@@ -823,7 +823,7 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
       const res = await orchestrationApi.workflow.getNodeLogs(instanceId, nodeId);
       setNodeLogs(res.logs || '暂无日志');
     } catch (e: any) {
-      setNodeLogs("获取日志失败: " + e.message);
+      setNodeLogs("获取日志失败:" + e.message);
     } finally {
       setLoadingLogs(false);
     }
@@ -833,29 +833,29 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
   const handleViewStatus = async (nodeId: string) => {
     setMenu(null);
     if (!instance?.project_id) return;
-    
+
     const node = nodes.find(n => n.id === nodeId);
     if (!node?.data.k8s_resource_name) {
-      showToast("节点尚未创建K8S资源", "warning");
+      showToast("节点尚未创建K8S资源","warning");
       return;
     }
-    
+
     setIsStatusModalOpen(true);
     setLoadingStatus(true);
     setNodeStatus(null);
-    
+
     try {
       // 获取Pod列表
-      const podsRes = await environmentApi.k8s.getPods(instance.project_id, `app=${node.data.k8s_resource_name}`);
+      const podsRes = await environmentApi.k8s.getPods(instance.project_id,`app=${node.data.k8s_resource_name}`);
       if (podsRes.items && podsRes.items.length > 0) {
         const podName = podsRes.items[0].name;
         const status = await environmentApi.k8s.getPodStatus(instance.project_id, podName);
         setNodeStatus(status);
       } else {
-        setNodeStatus({ error: "未找到运行的Pod" });
+        setNodeStatus({ error:"未找到运行的Pod" });
       }
     } catch (e: any) {
-      setNodeStatus({ error: "获取状态失败: " + e.message });
+      setNodeStatus({ error:"获取状态失败:" + e.message });
     } finally {
       setLoadingStatus(false);
     }
@@ -865,19 +865,19 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
   const handleViewEvents = async (nodeId: string) => {
     setMenu(null);
     if (!instance?.project_id) return;
-    
+
     const node = nodes.find(n => n.id === nodeId);
     if (!node?.data.k8s_resource_name) {
-      showToast("节点尚未创建K8S资源", "warning");
+      showToast("节点尚未创建K8S资源","warning");
       return;
     }
-    
+
     setIsEventsModalOpen(true);
     setLoadingEvents(true);
     setNodeEvents([]);
-    
+
     try {
-      const podsRes = await environmentApi.k8s.getPods(instance.project_id, `app=${node.data.k8s_resource_name}`);
+      const podsRes = await environmentApi.k8s.getPods(instance.project_id,`app=${node.data.k8s_resource_name}`);
       if (podsRes.items && podsRes.items.length > 0) {
         const podName = podsRes.items[0].name;
         const eventsRes = await environmentApi.k8s.getPodEvents(instance.project_id, podName);
@@ -894,28 +894,28 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
   const handleViewMetrics = async (nodeId: string) => {
     setMenu(null);
     if (!instance?.project_id) return;
-    
+
     const node = nodes.find(n => n.id === nodeId);
     if (!node?.data.k8s_resource_name) {
-      showToast("节点尚未创建K8S资源", "warning");
+      showToast("节点尚未创建K8S资源","warning");
       return;
     }
-    
+
     setIsMetricsModalOpen(true);
     setLoadingMetrics(true);
     setNodeMetrics(null);
-    
+
     try {
-      const podsRes = await environmentApi.k8s.getPods(instance.project_id, `app=${node.data.k8s_resource_name}`);
+      const podsRes = await environmentApi.k8s.getPods(instance.project_id,`app=${node.data.k8s_resource_name}`);
       if (podsRes.items && podsRes.items.length > 0) {
         const podName = podsRes.items[0].name;
         const metrics = await environmentApi.k8s.getPodMetrics(instance.project_id, podName);
         setNodeMetrics(metrics);
       } else {
-        setNodeMetrics({ error: "未找到运行的Pod" });
+        setNodeMetrics({ error:"未找到运行的Pod" });
       }
     } catch (e: any) {
-      setNodeMetrics({ error: "获取指标失败: " + e.message });
+      setNodeMetrics({ error:"获取指标失败:" + e.message });
     } finally {
       setLoadingMetrics(false);
     }
@@ -925,22 +925,22 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
   const handleRestartNode = async (nodeId: string) => {
     setMenu(null);
     if (!instance?.project_id) return;
-    
+
     const node = nodes.find(n => n.id === nodeId);
     if (!node?.data.k8s_resource_name) {
-      showToast("节点尚未创建K8S资源", "warning");
+      showToast("节点尚未创建K8S资源","warning");
       return;
     }
 
-    if (!(await showConfirm(`确定要重启节点 "${node.data.name}" 吗？`))) return;
+    if (!(await showConfirm(`确定要重启节点"${node.data.name}" 吗？`))) return;
 
     setRestarting(true);
     try {
       await environmentApi.k8s.restartDeployment(instance.project_id, node.data.k8s_resource_name);
-      showToast("重启命令已发送", "success");
+      showToast("重启命令已发送","success");
       loadInstance();
     } catch (e: any) {
-      showToast("重启失败: " + e.message, "error");
+      showToast("重启失败:" + e.message,"error");
     } finally {
       setRestarting(false);
     }
@@ -950,22 +950,22 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
   const handleRetryNode = async (nodeId: string) => {
     setMenu(null);
     if (!instance?.project_id) return;
-    
+
     const node = nodes.find(n => n.id === nodeId);
     if (!node?.data.k8s_resource_name) {
-      showToast("节点尚未创建K8S资源", "warning");
+      showToast("节点尚未创建K8S资源","warning");
       return;
     }
 
-    if (!(await showConfirm(`确定要重试任务 "${node.data.name}" 吗？这将删除并重建Job。`))) return;
+    if (!(await showConfirm(`确定要重试任务"${node.data.name}" 吗？这将删除并重建Job。`))) return;
 
     setRecreating(true);
     try {
       await environmentApi.k8s.recreateJob(instance.project_id, node.data.k8s_resource_name);
-      showToast("重试命令已发送", "success");
+      showToast("重试命令已发送","success");
       loadInstance();
     } catch (e: any) {
-      showToast("重试失败: " + e.message, "error");
+      showToast("重试失败:" + e.message,"error");
     } finally {
       setRecreating(false);
     }
@@ -995,19 +995,19 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
           handleFocusTerminal(floatingTerminals[0].id);
         }
       }
-      showToast("已有终端窗口打开，请先关闭当前终端后再打开新终端", "warning");
+      showToast("已有终端窗口打开，请先关闭当前终端后再打开新终端","warning");
       return;
     }
 
     const node = nodes.find(n => n.id === nodeId);
     if (!node?.data.k8s_resource_name) {
-      showToast("节点尚未创建K8S资源", "warning");
+      showToast("节点尚未创建K8S资源","warning");
       return;
     }
 
     try {
       // 获取Pod列表
-      const podsRes = await environmentApi.k8s.getPods(instance.project_id, `app=${node.data.k8s_resource_name}`);
+      const podsRes = await environmentApi.k8s.getPods(instance.project_id,`app=${node.data.k8s_resource_name}`);
       if (podsRes.items && podsRes.items.length > 0) {
         const firstPod = podsRes.items[0];
         const podName = firstPod.name;
@@ -1042,10 +1042,10 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
 
         setTerminalWs(ws);
       } else {
-        showToast("未找到运行的Pod", "warning");
+        showToast("未找到运行的Pod","warning");
       }
     } catch (e: any) {
-      showToast("获取Pod失败: " + e.message, "error");
+      showToast("获取Pod失败:" + e.message,"error");
     }
   };
 
@@ -1111,13 +1111,13 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
 
     const node = nodes.find(n => n.id === nodeId);
     if (!node?.data.k8s_resource_name) {
-      showToast("节点尚未创建K8S资源", "warning");
+      showToast("节点尚未创建K8S资源","warning");
       return;
     }
 
     try {
       // 获取Pod列表
-      const podsRes = await environmentApi.k8s.getPods(instance.project_id, `app=${node.data.k8s_resource_name}`);
+      const podsRes = await environmentApi.k8s.getPods(instance.project_id,`app=${node.data.k8s_resource_name}`);
       if (podsRes.items && podsRes.items.length > 0) {
         const firstPod = podsRes.items[0];
         const podName = firstPod.name;
@@ -1129,7 +1129,7 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
         const newZIndex = maxZIndex + 1;
         setMaxZIndex(newZIndex);
 
-        const terminalId = `terminal-${Date.now()}`;
+        const terminalId =`terminal-${Date.now()}`;
 
         const newTerminal: FloatingTerminal = {
           id: terminalId,
@@ -1165,10 +1165,10 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
 
         setFloatingTerminals(prev => [...prev, newTerminal]);
       } else {
-        showToast("未找到运行的Pod", "warning");
+        showToast("未找到运行的Pod","warning");
       }
     } catch (e: any) {
-      showToast("获取Pod失败: " + e.message, "error");
+      showToast("获取Pod失败:" + e.message,"error");
     }
   };
 
@@ -1267,22 +1267,22 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
   const handleAccessService = async (nodeId: string) => {
     setMenu(null);
     if (!instance?.project_id) return;
-    
+
     const node = nodes.find(n => n.id === nodeId);
     if (!node?.data.service_name) {
-      showToast("该节点未创建Service，无法直接访问", "warning");
+      showToast("该节点未创建Service，无法直接访问","warning");
       return;
     }
-    
+
     setIsAccessModalOpen(true);
     setLoadingAccess(true);
     setServiceAccessInfo(null);
-    
+
     try {
       const accessInfo = await orchestrationApi.workflow.getNodeAccessInfo(instanceId, nodeId);
       setServiceAccessInfo(accessInfo);
     } catch (e: any) {
-      setServiceAccessInfo({ error: "获取访问信息失败: " + e.message });
+      setServiceAccessInfo({ error:"获取访问信息失败:" + e.message });
     } finally {
       setLoadingAccess(false);
     }
@@ -1299,8 +1299,8 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
     const host = String(item?.host || '').trim();
     if (!host) return;
     const path = String(item?.path || '/').trim() || '/';
-    const normalizedPath = path.startsWith('/') ? path : `/${path}`;
-    const url = item?.url || `http://${host}${normalizedPath}`;
+    const normalizedPath = path.startsWith('/') ? path :`/${path}`;
+    const url = item?.url ||`http://${host}${normalizedPath}`;
     window.open(url, '_blank');
   };
 
@@ -1310,10 +1310,10 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
       setLoading(true);
       // 1. Fetch the latest node details from backend
       const nodeDetails = await orchestrationApi.workflow.getNode(instanceId, nodeId);
-      
+
       setIsEditingNode(true);
       setEditingNodeId(nodeDetails.id); // The backend ID
-      
+
       // 2. Fetch template details to know what inputs are required
       let details;
       if (nodeDetails.node_type === 'app') {
@@ -1321,12 +1321,12 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
       } else {
         details = await orchestrationApi.workflow.getJobTemplate(nodeDetails.template_id, instance?.project_id);
       }
-      
+
       await loadPvcs();
-      
+
       setSelectedTemplate({ id: nodeDetails.template_id, name: details.name, type: nodeDetails.node_type });
       setTemplateDetails(details);
-      
+
       // 3. Populate config from node details
       // We merge the template's required inputs with the node's provided values
       const envVars: { name: string, value: string }[] = [];
@@ -1358,11 +1358,11 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
         ingress_ip: nodeDetails.ingress_ip || '',
         timeout_seconds: nodeDetails.timeout_seconds || null
       });
-      
+
       setAddNodeStep('configure');
       setIsAddNodeModalOpen(true);
     } catch (e: any) {
-      showToast("获取节点详情失败: " + e.message, "error");
+      showToast("获取节点详情失败:" + e.message,"error");
     } finally {
       setLoading(false);
     }
@@ -1371,7 +1371,7 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
   const handleDeleteNode = (nodeId?: string) => {
     const idToDelete = nodeId || selectedNode?.id;
     if (!idToDelete || !isEditMode) return;
-    
+
     setNodes((nds) => nds.filter((n) => n.id !== idToDelete));
     setEdges((eds) => eds.filter((e) => e.source !== idToDelete && e.target !== idToDelete));
     if (selectedNode?.id === idToDelete) {
@@ -1401,7 +1401,7 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
         path: fallbackUrl?.path || '/',
         selected_ip: serviceAccessInfo.configured_ingress.ingress_ip || fallbackUrl?.selected_ip || '',
         url: fallbackUrl?.url || (serviceAccessInfo.configured_ingress.ingress_host
-          ? `http://${serviceAccessInfo.configured_ingress.ingress_host}${fallbackUrl?.path || '/'}`
+          ?`http://${serviceAccessInfo.configured_ingress.ingress_host}${fallbackUrl?.path || '/'}`
           : ''),
       }];
     }
@@ -1411,7 +1411,7 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
   return (
     <div className="flex flex-col h-full bg-slate-50 animate-in fade-in duration-500">
       {/* Header */}
-      <div className="flex items-center justify-between p-6 bg-white border-b border-slate-200 shrink-0">
+      <div className="flex items-center justify-between p-6 bg-slate-50 border-b border-slate-200 shrink-0">
         <div className="flex items-center gap-4">
           <button onClick={onBack} className="p-2 text-slate-400 hover:text-slate-800 hover:bg-slate-100 rounded-xl transition-all">
             <ArrowLeft size={20} />
@@ -1429,59 +1429,59 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
             <p className="text-xs font-mono text-slate-400 mt-1">ID: {instance?.id}</p>
           </div>
         </div>
-        
+
         <div className="flex items-center gap-3">
           <button onClick={() => loadInstance()} className="p-3 text-slate-500 hover:bg-slate-100 rounded-xl transition-all" title="刷新">
             <RefreshCw size={18} />
           </button>
-          
+
           {isEditMode ? (
             <>
               <button onClick={() => setIsEditMode(false)} className="px-5 py-2.5 text-sm font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-xl transition-all">
                 取消
               </button>
-              <button onClick={handleExitEdit} className="flex items-center gap-2 px-5 py-2.5 text-sm font-bold text-slate-700 bg-white border border-slate-200 hover:bg-slate-50 rounded-xl transition-all shadow-sm">
+ <button onClick={handleExitEdit} className="flex items-center gap-2 px-5 py-2.5 text-sm font-bold text-slate-700 bg-slate-50 border border-slate-200 hover:bg-slate-100 rounded-xl transition-all">
                 <LogOut size={16} /> 退出编辑
               </button>
-              <button onClick={handleSave} className="flex items-center gap-2 px-5 py-2.5 text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-xl transition-all shadow-lg shadow-blue-500/20">
+ <button onClick={handleSave} className="flex items-center gap-2 px-5 py-2.5 text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-xl transition-all">
                 <Save size={16} /> 保存
               </button>
             </>
           ) : (
             <>
               {workflowStatus === 'pending' && (
-                <button 
+                <button
                   onClick={async () => {
                     try {
                       setLoading(true);
                       await orchestrationApi.workflow.initializeInstance(instanceId);
                       await loadInstance();
-                      showToast("初始化成功", "success");
+                      showToast("初始化成功","success");
                     } catch (e: any) {
-                      showToast("初始化失败: " + e.message, "error");
+                      showToast("初始化失败:" + e.message,"error");
                     } finally {
                       setLoading(false);
                     }
                   }}
-                  className="flex items-center gap-2 px-5 py-2.5 text-sm font-bold text-slate-700 bg-white border border-slate-200 hover:bg-slate-50 rounded-xl transition-all shadow-sm"
+ className="flex items-center gap-2 px-5 py-2.5 text-sm font-bold text-slate-700 bg-slate-50 border border-slate-200 hover:bg-slate-100 rounded-xl transition-all"
                 >
                   <Activity size={16} /> 初始化
                 </button>
               )}
-              <button 
+              <button
                 onClick={async () => {
                   try {
                     setLoading(true);
                     await orchestrationApi.workflow.syncInstanceStatus(instanceId);
                     await loadInstance();
-                    showToast("同步成功", "success");
+                    showToast("同步成功","success");
                   } catch (e: any) {
-                    showToast("同步失败: " + e.message, "error");
+                    showToast("同步失败:" + e.message,"error");
                   } finally {
                     setLoading(false);
                   }
                 }}
-                className="flex items-center gap-2 px-5 py-2.5 text-sm font-bold text-slate-700 bg-white border border-slate-200 hover:bg-slate-50 rounded-xl transition-all shadow-sm"
+ className="flex items-center gap-2 px-5 py-2.5 text-sm font-bold text-slate-700 bg-slate-50 border border-slate-200 hover:bg-slate-100 rounded-xl transition-all"
               >
                 <RefreshCw size={16} /> 同步状态
               </button>
@@ -1489,7 +1489,7 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
               {['unready', 'ready'].includes(workflowStatus) && (
                 <button
                   onClick={() => setIsUninitModalOpen(true)}
-                  className="flex items-center gap-2 px-5 py-2.5 text-sm font-bold text-slate-700 bg-white border border-slate-200 hover:bg-slate-50 rounded-xl transition-all shadow-sm"
+ className="flex items-center gap-2 px-5 py-2.5 text-sm font-bold text-slate-700 bg-slate-50 border border-slate-200 hover:bg-slate-100 rounded-xl transition-all"
                 >
                   <RotateCcw size={16} /> 反初始化
                 </button>
@@ -1502,14 +1502,14 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
                       setLoading(true);
                       await orchestrationApi.workflow.startInstance(instanceId);
                       await loadInstance();
-                      showToast("启动成功", "success");
+                      showToast("启动成功","success");
                     } catch (e: any) {
-                      showToast("启动失败: " + e.message, "error");
+                      showToast("启动失败:" + e.message,"error");
                     } finally {
                       setLoading(false);
                     }
                   }}
-                  className="flex items-center gap-2 px-5 py-2.5 text-sm font-bold text-white bg-green-600 hover:bg-green-700 rounded-xl transition-all shadow-lg shadow-green-500/20"
+ className="flex items-center gap-2 px-5 py-2.5 text-sm font-bold text-white bg-green-600 hover:bg-green-700 rounded-xl transition-all shadow-green-500/20"
                 >
                   <Play size={16} /> 启动
                 </button>
@@ -1522,27 +1522,27 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
                       setLoading(true);
                       await orchestrationApi.workflow.triggerInstance(instanceId);
                       await loadInstance();
-                      showToast("触发执行成功", "success");
+                      showToast("触发执行成功","success");
                     } catch (e: any) {
-                      showToast("触发执行失败: " + e.message, "error");
+                      showToast("触发执行失败:" + e.message,"error");
                     } finally {
                       setLoading(false);
                     }
                   }}
-                  className="flex items-center gap-2 px-5 py-2.5 text-sm font-bold text-white bg-cyan-600 hover:bg-cyan-700 rounded-xl transition-all shadow-lg shadow-cyan-500/20"
+ className="flex items-center gap-2 px-5 py-2.5 text-sm font-bold text-white bg-cyan-600 hover:bg-cyan-700 rounded-xl transition-all shadow-cyan-500/20"
                 >
                   <Zap size={16} /> 触发执行
                 </button>
               )}
 
               {workflowStatus === 'pending' && (
-                <button 
+                <button
                   onClick={() => {
                     setInitialNodes(nodes);
                     setInitialEdges(edges);
                     setIsEditMode(true);
-                  }} 
-                  className="flex items-center gap-2 px-5 py-2.5 text-sm font-bold text-slate-700 bg-white border border-slate-200 hover:bg-slate-50 rounded-xl transition-all shadow-sm"
+                  }}
+ className="flex items-center gap-2 px-5 py-2.5 text-sm font-bold text-slate-700 bg-slate-50 border border-slate-200 hover:bg-slate-100 rounded-xl transition-all"
                 >
                   <Settings size={16} /> 编辑模式
                 </button>
@@ -1568,7 +1568,7 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
                       await orchestrationApi.workflow.uninitializeInstance(instanceId);
                       await loadInstance();
                     } catch (e: any) {
-                      showToast('操作失败: ' + e.message, "error");
+                      showToast('操作失败: ' + e.message,"error");
                     } finally {
                       setLoading(false);
                     }
@@ -1578,19 +1578,19 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
               >
                 取消初始化
               </button>
-              <button 
+              <button
                 onClick={async () => {
                   try {
                     setLoading(true);
                     await orchestrationApi.workflow.initializeInstance(instanceId);
                     await loadInstance();
                   } catch (e: any) {
-                    showToast('重新初始化失败: ' + e.message, "error");
+                    showToast('重新初始化失败: ' + e.message,"error");
                   } finally {
                     setLoading(false);
                   }
                 }}
-                className="px-3 py-1.5 text-xs font-bold bg-white border border-yellow-300 text-yellow-700 rounded-lg hover:bg-yellow-50 transition-all"
+                className="px-3 py-1.5 text-xs font-bold bg-slate-50 border border-yellow-300 text-yellow-700 rounded-lg hover:bg-yellow-50 transition-all"
               >
                 重新初始化
               </button>
@@ -1621,12 +1621,12 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
             <Background color="#cbd5e1" gap={16} />
             <Controls />
             <MiniMap nodeStrokeWidth={3} zoomable pannable />
-            
+
             {isEditMode && (
               <Panel position="top-left" className="m-4">
-                <button 
+                <button
                   onClick={() => setIsAddNodeModalOpen(true)}
-                  className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 text-slate-700 rounded-xl shadow-sm hover:bg-slate-50 font-bold text-sm"
+ className="flex items-center gap-2 px-4 py-2 bg-slate-50 border border-slate-200 text-slate-700 rounded-xl hover:bg-slate-100 font-bold text-sm"
                 >
                   <Plus size={16} /> 添加节点
                 </button>
@@ -1636,8 +1636,8 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
 
           {/* Context Menu */}
           {menu && (
-            <div 
-              className="fixed bg-white border border-slate-200 rounded-xl shadow-2xl z-[100] py-2 min-w-[160px] animate-in zoom-in-95 duration-100"
+            <div
+ className="fixed bg-slate-50 border border-slate-200 rounded-xl z-[100] py-2 min-w-[160px] animate-in zoom-in-95 duration-100"
               style={{ top: menu.top, left: menu.left }}
               onClick={e => e.stopPropagation()}
             >
@@ -1645,22 +1645,22 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
                 <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest">节点操作</div>
                 <div className="text-xs font-bold text-slate-600 truncate max-w-[140px]">{menu.id}</div>
               </div>
-              
+
               {isEditMode ? (
                 <>
-                  <button 
+                  <button
                     onClick={() => handleModifyNode(menu.id)}
-                    className="w-full px-4 py-2 text-left text-sm font-bold text-slate-700 hover:bg-slate-50 flex items-center gap-2 transition-all"
+                    className="w-full px-4 py-2 text-left text-sm font-bold text-slate-700 hover:bg-slate-100 flex items-center gap-2 transition-all"
                   >
                     <Settings size={14} className="text-slate-400" /> 修改配置
                   </button>
-                  <button 
+                  <button
                     onClick={() => handleCopyNode(menu.id)}
-                    className="w-full px-4 py-2 text-left text-sm font-bold text-slate-700 hover:bg-slate-50 flex items-center gap-2 transition-all"
+                    className="w-full px-4 py-2 text-left text-sm font-bold text-slate-700 hover:bg-slate-100 flex items-center gap-2 transition-all"
                   >
                     <Plus size={14} className="text-slate-400" /> 复制节点
                   </button>
-                  <button 
+                  <button
                     onClick={() => {
                       handleDeleteNode(menu.id);
                       setMenu(null);
@@ -1673,25 +1673,25 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
               ) : (
                 <>
                   {/* 状态监控 */}
-                  <button 
+                  <button
                     onClick={() => handleViewStatus(menu.id)}
-                    className="w-full px-4 py-2 text-left text-sm font-bold text-slate-700 hover:bg-slate-50 flex items-center gap-2 transition-all"
+                    className="w-full px-4 py-2 text-left text-sm font-bold text-slate-700 hover:bg-slate-100 flex items-center gap-2 transition-all"
                   >
                     <Activity size={14} className="text-green-500" /> 实时状态
                   </button>
-                  
+
                   {/* 日志 */}
-                  <button 
+                  <button
                     onClick={() => handleViewLogs(menu.id)}
                     className="w-full px-4 py-2 text-left text-sm font-bold text-blue-600 hover:bg-blue-50 flex items-center gap-2 transition-all"
                   >
                     <Terminal size={14} /> 查看日志
                   </button>
-                  
+
                   {/* 进入终端 */}
                   <button
                     onClick={() => handleOpenTerminal(menu.id)}
-                    className="w-full px-4 py-2 text-left text-sm font-bold text-slate-700 hover:bg-slate-50 flex items-center gap-2 transition-all"
+                    className="w-full px-4 py-2 text-left text-sm font-bold text-slate-700 hover:bg-slate-100 flex items-center gap-2 transition-all"
                   >
                     <Zap size={14} className="text-yellow-500" /> 进入终端
                   </button>
@@ -1705,30 +1705,30 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
                   </button>
 
                   {/* 事件历史 */}
-                  <button 
+                  <button
                     onClick={() => handleViewEvents(menu.id)}
-                    className="w-full px-4 py-2 text-left text-sm font-bold text-slate-700 hover:bg-slate-50 flex items-center gap-2 transition-all"
+                    className="w-full px-4 py-2 text-left text-sm font-bold text-slate-700 hover:bg-slate-100 flex items-center gap-2 transition-all"
                   >
                     <Clock size={14} className="text-orange-500" /> 执行历史
                   </button>
-                  
+
                   {/* 资源指标 */}
-                  <button 
+                  <button
                     onClick={() => handleViewMetrics(menu.id)}
-                    className="w-full px-4 py-2 text-left text-sm font-bold text-slate-700 hover:bg-slate-50 flex items-center gap-2 transition-all"
+                    className="w-full px-4 py-2 text-left text-sm font-bold text-slate-700 hover:bg-slate-100 flex items-center gap-2 transition-all"
                   >
                     <BarChart2 size={14} className="text-purple-500" /> 资源监控
                   </button>
-                  
+
                   {/* 分隔线 */}
                   <div className="border-t border-slate-100 my-1"></div>
-                  
+
                   {/* 访问服务 - 仅APP类型节点显示 */}
                   {(() => {
                     const node = nodes.find(n => n.id === menu.id);
                     if (node?.data.node_type === 'app' && node?.data.service_name) {
                       return (
-                        <button 
+                        <button
                           onClick={() => handleAccessService(menu.id)}
                           className="w-full px-4 py-2 text-left text-sm font-bold text-cyan-600 hover:bg-cyan-50 flex items-center gap-2 transition-all"
                         >
@@ -1738,13 +1738,13 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
                     }
                     return null;
                   })()}
-                  
+
                   {/* 重启/重试 - 根据节点类型显示不同选项 */}
                   {(() => {
                     const node = nodes.find(n => n.id === menu.id);
                     if (node?.data.node_type === 'app') {
                       return (
-                        <button 
+                        <button
                           onClick={() => handleRestartNode(menu.id)}
                           disabled={restarting}
                           className="w-full px-4 py-2 text-left text-sm font-bold text-orange-600 hover:bg-orange-50 flex items-center gap-2 transition-all disabled:opacity-50"
@@ -1754,7 +1754,7 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
                       );
                     } else if (node?.data.node_type === 'job') {
                       return (
-                        <button 
+                        <button
                           onClick={() => handleRetryNode(menu.id)}
                           disabled={recreating}
                           className="w-full px-4 py-2 text-left text-sm font-bold text-orange-600 hover:bg-orange-50 flex items-center gap-2 transition-all disabled:opacity-50"
@@ -1773,7 +1773,7 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
 
         {/* Sidebar for Node Details */}
         {selectedNode && (
-          <div className="w-96 bg-white border-l border-slate-200 flex flex-col shrink-0 animate-in slide-in-from-right-8">
+          <div className="w-96 bg-slate-50 border-l border-slate-200 flex flex-col shrink-0 animate-in slide-in-from-right-8">
             <div className="p-5 border-b border-slate-100 flex items-center justify-between">
               <h3 className="font-black text-slate-800">节点详情</h3>
               {isEditMode && (
@@ -1782,7 +1782,7 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
                 </button>
               )}
             </div>
-            
+
             <div className="p-5 space-y-6 overflow-y-auto custom-scrollbar flex-1">
               <div className="grid grid-cols-2 gap-4">
                 <div>
@@ -1794,7 +1794,7 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
                   <div className="mt-1 text-sm font-bold text-slate-800 uppercase">{selectedNode.data.node_type as string}</div>
                 </div>
               </div>
-              
+
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">节点 ID</label>
@@ -1814,7 +1814,7 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
               {(selectedNode.data.input_env_vars?.length > 0 || selectedNode.data.input_volume_mounts?.length > 0) && (
                 <div className="space-y-4 pt-4 border-t border-slate-100">
                   <h4 className="text-xs font-black text-slate-800 uppercase tracking-wider">节点配置 (实例化参数)</h4>
-                  
+
                   {selectedNode.data.input_env_vars?.length > 0 && (
                     <div className="space-y-2">
                       <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest">环境变量</label>
@@ -1864,7 +1864,7 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
                         <div className="flex items-center justify-between">
                           <span className="text-[10px] font-black text-blue-600 uppercase">容器: {container.name}</span>
                         </div>
-                        
+
                         <div>
                           <label className="text-[8px] font-black text-slate-400 uppercase">镜像</label>
                           <div className="text-[10px] font-mono text-slate-600 break-all">{container.image}</div>
@@ -1873,7 +1873,7 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
                         {(container.command || container.args) && (
                           <div>
                             <label className="text-[8px] font-black text-slate-400 uppercase">启动命令 & 参数</label>
-                            <div className="text-[10px] font-mono text-slate-600 break-all bg-white p-1.5 rounded border border-slate-100 space-y-1">
+                            <div className="text-[10px] font-mono text-slate-600 break-all bg-slate-50 p-1.5 rounded border border-slate-100 space-y-1">
                               {container.command && (
                                 <div><span className="text-slate-400">Command:</span> {Array.isArray(container.command) ? container.command.join(' ') : container.command}</div>
                               )}
@@ -1934,7 +1934,7 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
                             {selectedNodeTemplateDetails.service_type || 'ClusterIP'}
                           </span>
                         </div>
-                        
+
                         <div className="grid grid-cols-2 gap-2">
                           <div>
                             <label className="text-[8px] font-black text-slate-400 uppercase">服务名称</label>
@@ -1947,7 +1947,7 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
                             <label className="text-[8px] font-black text-slate-400 uppercase">服务端口</label>
                             <div className="flex flex-wrap gap-2 mt-1">
                               {selectedNodeTemplateDetails.service_ports.map((p: any, i: number) => (
-                                <div key={i} className="px-2 py-1 bg-white text-indigo-700 rounded-md text-[10px] font-bold border border-indigo-100 shadow-sm">
+ <div key={i} className="px-2 py-1 bg-slate-50 text-indigo-700 rounded-md text-[10px] font-bold border border-indigo-100">
                                   {p.name}: {p.port} → {p.target_port} <span className="text-[8px] text-slate-400">({p.protocol})</span>
                                 </div>
                               ))}
@@ -1978,7 +1978,7 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
       {/* Uninitialize Confirmation Modal */}
       {isUninitModalOpen && (
         <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-[2rem] w-full max-w-md shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
+ <div className="bg-slate-50 rounded-[2rem] w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200">
             <div className="p-8 text-center">
               <div className="w-20 h-20 bg-orange-50 text-orange-600 rounded-[2rem] flex items-center justify-center mx-auto mb-6">
                 <RotateCcw size={40} />
@@ -1992,16 +1992,16 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
               </p>
             </div>
             <div className="p-8 bg-slate-50 flex gap-4">
-              <button 
-                onClick={() => setIsUninitModalOpen(false)} 
-                className="flex-1 py-4 bg-white border border-slate-200 text-slate-600 rounded-2xl font-bold hover:bg-slate-100 transition-all"
+              <button
+                onClick={() => setIsUninitModalOpen(false)}
+                className="flex-1 py-4 bg-slate-50 border border-slate-200 text-slate-600 rounded-2xl font-bold hover:bg-slate-100 transition-all"
               >
                 取消
               </button>
-              <button 
+              <button
                 onClick={handleUninitialize}
                 disabled={loading}
-                className="flex-1 py-4 bg-orange-600 text-white rounded-2xl font-bold hover:bg-orange-700 transition-all shadow-lg shadow-orange-600/20 disabled:opacity-50 flex items-center justify-center gap-2"
+ className="flex-1 py-4 bg-orange-600 text-white rounded-2xl font-bold hover:bg-orange-700 transition-all shadow-orange-600/20 disabled:opacity-50 flex items-center justify-center gap-2"
               >
                 {loading && <Loader2 size={18} className="animate-spin" />}
                 确认反初始化
@@ -2014,13 +2014,13 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
       {/* Add Node Modal */}
       {isAddNodeModalOpen && (
         <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-[2rem] w-full max-w-2xl shadow-2xl overflow-hidden animate-in zoom-in-95">
+ <div className="bg-slate-50 rounded-[2rem] w-full max-w-2xl overflow-hidden animate-in zoom-in-95">
             <div className="p-6 border-b border-slate-100 flex items-center justify-between">
               <h3 className="text-xl font-black text-slate-800">
-                {addNodeStep === 'select' ? '选择模板' : `配置节点: ${selectedTemplate?.name}`}
+                {addNodeStep === 'select' ? '选择模板' :`配置节点: ${selectedTemplate?.name}`}
               </h3>
               {addNodeStep === 'configure' && (
-                <button 
+                <button
                   onClick={() => setAddNodeStep('select')}
                   className="text-sm font-bold text-blue-600 hover:text-blue-700"
                 >
@@ -2028,7 +2028,7 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
                 </button>
               )}
             </div>
-            
+
             <div className="p-6 space-y-6 max-h-[70vh] overflow-y-auto custom-scrollbar">
               {addNodeStep === 'select' ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -2036,8 +2036,8 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
                     <div className="col-span-2 text-center py-8 text-slate-400 text-sm font-bold">暂无可用模板</div>
                   ) : (
                     templates.map(t => (
-                      <div 
-                        key={t.id} 
+                      <div
+                        key={t.id}
                         onClick={() => handleTemplateSelect(t)}
                         className="p-4 border border-slate-200 rounded-2xl hover:border-blue-500 hover:bg-blue-50 cursor-pointer transition-all group"
                       >
@@ -2056,7 +2056,7 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
                 <div className="space-y-6">
                   <div className="space-y-1.5">
                     <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">显示名称</label>
-                    <input 
+                    <input
                       type="text"
                       className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-blue-500 transition-all font-bold text-sm"
                       value={newNodeConfig.name}
@@ -2073,7 +2073,7 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
                           <div key={ev.name} className="flex items-center gap-3 p-3 bg-slate-50 rounded-xl border border-slate-100">
                             <div className="flex-1">
                               <div className="text-[10px] font-black text-slate-500 uppercase">{ev.name}</div>
-                              <input 
+                              <input
                                 type="text"
                                 className="w-full mt-1 bg-transparent outline-none text-sm font-bold text-slate-800"
                                 value={ev.value}
@@ -2107,7 +2107,7 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
                                     n[i] = { ...createNodeMountConfig(vm.mount_path, vm.read_only), source_type: 'pvc' };
                                     setNewNodeConfig({ ...newNodeConfig, volume_mounts: n });
                                   }}
-                                  className={`rounded-full px-3 py-1 text-[10px] font-bold ${vm.source_type === 'pvc' ? 'bg-blue-600 text-white' : 'bg-white text-slate-500 border border-slate-200'}`}
+                                  className={`rounded-full px-3 py-1 text-[10px] font-bold ${vm.source_type === 'pvc' ? 'bg-blue-600 text-white' : 'bg-slate-50 text-slate-500 border border-slate-200'}`}
                                 >
                                   PVC
                                 </button>
@@ -2118,7 +2118,7 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
                                     n[i] = { ...createNodeMountConfig(vm.mount_path, true), source_type: 'project_file' };
                                     setNewNodeConfig({ ...newNodeConfig, volume_mounts: n });
                                   }}
-                                  className={`rounded-full px-3 py-1 text-[10px] font-bold ${vm.source_type === 'project_file' ? 'bg-blue-600 text-white' : 'bg-white text-slate-500 border border-slate-200'}`}
+                                  className={`rounded-full px-3 py-1 text-[10px] font-bold ${vm.source_type === 'project_file' ? 'bg-blue-600 text-white' : 'bg-slate-50 text-slate-500 border border-slate-200'}`}
                                 >
                                   项目文件夹
                                 </button>
@@ -2129,10 +2129,10 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
                                 <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
                                   <button
                                     type="button"
-                                    className="mt-1 flex items-center justify-between rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-bold text-slate-700 hover:border-blue-400"
+                                    className="mt-1 flex items-center justify-between rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-bold text-slate-700 hover:border-blue-400"
                                     onClick={() => setDirectoryPickerTarget(vm.mount_path)}
                                   >
-                                    <span className="truncate">{vm.subproject_id ? `${vm.subproject_name || '子项目'} ${vm.display_path || '/'}` : '选择项目文件夹'}</span>
+                                    <span className="truncate">{vm.subproject_id ?`${vm.subproject_name || '子项目'} ${vm.display_path || '/'}` : '选择项目文件夹'}</span>
                                     <FolderTree size={16} className="text-blue-500" />
                                   </button>
                                   <div className="mt-1 rounded-lg border border-dashed border-blue-200 bg-blue-50 px-3 py-2 text-xs text-blue-700">
@@ -2141,7 +2141,7 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
                                 </div>
                               ) : (
                                 <>
-                                  <select 
+                                  <select
                                     className="w-full mt-1 bg-transparent outline-none text-sm font-bold text-slate-800"
                                     value={vm.pvc_name}
                                     onChange={e => {
@@ -2157,9 +2157,9 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
                                       </option>
                                     ))}
                                   </select>
-                                  <input 
+                                  <input
                                     type="text"
-                                    className="w-full mt-2 bg-white px-3 py-2 rounded-lg border border-slate-200 outline-none text-xs font-mono text-slate-600 focus:border-blue-500 transition-all"
+                                    className="w-full mt-2 bg-slate-50 px-3 py-2 rounded-lg border border-slate-200 outline-none text-xs font-mono text-slate-600 focus:border-blue-500 transition-all"
                                     value={vm.sub_path || ''}
                                     onChange={e => {
                                       const n = [...newNodeConfig.volume_mounts];
@@ -2182,7 +2182,7 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
                       <div className="flex items-center justify-between">
                         <label className="text-[10px] font-black text-indigo-600 uppercase tracking-widest">服务配置</label>
                         <label className="flex items-center gap-2 cursor-pointer">
-                          <input 
+                          <input
                             type="checkbox"
                             checked={newNodeConfig.create_service}
                             onChange={e => setNewNodeConfig({
@@ -2198,15 +2198,15 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
                           <span className="text-xs font-bold text-indigo-700">创建 K8S Service</span>
                         </label>
                       </div>
-                      
+
                       {newNodeConfig.create_service && (
                         <div className="space-y-4">
                           <div className="grid grid-cols-2 gap-4">
                             <div className="space-y-1.5">
                               <label className="text-[9px] font-black text-slate-500 uppercase">服务名称</label>
-                              <input 
+                              <input
                                 type="text"
-                                className="w-full px-3 py-2 bg-white border border-indigo-200 rounded-lg outline-none focus:border-indigo-500 text-sm font-bold text-slate-800"
+                                className="w-full px-3 py-2 bg-slate-50 border border-indigo-200 rounded-lg outline-none focus:border-indigo-500 text-sm font-bold text-slate-800"
                                 value={newNodeConfig.service_name}
                                 onChange={e => setNewNodeConfig({...newNodeConfig, service_name: e.target.value})}
                                 placeholder="my-service"
@@ -2214,8 +2214,8 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
                             </div>
                             <div className="space-y-1.5">
                               <label className="text-[9px] font-black text-slate-500 uppercase">服务类型</label>
-                              <select 
-                                className="w-full px-3 py-2 bg-white border border-indigo-200 rounded-lg outline-none focus:border-indigo-500 text-sm font-bold text-slate-800"
+                              <select
+                                className="w-full px-3 py-2 bg-slate-50 border border-indigo-200 rounded-lg outline-none focus:border-indigo-500 text-sm font-bold text-slate-800"
                                 value={newNodeConfig.service_type}
                                 onChange={e => setNewNodeConfig({...newNodeConfig, service_type: e.target.value as any})}
                               >
@@ -2229,11 +2229,11 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
                           <div className="space-y-2">
                             <div className="flex items-center justify-between">
                               <label className="text-[9px] font-black text-slate-500 uppercase">服务端口</label>
-                              <button 
+                              <button
                                 type="button"
                                 onClick={() => setNewNodeConfig({
-                                  ...newNodeConfig, 
-                                  service_ports: [...newNodeConfig.service_ports, { name: `port-${newNodeConfig.service_ports.length + 1}`, port: 80, target_port: 80, protocol: 'TCP' }]
+                                  ...newNodeConfig,
+                                  service_ports: [...newNodeConfig.service_ports, { name:`port-${newNodeConfig.service_ports.length + 1}`, port: 80, target_port: 80, protocol: 'TCP' }]
                                 })}
                                 className="text-[10px] font-bold text-indigo-600 hover:text-indigo-700"
                               >
@@ -2242,8 +2242,8 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
                             </div>
                             <div className="space-y-2">
                               {newNodeConfig.service_ports.map((sp, i) => (
-                                <div key={i} className="flex items-center gap-2 p-2 bg-white rounded-lg border border-indigo-100">
-                                  <input 
+                                <div key={i} className="flex items-center gap-2 p-2 bg-slate-50 rounded-lg border border-indigo-100">
+                                  <input
                                     type="text"
                                     className="flex-1 px-2 py-1 bg-slate-50 border border-slate-200 rounded text-xs font-mono"
                                     value={sp.name}
@@ -2254,7 +2254,7 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
                                     }}
                                     placeholder="名称"
                                   />
-                                  <input 
+                                  <input
                                     type="number"
                                     className="w-20 px-2 py-1 bg-slate-50 border border-slate-200 rounded text-xs font-mono"
                                     value={sp.port}
@@ -2266,7 +2266,7 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
                                     placeholder="端口"
                                   />
                                   <span className="text-slate-400">→</span>
-                                  <input 
+                                  <input
                                     type="number"
                                     className="w-20 px-2 py-1 bg-slate-50 border border-slate-200 rounded text-xs font-mono"
                                     value={sp.target_port}
@@ -2277,7 +2277,7 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
                                     }}
                                     placeholder="目标端口"
                                   />
-                                  <select 
+                                  <select
                                     className="w-20 px-2 py-1 bg-slate-50 border border-slate-200 rounded text-xs font-mono"
                                     value={sp.protocol}
                                     onChange={e => {
@@ -2289,7 +2289,7 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
                                     <option value="TCP">TCP</option>
                                     <option value="UDP">UDP</option>
                                   </select>
-                                  <button 
+                                  <button
                                     type="button"
                                     onClick={() => {
                                       const n = newNodeConfig.service_ports.filter((_, idx) => idx !== i);
@@ -2326,7 +2326,7 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
                             </div>
                             {newNodeConfig.create_ingress && (
                               <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
-                                默认使用 `nginx` Ingress，域名会按当前 Service 自动生成。节点初始化完成后，可在节点“访问服务”里直接打开入口地址。
+                                默认使用`nginx` Ingress，域名会按当前 Service 自动生成。节点初始化完成后，可在节点“访问服务”里直接打开入口地址。
                               </div>
                             )}
                           </div>
@@ -2337,7 +2337,7 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
 
                   <div className="space-y-1.5">
                     <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">超时时间 (秒)</label>
-                    <input 
+                    <input
                       type="number"
                       className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-blue-500 transition-all font-bold text-sm"
                       value={newNodeConfig.timeout_seconds || ''}
@@ -2348,9 +2348,9 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
                 </div>
               )}
             </div>
-            
+
             <div className="p-6 border-t border-slate-100 bg-slate-50 flex gap-3">
-              <button 
+              <button
                 onClick={() => {
                   setIsAddNodeModalOpen(false);
                   setIsEditingNode(false);
@@ -2360,15 +2360,15 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
                   setTemplateDetails(null);
                   setDirectoryPickerTarget(null);
                 }}
-                className="flex-1 py-3 bg-white border border-slate-200 text-slate-600 rounded-xl font-bold hover:bg-slate-100 transition-all"
+                className="flex-1 py-3 bg-slate-50 border border-slate-200 text-slate-600 rounded-xl font-bold hover:bg-slate-100 transition-all"
               >
                 取消
               </button>
               {addNodeStep === 'configure' && (
-                <button 
+                <button
                   onClick={handleCreateNode}
                   disabled={loading}
-                  className="flex-1 py-3 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 transition-all shadow-lg shadow-blue-500/20 disabled:opacity-50 flex items-center justify-center gap-2"
+ className="flex-1 py-3 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
                 >
                   {loading && <Loader2 size={16} className="animate-spin" />}
                   确认创建
@@ -2382,7 +2382,7 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
       {/* Logs Modal */}
       {isLogsModalOpen && (
         <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-slate-900 rounded-[2rem] w-full max-w-4xl shadow-2xl overflow-hidden animate-in zoom-in-95 border border-slate-800">
+ <div className="bg-slate-900 rounded-[2rem] w-full max-w-4xl overflow-hidden animate-in zoom-in-95 border border-slate-800">
             <div className="p-6 border-b border-slate-800 flex items-center justify-between bg-slate-900/50">
               <div className="flex items-center gap-3">
                 <div className="p-2 bg-blue-500/10 rounded-lg">
@@ -2390,14 +2390,14 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
                 </div>
                 <h3 className="text-xl font-black text-white">节点日志</h3>
               </div>
-              <button 
+              <button
                 onClick={() => setIsLogsModalOpen(false)}
                 className="p-2 text-slate-400 hover:text-white hover:bg-slate-800 rounded-xl transition-all"
               >
                 <Plus size={24} className="rotate-45" />
               </button>
             </div>
-            
+
             <div className="p-6">
               <div className="bg-black/50 rounded-2xl border border-slate-800 p-4 h-[60vh] overflow-y-auto custom-scrollbar font-mono text-sm text-slate-300 leading-relaxed">
                 {loadingLogs ? (
@@ -2410,9 +2410,9 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
                 )}
               </div>
             </div>
-            
+
             <div className="p-6 border-t border-slate-800 bg-slate-900/50 flex justify-end">
-              <button 
+              <button
                 onClick={() => setIsLogsModalOpen(false)}
                 className="px-8 py-3 bg-slate-800 text-white rounded-xl font-bold hover:bg-slate-700 transition-all"
               >
@@ -2426,7 +2426,7 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
       {/* Status Modal */}
       {isStatusModalOpen && (
         <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-[2rem] w-full max-w-2xl shadow-2xl overflow-hidden animate-in zoom-in-95">
+ <div className="bg-slate-50 rounded-[2rem] w-full max-w-2xl overflow-hidden animate-in zoom-in-95">
             <div className="p-6 border-b border-slate-100 flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <div className="p-2 bg-green-50 rounded-lg">
@@ -2434,14 +2434,14 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
                 </div>
                 <h3 className="text-xl font-black text-slate-800">实时状态</h3>
               </div>
-              <button 
+              <button
                 onClick={() => setIsStatusModalOpen(false)}
                 className="p-2 text-slate-400 hover:text-slate-800 hover:bg-slate-100 rounded-xl transition-all"
               >
                 <Plus size={24} className="rotate-45" />
               </button>
             </div>
-            
+
             <div className="p-6 max-h-[70vh] overflow-y-auto">
               {loadingStatus ? (
                 <div className="flex flex-col items-center justify-center py-12 gap-4">
@@ -2470,7 +2470,7 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
                       <div className="text-lg font-bold text-slate-800 truncate">{nodeStatus.node_name || '-'}</div>
                     </div>
                   </div>
-                  
+
                   {nodeStatus.container_statuses?.length > 0 && (
                     <div>
                       <div className="text-xs font-black text-slate-400 uppercase mb-2">容器状态</div>
@@ -2490,7 +2490,7 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
                       </div>
                     </div>
                   )}
-                  
+
                   {nodeStatus.conditions?.length > 0 && (
                     <div>
                       <div className="text-xs font-black text-slate-400 uppercase mb-2">条件</div>
@@ -2508,7 +2508,7 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
                 </div>
               ) : null}
             </div>
-            
+
             <div className="p-6 border-t border-slate-100 bg-slate-50 flex justify-end">
               <button onClick={() => setIsStatusModalOpen(false)} className="px-8 py-3 bg-slate-800 text-white rounded-xl font-bold hover:bg-slate-700 transition-all">关闭</button>
             </div>
@@ -2519,7 +2519,7 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
       {/* Events Modal */}
       {isEventsModalOpen && (
         <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-[2rem] w-full max-w-2xl shadow-2xl overflow-hidden animate-in zoom-in-95">
+ <div className="bg-slate-50 rounded-[2rem] w-full max-w-2xl overflow-hidden animate-in zoom-in-95">
             <div className="p-6 border-b border-slate-100 flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <div className="p-2 bg-orange-50 rounded-lg">
@@ -2531,7 +2531,7 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
                 <Plus size={24} className="rotate-45" />
               </button>
             </div>
-            
+
             <div className="p-6 max-h-[70vh] overflow-y-auto">
               {loadingEvents ? (
                 <div className="flex flex-col items-center justify-center py-12 gap-4">
@@ -2558,7 +2558,7 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
                 </div>
               )}
             </div>
-            
+
             <div className="p-6 border-t border-slate-100 bg-slate-50 flex justify-end">
               <button onClick={() => setIsEventsModalOpen(false)} className="px-8 py-3 bg-slate-800 text-white rounded-xl font-bold hover:bg-slate-700 transition-all">关闭</button>
             </div>
@@ -2569,7 +2569,7 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
       {/* Metrics Modal */}
       {isMetricsModalOpen && (
         <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-[2rem] w-full max-w-2xl shadow-2xl overflow-hidden animate-in zoom-in-95">
+ <div className="bg-slate-50 rounded-[2rem] w-full max-w-2xl overflow-hidden animate-in zoom-in-95">
             <div className="p-6 border-b border-slate-100 flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <div className="p-2 bg-purple-50 rounded-lg">
@@ -2581,7 +2581,7 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
                 <Plus size={24} className="rotate-45" />
               </button>
             </div>
-            
+
             <div className="p-6 max-h-[70vh] overflow-y-auto">
               {loadingMetrics ? (
                 <div className="flex flex-col items-center justify-center py-12 gap-4">
@@ -2611,7 +2611,7 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
                 </div>
               ) : null}
             </div>
-            
+
             <div className="p-6 border-t border-slate-100 bg-slate-50 flex justify-end">
               <button onClick={() => setIsMetricsModalOpen(false)} className="px-8 py-3 bg-slate-800 text-white rounded-xl font-bold hover:bg-slate-700 transition-all">关闭</button>
             </div>
@@ -2622,7 +2622,7 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
       {/* Terminal Modal - 使用xterm.js 浮动窗口 */}
       {isTerminalModalOpen && !terminalIsMinimized && (
         <div
-          className="fixed bg-slate-900 rounded-xl shadow-2xl overflow-hidden flex flex-col border border-slate-700"
+ className="fixed bg-slate-900 rounded-xl overflow-hidden flex flex-col border border-slate-700"
           style={{
             left: terminalIsMaximized ? 0 : terminalPosition.x,
             top: terminalIsMaximized ? 0 : terminalPosition.y,
@@ -2674,7 +2674,7 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
                 <button
                   onClick={() => setTerminalIsMaximized(!terminalIsMaximized)}
                   className="w-3.5 h-3.5 rounded-full bg-green-500 hover:bg-green-600 flex items-center justify-center transition-all group"
-                  title={terminalIsMaximized ? "还原" : "最大化"}
+                  title={terminalIsMaximized ?"还原" :"最大化"}
                 >
                   {terminalIsMaximized ? (
                     <svg className="w-2 h-2 text-green-900 opacity-0 group-hover:opacity-100 transition-opacity" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5">
@@ -2705,7 +2705,7 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
 
       {/* 终端最小化任务栏 */}
       {isTerminalModalOpen && terminalIsMinimized && (
-        <div className="fixed bottom-4 left-1/2 -translate-x-1/2 bg-slate-800/95 backdrop-blur-sm rounded-xl px-4 py-2 shadow-2xl border border-slate-700 z-[9999] flex items-center gap-2">
+ <div className="fixed bottom-4 left-1/2 -translate-x-1/2 bg-slate-800/95 backdrop-blur-sm rounded-xl px-4 py-2 border border-slate-700 z-[9999] flex items-center gap-2">
           <span className="text-xs text-slate-400 font-medium mr-2">终端窗口:</span>
           <button
             onClick={() => {
@@ -2725,7 +2725,7 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
       {/* Access Service Modal */}
       {isAccessModalOpen && (
         <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-[2rem] w-full max-w-2xl shadow-2xl overflow-hidden animate-in zoom-in-95">
+ <div className="bg-slate-50 rounded-[2rem] w-full max-w-2xl overflow-hidden animate-in zoom-in-95">
             <div className="p-6 border-b border-slate-100 flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <div className="p-2 bg-cyan-50 rounded-lg">
@@ -2733,14 +2733,14 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
                 </div>
                 <h3 className="text-xl font-black text-slate-800">访问服务</h3>
               </div>
-              <button 
+              <button
                 onClick={() => setIsAccessModalOpen(false)}
                 className="p-2 text-slate-400 hover:text-slate-800 hover:bg-slate-100 rounded-xl transition-all"
               >
                 <Plus size={24} className="rotate-45" />
               </button>
             </div>
-            
+
             <div className="p-6 max-h-[70vh] overflow-y-auto">
               {loadingAccess ? (
                 <div className="flex flex-col items-center justify-center py-12 gap-4">
@@ -2776,7 +2776,7 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
                       </div>
                     </div>
                   </div>
-                  
+
                   {/* 端口信息 */}
                   {serviceAccessInfo.ports?.length > 0 && (
                     <div>
@@ -2785,7 +2785,7 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
                         {serviceAccessInfo.ports.map((port: any, i: number) => (
                           <div key={i} className="p-4 bg-slate-50 rounded-xl border border-slate-100">
                             <div className="flex items-center justify-between mb-2">
-                              <span className="font-bold text-slate-800">{port.name || `port-${i}`}</span>
+                              <span className="font-bold text-slate-800">{port.name ||`port-${i}`}</span>
                               <span className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded-full font-bold">{port.protocol}</span>
                             </div>
                             <div className="grid grid-cols-3 gap-2 text-sm">
@@ -2857,14 +2857,14 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
                       </div>
                     </div>
                   )}
-                  
+
                   {/* 代理访问说明 */}
                   {ingressAccessItems.length > 0 ? (
                     <div className="p-4 bg-emerald-50 rounded-xl border border-emerald-100">
                       <div className="text-xs font-black text-emerald-700 mb-2">访问服务说明</div>
                       <ul className="text-xs text-emerald-700 space-y-1 list-disc list-inside">
                         <li>优先使用上方已绑定的域名访问节点服务。</li>
-                        <li>请先在本机 `hosts` 文件中配置 `Ingress IP 域名` 的映射。</li>
+                        <li>请先在本机`hosts` 文件中配置`Ingress IP 域名` 的映射。</li>
                         <li>配置完成后，可直接通过域名 URL 访问对应节点服务。</li>
                       </ul>
                     </div>
@@ -2881,7 +2881,7 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
                 </div>
               ) : null}
             </div>
-            
+
             <div className="p-6 border-t border-slate-100 bg-slate-50 flex justify-end">
               <button onClick={() => setIsAccessModalOpen(false)} className="px-8 py-3 bg-slate-800 text-white rounded-xl font-bold hover:bg-slate-700 transition-all">关闭</button>
             </div>
@@ -2892,17 +2892,17 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
       {/* Unsaved Changes Modal */}
       {showUnsavedChangesModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[1000]">
-          <div className="bg-white rounded-xl p-6 w-[400px] shadow-2xl animate-in zoom-in-95 duration-200">
+ <div className="bg-slate-50 rounded-xl p-6 w-[400px] animate-in zoom-in-95 duration-200">
             <h3 className="text-lg font-bold text-slate-800 mb-2">未保存的更改</h3>
             <p className="text-slate-600 mb-6">您有未保存的更改，是否保存并退出？</p>
             <div className="flex justify-end gap-3">
-              <button 
+              <button
                 onClick={() => setShowUnsavedChangesModal(false)}
                 className="px-4 py-2 text-slate-600 hover:bg-slate-100 rounded-lg font-bold transition-all"
               >
                 取消
               </button>
-              <button 
+              <button
                 onClick={() => {
                   setIsEditMode(false);
                   setShowUnsavedChangesModal(false);
@@ -2931,7 +2931,7 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
       {floatingTerminals.filter(t => !t.isMinimized).map(terminal => (
         <div
           key={terminal.id}
-          className="fixed bg-slate-900 rounded-xl shadow-2xl overflow-hidden flex flex-col border border-slate-700"
+ className="fixed bg-slate-900 rounded-xl overflow-hidden flex flex-col border border-slate-700"
           style={{
             left: terminal.isMaximized ? 0 : terminal.position.x,
             top: terminal.isMaximized ? 0 : terminal.position.y,
@@ -2997,7 +2997,7 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
                     }
                   }}
                   className="w-3.5 h-3.5 rounded-full bg-green-500 hover:bg-green-600 flex items-center justify-center transition-all group"
-                  title={terminal.isMaximized ? "还原" : "最大化"}
+                  title={terminal.isMaximized ?"还原" :"最大化"}
                 >
                   {terminal.isMaximized ? (
                     <svg className="w-2 h-2 text-green-900 opacity-0 group-hover:opacity-100 transition-opacity" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5">
@@ -3028,7 +3028,7 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
 
       {/* 底部任务栏 - 显示最小化的终端 */}
       {floatingTerminals.filter(t => t.isMinimized).length > 0 && (
-        <div className="fixed bottom-4 left-1/2 -translate-x-1/2 bg-slate-800/95 backdrop-blur-sm rounded-xl px-4 py-2 shadow-2xl border border-slate-700 z-[9999] flex items-center gap-2">
+ <div className="fixed bottom-4 left-1/2 -translate-x-1/2 bg-slate-800/95 backdrop-blur-sm rounded-xl px-4 py-2 border border-slate-700 z-[9999] flex items-center gap-2">
           <span className="text-xs text-slate-400 font-medium mr-2">终端窗口:</span>
           {floatingTerminals.filter(t => t.isMinimized).map(terminal => (
             <button
@@ -3062,9 +3062,8 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
                 opacity: 1;
                 transform: translateX(-50%) translateY(0);
               }
-            }
-          `}</style>
-          <div className={`px-6 py-3 rounded-xl shadow-2xl border font-bold text-sm flex items-center gap-2 ${
+            }`}</style>
+ <div className={`px-6 py-3 rounded-xl border font-bold text-sm flex items-center gap-2 ${
             toast.type === 'success' ? 'bg-green-600 text-white border-green-500' :
             toast.type === 'error' ? 'bg-red-600 text-white border-red-500' :
             toast.type === 'warning' ? 'bg-yellow-500 text-yellow-900 border-yellow-400' :
@@ -3092,10 +3091,9 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
                 opacity: 1;
                 transform: scale(1);
               }
-            }
-          `}</style>
+            }`}</style>
           <div
-            className="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden"
+ className="bg-slate-50 rounded-2xl w-full max-w-sm overflow-hidden"
             style={{ animation: 'zoomIn 0.2s ease-out' }}
           >
             <div className="p-6 text-center">
@@ -3107,7 +3105,7 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
             <div className="flex border-t border-slate-100">
               <button
                 onClick={confirmDialog.onCancel}
-                className="flex-1 py-3 text-slate-600 font-bold hover:bg-slate-50 transition-all"
+                className="flex-1 py-3 text-slate-600 font-bold hover:bg-slate-100 transition-all"
               >
                 取消
               </button>

@@ -64,7 +64,7 @@ export const buildBatchSummaryCardItems = (summary: {
   {
     label: '计划 Batch',
     value: summary.planned_total_batches ?? summary.total_batches,
-    hint: `已物化 ${summary.materialized_total_batches ?? summary.total_batches}`,
+    hint:`已物化 ${summary.materialized_total_batches ?? summary.total_batches}`,
     tone: 'violet',
     icon: <Layers3 size={18} />,
   },
@@ -72,7 +72,7 @@ export const buildBatchSummaryCardItems = (summary: {
   { label: '已通过', value: summary.passed_batches, tone: 'emerald', icon: <CheckCircle2 size={18} /> },
   { label: '失败', value: summary.failed_batches, tone: 'rose', icon: <XCircle size={18} /> },
   { label: '部分完成', value: summary.partial_batches, tone: 'amber', icon: <AlertTriangle size={18} /> },
-  { label: '平均 Attempt', value: summary.avg_attempts_per_batch || 0, hint: summary.total_review_rounds != null ? `Review ${summary.total_review_rounds}` : undefined, tone: 'slate', icon: <RotateCcw size={18} /> },
+  { label: '平均 Attempt', value: summary.avg_attempts_per_batch || 0, hint: summary.total_review_rounds != null ?`Review ${summary.total_review_rounds}` : undefined, tone: 'slate', icon: <RotateCcw size={18} /> },
 ]);
 
 export const B2SBatchSummaryCards: React.FC<{ items: B2SBatchSummaryValue[] }> = ({ items }) => (

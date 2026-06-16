@@ -13,12 +13,12 @@ export const VulnVerificationDetailPage: React.FC<VulnPageProps> = ({ projectId,
   const targetCaseId = useMemo(() => localStorage.getItem(VERIFICATION_DETAIL_TARGET_KEY) || '', []);
 
   return (
-    <div className="min-h-screen bg-[linear-gradient(180deg,#f8fafc_0%,#eef2ff_100%)] animate-in fade-in duration-300">
+ <div className="min-h-screen bg-[#070d18] animate-in fade-in duration-300">
       <div className="px-4 pt-4 xl:px-6 2xl:px-8">
         <button
           type="button"
           onClick={() => onNavigateToView?.('vuln-verification')}
-          className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-black text-slate-700 shadow-sm"
+ className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm font-black text-slate-700"
         >
           <ArrowLeft size={16} />
           返回验证列表

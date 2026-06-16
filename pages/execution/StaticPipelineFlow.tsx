@@ -65,7 +65,7 @@ export const StaticPipelineFlow: React.FC<{
   notes?: FlowNote[];
   footer?: string;
 }> = ({ title, subtitle, lanes, notes = [], footer }) => (
-  <section className="rounded-xl border p-5 shadow-sm md:p-6"
+ <section className="rounded-xl border p-5 md:p-6"
     style={{ backgroundColor: LK.surface, borderColor: LK.border }}>
     <div className="flex flex-wrap items-start justify-between gap-3">
       <div className="max-w-4xl">
@@ -112,7 +112,7 @@ export const StaticPipelineFlow: React.FC<{
                     </div>
                     {step.badge && (
                       <span className="shrink-0 rounded-full border px-2.5 py-1 text-[10px] font-semibold tracking-[0.12em]"
-                        style={{ backgroundColor: 'rgba(255, 255, 255, 0.8)', borderColor: 'rgba(255, 255, 255, 0.7)', color: LK.muted }}>
+ style={{ backgroundColor: LK.surfaceRaised, borderColor: LK.borderSoft, color: LK.muted }}>
                         {step.badge}
                       </span>
                     )}

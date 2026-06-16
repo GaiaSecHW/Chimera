@@ -75,7 +75,7 @@ const SectionCard: React.FC<{ title: string; description?: string; children: Rea
     className="rounded-xl p-4"
     style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}` }}
   >
-    <div className="flex flex-col gap-1.5 pb-3 md:flex-row md:items-end md:justify-between" style={{ borderBottom: `1px solid ${LK.borderSoft}` }}>
+    <div className="flex flex-col gap-1.5 pb-3 md:flex-row md:items-end md:justify-between" style={{ borderBottom:`1px solid ${LK.borderSoft}` }}>
       <div>
         <h2 className="text-base font-semibold" style={{ color: LK.ink }}>{title}</h2>
         {description ? (

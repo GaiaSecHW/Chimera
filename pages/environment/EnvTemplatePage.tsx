@@ -88,7 +88,7 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
   const [viewMode, setViewMode] = useState<'list' | 'detail'>('list');
   const [detailTab, setDetailTab] = useState<'overview' | 'compose' | 'files' | 'deployments'>('overview');
   const [searchTerm, setSearchTerm] = useState('');
-  
+
   // Selection States
   const [selectedNames, setSelectedNames] = useState<Set<string>>(new Set());
   const [isDeployModalOpen, setIsDeployModalOpen] = useState(false);
@@ -465,13 +465,13 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
   // Build Resource Tree
   const resourceTree = useMemo(() => {
     if (!templateDetail?.directory_files) return null;
-    
+
     const root: TreeNode = { name: 'root', path: '', type: 'folder', children: {} };
-    
+
     templateDetail.directory_files.forEach((file: TemplateFile) => {
       const parts = file.path.split('/');
       let current = root;
-      
+
       parts.forEach((part, index) => {
         const isLast = index === parts.length - 1;
         if (!current.children[part]) {
@@ -626,7 +626,7 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
 
   const buildServiceName = (templateName: string, agentKey: string) => {
     const normalized = templateName.toLowerCase().replace(/[^a-z0-9-_]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '').slice(0, 48);
-    return `${normalized}-${agentKey.slice(0, 6)}`;
+    return`${normalized}-${agentKey.slice(0, 6)}`;
   };
 
   const executeDeploy = async () => {
@@ -839,7 +839,7 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
       const path = String(item?.path || '').trim();
       if (!path) return;
       filesByPath.set(path, {
-        name: String(item?.name || '').trim() || `file-${idx + 1}`,
+        name: String(item?.name || '').trim() ||`file-${idx + 1}`,
         path,
         content: String(item?.content || ''),
         format: String(item?.format || 'other'),
@@ -857,7 +857,7 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
         return;
       }
       filesByPath.set(path, {
-        name: String(item?.name || '').trim() || `override-${idx + 1}`,
+        name: String(item?.name || '').trim() ||`override-${idx + 1}`,
         path,
         content: String(item?.content || ''),
         format: String(item?.format || 'other'),
@@ -901,7 +901,7 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
       setEditingFile({ path, content: res.content });
       setIsEditorOpen(true);
     } catch (err: any) {
-      notify(err?.message || "无法读取文件内容", 'error');
+      notify(err?.message ||"无法读取文件内容", 'error');
     } finally {
       setLoading(false);
     }
@@ -961,7 +961,7 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `${templateDetail?.name || selectedTemplate}.zip`;
+      a.download =`${templateDetail?.name || selectedTemplate}.zip`;
       document.body.appendChild(a);
       a.click();
       window.URL.revokeObjectURL(url);
@@ -1002,7 +1002,7 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
     if (!selectedTemplate) return;
     const confirmed = await confirm({
       title: '删除文件',
-      message: `确认删除文件 "${filePath}" 吗？此操作无法撤销。`,
+      message:`确认删除文件"${filePath}" 吗？此操作无法撤销。`,
       confirmText: '确认删除',
       cancelText: '取消',
       danger: true,
@@ -1018,7 +1018,7 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
       }
       await viewDetail(selectedTemplate);
     } catch (err: any) {
-      notify(err?.message || "删除文件失败", 'error');
+      notify(err?.message ||"删除文件失败", 'error');
     } finally {
       setLoading(false);
     }
@@ -1028,7 +1028,7 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
     if (!selectedTemplate) return;
     const confirmed = await confirm({
       title: '删除目录',
-      message: `确认删除目录 "${dirPath}" 吗？`,
+      message:`确认删除目录"${dirPath}" 吗？`,
       confirmText: '确认删除',
       cancelText: '取消',
       danger: true,
@@ -1044,7 +1044,7 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
       if (message.includes('force=true') || message.includes('目录不为空')) {
         const forceConfirmed = await confirm({
           title: '目录非空',
-          message: `目录 "${dirPath}" 非空。是否强制删除（包含全部子文件）？`,
+          message:`目录"${dirPath}" 非空。是否强制删除（包含全部子文件）？`,
           confirmText: '强制删除',
           cancelText: '取消',
           danger: true,
@@ -1054,10 +1054,10 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
           await environmentApi.environment.deleteTemplateDirectory(selectedTemplate, dirPath, true);
           await viewDetail(selectedTemplate);
         } catch (forceErr: any) {
-          notify(forceErr?.message || "强制删除目录失败", 'error');
+          notify(forceErr?.message ||"强制删除目录失败", 'error');
         }
       } else {
-        notify(message || "删除目录失败", 'error');
+        notify(message ||"删除目录失败", 'error');
       }
     } finally {
       setLoading(false);
@@ -1082,8 +1082,8 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
       notify("无权限复制该模板", 'warning');
       return;
     }
-    const sourceName = source?.name || `template-${sourceTemplateId}`;
-    const defaultName = `${sourceName}-copy-${Date.now().toString(36).slice(-4)}`;
+    const sourceName = source?.name ||`template-${sourceTemplateId}`;
+    const defaultName =`${sourceName}-copy-${Date.now().toString(36).slice(-4)}`;
     const targetName = (await prompt({
       title: '复制模板',
       message: '请输入新模板名称',
@@ -1106,7 +1106,7 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
       notify(`复制成功：${targetName}`, 'success');
       await loadTemplates();
     } catch (err: any) {
-      notify(err?.message || "复制模板失败", 'error');
+      notify(err?.message ||"复制模板失败", 'error');
     }
   };
 
@@ -1130,7 +1130,7 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
       await loadTemplates();
       await viewDetail(template.id);
     } catch (err: any) {
-      notify(err?.message || "修改模板名称失败", 'error');
+      notify(err?.message ||"修改模板名称失败", 'error');
     }
   };
 
@@ -1155,7 +1155,7 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
       await loadTemplates();
       await viewDetail(template.id);
     } catch (err: any) {
-      notify(err?.message || "修改模板 TAG 失败", 'error');
+      notify(err?.message ||"修改模板 TAG 失败", 'error');
     }
   };
 
@@ -1251,7 +1251,7 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
       } else {
         if (!newTemplate.content.trim()) throw new Error("YAML 内容不能为空");
         const blob = new Blob([newTemplate.content], { type: 'text/yaml' });
-        formData.append('file', blob, `${newTemplate.name}.yaml`);
+        formData.append('file', blob,`${newTemplate.name}.yaml`);
       }
 
       await environmentApi.environment.uploadTemplate(formData);
@@ -1259,7 +1259,7 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
       resetUploadForm();
       loadTemplates();
     } catch (err: any) {
-      setUploadError(err.message || "上传失败");
+      setUploadError(err.message ||"上传失败");
     } finally {
       setIsUploading(false);
     }
@@ -1315,8 +1315,8 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
     handleUploadFileSelect(file);
   };
 
-  const filteredTemplates = templates.filter(t => 
-    t.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+  const filteredTemplates = templates.filter(t =>
+    t.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     t.description.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
@@ -1326,11 +1326,11 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
   const renderDeployModal = () => (
     isDeployModalOpen && (
       <div className="fixed inset-0 z-[200] flex items-center justify-center p-6 bg-slate-900/70 backdrop-blur-md animate-in fade-in">
-        <div className="bg-white w-full max-w-6xl max-h-[86vh] rounded-[2.25rem] shadow-2xl overflow-hidden flex flex-col animate-in zoom-in-95">
+ <div className="bg-slate-50 w-full max-w-6xl max-h-[86vh] rounded-[2.25rem] overflow-hidden flex flex-col animate-in zoom-in-95">
           <div className="p-7 border-b border-slate-100 bg-slate-50/60 shrink-0">
             <div className="flex items-start justify-between gap-4">
               <div className="flex items-center gap-4">
-                <div className="w-14 h-14 rounded-2xl bg-blue-600 text-white flex items-center justify-center shadow-lg shadow-blue-600/25">
+ <div className="w-14 h-14 rounded-2xl bg-blue-600 text-white flex items-center justify-center shadow-blue-600/25">
                   <Monitor size={26} />
                 </div>
                 <div>
@@ -1346,7 +1346,7 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
               </div>
               <button
                 onClick={() => setIsDeployModalOpen(false)}
-                className="p-3 text-slate-400 hover:bg-white hover:text-slate-600 rounded-xl transition-all shadow-sm"
+ className="p-3 text-slate-400 hover:bg-slate-50 hover:text-slate-600 rounded-xl transition-all"
               >
                 <X size={22} />
               </button>
@@ -1363,8 +1363,8 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
                   onClick={() => setDeployModalTab(tab.key as 'agents' | 'config' | 'llm' | 'confirm')}
                   className={`px-4 py-2 rounded-xl text-xs font-black transition-all ${
                     deployModalTab === tab.key
-                      ? 'bg-white text-blue-700 border border-blue-200 shadow-sm'
-                      : 'text-slate-600 hover:bg-white'
+ ? 'bg-slate-50 text-blue-700 border border-blue-200 '
+                      : 'text-slate-600 hover:bg-slate-50'
                   }`}
                 >
                   {tab.label}
@@ -1376,7 +1376,7 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
           <div className="min-h-0 overflow-y-auto p-7 bg-slate-50/20 custom-scrollbar">
             {deployModalTab === 'agents' && (
               <div className="space-y-4">
-                <div className="rounded-2xl border border-slate-200 bg-white p-4">
+                <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
                   <div className="grid grid-cols-1 lg:grid-cols-[1fr_auto_auto_auto] gap-3 items-center">
                     <div className="relative">
                       <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
@@ -1392,13 +1392,13 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
                     <div className="flex rounded-xl border border-slate-200 bg-slate-50 p-1">
                       <button
                         onClick={() => setStatusFilter('all')}
-                        className={`px-3 py-1.5 rounded-lg text-xs font-bold ${statusFilter === 'all' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500'}`}
+ className={`px-3 py-1.5 rounded-lg text-xs font-bold ${statusFilter === 'all' ? 'bg-slate-50 text-slate-800 ' : 'text-slate-500'}`}
                       >
                         全部
                       </button>
                       <button
                         onClick={() => setStatusFilter('online')}
-                        className={`px-3 py-1.5 rounded-lg text-xs font-bold ${statusFilter === 'online' ? 'bg-green-600 text-white shadow-sm' : 'text-slate-500'}`}
+ className={`px-3 py-1.5 rounded-lg text-xs font-bold ${statusFilter === 'online' ? 'bg-green-600 text-white ' : 'text-slate-500'}`}
                       >
                         仅在线
                       </button>
@@ -1406,7 +1406,7 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
                     <select
                       value={agentPageSize}
                       onChange={(e) => setAgentPageSize(Number(e.target.value) || 10)}
-                      className="px-3 py-2.5 rounded-xl border border-slate-200 bg-white text-xs font-semibold text-slate-700"
+                      className="px-3 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-xs font-semibold text-slate-700"
                     >
                       <option value={10}>10/页</option>
                       <option value={20}>20/页</option>
@@ -1416,7 +1416,7 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
                     <div className="flex gap-2">
                       <button
                         onClick={toggleSelectAllAgents}
-                        className="px-3 py-2.5 rounded-xl border border-slate-200 bg-white text-xs font-semibold text-slate-700 hover:bg-slate-50"
+                        className="px-3 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-xs font-semibold text-slate-700 hover:bg-slate-100"
                       >
                         {filteredAgents.filter((agent) => agent.status === 'online').length > 0 && filteredAgents.filter((agent) => agent.status === 'online').every((agent) => selectedAgentKeys.has(agent.key)) ? '取消全选筛选结果' : '全选筛选结果'}
                       </button>
@@ -1424,7 +1424,7 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
                   </div>
                 </div>
 
-                <div className="rounded-2xl border border-slate-200 bg-white overflow-hidden">
+                <div className="rounded-2xl border border-slate-200 bg-slate-50 overflow-hidden">
                   <div className="grid grid-cols-[44px_1.1fr_1fr_120px_220px_140px] gap-3 px-4 py-3 text-[11px] font-black text-slate-500 uppercase bg-slate-50 border-b border-slate-200">
                     <div />
                     <div>节点</div>
@@ -1451,10 +1451,10 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
                           onClick={() => online && toggleAgentSelect(agent.key)}
                           className={`w-full text-left grid grid-cols-[44px_1.1fr_1fr_120px_220px_140px] gap-3 px-4 py-3 border-b border-slate-100 transition-colors ${
                             online ? 'hover:bg-blue-50/50' : 'opacity-60 cursor-not-allowed'
-                          } ${selected ? 'bg-blue-50' : 'bg-white'}`}
+                          } ${selected ? 'bg-blue-50' : 'bg-slate-50'}`}
                         >
                           <div className="flex items-center justify-center">
-                            <span className={`w-5 h-5 rounded border flex items-center justify-center ${selected ? 'bg-blue-600 border-blue-600 text-white' : 'border-slate-300 bg-white'}`}>
+                            <span className={`w-5 h-5 rounded border flex items-center justify-center ${selected ? 'bg-blue-600 border-blue-600 text-white' : 'border-slate-300 bg-slate-50'}`}>
                               {selected ? <Check size={12} /> : null}
                             </span>
                           </div>
@@ -1475,14 +1475,14 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
                       <button
                         onClick={() => setAgentPage((p) => Math.max(1, p - 1))}
                         disabled={agentPage <= 1}
-                        className="px-3 py-1.5 rounded-lg border border-slate-200 bg-white disabled:opacity-40"
+                        className="px-3 py-1.5 rounded-lg border border-slate-200 bg-slate-50 disabled:opacity-40"
                       >
                         上一页
                       </button>
                       <button
                         onClick={() => setAgentPage((p) => Math.min(totalAgentPages, p + 1))}
                         disabled={agentPage >= totalAgentPages}
-                        className="px-3 py-1.5 rounded-lg border border-slate-200 bg-white disabled:opacity-40"
+                        className="px-3 py-1.5 rounded-lg border border-slate-200 bg-slate-50 disabled:opacity-40"
                       >
                         下一页
                       </button>
@@ -1494,7 +1494,7 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
 
             {deployModalTab === 'config' && (
               <div className="space-y-4">
-                <div className="rounded-2xl border border-slate-200 bg-white p-4">
+                <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
                   <h4 className="text-sm font-black text-slate-800 mb-2">本次部署模板</h4>
                   <div className="space-y-2">
                     {deploySource === 'detail' ? (
@@ -1510,7 +1510,7 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
                     )}
                   </div>
                 </div>
-                <div className="rounded-2xl border border-slate-200 bg-white p-4">
+                <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
                   <h4 className="text-sm font-black text-slate-800 mb-2">服务命名规则</h4>
                   <p className="text-sm text-slate-600">
                     <code className="px-1.5 py-0.5 rounded bg-slate-100 text-slate-700">{'{template_name}-{agent_key前6位}'}</code>
@@ -1530,7 +1530,7 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
                   title="部署前临时 LLM Provider 注入"
                   description="在模板当前结果基础上，为本次部署临时叠加多个 Provider；该覆盖不会回写模板。"
                 />
-                <div className="rounded-2xl border border-slate-200 bg-white p-4 space-y-3">
+                <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 space-y-3">
                   <div className="flex items-center justify-between gap-3">
                     <div>
                       <h4 className="text-sm font-black text-slate-800">环境变量草稿（可编辑）</h4>
@@ -1540,14 +1540,14 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
                       <button
                         type="button"
                         onClick={() => patchDeployLlmBinding({ env_overrides: { ...(deployLlmPreview?.merged_env || {}) } })}
-                        className="px-3 py-1.5 rounded-lg border border-slate-200 bg-white text-xs font-semibold text-slate-700 hover:bg-slate-50"
+                        className="px-3 py-1.5 rounded-lg border border-slate-200 bg-slate-50 text-xs font-semibold text-slate-700 hover:bg-slate-100"
                       >
                         从 Provider 填充
                       </button>
                       <button
                         type="button"
                         onClick={() => patchDeployLlmBinding({ env_overrides: {} })}
-                        className="px-3 py-1.5 rounded-lg border border-slate-200 bg-white text-xs font-semibold text-slate-700 hover:bg-slate-50"
+                        className="px-3 py-1.5 rounded-lg border border-slate-200 bg-slate-50 text-xs font-semibold text-slate-700 hover:bg-slate-100"
                       >
                         清空
                       </button>
@@ -1611,18 +1611,18 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
                       let seed = 'NEW_ENV_KEY';
                       let idx = 1;
                       while (Object.prototype.hasOwnProperty.call(base, seed)) {
-                        seed = `NEW_ENV_KEY_${idx++}`;
+                        seed =`NEW_ENV_KEY_${idx++}`;
                       }
                       base[seed] = '';
                       patchDeployLlmBinding({ env_overrides: base });
                     }}
-                    className="px-3 py-2 rounded-lg border border-slate-200 bg-white text-xs font-semibold text-slate-700 hover:bg-slate-50"
+                    className="px-3 py-2 rounded-lg border border-slate-200 bg-slate-50 text-xs font-semibold text-slate-700 hover:bg-slate-100"
                   >
                     + 新增环境变量
                   </button>
                 </div>
 
-                <div className="rounded-2xl border border-slate-200 bg-white p-4 space-y-3">
+                <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 space-y-3">
                   <div className="flex items-center justify-between gap-3">
                     <div>
                       <h4 className="text-sm font-black text-slate-800">文件注入草稿（可编辑）</h4>
@@ -1632,14 +1632,14 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
                       <button
                         type="button"
                         onClick={() => patchDeployLlmBinding({ file_overrides: (deployLlmPreview?.merged_files || []) as TemplateLlmMappedFile[] })}
-                        className="px-3 py-1.5 rounded-lg border border-slate-200 bg-white text-xs font-semibold text-slate-700 hover:bg-slate-50"
+                        className="px-3 py-1.5 rounded-lg border border-slate-200 bg-slate-50 text-xs font-semibold text-slate-700 hover:bg-slate-100"
                       >
                         从 Provider 填充
                       </button>
                       <button
                         type="button"
                         onClick={() => patchDeployLlmBinding({ file_overrides: [] })}
-                        className="px-3 py-1.5 rounded-lg border border-slate-200 bg-white text-xs font-semibold text-slate-700 hover:bg-slate-50"
+                        className="px-3 py-1.5 rounded-lg border border-slate-200 bg-slate-50 text-xs font-semibold text-slate-700 hover:bg-slate-100"
                       >
                         清空
                       </button>
@@ -1655,7 +1655,7 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
                             next[index] = { ...next[index], name: e.target.value };
                             patchDeployLlmBinding({ file_overrides: next });
                           }}
-                          className="px-3 py-2 rounded-lg border border-slate-200 bg-white text-xs"
+                          className="px-3 py-2 rounded-lg border border-slate-200 bg-slate-50 text-xs"
                           placeholder="文件名称"
                         />
                         <input
@@ -1665,7 +1665,7 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
                             next[index] = { ...next[index], path: e.target.value };
                             patchDeployLlmBinding({ file_overrides: next });
                           }}
-                          className="px-3 py-2 rounded-lg border border-slate-200 bg-white text-xs font-mono"
+                          className="px-3 py-2 rounded-lg border border-slate-200 bg-slate-50 text-xs font-mono"
                           placeholder="/etc/service/config.toml"
                         />
                       </div>
@@ -1677,10 +1677,10 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
                             next[index] = { ...next[index], format: e.target.value };
                             patchDeployLlmBinding({ file_overrides: next });
                           }}
-                          className="px-3 py-2 rounded-lg border border-slate-200 bg-white text-xs"
+                          className="px-3 py-2 rounded-lg border border-slate-200 bg-slate-50 text-xs"
                           placeholder="format"
                         />
-                        <label className="flex items-center gap-2 text-xs text-slate-700 px-3 py-2 rounded-lg border border-slate-200 bg-white">
+                        <label className="flex items-center gap-2 text-xs text-slate-700 px-3 py-2 rounded-lg border border-slate-200 bg-slate-50">
                           <input
                             type="checkbox"
                             checked={item.enabled !== false}
@@ -1713,7 +1713,7 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
                           next[index] = { ...next[index], content: e.target.value };
                           patchDeployLlmBinding({ file_overrides: next });
                         }}
-                        className="w-full px-3 py-2 rounded-lg border border-slate-200 bg-white text-xs font-mono"
+                        className="w-full px-3 py-2 rounded-lg border border-slate-200 bg-slate-50 text-xs font-mono"
                         placeholder="文件内容"
                       />
                     </div>
@@ -1723,7 +1723,7 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
                     onClick={() => {
                       const next = [...(normalizeDeployLlmBinding(deployLlmBinding)?.file_overrides || [])];
                       next.push({
-                        name: `file-${next.length + 1}`,
+                        name:`file-${next.length + 1}`,
                         path: '',
                         content: '',
                         format: 'other',
@@ -1731,7 +1731,7 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
                       });
                       patchDeployLlmBinding({ file_overrides: next });
                     }}
-                    className="px-3 py-2 rounded-lg border border-slate-200 bg-white text-xs font-semibold text-slate-700 hover:bg-slate-50"
+                    className="px-3 py-2 rounded-lg border border-slate-200 bg-slate-50 text-xs font-semibold text-slate-700 hover:bg-slate-100"
                   >
                     + 新增文件注入
                   </button>
@@ -1741,7 +1741,7 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
 
             {deployModalTab === 'confirm' && (
               <div className="space-y-4">
-                <div className="rounded-2xl border border-slate-200 bg-white p-5">
+                <div className="rounded-2xl border border-slate-200 bg-slate-50 p-5">
                   <h4 className="text-sm font-black text-slate-800 mb-3">最终确认</h4>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                     <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
@@ -1758,7 +1758,7 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
                     </div>
                   </div>
                 </div>
-                <div className="rounded-2xl border border-slate-200 bg-white p-5">
+                <div className="rounded-2xl border border-slate-200 bg-slate-50 p-5">
                   <h4 className="text-sm font-black text-slate-800 mb-2">已选节点</h4>
                   <div className="max-h-52 overflow-y-auto space-y-2 pr-1 custom-scrollbar">
                     {Array.from(selectedAgentKeys).length === 0 ? (
@@ -1776,7 +1776,7 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
                     )}
                   </div>
                 </div>
-                <div className="rounded-2xl border border-slate-200 bg-white p-5">
+                <div className="rounded-2xl border border-slate-200 bg-slate-50 p-5">
                   <h4 className="text-sm font-black text-slate-800 mb-2">最终部署注入预览（只读）</h4>
                   <p className="text-xs text-slate-500 mb-3">此处为最终下发内容预览，第4步不可编辑。</p>
                   <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
@@ -1787,7 +1787,7 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
                           <div className="text-xs text-slate-400">无环境变量注入</div>
                         ) : (
                           Object.entries(deployLlmFinalEnvPreview).map(([key, value]) => (
-                            <div key={`confirm-env-${key}`} className="grid grid-cols-[minmax(0,180px)_1fr] gap-2 rounded-lg bg-white border border-slate-200 px-2.5 py-2 text-[11px] font-mono">
+                            <div key={`confirm-env-${key}`} className="grid grid-cols-[minmax(0,180px)_1fr] gap-2 rounded-lg bg-slate-50 border border-slate-200 px-2.5 py-2 text-[11px] font-mono">
                               <span className="truncate text-slate-700">{key}</span>
                               <span className="break-all text-slate-500">{String(value || '')}</span>
                             </div>
@@ -1802,8 +1802,8 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
                           <div className="text-xs text-slate-400">无文件注入</div>
                         ) : (
                           deployLlmFinalFilePreview.map((file, idx) => (
-                            <div key={`confirm-file-${idx}-${file.path}`} className="rounded-lg bg-white border border-slate-200 p-2.5 text-[11px]">
-                              <div className="font-semibold text-slate-700">{file.name || `file-${idx + 1}`}</div>
+                            <div key={`confirm-file-${idx}-${file.path}`} className="rounded-lg bg-slate-50 border border-slate-200 p-2.5 text-[11px]">
+                              <div className="font-semibold text-slate-700">{file.name ||`file-${idx + 1}`}</div>
                               <div className="font-mono text-slate-500 break-all mt-0.5">{file.path}</div>
                               <pre className="mt-2 p-2 rounded bg-slate-50 border border-slate-100 text-[11px] font-mono text-slate-600 max-h-28 overflow-auto whitespace-pre-wrap break-all">{file.content || ''}</pre>
                             </div>
@@ -1817,7 +1817,7 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
             )}
           </div>
 
-          <div className="p-6 border-t border-slate-100 bg-white flex flex-col md:flex-row justify-between items-center gap-4 shrink-0">
+          <div className="p-6 border-t border-slate-100 bg-slate-50 flex flex-col md:flex-row justify-between items-center gap-4 shrink-0">
             <div className="text-xs text-slate-500">
               当前步骤：
               <span className="font-bold text-slate-700 ml-1">
@@ -1835,7 +1835,7 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
               <button
                 onClick={executeDeploy}
                 disabled={deploying || selectedAgentKeys.size === 0}
-                className="px-7 py-2.5 bg-blue-600 text-white rounded-xl font-black hover:bg-blue-700 shadow-lg shadow-blue-600/20 disabled:opacity-50 flex items-center gap-2"
+ className="px-7 py-2.5 bg-blue-600 text-white rounded-xl font-black hover:bg-blue-700 shadow-blue-600/20 disabled:opacity-50 flex items-center gap-2"
               >
                 {deploying ? <Loader2 className="animate-spin" size={16} /> : <Zap size={16} />}
                 执行批量部署
@@ -1850,8 +1850,8 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
   const renderTemplateLlmModal = () => (
     isTemplateLlmModalOpen && templateDetail ? (
       <div className="fixed inset-0 z-[210] flex items-center justify-center p-6 bg-slate-900/70 backdrop-blur-md animate-in fade-in">
-        <div className="bg-white w-full max-w-4xl rounded-[2.5rem] shadow-2xl overflow-hidden flex flex-col max-h-[88vh] animate-in zoom-in-95">
-          <div className="p-6 border-b border-slate-100 bg-slate-50/40 shrink-0">
+ <div className="bg-slate-50 w-full max-w-4xl rounded-[2.5rem] overflow-hidden flex flex-col max-h-[88vh] animate-in zoom-in-95">
+          <div className="p-6 border-b border-slate-100 bg-slate-100/40 shrink-0">
             <div className="flex items-start justify-between gap-4">
               <div>
                 <h3 className="text-2xl font-black text-slate-800 tracking-tight">LLM Provider 混合与重新生成</h3>
@@ -1861,7 +1861,7 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
               </div>
               <button
                 onClick={() => setIsTemplateLlmModalOpen(false)}
-                className="p-3 text-slate-400 hover:bg-white hover:text-slate-600 rounded-xl transition-all shadow-sm"
+ className="p-3 text-slate-400 hover:bg-slate-50 hover:text-slate-600 rounded-xl transition-all"
               >
                 <X size={22} />
               </button>
@@ -1877,13 +1877,13 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
               <div className="text-xs font-black text-slate-700">当前模板来源</div>
               <div className="text-sm font-bold text-slate-800">
                 {templateDetail?.metadata?.llm_mix_state?.provider_keys?.length
-                  ? `原始模板 + ${templateDetail.metadata.llm_mix_state.provider_keys.join(' + ')}`
+                  ?`原始模板 + ${templateDetail.metadata.llm_mix_state.provider_keys.join(' + ')}`
                   : '原始模板'}
               </div>
               <div className="text-xs text-slate-500">
                 原始 compose 备份：
                 {templateDetail?.metadata?.original_compose_backup?.file_path
-                  ? ` ${templateDetail.metadata.original_compose_backup.file_path}`
+                  ?` ${templateDetail.metadata.original_compose_backup.file_path}`
                   : ' 未建立'}
               </div>
             </div>
@@ -1897,7 +1897,7 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
               description="始终基于原始 compose 备份重新生成当前模板内容，不在当前混合结果上叠加。"
             />
           </div>
-          <div className="p-6 border-t border-slate-100 bg-white shrink-0 flex items-center justify-between gap-3">
+          <div className="p-6 border-t border-slate-100 bg-slate-50 shrink-0 flex items-center justify-between gap-3">
             <button
               onClick={() => setIsTemplateLlmModalOpen(false)}
               className="px-4 py-2.5 text-sm font-black rounded-xl bg-slate-100 text-slate-700 hover:bg-slate-200"
@@ -1933,7 +1933,7 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
     const isExpanded = expandedFolders.has(node.path || 'root');
     const isFile = node.type === 'file';
     const canManageCurrentTemplate = canManageTemplate(templateDetail);
-    
+
     const getIcon = () => {
       if (!isFile) return isExpanded ? <FolderOpen size={16} className="text-amber-400" /> : <Folder size={16} className="text-amber-400" />;
       const ext = node.name.split('.').pop()?.toLowerCase();
@@ -1944,7 +1944,7 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
 
     return (
       <div className="select-none">
-        <div 
+        <div
           onClick={() => !isFile && toggleFolder(node.path || 'root')}
           className={`group flex items-center py-2 px-4 hover:bg-blue-50/50 cursor-pointer rounded-xl transition-all ${depth > 0 ? 'ml-6' : ''}`}
         >
@@ -1963,13 +1963,13 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
               </span>
             )}
           </div>
-          
+
           {isFile && (
             <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-all">
               {canManageCurrentTemplate && isEditable(node.path) && (
                 <button
                   onClick={(e) => { e.stopPropagation(); handleEditFile(node.path); }}
-                  className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-white rounded-lg transition-all"
+                  className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-slate-50 rounded-lg transition-all"
                   title="在线编辑"
                 >
                   <Edit3 size={14} />
@@ -1977,7 +1977,7 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
               )}
               <button
                 onClick={(e) => { e.stopPropagation(); handleDownloadFile(node.path); }}
-                className="p-1.5 text-slate-400 hover:text-slate-800 hover:bg-white rounded-lg transition-all"
+                className="p-1.5 text-slate-400 hover:text-slate-800 hover:bg-slate-50 rounded-lg transition-all"
                 title="下载文件"
               >
                 <Download size={14} />
@@ -2005,7 +2005,7 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
             </div>
           )}
         </div>
-        
+
         {(!isFile && isExpanded) && (
           <div className="border-l border-slate-100 ml-6 mt-1">
             {/* Fix: Cast Object.values results to TreeNode[] to avoid 'unknown' type errors during property access */}
@@ -2045,11 +2045,11 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
       <>
       <div className="p-10 space-y-8 animate-in slide-in-from-right duration-500 pb-24 h-full overflow-y-auto custom-scrollbar">
         {/* Detail Header with Top Right Actions */}
-        <div className="flex flex-col md:flex-row justify-between items-start gap-6 bg-white/50 backdrop-blur-md p-8 rounded-[3rem] border border-white shadow-sm">
+ <div className="flex flex-col md:flex-row justify-between items-start gap-6 bg-slate-100 backdrop-blur-md p-8 rounded-[3rem] border border-slate-200">
           <div className="flex items-center gap-8">
             <button
               onClick={() => setViewMode('list')}
-              className="p-5 bg-white border border-slate-200 rounded-[1.5rem] hover:bg-slate-50 transition-all shadow-sm group active:scale-95"
+ className="p-5 bg-slate-50 border border-slate-200 rounded-[1.5rem] hover:bg-slate-100 transition-all group active:scale-95"
             >
               <ChevronLeft size={24} className="group-hover:-translate-x-1 transition-transform" />
             </button>
@@ -2092,7 +2092,7 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
             {canCopyCurrentTemplate && (
               <button
                 onClick={() => handleCopyTemplate(templateDetail.id)}
-                className="px-8 py-4 bg-white border border-slate-200 text-slate-700 rounded-[1.5rem] font-black hover:bg-slate-50 transition-all flex items-center gap-3 shadow-sm active:scale-95"
+ className="px-8 py-4 bg-slate-50 border border-slate-200 text-slate-700 rounded-[1.5rem] font-black hover:bg-slate-100 transition-all flex items-center gap-3 active:scale-95"
               >
                 <Layers size={20} className="text-indigo-600" /> 复制模板
               </button>
@@ -2100,7 +2100,7 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
             {canManageCurrentTemplate && (
               <button
                 onClick={() => handleRenameTemplate(templateDetail)}
-                className="px-8 py-4 bg-white border border-slate-200 text-slate-700 rounded-[1.5rem] font-black hover:bg-slate-50 transition-all flex items-center gap-3 shadow-sm active:scale-95"
+ className="px-8 py-4 bg-slate-50 border border-slate-200 text-slate-700 rounded-[1.5rem] font-black hover:bg-slate-100 transition-all flex items-center gap-3 active:scale-95"
               >
                 <Edit3 size={20} className="text-emerald-600" /> 修改名称
               </button>
@@ -2108,34 +2108,34 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
             {canManageCurrentTemplate && (
               <button
                 onClick={() => handleEditTemplateTags(templateDetail)}
-                className="px-8 py-4 bg-white border border-slate-200 text-slate-700 rounded-[1.5rem] font-black hover:bg-slate-50 transition-all flex items-center gap-3 shadow-sm active:scale-95"
+ className="px-8 py-4 bg-slate-50 border border-slate-200 text-slate-700 rounded-[1.5rem] font-black hover:bg-slate-100 transition-all flex items-center gap-3 active:scale-95"
               >
                 <Tags size={20} className="text-amber-600" /> 修改 TAG
               </button>
             )}
             <button
               onClick={openDetailDeployModal}
-              className="px-8 py-4 bg-blue-600 text-white rounded-[1.5rem] font-black hover:bg-blue-700 transition-all flex items-center gap-3 shadow-xl shadow-blue-500/20 active:scale-95"
+ className="px-8 py-4 bg-blue-600 text-white rounded-[1.5rem] font-black hover:bg-blue-700 transition-all flex items-center gap-3 active:scale-95"
             >
               <Zap size={20} /> 部署到节点
             </button>
             <button
               onClick={handleDownloadAll}
-              className="px-8 py-4 bg-white border border-slate-200 text-slate-700 rounded-[1.5rem] font-black hover:bg-slate-50 transition-all flex items-center gap-3 shadow-sm active:scale-95"
+ className="px-8 py-4 bg-slate-50 border border-slate-200 text-slate-700 rounded-[1.5rem] font-black hover:bg-slate-100 transition-all flex items-center gap-3 active:scale-95"
             >
               <Download size={20} className="text-blue-600" /> 下载全量包
             </button>
             <button
               onClick={() => handleDeleteTrigger(String(templateDetail.id))}
               disabled={!canManageCurrentTemplate}
-              className="px-8 py-4 bg-red-600 text-white rounded-[1.5rem] font-black hover:bg-red-700 transition-all flex items-center gap-3 shadow-xl shadow-red-500/20 active:scale-95"
+ className="px-8 py-4 bg-red-600 text-white rounded-[1.5rem] font-black hover:bg-red-700 transition-all flex items-center gap-3 shadow-red-500/20 active:scale-95"
             >
               <Trash2 size={20} /> 销毁模板
             </button>
           </div>
         </div>
 
-        <div className="inline-flex items-center gap-1.5 rounded-[1.5rem] border border-slate-200 bg-white p-1.5 shadow-sm">
+ <div className="inline-flex items-center gap-1.5 rounded-[1.5rem] border border-slate-200 bg-slate-50 p-1.5">
           {detailTabs.map((tab) => (
             <button
               key={tab.key}
@@ -2156,7 +2156,7 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
           <>
         {/* 模板说明 */}
         {templateDetail.description && (
-          <div className="bg-slate-900 p-8 rounded-[2.5rem] text-white shadow-2xl relative overflow-hidden">
+ <div className="bg-slate-900 p-8 rounded-[2.5rem] text-white relative overflow-hidden">
             <ShieldCheck className="absolute right-[-30px] top-[-30px] w-40 h-40 opacity-5 rotate-12" />
             <div className="relative z-10">
               <h4 className="text-xs font-black text-slate-500 uppercase tracking-[0.2em] mb-3">模板说明</h4>
@@ -2166,7 +2166,7 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
         )}
 
         <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] gap-6">
-          <div className="bg-white rounded-[2.5rem] border border-slate-200 shadow-sm p-6">
+ <div className="bg-slate-50 rounded-[2.5rem] border border-slate-200 p-6">
             <div className="flex items-center justify-between gap-4">
               <div>
                 <h4 className="text-sm font-black text-slate-800">模板 TAG</h4>
@@ -2194,7 +2194,7 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
             </div>
           </div>
 
-          <div className="bg-white rounded-[2.5rem] border border-slate-200 shadow-sm p-6 space-y-4">
+ <div className="bg-slate-50 rounded-[2.5rem] border border-slate-200 p-6 space-y-4">
             <div className="flex items-center justify-between gap-4">
               <div>
                 <h4 className="text-sm font-black text-slate-800">LLM Provider 重新生成模板</h4>
@@ -2220,19 +2220,19 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
               <div className="text-xs font-black text-slate-700">当前模板来源</div>
               <div className="text-sm font-bold text-slate-800">
                 {templateDetail?.metadata?.llm_mix_state?.provider_keys?.length
-                  ? `原始模板 + ${templateDetail.metadata.llm_mix_state.provider_keys.join(' + ')}`
+                  ?`原始模板 + ${templateDetail.metadata.llm_mix_state.provider_keys.join(' + ')}`
                   : '原始模板'}
               </div>
               <div className="text-xs text-slate-500">
                 原始 compose 备份：
                 {templateDetail?.metadata?.original_compose_backup?.file_path
-                  ? ` ${templateDetail.metadata.original_compose_backup.file_path}`
+                  ?` ${templateDetail.metadata.original_compose_backup.file_path}`
                   : ' 未建立'}
               </div>
               {templateDetail?.metadata?.llm_mix_state?.generated_at && (
                 <div className="text-xs text-slate-500">
                   最近一次生成：{templateDetail.metadata.llm_mix_state.generated_at}
-                  {templateDetail?.metadata?.llm_mix_state?.generated_by ? ` · ${templateDetail.metadata.llm_mix_state.generated_by}` : ''}
+                  {templateDetail?.metadata?.llm_mix_state?.generated_by ?` · ${templateDetail.metadata.llm_mix_state.generated_by}` : ''}
                 </div>
               )}
               {Array.isArray(templateDetail?.metadata?.llm_mix_state?.mapped_env_keys) && templateDetail.metadata.llm_mix_state.mapped_env_keys.length > 0 && (
@@ -2270,7 +2270,7 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
           </div>
         </div>
 
-        <div className="bg-white rounded-[2.5rem] border border-slate-200 shadow-sm p-6 space-y-4">
+ <div className="bg-slate-50 rounded-[2.5rem] border border-slate-200 p-6 space-y-4">
           <div className="flex items-center justify-between">
             <div>
               <h4 className="text-sm font-black text-slate-800">WEB端口</h4>
@@ -2326,7 +2326,7 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
                       backend_protocol: (e.target.value === 'https' ? 'https' : 'http') as 'http' | 'https'
                     } : p))}
                     disabled={!canManageCurrentTemplate}
-                    className="col-span-2 px-2 py-2 text-xs border border-slate-200 rounded-lg bg-white"
+                    className="col-span-2 px-2 py-2 text-xs border border-slate-200 rounded-lg bg-slate-50"
                   >
                     <option value="http">后端 HTTP</option>
                     <option value="https">后端 HTTPS</option>
@@ -2385,7 +2385,7 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
         {templateDetail.type === 'yaml' && detailTab === 'compose' && (
           <div className="space-y-8">
             {parseLoading ? (
-              <div className="bg-white rounded-[3rem] border border-slate-200 shadow-sm p-12">
+ <div className="bg-slate-50 rounded-[3rem] border border-slate-200 p-12">
                 <div className="flex flex-col items-center justify-center py-16">
                   <Loader2 className="w-12 h-12 animate-spin text-blue-600 mb-4" />
                   <span className="text-slate-600 font-medium">正在解析 Docker Compose 配置...</span>
@@ -2414,7 +2414,7 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
                 </div>
               </div>
             ) : (
-              <div className="bg-white rounded-[3rem] border border-slate-200 shadow-sm p-12">
+ <div className="bg-slate-50 rounded-[3rem] border border-slate-200 p-12">
                 <div className="flex flex-col items-center justify-center py-16 text-slate-400">
                   <Container size={64} className="mb-4 opacity-30" />
                   <p className="text-base font-medium">无法加载解析数据</p>
@@ -2426,10 +2426,10 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
 
         {/* YAML 类型 - 资源文件标签页 */}
         {templateDetail.type === 'yaml' && detailTab === 'files' && (
-          <div className="bg-white rounded-[3rem] border border-slate-200 shadow-sm overflow-hidden">
-            <div className="px-8 py-6 border-b border-slate-100 bg-slate-50/30 flex items-center justify-between">
+ <div className="bg-slate-50 rounded-[3rem] border border-slate-200 overflow-hidden">
+            <div className="px-8 py-6 border-b border-slate-100 bg-slate-100/30 flex items-center justify-between">
               <div className="flex items-center gap-4">
-                <div className="w-12 h-12 bg-slate-900 rounded-xl flex items-center justify-center text-white shadow-lg">
+ <div className="w-12 h-12 bg-slate-900 rounded-xl flex items-center justify-center text-white">
                   <FileCode size={24} />
                 </div>
                 <div>
@@ -2442,14 +2442,14 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
               <div className="flex gap-2">
                 <button
                   onClick={handleDownloadAll}
-                  className="p-3 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-all shadow-sm"
+ className="p-3 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-all"
                   title="下载文件"
                 >
                   <Download size={18} />
                 </button>
                 <button
                   onClick={() => handleOpenYamlEditor(canManageCurrentTemplate)}
-                  className={`p-3 rounded-xl transition-all shadow-sm ${
+ className={`p-3 rounded-xl transition-all ${
                     canManageCurrentTemplate
                       ? 'text-slate-400 hover:text-green-600 hover:bg-green-50'
                       : 'text-slate-300 hover:text-amber-600 hover:bg-amber-50'
@@ -2484,7 +2484,7 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
             {/* 左侧信息 */}
             <div className="lg:col-span-4 space-y-6">
-              <div className="bg-white p-6 rounded-[2rem] border border-slate-200 shadow-sm space-y-4">
+ <div className="bg-slate-50 p-6 rounded-[2rem] border border-slate-200 space-y-4">
                 <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
                   <Info size={14} /> 模板信息
                 </h4>
@@ -2506,10 +2506,10 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
             </div>
 
             {/* 右侧文件树 */}
-            <div className="lg:col-span-8 flex flex-col min-h-[500px] bg-white rounded-[3rem] border border-slate-200 shadow-sm overflow-hidden">
-              <div className="px-8 py-6 border-b border-slate-100 bg-slate-50/30 flex items-center justify-between">
+ <div className="lg:col-span-8 flex flex-col min-h-[500px] bg-slate-50 rounded-[3rem] border border-slate-200 overflow-hidden">
+              <div className="px-8 py-6 border-b border-slate-100 bg-slate-100/30 flex items-center justify-between">
                 <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 bg-blue-600 rounded-xl flex items-center justify-center text-white shadow-lg shadow-blue-500/20">
+ <div className="w-12 h-12 bg-blue-600 rounded-xl flex items-center justify-center text-white">
                     <FolderOpen size={24} />
                   </div>
                   <div>
@@ -2519,7 +2519,7 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
                     </p>
                   </div>
                 </div>
-                <button onClick={() => setExpandedFolders(new Set(['root']))} className="p-3 text-slate-400 hover:text-slate-600 hover:bg-white rounded-xl transition-all shadow-sm">
+ <button onClick={() => setExpandedFolders(new Set(['root']))} className="p-3 text-slate-400 hover:text-slate-600 hover:bg-slate-50 rounded-xl transition-all">
                   <RefreshCw size={18} />
                 </button>
               </div>
@@ -2542,7 +2542,7 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
               onRefresh={() => fetchParsedCompose(selectedTemplate!)}
             />
           ) : (
-            <div className="bg-white rounded-[3rem] border border-slate-200 shadow-sm p-12">
+ <div className="bg-slate-50 rounded-[3rem] border border-slate-200 p-12">
               <div className="flex flex-col items-center justify-center py-12 text-slate-400">
                 <Container size={56} className="mb-4 opacity-30" />
                 <p className="text-sm font-medium">该压缩包模板暂无可解析的 Compose 内容</p>
@@ -2553,10 +2553,10 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
 
         {/* 部署实例标签页 */}
         {detailTab === 'deployments' && (
-          <div className="bg-white rounded-[3rem] border border-slate-200 shadow-sm overflow-hidden">
-            <div className="px-8 py-6 border-b border-slate-100 bg-slate-50/30 flex items-center justify-between">
+ <div className="bg-slate-50 rounded-[3rem] border border-slate-200 overflow-hidden">
+            <div className="px-8 py-6 border-b border-slate-100 bg-slate-100/30 flex items-center justify-between">
               <div className="flex items-center gap-4">
-                <div className="w-12 h-12 bg-blue-600 rounded-xl flex items-center justify-center text-white shadow-lg shadow-blue-500/20">
+ <div className="w-12 h-12 bg-blue-600 rounded-xl flex items-center justify-center text-white">
                   <Network size={24} />
                 </div>
                 <div>
@@ -2568,7 +2568,7 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
               </div>
               <button
                 onClick={() => void loadTemplateDeployments(templateDetail.id)}
-                className="p-3 text-slate-400 hover:text-slate-700 hover:bg-white rounded-xl transition-all shadow-sm"
+ className="p-3 text-slate-400 hover:text-slate-700 hover:bg-slate-50 rounded-xl transition-all"
                 title="刷新部署实例"
               >
                 <RefreshCw size={18} className={templateDeploymentsLoading ? 'animate-spin' : ''} />
@@ -2603,7 +2603,7 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
                     <div
                       key={row.agentKey}
                       onClick={() => setDeploymentDetailAgentKey(row.agentKey)}
-                      className="grid grid-cols-12 gap-2 px-3 py-2.5 text-sm items-center hover:bg-slate-50 cursor-pointer"
+                      className="grid grid-cols-12 gap-2 px-3 py-2.5 text-sm items-center hover:bg-slate-100 cursor-pointer"
                     >
                       <div className="col-span-4 min-w-0 flex items-center gap-3">
                         <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${nodeStatus === 'online' ? 'bg-green-50 text-green-600' : 'bg-slate-100 text-slate-500'}`}>
@@ -2616,7 +2616,7 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
                       </div>
                       <div className="col-span-3 min-w-0">
                         <div className="font-semibold text-slate-700 truncate">{agent?.ip_address || row.services[0]?.agent_ip || '-'}</div>
-                        <div className="text-xs text-slate-400 truncate">{agent?.last_seen ? `Last: ${String(agent.last_seen).replace('T', ' ')}` : '-'}</div>
+                        <div className="text-xs text-slate-400 truncate">{agent?.last_seen ?`Last: ${String(agent.last_seen).replace('T', ' ')}` : '-'}</div>
                       </div>
                       <div className="col-span-2">
                         <StatusBadge status={nodeStatus} />
@@ -2630,7 +2630,7 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
                             e.stopPropagation();
                             setDeploymentDetailAgentKey(row.agentKey);
                           }}
-                          className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-slate-200 text-xs font-black text-slate-700 hover:bg-white"
+                          className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-slate-200 text-xs font-black text-slate-700 hover:bg-slate-50"
                           title={`查看节点详情（${latestServiceName} 等 ${row.services.length} 个服务）`}
                         >
                           详情
@@ -2648,10 +2648,10 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
         {/* Editor Overlay */}
         {isEditorOpen && editingFile && (
           <div className="fixed inset-0 z-[200] flex items-center justify-center p-6 bg-slate-950/80 backdrop-blur-xl animate-in fade-in">
-             <div className="bg-[#0f172a] w-full max-w-5xl h-[85vh] rounded-[3.5rem] shadow-2xl border border-white/10 flex flex-col overflow-hidden animate-in zoom-in-95">
-                <div className="px-12 py-8 border-b border-white/5 flex items-center justify-between bg-white/5">
+ <div className="bg-[#0f172a] w-full max-w-5xl h-[85vh] rounded-[3.5rem] border border-slate-200 flex flex-col overflow-hidden animate-in zoom-in-95">
+ <div className="px-12 py-8 border-b border-slate-200/5 flex items-center justify-between bg-slate-100/10">
                   <div className="flex items-center gap-5">
-                    <div className="w-12 h-12 bg-blue-600 rounded-[1.5rem] flex items-center justify-center text-white shadow-xl shadow-blue-500/20">
+ <div className="w-12 h-12 bg-blue-600 rounded-[1.5rem] flex items-center justify-center text-white">
                       <Edit3 size={24} />
                     </div>
                     <div>
@@ -2659,7 +2659,7 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
                       <p className="text-[10px] font-mono text-slate-500 uppercase mt-1">Target Template: {templateDetail.name}</p>
                     </div>
                   </div>
-                  <button onClick={() => setIsEditorOpen(false)} className="p-4 bg-white/5 text-slate-400 hover:text-white hover:bg-white/10 rounded-2xl transition-all">
+ <button onClick={() => setIsEditorOpen(false)} className="p-4 bg-slate-100/10 text-slate-400 hover:text-white hover:bg-slate-100 rounded-2xl transition-all">
                     <X size={24} />
                   </button>
                 </div>
@@ -2674,12 +2674,12 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
                      spellCheck={false}
                    />
                 </div>
-                <div className="px-12 py-8 bg-white/5 border-t border-white/5 flex justify-end gap-6">
-                   <button onClick={() => setIsEditorOpen(false)} className="px-10 py-4 bg-white/5 text-slate-400 rounded-2xl text-xs font-black uppercase transition-all hover:bg-white/10">放弃更改</button>
+ <div className="px-12 py-8 bg-slate-100/10 border-t border-slate-200/5 flex justify-end gap-6">
+ <button onClick={() => setIsEditorOpen(false)} className="px-10 py-4 bg-slate-100/10 text-slate-400 rounded-2xl text-xs font-black uppercase transition-all hover:bg-slate-100">放弃更改</button>
                    <button
                      onClick={handleSaveFile}
                      disabled={isSavingFile}
-                     className="px-12 py-4 bg-blue-600 text-white rounded-2xl text-xs font-black uppercase hover:bg-blue-500 transition-all disabled:opacity-50 flex items-center gap-3 shadow-xl shadow-blue-500/20"
+ className="px-12 py-4 bg-blue-600 text-white rounded-2xl text-xs font-black uppercase hover:bg-blue-500 transition-all disabled:opacity-50 flex items-center gap-3"
                    >
                       {isSavingFile ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />}
                       提交并更新资源
@@ -2705,10 +2705,10 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
           <p className="text-slate-500 mt-1 font-medium">标准化、可复用的安全测试沙箱编排模版库</p>
         </div>
         <div className="flex gap-4">
-          <button onClick={loadTemplates} className="p-4 bg-white border border-slate-200 text-slate-500 rounded-2xl hover:bg-slate-50 transition-all shadow-sm">
+ <button onClick={loadTemplates} className="p-4 bg-slate-50 border border-slate-200 text-slate-500 rounded-2xl hover:bg-slate-100 transition-all">
             <RefreshCw size={20} className={loading ? 'animate-spin' : ''} />
           </button>
-          <button onClick={() => setIsUploadModalOpen(true)} className="bg-blue-600 text-white px-8 py-4 rounded-2xl font-black flex items-center gap-2 shadow-xl shadow-blue-500/20 hover:bg-blue-700 transition-all active:scale-95">
+ <button onClick={() => setIsUploadModalOpen(true)} className="bg-blue-600 text-white px-8 py-4 rounded-2xl font-black flex items-center gap-2 hover:bg-blue-700 transition-all active:scale-95">
             <Plus size={20} /> 上传新模版
           </button>
         </div>
@@ -2716,7 +2716,7 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
 
       {/* Batch Action Bar */}
       {selectedNames.size > 0 && (
-        <div className="bg-slate-900 px-8 py-5 rounded-[2rem] shadow-2xl flex items-center justify-between animate-in slide-in-from-top-4">
+ <div className="bg-slate-900 px-8 py-5 rounded-[2rem] flex items-center justify-between animate-in slide-in-from-top-4">
            <div className="flex items-center gap-4">
               <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center text-white"><CheckCircle2 size={20} /></div>
               <span className="text-sm font-black text-white">已选中 {selectedNames.size} 个模版资源</span>
@@ -2728,7 +2728,7 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
               <button onClick={handleBatchDelete} className="px-6 py-3 bg-red-500/10 text-red-400 rounded-xl text-xs font-black uppercase tracking-widest flex items-center gap-2 hover:bg-red-500/20 transition-all">
                  <Trash2 size={16} /> 批量删除
               </button>
-              <button onClick={() => setSelectedNames(new Set())} className="px-6 py-3 bg-white/5 text-slate-400 rounded-xl text-xs font-black uppercase tracking-widest hover:text-white transition-all">取消选择</button>
+              <button onClick={() => setSelectedNames(new Set())} className="px-6 py-3 bg-slate-100/10 text-slate-400 rounded-xl text-xs font-black uppercase tracking-widest hover:text-white transition-all">取消选择</button>
            </div>
         </div>
       )}
@@ -2737,11 +2737,11 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
       <div className="space-y-4">
         <div className="relative">
           <Search className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-300" size={20} />
-          <input type="text" placeholder="检索模版名称、描述信息或文件类型..." className="w-full pl-16 pr-8 py-5 bg-white border border-slate-200 rounded-[2rem] text-sm outline-none focus:ring-4 ring-blue-500/5 transition-all font-medium shadow-sm" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
+ <input type="text" placeholder="检索模版名称、描述信息或文件类型..." className="w-full pl-16 pr-8 py-5 bg-slate-50 border border-slate-200 rounded-[2rem] text-sm outline-none focus:ring-4 ring-blue-500/5 transition-all font-medium" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
         </div>
         <div className="flex items-center justify-between px-2">
           <div className="flex items-center gap-3">
-            <button onClick={toggleSelectAll} className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 rounded-xl text-xs font-black text-slate-600 hover:bg-slate-50 transition-all">
+            <button onClick={toggleSelectAll} className="flex items-center gap-2 px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-black text-slate-600 hover:bg-slate-100 transition-all">
               {selectedNames.size === filteredTemplates.length && filteredTemplates.length > 0 ? <CheckSquare size={16} className="text-blue-600" /> : <Square size={16} />}
               {selectedNames.size === filteredTemplates.length && filteredTemplates.length > 0 ? '取消全选' : '全选'}
             </button>
@@ -2749,14 +2749,14 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
           </div>
         </div>
         {loading ? (
-          <div className="bg-white border border-slate-200 rounded-[2.5rem] shadow-sm p-12">
+ <div className="bg-slate-50 border border-slate-200 rounded-[2.5rem] p-12">
             <div className="flex flex-col items-center justify-center py-16">
               <Loader2 className="w-12 h-12 animate-spin text-blue-600 mb-4" />
               <span className="text-slate-600 font-medium">正在加载模板...</span>
             </div>
           </div>
         ) : filteredTemplates.length === 0 ? (
-          <div className="bg-white border border-slate-200 rounded-[2.5rem] shadow-sm p-12">
+ <div className="bg-slate-50 border border-slate-200 rounded-[2.5rem] p-12">
             <div className="flex flex-col items-center justify-center py-16 text-slate-400">
               <Box size={64} className="mb-4 opacity-30" />
               <p className="text-lg font-black">暂无模板</p>
@@ -2778,7 +2778,7 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
                 <div
                   key={t.name}
                   onClick={() => viewDetail(t.id)}
-                  className={`bg-white border-2 rounded-[2rem] shadow-sm overflow-hidden cursor-pointer transition-all group hover:shadow-xl hover:border-blue-200 ${selectedNames.has(String(t.id)) ? 'border-blue-600 ring-4 ring-blue-500/5' : 'border-slate-100'}`}
+ className={`bg-slate-50 border-2 rounded-[2rem] overflow-hidden cursor-pointer transition-all group hover:border-blue-200 ${selectedNames.has(String(t.id)) ? 'border-blue-600 ring-4 ring-blue-500/5' : 'border-slate-100'}`}
                 >
                   {/* Card Header */}
                   <div className="p-6 border-b border-slate-50">
@@ -2889,7 +2889,7 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
                                 <div className="w-1.5 h-1.5 bg-blue-400 rounded-full" />
                                 <span className="font-bold text-slate-700">{name}</span>
                                 {s.image && (
-                                  <code className="text-[10px] text-slate-400 bg-white px-1.5 py-0.5 rounded truncate max-w-[120px]">{s.image}</code>
+                                  <code className="text-[10px] text-slate-400 bg-slate-50 px-1.5 py-0.5 rounded truncate max-w-[120px]">{s.image}</code>
                                 )}
                               </div>
                             ))}
@@ -2913,7 +2913,7 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
                         <p className="text-[10px] font-black text-indigo-600 uppercase tracking-widest mb-2">WEB端口</p>
                         <div className="flex flex-wrap gap-1.5">
                           {cardWebPortPresets.slice(0, 6).map((preset, idx) => (
-                            <span key={`preset-${t.id}-${idx}`} className="text-[10px] bg-white text-indigo-700 px-2 py-0.5 rounded font-mono border border-indigo-100">
+                            <span key={`preset-${t.id}-${idx}`} className="text-[10px] bg-slate-50 text-indigo-700 px-2 py-0.5 rounded font-mono border border-indigo-100">
                               {(preset.name || 'WEB')}:{preset.port}/后端{String(preset.backend_protocol || preset.protocol || 'http').toUpperCase()}/Ingress{(preset.ingress_tls_enabled ?? preset.tls_enabled) !== false ? 'HTTPS' : 'HTTP'}
                             </span>
                           ))}
@@ -2928,7 +2928,7 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
                       <p className="text-[10px] font-black text-emerald-600 uppercase tracking-widest mb-2">当前 LLM 混合结果</p>
                       <div className="flex flex-wrap gap-1.5">
                         {getTemplateCurrentMixBinding(t)?.provider_keys.map((providerKey) => (
-                          <span key={`${t.id}-${providerKey}`} className="text-[10px] bg-white text-emerald-700 px-2 py-0.5 rounded font-mono border border-emerald-100">
+                          <span key={`${t.id}-${providerKey}`} className="text-[10px] bg-slate-50 text-emerald-700 px-2 py-0.5 rounded font-mono border border-emerald-100">
                             {providerKey}
                           </span>
                         ))}
@@ -2938,7 +2938,7 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
                 </div>
 
                   {/* Card Footer */}
-                  <div className="px-6 py-4 bg-slate-50/50 border-t border-slate-50 flex items-center justify-between">
+                  <div className="px-6 py-4 bg-slate-100/50 border-t border-slate-50 flex items-center justify-between">
                     <div className="flex items-center gap-4 text-xs text-slate-400">
                       <div className="flex items-center gap-1.5">
                         <Database size={12} />
@@ -2955,7 +2955,7 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
                           e.stopPropagation();
                           void openTemplateLlmModal(t);
                         }}
-                        className="px-2.5 py-2 bg-white border border-slate-200 text-slate-500 hover:text-blue-700 hover:border-blue-200 rounded-lg transition-all shadow-sm text-[11px] font-black"
+ className="px-2.5 py-2 bg-slate-50 border border-slate-200 text-slate-500 hover:text-blue-700 hover:border-blue-200 rounded-lg transition-all text-[11px] font-black"
                         title="打开 LLM Provider 混合配置弹框"
                       >
                         LLM混合
@@ -2963,18 +2963,18 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
                       {canCopyCard && (
                         <button
                           onClick={(e) => handleCopyTemplate(t.id, e)}
-                          className="p-2 bg-white border border-slate-200 text-slate-400 hover:text-indigo-600 hover:border-indigo-200 rounded-lg transition-all shadow-sm"
+ className="p-2 bg-slate-50 border border-slate-200 text-slate-400 hover:text-indigo-600 hover:border-indigo-200 rounded-lg transition-all"
                         >
                           <Layers size={14} />
                         </button>
                       )}
-                      <button className="p-2 bg-white border border-slate-200 text-slate-400 hover:text-blue-600 hover:border-blue-200 rounded-lg transition-all shadow-sm">
+ <button className="p-2 bg-slate-50 border border-slate-200 text-slate-400 hover:text-blue-600 hover:border-blue-200 rounded-lg transition-all">
                         <Download size={14} />
                       </button>
                       {canManageCard && (
                         <button
                           onClick={(e) => handleDeleteTrigger(String(t.id), e)}
-                          className="p-2 bg-red-50 border border-red-100 text-red-400 hover:text-red-600 hover:border-red-200 rounded-lg transition-all shadow-sm"
+ className="p-2 bg-red-50 border border-red-100 text-red-400 hover:text-red-600 hover:border-red-200 rounded-lg transition-all"
                         >
                           <Trash2 size={14} />
                         </button>
@@ -2993,14 +2993,14 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
       {/* Upload Template Modal */}
       {isUploadModalOpen && (
         <div className="fixed inset-0 z-[200] flex items-center justify-center p-6 bg-slate-900/70 backdrop-blur-md animate-in fade-in">
-          <div className={`bg-white w-full max-w-4xl rounded-[2.5rem] shadow-2xl overflow-hidden flex flex-col animate-in zoom-in-95 transition-all duration-300 ${
+ <div className={`bg-slate-50 w-full max-w-4xl rounded-[2.5rem] overflow-hidden flex flex-col animate-in zoom-in-95 transition-all duration-300 ${
             uploadTab === 'editor' ? 'h-[90vh]' : 'max-h-[80vh]'
           }`}>
             {/* Modal Header */}
-            <div className="p-6 pb-4 border-b border-slate-50 bg-slate-50/30 shrink-0">
+            <div className="p-6 pb-4 border-b border-slate-50 bg-slate-100/30 shrink-0">
               <div className="flex justify-between items-start">
                 <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 bg-blue-600 text-white rounded-xl flex items-center justify-center shadow-xl shadow-blue-600/20">
+ <div className="w-12 h-12 bg-blue-600 text-white rounded-xl flex items-center justify-center shadow-blue-600/20">
                     <Upload size={24} />
                   </div>
                   <div>
@@ -3010,7 +3010,7 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
                 </div>
                 <button
                   onClick={() => { setIsUploadModalOpen(false); resetUploadForm(); }}
-                  className="p-3 text-slate-400 hover:bg-white hover:text-slate-600 rounded-xl transition-all shadow-sm"
+ className="p-3 text-slate-400 hover:bg-slate-50 hover:text-slate-600 rounded-xl transition-all"
                 >
                   <X size={24} />
                 </button>
@@ -3019,14 +3019,14 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
 
             {/* Tab Switcher - 只在YAML类型时显示 */}
             {newTemplate.type === 'yaml' && (
-              <div className="px-6 pt-4 bg-slate-50/30">
-                <div className="flex gap-2 p-1 bg-white border border-slate-200 rounded-xl w-fit shadow-sm">
+              <div className="px-6 pt-4 bg-slate-100/30">
+ <div className="flex gap-2 p-1 bg-slate-50 border border-slate-200 rounded-xl w-fit">
                   <button
                     onClick={() => setUploadTab('file')}
                     className={`px-5 py-2.5 rounded-lg text-xs font-black uppercase transition-all flex items-center gap-2 ${
                       uploadTab === 'file'
-                        ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/20'
-                        : 'text-slate-500 hover:bg-slate-50'
+ ? 'bg-blue-600 text-white '
+                        : 'text-slate-500 hover:bg-slate-100'
                     }`}
                   >
                     <Upload size={14} /> 文件上传
@@ -3035,8 +3035,8 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
                     onClick={() => setUploadTab('editor')}
                     className={`px-5 py-2.5 rounded-lg text-xs font-black uppercase transition-all flex items-center gap-2 ${
                       uploadTab === 'editor'
-                        ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/20'
-                        : 'text-slate-500 hover:bg-slate-50'
+ ? 'bg-blue-600 text-white '
+                        : 'text-slate-500 hover:bg-slate-100'
                     }`}
                   >
                     <FileCode size={14} /> 在线编辑
@@ -3059,7 +3059,7 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
                     value={newTemplate.name}
                     onChange={(e) => setNewTemplate({ ...newTemplate, name: e.target.value })}
                     placeholder="输入模版唯一标识符（如：pentest-v2-standard）"
-                    className="w-full px-5 py-3 bg-white border border-slate-200 rounded-xl text-sm outline-none focus:ring-4 ring-blue-500/5 transition-all font-medium shadow-sm"
+ className="w-full px-5 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:ring-4 ring-blue-500/5 transition-all font-medium"
                   />
                 </div>
 
@@ -3073,7 +3073,7 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
                     onChange={(e) => setNewTemplate({ ...newTemplate, description: e.target.value })}
                     placeholder="简要说明模版用途、适用场景和安全基线标准..."
                     rows={2}
-                    className="w-full px-5 py-3 bg-white border border-slate-200 rounded-xl text-sm outline-none focus:ring-4 ring-blue-500/5 transition-all font-medium shadow-sm resize-none"
+ className="w-full px-5 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:ring-4 ring-blue-500/5 transition-all font-medium resize-none"
                   />
                 </div>
 
@@ -3086,7 +3086,7 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
                     value={stringifyTemplateTags(newTemplate.tags)}
                     onChange={(e) => setNewTemplate({ ...newTemplate, tags: normalizeTemplateTags(e.target.value) })}
                     placeholder="使用英文逗号分隔，例如：AI_AGENT_HELPER, INTERNAL"
-                    className="w-full px-5 py-3 bg-white border border-slate-200 rounded-xl text-sm outline-none focus:ring-4 ring-blue-500/5 transition-all font-medium shadow-sm"
+ className="w-full px-5 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:ring-4 ring-blue-500/5 transition-all font-medium"
                   />
                   <p className="text-[11px] text-slate-400 mt-2">模板 TAG 会用于分类、识别和自动化关联。</p>
                 </div>
@@ -3108,7 +3108,7 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
                       className={`flex-1 px-5 py-3 rounded-xl border-2 transition-all flex items-center justify-center gap-2 ${
                         newTemplate.type === 'yaml'
                           ? 'bg-blue-50 border-blue-600 ring-4 ring-blue-500/5'
-                          : 'bg-white border-slate-200 hover:border-blue-200'
+                          : 'bg-slate-50 border-slate-200 hover:border-blue-200'
                       }`}
                     >
                       <FileCode size={18} className={newTemplate.type === 'yaml' ? 'text-blue-600' : 'text-slate-400'} />
@@ -3128,7 +3128,7 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
                       className={`flex-1 px-5 py-3 rounded-xl border-2 transition-all flex items-center justify-center gap-2 ${
                         newTemplate.type === 'archive'
                           ? 'bg-blue-50 border-blue-600 ring-4 ring-blue-500/5'
-                          : 'bg-white border-slate-200 hover:border-blue-200'
+                          : 'bg-slate-50 border-slate-200 hover:border-blue-200'
                       }`}
                     >
                       <FileArchive size={18} className={newTemplate.type === 'archive' ? 'text-blue-600' : 'text-slate-400'} />
@@ -3150,7 +3150,7 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
                       className={`flex-1 px-5 py-3 rounded-xl border-2 transition-all text-sm font-black ${
                         newTemplate.visibility === 'shared'
                           ? 'bg-blue-50 border-blue-600 text-blue-600 ring-4 ring-blue-500/5'
-                          : 'bg-white border-slate-200 text-slate-600 hover:border-blue-200'
+                          : 'bg-slate-50 border-slate-200 text-slate-600 hover:border-blue-200'
                       }`}
                     >
                       共享模板
@@ -3161,7 +3161,7 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
                       className={`flex-1 px-5 py-3 rounded-xl border-2 transition-all text-sm font-black ${
                         newTemplate.visibility === 'private'
                           ? 'bg-blue-50 border-blue-600 text-blue-600 ring-4 ring-blue-500/5'
-                          : 'bg-white border-slate-200 text-slate-600 hover:border-blue-200'
+                          : 'bg-slate-50 border-slate-200 text-slate-600 hover:border-blue-200'
                       }`}
                     >
                       私有模板
@@ -3169,7 +3169,7 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
                   </div>
                 </div>
 
-                <div className="bg-white border border-slate-200 rounded-xl p-4 space-y-3">
+                <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 space-y-3">
                   <div className="flex items-center justify-between">
                     <label className="text-xs font-black text-slate-600 uppercase tracking-widest">
                       WEB端口（可选）
@@ -3219,7 +3219,7 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
                               backend_protocol: (e.target.value === 'https' ? 'https' : 'http') as 'http' | 'https'
                             } : p)
                           }))}
-                          className="col-span-2 px-2 py-2 text-xs border border-slate-200 rounded-lg bg-white"
+                          className="col-span-2 px-2 py-2 text-xs border border-slate-200 rounded-lg bg-slate-50"
                         >
                           <option value="http">后端 HTTP</option>
                           <option value="https">后端 HTTPS</option>
@@ -3304,7 +3304,7 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
                         setIsDragOverUpload(false);
                       }}
                       onDrop={handleUploadDrop}
-                      className={`border-2 border-dashed rounded-xl p-8 text-center transition-all bg-white ${
+                      className={`border-2 border-dashed rounded-xl p-8 text-center transition-all bg-slate-50 ${
                         isDragOverUpload
                           ? 'border-blue-500 bg-blue-50/50'
                           : 'border-slate-200 hover:border-blue-400'
@@ -3344,7 +3344,7 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
                               setSelectedUploadFile(null);
                               if (fileInputRef.current) fileInputRef.current.value = '';
                             }}
-                            className="px-3 py-1.5 text-[11px] font-black text-slate-600 bg-white border border-slate-200 rounded-lg hover:bg-slate-50"
+                            className="px-3 py-1.5 text-[11px] font-black text-slate-600 bg-slate-50 border border-slate-200 rounded-lg hover:bg-slate-100"
                           >
                             清除
                           </button>
@@ -3395,7 +3395,7 @@ spec:
             </div>
 
             {/* Modal Footer */}
-            <div className="p-6 border-t border-slate-100 bg-white flex justify-end gap-3 shrink-0">
+            <div className="p-6 border-t border-slate-100 bg-slate-50 flex justify-end gap-3 shrink-0">
               <button
                 type="button"
                 onClick={() => { setIsUploadModalOpen(false); resetUploadForm(); }}
@@ -3407,7 +3407,7 @@ spec:
               <button
                 onClick={handleUploadSubmit}
                 disabled={isUploading || !newTemplate.name.trim()}
-                className="px-10 py-3 bg-blue-600 text-white rounded-xl font-black hover:bg-blue-700 shadow-xl transition-all flex items-center gap-2 min-w-[140px] disabled:opacity-50 disabled:cursor-not-allowed"
+ className="px-10 py-3 bg-blue-600 text-white rounded-xl font-black hover:bg-blue-700 transition-all flex items-center gap-2 min-w-[140px] disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {isUploading ? (
                   <>
@@ -3429,7 +3429,7 @@ spec:
       {/* Delete Confirmation Modal */}
       {deleteConfirm.show && (
         <div className="fixed inset-0 z-[200] flex items-center justify-center p-6 bg-slate-900/70 backdrop-blur-md animate-in fade-in">
-          <div className="bg-white w-full max-w-lg rounded-[3rem] shadow-2xl overflow-hidden animate-in zoom-in-95">
+ <div className="bg-slate-50 w-full max-w-lg rounded-[3rem] overflow-hidden animate-in zoom-in-95">
             <div className="p-10">
               <div className="flex items-center gap-5 mb-6">
                 <div className="w-16 h-16 bg-red-100 rounded-[1.5rem] flex items-center justify-center">
@@ -3469,7 +3469,7 @@ spec:
               <button
                 onClick={executeDelete}
                 disabled={isDeleting}
-                className="flex-1 px-8 py-4 bg-red-600 text-white rounded-2xl font-black hover:bg-red-700 transition-all flex items-center justify-center gap-3 shadow-xl shadow-red-500/20 disabled:opacity-50"
+ className="flex-1 px-8 py-4 bg-red-600 text-white rounded-2xl font-black hover:bg-red-700 transition-all flex items-center justify-center gap-3 shadow-red-500/20 disabled:opacity-50"
               >
                 {isDeleting ? (
                   <>

@@ -39,7 +39,7 @@ const shortPath = (path?: string | null) => {
   const normalized = path.replace(/\\/g, '/');
   const parts = normalized.split('/').filter(Boolean);
   if (parts.length <= 4) return normalized;
-  return `.../${parts.slice(-4).join('/')}`;
+  return`.../${parts.slice(-4).join('/')}`;
 };
 
 const languageFromPath = (path?: string | null) => {
@@ -63,16 +63,16 @@ const fileKindLabel = (file?: B2SAdvancedFile | null) => {
 
 const formatSize = (value?: number | null) => {
   if (!value) return '0 B';
-  if (value < 1024) return `${value} B`;
-  if (value < 1024 * 1024) return `${(value / 1024).toFixed(1)} KB`;
-  return `${(value / 1024 / 1024).toFixed(2)} MB`;
+  if (value < 1024) return`${value} B`;
+  if (value < 1024 * 1024) return`${(value / 1024).toFixed(1)} KB`;
+  return`${(value / 1024 / 1024).toFixed(2)} MB`;
 };
 
 const extractFsRelPath = (absolutePath: string, projectId: string): string | null => {
-  const prefix = `/data/files/${projectId}`;
+  const prefix =`/data/files/${projectId}`;
   if (!absolutePath.startsWith(prefix)) return null;
   const rel = absolutePath.slice(prefix.length).replace(/\/+$/, '');
-  return rel.startsWith('/') ? rel : `/${rel}`;
+  return rel.startsWith('/') ? rel :`/${rel}`;
 };
 
 
@@ -120,7 +120,7 @@ const attemptNumberFromName = (name?: string | null) => {
 
 const attemptLabelFromName = (name?: string | null) => {
   const attempt = attemptNumberFromName(name);
-  return attempt ? `第 ${attempt} 轮` : undefined;
+  return attempt ?`第 ${attempt} 轮` : undefined;
 };
 
 const batchNumberFromName = (name?: string | null) => {
@@ -129,9 +129,9 @@ const batchNumberFromName = (name?: string | null) => {
 };
 
 const batchLabel = (batchName?: string | null, batchNo?: number | null) => {
-  if (batchNo) return `Batch ${String(batchNo).padStart(3, '0')}`;
+  if (batchNo) return`Batch ${String(batchNo).padStart(3, '0')}`;
   const match = String(batchName || '').match(/batch[_-]?(\d+)/i);
-  return match ? `Batch ${String(Number(match[1])).padStart(3, '0')}` : (batchName || 'Batch');
+  return match ?`Batch ${String(Number(match[1])).padStart(3, '0')}` : (batchName || 'Batch');
 };
 
 const sessionMetaFromPath = (file: B2SAdvancedFile, run: B2SAdvancedRun): Partial<AdvancedFileEntry> => {
@@ -149,22 +149,22 @@ const sessionMetaFromPath = (file: B2SAdvancedFile, run: B2SAdvancedRun): Partia
   const batchNo = batchNumberFromName(rel);
   const attemptNo = attemptNumberFromName(rel);
   const isSystemPrompt = lower.includes('system-prompt');
-  if (lower.includes('header')) return { stage: '阶段 3 · 共享头文件合成', stageOrder: 3000, section: 'Header Agent', sectionOrder: 0, round: attemptNo ? `第 ${attemptNo} 轮` : run.name, roundOrder: attemptNo || 0, agent, role: isSystemPrompt ? 'System Prompt' : 'JSONL 会话' };
+  if (lower.includes('header')) return { stage: '阶段 3 · 共享头文件合成', stageOrder: 3000, section: 'Header Agent', sectionOrder: 0, round: attemptNo ?`第 ${attemptNo} 轮` : run.name, roundOrder: attemptNo || 0, agent, role: isSystemPrompt ? 'System Prompt' : 'JSONL 会话' };
   if (batchNo || lower.includes('executor') || lower.includes('validator')) {
-    const batch = batchNo ? `Batch ${String(batchNo).padStart(3, '0')}` : 'Batch 处理';
+    const batch = batchNo ?`Batch ${String(batchNo).padStart(3, '0')}` : 'Batch 处理';
     const isValidator = lower.includes('validator');
     return {
-      stage: `阶段 4 · ${batch} 函数`,
+      stage:`阶段 4 · ${batch} 函数`,
       stageOrder: 4000 + (batchNo || 999),
       section: isValidator ? '评审' : '执行',
       sectionOrder: isValidator ? 20 : 10,
-      round: isValidator ? (attemptNo ? `第 ${attemptNo} 次评审` : '评审会话') : '执行会话',
+      round: isValidator ? (attemptNo ?`第 ${attemptNo} 次评审` : '评审会话') : '执行会话',
       roundOrder: attemptNo || 0,
       agent,
       role: isSystemPrompt ? 'System Prompt' : 'JSONL 会话',
     };
   }
-  return { stage: '阶段 4 · Agent 会话', stageOrder: 4999, section: '其他会话', sectionOrder: 90, round: attemptNo ? `第 ${attemptNo} 轮` : run.name, roundOrder: attemptNo || 0, agent, role: isSystemPrompt ? 'System Prompt' : 'JSONL 会话' };
+  return { stage: '阶段 4 · Agent 会话', stageOrder: 4999, section: '其他会话', sectionOrder: 90, round: attemptNo ?`第 ${attemptNo} 轮` : run.name, roundOrder: attemptNo || 0, agent, role: isSystemPrompt ? 'System Prompt' : 'JSONL 会话' };
 };
 
 const runFileMeta = (file: B2SAdvancedFile): { stage: string; stageOrder: number; round?: string; agent?: string } => {
@@ -233,17 +233,17 @@ export const B2STaskAdvancedPage: React.FC<Props> = ({ projectId, taskId, itemId
       run.batches.forEach((batch) => {
         const batchNo = batch.batch_no || batchNumberFromName(batch.name) || 999;
         const batchName = batchLabel(batch.name, batch.batch_no);
-        const stage = `阶段 4 · ${batchName} 函数`;
+        const stage =`阶段 4 · ${batchName} 函数`;
         const stageOrder = 4000 + batchNo;
         if (batch.disasm) list.push(entryFromFile(batch.disasm, { stage: '阶段 2 · Batch 上下文切片', stageOrder: 2000, round: batchName, file: batch.disasm }));
         if (batch.source) list.push(entryFromFile(batch.source, { stage, stageOrder, section: '执行', sectionOrder: 10, round: '执行输出', roundOrder: 0, agent: 'executor agent', role: 'batch 输出', file: batch.source }));
         batch.review_snapshots.forEach((file) => {
           const attemptNo = attemptNumberFromName(file.name) || 0;
-          list.push(entryFromFile(file, { stage, stageOrder, section: '评审', sectionOrder: 20, round: attemptNo ? `第 ${attemptNo} 次评审` : '评审轮次', roundOrder: attemptNo, agent: 'validator agent', role: '评审输入', file }));
+          list.push(entryFromFile(file, { stage, stageOrder, section: '评审', sectionOrder: 20, round: attemptNo ?`第 ${attemptNo} 次评审` : '评审轮次', roundOrder: attemptNo, agent: 'validator agent', role: '评审输入', file }));
         });
         batch.reviews.forEach((file) => {
           const attemptNo = attemptNumberFromName(file.name) || 0;
-          list.push(entryFromFile(file, { stage, stageOrder, section: '评审', sectionOrder: 20, round: attemptNo ? `第 ${attemptNo} 次评审` : '评审轮次', roundOrder: attemptNo, agent: 'validator agent', role: '评审输出', file }));
+          list.push(entryFromFile(file, { stage, stageOrder, section: '评审', sectionOrder: 20, round: attemptNo ?`第 ${attemptNo} 次评审` : '评审轮次', roundOrder: attemptNo, agent: 'validator agent', role: '评审输出', file }));
         });
       });
       run.agent_sessions.forEach((file) => {
@@ -314,7 +314,7 @@ export const B2STaskAdvancedPage: React.FC<Props> = ({ projectId, taskId, itemId
   const isSelectedJsonlSession = !!selected && selected.kind === 'agent_session' && selected.name.toLowerCase().endsWith('.jsonl');
   const item = detail?.items.find((entry) => entry.id === itemId || String(entry.sequence_no) === itemId);
   const isTaskRunning = isB2SActiveStatus(detail?.status) || isB2SActiveStatus(item?.status) || !!(detail?.running_items || detail?.cancelling_items || detail?.queued_items || detail?.pending_items);
-  const selectedPreviewKey = selected ? `${selected.path}:${selected.size}:${selected.content?.length || 0}:${selected.content?.slice(-160) || ''}` : 'empty';
+  const selectedPreviewKey = selected ?`${selected.path}:${selected.size}:${selected.content?.length || 0}:${selected.content?.slice(-160) || ''}` : 'empty';
 
   useEffect(() => {
     if (!projectId || !taskId || !itemId || !selectedArtifact || artifactContent[selectedArtifact.id] !== undefined) return;
@@ -389,7 +389,7 @@ export const B2STaskAdvancedPage: React.FC<Props> = ({ projectId, taskId, itemId
           setSessionContentByPath((current) => {
             const existing = current[selected.path] || '';
             const prefix = existing && !existing.endsWith('\n') ? '\n' : '';
-            return { ...current, [selected.path]: `${existing}${prefix}${deltaLines.join('\n')}` };
+            return { ...current, [selected.path]:`${existing}${prefix}${deltaLines.join('\n')}` };
           });
           parseAgentSessionJsonlDelta(deltaLines, (message.from_line ?? sessionLineCountRef.current) + 1);
           sessionLineCountRef.current = message.to_line ?? (sessionLineCountRef.current + deltaLines.length);
@@ -446,11 +446,11 @@ export const B2STaskAdvancedPage: React.FC<Props> = ({ projectId, taskId, itemId
   return (
     <div className="space-y-6 px-8 pb-10 pt-8">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <button type="button" onClick={onBack} className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-bold text-slate-700 shadow-sm hover:bg-slate-50">
+ <button type="button" onClick={onBack} className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm font-bold text-slate-700 hover:bg-slate-100">
           <ArrowLeft size={16} />
           返回执行明细
         </button>
-        <button type="button" onClick={() => void load()} disabled={loading} className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-bold text-slate-700 shadow-sm hover:bg-slate-50 disabled:opacity-60">
+ <button type="button" onClick={() => void load()} disabled={loading} className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm font-bold text-slate-700 hover:bg-slate-100 disabled:opacity-60">
           <RefreshCw size={16} className={loading ? 'animate-spin' : ''} />
           刷新
         </button>
@@ -458,7 +458,7 @@ export const B2STaskAdvancedPage: React.FC<Props> = ({ projectId, taskId, itemId
 
       {error && <div className="rounded-none border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700">{error}</div>}
 
-      <section className="rounded-none border border-slate-200 bg-white/85 px-5 py-3 shadow-sm">
+ <section className="rounded-none border border-slate-200 bg-slate-50 px-5 py-3">
         <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2 text-xs font-black text-slate-500">
@@ -481,7 +481,7 @@ export const B2STaskAdvancedPage: React.FC<Props> = ({ projectId, taskId, itemId
 
       <ReviewEffectivenessPanel analytics={reviewAnalytics} />
 
-      <section id="b2s-artifacts" className="scroll-mt-24 overflow-hidden rounded-none border border-slate-200 bg-white shadow-sm">
+ <section id="b2s-artifacts" className="scroll-mt-24 overflow-hidden rounded-none border border-slate-200 bg-slate-50">
         {loading && !advanced ? (
           <div className="flex items-center gap-2 p-8 text-sm text-slate-500"><Loader2 size={16} className="animate-spin" />加载中...</div>
         ) : files.length === 0 ? (
@@ -504,8 +504,8 @@ export const B2STaskAdvancedPage: React.FC<Props> = ({ projectId, taskId, itemId
                               const active = selectedPath === file.path;
                               const metaLine = [agent, role].filter(Boolean).join(' · ');
                               return (
-                                <button key={file.path} type="button" onClick={() => setSelectedPath(file.path)} className={`group relative mb-1 flex w-full cursor-pointer items-start gap-2 border-l-4 px-3 py-2.5 text-left transition-colors duration-150 ease-out ${active ? 'border-l-violet-500 bg-violet-50 text-slate-950' : 'border-l-transparent bg-white/35 hover:border-l-violet-300 hover:bg-white'}`}>
-                                  <div className={`mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center border transition-colors duration-150 ease-out ${active ? 'border-violet-200 bg-white text-violet-700' : 'border-slate-200 bg-white/70 text-slate-500 group-hover:border-violet-200 group-hover:text-violet-600'}`}>
+                                <button key={file.path} type="button" onClick={() => setSelectedPath(file.path)} className={`group relative mb-1 flex w-full cursor-pointer items-start gap-2 border-l-4 px-3 py-2.5 text-left transition-colors duration-150 ease-out ${active ? 'border-l-violet-500 bg-violet-50 text-slate-950' : 'border-l-transparent bg-slate-50/35 hover:border-l-violet-300 hover:bg-slate-50'}`}>
+ <div className={`mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center border transition-colors duration-150 ease-out ${active ? 'border-violet-200 bg-slate-50 text-violet-700' : 'border-slate-200 bg-slate-50 text-slate-500 group-hover:border-violet-200 group-hover:text-violet-600'}`}>
                                     {languageFromPath(file.name) === 'plaintext' ? <FileText size={15} /> : <Code2 size={15} />}
                                   </div>
                                   <div className="min-w-0 flex-1">

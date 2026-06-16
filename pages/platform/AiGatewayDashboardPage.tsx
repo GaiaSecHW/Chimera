@@ -26,7 +26,7 @@ const MetricCard: React.FC<{
   value: string | number;
   hint: string;
 }> = ({ icon, label, value, hint }) => (
-  <div className="rounded-[1.5rem] border border-slate-200 bg-white p-5 shadow-sm">
+ <div className="rounded-[1.5rem] border border-slate-200 bg-slate-50 p-5">
     <div className="flex items-center justify-between gap-3">
       <div className="rounded-2xl bg-slate-100 p-3 text-slate-700">{icon}</div>
       <div className="text-right text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">{label}</div>
@@ -128,7 +128,7 @@ export const AiGatewayDashboardPage: React.FC<AiGatewayDashboardPageProps> = ({ 
       </div>
 
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_360px]">
-        <section className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
+ <section className="rounded-[2rem] border border-slate-200 bg-slate-50 p-6">
           <div className="flex items-start justify-between gap-4">
             <div>
               <div className="text-[11px] font-black uppercase tracking-[0.2em] text-slate-400">近期请求</div>
@@ -175,27 +175,27 @@ export const AiGatewayDashboardPage: React.FC<AiGatewayDashboardPageProps> = ({ 
         </section>
 
         <aside className="space-y-4">
-          <button onClick={() => onNavigate('aigw-config')} className="flex w-full items-center justify-between rounded-[1.5rem] border border-slate-200 bg-white p-5 text-left shadow-sm hover:bg-slate-50">
+ <button onClick={() => onNavigate('aigw-config')} className="flex w-full items-center justify-between rounded-[1.5rem] border border-slate-200 bg-slate-50 p-5 text-left hover:bg-slate-100">
             <span>
               <span className="block text-sm font-black text-slate-900">网关配置</span>
               <span className="mt-1 block text-xs font-medium text-slate-500">模型别名、真实路由、算力池</span>
             </span>
             <Settings className="h-5 w-5 text-slate-500" />
           </button>
-          <button onClick={() => onNavigate('aigw-keys')} className="flex w-full items-center justify-between rounded-[1.5rem] border border-slate-200 bg-white p-5 text-left shadow-sm hover:bg-slate-50">
+ <button onClick={() => onNavigate('aigw-keys')} className="flex w-full items-center justify-between rounded-[1.5rem] border border-slate-200 bg-slate-50 p-5 text-left hover:bg-slate-100">
             <span>
               <span className="block text-sm font-black text-slate-900">密钥管理</span>
               <span className="mt-1 block text-xs font-medium text-slate-500">任务密钥、工作密钥、授权范围</span>
             </span>
             <KeyRound className="h-5 w-5 text-slate-500" />
           </button>
-          <div className="rounded-[1.5rem] border border-slate-200 bg-white p-5 shadow-sm">
+ <div className="rounded-[1.5rem] border border-slate-200 bg-slate-50 p-5">
             <div className="flex items-center gap-2 text-sm font-black text-slate-900"><Route className="h-4 w-4" /> 路由健康</div>
             <div className="mt-4 space-y-3">
               {providerStats.slice(0, 5).map((item, index) => (
                 <div key={`${item.backend_unit_id || item.backend_config_id || index}`} className="rounded-2xl bg-slate-50 px-4 py-3">
                   <div className="flex items-center justify-between gap-3 text-sm">
-                    <span className="font-bold text-slate-900">{item.model_name || item.backend_model_name || `Backend #${item.backend_unit_id || item.backend_config_id || index + 1}`}</span>
+                    <span className="font-bold text-slate-900">{item.model_name || item.backend_model_name ||`Backend #${item.backend_unit_id || item.backend_config_id || index + 1}`}</span>
                     <span className="font-mono text-xs text-slate-500">{Number(item.success_rate || 0).toFixed(1)}%</span>
                   </div>
                   <div className="mt-1 text-xs text-slate-500">活跃 {numberText(item.active_requests)} / 等待 {numberText(item.waiting_requests)}</div>

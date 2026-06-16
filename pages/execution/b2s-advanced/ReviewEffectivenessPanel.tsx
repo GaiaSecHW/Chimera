@@ -66,7 +66,7 @@ const DimensionSparkline: React.FC<{ values: Array<{ attemptNo: number; value: n
     const y = height - padding - ((item.value - min) / range) * (height - padding * 2);
     return { x, y };
   });
-  const path = points.map((point, index) => `${index === 0 ? 'M' : 'L'} ${point.x} ${point.y}`).join(' ');
+  const path = points.map((point, index) =>`${index === 0 ? 'M' : 'L'} ${point.x} ${point.y}`).join(' ');
   const last = points[points.length - 1];
 
   return (
@@ -125,20 +125,20 @@ export const ReviewEffectivenessPanel: React.FC<{ analytics: B2SReviewAnalytics 
   const verdictTone = verdictPassed ? LK.success : verdictFailed ? LK.error : LK.body;
   const verdictColorsValue = verdictColors(verdictPassed);
   const conclusionText = verdictPassed
-    ? `多轮评审已完成，当前未发现阻断问题，遗留问题 ${remainingCount} 项。`
+    ?`多轮评审已完成，当前未发现阻断问题，遗留问题 ${remainingCount} 项。`
     : verdictFailed
-      ? `评审仍未通过，当前遗留问题 ${remainingCount} 项，建议优先查看闭环证据。`
+      ?`评审仍未通过，当前遗留问题 ${remainingCount} 项，建议优先查看闭环证据。`
       : '评审结论暂不可判定，建议查看各轮评审详情与中间产物。';
-  const closureTitle = remainingCount > 0 ? `仍有 ${remainingCount} 项未闭环` : '问题全部闭环';
+  const closureTitle = remainingCount > 0 ?`仍有 ${remainingCount} 项未闭环` : '问题全部闭环';
   const closureTone = remainingCount > 0 ? LK.error : LK.success;
-  const closureDescription = `共发现 ${issueTotal || 0} 项问题，已解决 ${resolvedCount} 项，未解决 ${remainingCount} 项。`;
+  const closureDescription =`共发现 ${issueTotal || 0} 项问题，已解决 ${resolvedCount} 项，未解决 ${remainingCount} 项。`;
   const trendToneClass = trend?.tone === 'warning' ? LK.warning : trend?.tone === 'positive' ? LK.success : LK.body;
 
   const qualityTrend = (() => {
     const attemptMap = new Map<number, Record<string, number | string>>();
     dimensions.forEach((dimension) => {
       dimension.points.forEach((point) => {
-        const row = attemptMap.get(point.attempt_no) || { round: point.label || `第${point.attempt_no}轮` };
+        const row = attemptMap.get(point.attempt_no) || { round: point.label ||`第${point.attempt_no}轮` };
         row[dimension.label] = point.score;
         attemptMap.set(point.attempt_no, row);
       });
@@ -167,7 +167,7 @@ export const ReviewEffectivenessPanel: React.FC<{ analytics: B2SReviewAnalytics 
         className="mb-4 rounded-xl p-5"
         style={{
           border: `1px solid ${verdictColorsValue.border}`,
-          borderLeft: `4px solid ${verdictColorsValue.borderLeft}`,
+          borderLeft:`4px solid ${verdictColorsValue.borderLeft}`,
           backgroundColor: verdictColorsValue.bg,
         }}
       >
@@ -179,9 +179,9 @@ export const ReviewEffectivenessPanel: React.FC<{ analytics: B2SReviewAnalytics 
           </div>
           <div
             className="grid shrink-0 grid-cols-2 lg:min-w-[430px]"
-            style={{ borderLeft: `1px solid ${verdictColorsValue.border}`, backgroundColor: 'rgba(255, 255, 255, 0.05)' }}
+            style={{ borderLeft:`1px solid ${verdictColorsValue.border}`, backgroundColor: 'rgba(255, 255, 255, 0.05)' }}
           >
-            <div className="px-5 py-3 text-center" style={{ borderRight: `1px solid ${LK.border}` }}>
+            <div className="px-5 py-3 text-center" style={{ borderRight:`1px solid ${LK.border}` }}>
               <div className="text-[11px] font-semibold tracking-wider" style={{ color: LK.muted }}>最终质量</div>
               <div className="mt-1 flex items-baseline justify-center gap-2">
                 <span className="text-3xl font-semibold" style={{ color: LK.primarySoft }}>{finalQualityScore}</span>
@@ -339,7 +339,7 @@ export const ReviewEffectivenessPanel: React.FC<{ analytics: B2SReviewAnalytics 
                       </summary>
                       <div
                         className="border-l-4 p-5"
-                        style={{ borderColor: accent, borderTop: `1px solid ${badge.border}`, backgroundColor: bg }}
+                        style={{ borderColor: accent, borderTop:`1px solid ${badge.border}`, backgroundColor: bg }}
                       >
                         <div className="mb-4 flex flex-wrap items-center gap-2 text-xs font-semibold" style={{ color: LK.body }}>
                           <span>本轮发现 {round.discovered.length} 项</span>
@@ -369,7 +369,7 @@ export const ReviewEffectivenessPanel: React.FC<{ analytics: B2SReviewAnalytics 
                                       <div className="min-w-0">
                                         <div className="text-sm font-semibold" style={{ color: LK.ink }}>{issue.display_label || issue.label}</div>
                                         <div className="mt-1 text-xs leading-5" style={{ color: LK.body }}>
-                                          {issue.description || `${issue.category_label || issue.category} · ${issue.severity_label || issue.severity}`}
+                                          {issue.description ||`${issue.category_label || issue.category} · ${issue.severity_label || issue.severity}`}
                                         </div>
                                         <div className="mt-1 font-mono text-[11px] font-semibold" style={{ color: LK.muted }}>{issue.function}</div>
                                       </div>

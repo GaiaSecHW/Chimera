@@ -67,7 +67,7 @@ export const MachineTokenPage: React.FC = () => {
   const handleRegenerate = async (token: MachineToken) => {
     const confirmed = await showConfirm({
       title: '重新生成机器凭证',
-      message: `确认重新生成机器 "${token.machine_code}" 的 Token？旧凭据将立即失效。`,
+      message:`确认重新生成机器"${token.machine_code}" 的 Token？旧凭据将立即失效。`,
       confirmText: '重新生成',
       cancelText: '取消',
       danger: true,
@@ -138,16 +138,16 @@ export const MachineTokenPage: React.FC = () => {
   return (
     <div className="h-full overflow-y-auto bg-theme-app px-6 py-8 md:px-8 xl:px-10">
       <div className="flex w-full flex-col gap-6 pb-24">
-        <section className="relative overflow-hidden rounded-[2rem] border border-slate-200/80 bg-[linear-gradient(135deg,_#0f172a,_#1e293b_55%,_#1d4ed8)] px-8 py-8 text-white shadow-[0_32px_80px_-48px_rgba(15,23,42,0.95)] md:px-10">
+        <section className="relative overflow-hidden rounded-[2rem] border border-slate-200/80 bg-[linear-gradient(135deg,_#0f172a,_#1e293b_55%,_#1d4ed8)] px-8 py-8 text-white md:px-10">
           <div className="absolute inset-y-0 right-0 w-1/2 bg-[radial-gradient(circle_at_center,_rgba(147,197,253,0.18),_transparent_58%)]" />
           <div className="relative flex flex-col gap-6 xl:flex-row xl:items-end xl:justify-between">
             <div className="space-y-4 xl:max-w-[48rem] 2xl:max-w-[60rem]">
-              <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-[11px] font-bold uppercase tracking-[0.26em] text-sky-100">
+ <div className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-slate-100/10 px-4 py-2 text-[11px] font-bold uppercase tracking-[0.26em] text-sky-100">
                 <ShieldCheck size={14} />
                 Machine Credential Vault
               </div>
               <div className="flex items-start gap-4">
-                <div className="flex h-16 w-16 items-center justify-center rounded-[1.75rem] bg-white/10 text-sky-100 shadow-inner shadow-white/5">
+ <div className="flex h-16 w-16 items-center justify-center rounded-[1.75rem] bg-slate-100 text-sky-100 shadow-inner shadow-white/5">
                   <Cpu size={30} />
                 </div>
                 <div className="space-y-2">
@@ -162,14 +162,14 @@ export const MachineTokenPage: React.FC = () => {
             <div className="flex items-center gap-3 self-start xl:self-auto">
               <button
                 onClick={() => void fetchTokens()}
-                className="inline-flex items-center gap-2 rounded-2xl border border-white/10 bg-white/10 px-4 py-3 text-sm font-black text-white transition hover:bg-white/15"
+ className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-slate-100 px-4 py-3 text-sm font-black text-white transition hover:bg-slate-50/15"
               >
                 <RefreshCw size={16} className={loading ? 'animate-spin' : ''} />
                 刷新
               </button>
               <button
                 onClick={() => { setLastCreatedToken(null); setIsCreateModalOpen(true); }}
-                className="inline-flex items-center gap-2 rounded-2xl bg-white px-5 py-3 text-sm font-black text-slate-900 transition hover:bg-slate-100"
+                className="inline-flex items-center gap-2 rounded-2xl bg-slate-50 px-5 py-3 text-sm font-black text-slate-900 transition hover:bg-slate-100"
               >
                 <Plus size={16} />
                 申请新 Token
@@ -179,24 +179,24 @@ export const MachineTokenPage: React.FC = () => {
         </section>
 
         <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-          <div className="rounded-[1.8rem] bg-blue-600 px-6 py-6 text-white shadow-lg shadow-blue-500/20">
+ <div className="rounded-[1.8rem] bg-blue-600 px-6 py-6 text-white">
             <p className="text-[10px] font-black uppercase tracking-[0.24em] text-blue-100/80">已签发凭证</p>
             <p className="mt-4 text-5xl font-black">{tokens.length}</p>
             <p className="mt-4 text-sm font-medium text-blue-100/80">当前已登记的全部机器凭证数量。</p>
           </div>
-          <div className="rounded-[1.8rem] border border-slate-200 bg-white/90 px-6 py-6 shadow-sm">
+ <div className="rounded-[1.8rem] border border-slate-200 bg-slate-50 px-6 py-6">
             <p className="text-[10px] font-black uppercase tracking-[0.24em] text-slate-400">活跃凭证</p>
             <p className="mt-4 text-4xl font-black text-slate-900">{activeTokens}</p>
             <p className="mt-4 text-sm font-medium text-slate-500">当前处于启用状态、允许服务调用的凭证。</p>
           </div>
-          <div className="rounded-[1.8rem] border border-slate-200 bg-white/90 px-6 py-6 shadow-sm">
+ <div className="rounded-[1.8rem] border border-slate-200 bg-slate-50 px-6 py-6">
             <p className="text-[10px] font-black uppercase tracking-[0.24em] text-slate-400">永久凭证</p>
             <p className="mt-4 text-4xl font-black text-slate-900">{permanentTokens}</p>
             <p className="mt-4 text-sm font-medium text-slate-500">未设置过期时间、需要重点治理的常驻凭证。</p>
           </div>
-          <div className="rounded-[1.8rem] border border-sky-100 bg-sky-50/80 px-6 py-6 shadow-sm">
+ <div className="rounded-[1.8rem] border border-sky-100 bg-sky-50/80 px-6 py-6">
             <div className="flex items-center gap-3">
-              <div className="flex h-12 w-12 items-center justify-center rounded-[1.2rem] bg-white text-sky-700 shadow-sm">
+ <div className="flex h-12 w-12 items-center justify-center rounded-[1.2rem] bg-slate-50 text-sky-700">
                 <Server size={22} />
               </div>
               <div>
@@ -204,11 +204,11 @@ export const MachineTokenPage: React.FC = () => {
                 <p className="mt-1 text-lg font-black text-sky-900">每个节点独立申请</p>
               </div>
             </div>
-            <p className="mt-4 text-sm font-medium leading-6 text-sky-800/80">建议为每个服务节点使用唯一 `machine_code`，方便审计、轮换和故障隔离。</p>
+            <p className="mt-4 text-sm font-medium leading-6 text-sky-800/80">建议为每个服务节点使用唯一`machine_code`，方便审计、轮换和故障隔离。</p>
           </div>
         </section>
 
-        <section className="rounded-[2rem] border border-slate-200/80 bg-white/90 p-5 shadow-sm backdrop-blur">
+ <section className="rounded-[2rem] border border-slate-200/80 bg-slate-50 p-5 backdrop-blur">
           <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
             <div className="flex items-center gap-3">
               <div className="flex h-12 w-12 items-center justify-center rounded-[1.25rem] bg-blue-100 text-blue-700">
@@ -236,7 +236,7 @@ export const MachineTokenPage: React.FC = () => {
           </label>
         </section>
 
-        <section className="overflow-hidden rounded-[2rem] border border-slate-200/80 bg-white/95 shadow-sm">
+ <section className="overflow-hidden rounded-[2rem] border border-slate-200/80 bg-slate-50">
           <div className="border-b border-slate-100 px-6 py-5 md:px-8">
             <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
               <div className="flex items-center gap-3">
@@ -278,7 +278,7 @@ export const MachineTokenPage: React.FC = () => {
                     <tr key={token.id} className="transition hover:bg-blue-50/20">
                       <td className="px-8 py-5">
                         <div className="flex items-center gap-4">
-                          <div className="flex h-11 w-11 items-center justify-center rounded-[1rem] bg-slate-900 text-white shadow-md">
+ <div className="flex h-11 w-11 items-center justify-center rounded-[1rem] bg-slate-900 text-white">
                             <Key size={16} />
                           </div>
                           <div>
@@ -324,7 +324,7 @@ export const MachineTokenPage: React.FC = () => {
                         <div className="flex justify-end gap-2">
                           <button
                             onClick={() => void handleRegenerate(token)}
-                            className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-black text-slate-600 transition hover:border-blue-200 hover:text-blue-700"
+                            className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-black text-slate-600 transition hover:border-blue-200 hover:text-blue-700"
                             title="重新生成凭证值"
                           >
                             <Zap size={14} />
@@ -364,7 +364,7 @@ export const MachineTokenPage: React.FC = () => {
                 <select
                   value={pageSize}
                   onChange={(event) => setPageSize(Number(event.target.value))}
-                  className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-bold text-slate-700 outline-none transition focus:border-blue-300 focus:ring-4 focus:ring-blue-500/10"
+                  className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-bold text-slate-700 outline-none transition focus:border-blue-300 focus:ring-4 focus:ring-blue-500/10"
                 >
                   <option value={10}>10</option>
                   <option value={20}>20</option>
@@ -384,14 +384,14 @@ export const MachineTokenPage: React.FC = () => {
                   <button
                     onClick={() => setPage((current) => Math.max(1, current - 1))}
                     disabled={page <= 1}
-                    className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-black text-slate-600 transition hover:border-blue-200 hover:text-blue-700 disabled:cursor-not-allowed disabled:opacity-40"
+                    className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-2 text-sm font-black text-slate-600 transition hover:border-blue-200 hover:text-blue-700 disabled:cursor-not-allowed disabled:opacity-40"
                   >
                     上一页
                   </button>
                   <button
                     onClick={() => setPage((current) => Math.min(totalPages, current + 1))}
                     disabled={page >= totalPages}
-                    className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-black text-slate-600 transition hover:border-blue-200 hover:text-blue-700 disabled:cursor-not-allowed disabled:opacity-40"
+                    className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-2 text-sm font-black text-slate-600 transition hover:border-blue-200 hover:text-blue-700 disabled:cursor-not-allowed disabled:opacity-40"
                   >
                     下一页
                   </button>
@@ -403,10 +403,10 @@ export const MachineTokenPage: React.FC = () => {
 
         {isCreateModalOpen && (
           <div className="fixed inset-0 z-[150] flex items-center justify-center bg-slate-950/60 p-6 backdrop-blur-md animate-in fade-in">
-            <div className="flex max-h-[92vh] w-full max-w-2xl flex-col overflow-hidden rounded-[2.5rem] bg-white shadow-2xl animate-in zoom-in-95">
+ <div className="flex max-h-[92vh] w-full max-w-2xl flex-col overflow-hidden rounded-[2.5rem] bg-slate-50 animate-in zoom-in-95">
               <div className="flex items-center justify-between border-b border-slate-100 px-8 py-7">
                 <div className="flex items-center gap-4">
-                  <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-900 text-white shadow-lg">
+ <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-900 text-white">
                     {lastCreatedToken ? <ShieldCheck size={22} /> : <Plus size={22} />}
                   </div>
                   <div>
@@ -434,7 +434,7 @@ export const MachineTokenPage: React.FC = () => {
                     </div>
                     <button
                       onClick={() => handleCopy(lastCreatedToken)}
-                      className={`absolute right-4 top-4 rounded-xl p-3 transition ${copied ? 'bg-emerald-500 text-white' : 'bg-white/10 text-white hover:bg-white/20'}`}
+ className={`absolute right-4 top-4 rounded-xl p-3 transition ${copied ? 'bg-emerald-500 text-white' : 'bg-slate-100 text-white hover:bg-slate-100'}`}
                     >
                       {copied ? <Check size={18} /> : <Copy size={18} />}
                     </button>
@@ -453,7 +453,7 @@ export const MachineTokenPage: React.FC = () => {
                     <input
                       required
                       placeholder="e.g. scanner-node-beijing-01"
-                      className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-5 py-4 text-sm font-semibold text-slate-800 outline-none transition focus:border-blue-300 focus:bg-white focus:ring-4 focus:ring-blue-500/10"
+                      className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-5 py-4 text-sm font-semibold text-slate-800 outline-none transition focus:border-blue-300 focus:bg-slate-50 focus:ring-4 focus:ring-blue-500/10"
                       value={formData.machine_code}
                       onChange={(event) => setFormData({ ...formData, machine_code: event.target.value })}
                     />
@@ -462,7 +462,7 @@ export const MachineTokenPage: React.FC = () => {
                     <label className="text-[10px] font-black uppercase tracking-[0.22em] text-slate-400">用途描述</label>
                     <input
                       placeholder="例如：分布式漏洞扫描引擎专用接入凭证"
-                      className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-5 py-4 text-sm font-semibold text-slate-800 outline-none transition focus:border-blue-300 focus:bg-white focus:ring-4 focus:ring-blue-500/10"
+                      className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-5 py-4 text-sm font-semibold text-slate-800 outline-none transition focus:border-blue-300 focus:bg-slate-50 focus:ring-4 focus:ring-blue-500/10"
                       value={formData.description}
                       onChange={(event) => setFormData({ ...formData, description: event.target.value })}
                     />
@@ -471,7 +471,7 @@ export const MachineTokenPage: React.FC = () => {
                     <label className="text-[10px] font-black uppercase tracking-[0.22em] text-slate-400">有效截止日期 (可选)</label>
                     <input
                       type="date"
-                      className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-5 py-4 text-sm font-semibold text-slate-800 outline-none transition focus:border-blue-300 focus:bg-white focus:ring-4 focus:ring-blue-500/10"
+                      className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-5 py-4 text-sm font-semibold text-slate-800 outline-none transition focus:border-blue-300 focus:bg-slate-50 focus:ring-4 focus:ring-blue-500/10"
                       value={formData.expires_at}
                       onChange={(event) => setFormData({ ...formData, expires_at: event.target.value })}
                     />

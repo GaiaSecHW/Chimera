@@ -38,7 +38,7 @@ export const OnlineSessionPage: React.FC = () => {
   const handleKick = async (userId: number, username: string) => {
     const confirmed = await showConfirm({
       title: '强制下线用户',
-      message: `确认强制下线用户 "${username}"？此操作将立即吊销该用户所有活跃 JWT Token。`,
+      message:`确认强制下线用户"${username}"？此操作将立即吊销该用户所有活跃 JWT Token。`,
       confirmText: '立即下线',
       cancelText: '取消',
       danger: true,
@@ -87,16 +87,16 @@ export const OnlineSessionPage: React.FC = () => {
   return (
     <div className="h-full overflow-y-auto bg-theme-app px-6 py-8 md:px-8 xl:px-10">
       <div className="flex w-full flex-col gap-6 pb-24">
-        <section className="relative overflow-hidden rounded-[2rem] border border-emerald-950/10 bg-[linear-gradient(135deg,_#052e2b,_#065f46_55%,_#0f766e)] px-8 py-8 text-white shadow-[0_32px_80px_-48px_rgba(6,95,70,0.9)] md:px-10">
+        <section className="relative overflow-hidden rounded-[2rem] border border-emerald-950/10 bg-[linear-gradient(135deg,_#052e2b,_#065f46_55%,_#0f766e)] px-8 py-8 text-white md:px-10">
           <div className="absolute inset-y-0 right-0 w-1/2 bg-[radial-gradient(circle_at_center,_rgba(110,231,183,0.18),_transparent_58%)]" />
           <div className="relative flex flex-col gap-6 xl:flex-row xl:items-end xl:justify-between">
             <div className="space-y-4 xl:max-w-[48rem] 2xl:max-w-[60rem]">
-              <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-[11px] font-bold uppercase tracking-[0.26em] text-emerald-100">
+ <div className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-slate-100/10 px-4 py-2 text-[11px] font-bold uppercase tracking-[0.26em] text-emerald-100">
                 <Activity size={14} />
                 Session Intelligence
               </div>
               <div className="flex items-start gap-4">
-                <div className="flex h-16 w-16 items-center justify-center rounded-[1.75rem] bg-white/10 text-emerald-100 shadow-inner shadow-white/5">
+ <div className="flex h-16 w-16 items-center justify-center rounded-[1.75rem] bg-slate-100 text-emerald-100 shadow-inner shadow-white/5">
                   <Globe size={30} />
                 </div>
                 <div className="space-y-2">
@@ -109,13 +109,13 @@ export const OnlineSessionPage: React.FC = () => {
             </div>
 
             <div className="flex items-center gap-3 self-start xl:self-auto">
-              <div className="rounded-[1.5rem] border border-white/10 bg-white/10 px-4 py-3 backdrop-blur">
+ <div className="rounded-[1.5rem] border border-slate-200 bg-slate-100 px-4 py-3 backdrop-blur">
                 <p className="text-[10px] font-black uppercase tracking-[0.24em] text-emerald-100/70">最近同步</p>
                 <p className="mt-1 text-sm font-black text-white">{lastRefreshed.toLocaleTimeString()}</p>
               </div>
               <button
                 onClick={() => void fetchSessions()}
-                className="inline-flex items-center gap-2 rounded-2xl border border-white/10 bg-white/10 px-4 py-3 text-sm font-black text-white transition hover:bg-white/15"
+ className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-slate-100 px-4 py-3 text-sm font-black text-white transition hover:bg-slate-50/15"
               >
                 <RefreshCw size={16} className={loading ? 'animate-spin' : ''} />
                 刷新
@@ -125,7 +125,7 @@ export const OnlineSessionPage: React.FC = () => {
         </section>
 
         <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-          <div className="rounded-[1.8rem] bg-slate-950 px-6 py-6 text-white shadow-lg shadow-slate-900/10">
+ <div className="rounded-[1.8rem] bg-slate-950 px-6 py-6 text-white">
             <p className="text-[10px] font-black uppercase tracking-[0.24em] text-slate-400">在线会话</p>
             <p className="mt-4 text-5xl font-black">{sessions.length}</p>
             <p className="mt-4 flex items-center gap-2 text-[11px] font-black uppercase tracking-[0.2em] text-emerald-300">
@@ -133,19 +133,19 @@ export const OnlineSessionPage: React.FC = () => {
               Live Stream
             </p>
           </div>
-          <div className="rounded-[1.8rem] border border-slate-200 bg-white/90 px-6 py-6 shadow-sm">
+ <div className="rounded-[1.8rem] border border-slate-200 bg-slate-50 px-6 py-6">
             <p className="text-[10px] font-black uppercase tracking-[0.24em] text-slate-400">唯一用户</p>
             <p className="mt-4 text-4xl font-black text-slate-900">{new Set(sessions.map((session) => session.user_id)).size}</p>
             <p className="mt-4 text-sm font-medium text-slate-500">按用户维度统计当前活跃登录主体。</p>
           </div>
-          <div className="rounded-[1.8rem] border border-slate-200 bg-white/90 px-6 py-6 shadow-sm">
+ <div className="rounded-[1.8rem] border border-slate-200 bg-slate-50 px-6 py-6">
             <p className="text-[10px] font-black uppercase tracking-[0.24em] text-slate-400">角色标签</p>
             <p className="mt-4 text-4xl font-black text-slate-900">{roleCount}</p>
             <p className="mt-4 text-sm font-medium text-slate-500">已附加到在线会话上的角色数量总和。</p>
           </div>
-          <div className="rounded-[1.8rem] border border-emerald-100 bg-emerald-50/80 px-6 py-6 shadow-sm">
+ <div className="rounded-[1.8rem] border border-emerald-100 bg-emerald-50/80 px-6 py-6">
             <div className="flex items-center gap-3">
-              <div className="flex h-12 w-12 items-center justify-center rounded-[1.2rem] bg-white text-emerald-700 shadow-sm">
+ <div className="flex h-12 w-12 items-center justify-center rounded-[1.2rem] bg-slate-50 text-emerald-700">
                 <Zap size={22} />
               </div>
               <div>
@@ -157,7 +157,7 @@ export const OnlineSessionPage: React.FC = () => {
           </div>
         </section>
 
-        <section className="rounded-[2rem] border border-slate-200/80 bg-white/90 p-5 shadow-sm backdrop-blur">
+ <section className="rounded-[2rem] border border-slate-200/80 bg-slate-50 p-5 backdrop-blur">
           <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
             <div className="flex items-center gap-3">
               <div className="flex h-12 w-12 items-center justify-center rounded-[1.25rem] bg-emerald-100 text-emerald-700">
@@ -185,7 +185,7 @@ export const OnlineSessionPage: React.FC = () => {
           </label>
         </section>
 
-        <section className="overflow-hidden rounded-[2rem] border border-slate-200/80 bg-white/95 shadow-sm">
+ <section className="overflow-hidden rounded-[2rem] border border-slate-200/80 bg-slate-50">
           <div className="border-b border-slate-100 px-6 py-5 md:px-8">
             <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
               <div className="flex items-center gap-3">
@@ -300,7 +300,7 @@ export const OnlineSessionPage: React.FC = () => {
                 <select
                   value={pageSize}
                   onChange={(event) => setPageSize(Number(event.target.value))}
-                  className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-bold text-slate-700 outline-none transition focus:border-emerald-300 focus:ring-4 focus:ring-emerald-500/10"
+                  className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-bold text-slate-700 outline-none transition focus:border-emerald-300 focus:ring-4 focus:ring-emerald-500/10"
                 >
                   <option value={10}>10</option>
                   <option value={20}>20</option>
@@ -320,14 +320,14 @@ export const OnlineSessionPage: React.FC = () => {
                   <button
                     onClick={() => setPage((current) => Math.max(1, current - 1))}
                     disabled={page <= 1}
-                    className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-black text-slate-600 transition hover:border-emerald-200 hover:text-emerald-700 disabled:cursor-not-allowed disabled:opacity-40"
+                    className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-2 text-sm font-black text-slate-600 transition hover:border-emerald-200 hover:text-emerald-700 disabled:cursor-not-allowed disabled:opacity-40"
                   >
                     上一页
                   </button>
                   <button
                     onClick={() => setPage((current) => Math.min(totalPages, current + 1))}
                     disabled={page >= totalPages}
-                    className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-black text-slate-600 transition hover:border-emerald-200 hover:text-emerald-700 disabled:cursor-not-allowed disabled:opacity-40"
+                    className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-2 text-sm font-black text-slate-600 transition hover:border-emerald-200 hover:text-emerald-700 disabled:cursor-not-allowed disabled:opacity-40"
                   >
                     下一页
                   </button>

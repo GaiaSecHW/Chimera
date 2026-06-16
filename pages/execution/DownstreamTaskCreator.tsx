@@ -90,7 +90,7 @@ const DEFAULT_BUTTON_CLASS =
 
 const DEFAULT_DATAFLOW_VULN_RUNS_ROOT = '/app/secflow-app-dataflow-vuln-scan';
 const DEFAULT_DATAFLOW_VULN_MODEL = 'local_minimax/MiniMax/MiniMax-M2.5';
-const FORM_INPUT_CLASS = 'w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm font-semibold text-slate-800 outline-none focus:border-emerald-500';
+const FORM_INPUT_CLASS = 'w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm font-semibold text-slate-800 outline-none focus:border-emerald-500';
 const REVIEW_PROFILE_OPTIONS = [
   { value: 'fast', label: '快速筛选' },
   { value: 'balanced', label: '平衡挖掘' },
@@ -144,7 +144,7 @@ function normalizeDownstreamVulnConfigPayload(value?: Partial<DataflowProfileCon
 function initialDownstreamVulnCreateState(overrides?: Partial<DownstreamVulnCreateState>): DownstreamVulnCreateState {
   const defaults = downstreamVulnDefaultConfigPayload();
   return {
-    title: `dataflow-vuln-${new Date().toISOString().slice(0, 16).replace('T', '-')}`,
+    title:`dataflow-vuln-${new Date().toISOString().slice(0, 16).replace('T', '-')}`,
     profileId: '',
     workspacePath: DEFAULT_DATAFLOW_VULN_RUNS_ROOT,
     dataFlowPath: '',
@@ -256,7 +256,7 @@ function dirname(path?: string | null): string {
   const normalized = String(path || '').replace(/\\/g, '/').replace(/\/+$/, '');
   const parts = normalized.split('/').filter(Boolean);
   if (parts.length <= 1) return normalized.startsWith('/') ? '/' : '';
-  return `${normalized.startsWith('/') ? '/' : ''}${parts.slice(0, -1).join('/')}`;
+  return`${normalized.startsWith('/') ? '/' : ''}${parts.slice(0, -1).join('/')}`;
 }
 
 function stripExt(name: string): string {
@@ -267,37 +267,37 @@ function joinPath(base: string, child: string): string {
   if (!base) return child;
   if (!child) return base;
   if (child.startsWith('/')) return child;
-  return `${base.replace(/\/+$/, '')}/${child.replace(/^\/+/, '')}`;
+  return`${base.replace(/\/+$/, '')}/${child.replace(/^\/+/, '')}`;
 }
 
 function normalizeProjectScopedDisplayPath(projectId: string, path?: string | null): string {
   const normalized = String(path || '').replace(/\\/g, '/').trim();
   if (!normalized) return '';
-  const projectRoot = `/data/files/${projectId}`;
+  const projectRoot =`/data/files/${projectId}`;
   if (normalized === projectRoot) return '/';
   if (normalized.startsWith(`${projectRoot}/`)) {
-    return `/${normalized.slice(projectRoot.length + 1).replace(/^\/+/, '')}`;
+    return`/${normalized.slice(projectRoot.length + 1).replace(/^\/+/, '')}`;
   }
-  return normalized.startsWith('/') ? normalized : `/${normalized}`;
+  return normalized.startsWith('/') ? normalized :`/${normalized}`;
 }
 
 function dataflowVulnInputRef(projectId: string, path: string): DataflowInputRef {
   const normalized = String(path || '').replace(/\\/g, '/').trim();
-  const projectRoot = `/data/files/${projectId}`;
+  const projectRoot =`/data/files/${projectId}`;
   if (normalized === projectRoot) {
     return { source: 'project_filesystem', path: '/', filename: basename(normalized) };
   }
   if (normalized.startsWith(`${projectRoot}/`)) {
     return {
       source: 'project_filesystem',
-      path: `/${normalized.slice(projectRoot.length + 1).replace(/^\/+/, '')}`,
+      path:`/${normalized.slice(projectRoot.length + 1).replace(/^\/+/, '')}`,
       filename: basename(normalized),
     };
   }
   if (normalized.startsWith('/data/files/')) {
     return { source: 'absolute_path', path: normalized, filename: basename(normalized) };
   }
-  return { source: 'project_filesystem', path: normalized.startsWith('/') ? normalized : `/${normalized}`, filename: basename(normalized) };
+  return { source: 'project_filesystem', path: normalized.startsWith('/') ? normalized :`/${normalized}`, filename: basename(normalized) };
 }
 
 function asRecord(value: unknown): Record<string, any> {
@@ -370,13 +370,13 @@ function moduleElfCandidate(module: AppSaResultModule): string {
 function systemCandidates(result: AppSaTaskResult | null, mode: DownstreamMode): Candidate[] {
   const modules = result?.modules || [];
   return modules.map((module) => {
-    const moduleName = module.module_name || `module-${module.rank}`;
+    const moduleName = module.module_name ||`module-${module.rank}`;
     if (mode === 'binary') {
       const elfPath = moduleElfCandidate(module);
       return {
         key: moduleName,
         label: moduleName,
-        description: `${module.file_count || module.files?.length || 0} 个文件 · 风险 ${module.risk_level || '-'}`,
+        description:`${module.file_count || module.files?.length || 0} 个文件 · 风险 ${module.risk_level || '-'}`,
         disabledReason: !module.module_dir_path || !elfPath ? '缺少模块目录或 ELF 输入文件' : undefined,
         payload: {
           module,
@@ -388,7 +388,7 @@ function systemCandidates(result: AppSaTaskResult | null, mode: DownstreamMode):
     return {
       key: moduleName,
       label: moduleName,
-      description: `${module.file_count || module.files?.length || 0} 个文件 · 源码入口分析`,
+      description:`${module.file_count || module.files?.length || 0} 个文件 · 源码入口分析`,
       disabledReason: !module.module_dir_path ? '缺少模块目录' : undefined,
       payload: {
         module,
@@ -403,7 +403,7 @@ function b2sCandidates(detail: B2STaskDetail): Candidate[] {
   return (detail.items || []).map((item) => ({
     key: item.id,
     label: stripExt(basename(item.elf_path)),
-    description: `${basename(item.elf_path)} · ${item.generated_files?.length || 0} 个结果文件`,
+    description:`${basename(item.elf_path)} · ${item.generated_files?.length || 0} 个结果文件`,
     disabledReason: item.status !== 'success' ? '仅成功 item 可创建入口分析' : !item.output_dir ? '缺少输出源码目录' : undefined,
     payload: { item },
   }));
@@ -417,14 +417,13 @@ function entryCandidates(result: AppEaTaskResult | null): Candidate[] {
   return details.map((entry, index) => {
     const fileName = (entry.file || '').split('/').pop() || entry.file || '';
     const taintsStr = (entry.taints || []).join(', ') || '—';
-    const conf = entry.confidence != null ? `${Math.round(entry.confidence * 100)}%` : null;
+    const conf = entry.confidence != null ?`${Math.round(entry.confidence * 100)}%` : null;
     const descParts = [
-      fileName ? `📄 ${fileName}` : null,
-      `污点: ${taintsStr}`,
-      conf ? `置信度: ${conf}` : null,
+      fileName ?`📄 ${fileName}` : null,`污点: ${taintsStr}`,
+      conf ?`置信度: ${conf}` : null,
     ].filter(Boolean);
     return {
-      key: `${entry.func_hash || entry.function}-${index}`,
+      key:`${entry.func_hash || entry.function}-${index}`,
       label: entry.function,
       description: descParts.join(' · '),
       payload: {
@@ -459,11 +458,8 @@ function dataflowCandidates(task: AppDfaTaskDetail, result: AppDfaTaskResult | n
   return [{
     key: task.task_id,
     label: task.task_name || task.task_id,
-    description: [
-      `Runs 根目录：${runsRoot}`,
-      `数据流目录：${dataFlowDir || '-'}`,
-      `代码目录：${sourceDir || '-'}`,
-      fileCount ? `数据流产物 ${fileCount} 个` : '',
+    description: [`Runs 根目录：${runsRoot}`,`数据流目录：${dataFlowDir || '-'}`,`代码目录：${sourceDir || '-'}`,
+      fileCount ?`数据流产物 ${fileCount} 个` : '',
     ].filter(Boolean).join(' · '),
     disabledReason: disabledReasons.join('；') || undefined,
     payload: { runsRoot, dataFlowDir, sourceDir },
@@ -480,7 +476,7 @@ function buildDownstreamVulnCreatePrefill(
   const candidate = dataflowCandidates(task, result)[0];
   const titleBase = sourceName.trim() || task.task_name || task.task_id;
   const initial = initialDownstreamVulnCreateState({
-    title: `${titleBase}-${TARGET_LABEL.vuln_scan}`,
+    title:`${titleBase}-${TARGET_LABEL.vuln_scan}`,
     workspacePath: normalizeProjectScopedDisplayPath(projectId, String(candidate?.payload.runsRoot || DEFAULT_DATAFLOW_VULN_RUNS_ROOT)),
     dataFlowPath: normalizeProjectScopedDisplayPath(projectId, String(candidate?.payload.dataFlowDir || '')),
     sourcePath: normalizeProjectScopedDisplayPath(projectId, String(candidate?.payload.sourceDir || '')),
@@ -606,7 +602,7 @@ export const DownstreamTaskCreator: React.FC<Props> = ({
       return profiles;
     } catch (err: any) {
       setVulnProfiles([]);
-      setMessage((current) => current || `加载漏洞挖掘 Profile 失败: ${err?.message || err}`);
+      setMessage((current) => current ||`加载漏洞挖掘 Profile 失败: ${err?.message || err}`);
       return [] as DataflowScanProfile[];
     } finally {
       setVulnProfilesLoading(false);
@@ -723,7 +719,7 @@ export const DownstreamTaskCreator: React.FC<Props> = ({
           const module = candidate.payload.module as AppSaResultModule;
           const createdTask = await executionApi.appEntryAnalyse.createTask({
             project_id: projectId,
-            task_name: `${defaultPrefix}-${candidate.label}`,
+            task_name:`${defaultPrefix}-${candidate.label}`,
             input_path: String(candidate.payload.inputPath),
             module_name: module.module_name,
             source_path: String(candidate.payload.sourcePath || candidate.payload.inputPath),
@@ -736,7 +732,7 @@ export const DownstreamTaskCreator: React.FC<Props> = ({
           const moduleName = stripExt(basename(item.elf_path));
           const createdTask = await executionApi.appEntryAnalyse.createTask({
             project_id: projectId,
-            task_name: `${defaultPrefix}-${moduleName}`,
+            task_name:`${defaultPrefix}-${moduleName}`,
             input_path: item.output_dir,
             module_name: moduleName,
             source_path: item.output_dir,
@@ -764,23 +760,22 @@ export const DownstreamTaskCreator: React.FC<Props> = ({
           if (!file) throw new Error(`候选入口 ${functionName} 缺少 source_file，无法创建数据流分析任务`);
           const taintLines = taints.map((name, i) => {
             const detail = taintDetails.find((d) => d.name === name);
-            const detail_desc = detail?.description ? `（${detail.description}）` : '';
-            return `污点${i + 1}：${name}${detail_desc}`;
+            const detail_desc = detail?.description ?`（${detail.description}）` : '';
+            return`污点${i + 1}：${name}${detail_desc}`;
           });
           const header = [
-            moduleName ? `分析${moduleName}中` : '分析',
-            file ? `${file}的` : '',
-            `${functionName}的污点数据流`,
+            moduleName ?`分析${moduleName}中` : '分析',
+            file ?`${file}的` : '',`${functionName}的污点数据流`,
           ].join('');
-          const legacyTaintLine = `\n外部输入参数为: ${taints.join(', ')}`;
+          const legacyTaintLine =`\n外部输入参数为: ${taints.join(', ')}`;
           const taintBody = tag === 'A'
-            ? `，函数主动拉取了污点，污点为函数内变量:\n${taintLines.join('\n')}${legacyTaintLine}`
-            : `，污点为函数入参:\n${taintLines.join('\n')}${legacyTaintLine}`;
+            ?`，函数主动拉取了污点，污点为函数内变量:\n${taintLines.join('\n')}${legacyTaintLine}`
+            :`，污点为函数入参:\n${taintLines.join('\n')}${legacyTaintLine}`;
           const promptContent = header + taintBody;
           try {
             const createdTask = await executionApi.appDataflowVulnScan.createTask({
               project_id: projectId,
-              task_name: `${defaultPrefix}-${functionName}`,
+              task_name:`${defaultPrefix}-${functionName}`,
               input_path: moduleInputPath,
               module_input_path: moduleInputPath,
               source_root_path: sourceRootPath,
@@ -817,11 +812,11 @@ export const DownstreamTaskCreator: React.FC<Props> = ({
           if (!dataFlowDir || !sourceDir || !runsRoot) {
             throw new Error('创建数据流漏洞挖掘任务需要 Runs 根目录、数据流目录和代码目录');
           }
-          const title = defaultPrefix.includes(candidate.label) ? defaultPrefix : `${defaultPrefix}-${candidate.label}`;
+          const title = defaultPrefix.includes(candidate.label) ? defaultPrefix :`${defaultPrefix}-${candidate.label}`;
           const createdTask = await executionApi.dataflowVulnScanner.createTask({
             project_id: projectId,
             title,
-            task_markdown: `基于数据流分析任务 ${candidate.label} 的输出执行漏洞挖掘。`,
+            task_markdown:`基于数据流分析任务 ${candidate.label} 的输出执行漏洞挖掘。`,
             workspace_dir: dataflowVulnInputRef(projectId, runsRoot),
             data_flow: dataflowVulnInputRef(projectId, dataFlowDir),
             source_dir: dataflowVulnInputRef(projectId, sourceDir),
@@ -832,7 +827,7 @@ export const DownstreamTaskCreator: React.FC<Props> = ({
         }
       }
       setCreated(rows);
-      setMessage(rows.length ? `已创建 ${rows.length} 个${TARGET_LABEL[targetStage]}任务` : '没有创建任务');
+      setMessage(rows.length ?`已创建 ${rows.length} 个${TARGET_LABEL[targetStage]}任务` : '没有创建任务');
     } catch (err: any) {
       setMessage(`创建失败: ${err?.message || err}`);
     } finally {
@@ -866,7 +861,7 @@ export const DownstreamTaskCreator: React.FC<Props> = ({
       {open ? (
         <div style={{ position: 'fixed', inset: 0, zIndex: 80, display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(7, 13, 24, 0.7)', padding: '16px 32px', backdropFilter: 'blur(4px)' }}>
           <section style={{ display: 'flex', maxHeight: '90vh', width: '100%', maxWidth: '80rem', flexDirection: 'column', overflow: 'hidden', borderRadius: '20px', border: `1px solid ${LK.border}`, backgroundColor: LK.surface }}>
-            <header style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '16px', borderBottom: `1px solid ${LK.border}`, padding: '20px 24px' }}>
+            <header style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '16px', borderBottom:`1px solid ${LK.border}`, padding: '20px 24px' }}>
               <div>
                 <div style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.2em', color: LK.success }}>Manual Downstream Task</div>
                 <h2 style={{ marginTop: '8px', fontSize: '24px', fontWeight: 600, color: LK.ink }}>创建{TARGET_LABEL[targetStage]}</h2>
@@ -1081,7 +1076,7 @@ export const DownstreamTaskCreator: React.FC<Props> = ({
                               <textarea
                                 value={vulnCreateState.runtimeOverridesText}
                                 onChange={(event) => setVulnCreateState({ ...vulnCreateState, runtimeOverridesText: event.target.value })}
-                                placeholder={'{\n  "global": { "max_review_cycles": 4 }\n}'}
+                                placeholder={'{\n"global": {"max_review_cycles": 4 }\n}'}
                                 style={{ marginTop: '8px', minHeight: '150px', width: '100%', borderRadius: '8px', border: `1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised, padding: '12px 16px', fontFamily: MONO, fontSize: '12px', lineHeight: '1.4', color: LK.ink, outline: 'none' }}
                               />
                             </label>
@@ -1105,26 +1100,26 @@ export const DownstreamTaskCreator: React.FC<Props> = ({
                                 key={item}
                                 type="button"
                                 onClick={() => setMode(item)}
-                                className={`rounded-xl border px-3 py-2 text-xs font-black ${mode === item ? 'border-slate-900 bg-slate-900 text-white' : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'}`}
+                                className={`rounded-xl border px-3 py-2 text-xs font-black ${mode === item ? 'border-slate-900 bg-slate-900 text-white' : 'border-slate-200 bg-slate-50 text-slate-600 hover:bg-slate-100'}`}
                               >
                                 {item === 'binary' ? '二进制任务模式' : '源码任务模式'}
                               </button>
                             ))}
                           </div>
                         ) : modeOptions.length === 1 ? (
-                          <div className="mt-4 inline-flex rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-black text-slate-600">
+                          <div className="mt-4 inline-flex rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-black text-slate-600">
                             {modeOptions[0] === 'binary' ? '二进制任务模式' : '源码任务模式'}
                           </div>
                         ) : null}
                       </div>
 
-                      <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
+                      <section className="overflow-hidden rounded-2xl border border-slate-200 bg-slate-50">
                         <div className="flex items-center justify-between gap-3 border-b border-slate-200 bg-slate-50 px-4 py-3">
                           <div>
                             <div className="text-sm font-black text-slate-900">候选输入</div>
                             <div className="mt-1 text-xs text-slate-500">可选 {selectableCandidates.length} / 总计 {candidates.length}</div>
                           </div>
-                          <button type="button" onClick={toggleAll} className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-bold text-slate-600 hover:bg-slate-50">
+                          <button type="button" onClick={toggleAll} className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-bold text-slate-600 hover:bg-slate-100">
                             {selectedCandidates.length === selectableCandidates.length ? '取消全选' : '全选'}
                           </button>
                         </div>
@@ -1141,7 +1136,7 @@ export const DownstreamTaskCreator: React.FC<Props> = ({
                               const checked = selectedKeys.has(candidate.key);
                               const disabled = Boolean(candidate.disabledReason);
                               return (
-                                <label key={candidate.key} className={`flex items-start gap-3 px-4 py-3 ${disabled ? 'bg-slate-50 text-slate-400' : 'hover:bg-slate-50'}`}>
+                                <label key={candidate.key} className={`flex items-start gap-3 px-4 py-3 ${disabled ? 'bg-slate-50 text-slate-400' : 'hover:bg-slate-100'}`}>
                                   <input
                                     type="checkbox"
                                     disabled={disabled}
@@ -1228,7 +1223,7 @@ export const DownstreamTaskCreator: React.FC<Props> = ({
                     </div>
                   ) : null}
                   {created.length > 0 ? (
-                    <div className="rounded-2xl border border-slate-200 bg-white p-4">
+                    <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
                       <div className="mb-3 text-sm font-black text-slate-900">已创建任务</div>
                       <div className="space-y-2">
                         {created.map((item) => (
@@ -1236,7 +1231,7 @@ export const DownstreamTaskCreator: React.FC<Props> = ({
                             key={item.id}
                             type="button"
                             onClick={() => navigateTo(item.targetStage, item.id, navigate)}
-                            className="flex w-full items-start gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-left text-xs hover:bg-white"
+                            className="flex w-full items-start gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-left text-xs hover:bg-slate-50"
                           >
                             <CheckCircle2 size={14} className="mt-0.5 shrink-0 text-emerald-600" />
                             <span className="min-w-0">
@@ -1249,7 +1244,7 @@ export const DownstreamTaskCreator: React.FC<Props> = ({
                     </div>
                   ) : null}
                   {result ? (
-                    <div className="rounded-2xl border border-slate-200 bg-white p-4">
+                    <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
                       <button type="button" onClick={() => setShowRaw((value) => !value)} className="flex w-full items-center justify-between text-left text-xs font-black text-slate-600">
                         结果原始摘要
                         {showRaw ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
@@ -1262,7 +1257,7 @@ export const DownstreamTaskCreator: React.FC<Props> = ({
             </div>
 
             <footer className="flex flex-wrap items-center justify-end gap-3 border-t border-slate-200 bg-slate-50 px-6 py-4">
-              <button type="button" onClick={() => setOpen(false)} className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-bold text-slate-600 hover:bg-slate-100">
+              <button type="button" onClick={() => setOpen(false)} className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-2 text-sm font-bold text-slate-600 hover:bg-slate-100">
                 关闭
               </button>
               <button

@@ -40,29 +40,29 @@ function formatDuration(startedAt: string | null | undefined, finishedAt: string
   const startSecs = Math.floor(new Date(startedAt).getTime() / 1000);
   const endSecs = finishedAt ? Math.floor(new Date(finishedAt).getTime() / 1000) : nowSecs;
   const secs = Math.max(0, endSecs - startSecs);
-  if (secs < 60) return `${secs}s`;
+  if (secs < 60) return`${secs}s`;
   const m = Math.floor(secs / 60);
   const s = secs % 60;
-  return `${m}m${s}s`;
+  return`${m}m${s}s`;
 }
 
 function formatDurationMs(durationMs: number | null | undefined): string {
   if (durationMs == null || Number.isNaN(durationMs) || durationMs < 0) return '-';
   const secs = Math.floor(durationMs / 1000);
-  if (secs < 60) return `${secs}s`;
+  if (secs < 60) return`${secs}s`;
   const m = Math.floor(secs / 60);
   const s = secs % 60;
-  return `${m}m${s}s`;
+  return`${m}m${s}s`;
 }
 
 function formatTsDuration(startTs: number | null, endTs: number | null): string {
   if (!startTs || !endTs || endTs <= startTs) return '';
   const secs = Math.round(endTs - startTs);
   if (secs === 0) return '< 1s';
-  if (secs < 60) return `${secs}s`;
+  if (secs < 60) return`${secs}s`;
   const m = Math.floor(secs / 60);
   const s = secs % 60;
-  return `${m}m${s}s`;
+  return`${m}m${s}s`;
 }
 
 function formatDateTime(value?: string | null): string {
@@ -241,14 +241,14 @@ function buildDfaTree(events: AppDfaStageEvent[], taskStatus: string): DfaTreeNo
 }
 
 function extractFsRelPath(outputPath: string, projectId: string): string | null {
-  const prefix = `/data/files/${projectId}`;
+  const prefix =`/data/files/${projectId}`;
   if (!outputPath.startsWith(prefix)) return null;
   const rel = outputPath.slice(prefix.length).replace(/\/+$/, '');
-  return rel.startsWith('/') ? rel : `/${rel}`;
+  return rel.startsWith('/') ? rel :`/${rel}`;
 }
 
 function openInFileExplorer(fsPath: string) {
-  const normalizedPath = fsPath.startsWith('/') ? fsPath : `/${fsPath}`;
+  const normalizedPath = fsPath.startsWith('/') ? fsPath :`/${fsPath}`;
   sessionStorage.setItem('chimera:fileExplorerNavigatePath', normalizedPath);
   window.dispatchEvent(new CustomEvent('chimera-navigate-view', { detail: { view: 'project-file-explorer', path: normalizedPath } }));
 }
@@ -258,49 +258,49 @@ function formatEventLog(evt: AppDfaStageEvent): string {
   const d = evt.data ?? {};
   switch (evt.type) {
     case 'task_start':
-      return `[${ts}] 任务开始  入口=${d.task ?? ''}`;
+      return`[${ts}] 任务开始  入口=${d.task ?? ''}`;
     case 'trace_start': {
       const fn = d.function ?? d.task ?? '';
-      return `[${ts}] \u25b6 追踪 ${fn}  深度=${d.depth ?? 0}`;
+      return`[${ts}] \u25b6 追踪 ${fn}  深度=${d.depth ?? 0}`;
     }
     case 'trace_skip':
-      return `[${ts}] \u2298 跳过 ${d.function ?? ''}  原因=${d.reason ?? ''}`;
+      return`[${ts}] \u2298 跳过 ${d.function ?? ''}  原因=${d.reason ?? ''}`;
     case 'trace_callees':
-      return `[${ts}]   发现 ${(d.callees ?? []).length} 个被调函数`;
+      return`[${ts}]   发现 ${(d.callees ?? []).length} 个被调函数`;
     case 'round_start':
-      return `[${ts}] \u25b6 Round ${d.round ?? ''}  Workers=${d.worker_ids?.length ?? 0}`;
+      return`[${ts}] \u25b6 Round ${d.round ?? ''}  Workers=${d.worker_ids?.length ?? 0}`;
     case 'round_end':
-      return `[${ts}] \u2713 Round ${d.round ?? ''} 完成  passed=${d.passed ?? false}`;
+      return`[${ts}] \u2713 Round ${d.round ?? ''} 完成  passed=${d.passed ?? false}`;
     case 'worker_start':
-      return `[${ts}]   Worker ${d.worker_id ?? ''}  model=${d.model ?? ''}`;
+      return`[${ts}]   Worker ${d.worker_id ?? ''}  model=${d.model ?? ''}`;
     case 'worker_done':
-      return `[${ts}] \u2713 Worker ${d.worker_id ?? ''} 完成`;
+      return`[${ts}] \u2713 Worker ${d.worker_id ?? ''} 完成`;
     case 'agent_stream': {
       const text = (d.text ?? '').replace(/\n+/g, ' ').trim().slice(0, 120);
       if (!text) return '';
-      return `[${ts}] \u2502 ${text}`;
+      return`[${ts}] \u2502 ${text}`;
     }
     case 'agent_output': {
       const text = (d.output ?? '').replace(/\n+/g, ' ').trim().slice(0, 120);
-      if (!text) return `[${ts}] \u2713 Agent 完成`;
-      return `[${ts}] \u2713 ${text}`;
+      if (!text) return`[${ts}] \u2713 Agent 完成`;
+      return`[${ts}] \u2713 ${text}`;
     }
     case 'judge_start':
-      return `[${ts}] \u25b6 Judge 评估  结果数=${d.worker_count ?? 0}`;
+      return`[${ts}] \u25b6 Judge 评估  结果数=${d.worker_count ?? 0}`;
     case 'judge_eval':
-      return `[${ts}]   Judge ${d.judge_id ?? ''}: passed=${d.passed ?? false}`;
+      return`[${ts}]   Judge ${d.judge_id ?? ''}: passed=${d.passed ?? false}`;
     case 'judge_summary':
-      return `[${ts}] \u2713 评估汇总: passed=${d.passed ?? false}  score=${d.score ?? '-'}`;
+      return`[${ts}] \u2713 评估汇总: passed=${d.passed ?? false}  score=${d.score ?? '-'}`;
     case 'round_reflection': {
       const sugg = (d.suggestion ?? '').slice(0, 80);
-      return sugg ? `[${ts}]   反思: ${sugg}` : '';
+      return sugg ?`[${ts}]   反思: ${sugg}` : '';
     }
     case 'error':
-      return `[${ts}] \u2717 错误: ${d.error ?? JSON.stringify(d)}`;
+      return`[${ts}] \u2717 错误: ${d.error ?? JSON.stringify(d)}`;
     case 'task_end':
-      return `[${ts}] 任务结束  status=${d.status ?? ''}`;
+      return`[${ts}] 任务结束  status=${d.status ?? ''}`;
     default:
-      return `[${ts}] ${evt.type}: ${JSON.stringify(d).slice(0, 100)}`;
+      return`[${ts}] ${evt.type}: ${JSON.stringify(d).slice(0, 100)}`;
   }
 }
 
@@ -326,7 +326,7 @@ interface RunningAgentView {
 }
 
 /** Extract clean comma-separated variable names from new-format taint field.
- * Input examples:  aHeader`🔴 `aMessage`🔴   /   aSingle`🟡   /   aConfig`⚠️
+ * Input examples:  aHeader`🔴`aMessage`🔴   /   aSingle`🟡   /   aConfig`⚠️
  */
 function extractTaintVars(raw: string): string {
   const matches = [...raw.matchAll(/`?(\w+)`[^\w\s]/gu)];
@@ -350,7 +350,7 @@ function parseFunctionsList(content: string): EntryItem[] {
             raw: JSON.stringify(item),
             source_file: item.file || '',
             function_name: item.function || '',
-            line_hint: item.line ? `L${item.line}` : '',
+            line_hint: item.line ?`L${item.line}` : '',
             taint_vars: Array.isArray(item.taints) ? item.taints.join(',') : '',
           }));
       }
@@ -364,13 +364,13 @@ function parseFunctionsList(content: string): EntryItem[] {
   for (const raw of content.split('\n')) {
     const line = raw.trim();
     if (!line) continue;
-    // Skip section-header lines: "污点变量:#::文件"
+    // Skip section-header lines:"污点变量:#::文件"
     if (line.startsWith('\u6c61\u70b9\u53d8\u91cf')) continue;
     const dIdx = line.indexOf('::');
     if (dIdx !== -1) {
       // New format: <taint_raw>:<seq_num>::<source_file>
       const source_file = line.slice(dIdx + 2);
-      const left = line.slice(0, dIdx); // "<taint_raw>:<seq_num>"
+      const left = line.slice(0, dIdx); //"<taint_raw>:<seq_num>"
       const lastColon = left.lastIndexOf(':');
       const taint_raw = lastColon !== -1 ? left.slice(0, lastColon) : left;
       const line_hint = lastColon !== -1 ? left.slice(lastColon + 1) : '';
@@ -519,14 +519,14 @@ function getTaskModeBadgeClassName(task: Pick<AppDfaTaskItem, 'task_origin_type'
 }
 
 function getQuickFilterButtonClassName(active: boolean, baseClassName: string): string {
-  return `${baseClassName} transition-all ${active ? 'ring-2 ring-violet-200 ring-offset-1' : 'hover:opacity-80'}`;
+  return`${baseClassName} transition-all ${active ? 'ring-2 ring-violet-200 ring-offset-1' : 'hover:opacity-80'}`;
 }
 
 type ExecutionSlotState = 'running' | 'pending' | 'expired' | 'released' | 'idle';
 
 function formatRatioPercent(value?: number | null): string {
   if (!Number.isFinite(value)) return '-';
-  return `${Math.round(Number(value) * 100)}%`;
+  return`${Math.round(Number(value) * 100)}%`;
 }
 
 function parseOwnerHost(ownerId?: string | null): string {
@@ -554,8 +554,8 @@ function getExecutionSlotView(task: AppDfaTaskItem, autoRefreshEnabled: boolean)
   const ownerFull = String(task.execution_owner_id || '').trim();
   const ownerLabel = parseOwnerHost(ownerFull);
   const dispatchStatus = String(task.dispatch_status || '').trim();
-  const heartbeat = task.execution_heartbeat_at ? `心跳 ${new Date(task.execution_heartbeat_at).toLocaleString('zh-CN')}` : '';
-  const lease = task.execution_lease_until ? `租约至 ${new Date(task.execution_lease_until).toLocaleString('zh-CN')}` : '';
+  const heartbeat = task.execution_heartbeat_at ?`心跳 ${new Date(task.execution_heartbeat_at).toLocaleString('zh-CN')}` : '';
+  const lease = task.execution_lease_until ?`租约至 ${new Date(task.execution_lease_until).toLocaleString('zh-CN')}` : '';
   const terminal = ['passed', 'failed', 'error', 'cancelled'].includes(status);
 
   if (terminal) {
@@ -605,7 +605,7 @@ function getExecutionSlotView(task: AppDfaTaskItem, autoRefreshEnabled: boolean)
     ownerLabel: ownerLabel || '',
     ownerFull,
     detail: [dispatchStatus].filter(Boolean),
-    className: 'border-slate-200 bg-white text-slate-600',
+    className: 'border-slate-200 bg-slate-50 text-slate-600',
   };
 }
 
@@ -624,8 +624,8 @@ export const DataflowAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?
   const appApi = api.domains.execution.appDataflowAnalyse;
   const buildVersion = useServiceBuildVersion(appApi.getHealth);
   const { notify, feedbackNodes } = useUiFeedback();
-  const autoRefreshStorageKey = `chimera:dataflowAnalysis:autoRefresh:${projectId || 'default'}`;
-  const refreshIntervalStorageKey = `chimera:dataflowAnalysis:refreshInterval:${projectId || 'default'}`;
+  const autoRefreshStorageKey =`chimera:dataflowAnalysis:autoRefresh:${projectId || 'default'}`;
+  const refreshIntervalStorageKey =`chimera:dataflowAnalysis:refreshInterval:${projectId || 'default'}`;
 
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
@@ -718,8 +718,8 @@ export const DataflowAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?
       sessionStorage.removeItem('chimera:dataflowAnalysisInputPath');
       setCreateModalOpen(true);
       setSelectedTaskId('');
-      const entryListPath = `${stored.replace(/\/+$/, '')}/functions.list`;
-      setForm({ ...emptyForm, input_path: stored, output_path: `/data/files/${projectId}/app/chimera-app-dataflow-analyse`, entry_list_path: entryListPath });
+      const entryListPath =`${stored.replace(/\/+$/, '')}/functions.list`;
+      setForm({ ...emptyForm, input_path: stored, output_path:`/data/files/${projectId}/app/chimera-app-dataflow-analyse`, entry_list_path: entryListPath });
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -883,7 +883,7 @@ export const DataflowAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?
     setEntryList([]);
     try {
       const fsApi = api.domains.assets.fileserver;
-      const prefix = `/data/files/${projectId}`;
+      const prefix =`/data/files/${projectId}`;
       const apiPath = listPath.startsWith(prefix) ? listPath.slice(prefix.length) : listPath;
       const blob = await fsApi.fetchProjectFilesystemDownloadBlob(projectId, apiPath);
       const text = await blob.text();
@@ -908,9 +908,9 @@ export const DataflowAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?
     const lh = form.line_hint.trim();
     const tv = form.taint_vars.trim();
     const promptBase = sf
-      ? `对 ${sf} 的 ${fn}${lh ? ' ' + lh : ''} 函数完成数据流安全分析`
-      : `对 ${fn}${lh ? ' ' + lh : ''} 函数完成数据流安全分析`;
-    const prompt = tv ? `${promptBase}，外部输入参数为: ${tv}` : promptBase;
+      ?`对 ${sf} 的 ${fn}${lh ? ' ' + lh : ''} 函数完成数据流安全分析`
+      :`对 ${fn}${lh ? ' ' + lh : ''} 函数完成数据流安全分析`;
+    const prompt = tv ?`${promptBase}，外部输入参数为: ${tv}` : promptBase;
     setCreating(true);
     try {
       const resp = await appApi.createTask({
@@ -948,7 +948,7 @@ export const DataflowAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?
   const handleDelete = async (taskId: string, taskName: string) => {
     const confirmed = await showConfirm({
       title: '删除任务',
-      message: `确定要删除任务「${taskName}」及其所有输出文件吗？此操作不可撤销。`,
+      message:`确定要删除任务「${taskName}」及其所有输出文件吗？此操作不可撤销。`,
       confirmText: '确认删除',
       cancelText: '取消',
       danger: true,
@@ -995,7 +995,7 @@ export const DataflowAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?
     }
     const confirmed = await showConfirm({
       title: '批量删除任务',
-      message: `确定要批量删除 ${taskIds.length} 个数据流分析任务及其输出文件吗？此操作不可撤销。`,
+      message:`确定要批量删除 ${taskIds.length} 个数据流分析任务及其输出文件吗？此操作不可撤销。`,
       confirmText: '确认删除',
       cancelText: '取消',
       danger: true,
@@ -1041,7 +1041,7 @@ export const DataflowAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?
     }
     const confirmed = await showConfirm({
       title: '批量取消任务',
-      message: `确定要取消 ${activeIds.length} 个等待中/运行中的数据流分析任务吗？任务记录和输出文件会保留。`,
+      message:`确定要取消 ${activeIds.length} 个等待中/运行中的数据流分析任务吗？任务记录和输出文件会保留。`,
       confirmText: '确认取消',
       cancelText: '返回',
     });
@@ -1086,7 +1086,7 @@ export const DataflowAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?
     const skipped = selectedTaskIds.size - restartableIds.length;
     const confirmed = await showConfirm({
       title: '批量重试任务',
-      message: `确定要重试 ${restartableIds.length} 个数据流分析任务吗？${skipped > 0 ? `将跳过 ${skipped} 个等待中/运行中的任务。` : ''}`,
+      message:`确定要重试 ${restartableIds.length} 个数据流分析任务吗？${skipped > 0 ?`将跳过 ${skipped} 个等待中/运行中的任务。` : ''}`,
       confirmText: '确认重试',
       cancelText: '取消',
     });
@@ -1205,7 +1205,7 @@ export const DataflowAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?
     {
       label: '总槽位',
       value: slotSummary?.total_capacity ?? '-',
-      hint: slotSummary?.updated_at ? `更新于 ${new Date(slotSummary.updated_at).toLocaleTimeString('zh-CN')}` : '当前项目可见 worker 的总执行槽位',
+      hint: slotSummary?.updated_at ?`更新于 ${new Date(slotSummary.updated_at).toLocaleTimeString('zh-CN')}` : '当前项目可见 worker 的总执行槽位',
       border: 'border-slate-200',
       bg: 'bg-slate-50',
       text: 'text-slate-800',
@@ -1213,7 +1213,7 @@ export const DataflowAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?
     {
       label: '忙槽位',
       value: slotSummary?.running_jobs ?? '-',
-      hint: `利用率 ${formatRatioPercent(
+      hint:`利用率 ${formatRatioPercent(
         slotSummary && slotSummary.total_capacity > 0
           ? slotSummary.running_jobs / slotSummary.total_capacity
           : null
@@ -1233,7 +1233,7 @@ export const DataflowAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?
     {
       label: '排队任务',
       value: slotSummary?.queued_jobs ?? '-',
-      hint: `在线 Worker ${slotSummary?.worker_count ?? 0}`,
+      hint:`在线 Worker ${slotSummary?.worker_count ?? 0}`,
       border: 'border-amber-200',
       bg: 'bg-amber-50',
       text: 'text-amber-700',
@@ -1270,7 +1270,7 @@ export const DataflowAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?
           } else if (pickerTarget === 'entrylist') {
             setForm((p) => ({ ...p, entry_list_path: containerPath }));
           } else {
-            const entryListPath = `${containerPath.replace(/\/+$/, '')}/functions.list`;
+            const entryListPath =`${containerPath.replace(/\/+$/, '')}/functions.list`;
             setForm((p) => ({ ...p, input_path: containerPath, entry_list_path: entryListPath }));
           }
         }}
@@ -1280,9 +1280,9 @@ export const DataflowAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?
       {modalOpen ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={closeModal} />
-          <div className="relative z-10 w-full max-w-4xl max-h-[90vh] flex flex-col rounded-2xl border border-slate-200 bg-white shadow-2xl overflow-hidden">
+ <div className="relative z-10 w-full max-w-4xl max-h-[90vh] flex flex-col rounded-2xl border border-slate-200 bg-slate-50 overflow-hidden">
             {/* Modal header */}
-            <div className="flex items-center justify-between gap-3 px-6 py-4 border-b border-slate-100 bg-white shrink-0">
+            <div className="flex items-center justify-between gap-3 px-6 py-4 border-b border-slate-100 bg-slate-50 shrink-0">
               {detail ? (
                 <div className="flex items-center gap-2.5 min-w-0">
                   <h2 className="text-lg font-black text-slate-900 truncate">{detail.task_name}</h2>
@@ -1296,7 +1296,7 @@ export const DataflowAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?
               <div className="flex items-center gap-2 shrink-0">
                 {detail && (detail.status === 'running' || detail.status === 'pending') ? (
                   <button onClick={() => void handleCancel(detail.task_id)}
-                    className="rounded-lg border border-slate-200 px-3 py-1 text-xs text-slate-600 hover:bg-slate-50">取消</button>
+                    className="rounded-lg border border-slate-200 px-3 py-1 text-xs text-slate-600 hover:bg-slate-100">取消</button>
                 ) : null}
                 {detail && !['pending', 'running'].includes(detail.status) ? (
                   <>
@@ -1355,7 +1355,7 @@ export const DataflowAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?
                       const timing = stageTimes[i];
                       const timingStr = (st === 'completed' || st === 'failed') ? formatTsDuration(timing.startTs, timing.endTs) : '';
                       const artifactFull = detail.output_path && step.artifactSubpath
-                        ? `${detail.output_path}/${detail.task_id}/${step.artifactSubpath}`
+                        ?`${detail.output_path}/${detail.task_id}/${step.artifactSubpath}`
                         : null;
                       const artifactFsPath = artifactFull ? extractFsRelPath(artifactFull, projectId) : null;
                       return (
@@ -1367,7 +1367,7 @@ export const DataflowAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?
                             ${st === 'completed' ? 'border-violet-500 bg-violet-50 text-violet-600'
                               : st === 'running'   ? 'border-blue-500 bg-blue-50 text-blue-600'
                               : st === 'failed'    ? 'border-red-400 bg-red-50 text-red-600'
-                              : 'border-slate-200 bg-white text-slate-400'}`}>
+                              : 'border-slate-200 bg-slate-50 text-slate-400'}`}>
                             {st === 'completed' ? <CheckCircle2 size={16} className="text-violet-500" />
                               : st === 'running'  ? <Loader2 size={14} className="animate-spin text-blue-500" />
                               : st === 'failed'   ? <XCircle size={16} className="text-red-500" />
@@ -1380,8 +1380,8 @@ export const DataflowAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?
                               <div className="text-[10px] font-mono text-blue-500 mt-0.5 leading-tight space-y-0">
                                 {roundProgress.round > 0 ? (
                                   <span>{roundProgress.workersTotal > 0
-                                    ? `第 ${roundProgress.round} 轮 · ${roundProgress.workersDone}/${roundProgress.workersTotal} W`
-                                    : `第 ${roundProgress.round} 轮`}
+                                    ?`第 ${roundProgress.round} 轮 · ${roundProgress.workersDone}/${roundProgress.workersTotal} W`
+                                    :`第 ${roundProgress.round} 轮`}
                                   </span>
                                 ) : null}
                                 {roundProgress.tracedCount > 1 ? <span className="block">共 {roundProgress.tracedCount} 函数</span> : null}
@@ -1415,7 +1415,7 @@ export const DataflowAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?
                       <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-500">当前运行智能体</h3>
                       <p className="mt-1 text-[11px] text-slate-400">
                         当前检测到 {filteredRunningAgents.length} 个运行中的智能体
-                        {normalizedRunningAgentNameFilter ? `，筛选前 ${runningAgents.length} 个` : ''}
+                        {normalizedRunningAgentNameFilter ?`，筛选前 ${runningAgents.length} 个` : ''}
                       </p>
                     </div>
                     <div className="flex flex-wrap items-center gap-2">
@@ -1424,7 +1424,7 @@ export const DataflowAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?
                         value={runningAgentNameFilter}
                         onChange={(event) => setRunningAgentNameFilter(event.target.value)}
                         placeholder="筛选智能体 / 模型 / 函数"
-                        className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs text-slate-700 outline-none focus:border-violet-400"
+                        className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-700 outline-none focus:border-violet-400"
                       />
                       <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-[11px] text-slate-500">
                         每页 {RUNNING_AGENT_PAGE_SIZE} 条
@@ -1438,7 +1438,7 @@ export const DataflowAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?
                   ) : (
                     <div className="space-y-3">
                       {pagedRunningAgents.map((agent) => (
-                        <div key={agent.id} className="rounded-xl border border-slate-200 bg-white px-4 py-3">
+                        <div key={agent.id} className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
                           <div className="flex flex-wrap items-start justify-between gap-3">
                             <div className="min-w-0 flex-1">
                               <div className="flex flex-wrap items-center gap-2">
@@ -1470,7 +1470,7 @@ export const DataflowAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?
                               type="button"
                               onClick={() => setRunningAgentPage((current) => Math.max(1, current - 1))}
                               disabled={runningAgentPage <= 1}
-                              className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs text-slate-600 disabled:cursor-not-allowed disabled:opacity-40"
+                              className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs text-slate-600 disabled:cursor-not-allowed disabled:opacity-40"
                             >
                               上一页
                             </button>
@@ -1478,7 +1478,7 @@ export const DataflowAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?
                               type="button"
                               onClick={() => setRunningAgentPage((current) => Math.min(runningAgentTotalPages, current + 1))}
                               disabled={runningAgentPage >= runningAgentTotalPages}
-                              className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs text-slate-600 disabled:cursor-not-allowed disabled:opacity-40"
+                              className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs text-slate-600 disabled:cursor-not-allowed disabled:opacity-40"
                             >
                               下一页
                             </button>
@@ -1495,10 +1495,10 @@ export const DataflowAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?
                     <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-500 mb-2">
                       数据流调用树
                       <span className="ml-2 normal-case font-normal text-slate-400">
-                        {dfaTree.status === 'running' ? '分析中…' : `已完成`}
+                        {dfaTree.status === 'running' ? '分析中…' :`已完成`}
                       </span>
                     </h3>
-                    <div className="rounded-lg border border-slate-200 bg-white px-2 py-1.5 max-h-72 overflow-auto">
+                    <div className="rounded-lg border border-slate-200 bg-slate-50 px-2 py-1.5 max-h-72 overflow-auto">
                       <DfaTreeNodeView node={dfaTree} depth={0} />
                     </div>
                   </div>
@@ -1550,7 +1550,7 @@ export const DataflowAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?
                 {/* Prompt (collapsible) */}
                 {detail.prompt_content ? (
                   <details className="rounded-lg border border-slate-200">
-                    <summary className="cursor-pointer px-3 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-50">分析 Prompt</summary>
+                    <summary className="cursor-pointer px-3 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100">分析 Prompt</summary>
                     <pre className="px-3 py-2 text-xs text-slate-600 whitespace-pre-wrap break-all max-h-48 overflow-auto border-t border-slate-100">{detail.prompt_content}</pre>
                   </details>
                 ) : null}
@@ -1558,7 +1558,7 @@ export const DataflowAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?
                 {/* Result JSON (collapsible) */}
                 {detail.result_json ? (
                   <details className="rounded-lg border border-slate-200" open={false}>
-                    <summary className="cursor-pointer px-3 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-50">分析结果 (JSON)</summary>
+                    <summary className="cursor-pointer px-3 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100">分析结果 (JSON)</summary>
                     <pre className="px-3 py-2 text-xs text-slate-700 whitespace-pre-wrap break-all max-h-64 overflow-auto border-t border-slate-100">{JSON.stringify(detail.result_json, null, 2)}</pre>
                   </details>
                 ) : null}
@@ -1569,7 +1569,7 @@ export const DataflowAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?
       ) : null}
 
       {/* ── Page header ─────────────────────────────────────────────────────── */}
-      <section className="rounded-[2rem] border border-slate-200 bg-white/90 p-6 shadow-sm">
+ <section className="rounded-[2rem] border border-slate-200 bg-slate-50 p-6">
         <p className="text-xs font-black uppercase tracking-[0.3em] text-violet-600">Dataflow Analysis</p>
         <ServicePageTitle title="数据流分析任务" version={buildVersion} />
         <p className="mt-2 text-sm text-slate-500">追踪污点传播路径，识别敏感数据流向危险函数的安全风险。</p>
@@ -1586,7 +1586,7 @@ export const DataflowAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?
             </div>
           ))}
         </div>
-        <div className="mt-4 rounded-[2rem] border border-slate-200 bg-white p-5 shadow-sm">
+ <div className="mt-4 rounded-[2rem] border border-slate-200 bg-slate-50 p-5">
           <button
             type="button"
             onClick={() => setSlotPanelExpanded((current) => !current)}
@@ -1610,7 +1610,7 @@ export const DataflowAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?
               >
                 查看详情
               </button>
-              <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-500">
+              <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 bg-slate-50 text-slate-500">
                 {slotPanelExpanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
               </div>
               {slotSummaryLoading ? (
@@ -1653,7 +1653,7 @@ export const DataflowAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?
                     <div className="mt-1 truncate text-[11px] text-slate-400" title={worker.worker_id}>{worker.worker_id}</div>
                     <div className="mt-2 text-xs text-slate-600">
                       槽位 {worker.running_jobs}/{worker.max_concurrent_jobs}
-                      {worker.available_slots >= 0 ? ` · 空闲 ${worker.available_slots}` : ''}
+                      {worker.available_slots >= 0 ?` · 空闲 ${worker.available_slots}` : ''}
                     </div>
                     <div className="mt-1 text-xs text-slate-400">
                       来源 {worker.source || 'worker_registry'} · 心跳 {formatDateTime(worker.last_heartbeat_at)}
@@ -1683,7 +1683,7 @@ export const DataflowAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?
                       type="button"
                       onClick={() => setSlotWorkerPage((current) => Math.max(1, current - 1))}
                       disabled={slotWorkerPageSafe <= 1}
-                      className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-slate-600 disabled:cursor-not-allowed disabled:opacity-40 hover:bg-slate-100"
+                      className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-slate-600 disabled:cursor-not-allowed disabled:opacity-40 hover:bg-slate-100"
                     >
                       上一页
                     </button>
@@ -1692,7 +1692,7 @@ export const DataflowAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?
                       type="button"
                       onClick={() => setSlotWorkerPage((current) => Math.min(slotWorkerTotalPages, current + 1))}
                       disabled={slotWorkerPageSafe >= slotWorkerTotalPages}
-                      className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-slate-600 disabled:cursor-not-allowed disabled:opacity-40 hover:bg-slate-100"
+                      className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-slate-600 disabled:cursor-not-allowed disabled:opacity-40 hover:bg-slate-100"
                     >
                       下一页
                     </button>
@@ -1724,7 +1724,7 @@ export const DataflowAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?
                     type="button"
                     onClick={() => setSlotWorkerPage((current) => Math.max(1, current - 1))}
                     disabled={slotWorkerPageSafe <= 1}
-                    className="rounded-lg border border-slate-200 px-2.5 py-1 text-slate-600 disabled:cursor-not-allowed disabled:opacity-40 hover:bg-slate-50"
+                    className="rounded-lg border border-slate-200 px-2.5 py-1 text-slate-600 disabled:cursor-not-allowed disabled:opacity-40 hover:bg-slate-100"
                   >
                     上一页
                   </button>
@@ -1733,7 +1733,7 @@ export const DataflowAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?
                     type="button"
                     onClick={() => setSlotWorkerPage((current) => Math.min(slotWorkerTotalPages, current + 1))}
                     disabled={slotWorkerPageSafe >= slotWorkerTotalPages}
-                    className="rounded-lg border border-slate-200 px-2.5 py-1 text-slate-600 disabled:cursor-not-allowed disabled:opacity-40 hover:bg-slate-50"
+                    className="rounded-lg border border-slate-200 px-2.5 py-1 text-slate-600 disabled:cursor-not-allowed disabled:opacity-40 hover:bg-slate-100"
                   >
                     下一页
                   </button>
@@ -1745,7 +1745,7 @@ export const DataflowAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?
                 <button
                   type="button"
                   onClick={() => setShowSlotDetailModal(false)}
-                  className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
+                  className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-slate-50 text-slate-600 hover:bg-slate-100"
                   aria-label="关闭执行槽位详情"
                 >
                   <X size={16} />
@@ -1766,13 +1766,13 @@ export const DataflowAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?
                       <section
                         key={worker.worker_id}
                         className={`overflow-hidden rounded-[1.5rem] border ${
-                          worker.healthy ? 'border-slate-200 bg-white' : 'border-rose-200 bg-rose-50/70'
+                          worker.healthy ? 'border-slate-200 bg-slate-50' : 'border-rose-200 bg-rose-50/70'
                         }`}
                       >
                         <button
                           type="button"
                           onClick={() => toggleSlotWorkerExpanded(worker.worker_id)}
-                          className="flex w-full items-center justify-between gap-3 px-5 py-4 text-left hover:bg-slate-50/70"
+                          className="flex w-full items-center justify-between gap-3 px-5 py-4 text-left hover:bg-slate-100/70"
                         >
                           <div className="min-w-0">
                             <div className="flex flex-wrap items-center gap-2">
@@ -1794,7 +1794,7 @@ export const DataflowAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?
                               <span>心跳 {formatDateTime(worker.last_heartbeat_at)}</span>
                             </div>
                           </div>
-                          <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-500">
+                          <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 bg-slate-50 text-slate-500">
                             {expanded ? <ChevronDown size={16} /> : <ChevronUp size={16} className="rotate-90" />}
                           </div>
                         </button>
@@ -1802,7 +1802,7 @@ export const DataflowAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?
                           <div className="border-t border-slate-100 px-5 py-4">
                             {!worker.healthy ? (
                               <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
-                                Worker 当前不可用。{worker.error ? `原因：${worker.error}` : ''}
+                                Worker 当前不可用。{worker.error ?`原因：${worker.error}` : ''}
                               </div>
                             ) : activeJobs.length === 0 ? (
                               <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-4 py-8 text-center text-sm text-slate-400">
@@ -1875,7 +1875,7 @@ export const DataflowAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?
                       type="button"
                       onClick={() => setSlotWorkerPage((current) => Math.max(1, current - 1))}
                       disabled={slotWorkerPageSafe <= 1}
-                      className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-slate-600 disabled:cursor-not-allowed disabled:opacity-40 hover:bg-slate-100"
+                      className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-slate-600 disabled:cursor-not-allowed disabled:opacity-40 hover:bg-slate-100"
                     >
                       上一页
                     </button>
@@ -1884,7 +1884,7 @@ export const DataflowAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?
                       type="button"
                       onClick={() => setSlotWorkerPage((current) => Math.min(slotWorkerTotalPages, current + 1))}
                       disabled={slotWorkerPageSafe >= slotWorkerTotalPages}
-                      className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-slate-600 disabled:cursor-not-allowed disabled:opacity-40 hover:bg-slate-100"
+                      className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-slate-600 disabled:cursor-not-allowed disabled:opacity-40 hover:bg-slate-100"
                     >
                       下一页
                     </button>
@@ -1897,7 +1897,7 @@ export const DataflowAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?
       ) : null}
 
       {/* ── Task list ───────────────────────────────────────────────────────── */}
-      <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+ <section className="rounded-2xl border border-slate-200 bg-slate-50 p-5">
         <div className="mb-4 flex flex-wrap items-start justify-between gap-4">
           <div>
             <h2 className="text-lg font-black text-slate-900">任务列表 <span className="text-sm font-normal text-slate-400">({total})</span></h2>
@@ -1922,14 +1922,14 @@ export const DataflowAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?
                   const value = Number(e.target.value);
                   setRefreshIntervalSec(Number.isFinite(value) ? Math.max(5, Math.floor(value)) : 5);
                 }}
-                className="w-16 rounded border border-slate-200 bg-white px-2 py-1 text-xs text-slate-700"
+                className="w-16 rounded border border-slate-200 bg-slate-50 px-2 py-1 text-xs text-slate-700"
               />
               秒
             </label>
             <select
               value={statusFilter}
               onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
-              className="rounded-lg border border-slate-200 px-2 py-1.5 text-xs text-slate-600 bg-white"
+              className="rounded-lg border border-slate-200 px-2 py-1.5 text-xs text-slate-600 bg-slate-50"
               title="任务状态筛选"
             >
               <option value="">全部状态</option>
@@ -1940,7 +1940,7 @@ export const DataflowAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?
             <select
               value={modeFilter}
               onChange={(e) => { setModeFilter((e.target.value as '' | 'manual' | 'binary' | 'source') || ''); setPage(1); }}
-              className="rounded-lg border border-slate-200 px-2 py-1.5 text-xs text-slate-600 bg-white"
+              className="rounded-lg border border-slate-200 px-2 py-1.5 text-xs text-slate-600 bg-slate-50"
               title="模式筛选"
             >
               <option value="">全部模式</option>
@@ -1952,13 +1952,13 @@ export const DataflowAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?
               value={parentTaskIdFilter}
               onChange={(e) => { setParentTaskIdFilter(e.target.value); setPage(1); }}
               placeholder="筛选主任务ID"
-              className="w-44 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs text-slate-600 placeholder:text-slate-400"
+              className="w-44 rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs text-slate-600 placeholder:text-slate-400"
               title="按主任务 ID 筛选"
             />
             <select
               value={sortBy}
               onChange={(e) => { setSortBy(e.target.value); setPage(1); }}
-              className="rounded-lg border border-slate-200 px-2 py-1.5 text-xs text-slate-600 bg-white"
+              className="rounded-lg border border-slate-200 px-2 py-1.5 text-xs text-slate-600 bg-slate-50"
               title="排序字段"
             >
               {SORT_OPTIONS.map((option) => (
@@ -1968,7 +1968,7 @@ export const DataflowAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?
             <select
               value={sortOrder}
               onChange={(e) => { setSortOrder(e.target.value === 'asc' ? 'asc' : 'desc'); setPage(1); }}
-              className="rounded-lg border border-slate-200 px-2 py-1.5 text-xs text-slate-600 bg-white"
+              className="rounded-lg border border-slate-200 px-2 py-1.5 text-xs text-slate-600 bg-slate-50"
               title="排序方向"
             >
               <option value="desc">降序</option>
@@ -1977,19 +1977,19 @@ export const DataflowAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?
             <select
               value={perPage}
               onChange={(e) => { setPerPage(Number(e.target.value)); setPage(1); }}
-              className="rounded-lg border border-slate-200 px-2 py-1.5 text-xs text-slate-600 bg-white"
+              className="rounded-lg border border-slate-200 px-2 py-1.5 text-xs text-slate-600 bg-slate-50"
               title="每页显示条数"
             >
               {[10, 50, 100, 200, 500, 1000].map((n) => <option key={n} value={n}>{n}条/页</option>)}
             </select>
-            <button onClick={() => void loadAll(page)} className="rounded-lg border border-slate-200 p-2 text-slate-500 hover:bg-slate-50">
+            <button onClick={() => void loadAll(page)} className="rounded-lg border border-slate-200 p-2 text-slate-500 hover:bg-slate-100">
               <RefreshCw size={14} />
             </button>
             <button
               onClick={() => {
                 setCreateModalOpen(true);
                 setEntryList([]);
-                setForm({ ...emptyForm, output_path: `/data/files/${projectId}/app/chimera-app-dataflow-analyse` });
+                setForm({ ...emptyForm, output_path:`/data/files/${projectId}/app/chimera-app-dataflow-analyse` });
               }}
               className="inline-flex items-center gap-1.5 rounded-lg bg-violet-700 px-3 py-1.5 text-xs font-semibold text-white hover:bg-violet-800"
             >
@@ -2000,7 +2000,7 @@ export const DataflowAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?
 
         <div className="mb-4 flex flex-wrap items-center gap-3 text-xs text-slate-500">
           <span>
-            自动刷新：{autoRefreshEnabled ? `开启（${Math.max(5, refreshIntervalSec)}s）` : '关闭'}
+            自动刷新：{autoRefreshEnabled ?`开启（${Math.max(5, refreshIntervalSec)}s）` : '关闭'}
           </span>
           {autoRefreshEnabled && !hasActiveTasks ? (
             <span className="text-amber-600">当前无运行中任务，自动刷新暂不触发</span>
@@ -2027,7 +2027,7 @@ export const DataflowAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?
               <button
                 onClick={() => void handleBatchCancel()}
                 disabled={batchCancelling || batchDeleting || batchRestarting}
-                className="inline-flex items-center gap-2 rounded-xl border border-amber-200 bg-white px-4 py-2 text-sm font-semibold text-amber-700 hover:bg-amber-50 disabled:opacity-50"
+                className="inline-flex items-center gap-2 rounded-xl border border-amber-200 bg-slate-50 px-4 py-2 text-sm font-semibold text-amber-700 hover:bg-amber-50 disabled:opacity-50"
               >
                 {batchCancelling ? <Loader2 size={14} className="animate-spin" /> : <XCircle size={14} />}
                 批量取消
@@ -2035,7 +2035,7 @@ export const DataflowAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?
               <button
                 onClick={() => void handleBatchRestart()}
                 disabled={batchRestarting || batchCancelling || batchDeleting}
-                className="inline-flex items-center gap-2 rounded-xl border border-violet-200 bg-white px-4 py-2 text-sm font-semibold text-violet-700 hover:bg-violet-50 disabled:opacity-50"
+                className="inline-flex items-center gap-2 rounded-xl border border-violet-200 bg-slate-50 px-4 py-2 text-sm font-semibold text-violet-700 hover:bg-violet-50 disabled:opacity-50"
               >
                 {batchRestarting ? <Loader2 size={14} className="animate-spin" /> : <RotateCcw size={14} />}
                 批量重试
@@ -2043,14 +2043,14 @@ export const DataflowAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?
               <button
                 onClick={() => setSelectedTaskIds(new Set())}
                 disabled={batchDeleting || batchCancelling || batchRestarting}
-                className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-50 disabled:opacity-50"
+                className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-100 disabled:opacity-50"
               >
                 清除选择
               </button>
               <button
                 onClick={() => void handleBatchDelete()}
                 disabled={batchDeleting || batchCancelling || batchRestarting}
-                className="inline-flex items-center gap-2 rounded-xl border border-red-200 bg-white px-4 py-2 text-sm font-semibold text-red-700 hover:bg-red-100 disabled:opacity-50"
+                className="inline-flex items-center gap-2 rounded-xl border border-red-200 bg-slate-50 px-4 py-2 text-sm font-semibold text-red-700 hover:bg-red-100 disabled:opacity-50"
               >
                 {batchDeleting ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
                 批量删除（{selectedTaskIds.size}）
@@ -2146,8 +2146,7 @@ export const DataflowAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?
                       type="button"
                       onClick={() => toggleModeQuickFilter(getTaskMode(t))}
                       className={getQuickFilterButtonClassName(
-                        modeFilter === getTaskMode(t),
-                        `shrink-0 rounded-full px-2.5 py-1 text-xs font-semibold ${getTaskModeBadgeClassName(t)}`
+                        modeFilter === getTaskMode(t),`shrink-0 rounded-full px-2.5 py-1 text-xs font-semibold ${getTaskModeBadgeClassName(t)}`
                       )}
                       title={modeFilter === getTaskMode(t) ? '再次点击取消模式筛选' : '点击按模式快速筛选'}
                     >
@@ -2159,8 +2158,7 @@ export const DataflowAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?
                       type="button"
                       onClick={() => toggleStatusQuickFilter(t.status)}
                       className={getQuickFilterButtonClassName(
-                        statusFilter === t.status,
-                        `shrink-0 rounded-md px-2 py-1 text-xs font-semibold ${STATUS_COLOR[t.status] ?? 'bg-slate-100 text-slate-600'}`
+                        statusFilter === t.status,`shrink-0 rounded-md px-2 py-1 text-xs font-semibold ${STATUS_COLOR[t.status] ?? 'bg-slate-100 text-slate-600'}`
                       )}
                       title={statusFilter === t.status ? '再次点击取消状态筛选' : '点击按状态快速筛选'}
                     >
@@ -2260,7 +2258,7 @@ export const DataflowAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?
       {createModalOpen ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setCreateModalOpen(false)} />
-          <div className="relative z-10 w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl border border-slate-200 bg-white shadow-2xl">
+ <div className="relative z-10 w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl border border-slate-200 bg-slate-50">
             <div className="p-6 space-y-4">
               <div className="flex items-center justify-between">
                 <h2 className="text-lg font-black text-slate-900">新建数据流分析任务</h2>
@@ -2288,7 +2286,7 @@ export const DataflowAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?
                     value={form.input_path}
                     onChange={(e) => {
                       const v = e.target.value;
-                      const elp = `${v.replace(/\/+$/, '')}/functions.list`;
+                      const elp =`${v.replace(/\/+$/, '')}/functions.list`;
                       setForm((p) => ({ ...p, input_path: v, entry_list_path: elp }));
                     }}
                     placeholder="/data/files/<project>/src"
@@ -2297,7 +2295,7 @@ export const DataflowAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?
                     type="button"
                     title="浏览目录"
                     onClick={() => { setPickerTarget('input'); setPickerOpen(true); }}
-                    className="flex items-center gap-1 rounded-lg border border-slate-200 px-3 py-2 text-xs text-slate-600 hover:bg-slate-50 shrink-0"
+                    className="flex items-center gap-1 rounded-lg border border-slate-200 px-3 py-2 text-xs text-slate-600 hover:bg-slate-100 shrink-0"
                   >
                     <FolderOpen size={13} />浏览
                   </button>
@@ -2315,7 +2313,7 @@ export const DataflowAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?
                   入口清单路径 <span className="text-slate-400">(functions.list)</span>
                   <div className="mt-1 flex gap-1">
                     <input
-                      className="flex-1 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-mono"
+                      className="flex-1 rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-mono"
                       value={form.entry_list_path}
                       onChange={(e) => setForm((p) => ({ ...p, entry_list_path: e.target.value }))}
                       placeholder="/data/files/<project>/...output/functions.list"
@@ -2324,7 +2322,7 @@ export const DataflowAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?
                       type="button"
                       title="浏览文件"
                       onClick={() => { setPickerTarget('entrylist'); setPickerOpen(true); }}
-                      className="flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-xs text-slate-600 hover:bg-slate-50 shrink-0"
+                      className="flex items-center gap-1 rounded-lg border border-slate-200 bg-slate-50 px-2 py-1.5 text-xs text-slate-600 hover:bg-slate-100 shrink-0"
                     >
                       <FolderOpen size={12} />浏览
                     </button>
@@ -2345,11 +2343,11 @@ export const DataflowAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?
                   <div>
                     <p className="text-xs text-slate-500 mb-1">从清单中选择入口函数（共 {entryList.length} 项）</p>
                     <select
-                      className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-mono"
-                      value={form.source_file ? `${form.source_file}:${form.function_name}:${form.line_hint}` : ''}
+                      className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-mono"
+                      value={form.source_file ?`${form.source_file}:${form.function_name}:${form.line_hint}` : ''}
                       onChange={(e) => {
                         const v = e.target.value;
-                        const found = entryList.find((i) => `${i.source_file}:${i.function_name}:${i.line_hint}` === v);
+                        const found = entryList.find((i) =>`${i.source_file}:${i.function_name}:${i.line_hint}` === v);
                         if (found) {
                           setForm((p) => ({ ...p, source_file: found.source_file, function_name: found.function_name, line_hint: found.line_hint, taint_vars: found.taint_vars }));
                         }
@@ -2359,9 +2357,9 @@ export const DataflowAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?
                       {entryList.map((item, idx) => (
                         <option key={idx} value={`${item.source_file}:${item.function_name}:${item.line_hint}`}>
                           {item.function_name
-                            ? `${item.source_file}  ${item.function_name}  ${item.line_hint}`
-                            : `#${item.line_hint}  ${item.source_file}`}
-                          {item.taint_vars ? `  [${item.taint_vars}]` : ''}
+                            ?`${item.source_file}  ${item.function_name}  ${item.line_hint}`
+                            :`#${item.line_hint}  ${item.source_file}`}
+                          {item.taint_vars ?`  [${item.taint_vars}]` : ''}
                         </option>
                       ))}
                     </select>
@@ -2373,7 +2371,7 @@ export const DataflowAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?
                   <label className="block text-xs text-slate-500">
                     模块路径 <span className="text-slate-400">(自动填入或手填)</span>
                     <input
-                      className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-mono"
+                      className="mt-1 w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-mono"
                       value={form.source_file}
                       onChange={(e) => setForm((p) => ({ ...p, source_file: e.target.value }))}
                       placeholder="libipsec.c"
@@ -2382,7 +2380,7 @@ export const DataflowAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?
                   <label className="block text-xs text-slate-500">
                     入口函数名 <span className="text-red-500">*</span>
                     <input
-                      className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-mono"
+                      className="mt-1 w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-mono"
                       value={form.function_name}
                       onChange={(e) => setForm((p) => ({ ...p, function_name: e.target.value }))}
                       placeholder="IPSEC_SOCKI_PipeMsg"
@@ -2394,7 +2392,7 @@ export const DataflowAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?
                 <label className="block text-xs text-slate-500">
                   污点参数 <span className="text-slate-400">(逗号分隔，自动填入或手填；留空则分析全部参数)</span>
                   <input
-                    className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-mono"
+                    className="mt-1 w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-mono"
                     value={form.taint_vars}
                     onChange={(e) => setForm((p) => ({ ...p, taint_vars: e.target.value }))}
                     placeholder="pipe_id,pipe_type,msg_type"
@@ -2412,9 +2410,9 @@ export const DataflowAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?
                         const lh2 = form.line_hint.trim();
                         const tv2 = form.taint_vars.trim();
                         const base = sf2
-                          ? `对 ${sf2} 的 ${fn2}${lh2 ? ' ' + lh2 : ''} 函数完成数据流安全分析`
-                          : `对 ${fn2}${lh2 ? ' ' + lh2 : ''} 函数完成数据流安全分析`;
-                        return tv2 ? `${base}，外部输入参数为: ${tv2}` : base;
+                          ?`对 ${sf2} 的 ${fn2}${lh2 ? ' ' + lh2 : ''} 函数完成数据流安全分析`
+                          :`对 ${fn2}${lh2 ? ' ' + lh2 : ''} 函数完成数据流安全分析`;
+                        return tv2 ?`${base}，外部输入参数为: ${tv2}` : base;
                       })()}
                     </p>
                   </div>
@@ -2435,7 +2433,7 @@ export const DataflowAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?
                     type="button"
                     title="浏览目录"
                     onClick={() => { setPickerTarget('output'); setPickerOpen(true); }}
-                    className="flex items-center gap-1 rounded-lg border border-slate-200 px-3 py-2 text-xs text-slate-600 hover:bg-slate-50 shrink-0"
+                    className="flex items-center gap-1 rounded-lg border border-slate-200 px-3 py-2 text-xs text-slate-600 hover:bg-slate-100 shrink-0"
                   >
                     <FolderOpen size={13} />浏览
                   </button>
@@ -2480,7 +2478,7 @@ const DfaTreeNodeView: React.FC<{ node: DfaTreeNode; depth?: number }> = ({ node
 
   return (
     <div>
-      <div className={`flex items-center gap-1.5 py-0.5 px-1 rounded-sm min-h-5 ${node.status === 'running' ? 'bg-blue-50' : 'hover:bg-slate-50'}`}>
+      <div className={`flex items-center gap-1.5 py-0.5 px-1 rounded-sm min-h-5 ${node.status === 'running' ? 'bg-blue-50' : 'hover:bg-slate-100'}`}>
         {node.status === 'running'
           ? <Loader2 size={9} className="animate-spin text-blue-400 shrink-0" />
           : node.status === 'done'

@@ -243,10 +243,26 @@
   :root .bg-slate-50\/70 { background-color: color-mix(in srgb, var(--bg-elevated) 70%, transparent); }
   :root .bg-slate-50\/80 { background-color: color-mix(in srgb, var(--bg-elevated) 80%, transparent); }
   :root .bg-slate-50\/90 { background-color: color-mix(in srgb, var(--bg-elevated) 90%, transparent); }
-  :root .bg-slate-100 { background-color: rgba(183, 121, 31, 0.08); }
-  :root .bg-slate-100\/10 { background-color: rgba(183, 121, 31, 0.08); }
-  :root .bg-slate-200 { background-color: rgba(134, 104, 58, 0.10); }
-  :root .bg-slate-300 { background-color: rgba(134, 104, 58, 0.14); }
+  :root .bg-slate-100,
+  :root .bg-slate-100\/10,
+  :root .bg-slate-100\/30,
+  :root .bg-slate-100\/40,
+  :root .bg-slate-100\/50,
+  :root .bg-slate-100\/60,
+  :root .bg-slate-100\/70,
+  :root .bg-slate-100\/80,
+  :root .bg-slate-100\/90,
+  :root .bg-slate-100\/105 { background-color: var(--brand-soft); }
+  :root .bg-slate-200,
+  :root .bg-slate-200\/10,
+  :root .bg-slate-200\/30,
+  :root .bg-slate-200\/40,
+  :root .bg-slate-200\/50,
+  :root .bg-slate-200\/60,
+  :root .bg-slate-200\/70,
+  :root .bg-slate-200\/80,
+  :root .bg-slate-200\/90 { background-color: color-mix(in srgb, var(--brand-soft) 74%, var(--bg-elevated)); }
+  :root .bg-slate-300 { background-color: color-mix(in srgb, var(--brand-soft) 86%, var(--bg-elevated)); }
   :root .bg-slate-700 { background-color: var(--bg-elevated); }
   :root .bg-slate-800 { background-color: var(--bg-sidebar-muted); }
   :root .bg-slate-900 { background-color: var(--bg-sidebar); }
@@ -392,13 +408,36 @@
   :root .bg-purple-100\/10 { background-color: rgba(99, 102, 241, 0.10); }
   :root .bg-orange-100 { background-color: var(--warning-soft); }
   :root .bg-gray-50 { background-color: var(--bg-elevated); }
-  :root .bg-gray-100 { background-color: rgba(183, 121, 31, 0.08); }
-  :root .bg-gray-200 { background-color: rgba(134, 104, 58, 0.14); }
-  :root .bg-gray-300 { background-color: rgba(134, 104, 58, 0.10); }
+  :root .bg-gray-100,
+  :root .bg-gray-100\/10,
+  :root .bg-gray-100\/30,
+  :root .bg-gray-100\/40,
+  :root .bg-gray-100\/50,
+  :root .bg-gray-100\/60,
+  :root .bg-gray-100\/70,
+  :root .bg-gray-100\/80,
+  :root .bg-gray-100\/90 { background-color: var(--brand-soft); }
+  :root .bg-gray-200,
+  :root .bg-gray-200\/10,
+  :root .bg-gray-200\/30,
+  :root .bg-gray-200\/40,
+  :root .bg-gray-200\/50,
+  :root .bg-gray-200\/60,
+  :root .bg-gray-200\/70,
+  :root .bg-gray-200\/80,
+  :root .bg-gray-200\/90 { background-color: color-mix(in srgb, var(--brand-soft) 86%, var(--bg-elevated)); }
+  :root .bg-gray-300 { background-color: color-mix(in srgb, var(--brand-soft) 74%, var(--bg-elevated)); }
   :root .hover\:bg-white:hover { background-color: var(--bg-surface); }
-  :root .hover\:bg-white\/10:hover { background-color: rgba(255, 255, 255, 0.10); }
-  :root .hover\:bg-slate-50:hover { background-color: var(--bg-elevated); }
-  :root .hover\:bg-slate-100:hover { background-color: rgba(183, 121, 31, 0.08); }
+  :root .hover\:bg-white\/10:hover { background-color: var(--brand-soft); }
+  :root .hover\:bg-slate-50:hover { background-color: color-mix(in srgb, var(--bg-elevated) 86%, var(--brand-soft)); }
+  :root .hover\:bg-slate-100:hover,
+  :root .hover\:bg-slate-100\/10:hover,
+  :root .hover\:bg-slate-100\/50:hover,
+  :root .hover\:bg-slate-100\/60:hover,
+  :root .hover\:bg-slate-100\/70:hover,
+  :root .hover\:bg-slate-100\/80:hover,
+  :root .hover\:bg-slate-100\/90:hover,
+  :root .hover\:bg-slate-200:hover { background-color: var(--brand-soft); }
   :root .hover\:bg-slate-700:hover { background-color: var(--bg-elevated); }
   :root .hover\:bg-blue-50:hover { background-color: var(--info-soft); }
   :root .hover\:bg-blue-100:hover { background-color: rgba(59, 130, 246, 0.10); }
@@ -406,7 +445,7 @@
   :root .hover\:bg-blue-600:hover { background-color: var(--brand-primary-hover); }
   :root .hover\:bg-amber-100:hover { background-color: rgba(245, 158, 11, 0.10); }
   :root .hover\:bg-gray-50:hover,
-  :root .hover\:bg-gray-100:hover { background-color: var(--bg-elevated); }
+  :root .hover\:bg-gray-100:hover { background-color: var(--brand-soft); }
   :root .hover\:border-blue-200:hover,
   :root .hover\:border-blue-300:hover { border-color: var(--brand-border); }
   :root .text-white { color: var(--text-inverse); }
@@ -533,15 +572,47 @@
 
   :root[data-theme='chimera-classic'] .bg-slate-100,
   :root[data-theme='chimera-classic'] .bg-slate-100\/10,
-  :root[data-theme='chimera-classic'] .bg-gray-100 {
-    background-color: color-mix(in srgb, var(--bg-elevated) 82%, var(--brand-soft));
+  :root[data-theme='chimera-classic'] .bg-slate-100\/30,
+  :root[data-theme='chimera-classic'] .bg-slate-100\/40,
+  :root[data-theme='chimera-classic'] .bg-slate-100\/50,
+  :root[data-theme='chimera-classic'] .bg-slate-100\/60,
+  :root[data-theme='chimera-classic'] .bg-slate-100\/70,
+  :root[data-theme='chimera-classic'] .bg-slate-100\/80,
+  :root[data-theme='chimera-classic'] .bg-slate-100\/90,
+  :root[data-theme='chimera-classic'] .bg-slate-100\/105,
+  :root[data-theme='chimera-classic'] .bg-gray-100,
+  :root[data-theme='chimera-classic'] .bg-gray-100\/10,
+  :root[data-theme='chimera-classic'] .bg-gray-100\/30,
+  :root[data-theme='chimera-classic'] .bg-gray-100\/40,
+  :root[data-theme='chimera-classic'] .bg-gray-100\/50,
+  :root[data-theme='chimera-classic'] .bg-gray-100\/60,
+  :root[data-theme='chimera-classic'] .bg-gray-100\/70,
+  :root[data-theme='chimera-classic'] .bg-gray-100\/80,
+  :root[data-theme='chimera-classic'] .bg-gray-100\/90 {
+    background-color: var(--brand-soft);
   }
 
   :root[data-theme='chimera-classic'] .bg-slate-200,
+  :root[data-theme='chimera-classic'] .bg-slate-200\/10,
+  :root[data-theme='chimera-classic'] .bg-slate-200\/30,
+  :root[data-theme='chimera-classic'] .bg-slate-200\/40,
+  :root[data-theme='chimera-classic'] .bg-slate-200\/50,
+  :root[data-theme='chimera-classic'] .bg-slate-200\/60,
+  :root[data-theme='chimera-classic'] .bg-slate-200\/70,
+  :root[data-theme='chimera-classic'] .bg-slate-200\/80,
+  :root[data-theme='chimera-classic'] .bg-slate-200\/90,
   :root[data-theme='chimera-classic'] .bg-slate-300,
   :root[data-theme='chimera-classic'] .bg-gray-200,
+  :root[data-theme='chimera-classic'] .bg-gray-200\/10,
+  :root[data-theme='chimera-classic'] .bg-gray-200\/30,
+  :root[data-theme='chimera-classic'] .bg-gray-200\/40,
+  :root[data-theme='chimera-classic'] .bg-gray-200\/50,
+  :root[data-theme='chimera-classic'] .bg-gray-200\/60,
+  :root[data-theme='chimera-classic'] .bg-gray-200\/70,
+  :root[data-theme='chimera-classic'] .bg-gray-200\/80,
+  :root[data-theme='chimera-classic'] .bg-gray-200\/90,
   :root[data-theme='chimera-classic'] .bg-gray-300 {
-    background-color: color-mix(in srgb, var(--bg-sidebar-muted) 72%, var(--brand-soft));
+    background-color: color-mix(in srgb, var(--brand-soft) 86%, var(--bg-elevated));
   }
 
   :root[data-theme='chimera-classic'] .hover\:bg-slate-50:hover,
@@ -551,15 +622,37 @@
   }
 
   :root[data-theme='chimera-classic'] .hover\:bg-slate-100:hover,
+  :root[data-theme='chimera-classic'] .hover\:bg-slate-100\/10:hover,
+  :root[data-theme='chimera-classic'] .hover\:bg-slate-100\/50:hover,
+  :root[data-theme='chimera-classic'] .hover\:bg-slate-100\/60:hover,
+  :root[data-theme='chimera-classic'] .hover\:bg-slate-100\/70:hover,
+  :root[data-theme='chimera-classic'] .hover\:bg-slate-100\/80:hover,
+  :root[data-theme='chimera-classic'] .hover\:bg-slate-100\/90:hover,
   :root[data-theme='chimera-classic'] .hover\:bg-gray-100:hover,
-  :root[data-theme='chimera-classic'] .hover\:bg-slate-200:hover {
-    background-color: color-mix(in srgb, var(--bg-sidebar-muted) 76%, var(--brand-soft));
+  :root[data-theme='chimera-classic'] .hover\:bg-gray-100\/10:hover,
+  :root[data-theme='chimera-classic'] .hover\:bg-gray-100\/50:hover,
+  :root[data-theme='chimera-classic'] .hover\:bg-gray-100\/60:hover,
+  :root[data-theme='chimera-classic'] .hover\:bg-gray-100\/70:hover,
+  :root[data-theme='chimera-classic'] .hover\:bg-gray-100\/80:hover,
+  :root[data-theme='chimera-classic'] .hover\:bg-gray-100\/90:hover,
+  :root[data-theme='chimera-classic'] .hover\:bg-slate-200:hover,
+  :root[data-theme='chimera-classic'] .hover\:bg-slate-200\/10:hover,
+  :root[data-theme='chimera-classic'] .hover\:bg-slate-200\/50:hover,
+  :root[data-theme='chimera-classic'] .hover\:bg-slate-200\/60:hover,
+  :root[data-theme='chimera-classic'] .hover\:bg-slate-200\/70:hover,
+  :root[data-theme='chimera-classic'] .hover\:bg-slate-200\/80:hover,
+  :root[data-theme='chimera-classic'] .hover\:bg-slate-200\/90:hover,
+  :root[data-theme='chimera-classic'] .hover\:bg-gray-200:hover {
+    background-color: var(--brand-soft);
   }
 
   :root[data-theme='chimera-classic'] .disabled\:bg-slate-50:disabled,
   :root[data-theme='chimera-classic'] .disabled\:bg-slate-100:disabled,
-  :root[data-theme='chimera-classic'] .disabled\:bg-gray-100:disabled {
-    background-color: color-mix(in srgb, var(--bg-elevated) 88%, var(--bg-app));
+  :root[data-theme='chimera-classic'] .disabled\:bg-slate-100\/50:disabled,
+  :root[data-theme='chimera-classic'] .disabled\:bg-slate-200:disabled,
+  :root[data-theme='chimera-classic'] .disabled\:bg-gray-100:disabled,
+  :root[data-theme='chimera-classic'] .disabled\:bg-gray-200:disabled {
+    background-color: color-mix(in srgb, var(--brand-soft) 60%, var(--bg-elevated));
   }
 
   :root[data-theme='chimera-classic'] .binary-security-detail-shell .bg-white,
@@ -618,7 +711,7 @@
 
   :root[data-theme='chimera-classic'] .binary-security-detail-shell .binary-security-modules-table tr.hover\:bg-slate-50\/80:hover,
   :root[data-theme='chimera-classic'] .binary-security-detail-shell .binary-security-modules-table .hover\:bg-slate-50\/80:hover {
-    background-color: color-mix(in srgb, var(--bg-sidebar-muted) 76%, var(--brand-soft));
+    background-color: var(--brand-soft);
   }
 
   :root[data-theme='chimera-classic'] .binary-security-detail-shell .binary-security-modules-confirmation .border-slate-200,

@@ -15,14 +15,14 @@ export const WorkflowInstancePage: React.FC<{
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
-  
+
   // Pagination
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
 
   // Selection
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
-  
+
   // Modals
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
@@ -92,60 +92,60 @@ export const WorkflowInstancePage: React.FC<{
       });
       setIsCreateModalOpen(false);
       setFormData({ name: '', description: '', run_mode: 'once', trigger_type: 'manual', trigger_enabled: false });
-      showToast("创建成功", "success");
+      showToast("创建成功","success");
       loadInstances();
     } catch (e: any) {
-      showToast("创建失败: " + e.message, "error");
+      showToast("创建失败:" + e.message,"error");
     }
   };
 
   const handleStart = async (id: string) => {
     try {
       await orchestrationApi.workflow.startInstance(id);
-      showToast("启动成功", "success");
+      showToast("启动成功","success");
       loadInstances();
     } catch (e: any) {
-      showToast("启动失败: " + e.message, "error");
+      showToast("启动失败:" + e.message,"error");
     }
   };
 
   const handleStop = async (id: string) => {
     try {
       await orchestrationApi.workflow.stopInstance(id);
-      showToast("停止成功", "success");
+      showToast("停止成功","success");
       loadInstances();
     } catch (e: any) {
-      showToast("停止失败: " + e.message, "error");
+      showToast("停止失败:" + e.message,"error");
     }
   };
 
   const handleSync = async (id: string) => {
     try {
       await orchestrationApi.workflow.syncInstanceStatus(id);
-      showToast("同步成功", "success");
+      showToast("同步成功","success");
       loadInstances();
     } catch (e: any) {
-      showToast("同步失败: " + e.message, "error");
+      showToast("同步失败:" + e.message,"error");
     }
   };
 
   const handleActivate = async (id: string) => {
     try {
       await orchestrationApi.workflow.activateInstance(id);
-      showToast("启用成功", "success");
+      showToast("启用成功","success");
       loadInstances();
     } catch (e: any) {
-      showToast("启用失败: " + e.message, "error");
+      showToast("启用失败:" + e.message,"error");
     }
   };
 
   const handleDeactivate = async (id: string) => {
     try {
       await orchestrationApi.workflow.deactivateInstance(id);
-      showToast("停用成功", "success");
+      showToast("停用成功","success");
       loadInstances();
     } catch (e: any) {
-      showToast("停用失败: " + e.message, "error");
+      showToast("停用失败:" + e.message,"error");
     }
   };
 
@@ -162,10 +162,10 @@ export const WorkflowInstancePage: React.FC<{
       }
       setIsDeleteModalOpen(false);
       setDeletingId(null);
-      showToast(deletingId ? "删除成功" : "批量删除成功", "success");
+      showToast(deletingId ?"删除成功" :"批量删除成功","success");
       loadInstances();
     } catch (e: any) {
-      showToast("删除失败: " + e.message, "error");
+      showToast("删除失败:" + e.message,"error");
     } finally {
       setLoading(false);
     }
@@ -179,9 +179,9 @@ export const WorkflowInstancePage: React.FC<{
       setIsUninitModalOpen(false);
       setUninitId(null);
       loadInstances();
-      showToast("反初始化成功", "success");
+      showToast("反初始化成功","success");
     } catch (e: any) {
-      showToast("反初始化失败: " + e.message, "error");
+      showToast("反初始化失败:" + e.message,"error");
     } finally {
       setLoading(false);
     }
@@ -212,21 +212,21 @@ export const WorkflowInstancePage: React.FC<{
         </div>
         <div className="flex gap-4">
           {selectedIds.length > 0 && (
-            <button 
+            <button
               onClick={() => {
                 setDeletingId(null);
                 setIsDeleteModalOpen(true);
-              }} 
+              }}
               className="flex items-center gap-2 px-6 py-4 bg-red-50 text-red-600 rounded-2xl hover:bg-red-100 transition-all font-bold border border-red-100"
             >
               <Trash2 size={20} />
               批量删除 ({selectedIds.length})
             </button>
           )}
-          <button onClick={() => loadInstances()} className="p-4 bg-white border border-slate-200 text-slate-500 rounded-2xl hover:bg-slate-50 transition-all">
+          <button onClick={() => loadInstances()} className="p-4 bg-slate-50 border border-slate-200 text-slate-500 rounded-2xl hover:bg-slate-100 transition-all">
             <RefreshCw size={20} className={loading ? 'animate-spin' : ''} />
           </button>
-          <button onClick={() => setIsCreateModalOpen(true)} className="flex items-center gap-2 px-6 py-4 bg-slate-900 text-white rounded-2xl hover:bg-slate-800 transition-all font-bold shadow-lg shadow-slate-900/20">
+ <button onClick={() => setIsCreateModalOpen(true)} className="flex items-center gap-2 px-6 py-4 bg-slate-900 text-white rounded-2xl hover:bg-slate-800 transition-all font-bold">
             <Plus size={20} />
             创建实例
           </button>
@@ -236,9 +236,9 @@ export const WorkflowInstancePage: React.FC<{
       <div className="flex gap-4">
         <div className="relative flex-1">
         <Search className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-300" size={20} />
-        <input 
-          type="text" placeholder="搜索实例名称或 ID..." 
-          className="w-full pl-16 pr-8 py-5 bg-white border border-slate-200 rounded-[2rem] text-sm outline-none focus:ring-4 ring-blue-500/5 transition-all font-medium shadow-sm"
+        <input
+          type="text" placeholder="搜索实例名称或 ID..."
+ className="w-full pl-16 pr-8 py-5 bg-slate-50 border border-slate-200 rounded-[2rem] text-sm outline-none focus:ring-4 ring-blue-500/5 transition-all font-medium"
           value={searchTerm} onChange={e => setSearchTerm(e.target.value)}
         />
         </div>
@@ -248,7 +248,7 @@ export const WorkflowInstancePage: React.FC<{
             setStatusFilter(e.target.value);
             setPage(1);
           }}
-          className="px-5 py-5 bg-white border border-slate-200 rounded-[2rem] text-sm font-medium outline-none focus:ring-4 ring-blue-500/5 transition-all shadow-sm"
+ className="px-5 py-5 bg-slate-50 border border-slate-200 rounded-[2rem] text-sm font-medium outline-none focus:ring-4 ring-blue-500/5 transition-all"
         >
           <option value="">全部状态</option>
           <option value="pending">待初始化</option>
@@ -257,13 +257,13 @@ export const WorkflowInstancePage: React.FC<{
         </select>
       </div>
 
-      <div className="bg-white border border-slate-200 rounded-[2.5rem] shadow-sm overflow-hidden min-h-[500px]">
+ <div className="bg-slate-50 border border-slate-200 rounded-[2.5rem] overflow-hidden min-h-[500px]">
         <table className="w-full text-left">
-          <thead className="bg-slate-50/50 border-b border-slate-100 font-black text-[10px] text-slate-400 uppercase tracking-widest">
+          <thead className="bg-slate-100/50 border-b border-slate-100 font-black text-[10px] text-slate-400 uppercase tracking-widest">
             <tr>
               <th className="px-8 py-6 w-10">
-                <input 
-                  type="checkbox" 
+                <input
+                  type="checkbox"
                   className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
                   checked={instances.length > 0 && selectedIds.length === instances.length}
                   onChange={toggleSelectAll}
@@ -281,10 +281,10 @@ export const WorkflowInstancePage: React.FC<{
             {loading && instances.length === 0 ? (
               <tr><td colSpan={7} className="py-32 text-center"><Loader2 className="animate-spin mx-auto text-blue-600" size={40} /></td></tr>
             ) : paginatedInstances.map(instance => (
-              <tr key={instance.id} className={`hover:bg-slate-50 transition-all group ${selectedIds.includes(instance.id) ? 'bg-blue-50/30' : ''}`}>
+              <tr key={instance.id} className={`hover:bg-slate-100 transition-all group ${selectedIds.includes(instance.id) ? 'bg-blue-50/30' : ''}`}>
                 <td className="px-8 py-6">
-                  <input 
-                    type="checkbox" 
+                  <input
+                    type="checkbox"
                     className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
                     checked={selectedIds.includes(instance.id)}
                     onChange={() => toggleSelect(instance.id)}
@@ -296,7 +296,7 @@ export const WorkflowInstancePage: React.FC<{
                       <Activity size={22} />
                     </div>
                     <div>
-                      <p 
+                      <p
                         className="text-sm font-black text-slate-800 cursor-pointer hover:text-blue-600 transition-colors"
                         onClick={() => onNavigateToDetail(instance.id)}
                       >
@@ -348,10 +348,10 @@ export const WorkflowInstancePage: React.FC<{
                       <button onClick={async () => {
                         try {
                           await orchestrationApi.workflow.initializeInstance(instance.id);
-                          showToast("初始化成功", "success");
+                          showToast("初始化成功","success");
                           loadInstances();
                         } catch (e: any) {
-                          showToast("初始化失败: " + e.message, "error");
+                          showToast("初始化失败:" + e.message,"error");
                         }
                       }} title="初始化" className="p-3 bg-purple-50 text-purple-600 rounded-xl hover:bg-purple-600 hover:text-white transition-all">
                         <Activity size={16} />
@@ -383,10 +383,10 @@ export const WorkflowInstancePage: React.FC<{
                       <button onClick={async () => {
                         try {
                           await orchestrationApi.workflow.triggerInstance(instance.id);
-                          showToast("触发执行成功", "success");
+                          showToast("触发执行成功","success");
                           loadInstances();
                         } catch (e: any) {
-                          showToast("触发执行失败: " + e.message, "error");
+                          showToast("触发执行失败:" + e.message,"error");
                         }
                       }} title="触发执行" className="p-3 bg-cyan-50 text-cyan-600 rounded-xl hover:bg-cyan-600 hover:text-white transition-all">
                         <Zap size={16} />
@@ -405,12 +405,12 @@ export const WorkflowInstancePage: React.FC<{
                       </button>
                     )}
 
-                    <button 
+                    <button
                       onClick={() => {
                         setDeletingId(instance.id);
                         setIsDeleteModalOpen(true);
-                      }} 
-                      title="删除" 
+                      }}
+                      title="删除"
                       className="p-3 bg-red-50 text-red-600 rounded-xl hover:bg-red-600 hover:text-white transition-all"
                     >
                       <Trash2 size={16} />
@@ -428,13 +428,13 @@ export const WorkflowInstancePage: React.FC<{
 
       {/* Pagination */}
       {filteredInstances.length > 0 && (
-        <div className="flex items-center justify-between px-8 py-4 bg-white border border-slate-200 rounded-[2rem] shadow-sm">
+ <div className="flex items-center justify-between px-8 py-4 bg-slate-50 border border-slate-200 rounded-[2rem]">
           <div className="flex items-center gap-4">
             <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">每页</span>
             <select
               value={pageSize}
               onChange={(e) => { setPageSize(Number(e.target.value)); setPage(1); }}
-              className="px-3 py-2 bg-white border border-slate-200 rounded-xl text-sm font-bold text-slate-700 outline-none focus:border-blue-500 transition-all"
+              className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-700 outline-none focus:border-blue-500 transition-all"
             >
               <option value={10}>10</option>
               <option value={20}>20</option>
@@ -469,7 +469,7 @@ export const WorkflowInstancePage: React.FC<{
 
       {isCreateModalOpen && (
         <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-[2rem] w-full max-w-lg shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
+ <div className="bg-slate-50 rounded-[2rem] w-full max-w-lg overflow-hidden animate-in zoom-in-95 duration-200">
             <div className="p-8 border-b border-slate-100">
               <h3 className="text-2xl font-black text-slate-800">创建空白实例</h3>
               <p className="text-sm text-slate-500 mt-2 font-medium">创建一个不包含任何节点的空白工作流实例，稍后可添加节点。</p>
@@ -507,7 +507,7 @@ export const WorkflowInstancePage: React.FC<{
               )}
               <div className="flex gap-4 pt-4">
                 <button type="button" onClick={() => setIsCreateModalOpen(false)} className="flex-1 py-4 bg-slate-100 text-slate-600 rounded-xl font-bold hover:bg-slate-200 transition-all">取消</button>
-                <button type="submit" className="flex-1 py-4 bg-slate-900 text-white rounded-xl font-bold hover:bg-slate-800 transition-all shadow-lg shadow-slate-900/20">创建</button>
+ <button type="submit" className="flex-1 py-4 bg-slate-900 text-white rounded-xl font-bold hover:bg-slate-800 transition-all">创建</button>
               </div>
             </form>
           </div>
@@ -517,7 +517,7 @@ export const WorkflowInstancePage: React.FC<{
       {/* Uninitialize Confirmation Modal */}
       {isUninitModalOpen && (
         <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-[2rem] w-full max-w-md shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
+ <div className="bg-slate-50 rounded-[2rem] w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200">
             <div className="p-8 text-center">
               <div className="w-20 h-20 bg-orange-50 text-orange-600 rounded-[2rem] flex items-center justify-center mx-auto mb-6">
                 <RotateCcw size={40} />
@@ -531,19 +531,19 @@ export const WorkflowInstancePage: React.FC<{
               </p>
             </div>
             <div className="p-8 bg-slate-50 flex gap-4">
-              <button 
+              <button
                 onClick={() => {
                   setIsUninitModalOpen(false);
                   setUninitId(null);
-                }} 
-                className="flex-1 py-4 bg-white border border-slate-200 text-slate-600 rounded-2xl font-bold hover:bg-slate-100 transition-all"
+                }}
+                className="flex-1 py-4 bg-slate-50 border border-slate-200 text-slate-600 rounded-2xl font-bold hover:bg-slate-100 transition-all"
               >
                 取消
               </button>
-              <button 
+              <button
                 onClick={handleUninitialize}
                 disabled={loading}
-                className="flex-1 py-4 bg-orange-600 text-white rounded-2xl font-bold hover:bg-orange-700 transition-all shadow-lg shadow-orange-600/20 disabled:opacity-50 flex items-center justify-center gap-2"
+ className="flex-1 py-4 bg-orange-600 text-white rounded-2xl font-bold hover:bg-orange-700 transition-all shadow-orange-600/20 disabled:opacity-50 flex items-center justify-center gap-2"
               >
                 {loading && <Loader2 size={18} className="animate-spin" />}
                 确认反初始化
@@ -556,32 +556,32 @@ export const WorkflowInstancePage: React.FC<{
       {/* Delete Confirmation Modal */}
       {isDeleteModalOpen && (
         <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-[2rem] w-full max-w-md shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
+ <div className="bg-slate-50 rounded-[2rem] w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200">
             <div className="p-8 text-center">
               <div className="w-20 h-20 bg-red-50 text-red-600 rounded-[2rem] flex items-center justify-center mx-auto mb-6">
                 <Trash2 size={40} />
               </div>
               <h3 className="text-2xl font-black text-slate-800">确认删除？</h3>
               <p className="text-slate-500 mt-4 font-medium">
-                {deletingId 
-                  ? "您确定要删除这个工作流实例吗？此操作不可撤销，且会清理关联的 K8S 资源。" 
-                  : `您确定要删除选中的 ${selectedIds.length} 个工作流实例吗？此操作将批量清理所有关联资源。`}
+                {deletingId
+                  ?"您确定要删除这个工作流实例吗？此操作不可撤销，且会清理关联的 K8S 资源。"
+                  :`您确定要删除选中的 ${selectedIds.length} 个工作流实例吗？此操作将批量清理所有关联资源。`}
               </p>
             </div>
             <div className="p-8 bg-slate-50 flex gap-4">
-              <button 
+              <button
                 onClick={() => {
                   setIsDeleteModalOpen(false);
                   setDeletingId(null);
-                }} 
-                className="flex-1 py-4 bg-white border border-slate-200 text-slate-600 rounded-2xl font-bold hover:bg-slate-100 transition-all"
+                }}
+                className="flex-1 py-4 bg-slate-50 border border-slate-200 text-slate-600 rounded-2xl font-bold hover:bg-slate-100 transition-all"
               >
                 取消
               </button>
-              <button 
+              <button
                 onClick={handleDelete}
                 disabled={loading}
-                className="flex-1 py-4 bg-red-600 text-white rounded-2xl font-bold hover:bg-red-700 transition-all shadow-lg shadow-red-600/20 disabled:opacity-50 flex items-center justify-center gap-2"
+ className="flex-1 py-4 bg-red-600 text-white rounded-2xl font-bold hover:bg-red-700 transition-all shadow-red-600/20 disabled:opacity-50 flex items-center justify-center gap-2"
               >
                 {loading && <Loader2 size={18} className="animate-spin" />}
                 确认删除
@@ -609,9 +609,8 @@ export const WorkflowInstancePage: React.FC<{
                 opacity: 1;
                 transform: translate(-50%, 0);
               }
-            }
-          `}</style>
-          <div className={`px-6 py-3 rounded-xl shadow-2xl border font-bold text-sm flex items-center gap-2 ${
+            }`}</style>
+ <div className={`px-6 py-3 rounded-xl border font-bold text-sm flex items-center gap-2 ${
             toast.type === 'success' ? 'bg-green-600 text-white border-green-500' :
             toast.type === 'error' ? 'bg-red-600 text-white border-red-500' :
             toast.type === 'warning' ? 'bg-yellow-500 text-yellow-900 border-yellow-400' :

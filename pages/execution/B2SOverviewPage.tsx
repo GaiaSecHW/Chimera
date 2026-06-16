@@ -18,7 +18,7 @@ interface Props {
 
 const B2S_APP_ROOT = 'app/chimera-app-binary-to-source';
 const FILESERVER_STORAGE_ROOT = '/data';
-const standardInputPath = (taskId: string, sequenceNo: number): string => `/${B2S_APP_ROOT}/${taskId}/${sequenceNo}/input`;
+const standardInputPath = (taskId: string, sequenceNo: number): string =>`/${B2S_APP_ROOT}/${taskId}/${sequenceNo}/input`;
 const safeCount = (value: unknown): number | null => {
   if (value === null || value === undefined || value === '') return null;
   const parsed = Number(value);
@@ -26,15 +26,15 @@ const safeCount = (value: unknown): number | null => {
 };
 
 const formatBytes = (value: number): string => {
-  if (value >= 1024 * 1024) return `${(value / 1024 / 1024).toFixed(2)} MB`;
-  if (value >= 1024) return `${(value / 1024).toFixed(1)} KB`;
-  return `${value} B`;
+  if (value >= 1024 * 1024) return`${(value / 1024 / 1024).toFixed(2)} MB`;
+  if (value >= 1024) return`${(value / 1024).toFixed(1)} KB`;
+  return`${value} B`;
 };
 
 const buildProgressLabel = (task: B2STask) => {
   const total = task.total_items || 0;
   if (total <= 0) return '-';
-  return `${task.success_items || 0}/${total}`;
+  return`${task.success_items || 0}/${total}`;
 };
 
 const B2S_TASK_STATUS_ORDER = ['pending', 'running', 'success', 'partial', 'failed', 'cancelled', 'completed'];
@@ -56,20 +56,20 @@ const B2S_MODE_LABELS: Record<B2SRunMode, string> = {
 const formatDurationMs = (durationMs?: number | null) => {
   if (durationMs === undefined || durationMs === null || Number.isNaN(durationMs) || durationMs < 0) return '-';
   const seconds = Math.round(durationMs / 1000);
-  if (seconds < 60) return `${seconds}s`;
+  if (seconds < 60) return`${seconds}s`;
   const minutes = Math.floor(seconds / 60);
   const rest = seconds % 60;
-  if (minutes < 60) return rest ? `${minutes}m ${rest}s` : `${minutes}m`;
+  if (minutes < 60) return rest ?`${minutes}m ${rest}s` :`${minutes}m`;
   const hours = Math.floor(minutes / 60);
   const minuteRest = minutes % 60;
-  return minuteRest ? `${hours}h ${minuteRest}m` : `${hours}h`;
+  return minuteRest ?`${hours}h ${minuteRest}m` :`${hours}h`;
 };
 
 const formatPiJobStage = (job: B2SPiWorkerActiveJob) => {
   const parts = [
-    job.phase ? `阶段 ${job.phase}` : '',
-    job.current_batch != null ? `批次 ${job.current_batch}` : '',
-    job.current_attempt != null ? `尝试 ${job.current_attempt}` : '',
+    job.phase ?`阶段 ${job.phase}` : '',
+    job.current_batch != null ?`批次 ${job.current_batch}` : '',
+    job.current_attempt != null ?`尝试 ${job.current_attempt}` : '',
   ].filter(Boolean);
   return parts.length > 0 ? parts.join(' · ') : '阶段信息暂缺';
 };
@@ -78,8 +78,8 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
   const executionApi = api.domains.execution;
   const assetApi = api.domains.assets;
   const buildVersion = useServiceBuildVersion(executionApi.binaryToSource.getHealth);
-  const autoRefreshStorageKey = `chimera:b2s:autoRefresh:${projectId || 'default'}`;
-  const refreshIntervalStorageKey = `chimera:b2s:refreshInterval:${projectId || 'default'}`;
+  const autoRefreshStorageKey =`chimera:b2s:autoRefresh:${projectId || 'default'}`;
+  const refreshIntervalStorageKey =`chimera:b2s:refreshInterval:${projectId || 'default'}`;
   const [items, setItems] = useState<B2STask[]>([]);
   const [taskStats, setTaskStats] = useState<B2STaskListStats>({ total: 0, pending: 0, running: 0, success: 0, partial: 0, failed: 0, cancelled: 0 });
   const [piClusterCapacity, setPiClusterCapacity] = useState<B2SPiClusterCapacity | null>(null);
@@ -187,7 +187,7 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
     if (nameEdited) return;
     if (name.trim()) return;
     const now = new Date();
-    const ts = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}-${String(now.getHours()).padStart(2, '0')}${String(now.getMinutes()).padStart(2, '0')}`;
+    const ts =`${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}-${String(now.getHours()).padStart(2, '0')}${String(now.getMinutes()).padStart(2, '0')}`;
     setName(`b2s-${ts}`);
   }, [showCreateDialog, name, nameEdited]);
 
@@ -310,7 +310,7 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
     if (selectedTaskIds.length === 0 || batchDeleting) return;
     const confirmed = await showConfirm({
       title: '批量删除二进制逆向任务',
-      message: `将删除 ${selectedTaskIds.length} 个任务；运行中/排队中任务会先尝试取消上游 job，再删除记录和文件。此操作不可恢复。`,
+      message:`将删除 ${selectedTaskIds.length} 个任务；运行中/排队中任务会先尝试取消上游 job，再删除记录和文件。此操作不可恢复。`,
       confirmText: '确认删除',
       cancelText: '取消',
       danger: true,
@@ -415,7 +415,7 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
     const parts = path.split('/').filter(Boolean);
     let current = '';
     for (const part of parts) {
-      current = `${current}/${part}`;
+      current =`${current}/${part}`;
       try {
         await assetApi.fileserver.createProjectFilesystemDirectory({
           project_id: projectId,
@@ -432,7 +432,7 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
 
   const toAbsoluteProjectPath = (projectPath: string): string => {
     const safeProjectPath = projectPath.replace(/^\/+/, '');
-    return `${FILESERVER_STORAGE_ROOT}/files/${projectId}/${safeProjectPath}`.replace(/\/{2,}/g, '/');
+    return`${FILESERVER_STORAGE_ROOT}/files/${projectId}/${safeProjectPath}`.replace(/\/{2,}/g, '/');
   };
 
   const submitCreateTask = async () => {
@@ -528,7 +528,7 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
 
   return (
     <div className="px-8 pb-10 pt-8 space-y-6">
-      <section className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
+ <section className="rounded-[2rem] border border-slate-200 bg-slate-50 p-6">
         <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
           <div>
             <p className="text-xs font-black uppercase tracking-[0.3em] text-cyan-600">Binary Reverse</p>
@@ -541,7 +541,7 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
             <button
               type="button"
               onClick={openCreateDialog}
-              className="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-bold text-white shadow-sm hover:bg-slate-800"
+ className="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-bold text-white hover:bg-slate-800"
             >
               <Plus size={16} />
               创建任务
@@ -552,7 +552,7 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
                 void load(false);
                 void loadPiClusterCapacity();
               }}
-              className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-bold text-slate-700 shadow-sm hover:bg-slate-50"
+ className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm font-bold text-slate-700 hover:bg-slate-100"
             >
               {refreshing ? <Loader2 size={16} className="animate-spin" /> : <RefreshCw size={16} />}
               {refreshing ? '刷新中...' : '刷新'}
@@ -572,11 +572,11 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
         </div>
       )}
 
-      <section className="rounded-[2rem] border border-slate-200 bg-slate-50/70 p-5 shadow-sm">
+ <section className="rounded-[2rem] border border-slate-200 bg-slate-50/70 p-5">
         <B2SStatsHeader stats={stats} title="当前项目逆向统计" />
       </section>
 
-      <section className="rounded-[2rem] border border-slate-200 bg-white p-5 shadow-sm">
+ <section className="rounded-[2rem] border border-slate-200 bg-slate-50 p-5">
         <button
           type="button"
           onClick={() => setSlotPanelExpanded((current) => !current)}
@@ -607,14 +607,14 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
                 event.stopPropagation();
                 void loadPiClusterCapacity();
               }}
-              className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50"
+              className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-bold text-slate-700 hover:bg-slate-100"
               title="手动刷新执行槽位"
               aria-label="手动刷新执行槽位"
             >
               <RefreshCw size={14} />
               手动刷新
             </button>
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-500">
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 bg-slate-50 text-slate-500">
               {slotPanelExpanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
             </div>
           </div>
@@ -659,7 +659,7 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
                   </div>
                   <div className="mt-2 text-xs text-slate-600">
                     槽位 {worker.running_jobs}/{worker.max_concurrent_jobs}
-                    {worker.available_slots >= 0 ? ` · 空闲 ${worker.available_slots}` : ''}
+                    {worker.available_slots >= 0 ?` · 空闲 ${worker.available_slots}` : ''}
                   </div>
                   <div className="mt-1 text-xs text-slate-400">
                     来源 {worker.source || 'capacity'}
@@ -710,7 +710,7 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
                 <button
                   type="button"
                   onClick={() => setShowSlotDetailModal(false)}
-                  className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
+                  className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-slate-50 text-slate-600 hover:bg-slate-100"
                   aria-label="关闭执行槽位详情"
                 >
                   <X size={16} />
@@ -732,13 +732,13 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
                       <section
                         key={worker.worker_id}
                         className={`overflow-hidden rounded-[1.5rem] border ${
-                          worker.healthy ? 'border-slate-200 bg-white' : 'border-rose-200 bg-rose-50/70'
+                          worker.healthy ? 'border-slate-200 bg-slate-50' : 'border-rose-200 bg-rose-50/70'
                         }`}
                       >
                         <button
                           type="button"
                           onClick={() => toggleSlotWorkerExpanded(worker.worker_id)}
-                          className="flex w-full items-center justify-between gap-3 px-5 py-4 text-left hover:bg-slate-50/70"
+                          className="flex w-full items-center justify-between gap-3 px-5 py-4 text-left hover:bg-slate-100/70"
                         >
                           <div className="min-w-0">
                             <div className="flex flex-wrap items-center gap-2">
@@ -770,7 +770,7 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
                               />
                             </div>
                           </div>
-                          <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-500">
+                          <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 bg-slate-50 text-slate-500">
                             {expanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
                           </div>
                         </button>
@@ -778,7 +778,7 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
                           <div className="border-t border-slate-100 px-5 py-4">
                             {!worker.healthy ? (
                               <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
-                                Worker 当前不可用。{worker.error ? `原因：${worker.error}` : ''}
+                                Worker 当前不可用。{worker.error ?`原因：${worker.error}` : ''}
                               </div>
                             ) : hasDetailError ? (
                               <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
@@ -813,7 +813,7 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
                                         </div>
                                         <div className="mt-1 break-all font-mono text-[11px] text-slate-500">{job.elf_path || '-'}</div>
                                       </div>
-                                      <div className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-[11px] text-slate-500">
+                                      <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-[11px] text-slate-500">
                                         <div className="font-semibold text-slate-700">pi job</div>
                                         <div className="mt-1 font-mono">{job.pi_job_id}</div>
                                       </div>
@@ -859,7 +859,7 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
                                       <div className="rounded-xl border border-slate-200 bg-slate-700 px-3 py-3">
                                         <div className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">任务项</div>
                                         <div className="mt-2 text-sm font-semibold text-slate-300">
-                                          {job.sequence_no != null ? `#${job.sequence_no}` : '-'}
+                                          {job.sequence_no != null ?`#${job.sequence_no}` : '-'}
                                         </div>
                                         <div className="mt-1 break-all font-mono text-[11px] text-slate-400">{job.item_id || '-'}</div>
                                       </div>
@@ -880,7 +880,7 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
         </div>
       ) : null}
 
-      <section className="rounded-[2rem] border border-slate-200 bg-white p-5 shadow-sm">
+ <section className="rounded-[2rem] border border-slate-200 bg-slate-50 p-5">
         <div className="flex items-center justify-between gap-3 border-b border-slate-100 pb-4">
           <div>
             <h2 className="text-xl font-black text-slate-900">任务列表</h2>
@@ -920,14 +920,14 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
                       const value = Number(e.target.value);
                       setRefreshIntervalSec(Number.isFinite(value) ? Math.max(5, Math.floor(value)) : 5);
                     }}
-                    className="w-16 rounded border border-slate-200 bg-white px-2 py-1 text-xs text-slate-700"
+                    className="w-16 rounded border border-slate-200 bg-slate-50 px-2 py-1 text-xs text-slate-700"
                   />
                   秒
                 </label>
               </div>
             </div>
             <div className="mb-4 flex flex-wrap items-center gap-3 text-xs text-slate-500">
-              <span>自动刷新：{autoRefreshEnabled ? `开启（${Math.max(5, refreshIntervalSec)}s）` : '关闭'}</span>
+              <span>自动刷新：{autoRefreshEnabled ?`开启（${Math.max(5, refreshIntervalSec)}s）` : '关闭'}</span>
               {autoRefreshEnabled ? (
                 <span className="text-cyan-600">任务列表与执行槽位按设定间隔自动刷新</span>
               ) : null}
@@ -979,7 +979,7 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
                     type="button"
                     onClick={() => setSelectedTaskIds([])}
                     disabled={batchDeleting}
-                    className="rounded-lg border border-rose-200 bg-white px-3 py-1.5 text-xs font-bold text-rose-700 hover:bg-rose-50 disabled:opacity-50"
+                    className="rounded-lg border border-rose-200 bg-slate-50 px-3 py-1.5 text-xs font-bold text-rose-700 hover:bg-rose-50 disabled:opacity-50"
                   >
                     取消选择
                   </button>
@@ -987,7 +987,7 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
                     type="button"
                     onClick={() => void handleBatchDelete()}
                     disabled={batchDeleting}
-                    className="inline-flex items-center gap-1.5 rounded-lg bg-rose-600 px-3 py-1.5 text-xs font-bold text-white shadow-sm hover:bg-rose-700 disabled:opacity-50"
+ className="inline-flex items-center gap-1.5 rounded-lg bg-rose-600 px-3 py-1.5 text-xs font-bold text-white hover:bg-rose-700 disabled:opacity-50"
                   >
                     {batchDeleting ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
                     {batchDeleting ? '删除中...' : '批量删除'}
@@ -1021,7 +1021,7 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
                           value={searchText}
                           onChange={(e) => { setSearchText(e.target.value); setPage(1); }}
                           placeholder="搜索任务名/任务ID"
-                          className="w-full rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs normal-case tracking-normal text-slate-700"
+                          className="w-full rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1.5 text-xs normal-case tracking-normal text-slate-700"
                           onClick={(event) => event.stopPropagation()}
                         />
                       </div>
@@ -1033,7 +1033,7 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
                           value={inputFileFilter}
                           onChange={(e) => { setInputFileFilter(e.target.value); setPage(1); }}
                           placeholder="搜索输入文件"
-                          className="w-full rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs normal-case tracking-normal text-slate-700"
+                          className="w-full rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1.5 text-xs normal-case tracking-normal text-slate-700"
                           onClick={(event) => event.stopPropagation()}
                         />
                       </div>
@@ -1042,7 +1042,7 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
                       <div className="space-y-2">
                         <div>状态</div>
                         <div className="text-[10px] font-semibold normal-case tracking-normal text-slate-400">
-                          {statusFilter ? `当前: ${formatB2SStatus(statusFilter)}` : '点击单元格快速筛选'}
+                          {statusFilter ?`当前: ${formatB2SStatus(statusFilter)}` : '点击单元格快速筛选'}
                         </div>
                       </div>
                     </ExecutionTableTh>
@@ -1050,7 +1050,7 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
                       <div className="space-y-2">
                         <div>总任务 ID</div>
                         <div className="text-[10px] font-semibold normal-case tracking-normal text-slate-400">
-                          {parentTaskFilter ? `当前: ${parentTaskFilter}` : '点击单元格快速筛选'}
+                          {parentTaskFilter ?`当前: ${parentTaskFilter}` : '点击单元格快速筛选'}
                         </div>
                       </div>
                     </ExecutionTableTh>
@@ -1064,7 +1064,7 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
                         <select
                           value={originFilter}
                           onChange={(e) => { setOriginFilter((e.target.value || '') as '' | 'manual' | 'binary_security'); setPage(1); }}
-                          className="w-full rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-xs normal-case tracking-normal text-slate-700"
+                          className="w-full rounded-lg border border-slate-200 bg-slate-50 px-2 py-1.5 text-xs normal-case tracking-normal text-slate-700"
                           onClick={(event) => event.stopPropagation()}
                         >
                           <option value="">全部来源</option>
@@ -1142,7 +1142,7 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
                               onClick={() => toggleExpandedInputFiles(task.id)}
                               className="text-[11px] text-slate-400 hover:text-cyan-700"
                             >
-                              {inputsExpanded ? '收起剩余文件' : `其余 ${inputFilenames.length - 3} 个文件`}
+                              {inputsExpanded ? '收起剩余文件' :`其余 ${inputFilenames.length - 3} 个文件`}
                             </button>
                           ) : null}
                           {inputFilenames.length === 0 ? (
@@ -1195,7 +1195,7 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
                               <div className="text-sm font-semibold text-slate-800">成功 {completedFunctions} / 总数 {totalFunctions}</div>
                               <div className="mt-1 text-xs text-slate-400">
                                 未完成 {uncompletedFunctions ?? '-'}
-                                {failedFunctions !== null ? ` · 失败 ${failedFunctions}` : ''}
+                                {failedFunctions !== null ?` · 失败 ${failedFunctions}` : ''}
                               </div>
                             </>
                           ) : (
@@ -1210,7 +1210,7 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
                           <div className="text-sm font-semibold text-slate-800">{sourceLabel}</div>
                           <div className="mt-1 text-xs text-slate-400">
                             {String(task.task_origin_type || 'manual').trim() === 'binary_security'
-                              ? `来源阶段 ${String(task.parent_stage_name || '').trim() || '-'}`
+                              ?`来源阶段 ${String(task.parent_stage_name || '').trim() || '-'}`
                               : '-'}
                           </div>
                         </ExecutionTableTd>
@@ -1233,7 +1233,7 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
                   <select
                     value={perPage}
                     onChange={(e) => setPerPage(Number(e.target.value) || 50)}
-                    className="rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-xs text-slate-700 outline-none"
+                    className="rounded-lg border border-slate-200 bg-slate-50 px-2 py-1.5 text-xs text-slate-700 outline-none"
                   >
                     {[10, 50, 100, 200, 500, 1000].map((n) => <option key={n} value={n}>{n}</option>)}
                   </select>
@@ -1242,14 +1242,14 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
                 <button
                   disabled={page <= 1}
                   onClick={() => setPage(1)}
-                  className="rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs font-semibold text-slate-600 disabled:opacity-40 hover:bg-slate-50"
+                  className="rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs font-semibold text-slate-600 disabled:opacity-40 hover:bg-slate-100"
                 >
                   首页
                 </button>
                 <button
                   disabled={page <= 1}
                   onClick={() => setPage((p) => Math.max(1, p - 1))}
-                  className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-600 disabled:opacity-40 hover:bg-slate-50"
+                  className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-600 disabled:opacity-40 hover:bg-slate-100"
                 >
                   上一页
                 </button>
@@ -1257,14 +1257,14 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
                 <button
                   disabled={page >= totalPages}
                   onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                  className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-600 disabled:opacity-40 hover:bg-slate-50"
+                  className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-600 disabled:opacity-40 hover:bg-slate-100"
                 >
                   下一页
                 </button>
                 <button
                   disabled={page >= totalPages}
                   onClick={() => setPage(totalPages)}
-                  className="rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs font-semibold text-slate-600 disabled:opacity-40 hover:bg-slate-50"
+                  className="rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs font-semibold text-slate-600 disabled:opacity-40 hover:bg-slate-100"
                 >
                   末页
                 </button>
@@ -1276,7 +1276,7 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
 
       {showCreateDialog && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/40 px-4">
-          <div className="w-full max-w-5xl rounded-[2rem] border border-slate-200 bg-white shadow-2xl">
+ <div className="w-full max-w-5xl rounded-[2rem] border border-slate-200 bg-slate-50">
             <div className="flex items-center justify-between border-b border-slate-200 px-6 py-5">
               <div>
                 <h3 className="text-xl font-black text-slate-900">创建二进制逆向任务</h3>
@@ -1331,11 +1331,11 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
                         setModeOverridden(true);
                       }}
                       disabled={submitting}
-                      className={`rounded-3xl border px-4 py-4 text-left transition-all ${runMode === 'turbo' ? 'border-amber-300 bg-amber-50 ring-2 ring-amber-100' : 'border-slate-200 bg-white hover:bg-slate-50'} disabled:opacity-60`}
+                      className={`rounded-3xl border px-4 py-4 text-left transition-all ${runMode === 'turbo' ? 'border-amber-300 bg-amber-50 ring-2 ring-amber-100' : 'border-slate-200 bg-slate-50 hover:bg-slate-100'} disabled:opacity-60`}
                     >
                       <div className="flex items-center justify-between gap-3">
                         <div className="text-sm font-black text-slate-900">极速模式</div>
-                        <div className="rounded-full bg-white px-2.5 py-1 text-[10px] font-black tracking-[0.08em] text-amber-700 ring-1 ring-amber-100">极速</div>
+                        <div className="rounded-full bg-slate-50 px-2.5 py-1 text-[10px] font-black tracking-[0.08em] text-amber-700 ring-1 ring-amber-100">极速</div>
                       </div>
                       <div className="mt-2 text-xs font-semibold leading-5 text-slate-500">优先命中缓存和极速收敛，适合大批量快速扫一遍。</div>
                     </button>
@@ -1346,11 +1346,11 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
                         setModeOverridden(true);
                       }}
                       disabled={submitting}
-                      className={`rounded-3xl border px-4 py-4 text-left transition-all ${runMode === 'fast' ? 'border-cyan-300 bg-cyan-50 ring-2 ring-cyan-100' : 'border-slate-200 bg-white hover:bg-slate-50'} disabled:opacity-60`}
+                      className={`rounded-3xl border px-4 py-4 text-left transition-all ${runMode === 'fast' ? 'border-cyan-300 bg-cyan-50 ring-2 ring-cyan-100' : 'border-slate-200 bg-slate-50 hover:bg-slate-100'} disabled:opacity-60`}
                     >
                       <div className="flex items-center justify-between gap-3">
                         <div className="text-sm font-black text-slate-900">快速模式</div>
-                        <div className="rounded-full bg-white px-2.5 py-1 text-[10px] font-black tracking-[0.08em] text-cyan-700 ring-1 ring-cyan-100">推荐</div>
+                        <div className="rounded-full bg-slate-50 px-2.5 py-1 text-[10px] font-black tracking-[0.08em] text-cyan-700 ring-1 ring-cyan-100">推荐</div>
                       </div>
                       <div className="mt-2 text-xs font-semibold leading-5 text-slate-500">优先速度，使用混合流水线，适合初步分析和批量还原。</div>
                     </button>
@@ -1361,17 +1361,17 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
                         setModeOverridden(true);
                       }}
                       disabled={submitting}
-                      className={`rounded-3xl border px-4 py-4 text-left transition-all ${runMode === 'deep' ? 'border-violet-300 bg-violet-50 ring-2 ring-violet-100' : 'border-slate-200 bg-white hover:bg-slate-50'} disabled:opacity-60`}
+                      className={`rounded-3xl border px-4 py-4 text-left transition-all ${runMode === 'deep' ? 'border-violet-300 bg-violet-50 ring-2 ring-violet-100' : 'border-slate-200 bg-slate-50 hover:bg-slate-100'} disabled:opacity-60`}
                     >
                       <div className="flex items-center justify-between gap-3">
                         <div className="text-sm font-black text-slate-900">深度模式</div>
-                        <div className="rounded-full bg-white px-2.5 py-1 text-[10px] font-black tracking-[0.08em] text-violet-700 ring-1 ring-violet-100">高质量</div>
+                        <div className="rounded-full bg-slate-50 px-2.5 py-1 text-[10px] font-black tracking-[0.08em] text-violet-700 ring-1 ring-violet-100">高质量</div>
                       </div>
                       <div className="mt-2 text-xs font-semibold leading-5 text-slate-500">使用 Agent 深度推理，速度较慢，适合关键二进制和高质量还原。</div>
                     </button>
                   </div>
                   <div className="mt-2 text-xs font-semibold text-slate-500">
-                    当前项目默认模式：{B2S_MODE_LABELS[projectDefaultMode]}。若未手动切换模式，创建请求不会显式传 `mode`，由后端按项目默认模式自动决策。
+                    当前项目默认模式：{B2S_MODE_LABELS[projectDefaultMode]}。若未手动切换模式，创建请求不会显式传`mode`，由后端按项目默认模式自动决策。
                   </div>
                 </div>
 
@@ -1404,7 +1404,7 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
                         默认开启。关闭后，本次会忽略历史缓存；如果任务成功，会覆盖当前 ELF 在 {B2S_MODE_LABELS[runMode]} 下的缓存结果。
                       </div>
                     </div>
-                    <label className="inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-white px-3 py-1.5 text-xs font-black text-emerald-700">
+                    <label className="inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-slate-50 px-3 py-1.5 text-xs font-black text-emerald-700">
                       <input
                         type="checkbox"
                         checked={reuseCache}
@@ -1444,7 +1444,7 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
                     <span className="mt-1 text-xs text-cyan-700">选择项目文件系统中已有的 ELF，不重复上传。</span>
                   </button>
                 </div>
-                <div className="max-h-64 overflow-auto rounded-2xl border border-slate-200 bg-white">
+                <div className="max-h-64 overflow-auto rounded-2xl border border-slate-200 bg-slate-50">
                   {selectedFiles.length === 0 && selectedServerFiles.length === 0 && <div className="px-4 py-5 text-center text-sm text-slate-400">未选择文件</div>}
                   {selectedFiles.map((file, idx) => (
                     <div key={`local-${file.name}-${idx}`} className="flex items-center justify-between border-t border-slate-100 px-4 py-3 text-sm first:border-t-0">
@@ -1456,7 +1456,7 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
                         type="button"
                         onClick={() => setSelectedFiles((current) => current.filter((_, fileIdx) => fileIdx !== idx))}
                         disabled={submitting}
-                        className="ml-3 rounded-xl border border-slate-200 px-3 py-1.5 text-xs font-bold text-slate-600 hover:bg-slate-50 disabled:opacity-50"
+                        className="ml-3 rounded-xl border border-slate-200 px-3 py-1.5 text-xs font-bold text-slate-600 hover:bg-slate-100 disabled:opacity-50"
                       >
                         移除
                       </button>
@@ -1472,7 +1472,7 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
                         type="button"
                         onClick={() => setSelectedServerFiles((current) => current.filter((item) => item.path !== file.path))}
                         disabled={submitting}
-                        className="ml-3 rounded-xl border border-slate-200 px-3 py-1.5 text-xs font-bold text-slate-600 hover:bg-slate-50 disabled:opacity-50"
+                        className="ml-3 rounded-xl border border-slate-200 px-3 py-1.5 text-xs font-bold text-slate-600 hover:bg-slate-100 disabled:opacity-50"
                       >
                         移除
                       </button>
@@ -1520,7 +1520,7 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
                   type="button"
                   onClick={() => void submitCreateTask()}
                   disabled={submitting}
-                  className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-bold text-white shadow-sm disabled:opacity-60"
+ className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-bold text-white disabled:opacity-60"
                 >
                   {submitting && <Loader2 size={16} className="animate-spin" />}
                   创建任务

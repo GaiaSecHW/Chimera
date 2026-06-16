@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  ArrowLeft, 
-  Save, 
-  Settings, 
-  Loader2, 
-  Layers, 
-  Container, 
+import {
+  ArrowLeft,
+  Save,
+  Settings,
+  Loader2,
+  Layers,
+  Container,
   X,
   Plus,
   Clock,
@@ -47,12 +47,12 @@ export const AppTemplateDetailPage: React.FC<{ templateId: string, onBack: () =>
   const [isEditMode, setIsEditMode] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [tagInputValue, setTagInputValue] = useState('');
-  
-  const defaultContainer = { 
-    name: 'main', 
-    image: '', 
-    command: '', 
-    args: '', 
+
+  const defaultContainer = {
+    name: 'main',
+    image: '',
+    command: '',
+    args: '',
     env_vars: [{ name: '', value: '' }],
     volume_mounts: [{ pvc_name: '', mount_path: '', sub_path: '', read_only: false }],
     input_env_vars: [{ name: '', default_value: '' }],
@@ -118,7 +118,7 @@ export const AppTemplateDetailPage: React.FC<{ templateId: string, onBack: () =>
     try {
       const data = await orchestrationApi.workflow.getAppTemplate(templateId);
       setTemplate(data);
-      
+
       // Transform data for form
       setFormData({
         name: data.name || '',
@@ -159,7 +159,7 @@ export const AppTemplateDetailPage: React.FC<{ templateId: string, onBack: () =>
       alert("请确保所有容器都已指定镜像");
       return;
     }
-    
+
     const payload = {
       ...formData,
       tags: formData.tags,
@@ -195,7 +195,7 @@ export const AppTemplateDetailPage: React.FC<{ templateId: string, onBack: () =>
         };
       })
     };
-    
+
     setIsSubmitting(true);
     try {
       await orchestrationApi.workflow.updateAppTemplate(templateId, payload);
@@ -203,7 +203,7 @@ export const AppTemplateDetailPage: React.FC<{ templateId: string, onBack: () =>
       loadTemplate();
       alert("保存成功");
     } catch (err: any) {
-      alert("保存失败: " + err.message);
+      alert("保存失败:" + err.message);
     } finally {
       setIsSubmitting(false);
     }
@@ -220,7 +220,7 @@ export const AppTemplateDetailPage: React.FC<{ templateId: string, onBack: () =>
   return (
     <div className="flex flex-col h-full bg-slate-50 animate-in fade-in duration-500">
       {/* Header */}
-      <div className="flex items-center justify-between p-6 bg-white border-b border-slate-200 shrink-0">
+      <div className="flex items-center justify-between p-6 bg-slate-50 border-b border-slate-200 shrink-0">
         <div className="flex items-center gap-4">
           <button onClick={onBack} className="p-2 text-slate-400 hover:text-slate-800 hover:bg-slate-100 rounded-xl transition-all">
             <ArrowLeft size={20} />
@@ -245,19 +245,19 @@ export const AppTemplateDetailPage: React.FC<{ templateId: string, onBack: () =>
             </div>
           </div>
         </div>
-        
+
         <div className="flex items-center gap-3">
           {isEditMode ? (
             <>
               <button onClick={() => { setIsEditMode(false); loadTemplate(); }} className="px-5 py-2.5 text-sm font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-xl transition-all">
                 取消
               </button>
-              <button disabled={isSubmitting} onClick={handleSave} className="flex items-center gap-2 px-5 py-2.5 text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-xl transition-all shadow-lg shadow-blue-500/20 disabled:opacity-50">
+ <button disabled={isSubmitting} onClick={handleSave} className="flex items-center gap-2 px-5 py-2.5 text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-xl transition-all disabled:opacity-50">
                 {isSubmitting ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />} 保存
               </button>
             </>
           ) : (
-            <button onClick={() => setIsEditMode(true)} className="flex items-center gap-2 px-5 py-2.5 text-sm font-bold text-slate-700 bg-white border border-slate-200 hover:bg-slate-50 rounded-xl transition-all shadow-sm">
+ <button onClick={() => setIsEditMode(true)} className="flex items-center gap-2 px-5 py-2.5 text-sm font-bold text-slate-700 bg-slate-50 border border-slate-200 hover:bg-slate-100 rounded-xl transition-all">
               <Settings size={16} /> 编辑模式
             </button>
           )}
@@ -267,25 +267,25 @@ export const AppTemplateDetailPage: React.FC<{ templateId: string, onBack: () =>
       {/* Main Content */}
       <div className="flex-1 overflow-y-auto p-8 custom-scrollbar">
         <div className="max-w-5xl mx-auto space-y-8">
-          
+
           {/* Basic Info */}
-          <div className="bg-white rounded-3xl p-8 shadow-sm border border-slate-200 space-y-6">
+ <div className="bg-slate-50 rounded-3xl p-8 border border-slate-200 space-y-6">
             <h3 className="text-lg font-black text-slate-800 flex items-center gap-2">
               <Settings size={18} className="text-blue-500" /> 基本信息
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-1.5">
                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">模板名称 *</label>
-                <input 
+                <input
                   disabled={!isEditMode}
-                  required placeholder="e.g. security-waf-proxy" 
+                  required placeholder="e.g. security-waf-proxy"
                   className="w-full px-4 py-3 bg-slate-50 rounded-xl border-none outline-none focus:ring-4 ring-blue-500/10 text-sm font-bold text-slate-800 transition-all disabled:opacity-70 disabled:bg-slate-100"
                   value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})}
                 />
               </div>
               <div className="space-y-1.5">
                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">发布范围</label>
-                <select 
+                <select
                   disabled={!isEditMode}
                   className="w-full px-4 py-3 bg-slate-50 rounded-xl border-none outline-none focus:ring-4 ring-blue-500/10 text-sm font-bold text-slate-800 disabled:opacity-70 disabled:bg-slate-100"
                   value={formData.scope} onChange={e => setFormData({...formData, scope: e.target.value as any})}
@@ -301,7 +301,7 @@ export const AppTemplateDetailPage: React.FC<{ templateId: string, onBack: () =>
                   <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">运行副本数 (Replicas)</label>
                   <span className="text-xs font-black text-blue-600">{formData.replicas} Pods</span>
               </div>
-              <input 
+              <input
                 disabled={!isEditMode}
                 type="range" min="1" max="10" step="1"
                 className="w-full h-2 bg-slate-100 rounded-lg appearance-none cursor-pointer accent-blue-600 disabled:opacity-50"
@@ -313,8 +313,8 @@ export const AppTemplateDetailPage: React.FC<{ templateId: string, onBack: () =>
               <div className="flex justify-between items-center">
                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">服务端口 (Service Ports)</label>
                 {isEditMode && (
-                  <button 
-                    type="button" 
+                  <button
+                    type="button"
                     onClick={() => setFormData({...formData, service_ports: [...formData.service_ports, { name: 'http-' + formData.service_ports.length, port: 80, target_port: 80, protocol: 'TCP' }]})}
                     className="text-[9px] font-black text-blue-600 hover:underline uppercase"
                   >
@@ -325,9 +325,9 @@ export const AppTemplateDetailPage: React.FC<{ templateId: string, onBack: () =>
               <div className="space-y-2">
                 {formData.service_ports.map((p, pIdx) => (
                   <div key={pIdx} className="flex gap-2 items-center">
-                    <input 
+                    <input
                       disabled={!isEditMode}
-                      placeholder="Name" 
+                      placeholder="Name"
                       className="w-24 px-4 py-2 bg-slate-50 rounded-xl border-none outline-none text-xs font-bold disabled:opacity-70 disabled:bg-slate-100"
                       value={p.name} onChange={e => {
                         const n = [...formData.service_ports];
@@ -335,9 +335,9 @@ export const AppTemplateDetailPage: React.FC<{ templateId: string, onBack: () =>
                         setFormData({...formData, service_ports: n});
                       }}
                     />
-                    <input 
+                    <input
                       disabled={!isEditMode}
-                      type="number" placeholder="Port" 
+                      type="number" placeholder="Port"
                       className="w-20 px-4 py-2 bg-slate-50 rounded-xl border-none outline-none text-xs font-mono disabled:opacity-70 disabled:bg-slate-100"
                       value={p.port} onChange={e => {
                         const n = [...formData.service_ports];
@@ -345,9 +345,9 @@ export const AppTemplateDetailPage: React.FC<{ templateId: string, onBack: () =>
                         setFormData({...formData, service_ports: n});
                       }}
                     />
-                    <input 
+                    <input
                       disabled={!isEditMode}
-                      type="number" placeholder="Target" 
+                      type="number" placeholder="Target"
                       className="w-20 px-4 py-2 bg-slate-50 rounded-xl border-none outline-none text-xs font-mono disabled:opacity-70 disabled:bg-slate-100"
                       value={p.target_port} onChange={e => {
                         const n = [...formData.service_ports];
@@ -355,7 +355,7 @@ export const AppTemplateDetailPage: React.FC<{ templateId: string, onBack: () =>
                         setFormData({...formData, service_ports: n});
                       }}
                     />
-                    <select 
+                    <select
                       disabled={!isEditMode}
                       className="w-24 px-4 py-2 bg-slate-50 rounded-xl border-none outline-none text-xs font-bold disabled:opacity-70 disabled:bg-slate-100"
                       value={p.protocol} onChange={e => {
@@ -368,7 +368,7 @@ export const AppTemplateDetailPage: React.FC<{ templateId: string, onBack: () =>
                       <option value="UDP">UDP</option>
                     </select>
                     {isEditMode && formData.service_ports.length > 1 && (
-                      <button 
+                      <button
                         type="button"
                         onClick={() => setFormData({...formData, service_ports: formData.service_ports.filter((_, i) => i !== pIdx)})}
                         className="p-2 text-slate-400 hover:text-red-500"
@@ -384,16 +384,16 @@ export const AppTemplateDetailPage: React.FC<{ templateId: string, onBack: () =>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="space-y-1.5 col-span-1 md:col-span-1">
                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Service 名称</label>
-                <input 
+                <input
                   disabled={!isEditMode}
-                  placeholder="自动生成" 
+                  placeholder="自动生成"
                   className="w-full px-4 py-3 bg-slate-50 rounded-xl border-none outline-none focus:ring-4 ring-blue-500/10 text-sm font-bold text-slate-800 transition-all disabled:opacity-70 disabled:bg-slate-100"
                   value={formData.service_name} onChange={e => setFormData({...formData, service_name: e.target.value})}
                 />
               </div>
               <div className="space-y-1.5">
                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Service 类型</label>
-                <select 
+                <select
                   disabled={!isEditMode}
                   className="w-full px-4 py-3 bg-slate-50 rounded-xl border-none outline-none focus:ring-4 ring-blue-500/10 text-sm font-bold text-slate-800 disabled:opacity-70 disabled:bg-slate-100"
                   value={formData.service_type} onChange={e => setFormData({...formData, service_type: e.target.value as any})}
@@ -405,9 +405,9 @@ export const AppTemplateDetailPage: React.FC<{ templateId: string, onBack: () =>
               </div>
               <div className="flex items-center pt-6">
                 <label className="flex items-center gap-2 cursor-pointer">
-                  <input 
+                  <input
                     disabled={!isEditMode}
-                    type="checkbox" 
+                    type="checkbox"
                     className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 disabled:opacity-50"
                     checked={formData.create_service}
                     onChange={e => setFormData({...formData, create_service: e.target.checked})}
@@ -419,7 +419,7 @@ export const AppTemplateDetailPage: React.FC<{ templateId: string, onBack: () =>
 
             <div className="space-y-1.5">
               <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">组件描述</label>
-              <textarea 
+              <textarea
                 disabled={!isEditMode}
                 placeholder="描述该应用组件的功能、挂载需求及预期的服务类型..." rows={2}
                 className="w-full px-4 py-3 bg-slate-50 rounded-xl border-none outline-none focus:ring-4 ring-blue-500/10 text-sm font-bold text-slate-800 transition-all resize-none disabled:opacity-70 disabled:bg-slate-100"
@@ -497,14 +497,14 @@ export const AppTemplateDetailPage: React.FC<{ templateId: string, onBack: () =>
           </div>
 
           {/* Container Stack */}
-          <div className="bg-white rounded-3xl p-8 shadow-sm border border-slate-200 space-y-6">
+ <div className="bg-slate-50 rounded-3xl p-8 border border-slate-200 space-y-6">
             <div className="flex justify-between items-center">
               <h3 className="text-lg font-black text-slate-800 flex items-center gap-2">
                 <Container size={18} className="text-blue-500" /> 容器编排栈
               </h3>
               {isEditMode && (
-                <button 
-                  type="button" 
+                <button
+                  type="button"
                   onClick={() => setFormData({...formData, containers: [...formData.containers, JSON.parse(JSON.stringify(defaultContainer))]})}
                   className="text-[10px] font-black text-blue-600 hover:underline uppercase tracking-widest"
                 >
@@ -517,7 +517,7 @@ export const AppTemplateDetailPage: React.FC<{ templateId: string, onBack: () =>
               {formData.containers.map((container: any, idx) => (
                 <div key={idx} className="p-6 bg-slate-50 rounded-2xl border border-slate-100 relative group/c space-y-6">
                   {isEditMode && formData.containers.length > 1 && (
-                    <button 
+                    <button
                       type="button"
                       onClick={() => setFormData({...formData, containers: formData.containers.filter((_, i) => i !== idx)})}
                       className="absolute top-4 right-4 p-2 text-slate-400 hover:text-red-500 transition-colors"
@@ -525,14 +525,14 @@ export const AppTemplateDetailPage: React.FC<{ templateId: string, onBack: () =>
                       <X size={16} />
                     </button>
                   )}
-                  
+
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="space-y-1.5">
                       <label className="text-[9px] font-black text-slate-400 uppercase ml-1">容器名称</label>
-                      <input 
+                      <input
                         disabled={!isEditMode}
                         required placeholder="e.g. main-service"
-                        className="w-full px-4 py-2 bg-white rounded-xl border border-slate-100 outline-none text-xs font-bold disabled:opacity-70 disabled:bg-slate-100"
+                        className="w-full px-4 py-2 bg-slate-50 rounded-xl border border-slate-100 outline-none text-xs font-bold disabled:opacity-70 disabled:bg-slate-100"
                         value={container.name}
                         onChange={e => {
                           const n = [...formData.containers];
@@ -543,10 +543,10 @@ export const AppTemplateDetailPage: React.FC<{ templateId: string, onBack: () =>
                     </div>
                     <div className="space-y-1.5">
                       <label className="text-[9px] font-black text-slate-400 uppercase ml-1">镜像 (Image) *</label>
-                      <input 
+                      <input
                         disabled={!isEditMode}
                         required placeholder="e.g. nginx:latest"
-                        className="w-full px-4 py-2 bg-white rounded-xl border border-slate-100 outline-none text-xs font-mono font-bold text-blue-600 disabled:opacity-70 disabled:bg-slate-100"
+                        className="w-full px-4 py-2 bg-slate-50 rounded-xl border border-slate-100 outline-none text-xs font-mono font-bold text-blue-600 disabled:opacity-70 disabled:bg-slate-100"
                         value={container.image}
                         onChange={e => {
                           const n = [...formData.containers];
@@ -556,14 +556,14 @@ export const AppTemplateDetailPage: React.FC<{ templateId: string, onBack: () =>
                       />
                     </div>
                   </div>
-                  
+
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="space-y-1.5">
                       <label className="text-[9px] font-black text-slate-400 uppercase ml-1">启动命令 (Command)</label>
-                      <input 
+                      <input
                         disabled={!isEditMode}
                         placeholder="e.g. /bin/sh, -c (逗号分隔)"
-                        className="w-full px-4 py-2 bg-white rounded-xl border border-slate-100 outline-none text-xs font-mono disabled:opacity-70 disabled:bg-slate-100"
+                        className="w-full px-4 py-2 bg-slate-50 rounded-xl border border-slate-100 outline-none text-xs font-mono disabled:opacity-70 disabled:bg-slate-100"
                         value={container.command}
                         onChange={e => {
                           const n = [...formData.containers];
@@ -574,10 +574,10 @@ export const AppTemplateDetailPage: React.FC<{ templateId: string, onBack: () =>
                     </div>
                     <div className="space-y-1.5">
                       <label className="text-[9px] font-black text-slate-400 uppercase ml-1">命令参数 (Args)</label>
-                      <input 
+                      <input
                         disabled={!isEditMode}
                         placeholder="e.g. start, --prod (逗号分隔)"
-                        className="w-full px-4 py-2 bg-white rounded-xl border border-slate-100 outline-none text-xs font-mono disabled:opacity-70 disabled:bg-slate-100"
+                        className="w-full px-4 py-2 bg-slate-50 rounded-xl border border-slate-100 outline-none text-xs font-mono disabled:opacity-70 disabled:bg-slate-100"
                         value={container.args}
                         onChange={e => {
                           const n = [...formData.containers];
@@ -591,9 +591,9 @@ export const AppTemplateDetailPage: React.FC<{ templateId: string, onBack: () =>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="space-y-1.5">
                       <label className="text-[9px] font-black text-slate-400 uppercase ml-1">拉取策略 (Image Pull Policy)</label>
-                      <select 
+                      <select
                         disabled={!isEditMode}
-                        className="w-full px-4 py-2 bg-white rounded-xl border border-slate-100 outline-none text-xs font-bold disabled:opacity-70 disabled:bg-slate-100"
+                        className="w-full px-4 py-2 bg-slate-50 rounded-xl border border-slate-100 outline-none text-xs font-bold disabled:opacity-70 disabled:bg-slate-100"
                         value={container.image_pull_policy}
                         onChange={e => {
                           const n = [...formData.containers];
@@ -608,9 +608,9 @@ export const AppTemplateDetailPage: React.FC<{ templateId: string, onBack: () =>
                     </div>
                     <div className="space-y-1.5 flex items-center pt-5">
                       <label className="flex items-center gap-2 cursor-pointer">
-                        <input 
+                        <input
                           disabled={!isEditMode}
-                          type="checkbox" 
+                          type="checkbox"
                           className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 disabled:opacity-50"
                           checked={container.privileged}
                           onChange={e => {
@@ -628,8 +628,8 @@ export const AppTemplateDetailPage: React.FC<{ templateId: string, onBack: () =>
                     <div className="flex justify-between items-center">
                       <label className="text-[9px] font-black text-slate-400 uppercase ml-1">环境变量 (Env Vars)</label>
                       {isEditMode && (
-                        <button 
-                          type="button" 
+                        <button
+                          type="button"
                           onClick={() => {
                             const n = [...formData.containers];
                             n[idx].env_vars.push({ name: '', value: '' });
@@ -644,10 +644,10 @@ export const AppTemplateDetailPage: React.FC<{ templateId: string, onBack: () =>
                     <div className="space-y-2">
                       {container.env_vars.map((env: any, envIdx: number) => (
                         <div key={envIdx} className="flex gap-2 items-center">
-                          <input 
+                          <input
                             disabled={!isEditMode}
                             placeholder="Name (e.g. ENV_KEY)"
-                            className="flex-1 px-4 py-2 bg-white rounded-xl border border-slate-100 outline-none text-xs font-mono disabled:opacity-70 disabled:bg-slate-100"
+                            className="flex-1 px-4 py-2 bg-slate-50 rounded-xl border border-slate-100 outline-none text-xs font-mono disabled:opacity-70 disabled:bg-slate-100"
                             value={env.name}
                             onChange={e => {
                               const n = [...formData.containers];
@@ -655,10 +655,10 @@ export const AppTemplateDetailPage: React.FC<{ templateId: string, onBack: () =>
                               setFormData({...formData, containers: n});
                             }}
                           />
-                          <input 
+                          <input
                             disabled={!isEditMode}
                             placeholder="Value (e.g. ENV_VALUE)"
-                            className="flex-1 px-4 py-2 bg-white rounded-xl border border-slate-100 outline-none text-xs font-mono disabled:opacity-70 disabled:bg-slate-100"
+                            className="flex-1 px-4 py-2 bg-slate-50 rounded-xl border border-slate-100 outline-none text-xs font-mono disabled:opacity-70 disabled:bg-slate-100"
                             value={env.value}
                             onChange={e => {
                               const n = [...formData.containers];
@@ -667,7 +667,7 @@ export const AppTemplateDetailPage: React.FC<{ templateId: string, onBack: () =>
                             }}
                           />
                           {isEditMode && (
-                            <button 
+                            <button
                               type="button"
                               onClick={() => {
                                 const n = [...formData.containers];
@@ -683,13 +683,13 @@ export const AppTemplateDetailPage: React.FC<{ templateId: string, onBack: () =>
                       ))}
                     </div>
                   </div>
-                  
+
                   <div className="space-y-1.5">
                     <div className="flex justify-between items-center">
                       <label className="text-[9px] font-black text-slate-400 uppercase ml-1">固定挂载 (Volume Mounts)</label>
                       {isEditMode && (
-                        <button 
-                          type="button" 
+                        <button
+                          type="button"
                           onClick={() => {
                             const n = [...formData.containers];
                             n[idx].volume_mounts.push({ pvc_name: '', mount_path: '' });
@@ -704,10 +704,10 @@ export const AppTemplateDetailPage: React.FC<{ templateId: string, onBack: () =>
                     <div className="space-y-2">
                       {container.volume_mounts.map((vol: any, volIdx: number) => (
                         <div key={volIdx} className="flex gap-2 items-center">
-                          <input 
+                          <input
                             disabled={!isEditMode}
                             placeholder="PVC Name"
-                            className="flex-1 px-4 py-2 bg-white rounded-xl border border-slate-100 outline-none text-xs font-mono disabled:opacity-70 disabled:bg-slate-100"
+                            className="flex-1 px-4 py-2 bg-slate-50 rounded-xl border border-slate-100 outline-none text-xs font-mono disabled:opacity-70 disabled:bg-slate-100"
                             value={vol.pvc_name}
                             onChange={e => {
                               const n = [...formData.containers];
@@ -715,10 +715,10 @@ export const AppTemplateDetailPage: React.FC<{ templateId: string, onBack: () =>
                               setFormData({...formData, containers: n});
                             }}
                           />
-                          <input 
+                          <input
                             disabled={!isEditMode}
                             placeholder="Mount Path"
-                            className="flex-1 px-4 py-2 bg-white rounded-xl border border-slate-100 outline-none text-xs font-mono disabled:opacity-70 disabled:bg-slate-100"
+                            className="flex-1 px-4 py-2 bg-slate-50 rounded-xl border border-slate-100 outline-none text-xs font-mono disabled:opacity-70 disabled:bg-slate-100"
                             value={vol.mount_path}
                             onChange={e => {
                               const n = [...formData.containers];
@@ -726,10 +726,10 @@ export const AppTemplateDetailPage: React.FC<{ templateId: string, onBack: () =>
                               setFormData({...formData, containers: n});
                             }}
                           />
-                          <input 
+                          <input
                             disabled={!isEditMode}
                             placeholder="Sub Path"
-                            className="w-24 px-4 py-2 bg-white rounded-xl border border-slate-100 outline-none text-xs font-mono disabled:opacity-70 disabled:bg-slate-100"
+                            className="w-24 px-4 py-2 bg-slate-50 rounded-xl border border-slate-100 outline-none text-xs font-mono disabled:opacity-70 disabled:bg-slate-100"
                             value={vol.sub_path}
                             onChange={e => {
                               const n = [...formData.containers];
@@ -738,7 +738,7 @@ export const AppTemplateDetailPage: React.FC<{ templateId: string, onBack: () =>
                             }}
                           />
                           <label className="flex items-center gap-1 cursor-pointer shrink-0">
-                            <input 
+                            <input
                               disabled={!isEditMode}
                               type="checkbox"
                               className="w-3 h-3 rounded border-slate-300 text-blue-600 disabled:opacity-50"
@@ -752,7 +752,7 @@ export const AppTemplateDetailPage: React.FC<{ templateId: string, onBack: () =>
                             <span className="text-[9px] font-bold text-slate-400 uppercase">RO</span>
                           </label>
                           {isEditMode && (
-                            <button 
+                            <button
                               type="button"
                               onClick={() => {
                                 const n = [...formData.containers];
@@ -770,10 +770,10 @@ export const AppTemplateDetailPage: React.FC<{ templateId: string, onBack: () =>
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
-                    <div className="space-y-2 p-3 bg-white rounded-2xl border border-slate-100">
+                    <div className="space-y-2 p-3 bg-slate-50 rounded-2xl border border-slate-100">
                       <label className="text-[9px] font-black text-slate-400 uppercase ml-1">存活探针 (Liveness Probe)</label>
                       <div className="grid grid-cols-3 gap-2">
-                        <select 
+                        <select
                           disabled={!isEditMode}
                           className="px-3 py-1.5 bg-slate-50 rounded-lg outline-none text-[10px] font-bold disabled:opacity-70 disabled:bg-slate-100"
                           value={container.liveness_probe.type}
@@ -789,7 +789,7 @@ export const AppTemplateDetailPage: React.FC<{ templateId: string, onBack: () =>
                         </select>
                         {container.liveness_probe.type !== 'exec' ? (
                           <>
-                            <input 
+                            <input
                               disabled={!isEditMode}
                               placeholder="Port" type="number"
                               className="px-3 py-1.5 bg-slate-50 rounded-lg outline-none text-[10px] font-mono disabled:opacity-70 disabled:bg-slate-100"
@@ -801,7 +801,7 @@ export const AppTemplateDetailPage: React.FC<{ templateId: string, onBack: () =>
                               }}
                             />
                             {container.liveness_probe.type === 'http' && (
-                              <input 
+                              <input
                                 disabled={!isEditMode}
                                 placeholder="Path"
                                 className="px-3 py-1.5 bg-slate-50 rounded-lg outline-none text-[10px] font-mono disabled:opacity-70 disabled:bg-slate-100"
@@ -815,7 +815,7 @@ export const AppTemplateDetailPage: React.FC<{ templateId: string, onBack: () =>
                             )}
                           </>
                         ) : (
-                          <input 
+                          <input
                             disabled={!isEditMode}
                             placeholder="Command (comma separated)"
                             className="col-span-2 px-3 py-1.5 bg-slate-50 rounded-lg outline-none text-[10px] font-mono disabled:opacity-70 disabled:bg-slate-100"
@@ -831,7 +831,7 @@ export const AppTemplateDetailPage: React.FC<{ templateId: string, onBack: () =>
                       <div className="grid grid-cols-2 lg:grid-cols-5 gap-2 mt-2">
                          <div className="flex items-center justify-between px-2 py-1 bg-slate-50 rounded-lg">
                            <span className="text-[8px] font-black text-slate-400 uppercase">Delay</span>
-                           <input 
+                           <input
                              disabled={!isEditMode}
                              type="number" className="w-8 bg-transparent text-right outline-none text-[10px] font-mono disabled:opacity-50"
                              value={container.liveness_probe.initial_delay_seconds}
@@ -844,7 +844,7 @@ export const AppTemplateDetailPage: React.FC<{ templateId: string, onBack: () =>
                          </div>
                          <div className="flex items-center justify-between px-2 py-1 bg-slate-50 rounded-lg">
                            <span className="text-[8px] font-black text-slate-400 uppercase">Period</span>
-                           <input 
+                           <input
                              disabled={!isEditMode}
                              type="number" className="w-8 bg-transparent text-right outline-none text-[10px] font-mono disabled:opacity-50"
                              value={container.liveness_probe.period_seconds}
@@ -857,7 +857,7 @@ export const AppTemplateDetailPage: React.FC<{ templateId: string, onBack: () =>
                          </div>
                          <div className="flex items-center justify-between px-2 py-1 bg-slate-50 rounded-lg">
                            <span className="text-[8px] font-black text-slate-400 uppercase">Timeout</span>
-                           <input 
+                           <input
                              disabled={!isEditMode}
                              type="number" className="w-8 bg-transparent text-right outline-none text-[10px] font-mono disabled:opacity-50"
                              value={container.liveness_probe.timeout_seconds}
@@ -870,7 +870,7 @@ export const AppTemplateDetailPage: React.FC<{ templateId: string, onBack: () =>
                          </div>
                          <div className="flex items-center justify-between px-2 py-1 bg-slate-50 rounded-lg">
                            <span className="text-[8px] font-black text-slate-400 uppercase">Fail</span>
-                           <input 
+                           <input
                              disabled={!isEditMode}
                              type="number" className="w-8 bg-transparent text-right outline-none text-[10px] font-mono disabled:opacity-50"
                              value={container.liveness_probe.failure_threshold}
@@ -883,7 +883,7 @@ export const AppTemplateDetailPage: React.FC<{ templateId: string, onBack: () =>
                          </div>
                          <div className="flex items-center justify-between px-2 py-1 bg-slate-50 rounded-lg">
                            <span className="text-[8px] font-black text-slate-400 uppercase">Succ</span>
-                           <input 
+                           <input
                              disabled={!isEditMode}
                              type="number" className="w-8 bg-transparent text-right outline-none text-[10px] font-mono disabled:opacity-50"
                              value={container.liveness_probe.success_threshold}
@@ -897,10 +897,10 @@ export const AppTemplateDetailPage: React.FC<{ templateId: string, onBack: () =>
                       </div>
                     </div>
 
-                    <div className="space-y-2 p-3 bg-white rounded-2xl border border-slate-100">
+                    <div className="space-y-2 p-3 bg-slate-50 rounded-2xl border border-slate-100">
                       <label className="text-[9px] font-black text-slate-400 uppercase ml-1">就绪探针 (Readiness Probe)</label>
                       <div className="grid grid-cols-3 gap-2">
-                        <select 
+                        <select
                           disabled={!isEditMode}
                           className="px-3 py-1.5 bg-slate-50 rounded-lg outline-none text-[10px] font-bold disabled:opacity-70 disabled:bg-slate-100"
                           value={container.readiness_probe.type}
@@ -916,7 +916,7 @@ export const AppTemplateDetailPage: React.FC<{ templateId: string, onBack: () =>
                         </select>
                         {container.readiness_probe.type !== 'exec' ? (
                           <>
-                            <input 
+                            <input
                               disabled={!isEditMode}
                               placeholder="Port" type="number"
                               className="px-3 py-1.5 bg-slate-50 rounded-lg outline-none text-[10px] font-mono disabled:opacity-70 disabled:bg-slate-100"
@@ -928,7 +928,7 @@ export const AppTemplateDetailPage: React.FC<{ templateId: string, onBack: () =>
                               }}
                             />
                             {container.readiness_probe.type === 'http' && (
-                              <input 
+                              <input
                                 disabled={!isEditMode}
                                 placeholder="Path"
                                 className="px-3 py-1.5 bg-slate-50 rounded-lg outline-none text-[10px] font-mono disabled:opacity-70 disabled:bg-slate-100"
@@ -942,7 +942,7 @@ export const AppTemplateDetailPage: React.FC<{ templateId: string, onBack: () =>
                             )}
                           </>
                         ) : (
-                          <input 
+                          <input
                             disabled={!isEditMode}
                             placeholder="Command (comma separated)"
                             className="col-span-2 px-3 py-1.5 bg-slate-50 rounded-lg outline-none text-[10px] font-mono disabled:opacity-70 disabled:bg-slate-100"
@@ -958,7 +958,7 @@ export const AppTemplateDetailPage: React.FC<{ templateId: string, onBack: () =>
                       <div className="grid grid-cols-2 lg:grid-cols-5 gap-2 mt-2">
                          <div className="flex items-center justify-between px-2 py-1 bg-slate-50 rounded-lg">
                            <span className="text-[8px] font-black text-slate-400 uppercase">Delay</span>
-                           <input 
+                           <input
                              disabled={!isEditMode}
                              type="number" className="w-8 bg-transparent text-right outline-none text-[10px] font-mono disabled:opacity-50"
                              value={container.readiness_probe.initial_delay_seconds}
@@ -971,7 +971,7 @@ export const AppTemplateDetailPage: React.FC<{ templateId: string, onBack: () =>
                          </div>
                          <div className="flex items-center justify-between px-2 py-1 bg-slate-50 rounded-lg">
                            <span className="text-[8px] font-black text-slate-400 uppercase">Period</span>
-                           <input 
+                           <input
                              disabled={!isEditMode}
                              type="number" className="w-8 bg-transparent text-right outline-none text-[10px] font-mono disabled:opacity-50"
                              value={container.readiness_probe.period_seconds}
@@ -984,7 +984,7 @@ export const AppTemplateDetailPage: React.FC<{ templateId: string, onBack: () =>
                          </div>
                          <div className="flex items-center justify-between px-2 py-1 bg-slate-50 rounded-lg">
                            <span className="text-[8px] font-black text-slate-400 uppercase">Timeout</span>
-                           <input 
+                           <input
                              disabled={!isEditMode}
                              type="number" className="w-8 bg-transparent text-right outline-none text-[10px] font-mono disabled:opacity-50"
                              value={container.readiness_probe.timeout_seconds}
@@ -997,7 +997,7 @@ export const AppTemplateDetailPage: React.FC<{ templateId: string, onBack: () =>
                          </div>
                          <div className="flex items-center justify-between px-2 py-1 bg-slate-50 rounded-lg">
                            <span className="text-[8px] font-black text-slate-400 uppercase">Fail</span>
-                           <input 
+                           <input
                              disabled={!isEditMode}
                              type="number" className="w-8 bg-transparent text-right outline-none text-[10px] font-mono disabled:opacity-50"
                              value={container.readiness_probe.failure_threshold}
@@ -1010,7 +1010,7 @@ export const AppTemplateDetailPage: React.FC<{ templateId: string, onBack: () =>
                          </div>
                          <div className="flex items-center justify-between px-2 py-1 bg-slate-50 rounded-lg">
                            <span className="text-[8px] font-black text-slate-400 uppercase">Succ</span>
-                           <input 
+                           <input
                              disabled={!isEditMode}
                              type="number" className="w-8 bg-transparent text-right outline-none text-[10px] font-mono disabled:opacity-50"
                              value={container.readiness_probe.success_threshold}
@@ -1030,8 +1030,8 @@ export const AppTemplateDetailPage: React.FC<{ templateId: string, onBack: () =>
                       <div className="flex justify-between items-center">
                         <label className="text-[9px] font-black text-slate-400 uppercase ml-1">输入环境变量依赖 (Input Env Vars)</label>
                         {isEditMode && (
-                          <button 
-                            type="button" 
+                          <button
+                            type="button"
                             onClick={() => {
                               const n = [...formData.containers];
                               n[idx].input_env_vars.push({ name: '', default_value: '' });
@@ -1046,10 +1046,10 @@ export const AppTemplateDetailPage: React.FC<{ templateId: string, onBack: () =>
                       <div className="space-y-2">
                         {container.input_env_vars.map((env: any, envIdx: number) => (
                           <div key={envIdx} className="flex gap-2 items-center">
-                            <input 
+                            <input
                               disabled={!isEditMode}
                               placeholder="Name"
-                              className="flex-1 px-4 py-2 bg-white rounded-xl border border-slate-100 outline-none text-xs font-mono disabled:opacity-70 disabled:bg-slate-100"
+                              className="flex-1 px-4 py-2 bg-slate-50 rounded-xl border border-slate-100 outline-none text-xs font-mono disabled:opacity-70 disabled:bg-slate-100"
                               value={env.name}
                               onChange={e => {
                                 const n = [...formData.containers];
@@ -1057,10 +1057,10 @@ export const AppTemplateDetailPage: React.FC<{ templateId: string, onBack: () =>
                                 setFormData({...formData, containers: n});
                               }}
                             />
-                            <input 
+                            <input
                               disabled={!isEditMode}
                               placeholder="Default Value"
-                              className="flex-1 px-4 py-2 bg-white rounded-xl border border-slate-100 outline-none text-xs font-mono disabled:opacity-70 disabled:bg-slate-100"
+                              className="flex-1 px-4 py-2 bg-slate-50 rounded-xl border border-slate-100 outline-none text-xs font-mono disabled:opacity-70 disabled:bg-slate-100"
                               value={env.default_value}
                               onChange={e => {
                                 const n = [...formData.containers];
@@ -1069,7 +1069,7 @@ export const AppTemplateDetailPage: React.FC<{ templateId: string, onBack: () =>
                               }}
                             />
                             {isEditMode && (
-                              <button 
+                              <button
                                 type="button"
                                 onClick={() => {
                                   const n = [...formData.containers];
@@ -1089,8 +1089,8 @@ export const AppTemplateDetailPage: React.FC<{ templateId: string, onBack: () =>
                       <div className="flex justify-between items-center">
                         <label className="text-[9px] font-black text-slate-400 uppercase ml-1">输入挂载依赖 (Input Mounts)</label>
                         {isEditMode && (
-                          <button 
-                            type="button" 
+                          <button
+                            type="button"
                             onClick={() => {
                               const n = [...formData.containers];
                               n[idx].input_volume_mounts.push({ mount_path: '' });
@@ -1105,10 +1105,10 @@ export const AppTemplateDetailPage: React.FC<{ templateId: string, onBack: () =>
                       <div className="space-y-2">
                         {container.input_volume_mounts.map((vol: any, volIdx: number) => (
                           <div key={volIdx} className="flex gap-2 items-center">
-                            <input 
+                            <input
                               disabled={!isEditMode}
                               placeholder="Mount Path"
-                              className="flex-1 px-4 py-2 bg-white rounded-xl border border-slate-100 outline-none text-xs font-mono disabled:opacity-70 disabled:bg-slate-100"
+                              className="flex-1 px-4 py-2 bg-slate-50 rounded-xl border border-slate-100 outline-none text-xs font-mono disabled:opacity-70 disabled:bg-slate-100"
                               value={vol.mount_path}
                               onChange={e => {
                                 const n = [...formData.containers];
@@ -1116,10 +1116,10 @@ export const AppTemplateDetailPage: React.FC<{ templateId: string, onBack: () =>
                                 setFormData({...formData, containers: n});
                               }}
                             />
-                            <input 
+                            <input
                               disabled={!isEditMode}
                               placeholder="Sub Path"
-                              className="w-24 px-4 py-2 bg-white rounded-xl border border-slate-100 outline-none text-xs font-mono disabled:opacity-70 disabled:bg-slate-100"
+                              className="w-24 px-4 py-2 bg-slate-50 rounded-xl border border-slate-100 outline-none text-xs font-mono disabled:opacity-70 disabled:bg-slate-100"
                               value={vol.sub_path}
                               onChange={e => {
                                 const n = [...formData.containers];
@@ -1128,7 +1128,7 @@ export const AppTemplateDetailPage: React.FC<{ templateId: string, onBack: () =>
                               }}
                             />
                             <label className="flex items-center gap-1 cursor-pointer shrink-0">
-                              <input 
+                              <input
                                 disabled={!isEditMode}
                                 type="checkbox"
                                 className="w-3 h-3 rounded border-slate-300 text-blue-600 disabled:opacity-50"
@@ -1142,7 +1142,7 @@ export const AppTemplateDetailPage: React.FC<{ templateId: string, onBack: () =>
                               <span className="text-[9px] font-bold text-slate-400 uppercase">RO</span>
                             </label>
                             {isEditMode && (
-                              <button 
+                              <button
                                 type="button"
                                 onClick={() => {
                                   const n = [...formData.containers];

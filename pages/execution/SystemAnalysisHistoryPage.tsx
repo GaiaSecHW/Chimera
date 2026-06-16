@@ -19,10 +19,10 @@ const LK = {
 function formatDuration(createdAt: string | null | undefined, finishedAt: string | null | undefined): string {
   if (!createdAt || !finishedAt) return '-';
   const secs = Math.round((new Date(finishedAt).getTime() - new Date(createdAt).getTime()) / 1000);
-  if (secs < 60) return `${secs}s`;
+  if (secs < 60) return`${secs}s`;
   const m = Math.floor(secs / 60);
   const s = secs % 60;
-  return `${m}m${s}s`;
+  return`${m}m${s}s`;
 }
 
 export const SystemAnalysisHistoryPage: React.FC<{ projectId: string }> = ({ projectId }) => {
@@ -103,7 +103,7 @@ export const SystemAnalysisHistoryPage: React.FC<{ projectId: string }> = ({ pro
                   key={task.task_id}
                   onClick={() => setSelectedTaskId(task.task_id)}
                   className={`w-full rounded-lg p-3 text-left ${selectedTaskId === task.task_id ? '' : ''}`}
-                  style={{ backgroundColor: selectedTaskId === task.task_id ? LK.primaryMuted : LK.surfaceRaised, border: selectedTaskId === task.task_id ? `1px solid ${LK.primary}` : `1px solid ${LK.borderSoft}` }}
+                  style={{ backgroundColor: selectedTaskId === task.task_id ? LK.primaryMuted : LK.surfaceRaised, border: selectedTaskId === task.task_id ?`1px solid ${LK.primary}` :`1px solid ${LK.borderSoft}` }}
                 >
                   <div className="text-sm font-medium truncate" style={{ color: LK.ink }}>{task.task_name}</div>
                   <div className="mt-1 text-xs" style={{ color: LK.muted }}>{task.task_id}</div>

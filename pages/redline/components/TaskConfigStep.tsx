@@ -335,7 +335,7 @@ export const TaskConfigStep: React.FC<Props> = ({ taskId, task, onTaskUpdated, o
           </button>
         </div>
       )}
-      {isFailed && <div className="flex items-center gap-2 text-sm text-red-500"><XCircle className="w-4 h-4 flex-shrink-0" /><span>解析失败{parseError ? `: ${parseError}` : ''}</span></div>}
+      {isFailed && <div className="flex items-center gap-2 text-sm text-red-500"><XCircle className="w-4 h-4 flex-shrink-0" /><span>解析失败{parseError ?`: ${parseError}` : ''}</span></div>}
 
       {/* Env Check Alert */}
       {isParsed && envCheckFailed && (
@@ -448,7 +448,7 @@ export const TaskConfigStep: React.FC<Props> = ({ taskId, task, onTaskUpdated, o
       {showVariableModal && (
         <div className="fixed inset-0 z-[130] flex items-center justify-center">
           <div className="absolute inset-0 bg-black/50" onClick={() => setShowVariableModal(false)} />
-          <div className="relative bg-theme-surface border border-theme-border rounded-xl shadow-xl w-full max-w-2xl max-h-[80vh] flex flex-col mx-4">
+ <div className="relative bg-theme-surface border border-theme-border rounded-xl w-full max-w-2xl max-h-[80vh] flex flex-col mx-4">
             <div className="flex items-center justify-between px-5 py-4 border-b border-theme-border">
               <h3 className="text-base font-medium text-theme-text-primary">任务变量</h3>
               <button type="button" onClick={() => setShowVariableModal(false)} className="text-theme-text-secondary hover:text-theme-text-primary"><XCircle className="w-5 h-5" /></button>
@@ -473,7 +473,7 @@ export const TaskConfigStep: React.FC<Props> = ({ taskId, task, onTaskUpdated, o
       {previewAgent && (
         <div className="fixed inset-0 z-[130] flex items-center justify-center">
           <div className="absolute inset-0 bg-black/50" onClick={() => setPreviewAgent(null)} />
-          <div className="relative bg-theme-surface border border-theme-border rounded-xl shadow-xl w-full max-w-3xl max-h-[85vh] flex flex-col mx-4">
+ <div className="relative bg-theme-surface border border-theme-border rounded-xl w-full max-w-3xl max-h-[85vh] flex flex-col mx-4">
             <div className="flex items-center justify-between px-5 py-4 border-b border-theme-border">
               <h3 className="text-base font-medium text-theme-text-primary">智能体详情 - {previewAgent.name}</h3>
               <button type="button" onClick={() => setPreviewAgent(null)} className="text-theme-text-secondary hover:text-theme-text-primary"><XCircle className="w-5 h-5" /></button>
@@ -518,7 +518,7 @@ export const TaskConfigStep: React.FC<Props> = ({ taskId, task, onTaskUpdated, o
       {showInputParamsModal && (
         <div className="fixed inset-0 z-[130] flex items-center justify-center">
           <div className="absolute inset-0 bg-black/50" onClick={() => setShowInputParamsModal(false)} />
-          <div className="relative bg-theme-surface border border-theme-border rounded-xl shadow-xl w-full max-w-lg max-h-[70vh] flex flex-col mx-4">
+ <div className="relative bg-theme-surface border border-theme-border rounded-xl w-full max-w-lg max-h-[70vh] flex flex-col mx-4">
             <div className="flex items-center justify-between px-5 py-4 border-b border-theme-border">
               <h3 className="text-base font-medium text-theme-text-primary">{currentAgentName} - 所需入参</h3>
               <button type="button" onClick={() => setShowInputParamsModal(false)} className="text-theme-text-secondary hover:text-theme-text-primary"><XCircle className="w-5 h-5" /></button>
@@ -540,7 +540,7 @@ export const TaskConfigStep: React.FC<Props> = ({ taskId, task, onTaskUpdated, o
       {showMatchingRulesModal && (
         <div className="fixed inset-0 z-[130] flex items-center justify-center">
           <div className="absolute inset-0 bg-black/50" onClick={() => setShowMatchingRulesModal(false)} />
-          <div className="relative bg-theme-surface border border-theme-border rounded-xl shadow-xl w-full max-w-lg max-h-[70vh] flex flex-col mx-4">
+ <div className="relative bg-theme-surface border border-theme-border rounded-xl w-full max-w-lg max-h-[70vh] flex flex-col mx-4">
             <div className="flex items-center justify-between px-5 py-4 border-b border-theme-border">
               <h3 className="text-base font-medium text-theme-text-primary">交付件匹配规则</h3>
               <button type="button" onClick={() => setShowMatchingRulesModal(false)} className="text-theme-text-secondary hover:text-theme-text-primary"><XCircle className="w-5 h-5" /></button>
@@ -575,7 +575,7 @@ export const TaskConfigStep: React.FC<Props> = ({ taskId, task, onTaskUpdated, o
       {showEnvCheckModal && (
         <div className="fixed inset-0 z-[130] flex items-center justify-center">
           <div className="absolute inset-0 bg-black/50" onClick={() => setShowEnvCheckModal(false)} />
-          <div className="relative bg-theme-surface border border-theme-border rounded-xl shadow-xl w-full max-w-lg max-h-[70vh] flex flex-col mx-4">
+ <div className="relative bg-theme-surface border border-theme-border rounded-xl w-full max-w-lg max-h-[70vh] flex flex-col mx-4">
             <div className="flex items-center justify-between px-5 py-4 border-b border-theme-border">
               <h3 className="text-base font-medium text-theme-text-primary">环境连接异常详情</h3>
               <button type="button" onClick={() => setShowEnvCheckModal(false)} className="text-theme-text-secondary hover:text-theme-text-primary"><XCircle className="w-5 h-5" /></button>

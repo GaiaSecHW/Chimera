@@ -130,7 +130,7 @@ export const TaskReportStep: React.FC<Props> = ({ taskId, task, onTaskUpdated, o
     clauseId: string,
     status: 'PASS' | 'FAIL',
   ) => {
-    const key = `${clauseId}-${agent.id}-${status}`;
+    const key =`${clauseId}-${agent.id}-${status}`;
     setSavingResult(key);
     try {
       const existing = getResultForClause(clauseId, agent.id);
@@ -154,27 +154,27 @@ export const TaskReportStep: React.FC<Props> = ({ taskId, task, onTaskUpdated, o
   };
 
   const handleExport = () => {
-    let content = `# ${task.name} - 测试报告\n\n`;
-    content += `## 汇总\n\n`;
-    content += `| 智能体 | 执行结果 | 用例结果 |\n`;
-    content += `|--------|----------|----------|\n`;
+    let content =`# ${task.name} - 测试报告\n\n`;
+    content +=`## 汇总\n\n`;
+    content +=`| 智能体 | 执行结果 | 用例结果 |\n`;
+    content +=`|--------|----------|----------|\n`;
     for (const agent of agents) {
       const execResult = agent.isSuccess === true ? '成功' : agent.isSuccess === false ? '失败' : '-';
       const testResult = extractTestResult(agent.result);
-      content += `| ${agent.agentName || agent.agentId} | ${execResult} | ${testResult} |\n`;
+      content +=`| ${agent.agentName || agent.agentId} | ${execResult} | ${testResult} |\n`;
     }
     content += '\n---\n\n';
     for (const agent of agents) {
       const text = extractTextFromResult(agent.result);
-      content += `## ${agent.agentName || agent.agentId}\n\n`;
+      content +=`## ${agent.agentName || agent.agentId}\n\n`;
       content += (text || '无结果') + '\n\n';
 
       const clauseMap = clauseDetailsMap[agent.agentId] || {};
       const clauseList = Object.values(clauseMap);
       if (clauseList.length > 0) {
-        content += `### 关联红线条款\n\n`;
-        content += `| 解读编号 | 类别 | 正文要求 | 红线解读及指导 | 确认状态 |\n`;
-        content += `|:---|:---|:---|:---|:---|\n`;
+        content +=`### 关联红线条款\n\n`;
+        content +=`| 解读编号 | 类别 | 正文要求 | 红线解读及指导 | 确认状态 |\n`;
+        content +=`|:---|:---|:---|:---|:---|\n`;
         for (const clause of clauseList) {
           const result = getResultForClause(clause.id, agent.id);
           let status = '未确认';
@@ -182,7 +182,7 @@ export const TaskReportStep: React.FC<Props> = ({ taskId, task, onTaskUpdated, o
             status = result.status === 'PASS' ? '已通过' : '不通过';
           }
           const escCell = (s?: string) => (s || '-').replace(/\|/g, '\\|').replace(/\n/g, ' ');
-          content += `| ${clause.id} | ${escCell(clause.redLineCategory || clause.category)} | ${escCell(clause.bodyRequirement || clause.content)} | ${escCell(clause.interpretationGuidance || clause.description)} | ${status} |\n`;
+          content +=`| ${clause.id} | ${escCell(clause.redLineCategory || clause.category)} | ${escCell(clause.bodyRequirement || clause.content)} | ${escCell(clause.interpretationGuidance || clause.description)} | ${status} |\n`;
         }
         content += '\n';
       }
@@ -192,7 +192,7 @@ export const TaskReportStep: React.FC<Props> = ({ taskId, task, onTaskUpdated, o
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `${task.name}_report.md`;
+    a.download =`${task.name}_report.md`;
     a.click();
     URL.revokeObjectURL(url);
   };
@@ -213,9 +213,9 @@ export const TaskReportStep: React.FC<Props> = ({ taskId, task, onTaskUpdated, o
     const passCount = agentResults.filter((r) => r.status === 'PASS').length;
     const failCount = agentResults.filter((r) => r.status === 'FAIL').length;
     const total = clauseIds.length;
-    if (failCount > 0) return `${passCount}/${total} (有不通过)`;
-    if (passCount === total && total > 0) return `${passCount}/${total} 全部通过`;
-    return `${agentResults.length}/${total}`;
+    if (failCount > 0) return`${passCount}/${total} (有不通过)`;
+    if (passCount === total && total > 0) return`${passCount}/${total} 全部通过`;
+    return`${agentResults.length}/${total}`;
   };
 
   if (loading) {
@@ -229,7 +229,7 @@ export const TaskReportStep: React.FC<Props> = ({ taskId, task, onTaskUpdated, o
 
   const tocItems = [
     { id: 'summary', label: '汇总' },
-    ...agents.map((a) => ({ id: `agent-${a.agentId}`, label: a.agentName || a.agentId })),
+    ...agents.map((a) => ({ id:`agent-${a.agentId}`, label: a.agentName || a.agentId })),
   ];
 
   return (
@@ -363,7 +363,7 @@ export const TaskReportStep: React.FC<Props> = ({ taskId, task, onTaskUpdated, o
                           {clauseList.map((clause) => {
                             const existingResult = getResultForClause(clause.id, agent.id);
                             const currentStatus = existingResult?.status;
-                            const clauseEditKey = `${clause.id}-${agent.id}`;
+                            const clauseEditKey =`${clause.id}-${agent.id}`;
                             const isEditing = editingClause === clauseEditKey;
                             return (
                               <tr key={clause.id} className="border-b border-theme-border/50">

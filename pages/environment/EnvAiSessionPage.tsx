@@ -16,13 +16,13 @@ const compactTime = (value?: string) => {
   if (!value) return '-';
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return value;
-  return `${date.toLocaleDateString()} ${date.toLocaleTimeString()}`;
+  return`${date.toLocaleDateString()} ${date.toLocaleTimeString()}`;
 };
 
 const shortSessionId = (sessionId?: string) => {
   const text = String(sessionId || '');
   if (text.length <= 16) return text;
-  return `${text.slice(0, 8)}...${text.slice(-6)}`;
+  return`${text.slice(0, 8)}...${text.slice(-6)}`;
 };
 
 const resolveBackendPid = (session?: AiAgentSession | null) => {
@@ -301,7 +301,7 @@ export const EnvAiSessionPage: React.FC<{ projectId: string }> = ({ projectId })
       return;
     }
     if (isInvokeMode) {
-      const localId = `invoke-${Date.now()}`;
+      const localId =`invoke-${Date.now()}`;
       setCurrentSessionId(localId);
       setCurrentReasoning('');
       setCurrentTrace([]);
@@ -390,7 +390,7 @@ export const EnvAiSessionPage: React.FC<{ projectId: string }> = ({ projectId })
       setCurrentReasoning('');
       setCurrentTrace([]);
       if (isInvokeMode) {
-        const localSessionId = currentSessionId || `invoke-${Date.now()}`;
+        const localSessionId = currentSessionId ||`invoke-${Date.now()}`;
         if (!currentSessionId) setCurrentSessionId(localSessionId);
         if (transportMode === 'stream') {
           setCurrentSession((prev) => {
@@ -421,14 +421,14 @@ export const EnvAiSessionPage: React.FC<{ projectId: string }> = ({ projectId })
                     } else {
                       messages[messages.length - 1] = {
                         ...messages[messages.length - 1],
-                        content: `${messages[messages.length - 1].content}${readableDelta}`,
+                        content:`${messages[messages.length - 1].content}${readableDelta}`,
                       };
                     }
                     return { ...prev, messages };
                   });
                 }
                 if (event.type === 'response.reasoning.delta') {
-                  setCurrentReasoning((prev) => `${prev}${String(event.delta || '')}`);
+                  setCurrentReasoning((prev) =>`${prev}${String(event.delta || '')}`);
                 }
                 if (event.type === 'response.trace.item' && event.item) {
                   setCurrentTrace((prev) => [...prev, event.item as AgentTraceEvent]);
@@ -513,14 +513,14 @@ export const EnvAiSessionPage: React.FC<{ projectId: string }> = ({ projectId })
                   } else {
                     messages[messages.length - 1] = {
                       ...messages[messages.length - 1],
-                      content: `${messages[messages.length - 1].content}${readableDelta}`,
+                      content:`${messages[messages.length - 1].content}${readableDelta}`,
                     };
                   }
                   return { ...prev, messages };
                 });
               }
               if (event.type === 'response.reasoning.delta') {
-                setCurrentReasoning((prev) => `${prev}${String(event.delta || '')}`);
+                setCurrentReasoning((prev) =>`${prev}${String(event.delta || '')}`);
               }
               if (event.type === 'response.trace.item' && event.item) {
                 setCurrentTrace((prev) => [...prev, event.item as AgentTraceEvent]);
@@ -599,7 +599,7 @@ export const EnvAiSessionPage: React.FC<{ projectId: string }> = ({ projectId })
     <div className="px-6 pt-6 pb-8">
       <div className="space-y-4">
         {feedbackNodes}
-        <section className="rounded-3xl border border-slate-200 bg-white/95 p-5 shadow-sm">
+ <section className="rounded-3xl border border-slate-200 bg-slate-50 p-5">
           <div className="flex items-center justify-between gap-3 flex-wrap">
             <div>
               <p className="text-[11px] font-black uppercase tracking-[0.28em] text-cyan-600">AI Agent Workspace</p>
@@ -646,31 +646,31 @@ export const EnvAiSessionPage: React.FC<{ projectId: string }> = ({ projectId })
         </section>
 
         <div className="grid grid-cols-1 gap-4 xl:grid-cols-[360px_minmax(0,1fr)]">
-          <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+ <section className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
             {loading ? <div className="mb-2 flex items-center gap-2 text-sm text-slate-500"><Loader2 size={14} className="animate-spin" />加载中...</div> : null}
             <div className="space-y-3">
               <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
                 <div className="mb-2 flex items-center justify-between gap-2">
                   <div className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-500">节点 Helper 服务</div>
-                  <span className="rounded-full bg-white px-2 py-0.5 text-[11px] font-semibold text-slate-600">{filteredHelpers.length}/{helpers.length}</span>
+                  <span className="rounded-full bg-slate-50 px-2 py-0.5 text-[11px] font-semibold text-slate-600">{filteredHelpers.length}/{helpers.length}</span>
                 </div>
                 <input
                   value={helperSearch}
                   onChange={(e) => setHelperSearch(e.target.value)}
                   placeholder="筛选 hostname / agent_key / service_name"
-                  className="mb-2 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm"
+                  className="mb-2 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm"
                 />
-                <select value={selectedHelperKey} onChange={(e) => setSelectedHelperKey(e.target.value)} className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm">
+                <select value={selectedHelperKey} onChange={(e) => setSelectedHelperKey(e.target.value)} className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm">
                   {helperSelectOptions.map((helper) => (
                     <option key={`${helper.agent_key}::${helper.service_name}`} value={`${helper.agent_key}::${helper.service_name}`}>{helper.agent_hostname || helper.agent_key} · {helper.service_name}</option>
                   ))}
                 </select>
               </div>
 
-              <div className="rounded-xl border border-blue-200 bg-[linear-gradient(165deg,#eff6ff_0%,#ffffff_70%)] p-3">
+ <div className="rounded-xl border border-blue-200 bg-slate-50 p-3">
                 <div className="mb-2 flex items-center justify-between gap-2">
                   <div className="text-[11px] font-black uppercase tracking-[0.16em] text-blue-700">创建新会话</div>
-                  <button onClick={() => void refreshCurrentSession()} className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-slate-700 whitespace-nowrap">
+                  <button onClick={() => void refreshCurrentSession()} className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1.5 text-xs font-semibold text-slate-700 whitespace-nowrap">
                     <RefreshCw size={13} />
                     刷新当前
                   </button>
@@ -678,7 +678,7 @@ export const EnvAiSessionPage: React.FC<{ projectId: string }> = ({ projectId })
                 <div className="text-xs text-slate-500">
                   {isInvokeMode ? '经典模式无需创建会话，选择 Agent 后可直接发送。' : '先选择参与 Agent，再创建会话。'}
                 </div>
-                <div className="mt-2 rounded-xl border border-slate-200 bg-white p-2.5">
+                <div className="mt-2 rounded-xl border border-slate-200 bg-slate-50 p-2.5">
                   <div className="text-[11px] font-black uppercase tracking-[0.14em] text-slate-500">会话模式</div>
                   <div className="mt-2 flex flex-wrap gap-3 text-xs">
                     <label className="inline-flex items-center gap-1.5">
@@ -699,7 +699,7 @@ export const EnvAiSessionPage: React.FC<{ projectId: string }> = ({ projectId })
                   {helperAgentOptions.length === 0 ? <div className="text-xs text-slate-500">当前 helper 没有可选 agent。</div> : helperAgentOptions.map((agent) => {
                     const checked = selectedAgentId === agent.agent_id;
                     return (
-                      <label key={agent.agent_id} className={`cursor-pointer rounded-lg border px-2.5 py-1.5 text-xs ${checked ? 'border-blue-500 bg-blue-600 text-white' : 'border-slate-200 text-slate-700 bg-white'}`}>
+                      <label key={agent.agent_id} className={`cursor-pointer rounded-lg border px-2.5 py-1.5 text-xs ${checked ? 'border-blue-500 bg-blue-600 text-white' : 'border-slate-200 text-slate-700 bg-slate-50'}`}>
                         <input
                           type="radio"
                           name="single-session-agent"
@@ -727,7 +727,7 @@ export const EnvAiSessionPage: React.FC<{ projectId: string }> = ({ projectId })
                 </div>
                 <div className="space-y-2 max-h-[540px] overflow-auto pr-1">
                   {sessions.length === 0 ? <div className="text-sm text-slate-500">暂无会话。</div> : sessions.map((session) => (
-                    <div key={session.session_id} className={`flex items-center gap-2 rounded-xl border px-3 py-2.5 ${currentSessionId === session.session_id ? 'border-blue-400 bg-blue-50' : 'border-slate-200 bg-white'}`}>
+                    <div key={session.session_id} className={`flex items-center gap-2 rounded-xl border px-3 py-2.5 ${currentSessionId === session.session_id ? 'border-blue-400 bg-blue-50' : 'border-slate-200 bg-slate-50'}`}>
                       <button
                         onClick={async () => {
                           if (!selectedHelper) return;
@@ -757,7 +757,7 @@ export const EnvAiSessionPage: React.FC<{ projectId: string }> = ({ projectId })
                             onClick={(event) => {
                               event.stopPropagation();
                               setErrorDialog({
-                                title: `会话错误 · ${shortSessionId(session.session_id)}`,
+                                title:`会话错误 · ${shortSessionId(session.session_id)}`,
                                 content: String(session.last_error || ''),
                               });
                             }}
@@ -783,12 +783,12 @@ export const EnvAiSessionPage: React.FC<{ projectId: string }> = ({ projectId })
             </div>
           </section>
 
-          <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+ <section className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
             {!selectedHelper ? (
               <EmptyState text="请先选择一个 helper 服务。" />
             ) : (
               <div className="space-y-3">
-                <div className="rounded-xl border border-slate-200 bg-[linear-gradient(160deg,#ffffff_0%,#f8fafc_100%)] px-3 py-2.5">
+ <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5">
                   <div className="flex flex-wrap items-center gap-2 text-sm">
                     <span className="font-black text-slate-900">{selectedHelper.service_name}</span>
                     <span className="text-slate-400">·</span>
@@ -808,7 +808,7 @@ export const EnvAiSessionPage: React.FC<{ projectId: string }> = ({ projectId })
                         <span className="text-slate-600">Backend PID: {resolveBackendPid(currentSession) ?? '-'}</span>
                       </>
                     ) : null}
-                    <span className="ml-auto inline-flex rounded-full border border-slate-200 bg-white p-0.5">
+                    <span className="ml-auto inline-flex rounded-full border border-slate-200 bg-slate-50 p-0.5">
                       <button
                         onClick={() => setTransportMode('stream')}
                         className={`rounded-md px-2 py-1 text-xs font-semibold ${transportMode === 'stream' ? 'bg-slate-900 text-white' : 'text-slate-600'}`}
@@ -866,7 +866,7 @@ export const EnvAiSessionPage: React.FC<{ projectId: string }> = ({ projectId })
                         <div className="text-xs font-black uppercase tracking-[0.16em] text-slate-500">当前轮 Trace</div>
                         <div className="mt-2 max-h-[240px] space-y-2 overflow-auto pr-1">
                           {currentTrace.map((item, index) => (
-                            <div key={item.id || `${item.category}-${index}`} className="rounded-lg border border-slate-200 bg-slate-50 p-2 text-xs text-slate-700">
+                            <div key={item.id ||`${item.category}-${index}`} className="rounded-lg border border-slate-200 bg-slate-50 p-2 text-xs text-slate-700">
                               <div className="font-semibold text-slate-900">{item.category}</div>
                               {item.message ? <div className="mt-1 whitespace-pre-wrap">{item.message}</div> : null}
                               {item.payload !== undefined ? (
@@ -887,7 +887,7 @@ export const EnvAiSessionPage: React.FC<{ projectId: string }> = ({ projectId })
 
       {errorDialog ? (
         <div className="fixed inset-0 z-[320] flex items-center justify-center bg-slate-950/45 p-4">
-          <div className="w-full max-w-3xl rounded-2xl border border-slate-200 bg-white shadow-2xl">
+ <div className="w-full max-w-3xl rounded-2xl border border-slate-200 bg-slate-50">
             <div className="flex items-center justify-between border-b border-slate-200 px-5 py-3">
               <div className="text-sm font-black text-slate-900">{errorDialog.title}</div>
               <button

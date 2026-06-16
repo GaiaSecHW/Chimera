@@ -110,29 +110,29 @@ const GLOBAL_TASK_GROUP_LABEL = '全局任务';
 function formatDuration(startedAt: string | null | undefined, finishedAt: string | null | undefined): string {
   if (!startedAt || !finishedAt) return '-';
   const secs = Math.round((new Date(finishedAt).getTime() - new Date(startedAt).getTime()) / 1000);
-  if (secs < 60) return `${secs}s`;
+  if (secs < 60) return`${secs}s`;
   const m = Math.floor(secs / 60);
   const s = secs % 60;
-  return `${m}m${s}s`;
+  return`${m}m${s}s`;
 }
 
 function formatLiveDuration(startedAt: string | null | undefined, nowSecs = Math.floor(Date.now() / 1000)): string {
   if (!startedAt) return '-';
   const startSecs = Math.floor(new Date(startedAt).getTime() / 1000);
   const secs = Math.max(0, nowSecs - startSecs);
-  if (secs < 60) return `${secs}s`;
+  if (secs < 60) return`${secs}s`;
   const m = Math.floor(secs / 60);
   const s = secs % 60;
-  return `${m}m${s}s`;
+  return`${m}m${s}s`;
 }
 
 function formatTsDuration(startTs: number | null, endTs: number | null): string {
   if (!startTs || !endTs || endTs <= startTs) return '';
   const secs = Math.round(endTs - startTs);
-  if (secs < 60) return `${secs}s`;
+  if (secs < 60) return`${secs}s`;
   const m = Math.floor(secs / 60);
   const s = secs % 60;
-  return `${m}m${s}s`;
+  return`${m}m${s}s`;
 }
 
 function computeStageTimes(events: AppSaStageEvent[]): Array<{ startTs: number | null; endTs: number | null }> {
@@ -206,60 +206,60 @@ function formatEventLog(evt: AppSaStageEvent): string {
   const ts = new Date(evt.ts * 1000).toLocaleTimeString('zh-CN');
   const d = evt.data ?? {};
   switch (evt.type) {
-    case 'task_start': return `[${ts}] 任务开始`;
+    case 'task_start': return`[${ts}] 任务开始`;
     case 'stage': {
       // 心跳事件不展示——它们是定期“仼d在运行”信号，不是展示层事件
       if (d.heartbeat) return '';
       const s = d.stage;
-      const mod = d.module ? ` · ${d.module}` : (d.modules?.length ? ` · [${(d.modules as string[]).join(', ')}]` : '');
-      const att = d.attempt ? ` 第 ${d.attempt} 轮` : '';
+      const mod = d.module ?` · ${d.module}` : (d.modules?.length ?` · [${(d.modules as string[]).join(', ')}]` : '');
+      const att = d.attempt ?` 第 ${d.attempt} 轮` : '';
       // S0 预处理阶段
-      if (s === 'filter')          return `[${ts}] ▶ S0 文件类型过滤  types=${d.types ?? ''} arch=${d.arch ?? ''}`;
-      if (s === 'type_classify')   return `[${ts}] ▶ S0 ELF/文本分类`;
-      if (s === 'sub_reader')      return `[${ts}] ▶ S0 子文件读取`;
-      if (s === 'unknown_checker') return `[${ts}] ▶ S0 未知文件检查`;
-      if (s === 'validate_details')return `[${ts}] ▶ S0 details 校验`;
-      if (s === 'path_group')      return `[${ts}] ▶ S0 路径分组`;
-      if (s === 'explore')         return `[${ts}] ▶ S0 目录探索`;
-      if (s === 'prescan')         return `[${ts}] ▶ S0 关键词预扫描`;
+      if (s === 'filter')          return`[${ts}] ▶ S0 文件类型过滤  types=${d.types ?? ''} arch=${d.arch ?? ''}`;
+      if (s === 'type_classify')   return`[${ts}] ▶ S0 ELF/文本分类`;
+      if (s === 'sub_reader')      return`[${ts}] ▶ S0 子文件读取`;
+      if (s === 'unknown_checker') return`[${ts}] ▶ S0 未知文件检查`;
+      if (s === 'validate_details')return`[${ts}] ▶ S0 details 校验`;
+      if (s === 'path_group')      return`[${ts}] ▶ S0 路径分组`;
+      if (s === 'explore')         return`[${ts}] ▶ S0 目录探索`;
+      if (s === 'prescan')         return`[${ts}] ▶ S0 关键词预扫描`;
       // S1
-      if (s === 'classify')        return `[${ts}] ▶ S1 全局分类${att}`;
-      if (s === '1.5-security-filter') return `[${ts}] ▶ S1.5 安全过滤`;
-      if (String(s) === '1')       return `[${ts}] ▶ S1 全局分类${att}`;
+      if (s === 'classify')        return`[${ts}] ▶ S1 全局分类${att}`;
+      if (s === '1.5-security-filter') return`[${ts}] ▶ S1.5 安全过滤`;
+      if (String(s) === '1')       return`[${ts}] ▶ S1 全局分类${att}`;
       // S2
-      if (String(s) === '2')       return `[${ts}] ▶ S2 模块细分${mod}`;
-      if (s === '2-reclassify')    return `[${ts}] ▶ S2 补分类`;
-      if (s === '2-redo')          return `[${ts}] ▶ S2-redo 重新细分${mod}${att}`;
-      if (s === '2-sub')           return `[${ts}] ▶ S2 子文件读取${mod}`;
+      if (String(s) === '2')       return`[${ts}] ▶ S2 模块细分${mod}`;
+      if (s === '2-reclassify')    return`[${ts}] ▶ S2 补分类`;
+      if (s === '2-redo')          return`[${ts}] ▶ S2-redo 重新细分${mod}${att}`;
+      if (s === '2-sub')           return`[${ts}] ▶ S2 子文件读取${mod}`;
       // S3
-      if (String(s) === '3')       return `[${ts}] ▶ S3 安全分析${mod}`;
-      if (s === '3-redo')          return `[${ts}] ▶ S3-redo 重新分析${mod}`;
+      if (String(s) === '3')       return`[${ts}] ▶ S3 安全分析${mod}`;
+      if (s === '3-redo')          return`[${ts}] ▶ S3-redo 重新分析${mod}`;
       // S4
-      if (String(s) === '4')       return `[${ts}] ▶ S4 报告生成`;
-      if (s === '4a')              return `[${ts}] ▶ S4a 最终报告生成`;
-      if (s === '4b')              return `[${ts}] ▶ S4b 报告完整性检查${att}`;
-      if (s === '4b-check')        return `[${ts}] ▶ S4b 模块完整性验收`;
-      return `[${ts}] ▶ 阶段 ${s}${mod}${att}`;
+      if (String(s) === '4')       return`[${ts}] ▶ S4 报告生成`;
+      if (s === '4a')              return`[${ts}] ▶ S4a 最终报告生成`;
+      if (s === '4b')              return`[${ts}] ▶ S4b 报告完整性检查${att}`;
+      if (s === '4b-check')        return`[${ts}] ▶ S4b 模块完整性验收`;
+      return`[${ts}] ▶ 阶段 ${s}${mod}${att}`;
     }
     case 'stage_result': {
       const s = d.stage;
-      if (s === 'filter')  return `[${ts}] ✓ S0 过滤完成，发现 ${d.file_count ?? 0} 个文件`;
-      if (s === 'prescan') return `[${ts}] ✓ S0 预扫描完成，${d.summary_lines ?? 0} 行摘要`;
-      return `[${ts}] ✓ ${s} 阶段完成`;
+      if (s === 'filter')  return`[${ts}] ✓ S0 过滤完成，发现 ${d.file_count ?? 0} 个文件`;
+      if (s === 'prescan') return`[${ts}] ✓ S0 预扫描完成，${d.summary_lines ?? 0} 行摘要`;
+      return`[${ts}] ✓ ${s} 阶段完成`;
     }
     case 'judge_eval': {
       const passed = d.passed;
       const icon = passed ? '✓' : '✗';
-      const mod = d.module ? ` [${d.module}]` : '';
-      const stage = d.stage ? ` S${d.stage}` : '';
-      return `[${ts}] ${icon} Judge${stage}${mod}  分=${d.score ?? '-'}  ${passed ? '通过' : '不通过'}`;
+      const mod = d.module ?` [${d.module}]` : '';
+      const stage = d.stage ?` S${d.stage}` : '';
+      return`[${ts}] ${icon} Judge${stage}${mod}  分=${d.score ?? '-'}  ${passed ? '通过' : '不通过'}`;
     }
     case 'log': {
       const lvl = d.level ?? 'info';
       const msg = (d.msg ?? '').slice(0, 200);
-      if (lvl === 'warn')  return `[${ts}] ⚠ ${msg}`;
-      if (lvl === 'error') return `[${ts}] ✗ ${msg}`;
-      return `[${ts}]   ${msg}`;
+      if (lvl === 'warn')  return`[${ts}] ⚠ ${msg}`;
+      if (lvl === 'error') return`[${ts}] ✗ ${msg}`;
+      return`[${ts}]   ${msg}`;
     }
     case 'model': {
       // 模型配置不展示（减少噪音）
@@ -269,40 +269,40 @@ function formatEventLog(evt: AppSaStageEvent): string {
       const text = (d.text ?? '').trim();
       const lines = text.split('\n');
       const preview = lines[0].slice(0, 120);
-      const extra = lines.length > 1 ? ` (+${lines.length - 1} 行)` : '';
-      return `[${ts}] │ ${d.stage ?? ''} 脚本: ${preview}${extra}`;
+      const extra = lines.length > 1 ?` (+${lines.length - 1} 行)` : '';
+      return`[${ts}] │ ${d.stage ?? ''} 脚本: ${preview}${extra}`;
     }
     case 'agent_stream': {
       const text = (d.text ?? '').replace(/\n+/g, ' ').trim().slice(0, 120);
       if (!text) return '';
-      return `[${ts}] │ ${d.stage ?? ''}: ${text}`;
+      return`[${ts}] │ ${d.stage ?? ''}: ${text}`;
     }
     case 'agent_output': {
       const text = (d.output ?? '').replace(/\n+/g, ' ').trim().slice(0, 150);
-      if (!text) return `[${ts}] ✓ ${d.stage ?? ''} Agent 完成`;
-      return `[${ts}] ✓ ${d.stage ?? ''} Agent: ${text}`;
+      if (!text) return`[${ts}] ✓ ${d.stage ?? ''} Agent 完成`;
+      return`[${ts}] ✓ ${d.stage ?? ''} Agent: ${text}`;
     }
-    case 'error': return `[${ts}] ✗ 错误: ${d.error ?? JSON.stringify(d)}`;
-    case 'task_end': return `[${ts}] 任务结束  status=${d.status ?? ''}`;
+    case 'error': return`[${ts}] ✗ 错误: ${d.error ?? JSON.stringify(d)}`;
+    case 'task_end': return`[${ts}] 任务结束  status=${d.status ?? ''}`;
     default: return '';
   }
 }
 
 function extractFsRelPath(outputPath: string, projectId: string): string | null {
-  const prefix = `/data/files/${projectId}`;
+  const prefix =`/data/files/${projectId}`;
   if (!outputPath.startsWith(prefix)) return null;
   const rel = outputPath.slice(prefix.length).replace(/\/+$/, '');
-  return rel.startsWith('/') ? rel : `/${rel}`;
+  return rel.startsWith('/') ? rel :`/${rel}`;
 }
 
 function normalizeJoinPath(basePath: string, relativePath: string): string {
   const base = basePath.replace(/\/+$/, '');
   const relative = relativePath.replace(/^\/+/, '');
-  return `${base}/${relative}`;
+  return`${base}/${relative}`;
 }
 
 function openInFileExplorer(fsPath: string) {
-  const normalizedPath = fsPath.startsWith('/') ? fsPath : `/${fsPath}`;
+  const normalizedPath = fsPath.startsWith('/') ? fsPath :`/${fsPath}`;
   sessionStorage.setItem('chimera:fileExplorerNavigatePath', normalizedPath);
   window.dispatchEvent(new CustomEvent('chimera-navigate-view', { detail: { view: 'project-file-explorer', path: normalizedPath } }));
 }
@@ -381,7 +381,7 @@ function InfoRow({ label, value }: { label: string; value: React.ReactNode }) {
 
 function MetricCard({ label, value, icon }: { label: string; value: React.ReactNode; icon: React.ReactNode }) {
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white px-4 py-4 shadow-sm">
+ <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4">
       <div className="flex items-center justify-between gap-3">
         <div>
           <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">{label}</div>
@@ -405,16 +405,16 @@ function formatNumber(value: unknown, digits = 0): string {
 function formatRate(value: unknown): string {
   const num = Number(value);
   if (!Number.isFinite(num)) return '-';
-  return `${(num * 100).toFixed(1)}%`;
+  return`${(num * 100).toFixed(1)}%`;
 }
 
 function formatMs(value: unknown): string {
   const ms = Number(value);
   if (!Number.isFinite(ms) || ms <= 0) return '-';
   const seconds = Math.round(ms / 1000);
-  if (seconds < 60) return `${seconds}s`;
+  if (seconds < 60) return`${seconds}s`;
   const minutes = Math.floor(seconds / 60);
-  return `${minutes}m${seconds % 60}s`;
+  return`${minutes}m${seconds % 60}s`;
 }
 
 function stageLabel(stage: string | undefined): string {
@@ -462,7 +462,7 @@ function timelineEventCategoryTone(eventType?: string | null) {
   if (category === 'task_mutation') return 'border-cyan-200 bg-cyan-50 text-cyan-700';
   if (category === 'failure') return 'border-rose-200 bg-rose-50 text-rose-700';
   if (category === 'stage_progress') return 'border-emerald-200 bg-emerald-50 text-emerald-700';
-  return 'border-slate-200 bg-white text-slate-700';
+  return 'border-slate-200 bg-slate-50 text-slate-700';
 }
 
 function timelineEventTypeTone(eventType?: string | null) {
@@ -473,7 +473,7 @@ function timelineEventTypeTone(eventType?: string | null) {
   if (normalized === 'task_cancel_requested_noop') return 'border-amber-200 bg-amber-50 text-amber-700';
   if (normalized === 'timeline_cleared' || normalized === 'timeline_event_deleted') return 'border-amber-200 bg-amber-50 text-amber-700';
   if (normalized === 'task_deleted') return 'border-rose-200 bg-rose-50 text-rose-700';
-  return 'border-slate-200 bg-white text-slate-700';
+  return 'border-slate-200 bg-slate-50 text-slate-700';
 }
 
 function formatTimelineEventTypeLabel(eventType?: string | null) {
@@ -514,10 +514,10 @@ function timelineAuditSummary(payload: Record<string, any>) {
   const podName = formatTimelinePayloadValue(payload.pod_name);
   const killMode = formatTimelinePayloadValue(payload.kill_mode);
   return [
-    operator !== '-' ? `操作人 ${operator}` : '',
-    pid !== '-' ? `PID ${pid}` : '',
-    podName !== '-' ? `Pod ${podName}` : '',
-    killMode !== '-' ? `方式 ${killMode}` : '',
+    operator !== '-' ?`操作人 ${operator}` : '',
+    pid !== '-' ?`PID ${pid}` : '',
+    podName !== '-' ?`Pod ${podName}` : '',
+    killMode !== '-' ?`方式 ${killMode}` : '',
   ].filter(Boolean).join(' · ');
 }
 
@@ -695,11 +695,11 @@ function normalizeSessionDisplayPath(path: string): string {
 function resolveRoundActorSessionPath(rawPathInput: unknown, detail: AppSaTaskDetail | null, projectId: string): { fsPath: string; displayPath: string; rawPath: string } | null {
   const rawPath = String(rawPathInput || '').trim();
   if (!rawPath) return null;
-  const taskRoot = detail?.output_path ? `${detail.output_path.replace(/\/+$/, '')}/${detail.task_id}` : '';
+  const taskRoot = detail?.output_path ?`${detail.output_path.replace(/\/+$/, '')}/${detail.task_id}` : '';
   let absolutePath = rawPath;
   if (!rawPath.startsWith('/')) {
     const relative = rawPath.replace(/^\/+/, '');
-    absolutePath = relative.startsWith('run/') ? `${taskRoot}/${relative}` : `${taskRoot}/run/sessions/${relative}`;
+    absolutePath = relative.startsWith('run/') ?`${taskRoot}/${relative}` :`${taskRoot}/run/sessions/${relative}`;
   }
   const fsPath = extractFsRelPath(absolutePath, projectId);
   if (!fsPath) return null;
@@ -728,7 +728,7 @@ function buildRoundSessionMeta(sessionPath: { displayPath: string; rawPath: stri
     event_count: 0,
     line_count: 0,
     is_active: round.status === 'running',
-    display_name: `${stageLabel(round.stage)} · ${round.module_name || '全局任务'} · Worker`,
+    display_name:`${stageLabel(round.stage)} · ${round.module_name || '全局任务'} · Worker`,
     warnings: [],
   };
 }
@@ -747,7 +747,7 @@ function buildJudgeRoundSessionMeta(sessionPath: { displayPath: string; rawPath:
     event_count: 0,
     line_count: 0,
     is_active: round.status === 'running',
-    display_name: `${stageLabel(round.stage)} · ${round.module_name || '全局任务'} · ${judge.judge_id || 'Judge'}`,
+    display_name:`${stageLabel(round.stage)} · ${round.module_name || '全局任务'} · ${judge.judge_id || 'Judge'}`,
     warnings: [],
   };
 }
@@ -1351,7 +1351,7 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
     if (!detail) return;
     const confirmed = await showConfirm({
       title: '删除任务',
-      message: `确定要删除任务「${detail.task_name}」及其所有输出文件吗？此操作不可撤销。`,
+      message:`确定要删除任务「${detail.task_name}」及其所有输出文件吗？此操作不可撤销。`,
       confirmText: '确认删除',
       cancelText: '取消',
       danger: true,
@@ -1555,7 +1555,7 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
     [selectedEvaluationRound, selectedEvaluationSessionPath],
   );
   const selectedEvaluationJudge = useMemo<Record<string, any> | null>(
-    () => (selectedEvaluationRound?.judges || []).find((item, index) => `${item.judge_id || index}::${item.model || ''}` === selectedEvaluationJudgeKey) || null,
+    () => (selectedEvaluationRound?.judges || []).find((item, index) =>`${item.judge_id || index}::${item.model || ''}` === selectedEvaluationJudgeKey) || null,
     [selectedEvaluationJudgeKey, selectedEvaluationRound],
   );
   const selectedEvaluationJudgeSessionPath = useMemo(
@@ -1600,10 +1600,10 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
 
   useEffect(() => {
     const judges = selectedEvaluationRound?.judges || [];
-    const currentValid = judges.some((item, index) => `${item.judge_id || index}::${item.model || ''}` === selectedEvaluationJudgeKey);
+    const currentValid = judges.some((item, index) =>`${item.judge_id || index}::${item.model || ''}` === selectedEvaluationJudgeKey);
     if (currentValid) return;
     const firstWithSession = judges.find((item) => Boolean(String(item?.session_file || '').trim()));
-    setSelectedEvaluationJudgeKey(firstWithSession ? `${firstWithSession.judge_id || 0}::${firstWithSession.model || ''}` : null);
+    setSelectedEvaluationJudgeKey(firstWithSession ?`${firstWithSession.judge_id || 0}::${firstWithSession.model || ''}` : null);
   }, [selectedEvaluationJudgeKey, selectedEvaluationRound]);
 
   useEffect(() => {
@@ -1813,12 +1813,12 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
         />
       ) : null}
 
-      <section className="rounded-[2rem] border border-slate-200 bg-white/90 p-6 shadow-sm">
+ <section className="rounded-[2rem] border border-slate-200 bg-slate-50 p-6">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div className="min-w-0">
             <button
               onClick={handleBack}
-              className="inline-flex items-center gap-2 rounded-xl border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-50"
+              className="inline-flex items-center gap-2 rounded-xl border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-100"
             >
               <ArrowLeft size={14} />
               {hasReturnContext ? '返回原任务' : '返回任务列表'}
@@ -1841,7 +1841,7 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
           </div>
           <div className="flex flex-wrap items-center gap-2">
             {detail && (detail.status === 'running' || detail.status === 'pending') ? (
-              <button onClick={() => void handleCancel()} className="rounded-xl border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-50">
+              <button onClick={() => void handleCancel()} className="rounded-xl border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100">
                 取消任务
               </button>
             ) : null}
@@ -1888,7 +1888,7 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
               void loadDetail();
               if (activeTab === 'result') void loadResult();
               if (activeTab === 'evaluation') void loadEvaluation();
-            }} className="rounded-xl border border-slate-200 p-2 text-slate-500 hover:bg-slate-50" title="刷新">
+            }} className="rounded-xl border border-slate-200 p-2 text-slate-500 hover:bg-slate-100" title="刷新">
               <RefreshCw size={14} className={loading || resultLoading || evaluationLoading ? 'animate-spin' : ''} />
             </button>
           </div>
@@ -1899,7 +1899,7 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
               origin={detail}
               actions={canRepairOrigin ? (
                 <div className="flex flex-wrap items-center justify-end gap-2">
-                  <div className="inline-flex rounded-xl border border-slate-200 bg-white p-1">
+                  <div className="inline-flex rounded-xl border border-slate-200 bg-slate-50 p-1">
                     {([
                       { value: 'binary' as const, label: '二进制模式' },
                       { value: 'source' as const, label: '源码模式' },
@@ -1912,7 +1912,7 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
                         className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition ${
                           effectiveOriginEditMode === option.value
                             ? 'bg-slate-900 text-white'
-                            : 'text-slate-500 hover:bg-slate-50 hover:text-slate-700'
+                            : 'text-slate-500 hover:bg-slate-100 hover:text-slate-700'
                         }`}
                       >
                         {option.label}
@@ -1942,7 +1942,7 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
       </section>
 
       {loading && !detail ? (
-        <section className="rounded-2xl border border-slate-200 bg-white p-10 shadow-sm">
+ <section className="rounded-2xl border border-slate-200 bg-slate-50 p-10">
           <div className="flex items-center justify-center gap-2 text-sm text-slate-500">
             <Loader2 size={16} className="animate-spin" />
             加载中...
@@ -1952,7 +1952,7 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
 
       {detail ? (
         <>
-          <section className="rounded-2xl border border-slate-200 bg-white p-2 shadow-sm">
+ <section className="rounded-2xl border border-slate-200 bg-slate-50 p-2">
             <div className="flex flex-wrap items-center gap-2">
                 {[
                   { id: 'overview' as DetailTab, label: '总览' },
@@ -1969,8 +1969,8 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
                   onClick={() => setActiveTab(tab.id)}
                   className={`rounded-2xl px-5 py-3 text-sm font-black transition ${
                     activeTab === tab.id
-                      ? 'bg-slate-900 text-white shadow-sm'
-                      : 'text-slate-500 hover:bg-slate-50 hover:text-slate-700'
+ ? 'bg-slate-900 text-white'
+                      : 'text-slate-500 hover:bg-slate-100 hover:text-slate-700'
                   }`}
                 >
                   {tab.label}
@@ -1982,7 +1982,7 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
           {activeTab === 'overview' ? (
             <>
               <section className="grid gap-4 lg:grid-cols-[1.1fr_0.9fr]">
-                <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+ <div className="rounded-2xl border border-slate-200 bg-slate-50 p-5">
                   <h2 className="text-sm font-black uppercase tracking-[0.2em] text-slate-500">任务概览</h2>
                   <div className="mt-4 grid gap-x-8 gap-y-3 md:grid-cols-2">
                     <InfoRow label="任务 ID" value={<span className="font-mono">{detail.task_id}</span>} />
@@ -1997,7 +1997,7 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
                   </div>
                 </div>
 
-                <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+ <div className="rounded-2xl border border-slate-200 bg-slate-50 p-5">
                   <h2 className="text-sm font-black uppercase tracking-[0.2em] text-slate-500">阶段进度</h2>
                   <div className="mt-4 space-y-3">
                     {STAGE_STEPS.map((step, i) => {
@@ -2009,7 +2009,7 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
                         : st === 'running' && timing.startTs
                           ? formatTsDuration(timing.startTs, clockNow)
                           : '';
-                      const artifactFull = detail.output_path ? `${detail.output_path}/${detail.task_id}/${step.artifactSubpath}` : null;
+                      const artifactFull = detail.output_path ?`${detail.output_path}/${detail.task_id}/${step.artifactSubpath}` : null;
                       const artifactFsPath = artifactFull ? extractFsRelPath(artifactFull, projectId) : null;
                       return (
                         <div key={step.key} className="rounded-xl border border-slate-200 bg-slate-50/70 px-4 py-3">
@@ -2018,7 +2018,7 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
                               st === 'completed' ? 'border-emerald-500 bg-emerald-50 text-emerald-600'
                                 : st === 'running' ? 'border-blue-500 bg-blue-50 text-blue-600'
                                   : st === 'failed' ? 'border-red-400 bg-red-50 text-red-600'
-                                    : 'border-slate-200 bg-white text-slate-400'
+                                    : 'border-slate-200 bg-slate-50 text-slate-400'
                             }`}>
                               {st === 'completed' ? <CheckCircle2 size={16} className="text-emerald-500" />
                                 : st === 'running' ? <Loader2 size={14} className="animate-spin text-blue-500" />
@@ -2032,7 +2032,7 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
                               </div>
                               <p className="mt-1 text-xs text-slate-500">{step.desc}</p>
                               {st === 'completed' && metrics.length > 0 ? (
-                                <div className="mt-3 rounded-lg border border-slate-200 bg-white px-3 py-2">
+                                <div className="mt-3 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
                                   <div className="text-[10px] font-black tracking-[0.12em] text-slate-400">
                                     {metrics.map((item) => item.label).join(' / ')}
                                   </div>
@@ -2069,7 +2069,7 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
                 </div>
               </section>
 
-              <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+ <section className="rounded-2xl border border-slate-200 bg-slate-50 p-5">
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div>
                     <h2 className="text-sm font-black uppercase tracking-[0.2em] text-slate-500">当前运行智能体</h2>
@@ -2086,13 +2086,13 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
                   </div>
                 ) : activeSessions.length > 0 ? (
                   <div className="mt-4 overflow-hidden rounded-2xl border border-slate-200">
-                    <div className="divide-y divide-slate-200 bg-white">
+                    <div className="divide-y divide-slate-200 bg-slate-50">
                       {activeSessions.map((session) => (
                         <button
                           key={session.relative_path}
                           type="button"
                           onClick={() => openActiveAgentSession(session.relative_path)}
-                          className="w-full px-4 py-4 text-left transition hover:bg-slate-50"
+                          className="w-full px-4 py-4 text-left transition hover:bg-slate-100"
                         >
                           <div className="flex flex-wrap items-start justify-between gap-3">
                             <div className="min-w-0 flex-1">
@@ -2131,13 +2131,13 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
               {detail.abnormal_reason ? <AbnormalReasonCard reason={detail.abnormal_reason} history={detail.abnormal_reason_history} /> : null}
 
               {detail.error ? (
-                <section className="rounded-2xl border border-red-200 bg-red-50 p-5 shadow-sm">
+ <section className="rounded-2xl border border-red-200 bg-red-50 p-5">
                   <h2 className="text-sm font-black uppercase tracking-[0.2em] text-red-600">错误信息</h2>
-                  <pre className="mt-3 max-h-40 overflow-auto whitespace-pre-wrap break-all rounded-xl border border-red-200 bg-white/70 px-3 py-3 text-xs text-red-700">{detail.error}</pre>
+ <pre className="mt-3 max-h-40 overflow-auto whitespace-pre-wrap break-all rounded-xl border border-red-200 bg-slate-50 px-3 py-3 text-xs text-red-700">{detail.error}</pre>
                 </section>
               ) : null}
 
-              <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+ <section className="rounded-2xl border border-slate-200 bg-slate-50 p-5">
                 <button
                   type="button"
                   onClick={() => setLogsExpanded((v) => !v)}
@@ -2183,7 +2183,7 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
             </>
           ) : activeTab === 'timeline' ? (
             <section className="space-y-4">
-              <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+ <section className="rounded-2xl border border-slate-200 bg-slate-50 p-5">
                 <div className="flex flex-wrap items-start justify-between gap-4">
                   <div>
                     <h2 className="text-sm font-black uppercase tracking-[0.2em] text-slate-500">事件时间线</h2>
@@ -2193,12 +2193,12 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
                     <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-500">
                       展示 {timelineRangeStart}-{timelineRangeEnd} / {filteredTimeline.length}
                     </div>
-                    <div className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-500">
+                    <div className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-500">
                       <button
                         type="button"
                         onClick={() => setTimelinePage((current) => Math.max(1, current - 1))}
                         disabled={timelineLoading || normalizedTimelinePage <= 1}
-                        className="rounded-lg border border-slate-200 px-2 py-1 text-xs font-bold text-slate-700 hover:bg-slate-50 disabled:opacity-40"
+                        className="rounded-lg border border-slate-200 px-2 py-1 text-xs font-bold text-slate-700 hover:bg-slate-100 disabled:opacity-40"
                       >
                         上一页
                       </button>
@@ -2209,27 +2209,27 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
                         type="button"
                         onClick={() => setTimelinePage((current) => Math.min(timelineTotalPages, current + 1))}
                         disabled={timelineLoading || normalizedTimelinePage >= timelineTotalPages}
-                        className="rounded-lg border border-slate-200 px-2 py-1 text-xs font-bold text-slate-700 hover:bg-slate-50 disabled:opacity-40"
+                        className="rounded-lg border border-slate-200 px-2 py-1 text-xs font-bold text-slate-700 hover:bg-slate-100 disabled:opacity-40"
                       >
                         下一页
                       </button>
                     </div>
-                    <label className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-500">
+                    <label className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-500">
                       每页
-                      <select value={timelinePageSize} onChange={(event) => setTimelinePageSize(Math.min(2000, Math.max(50, Number(event.target.value) || 200)))} className="ml-2 rounded-lg border border-slate-200 bg-white px-2 py-1 text-xs font-bold text-slate-700">
+                      <select value={timelinePageSize} onChange={(event) => setTimelinePageSize(Math.min(2000, Math.max(50, Number(event.target.value) || 200)))} className="ml-2 rounded-lg border border-slate-200 bg-slate-50 px-2 py-1 text-xs font-bold text-slate-700">
                         {[50, 100, 200, 500].map((size) => <option key={size} value={size}>{size}</option>)}
                       </select>
                     </label>
-                    <label className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-500">
+                    <label className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-500">
                       自动刷新
-                      <select value={timelineAutoRefresh} onChange={(event) => setTimelineAutoRefresh(event.target.value as TimelineAutoRefreshValue)} className="ml-2 rounded-lg border border-slate-200 bg-white px-2 py-1 text-xs font-bold text-slate-700">
+                      <select value={timelineAutoRefresh} onChange={(event) => setTimelineAutoRefresh(event.target.value as TimelineAutoRefreshValue)} className="ml-2 rounded-lg border border-slate-200 bg-slate-50 px-2 py-1 text-xs font-bold text-slate-700">
                         <option value="off">关闭</option>
                         <option value="15">15s</option>
                         <option value="30">30s</option>
                         <option value="60">60s</option>
                       </select>
                     </label>
-                    <button onClick={() => void loadTimeline()} disabled={timelineLoading} className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-50 disabled:opacity-50">
+                    <button onClick={() => void loadTimeline()} disabled={timelineLoading} className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 disabled:opacity-50">
                       {timelineLoading ? <Loader2 size={13} className="animate-spin" /> : <RefreshCw size={13} />}
                       刷新
                     </button>
@@ -2240,21 +2240,21 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
                   </div>
                 </div>
                 <div className="mt-4 flex flex-wrap gap-2">
-                  <select value={timelineStageFilter} onChange={(event) => setTimelineStageFilter(event.target.value)} className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700">
+                  <select value={timelineStageFilter} onChange={(event) => setTimelineStageFilter(event.target.value)} className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-semibold text-slate-700">
                     <option value="__all__">全部阶段</option>
                     {timelineStageOptions.map((value) => <option key={value} value={value}>{stageLabel(value)}</option>)}
                   </select>
-                  <select value={timelineEventTypeFilter} onChange={(event) => setTimelineEventTypeFilter(event.target.value)} className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700">
+                  <select value={timelineEventTypeFilter} onChange={(event) => setTimelineEventTypeFilter(event.target.value)} className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-semibold text-slate-700">
                     <option value="__all__">全部事件</option>
                     {timelineEventTypeOptions.map((value) => <option key={value} value={value}>{formatTimelineEventTypeLabel(value)}</option>)}
                   </select>
-                  <select value={timelineLevelFilter} onChange={(event) => setTimelineLevelFilter(event.target.value)} className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700">
+                  <select value={timelineLevelFilter} onChange={(event) => setTimelineLevelFilter(event.target.value)} className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-semibold text-slate-700">
                     <option value="__all__">全部级别</option>
                     {timelineLevelOptions.map((value) => <option key={value} value={value}>{value}</option>)}
                   </select>
                 </div>
               </section>
-              <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+ <section className="rounded-2xl border border-slate-200 bg-slate-50 p-5">
                 {timelineLoading ? (
                   <div className="py-10 text-center text-sm text-slate-500">加载时间线中...</div>
                 ) : filteredTimeline.length === 0 ? (
@@ -2276,7 +2276,7 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
                             <th className="w-36 px-3 py-2 text-right">操作</th>
                           </tr>
                         </thead>
-                        <tbody className="divide-y divide-slate-100 bg-white">
+                        <tbody className="divide-y divide-slate-100 bg-slate-50">
                           {pagedTimelineItems.map((event, index) => {
                             const expanded = expandedTimelineEventId === event.id;
                             const payload = event.payload || event.payload_json || {};
@@ -2310,7 +2310,7 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
                                     <td colSpan={9} className="px-3 py-3">
                                       <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-3">
                                         {timelinePayloadRows(payload).slice(0, 12).map((row) => (
-                                          <div key={row.key} className="min-w-0 rounded-lg border border-slate-100 bg-white px-3 py-2 text-xs">
+                                          <div key={row.key} className="min-w-0 rounded-lg border border-slate-100 bg-slate-50 px-3 py-2 text-xs">
                                             <div className="font-bold capitalize text-slate-400">{row.label}</div>
                                             <div className="mt-1 break-all font-mono text-slate-700">{row.value}</div>
                                           </div>
@@ -2333,7 +2333,7 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
                           type="button"
                           onClick={() => setTimelinePage((current) => Math.max(1, current - 1))}
                           disabled={normalizedTimelinePage <= 1}
-                          className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-bold text-slate-700 hover:bg-slate-100 disabled:opacity-40"
+                          className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-bold text-slate-700 hover:bg-slate-100 disabled:opacity-40"
                         >
                           上一页
                         </button>
@@ -2341,7 +2341,7 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
                           type="button"
                           onClick={() => setTimelinePage((current) => Math.min(timelineTotalPages, current + 1))}
                           disabled={normalizedTimelinePage >= timelineTotalPages}
-                          className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-bold text-slate-700 hover:bg-slate-100 disabled:opacity-40"
+                          className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-bold text-slate-700 hover:bg-slate-100 disabled:opacity-40"
                         >
                           下一页
                         </button>
@@ -2355,7 +2355,7 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
             <SystemAnalysisTaskConfigPanel detail={detail} />
           ) : activeTab === 'session' ? (
             <section className="grid gap-4 xl:grid-cols-[320px_minmax(0,1fr)]">
-              <aside className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+ <aside className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
                 <div className="flex items-center justify-between gap-3">
                   <div>
                     <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">会话列表</div>
@@ -2364,7 +2364,7 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
                   <button
                     type="button"
                     onClick={() => void loadSessions()}
-                    className="rounded-xl border border-slate-200 p-2 text-slate-500 hover:bg-slate-50"
+                    className="rounded-xl border border-slate-200 p-2 text-slate-500 hover:bg-slate-100"
                     title="刷新会话"
                   >
                     <RefreshCw size={14} className={sessionsLoading ? 'animate-spin' : ''} />
@@ -2409,8 +2409,8 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
                                 onClick={() => setSelectedSessionPath(session.relative_path)}
                                 className={`w-full rounded-2xl border px-4 py-3 text-left transition ${
                                   selected
-                                    ? 'border-slate-900 bg-slate-900 text-white shadow-[0_12px_30px_rgba(15,23,42,0.16)]'
-                                    : 'border-slate-200 bg-slate-50 text-slate-700 hover:bg-white'
+ ? 'border-slate-900 bg-slate-900 text-white'
+                                    : 'border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-50'
                                 }`}
                               >
                                 <div className="flex items-start justify-between gap-3">
@@ -2427,7 +2427,7 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
                                         : 'border-emerald-200 bg-emerald-50 text-emerald-700'
                                       : selected
                                         ? 'border-slate-500 bg-slate-800 text-slate-100'
-                                        : 'border-slate-200 bg-white text-slate-500'
+                                        : 'border-slate-200 bg-slate-50 text-slate-500'
                                   }`}>
                                     {session.is_active ? '活跃' : '历史'}
                                   </span>
@@ -2493,7 +2493,7 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
                 <MetricCard label="总文件数" value={result?.summary.total_file_count ?? 0} icon={<FolderOpen size={18} />} />
                 <MetricCard label="威胁总数" value={result?.summary.threat_count ?? 0} icon={<AlertTriangle size={18} />} />
                 <MetricCard label="报告来源" value={result?.report_generation_label || '-'} icon={<ScrollText size={18} />} />
-                <div className="rounded-2xl border border-slate-200 bg-white px-4 py-4 shadow-sm">
+ <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4">
                   <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">结果目录</div>
                   <div className="mt-2 text-sm font-semibold text-slate-700 line-clamp-2">{result?.output_root || '-'}</div>
                   <div className="mt-3 flex flex-wrap gap-2">
@@ -2520,18 +2520,18 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
               </div>
 
               {resultLoading ? (
-                <section className="rounded-2xl border border-slate-200 bg-white p-10 shadow-sm">
+ <section className="rounded-2xl border border-slate-200 bg-slate-50 p-10">
                   <div className="flex items-center justify-center gap-2 text-sm text-slate-500">
                     <Loader2 size={16} className="animate-spin" />
                     加载结果中...
                   </div>
                 </section>
               ) : !result ? (
-                <section className="rounded-2xl border border-slate-200 bg-white p-10 shadow-sm text-center text-sm text-slate-500">
+ <section className="rounded-2xl border border-slate-200 bg-slate-50 p-10 text-center text-sm text-slate-500">
                   暂无结果数据
                 </section>
               ) : !resultAvailable ? (
-                <section className="rounded-2xl border border-dashed border-slate-300 bg-white p-10 shadow-sm text-center">
+ <section className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-10 text-center">
                   <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-slate-100 text-slate-500">
                     <ScrollText size={20} />
                   </div>
@@ -2546,7 +2546,7 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
                   />
 
                   {result.module_dependency_graph ? (
-                    <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+ <section className="rounded-2xl border border-slate-200 bg-slate-50 p-5">
                       <div className="flex flex-wrap items-start justify-between gap-3">
                         <div>
                           <div className="flex items-center gap-2 text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">
@@ -2564,13 +2564,13 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
                         </div>
                       </div>
                       <div className="mt-4 grid gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
-                        <div className="relative min-h-[360px] overflow-auto rounded-2xl border border-slate-200 bg-gradient-to-br from-slate-50 to-white p-4">
+                        <div className="relative min-h-[360px] overflow-auto rounded-2xl border border-slate-200 bg-gradient-to-br from-slate-50 to-slate-50 p-4">
                           <div className="grid min-w-[720px] grid-cols-3 gap-4">
                             {(result.module_dependency_graph.nodes || []).map((node: any) => {
                               const name = String(node.module_name || node.id || 'unknown');
                               const outgoing = (result.module_dependency_graph?.edges || []).filter((edge: any) => edge.source === name).slice(0, 8);
                               return (
-                                <div key={name} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+ <div key={name} className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
                                   <div className="flex items-start justify-between gap-2">
                                     <div className="min-w-0">
                                       <div className="truncate text-sm font-black text-slate-900">{name}</div>
@@ -2607,7 +2607,7 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
                               .sort((a: any, b: any) => (a.dependency_count ?? 0) - (b.dependency_count ?? 0) || (b.risk_score ?? 0) - (a.risk_score ?? 0))
                               .slice(0, 10)
                               .map((node: any, index: number) => (
-                                <div key={String(node.module_name || node.id)} className="flex items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs">
+                                <div key={String(node.module_name || node.id)} className="flex items-center justify-between gap-3 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs">
                                   <span className="font-mono text-slate-400">#{index + 1}</span>
                                   <span className="min-w-0 flex-1 truncate font-bold text-slate-700">{node.module_name || node.id}</span>
                                   <span className="rounded-full bg-slate-100 px-2 py-0.5 text-slate-500">依赖 {node.dependency_count ?? 0}</span>
@@ -2620,7 +2620,7 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
                   ) : null}
 
                   <section className="grid gap-4 xl:grid-cols-[280px_minmax(0,1fr)_300px]">
-                    <aside className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+ <aside className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
                       <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">结果导航</div>
                       <div className="mt-3 space-y-2">
                         <button
@@ -2628,8 +2628,8 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
                           onClick={() => setSelection({ type: 'report' })}
                           className={`w-full rounded-2xl border px-4 py-3 text-left transition ${
                             selection.type === 'report'
-                              ? 'border-slate-900 bg-slate-900 text-white shadow-sm'
-                              : 'border-slate-200 bg-slate-50 text-slate-700 hover:bg-white'
+ ? 'border-slate-900 bg-slate-900 text-white'
+                              : 'border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-50'
                           }`}
                         >
                           <div className="text-sm font-black">总报告</div>
@@ -2643,10 +2643,10 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
                               key={module.module_name}
                               type="button"
                               onClick={() => setSelection({ type: 'module', moduleName: module.module_name })}
-                              className={`w-full rounded-2xl border px-4 py-3 text-left shadow-sm transition ${
+ className={`w-full rounded-2xl border px-4 py-3 text-left transition ${
                                 selected
-                                  ? 'border-slate-900 bg-white text-slate-900 shadow-[0_12px_30px_rgba(15,23,42,0.12)]'
-                                  : 'border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50'
+ ? 'border-slate-900 bg-slate-900 text-white'
+                                  : 'border-slate-200 bg-slate-50 text-slate-700 hover:border-slate-300 hover:bg-slate-100'
                               }`}
                             >
                               <div className="flex items-start justify-between gap-3">
@@ -2669,7 +2669,7 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
                       </div>
                     </aside>
 
-                    <main className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+ <main className="rounded-2xl border border-slate-200 bg-slate-50 p-5">
                       <div className="flex flex-wrap items-start justify-between gap-3 border-b border-slate-200 pb-4">
                         <div>
                           <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">
@@ -2707,7 +2707,7 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
                       </div>
                     </main>
 
-                    <aside className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+ <aside className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
                       <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">
                         {selection.type === 'report' ? '结果说明' : '模块辅助信息'}
                       </div>
@@ -2746,7 +2746,7 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
                                 const fsPath = result.modules_list_path ? extractFsRelPath(result.modules_list_path, projectId) : null;
                                 if (fsPath) openInFileExplorer(fsPath);
                               }}
-                              className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+                              className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50"
                             >
                               <FolderOpen size={13} />
                               打开 modules.list
@@ -2761,22 +2761,22 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
                                 <div className="text-xs font-bold text-slate-700">文件列表</div>
                                 <div className="mt-1 text-[11px] text-slate-500">{selectedModule.file_count} 个文件</div>
                               </div>
-                              <span className="rounded-full border border-slate-200 bg-white px-2 py-0.5 text-[11px] font-bold text-slate-600">#{selectedModule.rank}</span>
+                              <span className="rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-[11px] font-bold text-slate-600">#{selectedModule.rank}</span>
                             </div>
                             <div className="mt-3 max-h-[380px] space-y-2 overflow-auto pr-1">
                               {selectedModule.files.length > 0 ? selectedModule.files.map((file) => (
-                                <div key={file} className="rounded-xl border border-slate-200 bg-white px-3 py-2 font-mono text-[11px] text-slate-700">
+                                <div key={file} className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 font-mono text-[11px] text-slate-700">
                                   {file}
                                 </div>
                               )) : (
-                                <div className="rounded-xl border border-dashed border-slate-300 bg-white px-3 py-6 text-center text-xs text-slate-400">
+                                <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 px-3 py-6 text-center text-xs text-slate-400">
                                   没有 files.list 内容
                                 </div>
                               )}
                             </div>
                           </div>
 
-                          <div className="rounded-2xl border border-slate-200 bg-white p-4">
+                          <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
                             <div className="text-xs font-bold text-slate-700">报告结构</div>
                             <div className="mt-2 space-y-2">
                               {selectedModule.report_sections.length > 0 ? selectedModule.report_sections.map((section) => (
@@ -2810,7 +2810,7 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
                                 const fsPath = selectedModule.module_report_path ? extractFsRelPath(selectedModule.module_report_path, projectId) : null;
                                 if (fsPath) openInFileExplorer(fsPath);
                               }}
-                              className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+                              className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50"
                             >
                               <FolderOpen size={13} />
                               打开报告文件
@@ -2822,7 +2822,7 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
                                 const fsPath = selectedModule.files_list_path ? extractFsRelPath(selectedModule.files_list_path, projectId) : null;
                                 if (fsPath) openInFileExplorer(fsPath);
                               }}
-                              className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+                              className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50"
                             >
                               <FolderOpen size={13} />
                               打开 files.list
@@ -2838,18 +2838,18 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
           ) : (
             <section className="space-y-4">
               {evaluationLoading ? (
-                <section className="rounded-2xl border border-slate-200 bg-white p-10 shadow-sm">
+ <section className="rounded-2xl border border-slate-200 bg-slate-50 p-10">
                   <div className="flex items-center justify-center gap-2 text-sm text-slate-500">
                     <Loader2 size={16} className="animate-spin" />
                     加载观测指标中...
                   </div>
                 </section>
               ) : evaluationError ? (
-                <section className="rounded-2xl border border-red-200 bg-red-50 p-5 text-sm font-semibold text-red-700 shadow-sm">
+ <section className="rounded-2xl border border-red-200 bg-red-50 p-5 text-sm font-semibold text-red-700">
                   {evaluationError}
                 </section>
               ) : !evaluation || !evaluation.available ? (
-                <section className="rounded-2xl border border-dashed border-slate-300 bg-white p-10 text-center shadow-sm">
+ <section className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-10 text-center">
                   <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-slate-100 text-slate-500">
                     <BarChart3 size={20} />
                   </div>
@@ -2872,7 +2872,7 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
                   </section>
 
                   {evaluation.summary?.final_check_disabled ? (
-                    <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+ <section className="rounded-2xl border border-slate-200 bg-slate-50 p-5">
                       <div className="flex flex-wrap items-start justify-between gap-4">
                         <div>
                           <h2 className="text-sm font-black uppercase tracking-[0.2em] text-slate-500">Stage 4a 已关闭</h2>
@@ -2904,7 +2904,7 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
                           <div className="max-h-56 overflow-auto rounded-2xl border border-slate-200 bg-slate-50 p-3">
                             <div className="space-y-2">
                               {(evaluation.summary?.missing_files_preview || []).map((file: string) => (
-                                <div key={file} className="break-all rounded-xl border border-slate-200 bg-white px-3 py-2 font-mono text-[11px] text-slate-700">
+                                <div key={file} className="break-all rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 font-mono text-[11px] text-slate-700">
                                   {file}
                                 </div>
                               ))}
@@ -2924,7 +2924,7 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
                     </section>
                   ) : null}
 
-                  <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+ <section className="rounded-2xl border border-slate-200 bg-slate-50 p-5">
                     <div className="flex flex-wrap items-center justify-between gap-3">
                       <div>
                         <h2 className="text-sm font-black uppercase tracking-[0.2em] text-slate-500">阶段汇总</h2>
@@ -2954,13 +2954,13 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
 
                   {selectedEvaluationRound ? (
                     <section className="space-y-4">
-                      <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+ <section className="rounded-2xl border border-slate-200 bg-slate-50 p-5">
                         <div className="flex flex-wrap items-start justify-between gap-4">
                           <div>
                             <button
                               type="button"
                               onClick={() => setSelectedEvaluationRoundKey(null)}
-                              className="inline-flex items-center gap-2 rounded-xl border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-50"
+                              className="inline-flex items-center gap-2 rounded-xl border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100"
                             >
                               <ArrowLeft size={14} />
                               返回轮次列表
@@ -2997,7 +2997,7 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
 
                       <section className="grid gap-4 xl:grid-cols-[0.9fr_1.1fr]">
                         <div className="space-y-4">
-                          <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+ <section className="rounded-2xl border border-slate-200 bg-slate-50 p-5">
                             <h3 className="text-sm font-black uppercase tracking-[0.18em] text-slate-500">本轮执行摘要</h3>
                             <div className="mt-4 space-y-3">
                               <InfoRow label="开始时间" value={selectedEvaluationRound.started_at ? new Date(selectedEvaluationRound.started_at).toLocaleString('zh-CN') : '-'} />
@@ -3016,7 +3016,7 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
                             </div>
                           </section>
 
-                          <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+ <section className="rounded-2xl border border-slate-200 bg-slate-50 p-5">
                             <h3 className="text-sm font-black uppercase tracking-[0.18em] text-slate-500">Worker</h3>
                             <div className="mt-4 space-y-3">
                               <InfoRow label="模型" value={<span className="break-all font-mono">{selectedEvaluationRound.worker?.model || '-'}</span>} />
@@ -3036,7 +3036,7 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
                           </section>
                         </div>
 
-                        <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+ <section className="rounded-2xl border border-slate-200 bg-slate-50 p-5">
                           <div className="flex items-center justify-between gap-3">
                             <div>
                               <h3 className="text-sm font-black uppercase tracking-[0.18em] text-slate-500">Judge 评审</h3>
@@ -3050,13 +3050,13 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
                             {(selectedEvaluationRound.judges || []).map((judge, index) => (
                               <div key={`${judge.judge_id || index}-${judge.model || ''}`} className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
                                 <div className="flex flex-wrap items-center justify-between gap-2">
-                                  <div className="font-mono text-xs font-bold text-slate-700">{judge.judge_id || `judge-${index + 1}`}</div>
+                                  <div className="font-mono text-xs font-bold text-slate-700">{judge.judge_id ||`judge-${index + 1}`}</div>
                                   <div className="flex flex-wrap gap-2 text-[11px]">
                                     {judge.session_file ? (
                                       <button
                                         type="button"
                                         onClick={() => setSelectedEvaluationJudgeKey(`${judge.judge_id || index}::${judge.model || ''}`)}
-                                        className={`rounded-full border px-2 py-0.5 font-bold ${selectedEvaluationJudgeKey === `${judge.judge_id || index}::${judge.model || ''}` ? 'border-cyan-300 bg-cyan-50 text-cyan-700' : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-100'}`}
+                                        className={`rounded-full border px-2 py-0.5 font-bold ${selectedEvaluationJudgeKey ===`${judge.judge_id || index}::${judge.model || ''}` ? 'border-cyan-300 bg-cyan-50 text-cyan-700' : 'border-slate-200 bg-slate-50 text-slate-600 hover:bg-slate-100'}`}
                                       >
                                         查看会话
                                       </button>
@@ -3064,13 +3064,13 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
                                     <span className={`rounded-full px-2 py-0.5 font-bold ${judge.passed ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'}`}>
                                       {judge.passed ? '通过' : '未通过'}
                                     </span>
-                                    <span className="rounded-full bg-white px-2 py-0.5 font-bold text-slate-600">评分 {formatNumber(judge.score)}</span>
+                                    <span className="rounded-full bg-slate-50 px-2 py-0.5 font-bold text-slate-600">评分 {formatNumber(judge.score)}</span>
                                   </div>
                                 </div>
                                 <div className="mt-2 break-all font-mono text-[11px] text-slate-500">{judge.model || '-'}</div>
                                 <div className="mt-2 break-all font-mono text-[11px] text-slate-500">{judge.session_file || '未记录会话文件'}</div>
                                 {judge.feedback_excerpt ? (
-                                  <div className="mt-3 max-h-40 overflow-auto whitespace-pre-wrap rounded-xl border border-slate-200 bg-white px-3 py-3 text-xs leading-6 text-slate-700">
+                                  <div className="mt-3 max-h-40 overflow-auto whitespace-pre-wrap rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 text-xs leading-6 text-slate-700">
                                     {judge.feedback_excerpt}
                                   </div>
                                 ) : null}
@@ -3086,7 +3086,7 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
 
                         {selectedEvaluationJudge ? (
                           <section className="space-y-4">
-                            <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+ <section className="rounded-2xl border border-slate-200 bg-slate-50 p-5">
                               <div className="flex flex-wrap items-start justify-between gap-3">
                                 <div>
                                   <h3 className="text-sm font-black uppercase tracking-[0.18em] text-slate-500">Judge 会话</h3>
@@ -3113,7 +3113,7 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
                       </section>
 
                       <section className="space-y-4">
-                        <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+ <section className="rounded-2xl border border-slate-200 bg-slate-50 p-5">
                           <div className="flex flex-wrap items-start justify-between gap-3">
                             <div>
                               <h3 className="text-sm font-black uppercase tracking-[0.18em] text-slate-500">Worker 会话</h3>
@@ -3138,7 +3138,7 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
                       </section>
                     </section>
                   ) : (
-                  <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+ <section className="rounded-2xl border border-slate-200 bg-slate-50 p-5">
                     <div className="flex flex-wrap items-start justify-between gap-4">
                       <div>
                         <h2 className="text-sm font-black uppercase tracking-[0.2em] text-slate-500">轮次明细</h2>
@@ -3207,7 +3207,7 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
                                     setSelectedEvaluationRoundKey(evaluationRoundKey(round));
                                   }
                                 }}
-                                className="cursor-pointer bg-white transition hover:bg-slate-50"
+                                className="cursor-pointer bg-slate-50 transition hover:bg-slate-100"
                               >
                                 <td className="px-3 py-3 font-mono font-bold text-slate-800">#{round.round ?? '-'}</td>
                                 <td className="px-3 py-3 font-mono text-slate-600">{round.stage_round ?? '-'}</td>
@@ -3252,7 +3252,7 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
                     </div>
                     {evaluationRoundMenu ? (
                       <div
-                        className="fixed z-50 min-w-[180px] rounded-2xl border border-slate-200 bg-white p-1 shadow-2xl"
+ className="fixed z-50 min-w-[180px] rounded-2xl border border-slate-200 bg-slate-50 p-1"
                         style={{ left: evaluationRoundMenu.x, top: evaluationRoundMenu.y }}
                         onClick={(event) => event.stopPropagation()}
                       >
@@ -3281,7 +3281,7 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
 
       {activeAgentSessionPath ? (
         <div className="fixed inset-0 z-[280] bg-slate-950/70 p-4 backdrop-blur-sm">
-          <div className="mx-auto flex h-full max-w-6xl flex-col overflow-hidden rounded-[2rem] border border-slate-200 bg-[linear-gradient(180deg,#f8fafc_0%,#ffffff_100%)] shadow-[0_32px_120px_rgba(15,23,42,0.35)]">
+ <div className="mx-auto flex h-full max-w-6xl flex-col overflow-hidden rounded-[2rem] border border-slate-200 bg-slate-50">
             <AgentSessionDialogHeader
               title={activeAgentSessionMeta?.display_name || activeAgentSessionPath}
               subtitle={activeAgentSessionMeta?.relative_path || activeAgentSessionPath}

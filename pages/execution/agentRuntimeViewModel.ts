@@ -82,7 +82,7 @@ export const buildUnifiedAgentRuntimeViewModel = ({
   void runtimeSummary;
 
   const ensurePod = (podName: string, seed?: Partial<UnifiedAgentPodCard>): UnifiedAgentPodCard => {
-    const key = String(podName || '').trim() || `unknown-pod-${podMap.size + 1}`;
+    const key = String(podName || '').trim() ||`unknown-pod-${podMap.size + 1}`;
     const existing = podMap.get(key);
     if (existing) {
       if (seed) Object.assign(existing, seed);

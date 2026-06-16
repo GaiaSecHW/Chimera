@@ -139,7 +139,7 @@ const BinaryEvolutionTaskListView: React.FC<Props> = ({ projectId }) => {
     try {
       const created = await executionApi.binaryEvolution.createTask(projectId, {
         case_ids: preview?.effective_case_ids?.length ? preview.effective_case_ids : caseIds,
-        title: form.title.trim() || `Evolution ${new Date().toLocaleString()}`,
+        title: form.title.trim() ||`Evolution ${new Date().toLocaleString()}`,
         objective: form.objective.trim(),
         min_rounds: Math.max(1, Number(form.minRounds) || 1),
         max_rounds: Math.max(1, Number(form.maxRounds) || 1),
@@ -166,7 +166,7 @@ const BinaryEvolutionTaskListView: React.FC<Props> = ({ projectId }) => {
     <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', paddingLeft: '32px', paddingBottom: '40px', paddingTop: '32px' }}>
       {feedbackNodes}
 
-      <section style={{ borderRadius: '24px', border: `1px solid ${LK.borderSoft}`, backgroundColor: 'rgba(255, 255, 255, 0.9)', padding: '24px' }}>
+ <section style={{ borderRadius: '24px', border: `1px solid ${LK.borderSoft}`, backgroundColor: LK.surface, padding: '24px' }}>
         <p style={{ fontSize: '12px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.3em', color: LK.warning }}>Binary Evolution</p>
         <h1 style={{ marginTop: '12px', fontSize: '30px', fontWeight: 600, letterSpacing: '-0.025em', color: LK.ink }}>进化中心任务</h1>
         <p style={{ marginTop: '8px', maxWidth: '56rem', fontSize: '14px', color: LK.body }}>

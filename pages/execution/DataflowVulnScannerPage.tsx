@@ -210,11 +210,11 @@ const formatDuration = (start?: string | null, end?: string | null) => {
   const finish = end ? new Date(end).getTime() : Date.now();
   if (!Number.isFinite(begin) || !Number.isFinite(finish) || finish < begin) return '-';
   const seconds = Math.floor((finish - begin) / 1000);
-  if (seconds < 60) return `${seconds}s`;
-  if (seconds < 3600) return `${Math.floor(seconds / 60)}m ${seconds % 60}s`;
+  if (seconds < 60) return`${seconds}s`;
+  if (seconds < 3600) return`${Math.floor(seconds / 60)}m ${seconds % 60}s`;
   const hours = Math.floor(seconds / 3600);
   const minutes = Math.floor((seconds % 3600) / 60);
-  return `${hours}h ${minutes}m`;
+  return`${hours}h ${minutes}m`;
 };
 
 const formatSize = (bytes: number) => {
@@ -226,19 +226,19 @@ const formatSize = (bytes: number) => {
     value /= 1024;
     unit += 1;
   }
-  return `${value.toFixed(unit === 0 ? 0 : 1)} ${units[unit]}`;
+  return`${value.toFixed(unit === 0 ? 0 : 1)} ${units[unit]}`;
 };
 
 const formatSeconds = (seconds: number) => {
   if (!Number.isFinite(seconds) || seconds <= 0) return '-';
-  if (seconds < 60) return `${Math.floor(seconds)}s`;
-  if (seconds < 3600) return `${Math.floor(seconds / 60)}m ${Math.floor(seconds % 60)}s`;
-  return `${Math.floor(seconds / 3600)}h ${Math.floor((seconds % 3600) / 60)}m`;
+  if (seconds < 60) return`${Math.floor(seconds)}s`;
+  if (seconds < 3600) return`${Math.floor(seconds / 60)}m ${Math.floor(seconds % 60)}s`;
+  return`${Math.floor(seconds / 3600)}h ${Math.floor((seconds % 3600) / 60)}m`;
 };
 
 const shortId = (value?: string | null, size = 12) => {
   const text = String(value || '');
-  return text.length > size ? `${text.slice(0, size)}...` : text || '-';
+  return text.length > size ?`${text.slice(0, size)}...` : text || '-';
 };
 
 const isPlainObject = (value: unknown): value is Record<string, any> =>
@@ -247,7 +247,7 @@ const isPlainObject = (value: unknown): value is Record<string, any> =>
 const formatMilliseconds = (value?: number | null) => {
   const ms = Number(value);
   if (!Number.isFinite(ms) || ms <= 0) return '-';
-  if (ms < 1000) return `${Math.floor(ms)}ms`;
+  if (ms < 1000) return`${Math.floor(ms)}ms`;
   return formatSeconds(ms / 1000);
 };
 
@@ -260,7 +260,7 @@ const sessionKindLabel = (kind?: string | null) => {
 
 const normalizeProjectPath = (value: string) => {
   const parts = String(value || '').trim().split('/').filter(Boolean);
-  return parts.length ? `/${parts.join('/')}` : '/';
+  return parts.length ?`/${parts.join('/')}` : '/';
 };
 
 const isPathWithin = (base: string, target: string) => {
@@ -292,7 +292,7 @@ const normalizeConfigPayload = (value?: Partial<DataflowProfileConfigPayload> | 
   runtime_overrides: value?.runtime_overrides || {},
 });
 
-const fileserverTaskId = (runName: string) => `fileserver:${runName}`;
+const fileserverTaskId = (runName: string) =>`fileserver:${runName}`;
 const isSyntheticFileserverTaskId = (value?: string | null) => String(value || '').startsWith('fileserver:');
 const decodeFileserverTaskRunName = (value?: string | null) => {
   const normalized = String(value || '').trim();
@@ -358,7 +358,7 @@ const buildRunDetailPath = (
   if (run.linked_task_id) params.set('linked_task_id', run.linked_task_id);
   params.set('fileserver_run', run.name);
   params.set('fileserver_root', run.root_path || DEFAULT_DATAFLOW_FILESERVER_RUNS_ROOT);
-  return `/pentest-exec-dataflow-vuln-task-detail/${encodeURIComponent(fileserverTaskId(run.name))}?${params.toString()}`;
+  return`/pentest-exec-dataflow-vuln-task-detail/${encodeURIComponent(fileserverTaskId(run.name))}?${params.toString()}`;
 };
 
 const runResolveToRouteTarget = (resolved: DataflowRunResolve) => ({
@@ -378,7 +378,7 @@ const taskRunLocator = (task: DataflowScanTask): Partial<DataflowFileserverRunSu
   const explicitPath = String(task.run_path || '').trim();
   const pathParts = explicitPath.split('/').filter(Boolean);
   const pathName = pathParts[pathParts.length - 1] || '';
-  const pathRoot = pathParts.length > 1 ? `/${pathParts.slice(0, -1).join('/')}` : '';
+  const pathRoot = pathParts.length > 1 ?`/${pathParts.slice(0, -1).join('/')}` : '';
   return {
     ...summary,
     name: task.run_name || summary.name || pathName,
@@ -396,7 +396,7 @@ const taskRunDirectoryPath = (task: DataflowScanTask) => {
   const rootPath = String(run.root_path || '').trim().replace(/\/+$/, '');
   const name = String(run.name || '').trim().replace(/^\/+|\/+$/g, '');
   if (!rootPath || !name) return '';
-  return `${rootPath}/${name}`;
+  return`${rootPath}/${name}`;
 };
 
 const taskDisplayStatus = (task: DataflowScanTask) => String(task.status || '');
@@ -409,7 +409,7 @@ const agentStateDirList = (dirs?: Record<string, DataflowAgentStateDir> | null) 
 const vulnReportStatusLabel = (task: DataflowScanTask) => {
   if (task.auto_report_vulnerabilities === false) return { label: '未开启', className: 'border-slate-200 bg-slate-50 text-slate-500' };
   const status = String(task.vuln_report_status?.status || 'not_started');
-  if (status === 'reported') return { label: `已上报 ${task.vuln_report_status?.reported || 0}`, className: 'border-emerald-200 bg-emerald-50 text-emerald-700' };
+  if (status === 'reported') return { label:`已上报 ${task.vuln_report_status?.reported || 0}`, className: 'border-emerald-200 bg-emerald-50 text-emerald-700' };
   if (status === 'partial_failed') return { label: '部分失败', className: 'border-amber-200 bg-amber-50 text-amber-700' };
   if (status === 'failed') return { label: '上报失败', className: 'border-rose-200 bg-rose-50 text-rose-700' };
   if (status === 'empty') return { label: '无疑点', className: 'border-slate-200 bg-slate-50 text-slate-500' };
@@ -485,9 +485,9 @@ function getExecutionSlotView(task: DataflowScanTask): {
   const ownerLabel = parseOwnerHost(ownerFull);
   const dispatchStatus = String(task.dispatch_status || '').trim();
   const heartbeatAt = task.execution_heartbeat_at || task.heartbeat_at;
-  const heartbeat = heartbeatAt ? `心跳 ${new Date(heartbeatAt).toLocaleString('zh-CN')}` : '';
-  const heartbeatAge = typeof task.heartbeat_age_seconds === 'number' ? `距今 ${task.heartbeat_age_seconds}s` : '';
-  const lease = task.execution_lease_until ? `租约至 ${new Date(task.execution_lease_until).toLocaleString('zh-CN')}` : '';
+  const heartbeat = heartbeatAt ?`心跳 ${new Date(heartbeatAt).toLocaleString('zh-CN')}` : '';
+  const heartbeatAge = typeof task.heartbeat_age_seconds === 'number' ?`距今 ${task.heartbeat_age_seconds}s` : '';
+  const lease = task.execution_lease_until ?`租约至 ${new Date(task.execution_lease_until).toLocaleString('zh-CN')}` : '';
   const terminal = ['completed', 'failed', 'interrupted', 'cancelled'].includes(status);
   const queued = dispatchStatus === 'queued' || dispatchStatus === 'dispatching' || dispatchStatus === 'leased' || status === 'queued';
   const canonicalOwner = String(task.execution_owner_id || '').trim();
@@ -556,7 +556,7 @@ function getExecutionSlotView(task: DataflowScanTask): {
     ownerLabel: ownerLabel || '',
     ownerFull,
     detail: [dispatchStatus].filter(Boolean),
-    className: 'border-slate-200 bg-white text-slate-600',
+    className: 'border-slate-200 bg-slate-50 text-slate-600',
   };
 }
 
@@ -589,10 +589,10 @@ const MetricCard: React.FC<{ label: string; value: React.ReactNode; icon: React.
   label,
   value,
   icon,
-  tone = 'bg-white',
+  tone = 'bg-slate-50',
   hint,
 }) => {
-  const bgColor = tone === 'bg-white' ? LK.surface : tone === 'bg-emerald-50/70' ? `${LK.success}20` : tone === 'bg-rose-50/70' ? `${LK.error}20` : LK.surface;
+  const bgColor = tone === 'bg-slate-50' ? LK.surface : tone === 'bg-emerald-50/70' ?`${LK.success}20` : tone === 'bg-rose-50/70' ?`${LK.error}20` : LK.surface;
   return (
   <div style={{ borderRadius: 12, border: `1px solid ${LK.borderSoft}`, backgroundColor: bgColor, padding: 16 }}>
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
@@ -718,7 +718,7 @@ const createTaskDefaultConfigPayload = (): DataflowProfileConfigPayload => ({
 });
 
 const initialCreateTaskState = (): CreateTaskState => ({
-  title: `dataflow-vuln-${new Date().toISOString().slice(0, 16).replace('T', '-')}`,
+  title:`dataflow-vuln-${new Date().toISOString().slice(0, 16).replace('T', '-')}`,
   profileId: '',
   workspacePath: DEFAULT_DATAFLOW_VULN_RUNS_ROOT,
   dataFlowPath: '',
@@ -904,7 +904,7 @@ export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ proj
       }
       if (attempt + 1 < maxAttempts) await wait(500);
     }
-    const runQuery = taskForResolve.latest_execution_id ? `?execution_id=${encodeURIComponent(taskForResolve.latest_execution_id)}` : '';
+    const runQuery = taskForResolve.latest_execution_id ?`?execution_id=${encodeURIComponent(taskForResolve.latest_execution_id)}` : '';
     navigate(`/pentest-exec-dataflow-vuln-task-detail/${encodeURIComponent(task.task_id)}${runQuery}`, {
       state: { returnView: DATAFLOW_VULN_LIST_RETURN_VIEW } satisfies DataflowVulnRouteState,
     });
@@ -1133,7 +1133,7 @@ export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ proj
     const taskLabel = task.title || task.run_name || task.task_id;
     const confirmed = await showConfirm({
       title: '删除任务',
-      message: `确定要删除任务「${taskLabel}」及其关联 Run / 输出文件吗？此操作不可撤销。`,
+      message:`确定要删除任务「${taskLabel}」及其关联 Run / 输出文件吗？此操作不可撤销。`,
       confirmText: '确认删除',
       cancelText: '取消',
       danger: true,
@@ -1163,7 +1163,7 @@ export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ proj
     }
     const confirmed = await showConfirm({
       title: '批量删除任务',
-      message: `确定要批量删除 ${taskIds.length} 个任务及其关联 Run / 输出文件吗？此操作不可撤销。`,
+      message:`确定要批量删除 ${taskIds.length} 个任务及其关联 Run / 输出文件吗？此操作不可撤销。`,
       confirmText: '确认删除',
       cancelText: '取消',
       danger: true,
@@ -1217,7 +1217,7 @@ export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ proj
       label: '总槽位',
       value: slotSummary?.total_capacity ?? '-',
       hint: slotSummary?.updated_at
-        ? `${slotSummary.detail_mode === 'detail' ? '明细' : '摘要'}更新于 ${new Date(slotSummary.updated_at).toLocaleTimeString('zh-CN')}`
+        ?`${slotSummary.detail_mode === 'detail' ? '明细' : '摘要'}更新于 ${new Date(slotSummary.updated_at).toLocaleTimeString('zh-CN')}`
         : '全局 worker 总执行槽位',
       border: 'border-slate-200',
       bg: 'bg-slate-50',
@@ -1226,7 +1226,7 @@ export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ proj
     {
       label: '忙槽位',
       value: slotSummary?.running_jobs ?? '-',
-      hint: slotSummary && slotSummary.total_capacity > 0 ? `利用率 ${Math.round((slotSummary.running_jobs / slotSummary.total_capacity) * 100)}%` : '当前活跃任务占用的槽位',
+      hint: slotSummary && slotSummary.total_capacity > 0 ?`利用率 ${Math.round((slotSummary.running_jobs / slotSummary.total_capacity) * 100)}%` : '当前活跃任务占用的槽位',
       border: 'border-cyan-200',
       bg: 'bg-cyan-50',
       text: 'text-cyan-700',
@@ -1242,7 +1242,7 @@ export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ proj
     {
       label: '排队任务',
       value: slotSummary?.queued_jobs ?? '-',
-      hint: `在线 Worker ${slotSummary?.worker_count ?? 0}`,
+      hint:`在线 Worker ${slotSummary?.worker_count ?? 0}`,
       border: 'border-amber-200',
       bg: 'bg-amber-50',
       text: 'text-amber-700',
@@ -1325,14 +1325,14 @@ export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ proj
               setShowCreate(true);
               void loadProfiles();
             }}
-            className="inline-flex items-center gap-2 rounded-lg bg-cyan-700 px-4 py-2 text-sm font-black text-white shadow-sm hover:bg-cyan-800"
+ className="inline-flex items-center gap-2 rounded-lg bg-cyan-700 px-4 py-2 text-sm font-black text-white hover:bg-cyan-800"
           >
             <Plus size={16} />
             创建任务
           </button>
           <button
             onClick={() => void loadAll(page)}
-            className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-bold text-slate-700 hover:bg-slate-50"
+            className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-4 py-2 text-sm font-bold text-slate-700 hover:bg-slate-100"
           >
             <RefreshCw size={16} />
             刷新
@@ -1346,7 +1346,7 @@ export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ proj
           <MetricCard label="失败" value={stats.failed} icon={<AlertTriangle size={17} />} tone="bg-rose-50/70" />
         </section>
 
-        <section className="rounded-[2rem] border border-slate-200 bg-white p-5 shadow-sm">
+ <section className="rounded-[2rem] border border-slate-200 bg-slate-50 p-5">
           <div className="flex flex-wrap items-start justify-between gap-4">
             <button
               type="button"
@@ -1376,7 +1376,7 @@ export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ proj
               <button
                 type="button"
                 onClick={() => void (showSlotDetailModal ? loadSlotDetail() : loadSlotSummary())}
-                className="rounded-lg border border-slate-200 p-2 text-slate-500 hover:bg-slate-50"
+                className="rounded-lg border border-slate-200 p-2 text-slate-500 hover:bg-slate-100"
               >
                 <RefreshCw size={14} />
               </button>
@@ -1433,7 +1433,7 @@ export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ proj
         </section>
 
         <section>
-          <div className="rounded-lg border border-slate-200 bg-white shadow-sm">
+ <div className="rounded-lg border border-slate-200 bg-slate-50">
             <div className="border-b border-slate-200 p-4">
               <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
                 <div>
@@ -1458,7 +1458,7 @@ export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ proj
                   <select
                     value={runStatusFilter}
                     onChange={(event) => { setRunStatusFilter(event.target.value); setPage(1); }}
-                    className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-bold text-slate-700 outline-none"
+                    className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-bold text-slate-700 outline-none"
                     title="按任务状态筛选"
                   >
                     <option value="">全部状态</option>
@@ -1470,7 +1470,7 @@ export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ proj
                   <select
                     value={modeFilter}
                     onChange={(event) => { setModeFilter(event.target.value as '' | 'manual' | 'binary' | 'source'); setPage(1); }}
-                    className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-bold text-slate-700 outline-none"
+                    className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-bold text-slate-700 outline-none"
                     title="按任务来源筛选"
                   >
                     {TASK_MODE_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
@@ -1479,13 +1479,13 @@ export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ proj
                     value={parentTaskIdFilter}
                     onChange={(event) => { setParentTaskIdFilter(event.target.value); setPage(1); }}
                     placeholder="筛选主任务 ID"
-                    className="w-40 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 outline-none placeholder:text-slate-400"
+                    className="w-40 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-medium text-slate-700 outline-none placeholder:text-slate-400"
                     title="按主任务 ID 筛选"
                   />
                   <select
                     value={sortBy}
                     onChange={(event) => { setSortBy(event.target.value); setPage(1); }}
-                    className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-bold text-slate-700 outline-none"
+                    className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-bold text-slate-700 outline-none"
                     title="排序字段"
                   >
                     {TASK_SORT_OPTIONS.map((option) => <option key={option.value} value={option.value}>按{option.label}排序</option>)}
@@ -1493,7 +1493,7 @@ export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ proj
                   <select
                     value={sortOrder}
                     onChange={(event) => { setSortOrder(event.target.value === 'asc' ? 'asc' : 'desc'); setPage(1); }}
-                    className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-bold text-slate-700 outline-none"
+                    className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-bold text-slate-700 outline-none"
                     title="排序方向"
                   >
                     <option value="desc">降序</option>
@@ -1502,7 +1502,7 @@ export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ proj
                   <select
                     value={perPage}
                     onChange={(event) => { setPerPage(Number(event.target.value)); setPage(1); }}
-                    className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-bold text-slate-700 outline-none"
+                    className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-bold text-slate-700 outline-none"
                     title="每页显示条数"
                   >
                     {[10, 50, 100, 200, 500, 1000].map((n) => <option key={n} value={n}>{n}条/页</option>)}
@@ -1510,7 +1510,7 @@ export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ proj
                   <button
                     type="button"
                     onClick={() => void loadAll(page)}
-                    className="rounded-lg border border-slate-200 p-2 text-slate-500 hover:bg-slate-50"
+                    className="rounded-lg border border-slate-200 p-2 text-slate-500 hover:bg-slate-100"
                     title="刷新任务列表与槽位摘要"
                   >
                     <RefreshCw size={14} />
@@ -1525,7 +1525,7 @@ export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ proj
               {projectionBackfillPending ? (
                 <div className="mt-3 rounded-lg border border-cyan-200 bg-cyan-50 px-3 py-2 text-sm font-semibold text-cyan-800">
                   任务列表索引后台修复中，统计可能短暂不完整。
-                  {projectionTotalMissing > 0 ? ` 当前待补投影 ${projectionTotalMissing} 条。` : ''}
+                  {projectionTotalMissing > 0 ?` 当前待补投影 ${projectionTotalMissing} 条。` : ''}
                   {projectionBackfillEnqueued ? ' 已登记后台修复。' : ''}
                 </div>
               ) : null}
@@ -1547,7 +1547,7 @@ export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ proj
                       type="button"
                       onClick={() => setSelectedTaskIds(new Set())}
                       disabled={batchDeleting}
-                      className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-600 hover:bg-slate-50 disabled:opacity-50"
+                      className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-bold text-slate-600 hover:bg-slate-100 disabled:opacity-50"
                     >
                       清除选择
                     </button>
@@ -1555,7 +1555,7 @@ export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ proj
                       type="button"
                       onClick={() => void handleBatchDelete()}
                       disabled={batchDeleting}
-                      className="inline-flex items-center gap-2 rounded-lg border border-rose-200 bg-white px-3 py-2 text-xs font-black text-rose-700 hover:bg-rose-50 disabled:opacity-50"
+                      className="inline-flex items-center gap-2 rounded-lg border border-rose-200 bg-slate-50 px-3 py-2 text-xs font-black text-rose-700 hover:bg-rose-50 disabled:opacity-50"
                     >
                       {batchDeleting ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
                       批量删除（{selectedTaskIds.size}）
@@ -1602,8 +1602,8 @@ export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ proj
                     const reportStatus = vulnReportStatusLabel(task);
                     const purposeMeta = taskPurposeMeta(task.task_purpose);
                     const secondaryLine = hasRun
-                      ? `任务 ${shortId(taskId, 18)} · Run ${shortId(run.name || '', 18)}`
-                      : `任务 ${shortId(taskId, 18)} · 执行 ${shortId(executionId || '-', 18)}`;
+                      ?`任务 ${shortId(taskId, 18)} · Run ${shortId(run.name || '', 18)}`
+                      :`任务 ${shortId(taskId, 18)} · 执行 ${shortId(executionId || '-', 18)}`;
                     return (
                       <tr
                         key={task.task_id}
@@ -1621,7 +1621,7 @@ export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ proj
                           <button
                             type="button"
                             onClick={() => void openTaskRowDetail(task)}
-                            className="flex w-full items-center gap-3 rounded-lg text-left hover:bg-slate-50"
+                            className="flex w-full items-center gap-3 rounded-lg text-left hover:bg-slate-100"
                             title={hasRun ? '按 Run 目录进入运行详情' : '查看任务记录，Run 初始化后会自动进入详情'}
                           >
                             <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-slate-200 bg-slate-50 text-slate-500">
@@ -1681,7 +1681,7 @@ export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ proj
                           <div className="mt-1 text-xs text-slate-500">{formatThinking(runSummary.thinking)}</div>
                         </ExecutionTableTd>
                         <ExecutionTableTd className="font-bold text-slate-700">
-                          {hasRun ? `${runSummary.cycles_used || 0} / ${runSummary.max_cycles || 0}` : `尝试 ${task.latest_attempt_no || 0}`}
+                          {hasRun ?`${runSummary.cycles_used || 0} / ${runSummary.max_cycles || 0}` :`尝试 ${task.latest_attempt_no || 0}`}
                         </ExecutionTableTd>
                         <ExecutionTableTd className="text-slate-600">
                           {hasRun ? (
@@ -1707,12 +1707,12 @@ export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ proj
                           </button>
                         </ExecutionTableTd>
                         <ExecutionTableTd className="text-xs text-slate-500">
-                          <div title={runSummary.start_epoch ? `Run 开始时间：${formatEpochTime(runSummary.start_epoch)}` : undefined}>
+                          <div title={runSummary.start_epoch ?`Run 开始时间：${formatEpochTime(runSummary.start_epoch)}` : undefined}>
                             {formatDateTime(task.started_at || task.created_at)}
                           </div>
                         </ExecutionTableTd>
                         <ExecutionTableTd className="text-slate-600">
-                          <div title={runSummary.duration_seconds ? `Run 执行时长：${formatSeconds(runSummary.duration_seconds || 0)}` : undefined}>
+                          <div title={runSummary.duration_seconds ?`Run 执行时长：${formatSeconds(runSummary.duration_seconds || 0)}` : undefined}>
                             {formatDuration(task.started_at || task.created_at, task.finished_at)}
                           </div>
                         </ExecutionTableTd>
@@ -1721,7 +1721,7 @@ export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ proj
                             <button
                               type="button"
                               onClick={() => void handleDeleteTask(task)}
-                              className="inline-flex items-center gap-1 rounded-lg border border-rose-200 bg-white px-2.5 py-1.5 text-xs font-bold text-rose-700 hover:bg-rose-50"
+                              className="inline-flex items-center gap-1 rounded-lg border border-rose-200 bg-slate-50 px-2.5 py-1.5 text-xs font-bold text-rose-700 hover:bg-rose-50"
                               title="删除任务及其关联 Run"
                             >
                               <Trash2 size={13} />
@@ -1730,7 +1730,7 @@ export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ proj
                             <button
                               type="button"
                               onClick={() => void openTaskRowDetail(task)}
-                              className="inline-flex items-center gap-1 rounded-lg border border-cyan-200 bg-white px-2.5 py-1.5 text-xs font-bold text-cyan-700 hover:bg-cyan-50"
+                              className="inline-flex items-center gap-1 rounded-lg border border-cyan-200 bg-slate-50 px-2.5 py-1.5 text-xs font-bold text-cyan-700 hover:bg-cyan-50"
                               title="进入详情"
                             >
                               详情
@@ -1782,7 +1782,7 @@ export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ proj
         </section>
 
         <section>
-          <div className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-4 shadow-sm">
+ <div className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-4">
             <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
               <div>
                 <div className="text-sm font-black text-slate-900">Profile / 参数配置</div>
@@ -1790,7 +1790,7 @@ export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ proj
               </div>
               <button
                 onClick={() => navigate('/pentest-exec-dataflow-vuln-system-config')}
-                className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-bold text-slate-700 hover:bg-slate-50"
+                className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-4 py-2 text-sm font-bold text-slate-700 hover:bg-slate-100"
               >
                 <Settings size={16} />
                 打开参数配置
@@ -1815,7 +1815,7 @@ export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ proj
 
       {showSlotDetailModal ? (
         <div className="fixed inset-0 z-[180] flex items-center justify-center bg-slate-950/65 p-4 backdrop-blur-sm" onClick={() => setShowSlotDetailModal(false)}>
-          <div className="w-full max-w-5xl rounded-[2rem] border border-slate-200 bg-[linear-gradient(180deg,#ffffff_0%,#f8fafc_100%)] shadow-[0_30px_100px_rgba(15,23,42,0.35)]" onClick={(event) => event.stopPropagation()}>
+ <div className="w-full max-w-5xl rounded-[2rem] border border-slate-200 bg-slate-50" onClick={(event) => event.stopPropagation()}>
             <div className="flex items-start justify-between gap-4 border-b border-slate-200 px-6 py-5">
               <div>
                 <div className="text-[11px] font-black uppercase tracking-[0.24em] text-cyan-700">Slot Detail</div>
@@ -1830,7 +1830,7 @@ export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ proj
                 <button
                   type="button"
                   onClick={() => setShowSlotDetailModal(false)}
-                  className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
+                  className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-slate-50 text-slate-600 hover:bg-slate-100"
                   aria-label="关闭执行槽位详情"
                 >
                   <X size={16} />
@@ -1848,11 +1848,11 @@ export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ proj
                     const expanded = expandedSlotWorkerIds.includes(worker.worker_id);
                     const activeJobs = worker.active_jobs || [];
                     return (
-                      <section key={worker.worker_id} className={`overflow-hidden rounded-[1.5rem] border ${worker.healthy ? 'border-slate-200 bg-white' : 'border-rose-200 bg-rose-50/70'}`}>
+                      <section key={worker.worker_id} className={`overflow-hidden rounded-[1.5rem] border ${worker.healthy ? 'border-slate-200 bg-slate-50' : 'border-rose-200 bg-rose-50/70'}`}>
                         <button
                           type="button"
                           onClick={() => toggleSlotWorkerExpanded(worker.worker_id)}
-                          className="flex w-full items-center justify-between gap-3 px-5 py-4 text-left hover:bg-slate-50/70"
+                          className="flex w-full items-center justify-between gap-3 px-5 py-4 text-left hover:bg-slate-100/70"
                         >
                           <div className="min-w-0">
                             <div className="flex flex-wrap items-center gap-2">
@@ -1867,7 +1867,7 @@ export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ proj
                               <span>心跳 {formatDateTime(worker.last_heartbeat_at)}</span>
                             </div>
                           </div>
-                          <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-500">
+                          <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 bg-slate-50 text-slate-500">
                             {expanded ? <ChevronDown size={16} /> : <ChevronUp size={16} className="rotate-90" />}
                           </div>
                         </button>
@@ -1918,7 +1918,7 @@ export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ proj
                                         <button
                                           type="button"
                                           onClick={() => void openTaskDetail({ task_id: job.task_id || '', latest_execution_id: job.execution_id || '' })}
-                                          className="inline-flex items-center gap-1 rounded-lg border border-cyan-200 bg-white px-3 py-1.5 text-xs font-bold text-cyan-700 hover:bg-cyan-50"
+                                          className="inline-flex items-center gap-1 rounded-lg border border-cyan-200 bg-slate-50 px-3 py-1.5 text-xs font-bold text-cyan-700 hover:bg-cyan-50"
                                         >
                                           进入任务
                                           <ChevronRight size={14} />
@@ -2159,10 +2159,10 @@ export const DataflowVulnTaskDetailPage: React.FC<{ projectId: string; onBack?: 
       <div className="min-h-full bg-slate-100 px-5 py-5 text-slate-900 lg:px-8 lg:py-7">
         {feedbackNodes}
         <div className="space-y-4">
-          <div className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
+ <div className="rounded-lg border border-slate-200 bg-slate-50 p-6">
             <div className="flex items-center gap-3 text-sm font-bold text-slate-600">
               <Loader2 size={16} className={detailLoading ? 'animate-spin' : ''} />
-              {loadError ? `解析 Run 失败: ${loadError}` : '正在解析 Run...'}
+              {loadError ?`解析 Run 失败: ${loadError}` : '正在解析 Run...'}
             </div>
           </div>
         </div>
@@ -2182,7 +2182,7 @@ export const DataflowVulnTaskDetailPage: React.FC<{ projectId: string; onBack?: 
           >
             <button
               onClick={goBack}
-              className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-bold text-slate-700 hover:bg-slate-50"
+              className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-4 py-2 text-sm font-bold text-slate-700 hover:bg-slate-100"
             >
               <ArrowLeft size={16} />
               返回列表
@@ -2190,16 +2190,16 @@ export const DataflowVulnTaskDetailPage: React.FC<{ projectId: string; onBack?: 
             <button
               onClick={() => void resolveTaskRouteToRun(taskId, requestedExecutionId)}
               disabled={detailLoading}
-              className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-bold text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+              className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-4 py-2 text-sm font-bold text-slate-700 hover:bg-slate-100 disabled:opacity-50"
             >
               {detailLoading ? <Loader2 size={16} className="animate-spin" /> : <RefreshCw size={16} />}
               重新解析
             </button>
           </PageHeader>
-          <div className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
+ <div className="rounded-lg border border-slate-200 bg-slate-50 p-6">
             <div className="flex items-center gap-3 text-sm font-bold text-slate-600">
               <Loader2 size={16} className={detailLoading ? 'animate-spin' : ''} />
-              {loadError || `正在查找任务 ${shortId(taskId, 20)} 对应的 Run...`}
+              {loadError ||`正在查找任务 ${shortId(taskId, 20)} 对应的 Run...`}
             </div>
             {loadError ? (
               <div className="mt-4 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-bold text-amber-700">
@@ -2224,7 +2224,7 @@ export const DataflowVulnTaskDetailPage: React.FC<{ projectId: string; onBack?: 
           <button
             type="button"
             onClick={goBack}
-            className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-black text-slate-700 shadow-sm hover:bg-slate-50"
+ className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-4 py-2 text-sm font-black text-slate-700 hover:bg-slate-100"
           >
             <ArrowLeft size={16} />
             返回任务列表
@@ -2263,7 +2263,7 @@ const CreateTaskDialog: React.FC<{
   return (
     <>
       <div className="fixed inset-0 z-[260] flex items-center justify-center bg-slate-950/60 p-4 backdrop-blur-sm">
-        <div className="flex max-h-[92vh] w-full max-w-5xl flex-col overflow-hidden rounded-lg border border-slate-200 bg-white shadow-2xl">
+ <div className="flex max-h-[92vh] w-full max-w-5xl flex-col overflow-hidden rounded-lg border border-slate-200 bg-slate-50">
           <div className="flex items-center justify-between border-b border-slate-200 px-5 py-4">
             <div>
               <div className="text-[11px] font-black uppercase tracking-[0.18em] text-cyan-700">New Scan Task</div>
@@ -2306,7 +2306,7 @@ const CreateTaskDialog: React.FC<{
                       resultReviewConcurrency: payload.result_review_concurrency,
                     });
                   }}
-                  className="mt-2 w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm font-semibold outline-none focus:border-cyan-600"
+                  className="mt-2 w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm font-semibold outline-none focus:border-cyan-600"
                 >
                   <option value="">使用项目默认 Profile</option>
                   {profiles.map((profile) => (
@@ -2338,7 +2338,7 @@ const CreateTaskDialog: React.FC<{
                     placeholder={DEFAULT_DATAFLOW_VULN_RUNS_ROOT}
                     style={FORM_INPUT_STYLE}
                   />
-                  <button type="button" onClick={() => setPickerField('workspacePath')} className="shrink-0 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-black text-slate-700 hover:bg-slate-50">
+                  <button type="button" onClick={() => setPickerField('workspacePath')} className="shrink-0 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-black text-slate-700 hover:bg-slate-100">
                     选择
                   </button>
                 </div>
@@ -2349,7 +2349,7 @@ const CreateTaskDialog: React.FC<{
                   <FolderOpen size={16} />
                   数据流目录
                 </div>
-                <div className="mt-2 text-xs leading-5 text-slate-500">直接从项目文件资源中选择包含 `data_flow.md` 或其他分析结果文件的目录。</div>
+                <div className="mt-2 text-xs leading-5 text-slate-500">直接从项目文件资源中选择包含`data_flow.md` 或其他分析结果文件的目录。</div>
                 <div className="mt-3 flex gap-2">
                   <input
                     value={state.dataFlowPath}
@@ -2357,7 +2357,7 @@ const CreateTaskDialog: React.FC<{
                     placeholder="/case-a/data_flow"
                     style={FORM_INPUT_STYLE}
                   />
-                  <button type="button" onClick={() => setPickerField('dataFlowPath')} className="shrink-0 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-black text-slate-700 hover:bg-slate-50">
+                  <button type="button" onClick={() => setPickerField('dataFlowPath')} className="shrink-0 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-black text-slate-700 hover:bg-slate-100">
                     选择
                   </button>
                 </div>
@@ -2376,7 +2376,7 @@ const CreateTaskDialog: React.FC<{
                     placeholder="/case-a/source"
                     style={FORM_INPUT_STYLE}
                   />
-                  <button type="button" onClick={() => setPickerField('sourcePath')} className="shrink-0 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-black text-slate-700 hover:bg-slate-50">
+                  <button type="button" onClick={() => setPickerField('sourcePath')} className="shrink-0 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-black text-slate-700 hover:bg-slate-100">
                     选择
                   </button>
                 </div>
@@ -2458,7 +2458,7 @@ const CreateTaskDialog: React.FC<{
                 <textarea
                   value={state.runtimeOverridesText}
                   onChange={(event) => onChange({ ...state, runtimeOverridesText: event.target.value })}
-                  placeholder={'{\n  "global": { "max_review_cycles": 4 }\n}'}
+                  placeholder={'{\n"global": {"max_review_cycles": 4 }\n}'}
                   className="mt-2 min-h-[150px] w-full rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 font-mono text-xs leading-5 text-slate-800 outline-none focus:border-cyan-600"
                 />
               </label>
@@ -2698,7 +2698,7 @@ export const DataflowVulnConfigPage: React.FC<{ projectId: string; embedded?: bo
       if (profile.enabled) {
         const ok = await confirm({
           title: '停用 Profile',
-          message: `确认停用 ${profile.name}？已绑定任务不会被删除，但后续默认选择会跳过它。`,
+          message:`确认停用 ${profile.name}？已绑定任务不会被删除，但后续默认选择会跳过它。`,
           confirmText: '停用',
           danger: true,
         });
@@ -2732,14 +2732,14 @@ export const DataflowVulnConfigPage: React.FC<{ projectId: string; embedded?: bo
           setForm(blankProfileForm());
           setVersions([]);
         }}
-        className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-bold text-slate-700 hover:bg-slate-50"
+        className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-4 py-2 text-sm font-bold text-slate-700 hover:bg-slate-100"
       >
         <Plus size={16} />
         新建 Profile
       </button>
       <button
         onClick={() => void load()}
-        className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-bold text-slate-700 hover:bg-slate-50"
+        className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-4 py-2 text-sm font-bold text-slate-700 hover:bg-slate-100"
       >
         <RefreshCw size={16} />
         刷新
@@ -2795,7 +2795,7 @@ export const DataflowVulnConfigPage: React.FC<{ projectId: string; embedded?: bo
       {feedbackNodes}
       <div className={embedded ? 'space-y-6' : 'mx-auto max-w-[1800px] space-y-4'}>
         {embedded ? (
-          <section className="rounded-[2rem] border border-slate-200 bg-slate-50/70 p-6 shadow-sm">
+ <section className="rounded-[2rem] border border-slate-200 bg-slate-50/70 p-6">
             <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
               <div>
                 <div className="flex flex-wrap items-center gap-2">
@@ -2806,7 +2806,7 @@ export const DataflowVulnConfigPage: React.FC<{ projectId: string; embedded?: bo
                   </span>
                 </div>
                 <p className="mt-2 max-w-4xl text-sm text-slate-500">
-                  当前 Tab 中的全部配置项都归属于 `secflow-app-dataflow-vuln-scan` 微服务，用于维护项目级扫描 Profile、运行参数、默认模板和版本快照。
+                  当前 Tab 中的全部配置项都归属于`secflow-app-dataflow-vuln-scan` 微服务，用于维护项目级扫描 Profile、运行参数、默认模板和版本快照。
                 </p>
               </div>
               <div className="flex shrink-0 flex-wrap items-center gap-2">{configActions}</div>
@@ -2837,7 +2837,7 @@ export const DataflowVulnConfigPage: React.FC<{ projectId: string; embedded?: bo
 
         <section className="grid grid-cols-1 gap-4 xl:grid-cols-[360px_minmax(680px,1fr)_420px]">
           <div className="space-y-4">
-            <div className="rounded-lg border border-slate-200 bg-white shadow-sm">
+ <div className="rounded-lg border border-slate-200 bg-slate-50">
               <div className="border-b border-slate-200 px-4 py-3 text-sm font-black text-slate-900">Profile 列表</div>
               <div className="max-h-[640px] overflow-auto p-2">
                 {profiles.map((profile) => (
@@ -2848,7 +2848,7 @@ export const DataflowVulnConfigPage: React.FC<{ projectId: string; embedded?: bo
                       setForm(formFromProfile(profile));
                     }}
                     className={`mb-2 w-full rounded-lg border p-3 text-left transition ${
-                      profile.profile_id === selectedProfileId ? 'border-cyan-300 bg-cyan-50' : 'border-slate-200 bg-white hover:bg-slate-50'
+                      profile.profile_id === selectedProfileId ? 'border-cyan-300 bg-cyan-50' : 'border-slate-200 bg-slate-50 hover:bg-slate-100'
                     }`}
                   >
                     <div className="flex items-center justify-between gap-2">
@@ -2868,7 +2868,7 @@ export const DataflowVulnConfigPage: React.FC<{ projectId: string; embedded?: bo
             </div>
 
             {selectedProfile ? (
-              <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+ <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
                 <div className="flex flex-wrap gap-2">
                   <button
                     onClick={() => void setDefaultProfile(selectedProfile)}
@@ -2891,7 +2891,7 @@ export const DataflowVulnConfigPage: React.FC<{ projectId: string; embedded?: bo
           </div>
 
           <div className="space-y-4">
-            <div className="rounded-lg border border-slate-200 bg-white shadow-sm">
+ <div className="rounded-lg border border-slate-200 bg-slate-50">
               <div className="border-b border-slate-200 px-5 py-4">
                 <div className="text-sm font-black text-slate-900">{form.profileId ? '编辑 Profile' : '新建 Profile'}</div>
                 <div className="mt-1 text-xs text-slate-500">{form.profileId || '尚未保存'}</div>
@@ -2935,7 +2935,7 @@ export const DataflowVulnConfigPage: React.FC<{ projectId: string; embedded?: bo
               </div>
             </div>
 
-            <div className="rounded-lg border border-slate-200 bg-white shadow-sm">
+ <div className="rounded-lg border border-slate-200 bg-slate-50">
               <div className="space-y-5 p-5">
                 <div className="flex items-start justify-between gap-4">
                   <div>
@@ -2968,12 +2968,12 @@ export const DataflowVulnConfigPage: React.FC<{ projectId: string; embedded?: bo
               </div>
             </div>
 
-            <div className="rounded-lg border border-slate-200 bg-white shadow-sm">
+ <div className="rounded-lg border border-slate-200 bg-slate-50">
               <div className="space-y-5 p-5">
                 <div className="flex items-start justify-between gap-4">
                   <div>
                     <div className="text-sm font-black text-slate-900">运行时覆盖</div>
-                    <div className="mt-1 text-xs text-slate-500">针对当前 Profile 的 `runtime_overrides` JSON。</div>
+                    <div className="mt-1 text-xs text-slate-500">针对当前 Profile 的`runtime_overrides` JSON。</div>
                   </div>
                   <PanelActions
                     saving={savingPanel === 'runtime'}
@@ -2994,7 +2994,7 @@ export const DataflowVulnConfigPage: React.FC<{ projectId: string; embedded?: bo
           </div>
 
           <div className="space-y-4">
-            <div className="rounded-lg border border-slate-200 bg-white shadow-sm">
+ <div className="rounded-lg border border-slate-200 bg-slate-50">
               <div className="border-b border-slate-200 px-4 py-3 text-sm font-black text-slate-900">版本记录</div>
               <div className="max-h-72 overflow-auto p-3">
                 {versions.map((version) => (
@@ -3013,7 +3013,7 @@ export const DataflowVulnConfigPage: React.FC<{ projectId: string; embedded?: bo
         </section>
 
         <section className="grid grid-cols-1 gap-4 xl:grid-cols-2">
-          <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm xl:col-span-2">
+ <div className="rounded-lg border border-slate-200 bg-slate-50 p-4 xl:col-span-2">
             <div className="mb-4 flex items-center justify-between gap-3">
               <div>
                 <div className="flex items-center gap-2 text-sm font-black text-slate-900"><Settings size={16} />调度与并发</div>
@@ -3072,7 +3072,7 @@ export const DataflowVulnConfigPage: React.FC<{ projectId: string; embedded?: bo
               </Field>
             </div>
           </div>
-          <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+ <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
             <div className="mb-3 flex items-center gap-2 text-sm font-black text-slate-900"><ServerCog size={16} />Agent 默认存储目录</div>
             {serviceConfig?.agent_storage?.agents?.length ? (
               <div className="overflow-auto">
@@ -3103,11 +3103,11 @@ export const DataflowVulnConfigPage: React.FC<{ projectId: string; embedded?: bo
               <EmptyPanel title="暂无 Agent 存储配置" description="当前服务有效配置未返回可展示的 Agent 默认目录。" icon={<ServerCog size={22} />} />
             )}
           </div>
-          <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+ <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
             <div className="mb-3 flex items-center gap-2 text-sm font-black text-slate-900"><Settings size={16} />项目有效配置</div>
             <JsonBlock value={effectiveConfig || {}} />
           </div>
-          <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+ <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
             <div className="mb-3 flex items-center gap-2 text-sm font-black text-slate-900"><ServerCog size={16} />服务有效配置</div>
             <JsonBlock value={serviceConfig || {}} />
           </div>

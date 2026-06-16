@@ -40,7 +40,7 @@ export function AbnormalReasonCard({
   const evidence = Array.isArray(reason.evidence) ? reason.evidence.slice(0, 4) : [];
   const recentHistory = Array.isArray(history) ? history.slice(0, 3) : [];
   return (
-    <section className="rounded-xl border p-5 shadow-sm"
+ <section className="rounded-xl border p-5"
       style={{ backgroundColor: LK.surface, borderColor: tones.border }}>
       <div className="flex items-start justify-between gap-4">
         <div>

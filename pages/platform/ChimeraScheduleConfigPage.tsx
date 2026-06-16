@@ -103,12 +103,12 @@ const overlaps = (rows: ScheduleRuntimeTimeWindow[]) => {
   for (const row of rows.filter((item) => item.enabled)) {
     const start = toMinute(row.start_time);
     const end = toMinute(row.end_time);
-    if (start === end) return `${row.name} 时段不能覆盖整天`;
+    if (start === end) return`${row.name} 时段不能覆盖整天`;
     const split = start < end ? [{ start, end }] : [{ start, end: 24 * 60 }, { start: 0, end }];
     for (const current of split) {
       for (const existing of segments) {
         if (Math.max(current.start, existing.start) < Math.min(current.end, existing.end)) {
-          return `${row.name} 与 ${existing.name} 存在重叠`;
+          return`${row.name} 与 ${existing.name} 存在重叠`;
         }
       }
       segments.push({ name: row.name, start: current.start, end: current.end });
@@ -199,7 +199,7 @@ export const ChimeraScheduleConfigPage: React.FC = () => {
       time_windows: [
         ...current.time_windows,
         {
-          name: `时段 ${current.time_windows.length + 1}`,
+          name:`时段 ${current.time_windows.length + 1}`,
           enabled: true,
           start_time: '19:00',
           end_time: '23:00',
@@ -290,7 +290,7 @@ export const ChimeraScheduleConfigPage: React.FC = () => {
             <p className="text-sm text-slate-500">统一管理全局调度策略、工具默认并发与分时段并发覆盖。</p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            <button onClick={() => void load()} className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-bold text-slate-700 hover:bg-slate-50">
+            <button onClick={() => void load()} className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-bold text-slate-700 hover:bg-slate-100">
               <RefreshCw size={16} />
               刷新
             </button>
@@ -310,25 +310,25 @@ export const ChimeraScheduleConfigPage: React.FC = () => {
         ) : null}
 
         <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          <article className="rounded-xl border bg-gradient-to-br p-4 shadow-sm from-slate-50 via-white to-slate-100/70 border-slate-200/70">
+ <article className="rounded-xl border bg-gradient-to-br p-4 from-slate-50 via-slate-50 to-slate-100/70 border-slate-200/70">
             <div className="truncate text-center text-xs font-bold text-slate-500">时区</div>
             <div className="mt-1.5 truncate text-center text-sm font-semibold tabular-nums text-slate-900">{draft.timezone}</div>
           </article>
-          <article className="rounded-xl border bg-gradient-to-br p-4 shadow-sm from-slate-50 via-white to-slate-100/70 border-slate-200/70">
+ <article className="rounded-xl border bg-gradient-to-br p-4 from-slate-50 via-slate-50 to-slate-100/70 border-slate-200/70">
             <div className="truncate text-center text-xs font-bold text-slate-500">当前命中时段</div>
             <div className="mt-1.5 truncate text-center text-sm font-semibold tabular-nums text-slate-900">{draft.effective_now.active_time_window_name || '基础配置'}</div>
           </article>
-          <article className="rounded-xl border bg-gradient-to-br p-4 shadow-sm from-slate-50 via-white to-slate-100/70 border-slate-200/70">
+ <article className="rounded-xl border bg-gradient-to-br p-4 from-slate-50 via-slate-50 to-slate-100/70 border-slate-200/70">
             <div className="truncate text-center text-xs font-bold text-slate-500">更新人</div>
             <div className="mt-1.5 truncate text-center text-sm font-semibold tabular-nums text-slate-900">{draft.updated_by || '-'}</div>
           </article>
-          <article className="rounded-xl border bg-gradient-to-br p-4 shadow-sm from-slate-50 via-white to-slate-100/70 border-slate-200/70">
+ <article className="rounded-xl border bg-gradient-to-br p-4 from-slate-50 via-slate-50 to-slate-100/70 border-slate-200/70">
             <div className="truncate text-center text-xs font-bold text-slate-500">更新时间</div>
             <div className="mt-1.5 truncate text-center text-sm font-semibold tabular-nums text-slate-900">{draft.updated_at ? new Date(draft.updated_at).toLocaleString('zh-CN') : '-'}</div>
           </article>
         </section>
 
-        <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+ <section className="overflow-hidden rounded-2xl border border-slate-200 bg-slate-50">
           <div className="border-b border-slate-200 bg-slate-50/70 px-4 py-4 md:px-5">
             <h2 className="text-lg font-black text-slate-900">调度策略</h2>
           </div>
@@ -347,13 +347,13 @@ export const ChimeraScheduleConfigPage: React.FC = () => {
                   min={1}
                   value={(draft.scheduler_policy as any)[key]}
                   onChange={(event) => updateSchedulerPolicy(key as keyof ScheduleRuntimeSchedulerPolicy, event.target.value)}
-                  className="mt-3 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-900 outline-none focus:border-cyan-400"
+                  className="mt-3 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-semibold text-slate-900 outline-none focus:border-cyan-400"
                 />
               </label>
             ))}
             <label className="block rounded-xl border border-slate-200 bg-slate-50 p-4">
               <div className="text-sm font-bold text-slate-700">分发策略</div>
-              <select value={draft.scheduler_policy.dispatch_mode} onChange={(event) => updateSchedulerPolicy('dispatch_mode', event.target.value)} className="mt-3 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-900 outline-none focus:border-cyan-400">
+              <select value={draft.scheduler_policy.dispatch_mode} onChange={(event) => updateSchedulerPolicy('dispatch_mode', event.target.value)} className="mt-3 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-semibold text-slate-900 outline-none focus:border-cyan-400">
                 <option value="balanced">balanced</option>
                 <option value="fifo">fifo</option>
                 <option value="priority_first">priority_first</option>
@@ -361,7 +361,7 @@ export const ChimeraScheduleConfigPage: React.FC = () => {
             </label>
             <label className="block rounded-xl border border-slate-200 bg-slate-50 p-4">
               <div className="text-sm font-bold text-slate-700">队列策略</div>
-              <select value={draft.scheduler_policy.queue_strategy} onChange={(event) => updateSchedulerPolicy('queue_strategy', event.target.value)} className="mt-3 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-900 outline-none focus:border-cyan-400">
+              <select value={draft.scheduler_policy.queue_strategy} onChange={(event) => updateSchedulerPolicy('queue_strategy', event.target.value)} className="mt-3 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-semibold text-slate-900 outline-none focus:border-cyan-400">
                 <option value="capacity_aware">capacity_aware</option>
                 <option value="strict_fifo">strict_fifo</option>
               </select>
@@ -369,7 +369,7 @@ export const ChimeraScheduleConfigPage: React.FC = () => {
           </div>
         </section>
 
-        <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+ <section className="overflow-hidden rounded-2xl border border-slate-200 bg-slate-50">
           <div className="border-b border-slate-200 bg-slate-50/70 px-4 py-4 md:px-5">
             <h2 className="text-lg font-black text-slate-900">工具默认并发</h2>
           </div>
@@ -380,15 +380,15 @@ export const ChimeraScheduleConfigPage: React.FC = () => {
                 <div className="mt-4 grid gap-4 md:grid-cols-2">
                   <label className="block">
                     <div className="text-sm font-bold text-slate-700">默认并发</div>
-                    <input type="number" min={1} value={item.default_concurrency} onChange={(event) => updateToolDefault(item.task_type, { default_concurrency: Number(event.target.value || 0) })} className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-900 outline-none focus:border-cyan-400" />
+                    <input type="number" min={1} value={item.default_concurrency} onChange={(event) => updateToolDefault(item.task_type, { default_concurrency: Number(event.target.value || 0) })} className="mt-2 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-semibold text-slate-900 outline-none focus:border-cyan-400" />
                   </label>
                   <label className="block">
                     <div className="text-sm font-bold text-slate-700">Root Task Key 默认并发</div>
-                    <input type="number" min={0} value={item.root_task_key_max_concurrency} onChange={(event) => updateToolDefault(item.task_type, { root_task_key_max_concurrency: Number(event.target.value || 0) })} className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-900 outline-none focus:border-cyan-400" />
+                    <input type="number" min={0} value={item.root_task_key_max_concurrency} onChange={(event) => updateToolDefault(item.task_type, { root_task_key_max_concurrency: Number(event.target.value || 0) })} className="mt-2 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-semibold text-slate-900 outline-none focus:border-cyan-400" />
                   </label>
                   <label className="block md:col-span-2">
                     <div className="text-sm font-bold text-slate-700">Capacity Pool IDs</div>
-                    <input value={formatPoolIds(item.capacity_pool_ids)} onChange={(event) => updateToolDefault(item.task_type, { capacity_pool_ids: parsePoolIds(event.target.value) })} placeholder="例如 1,2,3" className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-900 outline-none focus:border-cyan-400" />
+                    <input value={formatPoolIds(item.capacity_pool_ids)} onChange={(event) => updateToolDefault(item.task_type, { capacity_pool_ids: parsePoolIds(event.target.value) })} placeholder="例如 1,2,3" className="mt-2 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-semibold text-slate-900 outline-none focus:border-cyan-400" />
                   </label>
                 </div>
               </div>
@@ -396,13 +396,13 @@ export const ChimeraScheduleConfigPage: React.FC = () => {
           </div>
         </section>
 
-        <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+ <section className="overflow-hidden rounded-2xl border border-slate-200 bg-slate-50">
           <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 bg-slate-50/70 px-4 py-4 md:px-5">
             <div>
               <h2 className="text-lg font-black text-slate-900">时段规则</h2>
               <p className="mt-1 text-sm text-slate-500">支持配置多个白天/夜间时段，命中后覆盖基础调度参数。</p>
             </div>
-            <button onClick={addWindow} className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-bold text-slate-700 hover:bg-slate-50">
+            <button onClick={addWindow} className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-bold text-slate-700 hover:bg-slate-100">
               <Plus size={16} />
               新增时段
             </button>
@@ -412,10 +412,10 @@ export const ChimeraScheduleConfigPage: React.FC = () => {
               <div key={`${window.name}-${index}`} className="rounded-2xl border border-slate-200 bg-slate-50 p-5">
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <div className="flex flex-wrap items-center gap-3">
-                    <input value={window.name} onChange={(event) => updateTimeWindow(index, { name: event.target.value })} className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-bold text-slate-900 outline-none focus:border-cyan-400" />
-                    <input value={window.start_time} onChange={(event) => updateTimeWindow(index, { start_time: event.target.value })} placeholder="09:00" className="w-28 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-900 outline-none focus:border-cyan-400" />
+                    <input value={window.name} onChange={(event) => updateTimeWindow(index, { name: event.target.value })} className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-bold text-slate-900 outline-none focus:border-cyan-400" />
+                    <input value={window.start_time} onChange={(event) => updateTimeWindow(index, { start_time: event.target.value })} placeholder="09:00" className="w-28 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-semibold text-slate-900 outline-none focus:border-cyan-400" />
                     <span className="text-slate-400">至</span>
-                    <input value={window.end_time} onChange={(event) => updateTimeWindow(index, { end_time: event.target.value })} placeholder="18:00" className="w-28 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-900 outline-none focus:border-cyan-400" />
+                    <input value={window.end_time} onChange={(event) => updateTimeWindow(index, { end_time: event.target.value })} placeholder="18:00" className="w-28 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-semibold text-slate-900 outline-none focus:border-cyan-400" />
                     <label className="inline-flex items-center gap-2 text-sm font-semibold text-slate-600">
                       <input type="checkbox" checked={window.enabled} onChange={(event) => updateTimeWindow(index, { enabled: event.target.checked })} />
                       启用
@@ -434,7 +434,7 @@ export const ChimeraScheduleConfigPage: React.FC = () => {
                     ['ready_backfill_batch_size', 'Ready 回填批量'],
                     ['db_fallback_batch_size', 'DB 回扫批量'],
                   ].map(([key, label]) => (
-                    <label key={`${window.name}-${key}`} className="block rounded-xl border border-slate-200 bg-white p-4">
+                    <label key={`${window.name}-${key}`} className="block rounded-xl border border-slate-200 bg-slate-50 p-4">
                       <div className="text-sm font-bold text-slate-700">{label}</div>
                       <input type="number" min={1} value={(window.scheduler_policy as any)?.[key] ?? 0} onChange={(event) => updateTimeWindowPolicy(index, key as keyof ScheduleRuntimeSchedulerPolicy, event.target.value)} className="mt-3 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-semibold text-slate-900 outline-none focus:border-cyan-400" />
                     </label>
@@ -442,7 +442,7 @@ export const ChimeraScheduleConfigPage: React.FC = () => {
                 </div>
                 <div className="mt-5 grid gap-4 xl:grid-cols-2">
                   {window.tool_defaults.map((tool) => (
-                    <div key={`${window.name}-${tool.task_type}`} className="rounded-xl border border-slate-200 bg-white p-4">
+                    <div key={`${window.name}-${tool.task_type}`} className="rounded-xl border border-slate-200 bg-slate-50 p-4">
                       <div className="text-sm font-black text-slate-900">{tool.label}</div>
                       <div className="mt-3 grid gap-3 md:grid-cols-2">
                         <label className="block">

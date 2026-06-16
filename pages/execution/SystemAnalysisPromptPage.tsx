@@ -163,7 +163,7 @@ export const SystemAnalysisPromptPage: React.FC<{ projectId: string }> = ({ proj
             </div>
             <div className="mt-4 max-h-[700px] space-y-2 overflow-auto pr-1">
               {items.map((item) => (
-                <button key={item.prompt_id} onClick={() => setSelectedId(item.prompt_id)} className="w-full rounded-lg p-3 text-left" style={{ backgroundColor: selectedId === item.prompt_id ? LK.primaryMuted : LK.surfaceRaised, border: selectedId === item.prompt_id ? `1px solid ${LK.primary}` : `1px solid ${LK.borderSoft}` }}>
+                <button key={item.prompt_id} onClick={() => setSelectedId(item.prompt_id)} className="w-full rounded-lg p-3 text-left" style={{ backgroundColor: selectedId === item.prompt_id ? LK.primaryMuted : LK.surfaceRaised, border: selectedId === item.prompt_id ?`1px solid ${LK.primary}` :`1px solid ${LK.borderSoft}` }}>
                   <div className="text-sm font-medium truncate" style={{ color: LK.ink }}>{item.name}</div>
                   <div className="mt-1 text-xs" style={{ color: LK.muted }}>{item.prompt_id} · v{item.version}</div>
                 </button>

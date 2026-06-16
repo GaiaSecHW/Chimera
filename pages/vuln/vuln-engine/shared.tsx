@@ -293,7 +293,7 @@ export const formatTime = (value?: string | null) => {
   if (!value) return '暂无';
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return value;
-  return `${date.toLocaleDateString()} ${date.toLocaleTimeString()}`;
+  return`${date.toLocaleDateString()} ${date.toLocaleTimeString()}`;
 };
 
 export const labelOf = (value: string | undefined | null, mapper: Record<string, string>, fallback = '暂无') => {

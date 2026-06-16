@@ -100,15 +100,15 @@ const formatNumber = (n: number) => {
 
 const formatMs = (ms?: number) => {
   if (typeof ms !== 'number' || Number.isNaN(ms)) return '--';
-  if (ms < 1) return `${(ms * 1000).toFixed(0)}μs`;
-  if (ms < 1000) return `${ms.toFixed(0)}ms`;
-  return `${(ms / 1000).toFixed(2)}s`;
+  if (ms < 1) return`${(ms * 1000).toFixed(0)}μs`;
+  if (ms < 1000) return`${ms.toFixed(0)}ms`;
+  return`${(ms / 1000).toFixed(2)}s`;
 };
 
 const formatPercent = (rate?: number) => {
   if (typeof rate !== 'number' || Number.isNaN(rate)) return '--';
   const pct = rate <= 1 ? rate * 100 : rate;
-  return `${pct.toFixed(1)}%`;
+  return`${pct.toFixed(1)}%`;
 };
 
 interface KpiCardProps {
@@ -169,7 +169,7 @@ const CardShell: React.FC<{
   >
     <div
       className="flex items-start justify-between gap-3 px-4 py-3"
-      style={{ borderBottom: `1px solid ${LK.borderSoft}` }}
+      style={{ borderBottom:`1px solid ${LK.borderSoft}` }}
     >
       <div>
         <h2 className="text-base font-semibold leading-6" style={{ color: LK.ink }}>
@@ -304,7 +304,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
   const pvcTotal = adminResources?.totalPvcs ?? 0;
   const storageGi = adminResources?.totalStorageGi ?? 0;
   const storageHuman =
-    storageGi >= 1024 ? `${(storageGi / 1024).toFixed(2)} Ti` : `${storageGi.toFixed(0)} Gi`;
+    storageGi >= 1024 ?`${(storageGi / 1024).toFixed(2)} Ti` :`${storageGi.toFixed(0)} Gi`;
   const resourceStatusEntries = Object.entries(adminResources?.statusCounts || {}).map(([status, count]) => ({
     status,
     count: Number(count || 0),
@@ -333,7 +333,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
       style={{ backgroundColor: LK.canvas, color: LK.inkSoft }}
     >
       <div className="mx-auto w-full max-w-[1600px] space-y-4">
-        <header className="flex flex-wrap items-end justify-between gap-3 pb-4" style={{ borderBottom: `1px solid ${LK.borderSoft}` }}>
+        <header className="flex flex-wrap items-end justify-between gap-3 pb-4" style={{ borderBottom:`1px solid ${LK.borderSoft}` }}>
           <div>
             <span
               className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium"
@@ -470,13 +470,13 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                       <span className="font-semibold tabular-nums" style={{ color: LK.inkSoft }}>
                         {formatNumber(entry.count)}
                         <span className="ml-1" style={{ color: LK.muted }}>
-                          {workflowTotal > 0 ? `${((entry.count / workflowTotal) * 100).toFixed(0)}%` : ''}
+                          {workflowTotal > 0 ?`${((entry.count / workflowTotal) * 100).toFixed(0)}%` : ''}
                         </span>
                       </span>
                     </div>
                   ))}
                 </div>
-                <div className="mt-3 pt-3 text-xs" style={{ borderTop: `1px solid ${LK.borderSoft}`, color: LK.muted }}>
+                <div className="mt-3 pt-3 text-xs" style={{ borderTop:`1px solid ${LK.borderSoft}`, color: LK.muted }}>
                   App 模板 {formatNumber(workflowAppTemplates)} 套 · Job 模板 {formatNumber(workflowJobTemplates)} 套
                 </div>
               </>
@@ -507,7 +507,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                           {formatNumber(entry.count)}
                         </span>
                         <span className="text-xs" style={{ color: LK.muted }}>
-                          {serviceTotal > 0 ? `${((entry.count / serviceTotal) * 100).toFixed(0)}%` : ''}
+                          {serviceTotal > 0 ?`${((entry.count / serviceTotal) * 100).toFixed(0)}%` : ''}
                         </span>
                       </div>
                     </div>
@@ -612,19 +612,19 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
               <table className="min-w-full border-separate border-spacing-0 text-sm">
                 <thead>
                   <tr className="text-left text-xs uppercase tracking-wider" style={{ color: LK.mutedSoft }}>
-                    <th className="px-3 py-2.5 font-medium" style={{ borderBottom: `1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>
+                    <th className="px-3 py-2.5 font-medium" style={{ borderBottom:`1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>
                       模型 / 后端
                     </th>
-                    <th className="px-3 py-2.5 text-right font-medium" style={{ borderBottom: `1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>
+                    <th className="px-3 py-2.5 text-right font-medium" style={{ borderBottom:`1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>
                       请求数
                     </th>
-                    <th className="px-3 py-2.5 text-right font-medium" style={{ borderBottom: `1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>
+                    <th className="px-3 py-2.5 text-right font-medium" style={{ borderBottom:`1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>
                       平均响应
                     </th>
-                    <th className="px-3 py-2.5 text-right font-medium" style={{ borderBottom: `1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>
+                    <th className="px-3 py-2.5 text-right font-medium" style={{ borderBottom:`1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>
                       成功率
                     </th>
-                    <th className="px-3 py-2.5 text-right font-medium" style={{ borderBottom: `1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>
+                    <th className="px-3 py-2.5 text-right font-medium" style={{ borderBottom:`1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>
                       活跃并发
                     </th>
                   </tr>
@@ -634,22 +634,22 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                     <tr key={`${p.model_name}-${idx}`}>
                       <td
                         className="px-3 py-2.5 font-medium"
-                        style={{ borderBottom: `1px solid ${LK.borderSoft}`, color: LK.ink, fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace' }}
+                        style={{ borderBottom:`1px solid ${LK.borderSoft}`, color: LK.ink, fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace' }}
                       >
                         {p.model_name || '--'}
                       </td>
-                      <td className="px-3 py-2.5 text-right tabular-nums" style={{ borderBottom: `1px solid ${LK.borderSoft}`, color: LK.body }}>
+                      <td className="px-3 py-2.5 text-right tabular-nums" style={{ borderBottom:`1px solid ${LK.borderSoft}`, color: LK.body }}>
                         {formatNumber(p.request_count || 0)}
                       </td>
-                      <td className="px-3 py-2.5 text-right tabular-nums" style={{ borderBottom: `1px solid ${LK.borderSoft}`, color: LK.body }}>
+                      <td className="px-3 py-2.5 text-right tabular-nums" style={{ borderBottom:`1px solid ${LK.borderSoft}`, color: LK.body }}>
                         {formatMs(p.avg_response_time)}
                       </td>
-                      <td className="px-3 py-2.5 text-right tabular-nums" style={{ borderBottom: `1px solid ${LK.borderSoft}`, color: LK.body }}>
+                      <td className="px-3 py-2.5 text-right tabular-nums" style={{ borderBottom:`1px solid ${LK.borderSoft}`, color: LK.body }}>
                         {p.success_rate !== undefined && p.success_rate !== null
                           ? formatPercent(p.success_rate)
                           : '--'}
                       </td>
-                      <td className="px-3 py-2.5 text-right tabular-nums" style={{ borderBottom: `1px solid ${LK.borderSoft}`, color: LK.body }}>
+                      <td className="px-3 py-2.5 text-right tabular-nums" style={{ borderBottom:`1px solid ${LK.borderSoft}`, color: LK.body }}>
                         {formatNumber(p.active_requests || 0)}
                       </td>
                     </tr>

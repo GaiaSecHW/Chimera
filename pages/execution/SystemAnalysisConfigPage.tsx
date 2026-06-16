@@ -197,7 +197,7 @@ const defaultConfig = (projectId: string): SystemAnalysisServiceConfig => ({
   self_reflection: {
     enabled: false,
     model: '',
-    output_dir: `/data/files/${projectId}/app/chimera-app-system-analyse/self-reflection`,
+    output_dir:`/data/files/${projectId}/app/chimera-app-system-analyse/self-reflection`,
     max_session_lines: 1000,
   },
 });
@@ -540,7 +540,7 @@ const PromptEditorCard: React.FC<{
         <p style={{ fontSize: '14px', fontWeight: 600, color: LK.ink }}>{promptKey}</p>
         <p style={{ marginTop: '4px', fontSize: '12px', lineHeight: '1.4', color: LK.muted }}>{desc}</p>
       </div>
-      <span style={{ borderRadius: '9999px', border: `1px solid ${item.source === 'project' ? LK.success : LK.border}`, padding: '4px 10px', fontSize: '11px', fontWeight: 600, letterSpacing: '0.12em', backgroundColor: item.source === 'project' ? `${LK.success}1a` : LK.surface, color: item.source === 'project' ? LK.success : LK.muted }}>
+      <span style={{ borderRadius: '9999px', border: `1px solid ${item.source === 'project' ? LK.success : LK.border}`, padding: '4px 10px', fontSize: '11px', fontWeight: 600, letterSpacing: '0.12em', backgroundColor: item.source === 'project' ?`${LK.success}1a` : LK.surface, color: item.source === 'project' ? LK.success : LK.muted }}>
         {item.source === 'project' ? 'PROJECT' : 'DEFAULT'}
       </span>
     </div>
@@ -668,7 +668,7 @@ export const SystemAnalysisConfigPage: React.FC<{ projectId: string; embedded?: 
         const items = Array.isArray(res?.items) ? res.items : [];
         const opts = items
           .filter((p) => p.enabled && p.provider_key && p.model)
-          .map((p) => `${p.provider_key}/${p.model}`);
+          .map((p) =>`${p.provider_key}/${p.model}`);
         setModelOptions(opts);
       })
       .catch(() => { /* 静默忽略，手动输入仍可用 */ });
@@ -760,7 +760,7 @@ export const SystemAnalysisConfigPage: React.FC<{ projectId: string; embedded?: 
                 </span>
               </div>
               <p style={{ marginTop: '8px', fontSize: '14px', color: LK.muted }}>
-                当前 Tab 中的全部配置项都归属于 `chimera-app-system-analyse` 微服务，用于控制系统分析服务的并发、重试、阶段循环和 Agent 模型行为。
+                当前 Tab 中的全部配置项都归属于`chimera-app-system-analyse` 微服务，用于控制系统分析服务的并发、重试、阶段循环和 Agent 模型行为。
               </p>
               <p style={{ marginTop: '4px', fontSize: '12px', color: LK.body }}>提示：分析范围（文件类型 / 架构 / 安全维度 / 模块粒度）可在此设置服务级默认值，也可在「新建任务」弹窗中单独覆盖。</p>
               {config.updated_at && (
@@ -834,7 +834,7 @@ export const SystemAnalysisConfigPage: React.FC<{ projectId: string; embedded?: 
                         padding: '4px 12px',
                         fontSize: '12px',
                         fontWeight: 600,
-                        backgroundColor: selected ? `${LK.error}1a` : LK.surface,
+                        backgroundColor: selected ?`${LK.error}1a` : LK.surface,
                         color: selected ? LK.error : LK.muted,
                         cursor: 'pointer',
                         transition: 'all 0.2s'
@@ -871,7 +871,7 @@ export const SystemAnalysisConfigPage: React.FC<{ projectId: string; embedded?: 
                         padding: '4px 12px',
                         fontSize: '12px',
                         fontWeight: 600,
-                        backgroundColor: selected ? `${LK.error}1a` : LK.surface,
+                        backgroundColor: selected ?`${LK.error}1a` : LK.surface,
                         color: selected ? LK.error : LK.muted,
                         cursor: 'pointer',
                         transition: 'all 0.2s'
@@ -925,7 +925,7 @@ export const SystemAnalysisConfigPage: React.FC<{ projectId: string; embedded?: 
                         padding: '4px 12px',
                         fontSize: '12px',
                         fontWeight: 600,
-                        backgroundColor: selected ? `${LK.error}1a` : LK.surface,
+                        backgroundColor: selected ?`${LK.error}1a` : LK.surface,
                         color: selected ? LK.error : LK.muted,
                         cursor: 'pointer',
                         transition: 'all 0.2s'
@@ -959,7 +959,7 @@ export const SystemAnalysisConfigPage: React.FC<{ projectId: string; embedded?: 
                       padding: '10px 16px',
                       fontSize: '14px',
                       fontWeight: 600,
-                      backgroundColor: config.module_granularity === v ? `${LK.error}1a` : LK.surface,
+                      backgroundColor: config.module_granularity === v ?`${LK.error}1a` : LK.surface,
                       color: config.module_granularity === v ? LK.error : LK.body,
                       cursor: 'pointer',
                       transition: 'all 0.2s'
@@ -991,7 +991,7 @@ export const SystemAnalysisConfigPage: React.FC<{ projectId: string; embedded?: 
                       padding: '10px 16px',
                       fontSize: '14px',
                       fontWeight: 600,
-                      backgroundColor: config.filter_engine === v ? `${LK.error}1a` : LK.surface,
+                      backgroundColor: config.filter_engine === v ?`${LK.error}1a` : LK.surface,
                       color: config.filter_engine === v ? LK.error : LK.body,
                       cursor: 'pointer',
                       transition: 'all 0.2s'
@@ -1006,7 +1006,7 @@ export const SystemAnalysisConfigPage: React.FC<{ projectId: string; embedded?: 
             <FieldRow
               label="完整性检查阶段开关"
               hint="enable_final_check"
-              desc="控制是否执行 `final_check — 完整性检查` 阶段。默认关闭；关闭时仅跳过 Stage 4a，不影响最终报告生成与评审。任务创建时如果未单独指定，将继承这里的服务级默认值。">
+              desc="控制是否执行`final_check — 完整性检查` 阶段。默认关闭；关闭时仅跳过 Stage 4a，不影响最终报告生成与评审。任务创建时如果未单独指定，将继承这里的服务级默认值。">
               <div style={{ display: 'flex', gap: '8px' }}>
                 {([
                   { value: true, label: '开启 Stage 4a' },
@@ -1023,7 +1023,7 @@ export const SystemAnalysisConfigPage: React.FC<{ projectId: string; embedded?: 
                       padding: '10px 16px',
                       fontSize: '14px',
                       fontWeight: 600,
-                      backgroundColor: config.enable_final_check === value ? `${LK.error}1a` : LK.surface,
+                      backgroundColor: config.enable_final_check === value ?`${LK.error}1a` : LK.surface,
                       color: config.enable_final_check === value ? LK.error : LK.body,
                       cursor: 'pointer',
                       transition: 'all 0.2s'
@@ -1055,7 +1055,7 @@ export const SystemAnalysisConfigPage: React.FC<{ projectId: string; embedded?: 
                       padding: '10px 16px',
                       fontSize: '14px',
                       fontWeight: 600,
-                      backgroundColor: config.continue_on_module_failure === value ? `${LK.error}1a` : LK.surface,
+                      backgroundColor: config.continue_on_module_failure === value ?`${LK.error}1a` : LK.surface,
                       color: config.continue_on_module_failure === value ? LK.error : LK.body,
                       cursor: 'pointer',
                       transition: 'all 0.2s'
@@ -1208,7 +1208,7 @@ export const SystemAnalysisConfigPage: React.FC<{ projectId: string; embedded?: 
                       padding: '10px 16px',
                       fontSize: '14px',
                       fontWeight: 600,
-                      backgroundColor: (config.self_reflection?.enabled ?? false) === val ? `${LK.error}1a` : LK.surface,
+                      backgroundColor: (config.self_reflection?.enabled ?? false) === val ?`${LK.error}1a` : LK.surface,
                       color: (config.self_reflection?.enabled ?? false) === val ? LK.error : LK.body,
                       cursor: 'pointer',
                       transition: 'all 0.2s'
@@ -1250,7 +1250,7 @@ export const SystemAnalysisConfigPage: React.FC<{ projectId: string; embedded?: 
               <div style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <input
                   type="text"
-                  value={config.self_reflection?.output_dir ?? `/data/files/${projectId}/app/chimera-app-system-analyse/self-reflection`}
+                  value={config.self_reflection?.output_dir ??`/data/files/${projectId}/app/chimera-app-system-analyse/self-reflection`}
                   onChange={(e) => patch({
                     self_reflection: {
                       ...(config.self_reflection ?? {}),
@@ -1264,7 +1264,7 @@ export const SystemAnalysisConfigPage: React.FC<{ projectId: string; embedded?: 
                   onClick={() => patch({
                     self_reflection: {
                       ...(config.self_reflection ?? {}),
-                      output_dir: `/data/files/${projectId}/app/chimera-app-system-analyse/self-reflection`,
+                      output_dir:`/data/files/${projectId}/app/chimera-app-system-analyse/self-reflection`,
                     } as SystemAnalysisSelfReflectionConfig,
                   })}
                   style={{ flexShrink: 0, borderRadius: '8px', border: `1px solid ${LK.border}`, backgroundColor: LK.surface, padding: '8px 12px', fontSize: '12px', color: LK.muted, cursor: 'pointer' }}

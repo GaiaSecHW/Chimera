@@ -177,7 +177,7 @@ export const RedlineOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) 
   const handleDelete = async (task: RedlineTask) => {
     const confirmed = await showConfirm({
       title: '确认删除',
-      message: `确定要删除任务 "${task.name}" 吗？`,
+      message:`确定要删除任务"${task.name}" 吗？`,
       danger: true,
     });
     if (!confirmed) return;
@@ -267,7 +267,7 @@ export const RedlineOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) 
                   <ExecutionTableTd>{task.name}</ExecutionTableTd>
                   <ExecutionTableTd>
                     {task.productName || '-'}
-                    {task.versionNo ? ` / ${task.versionNo}` : ''}
+                    {task.versionNo ?` / ${task.versionNo}` : ''}
                   </ExecutionTableTd>
                   <ExecutionTableTd>
                     <span className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium ${status.tone}`}>
@@ -327,7 +327,7 @@ export const RedlineOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) 
       {/* Create Task Dialog */}
       {showCreateDialog && (
         <div className="fixed inset-0 z-[120] flex items-center justify-center bg-black/50" onClick={closeDialogs}>
-          <div className="bg-theme-surface rounded-2xl p-6 w-[480px] shadow-xl border border-theme-border" onClick={(e) => e.stopPropagation()}>
+ <div className="bg-theme-surface rounded-2xl p-6 w-[480px] border border-theme-border" onClick={(e) => e.stopPropagation()}>
             <h3 className="text-base font-semibold text-theme-text-primary mb-4">新建任务</h3>
             <div className="flex flex-col gap-4">
               <div>
@@ -378,7 +378,7 @@ export const RedlineOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) 
       {/* Edit Task Dialog */}
       {showEditDialog && editingTask && (
         <div className="fixed inset-0 z-[120] flex items-center justify-center bg-black/50" onClick={closeDialogs}>
-          <div className="bg-theme-surface rounded-2xl p-6 w-[480px] shadow-xl border border-theme-border" onClick={(e) => e.stopPropagation()}>
+ <div className="bg-theme-surface rounded-2xl p-6 w-[480px] border border-theme-border" onClick={(e) => e.stopPropagation()}>
             <h3 className="text-base font-semibold text-theme-text-primary mb-4">编辑任务</h3>
             <div className="flex flex-col gap-4">
               <div>

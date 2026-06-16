@@ -107,7 +107,7 @@ export const ServiceTerminalWindowPage: React.FC = () => {
     const seen = new Set<string>();
     return items.filter((item) => {
       if (!item.url) return false;
-      const uniqueKey = `${item.label}:${item.url}`;
+      const uniqueKey =`${item.label}:${item.url}`;
       if (seen.has(uniqueKey)) return false;
       seen.add(uniqueKey);
       return true;
@@ -205,7 +205,7 @@ export const ServiceTerminalWindowPage: React.FC = () => {
             if (settled) return;
             settled = true;
             cleanup();
-            const reason = evt?.reason ? `, reason=${evt.reason}` : '';
+            const reason = evt?.reason ?`, reason=${evt.reason}` : '';
             reject(new Error(`WebSocket握手失败: ${candidate}, code=${evt?.code ?? 'unknown'}${reason}`));
           };
         }).catch((err) => {
@@ -244,10 +244,8 @@ export const ServiceTerminalWindowPage: React.FC = () => {
       connectedWs.onclose = (evt) => {
         if (connectAttemptRef.current !== attemptId) return;
         setConnected(false);
-        const reason = evt?.reason ? `, reason=${evt.reason}` : '';
-        setError(
-          `终端连接关闭: code=${evt?.code ?? 'unknown'}${reason}. ` +
-          `可能原因: 1) agent/容器重启; 2) 浏览器/代理主动断开; 3) ingress/HTTPS与WS协议不一致。`
+        const reason = evt?.reason ?`, reason=${evt.reason}` : '';
+        setError(`终端连接关闭: code=${evt?.code ?? 'unknown'}${reason}.` +`可能原因: 1) agent/容器重启; 2) 浏览器/代理主动断开; 3) ingress/HTTPS与WS协议不一致。`
         );
       };
       connectedWs.onerror = () => {
@@ -305,7 +303,7 @@ export const ServiceTerminalWindowPage: React.FC = () => {
                   <span className="text-[10px] text-slate-200 font-bold shrink-0">连接详情</span>
                   <span className="text-[10px] text-slate-400 truncate">
                     {connectionTargets.find((item) => item.active)?.label || '当前连接'}
-                    {connectionInfo?.ws_url ? `: ${connectionInfo.ws_url}` : ''}
+                    {connectionInfo?.ws_url ?`: ${connectionInfo.ws_url}` : ''}
                   </span>
                   <span className="shrink-0 text-slate-400">
                     {showConnectionDetails ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
@@ -406,7 +404,7 @@ export const ServiceTerminalWindowPage: React.FC = () => {
         <XTerminal
           ws={terminalWs}
           connected={connected}
-          podName={`${serviceName}${container ? `:${container}` : ''}`}
+          podName={`${serviceName}${container ?`:${container}` : ''}`}
           onClose={() => {
             if (terminalWs) terminalWs.close();
             setTerminalWs(null);

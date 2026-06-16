@@ -36,7 +36,7 @@ type FormatterSet = {
   formatSeconds: (value: number | null | undefined) => string;
 };
 
-const CHART_GRID = '#e2e8f0';
+const CHART_GRID = '#26324a';
 
 const EmptyCard: React.FC<{ text: string }> = ({ text }) => (
   <div className="flex h-full min-h-[220px] items-center justify-center rounded-[2rem] border border-dashed border-slate-200 bg-slate-50 px-6 text-center text-sm text-slate-500">
@@ -45,7 +45,7 @@ const EmptyCard: React.FC<{ text: string }> = ({ text }) => (
 );
 
 export const HeadlineMetricCard: React.FC<{ label: string; value: string; hint: string; tone: string }> = ({ label, value, hint, tone }) => (
-  <div className="rounded-2xl border border-slate-200 bg-white/85 px-4 py-3 shadow-sm">
+ <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
     <div className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-400">{label}</div>
     <div className={`mt-2 text-2xl font-black ${tone}`}>{value}</div>
     <div className="mt-1 text-xs text-slate-500">{hint}</div>
@@ -65,7 +65,7 @@ export const DataflowVulnObservabilitySection: React.FC<{
   formatters: FormatterSet;
   viewModel: DataflowVulnOverviewViewModel;
 }> = ({ formatters, viewModel }) => (
-  <section className="space-y-4 rounded-[2rem] border border-rose-200 bg-[radial-gradient(circle_at_top_left,_rgba(244,63,94,0.10),_transparent_34%),linear-gradient(180deg,#ffffff_0%,#fff1f2_100%)] p-5 shadow-sm">
+ <section className="space-y-4 rounded-[2rem] border border-rose-200 bg-slate-50 p-5">
     <div className="flex flex-wrap items-start justify-between gap-4">
       <div>
         <div className="text-[11px] font-black uppercase tracking-[0.22em] text-rose-700">Dataflow Vuln Observability</div>
@@ -74,11 +74,11 @@ export const DataflowVulnObservabilitySection: React.FC<{
           这部分优先回答四个问题：当前 run 是否在推进、漏洞产出是否在收敛、是否进入平台期、运行时调用面是否在放大失败或输出截断。
         </p>
       </div>
-      <span className="inline-flex rounded-full border border-rose-200 bg-white/80 px-3 py-1 text-xs font-black text-rose-800">dataflow-vuln MVP</span>
+ <span className="inline-flex rounded-full border border-rose-200 bg-slate-50 px-3 py-1 text-xs font-black text-rose-800">dataflow-vuln MVP</span>
     </div>
 
     <div className="grid gap-4 xl:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)]">
-      <div className="rounded-[1.6rem] border border-rose-100 bg-white/85 p-4 shadow-sm">
+ <div className="rounded-[1.6rem] border border-rose-100 bg-slate-50 p-4">
         <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">漏洞产出与评审收敛</div>
         <h3 className="mt-2 text-lg font-black tracking-tight text-slate-900">Latest Cycle Snapshot</h3>
         <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
@@ -92,14 +92,14 @@ export const DataflowVulnObservabilitySection: React.FC<{
         </div>
       </div>
 
-      <div className="rounded-[1.6rem] border border-rose-100 bg-white/85 p-4 shadow-sm">
+ <div className="rounded-[1.6rem] border border-rose-100 bg-slate-50 p-4">
         <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">平台期与闭环状态</div>
         <h3 className="mt-2 text-lg font-black tracking-tight text-slate-900">Plateau / Closure Flags</h3>
         <div className="mt-4 grid gap-3 sm:grid-cols-2">
           {viewModel.plateauFlags.map((item) => (
             <div
               key={item.label}
-              className={`rounded-2xl border px-4 py-3 shadow-sm ${
+ className={`rounded-2xl border px-4 py-3 ${
                 item.active ? 'border-rose-200 bg-rose-50 text-rose-800' : 'border-emerald-200 bg-emerald-50 text-emerald-800'
               }`}
             >
@@ -112,7 +112,7 @@ export const DataflowVulnObservabilitySection: React.FC<{
       </div>
     </div>
 
-    <div className="rounded-[1.6rem] border border-rose-100 bg-white/85 p-4 shadow-sm">
+ <div className="rounded-[1.6rem] border border-rose-100 bg-slate-50 p-4">
       <div className="flex items-center justify-between gap-3">
         <div>
           <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">运行时调用面</div>
@@ -136,10 +136,10 @@ export const DataflowVulnObservabilitySection: React.FC<{
               <th className="px-3 py-3">输出字节</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-100 bg-white">
+          <tbody className="divide-y divide-slate-100 bg-slate-50">
             {viewModel.runtimeModes.length ? (
               viewModel.runtimeModes.map((row) => (
-                <tr key={row.mode} className="hover:bg-slate-50">
+                <tr key={row.mode} className="hover:bg-slate-100">
                   <td className="px-3 py-3 font-mono text-[11px] font-bold text-slate-800">{row.mode}</td>
                   <td className="px-3 py-3 font-mono text-[11px] text-slate-800">{formatters.formatNumber(row.calls)}</td>
                   <td className="px-3 py-3 font-mono text-[11px] text-slate-800">{formatters.formatNumber(row.attempts)}</td>
@@ -173,7 +173,7 @@ export const DataflowVulnSignalsSection: React.FC<{
   viewModel: DataflowVulnOverviewViewModel;
 }> = ({ formatters, viewModel }) => (
   <section className="grid gap-4 xl:grid-cols-[minmax(0,1.35fr)_minmax(320px,0.95fr)]">
-    <div className="rounded-[2rem] border border-rose-200 bg-white p-5 shadow-sm">
+ <div className="rounded-[2rem] border border-rose-200 bg-slate-50 p-5">
       <div className="flex items-center justify-between gap-3">
         <div>
           <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">热点指标</div>
@@ -205,7 +205,7 @@ export const DataflowVulnSignalsSection: React.FC<{
       </div>
     </div>
 
-    <div className="rounded-[2rem] border border-rose-200 bg-white p-5 shadow-sm">
+ <div className="rounded-[2rem] border border-rose-200 bg-slate-50 p-5">
       <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">关键摘要</div>
       <h2 className="mt-2 text-xl font-black tracking-tight text-slate-900">运行与收敛摘要</h2>
       <div className="mt-4 space-y-3">
@@ -224,7 +224,7 @@ export const DataflowVulnSignalsSection: React.FC<{
 
       <div className="mt-5 grid gap-2 sm:grid-cols-2">
         {viewModel.runtimeModes.map((item) => (
-          <div key={item.mode} className="rounded-xl border border-slate-200 bg-white px-3 py-2">
+          <div key={item.mode} className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
             <div className="text-[11px] font-black uppercase tracking-[0.14em] text-slate-400">{item.mode}</div>
             <div className="mt-1 text-base font-black text-slate-800">
               {formatters.formatNumber(item.calls)} call / {formatters.formatSeconds(item.avgDurationSeconds)}
@@ -248,12 +248,12 @@ export const DataflowVulnAiSection: React.FC<{
     </section>
 
     <section className="grid gap-4 xl:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)]">
-      <div className="rounded-[2rem] border border-fuchsia-200 bg-[radial-gradient(circle_at_top_left,_rgba(192,38,211,0.08),_transparent_34%),linear-gradient(180deg,#ffffff_0%,#fdf4ff_100%)] p-5 shadow-sm">
+ <div className="rounded-[2rem] border border-fuchsia-200 bg-slate-50 p-5">
         <div className="text-[11px] font-black uppercase tracking-[0.18em] text-fuchsia-500">Cycle / Review / Runtime</div>
         <h3 className="mt-2 text-xl font-black tracking-tight text-slate-900">AI 分层摘要</h3>
         <div className="mt-4 grid gap-3 sm:grid-cols-2">
           {viewModel.phaseCards.map((item) => (
-            <div key={item.label} className="rounded-2xl border border-fuchsia-100 bg-white/85 px-4 py-3 shadow-sm">
+ <div key={item.label} className="rounded-2xl border border-fuchsia-100 bg-slate-50 px-4 py-3">
               <div className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-400">{item.label}</div>
               <div className={`mt-2 text-xl font-black ${item.tone}`}>{item.value}</div>
               <div className="mt-1 text-xs text-slate-500">{item.hint}</div>
@@ -262,7 +262,7 @@ export const DataflowVulnAiSection: React.FC<{
         </div>
       </div>
 
-      <div className="rounded-[2rem] border border-fuchsia-200 bg-white p-5 shadow-sm">
+ <div className="rounded-[2rem] border border-fuchsia-200 bg-slate-50 p-5">
         <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">Token / Cost</div>
         <h3 className="mt-2 text-xl font-black tracking-tight text-slate-900">Token 结构</h3>
         <div className="mt-4 h-72">
@@ -288,7 +288,7 @@ export const DataflowVulnAiSection: React.FC<{
     </section>
 
     <section className="grid gap-4 xl:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
-      <div className="rounded-[2rem] border border-fuchsia-200 bg-white p-5 shadow-sm">
+ <div className="rounded-[2rem] border border-fuchsia-200 bg-slate-50 p-5">
         <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">角色与插件</div>
         <h3 className="mt-2 text-xl font-black tracking-tight text-slate-900">Agent / Plugin 活跃度</h3>
         <div className="mt-4 h-72">
@@ -312,7 +312,7 @@ export const DataflowVulnAiSection: React.FC<{
         </div>
       </div>
 
-      <div className="rounded-[2rem] border border-fuchsia-200 bg-white p-5 shadow-sm">
+ <div className="rounded-[2rem] border border-fuchsia-200 bg-slate-50 p-5">
         <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">Plugin Review</div>
         <h3 className="mt-2 text-xl font-black tracking-tight text-slate-900">插件结果摘要</h3>
         <div className="mt-4 grid gap-3 sm:grid-cols-2">
@@ -342,7 +342,7 @@ export const DataflowVulnSampleScopeFilter: React.FC<{
           type="button"
           onClick={() => onChange(item.key)}
           className={`rounded-full border px-3 py-1 text-xs font-black transition ${
-            active ? 'border-rose-200 bg-rose-50 text-rose-700' : 'border-slate-200 bg-slate-50 text-slate-600 hover:bg-white'
+            active ? 'border-rose-200 bg-rose-50 text-rose-700' : 'border-slate-200 bg-slate-50 text-slate-600 hover:bg-slate-50'
           }`}
         >
           {item.label}

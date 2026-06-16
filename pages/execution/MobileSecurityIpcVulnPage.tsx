@@ -287,9 +287,9 @@ const formatDateTime = (value?: string | null) => {
 
 const formatSize = (value?: number | null) => {
   if (!value || value <= 0) return '0 B';
-  if (value < 1024) return `${value} B`;
-  if (value < 1024 * 1024) return `${(value / 1024).toFixed(1)} KB`;
-  return `${(value / 1024 / 1024).toFixed(2)} MB`;
+  if (value < 1024) return`${value} B`;
+  if (value < 1024 * 1024) return`${(value / 1024).toFixed(1)} KB`;
+  return`${(value / 1024 / 1024).toFixed(2)} MB`;
 };
 
 const fileNameOf = (path?: string | null) => {
@@ -301,14 +301,14 @@ const fileNameOf = (path?: string | null) => {
 const isJsonlPath = (path?: string | null) => fileNameOf(path).toLowerCase().endsWith('.jsonl');
 
 const isMarkdownArtifact = (artifact?: IpcAuditArtifact | null, contentType?: string | null) => {
-  const name = `${artifact?.display_name || ''} ${artifact?.relative_path || ''}`.toLowerCase();
+  const name =`${artifact?.display_name || ''} ${artifact?.relative_path || ''}`.toLowerCase();
   return String(contentType || artifact?.content_type || '').toLowerCase().includes('markdown')
     || name.endsWith('.md')
     || name.endsWith('.markdown');
 };
 
 const isJsonArtifact = (artifact?: IpcAuditArtifact | null, contentType?: string | null) => {
-  const name = `${artifact?.display_name || ''} ${artifact?.relative_path || ''}`.toLowerCase();
+  const name =`${artifact?.display_name || ''} ${artifact?.relative_path || ''}`.toLowerCase();
   return String(contentType || artifact?.content_type || '').toLowerCase().includes('json') || name.endsWith('.json');
 };
 
@@ -323,7 +323,7 @@ const formatPreviewContent = (artifact: IpcAuditArtifact | null, content: IpcAud
 };
 
 const isAuditedResultArtifact = (artifact: IpcAuditArtifact) => {
-  const name = `${artifact.display_name || ''} ${artifact.relative_path || ''}`.toLowerCase();
+  const name =`${artifact.display_name || ''} ${artifact.relative_path || ''}`.toLowerCase();
   return name.includes('audited-result.json') || artifact.artifact_kind === 'audited_result_json';
 };
 
@@ -430,7 +430,7 @@ const extractNodeIdsFromInlineGraphText = (value: string): string[] => {
   }
 };
 
-const createDraftKey = () => `report-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+const createDraftKey = () =>`report-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 
 const toReportOutputDraft = (item: Partial<IpcAuditTaskReportOutputSpec>, index = 0): ReportOutputDraft => ({
   key: createDraftKey(),
@@ -446,10 +446,10 @@ const toReportOutputDraft = (item: Partial<IpcAuditTaskReportOutputSpec>, index 
 const buildDefaultReportOutputs = (_mode: PipelineMode, declaredNodes: string[] = []): ReportOutputDraft[] => {
   const nodes = declaredNodes.length > 0 ? declaredNodes : ['stage_1'];
   return nodes.map((nodeId, index) => toReportOutputDraft({
-    output_id: `${nodeId.replace(/[^a-zA-Z0-9_\-]/g, '_')}_report`,
+    output_id:`${nodeId.replace(/[^a-zA-Z0-9_\-]/g, '_')}_report`,
     node_id: nodeId,
-    title: `${formatStageLabel(nodeId)} Report`,
-    path: `exports/${nodeId}-report.md`,
+    title:`${formatStageLabel(nodeId)} Report`,
+    path:`exports/${nodeId}-report.md`,
     format: 'markdown',
     required: true,
     order: (index + 1) * 10,
@@ -467,7 +467,7 @@ const defaultOpenCodeNodeProvider = {
   },
 };
 
-const defaultAuditGraphPrompt = `OpenHarmony IPC deep OOB audit task.
+const defaultAuditGraphPrompt =`OpenHarmony IPC deep OOB audit task.
 Embedded workflow profile: openharmony-project-deep-oob-audit
 Repo root: [[ task.repo_root ]]
 Subproject: [[ task.project_path ]]
@@ -520,7 +520,7 @@ Report requirements:
 - If no issue is found, say so explicitly and summarize the IPC surfaces and object graphs inspected.
 - Add an Unresolved section for missing definitions or uncertain paths, including the exact rg/readtags attempts made.`;
 
-const defaultPocGraphPrompt = `OpenHarmony IPC audit report PoC validation task.
+const defaultPocGraphPrompt =`OpenHarmony IPC audit report PoC validation task.
 Embedded workflow profile: openharmony-ipc-project-report-poc
 Repo root: [[ task.repo_root ]]
 Subproject: [[ task.project_path ]]
@@ -611,21 +611,9 @@ PoC report requirements:
 JSON stats requirements:
 - Write valid JSON to Output audited result json path.
 - Use this stable schema:
-{
-  "vulnerabilities_found": 0,
-  "pocs_developed": 0,
-  "info_findings": 0,
-  "report": {
-    "project_report": "<Project report>",
-    "poc_report": "<Output PoC report path>"
-  },
-  "counts": {
-    "audit_findings_total": 0,
-    "poc_confirmed_problem_count": 0,
-    "poc_generated_count": 0,
-    "poc_generated_crash_count": 0
-  },
-  "notes": []
+{"vulnerabilities_found": 0,"pocs_developed": 0,"info_findings": 0,"report": {"project_report":"<Project report>","poc_report":"<Output PoC report path>"
+  },"counts": {"audit_findings_total": 0,"poc_confirmed_problem_count": 0,"poc_generated_count": 0,"poc_generated_crash_count": 0
+  },"notes": []
 }
 - vulnerabilities_found counts confirmed real vulnerability findings, including CONFIRMED_POC_FEASIBLE, CONFIRMED_NO_POC, and CONFIRMED_BUT_NOT_REPRODUCED.
 - pocs_developed counts generated PoC programs/scripts/binaries.
@@ -682,13 +670,7 @@ const defaultPythonBuilderCode = [
   'from pathlib import Path',
   '',
   'from agentflow import Graph, opencode',
-  '',
-  `AUDIT_PROMPT = ${JSON.stringify(defaultAuditGraphPrompt)}`,
-  `POC_PROMPT = ${JSON.stringify(defaultPocGraphPrompt)}`,
-  `AUDIT_REPORT_PATH = ${JSON.stringify('[[ task.report_outputs["audit_report"].absolute_path ]]')}`,
-  `POC_REPORT_PATH = ${JSON.stringify('[[ task.report_outputs["poc_report"].absolute_path ]]')}`,
-  `AUDITED_RESULT_PATH = ${JSON.stringify(defaultCustomGraphAuditedResultPath)}`,
-  `OPENCODE_PROVIDER = ${JSON.stringify(defaultOpenCodeNodeProvider)}`,
+  '',`AUDIT_PROMPT = ${JSON.stringify(defaultAuditGraphPrompt)}`,`POC_PROMPT = ${JSON.stringify(defaultPocGraphPrompt)}`,`AUDIT_REPORT_PATH = ${JSON.stringify('[[ task.report_outputs["audit_report"].absolute_path ]]')}`,`POC_REPORT_PATH = ${JSON.stringify('[[ task.report_outputs["poc_report"].absolute_path ]]')}`,`AUDITED_RESULT_PATH = ${JSON.stringify(defaultCustomGraphAuditedResultPath)}`,`OPENCODE_PROVIDER = ${JSON.stringify(defaultOpenCodeNodeProvider)}`,
   '',
   'def parse_args():',
   '    parser = argparse.ArgumentParser()',
@@ -698,7 +680,7 @@ const defaultPythonBuilderCode = [
   '',
   'def build_graph(context: dict) -> Graph:',
   '    task = context.get("task") if isinstance(context.get("task"), dict) else context',
-  '    work_dir = str(task.get("project_path") or task.get("repo_root") or ".")',
+  '    work_dir = str(task.get("project_path") or task.get("repo_root") or".")',
   '    with Graph("custom-graph", working_dir=work_dir, concurrency=1) as dag:',
   '        audit = opencode(',
   '            task_id="audit",',
@@ -708,7 +690,7 @@ const defaultPythonBuilderCode = [
   '            retries=1000,',
   '            timeout_seconds=7200,',
   '            success_criteria=[',
-  '                {"kind": "file_nonempty", "path": AUDIT_REPORT_PATH},',
+  '                {"kind":"file_nonempty","path": AUDIT_REPORT_PATH},',
   '            ],',
   '        )',
   '        poc = opencode(',
@@ -719,8 +701,8 @@ const defaultPythonBuilderCode = [
   '            retries=1000,',
   '            timeout_seconds=7200,',
   '            success_criteria=[',
-  '                {"kind": "file_nonempty", "path": POC_REPORT_PATH},',
-  '                {"kind": "json_valid", "path": AUDITED_RESULT_PATH},',
+  '                {"kind":"file_nonempty","path": POC_REPORT_PATH},',
+  '                {"kind":"json_valid","path": AUDITED_RESULT_PATH},',
   '            ],',
   '        )',
   '        audit >> poc',
@@ -735,7 +717,7 @@ const defaultPythonBuilderCode = [
   '    pipeline = json.loads(dag.to_json())',
   '    output_path.write_text(json.dumps(pipeline, ensure_ascii=False, indent=2), encoding="utf-8")',
   '',
-  'if __name__ == "__main__":',
+  'if __name__ =="__main__":',
   '    main()',
 ].join('\n');
 
@@ -822,7 +804,7 @@ const templateToRecord = (template: IpcAuditTaskTemplate): GraphTemplateRecord =
 const shortPath = (value?: string | null) => {
   if (!value) return '-';
   const parts = value.replace(/\\/g, '/').split('/').filter(Boolean);
-  return parts.length > 4 ? `.../${parts.slice(-4).join('/')}` : value;
+  return parts.length > 4 ?`.../${parts.slice(-4).join('/')}` : value;
 };
 
 const toSearchText = (value?: string | null) => String(value || '').trim().toLowerCase();
@@ -1215,7 +1197,7 @@ const parseSessionJsonlObject = (obj: Record<string, any>, rawLine: string, line
         timestamp,
         display_timestamp: timestamp,
         thinkingLevel: level,
-        thinkingLevelClass: `thinking-${SESSION_THINKING_LEVEL_MAP[level.toLowerCase()] || 'off'}`,
+        thinkingLevelClass:`thinking-${SESSION_THINKING_LEVEL_MAP[level.toLowerCase()] || 'off'}`,
         raw_line: rawLine,
       }],
     };
@@ -1250,7 +1232,7 @@ const parseSessionJsonlObject = (obj: Record<string, any>, rawLine: string, line
         lineNo,
         timestamp,
         'item_completed',
-        asString(obj.title || `Item completed${rawItemType ? `: ${rawItemType}` : ''}`),
+        asString(obj.title ||`Item completed${rawItemType ?`: ${rawItemType}` : ''}`),
         rawLine,
       )],
     };
@@ -1621,18 +1603,18 @@ const graphNodeBadgeTone = (status: string) => {
 const graphNodeCardTone = (status: string, active: boolean) => {
   const normalized = String(status || '').toLowerCase();
   if (normalized === 'succeeded' || normalized === 'completed') {
-    return active ? 'border-emerald-300 bg-emerald-50 shadow-[0_0_0_3px_rgba(16,185,129,0.12)]' : 'border-emerald-200 bg-white';
+    return active ? 'border-emerald-300 bg-emerald-50' : 'border-emerald-200 bg-slate-50';
   }
   if (normalized === 'running' || normalized === 'queued') {
-    return active ? 'border-sky-300 bg-sky-50 shadow-[0_0_0_3px_rgba(59,130,246,0.12)]' : 'border-sky-200 bg-white';
+    return active ? 'border-sky-300 bg-sky-50' : 'border-sky-200 bg-slate-50';
   }
   if (normalized === 'failed' || normalized === 'timed_out' || normalized === 'cancelled') {
-    return active ? 'border-rose-300 bg-rose-50 shadow-[0_0_0_3px_rgba(244,63,94,0.12)]' : 'border-rose-200 bg-white';
+    return active ? 'border-rose-300 bg-rose-50' : 'border-rose-200 bg-slate-50';
   }
   if (normalized === 'skipped') {
-    return active ? 'border-slate-300 bg-slate-100 shadow-[0_0_0_3px_rgba(100,116,139,0.10)]' : 'border-slate-200 bg-white';
+    return active ? 'border-slate-300 bg-slate-100' : 'border-slate-200 bg-slate-50';
   }
-  return active ? 'border-amber-300 bg-amber-50 shadow-[0_0_0_3px_rgba(245,158,11,0.12)]' : 'border-amber-200 bg-white';
+  return active ? 'border-amber-300 bg-amber-50' : 'border-amber-200 bg-slate-50';
 };
 
 const buildTaskGraphFlow = (
@@ -1691,7 +1673,7 @@ const buildTaskGraphFlow = (
   const edges: Edge[] = items.flatMap((item) => item.dependsOn
     .filter((dep) => items.some((candidate) => candidate.id === dep))
     .map((dep) => ({
-      id: `${dep}->${item.id}`,
+      id:`${dep}->${item.id}`,
       source: dep,
       target: item.id,
       markerEnd: { type: MarkerType.ArrowClosed, width: 18, height: 18, color: '#94a3b8' },
@@ -1711,7 +1693,7 @@ const formatReadyFailure = (checks?: Record<string, boolean>) => {
   const failedChecks = Object.entries(checks || {})
     .filter(([key, ok]) => !ok && !HIDDEN_READY_CHECK_KEYS.has(key))
     .map(([key]) => key);
-  return failedChecks.length > 0 ? `失败检查项：${failedChecks.join(', ')}` : '服务未就绪';
+  return failedChecks.length > 0 ?`失败检查项：${failedChecks.join(', ')}` : '服务未就绪';
 };
 
 const defaultStage = (
@@ -1752,7 +1734,7 @@ const buildDefaultTitle = (inputPath?: string | null, displayName?: string | nul
   const rawPath = String(inputPath || '').trim();
   const pathName = fileNameOf(rawPath);
   const subject = String(displayName || '').trim() || (pathName === '-' ? rawPath : pathName);
-  return `IPC漏洞扫描 · ${subject || '新任务'}`;
+  return`IPC漏洞扫描 · ${subject || '新任务'}`;
 };
 
 const buildBatchTaskTitle = (titlePrefix: string, targetCount: number, inputPath: string, displayName?: string | null) => {
@@ -1761,7 +1743,7 @@ const buildBatchTaskTitle = (titlePrefix: string, targetCount: number, inputPath
   if (targetCount === 1) return trimmed;
   const pathName = fileNameOf(inputPath);
   const suffix = String(displayName || '').trim() || (pathName === '-' ? inputPath : pathName);
-  return `${trimmed} · ${suffix}`;
+  return`${trimmed} · ${suffix}`;
 };
 
 const resolvePipelineMode = (capabilities: IpcAuditCapability | null, workspace: IpcAuditWorkspaceSummary | null) => {
@@ -1787,23 +1769,23 @@ const resolveExecutorMode = (capabilities: IpcAuditCapability | null) => {
 const modelHintForExecutor = (mode?: string | null, providerModel?: string | null) => {
   if (mode === 'agentflow_cli') {
     return providerModel
-      ? `可留空，AgentFlow 节点会优先复用当前 Provider 的模型 ${providerModel}；图内如有更细粒度配置，以图定义为准。`
+      ?`可留空，AgentFlow 节点会优先复用当前 Provider 的模型 ${providerModel}；图内如有更细粒度配置，以图定义为准。`
       : '可留空；若未选择 Provider，chimera 不会注入任何 provider/model，节点将直接使用 CLI 自带默认模型或图内配置。';
   }
   if (mode === 'opencode_cli') {
     return providerModel
-      ? `可留空，自动使用当前 Provider 的模型 ${providerModel}；手填时建议使用 provider/model 形式。`
+      ?`可留空，自动使用当前 Provider 的模型 ${providerModel}；手填时建议使用 provider/model 形式。`
       : '可留空；若未选择 Provider，则不注入配置，直接使用 OpenCode 自带默认模型。';
   }
   if (mode === 'codex_cli') {
     return providerModel
-      ? `可留空，自动使用当前 Provider 的模型 ${providerModel}。`
+      ?`可留空，自动使用当前 Provider 的模型 ${providerModel}。`
       : '可留空；若未选择 Provider，则不注入配置，直接使用 CLI 默认模型。';
   }
   return 'Mock 执行器不会真正调用模型，填写后仅记录到任务配置。';
 };
 
-const panelClassName = 'rounded-xl border border-slate-200 bg-white p-5 shadow-sm';
+const panelClassName = 'rounded-xl border border-slate-200 bg-slate-50 p-5 ';
 
 const MetricCard: React.FC<{ label: string; value: React.ReactNode; sub?: string }> = ({ label, value, sub }) => (
   <div className="rounded-lg border border-slate-200 bg-slate-50/90 px-4 py-3">
@@ -1814,8 +1796,8 @@ const MetricCard: React.FC<{ label: string; value: React.ReactNode; sub?: string
 );
 
 const TaskGraphCanvasNode: React.FC<NodeProps<TaskGraphCanvasNodeType>> = ({ data }) => (
-  <div className={`w-[240px] rounded-2xl border px-4 py-3 shadow-sm transition ${graphNodeCardTone(data.status, data.active)}`}>
-    <Handle type="target" position={Position.Left} className="!h-2.5 !w-2.5 !border-2 !border-white !bg-slate-400" />
+ <div className={`w-[240px] rounded-2xl border px-4 py-3 transition ${graphNodeCardTone(data.status, data.active)}`}>
+ <Handle type="target" position={Position.Left} className="!h-2.5 !w-2.5 !border-2 !border-slate-200 !bg-slate-400" />
     <div className="flex items-start justify-between gap-3">
       <div className="min-w-0">
         <div className="truncate text-sm font-black text-slate-900">{data.label}</div>
@@ -1826,12 +1808,12 @@ const TaskGraphCanvasNode: React.FC<NodeProps<TaskGraphCanvasNodeType>> = ({ dat
       </span>
     </div>
     <div className="mt-3 flex flex-wrap gap-2 text-[10px] font-bold uppercase tracking-[0.14em] text-slate-400">
-      {data.model ? <span className="rounded-full border border-slate-200 bg-white px-2 py-1 normal-case tracking-normal text-slate-500">{data.model}</span> : null}
+      {data.model ? <span className="rounded-full border border-slate-200 bg-slate-50 px-2 py-1 normal-case tracking-normal text-slate-500">{data.model}</span> : null}
       <span>{data.reportCount} outputs</span>
       {data.hasEventsJsonl ? <span>jsonl</span> : null}
       {data.hasLastMessage ? <span>message</span> : null}
     </div>
-    <Handle type="source" position={Position.Right} className="!h-2.5 !w-2.5 !border-2 !border-white !bg-slate-400" />
+ <Handle type="source" position={Position.Right} className="!h-2.5 !w-2.5 !border-2 !border-slate-200 !bg-slate-400" />
   </div>
 );
 
@@ -1925,7 +1907,7 @@ const SessionToolCallBlock: React.FC<{ part: Record<string, any> }> = ({ part })
         {open ? '▼ hide args' : '▶ show args'}
       </button>
       {open ? (
-        <pre className="mt-3 max-h-56 overflow-auto whitespace-pre-wrap break-all rounded-xl border border-slate-200 bg-white px-3 py-3 text-xs leading-6 text-slate-700">
+        <pre className="mt-3 max-h-56 overflow-auto whitespace-pre-wrap break-all rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 text-xs leading-6 text-slate-700">
           {JSON.stringify(part.arguments || {}, null, 2)}
         </pre>
       ) : null}
@@ -2017,7 +1999,7 @@ const SessionMessage: React.FC<{ event: AppSaSessionEvent & { _toolResults?: App
 
   if (event.role === 'assistant') {
     return (
-      <div className="space-y-3 rounded-3xl border border-slate-200 bg-white px-5 py-4 shadow-sm">
+ <div className="space-y-3 rounded-3xl border border-slate-200 bg-slate-50 px-5 py-4">
         <div className="flex items-center gap-2 text-[11px] font-black uppercase tracking-[0.12em] text-slate-500">
           <Bot size={13} />
           Assistant
@@ -2064,7 +2046,7 @@ const TaskSessionViewer: React.FC<{
 
   if (loading) {
     return (
-      <div className="flex min-h-[420px] items-center justify-center rounded-3xl border border-slate-200 bg-white text-sm text-slate-500 shadow-sm">
+ <div className="flex min-h-[420px] items-center justify-center rounded-3xl border border-slate-200 bg-slate-50 text-sm text-slate-500">
         <Loader2 size={16} className="mr-2 animate-spin" />
         加载会话中...
       </div>
@@ -2073,7 +2055,7 @@ const TaskSessionViewer: React.FC<{
 
   if (error) {
     return (
-      <div className="rounded-3xl border border-rose-200 bg-rose-50 px-6 py-10 text-sm text-rose-700 shadow-sm">
+ <div className="rounded-3xl border border-rose-200 bg-rose-50 px-6 py-10 text-sm text-rose-700">
         {error}
       </div>
     );
@@ -2088,28 +2070,28 @@ const TaskSessionViewer: React.FC<{
   }
 
   return (
-    <div className="rounded-3xl border border-slate-200 bg-slate-50/70 shadow-sm">
+ <div className="rounded-3xl border border-slate-200 bg-slate-50/70">
       <div className="border-b border-slate-200 px-6 py-5">
         <div className="flex flex-wrap items-center gap-3">
           <h2 className="text-xl font-black tracking-tight text-slate-900">{sessionMeta.display_name}</h2>
-          <span className={`rounded-full border px-3 py-1 text-xs font-bold ${live ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-slate-200 bg-white text-slate-600'}`}>
+          <span className={`rounded-full border px-3 py-1 text-xs font-bold ${live ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-slate-200 bg-slate-50 text-slate-600'}`}>
             {live ? '实时连接中' : '历史会话'}
           </span>
         </div>
         <div className="mt-3 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-          <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3">
+          <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
             <div className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-400">Session ID</div>
             <div className="mt-1 break-all font-mono text-xs text-slate-700">{sessionHeader?.id || sessionMeta.session_id}</div>
           </div>
-          <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3">
+          <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
             <div className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-400">Started</div>
             <div className="mt-1 break-all text-xs text-slate-700">{sessionHeader?.timestamp || '-'}</div>
           </div>
-          <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3">
+          <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
             <div className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-400">Working Dir</div>
             <div className="mt-1 break-all font-mono text-xs text-slate-700">{sessionHeader?.cwd || '-'}</div>
           </div>
-          <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3">
+          <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
             <div className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-400">Events</div>
             <div className="mt-1 text-xs text-slate-700">{events.length}</div>
           </div>
@@ -2139,7 +2121,7 @@ const TaskSessionViewer: React.FC<{
             }
             return <div key={`raw-${event.line}`} className="rounded-2xl bg-slate-100 px-4 py-3 text-xs text-slate-500">[Line {event.line}] {event.summary || event.type}</div>;
           }) : (
-            <div className="rounded-2xl border border-dashed border-slate-300 bg-white px-6 py-10 text-center text-sm text-slate-500">
+            <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-6 py-10 text-center text-sm text-slate-500">
               Empty session
             </div>
           )}
@@ -2153,7 +2135,7 @@ const ArtifactPreviewBody: React.FC<{ artifact: IpcAuditArtifact; content: IpcAu
   const formatted = formatPreviewContent(artifact, content);
   if (isMarkdownArtifact(artifact, content.content_type)) {
     return (
-      <div className="markdown-body max-w-none break-words rounded-2xl bg-white px-6 py-5 text-sm leading-7 text-slate-700">
+      <div className="markdown-body max-w-none break-words rounded-2xl bg-slate-50 px-6 py-5 text-sm leading-7 text-slate-700">
         <ReactMarkdown remarkPlugins={[remarkGfm]}>
           {formatted || ' '}
         </ReactMarkdown>
@@ -2331,7 +2313,7 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
   const currentGraphManifestArtifact = visibleArtifacts.find((item) => item.artifact_kind === 'graph_manifest') || null;
   const auditedResultArtifact = findAuditedResultArtifact(visibleArtifacts);
   const currentGraphScopeKey = showTaskDetail && selectedTask?.pipeline_mode === 'custom_graph' && selectedTaskId && selectedAttemptId
-    ? `${selectedTaskId}:${selectedAttemptId}`
+    ?`${selectedTaskId}:${selectedAttemptId}`
     : '';
   const taskGraphNodeViews = selectedTask?.pipeline_mode === 'custom_graph'
     ? buildTaskGraphNodeViews(currentAttempt, graphManifest, currentReportOutputs, stageSessions)
@@ -2373,7 +2355,7 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
     event_count: sessionEvents.length,
     line_count: sessionFile?.content?.split(/\r?\n/).filter(Boolean).length || sessionEvents.length,
     is_active: isSelectedTaskActive,
-    display_name: `${formatStageLabel(selectedStage)} · ${selectedSessionSummary.display_name || fileNameOf(selectedSessionSummary.path)}`,
+    display_name:`${formatStageLabel(selectedStage)} · ${selectedSessionSummary.display_name || fileNameOf(selectedSessionSummary.path)}`,
     warnings: sessionWarnings,
   } : null;
   const effectiveTaskCount = tasks.length;
@@ -2381,7 +2363,7 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
   const filteredProjectInputItems = projectInputItems.filter((item) => {
     const keyword = toSearchText(presetKeyword);
     if (!keyword) return true;
-    return `${toSearchText(item.displayName)} ${toSearchText(item.path)} ${toSearchText(item.preset?.project_key)} ${toSearchText(item.source)}`.includes(keyword);
+    return`${toSearchText(item.displayName)} ${toSearchText(item.path)} ${toSearchText(item.preset?.project_key)} ${toSearchText(item.source)}`.includes(keyword);
   });
   const filteredTasks = tasks.filter((item) => {
     const status = String(item.status || '').toLowerCase();
@@ -2396,7 +2378,7 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
     const providerSearchText = runtimeSummary
       ? runtimeSummary.providerKeys.concat(runtimeSummary.providerSnapshots.map((snapshot) => String(snapshot.display_name || snapshot.provider_key || ''))).join(' ')
       : '';
-    return `${toSearchText(item.title)} ${toSearchText(path)} ${toSearchText(item.task_id)} ${toSearchText(formatTaskStatus(item.status))} ${toSearchText(runtimeSummary?.executorMode)} ${toSearchText(runtimeSummary?.model)} ${toSearchText(runtimeSummary?.taskModel)} ${toSearchText(providerSearchText)}`.includes(keyword);
+    return`${toSearchText(item.title)} ${toSearchText(path)} ${toSearchText(item.task_id)} ${toSearchText(formatTaskStatus(item.status))} ${toSearchText(runtimeSummary?.executorMode)} ${toSearchText(runtimeSummary?.model)} ${toSearchText(runtimeSummary?.taskModel)} ${toSearchText(providerSearchText)}`.includes(keyword);
   });
   const taskStageOptions = normalizeStageNames(tasks.map((item) => item.current_stage));
   const supportedPipelineModes = ['custom_graph'] as PipelineMode[];
@@ -2905,7 +2887,7 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
       closeSessionStream();
       return;
     }
-    const cacheKey = `${selectedTaskId}:${selectedAttemptId}:${selectedStage}:${selectedSessionPath}`;
+    const cacheKey =`${selectedTaskId}:${selectedAttemptId}:${selectedStage}:${selectedSessionPath}`;
     const cached = sessionCache[cacheKey];
     if (cached && !isSelectedTaskActive) {
       setSessionFile(cached);
@@ -3014,7 +2996,7 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
           }
           setSessionFile((current) => current ? {
             ...current,
-            content: `${current.content || ''}${(current.content || '').endsWith('\n') || !current.content ? '' : '\n'}${lines.join('\n')}\n`,
+            content:`${current.content || ''}${(current.content || '').endsWith('\n') || !current.content ? '' : '\n'}${lines.join('\n')}\n`,
             next_cursor: sessionCursorRef.current,
             truncated: current.truncated,
           } : current);
@@ -3569,7 +3551,7 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
     }
     const confirmed = await confirm({
       title: '删除模板',
-      message: `确认删除服务端模板「${target.name}」吗？`,
+      message:`确认删除服务端模板「${target.name}」吗？`,
       confirmText: '删除模板',
       cancelText: '取消',
       danger: true,
@@ -3612,7 +3594,7 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
         },
         report_outputs: reportOutputs,
       });
-      const nodeLabel = result.node_ids.length > 0 ? `：${result.node_ids.join(', ')}` : '';
+      const nodeLabel = result.node_ids.length > 0 ?`：${result.node_ids.join(', ')}` : '';
       notify(`Graph JSON 校验通过，共 ${result.node_count} 个节点${nodeLabel}`, 'success');
     } catch (error) {
       notify(getErrorMessage(error, 'Graph JSON 校验失败'), 'error');
@@ -3645,7 +3627,7 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
         },
         report_outputs: reportOutputs,
       });
-      const nodeLabel = result.node_ids.length > 0 ? `：${result.node_ids.join(', ')}` : '';
+      const nodeLabel = result.node_ids.length > 0 ?`：${result.node_ids.join(', ')}` : '';
       notify(`Python 图定义校验通过，共 ${result.node_count} 个节点${nodeLabel}`, 'success');
     } catch (error) {
       notify(getErrorMessage(error, 'Python builder 校验失败'), 'error');
@@ -3657,10 +3639,10 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
   const handleAddReportOutput = () => {
     setCustomGraphExpanded(true);
     setReportOutputDrafts((current) => current.concat(toReportOutputDraft({
-      output_id: `report_${current.length + 1}`,
+      output_id:`report_${current.length + 1}`,
       node_id: customGraphNodeIds[current.length] || customGraphNodeIds[0] || '',
-      title: `Report ${current.length + 1}`,
-      path: `exports/report-${current.length + 1}.md`,
+      title:`Report ${current.length + 1}`,
+      path:`exports/report-${current.length + 1}.md`,
       format: 'markdown',
       required: true,
       order: (current.length + 1) * 10,
@@ -3811,8 +3793,8 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
       }
       notify(
         failedItems.length > 0
-          ? `已创建 ${createdTasks.length} 个任务，${failedItems.length} 个失败`
-          : `已创建 ${createdTasks.length} 个任务`,
+          ?`已创建 ${createdTasks.length} 个任务，${failedItems.length} 个失败`
+          :`已创建 ${createdTasks.length} 个任务`,
         failedItems.length > 0 ? 'warning' : 'success',
       );
       setTitle('');
@@ -3837,7 +3819,7 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
     if (!selectedTask) return;
     const confirmed = await confirm({
       title: '取消任务',
-      message: `确认取消任务「${selectedTask.title}」吗？`,
+      message:`确认取消任务「${selectedTask.title}」吗？`,
       confirmText: '取消任务',
       cancelText: '保留任务',
       danger: true,
@@ -3859,8 +3841,8 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
   const handleRetryTask = async (stage?: StageName) => {
     if (!selectedTask) return;
     const message = stage === 'poc'
-      ? `确认从 PoC 阶段重试任务「${selectedTask.title}」吗？`
-      : `确认重新执行任务「${selectedTask.title}」吗？`;
+      ?`确认从 PoC 阶段重试任务「${selectedTask.title}」吗？`
+      :`确认重新执行任务「${selectedTask.title}」吗？`;
     const confirmed = await confirm({
       title: stage === 'poc' ? '重试 PoC' : '重试任务',
       message,
@@ -3885,7 +3867,7 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
     if (!selectedTask) return;
     const confirmed = await confirm({
       title: '删除任务',
-      message: `确认删除任务「${selectedTask.title}」以及当前产物目录吗？此操作不可撤销。`,
+      message:`确认删除任务「${selectedTask.title}」以及当前产物目录吗？此操作不可撤销。`,
       confirmText: '确认删除',
       cancelText: '取消',
       danger: true,
@@ -3916,7 +3898,7 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
     }
     const confirmed = await confirm({
       title: '批量重试任务',
-      message: `确认重新执行 ${actionableSelectedTasks.length} 个任务吗？${skippedActiveSelectedTaskCount > 0 ? ` ${skippedActiveSelectedTaskCount} 个运行中/取消中的任务会被跳过。` : ''}`,
+      message:`确认重新执行 ${actionableSelectedTasks.length} 个任务吗？${skippedActiveSelectedTaskCount > 0 ?` ${skippedActiveSelectedTaskCount} 个运行中/取消中的任务会被跳过。` : ''}`,
       confirmText: '确认重试',
       cancelText: '取消',
     });
@@ -3932,8 +3914,8 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
       const succeededCount = results.length - failedTaskIds.length;
       notify(
         failedTaskIds.length > 0
-          ? `已重试 ${succeededCount} 个任务，${failedTaskIds.length} 个失败`
-          : `已重试 ${succeededCount} 个任务`,
+          ?`已重试 ${succeededCount} 个任务，${failedTaskIds.length} 个失败`
+          :`已重试 ${succeededCount} 个任务`,
         failedTaskIds.length > 0 ? 'warning' : 'success',
       );
       if (failedTaskIds.length > 0) setSelectedTaskIds(failedTaskIds);
@@ -3956,7 +3938,7 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
     }
     const confirmed = await confirm({
       title: '批量停止任务',
-      message: `确认停止 ${cancellableSelectedTasks.length} 个排队中/执行中的任务吗？${skippedNonCancellableSelectedTaskCount > 0 ? ` ${skippedNonCancellableSelectedTaskCount} 个非运行任务会被跳过。` : ''}`,
+      message:`确认停止 ${cancellableSelectedTasks.length} 个排队中/执行中的任务吗？${skippedNonCancellableSelectedTaskCount > 0 ?` ${skippedNonCancellableSelectedTaskCount} 个非运行任务会被跳过。` : ''}`,
       confirmText: '确认停止',
       cancelText: '取消',
       danger: true,
@@ -3973,8 +3955,8 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
       const succeededCount = results.length - failedTaskIds.length;
       notify(
         failedTaskIds.length > 0
-          ? `已停止 ${succeededCount} 个任务，${failedTaskIds.length} 个失败`
-          : `已提交 ${succeededCount} 个任务的停止请求`,
+          ?`已停止 ${succeededCount} 个任务，${failedTaskIds.length} 个失败`
+          :`已提交 ${succeededCount} 个任务的停止请求`,
         failedTaskIds.length > 0 ? 'warning' : 'success',
       );
       if (failedTaskIds.length > 0) setSelectedTaskIds(failedTaskIds);
@@ -3997,7 +3979,7 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
     }
     const confirmed = await confirm({
       title: '批量删除任务',
-      message: `确认删除 ${actionableSelectedTasks.length} 个任务以及对应产物目录吗？此操作不可撤销。${skippedActiveSelectedTaskCount > 0 ? ` ${skippedActiveSelectedTaskCount} 个运行中/取消中的任务会被跳过。` : ''}`,
+      message:`确认删除 ${actionableSelectedTasks.length} 个任务以及对应产物目录吗？此操作不可撤销。${skippedActiveSelectedTaskCount > 0 ?` ${skippedActiveSelectedTaskCount} 个运行中/取消中的任务会被跳过。` : ''}`,
       confirmText: '确认删除',
       cancelText: '取消',
       danger: true,
@@ -4017,8 +3999,8 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
       const succeededCount = deletedTaskIds.length;
       notify(
         failedTaskIds.length > 0
-          ? `已删除 ${succeededCount} 个任务，${failedTaskIds.length} 个失败`
-          : `已删除 ${succeededCount} 个任务`,
+          ?`已删除 ${succeededCount} 个任务，${failedTaskIds.length} 个失败`
+          :`已删除 ${succeededCount} 个任务`,
         failedTaskIds.length > 0 ? 'warning' : 'success',
       );
       if (deletedTaskIds.includes(selectedTaskId)) {
@@ -4111,7 +4093,7 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
 
   return (
     <div className="space-y-6 px-8 pt-8 pb-10">
-      <section className="rounded-[2rem] border border-slate-200 bg-white/90 p-6 shadow-sm">
+ <section className="rounded-[2rem] border border-slate-200 bg-slate-50 p-6">
         <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
           <div className="max-w-3xl">
             <div className="inline-flex items-center gap-2 rounded-full border border-sky-200 bg-sky-50 px-3 py-1 text-[11px] font-black uppercase tracking-[0.18em] text-sky-700">
@@ -4136,7 +4118,7 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
                   value={maxParallelDraft}
                   onChange={(event) => setMaxParallelDraft(event.target.value)}
                   disabled={!readyState?.ready || savingRuntimeConfig}
-                  className="w-20 rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-sm font-black text-slate-900 outline-none transition focus:border-sky-300 focus:ring-4 focus:ring-sky-100 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400"
+                  className="w-20 rounded-lg border border-slate-200 bg-slate-50 px-2 py-1.5 text-sm font-black text-slate-900 outline-none transition focus:border-sky-300 focus:ring-4 focus:ring-sky-100 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400"
                 />
                 <button
                   type="button"
@@ -4150,7 +4132,7 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
               <div className="mt-1 text-xs font-medium text-slate-500">
                 {baseDataLoading
                   ? '正在同步运行时配置...'
-                  : `当前运行 ${runtimeConfig?.active_attempts ?? activeTaskCount} 个，默认 ${runtimeConfig?.default_max_parallel_tasks ?? capabilities?.max_parallel_tasks ?? 1}`}
+                  :`当前运行 ${runtimeConfig?.active_attempts ?? activeTaskCount} 个，默认 ${runtimeConfig?.default_max_parallel_tasks ?? capabilities?.max_parallel_tasks ?? 1}`}
               </div>
             </div>
             <MetricCard label="PoC 能力" value={baseDataLoading ? '加载中' : selectedWorkspace?.supports_poc ? '开启' : '关闭'} sub={baseDataLoading ? '等待能力信息' : capabilities?.poc_runtime_available ? '运行环境可用' : '运行环境未就绪'} />
@@ -4226,42 +4208,42 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
                 <div className="flex flex-wrap items-center gap-2">
                   <span className="text-xs font-semibold text-slate-500">
                     已选择 {selectedTaskSummaries.length} 个，当前筛选 {filteredTasks.length} 个
-                    {cancellableSelectedTasks.length > 0 ? `，可停止 ${cancellableSelectedTasks.length} 个` : ''}
-                    {actionableSelectedTasks.length > 0 ? `，可重试/删除 ${actionableSelectedTasks.length} 个` : ''}
+                    {cancellableSelectedTasks.length > 0 ?`，可停止 ${cancellableSelectedTasks.length} 个` : ''}
+                    {actionableSelectedTasks.length > 0 ?`，可重试/删除 ${actionableSelectedTasks.length} 个` : ''}
                   </span>
                   <button
                     type="button"
                     onClick={handleBatchCancelTasks}
                     disabled={batchActingTasks || cancellableSelectedTasks.length === 0}
-                    className="inline-flex items-center gap-2 rounded-lg border border-amber-200 bg-white px-3 py-2 text-sm font-bold text-amber-700 transition hover:bg-amber-50 disabled:cursor-not-allowed disabled:opacity-50"
+                    className="inline-flex items-center gap-2 rounded-lg border border-amber-200 bg-slate-50 px-3 py-2 text-sm font-bold text-amber-700 transition hover:bg-amber-50 disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     {batchActingTasks ? <Loader2 size={15} className="animate-spin" /> : <XCircle size={15} />}
-                    批量停止 {cancellableSelectedTasks.length > 0 ? `(${cancellableSelectedTasks.length})` : ''}
+                    批量停止 {cancellableSelectedTasks.length > 0 ?`(${cancellableSelectedTasks.length})` : ''}
                   </button>
                   <button
                     type="button"
                     onClick={handleBatchRetryTasks}
                     disabled={batchActingTasks || actionableSelectedTasks.length === 0}
-                    className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-bold text-slate-700 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50"
+                    className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-bold text-slate-700 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     {batchActingTasks ? <Loader2 size={15} className="animate-spin" /> : <RotateCcw size={15} />}
-                    批量重试 {actionableSelectedTasks.length > 0 ? `(${actionableSelectedTasks.length})` : ''}
+                    批量重试 {actionableSelectedTasks.length > 0 ?`(${actionableSelectedTasks.length})` : ''}
                   </button>
                   <button
                     type="button"
                     onClick={handleBatchDeleteTasks}
                     disabled={batchActingTasks || actionableSelectedTasks.length === 0}
-                    className="inline-flex items-center gap-2 rounded-lg border border-rose-200 bg-white px-3 py-2 text-sm font-bold text-rose-700 transition hover:bg-rose-50 disabled:cursor-not-allowed disabled:opacity-50"
+                    className="inline-flex items-center gap-2 rounded-lg border border-rose-200 bg-slate-50 px-3 py-2 text-sm font-bold text-rose-700 transition hover:bg-rose-50 disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     {batchActingTasks ? <Loader2 size={15} className="animate-spin" /> : <Trash2 size={15} />}
-                    批量删除 {actionableSelectedTasks.length > 0 ? `(${actionableSelectedTasks.length})` : ''}
+                    批量删除 {actionableSelectedTasks.length > 0 ?`(${actionableSelectedTasks.length})` : ''}
                   </button>
                   {selectedTaskSummaries.length > 0 ? (
                     <button
                       type="button"
                       onClick={handleClearSelectedTasks}
                       disabled={batchActingTasks}
-                      className="rounded-lg px-3 py-2 text-sm font-bold text-slate-500 transition hover:bg-white hover:text-slate-700 disabled:cursor-not-allowed disabled:opacity-50"
+                      className="rounded-lg px-3 py-2 text-sm font-bold text-slate-500 transition hover:bg-slate-50 hover:text-slate-700 disabled:cursor-not-allowed disabled:opacity-50"
                     >
                       清空选择
                     </button>
@@ -4309,7 +4291,7 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
                   setTaskStageFilter('all');
                 }}
                 disabled={!taskKeyword && taskStatusFilter === 'all' && taskStageFilter === 'all'}
-                className="rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm font-bold text-slate-600 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+                className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm font-bold text-slate-600 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 清空筛选
               </button>
@@ -4348,7 +4330,7 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
                   return (
                     <div
                       key={item.task_id}
-                      className={`rounded-lg border transition ${checked ? 'border-sky-300 bg-sky-50 shadow-sm' : active ? 'border-sky-300 bg-sky-50/70 shadow-sm' : 'border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50'}`}
+ className={`rounded-lg border transition ${checked ? 'border-sky-300 bg-sky-50 ' : active ? 'border-sky-300 bg-sky-50/70 ' : 'border-slate-200 bg-slate-50 hover:border-slate-300 hover:bg-slate-100'}`}
                     >
                       <div className="flex items-start gap-3 px-4 py-4">
                         <input
@@ -4375,32 +4357,32 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
                           <div className="mt-3 flex flex-wrap gap-2 text-[11px] font-semibold text-slate-500">
                             <span>{formatInputKind(item.input_ref.kind)}</span>
                             <span>{formatPipelineMode(item.pipeline_mode)}</span>
-                            <span>{item.current_stage ? `当前阶段 ${formatStageLabel(item.current_stage)}` : '等待调度'}</span>
+                            <span>{item.current_stage ?`当前阶段 ${formatStageLabel(item.current_stage)}` : '等待调度'}</span>
                             <span>{formatDateTime(item.created_at)}</span>
                           </div>
                           <div className="mt-3 flex flex-wrap gap-2">
                             {rowRuntimeLoading ? (
-                              <span className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-bold text-slate-500">
+                              <span className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-[11px] font-bold text-slate-500">
                                 <Loader2 size={12} className="animate-spin" />
                                 加载执行配置
                               </span>
                             ) : rowRuntimeSummary ? (
                               <>
                                 {rowRuntimeSummary.executorMode ? (
-                                  <span className="rounded-full border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-bold text-slate-600">
+                                  <span className="rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-[11px] font-bold text-slate-600">
                                     执行器 {formatExecutorMode(rowRuntimeSummary.executorMode)}
                                   </span>
                                 ) : null}
-                                <span className="rounded-full border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-bold text-slate-600">
+                                <span className="rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-[11px] font-bold text-slate-600">
                                   Model {rowModel || '(default)'}
                                 </span>
                                 {rowProviderKeys.slice(0, 2).map((providerKey, index) => (
-                                  <span key={`${item.task_id}-${providerKey}-${index}`} className="rounded-full border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-bold text-slate-600">
+                                  <span key={`${item.task_id}-${providerKey}-${index}`} className="rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-[11px] font-bold text-slate-600">
                                     Provider {index + 1} · {displayProviderName(providerKey, rowProviderSnapshotMap)}
                                   </span>
                                 ))}
                                 {rowProviderKeys.length > 2 ? (
-                                  <span className="rounded-full border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-bold text-slate-500">
+                                  <span className="rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-[11px] font-bold text-slate-500">
                                     +{rowProviderKeys.length - 2} Provider
                                   </span>
                                 ) : null}
@@ -4410,24 +4392,24 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
                           {isCompletedTaskStatus(item.status) ? (
                             <div className="mt-3 flex flex-wrap gap-2">
                               {rowAuditedResultLoading ? (
-                                <span className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-bold text-slate-500">
+                                <span className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-[11px] font-bold text-slate-500">
                                   <Loader2 size={12} className="animate-spin" />
                                   解析 audited-result
                                 </span>
                               ) : rowAuditedResult ? (
                                 <>
-                                  <span className="rounded-full border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-bold text-slate-600">
+                                  <span className="rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-[11px] font-bold text-slate-600">
                                     vulnerabilities_found {rowAuditedResult.vulnerabilitiesFound}
                                   </span>
-                                  <span className="rounded-full border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-bold text-slate-600">
+                                  <span className="rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-[11px] font-bold text-slate-600">
                                     pocs_developed {rowAuditedResult.pocsDeveloped}
                                   </span>
-                                  <span className="rounded-full border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-bold text-slate-600">
+                                  <span className="rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-[11px] font-bold text-slate-600">
                                     info_findings {rowAuditedResult.infoFindings}
                                   </span>
                                 </>
                               ) : (
-                                <span className="rounded-full border border-dashed border-slate-200 bg-white px-2.5 py-1 text-[11px] font-bold text-slate-400">
+                                <span className="rounded-full border border-dashed border-slate-200 bg-slate-50 px-2.5 py-1 text-[11px] font-bold text-slate-400">
                                   未解析到 audited-result.json
                                 </span>
                               )}
@@ -4578,14 +4560,14 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
                         <button
                           type="button"
                           onClick={() => handlePreviewArtifact(auditedResultSummary.artifact)}
-                          className="self-start rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-bold text-slate-700 transition hover:bg-slate-100 sm:self-auto"
+                          className="self-start rounded-xl border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-bold text-slate-700 transition hover:bg-slate-100 sm:self-auto"
                         >
                           预览 JSON
                         </button>
                       ) : null}
                     </div>
                     {auditedResultLoading ? (
-                      <div className="mt-4 flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-500">
+                      <div className="mt-4 flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-500">
                         <Loader2 size={16} className="animate-spin" />
                         正在解析 audited-result.json...
                       </div>
@@ -4596,7 +4578,7 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
                         <MetricCard label="info_findings" value={auditedResultSummary.infoFindings} sub={auditedResultSummary.artifact.relative_path} />
                       </div>
                     ) : (
-                      <div className="mt-4 rounded-xl border border-dashed border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-500">
+                      <div className="mt-4 rounded-xl border border-dashed border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-500">
                         {auditedResultError || '当前任务没有可解析的 audited-result.json。'}
                       </div>
                     )}
@@ -4610,17 +4592,17 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
                       <h3 className="mt-1 text-sm font-black text-slate-950">按任务声明的报告输出</h3>
                     </div>
                     <div className="text-xs font-semibold text-slate-500">
-                      {currentReportOutputs.length > 0 ? `${currentReportOutputs.length} 个输出` : '当前尝试未声明输出'}
+                      {currentReportOutputs.length > 0 ?`${currentReportOutputs.length} 个输出` : '当前尝试未声明输出'}
                     </div>
                   </div>
                   {currentReportOutputs.length === 0 ? (
-                    <div className="mt-4 rounded-xl border border-dashed border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-500">
+                    <div className="mt-4 rounded-xl border border-dashed border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-500">
                       当前尝试没有返回 report_outputs，后端会继续在普通产物列表中展示已有文件。
                     </div>
                   ) : (
                     <div className="mt-4 grid gap-3 xl:grid-cols-2">
                       {currentReportOutputs.map((item) => (
-                        <article key={item.output_id} className="rounded-2xl border border-slate-200 bg-white p-4">
+                        <article key={item.output_id} className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
                           <div className="flex items-start justify-between gap-3">
                             <div className="min-w-0">
                               <div className="truncate text-sm font-black text-slate-900">{item.title}</div>
@@ -4651,7 +4633,7 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
                                 href={item.preview_url}
                                 target="_blank"
                                 rel="noreferrer"
-                                className="rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-bold text-slate-600 transition hover:bg-slate-100"
+                                className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-bold text-slate-600 transition hover:bg-slate-100"
                               >
                                 原始
                               </a>
@@ -4688,12 +4670,12 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
                     </div>
 
                     {taskGraphNodeViews.length === 0 ? (
-                      <div className="mt-4 rounded-xl border border-dashed border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-500">
+                      <div className="mt-4 rounded-xl border border-dashed border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-500">
                         {graphManifestError || '当前任务还没有可视化的运行时节点信息。任务启动后会根据 AgentFlow pipeline 自动展示。'}
                       </div>
                     ) : (
                       <div className="mt-4 grid gap-4 xl:grid-cols-[minmax(0,1fr)_360px]">
-                        <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
+                        <div className="overflow-hidden rounded-2xl border border-slate-200 bg-slate-50">
                           <div className="h-[440px] bg-slate-50">
                             <ReactFlow
                               nodes={taskGraphFlow.nodes}
@@ -4713,7 +4695,7 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
                           </div>
                         </div>
 
-                        <div className="rounded-2xl border border-slate-200 bg-white p-4">
+                        <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
                           {selectedGraphNode ? (
                             <>
                               <div className="flex items-start justify-between gap-3">
@@ -4762,14 +4744,14 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
                                 <button
                                   type="button"
                                   onClick={() => focusStageArtifacts(selectedGraphNode.id, 'last-message.md')}
-                                  className="rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-bold text-slate-600 transition hover:bg-slate-100"
+                                  className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-bold text-slate-600 transition hover:bg-slate-100"
                                 >
                                   打开 last-message
                                 </button>
                                 <button
                                   type="button"
                                   onClick={() => focusStageArtifacts(selectedGraphNode.id, 'prompt.txt')}
-                                  className="rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-bold text-slate-600 transition hover:bg-slate-100"
+                                  className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-bold text-slate-600 transition hover:bg-slate-100"
                                 >
                                   打开 prompt
                                 </button>
@@ -4828,7 +4810,7 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
                           <div>
                             <div className="text-sm font-black text-slate-900">{formatStageLabel(stageName)}</div>
                             <div className="mt-1 text-xs font-medium text-slate-500">
-                              {stageRun?.started_at ? `开始于 ${formatDateTime(stageRun.started_at)}` : '尚未开始'}
+                              {stageRun?.started_at ?`开始于 ${formatDateTime(stageRun.started_at)}` : '尚未开始'}
                             </div>
                           </div>
                           <span className={`rounded-full border px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.16em] ${statusTone(stageRun?.status)}`}>
@@ -4836,11 +4818,11 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
                           </span>
                         </div>
                         <div className="mt-4 grid grid-cols-2 gap-3 text-xs font-semibold text-slate-600">
-                          <div className="rounded-xl border border-slate-200 bg-white px-3 py-2">
+                          <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
                             返回码
                             <div className="mt-1 font-mono text-sm text-slate-900">{stageRun?.return_code ?? '-'}</div>
                           </div>
-                          <div className="rounded-xl border border-slate-200 bg-white px-3 py-2">
+                          <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
                             会话文件
                             <div className="mt-1 font-mono text-sm text-slate-900">{(stageSessions[stageName] || []).length}</div>
                           </div>
@@ -4862,7 +4844,7 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
                           key={stageName}
                           type="button"
                           onClick={() => focusStageArtifacts(stageName)}
-                          className={`rounded-2xl border px-4 py-2 text-sm font-bold transition ${selectedStage === stageName ? 'border-slate-900 bg-slate-950 text-white' : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-100'}`}
+                          className={`rounded-2xl border px-4 py-2 text-sm font-bold transition ${selectedStage === stageName ? 'border-slate-900 bg-slate-950 text-white' : 'border-slate-200 bg-slate-50 text-slate-600 hover:bg-slate-100'}`}
                         >
                           {formatStageLabel(stageName)}
                         </button>
@@ -4870,14 +4852,14 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
                     </div>
                   </div>
                   {currentStageNames.length === 0 ? (
-                    <div className="mt-4 rounded-2xl border border-dashed border-slate-200 bg-white px-4 py-6 text-sm font-semibold text-slate-500">
+                    <div className="mt-4 rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-4 py-6 text-sm font-semibold text-slate-500">
                       当前尝试还没有可枚举的阶段或节点，任务运行后会自动展示。
                     </div>
                   ) : null}
 
                   <div className="mt-4 grid gap-4 xl:grid-cols-[280px_minmax(0,1fr)]">
                     <div className="space-y-3">
-                      <div className="rounded-2xl border border-slate-200 bg-white p-3">
+                      <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3">
                         <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-500">尝试</div>
                         <select
                           value={selectedAttemptId}
@@ -4892,7 +4874,7 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
                         </select>
                       </div>
 
-                      <div className="rounded-2xl border border-slate-200 bg-white p-3">
+                      <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3">
                         <div className="flex items-center justify-between gap-2">
                           <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-500">会话文件</div>
                           {resourcesLoading ? <Loader2 size={14} className="animate-spin text-slate-400" /> : null}
@@ -4958,7 +4940,7 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
                     </div>
                   </div>
 
-                  <div className="mt-4 rounded-2xl border border-slate-200 bg-white p-4">
+                  <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50 p-4">
                     <div className="flex items-center gap-2 text-sm font-black text-slate-900">
                       <Server size={16} />
                       阶段日志
@@ -4989,7 +4971,7 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
                     </div>
                     <div className="mt-4 max-h-[420px] space-y-3 overflow-auto pr-1">
                       {events.length === 0 ? (
-                        <div className="rounded-2xl border border-dashed border-slate-200 bg-white px-4 py-8 text-sm font-semibold text-slate-500">
+                        <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-4 py-8 text-sm font-semibold text-slate-500">
                           当前尝试还没有事件记录。
                         </div>
                       ) : (
@@ -5000,17 +4982,17 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
                               ? item.payload.preview
                               : '';
                           const eventTypes = item.payload?.event_types && typeof item.payload.event_types === 'object'
-                            ? Object.entries(item.payload.event_types as Record<string, number>).map(([key, value]) => `${key}×${value}`).join(' · ')
+                            ? Object.entries(item.payload.event_types as Record<string, number>).map(([key, value]) =>`${key}×${value}`).join(' · ')
                             : '';
                           return (
-                            <article key={`${item.event_seq}-${item.event_id}`} className="rounded-2xl border border-slate-200 bg-white p-4">
+                            <article key={`${item.event_seq}-${item.event_id}`} className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
                               <div className="flex flex-wrap items-center justify-between gap-3">
                                 <div className="min-w-0">
                                   <div className="text-sm font-black text-slate-900">{item.message}</div>
                                   <div className="mt-1 font-mono text-[11px] text-slate-500">{item.event_type}</div>
                                 </div>
                                 <span className={`rounded-full border px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.16em] ${statusTone(item.level)}`}>
-                                  {item.stage_name ? `${formatStageLabel(item.stage_name)} · ` : ''}{item.level}
+                                  {item.stage_name ?`${formatStageLabel(item.stage_name)} ·` : ''}{item.level}
                                 </span>
                               </div>
                               <div className="mt-3 flex flex-wrap gap-3 text-[11px] font-semibold text-slate-500">
@@ -5037,12 +5019,12 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
                     </div>
                     <div className="mt-4 max-h-[420px] space-y-3 overflow-auto pr-1">
                       {visibleArtifacts.length === 0 ? (
-                        <div className="rounded-2xl border border-dashed border-slate-200 bg-white px-4 py-8 text-sm font-semibold text-slate-500">
+                        <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-4 py-8 text-sm font-semibold text-slate-500">
                           当前尝试还没有可展示产物。
                         </div>
                       ) : (
                         visibleArtifacts.map((item) => (
-                          <article key={item.artifact_id} className="rounded-2xl border border-slate-200 bg-white p-4">
+                          <article key={item.artifact_id} className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
                             <div className="flex items-start justify-between gap-3">
                               <div className="min-w-0">
                                 <div className="truncate text-sm font-black text-slate-900">{item.display_name}</div>
@@ -5069,7 +5051,7 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
                                 href={item.preview_url}
                                 target="_blank"
                                 rel="noreferrer"
-                                className="rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-bold text-slate-600 transition hover:bg-slate-100"
+                                className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-bold text-slate-600 transition hover:bg-slate-100"
                               >
                                 原始
                               </a>
@@ -5097,7 +5079,7 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
       {createModalOpen ? (
         <div className="fixed inset-0 z-[220] flex items-center justify-center bg-slate-950/60 p-4 backdrop-blur-sm" onClick={() => !creating && setCreateModalOpen(false)}>
           <div
-            className="flex max-h-[calc(100vh-2rem)] w-full max-w-5xl flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-2xl"
+ className="flex max-h-[calc(100vh-2rem)] w-full max-w-5xl flex-col overflow-hidden rounded-xl border border-slate-200 bg-slate-50"
             onClick={(event) => event.stopPropagation()}
           >
             <div className="shrink-0 border-b border-slate-200 px-5 py-4">
@@ -5126,7 +5108,7 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
                     <select
                       value={workspaceId}
                       onChange={(event) => setWorkspaceId(event.target.value)}
-                      className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm font-semibold text-slate-700 outline-none transition focus:border-sky-300 focus:ring-4 focus:ring-sky-100"
+                      className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm font-semibold text-slate-700 outline-none transition focus:border-sky-300 focus:ring-4 focus:ring-sky-100"
                     >
                       {workspaces.map((item) => (
                         <option key={item.workspace_id} value={item.workspace_id}>
@@ -5149,7 +5131,7 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
                           type="button"
                           onClick={handleSelectVisibleProjectPaths}
                           disabled={filteredProjectInputItems.length === 0}
-                          className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-bold text-slate-600 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50"
+                          className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-bold text-slate-600 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50"
                         >
                           全选当前
                         </button>
@@ -5157,7 +5139,7 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
                           type="button"
                           onClick={handleClearSelectedProjectPaths}
                           disabled={selectedProjectItems.length === 0}
-                          className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-bold text-slate-600 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50"
+                          className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-bold text-slate-600 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50"
                         >
                           清空选择
                         </button>
@@ -5165,7 +5147,7 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
                     </div>
 
                     <div className="mt-3 flex flex-col gap-2 md:flex-row">
-                      <div className="flex min-w-0 flex-1 items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2.5">
+                      <div className="flex min-w-0 flex-1 items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5">
                         <Search size={16} className="text-slate-400" />
                         <input
                           value={presetKeyword}
@@ -5178,7 +5160,7 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
                         type="button"
                         onClick={handleRefreshCatalog}
                         disabled={refreshingCatalog || !workspaceId}
-                        className="inline-flex items-center justify-center gap-1 rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-xs font-bold text-slate-600 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50"
+                        className="inline-flex items-center justify-center gap-1 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-xs font-bold text-slate-600 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50"
                       >
                         {refreshingCatalog ? <Loader2 size={14} className="animate-spin" /> : <RefreshCw size={14} />}
                         刷新预设列表
@@ -5197,7 +5179,7 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
                         }}
                         disabled={!canCreateCustomProject}
                         placeholder="添加自定义路径，例如 foundation/multimedia/media_library"
-                        className="min-w-0 flex-1 rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm font-semibold text-slate-700 outline-none transition focus:border-sky-300 focus:ring-4 focus:ring-sky-100 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400"
+                        className="min-w-0 flex-1 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm font-semibold text-slate-700 outline-none transition focus:border-sky-300 focus:ring-4 focus:ring-sky-100 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400"
                       />
                       <button
                         type="button"
@@ -5214,29 +5196,29 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
                     ) : null}
 
                     {refreshJob ? (
-                      <div className="mt-3 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-600">
+                      <div className="mt-3 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-600">
                         目录刷新任务：{refreshJob.status}
-                        {refreshJob.discovered_count != null ? ` · 发现 ${refreshJob.discovered_count} 个项目` : ''}
-                        {refreshJob.error_message ? ` · ${refreshJob.error_message}` : ''}
+                        {refreshJob.discovered_count != null ?` · 发现 ${refreshJob.discovered_count} 个项目` : ''}
+                        {refreshJob.error_message ?` · ${refreshJob.error_message}` : ''}
                       </div>
                     ) : null}
 
                     <div className="mt-3 max-h-[410px] space-y-2 overflow-auto pr-1">
                       {projectListLoading ? (
-                        <div className="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-600">
+                        <div className="flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-600">
                           <Loader2 size={16} className="animate-spin" />
                           正在加载项目列表...
                         </div>
                       ) : !serviceReady ? (
-                        <div className="rounded-lg border border-dashed border-slate-200 bg-white px-4 py-6 text-sm font-semibold text-slate-500">
+                        <div className="rounded-lg border border-dashed border-slate-200 bg-slate-50 px-4 py-6 text-sm font-semibold text-slate-500">
                           等待服务就绪后加载项目路径列表。
                         </div>
                       ) : projectInputItems.length > 0 && filteredProjectInputItems.length === 0 ? (
-                        <div className="rounded-lg border border-dashed border-slate-200 bg-white px-4 py-6 text-sm font-semibold text-slate-500">
+                        <div className="rounded-lg border border-dashed border-slate-200 bg-slate-50 px-4 py-6 text-sm font-semibold text-slate-500">
                           当前筛选条件下没有匹配路径。清空搜索关键字后可查看全部 {projectInputItems.length} 个可选路径。
                         </div>
                       ) : filteredProjectInputItems.length === 0 ? (
-                        <div className="rounded-lg border border-dashed border-slate-200 bg-white px-4 py-6 text-sm font-semibold text-slate-500">
+                        <div className="rounded-lg border border-dashed border-slate-200 bg-slate-50 px-4 py-6 text-sm font-semibold text-slate-500">
                           当前没有可选路径，可刷新预设列表或添加自定义路径。
                         </div>
                       ) : (
@@ -5254,7 +5236,7 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
                                   handleToggleProjectPath(item.path);
                                 }
                               }}
-                              className={`block w-full rounded-lg border px-4 py-3 text-left transition ${active ? 'border-sky-500 bg-sky-50 shadow-sm ring-2 ring-sky-100' : 'border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50'}`}
+ className={`block w-full rounded-lg border px-4 py-3 text-left transition ${active ? 'border-sky-500 bg-sky-50 ring-2 ring-sky-100' : 'border-slate-200 bg-slate-50 hover:border-slate-300 hover:bg-slate-100'}`}
                             >
                               <div className="flex items-start justify-between gap-3">
                                 <div className="min-w-0">
@@ -5266,7 +5248,7 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
                                   </div>
                                   <div className="mt-1 break-all font-mono text-[11px] text-slate-500">{item.path}</div>
                                 </div>
-                                <span className={`inline-flex shrink-0 items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-bold ${active ? 'border-sky-200 bg-white text-sky-700' : 'border-slate-200 bg-slate-50 text-slate-400'}`}>
+                                <span className={`inline-flex shrink-0 items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-bold ${active ? 'border-sky-200 bg-slate-50 text-sky-700' : 'border-slate-200 bg-slate-50 text-slate-400'}`}>
                                   {active ? <CheckCircle2 size={13} /> : null}
                                   {active ? '已选择' : '未选择'}
                                 </span>
@@ -5308,7 +5290,7 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
                       value={title}
                       onChange={(event) => setTitle(event.target.value)}
                       placeholder={selectedProjectItems.length === 1 ? buildDefaultTitle(selectedProjectItems[0].path, selectedProjectItems[0].displayName) : '留空则每个路径自动生成标题'}
-                      className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm font-semibold text-slate-700 outline-none transition focus:border-sky-300 focus:ring-4 focus:ring-sky-100"
+                      className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm font-semibold text-slate-700 outline-none transition focus:border-sky-300 focus:ring-4 focus:ring-sky-100"
                     />
                     <div className="mt-2 text-xs font-medium text-slate-500">单选时作为任务标题；多选时作为标题前缀并自动追加项目名。</div>
                   </label>
@@ -5319,7 +5301,7 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
                       value={modelName}
                       onChange={(event) => setModelName(event.target.value)}
                       placeholder="留空则使用 CLI / Provider 默认模型"
-                      className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm font-semibold text-slate-700 outline-none transition focus:border-sky-300 focus:ring-4 focus:ring-sky-100"
+                      className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm font-semibold text-slate-700 outline-none transition focus:border-sky-300 focus:ring-4 focus:ring-sky-100"
                     />
                   </label>
                   <div className="text-xs font-medium text-slate-500">{modelHintForExecutor(executorMode, providerFallbackModel || null)}</div>
@@ -5332,7 +5314,7 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
                         aria-expanded={customGraphExpanded}
                         className="flex min-w-0 flex-1 items-start gap-3 text-left"
                       >
-                        <span className="mt-0.5 inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600">
+                        <span className="mt-0.5 inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-slate-200 bg-slate-50 text-slate-600">
                           {customGraphExpanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
                         </span>
                         <span className="min-w-0">
@@ -5343,13 +5325,13 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
                         </span>
                       </button>
                       <div className="flex flex-wrap gap-2">
-                        <span className="rounded-full border border-slate-200 bg-white px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.14em] text-slate-600">
-                          {graphSourceType === 'inline_json' ? 'Inline JSON' : `Python · ${builderSourceMode === 'entry' ? 'Entry' : 'Code'}`}
+                        <span className="rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.14em] text-slate-600">
+                          {graphSourceType === 'inline_json' ? 'Inline JSON' :`Python · ${builderSourceMode === 'entry' ? 'Entry' : 'Code'}`}
                         </span>
-                        <span className="rounded-full border border-slate-200 bg-white px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.14em] text-slate-600">
+                        <span className="rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.14em] text-slate-600">
                           {customGraphNodeIds.length} Nodes
                         </span>
-                        <span className="rounded-full border border-slate-200 bg-white px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.14em] text-slate-600">
+                        <span className="rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.14em] text-slate-600">
                           {reportOutputDrafts.length} Outputs
                         </span>
                       </div>
@@ -5363,14 +5345,14 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
                       <div>
                         <div className="text-xs font-black uppercase tracking-[0.18em] text-sky-700">图定义 / AgentFlow Graph</div>
                         <div className="mt-1 text-xs font-medium leading-6 text-sky-800">
-                          这里就是实际输入区。可以直接粘贴 AgentFlow JSON，或者切到 `python_builder` 输入 Python 代码 / 入口路径。
+                          这里就是实际输入区。可以直接粘贴 AgentFlow JSON，或者切到`python_builder` 输入 Python 代码 / 入口路径。
                         </div>
                       </div>
                       <div className="flex flex-wrap gap-2">
-                        <span className="rounded-full border border-sky-200 bg-white px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.14em] text-sky-700">
+                        <span className="rounded-full border border-sky-200 bg-slate-50 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.14em] text-sky-700">
                           {customGraphNodeIds.length} Nodes
                         </span>
-                        <span className="rounded-full border border-sky-200 bg-white px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.14em] text-sky-700">
+                        <span className="rounded-full border border-sky-200 bg-slate-50 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.14em] text-sky-700">
                           {reportOutputDrafts.length} Outputs
                         </span>
                       </div>
@@ -5388,7 +5370,7 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
                               setBuilderSourceMode('code');
                             }
                           }}
-                          className="w-full rounded-lg border border-sky-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 outline-none transition focus:border-sky-300 focus:ring-4 focus:ring-sky-100"
+                          className="w-full rounded-lg border border-sky-200 bg-slate-50 px-3 py-2 text-sm font-semibold text-slate-700 outline-none transition focus:border-sky-300 focus:ring-4 focus:ring-sky-100"
                         >
                           <option value="inline_json">inline_json</option>
                           <option value="python_builder">python_builder</option>
@@ -5396,8 +5378,8 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
                       </label>
                     </div>
 
-                    <div className="mt-3 rounded-lg border border-sky-200 bg-white px-3 py-2 text-xs font-medium leading-6 text-slate-600">
-                      <div>这里填写的是原始 AgentFlow 图定义。chimera 只会预渲染 `[[ ... ]]`，然后把剩余内容原样交给 AgentFlow。</div>
+                    <div className="mt-3 rounded-lg border border-sky-200 bg-slate-50 px-3 py-2 text-xs font-medium leading-6 text-slate-600">
+                      <div>这里填写的是原始 AgentFlow 图定义。chimera 只会预渲染`[[ ... ]]`，然后把剩余内容原样交给 AgentFlow。</div>
                       <div className="mt-2">提交前由 chimera 渲染：`[[ task.repo_root ]]`、`[[ task.project_path ]]`、`[[ task.attempt_root ]]`、`[[ task.report_outputs["audit_report"].absolute_path ]]`、`[[ task.poc_runtime.hdc_bin ]]`、`[[ task.poc_runtime.helper_bin ]]`。</div>
                       <div className="mt-2">
                         运行时由 AgentFlow 自己渲染：
@@ -5405,7 +5387,7 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
                         <code className="mr-1 rounded bg-slate-100 px-1.5 py-0.5 text-[11px] text-slate-700">{'{{ item.output }}'}</code>
                         <code className="rounded bg-slate-100 px-1.5 py-0.5 text-[11px] text-slate-700">{'{{ fanouts.audit.nodes }}'}</code>
                       </div>
-                      <div className="mt-2 text-amber-700">如果图里还残留未渲染的 `[[ ... ]]`，校验和实际执行都会直接拦截，不会把它传给 AgentFlow。</div>
+                      <div className="mt-2 text-amber-700">如果图里还残留未渲染的`[[ ... ]]`，校验和实际执行都会直接拦截，不会把它传给 AgentFlow。</div>
                     </div>
 
                     <div className="mt-3 flex flex-wrap gap-2">
@@ -5414,7 +5396,7 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
                           type="button"
                           onClick={() => void handleValidateInlineGraph()}
                           disabled={validatingGraph}
-                          className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-700 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-60"
+                          className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-bold text-slate-700 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-60"
                         >
                           {validatingGraph ? '校验中...' : '校验 JSON'}
                         </button>
@@ -5424,7 +5406,7 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
                           type="button"
                           onClick={handleValidatePythonBuilderCode}
                           disabled={validatingGraph}
-                          className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-700 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-60"
+                          className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-bold text-slate-700 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-60"
                         >
                           {validatingGraph ? '校验中...' : '校验 Python'}
                         </button>
@@ -5432,14 +5414,14 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
                       <button
                         type="button"
                         onClick={() => focusGraphEditor('inline_json')}
-                        className={`rounded-lg border px-3 py-2 text-xs font-bold transition ${graphSourceType === 'inline_json' ? 'border-sky-300 bg-sky-100 text-sky-700' : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-100'}`}
+                        className={`rounded-lg border px-3 py-2 text-xs font-bold transition ${graphSourceType === 'inline_json' ? 'border-sky-300 bg-sky-100 text-sky-700' : 'border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100'}`}
                       >
                         编辑 Graph JSON
                       </button>
                       <button
                         type="button"
                         onClick={() => focusGraphEditor('python_code')}
-                        className={`rounded-lg border px-3 py-2 text-xs font-bold transition ${graphSourceType === 'python_builder' && builderSourceMode === 'code' ? 'border-sky-300 bg-sky-100 text-sky-700' : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-100'}`}
+                        className={`rounded-lg border px-3 py-2 text-xs font-bold transition ${graphSourceType === 'python_builder' && builderSourceMode === 'code' ? 'border-sky-300 bg-sky-100 text-sky-700' : 'border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100'}`}
                       >
                         编辑 Python Code
                       </button>
@@ -5453,7 +5435,7 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
                           value={inlineJsonText}
                           onChange={(event) => setInlineJsonText(event.target.value)}
                           rows={16}
-                          className="w-full rounded-lg border border-sky-200 bg-white px-3 py-2.5 font-mono text-xs text-slate-700 outline-none transition focus:border-sky-300 focus:ring-4 focus:ring-sky-100"
+                          className="w-full rounded-lg border border-sky-200 bg-slate-50 px-3 py-2.5 font-mono text-xs text-slate-700 outline-none transition focus:border-sky-300 focus:ring-4 focus:ring-sky-100"
                         />
                       </label>
                     ) : (
@@ -5470,7 +5452,7 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
                               value={pythonBuilderCode}
                               onChange={(event) => setPythonBuilderCode(event.target.value)}
                               rows={16}
-                              className="w-full rounded-lg border border-sky-200 bg-white px-3 py-2.5 font-mono text-xs text-slate-700 outline-none transition focus:border-sky-300 focus:ring-4 focus:ring-sky-100"
+                              className="w-full rounded-lg border border-sky-200 bg-slate-50 px-3 py-2.5 font-mono text-xs text-slate-700 outline-none transition focus:border-sky-300 focus:ring-4 focus:ring-sky-100"
                             />
                           </label>
                         )}
@@ -5487,7 +5469,7 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
                             </div>
                           </div>
                           <div className="text-xs font-semibold text-slate-500">
-                            {templatesLoading ? '模板同步中...' : `${graphTemplates.length} 个服务端模板`}
+                            {templatesLoading ? '模板同步中...' :`${graphTemplates.length} 个服务端模板`}
                           </div>
                         </div>
                         <div className="mt-3 grid gap-3 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
@@ -5495,7 +5477,7 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
                             value={templateName}
                             onChange={(event) => setTemplateName(event.target.value)}
                             placeholder="模板名称，例如 4-stage-ipc-audit"
-                            className="rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm font-semibold text-slate-700 outline-none transition focus:border-sky-300 focus:ring-4 focus:ring-sky-100"
+                            className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm font-semibold text-slate-700 outline-none transition focus:border-sky-300 focus:ring-4 focus:ring-sky-100"
                           />
                           <select
                             value={selectedTemplateId}
@@ -5508,7 +5490,7 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
                                 setTemplateDescription(target.description || '');
                               }
                             }}
-                            className="rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm font-semibold text-slate-700 outline-none transition focus:border-sky-300 focus:ring-4 focus:ring-sky-100"
+                            className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm font-semibold text-slate-700 outline-none transition focus:border-sky-300 focus:ring-4 focus:ring-sky-100"
                           >
                             <option value="">选择已保存模板...</option>
                             {graphTemplates.map((item) => (
@@ -5522,14 +5504,14 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
                           value={templateDescription}
                           onChange={(event) => setTemplateDescription(event.target.value)}
                           placeholder="模板描述，可选，仅作为备注"
-                          className="mt-3 w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm font-semibold text-slate-700 outline-none transition focus:border-sky-300 focus:ring-4 focus:ring-sky-100"
+                          className="mt-3 w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm font-semibold text-slate-700 outline-none transition focus:border-sky-300 focus:ring-4 focus:ring-sky-100"
                         />
                         <div className="mt-3 flex flex-wrap gap-2">
                           <button
                             type="button"
                             onClick={handleSaveTemplate}
                             disabled={templatesLoading}
-                            className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-700 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50"
+                            className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-bold text-slate-700 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50"
                           >
                             保存当前模板
                           </button>
@@ -5537,7 +5519,7 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
                             type="button"
                             onClick={handleLoadTemplate}
                             disabled={!selectedTemplateId || templatesLoading}
-                            className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-700 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50"
+                            className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-bold text-slate-700 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50"
                           >
                             加载模板
                           </button>
@@ -5545,7 +5527,7 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
                             type="button"
                             onClick={() => void handleDeleteTemplate()}
                             disabled={!selectedTemplateId || templatesLoading}
-                            className="rounded-lg border border-rose-200 bg-white px-3 py-2 text-xs font-bold text-rose-700 transition hover:bg-rose-50 disabled:cursor-not-allowed disabled:opacity-50"
+                            className="rounded-lg border border-rose-200 bg-slate-50 px-3 py-2 text-xs font-bold text-rose-700 transition hover:bg-rose-50 disabled:cursor-not-allowed disabled:opacity-50"
                           >
                             删除模板
                           </button>
@@ -5564,11 +5546,11 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
                             <button
                               type="button"
                               onClick={handleResetReportOutputs}
-                              className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-bold text-slate-600 transition hover:bg-slate-100"
+                              className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-bold text-slate-600 transition hover:bg-slate-100"
                             >
                               恢复默认
                             </button>
-                            <span className="inline-flex items-center rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-500">
+                            <span className="inline-flex items-center rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-500">
                               节点从图 JSON 或输出配置自动推导
                             </span>
                             <button
@@ -5582,12 +5564,12 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
                         </div>
                         <div className="mt-3 space-y-3">
                           {reportOutputDrafts.length === 0 ? (
-                            <div className="rounded-lg border border-dashed border-slate-200 bg-white px-4 py-4 text-sm font-semibold text-slate-500">
+                            <div className="rounded-lg border border-dashed border-slate-200 bg-slate-50 px-4 py-4 text-sm font-semibold text-slate-500">
                               当前没有自定义输出。提交时会按当前图节点生成默认输出。
                             </div>
                           ) : (
                             reportOutputDrafts.map((item, index) => (
-                              <div key={item.key} className="rounded-lg border border-slate-200 bg-white p-3">
+                              <div key={item.key} className="rounded-lg border border-slate-200 bg-slate-50 p-3">
                                 <div className="grid gap-3 xl:grid-cols-[1fr_1fr_1fr]">
                                   <label className="block">
                                     <div className="mb-1 text-[10px] font-black uppercase tracking-[0.14em] text-slate-400">Output ID</div>
@@ -5656,7 +5638,7 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
                         type="button"
                         onClick={handleRefreshProviders}
                         disabled={providerPanelLoading || !serviceReady}
-                        className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-bold text-slate-600 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50"
+                        className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-bold text-slate-600 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50"
                       >
                         {providerPanelLoading ? <Loader2 size={14} className="animate-spin" /> : <RefreshCw size={14} />}
                         刷新 Provider
@@ -5668,7 +5650,7 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
                         value={selectedProviderKey}
                         onChange={(event) => setSelectedProviderKey(event.target.value)}
                         disabled={providerPanelLoading || providerOptions.length === 0}
-                        className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm font-semibold text-slate-700 outline-none transition focus:border-sky-300 focus:ring-4 focus:ring-sky-100 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400"
+                        className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm font-semibold text-slate-700 outline-none transition focus:border-sky-300 focus:ring-4 focus:ring-sky-100 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400"
                       >
                         <option value="">{providerPanelLoading ? '正在加载 Provider...' : '选择 Provider...'}</option>
                         {providerOptions.map((provider) => (
@@ -5688,7 +5670,7 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
                       </div>
                     ) : null}
                     {providerPanelLoading ? (
-                      <div className="mt-3 flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-500">
+                      <div className="mt-3 flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-500">
                         <Loader2 size={14} className="animate-spin" />
                         正在同步 Provider 列表...
                       </div>
@@ -5696,15 +5678,15 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
 
                     <div className="mt-3 max-h-[260px] space-y-2 overflow-auto pr-1">
                       {!serviceReady ? (
-                        <div className="rounded-lg border border-dashed border-slate-200 bg-white px-4 py-4 text-sm font-semibold text-slate-500">
+                        <div className="rounded-lg border border-dashed border-slate-200 bg-slate-50 px-4 py-4 text-sm font-semibold text-slate-500">
                           等待服务就绪后加载 Provider。
                         </div>
                       ) : !selectedProvider ? (
-                        <div className="rounded-lg border border-dashed border-slate-200 bg-white px-4 py-4 text-sm font-semibold text-slate-500">
+                        <div className="rounded-lg border border-dashed border-slate-200 bg-slate-50 px-4 py-4 text-sm font-semibold text-slate-500">
                           当前未选择 Provider。chimera 不会注入任何 provider env/file/model，AgentFlow 或 OpenCode 将按自身默认行为执行。
                         </div>
                       ) : (
-                        <div className="rounded-lg border border-slate-200 bg-white px-4 py-3">
+                        <div className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3">
                           <div className="flex items-start justify-between gap-3">
                             <div className="min-w-0">
                               <div className="flex flex-wrap items-center gap-2">
@@ -5755,11 +5737,11 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
                       </div>
                     </div>
                     <div className="mt-4 space-y-3 text-sm">
-                      <div className="rounded-lg border border-slate-200 bg-white px-4 py-3">
+                      <div className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3">
                         <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-500">已选路径</div>
                         <div className="mt-2 font-semibold text-slate-800">{selectedProjectItems.length} 个任务</div>
                       </div>
-                      <div className="rounded-lg border border-slate-200 bg-white px-4 py-3">
+                      <div className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3">
                         <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-500">目标路径</div>
                         <div className="mt-2 max-h-44 space-y-2 overflow-auto">
                           {selectedProjectItems.length === 0 ? (
@@ -5776,11 +5758,11 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
                           )}
                         </div>
                       </div>
-                      <div className="rounded-lg border border-slate-200 bg-white px-4 py-3">
+                      <div className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3">
                         <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-500">Model</div>
                         <div className="mt-2 break-all font-mono text-xs text-slate-700">{modelName.trim() || providerFallbackModel || '(default)'}</div>
                       </div>
-                      <div className="rounded-lg border border-slate-200 bg-white px-4 py-3">
+                      <div className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3">
                         <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-500">Provider</div>
                         <div className="mt-2 max-h-48 space-y-2 overflow-auto">
                           {!selectedProvider ? (
@@ -5796,7 +5778,7 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
                           )}
                         </div>
                       </div>
-                      <div className="rounded-lg border border-slate-200 bg-white px-4 py-3">
+                      <div className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3">
                         <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-500">报告输出</div>
                         <div className="mt-2 font-semibold text-slate-800">{reportOutputDrafts.length} 个</div>
                         <div className="mt-2 max-h-40 space-y-2 overflow-auto">
@@ -5815,12 +5797,12 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
                           )}
                         </div>
                       </div>
-                      <div className="rounded-lg border border-slate-200 bg-white px-4 py-3">
+                      <div className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3">
                         <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-500">Graph Source</div>
-                        <div className="mt-2 font-semibold text-slate-800">{graphSourceType === 'inline_json' ? 'Inline JSON' : `Python Builder · ${builderSourceMode === 'entry' ? 'Entry' : 'Code'}`}</div>
+                        <div className="mt-2 font-semibold text-slate-800">{graphSourceType === 'inline_json' ? 'Inline JSON' :`Python Builder · ${builderSourceMode === 'entry' ? 'Entry' : 'Code'}`}</div>
                         <div className="mt-2 max-h-32 space-y-2 overflow-auto">
                           {customGraphNodeIds.length === 0 ? (
-                            <div className="text-xs font-semibold text-slate-400">当前没有可推导的节点；可直接在图 JSON 中写 `nodes[].id`，或在 `report_outputs` 里填写 `node_id`。</div>
+                            <div className="text-xs font-semibold text-slate-400">当前没有可推导的节点；可直接在图 JSON 中写`nodes[].id`，或在`report_outputs` 里填写`node_id`。</div>
                           ) : (
                             customGraphNodeIds.map((nodeId) => (
                               <div key={nodeId} className="rounded-lg bg-slate-50 px-3 py-2 text-[11px] font-bold text-slate-700">
@@ -5830,10 +5812,10 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
                           )}
                         </div>
                       </div>
-                      <div className="rounded-lg border border-slate-200 bg-white px-4 py-3">
+                      <div className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3">
                         <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-500">说明</div>
                         <div className="mt-2 text-sm font-medium leading-6 text-slate-600">
-                          批量创建时每个路径对应一个独立任务。输入路径保持固定，执行图和输出报告都由本页配置驱动；前端只按 `report_outputs` 回收和展示文件。
+                          批量创建时每个路径对应一个独立任务。输入路径保持固定，执行图和输出报告都由本页配置驱动；前端只按`report_outputs` 回收和展示文件。
                         </div>
                       </div>
                     </div>
@@ -5848,7 +5830,7 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
                 type="button"
                 onClick={() => setCreateModalOpen(false)}
                 disabled={creating}
-                className="rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm font-bold text-slate-700 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50"
+                className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm font-bold text-slate-700 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 取消
               </button>
@@ -5859,7 +5841,7 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
                 className="inline-flex items-center gap-2 rounded-lg bg-slate-950 px-4 py-2.5 text-sm font-bold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {creating ? <Loader2 size={16} className="animate-spin" /> : <Plus size={16} />}
-                创建{selectedProjectItems.length > 0 ? ` ${selectedProjectItems.length} ` : ''}个任务
+                创建{selectedProjectItems.length > 0 ?` ${selectedProjectItems.length}` : ''}个任务
               </button>
               </div>
             </div>
@@ -5868,8 +5850,8 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
       ) : null}
       {previewArtifact ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 px-4 py-6 backdrop-blur-sm">
-          <div className="flex max-h-[92vh] w-full max-w-6xl flex-col overflow-hidden rounded-2xl border border-slate-200 bg-slate-50 shadow-2xl">
-            <div className="shrink-0 border-b border-slate-200 bg-white px-5 py-4">
+ <div className="flex max-h-[92vh] w-full max-w-6xl flex-col overflow-hidden rounded-2xl border border-slate-200 bg-slate-50">
+            <div className="shrink-0 border-b border-slate-200 bg-slate-50 px-5 py-4">
               <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
                 <div className="min-w-0">
                   <div className="flex flex-wrap items-center gap-2">
@@ -5923,7 +5905,7 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
             </div>
             <div className="min-h-0 flex-1 overflow-auto p-5">
               {previewArtifactLoading ? (
-                <div className="flex min-h-[360px] items-center justify-center rounded-2xl border border-slate-200 bg-white text-sm font-semibold text-slate-500">
+                <div className="flex min-h-[360px] items-center justify-center rounded-2xl border border-slate-200 bg-slate-50 text-sm font-semibold text-slate-500">
                   <Loader2 size={18} className="mr-2 animate-spin" />
                   正在加载产物预览...
                 </div>
@@ -5934,7 +5916,7 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
               ) : previewArtifactContent ? (
                 <ArtifactPreviewBody artifact={previewArtifact} content={previewArtifactContent} />
               ) : (
-                <div className="rounded-2xl border border-dashed border-slate-200 bg-white px-4 py-10 text-center text-sm font-semibold text-slate-500">
+                <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-4 py-10 text-center text-sm font-semibold text-slate-500">
                   当前产物没有可预览内容。
                 </div>
               )}

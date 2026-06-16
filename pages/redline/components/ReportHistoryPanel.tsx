@@ -52,7 +52,7 @@ export const ReportHistoryPanel: React.FC<Props> = ({ taskId, visible, onClose }
   return (
     <div className="fixed inset-0 z-[120] flex" onClick={onClose}>
       <div className="flex-1" />
-      <div className="h-full w-[600px] bg-theme-surface border-l border-theme-border shadow-xl overflow-y-auto" onClick={e => e.stopPropagation()}>
+ <div className="h-full w-[600px] bg-theme-surface border-l border-theme-border overflow-y-auto" onClick={e => e.stopPropagation()}>
         <div className="sticky top-0 z-10 bg-theme-surface border-b border-theme-border px-6 py-4 flex items-center justify-between">
           {selectedReport ? (
             <button onClick={() => setSelectedReport(null)} className="flex items-center gap-2 text-sm text-theme-text-secondary hover:text-theme-text-primary">

@@ -115,7 +115,7 @@ export const VulnOverviewPage: React.FC<VulnPageProps> = ({ projectId }) => {
       className="space-y-4 px-5 py-5 md:px-6 2xl:px-8"
       style={{ backgroundColor: LK.canvas, minHeight: '100%', color: LK.inkSoft }}
     >
-      <div className="flex flex-wrap items-start justify-between gap-3 pb-4" style={{ borderBottom: `1px solid ${LK.borderSoft}` }}>
+      <div className="flex flex-wrap items-start justify-between gap-3 pb-4" style={{ borderBottom:`1px solid ${LK.borderSoft}` }}>
         <div>
           <span
             className="inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-medium uppercase tracking-wider"
@@ -252,7 +252,7 @@ export const VulnOverviewPage: React.FC<VulnPageProps> = ({ projectId }) => {
             className="overflow-hidden rounded-xl"
             style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}` }}
           >
-            <div className="px-4 py-3" style={{ borderBottom: `1px solid ${LK.borderSoft}` }}>
+            <div className="px-4 py-3" style={{ borderBottom:`1px solid ${LK.borderSoft}` }}>
               <h2 className="text-base font-semibold" style={{ color: LK.ink }}>生命周期流转</h2>
               <p className="mt-1 text-xs" style={{ color: LK.muted }}>上报、验证、漏洞/归档三段主流程与当前项目分布。</p>
             </div>
@@ -284,7 +284,7 @@ export const VulnOverviewPage: React.FC<VulnPageProps> = ({ projectId }) => {
             className="overflow-hidden rounded-xl"
             style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}` }}
           >
-            <div className="flex items-center justify-between gap-4 px-4 py-3" style={{ borderBottom: `1px solid ${LK.borderSoft}` }}>
+            <div className="flex items-center justify-between gap-4 px-4 py-3" style={{ borderBottom:`1px solid ${LK.borderSoft}` }}>
               <div>
                 <h2 className="text-base font-semibold" style={{ color: LK.ink }}>阶段分布</h2>
                 <p className="mt-1 text-xs" style={{ color: LK.muted }}>看清当前堆积点和推进压力。</p>
@@ -314,7 +314,7 @@ export const VulnOverviewPage: React.FC<VulnPageProps> = ({ projectId }) => {
                       <span className="text-sm font-semibold" style={{ color: LK.inkSoft }}>{item.count}</span>
                     </div>
                     <span className="text-xs font-semibold" style={{ color: LK.muted }}>
-                      {totalCases > 0 ? `${((item.count / totalCases) * 100).toFixed(1)}%` : '0.0%'}
+                      {totalCases > 0 ?`${((item.count / totalCases) * 100).toFixed(1)}%` : '0.0%'}
                     </span>
                   </div>
                   <div className="mt-2.5 h-2 overflow-hidden rounded-full" style={{ backgroundColor: LK.surfaceRaised }}>
@@ -333,7 +333,7 @@ export const VulnOverviewPage: React.FC<VulnPageProps> = ({ projectId }) => {
               className="overflow-hidden rounded-xl"
               style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}` }}
             >
-              <div className="px-4 py-3" style={{ borderBottom: `1px solid ${LK.borderSoft}` }}>
+              <div className="px-4 py-3" style={{ borderBottom:`1px solid ${LK.borderSoft}` }}>
                 <h2 className="text-base font-semibold" style={{ color: LK.ink }}>近 7 天趋势</h2>
                 <p className="mt-1 text-xs" style={{ color: LK.muted }}>每天新进入生命周期的漏洞数量。</p>
               </div>
@@ -360,7 +360,7 @@ export const VulnOverviewPage: React.FC<VulnPageProps> = ({ projectId }) => {
               className="overflow-hidden rounded-xl"
               style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}` }}
             >
-              <div className="px-4 py-3" style={{ borderBottom: `1px solid ${LK.borderSoft}` }}>
+              <div className="px-4 py-3" style={{ borderBottom:`1px solid ${LK.borderSoft}` }}>
                 <h2 className="text-base font-semibold" style={{ color: LK.ink }}>严重等级</h2>
                 <p className="mt-1 text-xs" style={{ color: LK.muted }}>风险层级分布一眼看清。</p>
               </div>
@@ -393,7 +393,7 @@ export const VulnOverviewPage: React.FC<VulnPageProps> = ({ projectId }) => {
             className="overflow-hidden rounded-xl"
             style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}` }}
           >
-            <div className="px-4 py-3" style={{ borderBottom: `1px solid ${LK.borderSoft}` }}>
+            <div className="px-4 py-3" style={{ borderBottom:`1px solid ${LK.borderSoft}` }}>
               <h2 className="text-base font-semibold" style={{ color: LK.ink }}>运行指挥板</h2>
               <p className="mt-1 text-xs" style={{ color: LK.muted }}>服务供给、动作队列和运行中案例的即时状态。</p>
             </div>
@@ -442,7 +442,7 @@ export const VulnOverviewPage: React.FC<VulnPageProps> = ({ projectId }) => {
             className="overflow-hidden rounded-xl"
             style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}` }}
           >
-            <div className="px-4 py-3" style={{ borderBottom: `1px solid ${LK.borderSoft}` }}>
+            <div className="px-4 py-3" style={{ borderBottom:`1px solid ${LK.borderSoft}` }}>
               <h2 className="text-base font-semibold" style={{ color: LK.ink }}>结束结论分布</h2>
               <p className="mt-1 text-xs" style={{ color: LK.muted }}>观察结论收敛与误报/接受风险分布。</p>
             </div>
@@ -476,7 +476,7 @@ export const VulnOverviewPage: React.FC<VulnPageProps> = ({ projectId }) => {
             className="overflow-hidden rounded-xl"
             style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}` }}
           >
-            <div className="px-4 py-3" style={{ borderBottom: `1px solid ${LK.borderSoft}` }}>
+            <div className="px-4 py-3" style={{ borderBottom:`1px solid ${LK.borderSoft}` }}>
               <h2 className="text-base font-semibold" style={{ color: LK.ink }}>动作状态分布</h2>
               <p className="mt-1 text-xs" style={{ color: LK.muted }}>快速识别队列是否卡在某个执行态。</p>
             </div>
@@ -513,7 +513,7 @@ export const VulnOverviewPage: React.FC<VulnPageProps> = ({ projectId }) => {
           className="overflow-hidden rounded-xl"
           style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}` }}
         >
-          <div className="px-4 py-3" style={{ borderBottom: `1px solid ${LK.borderSoft}` }}>
+          <div className="px-4 py-3" style={{ borderBottom:`1px solid ${LK.borderSoft}` }}>
             <h2 className="text-base font-semibold" style={{ color: LK.ink }}>结果类型分布</h2>
             <p className="mt-1 text-xs" style={{ color: LK.muted }}>识别当前回传结果更偏分析、验证还是证明。</p>
           </div>
@@ -545,7 +545,7 @@ export const VulnOverviewPage: React.FC<VulnPageProps> = ({ projectId }) => {
           className="overflow-hidden rounded-xl"
           style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}` }}
         >
-          <div className="px-4 py-3" style={{ borderBottom: `1px solid ${LK.borderSoft}` }}>
+          <div className="px-4 py-3" style={{ borderBottom:`1px solid ${LK.borderSoft}` }}>
             <h2 className="text-base font-semibold" style={{ color: LK.ink }}>项目运营摘要</h2>
             <p className="mt-1 text-xs" style={{ color: LK.muted }}>把需要关注的运行信号压成一块简报。</p>
           </div>

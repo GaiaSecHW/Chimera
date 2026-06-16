@@ -103,7 +103,7 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
           <button
             onClick={handleRefresh}
             disabled={isRefreshing || loading}
-            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-500 transition-all shadow-lg shadow-blue-500/20 disabled:opacity-50"
+ className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-500 transition-all disabled:opacity-50"
           >
             <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
             刷新数据
@@ -112,7 +112,7 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
       </div>
 
       {/* Service Health Overview */}
-      <div className="bg-white p-8 rounded-[3rem] border border-slate-200 shadow-sm">
+ <div className="bg-slate-50 p-8 rounded-[3rem] border border-slate-200">
         <h3 className="text-xl font-black text-slate-800 mb-6 flex items-center gap-2">
           <Server className="w-5 h-5" />
           服务健康状态
@@ -147,7 +147,7 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
               ) : null}
               <p className="mt-2 text-[11px] font-bold text-slate-700">
                 {service.replicas !== null && service.replicas !== undefined
-                  ? `副本 ${service.readyReplicas ?? 0}/${service.replicas} · Available ${service.availableReplicas ?? 0}`
+                  ?`副本 ${service.readyReplicas ?? 0}/${service.replicas} · Available ${service.availableReplicas ?? 0}`
                   : '副本信息暂不可用'}
               </p>
             </div>
@@ -160,7 +160,7 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
         {/* Users */}
         <div
           onClick={() => setCurrentView('user-mgmt-access')}
-          className="bg-white p-6 rounded-[2.5rem] border border-slate-200 shadow-sm hover:shadow-xl transition-all cursor-pointer group"
+ className="bg-slate-50 p-6 rounded-[2.5rem] border border-slate-200 transition-all cursor-pointer group"
         >
           <div className="w-12 h-12 bg-blue-100 text-blue-600 rounded-2xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
             <Users size={24} />
@@ -173,7 +173,7 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
         {/* Roles */}
         <div
           onClick={() => setCurrentView('user-mgmt-access')}
-          className="bg-white p-6 rounded-[2.5rem] border border-slate-200 shadow-sm hover:shadow-xl transition-all cursor-pointer group"
+ className="bg-slate-50 p-6 rounded-[2.5rem] border border-slate-200 transition-all cursor-pointer group"
         >
           <div className="w-12 h-12 bg-indigo-100 text-indigo-600 rounded-2xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
             <Shield size={24} />
@@ -185,7 +185,7 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
         {/* Projects */}
         <div
           onClick={() => setCurrentView('project-mgmt')}
-          className="bg-white p-6 rounded-[2.5rem] border border-slate-200 shadow-sm hover:shadow-xl transition-all cursor-pointer group"
+ className="bg-slate-50 p-6 rounded-[2.5rem] border border-slate-200 transition-all cursor-pointer group"
         >
           <div className="w-12 h-12 bg-amber-100 text-amber-600 rounded-2xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
             <Briefcase size={24} />
@@ -197,7 +197,7 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
         {/* Agents */}
         <div
           onClick={() => setCurrentView('env-agent')}
-          className="bg-white p-6 rounded-[2.5rem] border border-slate-200 shadow-sm hover:shadow-xl transition-all cursor-pointer group"
+ className="bg-slate-50 p-6 rounded-[2.5rem] border border-slate-200 transition-all cursor-pointer group"
         >
           <div className="w-12 h-12 bg-green-100 text-green-600 rounded-2xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
             <Monitor size={24} />
@@ -210,7 +210,7 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
         {/* PVC Storage */}
         <div
           onClick={() => setCurrentView('pvc-management')}
-          className="bg-white p-6 rounded-[2.5rem] border border-slate-200 shadow-sm hover:shadow-xl transition-all cursor-pointer group"
+ className="bg-slate-50 p-6 rounded-[2.5rem] border border-slate-200 transition-all cursor-pointer group"
         >
           <div className="w-12 h-12 bg-cyan-100 text-cyan-600 rounded-2xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
             <HardDrive size={24} />
@@ -223,7 +223,7 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
         {/* Workflows */}
         <div
           onClick={() => setCurrentView('workflow-instances')}
-          className="bg-white p-6 rounded-[2.5rem] border border-slate-200 shadow-sm hover:shadow-xl transition-all cursor-pointer group"
+ className="bg-slate-50 p-6 rounded-[2.5rem] border border-slate-200 transition-all cursor-pointer group"
         >
           <div className="w-12 h-12 bg-purple-100 text-purple-600 rounded-2xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
             <Workflow size={24} />
@@ -236,7 +236,7 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
       {/* Detailed Stats Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         {/* Agent Status Distribution */}
-        <div className="bg-white p-8 rounded-[3rem] border border-slate-200 shadow-sm">
+ <div className="bg-slate-50 p-8 rounded-[3rem] border border-slate-200">
           <h3 className="text-xl font-black text-slate-800 mb-6 flex items-center gap-2">
             <Monitor className="w-5 h-5" />
             Agent 状态分布
@@ -283,7 +283,7 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
         </div>
 
         {/* Workflow Status Distribution */}
-        <div className="bg-white p-8 rounded-[3rem] border border-slate-200 shadow-sm">
+ <div className="bg-slate-50 p-8 rounded-[3rem] border border-slate-200">
           <h3 className="text-xl font-black text-slate-800 mb-6 flex items-center gap-2">
             <Activity className="w-5 h-5" />
             工作流状态分布
@@ -326,7 +326,7 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
         </div>
 
         {/* PVC Status Distribution */}
-        <div className="bg-white p-8 rounded-[3rem] border border-slate-200 shadow-sm">
+ <div className="bg-slate-50 p-8 rounded-[3rem] border border-slate-200">
           <h3 className="text-xl font-black text-slate-800 mb-6 flex items-center gap-2">
             <HardDrive className="w-5 h-5" />
             PVC 状态分布
@@ -358,25 +358,25 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
           <div className="grid grid-cols-2 gap-4 relative z-10">
             <button
               onClick={() => setCurrentView('user-mgmt-access')}
-              className="px-4 py-3 bg-white/10 hover:bg-white/20 rounded-xl font-bold transition-all text-sm"
+ className="px-4 py-3 bg-slate-100 hover:bg-slate-100 rounded-xl font-bold transition-all text-sm"
             >
               权限管理
             </button>
             <button
               onClick={() => setCurrentView('user-mgmt-online')}
-              className="px-4 py-3 bg-white/10 hover:bg-white/20 rounded-xl font-bold transition-all text-sm"
+ className="px-4 py-3 bg-slate-100 hover:bg-slate-100 rounded-xl font-bold transition-all text-sm"
             >
               在线会话
             </button>
             <button
               onClick={() => setCurrentView('project-mgmt')}
-              className="px-4 py-3 bg-white/10 hover:bg-white/20 rounded-xl font-bold transition-all text-sm"
+ className="px-4 py-3 bg-slate-100 hover:bg-slate-100 rounded-xl font-bold transition-all text-sm"
             >
               项目管理
             </button>
             <button
               onClick={() => setCurrentView('env-agent')}
-              className="px-4 py-3 bg-white/10 hover:bg-white/20 rounded-xl font-bold transition-all text-sm"
+ className="px-4 py-3 bg-slate-100 hover:bg-slate-100 rounded-xl font-bold transition-all text-sm"
             >
               Agent 管理
             </button>

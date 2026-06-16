@@ -53,7 +53,7 @@ export const ConfigCenterLlmChatPage: React.FC<ConfigCenterLlmChatPageProps> = (
         <button
           type="button"
           onClick={onBack}
-          className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-black text-slate-600"
+          className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-black text-slate-600"
         >
           <ArrowLeft size={16} />
           返回 LLM 对接配置
@@ -61,7 +61,7 @@ export const ConfigCenterLlmChatPage: React.FC<ConfigCenterLlmChatPageProps> = (
       </div>
 
       {loading ? (
-        <div className="rounded-[2.5rem] border border-slate-200 bg-white px-6 py-16 text-center">
+        <div className="rounded-[2.5rem] border border-slate-200 bg-slate-50 px-6 py-16 text-center">
           <Loader2 className="mx-auto h-6 w-6 animate-spin text-slate-400" />
           <p className="mt-4 text-sm font-black text-slate-600">正在加载可用的 LLM Provider...</p>
         </div>

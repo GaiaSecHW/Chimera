@@ -53,7 +53,7 @@ const LK = {
 } as const;
 const MONO = 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace';
 
-const DASHBOARD_HTML = `
+const DASHBOARD_HTML =`
 <div class="dfv-dashboard-root">
 <div id="app">
   <main id="mainContent">
@@ -183,10 +183,9 @@ const DASHBOARD_HTML = `
     <div id="fileModalBody" class="modal-body"></div>
   </div>
 </div>
-</div>
-`;
+</div>`;
 
-const DATAFLOW_DASHBOARD_CHIMERA_REFRESH_CSS = `
+const DATAFLOW_DASHBOARD_CHIMERA_REFRESH_CSS =`
 /* Chimera visual refresh - LOKI dark theme */
 :host {
   display: block;
@@ -214,12 +213,12 @@ const DATAFLOW_DASHBOARD_CHIMERA_REFRESH_CSS = `
 }
 
 :host, .dfv-dashboard-root {
-  background: #070d18;
+ background: var(--canvas);
   color: var(--text);
 }
 
 * {
-  scrollbar-color: #26324a transparent;
+ scrollbar-color: var(--border) transparent;
 }
 
 .dfv-dashboard-root {
@@ -260,7 +259,7 @@ const DATAFLOW_DASHBOARD_CHIMERA_REFRESH_CSS = `
   width: 34px;
   height: 34px;
   border-radius: 12px;
-  background: linear-gradient(135deg, #18233a 0%, #111a2b 100%);
+ background: linear-gradient(135deg, var(--bg-hover) 0%, var(--bg-surface) 100%);
   border: 1px solid rgba(79, 115, 255, 0.2);
   font-size: 18px;
 }
@@ -296,8 +295,8 @@ const DATAFLOW_DASHBOARD_CHIMERA_REFRESH_CSS = `
   gap: 16px;
   padding: 20px;
   border-radius: 12px;
-  background: #111a2b;
-  border: 1px solid #26324a;
+ background: var(--bg-surface);
+ border: 1px solid var(--border);
 }
 
 .page-header-copy {
@@ -314,7 +313,7 @@ const DATAFLOW_DASHBOARD_CHIMERA_REFRESH_CSS = `
 }
 
 .page-title {
-  color: #f5f7ff;
+ color: var(--text-bright);
   font-size: 28px;
   line-height: 1.15;
   font-weight: 600;
@@ -333,7 +332,7 @@ const DATAFLOW_DASHBOARD_CHIMERA_REFRESH_CSS = `
 .page-description {
   max-width: 72rem;
   margin-top: 8px;
-  color: #a4aec4;
+ color: var(--text-muted);
   font-size: 14px;
   line-height: 1.7;
 }
@@ -355,34 +354,34 @@ const DATAFLOW_DASHBOARD_CHIMERA_REFRESH_CSS = `
 }
 
 .toggle-slider {
-  background: #26324a;
+ background: var(--border);
   border: 1px solid #1b2438;
 }
 
 .toggle-slider::after {
-  background: #a4aec4;
+ background: var(--text-muted);
 }
 
 .toggle-label input:checked + .toggle-slider {
-  background: #4f73ff;
+ background: var(--primary);
 }
 
 .btn {
   min-height: 34px;
   padding: 0 14px;
   border-radius: 999px;
-  background: #18233a;
-  color: #a4aec4;
-  border: 1px solid #26324a;
+ background: var(--bg-hover);
+ color: var(--text-muted);
+ border: 1px solid var(--border);
   font-family: var(--sans);
   font-size: 12px;
   font-weight: 600;
 }
 
 .btn:hover {
-  background: #26324a;
-  border-color: #4f73ff;
-  color: #f5f7ff;
+ background: var(--border);
+ border-color: var(--primary);
+ color: var(--text-bright);
 }
 
 .btn-sm {
@@ -399,23 +398,23 @@ const DATAFLOW_DASHBOARD_CHIMERA_REFRESH_CSS = `
 
 .btn-back {
   padding: 0 16px;
-  color: #d6def0;
+ color: var(--text-bright);
   font-weight: 600;
 }
 
 .btn-close {
-  color: #a4aec4;
+ color: var(--text-muted);
   border-radius: 999px;
 }
 
 .btn-close:hover {
-  color: #f15d5d;
+ color: var(--error);
   background: rgba(241, 93, 93, 0.15);
 }
 
 .btn-danger {
-  background: #f15d5d;
-  color: #f5f7ff;
+ background: var(--error);
+ color: var(--text-bright);
   border-color: transparent;
 }
 
@@ -425,14 +424,14 @@ const DATAFLOW_DASHBOARD_CHIMERA_REFRESH_CSS = `
 }
 
 .btn-warning {
-  background: #18233a;
-  color: #d5a13a;
-  border-color: #26324a;
+ background: var(--bg-hover);
+ color: var(--warning);
+ border-color: var(--border);
 }
 
 .btn-warning:hover {
-  background: #26324a;
-  border-color: #d5a13a;
+ background: var(--border);
+ border-color: var(--warning);
 }
 
 .btn:disabled,
@@ -449,7 +448,7 @@ const DATAFLOW_DASHBOARD_CHIMERA_REFRESH_CSS = `
 .session-group,
 .modal-content {
   background: rgba(17, 26, 43, 0.9);
-  border: 1px solid #26324a;
+ border: 1px solid var(--border);
 }
 
 .welcome {
@@ -466,7 +465,7 @@ const DATAFLOW_DASHBOARD_CHIMERA_REFRESH_CSS = `
   height: 80px;
   margin-bottom: 18px;
   border-radius: 12px;
-  background: #18233a;
+ background: var(--bg-hover);
   border: 1px solid rgba(79, 115, 255, 0.2);
   font-size: 38px;
   opacity: 1;
@@ -501,8 +500,8 @@ const DATAFLOW_DASHBOARD_CHIMERA_REFRESH_CSS = `
 .detail-meta span {
   padding: 8px 12px;
   border-radius: 999px;
-  background: #18233a;
-  border: 1px solid #26324a;
+ background: var(--bg-hover);
+ border: 1px solid var(--border);
 }
 
 .task-state-line {
@@ -535,7 +534,7 @@ const DATAFLOW_DASHBOARD_CHIMERA_REFRESH_CSS = `
   gap: 12px;
   align-items: start;
   padding: 8px 0;
-  border-bottom: 1px solid #26324a;
+ border-bottom: 1px solid var(--border);
 }
 
 .task-config-summary-row:first-child {
@@ -548,7 +547,7 @@ const DATAFLOW_DASHBOARD_CHIMERA_REFRESH_CSS = `
 }
 
 .task-config-summary-label {
-  color: #a4aec4;
+ color: var(--text-muted);
   font-size: 11px;
   font-weight: 600;
   line-height: 1.35;
@@ -556,7 +555,7 @@ const DATAFLOW_DASHBOARD_CHIMERA_REFRESH_CSS = `
 
 .task-config-summary-value {
   min-width: 0;
-  color: #f5f7ff;
+ color: var(--text-bright);
   font-size: 12px;
 }
 
@@ -568,9 +567,9 @@ const DATAFLOW_DASHBOARD_CHIMERA_REFRESH_CSS = `
   display: grid;
   gap: 4px;
   padding: 12px;
-  border: 1px solid #26324a;
+ border: 1px solid var(--border);
   border-radius: 12px;
-  background: #18233a;
+ background: var(--bg-hover);
   min-width: 0;
 }
 
@@ -581,7 +580,7 @@ const DATAFLOW_DASHBOARD_CHIMERA_REFRESH_CSS = `
 }
 
 .task-info-label {
-  color: #a4aec4;
+ color: var(--text-muted);
   font-size: 11px;
   font-weight: 600;
   text-transform: uppercase;
@@ -594,7 +593,7 @@ const DATAFLOW_DASHBOARD_CHIMERA_REFRESH_CSS = `
 }
 
 .task-info-value {
-  color: #f5f7ff;
+ color: var(--text-bright);
   font-family: var(--mono);
   font-size: 12px;
   overflow-wrap: anywhere;
@@ -608,9 +607,9 @@ const DATAFLOW_DASHBOARD_CHIMERA_REFRESH_CSS = `
 .run-command-block {
   margin-top: 14px;
   padding: 14px;
-  border: 1px solid #26324a;
+ border: 1px solid var(--border);
   border-radius: 12px;
-  background: #18233a;
+ background: var(--bg-hover);
 }
 
 .run-command-title {
@@ -630,10 +629,10 @@ const DATAFLOW_DASHBOARD_CHIMERA_REFRESH_CSS = `
   white-space: pre-wrap;
   overflow-wrap: anywhere;
   padding: 12px;
-  border: 1px solid #26324a;
+ border: 1px solid var(--border);
   border-radius: 8px;
-  background: #070d18;
-  color: #f5f7ff;
+ background: var(--canvas);
+ color: var(--text-bright);
   font-family: var(--mono);
   font-size: 12px;
   line-height: 18px;
@@ -658,7 +657,7 @@ const DATAFLOW_DASHBOARD_CHIMERA_REFRESH_CSS = `
   border: 1px solid transparent;
   border-radius: 999px;
   background: transparent;
-  color: #a4aec4;
+ color: var(--text-muted);
   font-size: 13px;
   font-weight: 600;
 }
@@ -671,9 +670,9 @@ const DATAFLOW_DASHBOARD_CHIMERA_REFRESH_CSS = `
 
 .tab.active {
   color: var(--text-bright);
-  background: #18233a;
-  border-bottom-color: #4f73ff;
-  border-color: #4f73ff;
+ background: var(--bg-hover);
+ border-bottom-color: var(--primary);
+ border-color: var(--primary);
 }
 
 .tab-danger {
@@ -694,7 +693,7 @@ const DATAFLOW_DASHBOARD_CHIMERA_REFRESH_CSS = `
 
 .card-title {
   margin-bottom: 12px;
-  color: #a4aec4;
+ color: var(--text-muted);
   font-size: 12px;
   font-weight: 600;
   letter-spacing: 0.14em;
@@ -721,9 +720,9 @@ const DATAFLOW_DASHBOARD_CHIMERA_REFRESH_CSS = `
 .timeline-summary-pill {
   padding: 8px 12px;
   border-radius: 999px;
-  border: 1px solid #26324a;
-  background: #18233a;
-  color: #a4aec4;
+ border: 1px solid var(--border);
+ background: var(--bg-hover);
+ color: var(--text-muted);
   font-size: 12px;
   font-weight: 600;
 }
@@ -731,19 +730,19 @@ const DATAFLOW_DASHBOARD_CHIMERA_REFRESH_CSS = `
 .timeline-select {
   min-height: 34px;
   padding: 0 12px;
-  border: 1px solid #26324a;
+ border: 1px solid var(--border);
   border-radius: 999px;
-  background: #111a2b;
-  color: #f5f7ff;
+ background: var(--bg-surface);
+ color: var(--text-bright);
   font-size: 12px;
   font-weight: 600;
 }
 
 .timeline-table-wrap {
   overflow: hidden;
-  border: 1px solid #26324a;
+ border: 1px solid var(--border);
   border-radius: 12px;
-  background: #111a2b;
+ background: var(--bg-surface);
 }
 
 .timeline-table-scroll {
@@ -758,8 +757,8 @@ const DATAFLOW_DASHBOARD_CHIMERA_REFRESH_CSS = `
 }
 
 .timeline-table thead {
-  background: #18233a;
-  color: #a4aec4;
+ background: var(--bg-hover);
+ color: var(--text-muted);
   font-size: 11px;
   font-weight: 600;
   letter-spacing: 0.12em;
@@ -769,7 +768,7 @@ const DATAFLOW_DASHBOARD_CHIMERA_REFRESH_CSS = `
 .timeline-table th,
 .timeline-table td {
   padding: 10px 12px;
-  border-bottom: 1px solid #26324a;
+ border-bottom: 1px solid var(--border);
   text-align: left;
   vertical-align: top;
 }
@@ -795,20 +794,20 @@ const DATAFLOW_DASHBOARD_CHIMERA_REFRESH_CSS = `
 .timeline-payload-item {
   min-width: 0;
   padding: 10px 12px;
-  border: 1px solid #26324a;
+ border: 1px solid var(--border);
   border-radius: 8px;
-  background: #111a2b;
+ background: var(--bg-surface);
 }
 
 .timeline-payload-item-label {
-  color: #a4aec4;
+ color: var(--text-muted);
   font-size: 11px;
   font-weight: 600;
 }
 
 .timeline-payload-item-value {
   margin-top: 6px;
-  color: #d6def0;
+ color: var(--text-bright);
   font-size: 12px;
   word-break: break-all;
   font-family: var(--mono);
@@ -818,10 +817,10 @@ const DATAFLOW_DASHBOARD_CHIMERA_REFRESH_CSS = `
   margin-top: 12px;
   padding: 12px;
   overflow: auto;
-  border: 1px solid #1e293b;
+ border: 1px solid var(--border);
   border-radius: 16px;
-  background: #020617;
-  color: #e2e8f0;
+ background: var(--canvas);
+ color: var(--text-bright);
   font-size: 12px;
   line-height: 1.65;
 }
@@ -837,8 +836,8 @@ const DATAFLOW_DASHBOARD_CHIMERA_REFRESH_CSS = `
 }
 
 .badge-completed, .badge-succeeded, .badge-passed {
-  background: #ecfdf5;
-  border-color: #a7f3d0;
+ background: rgba(69, 192, 111, 0.14);
+ border-color: rgba(69, 192, 111, 0.42);
   color: var(--success);
 }
 
@@ -847,38 +846,38 @@ const DATAFLOW_DASHBOARD_CHIMERA_REFRESH_CSS = `
 .badge-runtime_output_limit, .badge-runtime_timeout, .badge-blocked_context_window,
 .badge-blocked_quota, .badge-provider_rate_limited, .badge-model_contract_violation,
 .badge-blocked_external_source, .badge-no_workspace, .badge-error {
-  background: #fff1f2;
-  border-color: #fecdd3;
+ background: rgba(241, 93, 93, 0.14);
+ border-color: rgba(241, 93, 93, 0.42);
   color: var(--error);
 }
 
 .badge-running, .badge-started {
-  background: #ecfeff;
-  border-color: #a5f3fc;
+ background: rgba(79, 140, 255, 0.14);
+ border-color: rgba(79, 140, 255, 0.42);
   color: var(--primary);
 }
 
 .badge-cancel_requested, .badge-retrying {
-  background: #fffbeb;
-  border-color: #fde68a;
-  color: #b45309;
+ background: rgba(213, 161, 58, 0.14);
+ border-color: rgba(213, 161, 58, 0.42);
+ color: var(--warning);
 }
 
 .badge-unknown, .badge-pending, .badge-queued, .badge-recorded {
-  background: #f8fafc;
-  border-color: #e2e8f0;
-  color: #64748b;
+ background: var(--bg-hover);
+ border-color: var(--border);
+ color: var(--text-muted);
 }
 
 .badge-mode {
-  background: #eef2ff;
-  border-color: #c7d2fe;
-  color: #5b21b6;
+ background: rgba(79, 115, 255, 0.14);
+ border-color: rgba(79, 115, 255, 0.42);
+ color: var(--primary);
 }
 
 .badge-warning {
-  background: #fffbeb;
-  border-color: #fde68a;
+ background: rgba(213, 161, 58, 0.14);
+ border-color: rgba(213, 161, 58, 0.42);
   color: var(--warning);
 }
 
@@ -895,8 +894,8 @@ const DATAFLOW_DASHBOARD_CHIMERA_REFRESH_CSS = `
 .accordion-header,
 .accordion-body,
 .progress-stat {
-  background: #f8fafc;
-  border-color: #e2e8f0;
+ background: var(--bg-hover);
+ border-color: var(--border);
 }
 
 .manifest-grid > div {
@@ -912,32 +911,32 @@ const DATAFLOW_DASHBOARD_CHIMERA_REFRESH_CSS = `
 
 .cycle-row {
   padding: 12px 0;
-  border-bottom-color: #e2e8f0;
+ border-bottom-color: var(--border);
   font-size: 12px;
 }
 
 .score-pill {
   border-radius: 999px;
   padding: 4px 8px;
-  background: #ffffff;
+ background: var(--bg-surface);
   border-color: #dbe4ee;
 }
 
 .issue-item {
   margin-bottom: 8px;
   padding: 10px 12px;
-  border: 1px solid #fde68a;
+ border: 1px solid rgba(213, 161, 58, 0.42);
   border-left-width: 1px;
   border-radius: 16px;
 }
 
 .issue-item.framework-issue {
-  border-color: #fecdd3;
-  background: #fff1f2;
+ border-color: rgba(241, 93, 93, 0.42);
+ background: rgba(241, 93, 93, 0.14);
 }
 
 .issue-id {
-  color: #b45309;
+ color: var(--warning);
 }
 
 .review-card {
@@ -948,37 +947,37 @@ const DATAFLOW_DASHBOARD_CHIMERA_REFRESH_CSS = `
 }
 
 .review-card.passed {
-  background: #ecfdf5;
-  border-color: #a7f3d0;
+ background: rgba(69, 192, 111, 0.14);
+ border-color: rgba(69, 192, 111, 0.42);
 }
 
 .review-card.failed {
-  background: #fff7ed;
-  border-color: #fed7aa;
+ background: rgba(213, 161, 58, 0.14);
+ border-color: rgba(213, 161, 58, 0.42);
 }
 
 .result-card {
-  background: #ffffff;
-  border: 1px solid #e2e8f0;
+ background: var(--bg-surface);
+ border: 1px solid var(--border);
   border-radius: 20px;
   padding: 16px;
   margin-bottom: 10px;
-  box-shadow: 0 10px 22px rgba(15, 23, 42, 0.04);
+ box-shadow: none;
 }
 
 .result-card:hover {
-  border-color: #67e8f9;
-  box-shadow: 0 16px 28px rgba(14, 165, 233, 0.08);
+ border-color: var(--info);
+ box-shadow: none;
 }
 
 .result-card.selected {
-  border-color: #0891b2;
-  background: linear-gradient(180deg, #ecfeff 0%, #ffffff 100%);
-  box-shadow: 0 16px 28px rgba(14, 165, 233, 0.10);
+ border-color: var(--info);
+ background: linear-gradient(180deg, rgba(79, 140, 255, 0.16) 0%, var(--bg-surface) 100%);
+ box-shadow: none;
 }
 
 .result-card-muted {
-  background: #f8fafc;
+ background: var(--bg-hover);
 }
 
 .result-toolbar {
@@ -986,9 +985,9 @@ const DATAFLOW_DASHBOARD_CHIMERA_REFRESH_CSS = `
   gap: 12px;
   margin-bottom: 14px;
   padding: 16px;
-  border: 1px solid #dbeafe;
+ border: 1px solid var(--border);
   border-radius: 20px;
-  background: linear-gradient(180deg, #f8fdff 0%, #eff6ff 100%);
+ background: linear-gradient(180deg, var(--bg-hover) 0%, var(--bg-surface) 100%);
 }
 
 .result-toolbar-head {
@@ -1007,7 +1006,7 @@ const DATAFLOW_DASHBOARD_CHIMERA_REFRESH_CSS = `
 
 .result-toolbar-desc {
   margin-top: 4px;
-  color: #64748b;
+ color: var(--text-muted);
   font-size: 12px;
   line-height: 1.6;
 }
@@ -1020,10 +1019,10 @@ const DATAFLOW_DASHBOARD_CHIMERA_REFRESH_CSS = `
 
 .result-toolbar-meta span {
   padding: 6px 10px;
-  border: 1px solid #bfdbfe;
+ border: 1px solid rgba(79, 115, 255, 0.42);
   border-radius: 999px;
-  background: #ffffff;
-  color: #1e3a8a;
+ background: var(--bg-surface);
+ color: var(--primary);
   font-size: 11px;
   font-weight: 800;
 }
@@ -1037,29 +1036,29 @@ const DATAFLOW_DASHBOARD_CHIMERA_REFRESH_CSS = `
 .result-feedback {
   padding: 12px 14px;
   border-radius: 16px;
-  border: 1px solid #e2e8f0;
-  background: #ffffff;
-  color: #475569;
+ border: 1px solid var(--border);
+ background: var(--bg-surface);
+ color: var(--text-muted);
   font-size: 12px;
   line-height: 1.7;
 }
 
 .result-feedback.success {
-  border-color: #a7f3d0;
-  background: #ecfdf5;
-  color: #047857;
+ border-color: rgba(69, 192, 111, 0.42);
+ background: rgba(69, 192, 111, 0.14);
+ color: var(--success);
 }
 
 .result-feedback.error {
-  border-color: #fecdd3;
-  background: #fff1f2;
-  color: #be123c;
+ border-color: rgba(241, 93, 93, 0.42);
+ background: rgba(241, 93, 93, 0.14);
+ color: var(--error);
 }
 
 .result-feedback.info {
-  border-color: #bfdbfe;
-  background: #eff6ff;
-  color: #1d4ed8;
+ border-color: rgba(79, 115, 255, 0.42);
+ background: rgba(79, 115, 255, 0.14);
+ color: var(--primary);
 }
 
 .result-select-row {
@@ -1078,7 +1077,7 @@ const DATAFLOW_DASHBOARD_CHIMERA_REFRESH_CSS = `
 .result-select-box input {
   width: 16px;
   height: 16px;
-  accent-color: #0891b2;
+ accent-color: var(--info);
   cursor: pointer;
 }
 
@@ -1157,23 +1156,23 @@ const DATAFLOW_DASHBOARD_CHIMERA_REFRESH_CSS = `
   width: 100%;
   padding: 12px;
   text-align: left;
-  border: 1px solid #e2e8f0;
+ border: 1px solid var(--border);
   border-radius: 18px;
-  background: #f8fafc;
+ background: var(--bg-hover);
   cursor: pointer;
   transition: border-color 0.16s ease, box-shadow 0.16s ease, background 0.16s ease;
 }
 
 .session-nav-item:hover {
-  border-color: #67e8f9;
-  background: #ffffff;
-  box-shadow: 0 10px 22px rgba(14, 165, 233, 0.08);
+ border-color: var(--info);
+ background: var(--bg-surface);
+ box-shadow: none;
 }
 
 .session-nav-item.active {
-  border-color: #0f766e;
-  background: linear-gradient(135deg, #ecfeff 0%, #f0fdfa 100%);
-  box-shadow: 0 14px 28px rgba(15, 118, 110, 0.10);
+ border-color: var(--success);
+ background: linear-gradient(135deg, rgba(79, 140, 255, 0.14) 0%, rgba(69, 192, 111, 0.14) 100%);
+ box-shadow: none;
 }
 
 .session-nav-title {
@@ -1185,7 +1184,7 @@ const DATAFLOW_DASHBOARD_CHIMERA_REFRESH_CSS = `
 .session-nav-path {
   margin-top: 4px;
   word-break: break-all;
-  color: #64748b;
+ color: var(--text-muted);
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   font-size: 10px;
 }
@@ -1195,7 +1194,7 @@ const DATAFLOW_DASHBOARD_CHIMERA_REFRESH_CSS = `
   flex-wrap: wrap;
   gap: 6px;
   margin-top: 8px;
-  color: #64748b;
+ color: var(--text-muted);
   font-size: 11px;
 }
 
@@ -1217,11 +1216,11 @@ const DATAFLOW_DASHBOARD_CHIMERA_REFRESH_CSS = `
   width: 7px;
   height: 7px;
   border-radius: 999px;
-  background: #94a3b8;
+ background: var(--text-muted);
 }
 
 .session-live-dot.live::before {
-  background: #10b981;
+ background: var(--success);
   box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.14);
 }
 
@@ -1233,9 +1232,9 @@ const DATAFLOW_DASHBOARD_CHIMERA_REFRESH_CSS = `
 
 .session-warning-item {
   padding: 8px 10px;
-  border: 1px solid #fde68a;
+ border: 1px solid rgba(213, 161, 58, 0.42);
   border-radius: 14px;
-  background: #fffbeb;
+ background: rgba(213, 161, 58, 0.14);
   color: #92400e;
   font-size: 11px;
 }
@@ -1274,7 +1273,7 @@ const DATAFLOW_DASHBOARD_CHIMERA_REFRESH_CSS = `
   gap: 10px;
   margin-bottom: 10px;
   padding: 12px;
-  border: 1px solid #e2e8f0;
+ border: 1px solid var(--border);
   border-radius: 16px;
   font-size: 11px;
   min-width: 0;
@@ -1325,9 +1324,9 @@ const DATAFLOW_DASHBOARD_CHIMERA_REFRESH_CSS = `
   align-items: center;
   min-width: 0;
   padding: 4px 8px;
-  border: 1px solid #e2e8f0;
+ border: 1px solid var(--border);
   border-radius: 999px;
-  background: #ffffff;
+ background: var(--bg-surface);
   color: var(--text-muted);
   white-space: nowrap;
 }
@@ -1348,11 +1347,11 @@ const DATAFLOW_DASHBOARD_CHIMERA_REFRESH_CSS = `
   gap: 8px;
   align-items: start;
   padding-top: 8px;
-  border-top: 1px dashed #cbd5e1;
+ border-top: 1px dashed var(--border-accent);
 }
 
 .call-files-label {
-  color: #64748b;
+ color: var(--text-muted);
   font-size: 10px;
   font-weight: 900;
   letter-spacing: 0.08em;
@@ -1376,7 +1375,7 @@ const DATAFLOW_DASHBOARD_CHIMERA_REFRESH_CSS = `
 }
 
 .call-note {
-  color: #64748b;
+ color: var(--text-muted);
 }
 
 .call-error {
@@ -1388,7 +1387,7 @@ const DATAFLOW_DASHBOARD_CHIMERA_REFRESH_CSS = `
   background:
     radial-gradient(circle at 0% 0%, rgba(8, 145, 178, 0.14), transparent 34%),
     radial-gradient(circle at 100% 0%, rgba(245, 158, 11, 0.10), transparent 28%),
-    #ffffff;
+ var(--bg-surface);
 }
 
 .execution-trace-header {
@@ -1409,7 +1408,7 @@ const DATAFLOW_DASHBOARD_CHIMERA_REFRESH_CSS = `
 .execution-trace-subtitle {
   max-width: 820px;
   margin-top: 6px;
-  color: #64748b;
+ color: var(--text-muted);
   font-size: 12px;
   line-height: 1.7;
 }
@@ -1427,12 +1426,12 @@ const DATAFLOW_DASHBOARD_CHIMERA_REFRESH_CSS = `
 .execution-current-card {
   position: relative;
   padding: 18px;
-  border: 1px solid #bae6fd;
+ border: 1px solid rgba(79, 140, 255, 0.42);
   border-radius: 24px;
   background:
-    linear-gradient(135deg, rgba(236, 254, 255, 0.96) 0%, rgba(255, 255, 255, 0.96) 58%),
-    #ffffff;
-  box-shadow: 0 18px 38px rgba(14, 165, 233, 0.10);
+ linear-gradient(135deg, rgba(79, 140, 255, 0.16) 0%, rgba(17, 26, 43, 0.96) 58%),
+ var(--bg-surface);
+ box-shadow: none;
 }
 
 .execution-current-card::before {
@@ -1442,7 +1441,7 @@ const DATAFLOW_DASHBOARD_CHIMERA_REFRESH_CSS = `
   width: 9px;
   height: 9px;
   border-radius: 999px;
-  background: #0891b2;
+ background: var(--info);
   box-shadow: 0 0 0 7px rgba(8, 145, 178, 0.12);
 }
 
@@ -1462,7 +1461,7 @@ const DATAFLOW_DASHBOARD_CHIMERA_REFRESH_CSS = `
 
 .execution-current-beacon {
   margin-left: 22px;
-  color: #0e7490;
+ color: var(--info);
   font-size: 11px;
   font-weight: 900;
   letter-spacing: 0.16em;
@@ -1478,7 +1477,7 @@ const DATAFLOW_DASHBOARD_CHIMERA_REFRESH_CSS = `
 
 .execution-current-step {
   margin-top: 6px;
-  color: #0f766e;
+ color: var(--success);
   font-size: 14px;
   font-weight: 900;
   overflow-wrap: anywhere;
@@ -1486,7 +1485,7 @@ const DATAFLOW_DASHBOARD_CHIMERA_REFRESH_CSS = `
 
 .execution-current-detail {
   margin-top: 8px;
-  color: #64748b;
+ color: var(--text-muted);
   font-family: var(--mono);
   font-size: 11px;
   overflow-wrap: anywhere;
@@ -1502,14 +1501,14 @@ const DATAFLOW_DASHBOARD_CHIMERA_REFRESH_CSS = `
 .execution-current-cell {
   min-width: 0;
   padding: 11px 12px;
-  border: 1px solid #dbeafe;
+ border: 1px solid rgba(79, 115, 255, 0.42);
   border-radius: 16px;
-  background: rgba(255, 255, 255, 0.74);
+ background: var(--bg-surface);
 }
 
 .execution-current-cell span {
   display: block;
-  color: #94a3b8;
+ color: var(--text-muted);
   font-size: 10px;
   font-weight: 900;
   letter-spacing: 0.08em;
@@ -1518,7 +1517,7 @@ const DATAFLOW_DASHBOARD_CHIMERA_REFRESH_CSS = `
 .execution-current-cell strong {
   display: block;
   margin-top: 4px;
-  color: #0f172a;
+ color: var(--text-bright);
   font-size: 12px;
   overflow-wrap: anywhere;
 }
@@ -1529,7 +1528,7 @@ const DATAFLOW_DASHBOARD_CHIMERA_REFRESH_CSS = `
 
 .execution-map-title {
   margin-bottom: 10px;
-  color: #475569;
+ color: var(--text-muted);
   font-size: 12px;
   font-weight: 900;
 }
@@ -1543,9 +1542,9 @@ const DATAFLOW_DASHBOARD_CHIMERA_REFRESH_CSS = `
 .execution-cycle-card {
   min-width: 0;
   padding: 14px;
-  border: 1px solid #e2e8f0;
+ border: 1px solid var(--border);
   border-radius: 20px;
-  background: rgba(248, 250, 252, 0.82);
+ background: var(--bg-hover);
 }
 
 .execution-cycle-head,
@@ -1557,7 +1556,7 @@ const DATAFLOW_DASHBOARD_CHIMERA_REFRESH_CSS = `
 }
 
 .execution-cycle-head {
-  color: #0f172a;
+ color: var(--text-bright);
   font-size: 12px;
   font-weight: 900;
 }
@@ -1571,23 +1570,23 @@ const DATAFLOW_DASHBOARD_CHIMERA_REFRESH_CSS = `
 
 .execution-cycle-duration,
 .execution-current-duration {
-  color: #64748b;
+ color: var(--text-muted);
   font-weight: 900;
 }
 
 .execution-cycle-duration-separator {
-  color: #cbd5e1;
+ color: var(--border-accent);
 }
 
 .execution-cycle-head span:last-child,
 .execution-phase-head span:last-child {
-  color: #94a3b8;
+ color: var(--text-muted);
   font-size: 10px;
   font-weight: 800;
 }
 
 .execution-cycle-title .execution-cycle-duration {
-  color: #64748b;
+ color: var(--text-muted);
   font-size: 12px;
   font-weight: 900;
 }
@@ -1600,22 +1599,22 @@ const DATAFLOW_DASHBOARD_CHIMERA_REFRESH_CSS = `
 
 .execution-phase-lane {
   padding: 10px;
-  border: 1px solid #e2e8f0;
+ border: 1px solid var(--border);
   border-left-width: 4px;
   border-radius: 16px;
-  background: #ffffff;
+ background: var(--bg-surface);
 }
 
-.execution-phase-lane.phase-worker { border-left-color: #0891b2; }
-.execution-phase-lane.phase-reflect { border-left-color: #6366f1; }
-.execution-phase-lane.phase-summary { border-left-color: #10b981; }
-.execution-phase-lane.phase-global-review { border-left-color: #f59e0b; }
-.execution-phase-lane.phase-result-review { border-left-color: #ef4444; }
-.execution-phase-lane.phase-review { border-left-color: #8b5cf6; }
-.execution-phase-lane.phase-other { border-left-color: #94a3b8; }
+.execution-phase-lane.phase-worker { border-left-color: var(--info); }
+.execution-phase-lane.phase-reflect { border-left-color: var(--primary); }
+.execution-phase-lane.phase-summary { border-left-color: var(--success); }
+.execution-phase-lane.phase-global-review { border-left-color: var(--warning); }
+.execution-phase-lane.phase-result-review { border-left-color: var(--error); }
+.execution-phase-lane.phase-review { border-left-color: var(--purple); }
+.execution-phase-lane.phase-other { border-left-color: var(--text-muted); }
 
 .execution-phase-head {
-  color: #334155;
+ color: var(--text);
   font-size: 11px;
   font-weight: 900;
 }
@@ -1632,9 +1631,9 @@ const DATAFLOW_DASHBOARD_CHIMERA_REFRESH_CSS = `
 .execution-step-more,
 .trace-mini-badge {
   max-width: 100%;
-  border: 1px solid #e2e8f0;
-  background: #f8fafc;
-  color: #475569;
+ border: 1px solid var(--border);
+ background: var(--bg-hover);
+ color: var(--text-muted);
   font-size: 10px;
   font-weight: 900;
   line-height: 1.2;
@@ -1647,8 +1646,8 @@ const DATAFLOW_DASHBOARD_CHIMERA_REFRESH_CSS = `
   gap: 8px;
   padding: 10px 11px;
   border-radius: 18px;
-  background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
-  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.04);
+ background: linear-gradient(180deg, var(--bg-hover) 0%, var(--bg-surface) 100%);
+ box-shadow: none;
 }
 
 .execution-step-head,
@@ -1677,7 +1676,7 @@ const DATAFLOW_DASHBOARD_CHIMERA_REFRESH_CSS = `
   padding: 4px 8px;
   border: 1px solid rgba(148, 163, 184, 0.26);
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.92);
+ background: var(--bg-hover);
   color: currentColor;
   font-size: 9px;
   font-weight: 800;
@@ -1687,30 +1686,30 @@ const DATAFLOW_DASHBOARD_CHIMERA_REFRESH_CSS = `
 
 .execution-step-pill.status-completed,
 .execution-step-pill.status-passed {
-  background: linear-gradient(180deg, #ecfdf5 0%, #ffffff 100%);
-  border-color: #bbf7d0;
-  color: #047857;
+ background: linear-gradient(180deg, rgba(69, 192, 111, 0.16) 0%, var(--bg-surface) 100%);
+ border-color: var(--success);
+ color: var(--success);
 }
 
 .execution-step-pill.status-failed,
 .execution-step-pill.status-error,
 .execution-step-pill.status-soft-failed {
-  background: linear-gradient(180deg, #fff1f2 0%, #ffffff 100%);
-  border-color: #fecdd3;
-  color: #be123c;
+ background: linear-gradient(180deg, rgba(241, 93, 93, 0.16) 0%, var(--bg-surface) 100%);
+ border-color: var(--error);
+ color: var(--error);
 }
 
 .execution-step-pill.status-retrying {
-  background: linear-gradient(180deg, #fffbeb 0%, #ffffff 100%);
-  border-color: #fde68a;
-  color: #b45309;
+ background: linear-gradient(180deg, rgba(213, 161, 58, 0.16) 0%, var(--bg-surface) 100%);
+ border-color: var(--warning);
+ color: var(--warning);
 }
 
 .execution-step-pill.current {
   position: relative;
-  border-color: #0891b2;
-  background: linear-gradient(180deg, rgba(236, 254, 255, 0.98) 0%, rgba(255, 255, 255, 0.98) 100%);
-  color: #0e7490;
+ border-color: var(--info);
+ background: linear-gradient(180deg, rgba(79, 140, 255, 0.16) 0%, var(--bg-surface) 100%);
+ color: var(--info);
   box-shadow:
     0 0 0 1px rgba(8, 145, 178, 0.08),
     0 12px 26px rgba(14, 165, 233, 0.08),
@@ -1723,7 +1722,7 @@ const DATAFLOW_DASHBOARD_CHIMERA_REFRESH_CSS = `
   inset: 0 auto 0 0;
   width: 4px;
   border-radius: 18px 0 0 18px;
-  background: linear-gradient(180deg, #06b6d4 0%, #14b8a6 100%);
+ background: linear-gradient(180deg, var(--info) 0%, var(--info) 100%);
 }
 
 .execution-step-pill.current::after {
@@ -1750,12 +1749,12 @@ const DATAFLOW_DASHBOARD_CHIMERA_REFRESH_CSS = `
 
 .execution-step-pill.current .execution-step-label,
 .execution-step-pill.current .execution-step-duration {
-  color: #0e7490;
+ color: var(--info);
 }
 
 .execution-step-pill.current .execution-step-duration {
   border-color: rgba(8, 145, 178, 0.18);
-  background: rgba(255, 255, 255, 0.96);
+ background: rgba(17, 26, 43, 0.96);
 }
 
 @keyframes executionCurrentRing {
@@ -1809,24 +1808,24 @@ const DATAFLOW_DASHBOARD_CHIMERA_REFRESH_CSS = `
   align-items: center;
   min-width: 0;
   padding: 4px 8px;
-  border: 1px solid #dbeafe;
+ border: 1px solid rgba(79, 115, 255, 0.42);
   border-radius: 999px;
-  background: #ffffff;
-  color: #475569;
+ background: var(--bg-surface);
+ color: var(--text-muted);
   font-size: 10px;
   font-weight: 800;
   cursor: pointer;
 }
 
 .execution-prompt-tag:hover {
-  border-color: #67e8f9;
-  color: #0f766e;
+ border-color: var(--info);
+ color: var(--success);
 }
 
 .execution-prompt-tag.user {
-  border-color: #a5f3fc;
-  background: #ecfeff;
-  color: #0e7490;
+ border-color: rgba(79, 140, 255, 0.42);
+ background: rgba(79, 140, 255, 0.14);
+ color: var(--info);
 }
 
 .execution-prompt-tag.system {
@@ -1839,18 +1838,18 @@ const DATAFLOW_DASHBOARD_CHIMERA_REFRESH_CSS = `
   display: block;
   width: 100%;
   padding: 9px 10px;
-  border: 1px solid #e2e8f0;
+ border: 1px solid var(--border);
   border-radius: 14px;
-  background: rgba(255, 255, 255, 0.9);
+ background: var(--bg-surface);
   text-align: left;
   cursor: pointer;
   transition: border-color 0.16s ease, box-shadow 0.16s ease, background 0.16s ease;
 }
 
 .execution-prompt-preview:hover {
-  border-color: #67e8f9;
-  background: #ecfeff;
-  box-shadow: 0 10px 20px rgba(14, 165, 233, 0.08);
+ border-color: var(--info);
+ background: rgba(79, 140, 255, 0.14);
+ box-shadow: none;
 }
 
 .execution-prompt-preview.loading {
@@ -1858,13 +1857,13 @@ const DATAFLOW_DASHBOARD_CHIMERA_REFRESH_CSS = `
 }
 
 .execution-prompt-preview.error {
-  border-color: #fecdd3;
-  background: #fff1f2;
+ border-color: rgba(241, 93, 93, 0.42);
+ background: rgba(241, 93, 93, 0.14);
 }
 
 .execution-prompt-preview-label {
   display: block;
-  color: #94a3b8;
+ color: var(--text-muted);
   font-size: 9px;
   font-weight: 900;
   letter-spacing: 0.08em;
@@ -1877,26 +1876,26 @@ const DATAFLOW_DASHBOARD_CHIMERA_REFRESH_CSS = `
   overflow: hidden;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
-  color: #475569;
+ color: var(--text-muted);
   font-size: 11px;
   line-height: 1.6;
   word-break: break-word;
 }
 
 .execution-prompt-preview-body.loading {
-  color: #94a3b8;
+ color: var(--text-muted);
 }
 
 .execution-prompt-preview-body.error {
-  color: #be123c;
+ color: var(--error);
 }
 
 .execution-prompt-empty {
   padding: 9px 10px;
-  border: 1px dashed #dbe4ee;
+ border: 1px dashed var(--border);
   border-radius: 14px;
-  background: rgba(248, 250, 252, 0.88);
-  color: #94a3b8;
+ background: var(--bg-hover);
+ color: var(--text-muted);
   font-size: 11px;
 }
 
@@ -1906,8 +1905,8 @@ const DATAFLOW_DASHBOARD_CHIMERA_REFRESH_CSS = `
   justify-content: center;
   padding: 8px 12px;
   border-radius: 14px;
-  background: #ffffff;
-  color: #64748b;
+ background: var(--bg-surface);
+ color: var(--text-muted);
 }
 
 .trace-mini-badge {
@@ -1916,17 +1915,17 @@ const DATAFLOW_DASHBOARD_CHIMERA_REFRESH_CSS = `
   gap: 6px;
   padding: 5px 8px;
   border-radius: 999px;
-  border-color: #dbeafe;
-  background: #ffffff;
+ border-color: rgba(79, 115, 255, 0.42);
+ background: var(--bg-surface);
 }
 
-.trace-mini-badge.phase-worker { color: #0e7490; background: #ecfeff; border-color: #a5f3fc; }
-.trace-mini-badge.phase-reflect { color: #4f46e5; background: #eef2ff; border-color: #c7d2fe; }
-.trace-mini-badge.phase-summary { color: #047857; background: #ecfdf5; border-color: #bbf7d0; }
-.trace-mini-badge.phase-global-review { color: #b45309; background: #fffbeb; border-color: #fde68a; }
-.trace-mini-badge.phase-result-review { color: #be123c; background: #fff1f2; border-color: #fecdd3; }
+.trace-mini-badge.phase-worker { color: var(--info); background: rgba(79, 140, 255, 0.14); border-color: rgba(79, 140, 255, 0.42); }
+.trace-mini-badge.phase-reflect { color: var(--primary); background: rgba(79, 115, 255, 0.14); border-color: rgba(79, 115, 255, 0.42); }
+.trace-mini-badge.phase-summary { color: var(--success); background: rgba(69, 192, 111, 0.14); border-color: rgba(69, 192, 111, 0.42); }
+.trace-mini-badge.phase-global-review { color: var(--warning); background: rgba(213, 161, 58, 0.14); border-color: rgba(213, 161, 58, 0.42); }
+.trace-mini-badge.phase-result-review { color: var(--error); background: rgba(241, 93, 93, 0.14); border-color: rgba(241, 93, 93, 0.42); }
 .trace-mini-badge.phase-review { color: #6d28d9; background: #f5f3ff; border-color: #ddd6fe; }
-.trace-mini-badge.phase-other { color: #64748b; background: #f8fafc; border-color: #e2e8f0; }
+.trace-mini-badge.phase-other { color: var(--text-muted); background: var(--bg-hover); border-color: var(--border); }
 
 .session-trace-tags {
   margin-top: 8px;
@@ -1941,8 +1940,8 @@ const DATAFLOW_DASHBOARD_CHIMERA_REFRESH_CSS = `
   padding: 18px;
   border-radius: 18px;
   background: #0f172a;
-  color: #e2e8f0;
-  border: 1px solid #1e293b;
+ color: var(--border);
+ border: 1px solid var(--border);
   box-shadow: inset 0 0 0 1px rgba(148, 163, 184, 0.08);
 }
 
@@ -1971,7 +1970,7 @@ const DATAFLOW_DASHBOARD_CHIMERA_REFRESH_CSS = `
 
 .log-toolbar-desc {
   margin-top: 4px;
-  color: #64748b;
+ color: var(--text-muted);
   font-size: 12px;
   line-height: 1.6;
 }
@@ -1991,17 +1990,17 @@ const DATAFLOW_DASHBOARD_CHIMERA_REFRESH_CSS = `
   min-height: 30px;
   padding: 0 12px;
   border-radius: 999px;
-  border: 1px solid #e2e8f0;
-  background: #f8fafc;
-  color: #475569;
+ border: 1px solid var(--border);
+ background: var(--bg-hover);
+ color: var(--text-muted);
   font-size: 12px;
   font-weight: 800;
 }
 
 .log-mode-badge.full {
-  background: #ecfeff;
-  border-color: #a5f3fc;
-  color: #0f766e;
+ background: rgba(79, 140, 255, 0.14);
+ border-color: rgba(79, 140, 255, 0.42);
+ color: var(--success);
 }
 
 .modal {
@@ -2015,7 +2014,7 @@ const DATAFLOW_DASHBOARD_CHIMERA_REFRESH_CSS = `
 
 .modal-header {
   padding: 16px 20px;
-  border-bottom-color: #e2e8f0;
+ border-bottom-color: var(--border);
   color: var(--text-bright);
   font-size: 13px;
 }
@@ -2035,14 +2034,14 @@ const DATAFLOW_DASHBOARD_CHIMERA_REFRESH_CSS = `
 .modal-body pre {
   padding: 14px;
   border-radius: 16px;
-  background: #f8fafc;
-  border: 1px solid #e2e8f0;
-  color: #334155;
+ background: var(--bg-hover);
+ border: 1px solid var(--border);
+ color: var(--text);
 }
 
 .modal-body code,
 .markdown-content code {
-  background: #eff6ff;
+ background: rgba(79, 115, 255, 0.14);
   color: #075985;
 }
 
@@ -2055,7 +2054,7 @@ const DATAFLOW_DASHBOARD_CHIMERA_REFRESH_CSS = `
 
 .modal-body th,
 .markdown-content th {
-  background: #f8fafc;
+ background: var(--bg-hover);
 }
 
 .accordion-header {
@@ -2064,7 +2063,7 @@ const DATAFLOW_DASHBOARD_CHIMERA_REFRESH_CSS = `
 }
 
 .accordion-header:hover {
-  border-color: #67e8f9;
+ border-color: var(--info);
 }
 
 .accordion-body {
@@ -2083,10 +2082,10 @@ const DATAFLOW_DASHBOARD_CHIMERA_REFRESH_CSS = `
 .file-preview-pane {
   min-width: 0;
   overflow: hidden;
-  border: 1px solid #e2e8f0;
+ border: 1px solid var(--border);
   border-radius: 24px;
-  background: rgba(255, 255, 255, 0.92);
-  box-shadow: 0 16px 34px rgba(15, 23, 42, 0.05);
+ background: var(--bg-hover);
+ box-shadow: none;
 }
 
 .file-browser-nav {
@@ -2101,19 +2100,19 @@ const DATAFLOW_DASHBOARD_CHIMERA_REFRESH_CSS = `
   justify-content: space-between;
   gap: 12px;
   padding: 16px;
-  border-bottom: 1px solid #e2e8f0;
+ border-bottom: 1px solid var(--border);
   background:
-    radial-gradient(circle at top left, rgba(14, 165, 233, 0.10), transparent 32%),
-    linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+ radial-gradient(circle at top left, rgba(79, 140, 255, 0.10), transparent 32%),
+ linear-gradient(180deg, var(--bg-hover) 0%, var(--bg-surface) 100%);
 }
 
 .file-count-pill {
   flex-shrink: 0;
   padding: 6px 10px;
-  border: 1px solid #bae6fd;
+ border: 1px solid rgba(79, 140, 255, 0.42);
   border-radius: 999px;
-  background: #ecfeff;
-  color: #0e7490;
+ background: rgba(79, 140, 255, 0.14);
+ color: var(--info);
   font-size: 11px;
   font-weight: 800;
 }
@@ -2122,16 +2121,16 @@ const DATAFLOW_DASHBOARD_CHIMERA_REFRESH_CSS = `
   display: grid;
   gap: 10px;
   padding: 14px 16px;
-  border-bottom: 1px solid #e2e8f0;
+ border-bottom: 1px solid var(--border);
 }
 
 .file-toolbar input,
 .file-toolbar select {
   width: 100%;
   padding: 10px 12px;
-  background: #ffffff;
+ background: var(--bg-surface);
   color: var(--text);
-  border: 1px solid #cbd5e1;
+ border: 1px solid var(--border-accent);
   border-radius: 14px;
   font-size: 12px;
 }
@@ -2139,7 +2138,7 @@ const DATAFLOW_DASHBOARD_CHIMERA_REFRESH_CSS = `
 .file-toolbar input:focus,
 .file-toolbar select:focus {
   outline: none;
-  border-color: #67e8f9;
+ border-color: var(--info);
   box-shadow: 0 0 0 4px rgba(34, 211, 238, 0.12);
 }
 
@@ -2154,7 +2153,7 @@ const DATAFLOW_DASHBOARD_CHIMERA_REFRESH_CSS = `
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 8px;
   padding: 14px 16px;
-  border-bottom: 1px solid #e2e8f0;
+ border-bottom: 1px solid var(--border);
 }
 
 .file-quick-card {
@@ -2163,17 +2162,17 @@ const DATAFLOW_DASHBOARD_CHIMERA_REFRESH_CSS = `
   gap: 3px 8px;
   align-items: center;
   padding: 10px;
-  border: 1px solid #dbe4ee;
+ border: 1px solid var(--border);
   border-radius: 16px;
-  background: #f8fafc;
+ background: var(--bg-hover);
   color: var(--text);
   text-align: left;
   cursor: pointer;
 }
 
 .file-quick-card:hover {
-  border-color: #67e8f9;
-  background: #ecfeff;
+ border-color: var(--info);
+ background: rgba(79, 140, 255, 0.14);
 }
 
 .file-quick-card.disabled {
@@ -2189,7 +2188,7 @@ const DATAFLOW_DASHBOARD_CHIMERA_REFRESH_CSS = `
   height: 28px;
   border-radius: 10px;
   background: #0f172a;
-  color: #f8fafc;
+ color: var(--bg-hover);
   font-size: 11px;
   font-weight: 900;
 }
@@ -2237,24 +2236,24 @@ const DATAFLOW_DASHBOARD_CHIMERA_REFRESH_CSS = `
   grid-template-columns: 16px 44px minmax(0, 1fr);
   gap: 6px;
   padding: 8px 8px 8px calc(8px + var(--level, 0) * 18px);
-  color: #334155;
+ color: var(--text);
 }
 
 .file-dir-row:hover,
 .file-tree-file:hover {
-  background: #f1f5f9;
+ background: var(--bg-hover);
 }
 
 .file-dir-arrow {
-  color: #64748b;
+ color: var(--text-muted);
   font-size: 11px;
 }
 
 .file-dir-icon {
   padding: 2px 7px;
   border-radius: 999px;
-  background: #e0f2fe;
-  color: #0369a1;
+ background: rgba(79, 140, 255, 0.14);
+ color: var(--info);
   font-size: 10px;
   font-weight: 800;
 }
@@ -2275,23 +2274,23 @@ const DATAFLOW_DASHBOARD_CHIMERA_REFRESH_CSS = `
 }
 
 .file-tree-file.selected {
-  background: #ecfeff;
-  box-shadow: inset 0 0 0 1px #67e8f9;
+ background: rgba(79, 140, 255, 0.14);
+ box-shadow: inset 0 0 0 1px var(--info);
 }
 
 .file-kind-dot {
   width: 8px;
   height: 8px;
   border-radius: 999px;
-  background: #94a3b8;
+ background: var(--text-muted);
 }
 
-.file-kind-markdown { background: #0891b2; }
-.file-kind-json { background: #f59e0b; }
-.file-kind-jsonl { background: #6366f1; }
-.file-kind-log { background: #ef4444; }
-.file-kind-text { background: #10b981; }
-.file-kind-other { background: #64748b; }
+.file-kind-markdown { background: var(--info); }
+.file-kind-json { background: var(--warning); }
+.file-kind-jsonl { background: var(--primary); }
+.file-kind-log { background: var(--error); }
+.file-kind-text { background: var(--success); }
+.file-kind-other { background: var(--text-muted); }
 
 .file-tree-name {
   min-width: 0;
@@ -2358,15 +2357,15 @@ const DATAFLOW_DASHBOARD_CHIMERA_REFRESH_CSS = `
   flex-wrap: wrap;
   gap: 8px;
   padding: 12px 16px;
-  border-bottom: 1px solid #e2e8f0;
-  background: #f8fafc;
+ border-bottom: 1px solid var(--border);
+ background: var(--bg-hover);
 }
 
 .file-preview-meta span {
   padding: 5px 8px;
-  border: 1px solid #e2e8f0;
+ border: 1px solid var(--border);
   border-radius: 999px;
-  background: #ffffff;
+ background: var(--bg-surface);
   color: var(--text-muted);
   font-size: 11px;
 }
@@ -2384,7 +2383,7 @@ const DATAFLOW_DASHBOARD_CHIMERA_REFRESH_CSS = `
   padding: 18px;
   border-radius: 18px;
   background: #0f172a;
-  color: #e2e8f0;
+ color: var(--border);
   white-space: pre-wrap;
   word-break: break-word;
 }
@@ -2414,8 +2413,8 @@ const DATAFLOW_DASHBOARD_CHIMERA_REFRESH_CSS = `
   height: 72px;
   margin-bottom: 14px;
   border-radius: 24px;
-  background: #ecfeff;
-  color: #0e7490;
+ background: rgba(79, 140, 255, 0.14);
+ color: var(--info);
   font-weight: 900;
 }
 
@@ -2430,16 +2429,16 @@ const DATAFLOW_DASHBOARD_CHIMERA_REFRESH_CSS = `
   grid-template-columns: minmax(0, 1fr) 96px 88px;
   gap: 12px;
   padding: 10px 12px;
-  border: 1px solid #e2e8f0;
+ border: 1px solid var(--border);
   border-radius: 16px;
 }
 
 .file-row:hover {
-  border-color: #67e8f9;
+ border-color: var(--info);
 }
 
 .action-link {
-  color: #0f766e;
+ color: var(--success);
   font-weight: 700;
 }
 
@@ -2450,13 +2449,13 @@ const DATAFLOW_DASHBOARD_CHIMERA_REFRESH_CSS = `
 
 .empty-state {
   padding: 30px;
-  color: #64748b;
+ color: var(--text-muted);
   font-size: 14px;
 }
 
 .link,
 .text-primary {
-  color: #0f766e;
+ color: var(--success);
 }
 
 .text-success {
@@ -2486,7 +2485,7 @@ const DATAFLOW_DASHBOARD_CHIMERA_REFRESH_CSS = `
 
 .info-label {
   min-width: 110px;
-  color: #64748b;
+ color: var(--text-muted);
 }
 
 .info-value {
@@ -2498,15 +2497,15 @@ const DATAFLOW_DASHBOARD_CHIMERA_REFRESH_CSS = `
   gap: 12px;
   padding: 16px 0 0;
   margin-top: 16px;
-  border-top: 1px solid #e2e8f0;
+ border-top: 1px solid var(--border);
   border-bottom: 0;
 }
 
 .progress-stat {
   padding: 10px 12px;
-  border: 1px solid #e2e8f0;
+ border: 1px solid var(--border);
   border-radius: 16px;
-  color: #64748b;
+ color: var(--text-muted);
   font-size: 11px;
 }
 
@@ -2520,8 +2519,8 @@ const DATAFLOW_DASHBOARD_CHIMERA_REFRESH_CSS = `
   padding: 8px 12px;
   margin-bottom: 8px;
   border-radius: 14px;
-  background: #eff6ff;
-  color: #475569;
+ background: rgba(79, 115, 255, 0.14);
+ color: var(--text-muted);
 }
 
 .model-name {
@@ -2530,30 +2529,30 @@ const DATAFLOW_DASHBOARD_CHIMERA_REFRESH_CSS = `
 
 .user-message {
   padding: 14px 18px;
-  background: linear-gradient(135deg, #ecfeff 0%, #f0fdfa 100%);
+ background: linear-gradient(135deg, rgba(79, 140, 255, 0.14) 0%, rgba(69, 192, 111, 0.14) 100%);
   color: var(--text);
-  border: 1px solid #bae6fd;
+ border: 1px solid rgba(79, 140, 255, 0.42);
   border-radius: 20px;
-  box-shadow: 0 10px 24px rgba(14, 165, 233, 0.08);
+ box-shadow: none;
 }
 
 .user-message .message-timestamp {
-  color: #0f766e;
+ color: var(--success);
   opacity: 1;
 }
 
 .assistant-message {
   padding: 12px 0;
   border-radius: 20px;
-  background: #ffffff;
-  border: 1px solid #e2e8f0;
-  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.04);
+ background: var(--bg-surface);
+ border: 1px solid var(--border);
+ box-shadow: none;
 }
 
 .assistant-message .message-timestamp {
   padding: 0 18px;
   margin-bottom: 8px;
-  color: #94a3b8;
+ color: var(--text-muted);
 }
 
 .assistant-text-content,
@@ -2568,11 +2567,11 @@ const DATAFLOW_DASHBOARD_CHIMERA_REFRESH_CSS = `
 
 .thinking-text,
 .thinking-collapsed {
-  color: #64748b;
+ color: var(--text-muted);
 }
 
 .thinking-toggle-btn {
-  color: #0f766e;
+ color: var(--success);
   font-size: 11px;
   font-weight: 700;
 }
@@ -2580,21 +2579,21 @@ const DATAFLOW_DASHBOARD_CHIMERA_REFRESH_CSS = `
 .tool-execution {
   padding: 16px;
   border-radius: 18px;
-  border: 1px solid #e2e8f0;
+ border: 1px solid var(--border);
 }
 
 .tool-execution.pending {
-  background: #eff6ff;
+ background: rgba(79, 115, 255, 0.14);
 }
 
 .tool-execution.success {
-  background: #ecfdf5;
-  border-color: #bbf7d0;
+ background: rgba(69, 192, 111, 0.14);
+ border-color: rgba(69, 192, 111, 0.42);
 }
 
 .tool-execution.error {
-  background: #fff1f2;
-  border-color: #fecdd3;
+ background: rgba(241, 93, 93, 0.14);
+ border-color: rgba(241, 93, 93, 0.42);
 }
 
 .tool-header,
@@ -2604,7 +2603,7 @@ const DATAFLOW_DASHBOARD_CHIMERA_REFRESH_CSS = `
 }
 
 .tool-path {
-  color: #0f766e;
+ color: var(--success);
 }
 
 .tool-output,
@@ -2612,21 +2611,21 @@ const DATAFLOW_DASHBOARD_CHIMERA_REFRESH_CSS = `
   margin-top: 12px;
   padding: 12px;
   border-radius: 14px;
-  background: rgba(255, 255, 255, 0.72);
-  border: 1px solid #dbe4ee;
-  color: #334155;
+ background: var(--bg-surface);
+ border: 1px solid var(--border);
+ color: var(--text);
 }
 
 .tool-result-message {
   padding: 14px 16px;
-  background: #ecfdf5;
-  border: 1px solid #bbf7d0;
+ background: rgba(69, 192, 111, 0.14);
+ border: 1px solid rgba(69, 192, 111, 0.42);
   border-radius: 18px;
 }
 
 .tool-result-message.has-error {
-  background: #fff1f2;
-  border-color: #fecdd3;
+ background: rgba(241, 93, 93, 0.14);
+ border-color: rgba(241, 93, 93, 0.42);
 }
 
 .markdown-content h1,
@@ -2639,8 +2638,8 @@ const DATAFLOW_DASHBOARD_CHIMERA_REFRESH_CSS = `
 }
 
 .markdown-content blockquote {
-  border-left-color: #cbd5e1;
-  color: #64748b;
+ border-left-color: var(--border-accent);
+ color: var(--text-muted);
 }
 
 @media (max-width: 960px) {
@@ -2768,14 +2767,13 @@ const DATAFLOW_DASHBOARD_CHIMERA_REFRESH_CSS = `
     gap: 4px;
   }
 
-}
-`;
+}`;
 
-const DATAFLOW_DASHBOARD_STYLES = `${DATAFLOW_DASHBOARD_MIRROR_CSS}\n${DATAFLOW_DASHBOARD_CHIMERA_REFRESH_CSS}`;
+const DATAFLOW_DASHBOARD_STYLES =`${DATAFLOW_DASHBOARD_MIRROR_CSS}\n${DATAFLOW_DASHBOARD_CHIMERA_REFRESH_CSS}`;
 
 const normalizeProjectPath = (value: string) => {
   const text = String(value || '/').trim() || '/';
-  const withRoot = text.startsWith('/') ? text : `/${text}`;
+  const withRoot = text.startsWith('/') ? text :`/${text}`;
   return withRoot.replace(/\/+/g, '/').replace(/\/$/, '') || '/';
 };
 
@@ -2828,17 +2826,16 @@ const normalizeProjectFileExplorerPath = (fsPath: string, projectId?: string | n
   const normalizedPath = String(fsPath || '').trim();
   if (!normalizedPath) return '';
   const normalizedProjectId = String(projectId || '').trim();
-  const projectRoot = normalizedProjectId ? `/data/files/${normalizedProjectId}` : '';
+  const projectRoot = normalizedProjectId ?`/data/files/${normalizedProjectId}` : '';
   if (projectRoot && normalizedPath.startsWith(projectRoot)) {
     const relativePath = normalizedPath.slice(projectRoot.length).replace(/\/+$/, '');
     if (!relativePath) return '/';
-    return relativePath.startsWith('/') ? relativePath : `/${relativePath}`;
+    return relativePath.startsWith('/') ? relativePath :`/${relativePath}`;
   }
-  return normalizedPath.startsWith('/') ? normalizedPath : `/${normalizedPath}`;
+  return normalizedPath.startsWith('/') ? normalizedPath :`/${normalizedPath}`;
 };
 
-const buildProjectFileExplorerHash = (fsPath: string, projectId?: string | null): string => (
-  `#/project-file-explorer?path=${encodeURIComponent(normalizeProjectFileExplorerPath(fsPath, projectId))}`
+const buildProjectFileExplorerHash = (fsPath: string, projectId?: string | null): string => (`#/project-file-explorer?path=${encodeURIComponent(normalizeProjectFileExplorerPath(fsPath, projectId))}`
 );
 
 interface DashboardAppOptions {
@@ -3032,7 +3029,7 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
         .replace(/\s+/g, ' ')
         .trim();
       if (!text) return 'Prompt 文件为空';
-      return text.length > 220 ? `${text.slice(0, 220)}…` : text;
+      return text.length > 220 ?`${text.slice(0, 220)}…` : text;
     },
 
     promptPreviewState(runName: string, path: string) {
@@ -3610,7 +3607,7 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
         const arrow = collapsed ? '▶' : '▼';
         const runsHtml = group.runs.map((r: DataflowFileserverRunSummary) => {
           const timeLabel = (r.start_time || '').split(' ')[1] || '--:--:--';
-          return `
+          return`
           <div class="run-item ${this.currentRun === r.name ? 'active' : ''}"
                data-action="select-run"
                data-run="${this.attr(r.name)}">
@@ -3626,10 +3623,9 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
               <span>⏳ ${this.fmtDuration(this._estimateDuration(r))}</span>
               <span class="text-muted">${this.esc((r.model || '').split('/').pop())}</span>
             </div>
-          </div>
-        `;
+          </div>`;
         }).join('');
-        return `
+        return`
         <div class="run-date-group ${collapsed ? 'collapsed' : ''}">
           <button class="run-date-header" data-action="toggle-date-group" data-date-key="${this.attr(dateKey)}">
             <span class="run-date-arrow">${arrow}</span>
@@ -3639,8 +3635,7 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
           <div class="run-date-body" style="display:${collapsed ? 'none' : 'block'}">
             ${runsHtml}
           </div>
-        </div>
-      `;
+        </div>`;
       }).join('');
     },
 
@@ -3667,9 +3662,9 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
       const m = name.match(/(\d{8})_(\d{6})/) || name.match(/(\d{4})[-_]?(\d{2})[-_]?(\d{2})/);
       if (m) {
         if (m[1] && m[1].length === 8) {
-          return `${m[1].slice(0,4)}-${m[1].slice(4,6)}-${m[1].slice(6,8)}`;
+          return`${m[1].slice(0,4)}-${m[1].slice(4,6)}-${m[1].slice(6,8)}`;
         }
-        return `${m[1]}-${m[2]}-${m[3]}`;
+        return`${m[1]}-${m[2]}-${m[3]}`;
       }
       return '未解析日期';
     },
@@ -3695,7 +3690,7 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
       const statusEl = this.$('runStatus');
       const statusText = summary?.status || 'pending';
       if (statusEl) {
-        statusEl.className = `badge badge-${statusText}`;
+        statusEl.className =`badge badge-${statusText}`;
         statusEl.textContent = this.statusLabel(statusText);
       }
       const modeEl = this.$('runMode');
@@ -3707,12 +3702,11 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
       if (subtitleEl) subtitleEl.textContent = '正在解析当前 Run，完成后会展示概览、轮次、结果、会话、文件与日志。';
       const metaEl = this.$('runMeta');
       if (metaEl) {
-        metaEl.innerHTML = `
+        metaEl.innerHTML =`
           <span>🤖 ${this.esc(summary?.model || '-')}</span>
           <span>🎚️ ${this.esc(this.reviewProfileLabel(summary?.review_profile || ''))}</span>
-          <span>🔄 ${summary?.cycles_used || 0}${summary?.max_cycles ? ` / ${summary.max_cycles}` : ''} 轮</span>
-          <span>⏳ 正在加载详细信息...</span>
-        `;
+          <span>🔄 ${summary?.cycles_used || 0}${summary?.max_cycles ?` / ${summary.max_cycles}` : ''} 轮</span>
+          <span>⏳ 正在加载详细信息...</span>`;
       }
 
       const loadingCard = '<div class="card-title">加载中</div><div class="empty-state">正在解析该 Run 的详细信息...</div>';
@@ -3738,9 +3732,9 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
       if (sessionsContainer) sessionsContainer.innerHTML = emptyCard;
       if (filesContainer) filesContainer.innerHTML = emptyCard;
       if (taskInfoCard) taskInfoCard.innerHTML = loadingCard;
-      if (taskConfigContainer) taskConfigContainer.innerHTML = `<div class="card">${loadingCard}</div>`;
+      if (taskConfigContainer) taskConfigContainer.innerHTML =`<div class="card">${loadingCard}</div>`;
       if (logToolbar) {
-        logToolbar.innerHTML = `
+        logToolbar.innerHTML =`
           <div class="log-toolbar-copy">
             <div class="log-toolbar-title">运行日志</div>
             <div class="log-toolbar-desc">默认展示日志尾部预览，加载详情后可按需读取完整 run.log。</div>
@@ -3748,8 +3742,7 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
           <div class="log-toolbar-actions">
             <span class="log-mode-badge">尾部预览</span>
             <button class="btn btn-sm" type="button" disabled>加载全文</button>
-          </div>
-        `;
+          </div>`;
       }
       if (logContent) logContent.textContent = '加载中...';
       this.updateActionButtons(summary);
@@ -3757,7 +3750,7 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
 
     showLoadError(name: string, message: string) {
       this.showLoadingState(name);
-      const errorCard = `<div class="card-title">加载失败</div><div class="empty-state text-error">${this.esc(message)}</div>`;
+      const errorCard =`<div class="card-title">加载失败</div><div class="empty-state text-error">${this.esc(message)}</div>`;
       const scoreChart = this.$('scoreChart');
       const vulnTrendCard = this.$('vulnTrendCard');
       const manifestCard = this.$('manifestCard');
@@ -3769,7 +3762,7 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
       if (manifestCard) manifestCard.innerHTML = '<div class="card-title">提示</div><div class="empty-state">请检查浏览器控制台，以及 Run 后端对 /data 的挂载和索引配置。</div>';
       if (cycleTimeline) cycleTimeline.innerHTML = '<div class="card-title">运行状态</div><div class="empty-state">当前 Run 详情解析失败，因此无法展示轮次和结果信息。</div>';
       if (taskInfoCard) taskInfoCard.innerHTML = errorCard;
-      if (taskConfigContainer) taskConfigContainer.innerHTML = `<div class="card">${errorCard}</div>`;
+      if (taskConfigContainer) taskConfigContainer.innerHTML =`<div class="card">${errorCard}</div>`;
     },
 
     async loadRunDetail(name: string, silent = false, forceActiveTabReload = false, options?: { scope?: 'full' | 'summary' }) {
@@ -3892,7 +3885,7 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
       if (runNameEl) runNameEl.textContent = String(linkedTaskDetail?.title || data.name || 'Run 详情');
       const statusEl = this.$('runStatus');
       if (statusEl) {
-        statusEl.className = `badge badge-${data.status}`;
+        statusEl.className =`badge badge-${data.status}`;
         statusEl.textContent = this.statusLabel(data.status);
       }
       const modeEl = this.$('runMode');
@@ -3904,8 +3897,8 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
       }
       const subtitleEl = this.$('runSubtitle');
       if (subtitleEl) {
-        const updated = data.updated_at ? ` · 最近同步 ${this.esc(data.updated_at)}` : '';
-        subtitleEl.innerHTML = `统一查看当前 Run 的概览、轮次、结果、会话、文件、日志与任务关联信息${updated}`;
+        const updated = data.updated_at ?` · 最近同步 ${this.esc(data.updated_at)}` : '';
+        subtitleEl.innerHTML =`统一查看当前 Run 的概览、轮次、结果、会话、文件、日志与任务关联信息${updated}`;
       }
 
       const c = data.config || {};
@@ -3913,16 +3906,15 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
       if (metaEl) {
         const reviewProfile = String(c.review_profile || data.review_profile || '').trim();
         const model = String(c.model || data.model || '').trim() || '-';
-        const cycleText = `${data.cycles_used || cycles.length}${data.max_cycles ? ` / ${data.max_cycles}` : ''} 轮`;
-        const resultText = `${data.result_count ?? 0} 个结果`;
-        metaEl.innerHTML = `
+        const cycleText =`${data.cycles_used || cycles.length}${data.max_cycles ?` / ${data.max_cycles}` : ''} 轮`;
+        const resultText =`${data.result_count ?? 0} 个结果`;
+        metaEl.innerHTML =`
           <span>🤖 ${this.esc(model)}</span>
           <span>🎚️ ${this.esc(this.reviewProfileLabel(reviewProfile))}</span>
           <span>🔄 ${this.esc(cycleText)}</span>
           <span>📄 ${this.esc(resultText)}</span>
           <span class="run-duration" id="runDuration">⏳ ${this.fmtDuration(this._estimateDuration(data))}</span>
-          ${data.error ? `<span class="text-error">⚠️ ${this.esc(data.error).substring(0, 120)}</span>` : ''}
-        `;
+          ${data.error ?`<span class="text-error">⚠️ ${this.esc(data.error).substring(0, 120)}</span>` : ''}`;
       }
       this._startDurationTimer(data.status === 'running');
       this.updateActionButtons(data);
@@ -3979,7 +3971,7 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
       }
       this._resultReportBusy = true;
       this.setResultReportFeedback(
-        mode === 'all' ? `正在将全部 ${files.length} 个问题上报到漏洞引擎...` : `正在上报已选中的 ${files.length} 个问题...`,
+        mode === 'all' ?`正在将全部 ${files.length} 个问题上报到漏洞引擎...` :`正在上报已选中的 ${files.length} 个问题...`,
         'info',
         data.name,
       );
@@ -4068,14 +4060,13 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
       const retryable = this.canRetryRun(data);
       const retryReason = this.retryDisabledReason(data);
       const busy = !!this._mutationBusy;
-      return `
+      return`
         <div class="task-action-panel">
           <button class="btn btn-sm" data-action="adopt-run" ${linked || busy ? 'disabled' : ''}>关联任务记录</button>
           <button class="btn btn-sm btn-warning" data-action="cancel-run" ${!linked || !active || busy ? 'disabled' : ''}>取消 Run</button>
           <button class="btn btn-sm" data-action="retry-run" ${!retryable || busy ? 'disabled' : ''} title="${this.esc(retryable ? 'run_vuln_scan.py 进程不存在或心跳过期，可以通过 --resume 重试' : retryReason)}">重试 Run</button>
           <button class="btn btn-sm btn-danger" data-action="delete-open" ${busy ? 'disabled' : ''}>删除 Run</button>
-        </div>
-      `;
+        </div>`;
     },
 
     runCommandDisplay(data: DataflowFileserverRunOverview) {
@@ -4094,29 +4085,25 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
     renderTaskConfigRows(rows: Array<{ label: string; value: string }>, options?: { compact?: boolean }) {
       const gridClass = options?.compact ? 'task-info-grid compact' : 'task-info-grid';
       const rowClass = options?.compact ? 'task-info-row compact' : 'task-info-row';
-      return `
+      return`
         <div class="${gridClass}">
-          ${rows.map((row) => `
+          ${rows.map((row) =>`
             <div class="${rowClass}">
               <span class="task-info-label">${this.esc(row.label)}</span>
               <div class="task-info-value" style="word-break:break-word">${row.value}</div>
-            </div>
-          `).join('')}
-        </div>
-      `;
+            </div>`).join('')}
+        </div>`;
     },
 
     renderTaskConfigSummaryRows(rows: Array<{ label: string; value: string }>) {
-      return `
+      return`
         <div class="task-config-summary">
-          ${rows.map((row) => `
+          ${rows.map((row) =>`
             <div class="task-config-summary-row">
               <div class="task-config-summary-label">${this.esc(row.label)}</div>
               <div class="task-config-summary-value">${row.value}</div>
-            </div>
-          `).join('')}
-        </div>
-      `;
+            </div>`).join('')}
+        </div>`;
     },
 
     renderProjectPathValue(path: unknown, options?: { compact?: boolean }) {
@@ -4130,28 +4117,26 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
       const pathFont = compact ? 11 : 12;
       const rawFont = compact ? 10 : 11;
       const buttonClass = compact ? 'action-link' : 'btn btn-sm';
-      return `
+      return`
         <div style="display:flex;flex-wrap:wrap;align-items:${compact ? 'center' : 'flex-start'};gap:${gap}px">
           <div style="min-width:0;flex:1 1 ${basis}px">
             <div style="font-family:var(--mono);font-size:${pathFont}px;line-height:${compact ? '1.2' : '1.4'};word-break:break-all">${this.esc(explorerPath)}</div>
-            ${!compact && explorerPath !== rawPath ? `<div class="text-muted" style="margin-top:4px;font-family:var(--mono);font-size:${rawFont}px;word-break:break-all">${this.esc(rawPath)}</div>` : ''}
+            ${!compact && explorerPath !== rawPath ?`<div class="text-muted" style="margin-top:4px;font-family:var(--mono);font-size:${rawFont}px;word-break:break-all">${this.esc(rawPath)}</div>` : ''}
           </div>
           <a href="${this.attr(href)}" target="_blank" rel="noopener noreferrer" class="${buttonClass}"${compact ? ' style="font-size:11px;white-space:nowrap"' : ''}>项目文件</a>
-        </div>
-      `;
+        </div>`;
     },
 
     renderJsonDetailsInline(title: string, value: unknown, options?: { emptyText?: string; open?: boolean }) {
       if (!hasDisplayContent(value)) {
-        return `<div class="text-muted" style="font-size:12px">${this.esc(options?.emptyText || '暂无数据')}</div>`;
+        return`<div class="text-muted" style="font-size:12px">${this.esc(options?.emptyText || '暂无数据')}</div>`;
       }
       const open = options?.open ? ' open' : '';
-      return `
+      return`
         <details${open} style="margin-top:6px">
           <summary class="action-link" style="cursor:pointer">${this.esc(title)}</summary>
           <pre class="run-command-pre" style="margin-top:8px">${this.esc(prettyJson(value))}</pre>
-        </details>
-      `;
+        </details>`;
     },
 
     renderInputRefValue(ref: unknown, options?: { compact?: boolean; hideFilename?: boolean }) {
@@ -4166,20 +4151,19 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
       const filename = hideFilename ? '' : String(record.filename || '').trim();
       const metadata = asRecord(record.metadata);
       const extraLines = [
-        storageKey ? `<div class="text-muted" style="font-size:${compact ? 11 : 12}px"><strong>storage_key</strong>: <span style="font-family:var(--mono)">${this.esc(storageKey)}</span></div>` : '',
-        relativePath ? `<div class="text-muted" style="font-size:${compact ? 11 : 12}px"><strong>relative_path</strong>: <span style="font-family:var(--mono)">${this.esc(relativePath)}</span></div>` : '',
-        filename ? `<div class="text-muted" style="font-size:${compact ? 11 : 12}px"><strong>filename</strong>: <span style="font-family:var(--mono)">${this.esc(filename)}</span></div>` : '',
+        storageKey ?`<div class="text-muted" style="font-size:${compact ? 11 : 12}px"><strong>storage_key</strong>: <span style="font-family:var(--mono)">${this.esc(storageKey)}</span></div>` : '',
+        relativePath ?`<div class="text-muted" style="font-size:${compact ? 11 : 12}px"><strong>relative_path</strong>: <span style="font-family:var(--mono)">${this.esc(relativePath)}</span></div>` : '',
+        filename ?`<div class="text-muted" style="font-size:${compact ? 11 : 12}px"><strong>filename</strong>: <span style="font-family:var(--mono)">${this.esc(filename)}</span></div>` : '',
       ].filter(Boolean).join('');
-      return `
+      return`
         <div style="display:grid;gap:${compact ? 4 : 6}px">
-          ${source && !compact ? `<div><span class="badge badge-sm badge-mode">${this.esc(source)}</span></div>` : ''}
+          ${source && !compact ?`<div><span class="badge badge-sm badge-mode">${this.esc(source)}</span></div>` : ''}
           ${path ? this.renderProjectPathValue(path, { compact }) : ''}
-          ${!path && relativePath ? `<div style="font-family:var(--mono);font-size:${compact ? 11 : 12}px;line-height:${compact ? '1.25' : '1.4'};word-break:break-all">${this.esc(relativePath)}</div>` : ''}
+          ${!path && relativePath ?`<div style="font-family:var(--mono);font-size:${compact ? 11 : 12}px;line-height:${compact ? '1.25' : '1.4'};word-break:break-all">${this.esc(relativePath)}</div>` : ''}
           ${extraLines}
           ${Object.keys(metadata).length ? this.renderJsonDetailsInline('metadata', metadata) : ''}
           ${!path && !extraLines && !Object.keys(metadata).length ? this.renderJsonDetailsInline('原始引用 JSON', record, { open: true }) : ''}
-        </div>
-      `;
+        </div>`;
     },
 
     cachedLinkedTaskDetail(runName: string, data?: DataflowFileserverRunOverview | null) {
@@ -4331,8 +4315,8 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
 
     timelineSourceLabel(event: DataflowTaskTimelineEvent) {
       const attempt = Number(event.attempt_no || 0);
-      const prefix = attempt > 0 ? `#${attempt}` : '#-';
-      return `${prefix} / ${String(event.execution_id || '').trim() || '-'}`;
+      const prefix = attempt > 0 ?`#${attempt}` : '#-';
+      return`${prefix} / ${String(event.execution_id || '').trim() || '-'}`;
     },
 
     timelineMessageLabel(event: DataflowTaskTimelineEvent) {
@@ -4341,25 +4325,25 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
       if (eventType === 'task_priority_updated') {
         const oldPriority = payload.old_priority ?? '-';
         const newPriority = payload.new_priority ?? '-';
-        return `优先级 ${oldPriority} -> ${newPriority}`;
+        return`优先级 ${oldPriority} -> ${newPriority}`;
       }
       if (eventType === 'task_cancel_requested') {
-        return `取消任务，原状态 ${payload.status_before || '-'}`;
+        return`取消任务，原状态 ${payload.status_before || '-'}`;
       }
       if (eventType === 'run_cancel_requested') {
-        return `取消 Run，原状态 ${payload.status_before || '-'}`;
+        return`取消 Run，原状态 ${payload.status_before || '-'}`;
       }
       if (eventType === 'task_retry_queued') {
-        return `重试已入队，Attempt #${payload.attempt_no || event.attempt_no || '-'}`;
+        return`重试已入队，Attempt #${payload.attempt_no || event.attempt_no || '-'}`;
       }
       if (eventType === 'task_evolution_created') {
-        return `从源任务 ${payload.source_task_id || '-'} 创建演化任务`;
+        return`从源任务 ${payload.source_task_id || '-'} 创建演化任务`;
       }
       if (eventType === 'run_delete_requested') {
-        return `请求删除 Run ${payload.run_id || '-'}`;
+        return`请求删除 Run ${payload.run_id || '-'}`;
       }
       if (eventType === 'vuln_report_manual') {
-        return `人工上报 ${Array.isArray(payload.result_files) ? payload.result_files.length : 0} 个结果，状态 ${payload.status || '-'}`;
+        return`人工上报 ${Array.isArray(payload.result_files) ? payload.result_files.length : 0} 个结果，状态 ${payload.status || '-'}`;
       }
       return String(event.message || '-');
     },
@@ -4391,12 +4375,11 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
       const runCache = this.getRunCache(data.name);
       const taskId = String(data.linked_task_id || '').trim();
       if (!taskId) {
-        el.innerHTML = `
+        el.innerHTML =`
           <section class="card">
             <div class="card-title">事件时间线</div>
             <div class="empty-state">当前 Run 尚未关联受管任务，暂无可展示的任务级事件时间线。</div>
-          </section>
-        `;
+          </section>`;
         return;
       }
       const items = this.filteredTimelineItems(data.name);
@@ -4407,7 +4390,7 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
       const categorySummary = categoryOptions
         .map((category) => {
           const count = (runCache.timelineItems || []).filter((event) => this.timelineEventCategory(event.event_type) === category).length;
-          return `${this.timelineEventCategoryLabel(category)} ${count}`;
+          return`${this.timelineEventCategoryLabel(category)} ${count}`;
         })
         .join(' · ');
       const pageSize = Math.min(500, Math.max(50, Number(runCache.timelinePageSize || 200)));
@@ -4418,9 +4401,9 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
       const rangeEnd = Math.min(items.length, currentPage * pageSize);
       const pagedItems = items.slice(rangeStart - 1, rangeEnd);
       const loadingBlock = runCache.timelineLoading ? '<div class="empty-state">加载时间线中...</div>' : '';
-      const errorBlock = runCache.timelineError ? `<div class="empty-state text-error">${this.esc(runCache.timelineError)}</div>` : '';
+      const errorBlock = runCache.timelineError ?`<div class="empty-state text-error">${this.esc(runCache.timelineError)}</div>` : '';
       const emptyBlock = !runCache.timelineLoading && !runCache.timelineError && items.length === 0 ? '<div class="empty-state">当前任务暂无事件时间线</div>' : '';
-      el.innerHTML = `
+      el.innerHTML =`
         <section class="card">
           <div class="card-title">事件时间线</div>
           <div class="text-muted" style="margin-top:-6px;margin-bottom:6px;font-size:12px">按时间查看当前任务的调度、阶段推进、重试与异常轨迹。</div>
@@ -4431,7 +4414,7 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
               <label class="timeline-summary-pill">
                 每页
                 <select class="timeline-select" data-action="timeline-page-size">
-                  ${[50, 100, 200, 500].map((size) => `<option value="${size}" ${size === pageSize ? 'selected' : ''}>${size}</option>`).join('')}
+                  ${[50, 100, 200, 500].map((size) =>`<option value="${size}" ${size === pageSize ? 'selected' : ''}>${size}</option>`).join('')}
                 </select>
               </label>
               <button class="btn btn-sm" data-action="refresh-timeline" ${runCache.timelineLoading ? 'disabled' : ''}>刷新</button>
@@ -4441,18 +4424,18 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
           <div class="timeline-filters">
             <select class="timeline-select" data-action="timeline-stage-filter">
               <option value="__all__">全部阶段</option>
-              ${stageOptions.map((value) => `<option value="${this.attr(value)}" ${value === runCache.timelineStageFilter ? 'selected' : ''}>${this.esc(this.timelineStageLabel(value))}</option>`).join('')}
+              ${stageOptions.map((value) =>`<option value="${this.attr(value)}" ${value === runCache.timelineStageFilter ? 'selected' : ''}>${this.esc(this.timelineStageLabel(value))}</option>`).join('')}
             </select>
             <select class="timeline-select" data-action="timeline-event-type-filter">
               <option value="__all__">全部事件</option>
-              ${eventTypeOptions.map((value) => `<option value="${this.attr(value)}" ${value === runCache.timelineEventTypeFilter ? 'selected' : ''}>${this.esc(this.timelineEventTypeLabel(value))}</option>`).join('')}
+              ${eventTypeOptions.map((value) =>`<option value="${this.attr(value)}" ${value === runCache.timelineEventTypeFilter ? 'selected' : ''}>${this.esc(this.timelineEventTypeLabel(value))}</option>`).join('')}
             </select>
             <select class="timeline-select" data-action="timeline-level-filter">
               <option value="__all__">全部级别</option>
-              ${levelOptions.map((value) => `<option value="${this.attr(value)}" ${value === runCache.timelineLevelFilter ? 'selected' : ''}>${this.esc(value)}</option>`).join('')}
+              ${levelOptions.map((value) =>`<option value="${this.attr(value)}" ${value === runCache.timelineLevelFilter ? 'selected' : ''}>${this.esc(value)}</option>`).join('')}
             </select>
           </div>
-          ${loadingBlock || errorBlock || emptyBlock || `
+          ${loadingBlock || errorBlock || emptyBlock ||`
             <div class="timeline-table-wrap">
               <div class="timeline-table-scroll">
                 <table class="timeline-table">
@@ -4475,13 +4458,13 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
                       const payload = event.payload && typeof event.payload === 'object' ? event.payload : {};
                       const hasPayload = Object.keys(payload).length > 0;
                       const payloadRows = this.timelinePayloadRows(payload);
-                      return `
+                      return`
                         <tr>
                           <td class="mono">${rangeStart + index}</td>
                           <td>${this.esc(event.created_at ? new Date(event.created_at).toLocaleString('zh-CN') : '-')}</td>
                           <td><span class="badge ${this.timelineEventCategoryBadgeClass(event.event_type)}">${this.esc(this.timelineEventCategoryLabel(event.event_type))}</span></td>
                           <td><span class="badge ${this.timelineEventBadgeClass(event.event_type)}">${this.esc(this.timelineEventTypeLabel(event.event_type))}</span></td>
-                          <td>${event.stage_name ? `<span class="badge badge-running">${this.esc(this.timelineStageLabel(event.stage_name || event.stage_key))}</span>` : '<span class="text-muted">-</span>'}</td>
+                          <td>${event.stage_name ?`<span class="badge badge-running">${this.esc(this.timelineStageLabel(event.stage_name || event.stage_key))}</span>` : '<span class="text-muted">-</span>'}</td>
                           <td><span class="badge ${this.timelineLevelBadgeClass(event.level)}">${this.esc(String(event.level || 'info'))}</span></td>
                           <td title="${this.attr(this.timelineMessageLabel(event))}">${this.esc(this.timelineMessageLabel(event))}</td>
                           <td class="mono" title="${this.attr(this.timelineSourceLabel(event))}">${this.esc(this.timelineSourceLabel(event))}</td>
@@ -4492,24 +4475,20 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
                             </div>
                           </td>
                         </tr>
-                        ${expanded ? `
+                        ${expanded ?`
                           <tr class="timeline-expand-row">
                             <td colspan="9">
-                              ${payloadRows.length ? `
+                              ${payloadRows.length ?`
                                 <div class="timeline-payload-grid">
-                                  ${payloadRows.map((row) => `
+                                  ${payloadRows.map((row) =>`
                                     <div class="timeline-payload-item">
                                       <div class="timeline-payload-item-label">${this.esc(row.label)}</div>
                                       <div class="timeline-payload-item-value">${this.esc(row.value)}</div>
-                                    </div>
-                                  `).join('')}
-                                </div>
-                              ` : '<div class="empty-state">当前事件没有 payload 明细</div>'}
+                                    </div>`).join('')}
+                                </div>` : '<div class="empty-state">当前事件没有 payload 明细</div>'}
                               <pre class="timeline-json">${this.esc(JSON.stringify(payload, null, 2))}</pre>
                             </td>
-                          </tr>
-                        ` : ''}
-                      `;
+                          </tr>` : ''}`;
                     }).join('')}
                   </tbody>
                 </table>
@@ -4519,10 +4498,8 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
               <button class="btn btn-sm" data-action="timeline-prev-page" ${currentPage <= 1 ? 'disabled' : ''}>上一页</button>
               <div class="timeline-summary-pill">第 ${currentPage} / ${pageCount} 页</div>
               <button class="btn btn-sm" data-action="timeline-next-page" ${currentPage >= pageCount ? 'disabled' : ''}>下一页</button>
-            </div>
-          `}
-        </section>
-      `;
+            </div>`}
+        </section>`;
     },
 
     async loadTaskTimeline(runName: string, options?: { force?: boolean }) {
@@ -4622,13 +4599,12 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
         void this.ensureLinkedTaskDetail(data.name);
       }
 
-      const section = (title: string, body: string, subtitle = '') => `
+      const section = (title: string, body: string, subtitle = '') =>`
         <section class="card">
           <div class="card-title">${this.esc(title)}</div>
-          ${subtitle ? `<div class="text-muted" style="margin-top:-6px;margin-bottom:10px;font-size:12px">${this.esc(subtitle)}</div>` : ''}
+          ${subtitle ?`<div class="text-muted" style="margin-top:-6px;margin-bottom:10px;font-size:12px">${this.esc(subtitle)}</div>` : ''}
           ${body}
-        </section>
-      `;
+        </section>`;
 
       const cards: string[] = [];
       const identityRows = [
@@ -4636,8 +4612,8 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
         { label: 'Execution ID', value: this.esc(String(data.linked_execution_id || taskDetail?.latest_execution_id || '-')) },
         { label: 'Run ID', value: this.esc(String(data.run_id || '-')) },
         { label: '任务标题', value: this.esc(String(taskDetail?.title || data.name || '-')) },
-        { label: 'Profile', value: this.esc([String(taskDetail?.profile_id || data.profile_id || '-'), taskDetail?.profile_version ? `v${taskDetail.profile_version}` : ''].filter(Boolean).join(' · ')) },
-        { label: '任务用途', value: `<span class="badge ${taskPurposeBadgeClass}">${this.esc(taskPurposeLabel)}</span>` },
+        { label: 'Profile', value: this.esc([String(taskDetail?.profile_id || data.profile_id || '-'), taskDetail?.profile_version ?`v${taskDetail.profile_version}` : ''].filter(Boolean).join(' · ')) },
+        { label: '任务用途', value:`<span class="badge ${taskPurposeBadgeClass}">${this.esc(taskPurposeLabel)}</span>` },
         { label: '任务来源', value: this.esc(String(taskDetail?.origin_label || taskDetail?.task_origin_type || data.source_type || '-')) },
         { label: '父任务 ID', value: this.esc(String(taskDetail?.parent_task_id || '-')) },
         { label: '父任务类型', value: this.esc(String(taskDetail?.parent_task_type || '-')) },
@@ -4659,21 +4635,20 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
           { label: 'Atomic Work', value: this.renderProjectPathValue(data.atomic_work_path) },
         ])));
         cards.push(section('运行配置 JSON', this.renderJsonDetailsInline('config', data.config, { open: true })));
-        el.innerHTML = `<div style="display:grid;gap:14px">${cards.join('')}</div>`;
+        el.innerHTML =`<div style="display:grid;gap:14px">${cards.join('')}</div>`;
         return;
       }
 
       if (!taskDetail) {
         const loadingOrError = taskDetailError
-          ? `
+          ?`
             <div class="empty-state text-error">${this.esc(taskDetailError)}</div>
             <div style="margin-top:12px">
               <button class="btn btn-sm" type="button" data-action="retry-task-config">重新读取任务配置</button>
-            </div>
-          `
+            </div>`
           : '<div class="empty-state">正在读取关联任务详情，稍后会在此展示输入目录、输出目录、运行参数和原始配置。</div>';
         cards.push(section('任务配置详情', loadingOrError));
-        el.innerHTML = `<div style="display:grid;gap:14px">${cards.join('')}</div>`;
+        el.innerHTML =`<div style="display:grid;gap:14px">${cards.join('')}</div>`;
         return;
       }
 
@@ -4712,7 +4687,7 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
         {
           label: '数据流文件清单',
           value: dataFlowFiles.length
-            ? `<div>${this.esc(String(dataFlowFiles.length))} 个文件</div>${this.renderJsonDetailsInline('查看文件列表', dataFlowFiles)}`
+            ?`<div>${this.esc(String(dataFlowFiles.length))} 个文件</div>${this.renderJsonDetailsInline('查看文件列表', dataFlowFiles)}`
             : '<span class="text-muted">未记录</span>',
         },
       ];
@@ -4747,7 +4722,7 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
       cards.push(section(
         'Agent 状态目录',
         agentStateDirs.length
-          ? `<div style="overflow:auto"><table style="width:100%;min-width:760px;border-collapse:collapse;font-size:12px">
+          ?`<div style="overflow:auto"><table style="width:100%;min-width:760px;border-collapse:collapse;font-size:12px">
               <thead>
                 <tr style="background:rgba(148,163,184,0.08);text-align:left">
                   <th style="padding:8px 10px;border-bottom:1px solid rgba(148,163,184,0.18)">Agent</th>
@@ -4758,15 +4733,14 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
                 </tr>
               </thead>
               <tbody>
-                ${agentStateDirs.map((item: any) => `
+                ${agentStateDirs.map((item: any) =>`
                   <tr>
                     <td style="padding:8px 10px;border-bottom:1px solid rgba(148,163,184,0.12);font-family:var(--mono);font-weight:700">${this.esc(String(item?.agent_id || '-'))}</td>
                     <td style="padding:8px 10px;border-bottom:1px solid rgba(148,163,184,0.12);font-family:var(--mono)">${this.esc(String(item?.root_dir || '-'))}</td>
                     <td style="padding:8px 10px;border-bottom:1px solid rgba(148,163,184,0.12);font-family:var(--mono)">${this.esc(String(item?.skills_dir || '-'))}</td>
                     <td style="padding:8px 10px;border-bottom:1px solid rgba(148,163,184,0.12);font-family:var(--mono)">${this.esc(String(item?.memory_dir || '-'))}</td>
                     <td style="padding:8px 10px;border-bottom:1px solid rgba(148,163,184,0.12)">${this.esc(String(item?.source || 'shared_default'))}</td>
-                  </tr>
-                `).join('')}
+                  </tr>`).join('')}
               </tbody>
             </table></div>`
           : '<div class="empty-state">当前任务未返回 agent 状态目录信息。</div>',
@@ -4775,7 +4749,7 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
       cards.push(section(
         '执行尝试记录',
         attempts.length
-          ? `<div style="overflow:auto"><table style="width:100%;min-width:960px;border-collapse:collapse;font-size:12px">
+          ?`<div style="overflow:auto"><table style="width:100%;min-width:960px;border-collapse:collapse;font-size:12px">
               <thead>
                 <tr style="background:rgba(148,163,184,0.08);text-align:left">
                   <th style="padding:8px 10px;border-bottom:1px solid rgba(148,163,184,0.18)">Attempt</th>
@@ -4787,7 +4761,7 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
                 </tr>
               </thead>
               <tbody>
-                ${attempts.map((item: any) => `
+                ${attempts.map((item: any) =>`
                   <tr>
                     <td style="padding:8px 10px;border-bottom:1px solid rgba(148,163,184,0.12);font-weight:700">#${this.esc(String(item?.attempt_no || '-'))}</td>
                     <td style="padding:8px 10px;border-bottom:1px solid rgba(148,163,184,0.12)">${this.statusBadge(String(item?.status || 'unknown'), 'badge-sm')}</td>
@@ -4795,8 +4769,7 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
                     <td style="padding:8px 10px;border-bottom:1px solid rgba(148,163,184,0.12)">${this.esc(String(item?.dispatch_status || '-'))}</td>
                     <td style="padding:8px 10px;border-bottom:1px solid rgba(148,163,184,0.12)">${this.esc(String(item?.process_status || '-'))}</td>
                     <td style="padding:8px 10px;border-bottom:1px solid rgba(148,163,184,0.12);font-family:var(--mono)">${this.esc(String(item?.workspace_root || '-'))}</td>
-                  </tr>
-                `).join('')}
+                  </tr>`).join('')}
               </tbody>
             </table></div>
             ${this.renderJsonDetailsInline('attempts JSON', attempts)}`
@@ -4807,13 +4780,13 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
         '任务原始信息',
         [
           taskDetail.task_markdown
-            ? `<details><summary class="action-link" style="cursor:pointer">查看 task_markdown</summary><pre class="run-command-pre" style="margin-top:8px">${this.esc(taskDetail.task_markdown)}</pre></details>`
+            ?`<details><summary class="action-link" style="cursor:pointer">查看 task_markdown</summary><pre class="run-command-pre" style="margin-top:8px">${this.esc(taskDetail.task_markdown)}</pre></details>`
             : '<div class="text-muted" style="font-size:12px">未记录 task_markdown 内容。</div>',
           this.renderJsonDetailsInline('task_metadata', taskMetadata, { emptyText: '未记录 task_metadata。' }),
         ].join(''),
       ));
 
-      el.innerHTML = `<div style="display:grid;gap:14px">${cards.join('')}</div>`;
+      el.innerHTML =`<div style="display:grid;gap:14px">${cards.join('')}</div>`;
     },
 
     buildTaskInfoCardHtml(data: DataflowFileserverRunOverview, options?: { title?: string }) {
@@ -4843,21 +4816,20 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
         ['Atomic Work', data.atomic_work_path || '-'],
         ['解析时间', data.updated_at || '-'],
       ];
-      return `
+      return`
         <div class="card-title">${this.esc(options?.title || '任务 / Run 信息')}</div>
         <div class="task-state-line">
           <span class="badge ${linked ? 'badge-succeeded' : 'badge-warning'}">${linked ? '已关联任务记录' : '未关联任务记录'}</span>
           <span class="text-muted">${linked ? '当前 Run 已关联任务与执行记录，可以统一使用取消、重试、删除能力。' : '点击“关联任务记录”会创建任务与执行记录并绑定该 Run，不会启动扫描。'}</span>
         </div>
         <div class="task-info-grid">
-          ${rows.map(([label, value]) => `
+          ${rows.map(([label, value]) =>`
             <div class="task-info-row">
               <span class="task-info-label">${this.esc(label)}</span>
               <span class="task-info-value">${this.esc(value)}</span>
-            </div>
-          `).join('')}
+            </div>`).join('')}
         </div>
-        ${linked ? `
+        ${linked ?`
           <div class="run-command-block">
             <div class="run-command-title">
               <span>任务用途</span>
@@ -4868,15 +4840,14 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
                 ? '该任务使用独立的进化目录，可按 agent 固定映射到 skills/ 与 memory/ 子目录。'
                 : '该任务使用项目共享默认目录，每个 agent 使用单独的 skills/ 与 memory/ 子目录。'}
             </div>
-          </div>
-        ` : ''}
-        ${linked ? `
+          </div>` : ''}
+        ${linked ?`
           <div class="run-command-block">
             <div class="run-command-title">
               <span>Agent 状态目录</span>
               <span>${this.esc(String(agentStateDirs.length || 0))} 个 agent</span>
             </div>
-            ${agentStateDirs.length ? `
+            ${agentStateDirs.length ?`
               <div style="overflow:auto;margin-top:10px">
                 <table style="width:100%;min-width:760px;border-collapse:collapse;font-size:12px">
                   <thead>
@@ -4889,24 +4860,20 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
                     </tr>
                   </thead>
                   <tbody>
-                    ${agentStateDirs.map((item: any) => `
+                    ${agentStateDirs.map((item: any) =>`
                       <tr>
                         <td style="padding:8px 10px;border-bottom:1px solid rgba(148,163,184,0.12);font-family:var(--mono);font-weight:700">${this.esc(String(item?.agent_id || '-'))}</td>
                         <td style="padding:8px 10px;border-bottom:1px solid rgba(148,163,184,0.12);font-family:var(--mono)">${this.esc(String(item?.root_dir || '-'))}</td>
                         <td style="padding:8px 10px;border-bottom:1px solid rgba(148,163,184,0.12);font-family:var(--mono)">${this.esc(String(item?.skills_dir || '-'))}</td>
                         <td style="padding:8px 10px;border-bottom:1px solid rgba(148,163,184,0.12);font-family:var(--mono)">${this.esc(String(item?.memory_dir || '-'))}</td>
                         <td style="padding:8px 10px;border-bottom:1px solid rgba(148,163,184,0.12)">${this.esc(String(item?.source || 'shared_default'))}</td>
-                      </tr>
-                    `).join('')}
+                      </tr>`).join('')}
                   </tbody>
                 </table>
-              </div>
-            ` : `
-              <div class="text-muted" style="margin-top:8px;font-size:12px">当前关联任务未返回 agent 状态目录信息。</div>
-            `}
-          </div>
-        ` : ''}
-        ${linked ? `
+              </div>` :`
+              <div class="text-muted" style="margin-top:8px;font-size:12px">当前关联任务未返回 agent 状态目录信息。</div>`}
+          </div>` : ''}
+        ${linked ?`
           <details class="run-command-block">
             <summary class="run-command-title" style="cursor:pointer">
               <span>任务配置</span>
@@ -4923,12 +4890,11 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
                     ['output_dir', JSON.stringify(inputSummary.output_dir || {})],
                     ['data_flow_dir', String(inputSummary.data_flow_dir || '-')],
                     ['data_flow_files', Array.isArray(inputSummary.data_flow_files) ? String(inputSummary.data_flow_files.length) : '-'],
-                  ].map(([label, value]) => `
+                  ].map(([label, value]) =>`
                     <div class="task-info-row">
                       <span class="task-info-label">${this.esc(label)}</span>
                       <span class="task-info-value" style="white-space:pre-wrap;word-break:break-word">${this.esc(value)}</span>
-                    </div>
-                  `).join('')}
+                    </div>`).join('')}
                 </div>
               </div>
               <div>
@@ -4940,12 +4906,11 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
                     ['workspace_root', String(linkedTaskDetail?.workspace_root || outputSummary.workspace_root || '-')],
                     ['output_root', String(outputSummary.output_root || '-')],
                     ['atomic_work_path', String(outputSummary.atomic_work_path || '-')],
-                  ].map(([label, value]) => `
+                  ].map(([label, value]) =>`
                     <div class="task-info-row">
                       <span class="task-info-label">${this.esc(label)}</span>
                       <span class="task-info-value" style="white-space:pre-wrap;word-break:break-word">${this.esc(value)}</span>
-                    </div>
-                  `).join('')}
+                    </div>`).join('')}
                 </div>
               </div>
               <div>
@@ -4957,33 +4922,28 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
                 }, null, 2))}</pre>
               </div>
             </div>
-          </details>
-        ` : ''}
-        ${commandDisplay ? `
+          </details>` : ''}
+        ${commandDisplay ?`
           <div class="run-command-block">
             <div class="run-command-title">
               <span>Pod 执行命令</span>
               <span>${this.esc(data.linked_execution_id || data.name || '')}</span>
             </div>
             <pre class="run-command-pre">${this.esc(commandDisplay)}</pre>
-          </div>
-        ` : `
+          </div>` :`
           <div class="run-command-block">
             <div class="run-command-title">Pod 执行命令</div>
             <div class="text-muted" style="margin-top:8px;font-size:12px">任务开始运行并产生 execution_started 事件后会显示完整命令。</div>
-          </div>
-        `}
-        ${retryCommandDisplay ? `
+          </div>`}
+        ${retryCommandDisplay ?`
           <div class="run-command-block">
             <div class="run-command-title">
               <span>重试 Run 命令</span>
               <span>${this.esc(data.linked_execution_id || data.name || '')}</span>
             </div>
             <pre class="run-command-pre">${this.esc(retryCommandDisplay)}</pre>
-          </div>
-        ` : ''}
-        ${this.taskActionButtons(data)}
-      `;
+          </div>` : ''}
+        ${this.taskActionButtons(data)}`;
     },
 
     renderTaskInfo(data: DataflowFileserverRunOverview) {
@@ -5026,16 +4986,15 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
         const item = m[key] || {};
         const cls = item.exists ? 'text-success' : 'text-muted';
         return item.exists
-          ? `<span class="action-link" data-action="open-file" data-run="${this.attr(this.currentRun)}" data-path="${this.attr(item.path)}">${label}</span>`
-          : `<span class="${cls}">${label}: 缺失</span>`;
+          ?`<span class="action-link" data-action="open-file" data-run="${this.attr(this.currentRun)}" data-path="${this.attr(item.path)}">${label}</span>`
+          :`<span class="${cls}">${label}: 缺失</span>`;
       }).join('');
 
-      const secondaryPills = [
-        `<span class="score-pill ${falsePositiveCount > 0 ? 'mid' : ''}">误报 ${falsePositiveCount}</span>`,
-        supplementalCount > 0 ? `<span class="score-pill">补充产物 ${supplementalCount}</span>` : '',
+      const secondaryPills = [`<span class="score-pill ${falsePositiveCount > 0 ? 'mid' : ''}">误报 ${falsePositiveCount}</span>`,
+        supplementalCount > 0 ?`<span class="score-pill">补充产物 ${supplementalCount}</span>` : '',
       ].filter(Boolean).join('');
 
-      el.innerHTML = `
+      el.innerHTML =`
       <div class="card-title">漏洞结果概况</div>
       <div class="manifest-grid">
         <div><span class="metric-num">${totalDiscovered}</span><span class="text-muted">累计发现</span></div>
@@ -5044,8 +5003,7 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
         <div><span class="metric-num">${pendingReviewCount}</span><span class="text-muted">待评审</span></div>
       </div>
       <div class="manifest-links">${manifestLinks}</div>
-      ${secondaryPills ? `<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px">${secondaryPills}</div>` : ''}
-    `;
+      ${secondaryPills ?`<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px">${secondaryPills}</div>` : ''}`;
     },
 
     renderScoreChart(cycles: Record<string, any>[]) {
@@ -5062,15 +5020,15 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
       const n = cycles.length;
       const xStep = n > 1 ? chartW / (n - 1) : chartW;
 
-      let svg = `<svg viewBox="0 0 ${W} ${H}" style="width:100%;max-width:${W}px">`;
+      let svg =`<svg viewBox="0 0 ${W} ${H}" style="width:100%;max-width:${W}px">`;
       for (let v = 0; v <= 1; v += 0.25) {
         const y = PADT + chartH * (1 - v);
-        svg += `<line x1="${PAD}" y1="${y}" x2="${W-PADR}" y2="${y}" stroke="#3b4261" stroke-width="0.5"/>`;
-        svg += `<text x="${PAD-4}" y="${y+4}" text-anchor="end" fill="#565f89" font-size="10">${v.toFixed(2)}</text>`;
+        svg +=`<line x1="${PAD}" y1="${y}" x2="${W-PADR}" y2="${y}" stroke="#3b4261" stroke-width="0.5"/>`;
+        svg +=`<text x="${PAD-4}" y="${y+4}" text-anchor="end" fill="#565f89" font-size="10">${v.toFixed(2)}</text>`;
       }
       cycles.forEach((c: any, i: number) => {
         const x = PAD + (n > 1 ? i * xStep : chartW / 2);
-        svg += `<text x="${x}" y="${H-6}" text-anchor="middle" fill="#565f89" font-size="10">C${c.cycle}</text>`;
+        svg +=`<text x="${x}" y="${H-6}" text-anchor="middle" fill="#565f89" font-size="10">C${c.cycle}</text>`;
       });
       scoreKeys.forEach((key: any, ki: number) => {
         const color = colors[ki % colors.length];
@@ -5078,25 +5036,22 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
           const x = PAD + (n > 1 ? i * xStep : chartW / 2);
           const v = Number(c.scores?.[key] ?? 0);
           const y = PADT + chartH * (1 - v);
-          return `${x},${y}`;
+          return`${x},${y}`;
         });
-        svg += `<polyline points="${points.join(' ')}" fill="none" stroke="${color}" stroke-width="2" stroke-linejoin="round"/>`;
+        svg +=`<polyline points="${points.join(' ')}" fill="none" stroke="${color}" stroke-width="2" stroke-linejoin="round"/>`;
         cycles.forEach((c: any, i: number) => {
           const x = PAD + (n > 1 ? i * xStep : chartW / 2);
           const v = Number(c.scores?.[key] ?? 0);
           const y = PADT + chartH * (1 - v);
-          svg += `<circle cx="${x}" cy="${y}" r="3" fill="${color}"><title>${key}: ${v.toFixed(2)} (Cycle ${c.cycle})</title></circle>`;
+          svg +=`<circle cx="${x}" cy="${y}" r="3" fill="${color}"><title>${key}: ${v.toFixed(2)} (Cycle ${c.cycle})</title></circle>`;
         });
       });
       svg += '</svg>';
 
-      const legend = scoreKeys.map((key: any, ki: number) =>
-        `<span style="display:inline-flex;align-items:center;gap:4px;margin-right:12px;font-size:11px">` +
-        `<span style="width:10px;height:3px;background:${colors[ki % colors.length]};border-radius:2px;display:inline-block"></span>` +
-        `${this.esc(key)}</span>`
+      const legend = scoreKeys.map((key: any, ki: number) =>`<span style="display:inline-flex;align-items:center;gap:4px;margin-right:12px;font-size:11px">` +`<span style="width:10px;height:3px;background:${colors[ki % colors.length]};border-radius:2px;display:inline-block"></span>` +`${this.esc(key)}</span>`
       ).join('');
 
-      el.innerHTML = `<div class="card-title">分数趋势</div><div class="score-chart">${svg}</div><div style="margin-top:8px">${legend}</div>`;
+      el.innerHTML =`<div class="card-title">分数趋势</div><div class="score-chart">${svg}</div><div style="margin-top:8px">${legend}</div>`;
     },
 
     renderVulnerabilityTrendCard(cycles: Record<string, any>[]) {
@@ -5133,38 +5088,34 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
       const n = trend.length;
       const xStep = n > 1 ? chartW / (n - 1) : chartW;
 
-      let svg = `<svg viewBox="0 0 ${W} ${H}" style="width:100%;max-width:${W}px">`;
+      let svg =`<svg viewBox="0 0 ${W} ${H}" style="width:100%;max-width:${W}px">`;
       tickValues.forEach((tick) => {
         const y = PADT + chartH * (1 - tick / scaleMax);
-        svg += `<line x1="${PAD}" y1="${y}" x2="${W-PADR}" y2="${y}" stroke="#3b4261" stroke-width="0.5"/>`;
-        svg += `<text x="${PAD-4}" y="${y+4}" text-anchor="end" fill="#565f89" font-size="10">${tick}</text>`;
+        svg +=`<line x1="${PAD}" y1="${y}" x2="${W-PADR}" y2="${y}" stroke="#3b4261" stroke-width="0.5"/>`;
+        svg +=`<text x="${PAD-4}" y="${y+4}" text-anchor="end" fill="#565f89" font-size="10">${tick}</text>`;
       });
       trend.forEach((item, i) => {
         const x = PAD + (n > 1 ? i * xStep : chartW / 2);
-        svg += `<text x="${x}" y="${H-6}" text-anchor="middle" fill="#565f89" font-size="10">C${item.cycle}</text>`;
+        svg +=`<text x="${x}" y="${H-6}" text-anchor="middle" fill="#565f89" font-size="10">C${item.cycle}</text>`;
       });
       const points = trend.map((item, i) => {
         const x = PAD + (n > 1 ? i * xStep : chartW / 2);
         const y = PADT + chartH * (1 - item.cumulative / scaleMax);
         return { ...item, x, y };
       });
-      svg += `<polyline points="${points.map((item) => `${item.x},${item.y}`).join(' ')}" fill="none" stroke="${lineColor}" stroke-width="2" stroke-linejoin="round"/>`;
+      svg +=`<polyline points="${points.map((item) =>`${item.x},${item.y}`).join(' ')}" fill="none" stroke="${lineColor}" stroke-width="2" stroke-linejoin="round"/>`;
       points.forEach((item) => {
-        svg += `<circle cx="${item.x}" cy="${item.y}" r="3" fill="${lineColor}"><title>累计 ${item.cumulative} · 本轮新增 ${item.newCount} (Cycle ${item.cycle})</title></circle>`;
+        svg +=`<circle cx="${item.x}" cy="${item.y}" r="3" fill="${lineColor}"><title>累计 ${item.cumulative} · 本轮新增 ${item.newCount} (Cycle ${item.cycle})</title></circle>`;
       });
       svg += '</svg>';
 
       const latest = trend[trend.length - 1] || { cumulative: 0, newCount: 0, cycle: 0 };
       const activeCycles = trend.filter((item) => item.newCount > 0).length;
-      const summary = [
-        `<span style="display:inline-flex;align-items:center;gap:4px;margin-right:12px;font-size:11px"><span style="width:10px;height:3px;background:${lineColor};border-radius:2px;display:inline-block"></span>累计发现数</span>`,
-        `<span class="score-pill ${latest.cumulative > 0 ? 'high' : ''}">累计 ${latest.cumulative}</span>`,
-        `<span class="score-pill ${latest.newCount > 0 ? 'high' : ''}">本轮 +${latest.newCount}</span>`,
-        `<span class="score-pill">${activeCycles} 轮有新增</span>`,
+      const summary = [`<span style="display:inline-flex;align-items:center;gap:4px;margin-right:12px;font-size:11px"><span style="width:10px;height:3px;background:${lineColor};border-radius:2px;display:inline-block"></span>累计发现数</span>`,`<span class="score-pill ${latest.cumulative > 0 ? 'high' : ''}">累计 ${latest.cumulative}</span>`,`<span class="score-pill ${latest.newCount > 0 ? 'high' : ''}">本轮 +${latest.newCount}</span>`,`<span class="score-pill">${activeCycles} 轮有新增</span>`,
       ].join('');
-      const perCycle = trend.map((item) => `<span class="score-pill ${item.newCount > 0 ? 'high' : ''}" title="Cycle ${item.cycle} 新增 ${item.newCount}">C${item.cycle} +${item.newCount}</span>`).join('');
+      const perCycle = trend.map((item) =>`<span class="score-pill ${item.newCount > 0 ? 'high' : ''}" title="Cycle ${item.cycle} 新增 ${item.newCount}">C${item.cycle} +${item.newCount}</span>`).join('');
 
-      el.innerHTML = `<div class="card-title">漏洞发现总数趋势</div><div class="score-chart">${svg}</div><div style="margin-top:8px">${summary}</div>${perCycle ? `<div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:8px">${perCycle}</div>` : ''}`;
+      el.innerHTML =`<div class="card-title">漏洞发现总数趋势</div><div class="score-chart">${svg}</div><div style="margin-top:8px">${summary}</div>${perCycle ?`<div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:8px">${perCycle}</div>` : ''}`;
     },
 
 
@@ -5177,10 +5128,10 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
         const scorePills = Object.entries(c.scores || {}).map(([k, v]) => {
           const num = Number(v || 0);
           const cls = num >= 0.9 ? 'high' : num >= 0.7 ? 'mid' : 'low';
-          return `<span class="score-pill ${cls}" title="${this.esc(k)}">${this.esc(k.substring(0, 18))}: ${num.toFixed(2)}</span>`;
+          return`<span class="score-pill ${cls}" title="${this.esc(k)}">${this.esc(k.substring(0, 18))}: ${num.toFixed(2)}</span>`;
         }).join('');
-        const scope = c.global_failure_scope ? `<span class="score-pill low" title="当前卡点">卡点: ${this.esc(c.global_failure_scope)}</span>` : '';
-        return `
+        const scope = c.global_failure_scope ?`<span class="score-pill low" title="当前卡点">卡点: ${this.esc(c.global_failure_scope)}</span>` : '';
+        return`
         <div class="cycle-row">
           <div class="cycle-num">第 ${c.cycle} 轮</div>
           <div class="cycle-outcome">${this.outcomeBadge(c.outcome)}</div>
@@ -5189,7 +5140,7 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
         </div>`;
       }).join('');
 
-      el.innerHTML = `<div class="card-title">评审轮次概况</div>${rows}`;
+      el.innerHTML =`<div class="card-title">评审轮次概况</div>${rows}`;
     },
 
     renderCycles(data: DataflowFileserverRunOverview) {
@@ -5198,19 +5149,18 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
       const cycles = data.cycles || [];
       if (!cycles.length) { el.innerHTML = '<div class="empty-state">暂无轮次数据</div>'; return; }
 
-      el.innerHTML = cycles.map((c: any) => `
+      el.innerHTML = cycles.map((c: any) =>`
       <div class="accordion-header" data-action="toggle-cycle" data-run="${this.attr(data.name)}" data-cycle="${this.attr(c.cycle)}">
         <span class="arrow">▶</span>
         <span style="font-weight:600">Cycle ${c.cycle}</span>
         ${this.outcomeBadge(c.outcome)}
         <span class="text-muted" style="margin-left:auto;font-size:12px">
-          Global: ${c.global_passed ? '✅' : '❌'}${c.global_failure_scope ? `/${this.esc(c.global_failure_scope)}` : ''} · Results: ${c.result_passed}/${c.result_total} · Removed: ${c.historical_removed_result_count || 0} · Issues: ${c.issue_count ?? 0}
+          Global: ${c.global_passed ? '✅' : '❌'}${c.global_failure_scope ?`/${this.esc(c.global_failure_scope)}` : ''} · Results: ${c.result_passed}/${c.result_total} · Removed: ${c.historical_removed_result_count || 0} · Issues: ${c.issue_count ?? 0}
         </span>
       </div>
       <div class="accordion-body" id="cycle-body-${c.cycle}">
         <div class="text-muted">加载中...</div>
-      </div>
-    `).join('');
+      </div>`).join('');
     },
 
     async loadCycleDetail(name: string, cycle: number, force = false) {
@@ -5258,7 +5208,7 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
 
       if (data.metrics && Object.keys(data.metrics).length) {
         const m = data.metrics;
-        html += `<div class="cycle-metrics">
+        html +=`<div class="cycle-metrics">
         <span>scope: <strong>${this.esc(m.global_failure_scope || 'n/a')}</strong></span>
         <span>failed: ${m.current_failed_result_count ?? m.failed_result_count ?? 0}</span>
         <span>unreviewed: ${m.unreviewed_new_result_count ?? 0}</span>
@@ -5268,51 +5218,48 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
 
       if ((data.global_reviews || []).length) {
         html += '<div class="card-title">全局评审</div>';
-        html += (data.global_reviews || []).map((r: any) => `
+        html += (data.global_reviews || []).map((r: any) =>`
         <div class="review-card ${r.passed ? 'passed' : 'failed'}">
           <div class="review-header">
             <span class="review-advisor">${this.esc(r.advisor_id)}</span>
             <span class="text-muted">${this.esc(r.role_name)}</span>
             ${this.statusBadge(r.passed ? 'passed' : 'failed', 'badge-sm')}
             ${r.schema_valid === false ? '<span class="badge badge-sm" style="background:rgba(224,175,104,.15);color:#e0af68">schema repair ×' + r.repair_attempts + '</span>' : ''}
-            ${r.parser_mode ? `<span class="badge badge-sm badge-mode">${this.esc(r.parser_mode)}</span>` : ''}
-            ${r.path ? `<span class="action-link" data-action="open-file" data-run="${this.attr(runName)}" data-path="${this.attr(r.path)}">查看 JSON</span>` : ''}
+            ${r.parser_mode ?`<span class="badge badge-sm badge-mode">${this.esc(r.parser_mode)}</span>` : ''}
+            ${r.path ?`<span class="action-link" data-action="open-file" data-run="${this.attr(runName)}" data-path="${this.attr(r.path)}">查看 JSON</span>` : ''}
           </div>
           <div class="review-feedback">${this.esc(r.feedback || r.feedback_detail || '').substring(0, 500)}</div>
           <div class="review-scores">
             ${Object.entries(r.scores || {}).map(([k,v]) => {
               const num = Number(v || 0);
               const cls = num >= 0.9 ? 'high' : num >= 0.7 ? 'mid' : 'low';
-              return `<span class="score-pill ${cls}">${this.esc(k)}: ${num.toFixed(2)}</span>`;
+              return`<span class="score-pill ${cls}">${this.esc(k)}: ${num.toFixed(2)}</span>`;
             }).join('')}
           </div>
-          ${(r.issues || []).length ? `<div class="mt-8">${r.issues.map((b: any) =>
-            `<div class="issue-item"><span class="issue-id">${this.esc(b.id||'')}</span> ${this.esc(b.required_action||b.detail||'')}</div>`
+          ${(r.issues || []).length ?`<div class="mt-8">${r.issues.map((b: any) =>`<div class="issue-item"><span class="issue-id">${this.esc(b.id||'')}</span> ${this.esc(b.required_action||b.detail||'')}</div>`
           ).join('')}</div>` : ''}
-        </div>
-      `).join('');
+        </div>`).join('');
       }
 
       if ((data.result_reviews || []).length) {
         html += '<div class="card-title mt-8">结果评审</div>';
-        html += (data.result_reviews || []).map((r: any) => `
+        html += (data.result_reviews || []).map((r: any) =>`
         <div class="review-card ${r.passed ? 'passed' : 'failed'}">
           <div class="review-header">
             <span class="review-advisor mono">${this.esc(r.result_file)}</span>
             ${this.verdictBadge(r.verdict)}
             <span class="text-muted">conf: ${(r.confidence || 0).toFixed(2)}</span>
             ${r.schema_valid === false ? '<span class="badge badge-sm" style="background:rgba(224,175,104,.15);color:#e0af68">repair ×' + r.repair_attempts + '</span>' : ''}
-            ${r.parser_mode ? `<span class="badge badge-sm badge-mode">${this.esc(r.parser_mode)}</span>` : ''}
-            ${r.path ? `<span class="action-link" data-action="open-file" data-run="${this.attr(runName)}" data-path="${this.attr(r.path)}">查看 JSON</span>` : ''}
+            ${r.parser_mode ?`<span class="badge badge-sm badge-mode">${this.esc(r.parser_mode)}</span>` : ''}
+            ${r.path ?`<span class="action-link" data-action="open-file" data-run="${this.attr(runName)}" data-path="${this.attr(r.path)}">查看 JSON</span>` : ''}
           </div>
           <div class="review-feedback">${this.esc(r.feedback_detail || r.feedback || '').substring(0, 500)}</div>
-        </div>
-      `).join('');
+        </div>`).join('');
       }
 
       if (data.summary_snapshot) {
-        html += `<div class="card-title mt-8">Summary 快照</div>`;
-        html += `<div class="card" style="max-height:300px;overflow-y:auto;font-size:12px">${this.renderMarkdown(data.summary_snapshot).substring(0, 5000)}</div>`;
+        html +=`<div class="card-title mt-8">Summary 快照</div>`;
+        html +=`<div class="card" style="max-height:300px;overflow-y:auto;font-size:12px">${this.renderMarkdown(data.summary_snapshot).substring(0, 5000)}</div>`;
       }
 
       el.innerHTML = html || '<div class="text-muted">无评审数据</div>';
@@ -5330,7 +5277,7 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
       const allSelected = selectableFiles.length > 0 && selected.length === selectableFiles.length;
       const feedback = this._resultReportFeedbackByRun[String(data.name || '')] || null;
       const reportDisabled = this._resultReportBusy || !data.linked_task_id || !data.linked_execution_id;
-      const toolbarHtml = `
+      const toolbarHtml =`
       <div class="result-toolbar">
         <div class="result-toolbar-head">
           <div>
@@ -5352,11 +5299,10 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
           <button class="btn btn-sm" type="button" data-action="report-selected-results" ${reportDisabled || !selected.length ? 'disabled' : ''}>上报已选</button>
           <button class="btn btn-sm" type="button" data-action="report-all-results" ${reportDisabled || !selectableFiles.length ? 'disabled' : ''}>一键上报全部</button>
         </div>
-        ${feedback ? `<div class="result-feedback ${this.attr(feedback.tone)}">${this.esc(feedback.message)}</div>` : ''}
-      </div>
-      `;
+        ${feedback ?`<div class="result-feedback ${this.attr(feedback.tone)}">${this.esc(feedback.message)}</div>` : ''}
+      </div>`;
 
-      const activeHtml = activeResults.map((r: any) => `
+      const activeHtml = activeResults.map((r: any) =>`
       <div class="result-card ${selectedSet.has(String(r.filename || '')) ? 'selected' : ''}" data-action="open-file" data-run="${this.attr(data.name)}" data-path="${this.attr(r.path || ('results/' + r.filename))}">
         <div class="result-select-row">
           <label class="result-select-box" title="选择该问题用于批量上报" onclick="event.stopPropagation()">
@@ -5370,29 +5316,26 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
               ${r.multi_finding ? '<span class="badge badge-sm badge-warning">multi-finding</span>' : ''}
               <span class="result-verdict text-muted">conf: ${(r.confidence || 0).toFixed(2)} · cycle ${r.review_cycle}</span>
               <span class="result-title">${this.esc(r.title || '')}</span>
-              ${r.related_to ? `<span class="text-muted">related: ${this.esc(r.related_to)}</span>` : ''}
-              ${r.review_path ? `<span class="action-link" data-action="open-file" data-run="${this.attr(data.name)}" data-path="${this.attr(r.review_path)}">评审 JSON</span>` : ''}
+              ${r.related_to ?`<span class="text-muted">related: ${this.esc(r.related_to)}</span>` : ''}
+              ${r.review_path ?`<span class="action-link" data-action="open-file" data-run="${this.attr(data.name)}" data-path="${this.attr(r.review_path)}">评审 JSON</span>` : ''}
             </div>
             <div class="review-feedback mt-8">${this.esc(r.feedback_detail || r.feedback || '').substring(0, 260)}</div>
           </div>
         </div>
-      </div>
-    `).join('');
+      </div>`).join('');
 
-      const removedHtml = removedResults.length ? `
+      const removedHtml = removedResults.length ?`
       <div class="card-title mt-8">已迁移/撤回结果</div>
-      ${removedResults.map((r: any) => `
-        <div class="result-card result-card-muted" ${r.path ? `data-action="open-file" data-run="${this.attr(data.name)}" data-path="${this.attr(r.path)}"` : ''}>
+      ${removedResults.map((r: any) =>`
+        <div class="result-card result-card-muted" ${r.path ?`data-action="open-file" data-run="${this.attr(data.name)}" data-path="${this.attr(r.path)}"` : ''}>
           <div class="result-header">
             <span class="result-name">${this.esc(r.filename)}</span>
             <span class="badge badge-sm badge-failed">${this.esc(r.lifecycle_status || 'inactive')}</span>
             <span class="text-muted">cycle ${r.cycle || '-'}</span>
-            ${r.meta_path ? `<span class="action-link" data-action="open-file" data-run="${this.attr(data.name)}" data-path="${this.attr(r.meta_path)}">迁移 JSON</span>` : ''}
+            ${r.meta_path ?`<span class="action-link" data-action="open-file" data-run="${this.attr(data.name)}" data-path="${this.attr(r.meta_path)}">迁移 JSON</span>` : ''}
           </div>
           <div class="review-feedback mt-8">${this.esc(r.reason || '').substring(0, 260)}</div>
-        </div>
-      `).join('')}
-    ` : '';
+        </div>`).join('')}` : '';
 
       el.innerHTML = toolbarHtml + activeHtml + removedHtml;
     },
@@ -5489,7 +5432,7 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
 
     traceCycleLabel(cycle: number) {
       const value = Number(cycle || 0);
-      return value > 0 ? `第 ${String(value).padStart(3, '0')} 轮` : '轮次未知';
+      return value > 0 ?`第 ${String(value).padStart(3, '0')} 轮` : '轮次未知';
     },
 
     traceEpoch(value: any) {
@@ -5549,16 +5492,16 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
 
     traceDurationLabel(timing: Record<string, any> | null | undefined) {
       if (!timing || !timing.hasTiming) return '-';
-      return `${timing.running ? '已运行' : '耗时'} ${this.fmtTraceDuration(Number(timing.seconds || 0))}`;
+      return`${timing.running ? '已运行' : '耗时'} ${this.fmtTraceDuration(Number(timing.seconds || 0))}`;
     },
 
     traceDurationLiveAttrs(timing: Record<string, any> | null | undefined) {
       if (!timing || !timing.running || !timing.startedEpoch) return '';
-      return ` data-live-duration-start="${this.attr(String(timing.startedEpoch))}" data-live-duration-prefix="已运行 "`;
+      return` data-live-duration-start="${this.attr(String(timing.startedEpoch))}" data-live-duration-prefix="已运行"`;
     },
 
     renderTraceDuration(timing: Record<string, any> | null | undefined, className = 'execution-step-duration') {
-      return `<span class="${this.attr(className)}"${this.traceDurationLiveAttrs(timing)}>${this.esc(this.traceDurationLabel(timing))}</span>`;
+      return`<span class="${this.attr(className)}"${this.traceDurationLiveAttrs(timing)}>${this.esc(this.traceDurationLabel(timing))}</span>`;
     },
 
     getRunCycleTimingMap() {
@@ -5628,8 +5571,8 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
       if (normalizedPhase === 'reflect') {
         const promptId = parts[1] || parts[0] || raw;
         const passMatch = raw.match(/pass[_-]?(\d+)/i);
-        const passText = passMatch ? `Pass ${Number(passMatch[1])}` : '自审';
-        return `${passText} · ${promptId}`;
+        const passText = passMatch ?`Pass ${Number(passMatch[1])}` : '自审';
+        return`${passText} · ${promptId}`;
       }
       if (normalizedPhase === 'summary') {
         return 'Summary 汇总与结果写入';
@@ -5637,13 +5580,13 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
       if (normalizedPhase === 'global_review') {
         const advisor = parts[1] || raw.replace(/^global::?/i, '') || String(extra.advisor_instance_id || '');
         const attempt = Number(extra.attempt || 0);
-        return `全局评审 · ${advisor || 'advisor'}${attempt > 1 ? ` · attempt ${attempt}` : ''}`;
+        return`全局评审 · ${advisor || 'advisor'}${attempt > 1 ?` · attempt ${attempt}` : ''}`;
       }
       if (normalizedPhase === 'result_review') {
         const resultFile = parts[1] || String(extra.result_file || '');
         const advisor = parts[2] || String(extra.advisor_instance_id || '');
         const attempt = Number(extra.attempt || 0);
-        return `结果评审 · ${resultFile || 'result'}${advisor ? ` · ${advisor}` : ''}${attempt > 1 ? ` · attempt ${attempt}` : ''}`;
+        return`结果评审 · ${resultFile || 'result'}${advisor ?` · ${advisor}` : ''}${attempt > 1 ?` · attempt ${attempt}` : ''}`;
       }
       return raw.replace(/_/g, ' ');
     },
@@ -5654,20 +5597,20 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
       if (normalizedPhase === 'worker') {
         const match = raw.match(/vuln[_-]?scan[_-]?(.+?)(?:[_-]?cycle|\bcycle|$)/i);
         if (match && match[1]) {
-          return `漏洞挖掘 · ${match[1].replace(/[_-]+$/g, '').replace(/_/g, ' ')}`;
+          return`漏洞挖掘 · ${match[1].replace(/[_-]+$/g, '').replace(/_/g, ' ')}`;
         }
         const turn = Number(call?.turn || 0);
         if (turn === 1) return 'Worker 主分析';
-        if (turn > 1) return `Worker 续写 #${turn}`;
+        if (turn > 1) return`Worker 续写 #${turn}`;
         return '漏洞挖掘主阶段';
       }
       if (normalizedPhase === 'global_review') {
         const match = raw.match(/global[_-]review[_-]cycle[_-]?\d+[_-]?(.+)?$/i);
-        return match && match[1] ? `全局评审 · ${match[1]}` : '全局评审';
+        return match && match[1] ?`全局评审 · ${match[1]}` : '全局评审';
       }
       if (normalizedPhase === 'result_review') {
         const match = raw.match(/result[_-]review[_-]cycle[_-]?\d+[_-]?(.+)?$/i);
-        return match && match[1] ? `结果评审 · ${match[1]}` : '结果评审';
+        return match && match[1] ?`结果评审 · ${match[1]}` : '结果评审';
       }
       if (normalizedPhase === 'summary') return 'Summary 汇总与结果写入';
       if (normalizedPhase === 'reflect') return 'Worker 自审';
@@ -5684,13 +5627,13 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
       const status = String(step.status || 'unknown').toLowerCase();
       const timing = this.traceTiming(step);
       const detailParts = [
-        step.agent_id ? `agent=${step.agent_id}` : '',
-        step.session_id ? `session=${step.session_id}` : '',
-        extra.result_file ? `result=${extra.result_file}` : '',
+        step.agent_id ?`agent=${step.agent_id}` : '',
+        step.session_id ?`session=${step.session_id}` : '',
+        extra.result_file ?`result=${extra.result_file}` : '',
         step.detail ? String(step.detail).slice(0, 120) : '',
       ].filter(Boolean);
       return {
-        id: `checkpoint:${step.path || step.step_key || index}:${status}`,
+        id:`checkpoint:${step.path || step.step_key || index}:${status}`,
         kind: 'checkpoint',
         cycle,
         cycleLabel: this.traceCycleLabel(cycle),
@@ -5720,17 +5663,17 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
     executionTraceItemKey(item: Record<string, any>) {
       const raw = item && typeof item.raw === 'object' ? item.raw : {};
       const nodeId = String(raw.node_id || item.nodeId || '').trim();
-      if (nodeId) return `node:${nodeId}`;
+      if (nodeId) return`node:${nodeId}`;
       const stepKey = String(raw.step_key || item.stepKey || '').trim();
       const cycle = Number(item.cycle || raw.cycle || 0);
       const phase = String(item.phase || raw.phase || '').trim();
       const sessionId = String(item.sessionId || raw.session_id || '').trim();
       const agentId = String(item.agentId || raw.agent_id || '').trim();
       if (cycle > 0 || phase || sessionId || agentId || stepKey) {
-        return `trace:${cycle}:${phase}:${stepKey}:${sessionId}:${agentId}`;
+        return`trace:${cycle}:${phase}:${stepKey}:${sessionId}:${agentId}`;
       }
       const path = String(raw.path || raw.relative_path || item.path || '').trim();
-      if (path) return `path:${path}`;
+      if (path) return`path:${path}`;
       return String(item.id || '').trim();
     },
 
@@ -5789,7 +5732,7 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
       const cycle = this.extractTraceCycle(text);
       const stepLabel = this.inferTraceStepLabel(phase, text);
       return {
-        id: `session:${session.session_id || session.jsonl_path || name}`,
+        id:`session:${session.session_id || session.jsonl_path || name}`,
         kind: 'session',
         cycle,
         cycleLabel: this.traceCycleLabel(cycle),
@@ -5830,9 +5773,9 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
         phase = checkpointMeta.phase;
         stepLabel = checkpointMeta.stepLabel;
       } else if (phase === 'worker') {
-        stepLabel = this.inferTraceStepLabel(phase, `${sessionMeta.detail} ${sessionMeta.sessionId}`, call);
+        stepLabel = this.inferTraceStepLabel(phase,`${sessionMeta.detail} ${sessionMeta.sessionId}`, call);
       } else if (Number(call.turn || 0) > 1 && (phase === 'global_review' || phase === 'result_review')) {
-        stepLabel = `${stepLabel} · schema 修复/续问 #${Number(call.turn || 0)}`;
+        stepLabel =`${stepLabel} · schema 修复/续问 #${Number(call.turn || 0)}`;
       }
       const phaseMeta = this.tracePhaseMeta(phase);
       const cycle = sessionMeta.cycle || this.extractTraceCycle(sessionId, call.call_id, call.call_dir);
@@ -5841,7 +5784,7 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
       const files = call.files && typeof call.files === 'object' ? call.files : {};
       return {
         ...sessionMeta,
-        id: `call:${sessionId}:${call.call_id || call.turn || ''}`,
+        id:`call:${sessionId}:${call.call_id || call.turn || ''}`,
         kind: 'call',
         cycle,
         cycleLabel: this.traceCycleLabel(cycle),
@@ -5937,11 +5880,11 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
       const cycle = Number(item.cycle || 0);
       const phase = String(item.phase || '').trim();
       const agentId = String(item.agentId || '').trim();
-      const cyclePhaseAgentKey = `${cycle}::${phase}::${agentId}`;
+      const cyclePhaseAgentKey =`${cycle}::${phase}::${agentId}`;
       if (cycle > 0 && phase && agentId && indexes.byCyclePhaseAgent.has(cyclePhaseAgentKey)) {
         return indexes.byCyclePhaseAgent.get(cyclePhaseAgentKey) || null;
       }
-      const cyclePhaseKey = `${cycle}::${phase}`;
+      const cyclePhaseKey =`${cycle}::${phase}`;
       if (cycle > 0 && phase && indexes.byCyclePhase.has(cyclePhaseKey)) {
         return indexes.byCyclePhase.get(cyclePhaseKey) || null;
       }
@@ -5959,12 +5902,11 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
       }
       this.ensurePromptPreview(String(runName || ''), primary.path);
       const state = this.promptPreviewState(String(runName || ''), primary.path);
-      const tagsHtml = files.map((file) => `
+      const tagsHtml = files.map((file) =>`
         <button type="button" class="execution-prompt-tag ${this.attr(file.kind)}" data-action="open-file" data-run="${this.attr(runName)}" data-path="${this.attr(file.path)}">
           ${this.esc(file.label)}
-        </button>
-      `).join('');
-      return `
+        </button>`).join('');
+      return`
         <div class="execution-step-prompt">
           <div class="execution-prompt-tags">${tagsHtml}</div>
           <button
@@ -5978,8 +5920,7 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
             <span class="execution-prompt-preview-label">${this.esc(primary.label)} 预览</span>
             <span class="execution-prompt-preview-body${state.loading ? ' loading' : ''}${state.error ? ' error' : ''}" data-prompt-preview-path="${this.attr(primary.path)}">${this.esc(state.text)}</span>
           </button>
-        </div>
-      `;
+        </div>`;
     },
 
     buildExecutionTraceModel(
@@ -6033,10 +5974,10 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
           upsertPromptSource(callIndexes.bySessionId, String(item.sessionId), item);
         }
         if (item.cycle && item.phase && item.agentId) {
-          upsertPromptSource(callIndexes.byCyclePhaseAgent, `${item.cycle}::${item.phase}::${item.agentId}`, item);
+          upsertPromptSource(callIndexes.byCyclePhaseAgent,`${item.cycle}::${item.phase}::${item.agentId}`, item);
         }
         if (item.cycle && item.phase) {
-          upsertPromptSource(callIndexes.byCyclePhase, `${item.cycle}::${item.phase}`, item);
+          upsertPromptSource(callIndexes.byCyclePhase,`${item.cycle}::${item.phase}`, item);
         }
       });
       callIndexes.bySessionCalls.forEach((items, key) => {
@@ -6139,11 +6080,10 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
       const step = compact && meta.stepLabel && meta.stepLabel.length > 28
         ? meta.stepLabel.slice(0, 28) + '...'
         : meta.stepLabel;
-      return `
+      return`
         <span class="trace-mini-badge phase-${this.attr(meta.phaseClass || 'other')}">${this.esc(meta.cycleLabel || '轮次未知')}</span>
         <span class="trace-mini-badge phase-${this.attr(meta.phaseClass || 'other')}">${this.esc(meta.phaseShortLabel || meta.phaseLabel || '阶段未知')}</span>
-        ${step ? `<span class="trace-mini-badge trace-step-mini" title="${this.attr(meta.stepLabel)}">${this.esc(step)}</span>` : ''}
-      `;
+        ${step ?`<span class="trace-mini-badge trace-step-mini" title="${this.attr(meta.stepLabel)}">${this.esc(step)}</span>` : ''}`;
     },
 
     renderExecutionTraceOverview(
@@ -6171,7 +6111,7 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
             const statusClass = String(item.status || 'recorded').replace(/_/g, '-');
             const durationLabel = this.traceDurationLabel(item.timing);
             const title = [item.stepLabel, durationLabel, item.detail, item.timestampLabel].filter(Boolean).join(' · ');
-            return `
+            return`
               <div class="execution-step-pill status-${this.attr(statusClass)} ${isCurrent ? 'current' : ''} ${isLiveCurrent ? 'live' : ''}" title="${this.attr(title)}">
                 <div class="execution-step-head">
                   <div class="execution-step-main">
@@ -6181,10 +6121,9 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
                   ${this.renderTraceDuration(item.timing)}
                 </div>
                 ${this.renderExecutionPromptPreview(item)}
-              </div>
-            `;
+              </div>`;
           }).join('');
-          return `
+          return`
             <div class="execution-phase-lane phase-${this.attr(phaseMeta.cls)}">
               <div class="execution-phase-head">
                 <span>${this.esc(phaseMeta.label)}</span>
@@ -6192,20 +6131,18 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
               </div>
               <div class="execution-step-list">
                 ${pills}
-                ${hiddenCount > 0 ? `<span class="execution-step-more">+${hiddenCount}</span>` : ''}
+                ${hiddenCount > 0 ?`<span class="execution-step-more">+${hiddenCount}</span>` : ''}
               </div>
-            </div>
-          `;
+            </div>`;
         }).join('');
-        return `
+        return`
           <div class="execution-cycle-card">
             <div class="execution-cycle-head">
               <span class="execution-cycle-title">${this.esc(cycle.cycleLabel)} <span class="execution-cycle-duration-separator">·</span> ${this.renderTraceDuration(cycle.timing, 'execution-cycle-duration')}</span>
               <span>${cycle.items.length} 个节点</span>
             </div>
             <div class="execution-phase-stack">${phasesHtml}</div>
-          </div>
-        `;
+          </div>`;
       }).join('');
       const currentDetailRows = current ? [
         { label: '当前轮次', value: current.cycleLabel || '轮次未知' },
@@ -6213,11 +6150,11 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
         { label: '当前步骤', value: current.stepLabel || '-' },
         { label: '节点耗时', html: this.renderTraceDuration(current.timing, 'execution-current-duration') },
         { label: '本轮耗时', html: this.renderTraceDuration(current.cycleTiming, 'execution-current-duration') },
-        { label: '最近调用', value: current.callId ? `turn ${current.turn || '-'} · ${current.callId}` : (current.sessionId || '-') },
+        { label: '最近调用', value: current.callId ?`turn ${current.turn || '-'} · ${current.callId}` : (current.sessionId || '-') },
         { label: 'Agent / 模型', value: [current.agentId, current.model].filter(Boolean).join(' / ') || '-' },
         { label: '最后活动', value: current.timestampLabel || '-' },
       ] : [];
-      return `
+      return`
         <div class="card execution-trace-card">
           <div class="execution-trace-header">
             <div>
@@ -6230,30 +6167,26 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
               <span class="badge badge-${this.attr(String(currentStatus || 'unknown'))}">${this.esc(this.statusLabel(String(currentStatus || 'unknown')))}</span>
             </div>
           </div>
-          ${current ? `
+          ${current ?`
             <div class="execution-current-card phase-${this.attr(current.phaseClass || 'other')} status-${this.attr(currentTone)}">
               <div class="execution-current-beacon">${this.isRunActive() ? '当前执行点' : '最近执行点'}</div>
               <div class="execution-current-main">${this.esc(current.cycleLabel || '轮次未知')} · ${this.esc(current.phaseLabel || '阶段未知')}</div>
               <div class="execution-current-step">${this.esc(current.stepLabel || '-')}</div>
-              ${current.detail ? `<div class="execution-current-detail">${this.esc(current.detail)}</div>` : ''}
+              ${current.detail ?`<div class="execution-current-detail">${this.esc(current.detail)}</div>` : ''}
               <div class="execution-current-grid">
-                ${currentDetailRows.map((row: any) => `
+                ${currentDetailRows.map((row: any) =>`
                   <div class="execution-current-cell">
                     <span>${this.esc(row.label)}</span>
                     <strong>${row.html || this.esc(row.value)}</strong>
-                  </div>
-                `).join('')}
+                  </div>`).join('')}
               </div>
-            </div>
-          ` : ''}
-          ${cycleCards ? `
+            </div>` : ''}
+          ${cycleCards ?`
             <div class="execution-cycle-map">
               <div class="execution-map-title">最近轮次阶段图</div>
               <div class="execution-cycle-grid">${cycleCards}</div>
-            </div>
-          ` : ''}
-        </div>
-      `;
+            </div>` : ''}
+        </div>`;
     },
 
     getSelectedSession() {
@@ -6298,7 +6231,7 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
       if (!safeSessions.length) {
         this.resetSessionBrowser('');
         el.innerHTML = traceHtml
-          ? `<div class="session-content-stack">${traceHtml}<div class="empty-state">暂无会话记录，执行定位会在 checkpoint 或 runtime call 产生后继续更新</div></div>`
+          ?`<div class="session-content-stack">${traceHtml}<div class="empty-state">暂无会话记录，执行定位会在 checkpoint 或 runtime call 产生后继续更新</div></div>`
           : '<div class="empty-state">暂无会话记录</div>';
         return;
       }
@@ -6315,7 +6248,7 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
           const selected = path === selectedPath;
           const warnings = Array.isArray(s.warnings) ? s.warnings : [];
           const executionMeta = this.getSessionExecutionMeta(s);
-          return `
+          return`
             <button class="session-nav-item ${selected ? 'active' : ''}" type="button" data-action="select-session" data-path="${this.attr(path)}">
               <div class="session-nav-title">${this.esc(this.getSessionDisplayName(s))}</div>
               <div class="session-nav-path">${this.esc(path)}</div>
@@ -6327,10 +6260,9 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
                 <span>${this.fmtDate(Number(s.mtime || 0))}</span>
                 ${warnings.length ? '<span class="badge badge-sm badge-warning">解析提示</span>' : ''}
               </div>
-            </button>
-          `;
+            </button>`;
         }).join('');
-        el.innerHTML = `
+        el.innerHTML =`
           <div class="session-content-stack">
             ${traceHtml}
             <div class="session-browser-shell">
@@ -6346,8 +6278,7 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
               </div>
               <div id="sessionViewerPane" class="card session-viewer-pane">${this.renderSessionViewerPane()}</div>
             </div>
-          </div>
-        `;
+          </div>`;
         if (selectedPath && !this.sessionBrowser.loading && !this.sessionBrowser.data) {
           void this.loadSessionIntoBrowser(selectedPath);
         } else if (selectedPath && this.sessionBrowser.data && this.isRunActive()) {
@@ -6363,14 +6294,14 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
       if (callSessions.length) {
         this.resetSessionBrowser('');
         el.innerHTML = traceHtml
-          ? `<div class="session-content-stack">${traceHtml}<div class="empty-state">当前 Run 暂无 JSONL 会话，Prompt 已整合到最近轮次阶段图中。</div></div>`
+          ?`<div class="session-content-stack">${traceHtml}<div class="empty-state">当前 Run 暂无 JSONL 会话，Prompt 已整合到最近轮次阶段图中。</div></div>`
           : '<div class="empty-state">当前 Run 暂无 JSONL 会话记录</div>';
         return;
       }
 
       this.resetSessionBrowser('');
       el.innerHTML = traceHtml
-        ? `<div class="session-content-stack">${traceHtml}<div class="empty-state">暂无会话记录</div></div>`
+        ?`<div class="session-content-stack">${traceHtml}<div class="empty-state">暂无会话记录</div></div>`
         : '<div class="empty-state">暂无会话记录</div>';
     },
 
@@ -6392,7 +6323,7 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
           const switchedSession = effectiveSessionId && effectiveSessionId !== String(s.session_id || '');
           const outputBytes = Number(c.output_total_bytes || c.output_len || 0);
           const stdoutTraceLimit = Number((c.trace_limits || {}).stdout_bytes || 0);
-          const stdoutLimitText = stdoutTraceLimit > 0 ? `stdout trace ${this.fmtSize(stdoutTraceLimit)}` : 'stdout trace limit';
+          const stdoutLimitText = stdoutTraceLimit > 0 ?`stdout trace ${this.fmtSize(stdoutTraceLimit)}` : 'stdout trace limit';
           const attemptTitle = attempts.map((a: any) => {
             const parts = [
               '#' + (a.attempt || '?'),
@@ -6404,17 +6335,17 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
             return parts.join(' · ');
           }).join('\n');
           const retryBadges = [
-            attemptCount > 1 ? `<span class="badge badge-sm badge-mode" title="${this.attr(attemptTitle)}">attempts ×${attemptCount}</span>` : '',
-            restartedAttempts > 0 ? `<span class="badge badge-sm badge-warning">重启 ${restartedAttempts}/${timeoutLimit}</span>` : '',
-            timeoutFailures > 0 && restartedAttempts === 0 ? `<span class="badge badge-sm badge-failed">超时 ${timeoutFailures}</span>` : '',
-            switchedSession ? `<span class="badge badge-sm badge-mode" title="${this.attr(effectiveSessionId)}">新 session</span>` : '',
-            c.stdout_soft_limit_exceeded ? `<span class="badge badge-sm badge-warning" title="${this.attr(stdoutLimitText)}">stdout 截断</span>` : '',
-            c.events_truncated_count > 0 ? `<span class="badge badge-sm badge-warning">events 截断</span>` : '',
+            attemptCount > 1 ?`<span class="badge badge-sm badge-mode" title="${this.attr(attemptTitle)}">attempts ×${attemptCount}</span>` : '',
+            restartedAttempts > 0 ?`<span class="badge badge-sm badge-warning">重启 ${restartedAttempts}/${timeoutLimit}</span>` : '',
+            timeoutFailures > 0 && restartedAttempts === 0 ?`<span class="badge badge-sm badge-failed">超时 ${timeoutFailures}</span>` : '',
+            switchedSession ?`<span class="badge badge-sm badge-mode" title="${this.attr(effectiveSessionId)}">新 session</span>` : '',
+            c.stdout_soft_limit_exceeded ?`<span class="badge badge-sm badge-warning" title="${this.attr(stdoutLimitText)}">stdout 截断</span>` : '',
+            c.events_truncated_count > 0 ?`<span class="badge badge-sm badge-warning">events 截断</span>` : '',
           ].join('');
           const fileActions = Object.entries({user_prompt:'Prompt', system_prompt:'System', response:'Response', stdout:'Stdout', stderr:'Stderr', request:'Req'}).map(([key,label]) =>
-            c.files && c.files[key] ? `<span class="action-link" data-action="open-file" data-run="${this.attr(this.currentRun)}" data-path="${this.attr(c.files[key])}">${label}</span>` : ''
-          ).join('') + (c.files && c.files.stdout_events ? `<span class="action-link" data-action="open-file" data-run="${this.attr(this.currentRun)}" data-path="${this.attr(c.files.stdout_events)}">Events</span>` : '');
-          return `
+            c.files && c.files[key] ?`<span class="action-link" data-action="open-file" data-run="${this.attr(this.currentRun)}" data-path="${this.attr(c.files[key])}">${label}</span>` : ''
+          ).join('') + (c.files && c.files.stdout_events ?`<span class="action-link" data-action="open-file" data-run="${this.attr(this.currentRun)}" data-path="${this.attr(c.files.stdout_events)}">Events</span>` : '');
+          return`
             <div class="call-row">
               <div class="call-head">
                 <div class="call-head-main">
@@ -6433,17 +6364,15 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
                 <span class="call-files-label">Files</span>
                 <div class="file-actions">${fileActions || '<span class="text-muted">无关联文件</span>'}</div>
               </div>
-              ${attemptCount > 1 ? `<div class="call-note" title="${this.attr(attemptTitle)}">timeout/process attempts 已聚合在当前 call，避免与业务 turn 错位</div>` : ''}
-              ${c.error ? `<div class="call-error">${this.esc(c.error).substring(0, 120)}</div>` : ''}
-            </div>
-          `;
+              ${attemptCount > 1 ?`<div class="call-note" title="${this.attr(attemptTitle)}">timeout/process attempts 已聚合在当前 call，避免与业务 turn 错位</div>` : ''}
+              ${c.error ?`<div class="call-error">${this.esc(c.error).substring(0, 120)}</div>` : ''}
+            </div>`;
         }).join('');
-        return `
+        return`
           <div class="session-group">
             <div class="session-name">${this.esc(s.session_id || 'calls')}</div>
             <div class="session-call-list">${callHtml || '<div class="empty-state">暂无 call 记录</div>'}</div>
-          </div>
-        `;
+          </div>`;
       }).join('');
     },
 
@@ -6540,15 +6469,14 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
         return '<div class="empty-state">请选择左侧 JSONL 会话</div>';
       }
       if (this.sessionBrowser.error) {
-        return `
+        return`
           <div class="session-viewer-header">
             <div>
               <div class="card-title">${this.esc(this.getSessionDisplayName(selected))}</div>
               <div class="text-muted" style="font-size:12px;margin-top:4px">${this.esc(path)}</div>
             </div>
           </div>
-          <div class="empty-state text-error">${this.esc(this.sessionBrowser.error)}</div>
-        `;
+          <div class="empty-state text-error">${this.esc(this.sessionBrowser.error)}</div>`;
       }
       if (!this.sessionBrowser.data) {
         return '<div class="empty-state">正在加载会话内容...</div>';
@@ -6600,11 +6528,11 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
       if (explicit) return normalizeProjectPath(explicit);
       const atomic = String(this.currentRunData?.atomic_work_path || '').trim();
       if (!atomic) return '';
-      const absolutePath = `${atomic.replace(/\/+$/, '')}/${String(path || '').replace(/^\/+/, '')}`;
-      const prefix = `/data/files/${projectId}`;
+      const absolutePath =`${atomic.replace(/\/+$/, '')}/${String(path || '').replace(/^\/+/, '')}`;
+      const prefix =`/data/files/${projectId}`;
       if (!absolutePath.startsWith(prefix)) return '';
       const rel = absolutePath.slice(prefix.length).replace(/\/+$/, '');
-      return rel.startsWith('/') ? rel : `/${rel}`;
+      return rel.startsWith('/') ? rel :`/${rel}`;
     },
 
     startSessionLiveWatch(path: string) {
@@ -6625,7 +6553,7 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
         this.renderSessionPaneOnly();
         return;
       }
-      const socketKey = `${this.currentRun || ''}:${path}:${watchPath}`;
+      const socketKey =`${this.currentRun || ''}:${path}:${watchPath}`;
       if (
         this._sessionSocketKey === socketKey &&
         this._sessionSocket &&
@@ -6785,26 +6713,26 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
 
       html += '<div class="session-header-card">';
       html += '<div class="session-viewer-header">';
-      html += `<div><h1>${this.esc(title)}</h1>`;
-      if (selectedPath) html += `<div class="text-muted" style="font-size:12px;word-break:break-all">${this.esc(selectedPath)}</div>`;
+      html +=`<div><h1>${this.esc(title)}</h1>`;
+      if (selectedPath) html +=`<div class="text-muted" style="font-size:12px;word-break:break-all">${this.esc(selectedPath)}</div>`;
       html += '</div>';
       html += '<div class="session-inline-actions">';
       if (options.inline) {
-        html += `<span class="badge badge-sm ${options.live ? 'badge-passed' : 'badge-unknown'} session-live-dot ${options.live ? 'live' : ''}">${options.live ? '实时连接中' : '自动刷新'}</span>`;
-        html += `<button class="btn btn-sm" type="button" data-action="open-session" data-run="${this.attr(runName)}" data-path="${this.attr(selectedPath)}">放大查看</button>`;
+        html +=`<span class="badge badge-sm ${options.live ? 'badge-passed' : 'badge-unknown'} session-live-dot ${options.live ? 'live' : ''}">${options.live ? '实时连接中' : '自动刷新'}</span>`;
+        html +=`<button class="btn btn-sm" type="button" data-action="open-session" data-run="${this.attr(runName)}" data-path="${this.attr(selectedPath)}">放大查看</button>`;
       }
       html += '</div></div>';
       if (options.notice) {
-        html += `<div class="session-warning-list"><div class="session-warning-item">${this.esc(options.notice)}</div></div>`;
+        html +=`<div class="session-warning-list"><div class="session-warning-item">${this.esc(options.notice)}</div></div>`;
       }
       if (warnings.length) {
-        html += `<div class="session-warning-list">${warnings.slice(0, 5).map((warning: any) => `<div class="session-warning-item">${this.esc(warning)}</div>`).join('')}</div>`;
+        html +=`<div class="session-warning-list">${warnings.slice(0, 5).map((warning: any) =>`<div class="session-warning-item">${this.esc(warning)}</div>`).join('')}</div>`;
       }
       html += '<div class="session-header-info">';
-      if (meta.id) html += `<div class="info-item"><span class="info-label">Session ID</span><span class="info-value">${this.esc(meta.id)}</span></div>`;
-      if (meta.timestamp) html += `<div class="info-item"><span class="info-label">Started</span><span class="info-value">${this.esc(meta.timestamp)}</span></div>`;
-      if (meta.cwd) html += `<div class="info-item"><span class="info-label">Working Dir</span><span class="info-value">${this.esc(meta.cwd)}</span></div>`;
-      if (data.line_count) html += `<div class="info-item"><span class="info-label">Lines</span><span class="info-value">${Number(data.line_count || 0)}</span></div>`;
+      if (meta.id) html +=`<div class="info-item"><span class="info-label">Session ID</span><span class="info-value">${this.esc(meta.id)}</span></div>`;
+      if (meta.timestamp) html +=`<div class="info-item"><span class="info-label">Started</span><span class="info-value">${this.esc(meta.timestamp)}</span></div>`;
+      if (meta.cwd) html +=`<div class="info-item"><span class="info-label">Working Dir</span><span class="info-value">${this.esc(meta.cwd)}</span></div>`;
+      if (data.line_count) html +=`<div class="info-item"><span class="info-label">Lines</span><span class="info-value">${Number(data.line_count || 0)}</span></div>`;
       html += '</div></div>';
 
       const msgEvents = events.filter((e: any) => e.type === 'message');
@@ -6814,10 +6742,10 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
       const toolCalls = msgEvents.reduce((n: number, e: any) => n + (e.parts || []).filter((p: any) => p.type === 'toolCall').length, 0);
 
       html += '<div class="session-progress-bar">';
-      html += `<span class="progress-stat"><span class="progress-num">${userMsgs.length}</span>User</span>`;
-      html += `<span class="progress-stat"><span class="progress-num">${assistantMsgs.length}</span>Assistant</span>`;
-      html += `<span class="progress-stat"><span class="progress-num">${toolCalls}</span>Tool Calls</span>`;
-      html += `<span class="progress-stat"><span class="progress-num">${toolResultMsgs.length}</span>Results</span>`;
+      html +=`<span class="progress-stat"><span class="progress-num">${userMsgs.length}</span>User</span>`;
+      html +=`<span class="progress-stat"><span class="progress-num">${assistantMsgs.length}</span>Assistant</span>`;
+      html +=`<span class="progress-stat"><span class="progress-num">${toolCalls}</span>Tool Calls</span>`;
+      html +=`<span class="progress-stat"><span class="progress-num">${toolResultMsgs.length}</span>Results</span>`;
       html += '</div>';
 
       const mergedEvents = this._mergeToolResults(events);
@@ -6826,16 +6754,16 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
       if (!hasModelEvent && (sessionModel || sessionProvider || this.currentRunData?.model || this.currentRunData?.provider)) {
         const modelSource = sessionModel || sessionProvider ? 'Session 配置' : 'Run 配置';
         const modelText = sessionModel
-          ? (sessionProvider && !sessionModel.startsWith(`${sessionProvider}/`) ? `${sessionProvider}/${sessionModel}` : sessionModel)
+          ? (sessionProvider && !sessionModel.startsWith(`${sessionProvider}/`) ?`${sessionProvider}/${sessionModel}` : sessionModel)
           : [this.currentRunData?.provider, this.currentRunData?.model].filter(Boolean).join('/');
-        html += `<div class="model-change-event">Model: <span class="model-name">${this.esc(modelText)}</span> <span class="text-muted">(${modelSource})</span></div>`;
+        html +=`<div class="model-change-event">Model: <span class="model-name">${this.esc(modelText)}</span> <span class="text-muted">(${modelSource})</span></div>`;
       }
       if (!hasThinkingEvent && (sessionThinking || this.currentRunData?.thinking)) {
         const thinkingText = sessionThinking || String(this.currentRunData.thinking || '');
         const thinkingSource = sessionThinking ? 'Session 配置' : 'Run 配置';
         const level = thinkingText.toLowerCase();
         const colorCls = 'thinking-' + (({off:'off',minimal:'minimal',low:'low',medium:'medium',high:'high',xhigh:'xhigh','x-high':'xhigh'} as Record<string, string>)[level] || 'off');
-        html += `<div class="thinking-level-event"><span class="thinking-level-label ${colorCls}">Thinking: ${this.esc(thinkingText)}</span> <span class="text-muted">(${thinkingSource})</span></div>`;
+        html +=`<div class="thinking-level-event"><span class="thinking-level-label ${colorCls}">Thinking: ${this.esc(thinkingText)}</span> <span class="text-muted">(${thinkingSource})</span></div>`;
       }
       html += '<div class="session-message-list">';
 
@@ -6844,14 +6772,14 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
       }
       for (const event of mergedEvents) {
         if (event.type === 'model_change') {
-          html += `<div class="model-change-event">Model: <span class="model-name">${this.esc(event.provider || '')}/${this.esc(event.modelId || '')}</span></div>`;
+          html +=`<div class="model-change-event">Model: <span class="model-name">${this.esc(event.provider || '')}/${this.esc(event.modelId || '')}</span></div>`;
           continue;
         }
 
         if (event.type === 'thinking_level_change') {
           const level = (event.thinkingLevel || '').toLowerCase();
           const colorCls = 'thinking-' + (({off:'off',minimal:'minimal',low:'low',medium:'medium',high:'high','x-high':'xhigh'} as Record<string, string>)[level] || 'off');
-          html += `<div class="thinking-level-event"><span class="thinking-level-label ${colorCls}">Thinking: ${this.esc(event.thinkingLevel || '')}</span></div>`;
+          html +=`<div class="thinking-level-event"><span class="thinking-level-label ${colorCls}">Thinking: ${this.esc(event.thinkingLevel || '')}</span></div>`;
           continue;
         }
         if (event.type === 'message') {
@@ -6859,9 +6787,9 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
           continue;
         }
         if (event.type !== 'raw') {
-          html += `<div class="model-change-event text-muted" style="font-size:10px">[Line ${event.line}] ${this.esc(event.type)}: ${this.esc(event.summary || '').substring(0, 80)}</div>`;
+          html +=`<div class="model-change-event text-muted" style="font-size:10px">[Line ${event.line}] ${this.esc(event.type)}: ${this.esc(event.summary || '').substring(0, 80)}</div>`;
         } else {
-          html += `<div class="model-change-event text-muted" style="font-size:10px">[Line ${event.line}] ${this.esc(event.summary || event.raw_line || '').substring(0, 120)}</div>`;
+          html +=`<div class="model-change-event text-muted" style="font-size:10px">[Line ${event.line}] ${this.esc(event.summary || event.raw_line || '').substring(0, 120)}</div>`;
         }
       }
       html += '</div>';
@@ -6881,21 +6809,21 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
 
       if (role === 'user') {
         const texts = parts.filter((p: any) => p.type === 'text').map((p: any) => p.text).join('\n');
-        return `<div class="user-message">
-        ${timeStr ? `<div class="message-timestamp">${timeStr}</div>` : ''}
+        return`<div class="user-message">
+        ${timeStr ?`<div class="message-timestamp">${timeStr}</div>` : ''}
         <div class="message-text">${this.renderMarkdown(texts)}</div>
       </div>`;
       }
 
       if (role === 'assistant') {
-        let html = `<div class="assistant-message">`;
-        if (timeStr) html += `<div class="message-timestamp">${timeStr}</div>`;
+        let html =`<div class="assistant-message">`;
+        if (timeStr) html +=`<div class="message-timestamp">${timeStr}</div>`;
 
         for (const part of parts) {
           if (part.type === 'thinking') {
             html += this.renderThinkingBlock(part);
           } else if (part.type === 'text') {
-            html += `<div class="assistant-text-content">${this.renderMarkdown(part.text)}</div>`;
+            html +=`<div class="assistant-text-content">${this.renderMarkdown(part.text)}</div>`;
           } else if (part.type === 'toolCall') {
             html += this.renderToolCall(part);
           }
@@ -6914,13 +6842,13 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
         return this.renderToolResultInline(event);
       }
 
-      return `<div class="model-change-event text-muted">[${role}]</div>`;
+      return`<div class="model-change-event text-muted">[${role}]</div>`;
     },
 
     renderThinkingBlock(part: Record<string, any>) {
       const text = part.text || '';
       const uid = 'think_' + Math.random().toString(36).substr(2, 6);
-      return `<div class="thinking-block">
+      return`<div class="thinking-block">
     <button class="thinking-toggle-btn" data-action="toggle-thinking" data-target-id="${uid}" data-expand-label="▼ hide" data-collapse-label="▶ thinking">▶ thinking</button>
     <div id="${uid}" class="thinking-text" style="display:none">${this.esc(text)}</div>
   </div>`;
@@ -6935,15 +6863,15 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
 
       if (name === 'bash' || name === 'shell' || name === 'exec') {
         const cmd = args.command || args.cmd || '';
-        headerHtml = `<span class="tool-name">${this.esc(name)}</span> <span class="tool-command">${this.esc(cmd.substring(0, 200))}</span>`;
+        headerHtml =`<span class="tool-name">${this.esc(name)}</span> <span class="tool-command">${this.esc(cmd.substring(0, 200))}</span>`;
       } else if (name === 'read' || name === 'cat' || name === 'head') {
         const path = args.path || args.file || '';
-        headerHtml = `<span class="tool-name">${this.esc(name)}</span> <span class="tool-path">${this.esc(path)}</span>`;
+        headerHtml =`<span class="tool-name">${this.esc(name)}</span> <span class="tool-path">${this.esc(path)}</span>`;
       } else if (name === 'write' || name === 'edit') {
         const path = args.path || args.file || '';
-        headerHtml = `<span class="tool-name">${this.esc(name)}</span> <span class="tool-path">${this.esc(path)}</span>`;
+        headerHtml =`<span class="tool-name">${this.esc(name)}</span> <span class="tool-path">${this.esc(path)}</span>`;
       } else {
-        headerHtml = `<span class="tool-name">${this.esc(name)}</span>`;
+        headerHtml =`<span class="tool-name">${this.esc(name)}</span>`;
       }
 
       const argsStr = JSON.stringify(args, null, 2);
@@ -6952,7 +6880,7 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
       const displayArgs = truncated ? argsStr.substring(0, maxArgsLen) + '\n...' : argsStr;
       const argsUid = 'args_' + Math.random().toString(36).substr(2, 6);
 
-      return `<div class="tool-execution ${statusCls}">
+      return`<div class="tool-execution ${statusCls}">
     <div class="tool-header">${headerHtml}</div>
     <button class="thinking-toggle-btn" data-action="toggle-tool-args" data-target-id="${argsUid}" data-expand-label="▼ hide args" data-collapse-label="▶ show args">▶ show args</button>
     <div id="${argsUid}" class="tool-output" style="display:none"><pre>${this.esc(displayArgs)}</pre></div>
@@ -6981,11 +6909,11 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
       const uid = 'result_' + Math.random().toString(36).substr(2, 6);
       this._toolResultText[uid] = { preview: preview + (truncated ? '\n\n... truncated' : ''), full: text, expanded: false };
 
-      let html = `<div class="tool-result-message ${statusCls}">`;
-      html += `<div class="tool-result-header">${toolName ? this.esc(toolName) + ' — ' : ''}Output${truncated ? ` (${text.length} bytes)` : ''}</div>`;
-      html += `<div class="tool-result-output" id="${uid}">${this.esc(preview)}${truncated ? '\n\n... truncated' : ''}</div>`;
+      let html =`<div class="tool-result-message ${statusCls}">`;
+      html +=`<div class="tool-result-header">${toolName ? this.esc(toolName) + ' — ' : ''}Output${truncated ?` (${text.length} bytes)` : ''}</div>`;
+      html +=`<div class="tool-result-output" id="${uid}">${this.esc(preview)}${truncated ? '\n\n... truncated' : ''}</div>`;
       if (truncated) {
-        html += `<button class="thinking-toggle-btn" data-action="toggle-tool-result" data-result-id="${uid}">▶ show full</button>`;
+        html +=`<button class="thinking-toggle-btn" data-action="toggle-tool-result" data-result-id="${uid}">▶ show full</button>`;
       }
       html += '</div>';
       return html;
@@ -7211,26 +7139,24 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
       dirs.forEach((dir: any) => {
         const explicit = this.fileBrowser.expandedDirs[dir.path];
         const open = searchActive || (explicit !== undefined ? explicit : level < 1);
-        html += `
+        html +=`
           <button class="file-dir-row ${open ? 'open' : ''}" type="button" data-action="toggle-file-dir" data-dir="${this.attr(dir.path)}" style="--level:${level}">
             <span class="file-dir-arrow">${open ? '▾' : '▸'}</span>
             <span class="file-dir-icon">folder</span>
             <span class="file-dir-name">${this.esc(dir.name)}</span>
-          </button>
-        `;
+          </button>`;
         if (open) html += this.renderFileTreeNode(dir, level + 1, searchActive);
       });
       files.forEach((file: any) => {
         const selected = this.normalizeFilePath(file.path) === this.normalizeFilePath(this.fileBrowser.selectedPath);
         const bucket = this.fileTypeBucket(file);
-        html += `
+        html +=`
           <button class="file-tree-file ${selected ? 'selected' : ''}" type="button" data-action="select-file" data-path="${this.attr(file.path)}" title="${this.attr(file.path)}" style="--level:${level}">
             <span class="file-kind-dot file-kind-${this.attr(bucket)}"></span>
             <span class="file-tree-name">${this.esc(file.name || String(file.path || '').split('/').pop() || file.path)}</span>
             <span class="file-tree-meta">${this.esc(this.fileTypeLabel(bucket))}</span>
             <span class="file-tree-size">${this.fmtSize(Number(file.size || 0))}</span>
-          </button>
-        `;
+          </button>`;
       });
       return html;
     },
@@ -7254,28 +7180,24 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
       const treeHtml = filtered.length
         ? this.renderFileTreeNode(this.buildFileTree(filtered), 0, searchActive)
         : '<div class="file-browser-empty">没有匹配的关键文件</div>';
-      const quickHtml = quickTargets.map((item: any) => item.target ? `
+      const quickHtml = quickTargets.map((item: any) => item.target ?`
         <button class="file-quick-card" type="button" data-action="select-file" data-path="${this.attr(item.target.path)}">
           <span class="file-quick-icon">${this.esc(item.icon)}</span>
           <span class="file-quick-main">${this.esc(item.label)}</span>
-          <span class="file-quick-hint">${this.esc(item.hint)}${item.count > 1 ? ` · ${item.count}` : ''}</span>
-        </button>
-      ` : `
+          <span class="file-quick-hint">${this.esc(item.hint)}${item.count > 1 ?` · ${item.count}` : ''}</span>
+        </button>` :`
         <button class="file-quick-card disabled" type="button" disabled>
           <span class="file-quick-icon">${this.esc(item.icon)}</span>
           <span class="file-quick-main">${this.esc(item.label)}</span>
           <span class="file-quick-hint">未生成</span>
-        </button>
-      `).join('');
-      const categoryOptions = [
-        `<option value="all">全部分类</option>`,
-        ...categories.map((category) => `<option value="${this.attr(category)}" ${this.fileBrowser.categoryFilter === category ? 'selected' : ''}>${this.esc(this.categoryLabel(category))}</option>`),
+        </button>`).join('');
+      const categoryOptions = [`<option value="all">全部分类</option>`,
+        ...categories.map((category) =>`<option value="${this.attr(category)}" ${this.fileBrowser.categoryFilter === category ? 'selected' : ''}>${this.esc(this.categoryLabel(category))}</option>`),
       ].join('');
-      const typeOptions = [
-        `<option value="all">全部类型</option>`,
-        ...types.map((type) => `<option value="${this.attr(type)}" ${this.fileBrowser.typeFilter === type ? 'selected' : ''}>${this.esc(this.fileTypeLabel(type))}</option>`),
+      const typeOptions = [`<option value="all">全部类型</option>`,
+        ...types.map((type) =>`<option value="${this.attr(type)}" ${this.fileBrowser.typeFilter === type ? 'selected' : ''}>${this.esc(this.fileTypeLabel(type))}</option>`),
       ].join('');
-      el.innerHTML = `
+      el.innerHTML =`
       <div class="file-browser-shell">
         <aside class="file-browser-nav">
           <div class="file-browser-titlebar">
@@ -7298,8 +7220,7 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
         <section class="file-preview-pane" id="filePreviewPane">
           ${this.renderFilePreviewShell(selectedFile)}
         </section>
-      </div>
-    `;
+      </div>`;
       if (selectedFile && (
         this.fileBrowser.previewRun !== this.currentRun ||
         this.normalizeFilePath(this.fileBrowser.previewPath) !== this.normalizeFilePath(selectedFile.path)
@@ -7331,20 +7252,19 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
 
     renderFilePreviewShell(file: DataflowFileserverRunFile | null) {
       if (!file) {
-        return `
+        return`
           <div class="file-preview-empty">
             <div class="file-preview-empty-icon">files</div>
             <div class="card-title">选择一个文件</div>
             <p>使用左侧快速入口、目录树或搜索结果来查看 Run 关键产物。</p>
-          </div>
-        `;
+          </div>`;
       }
       const bucket = this.fileTypeBucket(file);
       const isCurrent = this.fileBrowser.previewRun === this.currentRun && this.normalizeFilePath(this.fileBrowser.previewPath) === this.normalizeFilePath(file.path);
       const loading = this.fileBrowser.previewLoading && isCurrent;
       const error = isCurrent ? this.fileBrowser.previewError : '';
       const content = isCurrent ? this.fileBrowser.previewContent : '';
-      return `
+      return`
         <div class="file-preview-header">
           <div class="file-preview-title">
             <span class="file-kind-dot file-kind-${this.attr(bucket)}"></span>
@@ -7354,7 +7274,7 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
             </div>
           </div>
           <div class="file-preview-actions">
-            ${bucket === 'jsonl' ? `<button class="btn btn-sm" type="button" data-action="open-session" data-run="${this.attr(this.currentRun)}" data-path="${this.attr(file.path)}">查看对话</button>` : ''}
+            ${bucket === 'jsonl' ?`<button class="btn btn-sm" type="button" data-action="open-session" data-run="${this.attr(this.currentRun)}" data-path="${this.attr(file.path)}">查看对话</button>` : ''}
             <button class="btn btn-sm" type="button" data-action="preview-file-modal" data-path="${this.attr(file.path)}">放大查看</button>
           </div>
         </div>
@@ -7366,16 +7286,15 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
         </div>
         <div class="file-preview-body">
           ${loading ? '<div class="file-browser-empty">正在加载文件内容...</div>' : ''}
-          ${error ? `<div class="file-browser-empty text-error">${this.esc(error)}</div>` : ''}
+          ${error ?`<div class="file-browser-empty text-error">${this.esc(error)}</div>` : ''}
           ${!loading && !error ? this.renderFilePreviewContent(file, content) : ''}
-        </div>
-      `;
+        </div>`;
     },
 
     renderFilePreviewContent(file: DataflowFileserverRunFile, content: string) {
       const bucket = this.fileTypeBucket(file);
       if (bucket === 'jsonl') {
-        return `
+        return`
           <div class="file-jsonl-hint">
             <div class="file-jsonl-icon">JSONL</div>
             <div>
@@ -7383,18 +7302,17 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
               <p>这个文件更适合使用结构化会话查看器阅读，可以直接跳转到格式化对话。</p>
               <button class="btn btn-sm" type="button" data-action="open-session" data-run="${this.attr(this.currentRun)}" data-path="${this.attr(file.path)}">查看格式化对话</button>
             </div>
-          </div>
-        `;
+          </div>`;
       }
       if (bucket === 'markdown') return this.renderMarkdown(content || '(empty)');
       if (bucket === 'json') {
         try {
-          return `<pre class="file-preview-code">${this.esc(JSON.stringify(JSON.parse(content || '{}'), null, 2))}</pre>`;
+          return`<pre class="file-preview-code">${this.esc(JSON.stringify(JSON.parse(content || '{}'), null, 2))}</pre>`;
         } catch {
-          return `<pre class="file-preview-code">${this.esc(content || '(empty)')}</pre>`;
+          return`<pre class="file-preview-code">${this.esc(content || '(empty)')}</pre>`;
         }
       }
-      return `<pre class="file-preview-code">${this.esc(content || '(empty)')}</pre>`;
+      return`<pre class="file-preview-code">${this.esc(content || '(empty)')}</pre>`;
     },
 
     renderFilePreviewPane() {
@@ -7456,12 +7374,12 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
         ? '当前直接展示 /data 中 run.log 的完整内容，首次加载可能稍慢。'
         : '为保证打开速度，默认只显示 run.log 尾部预览，最多 2000 行。';
       const button = isFull
-        ? `<button class="btn btn-sm" type="button" data-action="show-log-tail">恢复尾部预览</button>`
-        : `<button class="btn btn-sm" type="button" data-action="load-log-full" ${loading === 'full' ? 'disabled' : ''}>${loading === 'full' ? '正在加载全文...' : '加载全文'}</button>`;
+        ?`<button class="btn btn-sm" type="button" data-action="show-log-tail">恢复尾部预览</button>`
+        :`<button class="btn btn-sm" type="button" data-action="load-log-full" ${loading === 'full' ? 'disabled' : ''}>${loading === 'full' ? '正在加载全文...' : '加载全文'}</button>`;
       const error = options?.loadError
-        ? `<div class="log-toolbar-desc text-error">${this.esc(options.loadError)}</div>`
+        ?`<div class="log-toolbar-desc text-error">${this.esc(options.loadError)}</div>`
         : '';
-      toolbar.innerHTML = `
+      toolbar.innerHTML =`
         <div class="log-toolbar-copy">
           <div class="log-toolbar-title">运行日志</div>
           <div class="log-toolbar-desc">${this.esc(description)}</div>
@@ -7470,8 +7388,7 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
         <div class="log-toolbar-actions">
           <span class="log-mode-badge ${isFull ? 'full' : ''}">${this.esc(title)}</span>
           ${button}
-        </div>
-      `;
+        </div>`;
     },
 
     async loadLog(force = false) {
@@ -7544,7 +7461,7 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
 
     switchTab(tab: string, force = false) {
       this.$all('.tab').forEach((t: HTMLElement) => t.classList.toggle('active', t.dataset.tab === tab));
-      this.$all('.tab-content').forEach((t: HTMLElement) => t.classList.toggle('active', t.id === `tab${tab.charAt(0).toUpperCase() + tab.slice(1)}`));
+      this.$all('.tab-content').forEach((t: HTMLElement) => t.classList.toggle('active', t.id ===`tab${tab.charAt(0).toUpperCase() + tab.slice(1)}`));
       if (tab !== 'sessions') this.closeSessionSocket();
       if (tab === 'cycles' && this.currentRunData) void this.preloadAllCycleDetails(this.currentRunData.name, this.currentRunData, force);
       if (tab === 'task-config' && this.currentRunData) {
@@ -7574,7 +7491,7 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
         if (!body) return;
         if (data.type === 'jsonl') {
           if (mc) mc.style.maxWidth = '1100px';
-          body.innerHTML = `<div style="text-align:center;padding:20px">
+          body.innerHTML =`<div style="text-align:center;padding:20px">
           <p>这是一个会话记录文件 (.jsonl)</p>
           <button class="btn" style="margin-top:12px" data-action="open-session" data-run="${this.attr(runName)}" data-path="${this.attr(path)}">查看格式化对话</button>
         </div>`;
@@ -7582,10 +7499,10 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
           body.innerHTML = this.renderMarkdown(data.content);
         } else if (data.type === 'json') {
           try {
-            body.innerHTML = `<pre>${this.esc(JSON.stringify(JSON.parse(data.content), null, 2))}</pre>`;
-          } catch { body.innerHTML = `<pre>${this.esc(data.content)}</pre>`; }
+            body.innerHTML =`<pre>${this.esc(JSON.stringify(JSON.parse(data.content), null, 2))}</pre>`;
+          } catch { body.innerHTML =`<pre>${this.esc(data.content)}</pre>`; }
         } else {
-          body.innerHTML = `<pre>${this.esc(data.content)}</pre>`;
+          body.innerHTML =`<pre>${this.esc(data.content)}</pre>`;
         }
         modal?.classList.add('open');
       } catch (e) { console.error('openFile failed', e); }
@@ -7629,9 +7546,9 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
       const h = Math.floor(seconds / 3600);
       const m = Math.floor((seconds % 3600) / 60);
       const s = seconds % 60;
-      if (h > 0) return `${h}h ${m}m ${s}s`;
-      if (m > 0) return `${m}m ${s}s`;
-      return `${s}s`;
+      if (h > 0) return`${h}h ${m}m ${s}s`;
+      if (m > 0) return`${m}m ${s}s`;
+      return`${s}s`;
     },
 
 	    _estimateDuration(data: any) {
@@ -7754,17 +7671,10 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
       const targetKind = target.node_kind || '-';
       const policy = preflight.node_resume_policy || 'rerun_current_node';
       const commandDisplay = String(preflight.command_display || '').trim();
-      const confirmLines = [
-        `确认重试 Run ${this.currentRun}？`,
+      const confirmLines = [`确认重试 Run ${this.currentRun}？`,
         '',
-        '后端将执行结点级断点续跑，而不是从头开始：',
-        `- 恢复结点：Cycle ${targetCycle} / ${targetPhase} / ${targetStep}`,
-        `- 结点类型：${targetKind}`,
-        `- 策略：${policy === 'rerun_current_node' ? '重跑当前未完成结点，跳过此前已完成结点' : policy}`,
-        `- 已完成轮次：${preflight.completed_cycles ?? '-'}`,
-        `- 追加轮次：${extraCycles}`,
-        `- 总轮次上限：${preflight.resume_total_cycle_limit ?? '-'}`,
-        commandDisplay ? `- 命令：${commandDisplay}` : '',
+        '后端将执行结点级断点续跑，而不是从头开始：',`- 恢复结点：Cycle ${targetCycle} / ${targetPhase} / ${targetStep}`,`- 结点类型：${targetKind}`,`- 策略：${policy === 'rerun_current_node' ? '重跑当前未完成结点，跳过此前已完成结点' : policy}`,`- 已完成轮次：${preflight.completed_cycles ?? '-'}`,`- 追加轮次：${extraCycles}`,`- 总轮次上限：${preflight.resume_total_cycle_limit ?? '-'}`,
+        commandDisplay ?`- 命令：${commandDisplay}` : '',
       ].filter(Boolean);
       if (!window.confirm(confirmLines.join('\n'))) return;
       this.setMutationBusy('retry');
@@ -7772,7 +7682,7 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
         const result = await retryDataflowFileserverRun(projectId, this.runsRootPath, this.currentRun, { extra_cycles: extraCycles });
         const resultPreflight = result.resume_preflight || preflight;
         const resultTarget = resultPreflight.resume_target_node || target;
-        alert(result.message || `重试已提交，将从 ${resultTarget.phase || targetPhase}/${resultTarget.step_key || targetStep} 继续`);
+        alert(result.message ||`重试已提交，将从 ${resultTarget.phase || targetPhase}/${resultTarget.step_key || targetStep} 继续`);
         await this.reloadCurrentRunAfterMutation();
       } catch (error: any) {
         alert(error?.message || '重试 Run 失败');
@@ -7873,7 +7783,7 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
     statusBadge(status: string, extra = '') {
       const s = String(status || 'unknown').toLowerCase();
       const label = this.statusLabel(s);
-      return `<span class="badge badge-${s} ${extra}">${label}</span>`;
+      return`<span class="badge badge-${s} ${extra}">${label}</span>`;
     },
 
     reviewProfileLabel(profile: string) {
@@ -7885,7 +7795,7 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
         audit: '审计档',
         strict: '审计档',
       } as Record<string, string>)[normalized];
-      return label || (raw ? `档位 ${raw}` : '档位未解析');
+      return label || (raw ?`档位 ${raw}` : '档位未解析');
     },
 
     outcomeBadge(outcome: string) {
@@ -7898,7 +7808,7 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
         summary_incomplete: { cls: 'failed', label: 'Summary 未收敛' },
       };
       const m = map[outcome] || { cls: 'unknown', label: outcome || '?' };
-      return `<span class="badge badge-${m.cls} badge-sm">${m.label}</span>`;
+      return`<span class="badge badge-${m.cls} badge-sm">${m.label}</span>`;
     },
 
     verdictBadge(verdict: string) {
@@ -7911,7 +7821,7 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
         INSUFFICIENT_INFO: { cls: 'pending', label: 'INSUFFICIENT' },
       };
       const m = map[v] || { cls: 'unknown', label: v || '-' };
-      return `<span class="badge badge-${m.cls} badge-sm">${m.label}</span>`;
+      return`<span class="badge badge-${m.cls} badge-sm">${m.label}</span>`;
     },
 
     lifecycleBadge(result: Record<string, any>) {
@@ -7919,9 +7829,9 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
       if (!status) return '';
       const cls = result.taskable === false || result.active === false ? 'badge-warning' : 'badge-mode';
       const label = result.role && result.lifecycle_status
-        ? `${result.role}/${result.lifecycle_status}`
+        ?`${result.role}/${result.lifecycle_status}`
         : status;
-      return `<span class="badge badge-sm ${cls}">${this.esc(label)}</span>`;
+      return`<span class="badge badge-sm ${cls}">${this.esc(label)}</span>`;
     },
 
     renderMarkdown(md: string) {
@@ -7937,7 +7847,7 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
         const cells = match.split('|').filter((c) => c.trim());
         if (cells.every((c) => /^[\s-:]+$/.test(c))) return '';
         const tag = 'td';
-        return '<tr>' + cells.map((c) => `<${tag}>${c.trim()}</${tag}>`).join('') + '</tr>';
+        return '<tr>' + cells.map((c) =>`<${tag}>${c.trim()}</${tag}>`).join('') + '</tr>';
       });
       html = html.replace(/(<tr>[\s\S]*?<\/tr>)/g, '<table>$1</table>');
       html = html.replace(/<\/table>\s*<table>/g, '');
@@ -7970,12 +7880,12 @@ export const DataflowFileserverRunDashboardPage: React.FC<{
     const host = hostRef.current;
     if (!host) return;
     const shadow = host.shadowRoot || host.attachShadow({ mode: 'open' });
-    shadow.innerHTML = `<style>${DATAFLOW_DASHBOARD_STYLES}</style>${DASHBOARD_HTML}`;
+    shadow.innerHTML =`<style>${DATAFLOW_DASHBOARD_STYLES}</style>${DASHBOARD_HTML}`;
     let app: ReturnType<typeof createDashboardApp> | null = null;
     const renderInitError = (error: unknown) => {
       const message = error instanceof Error ? error.message : String(error || 'unknown error');
       console.error('DataflowFileserverRunDashboardPage init failed', error);
-      shadow.innerHTML = `
+      shadow.innerHTML =`
         <style>${DATAFLOW_DASHBOARD_STYLES}</style>
         <div class="dfv-dashboard-root">
           <div id="mainContent">
@@ -7989,8 +7899,7 @@ export const DataflowFileserverRunDashboardPage: React.FC<{
               }[ch] || ch))}</div>
             </div>
           </div>
-        </div>
-      `;
+        </div>`;
     };
     try {
       app = createDashboardApp({

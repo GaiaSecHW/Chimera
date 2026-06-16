@@ -140,7 +140,7 @@ export const UserMgmtPage: React.FC = () => {
   const handleDeleteUser = async (user: UserInfo) => {
     const confirmed = await showConfirm({
       title: '删除用户',
-      message: `确认删除用户 "${user.username}"？`,
+      message:`确认删除用户"${user.username}"？`,
       confirmText: '确认删除',
       cancelText: '取消',
       danger: true,
@@ -235,7 +235,7 @@ export const UserMgmtPage: React.FC = () => {
 
     const confirmed = await showConfirm({
       title: '执行导入',
-      message: `确认导入 ${importPreview.valid_rows} 条用户数据？已存在用户不会被自动更新。`,
+      message:`确认导入 ${importPreview.valid_rows} 条用户数据？已存在用户不会被自动更新。`,
       confirmText: '开始导入',
       cancelText: '取消',
     });
@@ -287,7 +287,7 @@ export const UserMgmtPage: React.FC = () => {
       <div className="flex justify-between items-end">
         <div className="space-y-1">
           <div className="flex items-center gap-3">
-            <div className="p-3 bg-gradient-to-br from-blue-600 via-cyan-500 to-sky-500 text-white rounded-2xl shadow-xl shadow-blue-500/20">
+ <div className="p-3 bg-gradient-to-br from-blue-600 via-cyan-500 to-sky-500 text-white rounded-2xl">
               <Users size={28} />
             </div>
             <div>
@@ -297,20 +297,20 @@ export const UserMgmtPage: React.FC = () => {
           </div>
         </div>
         <div className="flex gap-4">
-          <button onClick={() => void fetchUsers()} className="p-4 bg-white/80 backdrop-blur border border-slate-200 text-slate-500 rounded-2xl hover:bg-white transition-all shadow-sm active:scale-95">
+ <button onClick={() => void fetchUsers()} className="p-4 bg-slate-50 backdrop-blur border border-slate-200 text-slate-500 rounded-2xl hover:bg-slate-50 transition-all active:scale-95">
             <RefreshCw size={20} className={loading ? 'animate-spin' : ''} />
           </button>
-          <button onClick={openImportModal} className="bg-white/85 backdrop-blur text-slate-700 px-6 py-4 rounded-2xl font-black flex items-center gap-3 border border-slate-200 shadow-sm hover:bg-white transition-all active:scale-95">
+ <button onClick={openImportModal} className="bg-slate-50 backdrop-blur text-slate-700 px-6 py-4 rounded-2xl font-black flex items-center gap-3 border border-slate-200 hover:bg-slate-50 transition-all active:scale-95">
             <Upload size={18} /> 批量导入
           </button>
-          <button onClick={() => setIsCreateModalOpen(true)} className="bg-blue-600 text-white px-8 py-4 rounded-2xl font-black flex items-center gap-3 shadow-xl shadow-blue-500/20 hover:bg-blue-700 transition-all active:scale-95">
+ <button onClick={() => setIsCreateModalOpen(true)} className="bg-blue-600 text-white px-8 py-4 rounded-2xl font-black flex items-center gap-3 hover:bg-blue-700 transition-all active:scale-95">
             <Plus size={20} /> 创建新用户
           </button>
         </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <div className="bg-[linear-gradient(135deg,_#0f172a,_#1d4ed8_65%,_#38bdf8)] p-8 rounded-[3rem] text-white flex flex-col justify-between group overflow-hidden relative shadow-2xl">
+ <div className="bg-[linear-gradient(135deg,_#0f172a,_#1d4ed8_65%,_#38bdf8)] p-8 rounded-[3rem] text-white flex flex-col justify-between group overflow-hidden relative">
           <Shield className="absolute right-[-20px] top-[-20px] w-32 h-32 opacity-5 rotate-12 group-hover:rotate-0 transition-transform duration-700" />
           <p className="text-slate-200 text-[10px] font-black uppercase tracking-widest relative z-10">总用户数</p>
           <h3 className="text-5xl font-black mt-4 relative z-10">{userStats.total}</h3>
@@ -318,14 +318,14 @@ export const UserMgmtPage: React.FC = () => {
             <ShieldCheck size={12} /> Data Protected
           </p>
         </div>
-        <div className="bg-white/90 backdrop-blur p-8 rounded-[3rem] border border-emerald-100 shadow-sm flex flex-col justify-between">
+ <div className="bg-slate-50 backdrop-blur p-8 rounded-[3rem] border border-emerald-100 flex flex-col justify-between">
           <p className="text-slate-400 text-[10px] font-black uppercase tracking-widest">活跃账号</p>
           <h3 className="text-4xl font-black mt-4 text-green-600">{userStats.active}</h3>
           <div className="h-1 bg-slate-100 rounded-full mt-4 overflow-hidden">
             <div className="h-full bg-green-500" style={{ width: `${userStats.total ? (userStats.active / userStats.total) * 100 : 0}%` }} />
           </div>
         </div>
-        <div className="bg-white/90 backdrop-blur p-8 rounded-[3rem] border border-indigo-100 shadow-sm flex flex-col justify-between">
+ <div className="bg-slate-50 backdrop-blur p-8 rounded-[3rem] border border-indigo-100 flex flex-col justify-between">
           <p className="text-slate-400 text-[10px] font-black uppercase tracking-widest">账号分布</p>
           <div className="mt-4 grid grid-cols-3 gap-4">
             <div className="rounded-[1.75rem] bg-indigo-50 px-5 py-4">
@@ -342,7 +342,7 @@ export const UserMgmtPage: React.FC = () => {
             </div>
           </div>
         </div>
-        <div className="bg-white/90 backdrop-blur p-8 rounded-[3rem] border border-slate-200 shadow-sm flex items-center gap-8">
+ <div className="bg-slate-50 backdrop-blur p-8 rounded-[3rem] border border-slate-200 flex items-center gap-8">
           <div className="w-16 h-16 bg-cyan-50 text-cyan-600 rounded-3xl flex items-center justify-center shrink-0">
             <Clock size={32} />
           </div>
@@ -359,15 +359,15 @@ export const UserMgmtPage: React.FC = () => {
           <input
             type="text"
             placeholder="搜索用户名、部门、角色或状态..."
-            className="w-full pl-16 pr-8 py-5 bg-white/90 backdrop-blur border border-slate-200 rounded-[2.5rem] text-sm outline-none focus:ring-4 ring-blue-500/5 transition-all font-medium shadow-sm"
+ className="w-full pl-16 pr-8 py-5 bg-slate-50 backdrop-blur border border-slate-200 rounded-[2.5rem] text-sm outline-none focus:ring-4 ring-blue-500/5 transition-all font-medium"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
 
-        <div className="bg-white/90 backdrop-blur border border-slate-200 rounded-[3rem] shadow-sm overflow-hidden">
+ <div className="bg-slate-50 backdrop-blur border border-slate-200 rounded-[3rem] overflow-hidden">
           <table className="w-full text-left">
-            <thead className="bg-slate-50/50 border-b border-slate-100 font-black text-[10px] text-slate-400 uppercase tracking-widest">
+            <thead className="bg-slate-100/50 border-b border-slate-100 font-black text-[10px] text-slate-400 uppercase tracking-widest">
               <tr>
                 <th className="px-8 py-6">用户信息</th>
                 <th className="px-6 py-6">身份与归属</th>
@@ -382,7 +382,7 @@ export const UserMgmtPage: React.FC = () => {
               ) : filteredUsers.length === 0 ? (
                 <tr><td colSpan={5} className="py-32 text-center text-slate-400 font-bold">暂无匹配的用户数据</td></tr>
               ) : paginatedUsers.map((user) => (
-                <tr key={user.id} className="hover:bg-slate-50 transition-all group">
+                <tr key={user.id} className="hover:bg-slate-100 transition-all group">
                   <td className="px-8 py-6">
                     <div className="flex items-center gap-4">
                       <div className="w-12 h-12 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center font-black shadow-inner">
@@ -433,14 +433,14 @@ export const UserMgmtPage: React.FC = () => {
                     <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-all">
                       <button
                         onClick={() => { setSelectedUser(user); setIsResetModalOpen(true); }}
-                        className="p-3 bg-white border border-slate-200 text-slate-400 hover:text-blue-600 rounded-xl transition-all shadow-sm"
+ className="p-3 bg-slate-50 border border-slate-200 text-slate-400 hover:text-blue-600 rounded-xl transition-all"
                         title="重置密码"
                       >
                         <Key size={16} />
                       </button>
                       <button
                         onClick={() => void handleDeleteUser(user)}
-                        className="p-3 bg-red-50 text-red-400 border border-transparent hover:border-red-100 rounded-xl transition-all shadow-sm"
+ className="p-3 bg-red-50 text-red-400 border border-transparent hover:border-red-100 rounded-xl transition-all"
                         title="彻底删除"
                       >
                         <Trash2 size={16} />
@@ -459,7 +459,7 @@ export const UserMgmtPage: React.FC = () => {
                 <select
                   value={pageSize}
                   onChange={(event) => setPageSize(Number(event.target.value))}
-                  className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-bold text-slate-700 outline-none transition focus:border-blue-300 focus:ring-4 focus:ring-blue-500/10"
+                  className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-bold text-slate-700 outline-none transition focus:border-blue-300 focus:ring-4 focus:ring-blue-500/10"
                 >
                   <option value={10}>10</option>
                   <option value={20}>20</option>
@@ -479,14 +479,14 @@ export const UserMgmtPage: React.FC = () => {
                   <button
                     onClick={() => setPage((current) => Math.max(1, current - 1))}
                     disabled={page <= 1}
-                    className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-black text-slate-600 transition hover:border-blue-200 hover:text-blue-700 disabled:cursor-not-allowed disabled:opacity-40"
+                    className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-2 text-sm font-black text-slate-600 transition hover:border-blue-200 hover:text-blue-700 disabled:cursor-not-allowed disabled:opacity-40"
                   >
                     上一页
                   </button>
                   <button
                     onClick={() => setPage((current) => Math.min(totalPages, current + 1))}
                     disabled={page >= totalPages}
-                    className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-black text-slate-600 transition hover:border-blue-200 hover:text-blue-700 disabled:cursor-not-allowed disabled:opacity-40"
+                    className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-2 text-sm font-black text-slate-600 transition hover:border-blue-200 hover:text-blue-700 disabled:cursor-not-allowed disabled:opacity-40"
                   >
                     下一页
                   </button>
@@ -499,10 +499,10 @@ export const UserMgmtPage: React.FC = () => {
 
       {isCreateModalOpen && (
         <div className="fixed inset-0 z-[150] flex items-center justify-center p-6 bg-slate-900/60 backdrop-blur-md animate-in fade-in">
-          <div className="bg-white w-full max-w-md rounded-[3rem] shadow-2xl overflow-hidden animate-in zoom-in-95">
+ <div className="bg-slate-50 w-full max-w-md rounded-[3rem] overflow-hidden animate-in zoom-in-95">
             <div className="p-10 pb-4 border-b border-slate-50 flex items-center justify-between">
               <div className="flex items-center gap-4">
-                <div className="w-12 h-12 bg-blue-600 rounded-2xl flex items-center justify-center text-white shadow-lg shadow-blue-500/20">
+ <div className="w-12 h-12 bg-blue-600 rounded-2xl flex items-center justify-center text-white">
                   <Plus size={24} />
                 </div>
                 <div>
@@ -534,7 +534,7 @@ export const UserMgmtPage: React.FC = () => {
                   onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                 />
               </div>
-              <button disabled={formLoading} className="w-full py-5 bg-blue-600 text-white rounded-2xl font-black shadow-xl shadow-blue-500/20 hover:bg-blue-700 transition-all flex items-center justify-center gap-3">
+ <button disabled={formLoading} className="w-full py-5 bg-blue-600 text-white rounded-2xl font-black hover:bg-blue-700 transition-all flex items-center justify-center gap-3">
                 {formLoading ? <Loader2 className="animate-spin" size={20} /> : <UserCircle size={20} />}
                 确认创建身份
               </button>
@@ -545,7 +545,7 @@ export const UserMgmtPage: React.FC = () => {
 
       {isResetModalOpen && selectedUser && (
         <div className="fixed inset-0 z-[150] flex items-center justify-center p-6 bg-slate-900/60 backdrop-blur-md animate-in fade-in">
-          <div className="bg-white w-full max-w-md rounded-[3rem] shadow-2xl overflow-hidden animate-in zoom-in-95">
+ <div className="bg-slate-50 w-full max-w-md rounded-[3rem] overflow-hidden animate-in zoom-in-95">
             <div className="p-10 pb-4 border-b border-slate-50 flex items-center justify-between">
               <div className="flex items-center gap-4">
                 <div className="w-12 h-12 bg-amber-600 rounded-2xl flex items-center justify-center text-white">
@@ -581,7 +581,7 @@ export const UserMgmtPage: React.FC = () => {
                   onChange={(e) => setResetData({ ...resetData, new_password: e.target.value })}
                 />
               </div>
-              <button disabled={formLoading} className="w-full py-5 bg-amber-600 text-white rounded-2xl font-black shadow-xl shadow-amber-500/20 hover:bg-amber-700 transition-all flex items-center justify-center gap-3">
+ <button disabled={formLoading} className="w-full py-5 bg-amber-600 text-white rounded-2xl font-black shadow-amber-500/20 hover:bg-amber-700 transition-all flex items-center justify-center gap-3">
                 {formLoading ? <Loader2 className="animate-spin" size={20} /> : <RefreshCw size={20} />}
                 立即应用新凭据
               </button>
@@ -592,10 +592,10 @@ export const UserMgmtPage: React.FC = () => {
 
       {isImportModalOpen && (
         <div className="fixed inset-0 z-[160] flex items-center justify-center p-6 bg-slate-950/65 backdrop-blur-md animate-in fade-in">
-          <div className="w-full max-w-6xl bg-white rounded-[2.5rem] shadow-2xl overflow-hidden animate-in zoom-in-95 max-h-[92vh] flex flex-col">
+ <div className="w-full max-w-6xl bg-slate-50 rounded-[2.5rem] overflow-hidden animate-in zoom-in-95 max-h-[92vh] flex flex-col">
             <div className="px-10 py-8 border-b border-slate-100 flex items-center justify-between">
               <div className="flex items-center gap-4">
-                <div className="w-14 h-14 rounded-3xl bg-blue-600 text-white flex items-center justify-center shadow-lg shadow-blue-500/20">
+ <div className="w-14 h-14 rounded-3xl bg-blue-600 text-white flex items-center justify-center">
                   <FileSpreadsheet size={26} />
                 </div>
                 <div>
@@ -624,7 +624,7 @@ export const UserMgmtPage: React.FC = () => {
                   <div className="rounded-[2rem] border border-slate-200 bg-slate-50/70 p-8 space-y-6">
                     <div className="space-y-2">
                       <h4 className="text-xl font-black text-slate-900">1. 准备导入文件</h4>
-                      <p className="text-sm text-slate-500 font-medium">下载模板后直接按示例填写即可，支持上传 `.xlsx` 或 `.csv` 文件，系统会先预校验再导入。</p>
+                      <p className="text-sm text-slate-500 font-medium">下载模板后直接按示例填写即可，支持上传`.xlsx` 或`.csv` 文件，系统会先预校验再导入。</p>
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div className="space-y-2">
@@ -632,18 +632,18 @@ export const UserMgmtPage: React.FC = () => {
                         <input
                           type="password"
                           placeholder="可选，不填则按行密码或随机密码"
-                          className="w-full px-5 py-4 rounded-2xl bg-white border border-slate-200 outline-none focus:ring-4 ring-blue-500/10 font-semibold text-slate-800"
+                          className="w-full px-5 py-4 rounded-2xl bg-slate-50 border border-slate-200 outline-none focus:ring-4 ring-blue-500/10 font-semibold text-slate-800"
                           value={importDefaultPassword}
                           onChange={(e) => setImportDefaultPassword(e.target.value)}
                         />
-                        <p className="text-xs text-slate-400 font-medium">当某一行没有填写 `password` 时，会优先使用这里的统一初始密码。</p>
+                        <p className="text-xs text-slate-400 font-medium">当某一行没有填写`password` 时，会优先使用这里的统一初始密码。</p>
                       </div>
                       <div className="space-y-2">
                         <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">首次登录策略</label>
                         <button
                           type="button"
                           onClick={() => setImportForcePasswordChange((value) => !value)}
-                          className={`w-full rounded-2xl border px-5 py-4 text-left transition-all ${importForcePasswordChange ? 'border-amber-200 bg-amber-50 text-amber-800' : 'border-slate-200 bg-white text-slate-700'}`}
+                          className={`w-full rounded-2xl border px-5 py-4 text-left transition-all ${importForcePasswordChange ? 'border-amber-200 bg-amber-50 text-amber-800' : 'border-slate-200 bg-slate-50 text-slate-700'}`}
                         >
                           <span className="block text-sm font-black">{importForcePasswordChange ? '已启用首次登录强制改密' : '不强制首次登录改密'}</span>
                           <span className="mt-1 block text-xs font-medium opacity-80">启用后，用户登录后必须先修改密码，才能继续访问其他页面。</span>
@@ -651,17 +651,17 @@ export const UserMgmtPage: React.FC = () => {
                       </div>
                     </div>
                     <div className="flex flex-wrap gap-4">
-                      <button onClick={() => void handleDownloadTemplate()} className="px-6 py-4 rounded-2xl bg-white border border-slate-200 font-black text-slate-700 flex items-center gap-3 shadow-sm hover:bg-slate-50">
+ <button onClick={() => void handleDownloadTemplate()} className="px-6 py-4 rounded-2xl bg-slate-50 border border-slate-200 font-black text-slate-700 flex items-center gap-3 hover:bg-slate-100">
                         <Download size={18} />
                         下载模板
                       </button>
-                      <button onClick={() => fileInputRef.current?.click()} className="px-6 py-4 rounded-2xl bg-blue-600 text-white font-black flex items-center gap-3 shadow-xl shadow-blue-500/20 hover:bg-blue-700">
+ <button onClick={() => fileInputRef.current?.click()} className="px-6 py-4 rounded-2xl bg-blue-600 text-white font-black flex items-center gap-3 hover:bg-blue-700">
                         <Upload size={18} />
                         选择文件
                       </button>
                       <input ref={fileInputRef} type="file" accept=".xlsx,.csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,text/csv" className="hidden" onChange={handleFileSelected} />
                     </div>
-                    <div className="rounded-[2rem] border border-dashed border-slate-300 bg-white p-6">
+                    <div className="rounded-[2rem] border border-dashed border-slate-300 bg-slate-50 p-6">
                       <p className="text-xs font-black uppercase tracking-[0.24em] text-slate-400">当前文件</p>
                       <p className="mt-3 text-lg font-black text-slate-800">{importFileName || '尚未选择文件'}</p>
                       <p className="mt-2 text-sm text-slate-500">模板已内置示例和填写说明，支持字段：`username,password,platform_role,role_names,department_name,department_role,is_active`。如果行内不填密码，可用上面的“统一初始密码”或随机密码。</p>
@@ -672,13 +672,13 @@ export const UserMgmtPage: React.FC = () => {
                     </button>
                   </div>
 
-                  <div className="rounded-[2rem] border border-slate-200 bg-white p-8 space-y-5 shadow-sm">
+ <div className="rounded-[2rem] border border-slate-200 bg-slate-50 p-8 space-y-5">
                     <h4 className="text-xl font-black text-slate-900">导入规则</h4>
                     <div className="space-y-3 text-sm font-medium text-slate-600">
                       <p>1. 只允许超级管理员执行导入。</p>
                       <p>2. 推荐直接下载 Excel 模板，按示例替换数据即可；也兼容 CSV 文件。</p>
-                      <p>3. 平台角色支持 `ordinary_admin`、`developer` 和 `ordinary_user`，留空默认普通用户。</p>
-                      <p>4. `role_names` 仅填写已存在的普通角色，多个角色用逗号分隔；部门名称也必须已存在。</p>
+                      <p>3. 平台角色支持`ordinary_admin`、`developer` 和`ordinary_user`，留空默认普通用户。</p>
+                      <p>4.`role_names` 仅填写已存在的普通角色，多个角色用逗号分隔；部门名称也必须已存在。</p>
                       <p>5. 行内密码为空时，系统会优先使用“统一初始密码”；如果统一密码也为空，则自动生成随机密码并在导入结果中仅展示一次。</p>
                       <p>6. 勾选“首次登录强制改密”后，测试账号首次登录会被要求先完成改密。</p>
                     </div>
@@ -700,7 +700,7 @@ export const UserMgmtPage: React.FC = () => {
                       <p className="text-sm text-slate-500 font-medium">错误行不会进入导入阶段。请修正文件后重新预校验。</p>
                     </div>
                     <div className="flex gap-3">
-                      <button onClick={() => setImportStage('upload')} className="px-5 py-3 rounded-2xl bg-white border border-slate-200 font-black text-slate-700">返回修改</button>
+                      <button onClick={() => setImportStage('upload')} className="px-5 py-3 rounded-2xl bg-slate-50 border border-slate-200 font-black text-slate-700">返回修改</button>
                       <button disabled={importLoading || importPreview.error_rows > 0} onClick={() => void handleCommitImport()} className="px-6 py-3 rounded-2xl bg-blue-600 text-white font-black disabled:opacity-50 flex items-center gap-3">
                         {importLoading ? <Loader2 size={18} className="animate-spin" /> : <Upload size={18} />}
                         确认导入
@@ -726,7 +726,7 @@ export const UserMgmtPage: React.FC = () => {
                       <p className="mt-2 text-sm font-medium text-amber-800">这些密码只会在本次导入结果中展示一次，请尽快通知相关用户首次登录后修改。</p>
                       <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-3">
                         {generatedPasswords.map((row) => (
-                          <div key={row.row_no} className="rounded-2xl bg-white border border-amber-200 px-4 py-3">
+                          <div key={row.row_no} className="rounded-2xl bg-slate-50 border border-amber-200 px-4 py-3">
                             <p className="text-xs uppercase tracking-[0.2em] font-black text-amber-500">Row {row.row_no}</p>
                             <p className="mt-1 text-sm font-black text-slate-800">{row.username}</p>
                             <p className="mt-1 font-mono text-sm text-slate-600">{row.generated_password}</p>
@@ -770,7 +770,7 @@ const SummaryCard = ({ label, value, tone }: { label: string; value: string; ton
 };
 
 const ImportResultTable = ({ rows }: { rows: UserImportPreviewResponse['rows'] | UserImportCommitResponse['rows'] }) => (
-  <div className="rounded-[2rem] border border-slate-200 overflow-hidden bg-white">
+  <div className="rounded-[2rem] border border-slate-200 overflow-hidden bg-slate-50">
     <table className="w-full text-left">
       <thead className="bg-slate-50 border-b border-slate-100">
         <tr className="text-[10px] font-black uppercase tracking-[0.24em] text-slate-400">
@@ -791,7 +791,7 @@ const ImportResultTable = ({ rows }: { rows: UserImportPreviewResponse['rows'] |
             </td>
             <td className="px-6 py-5 text-sm text-slate-600 font-medium">
               <p>{row.normalized?.platform_role || '-'}</p>
-              <p className="mt-1">{row.normalized?.department_name ? `${row.normalized.department_name} / ${row.normalized.department_role}` : '-'}</p>
+              <p className="mt-1">{row.normalized?.department_name ?`${row.normalized.department_name} / ${row.normalized.department_role}` : '-'}</p>
             </td>
             <td className="px-6 py-5">
               <span className={`inline-flex px-3 py-1 rounded-full border text-[10px] font-black uppercase tracking-[0.18em] ${IMPORT_STATUS_STYLES[row.status] || IMPORT_STATUS_STYLES.error}`}>

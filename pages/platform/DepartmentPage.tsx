@@ -238,8 +238,8 @@ export const DepartmentPage: React.FC = () => {
       return (
         <div key={dept.id}>
           <div
-            className="flex items-center justify-between gap-4 px-6 py-4 transition-all hover:bg-slate-50/90 group"
-            style={{ paddingLeft: `${depth * 26 + 24}px` }}
+            className="flex items-center justify-between gap-4 px-6 py-4 transition-all hover:bg-slate-100/90 group"
+            style={{ paddingLeft:`${depth * 26 + 24}px` }}
           >
             <div className="flex items-center gap-3 flex-1 min-w-0">
               <button
@@ -278,14 +278,14 @@ export const DepartmentPage: React.FC = () => {
                 <>
                   <button
                     onClick={() => openEditModal(dept)}
-                    className="p-2.5 bg-white border border-slate-200 text-slate-400 hover:text-blue-600 rounded-xl transition-all shadow-sm opacity-0 group-hover:opacity-100"
+ className="p-2.5 bg-slate-50 border border-slate-200 text-slate-400 hover:text-blue-600 rounded-xl transition-all opacity-0 group-hover:opacity-100"
                     title="编辑部门"
                   >
                     <Edit3 size={14} />
                   </button>
                   <button
                     onClick={() => void handleDelete(dept.id)}
-                    className="p-2.5 bg-red-50 text-red-400 border border-transparent hover:border-red-100 rounded-xl transition-all shadow-sm opacity-0 group-hover:opacity-100"
+ className="p-2.5 bg-red-50 text-red-400 border border-transparent hover:border-red-100 rounded-xl transition-all opacity-0 group-hover:opacity-100"
                     title="删除部门"
                   >
                     <Trash2 size={14} />
@@ -313,7 +313,7 @@ export const DepartmentPage: React.FC = () => {
       <div className="flex justify-between items-end">
         <div className="space-y-1">
           <div className="flex items-center gap-3">
-            <div className="p-3 bg-gradient-to-br from-blue-600 via-sky-500 to-cyan-500 text-white rounded-2xl shadow-xl shadow-blue-500/20">
+ <div className="p-3 bg-gradient-to-br from-blue-600 via-sky-500 to-cyan-500 text-white rounded-2xl">
               <Building2 size={28} />
             </div>
             <div>
@@ -323,11 +323,11 @@ export const DepartmentPage: React.FC = () => {
           </div>
         </div>
         <div className="flex gap-4">
-          <button onClick={() => void refreshPageData()} className="p-4 bg-white/80 backdrop-blur border border-slate-200 text-slate-500 rounded-2xl hover:bg-white transition-all shadow-sm active:scale-95">
+ <button onClick={() => void refreshPageData()} className="p-4 bg-slate-50 backdrop-blur border border-slate-200 text-slate-500 rounded-2xl hover:bg-slate-50 transition-all active:scale-95">
             <RefreshCw size={20} className={loading ? 'animate-spin' : ''} />
           </button>
           {isAdmin() && (
-            <button onClick={() => setIsCreateModalOpen(true)} className="bg-blue-600 text-white px-8 py-4 rounded-2xl font-black flex items-center gap-3 shadow-xl shadow-blue-500/20 hover:bg-blue-700 transition-all active:scale-95">
+ <button onClick={() => setIsCreateModalOpen(true)} className="bg-blue-600 text-white px-8 py-4 rounded-2xl font-black flex items-center gap-3 hover:bg-blue-700 transition-all active:scale-95">
               <Plus size={20} /> 创建新部门
             </button>
           )}
@@ -335,7 +335,7 @@ export const DepartmentPage: React.FC = () => {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <div className="bg-[linear-gradient(135deg,_#0f172a,_#1d4ed8_65%,_#38bdf8)] p-8 rounded-[3rem] text-white flex flex-col justify-between group overflow-hidden relative shadow-2xl">
+ <div className="bg-[linear-gradient(135deg,_#0f172a,_#1d4ed8_65%,_#38bdf8)] p-8 rounded-[3rem] text-white flex flex-col justify-between group overflow-hidden relative">
           <Building2 className="absolute right-[-20px] top-[-20px] w-32 h-32 opacity-5 rotate-12 group-hover:rotate-0 transition-transform duration-700" />
           <p className="text-slate-200 text-[10px] font-black uppercase tracking-widest relative z-10">总部门数</p>
           <h3 className="text-5xl font-black mt-4 relative z-10">{departmentStats.total}</h3>
@@ -343,19 +343,19 @@ export const DepartmentPage: React.FC = () => {
             <Users size={12} /> Organizational Topology
           </p>
         </div>
-        <div className="bg-white/90 backdrop-blur p-8 rounded-[3rem] border border-emerald-100 shadow-sm flex flex-col justify-between">
+ <div className="bg-slate-50 backdrop-blur p-8 rounded-[3rem] border border-emerald-100 flex flex-col justify-between">
           <p className="text-slate-400 text-[10px] font-black uppercase tracking-widest">顶级部门</p>
           <h3 className="text-4xl font-black mt-4 text-green-600">{departmentStats.rootCount}</h3>
           <div className="h-1 bg-slate-100 rounded-full mt-4 overflow-hidden">
             <div className="h-full bg-green-500" style={{ width: `${departmentStats.total > 0 ? (departmentStats.rootCount / departmentStats.total) * 100 : 0}%` }} />
           </div>
         </div>
-        <div className="bg-white/90 backdrop-blur p-8 rounded-[3rem] border border-amber-100 shadow-sm flex flex-col justify-between">
+ <div className="bg-slate-50 backdrop-blur p-8 rounded-[3rem] border border-amber-100 flex flex-col justify-between">
           <p className="text-slate-400 text-[10px] font-black uppercase tracking-widest">层级部门</p>
           <h3 className="text-4xl font-black mt-4 text-amber-600">{departmentStats.nestedCount}</h3>
           <p className="mt-4 text-xs font-semibold text-slate-400">最大深度 {departmentStats.maxDepth} 级</p>
         </div>
-        <div className="bg-white/90 backdrop-blur p-8 rounded-[3rem] border border-slate-200 shadow-sm flex items-center gap-8">
+ <div className="bg-slate-50 backdrop-blur p-8 rounded-[3rem] border border-slate-200 flex items-center gap-8">
           <div className="w-16 h-16 bg-blue-50 text-blue-600 rounded-3xl flex items-center justify-center shrink-0">
             <GitBranch size={32} />
           </div>
@@ -372,13 +372,13 @@ export const DepartmentPage: React.FC = () => {
           <input
             type="text"
             placeholder="搜索部门名称或描述..."
-            className="w-full pl-16 pr-8 py-5 bg-white/90 backdrop-blur border border-slate-200 rounded-[2.5rem] text-sm outline-none focus:ring-4 ring-blue-500/5 transition-all font-medium shadow-sm"
+ className="w-full pl-16 pr-8 py-5 bg-slate-50 backdrop-blur border border-slate-200 rounded-[2.5rem] text-sm outline-none focus:ring-4 ring-blue-500/5 transition-all font-medium"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
 
-        <div className="bg-white/90 backdrop-blur border border-slate-200 rounded-[3rem] shadow-sm overflow-hidden">
+ <div className="bg-slate-50 backdrop-blur border border-slate-200 rounded-[3rem] overflow-hidden">
           {loading ? (
             <div className="py-32 text-center"><Loader2 className="animate-spin mx-auto text-blue-600" size={40} /></div>
           ) : visibleDepartmentTree.length === 0 ? (
@@ -391,10 +391,10 @@ export const DepartmentPage: React.FC = () => {
 
       {isCreateModalOpen && (
         <div className="fixed inset-0 z-[150] flex items-center justify-center p-6 bg-slate-900/60 backdrop-blur-md animate-in fade-in">
-          <div className="bg-white w-full max-w-md rounded-[3rem] shadow-2xl overflow-hidden animate-in zoom-in-95">
+ <div className="bg-slate-50 w-full max-w-md rounded-[3rem] overflow-hidden animate-in zoom-in-95">
             <div className="p-10 pb-4 border-b border-slate-50 flex items-center justify-between">
               <div className="flex items-center gap-4">
-                <div className="w-12 h-12 bg-blue-600 rounded-2xl flex items-center justify-center text-white shadow-lg shadow-blue-500/20">
+ <div className="w-12 h-12 bg-blue-600 rounded-2xl flex items-center justify-center text-white">
                   <Plus size={24} />
                 </div>
                 <div>
@@ -440,7 +440,7 @@ export const DepartmentPage: React.FC = () => {
                   ))}
                 </select>
               </div>
-              <button disabled={formLoading} className="w-full py-5 bg-blue-600 text-white rounded-2xl font-black shadow-xl shadow-blue-500/20 hover:bg-blue-700 transition-all flex items-center justify-center gap-3">
+ <button disabled={formLoading} className="w-full py-5 bg-blue-600 text-white rounded-2xl font-black hover:bg-blue-700 transition-all flex items-center justify-center gap-3">
                 {formLoading ? <Loader2 className="animate-spin" size={20} /> : <Building2 size={20} />}
                 确认创建部门
               </button>
@@ -451,7 +451,7 @@ export const DepartmentPage: React.FC = () => {
 
       {isEditModalOpen && selectedDepartment && (
         <div className="fixed inset-0 z-[150] flex items-center justify-center p-6 bg-slate-900/60 backdrop-blur-md animate-in fade-in">
-          <div className="bg-white w-full max-w-md rounded-[3rem] shadow-2xl overflow-hidden animate-in zoom-in-95">
+ <div className="bg-slate-50 w-full max-w-md rounded-[3rem] overflow-hidden animate-in zoom-in-95">
             <div className="p-10 pb-4 border-b border-slate-50 flex items-center justify-between">
               <div className="flex items-center gap-4">
                 <div className="w-12 h-12 bg-amber-600 rounded-2xl flex items-center justify-center text-white">
@@ -500,7 +500,7 @@ export const DepartmentPage: React.FC = () => {
                   ))}
                 </select>
               </div>
-              <button disabled={formLoading} className="w-full py-5 bg-amber-600 text-white rounded-2xl font-black shadow-xl shadow-amber-500/20 hover:bg-amber-700 transition-all flex items-center justify-center gap-3">
+ <button disabled={formLoading} className="w-full py-5 bg-amber-600 text-white rounded-2xl font-black shadow-amber-500/20 hover:bg-amber-700 transition-all flex items-center justify-center gap-3">
                 {formLoading ? <Loader2 className="animate-spin" size={20} /> : <RefreshCw size={20} />}
                 立即更新部门
               </button>

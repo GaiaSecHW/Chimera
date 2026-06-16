@@ -127,7 +127,7 @@ export const TaskCenterTimelinePage: React.FC<Props> = ({ projectId, taskId, onB
       className="space-y-4 px-5 py-5 md:px-6 2xl:px-8"
       style={{ backgroundColor: LK.canvas, minHeight: '100%', color: LK.inkSoft }}
     >
-      <div className="flex flex-wrap items-start justify-between gap-3 pb-4" style={{ borderBottom: `1px solid ${LK.borderSoft}` }}>
+      <div className="flex flex-wrap items-start justify-between gap-3 pb-4" style={{ borderBottom:`1px solid ${LK.borderSoft}` }}>
         <div>
           <button
             type="button"
@@ -331,7 +331,7 @@ export const TaskCenterTimelinePage: React.FC<Props> = ({ projectId, taskId, onB
       >
         <div
           className="flex items-center justify-between px-4 py-3"
-          style={{ borderBottom: `1px solid ${LK.border}` }}
+          style={{ borderBottom:`1px solid ${LK.border}` }}
         >
           <div className="text-sm" style={{ color: LK.muted }}>
             共 {total} 条事件
@@ -358,15 +358,15 @@ export const TaskCenterTimelinePage: React.FC<Props> = ({ projectId, taskId, onB
           <table className="min-w-full border-separate border-spacing-0 text-sm">
             <thead>
               <tr className="text-left text-xs uppercase tracking-wider" style={{ color: LK.mutedSoft }}>
-                <th className="px-4 py-2.5 font-medium" style={{ borderBottom: `1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>时间</th>
-                <th className="px-4 py-2.5 font-medium" style={{ borderBottom: `1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>分类</th>
-                <th className="px-4 py-2.5 font-medium" style={{ borderBottom: `1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>类型</th>
-                <th className="px-4 py-2.5 font-medium" style={{ borderBottom: `1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>结果</th>
-                <th className="px-4 py-2.5 font-medium" style={{ borderBottom: `1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>来源</th>
-                <th className="px-4 py-2.5 font-medium" style={{ borderBottom: `1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>Actor</th>
-                <th className="px-4 py-2.5 font-medium" style={{ borderBottom: `1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>消息</th>
-                <th className="px-4 py-2.5 font-medium" style={{ borderBottom: `1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>下游任务</th>
-                <th className="px-4 py-2.5 font-medium" style={{ borderBottom: `1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>调度载荷</th>
+                <th className="px-4 py-2.5 font-medium" style={{ borderBottom:`1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>时间</th>
+                <th className="px-4 py-2.5 font-medium" style={{ borderBottom:`1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>分类</th>
+                <th className="px-4 py-2.5 font-medium" style={{ borderBottom:`1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>类型</th>
+                <th className="px-4 py-2.5 font-medium" style={{ borderBottom:`1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>结果</th>
+                <th className="px-4 py-2.5 font-medium" style={{ borderBottom:`1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>来源</th>
+                <th className="px-4 py-2.5 font-medium" style={{ borderBottom:`1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>Actor</th>
+                <th className="px-4 py-2.5 font-medium" style={{ borderBottom:`1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>消息</th>
+                <th className="px-4 py-2.5 font-medium" style={{ borderBottom:`1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>下游任务</th>
+                <th className="px-4 py-2.5 font-medium" style={{ borderBottom:`1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>调度载荷</th>
               </tr>
             </thead>
             <tbody>
@@ -397,33 +397,33 @@ export const TaskCenterTimelinePage: React.FC<Props> = ({ projectId, taskId, onB
                 return (
                   <React.Fragment key={item.id}>
                     <tr className="align-top">
-                      <td className="px-4 py-3 whitespace-nowrap" style={{ borderBottom: `1px solid ${LK.borderSoft}`, color: LK.body }}>
+                      <td className="px-4 py-3 whitespace-nowrap" style={{ borderBottom:`1px solid ${LK.borderSoft}`, color: LK.body }}>
                         {formatDateTime(item.created_at)}
                       </td>
-                      <td className="px-4 py-3" style={{ borderBottom: `1px solid ${LK.borderSoft}`, fontFamily: MONO, fontSize: '12px', color: LK.body }}>
+                      <td className="px-4 py-3" style={{ borderBottom:`1px solid ${LK.borderSoft}`, fontFamily: MONO, fontSize: '12px', color: LK.body }}>
                         {item.event_category}
                       </td>
-                      <td className="px-4 py-3" style={{ borderBottom: `1px solid ${LK.borderSoft}`, fontFamily: MONO, fontSize: '12px', color: LK.body }}>
+                      <td className="px-4 py-3" style={{ borderBottom:`1px solid ${LK.borderSoft}`, fontFamily: MONO, fontSize: '12px', color: LK.body }}>
                         {item.event_type}
                       </td>
-                      <td className="px-4 py-3" style={{ borderBottom: `1px solid ${LK.borderSoft}` }}>
+                      <td className="px-4 py-3" style={{ borderBottom:`1px solid ${LK.borderSoft}` }}>
                         <span style={{ color: resultColor }}>
                           {item.result_status}
                         </span>
                       </td>
-                      <td className="px-4 py-3" style={{ borderBottom: `1px solid ${LK.borderSoft}`, fontFamily: MONO, fontSize: '12px', color: LK.body }}>
+                      <td className="px-4 py-3" style={{ borderBottom:`1px solid ${LK.borderSoft}`, fontFamily: MONO, fontSize: '12px', color: LK.body }}>
                         {item.event_source || '—'}
                       </td>
-                      <td className="px-4 py-3" style={{ borderBottom: `1px solid ${LK.borderSoft}`, fontFamily: MONO, fontSize: '12px', color: LK.body }}>
+                      <td className="px-4 py-3" style={{ borderBottom:`1px solid ${LK.borderSoft}`, fontFamily: MONO, fontSize: '12px', color: LK.body }}>
                         {item.actor || '—'}
                       </td>
-                      <td className="px-4 py-3 min-w-[24rem]" style={{ borderBottom: `1px solid ${LK.borderSoft}`, color: LK.inkSoft }}>
+                      <td className="px-4 py-3 min-w-[24rem]" style={{ borderBottom:`1px solid ${LK.borderSoft}`, color: LK.inkSoft }}>
                         {item.message || '—'}
                       </td>
-                      <td className="px-4 py-3" style={{ borderBottom: `1px solid ${LK.borderSoft}`, fontFamily: MONO, fontSize: '12px', color: LK.body }}>
+                      <td className="px-4 py-3" style={{ borderBottom:`1px solid ${LK.borderSoft}`, fontFamily: MONO, fontSize: '12px', color: LK.body }}>
                         {item.downstream_task_id || '—'}
                       </td>
-                      <td className="px-4 py-3" style={{ borderBottom: `1px solid ${LK.borderSoft}` }}>
+                      <td className="px-4 py-3" style={{ borderBottom:`1px solid ${LK.borderSoft}` }}>
                         <button
                           type="button"
                           disabled={!hasPayload}
@@ -457,7 +457,7 @@ export const TaskCenterTimelinePage: React.FC<Props> = ({ projectId, taskId, onB
         </div>
         <div
           className="flex items-center justify-between px-4 py-3 text-sm"
-          style={{ borderTop: `1px solid ${LK.border}` }}
+          style={{ borderTop:`1px solid ${LK.border}` }}
         >
           <div style={{ color: LK.muted }}>
             第 {page} / {totalPages} 页

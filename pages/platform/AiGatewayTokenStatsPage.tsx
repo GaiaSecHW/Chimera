@@ -14,15 +14,15 @@ interface AiGatewayTokenStatsPageProps {
 }
 
 const formatNumber = (value: number) => {
-  if (value >= 1_000_000) return `${(value / 1_000_000).toFixed(2)}M`;
-  if (value >= 1_000) return `${(value / 1_000).toFixed(1)}K`;
+  if (value >= 1_000_000) return`${(value / 1_000_000).toFixed(2)}M`;
+  if (value >= 1_000) return`${(value / 1_000).toFixed(1)}K`;
   return value.toLocaleString('zh-CN');
 };
 
 const formatCost = (value: number) => {
-  if (value >= 1) return `$${value.toFixed(2)}`;
-  if (value >= 0.01) return `$${value.toFixed(3)}`;
-  return `$${value.toFixed(4)}`;
+  if (value >= 1) return`$${value.toFixed(2)}`;
+  if (value >= 0.01) return`$${value.toFixed(3)}`;
+  return`$${value.toFixed(4)}`;
 };
 
 const MetricCard: React.FC<{
@@ -32,7 +32,7 @@ const MetricCard: React.FC<{
   subValue?: string;
   colorClass?: string;
 }> = ({ icon, label, value, subValue, colorClass = 'text-slate-900' }) => (
-  <div className="rounded-[1.5rem] border border-slate-200 bg-white p-5 shadow-sm">
+ <div className="rounded-[1.5rem] border border-slate-200 bg-slate-50 p-5">
     <div className="flex items-center justify-between gap-3">
       <div className="rounded-2xl bg-slate-100 p-3 text-slate-700">{icon}</div>
       <div className="text-right text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">{label}</div>
@@ -159,7 +159,7 @@ export const AiGatewayTokenStatsPage: React.FC<AiGatewayTokenStatsPageProps> = (
           <select
             value={daysRange}
             onChange={(e) => setDaysRange(Number(e.target.value))}
-            className="rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-bold text-slate-700"
+            className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm font-bold text-slate-700"
           >
             <option value={1}>今日</option>
             <option value={7}>近 7 天</option>
@@ -209,7 +209,7 @@ export const AiGatewayTokenStatsPage: React.FC<AiGatewayTokenStatsPageProps> = (
       </div>
 
       {trendChartData ? (
-        <section className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
+ <section className="rounded-[2rem] border border-slate-200 bg-slate-50 p-6">
           <div className="text-[11px] font-black uppercase tracking-[0.2em] text-slate-400">用量趋势</div>
           <h2 className="mt-2 text-xl font-black text-slate-900">Token 使用趋势图</h2>
           <div className="mt-6 flex items-end gap-2 h-32">
@@ -234,7 +234,7 @@ export const AiGatewayTokenStatsPage: React.FC<AiGatewayTokenStatsPageProps> = (
         </section>
       ) : null}
 
-      <section className="rounded-[2rem] border border-slate-200 bg-white shadow-sm overflow-hidden">
+ <section className="rounded-[2rem] border border-slate-200 bg-slate-50 overflow-hidden">
         <div className="p-6">
           <div className="text-[11px] font-black uppercase tracking-[0.2em] text-slate-400">项目维度</div>
           <h2 className="mt-2 text-xl font-black text-slate-900">按项目统计</h2>
@@ -256,7 +256,7 @@ export const AiGatewayTokenStatsPage: React.FC<AiGatewayTokenStatsPageProps> = (
               {projectStats.map((project) => (
                 <React.Fragment key={project.project_id}>
                   <tr
-                    className="border-b border-slate-100 hover:bg-slate-50 cursor-pointer"
+                    className="border-b border-slate-100 hover:bg-slate-100 cursor-pointer"
                     onClick={() => handleExpandProject(project.project_id)}
                   >
                     <td className="px-6 py-4">

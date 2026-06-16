@@ -53,7 +53,7 @@ export function buildDefaultSystemAnalysisTaskForm(projectId: string): SystemAna
   return {
     task_name: '',
     input_path: '',
-    output_path: `/data/files/${projectId}/app/chimera-app-system-analyse`,
+    output_path:`/data/files/${projectId}/app/chimera-app-system-analyse`,
     task_description: '',
     prompt_content: '',
     analysis_mode: 'binary',
@@ -71,9 +71,9 @@ export function buildCloneFormFromTask(detail: AppSaTaskDetail, projectId: strin
   const config = detail.task_config_json || {};
   const analysisMode = detail.analysis_mode === 'source' ? 'source' : 'binary';
   return {
-    task_name: `${detail.task_name}-copy`,
+    task_name:`${detail.task_name}-copy`,
     input_path: detail.input_path || '',
-    output_path: `/data/files/${projectId}/app/chimera-app-system-analyse`,
+    output_path:`/data/files/${projectId}/app/chimera-app-system-analyse`,
     task_description: detail.task_description || '',
     prompt_content: detail.prompt_content || '',
     analysis_mode: analysisMode,
@@ -222,7 +222,7 @@ export const SystemAnalysisTaskFormModal: React.FC<SystemAnalysisTaskFormModalPr
 
       <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
         <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={creating ? undefined : onClose} />
-        <div className="relative z-10 max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-2xl border border-slate-200 bg-white shadow-2xl">
+ <div className="relative z-10 max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-2xl border border-slate-200 bg-slate-50">
           <div className="space-y-4 p-6">
             <div className="flex items-center justify-between">
               <h2 className="text-lg font-black text-slate-900">{title}</h2>
@@ -254,7 +254,7 @@ export const SystemAnalysisTaskFormModal: React.FC<SystemAnalysisTaskFormModalPr
                   type="button"
                   title="从文件资源中选择目录"
                   onClick={() => { setPickerTarget('input'); setPickerOpen(true); }}
-                  className="flex shrink-0 items-center gap-1 rounded-lg border border-slate-200 px-3 py-2 text-xs text-slate-600 hover:bg-slate-50"
+                  className="flex shrink-0 items-center gap-1 rounded-lg border border-slate-200 px-3 py-2 text-xs text-slate-600 hover:bg-slate-100"
                 >
                   <FolderOpen size={13} />浏览
                 </button>
@@ -274,7 +274,7 @@ export const SystemAnalysisTaskFormModal: React.FC<SystemAnalysisTaskFormModalPr
                   type="button"
                   title="从文件资源中选择目录"
                   onClick={() => { setPickerTarget('output'); setPickerOpen(true); }}
-                  className="flex shrink-0 items-center gap-1 rounded-lg border border-slate-200 px-3 py-2 text-xs text-slate-600 hover:bg-slate-50"
+                  className="flex shrink-0 items-center gap-1 rounded-lg border border-slate-200 px-3 py-2 text-xs text-slate-600 hover:bg-slate-100"
                 >
                   <FolderOpen size={13} />浏览
                 </button>
@@ -301,7 +301,7 @@ export const SystemAnalysisTaskFormModal: React.FC<SystemAnalysisTaskFormModalPr
               />
             </label>
 
-            <div className="rounded-xl border border-slate-200 bg-white p-4">
+            <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
               <p className="text-xs font-semibold text-slate-600">分析模式</p>
               <div className="mt-2 grid gap-2 sm:grid-cols-2">
                 {[
@@ -410,7 +410,7 @@ export const SystemAnalysisTaskFormModal: React.FC<SystemAnalysisTaskFormModalPr
                         }
                         setForm((prev) => ({ ...prev, security_focus_categories: next }));
                       }}
-                      className={`rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors ${selected ? 'border-rose-400 bg-rose-50 text-rose-700' : 'border-slate-200 bg-white text-slate-500 hover:border-slate-300'}`}
+                      className={`rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors ${selected ? 'border-rose-400 bg-rose-50 text-rose-700' : 'border-slate-200 bg-slate-50 text-slate-500 hover:border-slate-300'}`}
                     >
                       {label}
                     </button>
@@ -427,7 +427,7 @@ export const SystemAnalysisTaskFormModal: React.FC<SystemAnalysisTaskFormModalPr
                     key={value}
                     type="button"
                     onClick={() => setForm((prev) => ({ ...prev, module_granularity: value }))}
-                    className={`flex-1 rounded-lg border px-3 py-1.5 text-xs font-semibold transition-colors ${form.module_granularity === value ? 'border-rose-400 bg-rose-50 text-rose-700' : 'border-slate-200 bg-white text-slate-500 hover:border-slate-300'}`}
+                    className={`flex-1 rounded-lg border px-3 py-1.5 text-xs font-semibold transition-colors ${form.module_granularity === value ? 'border-rose-400 bg-rose-50 text-rose-700' : 'border-slate-200 bg-slate-50 text-slate-500 hover:border-slate-300'}`}
                   >
                     {label}
                   </button>
@@ -443,7 +443,7 @@ export const SystemAnalysisTaskFormModal: React.FC<SystemAnalysisTaskFormModalPr
                     key={value}
                     type="button"
                     onClick={() => setForm((prev) => ({ ...prev, filter_engine: value as 'script' | 'agent' }))}
-                    className={`flex-1 rounded-lg border px-3 py-1.5 text-xs font-semibold transition-colors ${form.filter_engine === value ? 'border-rose-400 bg-rose-50 text-rose-700' : 'border-slate-200 bg-white text-slate-500 hover:border-slate-300'}`}
+                    className={`flex-1 rounded-lg border px-3 py-1.5 text-xs font-semibold transition-colors ${form.filter_engine === value ? 'border-rose-400 bg-rose-50 text-rose-700' : 'border-slate-200 bg-slate-50 text-slate-500 hover:border-slate-300'}`}
                   >
                     {label}
                   </button>
@@ -461,7 +461,7 @@ export const SystemAnalysisTaskFormModal: React.FC<SystemAnalysisTaskFormModalPr
                   {
                     value: 'inherit' as const,
                     label: '使用全局配置',
-                    desc: `当前全局默认：${projectFinalCheckDefault ? '开启' : '关闭'}`,
+                    desc:`当前全局默认：${projectFinalCheckDefault ? '开启' : '关闭'}`,
                   },
                   {
                     value: 'enabled' as const,
@@ -481,7 +481,7 @@ export const SystemAnalysisTaskFormModal: React.FC<SystemAnalysisTaskFormModalPr
                     className={`rounded-xl border px-3 py-2 text-left transition-colors ${
                       form.enable_final_check_mode === value
                         ? 'border-rose-400 bg-rose-50 text-rose-700'
-                        : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
+                        : 'border-slate-200 bg-slate-50 text-slate-600 hover:bg-slate-100'
                     }`}
                   >
                     <span className="block text-sm font-semibold">{label}</span>
@@ -498,7 +498,7 @@ export const SystemAnalysisTaskFormModal: React.FC<SystemAnalysisTaskFormModalPr
                   {
                     value: 'inherit' as const,
                     label: '使用全局配置',
-                    desc: `当前全局默认：${projectContinueOnModuleFailureDefault ? '允许继续' : '失败即终止'}`,
+                    desc:`当前全局默认：${projectContinueOnModuleFailureDefault ? '允许继续' : '失败即终止'}`,
                   },
                   {
                     value: 'enabled' as const,
@@ -518,7 +518,7 @@ export const SystemAnalysisTaskFormModal: React.FC<SystemAnalysisTaskFormModalPr
                     className={`rounded-xl border px-3 py-2 text-left transition-colors ${
                       form.continue_on_module_failure_mode === value
                         ? 'border-rose-400 bg-rose-50 text-rose-700'
-                        : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
+                        : 'border-slate-200 bg-slate-50 text-slate-600 hover:bg-slate-100'
                     }`}
                   >
                     <span className="block text-sm font-semibold">{label}</span>

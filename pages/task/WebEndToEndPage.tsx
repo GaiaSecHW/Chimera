@@ -20,7 +20,7 @@ import {
 import { API_BASE, getHeaders, handleResponse } from '../../clients/base';
 import { Agent, AsyncTask } from '../../types/types';
 
-const WEB_E2E_API_BASE = `${API_BASE}/api/app/web-e2e`;
+const WEB_E2E_API_BASE =`${API_BASE}/api/app/web-e2e`;
 type DeployMode = 'normal' | 'proxy' | 'k8s';
 
 // LOKI design tokens (DESIGN.md) — page-local palette.
@@ -129,14 +129,14 @@ const copyText = async (text: string): Promise<boolean> => {
   }
 };
 
-const getPublicWebE2EBase = (): string => `${window.location.origin}${WEB_E2E_API_BASE}`;
+const getPublicWebE2EBase = (): string =>`${window.location.origin}${WEB_E2E_API_BASE}`;
 
 const buildDeployScripts = (projectId: string) => {
   const baseUrl = getPublicWebE2EBase();
-  const installUrl = `${baseUrl}/agents/install?project_id=${encodeURIComponent(projectId)}&type=normal&gaiasec_dir=/gaiasec`;
-  const normalScript = `curl -ks -o start.sh '${installUrl}' && bash start.sh deploy`;
-  const proxyScript = `curl -ks -o start.sh '${baseUrl}/agents/install?project_id=${encodeURIComponent(projectId)}&type=proxy&gaiasec_dir=/gaiasec' && bash start.sh deploy`;
-  const k8sDaemonSetYaml = `apiVersion: apps/v1
+  const installUrl =`${baseUrl}/agents/install?project_id=${encodeURIComponent(projectId)}&type=normal&gaiasec_dir=/gaiasec`;
+  const normalScript =`curl -ks -o start.sh '${installUrl}' && bash start.sh deploy`;
+  const proxyScript =`curl -ks -o start.sh '${baseUrl}/agents/install?project_id=${encodeURIComponent(projectId)}&type=proxy&gaiasec_dir=/gaiasec' && bash start.sh deploy`;
+  const k8sDaemonSetYaml =`apiVersion: apps/v1
 kind: DaemonSet
 metadata:
   name: gaiasec
@@ -157,12 +157,12 @@ spec:
       - name: gaiasec-pod
         resources:
           limits:
-            cpu: "1"
-            memory: "500Mi"
+            cpu:"1"
+            memory:"500Mi"
         command:
         - /bin/sh
         - -c
-        - chroot /hostfs /bin/bash -c "cd / && curl -ks -o start.sh '${installUrl}' && bash start.sh && tail -f /dev/null"
+        - chroot /hostfs /bin/bash -c"cd / && curl -ks -o start.sh '${installUrl}' && bash start.sh && tail -f /dev/null"
         image: docker.io/alpine:3.13
         securityContext:
           privileged: true
@@ -174,8 +174,7 @@ spec:
       volumes:
       - name: hostfs
         hostPath:
-          path: /
-`;
+          path: /`;
   return { normalScript, proxyScript, k8sDaemonSetYaml };
 };
 
@@ -337,11 +336,11 @@ const saveProjectAccessInfo = async (projectId: string, payload: ProjectAccessIn
 const fetchWebRoutes = async (projectId: string, agentKey?: string): Promise<WebRoute[]> => {
   const queries = [
     agentKey
-      ? `${WEB_E2E_API_BASE}/agents/${encodeURIComponent(agentKey)}/routes`
+      ?`${WEB_E2E_API_BASE}/agents/${encodeURIComponent(agentKey)}/routes`
       : '',
     agentKey
-      ? `${WEB_E2E_API_BASE}/agents/${encodeURIComponent(agentKey)}/web-routes?project_id=${encodeURIComponent(projectId)}`
-      : `${WEB_E2E_API_BASE}/web-routes?project_id=${encodeURIComponent(projectId)}`,
+      ?`${WEB_E2E_API_BASE}/agents/${encodeURIComponent(agentKey)}/web-routes?project_id=${encodeURIComponent(projectId)}`
+      :`${WEB_E2E_API_BASE}/web-routes?project_id=${encodeURIComponent(projectId)}`,
   ];
 
   for (const url of queries) {
@@ -364,8 +363,7 @@ const triggerWebAnalysis = async (projectId: string, agentKey: string): Promise<
     workflow_type: 'web_e2e_analysis',
     trigger_source: 'chimera_web_e2e',
   };
-  const urls = [
-    `${WEB_E2E_API_BASE}/analysis`,
+  const urls = [`${WEB_E2E_API_BASE}/analysis`,
   ];
   let lastError: any = null;
   for (const url of urls) {
@@ -383,7 +381,7 @@ const pickCurrentTask = (tasks: AsyncTask[], selectedAgentId: string): AsyncTask
   const filtered = tasks
     .filter((task) => !selectedAgentId || task.agent_key === selectedAgentId || (task as any).agent_id === selectedAgentId)
     .filter((task) => {
-      const fingerprint = `${task.type} ${task.service_name} ${task.message}`.toLowerCase();
+      const fingerprint =`${task.type} ${task.service_name} ${task.message}`.toLowerCase();
       return WEB_ANALYSIS_TASK_TYPES.some((keyword) => fingerprint.includes(keyword));
     });
   const candidates = filtered.length ? filtered : tasks.filter((task) => !selectedAgentId || task.agent_key === selectedAgentId || (task as any).agent_id === selectedAgentId);
@@ -432,7 +430,7 @@ const StatusBadge: React.FC<{ status?: string; label?: string }> = ({ status, la
 
 const Panel: React.FC<{ title: string; subtitle?: string; action?: React.ReactNode; children: React.ReactNode }> = ({ title, subtitle, action, children }) => (
   <section className="overflow-hidden rounded-xl" style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}` }}>
-    <div className="flex flex-col gap-3 px-5 py-4 md:flex-row md:items-center md:justify-between" style={{ borderBottom: `1px solid ${LK.borderSoft}` }}>
+    <div className="flex flex-col gap-3 px-5 py-4 md:flex-row md:items-center md:justify-between" style={{ borderBottom:`1px solid ${LK.borderSoft}` }}>
       <div>
         <h2 className="text-base font-semibold leading-6" style={{ color: LK.ink }}>{title}</h2>
         {subtitle ? <p className="mt-1 text-sm" style={{ color: LK.muted }}>{subtitle}</p> : null}
@@ -514,7 +512,7 @@ const DeployAgentDialog: React.FC<{
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ backgroundColor: 'rgba(5, 10, 20, 0.72)', backdropFilter: 'blur(6px)' }}>
       <div className="flex max-h-[88vh] w-full max-w-4xl flex-col overflow-hidden rounded-2xl" style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}` }}>
-        <div className="flex items-start justify-between gap-4 px-6 py-5" style={{ borderBottom: `1px solid ${LK.borderSoft}` }}>
+        <div className="flex items-start justify-between gap-4 px-6 py-5" style={{ borderBottom:`1px solid ${LK.borderSoft}` }}>
           <div>
             <div className="flex items-center gap-2 text-sm font-medium" style={{ color: LK.primary }}>
               <Terminal size={18} />
@@ -528,7 +526,7 @@ const DeployAgentDialog: React.FC<{
           </button>
         </div>
 
-        <div className="px-6 pt-4" style={{ borderBottom: `1px solid ${LK.borderSoft}` }}>
+        <div className="px-6 pt-4" style={{ borderBottom:`1px solid ${LK.borderSoft}` }}>
           <div className="inline-flex rounded-xl p-1" style={{ backgroundColor: LK.surfaceRaised }}>
             <button
               className={`rounded-lg px-4 py-2 text-sm font-medium ${activeTab === 'normal-node' ? '' : ''}`}
@@ -689,7 +687,7 @@ const ProjectAccessInfoPanel: React.FC<{
       <div className="mt-3 rounded-lg p-4" style={{ backgroundColor: LK.surfaceRaised }}>
         <div className="text-xs font-semibold uppercase tracking-widest" style={{ color: LK.mutedSoft }}>配置状态</div>
         <div className="mt-2 text-sm font-medium" style={{ color: LK.inkSoft }}>
-          {loading ? '正在加载配置...' : value.updated_at ? `最近更新：${formatTime(value.updated_at)}` : '尚未保存项目描述'}
+          {loading ? '正在加载配置...' : value.updated_at ?`最近更新：${formatTime(value.updated_at)}` : '尚未保存项目描述'}
         </div>
       </div>
     </Panel>
@@ -713,12 +711,12 @@ const OnlineAgentPanel: React.FC<{
         <table className="min-w-full border-separate border-spacing-0 text-sm">
           <thead>
             <tr className="text-left text-xs uppercase tracking-wider" style={{ color: LK.mutedSoft }}>
-              <th className="px-3 py-2.5 font-medium" style={{ borderBottom: `1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>Agent</th>
-              <th className="px-3 py-2.5 font-medium" style={{ borderBottom: `1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>状态</th>
-              <th className="px-3 py-2.5 font-medium" style={{ borderBottom: `1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>最近活跃</th>
-              <th className="px-3 py-2.5 font-medium" style={{ borderBottom: `1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>Web 应用</th>
-              <th className="px-3 py-2.5 font-medium" style={{ borderBottom: `1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>最近分析</th>
-              <th className="px-3 py-2.5 text-right font-medium" style={{ borderBottom: `1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>操作</th>
+              <th className="px-3 py-2.5 font-medium" style={{ borderBottom:`1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>Agent</th>
+              <th className="px-3 py-2.5 font-medium" style={{ borderBottom:`1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>状态</th>
+              <th className="px-3 py-2.5 font-medium" style={{ borderBottom:`1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>最近活跃</th>
+              <th className="px-3 py-2.5 font-medium" style={{ borderBottom:`1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>Web 应用</th>
+              <th className="px-3 py-2.5 font-medium" style={{ borderBottom:`1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>最近分析</th>
+              <th className="px-3 py-2.5 text-right font-medium" style={{ borderBottom:`1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>操作</th>
             </tr>
           </thead>
           <tbody>
@@ -733,7 +731,7 @@ const OnlineAgentPanel: React.FC<{
                   className="transition-colors"
                   style={{
                     backgroundColor: selected ? LK.primaryMuted : 'transparent',
-                    boxShadow: selected ? `inset 2px 0 0 ${LK.primary}` : 'none',
+                    boxShadow: selected ?`inset 2px 0 0 ${LK.primary}` : 'none',
                   }}
                   onMouseEnter={(e) => {
                     if (!selected) e.currentTarget.style.backgroundColor = LK.surfaceRaised;
@@ -742,17 +740,17 @@ const OnlineAgentPanel: React.FC<{
                     if (!selected) e.currentTarget.style.backgroundColor = 'transparent';
                   }}
                 >
-                  <td className="px-3 py-3" style={{ borderBottom: `1px solid ${LK.borderSoft}` }}>
+                  <td className="px-3 py-3" style={{ borderBottom:`1px solid ${LK.borderSoft}` }}>
                     <button className="text-left" onClick={() => onSelect(key)}>
                       <div className="font-semibold" style={{ color: LK.ink }}>{getAgentName(agent)}</div>
                       <div className="mt-1 break-all text-xs" style={{ color: LK.muted, fontFamily: MONO }}>{key || '-'}</div>
                     </button>
                   </td>
-                  <td className="px-3 py-3" style={{ borderBottom: `1px solid ${LK.borderSoft}` }}><StatusBadge status={agent.status} /></td>
-                  <td className="px-3 py-3" style={{ borderBottom: `1px solid ${LK.borderSoft}`, color: LK.body }}>{formatTime(agent.last_seen)}</td>
-                  <td className="px-3 py-3 font-medium" style={{ borderBottom: `1px solid ${LK.borderSoft}`, color: LK.inkSoft }}>{routeCount}</td>
-                  <td className="px-3 py-3" style={{ borderBottom: `1px solid ${LK.borderSoft}` }}>{latestTask ? <StatusBadge status={latestTask.status} /> : <span style={{ color: LK.muted }}>无任务</span>}</td>
-                  <td className="px-3 py-3 text-right" style={{ borderBottom: `1px solid ${LK.borderSoft}` }}>
+                  <td className="px-3 py-3" style={{ borderBottom:`1px solid ${LK.borderSoft}` }}><StatusBadge status={agent.status} /></td>
+                  <td className="px-3 py-3" style={{ borderBottom:`1px solid ${LK.borderSoft}`, color: LK.body }}>{formatTime(agent.last_seen)}</td>
+                  <td className="px-3 py-3 font-medium" style={{ borderBottom:`1px solid ${LK.borderSoft}`, color: LK.inkSoft }}>{routeCount}</td>
+                  <td className="px-3 py-3" style={{ borderBottom:`1px solid ${LK.borderSoft}` }}>{latestTask ? <StatusBadge status={latestTask.status} /> : <span style={{ color: LK.muted }}>无任务</span>}</td>
+                  <td className="px-3 py-3 text-right" style={{ borderBottom:`1px solid ${LK.borderSoft}` }}>
                     <div className="flex justify-end gap-2">
                       <button className="rounded-lg px-3 py-2 text-xs font-medium transition-colors" style={{ color: LK.body }} onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = LK.surfaceRaised; e.currentTarget.style.color = LK.ink; }} onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.color = LK.body; }} onClick={() => onSelect(key)}>
                         查看应用
@@ -987,15 +985,15 @@ export const WebEndToEndPage: React.FC<{ projectId: string }> = ({ projectId }) 
         </div>
 
         {notice ? (
-          <div className="rounded-xl px-4 py-3 text-sm font-medium" style={{ border: notice.includes('失败') || notice.includes('未提供') || notice.includes('removed') ? `1px solid ${LK.error}40` : `1px solid ${LK.success}40`, backgroundColor: notice.includes('失败') || notice.includes('未提供') || notice.includes('removed') ? 'rgba(241, 93, 93, 0.14)' : 'rgba(69, 192, 111, 0.14)', color: notice.includes('失败') || notice.includes('未提供') || notice.includes('removed') ? LK.error : LK.success }}>
+          <div className="rounded-xl px-4 py-3 text-sm font-medium" style={{ border: notice.includes('失败') || notice.includes('未提供') || notice.includes('removed') ?`1px solid ${LK.error}40` :`1px solid ${LK.success}40`, backgroundColor: notice.includes('失败') || notice.includes('未提供') || notice.includes('removed') ? 'rgba(241, 93, 93, 0.14)' : 'rgba(69, 192, 111, 0.14)', color: notice.includes('失败') || notice.includes('未提供') || notice.includes('removed') ? LK.error : LK.success }}>
             {notice}
           </div>
         ) : null}
 
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-          <SummaryMetricCard label="接入状态" value={accessLabel} hint={loadState.error || `最近心跳 ${formatTime(selectedAgent?.last_seen)}`} icon={<Server size={20} />} tone={loadState.error ? 'rose' : onlineCount > 0 ? 'emerald' : 'slate'} />
+          <SummaryMetricCard label="接入状态" value={accessLabel} hint={loadState.error ||`最近心跳 ${formatTime(selectedAgent?.last_seen)}`} icon={<Server size={20} />} tone={loadState.error ? 'rose' : onlineCount > 0 ? 'emerald' : 'slate'} />
           <SummaryMetricCard label="在线 Agent" value={`${onlineCount} / ${agents.length}`} hint={selectedAgent ? getAgentName(selectedAgent) : '未选择 Agent'} icon={<Bot size={20} />} tone={onlineCount > 0 ? 'blue' : 'slate'} />
-          <SummaryMetricCard label="当前分析" value={analysisLabel} hint={currentTask ? `进度 ${Math.round(Number(currentTask.progress || 0))}%` : '暂无任务'} icon={<Globe size={20} />} tone={hasActiveTask ? 'blue' : FAILED_TASK_STATUSES.has(String(currentTask?.status || '').toLowerCase()) ? 'rose' : 'slate'} />
+          <SummaryMetricCard label="当前分析" value={analysisLabel} hint={currentTask ?`进度 ${Math.round(Number(currentTask.progress || 0))}%` : '暂无任务'} icon={<Globe size={20} />} tone={hasActiveTask ? 'blue' : FAILED_TASK_STATUSES.has(String(currentTask?.status || '').toLowerCase()) ? 'rose' : 'slate'} />
           <SummaryMetricCard label="Web 应用" value={visibleRoutes.length} hint={selectedAgent ? '当前 Agent 已识别路由' : '请选择 Agent 查看路由'} icon={<Globe size={20} />} tone={visibleRoutes.length > 0 ? 'emerald' : 'slate'} />
         </div>
 

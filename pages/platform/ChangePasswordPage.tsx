@@ -137,7 +137,7 @@ export const ChangePasswordPage: React.FC<ChangePasswordPageProps> = ({ user }) 
           </span>
         ) : null}
       </div>
-      <div className="group flex items-center gap-3 rounded-[1.6rem] border border-slate-200 bg-white px-5 py-4 shadow-sm transition-all focus-within:border-sky-300 focus-within:shadow-[0_0_0_5px_rgba(14,165,233,0.08)]">
+ <div className="group flex items-center gap-3 rounded-[1.6rem] border border-slate-200 bg-slate-50 px-5 py-4 transition-all focus-within:border-sky-300 focus-within:">
         <LockKeyhole className="h-5 w-5 text-slate-400 transition-colors group-focus-within:text-sky-500" />
         <input
           type={showField[key] ? 'text' : 'password'}
@@ -162,7 +162,7 @@ export const ChangePasswordPage: React.FC<ChangePasswordPageProps> = ({ user }) 
   return (
     <div className="min-h-full bg-theme-app px-6 py-8 xl:px-10">
       <div className="mx-auto max-w-3xl">
-        <section className="rounded-[2.75rem] border border-slate-200 bg-white/85 p-8 shadow-[0_24px_80px_rgba(15,23,42,0.10)] backdrop-blur xl:p-10">
+ <section className="rounded-[2.75rem] border border-slate-200 bg-slate-50 p-8 backdrop-blur xl:p-10">
           <div className="flex items-start justify-between gap-4">
             <div>
               <div className="inline-flex items-center gap-2 rounded-full border border-sky-100 bg-sky-50 px-4 py-2 text-[11px] font-black uppercase tracking-[0.24em] text-sky-700">
@@ -226,7 +226,7 @@ export const ChangePasswordPage: React.FC<ChangePasswordPageProps> = ({ user }) 
                     className={`flex items-center gap-3 rounded-2xl border px-4 py-3 text-sm font-semibold transition-all ${
                       rule.passed
                         ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
-                        : 'border-slate-200 bg-white text-slate-500'
+                        : 'border-slate-200 bg-slate-50 text-slate-500'
                     }`}
                   >
                     <div className={`flex h-7 w-7 items-center justify-center rounded-full ${rule.passed ? 'bg-emerald-500 text-white' : 'bg-slate-200 text-slate-500'}`}>
@@ -241,7 +241,7 @@ export const ChangePasswordPage: React.FC<ChangePasswordPageProps> = ({ user }) 
             <button
               type="submit"
               disabled={submitting}
-              className="group flex w-full items-center justify-center gap-3 rounded-[1.8rem] bg-[linear-gradient(135deg,#0ea5e9_0%,#2563eb_55%,#0f172a_100%)] px-6 py-4 text-sm font-black text-white shadow-[0_18px_50px_rgba(37,99,235,0.28)] transition-all hover:-translate-y-0.5 hover:shadow-[0_22px_60px_rgba(37,99,235,0.34)] disabled:cursor-not-allowed disabled:opacity-70 disabled:hover:translate-y-0"
+              className="group flex w-full items-center justify-center gap-3 rounded-[1.8rem] bg-[linear-gradient(135deg,#0ea5e9_0%,#2563eb_55%,#0f172a_100%)] px-6 py-4 text-sm font-black text-white transition-all hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-70 disabled:hover:translate-y-0"
             >
               {submitting ? <Loader2 className="animate-spin" size={18} /> : <ShieldCheck size={18} />}
               {submitting ? '正在提交修改请求...' : '提交修改密码请求'}

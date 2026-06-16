@@ -165,7 +165,7 @@ export const AppInstancePage: React.FC<{
 
     return scopeFilteredTemplates.filter((template) => {
       const tagText = (template.tags || [])
-        .map((tag) => `${tag.tag_label} ${tag.tag_key}`)
+        .map((tag) =>`${tag.tag_label} ${tag.tag_key}`)
         .join(' ')
         .toLowerCase();
 
@@ -221,8 +221,8 @@ export const AppInstancePage: React.FC<{
     className = ''
   ) => {
     const isOpen = openHelpSection === section;
-    const panelId = `${section}-help-panel`;
-    const buttonId = `${section}-help-button`;
+    const panelId =`${section}-help-panel`;
+    const buttonId =`${section}-help-button`;
 
     return (
       <div
@@ -238,7 +238,7 @@ export const AppInstancePage: React.FC<{
           aria-expanded={isOpen}
           aria-controls={panelId}
           onClick={() => setOpenHelpSection((current) => (current === section ? null : section))}
-          className={`inline-flex h-4 w-4 items-center justify-center rounded-full border text-[8px] font-black leading-none transition-all duration-200 ease-out focus:outline-none focus:ring-2 focus:ring-offset-2 ${tone.button} ${isOpen ? 'scale-105 shadow-sm' : 'hover:scale-105'}`}
+ className={`inline-flex h-4 w-4 items-center justify-center rounded-full border text-[8px] font-black leading-none transition-all duration-200 ease-out focus:outline-none focus:ring-2 focus:ring-offset-2 ${tone.button} ${isOpen ? 'scale-105 ' : 'hover:scale-105'}`}
         >
           ?
         </button>
@@ -249,7 +249,7 @@ export const AppInstancePage: React.FC<{
           aria-labelledby={buttonId}
           className={`absolute right-0 top-7 z-10 w-[min(20rem,calc(100vw-5rem))] overflow-hidden transition-all duration-200 ease-out ${isOpen ? 'max-h-40 opacity-100 translate-y-0' : 'pointer-events-none max-h-0 opacity-0 -translate-y-1'}`}
         >
-          <div className={`rounded-xl border px-4 py-3 text-xs leading-6 shadow-sm ${tone.panel} ${tone.text}`}>
+ <div className={`rounded-xl border px-4 py-3 text-xs leading-6 ${tone.panel} ${tone.text}`}>
             {message}
           </div>
         </div>
@@ -422,14 +422,14 @@ export const AppInstancePage: React.FC<{
     if (selectedTemplate) {
       for (const container of selectedTemplate.containers) {
         for (const envVar of container.input_env_vars || []) {
-          const key = `${container.name}.${envVar.name}`;
+          const key =`${container.name}.${envVar.name}`;
           if (!envVar.default_value && !inputEnvVarValues[key]?.trim()) {
             alert(`请填写环境变量：${envVar.name}`);
             return;
           }
         }
         for (const mount of container.input_volume_mounts || []) {
-          const key = `${container.name}.${mount.mount_path}`;
+          const key =`${container.name}.${mount.mount_path}`;
           if (!inputVolumeMountConfigs[key]?.pvc_name) {
             alert(`请选择挂载 PVC：${mount.mount_path}`);
             return;
@@ -538,13 +538,13 @@ export const AppInstancePage: React.FC<{
           <button
             onClick={handleRefreshInstances}
             disabled={loading || isRefreshingList}
-            className="flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-5 py-3 font-bold text-slate-700 shadow-sm hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
+ className="flex items-center gap-2 rounded-2xl border border-slate-200 bg-slate-50 px-5 py-3 font-bold text-slate-700 hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
             title="刷新"
             aria-label="刷新"
           >
             <RefreshCw size={16} className={isRefreshingList ? 'animate-spin' : ''} />
           </button>
-          <button onClick={openCreateModal} className="flex items-center gap-2 rounded-2xl bg-blue-600 px-6 py-3 font-bold text-white shadow-lg shadow-blue-500/20 hover:bg-blue-500">
+ <button onClick={openCreateModal} className="flex items-center gap-2 rounded-2xl bg-blue-600 px-6 py-3 font-bold text-white hover:bg-blue-500">
             <Plus size={18} />
             创建实例
           </button>
@@ -553,9 +553,9 @@ export const AppInstancePage: React.FC<{
       <div className="mb-6 flex items-center gap-4">
         <div className="relative flex-1">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-          <input type="text" value={searchTerm} onChange={(event) => setSearchTerm(event.target.value)} placeholder="搜索实例名称、ID 或模板名称" className="w-full rounded-2xl border border-slate-200 bg-white py-3 pl-12 pr-4 text-sm outline-none focus:border-blue-500" />
+          <input type="text" value={searchTerm} onChange={(event) => setSearchTerm(event.target.value)} placeholder="搜索实例名称、ID 或模板名称" className="w-full rounded-2xl border border-slate-200 bg-slate-50 py-3 pl-12 pr-4 text-sm outline-none focus:border-blue-500" />
         </div>
-        <select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)} className="rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm outline-none focus:border-blue-500">
+        <select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)} className="rounded-2xl border border-slate-200 bg-slate-50 px-5 py-3 text-sm outline-none focus:border-blue-500">
           <option value="">全部状态</option>
           <option value="pending">待初始化</option>
           <option value="unready">未就绪</option>
@@ -570,7 +570,7 @@ export const AppInstancePage: React.FC<{
           <p className="font-medium text-slate-400">暂无应用实例</p>
         </div>
       ) : (
-        <div className="overflow-hidden rounded-3xl border border-slate-100 bg-white shadow-sm">
+ <div className="overflow-hidden rounded-3xl border border-slate-100 bg-slate-50">
           <table className="w-full">
             <thead className="border-b border-slate-100 bg-slate-50">
               <tr>
@@ -586,7 +586,7 @@ export const AppInstancePage: React.FC<{
               {paginatedInstances.map((instance) => {
                 const actions = getAvailableActions(instance.status);
                 return (
-                  <tr key={instance.id} className="group hover:bg-slate-50">
+                  <tr key={instance.id} className="group hover:bg-slate-100">
                     <td className="px-6 py-4">
                       <button onClick={() => onNavigateToDetail(instance.id)} className="text-left text-sm font-bold text-blue-600 hover:text-blue-700">{instance.name}</button>
                       <p className="mt-1 text-xs text-slate-400">{instance.id}</p>
@@ -611,10 +611,10 @@ export const AppInstancePage: React.FC<{
               })}
             </tbody>
           </table>
-          <div className="flex items-center justify-between border-t border-slate-100 bg-slate-50/50 px-8 py-4">
+          <div className="flex items-center justify-between border-t border-slate-100 bg-slate-100/50 px-8 py-4">
             <div className="flex items-center gap-4">
               <span className="text-xs font-bold uppercase tracking-widest text-slate-400">每页</span>
-              <select value={pageSize} onChange={(event) => { setPageSize(Number(event.target.value)); setCurrentPage(1); }} className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-bold text-slate-700 outline-none focus:border-blue-500">
+              <select value={pageSize} onChange={(event) => { setPageSize(Number(event.target.value)); setCurrentPage(1); }} className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-bold text-slate-700 outline-none focus:border-blue-500">
                 <option value={10}>10</option>
                 <option value={20}>20</option>
                 <option value={50}>50</option>
@@ -632,7 +632,7 @@ export const AppInstancePage: React.FC<{
       )}
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-8">
-          <div className="max-h-[94vh] w-full max-w-5xl overflow-auto rounded-3xl bg-white shadow-2xl">
+ <div className="max-h-[94vh] w-full max-w-5xl overflow-auto rounded-3xl bg-slate-50">
             {createStep === 'select-template' ? (
               <>
                 <div className="border-b border-slate-100 p-6">
@@ -648,7 +648,7 @@ export const AppInstancePage: React.FC<{
                           value={templateSearchTerm}
                           onChange={(event) => setTemplateSearchTerm(event.target.value)}
                           placeholder="搜索模板名称、描述、标签或创建人"
-                          className="w-full rounded-2xl border border-slate-200 bg-slate-50 py-2.5 pl-10 pr-3.5 text-[13px] text-slate-700 outline-none transition-all focus:border-blue-500 focus:bg-white"
+                          className="w-full rounded-2xl border border-slate-200 bg-slate-50 py-2.5 pl-10 pr-3.5 text-[13px] text-slate-700 outline-none transition-all focus:border-blue-500 focus:bg-slate-50"
                         />
                       </div>
                     </div>
@@ -666,7 +666,7 @@ export const AppInstancePage: React.FC<{
                           onClick={() => setTemplateScopeFilter(option.key as TemplateScopeFilter)}
                           className={`rounded-2xl px-4 py-2 text-sm font-bold transition-all ${
                             isActive
-                              ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/20'
+ ? 'bg-blue-600 text-white '
                               : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
                           }`}
                         >
@@ -683,7 +683,7 @@ export const AppInstancePage: React.FC<{
                     <div className="py-12 text-center text-slate-400">暂无可用模板</div>
                   ) : filteredTemplates.length === 0 ? (
                     <div className="rounded-3xl border border-dashed border-slate-200 bg-slate-50/80 px-6 py-14 text-center">
-                      <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-white text-slate-300 shadow-sm">
+ <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-slate-50 text-slate-300">
                         <Search size={22} />
                       </div>
                       <div className="text-base font-bold text-slate-700">没有找到匹配的模板</div>
@@ -691,13 +691,13 @@ export const AppInstancePage: React.FC<{
                     </div>
                   ) : (
                     <div className="space-y-5">
-                      <div className="max-h-[68vh] overflow-y-auto rounded-[1.75rem] border border-slate-200 bg-white shadow-inner shadow-slate-100/70">
+                      <div className="max-h-[68vh] overflow-y-auto rounded-[1.75rem] border border-slate-200 bg-slate-50 shadow-inner shadow-slate-100/70">
                         <div className="divide-y divide-slate-100">
                           {paginatedTemplates.map((template) => (
                             <button
                               key={template.id}
                               onClick={() => handleTemplateSelect(template.id)}
-                              className="group flex w-full flex-col gap-2.5 px-4 py-3 text-left transition-all hover:bg-slate-50 md:px-5"
+                              className="group flex w-full flex-col gap-2.5 px-4 py-3 text-left transition-all hover:bg-slate-100 md:px-5"
                             >
                               <div className="flex flex-col gap-2.5 xl:flex-row xl:items-start xl:justify-between">
                                 <div className="min-w-0 flex-1">
@@ -761,7 +761,7 @@ export const AppInstancePage: React.FC<{
                         </div>
                       </div>
 
-                      <div className="flex flex-col gap-3 rounded-[1.75rem] border border-slate-200 bg-gradient-to-r from-slate-50 via-white to-blue-50/70 px-5 py-4 md:flex-row md:items-center md:justify-between">
+                      <div className="flex flex-col gap-3 rounded-[1.75rem] border border-slate-200 bg-gradient-to-r from-slate-50 via-slate-50 to-blue-50/70 px-5 py-4 md:flex-row md:items-center md:justify-between">
                         <div>
                           <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">分页浏览</div>
                           <div className="mt-1 text-sm text-slate-600">共 <span className="font-black text-slate-900">{filteredTemplates.length}</span> 个模板</div>
@@ -775,7 +775,7 @@ export const AppInstancePage: React.FC<{
                                 setTemplatePageSize(Number(event.target.value));
                                 setTemplatePage(1);
                               }}
-                              className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-bold text-slate-700 outline-none focus:border-blue-500"
+                              className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-bold text-slate-700 outline-none focus:border-blue-500"
                             >
                               <option value={5}>5</option>
                               <option value={10}>10</option>
@@ -791,7 +791,7 @@ export const AppInstancePage: React.FC<{
                             >
                               <ChevronLeft size={18} />
                             </button>
-                            <span className="rounded-xl bg-white px-4 py-2 text-sm font-black text-slate-800 ring-1 ring-slate-200">
+                            <span className="rounded-xl bg-slate-50 px-4 py-2 text-sm font-black text-slate-800 ring-1 ring-slate-200">
                               {templatePage} / {templateTotalPages}
                             </span>
                             <button
@@ -859,11 +859,11 @@ export const AppInstancePage: React.FC<{
                       <div className="mb-4 text-sm font-black text-blue-700">环境变量依赖</div>
                       <div className="space-y-4">
                         {selectedTemplate.containers.map((container) => (container.input_env_vars || []).map((envVar) => {
-                          const key = `${container.name}.${envVar.name}`;
+                          const key =`${container.name}.${envVar.name}`;
                           return (
                             <div key={key}>
                               <label className="mb-1 block text-xs font-bold text-slate-600">{envVar.name}<span className="ml-2 text-slate-400">容器：{container.name}</span></label>
-                              <input value={inputEnvVarValues[key] || ''} onChange={(event) => setInputEnvVarValues({ ...inputEnvVarValues, [key]: event.target.value })} placeholder={envVar.default_value || '请输入变量值'} className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-blue-500" />
+                              <input value={inputEnvVarValues[key] || ''} onChange={(event) => setInputEnvVarValues({ ...inputEnvVarValues, [key]: event.target.value })} placeholder={envVar.default_value || '请输入变量值'} className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm outline-none focus:border-blue-500" />
                             </div>
                           );
                         }))}
@@ -875,15 +875,15 @@ export const AppInstancePage: React.FC<{
                       <div className="mb-4 text-sm font-black text-purple-700">PVC 挂载依赖</div>
                       <div className="space-y-4">
                         {selectedTemplate.containers.map((container) => (container.input_volume_mounts || []).map((mount) => {
-                          const key = `${container.name}.${mount.mount_path}`;
+                          const key =`${container.name}.${mount.mount_path}`;
                           const config = inputVolumeMountConfigs[key] || createMountConfig(mount.read_only ?? true);
                           return (
-                            <div key={key} className="rounded-xl border border-purple-200 bg-white p-4">
+                            <div key={key} className="rounded-xl border border-purple-200 bg-slate-50 p-4">
                               <div className="mb-3 text-sm font-bold text-slate-700">挂载路径：{mount.mount_path}<span className="ml-2 text-xs text-slate-400">容器：{container.name}</span></div>
                               <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
                                 <select value={config.pvc_name} onChange={(event) => setInputVolumeMountConfigs({ ...inputVolumeMountConfigs, [key]: { ...config, pvc_name: event.target.value } })} className="rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-purple-500">
                                   <option value="">选择 PVC</option>
-                                  {pvcList.map((pvc) => <option key={pvc.pvc_name} value={pvc.pvc_name}>{pvc.pvc_name} {pvc.resource_name ? `(${pvc.resource_name})` : ''}</option>)}
+                                  {pvcList.map((pvc) => <option key={pvc.pvc_name} value={pvc.pvc_name}>{pvc.pvc_name} {pvc.resource_name ?`(${pvc.resource_name})` : ''}</option>)}
                                 </select>
                                 <input value={config.sub_path} onChange={(event) => setInputVolumeMountConfigs({ ...inputVolumeMountConfigs, [key]: { ...config, sub_path: event.target.value } })} placeholder="子路径，可留空" className="rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-purple-500" />
                               </div>
@@ -909,13 +909,13 @@ export const AppInstancePage: React.FC<{
                       </button>
                     </div>
                     {additionalPvcMounts.length === 0 ? (
-                      <div className="rounded-xl border border-dashed border-amber-200 bg-white/80 px-4 py-4 text-sm text-amber-700">
+ <div className="rounded-xl border border-dashed border-amber-200 bg-slate-50 px-4 py-4 text-sm text-amber-700">
                         如需额外挂载 PVC，可以在这里选择公共 PVC 资源并填写容器内挂载路径。
                       </div>
                     ) : (
                       <div className="space-y-4">
                         {additionalPvcMounts.map((mount, index) => (
-                          <div key={index} className="rounded-xl border border-amber-200 bg-white p-4">
+                          <div key={index} className="rounded-xl border border-amber-200 bg-slate-50 p-4">
                             <div className="mb-3 flex items-center justify-between gap-3">
                               <div className="text-sm font-bold text-slate-700">附加 PVC 挂载 #{index + 1}</div>
                               <button
@@ -936,7 +936,7 @@ export const AppInstancePage: React.FC<{
                                 <option value="">选择 PVC 资源</option>
                                 {pvcList.map((pvc) => (
                                   <option key={pvc.pvc_name} value={pvc.pvc_name}>
-                                    {pvc.pvc_name} {pvc.resource_name ? `(${pvc.resource_name})` : ''}
+                                    {pvc.pvc_name} {pvc.resource_name ?`(${pvc.resource_name})` : ''}
                                   </option>
                                 ))}
                               </select>
@@ -979,20 +979,20 @@ export const AppInstancePage: React.FC<{
                         'ingress-binding',
                         '勾选后系统会基于当前 Service 自动生成域名，并在创建后自动初始化、启动实例。',
                         {
-                          button: 'border-green-300 bg-white/90 text-green-700 hover:border-green-400 hover:bg-white focus:ring-green-300',
-                          panel: 'border-green-200 bg-white/95',
+ button: 'border-green-300 bg-slate-50 text-green-700 hover:border-green-400 hover:bg-slate-50 focus:ring-green-300',
+ panel: 'border-green-200 bg-slate-50',
                           text: 'text-green-700',
                         },
                         'mr-2 md:mr-3'
                       )}
                       <label className="inline-flex cursor-pointer items-center">
                         <input type="checkbox" checked={enableIngress} onChange={(event) => setEnableIngress(event.target.checked)} className="sr-only peer" />
-                        <div className="relative h-6 w-11 rounded-full bg-gray-200 transition-all after:absolute after:left-[2px] after:top-[2px] after:h-5 after:w-5 after:rounded-full after:border after:border-gray-300 after:bg-white after:transition-all after:content-[''] peer-checked:bg-green-600 peer-checked:after:translate-x-full peer-checked:after:border-white" />
+ <div className="relative h-6 w-11 rounded-full bg-gray-200 transition-all after:absolute after:left-[2px] after:top-[2px] after:h-5 after:w-5 after:rounded-full after:border after:border-gray-300 after:bg-slate-50 after:transition-all after:content-[''] peer-checked:bg-green-600 peer-checked:after:translate-x-full peer-checked:after:border-slate-200" />
                       </label>
                     </div>
                     {enableIngress && (
-                      <div className="rounded-xl border border-dashed border-green-300 bg-white/80 px-4 py-3 text-sm text-green-700">
-                        默认使用 `nginx` Ingress，域名规则会按当前 Service 自动生成。创建完成后可直接在实例详情的“访问”页点击“访问服务”按钮。
+ <div className="rounded-xl border border-dashed border-green-300 bg-slate-50 px-4 py-3 text-sm text-green-700">
+                        默认使用`nginx` Ingress，域名规则会按当前 Service 自动生成。创建完成后可直接在实例详情的“访问”页点击“访问服务”按钮。
                       </div>
                     )}
                   </div>
@@ -1001,7 +1001,7 @@ export const AppInstancePage: React.FC<{
                   <button onClick={() => setCreateStep('select-template')} className="px-6 py-3 font-medium text-slate-600 hover:text-slate-700">返回模板列表</button>
                   <div className="flex items-center gap-3">
                     <button onClick={() => setIsModalOpen(false)} className="px-6 py-3 font-medium text-slate-600 hover:text-slate-700">取消</button>
-                    <button onClick={handleCreate} disabled={isSubmitting} className="flex items-center gap-2 rounded-2xl bg-blue-600 px-6 py-3 font-bold text-white shadow-lg shadow-blue-500/20 hover:bg-blue-500 disabled:opacity-50">
+ <button onClick={handleCreate} disabled={isSubmitting} className="flex items-center gap-2 rounded-2xl bg-blue-600 px-6 py-3 font-bold text-white hover:bg-blue-500 disabled:opacity-50">
                       {isSubmitting && <Loader2 className="animate-spin" size={16} />}
                       {enableIngress ? '创建并启动实例' : '创建实例'}
                     </button>
@@ -1014,7 +1014,7 @@ export const AppInstancePage: React.FC<{
       )}
       {isUninitModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4 backdrop-blur-sm">
-          <div className="w-full max-w-md overflow-hidden rounded-[2rem] bg-white shadow-2xl animate-in zoom-in-95 duration-200">
+ <div className="w-full max-w-md overflow-hidden rounded-[2rem] bg-slate-50 animate-in zoom-in-95 duration-200">
             <div className="p-8 text-center">
               <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-[2rem] bg-orange-50 text-orange-600">
                 <RotateCcw size={40} />
@@ -1032,14 +1032,14 @@ export const AppInstancePage: React.FC<{
                   setIsUninitModalOpen(false);
                   setUninitializingId(null);
                 }}
-                className="flex-1 rounded-2xl border border-slate-200 bg-white py-4 font-bold text-slate-600 transition-all hover:bg-slate-100"
+                className="flex-1 rounded-2xl border border-slate-200 bg-slate-50 py-4 font-bold text-slate-600 transition-all hover:bg-slate-100"
               >
                 取消
               </button>
               <button
                 onClick={handleUninitialize}
                 disabled={isUninitializing}
-                className="flex flex-1 items-center justify-center gap-2 rounded-2xl bg-orange-600 py-4 font-bold text-white shadow-lg shadow-orange-600/20 transition-all hover:bg-orange-700 disabled:opacity-50"
+ className="flex flex-1 items-center justify-center gap-2 rounded-2xl bg-orange-600 py-4 font-bold text-white shadow-orange-600/20 transition-all hover:bg-orange-700 disabled:opacity-50"
               >
                 {isUninitializing && <Loader2 size={18} className="animate-spin" />}
                 确认反初始化
@@ -1050,7 +1050,7 @@ export const AppInstancePage: React.FC<{
       )}
       {isDeleteModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-8">
-          <div className="w-full max-w-md rounded-3xl bg-white shadow-2xl">
+ <div className="w-full max-w-md rounded-3xl bg-slate-50">
             <div className="p-8">
               <div className="mb-6 flex items-center gap-4">
                 <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-red-100"><AlertCircle className="text-red-600" size={24} /></div>
@@ -1063,7 +1063,7 @@ export const AppInstancePage: React.FC<{
             </div>
             <div className="flex items-center justify-end gap-3 border-t border-slate-100 p-8">
               <button onClick={() => { setIsDeleteModalOpen(false); setDeletingId(null); }} className="px-6 py-3 font-medium text-slate-600 hover:text-slate-700">取消</button>
-              <button onClick={handleDelete} className="rounded-2xl bg-red-600 px-6 py-3 font-bold text-white shadow-lg shadow-red-500/20 hover:bg-red-500">确认删除</button>
+ <button onClick={handleDelete} className="rounded-2xl bg-red-600 px-6 py-3 font-bold text-white shadow-red-500/20 hover:bg-red-500">确认删除</button>
             </div>
           </div>
         </div>
@@ -1087,9 +1087,8 @@ export const AppInstancePage: React.FC<{
                 opacity: 1;
                 transform: translate(-50%, 0);
               }
-            }
-          `}</style>
-          <div className={`flex items-center gap-2 rounded-xl border px-6 py-3 text-sm font-bold shadow-2xl ${
+            }`}</style>
+ <div className={`flex items-center gap-2 rounded-xl border px-6 py-3 text-sm font-bold ${
             toast.type === 'success' ? 'border-green-500 bg-green-600 text-white' :
             toast.type === 'error' ? 'border-red-500 bg-red-600 text-white' :
             toast.type === 'warning' ? 'border-yellow-400 bg-yellow-500 text-yellow-900' :

@@ -36,10 +36,10 @@ function formatDuration(startedAt: string | null | undefined, finishedAt: string
   const startSecs = Math.floor(new Date(startedAt).getTime() / 1000);
   const endSecs = finishedAt ? Math.floor(new Date(finishedAt).getTime() / 1000) : nowSecs;
   const secs = Math.max(0, endSecs - startSecs);
-  if (secs < 60) return `${secs}s`;
+  if (secs < 60) return`${secs}s`;
   const m = Math.floor(secs / 60);
   const s = secs % 60;
-  return `${m}m${s}s`;
+  return`${m}m${s}s`;
 }
 
 const SORT_OPTIONS = [
@@ -89,7 +89,7 @@ function getModeBadgeClassName(mode: string): string {
 }
 
 function getQuickFilterButtonClassName(active: boolean, baseClassName: string): string {
-  return `${baseClassName} transition-all ${active ? 'ring-2 ring-cyan-200 ring-offset-1' : 'hover:opacity-80'}`;
+  return`${baseClassName} transition-all ${active ? 'ring-2 ring-cyan-200 ring-offset-1' : 'hover:opacity-80'}`;
 }
 
 function formatDateTime(value?: string | null): string {
@@ -140,7 +140,7 @@ function getExecutionSlotPresentation(
       label: '运行中',
       tone: 'bg-cyan-100 text-cyan-700',
       ownerText: hostName || ownerId,
-      detailText: task.lease_expires_at ? `lease ${formatDateTime(task.lease_expires_at)}` : `dispatch ${formatDateTime(task.dispatch_started_at)}`,
+      detailText: task.lease_expires_at ?`lease ${formatDateTime(task.lease_expires_at)}` :`dispatch ${formatDateTime(task.dispatch_started_at)}`,
     };
   }
   if (task.status === 'pending' && !ownerId) {
@@ -155,7 +155,7 @@ function getExecutionSlotPresentation(
     label: ownerId ? '占用中' : '未占用槽位',
     tone: ownerId ? 'bg-cyan-100 text-cyan-700' : 'bg-amber-100 text-amber-700',
     ownerText: hostName || ownerId || '-',
-    detailText: ownerId ? `dispatch ${formatDateTime(task.dispatch_started_at)}` : '等待调度',
+    detailText: ownerId ?`dispatch ${formatDateTime(task.dispatch_started_at)}` : '等待调度',
   };
 }
 
@@ -163,8 +163,8 @@ export const SystemAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask: (
   const appApi = api.domains.execution.appSystemAnalyse;
   const buildVersion = useServiceBuildVersion(appApi.getHealth);
   const { notify, feedbackNodes } = useUiFeedback();
-  const autoRefreshStorageKey = `chimera:systemAnalysis:autoRefresh:${projectId || 'default'}`;
-  const refreshIntervalStorageKey = `chimera:systemAnalysis:refreshInterval:${projectId || 'default'}`;
+  const autoRefreshStorageKey =`chimera:systemAnalysis:autoRefresh:${projectId || 'default'}`;
+  const refreshIntervalStorageKey =`chimera:systemAnalysis:refreshInterval:${projectId || 'default'}`;
 
   const [loading, setLoading] = useState(true);
   const [batchDeleting, setBatchDeleting] = useState(false);
@@ -453,7 +453,7 @@ export const SystemAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask: (
   const handleDelete = async (taskId: string, taskName: string) => {
     const confirmed = await showConfirm({
       title: '删除任务',
-      message: `确定要删除任务「${taskName}」及其所有输出文件吗？此操作不可撤销。`,
+      message:`确定要删除任务「${taskName}」及其所有输出文件吗？此操作不可撤销。`,
       confirmText: '确认删除',
       cancelText: '取消',
       danger: true,
@@ -499,7 +499,7 @@ export const SystemAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask: (
     }
     const confirmed = await showConfirm({
       title: '批量删除任务',
-      message: `确定要批量删除 ${taskIds.length} 个任务及其输出文件吗？此操作不可撤销。`,
+      message:`确定要批量删除 ${taskIds.length} 个任务及其输出文件吗？此操作不可撤销。`,
       confirmText: '确认删除',
       cancelText: '取消',
       danger: true,
@@ -544,7 +544,7 @@ export const SystemAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask: (
     }
     const confirmed = await showConfirm({
       title: '批量停止任务',
-      message: `确定要停止 ${activeIds.length} 个等待中/运行中的系统分析任务吗？任务记录和输出文件会保留。`,
+      message:`确定要停止 ${activeIds.length} 个等待中/运行中的系统分析任务吗？任务记录和输出文件会保留。`,
       confirmText: '确认停止',
       cancelText: '取消',
     });
@@ -586,7 +586,7 @@ export const SystemAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask: (
     const skipped = selectedTaskIds.size - restartableIds.length;
     const confirmed = await showConfirm({
       title: '批量重试任务',
-      message: `确定要重试 ${restartableIds.length} 个系统分析任务吗？${skipped > 0 ? `将跳过 ${skipped} 个等待中/运行中的任务。` : ''}`,
+      message:`确定要重试 ${restartableIds.length} 个系统分析任务吗？${skipped > 0 ?`将跳过 ${skipped} 个等待中/运行中的任务。` : ''}`,
       confirmText: '确认重试',
       cancelText: '取消',
     });
@@ -627,7 +627,7 @@ export const SystemAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask: (
     <div className="px-8 pt-8 pb-10 space-y-6">
       {feedbackNodes}
 
-      <section className="rounded-[2rem] border border-slate-200 bg-white/90 p-6 shadow-sm">
+ <section className="rounded-[2rem] border border-slate-200 bg-slate-50 p-6">
         <p className="text-xs font-black uppercase tracking-[0.3em] text-cyan-600">System Analysis</p>
         <ServicePageTitle title="分析任务" version={buildVersion} />
         <p className="mt-2 text-sm text-slate-500">指定分析路径，启动安全分析任务。</p>
@@ -651,7 +651,7 @@ export const SystemAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask: (
         ) : null}
       </section>
 
-      <section className="rounded-[2rem] border border-slate-200 bg-white shadow-sm">
+ <section className="rounded-[2rem] border border-slate-200 bg-slate-50">
         <button
           type="button"
           onClick={() => setSlotOverviewExpanded((current) => !current)}
@@ -671,7 +671,7 @@ export const SystemAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask: (
                 setShowSlotDetailModal(true);
                 void loadClusterCapacityDetail();
               }}
-              className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50"
+              className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-2 text-xs font-bold text-slate-700 hover:bg-slate-100"
             >
               查看槽位详情
             </button>
@@ -681,7 +681,7 @@ export const SystemAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask: (
                 event.stopPropagation();
                 void loadClusterCapacity();
               }}
-              className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50"
+              className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-bold text-slate-700 hover:bg-slate-100"
               title="手动刷新执行槽位"
               aria-label="手动刷新执行槽位"
             >
@@ -689,9 +689,9 @@ export const SystemAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask: (
               手动刷新
             </button>
             <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-[11px] font-bold text-slate-600">
-              {clusterCapacitySummary ? `${clusterCapacitySummary.busy_slots} / ${clusterCapacitySummary.total_capacity} 槽位运行中` : '槽位摘要待加载'}
+              {clusterCapacitySummary ?`${clusterCapacitySummary.busy_slots} / ${clusterCapacitySummary.total_capacity} 槽位运行中` : '槽位摘要待加载'}
             </span>
-            <span className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-500">
+            <span className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 bg-slate-50 text-slate-500">
               {slotOverviewExpanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
             </span>
           </div>
@@ -724,25 +724,25 @@ export const SystemAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask: (
               ))}
             </div>
             <div className="mt-4 flex flex-wrap gap-3 text-xs text-slate-500">
-              <span className="rounded-full border border-slate-200 bg-white px-3 py-1 font-bold text-slate-700">
+              <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 font-bold text-slate-700">
                 Healthy {clusterCapacitySummary.healthy_workers}
               </span>
-              <span className="rounded-full border border-slate-200 bg-white px-3 py-1 font-bold text-slate-700">
+              <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 font-bold text-slate-700">
                 Worker {clusterCapacitySummary.worker_count}
               </span>
-              <span className="rounded-full border border-slate-200 bg-white px-3 py-1 font-bold text-slate-700">
+              <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 font-bold text-slate-700">
                 Live Pod {clusterCapacityDetail ? slotLivePodCount : '-'}
               </span>
-              <span className="rounded-full border border-slate-200 bg-white px-3 py-1 font-bold text-slate-700">
+              <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 font-bold text-slate-700">
                 Registry Worker {clusterCapacityDetail ? slotRegistryCount : '-'}
               </span>
-              <span className="rounded-full border border-slate-200 bg-white px-3 py-1 font-bold text-slate-700">
+              <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 font-bold text-slate-700">
                 Fallback {clusterCapacityDetail ? slotFallbackWorkerCount : '-'}
               </span>
-              <span className="rounded-full border border-slate-200 bg-white px-3 py-1 font-bold text-slate-700">
+              <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 font-bold text-slate-700">
                 Stale {clusterCapacitySummary.stale_workers}
               </span>
-              <span className="rounded-full border border-slate-200 bg-white px-3 py-1 font-bold text-slate-700">
+              <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 font-bold text-slate-700">
                 Updated {formatDateTime(clusterCapacitySummary.updated_at)}
               </span>
             </div>
@@ -781,7 +781,7 @@ export const SystemAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask: (
                     return (
                       <section
                         key={worker.worker_id}
-                        className={`overflow-hidden rounded-[1.5rem] border ${worker.healthy ? 'border-slate-200 bg-white' : 'border-rose-200 bg-rose-50/70'}`}
+                        className={`overflow-hidden rounded-[1.5rem] border ${worker.healthy ? 'border-slate-200 bg-slate-50' : 'border-rose-200 bg-rose-50/70'}`}
                       >
                         <div className="px-5 py-4">
                           <div className="flex flex-wrap items-start justify-between gap-3">
@@ -816,7 +816,7 @@ export const SystemAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask: (
                           </div>
                           {!worker.healthy ? (
                             <div className="mt-4 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
-                              Worker 当前不可用。{worker.error ? `原因：${worker.error}` : ''}
+                              Worker 当前不可用。{worker.error ?`原因：${worker.error}` : ''}
                             </div>
                           ) : activeJobs.length > 0 ? (
                             <div className="mt-4 space-y-3">
@@ -833,7 +833,7 @@ export const SystemAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask: (
                                       </div>
                                       <div className="mt-1 break-all font-mono text-[11px] text-slate-500">{job.input_path || '-'}</div>
                                     </div>
-                                    <div className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-[11px] text-slate-500">
+                                    <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-[11px] text-slate-500">
                                       <div className="font-semibold text-slate-700">task id</div>
                                       <div className="mt-1 font-mono">{job.task_id}</div>
                                     </div>
@@ -861,7 +861,7 @@ export const SystemAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask: (
             <button
               type="button"
               onClick={() => void loadClusterCapacity()}
-              className="mt-4 rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-bold text-slate-600 hover:bg-slate-50"
+              className="mt-4 rounded-xl border border-slate-200 bg-slate-50 px-4 py-2 text-xs font-bold text-slate-600 hover:bg-slate-100"
             >
               加载执行槽位摘要
             </button>
@@ -880,7 +880,7 @@ export const SystemAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask: (
       </section>
 
       {/* Task list */}
-      <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+ <section className="rounded-2xl border border-slate-200 bg-slate-50 p-5">
         <div className="mb-4 flex flex-wrap items-start justify-between gap-4">
           <div>
             <h2 className="text-lg font-black text-slate-900">任务列表 <span className="text-sm font-normal text-slate-400">({total})</span></h2>
@@ -905,14 +905,14 @@ export const SystemAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask: (
                   const value = Number(e.target.value);
                   setRefreshIntervalSec(Number.isFinite(value) ? Math.max(5, Math.floor(value)) : 5);
                 }}
-                className="w-16 rounded border border-slate-200 bg-white px-2 py-1 text-xs text-slate-700"
+                className="w-16 rounded border border-slate-200 bg-slate-50 px-2 py-1 text-xs text-slate-700"
               />
               秒
             </label>
             <select
               value={analysisModeFilter}
               onChange={(e) => { setAnalysisModeFilter(e.target.value as '' | 'binary' | 'source'); setPage(1); }}
-              className="rounded-lg border border-slate-200 px-2 py-1.5 text-xs text-slate-600 bg-white"
+              className="rounded-lg border border-slate-200 px-2 py-1.5 text-xs text-slate-600 bg-slate-50"
               title="分析模式筛选"
             >
               <option value="">全部模式</option>
@@ -923,13 +923,13 @@ export const SystemAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask: (
               value={parentTaskIdFilter}
               onChange={(e) => { setParentTaskIdFilter(e.target.value); setPage(1); }}
               placeholder="筛选主任务ID"
-              className="w-44 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs text-slate-600 placeholder:text-slate-400"
+              className="w-44 rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs text-slate-600 placeholder:text-slate-400"
               title="按主任务 ID 筛选"
             />
             <select
               value={statusFilter}
               onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
-              className="rounded-lg border border-slate-200 px-2 py-1.5 text-xs text-slate-600 bg-white"
+              className="rounded-lg border border-slate-200 px-2 py-1.5 text-xs text-slate-600 bg-slate-50"
               title="任务状态筛选"
             >
               <option value="">全部状态</option>
@@ -940,7 +940,7 @@ export const SystemAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask: (
             <select
               value={sortBy}
               onChange={(e) => { setSortBy(e.target.value); setPage(1); }}
-              className="rounded-lg border border-slate-200 px-2 py-1.5 text-xs text-slate-600 bg-white"
+              className="rounded-lg border border-slate-200 px-2 py-1.5 text-xs text-slate-600 bg-slate-50"
               title="排序字段"
             >
               {SORT_OPTIONS.map((option) => (
@@ -950,13 +950,13 @@ export const SystemAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask: (
             <select
               value={sortOrder}
               onChange={(e) => { setSortOrder(e.target.value === 'asc' ? 'asc' : 'desc'); setPage(1); }}
-              className="rounded-lg border border-slate-200 px-2 py-1.5 text-xs text-slate-600 bg-white"
+              className="rounded-lg border border-slate-200 px-2 py-1.5 text-xs text-slate-600 bg-slate-50"
               title="排序方向"
             >
               <option value="desc">降序</option>
               <option value="asc">升序</option>
             </select>
-            <button onClick={() => { void loadTasks(page); void loadTaskStats(); void loadClusterCapacity(); }} className="rounded-lg border border-slate-200 p-2 text-slate-500 hover:bg-slate-50">
+            <button onClick={() => { void loadTasks(page); void loadTaskStats(); void loadClusterCapacity(); }} className="rounded-lg border border-slate-200 p-2 text-slate-500 hover:bg-slate-100">
               <RefreshCw size={14} />
             </button>
             <button onClick={() => { setCreateModalInitialForm(buildDefaultSystemAnalysisTaskForm(projectId)); setCreateModalOpen(true); }}
@@ -968,7 +968,7 @@ export const SystemAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask: (
 
         <div className="mb-4 flex flex-wrap items-center gap-3 text-xs text-slate-500">
           <span>
-            自动刷新：{autoRefreshEnabled ? `开启（${Math.max(5, refreshIntervalSec)}s）` : '关闭'}
+            自动刷新：{autoRefreshEnabled ?`开启（${Math.max(5, refreshIntervalSec)}s）` : '关闭'}
           </span>
           {autoRefreshEnabled && !hasActiveTasks ? (
             <span className="text-amber-600">当前无运行中任务，自动刷新暂不触发</span>
@@ -998,7 +998,7 @@ export const SystemAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask: (
               <button
                 onClick={() => void handleBatchCancel()}
                 disabled={batchCancelling || batchDeleting || batchRestarting}
-                className="inline-flex items-center gap-2 rounded-xl border border-amber-200 bg-white px-4 py-2 text-sm font-semibold text-amber-700 hover:bg-amber-50 disabled:opacity-50"
+                className="inline-flex items-center gap-2 rounded-xl border border-amber-200 bg-slate-50 px-4 py-2 text-sm font-semibold text-amber-700 hover:bg-amber-50 disabled:opacity-50"
               >
                 {batchCancelling ? <Loader2 size={14} className="animate-spin" /> : <XCircle size={14} />}
                 批量停止
@@ -1006,7 +1006,7 @@ export const SystemAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask: (
               <button
                 onClick={() => void handleBatchRestart()}
                 disabled={batchRestarting || batchCancelling || batchDeleting}
-                className="inline-flex items-center gap-2 rounded-xl border border-violet-200 bg-white px-4 py-2 text-sm font-semibold text-violet-700 hover:bg-violet-50 disabled:opacity-50"
+                className="inline-flex items-center gap-2 rounded-xl border border-violet-200 bg-slate-50 px-4 py-2 text-sm font-semibold text-violet-700 hover:bg-violet-50 disabled:opacity-50"
               >
                 {batchRestarting ? <Loader2 size={14} className="animate-spin" /> : <RotateCcw size={14} />}
                 批量重试
@@ -1014,14 +1014,14 @@ export const SystemAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask: (
               <button
                 onClick={() => setSelectedTaskIds(new Set())}
                 disabled={batchDeleting || batchCancelling || batchRestarting}
-                className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-50 disabled:opacity-50"
+                className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-100 disabled:opacity-50"
               >
                 清除选择
               </button>
               <button
                 onClick={() => void handleBatchDelete()}
                 disabled={batchDeleting || batchCancelling || batchRestarting}
-                className="inline-flex items-center gap-2 rounded-xl border border-red-200 bg-white px-4 py-2 text-sm font-semibold text-red-700 hover:bg-red-100 disabled:opacity-50"
+                className="inline-flex items-center gap-2 rounded-xl border border-red-200 bg-slate-50 px-4 py-2 text-sm font-semibold text-red-700 hover:bg-red-100 disabled:opacity-50"
               >
                 {batchDeleting ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
                 批量删除（{selectedTaskIds.size}）
@@ -1119,8 +1119,7 @@ export const SystemAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask: (
                       type="button"
                       onClick={() => toggleModeQuickFilter((t.analysis_mode || 'binary') as 'binary' | 'source')}
                       className={getQuickFilterButtonClassName(
-                        analysisModeFilter === (t.analysis_mode || 'binary'),
-                        `rounded-full px-2.5 py-1 text-xs font-semibold ${getModeBadgeClassName(t.analysis_mode === 'source' ? 'source' : 'binary')}`
+                        analysisModeFilter === (t.analysis_mode || 'binary'),`rounded-full px-2.5 py-1 text-xs font-semibold ${getModeBadgeClassName(t.analysis_mode === 'source' ? 'source' : 'binary')}`
                       )}
                       title={analysisModeFilter === (t.analysis_mode || 'binary') ? '再次点击取消模式筛选' : '点击按模式快速筛选'}
                     >
@@ -1132,8 +1131,7 @@ export const SystemAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask: (
                       type="button"
                       onClick={() => toggleStatusQuickFilter(t.status)}
                       className={getQuickFilterButtonClassName(
-                        statusFilter === t.status,
-                        `shrink-0 rounded-md px-2 py-1 text-xs font-semibold ${STATUS_COLOR[t.status] ?? 'bg-slate-100 text-slate-600'}`
+                        statusFilter === t.status,`shrink-0 rounded-md px-2 py-1 text-xs font-semibold ${STATUS_COLOR[t.status] ?? 'bg-slate-100 text-slate-600'}`
                       )}
                       title={statusFilter === t.status ? '再次点击取消状态筛选' : '点击按状态快速筛选'}
                     >
@@ -1209,7 +1207,7 @@ export const SystemAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask: (
                   setPerPage(nextSize);
                   setPage(1);
                 }}
-                className="rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-xs text-slate-700 outline-none"
+                className="rounded-lg border border-slate-200 bg-slate-50 px-2 py-1.5 text-xs text-slate-700 outline-none"
               >
                 {[10, 50, 100, 200, 500, 1000].map((n) => <option key={n} value={n}>{n}</option>)}
               </select>
@@ -1218,14 +1216,14 @@ export const SystemAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask: (
             <button
               disabled={page <= 1}
               onClick={() => setPage(1)}
-              className="rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs font-semibold text-slate-600 disabled:opacity-40 hover:bg-slate-50"
+              className="rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs font-semibold text-slate-600 disabled:opacity-40 hover:bg-slate-100"
             >
               首页
             </button>
             <button
               disabled={page <= 1}
               onClick={() => setPage((p) => Math.max(1, p - 1))}
-              className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-600 disabled:opacity-40 hover:bg-slate-50"
+              className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-600 disabled:opacity-40 hover:bg-slate-100"
             >
               上一页
             </button>
@@ -1233,14 +1231,14 @@ export const SystemAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask: (
             <button
               disabled={page >= totalPages}
               onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-              className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-600 disabled:opacity-40 hover:bg-slate-50"
+              className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-600 disabled:opacity-40 hover:bg-slate-100"
             >
               下一页
             </button>
             <button
               disabled={page >= totalPages}
               onClick={() => setPage(totalPages)}
-              className="rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs font-semibold text-slate-600 disabled:opacity-40 hover:bg-slate-50"
+              className="rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs font-semibold text-slate-600 disabled:opacity-40 hover:bg-slate-100"
             >
               末页
             </button>
@@ -1283,7 +1281,7 @@ export const SystemAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask: (
                 <button
                   type="button"
                   onClick={() => setShowSlotDetailModal(false)}
-                  className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
+                  className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-slate-50 text-slate-600 hover:bg-slate-100"
                   aria-label="关闭执行槽位详情"
                 >
                   <X size={16} />
@@ -1303,12 +1301,12 @@ export const SystemAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask: (
                     return (
                       <section
                         key={worker.worker_id}
-                        className={`overflow-hidden rounded-[1.5rem] border ${worker.healthy ? 'border-slate-200 bg-white' : 'border-rose-200 bg-rose-50/70'}`}
+                        className={`overflow-hidden rounded-[1.5rem] border ${worker.healthy ? 'border-slate-200 bg-slate-50' : 'border-rose-200 bg-rose-50/70'}`}
                       >
                         <button
                           type="button"
                           onClick={() => toggleSlotWorkerExpanded(worker.worker_id)}
-                          className="flex w-full items-center justify-between gap-3 px-5 py-4 text-left hover:bg-slate-50/70"
+                          className="flex w-full items-center justify-between gap-3 px-5 py-4 text-left hover:bg-slate-100/70"
                         >
                           <div className="min-w-0">
                             <div className="flex flex-wrap items-center gap-2">
@@ -1338,7 +1336,7 @@ export const SystemAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask: (
                               />
                             </div>
                           </div>
-                          <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-500">
+                          <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 bg-slate-50 text-slate-500">
                             {expanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
                           </div>
                         </button>
@@ -1346,7 +1344,7 @@ export const SystemAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask: (
                           <div className="border-t border-slate-100 px-5 py-4">
                             {!worker.healthy ? (
                               <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
-                                Worker 当前不可用。{worker.error ? `原因：${worker.error}` : ''}
+                                Worker 当前不可用。{worker.error ?`原因：${worker.error}` : ''}
                               </div>
                             ) : activeJobs.length === 0 ? (
                               <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-4 py-8 text-center text-sm text-slate-400">
@@ -1367,33 +1365,33 @@ export const SystemAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask: (
                                         </div>
                                         <div className="mt-1 break-all font-mono text-[11px] text-slate-500">{job.input_path || '-'}</div>
                                       </div>
-                                      <div className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-[11px] text-slate-500">
+                                      <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-[11px] text-slate-500">
                                         <div className="font-semibold text-slate-700">task id</div>
                                         <div className="mt-1 font-mono">{job.task_id}</div>
                                       </div>
                                     </div>
                                     <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-                                      <div className="rounded-xl border border-white/80 bg-white px-3 py-3">
+ <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-3">
                                         <div className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">分析模式</div>
                                         <div className="mt-1 text-sm font-semibold text-slate-700">{job.analysis_mode === 'source' ? '源码' : job.analysis_mode === 'binary' ? '二进制' : '-'}</div>
                                       </div>
-                                      <div className="rounded-xl border border-white/80 bg-white px-3 py-3">
+ <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-3">
                                         <div className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">主任务</div>
                                         <div className="mt-1 break-all font-mono text-[11px] text-slate-600">{job.parent_task_id || '-'}</div>
                                       </div>
-                                      <div className="rounded-xl border border-white/80 bg-white px-3 py-3">
+ <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-3">
                                         <div className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">租约</div>
                                         <div className="mt-1 text-sm font-semibold text-slate-700">{formatDateTime(job.execution_lease_until)}</div>
                                       </div>
-                                      <div className="rounded-xl border border-white/80 bg-white px-3 py-3">
+ <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-3">
                                         <div className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">调度开始</div>
                                         <div className="mt-1 text-sm font-semibold text-slate-700">{formatDateTime(job.dispatch_started_at)}</div>
                                       </div>
-                                      <div className="rounded-xl border border-white/80 bg-white px-3 py-3">
+ <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-3">
                                         <div className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">最近更新</div>
                                         <div className="mt-1 text-sm font-semibold text-slate-700">{formatDateTime(job.updated_at)}</div>
                                       </div>
-                                      <div className="rounded-xl border border-white/80 bg-white px-3 py-3">
+ <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-3">
                                         <div className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">映射结果</div>
                                         <div className="mt-1 text-sm font-semibold text-slate-700">{job.mapping_reason}</div>
                                       </div>

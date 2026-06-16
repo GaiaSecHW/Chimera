@@ -15,7 +15,7 @@ import {
 } from './ai-agent/shared';
 
 const StatCard: React.FC<{ label: string; value: number; icon: React.ReactNode }> = ({ label, value, icon }) => (
-  <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+ <div className="rounded-2xl border border-slate-200 bg-slate-50 p-5">
     <div className="flex items-center justify-between gap-3">
       <div>
         <div className="text-xs font-black uppercase tracking-[0.2em] text-slate-500">{label}</div>
@@ -40,7 +40,7 @@ export const EnvAiAgentOverviewPage: React.FC<{ projectId: string }> = ({ projec
     <div className="px-8 pt-8 pb-10">
       <div className="space-y-6">
         {feedbackNodes}
-        <section className="rounded-[2rem] border border-slate-200 bg-white/90 p-6 shadow-sm">
+ <section className="rounded-[2rem] border border-slate-200 bg-slate-50 p-6">
           <div className="flex items-center justify-between gap-4 flex-wrap">
             <div>
               <p className="text-xs font-black uppercase tracking-[0.3em] text-cyan-600">AI Agent Workspace</p>
@@ -64,7 +64,7 @@ export const EnvAiAgentOverviewPage: React.FC<{ projectId: string }> = ({ projec
           <StatCard label="Active" value={stats.active} icon={<Bot size={20} />} />
         </div>
 
-        <section className="rounded-[1.75rem] border border-slate-200 bg-gradient-to-br from-white via-slate-50 to-cyan-50/40 p-6 shadow-sm">
+ <section className="rounded-[1.75rem] border border-slate-200 bg-gradient-to-br from-slate-50 via-slate-50 to-cyan-50/40 p-6">
           <div className="flex items-center justify-between gap-3">
             <div>
               <div className="text-sm font-black uppercase tracking-[0.2em] text-cyan-700">节点摘要</div>
@@ -81,7 +81,7 @@ export const EnvAiAgentOverviewPage: React.FC<{ projectId: string }> = ({ projec
               const nodeRunningAgents = nodeAgents.filter((agent) => agent.running).length;
               const nodeActiveAgents = nodeAgents.filter((agent) => agent.active).length;
               return (
-                <div key={node} className="rounded-[1.5rem] border border-slate-200 bg-white/90 p-5 shadow-sm">
+ <div key={node} className="rounded-[1.5rem] border border-slate-200 bg-slate-50 p-5">
                   <div className="flex items-start justify-between gap-4 flex-wrap">
                     <div>
                       <div className="text-xl font-black tracking-tight text-slate-900">{node}</div>
@@ -110,7 +110,7 @@ export const EnvAiAgentOverviewPage: React.FC<{ projectId: string }> = ({ projec
                       <div className="mb-3 text-xs font-black uppercase tracking-[0.16em] text-slate-500">Helper 服务</div>
                       <div className="space-y-2">
                       {helperItems.map((helper) => (
-                        <div key={`${helper.agent_key}::${helper.service_name}`} className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs text-slate-600 shadow-sm">
+ <div key={`${helper.agent_key}::${helper.service_name}`} className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-600">
                           <div className="flex items-center justify-between gap-2">
                             <div className="font-semibold text-slate-900">{helper.service_name}</div>
                             <HealthBadge status={helper.health_status} />
@@ -122,7 +122,7 @@ export const EnvAiAgentOverviewPage: React.FC<{ projectId: string }> = ({ projec
                           </div>
                           <button
                             onClick={() => navigateToAppView('env-ai-helper', { helperKey: buildHelperKey(helper.agent_key, helper.service_name) })}
-                            className="mt-2 w-full rounded-lg border border-slate-200 px-2 py-1 text-[11px] font-semibold text-slate-700 transition hover:bg-slate-50"
+                            className="mt-2 w-full rounded-lg border border-slate-200 px-2 py-1 text-[11px] font-semibold text-slate-700 transition hover:bg-slate-100"
                           >
                             查看详情
                           </button>
@@ -135,7 +135,7 @@ export const EnvAiAgentOverviewPage: React.FC<{ projectId: string }> = ({ projec
                       <div className="mb-3 text-xs font-black uppercase tracking-[0.16em] text-slate-500">AI Agent 列表</div>
                       <div className="grid grid-cols-1 gap-3 md:grid-cols-2 2xl:grid-cols-3">
                         {nodeAgents.length === 0 ? <div className="text-sm text-slate-500">当前节点暂无可用 AI Agent。</div> : nodeAgents.map((agent) => (
-                          <div key={`${agent.agent_key}::${agent.service_name}::${agent.agent_id}`} className="rounded-xl border border-slate-200 bg-white p-3 shadow-sm">
+ <div key={`${agent.agent_key}::${agent.service_name}::${agent.agent_id}`} className="rounded-xl border border-slate-200 bg-slate-50 p-3">
                             <div className="text-sm font-bold text-slate-900">{agent.agent_id}</div>
                             <div className="mt-1 text-xs text-slate-500">{agent.service_name} · {agent.backend_type}</div>
                             <div className="mt-2 flex flex-wrap gap-2 text-[11px] font-black uppercase tracking-[0.16em]">
@@ -155,7 +155,7 @@ export const EnvAiAgentOverviewPage: React.FC<{ projectId: string }> = ({ projec
                     />
                   </div>
                   <div className="mt-1 text-[11px] text-slate-500">
-                    运行中 AI Agent 占比：{nodeAgents.length > 0 ? `${Math.round((nodeRunningAgents / nodeAgents.length) * 100)}%` : '0%'}
+                    运行中 AI Agent 占比：{nodeAgents.length > 0 ?`${Math.round((nodeRunningAgents / nodeAgents.length) * 100)}%` : '0%'}
                   </div>
                 </div>
               );

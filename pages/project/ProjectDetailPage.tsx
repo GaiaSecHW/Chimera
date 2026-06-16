@@ -1,14 +1,14 @@
 
 import React, { useState, useEffect } from 'react';
-import { 
-  ChevronLeft, 
-  Terminal, 
-  Database, 
-  Activity, 
-  RefreshCw, 
-  Loader2, 
-  Box, 
-  Clock, 
+import {
+  ChevronLeft,
+  Terminal,
+  Database,
+  Activity,
+  RefreshCw,
+  Loader2,
+  Box,
+  Clock,
   HardDrive,
   FileText,
   AlertCircle,
@@ -135,7 +135,7 @@ export const ProjectDetailPage: React.FC<ProjectDetailPageProps> = ({ projectId,
       const { logs } = await projectApi.projects.getPodLogs(projectId, podName, { tail_lines: 500 });
       setLogView(prev => ({ ...prev, logs }));
     } catch (err: any) {
-      setLogView(prev => ({ ...prev, logs: "获取日志失败: " + err.message }));
+      setLogView(prev => ({ ...prev, logs:"获取日志失败:" + err.message }));
     } finally {
       setLogLoading(false);
     }
@@ -178,7 +178,7 @@ export const ProjectDetailPage: React.FC<ProjectDetailPageProps> = ({ projectId,
       {/* Header */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
         <div className="flex items-center gap-6">
-          <button onClick={onBack} className="p-4 bg-[var(--bg-surface)] border border-[rgba(255,255,255,0.08)] rounded-2xl hover:bg-[rgba(255,255,255,0.06)] transition-all shadow-sm group active:scale-95">
+ <button onClick={onBack} className="p-4 bg-[var(--bg-surface)] border border-[rgba(255,255,255,0.08)] rounded-2xl hover:bg-[rgba(255,255,255,0.06)] transition-all group active:scale-95">
             <ChevronLeft size={20} className="group-hover:-translate-x-1 transition-transform" />
           </button>
           <div>
@@ -198,7 +198,7 @@ export const ProjectDetailPage: React.FC<ProjectDetailPageProps> = ({ projectId,
           </div>
         </div>
         <div className="flex gap-3">
-          <button onClick={loadAllData} className="p-4 bg-[var(--bg-surface)] border border-[rgba(255,255,255,0.08)] text-slate-500 rounded-2xl hover:bg-[rgba(255,255,255,0.06)] transition-all shadow-sm">
+ <button onClick={loadAllData} className="p-4 bg-[var(--bg-surface)] border border-[rgba(255,255,255,0.08)] text-slate-500 rounded-2xl hover:bg-[rgba(255,255,255,0.06)] transition-all">
             <RefreshCw size={20} />
           </button>
         </div>
@@ -212,7 +212,7 @@ export const ProjectDetailPage: React.FC<ProjectDetailPageProps> = ({ projectId,
           { label: '存储卷', value: (resources?.pvcs || []).length, icon: <Database size={20} />, color: 'text-amber-600' },
           { label: '外部入口', value: (resources?.ingresses || []).length, icon: <Globe size={20} />, color: 'text-purple-600' },
         ].map((stat, i) => (
-          <div key={i} className="bg-[var(--bg-surface)] p-6 rounded-[2rem] border border-[rgba(255,255,255,0.08)] shadow-sm flex items-center gap-5">
+ <div key={i} className="bg-[var(--bg-surface)] p-6 rounded-[2rem] border border-[rgba(255,255,255,0.08)] flex items-center gap-5">
              <div className={`w-12 h-12 rounded-2xl bg-[rgba(255,255,255,0.04)] ${stat.color} flex items-center justify-center`}>
                {stat.icon}
              </div>
@@ -225,7 +225,7 @@ export const ProjectDetailPage: React.FC<ProjectDetailPageProps> = ({ projectId,
       </div>
 
       {/* Action Bar */}
-      <div className="flex flex-wrap items-center gap-3 rounded-[1.75rem] border border-[rgba(255,255,255,0.08)] bg-[var(--bg-surface)] px-4 py-3 shadow-sm">
+ <div className="flex flex-wrap items-center gap-3 rounded-[1.75rem] border border-[rgba(255,255,255,0.08)] bg-[var(--bg-surface)] px-4 py-3">
         <button
           onClick={() => void rebuildIngressTls()}
           disabled={tlsRebuildLoading || !project?.can_manage}
@@ -261,10 +261,10 @@ export const ProjectDetailPage: React.FC<ProjectDetailPageProps> = ({ projectId,
           { id: 'network', label: '网络服务', icon: <Share2 size={16} /> },
           { id: 'storage', label: '持久化存储', icon: <Database size={16} /> }
         ].map(tab => (
-          <button 
+          <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id as any)}
-            className={`flex items-center gap-2 px-8 py-3 rounded-2xl font-black text-xs transition-all ${activeTab === tab.id ? 'bg-[var(--brand-primary)] text-white shadow-sm' : 'text-slate-500 hover:text-slate-400'}`}
+ className={`flex items-center gap-2 px-8 py-3 rounded-2xl font-black text-xs transition-all ${activeTab === tab.id ? 'bg-[var(--brand-primary)] text-white ' : 'text-slate-500 hover:text-slate-400'}`}
           >
             {tab.icon} {tab.label}
           </button>
@@ -272,8 +272,8 @@ export const ProjectDetailPage: React.FC<ProjectDetailPageProps> = ({ projectId,
       </div>
 
       {/* Content Area */}
-      <div className="bg-[var(--bg-surface)] border border-[rgba(255,255,255,0.08)] rounded-[3rem] shadow-sm overflow-hidden min-h-[500px]">
-        
+ <div className="bg-[var(--bg-surface)] border border-[rgba(255,255,255,0.08)] rounded-[3rem] overflow-hidden min-h-[500px]">
+
         {activeTab === 'overview' && (
           <div className="p-10 space-y-10 animate-in fade-in slide-in-from-bottom-4">
              <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
@@ -297,7 +297,7 @@ export const ProjectDetailPage: React.FC<ProjectDetailPageProps> = ({ projectId,
                               <User size={10} /> 项目负责人
                            </p>
                            <p className="text-sm font-black text-slate-700">
-                              {project?.owner_name || 'Administrator'} 
+                              {project?.owner_name || 'Administrator'}
                               <span className="text-[10px] text-slate-400 ml-2 font-mono">({project?.owner_id || '-'})</span>
                            </p>
                         </div>
@@ -326,14 +326,14 @@ export const ProjectDetailPage: React.FC<ProjectDetailPageProps> = ({ projectId,
                            <p className="text-sm font-black text-slate-700">{project?.product_version || project?.product_version_name || '未归属版本'}</p>
                         </div>
                      </div>
-                     
+
                      <div className="pt-6 border-t border-slate-200">
                         <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1.5 mb-3">
                            <FileText size={10} /> 项目详细描述
                         </p>
                         <div className="bg-[rgba(255,255,255,0.03)] p-6 rounded-3xl border border-[rgba(255,255,255,0.06)] shadow-inner">
                            <p className="text-sm text-slate-600 leading-relaxed font-medium">
-                              {project?.description || "该项目暂未填写详细描述信息。项目空间用于隔离不同安全评估目标的 K8S 运行环境与存储卷。"}
+                              {project?.description ||"该项目暂未填写详细描述信息。项目空间用于隔离不同安全评估目标的 K8S 运行环境与存储卷。"}
                            </p>
                         </div>
                      </div>
@@ -371,7 +371,7 @@ export const ProjectDetailPage: React.FC<ProjectDetailPageProps> = ({ projectId,
                    </h3>
                    <div className="grid grid-cols-1 gap-4">
                      {(resources?.deployments || []).map(dep => (
-                       <div key={dep.name} className="p-6 bg-[var(--bg-surface)] border border-[rgba(255,255,255,0.06)] rounded-2xl flex items-center justify-between hover:shadow-lg transition-all">
+ <div key={dep.name} className="p-6 bg-[var(--bg-surface)] border border-[rgba(255,255,255,0.06)] rounded-2xl flex items-center justify-between transition-all">
                          <div className="flex items-center gap-4">
                            <div className="w-10 h-10 bg-indigo-50 text-indigo-600 rounded-xl flex items-center justify-center">
                              <Cpu size={18} />
@@ -409,7 +409,7 @@ export const ProjectDetailPage: React.FC<ProjectDetailPageProps> = ({ projectId,
                            <div>
                              <p className="text-sm font-black text-slate-700">第三方 SDK 专用项目凭证</p>
                              <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mt-1">
-                               {projectToken?.machine_code || `project-sdk:${projectId}`}
+                               {projectToken?.machine_code ||`project-sdk:${projectId}`}
                              </p>
                            </div>
                            <button
@@ -430,7 +430,7 @@ export const ProjectDetailPage: React.FC<ProjectDetailPageProps> = ({ projectId,
                              {!!projectToken?.token && (
                                <button
                                  onClick={copyToken}
-                                 className="absolute top-3 right-3 p-3 rounded-xl bg-white/10 text-white hover:bg-white/20 transition-all"
+ className="absolute top-3 right-3 p-3 rounded-xl bg-slate-100 text-white hover:bg-slate-100 transition-all"
                                >
                                  {tokenCopied ? <Check size={16} /> : <Copy size={16} />}
                                </button>
@@ -480,9 +480,9 @@ export const ProjectDetailPage: React.FC<ProjectDetailPageProps> = ({ projectId,
                      <td className="px-6 py-6 font-mono text-xs text-blue-600 font-bold">{pod.ip}</td>
                      <td className="px-6 py-6"><StatusBadge status={pod.status} /></td>
                      <td className="px-8 py-6 text-right">
-                       <button 
+                       <button
                          onClick={() => openLogViewer(pod.name)}
-                         className="flex items-center gap-2 ml-auto px-5 py-2.5 bg-slate-900 text-white rounded-xl font-black text-[10px] uppercase hover:bg-slate-800 transition-all active:scale-95 shadow-lg shadow-slate-900/10"
+ className="flex items-center gap-2 ml-auto px-5 py-2.5 bg-slate-900 text-white rounded-xl font-black text-[10px] uppercase hover:bg-slate-800 transition-all active:scale-95"
                        >
                          <Terminal size={14} /> 交互式日志
                        </button>
@@ -613,16 +613,16 @@ export const ProjectDetailPage: React.FC<ProjectDetailPageProps> = ({ projectId,
       {/* Log Terminal Overlay */}
       {logView.show && (
         <div className="fixed inset-0 z-[110] flex items-center justify-center p-6 bg-slate-900/80 backdrop-blur-xl animate-in fade-in">
-          <div className="bg-[#0f172a] w-full max-w-5xl h-[80vh] rounded-[3rem] shadow-2xl border border-white/10 flex flex-col overflow-hidden animate-in zoom-in-95">
-             <div className="px-10 py-6 border-b border-white/5 flex items-center justify-between bg-white/5">
+ <div className="bg-[#0f172a] w-full max-w-5xl h-[80vh] rounded-[3rem] border border-slate-200 flex flex-col overflow-hidden animate-in zoom-in-95">
+ <div className="px-10 py-6 border-b border-slate-200/5 flex items-center justify-between bg-slate-100/10">
                <div className="flex items-center gap-4">
-                 <div className="w-10 h-10 bg-blue-600 rounded-2xl flex items-center justify-center text-white shadow-lg shadow-blue-500/20"><Terminal size={20} /></div>
+ <div className="w-10 h-10 bg-blue-600 rounded-2xl flex items-center justify-center text-white"><Terminal size={20} /></div>
                  <div>
                    <h3 className="text-sm font-black text-white">实时容器日志审计 (Pod: {logView.podName})</h3>
                    <p className="text-[10px] font-mono text-slate-500 uppercase tracking-widest mt-0.5">Stream: K8S Namespaced Socket</p>
                  </div>
                </div>
-               <button onClick={() => setLogView({ show: false, podName: '', logs: '' })} className="p-3 bg-white/5 text-slate-400 hover:text-white hover:bg-white/10 rounded-2xl transition-all">
+ <button onClick={() => setLogView({ show: false, podName: '', logs: '' })} className="p-3 bg-slate-100/10 text-slate-400 hover:text-white hover:bg-slate-100 rounded-2xl transition-all">
                  <X size={20} />
                </button>
              </div>
@@ -639,16 +639,16 @@ export const ProjectDetailPage: React.FC<ProjectDetailPageProps> = ({ projectId,
                  </div>
                )}
              </div>
-             <div className="px-10 py-5 bg-white/5 border-t border-white/5 flex justify-between items-center">
+ <div className="px-10 py-5 bg-slate-100/10 border-t border-slate-200/5 flex justify-between items-center">
                <div className="flex items-center gap-4">
                  <div className="flex items-center gap-2 text-[10px] font-black text-green-500 uppercase tracking-widest">
-                   <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse shadow-[0_0_8px_rgba(34,197,94,0.6)]" /> Tunnel Established
+                   <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse" /> Tunnel Established
                  </div>
-                 <div className="h-4 w-[1px] bg-white/10" />
+ <div className="h-4 w-[1px] bg-slate-100" />
                  <p className="text-[10px] font-black text-slate-500 uppercase">Lines: {logView.logs.split('\n').length}</p>
                </div>
-               <button 
-                onClick={() => openLogViewer(logView.podName)} 
+               <button
+                onClick={() => openLogViewer(logView.podName)}
                 className="px-6 py-2.5 bg-blue-600 text-white text-[10px] font-black uppercase rounded-xl hover:bg-blue-500 transition-all flex items-center gap-2"
                >
                  <RefreshCw size={12} /> 清理并重新捕获

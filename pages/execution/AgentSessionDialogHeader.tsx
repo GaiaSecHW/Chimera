@@ -32,7 +32,7 @@ export const AgentSessionDialogHeader: React.FC<{
   onClose,
 }) => (
   <div className="flex items-start justify-between gap-4 px-6 py-5"
-    style={{ borderBottom: `1px solid ${LK.borderSoft}`, backgroundColor: LK.surface }}>
+    style={{ borderBottom:`1px solid ${LK.borderSoft}`, backgroundColor: LK.surface }}>
     <div>
       <div className="text-[11px] font-semibold uppercase tracking-[0.18em]" style={{ color: LK.muted }}>Agent Session</div>
       <div className="mt-2 text-2xl font-semibold tracking-tight" style={{ color: LK.ink }}>{title}</div>

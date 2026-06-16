@@ -28,7 +28,7 @@ const parseTaskTitle = (rawTitle: string): { projectId: string | null; title: st
 const tagTaskTitle = (title: string, projectId?: string | null): string => {
   const trimmed = String(title || '').trim();
   if (!projectId) return trimmed;
-  return `[p:${projectId}] ${trimmed}`;
+  return`[p:${projectId}] ${trimmed}`;
 };
 
 const parseEntryProgress = (content: string): EntryProgress | null => {
@@ -101,9 +101,9 @@ const formatDateTime = (value?: string | null) => {
 
 const formatBytes = (value?: number | null) => {
   if (value == null) return '-';
-  if (value < 1024) return `${value} B`;
-  if (value < 1024 * 1024) return `${(value / 1024).toFixed(1)} KB`;
-  return `${(value / 1024 / 1024).toFixed(1)} MB`;
+  if (value < 1024) return`${value} B`;
+  if (value < 1024 * 1024) return`${(value / 1024).toFixed(1)} KB`;
+  return`${(value / 1024 / 1024).toFixed(1)} MB`;
 };
 
 const toWorkspaceAbsolutePath = (path?: string | null) => {
@@ -111,7 +111,7 @@ const toWorkspaceAbsolutePath = (path?: string | null) => {
   if (!trimmed || trimmed === '/') return '/workspace';
   if (trimmed === '/workspace' || trimmed.startsWith('/workspace/')) return trimmed;
   const relative = trimmed.replace(/^\/+/, '').replace(/^workspace\/?/, '');
-  return relative ? `/workspace/${relative}` : '/workspace';
+  return relative ?`/workspace/${relative}` : '/workspace';
 };
 
 const stripWorkspacePrefix = (path?: string | null) => {
@@ -124,7 +124,7 @@ const stripWorkspacePrefix = (path?: string | null) => {
 
 const formatWorkspaceDisplayPath = (path?: string | null) => {
   const relative = stripWorkspacePrefix(path);
-  return relative ? `/workspace/${relative}` : '/workspace';
+  return relative ?`/workspace/${relative}` : '/workspace';
 };
 
 const isPathWithinWorkspaceRoot = (path?: string | null, root?: string | null) => {
@@ -153,7 +153,7 @@ const LK = {
 } as const;
 const MONO = 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace';
 
-const panelClassName = 'rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm';
+const panelClassName = 'rounded-[2rem] border border-slate-200 bg-slate-50 p-6 ';
 
 export const KernelScanPage: React.FC<{ projectId: string }> = ({ projectId }) => {
   const executionApi = api.domains.execution.kernelScan;
@@ -230,7 +230,7 @@ export const KernelScanPage: React.FC<{ projectId: string }> = ({ projectId }) =
   const filteredTasks = tasksForProject.filter((item) => {
     const keyword = taskKeyword.trim().toLowerCase();
     if (!keyword) return true;
-    return `${item.title} ${item.kernel_dir || ''} ${item.task_id}`.toLowerCase().includes(keyword);
+    return`${item.title} ${item.kernel_dir || ''} ${item.task_id}`.toLowerCase().includes(keyword);
   });
 
   const activeTaskCount = tasksForProject.filter((item) => ACTIVE_TASK_STATUSES.has(String(item.status || '').toLowerCase())).length;
@@ -525,10 +525,10 @@ export const KernelScanPage: React.FC<{ projectId: string }> = ({ projectId }) =
       setAdbDevicesRaw(result.raw || '');
       setAdbConnected(connectedDevices.length > 0);
       if (connectedDevices.length > 0) {
-        setAdbDevicesMessage(result.message || `设备连接成功：${connectedDevices.map((device) => device.serial).join(', ')}`);
+        setAdbDevicesMessage(result.message ||`设备连接成功：${connectedDevices.map((device) => device.serial).join(', ')}`);
       } else {
         const detected = devices.length > 0
-          ? `检测到设备但状态不可用：${devices.map((device) => `${device.serial} (${device.status || '-'})`).join('，')}`
+          ?`检测到设备但状态不可用：${devices.map((device) =>`${device.serial} (${device.status || '-'})`).join('，')}`
           : '未获取到可用设备 SN';
         setAdbDevicesError(`${detected}。请确认远程 ADB server 已连接设备且状态为 device。`);
       }
@@ -628,7 +628,7 @@ export const KernelScanPage: React.FC<{ projectId: string }> = ({ projectId }) =
     const customTitle = createTitle.trim();
     if (customTitle) return customTitle;
     const reportName = stripWorkspacePrefix(createReportDir).split('/').filter(Boolean).pop();
-    return reportName ? `漏洞验证 - ${reportName}` : '漏洞验证任务';
+    return reportName ?`漏洞验证 - ${reportName}` : '漏洞验证任务';
   };
 
   const handleCreateTask = async () => {
@@ -660,7 +660,7 @@ export const KernelScanPage: React.FC<{ projectId: string }> = ({ projectId }) =
         kernel_dir: createTargetPath.trim(),
         entrylist: activeTab === 'vuln_scan' ? createDevlistPath.trim() : undefined,
         report_dir: activeTab === 'vuln_verify' ? createReportDir.trim() : undefined,
-        notes: activeTab !== 'vuln_verify' ? `parallel_count=${parallelValue}` : undefined,
+        notes: activeTab !== 'vuln_verify' ?`parallel_count=${parallelValue}` : undefined,
       });
       notify('任务创建成功', 'success');
       setCreateTitle('');
@@ -681,7 +681,7 @@ export const KernelScanPage: React.FC<{ projectId: string }> = ({ projectId }) =
     if (!selectedTask) return;
     const confirmed = await confirm({
       title: '取消任务',
-      message: `确认取消任务「${selectedTask.title}」吗？`,
+      message:`确认取消任务「${selectedTask.title}」吗？`,
       confirmText: '取消任务',
       cancelText: '保留任务',
       danger: true,
@@ -704,7 +704,7 @@ export const KernelScanPage: React.FC<{ projectId: string }> = ({ projectId }) =
     if (!selectedTask) return;
     const confirmed = await confirm({
       title: '重启任务',
-      message: `确认重启任务「${selectedTask.title}」吗？将复用原有配置重新执行，已有产物会被保留。`,
+      message:`确认重启任务「${selectedTask.title}」吗？将复用原有配置重新执行，已有产物会被保留。`,
       confirmText: '重启',
       cancelText: '取消',
     });
@@ -727,7 +727,7 @@ export const KernelScanPage: React.FC<{ projectId: string }> = ({ projectId }) =
     event?.preventDefault();
     const confirmed = await confirm({
       title: '删除任务',
-      message: `确认删除任务「${task.title}」吗？该操作不可恢复。`,
+      message:`确认删除任务「${task.title}」吗？该操作不可恢复。`,
       confirmText: '删除',
       cancelText: '取消',
       danger: true,
@@ -804,7 +804,7 @@ export const KernelScanPage: React.FC<{ projectId: string }> = ({ projectId }) =
               borderRadius: '0.5rem', padding: '0.625rem 1rem', fontSize: '0.875rem', fontWeight: 600, transition: 'all 0.2s',
               backgroundColor: activeTab === cat ? LK.ink : LK.surface,
               color: activeTab === cat ? LK.canvas : LK.inkSoft,
-              border: activeTab === cat ? 'none' : `1px solid ${LK.borderSoft}`
+              border: activeTab === cat ? 'none' :`1px solid ${LK.borderSoft}`
             }}
           >
             {CATEGORY_LABELS[cat]}
@@ -855,7 +855,7 @@ export const KernelScanPage: React.FC<{ projectId: string }> = ({ projectId }) =
           ) : null}
 
           <div style={{ marginTop: '1rem', overflow: 'hidden', borderRadius: '0.5rem', border: `1px solid ${LK.border}`, backgroundColor: LK.surface }}>
-            <div style={{ display: 'none', gridTemplateColumns: 'minmax(0,1.1fr) 120px minmax(0,1.4fr)', gap: '0.75rem', borderBottom: `1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised, padding: '0.5rem 0.75rem', fontSize: '0.6875rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.16em', color: LK.muted }} className="sm:grid">
+            <div style={{ display: 'none', gridTemplateColumns: 'minmax(0,1.1fr) 120px minmax(0,1.4fr)', gap: '0.75rem', borderBottom:`1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised, padding: '0.5rem 0.75rem', fontSize: '0.6875rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.16em', color: LK.muted }} className="sm:grid">
               <span>Serial</span>
               <span>Status</span>
               <span>Info</span>
@@ -866,7 +866,7 @@ export const KernelScanPage: React.FC<{ projectId: string }> = ({ projectId }) =
                 连接中...
               </div>
             ) : adbDevices.length > 0 ? (
-              <div style={{ borderTop: `1px solid ${LK.borderSoft}` }}>
+              <div style={{ borderTop:`1px solid ${LK.borderSoft}` }}>
                 {adbDevices.map((device) => (
                   <div
                     key={`${device.serial}-${device.transport_id || ''}`}
@@ -1043,10 +1043,10 @@ export const KernelScanPage: React.FC<{ projectId: string }> = ({ projectId }) =
                       return (
                         <div style={{ marginTop: '0.75rem' }}>
                           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.625rem', fontWeight: 600, color: LK.muted }}>
-                            <span>扫描进度{hint ? ` · ${hint}` : ''}</span>
+                            <span>扫描进度{hint ?` · ${hint}` : ''}</span>
                             <span style={{ fontFamily: MONO, color: LK.inkSoft }}>
-                              {display !== null ? `${display}%` : '—'}
-                              {progress?.current != null && progress?.total != null ? ` (${progress.current}/${progress.total})` : ''}
+                              {display !== null ?`${display}%` : '—'}
+                              {progress?.current != null && progress?.total != null ?` (${progress.current}/${progress.total})` : ''}
                             </span>
                           </div>
                           <div style={{ marginTop: '0.25rem', height: '0.375rem', width: '100%', overflow: 'hidden', borderRadius: '9999px', backgroundColor: LK.borderSoft }}>
@@ -1153,7 +1153,7 @@ export const KernelScanPage: React.FC<{ projectId: string }> = ({ projectId }) =
                         notify('复制失败，请手动选择文本', 'error');
                       }
                     }}
-                    className="inline-flex items-center gap-1 rounded-md border border-slate-200 bg-white px-2 py-1 text-[11px] font-bold text-slate-700 transition hover:bg-slate-100"
+                    className="inline-flex items-center gap-1 rounded-md border border-slate-200 bg-slate-50 px-2 py-1 text-[11px] font-bold text-slate-700 transition hover:bg-slate-100"
                   >
                     <Copy size={12} />
                     复制
@@ -1206,7 +1206,7 @@ export const KernelScanPage: React.FC<{ projectId: string }> = ({ projectId }) =
                       type="button"
                       onClick={() => loadTaskWorkspace(taskWorkspacePath || taskWorkspaceRoot)}
                       disabled={taskWorkspaceLoading || !taskWorkspaceRoot}
-                      className="inline-flex shrink-0 items-center gap-1 rounded-md border border-slate-200 bg-white px-2 py-1 text-[11px] font-bold text-slate-700 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50"
+                      className="inline-flex shrink-0 items-center gap-1 rounded-md border border-slate-200 bg-slate-50 px-2 py-1 text-[11px] font-bold text-slate-700 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50"
                     >
                       {taskWorkspaceLoading ? <Loader2 size={12} className="animate-spin" /> : <RefreshCw size={12} />}
                       刷新
@@ -1220,7 +1220,7 @@ export const KernelScanPage: React.FC<{ projectId: string }> = ({ projectId }) =
                   ) : null}
 
                   <div className="mt-3 grid gap-3 lg:grid-cols-[minmax(0,0.95fr)_minmax(0,1.35fr)]">
-                    <div className="min-h-[320px] overflow-hidden rounded-lg border border-slate-200 bg-white">
+                    <div className="min-h-[320px] overflow-hidden rounded-lg border border-slate-200 bg-slate-50">
                       <div className="flex items-center justify-between gap-2 border-b border-slate-200 bg-slate-50 px-3 py-2">
                         <span className="text-xs font-bold text-slate-600">{isVulnVerifyDetail ? '结果文件' : '文件列表'}</span>
                         {canGoTaskWorkspaceUp ? (
@@ -1249,7 +1249,7 @@ export const KernelScanPage: React.FC<{ projectId: string }> = ({ projectId }) =
                                   key={entry.path}
                                   type="button"
                                   onClick={() => handleTaskWorkspaceNavigate(entry)}
-                                  className={`flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left transition ${selected ? 'bg-sky-50 text-sky-800' : 'text-slate-700 hover:bg-slate-50'}`}
+                                  className={`flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left transition ${selected ? 'bg-sky-50 text-sky-800' : 'text-slate-700 hover:bg-slate-100'}`}
                                 >
                                   {entry.is_dir ? (
                                     <Folder size={16} className="shrink-0 text-amber-500" />
@@ -1274,7 +1274,7 @@ export const KernelScanPage: React.FC<{ projectId: string }> = ({ projectId }) =
                       </div>
                     </div>
 
-                    <div className="min-h-[320px] overflow-hidden rounded-lg border border-slate-200 bg-white">
+                    <div className="min-h-[320px] overflow-hidden rounded-lg border border-slate-200 bg-slate-50">
                       <div className="border-b border-slate-200 bg-slate-50 px-3 py-2">
                         <div className="truncate text-xs font-bold text-slate-600">
                           {previewFile ? previewFile.name : '文件预览'}
@@ -1324,7 +1324,7 @@ export const KernelScanPage: React.FC<{ projectId: string }> = ({ projectId }) =
                       type="button"
                       onClick={() => fetchEntryResult(selectedTask.task_id)}
                       disabled={entryResultLoading}
-                      className="inline-flex items-center gap-1 rounded-md border border-slate-200 bg-white px-2 py-1 text-[11px] font-bold text-slate-700 transition hover:bg-slate-100 disabled:opacity-50"
+                      className="inline-flex items-center gap-1 rounded-md border border-slate-200 bg-slate-50 px-2 py-1 text-[11px] font-bold text-slate-700 transition hover:bg-slate-100 disabled:opacity-50"
                     >
                       {entryResultLoading ? <Loader2 size={12} className="animate-spin" /> : <RefreshCw size={12} />}
                       刷新
@@ -1341,7 +1341,7 @@ export const KernelScanPage: React.FC<{ projectId: string }> = ({ projectId }) =
                     <div className="mb-2 break-all font-mono text-[11px] text-slate-400">
                       {entryResult.path} ({entryResult.size ?? 0} bytes)
                     </div>
-                    <pre className="max-h-[400px] overflow-auto whitespace-pre-wrap break-all rounded-lg border border-slate-200 bg-white p-3 font-mono text-xs leading-relaxed text-slate-800">
+                    <pre className="max-h-[400px] overflow-auto whitespace-pre-wrap break-all rounded-lg border border-slate-200 bg-slate-50 p-3 font-mono text-xs leading-relaxed text-slate-800">
 {entryResult.content || '(空文件)'}
                     </pre>
                   </div>
@@ -1363,7 +1363,7 @@ export const KernelScanPage: React.FC<{ projectId: string }> = ({ projectId }) =
 
       {createModalOpen ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 px-4 py-6 backdrop-blur-sm">
-          <div className="flex w-full max-w-lg flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl">
+ <div className="flex w-full max-w-lg flex-col overflow-hidden rounded-2xl border border-slate-200 bg-slate-50">
             <div className="shrink-0 border-b border-slate-200 bg-slate-50/90 px-5 py-4">
               <h3 className="text-lg font-black text-slate-950">新建{CATEGORY_LABELS[activeTab]}任务</h3>
             </div>
@@ -1375,8 +1375,8 @@ export const KernelScanPage: React.FC<{ projectId: string }> = ({ projectId }) =
                 <input
                   value={createTitle}
                   onChange={(event) => setCreateTitle(event.target.value)}
-                  placeholder={activeTab === 'vuln_verify' ? '留空则按报告目录自动生成' : `输入${CATEGORY_LABELS[activeTab]}任务标题`}
-                  className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm font-semibold text-slate-700 outline-none transition focus:border-sky-300 focus:ring-4 focus:ring-sky-100"
+                  placeholder={activeTab === 'vuln_verify' ? '留空则按报告目录自动生成' :`输入${CATEGORY_LABELS[activeTab]}任务标题`}
+                  className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm font-semibold text-slate-700 outline-none transition focus:border-sky-300 focus:ring-4 focus:ring-sky-100"
                 />
               </label>
               <label className="block">
@@ -1391,7 +1391,7 @@ export const KernelScanPage: React.FC<{ projectId: string }> = ({ projectId }) =
                   <button
                     type="button"
                     onClick={() => handleOpenPathPicker('target_dir')}
-                    className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm font-bold text-slate-700 transition hover:bg-slate-50"
+                    className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm font-bold text-slate-700 transition hover:bg-slate-100"
                   >
                     <FolderOpen size={16} />
                     选择
@@ -1411,7 +1411,7 @@ export const KernelScanPage: React.FC<{ projectId: string }> = ({ projectId }) =
                     <button
                       type="button"
                       onClick={() => handleOpenPathPicker('entrylist_file')}
-                      className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm font-bold text-slate-700 transition hover:bg-slate-50"
+                      className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm font-bold text-slate-700 transition hover:bg-slate-100"
                     >
                       <FileText size={16} />
                       选择
@@ -1432,7 +1432,7 @@ export const KernelScanPage: React.FC<{ projectId: string }> = ({ projectId }) =
                     <button
                       type="button"
                       onClick={() => handleOpenPathPicker('report_dir')}
-                      className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm font-bold text-slate-700 transition hover:bg-slate-50"
+                      className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm font-bold text-slate-700 transition hover:bg-slate-100"
                     >
                       <FolderOpen size={16} />
                       选择
@@ -1450,7 +1450,7 @@ export const KernelScanPage: React.FC<{ projectId: string }> = ({ projectId }) =
                     value={createParallelCount}
                     onChange={(event) => setCreateParallelCount(event.target.value)}
                     placeholder="1"
-                    className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm font-semibold text-slate-700 outline-none transition focus:border-sky-300 focus:ring-4 focus:ring-sky-100"
+                    className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm font-semibold text-slate-700 outline-none transition focus:border-sky-300 focus:ring-4 focus:ring-sky-100"
                   />
                 </label>
               ) : null}
@@ -1461,7 +1461,7 @@ export const KernelScanPage: React.FC<{ projectId: string }> = ({ projectId }) =
                   type="button"
                   onClick={() => setCreateModalOpen(false)}
                   disabled={creating}
-                  className="rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm font-bold text-slate-700 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50"
+                  className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm font-bold text-slate-700 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   取消
                 </button>
@@ -1482,7 +1482,7 @@ export const KernelScanPage: React.FC<{ projectId: string }> = ({ projectId }) =
 
       {showPathPicker ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 px-4 py-6 backdrop-blur-sm">
-          <div className="flex h-[70vh] w-full max-w-xl flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl">
+ <div className="flex h-[70vh] w-full max-w-xl flex-col overflow-hidden rounded-2xl border border-slate-200 bg-slate-50">
             <div className="flex shrink-0 items-center justify-between border-b border-slate-200 bg-slate-50/90 px-5 py-4">
               <div>
                 <h3 className="text-lg font-black text-slate-950">{pathPickerTitle}</h3>
@@ -1525,7 +1525,7 @@ export const KernelScanPage: React.FC<{ projectId: string }> = ({ projectId }) =
                         <button
                           type="button"
                           onClick={() => handleSelectPath(entry.path)}
-                          className="shrink-0 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-bold text-slate-700 transition hover:bg-slate-50"
+                          className="shrink-0 rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1.5 text-xs font-bold text-slate-700 transition hover:bg-slate-100"
                         >
                           选择
                         </button>
@@ -1542,7 +1542,7 @@ export const KernelScanPage: React.FC<{ projectId: string }> = ({ projectId }) =
                         <button
                           type="button"
                           onClick={() => handleSelectPath(entry.path)}
-                          className="shrink-0 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-bold text-slate-700 transition hover:bg-slate-50"
+                          className="shrink-0 rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1.5 text-xs font-bold text-slate-700 transition hover:bg-slate-100"
                         >
                           选择
                         </button>
@@ -1565,7 +1565,7 @@ export const KernelScanPage: React.FC<{ projectId: string }> = ({ projectId }) =
                     <button
                       type="button"
                       onClick={() => setShowPathPicker(false)}
-                      className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-700 transition hover:bg-slate-100"
+                      className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-bold text-slate-700 transition hover:bg-slate-100"
                     >
                       取消
                     </button>
@@ -1581,7 +1581,7 @@ export const KernelScanPage: React.FC<{ projectId: string }> = ({ projectId }) =
                   <button
                     type="button"
                     onClick={() => setShowPathPicker(false)}
-                    className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-700 transition hover:bg-slate-100"
+                    className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-bold text-slate-700 transition hover:bg-slate-100"
                   >
                     取消
                   </button>

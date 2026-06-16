@@ -383,7 +383,7 @@ export const DepartmentMemberPage: React.FC = () => {
     }
     const confirmed = await showConfirm({
       title: '执行导入',
-      message: `确认向当前部门导入 ${importPreview.valid_rows} 条成员记录？`,
+      message:`确认向当前部门导入 ${importPreview.valid_rows} 条成员记录？`,
       confirmText: '开始导入',
       cancelText: '取消',
     });
@@ -440,7 +440,7 @@ export const DepartmentMemberPage: React.FC = () => {
       <div className="flex justify-between items-end">
         <div className="space-y-1">
           <div className="flex items-center gap-3">
-            <div className="p-3 bg-gradient-to-br from-blue-600 via-cyan-500 to-sky-500 text-white rounded-2xl shadow-xl shadow-blue-500/20">
+ <div className="p-3 bg-gradient-to-br from-blue-600 via-cyan-500 to-sky-500 text-white rounded-2xl">
               <Users size={28} />
             </div>
             <div>
@@ -450,16 +450,16 @@ export const DepartmentMemberPage: React.FC = () => {
           </div>
         </div>
         <div className="flex gap-4">
-          <button onClick={() => selectedDepartmentId && void fetchMembers(selectedDepartmentId)} className="p-4 bg-white/80 backdrop-blur border border-slate-200 text-slate-500 rounded-2xl hover:bg-white transition-all shadow-sm active:scale-95">
+ <button onClick={() => selectedDepartmentId && void fetchMembers(selectedDepartmentId)} className="p-4 bg-slate-50 backdrop-blur border border-slate-200 text-slate-500 rounded-2xl hover:bg-slate-50 transition-all active:scale-95">
             <RefreshCw size={20} className={loading ? 'animate-spin' : ''} />
           </button>
           {canImportMembers() && (
-            <button onClick={openImportModal} className="bg-white/85 backdrop-blur text-slate-700 px-6 py-4 rounded-2xl font-black flex items-center gap-3 border border-slate-200 shadow-sm hover:bg-white transition-all active:scale-95">
+ <button onClick={openImportModal} className="bg-slate-50 backdrop-blur text-slate-700 px-6 py-4 rounded-2xl font-black flex items-center gap-3 border border-slate-200 hover:bg-slate-50 transition-all active:scale-95">
               <Upload size={18} /> 导入成员
             </button>
           )}
           {userPermissions?.can_manage_department_members && canManageCurrentDepartment() && (
-            <button onClick={openAddModal} className="bg-blue-600 text-white px-8 py-4 rounded-2xl font-black flex items-center gap-3 shadow-xl shadow-blue-500/20 hover:bg-blue-700 transition-all active:scale-95">
+ <button onClick={openAddModal} className="bg-blue-600 text-white px-8 py-4 rounded-2xl font-black flex items-center gap-3 hover:bg-blue-700 transition-all active:scale-95">
               <Plus size={20} /> 添加成员
             </button>
           )}
@@ -467,7 +467,7 @@ export const DepartmentMemberPage: React.FC = () => {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <div className="bg-[linear-gradient(135deg,_#0f172a,_#1d4ed8_65%,_#38bdf8)] p-8 rounded-[3rem] text-white flex flex-col justify-between group overflow-hidden relative shadow-2xl">
+ <div className="bg-[linear-gradient(135deg,_#0f172a,_#1d4ed8_65%,_#38bdf8)] p-8 rounded-[3rem] text-white flex flex-col justify-between group overflow-hidden relative">
           <Users className="absolute right-[-20px] top-[-20px] w-32 h-32 opacity-5 rotate-12 group-hover:rotate-0 transition-transform duration-700" />
           <p className="text-slate-200 text-[10px] font-black uppercase tracking-widest relative z-10">当前部门成员</p>
           <h3 className="text-5xl font-black mt-4 relative z-10">{memberStats.total}</h3>
@@ -475,14 +475,14 @@ export const DepartmentMemberPage: React.FC = () => {
             <UserCheck size={12} /> Team Members
           </p>
         </div>
-        <div className="bg-white/90 backdrop-blur p-8 rounded-[3rem] border border-amber-100 shadow-sm flex flex-col justify-between">
+ <div className="bg-slate-50 backdrop-blur p-8 rounded-[3rem] border border-amber-100 flex flex-col justify-between">
           <p className="text-slate-400 text-[10px] font-black uppercase tracking-widest">组长数量</p>
           <h3 className="text-4xl font-black mt-4 text-amber-600">{memberStats.leaderCount}</h3>
           <div className="h-1 bg-slate-100 rounded-full mt-4 overflow-hidden">
             <div className="h-full bg-amber-500" style={{ width: `${memberStats.total ? (memberStats.leaderCount / memberStats.total) * 100 : 0}%` }} />
           </div>
         </div>
-        <div className="bg-white/90 backdrop-blur p-8 rounded-[3rem] border border-indigo-100 shadow-sm flex flex-col justify-between">
+ <div className="bg-slate-50 backdrop-blur p-8 rounded-[3rem] border border-indigo-100 flex flex-col justify-between">
           <p className="text-slate-400 text-[10px] font-black uppercase tracking-widest">角色结构</p>
           <div className="mt-4 grid grid-cols-2 gap-4">
             <div className="rounded-[1.75rem] bg-indigo-50 px-5 py-4">
@@ -495,7 +495,7 @@ export const DepartmentMemberPage: React.FC = () => {
             </div>
           </div>
         </div>
-        <div className="bg-white/90 backdrop-blur p-8 rounded-[3rem] border border-slate-200 shadow-sm flex items-center gap-8">
+ <div className="bg-slate-50 backdrop-blur p-8 rounded-[3rem] border border-slate-200 flex items-center gap-8">
           <div className="w-16 h-16 bg-cyan-50 text-cyan-600 rounded-3xl flex items-center justify-center shrink-0">
             <Shield size={32} />
           </div>
@@ -513,7 +513,7 @@ export const DepartmentMemberPage: React.FC = () => {
             <input
               type="text"
               placeholder="搜索成员名称..."
-              className="w-full pl-16 pr-8 py-5 bg-white/90 backdrop-blur border border-slate-200 rounded-[2.5rem] text-sm outline-none focus:ring-4 ring-blue-500/5 transition-all font-medium shadow-sm"
+ className="w-full pl-16 pr-8 py-5 bg-slate-50 backdrop-blur border border-slate-200 rounded-[2.5rem] text-sm outline-none focus:ring-4 ring-blue-500/5 transition-all font-medium"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
@@ -521,7 +521,7 @@ export const DepartmentMemberPage: React.FC = () => {
           <div ref={departmentFilterRef} className="relative min-w-[200px]">
             <button
               type="button"
-              className="w-full px-8 pr-14 py-5 bg-white/90 backdrop-blur border border-slate-200 rounded-[2.5rem] text-sm text-left outline-none focus:ring-4 ring-blue-500/5 transition-all font-medium shadow-sm text-slate-700"
+ className="w-full px-8 pr-14 py-5 bg-slate-50 backdrop-blur border border-slate-200 rounded-[2.5rem] text-sm text-left outline-none focus:ring-4 ring-blue-500/5 transition-all font-medium text-slate-700"
               onClick={() => setIsDepartmentFilterOpen((open) => !open)}
             >
               {selectedDepartment?.name || '请选择部门'}
@@ -530,7 +530,7 @@ export const DepartmentMemberPage: React.FC = () => {
               {isDepartmentFilterOpen ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
             </span>
             {isDepartmentFilterOpen && (
-              <div className="absolute right-0 top-[calc(100%+10px)] z-20 w-full overflow-hidden rounded-[1.75rem] border border-slate-200 bg-white/95 backdrop-blur p-2 shadow-2xl shadow-slate-200/60">
+ <div className="absolute right-0 top-[calc(100%+10px)] z-20 w-full overflow-hidden rounded-[1.75rem] border border-slate-200 bg-slate-50 backdrop-blur p-2 shadow-slate-200/60">
                 <div className="max-h-72 overflow-y-auto py-1">
                   {departments.map((dept) => {
                     const isSelected = dept.id === selectedDepartmentId;
@@ -541,7 +541,7 @@ export const DepartmentMemberPage: React.FC = () => {
                         className={`flex w-full items-center rounded-2xl px-5 py-3 text-left text-sm font-semibold transition-all ${
                           isSelected
                             ? 'bg-blue-50 text-blue-700'
-                            : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
+                            : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
                         }`}
                         onClick={() => {
                           setSelectedDepartmentId(dept.id);
@@ -558,9 +558,9 @@ export const DepartmentMemberPage: React.FC = () => {
           </div>
         </div>
 
-        <div className="bg-white/90 backdrop-blur border border-slate-200 rounded-[3rem] shadow-sm overflow-hidden">
+ <div className="bg-slate-50 backdrop-blur border border-slate-200 rounded-[3rem] overflow-hidden">
           <table className="w-full text-left">
-            <thead className="bg-slate-50/50 border-b border-slate-100 font-black text-[10px] text-slate-400 uppercase tracking-widest">
+            <thead className="bg-slate-100/50 border-b border-slate-100 font-black text-[10px] text-slate-400 uppercase tracking-widest">
               <tr>
                 <th className="px-8 py-6">成员信息</th>
                 <th className="px-6 py-6">所属部门</th>
@@ -575,7 +575,7 @@ export const DepartmentMemberPage: React.FC = () => {
               ) : filteredMembers.length === 0 ? (
                 <tr><td colSpan={5} className="py-32 text-center text-slate-400 font-bold">暂无成员数据</td></tr>
               ) : filteredMembers.map((member) => (
-                <tr key={member.id} className="hover:bg-slate-50 transition-all group">
+                <tr key={member.id} className="hover:bg-slate-100 transition-all group">
                   <td className="px-8 py-6">
                     <div className="flex items-center gap-4">
                       <div className={`w-12 h-12 rounded-2xl flex items-center justify-center font-black shadow-inner ${
@@ -611,17 +611,17 @@ export const DepartmentMemberPage: React.FC = () => {
                       {canManageCurrentDepartment() ? (
                         <>
                           {canMoveMember(member) && (
-                            <button onClick={() => openMoveModal(member)} className="p-3 bg-indigo-50 text-indigo-500 border border-transparent hover:border-indigo-100 rounded-xl transition-all shadow-sm" title="调整所属部门">
+ <button onClick={() => openMoveModal(member)} className="p-3 bg-indigo-50 text-indigo-500 border border-transparent hover:border-indigo-100 rounded-xl transition-all" title="调整所属部门">
                               <ArrowRightLeft size={16} />
                             </button>
                           )}
                           {canEditRole() && (
-                            <button onClick={() => openEditModal(member)} className="p-3 bg-white border border-slate-200 text-slate-400 hover:text-blue-600 rounded-xl transition-all shadow-sm" title="编辑角色">
+ <button onClick={() => openEditModal(member)} className="p-3 bg-slate-50 border border-slate-200 text-slate-400 hover:text-blue-600 rounded-xl transition-all" title="编辑角色">
                               <Edit3 size={16} />
                             </button>
                           )}
                           {canRemoveMember(member) && (
-                            <button onClick={() => void handleRemoveMember(member.id)} className="p-3 bg-red-50 text-red-400 border border-transparent hover:border-red-100 rounded-xl transition-all shadow-sm" title="移除成员">
+ <button onClick={() => void handleRemoveMember(member.id)} className="p-3 bg-red-50 text-red-400 border border-transparent hover:border-red-100 rounded-xl transition-all" title="移除成员">
                               <Trash2 size={16} />
                             </button>
                           )}
@@ -647,10 +647,10 @@ export const DepartmentMemberPage: React.FC = () => {
 
       {isAddModalOpen && userPermissions?.can_manage_department_members && (
         <div className="fixed inset-0 z-[150] flex items-center justify-center p-6 bg-slate-900/60 backdrop-blur-md animate-in fade-in">
-          <div className="bg-white w-full max-w-3xl rounded-[3rem] shadow-2xl overflow-hidden animate-in zoom-in-95">
+ <div className="bg-slate-50 w-full max-w-3xl rounded-[3rem] overflow-hidden animate-in zoom-in-95">
             <div className="p-10 pb-4 border-b border-slate-50 flex items-center justify-between">
               <div className="flex items-center gap-4">
-                <div className="w-12 h-12 bg-blue-600 rounded-2xl flex items-center justify-center text-white shadow-lg shadow-blue-500/20">
+ <div className="w-12 h-12 bg-blue-600 rounded-2xl flex items-center justify-center text-white">
                   <Plus size={24} />
                 </div>
                 <div>
@@ -669,7 +669,7 @@ export const DepartmentMemberPage: React.FC = () => {
                       <button
                         type="button"
                         onClick={() => setDepartmentPickerSearchOpen((open) => !open)}
-                        className={`inline-flex items-center gap-2 px-3 py-2 rounded-xl border text-[11px] font-black transition-all ${departmentPickerSearchOpen ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'}`}
+                        className={`inline-flex items-center gap-2 px-3 py-2 rounded-xl border text-[11px] font-black transition-all ${departmentPickerSearchOpen ? 'bg-blue-600 text-white border-blue-600' : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100'}`}
                       >
                         <Search size={14} />
                         查询
@@ -681,7 +681,7 @@ export const DepartmentMemberPage: React.FC = () => {
                         <input
                           type="text"
                           placeholder="输入部门名称筛选"
-                          className="w-full pl-11 pr-4 py-3 bg-white border border-slate-200 rounded-2xl outline-none focus:ring-4 ring-blue-500/10 text-sm font-semibold text-slate-700"
+                          className="w-full pl-11 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl outline-none focus:ring-4 ring-blue-500/10 text-sm font-semibold text-slate-700"
                           value={departmentPickerSearchTerm}
                           onChange={(e) => setDepartmentPickerSearchTerm(e.target.value)}
                         />
@@ -699,7 +699,7 @@ export const DepartmentMemberPage: React.FC = () => {
                       ))}
                     </select>
                     <p className="text-xs text-slate-400 font-medium">
-                      共 {filteredDepartmentOptions.length} 个部门{departmentPickerSearchTerm ? `，匹配关键字“${departmentPickerSearchTerm}”` : ''}
+                      共 {filteredDepartmentOptions.length} 个部门{departmentPickerSearchTerm ?`，匹配关键字“${departmentPickerSearchTerm}”` : ''}
                     </p>
                   </div>
 
@@ -715,7 +715,7 @@ export const DepartmentMemberPage: React.FC = () => {
                       <button
                         type="button"
                         onClick={() => setUserPickerSearchOpen((open) => !open)}
-                        className={`inline-flex items-center gap-2 px-3 py-2 rounded-xl border text-[11px] font-black transition-all ${userPickerSearchOpen ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'}`}
+                        className={`inline-flex items-center gap-2 px-3 py-2 rounded-xl border text-[11px] font-black transition-all ${userPickerSearchOpen ? 'bg-blue-600 text-white border-blue-600' : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100'}`}
                       >
                         <Search size={14} />
                         查询
@@ -727,7 +727,7 @@ export const DepartmentMemberPage: React.FC = () => {
                         <input
                           type="text"
                           placeholder="输入用户名筛选"
-                          className="w-full pl-11 pr-4 py-3 bg-white border border-slate-200 rounded-2xl outline-none focus:ring-4 ring-blue-500/10 text-sm font-semibold text-slate-700"
+                          className="w-full pl-11 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl outline-none focus:ring-4 ring-blue-500/10 text-sm font-semibold text-slate-700"
                           value={userPickerSearchTerm}
                           onChange={(e) => setUserPickerSearchTerm(e.target.value)}
                         />
@@ -745,7 +745,7 @@ export const DepartmentMemberPage: React.FC = () => {
                       ))}
                     </select>
                     <p className="text-xs text-slate-400 font-medium">
-                      共 {filteredUserOptions.length} 个用户{userPickerSearchTerm ? `，匹配关键字“${userPickerSearchTerm}”` : ''}
+                      共 {filteredUserOptions.length} 个用户{userPickerSearchTerm ?`，匹配关键字“${userPickerSearchTerm}”` : ''}
                     </p>
                   </div>
                 </div>
@@ -758,7 +758,7 @@ export const DepartmentMemberPage: React.FC = () => {
                   ))}
                 </select>
               </div>
-              <button disabled={formLoading} className="w-full py-5 bg-blue-600 text-white rounded-2xl font-black shadow-xl shadow-blue-500/20 hover:bg-blue-700 transition-all flex items-center justify-center gap-3">
+ <button disabled={formLoading} className="w-full py-5 bg-blue-600 text-white rounded-2xl font-black hover:bg-blue-700 transition-all flex items-center justify-center gap-3">
                 {formLoading ? <Loader2 className="animate-spin" size={20} /> : <UserCircle size={20} />}
                 确认添加成员
               </button>
@@ -769,7 +769,7 @@ export const DepartmentMemberPage: React.FC = () => {
 
       {isMoveModalOpen && selectedMember && (
         <div className="fixed inset-0 z-[150] flex items-center justify-center p-6 bg-slate-900/60 backdrop-blur-md animate-in fade-in">
-          <div className="bg-white w-full max-w-md rounded-[3rem] shadow-2xl overflow-hidden animate-in zoom-in-95">
+ <div className="bg-slate-50 w-full max-w-md rounded-[3rem] overflow-hidden animate-in zoom-in-95">
             <div className="p-10 pb-4 border-b border-slate-50 flex items-center justify-between">
               <div className="flex items-center gap-4">
                 <div className="w-12 h-12 bg-indigo-600 rounded-2xl flex items-center justify-center text-white">
@@ -791,7 +791,7 @@ export const DepartmentMemberPage: React.FC = () => {
                   ))}
                 </select>
               </div>
-              <button disabled={formLoading} className="w-full py-5 bg-indigo-600 text-white rounded-2xl font-black shadow-xl shadow-indigo-500/20 hover:bg-indigo-700 transition-all flex items-center justify-center gap-3">
+ <button disabled={formLoading} className="w-full py-5 bg-indigo-600 text-white rounded-2xl font-black shadow-indigo-500/20 hover:bg-indigo-700 transition-all flex items-center justify-center gap-3">
                 {formLoading ? <Loader2 className="animate-spin" size={20} /> : <ArrowRightLeft size={20} />}
                 确认调整部门
               </button>
@@ -802,7 +802,7 @@ export const DepartmentMemberPage: React.FC = () => {
 
       {isEditModalOpen && selectedMember && userPermissions?.can_manage_department_members && (
         <div className="fixed inset-0 z-[150] flex items-center justify-center p-6 bg-slate-900/60 backdrop-blur-md animate-in fade-in">
-          <div className="bg-white w-full max-w-md rounded-[3rem] shadow-2xl overflow-hidden animate-in zoom-in-95">
+ <div className="bg-slate-50 w-full max-w-md rounded-[3rem] overflow-hidden animate-in zoom-in-95">
             <div className="p-10 pb-4 border-b border-slate-50 flex items-center justify-between">
               <div className="flex items-center gap-4">
                 <div className="w-12 h-12 bg-amber-600 rounded-2xl flex items-center justify-center text-white">
@@ -824,7 +824,7 @@ export const DepartmentMemberPage: React.FC = () => {
                   ))}
                 </select>
               </div>
-              <button disabled={formLoading} className="w-full py-5 bg-amber-600 text-white rounded-2xl font-black shadow-xl shadow-amber-500/20 hover:bg-amber-700 transition-all flex items-center justify-center gap-3">
+ <button disabled={formLoading} className="w-full py-5 bg-amber-600 text-white rounded-2xl font-black shadow-amber-500/20 hover:bg-amber-700 transition-all flex items-center justify-center gap-3">
                 {formLoading ? <Loader2 className="animate-spin" size={20} /> : <RefreshCw size={20} />}
                 立即更新角色
               </button>
@@ -835,10 +835,10 @@ export const DepartmentMemberPage: React.FC = () => {
 
       {isImportModalOpen && selectedDepartment && (
         <div className="fixed inset-0 z-[160] flex items-center justify-center p-6 bg-slate-950/65 backdrop-blur-md animate-in fade-in">
-          <div className="w-full max-w-6xl bg-white rounded-[2.5rem] shadow-2xl overflow-hidden animate-in zoom-in-95 max-h-[92vh] flex flex-col">
+ <div className="w-full max-w-6xl bg-slate-50 rounded-[2.5rem] overflow-hidden animate-in zoom-in-95 max-h-[92vh] flex flex-col">
             <div className="px-10 py-8 border-b border-slate-100 flex items-center justify-between">
               <div className="flex items-center gap-4">
-                <div className="w-14 h-14 rounded-3xl bg-blue-600 text-white flex items-center justify-center shadow-lg shadow-blue-500/20">
+ <div className="w-14 h-14 rounded-3xl bg-blue-600 text-white flex items-center justify-center">
                   <FileSpreadsheet size={26} />
                 </div>
                 <div>
@@ -863,12 +863,12 @@ export const DepartmentMemberPage: React.FC = () => {
                   <div className="rounded-[2rem] border border-slate-200 bg-slate-50/70 p-8 space-y-6">
                     <div className="space-y-2">
                       <h4 className="text-xl font-black text-slate-900">1. 准备成员导入文件</h4>
-                      <p className="text-sm text-slate-500 font-medium">模板只要求填写已有账号的用户名。普通管理员仅允许导入 `member`。</p>
+                      <p className="text-sm text-slate-500 font-medium">模板只要求填写已有账号的用户名。普通管理员仅允许导入`member`。</p>
                     </div>
 
                     <div className="space-y-3">
                       <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">导入策略</label>
-                      <select value={importMode} onChange={(e) => setImportMode(e.target.value as ImportMode)} disabled={!isAdmin()} className="w-full px-6 py-4 bg-white rounded-2xl border border-slate-200 outline-none focus:ring-4 ring-blue-500/10 font-bold text-slate-800 disabled:bg-slate-100 disabled:text-slate-400">
+                      <select value={importMode} onChange={(e) => setImportMode(e.target.value as ImportMode)} disabled={!isAdmin()} className="w-full px-6 py-4 bg-slate-50 rounded-2xl border border-slate-200 outline-none focus:ring-4 ring-blue-500/10 font-bold text-slate-800 disabled:bg-slate-100 disabled:text-slate-400">
                         <option value="skip_existing">已存在则跳过</option>
                         {isAdmin() && <option value="update_role">已存在则更新角色</option>}
                       </select>
@@ -876,18 +876,18 @@ export const DepartmentMemberPage: React.FC = () => {
                     </div>
 
                     <div className="flex flex-wrap gap-4">
-                      <button onClick={() => void handleDownloadImportTemplate()} className="px-6 py-4 rounded-2xl bg-white border border-slate-200 font-black text-slate-700 flex items-center gap-3 shadow-sm hover:bg-slate-50">
+ <button onClick={() => void handleDownloadImportTemplate()} className="px-6 py-4 rounded-2xl bg-slate-50 border border-slate-200 font-black text-slate-700 flex items-center gap-3 hover:bg-slate-100">
                         <Download size={18} />
                         下载模板
                       </button>
-                      <button onClick={() => fileInputRef.current?.click()} className="px-6 py-4 rounded-2xl bg-blue-600 text-white font-black flex items-center gap-3 shadow-xl shadow-blue-500/20 hover:bg-blue-700">
+ <button onClick={() => fileInputRef.current?.click()} className="px-6 py-4 rounded-2xl bg-blue-600 text-white font-black flex items-center gap-3 hover:bg-blue-700">
                         <Upload size={18} />
                         选择 Excel / CSV
                       </button>
                       <input ref={fileInputRef} type="file" accept=".xlsx,.csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,text/csv" className="hidden" onChange={handleImportFileSelected} />
                     </div>
 
-                    <div className="rounded-[2rem] border border-dashed border-slate-300 bg-white p-6">
+                    <div className="rounded-[2rem] border border-dashed border-slate-300 bg-slate-50 p-6">
                       <p className="text-xs font-black uppercase tracking-[0.24em] text-slate-400">当前文件</p>
                       <p className="mt-3 text-lg font-black text-slate-800">{importFileName || '尚未选择文件'}</p>
                       <p className="mt-2 text-sm text-slate-500">推荐直接下载 Excel 模板后填写。文件里只需要两列：`username` 必填，`role` 选填。</p>
@@ -899,15 +899,15 @@ export const DepartmentMemberPage: React.FC = () => {
                     </button>
                   </div>
 
-                  <div className="rounded-[2rem] border border-slate-200 bg-white p-8 space-y-5 shadow-sm">
+ <div className="rounded-[2rem] border border-slate-200 bg-slate-50 p-8 space-y-5">
                     <h4 className="text-xl font-black text-slate-900">填写说明</h4>
                     <div className="space-y-3 text-sm font-medium text-slate-600">
-                      <p>1. 下载模板后，第一列填用户名 `username`，第二列填角色 `role`。</p>
-                      <p>2. `username` 必填，且必须是系统里已经存在的账号。</p>
-                      <p>3. `role` 可以留空，留空时默认按 `member` 导入。</p>
+                      <p>1. 下载模板后，第一列填用户名`username`，第二列填角色`role`。</p>
+                      <p>2.`username` 必填，且必须是系统里已经存在的账号。</p>
+                      <p>3.`role` 可以留空，留空时默认按`member` 导入。</p>
                       <p>4. 目标部门固定为当前选中的部门：{selectedDepartment.name}，文件里不用再写部门名。</p>
-                      <p>5. 普通管理员只能导入 `member`；超级管理员可以导入或更新 `leader / vice_leader / member`。</p>
-                      <p>6. 每个部门同一时间只允许一个 `leader`，预校验时会直接提示冲突。</p>
+                      <p>5. 普通管理员只能导入`member`；超级管理员可以导入或更新`leader / vice_leader / member`。</p>
+                      <p>6. 每个部门同一时间只允许一个`leader`，预校验时会直接提示冲突。</p>
                     </div>
                   </div>
                 </div>
@@ -926,7 +926,7 @@ export const DepartmentMemberPage: React.FC = () => {
                       <p className="text-sm text-slate-500 font-medium">修正错误后重新预校验，再执行导入。</p>
                     </div>
                     <div className="flex gap-3">
-                      <button onClick={() => setImportStage('upload')} className="px-5 py-3 rounded-2xl bg-white border border-slate-200 font-black text-slate-700">返回修改</button>
+                      <button onClick={() => setImportStage('upload')} className="px-5 py-3 rounded-2xl bg-slate-50 border border-slate-200 font-black text-slate-700">返回修改</button>
                       <button disabled={importLoading || importPreview.error_rows > 0} onClick={() => void handleCommitImport()} className="px-6 py-3 rounded-2xl bg-blue-600 text-white font-black disabled:opacity-50 flex items-center gap-3">
                         {importLoading ? <Loader2 size={18} className="animate-spin" /> : <Upload size={18} />}
                         确认导入
@@ -985,7 +985,7 @@ const DepartmentMemberImportTable = ({
   rows: DepartmentMemberImportPreviewResponse['rows'] | DepartmentMemberImportCommitResponse['rows'];
   getRoleDisplayName: (role: string) => string;
 }) => (
-  <div className="rounded-[2rem] border border-slate-200 overflow-hidden bg-white">
+  <div className="rounded-[2rem] border border-slate-200 overflow-hidden bg-slate-50">
     <table className="w-full text-left">
       <thead className="bg-slate-50 border-b border-slate-100">
         <tr className="text-[10px] font-black uppercase tracking-[0.24em] text-slate-400">

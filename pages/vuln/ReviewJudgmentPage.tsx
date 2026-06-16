@@ -43,7 +43,7 @@ export const ReviewJudgmentPage: React.FC<ReviewJudgmentPageProps> = ({ projectI
     >
       <div
         className="shrink-0 px-6 py-5"
-        style={{ borderBottom: `1px solid ${LK.borderSoft}` }}
+        style={{ borderBottom:`1px solid ${LK.borderSoft}` }}
       >
         <h1 className="text-xl font-semibold tracking-tight" style={{ color: LK.ink }}>
           评审研判
@@ -133,7 +133,7 @@ export const ReviewJudgmentPage: React.FC<ReviewJudgmentPageProps> = ({ projectI
               ))}
             </div>
 
-            <div className="mt-6 pt-4" style={{ borderTop: `1px solid ${LK.borderSoft}` }}>
+            <div className="mt-6 pt-4" style={{ borderTop:`1px solid ${LK.borderSoft}` }}>
               <h3 className="mb-3 text-xs font-semibold uppercase tracking-wider" style={{ color: LK.muted }}>
                 阶段说明
               </h3>
@@ -156,13 +156,13 @@ export const ReviewJudgmentPage: React.FC<ReviewJudgmentPageProps> = ({ projectI
           <table className="w-full text-sm">
             <thead>
               <tr className="text-left text-xs uppercase tracking-wider" style={{ color: LK.mutedSoft }}>
-                <th className="pb-3 font-medium" style={{ borderBottom: `1px solid ${LK.border}` }}>漏洞案例</th>
-                <th className="pb-3 font-medium" style={{ borderBottom: `1px solid ${LK.border}` }}>评审结论</th>
-                <th className="pb-3 font-medium" style={{ borderBottom: `1px solid ${LK.border}` }}>严重程度</th>
-                <th className="pb-3 font-medium" style={{ borderBottom: `1px solid ${LK.border}` }}>评审人</th>
-                <th className="pb-3 font-medium" style={{ borderBottom: `1px solid ${LK.border}` }}>状态</th>
-                <th className="pb-3 font-medium" style={{ borderBottom: `1px solid ${LK.border}` }}>更新时间</th>
-                <th className="pb-3 font-medium" style={{ borderBottom: `1px solid ${LK.border}` }}>操作</th>
+                <th className="pb-3 font-medium" style={{ borderBottom:`1px solid ${LK.border}` }}>漏洞案例</th>
+                <th className="pb-3 font-medium" style={{ borderBottom:`1px solid ${LK.border}` }}>评审结论</th>
+                <th className="pb-3 font-medium" style={{ borderBottom:`1px solid ${LK.border}` }}>严重程度</th>
+                <th className="pb-3 font-medium" style={{ borderBottom:`1px solid ${LK.border}` }}>评审人</th>
+                <th className="pb-3 font-medium" style={{ borderBottom:`1px solid ${LK.border}` }}>状态</th>
+                <th className="pb-3 font-medium" style={{ borderBottom:`1px solid ${LK.border}` }}>更新时间</th>
+                <th className="pb-3 font-medium" style={{ borderBottom:`1px solid ${LK.border}` }}>操作</th>
               </tr>
             </thead>
             <tbody>
@@ -174,7 +174,7 @@ export const ReviewJudgmentPage: React.FC<ReviewJudgmentPageProps> = ({ projectI
             </tbody>
           </table>
 
-          <div className="mt-4 flex items-center justify-between pt-4" style={{ borderTop: `1px solid ${LK.borderSoft}` }}>
+          <div className="mt-4 flex items-center justify-between pt-4" style={{ borderTop:`1px solid ${LK.borderSoft}` }}>
             <span className="text-xs" style={{ color: LK.muted }}>共 0 条记录</span>
             <div className="flex items-center gap-2">
               <button

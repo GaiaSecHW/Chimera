@@ -36,7 +36,7 @@ export const OverviewWorkspace: React.FC<{
   <div className="grid grid-cols-1 2xl:grid-cols-[1.25fr_1fr] gap-6 items-start">
     <div className="space-y-6">
       <div className={cardClass} style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}` }}>
-        <div className="px-6 py-5" style={{ borderBottom: `1px solid ${LK.borderSoft}` }}>
+        <div className="px-6 py-5" style={{ borderBottom:`1px solid ${LK.borderSoft}` }}>
           <h3 className="text-lg font-semibold" style={{ color: LK.ink }}>阶段分布与运行趋势</h3>
         </div>
         <div className="p-6 space-y-4">
@@ -62,7 +62,7 @@ export const OverviewWorkspace: React.FC<{
       </div>
 
       <div className={cardClass} style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}` }}>
-        <div className="px-6 py-5 flex items-center justify-between gap-4" style={{ borderBottom: `1px solid ${LK.borderSoft}` }}>
+        <div className="px-6 py-5 flex items-center justify-between gap-4" style={{ borderBottom:`1px solid ${LK.borderSoft}` }}>
           <div>
             <h3 className="text-lg font-semibold" style={{ color: LK.ink }}>项目动作队列</h3>
             <p className="text-xs mt-1" style={{ color: LK.muted }}>快速查看项目级动作拥塞和失败项</p>
@@ -107,16 +107,16 @@ export const OverviewWorkspace: React.FC<{
 
     <div className="space-y-6">
       <div className={cardClass} style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}` }}>
-        <div className="px-6 py-5 flex items-center gap-2" style={{ borderBottom: `1px solid ${LK.borderSoft}` }}>
+        <div className="px-6 py-5 flex items-center gap-2" style={{ borderBottom:`1px solid ${LK.borderSoft}` }}>
           <Clock3 size={16} style={{ color: LK.warning }} />
           <h3 className="text-lg font-semibold" style={{ color: LK.ink }}>项目人工待办</h3>
         </div>
-        <div className="max-h-[28rem] overflow-y-auto" style={{ borderTop: `1px solid ${LK.borderSoft}` }}>
+        <div className="max-h-[28rem] overflow-y-auto" style={{ borderTop:`1px solid ${LK.borderSoft}` }}>
           {manualTasks.length === 0 ? (
             <div className="px-6 py-8 text-sm" style={{ color: LK.muted }}>当前项目没有人工待办</div>
           ) : (
             manualTasks.map((item) => (
-              <div key={item.id} className="px-6 py-4" style={{ borderBottom: `1px solid ${LK.borderSoft}` }}>
+              <div key={item.id} className="px-6 py-4" style={{ borderBottom:`1px solid ${LK.borderSoft}` }}>
                 <div className="flex items-start justify-between gap-3">
                   <div className="space-y-1">
                     <p className="text-sm font-semibold" style={{ color: LK.ink }}>{item.title}</p>
@@ -241,7 +241,7 @@ export const ServicesWorkspace: React.FC<{
   return (
     <div className="grid grid-cols-1 2xl:grid-cols-[0.95fr_1.35fr] gap-6 items-start">
       <div className={cardClass} style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}` }}>
-        <div className="px-6 py-5 flex items-center justify-between gap-3" style={{ borderBottom: `1px solid ${LK.borderSoft}` }}>
+        <div className="px-6 py-5 flex items-center justify-between gap-3" style={{ borderBottom:`1px solid ${LK.borderSoft}` }}>
           <div className="flex items-center gap-2">
             <ServerCog size={16} style={{ color: LK.success }} />
             <h3 className="text-lg font-semibold" style={{ color: LK.ink }}>能力服务注册</h3>
@@ -355,17 +355,17 @@ export const ServicesWorkspace: React.FC<{
       </div>
 
       <div className={cardClass} style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}` }}>
-        <div className="px-6 py-5 space-y-4" style={{ borderBottom: `1px solid ${LK.borderSoft}` }}>
+        <div className="px-6 py-5 space-y-4" style={{ borderBottom:`1px solid ${LK.borderSoft}` }}>
           <div className="flex items-center justify-between gap-4">
             <h3 className="text-lg font-semibold" style={{ color: LK.ink }}>服务能力一览</h3>
             <div className="text-xs" style={{ color: LK.muted }}>共 {filteredServices.length} / {services.length} 项</div>
           </div>
           <div className="grid grid-cols-1 xl:grid-cols-4 gap-3">
             {[
-              { label: '活跃服务', value: serviceStats.active, lkTone: { bg: `${LK.success}14`, border: `${LK.success}40`, color: LK.success } },
-              { label: '待检查服务', value: serviceStats.unhealthy, lkTone: { bg: `${LK.warning}14`, border: `${LK.warning}40`, color: LK.warning } },
-              { label: '缺健康检查', value: serviceStats.missingHealthcheck, lkTone: { bg: `${LK.info}14`, border: `${LK.info}40`, color: LK.info } },
-              { label: '缺能力声明', value: serviceStats.missingCapability, lkTone: { bg: `${LK.error}14`, border: `${LK.error}40`, color: LK.error } },
+              { label: '活跃服务', value: serviceStats.active, lkTone: { bg:`${LK.success}14`, border: `${LK.success}40`, color: LK.success } },
+              { label: '待检查服务', value: serviceStats.unhealthy, lkTone: { bg:`${LK.warning}14`, border: `${LK.warning}40`, color: LK.warning } },
+              { label: '缺健康检查', value: serviceStats.missingHealthcheck, lkTone: { bg:`${LK.info}14`, border: `${LK.info}40`, color: LK.info } },
+              { label: '缺能力声明', value: serviceStats.missingCapability, lkTone: { bg:`${LK.error}14`, border: `${LK.error}40`, color: LK.error } },
             ].map((item) => (
               <div key={item.label} className="rounded-xl border px-4 py-4" style={{ backgroundColor: item.lkTone.bg, borderColor: item.lkTone.border, color: item.lkTone.color }}>
                 <div className="text-[10px] font-semibold uppercase tracking-widest opacity-80">{item.label}</div>
@@ -553,16 +553,16 @@ export const TasksWorkspace: React.FC<{
   setActiveTab: (tab: 'timeline' | 'results' | 'tasks' | 'actions') => void;
 }> = ({ manualTasks, setSelectedCaseId, setWorkspaceView, setActiveTab }) => (
   <div className={cardClass} style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}` }}>
-    <div className="px-6 py-5 flex items-center gap-2" style={{ borderBottom: `1px solid ${LK.borderSoft}` }}>
+    <div className="px-6 py-5 flex items-center gap-2" style={{ borderBottom:`1px solid ${LK.borderSoft}` }}>
       <Clock3 size={16} style={{ color: LK.warning }} />
       <h3 className="text-lg font-semibold" style={{ color: LK.ink }}>项目人工待办</h3>
     </div>
-    <div className="max-h-[48rem] overflow-y-auto" style={{ borderTop: `1px solid ${LK.borderSoft}` }}>
+    <div className="max-h-[48rem] overflow-y-auto" style={{ borderTop:`1px solid ${LK.borderSoft}` }}>
       {manualTasks.length === 0 ? (
         <div className="px-6 py-8 text-sm" style={{ color: LK.muted }}>当前项目没有人工待办</div>
       ) : (
         manualTasks.map((item) => (
-          <div key={item.id} className="px-6 py-4" style={{ borderBottom: `1px solid ${LK.borderSoft}` }}>
+          <div key={item.id} className="px-6 py-4" style={{ borderBottom:`1px solid ${LK.borderSoft}` }}>
             <div className="flex items-start justify-between gap-3">
               <div className="space-y-1">
                 <p className="text-sm font-semibold" style={{ color: LK.ink }}>{item.title}</p>
@@ -636,12 +636,12 @@ export const QueueWorkspace: React.FC<{
   const formatSeconds = React.useCallback((value?: number | null) => {
     if (value == null || Number.isNaN(Number(value))) return '暂无';
     const total = Math.max(0, Math.round(Number(value)));
-    if (total < 60) return `${total}s`;
+    if (total < 60) return`${total}s`;
     const minutes = Math.floor(total / 60);
     const seconds = total % 60;
-    if (minutes < 60) return `${minutes}m ${seconds}s`;
+    if (minutes < 60) return`${minutes}m ${seconds}s`;
     const hours = Math.floor(minutes / 60);
-    return `${hours}h ${minutes % 60}m`;
+    return`${hours}h ${minutes % 60}m`;
   }, []);
 
   const actionDecorated = React.useMemo(() => {
@@ -819,8 +819,8 @@ export const QueueWorkspace: React.FC<{
 
   const formatTimeoutHint = (item: any) => {
     if (!item.timeout_at) return '未设置超时';
-    if (item.isTimedOut) return `已超时 ${formatTime(item.timeout_at)}`;
-    return `超时点 ${formatTime(item.timeout_at)}`;
+    if (item.isTimedOut) return`已超时 ${formatTime(item.timeout_at)}`;
+    return`超时点 ${formatTime(item.timeout_at)}`;
   };
 
   return (
@@ -828,10 +828,10 @@ export const QueueWorkspace: React.FC<{
       <div className="grid grid-cols-1 md:grid-cols-2 2xl:grid-cols-5 gap-4">
           {[
           { label: '排队动作', value: queueMetrics.queued, bg: LK.surfaceRaised, color: LK.body },
-          { label: '运行中', value: queueMetrics.running, bg: `${LK.primary}14`, color: LK.primary },
-          { label: '失败动作', value: queueMetrics.failed, bg: `${LK.error}14`, color: LK.error },
-          { label: '疑似超时', value: queueMetrics.timedOut, bg: `${LK.warning}14`, color: LK.warning },
-          { label: '服务风险', value: queueMetrics.serviceRisk, bg: `${LK.success}14`, color: LK.success },
+          { label: '运行中', value: queueMetrics.running, bg:`${LK.primary}14`, color: LK.primary },
+          { label: '失败动作', value: queueMetrics.failed, bg:`${LK.error}14`, color: LK.error },
+          { label: '疑似超时', value: queueMetrics.timedOut, bg:`${LK.warning}14`, color: LK.warning },
+          { label: '服务风险', value: queueMetrics.serviceRisk, bg:`${LK.success}14`, color: LK.success },
         ].map((item) => (
           <div key={item.label} className="rounded-xl border p-4" style={{ backgroundColor: item.bg, borderColor: LK.border }}>
             <div className="text-[10px] font-semibold uppercase tracking-widest opacity-70" style={{ color: LK.muted }}>{item.label}</div>
@@ -842,7 +842,7 @@ export const QueueWorkspace: React.FC<{
       </div>
 
       <div className={cardClass} style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}` }}>
-        <div className="px-6 py-5 flex items-center justify-between gap-4" style={{ borderBottom: `1px solid ${LK.borderSoft}` }}>
+        <div className="px-6 py-5 flex items-center justify-between gap-4" style={{ borderBottom:`1px solid ${LK.borderSoft}` }}>
           <div>
             <h3 className="text-lg font-semibold" style={{ color: LK.ink }}>项目动作队列</h3>
             <p className="text-xs mt-1" style={{ color: LK.muted }}>从项目视角统一查看排队、运行、失败、超时风险与服务关联状态，支持直接跳转和处置</p>
@@ -876,8 +876,8 @@ export const QueueWorkspace: React.FC<{
                   <p className="text-xs" style={{ color: LK.body }}>失败、超时和服务异常动作会直接拖慢阶段推进，建议优先恢复这些链路。</p>
                 </div>
                 <div className="flex flex-wrap gap-2 text-[11px]">
-                  <button onClick={() => setQuickFilter('timed_out')} className="rounded-lg px-3 py-2 font-semibold transition-colors" style={{ backgroundColor: `${LK.warning}33`, color: LK.warning }} onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = `${LK.warning}4D`; }} onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = `${LK.warning}33`; }}>超时 {queueMetrics.timedOut}</button>
-                  <button onClick={() => setQuickFilter('service_risk')} className="rounded-lg px-3 py-2 font-semibold transition-colors" style={{ backgroundColor: `${LK.success}33`, color: LK.success }} onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = `${LK.success}4D`; }} onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = `${LK.success}33`; }}>服务风险 {queueMetrics.serviceRisk}</button>
+                  <button onClick={() => setQuickFilter('timed_out')} className="rounded-lg px-3 py-2 font-semibold transition-colors" style={{ backgroundColor: `${LK.warning}33`, color: LK.warning }} onMouseEnter={(e) => { e.currentTarget.style.backgroundColor =`${LK.warning}4D`; }} onMouseLeave={(e) => { e.currentTarget.style.backgroundColor =`${LK.warning}33`; }}>超时 {queueMetrics.timedOut}</button>
+                  <button onClick={() => setQuickFilter('service_risk')} className="rounded-lg px-3 py-2 font-semibold transition-colors" style={{ backgroundColor: `${LK.success}33`, color: LK.success }} onMouseEnter={(e) => { e.currentTarget.style.backgroundColor =`${LK.success}4D`; }} onMouseLeave={(e) => { e.currentTarget.style.backgroundColor =`${LK.success}33`; }}>服务风险 {queueMetrics.serviceRisk}</button>
                   <button onClick={() => {
                     setShowOnlyExceptions(true);
                     setQuickFilter('all');
@@ -966,7 +966,7 @@ export const QueueWorkspace: React.FC<{
                   style={{
                     backgroundColor: quickFilter === item.key ? LK.primary : LK.surfaceRaised,
                     color: quickFilter === item.key ? '#ffffff' : LK.body,
-                    border: quickFilter === item.key ? 'none' : `1px solid ${LK.border}`
+                    border: quickFilter === item.key ? 'none' :`1px solid ${LK.border}`
                   }}
                   onMouseEnter={(e) => { if (quickFilter !== item.key) { e.currentTarget.style.backgroundColor = LK.surface; e.currentTarget.style.color = LK.ink; } }}
                   onMouseLeave={(e) => { if (quickFilter !== item.key) { e.currentTarget.style.backgroundColor = LK.surfaceRaised; e.currentTarget.style.color = LK.body; } }}
@@ -1028,7 +1028,7 @@ export const QueueWorkspace: React.FC<{
                     {group.items.map((item) => (
                       <div key={`queue-${item.id}`} className="rounded-xl border px-4 py-4" style={{
                         borderColor: item.execution_status === 'failed' || item.isTimedOut ? LK.error : LK.border,
-                        backgroundColor: item.execution_status === 'failed' || item.isTimedOut ? `${LK.error}14` : `${LK.surface}0A`
+                        backgroundColor: item.execution_status === 'failed' || item.isTimedOut ?`${LK.error}14` :`${LK.surface}0A`
                       }}>
                         <div className="flex items-start justify-between gap-3">
                           <div className="space-y-3 min-w-0">
@@ -1040,7 +1040,7 @@ export const QueueWorkspace: React.FC<{
                                 <button
                                   onClick={() => setSelectedServiceId(item.target_service_id)}
                                   className="px-2 py-1 rounded-lg text-[10px] font-semibold uppercase tracking-widest transition-colors"
-                                  style={{ backgroundColor: item.serviceHealthy ? `${LK.success}22` : `${LK.warning}22`, color: item.serviceHealthy ? LK.success : LK.warning }}
+                                  style={{ backgroundColor: item.serviceHealthy ?`${LK.success}22` :`${LK.warning}22`, color: item.serviceHealthy ? LK.success : LK.warning }}
                                 >
                                   {item.service?.service_name || item.target_service_id}
                                 </button>
@@ -1174,7 +1174,7 @@ export const QueueWorkspace: React.FC<{
                             <div className="text-sm font-semibold truncate" style={{ color: selectedServiceId === item.serviceId ? '#ffffff' : LK.ink }}>{item.serviceName}</div>
                             <div className="mt-1 text-[11px]" style={{ color: selectedServiceId === item.serviceId ? '#cbd5e1' : LK.muted }}>{item.serviceId}</div>
                           </div>
-                          <span className="px-2 py-1 rounded-lg text-[10px] font-semibold uppercase tracking-widest" style={{ backgroundColor: item.unhealthy ? `${LK.warning}22` : `${LK.success}22`, color: item.unhealthy ? LK.warning : LK.success }}>
+                          <span className="px-2 py-1 rounded-lg text-[10px] font-semibold uppercase tracking-widest" style={{ backgroundColor: item.unhealthy ?`${LK.warning}22` :`${LK.success}22`, color: item.unhealthy ? LK.warning : LK.success }}>
                             {item.unhealthy ? '待检查' : '正常'}
                           </span>
                         </div>
@@ -1405,7 +1405,7 @@ export const ReproConfigWorkspace: React.FC<{
   return (
     <div className="grid grid-cols-1 2xl:grid-cols-[0.95fr_1.05fr] gap-6 items-start">
       <div className={cardClass} style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}` }}>
-        <div className="px-6 py-5" style={{ borderBottom: `1px solid ${LK.borderSoft}` }}>
+        <div className="px-6 py-5" style={{ borderBottom:`1px solid ${LK.borderSoft}` }}>
           <h3 className="text-lg font-semibold" style={{ color: LK.ink }}>漏洞上报复现模块配置</h3>
           <p className="mt-1 text-xs" style={{ color: LK.muted }}>为复现、验证与终态回传模块配置注册信息与生命周期绑定关系。</p>
         </div>
@@ -1518,16 +1518,16 @@ export const ReproConfigWorkspace: React.FC<{
 
       <div className="space-y-6">
         <div className={cardClass} style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}` }}>
-          <div className="px-6 py-5" style={{ borderBottom: `1px solid ${LK.borderSoft}` }}>
+          <div className="px-6 py-5" style={{ borderBottom:`1px solid ${LK.borderSoft}` }}>
             <h3 className="text-lg font-semibold" style={{ color: LK.ink }}>阶段覆盖概览</h3>
             <p className="mt-1 text-xs" style={{ color: LK.muted }}>先看模块覆盖和质量，再进入下方链路矩阵与模块清单。</p>
           </div>
           <div className="p-6 grid grid-cols-1 xl:grid-cols-4 gap-4">
             {[
               { label: '复现模块总数', value: reproOverview.total, bg: LK.surfaceRaised, color: LK.body },
-              { label: '验证阶段模块', value: reproOverview.validation, bg: `${LK.success}14`, color: LK.success },
-              { label: '结束阶段模块', value: reproOverview.finished, bg: `${LK.info}14`, color: LK.info },
-              { label: '质量待检查', value: reproOverview.risky, bg: `${LK.warning}14`, color: LK.warning },
+              { label: '验证阶段模块', value: reproOverview.validation, bg:`${LK.success}14`, color: LK.success },
+              { label: '结束阶段模块', value: reproOverview.finished, bg:`${LK.info}14`, color: LK.info },
+              { label: '质量待检查', value: reproOverview.risky, bg:`${LK.warning}14`, color: LK.warning },
             ].map((item) => (
               <div key={item.label} className="rounded-xl border px-4 py-4" style={{ backgroundColor: item.bg, borderColor: LK.border }}>
                 <div className="text-[10px] font-semibold uppercase tracking-widest opacity-70" style={{ color: LK.muted }}>{item.label}</div>
@@ -1541,7 +1541,7 @@ export const ReproConfigWorkspace: React.FC<{
                 <div className="text-[10px] font-semibold uppercase tracking-widest" style={{ color: LK.muted }}>{labelOf(item.stage, STAGE_LABELS)}</div>
                 <div className="mt-2 text-3xl font-semibold" style={{ color: LK.ink }}>{item.services.length}</div>
                 <div className="mt-2 text-xs" style={{ color: LK.body }}>
-                  {item.services.length === 0 ? '当前阶段尚未配置模块' : `当前阶段已配置 ${item.services.length} 个模块`}
+                  {item.services.length === 0 ? '当前阶段尚未配置模块' :`当前阶段已配置 ${item.services.length} 个模块`}
                 </div>
               </div>
             ))}
@@ -1549,7 +1549,7 @@ export const ReproConfigWorkspace: React.FC<{
         </div>
 
         <div className={cardClass} style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}` }}>
-          <div className="px-6 py-5" style={{ borderBottom: `1px solid ${LK.borderSoft}` }}>
+          <div className="px-6 py-5" style={{ borderBottom:`1px solid ${LK.borderSoft}` }}>
             <h3 className="text-lg font-semibold" style={{ color: LK.ink }}>链路覆盖矩阵</h3>
             <p className="mt-1 text-xs" style={{ color: LK.muted }}>按关键动作确认验证链路和终态回传链路是否完整，而不只是看有没有服务。</p>
           </div>
@@ -1558,7 +1558,7 @@ export const ReproConfigWorkspace: React.FC<{
               <div className="text-[10px] font-semibold uppercase tracking-widest" style={{ color: LK.muted }}>阶段动作流</div>
               <div className="mt-3 grid grid-cols-1 xl:grid-cols-4 gap-3">
                 {flowStatus.map((item) => (
-                  <div key={item.key} className="rounded-lg border px-3 py-3" style={{ borderColor: item.count > 0 ? LK.success : LK.warning, backgroundColor: item.count > 0 ? LK.surface : `${LK.warning}14` }}>
+                  <div key={item.key} className="rounded-lg border px-3 py-3" style={{ borderColor: item.count > 0 ? LK.success : LK.warning, backgroundColor: item.count > 0 ? LK.surface :`${LK.warning}14` }}>
                     <div className="text-xs font-semibold" style={{ color: LK.ink }}>{item.label}</div>
                     <div className="mt-2 text-2xl font-semibold" style={{ color: LK.ink }}>{item.count}</div>
                     <div className="mt-1 text-[11px]" style={{ color: LK.body }}>{item.count > 0 ? '已接入模块' : '当前缺失'}</div>
@@ -1576,10 +1576,10 @@ export const ReproConfigWorkspace: React.FC<{
                 </div>
                 <div className="mt-3 grid grid-cols-1 xl:grid-cols-3 gap-3">
                   {group.rows.map((row) => (
-                    <div key={`${group.stage}-${row.key}`} className="rounded-lg border px-3 py-3" style={{ borderColor: row.matchedServices.length > 0 ? LK.success : LK.warning, backgroundColor: row.matchedServices.length > 0 ? `${LK.success}14` : `${LK.warning}14` }}>
+                    <div key={`${group.stage}-${row.key}`} className="rounded-lg border px-3 py-3" style={{ borderColor: row.matchedServices.length > 0 ? LK.success : LK.warning, backgroundColor: row.matchedServices.length > 0 ?`${LK.success}14` :`${LK.warning}14` }}>
                       <div className="text-xs font-semibold" style={{ color: LK.ink }}>{row.label}</div>
                       <div className="mt-1 text-[11px]" style={{ color: LK.body }}>
-                        {row.matchedServices.length > 0 ? `已配置 ${row.matchedServices.length} 个服务` : '当前缺失'}
+                        {row.matchedServices.length > 0 ?`已配置 ${row.matchedServices.length} 个服务` : '当前缺失'}
                       </div>
                       {row.matchedServices.length > 0 && (
                         <div className="mt-2 flex flex-wrap gap-2">
@@ -1599,7 +1599,7 @@ export const ReproConfigWorkspace: React.FC<{
         </div>
 
         <div className={cardClass} style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}` }}>
-          <div className="px-6 py-5" style={{ borderBottom: `1px solid ${LK.borderSoft}` }}>
+          <div className="px-6 py-5" style={{ borderBottom:`1px solid ${LK.borderSoft}` }}>
             <h3 className="text-lg font-semibold" style={{ color: LK.ink }}>配置建议</h3>
             <p className="mt-1 text-xs" style={{ color: LK.muted }}>根据当前覆盖情况给出下一步补齐建议。</p>
           </div>
@@ -1626,7 +1626,7 @@ export const ReproConfigWorkspace: React.FC<{
         </div>
 
         <div className={cardClass} style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}` }}>
-          <div className="px-6 py-5" style={{ borderBottom: `1px solid ${LK.borderSoft}` }}>
+          <div className="px-6 py-5" style={{ borderBottom:`1px solid ${LK.borderSoft}` }}>
             <h3 className="text-lg font-semibold" style={{ color: LK.ink }}>阶段关联视图</h3>
             <p className="mt-1 text-xs" style={{ color: LK.muted }}>展示复现与上报模块在漏洞生命周期中的绑定位置。</p>
           </div>
@@ -1653,10 +1653,10 @@ export const ReproConfigWorkspace: React.FC<{
         </div>
 
         <div className={cardClass} style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}` }}>
-          <div className="px-6 py-5" style={{ borderBottom: `1px solid ${LK.borderSoft}` }}>
+          <div className="px-6 py-5" style={{ borderBottom:`1px solid ${LK.borderSoft}` }}>
             <h3 className="text-lg font-semibold" style={{ color: LK.ink }}>已注册复现能力</h3>
           </div>
-          <div className="px-6 py-4 grid grid-cols-1 xl:grid-cols-[1fr_auto] gap-3" style={{ borderBottom: `1px solid ${LK.borderSoft}` }}>
+          <div className="px-6 py-4 grid grid-cols-1 xl:grid-cols-[1fr_auto] gap-3" style={{ borderBottom:`1px solid ${LK.borderSoft}` }}>
             <input
               value={serviceSearch}
               onChange={(event) => setServiceSearch(event.target.value)}
@@ -1684,7 +1684,7 @@ export const ReproConfigWorkspace: React.FC<{
               ))}
             </div>
           </div>
-          <div className="px-6 py-4 flex flex-wrap gap-2" style={{ borderBottom: `1px solid ${LK.borderSoft}` }}>
+          <div className="px-6 py-4 flex flex-wrap gap-2" style={{ borderBottom:`1px solid ${LK.borderSoft}` }}>
             {['all', ...REPRO_ACTION_TYPES].map((item) => (
               <button
                 key={`repro-action-${item}`}
@@ -1716,14 +1716,14 @@ export const ReproConfigWorkspace: React.FC<{
               </button>
             )}
           </div>
-          <div className="max-h-[34rem] overflow-y-auto" style={{ borderTop: `1px solid ${LK.borderSoft}` }}>
+          <div className="max-h-[34rem] overflow-y-auto" style={{ borderTop:`1px solid ${LK.borderSoft}` }}>
             {filteredReproServices.length === 0 ? (
               <div className="px-6 py-8 text-sm" style={{ color: LK.muted }}>当前还没有注册任何复现或证明模块</div>
             ) : (
               filteredReproServices.map((item) => {
                 const stats = reproActionStats.get(item.service_id) || { total: 0, queued: 0, running: 0, failed: 0 };
                 return (
-                <div key={item.service_id} className="px-6 py-4 space-y-3" style={{ borderBottom: `1px solid ${LK.borderSoft}` }}>
+                <div key={item.service_id} className="px-6 py-4 space-y-3" style={{ borderBottom:`1px solid ${LK.borderSoft}` }}>
                   <div className="flex items-start justify-between gap-4">
                     <div>
                       <div className="flex flex-wrap items-center gap-2">

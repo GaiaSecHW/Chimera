@@ -141,7 +141,7 @@ export const ProjectMgmtPage: React.FC<ProjectMgmtPageProps> = ({
         (node.versions || []).map((version: ProductVersionNode) => ({
           product: node,
           version,
-          label: `${node.name} / ${version.version}${version.name ? ` · ${version.name}` : ''}`,
+          label:`${node.name} / ${version.version}${version.name ?` · ${version.name}` : ''}`,
         }))
       );
   }, [productTree]);
@@ -366,7 +366,7 @@ export const ProjectMgmtPage: React.FC<ProjectMgmtPageProps> = ({
       >
         <div
           className="flex flex-col gap-3 px-5 py-4 md:flex-row md:items-center md:justify-between"
-          style={{ borderBottom: `1px solid ${LK.borderSoft}` }}
+          style={{ borderBottom:`1px solid ${LK.borderSoft}` }}
         >
           <div className="flex items-center gap-3">
             <div
@@ -398,16 +398,16 @@ export const ProjectMgmtPage: React.FC<ProjectMgmtPageProps> = ({
             <table className="min-w-full border-separate border-spacing-0">
               <thead>
                 <tr className="text-left text-xs uppercase tracking-wider" style={{ color: LK.mutedSoft }}>
-                  <th className="w-12 px-3 py-2.5 font-medium" style={{ borderBottom: `1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>选择</th>
-                  <th className="min-w-[240px] px-3 py-2.5 font-medium" style={{ borderBottom: `1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>项目</th>
-                  <th className="min-w-[110px] px-3 py-2.5 font-medium" style={{ borderBottom: `1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>可见性</th>
-                  <th className="min-w-[140px] px-3 py-2.5 font-medium" style={{ borderBottom: `1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>归属部门</th>
-                  <th className="min-w-[110px] px-3 py-2.5 font-medium" style={{ borderBottom: `1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>负责人</th>
-                  <th className="min-w-[200px] px-3 py-2.5 font-medium" style={{ borderBottom: `1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>产品版本</th>
-                  <th className="min-w-[180px] px-3 py-2.5 font-medium" style={{ borderBottom: `1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>命名空间</th>
-                  <th className="min-w-[90px] px-3 py-2.5 font-medium" style={{ borderBottom: `1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>状态</th>
-                  <th className="min-w-[140px] px-3 py-2.5 font-medium" style={{ borderBottom: `1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>创建时间</th>
-                  <th className="w-36 px-3 py-2.5 text-right font-medium" style={{ borderBottom: `1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>操作</th>
+                  <th className="w-12 px-3 py-2.5 font-medium" style={{ borderBottom:`1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>选择</th>
+                  <th className="min-w-[240px] px-3 py-2.5 font-medium" style={{ borderBottom:`1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>项目</th>
+                  <th className="min-w-[110px] px-3 py-2.5 font-medium" style={{ borderBottom:`1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>可见性</th>
+                  <th className="min-w-[140px] px-3 py-2.5 font-medium" style={{ borderBottom:`1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>归属部门</th>
+                  <th className="min-w-[110px] px-3 py-2.5 font-medium" style={{ borderBottom:`1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>负责人</th>
+                  <th className="min-w-[200px] px-3 py-2.5 font-medium" style={{ borderBottom:`1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>产品版本</th>
+                  <th className="min-w-[180px] px-3 py-2.5 font-medium" style={{ borderBottom:`1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>命名空间</th>
+                  <th className="min-w-[90px] px-3 py-2.5 font-medium" style={{ borderBottom:`1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>状态</th>
+                  <th className="min-w-[140px] px-3 py-2.5 font-medium" style={{ borderBottom:`1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>创建时间</th>
+                  <th className="w-36 px-3 py-2.5 text-right font-medium" style={{ borderBottom:`1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>操作</th>
                 </tr>
               </thead>
               <tbody>
@@ -420,7 +420,7 @@ export const ProjectMgmtPage: React.FC<ProjectMgmtPageProps> = ({
                       className="cursor-pointer transition-colors"
                       style={{
                         backgroundColor: selected ? LK.primaryMuted : 'transparent',
-                        boxShadow: selected ? `inset 2px 0 0 ${LK.primary}` : 'none',
+                        boxShadow: selected ?`inset 2px 0 0 ${LK.primary}` : 'none',
                       }}
                       onMouseEnter={(e) => {
                         if (!selected) e.currentTarget.style.backgroundColor = LK.surfaceRaised;
@@ -429,7 +429,7 @@ export const ProjectMgmtPage: React.FC<ProjectMgmtPageProps> = ({
                         if (!selected) e.currentTarget.style.backgroundColor = 'transparent';
                       }}
                     >
-                      <td className="px-3 py-3 align-top" style={{ borderBottom: `1px solid ${LK.borderSoft}` }}>
+                      <td className="px-3 py-3 align-top" style={{ borderBottom:`1px solid ${LK.borderSoft}` }}>
                         <button
                           onClick={(event) => toggleSelect(event, project)}
                           disabled={!project.can_manage}
@@ -440,7 +440,7 @@ export const ProjectMgmtPage: React.FC<ProjectMgmtPageProps> = ({
                           {selected ? <CheckSquare size={16} /> : <Square size={16} />}
                         </button>
                       </td>
-                      <td className="px-3 py-3 align-top" style={{ borderBottom: `1px solid ${LK.borderSoft}` }}>
+                      <td className="px-3 py-3 align-top" style={{ borderBottom:`1px solid ${LK.borderSoft}` }}>
                         <div className="min-w-0 space-y-1">
                           <div className="flex flex-wrap items-center gap-2">
                             <span className="truncate text-sm font-semibold" style={{ color: LK.ink }}>
@@ -472,7 +472,7 @@ export const ProjectMgmtPage: React.FC<ProjectMgmtPageProps> = ({
                           </div>
                         </div>
                       </td>
-                      <td className="px-3 py-3 align-top" style={{ borderBottom: `1px solid ${LK.borderSoft}` }}>
+                      <td className="px-3 py-3 align-top" style={{ borderBottom:`1px solid ${LK.borderSoft}` }}>
                         <span
                           className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium"
                           style={{ backgroundColor: `${accentColor}22`, color: accentColor }}
@@ -481,13 +481,13 @@ export const ProjectMgmtPage: React.FC<ProjectMgmtPageProps> = ({
                           {project.is_public ? '公开' : '部门'}
                         </span>
                       </td>
-                      <td className="px-3 py-3 align-top text-sm" style={{ borderBottom: `1px solid ${LK.borderSoft}`, color: LK.body }}>
+                      <td className="px-3 py-3 align-top text-sm" style={{ borderBottom:`1px solid ${LK.borderSoft}`, color: LK.body }}>
                         {project.department_name || '未绑定'}
                       </td>
-                      <td className="px-3 py-3 align-top text-sm" style={{ borderBottom: `1px solid ${LK.borderSoft}`, color: LK.body }}>
+                      <td className="px-3 py-3 align-top text-sm" style={{ borderBottom:`1px solid ${LK.borderSoft}`, color: LK.body }}>
                         {project.owner_name || '未知'}
                       </td>
-                      <td className="px-3 py-3 align-top" style={{ borderBottom: `1px solid ${LK.borderSoft}` }}>
+                      <td className="px-3 py-3 align-top" style={{ borderBottom:`1px solid ${LK.borderSoft}` }}>
                         <div className="space-y-0.5">
                           <div className="text-sm font-medium" style={{ color: LK.inkSoft }}>
                             {project.product_version || project.product_version_name || '未归属版本'}
@@ -497,7 +497,7 @@ export const ProjectMgmtPage: React.FC<ProjectMgmtPageProps> = ({
                           </div>
                         </div>
                       </td>
-                      <td className="px-3 py-3 align-top" style={{ borderBottom: `1px solid ${LK.borderSoft}` }}>
+                      <td className="px-3 py-3 align-top" style={{ borderBottom:`1px solid ${LK.borderSoft}` }}>
                         <span
                           className="inline-block max-w-[200px] break-all rounded px-1.5 py-0.5 text-xs"
                           style={{ backgroundColor: LK.surfaceRaised, color: LK.body, fontFamily: MONO }}
@@ -505,13 +505,13 @@ export const ProjectMgmtPage: React.FC<ProjectMgmtPageProps> = ({
                           {project.k8s_namespace || '系统自动生成'}
                         </span>
                       </td>
-                      <td className="px-3 py-3 align-top" style={{ borderBottom: `1px solid ${LK.borderSoft}` }}>
+                      <td className="px-3 py-3 align-top" style={{ borderBottom:`1px solid ${LK.borderSoft}` }}>
                         <StatusBadge status={project.status || 'active'} />
                       </td>
-                      <td className="px-3 py-3 align-top text-xs" style={{ borderBottom: `1px solid ${LK.borderSoft}`, color: LK.muted }}>
+                      <td className="px-3 py-3 align-top text-xs" style={{ borderBottom:`1px solid ${LK.borderSoft}`, color: LK.muted }}>
                         {project.created_at ? new Date(project.created_at).toLocaleString() : '未知'}
                       </td>
-                      <td className="px-3 py-3 align-top" style={{ borderBottom: `1px solid ${LK.borderSoft}` }}>
+                      <td className="px-3 py-3 align-top" style={{ borderBottom:`1px solid ${LK.borderSoft}` }}>
                         <div className="flex items-center justify-end gap-1">
                           <button
                             onClick={(event) => {
@@ -542,7 +542,7 @@ export const ProjectMgmtPage: React.FC<ProjectMgmtPageProps> = ({
                                 onClick={(event) => handleDeleteClick(event, [project.id])}
                                 className="rounded-md p-1.5 transition-colors"
                                 style={{ color: LK.muted }}
-                                onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = `${LK.error}22`; e.currentTarget.style.color = LK.error; }}
+                                onMouseEnter={(e) => { e.currentTarget.style.backgroundColor =`${LK.error}22`; e.currentTarget.style.color = LK.error; }}
                                 onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.color = LK.muted; }}
                                 title="删除项目"
                               >
@@ -635,7 +635,7 @@ export const ProjectMgmtPage: React.FC<ProjectMgmtPageProps> = ({
       className="space-y-4 px-5 py-5 pb-20 md:px-6 2xl:px-8"
       style={{ backgroundColor: LK.canvas, minHeight: '100%', color: LK.inkSoft }}
     >
-      <div className="flex flex-col items-end justify-between gap-3 pb-4 md:flex-row" style={{ borderBottom: `1px solid ${LK.borderSoft}` }}>
+      <div className="flex flex-col items-end justify-between gap-3 pb-4 md:flex-row" style={{ borderBottom:`1px solid ${LK.borderSoft}` }}>
         <div>
           <span
             className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium"
@@ -692,8 +692,8 @@ export const ProjectMgmtPage: React.FC<ProjectMgmtPageProps> = ({
               onClick={(event) => handleDeleteClick(event, Array.from(selectedIds))}
               className="inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition-colors"
               style={{ backgroundColor: `${LK.error}22`, color: LK.error }}
-              onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = `${LK.error}3a`)}
-              onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = `${LK.error}22`)}
+              onMouseEnter={(e) => (e.currentTarget.style.backgroundColor =`${LK.error}3a`)}
+              onMouseLeave={(e) => (e.currentTarget.style.backgroundColor =`${LK.error}22`)}
             >
               <Trash2 size={14} /> 批量删除
             </button>
@@ -798,7 +798,7 @@ export const ProjectMgmtPage: React.FC<ProjectMgmtPageProps> = ({
             className="w-full max-w-xl overflow-hidden rounded-2xl animate-in"
             style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}` }}
           >
-            <div className="flex items-start gap-3 px-6 pb-0 pt-6" style={{ borderBottom: `1px solid ${LK.borderSoft}` }}>
+            <div className="flex items-start gap-3 px-6 pb-0 pt-6" style={{ borderBottom:`1px solid ${LK.borderSoft}` }}>
               <div
                 className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md"
                 style={{ backgroundColor: LK.primaryMuted, color: LK.primary }}
@@ -984,7 +984,7 @@ export const ProjectMgmtPage: React.FC<ProjectMgmtPageProps> = ({
             className="w-full max-w-xl overflow-hidden rounded-2xl animate-in"
             style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}` }}
           >
-            <div className="flex items-start gap-3 px-6 pb-0 pt-6" style={{ borderBottom: `1px solid ${LK.borderSoft}` }}>
+            <div className="flex items-start gap-3 px-6 pb-0 pt-6" style={{ borderBottom:`1px solid ${LK.borderSoft}` }}>
               <div
                 className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md"
                 style={{ backgroundColor: LK.primaryMuted, color: LK.primary }}

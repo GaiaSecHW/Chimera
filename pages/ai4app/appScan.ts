@@ -5,9 +5,9 @@ import { API_BASE, getAuthHeaders, getHeaders, handleResponse, type XhrUploadPro
 //  Frontend uses /turing/api prefix, Vite proxy rewrites to /api and forwards
 //  to http://turing.ai.icsl.huawei.com/turing-app-security
 // ---------------------------------------------------------------------------
-const PREFIX = `${API_BASE}/turing/api/v1/tasks`;
-const UPLOAD_PREFIX = `${API_BASE}/turing/api/projects/upload`;
-const MONITOR_PREFIX = `${API_BASE}/turing/api`;
+const PREFIX =`${API_BASE}/turing/api/v1/tasks`;
+const UPLOAD_PREFIX =`${API_BASE}/turing/api/projects/upload`;
+const MONITOR_PREFIX =`${API_BASE}/turing/api`;
 
 // ---------------------------------------------------------------------------
 //  Types
@@ -237,7 +237,7 @@ const withQuery = (
   });
   const text = query.toString();
   const separator = path.includes('?') ? '&' : '?';
-  return text ? `${path}${separator}${text}` : path;
+  return text ?`${path}${separator}${text}` : path;
 };
 
 const noStoreHeaders = () => ({

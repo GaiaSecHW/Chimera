@@ -53,7 +53,7 @@ const formatDurationMs = (durationMs?: number | null) => {
   if (durationMs == null || Number.isNaN(durationMs) || durationMs < 0) return '-';
   const seconds = durationMs / 1000;
   const precision = Number.isInteger(seconds) ? 0 : seconds >= 10 ? 1 : 2;
-  return `${seconds.toFixed(precision)} 秒`;
+  return`${seconds.toFixed(precision)} 秒`;
 };
 
 export interface B2SBatchTableRowAction {
@@ -102,25 +102,25 @@ export const B2SBatchObservabilityTable: React.FC<Props> = ({
         <table className="min-w-full text-sm">
           <thead>
             <tr className="text-xs font-semibold uppercase tracking-wider" style={{ color: LK.mutedSoft, backgroundColor: LK.surfaceRaised }}>
-              <th className="px-3 py-2.5 text-left" style={{ borderBottom: `1px solid ${LK.border}` }}>详情</th>
-              {showItemColumn ? <th className="px-3 py-2.5 text-left" style={{ borderBottom: `1px solid ${LK.border}` }}>ELF Item</th> : null}
-              <th className="px-3 py-2.5 text-left" style={{ borderBottom: `1px solid ${LK.border}` }}>Batch</th>
-              <th className="px-3 py-2.5 text-left" style={{ borderBottom: `1px solid ${LK.border}` }}>函数体阶段状态</th>
-              <th className="px-3 py-2.5 text-left" style={{ borderBottom: `1px solid ${LK.border}` }}>当前 Attempt</th>
-              <th className="px-3 py-2.5 text-left" style={{ borderBottom: `1px solid ${LK.border}` }}>函数数</th>
-              <th className="px-3 py-2.5 text-left" style={{ borderBottom: `1px solid ${LK.border}` }}>代码字节</th>
-              <th className="px-3 py-2.5 text-left" style={{ borderBottom: `1px solid ${LK.border}` }}>当前函数</th>
-              <th className="px-3 py-2.5 text-left" style={{ borderBottom: `1px solid ${LK.border}` }}>Review</th>
-              <th className="px-3 py-2.5 text-left" style={{ borderBottom: `1px solid ${LK.border}` }}>Session</th>
-              <th className="px-3 py-2.5 text-left" style={{ borderBottom: `1px solid ${LK.border}` }}>结果</th>
-              <th className="px-3 py-2.5 text-left" style={{ borderBottom: `1px solid ${LK.border}` }}>函数体耗时</th>
-              <th className="px-3 py-2.5 text-left" style={{ borderBottom: `1px solid ${LK.border}` }}>最近更新</th>
-              {showArtifactColumn ? <th className="px-3 py-2.5 text-left" style={{ borderBottom: `1px solid ${LK.border}` }}>产物</th> : null}
+              <th className="px-3 py-2.5 text-left" style={{ borderBottom:`1px solid ${LK.border}` }}>详情</th>
+              {showItemColumn ? <th className="px-3 py-2.5 text-left" style={{ borderBottom:`1px solid ${LK.border}` }}>ELF Item</th> : null}
+              <th className="px-3 py-2.5 text-left" style={{ borderBottom:`1px solid ${LK.border}` }}>Batch</th>
+              <th className="px-3 py-2.5 text-left" style={{ borderBottom:`1px solid ${LK.border}` }}>函数体阶段状态</th>
+              <th className="px-3 py-2.5 text-left" style={{ borderBottom:`1px solid ${LK.border}` }}>当前 Attempt</th>
+              <th className="px-3 py-2.5 text-left" style={{ borderBottom:`1px solid ${LK.border}` }}>函数数</th>
+              <th className="px-3 py-2.5 text-left" style={{ borderBottom:`1px solid ${LK.border}` }}>代码字节</th>
+              <th className="px-3 py-2.5 text-left" style={{ borderBottom:`1px solid ${LK.border}` }}>当前函数</th>
+              <th className="px-3 py-2.5 text-left" style={{ borderBottom:`1px solid ${LK.border}` }}>Review</th>
+              <th className="px-3 py-2.5 text-left" style={{ borderBottom:`1px solid ${LK.border}` }}>Session</th>
+              <th className="px-3 py-2.5 text-left" style={{ borderBottom:`1px solid ${LK.border}` }}>结果</th>
+              <th className="px-3 py-2.5 text-left" style={{ borderBottom:`1px solid ${LK.border}` }}>函数体耗时</th>
+              <th className="px-3 py-2.5 text-left" style={{ borderBottom:`1px solid ${LK.border}` }}>最近更新</th>
+              {showArtifactColumn ? <th className="px-3 py-2.5 text-left" style={{ borderBottom:`1px solid ${LK.border}` }}>产物</th> : null}
             </tr>
           </thead>
           <tbody>
             {rows.map((row) => {
-              const key = `${row.item_id}:${row.batch_no}`;
+              const key =`${row.item_id}:${row.batch_no}`;
               const expanded = expandedSet.has(key);
               const rowColors = statusTone(row.status);
               return (
@@ -137,7 +137,7 @@ export const B2SBatchObservabilityTable: React.FC<Props> = ({
                       e.currentTarget.style.backgroundColor = row.status === 'running' ? LK.info + '10' : 'transparent';
                     }}
                   >
-                    <td className="px-3 py-2.5 align-top" style={{ borderBottom: `1px solid ${LK.borderSoft}` }}>
+                    <td className="px-3 py-2.5 align-top" style={{ borderBottom:`1px solid ${LK.borderSoft}` }}>
                       <button
                         type="button"
                         onClick={() => toggleRow(key)}
@@ -161,7 +161,7 @@ export const B2SBatchObservabilityTable: React.FC<Props> = ({
                       </button>
                     </td>
                     {showItemColumn ? (
-                      <td className="px-3 py-2.5 align-top" style={{ borderBottom: `1px solid ${LK.borderSoft}` }}>
+                      <td className="px-3 py-2.5 align-top" style={{ borderBottom:`1px solid ${LK.borderSoft}` }}>
                         <button
                           type="button"
                           onClick={() => onRowAction?.({ type: 'select-item', row })}
@@ -174,8 +174,8 @@ export const B2SBatchObservabilityTable: React.FC<Props> = ({
                         </button>
                       </td>
                     ) : null}
-                    <td className="px-3 py-2.5 align-top font-mono" style={{ borderBottom: `1px solid ${LK.borderSoft}`, color: LK.inkSoft }}>{row.batch_no}</td>
-                    <td className="px-3 py-2.5 align-top" style={{ borderBottom: `1px solid ${LK.borderSoft}` }}>
+                    <td className="px-3 py-2.5 align-top font-mono" style={{ borderBottom:`1px solid ${LK.borderSoft}`, color: LK.inkSoft }}>{row.batch_no}</td>
+                    <td className="px-3 py-2.5 align-top" style={{ borderBottom:`1px solid ${LK.borderSoft}` }}>
                       <span
                         className="inline-flex rounded-full px-2.5 py-1 text-xs font-semibold"
                         style={{
@@ -187,37 +187,37 @@ export const B2SBatchObservabilityTable: React.FC<Props> = ({
                         {row.status_label}
                       </span>
                     </td>
-                    <td className="px-3 py-2.5 align-top" style={{ borderBottom: `1px solid ${LK.borderSoft}` }}>
+                    <td className="px-3 py-2.5 align-top" style={{ borderBottom:`1px solid ${LK.borderSoft}` }}>
                       {row.current_attempt_no ?? row.attempt_count ?? '-'}
                     </td>
-                    <td className="px-3 py-2.5 align-top" style={{ borderBottom: `1px solid ${LK.borderSoft}` }}>
+                    <td className="px-3 py-2.5 align-top" style={{ borderBottom:`1px solid ${LK.borderSoft}` }}>
                       {row.function_count || '-'}
                     </td>
-                    <td className="px-3 py-2.5 align-top" style={{ borderBottom: `1px solid ${LK.borderSoft}` }}>
+                    <td className="px-3 py-2.5 align-top" style={{ borderBottom:`1px solid ${LK.borderSoft}` }}>
                       {row.total_size_bytes ? formatBytes(row.total_size_bytes) : '-'}
                     </td>
-                    <td className="px-3 py-2.5 align-top" style={{ borderBottom: `1px solid ${LK.borderSoft}` }}>
+                    <td className="px-3 py-2.5 align-top" style={{ borderBottom:`1px solid ${LK.borderSoft}` }}>
                       <span style={{ color: row.status === 'running' ? LK.info : LK.body, fontWeight: row.status === 'running' ? 600 : 400 }}>
                         {row.current_function || '-'}
                       </span>
                     </td>
-                    <td className="px-3 py-2.5 align-top" style={{ borderBottom: `1px solid ${LK.borderSoft}` }}>
+                    <td className="px-3 py-2.5 align-top" style={{ borderBottom:`1px solid ${LK.borderSoft}` }}>
                       {row.review_count}
                     </td>
-                    <td className="px-3 py-2.5 align-top" style={{ borderBottom: `1px solid ${LK.borderSoft}` }}>
+                    <td className="px-3 py-2.5 align-top" style={{ borderBottom:`1px solid ${LK.borderSoft}` }}>
                       {row.session_count}
                     </td>
-                    <td className="px-3 py-2.5 align-top font-semibold" style={{ borderBottom: `1px solid ${LK.borderSoft}`, color: verdictTone(row.latest_verdict) }}>
+                    <td className="px-3 py-2.5 align-top font-semibold" style={{ borderBottom:`1px solid ${LK.borderSoft}`, color: verdictTone(row.latest_verdict) }}>
                       {row.latest_verdict || '-'}
                     </td>
-                    <td className="px-3 py-2.5 align-top" style={{ borderBottom: `1px solid ${LK.borderSoft}` }}>
+                    <td className="px-3 py-2.5 align-top" style={{ borderBottom:`1px solid ${LK.borderSoft}` }}>
                       {formatDurationMs(row.duration_ms)}
                     </td>
-                    <td className="px-3 py-2.5 align-top" style={{ borderBottom: `1px solid ${LK.borderSoft}`, color: LK.body }}>
+                    <td className="px-3 py-2.5 align-top" style={{ borderBottom:`1px solid ${LK.borderSoft}`, color: LK.body }}>
                       {row.last_event_at ? formatDateTime(row.last_event_at) : '-'}
                     </td>
                     {showArtifactColumn ? (
-                      <td className="px-3 py-2.5 align-top text-xs" style={{ borderBottom: `1px solid ${LK.borderSoft}`, color: LK.body }}>
+                      <td className="px-3 py-2.5 align-top text-xs" style={{ borderBottom:`1px solid ${LK.borderSoft}`, color: LK.body }}>
                         <div>{row.has_source_output ? '源码输出' : '无源码'}</div>
                         <div>{row.has_disasm_context ? '有反编译上下文' : '无上下文'}</div>
                       </td>

@@ -135,7 +135,7 @@ const ModelsList: React.FC<{
       ))}
       <button
         onClick={add}
-        className="inline-flex items-center gap-1.5 rounded-xl border border-dashed border-slate-300 px-3 py-1.5 text-sm text-slate-500 hover:bg-slate-50"
+        className="inline-flex items-center gap-1.5 rounded-xl border border-dashed border-slate-300 px-3 py-1.5 text-sm text-slate-500 hover:bg-slate-100"
       >
         <Plus size={13} /> 添加模型
       </button>
@@ -164,7 +164,7 @@ const ProviderCard: React.FC<{
   };
 
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white shadow-sm">
+ <div className="rounded-2xl border border-slate-200 bg-slate-50">
       {/* Header */}
       <div className="flex items-center gap-3 px-4 py-3 border-b border-slate-100">
         <button
@@ -218,7 +218,7 @@ const ProviderCard: React.FC<{
               <select
                 value={config.api}
                 onChange={(e) => onChange({ ...config, api: e.target.value })}
-                className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm bg-white"
+                className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm bg-slate-50"
               >
                 {API_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
               </select>
@@ -274,7 +274,7 @@ export const SystemAnalysisModelsPage: React.FC = () => {
     let name = baseName;
     let idx = 1;
     while (config.providers[name]) {
-      name = `${baseName}_${idx++}`;
+      name =`${baseName}_${idx++}`;
     }
     setProviders({ ...config.providers, [name]: emptyProvider() });
   };
@@ -287,7 +287,7 @@ export const SystemAnalysisModelsPage: React.FC = () => {
 
   const renameProvider = (oldName: string, newName: string) => {
     if (config.providers[newName]) {
-      notify(`Provider "${newName}" 已存在`, 'error');
+      notify(`Provider"${newName}" 已存在`, 'error');
       return;
     }
     const next: Record<string, SystemAnalysisProviderConfig> = {};
@@ -315,7 +315,7 @@ export const SystemAnalysisModelsPage: React.FC = () => {
 
   // Build flat list of all model refs for display
   const allModelRefs = Object.entries(config.providers).flatMap(([pName, pCfg]) =>
-    pCfg.models.filter((m) => m.id).map((m) => `${pName}/${m.id}`)
+    pCfg.models.filter((m) => m.id).map((m) =>`${pName}/${m.id}`)
   );
 
   return (
@@ -323,7 +323,7 @@ export const SystemAnalysisModelsPage: React.FC = () => {
       {feedbackNodes}
 
       {/* 页头 */}
-      <section className="rounded-[2rem] border border-slate-200 bg-white/90 p-6 shadow-sm">
+ <section className="rounded-[2rem] border border-slate-200 bg-slate-50 p-6">
         <p className="text-xs font-black uppercase tracking-[0.3em] text-cyan-600">System Analysis</p>
         <h1 className="mt-3 text-3xl font-black tracking-tight text-slate-900">模型配置</h1>
         <p className="mt-2 text-sm text-slate-500">
@@ -338,7 +338,7 @@ export const SystemAnalysisModelsPage: React.FC = () => {
       </section>
 
       {loading ? (
-        <div className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-600">
+        <div className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
           <Loader2 size={15} className="animate-spin" />加载中...
         </div>
       ) : (
@@ -382,7 +382,7 @@ export const SystemAnalysisModelsPage: React.FC = () => {
 
           <button
             onClick={addProvider}
-            className="inline-flex items-center gap-2 rounded-xl border border-dashed border-slate-400 px-5 py-2.5 text-sm text-slate-600 hover:bg-slate-50"
+            className="inline-flex items-center gap-2 rounded-xl border border-dashed border-slate-400 px-5 py-2.5 text-sm text-slate-600 hover:bg-slate-100"
           >
             <Plus size={15} /> 添加 Provider
           </button>

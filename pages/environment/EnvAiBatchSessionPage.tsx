@@ -14,13 +14,13 @@ const compactTime = (value?: string) => {
   if (!value) return '-';
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return value;
-  return `${date.toLocaleDateString()} ${date.toLocaleTimeString()}`;
+  return`${date.toLocaleDateString()} ${date.toLocaleTimeString()}`;
 };
 
 const shortId = (text?: string, start = 10, end = 8) => {
   const value = String(text || '');
   if (value.length <= start + end + 3) return value;
-  return `${value.slice(0, start)}...${value.slice(-end)}`;
+  return`${value.slice(0, start)}...${value.slice(-end)}`;
 };
 
 const statusTone = (status?: string) => {
@@ -138,9 +138,9 @@ const collectBatchItemTrace = (item: any): AgentTraceEvent[] => {
   return Array.isArray(response?.trace) ? response!.trace.filter(Boolean) : [];
 };
 
-const agentLabel = (agent: AiAgentItem) => `${agent.agent_id}${agent.backend_type ? ` · ${agent.backend_type}` : ''}`;
+const agentLabel = (agent: AiAgentItem) =>`${agent.agent_id}${agent.backend_type ?` · ${agent.backend_type}` : ''}`;
 
-const helperItemKey = (item?: { agent_key?: string; service_name?: string }) => `${item?.agent_key || ''}::${item?.service_name || ''}`;
+const helperItemKey = (item?: { agent_key?: string; service_name?: string }) =>`${item?.agent_key || ''}::${item?.service_name || ''}`;
 
 const resolveRoundResultForHelper = (round: AiBatchRound, helper?: { agent_key?: string; service_name?: string; helper_session_id?: string }) => {
   const resultItems = Array.isArray(round?.response?.results) ? round.response.results : [];
@@ -416,7 +416,7 @@ export const EnvAiBatchSessionPage: React.FC<{ projectId: string }> = ({ project
     const keywordText = createKeyword.trim().toLowerCase();
     if (!keywordText) return helpers;
     return helpers.filter((item) => {
-      const text = `${item.agent_hostname || ''} ${item.agent_key || ''} ${item.service_name || ''}`.toLowerCase();
+      const text =`${item.agent_hostname || ''} ${item.agent_key || ''} ${item.service_name || ''}`.toLowerCase();
       return text.includes(keywordText);
     });
   }, [helpers, createKeyword]);
@@ -425,7 +425,7 @@ export const EnvAiBatchSessionPage: React.FC<{ projectId: string }> = ({ project
     const keywordText = keyword.trim().toLowerCase();
     if (!keywordText) return batches;
     return batches.filter((item) => {
-      const text = `${item.batch_id} ${item.status} ${item.created_by || ''} ${item.session_mode || ''}`.toLowerCase();
+      const text =`${item.batch_id} ${item.status} ${item.created_by || ''} ${item.session_mode || ''}`.toLowerCase();
       return text.includes(keywordText);
     });
   }, [batches, keyword]);
@@ -462,7 +462,7 @@ export const EnvAiBatchSessionPage: React.FC<{ projectId: string }> = ({ project
       <div className="space-y-6">
         {feedbackNodes}
 
-        <section className="rounded-[2rem] border border-slate-200 bg-white/90 p-6 shadow-sm">
+ <section className="rounded-[2rem] border border-slate-200 bg-slate-50 p-6">
           <div className="flex items-center justify-between gap-4 flex-wrap">
             <div>
               <p className="text-xs font-black uppercase tracking-[0.3em] text-cyan-600">AI Agent Workspace</p>
@@ -486,7 +486,7 @@ export const EnvAiBatchSessionPage: React.FC<{ projectId: string }> = ({ project
           </div>
         </section>
 
-        <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+ <section className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
           <div className="mb-3 flex items-center justify-between gap-3 flex-wrap">
             <input
               value={keyword}
@@ -546,7 +546,7 @@ export const EnvAiBatchSessionPage: React.FC<{ projectId: string }> = ({ project
                     return (
                       <tr
                         key={item.batch_id}
-                        className={`border-t border-slate-100 hover:bg-slate-50 ${activeBatchId === item.batch_id ? 'bg-cyan-50' : ''}`}
+                        className={`border-t border-slate-100 hover:bg-slate-100 ${activeBatchId === item.batch_id ? 'bg-cyan-50' : ''}`}
                       >
                         <td className="px-3 py-2" onClick={(event) => event.stopPropagation()}>
                           <input
@@ -595,7 +595,7 @@ export const EnvAiBatchSessionPage: React.FC<{ projectId: string }> = ({ project
 
       {createOpen ? (
         <div className="fixed inset-0 z-40 flex items-center justify-center bg-slate-950/40 p-4">
-          <div className="w-full max-w-5xl rounded-2xl border border-slate-200 bg-white shadow-2xl">
+ <div className="w-full max-w-5xl rounded-2xl border border-slate-200 bg-slate-50">
             <div className="flex items-center justify-between border-b border-slate-200 px-5 py-4">
               <div>
                 <div className="text-xs font-black uppercase tracking-[0.2em] text-slate-500">Create Batch</div>
@@ -619,7 +619,7 @@ export const EnvAiBatchSessionPage: React.FC<{ projectId: string }> = ({ project
                     const key = buildHelperKey(helper.agent_key, helper.service_name);
                     const checked = createSelectedHelpers.includes(key);
                     return (
-                      <label key={key} className={`flex cursor-pointer items-start gap-3 rounded-xl border px-3 py-2 ${checked ? 'border-blue-500 bg-blue-50' : 'border-slate-200 bg-white'}`}>
+                      <label key={key} className={`flex cursor-pointer items-start gap-3 rounded-xl border px-3 py-2 ${checked ? 'border-blue-500 bg-blue-50' : 'border-slate-200 bg-slate-50'}`}>
                         <input type="checkbox" checked={checked} onChange={() => void toggleCreateHelper(helper)} className="mt-1" />
                         <div className="min-w-0">
                           <div className="text-sm font-semibold text-slate-900">{helper.agent_hostname || helper.agent_key}</div>
@@ -666,7 +666,7 @@ export const EnvAiBatchSessionPage: React.FC<{ projectId: string }> = ({ project
 
                 <div className="mt-4 text-xs text-slate-500">
                   已选节点：{createSelectedHelpers.length} 个
-                  {createSelectedAgentId ? ` · Agent: ${createSelectedAgentId}` : ''}
+                  {createSelectedAgentId ?` · Agent: ${createSelectedAgentId}` : ''}
                 </div>
 
                 <div className="mt-4 flex items-center justify-end gap-2">
@@ -688,7 +688,7 @@ export const EnvAiBatchSessionPage: React.FC<{ projectId: string }> = ({ project
 
       {detailOpen && batchDetail ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/45 p-3">
-          <div className="flex h-[92vh] w-full max-w-7xl flex-col rounded-2xl border border-slate-200 bg-white shadow-2xl">
+ <div className="flex h-[92vh] w-full max-w-7xl flex-col rounded-2xl border border-slate-200 bg-slate-50">
             <div className="flex items-center justify-between border-b border-slate-200 px-5 py-3">
               <div className="min-w-0">
                 <div className="text-xs font-black uppercase tracking-[0.2em] text-slate-500">Batch Dialog</div>
@@ -775,12 +775,12 @@ export const EnvAiBatchSessionPage: React.FC<{ projectId: string }> = ({ project
                         .map((event, index) => (
                           <div key={`${event.type}-${index}`}>
                             {event.type === 'item'
-                              ? `${event.agent_key || '-'} / ${event.service_name || '-'} · ${event.success ? '成功' : '失败'}`
+                              ?`${event.agent_key || '-'} / ${event.service_name || '-'} · ${event.success ? '成功' : '失败'}`
                               : event.type === 'start'
-                              ? `开始执行（目标 ${event.total_items || 0} 个 helper）`
+                              ?`开始执行（目标 ${event.total_items || 0} 个 helper）`
                               : event.type === 'done'
-                              ? `本轮完成（success=${event.success ? 'true' : 'false'}）`
-                              : `错误：${event.error_message || event.error || 'unknown'}`}
+                              ?`本轮完成（success=${event.success ? 'true' : 'false'}）`
+                              :`错误：${event.error_message || event.error || 'unknown'}`}
                           </div>
                         ))}
                     </div>
@@ -789,7 +789,7 @@ export const EnvAiBatchSessionPage: React.FC<{ projectId: string }> = ({ project
 
                 <div className="mt-4 rounded-xl border border-slate-200 p-3">
                   <div className="text-sm font-bold text-slate-900">
-                    会话记录（{activeHelperItem ? `${activeHelperItem.service_name} / ${activeHelperItem.agent_key}` : '未选择 Agent'}）
+                    会话记录（{activeHelperItem ?`${activeHelperItem.service_name} / ${activeHelperItem.agent_key}` : '未选择 Agent'}）
                   </div>
                   <div className="mt-3 space-y-3 max-h-[50vh] overflow-auto pr-1">
                     {helperRounds.length === 0 ? <div className="text-sm text-slate-500">暂无多轮记录。</div> : helperRounds.map(({ round, result, outputs, reasoning, trace }) => (
@@ -799,7 +799,7 @@ export const EnvAiBatchSessionPage: React.FC<{ projectId: string }> = ({ project
                           <div className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">User</div>
                           <div className="mt-1 whitespace-pre-wrap text-sm text-slate-800">{round.content}</div>
                         </div>
-                        <div className="mt-3 rounded-xl border border-slate-200 bg-white p-3">
+                        <div className="mt-3 rounded-xl border border-slate-200 bg-slate-50 p-3">
                           <div className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">Assistant</div>
                           {outputs.length > 0 ? (
                             <div className="mt-2 space-y-3">
@@ -829,7 +829,7 @@ export const EnvAiBatchSessionPage: React.FC<{ projectId: string }> = ({ project
                             <summary className="cursor-pointer text-xs font-semibold text-slate-600 hover:text-slate-900">查看 Trace（{trace.length}）</summary>
                             <div className="mt-2 space-y-2">
                               {trace.map((item, index) => (
-                                <div key={item.id || `${item.category}-${index}`} className="rounded-xl border border-slate-200 bg-slate-50 p-3 text-xs text-slate-700">
+                                <div key={item.id ||`${item.category}-${index}`} className="rounded-xl border border-slate-200 bg-slate-50 p-3 text-xs text-slate-700">
                                   <div className="font-semibold text-slate-900">{item.category}</div>
                                   {item.message ? <div className="mt-1 whitespace-pre-wrap">{item.message}</div> : null}
                                   {item.payload !== undefined ? (

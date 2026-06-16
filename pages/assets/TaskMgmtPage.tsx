@@ -213,50 +213,50 @@ export const TaskMgmtPage: React.FC<{ projectId: string }> = ({ projectId }) => 
   return (
     <div className="p-2.5 space-y-3 animate-in fade-in duration-500 h-full overflow-y-auto lg:p-3">
       <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-5">
-        <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+ <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
           <div className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">总任务</div>
           <div className="mt-2 text-3xl font-black leading-none text-slate-900">{stats.total}</div>
         </div>
-        <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+ <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
           <div className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">运行中</div>
           <div className="mt-2 text-3xl font-black leading-none text-blue-600">{stats.running}</div>
         </div>
-        <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+ <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
           <div className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">成功</div>
           <div className="mt-2 text-3xl font-black leading-none text-emerald-600">{stats.succeeded}</div>
         </div>
-        <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+ <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
           <div className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">失败</div>
           <div className="mt-2 text-3xl font-black leading-none text-rose-600">{stats.failed}</div>
         </div>
-        <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+ <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
           <div className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">已取消</div>
           <div className="mt-2 text-3xl font-black leading-none text-slate-600">{stats.cancelled}</div>
         </div>
       </div>
 
       <div className="grid grid-cols-1 gap-3 xl:grid-cols-[minmax(0,1fr)_360px]">
-        <div className="rounded-xl border border-slate-200 bg-white p-3 shadow-sm">
+ <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <div className="text-sm font-black text-slate-800">任务列表</div>
             <div className="flex flex-wrap items-center gap-1.5">
               <button
                 onClick={handleDeleteBatchClick}
                 disabled={selectedTaskIds.size === 0}
-                className="rounded-lg border border-rose-100 bg-rose-50 px-2.5 py-2 text-xs font-black text-rose-600 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+ className="rounded-lg border border-rose-100 bg-rose-50 px-2.5 py-2 text-xs font-black text-rose-600 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 批量删除（{selectedTaskIds.size}）
               </button>
               <button
                 onClick={handleDeleteAllClick}
                 disabled={filteredTasks.length === 0}
-                className="rounded-lg border border-rose-200 bg-white px-2.5 py-2 text-xs font-black text-rose-600 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+ className="rounded-lg border border-rose-200 bg-slate-50 px-2.5 py-2 text-xs font-black text-rose-600 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 一键删除全部
               </button>
               <button
                 onClick={() => void loadTasks()}
-                className="rounded-lg border border-slate-200 bg-white px-2.5 py-2 text-xs font-black text-slate-700 shadow-sm"
+ className="rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-2 text-xs font-black text-slate-700"
               >
                 <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
               </button>
@@ -277,7 +277,7 @@ export const TaskMgmtPage: React.FC<{ projectId: string }> = ({ projectId }) => 
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
-              className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-semibold outline-none"
+              className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-semibold outline-none"
             >
               <option value="all">全部状态</option>
               <option value="pending">Pending</option>
@@ -323,7 +323,7 @@ export const TaskMgmtPage: React.FC<{ projectId: string }> = ({ projectId }) => 
                     <tr
                       key={task.task_id}
                       onClick={() => setSelectedTaskId(task.task_id)}
-                      className={`cursor-pointer transition-all hover:bg-slate-50 ${selectedTaskId === task.task_id ? 'bg-blue-50/60' : ''}`}
+                      className={`cursor-pointer transition-all hover:bg-slate-100 ${selectedTaskId === task.task_id ? 'bg-blue-50/60' : ''}`}
                     >
                       <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
                         <input
@@ -383,7 +383,7 @@ export const TaskMgmtPage: React.FC<{ projectId: string }> = ({ projectId }) => 
               <select
                 value={pageSize}
                 onChange={(e) => setPageSize(Number(e.target.value))}
-                className="rounded-md border border-slate-200 bg-white px-2 py-1 text-xs font-semibold"
+                className="rounded-md border border-slate-200 bg-slate-50 px-2 py-1 text-xs font-semibold"
               >
                 <option value={10}>10 / 页</option>
                 <option value={20}>20 / 页</option>
@@ -392,14 +392,14 @@ export const TaskMgmtPage: React.FC<{ projectId: string }> = ({ projectId }) => 
               <button
                 onClick={() => setPage((prev) => Math.max(1, prev - 1))}
                 disabled={page <= 1}
-                className="rounded-md border border-slate-200 bg-white px-2 py-1 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="rounded-md border border-slate-200 bg-slate-50 px-2 py-1 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 上一页
               </button>
               <button
                 onClick={() => setPage((prev) => Math.min(totalPages, prev + 1))}
                 disabled={page >= totalPages}
-                className="rounded-md border border-slate-200 bg-white px-2 py-1 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="rounded-md border border-slate-200 bg-slate-50 px-2 py-1 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 下一页
               </button>
@@ -407,7 +407,7 @@ export const TaskMgmtPage: React.FC<{ projectId: string }> = ({ projectId }) => 
           </div>
         </div>
 
-        <div className="rounded-xl border border-slate-200 bg-white p-3 shadow-sm">
+ <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
           {!selectedTask ? (
             <div className="flex min-h-[360px] items-center justify-center text-center text-xs font-semibold text-slate-400">选择一个任务后查看详情与日志。</div>
           ) : (
@@ -426,7 +426,7 @@ export const TaskMgmtPage: React.FC<{ projectId: string }> = ({ projectId }) => 
                 <div className="mt-3 flex flex-wrap gap-1.5">
                   <button
                     onClick={() => void loadTaskLogs(selectedTask.task_id)}
-                    className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-[11px] font-black text-slate-700"
+                    className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1.5 text-[11px] font-black text-slate-700"
                   >
                     <Terminal size={13} /> 刷新日志
                   </button>
@@ -466,7 +466,7 @@ export const TaskMgmtPage: React.FC<{ projectId: string }> = ({ projectId }) => 
 
       {deleteConfirm.show && (
         <div className="fixed inset-0 z-[140] flex items-center justify-center p-6 bg-slate-900/60 backdrop-blur-sm animate-in fade-in">
-          <div className="bg-white w-full max-w-md rounded-[2rem] shadow-2xl overflow-hidden animate-in zoom-in-95">
+ <div className="bg-slate-50 w-full max-w-md rounded-[2rem] overflow-hidden animate-in zoom-in-95">
             <div className="p-8 text-center">
               <div className="w-16 h-16 bg-red-50 text-red-600 rounded-2xl flex items-center justify-center mx-auto mb-6">
                 <AlertTriangle size={36} />

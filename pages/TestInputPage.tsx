@@ -69,7 +69,7 @@ const formatSpeed = (value?: number | null) => {
     next /= 1024;
     unitIndex += 1;
   }
-  return `${next.toFixed(next >= 10 || unitIndex === 0 ? 0 : 1)} ${units[unitIndex]}`;
+  return`${next.toFixed(next >= 10 || unitIndex === 0 ? 0 : 1)} ${units[unitIndex]}`;
 };
 
 const normalizeType = (value: string): InputType => {
@@ -232,7 +232,7 @@ export const TestInputPage: React.FC<TestInputPageProps> = ({ selectedProjectId,
     const next: UploadQueueItem[] = Array.from(files).map((file) => {
       const allowed = keepOriginal || isAllowedArchiveFileName(file.name || '');
       return {
-        id: `${file.name}-${file.size}-${Math.random().toString(36).slice(2)}`,
+        id:`${file.name}-${file.size}-${Math.random().toString(36).slice(2)}`,
         file,
         status: allowed ? 'pending' : 'failed',
         progress: 0,
@@ -386,8 +386,8 @@ export const TestInputPage: React.FC<TestInputPageProps> = ({ selectedProjectId,
   }, [user]);
 
   const openProjectPath = (path: string) => {
-    const normalizedPath = path.startsWith('/') ? path : `/${path}`;
-    const targetHash = `#/project-file-explorer?path=${encodeURIComponent(normalizedPath)}`;
+    const normalizedPath = path.startsWith('/') ? path :`/${path}`;
+    const targetHash =`#/project-file-explorer?path=${encodeURIComponent(normalizedPath)}`;
     window.open(targetHash, '_blank', 'noopener,noreferrer');
   };
 
@@ -408,7 +408,7 @@ export const TestInputPage: React.FC<TestInputPageProps> = ({ selectedProjectId,
   }
 
   return (
-    <div className="min-h-[calc(100vh-5rem)] bg-[radial-gradient(circle_at_top_left,_rgba(14,165,233,0.14),_transparent_28%),radial-gradient(circle_at_top_right,_rgba(16,185,129,0.12),_transparent_30%),linear-gradient(180deg,_#f8fbff_0%,_#f3f6fb_100%)] p-4 md:p-6 xl:p-8">
+ <div className="min-h-[calc(100vh-5rem)] bg-[#070d18] p-4 md:p-6 xl:p-8">
       <div className="flex min-h-[calc(100vh-7rem)] w-full flex-col gap-5">
         <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
           {INPUT_TYPE_ORDER.map((inputType) => {
@@ -422,9 +422,9 @@ export const TestInputPage: React.FC<TestInputPageProps> = ({ selectedProjectId,
                   setSelectedType(inputType);
                   setPage(1);
                 }}
-                className={`rounded-[2rem] border p-5 text-left shadow-sm transition ${selectedType === inputType ? 'border-slate-900 bg-slate-900 text-white' : 'border-white/70 bg-white/90 text-slate-900 hover:border-slate-200'}`}
+ className={`rounded-[2rem] border p-5 text-left transition ${selectedType === inputType ? 'border-slate-900 bg-slate-900 text-white' : 'border-slate-200 bg-slate-50 text-slate-900 hover:border-slate-200'}`}
               >
-                <div className={`inline-flex items-center gap-2 rounded-full border px-3 py-1 text-[11px] font-black uppercase tracking-[0.2em] ${selectedType === inputType ? 'border-white/20 bg-white/10 text-white' : meta.tone}`}>
+ <div className={`inline-flex items-center gap-2 rounded-full border px-3 py-1 text-[11px] font-black uppercase tracking-[0.2em] ${selectedType === inputType ? 'border-slate-200 bg-slate-100 text-white' : meta.tone}`}>
                   {meta.icon}
                   {meta.label}
                 </div>
@@ -440,7 +440,7 @@ export const TestInputPage: React.FC<TestInputPageProps> = ({ selectedProjectId,
           })}
         </section>
 
-        <section className="flex min-h-[calc(100vh-22rem)] flex-1 flex-col rounded-[2rem] border border-white/70 bg-white/92 p-5 shadow-[0_20px_50px_rgba(15,23,42,0.06)]">
+ <section className="flex min-h-[calc(100vh-22rem)] flex-1 flex-col rounded-[2rem] border border-slate-200 bg-slate-50 p-5">
           <div className="flex flex-col gap-4 border-b border-slate-100 pb-5">
             <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
               <div>
@@ -452,14 +452,14 @@ export const TestInputPage: React.FC<TestInputPageProps> = ({ selectedProjectId,
                   onClick={() => {
                     void Promise.all([loadOverview(), loadRecords()]);
                   }}
-                  className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-black text-slate-600 shadow-sm transition hover:border-slate-300 hover:text-slate-900"
+ className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-black text-slate-600 transition hover:border-slate-300 hover:text-slate-900"
                 >
                   <RefreshCw size={16} className={(loading || overviewLoading) ? 'animate-spin' : ''} />
                   刷新
                 </button>
                 <button
                   onClick={() => openCreateModal(selectedType === 'all' ? 'document' : selectedType)}
-                  className="inline-flex items-center gap-2 rounded-2xl bg-slate-950 px-4 py-3 text-sm font-black text-white shadow-[0_12px_30px_rgba(15,23,42,0.18)] transition hover:bg-slate-800"
+ className="inline-flex items-center gap-2 rounded-2xl bg-slate-950 px-4 py-3 text-sm font-black text-white transition hover:bg-slate-800"
                 >
                   <Plus size={16} />
                   新建上传
@@ -514,7 +514,7 @@ export const TestInputPage: React.FC<TestInputPageProps> = ({ selectedProjectId,
             </div>
           ) : null}
 
-          <div className="mt-5 flex-1 overflow-hidden rounded-[1.5rem] border border-slate-200 bg-white">
+          <div className="mt-5 flex-1 overflow-hidden rounded-[1.5rem] border border-slate-200 bg-slate-50">
             <div className="h-full overflow-auto">
               <table className="min-w-full divide-y divide-slate-200">
                 <thead className="bg-slate-50 text-left text-[11px] font-black uppercase tracking-[0.18em] text-slate-500">
@@ -527,7 +527,7 @@ export const TestInputPage: React.FC<TestInputPageProps> = ({ selectedProjectId,
                     <th className="px-4 py-4 text-right">操作</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100 bg-white text-sm">
+                <tbody className="divide-y divide-slate-100 bg-slate-50 text-sm">
                   {loading ? (
                     <tr><td colSpan={6} className="px-6 py-20 text-center"><Loader2 className="mx-auto animate-spin text-slate-400" size={32} /></td></tr>
                   ) : filteredRecords.length === 0 ? (
@@ -541,7 +541,7 @@ export const TestInputPage: React.FC<TestInputPageProps> = ({ selectedProjectId,
                     const batches = detail?.batches || [];
                     return (
                       <React.Fragment key={record.upload_id}>
-                        <tr className="cursor-pointer align-top hover:bg-slate-50/80" onClick={() => { void openUploadDetailDialog(record); }}>
+                        <tr className="cursor-pointer align-top hover:bg-slate-100/80" onClick={() => { void openUploadDetailDialog(record); }}>
                           <td className="px-4 py-4">
                             <span className={`inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-black ${INPUT_TYPE_META[inputType].tone}`}>
                               {INPUT_TYPE_META[inputType].icon}
@@ -606,11 +606,11 @@ export const TestInputPage: React.FC<TestInputPageProps> = ({ selectedProjectId,
                         {isExpanded ? (
                           <tr className="bg-slate-50/70">
                             <td colSpan={6} className="px-6 py-5">
-                              <div className="rounded-[1.5rem] border border-slate-200 bg-white p-5">
+                              <div className="rounded-[1.5rem] border border-slate-200 bg-slate-50 p-5">
                                 <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
                                   <div>
                                     <div className="text-sm font-black text-slate-900">批次历史</div>
-                                    <div className="mt-1 text-xs text-slate-500">{record.upload_id} · {batches.length > 0 ? `${batches.length} 个批次` : '暂无批次明细'}</div>
+                                    <div className="mt-1 text-xs text-slate-500">{record.upload_id} · {batches.length > 0 ?`${batches.length} 个批次` : '暂无批次明细'}</div>
                                   </div>
                                   <div className="flex flex-wrap gap-2 text-xs font-semibold text-slate-500">
                                     <span className="rounded-full bg-slate-100 px-3 py-1">模式：{getUploadModeLabel(record.keep_original)}</span>
@@ -639,15 +639,15 @@ export const TestInputPage: React.FC<TestInputPageProps> = ({ selectedProjectId,
                                             <div className="flex flex-wrap items-center gap-2">
                                               <span className="text-sm font-black text-slate-900">批次 #{index + 1}</span>
                                               <StatusBadge status={batch.status} />
-                                              <span className="rounded-full bg-white px-3 py-1 text-[11px] font-black uppercase tracking-[0.18em] text-slate-500">{batch.mode}</span>
+                                              <span className="rounded-full bg-slate-50 px-3 py-1 text-[11px] font-black uppercase tracking-[0.18em] text-slate-500">{batch.mode}</span>
                                             </div>
                                             <div className="mt-2 text-xs text-slate-500">batch_id: <span className="font-mono text-slate-700">{batch.batch_id}</span></div>
                                           </div>
                                           <div className="flex flex-wrap gap-2 text-xs font-semibold text-slate-500">
-                                            <span className="rounded-full bg-white px-3 py-1">提交 {batch.submitted_file_count} 个</span>
-                                            <span className="rounded-full bg-white px-3 py-1">处理 {batch.processed_file_count} 个</span>
-                                            <span className="rounded-full bg-white px-3 py-1">{formatUploadBytes(batch.processed_size_bytes)}</span>
-                                            <span className="rounded-full bg-white px-3 py-1">保留原包：{batch.keep_original ? '是' : '否'}</span>
+                                            <span className="rounded-full bg-slate-50 px-3 py-1">提交 {batch.submitted_file_count} 个</span>
+                                            <span className="rounded-full bg-slate-50 px-3 py-1">处理 {batch.processed_file_count} 个</span>
+                                            <span className="rounded-full bg-slate-50 px-3 py-1">{formatUploadBytes(batch.processed_size_bytes)}</span>
+                                            <span className="rounded-full bg-slate-50 px-3 py-1">保留原包：{batch.keep_original ? '是' : '否'}</span>
                                           </div>
                                         </div>
 
@@ -713,7 +713,7 @@ export const TestInputPage: React.FC<TestInputPageProps> = ({ selectedProjectId,
         const latestBatch = detail?.latest_batch || record.latest_batch || null;
         return (
           <div className="fixed inset-0 z-[125] flex items-center justify-center bg-slate-950/60 p-6 backdrop-blur-sm">
-            <div className="flex max-h-[90vh] w-full max-w-5xl flex-col overflow-hidden rounded-[2rem] bg-white shadow-[0_30px_100px_rgba(15,23,42,0.22)]">
+ <div className="flex max-h-[90vh] w-full max-w-5xl flex-col overflow-hidden rounded-[2rem] bg-slate-50">
               <div className="flex items-start justify-between gap-4 border-b border-slate-100 px-6 py-5">
                 <div>
                   <div className="text-sm font-black uppercase tracking-[0.18em] text-slate-500">上传记录详情</div>
@@ -728,7 +728,7 @@ export const TestInputPage: React.FC<TestInputPageProps> = ({ selectedProjectId,
                 <button
                   type="button"
                   onClick={() => setDetailDialogTarget(null)}
-                  className="inline-flex h-10 w-10 items-center justify-center rounded-2xl border border-slate-200 text-slate-500 hover:bg-slate-50"
+                  className="inline-flex h-10 w-10 items-center justify-center rounded-2xl border border-slate-200 text-slate-500 hover:bg-slate-100"
                 >
                   <X size={18} />
                 </button>
@@ -774,7 +774,7 @@ export const TestInputPage: React.FC<TestInputPageProps> = ({ selectedProjectId,
                     </div>
                   </section>
 
-                  <section className="rounded-[1.5rem] border border-slate-200 bg-white p-5">
+                  <section className="rounded-[1.5rem] border border-slate-200 bg-slate-50 p-5">
                     <div className="text-sm font-black text-slate-900">批次历史</div>
                     {isDetailLoading ? (
                       <div className="mt-5 rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-4 py-8 text-center text-sm text-slate-500">
@@ -796,7 +796,7 @@ export const TestInputPage: React.FC<TestInputPageProps> = ({ selectedProjectId,
                             <div className="flex flex-wrap items-center gap-2">
                               <span className="text-sm font-black text-slate-900">批次 #{index + 1}</span>
                               <StatusBadge status={batch.status} />
-                              <span className="rounded-full bg-white px-3 py-1 text-[11px] font-black uppercase tracking-[0.18em] text-slate-500">{batch.mode}</span>
+                              <span className="rounded-full bg-slate-50 px-3 py-1 text-[11px] font-black uppercase tracking-[0.18em] text-slate-500">{batch.mode}</span>
                             </div>
                             <div className="mt-2 text-xs text-slate-500">batch_id: <span className="font-mono text-slate-700">{batch.batch_id}</span></div>
                             <div className="mt-4 grid gap-3 md:grid-cols-2">
@@ -849,7 +849,7 @@ export const TestInputPage: React.FC<TestInputPageProps> = ({ selectedProjectId,
           <form onSubmit={(event) => {
             event.preventDefault();
             void submitUpload();
-          }} className="w-full max-w-2xl overflow-hidden rounded-[2rem] bg-white shadow-[0_30px_100px_rgba(15,23,42,0.2)]">
+ }} className="w-full max-w-2xl overflow-hidden rounded-[2rem] bg-slate-50">
             <div className="border-b border-slate-100 px-6 py-5">
               <div className="text-sm font-black uppercase tracking-[0.2em] text-slate-500">{isAppendMode ? '追加上传' : '新建上传'}</div>
               <div className="mt-2 text-2xl font-black text-slate-900">{INPUT_TYPE_META[activeInputType].label}任务输入</div>
@@ -895,14 +895,14 @@ export const TestInputPage: React.FC<TestInputPageProps> = ({ selectedProjectId,
               </label>
 
               <div className="rounded-[1.25rem] border border-dashed border-slate-300 bg-slate-50 px-4 py-5 text-center">
-                <div className="mx-auto flex h-11 w-11 items-center justify-center rounded-2xl bg-white text-slate-700 shadow-sm">
+ <div className="mx-auto flex h-11 w-11 items-center justify-center rounded-2xl bg-slate-50 text-slate-700">
                   <Upload size={22} />
                 </div>
                 <div className="mt-3 text-sm font-black text-slate-900">{keepOriginal ? '上传原始文件' : '上传压缩包'}</div>
                 <div className="mt-1 text-xs leading-5 text-slate-500">
                   {keepOriginal
                     ? '当前保留原始文件模式下，支持上传任意文件，一次可选择多个文件。'
-                    : '支持 `zip / tar / tar.gz / tgz / tar.bz2 / tbz2 / tar.xz / txz`，一次可选择多个文件。'}
+                    : '支持`zip / tar / tar.gz / tgz / tar.bz2 / tbz2 / tar.xz / txz`，一次可选择多个文件。'}
                 </div>
                 <div className="mt-3">
                   <button
@@ -965,14 +965,14 @@ export const TestInputPage: React.FC<TestInputPageProps> = ({ selectedProjectId,
 
       {deleteTarget ? (
         <div className="fixed inset-0 z-[130] flex items-center justify-center bg-slate-950/60 p-6 backdrop-blur-sm">
-          <div className="w-full max-w-md rounded-[2rem] bg-white p-6 shadow-[0_30px_100px_rgba(15,23,42,0.22)]">
+ <div className="w-full max-w-md rounded-[2rem] bg-slate-50 p-6">
             <div className="flex items-start gap-4">
               <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-rose-50 text-rose-600">
                 <AlertCircle size={22} />
               </div>
               <div>
                 <div className="text-xl font-black text-slate-900">删除上传记录</div>
-                <div className="mt-2 text-sm leading-6 text-slate-500">将删除记录 `{deleteTarget.upload_id}` 以及 `{deleteTarget.target_path}` 下的内容，此操作不可恢复。</div>
+                <div className="mt-2 text-sm leading-6 text-slate-500">将删除记录`{deleteTarget.upload_id}` 以及`{deleteTarget.target_path}` 下的内容，此操作不可恢复。</div>
               </div>
             </div>
             <div className="mt-6 flex justify-end gap-3">

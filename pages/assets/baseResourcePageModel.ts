@@ -12,7 +12,7 @@ export const formatUploadBytes = (value?: number | null) => {
     next /= 1024;
     unitIndex += 1;
   }
-  return `${next.toFixed(next >= 10 || unitIndex === 0 ? 0 : 1)} ${units[unitIndex]}`;
+  return`${next.toFixed(next >= 10 || unitIndex === 0 ? 0 : 1)} ${units[unitIndex]}`;
 };
 
 export const isAllowedArchiveFileName = (name: string) => {
@@ -26,7 +26,7 @@ export const getLatestBatchSummary = (record: ProjectInputUploadRecord) => {
   const batch = record.latest_batch;
   if (!batch) return '暂无批次信息';
   const modeLabel = batch.mode === 'append' ? '追加上传' : '首次上传';
-  return `${modeLabel} · ${batch.submitted_file_count} 个压缩包`;
+  return`${modeLabel} · ${batch.submitted_file_count} 个压缩包`;
 };
 
 export const getUploadRecordDisplayName = (record: Pick<ProjectInputUploadRecord, 'display_name' | 'upload_id' | 'target_path'>) => {
@@ -42,7 +42,7 @@ export const filterUploadRecords = (records: ProjectInputUploadRecord[], searchT
   const keyword = searchTerm.trim().toLowerCase();
   if (!keyword) return records;
   return records.filter((record) => {
-    const latestError = `${record.last_error || ''} ${record.latest_batch?.error_summary || ''}`.toLowerCase();
+    const latestError =`${record.last_error || ''} ${record.latest_batch?.error_summary || ''}`.toLowerCase();
     return (
       getUploadRecordDisplayName(record).toLowerCase().includes(keyword) ||
       record.upload_id.toLowerCase().includes(keyword) ||

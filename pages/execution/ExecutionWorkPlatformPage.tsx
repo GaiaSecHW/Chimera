@@ -22,7 +22,7 @@ const LK = {
 
 export const ExecutionWorkPlatformPage: React.FC<ExecutionWorkPlatformPageProps> = ({ projectId }) => {
   const token = localStorage.getItem('chimera_token') || '';
-  const targetUrl = `https://chimera.ai.icsl.huawei.com/gaiasec/?project_id=${encodeURIComponent(projectId)}&token=${encodeURIComponent(token)}`;
+  const targetUrl =`https://chimera.ai.icsl.huawei.com/gaiasec/?project_id=${encodeURIComponent(projectId)}&token=${encodeURIComponent(token)}`;
 
   return (
     <div className="h-full w-full flex flex-col animate-in fade-in duration-500 overflow-hidden relative"

@@ -117,8 +117,8 @@ export const buildDataflowVulnOverviewViewModel = (rows: MetricRowLike[], deps: 
     insightCards: [
       {
         label: '结果通过率',
-        value: resultCount && resultCount > 0 && passedCount != null ? `${formatNumber((passedCount / resultCount) * 100, 1)}%` : '-',
-        hint: `passed ${formatNumber(passedCount)} / results ${formatNumber(resultCount)}`,
+        value: resultCount && resultCount > 0 && passedCount != null ?`${formatNumber((passedCount / resultCount) * 100, 1)}%` : '-',
+        hint:`passed ${formatNumber(passedCount)} / results ${formatNumber(resultCount)}`,
         tone: resultCount && passedCount != null && resultCount > 0 && passedCount / resultCount < 0.7 ? 'text-amber-700' : 'text-emerald-700',
       },
       {
@@ -130,7 +130,7 @@ export const buildDataflowVulnOverviewViewModel = (rows: MetricRowLike[], deps: 
       {
         label: '平均每结果周期',
         value: resultCount && resultCount > 0 && cyclesUsed != null ? formatNumber(cyclesUsed / resultCount, 2) : '-',
-        hint: `cycles_used ${formatNumber(cyclesUsed)} / result_count ${formatNumber(resultCount)}`,
+        hint:`cycles_used ${formatNumber(cyclesUsed)} / result_count ${formatNumber(resultCount)}`,
         tone: resultCount && cyclesUsed != null && resultCount > 0 && cyclesUsed / resultCount > 2 ? 'text-amber-700' : 'text-slate-900',
       },
       {
@@ -141,13 +141,13 @@ export const buildDataflowVulnOverviewViewModel = (rows: MetricRowLike[], deps: 
       },
       {
         label: 'AI 重试/失败',
-        value: `${formatNumber(aiRetries)} / ${formatNumber(aiFailures)}`,
+        value:`${formatNumber(aiRetries)} / ${formatNumber(aiFailures)}`,
         hint: 'ai_retry_total / ai_failure_total',
         tone: (aiFailures || 0) > 0 ? 'text-rose-700' : (aiRetries || 0) > 0 ? 'text-amber-700' : 'text-emerald-700',
       },
       {
         label: 'Trace 超时/截断',
-        value: `${formatNumber(runtimeTimeouts)} / ${formatNumber(runtimeTruncations)}`,
+        value:`${formatNumber(runtimeTimeouts)} / ${formatNumber(runtimeTruncations)}`,
         hint: 'runtime timeout_failures / stdout_truncated',
         tone: (runtimeTimeouts || 0) > 0 || (runtimeTruncations || 0) > 0 ? 'text-amber-700' : 'text-emerald-700',
       },
@@ -201,13 +201,13 @@ export const buildDataflowVulnAiViewModel = (rows: MetricRowLike[], deps: Builde
       { label: 'AI 会话数', value: formatNumber(sessionTotal), hint: 'ai_session_total{role=agent}', tone: (sessionTotal || 0) > 0 ? 'text-sky-700' : 'text-slate-900' },
       { label: '总 Token', value: formatNumber(totalTokens), hint: 'ai_token_usage_total{type=total}', tone: (totalTokens || 0) > 0 ? 'text-violet-700' : 'text-slate-900' },
       { label: '累计成本', value: formatMetricValue(costTotal ?? Number.NaN), hint: 'ai_token_cost_total', tone: (costTotal || 0) > 0 ? 'text-violet-700' : 'text-slate-900' },
-      { label: 'AI 重试/失败', value: `${formatNumber(retryTotal)} / ${formatNumber(failureTotal)}`, hint: 'retry / runtime failure', tone: (failureTotal || 0) > 0 ? 'text-rose-700' : (retryTotal || 0) > 0 ? 'text-amber-700' : 'text-emerald-700' },
+      { label: 'AI 重试/失败', value:`${formatNumber(retryTotal)} / ${formatNumber(failureTotal)}`, hint: 'retry / runtime failure', tone: (failureTotal || 0) > 0 ? 'text-rose-700' : (retryTotal || 0) > 0 ? 'text-amber-700' : 'text-emerald-700' },
     ],
     phaseCards: [
       { label: 'Plugin 超时', value: formatNumber(timeoutTotal), hint: 'ai_timeout_total{scope=plugin}', tone: (timeoutTotal || 0) > 0 ? 'text-rose-700' : 'text-emerald-700' },
       { label: 'Runtime 调用', value: formatNumber(runtimeCalls), hint: 'runtime_trace_total calls', tone: (runtimeCalls || 0) > 0 ? 'text-slate-900' : 'text-slate-500' },
       { label: 'Runtime 超时', value: formatNumber(runtimeTimeouts), hint: 'runtime_trace_total timeout_failures', tone: (runtimeTimeouts || 0) > 0 ? 'text-rose-700' : 'text-emerald-700' },
-      { label: 'API / PI 失败', value: `${formatNumber(runtimeApiFailures)} / ${formatNumber(runtimePiFailures)}`, hint: 'runtime api_failures / pi_failures', tone: (runtimeApiFailures || 0) > 0 || (runtimePiFailures || 0) > 0 ? 'text-amber-700' : 'text-emerald-700' },
+      { label: 'API / PI 失败', value:`${formatNumber(runtimeApiFailures)} / ${formatNumber(runtimePiFailures)}`, hint: 'runtime api_failures / pi_failures', tone: (runtimeApiFailures || 0) > 0 || (runtimePiFailures || 0) > 0 ? 'text-amber-700' : 'text-emerald-700' },
       { label: 'Runtime 总耗时', value: formatSeconds(runtimeDuration), hint: 'runtime_trace_total duration_seconds', tone: (runtimeDuration || 0) > 3600 ? 'text-amber-700' : 'text-slate-900' },
       { label: 'Partial Review', value: formatNumber(reviewPartial), hint: 'ai_review_total{result=partial}', tone: (reviewPartial || 0) > 0 ? 'text-fuchsia-700' : 'text-slate-900' },
     ],
@@ -223,7 +223,7 @@ export const buildDataflowVulnAiViewModel = (rows: MetricRowLike[], deps: Builde
     ].filter((item) => item.value > 0),
     reviewCards: pluginResults.length
       ? pluginResults.map((row) => ({
-          label: `${row.labels.plugin || 'plugin'} / ${row.labels.result || 'unknown'}`,
+          label:`${row.labels.plugin || 'plugin'} / ${row.labels.result || 'unknown'}`,
           value: formatNumber(row.value),
           hint: 'plugin_results_total',
           tone: row.labels.result === 'success' ? 'text-emerald-700' : row.labels.result === 'partial' ? 'text-amber-700' : 'text-rose-700',

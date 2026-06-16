@@ -15,8 +15,8 @@ interface StaticPackagesPageProps {
   setSelectedIds: (ids: Set<string>) => void;
 }
 
-export const StaticPackagesPage: React.FC<StaticPackagesPageProps> = ({ 
-  staticPackages, packageStats, fetchStaticPackages, setActivePackageId, setCurrentView, selectedIds, setSelectedIds 
+export const StaticPackagesPage: React.FC<StaticPackagesPageProps> = ({
+  staticPackages, packageStats, fetchStaticPackages, setActivePackageId, setCurrentView, selectedIds, setSelectedIds
 }) => {
   const assetApi = api.domains.assets;
   const [localSearch, setLocalSearch] = useState('');
@@ -25,8 +25,8 @@ export const StaticPackagesPage: React.FC<StaticPackagesPageProps> = ({
   const [isValidating, setIsValidating] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [showConfirm, setShowConfirm] = useState<{show: boolean, ids: string[]}>({ show: false, ids: [] });
-  
-  const filteredPackages = staticPackages.filter(p => 
+
+  const filteredPackages = staticPackages.filter(p =>
     p.name.toLowerCase().includes(localSearch.toLowerCase()) &&
     (filterArch === '' || p.architecture === filterArch)
   );
@@ -47,12 +47,12 @@ export const StaticPackagesPage: React.FC<StaticPackagesPageProps> = ({
     setIsValidating(true);
     try {
       const ids = Array.from(selectedIds);
-      // Fix: Explicitly cast id to string to avoid "unknown" type error in map
+      // Fix: Explicitly cast id to string to avoid"unknown" type error in map
       await Promise.all(ids.map((id: string) => assetApi.staticPackages.check(id)));
       alert(`已完成 ${ids.length} 个软件包的完整性校验`);
       fetchStaticPackages();
     } catch (err) {
-      alert("部分校验任务失败: " + (err instanceof Error ? err.message : "未知错误"));
+      alert("部分校验任务失败:" + (err instanceof Error ? err.message :"未知错误"));
     } finally {
       setIsValidating(false);
     }
@@ -74,7 +74,7 @@ export const StaticPackagesPage: React.FC<StaticPackagesPageProps> = ({
       setSelectedIds(new Set());
       fetchStaticPackages();
     } catch (err) {
-      alert("删除失败: " + (err instanceof Error ? err.message : "未知错误"));
+      alert("删除失败:" + (err instanceof Error ? err.message :"未知错误"));
     } finally {
       setIsDeleting(false);
       setShowConfirm({ show: false, ids: [] });
@@ -93,7 +93,7 @@ export const StaticPackagesPage: React.FC<StaticPackagesPageProps> = ({
              <button
                onClick={handleRefresh}
                disabled={isRefreshing}
-               className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-bold text-slate-700 hover:bg-slate-50 disabled:opacity-60"
+               className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-bold text-slate-700 hover:bg-slate-100 disabled:opacity-60"
                title="手动刷新列表"
              >
                <RefreshCw size={16} className={isRefreshing ? 'animate-spin' : ''} />
@@ -101,7 +101,7 @@ export const StaticPackagesPage: React.FC<StaticPackagesPageProps> = ({
              </button>
              <button
                onClick={() => assetApi.staticPackages.checkAll().then(fetchStaticPackages)}
-               className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-bold text-slate-700 hover:bg-slate-50"
+               className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-bold text-slate-700 hover:bg-slate-100"
              >
                <CheckCircle2 size={16} /> 全量校验
              </button>
@@ -113,26 +113,26 @@ export const StaticPackagesPage: React.FC<StaticPackagesPageProps> = ({
 
         {/* Stats Section */}
         <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4 2xl:grid-cols-8">
-          <article className="rounded-xl border bg-gradient-to-br p-4 shadow-sm from-slate-50 via-white to-slate-100/70 border-slate-200/70">
+ <article className="rounded-xl border bg-gradient-to-br p-4 from-slate-50 via-slate-50 to-slate-100/70 border-slate-200/70">
             <div className="truncate text-center text-xs font-bold text-slate-500">存储总量</div>
             <div className="mt-1.5 truncate text-center text-sm font-semibold tabular-nums text-slate-900">{packageStats?.summary.total_size_human || '0.00 GB'}</div>
           </article>
-          <article className="rounded-xl border bg-gradient-to-br p-4 shadow-sm from-slate-50 via-white to-slate-100/70 border-slate-200/70">
+ <article className="rounded-xl border bg-gradient-to-br p-4 from-slate-50 via-slate-50 to-slate-100/70 border-slate-200/70">
             <div className="truncate text-center text-xs font-bold text-slate-500">组件总数</div>
             <div className="mt-1.5 truncate text-center text-sm font-semibold tabular-nums text-slate-900">{packageStats?.summary.total_packages ?? 0}</div>
           </article>
-          <article className="rounded-xl border bg-gradient-to-br p-4 shadow-sm from-sky-50 via-white to-sky-100/70 border-sky-200/70">
+ <article className="rounded-xl border bg-gradient-to-br p-4 from-sky-50 via-slate-50 to-sky-100/70 border-sky-200/70">
             <div className="truncate text-center text-xs font-bold text-slate-500">累计下载</div>
             <div className="mt-1.5 truncate text-center text-sm font-semibold tabular-nums text-slate-900">{packageStats?.summary.total_downloads.toLocaleString() || 0}</div>
           </article>
-          <article className="rounded-xl border bg-gradient-to-br p-4 shadow-sm from-slate-50 via-white to-slate-100/70 border-slate-200/70">
+ <article className="rounded-xl border bg-gradient-to-br p-4 from-slate-50 via-slate-50 to-slate-100/70 border-slate-200/70">
             <div className="truncate text-center text-xs font-bold text-slate-500">架构种类数</div>
             <div className="mt-1.5 truncate text-center text-sm font-semibold tabular-nums text-slate-900">{packageStats?.by_architecture.length ?? 0}</div>
           </article>
         </section>
 
         {/* Filter Bar */}
-        <div className="flex flex-col md:flex-row gap-3 items-center justify-between rounded-2xl border border-slate-200 bg-white p-3 shadow-sm">
+ <div className="flex flex-col md:flex-row gap-3 items-center justify-between rounded-2xl border border-slate-200 bg-slate-50 p-3">
           <div className="flex-1 w-full relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
             <input
@@ -169,7 +169,7 @@ export const StaticPackagesPage: React.FC<StaticPackagesPageProps> = ({
 
         {/* Architecture chips panel */}
         {packageStats && packageStats.by_architecture.length > 0 && (
-          <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+ <section className="overflow-hidden rounded-2xl border border-slate-200 bg-slate-50">
             <div className="border-b border-slate-200 bg-slate-50/70 px-4 py-4 md:px-5">
               <h2 className="text-lg font-black text-slate-900">架构分布</h2>
             </div>
@@ -184,12 +184,12 @@ export const StaticPackagesPage: React.FC<StaticPackagesPageProps> = ({
           </section>
         )}
 
-        <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+ <section className="overflow-hidden rounded-2xl border border-slate-200 bg-slate-50">
           <div className="border-b border-slate-200 bg-slate-50/70 px-4 py-4 md:px-5">
             <h2 className="text-lg font-black text-slate-900">软件包列表</h2>
           </div>
            <table className="w-full text-left">
-              <thead className="bg-slate-50/50 border-b border-slate-100">
+              <thead className="bg-slate-100/50 border-b border-slate-100">
                 <tr className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
                   <th className="px-6 py-5 w-10">
                     <button onClick={() => setSelectedIds(isAllSelected ? new Set() : new Set(filteredPackages.map(p => p.id)))} className="p-2 hover:bg-slate-200 rounded-lg transition-colors">
@@ -217,7 +217,7 @@ export const StaticPackagesPage: React.FC<StaticPackagesPageProps> = ({
                        </td>
                        <td className="px-4 py-6">
                          <div className="flex items-center gap-4">
-                           <div className="w-12 h-12 bg-white border border-slate-200 text-blue-600 rounded-xl flex items-center justify-center font-black shadow-sm group-hover:bg-blue-600 group-hover:text-white transition-all">
+ <div className="w-12 h-12 bg-slate-50 border border-slate-200 text-blue-600 rounded-xl flex items-center justify-center font-black group-hover:bg-blue-600 group-hover:text-white transition-all">
                              {pkg.name[0].toUpperCase()}
                            </div>
                            <div className="min-w-0">
@@ -268,7 +268,7 @@ export const StaticPackagesPage: React.FC<StaticPackagesPageProps> = ({
         {/* Delete Confirmation Modal */}
         {showConfirm.show && (
           <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-slate-900/60 backdrop-blur-md animate-in fade-in duration-300">
-            <div className="bg-white w-full max-w-md rounded-2xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300">
+ <div className="bg-slate-50 w-full max-w-md rounded-2xl overflow-hidden animate-in zoom-in-95 duration-300">
               <div className="p-8 text-center">
                 <div className="w-16 h-16 bg-red-50 text-red-600 rounded-2xl flex items-center justify-center mx-auto mb-6">
                   <AlertTriangle size={40} />
@@ -283,7 +283,7 @@ export const StaticPackagesPage: React.FC<StaticPackagesPageProps> = ({
                 <button
                   onClick={() => setShowConfirm({ show: false, ids: [] })}
                   disabled={isDeleting}
-                  className="flex-1 py-2.5 rounded-xl border border-slate-200 bg-white text-sm font-bold text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+                  className="flex-1 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-sm font-bold text-slate-700 hover:bg-slate-100 disabled:opacity-50"
                 >
                   取消
                 </button>

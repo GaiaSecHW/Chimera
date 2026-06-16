@@ -44,8 +44,8 @@ export const SlotResourceBlock: React.FC<SlotResourceBlockProps> = ({
   return (
     <div className={`rounded-xl border px-3 py-2 text-[11px] ${className}`}
       style={{ backgroundColor: 'rgba(17, 26, 43, 0.6)', borderColor: LK.borderSoft, color: LK.body }}>
-      <div>CPU：{cpuLine}{cpuRatio !== '-' ? ` · ${cpuRatio}` : ''}</div>
-      <div className="mt-1">内存：{memoryLine}{memoryRatio !== '-' ? ` · ${memoryRatio}` : ''}</div>
+      <div>CPU：{cpuLine}{cpuRatio !== '-' ?` · ${cpuRatio}` : ''}</div>
+      <div className="mt-1">内存：{memoryLine}{memoryRatio !== '-' ?` · ${memoryRatio}` : ''}</div>
       {(cpuRequest != null || memoryRequest != null) ? (
         <div className="mt-1" style={{ color: LK.muted }}>
           Request：CPU {formatResourceCpu(cpuRequest)} · 内存 {formatResourceBytes(memoryRequest)}

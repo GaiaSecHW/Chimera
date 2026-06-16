@@ -1,14 +1,14 @@
 
 import React, { useState } from 'react';
-import { 
-  Workflow, 
-  Plus, 
-  Play, 
-  Settings, 
-  History, 
-  ShieldCheck, 
-  Activity, 
-  ChevronRight, 
+import {
+  Workflow,
+  Plus,
+  Play,
+  Settings,
+  History,
+  ShieldCheck,
+  Activity,
+  ChevronRight,
   Search,
   Filter,
   Zap,
@@ -25,32 +25,32 @@ export const WorkflowPage: React.FC<{ projectId: string }> = ({ projectId }) => 
   const [searchTerm, setSearchTerm] = useState('');
 
   const workflows = [
-    { 
-      id: 'WF-001', 
-      name: 'Web 业务系统全量扫描', 
+    {
+      id: 'WF-001',
+      name: 'Web 业务系统全量扫描',
       description: '执行包含指纹识别、漏洞探测与敏感目录枚举的标准化 Web 审计流。',
-      status: 'Running', 
-      lastRun: '2024-05-10 14:20', 
+      status: 'Running',
+      lastRun: '2024-05-10 14:20',
       progress: 65,
       type: 'Automation',
       steps: ['Assets', 'Identify', 'Exploit', 'Report']
     },
-    { 
-      id: 'WF-002', 
-      name: '容器镜像合规性审计', 
+    {
+      id: 'WF-002',
+      name: '容器镜像合规性审计',
       description: '对 K8S Namespace 下所有活跃 Pod 镜像执行基线漏洞与配置合规性检查。',
-      status: 'Completed', 
-      lastRun: '2024-05-08 09:15', 
+      status: 'Completed',
+      lastRun: '2024-05-08 09:15',
       progress: 100,
       type: 'Compliance',
       steps: ['Discovery', 'Pull', 'Scan', 'Verify']
     },
-    { 
-      id: 'WF-003', 
-      name: '移动端 API 深度威胁分析', 
+    {
+      id: 'WF-003',
+      name: '移动端 API 深度威胁分析',
       description: '模拟移动端交互流，对后端接口执行参数级模糊测试与逻辑越权探测。',
-      status: 'Pending', 
-      lastRun: '2024-05-12 11:00', 
+      status: 'Pending',
+      lastRun: '2024-05-12 11:00',
       progress: 0,
       type: 'Dynamic',
       steps: ['Proxy', 'Traffic', 'Fuzz', 'Report']
@@ -62,7 +62,7 @@ export const WorkflowPage: React.FC<{ projectId: string }> = ({ projectId }) => 
       <div className="flex justify-between items-end">
         <div className="space-y-1">
           <div className="flex items-center gap-3">
-             <div className="p-3 bg-blue-600 text-white rounded-[1.25rem] shadow-xl shadow-blue-500/20">
+ <div className="p-3 bg-blue-600 text-white rounded-[1.25rem]">
                <Workflow size={28} />
              </div>
              <div>
@@ -77,7 +77,7 @@ export const WorkflowPage: React.FC<{ projectId: string }> = ({ projectId }) => 
               <AlertCircle size={14} /> Please select a project
             </div>
           )}
-          <button className="bg-slate-900 text-white px-8 py-4 rounded-2xl font-black flex items-center gap-2 shadow-xl shadow-slate-900/10 hover:bg-slate-800 transition-all active:scale-95">
+ <button className="bg-slate-900 text-white px-8 py-4 rounded-2xl font-black flex items-center gap-2 hover:bg-slate-800 transition-all active:scale-95">
             <Plus size={18} /> 设计新工作流
           </button>
         </div>
@@ -85,7 +85,7 @@ export const WorkflowPage: React.FC<{ projectId: string }> = ({ projectId }) => 
 
       {/* Analytics Summary */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <div className="bg-slate-900 p-8 rounded-[3rem] text-white flex flex-col justify-between group overflow-hidden relative shadow-2xl min-h-[180px]">
+ <div className="bg-slate-900 p-8 rounded-[3rem] text-white flex flex-col justify-between group overflow-hidden relative min-h-[180px]">
            <Zap className="absolute right-[-10px] top-[-10px] w-32 h-32 opacity-10 rotate-12 group-hover:rotate-0 transition-transform duration-700" />
            <p className="text-slate-500 text-[10px] font-black uppercase tracking-widest relative z-10">当前活跃实例</p>
            <h3 className="text-6xl font-black mt-4 relative z-10">4</h3>
@@ -93,14 +93,14 @@ export const WorkflowPage: React.FC<{ projectId: string }> = ({ projectId }) => 
              <Activity size={12} className="animate-pulse" /> Nodes Executing
            </div>
         </div>
-        
-        <div className="bg-white p-8 rounded-[3rem] border border-slate-200 shadow-sm flex flex-col justify-between">
+
+ <div className="bg-slate-50 p-8 rounded-[3rem] border border-slate-200 flex flex-col justify-between">
            <p className="text-slate-400 text-[10px] font-black uppercase tracking-widest">任务平均耗时</p>
            <h3 className="text-4xl font-black mt-4 text-slate-800">12m 45s</h3>
            <p className="text-slate-400 text-[10px] font-bold mt-2 uppercase">System Efficiency: 94%</p>
         </div>
 
-        <div className="bg-white p-8 rounded-[3rem] border border-slate-200 shadow-sm col-span-2 flex items-center gap-10">
+ <div className="bg-slate-50 p-8 rounded-[3rem] border border-slate-200 col-span-2 flex items-center gap-10">
            <div className="w-20 h-20 bg-blue-50 text-blue-600 rounded-[2rem] flex items-center justify-center shrink-0 shadow-inner">
              <Bot size={40} />
            </div>
@@ -127,19 +127,19 @@ export const WorkflowPage: React.FC<{ projectId: string }> = ({ projectId }) => 
         <div className="flex flex-col md:flex-row gap-4 justify-between items-center px-2">
            <div className="relative flex-1 w-full max-w-md group">
               <Search className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-blue-500 transition-colors" size={20} />
-              <input 
-                type="text" 
-                placeholder="搜索工作流模版或运行实例..." 
-                className="w-full pl-16 pr-8 py-5 bg-white border border-slate-200 rounded-[2rem] text-sm outline-none focus:ring-4 ring-blue-500/5 transition-all font-medium shadow-sm"
+              <input
+                type="text"
+                placeholder="搜索工作流模版或运行实例..."
+ className="w-full pl-16 pr-8 py-5 bg-slate-50 border border-slate-200 rounded-[2rem] text-sm outline-none focus:ring-4 ring-blue-500/5 transition-all font-medium"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
            </div>
            <div className="flex gap-3">
-              <button className="px-6 py-4 bg-white border border-slate-200 rounded-2xl text-[10px] font-black text-slate-500 uppercase tracking-widest hover:bg-slate-50 transition-all flex items-center gap-2">
+              <button className="px-6 py-4 bg-slate-50 border border-slate-200 rounded-2xl text-[10px] font-black text-slate-500 uppercase tracking-widest hover:bg-slate-100 transition-all flex items-center gap-2">
                 <Filter size={14} /> Type
               </button>
-              <button className="px-6 py-4 bg-white border border-slate-200 rounded-2xl text-[10px] font-black text-slate-500 uppercase tracking-widest hover:bg-slate-50 transition-all flex items-center gap-2">
+              <button className="px-6 py-4 bg-slate-50 border border-slate-200 rounded-2xl text-[10px] font-black text-slate-500 uppercase tracking-widest hover:bg-slate-100 transition-all flex items-center gap-2">
                 <History size={14} /> Execution Logs
               </button>
            </div>
@@ -147,12 +147,12 @@ export const WorkflowPage: React.FC<{ projectId: string }> = ({ projectId }) => 
 
         <div className="grid grid-cols-1 gap-6">
            {workflows.filter(wf => wf.name.includes(searchTerm)).map((wf) => (
-             <div key={wf.id} className="bg-white rounded-[2.5rem] border border-slate-200 p-8 flex flex-col md:flex-row items-center gap-10 hover:border-blue-300 hover:shadow-xl hover:shadow-blue-500/5 transition-all group relative overflow-hidden">
+ <div key={wf.id} className="bg-slate-50 rounded-[2.5rem] border border-slate-200 p-8 flex flex-col md:flex-row items-center gap-10 hover:border-blue-300 hover:-blue-500/5 transition-all group relative overflow-hidden">
                 {/* Visual Indicator of Progress */}
                 {wf.status === 'Running' && (
                   <div className="absolute top-0 left-0 h-1 bg-blue-600 animate-pulse" style={{ width: `${wf.progress}%` }} />
                 )}
-                
+
                 <div className={`w-20 h-20 rounded-[2.25rem] flex items-center justify-center shrink-0 shadow-inner transition-all group-hover:scale-105 ${wf.status === 'Running' ? 'bg-blue-50 text-blue-600' : wf.status === 'Completed' ? 'bg-green-50 text-green-600' : 'bg-slate-50 text-slate-400'}`}>
                    <Workflow size={40} />
                 </div>
@@ -163,9 +163,9 @@ export const WorkflowPage: React.FC<{ projectId: string }> = ({ projectId }) => 
                       <StatusBadge status={wf.status} />
                       <span className="text-[10px] font-black bg-slate-100 text-slate-500 px-2.5 py-1 rounded-lg uppercase border border-slate-200">{wf.type}</span>
                    </div>
-                   
+
                    <p className="text-sm text-slate-500 font-medium line-clamp-1 italic max-w-2xl">"{wf.description}"</p>
-                   
+
                    <div className="flex flex-wrap gap-3 items-center">
                       {wf.steps.map((step, idx) => (
                         <React.Fragment key={step}>
@@ -186,13 +186,13 @@ export const WorkflowPage: React.FC<{ projectId: string }> = ({ projectId }) => 
                       <span className="text-[10px] font-black text-slate-400 uppercase tracking-tighter">Last Run: {wf.lastRun}</span>
                    </div>
                    <div className="flex items-center gap-3">
-                      <button className="p-3.5 bg-slate-50 text-slate-400 hover:text-blue-600 border border-slate-100 rounded-2xl transition-all shadow-sm">
+ <button className="p-3.5 bg-slate-50 text-slate-400 hover:text-blue-600 border border-slate-100 rounded-2xl transition-all">
                         <Settings size={18} />
                       </button>
-                      <button className={`px-8 py-3.5 rounded-2xl font-black text-xs flex items-center gap-2 shadow-xl transition-all active:scale-95 ${
-                        wf.status === 'Running' 
-                        ? 'bg-amber-50 text-amber-600 hover:bg-amber-100' 
-                        : 'bg-blue-600 text-white hover:bg-blue-700 shadow-blue-500/20'
+ <button className={`px-8 py-3.5 rounded-2xl font-black text-xs flex items-center gap-2 transition-all active:scale-95 ${
+                        wf.status === 'Running'
+                        ? 'bg-amber-50 text-amber-600 hover:bg-amber-100'
+ : 'bg-blue-600 text-white hover:bg-blue-700 '
                       }`}>
                          {wf.status === 'Running' ? <><Activity size={16} /> MONITORING</> : <><Play size={16} /> EXECUTE FLOW</>}
                       </button>
@@ -207,7 +207,7 @@ export const WorkflowPage: React.FC<{ projectId: string }> = ({ projectId }) => 
 
         {/* Empty State */}
         {workflows.length === 0 && (
-          <div className="bg-white rounded-[3rem] border-2 border-dashed border-slate-100 p-32 text-center flex flex-col items-center gap-6">
+          <div className="bg-slate-50 rounded-[3rem] border-2 border-dashed border-slate-100 p-32 text-center flex flex-col items-center gap-6">
              <div className="w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center text-slate-200">
                 <Workflow size={48} />
              </div>

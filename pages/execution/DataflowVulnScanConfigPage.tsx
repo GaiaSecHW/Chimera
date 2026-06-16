@@ -67,7 +67,7 @@ const defaultConfig = (projectId: string): AppDfaServiceConfig => ({
 // ─── 子组件 ────────────────────────────────────────────────────────────────────
 
 const SectionCard: React.FC<{ title: string; subtitle?: string; actions?: React.ReactNode; children: React.ReactNode }> = ({ title, subtitle, actions, children }) => (
-  <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm space-y-4">
+ <section className="rounded-2xl border border-slate-200 bg-slate-50 p-6 space-y-4">
     <div className="flex items-start justify-between gap-4">
       <div>
         <h2 className="text-base font-black text-slate-900">{title}</h2>
@@ -108,7 +108,7 @@ const ModelSelect: React.FC<{ value: string; options: string[]; onChange: (v: st
   const allOpts = value && !options.includes(value) ? [value, ...options] : options;
   return (
     <select value={value} onChange={(e) => onChange(e.target.value)}
-      className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm bg-white">
+      className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm bg-slate-50">
       <option value="">— 选择模型 —</option>
       {allOpts.map((opt) => <option key={opt} value={opt}>{opt}</option>)}
     </select>
@@ -139,7 +139,7 @@ const AgentInstanceList: React.FC<{
         </div>
       ))}
       <button onClick={add}
-        className="inline-flex items-center gap-1.5 rounded-xl border border-dashed border-slate-300 px-4 py-2 text-sm text-slate-500 hover:bg-slate-50">
+        className="inline-flex items-center gap-1.5 rounded-xl border border-dashed border-slate-300 px-4 py-2 text-sm text-slate-500 hover:bg-slate-100">
         <Plus size={14} /> 添加 Agent 实例
       </button>
     </div>
@@ -227,7 +227,7 @@ const PanelActions: React.FC<{ saving: boolean; onSave: () => void; onReset: () 
       type="button"
       onClick={onReset}
       disabled={saving}
-      className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-50 disabled:opacity-50"
+      className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 disabled:opacity-50"
     >
       重置为默认
     </button>
@@ -264,7 +264,7 @@ export const DataflowVulnScanConfigPage: React.FC<{ projectId: string; embedded?
         const items = Array.isArray(res?.items) ? res.items : [];
         const opts = items
           .filter((p) => p.enabled && p.provider_key && p.model)
-          .map((p) => `${p.provider_key}/${p.model}`);
+          .map((p) =>`${p.provider_key}/${p.model}`);
         setModelOptions(opts);
       })
       .catch(() => { /* 静默忽略 */ });
@@ -353,7 +353,7 @@ export const DataflowVulnScanConfigPage: React.FC<{ projectId: string; embedded?
       {feedbackNodes}
 
       {!embedded ? (
-        <section className="rounded-[2rem] border border-slate-200 bg-white/90 p-6 shadow-sm">
+ <section className="rounded-[2rem] border border-slate-200 bg-slate-50 p-6">
           <p className="text-xs font-black uppercase tracking-[0.3em] text-violet-600">Dataflow Analysis</p>
           <h1 className="mt-3 text-3xl font-black tracking-tight text-slate-900">分析配置</h1>
           <p className="mt-2 text-sm text-slate-500">
@@ -364,7 +364,7 @@ export const DataflowVulnScanConfigPage: React.FC<{ projectId: string; embedded?
           )}
         </section>
       ) : (
-        <section className="rounded-[2rem] border border-slate-200 bg-slate-50/70 p-6 shadow-sm">
+ <section className="rounded-[2rem] border border-slate-200 bg-slate-50/70 p-6">
           <div className="flex items-start justify-between gap-4">
             <div>
               <div className="flex flex-wrap items-center gap-2">
@@ -375,7 +375,7 @@ export const DataflowVulnScanConfigPage: React.FC<{ projectId: string; embedded?
                 </span>
               </div>
               <p className="mt-2 text-sm text-slate-500">
-                当前 Tab 中的全部配置项都归属于 `secflow-app-dataflow-vuln-scan` 微服务，用于控制数据流漏洞挖掘服务的追踪深度、轮次、重试和 Agent 模型行为。
+                当前 Tab 中的全部配置项都归属于`secflow-app-dataflow-vuln-scan` 微服务，用于控制数据流漏洞挖掘服务的追踪深度、轮次、重试和 Agent 模型行为。
               </p>
               {config.updated_at && (
                 <p className="mt-1 text-xs text-slate-400">上次保存：{new Date(config.updated_at).toLocaleString()}</p>
@@ -385,7 +385,7 @@ export const DataflowVulnScanConfigPage: React.FC<{ projectId: string; embedded?
               type="button"
               onClick={() => { void reload(); }}
               disabled={loading || saving}
-              className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-bold text-slate-700 shadow-sm hover:bg-slate-50 disabled:opacity-50"
+ className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm font-bold text-slate-700 hover:bg-slate-100 disabled:opacity-50"
             >
               {loading ? <Loader2 size={14} className="animate-spin" /> : <RefreshCw size={14} />}
               刷新
@@ -395,7 +395,7 @@ export const DataflowVulnScanConfigPage: React.FC<{ projectId: string; embedded?
       )}
 
       {loading ? (
-        <div className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-600">
+        <div className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
           <Loader2 size={15} className="animate-spin" />加载中...
         </div>
       ) : (
@@ -439,7 +439,7 @@ export const DataflowVulnScanConfigPage: React.FC<{ projectId: string; embedded?
                   onChange={(e) => patch({
                     max_rounds_exceeded_review_strategy: e.target.value as AppDfaServiceConfig['max_rounds_exceeded_review_strategy'],
                   })}
-                  className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm bg-white"
+                  className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm bg-slate-50"
                 >
                   <option value="treat_as_passed">默认通过，子任务按通过收敛</option>
                   <option value="treat_as_failed">判定失败，子任务按失败收敛</option>
@@ -472,7 +472,7 @@ export const DataflowVulnScanConfigPage: React.FC<{ projectId: string; embedded?
                   <div className="relative">
                     <input type="checkbox" className="peer sr-only" checked={!!config.deep_trace_enabled} onChange={(e) => patch({ deep_trace_enabled: e.target.checked })} />
                     <div className="h-6 w-11 rounded-full bg-slate-200 peer-checked:bg-violet-600 transition-colors" />
-                    <div className="absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform peer-checked:translate-x-5" />
+                    <div className="absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-slate-50 shadow transition-transform peer-checked:translate-x-5" />
                   </div>
                   <span className="text-sm text-slate-600">{config.deep_trace_enabled ? '深度探索开启' : '深度探索关闭'}</span>
                 </label>
@@ -520,7 +520,7 @@ export const DataflowVulnScanConfigPage: React.FC<{ projectId: string; embedded?
                 <div className="relative">
                   <input type="checkbox" className="peer sr-only" checked={config.agent_timeout_retry_enabled} onChange={(e) => patch({ agent_timeout_retry_enabled: e.target.checked })} />
                   <div className="h-6 w-11 rounded-full bg-slate-200 peer-checked:bg-violet-600 transition-colors" />
-                  <div className="absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform peer-checked:translate-x-5" />
+                  <div className="absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-slate-50 shadow transition-transform peer-checked:translate-x-5" />
                 </div>
                 <span className="text-sm text-slate-600">{config.agent_timeout_retry_enabled ? '开启空闲超时自动重试' : '关闭空闲超时自动重试'}</span>
               </label>

@@ -20,7 +20,7 @@ export const WarningListPanel: React.FC<{
   if (!items.length) return null;
 
   return (
-    <section className={`rounded-xl border px-4 py-4 text-sm shadow-sm ${className}`.trim()}
+ <section className={`rounded-xl border px-4 py-4 text-sm ${className}`.trim()}
       style={{ backgroundColor: LK.surfaceRaised, borderColor: LK.border, color: LK.inkSoft }}>
       <div className="font-semibold">{title}</div>
       <ul className="mt-2 list-disc space-y-1 pl-5 text-xs" style={{ color: LK.body }}>

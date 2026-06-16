@@ -157,7 +157,7 @@ export const CasesWorkspace: React.FC<any> = ({
   onClearBulkSelection,
   bulkActionBar,
 }) => {
-  const panelStorageKey = `chimera-vuln-analysis-panels-${selectedCaseDetail?.project_id || selectedCase?.project_id || 'global'}`;
+  const panelStorageKey =`chimera-vuln-analysis-panels-${selectedCaseDetail?.project_id || selectedCase?.project_id || 'global'}`;
   const [customPanels, setCustomPanels] = React.useState<Array<{ id: string; title: string; content: string }>>([]);
   const [showPanelEditor, setShowPanelEditor] = React.useState(false);
   const [newPanelTitle, setNewPanelTitle] = React.useState('');
@@ -176,9 +176,9 @@ export const CasesWorkspace: React.FC<any> = ({
   const latestProofVerificationAction = [...actionItems].find((item: any) => item.action_type === 'proof_verification');
   const latestVerificationSignal = [...resultItems].find((item: any) => item.result_type === 'validation' || item.result_type === 'timeout' || item.result_type === 'proof_verification');
   const triageChecklist = [
-    { key: 'recommended', label: '已有推荐动作', done: recommendedActions.length > 0, helper: `${recommendedActions.length} 个` },
-    { key: 'results', label: '已有分析/自动化结果', done: resultItems.length > 0, helper: `${resultItems.length} 条` },
-    { key: 'manual_tasks', label: '无待处理人工分析任务', done: openManualAnalysisTasks.length === 0, helper: openManualAnalysisTasks.length > 0 ? `${openManualAnalysisTasks.length} 个待处理` : '已清空' },
+    { key: 'recommended', label: '已有推荐动作', done: recommendedActions.length > 0, helper:`${recommendedActions.length} 个` },
+    { key: 'results', label: '已有分析/自动化结果', done: resultItems.length > 0, helper:`${resultItems.length} 条` },
+    { key: 'manual_tasks', label: '无待处理人工分析任务', done: openManualAnalysisTasks.length === 0, helper: openManualAnalysisTasks.length > 0 ?`${openManualAnalysisTasks.length} 个待处理` : '已清空' },
     { key: 'gate', label: '已人工确认准入', done: selectedCaseDetail?.triage_gate === 'approved_to_validation', helper: labelOf(selectedCaseDetail?.triage_gate, TRIAGE_GATE_LABELS) },
   ];
   const validationPipeline = [
@@ -206,16 +206,16 @@ export const CasesWorkspace: React.FC<any> = ({
   });
   const consistencyAlerts = [
     selectedCaseDetail?.current_stage === 'validation' && selectedCaseDetail?.triage_gate !== 'approved_to_validation'
-      ? `当前案例已进入验证阶段，但研判 Gate 仍为 ${labelOf(selectedCaseDetail?.triage_gate, TRIAGE_GATE_LABELS)}。`
+      ?`当前案例已进入验证阶段，但研判 Gate 仍为 ${labelOf(selectedCaseDetail?.triage_gate, TRIAGE_GATE_LABELS)}。`
       : null,
     selectedCaseDetail?.current_stage === 'validation' && resultItems.length === 0
       ? '当前处于验证阶段，但还没有任何验证回传结果。'
       : null,
     selectedCaseDetail?.current_stage === 'validation' && failedActionItems.length > 0
-      ? `当前验证链路存在 ${failedActionItems.length} 个失败动作，建议先处理失败或重试。`
+      ?`当前验证链路存在 ${failedActionItems.length} 个失败动作，建议先处理失败或重试。`
       : null,
     selectedCaseDetail?.current_stage === 'finished' && runningActionItems.length > 0
-      ? `案例已结束，但仍有 ${runningActionItems.length} 个动作处于排队或运行中。`
+      ?`案例已结束，但仍有 ${runningActionItems.length} 个动作处于排队或运行中。`
       : null,
     selectedCaseDetail?.current_stage === 'finished' && selectedCaseDetail?.validation_result === 'vulnerable' && selectedCaseDetail?.finished_reason === 'non_issue'
       ? '验证结论为“漏洞成立”，但结束原因是“研判非问题”，请复核终态一致性。'
@@ -309,7 +309,7 @@ export const CasesWorkspace: React.FC<any> = ({
     if (!title) return;
     setCustomPanels((prev) => [
       ...prev,
-      { id: `${Date.now()}-${Math.random().toString(16).slice(2)}`, title, content },
+      { id:`${Date.now()}-${Math.random().toString(16).slice(2)}`, title, content },
     ]);
     setNewPanelTitle('');
     setNewPanelContent('');
@@ -335,7 +335,7 @@ export const CasesWorkspace: React.FC<any> = ({
   }>
     {!hideCasePool && <div className="space-y-4">
       <div className={cardClass} style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}`, borderRadius: '12px' }}>
-        <div className={compactLayout ? 'px-4 py-3 flex items-center justify-between gap-3' : 'px-5 py-4 flex items-center justify-between gap-3'} style={{ borderBottom: `1px solid ${LK.borderSoft}` }}>
+        <div className={compactLayout ? 'px-4 py-3 flex items-center justify-between gap-3' : 'px-5 py-4 flex items-center justify-between gap-3'} style={{ borderBottom:`1px solid ${LK.borderSoft}` }}>
           <div>
             <h3 className="text-lg font-semibold" style={{ color: LK.ink }}>{casePoolTitle}</h3>
             {!compactLayout && <p className="text-xs mt-1" style={{ color: LK.muted }}>{casePoolDescription}</p>}
@@ -465,7 +465,7 @@ export const CasesWorkspace: React.FC<any> = ({
             <div className={compactLayout ? 'px-4 py-6 text-sm' : 'px-6 py-8 text-sm'} style={{ color: LK.muted }}>{emptyStateText}</div>
           ) : compactLayout ? (
             <div className="overflow-hidden rounded-xl" style={{ border: `1px solid ${LK.border}` }}>
-              <div className={`grid gap-3 px-4 py-2.5 ${fullscreenLayout ? (enableBulkSelection ? 'grid-cols-[0.4fr_2.4fr_0.8fr_0.9fr_0.85fr_0.75fr_1fr]' : 'grid-cols-[2.4fr_0.8fr_0.9fr_0.85fr_0.75fr_1fr]') : (enableBulkSelection ? 'grid-cols-[0.4fr_1.9fr_0.75fr_0.85fr_0.8fr_0.7fr_0.95fr]' : 'grid-cols-[1.9fr_0.75fr_0.85fr_0.8fr_0.7fr_0.95fr]')}`} style={{ borderBottom: `1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>
+              <div className={`grid gap-3 px-4 py-2.5 ${fullscreenLayout ? (enableBulkSelection ? 'grid-cols-[0.4fr_2.4fr_0.8fr_0.9fr_0.85fr_0.75fr_1fr]' : 'grid-cols-[2.4fr_0.8fr_0.9fr_0.85fr_0.75fr_1fr]') : (enableBulkSelection ? 'grid-cols-[0.4fr_1.9fr_0.75fr_0.85fr_0.8fr_0.7fr_0.95fr]' : 'grid-cols-[1.9fr_0.75fr_0.85fr_0.8fr_0.7fr_0.95fr]')}`} style={{ borderBottom:`1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>
                 {enableBulkSelection && (
                   <label className="flex items-center justify-center">
                     <input type="checkbox" checked={allVisibleSelected} onChange={(event) => onToggleAllVisibleCaseIds?.(event.target.checked, prioritizedCases.map((item: any) => item.id))} />
@@ -496,7 +496,7 @@ export const CasesWorkspace: React.FC<any> = ({
                         : (enableBulkSelection ? 'grid-cols-[0.4fr_1.9fr_0.75fr_0.85fr_0.8fr_0.7fr_0.95fr]' : 'grid-cols-[1.9fr_0.75fr_0.85fr_0.8fr_0.7fr_0.95fr]')
                     }`}
                     style={{
-                      borderBottom: `1px solid ${LK.borderSoft}`,
+                      borderBottom:`1px solid ${LK.borderSoft}`,
                       backgroundColor: selected ? LK.primaryMuted : LK.surface,
                     }}
                     onMouseEnter={(e) => { if (!selected) e.currentTarget.style.backgroundColor = LK.surfaceRaised; }}
@@ -556,7 +556,7 @@ export const CasesWorkspace: React.FC<any> = ({
                   }}
                   className="w-full text-left transition-colors px-5 py-4"
                   style={{
-                    borderBottom: `1px solid ${LK.borderSoft}`,
+                    borderBottom:`1px solid ${LK.borderSoft}`,
                     backgroundColor: selected ? LK.primaryMuted : 'transparent',
                   }}
                   onMouseEnter={(e) => { if (!selected) e.currentTarget.style.backgroundColor = LK.surfaceRaised; }}
@@ -618,7 +618,7 @@ export const CasesWorkspace: React.FC<any> = ({
 
       {showCreateCaseForm && (
         <div className={cardClass} style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}`, borderRadius: '12px' }}>
-          <div className="px-5 py-4" style={{ borderBottom: `1px solid ${LK.borderSoft}` }}>
+          <div className="px-5 py-4" style={{ borderBottom:`1px solid ${LK.borderSoft}` }}>
             <h3 className="text-lg font-semibold" style={{ color: LK.ink }}>创建新案例</h3>
           </div>
           <form onSubmit={handleCreateCase} className="p-5 grid grid-cols-1 gap-4">
@@ -650,7 +650,7 @@ export const CasesWorkspace: React.FC<any> = ({
     {!listOnlyMode && (
     <div className={fullscreenLayout ? 'space-y-4 min-w-0' : 'space-y-4'}>
       <div className={cardClass} style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}`, borderRadius: '12px' }}>
-        <div className={compactLayout ? 'px-4 py-3 flex items-center justify-between gap-3' : 'px-5 py-4 flex items-center justify-between gap-3'} style={{ borderBottom: `1px solid ${LK.borderSoft}` }}>
+        <div className={compactLayout ? 'px-4 py-3 flex items-center justify-between gap-3' : 'px-5 py-4 flex items-center justify-between gap-3'} style={{ borderBottom:`1px solid ${LK.borderSoft}` }}>
           <div>
             <h3 className="text-lg font-semibold" style={{ color: LK.ink }}>案例运行面板</h3>
             {!compactLayout && <p className="text-xs mt-1" style={{ color: LK.muted }}>查看当前案例的运行状态、动作、结果、人工任务和阶段推进</p>}
@@ -771,7 +771,7 @@ export const CasesWorkspace: React.FC<any> = ({
                     <div className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: LK.mutedSoft }}>进入验证前检查清单</div>
                     <div className="mt-3 grid grid-cols-1 xl:grid-cols-2 gap-2.5">
                       {triageChecklist.map((item) => (
-                        <div key={item.key} className="rounded-lg border px-3 py-3" style={{ backgroundColor: item.done ? `${LK.success}14` : `${LK.warning}14`, borderColor: item.done ? LK.success : LK.warning }}>
+                        <div key={item.key} className="rounded-lg border px-3 py-3" style={{ backgroundColor: item.done ?`${LK.success}14` :`${LK.warning}14`, borderColor: item.done ? LK.success : LK.warning }}>
                           <div className="flex items-center gap-2">
                             {item.done ? <CheckCheck size={14} style={{ color: LK.success }} /> : <AlertTriangle size={14} style={{ color: LK.warning }} />}
                             <div className="text-sm font-semibold" style={{ color: LK.ink }}>{item.label}</div>
@@ -794,7 +794,7 @@ export const CasesWorkspace: React.FC<any> = ({
                     <button onClick={() => setTaskForm({ ...taskForm, task_type: 'manual_analysis' })} className="px-4 py-3 rounded-lg text-sm font-semibold transition-colors" style={{ backgroundColor: LK.surfaceRaised, color: LK.inkSoft }} onMouseEnter={(e) => { e.currentTarget.style.color = LK.ink; }} onMouseLeave={(e) => { e.currentTarget.style.color = LK.inkSoft; }}>
                       预置人工分析任务
                     </button>
-                    <button onClick={() => setDispatchForm({ ...dispatchForm, action_type: preferredActionType || 'analysis' })} className="px-4 py-3 rounded-lg text-sm font-semibold transition-colors" style={{ backgroundColor: `${LK.primary}22`, color: LK.primary }} onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = LK.primaryMuted; }} onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = `${LK.primary}22`; }}>
+                    <button onClick={() => setDispatchForm({ ...dispatchForm, action_type: preferredActionType || 'analysis' })} className="px-4 py-3 rounded-lg text-sm font-semibold transition-colors" style={{ backgroundColor: `${LK.primary}22`, color: LK.primary }} onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = LK.primaryMuted; }} onMouseLeave={(e) => { e.currentTarget.style.backgroundColor =`${LK.primary}22`; }}>
                       预置分析动作
                     </button>
                   </div>
@@ -823,7 +823,7 @@ export const CasesWorkspace: React.FC<any> = ({
                       const hasLatestAction = step.latestAction;
                       return (
                         <div key={step.key} className="rounded-lg border px-4 py-4" style={{
-                          backgroundColor: hasFailed ? `${LK.error}14` : hasActive ? `${LK.info}14` : hasLatestAction ? LK.surface : LK.surface,
+                          backgroundColor: hasFailed ?`${LK.error}14` : hasActive ?`${LK.info}14` : hasLatestAction ? LK.surface : LK.surface,
                           borderColor: hasFailed ? LK.error : hasActive ? LK.info : hasLatestAction ? LK.success : LK.border,
                         }}>
                           <div className="flex items-center justify-between gap-2">
@@ -962,7 +962,7 @@ export const CasesWorkspace: React.FC<any> = ({
                     <div className="mt-3 text-sm font-semibold" style={{ color: LK.ink }}>{latestVerificationSignal?.summary || '暂无关键结果摘要'}</div>
                     <div className="mt-2 text-xs" style={{ color: LK.body }}>
                       {latestVerificationSignal
-                        ? `${latestVerificationSignal.source_service_id || '未知服务'} · ${formatTime(latestVerificationSignal.created_at)}`
+                        ?`${latestVerificationSignal.source_service_id || '未知服务'} · ${formatTime(latestVerificationSignal.created_at)}`
                         : '建议结合时间线和结果页补充终态回传说明'}
                     </div>
                   </div>
@@ -1040,7 +1040,7 @@ export const CasesWorkspace: React.FC<any> = ({
                   <p className="text-[10px] uppercase tracking-wider font-semibold" style={{ color: LK.mutedSoft }}>当前阶段推荐</p>
                   <div className="flex flex-wrap gap-2">
                     {recommendedActions.length === 0 ? <span className="text-xs" style={{ color: LK.muted }}>当前阶段暂无推荐动作</span> : recommendedActions.slice(0, 8).map((item: any) => (
-                      <button key={`${item.service_id}-${item.capability_code}`} onClick={() => setDispatchForm({ action_type: item.action_type, service_id: item.service_id })} className="px-3 py-2 rounded-lg text-xs font-semibold transition-colors" style={{ backgroundColor: item.already_active ? LK.surface : `${LK.success}22`, color: item.already_active ? LK.muted : LK.success }} onMouseEnter={(e) => { if (!item.already_active) e.currentTarget.style.backgroundColor = `${LK.success}3a`; }} onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = item.already_active ? LK.surface : `${LK.success}22`; }}>
+                      <button key={`${item.service_id}-${item.capability_code}`} onClick={() => setDispatchForm({ action_type: item.action_type, service_id: item.service_id })} className="px-3 py-2 rounded-lg text-xs font-semibold transition-colors" style={{ backgroundColor: item.already_active ? LK.surface :`${LK.success}22`, color: item.already_active ? LK.muted : LK.success }} onMouseEnter={(e) => { if (!item.already_active) e.currentTarget.style.backgroundColor =`${LK.success}3a`; }} onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = item.already_active ? LK.surface :`${LK.success}22`; }}>
                         {labelOf(item.action_type, ACTION_TYPE_LABELS)} · {item.service_name}
                       </button>
                     ))}
@@ -1059,12 +1059,12 @@ export const CasesWorkspace: React.FC<any> = ({
                 {['triage', 'validation'].includes(selectedCaseDetail.current_stage) && (
                   <div className="rounded-lg p-3 space-y-2" style={{ backgroundColor: `${LK.error}14`, border: `1px solid ${LK.error}40` }}>
                     <div className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: LK.error }}>人工结束案例</div>
-                    <select value={finishForm.finished_reason} onChange={(event) => setFinishForm({ ...finishForm, finished_reason: event.target.value })} className="w-full px-3 py-2 rounded-lg outline-none text-xs font-semibold" style={{ backgroundColor: LK.surface, color: LK.inkSoft, border: `1px solid ${LK.error}40` }} onFocus={(e) => (e.currentTarget.style.borderColor = LK.error)} onBlur={(e) => (e.currentTarget.style.borderColor = `${LK.error}40`)}>
+                    <select value={finishForm.finished_reason} onChange={(event) => setFinishForm({ ...finishForm, finished_reason: event.target.value })} className="w-full px-3 py-2 rounded-lg outline-none text-xs font-semibold" style={{ backgroundColor: LK.surface, color: LK.inkSoft, border: `1px solid ${LK.error}40` }} onFocus={(e) => (e.currentTarget.style.borderColor = LK.error)} onBlur={(e) => (e.currentTarget.style.borderColor =`${LK.error}40`)}>
                       {FINISHED_REASON_OPTIONS.map((item) => (
                         <option key={item} value={item}>{labelOf(item, FINISHED_REASON_LABELS)}</option>
                       ))}
                     </select>
-                    <input value={finishForm.summary} onChange={(event) => setFinishForm({ ...finishForm, summary: event.target.value })} placeholder="结束说明（必填）" className="w-full px-3 py-2 rounded-lg outline-none text-sm" style={{ backgroundColor: LK.surface, color: LK.inkSoft, border: `1px solid ${LK.error}40` }} onFocus={(e) => (e.currentTarget.style.borderColor = LK.error)} onBlur={(e) => (e.currentTarget.style.borderColor = `${LK.error}40`)} />
+                    <input value={finishForm.summary} onChange={(event) => setFinishForm({ ...finishForm, summary: event.target.value })} placeholder="结束说明（必填）" className="w-full px-3 py-2 rounded-lg outline-none text-sm" style={{ backgroundColor: LK.surface, color: LK.inkSoft, border: `1px solid ${LK.error}40` }} onFocus={(e) => (e.currentTarget.style.borderColor = LK.error)} onBlur={(e) => (e.currentTarget.style.borderColor =`${LK.error}40`)} />
                     <button onClick={handleFinishCase} disabled={submittingFinish} className="w-full px-3 py-2 rounded-lg text-xs font-semibold transition-colors disabled:opacity-50" style={{ backgroundColor: LK.error, color: '#ffffff' }} onMouseEnter={(e) => { if (!submittingFinish) e.currentTarget.style.opacity = '0.9'; }} onMouseLeave={(e) => { e.currentTarget.style.opacity = '1'; }}>
                       {submittingFinish ? '结束中...' : '结束案例'}
                     </button>
@@ -1084,7 +1084,7 @@ export const CasesWorkspace: React.FC<any> = ({
               </form>
             </div>
 
-            <div className="flex gap-2" style={{ borderBottom: `1px solid ${LK.border}` }}>
+            <div className="flex gap-2" style={{ borderBottom:`1px solid ${LK.border}` }}>
               {[
                 { key: 'timeline', label: '时间线', icon: FileClock },
                 { key: 'actions', label: '动作队列', icon: Sparkles },
@@ -1094,7 +1094,7 @@ export const CasesWorkspace: React.FC<any> = ({
                 const Icon = tab.icon;
                 const active = activeTab === tab.key;
                 return (
-                  <button key={tab.key} onClick={() => setActiveTab(tab.key as 'timeline' | 'results' | 'tasks' | 'actions')} className="px-4 py-3 text-sm font-semibold flex items-center gap-2 transition-colors rounded-t-lg" style={{ backgroundColor: active ? LK.primaryMuted : 'transparent', color: active ? LK.primary : LK.body, borderBottom: active ? `2px solid ${LK.primary}` : '2px solid transparent' }} onMouseEnter={(e) => { if (!active) e.currentTarget.style.color = LK.ink; }} onMouseLeave={(e) => { if (!active) e.currentTarget.style.color = LK.body; }}>
+                  <button key={tab.key} onClick={() => setActiveTab(tab.key as 'timeline' | 'results' | 'tasks' | 'actions')} className="px-4 py-3 text-sm font-semibold flex items-center gap-2 transition-colors rounded-t-lg" style={{ backgroundColor: active ? LK.primaryMuted : 'transparent', color: active ? LK.primary : LK.body, borderBottom: active ?`2px solid ${LK.primary}` : '2px solid transparent' }} onMouseEnter={(e) => { if (!active) e.currentTarget.style.color = LK.ink; }} onMouseLeave={(e) => { if (!active) e.currentTarget.style.color = LK.body; }}>
                     <Icon size={15} />
                     {tab.label}
                   </button>
@@ -1174,7 +1174,7 @@ export const CasesWorkspace: React.FC<any> = ({
                           <div className="flex items-center justify-between gap-3">
                             <div className="flex flex-wrap items-center gap-2">
                               <span className="px-2 py-1 rounded-lg bg-indigo-100 text-[10px] font-black uppercase tracking-widest text-indigo-700">{item.resultType}</span>
-                              <span className="px-2 py-1 rounded-lg bg-white text-[10px] font-black uppercase tracking-widest text-slate-600">{item.status}</span>
+                              <span className="px-2 py-1 rounded-lg bg-slate-50 text-[10px] font-black uppercase tracking-widest text-slate-600">{item.status}</span>
                             </div>
                             <div className="text-[10px] font-black uppercase tracking-widest text-slate-400">置信度 {item.confidence}</div>
                           </div>
@@ -1224,7 +1224,7 @@ export const CasesWorkspace: React.FC<any> = ({
             {activeTab === 'tasks' && (
               <div className="space-y-5">
                 <form onSubmit={handleCreateTask} className="rounded-[1.5rem] border border-slate-200 p-4 grid grid-cols-1 xl:grid-cols-2 gap-3">
-                  <select value={taskForm.task_type} onChange={(event) => setTaskForm({ ...taskForm, task_type: event.target.value })} className="px-4 py-3 rounded-2xl border border-slate-200 outline-none bg-white">
+                  <select value={taskForm.task_type} onChange={(event) => setTaskForm({ ...taskForm, task_type: event.target.value })} className="px-4 py-3 rounded-2xl border border-slate-200 outline-none bg-slate-50">
                     <option value="manual_review">人工复核</option>
                     <option value="manual_analysis">人工分析</option>
                     <option value="manual_validation">人工验证</option>
@@ -1286,13 +1286,13 @@ export const CasesWorkspace: React.FC<any> = ({
                       value={newPanelTitle}
                       onChange={(event) => setNewPanelTitle(event.target.value)}
                       placeholder="Panel 标题"
-                      className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none"
+                      className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm outline-none"
                     />
                     <textarea
                       value={newPanelContent}
                       onChange={(event) => setNewPanelContent(event.target.value)}
                       placeholder="Panel 内容（可选）"
-                      className="min-h-[74px] w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none"
+                      className="min-h-[74px] w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm outline-none"
                     />
                     <div className="flex justify-end">
                       <button
@@ -1310,7 +1310,7 @@ export const CasesWorkspace: React.FC<any> = ({
                 ) : (
                   <div className="grid gap-2.5 md:grid-cols-2">
                     {customPanels.map((panel) => (
-                      <div key={panel.id} className="rounded-xl border border-slate-200 bg-white px-3 py-3">
+                      <div key={panel.id} className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-3">
                         <div className="flex items-start justify-between gap-2">
                           <div className="text-sm font-black text-slate-800">{panel.title}</div>
                           <button
@@ -1358,7 +1358,7 @@ export const CasesWorkspace: React.FC<any> = ({
           )}
         </div>
       </div>
-      <div className="bg-gradient-to-br from-slate-900 via-slate-900 to-blue-950 p-6 rounded-[2rem] text-white shadow-xl shadow-slate-900/10">
+ <div className="bg-gradient-to-br from-slate-900 via-slate-900 to-blue-950 p-6 rounded-[2rem] text-white">
         <div className="flex items-center gap-3"><Bot size={18} className="text-blue-300" /><h3 className="text-lg font-black">案例运行提示</h3></div>
         <div className="mt-4 space-y-3 text-sm text-slate-200">
           <div className="flex items-start gap-3"><Sparkles size={15} className="mt-0.5 text-blue-300" /><p>优先看自动推进信号和推荐动作，再决定手动派发还是一键自动编排。</p></div>

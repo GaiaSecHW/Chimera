@@ -243,7 +243,7 @@ export function parseSessionJsonlObject(obj: Record<string, any>, rawLine: strin
         timestamp: obj.timestamp || '',
         display_timestamp: obj.timestamp || '',
         thinkingLevel: level,
-        thinkingLevelClass: `thinking-${SESSION_THINKING_LEVEL_MAP[level.toLowerCase()] || 'off'}`,
+        thinkingLevelClass:`thinking-${SESSION_THINKING_LEVEL_MAP[level.toLowerCase()] || 'off'}`,
         raw_line: rawLine,
       },
     };
@@ -391,7 +391,7 @@ export function buildFirmwareSessionMeta(item: FirmwareSessionIndexItem): AppSaS
   const group = phaseGroupLabel(item.phase, item.role);
   const updatedAtMs = item.updated_at ? Date.parse(item.updated_at) : 0;
   return {
-    session_id: `${item.role}:${item.name}`,
+    session_id:`${item.role}:${item.name}`,
     session_name: item.name,
     relative_path: item.session_file,
     stage_group: group,
@@ -401,7 +401,7 @@ export function buildFirmwareSessionMeta(item: FirmwareSessionIndexItem): AppSaS
     event_count: 0,
     line_count: 0,
     is_active: item.status === 'running',
-    display_name: `${roleLabel} · ${displaySuffix}`,
+    display_name:`${roleLabel} · ${displaySuffix}`,
     warnings: [],
   };
 }

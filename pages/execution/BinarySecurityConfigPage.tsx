@@ -545,7 +545,7 @@ export const BinarySecurityConfigPage: React.FC<{ projectId: string; initialTab?
             </span>
           </div>
           <p style={{ marginTop: '8px', fontSize: '14px', color: LK.body }}>
-            当前 Tab 中的全部配置项都归属于 `chimera-app-binary-security` 微服务，用于控制该服务在多实例部署下的全局任务调度行为。
+            当前 Tab 中的全部配置项都归属于`chimera-app-binary-security` 微服务，用于控制该服务在多实例部署下的全局任务调度行为。
           </p>
 
           {error && <div style={{ marginTop: '16px', borderRadius: '8px', border: `1px solid ${LK.error}`, backgroundColor: LK.primaryMuted.replace('0.14', '0.08').replace('79, 115, 255', '241, 93, 93'), padding: '12px 16px', fontSize: '14px', fontWeight: 600, color: LK.error }}>{error}</div>}
@@ -554,13 +554,13 @@ export const BinarySecurityConfigPage: React.FC<{ projectId: string; initialTab?
           <div className="mt-5 grid grid-cols-1 gap-4">
             <SectionCard
               title="队列控制"
-              subtitle="范围 1-200，默认 50。全局限制 `running + dispatching` 的总任务数，并控制 dispatching 回收超时。"
+              subtitle="范围 1-200，默认 50。全局限制`running + dispatching` 的总任务数，并控制 dispatching 回收超时。"
               actions={<PanelActions saving={savingPanel === 'binary-security-queue'} onSave={() => { void saveBinarySecurityQueue(); }} onReset={resetBinarySecurityQueue} />}
             >
               <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
                 <div>
                   <div className="text-sm font-bold text-slate-700">最大并发总任务数</div>
-                  <div className="mt-2 text-xs text-slate-500">范围 1-200，默认 50。全局限制 `running + dispatching` 的总任务数。</div>
+                  <div className="mt-2 text-xs text-slate-500">范围 1-200，默认 50。全局限制`running + dispatching` 的总任务数。</div>
                   <input
                     type="number"
                     min={1}
@@ -573,7 +573,7 @@ export const BinarySecurityConfigPage: React.FC<{ projectId: string; initialTab?
                 </div>
                 <div>
                   <div className="text-sm font-bold text-slate-700">调度占用超时秒数</div>
-                  <div className="mt-2 text-xs text-slate-500">范围 10-600，默认 60。任务长时间停在 `dispatching` 时会被回收到 `pending`。</div>
+                  <div className="mt-2 text-xs text-slate-500">范围 10-600，默认 60。任务长时间停在`dispatching` 时会被回收到`pending`。</div>
                   <input
                     type="number"
                     min={10}
@@ -624,7 +624,7 @@ export const BinarySecurityConfigPage: React.FC<{ projectId: string; initialTab?
                 <div className="mb-2 text-sm font-bold text-slate-700">新任务默认推进模式</div>
                 <div className="grid grid-cols-1 gap-3 xl:grid-cols-2">
                   {PIPELINE_MODE_OPTIONS.map((option) => (
-                    <label key={option.value} className="flex items-start gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700">
+                    <label key={option.value} className="flex items-start gap-3 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700">
                       <input
                         type="radio"
                         name="pipelineMode"
@@ -666,7 +666,7 @@ export const BinarySecurityConfigPage: React.FC<{ projectId: string; initialTab?
           </div>
         </section>
       ) : activeTab === 'binary-evolution' ? (
-        <section className="rounded-[2rem] border border-slate-200 bg-slate-50/70 p-6 shadow-sm">
+ <section className="rounded-[2rem] border border-slate-200 bg-slate-50/70 p-6">
           <div className="flex flex-wrap items-center gap-2">
             <Settings size={18} className="text-amber-600" />
             <h2 className="text-xl font-black text-slate-900">进化中心调度配置</h2>

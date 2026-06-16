@@ -112,7 +112,7 @@ const SIMPLE_AUTH_PAYLOAD = {
     name: 'frontend-demo',
     version: '1.0.0',
     type: 'api',
-    endpoint: `${API_BASE}/api/vuln/public/intake/submissions`,
+    endpoint:`${API_BASE}/api/vuln/public/intake/submissions`,
   },
   subject: {
     type: 'http_endpoint',
@@ -152,7 +152,7 @@ const NORMAL_AUTH_PAYLOAD = {
     name: 'frontend-demo',
     version: '1.0.0',
     type: 'api',
-    endpoint: `${API_BASE}/api/vuln/public/intake/submissions`,
+    endpoint:`${API_BASE}/api/vuln/public/intake/submissions`,
   },
   subject: {
     type: 'http_endpoint',
@@ -301,12 +301,12 @@ const makeEditableCaseIntake = (detail: any): EditableCaseIntake => {
 };
 
 const toneOf = (value?: string) => {
-  if (!value) return `backgroundColor: ${LK.surfaceRaised}, color: ${LK.muted}`;
-  if (['critical', 'high', 'confirmed'].includes(value)) return `backgroundColor: ${LK.error}22, color: ${LK.error}`;
-  if (['medium', 'triage', 'issue'].includes(value)) return `backgroundColor: ${LK.warning}22, color: ${LK.warning}`;
-  if (['low', 'validation', 'non_issue'].includes(value)) return `backgroundColor: ${LK.success}22, color: ${LK.success}`;
-  if (['receive', 'observe'].includes(value)) return `backgroundColor: ${LK.info}22, color: ${LK.info}`;
-  return `backgroundColor: ${LK.surfaceRaised}, color: ${LK.muted}`;
+  if (!value) return`backgroundColor: ${LK.surfaceRaised}, color: ${LK.muted}`;
+  if (['critical', 'high', 'confirmed'].includes(value)) return`backgroundColor: ${LK.error}22, color: ${LK.error}`;
+  if (['medium', 'triage', 'issue'].includes(value)) return`backgroundColor: ${LK.warning}22, color: ${LK.warning}`;
+  if (['low', 'validation', 'non_issue'].includes(value)) return`backgroundColor: ${LK.success}22, color: ${LK.success}`;
+  if (['receive', 'observe'].includes(value)) return`backgroundColor: ${LK.info}22, color: ${LK.info}`;
+  return`backgroundColor: ${LK.surfaceRaised}, color: ${LK.muted}`;
 };
 
 const formatTime = (value?: string) => {
@@ -419,7 +419,7 @@ const formatBytes = (value?: number | null) => {
     current /= 1024;
     unitIndex += 1;
   }
-  return `${current >= 10 || unitIndex === 0 ? current.toFixed(0) : current.toFixed(1)} ${units[unitIndex]}`;
+  return`${current >= 10 || unitIndex === 0 ? current.toFixed(0) : current.toFixed(1)} ${units[unitIndex]}`;
 };
 
 const toDownloadStatusText = (value?: string) => (value ? DOWNLOAD_STATUS_TEXT[value] || value : '未知');
@@ -1162,7 +1162,7 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
     try {
       const created = await vulnApi.vuln.createCase({
         project_id: projectId,
-        report_id: `manual-${Date.now()}`,
+        report_id:`manual-${Date.now()}`,
         title: suspicionForm.title,
         summary: suspicionForm.summary,
         severity: suspicionForm.severity,
@@ -1188,7 +1188,7 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
           ? {
               markdown: suspicionForm.raw_report_markdown,
               title: suspicionForm.title || '原始漏洞报告',
-              report_id: `raw-${Date.now()}`,
+              report_id:`raw-${Date.now()}`,
               source: 'manual-intake',
             }
           : undefined,
@@ -1206,7 +1206,7 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
       setShowCreateDialog(false);
       await Promise.all([loadOverview(), loadSuspicions(1)]);
       setSelectedSuspicionId(created.id);
-      setSuccessMessage(`疑点 "${created.title}" 已创建。`);
+      setSuccessMessage(`疑点"${created.title}" 已创建。`);
     } catch (err: any) {
       setError(err?.message || '创建疑点失败');
     } finally {
@@ -1267,7 +1267,7 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
           ? {
               markdown: editableDetail.raw_report_markdown,
               title: editableDetail.title || '原始漏洞报告',
-              report_id: selectedDetail.raw_report?.report_id || `raw-${selectedDetail.id}`,
+              report_id: selectedDetail.raw_report?.report_id ||`raw-${selectedDetail.id}`,
               source: selectedDetail.raw_report?.source || selectedDetail.created_by || 'manual-edit',
             }
           : undefined,
@@ -1332,7 +1332,7 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
 
   const syncLatestAutoVerifyTask = async (options?: { silent?: boolean; force?: boolean }) => {
     if (!selectedDetail?.id || !latestAutoVerifyTask?.taskId) return null;
-    const guardKey = `${selectedDetail.id}:${latestAutoVerifyTask.taskId}:${selectedDetail.updated_at || ''}:${selectedDetail.current_status || ''}`;
+    const guardKey =`${selectedDetail.id}:${latestAutoVerifyTask.taskId}:${selectedDetail.updated_at || ''}:${selectedDetail.current_status || ''}`;
     if (!options?.force && autoVerifySyncGuardRef.current === guardKey) return null;
     autoVerifySyncGuardRef.current = guardKey;
     if (!options?.silent) {
@@ -1498,7 +1498,7 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
       const url = URL.createObjectURL(blob);
       const anchor = document.createElement('a');
       anchor.href = url;
-      anchor.download = job.output_filename || `${job.job_id}.zip`;
+      anchor.download = job.output_filename ||`${job.job_id}.zip`;
       document.body.appendChild(anchor);
       anchor.click();
       anchor.remove();
@@ -1632,7 +1632,7 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
           </div>
         </div>
         <div className="overflow-hidden">
-          <div className="grid grid-cols-[1.2fr_0.8fr_0.7fr_0.8fr_1.2fr_0.8fr_0.8fr_1fr_1fr_1fr_1.2fr_1.2fr] gap-3 px-4 py-2.5" style={{ borderBottom: `1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>
+          <div className="grid grid-cols-[1.2fr_0.8fr_0.7fr_0.8fr_1.2fr_0.8fr_0.8fr_1fr_1fr_1fr_1.2fr_1.2fr] gap-3 px-4 py-2.5" style={{ borderBottom:`1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>
             {['任务 ID', '类型', '报告数', '状态', '文件名', '大小', '创建人', '创建时间', '完成时间', '过期时间', '错误摘要', '操作'].map((label) => (
               <div key={label} className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: LK.mutedSoft }}>{label}</div>
             ))}
@@ -1643,7 +1643,7 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
             <div className="px-4 py-8 text-sm" style={{ backgroundColor: LK.surface, color: LK.muted }}>当前项目还没有下载任务。</div>
           ) : (
             downloadJobs.map((job) => (
-              <div key={job.job_id} className="grid grid-cols-[1.2fr_0.8fr_0.7fr_0.8fr_1.2fr_0.8fr_0.8fr_1fr_1fr_1fr_1.2fr_1.2fr] gap-3 px-4 py-3 text-sm last:border-b-0" style={{ borderBottom: `1px solid ${LK.borderSoft}`, backgroundColor: LK.surface }}>
+              <div key={job.job_id} className="grid grid-cols-[1.2fr_0.8fr_0.7fr_0.8fr_1.2fr_0.8fr_0.8fr_1fr_1fr_1fr_1.2fr_1.2fr] gap-3 px-4 py-3 text-sm last:border-b-0" style={{ borderBottom:`1px solid ${LK.borderSoft}`, backgroundColor: LK.surface }}>
                 <div className="min-w-0">
                   <div className="truncate font-semibold" style={{ fontFamily: MONO, color: LK.ink }}>{job.job_id}</div>
                 </div>
@@ -1651,7 +1651,7 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
                 <div className="font-semibold tabular-nums" style={{ color: LK.ink }}>{job.report_count}</div>
                 <div>
                   <span className="rounded-lg px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider" style={{
-                    backgroundColor: job.status === 'succeeded' ? `${LK.success}22` : job.status === 'failed' ? `${LK.error}22` : job.status === 'expired' ? `${LK.muted}22` : `${LK.warning}22`,
+                    backgroundColor: job.status === 'succeeded' ?`${LK.success}22` : job.status === 'failed' ?`${LK.error}22` : job.status === 'expired' ?`${LK.muted}22` :`${LK.warning}22`,
                     color: job.status === 'succeeded' ? LK.success : job.status === 'failed' ? LK.error : job.status === 'expired' ? LK.muted : LK.warning
                   }}>
                     {toDownloadStatusText(job.status)}
@@ -1672,8 +1672,8 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
                       disabled={downloadActionJobId === job.job_id}
                       className="inline-flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-[11px] font-semibold transition-colors disabled:opacity-50"
                       style={{ backgroundColor: `${LK.success}22`, color: LK.success, border: `1px solid ${LK.success}40` }}
-                      onMouseEnter={(e) => { if (downloadActionJobId !== job.job_id) e.currentTarget.style.backgroundColor = `${LK.success}3a`; }}
-                      onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = `${LK.success}22`; }}
+                      onMouseEnter={(e) => { if (downloadActionJobId !== job.job_id) e.currentTarget.style.backgroundColor =`${LK.success}3a`; }}
+                      onMouseLeave={(e) => { e.currentTarget.style.backgroundColor =`${LK.success}22`; }}
                     >
                       <Download size={12} />
                       下载
@@ -1686,8 +1686,8 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
                       disabled={downloadActionJobId === job.job_id}
                       className="inline-flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-[11px] font-semibold transition-colors disabled:opacity-50"
                       style={{ backgroundColor: `${LK.warning}22`, color: LK.warning, border: `1px solid ${LK.warning}40` }}
-                      onMouseEnter={(e) => { if (downloadActionJobId !== job.job_id) e.currentTarget.style.backgroundColor = `${LK.warning}3a`; }}
-                      onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = `${LK.warning}22`; }}
+                      onMouseEnter={(e) => { if (downloadActionJobId !== job.job_id) e.currentTarget.style.backgroundColor =`${LK.warning}3a`; }}
+                      onMouseLeave={(e) => { e.currentTarget.style.backgroundColor =`${LK.warning}22`; }}
                     >
                       <RefreshCw size={12} />
                       重试
@@ -1700,8 +1700,8 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
                       disabled={downloadActionJobId === job.job_id}
                       className="inline-flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-[11px] font-semibold transition-colors disabled:opacity-50"
                       style={{ backgroundColor: `${LK.error}22`, color: LK.error, border: `1px solid ${LK.error}40` }}
-                      onMouseEnter={(e) => { if (downloadActionJobId !== job.job_id) e.currentTarget.style.backgroundColor = `${LK.error}3a`; }}
-                      onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = `${LK.error}22`; }}
+                      onMouseEnter={(e) => { if (downloadActionJobId !== job.job_id) e.currentTarget.style.backgroundColor =`${LK.error}3a`; }}
+                      onMouseLeave={(e) => { e.currentTarget.style.backgroundColor =`${LK.error}22`; }}
                     >
                       <Trash2 size={12} />
                       删除
@@ -1727,7 +1727,7 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
     const overviewCards = [
       { label: '当前阶段', value: toStageText(selectedDetail.current_stage), hint: selectedDetail.current_stage || 'n/a' },
       { label: '当前状态', value: toStatusText(selectedDetail.current_status), hint: selectedDetail.current_status || 'n/a' },
-      { label: '置信度', value: selectedDetail.confidence ?? 'n/a', hint: `决策：${toDecisionText(selectedDetail.decision_status)}` },
+      { label: '置信度', value: selectedDetail.confidence ?? 'n/a', hint:`决策：${toDecisionText(selectedDetail.decision_status)}` },
       { label: 'CVSS', value: Number(selectedDetail.cvss_score || 0).toFixed(1), hint: selectedDetail.severity || 'n/a' },
       { label: '上报者', value: selectedDetail.reporter?.name || '未提供', hint: selectedDetail.reporter?.type || '未知类型' },
       { label: '文件根路径', value: selectedDetail.files_root_path || '未分配', hint: workspaceSummary?.files_root_path || '暂无工作区摘要' },
@@ -1906,8 +1906,8 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
                 disabled={processingAction !== null || !selectedDetail?.id}
                 className="inline-flex items-center gap-2 rounded-lg px-3.5 py-2.5 text-sm font-semibold transition-colors disabled:opacity-50"
                 style={{ backgroundColor: `${LK.success}22`, color: LK.success, border: `1px solid ${LK.success}40` }}
-                onMouseEnter={(e) => { if (processingAction === null && selectedDetail?.id) e.currentTarget.style.backgroundColor = `${LK.success}3a`; }}
-                onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = `${LK.success}22`; }}
+                onMouseEnter={(e) => { if (processingAction === null && selectedDetail?.id) e.currentTarget.style.backgroundColor =`${LK.success}3a`; }}
+                onMouseLeave={(e) => { e.currentTarget.style.backgroundColor =`${LK.success}22`; }}
               >
                 <RefreshCw size={15} className={processingAction === 'sync_verify' ? 'animate-spin' : ''} />
                 {processingAction === 'sync_verify' ? '同步中...' : '同步验证结果'}
@@ -1919,8 +1919,8 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
               disabled={processingAction !== null || selectedDetail.current_stage !== 'triage'}
               className="inline-flex items-center gap-2 rounded-lg px-3.5 py-2.5 text-sm font-semibold transition-colors disabled:opacity-50"
               style={{ backgroundColor: `${LK.warning}22`, color: LK.warning, border: `1px solid ${LK.warning}40` }}
-              onMouseEnter={(e) => { if (processingAction === null && selectedDetail.current_stage === 'triage') e.currentTarget.style.backgroundColor = `${LK.warning}3a`; }}
-              onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = `${LK.warning}22`; }}
+              onMouseEnter={(e) => { if (processingAction === null && selectedDetail.current_stage === 'triage') e.currentTarget.style.backgroundColor =`${LK.warning}3a`; }}
+              onMouseLeave={(e) => { e.currentTarget.style.backgroundColor =`${LK.warning}22`; }}
             >
               <ShieldAlert size={15} />
               {processingAction === 'false_positive' ? '处理中...' : '标记非问题'}
@@ -1931,8 +1931,8 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
               disabled={processingAction !== null}
               className="inline-flex items-center gap-2 rounded-lg px-3.5 py-2.5 text-sm font-semibold transition-colors disabled:opacity-50"
               style={{ backgroundColor: `${LK.error}22`, color: LK.error, border: `1px solid ${LK.error}40` }}
-              onMouseEnter={(e) => { if (processingAction === null) e.currentTarget.style.backgroundColor = `${LK.error}3a`; }}
-              onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = `${LK.error}22`; }}
+              onMouseEnter={(e) => { if (processingAction === null) e.currentTarget.style.backgroundColor =`${LK.error}3a`; }}
+              onMouseLeave={(e) => { e.currentTarget.style.backgroundColor =`${LK.error}22`; }}
             >
               <X size={15} />
               {processingAction === 'delete' ? '删除中...' : '删除疑点'}
@@ -1960,7 +1960,7 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
                   onClick={() => setDetailActiveTab(tab.key)}
                   className="inline-flex shrink-0 items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold transition-colors"
                   style={{
-                    border: active ? `1px solid ${LK.primary}` : `1px solid ${LK.border}`,
+                    border: active ?`1px solid ${LK.primary}` :`1px solid ${LK.border}`,
                     backgroundColor: active ? LK.primaryMuted : LK.surface,
                     color: active ? LK.primary : LK.body
                   }}
@@ -2067,7 +2067,7 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
                             <div className="flex items-center justify-between gap-3">
                               <div className="text-sm font-semibold">{isRawReport ? '原始漏洞报告' : (item.title || item.report_id)}</div>
                               <span className="rounded-lg px-2 py-1 text-[10px] font-semibold" style={{
-                                backgroundColor: active ? `${LK.primary}22` : LK.surfaceRaised,
+                                backgroundColor: active ?`${LK.primary}22` : LK.surfaceRaised,
                                 color: active ? LK.primary : LK.body
                               }}>
                                 {toStageText(item.stage)}
@@ -2093,7 +2093,7 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
                           }}
                           className="block w-full rounded-lg px-3 py-2 text-left text-sm transition-colors"
                           style={{
-                            paddingLeft: `${heading.level * 12}px`,
+                            paddingLeft:`${heading.level * 12}px`,
                             backgroundColor: activeReportHeadingId === heading.id ? LK.primary : 'transparent',
                             color: activeReportHeadingId === heading.id ? '#ffffff' : LK.body
                           }}
@@ -2167,10 +2167,10 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
                         (selectedDetail.artifacts as any[]).map((artifact, index) => (
                           <div key={`${artifact?.name || artifact?.path || index}`} className="rounded-xl px-4 py-3" style={{ border: '1px solid ' + LK.border }}>
                             <div className="flex flex-wrap items-center justify-between gap-3">
-                              <div className="text-sm font-semibold" style={{ color: LK.ink }}>{artifact?.name || artifact?.path || `artifact-${index + 1}`}</div>
+                              <div className="text-sm font-semibold" style={{ color: LK.ink }}>{artifact?.name || artifact?.path ||`artifact-${index + 1}`}</div>
                               <span className="rounded-lg px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider" style={{ backgroundColor: LK.surfaceRaised, color: LK.body }}>{artifact?.kind || 'unknown'}</span>
                             </div>
-                            <div className="mt-1 text-xs" style={{ color: LK.muted }}>{artifact?.media_type ? `媒体类型：${artifact.media_type}` : '未提供媒体类型'}</div>
+                            <div className="mt-1 text-xs" style={{ color: LK.muted }}>{artifact?.media_type ?`媒体类型：${artifact.media_type}` : '未提供媒体类型'}</div>
                             {artifact?.path || artifact?.content_ref ? <div className="mt-2 break-all text-xs" style={{ color: LK.muted }}>{artifact.path || artifact.content_ref}</div> : null}
                           </div>
                         ))
@@ -2234,14 +2234,14 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
                         <button
                           type="button"
                           onClick={() => openLinkedFilesPath(linkedFiles.root_path)}
-                          className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-black text-slate-700"
+                          className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-black text-slate-700"
                         >
                           根目录
                         </button>
                       ) : null
                     }
                   >
-                    <div className="mt-3 overflow-hidden rounded-[1.25rem] border border-slate-200 bg-white shadow-sm">
+ <div className="mt-3 overflow-hidden rounded-[1.25rem] border border-slate-200 bg-slate-50">
                       {linkedFilesLoading ? (
                         <div className="px-4 py-8 text-sm text-slate-600">正在加载关联文件...</div>
                       ) : !linkedFiles ? (
@@ -2257,9 +2257,9 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
                                 disabled={selectedLinkedPaths.length === 0 || linkedArchiveSubmitting}
                                 className="rounded-lg bg-sky-600 px-3 py-1.5 text-xs font-black text-white disabled:opacity-40"
                               >
-                                {linkedArchiveSubmitting ? '提交中...' : `打包下载(${selectedLinkedPaths.length})`}
+                                {linkedArchiveSubmitting ? '提交中...' :`打包下载(${selectedLinkedPaths.length})`}
                               </button>
-                              <div className="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5">
+                              <div className="flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1.5">
                                 <Search size={12} className="text-slate-400" />
                                 <input
                                   value={linkedFileSearch}
@@ -2274,10 +2274,10 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
                                   onClick={() => {
                                     const current = String(linkedFiles.current_path || '');
                                     const parts = current.split('/').filter(Boolean);
-                                    const parent = parts.length <= 2 ? linkedFiles.root_path : `/${parts.slice(0, -1).join('/')}`;
+                                    const parent = parts.length <= 2 ? linkedFiles.root_path :`/${parts.slice(0, -1).join('/')}`;
                                     openLinkedFilesPath(parent);
                                   }}
-                                  className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-black text-slate-700"
+                                  className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-black text-slate-700"
                                 >
                                   上级目录
                                 </button>
@@ -2285,7 +2285,7 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
                               <button
                                 type="button"
                                 onClick={() => openLinkedFilesPath(linkedFiles.current_path)}
-                                className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-black text-slate-700"
+                                className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-black text-slate-700"
                               >
                                 刷新
                               </button>
@@ -2302,7 +2302,7 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
                                 {linkedDirectoryItems.map((directory: any) => (
                                   <div
                                     key={directory.id}
-                                    className="grid w-full grid-cols-[24px_minmax(0,1fr)_70px] items-center gap-3 rounded-xl px-3 py-2 text-left hover:bg-slate-50"
+                                    className="grid w-full grid-cols-[24px_minmax(0,1fr)_70px] items-center gap-3 rounded-xl px-3 py-2 text-left hover:bg-slate-100"
                                   >
                                     <input
                                       type="checkbox"
@@ -2329,7 +2329,7 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
                                   return (
                                     <div
                                       key={file.id}
-                                      className={`grid grid-cols-[24px_minmax(0,1fr)_70px] items-center gap-3 rounded-xl px-3 py-2 ${active ? 'bg-sky-50' : 'hover:bg-slate-50'}`}
+                                      className={`grid grid-cols-[24px_minmax(0,1fr)_70px] items-center gap-3 rounded-xl px-3 py-2 ${active ? 'bg-sky-50' : 'hover:bg-slate-100'}`}
                                     >
                                       <input
                                         type="checkbox"
@@ -2433,8 +2433,8 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
                           </div>
                           <div className="mt-1.5 text-xs text-slate-500">
                             类型：{item.item_type}
-                            {item.payload?.status ? ` · 状态：${item.payload.status}` : ''}
-                            {item.payload?.actor ? ` · 执行者：${item.payload.actor}` : ''}
+                            {item.payload?.status ?` · 状态：${item.payload.status}` : ''}
+                            {item.payload?.actor ?` · 执行者：${item.payload.actor}` : ''}
                           </div>
                         </div>
                       ))
@@ -2450,7 +2450,7 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
                         processActions.map((action: any, index: number) => (
                           <div key={action.id || index} className="rounded-xl border border-slate-200 px-4 py-3">
                             <div className="flex items-center justify-between gap-3">
-                              <div className="text-sm font-black text-slate-800">{action.title || action.action_type || action.name || `动作 ${index + 1}`}</div>
+                              <div className="text-sm font-black text-slate-800">{action.title || action.action_type || action.name ||`动作 ${index + 1}`}</div>
                               <div className="text-[11px] text-slate-500">{action.execution_status || action.status || 'unknown'}</div>
                             </div>
                             <div className="mt-1 text-xs text-slate-500">{action.summary || action.description || action.owner || '暂无摘要'}</div>
@@ -2467,7 +2467,7 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
                         processManualTasks.map((task: any, index: number) => (
                           <div key={task.id || index} className="rounded-xl border border-slate-200 px-4 py-3">
                             <div className="flex items-center justify-between gap-3">
-                              <div className="text-sm font-black text-slate-800">{task.title || task.name || `人工任务 ${index + 1}`}</div>
+                              <div className="text-sm font-black text-slate-800">{task.title || task.name ||`人工任务 ${index + 1}`}</div>
                               <div className="text-[11px] text-slate-500">{task.status || 'unknown'}</div>
                             </div>
                             <div className="mt-1 text-xs text-slate-500">{task.summary || task.description || task.assignee || '暂无说明'}</div>
@@ -2505,7 +2505,7 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
                         await navigator.clipboard.writeText(JSON.stringify(relatedRefs, null, 2));
                         setSuccessMessage('已复制相关执行引用。');
                       }}
-                      className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-black text-slate-700"
+                      className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-black text-slate-700"
                     >
                       <Copy size={13} />
                       复制
@@ -2518,7 +2518,7 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
                     ) : (
                       relatedRefs.map((ref: any, index: number) => (
                         <div key={`${ref?.key || 'ref'}-${index}`} className="rounded-xl bg-slate-50 px-4 py-3 text-sm text-slate-700">
-                          <div className="font-black text-slate-800">{ref?.key || `ref-${index + 1}`}</div>
+                          <div className="font-black text-slate-800">{ref?.key ||`ref-${index + 1}`}</div>
                           <div className="mt-1 break-all text-xs text-slate-600">{ref?.value || '-'}</div>
                         </div>
                       ))
@@ -2557,7 +2557,7 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
                         await navigator.clipboard.writeText(JSON.stringify(rawContext, null, 2));
                         setSuccessMessage('已复制完整原始数据。');
                       }}
-                      className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-black text-slate-700"
+                      className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-black text-slate-700"
                     >
                       <Copy size={13} />
                       复制
@@ -2586,7 +2586,7 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
           <button
             type="button"
             onClick={() => setShowSdkDialog(true)}
-            className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-black text-slate-700 shadow-sm"
+ className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm font-black text-slate-700"
           >
             <BookOpen size={16} />
             SDK / 上报方式
@@ -2594,7 +2594,7 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
           <button
             type="button"
             onClick={() => setShowCreateDialog(true)}
-            className="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-black text-white shadow-lg shadow-slate-900/10"
+ className="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-black text-white"
           >
             <Plus size={16} />
             手动创建疑点
@@ -2620,7 +2620,7 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
             type="button"
             onClick={() => setRootTab('cases')}
             className={`inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-black ${
-              rootTab === 'cases' ? 'bg-slate-900 text-white' : 'border border-slate-200 bg-white text-slate-700'
+              rootTab === 'cases' ? 'bg-slate-900 text-white' : 'border border-slate-200 bg-slate-50 text-slate-700'
             }`}
           >
             <ShieldAlert size={14} />
@@ -2630,7 +2630,7 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
             type="button"
             onClick={() => setRootTab('download-center')}
             className={`inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-black ${
-              rootTab === 'download-center' ? 'bg-slate-900 text-white' : 'border border-slate-200 bg-white text-slate-700'
+              rootTab === 'download-center' ? 'bg-slate-900 text-white' : 'border border-slate-200 bg-slate-50 text-slate-700'
             }`}
           >
             <Download size={14} />
@@ -2643,25 +2643,25 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
         rootTab === 'download-center' ? renderDownloadCenter() : (
         <>
           <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-            <div className="rounded-[1.5rem] border border-slate-200 bg-white px-4 py-3.5 shadow-sm">
+ <div className="rounded-[1.5rem] border border-slate-200 bg-slate-50 px-4 py-3.5">
               <div className="text-[10px] font-black uppercase tracking-[0.22em] text-slate-400">疑点总数</div>
               <div className="mt-2 text-3xl font-black text-slate-900">{stats.total}</div>
             </div>
-            <div className="rounded-[1.5rem] border border-slate-200 bg-white px-4 py-3.5 shadow-sm">
+ <div className="rounded-[1.5rem] border border-slate-200 bg-slate-50 px-4 py-3.5">
               <div className="text-[10px] font-black uppercase tracking-[0.22em] text-slate-400">高风险疑点</div>
               <div className="mt-2 text-3xl font-black text-rose-600">{stats.highRisk}</div>
             </div>
-            <div className="rounded-[1.5rem] border border-slate-200 bg-white px-4 py-3.5 shadow-sm">
+ <div className="rounded-[1.5rem] border border-slate-200 bg-slate-50 px-4 py-3.5">
               <div className="text-[10px] font-black uppercase tracking-[0.22em] text-slate-400">待验证</div>
               <div className="mt-2 text-3xl font-black text-amber-600">{stats.pendingAnalyze}</div>
             </div>
-            <div className="rounded-[1.5rem] border border-slate-200 bg-white px-4 py-3.5 shadow-sm">
+ <div className="rounded-[1.5rem] border border-slate-200 bg-slate-50 px-4 py-3.5">
               <div className="text-[10px] font-black uppercase tracking-[0.22em] text-slate-400">认证接入上报</div>
               <div className="mt-2 text-3xl font-black text-blue-600">{stats.authenticated}</div>
             </div>
           </div>
 
-          <div className="rounded-[2rem] border border-slate-200 bg-white shadow-sm overflow-hidden">
+ <div className="rounded-[2rem] border border-slate-200 bg-slate-50 overflow-hidden">
             <div className="border-b border-slate-100 px-5 py-4 xl:px-6">
               <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
                 <div>
@@ -2685,7 +2685,7 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
                     className="inline-flex items-center gap-2 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-black text-rose-700 disabled:opacity-50"
                   >
                     <Trash2 size={14} />
-                    {bulkDeleting ? '删除中...' : `删除选中 (${selectedSuspicionIds.length})`}
+                    {bulkDeleting ? '删除中...' :`删除选中 (${selectedSuspicionIds.length})`}
                   </button>
                   <button
                     type="button"
@@ -2694,12 +2694,12 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
                     className="inline-flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-black text-emerald-700 disabled:opacity-50"
                   >
                     <Download size={14} />
-                    {creatingDownload ? '创建中...' : `打包下载 (${selectedSuspicionIds.length})`}
+                    {creatingDownload ? '创建中...' :`打包下载 (${selectedSuspicionIds.length})`}
                   </button>
                   <button
                     type="button"
                     onClick={() => void loadSuspicions()}
-                    className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-black text-slate-700"
+                    className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-black text-slate-700"
                   >
                     <Send size={14} />
                     刷新
@@ -2737,7 +2737,7 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
                 <select
                   value={severityFilter}
                   onChange={(event) => setSeverityFilter(event.target.value)}
-                  className="rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm outline-none"
+                  className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm outline-none"
                 >
                   <option value="all">全部等级</option>
                   <option value="critical">critical</option>
@@ -2748,7 +2748,7 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
                 <select
                   value={reporterTypeFilter}
                   onChange={(event) => setReporterTypeFilter(event.target.value)}
-                  className="rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm outline-none"
+                  className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm outline-none"
                 >
                   <option value="all">全部来源方式</option>
                   <option value="plugin">plugin</option>
@@ -2762,7 +2762,7 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
                 <select
                   value={cvssBandFilter}
                   onChange={(event) => setCvssBandFilter(event.target.value)}
-                  className="rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm outline-none"
+                  className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm outline-none"
                 >
                   <option value="all">全部 CVSS 档位</option>
                   <option value="critical">critical (9.0-10.0)</option>
@@ -2812,7 +2812,7 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
                           setSelectedSuspicionId(item.id);
                         }
                       }}
-                      className="grid cursor-pointer grid-cols-[0.45fr_2.1fr_0.6fr_1.2fr_0.8fr_0.8fr_1fr_1.5fr_0.9fr_1.1fr_0.7fr_0.9fr] gap-3 border-b border-slate-100 bg-white px-4 py-3.5 text-left transition hover:bg-slate-50 last:border-b-0"
+                      className="grid cursor-pointer grid-cols-[0.45fr_2.1fr_0.6fr_1.2fr_0.8fr_0.8fr_1fr_1.5fr_0.9fr_1.1fr_0.7fr_0.9fr] gap-3 border-b border-slate-100 bg-slate-50 px-4 py-3.5 text-left transition hover:bg-slate-100 last:border-b-0"
                     >
                       <div className="flex items-center justify-center">
                         <input
@@ -2918,7 +2918,7 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
                         const value = Math.min(1000, Math.max(10, Number(event.target.value) || 20));
                         setPageSize(value);
                       }}
-                      className="ml-2 rounded-lg border border-slate-300 bg-white px-2 py-1 text-xs font-semibold outline-none"
+                      className="ml-2 rounded-lg border border-slate-300 bg-slate-50 px-2 py-1 text-xs font-semibold outline-none"
                     >
                       {[20, 50, 100, 200, 500, 1000].map((size) => (
                         <option key={size} value={size}>
@@ -2931,7 +2931,7 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
                     type="button"
                     onClick={() => setCurrentPage(1)}
                     disabled={normalizedPage <= 1}
-                    className="rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-xs font-bold text-slate-700 disabled:opacity-50"
+                    className="rounded-lg border border-slate-300 bg-slate-50 px-2.5 py-1.5 text-xs font-bold text-slate-700 disabled:opacity-50"
                   >
                     首页
                   </button>
@@ -2939,7 +2939,7 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
                     type="button"
                     onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
                     disabled={normalizedPage <= 1}
-                    className="rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-xs font-bold text-slate-700 disabled:opacity-50"
+                    className="rounded-lg border border-slate-300 bg-slate-50 px-2.5 py-1.5 text-xs font-bold text-slate-700 disabled:opacity-50"
                   >
                     上一页
                   </button>
@@ -2947,7 +2947,7 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
                     type="button"
                     onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
                     disabled={normalizedPage >= totalPages}
-                    className="rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-xs font-bold text-slate-700 disabled:opacity-50"
+                    className="rounded-lg border border-slate-300 bg-slate-50 px-2.5 py-1.5 text-xs font-bold text-slate-700 disabled:opacity-50"
                   >
                     下一页
                   </button>
@@ -2955,7 +2955,7 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
                     type="button"
                     onClick={() => setCurrentPage(totalPages)}
                     disabled={normalizedPage >= totalPages}
-                    className="rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-xs font-bold text-slate-700 disabled:opacity-50"
+                    className="rounded-lg border border-slate-300 bg-slate-50 px-2.5 py-1.5 text-xs font-bold text-slate-700 disabled:opacity-50"
                   >
                     末页
                   </button>
@@ -2977,7 +2977,7 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
           <div className="space-y-8">
             <div className="grid gap-5 xl:grid-cols-2 2xl:grid-cols-4">
               {(catalog?.items || []).map((item: any) => (
-                <div key={item.kind} className="rounded-[1.75rem] border border-slate-200 bg-[rgba(255,255,255,0.04)] p-6 shadow-sm">
+ <div key={item.kind} className="rounded-[1.75rem] border border-slate-200 bg-[rgba(255,255,255,0.04)] p-6">
                   <div className="flex items-start justify-between gap-4">
                     <div className="flex items-center gap-3">
                       <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-slate-900 text-white">
@@ -3004,7 +3004,7 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
                   <button
                     type="button"
                     onClick={() => setSelectedExample(item.kind)}
-                    className="mt-5 rounded-2xl border border-slate-200 bg-white px-4 py-2 text-xs font-black text-slate-700"
+                    className="mt-5 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-2 text-xs font-black text-slate-700"
                   >
                     查看示例
                   </button>
@@ -3013,7 +3013,7 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
             </div>
 
             <div className="grid gap-6 xl:grid-cols-[1.15fr_0.85fr]">
-              <div className="rounded-[1.75rem] border border-slate-200 bg-white p-6 shadow-sm">
+ <div className="rounded-[1.75rem] border border-slate-200 bg-slate-50 p-6">
                 <div className="text-[11px] font-black uppercase tracking-[0.22em] text-slate-400">公共字段</div>
                 <div className="mt-4 overflow-hidden rounded-[1.5rem] border border-slate-200">
                   <div className="grid grid-cols-[1.3fr_0.7fr_2.5fr] gap-4 border-b border-slate-200 bg-slate-50 px-5 py-3 text-[11px] font-black uppercase tracking-[0.18em] text-slate-500">
@@ -3036,7 +3036,7 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
               </div>
 
               <div className="space-y-6">
-                <div className="rounded-[1.75rem] border border-slate-200 bg-white p-6 shadow-sm">
+ <div className="rounded-[1.75rem] border border-slate-200 bg-slate-50 p-6">
                   <div className="text-[11px] font-black uppercase tracking-[0.22em] text-slate-400">自定义元数据</div>
                   <div className="mt-4 space-y-3">
                     {METADATA_GUIDE.map((item) => (
@@ -3048,7 +3048,7 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
                   </div>
                 </div>
 
-                <div className="rounded-[1.75rem] border border-slate-200 bg-white p-6 shadow-sm">
+ <div className="rounded-[1.75rem] border border-slate-200 bg-slate-50 p-6">
                   <div className="text-[11px] font-black uppercase tracking-[0.22em] text-slate-400">文件与文件夹上报</div>
                   <div className="mt-4 space-y-3">
                     {ARTIFACT_GUIDE.map((item) => (
@@ -3058,7 +3058,7 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
                       </div>
                     ))}
                   </div>
-                  <div className="mt-4 rounded-[1.25rem] border border-dashed border-slate-300 bg-white px-4 py-4 text-sm leading-6 text-slate-600">
+                  <div className="mt-4 rounded-[1.25rem] border border-dashed border-slate-300 bg-slate-50 px-4 py-4 text-sm leading-6 text-slate-600">
                     目录结构请使用 <span className="font-mono font-bold text-slate-800">artifacts[].children</span> 递归表达；
                     外部文件、压缩包、大文件或已有上传对象请放在 <span className="font-mono font-bold text-slate-800">content_ref</span>；
                     文本、JSON、二进制小文件可直接通过 <span className="font-mono font-bold text-slate-800">content</span> 内联传递。
@@ -3068,7 +3068,7 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
             </div>
 
             <div className="grid gap-6 xl:grid-cols-[1.2fr_1fr]">
-              <div className="rounded-[1.75rem] border border-slate-200 bg-white p-6 shadow-sm">
+ <div className="rounded-[1.75rem] border border-slate-200 bg-slate-50 p-6">
                 <div className="flex flex-wrap items-center gap-3">
                   {(['cli', 'plugin', 'skill', 'openapi'] as PublicKind[]).map((kind) => (
                     <button
@@ -3090,10 +3090,10 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
                 </div>
               </div>
 
-              <div className="rounded-[1.75rem] border border-slate-200 bg-slate-50 p-6 shadow-sm">
+ <div className="rounded-[1.75rem] border border-slate-200 bg-slate-50 p-6">
                 <div className="text-[11px] font-black uppercase tracking-[0.22em] text-slate-400">认证正式上报</div>
                 <div className="mt-3 text-lg font-black text-slate-900">公开 API 说明</div>
-                <div className="mt-4 rounded-2xl border border-slate-200 bg-white p-4 text-xs text-slate-600">
+                <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-xs text-slate-600">
                   <div className="flex items-center justify-between gap-3">
                     <div className="flex items-center gap-2">
                       <Key size={14} className="text-blue-600" />
@@ -3115,32 +3115,32 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
                       <button
                         type="button"
                         onClick={copyProjectToken}
-                        className="absolute right-2 top-2 rounded-lg bg-white/10 p-2 text-white hover:bg-white/20"
+ className="absolute right-2 top-2 rounded-lg bg-slate-100 p-2 text-white hover:bg-slate-100"
                       >
                         {tokenCopied ? <Check size={12} /> : <Copy size={12} />}
                       </button>
                     )}
                   </div>
                   <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] text-slate-500">
-                    <span>标识: <span className="font-black text-slate-700">{projectToken?.machine_code || `project-sdk:${projectId || 'n/a'}`}</span></span>
+                    <span>标识: <span className="font-black text-slate-700">{projectToken?.machine_code ||`project-sdk:${projectId || 'n/a'}`}</span></span>
                     <span>作用域: <span className="font-black text-slate-700">{projectToken?.token_scope || 'project'}</span></span>
                     <span>过期: <span className="font-black text-slate-700">{projectToken?.expires_at ? String(projectToken.expires_at).replace('T', ' ') : '永不过期'}</span></span>
                   </div>
                   {tokenError ? <div className="mt-2 text-[11px] font-black text-rose-600">{tokenError}</div> : null}
                 </div>
-                <div className="mt-4 rounded-2xl bg-white p-4 text-xs text-slate-600">
+                <div className="mt-4 rounded-2xl bg-slate-50 p-4 text-xs text-slate-600">
                   <div className="font-black text-slate-900">POST {API_BASE}/api/vuln/public/intake/submissions</div>
                   <ul className="mt-3 space-y-2">
-                    <li><span className="font-black text-slate-800">必填</span> `project_id`、`title`、`severity`、`cvss_score`、`confidence`、`reporter`、`subject`</li>
-                    <li><span className="font-black text-slate-800">定位</span> `project_id` 标识目标项目，并执行项目级权限校验</li>
+                    <li><span className="font-black text-slate-800">必填</span>`project_id`、`title`、`severity`、`cvss_score`、`confidence`、`reporter`、`subject`</li>
+                    <li><span className="font-black text-slate-800">定位</span>`project_id` 标识目标项目，并执行项目级权限校验</li>
                     <li><span className="font-black text-slate-800">认证</span> 请求必须携带 Bearer Token（复用 auth 微服务登录态）</li>
                     <li><span className="font-black text-slate-800">限制</span> 不支持匿名上报</li>
-                    <li><span className="font-black text-slate-800">行为</span> 后端会自动记为 `created_by_type=human`，`created_by` 取认证身份</li>
-                    <li><span className="font-black text-slate-800">关联</span> 请在 `reporter.name`、`reporter.version` 中明确上报者身份，便于后续验证复现回调</li>
-                    <li><span className="font-black text-slate-800">文件</span> 简易上报可不传 `artifacts`；正常上报建议通过 `artifacts` 传递文件和目录结构</li>
+                    <li><span className="font-black text-slate-800">行为</span> 后端会自动记为`created_by_type=human`，`created_by` 取认证身份</li>
+                    <li><span className="font-black text-slate-800">关联</span> 请在`reporter.name`、`reporter.version` 中明确上报者身份，便于后续验证复现回调</li>
+                    <li><span className="font-black text-slate-800">文件</span> 简易上报可不传`artifacts`；正常上报建议通过`artifacts` 传递文件和目录结构</li>
                   </ul>
                 </div>
-                <div className="mt-4 rounded-2xl border border-slate-200 bg-white p-4 text-xs text-slate-600">
+                <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-xs text-slate-600">
                   <div className="text-xs font-black uppercase tracking-widest text-slate-500">推荐上报流程</div>
                   <ol className="mt-3 list-decimal space-y-2 pl-5">
                     <li>先获取项目级认证 Token（auth 微服务登录态）。</li>
@@ -3148,7 +3148,7 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
                     <li>组装 payload 并调用认证接口，后续可按返回疑点 ID 继续补充资料。</li>
                   </ol>
                 </div>
-                <div className="mt-4 rounded-2xl border border-dashed border-slate-300 bg-white p-4">
+                <div className="mt-4 rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-4">
                   <div className="flex flex-wrap items-center gap-2">
                     <div className="text-xs font-black uppercase tracking-widest text-slate-500">示例模式</div>
                     <button
@@ -3166,7 +3166,7 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
                       正常上报（带文件）
                     </button>
                   </div>
-                  <pre className="mt-3 overflow-auto whitespace-pre-wrap text-[11px] leading-6 text-slate-700">{`curl -X POST "${API_BASE}/api/vuln/public/intake/submissions" \\
+                  <pre className="mt-3 overflow-auto whitespace-pre-wrap text-[11px] leading-6 text-slate-700">{`curl -X POST"${API_BASE}/api/vuln/public/intake/submissions" \\
   -H 'Authorization: Bearer <token>' \\
   -H 'Content-Type: application/json' \\
   --data @${authExampleMode === 'simple' ? 'payload-simple.json' : 'payload-with-files.json'}`}</pre>
@@ -3174,7 +3174,7 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
               </div>
             </div>
 
-            <div className="rounded-[1.75rem] border border-slate-200 bg-white p-6 shadow-sm">
+ <div className="rounded-[1.75rem] border border-slate-200 bg-slate-50 p-6">
               <div className="flex items-center justify-between gap-4">
                 <div>
                   <div className="text-[11px] font-black uppercase tracking-[0.22em] text-slate-400">认证联调</div>
@@ -3202,7 +3202,7 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
                 </button>
                 <a
                   href={vulnApi.vuln.getPublicOpenApiSpecUrl()}
-                  className="rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-black text-slate-700"
+                  className="rounded-2xl border border-slate-200 bg-slate-50 px-5 py-3 text-sm font-black text-slate-700"
                 >
                   获取 OpenAPI 模板
                 </a>
@@ -3241,7 +3241,7 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
                 <select
                   value={suspicionForm.severity}
                   onChange={(event) => setSuspicionForm({ ...suspicionForm, severity: event.target.value })}
-                  className="rounded-2xl border border-slate-200 bg-white px-4 py-3 outline-none"
+                  className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 outline-none"
                 >
                   <option value="critical">critical</option>
                   <option value="high">high</option>
@@ -3301,7 +3301,7 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
               <button
                 type="button"
                 onClick={() => setShowCreateDialog(false)}
-                className="rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-black text-slate-700"
+                className="rounded-2xl border border-slate-200 bg-slate-50 px-5 py-3 text-sm font-black text-slate-700"
               >
                 取消
               </button>

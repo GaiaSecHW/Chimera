@@ -66,16 +66,16 @@ function fmtDuration(start: string | null | undefined, end: string | null | unde
 
 function fmtSeconds(value: number | null | undefined) {
   const sec = Math.max(0, Math.round(Number(value ?? 0)));
-  if (sec < 60) return `${sec}s`;
-  if (sec < 3600) return `${Math.floor(sec / 60)}m${sec % 60}s`;
-  return `${Math.floor(sec / 3600)}h${Math.floor((sec % 3600) / 60)}m`;
+  if (sec < 60) return`${sec}s`;
+  if (sec < 3600) return`${Math.floor(sec / 60)}m${sec % 60}s`;
+  return`${Math.floor(sec / 3600)}h${Math.floor((sec % 3600) / 60)}m`;
 }
 
 function fmtToken(value: number | null | undefined) {
   const num = Number(value ?? 0);
   if (!Number.isFinite(num) || num <= 0) return '0';
-  if (num >= 1_000_000) return `${(num / 1_000_000).toFixed(num >= 10_000_000 ? 1 : 2)}M`;
-  if (num >= 1_000) return `${(num / 1_000).toFixed(num >= 10_000 ? 1 : 2)}K`;
+  if (num >= 1_000_000) return`${(num / 1_000_000).toFixed(num >= 10_000_000 ? 1 : 2)}M`;
+  if (num >= 1_000) return`${(num / 1_000).toFixed(num >= 10_000 ? 1 : 2)}K`;
   return String(Math.round(num));
 }
 
@@ -97,7 +97,7 @@ function formatBytes(value?: number | null) {
     index += 1;
   }
   const digits = size >= 10 || index === 0 ? 0 : 1;
-  return `${size.toFixed(digits)} ${units[index]}`;
+  return`${size.toFixed(digits)} ${units[index]}`;
 }
 
 type RuntimeTreeNode = {
@@ -205,16 +205,16 @@ function buildRuntimeTree(items: FirmwareRuntimeFileList['items']): RuntimeTreeN
 }
 
 function extractFsRelPath(outputPath: string, projectId: string): string | null {
-  const prefix = `/data/files/${projectId}`;
+  const prefix =`/data/files/${projectId}`;
   if (!outputPath.startsWith(prefix)) return null;
   const rel = outputPath.slice(prefix.length).replace(/\/+$/, '');
-  return rel.startsWith('/') ? rel : `/${rel}`;
+  return rel.startsWith('/') ? rel :`/${rel}`;
 }
 
 function normalizeJoinPath(basePath: string, relativePath: string): string {
   const base = basePath.replace(/\/+$/, '');
   const relative = relativePath.replace(/^\/+/, '');
-  return `${base}/${relative}`;
+  return`${base}/${relative}`;
 }
 
 function formatStatus(status: string | null | undefined) {
@@ -330,8 +330,8 @@ function buildEvolutionProgressPhases(job: FirmwareEvolutionJob) {
     const roundRunning = round?.status === 'running';
 
     phases.push({
-      key: `round_${roundId}_evolution_execute`,
-      label: `第 ${roundId} 轮 · 工具进化执行`,
+      key:`round_${roundId}_evolution_execute`,
+      label:`第 ${roundId} 轮 · 工具进化执行`,
       detail: round?.tool_path_after || round?.tool_skill_path_after || (roundId === 1 && job.started_without_matched_skill ? '生成首个 working tool 并执行解包' : '执行或完善 working tool 后解包'),
       status: round
         ? (
@@ -350,8 +350,8 @@ function buildEvolutionProgressPhases(job: FirmwareEvolutionJob) {
     });
 
     phases.push({
-      key: `round_${roundId}_review`,
-      label: `第 ${roundId} 轮 · 评审`,
+      key:`round_${roundId}_review`,
+      label:`第 ${roundId} 轮 · 评审`,
       detail: round?.review_result ? round.review_result.slice(0, 120) : '评审解包完整性、工具可改进性和效率',
       status: round
         ? (
@@ -452,7 +452,7 @@ function CreateEvolutionModal({
   return (
     <div style={{ position: 'fixed', inset: 0, zIndex: 40, display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(2, 6, 23, 0.65)', padding: '1.5rem', backdropFilter: 'blur(4px)' }}>
       <div style={{ display: 'flex', maxHeight: '88vh', width: '100%', maxWidth: '64rem', flexDirection: 'column', borderRadius: '24px', border: `1px solid ${LK.border}`, backgroundColor: LK.surface }}>
-        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '1rem', borderBottom: `1px solid ${LK.borderSoft}`, padding: '1.25rem 1.5rem' }}>
+        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '1rem', borderBottom:`1px solid ${LK.borderSoft}`, padding: '1.25rem 1.5rem' }}>
           <div>
             <p style={{ fontSize: '10px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.28em', color: '#d5a13a' }}>Firmware Evolution</p>
             <h3 style={{ marginTop: '0.5rem', fontSize: '1.5rem', fontWeight: 600, color: LK.ink }}>新建进化任务</h3>
@@ -490,7 +490,7 @@ function CreateEvolutionModal({
                 ) : filtered.length === 0 ? (
                   <tr><td colSpan={5} className="px-4 py-10 text-center text-slate-500">暂无可选 success 解包任务</td></tr>
                 ) : filtered.map((task) => (
-                  <tr key={task.id} onClick={() => onSelectTask(task.id)} className="cursor-pointer border-t border-slate-100 hover:bg-slate-50">
+                  <tr key={task.id} onClick={() => onSelectTask(task.id)} className="cursor-pointer border-t border-slate-100 hover:bg-slate-100">
                     <td className="px-4 py-3"><input type="radio" checked={selectedTaskId === task.id} onChange={() => onSelectTask(task.id)} /></td>
                     <td className="px-4 py-3 font-mono text-xs text-slate-700">{task.id}</td>
                     <td className="px-4 py-3"><div className="max-w-[320px] truncate font-medium text-slate-800">{basename(task.firmware_path)}</div><div className="mt-1 max-w-[320px] truncate font-mono text-[11px] text-slate-400">{task.firmware_path}</div></td>
@@ -503,12 +503,12 @@ function CreateEvolutionModal({
           </div>
         </div>
         <div className="flex items-center justify-end gap-3 border-t border-slate-100 px-6 py-5">
-          <button type="button" onClick={onClose} className="rounded-2xl border border-slate-200 px-5 py-3 text-sm font-semibold text-slate-600 hover:bg-slate-50">取消</button>
+          <button type="button" onClick={onClose} className="rounded-2xl border border-slate-200 px-5 py-3 text-sm font-semibold text-slate-600 hover:bg-slate-100">取消</button>
           <button
             type="button"
             onClick={onSubmit}
             disabled={submitting || !selectedTaskId}
-            className="inline-flex items-center gap-1.5 rounded-2xl bg-amber-600 px-5 py-3 text-sm font-bold text-white shadow-sm hover:bg-amber-700 disabled:cursor-not-allowed disabled:bg-slate-300"
+ className="inline-flex items-center gap-1.5 rounded-2xl bg-amber-600 px-5 py-3 text-sm font-bold text-white hover:bg-amber-700 disabled:cursor-not-allowed disabled:bg-slate-300"
           >
             {submitting ? <><Loader2 size={14} className="animate-spin" />提交中...</> : <><Play size={14} />提交进化任务</>}
           </button>
@@ -843,8 +843,8 @@ export const FirmwareEvolutionCenterPage: React.FC<Props> = ({ projectId }) => {
             }
             setRuntimeSelectedPath(node.path);
           }}
-          className={`flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left text-xs transition ${selected ? 'bg-sky-50 text-sky-700' : 'text-slate-700 hover:bg-slate-50'}`}
-          style={{ paddingLeft: `${12 + depth * 16}px` }}
+          className={`flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left text-xs transition ${selected ? 'bg-sky-50 text-sky-700' : 'text-slate-700 hover:bg-slate-100'}`}
+          style={{ paddingLeft:`${12 + depth * 16}px` }}
         >
           {isDirectory ? (
             expanded ? <ChevronDown size={14} className="shrink-0 text-slate-400" /> : <ChevronRight size={14} className="shrink-0 text-slate-400" />
@@ -1181,11 +1181,11 @@ export const FirmwareEvolutionCenterPage: React.FC<Props> = ({ projectId }) => {
   const handleConfirmReplacement = async () => {
     if (!activeJob?.id || !activeJob.final_tool_path) return;
     const targetLabel = activeJob.replaced_tool_path
-      ? `原工具：${activeJob.replaced_tool_path}`
+      ?`原工具：${activeJob.replaced_tool_path}`
       : '原工具：无，将发布并激活新工具';
     const confirmed = await showConfirm({
       title: '确认替换原工具',
-      message: `将使用新工具覆盖原工具。\n\n${targetLabel}\n新工具：${activeJob.final_tool_path}`,
+      message:`将使用新工具覆盖原工具。\n\n${targetLabel}\n新工具：${activeJob.final_tool_path}`,
       confirmText: '确认替换',
       cancelText: '取消',
       danger: true,
@@ -1212,7 +1212,7 @@ export const FirmwareEvolutionCenterPage: React.FC<Props> = ({ projectId }) => {
     try {
       setLogPayload(await fwApi.getEvolutionLogs(jobId, round, role));
     } catch (e: any) {
-      setLogPayload({ task_id: jobId, run_path: null, available: false, log_text: '', files: [], phase: `evolution:${role}:round_${round}`, message: e?.message || '加载进化日志失败' });
+      setLogPayload({ task_id: jobId, run_path: null, available: false, log_text: '', files: [], phase:`evolution:${role}:round_${round}`, message: e?.message || '加载进化日志失败' });
     } finally {
       setLogLoading(false);
     }
@@ -1221,10 +1221,10 @@ export const FirmwareEvolutionCenterPage: React.FC<Props> = ({ projectId }) => {
   const renderDetail = () => {
     if (!activeJob) {
       return (
-        <div className="rounded-2xl border border-slate-200 bg-white px-4 py-10 text-center text-sm text-slate-500">
+        <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-10 text-center text-sm text-slate-500">
           <div>{detailError || '加载进化任务详情中...'}</div>
           <div className="mt-4 flex items-center justify-center gap-2">
-            <button onClick={() => setActiveJobId('')} className="rounded-xl border border-slate-200 px-3 py-2 text-xs font-bold text-slate-600 hover:bg-slate-50">返回列表</button>
+            <button onClick={() => setActiveJobId('')} className="rounded-xl border border-slate-200 px-3 py-2 text-xs font-bold text-slate-600 hover:bg-slate-100">返回列表</button>
             {activeJobId ? (
               <button onClick={() => refreshJobDetail(activeJobId)} className="rounded-xl bg-slate-900 px-3 py-2 text-xs font-bold text-white">
                 重试加载
@@ -1250,7 +1250,7 @@ export const FirmwareEvolutionCenterPage: React.FC<Props> = ({ projectId }) => {
       <div className="space-y-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-3">
-            <button onClick={() => setActiveJobId('')} className="rounded-xl border border-slate-200 px-3 py-2 text-xs font-bold text-slate-600 hover:bg-slate-50">返回列表</button>
+            <button onClick={() => setActiveJobId('')} className="rounded-xl border border-slate-200 px-3 py-2 text-xs font-bold text-slate-600 hover:bg-slate-100">返回列表</button>
             <div>
               <div className="text-sm font-black text-slate-900">进化任务详情</div>
               <div className="mt-1 font-mono text-xs text-slate-500">{activeJob.id}</div>
@@ -1264,7 +1264,7 @@ export const FirmwareEvolutionCenterPage: React.FC<Props> = ({ projectId }) => {
           </div>
         </div>
 
-        <div className="rounded-2xl border border-slate-200 bg-white p-2 shadow-sm">
+ <div className="rounded-2xl border border-slate-200 bg-slate-50 p-2">
           <div className="flex flex-wrap gap-2">
             {[
               ['overview', '总览'],
@@ -1273,16 +1273,16 @@ export const FirmwareEvolutionCenterPage: React.FC<Props> = ({ projectId }) => {
               ['session', '智能体会话'],
               ['result', '结果'],
             ].map(([id, label]) => (
-              <button key={id} onClick={() => setActiveTab(id as DetailTab)} className={`rounded-xl px-4 py-2 text-sm font-bold ${activeTab === id ? 'bg-slate-900 text-white' : 'text-slate-600 hover:bg-slate-50'}`}>{label}</button>
+              <button key={id} onClick={() => setActiveTab(id as DetailTab)} className={`rounded-xl px-4 py-2 text-sm font-bold ${activeTab === id ? 'bg-slate-900 text-white' : 'text-slate-600 hover:bg-slate-100'}`}>{label}</button>
             ))}
           </div>
         </div>
 
-        {detailLoading ? <div className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-500"><Loader2 size={14} className="animate-spin" />刷新详情中...</div> : null}
+        {detailLoading ? <div className="flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-500"><Loader2 size={14} className="animate-spin" />刷新详情中...</div> : null}
 
         {activeTab === 'overview' ? (
           <div className="space-y-4">
-            <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+ <section className="rounded-2xl border border-slate-200 bg-slate-50 p-5">
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
                   <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">Realtime Progress</div>
@@ -1304,7 +1304,7 @@ export const FirmwareEvolutionCenterPage: React.FC<Props> = ({ projectId }) => {
                 {progressPhases.map((phase, index) => {
                   const isRunning = phase.status === 'running';
                   return (
-                    <div key={phase.key} className={`rounded-2xl border px-4 py-4 ${isRunning ? 'border-blue-300 bg-blue-50/70 shadow-sm' : 'border-slate-200 bg-slate-50'}`}>
+ <div key={phase.key} className={`rounded-2xl border px-4 py-4 ${isRunning ? 'border-blue-300 bg-blue-50/70 ' : 'border-slate-200 bg-slate-50'}`}>
                       <div className="flex items-start gap-3">
                         <div className={`mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full border text-xs font-black ${progressStatusClass(phase.status)}`}>
                           {phase.status === 'completed' ? <CheckCircle2 size={14} /> : phase.status === 'failed' ? <XCircle size={14} /> : phase.status === 'running' ? <Loader2 size={14} className="animate-spin" /> : index + 1}
@@ -1325,7 +1325,7 @@ export const FirmwareEvolutionCenterPage: React.FC<Props> = ({ projectId }) => {
               </div>
             </section>
 
-            <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+ <section className="rounded-2xl border border-slate-200 bg-slate-50 p-5">
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div>
                   <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">Evolution Effect</div>
@@ -1383,7 +1383,7 @@ export const FirmwareEvolutionCenterPage: React.FC<Props> = ({ projectId }) => {
 
             <section className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_360px]">
               <div className="space-y-4">
-              <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+ <div className="rounded-2xl border border-slate-200 bg-slate-50 p-5">
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <div>
                     <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">Overview</div>
@@ -1402,7 +1402,7 @@ export const FirmwareEvolutionCenterPage: React.FC<Props> = ({ projectId }) => {
                   <DetailField label="尝试次数" value={activeJob.attempts} />
                 </div>
               </div>
-              <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+ <div className="rounded-2xl border border-slate-200 bg-slate-50 p-5">
                 <div className="text-sm font-black text-slate-900">轮次时间线</div>
                 {activeJob.rounds.length === 0 ? (
                   <div className="mt-3 rounded-xl border border-dashed border-slate-200 bg-slate-50 px-3 py-6 text-center text-sm text-slate-500">当前进化任务暂未产出轮次记录</div>
@@ -1424,8 +1424,8 @@ export const FirmwareEvolutionCenterPage: React.FC<Props> = ({ projectId }) => {
                           <DetailField label="评审结果摘要" value={round.review_result || '-'} />
                         </div>
                         <div className="mt-4 grid gap-3 md:grid-cols-2">
-                          <button onClick={() => handleOpenLog(activeJob.id, round.round, 'evolution_executor')} className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50"><Terminal size={12} />工具进化执行器日志</button>
-                          <button onClick={() => handleOpenLog(activeJob.id, round.round, 'reviewer')} className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50"><Terminal size={12} />评审器日志</button>
+                          <button onClick={() => handleOpenLog(activeJob.id, round.round, 'evolution_executor')} className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-bold text-slate-700 hover:bg-slate-100"><Terminal size={12} />工具进化执行器日志</button>
+                          <button onClick={() => handleOpenLog(activeJob.id, round.round, 'reviewer')} className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-bold text-slate-700 hover:bg-slate-100"><Terminal size={12} />评审器日志</button>
                         </div>
                       </div>
                     ))}
@@ -1434,7 +1434,7 @@ export const FirmwareEvolutionCenterPage: React.FC<Props> = ({ projectId }) => {
               </div>
             </div>
             <aside className="space-y-4">
-              <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+ <div className="rounded-2xl border border-slate-200 bg-slate-50 p-5">
                 <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">工具结果</div>
                 <div className="mt-4 space-y-3">
                   <DetailField label="源工具" value={activeJob.source_tool_path || activeJob.source_skill_path || '-'} mono />
@@ -1442,9 +1442,9 @@ export const FirmwareEvolutionCenterPage: React.FC<Props> = ({ projectId }) => {
                   <DetailField label="最终工具" value={activeJob.final_tool_path || activeJob.final_skill_path || '-'} mono />
                   <DetailField label="覆盖目标" value={activeJob.replaced_tool_path || activeJob.replaced_skill_path || '-'} mono />
                 </div>
-                <button onClick={handleConfirmReplacement} disabled={!canConfirmReplacement} className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-xl border border-amber-300 bg-amber-500 px-4 py-2 text-sm font-bold text-white shadow-sm hover:bg-amber-600 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-200 disabled:text-slate-500">{replacing ? <Loader2 size={14} className="animate-spin" /> : <Sparkles size={14} />}确认替换原工具</button>
+ <button onClick={handleConfirmReplacement} disabled={!canConfirmReplacement} className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-xl border border-amber-300 bg-amber-500 px-4 py-2 text-sm font-bold text-white hover:bg-amber-600 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-200 disabled:text-slate-500">{replacing ? <Loader2 size={14} className="animate-spin" /> : <Sparkles size={14} />}确认替换原工具</button>
               </div>
-              <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+ <div className="rounded-2xl border border-slate-200 bg-slate-50 p-5">
                 <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">错误信息</div>
                 <div className="mt-3 whitespace-pre-wrap text-sm text-slate-700">{activeJob.error_message || '无'}</div>
               </div>
@@ -1459,7 +1459,7 @@ export const FirmwareEvolutionCenterPage: React.FC<Props> = ({ projectId }) => {
             <StatCard label="阶段" value={stageLabel(activeJob.current_stage)} tone="border-violet-200 bg-violet-50 text-violet-700" />
             <StatCard label="耗时" value={fmtDuration(activeJob.started_at, activeJob.completed_at)} tone="border-slate-200 bg-slate-50 text-slate-700" />
             <StatCard label="会话数" value={sessions?.items?.length ?? '-'} tone="border-emerald-200 bg-emerald-50 text-emerald-700" />
-            <div className="rounded-2xl border border-slate-200 bg-white p-5 md:col-span-2 xl:col-span-4">
+            <div className="rounded-2xl border border-slate-200 bg-slate-50 p-5 md:col-span-2 xl:col-span-4">
               <div className="text-sm font-black text-slate-900">运行路径</div>
               <div className="mt-4 grid gap-3 md:grid-cols-2">
                 <DetailField label="run_root" value={activeJob.run_root || '-'} mono />
@@ -1472,7 +1472,7 @@ export const FirmwareEvolutionCenterPage: React.FC<Props> = ({ projectId }) => {
         ) : null}
 
         {activeTab === 'events' ? (
-          <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+ <section className="rounded-2xl border border-slate-200 bg-slate-50 p-5">
             <div className="flex items-center justify-between gap-3"><div className="text-sm font-black text-slate-900">事件记录</div>{eventsLoading ? <Loader2 size={14} className="animate-spin text-slate-400" /> : null}</div>
             {events.length === 0 ? <div className="mt-3 rounded-xl border border-dashed border-slate-200 bg-slate-50 px-3 py-8 text-center text-sm text-slate-500">暂无进化事件</div> : (
               <div className="mt-4 space-y-3">
@@ -1480,7 +1480,7 @@ export const FirmwareEvolutionCenterPage: React.FC<Props> = ({ projectId }) => {
                   <div key={event.id} className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
                     <div className="flex flex-wrap items-center justify-between gap-3"><div className="text-sm font-bold text-slate-900">{event.summary || event.event_type}</div><div className="text-xs text-slate-500">{fmtTime(event.created_at)}</div></div>
                     <div className="mt-2 grid gap-2 md:grid-cols-3"><DetailField label="事件" value={event.event_type} /><DetailField label="阶段" value={event.stage_key || '-'} /><DetailField label="状态" value={event.status || '-'} /></div>
-                    {event.detail ? <pre className="mt-3 max-h-48 overflow-auto rounded-xl bg-white px-3 py-3 text-xs leading-6 text-slate-700">{JSON.stringify(event.detail, null, 2)}</pre> : null}
+                    {event.detail ? <pre className="mt-3 max-h-48 overflow-auto rounded-xl bg-slate-50 px-3 py-3 text-xs leading-6 text-slate-700">{JSON.stringify(event.detail, null, 2)}</pre> : null}
                   </div>
                 ))}
               </div>
@@ -1490,7 +1490,7 @@ export const FirmwareEvolutionCenterPage: React.FC<Props> = ({ projectId }) => {
 
         {activeTab === 'session' ? (
           <section className="grid gap-4 xl:grid-cols-[320px_minmax(0,1fr)]">
-            <aside className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+ <aside className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
               <div className="flex items-center justify-between gap-3">
                 <div>
                   <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">会话列表</div>
@@ -1499,7 +1499,7 @@ export const FirmwareEvolutionCenterPage: React.FC<Props> = ({ projectId }) => {
                 <button
                   type="button"
                   onClick={() => void loadSessions()}
-                  className="rounded-xl border border-slate-200 p-2 text-slate-500 hover:bg-slate-50"
+                  className="rounded-xl border border-slate-200 p-2 text-slate-500 hover:bg-slate-100"
                   title="刷新会话"
                 >
                   <RefreshCw size={14} className={sessionsLoading ? 'animate-spin' : ''} />
@@ -1535,8 +1535,8 @@ export const FirmwareEvolutionCenterPage: React.FC<Props> = ({ projectId }) => {
                               onClick={() => setSelectedSessionPath(session.relative_path)}
                               className={`w-full rounded-2xl border px-4 py-3 text-left transition ${
                                 selected
-                                  ? 'border-slate-900 bg-slate-900 text-white shadow-[0_12px_30px_rgba(15,23,42,0.16)]'
-                                  : 'border-slate-200 bg-slate-50 text-slate-700 hover:bg-white'
+                                  ? 'border-slate-900 bg-slate-900 text-white'
+                                  : 'border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-50'
                               }`}
                             >
                               <div className="flex items-start justify-between gap-3">
@@ -1569,7 +1569,7 @@ export const FirmwareEvolutionCenterPage: React.FC<Props> = ({ projectId }) => {
 
             <div className="space-y-4">
               {sessionWarnings.length > 0 ? (
-                <section className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-4 text-sm text-amber-800 shadow-sm">
+ <section className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-4 text-sm text-amber-800">
                   <div className="font-bold">会话文件存在部分异常行，已跳过不可解析内容</div>
                   <ul className="mt-2 list-disc space-y-1 pl-5 text-xs text-amber-700">
                     {sessionWarnings.map((warning, index) => (
@@ -1592,7 +1592,7 @@ export const FirmwareEvolutionCenterPage: React.FC<Props> = ({ projectId }) => {
         ) : null}
 
         {activeTab === 'result' ? (
-          <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+ <section className="rounded-2xl border border-slate-200 bg-slate-50 p-5">
             <div className="text-sm font-black text-slate-900">进化结果</div>
             <div className="mt-4 grid gap-3 md:grid-cols-2">
               <DetailField label="评审是否通过" value={activeJob.review_passed ? '通过' : '未通过'} />
@@ -1637,13 +1637,13 @@ export const FirmwareEvolutionCenterPage: React.FC<Props> = ({ projectId }) => {
       {showingDetail ? renderDetail() : (
         <div className="space-y-4">
           <div className="grid gap-3 md:grid-cols-4">
-            <StatCard label="总计" value={stats.total} tone="border-slate-200 bg-white text-slate-800" />
+            <StatCard label="总计" value={stats.total} tone="border-slate-200 bg-slate-50 text-slate-800" />
             <StatCard label="运行中" value={stats.running} tone="border-blue-200 bg-blue-50 text-blue-700" />
             <StatCard label="成功" value={stats.success} tone="border-emerald-200 bg-emerald-50 text-emerald-700" />
             <StatCard label="失败/取消" value={stats.failed} tone="border-red-200 bg-red-50 text-red-700" />
           </div>
 
-          <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+ <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
             <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
               <div className="min-w-0">
                 <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">Runtime Explorer</div>
@@ -1652,7 +1652,7 @@ export const FirmwareEvolutionCenterPage: React.FC<Props> = ({ projectId }) => {
                   当前展示 <span className="font-mono">{runtimeFiles?.root || '/data/chimera-app-firmware-unpacker'}</span> 下的文件与目录。
                 </p>
               </div>
-              <button onClick={() => void loadRuntimeFiles()} className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-50">
+              <button onClick={() => void loadRuntimeFiles()} className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-100">
                 <RefreshCw size={12} className={runtimeFilesLoading ? 'animate-spin' : ''} />
                 刷新文件
               </button>
@@ -1693,7 +1693,7 @@ export const FirmwareEvolutionCenterPage: React.FC<Props> = ({ projectId }) => {
                       </div>
                     ) : null}
                   </div>
-                  <div className="max-h-[36rem] overflow-auto bg-white">
+                  <div className="max-h-[36rem] overflow-auto bg-slate-50">
                     {runtimePreviewLoading ? (
                       <div className="flex items-center gap-2 px-4 py-10 text-sm text-slate-500"><Loader2 size={14} className="animate-spin" />加载预览中...</div>
                     ) : runtimePreviewError ? (
@@ -1711,7 +1711,7 @@ export const FirmwareEvolutionCenterPage: React.FC<Props> = ({ projectId }) => {
             )}
           </div>
 
-          <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+ <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
             <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
               <div className="min-w-0"><div className="flex items-center gap-2"><Package size={14} className="shrink-0 text-amber-600" /><h3 className="text-sm font-bold text-slate-800">进化任务列表</h3></div><p className="mt-1 text-xs text-slate-400">管理固件解包进化任务，支持进入详情查看轮次、事件、会话和结果。</p></div>
               <button onClick={openCreateModal} className="inline-flex items-center gap-1.5 rounded-lg bg-amber-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-amber-700"><Play size={12} />新建进化任务</button>
@@ -1719,7 +1719,7 @@ export const FirmwareEvolutionCenterPage: React.FC<Props> = ({ projectId }) => {
             <div className="mb-4 grid gap-3 md:grid-cols-[160px_minmax(0,1fr)_auto]">
               <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} className="rounded-xl border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-600 outline-none focus:border-amber-400"><option value="">全部状态</option><option value="pending">排队中</option><option value="running">运行中</option><option value="success">成功</option><option value="failed">失败</option><option value="cancelled">已取消</option></select>
               <div className="flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2"><Search size={14} className="text-slate-400" /><input value={filterSearch} onChange={(e) => setFilterSearch(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') void handleQueryList(); }} placeholder="搜索进化任务 ID / 主任务 ID / 固件路径" className="min-w-0 flex-1 bg-transparent text-xs outline-none placeholder:text-slate-400" /></div>
-              <button onClick={() => void handleQueryList()} className="inline-flex items-center justify-center gap-1.5 rounded-xl border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-50"><Search size={12} />查询</button>
+              <button onClick={() => void handleQueryList()} className="inline-flex items-center justify-center gap-1.5 rounded-xl border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100"><Search size={12} />查询</button>
             </div>
             {listError ? <div className="mb-3 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">{listError}</div> : null}
             <ExecutionTable>
@@ -1733,7 +1733,7 @@ export const FirmwareEvolutionCenterPage: React.FC<Props> = ({ projectId }) => {
                     <ExecutionTableTd><div className="max-w-[220px] truncate text-xs text-slate-700">{basename(job.source_task?.firmware_path)}</div></ExecutionTableTd>
                     <ExecutionTableTd><div className="text-xs font-semibold text-slate-700">{job.current_round ?? 0}/{job.max_rounds}</div><div className="mt-1 text-[11px] text-slate-400">{stageLabel(job.current_stage)}</div></ExecutionTableTd>
                     <ExecutionTableTd><div className="text-xs text-slate-500">创建：{fmtTime(job.created_at)}</div><div className="mt-1 text-[11px] text-slate-400">耗时：{fmtDuration(job.started_at, job.completed_at)}</div></ExecutionTableTd>
-                    <ExecutionTableTd className="text-right"><div className="flex justify-end gap-1" onClick={(e) => e.stopPropagation()}><button onClick={() => setActiveJobId(job.id)} className="rounded-lg border border-slate-200 px-2 py-1 text-[11px] font-bold text-slate-600 hover:bg-slate-50">详情</button><button onClick={() => handleCancel(job.id)} disabled={isTerminal(job.status)} className="rounded-lg border border-amber-200 px-2 py-1 text-[11px] font-bold text-amber-700 disabled:opacity-40">结束</button><button onClick={() => handleRetry(job.id)} disabled={!isTerminal(job.status)} className="rounded-lg border border-slate-200 px-2 py-1 text-[11px] font-bold text-slate-600 disabled:opacity-40">重试</button><button onClick={() => handleDelete(job.id)} disabled={!isTerminal(job.status) || deletingJobId === job.id} className="rounded-lg border border-red-200 px-2 py-1 text-[11px] font-bold text-red-700 disabled:opacity-40">删除</button></div></ExecutionTableTd>
+                    <ExecutionTableTd className="text-right"><div className="flex justify-end gap-1" onClick={(e) => e.stopPropagation()}><button onClick={() => setActiveJobId(job.id)} className="rounded-lg border border-slate-200 px-2 py-1 text-[11px] font-bold text-slate-600 hover:bg-slate-100">详情</button><button onClick={() => handleCancel(job.id)} disabled={isTerminal(job.status)} className="rounded-lg border border-amber-200 px-2 py-1 text-[11px] font-bold text-amber-700 disabled:opacity-40">结束</button><button onClick={() => handleRetry(job.id)} disabled={!isTerminal(job.status)} className="rounded-lg border border-slate-200 px-2 py-1 text-[11px] font-bold text-slate-600 disabled:opacity-40">重试</button><button onClick={() => handleDelete(job.id)} disabled={!isTerminal(job.status) || deletingJobId === job.id} className="rounded-lg border border-red-200 px-2 py-1 text-[11px] font-bold text-red-700 disabled:opacity-40">删除</button></div></ExecutionTableTd>
                   </tr>
                 ))}
               </tbody>
@@ -1745,7 +1745,7 @@ export const FirmwareEvolutionCenterPage: React.FC<Props> = ({ projectId }) => {
 
       {logModalOpen ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/65 p-6 backdrop-blur-sm">
-          <div className="flex max-h-[85vh] w-full max-w-5xl flex-col overflow-hidden rounded-[2rem] border border-slate-200 bg-white shadow-2xl">
+ <div className="flex max-h-[85vh] w-full max-w-5xl flex-col overflow-hidden rounded-[2rem] border border-slate-200 bg-slate-50">
             <div className="flex items-start justify-between gap-4 border-b border-slate-100 px-6 py-5"><div><p className="text-[10px] font-black uppercase tracking-[0.28em] text-blue-600">Evolution Log</p><h3 className="mt-2 text-xl font-black text-slate-900">{logModalTitle}</h3></div><button onClick={() => setLogModalOpen(false)} className="rounded-xl p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-700"><X size={18} /></button></div>
             <div className="space-y-3 overflow-auto px-6 py-5">{logLoading ? <div className="flex items-center gap-2 text-sm text-slate-500"><Loader2 size={15} className="animate-spin" /> 加载日志中...</div> : !logPayload?.available ? <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700">{logPayload?.message || '当前阶段日志不可用'}</div> : <><div className="grid grid-cols-1 gap-3 sm:grid-cols-2"><div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3"><p className="text-[11px] font-bold uppercase tracking-wide text-slate-400">日志目录</p><p className="mt-1 break-all font-mono text-xs text-slate-700">{logPayload.run_path || '-'}</p></div><div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3"><p className="text-[11px] font-bold uppercase tracking-wide text-slate-400">日志文件</p><p className="mt-1 break-all font-mono text-xs text-slate-700">{logPayload.files?.join(', ') || '-'}</p></div></div><pre className="min-h-[320px] overflow-auto rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 text-[12px] leading-6 text-slate-900 whitespace-pre-wrap break-words">{logPayload.log_text || logPayload.message || '暂无日志内容'}</pre></> }</div>
           </div>

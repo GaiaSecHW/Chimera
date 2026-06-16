@@ -220,7 +220,7 @@ export const BaseResourcePage: React.FC<BaseResourcePageProps> = ({ type, title,
         upload_ids: deleteConfirm.ids,
       });
       if (result.failed_items?.length) {
-        const summary = result.failed_items.map((item) => `${item.upload_id}: ${item.message}`).join('；');
+        const summary = result.failed_items.map((item) =>`${item.upload_id}: ${item.message}`).join('；');
         setDeleteConfirm((prev) => ({ ...prev, error: summary }));
       } else {
         setDeleteConfirm({ show: false, ids: [], error: null });
@@ -274,7 +274,7 @@ export const BaseResourcePage: React.FC<BaseResourcePageProps> = ({ type, title,
       <div className="flex flex-col md:flex-row justify-between items-end gap-6">
         <div className="space-y-1">
           <div className="flex items-center gap-3">
-            <div className="p-2.5 bg-blue-600 text-white rounded-2xl shadow-lg shadow-blue-500/20">
+ <div className="p-2.5 bg-blue-600 text-white rounded-2xl">
               <Layers size={24} />
             </div>
             <h2 className="text-3xl font-black text-slate-800 tracking-tight">{title}</h2>
@@ -284,7 +284,7 @@ export const BaseResourcePage: React.FC<BaseResourcePageProps> = ({ type, title,
         <div className="flex gap-4">
           <button
             onClick={() => loadData()}
-            className="p-4 bg-white border border-slate-200 text-slate-500 rounded-2xl hover:bg-slate-50 transition-all shadow-sm active:scale-95"
+ className="p-4 bg-slate-50 border border-slate-200 text-slate-500 rounded-2xl hover:bg-slate-100 transition-all active:scale-95"
             title="手动刷新数据"
           >
             <RefreshCw size={20} className={loading ? 'animate-spin' : ''} />
@@ -292,7 +292,7 @@ export const BaseResourcePage: React.FC<BaseResourcePageProps> = ({ type, title,
           <button
             onClick={openCreateModal}
             disabled={!projectId}
-            className="flex items-center gap-2 bg-slate-900 text-white px-8 py-4 rounded-2xl font-black hover:bg-slate-800 shadow-xl shadow-slate-900/10 transition-all active:scale-95 disabled:opacity-50"
+ className="flex items-center gap-2 bg-slate-900 text-white px-8 py-4 rounded-2xl font-black hover:bg-slate-800 transition-all active:scale-95 disabled:opacity-50"
           >
             <Plus size={20} /> 新建上传记录
           </button>
@@ -300,21 +300,21 @@ export const BaseResourcePage: React.FC<BaseResourcePageProps> = ({ type, title,
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-4">
-        <div className="bg-white border border-slate-200 rounded-[2rem] p-5 shadow-sm">
+ <div className="bg-slate-50 border border-slate-200 rounded-[2rem] p-5">
           <div className="flex items-center gap-3 text-slate-500 text-xs font-black uppercase tracking-widest">
             <Database size={16} />
             <span>上传记录</span>
           </div>
           <p className="text-3xl font-black text-slate-800 mt-4">{stats?.total_uploads ?? 0}</p>
         </div>
-        <div className="bg-white border border-slate-200 rounded-[2rem] p-5 shadow-sm">
+ <div className="bg-slate-50 border border-slate-200 rounded-[2rem] p-5">
           <div className="flex items-center gap-3 text-amber-600 text-xs font-black uppercase tracking-widest">
             <Clock size={16} />
             <span>处理中</span>
           </div>
           <p className="text-3xl font-black text-slate-800 mt-4">{stats?.processing_uploads ?? 0}</p>
         </div>
-        <div className="bg-white border border-slate-200 rounded-[2rem] p-5 shadow-sm">
+ <div className="bg-slate-50 border border-slate-200 rounded-[2rem] p-5">
           <div className="flex items-center gap-3 text-green-600 text-xs font-black uppercase tracking-widest">
             <Archive size={16} />
             <span>成功 / 部分成功 / 失败</span>
@@ -323,14 +323,14 @@ export const BaseResourcePage: React.FC<BaseResourcePageProps> = ({ type, title,
             {(stats?.succeeded_uploads ?? 0)} / {(stats?.partial_failed_uploads ?? 0)} / {(stats?.failed_uploads ?? 0)}
           </p>
         </div>
-        <div className="bg-white border border-slate-200 rounded-[2rem] p-5 shadow-sm">
+ <div className="bg-slate-50 border border-slate-200 rounded-[2rem] p-5">
           <div className="flex items-center gap-3 text-slate-500 text-xs font-black uppercase tracking-widest">
             <FileBox size={16} />
             <span>文件总数</span>
           </div>
           <p className="text-3xl font-black text-slate-800 mt-4">{stats?.stored_file_count ?? 0}</p>
         </div>
-        <div className="bg-white border border-slate-200 rounded-[2rem] p-5 shadow-sm">
+ <div className="bg-slate-50 border border-slate-200 rounded-[2rem] p-5">
           <div className="flex items-center gap-3 text-slate-500 text-xs font-black uppercase tracking-widest">
             <HardDrive size={16} />
             <span>总大小</span>
@@ -340,7 +340,7 @@ export const BaseResourcePage: React.FC<BaseResourcePageProps> = ({ type, title,
       </div>
 
       {selectedIds.size > 0 && (
-        <div className="sticky top-0 z-40 bg-slate-900 px-8 py-4 rounded-3xl shadow-2xl flex items-center justify-between animate-in slide-in-from-top-4 duration-300">
+ <div className="sticky top-0 z-40 bg-slate-900 px-8 py-4 rounded-3xl flex items-center justify-between animate-in slide-in-from-top-4 duration-300">
           <div className="flex items-center gap-4">
             <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center text-white">
               <CheckSquare size={20} />
@@ -356,7 +356,7 @@ export const BaseResourcePage: React.FC<BaseResourcePageProps> = ({ type, title,
             </button>
             <button
               onClick={() => setSelectedIds(new Set())}
-              className="px-6 py-2.5 bg-white/5 text-slate-400 rounded-xl text-xs font-black uppercase tracking-widest hover:text-white transition-all"
+              className="px-6 py-2.5 bg-slate-100/10 text-slate-400 rounded-xl text-xs font-black uppercase tracking-widest hover:text-white transition-all"
             >
               取消选择
             </button>
@@ -370,15 +370,15 @@ export const BaseResourcePage: React.FC<BaseResourcePageProps> = ({ type, title,
           <input
             type="text"
             placeholder="搜索上传记录 ID、目录路径或失败信息..."
-            className="w-full pl-16 pr-8 py-5 bg-white border border-slate-200 rounded-[2rem] text-sm outline-none focus:ring-4 ring-blue-500/5 transition-all font-medium shadow-sm"
+ className="w-full pl-16 pr-8 py-5 bg-slate-50 border border-slate-200 rounded-[2rem] text-sm outline-none focus:ring-4 ring-blue-500/5 transition-all font-medium"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
 
-        <div className="bg-white border border-slate-200 rounded-[2.5rem] shadow-sm overflow-hidden min-h-[400px]">
+ <div className="bg-slate-50 border border-slate-200 rounded-[2.5rem] overflow-hidden min-h-[400px]">
           <table className="w-full text-left">
-            <thead className="bg-slate-50/50 border-b border-slate-100 font-black text-[10px] text-slate-400 uppercase tracking-widest">
+            <thead className="bg-slate-100/50 border-b border-slate-100 font-black text-[10px] text-slate-400 uppercase tracking-widest">
               <tr>
                 <th className="px-6 py-5 w-12 text-center">
                   <button onClick={toggleSelectAll} className="p-2 hover:bg-slate-200 rounded-lg transition-colors">
@@ -414,7 +414,7 @@ export const BaseResourcePage: React.FC<BaseResourcePageProps> = ({ type, title,
                 filteredRecords.map((record) => (
                   <tr
                     key={record.upload_id}
-                    className={`hover:bg-slate-50 transition-all group cursor-pointer ${selectedIds.has(record.upload_id) ? 'bg-blue-50/30' : ''}`}
+                    className={`hover:bg-slate-100 transition-all group cursor-pointer ${selectedIds.has(record.upload_id) ? 'bg-blue-50/30' : ''}`}
                     onClick={(e) => toggleSelect(record.upload_id, e)}
                   >
                     <td className="px-6 py-6 text-center">
@@ -428,7 +428,7 @@ export const BaseResourcePage: React.FC<BaseResourcePageProps> = ({ type, title,
                     </td>
                     <td className="px-4 py-6">
                       <div className="flex items-center gap-4">
-                        <div className={`w-11 h-11 rounded-xl flex items-center justify-center font-black transition-all shadow-sm ${selectedIds.has(record.upload_id) ? 'bg-blue-600 text-white' : 'bg-slate-50 text-slate-400 group-hover:bg-blue-600 group-hover:text-white'}`}>
+ <div className={`w-11 h-11 rounded-xl flex items-center justify-center font-black transition-all ${selectedIds.has(record.upload_id) ? 'bg-blue-600 text-white' : 'bg-slate-50 text-slate-400 group-hover:bg-blue-600 group-hover:text-white'}`}>
                           <FileArchive size={18} />
                         </div>
                         <div className="min-w-0">
@@ -492,7 +492,7 @@ export const BaseResourcePage: React.FC<BaseResourcePageProps> = ({ type, title,
 
       {deleteConfirm.show && (
         <div className="fixed inset-0 z-[200] flex items-center justify-center p-6 bg-slate-900/60 backdrop-blur-sm animate-in fade-in">
-          <div className="bg-white w-full max-w-md rounded-[3rem] shadow-2xl overflow-hidden animate-in zoom-in-95">
+ <div className="bg-slate-50 w-full max-w-md rounded-[3rem] overflow-hidden animate-in zoom-in-95 border border-slate-200">
             <div className="p-10 text-center">
               <div className="w-20 h-20 bg-red-50 text-red-600 rounded-3xl flex items-center justify-center mx-auto mb-8">
                 <AlertCircle size={48} />
@@ -526,7 +526,7 @@ export const BaseResourcePage: React.FC<BaseResourcePageProps> = ({ type, title,
                 <button
                   onClick={executeDelete}
                   disabled={isDeleting}
-                  className="flex-1 py-4 bg-red-600 text-white rounded-2xl font-black hover:bg-red-700 shadow-xl transition-all flex items-center justify-center gap-2 active:scale-95 disabled:opacity-50"
+ className="flex-1 py-4 bg-red-600 text-white rounded-2xl font-black hover:bg-red-700 transition-all flex items-center justify-center gap-2 active:scale-95 disabled:opacity-50"
                 >
                   {isDeleting ? <Loader2 className="animate-spin" size={18} /> : <Trash2 size={18} />}
                   确认删除
@@ -539,10 +539,10 @@ export const BaseResourcePage: React.FC<BaseResourcePageProps> = ({ type, title,
 
       {isUploadModalOpen && (
         <div className="fixed inset-0 z-[150] flex items-center justify-center p-6 bg-slate-900/60 backdrop-blur-md animate-in fade-in">
-          <div className="bg-white w-full max-w-2xl rounded-[3rem] shadow-2xl overflow-hidden animate-in zoom-in-95 flex flex-col max-h-[85vh]">
-            <div className="p-8 border-b border-slate-50 bg-slate-50/30 flex items-center justify-between shrink-0">
+ <div className="bg-slate-50 w-full max-w-2xl rounded-[3rem] overflow-hidden animate-in zoom-in-95 flex flex-col max-h-[85vh] border border-slate-200">
+ <div className="p-8 border-b border-slate-200 bg-slate-50 flex items-center justify-between shrink-0">
               <div className="flex items-center gap-4">
-                <div className="w-14 h-14 bg-blue-600 text-white rounded-[1.5rem] flex items-center justify-center shadow-lg shadow-blue-500/20">
+ <div className="w-14 h-14 bg-blue-600 text-white rounded-[1.5rem] flex items-center justify-center">
                   <Upload size={28} />
                 </div>
                 <div>
@@ -557,20 +557,20 @@ export const BaseResourcePage: React.FC<BaseResourcePageProps> = ({ type, title,
 
             <div className="flex-1 overflow-y-auto p-10 space-y-8 custom-scrollbar">
               {!isAppendMode ? (
-                <div className="bg-slate-50 p-6 rounded-[2rem] border border-slate-100 space-y-3">
+ <div className="bg-slate-100 p-6 rounded-[2rem] border border-slate-200 space-y-3">
                   <label className="block">
                     <p className="text-sm font-black text-slate-700">上传记录名称</p>
                     <input
                       value={uploadDisplayName}
                       onChange={(e) => setUploadDisplayName(e.target.value)}
-                      className="mt-3 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-800 outline-none focus:border-blue-400"
+ className="mt-3 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-800 outline-none focus:border-blue-400"
                       placeholder="请输入上传记录名称"
                     />
                   </label>
                 </div>
               ) : null}
 
-              <div className="bg-slate-50 p-6 rounded-[2rem] border border-slate-100 space-y-4">
+ <div className="bg-slate-100 p-6 rounded-[2rem] border border-slate-200 space-y-4">
                 <label className="flex items-center gap-3 cursor-pointer">
                   <input
                     type="checkbox"
@@ -591,7 +591,7 @@ export const BaseResourcePage: React.FC<BaseResourcePageProps> = ({ type, title,
                 onDrop={handleDrop}
                 onClick={() => fileInputRef.current?.click()}
                 className={`border-4 border-dashed rounded-[3rem] p-12 text-center transition-all cursor-pointer group ${
-                  isDragging ? 'border-blue-600 bg-blue-50/50 scale-[0.98]' : 'border-slate-100 hover:border-blue-300 hover:bg-slate-50'
+ isDragging ? 'border-blue-600 bg-blue-50/50 scale-[0.98]' : 'border-slate-200 hover:border-blue-300 hover:bg-slate-100'
                 }`}
               >
                 <input
@@ -616,7 +616,7 @@ export const BaseResourcePage: React.FC<BaseResourcePageProps> = ({ type, title,
                   <h5 className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">待上传队列 ({uploadQueue.length})</h5>
                   <div className="space-y-2">
                     {uploadQueue.map((item) => (
-                      <div key={item.id} className="p-4 bg-white border border-slate-100 rounded-2xl flex items-center justify-between group">
+ <div key={item.id} className="p-4 bg-slate-50 border border-slate-200 rounded-2xl flex items-center justify-between group">
                         <div className="flex items-center gap-4 min-w-0">
                           <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${
                             item.status === 'completed' ? 'bg-green-50 text-green-600' :
@@ -661,12 +661,12 @@ export const BaseResourcePage: React.FC<BaseResourcePageProps> = ({ type, title,
               ) : null}
             </div>
 
-            <div className="p-10 border-t border-slate-50 bg-slate-50/50 flex gap-4 shrink-0">
+ <div className="p-10 border-t border-slate-200 bg-slate-50 flex gap-4 shrink-0">
               <button
                 type="button"
                 onClick={() => setIsUploadModalOpen(false)}
                 disabled={isUploadingBatch}
-                className="flex-1 py-4 bg-white border border-slate-200 text-slate-600 rounded-2xl font-black hover:bg-slate-50 transition-all"
+ className="flex-1 py-4 bg-slate-100 border border-slate-200 text-slate-600 rounded-2xl font-black hover:bg-slate-200 transition-all"
               >
                 取消
               </button>
@@ -674,7 +674,7 @@ export const BaseResourcePage: React.FC<BaseResourcePageProps> = ({ type, title,
                 type="button"
                 onClick={() => { void handleUploadSubmit({ runInBackground: true }); }}
                 disabled={isUploadingBatch || uploadQueue.filter((item) => item.status !== 'failed').length === 0 || (!isAppendMode && !uploadDisplayName.trim())}
-                className="flex-1 py-4 bg-white border border-slate-300 text-slate-700 rounded-2xl font-black hover:bg-slate-100 transition-all disabled:opacity-50"
+ className="flex-1 py-4 bg-slate-100 border border-slate-300 text-slate-700 rounded-2xl font-black hover:bg-slate-200 transition-all disabled:opacity-50"
               >
                 后台运行
               </button>
@@ -682,7 +682,7 @@ export const BaseResourcePage: React.FC<BaseResourcePageProps> = ({ type, title,
                 type="button"
                 onClick={() => { void handleUploadSubmit(); }}
                 disabled={isUploadingBatch || uploadQueue.filter((item) => item.status !== 'failed').length === 0 || (!isAppendMode && !uploadDisplayName.trim())}
-                className="flex-1 py-4 bg-blue-600 text-white rounded-2xl font-black hover:bg-blue-700 shadow-xl shadow-blue-500/20 transition-all flex items-center justify-center gap-2 active:scale-95 disabled:opacity-50"
+ className="flex-1 py-4 bg-blue-600 text-white rounded-2xl font-black hover:bg-blue-700 transition-all flex items-center justify-center gap-2 active:scale-95 disabled:opacity-50"
               >
                 {isUploadingBatch ? <Loader2 className="animate-spin" size={20} /> : <Upload size={20} />}
                 {isAppendMode ? '提交追加上传' : '创建上传记录'}

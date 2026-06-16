@@ -112,7 +112,7 @@ const ReportItemView: React.FC<{ report: VulnVerifyReportItem }> = ({ report }) 
         <ChevronRight size={16} style={{ marginTop: '4px', flexShrink: 0, color: LK.muted, transition: 'transform 0.2s', transform: open ? 'rotate(90deg)' : 'rotate(0deg)' }} />
       </button>
       {open ? (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', borderTop: `1px solid ${LK.borderSoft}`, padding: '16px' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', borderTop:`1px solid ${LK.borderSoft}`, padding: '16px' }}>
           {dimensions.length ? (
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
               {dimensions.map(([name, dim]) => <DimensionBadge key={name} name={name} status={dim.status} detail={dim.detail} />)}
@@ -162,7 +162,7 @@ const ReportItemView: React.FC<{ report: VulnVerifyReportItem }> = ({ report }) 
 
 const GroupCard: React.FC<{ group: VulnVerifyReportGroup }> = ({ group }) => {
   const [open, setOpen] = useState(group.dominant === 'confirmed');
-  const verdictText = Object.entries(group.verdicts || {}).map(([k, v]) => `${VERDICT_LABEL[k] || k}×${v}`).join(' · ');
+  const verdictText = Object.entries(group.verdicts || {}).map(([k, v]) =>`${VERDICT_LABEL[k] || k}×${v}`).join(' · ');
   return (
     <div style={{ borderRadius: '16px', border: `1px solid ${group.dominant === 'confirmed' ? LK.error : LK.borderSoft}`, backgroundColor: LK.surface }}>
       <button type="button" onClick={() => setOpen((v) => !v)} style={{ display: 'flex', width: '100%', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: '12px', padding: '16px', textAlign: 'left', cursor: 'pointer', backgroundColor: 'transparent', border: 'none' }}>
@@ -181,7 +181,7 @@ const GroupCard: React.FC<{ group: VulnVerifyReportGroup }> = ({ group }) => {
         </div>
       </button>
       {open ? (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', borderTop: `1px solid ${LK.borderSoft}`, padding: '16px' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', borderTop:`1px solid ${LK.borderSoft}`, padding: '16px' }}>
           {group.reports.map((report) => <ReportItemView key={report.id} report={report} />)}
         </div>
       ) : null}

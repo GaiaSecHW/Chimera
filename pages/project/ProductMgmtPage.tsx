@@ -215,7 +215,7 @@ export const ProductMgmtPage: React.FC = () => {
         className={`w-full rounded-2xl border px-4 py-3 text-left transition-all ${
           selectedProductId === node.id
             ? 'border-blue-500 bg-blue-50 text-blue-700'
-            : 'border-slate-200 bg-white hover:border-slate-300'
+            : 'border-slate-200 bg-slate-50 hover:border-slate-300'
         }`}
         style={{ marginLeft: depth * 16 }}
       >
@@ -256,7 +256,7 @@ export const ProductMgmtPage: React.FC = () => {
             resetVersionForm();
             void loadTree();
           }}
-          className="rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-black text-slate-600 transition-all hover:bg-slate-50"
+          className="rounded-2xl border border-slate-200 bg-slate-50 px-5 py-3 text-sm font-black text-slate-600 transition-all hover:bg-slate-100"
         >
           刷新目录
         </button>
@@ -277,7 +277,7 @@ export const ProductMgmtPage: React.FC = () => {
       )}
 
       <div className="grid grid-cols-1 gap-8 xl:grid-cols-[1.1fr_0.9fr]">
-        <section className="space-y-6 rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
+ <section className="space-y-6 rounded-[2rem] border border-slate-200 bg-slate-50 p-6">
           <div className="flex items-center justify-between">
             <div>
               <h3 className="text-xl font-black text-slate-800">产品树</h3>
@@ -312,12 +312,12 @@ export const ProductMgmtPage: React.FC = () => {
           )}
         </section>
 
-        <section className="space-y-6 rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
+ <section className="space-y-6 rounded-[2rem] border border-slate-200 bg-slate-50 p-6">
           <div className="flex items-center justify-between">
             <div>
               <h3 className="text-xl font-black text-slate-800">版本与编辑</h3>
               <p className="mt-1 text-sm text-slate-500">
-                {selectedProduct ? `当前产品：${selectedProduct.name}` : '先从左侧选择一个产品节点'}
+                {selectedProduct ?`当前产品：${selectedProduct.name}` : '先从左侧选择一个产品节点'}
               </p>
             </div>
             {selectedProduct && (
@@ -355,27 +355,27 @@ export const ProductMgmtPage: React.FC = () => {
               value={productForm.name}
               onChange={(event) => setProductForm((prev) => ({ ...prev, name: event.target.value }))}
               placeholder="产品名称"
-              className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold outline-none"
+              className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold outline-none"
             />
             <input
               required
               value={productForm.code}
               onChange={(event) => setProductForm((prev) => ({ ...prev, code: event.target.value }))}
               placeholder="产品编码"
-              className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold outline-none"
+              className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold outline-none"
             />
             <input
               value={productForm.sort_order}
               onChange={(event) => setProductForm((prev) => ({ ...prev, sort_order: event.target.value }))}
               placeholder="排序"
-              className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold outline-none"
+              className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold outline-none"
             />
             <textarea
               value={productForm.description}
               onChange={(event) => setProductForm((prev) => ({ ...prev, description: event.target.value }))}
               placeholder="产品说明"
               rows={3}
-              className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold outline-none"
+              className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold outline-none"
             />
             <div className="flex items-center gap-3">
               <button
@@ -406,20 +406,20 @@ export const ProductMgmtPage: React.FC = () => {
                       value={versionForm.version}
                       onChange={(event) => setVersionForm((prev) => ({ ...prev, version: event.target.value }))}
                       placeholder="版本号，例如 1.0.0"
-                      className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold outline-none"
+                      className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold outline-none"
                     />
                     <input
                       value={versionForm.name}
                       onChange={(event) => setVersionForm((prev) => ({ ...prev, name: event.target.value }))}
                       placeholder="版本名称"
-                      className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold outline-none"
+                      className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold outline-none"
                     />
                     <textarea
                       value={versionForm.description}
                       onChange={(event) => setVersionForm((prev) => ({ ...prev, description: event.target.value }))}
                       placeholder="版本说明"
                       rows={3}
-                      className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold outline-none"
+                      className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold outline-none"
                     />
                     <div className="flex items-center gap-3">
                       <button type="submit" disabled={saving} className="rounded-xl bg-blue-600 px-4 py-2 text-xs font-black text-white">
@@ -433,7 +433,7 @@ export const ProductMgmtPage: React.FC = () => {
 
                   <div className="space-y-3">
                     {selectedVersions.length > 0 ? selectedVersions.map((version) => (
-                      <div key={version.id} className="rounded-2xl border border-slate-200 bg-white px-4 py-4">
+                      <div key={version.id} className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4">
                         <div className="flex items-start justify-between gap-3">
                           <div>
                             <div className="flex items-center gap-2">
@@ -448,7 +448,7 @@ export const ProductMgmtPage: React.FC = () => {
                             ) : null}
                           </div>
                           <div className="flex items-center gap-2">
-                            <button onClick={() => openEditVersion(version)} className="rounded-xl p-2 text-slate-400 hover:bg-slate-50 hover:text-blue-600">
+                            <button onClick={() => openEditVersion(version)} className="rounded-xl p-2 text-slate-400 hover:bg-slate-100 hover:text-blue-600">
                               <Edit3 size={16} />
                             </button>
                             <button onClick={() => void deleteVersion(version)} className="rounded-xl p-2 text-slate-400 hover:bg-red-50 hover:text-red-500">

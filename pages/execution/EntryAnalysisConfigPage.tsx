@@ -287,7 +287,7 @@ export const EntryAnalysisConfigPage: React.FC<{ projectId: string; embedded?: b
         const items = Array.isArray(res?.items) ? res.items : [];
         const opts = items
           .filter((p) => p.enabled && p.provider_key && p.model)
-          .map((p) => `${p.provider_key}/${p.model}`);
+          .map((p) =>`${p.provider_key}/${p.model}`);
         setModelOptions(opts);
       })
       .catch(() => { /* 静默忽略 */ });

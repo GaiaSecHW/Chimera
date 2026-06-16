@@ -33,7 +33,7 @@ const buildRandomIngressPrefix = (base: string) => {
     .replace(/^-|-$/g, '')
     .slice(0, 28) || 'route';
   const randomPart = Math.random().toString(36).slice(2, 8);
-  return `${normalized}-${randomPart}`;
+  return`${normalized}-${randomPart}`;
 };
 
 export const ServiceMgmtPage: React.FC<{ projectId: string }> = ({ projectId }) => {
@@ -250,7 +250,7 @@ export const ServiceMgmtPage: React.FC<{ projectId: string }> = ({ projectId }) 
     if (!host) return '';
     const path = String(route?.path || '/').trim() || '/';
     const scheme = route?.tls_enabled === false ? 'http' : 'https';
-    return `${scheme}://${host}${path}`;
+    return`${scheme}://${host}${path}`;
   };
 
   const sleep = (ms: number) => new Promise((resolve) => window.setTimeout(resolve, ms));
@@ -338,7 +338,7 @@ export const ServiceMgmtPage: React.FC<{ projectId: string }> = ({ projectId }) 
     }
   };
 
-  const serviceRowId = (svc: AgentService) => `${svc.agent_key || 'unknown'}::${svc.name}`;
+  const serviceRowId = (svc: AgentService) =>`${svc.agent_key || 'unknown'}::${svc.name}`;
 
   const agentByKey = useMemo(() => {
     const map = new Map<string, Agent>();
@@ -499,8 +499,8 @@ export const ServiceMgmtPage: React.FC<{ projectId: string }> = ({ projectId }) 
           ? '更新'
           : '删除';
     const okToContinue = await confirm({
-      title: `批量${actionText}服务`,
-      message: `确认批量${actionText} ${targets.length} 个服务实例？`,
+      title:`批量${actionText}服务`,
+      message:`确认批量${actionText} ${targets.length} 个服务实例？`,
       confirmText: '确认执行',
       cancelText: '取消',
       danger: action === 'delete',
@@ -558,8 +558,8 @@ export const ServiceMgmtPage: React.FC<{ projectId: string }> = ({ projectId }) 
         }
       }
       const summary = skipped > 0
-        ? `批量${actionText}完成：成功 ${ok}，失败 ${fail}，跳过 ${skipped}`
-        : `批量${actionText}完成：成功 ${ok}，失败 ${fail}`;
+        ?`批量${actionText}完成：成功 ${ok}，失败 ${fail}，跳过 ${skipped}`
+        :`批量${actionText}完成：成功 ${ok}，失败 ${fail}`;
       notify(summary, fail > 0 ? 'warning' : 'success');
       if (action === 'update' && skipped > 0 && fail === 0) {
         notify('离线节点服务已跳过，其余服务已执行更新', 'info');
@@ -606,7 +606,7 @@ export const ServiceMgmtPage: React.FC<{ projectId: string }> = ({ projectId }) 
     if (!projectId || selectedIngressRouteIds.size === 0) return;
     const ok = await confirm({
       title: '批量删除Ingress',
-      message: `确认删除选中的 ${selectedIngressRouteIds.size} 条Ingress路由？`,
+      message:`确认删除选中的 ${selectedIngressRouteIds.size} 条Ingress路由？`,
       confirmText: '确认删除',
       cancelText: '取消',
       danger: true,
@@ -727,9 +727,9 @@ export const ServiceMgmtPage: React.FC<{ projectId: string }> = ({ projectId }) 
     const tpl = normalizeNamePart(templateName, 28) || 'service';
     const agent = normalizeNamePart(agentKey, 10) || 'agent';
     const suffix = normalizeNamePart(deployServiceSuffix, 16);
-    const idx = deployPerNodeCount > 1 ? `-${index + 1}` : '';
-    const suffixPart = suffix ? `-${suffix}` : '';
-    return `${tpl}-${agent}${suffixPart}${idx}`.slice(0, 63);
+    const idx = deployPerNodeCount > 1 ?`-${index + 1}` : '';
+    const suffixPart = suffix ?`-${suffix}` : '';
+    return`${tpl}-${agent}${suffixPart}${idx}`.slice(0, 63);
   };
 
   const filteredDeployAgents = useMemo(() => {
@@ -1109,7 +1109,7 @@ export const ServiceMgmtPage: React.FC<{ projectId: string }> = ({ projectId }) 
           <button
             onClick={() => void forceSyncAndReloadServices()}
             disabled={!projectId || syncRefreshing}
-            className="px-4 bg-blue-600 text-white rounded-2xl hover:bg-blue-700 transition-all shadow-sm active:scale-95 disabled:opacity-50 text-xs font-black flex items-center gap-2"
+ className="px-4 bg-blue-600 text-white rounded-2xl hover:bg-blue-700 transition-all active:scale-95 disabled:opacity-50 text-xs font-black flex items-center gap-2"
             title="调用后端服务发现同步，再回填页面"
           >
             {syncRefreshing ? <Loader2 size={16} className="animate-spin" /> : <Zap size={16} />}
@@ -1118,7 +1118,7 @@ export const ServiceMgmtPage: React.FC<{ projectId: string }> = ({ projectId }) 
           <button
             onClick={() => void loadAllServices({ showFullLoading: false })}
             disabled={!projectId || refreshing}
-            className="p-4 bg-white border border-slate-200 text-slate-500 rounded-2xl hover:bg-slate-50 transition-all shadow-sm active:scale-95 disabled:opacity-50"
+ className="p-4 bg-slate-50 border border-slate-200 text-slate-500 rounded-2xl hover:bg-slate-100 transition-all active:scale-95 disabled:opacity-50"
             title="仅重新拉取当前服务快照"
           >
             {refreshing ? <Loader2 size={20} className="animate-spin" /> : <RefreshCw size={20} />}
@@ -1126,7 +1126,7 @@ export const ServiceMgmtPage: React.FC<{ projectId: string }> = ({ projectId }) 
           <button
             onClick={() => void openDeployModal()}
             disabled={!projectId}
-            className="bg-slate-900 text-white px-8 py-4 rounded-2xl font-black flex items-center gap-2 shadow-xl shadow-slate-900/10 disabled:opacity-60"
+ className="bg-slate-900 text-white px-8 py-4 rounded-2xl font-black flex items-center gap-2 disabled:opacity-60"
           >
             <Plus size={18} /> 部署新服务
           </button>
@@ -1140,7 +1140,7 @@ export const ServiceMgmtPage: React.FC<{ projectId: string }> = ({ projectId }) 
       )}
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="bg-white p-6 rounded-[2.5rem] border border-slate-200 shadow-sm flex items-center gap-5">
+ <div className="bg-slate-50 p-6 rounded-[2.5rem] border border-slate-200 flex items-center gap-5">
           <div className="w-14 h-14 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center">
             <Layout size={24} />
           </div>
@@ -1149,7 +1149,7 @@ export const ServiceMgmtPage: React.FC<{ projectId: string }> = ({ projectId }) 
             <h3 className="text-3xl font-black text-slate-800">{servicesWithAgentStatus.length}</h3>
           </div>
         </div>
-        <div className="bg-white p-6 rounded-[2.5rem] border border-slate-200 shadow-sm flex items-center gap-5">
+ <div className="bg-slate-50 p-6 rounded-[2.5rem] border border-slate-200 flex items-center gap-5">
           <div className="w-14 h-14 bg-indigo-50 text-indigo-600 rounded-2xl flex items-center justify-center">
             <Monitor size={24} />
           </div>
@@ -1167,7 +1167,7 @@ export const ServiceMgmtPage: React.FC<{ projectId: string }> = ({ projectId }) 
         </div>
       </div>
 
-      <div className="bg-white border border-slate-200 rounded-2xl p-4 space-y-3">
+      <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 space-y-3">
         <div className="flex flex-wrap items-center gap-2">
           <p className="text-xs font-black text-slate-700">Ingress 路由管理</p>
           <span className="text-[11px] text-slate-500">总计 {globalIngressStats?.total || 0} · 就绪 {globalIngressStats?.ready || 0} · 无效 {globalIngressStats?.stale_service_ingress || 0}</span>
@@ -1222,7 +1222,7 @@ export const ServiceMgmtPage: React.FC<{ projectId: string }> = ({ projectId }) 
                 <tr><td colSpan={6} className="px-3 py-8 text-center text-xs text-slate-400">暂无Ingress路由</td></tr>
               )}
               {!globalIngressLoading && globalIngressItems.map((item) => (
-                <tr key={item.route_id} className="hover:bg-slate-50">
+                <tr key={item.route_id} className="hover:bg-slate-100">
                   <td className="px-3 py-2">
                     <input
                       type="checkbox"
@@ -1271,7 +1271,7 @@ export const ServiceMgmtPage: React.FC<{ projectId: string }> = ({ projectId }) 
         </div>
       </div>
 
-      <div className="bg-white border border-slate-200 rounded-2xl p-4 flex flex-col lg:flex-row lg:items-center gap-3">
+      <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 flex flex-col lg:flex-row lg:items-center gap-3">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-300" size={16} />
           <input
@@ -1285,7 +1285,7 @@ export const ServiceMgmtPage: React.FC<{ projectId: string }> = ({ projectId }) 
         <select
           value={nodeFilter}
           onChange={(e) => setNodeFilter(e.target.value)}
-          className="px-3 py-2 border border-slate-200 rounded-xl text-sm text-slate-700 bg-white"
+          className="px-3 py-2 border border-slate-200 rounded-xl text-sm text-slate-700 bg-slate-50"
         >
           <option value="all">全部节点</option>
           {nodeOptions.map((node) => (
@@ -1297,7 +1297,7 @@ export const ServiceMgmtPage: React.FC<{ projectId: string }> = ({ projectId }) 
         <select
           value={templateFilter}
           onChange={(e) => setTemplateFilter(e.target.value)}
-          className="px-3 py-2 border border-slate-200 rounded-xl text-sm text-slate-700 bg-white"
+          className="px-3 py-2 border border-slate-200 rounded-xl text-sm text-slate-700 bg-slate-50"
         >
           <option value="all">全部模板</option>
           {templateOptions.map((name) => (
@@ -1307,7 +1307,7 @@ export const ServiceMgmtPage: React.FC<{ projectId: string }> = ({ projectId }) 
         <select
           value={serviceStateFilter}
           onChange={(e) => setServiceStateFilter(e.target.value as any)}
-          className="px-3 py-2 border border-slate-200 rounded-xl text-sm text-slate-700 bg-white"
+          className="px-3 py-2 border border-slate-200 rounded-xl text-sm text-slate-700 bg-slate-50"
         >
           <option value="all">全部状态</option>
           <option value="running">运行中</option>
@@ -1318,7 +1318,7 @@ export const ServiceMgmtPage: React.FC<{ projectId: string }> = ({ projectId }) 
         </select>
       </div>
 
-      <div className="bg-white border border-slate-200 rounded-2xl p-4 flex flex-wrap items-center gap-2">
+      <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 flex flex-wrap items-center gap-2">
         <button
           onClick={toggleSelectAllFiltered}
           disabled={!projectId || filteredServices.length === 0}
@@ -1377,7 +1377,7 @@ export const ServiceMgmtPage: React.FC<{ projectId: string }> = ({ projectId }) 
           <select
             value={servicePerPage}
             onChange={(e) => setServicePerPage(Number(e.target.value) || 50)}
-            className="px-2 py-1 border border-slate-200 rounded-lg bg-white text-xs"
+            className="px-2 py-1 border border-slate-200 rounded-lg bg-slate-50 text-xs"
           >
             <option value={20}>20</option>
             <option value={50}>50</option>
@@ -1388,23 +1388,23 @@ export const ServiceMgmtPage: React.FC<{ projectId: string }> = ({ projectId }) 
           <button
             onClick={() => setServicePage((prev) => Math.max(1, prev - 1))}
             disabled={servicePage <= 1}
-            className="px-2 py-1 rounded-lg border border-slate-200 bg-white disabled:opacity-50"
+            className="px-2 py-1 rounded-lg border border-slate-200 bg-slate-50 disabled:opacity-50"
           >
             上一页
           </button>
           <button
             onClick={() => setServicePage((prev) => Math.min(servicePageCount, prev + 1))}
             disabled={servicePage >= servicePageCount}
-            className="px-2 py-1 rounded-lg border border-slate-200 bg-white disabled:opacity-50"
+            className="px-2 py-1 rounded-lg border border-slate-200 bg-slate-50 disabled:opacity-50"
           >
             下一页
           </button>
         </div>
       </div>
 
-      <div className="bg-white border border-slate-200 rounded-[2.5rem] shadow-sm overflow-hidden">
+ <div className="bg-slate-50 border border-slate-200 rounded-[2.5rem] overflow-hidden">
         <table className="w-full table-fixed text-left">
-          <thead className="bg-slate-50/50 border-b border-slate-100">
+          <thead className="bg-slate-100/50 border-b border-slate-100">
             <tr className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
               <th className="w-14 px-4 py-3">选择</th>
               <th className="w-[20%] px-4 py-3">服务标识</th>
@@ -1420,10 +1420,10 @@ export const ServiceMgmtPage: React.FC<{ projectId: string }> = ({ projectId }) 
               const rowId = serviceRowId(svc);
               const ports = Object.entries(svc.ports || {});
               const portSummary = ports.length > 0
-                ? ports.map(([proto, port]) => `${proto}:${port}`).join('  |  ')
+                ? ports.map(([proto, port]) =>`${proto}:${port}`).join('  |  ')
                 : 'Isolated';
               return (
-                <tr key={rowId} className="hover:bg-slate-50 transition-all">
+                <tr key={rowId} className="hover:bg-slate-100 transition-all">
                   <td className="px-4 py-3 align-middle">
                     <input
                       type="checkbox"
@@ -1485,9 +1485,9 @@ export const ServiceMgmtPage: React.FC<{ projectId: string }> = ({ projectId }) 
                   <td className="px-4 py-3 align-middle">
                     <div
                       className="truncate text-xs font-mono text-slate-600"
-                      title={`${svc.template_id ? `#${svc.template_id}` : '-'} / ${svc.template_name || '未识别'}`}
+                      title={`${svc.template_id ?`#${svc.template_id}` : '-'} / ${svc.template_name || '未识别'}`}
                     >
-                      {svc.template_id ? `#${svc.template_id}` : '-'} / {svc.template_name || '未识别'}
+                      {svc.template_id ?`#${svc.template_id}` : '-'} / {svc.template_name || '未识别'}
                     </div>
                     {(() => {
                       const templateTags = Array.isArray(svc.template_tags)
@@ -1575,7 +1575,7 @@ export const ServiceMgmtPage: React.FC<{ projectId: string }> = ({ projectId }) 
     </div>
     {selectedService && (
       <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-sm p-6 flex items-center justify-center" onClick={closeServiceDetail}>
-        <div className="w-full max-w-6xl h-[84vh] bg-white rounded-3xl border border-slate-200 shadow-2xl overflow-hidden flex flex-col" onClick={(e) => e.stopPropagation()}>
+ <div className="w-full max-w-6xl h-[84vh] bg-slate-50 rounded-3xl border border-slate-200 overflow-hidden flex flex-col" onClick={(e) => e.stopPropagation()}>
           <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
             <div>
               <p className="text-[10px] font-black tracking-widest text-slate-400 uppercase">服务详情</p>
@@ -1596,7 +1596,7 @@ export const ServiceMgmtPage: React.FC<{ projectId: string }> = ({ projectId }) 
           ) : (
             <div className="flex-1 overflow-auto p-5 space-y-4">
               <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
-                <div className="bg-gradient-to-br from-white to-slate-50 border border-slate-200 rounded-2xl p-4">
+                <div className="bg-gradient-to-br from-slate-50 to-slate-50 border border-slate-200 rounded-2xl p-4">
                   <div className="flex items-center justify-between mb-2">
                     <p className="text-[10px] font-black tracking-widest text-slate-400 uppercase">服务状态</p>
                     <StatusBadge status={serviceDetail?.real_status?.status || selectedService.status} />
@@ -1627,7 +1627,7 @@ export const ServiceMgmtPage: React.FC<{ projectId: string }> = ({ projectId }) 
                     <select
                       value={execContainer}
                       onChange={(e) => setExecContainer(e.target.value)}
-                      className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs bg-white"
+                      className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs bg-slate-50"
                     >
                       <option value="">自动选择容器</option>
                       {resolveContainers(serviceDetail).map((name) => (
@@ -1637,7 +1637,7 @@ export const ServiceMgmtPage: React.FC<{ projectId: string }> = ({ projectId }) 
                     <select
                       value={terminalMode}
                       onChange={(e) => setTerminalMode(e.target.value === 'shell' ? 'shell' : 'attach')}
-                      className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs bg-white"
+                      className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs bg-slate-50"
                     >
                       <option value="attach">Attach 模式</option>
                       <option value="shell">新建 Shell</option>
@@ -1670,17 +1670,17 @@ export const ServiceMgmtPage: React.FC<{ projectId: string }> = ({ projectId }) 
                   </div>
                 </div>
 
-                <div className="bg-gradient-to-br from-white to-slate-50 border border-slate-200 rounded-2xl p-4">
+                <div className="bg-gradient-to-br from-slate-50 to-slate-50 border border-slate-200 rounded-2xl p-4">
                   <p className="text-[10px] font-black tracking-widest text-slate-400 uppercase mb-2">快捷操作</p>
                   <div className="grid grid-cols-1 gap-2">
-                    <button onClick={() => void loadServiceLogs(selectedService)} className="px-3 py-2 rounded-xl bg-white border border-slate-200 text-xs font-black text-slate-700 hover:bg-slate-100 transition-colors">刷新日志</button>
-                    <button onClick={() => selectedService && loadIngressRoutesForService(selectedService)} className="px-3 py-2 rounded-xl bg-white border border-slate-200 text-xs font-black text-slate-700 hover:bg-slate-100 transition-colors">刷新转发路由</button>
+                    <button onClick={() => void loadServiceLogs(selectedService)} className="px-3 py-2 rounded-xl bg-slate-50 border border-slate-200 text-xs font-black text-slate-700 hover:bg-slate-100 transition-colors">刷新日志</button>
+                    <button onClick={() => selectedService && loadIngressRoutesForService(selectedService)} className="px-3 py-2 rounded-xl bg-slate-50 border border-slate-200 text-xs font-black text-slate-700 hover:bg-slate-100 transition-colors">刷新转发路由</button>
                     <button onClick={closeServiceDetail} className="px-3 py-2 rounded-xl bg-slate-900 text-xs font-black text-white hover:bg-slate-800 transition-colors">关闭详情</button>
                   </div>
                 </div>
               </div>
 
-              <div className="bg-white rounded-2xl border border-slate-200 p-4 space-y-3 shadow-sm">
+ <div className="bg-slate-50 rounded-2xl border border-slate-200 p-4 space-y-3">
                 <div className="flex items-center justify-between">
                   <p className="text-[10px] font-black tracking-widest text-slate-400 uppercase">动态 WEB 转发（HTTP/HTTPS）</p>
                   <button
@@ -1731,7 +1731,7 @@ export const ServiceMgmtPage: React.FC<{ projectId: string }> = ({ projectId }) 
                   <select
                     value={ingressTlsEnabled ? 'https' : 'http'}
                     onChange={(e) => setIngressTlsEnabled(e.target.value === 'https')}
-                    className="md:col-span-1 px-3 py-2 text-xs border border-slate-200 rounded-xl bg-white"
+                    className="md:col-span-1 px-3 py-2 text-xs border border-slate-200 rounded-xl bg-slate-50"
                   >
                     <option value="https">Ingress HTTPS</option>
                     <option value="http">Ingress HTTP</option>
@@ -1739,7 +1739,7 @@ export const ServiceMgmtPage: React.FC<{ projectId: string }> = ({ projectId }) 
                   <select
                     value={backendProtocol}
                     onChange={(e) => setBackendProtocol(e.target.value === 'https' ? 'https' : 'http')}
-                    className="md:col-span-1 px-3 py-2 text-xs border border-slate-200 rounded-xl bg-white"
+                    className="md:col-span-1 px-3 py-2 text-xs border border-slate-200 rounded-xl bg-slate-50"
                   >
                     <option value="http">后端 HTTP</option>
                     <option value="https">后端 HTTPS</option>
@@ -1804,7 +1804,7 @@ export const ServiceMgmtPage: React.FC<{ projectId: string }> = ({ projectId }) 
               <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-slate-900">
                   <div className="flex items-center justify-between mb-2">
                     <p className="text-[10px] font-black tracking-widest text-slate-400 uppercase">服务日志</p>
-                    <button onClick={() => void loadServiceLogs(selectedService)} className="rounded-lg border border-slate-200 bg-white px-2 py-1 text-[10px] text-slate-600">刷新</button>
+                    <button onClick={() => void loadServiceLogs(selectedService)} className="rounded-lg border border-slate-200 bg-slate-50 px-2 py-1 text-[10px] text-slate-600">刷新</button>
                   </div>
                   <pre className="text-[11px] leading-tight font-mono whitespace-pre-wrap break-words h-[40vh] overflow-auto">{serviceLogs || '暂无日志输出'}</pre>
               </div>
@@ -1819,7 +1819,7 @@ export const ServiceMgmtPage: React.FC<{ projectId: string }> = ({ projectId }) 
         onClick={() => setDeployModalOpen(false)}
       >
         <div
-          className="w-full max-w-6xl bg-white rounded-3xl border border-slate-200 shadow-2xl overflow-hidden"
+ className="w-full max-w-6xl bg-slate-50 rounded-3xl border border-slate-200 overflow-hidden"
           onClick={(e) => e.stopPropagation()}
         >
           <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
@@ -1836,25 +1836,25 @@ export const ServiceMgmtPage: React.FC<{ projectId: string }> = ({ projectId }) 
             <div className="flex flex-wrap items-center gap-2 border border-slate-200 bg-slate-50/70 rounded-2xl p-2">
               <button
                 onClick={() => setDeployModalTab('scope')}
-                className={`px-3 py-1.5 rounded-xl text-xs font-black ${deployModalTab === 'scope' ? 'bg-white text-blue-700 border border-blue-200' : 'text-slate-600 hover:bg-white'}`}
+                className={`px-3 py-1.5 rounded-xl text-xs font-black ${deployModalTab === 'scope' ? 'bg-slate-50 text-blue-700 border border-blue-200' : 'text-slate-600 hover:bg-slate-50'}`}
               >
                 部署范围
               </button>
               <button
                 onClick={() => setDeployModalTab('templates')}
-                className={`px-3 py-1.5 rounded-xl text-xs font-black ${deployModalTab === 'templates' ? 'bg-white text-blue-700 border border-blue-200' : 'text-slate-600 hover:bg-white'}`}
+                className={`px-3 py-1.5 rounded-xl text-xs font-black ${deployModalTab === 'templates' ? 'bg-slate-50 text-blue-700 border border-blue-200' : 'text-slate-600 hover:bg-slate-50'}`}
               >
                 模板选择
               </button>
               <button
                 onClick={() => setDeployModalTab('agents')}
-                className={`px-3 py-1.5 rounded-xl text-xs font-black ${deployModalTab === 'agents' ? 'bg-white text-blue-700 border border-blue-200' : 'text-slate-600 hover:bg-white'}`}
+                className={`px-3 py-1.5 rounded-xl text-xs font-black ${deployModalTab === 'agents' ? 'bg-slate-50 text-blue-700 border border-blue-200' : 'text-slate-600 hover:bg-slate-50'}`}
               >
                 节点选择
               </button>
               <button
                 onClick={() => setDeployModalTab('advanced')}
-                className={`px-3 py-1.5 rounded-xl text-xs font-black ${deployModalTab === 'advanced' ? 'bg-white text-blue-700 border border-blue-200' : 'text-slate-600 hover:bg-white'}`}
+                className={`px-3 py-1.5 rounded-xl text-xs font-black ${deployModalTab === 'advanced' ? 'bg-slate-50 text-blue-700 border border-blue-200' : 'text-slate-600 hover:bg-slate-50'}`}
               >
                 高级参数
               </button>
@@ -1892,7 +1892,7 @@ export const ServiceMgmtPage: React.FC<{ projectId: string }> = ({ projectId }) 
                         setSelectedDeployTemplateIds(new Set<number>(deployTemplates.map((t) => Number(t.id))));
                       }
                     }}
-                    className="text-[10px] px-2 py-1 rounded-lg bg-white border border-slate-200 text-slate-700"
+                    className="text-[10px] px-2 py-1 rounded-lg bg-slate-50 border border-slate-200 text-slate-700"
                   >
                     {selectedDeployTemplateIds.size === deployTemplates.length && deployTemplates.length > 0 ? '取消全选' : '全选'}
                   </button>
@@ -1907,7 +1907,7 @@ export const ServiceMgmtPage: React.FC<{ projectId: string }> = ({ projectId }) 
                   {!deployTemplatesLoading && deployTemplates.map((tpl) => {
                     const id = Number(tpl.id);
                     return (
-                      <label key={`deploy-tpl-${id}`} className="px-4 py-2 flex items-start gap-2 hover:bg-slate-50 cursor-pointer">
+                      <label key={`deploy-tpl-${id}`} className="px-4 py-2 flex items-start gap-2 hover:bg-slate-100 cursor-pointer">
                         <input
                           type="checkbox"
                           checked={selectedDeployTemplateIds.has(id)}
@@ -1939,7 +1939,7 @@ export const ServiceMgmtPage: React.FC<{ projectId: string }> = ({ projectId }) 
                     />
                     <button
                       onClick={toggleAllDeployAgents}
-                      className="text-[10px] px-2 py-1 rounded-lg bg-white border border-slate-200 text-slate-700 whitespace-nowrap"
+                      className="text-[10px] px-2 py-1 rounded-lg bg-slate-50 border border-slate-200 text-slate-700 whitespace-nowrap"
                     >
                       全选筛选结果
                     </button>
@@ -1955,7 +1955,7 @@ export const ServiceMgmtPage: React.FC<{ projectId: string }> = ({ projectId }) 
                   {!deployAgentsLoading && filteredDeployAgents.map((agent) => {
                     const online = agent.status === 'online';
                     return (
-                      <label key={`deploy-agent-${agent.key}`} className={`px-4 py-2 flex items-start gap-2 ${online ? 'hover:bg-slate-50 cursor-pointer' : 'opacity-50 cursor-not-allowed'}`}>
+                      <label key={`deploy-agent-${agent.key}`} className={`px-4 py-2 flex items-start gap-2 ${online ? 'hover:bg-slate-100 cursor-pointer' : 'opacity-50 cursor-not-allowed'}`}>
                         <input
                           type="checkbox"
                           disabled={!online}
@@ -2002,7 +2002,7 @@ export const ServiceMgmtPage: React.FC<{ projectId: string }> = ({ projectId }) 
             <button
               onClick={() => setDeployModalOpen(false)}
               disabled={deploying}
-              className="px-4 py-2 rounded-xl border border-slate-200 text-xs font-black text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+              className="px-4 py-2 rounded-xl border border-slate-200 text-xs font-black text-slate-700 hover:bg-slate-100 disabled:opacity-50"
             >
               取消
             </button>

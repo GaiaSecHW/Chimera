@@ -207,7 +207,7 @@ const normalizePvcPath = (value: string) => {
   const raw = (value || '/').trim();
   if (!raw || raw === '/') return '/';
   const parts = raw.split('/').filter(Boolean);
-  return `/${parts.join('/')}`;
+  return`/${parts.join('/')}`;
 };
 
 const parentPvcPath = (path: string) => {
@@ -215,7 +215,7 @@ const parentPvcPath = (path: string) => {
   if (normalized === '/') return '/';
   const parts = normalized.split('/').filter(Boolean);
   parts.pop();
-  return parts.length ? `/${parts.join('/')}` : '/';
+  return parts.length ?`/${parts.join('/')}` : '/';
 };
 
 const sortNodes = (nodes: UnifiedExplorerNode[]) => {
@@ -270,11 +270,11 @@ const inferPreviewModeByName = (filename: string, contentType?: string | null): 
   return 'binary';
 };
 
-const buildFsPathNodeId = (path: string) => `fs:path:${encodeURIComponent(path)}`;
+const buildFsPathNodeId = (path: string) =>`fs:path:${encodeURIComponent(path)}`;
 const normalizeFsPathForOpen = (input: string) => {
   const raw = (input || '').trim();
   if (!raw) return '/';
-  const prefixed = raw.startsWith('/') ? raw : `/${raw}`;
+  const prefixed = raw.startsWith('/') ? raw :`/${raw}`;
   const normalized = prefixed.replace(/\/{2,}/g, '/');
   return normalized || '/';
 };
@@ -297,13 +297,13 @@ const parentFsPath = (path: string) => {
   if (raw === '/') return '/';
   const parts = raw.split('/').filter(Boolean);
   parts.pop();
-  return parts.length ? `/${parts.join('/')}` : '/';
+  return parts.length ?`/${parts.join('/')}` : '/';
 };
 
 const buildFsChildPath = (parentPath: string, name: string) => {
   const trimmed = name.trim();
   if (!trimmed) return parentPath;
-  return parentPath === '/' ? `/${trimmed}` : `${parentPath.replace(/\/+$/, '')}/${trimmed}`;
+  return parentPath === '/' ?`/${trimmed}` :`${parentPath.replace(/\/+$/, '')}/${trimmed}`;
 };
 
 const isFileserverPathMissingError = (error: any) => {
@@ -329,7 +329,7 @@ const toFsPathNode = (projectId: string, entry: ProjectFilesystemEntry): Unified
 });
 
 const toPvcResourceNode = (resource: ProjectResource): UnifiedExplorerNode => ({
-  id: `pvc:resource:${resource.id}`,
+  id:`pvc:resource:${resource.id}`,
   source: 'pvc',
   nodeType: 'pvc',
   name: resource.name,
@@ -343,7 +343,7 @@ const toPvcResourceNode = (resource: ProjectResource): UnifiedExplorerNode => ({
 });
 
 const toPvcDirectoryNode = (resourceId: number, node: PvcBrowserNode): UnifiedExplorerNode => ({
-  id: `pvc:dir:${resourceId}:${encodeURIComponent(node.path)}`,
+  id:`pvc:dir:${resourceId}:${encodeURIComponent(node.path)}`,
   source: 'pvc',
   nodeType: 'pvc-directory',
   name: node.name,
@@ -355,7 +355,7 @@ const toPvcDirectoryNode = (resourceId: number, node: PvcBrowserNode): UnifiedEx
 });
 
 const toPvcFileNode = (resourceId: number, node: PvcBrowserNode): UnifiedExplorerNode => ({
-  id: `pvc:file:${resourceId}:${encodeURIComponent(node.path)}`,
+  id:`pvc:file:${resourceId}:${encodeURIComponent(node.path)}`,
   source: 'pvc',
   nodeType: 'pvc-file',
   name: node.name,
@@ -461,7 +461,7 @@ const collectTreeFromWebkitEntry = async (
   entry: WebkitEntryLike,
   parentPath = ''
 ): Promise<UploadDirectoryTree> => {
-  const currentPath = normalizeUploadRelativePath(parentPath ? `${parentPath}/${entry.name}` : entry.name);
+  const currentPath = normalizeUploadRelativePath(parentPath ?`${parentPath}/${entry.name}` : entry.name);
 
   if (isWebkitFileEntry(entry)) {
     const file = await readWebkitFile(entry);
@@ -490,7 +490,7 @@ const collectTreeFromDirectoryHandle = async (
   directoryHandle: DirectoryPickerDirectoryHandleLike,
   parentPath = ''
 ): Promise<UploadDirectoryTree> => {
-  const currentPath = normalizeUploadRelativePath(parentPath ? `${parentPath}/${directoryHandle.name}` : directoryHandle.name);
+  const currentPath = normalizeUploadRelativePath(parentPath ?`${parentPath}/${directoryHandle.name}` : directoryHandle.name);
   const directories = [currentPath];
   const files: UploadDirectoryFileEntry[] = [];
 
@@ -520,7 +520,7 @@ export const ProjectFileExplorerPage: React.FC<{ projectId: string; projects: Se
   const projectName = projects.find((item) => item.id === projectId)?.name || projectId;
 
   const [rootNode, setRootNode] = useState<UnifiedExplorerNode>({
-    id: `workspace:${projectId}`,
+    id:`workspace:${projectId}`,
     source: 'virtual',
     nodeType: 'workspace',
     name: projectName,
@@ -640,7 +640,7 @@ export const ProjectFileExplorerPage: React.FC<{ projectId: string; projects: Se
       const loadFsDirectoryChain = async (path: string) => {
         const parts = path.split('/').filter(Boolean);
         let currentPath = '/';
-        let currentNodeId = `fs:root:${projectId}`;
+        let currentNodeId =`fs:root:${projectId}`;
 
         // Ensure root is loaded first.
         const rootPayload = await assetApi.fileserver.getProjectFilesystemChildren(projectId, '/');
@@ -654,7 +654,7 @@ export const ProjectFileExplorerPage: React.FC<{ projectId: string; projects: Se
         });
 
         for (const part of parts) {
-          const nextPath = currentPath === '/' ? `/${part}` : `${currentPath}/${part}`;
+          const nextPath = currentPath === '/' ?`/${part}` :`${currentPath}/${part}`;
           const payload = await assetApi.fileserver.getProjectFilesystemChildren(projectId, nextPath);
           const directories = payload.directories.map((item) => toFsPathNode(projectId, item));
           const files = payload.files.map((item) => toFsPathNode(projectId, item));
@@ -678,7 +678,7 @@ export const ProjectFileExplorerPage: React.FC<{ projectId: string; projects: Se
         // 1) Try as directory first
         if (requestedPath === '/') {
           await openNode({
-            id: `fs:root:${projectId}`,
+            id:`fs:root:${projectId}`,
             source: 'virtual',
             nodeType: 'fileserver-root',
             name: '项目文件（Fileserver）',
@@ -752,7 +752,7 @@ export const ProjectFileExplorerPage: React.FC<{ projectId: string; projects: Se
     ]);
 
     const fileserverRoot: UnifiedExplorerNode = {
-      id: `fs:root:${projectId}`,
+      id:`fs:root:${projectId}`,
       source: 'virtual',
       nodeType: 'fileserver-root',
       name: '项目文件（Fileserver）',
@@ -766,7 +766,7 @@ export const ProjectFileExplorerPage: React.FC<{ projectId: string; projects: Se
       .sort((a, b) => a.name.localeCompare(b.name, 'zh-CN'));
 
     const pvcRoot: UnifiedExplorerNode = {
-      id: `pvc:root:${projectId}`,
+      id:`pvc:root:${projectId}`,
       source: 'virtual',
       nodeType: 'pvc-root',
       name: 'PVC资源',
@@ -776,7 +776,7 @@ export const ProjectFileExplorerPage: React.FC<{ projectId: string; projects: Se
     };
 
     const workspaceRoot: UnifiedExplorerNode = {
-      id: `workspace:${projectId}`,
+      id:`workspace:${projectId}`,
       source: 'virtual',
       nodeType: 'workspace',
       name: projectName,
@@ -862,7 +862,7 @@ export const ProjectFileExplorerPage: React.FC<{ projectId: string; projects: Se
     updateNodeChildren(node.id, merged);
 
     const breadcrumbs = payload.breadcrumbs.map((item) => ({
-      id: item.path === '/' ? `fs:root:${projectId}` : buildFsPathNodeId(item.path),
+      id: item.path === '/' ?`fs:root:${projectId}` : buildFsPathNodeId(item.path),
       name: item.path === '/' ? '项目文件（Fileserver）' : item.name,
       node: item.path === '/' ? null : nodeMap[buildFsPathNodeId(item.path)] || null,
     }));
@@ -882,8 +882,8 @@ export const ProjectFileExplorerPage: React.FC<{ projectId: string; projects: Se
     const merged = sortNodes(directories.concat(files));
     updateNodeChildren(node.id, merged);
 
-    const pvcRootId = `pvc:root:${projectId}`;
-    const pvcNodeId = `pvc:resource:${resourceId}`;
+    const pvcRootId =`pvc:root:${projectId}`;
+    const pvcNodeId =`pvc:resource:${resourceId}`;
     const pvcName = node.name;
     const breadcrumbs = [
       { id: pvcRootId, name: 'PVC资源', node: null },
@@ -891,7 +891,7 @@ export const ProjectFileExplorerPage: React.FC<{ projectId: string; projects: Se
       ...payload.breadcrumbs
         .filter((item) => item.path !== '/')
         .map((item) => ({
-          id: `pvc:dir:${resourceId}:${encodeURIComponent(normalizePvcPath(item.path))}`,
+          id:`pvc:dir:${resourceId}:${encodeURIComponent(normalizePvcPath(item.path))}`,
           name: item.name,
           node: null,
         })),
@@ -933,7 +933,7 @@ export const ProjectFileExplorerPage: React.FC<{ projectId: string; projects: Se
         const actualFile = parentPayload.files.find((item) => item.path === node.path);
         const directories = sortNodes(parentPayload.directories.map((item) => toFsPathNode(projectId, item)));
         const files = sortNodes(parentPayload.files.map((item) => toFsPathNode(projectId, item)));
-        const parentNodeId = parentPath === '/' ? `fs:root:${projectId}` : buildFsPathNodeId(parentPath);
+        const parentNodeId = parentPath === '/' ?`fs:root:${projectId}` : buildFsPathNodeId(parentPath);
         updateNodeChildren(parentNodeId, sortNodes(directories.concat(files)));
         if (actualFile) {
           fileState.filename = actualFile.name;
@@ -1024,9 +1024,9 @@ export const ProjectFileExplorerPage: React.FC<{ projectId: string; projects: Se
         files: sortNodes(files),
         breadcrumbs: [
           {
-            id: `workspace:${projectId}`,
+            id:`workspace:${projectId}`,
             name: projectName,
-            node: (maybeRoot || rootNode).id === `workspace:${projectId}` ? (maybeRoot || rootNode) : nodeMap[`workspace:${projectId}`] || null,
+            node: (maybeRoot || rootNode).id ===`workspace:${projectId}` ? (maybeRoot || rootNode) : nodeMap[`workspace:${projectId}`] || null,
           },
           { id: node.id, name: node.name, node },
         ],
@@ -1111,7 +1111,7 @@ export const ProjectFileExplorerPage: React.FC<{ projectId: string; projects: Se
         const parent = parentFsPath(node.path);
         if (parent === '/') {
           return nodeMap[`fs:root:${projectId}`] || {
-            id: `fs:root:${projectId}`,
+            id:`fs:root:${projectId}`,
             source: 'virtual',
             nodeType: 'fileserver-root',
             name: '项目文件（Fileserver）',
@@ -1136,7 +1136,7 @@ export const ProjectFileExplorerPage: React.FC<{ projectId: string; projects: Se
         const parent = parentPvcPath(node.path);
         if (parent === '/') return nodeMap[`pvc:resource:${node.resourceId}`] || null;
         return nodeMap[`pvc:dir:${node.resourceId}:${encodeURIComponent(parent)}`] || {
-          id: `pvc:dir:${node.resourceId}:${encodeURIComponent(parent)}`,
+          id:`pvc:dir:${node.resourceId}:${encodeURIComponent(parent)}`,
           source: 'pvc',
           nodeType: 'pvc-directory',
           name: parent.split('/').pop() || '/',
@@ -1173,7 +1173,7 @@ const getPvcDirectoryPath = (target: UnifiedExplorerNode) => {
     if (normalizedPath === '/') {
       return (
         nodeMap[`fs:root:${projectId}`] || {
-          id: `fs:root:${projectId}`,
+          id:`fs:root:${projectId}`,
           source: 'fileserver',
           nodeType: 'fileserver-root',
           name: '项目文件（Fileserver）',
@@ -1362,7 +1362,7 @@ const getPvcDirectoryPath = (target: UnifiedExplorerNode) => {
   const handleDelete = async (node: UnifiedExplorerNode) => {
     const confirmed = await showConfirm({
       title: '永久删除资源',
-      message: `确认永久删除 ${node.name} 吗？该操作不可恢复。`,
+      message:`确认永久删除 ${node.name} 吗？该操作不可恢复。`,
       confirmText: '确认删除',
       cancelText: '取消',
       danger: true,
@@ -1379,7 +1379,7 @@ const getPvcDirectoryPath = (target: UnifiedExplorerNode) => {
           selectedNodeId === node.id ||
           (selectedNode?.path != null && (selectedNode.path === node.path || selectedNode.path.startsWith(`${node.path}/`)))
         ) {
-          setSelectedNodeId(parentPath === '/' ? `fs:root:${projectId}` : buildFsPathNodeId(parentPath));
+          setSelectedNodeId(parentPath === '/' ?`fs:root:${projectId}` : buildFsPathNodeId(parentPath));
           clearPreview();
         }
         await refreshFileserverDirectory(parentPath);
@@ -1628,7 +1628,7 @@ const getPvcDirectoryPath = (target: UnifiedExplorerNode) => {
 
     const confirmed = await showConfirm({
       title: '批量删除资源',
-      message: `确认删除已选中的 ${selectedItems.length} 项吗？目录将由后端递归删除（支持非空目录）。`,
+      message:`确认删除已选中的 ${selectedItems.length} 项吗？目录将由后端递归删除（支持非空目录）。`,
       confirmText: '确认删除',
       cancelText: '取消',
       danger: true,
@@ -1657,7 +1657,7 @@ const getPvcDirectoryPath = (target: UnifiedExplorerNode) => {
     }
 
     if (failed.length > 0) {
-      const preview = failed.slice(0, 5).map((item) => `${item.name}: ${item.message}`).join('\n');
+      const preview = failed.slice(0, 5).map((item) =>`${item.name}: ${item.message}`).join('\n');
       alert(`批量删除完成，成功 ${selectedItems.length - failed.length}，失败 ${failed.length}\n${preview}`);
       return;
     }
@@ -1720,7 +1720,7 @@ const getPvcDirectoryPath = (target: UnifiedExplorerNode) => {
           className={`group flex items-center gap-1 rounded-md px-2 py-1 text-[12px] leading-5 cursor-pointer ${
             active ? 'bg-sky-100 text-sky-900' : dragHoverNodeId === node.id ? 'bg-amber-100' : 'text-slate-700 hover:bg-slate-100'
           }`}
-          style={{ paddingLeft: `${depth * 14 + 8}px` }}
+          style={{ paddingLeft:`${depth * 14 + 8}px` }}
           draggable={node.nodeType !== 'workspace' && node.nodeType !== 'fileserver-root' && node.nodeType !== 'pvc-root' && node.nodeType !== 'pvc' && node.nodeType !== 'subproject'}
           onDragStart={(event) => {
             event.dataTransfer.setData('application/chimera-node', node.id);
@@ -1756,7 +1756,7 @@ const getPvcDirectoryPath = (target: UnifiedExplorerNode) => {
         >
           <button
             type="button"
-            className="flex h-4 w-4 items-center justify-center rounded hover:bg-white/70"
+ className="flex h-4 w-4 items-center justify-center rounded hover:bg-slate-100"
             onClick={(event) => {
               event.stopPropagation();
               void toggleNode(node);
@@ -1792,7 +1792,7 @@ const getPvcDirectoryPath = (target: UnifiedExplorerNode) => {
       const isMd = previewFile.filename.endsWith('.md') || previewFile.filename.endsWith('.markdown');
       if (isMd && preview.text) {
         return (
-          <div className="h-full overflow-auto rounded-2xl bg-white p-6">
+ <div className="h-full overflow-auto rounded-2xl bg-slate-50 p-6">
             <div className="prose prose-sm max-w-none text-slate-800">
               <ReactMarkdown
                 remarkPlugins={[remarkGfm]}
@@ -1825,23 +1825,23 @@ const getPvcDirectoryPath = (target: UnifiedExplorerNode) => {
       return <pre className="h-full overflow-auto rounded-2xl border border-slate-200 bg-slate-50 p-5 text-[12px] text-slate-900 whitespace-pre-wrap">{preview.text || ''}</pre>;
     }
     if (preview.mode === 'image' && preview.url) {
-      return <div className="flex h-full items-center justify-center"><img src={preview.url} alt={previewFile.filename} className="max-h-full max-w-full rounded-xl shadow-xl" /></div>;
+ return <div className="flex h-full items-center justify-center"><img src={preview.url} alt={previewFile.filename} className="max-h-full max-w-full rounded-xl" /></div>;
     }
     if (preview.mode === 'pdf' && preview.url) {
-      return <iframe src={preview.url} title={previewFile.filename} className="h-full w-full rounded-2xl border border-slate-200 bg-white" />;
+ return <iframe src={preview.url} title={previewFile.filename} className="h-full w-full rounded-2xl border border-slate-200 bg-slate-50" />;
     }
     if (preview.mode === 'audio' && preview.url) {
       return <div className="flex h-full items-center justify-center"><audio controls src={preview.url} className="w-full max-w-xl" /></div>;
     }
     if (preview.mode === 'video' && preview.url) {
-      return <div className="flex h-full items-center justify-center"><video controls src={preview.url} className="max-h-full max-w-full rounded-xl shadow-xl" /></div>;
+ return <div className="flex h-full items-center justify-center"><video controls src={preview.url} className="max-h-full max-w-full rounded-xl" /></div>;
     }
     if (preview.mode === 'binary') {
       return (
         <div className="flex h-full min-h-0 flex-col gap-3">
           <div className="text-xs font-semibold text-slate-500">
             已展示前 {preview.displayedBytes || 0} bytes
-            {preview.truncated && typeof preview.size === 'number' ? `（总大小 ${preview.size} bytes）` : ''}
+            {preview.truncated && typeof preview.size === 'number' ?`（总大小 ${preview.size} bytes）` : ''}
           </div>
           <pre className="min-h-0 flex-1 overflow-auto rounded-2xl border border-slate-200 bg-slate-50 p-4 text-[11px] leading-5 text-slate-900">
             {preview.view || ''}
@@ -1883,7 +1883,7 @@ const getPvcDirectoryPath = (target: UnifiedExplorerNode) => {
         onClick: () => {
           const dirPath = getFileserverDirectoryPath(node);
           if (dirPath !== null) {
-            const containerPath = `/data/files/${projectId}${dirPath === '/' ? '' : dirPath}`;
+            const containerPath =`/data/files/${projectId}${dirPath === '/' ? '' : dirPath}`;
             sessionStorage.setItem('chimera:systemAnalysisInputPath', containerPath);
             window.dispatchEvent(new CustomEvent('chimera-navigate-view', { detail: { view: 'system-analysis-task' } }));
           }
@@ -1906,7 +1906,7 @@ const getPvcDirectoryPath = (target: UnifiedExplorerNode) => {
           onClick: () => {
             const dirPath = getFileserverDirectoryPath(node);
             if (dirPath !== null) {
-              const containerPath = `/data/files/${projectId}${dirPath === '/' ? '' : dirPath}`;
+              const containerPath =`/data/files/${projectId}${dirPath === '/' ? '' : dirPath}`;
               sessionStorage.setItem('chimera:systemAnalysisInputPath', containerPath);
               window.dispatchEvent(new CustomEvent('chimera-navigate-view', { detail: { view: 'system-analysis-task' } }));
             }
@@ -1922,7 +1922,7 @@ const getPvcDirectoryPath = (target: UnifiedExplorerNode) => {
 
     return (
       <div
-        className="fixed z-50 min-w-[180px] rounded-2xl border border-slate-200 bg-white p-2 shadow-2xl"
+ className="fixed z-50 min-w-[180px] rounded-2xl border border-slate-200 bg-slate-50 p-2"
         style={{ left: contextMenu.x, top: contextMenu.y }}
       >
         {actions.map((action) => (
@@ -1944,7 +1944,7 @@ const getPvcDirectoryPath = (target: UnifiedExplorerNode) => {
   };
 
   return (
-    <div className="h-full overflow-hidden bg-[radial-gradient(circle_at_top_left,_rgba(14,165,233,0.08),_transparent_26%),linear-gradient(180deg,#f8fbff_0%,#f1f5f9_100%)] p-6">
+ <div className="h-full overflow-hidden bg-[#070d18] p-6">
       <input
         ref={fileInputRef}
         type="file"
@@ -1959,7 +1959,7 @@ const getPvcDirectoryPath = (target: UnifiedExplorerNode) => {
       />
 
       <div className="flex h-full min-h-0 flex-col gap-4">
-        <div className="rounded-[2rem] border border-white/70 bg-white/85 px-6 py-5 shadow-[0_20px_60px_rgba(15,23,42,0.08)] backdrop-blur">
+ <div className="rounded-[2rem] border border-slate-200 bg-slate-50 px-6 py-5 backdrop-blur">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
             <div>
               <div className="text-[11px] font-black uppercase tracking-[0.35em] text-sky-600">Project File Explorer</div>
@@ -1982,7 +1982,7 @@ const getPvcDirectoryPath = (target: UnifiedExplorerNode) => {
                   </button>
                 )}
               </div>
-              <button type="button" onClick={() => void refreshCurrentView()} className="rounded-2xl border border-slate-200 bg-white px-4 py-2 text-xs font-black text-slate-700">
+              <button type="button" onClick={() => void refreshCurrentView()} className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-2 text-xs font-black text-slate-700">
                 <span className="inline-flex items-center gap-2"><RefreshCw size={14} /> 刷新</span>
               </button>
               <button type="button" onClick={() => void handleCreateSubproject()} className="rounded-2xl border border-sky-200 bg-sky-50 px-4 py-2 text-xs font-black text-sky-700">
@@ -2001,7 +2001,7 @@ const getPvcDirectoryPath = (target: UnifiedExplorerNode) => {
           </div>
 
           <div className="mt-4 flex flex-wrap items-center gap-2 text-xs font-bold text-slate-500">
-            {(listing.breadcrumbs.length > 0 ? listing.breadcrumbs : [{ id: `workspace:${projectId}`, name: projectName, node: nodeMap[`workspace:${projectId}`] || null }]).map((item, index, array) => (
+            {(listing.breadcrumbs.length > 0 ? listing.breadcrumbs : [{ id:`workspace:${projectId}`, name: projectName, node: nodeMap[`workspace:${projectId}`] || null }]).map((item, index, array) => (
               <React.Fragment key={`${item.id}-${index}`}>
                 <button
                   type="button"
@@ -2025,7 +2025,7 @@ const getPvcDirectoryPath = (target: UnifiedExplorerNode) => {
 
         <div className="grid min-h-0 flex-1 grid-cols-[320px_minmax(0,1fr)] gap-4">
           <div
-            className="min-h-0 overflow-auto rounded-[2rem] border border-white/70 bg-white/90 p-3 shadow-[0_18px_50px_rgba(15,23,42,0.08)]"
+ className="min-h-0 overflow-auto rounded-[2rem] border border-slate-200 bg-slate-50 p-3"
             onContextMenu={(event) => {
               if ((event.target as HTMLElement).closest('[data-tree-node]')) return;
               event.preventDefault();
@@ -2044,7 +2044,7 @@ const getPvcDirectoryPath = (target: UnifiedExplorerNode) => {
           </div>
 
           <div
-            className="min-h-0 rounded-[2rem] border border-white/70 bg-white/92 shadow-[0_18px_50px_rgba(15,23,42,0.08)]"
+ className="min-h-0 rounded-[2rem] border border-slate-200 bg-slate-50"
             onDragOver={(event) => {
               const target = resolveUploadTarget(selectedNode || null);
               if (target) event.preventDefault();
@@ -2075,7 +2075,7 @@ const getPvcDirectoryPath = (target: UnifiedExplorerNode) => {
               <div className="flex items-center justify-between border-b border-slate-100 px-5 py-4">
                 <div>
                   <div className="text-sm font-black text-slate-900">{selectedNode?.name || '项目文件资源'}</div>
-                  <div className="mt-1 text-[11px] text-slate-400">{busyAction ? `执行中: ${busyAction}` : '双击目录进入，单击文件预览'}</div>
+                  <div className="mt-1 text-[11px] text-slate-400">{busyAction ?`执行中: ${busyAction}` : '双击目录进入，单击文件预览'}</div>
                 </div>
               </div>
 
@@ -2109,7 +2109,7 @@ const getPvcDirectoryPath = (target: UnifiedExplorerNode) => {
                     <div className="flex items-center gap-2">
                       <button
                         type="button"
-                        className="rounded-lg border border-slate-200 bg-white px-2.5 py-1 text-xs font-semibold text-slate-700 disabled:cursor-not-allowed disabled:opacity-50"
+                        className="rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-semibold text-slate-700 disabled:cursor-not-allowed disabled:opacity-50"
                         onClick={() => setSelectedListNodeIds(new Set(filteredItems.map((item) => item.id)))}
                         disabled={filteredItems.length === 0}
                       >
@@ -2117,7 +2117,7 @@ const getPvcDirectoryPath = (target: UnifiedExplorerNode) => {
                       </button>
                       <button
                         type="button"
-                        className="rounded-lg border border-slate-200 bg-white px-2.5 py-1 text-xs font-semibold text-slate-700 disabled:cursor-not-allowed disabled:opacity-50"
+                        className="rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-semibold text-slate-700 disabled:cursor-not-allowed disabled:opacity-50"
                         onClick={() => setSelectedListNodeIds(new Set())}
                         disabled={selectedListNodeIds.size === 0}
                       >
@@ -2153,7 +2153,7 @@ const getPvcDirectoryPath = (target: UnifiedExplorerNode) => {
                       <div
                         key={item.id}
                         className={`grid cursor-pointer grid-cols-[minmax(0,1fr)_120px_190px] gap-3 rounded-2xl px-4 py-3 text-sm ${
-                          selectedNodeId === item.id ? 'bg-sky-50' : 'hover:bg-slate-50'
+                          selectedNodeId === item.id ? 'bg-sky-50' : 'hover:bg-slate-100'
                         } ${dragHoverNodeId === item.id ? 'ring-1 ring-amber-300' : ''}`}
                         draggable={item.nodeType !== 'pvc' && item.nodeType !== 'subproject'}
                         onDragStart={(event) => {
@@ -2212,7 +2212,7 @@ const getPvcDirectoryPath = (target: UnifiedExplorerNode) => {
                           <span className="truncate font-semibold text-slate-700">{item.name}</span>
                           {item.specialBadge && <span className="rounded bg-sky-50 px-1.5 py-0.5 text-[9px] font-black text-sky-700">{item.specialBadge}</span>}
                         </div>
-                        <div className="text-xs text-slate-500">{item.nodeType === 'file' || item.nodeType === 'pvc-file' ? `${item.size || 0} bytes` : '--'}</div>
+                        <div className="text-xs text-slate-500">{item.nodeType === 'file' || item.nodeType === 'pvc-file' ?`${item.size || 0} bytes` : '--'}</div>
                         <div className="truncate text-xs text-slate-500">{item.updatedAt || '--'}</div>
                       </div>
                     ))}

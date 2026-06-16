@@ -51,7 +51,7 @@ export const RoleMgmtPage: React.FC = () => {
     }
   };
 
-  const filteredRoles = roles.filter(r => 
+  const filteredRoles = roles.filter(r =>
     r.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     r.description.toLowerCase().includes(searchTerm.toLowerCase())
   );
@@ -74,7 +74,7 @@ export const RoleMgmtPage: React.FC = () => {
       <div className="flex justify-between items-end">
         <div className="space-y-1">
           <div className="flex items-center gap-3">
-             <div className="p-3 bg-indigo-600 text-white rounded-[1.25rem] shadow-xl shadow-indigo-500/20">
+ <div className="p-3 bg-indigo-600 text-white rounded-[1.25rem] shadow-indigo-500/20">
                <Shield size={28} />
              </div>
              <div>
@@ -84,10 +84,10 @@ export const RoleMgmtPage: React.FC = () => {
           </div>
         </div>
         <div className="flex gap-4">
-          <button onClick={fetchRoles} className="p-4 bg-white border border-slate-200 text-slate-500 rounded-2xl hover:bg-slate-50 transition-all shadow-sm active:scale-95">
+ <button onClick={fetchRoles} className="p-4 bg-slate-50 border border-slate-200 text-slate-500 rounded-2xl hover:bg-slate-100 transition-all active:scale-95">
             <RefreshCw size={20} className={loading ? 'animate-spin' : ''} />
           </button>
-          <button onClick={() => { setEditingRole(null); setFormData({ name: '', description: '' }); setIsModalOpen(true); }} className="bg-indigo-600 text-white px-8 py-4 rounded-2xl font-black flex items-center gap-3 shadow-xl shadow-indigo-500/20 hover:bg-indigo-700 transition-all active:scale-95">
+ <button onClick={() => { setEditingRole(null); setFormData({ name: '', description: '' }); setIsModalOpen(true); }} className="bg-indigo-600 text-white px-8 py-4 rounded-2xl font-black flex items-center gap-3 shadow-indigo-500/20 hover:bg-indigo-700 transition-all active:scale-95">
             <Plus size={20} /> 定义新角色
           </button>
         </div>
@@ -95,12 +95,12 @@ export const RoleMgmtPage: React.FC = () => {
 
       {/* Summary Row */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <div className="bg-slate-900 p-8 rounded-[3rem] text-white flex flex-col justify-between group overflow-hidden relative shadow-2xl">
+ <div className="bg-slate-900 p-8 rounded-[3rem] text-white flex flex-col justify-between group overflow-hidden relative">
            <ShieldCheck className="absolute right-[-20px] top-[-20px] w-32 h-32 opacity-10 rotate-12 group-hover:rotate-0 transition-transform duration-700" />
            <p className="text-slate-500 text-[10px] font-black uppercase tracking-widest relative z-10">已定义角色</p>
            <h3 className="text-5xl font-black mt-4 relative z-10">{roles.length}</h3>
         </div>
-        <div className="bg-white p-8 rounded-[3rem] border border-slate-200 shadow-sm col-span-3 flex items-center gap-8">
+ <div className="bg-slate-50 p-8 rounded-[3rem] border border-slate-200 col-span-3 flex items-center gap-8">
            <div className="w-16 h-16 bg-indigo-50 text-indigo-400 rounded-3xl flex items-center justify-center shrink-0">
              <Activity size={32} />
            </div>
@@ -116,16 +116,16 @@ export const RoleMgmtPage: React.FC = () => {
       <div className="space-y-4">
         <div className="relative group">
           <Search className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-indigo-500 transition-colors" size={20} />
-          <input 
-            type="text" placeholder="搜索角色名称或职责描述..." 
-            className="w-full pl-16 pr-8 py-5 bg-white border border-slate-200 rounded-[2.5rem] text-sm outline-none focus:ring-4 ring-indigo-500/5 transition-all font-medium shadow-sm"
+          <input
+            type="text" placeholder="搜索角色名称或职责描述..."
+ className="w-full pl-16 pr-8 py-5 bg-slate-50 border border-slate-200 rounded-[2.5rem] text-sm outline-none focus:ring-4 ring-indigo-500/5 transition-all font-medium"
             value={searchTerm} onChange={e => setSearchTerm(e.target.value)}
           />
         </div>
 
-        <div className="bg-white border border-slate-200 rounded-[3rem] shadow-sm overflow-hidden min-h-[500px]">
+ <div className="bg-slate-50 border border-slate-200 rounded-[3rem] overflow-hidden min-h-[500px]">
           <table className="w-full text-left">
-            <thead className="bg-slate-50/50 border-b border-slate-100 font-black text-[10px] text-slate-400 uppercase tracking-widest">
+            <thead className="bg-slate-100/50 border-b border-slate-100 font-black text-[10px] text-slate-400 uppercase tracking-widest">
               <tr>
                 <th className="px-8 py-6">角色标识 / ID</th>
                 <th className="px-6 py-6">职责权限描述</th>
@@ -138,7 +138,7 @@ export const RoleMgmtPage: React.FC = () => {
               {loading && roles.length === 0 ? (
                 <tr><td colSpan={5} className="py-32 text-center"><Loader2 className="animate-spin mx-auto text-indigo-600" size={40} /></td></tr>
               ) : filteredRoles.length > 0 ? filteredRoles.map(role => (
-                <tr key={role.id} className="hover:bg-slate-50 transition-all group border-l-4 border-transparent hover:border-indigo-600">
+                <tr key={role.id} className="hover:bg-slate-100 transition-all group border-l-4 border-transparent hover:border-indigo-600">
                   <td className="px-8 py-6">
                     <div className="flex items-center gap-4">
                       <div className="w-12 h-12 bg-indigo-50 text-indigo-600 rounded-2xl flex items-center justify-center font-black shadow-inner group-hover:bg-indigo-600 group-hover:text-white transition-all">
@@ -151,8 +151,7 @@ export const RoleMgmtPage: React.FC = () => {
                     </div>
                   </td>
                   <td className="px-6 py-6">
-                    <p className="text-xs font-medium text-slate-500 line-clamp-1 italic italic max-w-[300px]">
-                      "{role.description || '未提供详细职责描述信息。'}"
+                    <p className="text-xs font-medium text-slate-500 line-clamp-1 italic italic max-w-[300px]">"{role.description || '未提供详细职责描述信息。'}"
                     </p>
                   </td>
                   <td className="px-6 py-6 text-center">
@@ -167,16 +166,16 @@ export const RoleMgmtPage: React.FC = () => {
                   </td>
                   <td className="px-8 py-6 text-right">
                     <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-all">
-                       <button 
+                       <button
                          onClick={() => { setEditingRole(role); setFormData({ name: role.name, description: role.description }); setIsModalOpen(true); }}
-                         className="p-3 bg-white border border-slate-200 text-slate-400 hover:text-indigo-600 rounded-xl transition-all shadow-sm"
+ className="p-3 bg-slate-50 border border-slate-200 text-slate-400 hover:text-indigo-600 rounded-xl transition-all"
                          title="编辑角色"
                        >
                           <Edit3 size={16} />
                        </button>
-                       <button 
+                       <button
                          onClick={() => void handleDeleteRole(role)}
-                         className="p-3 bg-red-50 text-red-400 border border-transparent hover:border-red-100 rounded-xl transition-all shadow-sm"
+ className="p-3 bg-red-50 text-red-400 border border-transparent hover:border-red-100 rounded-xl transition-all"
                          title="彻底删除"
                        >
                           <Trash2 size={16} />
@@ -202,10 +201,10 @@ export const RoleMgmtPage: React.FC = () => {
       {/* Create/Edit Modal */}
       {isModalOpen && (
         <div className="fixed inset-0 z-[150] flex items-center justify-center p-6 bg-slate-900/60 backdrop-blur-md animate-in fade-in">
-           <div className="bg-white w-full max-w-md rounded-[3rem] shadow-2xl overflow-hidden animate-in zoom-in-95">
+ <div className="bg-slate-50 w-full max-w-md rounded-[3rem] overflow-hidden animate-in zoom-in-95">
               <div className="p-10 pb-4 border-b border-slate-50 flex items-center justify-between">
                 <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 bg-indigo-600 rounded-2xl flex items-center justify-center text-white shadow-lg shadow-indigo-500/20">
+ <div className="w-12 h-12 bg-indigo-600 rounded-2xl flex items-center justify-center text-white shadow-indigo-500/20">
                     {editingRole ? <Edit3 size={24} /> : <Plus size={24} />}
                   </div>
                   <div>
@@ -218,7 +217,7 @@ export const RoleMgmtPage: React.FC = () => {
               <form onSubmit={handleSubmit} className="p-10 space-y-6">
                  <div className="space-y-1.5">
                     <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">角色标识名称 *</label>
-                    <input 
+                    <input
                       required placeholder="e.g. security_auditor"
                       className="w-full px-6 py-4 bg-slate-50 rounded-2xl border-none outline-none focus:ring-4 ring-indigo-500/10 font-bold text-slate-800"
                       value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})}
@@ -226,7 +225,7 @@ export const RoleMgmtPage: React.FC = () => {
                  </div>
                  <div className="space-y-1.5">
                     <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">权限职责描述</label>
-                    <textarea 
+                    <textarea
                       rows={3} placeholder="描述该角色所涵盖的功能边界与操作权限..."
                       className="w-full px-6 py-4 bg-slate-50 rounded-2xl border-none outline-none focus:ring-4 ring-indigo-500/10 font-bold text-slate-800 resize-none"
                       value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})}
@@ -234,7 +233,7 @@ export const RoleMgmtPage: React.FC = () => {
                  </div>
                  <div className="flex gap-4">
                     <button type="button" onClick={() => setIsModalOpen(false)} className="flex-1 py-5 bg-slate-100 text-slate-600 rounded-2xl font-black hover:bg-slate-200 transition-all">取消</button>
-                    <button disabled={formLoading} className="flex-1 py-5 bg-indigo-600 text-white rounded-2xl font-black shadow-xl shadow-indigo-500/20 hover:bg-indigo-700 transition-all flex items-center justify-center gap-3">
+ <button disabled={formLoading} className="flex-1 py-5 bg-indigo-600 text-white rounded-2xl font-black shadow-indigo-500/20 hover:bg-indigo-700 transition-all flex items-center justify-center gap-3">
                        {formLoading ? <Loader2 className="animate-spin" size={20} /> : <UserCheck size={20} />}
                        {editingRole ? '应用更改' : '立即定义'}
                     </button>

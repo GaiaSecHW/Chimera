@@ -134,7 +134,7 @@ const ProviderCard: React.FC<{
 
   return (
     <div style={{ borderRadius: '16px', border: `1px solid ${LK.borderSoft}`, backgroundColor: LK.surface }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '12px', paddingLeft: '16px', paddingRight: '16px', paddingTop: '12px', paddingBottom: '12px', borderBottom: `1px solid ${LK.borderSoft}` }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '12px', paddingLeft: '16px', paddingRight: '16px', paddingTop: '12px', paddingBottom: '12px', borderBottom:`1px solid ${LK.borderSoft}` }}>
         <button onClick={() => setExpanded((e) => !e)} style={{ color: LK.muted, cursor: 'pointer', backgroundColor: 'transparent', border: 'none', padding: '0' }}>
           {expanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
         </button>
@@ -209,7 +209,7 @@ export const EntryAnalysisModelsPage: React.FC = () => {
     const baseName = 'new_provider';
     let name = baseName;
     let idx = 1;
-    while (config.providers[name]) { name = `${baseName}_${idx++}`; }
+    while (config.providers[name]) { name =`${baseName}_${idx++}`; }
     setProviders({ ...config.providers, [name]: emptyProvider() });
   };
 
@@ -220,7 +220,7 @@ export const EntryAnalysisModelsPage: React.FC = () => {
   };
 
   const renameProvider = (oldName: string, newName: string) => {
-    if (config.providers[newName]) { notify(`Provider "${newName}" 已存在`, 'error'); return; }
+    if (config.providers[newName]) { notify(`Provider"${newName}" 已存在`, 'error'); return; }
     const next: Record<string, EntryAnalysisProviderConfig> = {};
     for (const [k, v] of Object.entries(config.providers)) {
       next[k === oldName ? newName : k] = v;
@@ -245,14 +245,14 @@ export const EntryAnalysisModelsPage: React.FC = () => {
   };
 
   const allModelRefs = Object.entries(config.providers).flatMap(([pName, pCfg]) =>
-    pCfg.models.filter((m) => m.id).map((m) => `${pName}/${m.id}`)
+    pCfg.models.filter((m) => m.id).map((m) =>`${pName}/${m.id}`)
   );
 
   return (
     <div style={{ paddingLeft: '32px', paddingRight: '32px', paddingTop: '32px', paddingBottom: '40px', display: 'flex', flexDirection: 'column', gap: '24px' }}>
       {feedbackNodes}
 
-      <section style={{ borderRadius: '32px', border: `1px solid ${LK.borderSoft}`, backgroundColor: 'rgba(255, 255, 255, 0.9)', padding: '24px' }}>
+ <section style={{ borderRadius: '32px', border: `1px solid ${LK.borderSoft}`, backgroundColor: LK.surface, padding: '24px' }}>
         <p style={{ fontSize: '12px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.3em', color: LK.primary }}>Entry Analysis</p>
         <h1 style={{ marginTop: '12px', fontSize: '30px', fontWeight: 600, letterSpacing: '-0.025em', color: LK.ink }}>模型配置</h1>
         <p style={{ marginTop: '8px', fontSize: '14px', color: LK.body }}>

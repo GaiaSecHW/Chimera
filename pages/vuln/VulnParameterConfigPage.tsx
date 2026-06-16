@@ -290,12 +290,12 @@ export const VulnParameterConfigPage: React.FC<VulnPageProps> = ({ projectId, on
           onClick={() => updateField(phaseKey, field.key, !value)}
           className="w-full rounded-lg px-4 py-4 text-left transition-colors"
           style={{
-            backgroundColor: value ? `${LK.success}14` : LK.surfaceRaised,
-            border: value ? `1px solid ${LK.success}40` : `1px solid ${LK.border}`,
+            backgroundColor: value ?`${LK.success}14` : LK.surfaceRaised,
+            border: value ?`1px solid ${LK.success}40` :`1px solid ${LK.border}`,
             color: value ? LK.success : LK.body,
           }}
           onMouseEnter={(e) => { e.currentTarget.style.borderColor = value ? LK.success : LK.primary; }}
-          onMouseLeave={(e) => { e.currentTarget.style.borderColor = value ? `${LK.success}40` : LK.border; }}
+          onMouseLeave={(e) => { e.currentTarget.style.borderColor = value ?`${LK.success}40` : LK.border; }}
         >
           <div className="flex items-center justify-between gap-4">
             <div>
@@ -307,7 +307,7 @@ export const VulnParameterConfigPage: React.FC<VulnPageProps> = ({ projectId, on
               style={{
                 backgroundColor: value ? LK.success : LK.surface,
                 color: value ? '#ffffff' : LK.muted,
-                border: value ? 'none' : `1px solid ${LK.border}`,
+                border: value ? 'none' :`1px solid ${LK.border}`,
               }}
             >
               {value ? 'Enabled' : 'Disabled'}
@@ -400,7 +400,7 @@ export const VulnParameterConfigPage: React.FC<VulnPageProps> = ({ projectId, on
       className="space-y-4 px-5 py-5 md:px-6 2xl:px-8"
       style={{ backgroundColor: LK.canvas, minHeight: '100%', color: LK.inkSoft }}
     >
-      <div className="flex flex-wrap items-start justify-between gap-3 pb-4" style={{ borderBottom: `1px solid ${LK.borderSoft}` }}>
+      <div className="flex flex-wrap items-start justify-between gap-3 pb-4" style={{ borderBottom:`1px solid ${LK.borderSoft}` }}>
         <div>
           <span
             className="inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-medium uppercase tracking-wider"
@@ -482,7 +482,7 @@ export const VulnParameterConfigPage: React.FC<VulnPageProps> = ({ projectId, on
                   className="w-full rounded-lg px-4 py-4 text-left transition-colors"
                   style={{
                     backgroundColor: active ? LK.primaryMuted : LK.surfaceRaised,
-                    border: active ? `1px solid ${LK.primary}` : `1px solid ${LK.border}`,
+                    border: active ?`1px solid ${LK.primary}` :`1px solid ${LK.border}`,
                     color: active ? LK.primary : LK.body,
                   }}
                   onMouseEnter={(e) => { if (!active) e.currentTarget.style.color = LK.ink; }}
@@ -500,7 +500,7 @@ export const VulnParameterConfigPage: React.FC<VulnPageProps> = ({ projectId, on
                       style={{
                         backgroundColor: active ? 'rgba(255, 255, 255, 0.15)' : LK.surface,
                         color: active ? LK.primarySoft : LK.muted,
-                        border: active ? 'none' : `1px solid ${LK.border}`,
+                        border: active ? 'none' :`1px solid ${LK.border}`,
                       }}
                     >
                       {configuredCount}/{phase.fields.length}
@@ -562,7 +562,7 @@ export const VulnParameterConfigPage: React.FC<VulnPageProps> = ({ projectId, on
                 </div>
               </div>
             </div>
-            <div className="px-6 py-4 text-xs" style={{ borderTop: `1px solid ${LK.borderSoft}`, color: LK.muted }}>
+            <div className="px-6 py-4 text-xs" style={{ borderTop:`1px solid ${LK.borderSoft}`, color: LK.muted }}>
               当前正在编辑 {activePhase.fields.length} 个动态参数字段。阶段参数会与默认结构深度合并，避免因局部更新导致其它阶段配置丢失。
             </div>
           </div>
@@ -586,8 +586,7 @@ export const VulnParameterConfigPage: React.FC<VulnPageProps> = ({ projectId, on
             <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
               <div>
                 <div className="text-lg font-semibold" style={{ color: LK.ink }}>阶段联动提示</div>
-                <div className="mt-1 text-sm" style={{ color: LK.body }}>
-                  "{activePhase.label}"阶段的参数改动最容易影响后续的
+                <div className="mt-1 text-sm" style={{ color: LK.body }}>"{activePhase.label}"阶段的参数改动最容易影响后续的
                   {activePhase.key === 'global' && ' 全链路调度、超时和去重策略。'}
                   {activePhase.key === 'receive' && ' 接收池质量、去重效果和进入研判的入口压力。'}
                   {activePhase.key === 'triage' && ' 自动研判次数、人工闸门频率和进入验证的速度。'}

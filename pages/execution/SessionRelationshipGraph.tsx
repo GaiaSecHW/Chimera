@@ -78,15 +78,15 @@ const SessionNodeCard: React.FC<{
           {formatNodeSubtitle(node) || node.relative_path}
         </div>
       </div>
-      <span style={{ borderRadius: '9999px', border: `1px solid ${selected ? 'rgba(255, 255, 255, 0.2)' : 'transparent'}`, paddingLeft: '8px', paddingRight: '8px', paddingTop: '2px', paddingBottom: '2px', fontSize: '10px', fontWeight: 600, backgroundColor: selected ? 'rgba(255, 255, 255, 0.1)' : 'transparent', color: selected ? LK.ink : LK.body }}>
+ <span style={{ borderRadius: '9999px', border: `1px solid ${selected ? LK.border : 'transparent'}`, paddingLeft: '8px', paddingRight: '8px', paddingTop: '2px', paddingBottom: '2px', fontSize: '10px', fontWeight: 600, backgroundColor: selected ? LK.primaryMuted : 'transparent', color: selected ? LK.ink : LK.body }}>
         {node.is_active ? '运行中' : node.status}
       </span>
     </div>
     <div style={{ marginTop: '12px', display: 'flex', flexWrap: 'wrap', gap: '8px', fontSize: '10px' }}>
-      <span style={{ borderRadius: '9999px', border: `1px solid ${selected ? 'rgba(255, 255, 255, 0.15)' : 'transparent'}`, paddingLeft: '8px', paddingRight: '8px', paddingTop: '2px', paddingBottom: '2px', fontWeight: 600, backgroundColor: selected ? 'rgba(255, 255, 255, 0.1)' : 'transparent', color: selected ? LK.inkSoft : LK.body }}>
+ <span style={{ borderRadius: '9999px', border: `1px solid ${selected ? LK.border : 'transparent'}`, paddingLeft: '8px', paddingRight: '8px', paddingTop: '2px', paddingBottom: '2px', fontWeight: 600, backgroundColor: selected ? LK.primaryMuted : 'transparent', color: selected ? LK.inkSoft : LK.body }}>
         {node.role_label}
       </span>
-      <span style={{ borderRadius: '9999px', border: `1px solid ${selected ? 'rgba(255, 255, 255, 0.15)' : LK.borderSoft}`, paddingLeft: '8px', paddingRight: '8px', paddingTop: '2px', paddingBottom: '2px', fontWeight: 600, backgroundColor: selected ? 'rgba(255, 255, 255, 0.1)' : LK.surfaceRaised, color: selected ? LK.inkSoft : LK.body }}>
+ <span style={{ borderRadius: '9999px', border: `1px solid ${selected ? LK.border : LK.borderSoft}`, paddingLeft: '8px', paddingRight: '8px', paddingTop: '2px', paddingBottom: '2px', fontWeight: 600, backgroundColor: selected ? LK.primaryMuted : LK.surfaceRaised, color: selected ? LK.inkSoft : LK.body }}>
         {node.event_count} events
       </span>
     </div>
@@ -181,7 +181,7 @@ const DetailedStageGraph: React.FC<{
           const groupedChildren = childEdges.reduce<Map<string, AppSaSessionIndexNode[]>>((map, edge) => {
             const target = nodeMap.get(edge.target_node_id);
             if (!target) return map;
-            const key = target.parallel_group || `${target.role}:${edge.kind}`;
+            const key = target.parallel_group ||`${target.role}:${edge.kind}`;
             const list = map.get(key) || [];
             list.push(target);
             map.set(key, list);
@@ -375,8 +375,8 @@ export const SessionRelationshipGraph: React.FC<{
 
       {expandedStage ? (
         <div style={{ position: 'fixed', inset: 0, zIndex: 260, backgroundColor: 'rgba(2, 6, 23, 0.7)', padding: '16px', backdropFilter: 'blur(4px)' }}>
-          <div style={{ display: 'flex', height: '100%', flexDirection: 'column', overflow: 'hidden', borderRadius: '32px', border: `1px solid ${LK.borderSoft}`, backgroundColor: 'linear-gradient(180deg, rgba(248, 250, 252, 1) 0%, rgba(255, 255, 255, 1) 100%)' }}>
-            <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '16px', borderBottom: `1px solid ${LK.borderSoft}`, paddingLeft: '24px', paddingRight: '24px', paddingTop: '20px', paddingBottom: '20px' }}>
+ <div style={{ display: 'flex', height: '100%', flexDirection: 'column', overflow: 'hidden', borderRadius: '32px', border: `1px solid ${LK.borderSoft}`, backgroundColor: LK.surface }}>
+            <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '16px', borderBottom:`1px solid ${LK.borderSoft}`, paddingLeft: '24px', paddingRight: '24px', paddingTop: '20px', paddingBottom: '20px' }}>
               <div>
                 <div style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.18em', color: LK.muted }}>Agent Relationship</div>
                 <div style={{ marginTop: '8px', fontSize: '24px', fontWeight: 600, letterSpacing: '-0.025em', color: LK.ink }}>{expandedStage.stageLabel}</div>
@@ -408,7 +408,7 @@ export const SessionRelationshipGraph: React.FC<{
 
       {inspectedPath ? (
         <div style={{ position: 'fixed', inset: 0, zIndex: 280, backgroundColor: 'rgba(2, 6, 23, 0.7)', padding: '16px', backdropFilter: 'blur(4px)' }}>
-          <div style={{ display: 'flex', height: '100%', flexDirection: 'column', overflow: 'hidden', borderRadius: '32px', border: `1px solid ${LK.borderSoft}`, backgroundColor: 'linear-gradient(180deg, rgba(248, 250, 252, 1) 0%, rgba(255, 255, 255, 1) 100%)' }}>
+ <div style={{ display: 'flex', height: '100%', flexDirection: 'column', overflow: 'hidden', borderRadius: '32px', border: `1px solid ${LK.borderSoft}`, backgroundColor: LK.surface }}>
             <AgentSessionDialogHeader
               title={inspectedNode?.display_name || inspectedPath}
               subtitle={inspectedNode ? formatNodeSubtitle(inspectedNode) || inspectedNode.relative_path : inspectedPath}

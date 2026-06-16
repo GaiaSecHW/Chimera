@@ -131,7 +131,7 @@ function ConfigRow({
             fontFamily: MONO,
             backgroundColor: LK.surfaceRaised,
             color: LK.ink,
-            border: dirty ? `1px solid ${LK.primary}` : `1px solid ${LK.border}`,
+            border: dirty ?`1px solid ${LK.primary}` :`1px solid ${LK.border}`,
           }}
         />
         <p className="mt-2 text-[10px]" style={{ color: LK.muted }}>
@@ -452,7 +452,7 @@ export const FirmwareUnpackConfigPage: React.FC<Props> = ({ projectId: _projectI
         </div>
       )}
 
-      <section className={`${embedded ? 'rounded-[2rem] border p-6 shadow-sm' : 'rounded-2xl border p-4 shadow-sm'}`} style={{ backgroundColor: embedded ? LK.surfaceGlass : LK.surface, border: `1px solid ${LK.border}` }}>
+ <section className={`${embedded ? 'rounded-[2rem] border p-6 ' : 'rounded-2xl border p-4 '}`} style={{ backgroundColor: embedded ? LK.surfaceGlass : LK.surface, border: `1px solid ${LK.border}` }}>
         <div className="mb-5 flex items-start justify-between gap-4">
           <div>
             <div className="flex flex-wrap items-center gap-2">
@@ -463,11 +463,11 @@ export const FirmwareUnpackConfigPage: React.FC<Props> = ({ projectId: _projectI
               </span>
             </div>
             <p className="mt-2 text-sm" style={{ color: LK.body }}>
-              当前面板配置项归属于 `chimera-app-firmware-unpacker` 微服务，用于控制固件解包服务的集群并发和运行时参数。
+              当前面板配置项归属于`chimera-app-firmware-unpacker` 微服务，用于控制固件解包服务的集群并发和运行时参数。
             </p>
           </div>
           <button onClick={() => { loadConfig(); loadCluster(); loadLlmConfigFiles(); }} disabled={configLoading || clusterLoading || llmLoading}
-            className="inline-flex items-center gap-2 rounded-xl border px-4 py-2.5 text-sm font-semibold shadow-sm transition disabled:opacity-50"
+ className="inline-flex items-center gap-2 rounded-xl border px-4 py-2.5 text-sm font-semibold transition disabled:opacity-50"
             style={{
               backgroundColor: LK.surface,
               border: `1px solid ${LK.border}`,
@@ -628,7 +628,7 @@ export const FirmwareUnpackConfigPage: React.FC<Props> = ({ projectId: _projectI
             {llmLoading && <Loader2 size={16} className="animate-spin text-rose-600" />}
           </div>
           <p className="mt-3 text-xs text-slate-500">
-            每个角色都需要显式绑定一个 `models.json` 配置文件，并指定要使用的 `provider/model`。保存后只影响后续新建任务，任务创建时会冻结这五个角色的绑定快照。
+            每个角色都需要显式绑定一个`models.json` 配置文件，并指定要使用的`provider/model`。保存后只影响后续新建任务，任务创建时会冻结这五个角色的绑定快照。
           </p>
           <div className="mt-4 grid grid-cols-1 gap-4 xl:grid-cols-2">
             {llmRoleConfigs.map((item) => (
@@ -685,7 +685,7 @@ export const FirmwareUnpackConfigPage: React.FC<Props> = ({ projectId: _projectI
                     }}
                   />
                   <p className="mt-1 text-[11px]" style={{ color: LK.muted }}>
-                    建议填写 `provider/model`。如果该配置文件只包含单一 provider，也可以只填模型名；留空则继承配置文件默认值。
+                    建议填写`provider/model`。如果该配置文件只包含单一 provider，也可以只填模型名；留空则继承配置文件默认值。
                   </p>
                   {item.configFile && item.configFile.model_options.length > 0 && (
                     <div className="mt-2 flex flex-wrap gap-2">
@@ -775,7 +775,7 @@ export const FirmwareUnpackConfigPage: React.FC<Props> = ({ projectId: _projectI
             actions={<PanelActions saving={savingPanel === 'retry-policy'} disabled={!hasPanelChanges(retryPanelKeys)} onSave={() => { void saveConfigPanel('retry-policy', '重试策略', retryPanelKeys); }} onReset={() => resetConfigPanel('重试策略', retryPanelKeys)} />}
           >
             <p className="mt-3 text-xs" style={{ color: LK.muted }}>
-              控制通用 LLM 解包链路的最大轮次，以及当结果落为 `max_retries_reached` 时，默认按通过还是失败收敛。
+              控制通用 LLM 解包链路的最大轮次，以及当结果落为`max_retries_reached` 时，默认按通过还是失败收敛。
             </p>
             <div className="mt-4 grid grid-cols-1 gap-4 xl:grid-cols-2">
               {maxRetriesEntry && (
@@ -817,7 +817,7 @@ export const FirmwareUnpackConfigPage: React.FC<Props> = ({ projectId: _projectI
                             <div className="text-sm font-semibold">{option.label}</div>
                             <div className="mt-1 text-[11px]" style={{ color: active ? 'rgba(255,255,255,0.7)' : LK.muted }}>{option.description}</div>
                           </div>
-                          <span className="rounded-full px-2 py-1 text-[10px] font-semibold" style={{ backgroundColor: active ? 'rgba(255,255,255,0.15)' : LK.surface, border: active ? 'none' : `1px solid ${LK.borderSoft}`, color: active ? '#ffffff' : LK.muted }}>
+                          <span className="rounded-full px-2 py-1 text-[10px] font-semibold" style={{ backgroundColor: active ? 'rgba(255,255,255,0.15)' : LK.surface, border: active ? 'none' :`1px solid ${LK.borderSoft}`, color: active ? '#ffffff' : LK.muted }}>
                             {option.value}
                           </span>
                         </button>
@@ -868,11 +868,11 @@ export const FirmwareUnpackConfigPage: React.FC<Props> = ({ projectId: _projectI
                       fontFamily: MONO,
                       backgroundColor: LK.surfaceRaised,
                       color: LK.ink,
-                      border: piRpcTimeoutValue !== piRpcTimeoutEntry.value ? `1px solid ${LK.primary}` : `1px solid ${LK.border}`,
+                      border: piRpcTimeoutValue !== piRpcTimeoutEntry.value ?`1px solid ${LK.primary}` :`1px solid ${LK.border}`,
                     }}
                   />
                   <p className="mt-2 text-[10px]" style={{ color: LK.muted }}>
-                    默认 1800 秒。只有在完全没有输出、没有事件、没有工具调用结果持续超过该时长时，才会判定超时。设置为 `-1` 表示不限制。
+                    默认 1800 秒。只有在完全没有输出、没有事件、没有工具调用结果持续超过该时长时，才会判定超时。设置为`-1` 表示不限制。
                   </p>
                   <p className="mt-2 text-[10px]" style={{ color: LK.muted }}>更新于 {fmtTime(piRpcTimeoutEntry.updated_at)}</p>
                 </div>
@@ -911,7 +911,7 @@ export const FirmwareUnpackConfigPage: React.FC<Props> = ({ projectId: _projectI
                             <div className="text-sm font-semibold">{option.label}</div>
                             <div className="mt-1 text-[11px]" style={{ color: active ? 'rgba(255,255,255,0.7)' : LK.muted }}>{option.description}</div>
                           </div>
-                          <span className="rounded-full px-2 py-1 text-[10px] font-semibold" style={{ backgroundColor: active ? 'rgba(255,255,255,0.15)' : LK.surface, border: active ? 'none' : `1px solid ${LK.borderSoft}`, color: active ? '#ffffff' : LK.muted }}>
+                          <span className="rounded-full px-2 py-1 text-[10px] font-semibold" style={{ backgroundColor: active ? 'rgba(255,255,255,0.15)' : LK.surface, border: active ? 'none' :`1px solid ${LK.borderSoft}`, color: active ? '#ffffff' : LK.muted }}>
                             {option.value}
                           </span>
                         </button>
@@ -960,7 +960,7 @@ export const FirmwareUnpackConfigPage: React.FC<Props> = ({ projectId: _projectI
             <Loader2 size={18} className="animate-spin mr-2" /> 加载配置中...
           </div>
         ) : genericConfigItems.length === 0 ? (
-          <div className="rounded-2xl border border-dashed border-slate-200 bg-white py-6 text-center text-xs text-slate-400">
+          <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 py-6 text-center text-xs text-slate-400">
             暂无配置项
           </div>
         ) : (

@@ -69,7 +69,7 @@ export const EnvProcessMonitorOverviewPage: React.FC<{ projectId: string }> = ({
         <button
           onClick={() => void load()}
           disabled={!projectId || loading}
-          className="px-4 py-3 rounded-2xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-600 font-bold text-xs uppercase tracking-wider disabled:opacity-50 flex items-center gap-2"
+          className="px-4 py-3 rounded-2xl border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-600 font-bold text-xs uppercase tracking-wider disabled:opacity-50 flex items-center gap-2"
         >
           {loading ? <Loader2 size={16} className="animate-spin" /> : <RefreshCw size={16} />}
           刷新
@@ -81,7 +81,7 @@ export const EnvProcessMonitorOverviewPage: React.FC<{ projectId: string }> = ({
         <input
           value={search}
           onChange={(event) => setSearch(event.target.value)}
-          className="w-full pl-12 pr-4 py-3 rounded-2xl border border-slate-200 bg-white"
+          className="w-full pl-12 pr-4 py-3 rounded-2xl border border-slate-200 bg-slate-50"
           placeholder="按节点、IP、服务名筛选"
         />
       </div>
@@ -89,7 +89,7 @@ export const EnvProcessMonitorOverviewPage: React.FC<{ projectId: string }> = ({
       {!projectId ? (
         <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-amber-700 text-sm font-semibold">请先选择项目</div>
       ) : (
-        <div className="rounded-3xl border border-slate-200 bg-white overflow-hidden">
+        <div className="rounded-3xl border border-slate-200 bg-slate-50 overflow-hidden">
           <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 px-4 py-3 bg-slate-50/70">
             <div className="text-xs font-semibold text-slate-500">
               共 <span className="font-black text-slate-700">{total}</span> 条，当前第 <span className="font-black text-slate-700">{page}</span> / {totalPages} 页
@@ -102,7 +102,7 @@ export const EnvProcessMonitorOverviewPage: React.FC<{ projectId: string }> = ({
                   const value = Math.max(1, Math.min(1000, Number(event.target.value) || 100));
                   setPerPage(value);
                 }}
-                className="rounded-lg border border-slate-200 bg-white px-2 py-1 text-xs"
+                className="rounded-lg border border-slate-200 bg-slate-50 px-2 py-1 text-xs"
               >
                 {[50, 100, 200, 500, 1000].map((value) => (
                   <option key={value} value={value}>{value}</option>
@@ -112,7 +112,7 @@ export const EnvProcessMonitorOverviewPage: React.FC<{ projectId: string }> = ({
                 type="button"
                 onClick={() => setPage((prev) => Math.max(1, prev - 1))}
                 disabled={page <= 1}
-                className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2 py-1 text-xs disabled:opacity-40"
+                className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-slate-50 px-2 py-1 text-xs disabled:opacity-40"
               >
                 <ChevronLeft size={14} />
                 上一页
@@ -121,7 +121,7 @@ export const EnvProcessMonitorOverviewPage: React.FC<{ projectId: string }> = ({
                 type="button"
                 onClick={() => setPage((prev) => Math.min(totalPages, prev + 1))}
                 disabled={page >= totalPages}
-                className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2 py-1 text-xs disabled:opacity-40"
+                className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-slate-50 px-2 py-1 text-xs disabled:opacity-40"
               >
                 下一页
                 <ChevronRight size={14} />
@@ -154,8 +154,8 @@ export const EnvProcessMonitorOverviewPage: React.FC<{ projectId: string }> = ({
                 pagedItems.map((item) => (
                   <tr
                     key={`${item.agent_key}:${item.service_name}:${item.service_uid || ''}`}
-                    className="border-t border-slate-100 hover:bg-slate-50 cursor-pointer"
-                    onClick={() => navigateToAppView('env-process-monitor-detail', { processMonitorServiceKey: `${item.agent_key}:${item.service_name}` })}
+                    className="border-t border-slate-100 hover:bg-slate-100 cursor-pointer"
+                    onClick={() => navigateToAppView('env-process-monitor-detail', { processMonitorServiceKey:`${item.agent_key}:${item.service_name}` })}
                     title="点击查看该节点的进程详情"
                   >
                     <td className="px-6 py-4">

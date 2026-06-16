@@ -152,15 +152,15 @@ function formatNumber(value?: number | null): string {
 function formatFileSize(value?: number | null): string {
   const size = Number(value);
   if (!Number.isFinite(size) || size < 0) return '-';
-  if (size < 1024) return `${size} B`;
-  if (size < 1024 * 1024) return `${(size / 1024).toFixed(1)} KB`;
-  if (size < 1024 * 1024 * 1024) return `${(size / 1024 / 1024).toFixed(1)} MB`;
-  return `${(size / 1024 / 1024 / 1024).toFixed(2)} GB`;
+  if (size < 1024) return`${size} B`;
+  if (size < 1024 * 1024) return`${(size / 1024).toFixed(1)} KB`;
+  if (size < 1024 * 1024 * 1024) return`${(size / 1024 / 1024).toFixed(1)} MB`;
+  return`${(size / 1024 / 1024 / 1024).toFixed(2)} GB`;
 }
 
 function summarizeGeneratedFiles(entry: B2SCacheDetailResponse | null): string {
   if (!entry) return '-';
-  return `${entry.generated_files.length} 个文件`;
+  return`${entry.generated_files.length} 个文件`;
 }
 
 export const B2SConfigPage: React.FC<{ projectId: string; embedded?: boolean }> = ({ projectId, embedded = false }) => {
@@ -398,7 +398,7 @@ export const B2SConfigPage: React.FC<{ projectId: string; embedded?: boolean }> 
   const deleteSingleCache = async (cacheKey: string) => {
     const confirmed = await showConfirm({
       title: '删除缓存',
-      message: `确认删除缓存 ${cacheKey} 吗？删除后后续任务将无法再命中该缓存。`,
+      message:`确认删除缓存 ${cacheKey} 吗？删除后后续任务将无法再命中该缓存。`,
       confirmText: '确认删除',
       cancelText: '取消',
       danger: true,
@@ -407,7 +407,7 @@ export const B2SConfigPage: React.FC<{ projectId: string; embedded?: boolean }> 
     setCacheDeletingKeys((current) => new Set(current).add(cacheKey));
     try {
       const result = await b2sApi.deleteCache(projectId, cacheKey);
-      notify(result.message || `缓存 ${cacheKey} 已删除`, result.deleted ? 'success' : 'warning');
+      notify(result.message ||`缓存 ${cacheKey} 已删除`, result.deleted ? 'success' : 'warning');
       if (cacheDetail?.cache_key === cacheKey) setCacheDetail(null);
       await loadCacheEntries();
     } catch (err: any) {
@@ -428,7 +428,7 @@ export const B2SConfigPage: React.FC<{ projectId: string; embedded?: boolean }> 
     }
     const confirmed = await showConfirm({
       title: '批量删除缓存',
-      message: `确认删除当前选中的 ${selectedCount} 个缓存条目吗？删除后后续任务将无法再命中这些缓存。`,
+      message:`确认删除当前选中的 ${selectedCount} 个缓存条目吗？删除后后续任务将无法再命中这些缓存。`,
       confirmText: '确认删除',
       cancelText: '取消',
       danger: true,
@@ -566,7 +566,7 @@ export const B2SConfigPage: React.FC<{ projectId: string; embedded?: boolean }> 
                 )}
               </div>
               <p style={{ fontSize: '12px', lineHeight: '20px', color: LK.body }}>
-                任务创建时若未手工指定 `llm_provider_key`，默认取这里的项目级 Provider；若这里留空，则回退到配置中心默认 Provider。
+                任务创建时若未手工指定`llm_provider_key`，默认取这里的项目级 Provider；若这里留空，则回退到配置中心默认 Provider。
               </p>
             </SectionCard>
             <SectionCard
@@ -616,7 +616,7 @@ export const B2SConfigPage: React.FC<{ projectId: string; embedded?: boolean }> 
                 </div>
               </FieldRow>
               <p style={{ fontSize: '12px', lineHeight: '20px', color: LK.body }}>
-                如果创建任务时没有手工覆盖 `mode`，后端会自动回退到这里配置的项目默认模式；当前后端默认值为 `turbo`。
+                如果创建任务时没有手工覆盖`mode`，后端会自动回退到这里配置的项目默认模式；当前后端默认值为`turbo`。
               </p>
             </SectionCard>
             <SectionCard
@@ -635,7 +635,7 @@ export const B2SConfigPage: React.FC<{ projectId: string; embedded?: boolean }> 
                 </select>
               </FieldRow>
               <p style={{ fontSize: '12px', lineHeight: '20px', color: LK.body }}>
-                默认值为 `treat_as_passed`。当 `pi-re-agent` 返回预算耗尽类失败时，B2S 会按这里的策略把该子任务收敛为成功或失败。
+                默认值为`treat_as_passed`。当`pi-re-agent` 返回预算耗尽类失败时，B2S 会按这里的策略把该子任务收敛为成功或失败。
               </p>
             </SectionCard>
           </div>
@@ -862,7 +862,7 @@ export const B2SConfigPage: React.FC<{ projectId: string; embedded?: boolean }> 
       {cacheDetail || cacheDetailLoading ? (
         <div style={{ position: 'fixed', inset: 0, zIndex: 280, backgroundColor: 'rgba(7, 13, 24, 0.6)', padding: '16px', backdropFilter: 'blur(4px)' }}>
           <div style={{ margin: '0 auto', maxHeight: '100%', maxWidth: '80rem', overflow: 'hidden', borderRadius: '24px', border: `1px solid ${LK.border}`, backgroundColor: LK.surface, boxShadow: '0 32px 120px rgba(15,23,42,0.35)' }}>
-            <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '16px', borderBottom: `1px solid ${LK.border}`, padding: '20px 24px' }}>
+            <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '16px', borderBottom:`1px solid ${LK.border}`, padding: '20px 24px' }}>
               <div>
                 <div style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.18em', color: LK.muted }}>Cache Detail</div>
                 <h3 style={{ marginTop: '8px', fontSize: '20px', fontWeight: 600, color: LK.ink }}>{cacheDetail?.elf_basename || cacheDetail?.cache_key || '缓存详情'}</h3>
@@ -918,7 +918,7 @@ export const B2SConfigPage: React.FC<{ projectId: string; embedded?: boolean }> 
                     <pre style={{ maxHeight: '256px', overflow: 'auto', borderRadius: '12px', border: `1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised, padding: '16px', fontSize: '12px', color: LK.ink }}>{JSON.stringify(cacheDetail.generated_files, null, 2)}</pre>
                   </SectionCard>
 
-                  <SectionCard title="manifest.json 预览" subtitle={cacheDetail.manifest_parse_error ? `解析失败：${cacheDetail.manifest_parse_error}` : undefined}>
+                  <SectionCard title="manifest.json 预览" subtitle={cacheDetail.manifest_parse_error ?`解析失败：${cacheDetail.manifest_parse_error}` : undefined}>
                     <pre style={{ maxHeight: '256px', overflow: 'auto', borderRadius: '12px', border: `1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised, padding: '16px', fontSize: '12px', color: LK.ink }}>{JSON.stringify(cacheDetail.manifest, null, 2)}</pre>
                   </SectionCard>
 

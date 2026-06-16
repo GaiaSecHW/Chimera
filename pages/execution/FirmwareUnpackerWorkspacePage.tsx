@@ -69,7 +69,7 @@ export const FirmwareUnpackerWorkspacePage: React.FC<Props> = ({
     <div className="space-y-0" style={{ backgroundColor: LK.canvas, color: LK.inkSoft }}>
       <div className="px-4 pt-4">
         <div
-          className="rounded-2xl border p-4 shadow-sm"
+ className="rounded-2xl border p-4"
           style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}` }}
         >
           <div className="flex items-center gap-2 mb-3">

@@ -66,7 +66,7 @@ export const FileserverArchiveTasksPage: React.FC<Props> = ({ projectId }) => {
     setBusyTaskId(task.task_id);
     try {
       const blob = await assetApi.fileserver.fetchArchiveTaskDownloadBlob(task.task_id);
-      const filename = task?.result?.archive_name || `${task.task_id}.zip`;
+      const filename = task?.result?.archive_name ||`${task.task_id}.zip`;
       const url = URL.createObjectURL(blob);
       const anchor = document.createElement('a');
       anchor.href = url;
@@ -95,7 +95,7 @@ export const FileserverArchiveTasksPage: React.FC<Props> = ({ projectId }) => {
             <button
               type="button"
               onClick={() => void loadTasks()}
-              className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-black text-slate-700"
+              className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-black text-slate-700"
             >
               <RefreshCw size={14} />
               刷新

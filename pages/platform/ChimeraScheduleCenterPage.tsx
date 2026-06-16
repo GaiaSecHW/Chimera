@@ -174,14 +174,14 @@ const formatTime = (value?: string | null) => {
   return Number.isNaN(date.getTime()) ? value : date.toLocaleString('zh-CN');
 };
 
-const formatCount = (value?: number | null) => `${Number(value || 0)}`;
+const formatCount = (value?: number | null) =>`${Number(value || 0)}`;
 
 const formatDurationSeconds = (value?: number | null) => {
   const seconds = Number(value || 0);
   if (!seconds) return '0s';
-  if (seconds < 60) return `${seconds}s`;
-  if (seconds < 3600) return `${Math.floor(seconds / 60)}m`;
-  return `${Math.floor(seconds / 3600)}h ${Math.floor((seconds % 3600) / 60)}m`;
+  if (seconds < 60) return`${seconds}s`;
+  if (seconds < 3600) return`${Math.floor(seconds / 60)}m`;
+  return`${Math.floor(seconds / 3600)}h ${Math.floor((seconds % 3600) / 60)}m`;
 };
 
 const queueStatusTone = (status?: string | null) => {
@@ -225,12 +225,12 @@ const statusTone = (label?: string | null) => {
 };
 
 const metricTone = (key: string) => {
-  if (key === 'success') return 'from-emerald-50 via-white to-emerald-100/70 border-emerald-200/70';
-  if (key === 'failed') return 'from-rose-50 via-white to-rose-100/70 border-rose-200/70';
-  if (key === 'running') return 'from-sky-50 via-white to-sky-100/70 border-sky-200/70';
-  if (key === 'retry') return 'from-amber-50 via-white to-amber-100/70 border-amber-200/70';
-  if (key === 'queue') return 'from-cyan-50 via-white to-cyan-100/70 border-cyan-200/70';
-  return 'from-slate-50 via-white to-slate-100/70 border-slate-200/70';
+  if (key === 'success') return 'from-emerald-50 via-slate-50 to-emerald-100/70 border-emerald-200/70';
+  if (key === 'failed') return 'from-rose-50 via-slate-50 to-rose-100/70 border-rose-200/70';
+  if (key === 'running') return 'from-sky-50 via-slate-50 to-sky-100/70 border-sky-200/70';
+  if (key === 'retry') return 'from-amber-50 via-slate-50 to-amber-100/70 border-amber-200/70';
+  if (key === 'queue') return 'from-cyan-50 via-slate-50 to-cyan-100/70 border-cyan-200/70';
+  return 'from-slate-50 via-slate-50 to-slate-100/70 border-slate-200/70';
 };
 
 const normalizeTaskTypeLabel = (taskType?: string | null) => {
@@ -398,8 +398,8 @@ const DetailDrawer: React.FC<{
   return (
     <div className="fixed inset-0 z-50 flex justify-end bg-slate-950/40 backdrop-blur-[2px]">
       <button className="flex-1" aria-label="关闭详情抽屉" onClick={onClose} />
-      <aside className="relative h-full w-full max-w-[540px] overflow-y-auto border-l border-slate-200 bg-white shadow-[0_24px_80px_rgba(15,23,42,0.18)]">
-        <div className="sticky top-0 z-10 border-b border-slate-200 bg-white/95 px-6 py-5 backdrop-blur">
+      <aside className="relative h-full w-full max-w-[540px] overflow-y-auto border-l border-slate-200 bg-slate-50">
+ <div className="sticky top-0 z-10 border-b border-slate-200 bg-slate-50 px-6 py-5 backdrop-blur">
           <div className="flex items-start justify-between gap-4">
             <div>
               <div className="text-xs font-black uppercase tracking-[0.24em] text-slate-500">Task Detail</div>
@@ -415,7 +415,7 @@ const DetailDrawer: React.FC<{
                 ) : null}
               </div>
             </div>
-            <button onClick={onClose} className="rounded-2xl border border-slate-200 p-2 text-slate-500 transition hover:bg-slate-50 hover:text-slate-900">
+            <button onClick={onClose} className="rounded-2xl border border-slate-200 p-2 text-slate-500 transition hover:bg-slate-100 hover:text-slate-900">
               <X size={18} />
             </button>
           </div>
@@ -439,7 +439,7 @@ const DetailDrawer: React.FC<{
                 </div>
               </section>
 
-              <section className="rounded-3xl border border-slate-200 bg-white p-5">
+              <section className="rounded-3xl border border-slate-200 bg-slate-50 p-5">
                 <div className="text-xs font-black uppercase tracking-[0.2em] text-slate-500">状态摘要</div>
                 <div className="mt-4 grid gap-3 md:grid-cols-2">
                   <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm"><span className="font-black text-slate-900">创建态：</span>{detail.create_status || '-'}</div>
@@ -451,7 +451,7 @@ const DetailDrawer: React.FC<{
                 </div>
               </section>
 
-              <section className="rounded-3xl border border-slate-200 bg-white p-5">
+              <section className="rounded-3xl border border-slate-200 bg-slate-50 p-5">
                 <div className="text-xs font-black uppercase tracking-[0.2em] text-slate-500">执行窗口</div>
                 <div className="mt-4 grid gap-3 text-sm text-slate-700">
                   <div><span className="font-black text-slate-900">计划时间：</span>{formatTime(detail.scheduled_at)}</div>
@@ -461,7 +461,7 @@ const DetailDrawer: React.FC<{
                 </div>
               </section>
 
-              <section className="rounded-3xl border border-slate-200 bg-white p-5">
+              <section className="rounded-3xl border border-slate-200 bg-slate-50 p-5">
                 <div className="text-xs font-black uppercase tracking-[0.2em] text-slate-500">最近调度与执行</div>
                 <div className="mt-4 space-y-3">
                   <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm">
@@ -475,7 +475,7 @@ const DetailDrawer: React.FC<{
                 </div>
               </section>
 
-              <section className="rounded-3xl border border-slate-200 bg-white p-5">
+              <section className="rounded-3xl border border-slate-200 bg-slate-50 p-5">
                 <div className="text-xs font-black uppercase tracking-[0.2em] text-slate-500">最近事件摘要</div>
                 <div className="mt-4 space-y-3">
                   {(detail.recent_events || []).length ? (
@@ -513,7 +513,7 @@ const DetailDrawer: React.FC<{
                 {detail.downstream_detail_view ? (
                   <button
                     onClick={() => window.open(detail.downstream_detail_view || '', '_blank', 'noopener,noreferrer')}
-                    className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 px-4 py-3 text-sm font-black text-slate-700 transition hover:bg-slate-50"
+                    className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 px-4 py-3 text-sm font-black text-slate-700 transition hover:bg-slate-100"
                   >
                     <Waypoints size={16} />
                     跳转下游任务
@@ -736,7 +736,7 @@ export const ChimeraScheduleCenterPage: React.FC<ChimeraScheduleCenterPageProps>
       setTableItems(items);
       setTotal(Number(payload.total || 0));
       setSelectedTaskIds((current) => current.filter((taskId) => items.some((item) => item.task_id === taskId)));
-      setNotice(filters.projectId ? `当前按项目过滤: ${projectNameMap.get(filters.projectId) || filters.projectId}` : '');
+      setNotice(filters.projectId ?`当前按项目过滤: ${projectNameMap.get(filters.projectId) || filters.projectId}` : '');
     } catch (err: any) {
       setTableItems([]);
       setTotal(0);
@@ -898,7 +898,7 @@ export const ChimeraScheduleCenterPage: React.FC<ChimeraScheduleCenterPageProps>
       await scheduleApi.retryDispatchUserTask(item.project_id, item.task_id, {});
       await showAlert({
         title: '重试已提交',
-        message: `任务 ${item.task_name || item.task_id} 的重试分发请求已提交。`,
+        message:`任务 ${item.task_name || item.task_id} 的重试分发请求已提交。`,
         tone: 'success',
       });
       await handleRefresh();
@@ -919,7 +919,7 @@ export const ChimeraScheduleCenterPage: React.FC<ChimeraScheduleCenterPageProps>
       }
       const detail = await scheduleApi.getUserTask(item.project_id, item.task_id) as ScheduleCenterUserTask;
       await showAlert({
-        title: `${item.task_name} 最近执行摘要`,
+        title:`${item.task_name} 最近执行摘要`,
         message: JSON.stringify({
           inputs: detail.inputs || [],
           module_name: detail.module_name,
@@ -952,7 +952,7 @@ export const ChimeraScheduleCenterPage: React.FC<ChimeraScheduleCenterPageProps>
     }
     const confirmed = await showConfirm({
       title: '确认删除任务',
-      message: `当前项目：${projectNameMap.get(targetProjectId) || targetProjectId}\n删除范围：${mode === 'filtered' ? `当前筛选命中的 ${targetCount} 条任务` : `${targetCount} 条任务`}\n\n删除会先同步删除下游任务；失败项不会删除父任务。`,
+      message:`当前项目：${projectNameMap.get(targetProjectId) || targetProjectId}\n删除范围：${mode === 'filtered' ?`当前筛选命中的 ${targetCount} 条任务` :`${targetCount} 条任务`}\n\n删除会先同步删除下游任务；失败项不会删除父任务。`,
       confirmText: '确认删除',
       cancelText: '取消',
       danger: true,
@@ -978,11 +978,11 @@ export const ChimeraScheduleCenterPage: React.FC<ChimeraScheduleCenterPageProps>
       const failedLines = (result.results || [])
         .filter((item) => !['queued', 'already_queued', 'already_deleted'].includes(item.status))
         .slice(0, 10)
-        .map((item) => `${item.task_id}: ${item.message}`)
+        .map((item) =>`${item.task_id}: ${item.message}`)
         .join('\n');
       await showAlert({
         title: '删除任务结果',
-        message: `请求 ${result.total_requested} 条，已入队 ${result.queued_count} 条，已在队列中 ${result.already_queued_count} 条，失败 ${result.failed_count} 条。${failedLines ? `\n\n失败详情：\n${failedLines}` : ''}`,
+        message:`请求 ${result.total_requested} 条，已入队 ${result.queued_count} 条，已在队列中 ${result.already_queued_count} 条，失败 ${result.failed_count} 条。${failedLines ?`\n\n失败详情：\n${failedLines}` : ''}`,
         tone: result.failed_count ? 'warning' : 'success',
       });
       setSelectedTaskIds([]);
@@ -1057,8 +1057,8 @@ export const ChimeraScheduleCenterPage: React.FC<ChimeraScheduleCenterPageProps>
             onClick={() => handleLegacyNav(item.key)}
             className={`inline-flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-bold transition ${
               active
-                ? 'bg-slate-900 text-white shadow-sm'
-                : 'border border-slate-200 bg-white text-slate-700 hover:bg-slate-50'
+ ? 'bg-slate-900 text-white '
+                : 'border border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100'
             }`}
           >
             <Icon size={16} />
@@ -1105,7 +1105,7 @@ export const ChimeraScheduleCenterPage: React.FC<ChimeraScheduleCenterPageProps>
               {statCards.map((card, index) => (
                 <article
                   key={`${card.label}-${index}`}
-                  className={`rounded-xl border bg-gradient-to-br p-4 shadow-sm ${metricTone(card.key)}`}
+ className={`rounded-xl border bg-gradient-to-br p-4 ${metricTone(card.key)}`}
                 >
                   <div className="truncate text-center text-xs font-bold text-slate-500" title={card.hint}>{card.label}</div>
                   <div className={`mt-1.5 truncate text-center font-semibold tabular-nums text-slate-900 ${card.label === '最近刷新时间' ? 'text-[10px]' : 'text-sm'}`} title={`${card.value}`}>{typeof card.value === 'string' ? card.value : formatCount(card.value as number)}</div>
@@ -1113,12 +1113,12 @@ export const ChimeraScheduleCenterPage: React.FC<ChimeraScheduleCenterPageProps>
               ))}
             </section>
 
-            <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+ <section className="overflow-hidden rounded-2xl border border-slate-200 bg-slate-50">
 
               <div className="border-b border-slate-200 bg-slate-50/70 px-4 py-4 md:px-5">
                 <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-[1.5fr_repeat(4,minmax(0,0.9fr))] 2xl:grid-cols-[1.7fr_repeat(4,minmax(0,0.85fr))_auto] xl:items-end">
                   <div className="block">
-                    <div className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2">
+                    <div className="flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
                       <Search size={16} className="text-slate-400" />
                       <input
                         value={filters.search}
@@ -1140,7 +1140,7 @@ export const ChimeraScheduleCenterPage: React.FC<ChimeraScheduleCenterPageProps>
                         setFilters((current) => ({ ...current, status: event.target.value }));
                         setPage(1);
                       }}
-                      className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-800 outline-none"
+                      className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-medium text-slate-800 outline-none"
                     >
                       {STATUS_OPTIONS.map((item) => (
                         <option key={item.value} value={item.value}>{item.label}</option>
@@ -1155,7 +1155,7 @@ export const ChimeraScheduleCenterPage: React.FC<ChimeraScheduleCenterPageProps>
                         setFilters((current) => ({ ...current, taskType: event.target.value }));
                         setPage(1);
                       }}
-                      className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-800 outline-none"
+                      className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-medium text-slate-800 outline-none"
                     >
                       {TASK_TYPE_OPTIONS.map((item) => (
                         <option key={item.value} value={item.value}>{item.label}</option>
@@ -1170,7 +1170,7 @@ export const ChimeraScheduleCenterPage: React.FC<ChimeraScheduleCenterPageProps>
                         setFilters((current) => ({ ...current, projectId: event.target.value }));
                         setPage(1);
                       }}
-                      className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-800 outline-none"
+                      className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-medium text-slate-800 outline-none"
                     >
                       {projectOptions.map((item) => (
                         <option key={item.id} value={item.id}>{item.label}</option>
@@ -1185,7 +1185,7 @@ export const ChimeraScheduleCenterPage: React.FC<ChimeraScheduleCenterPageProps>
                         setPageSize(Number(event.target.value));
                         setPage(1);
                       }}
-                      className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-800 outline-none"
+                      className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-medium text-slate-800 outline-none"
                     >
                       {PAGE_SIZE_OPTIONS.map((value) => (
                         <option key={value} value={value}>{value}</option>
@@ -1194,7 +1194,7 @@ export const ChimeraScheduleCenterPage: React.FC<ChimeraScheduleCenterPageProps>
                   </div>
 
                   <div className="flex flex-wrap items-center gap-2 md:col-span-2 xl:col-span-5 2xl:col-span-1 2xl:justify-end">
-                    <label className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700">
+                    <label className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-medium text-slate-700">
                       <input
                         type="checkbox"
                         checked={selectAllMatching}
@@ -1206,7 +1206,7 @@ export const ChimeraScheduleCenterPage: React.FC<ChimeraScheduleCenterPageProps>
                       />
                       删除全部筛选结果
                     </label>
-                    <label className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700">
+                    <label className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-medium text-slate-700">
                       <input
                         type="checkbox"
                         checked={filters.isRetrying}
@@ -1218,7 +1218,7 @@ export const ChimeraScheduleCenterPage: React.FC<ChimeraScheduleCenterPageProps>
                       />
                       仅重试中
                     </label>
-                    <label className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700">
+                    <label className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-medium text-slate-700">
                       <input
                         type="checkbox"
                         checked={filters.hasError}
@@ -1274,7 +1274,7 @@ export const ChimeraScheduleCenterPage: React.FC<ChimeraScheduleCenterPageProps>
                             </button>
                           </div>
                           {openColumnFilter === 'taskType' ? (
-                            <div className="absolute left-0 top-full z-20 mt-2 w-56 rounded-xl border border-slate-200 bg-white p-2 shadow-lg">
+ <div className="absolute left-0 top-full z-20 mt-2 w-56 rounded-xl border border-slate-200 bg-slate-50 p-2">
                               {TASK_TYPE_OPTIONS.map((item) => (
                                 <button
                                   key={item.value}
@@ -1284,7 +1284,7 @@ export const ChimeraScheduleCenterPage: React.FC<ChimeraScheduleCenterPageProps>
                                     setOpenColumnFilter(null);
                                     setPage(1);
                                   }}
-                                  className="flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-sm font-medium text-slate-700 hover:bg-slate-50"
+                                  className="flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-sm font-medium text-slate-700 hover:bg-slate-100"
                                 >
                                   <span>{item.label}</span>
                                   {filters.taskType === item.value ? <Check size={14} className="text-slate-700" /> : null}
@@ -1306,7 +1306,7 @@ export const ChimeraScheduleCenterPage: React.FC<ChimeraScheduleCenterPageProps>
                             </button>
                           </div>
                           {openColumnFilter === 'status' ? (
-                            <div className="absolute left-0 top-full z-20 mt-2 w-56 rounded-xl border border-slate-200 bg-white p-2 shadow-lg">
+ <div className="absolute left-0 top-full z-20 mt-2 w-56 rounded-xl border border-slate-200 bg-slate-50 p-2">
                               {STATUS_OPTIONS.map((item) => (
                                 <button
                                   key={item.value}
@@ -1316,7 +1316,7 @@ export const ChimeraScheduleCenterPage: React.FC<ChimeraScheduleCenterPageProps>
                                     setOpenColumnFilter(null);
                                     setPage(1);
                                   }}
-                                  className="flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-sm font-medium text-slate-700 hover:bg-slate-50"
+                                  className="flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-sm font-medium text-slate-700 hover:bg-slate-100"
                                 >
                                   <span>{item.label}</span>
                                   {filters.status === item.value ? <Check size={14} className="text-slate-700" /> : null}
@@ -1369,7 +1369,7 @@ export const ChimeraScheduleCenterPage: React.FC<ChimeraScheduleCenterPageProps>
                             <button type="button" onClick={() => {
                               setFilters((current) => ({ ...current, hasError: !current.hasError }));
                               setPage(1);
-                            }} className={`rounded-full border px-2 py-0.5 text-[10px] font-bold ${filters.hasError ? 'border-rose-300 bg-rose-50 text-rose-700' : 'border-slate-300 bg-white text-slate-500'}`}>
+                            }} className={`rounded-full border px-2 py-0.5 text-[10px] font-bold ${filters.hasError ? 'border-rose-300 bg-rose-50 text-rose-700' : 'border-slate-300 bg-slate-50 text-slate-500'}`}>
                               {filters.hasError ? '仅失败' : '全部'}
                             </button>
                           </div>
@@ -1381,9 +1381,9 @@ export const ChimeraScheduleCenterPage: React.FC<ChimeraScheduleCenterPageProps>
                           <Waypoints size={14} />
                         </button>
                         {columnPickerOpen ? (
-                          <div className="absolute right-0 top-full z-30 mt-2 w-48 rounded-xl border border-slate-200 bg-white p-2 shadow-lg">
+ <div className="absolute right-0 top-full z-30 mt-2 w-48 rounded-xl border border-slate-200 bg-slate-50 p-2">
                             {ALL_COLUMNS.map((col) => (
-                              <label key={col.key} className="flex cursor-pointer items-center gap-2 rounded-lg px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-50">
+                              <label key={col.key} className="flex cursor-pointer items-center gap-2 rounded-lg px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-100">
                                 <input
                                   type="checkbox"
                                   checked={visibleColumns.has(col.key)}
@@ -1413,7 +1413,7 @@ export const ChimeraScheduleCenterPage: React.FC<ChimeraScheduleCenterPageProps>
                       </tr>
                     ) : tableItems.length ? (
                       tableItems.map((item) => (
-                        <tr key={item.task_id} className="border-b border-slate-100 hover:bg-slate-50/80">
+                        <tr key={item.task_id} className="border-b border-slate-100 hover:bg-slate-100/80">
                           <td className="px-4 py-3 align-top">
                             <input
                               type="checkbox"
@@ -1467,7 +1467,7 @@ export const ChimeraScheduleCenterPage: React.FC<ChimeraScheduleCenterPageProps>
                                   onClick={() => void openTaskDetail(item)}
                                   title="查看详情"
                                   aria-label="查看详情"
-                                  className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 text-slate-700 transition hover:bg-white"
+                                  className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 text-slate-700 transition hover:bg-slate-50"
                                 >
                                   <Eye size={15} />
                                 </button>
@@ -1475,7 +1475,7 @@ export const ChimeraScheduleCenterPage: React.FC<ChimeraScheduleCenterPageProps>
                                   onClick={() => void handleViewExecution(item)}
                                   title="查看执行记录"
                                   aria-label="查看执行记录"
-                                  className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 text-slate-700 transition hover:bg-white"
+                                  className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 text-slate-700 transition hover:bg-slate-50"
                                 >
                                   <ListChecks size={15} />
                                 </button>
@@ -1500,7 +1500,7 @@ export const ChimeraScheduleCenterPage: React.FC<ChimeraScheduleCenterPageProps>
                                     onClick={() => window.open(item.downstream_detail_view || '', '_blank', 'noopener,noreferrer')}
                                     title="跳转下游任务"
                                     aria-label="跳转下游任务"
-                                    className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 text-slate-700 transition hover:bg-white"
+                                    className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 text-slate-700 transition hover:bg-slate-50"
                                   >
                                     <ExternalLink size={15} />
                                   </button>
@@ -1515,7 +1515,7 @@ export const ChimeraScheduleCenterPage: React.FC<ChimeraScheduleCenterPageProps>
                       <tr>
                         <td colSpan={2 + visibleColumns.size} className="px-4 py-12">
                           <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-6 py-10 text-center">
-                            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-white shadow-sm">
+ <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-slate-50">
                               <AlertCircle className="text-slate-400" size={24} />
                             </div>
                             <div className="mt-4 text-lg font-black text-slate-900">当前没有可展示的全局任务</div>
@@ -1539,7 +1539,7 @@ export const ChimeraScheduleCenterPage: React.FC<ChimeraScheduleCenterPageProps>
                     <button
                       onClick={() => setPage((current) => Math.max(1, current - 1))}
                       disabled={page <= 1}
-                      className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-bold text-slate-700 transition hover:bg-slate-50 disabled:opacity-50"
+                      className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-bold text-slate-700 transition hover:bg-slate-100 disabled:opacity-50"
                     >
                       <ChevronLeft size={16} />
                       上一页
@@ -1547,7 +1547,7 @@ export const ChimeraScheduleCenterPage: React.FC<ChimeraScheduleCenterPageProps>
                     <button
                       onClick={() => setPage((current) => Math.min(totalPages, current + 1))}
                       disabled={page >= totalPages}
-                      className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-bold text-slate-700 transition hover:bg-slate-50 disabled:opacity-50"
+                      className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-bold text-slate-700 transition hover:bg-slate-100 disabled:opacity-50"
                     >
                       下一页
                       <ChevronRight size={16} />
@@ -1575,7 +1575,7 @@ export const ChimeraScheduleCenterPage: React.FC<ChimeraScheduleCenterPageProps>
               {taskEventStatCards.map((card, index) => (
                 <article
                   key={`${card.label}-${index}`}
-                  className={`rounded-xl border bg-gradient-to-br p-4 shadow-sm ${metricTone(card.key)}`}
+ className={`rounded-xl border bg-gradient-to-br p-4 ${metricTone(card.key)}`}
                 >
                   <div className="truncate text-center text-xs font-bold text-slate-500" title={card.hint}>{card.label}</div>
                   <div className="mt-1.5 truncate text-center text-sm font-semibold tabular-nums text-slate-900" title={`${card.value}`}>{formatCount(card.value as number)}</div>
@@ -1584,7 +1584,7 @@ export const ChimeraScheduleCenterPage: React.FC<ChimeraScheduleCenterPageProps>
             </section>
 
 
-            <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+ <section className="overflow-hidden rounded-2xl border border-slate-200 bg-slate-50">
               <div className="border-b border-slate-200 bg-slate-50/70 px-4 py-4 md:px-5">
                 <div className="mb-4">
                   <h2 className="text-lg font-black text-slate-900">调度日志</h2>
@@ -1593,48 +1593,48 @@ export const ChimeraScheduleCenterPage: React.FC<ChimeraScheduleCenterPageProps>
                 <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-6">
                   <label className="text-sm font-bold text-slate-600">
                   范围
-                  <select value={taskEventFilters.scope} onChange={(e) => { setTaskEventFilters((current) => ({ ...current, scope: e.target.value as 'project' | 'global' })); setTaskEventPage(1); }} className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800">
+                  <select value={taskEventFilters.scope} onChange={(e) => { setTaskEventFilters((current) => ({ ...current, scope: e.target.value as 'project' | 'global' })); setTaskEventPage(1); }} className="mt-2 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-800">
                     <option value="project">当前项目</option>
                     <option value="global">全局</option>
                   </select>
                 </label>
                 <label className="text-sm font-bold text-slate-600">
                   项目
-                  <select value={taskEventFilters.projectId} onChange={(e) => { setTaskEventFilters((current) => ({ ...current, projectId: e.target.value })); setTaskEventPage(1); }} className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800">
+                  <select value={taskEventFilters.projectId} onChange={(e) => { setTaskEventFilters((current) => ({ ...current, projectId: e.target.value })); setTaskEventPage(1); }} className="mt-2 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-800">
                     <option value="">{taskEventFilters.scope === 'global' ? '全部项目' : '跟随当前项目'}</option>
                     {projects.map((project) => <option key={project.id} value={project.id}>{project.name || project.id}</option>)}
                   </select>
                 </label>
                 <label className="text-sm font-bold text-slate-600">
                   任务类型
-                  <input value={taskEventFilters.taskType} onChange={(e) => { setTaskEventFilters((current) => ({ ...current, taskType: e.target.value })); setTaskEventPage(1); }} className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800" placeholder="binary_firmware_e2e" />
+                  <input value={taskEventFilters.taskType} onChange={(e) => { setTaskEventFilters((current) => ({ ...current, taskType: e.target.value })); setTaskEventPage(1); }} className="mt-2 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-800" placeholder="binary_firmware_e2e" />
                 </label>
                 <label className="text-sm font-bold text-slate-600">
                   事件分类
-                  <input value={taskEventFilters.eventCategory} onChange={(e) => { setTaskEventFilters((current) => ({ ...current, eventCategory: e.target.value })); setTaskEventPage(1); }} className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800" placeholder="dispatch / sync / delete" />
+                  <input value={taskEventFilters.eventCategory} onChange={(e) => { setTaskEventFilters((current) => ({ ...current, eventCategory: e.target.value })); setTaskEventPage(1); }} className="mt-2 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-800" placeholder="dispatch / sync / delete" />
                 </label>
                 <label className="text-sm font-bold text-slate-600">
                   结果
-                  <input value={taskEventFilters.resultStatus} onChange={(e) => { setTaskEventFilters((current) => ({ ...current, resultStatus: e.target.value })); setTaskEventPage(1); }} className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800" placeholder="failed / succeeded" />
+                  <input value={taskEventFilters.resultStatus} onChange={(e) => { setTaskEventFilters((current) => ({ ...current, resultStatus: e.target.value })); setTaskEventPage(1); }} className="mt-2 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-800" placeholder="failed / succeeded" />
                 </label>
                 <label className="text-sm font-bold text-slate-600">
                   来源
-                  <input value={taskEventFilters.eventSource} onChange={(e) => { setTaskEventFilters((current) => ({ ...current, eventSource: e.target.value })); setTaskEventPage(1); }} className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800" placeholder="api / worker / sync_worker" />
+                  <input value={taskEventFilters.eventSource} onChange={(e) => { setTaskEventFilters((current) => ({ ...current, eventSource: e.target.value })); setTaskEventPage(1); }} className="mt-2 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-800" placeholder="api / worker / sync_worker" />
                 </label>
                 <label className="text-sm font-bold text-slate-600 xl:col-span-2">
                   关键词
-                  <div className="mt-2 flex items-center rounded-xl border border-slate-200 bg-white px-3 py-2">
+                  <div className="mt-2 flex items-center rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
                     <Search size={14} className="text-slate-400" />
                     <input value={taskEventFilters.search} onChange={(e) => { setTaskEventFilters((current) => ({ ...current, search: e.target.value })); setTaskEventPage(1); }} className="ml-2 w-full bg-transparent text-sm text-slate-800 outline-none" placeholder="任务ID / message / actor / 下游任务ID" />
                   </div>
                 </label>
                 <label className="text-sm font-bold text-slate-600">
                   任务 ID
-                  <input value={taskEventFilters.taskId} onChange={(e) => { setTaskEventFilters((current) => ({ ...current, taskId: e.target.value })); setTaskEventPage(1); }} className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800" />
+                  <input value={taskEventFilters.taskId} onChange={(e) => { setTaskEventFilters((current) => ({ ...current, taskId: e.target.value })); setTaskEventPage(1); }} className="mt-2 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-800" />
                 </label>
                 <label className="text-sm font-bold text-slate-600">
                   下游任务 ID
-                  <input value={taskEventFilters.downstreamTaskId} onChange={(e) => { setTaskEventFilters((current) => ({ ...current, downstreamTaskId: e.target.value })); setTaskEventPage(1); }} className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800" />
+                  <input value={taskEventFilters.downstreamTaskId} onChange={(e) => { setTaskEventFilters((current) => ({ ...current, downstreamTaskId: e.target.value })); setTaskEventPage(1); }} className="mt-2 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-800" />
                 </label>
                 <label className="inline-flex items-center gap-2 text-sm font-bold text-slate-600 xl:self-end">
                   <input type="checkbox" checked={taskEventFilters.onlyFailed} onChange={(e) => { setTaskEventFilters((current) => ({ ...current, onlyFailed: e.target.checked })); setTaskEventPage(1); }} />
@@ -1663,7 +1663,7 @@ export const ChimeraScheduleCenterPage: React.FC<ChimeraScheduleCenterPageProps>
                     {taskEventLoading ? <tr><td colSpan={10} className="px-4 py-10 text-center text-sm text-slate-500">调度日志加载中...</td></tr> : null}
                     {!taskEventLoading && taskEventItems.length === 0 ? <tr><td colSpan={10} className="px-4 py-10 text-center text-sm text-slate-500">暂无调度日志</td></tr> : null}
                     {taskEventItems.map((event) => (
-                      <tr key={event.id} className="cursor-pointer border-b border-slate-100 hover:bg-slate-50/80" onClick={() => setSelectedTaskEvent(event)}>
+                      <tr key={event.id} className="cursor-pointer border-b border-slate-100 hover:bg-slate-100/80" onClick={() => setSelectedTaskEvent(event)}>
                         <td className="px-4 py-3 text-xs">{formatTime(event.created_at)}</td>
                         <td className="px-4 py-3 text-xs">{event.project_id}</td>
                         <td className="px-4 py-3 font-mono text-xs">{event.user_task_id}</td>
@@ -1671,7 +1671,7 @@ export const ChimeraScheduleCenterPage: React.FC<ChimeraScheduleCenterPageProps>
                         <td className="px-4 py-3 text-xs">{event.event_category}</td>
                         <td className="px-4 py-3 text-xs font-semibold">{event.event_type}</td>
                         <td className="px-4 py-3 text-xs">{event.result_status}</td>
-                        <td className="px-4 py-3 text-xs">{event.event_source}{event.actor ? `/${event.actor}` : ''}</td>
+                        <td className="px-4 py-3 text-xs">{event.event_source}{event.actor ?`/${event.actor}` : ''}</td>
                         <td className="px-4 py-3 font-mono text-xs">{event.downstream_task_id || '-'}</td>
                         <td className="max-w-[320px] px-4 py-3 text-xs text-slate-700">{event.message}</td>
                       </tr>
@@ -1684,14 +1684,14 @@ export const ChimeraScheduleCenterPage: React.FC<ChimeraScheduleCenterPageProps>
                 <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
                   <div className="text-sm font-semibold text-slate-500">第 {taskEventPage} 页，共 {Math.max(1, Math.ceil(taskEventTotal / taskEventPageSize))} 页，共 {formatCount(taskEventTotal)} 条</div>
                   <div className="flex items-center gap-3">
-                  <select value={taskEventPageSize} onChange={(e) => { setTaskEventPageSize(Number(e.target.value)); setTaskEventPage(1); }} className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700">
+                  <select value={taskEventPageSize} onChange={(e) => { setTaskEventPageSize(Number(e.target.value)); setTaskEventPage(1); }} className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-semibold text-slate-700">
                     {[20, 50, 100, 200, 500, 1000].map((size) => <option key={size} value={size}>{size} / 页</option>)}
                   </select>
-                  <button onClick={() => setTaskEventPage((current) => Math.max(1, current - 1))} disabled={taskEventPage <= 1} className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-bold text-slate-700 transition hover:bg-slate-50 disabled:opacity-50">
+                  <button onClick={() => setTaskEventPage((current) => Math.max(1, current - 1))} disabled={taskEventPage <= 1} className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-bold text-slate-700 transition hover:bg-slate-100 disabled:opacity-50">
                     <ChevronLeft size={16} />
                     上一页
                   </button>
-                  <button onClick={() => setTaskEventPage((current) => current + 1)} disabled={taskEventPage * taskEventPageSize >= taskEventTotal} className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-bold text-slate-700 transition hover:bg-slate-50 disabled:opacity-50">
+                  <button onClick={() => setTaskEventPage((current) => current + 1)} disabled={taskEventPage * taskEventPageSize >= taskEventTotal} className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-bold text-slate-700 transition hover:bg-slate-100 disabled:opacity-50">
                     下一页
                     <ChevronRight size={16} />
                   </button>
@@ -1705,7 +1705,7 @@ export const ChimeraScheduleCenterPage: React.FC<ChimeraScheduleCenterPageProps>
                     <div className="text-sm font-black text-slate-900">事件详情：{selectedTaskEvent.event_type}</div>
                     <button onClick={() => setSelectedTaskEvent(null)} className="rounded-lg p-1 text-slate-500 hover:bg-slate-200"><X size={16} /></button>
                   </div>
-                  <pre className="mt-4 overflow-auto whitespace-pre-wrap break-all rounded-2xl border border-slate-200 bg-white p-4 text-xs text-slate-700">{JSON.stringify(selectedTaskEvent, null, 2)}</pre>
+                  <pre className="mt-4 overflow-auto whitespace-pre-wrap break-all rounded-2xl border border-slate-200 bg-slate-50 p-4 text-xs text-slate-700">{JSON.stringify(selectedTaskEvent, null, 2)}</pre>
                 </div>
               ) : null}
             </section>
@@ -1738,24 +1738,24 @@ export const ChimeraScheduleCenterPage: React.FC<ChimeraScheduleCenterPageProps>
             </div>
 
             <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-              <article className={`rounded-xl border bg-gradient-to-br p-4 shadow-sm ${metricTone('queue')}`}>
+ <article className={`rounded-xl border bg-gradient-to-br p-4 ${metricTone('queue')}`}>
                 <div className="truncate text-center text-xs font-bold text-slate-500">Redis 状态</div>
                 <div className="mt-1.5 truncate text-center text-sm font-semibold text-slate-900">{queuePreview?.redis_available ? 'Available' : 'Fallback'}</div>
                 <div className="mt-1 truncate text-center text-xs font-bold text-slate-500">Backend {queuePreview?.backend || 'unknown'}</div>
               </article>
-              <article className={`rounded-xl border bg-gradient-to-br p-4 shadow-sm ${metricTone('running')}`}>
+ <article className={`rounded-xl border bg-gradient-to-br p-4 ${metricTone('running')}`}>
                 <div className="truncate text-center text-xs font-bold text-slate-500">主执行 / 删除</div>
                 <div className="mt-1.5 truncate text-center text-sm font-semibold text-slate-900">{formatCount(queuePreviewSummary.readyLength)} / {formatCount(queuePreviewSummary.deleteLength)}</div>
                 <div className="mt-1 truncate text-center text-xs font-bold text-slate-500">同步总排队 {formatCount(queuePreviewSummary.syncTotal)}</div>
               </article>
-              <article className={`rounded-xl border bg-gradient-to-br p-4 shadow-sm ${metricTone('retry')}`}>
+ <article className={`rounded-xl border bg-gradient-to-br p-4 ${metricTone('retry')}`}>
                 <div className="truncate text-center text-xs font-bold text-slate-500">延迟队列</div>
                 <div className="mt-1.5 truncate text-center text-sm font-semibold text-slate-900">{formatCount(queuePreviewSummary.delayLength)}</div>
                 <div className="mt-1 truncate text-center text-xs font-bold text-slate-500">最近刷新 {formatTime(queuePreview?.refreshed_at)}</div>
               </article>
             </section>
 
-            <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+ <section className="overflow-hidden rounded-2xl border border-slate-200 bg-slate-50">
               <div className="border-b border-slate-200 bg-slate-50/70 px-4 py-4 md:px-5">
                 <h2 className="text-lg font-black text-slate-900">调度队列预览</h2>
                 <p className="mt-1 text-sm font-medium text-slate-500">查看调度执行、删除维护和用户任务同步队列的当前积压与等待时长。</p>
@@ -1768,7 +1768,7 @@ export const ChimeraScheduleCenterPage: React.FC<ChimeraScheduleCenterPageProps>
               ) : (
                 <div className="space-y-4 px-4 py-4 md:px-5">
                   {(queuePreview?.groups || []).map((group: ScheduleRuntimeQueuePreviewGroup) => (
-                    <section key={group.group_key} className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
+                    <section key={group.group_key} className="overflow-hidden rounded-2xl border border-slate-200 bg-slate-50">
                       <div className="border-b border-slate-200 bg-slate-50/70 px-4 py-3">
                         <div className="text-xs font-bold uppercase tracking-[0.16em] text-slate-500">{group.group_key}</div>
                         <h3 className="mt-1 text-base font-black text-slate-900">{group.group_name}</h3>
@@ -1790,7 +1790,7 @@ export const ChimeraScheduleCenterPage: React.FC<ChimeraScheduleCenterPageProps>
                         </thead>
                         <tbody>
                           {group.items.map((item: ScheduleRuntimeQueuePreviewItem) => (
-                            <tr key={item.queue_key} className="border-b border-slate-100 hover:bg-slate-50/80">
+                            <tr key={item.queue_key} className="border-b border-slate-100 hover:bg-slate-100/80">
                               <td className="px-4 py-3 align-top">
                                 <div className="font-black text-slate-900">{item.queue_name}</div>
                                 <div className="mt-1 text-xs text-slate-500">{item.backend || 'unknown'}</div>
@@ -1853,7 +1853,7 @@ export const ChimeraScheduleCenterPage: React.FC<ChimeraScheduleCenterPageProps>
               ].map((card, index) => (
                 <article
                   key={`${card.label}-${index}`}
-                  className={`rounded-xl border bg-gradient-to-br p-4 shadow-sm ${metricTone(card.key)}`}
+ className={`rounded-xl border bg-gradient-to-br p-4 ${metricTone(card.key)}`}
                 >
                   <div className="truncate text-center text-xs font-bold text-slate-500" title={card.hint}>{card.label}</div>
                   <div className={`mt-1.5 truncate text-center font-semibold tabular-nums text-slate-900 ${card.label === '最近刷新' ? 'text-[10px]' : 'text-sm'}`} title={`${card.value}`}>{card.value}</div>
@@ -1861,7 +1861,7 @@ export const ChimeraScheduleCenterPage: React.FC<ChimeraScheduleCenterPageProps>
               ))}
             </section>
 
-            <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+ <section className="overflow-hidden rounded-2xl border border-slate-200 bg-slate-50">
               <div className="border-b border-slate-200 bg-slate-50/70 px-4 py-4 md:px-5">
                 <h2 className="text-lg font-black text-slate-900">{legacySectionContent[nav as Exclude<OverviewNav, 'overview'>].title}</h2>
                 <p className="mt-1 text-sm font-medium leading-6 text-slate-500">
@@ -1871,13 +1871,13 @@ export const ChimeraScheduleCenterPage: React.FC<ChimeraScheduleCenterPageProps>
 
               <div className="px-4 py-4 md:px-5">
                 <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-6 py-10">
-                  <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-white shadow-sm">
+ <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-slate-50">
                     <AlertCircle className="text-slate-400" size={24} />
                   </div>
                   <div className="mt-4 text-center text-lg font-black text-slate-900">能力已下沉，子页建设中</div>
                   <div className="mx-auto mt-4 max-w-2xl space-y-2">
                     {legacySectionContent[nav as Exclude<OverviewNav, 'overview'>].bullets.map((bullet) => (
-                      <div key={bullet} className="rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700">
+                      <div key={bullet} className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-700">
                         {bullet}
                       </div>
                     ))}
@@ -1904,7 +1904,7 @@ export const ChimeraScheduleCenterPage: React.FC<ChimeraScheduleCenterPageProps>
 
       {errorPopupText !== null ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={() => setErrorPopupText(null)}>
-          <div className="mx-4 w-full max-w-lg rounded-2xl border border-slate-200 bg-white p-6 shadow-2xl" onClick={(e) => e.stopPropagation()}>
+ <div className="mx-4 w-full max-w-lg rounded-2xl border border-slate-200 bg-slate-50 p-6" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2 text-sm font-bold text-rose-700">
                 <AlertCircle size={18} />
@@ -1931,7 +1931,7 @@ export const ChimeraScheduleCenterPage: React.FC<ChimeraScheduleCenterPageProps>
       ) : null}
 
       {(loadingOverview || refreshing) ? (
-        <div className="fixed bottom-6 right-6 inline-flex items-center gap-3 rounded-full bg-slate-950 px-5 py-3 text-sm font-black text-white shadow-2xl">
+ <div className="fixed bottom-6 right-6 inline-flex items-center gap-3 rounded-full bg-slate-950 px-5 py-3 text-sm font-black text-white">
           <RefreshCw className="animate-spin" size={16} />
           同步全局调度总览中
         </div>

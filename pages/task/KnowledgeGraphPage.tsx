@@ -18,14 +18,13 @@ interface Props {
 
 // 知识图谱构建是项目维度、幂等的:固定 task_id = kg-<projectId>,product_id=projectId
 // → manager 算出的 db_name 不变 → 一个项目始终一张图(重新上传更新图依赖后续的增量分析)。
-const buildTaskId = (projectId: string) => `kg-${projectId}`;
+const buildTaskId = (projectId: string) =>`kg-${projectId}`;
 
 // manager 读取代码的文件系统根。manager 挂载了平台 fileserver 的共享卷到 /data,
 // 上传代码物理路径是 /data/files/<projectId>/<target_path>;而 fileserver API 返回的
 // target_path 只是 /user_input/code/<id>(缺前缀)。这里补全成 manager 视角的绝对路径。
 const MANAGER_SOURCE_ROOT = '/data/files';
-const buildTargetDir = (projectId: string, targetPath: string) =>
-  `${MANAGER_SOURCE_ROOT}/${projectId}${targetPath.startsWith('/') ? '' : '/'}${targetPath}`;
+const buildTargetDir = (projectId: string, targetPath: string) =>`${MANAGER_SOURCE_ROOT}/${projectId}${targetPath.startsWith('/') ? '' : '/'}${targetPath}`;
 
 // 构建仍在进行的状态(manager FSM)。completed/failed 为终态。
 const IN_PROGRESS_STATUSES = new Set(['queued', 'accepted', 'building_analyze', 'building_repair']);
@@ -219,7 +218,7 @@ export const KnowledgeGraphPage: React.FC<Props> = ({ projectId, projects }) => 
         : null;
     return (
       <div className="flex h-full flex-col" style={{ backgroundColor: LK.canvas }}>
-        <div className="flex items-center justify-between px-5 py-4" style={{ borderBottom: `1px solid ${LK.border}`, backgroundColor: LK.surface }}>
+        <div className="flex items-center justify-between px-5 py-4" style={{ borderBottom:`1px solid ${LK.border}`, backgroundColor: LK.surface }}>
           <div className="flex items-center gap-2">
             <Network size={18} style={{ color: LK.primary }} />
             <h1 className="text-base font-semibold" style={{ color: LK.ink }}>知识图谱</h1>
@@ -237,16 +236,16 @@ export const KnowledgeGraphPage: React.FC<Props> = ({ projectId, projects }) => 
           </button>
         </div>
         {building ? (
-          <div className="flex items-center gap-3 px-5 py-2.5 text-xs" style={{ borderBottom: `1px solid ${LK.border}`, backgroundColor: `${LK.info}14`, color: LK.info }}>
+          <div className="flex items-center gap-3 px-5 py-2.5 text-xs" style={{ borderBottom:`1px solid ${LK.border}`, backgroundColor: `${LK.info}14`, color: LK.info }}>
             <Loader2 size={14} className="animate-spin" />
             <span>
               图谱构建中 · {STATUS_LABELS[status?.status || ''] || '处理中'}
-              {pct !== null ? ` · ${progress?.completed}/${progress?.total}（${pct}%）` : ''}
+              {pct !== null ?` · ${progress?.completed}/${progress?.total}（${pct}%）` : ''}
               ，结果会持续补全，可刷新查看最新。
             </span>
           </div>
         ) : failed ? (
-          <div className="flex items-center gap-3 px-5 py-2.5 text-xs" style={{ borderBottom: `1px solid ${LK.border}`, backgroundColor: `${LK.error}14`, color: LK.error }}>
+          <div className="flex items-center gap-3 px-5 py-2.5 text-xs" style={{ borderBottom:`1px solid ${LK.border}`, backgroundColor: `${LK.error}14`, color: LK.error }}>
             <XCircle size={14} />
             <span>{status?.error || '构建部分失败'}，图谱可能不完整。</span>
           </div>
@@ -264,7 +263,7 @@ export const KnowledgeGraphPage: React.FC<Props> = ({ projectId, projects }) => 
   return (
     <div className="min-h-full px-5 py-5" style={{ backgroundColor: LK.canvas }}>
       <div className="mx-auto max-w-3xl">
-        <div className="mb-5 flex items-center gap-2 pb-4" style={{ borderBottom: `1px solid ${LK.borderSoft}` }}>
+        <div className="mb-5 flex items-center gap-2 pb-4" style={{ borderBottom:`1px solid ${LK.borderSoft}` }}>
           <Network size={20} style={{ color: LK.primary }} />
           <h1 className="text-2xl font-semibold" style={{ color: LK.ink }}>知识图谱</h1>
           <span className="text-sm" style={{ color: LK.muted }}>{projectName}</span>

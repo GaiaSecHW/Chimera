@@ -62,7 +62,7 @@ const loadAgentApps = async (departmentId?: number | string | null, tenantId?: n
   if (departmentId) params.set('departmentId', String(departmentId));
   if (tenantId) params.set('tenantId', String(tenantId));
   const qs = params.toString();
-  const response = await fetch(agentManageApiPath(`/agent-apps${qs ? `?${qs}` : ''}`), { headers: getAuthHeaders() });
+  const response = await fetch(agentManageApiPath(`/agent-apps${qs ?`?${qs}` : ''}`), { headers: getAuthHeaders() });
   const payload = await handleResponse(response);
   return Array.isArray(payload?.apps) ? payload.apps : [];
 };
@@ -95,7 +95,7 @@ const getDeleteQueueTypeLabel = (taskType: string) => taskType === 'sechps_tool'
 const truncateText = (value?: string | null, max = 80) => {
   const normalized = String(value || '').trim();
   if (!normalized) return '—';
-  return normalized.length > max ? `${normalized.slice(0, max)}...` : normalized;
+  return normalized.length > max ?`${normalized.slice(0, max)}...` : normalized;
 };
 
 // LOKI design tokens (DESIGN.md) — page-local palette.
@@ -511,7 +511,7 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects }) => {
     const confirmed = await confirm({
       title: '确认删除任务',
       message: '会联动删除下游子任务，删除请求只会加入后台队列，且不可撤销。',
-      confirmText: `删除 ${taskIds.length} 项`,
+      confirmText:`删除 ${taskIds.length} 项`,
       cancelText: '取消',
       danger: true,
     });
@@ -533,8 +533,8 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects }) => {
     if (!filteredTasks.length || deleteSubmitting) return;
     const confirmed = await confirm({
       title: '确认删除全部任务',
-      message: `会删除当前项目下任务列表中可删除的全部 ${deletableTaskIds.length} 项任务，并联动删除下游子任务。此操作不可撤销。`,
-      confirmText: `删除全部 ${deletableTaskIds.length} 项`,
+      message:`会删除当前项目下任务列表中可删除的全部 ${deletableTaskIds.length} 项任务，并联动删除下游子任务。此操作不可撤销。`,
+      confirmText:`删除全部 ${deletableTaskIds.length} 项`,
       cancelText: '取消',
       danger: true,
     });
@@ -638,8 +638,8 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects }) => {
           : selectedRelativePath === entry.relative_path;
       rows.push(
         <tr
-          key={entry.relative_path || `${relativePath}:${entry.name}`}
-          style={{ borderBottom: `1px solid ${LK.borderSoft}` }}
+          key={entry.relative_path ||`${relativePath}:${entry.name}`}
+          style={{ borderBottom:`1px solid ${LK.borderSoft}` }}
         >
           <td className="px-4 py-3">
             {isDirectory ? (
@@ -669,7 +669,7 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects }) => {
             )}
           </td>
           <td className="px-4 py-3">
-            <div className="flex items-center gap-2" style={{ paddingLeft: `${depth * 16}px` }}>
+            <div className="flex items-center gap-2" style={{ paddingLeft:`${depth * 16}px` }}>
               {isDirectory ? (
                 <button
                   type="button"
@@ -726,7 +726,7 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects }) => {
       className="space-y-4 px-5 py-5 md:px-6 2xl:px-8"
       style={{ backgroundColor: LK.canvas, minHeight: '100%', color: LK.inkSoft }}
     >
-      <div className="flex flex-wrap items-start justify-between gap-3 pb-4" style={{ borderBottom: `1px solid ${LK.borderSoft}` }}>
+      <div className="flex flex-wrap items-start justify-between gap-3 pb-4" style={{ borderBottom:`1px solid ${LK.borderSoft}` }}>
         <div>
           <h1 className="text-2xl font-semibold leading-8 tracking-tight" style={{ color: LK.ink }}>
             任务中心
@@ -833,8 +833,8 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects }) => {
             disabled={!deletableTaskIds.length || deleteSubmitting}
             className="inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-50"
             style={{ backgroundColor: `${LK.error}22`, color: LK.error, border: `1px solid ${LK.error}40` }}
-            onMouseEnter={(e) => { if (!e.currentTarget.disabled) e.currentTarget.style.backgroundColor = `${LK.error}3a`; }}
-            onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = `${LK.error}22`; }}
+            onMouseEnter={(e) => { if (!e.currentTarget.disabled) e.currentTarget.style.backgroundColor =`${LK.error}3a`; }}
+            onMouseLeave={(e) => { e.currentTarget.style.backgroundColor =`${LK.error}22`; }}
           >
             {deleteSubmitting ? <Loader2 size={14} className="animate-spin" /> : <X size={14} />}
             删除全部任务（{deletableTaskIds.length}）
@@ -869,19 +869,19 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects }) => {
         <table className="min-w-full border-separate border-spacing-0 text-sm">
           <thead>
             <tr className="text-left text-xs uppercase tracking-wider" style={{ color: LK.mutedSoft }}>
-              <th className="px-4 py-2.5 font-medium" style={{ borderBottom: `1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>
+              <th className="px-4 py-2.5 font-medium" style={{ borderBottom:`1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>
                 <button type="button" onClick={toggleSelectAllVisible} style={{ color: LK.muted }}>
                   {allVisibleSelected ? <SquareCheck size={16} /> : <Square size={16} />}
                 </button>
               </th>
-              <th className="px-4 py-2.5 font-medium" style={{ borderBottom: `1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>任务名</th>
-              <th className="px-4 py-2.5 font-medium" style={{ borderBottom: `1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>类型</th>
-              <th className="px-4 py-2.5 font-medium" style={{ borderBottom: `1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>任务状态</th>
-              <th className="px-4 py-2.5 font-medium" style={{ borderBottom: `1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>同步状态</th>
-              <th className="px-4 py-2.5 font-medium" style={{ borderBottom: `1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>运行父凭证</th>
-              <th className="px-4 py-2.5 font-medium" style={{ borderBottom: `1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>下游任务 ID</th>
-              <th className="px-4 py-2.5 font-medium" style={{ borderBottom: `1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>更新时间</th>
-              <th className="px-4 py-2.5 font-medium" style={{ borderBottom: `1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>操作</th>
+              <th className="px-4 py-2.5 font-medium" style={{ borderBottom:`1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>任务名</th>
+              <th className="px-4 py-2.5 font-medium" style={{ borderBottom:`1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>类型</th>
+              <th className="px-4 py-2.5 font-medium" style={{ borderBottom:`1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>任务状态</th>
+              <th className="px-4 py-2.5 font-medium" style={{ borderBottom:`1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>同步状态</th>
+              <th className="px-4 py-2.5 font-medium" style={{ borderBottom:`1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>运行父凭证</th>
+              <th className="px-4 py-2.5 font-medium" style={{ borderBottom:`1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>下游任务 ID</th>
+              <th className="px-4 py-2.5 font-medium" style={{ borderBottom:`1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>更新时间</th>
+              <th className="px-4 py-2.5 font-medium" style={{ borderBottom:`1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>操作</th>
             </tr>
           </thead>
           <tbody>
@@ -891,7 +891,7 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects }) => {
               <tr
                 key={task.id}
                 className="transition-colors"
-                style={{ borderBottom: `1px solid ${LK.borderSoft}` }}
+                style={{ borderBottom:`1px solid ${LK.borderSoft}` }}
                 onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = LK.surfaceRaised; }}
                 onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; }}
               >
@@ -971,8 +971,8 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects }) => {
                       disabled={deleteSubmitting || ['queued', 'running'].includes(String(task.delete_status || 'none'))}
                       className="inline-flex items-center gap-1 rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-50"
                       style={{ backgroundColor: `${LK.error}22`, color: LK.error, border: `1px solid ${LK.error}40` }}
-                      onMouseEnter={(e) => { if (!e.currentTarget.disabled) e.currentTarget.style.backgroundColor = `${LK.error}3a`; }}
-                      onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = `${LK.error}22`; }}
+                      onMouseEnter={(e) => { if (!e.currentTarget.disabled) e.currentTarget.style.backgroundColor =`${LK.error}3a`; }}
+                      onMouseLeave={(e) => { e.currentTarget.style.backgroundColor =`${LK.error}22`; }}
                     >
                       删除
                     </button>
@@ -994,7 +994,7 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects }) => {
             className="flex max-h-[90vh] w-full max-w-7xl flex-col overflow-hidden rounded-2xl animate-in"
             style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}` }}
           >
-            <div className="flex items-start justify-between px-6 py-5" style={{ borderBottom: `1px solid ${LK.borderSoft}` }}>
+            <div className="flex items-start justify-between px-6 py-5" style={{ borderBottom:`1px solid ${LK.borderSoft}` }}>
               <div>
                 <div className="text-lg font-semibold leading-7" style={{ color: LK.ink }}>
                   删除队列
@@ -1026,7 +1026,7 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects }) => {
             <form
               onSubmit={(event) => { void submitDeleteQueueFilters(event); }}
               className="px-6 py-4"
-              style={{ borderBottom: `1px solid ${LK.borderSoft}` }}
+              style={{ borderBottom:`1px solid ${LK.borderSoft}` }}
             >
               <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-6">
                 <label className="block text-sm font-semibold xl:col-span-2" style={{ color: LK.inkSoft }}>
@@ -1156,20 +1156,20 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects }) => {
                 <table className="min-w-full text-sm">
                   <thead>
                     <tr className="text-left text-xs uppercase tracking-wider" style={{ color: LK.mutedSoft }}>
-                      <th className="px-4 py-2.5 font-medium" style={{ borderBottom: `1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>
+                      <th className="px-4 py-2.5 font-medium" style={{ borderBottom:`1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>
                         <button type="button" onClick={() => void toggleDeleteQueueSort('name')} className="font-semibold">任务名</button>
                       </th>
-                      <th className="px-4 py-2.5 font-medium" style={{ borderBottom: `1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>类型</th>
-                      <th className="px-4 py-2.5 font-medium" style={{ borderBottom: `1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>当前任务状态</th>
-                      <th className="px-4 py-2.5 font-medium" style={{ borderBottom: `1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>删除状态</th>
-                      <th className="px-4 py-2.5 font-medium" style={{ borderBottom: `1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>删除错误</th>
-                      <th className="px-4 py-2.5 font-medium" style={{ borderBottom: `1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>下游任务 ID</th>
-                      <th className="px-4 py-2.5 font-medium" style={{ borderBottom: `1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>
+                      <th className="px-4 py-2.5 font-medium" style={{ borderBottom:`1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>类型</th>
+                      <th className="px-4 py-2.5 font-medium" style={{ borderBottom:`1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>当前任务状态</th>
+                      <th className="px-4 py-2.5 font-medium" style={{ borderBottom:`1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>删除状态</th>
+                      <th className="px-4 py-2.5 font-medium" style={{ borderBottom:`1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>删除错误</th>
+                      <th className="px-4 py-2.5 font-medium" style={{ borderBottom:`1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>下游任务 ID</th>
+                      <th className="px-4 py-2.5 font-medium" style={{ borderBottom:`1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>
                         <button type="button" onClick={() => void toggleDeleteQueueSort('delete_requested_at')} className="font-semibold">删除请求时间</button>
                       </th>
-                      <th className="px-4 py-2.5 font-medium" style={{ borderBottom: `1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>删除开始时间</th>
-                      <th className="px-4 py-2.5 font-medium" style={{ borderBottom: `1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>删除完成时间</th>
-                      <th className="px-4 py-2.5 font-medium" style={{ borderBottom: `1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>
+                      <th className="px-4 py-2.5 font-medium" style={{ borderBottom:`1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>删除开始时间</th>
+                      <th className="px-4 py-2.5 font-medium" style={{ borderBottom:`1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>删除完成时间</th>
+                      <th className="px-4 py-2.5 font-medium" style={{ borderBottom:`1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>
                         <button type="button" onClick={() => void toggleDeleteQueueSort('updated_at')} className="font-semibold">更新时间</button>
                       </th>
                     </tr>
@@ -1184,12 +1184,12 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects }) => {
                           key={item.id}
                           className="transition-colors"
                           style={{
-                            borderBottom: `1px solid ${LK.borderSoft}`,
+                            borderBottom:`1px solid ${LK.borderSoft}`,
                             backgroundColor: item.delete_status === 'failed'
-                              ? `${LK.error}10`
+                              ?`${LK.error}10`
                               : item.delete_status === 'running'
-                                ? `${LK.info}10`
-                                : `${LK.warning}10`,
+                                ?`${LK.info}10`
+                                :`${LK.warning}10`,
                           }}
                         >
                           <td className="px-4 py-3 font-semibold" style={{ color: LK.inkSoft }}>{item.name}</td>
@@ -1216,7 +1216,7 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects }) => {
 
             <div
               className="flex items-center justify-between px-6 py-4 text-sm"
-              style={{ borderTop: `1px solid ${LK.border}` }}
+              style={{ borderTop:`1px solid ${LK.border}` }}
             >
               <div style={{ color: LK.muted }}>
                 共 {deleteQueueTotal} 条，当前第 {deleteQueuePage} / {deleteQueueTotalPages} 页
@@ -1274,7 +1274,7 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects }) => {
             className="flex max-h-[calc(100vh-2rem)] w-full max-w-4xl flex-col overflow-hidden rounded-2xl animate-in"
             style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}` }}
           >
-            <div className="flex items-start justify-between px-6 py-5" style={{ borderBottom: `1px solid ${LK.borderSoft}` }}>
+            <div className="flex items-start justify-between px-6 py-5" style={{ borderBottom:`1px solid ${LK.borderSoft}` }}>
               <div>
                 <div className="text-lg font-semibold leading-7" style={{ color: LK.ink }}>
                   创建任务
@@ -1294,7 +1294,7 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects }) => {
               </button>
             </div>
 
-            <div className="px-6 py-4" style={{ borderBottom: `1px solid ${LK.borderSoft}` }}>
+            <div className="px-6 py-4" style={{ borderBottom:`1px solid ${LK.borderSoft}` }}>
               <div className="flex flex-wrap gap-2">
                 {createTabs.map((tab, index) => {
                   const active = tab.key === activeCreateTab;
@@ -1307,7 +1307,7 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects }) => {
                       style={{
                         backgroundColor: active ? LK.primaryMuted : LK.surfaceRaised,
                         color: active ? LK.primary : LK.body,
-                        borderBottom: active ? `2px solid ${LK.primary}` : '2px solid transparent',
+                        borderBottom: active ?`2px solid ${LK.primary}` : '2px solid transparent',
                       }}
                       onMouseEnter={(e) => { if (!active) e.currentTarget.style.color = LK.ink; }}
                       onMouseLeave={(e) => { if (!active) e.currentTarget.style.color = LK.body; }}
@@ -1345,7 +1345,7 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects }) => {
                     <div className="text-xs font-semibold uppercase tracking-wider" style={{ color: LK.mutedSoft }}>项目</div>
                     <div className="mt-2 text-sm font-semibold" style={{ color: LK.ink }}>{projectName}</div>
                     <div className="mt-1 text-xs" style={{ color: LK.muted }}>
-                      {taskType === 'sechps_tool' ? 'SecHPS 作为执行引擎运行具体 Agent Harness，不提供单独业务详情页。' : `下游详情会跳转到 ${taskTypeMeta.label} 的原任务页面。`}
+                      {taskType === 'sechps_tool' ? 'SecHPS 作为执行引擎运行具体 Agent Harness，不提供单独业务详情页。' :`下游详情会跳转到 ${taskTypeMeta.label} 的原任务页面。`}
                     </div>
                   </div>
                   <label className="block text-sm font-semibold md:col-span-2" style={{ color: LK.inkSoft }}>
@@ -1497,10 +1497,10 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects }) => {
                         <table className="min-w-full text-sm">
                           <thead>
                             <tr className="text-left text-xs uppercase tracking-wider" style={{ color: LK.mutedSoft }}>
-                              <th className="px-4 py-2.5 font-medium" style={{ borderBottom: `1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>选择</th>
-                              <th className="px-4 py-2.5 font-medium" style={{ borderBottom: `1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>名称</th>
-                              <th className="px-4 py-2.5 font-medium" style={{ borderBottom: `1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>相对路径</th>
-                              <th className="px-4 py-2.5 font-medium" style={{ borderBottom: `1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>类型</th>
+                              <th className="px-4 py-2.5 font-medium" style={{ borderBottom:`1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>选择</th>
+                              <th className="px-4 py-2.5 font-medium" style={{ borderBottom:`1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>名称</th>
+                              <th className="px-4 py-2.5 font-medium" style={{ borderBottom:`1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>相对路径</th>
+                              <th className="px-4 py-2.5 font-medium" style={{ borderBottom:`1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>类型</th>
                             </tr>
                           </thead>
                           <tbody>
@@ -1511,7 +1511,7 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects }) => {
                               <tr><td className="px-4 py-6 text-center" colSpan={4} style={{ color: LK.muted }}>暂无可浏览目录</td></tr>
                             ) : null}
                             {rootBrowse ? (
-                              <tr style={{ borderBottom: `1px solid ${LK.borderSoft}`, backgroundColor: `${LK.surfaceRaised}40` }}>
+                              <tr style={{ borderBottom:`1px solid ${LK.borderSoft}`, backgroundColor: `${LK.surfaceRaised}40` }}>
                                 <td className="px-4 py-3">
                                   {selectionMode === 'directory' ? (
                                     <button
@@ -1598,7 +1598,7 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects }) => {
 
             <div
               className="flex items-center justify-between px-6 py-4"
-              style={{ borderTop: `1px solid ${LK.border}` }}
+              style={{ borderTop:`1px solid ${LK.border}` }}
             >
               <div className="text-xs" style={{ color: LK.muted }}>第 {activeCreateTabIndex + 1} 步 / 共 {createTabs.length} 步</div>
               <div className="flex items-center gap-2">

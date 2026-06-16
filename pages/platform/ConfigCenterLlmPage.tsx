@@ -23,8 +23,8 @@ const normalizeFileBindings = (fileBindings: unknown): LlmProviderFileBinding[] 
       const record = item as Record<string, any>;
       const format = String(record.format || 'other').toLowerCase() as LlmProviderFileBinding['format'];
       return {
-        name: String(record.name || `config-${index + 1}.txt`),
-        path: String(record.path || `/etc/llm/config-${index + 1}.txt`),
+        name: String(record.name ||`config-${index + 1}.txt`),
+        path: String(record.path ||`/etc/llm/config-${index + 1}.txt`),
         content: typeof record.content === 'string' ? record.content : String(record.content ?? ''),
         format: fileFormatOptions.includes(format) ? format : 'other',
         enabled: typeof record.enabled === 'boolean' ? record.enabled : true,
@@ -314,14 +314,14 @@ export const ConfigCenterLlmPage: React.FC<ConfigCenterLlmPageProps> = ({ onOpen
 
   const buildUniqueProviderKey = (baseKey: string) => {
     const normalized = String(baseKey || '').trim().toLowerCase().replace(/[^a-z0-9-_]+/g, '-').replace(/^-+|-+$/g, '') || 'provider-copy';
-    const firstCandidate = normalized.endsWith('-copy') ? normalized : `${normalized}-copy`;
+    const firstCandidate = normalized.endsWith('-copy') ? normalized :`${normalized}-copy`;
     const used = new Set(providers.map((item) => String(item.provider_key || '').trim().toLowerCase()));
     if (!used.has(firstCandidate)) return firstCandidate;
     for (let index = 2; index <= 9999; index += 1) {
-      const candidate = `${firstCandidate}-${index}`;
+      const candidate =`${firstCandidate}-${index}`;
       if (!used.has(candidate)) return candidate;
     }
-    return `${firstCandidate}-${Date.now()}`;
+    return`${firstCandidate}-${Date.now()}`;
   };
 
   const handleDuplicateProvider = () => {
@@ -332,7 +332,7 @@ export const ConfigCenterLlmPage: React.FC<ConfigCenterLlmPageProps> = ({ onOpen
       const nextForm = normalizeDraft({
         ...sourceForm,
         provider_key: buildUniqueProviderKey(sourceKey || 'provider'),
-        display_name: sourceName ? `${sourceName} 副本` : 'LLM Provider 副本',
+        display_name: sourceName ?`${sourceName} 副本` : 'LLM Provider 副本',
         is_default: false,
       });
       setSelectedKey('');
@@ -353,7 +353,7 @@ export const ConfigCenterLlmPage: React.FC<ConfigCenterLlmPageProps> = ({ onOpen
     setMessage('');
     const ok = await loadProviders(true);
     if (!ok) return;
-    const notice = `已从服务端刷新 LLM Provider 列表与当前详情（${new Date().toLocaleTimeString('zh-CN', { hour12: false })}）`;
+    const notice =`已从服务端刷新 LLM Provider 列表与当前详情（${new Date().toLocaleTimeString('zh-CN', { hour12: false })}）`;
     setRefreshNotice(notice);
     setMessage(notice);
   };
@@ -463,7 +463,7 @@ export const ConfigCenterLlmPage: React.FC<ConfigCenterLlmPageProps> = ({ onOpen
     if (!selectedKey) return;
     const confirmed = await showConfirm({
       title: '删除 LLM Provider',
-      message: `确认删除 LLM Provider "${selectedKey}" 吗？`,
+      message:`确认删除 LLM Provider"${selectedKey}" 吗？`,
       confirmText: '确认删除',
       cancelText: '取消',
       danger: true,
@@ -642,7 +642,7 @@ export const ConfigCenterLlmPage: React.FC<ConfigCenterLlmPageProps> = ({ onOpen
       if (entry.name) labels.push('文件名');
       if (entry.path) labels.push('文件路径');
       if (entry.content) labels.push('文件内容');
-      return `第 ${Number(index) + 1} 个文件缺少: ${labels.join('、')}`;
+      return`第 ${Number(index) + 1} 个文件缺少: ${labels.join('、')}`;
     });
 
     const parts: string[] = [];
@@ -686,8 +686,8 @@ export const ConfigCenterLlmPage: React.FC<ConfigCenterLlmPageProps> = ({ onOpen
       file_bindings: [
         ...fileBindings,
         {
-          name: `config-${nextIndex}.yaml`,
-          path: `/etc/llm/config-${nextIndex}.yaml`,
+          name:`config-${nextIndex}.yaml`,
+          path:`/etc/llm/config-${nextIndex}.yaml`,
           content: '',
           format: 'yaml',
           enabled: true,
@@ -774,28 +774,28 @@ export const ConfigCenterLlmPage: React.FC<ConfigCenterLlmPageProps> = ({ onOpen
         <div className="flex items-center gap-3">
           <button
             onClick={() => void handleRefresh()}
-            className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-black text-slate-600"
+            className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-black text-slate-600"
           >
             {refreshing ? <Loader2 size={16} className="animate-spin" /> : <RefreshCw size={16} />}
             刷新
           </button>
           <button
             onClick={handleCreateNew}
-            className="inline-flex items-center gap-2 rounded-2xl bg-slate-950 px-4 py-3 text-sm font-black text-white shadow-lg shadow-slate-900/10"
+ className="inline-flex items-center gap-2 rounded-2xl bg-slate-950 px-4 py-3 text-sm font-black text-white"
           >
             <Plus size={16} />
             新建 Provider
           </button>
           <button
             onClick={onOpenChat}
-            className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-black text-slate-600 shadow-sm"
+ className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-black text-slate-600"
           >
             <MessageSquare size={16} />
             在线聊天
           </button>
           <button
             onClick={() => setShowUsageGuide(true)}
-            className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-black text-slate-600 shadow-sm"
+ className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-black text-slate-600"
           >
             <BookOpenText size={16} />
             使用指引
@@ -809,7 +809,7 @@ export const ConfigCenterLlmPage: React.FC<ConfigCenterLlmPageProps> = ({ onOpen
         </div>
       )}
       <div className="grid grid-cols-1 xl:grid-cols-[360px,minmax(0,1fr)] gap-6">
-        <div className="rounded-[2.5rem] border border-slate-200 bg-white p-6 shadow-sm">
+ <div className="rounded-[2.5rem] border border-slate-200 bg-slate-50 p-6">
           <div className="flex items-center justify-between">
             <h2 className="text-sm font-black uppercase tracking-[0.2em] text-slate-400">已配置渠道</h2>
             <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-black text-slate-500">{providers.length}</span>
@@ -826,7 +826,7 @@ export const ConfigCenterLlmPage: React.FC<ConfigCenterLlmPageProps> = ({ onOpen
               <button
                 key={item.provider_key}
                 onClick={() => void handleSelect(item.provider_key)}
-                className={`w-full rounded-[2rem] border p-4 text-left transition-all ${selectedKey === item.provider_key && !isCreating ? 'border-blue-500 bg-blue-50 shadow-lg shadow-blue-100/60' : 'border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50'}`}
+ className={`w-full rounded-[2rem] border p-4 text-left transition-all ${selectedKey === item.provider_key && !isCreating ? 'border-blue-500 bg-blue-50 shadow-blue-100/60' : 'border-slate-200 bg-slate-50 hover:border-slate-300 hover:bg-slate-100'}`}
               >
                 <div className="flex items-start justify-between gap-3">
                   <div>
@@ -849,7 +849,7 @@ export const ConfigCenterLlmPage: React.FC<ConfigCenterLlmPageProps> = ({ onOpen
           </div>
         </div>
 
-        <div className="rounded-[2.5rem] border border-slate-200 bg-white p-8 shadow-sm">
+ <div className="rounded-[2.5rem] border border-slate-200 bg-slate-50 p-8">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
               <p className="text-[10px] font-black uppercase tracking-[0.24em] text-slate-400">编辑区</p>
@@ -862,7 +862,7 @@ export const ConfigCenterLlmPage: React.FC<ConfigCenterLlmPageProps> = ({ onOpen
                 <button
                   type="button"
                   onClick={() => handleSwitchMode('visual')}
-                  className={`inline-flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-black ${editorMode === 'visual' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500'}`}
+ className={`inline-flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-black ${editorMode === 'visual' ? 'bg-slate-50 text-slate-900 ' : 'text-slate-500'}`}
                 >
                   <LayoutPanelTop size={14} />
                   可视化编辑
@@ -870,7 +870,7 @@ export const ConfigCenterLlmPage: React.FC<ConfigCenterLlmPageProps> = ({ onOpen
                 <button
                   type="button"
                   onClick={() => handleSwitchMode('json')}
-                  className={`inline-flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-black ${editorMode === 'json' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500'}`}
+ className={`inline-flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-black ${editorMode === 'json' ? 'bg-slate-50 text-slate-900 ' : 'text-slate-500'}`}
                 >
                   <Braces size={14} />
                   JSON 编辑
@@ -881,7 +881,7 @@ export const ConfigCenterLlmPage: React.FC<ConfigCenterLlmPageProps> = ({ onOpen
                   <button
                     onClick={handleDuplicateProvider}
                     disabled={saving}
-                    className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-black text-slate-600"
+                    className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-black text-slate-600"
                   >
                     <Copy size={14} />
                     复制配置
@@ -920,7 +920,7 @@ export const ConfigCenterLlmPage: React.FC<ConfigCenterLlmPageProps> = ({ onOpen
               <button
                 onClick={() => void handleSave()}
                 disabled={saving}
-                className="inline-flex items-center gap-2 rounded-2xl bg-blue-600 px-5 py-3 text-sm font-black text-white shadow-lg shadow-blue-500/20 disabled:opacity-50"
+ className="inline-flex items-center gap-2 rounded-2xl bg-blue-600 px-5 py-3 text-sm font-black text-white disabled:opacity-50"
               >
                 {saving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
                 保存配置
@@ -1046,14 +1046,14 @@ export const ConfigCenterLlmPage: React.FC<ConfigCenterLlmPageProps> = ({ onOpen
                       [`CUSTOM_ENV_${envEntries.length + 1}`]: '',
                     },
                   })}
-                  className="rounded-2xl border border-slate-200 bg-white px-4 py-2 text-xs font-black text-slate-600"
+                  className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-2 text-xs font-black text-slate-600"
                 >
                   添加变量
                 </button>
                 <button
                   type="button"
                   onClick={() => setShowBulkEnvImport((current) => !current)}
-                  className="rounded-2xl border border-slate-200 bg-white px-4 py-2 text-xs font-black text-slate-600"
+                  className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-2 text-xs font-black text-slate-600"
                 >
                   {showBulkEnvImport ? '收起批量导入' : '批量导入'}
                 </button>
@@ -1061,10 +1061,10 @@ export const ConfigCenterLlmPage: React.FC<ConfigCenterLlmPageProps> = ({ onOpen
             </div>
 
             {showBulkEnvImport && (
-              <div className="mt-5 rounded-[1.5rem] border border-slate-200 bg-white p-4">
+              <div className="mt-5 rounded-[1.5rem] border border-slate-200 bg-slate-50 p-4">
                 <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">批量导入</p>
                 <p className="mt-2 text-xs leading-6 text-slate-500">
-                  支持按行粘贴 `KEY=value` 文本，导入时会覆盖同名变量。示例：
+                  支持按行粘贴`KEY=value` 文本，导入时会覆盖同名变量。示例：
                   <span className="mt-2 block rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 font-mono text-[11px] leading-5 text-slate-900">
                     {`ANTHROPIC_AUTH_TOKEN=sk-12345678
 ANTHROPIC_BASE_URL=http://127.0.0.1:3456
@@ -1089,14 +1089,14 @@ API_TIMEOUT_MS=600000`}
                       setBulkEnvInput('');
                       setShowBulkEnvImport(false);
                     }}
-                    className="rounded-2xl border border-slate-200 bg-white px-4 py-2 text-xs font-black text-slate-600"
+                    className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-2 text-xs font-black text-slate-600"
                   >
                     取消
                   </button>
                   <button
                     type="button"
                     onClick={handleBulkEnvImport}
-                    className="rounded-2xl bg-blue-600 px-4 py-2 text-xs font-black text-white shadow-lg shadow-blue-500/20"
+ className="rounded-2xl bg-blue-600 px-4 py-2 text-xs font-black text-white"
                   >
                     导入环境变量
                   </button>
@@ -1106,7 +1106,7 @@ API_TIMEOUT_MS=600000`}
 
             <div className="mt-5 space-y-3">
               {envEntries.length === 0 && (
-                <div className="rounded-[1.5rem] border border-dashed border-slate-200 bg-white px-4 py-6 text-center text-xs font-medium text-slate-500">
+                <div className="rounded-[1.5rem] border border-dashed border-slate-200 bg-slate-50 px-4 py-6 text-center text-xs font-medium text-slate-500">
                   当前没有环境变量绑定。环境变量绑定是可选项，可按需手动添加。
                 </div>
               )}
@@ -1120,12 +1120,12 @@ API_TIMEOUT_MS=600000`}
                       ));
                       setForm({ ...form, env_bindings: Object.fromEntries(nextEntries) });
                     }}
-                    className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none"
+                    className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none"
                   />
                   <input
                     value={String(value ?? '')}
                     onChange={(event) => setForm({ ...form, env_bindings: { ...form.env_bindings, [key]: event.target.value } })}
-                    className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none focus:border-blue-500"
+                    className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none focus:border-blue-500"
                   />
                   <button
                     type="button"
@@ -1134,7 +1134,7 @@ API_TIMEOUT_MS=600000`}
                       delete next[key];
                       setForm({ ...form, env_bindings: next });
                     }}
-                    className="rounded-2xl border border-slate-200 bg-white text-slate-400 hover:text-red-600"
+                    className="rounded-2xl border border-slate-200 bg-slate-50 text-slate-400 hover:text-red-600"
                   >
                     <Trash2 size={16} className="mx-auto" />
                   </button>
@@ -1155,14 +1155,14 @@ API_TIMEOUT_MS=600000`}
               <button
                 type="button"
                 onClick={addFileBinding}
-                className="rounded-2xl border border-slate-200 bg-white px-4 py-2 text-xs font-black text-slate-600"
+                className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-2 text-xs font-black text-slate-600"
               >
                 新增文件
               </button>
             </div>
 
             {fileBindings.length === 0 ? (
-              <div className="mt-5 rounded-[1.5rem] border border-dashed border-slate-200 bg-white px-4 py-6 text-center text-xs font-medium text-slate-500">
+              <div className="mt-5 rounded-[1.5rem] border border-dashed border-slate-200 bg-slate-50 px-4 py-6 text-center text-xs font-medium text-slate-500">
                 当前没有配置文件注入项。可按需新增多个文件并在线编辑内容。
               </div>
             ) : (
@@ -1173,10 +1173,10 @@ API_TIMEOUT_MS=600000`}
                       key={`${binding.path}-${index}`}
                       type="button"
                       onClick={() => setActiveFileIndex(index)}
-                      className={`inline-flex items-center gap-2 rounded-xl border px-3 py-2 text-xs font-black ${activeFileIndex === index ? 'border-blue-500 bg-blue-50 text-blue-700' : 'border-slate-200 bg-white text-slate-600'}`}
+                      className={`inline-flex items-center gap-2 rounded-xl border px-3 py-2 text-xs font-black ${activeFileIndex === index ? 'border-blue-500 bg-blue-50 text-blue-700' : 'border-slate-200 bg-slate-50 text-slate-600'}`}
                     >
                       <span className="inline-flex items-center gap-2">
-                        {binding.name || `file-${index + 1}`}
+                        {binding.name ||`file-${index + 1}`}
                         {incompleteFileMap[index] && (
                           <span
                             className="h-2 w-2 rounded-full bg-red-500"
@@ -1197,10 +1197,10 @@ API_TIMEOUT_MS=600000`}
                       </div>
                     )}
                     {isActiveFileCollapsed ? (
-                      <div className="rounded-2xl border border-slate-200 bg-white px-4 py-4">
+                      <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4">
                         <div className="flex flex-wrap items-center justify-between gap-3">
                           <div className="text-xs text-slate-600">
-                            已收起编辑框：<span className="font-mono text-slate-800">{activeFile.name || `file-${activeFileIndex + 1}`}</span>
+                            已收起编辑框：<span className="font-mono text-slate-800">{activeFile.name ||`file-${activeFileIndex + 1}`}</span>
                           </div>
                           <button
                             type="button"
@@ -1220,7 +1220,7 @@ API_TIMEOUT_MS=600000`}
                             <input
                               value={activeFile.name}
                               onChange={(event) => updateFileBinding(activeFileIndex, { name: event.target.value })}
-                              className={`mt-2 w-full rounded-2xl border bg-white px-4 py-3 text-sm outline-none focus:border-blue-500 ${fileValidationErrors[activeFileIndex]?.name ? 'border-red-300 bg-red-50' : 'border-slate-200'}`}
+                              className={`mt-2 w-full rounded-2xl border bg-slate-50 px-4 py-3 text-sm outline-none focus:border-blue-500 ${fileValidationErrors[activeFileIndex]?.name ? 'border-red-300 bg-red-50' : 'border-slate-200'}`}
                               placeholder="provider-config.yaml"
                             />
                             {fileValidationErrors[activeFileIndex]?.name && (
@@ -1232,7 +1232,7 @@ API_TIMEOUT_MS=600000`}
                             <input
                               value={activeFile.path}
                               onChange={(event) => updateFileBinding(activeFileIndex, { path: event.target.value })}
-                              className={`mt-2 w-full rounded-2xl border bg-white px-4 py-3 text-sm outline-none focus:border-blue-500 ${fileValidationErrors[activeFileIndex]?.path ? 'border-red-300 bg-red-50' : 'border-slate-200'}`}
+                              className={`mt-2 w-full rounded-2xl border bg-slate-50 px-4 py-3 text-sm outline-none focus:border-blue-500 ${fileValidationErrors[activeFileIndex]?.path ? 'border-red-300 bg-red-50' : 'border-slate-200'}`}
                               placeholder="/etc/llm/provider-config.yaml"
                             />
                             {fileValidationErrors[activeFileIndex]?.path && (
@@ -1244,12 +1244,12 @@ API_TIMEOUT_MS=600000`}
                             <select
                               value={activeFile.format}
                               onChange={(event) => updateFileBinding(activeFileIndex, { format: event.target.value as LlmProviderFileBinding['format'] })}
-                              className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none focus:border-blue-500"
+                              className="mt-2 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none focus:border-blue-500"
                             >
                               {fileFormatOptions.map((item) => <option key={item} value={item}>{item}</option>)}
                             </select>
                           </div>
-                          <div className="flex items-end justify-between gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3">
+                          <div className="flex items-end justify-between gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
                             <label className="inline-flex items-center gap-2 text-xs font-black text-slate-700">
                               <input
                                 type="checkbox"
@@ -1308,26 +1308,26 @@ API_TIMEOUT_MS=600000`}
           </div>
 
           <div className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="rounded-[2rem] border border-slate-200 bg-white px-5 py-4">
+            <div className="rounded-[2rem] border border-slate-200 bg-slate-50 px-5 py-4">
               <div className="flex items-center gap-2 text-xs font-black uppercase tracking-widest text-slate-400">
                 <CheckCircle2 size={14} className="text-green-500" />
                 可选绑定
               </div>
               <p className="mt-3 text-xs text-slate-600">支持按渠道类型一键补充推荐键，也支持按需手动增删和批量导入。</p>
             </div>
-            <div className="rounded-[2rem] border border-slate-200 bg-white px-5 py-4">
+            <div className="rounded-[2rem] border border-slate-200 bg-slate-50 px-5 py-4">
               <div className="flex items-center gap-2 text-xs font-black uppercase tracking-widest text-slate-400">
                 <ShieldAlert size={14} className="text-amber-500" />
                 返回策略
               </div>
               <p className="mt-3 text-xs text-slate-600">配置中心不做脱敏处理，请求成功时按原样返回保存过的配置内容。</p>
             </div>
-            <div className="rounded-[2rem] border border-slate-200 bg-white px-5 py-4">
+            <div className="rounded-[2rem] border border-slate-200 bg-slate-50 px-5 py-4">
               <div className="flex items-center gap-2 text-xs font-black uppercase tracking-widest text-slate-400">
                 <Bot size={14} className="text-blue-500" />
                 服务消费
               </div>
-              <p className="mt-3 text-xs text-slate-600">其他微服务通过机机 Token 调用 `/api/configcenter/service/llm/providers` 获取配置。</p>
+              <p className="mt-3 text-xs text-slate-600">其他微服务通过机机 Token 调用`/api/configcenter/service/llm/providers` 获取配置。</p>
             </div>
           </div>
           </>
@@ -1342,19 +1342,19 @@ API_TIMEOUT_MS=600000`}
                   </h3>
                 </div>
                 <div className="flex flex-wrap items-center gap-2 text-xs font-black">
-                  <span className="rounded-full bg-white px-3 py-1 text-slate-600">{testResult.provider_type}</span>
-                  <span className="rounded-full bg-white px-3 py-1 text-slate-600">{testResult.latency_ms} ms</span>
+                  <span className="rounded-full bg-slate-50 px-3 py-1 text-slate-600">{testResult.provider_type}</span>
+                  <span className="rounded-full bg-slate-50 px-3 py-1 text-slate-600">{testResult.latency_ms} ms</span>
                   {testResult.status_code !== null && testResult.status_code !== undefined && (
-                    <span className="rounded-full bg-white px-3 py-1 text-slate-600">HTTP {testResult.status_code}</span>
+                    <span className="rounded-full bg-slate-50 px-3 py-1 text-slate-600">HTTP {testResult.status_code}</span>
                   )}
                 </div>
               </div>
               <div className="mt-5 grid grid-cols-1 gap-4 lg:grid-cols-2">
-                <div className="rounded-[1.5rem] border border-white/70 bg-white/80 p-4">
+ <div className="rounded-[1.5rem] border border-slate-200 bg-slate-50 p-4">
                   <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">请求目标</p>
                   <p className="mt-2 break-all font-mono text-xs text-slate-700">{testResult.request_target}</p>
                 </div>
-                <div className="rounded-[1.5rem] border border-white/70 bg-white/80 p-4">
+ <div className="rounded-[1.5rem] border border-slate-200 bg-slate-50 p-4">
                   <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">
                     {testResult.ok ? '响应片段' : '错误摘要'}
                   </p>
@@ -1386,21 +1386,21 @@ API_TIMEOUT_MS=600000`}
               <button
                 type="button"
                 onClick={() => setShowUsageGuide(false)}
-                className="rounded-2xl border border-slate-200 bg-white p-3 text-slate-400 transition-all hover:text-slate-700"
+                className="rounded-2xl border border-slate-200 bg-slate-50 p-3 text-slate-400 transition-all hover:text-slate-700"
               >
                 <X size={18} />
               </button>
             </div>
 
             <div className="max-h-[75vh] space-y-6 overflow-y-auto px-8 py-7">
-              <section className="rounded-[1.75rem] border border-slate-200 bg-white p-5">
+              <section className="rounded-[1.75rem] border border-slate-200 bg-slate-50 p-5">
                 <h4 className="text-sm font-black text-slate-900">1. 管理员在前端维护 Provider</h4>
                 <p className="mt-3 text-sm leading-7 text-slate-600">
                   在本页面可以新增、编辑、启停、设为默认、测试可用性，并通过“在线聊天”验证模型的真实响应效果。这里保存的是平台级全局配置，适合被多个微服务统一消费。
                 </p>
               </section>
 
-              <section className="rounded-[1.75rem] border border-slate-200 bg-white p-5">
+              <section className="rounded-[1.75rem] border border-slate-200 bg-slate-50 p-5">
                 <h4 className="text-sm font-black text-slate-900">2. 其它微服务如何读取已启用的配置</h4>
                 <p className="mt-3 text-sm leading-7 text-slate-600">
                   业务服务应使用机机 Token 调用配置中心服务接口，而不是调用管理员接口。推荐先读取“已启用 Provider 列表”，再按需要读取某个 Provider 的详细配置。
@@ -1421,16 +1421,16 @@ API_TIMEOUT_MS=600000`}
                 </div>
               </section>
 
-              <section className="rounded-[1.75rem] border border-slate-200 bg-white p-5">
+              <section className="rounded-[1.75rem] border border-slate-200 bg-slate-50 p-5">
                 <h4 className="text-sm font-black text-slate-900">3. 推荐的消费顺序</h4>
                 <div className="mt-4 space-y-3 text-sm leading-7 text-slate-600">
                   <p>先调用列表接口，确认当前有哪些启用中的 Provider，以及哪一个是默认 Provider。</p>
-                  <p>如果你的服务只需要使用默认渠道，就读取 `default_provider_key` 对应的详情。</p>
-                  <p>如果你的服务支持多模型切换，可以缓存列表结果，让调用方按 `provider_key` 选择具体模型渠道。</p>
+                  <p>如果你的服务只需要使用默认渠道，就读取`default_provider_key` 对应的详情。</p>
+                  <p>如果你的服务支持多模型切换，可以缓存列表结果，让调用方按`provider_key` 选择具体模型渠道。</p>
                 </div>
               </section>
 
-              <section className="rounded-[1.75rem] border border-slate-200 bg-white p-5">
+              <section className="rounded-[1.75rem] border border-slate-200 bg-slate-50 p-5">
                 <h4 className="text-sm font-black text-slate-900">4. 典型返回内容里有哪些关键字段</h4>
                 <div className="mt-4 grid gap-4 md:grid-cols-2">
                   <div className="rounded-[1.5rem] border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">
@@ -1448,18 +1448,18 @@ API_TIMEOUT_MS=600000`}
                 </div>
               </section>
 
-              <section className="rounded-[1.75rem] border border-slate-200 bg-white p-5">
+              <section className="rounded-[1.75rem] border border-slate-200 bg-slate-50 p-5">
                 <h4 className="text-sm font-black text-slate-900">5. curl 示例</h4>
                 <code className="mt-4 block whitespace-pre-wrap break-all rounded-[1.5rem] border border-slate-200 bg-slate-50 px-5 py-4 text-xs leading-6 text-slate-900">
-{`curl -H "Authorization: Bearer <machine-token>" \\
+{`curl -H"Authorization: Bearer <machine-token>" \\
   https://chimera.ai.icsl.huawei.com/api/configcenter/service/llm/providers
 
-curl -H "Authorization: Bearer <machine-token>" \\
+curl -H"Authorization: Bearer <machine-token>" \\
   https://chimera.ai.icsl.huawei.com/api/configcenter/service/llm/providers/openai-prod`}
                 </code>
               </section>
 
-              <section className="rounded-[1.75rem] border border-slate-200 bg-white p-5">
+              <section className="rounded-[1.75rem] border border-slate-200 bg-slate-50 p-5">
                 <h4 className="text-sm font-black text-slate-900">6. 列表接口实际响应 Example</h4>
                 <p className="mt-3 text-sm leading-7 text-slate-600">
                   下面这个 example 来自当前环境中的真实列表响应，返回了当前已启用的两个 Provider：默认的
@@ -1479,52 +1479,11 @@ Authorization: Bearer <machine-token>`}
                   <div className="rounded-[1.5rem] border border-slate-200 bg-slate-50 p-4">
                     <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">响应</p>
                     <code className="mt-3 block max-h-[420px] overflow-auto whitespace-pre-wrap break-all rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 text-xs leading-6 text-slate-900">
-{`{
-  "total": 2,
-  "default_provider_key": "local_litellm",
-  "items": [
-    {
-      "provider_key": "local_litellm",
-      "display_name": "LOCAL_LITELLM",
-      "provider_type": "openai-compatible",
-      "enabled": true,
-      "is_default": true,
-      "api_base": "http://172.31.29.10",
-      "model": "MiniMax/MiniMax-M2.5",
-      "api_key": "sk-12345678",
-      "organization": null,
-      "api_version": null,
-      "timeout_seconds": 60,
-      "max_tokens": null,
-      "temperature": null,
-      "env_bindings": {},
-      "extra_config": {},
-      "description": null
+{`{"total": 2,"default_provider_key":"local_litellm","items": [
+    {"provider_key":"local_litellm","display_name":"LOCAL_LITELLM","provider_type":"openai-compatible","enabled": true,"is_default": true,"api_base":"http://172.31.29.10","model":"MiniMax/MiniMax-M2.5","api_key":"sk-12345678","organization": null,"api_version": null,"timeout_seconds": 60,"max_tokens": null,"temperature": null,"env_bindings": {},"extra_config": {},"description": null
     },
-    {
-      "provider_key": "local_ccr",
-      "display_name": "LOCAL_CCR",
-      "provider_type": "anthropic",
-      "enabled": true,
-      "is_default": false,
-      "api_base": "http://172.31.29.10:3456/v1",
-      "model": "claude-sonnet-4-6",
-      "api_key": "sk-12345678",
-      "organization": null,
-      "api_version": null,
-      "timeout_seconds": 60,
-      "max_tokens": null,
-      "temperature": null,
-      "env_bindings": {
-        "NO_PROXY": "172.31.29.10",
-        "API_TIMEOUT_MS": "600000",
-        "DISABLE_TELEMETRY": "true",
-        "ANTHROPIC_BASE_URL": "http://172.31.29.10:3456",
-        "ANTHROPIC_AUTH_TOKEN": "sk-12345678",
-        "DISABLE_COST_WARNINGS": "true"
-      },
-      "extra_config": {},
-      "description": null
+    {"provider_key":"local_ccr","display_name":"LOCAL_CCR","provider_type":"anthropic","enabled": true,"is_default": false,"api_base":"http://172.31.29.10:3456/v1","model":"claude-sonnet-4-6","api_key":"sk-12345678","organization": null,"api_version": null,"timeout_seconds": 60,"max_tokens": null,"temperature": null,"env_bindings": {"NO_PROXY":"172.31.29.10","API_TIMEOUT_MS":"600000","DISABLE_TELEMETRY":"true","ANTHROPIC_BASE_URL":"http://172.31.29.10:3456","ANTHROPIC_AUTH_TOKEN":"sk-12345678","DISABLE_COST_WARNINGS":"true"
+      },"extra_config": {},"description": null
     }
   ]
 }`}
@@ -1533,7 +1492,7 @@ Authorization: Bearer <machine-token>`}
                 </div>
               </section>
 
-              <section className="rounded-[1.75rem] border border-slate-200 bg-white p-5">
+              <section className="rounded-[1.75rem] border border-slate-200 bg-slate-50 p-5">
                 <h4 className="text-sm font-black text-slate-900">7. LOCAL_CCR 实际响应 Example</h4>
                 <p className="mt-3 text-sm leading-7 text-slate-600">
                   下面这个 example 来自当前环境中的真实 Provider：
@@ -1553,32 +1512,8 @@ Authorization: Bearer <machine-token>`}
                   <div className="rounded-[1.5rem] border border-slate-200 bg-slate-50 p-4">
                     <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">响应</p>
                     <code className="mt-3 block max-h-[420px] overflow-auto whitespace-pre-wrap break-all rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 text-xs leading-6 text-slate-900">
-{`{
-  "provider_key": "local_ccr",
-  "display_name": "LOCAL_CCR",
-  "provider_type": "anthropic",
-  "enabled": true,
-  "is_default": false,
-  "api_base": "http://172.31.29.10:3456/v1",
-  "model": "claude-sonnet-4-6",
-  "api_key": "sk-12345678",
-  "organization": null,
-  "api_version": null,
-  "timeout_seconds": 60,
-  "max_tokens": null,
-  "temperature": null,
-  "env_bindings": {
-    "NO_PROXY": "172.31.29.10",
-    "API_TIMEOUT_MS": "600000",
-    "DISABLE_TELEMETRY": "true",
-    "ANTHROPIC_BASE_URL": "http://172.31.29.10:3456",
-    "ANTHROPIC_AUTH_TOKEN": "sk-12345678",
-    "DISABLE_COST_WARNINGS": "true"
-  },
-  "extra_config": {},
-  "description": null,
-  "created_at": "2026-03-29T15:04:16",
-  "updated_at": "2026-03-29T23:12:12"
+{`{"provider_key":"local_ccr","display_name":"LOCAL_CCR","provider_type":"anthropic","enabled": true,"is_default": false,"api_base":"http://172.31.29.10:3456/v1","model":"claude-sonnet-4-6","api_key":"sk-12345678","organization": null,"api_version": null,"timeout_seconds": 60,"max_tokens": null,"temperature": null,"env_bindings": {"NO_PROXY":"172.31.29.10","API_TIMEOUT_MS":"600000","DISABLE_TELEMETRY":"true","ANTHROPIC_BASE_URL":"http://172.31.29.10:3456","ANTHROPIC_AUTH_TOKEN":"sk-12345678","DISABLE_COST_WARNINGS":"true"
+  },"extra_config": {},"description": null,"created_at":"2026-03-29T15:04:16","updated_at":"2026-03-29T23:12:12"
 }`}
                     </code>
                   </div>
@@ -1588,7 +1523,7 @@ Authorization: Bearer <machine-token>`}
               <section className="rounded-[1.75rem] border border-amber-200 bg-amber-50 p-5">
                 <h4 className="text-sm font-black text-amber-800">8. 使用建议</h4>
                 <div className="mt-3 space-y-3 text-sm leading-7 text-amber-900">
-                  <p>不要把管理员接口暴露给业务服务，业务服务只应走 `/service/llm/providers`。</p>
+                  <p>不要把管理员接口暴露给业务服务，业务服务只应走`/service/llm/providers`。</p>
                   <p>如果服务要长期使用配置，建议本地做短期缓存，并在失败时重新拉取配置。</p>
                   <p>如果需要验证某个 Provider 是否可用，可以在本页面先使用“测试可用性”或“在线聊天”。</p>
                 </div>

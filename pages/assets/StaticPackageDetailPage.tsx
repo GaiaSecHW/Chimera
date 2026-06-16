@@ -47,8 +47,8 @@ export const StaticPackageDetailPage: React.FC<StaticPackageDetailPageProps> = (
     }
   };
 
-  const filteredFiles = data?.files.filter(f => 
-    f.path.toLowerCase().includes(fileSearch.toLowerCase()) || 
+  const filteredFiles = data?.files.filter(f =>
+    f.path.toLowerCase().includes(fileSearch.toLowerCase()) ||
     f.name.toLowerCase().includes(fileSearch.toLowerCase())
   ) || [];
 
@@ -76,7 +76,7 @@ export const StaticPackageDetailPage: React.FC<StaticPackageDetailPageProps> = (
       {/* Header Section */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
         <div className="flex items-center gap-5">
-          <button onClick={onBack} className="p-4 bg-white border border-slate-200 rounded-2xl hover:bg-slate-50 transition-all shadow-sm group">
+ <button onClick={onBack} className="p-4 bg-slate-50 border border-slate-200 rounded-2xl hover:bg-slate-100 transition-all group">
             <ChevronLeft size={20} className="group-hover:-translate-x-1 transition-transform" />
           </button>
           <div>
@@ -92,17 +92,17 @@ export const StaticPackageDetailPage: React.FC<StaticPackageDetailPageProps> = (
           </div>
         </div>
         <div className="flex gap-3">
-          <button 
+          <button
             onClick={handleCheck}
             disabled={checking}
-            className="px-6 py-4 bg-white border border-slate-200 text-slate-600 rounded-2xl font-black flex items-center gap-2 hover:bg-slate-50 transition-all disabled:opacity-50"
+            className="px-6 py-4 bg-slate-50 border border-slate-200 text-slate-600 rounded-2xl font-black flex items-center gap-2 hover:bg-slate-100 transition-all disabled:opacity-50"
           >
             {checking ? <Loader2 className="animate-spin" size={18} /> : <ShieldCheck size={18} />}
             完整性校验
           </button>
-          <a 
+          <a
             href={assetApi.staticPackages.getDownloadUrl(pkg.id)}
-            className="px-8 py-4 bg-blue-600 text-white rounded-2xl font-black flex items-center gap-2 shadow-xl shadow-blue-500/20 hover:bg-blue-700 transition-all"
+ className="px-8 py-4 bg-blue-600 text-white rounded-2xl font-black flex items-center gap-2 hover:bg-blue-700 transition-all"
           >
             <Download size={18} /> 下载全量包
           </a>
@@ -112,11 +112,11 @@ export const StaticPackageDetailPage: React.FC<StaticPackageDetailPageProps> = (
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
         {/* Sidebar: Metadata */}
         <div className="lg:col-span-1 space-y-6">
-          <div className="bg-white p-8 rounded-[2.5rem] border border-slate-200 shadow-sm space-y-6">
+ <div className="bg-slate-50 p-8 rounded-[2.5rem] border border-slate-200 space-y-6">
             <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
               <Info size={14} /> 资产静态属性
             </h4>
-            
+
             <div className="space-y-4">
               <div className="flex justify-between items-center py-2 border-b border-slate-50">
                 <span className="text-xs font-bold text-slate-500">操作系统</span>
@@ -146,7 +146,7 @@ export const StaticPackageDetailPage: React.FC<StaticPackageDetailPageProps> = (
             <div className="space-y-4">
               <div className="space-y-1.5">
                 <p className="text-[9px] font-black text-slate-500 uppercase">原始文件位置</p>
-                <p className="text-[10px] font-mono break-all bg-white/5 p-3 rounded-xl border border-white/5 leading-relaxed text-slate-400">
+ <p className="text-[10px] font-mono break-all bg-slate-100/10 p-3 rounded-xl border border-slate-200/5 leading-relaxed text-slate-400">
                   {pkg.original_package_path || '系统内部存储'}
                 </p>
               </div>
@@ -160,7 +160,7 @@ export const StaticPackageDetailPage: React.FC<StaticPackageDetailPageProps> = (
 
         {/* Main Section: File Browsing */}
         <div className="lg:col-span-3 space-y-6">
-          <div className="bg-white rounded-[2.5rem] border border-slate-200 shadow-sm overflow-hidden flex flex-col min-h-[600px]">
+ <div className="bg-slate-50 rounded-[2.5rem] border border-slate-200 overflow-hidden flex flex-col min-h-[600px]">
             <div className="p-8 border-b border-slate-100 flex flex-col md:flex-row justify-between items-center gap-6">
               <div className="flex items-center gap-4">
                 <div className="p-4 bg-blue-50 text-blue-600 rounded-2xl">
@@ -173,8 +173,8 @@ export const StaticPackageDetailPage: React.FC<StaticPackageDetailPageProps> = (
               </div>
               <div className="relative w-full md:w-80">
                 <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" size={18} />
-                <input 
-                  placeholder="检索具体组件名称或路径..." 
+                <input
+                  placeholder="检索具体组件名称或路径..."
                   className="w-full pl-12 pr-4 py-3.5 bg-slate-50 rounded-2xl text-xs outline-none focus:ring-2 ring-blue-500/20 transition-all border-none font-medium"
                   value={fileSearch}
                   onChange={(e) => setFileSearch(e.target.value)}
@@ -184,7 +184,7 @@ export const StaticPackageDetailPage: React.FC<StaticPackageDetailPageProps> = (
 
             <div className="flex-1 overflow-x-auto">
               <table className="w-full text-left">
-                <thead className="bg-slate-50/50 border-b border-slate-100 sticky top-0 z-10">
+                <thead className="bg-slate-100/50 border-b border-slate-100 sticky top-0 z-10">
                   <tr className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
                     <th className="px-8 py-5">路径标识 (Relative Path)</th>
                     <th className="px-6 py-5">物理大小</th>
@@ -213,9 +213,9 @@ export const StaticPackageDetailPage: React.FC<StaticPackageDetailPageProps> = (
                         <span className="text-[11px] font-black text-slate-400">{file.download_count}</span>
                       </td>
                       <td className="px-8 py-5 text-right">
-                        <a 
+                        <a
                           href={assetApi.staticPackages.getFileDownloadUrl(pkg.id, file.path)}
-                          className="p-3 text-slate-300 hover:text-blue-600 hover:bg-white border border-transparent hover:border-blue-100 rounded-xl inline-flex transition-all"
+                          className="p-3 text-slate-300 hover:text-blue-600 hover:bg-slate-50 border border-transparent hover:border-blue-100 rounded-xl inline-flex transition-all"
                           title="独立分发此组件"
                         >
                           <Download size={16} />
@@ -233,14 +233,14 @@ export const StaticPackageDetailPage: React.FC<StaticPackageDetailPageProps> = (
                 </tbody>
               </table>
             </div>
-            
+
             <div className="p-6 bg-slate-50 border-t border-slate-100 flex justify-between items-center">
               <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
                 显示 {filteredFiles.length} / {data.total_files} 个资源结果
               </span>
               <div className="flex gap-2">
-                 <button className="px-3 py-1 bg-white border border-slate-200 rounded-lg text-[10px] font-black text-slate-400 hover:text-blue-600 transition-all">PREV</button>
-                 <button className="px-3 py-1 bg-white border border-slate-200 rounded-lg text-[10px] font-black text-slate-400 hover:text-blue-600 transition-all">NEXT</button>
+                 <button className="px-3 py-1 bg-slate-50 border border-slate-200 rounded-lg text-[10px] font-black text-slate-400 hover:text-blue-600 transition-all">PREV</button>
+                 <button className="px-3 py-1 bg-slate-50 border border-slate-200 rounded-lg text-[10px] font-black text-slate-400 hover:text-blue-600 transition-all">NEXT</button>
               </div>
             </div>
           </div>

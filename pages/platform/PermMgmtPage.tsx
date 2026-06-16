@@ -44,7 +44,7 @@ export const PermMgmtPage: React.FC = () => {
   };
 
   const toggleRole = (roleId: number) => {
-    setUserRoles(prev => 
+    setUserRoles(prev =>
       prev.includes(roleId) ? prev.filter(id => id !== roleId) : [...prev, roleId]
     );
   };
@@ -72,7 +72,7 @@ export const PermMgmtPage: React.FC = () => {
       <div className="flex justify-between items-end shrink-0">
         <div className="space-y-1">
           <div className="flex items-center gap-3">
-             <div className="p-3 bg-purple-600 text-white rounded-2xl shadow-xl shadow-purple-500/20">
+ <div className="p-3 bg-purple-600 text-white rounded-2xl shadow-purple-500/20">
                <ArrowRightLeft size={28} />
              </div>
              <div>
@@ -82,7 +82,7 @@ export const PermMgmtPage: React.FC = () => {
           </div>
         </div>
         <div className="flex gap-4">
-          <button onClick={loadInitialData} className="p-4 bg-white border border-slate-200 text-slate-500 rounded-2xl hover:bg-slate-50 transition-all shadow-sm active:scale-95">
+ <button onClick={loadInitialData} className="p-4 bg-slate-50 border border-slate-200 text-slate-500 rounded-2xl hover:bg-slate-100 transition-all active:scale-95">
             <RefreshCw size={20} className={loading ? 'animate-spin' : ''} />
           </button>
         </div>
@@ -93,26 +93,26 @@ export const PermMgmtPage: React.FC = () => {
          <div className="w-[400px] flex flex-col gap-6 shrink-0 min-h-0">
             <div className="relative">
               <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" size={18} />
-              <input 
-                type="text" placeholder="检索用户列表..." 
-                className="w-full pl-12 pr-4 py-4 bg-white border border-slate-200 rounded-3xl text-xs outline-none focus:ring-4 ring-purple-500/5 transition-all font-bold shadow-sm"
+              <input
+                type="text" placeholder="检索用户列表..."
+ className="w-full pl-12 pr-4 py-4 bg-slate-50 border border-slate-200 rounded-3xl text-xs outline-none focus:ring-4 ring-purple-500/5 transition-all font-bold"
                 value={searchTerm} onChange={e => setSearchTerm(e.target.value)}
               />
             </div>
-            <div className="flex-1 bg-white border border-slate-200 rounded-[3rem] overflow-hidden flex flex-col shadow-sm min-h-0">
-               <div className="px-8 py-5 border-b border-slate-50 bg-slate-50/50 flex items-center justify-between">
+ <div className="flex-1 bg-slate-50 border border-slate-200 rounded-[3rem] overflow-hidden flex flex-col min-h-0">
+               <div className="px-8 py-5 border-b border-slate-50 bg-slate-100/50 flex items-center justify-between">
                   <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Identities Directory</span>
                   <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
                </div>
                <div className="flex-1 overflow-y-auto custom-scrollbar p-3 space-y-1">
                   {filteredUsers.map(user => (
-                    <div 
+                    <div
                       key={user.id}
                       onClick={() => handleUserSelect(user.id)}
-                      className={`flex items-center justify-between p-4 rounded-3xl cursor-pointer transition-all ${selectedUserId === user.id ? 'bg-purple-600 text-white shadow-xl shadow-purple-500/20' : 'hover:bg-slate-50 text-slate-600'}`}
+ className={`flex items-center justify-between p-4 rounded-3xl cursor-pointer transition-all ${selectedUserId === user.id ? 'bg-purple-600 text-white shadow-purple-500/20' : 'hover:bg-slate-100 text-slate-600'}`}
                     >
                        <div className="flex items-center gap-4 min-w-0">
-                          <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-black shadow-inner ${selectedUserId === user.id ? 'bg-white/20' : 'bg-slate-100 text-slate-400'}`}>
+ <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-black shadow-inner ${selectedUserId === user.id ? 'bg-slate-100' : 'bg-slate-100 text-slate-400'}`}>
                              {user.username[0].toUpperCase()}
                           </div>
                           <div className="min-w-0">
@@ -129,7 +129,7 @@ export const PermMgmtPage: React.FC = () => {
 
          {/* Right Column: Permission Matrix */}
          <div className="flex-1 flex flex-col gap-6 min-h-0">
-            <div className="flex-1 bg-white border border-slate-200 rounded-[3rem] flex flex-col overflow-hidden shadow-sm min-h-0">
+ <div className="flex-1 bg-slate-50 border border-slate-200 rounded-[3rem] flex flex-col overflow-hidden min-h-0">
                <div className="p-10 border-b border-slate-50 flex items-center justify-between shrink-0">
                   <div className="flex items-center gap-6">
                      <div className="w-16 h-16 bg-purple-50 text-purple-600 rounded-[1.75rem] flex items-center justify-center shadow-inner">
@@ -137,16 +137,16 @@ export const PermMgmtPage: React.FC = () => {
                      </div>
                      <div>
                         <h3 className="text-2xl font-black text-slate-800 tracking-tight">
-                           {activeUser ? `正在为 ${activeUser.username} 分配角色` : '请选择目标身份'}
+                           {activeUser ?`正在为 ${activeUser.username} 分配角色` : '请选择目标身份'}
                         </h3>
                         <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-1">Matrix Selection Mode</p>
                      </div>
                   </div>
                   {selectedUserId && (
-                    <button 
+                    <button
                       onClick={saveAssignments}
                       disabled={isSaving}
-                      className="px-10 py-4 bg-purple-600 text-white rounded-2xl font-black text-sm hover:bg-purple-700 shadow-xl shadow-purple-500/20 transition-all flex items-center gap-3 active:scale-95 disabled:opacity-50"
+ className="px-10 py-4 bg-purple-600 text-white rounded-2xl font-black text-sm hover:bg-purple-700 shadow-purple-500/20 transition-all flex items-center gap-3 active:scale-95 disabled:opacity-50"
                     >
                        {isSaving ? <Loader2 className="animate-spin" size={18} /> : <CheckCircle2 size={18} />}
                        保存授权变更
@@ -164,10 +164,10 @@ export const PermMgmtPage: React.FC = () => {
                     <div className="space-y-10">
                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                           {roles.map(role => (
-                            <div 
+                            <div
                               key={role.id}
                               onClick={() => toggleRole(role.id)}
-                              className={`p-8 rounded-[2.5rem] border-2 transition-all cursor-pointer group relative overflow-hidden flex flex-col justify-between min-h-[160px] ${userRoles.includes(role.id) ? 'bg-purple-50 border-purple-600 shadow-xl shadow-purple-500/5' : 'bg-white border-slate-100 hover:border-purple-200'}`}
+ className={`p-8 rounded-[2.5rem] border-2 transition-all cursor-pointer group relative overflow-hidden flex flex-col justify-between min-h-[160px] ${userRoles.includes(role.id) ? 'bg-purple-50 border-purple-600 shadow-purple-500/5' : 'bg-slate-50 border-slate-100 hover:border-purple-200'}`}
                             >
                                <div className="flex justify-between items-start">
                                   <div className={`w-12 h-12 rounded-2xl flex items-center justify-center font-black transition-all ${userRoles.includes(role.id) ? 'bg-purple-600 text-white' : 'bg-slate-50 text-slate-400 group-hover:bg-purple-100 group-hover:text-purple-600'}`}>
@@ -195,7 +195,7 @@ export const PermMgmtPage: React.FC = () => {
                        {userRoles.map(rid => {
                          const r = roles.find(ro => ro.id === rid);
                          return (
-                           <div key={rid} className="flex items-center gap-2 px-3 py-1.5 bg-white border border-purple-200 text-purple-600 rounded-xl text-[10px] font-black shadow-sm">
+ <div key={rid} className="flex items-center gap-2 px-3 py-1.5 bg-slate-50 border border-purple-200 text-purple-600 rounded-xl text-[10px] font-black">
                               {r?.name.toUpperCase()}
                               <button onClick={() => toggleRole(rid)} className="hover:text-red-500"><X size={12} strokeWidth={3} /></button>
                            </div>

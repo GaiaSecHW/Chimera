@@ -1,15 +1,15 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { 
-  Loader2, 
-  Terminal, 
-  RefreshCw, 
-  Clock, 
-  CheckCircle2, 
-  X, 
-  Trash2, 
-  Search, 
-  Workflow, 
+import {
+  Loader2,
+  Terminal,
+  RefreshCw,
+  Clock,
+  CheckCircle2,
+  X,
+  Trash2,
+  Search,
+  Workflow,
   History,
   AlertTriangle
 } from 'lucide-react';
@@ -112,7 +112,7 @@ export const EnvTasksPage: React.FC<{ projectId: string }> = ({ projectId }) => 
     if (!projectId) return;
     const okToClear = await confirm({
       title: '清空全部任务记录',
-      message: `确认清空当前项目下全部任务记录吗？当前共 ${tasks.length} 条记录，此操作不可恢复。`,
+      message:`确认清空当前项目下全部任务记录吗？当前共 ${tasks.length} 条记录，此操作不可恢复。`,
       confirmText: '确认清空',
       cancelText: '取消',
       danger: true,
@@ -179,15 +179,15 @@ export const EnvTasksPage: React.FC<{ projectId: string }> = ({ projectId }) => 
           <button
             onClick={handleClearAllTasks}
             disabled={!projectId || clearingAll || tasks.length === 0}
-            className="px-5 py-3 bg-rose-50 border border-rose-100 text-rose-600 rounded-2xl hover:bg-rose-600 hover:text-white transition-all shadow-sm disabled:opacity-50 font-black text-xs tracking-wider uppercase flex items-center gap-2"
+ className="px-5 py-3 bg-rose-50 border border-rose-100 text-rose-600 rounded-2xl hover:bg-rose-600 hover:text-white transition-all disabled:opacity-50 font-black text-xs tracking-wider uppercase flex items-center gap-2"
           >
             {clearingAll ? <Loader2 size={16} className="animate-spin" /> : <Trash2 size={16} />}
             清空记录
           </button>
-          <button 
+          <button
             onClick={loadTasks}
             disabled={!projectId}
-            className="p-4 bg-white border border-slate-200 text-slate-500 rounded-2xl hover:bg-slate-50 transition-all shadow-sm disabled:opacity-50"
+ className="p-4 bg-slate-50 border border-slate-200 text-slate-500 rounded-2xl hover:bg-slate-100 transition-all disabled:opacity-50"
           >
             <RefreshCw size={20} className={loading ? 'animate-spin' : ''} />
           </button>
@@ -202,18 +202,18 @@ export const EnvTasksPage: React.FC<{ projectId: string }> = ({ projectId }) => 
         )}
         <div className="relative">
           <Search className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-300" size={20} />
-          <input 
-            type="text" 
-            placeholder="检索任务 ID、服务名称或目标节点..." 
-            className="w-full pl-16 pr-8 py-5 bg-white border border-slate-200 rounded-[2rem] text-sm outline-none focus:ring-4 ring-blue-500/5 transition-all font-medium shadow-sm"
+          <input
+            type="text"
+            placeholder="检索任务 ID、服务名称或目标节点..."
+ className="w-full pl-16 pr-8 py-5 bg-slate-50 border border-slate-200 rounded-[2rem] text-sm outline-none focus:ring-4 ring-blue-500/5 transition-all font-medium"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
 
-        <div className="bg-white border border-slate-200 rounded-[2.5rem] shadow-sm overflow-hidden min-h-[500px]">
+ <div className="bg-slate-50 border border-slate-200 rounded-[2.5rem] overflow-hidden min-h-[500px]">
           <table className="w-full text-left">
-            <thead className="bg-slate-50/50 border-b border-slate-100 font-black text-[10px] text-slate-400 uppercase tracking-widest">
+            <thead className="bg-slate-100/50 border-b border-slate-100 font-black text-[10px] text-slate-400 uppercase tracking-widest">
               <tr>
                 <th className="px-8 py-5">任务/服务标识</th>
                 <th className="px-6 py-5">类型</th>
@@ -230,7 +230,7 @@ export const EnvTasksPage: React.FC<{ projectId: string }> = ({ projectId }) => 
                 const timeInfo = formatTaskTime(t?.create_time);
                 const nodeInfo = resolveTaskNode(t);
                 return (
-                  <tr key={t.id} className="hover:bg-slate-50 transition-all group">
+                  <tr key={t.id} className="hover:bg-slate-100 transition-all group">
                     <td className="px-8 py-5">
                       <div className="flex items-center gap-4">
                         <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${t.type === 'deploy' ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-600'}`}>
@@ -261,9 +261,9 @@ export const EnvTasksPage: React.FC<{ projectId: string }> = ({ projectId }) => 
                     <td className="px-6 py-5">
                       <div className="flex items-center gap-3">
                         <div className="flex-1 h-2 bg-slate-100 rounded-full overflow-hidden w-24">
-                          <div 
-                            className={`h-full transition-all duration-1000 ${t.status === 'failed' ? 'bg-red-500' : 'bg-blue-600'}`} 
-                            style={{ width: `${t.progress || 0}%` }} 
+                          <div
+                            className={`h-full transition-all duration-1000 ${t.status === 'failed' ? 'bg-red-500' : 'bg-blue-600'}`}
+                            style={{ width: `${t.progress || 0}%` }}
                           />
                         </div>
                         <span className="text-[10px] font-black text-slate-400">{t.progress || 0}%</span>
@@ -282,14 +282,14 @@ export const EnvTasksPage: React.FC<{ projectId: string }> = ({ projectId }) => 
                     <td className="px-8 py-5 text-right">
                       <div className="flex items-center justify-end gap-2">
                          <StatusBadge status={t.status} />
-                         <button 
+                         <button
                            onClick={() => void openTaskDetail(t)}
                            className="p-3 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-all"
                            title="查看任务详情与实时执行日志"
                          >
                            <Terminal size={18} />
                          </button>
-                         <button 
+                         <button
                            onClick={() => handleDeleteTask(t.id)}
                            className="p-3 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all"
                            title="删除任务记录"
@@ -321,7 +321,7 @@ export const EnvTasksPage: React.FC<{ projectId: string }> = ({ projectId }) => 
           onClick={() => setSelectedTask(null)}
         >
           <div
-            className="w-full max-w-[72rem] h-[72vh] bg-slate-950 border border-slate-800 rounded-2xl shadow-2xl flex flex-col overflow-hidden"
+ className="w-full max-w-[72rem] h-[72vh] bg-slate-950 border border-slate-800 rounded-2xl flex flex-col overflow-hidden"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="px-5 py-4 border-b border-slate-800 flex items-center justify-between">

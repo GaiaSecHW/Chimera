@@ -101,7 +101,7 @@ const ConfigRow: React.FC<{ label: React.ReactNode; children: React.ReactNode }>
   </div>
 );
 
-const Divider: React.FC = () => <hr style={{ border: 'none', borderTop: `1px solid ${LK.borderSoft}` }} />;
+const Divider: React.FC = () => <hr style={{ border: 'none', borderTop:`1px solid ${LK.borderSoft}` }} />;
 
 const EmptyState: React.FC<{ text: string }> = ({ text }) => (
   <div style={{ borderRadius: '8px', border: `1px dashed ${LK.borderSoft}`, backgroundColor: LK.surfaceRaised, padding: '16px', fontSize: '14px', color: LK.muted }}>{text}</div>
@@ -117,7 +117,7 @@ const TagList: React.FC<{ items: string[]; labelMap?: Record<string, string>; em
     <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
       {items.map((item) => (
         <span key={item} style={{ display: 'inline-flex', alignItems: 'center', borderRadius: '9999px', backgroundColor: LK.surfaceRaised, padding: '2px 10px', fontSize: '12px', fontWeight: 500, color: LK.inkSoft }}>
-          {labelMap?.[item] ? `${labelMap[item]}（${item}）` : item}
+          {labelMap?.[item] ?`${labelMap[item]}（${item}）` : item}
         </span>
       ))}
     </div>
@@ -177,17 +177,17 @@ function normalizeProjectFileExplorerPath(path: string, projectId?: string | nul
   const normalizedPath = String(path || '').trim();
   if (!normalizedPath) return '';
   const normalizedProjectId = String(projectId || '').trim();
-  const projectRoot = normalizedProjectId ? `/data/files/${normalizedProjectId}` : '';
+  const projectRoot = normalizedProjectId ?`/data/files/${normalizedProjectId}` : '';
   if (projectRoot && normalizedPath.startsWith(projectRoot)) {
     const relativePath = normalizedPath.slice(projectRoot.length).replace(/\/+$/, '');
     if (!relativePath) return '/';
-    return relativePath.startsWith('/') ? relativePath : `/${relativePath}`;
+    return relativePath.startsWith('/') ? relativePath :`/${relativePath}`;
   }
-  return normalizedPath.startsWith('/') ? normalizedPath : `/${normalizedPath}`;
+  return normalizedPath.startsWith('/') ? normalizedPath :`/${normalizedPath}`;
 }
 
 function buildProjectFileExplorerUrl(fsPath: string, projectId?: string | null): string {
-  return `#/project-file-explorer?path=${encodeURIComponent(normalizeProjectFileExplorerPath(fsPath, projectId))}`;
+  return`#/project-file-explorer?path=${encodeURIComponent(normalizeProjectFileExplorerPath(fsPath, projectId))}`;
 }
 
 const ProjectDirectoryValue: React.FC<{ path?: string | null; projectId?: string | null }> = ({ path, projectId }) => {
@@ -354,11 +354,11 @@ export const SystemAnalysisTaskConfigPanel: React.FC<{ detail: AppSaTaskDetail }
         title="输出信息"
         projectId={detail.project_id}
         rows={[
-          { label: '任务目录', path: detail.task_root || (detail.output_path ? `${detail.output_path}/${detail.task_id}` : null) },
-          { label: '运行目录', path: detail.run_root || (detail.output_path ? `${detail.output_path}/${detail.task_id}/run` : null) },
-          { label: '工作目录', path: detail.workspace_root || (detail.output_path ? `${detail.output_path}/${detail.task_id}/run/workspace` : null) },
-          { label: '输出目录', path: detail.output_root || (detail.output_path ? `${detail.output_path}/${detail.task_id}/output` : null) },
-          { label: '最终报告', path: detail.output_path ? `${detail.output_path}/${detail.task_id}/output/final_report.md` : null },
+          { label: '任务目录', path: detail.task_root || (detail.output_path ?`${detail.output_path}/${detail.task_id}` : null) },
+          { label: '运行目录', path: detail.run_root || (detail.output_path ?`${detail.output_path}/${detail.task_id}/run` : null) },
+          { label: '工作目录', path: detail.workspace_root || (detail.output_path ?`${detail.output_path}/${detail.task_id}/run/workspace` : null) },
+          { label: '输出目录', path: detail.output_root || (detail.output_path ?`${detail.output_path}/${detail.task_id}/output` : null) },
+          { label: '最终报告', path: detail.output_path ?`${detail.output_path}/${detail.task_id}/output/final_report.md` : null },
         ]}
       />
 
@@ -601,13 +601,13 @@ export const EntryAnalysisTaskConfigPanel: React.FC<{ detail: AppEaTaskDetail }>
         title="输出信息"
         projectId={detail.project_id}
         rows={[
-          { label: '任务目录', path: detail.task_root || (detail.output_path ? `${detail.output_path}/${detail.task_id}` : null) },
-          { label: '运行目录', path: detail.run_root || (detail.output_path ? `${detail.output_path}/${detail.task_id}/run` : null) },
-          { label: '工作目录', path: detail.workspace_root || (detail.output_path ? `${detail.output_path}/${detail.task_id}/run/workspace` : null) },
-          { label: 'R1-functions', path: outputSummary.r1_functions_path || (detail.output_path ? `${detail.output_path}/${detail.task_id}/run/workspace/r1-functions` : null) },
-          { label: 'R3-entries', path: outputSummary.r3_entries_path || (detail.output_path ? `${detail.output_path}/${detail.task_id}/run/workspace/r3-entries` : null) },
-          { label: 'R4-module', path: outputSummary.r4_module_path || (detail.output_path ? `${detail.output_path}/${detail.task_id}/run/workspace/r4-module` : null) },
-          { label: '报告目录', path: outputSummary.report_path || (detail.output_path ? `${detail.output_path}/${detail.task_id}/run/workspace/report` : null) },
+          { label: '任务目录', path: detail.task_root || (detail.output_path ?`${detail.output_path}/${detail.task_id}` : null) },
+          { label: '运行目录', path: detail.run_root || (detail.output_path ?`${detail.output_path}/${detail.task_id}/run` : null) },
+          { label: '工作目录', path: detail.workspace_root || (detail.output_path ?`${detail.output_path}/${detail.task_id}/run/workspace` : null) },
+          { label: 'R1-functions', path: outputSummary.r1_functions_path || (detail.output_path ?`${detail.output_path}/${detail.task_id}/run/workspace/r1-functions` : null) },
+          { label: 'R3-entries', path: outputSummary.r3_entries_path || (detail.output_path ?`${detail.output_path}/${detail.task_id}/run/workspace/r3-entries` : null) },
+          { label: 'R4-module', path: outputSummary.r4_module_path || (detail.output_path ?`${detail.output_path}/${detail.task_id}/run/workspace/r4-module` : null) },
+          { label: '报告目录', path: outputSummary.report_path || (detail.output_path ?`${detail.output_path}/${detail.task_id}/run/workspace/report` : null) },
         ]}
       />
 
@@ -829,11 +829,11 @@ export const DataflowAnalysisTaskConfigPanel: React.FC<{ detail: AppDfaTaskDetai
         title="输出信息"
         projectId={detail.project_id}
         rows={[
-          { label: '任务目录', path: detail.task_root || (detail.output_path ? `${detail.output_path}/${detail.task_id}` : null) },
-          { label: '运行目录', path: detail.run_root || (detail.output_path ? `${detail.output_path}/${detail.task_id}/run` : null) },
+          { label: '任务目录', path: detail.task_root || (detail.output_path ?`${detail.output_path}/${detail.task_id}` : null) },
+          { label: '运行目录', path: detail.run_root || (detail.output_path ?`${detail.output_path}/${detail.task_id}/run` : null) },
           { label: '最新工作区', path: detail.workspace_root || recordText(outputSummary, 'latest_workspace_root') },
-          { label: '结果文件', path: recordText(outputSummary, 'result_path') || (detail.output_path ? `${detail.output_path}/${detail.task_id}/run/result.json` : null) },
-          { label: '数据流输出', path: recordText(outputSummary, 'dataflow_output_path') || (detail.output_path ? `${detail.output_path}/${detail.task_id}/output/dataflow` : null) },
+          { label: '结果文件', path: recordText(outputSummary, 'result_path') || (detail.output_path ?`${detail.output_path}/${detail.task_id}/run/result.json` : null) },
+          { label: '数据流输出', path: recordText(outputSummary, 'dataflow_output_path') || (detail.output_path ?`${detail.output_path}/${detail.task_id}/output/dataflow` : null) },
         ]}
       />
 
@@ -871,7 +871,7 @@ export const DataflowAnalysisTaskConfigPanel: React.FC<{ detail: AppDfaTaskDetai
                 <ConfigRow label="污点详情">
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                     {taintDetails.map((item: any, index: number) => {
-                      const name = String(item.name || item.taint || item.param || '').trim() || `污点${index + 1}`;
+                      const name = String(item.name || item.taint || item.param || '').trim() ||`污点${index + 1}`;
                       const description = String(item.description || item.summary || '').trim();
                       const sourceKind = String(item.source_kind || '').trim();
                       const source = String(item.description_source || '').trim();
@@ -879,7 +879,7 @@ export const DataflowAnalysisTaskConfigPanel: React.FC<{ detail: AppDfaTaskDetai
                         <div key={`${name}-${index}`} style={{ borderRadius: '8px', border: `1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised, padding: '8px 12px' }}>
                           <div style={{ fontFamily: MONO, fontSize: '12px', fontWeight: 600, color: LK.ink }}>{name}</div>
                           {description ? <div style={{ marginTop: '4px', fontSize: '12px', color: LK.body }}>{description}</div> : null}
-                          {(sourceKind || source) ? <div style={{ marginTop: '4px', fontSize: '10px', fontWeight: 600, color: LK.muted }}>{[sourceKind ? `source_kind=${sourceKind}` : '', source ? `source=${source}` : ''].filter(Boolean).join(' · ')}</div> : null}
+                          {(sourceKind || source) ? <div style={{ marginTop: '4px', fontSize: '10px', fontWeight: 600, color: LK.muted }}>{[sourceKind ?`source_kind=${sourceKind}` : '', source ?`source=${source}` : ''].filter(Boolean).join(' · ')}</div> : null}
                         </div>
                       );
                     })}

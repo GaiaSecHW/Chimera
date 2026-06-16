@@ -543,7 +543,7 @@ export const VulnEnginePage: React.FC<VulnEnginePageProps> = ({
     try {
       const created = await executionApi.binaryEvolution.createTask(projectId, {
         case_ids: effectiveCaseIds,
-        title: evolutionForm.title.trim() || `Evolution of ${selectedEvolutionCaseIds.length} cases`,
+        title: evolutionForm.title.trim() ||`Evolution of ${selectedEvolutionCaseIds.length} cases`,
         objective: evolutionForm.objective.trim(),
         min_rounds: Math.max(1, Number(evolutionForm.minRounds) || 1),
         max_rounds: Math.max(1, Number(evolutionForm.maxRounds) || 1),
@@ -642,7 +642,7 @@ export const VulnEnginePage: React.FC<VulnEnginePageProps> = ({
     try {
       const created = await vulnApi.vuln.createCase({
         project_id: projectId,
-        report_id: `manual-${Date.now()}`,
+        report_id:`manual-${Date.now()}`,
         title: caseForm.title,
         summary: caseForm.summary,
         severity: caseForm.severity,
@@ -722,7 +722,7 @@ export const VulnEnginePage: React.FC<VulnEnginePageProps> = ({
       });
       setServiceForm(mergedServiceForm);
       await loadWorkspace();
-      setSuccessMessage(`能力服务 "${serviceForm.service_name}" 已${exists ? '更新' : '注册'}，并绑定到 ${serviceForm.bind_stage} 阶段。`);
+      setSuccessMessage(`能力服务"${serviceForm.service_name}" 已${exists ? '更新' : '注册'}，并绑定到 ${serviceForm.bind_stage} 阶段。`);
     } catch (err: any) {
       setError(err?.message || '注册能力服务失败');
     } finally {
@@ -741,7 +741,7 @@ export const VulnEnginePage: React.FC<VulnEnginePageProps> = ({
         service_id: dispatchForm.service_id || undefined,
       });
       await refreshAll();
-      setSuccessMessage(`已为当前案例派发${dispatchForm.action_type ? `“${labelOf(dispatchForm.action_type, ACTION_TYPE_LABELS)}”` : '默认'}动作。`);
+      setSuccessMessage(`已为当前案例派发${dispatchForm.action_type ?`“${labelOf(dispatchForm.action_type, ACTION_TYPE_LABELS)}”` : '默认'}动作。`);
     } catch (err: any) {
       setError(err?.message || '派发动作失败');
     } finally {
@@ -766,7 +766,7 @@ export const VulnEnginePage: React.FC<VulnEnginePageProps> = ({
       setTaskForm(DEFAULT_TASK_FORM);
       await refreshAll();
       setActiveTab('tasks');
-      setSuccessMessage(`人工任务 "${taskForm.title}" 已创建。`);
+      setSuccessMessage(`人工任务"${taskForm.title}" 已创建。`);
     } catch (err: any) {
       setError(err?.message || '创建人工任务失败');
     } finally {
@@ -874,7 +874,7 @@ export const VulnEnginePage: React.FC<VulnEnginePageProps> = ({
         source_service_id: action.target_service_id,
         result_type: resultType,
         status,
-        summary: `${labelOf(action.action_type, ACTION_TYPE_LABELS)}${status === 'succeeded' ? '执行成功' : '模拟执行失败'}`,
+        summary:`${labelOf(action.action_type, ACTION_TYPE_LABELS)}${status === 'succeeded' ? '执行成功' : '模拟执行失败'}`,
         confidence: status === 'succeeded' ? 82 : 35,
         suggested_stage: suggestedStage,
         suggested_decision: status === 'succeeded' && (resultType === 'poc' || resultType === 'exp') ? 'confirmed' : undefined,
@@ -1039,7 +1039,7 @@ export const VulnEnginePage: React.FC<VulnEnginePageProps> = ({
           ? 'p-6 pb-16 space-y-5'
           : 'p-10 pb-24 space-y-8'
     }`} style={{ backgroundColor: LK.canvas, color: LK.inkSoft }}>
-      <div className="flex flex-col 2xl:flex-row 2xl:items-end 2xl:justify-between gap-6" style={{ borderBottom: `1px solid ${LK.borderSoft}`, paddingBottom: '1rem' }}>
+      <div className="flex flex-col 2xl:flex-row 2xl:items-end 2xl:justify-between gap-6" style={{ borderBottom:`1px solid ${LK.borderSoft}`, paddingBottom: '1rem' }}>
         <div>
           <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-xs font-semibold uppercase tracking-wider" style={{ backgroundColor: LK.primaryMuted, color: LK.primary }}>
             <Cpu size={14} />
@@ -1128,7 +1128,7 @@ export const VulnEnginePage: React.FC<VulnEnginePageProps> = ({
                 <div className="flex items-center justify-between gap-3">
                   <div className="text-sm font-semibold" style={{ color: currentViewId === item.view ? LK.primary : LK.ink }}>{item.label}</div>
                   <span className="px-2 py-1 rounded-lg text-[10px] font-semibold uppercase tracking-wider" style={{
-                    backgroundColor: currentViewId === item.view ? `${LK.primary}22` : LK.surfaceRaised,
+                    backgroundColor: currentViewId === item.view ?`${LK.primary}22` : LK.surfaceRaised,
                     color: currentViewId === item.view ? LK.primary : LK.muted,
                   }}>
                     {countForLifecycleView(item.view)}
@@ -1151,7 +1151,7 @@ export const VulnEnginePage: React.FC<VulnEnginePageProps> = ({
                   style={{
                     backgroundColor: workspaceView === item.key ? LK.primary : LK.surface,
                     color: workspaceView === item.key ? '#ffffff' : LK.body,
-                    border: workspaceView === item.key ? 'none' : `1px solid ${LK.border}`,
+                    border: workspaceView === item.key ? 'none' :`1px solid ${LK.border}`,
                   }}
                   onMouseEnter={(e) => { if (workspaceView !== item.key) e.currentTarget.style.color = LK.ink; }}
                   onMouseLeave={(e) => { if (workspaceView !== item.key) e.currentTarget.style.color = LK.body; }}
@@ -1354,7 +1354,7 @@ export const VulnEnginePage: React.FC<VulnEnginePageProps> = ({
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div className="text-xs text-slate-600">
                 使用 vuln-verification 批量同步接口拉取当前自动化验证任务结果。
-                {filteredCases.length > 100 && ` 当前筛选 ${filteredCases.length} 条，本次最多同步前 100 条。`}
+                {filteredCases.length > 100 &&` 当前筛选 ${filteredCases.length} 条，本次最多同步前 100 条。`}
               </div>
               <div className="flex flex-wrap gap-2">
                 <button
@@ -1370,7 +1370,7 @@ export const VulnEnginePage: React.FC<VulnEnginePageProps> = ({
                   type="button"
                   onClick={() => void handleBatchSyncAutoVerify(currentBatchSyncCaseIds)}
                   disabled={batchSyncingAutoVerify || currentBatchSyncCaseIds.length === 0}
-                  className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-black text-slate-700 disabled:cursor-not-allowed disabled:opacity-50"
+                  className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-black text-slate-700 disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   <RefreshCw size={14} className={batchSyncingAutoVerify ? 'animate-spin' : ''} />
                   {batchSyncingAutoVerify ? '同步中...' : '同步当前筛选前100条'}
@@ -1544,8 +1544,8 @@ export const VulnEnginePage: React.FC<VulnEnginePageProps> = ({
                     onClick={() => void handleCreateEvolution()}
                     className="inline-flex items-center gap-2 px-4 py-3 text-sm font-semibold rounded-lg transition-colors disabled:cursor-not-allowed disabled:opacity-50"
                     style={{ backgroundColor: `${LK.success}22`, color: LK.success, border: `1px solid ${LK.success}40` }}
-                    onMouseEnter={(e) => { if (!e.currentTarget.disabled) e.currentTarget.style.backgroundColor = `${LK.success}3a`; }}
-                    onMouseLeave={(e) => { if (!e.currentTarget.disabled) e.currentTarget.style.backgroundColor = `${LK.success}22`; }}
+                    onMouseEnter={(e) => { if (!e.currentTarget.disabled) e.currentTarget.style.backgroundColor =`${LK.success}3a`; }}
+                    onMouseLeave={(e) => { if (!e.currentTarget.disabled) e.currentTarget.style.backgroundColor =`${LK.success}22`; }}
                   >
                     <CheckCircle2 size={15} />
                     确认创建
@@ -1574,9 +1574,9 @@ export const VulnEnginePage: React.FC<VulnEnginePageProps> = ({
                           <div className="flex items-center justify-between gap-3">
                             <div className="font-semibold" style={{ color: LK.ink }}>{source.source_title || source.source_task_id}</div>
                             <span className="rounded-full px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wider" style={{
-                              backgroundColor: source.replay_ready ? `${LK.success}22` : `${LK.error}22`,
+                              backgroundColor: source.replay_ready ?`${LK.success}22` :`${LK.error}22`,
                               color: source.replay_ready ? LK.success : LK.error,
-                              border: source.replay_ready ? `1px solid ${LK.success}40` : `1px solid ${LK.error}40`,
+                              border: source.replay_ready ?`1px solid ${LK.success}40` :`1px solid ${LK.error}40`,
                             }}>
                               {source.replay_ready ? 'ready' : 'blocked'}
                             </span>

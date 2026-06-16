@@ -11,7 +11,7 @@ interface VulnAutoVerifyCreatePageProps {
 const CASE_ID_KEY = 'chimera-vuln-auto-verify-case-id';
 const ANALYSIS_DETAIL_TARGET_KEY = 'chimera-vuln-open-case-id';
 const DEFAULT_MODEL = 'local_minimax/MiniMax/MiniMax-M2.5';
-const DEFAULT_THREAT_MODEL = `# 威胁模型
+const DEFAULT_THREAT_MODEL =`# 威胁模型
 
 ## 攻击者假设
 <!-- 攻击者在哪里？拥有什么能力？ -->
@@ -50,8 +50,8 @@ const LK = {
 const MONO = 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace';
 
 const statusTone = (ok?: boolean) => ok
-  ? { border: LK.success, bg: `${LK.success}14`, text: LK.success }
-  : { border: LK.error, bg: `${LK.error}14`, text: LK.error };
+  ? { border: LK.success, bg:`${LK.success}14`, text: LK.success }
+  : { border: LK.error, bg:`${LK.error}14`, text: LK.error };
 
 const normalizeConcurrency = (value: number) => Math.max(1, Math.min(64, Math.floor(Number(value) || 1)));
 
@@ -94,7 +94,7 @@ export const VulnAutoVerifyCreatePage: React.FC<VulnAutoVerifyCreatePageProps> =
       ]);
       setContext(ctx);
       setTemplates(Array.isArray(tplResponse.items) ? tplResponse.items : []);
-      setTaskName(ctx.default_task_name || `自动化验证-${ctx.case_title || targetCaseId}`);
+      setTaskName(ctx.default_task_name ||`自动化验证-${ctx.case_title || targetCaseId}`);
       setModel(ctx.default_model || DEFAULT_MODEL);
       setConcurrency(normalizeConcurrency(ctx.default_concurrency || 1));
       const firstTemplate = (tplResponse.items || [])[0];
@@ -256,7 +256,7 @@ export const VulnAutoVerifyCreatePage: React.FC<VulnAutoVerifyCreatePageProps> =
                 onClick={goBack}
                 className="rounded-lg px-4 py-2 text-xs font-semibold transition-colors"
                 style={{ backgroundColor: 'transparent', border: `1px solid ${LK.success}`, color: LK.success }}
-                onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = `${LK.success}14`)}
+                onMouseEnter={(e) => (e.currentTarget.style.backgroundColor =`${LK.success}14`)}
                 onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
               >
                 返回验证详情
@@ -306,7 +306,7 @@ export const VulnAutoVerifyCreatePage: React.FC<VulnAutoVerifyCreatePageProps> =
             </section>
 
             <section className="rounded-xl" style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}` }}>
-              <div className="px-5 py-4" style={{ borderBottom: `1px solid ${LK.borderSoft}` }}>
+              <div className="px-5 py-4" style={{ borderBottom:`1px solid ${LK.borderSoft}` }}>
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <div>
                     <div className="text-[11px] font-semibold uppercase tracking-[0.2em]" style={{ color: LK.muted }}>
@@ -421,7 +421,7 @@ export const VulnAutoVerifyCreatePage: React.FC<VulnAutoVerifyCreatePageProps> =
                 <ul className="space-y-1">
                   <li>源码路径：{context?.path_status?.source_root?.ok ? '已解析' : '缺失'}</li>
                   <li>二进制路径：{context?.path_status?.binary_root?.ok ? '已解析' : '缺失'}</li>
-                  <li>威胁模型：{threatModel.trim() ? `${threatModel.length} 字符` : '未填写'}</li>
+                  <li>威胁模型：{threatModel.trim() ?`${threatModel.length} 字符` : '未填写'}</li>
                 </ul>
               </div>
 

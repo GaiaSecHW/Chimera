@@ -83,14 +83,14 @@ export const WorkflowInstanceLogsPage: React.FC<{ instanceId: string; onBack: ()
           <div>
             <h2 className="text-3xl font-black text-slate-800 tracking-tight">实例节点日志</h2>
             <p className="text-slate-500 mt-1 font-medium italic">
-              {instance ? `${instance.name} · ${instance.id}` : '加载实例信息中...'}
+              {instance ?`${instance.name} · ${instance.id}` : '加载实例信息中...'}
             </p>
           </div>
         </div>
 
         <button
           onClick={() => loadLogs(true)}
-          className="inline-flex items-center justify-center gap-2 px-5 py-3 bg-white border border-slate-200 text-slate-600 rounded-2xl hover:bg-slate-50 transition-all font-bold shadow-sm"
+ className="inline-flex items-center justify-center gap-2 px-5 py-3 bg-slate-50 border border-slate-200 text-slate-600 rounded-2xl hover:bg-slate-100 transition-all font-bold"
         >
           <RefreshCw size={18} className={refreshing ? 'animate-spin' : ''} />
           刷新日志
@@ -106,7 +106,7 @@ export const WorkflowInstanceLogsPage: React.FC<{ instanceId: string; onBack: ()
               setSelectedNodeId(e.target.value);
               setPage(1);
             }}
-            className="w-full pl-14 pr-5 py-4 bg-white border border-slate-200 rounded-[1.75rem] text-sm outline-none focus:ring-4 ring-blue-500/5 transition-all font-medium shadow-sm appearance-none"
+ className="w-full pl-14 pr-5 py-4 bg-slate-50 border border-slate-200 rounded-[1.75rem] text-sm outline-none focus:ring-4 ring-blue-500/5 transition-all font-medium appearance-none"
           >
             <option value="">全部节点日志</option>
             {availableNodes.map((node) => (
@@ -117,7 +117,7 @@ export const WorkflowInstanceLogsPage: React.FC<{ instanceId: string; onBack: ()
           </select>
         </div>
 
-        <div className="bg-white border border-slate-200 rounded-[1.75rem] px-5 py-4 text-sm font-semibold text-slate-600 shadow-sm">
+ <div className="bg-slate-50 border border-slate-200 rounded-[1.75rem] px-5 py-4 text-sm font-semibold text-slate-600">
           共 {total} 条记录
         </div>
 
@@ -127,7 +127,7 @@ export const WorkflowInstanceLogsPage: React.FC<{ instanceId: string; onBack: ()
             setPageSize(Number(e.target.value));
             setPage(1);
           }}
-          className="bg-white border border-slate-200 rounded-[1.75rem] px-5 py-4 text-sm font-semibold text-slate-600 outline-none focus:ring-4 ring-blue-500/5 shadow-sm"
+ className="bg-slate-50 border border-slate-200 rounded-[1.75rem] px-5 py-4 text-sm font-semibold text-slate-600 outline-none focus:ring-4 ring-blue-500/5"
         >
           {[10, 20, 50].map((size) => (
             <option key={size} value={size}>
@@ -139,16 +139,16 @@ export const WorkflowInstanceLogsPage: React.FC<{ instanceId: string; onBack: ()
 
       <div className="space-y-5">
         {loading ? (
-          <div className="bg-white border border-slate-200 rounded-[2rem] p-16 text-center text-slate-400 font-semibold shadow-sm">
+ <div className="bg-slate-50 border border-slate-200 rounded-[2rem] p-16 text-center text-slate-400 font-semibold">
             日志加载中...
           </div>
         ) : records.length === 0 ? (
-          <div className="bg-white border border-slate-200 rounded-[2rem] p-16 text-center text-slate-400 font-semibold shadow-sm">
+ <div className="bg-slate-50 border border-slate-200 rounded-[2rem] p-16 text-center text-slate-400 font-semibold">
             当前筛选条件下暂无日志记录
           </div>
         ) : (
           records.map((record) => (
-            <div key={record.id} className="bg-white border border-slate-200 rounded-[2rem] shadow-sm overflow-hidden">
+ <div key={record.id} className="bg-slate-50 border border-slate-200 rounded-[2rem] overflow-hidden">
               <div className="px-7 py-6 border-b border-slate-100 bg-slate-50/70">
                 <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
                   <div className="space-y-2">
@@ -181,7 +181,7 @@ export const WorkflowInstanceLogsPage: React.FC<{ instanceId: string; onBack: ()
               </div>
 
               <div className="grid gap-px bg-slate-100 lg:grid-cols-2">
-                <div className="bg-white p-6 space-y-3">
+                <div className="bg-slate-50 p-6 space-y-3">
                   <div className="flex items-center gap-2 text-sm font-black text-slate-700">
                     <FileText size={16} />
                     初始化日志
@@ -194,7 +194,7 @@ export const WorkflowInstanceLogsPage: React.FC<{ instanceId: string; onBack: ()
                   </pre>
                 </div>
 
-                <div className="bg-white p-6 space-y-3">
+                <div className="bg-slate-50 p-6 space-y-3">
                   <div className="flex items-center gap-2 text-sm font-black text-slate-700">
                     <FileText size={16} />
                     执行日志
@@ -212,7 +212,7 @@ export const WorkflowInstanceLogsPage: React.FC<{ instanceId: string; onBack: ()
         )}
       </div>
 
-      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between bg-white border border-slate-200 rounded-[2rem] px-6 py-5 shadow-sm">
+ <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between bg-slate-50 border border-slate-200 rounded-[2rem] px-6 py-5">
         <div className="text-sm font-semibold text-slate-500">
           第 {page} / {totalPages} 页
         </div>
@@ -220,14 +220,14 @@ export const WorkflowInstanceLogsPage: React.FC<{ instanceId: string; onBack: ()
           <button
             disabled={page <= 1 || loading}
             onClick={() => setPage(page - 1)}
-            className="w-11 h-11 rounded-2xl border border-slate-200 text-slate-500 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-all flex items-center justify-center"
+            className="w-11 h-11 rounded-2xl border border-slate-200 text-slate-500 hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed transition-all flex items-center justify-center"
           >
             <ChevronLeft size={18} />
           </button>
           <button
             disabled={page >= totalPages || loading}
             onClick={() => setPage(page + 1)}
-            className="w-11 h-11 rounded-2xl border border-slate-200 text-slate-500 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-all flex items-center justify-center"
+            className="w-11 h-11 rounded-2xl border border-slate-200 text-slate-500 hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed transition-all flex items-center justify-center"
           >
             <ChevronRight size={18} />
           </button>

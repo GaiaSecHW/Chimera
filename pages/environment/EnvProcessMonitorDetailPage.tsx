@@ -24,9 +24,9 @@ const normalizeHostVisiblePath = (value: string): string => {
     suffix = ' (deleted)';
     body = body.slice(0, -10);
   }
-  if (body === HOST_ROOT_PREFIX) return `/${suffix}`;
-  if (body.startsWith(`${HOST_ROOT_PREFIX}/`)) return `/${body.slice(HOST_ROOT_PREFIX.length + 1)}${suffix}`;
-  return `${body}${suffix}`;
+  if (body === HOST_ROOT_PREFIX) return`/${suffix}`;
+  if (body.startsWith(`${HOST_ROOT_PREFIX}/`)) return`/${body.slice(HOST_ROOT_PREFIX.length + 1)}${suffix}`;
+  return`${body}${suffix}`;
 };
 
 const normalizePathNode = (node: any, keyName = ''): any => {
@@ -77,7 +77,7 @@ const formatBytes = (value?: number | null): string => {
     current /= 1024;
     index += 1;
   }
-  return `${current.toFixed(current >= 100 ? 0 : current >= 10 ? 1 : 2)} ${units[index]}`;
+  return`${current.toFixed(current >= 100 ? 0 : current >= 10 ? 1 : 2)} ${units[index]}`;
 };
 
 const extractProcText = (value: any): string => {
@@ -105,7 +105,7 @@ const ProcessTreeView: React.FC<{
       <div key={node.pid}>
         <div
           className="px-2 py-1 rounded-lg hover:bg-slate-100 cursor-pointer"
-          style={{ paddingLeft: `${depth * 16 + 8}px` }}
+          style={{ paddingLeft:`${depth * 16 + 8}px` }}
           onClick={() => onOpenDetail(node.pid)}
           onContextMenu={(event) => onContext(event, node.pid)}
         >
@@ -147,7 +147,7 @@ const PathTreeView: React.FC<{
     <div key={node.path}>
       <div
         className="flex items-center gap-2 px-2 py-1 rounded-lg hover:bg-slate-100 cursor-default"
-        style={{ paddingLeft: `${depth * 16 + 8}px` }}
+        style={{ paddingLeft:`${depth * 16 + 8}px` }}
         onClick={() => {
           if (node.type === 'dir') onToggleDir(node.path);
         }}
@@ -211,7 +211,7 @@ export const EnvProcessMonitorDetailPage: React.FC<{ projectId: string; initialS
   const [syncPreviewOpen, setSyncPreviewOpen] = useState(false);
   const draggingRef = useRef(false);
 
-  const selectedService = useMemo(() => nodes.find((item) => `${item.agent_key}:${item.service_name}` === selectedServiceKey) || null, [nodes, selectedServiceKey]);
+  const selectedService = useMemo(() => nodes.find((item) =>`${item.agent_key}:${item.service_name}` === selectedServiceKey) || null, [nodes, selectedServiceKey]);
   const treeNodes = useMemo(() => buildProcessTree(processes), [processes]);
   const allProcessPids = useMemo(() => Array.from(new Set(processes.map((item) => item.pid).filter((pid) => Number.isFinite(pid)))), [processes]);
   const isAllProcessesSelected = useMemo(
@@ -366,13 +366,13 @@ export const EnvProcessMonitorDetailPage: React.FC<{ projectId: string; initialS
       return;
     }
     const preferred = String(initialServiceKey || '').trim();
-    if (preferred && nodes.some((item) => `${item.agent_key}:${item.service_name}` === preferred)) {
+    if (preferred && nodes.some((item) =>`${item.agent_key}:${item.service_name}` === preferred)) {
       setSelectedServiceKey(preferred);
       return;
     }
     setSelectedServiceKey((prev) => {
-      if (prev && nodes.some((item) => `${item.agent_key}:${item.service_name}` === prev)) return prev;
-      return `${nodes[0].agent_key}:${nodes[0].service_name}`;
+      if (prev && nodes.some((item) =>`${item.agent_key}:${item.service_name}` === prev)) return prev;
+      return`${nodes[0].agent_key}:${nodes[0].service_name}`;
     });
   }, [nodes, initialServiceKey]);
 
@@ -449,7 +449,7 @@ export const EnvProcessMonitorDetailPage: React.FC<{ projectId: string; initialS
             <button
               onClick={() => void loadNodes()}
               disabled={!projectId || loadingNodes}
-              className="px-4 py-3 rounded-2xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-600 text-xs font-bold uppercase tracking-wider flex items-center gap-2"
+              className="px-4 py-3 rounded-2xl border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-600 text-xs font-bold uppercase tracking-wider flex items-center gap-2"
             >
               {loadingNodes ? <Loader2 size={16} className="animate-spin" /> : <RefreshCw size={16} />}
               刷新节点
@@ -457,7 +457,7 @@ export const EnvProcessMonitorDetailPage: React.FC<{ projectId: string; initialS
             <button
               onClick={() => void loadProcesses()}
               disabled={!projectId || !selectedService || loadingProcesses}
-              className="px-4 py-3 rounded-2xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-600 text-xs font-bold uppercase tracking-wider flex items-center gap-2"
+              className="px-4 py-3 rounded-2xl border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-600 text-xs font-bold uppercase tracking-wider flex items-center gap-2"
             >
               {loadingProcesses ? <Loader2 size={16} className="animate-spin" /> : <RefreshCw size={16} />}
               刷新进程
@@ -471,7 +471,7 @@ export const EnvProcessMonitorDetailPage: React.FC<{ projectId: string; initialS
             <select
               value={selectedServiceKey}
               onChange={(event) => setSelectedServiceKey(event.target.value)}
-              className="mt-1 w-full rounded-2xl border border-slate-200 bg-white px-3 py-3"
+              className="mt-1 w-full rounded-2xl border border-slate-200 bg-slate-50 px-3 py-3"
             >
               {nodes.map((item) => (
                 <option key={`${item.agent_key}:${item.service_name}`} value={`${item.agent_key}:${item.service_name}`}>
@@ -482,22 +482,22 @@ export const EnvProcessMonitorDetailPage: React.FC<{ projectId: string; initialS
           </div>
         </div>
 
-        <div className="rounded-3xl border border-slate-200 bg-white overflow-hidden">
+        <div className="rounded-3xl border border-slate-200 bg-slate-50 overflow-hidden">
           <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3">
             <div className="text-xs font-black text-slate-500 uppercase tracking-widest flex items-center gap-2">
               <Server size={14} />
               {selectedService
-                ? `${selectedService.agent_hostname || selectedService.agent_key} / ${selectedService.service_name} / 节点ID: ${selectedService.agent_key}`
+                ?`${selectedService.agent_hostname || selectedService.agent_key} / ${selectedService.service_name} / 节点ID: ${selectedService.agent_key}`
                 : '未选择节点'}
             </div>
             <div className="flex items-center gap-2">
               <button
                 onClick={toggleSelectAllPids}
                 disabled={loadingProcesses || !selectedService || allProcessPids.length === 0}
-                className="px-3 py-2 rounded-xl border border-slate-200 bg-white text-slate-700 text-xs font-black uppercase tracking-wider disabled:opacity-50 flex items-center gap-2 hover:bg-slate-50"
+                className="px-3 py-2 rounded-xl border border-slate-200 bg-slate-50 text-slate-700 text-xs font-black uppercase tracking-wider disabled:opacity-50 flex items-center gap-2 hover:bg-slate-100"
               >
                 {isAllProcessesSelected ? <Square size={14} /> : <CheckSquare size={14} />}
-                {isAllProcessesSelected ? '清空全部选择' : `全选全部进程 (${allProcessPids.length})`}
+                {isAllProcessesSelected ? '清空全部选择' :`全选全部进程 (${allProcessPids.length})`}
               </button>
               <button
                 onClick={() => void openSyncPreview({ mode: 'pid_files', pids: Array.from(selectedPids) })}
@@ -513,7 +513,7 @@ export const EnvProcessMonitorDetailPage: React.FC<{ projectId: string; initialS
           <div className="relative" style={{ height: '68vh' }}>
             <div className="absolute inset-0 flex">
               <div style={{ width: `${leftPaneWidth}%` }} className="h-full border-r border-slate-100 overflow-auto">
-                <div className="sticky top-0 bg-white border-b border-slate-100 px-3 py-2 text-xs font-black uppercase tracking-widest text-slate-500 flex items-center gap-2">
+                <div className="sticky top-0 bg-slate-50 border-b border-slate-100 px-3 py-2 text-xs font-black uppercase tracking-widest text-slate-500 flex items-center gap-2">
                   <FolderTree size={14} />
                   全局文件系统树
                 </div>
@@ -564,7 +564,7 @@ export const EnvProcessMonitorDetailPage: React.FC<{ projectId: string; initialS
               />
 
               <div style={{ width: `${100 - leftPaneWidth}%` }} className="h-full overflow-auto">
-                <div className="sticky top-0 bg-white border-b border-slate-100 px-3 py-2 text-xs font-black uppercase tracking-widest text-slate-500">进程树（单击查看详情，右键同步）</div>
+                <div className="sticky top-0 bg-slate-50 border-b border-slate-100 px-3 py-2 text-xs font-black uppercase tracking-widest text-slate-500">进程树（单击查看详情，右键同步）</div>
                 <div className="p-2">
                   {loadingProcesses ? (
                     <div className="py-10 text-center"><Loader2 className="animate-spin mx-auto text-blue-600" /></div>
@@ -589,7 +589,7 @@ export const EnvProcessMonitorDetailPage: React.FC<{ projectId: string; initialS
         </div>
 
         {menu && (
-          <div className="fixed z-50 rounded-xl border border-slate-200 bg-white shadow-xl p-1 min-w-[180px]" style={{ left: menu.x, top: menu.y }}>
+ <div className="fixed z-50 rounded-xl border border-slate-200 bg-slate-50 p-1 min-w-[180px]" style={{ left: menu.x, top: menu.y }}>
             {menu.type === 'process' ? (
               <button
                 className="w-full text-left px-3 py-2 rounded-lg hover:bg-slate-100 text-sm"
@@ -614,7 +614,7 @@ export const EnvProcessMonitorDetailPage: React.FC<{ projectId: string; initialS
 
         {processDetailPid !== null && (
           <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-6" onClick={() => setProcessDetailPid(null)}>
-            <div className="w-[min(1200px,95vw)] h-[85vh] rounded-3xl bg-white border border-slate-200 shadow-2xl flex flex-col" onClick={(event) => event.stopPropagation()}>
+ <div className="w-[min(1200px,95vw)] h-[85vh] rounded-3xl bg-slate-50 border border-slate-200 flex flex-col" onClick={(event) => event.stopPropagation()}>
               <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
                 <div>
                   <h3 className="text-xl font-black text-slate-800">进程详情 / PID {processDetailPid}</h3>
@@ -719,7 +719,7 @@ export const EnvProcessMonitorDetailPage: React.FC<{ projectId: string; initialS
 
         {syncPreviewOpen && (
           <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-6" onClick={() => setSyncPreviewOpen(false)}>
-            <div className="w-[min(920px,95vw)] max-h-[85vh] rounded-3xl bg-white border border-slate-200 shadow-2xl flex flex-col" onClick={(event) => event.stopPropagation()}>
+ <div className="w-[min(920px,95vw)] max-h-[85vh] rounded-3xl bg-slate-50 border border-slate-200 flex flex-col" onClick={(event) => event.stopPropagation()}>
               <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
                 <div>
                   <h3 className="text-xl font-black text-slate-800">同步预览确认</h3>

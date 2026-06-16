@@ -80,11 +80,11 @@ function sameJsonValue(left: unknown, right: unknown) {
 }
 
 function buildWorkspacePreview(projectId: string, taskId = '<task-id>') {
-  const base = `${FILESERVER_CONTAINER_ROOT}/${projectId}/${TASK_WORKSPACE_SEGMENT}/${taskId}`;
+  const base =`${FILESERVER_CONTAINER_ROOT}/${projectId}/${TASK_WORKSPACE_SEGMENT}/${taskId}`;
   return {
-    input: `${base}/input`,
-    output: `${base}/output`,
-    run: `${base}/run`,
+    input:`${base}/input`,
+    output:`${base}/output`,
+    run:`${base}/run`,
   };
 }
 
@@ -92,7 +92,7 @@ function deriveRunPath(outputPath: string) {
   const normalized = String(outputPath || '').replace(/\/+$/, '');
   if (!normalized) return '';
   if (normalized.endsWith('/output')) {
-    return `${normalized.slice(0, -'/output'.length)}/run`;
+    return`${normalized.slice(0, -'/output'.length)}/run`;
   }
   return '';
 }
@@ -118,7 +118,7 @@ function fmtDuration(s: string | null, e: string | null) {
   if (!s) return '-';
   const ms = (e ? new Date(e).getTime() : Date.now()) - new Date(s).getTime();
   const sec = Math.round(ms / 1000);
-  return sec < 60 ? `${sec}s` : `${Math.floor(sec / 60)}m${sec % 60}s`;
+  return sec < 60 ?`${sec}s` :`${Math.floor(sec / 60)}m${sec % 60}s`;
 }
 
 function basename(path: string | null | undefined) {
@@ -131,21 +131,21 @@ function basename(path: string | null | undefined) {
 function formatSeconds(seconds: number | null | undefined) {
   if (seconds == null || !Number.isFinite(seconds)) return '-';
   const value = Math.max(0, Math.round(seconds));
-  if (value < 60) return `${value}s`;
-  if (value < 3600) return `${Math.floor(value / 60)}m${value % 60}s`;
+  if (value < 60) return`${value}s`;
+  if (value < 3600) return`${Math.floor(value / 60)}m${value % 60}s`;
   const hours = Math.floor(value / 3600);
   const minutes = Math.floor((value % 3600) / 60);
-  return `${hours}h${minutes}m`;
+  return`${hours}h${minutes}m`;
 }
 
 function formatPhaseDuration(seconds: number | null | undefined) {
   if (seconds == null || !Number.isFinite(seconds)) return '';
-  return `（${formatSeconds(seconds)}）`;
+  return`（${formatSeconds(seconds)}）`;
 }
 
 function formatPhaseTokens(tokens: number | null | undefined) {
   if (tokens == null || !Number.isFinite(tokens)) return '';
-  return `（${Math.max(0, Math.round(tokens)).toLocaleString()} tokens）`;
+  return`（${Math.max(0, Math.round(tokens)).toLocaleString()} tokens）`;
 }
 
 function formatTokenLines(inputTokens: number | null | undefined, outputTokens: number | null | undefined) {
@@ -154,8 +154,8 @@ function formatTokenLines(inputTokens: number | null | undefined, outputTokens: 
   if (!hasInput && !hasOutput) return null;
   return (
     <div className="mt-1 space-y-0.5 text-[10px] leading-tight text-slate-500">
-      <div>输入：{hasInput ? `${Math.max(0, Math.round(inputTokens as number)).toLocaleString()} tokens` : '-'}</div>
-      <div>输出：{hasOutput ? `${Math.max(0, Math.round(outputTokens as number)).toLocaleString()} tokens` : '-'}</div>
+      <div>输入：{hasInput ?`${Math.max(0, Math.round(inputTokens as number)).toLocaleString()} tokens` : '-'}</div>
+      <div>输出：{hasOutput ?`${Math.max(0, Math.round(outputTokens as number)).toLocaleString()} tokens` : '-'}</div>
     </div>
   );
 }
@@ -215,9 +215,9 @@ function normalizeProgressPhases(progress: FirmwareTaskProgress | null): Progres
       expected.push({ key: 'llm_review_tool', label: toolReviewPhase.label || 'tool评审' });
     }
     for (let round = 1; round <= maxRound; round += 1) {
-      expected.push({ key: `llm_unpack_round_${round}`, label: `LLM 解包（第${round}轮）` });
-      expected.push({ key: `recursive_expand_llm_round_${round}`, label: `递归解包（第${round}轮后）` });
-      expected.push({ key: `llm_review_round_${round}`, label: `LLM 评审（第${round}轮）` });
+      expected.push({ key:`llm_unpack_round_${round}`, label:`LLM 解包（第${round}轮）` });
+      expected.push({ key:`recursive_expand_llm_round_${round}`, label:`递归解包（第${round}轮后）` });
+      expected.push({ key:`llm_review_round_${round}`, label:`LLM 评审（第${round}轮）` });
     }
   } else {
     expected.push({ key: 'llm_unpack', label: 'LLM 解包' });
@@ -316,7 +316,7 @@ function phaseNodeTone(status: string) {
   if (status === 'running') return 'border-blue-500 bg-blue-50 text-blue-600';
   if (status === 'failed') return 'border-red-400 bg-red-50 text-red-600';
   if (status === 'skipped') return 'border-amber-400 bg-amber-50 text-amber-600';
-  return 'border-slate-200 bg-white text-slate-400';
+  return 'border-slate-200 bg-slate-50 text-slate-400';
 }
 
 function phaseTextTone(status: string) {
@@ -330,28 +330,28 @@ function phaseTextTone(status: string) {
 function fmtPercent(used: number | null, limit: number | null, unitSuffix = '') {
   if (used == null || limit == null || limit <= 0) return '-';
   const percent = Math.max(0, (used / limit) * 100);
-  return `${percent.toFixed(percent >= 10 ? 1 : 2)}%${unitSuffix}`;
+  return`${percent.toFixed(percent >= 10 ? 1 : 2)}%${unitSuffix}`;
 }
 
 function extractFsRelPath(outputPath: string, projectId: string): string | null {
-  const prefix = `/data/files/${projectId}`;
+  const prefix =`/data/files/${projectId}`;
   if (!outputPath.startsWith(prefix)) return null;
   const rel = outputPath.slice(prefix.length).replace(/\/+$/, '');
-  return rel.startsWith('/') ? rel : `/${rel}`;
+  return rel.startsWith('/') ? rel :`/${rel}`;
 }
 
 function normalizeJoinPath(basePath: string, relativePath: string): string {
   const base = basePath.replace(/\/+$/, '');
   const relative = relativePath.replace(/^\/+/, '');
-  return `${base}/${relative}`;
+  return`${base}/${relative}`;
 }
 
 function formatBytes(bytes: number | null | undefined): string {
   if (bytes == null || !Number.isFinite(bytes)) return '-';
-  if (bytes < 1024) return `${bytes} B`;
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-  if (bytes < 1024 * 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-  return `${(bytes / (1024 * 1024 * 1024)).toFixed(2)} GB`;
+  if (bytes < 1024) return`${bytes} B`;
+  if (bytes < 1024 * 1024) return`${(bytes / 1024).toFixed(1)} KB`;
+  if (bytes < 1024 * 1024 * 1024) return`${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  return`${(bytes / (1024 * 1024 * 1024)).toFixed(2)} GB`;
 }
 
 function formatNumber(value: number | null | undefined, digits = 0): string {
@@ -365,7 +365,7 @@ function formatNumber(value: number | null | undefined, digits = 0): string {
 function formatCost(value: number | null | undefined): string {
   if (value == null || !Number.isFinite(value)) return '-';
   if (value === 0) return '$0';
-  return `$${value.toFixed(value < 0.01 ? 6 : 4)}`;
+  return`$${value.toFixed(value < 0.01 ? 6 : 4)}`;
 }
 
 function resultEntryKindLabel(kind: string | null | undefined): string {
@@ -452,7 +452,7 @@ function formatEventDetailValue(value: unknown): string {
   if (typeof value === 'string') return value || '-';
   try {
     const text = JSON.stringify(value);
-    return text.length > 160 ? `${text.slice(0, 160)}...` : text;
+    return text.length > 160 ?`${text.slice(0, 160)}...` : text;
   } catch {
     return String(value);
   }
@@ -508,7 +508,7 @@ function EventDetailBlock({ detail }: { detail: Record<string, any> | null }) {
       </div>
       <div className="grid gap-2 md:grid-cols-2">
         {rows.slice(0, 8).map((row) => (
-          <div key={row.key} className="min-w-0 rounded-xl border border-white bg-white px-3 py-2 text-xs">
+ <div key={row.key} className="min-w-0 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs">
             <div className="font-bold text-slate-400">{row.label}</div>
             <div className="mt-1 break-all font-mono text-slate-700">{row.value}</div>
           </div>
@@ -518,7 +518,7 @@ function EventDetailBlock({ detail }: { detail: Record<string, any> | null }) {
         <summary className="cursor-pointer text-xs font-bold text-slate-500 hover:text-slate-800">
           查看原始 JSON
         </summary>
-        <pre className="mt-2 max-h-48 overflow-auto rounded-xl border border-slate-200 bg-white px-3 py-3 text-xs leading-6 text-slate-700">
+        <pre className="mt-2 max-h-48 overflow-auto rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 text-xs leading-6 text-slate-700">
           {JSON.stringify(detail, null, 2)}
         </pre>
       </details>
@@ -569,7 +569,7 @@ function MetricBar({ label, value, tone = 'blue' }: { label: string; value: numb
     <div>
       <div className="mb-1 flex items-center justify-between text-[11px] font-bold text-slate-500">
         <span>{label}</span>
-        <span>{value == null || !Number.isFinite(value) ? '-' : `${percent.toFixed(percent >= 10 ? 1 : 2)}%`}</span>
+        <span>{value == null || !Number.isFinite(value) ? '-' :`${percent.toFixed(percent >= 10 ? 1 : 2)}%`}</span>
       </div>
       <div className="h-2 overflow-hidden rounded-full bg-slate-100">
         <div className={`h-full rounded-full ${toneClass}`} style={{ width: `${percent}%` }} />
@@ -608,7 +608,7 @@ function RoundDetailMetricCard({ label, value, hint }: { label: string; value: s
 
 function RoundDetailField({ label, value, mono = false }: { label: string; value: React.ReactNode; mono?: boolean }) {
   return (
-    <div className="rounded-xl border border-slate-200 bg-white px-3 py-3">
+    <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-3">
       <div className="text-[11px] font-black uppercase tracking-[0.12em] text-slate-400">{label}</div>
       <div className={`mt-1 text-sm text-slate-700 ${mono ? 'break-all font-mono text-[12px]' : ''}`}>{value}</div>
     </div>
@@ -660,7 +660,7 @@ function RoundAgentCard({
       )
     : (agent.status || '-');
   return (
-    <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+ <section className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
       <div className="flex items-center justify-between gap-3">
         <div className="text-sm font-black text-slate-900">{title}</div>
         <span className={`rounded-full border px-2 py-0.5 text-[11px] font-bold ${kind === 'reviewer' ? (round.reviewer.passed ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-amber-200 bg-amber-50 text-amber-700') : 'border-slate-200 bg-slate-50 text-slate-600'}`}>
@@ -706,7 +706,7 @@ function RoundDetailModal({
       };
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/65 p-6 backdrop-blur-sm">
-      <div className="flex max-h-[88vh] w-full max-w-6xl flex-col overflow-hidden rounded-[2rem] border border-slate-200 bg-white shadow-2xl">
+ <div className="flex max-h-[88vh] w-full max-w-6xl flex-col overflow-hidden rounded-[2rem] border border-slate-200 bg-slate-50">
         <div className="flex items-start justify-between gap-4 border-b border-slate-100 px-6 py-5">
           <div>
             <p className="text-[10px] font-black uppercase tracking-[0.28em] text-blue-600">Round Detail</p>
@@ -736,13 +736,13 @@ function RoundDetailModal({
             <RoundDetailMetricCard label="告警数" value={String(round.artifacts.warnings.length)} hint={round.artifacts.summary_present || round.artifacts.reason_present ? '已生成文档产物' : '未生成文档产物'} />
           </div>
 
-          <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+ <section className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
             <div className="text-sm font-black text-slate-900">策略与来源</div>
             <div className="mt-3 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
               <RoundDetailField label="命中工具" value={round.context.matched_skill || '-'} />
               <RoundDetailField label="回退到 LLM" value={round.context.fallback_to_llm ? '是' : '否'} />
               <RoundDetailField label="Provider Role" value={round.context.provider_role || '-'} />
-              <RoundDetailField label="基线轮次" value={round.output_delta.baseline_round == null ? '-' : `#${round.output_delta.baseline_round}`} />
+              <RoundDetailField label="基线轮次" value={round.output_delta.baseline_round == null ? '-' :`#${round.output_delta.baseline_round}`} />
             </div>
             {round.source_path ? (
               <div className="mt-3 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
@@ -752,7 +752,7 @@ function RoundDetailModal({
             ) : null}
           </section>
 
-          <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+ <section className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
                 <div className="text-sm font-black text-slate-900">工作与评审总结</div>
@@ -769,10 +769,10 @@ function RoundDetailModal({
                       key={tab.key}
                       type="button"
                       onClick={() => setActiveSummaryTab(tab.key)}
-                      className={`rounded-xl border px-3 py-2 text-xs font-bold transition ${active ? 'border-slate-900 bg-slate-900 text-white' : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'}`}
+                      className={`rounded-xl border px-3 py-2 text-xs font-bold transition ${active ? 'border-slate-900 bg-slate-900 text-white' : 'border-slate-200 bg-slate-50 text-slate-600 hover:bg-slate-100'}`}
                     >
                       {tab.label}
-                      <span className={`ml-2 rounded-full px-2 py-0.5 text-[10px] ${active ? 'bg-white/15 text-slate-100' : 'bg-slate-100 text-slate-500'}`}>
+                      <span className={`ml-2 rounded-full px-2 py-0.5 text-[10px] ${active ? 'bg-slate-50/15 text-slate-100' : 'bg-slate-100 text-slate-500'}`}>
                         {tab.hint}
                       </span>
                     </button>
@@ -792,12 +792,12 @@ function RoundDetailModal({
                     <div className="text-sm font-black text-slate-900">{activeSummaryTitle}</div>
                   </div>
                   <div className="flex flex-wrap gap-2 text-[11px]">
-                    <span className="rounded-full border border-slate-200 bg-white px-2.5 py-1 font-bold text-slate-600">状态：{activeSummaryMeta.status}</span>
-                    <span className="rounded-full border border-slate-200 bg-white px-2.5 py-1 font-bold text-slate-600">耗时：{activeSummaryMeta.duration}</span>
-                    <span className="rounded-full border border-slate-200 bg-white px-2.5 py-1 font-bold text-slate-600">角色：{activeSummaryMeta.role}</span>
+                    <span className="rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 font-bold text-slate-600">状态：{activeSummaryMeta.status}</span>
+                    <span className="rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 font-bold text-slate-600">耗时：{activeSummaryMeta.duration}</span>
+                    <span className="rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 font-bold text-slate-600">角色：{activeSummaryMeta.role}</span>
                   </div>
                 </div>
-                <div className="mt-4 rounded-[1.5rem] border border-slate-200 bg-white p-5">
+                <div className="mt-4 rounded-[1.5rem] border border-slate-200 bg-slate-50 p-5">
                   <div className="mb-3 text-[11px] font-black uppercase tracking-[0.14em] text-slate-400">会话文件</div>
                   <div className="break-all font-mono text-[12px] text-slate-600">{activeSummaryMeta.session}</div>
                   <article className="prose prose-slate mt-5 max-w-none text-sm leading-7 prose-headings:font-black prose-headings:text-slate-900 prose-p:text-slate-700 prose-li:text-slate-700">
@@ -811,7 +811,7 @@ function RoundDetailModal({
           </section>
 
           <div className="grid gap-4 xl:grid-cols-2">
-            <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+ <section className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
               <div className="text-sm font-black text-slate-900">产物快照</div>
               <div className="mt-3 grid gap-3 md:grid-cols-2">
                 <RoundDetailField label="输出文件数" value={String(round.output_snapshot.output_file_count)} />
@@ -821,7 +821,7 @@ function RoundDetailModal({
               </div>
             </section>
 
-            <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+ <section className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
               <div className="text-sm font-black text-slate-900">文档与告警</div>
               <div className="mt-3 grid gap-3 md:grid-cols-2">
                 <RoundDetailField label="总结文档" value={round.artifacts.summary_present ? '已生成' : '未生成'} />
@@ -832,7 +832,7 @@ function RoundDetailModal({
                   <div className="text-[11px] font-black uppercase tracking-[0.12em] text-amber-700">告警</div>
                   <div className="mt-2 space-y-2 text-sm text-amber-800">
                     {round.artifacts.warnings.map((warning, index) => (
-                      <div key={`${warning}-${index}`} className="rounded-xl border border-amber-200 bg-white/60 px-3 py-2">
+ <div key={`${warning}-${index}`} className="rounded-xl border border-amber-200 bg-slate-50 px-3 py-2">
                         {warning}
                       </div>
                     ))}
@@ -1154,7 +1154,7 @@ function TaskDetailPanel({
     ) => {
       const start = edgePoint(from, horizontalSign(from.x, midX) >= 0 ? 'right' : 'left');
       const end = edgePoint(to, horizontalSign(midX, to.x) >= 0 ? 'left' : 'right');
-      return `M ${start.x} ${start.y} L ${midX} ${start.y} L ${midX} ${end.y} L ${end.x} ${end.y}`;
+      return`M ${start.x} ${start.y} L ${midX} ${start.y} L ${midX} ${end.y} L ${end.x} ${end.y}`;
     };
 
     const leftMidX = preprocess.x + (toolEntry.x - preprocess.x) * 0.42;
@@ -1713,7 +1713,7 @@ function TaskDetailPanel({
     const events = timeline.slice(-80);
     return events.map((event, index) => ({
       ...event,
-      _key: event.id || `${event.event_type || 'event'}-${event.created_at || index}-${index}`,
+      _key: event.id ||`${event.event_type || 'event'}-${event.created_at || index}-${index}`,
       _index: index + 1,
       _tone: inferTimelineTone(event),
     }));
@@ -1796,7 +1796,7 @@ function TaskDetailPanel({
 
   if (!task) {
     return (
-      <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+ <div className="rounded-2xl border border-slate-200 bg-slate-50 p-6">
         <div className="flex min-h-[280px] flex-col items-center justify-center gap-3 text-center">
           <div className="rounded-2xl bg-slate-100 p-4 text-slate-400">
             <ChevronRight size={22} />
@@ -1836,11 +1836,11 @@ function TaskDetailPanel({
   const handleConfirmEvolutionReplacementClick = async () => {
     if (!activeEvolutionJob?.id || !activeEvolutionJob.final_tool_path) return;
     const targetLabel = activeEvolutionJob.replaced_tool_path
-      ? `原工具：${activeEvolutionJob.replaced_tool_path}`
+      ?`原工具：${activeEvolutionJob.replaced_tool_path}`
       : '原工具：无，将发布并激活新工具';
     const confirmed = await showConfirm({
       title: '确认替换原工具',
-      message: `将使用新工具覆盖原工具。\n\n${targetLabel}\n新工具：${activeEvolutionJob.final_tool_path}`,
+      message:`将使用新工具覆盖原工具。\n\n${targetLabel}\n新工具：${activeEvolutionJob.final_tool_path}`,
       confirmText: '确认替换',
       cancelText: '取消',
       danger: true,
@@ -1879,7 +1879,7 @@ function TaskDetailPanel({
         available: false,
         log_text: '',
         files: [],
-        phase: `evolution:${role}:round_${round}`,
+        phase:`evolution:${role}:round_${round}`,
         message: e?.message || '加载进化日志失败',
       });
     } finally {
@@ -1888,12 +1888,12 @@ function TaskDetailPanel({
   };
 
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white shadow-sm">
+ <div className="rounded-2xl border border-slate-200 bg-slate-50">
       <div className="border-b border-slate-100 p-5">
         <button
           type="button"
           onClick={onBack}
-          className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-bold text-slate-700 shadow-sm hover:bg-slate-50"
+ className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm font-bold text-slate-700 hover:bg-slate-100"
         >
           <ArrowLeft size={16} />
           {hasReturnContext ? '返回原任务' : '返回任务列表'}
@@ -1914,7 +1914,7 @@ function TaskDetailPanel({
           </div>
           <button
             onClick={refreshCurrentDetail}
-            className="rounded-lg border border-slate-200 p-2 text-slate-500 hover:bg-slate-50"
+            className="rounded-lg border border-slate-200 p-2 text-slate-500 hover:bg-slate-100"
             title="刷新详情"
           >
             {loading || metricsLoading || timelineLoading || resultLoading || sessionsLoading ? <Loader2 size={16} className="animate-spin" /> : <RefreshCw size={16} />}
@@ -1960,7 +1960,7 @@ function TaskDetailPanel({
       </div>
 
       <div className="space-y-4 p-5">
-        <section className="rounded-2xl border border-slate-200 bg-white p-2 shadow-sm">
+ <section className="rounded-2xl border border-slate-200 bg-slate-50 p-2">
           <div className="flex flex-wrap items-center gap-2">
             {[
               { id: 'overview' as const, label: '总览' },
@@ -1976,8 +1976,8 @@ function TaskDetailPanel({
                 onClick={() => setActiveTab(tab.id)}
                 className={`rounded-2xl px-5 py-3 text-sm font-black transition ${
                   activeTab === tab.id
-                    ? 'bg-slate-900 text-white shadow-sm'
-                    : 'text-slate-500 hover:bg-slate-50 hover:text-slate-700'
+ ? 'bg-slate-900 text-white '
+                    : 'text-slate-500 hover:bg-slate-100 hover:text-slate-700'
                 }`}
               >
                 {tab.label}
@@ -1999,8 +1999,8 @@ function TaskDetailPanel({
                 ['开始时间', fmtTime(task.started_at)],
                 ['完成时间', fmtTime(task.completed_at)],
                 ['耗时', progressDurationSeconds != null ? formatSeconds(progressDurationSeconds) : fmtDuration(task.started_at, task.completed_at)],
-                ['输入 Token 消耗', `${result?.summary.input_tokens ?? progress?.input_tokens ?? 0} tokens`],
-                ['输出 Token 消耗', `${result?.summary.output_tokens ?? progress?.output_tokens ?? 0} tokens`],
+                ['输入 Token 消耗',`${result?.summary.input_tokens ?? progress?.input_tokens ?? 0} tokens`],
+                ['输出 Token 消耗',`${result?.summary.output_tokens ?? progress?.output_tokens ?? 0} tokens`],
                 ['AI 轮次', task.rounds ?? '-'],
               ].map(([label, value], index) => (
                 <div key={index} className="rounded-xl border border-slate-100 bg-slate-50 px-4 py-3">
@@ -2021,12 +2021,12 @@ function TaskDetailPanel({
               ) : (
                 <div className="space-y-3">
                   {progress.summary && (
-                    <div className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs text-slate-600">
+                    <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-600">
                       {progress.summary}
                     </div>
                   )}
                   <div className="overflow-x-auto pb-1">
-                    <div ref={progressCanvasRef} className="relative min-w-[1080px] rounded-2xl border border-slate-200 bg-white px-4 py-4">
+                    <div ref={progressCanvasRef} className="relative min-w-[1080px] rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4">
                       {progressConnectorPaths.length > 0 ? (
                         <svg className="pointer-events-none absolute inset-0 h-full w-full overflow-visible" aria-hidden="true">
                           {progressConnectorPaths.map((path) => (
@@ -2061,7 +2061,7 @@ function TaskDetailPanel({
                               <button
                                 type="button"
                                 onClick={() => onOpenPhaseLog(task.id, layeredProgress.preprocess.key, layeredProgress.preprocess.label)}
-                                className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 py-1 text-[10px] font-bold text-slate-600 hover:bg-slate-50"
+                                className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1 text-[10px] font-bold text-slate-600 hover:bg-slate-100"
                               >
                                 <Terminal size={11} /> 查看日志
                               </button>
@@ -2125,7 +2125,7 @@ function TaskDetailPanel({
                                             <button
                                               type="button"
                                               onClick={() => onOpenPhaseLog(task.id, node.phase.key, node.label)}
-                                              className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 py-1 text-[10px] font-bold text-slate-600 hover:bg-slate-50"
+                                              className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1 text-[10px] font-bold text-slate-600 hover:bg-slate-100"
                                             >
                                               <Terminal size={11} /> 查看日志
                                             </button>
@@ -2134,7 +2134,7 @@ function TaskDetailPanel({
                                         {node.rounds && node.rounds.length > 0 ? (
                                           <div className="mt-3 space-y-1 rounded-xl border border-slate-100 bg-slate-50 px-2 py-2 text-left">
                                             {node.rounds.map((roundPhase) => (
-                                              <div key={roundPhase.key} className="rounded-lg border border-slate-200 bg-white px-2 py-2">
+                                              <div key={roundPhase.key} className="rounded-lg border border-slate-200 bg-slate-50 px-2 py-2">
                                                 <div className="flex items-center justify-between gap-2 text-[10px] text-slate-500">
                                                   <span className="font-semibold text-slate-600">
                                                     第{roundPhase.current_round || Number(roundPhase.key.match(/_round_(\d+)$/)?.[1] || 0)}轮
@@ -2149,7 +2149,7 @@ function TaskDetailPanel({
                                                   <button
                                                     type="button"
                                                     onClick={() => onOpenPhaseLog(task.id, roundPhase.key, roundPhase.label)}
-                                                    className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2 py-1 text-[10px] font-bold text-slate-600 hover:bg-slate-50"
+                                                    className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-slate-50 px-2 py-1 text-[10px] font-bold text-slate-600 hover:bg-slate-100"
                                                   >
                                                     <Terminal size={11} /> 查看日志
                                                   </button>
@@ -2188,7 +2188,7 @@ function TaskDetailPanel({
                               <button
                                 type="button"
                                 onClick={() => onOpenPhaseLog(task.id, layeredProgress.cleanup.key, layeredProgress.cleanup.label)}
-                                className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 py-1 text-[10px] font-bold text-slate-600 hover:bg-slate-50"
+                                className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1 text-[10px] font-bold text-slate-600 hover:bg-slate-100"
                               >
                                 <Terminal size={11} /> 查看日志
                               </button>
@@ -2215,13 +2215,13 @@ function TaskDetailPanel({
               ) : (
                 <div className="space-y-3">
                   <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-                    <div className="rounded-lg border border-slate-200 bg-white px-3 py-2">
+                    <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
                       <p className="text-[10px] text-slate-400">CPU 占用</p>
                       <p className="mt-1 text-sm font-bold text-slate-800">
                         {fmtPercent(resourceUsage.cpu_millicores, resourceUsage.pod_cpu_limit_millicores)}
                       </p>
                     </div>
-                    <div className="rounded-lg border border-slate-200 bg-white px-3 py-2">
+                    <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
                       <p className="text-[10px] text-slate-400">内存占用</p>
                       <p className="mt-1 text-sm font-bold text-slate-800">
                         {fmtPercent(resourceUsage.memory_mib, resourceUsage.pod_memory_limit_mib)}
@@ -2274,7 +2274,7 @@ function TaskDetailPanel({
               </div>
             ) : (
               <>
-                <section className="rounded-[1.5rem] border border-slate-200 bg-white p-5 shadow-sm">
+ <section className="rounded-[1.5rem] border border-slate-200 bg-slate-50 p-5">
                   <div className="flex flex-wrap items-start justify-between gap-4">
                     <div>
                       <div className="flex items-center gap-2 text-[11px] font-black uppercase tracking-[0.2em] text-slate-400">
@@ -2298,7 +2298,7 @@ function TaskDetailPanel({
                           type="button"
                           onClick={() => onRefreshResultCache(task.id)}
                           disabled={resultRefreshingTaskId === task.id}
-                          className="inline-flex items-center gap-2 rounded-xl border border-slate-200 px-3 py-2 text-xs font-black text-slate-700 hover:bg-slate-50 disabled:opacity-60"
+                          className="inline-flex items-center gap-2 rounded-xl border border-slate-200 px-3 py-2 text-xs font-black text-slate-700 hover:bg-slate-100 disabled:opacity-60"
                         >
                           <RefreshCw size={13} className={resultRefreshingTaskId === task.id ? 'animate-spin' : ''} />
                           刷新缓存
@@ -2309,7 +2309,7 @@ function TaskDetailPanel({
                 </section>
 
                 {metrics.rounds.warnings.length > 0 ? (
-                  <section className="rounded-2xl border border-amber-200 bg-amber-50 p-4 shadow-sm">
+ <section className="rounded-2xl border border-amber-200 bg-amber-50 p-4">
                     <div className="flex items-center gap-2 text-sm font-bold text-amber-800">
                       <AlertCircle size={16} />
                       部分轮次观测文件读取异常
@@ -2323,7 +2323,7 @@ function TaskDetailPanel({
                 ) : null}
 
                 <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-6">
-                  <div className="rounded-2xl border border-slate-200 bg-white px-4 py-4 shadow-sm">
+ <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4">
                     <div className="flex items-center gap-2 text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">
                       <BarChart3 size={14} />
                       总轮数
@@ -2331,29 +2331,29 @@ function TaskDetailPanel({
                     <div className="mt-2 text-2xl font-black text-slate-900">{formatNumber(metrics.rounds.round_count)}</div>
                     <div className="mt-1 text-xs text-slate-500">完成 {metrics.rounds.completed_round_count} · 失败 {metrics.rounds.failed_round_count}</div>
                   </div>
-                  <div className="rounded-2xl border border-slate-200 bg-white px-4 py-4 shadow-sm">
+ <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4">
                     <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">当前 / 最新轮次</div>
                     <div className="mt-2 text-2xl font-black text-slate-900">
                       #{metrics.progress.current_round ?? metrics.rounds.running_round ?? metrics.rounds.latest_round ?? '-'}
                     </div>
                     <div className="mt-1 text-xs text-slate-500">计划 {metrics.progress.total_rounds ?? '-'} 轮</div>
                   </div>
-                  <div className="rounded-2xl border border-slate-200 bg-white px-4 py-4 shadow-sm">
+ <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4">
                     <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">总 Token</div>
                     <div className="mt-2 text-2xl font-black text-slate-900">{formatNumber(metrics.rounds.total_tokens)}</div>
                     <div className="mt-1 text-xs text-slate-500">Cost {formatCost(metrics.rounds.total_cost)}</div>
                   </div>
-                  <div className="rounded-2xl border border-slate-200 bg-white px-4 py-4 shadow-sm">
+ <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4">
                     <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">轮次总耗时</div>
                     <div className="mt-2 text-2xl font-black text-slate-900">{formatSeconds(metrics.rounds.total_duration_seconds)}</div>
                     <div className="mt-1 text-xs text-slate-500">输出增长 {formatBytes(metrics.rounds.output_growth_bytes)}</div>
                   </div>
-                  <div className="rounded-2xl border border-slate-200 bg-white px-4 py-4 shadow-sm">
+ <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4">
                     <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">当前输出文件</div>
                     <div className="mt-2 text-2xl font-black text-slate-900">{formatNumber(metrics.result.output_file_count)}</div>
                     <div className="mt-1 text-xs text-slate-500">目录 {metrics.result.output_dir_count} · {formatBytes(metrics.result.output_total_size_bytes)}</div>
                   </div>
-                  <div className="rounded-2xl border border-slate-200 bg-white px-4 py-4 shadow-sm">
+ <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4">
                     <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">最大文件</div>
                     <div className="mt-2 text-2xl font-black text-slate-900">{formatBytes(metrics.result.largest_file_size_bytes)}</div>
                     <div className="mt-1 text-xs text-slate-500">顶层条目 {metrics.result.top_level_entry_count}</div>
@@ -2361,7 +2361,7 @@ function TaskDetailPanel({
                 </div>
 
                 {!metrics.rounds.available ? (
-                  <section className="rounded-2xl border border-dashed border-slate-300 bg-white p-10 text-center shadow-sm">
+ <section className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-10 text-center">
                     <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-slate-100 text-slate-500">
                       <BarChart3 size={20} />
                     </div>
@@ -2370,7 +2370,7 @@ function TaskDetailPanel({
                   </section>
                 ) : (
                   <>
-                    <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+ <section className="rounded-2xl border border-slate-200 bg-slate-50 p-5">
                       <div className="flex flex-wrap items-center justify-between gap-3">
                         <div>
                           <h2 className="text-sm font-black uppercase tracking-[0.2em] text-slate-500">轮次汇总</h2>
@@ -2404,7 +2404,7 @@ function TaskDetailPanel({
                       </div>
                     </section>
 
-                    <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+ <section className="rounded-2xl border border-slate-200 bg-slate-50 p-5">
                       <div className="flex flex-wrap items-start justify-between gap-4">
                         <div>
                           <h2 className="text-sm font-black uppercase tracking-[0.2em] text-slate-500">轮次明细</h2>
@@ -2480,7 +2480,7 @@ function TaskDetailPanel({
                                       setSelectedMetricRound(round);
                                     }
                                   }}
-                                  className="cursor-pointer bg-white transition hover:bg-slate-50"
+                                  className="cursor-pointer bg-slate-50 transition hover:bg-slate-100"
                                 >
                                   <td className="px-3 py-3 font-mono font-bold text-slate-800">#{round.round}</td>
                                   <td className="px-3 py-3">
@@ -2492,7 +2492,7 @@ function TaskDetailPanel({
                                     <span className={round.reviewer.passed ? 'font-bold text-emerald-700' : 'font-bold text-amber-700'}>
                                       {round.reviewer.passed ? '通过' : '未通过'}
                                     </span>
-                                    {round.reviewer.review_preview ? ` · ${round.reviewer.review_preview}` : ''}
+                                    {round.reviewer.review_preview ?` · ${round.reviewer.review_preview}` : ''}
                                   </td>
                                   <td className="px-3 py-3 text-slate-600">{round.output_snapshot.output_file_count} / {round.output_snapshot.output_dir_count}</td>
                                   <td className="px-3 py-3 font-mono text-slate-600">{formatBytes(round.output_snapshot.output_total_size_bytes)}</td>
@@ -2524,7 +2524,7 @@ function TaskDetailPanel({
                   </>
                 )}
 
-                <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+ <section className="rounded-2xl border border-slate-200 bg-slate-50 p-5">
                   <div className="flex flex-wrap items-center justify-between gap-3">
                     <div>
                       <h2 className="text-sm font-black uppercase tracking-[0.2em] text-slate-500">运行健康</h2>
@@ -2562,9 +2562,9 @@ function TaskDetailPanel({
                     <div className="rounded-2xl border border-slate-100 bg-slate-50 p-4">
                       <div className="text-xs font-black text-slate-700">事件与会话</div>
                       <div className="mt-3 grid grid-cols-3 gap-2 text-center text-xs">
-                        <div className="rounded-xl bg-white px-2 py-2"><div className="text-slate-400">事件</div><div className="mt-1 font-black text-slate-900">{formatNumber(metrics.events.event_count)}</div></div>
-                        <div className="rounded-xl bg-white px-2 py-2"><div className="text-slate-400">会话</div><div className="mt-1 font-black text-slate-900">{formatNumber(metrics.sessions.session_count)}</div></div>
-                        <div className="rounded-xl bg-white px-2 py-2"><div className="text-slate-400">运行</div><div className="mt-1 font-black text-blue-700">{formatNumber(metrics.sessions.running_session_count)}</div></div>
+                        <div className="rounded-xl bg-slate-50 px-2 py-2"><div className="text-slate-400">事件</div><div className="mt-1 font-black text-slate-900">{formatNumber(metrics.events.event_count)}</div></div>
+                        <div className="rounded-xl bg-slate-50 px-2 py-2"><div className="text-slate-400">会话</div><div className="mt-1 font-black text-slate-900">{formatNumber(metrics.sessions.session_count)}</div></div>
+                        <div className="rounded-xl bg-slate-50 px-2 py-2"><div className="text-slate-400">运行</div><div className="mt-1 font-black text-blue-700">{formatNumber(metrics.sessions.running_session_count)}</div></div>
                       </div>
                       <div className="mt-3 truncate text-xs text-slate-500">
                         最近事件：{metrics.events.latest_event_type ? formatEventTypeLabel(metrics.events.latest_event_type) : '暂无'}
@@ -2587,7 +2587,7 @@ function TaskDetailPanel({
         ) : null}
 
         {activeTab === 'events' ? (
-          <section className="rounded-[1.5rem] border border-slate-200 bg-white p-5 shadow-sm">
+ <section className="rounded-[1.5rem] border border-slate-200 bg-slate-50 p-5">
             <div className="flex flex-wrap items-start justify-between gap-4">
               <div>
                 <h2 className="text-lg font-black text-slate-900">事件记录</h2>
@@ -2601,7 +2601,7 @@ function TaskDetailPanel({
                 <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
                   <div className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-400">展示区间</div>
                   <div className="mt-1 text-sm font-bold text-slate-700">
-                    {timelineItems.length > 0 ? `${fmtTime(timelineItems[0].created_at)} -> ${fmtTime(timelineItems[timelineItems.length - 1].created_at)}` : '-'}
+                    {timelineItems.length > 0 ?`${fmtTime(timelineItems[0].created_at)} -> ${fmtTime(timelineItems[timelineItems.length - 1].created_at)}` : '-'}
                   </div>
                 </div>
               </div>
@@ -2637,13 +2637,13 @@ function TaskDetailPanel({
                           <th className="w-20 px-3 py-2 text-right">详情</th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-slate-100 bg-white">
+                      <tbody className="divide-y divide-slate-100 bg-slate-50">
                         {timelineItems.map((event) => {
                           const expanded = expandedEventKey === event._key;
                           const detailRows = eventDetailRows(event.detail);
                           return (
                             <React.Fragment key={event._key}>
-                              <tr className="align-middle hover:bg-slate-50/80">
+                              <tr className="align-middle hover:bg-slate-100/80">
                                 <td className="px-3 py-2 font-mono text-[11px] font-bold text-slate-400">#{event._index}</td>
                                 <td className="whitespace-nowrap px-3 py-2 font-mono text-[11px] font-semibold text-slate-600">
                                   {fmtTime(event.created_at)}
@@ -2691,7 +2691,7 @@ function TaskDetailPanel({
                                     type="button"
                                     disabled={detailRows.length === 0}
                                     onClick={() => setExpandedEventKey(expanded ? null : event._key)}
-                                    className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2 py-1 text-[11px] font-bold text-slate-600 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
+                                    className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-slate-50 px-2 py-1 text-[11px] font-bold text-slate-600 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-40"
                                   >
                                     <ChevronRight size={12} className={expanded ? 'rotate-90 transition-transform' : 'transition-transform'} />
                                     {detailRows.length > 0 ? '查看' : '无'}
@@ -2720,7 +2720,7 @@ function TaskDetailPanel({
 
         {activeTab === 'session' ? (
           <section className="grid gap-4 xl:grid-cols-[320px_minmax(0,1fr)]">
-            <aside className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+ <aside className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
               <div className="flex items-center justify-between gap-3">
                 <div>
                   <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">会话列表</div>
@@ -2729,7 +2729,7 @@ function TaskDetailPanel({
                 <button
                   type="button"
                   onClick={() => void loadSessions()}
-                  className="rounded-xl border border-slate-200 p-2 text-slate-500 hover:bg-slate-50"
+                  className="rounded-xl border border-slate-200 p-2 text-slate-500 hover:bg-slate-100"
                   title="刷新会话"
                 >
                   <RefreshCw size={14} className={sessionsLoading ? 'animate-spin' : ''} />
@@ -2762,7 +2762,7 @@ function TaskDetailPanel({
                               className={`w-full rounded-2xl border px-4 py-3 text-left transition ${
                                 selected
                                   ? 'border-slate-900 bg-slate-900 text-white'
-                                  : 'border-slate-200 bg-slate-50 text-slate-700 hover:bg-white'
+                                  : 'border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-50'
                               }`}
                             >
                               <div className="flex items-start justify-between gap-3">
@@ -2792,7 +2792,7 @@ function TaskDetailPanel({
 
             <div className="space-y-4">
               {sessionWarnings.length > 0 ? (
-                <section className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-4 text-sm text-amber-800 shadow-sm">
+ <section className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-4 text-sm text-amber-800">
                   <div className="font-bold">会话文件存在部分异常行，已跳过不可解析内容</div>
                   <ul className="mt-2 list-disc space-y-1 pl-5 text-xs text-amber-700">
                     {sessionWarnings.map((warning, index) => (
@@ -2816,7 +2816,7 @@ function TaskDetailPanel({
 
         {activeTab === 'evolution' ? (
           <section className="space-y-4">
-            <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+ <section className="rounded-2xl border border-slate-200 bg-slate-50 p-5">
               <div className="flex flex-wrap items-start justify-between gap-4">
                 <div>
                   <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">Manual Evolution</div>
@@ -2829,7 +2829,7 @@ function TaskDetailPanel({
                   type="button"
                   onClick={handleCreateEvolutionClick}
                   disabled={!canCreateEvolution}
-                  className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-900 px-4 py-2 text-sm font-bold text-white shadow-sm hover:bg-slate-800 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-200 disabled:text-slate-500"
+ className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-900 px-4 py-2 text-sm font-bold text-white hover:bg-slate-800 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-200 disabled:text-slate-500"
                 >
                   {evolutionSubmitting ? <Loader2 size={14} className="animate-spin" /> : <Sparkles size={14} />}
                   进化
@@ -2847,7 +2847,7 @@ function TaskDetailPanel({
             </section>
 
             <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-              <div className="rounded-2xl border border-slate-200 bg-white px-4 py-4 shadow-sm">
+ <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4">
                 <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">最近一次状态</div>
                 <div className="mt-3">
                   <span className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-bold ${evolutionStatusTone(activeEvolutionJob?.status)}`}>
@@ -2855,14 +2855,14 @@ function TaskDetailPanel({
                   </span>
                 </div>
               </div>
-              <div className="rounded-2xl border border-slate-200 bg-white px-4 py-4 shadow-sm">
+ <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4">
                 <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">轮次 / 阶段</div>
                 <div className="mt-3 text-sm font-bold text-slate-800">
-                  {activeEvolutionJob ? `${activeEvolutionJob.current_round ?? 0}/${activeEvolutionJob.max_rounds}` : '-'}
+                  {activeEvolutionJob ?`${activeEvolutionJob.current_round ?? 0}/${activeEvolutionJob.max_rounds}` : '-'}
                 </div>
                 <div className="mt-1 text-xs text-slate-500">{evolutionStageLabel(activeEvolutionJob?.current_stage)}</div>
               </div>
-              <div className="rounded-2xl border border-slate-200 bg-white px-4 py-4 shadow-sm">
+ <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4">
                 <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">最终工具脚本</div>
                 <div className="mt-3 break-all font-mono text-xs text-slate-700">
                   {activeEvolutionJob?.final_tool_path || activeEvolutionJob?.final_skill_path || task.latest_evolution_final_skill_path || '-'}
@@ -2871,7 +2871,7 @@ function TaskDetailPanel({
             </section>
 
             <section className="grid gap-4 xl:grid-cols-[320px_minmax(0,1fr)]">
-              <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+ <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
                 <div className="flex items-center justify-between gap-3">
                   <div className="text-sm font-black text-slate-900">历史任务列表</div>
                   {evolutionJobsLoading ? <Loader2 size={14} className="animate-spin text-slate-400" /> : null}
@@ -2895,13 +2895,13 @@ function TaskDetailPanel({
                           className={`w-full rounded-2xl border px-4 py-3 text-left transition ${
                             selected
                               ? 'border-slate-900 bg-slate-900 text-white'
-                              : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50'
+                              : 'border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100'
                           }`}
                         >
                           <div className="flex items-center justify-between gap-3">
                             <div className="font-mono text-xs">{job.id}</div>
                             <span className={`rounded-full border px-2 py-0.5 text-[10px] font-bold ${
-                              selected ? 'border-white/20 bg-white/10 text-white' : evolutionStatusTone(job.status)
+ selected ? 'border-slate-200 bg-slate-100 text-white' : evolutionStatusTone(job.status)
                             }`}>
                               {formatEvolutionStatus(job.status)}
                             </span>
@@ -2920,7 +2920,7 @@ function TaskDetailPanel({
               </div>
 
               <div className="space-y-4">
-                <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+ <section className="rounded-2xl border border-slate-200 bg-slate-50 p-5">
                   <div className="flex flex-wrap items-center justify-between gap-3">
                     <div>
                       <div className="text-sm font-black text-slate-900">最近一次进化状态</div>
@@ -2933,7 +2933,7 @@ function TaskDetailPanel({
                   ) : null}
                   <div className="mt-4 grid gap-3 md:grid-cols-2">
                     <RoundDetailField label="状态" value={formatEvolutionStatus(activeEvolutionJob?.status)} />
-                    <RoundDetailField label="轮次" value={activeEvolutionJob ? `${activeEvolutionJob.current_round ?? 0}/${activeEvolutionJob.max_rounds}` : '-'} />
+                    <RoundDetailField label="轮次" value={activeEvolutionJob ?`${activeEvolutionJob.current_round ?? 0}/${activeEvolutionJob.max_rounds}` : '-'} />
                     <RoundDetailField label="当前阶段" value={evolutionStageLabel(activeEvolutionJob?.current_stage)} />
                     <RoundDetailField label="评审是否通过" value={activeEvolutionJob?.review_passed ? '通过' : '未通过'} />
                     <RoundDetailField label="开始时间" value={fmtTime(activeEvolutionJob?.started_at || null)} />
@@ -2957,7 +2957,7 @@ function TaskDetailPanel({
                           type="button"
                           onClick={handleConfirmEvolutionReplacementClick}
                           disabled={!canConfirmEvolutionReplacement}
-                          className="inline-flex items-center gap-2 rounded-xl border border-amber-300 bg-amber-500 px-4 py-2 text-sm font-bold text-white shadow-sm hover:bg-amber-600 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-200 disabled:text-slate-500"
+ className="inline-flex items-center gap-2 rounded-xl border border-amber-300 bg-amber-500 px-4 py-2 text-sm font-bold text-white hover:bg-amber-600 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-200 disabled:text-slate-500"
                         >
                           {evolutionReplacing ? <Loader2 size={14} className="animate-spin" /> : <Sparkles size={14} />}
                           确认替换原工具
@@ -2972,7 +2972,7 @@ function TaskDetailPanel({
                   </div>
                 </section>
 
-                <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+ <section className="rounded-2xl border border-slate-200 bg-slate-50 p-5">
                   <div className="text-sm font-black text-slate-900">轮次时间线</div>
                   {!activeEvolutionJob ? (
                     <div className="mt-3 rounded-xl border border-dashed border-slate-200 bg-slate-50 px-3 py-6 text-center text-sm text-slate-500">
@@ -3007,7 +3007,7 @@ function TaskDetailPanel({
                             <button
                               type="button"
                               onClick={() => handleOpenEvolutionLog(activeEvolutionJob.id, round.round, 'tool_executor')}
-                              className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50"
+                              className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-bold text-slate-700 hover:bg-slate-100"
                             >
                               <Terminal size={12} />
                               工具执行器日志
@@ -3015,7 +3015,7 @@ function TaskDetailPanel({
                             <button
                               type="button"
                               onClick={() => handleOpenEvolutionLog(activeEvolutionJob.id, round.round, 'reviewer')}
-                              className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50"
+                              className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-bold text-slate-700 hover:bg-slate-100"
                             >
                               <Terminal size={12} />
                               评审器日志
@@ -3023,7 +3023,7 @@ function TaskDetailPanel({
                             <button
                               type="button"
                               onClick={() => handleOpenEvolutionLog(activeEvolutionJob.id, round.round, 'evolver')}
-                              className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50"
+                              className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-bold text-slate-700 hover:bg-slate-100"
                             >
                               <Terminal size={12} />
                               工具进化器日志
@@ -3035,7 +3035,7 @@ function TaskDetailPanel({
                   )}
                 </section>
 
-                <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+ <section className="rounded-2xl border border-slate-200 bg-slate-50 p-5">
                   <div className="flex flex-wrap items-center justify-between gap-3">
                     <div>
                       <div className="text-sm font-black text-slate-900">进化效果</div>
@@ -3061,7 +3061,7 @@ function TaskDetailPanel({
                             <th className="px-3 py-3">是否换工具</th>
                           </tr>
                         </thead>
-                        <tbody className="divide-y divide-slate-100 bg-white">
+                        <tbody className="divide-y divide-slate-100 bg-slate-50">
                           {activeEvolutionRounds.map((round) => {
                             const unpackSeconds = round.tool_unpack_duration_seconds ?? round.metrics?.tool_unpack_duration_seconds ?? null;
                             return (
@@ -3083,7 +3083,7 @@ function TaskDetailPanel({
                   )}
                 </section>
 
-                <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+ <section className="rounded-2xl border border-slate-200 bg-slate-50 p-5">
                   <div className="text-sm font-black text-slate-900">进化会话索引</div>
                   <div className="mt-1 text-xs text-slate-500">当前展示所选进化任务的 session 索引，便于定位工具执行器、评审器和工具进化器对话文件。</div>
                   <div className="mt-3 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
@@ -3097,7 +3097,7 @@ function TaskDetailPanel({
                   ) : (
                     <div className="mt-3 grid gap-3 md:grid-cols-2">
                       {evolutionSessionItems.map((item) => (
-                        <div key={`${item.session_file}-${item.role}-${item.name}`} className="rounded-xl border border-slate-200 bg-white px-3 py-3">
+                        <div key={`${item.session_file}-${item.role}-${item.name}`} className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-3">
                           <div className="flex items-center justify-between gap-3">
                             <div className="text-xs font-black text-slate-900">{item.role}/{item.name}</div>
                             <span className={`inline-flex shrink-0 whitespace-nowrap rounded-full border px-2 py-0.5 text-[10px] font-bold ${item.status === 'running' ? 'border-blue-200 bg-blue-50 text-blue-700' : 'border-slate-200 bg-slate-50 text-slate-600'}`}>
@@ -3125,57 +3125,57 @@ function TaskDetailPanel({
                 type="button"
                 onClick={() => onRefreshResultCache(task.id)}
                 disabled={resultRefreshingTaskId === task.id}
-                className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-bold text-slate-700 shadow-sm hover:bg-slate-50 disabled:opacity-60"
+ className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-4 py-2 text-sm font-bold text-slate-700 hover:bg-slate-100 disabled:opacity-60"
               >
                 {resultRefreshingTaskId === task.id ? <Loader2 size={14} className="animate-spin" /> : <RefreshCw size={14} />}
                 刷新结果缓存
               </button>
             </div>
             <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-              <div className="rounded-2xl border border-slate-200 bg-white px-4 py-4 shadow-sm">
+ <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4">
                 <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">输出文件数</div>
                 <div className="mt-2 text-2xl font-black text-slate-900">{result?.summary.output_file_count ?? 0}</div>
               </div>
-              <div className="rounded-2xl border border-slate-200 bg-white px-4 py-4 shadow-sm">
+ <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4">
                 <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">输出目录数</div>
                 <div className="mt-2 text-2xl font-black text-slate-900">{result?.summary.output_dir_count ?? 0}</div>
               </div>
-              <div className="rounded-2xl border border-slate-200 bg-white px-4 py-4 shadow-sm">
+ <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4">
                 <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">输出大小</div>
                 <div className="mt-2 text-2xl font-black text-slate-900">{formatBytes(result?.summary.output_total_size_bytes ?? 0)}</div>
               </div>
-              <div className="rounded-2xl border border-slate-200 bg-white px-4 py-4 shadow-sm">
+ <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4">
                 <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">顶层条目数</div>
                 <div className="mt-2 text-2xl font-black text-slate-900">{result?.summary.top_level_entry_count ?? 0}</div>
               </div>
-              <div className="rounded-2xl border border-slate-200 bg-white px-4 py-4 shadow-sm">
+ <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4">
                 <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">最大文件大小</div>
                 <div className="mt-2 text-2xl font-black text-slate-900">{formatBytes(result?.summary.largest_file_size_bytes ?? 0)}</div>
               </div>
-              <div className="rounded-2xl border border-slate-200 bg-white px-4 py-4 shadow-sm">
+ <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4">
                 <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">平均文件大小</div>
                 <div className="mt-2 text-2xl font-black text-slate-900">{formatBytes(result?.summary.avg_file_size_bytes ?? 0)}</div>
               </div>
             </div>
 
             {resultLoading ? (
-              <section className="rounded-2xl border border-slate-200 bg-white p-10 shadow-sm">
+ <section className="rounded-2xl border border-slate-200 bg-slate-50 p-10">
                 <div className="flex items-center justify-center gap-2 text-sm text-slate-500">
                   <Loader2 size={16} className="animate-spin" />
                   加载结果中...
                 </div>
               </section>
             ) : resultError ? (
-              <section className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-4 text-sm text-rose-700 shadow-sm">
+ <section className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-4 text-sm text-rose-700">
                 {resultError}
               </section>
             ) : !result?.available ? (
-              <section className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-6 py-10 text-center text-sm text-slate-500 shadow-sm">
+ <section className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-6 py-10 text-center text-sm text-slate-500">
                 {result?.warnings?.[0] || '任务完成后可查看结果'}
               </section>
             ) : (
               <>
-                <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+ <section className="rounded-2xl border border-slate-200 bg-slate-50 p-5">
                   <div className="flex items-center justify-between gap-3">
                     <div>
                       <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">输出结构</div>
@@ -3224,7 +3224,7 @@ function TaskDetailPanel({
 
                 <section className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_380px]">
                   <div className="space-y-4">
-                    <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+ <div className="rounded-2xl border border-slate-200 bg-slate-50 p-5">
                       <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">文件画像</div>
                       <div className="mt-4 grid gap-3 md:grid-cols-3">
                         <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
@@ -3261,7 +3261,7 @@ function TaskDetailPanel({
                       </div>
                     </div>
 
-                    <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+ <div className="rounded-2xl border border-slate-200 bg-slate-50 p-5">
                       <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">文本结果</div>
                       <div className="mt-4">
                         <div className="space-y-4">
@@ -3291,7 +3291,7 @@ function TaskDetailPanel({
                                       selected
                                         ? 'border-slate-900 bg-slate-900 text-white'
                                         : doc.available
-                                          ? 'border-slate-200 bg-white text-slate-700 hover:bg-slate-100'
+                                          ? 'border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100'
                                           : 'border-slate-200 bg-slate-100 text-slate-400'
                                     }`}
                                   >
@@ -3305,15 +3305,15 @@ function TaskDetailPanel({
                             </div>
 
                             {!resultDocumentState.hasSummary && !resultDocumentState.hasReason ? (
-                              <div className="mt-4 rounded-xl border border-dashed border-slate-300 bg-white px-4 py-8 text-center text-sm text-slate-500">
+                              <div className="mt-4 rounded-xl border border-dashed border-slate-300 bg-slate-50 px-4 py-8 text-center text-sm text-slate-500">
                                 暂无结果文档
                               </div>
                             ) : !resultDocumentState.selectedText ? (
-                              <div className="mt-4 rounded-xl border border-dashed border-slate-300 bg-white px-4 py-8 text-center text-sm text-slate-500">
+                              <div className="mt-4 rounded-xl border border-dashed border-slate-300 bg-slate-50 px-4 py-8 text-center text-sm text-slate-500">
                                 {resultDocumentState.selectedDoc === 'summary' ? '当前文档未生成' : '当前文档未生成'}
                               </div>
                             ) : (
-                              <div className="mt-4 rounded-[1.75rem] border border-slate-200 bg-white p-6 shadow-sm">
+ <div className="mt-4 rounded-[1.75rem] border border-slate-200 bg-slate-50 p-6">
                                 <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">
                                   {resultDocumentState.selectedDoc === 'summary' ? '报告总结' : '改进总结'}
                                 </div>
@@ -3322,7 +3322,7 @@ function TaskDetailPanel({
                                 </div>
                                 <div className="mt-5 rounded-[1.5rem] border border-slate-200 bg-slate-50 px-6 py-5">
                                   <div className="mb-4 flex items-center justify-between gap-3 border-b border-slate-200 pb-3">
-                                    <div className="rounded-full border border-slate-200 bg-white px-3 py-1 text-[11px] font-bold text-slate-500">
+                                    <div className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-[11px] font-bold text-slate-500">
                                       {resultDocumentState.selectedDoc === 'summary' ? 'summary.md' : 'reason.md'}
                                     </div>
                                   </div>
@@ -3343,12 +3343,11 @@ function TaskDetailPanel({
                                       prose-hr:border-slate-200
                                       prose-code:rounded prose-code:bg-slate-100 prose-code:px-1.5 prose-code:py-0.5 prose-code:text-[13px] prose-code:font-semibold prose-code:text-rose-700
                                       prose-pre:overflow-x-auto prose-pre:rounded-[1.25rem] prose-pre:border prose-pre:border-slate-200 prose-pre:bg-slate-50 prose-pre:px-4 prose-pre:py-4 prose-pre:text-[13px] prose-pre:leading-6 prose-pre:text-slate-900
-                                      prose-pre:shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]
+                                      prose-pre:
                                       prose-table:block prose-table:w-full prose-table:overflow-x-auto
                                       prose-thead:border-b prose-thead:border-slate-200
                                       prose-th:bg-slate-100 prose-th:px-3 prose-th:py-2 prose-th:text-left prose-th:text-[12px] prose-th:font-black prose-th:uppercase prose-th:tracking-wide prose-th:text-slate-600
-                                      prose-td:px-3 prose-td:py-2 prose-td:border-b prose-td:border-slate-100 prose-td:text-slate-700
-                                    "
+                                      prose-td:px-3 prose-td:py-2 prose-td:border-b prose-td:border-slate-100 prose-td:text-slate-700"
                                   >
                                   <ReactMarkdown remarkPlugins={[remarkGfm]}>{resultDocumentState.selectedText}</ReactMarkdown>
                                   </div>
@@ -3362,14 +3361,14 @@ function TaskDetailPanel({
                   </div>
 
                   <aside className="space-y-4">
-                    <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+ <div className="rounded-2xl border border-slate-200 bg-slate-50 p-5">
                       <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">运行统计</div>
                       <div className="mt-4 space-y-2 text-xs text-slate-600">
                         <div className="flex items-center justify-between gap-3"><span>状态</span><span className="font-bold text-slate-800">{result.status}</span></div>
                         <div className="flex items-center justify-between gap-3"><span>会话数</span><span className="font-bold text-slate-800">{result.summary.session_count}</span></div>
                         <div className="flex items-center justify-between gap-3"><span>事件数</span><span className="font-bold text-slate-800">{result.summary.event_count}</span></div>
                         <div className="flex items-center justify-between gap-3"><span>执行轮次</span><span className="font-bold text-slate-800">{result.summary.executor_rounds}</span></div>
-                        <div className="flex items-center justify-between gap-3"><span>耗时</span><span className="font-bold text-slate-800">{result.summary.duration_seconds == null ? '-' : `${result.summary.duration_seconds}s`}</span></div>
+                        <div className="flex items-center justify-between gap-3"><span>耗时</span><span className="font-bold text-slate-800">{result.summary.duration_seconds == null ? '-' :`${result.summary.duration_seconds}s`}</span></div>
                         <div className="flex items-center justify-between gap-3"><span>输入 Token</span><span className="font-bold text-slate-800">{result.summary.input_tokens.toLocaleString()} tokens</span></div>
                         <div className="flex items-center justify-between gap-3"><span>输出 Token</span><span className="font-bold text-slate-800">{result.summary.output_tokens.toLocaleString()} tokens</span></div>
                         <div className="flex items-center justify-between gap-3"><span>命中工具</span><span className="max-w-[180px] truncate font-bold text-slate-800">{result.summary.matched_skill || '-'}</span></div>
@@ -3378,7 +3377,7 @@ function TaskDetailPanel({
                     </div>
 
                     {result.warnings.length > 0 ? (
-                      <div className="rounded-2xl border border-amber-200 bg-amber-50 p-5 shadow-sm">
+ <div className="rounded-2xl border border-amber-200 bg-amber-50 p-5">
                         <div className="text-[11px] font-black uppercase tracking-[0.18em] text-amber-700">警告</div>
                         <ul className="mt-3 list-disc space-y-1 pl-5 text-xs text-amber-800">
                           {result.warnings.map((warning, index) => (
@@ -3397,7 +3396,7 @@ function TaskDetailPanel({
 
       {logModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/65 p-6 backdrop-blur-sm">
-          <div className="flex max-h-[85vh] w-full max-w-5xl flex-col overflow-hidden rounded-[2rem] border border-slate-200 bg-white shadow-2xl">
+ <div className="flex max-h-[85vh] w-full max-w-5xl flex-col overflow-hidden rounded-[2rem] border border-slate-200 bg-slate-50">
             <div className="flex items-start justify-between gap-4 border-b border-slate-100 px-6 py-5">
               <div>
                 <p className="text-[10px] font-black uppercase tracking-[0.28em] text-blue-600">Stage Log</p>
@@ -3444,7 +3443,7 @@ function TaskDetailPanel({
 
       {evolutionLogModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/65 p-6 backdrop-blur-sm">
-          <div className="flex max-h-[85vh] w-full max-w-5xl flex-col overflow-hidden rounded-[2rem] border border-slate-200 bg-white shadow-2xl">
+ <div className="flex max-h-[85vh] w-full max-w-5xl flex-col overflow-hidden rounded-[2rem] border border-slate-200 bg-slate-50">
             <div className="flex items-start justify-between gap-4 border-b border-slate-100 px-6 py-5">
               <div>
                 <p className="text-[10px] font-black uppercase tracking-[0.28em] text-blue-600">Evolution Log</p>
@@ -3888,7 +3887,7 @@ export const FirmwareUnpackerPage: React.FC<Props> = ({ projectId, projects = []
     }
     const confirmed = await showConfirm({
       title: '批量删除任务',
-      message: `确认删除 ${deletableIds.length} 条记录${runningCount > 0 ? `，并跳过 ${runningCount} 条运行中任务` : ''}？`,
+      message:`确认删除 ${deletableIds.length} 条记录${runningCount > 0 ?`，并跳过 ${runningCount} 条运行中任务` : ''}？`,
       confirmText: '确认删除',
       cancelText: '取消',
       danger: true,
@@ -3963,7 +3962,7 @@ export const FirmwareUnpackerPage: React.FC<Props> = ({ projectId, projects = []
 
       {createModalOpen && (
         <div className="fixed inset-0 z-40 flex items-center justify-center bg-slate-950/65 p-6 backdrop-blur-sm">
-          <div className="w-full max-w-2xl rounded-[2rem] border border-slate-200 bg-white shadow-2xl">
+ <div className="w-full max-w-2xl rounded-[2rem] border border-slate-200 bg-slate-50">
             <div className="flex items-start justify-between gap-4 border-b border-slate-100 px-6 py-5">
               <div>
                 <p className="text-[10px] font-black uppercase tracking-[0.28em] text-blue-600">Firmware Unpacker</p>
@@ -4013,7 +4012,7 @@ export const FirmwareUnpackerPage: React.FC<Props> = ({ projectId, projects = []
                       }
                       setPickerOpen(true);
                     }}
-                    className="inline-flex shrink-0 items-center gap-1.5 rounded-2xl border border-slate-200 px-4 py-3 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
+                    className="inline-flex shrink-0 items-center gap-1.5 rounded-2xl border border-slate-200 px-4 py-3 text-sm font-semibold text-slate-700 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-40"
                   >
                     <FolderOpen size={14} /> 选择文件
                   </button>
@@ -4024,8 +4023,8 @@ export const FirmwareUnpackerPage: React.FC<Props> = ({ projectId, projects = []
               <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4">
                 <p className="text-sm font-semibold text-slate-700">任务工作目录</p>
                 <p className="mt-2 text-xs leading-6 text-slate-500">
-                  提交后会在当前项目根目录自动创建 `app/chimera-app-firmware-unpacker/&lt;task-id&gt;`，
-                  并在其中生成 `input`、`output`、`run` 三个目录。`input` 目录中只会写入一份 JSON 清单，记录原始固件路径、
+                  提交后会在当前项目根目录自动创建`app/chimera-app-firmware-unpacker/&lt;task-id&gt;`，
+                  并在其中生成`input`、`output`、`run` 三个目录。`input` 目录中只会写入一份 JSON 清单，记录原始固件路径、
                   输出目录和运行日志目录，解包时直接使用原始固件文件。
                 </p>
                 <p className="mt-2 text-xs leading-6 text-slate-500">
@@ -4054,14 +4053,14 @@ export const FirmwareUnpackerPage: React.FC<Props> = ({ projectId, projects = []
                     setCreateModalOpen(false);
                     setPickerOpen(false);
                   }}
-                  className="rounded-2xl border border-slate-200 px-5 py-3 text-sm font-semibold text-slate-600 hover:bg-slate-50"
+                  className="rounded-2xl border border-slate-200 px-5 py-3 text-sm font-semibold text-slate-600 hover:bg-slate-100"
                 >
                   取消
                 </button>
                 <button
                   type="submit"
                   disabled={submitting || !projectId || !firmwarePath.trim()}
-                  className="inline-flex items-center gap-1.5 rounded-2xl bg-blue-600 px-5 py-3 text-sm font-bold text-white shadow-sm hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-slate-300"
+ className="inline-flex items-center gap-1.5 rounded-2xl bg-blue-600 px-5 py-3 text-sm font-bold text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-slate-300"
                 >
                   {submitting ? <><Loader2 size={14} className="animate-spin" />提交中...</> : <><Play size={14} />提交任务</>}
                 </button>
@@ -4135,7 +4134,7 @@ export const FirmwareUnpackerPage: React.FC<Props> = ({ projectId, projects = []
         />
       ) : (
       <div className="space-y-4">
-        <div className="rounded-2xl border border-slate-200 bg-white p-3 shadow-sm">
+ <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3">
           <div className="grid grid-cols-4 gap-1 text-center">
             {[
               ['总计', total, 'text-slate-700'],
@@ -4151,7 +4150,7 @@ export const FirmwareUnpackerPage: React.FC<Props> = ({ projectId, projects = []
           </div>
         </div>
 
-        <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+ <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
           <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
             <div className="min-w-0">
               <div className="flex items-center gap-2">
@@ -4160,13 +4159,13 @@ export const FirmwareUnpackerPage: React.FC<Props> = ({ projectId, projects = []
                 <span className="text-sm font-normal text-slate-400">({total})</span>
               </div>
               <p className="mt-1 text-xs text-slate-500">
-                {activeProject?.name ? `当前项目：${activeProject.name}` : projectId ? `当前项目 ID：${projectId}` : '当前未选择项目'}
+                {activeProject?.name ?`当前项目：${activeProject.name}` : projectId ?`当前项目 ID：${projectId}` : '当前未选择项目'}
               </p>
             </div>
             <div className="flex items-center gap-2">
               <button
                 onClick={() => fetchTasks(true)}
-                className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50"
+                className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-100"
               >
                 <RefreshCw size={12} /> 刷新列表
               </button>
@@ -4188,7 +4187,7 @@ export const FirmwareUnpackerPage: React.FC<Props> = ({ projectId, projects = []
                 setFilterStatus(nextStatus);
                 fetchTasks(true, { statusOverride: nextStatus });
               }}
-              className="rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-xs text-slate-700 outline-none"
+              className="rounded-lg border border-slate-200 bg-slate-50 px-2 py-1.5 text-xs text-slate-700 outline-none"
             >
               {STATUS_OPTIONS.map((option) => (
                 <option key={option.value} value={option.value}>{option.label}</option>
@@ -4202,7 +4201,7 @@ export const FirmwareUnpackerPage: React.FC<Props> = ({ projectId, projects = []
                 setFilterOriginMode(nextOriginMode);
                 fetchTasks(true, { originModeOverride: nextOriginMode });
               }}
-              className="rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-xs text-slate-700 outline-none"
+              className="rounded-lg border border-slate-200 bg-slate-50 px-2 py-1.5 text-xs text-slate-700 outline-none"
             >
               {ORIGIN_MODE_OPTIONS.map((option) => (
                 <option key={option.value} value={option.value}>{option.label}</option>
@@ -4216,7 +4215,7 @@ export const FirmwareUnpackerPage: React.FC<Props> = ({ projectId, projects = []
                 onChange={(e) => setFilterSearch(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && fetchTasks(true, { searchOverride: filterSearch })}
                 placeholder="搜索固件路径..."
-                className="w-44 rounded-lg border border-slate-200 bg-white py-1.5 pl-7 pr-8 text-xs text-slate-700 outline-none focus:border-blue-300"
+                className="w-44 rounded-lg border border-slate-200 bg-slate-50 py-1.5 pl-7 pr-8 text-xs text-slate-700 outline-none focus:border-blue-300"
               />
               {filterSearch && (
                 <button
@@ -4236,7 +4235,7 @@ export const FirmwareUnpackerPage: React.FC<Props> = ({ projectId, projects = []
               onChange={(e) => setFilterWorker(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && fetchTasks(true, { workerOverride: filterWorker })}
               placeholder="Worker ID 过滤..."
-              className="w-36 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs text-slate-700 outline-none focus:border-blue-300"
+              className="w-36 rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1.5 text-xs text-slate-700 outline-none focus:border-blue-300"
             />
 
             <button
@@ -4337,7 +4336,7 @@ export const FirmwareUnpackerPage: React.FC<Props> = ({ projectId, projects = []
                     setPageSize(nextSize);
                     fetchTasks(true, { pageSizeOverride: nextSize });
                   }}
-                  className="rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-xs text-slate-700 outline-none"
+                  className="rounded-lg border border-slate-200 bg-slate-50 px-2 py-1.5 text-xs text-slate-700 outline-none"
                 >
                   {PAGE_SIZE_OPTIONS.map((size) => (
                     <option key={size} value={size}>{size}</option>
@@ -4348,14 +4347,14 @@ export const FirmwareUnpackerPage: React.FC<Props> = ({ projectId, projects = []
               <button
                 disabled={page === 0}
                 onClick={() => setPage(0)}
-                className="rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs font-semibold text-slate-600 disabled:opacity-40 hover:bg-slate-50"
+                className="rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs font-semibold text-slate-600 disabled:opacity-40 hover:bg-slate-100"
               >
                 首页
               </button>
               <button
                 disabled={page === 0}
                 onClick={() => setPage((current) => Math.max(0, current - 1))}
-                className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-600 disabled:opacity-40 hover:bg-slate-50"
+                className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-600 disabled:opacity-40 hover:bg-slate-100"
               >
                 上一页
               </button>
@@ -4363,14 +4362,14 @@ export const FirmwareUnpackerPage: React.FC<Props> = ({ projectId, projects = []
               <button
                 disabled={page >= totalPages - 1}
                 onClick={() => setPage((current) => Math.min(totalPages - 1, current + 1))}
-                className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-600 disabled:opacity-40 hover:bg-slate-50"
+                className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-600 disabled:opacity-40 hover:bg-slate-100"
               >
                 下一页
               </button>
               <button
                 disabled={page >= totalPages - 1}
                 onClick={() => setPage(totalPages - 1)}
-                className="rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs font-semibold text-slate-600 disabled:opacity-40 hover:bg-slate-50"
+                className="rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs font-semibold text-slate-600 disabled:opacity-40 hover:bg-slate-100"
               >
                 末页
               </button>

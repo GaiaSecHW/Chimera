@@ -67,7 +67,7 @@ export const ReviewJudgmentDetailPage: React.FC<ReviewJudgmentDetailPageProps> =
     >
       <div
         className="shrink-0 px-6 py-4 flex items-center gap-4"
-        style={{ borderBottom: `1px solid ${LK.borderSoft}` }}
+        style={{ borderBottom:`1px solid ${LK.borderSoft}` }}
       >
         <button
           onClick={handleBack}
@@ -181,7 +181,7 @@ export const ReviewJudgmentDetailPage: React.FC<ReviewJudgmentDetailPageProps> =
                           onClick={() => setConclusion(opt.value)}
                           className="flex items-center gap-2 px-4 py-2.5 text-sm font-semibold border rounded-lg transition-colors"
                           style={{
-                            backgroundColor: isActive ? `${opt.color}22` : 'transparent',
+                            backgroundColor: isActive ?`${opt.color}22` : 'transparent',
                             borderColor: isActive ? opt.color : LK.border,
                             color: isActive ? opt.color : LK.body,
                           }}
@@ -225,7 +225,7 @@ export const ReviewJudgmentDetailPage: React.FC<ReviewJudgmentDetailPageProps> =
                           onClick={() => setSeverity(item.level)}
                           className="px-3 py-2 text-sm font-semibold border rounded-lg transition-colors"
                           style={{
-                            backgroundColor: isActive ? `${item.color}22` : 'transparent',
+                            backgroundColor: isActive ?`${item.color}22` : 'transparent',
                             borderColor: isActive ? item.color : LK.border,
                             color: isActive ? item.color : LK.body,
                           }}

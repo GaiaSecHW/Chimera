@@ -48,11 +48,9 @@ interface OnlineDocsState {
   pathCount: number | null;
 }
 
-const buildK8sRootUrl = (capability: AtomicCapabilityDescriptor): string =>
-  `http://${capability.k8sServiceHost}:${capability.port}`;
+const buildK8sRootUrl = (capability: AtomicCapabilityDescriptor): string =>`http://${capability.k8sServiceHost}:${capability.port}`;
 
-const buildK8sApiBase = (capability: AtomicCapabilityDescriptor): string =>
-  `${buildK8sRootUrl(capability)}${capability.apiPrefix}`;
+const buildK8sApiBase = (capability: AtomicCapabilityDescriptor): string =>`${buildK8sRootUrl(capability)}${capability.apiPrefix}`;
 
 const buildAbsolutePlatformUrl = (path: string): string => {
   if (typeof window === 'undefined') return path;
@@ -424,7 +422,7 @@ export const AtomicCapabilityOverviewPage: React.FC<AtomicCapabilityOverviewPage
 
             <div className="flex-1 overflow-y-auto px-6 py-6 md:px-8">
               <div className="grid gap-5 xl:grid-cols-[1.15fr_0.85fr]">
-                <section className="rounded-[1.8rem] border border-slate-200 bg-white/90 p-5 shadow-sm">
+ <section className="rounded-[1.8rem] border border-slate-200 bg-slate-50 p-5">
                   <div className="flex items-center gap-3">
                     <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-cyan-100 text-cyan-700">
                       <ShieldCheck size={20} />
@@ -457,7 +455,7 @@ export const AtomicCapabilityOverviewPage: React.FC<AtomicCapabilityOverviewPage
                   </div>
                 </section>
 
-                <section className="rounded-[1.8rem] border border-slate-200 bg-white/90 p-5 shadow-sm">
+ <section className="rounded-[1.8rem] border border-slate-200 bg-slate-50 p-5">
                   <div className="flex items-center gap-3">
                     <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-emerald-100 text-emerald-700">
                       <Network size={20} />
@@ -488,7 +486,7 @@ export const AtomicCapabilityOverviewPage: React.FC<AtomicCapabilityOverviewPage
                 </section>
               </div>
 
-              <section className="mt-5 rounded-[1.8rem] border border-slate-200 bg-white/90 p-5 shadow-sm">
+ <section className="mt-5 rounded-[1.8rem] border border-slate-200 bg-slate-50 p-5">
                 <div className="flex flex-wrap items-center justify-between gap-4">
                   <div className="flex items-center gap-3">
                     <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-violet-100 text-violet-700">
@@ -521,15 +519,15 @@ export const AtomicCapabilityOverviewPage: React.FC<AtomicCapabilityOverviewPage
                     <div className="text-[11px] font-black uppercase tracking-[0.2em] text-slate-500">探测结果</div>
                     <p className="mt-2 text-sm leading-7 text-slate-600">{onlineDocsState.statusMessage}</p>
                     <div className="mt-4 grid gap-3 md:grid-cols-3">
-                      <div className="rounded-xl border border-white bg-white px-3 py-3">
+ <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-3">
                         <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-500">OpenAPI 标题</div>
                         <div className="mt-2 text-sm font-semibold text-slate-800">{onlineDocsState.title || '未探测到'}</div>
                       </div>
-                      <div className="rounded-xl border border-white bg-white px-3 py-3">
+ <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-3">
                         <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-500">版本</div>
                         <div className="mt-2 text-sm font-semibold text-slate-800">{onlineDocsState.version || '未探测到'}</div>
                       </div>
-                      <div className="rounded-xl border border-white bg-white px-3 py-3">
+ <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-3">
                         <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-500">接口路径数</div>
                         <div className="mt-2 text-sm font-semibold text-slate-800">{onlineDocsState.pathCount ?? '未探测到'}</div>
                       </div>
@@ -539,11 +537,11 @@ export const AtomicCapabilityOverviewPage: React.FC<AtomicCapabilityOverviewPage
                   <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
                     <div className="text-[11px] font-black uppercase tracking-[0.2em] text-slate-500">文档入口</div>
                     <div className="mt-3 space-y-3">
-                      <div className="rounded-xl border border-white bg-white px-3 py-3">
+ <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-3">
                         <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-500">K8S Swagger UI</div>
                         <code className="mt-2 block break-all font-mono text-sm text-slate-800">{`${buildK8sRootUrl(selectedCapability)}${selectedCapability.docsPath}`}</code>
                       </div>
-                      <div className="rounded-xl border border-white bg-white px-3 py-3">
+ <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-3">
                         <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-500">K8S OpenAPI JSON</div>
                         <code className="mt-2 block break-all font-mono text-sm text-slate-800">{`${buildK8sRootUrl(selectedCapability)}${selectedCapability.openapiPath}`}</code>
                       </div>
@@ -562,7 +560,7 @@ export const AtomicCapabilityOverviewPage: React.FC<AtomicCapabilityOverviewPage
                           <button
                             type="button"
                             onClick={() => window.open(buildAbsolutePlatformUrl(onlineDocsState.openapiUrl || ''), '_blank', 'noopener,noreferrer')}
-                            className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-black text-slate-700 transition hover:bg-slate-50"
+                            className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-black text-slate-700 transition hover:bg-slate-100"
                           >
                             OpenAPI JSON
                             <ExternalLink size={15} />
@@ -572,7 +570,7 @@ export const AtomicCapabilityOverviewPage: React.FC<AtomicCapabilityOverviewPage
                           <button
                             type="button"
                             onClick={() => window.open(buildAbsolutePlatformUrl(onlineDocsState.redocUrl || ''), '_blank', 'noopener,noreferrer')}
-                            className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-black text-slate-700 transition hover:bg-slate-50"
+                            className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-black text-slate-700 transition hover:bg-slate-100"
                           >
                             Redoc
                             <ExternalLink size={15} />
@@ -590,7 +588,7 @@ export const AtomicCapabilityOverviewPage: React.FC<AtomicCapabilityOverviewPage
                     <div className="text-[11px] font-black uppercase tracking-[0.2em] text-slate-500">核心接口清单</div>
                     <h3 className="mt-1 text-xl font-black text-slate-900">按能力分组的稳定 API 说明</h3>
                   </div>
-                  <div className="rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-600">
+                  <div className="rounded-full border border-slate-200 bg-slate-50 px-4 py-2 text-sm font-semibold text-slate-600">
                     共 {selectedCapability.apiGroups.reduce((total, group) => total + group.endpoints.length, 0)} 个核心接口
                   </div>
                 </div>

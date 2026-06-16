@@ -565,7 +565,7 @@ const toneToColor = (tone: string): string => {
 
 const CHART_COLOR = '#0f766e';
 const AI_CHART_COLOR = '#7c3aed';
-const CHART_GRID = '#e2e8f0';
+const CHART_GRID = LK.border;
 const INITIAL_STATE: MetricsState = { loading: false, rawText: '', error: null, refreshedAt: null };
 const ENTRY_ANALYSIS_STAGE_FOCUS_STORAGE_KEY = 'chimera:entryAnalysisStageFocus';
 const ENTRY_ANALYSIS_RISK_FOCUS_STORAGE_KEY = 'chimera:entryAnalysisRiskFocus';
@@ -594,18 +594,18 @@ const formatMetricValue = (value: number) => {
 
 const formatSeconds = (value: number | null | undefined) => {
   if (value == null || !Number.isFinite(value)) return '-';
-  if (value >= 3600) return `${formatNumber(value / 3600, 2)}h`;
-  if (value >= 60) return `${formatNumber(value / 60, 2)}m`;
-  return `${formatNumber(value, value >= 10 ? 1 : 2)}s`;
+  if (value >= 3600) return`${formatNumber(value / 3600, 2)}h`;
+  if (value >= 60) return`${formatNumber(value / 60, 2)}m`;
+  return`${formatNumber(value, value >= 10 ? 1 : 2)}s`;
 };
 
 const formatBytes = (value: number | null | undefined) => {
   if (value == null || !Number.isFinite(value)) return '-';
   const abs = Math.abs(value);
-  if (abs >= 1024 ** 3) return `${formatNumber(value / 1024 ** 3, 2)} GiB`;
-  if (abs >= 1024 ** 2) return `${formatNumber(value / 1024 ** 2, 2)} MiB`;
-  if (abs >= 1024) return `${formatNumber(value / 1024, 2)} KiB`;
-  return `${formatNumber(value, 0)} B`;
+  if (abs >= 1024 ** 3) return`${formatNumber(value / 1024 ** 3, 2)} GiB`;
+  if (abs >= 1024 ** 2) return`${formatNumber(value / 1024 ** 2, 2)} MiB`;
+  if (abs >= 1024) return`${formatNumber(value / 1024, 2)} KiB`;
+  return`${formatNumber(value, 0)} B`;
 };
 
 const formatTime = (timestamp: number | null) =>
@@ -661,14 +661,14 @@ const parsePrometheusText = (rawText: string): ParsedMetricSample[] => {
 };
 
 const isAiMetric = (metric: ParsedMetricSample) => {
-  const fingerprint = `${metric.name} ${Object.keys(metric.labels).join(' ')} ${Object.values(metric.labels).join(' ')}`.toLowerCase();
+  const fingerprint =`${metric.name} ${Object.keys(metric.labels).join(' ')} ${Object.values(metric.labels).join(' ')}`.toLowerCase();
   if (/_ai_/u.test(metric.name)) return true;
   return /(token|cost|llm|model|prompt|judge|review|agent|session|worker|cycle|round|plugin|advisor|reflection|validator)/u.test(fingerprint);
 };
 
 const metricGroupingFingerprint = (metric: ParsedMetricSample) => {
   const serviceNeutralName = metric.name.replace(/^firmware_unpacker_/u, '').replace(/^chimera_/u, '');
-  return `${serviceNeutralName} ${Object.keys(metric.labels).join(' ')} ${Object.values(metric.labels).join(' ')}`.toLowerCase();
+  return`${serviceNeutralName} ${Object.keys(metric.labels).join(' ')} ${Object.values(metric.labels).join(' ')}`.toLowerCase();
 };
 
 const BINARY_SECURITY_GROUP_RULES: Array<{ group: BinarySecurityMetricsGroup; pattern: RegExp }> = [
@@ -711,7 +711,7 @@ const detectGroup = (metric: ParsedMetricSample, service: BinarySecurityMetricsS
 const labelTextForMetric = (labels: Record<string, string>) => {
   const entries = Object.entries(labels);
   if (!entries.length) return '-';
-  return entries.map(([key, value]) => `${key}=${value}`).join(', ');
+  return entries.map(([key, value]) =>`${key}=${value}`).join(', ');
 };
 
 const metricDisplayName = (metric: ParsedMetricSample) => metric.name.replace(/^chimera_/u, '').replace(/_/gu, ' ');
@@ -781,7 +781,7 @@ const buildServiceViewModel = (rawText: string, service: BinarySecurityMetricsSe
       { label: 'Histogram/Summary', value: histogramFamilies.size, icon: <BarChart3 size={16} /> },
     ],
     chartData: topRows.map((row) => ({
-      name: row.displayName.length > 18 ? `${row.displayName.slice(0, 18)}...` : row.displayName,
+      name: row.displayName.length > 18 ?`${row.displayName.slice(0, 18)}...` : row.displayName,
       value: row.value,
       group: row.group,
     })),
@@ -931,42 +931,42 @@ const buildBinarySecurityObservabilityViewModel = (
   if (aggregateCoverage?.partial) {
     alerts.push({
       label: '聚合不完整',
-      text: `当前仅抓取到 ${formatNumber(aggregateCoverage.successful)}/${formatNumber(aggregateCoverage.attempted)} 个实例，聚合数值可能偏低。`,
+      text:`当前仅抓取到 ${formatNumber(aggregateCoverage.successful)}/${formatNumber(aggregateCoverage.attempted)} 个实例，聚合数值可能偏低。`,
       tone: 'border-amber-200 bg-amber-50 text-amber-800',
     });
   }
   if ((pendingDepth || 0) > 0 && (oldestPendingAge || 0) > 60) {
     alerts.push({
       label: '状态事件积压',
-      text: `pending=${formatNumber(pendingDepth)}，最老事件年龄 ${formatSeconds(oldestPendingAge)}，状态收口已经明显滞后。`,
+      text:`pending=${formatNumber(pendingDepth)}，最老事件年龄 ${formatSeconds(oldestPendingAge)}，状态收口已经明显滞后。`,
       tone: 'border-rose-200 bg-rose-50 text-rose-800',
     });
   }
   if ((deadLetterDepth || 0) > 0 || deadLettersTotal > 0) {
     alerts.push({
       label: '存在死信',
-      text: `当前死信队列 ${formatNumber(deadLetterDepth)}，累计死信 ${formatNumber(deadLettersTotal)}，需要优先排查 reducer 应用失败原因。`,
+      text:`当前死信队列 ${formatNumber(deadLetterDepth)}，累计死信 ${formatNumber(deadLettersTotal)}，需要优先排查 reducer 应用失败原因。`,
       tone: 'border-rose-200 bg-rose-50 text-rose-800',
     });
   }
   if ((lockWaitAvg || 0) > 0.3 || activeLocks > 0) {
     alerts.push({
       label: '锁竞争偏高',
-      text: `锁等待均值 ${formatSeconds(lockWaitAvg)}，活动锁 ${formatNumber(activeLocks)}，可能导致父任务收口变慢。`,
+      text:`锁等待均值 ${formatSeconds(lockWaitAvg)}，活动锁 ${formatNumber(activeLocks)}，可能导致父任务收口变慢。`,
       tone: 'border-orange-200 bg-orange-50 text-orange-800',
     });
   }
   if ((archiveQueued || 0) > 0 || (archiveRunning || 0) > 0) {
     alerts.push({
       label: '归档仍在处理中',
-      text: `archive queued=${formatNumber(archiveQueued)}，running=${formatNumber(archiveRunning)}，终态收口仍可能继续延迟。`,
+      text:`archive queued=${formatNumber(archiveQueued)}，running=${formatNumber(archiveRunning)}，终态收口仍可能继续延迟。`,
       tone: 'border-sky-200 bg-sky-50 text-sky-800',
     });
   }
   if ((reconcileLastFailed || 0) > 0) {
     alerts.push({
       label: '后台状态同步失败',
-      text: `最近一轮后台状态同步失败 ${formatNumber(reconcileLastFailed)} 个任务。列表查询已不再触发同步，请检查后台循环与下游状态拉取。`,
+      text:`最近一轮后台状态同步失败 ${formatNumber(reconcileLastFailed)} 个任务。列表查询已不再触发同步，请检查后台循环与下游状态拉取。`,
       tone: 'border-rose-200 bg-rose-50 text-rose-800',
     });
   }
@@ -981,21 +981,21 @@ const buildBinarySecurityObservabilityViewModel = (
   if ((listQueryP95Seconds || 0) > 1) {
     taskListAlerts.push({
       label: '任务列表长尾延迟偏高',
-      text: `当前列表查询 P95 ${formatSeconds(listQueryP95Seconds)}，用户在任务列表页会明显感知等待。`,
+      text:`当前列表查询 P95 ${formatSeconds(listQueryP95Seconds)}，用户在任务列表页会明显感知等待。`,
       tone: 'border-rose-200 bg-rose-50 text-rose-800',
     });
   }
   if ((listQueryErrors || 0) > 0) {
     taskListAlerts.push({
       label: '任务列表查询存在错误',
-      text: `累计错误 ${formatNumber(listQueryErrors)} / 总请求 ${formatNumber(listQueryTotal)}，需要排查读路径稳定性或聚合依赖异常。`,
+      text:`累计错误 ${formatNumber(listQueryErrors)} / 总请求 ${formatNumber(listQueryTotal)}，需要排查读路径稳定性或聚合依赖异常。`,
       tone: 'border-rose-200 bg-rose-50 text-rose-800',
     });
   }
   if (slowestTaskListStage && (slowestTaskListStage.p95Seconds || 0) > 0.3) {
     taskListAlerts.push({
-      label: `最慢分段：${taskListPerfStageLabel(slowestTaskListStage.stage)}`,
-      text: `P95 ${formatSeconds(slowestTaskListStage.p95Seconds)}，均值 ${formatSeconds(slowestTaskListStage.avgSeconds)}。`,
+      label:`最慢分段：${taskListPerfStageLabel(slowestTaskListStage.stage)}`,
+      text:`P95 ${formatSeconds(slowestTaskListStage.p95Seconds)}，均值 ${formatSeconds(slowestTaskListStage.avgSeconds)}。`,
       tone: (slowestTaskListStage.p95Seconds || 0) > 1 ? 'border-rose-200 bg-rose-50 text-rose-800' : 'border-amber-200 bg-amber-50 text-amber-800',
     });
   }
@@ -1012,55 +1012,55 @@ const buildBinarySecurityObservabilityViewModel = (
       {
         label: '聚合完整性',
         value: aggregateCoverage?.partial ? '部分聚合' : '完整聚合',
-        hint: aggregateCoverage ? `${formatNumber(aggregateCoverage.successful)}/${formatNumber(aggregateCoverage.attempted)} 实例可用` : '当前无聚合覆盖元数据',
+        hint: aggregateCoverage ?`${formatNumber(aggregateCoverage.successful)}/${formatNumber(aggregateCoverage.attempted)} 实例可用` : '当前无聚合覆盖元数据',
         tone: aggregateCoverage?.partial ? 'text-amber-700' : 'text-emerald-700',
         icon: <ServerCog size={16} />,
       },
       {
         label: '待处理事件数',
         value: formatNumber(pendingDepth),
-        hint: oldestPendingAge == null ? '未采集最老事件年龄' : `最老 ${formatSeconds(oldestPendingAge)}`,
+        hint: oldestPendingAge == null ? '未采集最老事件年龄' :`最老 ${formatSeconds(oldestPendingAge)}`,
         tone: (pendingDepth || 0) > 0 ? 'text-amber-700' : 'text-emerald-700',
         icon: <Database size={16} />,
       },
       {
         label: '死信队列深度',
         value: formatNumber(deadLetterDepth),
-        hint: `累计死信 ${formatNumber(deadLettersTotal)}`,
+        hint:`累计死信 ${formatNumber(deadLettersTotal)}`,
         tone: (deadLetterDepth || 0) > 0 || deadLettersTotal > 0 ? 'text-rose-700' : 'text-emerald-700',
         icon: <ShieldAlert size={16} />,
       },
       {
         label: '锁等待均值',
         value: formatSeconds(lockWaitAvg),
-        hint: `锁持有均值 ${formatSeconds(lockHeldAvg)}`,
+        hint:`锁持有均值 ${formatSeconds(lockHeldAvg)}`,
         tone: (lockWaitAvg || 0) > 0.3 ? 'text-orange-700' : 'text-slate-900',
         icon: <TimerReset size={16} />,
       },
       {
         label: 'Reducer 平均耗时',
         value: formatSeconds(reducerAvgDuration),
-        hint: `事件平均收口延迟 ${formatSeconds(eventAvgLag)}`,
+        hint:`事件平均收口延迟 ${formatSeconds(eventAvgLag)}`,
         tone: (reducerAvgDuration || 0) > 1 ? 'text-amber-700' : 'text-slate-900',
         icon: <Activity size={16} />,
       },
       {
         label: '锁忙 / 失败',
-        value: `${formatNumber(reducerRunLockBusy)} / ${formatNumber(reducerRunFailed)}`,
+        value:`${formatNumber(reducerRunLockBusy)} / ${formatNumber(reducerRunFailed)}`,
         hint: 'reducer run 结果',
         tone: reducerRunFailed > 0 ? 'text-rose-700' : reducerRunLockBusy > 0 ? 'text-amber-700' : 'text-emerald-700',
         icon: <RefreshCw size={16} />,
       },
       {
         label: '归档处理队列',
-        value: `${formatNumber(archiveQueued)} / ${formatNumber(archiveRunning)}`,
+        value:`${formatNumber(archiveQueued)} / ${formatNumber(archiveRunning)}`,
         hint: 'queued / running',
         tone: archiveQueued > 0 || archiveRunning > 0 ? 'text-sky-700' : 'text-slate-900',
         icon: <GitBranch size={16} />,
       },
       {
         label: '活跃工作单元',
-        value: `${formatNumber(runningWorkers)} / ${formatNumber(dispatchWorkers + pendingWorkers)}`,
+        value:`${formatNumber(runningWorkers)} / ${formatNumber(dispatchWorkers + pendingWorkers)}`,
         hint: 'running / dispatch+pending',
         tone: runningWorkers > 0 ? 'text-teal-700' : 'text-slate-900',
         icon: <TrendingUp size={16} />,
@@ -1068,7 +1068,7 @@ const buildBinarySecurityObservabilityViewModel = (
       {
         label: '同步候选任务',
         value: formatNumber(reconcileCandidates),
-        hint: `最近运行 ${formatTime(reconcileLastRunAt)}`,
+        hint:`最近运行 ${formatTime(reconcileLastRunAt)}`,
         tone: (reconcileCandidates || 0) > 0 ? 'text-cyan-700' : 'text-slate-900',
         icon: <RefreshCw size={16} />,
       },
@@ -1124,7 +1124,7 @@ const buildRestApiViewModel = (rows: DisplayMetricRow[]): RestApiViewModel => {
   const routeMap = new Map<string, RestApiRouteSummary>();
 
   const ensureRoute = (route: string, method: string): RestApiRouteSummary => {
-    const key = `${method} ${route}`;
+    const key =`${method} ${route}`;
     const existing = routeMap.get(key);
     if (existing) return existing;
     const created: RestApiRouteSummary = {
@@ -1207,13 +1207,13 @@ const buildRestApiViewModel = (rows: DisplayMetricRow[]): RestApiViewModel => {
     }, null),
     slowRouteCount: resultRows.filter((item) => (item.p95Seconds || 0) >= 1 || (item.avgSeconds || 0) >= 0.5).length,
     errorRate: totalRequests > 0 ? total5xx / totalRequests : null,
-    topByCount: resultRows.slice(0, 6).sort((left, right) => right.requestCount - left.requestCount).map((item) => ({ name: `${item.method} ${item.route}`, value: item.requestCount })),
-    topByP95: resultRows.slice(0, 6).sort((left, right) => (right.p95Seconds || 0) - (left.p95Seconds || 0)).map((item) => ({ name: `${item.method} ${item.route}`, value: item.p95Seconds || 0 })),
+    topByCount: resultRows.slice(0, 6).sort((left, right) => right.requestCount - left.requestCount).map((item) => ({ name:`${item.method} ${item.route}`, value: item.requestCount })),
+    topByP95: resultRows.slice(0, 6).sort((left, right) => (right.p95Seconds || 0) - (left.p95Seconds || 0)).map((item) => ({ name:`${item.method} ${item.route}`, value: item.p95Seconds || 0 })),
     topBy5xx: resultRows
       .slice(0, 6)
       .sort((left, right) => right.status5xx - left.status5xx)
       .filter((item) => item.status5xx > 0)
-      .map((item) => ({ name: `${item.method} ${item.route}`, value: item.status5xx })),
+      .map((item) => ({ name:`${item.method} ${item.route}`, value: item.status5xx })),
   };
 };
 
@@ -1559,21 +1559,21 @@ const buildSystemAnalysisViewModel = (rows: DisplayMetricRow[]): SystemAnalysisV
   if (queuePressure) {
     riskAlerts.push({
       label: '排队堆积',
-      text: `pending=${formatNumber(pending)} 已高于 workers=${formatNumber(workers)}，当前存在明显的排队压力。`,
+      text:`pending=${formatNumber(pending)} 已高于 workers=${formatNumber(workers)}，当前存在明显的排队压力。`,
       tone: 'border-amber-200 bg-amber-50 text-amber-800',
     });
   }
   if ((timeoutRate || 0) >= 10) {
     riskAlerts.push({
       label: '超时偏高',
-      text: `timeout=${formatNumber(timeoutTotal)}，约占已结束任务的 ${formatNumber(timeoutRate, 1)}%。`,
+      text:`timeout=${formatNumber(timeoutTotal)}，约占已结束任务的 ${formatNumber(timeoutRate, 1)}%。`,
       tone: 'border-rose-200 bg-rose-50 text-rose-800',
     });
   }
   if ((finalModulePassRate || 0) > 0 && (finalModulePassRate || 0) < 0.8) {
     riskAlerts.push({
       label: '最终通过率偏低',
-      text: `final module pass rate 仅 ${formatNumber((finalModulePassRate || 0) * 100, 1)}%，需要重点观察评审闭环和重分类效果。`,
+      text:`final module pass rate 仅 ${formatNumber((finalModulePassRate || 0) * 100, 1)}%，需要重点观察评审闭环和重分类效果。`,
       tone: 'border-amber-200 bg-amber-50 text-amber-800',
     });
   }
@@ -1587,42 +1587,42 @@ const buildSystemAnalysisViewModel = (rows: DisplayMetricRow[]): SystemAnalysisV
 
   return {
     compactSummary: [
-      { label: '排队/运行', value: `${formatNumber(pending)}/${formatNumber(running)}`, tone: queuePressure ? 'text-amber-700' : 'text-slate-700' },
-      { label: '均排/均执', value: `${formatSeconds(queueWaitAvg)}/${formatSeconds(executionAvg)}`, tone: (queueWaitAvg || 0) > 300 || (executionAvg || 0) > 1800 ? 'text-amber-700' : 'text-slate-700' },
-      { label: '首过/终过', value: `${firstRoundPassRate == null ? '-' : `${formatNumber(firstRoundPassRate * 100, 1)}%`}/${finalModulePassRate == null ? '-' : `${formatNumber(finalModulePassRate * 100, 1)}%`}`, tone: (finalModulePassRate || 0) < 0.8 ? 'text-amber-700' : 'text-emerald-700' },
-      { label: '重试/超时', value: `${formatNumber(retryTotal)}/${formatNumber(timeoutTotal)}`, tone: timeoutTotal > 0 ? 'text-rose-700' : retryTotal > 0 ? 'text-amber-700' : 'text-slate-700' },
-      { label: '并发命中', value: workerUtilization == null ? '-' : `${formatNumber(workerUtilization, 1)}%`, tone: (workerUtilization || 0) < 60 && effectiveRunning > 0 ? 'text-amber-700' : 'text-indigo-700' },
-      { label: '续跑完成', value: resumedTaskCompletionRate == null ? '-' : `${formatNumber(resumedTaskCompletionRate, 1)}%`, tone: checkpointAnyTasks > 0 ? 'text-sky-700' : 'text-slate-500' },
+      { label: '排队/运行', value:`${formatNumber(pending)}/${formatNumber(running)}`, tone: queuePressure ? 'text-amber-700' : 'text-slate-700' },
+      { label: '均排/均执', value:`${formatSeconds(queueWaitAvg)}/${formatSeconds(executionAvg)}`, tone: (queueWaitAvg || 0) > 300 || (executionAvg || 0) > 1800 ? 'text-amber-700' : 'text-slate-700' },
+      { label: '首过/终过', value:`${firstRoundPassRate == null ? '-' :`${formatNumber(firstRoundPassRate * 100, 1)}%`}/${finalModulePassRate == null ? '-' :`${formatNumber(finalModulePassRate * 100, 1)}%`}`, tone: (finalModulePassRate || 0) < 0.8 ? 'text-amber-700' : 'text-emerald-700' },
+      { label: '重试/超时', value:`${formatNumber(retryTotal)}/${formatNumber(timeoutTotal)}`, tone: timeoutTotal > 0 ? 'text-rose-700' : retryTotal > 0 ? 'text-amber-700' : 'text-slate-700' },
+      { label: '并发命中', value: workerUtilization == null ? '-' :`${formatNumber(workerUtilization, 1)}%`, tone: (workerUtilization || 0) < 60 && effectiveRunning > 0 ? 'text-amber-700' : 'text-indigo-700' },
+      { label: '续跑完成', value: resumedTaskCompletionRate == null ? '-' :`${formatNumber(resumedTaskCompletionRate, 1)}%`, tone: checkpointAnyTasks > 0 ? 'text-sky-700' : 'text-slate-500' },
     ],
     overviewCards: [
-      { label: '运行/排队', value: `${formatNumber(running)} / ${formatNumber(pending)}`, hint: `finished ${formatNumber(finished)}`, tone: running > 0 ? 'text-teal-700' : 'text-slate-900' },
+      { label: '运行/排队', value:`${formatNumber(running)} / ${formatNumber(pending)}`, hint:`finished ${formatNumber(finished)}`, tone: running > 0 ? 'text-teal-700' : 'text-slate-900' },
       { label: '平均排队', value: formatSeconds(queueWaitAvg), hint: 'queue_wait_seconds', tone: (queueWaitAvg || 0) > 300 ? 'text-amber-700' : 'text-slate-900' },
       { label: '平均执行', value: formatSeconds(executionAvg), hint: 'execution_seconds', tone: (executionAvg || 0) > 1800 ? 'text-amber-700' : 'text-slate-900' },
       { label: '平均周转', value: formatSeconds(turnaroundAvg), hint: 'turnaround_seconds', tone: (turnaroundAvg || 0) > 2400 ? 'text-rose-700' : 'text-slate-900' },
-      { label: 'Worker/Judge', value: `${formatNumber(workers)} / ${formatNumber(judges)}`, hint: `running ${formatNumber(effectiveRunning)} · sessions ${formatNumber(sessions)}`, tone: 'text-indigo-700' },
-      { label: '模块完成', value: moduleTotal > 0 ? `${formatNumber(moduleCompletedTotal)} / ${formatNumber(moduleTotal)}` : '-', hint: `failed ${formatNumber(moduleFailedTotal)}`, tone: moduleFailedTotal > 0 ? 'text-amber-700' : 'text-emerald-700' },
-      { label: '完成产能', value: tokenPerFinished == null ? '-' : `${formatNumber(tokenPerFinished, 0)} tok/task`, hint: '平均每个完成任务 token', tone: 'text-violet-700' },
+      { label: 'Worker/Judge', value:`${formatNumber(workers)} / ${formatNumber(judges)}`, hint:`running ${formatNumber(effectiveRunning)} · sessions ${formatNumber(sessions)}`, tone: 'text-indigo-700' },
+      { label: '模块完成', value: moduleTotal > 0 ?`${formatNumber(moduleCompletedTotal)} / ${formatNumber(moduleTotal)}` : '-', hint:`failed ${formatNumber(moduleFailedTotal)}`, tone: moduleFailedTotal > 0 ? 'text-amber-700' : 'text-emerald-700' },
+      { label: '完成产能', value: tokenPerFinished == null ? '-' :`${formatNumber(tokenPerFinished, 0)} tok/task`, hint: '平均每个完成任务 token', tone: 'text-violet-700' },
     ],
     governanceCards: [
       { label: '待处理/Worker', value: pendingPerWorker == null ? '-' : formatNumber(pendingPerWorker, 2), hint: '背压强度', tone: (pendingPerWorker || 0) > 1 ? 'text-amber-700' : 'text-slate-900' },
-      { label: '可用槽位', value: formatNumber(effectiveAvailableSlots), hint: `capacity ${formatNumber(workers)} - running ${formatNumber(effectiveRunning)}`, tone: effectiveAvailableSlots > 0 ? 'text-emerald-700' : 'text-amber-700' },
+      { label: '可用槽位', value: formatNumber(effectiveAvailableSlots), hint:`capacity ${formatNumber(workers)} - running ${formatNumber(effectiveRunning)}`, tone: effectiveAvailableSlots > 0 ? 'text-emerald-700' : 'text-amber-700' },
       { label: 'Session/活跃单元', value: sessionPerUnit == null ? '-' : formatNumber(sessionPerUnit, 2), hint: 'worker+judge 承载会话密度', tone: (sessionPerUnit || 0) > 3 ? 'text-indigo-700' : 'text-slate-900' },
       { label: '重试压力', value: retryPressure == null ? '-' : formatNumber(retryPressure, 2), hint: 'retry per finished task', tone: (retryPressure || 0) > 1 ? 'text-amber-700' : 'text-slate-900' },
-      { label: 'Checkpoint 续跑面', value: checkpointCoverage == null ? '-' : `${formatNumber(checkpointCoverage, 1)}%`, hint: `${formatNumber(checkpointPartialTasks)}/${formatNumber(checkpointAnyTasks)} partial`, tone: (checkpointCoverage || 0) > 0 ? 'text-sky-700' : 'text-slate-900' },
-      { label: 'Checkpoint 完整体', value: `${formatNumber(checkpointOverallDoneTasks)}`, hint: 'overall_done tasks', tone: checkpointOverallDoneTasks > 0 ? 'text-slate-900' : 'text-emerald-700' },
+      { label: 'Checkpoint 续跑面', value: checkpointCoverage == null ? '-' :`${formatNumber(checkpointCoverage, 1)}%`, hint:`${formatNumber(checkpointPartialTasks)}/${formatNumber(checkpointAnyTasks)} partial`, tone: (checkpointCoverage || 0) > 0 ? 'text-sky-700' : 'text-slate-900' },
+      { label: 'Checkpoint 完整体', value:`${formatNumber(checkpointOverallDoneTasks)}`, hint: 'overall_done tasks', tone: checkpointOverallDoneTasks > 0 ? 'text-slate-900' : 'text-emerald-700' },
       { label: '取消任务', value: formatNumber(cancelTotal), hint: 'cancel_total', tone: cancelTotal > 0 ? 'text-slate-900' : 'text-emerald-700' },
     ],
     qualityCards: [
-      { label: '超时率', value: timeoutRate == null ? '-' : `${formatNumber(timeoutRate, 1)}%`, hint: `timeout ${formatNumber(timeoutTotal)}`, tone: (timeoutRate || 0) > 10 ? 'text-rose-700' : 'text-emerald-700' },
-      { label: '首轮通过率', value: firstRoundPassRate == null ? '-' : `${formatNumber(firstRoundPassRate * 100, 1)}%`, hint: 'effectiveness.first_round_pass_rate', tone: (firstRoundPassRate || 0) < 0.7 ? 'text-amber-700' : 'text-emerald-700' },
-      { label: '最终通过率', value: finalModulePassRate == null ? '-' : `${formatNumber(finalModulePassRate * 100, 1)}%`, hint: 'effectiveness.final_module_pass_rate', tone: (finalModulePassRate || 0) < 0.8 ? 'text-amber-700' : 'text-emerald-700' },
-      { label: '多轮兜底率', value: multiRoundPassRate == null ? '-' : `${formatNumber(multiRoundPassRate * 100, 1)}%`, hint: 'effectiveness.multi_round_pass_rate', tone: (multiRoundPassRate || 0) > 0 ? 'text-indigo-700' : 'text-slate-900' },
-      { label: '反思/重分类', value: `${formatNumber(reflectionRounds)} / ${formatNumber(reclassifyTotal)}`, hint: 'reflection / reclassify', tone: reflectionRounds > 0 || reclassifyTotal > 0 ? 'text-slate-900' : 'text-emerald-700' },
+      { label: '超时率', value: timeoutRate == null ? '-' :`${formatNumber(timeoutRate, 1)}%`, hint:`timeout ${formatNumber(timeoutTotal)}`, tone: (timeoutRate || 0) > 10 ? 'text-rose-700' : 'text-emerald-700' },
+      { label: '首轮通过率', value: firstRoundPassRate == null ? '-' :`${formatNumber(firstRoundPassRate * 100, 1)}%`, hint: 'effectiveness.first_round_pass_rate', tone: (firstRoundPassRate || 0) < 0.7 ? 'text-amber-700' : 'text-emerald-700' },
+      { label: '最终通过率', value: finalModulePassRate == null ? '-' :`${formatNumber(finalModulePassRate * 100, 1)}%`, hint: 'effectiveness.final_module_pass_rate', tone: (finalModulePassRate || 0) < 0.8 ? 'text-amber-700' : 'text-emerald-700' },
+      { label: '多轮兜底率', value: multiRoundPassRate == null ? '-' :`${formatNumber(multiRoundPassRate * 100, 1)}%`, hint: 'effectiveness.multi_round_pass_rate', tone: (multiRoundPassRate || 0) > 0 ? 'text-indigo-700' : 'text-slate-900' },
+      { label: '反思/重分类', value:`${formatNumber(reflectionRounds)} / ${formatNumber(reclassifyTotal)}`, hint: 'reflection / reclassify', tone: reflectionRounds > 0 || reclassifyTotal > 0 ? 'text-slate-900' : 'text-emerald-700' },
     ],
     costCards: [
-      { label: '输入 Token', value: formatNumber(tokenInputTotal), hint: `running ${formatNumber(tokenInputRunning)}`, tone: 'text-violet-700' },
-      { label: '输出 Token', value: formatNumber(tokenOutputTotal), hint: `running ${formatNumber(tokenOutputRunning)}`, tone: 'text-violet-700' },
-      { label: '累计成本', value: formatMetricValue(tokenCostTotal ?? Number.NaN), hint: `running ${formatMetricValue(tokenCostRunning ?? Number.NaN)}`, tone: 'text-fuchsia-700' },
+      { label: '输入 Token', value: formatNumber(tokenInputTotal), hint:`running ${formatNumber(tokenInputRunning)}`, tone: 'text-violet-700' },
+      { label: '输出 Token', value: formatNumber(tokenOutputTotal), hint:`running ${formatNumber(tokenOutputRunning)}`, tone: 'text-violet-700' },
+      { label: '累计成本', value: formatMetricValue(tokenCostTotal ?? Number.NaN), hint:`running ${formatMetricValue(tokenCostRunning ?? Number.NaN)}`, tone: 'text-fuchsia-700' },
       { label: '单任务成本', value: costPerFinished == null ? '-' : formatMetricValue(costPerFinished), hint: 'cost per finished task', tone: 'text-fuchsia-700' },
     ],
     stageRows,
@@ -1631,13 +1631,13 @@ const buildSystemAnalysisViewModel = (rows: DisplayMetricRow[]): SystemAnalysisV
     checkpointCards: [
       {
         label: '续跑任务覆盖',
-        value: checkpointAnyTasks > 0 ? `${formatNumber(checkpointAnyTasks)}` : '-',
-        hint: `partial ${formatNumber(checkpointPartialTasks)} / done ${formatNumber(checkpointOverallDoneTasks)}`,
+        value: checkpointAnyTasks > 0 ?`${formatNumber(checkpointAnyTasks)}` : '-',
+        hint:`partial ${formatNumber(checkpointPartialTasks)} / done ${formatNumber(checkpointOverallDoneTasks)}`,
         tone: checkpointAnyTasks > 0 ? 'text-sky-700' : 'text-slate-500',
       },
       {
         label: '续跑完成率',
-        value: resumedTaskCompletionRate == null ? '-' : `${formatNumber(resumedTaskCompletionRate, 1)}%`,
+        value: resumedTaskCompletionRate == null ? '-' :`${formatNumber(resumedTaskCompletionRate, 1)}%`,
         hint: 'overall_done / any checkpoint task',
         tone: (resumedTaskCompletionRate || 0) >= 80 ? 'text-emerald-700' : checkpointAnyTasks > 0 ? 'text-amber-700' : 'text-slate-500',
       },
@@ -1649,7 +1649,7 @@ const buildSystemAnalysisViewModel = (rows: DisplayMetricRow[]): SystemAnalysisV
       },
       {
         label: '模块恢复面',
-        value: `${formatNumber(checkpointS2Modules)} / ${formatNumber(checkpointS3Modules)}`,
+        value:`${formatNumber(checkpointS2Modules)} / ${formatNumber(checkpointS3Modules)}`,
         hint: 's2 / s3 completed modules',
         tone: checkpointS2Modules > 0 || checkpointS3Modules > 0 ? 'text-sky-700' : 'text-slate-500',
       },
@@ -1670,7 +1670,7 @@ const buildSystemAnalysisViewModel = (rows: DisplayMetricRow[]): SystemAnalysisV
       {
         label: '最高压力阶段',
         value: stagePressureLeader ? stagePressureLeader.stage : '-',
-        hint: stagePressureLeader ? `score ${formatNumber(stagePressureLeader.pressureScore, 1)}` : '暂无阶段样本',
+        hint: stagePressureLeader ?`score ${formatNumber(stagePressureLeader.pressureScore, 1)}` : '暂无阶段样本',
         tone: stagePressureLeader?.tone || 'text-slate-500',
       },
       {
@@ -1836,21 +1836,21 @@ const buildFirmwareUnpackerViewModel = (rows: DisplayMetricRow[]): FirmwareUnpac
   if (cleanupFailed > 0) {
     alerts.push({
       label: '清理异常',
-      text: `存在 ${formatNumber(cleanupFailed)} 个失败的 workspace cleanup job，建议检查清理日志和目录权限。`,
+      text:`存在 ${formatNumber(cleanupFailed)} 个失败的 workspace cleanup job，建议检查清理日志和目录权限。`,
       tone: 'border-amber-200 bg-amber-50 text-amber-800',
     });
   }
   if (workerDead > workerAlive && workerAlive > 0) {
     alerts.push({
       label: 'Worker 历史记录偏多',
-      text: `当前 alive=${formatNumber(workerAlive)}，dead=${formatNumber(workerDead)}；dead 可能包含历史心跳记录，请以 alive 和近期心跳判断当前能力。`,
+      text:`当前 alive=${formatNumber(workerAlive)}，dead=${formatNumber(workerDead)}；dead 可能包含历史心跳记录，请以 alive 和近期心跳判断当前能力。`,
       tone: 'border-sky-200 bg-sky-50 text-sky-800',
     });
   }
   if (queuePending + queueQueued > 0 && slotCapacity && slotUsage < slotCapacity) {
     alerts.push({
       label: '可能调度延迟',
-      text: `队列仍有 ${formatNumber(queuePending + queueQueued)} 个等待项，但并发槽未打满，需要关注 dispatcher/claim 状态。`,
+      text:`队列仍有 ${formatNumber(queuePending + queueQueued)} 个等待项，但并发槽未打满，需要关注 dispatcher/claim 状态。`,
       tone: 'border-rose-200 bg-rose-50 text-rose-800',
     });
   }
@@ -1864,12 +1864,12 @@ const buildFirmwareUnpackerViewModel = (rows: DisplayMetricRow[]): FirmwareUnpac
 
   return {
     kpis: [
-      { label: '运行中任务', value: formatNumber(running + archiving), hint: `running ${formatNumber(running)} / archiving ${formatNumber(archiving)}`, tone: running + archiving > 0 ? 'text-teal-700' : 'text-slate-900' },
-      { label: '排队/待领取', value: formatNumber(pending + claimed), hint: `pending ${formatNumber(pending)} / claimed ${formatNumber(claimed)}`, tone: pending + claimed > 0 ? 'text-amber-700' : 'text-slate-900' },
-      { label: '成功/失败任务', value: `${formatNumber(success)} / ${formatNumber(failed)}`, hint: '历史任务终态分布', tone: failed > 0 ? 'text-rose-700' : 'text-emerald-700' },
-      { label: '活跃 Worker', value: `${formatNumber(workerAlive)} / ${formatNumber(workerTotal)}`, hint: `dead ${formatNumber(workerDead)}`, tone: workerAlive > 0 ? 'text-indigo-700' : 'text-rose-700' },
-      { label: '并发使用率', value: slotUsageRate == null ? '-' : `${formatNumber(slotUsageRate, 1)}%`, hint: `${formatNumber(slotUsage)} / ${formatNumber(slotCapacity)} slots`, tone: slotUsageRate && slotUsageRate > 85 ? 'text-amber-700' : 'text-slate-900' },
-      { label: '清理失败数', value: formatNumber(cleanupFailed), hint: `cleanup success ${formatNumber(cleanupSuccess)}`, tone: cleanupFailed > 0 ? 'text-rose-700' : 'text-emerald-700' },
+      { label: '运行中任务', value: formatNumber(running + archiving), hint:`running ${formatNumber(running)} / archiving ${formatNumber(archiving)}`, tone: running + archiving > 0 ? 'text-teal-700' : 'text-slate-900' },
+      { label: '排队/待领取', value: formatNumber(pending + claimed), hint:`pending ${formatNumber(pending)} / claimed ${formatNumber(claimed)}`, tone: pending + claimed > 0 ? 'text-amber-700' : 'text-slate-900' },
+      { label: '成功/失败任务', value:`${formatNumber(success)} / ${formatNumber(failed)}`, hint: '历史任务终态分布', tone: failed > 0 ? 'text-rose-700' : 'text-emerald-700' },
+      { label: '活跃 Worker', value:`${formatNumber(workerAlive)} / ${formatNumber(workerTotal)}`, hint:`dead ${formatNumber(workerDead)}`, tone: workerAlive > 0 ? 'text-indigo-700' : 'text-rose-700' },
+      { label: '并发使用率', value: slotUsageRate == null ? '-' :`${formatNumber(slotUsageRate, 1)}%`, hint:`${formatNumber(slotUsage)} / ${formatNumber(slotCapacity)} slots`, tone: slotUsageRate && slotUsageRate > 85 ? 'text-amber-700' : 'text-slate-900' },
+      { label: '清理失败数', value: formatNumber(cleanupFailed), hint:`cleanup success ${formatNumber(cleanupSuccess)}`, tone: cleanupFailed > 0 ? 'text-rose-700' : 'text-emerald-700' },
     ],
     taskStatusChart: buildFirmwareStatusChart(
       rows,
@@ -1897,7 +1897,7 @@ const buildFirmwareUnpackerViewModel = (rows: DisplayMetricRow[]): FirmwareUnpac
       .sort((left, right) => right.value - left.value)
       .slice(0, 6)
       .map((row) => ({
-        name: `${row.labels.method || '-'} ${String(row.labels.path || '').replace('/api/app/firmware-unpacker/', '')}`,
+        name:`${row.labels.method || '-'} ${String(row.labels.path || '').replace('/api/app/firmware-unpacker/', '')}`,
         value: row.value,
       })),
     operations: [
@@ -2018,21 +2018,21 @@ const buildEntryAnalysisViewModel = (rows: DisplayMetricRow[]): EntryAnalysisVie
   if ((pending || 0) > Math.max(3, valueOrZero(workers))) {
     riskAlerts.push({
       label: '排队堆积',
-      text: `pending=${formatNumber(pending)} 已明显高于 workers=${formatNumber(workers)}，当前入口分析存在排队压力。`,
+      text:`pending=${formatNumber(pending)} 已明显高于 workers=${formatNumber(workers)}，当前入口分析存在排队压力。`,
       tone: 'border-amber-200 bg-amber-50 text-amber-800',
     });
   }
   if (slowestStage && (slowestStage.avgDurationSeconds || 0) > 180) {
     riskAlerts.push({
       label: '慢阶段',
-      text: `${slowestStage.stage} 平均耗时 ${formatSeconds(slowestStage.avgDurationSeconds)}，已经高于阶段健康阈值，建议优先查看该阶段会话和下游依赖。`,
+      text:`${slowestStage.stage} 平均耗时 ${formatSeconds(slowestStage.avgDurationSeconds)}，已经高于阶段健康阈值，建议优先查看该阶段会话和下游依赖。`,
       tone: 'border-rose-200 bg-rose-50 text-rose-800',
     });
   }
   if (mostRetryStage && mostRetryStage.retryRuns > Math.max(2, mostRetryStage.passedRuns)) {
     riskAlerts.push({
       label: '重试放大',
-      text: `${mostRetryStage.stage} 的 retry=${formatNumber(mostRetryStage.retryRuns, 0)}，已经高于通过样本 ${formatNumber(mostRetryStage.passedRuns, 0)}，可能存在提示词/评审门槛/输入质量问题。`,
+      text:`${mostRetryStage.stage} 的 retry=${formatNumber(mostRetryStage.retryRuns, 0)}，已经高于通过样本 ${formatNumber(mostRetryStage.passedRuns, 0)}，可能存在提示词/评审门槛/输入质量问题。`,
       tone: 'border-amber-200 bg-amber-50 text-amber-800',
     });
   }
@@ -2040,7 +2040,7 @@ const buildEntryAnalysisViewModel = (rows: DisplayMetricRow[]): EntryAnalysisVie
   if (failureHeavyStage) {
     riskAlerts.push({
       label: '失败偏高',
-      text: `${failureHeavyStage.stage} 当前 failed=${formatNumber(failureHeavyStage.failedRuns, 0)}，超过 passed=${formatNumber(failureHeavyStage.passedRuns, 0)}，阶段内失败已经开始主导。`,
+      text:`${failureHeavyStage.stage} 当前 failed=${formatNumber(failureHeavyStage.failedRuns, 0)}，超过 passed=${formatNumber(failureHeavyStage.passedRuns, 0)}，阶段内失败已经开始主导。`,
       tone: 'border-rose-200 bg-rose-50 text-rose-800',
     });
   }
@@ -2048,7 +2048,7 @@ const buildEntryAnalysisViewModel = (rows: DisplayMetricRow[]): EntryAnalysisVie
   if (sessionGapStage) {
     riskAlerts.push({
       label: '会话记录缺口',
-      text: `${sessionGapStage.stage} 已有 Worker/Judge 调用样本，但 session_total=0，这通常意味着会话记录或阶段事件没有完整落盘。`,
+      text:`${sessionGapStage.stage} 已有 Worker/Judge 调用样本，但 session_total=0，这通常意味着会话记录或阶段事件没有完整落盘。`,
       tone: 'border-sky-200 bg-sky-50 text-sky-800',
     });
   }
@@ -2073,13 +2073,13 @@ const buildEntryAnalysisViewModel = (rows: DisplayMetricRow[]): EntryAnalysisVie
       { label: 'Worker 平均耗时', value: formatSeconds(avgWorkerDuration), hint: 'worker_duration_seconds 均值', tone: 'text-indigo-700' },
       { label: 'Judge 平均耗时', value: formatSeconds(avgJudgeDuration), hint: 'judge_duration_seconds 均值', tone: 'text-fuchsia-700' },
       { label: '会话文件数', value: formatNumber(sessions), hint: 'session gauge', tone: (sessions || 0) > 0 ? 'text-slate-900' : 'text-slate-500' },
-      { label: 'Worker / Judge', value: `${formatNumber(workers)} / ${formatNumber(judges)}`, hint: '当前聚合角色规模', tone: 'text-slate-900' },
+      { label: 'Worker / Judge', value:`${formatNumber(workers)} / ${formatNumber(judges)}`, hint: '当前聚合角色规模', tone: 'text-slate-900' },
       { label: '运行中 Token', value: formatNumber(tokenRunning), hint: 'running input + output token snapshot', tone: tokenRunning > 0 ? 'text-violet-700' : 'text-slate-900' },
-      { label: '累计成本', value: formatMetricValue(tokenCostTotal ?? Number.NaN), hint: `input ${formatNumber(tokenInputTotal)} / output ${formatNumber(tokenOutputTotal)}`, tone: (tokenCostTotal || 0) > 0 ? 'text-violet-700' : 'text-slate-900' },
+      { label: '累计成本', value: formatMetricValue(tokenCostTotal ?? Number.NaN), hint:`input ${formatNumber(tokenInputTotal)} / output ${formatNumber(tokenOutputTotal)}`, tone: (tokenCostTotal || 0) > 0 ? 'text-violet-700' : 'text-slate-900' },
       { label: '处理文件估算', value: formatNumber(fileTotal), hint: 'worker files / shard 估算', tone: 'text-slate-900' },
       {
         label: '调度健康',
-        value: `${formatNumber(schedulerRunning)} / ${formatNumber(workerServiceRunning)}`,
+        value:`${formatNumber(schedulerRunning)} / ${formatNumber(workerServiceRunning)}`,
         hint: 'scheduler_running / worker_service_running',
         tone: schedulerRunning && workerServiceRunning ? 'text-emerald-700' : 'text-rose-700',
       },
@@ -2096,25 +2096,25 @@ const buildEntryAnalysisViewModel = (rows: DisplayMetricRow[]): EntryAnalysisVie
     stageCards: [
       {
         label: '阶段覆盖',
-        value: `${formatNumber(stageRows.length, 0)} / 4`,
+        value:`${formatNumber(stageRows.length, 0)} / 4`,
         hint: '当前有指标回传的阶段数',
         tone: stageRows.length >= 4 ? 'text-emerald-700' : 'text-amber-700',
       },
       {
         label: '最忙阶段',
-        value: busiestStage ? `${busiestStage.stage} · ${formatNumber(busiestStage.totalRuns, 0)}` : '-',
+        value: busiestStage ?`${busiestStage.stage} · ${formatNumber(busiestStage.totalRuns, 0)}` : '-',
         hint: '按 stage_rounds 总样本',
         tone: busiestStage ? busiestStage.healthTone : 'text-slate-900',
       },
       {
         label: '最慢阶段',
-        value: slowestStage ? `${slowestStage.stage} · ${formatSeconds(slowestStage.avgDurationSeconds)}` : '-',
+        value: slowestStage ?`${slowestStage.stage} · ${formatSeconds(slowestStage.avgDurationSeconds)}` : '-',
         hint: '按 stage_duration_seconds 均值',
         tone: slowestStage && (slowestStage.avgDurationSeconds || 0) > 120 ? 'text-rose-700' : 'text-slate-900',
       },
       {
         label: '重试最密集',
-        value: mostRetryStage && mostRetryStage.retryRuns > 0 ? `${mostRetryStage.stage} · ${formatNumber(mostRetryStage.retryRuns, 0)}` : '-',
+        value: mostRetryStage && mostRetryStage.retryRuns > 0 ?`${mostRetryStage.stage} · ${formatNumber(mostRetryStage.retryRuns, 0)}` : '-',
         hint: '按 stage retry 样本',
         tone: mostRetryStage && mostRetryStage.retryRuns > 0 ? 'text-amber-700' : 'text-emerald-700',
       },
@@ -2189,35 +2189,35 @@ const buildDataflowAnalysisViewModel = (rows: DisplayMetricRow[]): DataflowAnaly
   if ((observedCoverageRatio || 0) > 0 && (observedCoverageRatio || 0) < 0.6) {
     alerts.push({
       label: '观测 Owner 偏少',
-      text: `configured workers=${formatNumber(configuredWorkers)}，但当前仅观测到 ${formatNumber(observedActiveOwners)} 个 active owner，heartbeat owners=${formatNumber(observedHeartbeatOwners)}。需要核对 worker 可用性、调度分布或 lease 回收情况。`,
+      text:`configured workers=${formatNumber(configuredWorkers)}，但当前仅观测到 ${formatNumber(observedActiveOwners)} 个 active owner，heartbeat owners=${formatNumber(observedHeartbeatOwners)}。需要核对 worker 可用性、调度分布或 lease 回收情况。`,
       tone: 'border-amber-200 bg-amber-50 text-amber-800',
     });
   }
   if ((slotUtilizationRatio || 0) >= 0.85) {
     alerts.push({
       label: '执行槽位逼近打满',
-      text: `busy slots=${formatNumber(workerSlotBusy)} / capacity=${formatNumber(workerSlotCapacity)}，利用率约 ${formatNumber((slotUtilizationRatio || 0) * 100, 1)}%。继续进流时更容易放大排队时延。`,
+      text:`busy slots=${formatNumber(workerSlotBusy)} / capacity=${formatNumber(workerSlotCapacity)}，利用率约 ${formatNumber((slotUtilizationRatio || 0) * 100, 1)}%。继续进流时更容易放大排队时延。`,
       tone: 'border-rose-200 bg-rose-50 text-rose-800',
     });
   }
   if ((heartbeatStale || 0) > 0) {
     alerts.push({
       label: '存在心跳超时任务',
-      text: `heartbeat stale=${formatNumber(heartbeatStale)}，max age=${formatSeconds(heartbeatAgeMax)}。这通常意味着 owner 卡死、Pod 抖动或 lease 续约链路异常。`,
+      text:`heartbeat stale=${formatNumber(heartbeatStale)}，max age=${formatSeconds(heartbeatAgeMax)}。这通常意味着 owner 卡死、Pod 抖动或 lease 续约链路异常。`,
       tone: 'border-rose-200 bg-rose-50 text-rose-800',
     });
   }
   if ((queuePressureRatio || 0) >= 1 || ((pending || 0) > 0 && (workerSlotFree || 0) <= 0)) {
     alerts.push({
       label: '队列压力偏高',
-      text: `pending=${formatNumber(pending)}，free slots=${formatNumber(workerSlotFree)}，queue pressure 约 ${formatNumber((queuePressureRatio || 0) * 100, 1)}%。需要关注扩容、任务重量或租约释放速度。`,
+      text:`pending=${formatNumber(pending)}，free slots=${formatNumber(workerSlotFree)}，queue pressure 约 ${formatNumber((queuePressureRatio || 0) * 100, 1)}%。需要关注扩容、任务重量或租约释放速度。`,
       tone: 'border-amber-200 bg-amber-50 text-amber-800',
     });
   }
   if ((timeoutCount || 0) > 0 && ((timeoutCount || 0) >= 3 || (terminal || 0) > 0 && ((timeoutCount || 0) / (terminal || 1)) >= 0.2)) {
     alerts.push({
       label: '超时失败偏高',
-      text: `timeout=${formatNumber(timeoutCount)}，terminal=${formatNumber(terminal)}。建议继续拆分是 queue wait、execution duration 还是 lease/heartbeat 问题。`,
+      text:`timeout=${formatNumber(timeoutCount)}，terminal=${formatNumber(terminal)}。建议继续拆分是 queue wait、execution duration 还是 lease/heartbeat 问题。`,
       tone: 'border-rose-200 bg-rose-50 text-rose-800',
     });
   }
@@ -2235,30 +2235,30 @@ const buildDataflowAnalysisViewModel = (rows: DisplayMetricRow[]): DataflowAnaly
       { label: '运行中任务', value: formatNumber(running), hint: 'cluster running tasks', tone: (running || 0) > 0 ? 'text-teal-700' : 'text-slate-900' },
       { label: '有效租约', value: formatNumber(leased), hint: 'active leases', tone: (leased || 0) > 0 ? 'text-indigo-700' : 'text-slate-900' },
       { label: '陈旧租约', value: formatNumber(staleLeases), hint: 'expired owned leases', tone: (staleLeases || 0) > 0 ? 'text-rose-700' : 'text-emerald-700' },
-      { label: '心跳正常/超时', value: `${formatNumber(heartbeatLive)} / ${formatNumber(heartbeatStale)}`, hint: `max age ${formatSeconds(heartbeatAgeMax)}`, tone: (heartbeatStale || 0) > 0 ? 'text-rose-700' : 'text-emerald-700' },
+      { label: '心跳正常/超时', value:`${formatNumber(heartbeatLive)} / ${formatNumber(heartbeatStale)}`, hint:`max age ${formatSeconds(heartbeatAgeMax)}`, tone: (heartbeatStale || 0) > 0 ? 'text-rose-700' : 'text-emerald-700' },
       {
         label: 'Worker 配置/观测',
-        value: `${formatNumber(configuredWorkers)} / ${formatNumber(observedActiveOwners)}`,
-        hint: `heartbeat owners ${formatNumber(observedHeartbeatOwners)} · per pod ${formatNumber(workerCapacityPerPod)}`,
+        value:`${formatNumber(configuredWorkers)} / ${formatNumber(observedActiveOwners)}`,
+        hint:`heartbeat owners ${formatNumber(observedHeartbeatOwners)} · per pod ${formatNumber(workerCapacityPerPod)}`,
         tone: (observedActiveOwners || 0) > 0 ? 'text-cyan-700' : 'text-slate-500',
       },
     ],
     loadCards: [
       {
         label: 'Busy / Free Slots',
-        value: `${formatNumber(workerSlotBusy)} / ${formatNumber(workerSlotFree)}`,
-        hint: `configured capacity ${formatNumber(workerSlotCapacity)} · observed owners ${formatNumber(observedActiveOwners)}`,
+        value:`${formatNumber(workerSlotBusy)} / ${formatNumber(workerSlotFree)}`,
+        hint:`configured capacity ${formatNumber(workerSlotCapacity)} · observed owners ${formatNumber(observedActiveOwners)}`,
         tone: (workerSlotBusy || 0) > (workerSlotFree || 0) ? 'text-amber-700' : 'text-slate-900',
       },
       { label: '平均排队', value: formatSeconds(avgQueueWait), hint: 'queue_wait_seconds', tone: (avgQueueWait || 0) > 120 ? 'text-rose-700' : 'text-slate-900' },
       { label: '平均执行', value: formatSeconds(avgExecution), hint: 'execution_seconds', tone: (avgExecution || 0) > 900 ? 'text-amber-700' : 'text-slate-900' },
       { label: '平均周转', value: formatSeconds(avgTurnaround), hint: 'turnaround_seconds', tone: (avgTurnaround || 0) > 1200 ? 'text-rose-700' : 'text-slate-900' },
-      { label: '平均轮次 / Judge', value: `${formatSeconds(avgRoundDuration)} / ${formatSeconds(avgJudgeDuration)}`, hint: 'round/judge duration', tone: 'text-slate-900' },
-      { label: '轮次 / Judge / Function', value: `${formatNumber(rounds)} / ${formatNumber(judges)} / ${formatNumber(functions)}`, hint: 'analysis scale snapshot', tone: 'text-indigo-700' },
-      { label: 'Trace 深度 / Callee', value: `${formatNumber(traceDepthMax)} / ${formatNumber(traceCallees)}`, hint: 'trace complexity snapshot', tone: 'text-slate-900' },
-      { label: 'Token 总量 / 运行中', value: `${formatNumber(tokenTotal)} / ${formatNumber(tokenRunning)}`, hint: 'cluster token snapshot', tone: 'text-violet-700' },
-      { label: '成本 / 运行中成本', value: `${formatMetricValue(tokenCost ?? Number.NaN)} / ${formatMetricValue(runningCost ?? Number.NaN)}`, hint: 'cluster token cost snapshot', tone: 'text-fuchsia-700' },
-      { label: '重试 / 超时 / 取消', value: `${formatNumber(retryCount)} / ${formatNumber(timeoutCount)} / ${formatNumber(cancelCount)}`, hint: 'cluster failure pressure', tone: (timeoutCount || 0) > 0 ? 'text-rose-700' : 'text-slate-900' },
+      { label: '平均轮次 / Judge', value:`${formatSeconds(avgRoundDuration)} / ${formatSeconds(avgJudgeDuration)}`, hint: 'round/judge duration', tone: 'text-slate-900' },
+      { label: '轮次 / Judge / Function', value:`${formatNumber(rounds)} / ${formatNumber(judges)} / ${formatNumber(functions)}`, hint: 'analysis scale snapshot', tone: 'text-indigo-700' },
+      { label: 'Trace 深度 / Callee', value:`${formatNumber(traceDepthMax)} / ${formatNumber(traceCallees)}`, hint: 'trace complexity snapshot', tone: 'text-slate-900' },
+      { label: 'Token 总量 / 运行中', value:`${formatNumber(tokenTotal)} / ${formatNumber(tokenRunning)}`, hint: 'cluster token snapshot', tone: 'text-violet-700' },
+      { label: '成本 / 运行中成本', value:`${formatMetricValue(tokenCost ?? Number.NaN)} / ${formatMetricValue(runningCost ?? Number.NaN)}`, hint: 'cluster token cost snapshot', tone: 'text-fuchsia-700' },
+      { label: '重试 / 超时 / 取消', value:`${formatNumber(retryCount)} / ${formatNumber(timeoutCount)} / ${formatNumber(cancelCount)}`, hint: 'cluster failure pressure', tone: (timeoutCount || 0) > 0 ? 'text-rose-700' : 'text-slate-900' },
       { label: '终态任务', value: formatNumber(terminal), hint: 'cluster terminal tasks', tone: (terminal || 0) > 0 ? 'text-emerald-700' : 'text-slate-900' },
     ],
     failureCategories,
@@ -2299,7 +2299,7 @@ const buildBinarySecurityReducerViewModel = (rows: DisplayMetricRow[], history: 
     .sort((left, right) => right.value - left.value)
     .slice(0, 6)
     .map((row) => ({
-      label: `${row.labels.event_type || 'unknown'} / ${row.labels.reason || 'unknown'}`,
+      label:`${row.labels.event_type || 'unknown'} / ${row.labels.reason || 'unknown'}`,
       value: row.value,
       tone: (row.value || 0) > 0 ? 'text-rose-700' : 'text-slate-500',
     }));
@@ -2308,7 +2308,7 @@ const buildBinarySecurityReducerViewModel = (rows: DisplayMetricRow[], history: 
     .sort((left, right) => right.value - left.value)
     .slice(0, 8)
     .map((row) => ({
-      label: `${row.labels.event_type || 'unknown'} / ${row.labels.result || 'unknown'}`,
+      label:`${row.labels.event_type || 'unknown'} / ${row.labels.result || 'unknown'}`,
       value: row.value,
       tone: row.labels.result === 'processed' ? 'text-emerald-700' : 'text-rose-700',
     }));
@@ -2317,7 +2317,7 @@ const buildBinarySecurityReducerViewModel = (rows: DisplayMetricRow[], history: 
     .sort((left, right) => right.value - left.value)
     .slice(0, 6)
     .map((row) => ({
-      label: `${row.labels.target || 'unknown'} / ${row.labels.result || 'unknown'}`,
+      label:`${row.labels.target || 'unknown'} / ${row.labels.result || 'unknown'}`,
       value: row.value,
       tone: row.labels.result === 'success' ? 'text-emerald-700' : 'text-amber-700',
     }));
@@ -2334,28 +2334,28 @@ const buildBinarySecurityReducerViewModel = (rows: DisplayMetricRow[], history: 
     {
       label: '待处理事件',
       value: snapshot.pendingDepth,
-      hint: snapshot.oldestPendingAge == null ? '未采集' : `最老 ${formatSeconds(snapshot.oldestPendingAge)}`,
+      hint: snapshot.oldestPendingAge == null ? '未采集' :`最老 ${formatSeconds(snapshot.oldestPendingAge)}`,
       tone: (snapshot.pendingDepth || 0) > 0 ? 'border-amber-200 bg-amber-50 text-amber-800' : 'border-slate-200 bg-slate-50 text-slate-700',
       icon: <Database size={15} />,
     },
     {
       label: '处理中',
       value: snapshot.processingDepth,
-      hint: snapshot.oldestProcessingAge == null ? '未采集' : `最老 ${formatSeconds(snapshot.oldestProcessingAge)}`,
+      hint: snapshot.oldestProcessingAge == null ? '未采集' :`最老 ${formatSeconds(snapshot.oldestProcessingAge)}`,
       tone: (snapshot.processingDepth || 0) > 0 ? 'border-sky-200 bg-sky-50 text-sky-800' : 'border-slate-200 bg-slate-50 text-slate-700',
       icon: <Activity size={15} />,
     },
     {
       label: '可重试',
       value: snapshot.retryableDepth,
-      hint: snapshot.oldestRetryableAge == null ? '未采集' : `最老 ${formatSeconds(snapshot.oldestRetryableAge)}`,
+      hint: snapshot.oldestRetryableAge == null ? '未采集' :`最老 ${formatSeconds(snapshot.oldestRetryableAge)}`,
       tone: (snapshot.retryableDepth || 0) > 0 ? 'border-orange-200 bg-orange-50 text-orange-800' : 'border-slate-200 bg-slate-50 text-slate-700',
       icon: <RefreshCw size={15} />,
     },
     {
       label: '死信事件',
       value: snapshot.deadLetterDepth,
-      hint: snapshot.oldestDeadLetterAge == null ? '未采集' : `最老 ${formatSeconds(snapshot.oldestDeadLetterAge)}`,
+      hint: snapshot.oldestDeadLetterAge == null ? '未采集' :`最老 ${formatSeconds(snapshot.oldestDeadLetterAge)}`,
       tone: (snapshot.deadLetterDepth || 0) > 0 ? 'border-rose-200 bg-rose-50 text-rose-800' : 'border-slate-200 bg-slate-50 text-slate-700',
       icon: <ShieldAlert size={15} />,
     },
@@ -2383,7 +2383,7 @@ const buildBinarySecurityReducerViewModel = (rows: DisplayMetricRow[], history: 
         label: 'Reducer 平均单次耗时',
         value: formatSeconds(snapshot.reducerAvgDurationSeconds),
         tone: (snapshot.reducerAvgDurationSeconds || 0) > 1 ? 'text-amber-700' : 'text-slate-900',
-        hint: '来自 `state_reducer_duration_seconds` 均值',
+        hint: '来自`state_reducer_duration_seconds` 均值',
       },
       {
         label: '事件平均收口延迟',
@@ -2609,7 +2609,7 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
   useEffect(() => {
     const nextUrl = new URL(window.location.href);
     nextUrl.searchParams.set('secondary_tab', activeSecondaryTab);
-    window.history.replaceState(window.history.state, '', `${nextUrl.pathname}${nextUrl.search}${nextUrl.hash}`);
+    window.history.replaceState(window.history.state, '',`${nextUrl.pathname}${nextUrl.search}${nextUrl.hash}`);
   }, [activeSecondaryTab]);
 
   useEffect(() => {
@@ -2966,7 +2966,7 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
     if (!agentState.podsLoaded) {
       await ensureAgentPodsLoaded(serviceKey);
     }
-    const cacheKey = `${serviceKey}:${podName}`;
+    const cacheKey =`${serviceKey}:${podName}`;
     const existing = agentPodDetails[cacheKey];
     if (existing?.loading || existing?.loaded) return;
     setAgentPodDetails((current) => ({
@@ -3251,7 +3251,7 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
         if (item.method === 'OPTIONS') return false;
       }
       if (!keyword) return true;
-      return `${item.method} ${item.route}`.toLowerCase().includes(keyword);
+      return`${item.method} ${item.route}`.toLowerCase().includes(keyword);
     });
   }, [restApiHideInfra, restApiMethodFilter, restApiRouteKeyword, restApiSlowOnly, restApiViewModel.rows]);
   const focusedEntryStageRow = useMemo(() => {
@@ -3318,7 +3318,7 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
         if (workerId !== selectedEntryWorkerFilter && hostName !== selectedEntryWorkerFilter) return false;
       }
       if (!keyword) return true;
-      return `${row.name} ${row.labelText} ${row.help || ''}`.toLowerCase().includes(keyword);
+      return`${row.name} ${row.labelText} ${row.help || ''}`.toLowerCase().includes(keyword);
     });
   }, [activeServiceKey, dataflowVulnSampleScope, groupFilter, searchKeyword, selectedDfaWorkerFilter, selectedEntryWorkerFilter, selectedSystemWorkerFilter, viewModel.rows]);
 
@@ -3338,7 +3338,7 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
               type: 'gauge' as const,
               help: null,
               group: 'ai-agent' as BinarySecurityMetricsGroup,
-              labelText: Object.entries(labels).map(([key, value]) => `${key}=${value}`).join(', '),
+              labelText: Object.entries(labels).map(([key, value]) =>`${key}=${value}`).join(', '),
               displayName: row.name,
               };
             }),
@@ -3365,7 +3365,7 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
         if (!roleHit) return false;
       }
       if (!keyword) return true;
-      return `${row.name} ${row.labelText} ${row.help || ''}`.toLowerCase().includes(keyword);
+      return`${row.name} ${row.labelText} ${row.help || ''}`.toLowerCase().includes(keyword);
     });
   }, [aiRoleFilter, aiSearchKeyword, effectiveAiViewModel.rows]);
 
@@ -3437,7 +3437,7 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
     const pidKeyword = dfaAgentPidKeyword.trim();
     return (unifiedAgentRuntimeViewModel?.podCards || []).filter((pod) => {
       if (podKeyword) {
-        const fingerprint = `${pod.pod_name || ''} ${pod.worker_id || ''}`.toLowerCase();
+        const fingerprint =`${pod.pod_name || ''} ${pod.worker_id || ''}`.toLowerCase();
         if (!fingerprint.includes(podKeyword)) return false;
       }
       const detail = agentPodDetails[`${activeServiceKey}:${pod.pod_name}`];
@@ -3447,18 +3447,18 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
         if (dfaAgentOwnerFilter !== 'all' && item.owner_kind !== dfaAgentOwnerFilter) return false;
         if (dfaAgentRoleFilter !== 'all' && item.role_kind !== dfaAgentRoleFilter) return false;
         if (taskKeyword) {
-          const fingerprint = `${item.task_id || ''} ${item.task_name || ''}`.toLowerCase();
+          const fingerprint =`${item.task_id || ''} ${item.task_name || ''}`.toLowerCase();
           if (!fingerprint.includes(taskKeyword)) return false;
         }
         if (pidKeyword) {
-          const fingerprint = `${item.pid} ${item.pgid ?? ''} ${item.ppid ?? ''}`;
+          const fingerprint =`${item.pid} ${item.pgid ?? ''} ${item.ppid ?? ''}`;
           if (!fingerprint.includes(pidKeyword)) return false;
         }
         return true;
       });
       const matchingTasks = podTasks.filter((item) => {
         if (!taskKeyword) return true;
-        return `${item.task_id || ''} ${item.task_name || ''}`.toLowerCase().includes(taskKeyword);
+        return`${item.task_id || ''} ${item.task_name || ''}`.toLowerCase().includes(taskKeyword);
       });
       if ((taskKeyword || pidKeyword || dfaAgentOwnerFilter !== 'all' || dfaAgentRoleFilter !== 'all') && matchingProcesses.length === 0 && matchingTasks.length === 0) {
         return false;
@@ -3511,7 +3511,7 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
     const keyword = dfaAgentTaskKeyword.trim().toLowerCase();
     return (activeAgentPodDetail.tasks || []).filter((item) => {
       if (!keyword) return true;
-      return `${item.task_id || ''} ${item.task_name || ''}`.toLowerCase().includes(keyword);
+      return`${item.task_id || ''} ${item.task_name || ''}`.toLowerCase().includes(keyword);
     });
   }, [activeAgentPodDetail, dfaAgentTaskKeyword]);
 
@@ -3523,11 +3523,11 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
       if (dfaAgentOwnerFilter !== 'all' && item.owner_kind !== dfaAgentOwnerFilter) return false;
       if (dfaAgentRoleFilter !== 'all' && item.role_kind !== dfaAgentRoleFilter) return false;
       if (taskKeyword) {
-        const fingerprint = `${item.task_id || ''} ${item.task_name || ''}`.toLowerCase();
+        const fingerprint =`${item.task_id || ''} ${item.task_name || ''}`.toLowerCase();
         if (!fingerprint.includes(taskKeyword)) return false;
       }
       if (pidKeyword) {
-        const fingerprint = `${item.pid} ${item.pgid ?? ''} ${item.ppid ?? ''}`;
+        const fingerprint =`${item.pid} ${item.pgid ?? ''} ${item.ppid ?? ''}`;
         if (!fingerprint.includes(pidKeyword)) return false;
       }
       return true;
@@ -3576,17 +3576,17 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
     const confirmed = await showConfirm({
       title: suspected ? '终止疑似孤儿智能体进程' : '终止孤儿智能体进程',
       message: suspected
-        ? `该进程当前为“疑似孤儿”，可能仍处于退出宽限或归属切换中。\nPID=${process.pid} PGID=${process.pgid ?? '-'}。\n请仅在确认无活动任务归属后继续，操作不可撤销。`
-        : `仅针对“已判定为明确孤儿”的智能体进程。\nPID=${process.pid} PGID=${process.pgid ?? '-'}。\n不影响运行中受控任务，操作不可撤销。`,
+        ?`该进程当前为“疑似孤儿”，可能仍处于退出宽限或归属切换中。\nPID=${process.pid} PGID=${process.pgid ?? '-'}。\n请仅在确认无活动任务归属后继续，操作不可撤销。`
+        :`仅针对“已判定为明确孤儿”的智能体进程。\nPID=${process.pid} PGID=${process.pgid ?? '-'}。\n不影响运行中受控任务，操作不可撤销。`,
       confirmText: '确认杀死',
       danger: true,
     });
     if (!confirmed) return;
     const result = await executionMetricsApi.killAgentProcess(activeServiceKey, projectId, process.pid) as AgentProcessKillResponse;
-    pushAgentKillHistory('single', result, `single-${process.pid}-${Date.now()}`);
+    pushAgentKillHistory('single', result,`single-${process.pid}-${Date.now()}`);
     await showAlert({
       title: '执行结果',
-      message: `请求 ${result.requested}，命中 ${result.matched}，成功 ${result.succeeded}，失败 ${result.failed}，跳过 ${result.skipped}`,
+      message:`请求 ${result.requested}，命中 ${result.matched}，成功 ${result.succeeded}，失败 ${result.failed}，跳过 ${result.skipped}`,
     });
     setSelectedAgentPids((current) => current.filter((pid) => pid !== process.pid));
     await loadAgentObservability(activeServiceKey, { loadDetails: true });
@@ -3596,7 +3596,7 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
     if (!projectId || !agentObservabilityEnabled || selectedKillablePids.length === 0) return;
     const confirmed = await showConfirm({
       title: '批量杀死选中孤儿',
-      message: `仅针对“已判定为明确孤儿”的智能体进程。\n本次将处理 ${selectedKillablePids.length} 个 PID，不影响运行中受控任务，操作不可撤销。`,
+      message:`仅针对“已判定为明确孤儿”的智能体进程。\n本次将处理 ${selectedKillablePids.length} 个 PID，不影响运行中受控任务，操作不可撤销。`,
       confirmText: '确认批量杀死',
       danger: true,
     });
@@ -3614,10 +3614,10 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
       };
       items.push(...(result.items || []));
     }
-    pushAgentKillHistory('selected', { ...summary, items }, `selected-${Date.now()}`);
+    pushAgentKillHistory('selected', { ...summary, items },`selected-${Date.now()}`);
     await showAlert({
       title: '批量执行结果',
-      message: `请求 ${summary.requested}，命中 ${summary.matched}，成功 ${summary.succeeded}，失败 ${summary.failed}，跳过 ${summary.skipped}`,
+      message:`请求 ${summary.requested}，命中 ${summary.matched}，成功 ${summary.succeeded}，失败 ${summary.failed}，跳过 ${summary.skipped}`,
     });
     setSelectedAgentPids([]);
     await loadAgentObservability(activeServiceKey, { loadDetails: true });
@@ -3633,10 +3633,10 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
     });
     if (!confirmed) return;
     const result = await executionMetricsApi.killAllOrphanProcesses(activeServiceKey, projectId) as AgentProcessKillResponse;
-    pushAgentKillHistory('bulk', result, `bulk-${Date.now()}`);
+    pushAgentKillHistory('bulk', result,`bulk-${Date.now()}`);
     await showAlert({
       title: '执行结果',
-      message: `请求 ${result.requested}，命中 ${result.matched}，成功 ${result.succeeded}，失败 ${result.failed}，跳过 ${result.skipped}`,
+      message:`请求 ${result.requested}，命中 ${result.matched}，成功 ${result.succeeded}，失败 ${result.failed}，跳过 ${result.skipped}`,
     });
     setSelectedAgentPids([]);
     await loadAgentObservability(activeServiceKey, { loadDetails: true });
@@ -3652,10 +3652,10 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
     });
     if (!confirmed) return;
     const result = await executionMetricsApi.killAllSuspectedOrphanProcesses(activeServiceKey, projectId) as AgentProcessKillResponse;
-    pushAgentKillHistory('bulk', result, `bulk-suspected-${Date.now()}`);
+    pushAgentKillHistory('bulk', result,`bulk-suspected-${Date.now()}`);
     await showAlert({
       title: '执行结果',
-      message: `请求 ${result.requested}，命中 ${result.matched}，成功 ${result.succeeded}，失败 ${result.failed}，跳过 ${result.skipped}`,
+      message:`请求 ${result.requested}，命中 ${result.matched}，成功 ${result.succeeded}，失败 ${result.failed}，跳过 ${result.skipped}`,
     });
     setSelectedAgentPids([]);
     await loadAgentObservability(activeServiceKey, { loadDetails: true });
@@ -3783,7 +3783,7 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
                 type="button"
                 onClick={() => setActiveSecondaryTab(tab.key)}
                 className={`rounded-2xl px-4 py-2.5 text-sm font-black transition ${
-                  active ? 'bg-teal-600 text-white shadow-sm' : 'bg-slate-50 text-slate-600 hover:bg-slate-100'
+ active ? 'bg-teal-600 text-white' : 'bg-slate-50 text-slate-600 hover:bg-slate-100'
                 }`}
               >
                 {tab.label}
@@ -3828,7 +3828,7 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
                   {aggregateCoverage.attemptedByRole.map((item) => (
                     <span
                       key={item.role}
-                      style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', borderRadius: '9999px', border: '1px solid rgba(255, 255, 255, 0.3)', backgroundColor: 'rgba(255, 255, 255, 0.8)', padding: '4px 12px', fontSize: '12px', fontWeight: 600, color: LK.inkSoft }}
+ style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', borderRadius: '9999px', border: `1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised, padding: '4px 12px', fontSize: '12px', fontWeight: 600, color: LK.inkSoft }}
                     >
                       {item.role}: {formatNumber(item.successful, 0)}/{formatNumber(item.attempted, 0)} 已覆盖
                     </span>
@@ -3845,7 +3845,7 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
                   <div style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.2em', color: '#14b8a6' }}>Light Summary</div>
                   <h2 style={{ marginTop: '8px', fontSize: '20px', fontWeight: 600, letterSpacing: '-0.02em', color: LK.ink }}>{activeService.label} 轻量观测摘要</h2>
                   <p style={{ marginTop: '8px', maxWidth: '48rem', fontSize: '14px', color: LK.inkSoft }}>
-                    当前 Tab 使用后端 `metrics/summary` JSON，不再下载整包 Prometheus 文本；槽位和智能体明细仍由各自独立接口按需加载。
+                    当前 Tab 使用后端`metrics/summary` JSON，不再下载整包 Prometheus 文本；槽位和智能体明细仍由各自独立接口按需加载。
                   </p>
                 </div>
                 <span style={{ display: 'inline-flex', borderRadius: '9999px', border: '1px solid #14b8a6', backgroundColor: 'rgba(20, 184, 166, 0.15)', padding: '4px 12px', fontSize: '12px', fontWeight: 600, color: '#14b8a6' }}>
@@ -3865,7 +3865,7 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
 
               <div style={{ display: 'grid', gap: '12px', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))' }}>
                 {summaryObservabilityViewModel.alerts.map((alert) => (
-                  <div key={alert.label} className={`rounded-2xl border px-4 py-3 shadow-sm ${alert.tone}`}>
+ <div key={alert.label} className={`rounded-2xl border px-4 py-3 ${alert.tone}`}>
                     <div style={{ fontSize: '14px', fontWeight: 600 }}>{alert.label}</div>
                     <div style={{ marginTop: '4px', fontSize: '12px', lineHeight: '1.25rem', opacity: 0.9 }}>{alert.text}</div>
                   </div>
@@ -3921,7 +3921,7 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
 
               <div style={{ display: 'grid', gap: '12px', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))' }}>
                 {binarySecurityObservabilityViewModel.alerts.map((alert) => (
-                  <div key={alert.label} className={`rounded-2xl border px-4 py-3 shadow-sm ${alert.tone}`}>
+ <div key={alert.label} className={`rounded-2xl border px-4 py-3 ${alert.tone}`}>
                     <div style={{ fontSize: '14px', fontWeight: 600 }}>{alert.label}</div>
                     <div style={{ marginTop: '4px', fontSize: '12px', lineHeight: '1.25rem', opacity: 0.9 }}>{alert.text}</div>
                   </div>
@@ -3954,7 +3954,7 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
 
                   <div style={{ marginTop: '16px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
                     {binarySecurityObservabilityViewModel.taskListPerformance.alerts.map((alert) => (
-                      <div key={alert.label} className={`rounded-2xl border px-4 py-3 shadow-sm ${alert.tone}`}>
+ <div key={alert.label} className={`rounded-2xl border px-4 py-3 ${alert.tone}`}>
                         <div style={{ fontSize: '14px', fontWeight: 600 }}>{alert.label}</div>
                         <div style={{ marginTop: '4px', fontSize: '12px', lineHeight: '1.25rem', opacity: 0.9 }}>{alert.text}</div>
                       </div>
@@ -3971,7 +3971,7 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
                           <th style={{ padding: '8px 12px', fontWeight: 600, color: LK.muted }}>P95</th>
                         </tr>
                       </thead>
-                      <tbody style={{ display: 'flex', flexDirection: 'column', borderBottom: `1px solid ${LK.borderSoft}`, backgroundColor: LK.surface }}>
+                      <tbody style={{ display: 'flex', flexDirection: 'column', borderBottom:`1px solid ${LK.borderSoft}`, backgroundColor: LK.surface }}>
                         {binarySecurityObservabilityViewModel.taskListPerformance.stageRows.length ? (
                           binarySecurityObservabilityViewModel.taskListPerformance.stageRows.map((item) => (
                             <tr key={item.stage}>
@@ -3996,7 +3996,7 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
 
               <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-5">
                 {binarySecurityObservabilityViewModel.groupCounts.map((item) => (
-                  <div key={item.group} className="rounded-xl border border-slate-200 bg-white px-3 py-2">
+                  <div key={item.group} className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
                     <div style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.14em', color: LK.muted }}>{GROUP_LABELS[item.group]}</div>
                     <div className="mt-1 text-base font-black text-slate-800">{formatNumber(item.count)}</div>
                   </div>
@@ -4012,13 +4012,13 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
           )}
 
           {dataflowAnalysisViewModel ? (
-            <section className="space-y-4 rounded-[2rem] border border-teal-200 bg-[radial-gradient(circle_at_top_left,_rgba(20,184,166,0.10),_transparent_36%),linear-gradient(180deg,#ffffff_0%,#f0fdfa_100%)] p-5 shadow-sm">
+ <section className="space-y-4 rounded-[2rem] border border-teal-200 bg-slate-50 p-5">
               <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'flex-start', justifyContent: 'space-between', gap: '16px' }}>
                 <div>
                   <div style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.2em', color: '#14b8a6' }}>Dataflow Analysis Cluster</div>
                   <h2 style={{ marginTop: '8px', fontSize: '20px', fontWeight: 600, letterSpacing: '-0.02em', color: LK.ink }}>数据流分析聚合观测</h2>
                   <p style={{ marginTop: '8px', maxWidth: '48rem', fontSize: '14px', color: LK.inkSoft }}>
-                    当前展示的是 DFA `metrics/aggregate` 聚合视图，不再只看 API Pod。本区重点看积压、租约/心跳健康、时延、失败归因和 token/trace 复杂度。
+                    当前展示的是 DFA`metrics/aggregate` 聚合视图，不再只看 API Pod。本区重点看积压、租约/心跳健康、时延、失败归因和 token/trace 复杂度。
                   </p>
                 </div>
                 <span style={{ display: 'inline-flex', borderRadius: '9999px', border: '1px solid #14b8a6', backgroundColor: 'rgba(20, 184, 166, 0.15)', padding: '4px 12px', fontSize: '12px', fontWeight: 600, color: '#14b8a6' }}>
@@ -4029,7 +4029,7 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
 
               <div style={{ display: 'grid', gap: '12px', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))' }}>
                 {dataflowAnalysisViewModel.kpis.map((item) => (
-                  <div key={item.label} className="rounded-2xl border border-teal-100 bg-white/85 px-4 py-3 shadow-sm">
+ <div key={item.label} className="rounded-2xl border border-teal-100 bg-slate-50 px-4 py-3">
                     <div style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.16em', color: LK.muted }}>{item.label}</div>
                     <div className={`mt-2 text-xl font-black ${item.tone}`}>{item.value}</div>
                     <div style={{ marginTop: '4px', fontSize: '12px', color: LK.muted }}>{item.hint}</div>
@@ -4039,7 +4039,7 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
 
               <div style={{ display: 'grid', gap: '12px', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))' }}>
                 {dataflowAnalysisViewModel.alerts.map((alert) => (
-                  <div key={alert.label} className={`rounded-2xl border px-4 py-3 shadow-sm ${alert.tone}`}>
+ <div key={alert.label} className={`rounded-2xl border px-4 py-3 ${alert.tone}`}>
                     <div style={{ fontSize: '14px', fontWeight: 600 }}>{alert.label}</div>
                     <div style={{ marginTop: '4px', fontSize: '12px', lineHeight: '1.25rem', opacity: 0.9 }}>{alert.text}</div>
                   </div>
@@ -4047,7 +4047,7 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
               </div>
 
               <div className="grid gap-4 xl:grid-cols-[minmax(0,1.08fr)_minmax(0,0.92fr)]">
-                <div className="rounded-[1.6rem] border border-teal-100 bg-white/90 p-4 shadow-sm">
+ <div className="rounded-[1.6rem] border border-teal-100 bg-slate-50 p-4">
                   <div style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.18em', color: LK.muted }}>负载与成本</div>
                   <h3 style={{ marginTop: '8px', fontSize: '20px', fontWeight: 600, letterSpacing: '-0.02em', color: LK.ink }}>Queue / Runtime / Token</h3>
                   <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
@@ -4061,7 +4061,7 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
                   </div>
                 </div>
 
-                <div className="rounded-[1.6rem] border border-teal-100 bg-white/90 p-4 shadow-sm">
+ <div className="rounded-[1.6rem] border border-teal-100 bg-slate-50 p-4">
                   <div style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.18em', color: LK.muted }}>失败与调度</div>
                   <h3 style={{ marginTop: '8px', fontSize: '20px', fontWeight: 600, letterSpacing: '-0.02em', color: LK.ink }}>Failure Category / Dispatch</h3>
                   <div style={{ marginTop: '16px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
@@ -4099,7 +4099,7 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
                 </div>
               </div>
 
-              <div className="rounded-[1.6rem] border border-teal-100 bg-white/90 p-4 shadow-sm">
+ <div className="rounded-[1.6rem] border border-teal-100 bg-slate-50 p-4">
                 <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'flex-start', justifyContent: 'space-between', gap: '16px' }}>
                   <div>
                     <div style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.18em', color: LK.muted }}>Worker Detail</div>
@@ -4120,7 +4120,7 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
                     <button
                       type="button"
                       onClick={() => setSelectedDfaWorkerFilter('')}
-                      className="rounded-full border border-cyan-200 bg-white px-2 py-1 font-semibold text-cyan-700 hover:bg-cyan-100"
+                      className="rounded-full border border-cyan-200 bg-slate-50 px-2 py-1 font-semibold text-cyan-700 hover:bg-cyan-100"
                     >
                       清除筛选
                     </button>
@@ -4139,10 +4139,10 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
                   <>
                     <div className="mt-4 grid gap-3 md:grid-cols-4">
                       {[
-                        { label: 'Worker 数', value: dfaWorkerDetailState.data?.worker_count ?? '-', hint: `健康 ${dfaWorkerDetailState.data?.healthy_workers ?? 0} / 活跃失联 ${dfaWorkerDetailState.data?.stale_workers ?? 0}${typeof (dfaWorkerDetailState.data as any)?.retired_workers === 'number' ? ` / 退休残留 ${(dfaWorkerDetailState.data as any).retired_workers}` : ''}` },
+                        { label: 'Worker 数', value: dfaWorkerDetailState.data?.worker_count ?? '-', hint:`健康 ${dfaWorkerDetailState.data?.healthy_workers ?? 0} / 活跃失联 ${dfaWorkerDetailState.data?.stale_workers ?? 0}${typeof (dfaWorkerDetailState.data as any)?.retired_workers === 'number' ?` / 退休残留 ${(dfaWorkerDetailState.data as any).retired_workers}` : ''}` },
                         { label: '总槽位', value: dfaWorkerDetailState.data?.total_capacity ?? '-', hint: 'worker max_concurrent_jobs 汇总' },
                         { label: '运行中', value: dfaWorkerDetailState.data?.running_jobs ?? '-', hint: 'active running jobs' },
-                        { label: '空闲 / 排队', value: `${dfaWorkerDetailState.data?.available_slots ?? '-'} / ${dfaWorkerDetailState.data?.queued_jobs ?? '-'}`, hint: 'available slots / queued jobs' },
+                        { label: '空闲 / 排队', value:`${dfaWorkerDetailState.data?.available_slots ?? '-'} / ${dfaWorkerDetailState.data?.queued_jobs ?? '-'}`, hint: 'available slots / queued jobs' },
                       ].map((item) => (
                         <div key={item.label} style={{ borderRadius: '12px', border: `1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised, padding: '12px 16px' }}>
                           <div style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.16em', color: LK.muted }}>{item.label}</div>
@@ -4186,7 +4186,7 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
                             <div className="mt-3 grid gap-2 lg:grid-cols-2">
                               {asArray(worker.active_jobs).length ? (
                                 asArray(worker.active_jobs).map((job) => (
-                                  <div key={`${worker.worker_id}:${job.task_id}`} className="rounded-xl border border-slate-200 bg-white px-3 py-3">
+                                  <div key={`${worker.worker_id}:${job.task_id}`} className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-3">
                                     <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '8px' }}>
                                       <div className="min-w-0 truncate text-sm font-bold text-slate-900" title={job.task_name}>{job.task_name}</div>
                                       <span style={{ borderRadius: '9999px', backgroundColor: LK.surfaceRaised, padding: '2px 8px', fontSize: '10px', fontWeight: 600, color: LK.body }}>{job.status}</span>
@@ -4226,7 +4226,7 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
           ) : null}
 
           {entryAnalysisViewModel ? (
-            <section className="space-y-4 rounded-[2rem] border border-indigo-200 bg-[radial-gradient(circle_at_top_left,_rgba(99,102,241,0.10),_transparent_36%),linear-gradient(180deg,#ffffff_0%,#eef2ff_100%)] p-5 shadow-sm">
+ <section className="space-y-4 rounded-[2rem] border border-indigo-200 bg-slate-50 p-5">
               <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'flex-start', justifyContent: 'space-between', gap: '16px' }}>
                 <div>
                   <div className="text-[11px] font-black uppercase tracking-[0.2em] text-indigo-700">Entry Analysis Business</div>
@@ -4235,14 +4235,14 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
                     面向服务级聚合快照，重点看排队、执行、轮次、Worker/Judge 负载以及失败归因；这里不是单任务的 R1/R2/R3/R4 详情页，而是集群级健康视图。
                   </p>
                 </div>
-                <span className="inline-flex rounded-full border border-indigo-200 bg-white/80 px-3 py-1 text-xs font-black text-indigo-800">
+ <span className="inline-flex rounded-full border border-indigo-200 bg-slate-50 px-3 py-1 text-xs font-black text-indigo-800">
                   retry {formatNumber(metricValueByName(viewModel.rows, 'chimera_ea_retry_total'))} / timeout {formatNumber(metricValueByName(viewModel.rows, 'chimera_ea_timeout_total'))}
                 </span>
               </div>
 
               <div style={{ display: 'grid', gap: '12px', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))' }}>
                 {entryAnalysisViewModel.kpis.map((item) => (
-                  <div key={item.label} className="rounded-2xl border border-indigo-100 bg-white/85 px-4 py-3 shadow-sm">
+ <div key={item.label} className="rounded-2xl border border-indigo-100 bg-slate-50 px-4 py-3">
                     <div style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.16em', color: LK.muted }}>{item.label}</div>
                     <div className={`mt-2 text-xl font-black ${item.tone}`}>{item.value}</div>
                     <div style={{ marginTop: '4px', fontSize: '12px', color: LK.muted }}>{item.hint}</div>
@@ -4252,7 +4252,7 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
 
               <div style={{ display: 'grid', gap: '12px', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))' }}>
                 {entryAnalysisViewModel.riskAlerts.map((alert) => (
-                  <div key={alert.label} className={`rounded-2xl border px-4 py-3 shadow-sm ${alert.tone}`}>
+ <div key={alert.label} className={`rounded-2xl border px-4 py-3 ${alert.tone}`}>
                     <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'flex-start', justifyContent: 'space-between', gap: '12px' }}>
                       <div>
                         <div style={{ fontSize: '14px', fontWeight: 600 }}>{alert.label}</div>
@@ -4267,7 +4267,7 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
                           sessionStorage.setItem(ENTRY_ANALYSIS_RISK_FOCUS_STORAGE_KEY, entryAnalysisRiskKeyFromLabel(alert.label));
                           window.dispatchEvent(new CustomEvent('chimera-navigate-view', { detail: { view: 'entry-analysis-task' } }));
                         }}
-                        className="rounded-xl border border-current/20 bg-white/70 px-3 py-2 text-[11px] font-black transition hover:bg-white"
+ className="rounded-xl border border-current/20 bg-slate-50 px-3 py-2 text-[11px] font-black transition hover:bg-slate-50"
                       >
                         带着风险排查
                       </button>
@@ -4344,7 +4344,7 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
                     <button
                       type="button"
                       onClick={() => setSelectedEntryWorkerFilter('')}
-                      className="rounded-full border border-indigo-200 bg-white px-2 py-1 font-semibold text-indigo-700 hover:bg-indigo-100"
+                      className="rounded-full border border-indigo-200 bg-slate-50 px-2 py-1 font-semibold text-indigo-700 hover:bg-indigo-100"
                     >
                       清除筛选
                     </button>
@@ -4366,7 +4366,7 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
                         { label: 'Worker 数', value: entryWorkerDetailState.data?.worker_count ?? '-', hint: '完整集群可见 worker 数' },
                         { label: '总槽位', value: entryWorkerDetailState.data?.total_capacity ?? '-', hint: 'worker max_concurrent_jobs 汇总' },
                         { label: '运行中', value: entryWorkerDetailState.data?.running_jobs ?? '-', hint: 'active running jobs' },
-                        { label: '空闲 / 排队', value: `${entryWorkerDetailState.data?.available_slots ?? '-'} / ${entryWorkerDetailState.data?.queued_jobs ?? '-'}`, hint: 'available slots / queued jobs' },
+                        { label: '空闲 / 排队', value:`${entryWorkerDetailState.data?.available_slots ?? '-'} / ${entryWorkerDetailState.data?.queued_jobs ?? '-'}`, hint: 'available slots / queued jobs' },
                       ].map((item) => (
                         <div key={item.label} style={{ borderRadius: '12px', border: `1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised, padding: '12px 16px' }}>
                           <div style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.16em', color: LK.muted }}>{item.label}</div>
@@ -4410,7 +4410,7 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
                             <div className="mt-3 grid gap-2 lg:grid-cols-2">
                               {asArray(worker.active_tasks).length ? (
                                 asArray(worker.active_tasks).map((job) => (
-                                  <div key={`${worker.worker_id}:${job.task_id}`} className="rounded-xl border border-slate-200 bg-white px-3 py-3">
+                                  <div key={`${worker.worker_id}:${job.task_id}`} className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-3">
                                     <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '8px' }}>
                                       <div className="min-w-0 truncate text-sm font-bold text-slate-900" title={job.task_id}>{job.task_id}</div>
                                       <span style={{ borderRadius: '9999px', backgroundColor: LK.surfaceRaised, padding: '2px 8px', fontSize: '10px', fontWeight: 600, color: LK.body }}>{job.status}</span>
@@ -4448,7 +4448,7 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
 
               <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-5">
                 {entryAnalysisViewModel.stageCards.map((item) => (
-                  <div key={item.label} className="rounded-2xl border border-indigo-100 bg-white/85 px-4 py-3 shadow-sm">
+ <div key={item.label} className="rounded-2xl border border-indigo-100 bg-slate-50 px-4 py-3">
                     <div style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.16em', color: LK.muted }}>{item.label}</div>
                     <div className={`mt-2 text-xl font-black ${item.tone}`}>{item.value}</div>
                     <div style={{ marginTop: '4px', fontSize: '12px', color: LK.muted }}>{item.hint}</div>
@@ -4468,7 +4468,7 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
                       type="button"
                       onClick={() => setSelectedEntryStage('all')}
                       className={`rounded-full border px-3 py-1 text-xs font-black transition ${
-                        selectedEntryStage === 'all' ? 'border-indigo-600 bg-indigo-600 text-white' : 'border-slate-200 bg-slate-50 text-slate-600 hover:bg-white'
+                        selectedEntryStage === 'all' ? 'border-indigo-600 bg-indigo-600 text-white' : 'border-slate-200 bg-slate-50 text-slate-600 hover:bg-slate-50'
                       }`}
                     >
                       全部阶段
@@ -4479,7 +4479,7 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
                         type="button"
                         onClick={() => setSelectedEntryStage(item.stage as 'R1' | 'R2' | 'R3' | 'R4')}
                         className={`rounded-full border px-3 py-1 text-xs font-black transition ${
-                          selectedEntryStage === item.stage ? 'border-indigo-600 bg-indigo-600 text-white' : 'border-slate-200 bg-slate-50 text-slate-600 hover:bg-white'
+                          selectedEntryStage === item.stage ? 'border-indigo-600 bg-indigo-600 text-white' : 'border-slate-200 bg-slate-50 text-slate-600 hover:bg-slate-50'
                         }`}
                       >
                         {item.stage}
@@ -4492,10 +4492,10 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
                   <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-6">
                     {[
                       { label: '阶段样本', value: formatNumber(focusedEntryStageRow.totalRuns, 0), hint: 'stage_rounds total', tone: focusedEntryStageRow.healthTone },
-                      { label: '通过 / 失败', value: `${formatNumber(focusedEntryStageRow.passedRuns, 0)} / ${formatNumber(focusedEntryStageRow.failedRuns, 0)}`, hint: 'passed / failed', tone: focusedEntryStageRow.failedRuns > focusedEntryStageRow.passedRuns ? 'text-rose-700' : 'text-emerald-700' },
-                      { label: '重试 / 运行中', value: `${formatNumber(focusedEntryStageRow.retryRuns, 0)} / ${formatNumber(focusedEntryStageRow.runningRuns, 0)}`, hint: 'retry / running', tone: focusedEntryStageRow.retryRuns > 0 || focusedEntryStageRow.runningRuns > 0 ? 'text-amber-700' : 'text-slate-900' },
+                      { label: '通过 / 失败', value:`${formatNumber(focusedEntryStageRow.passedRuns, 0)} / ${formatNumber(focusedEntryStageRow.failedRuns, 0)}`, hint: 'passed / failed', tone: focusedEntryStageRow.failedRuns > focusedEntryStageRow.passedRuns ? 'text-rose-700' : 'text-emerald-700' },
+                      { label: '重试 / 运行中', value:`${formatNumber(focusedEntryStageRow.retryRuns, 0)} / ${formatNumber(focusedEntryStageRow.runningRuns, 0)}`, hint: 'retry / running', tone: focusedEntryStageRow.retryRuns > 0 || focusedEntryStageRow.runningRuns > 0 ? 'text-amber-700' : 'text-slate-900' },
                       { label: '平均耗时', value: formatSeconds(focusedEntryStageRow.avgDurationSeconds), hint: 'stage_duration_seconds 均值', tone: (focusedEntryStageRow.avgDurationSeconds || 0) > 180 ? 'text-rose-700' : 'text-slate-900' },
-                      { label: 'Worker / Judge', value: `${formatNumber(focusedEntryStageRow.workerCalls, 0)} / ${formatNumber(focusedEntryStageRow.judgeCalls, 0)}`, hint: 'stage_role_total', tone: 'text-indigo-700' },
+                      { label: 'Worker / Judge', value:`${formatNumber(focusedEntryStageRow.workerCalls, 0)} / ${formatNumber(focusedEntryStageRow.judgeCalls, 0)}`, hint: 'stage_role_total', tone: 'text-indigo-700' },
                       { label: 'Sessions', value: formatNumber(focusedEntryStageRow.sessionCount, 0), hint: 'stage_session_total', tone: focusedEntryStageRow.sessionCount > 0 ? 'text-slate-900' : 'text-amber-700' },
                     ].map((item) => (
                       <div key={item.label} className="rounded-2xl border border-indigo-100 bg-indigo-50/40 px-4 py-3">
@@ -4529,7 +4529,7 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
                       setSelectedEntryStage('all');
                       setSearchKeyword('');
                     }}
-                    className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-black text-slate-600 transition hover:bg-white"
+                    className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-black text-slate-600 transition hover:bg-slate-50"
                   >
                     清空阶段聚焦
                   </button>
@@ -4591,10 +4591,10 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
                           <th className="px-3 py-3">Sessions</th>
                         </tr>
                       </thead>
-                      <tbody style={{ display: 'flex', flexDirection: 'column', borderBottom: `1px solid ${LK.borderSoft}`, backgroundColor: LK.surface }}>
+                      <tbody style={{ display: 'flex', flexDirection: 'column', borderBottom:`1px solid ${LK.borderSoft}`, backgroundColor: LK.surface }}>
                         {entryAnalysisViewModel.stageRows.length ? (
                           entryAnalysisViewModel.stageRows.map((item) => (
-                            <tr key={item.stage} className={`cursor-pointer hover:bg-slate-50 ${selectedEntryStage === item.stage ? 'bg-indigo-50/70' : ''}`} onClick={() => setSelectedEntryStage(item.stage as 'R1' | 'R2' | 'R3' | 'R4')}>
+                            <tr key={item.stage} className={`cursor-pointer hover:bg-slate-100 ${selectedEntryStage === item.stage ? 'bg-indigo-50/70' : ''}`} onClick={() => setSelectedEntryStage(item.stage as 'R1' | 'R2' | 'R3' | 'R4')}>
                               <td className="px-3 py-3">
                                 <div className={`font-black ${item.healthTone}`}>{item.stage}</div>
                               </td>
@@ -4626,7 +4626,7 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
           ) : null}
 
           {b2sBusinessViewModel ? (
-            <section className="rounded-[2rem] border border-cyan-200 bg-[radial-gradient(circle_at_top_left,_rgba(6,182,212,0.12),_transparent_35%),linear-gradient(180deg,#ffffff_0%,#ecfeff_100%)] p-5 shadow-sm">
+ <section className="rounded-[2rem] border border-cyan-200 bg-slate-50 p-5">
               <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'flex-start', justifyContent: 'space-between', gap: '16px' }}>
                 <div>
                   <div className="text-[11px] font-black uppercase tracking-[0.2em] text-cyan-700">Binary To Source Business</div>
@@ -4636,10 +4636,10 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
                   </p>
                 </div>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
-                  <span className="inline-flex rounded-full border border-cyan-200 bg-white/80 px-3 py-1 text-xs font-black text-cyan-800">
-                    覆盖率 {b2sBusinessViewModel.coverageRate == null ? '-' : `${formatNumber(b2sBusinessViewModel.coverageRate, 1)}%`}
+ <span className="inline-flex rounded-full border border-cyan-200 bg-slate-50 px-3 py-1 text-xs font-black text-cyan-800">
+                    覆盖率 {b2sBusinessViewModel.coverageRate == null ? '-' :`${formatNumber(b2sBusinessViewModel.coverageRate, 1)}%`}
                   </span>
-                  <span className="inline-flex rounded-full border border-cyan-200 bg-white/80 px-3 py-1 text-xs font-black text-cyan-800">
+ <span className="inline-flex rounded-full border border-cyan-200 bg-slate-50 px-3 py-1 text-xs font-black text-cyan-800">
                     最近样本 {formatTime(b2sBusinessViewModel.latestSeenAt)}
                   </span>
                 </div>
@@ -4653,7 +4653,7 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
                   {b2sBusinessViewModel.missingReasons.length ? (
                     <div className="mt-3 grid gap-2 md:grid-cols-2 xl:grid-cols-4">
                       {b2sBusinessViewModel.missingReasons.map((item) => (
-                        <div key={item.reason} className="rounded-xl border border-amber-100 bg-white/80 px-3 py-2">
+ <div key={item.reason} className="rounded-xl border border-amber-100 bg-slate-50 px-3 py-2">
                           <div className="text-[11px] font-black uppercase tracking-[0.14em] text-amber-600">{item.reason}</div>
                           <div className="mt-1 text-lg font-black text-amber-900">{formatNumber(item.value)}</div>
                         </div>
@@ -4669,15 +4669,15 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
                       { label: '头文件平均耗时', value: formatSeconds(b2sBusinessViewModel.headerAvgSeconds), hint: 'terminal header_synthesis', tone: 'text-cyan-900' },
                       { label: '函数体平均耗时', value: formatSeconds(b2sBusinessViewModel.bodyAvgSeconds), hint: 'terminal body_generation', tone: 'text-cyan-900' },
                       { label: '批次平均耗时', value: formatSeconds(b2sBusinessViewModel.batchAvgSeconds), hint: 'batch duration', tone: 'text-cyan-900' },
-                      { label: '加权函数吞吐', value: `${formatNumber(b2sBusinessViewModel.weightedFunctionThroughput ?? b2sBusinessViewModel.functionThroughput, 3)} /s`, hint: 'completed functions / body seconds', tone: 'text-emerald-700' },
-                      { label: '覆盖率', value: b2sBusinessViewModel.coverageRate == null ? '-' : `${formatNumber(b2sBusinessViewModel.coverageRate, 1)}%`, hint: `available ${formatNumber(b2sBusinessViewModel.availableItems)} / missing ${formatNumber(b2sBusinessViewModel.missingItems)}`, tone: (b2sBusinessViewModel.missingItems || 0) > 0 ? 'text-amber-700' : 'text-emerald-700' },
-                      { label: '批次重试率', value: b2sBusinessViewModel.batchRetryRate == null ? '-' : `${formatNumber(b2sBusinessViewModel.batchRetryRate * 100, 1)}%`, hint: 'extra attempts / attempts', tone: (b2sBusinessViewModel.batchRetryRate || 0) > 0.1 ? 'text-amber-700' : 'text-emerald-700' },
-                      { label: '校验通过率', value: b2sBusinessViewModel.batchValidationPassRate == null ? '-' : `${formatNumber(b2sBusinessViewModel.batchValidationPassRate * 100, 1)}%`, hint: 'passed batches / batches', tone: (b2sBusinessViewModel.batchValidationPassRate || 0) < 0.9 ? 'text-amber-700' : 'text-emerald-700' },
-                      { label: '失败批次占比', value: b2sBusinessViewModel.batchFailureRate == null ? '-' : `${formatNumber(b2sBusinessViewModel.batchFailureRate * 100, 1)}%`, hint: 'failed batches / batches', tone: (b2sBusinessViewModel.batchFailureRate || 0) > 0 ? 'text-rose-700' : 'text-emerald-700' },
+                      { label: '加权函数吞吐', value:`${formatNumber(b2sBusinessViewModel.weightedFunctionThroughput ?? b2sBusinessViewModel.functionThroughput, 3)} /s`, hint: 'completed functions / body seconds', tone: 'text-emerald-700' },
+                      { label: '覆盖率', value: b2sBusinessViewModel.coverageRate == null ? '-' :`${formatNumber(b2sBusinessViewModel.coverageRate, 1)}%`, hint:`available ${formatNumber(b2sBusinessViewModel.availableItems)} / missing ${formatNumber(b2sBusinessViewModel.missingItems)}`, tone: (b2sBusinessViewModel.missingItems || 0) > 0 ? 'text-amber-700' : 'text-emerald-700' },
+                      { label: '批次重试率', value: b2sBusinessViewModel.batchRetryRate == null ? '-' :`${formatNumber(b2sBusinessViewModel.batchRetryRate * 100, 1)}%`, hint: 'extra attempts / attempts', tone: (b2sBusinessViewModel.batchRetryRate || 0) > 0.1 ? 'text-amber-700' : 'text-emerald-700' },
+                      { label: '校验通过率', value: b2sBusinessViewModel.batchValidationPassRate == null ? '-' :`${formatNumber(b2sBusinessViewModel.batchValidationPassRate * 100, 1)}%`, hint: 'passed batches / batches', tone: (b2sBusinessViewModel.batchValidationPassRate || 0) < 0.9 ? 'text-amber-700' : 'text-emerald-700' },
+                      { label: '失败批次占比', value: b2sBusinessViewModel.batchFailureRate == null ? '-' :`${formatNumber(b2sBusinessViewModel.batchFailureRate * 100, 1)}%`, hint: 'failed batches / batches', tone: (b2sBusinessViewModel.batchFailureRate || 0) > 0 ? 'text-rose-700' : 'text-emerald-700' },
                       { label: '平均 Attempts', value: formatNumber(b2sBusinessViewModel.avgAttemptsPerBatch, 2), hint: 'attempts per batch', tone: (b2sBusinessViewModel.avgAttemptsPerBatch || 0) > 1.2 ? 'text-amber-700' : 'text-slate-900' },
-                      { label: 'Token / 成本', value: `${formatNumber(b2sBusinessViewModel.tokenTotal)} / ${formatMetricValue(b2sBusinessViewModel.costTotal ?? Number.NaN)}`, hint: 'runtime llm summary', tone: 'text-indigo-700' },
+                      { label: 'Token / 成本', value:`${formatNumber(b2sBusinessViewModel.tokenTotal)} / ${formatMetricValue(b2sBusinessViewModel.costTotal ?? Number.NaN)}`, hint: 'runtime llm summary', tone: 'text-indigo-700' },
                     ].map((item) => (
-                      <div key={item.label} className="rounded-2xl border border-cyan-100 bg-white/80 px-4 py-3 shadow-sm">
+ <div key={item.label} className="rounded-2xl border border-cyan-100 bg-slate-50 px-4 py-3">
                         <div style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.16em', color: LK.muted }}>{item.label}</div>
                         <div className={`mt-2 text-xl font-black ${item.tone}`}>{item.value}</div>
                         <div style={{ marginTop: '4px', fontSize: '12px', color: LK.muted }}>{item.hint}</div>
@@ -4692,7 +4692,7 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
                           { label: '运行中头文件耗时', value: formatSeconds(b2sBusinessViewModel.runningHeaderAvgSeconds), hint: 'running header_synthesis', tone: 'text-cyan-900' },
                           { label: '运行中函数体耗时', value: formatSeconds(b2sBusinessViewModel.runningBodyAvgSeconds), hint: 'running body_generation', tone: 'text-cyan-900' },
                         ].map((item) => (
-                          <div key={item.label} className="rounded-2xl border border-cyan-100 bg-white/70 px-4 py-3">
+ <div key={item.label} className="rounded-2xl border border-cyan-100 bg-slate-50 px-4 py-3">
                             <div style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.16em', color: LK.muted }}>{item.label}</div>
                             <div className={`mt-2 text-xl font-black ${item.tone}`}>{item.value}</div>
                             <div style={{ marginTop: '4px', fontSize: '12px', color: LK.muted }}>{item.hint}</div>
@@ -4707,7 +4707,7 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
           ) : null}
 
           {b2sCacheViewModel ? (
-            <section className="rounded-[2rem] border border-emerald-200 bg-[radial-gradient(circle_at_top_left,_rgba(16,185,129,0.12),_transparent_35%),linear-gradient(180deg,#ffffff_0%,#ecfdf5_100%)] p-5 shadow-sm">
+ <section className="rounded-[2rem] border border-emerald-200 bg-slate-50 p-5">
               <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'flex-start', justifyContent: 'space-between', gap: '16px' }}>
                 <div>
                   <div className="text-[11px] font-black uppercase tracking-[0.2em] text-emerald-700">Binary To Source Cache</div>
@@ -4716,8 +4716,8 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
                     观察 ELF 级缓存请求、命中、绕过、覆盖和当前缓存条目数量，辅助判断相同输入是否被有效复用。
                   </p>
                 </div>
-                <span className="inline-flex rounded-full border border-emerald-200 bg-white/80 px-3 py-1 text-xs font-black text-emerald-800">
-                  命中率 {b2sCacheViewModel.hitRate == null ? '-' : `${formatNumber(b2sCacheViewModel.hitRate, 1)}%`}
+ <span className="inline-flex rounded-full border border-emerald-200 bg-slate-50 px-3 py-1 text-xs font-black text-emerald-800">
+                  命中率 {b2sCacheViewModel.hitRate == null ? '-' :`${formatNumber(b2sCacheViewModel.hitRate, 1)}%`}
                 </span>
               </div>
               <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-6">
@@ -4729,7 +4729,7 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
                   { label: '缓存覆盖', value: formatNumber(b2sCacheViewModel.replacedTotal), hint: 'replace total', tone: 'text-indigo-700' },
                   { label: '当前条目', value: formatNumber(b2sCacheViewModel.entries), hint: 'ready cache entries', tone: 'text-slate-900' },
                 ].map((item) => (
-                  <div key={item.label} className="rounded-2xl border border-emerald-100 bg-white/80 px-4 py-3 shadow-sm">
+ <div key={item.label} className="rounded-2xl border border-emerald-100 bg-slate-50 px-4 py-3">
                     <div style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.16em', color: LK.muted }}>{item.label}</div>
                     <div className={`mt-2 text-xl font-black ${item.tone}`}>{item.value}</div>
                     <div style={{ marginTop: '4px', fontSize: '12px', color: LK.muted }}>{item.hint}</div>
@@ -4740,7 +4740,7 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
           ) : null}
 
           {systemAnalysisViewModel ? (
-            <section className="space-y-4 rounded-[2rem] border border-sky-200 bg-[radial-gradient(circle_at_top_left,_rgba(14,165,233,0.12),_transparent_34%),linear-gradient(180deg,#ffffff_0%,#f0f9ff_100%)] p-5 shadow-sm">
+ <section className="space-y-4 rounded-[2rem] border border-sky-200 bg-slate-50 p-5">
               <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'flex-start', justifyContent: 'space-between', gap: '16px' }}>
                 <div>
                   <div className="text-[11px] font-black uppercase tracking-[0.22em] text-sky-700">System Analysis Observability</div>
@@ -4749,14 +4749,14 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
                     以运行总览、阶段健康、AI 成本、并发治理和质量收益为主视图，优先回答“卡在哪、贵不贵、并发是否打满、失败是否集中”。
                   </p>
                 </div>
-                <span className="inline-flex rounded-full border border-sky-200 bg-white/80 px-3 py-1 text-xs font-black text-sky-800">
+ <span className="inline-flex rounded-full border border-sky-200 bg-slate-50 px-3 py-1 text-xs font-black text-sky-800">
                   worker {formatNumber(systemWorkerDetailState.data?.worker_count)} / slots {formatNumber(systemWorkerDetailState.data?.total_capacity)}
                 </span>
               </div>
 
               <div style={{ display: 'grid', gap: '12px', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))' }}>
                 {systemAnalysisViewModel.overviewCards.map((item) => (
-                  <div key={item.label} className="rounded-2xl border border-sky-100 bg-white/85 px-4 py-3 shadow-sm">
+ <div key={item.label} className="rounded-2xl border border-sky-100 bg-slate-50 px-4 py-3">
                     <div style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.16em', color: LK.muted }}>{item.label}</div>
                     <div className={`mt-2 text-2xl font-black ${item.tone}`}>{item.value}</div>
                     <div style={{ marginTop: '4px', fontSize: '12px', color: LK.muted }}>{item.hint}</div>
@@ -4764,7 +4764,7 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
                 ))}
               </div>
 
-              <div className="rounded-[1.4rem] border border-sky-100 bg-white/85 px-4 py-3 shadow-sm">
+ <div className="rounded-[1.4rem] border border-sky-100 bg-slate-50 px-4 py-3">
                 <div style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.18em', color: LK.muted }}>快速摘要</div>
                 <div className="mt-3 flex flex-wrap gap-x-5 gap-y-2">
                   {systemAnalysisViewModel.compactSummary.map((item) => (
@@ -4776,7 +4776,7 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
                 </div>
               </div>
 
-              <div className="rounded-[1.6rem] border border-sky-100 bg-white/90 p-4 shadow-sm">
+ <div className="rounded-[1.6rem] border border-sky-100 bg-slate-50 p-4">
                 <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'flex-start', justifyContent: 'space-between', gap: '16px' }}>
                   <div>
                     <div style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.18em', color: LK.muted }}>Worker Detail</div>
@@ -4797,7 +4797,7 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
                     <button
                       type="button"
                       onClick={() => setSelectedSystemWorkerFilter('')}
-                      className="rounded-full border border-sky-200 bg-white px-2 py-1 font-semibold text-sky-700 hover:bg-sky-100"
+                      className="rounded-full border border-sky-200 bg-slate-50 px-2 py-1 font-semibold text-sky-700 hover:bg-sky-100"
                     >
                       清除筛选
                     </button>
@@ -4819,7 +4819,7 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
                         { label: 'Worker 数', value: systemWorkerDetailState.data?.worker_count ?? '-', hint: '完整集群可见 worker 数' },
                         { label: '总槽位', value: systemWorkerDetailState.data?.total_capacity ?? '-', hint: 'runner capacity 汇总' },
                         { label: '运行中', value: systemWorkerDetailState.data?.busy_slots ?? '-', hint: 'active running jobs' },
-                        { label: '空闲 / 排队', value: `${systemWorkerDetailState.data?.available_slots ?? '-'} / ${systemWorkerDetailState.data?.queued_jobs ?? '-'}`, hint: 'available slots / queued jobs' },
+                        { label: '空闲 / 排队', value:`${systemWorkerDetailState.data?.available_slots ?? '-'} / ${systemWorkerDetailState.data?.queued_jobs ?? '-'}`, hint: 'available slots / queued jobs' },
                       ].map((item) => (
                         <div key={item.label} style={{ borderRadius: '12px', border: `1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised, padding: '12px 16px' }}>
                           <div style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.16em', color: LK.muted }}>{item.label}</div>
@@ -4863,7 +4863,7 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
                             <div className="mt-3 grid gap-2 lg:grid-cols-2">
                               {asArray(worker.active_jobs).length ? (
                                 asArray(worker.active_jobs).map((job) => (
-                                  <div key={`${worker.worker_id}:${job.task_id}`} className="rounded-xl border border-slate-200 bg-white px-3 py-3">
+                                  <div key={`${worker.worker_id}:${job.task_id}`} className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-3">
                                     <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '8px' }}>
                                       <div className="min-w-0 truncate text-sm font-bold text-slate-900" title={job.task_id}>{job.task_id}</div>
                                       <span style={{ borderRadius: '9999px', backgroundColor: LK.surfaceRaised, padding: '2px 8px', fontSize: '10px', fontWeight: 600, color: LK.body }}>{job.status}</span>
@@ -4924,7 +4924,7 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
                           <th className="px-3 py-3">均成本</th>
                         </tr>
                       </thead>
-                      <tbody style={{ display: 'flex', flexDirection: 'column', borderBottom: `1px solid ${LK.borderSoft}`, backgroundColor: LK.surface }}>
+                      <tbody style={{ display: 'flex', flexDirection: 'column', borderBottom:`1px solid ${LK.borderSoft}`, backgroundColor: LK.surface }}>
                         {systemAnalysisViewModel.stageRows.length ? (
                           systemAnalysisViewModel.stageRows.map((row) => (
                             <tr key={row.stage} style={{ cursor: 'pointer', transition: 'background-color 0.15s' }}>
@@ -4934,7 +4934,7 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
                                 <div className="text-[10px] text-slate-400">all / ok / fail</div>
                               </td>
                               <td className={`px-3 py-3 font-mono text-[11px] font-bold ${(row.successRate || 0) < 70 ? 'text-rose-700' : 'text-emerald-700'}`}>
-                                {row.successRate == null ? '-' : `${formatNumber(row.successRate, 1)}%`}
+                                {row.successRate == null ? '-' :`${formatNumber(row.successRate, 1)}%`}
                               </td>
                               <td style={{ padding: '12px', fontFamily: MONO, fontSize: '11px', color: LK.ink }}>{formatSeconds(row.avgDurationSeconds)}</td>
                               <td style={{ padding: '12px', fontFamily: MONO, fontSize: '11px', color: LK.ink }}>{formatNumber(row.avgRounds, 2)}</td>
@@ -4959,7 +4959,7 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
                     <div style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.18em', color: LK.muted }}>运行风险</div>
                     <div className="mt-3 grid gap-3">
                       {systemAnalysisViewModel.riskAlerts.map((alert) => (
-                        <div key={alert.label} className={`rounded-2xl border px-4 py-3 shadow-sm ${alert.tone}`}>
+ <div key={alert.label} className={`rounded-2xl border px-4 py-3 ${alert.tone}`}>
                           <div style={{ fontSize: '14px', fontWeight: 600 }}>{alert.label}</div>
                           <div className="mt-1 text-xs leading-5 opacity-85">{alert.text}</div>
                         </div>
@@ -5046,7 +5046,7 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
                   <div style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.18em', color: LK.muted }}>并发治理</div>
                   <h3 style={{ marginTop: '8px', fontSize: '18px', fontWeight: 600, letterSpacing: '-0.02em', color: LK.ink }}>并发命中率</h3>
                   <p style={{ marginTop: '8px', fontSize: '14px', color: LK.muted }}>
-                    这里用 `tasks_running / workers(capacity)` 观察当前命中情况，同时把 slack 和 pending 一起摆出来，方便判断是容量不够还是调度没打满。
+                    这里用`tasks_running / workers(capacity)` 观察当前命中情况，同时把 slack 和 pending 一起摆出来，方便判断是容量不够还是调度没打满。
                   </p>
                   <div style={{ marginTop: '16px', height: '288px' }}>
                     {systemAnalysisViewModel.concurrencyChart.some((item) => item.value > 0) ? (
@@ -5076,7 +5076,7 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
                     <div style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.18em', color: LK.muted }}>阶段关联</div>
                     <h3 style={{ marginTop: '8px', fontSize: '18px', fontWeight: 600, letterSpacing: '-0.02em', color: LK.ink }}>并发拖慢嫌疑阶段</h3>
                     <p style={{ marginTop: '8px', fontSize: '14px', color: LK.muted }}>
-                      用 `运行中轮次 + 平均时长 + 成功率惩罚` 组合成轻量 pressure score，优先找最可能影响并发命中率的阶段。
+                      用`运行中轮次 + 平均时长 + 成功率惩罚` 组合成轻量 pressure score，优先找最可能影响并发命中率的阶段。
                     </p>
                   </div>
                   <div className="flex flex-wrap gap-3">
@@ -5091,7 +5091,7 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
                 </div>
 
                 <div className="mt-4 grid gap-4 xl:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
-                  <div className="h-64 rounded-2xl border border-slate-200 bg-white p-3">
+                  <div className="h-64 rounded-2xl border border-slate-200 bg-slate-50 p-3">
                     {systemAnalysisViewModel.stagePressureRows.length ? (
                       <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={240}>
                         <BarChart data={systemAnalysisViewModel.stagePressureRows} margin={{ top: 8, right: 12, left: 0, bottom: 8 }}>
@@ -5118,7 +5118,7 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
                           <div style={{ minWidth: 0 }}>
                             <div className="truncate text-sm font-black text-slate-800">{item.stage}</div>
                             <div style={{ marginTop: '4px', fontSize: '12px', color: LK.muted }}>
-                              running {formatNumber(item.runningRuns)} · avg {formatSeconds(item.avgDurationSeconds)} · success {item.successRate == null ? '-' : `${formatNumber(item.successRate, 1)}%`}
+                              running {formatNumber(item.runningRuns)} · avg {formatSeconds(item.avgDurationSeconds)} · success {item.successRate == null ? '-' :`${formatNumber(item.successRate, 1)}%`}
                             </div>
                           </div>
                           <div className={`font-mono text-sm font-black ${item.tone}`}>{formatNumber(item.pressureScore, 1)}</div>
@@ -5150,7 +5150,7 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
                     },
                     {
                       label: '阶段压力分',
-                      text: '由 `运行中轮次 + 平均时长 + 成功率惩罚` 组合得到，用于快速找出最可能拖慢并发的 stage。',
+                      text: '由`运行中轮次 + 平均时长 + 成功率惩罚` 组合得到，用于快速找出最可能拖慢并发的 stage。',
                     },
                   ].map((item) => (
                     <div key={item.label} style={{ borderRadius: '12px', border: `1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised, padding: '12px 16px' }}>
@@ -5171,7 +5171,7 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
           ) : null}
 
           {firmwareUnpackerViewModel ? (
-            <section className="space-y-4 rounded-[2rem] border border-amber-200 bg-[radial-gradient(circle_at_top_left,_rgba(245,158,11,0.12),_transparent_34%),linear-gradient(180deg,#ffffff_0%,#fff7ed_100%)] p-5 shadow-sm">
+ <section className="space-y-4 rounded-[2rem] border border-amber-200 bg-slate-50 p-5">
               <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'flex-start', justifyContent: 'space-between', gap: '16px' }}>
                 <div>
                   <div className="text-[11px] font-black uppercase tracking-[0.22em] text-amber-700">Firmware Unpacker Health</div>
@@ -5180,14 +5180,14 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
                     优先展示任务状态、队列积压、Worker 在线能力、并发槽位和清理异常；原始 Prometheus 样本仍保留在下方用于排障。
                   </p>
                 </div>
-                <span className="inline-flex rounded-full border border-amber-200 bg-white/80 px-3 py-1 text-xs font-black text-amber-800">
+ <span className="inline-flex rounded-full border border-amber-200 bg-slate-50 px-3 py-1 text-xs font-black text-amber-800">
                   专属聚合视图
                 </span>
               </div>
 
               <div style={{ display: 'grid', gap: '12px', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))' }}>
                 {firmwareUnpackerViewModel.kpis.map((item) => (
-                  <div key={item.label} className="rounded-2xl border border-amber-100 bg-white/85 px-4 py-3 shadow-sm">
+ <div key={item.label} className="rounded-2xl border border-amber-100 bg-slate-50 px-4 py-3">
                     <div style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.16em', color: LK.muted }}>{item.label}</div>
                     <div className={`mt-2 text-2xl font-black ${item.tone}`}>{item.value}</div>
                     <div style={{ marginTop: '4px', fontSize: '12px', color: LK.muted }}>{item.hint}</div>
@@ -5197,7 +5197,7 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
 
               <div style={{ display: 'grid', gap: '12px', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))' }}>
                 {firmwareUnpackerViewModel.alerts.map((alert) => (
-                  <div key={alert.label} className={`rounded-2xl border px-4 py-3 shadow-sm ${alert.tone}`}>
+ <div key={alert.label} className={`rounded-2xl border px-4 py-3 ${alert.tone}`}>
                     <div style={{ fontSize: '14px', fontWeight: 600 }}>{alert.label}</div>
                     <div className="mt-1 text-xs leading-5 opacity-85">{alert.text}</div>
                   </div>
@@ -5211,7 +5211,7 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
                   { title: 'Worker 与并发槽位', data: firmwareUnpackerViewModel.workerChart },
                   { title: 'HTTP 请求 Top 6', data: firmwareUnpackerViewModel.httpTop.map((item) => ({ ...item, fill: '#0f766e' })) },
                 ].map((chart) => (
-                  <div key={chart.title} className="rounded-[1.6rem] border border-amber-100 bg-white/85 p-4 shadow-sm">
+ <div key={chart.title} className="rounded-[1.6rem] border border-amber-100 bg-slate-50 p-4">
                     <div style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.18em', color: LK.muted }}>{chart.title}</div>
                     <div className="mt-3 h-64">
                       {chart.data.some((item) => item.value > 0) ? (
@@ -5237,7 +5237,7 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
               </div>
 
               <div className="grid gap-4 xl:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)]">
-                <div className="rounded-[1.6rem] border border-amber-100 bg-white/85 p-4 shadow-sm">
+ <div className="rounded-[1.6rem] border border-amber-100 bg-slate-50 p-4">
                   <div style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.18em', color: LK.muted }}>异常 / 调度 / 清理</div>
                   <div className="mt-3 grid gap-2 md:grid-cols-2">
                     {firmwareUnpackerViewModel.operations.map((item) => (
@@ -5249,7 +5249,7 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
                     ))}
                   </div>
                 </div>
-                <div className="rounded-[1.6rem] border border-amber-100 bg-white/85 p-4 shadow-sm">
+ <div className="rounded-[1.6rem] border border-amber-100 bg-slate-50 p-4">
                   <div style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.18em', color: LK.muted }}>AI / Token / Cost</div>
                   <div className="mt-3 grid gap-2">
                     {firmwareUnpackerViewModel.aiSummary.map((item) => (
@@ -5330,7 +5330,7 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
 
                 <div className="mt-5 grid gap-2 sm:grid-cols-2">
                   {viewModel.groupCounts.map((item) => (
-                    <div key={item.group} className="rounded-xl border border-slate-200 bg-white px-3 py-2">
+                    <div key={item.group} className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
                       <div style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.14em', color: LK.muted }}>{GROUP_LABELS[item.group]}</div>
                       <div className="mt-1 text-base font-black text-slate-800">{formatNumber(item.count)}</div>
                     </div>
@@ -5370,7 +5370,7 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
                 <button
                   type="button"
                   onClick={() => setSelectedDfaWorkerFilter('')}
-                  className="rounded-full border border-cyan-200 bg-white px-2 py-1 font-semibold text-cyan-700 hover:bg-cyan-100"
+                  className="rounded-full border border-cyan-200 bg-slate-50 px-2 py-1 font-semibold text-cyan-700 hover:bg-cyan-100"
                 >
                   清除筛选
                 </button>
@@ -5383,7 +5383,7 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
                 <button
                   type="button"
                   onClick={() => setSelectedSystemWorkerFilter('')}
-                  className="rounded-full border border-sky-200 bg-white px-2 py-1 font-semibold text-sky-700 hover:bg-sky-100"
+                  className="rounded-full border border-sky-200 bg-slate-50 px-2 py-1 font-semibold text-sky-700 hover:bg-sky-100"
                 >
                   清除筛选
                 </button>
@@ -5396,7 +5396,7 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
                 <button
                   type="button"
                   onClick={() => setSelectedEntryWorkerFilter('')}
-                  className="rounded-full border border-indigo-200 bg-white px-2 py-1 font-semibold text-indigo-700 hover:bg-indigo-100"
+                  className="rounded-full border border-indigo-200 bg-slate-50 px-2 py-1 font-semibold text-indigo-700 hover:bg-indigo-100"
                 >
                   清除筛选
                 </button>
@@ -5414,7 +5414,7 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
                     <th className="px-3 py-3">Group</th>
                   </tr>
                 </thead>
-                <tbody style={{ display: 'flex', flexDirection: 'column', borderBottom: `1px solid ${LK.borderSoft}`, backgroundColor: LK.surface }}>
+                <tbody style={{ display: 'flex', flexDirection: 'column', borderBottom:`1px solid ${LK.borderSoft}`, backgroundColor: LK.surface }}>
                   {filteredRows.map((row) => (
                     <tr key={`${row.name}:${row.labelText}`} style={{ cursor: 'pointer', transition: 'background-color 0.15s' }}>
                       <td className="px-3 py-3 align-top">
@@ -5443,8 +5443,7 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
             <div className="mx-auto max-w-2xl">
               <div className="text-[11px] font-black uppercase tracking-[0.24em] text-slate-400">Reducer</div>
               <h2 style={{ marginTop: '8px', fontSize: '24px', fontWeight: 600, letterSpacing: '-0.02em', color: LK.ink }}>当前服务无独立 reducer 观测</h2>
-              <p className="mt-3 text-sm text-slate-500">
-                `Reducer` Tab 当前只对 `二进制安全编排器` 开放，用来持续观测状态事件队列、收口时延、死信、锁竞争和落盘行为。
+              <p className="mt-3 text-sm text-slate-500">`Reducer` Tab 当前只对`二进制安全编排器` 开放，用来持续观测状态事件队列、收口时延、死信、锁竞争和落盘行为。
               </p>
             </div>
           </section>
@@ -5454,11 +5453,11 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
             <p className="mt-4 text-sm text-slate-500">正在抓取 reducer 指标...</p>
           </section>
         ) : reducerMetricsState.error && !reducerMetricsState.rawText ? (
-          <section className="rounded-[2rem] border border-rose-200 bg-rose-50 px-6 py-12 text-center shadow-sm">
+ <section className="rounded-[2rem] border border-rose-200 bg-rose-50 px-6 py-12 text-center">
             <p className="text-sm font-semibold text-rose-700">{reducerMetricsState.error}</p>
           </section>
         ) : reducerViewModel ? (
-          <section className="space-y-4 rounded-[2rem] border border-slate-200 bg-[radial-gradient(circle_at_top_left,_rgba(20,184,166,0.08),_transparent_36%),linear-gradient(180deg,#ffffff_0%,#f8fafc_100%)] p-5 shadow-sm">
+ <section className="space-y-4 rounded-[2rem] border border-slate-200 bg-slate-50 p-5">
             <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'flex-start', justifyContent: 'space-between', gap: '16px' }}>
               <div>
                 <div className="text-[11px] font-black uppercase tracking-[0.22em] text-teal-600">Reducer Watch</div>
@@ -5468,11 +5467,11 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
                 </p>
               </div>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
-                <span className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white/80 px-3 py-1 text-[11px] font-bold text-slate-600">
+ <span className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-[11px] font-bold text-slate-600">
                   <TrendingUp size={12} />
                   历史窗口 {formatNumber(reducerViewModel.timeSeries.length)} 点
                 </span>
-                <span className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white/80 px-3 py-1 text-[11px] font-bold text-slate-600">
+ <span className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-[11px] font-bold text-slate-600">
                   <GitBranch size={12} />
                   30s 自动刷新可形成连续曲线
                 </span>
@@ -5484,13 +5483,13 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
                 {
                   label: '快照可用性',
                   value: reducerViewModel.snapshotMeta.available ? '可用' : '不可用',
-                  hint: reducerViewModel.snapshotMeta.sourcePod ? `来源 ${reducerViewModel.snapshotMeta.sourcePod}` : '暂无来源 Pod',
+                  hint: reducerViewModel.snapshotMeta.sourcePod ?`来源 ${reducerViewModel.snapshotMeta.sourcePod}` : '暂无来源 Pod',
                   tone: reducerViewModel.snapshotMeta.available ? 'border-emerald-200 bg-emerald-50 text-emerald-800' : 'border-rose-200 bg-rose-50 text-rose-800',
                 },
                 {
                   label: '快照新鲜度',
                   value: reducerViewModel.snapshotMeta.stale ? '已过期' : '新鲜',
-                  hint: reducerViewModel.snapshotMeta.generatedAtTimestamp ? `生成于 ${formatTime(reducerViewModel.snapshotMeta.generatedAtTimestamp * 1000)}` : '暂无生成时间',
+                  hint: reducerViewModel.snapshotMeta.generatedAtTimestamp ?`生成于 ${formatTime(reducerViewModel.snapshotMeta.generatedAtTimestamp * 1000)}` : '暂无生成时间',
                   tone: reducerViewModel.snapshotMeta.stale ? 'border-amber-200 bg-amber-50 text-amber-800' : 'border-sky-200 bg-sky-50 text-sky-800',
                 },
                 {
@@ -5506,7 +5505,7 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
                   tone: 'border-slate-200 bg-slate-50 text-slate-700',
                 },
               ].map((item) => (
-                <div key={item.label} className={`rounded-[1.4rem] border px-4 py-4 shadow-sm ${item.tone}`}>
+ <div key={item.label} className={`rounded-[1.4rem] border px-4 py-4 ${item.tone}`}>
                   <div className="text-[11px] font-black uppercase tracking-[0.18em]">{item.label}</div>
                   <div className="mt-3 text-2xl font-black tracking-tight">{item.value}</div>
                   <div className="mt-1 text-xs opacity-85">{item.hint}</div>
@@ -5516,7 +5515,7 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
 
             <div className="grid gap-3 xl:grid-cols-4">
               {reducerViewModel.queueCards.map((item) => (
-                <div key={item.label} className={`rounded-[1.4rem] border px-4 py-4 shadow-sm ${item.tone}`}>
+ <div key={item.label} className={`rounded-[1.4rem] border px-4 py-4 ${item.tone}`}>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px' }}>
                     <div className="text-[11px] font-black uppercase tracking-[0.18em]">{item.label}</div>
                     <span>{item.icon}</span>
@@ -5652,7 +5651,7 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
       ) : activeSecondaryTab === 'agent' ? (
         agentObservabilityEnabled ? (
           <div className="space-y-4">
-            <section className="rounded-[2rem] border border-cyan-200 bg-[radial-gradient(circle_at_top_left,_rgba(8,145,178,0.10),_transparent_36%),linear-gradient(180deg,#ffffff_0%,#ecfeff_100%)] p-5 shadow-sm">
+ <section className="rounded-[2rem] border border-cyan-200 bg-slate-50 p-5">
               <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'flex-start', justifyContent: 'space-between', gap: '16px' }}>
                 <div>
                   <div className="text-[11px] font-black uppercase tracking-[0.2em] text-cyan-700">
@@ -5667,7 +5666,7 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
                   <button
                     type="button"
                     onClick={() => void loadAgentObservability(activeServiceKey)}
-                    className="inline-flex items-center gap-2 rounded-xl border border-cyan-200 bg-white px-3 py-2 text-sm font-bold text-cyan-800 hover:bg-cyan-50"
+                    className="inline-flex items-center gap-2 rounded-xl border border-cyan-200 bg-slate-50 px-3 py-2 text-sm font-bold text-cyan-800 hover:bg-cyan-50"
                   >
                     <RefreshCw size={14} />
                     刷新概览
@@ -5675,7 +5674,7 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
                   <button
                     type="button"
                     onClick={() => void ensureAgentPodsLoaded(activeServiceKey)}
-                    className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-bold text-slate-700 hover:bg-slate-50"
+                    className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-bold text-slate-700 hover:bg-slate-100"
                   >
                     <Loader2 size={14} className={agentState.podsLoading ? 'animate-spin' : ''} />
                     {agentState.podsLoaded ? '刷新 Pod 列表' : '加载 Pod 列表'}
@@ -5710,7 +5709,7 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
               </div>
 
               <div className="mt-3 text-xs text-slate-500">
-                默认仅拉取 `summary`。Pod 列表需要手工加载；进程和任务明细会在展开 Pod、使用明细筛选或加载 Pod 列表后再按需获取。
+                默认仅拉取`summary`。Pod 列表需要手工加载；进程和任务明细会在展开 Pod、使用明细筛选或加载 Pod 列表后再按需获取。
               </div>
 
               {agentState.error ? (
@@ -5734,15 +5733,15 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
 
               <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-6">
                 {[
-                  { label: 'Worker Pods', value: formatNumber(unifiedAgentRuntimeViewModel?.totalPods), hint: `healthy ${formatNumber(unifiedAgentRuntimeViewModel?.healthyPods)} / scanned ${formatTime((unifiedAgentRuntimeViewModel?.scannedAt ?? agentState.refreshedAt) ?? null)}`, tone: 'text-slate-900' },
-                  { label: '总槽位 / 占用', value: `${formatNumber(unifiedAgentRuntimeViewModel?.totalCapacity)} / ${formatNumber(unifiedAgentRuntimeViewModel?.busySlots)}`, hint: `空闲 ${formatNumber(unifiedAgentRuntimeViewModel?.availableSlots)} / 排队 ${formatNumber(unifiedAgentRuntimeViewModel?.queuedJobs)}`, tone: 'text-sky-800' },
-                  { label: '智能体进程总数', value: formatNumber(unifiedAgentRuntimeViewModel?.totalProcesses), hint: `正常 ${formatNumber(unifiedAgentRuntimeViewModel?.trackedProcesses)} / 任务 ${formatNumber(unifiedAgentRuntimeViewModel?.ownedTasks)}`, tone: 'text-cyan-800' },
-                  { label: '残留进程', value: formatNumber(unifiedAgentRuntimeViewModel?.residualProcesses), hint: `运行中任务 ${formatNumber(unifiedAgentRuntimeViewModel?.runningTasks)}`, tone: 'text-rose-700' },
-                  { label: '未归属进程', value: formatNumber(unifiedAgentRuntimeViewModel?.unknownProcesses), hint: `Pod 并集 ${formatNumber(unifiedAgentRuntimeViewModel?.totalPods)}`, tone: 'text-amber-700' },
-                  { label: '智能体上限 / 占用', value: `${formatNumber(unifiedAgentRuntimeViewModel?.agentTotalCapacity)} / ${formatNumber(unifiedAgentRuntimeViewModel?.agentInUse)}`, hint: `等待 ${formatNumber(unifiedAgentRuntimeViewModel?.agentWaitingRequests)} / RSS ${formatBytes(unifiedAgentRuntimeViewModel?.agentRssTotalBytes || 0)}`, tone: 'text-violet-700' },
-                  { label: 'Pod 缺口', value: `${formatNumber(unifiedAgentRuntimeViewModel?.slotOnlyPods)} / ${formatNumber(unifiedAgentRuntimeViewModel?.agentOnlyPods)}`, hint: 'slot_only / agent_only', tone: (Number(unifiedAgentRuntimeViewModel?.slotOnlyPods || 0) + Number(unifiedAgentRuntimeViewModel?.agentOnlyPods || 0)) > 0 ? 'text-amber-700' : 'text-emerald-700' },
+                  { label: 'Worker Pods', value: formatNumber(unifiedAgentRuntimeViewModel?.totalPods), hint:`healthy ${formatNumber(unifiedAgentRuntimeViewModel?.healthyPods)} / scanned ${formatTime((unifiedAgentRuntimeViewModel?.scannedAt ?? agentState.refreshedAt) ?? null)}`, tone: 'text-slate-900' },
+                  { label: '总槽位 / 占用', value:`${formatNumber(unifiedAgentRuntimeViewModel?.totalCapacity)} / ${formatNumber(unifiedAgentRuntimeViewModel?.busySlots)}`, hint:`空闲 ${formatNumber(unifiedAgentRuntimeViewModel?.availableSlots)} / 排队 ${formatNumber(unifiedAgentRuntimeViewModel?.queuedJobs)}`, tone: 'text-sky-800' },
+                  { label: '智能体进程总数', value: formatNumber(unifiedAgentRuntimeViewModel?.totalProcesses), hint:`正常 ${formatNumber(unifiedAgentRuntimeViewModel?.trackedProcesses)} / 任务 ${formatNumber(unifiedAgentRuntimeViewModel?.ownedTasks)}`, tone: 'text-cyan-800' },
+                  { label: '残留进程', value: formatNumber(unifiedAgentRuntimeViewModel?.residualProcesses), hint:`运行中任务 ${formatNumber(unifiedAgentRuntimeViewModel?.runningTasks)}`, tone: 'text-rose-700' },
+                  { label: '未归属进程', value: formatNumber(unifiedAgentRuntimeViewModel?.unknownProcesses), hint:`Pod 并集 ${formatNumber(unifiedAgentRuntimeViewModel?.totalPods)}`, tone: 'text-amber-700' },
+                  { label: '智能体上限 / 占用', value:`${formatNumber(unifiedAgentRuntimeViewModel?.agentTotalCapacity)} / ${formatNumber(unifiedAgentRuntimeViewModel?.agentInUse)}`, hint:`等待 ${formatNumber(unifiedAgentRuntimeViewModel?.agentWaitingRequests)} / RSS ${formatBytes(unifiedAgentRuntimeViewModel?.agentRssTotalBytes || 0)}`, tone: 'text-violet-700' },
+                  { label: 'Pod 缺口', value:`${formatNumber(unifiedAgentRuntimeViewModel?.slotOnlyPods)} / ${formatNumber(unifiedAgentRuntimeViewModel?.agentOnlyPods)}`, hint: 'slot_only / agent_only', tone: (Number(unifiedAgentRuntimeViewModel?.slotOnlyPods || 0) + Number(unifiedAgentRuntimeViewModel?.agentOnlyPods || 0)) > 0 ? 'text-amber-700' : 'text-emerald-700' },
                 ].map((item) => (
-                  <div key={item.label} className="rounded-2xl border border-cyan-100 bg-white/85 px-4 py-3 shadow-sm">
+ <div key={item.label} className="rounded-2xl border border-cyan-100 bg-slate-50 px-4 py-3">
                     <div style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.16em', color: LK.muted }}>{item.label}</div>
                     <div className={`mt-2 text-2xl font-black ${item.tone}`}>{item.value}</div>
                     <div style={{ marginTop: '4px', fontSize: '12px', color: LK.muted }}>{item.hint}</div>
@@ -5804,13 +5803,13 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
                   </p>
                 </section>
               ) : !agentState.podsLoaded ? (
-                <section className="rounded-[2rem] border border-dashed border-slate-200 bg-white px-6 py-12 text-center shadow-sm">
+ <section className="rounded-[2rem] border border-dashed border-slate-200 bg-slate-50 px-6 py-12 text-center">
                   <p style={{ fontSize: '14px', color: LK.muted }}>当前只加载了聚合概览。点击“加载 Pod 列表”后再查看各 Worker Pod 详情。</p>
                 </section>
               ) : filteredDfaPods.length ? (
                 filteredDfaPods.map((pod) => {
                   return (
-                    <section key={pod.pod_name} className={`rounded-[1.8rem] border shadow-sm ${pod.healthy ? 'border-slate-200 bg-white' : 'border-rose-200 bg-rose-50/40'}`}>
+ <section key={pod.pod_name} className={`rounded-[1.8rem] border ${pod.healthy ? 'border-slate-200 bg-slate-50' : 'border-rose-200 bg-rose-50/40'}`}>
                       <button
                         type="button"
                         onClick={() => openAgentPodDialog(activeServiceKey, pod.pod_name)}
@@ -5882,13 +5881,13 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
                 onClick={closeAgentPodDialog}
               >
                 <div
-                  className="relative flex max-h-[92vh] w-[min(96vw,1720px)] flex-col overflow-hidden rounded-[2rem] border border-slate-200 bg-white shadow-2xl"
+ className="relative flex max-h-[92vh] w-[min(96vw,1720px)] flex-col overflow-hidden rounded-[2rem] border border-slate-200 bg-slate-50"
                   onClick={(event) => event.stopPropagation()}
                 >
                   <button
                     type="button"
                     onClick={closeAgentPodDialog}
-                    className="absolute right-4 top-4 z-10 rounded-full border border-slate-200 bg-white/95 p-2 text-slate-500 shadow-sm transition hover:bg-slate-100 hover:text-slate-900"
+ className="absolute right-4 top-4 z-10 rounded-full border border-slate-200 bg-slate-50 p-2 text-slate-500 transition hover:bg-slate-100 hover:text-slate-900"
                     title="关闭"
                     aria-label="关闭"
                   >
@@ -5928,7 +5927,7 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
                         disabled={activeAgentPodKillablePids.length === 0}
                         className={`rounded-xl border px-4 py-2 text-sm font-bold ${
                           activeAgentPodKillablePids.length
-                            ? 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50'
+                            ? 'border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100'
                             : 'border-slate-200 bg-slate-50 text-slate-400'
                         }`}
                       >
@@ -5981,7 +5980,7 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
                         </div>
                         <div className="text-xs font-semibold text-slate-500">共 {formatNumber(activeAgentPodTasks.length)} 条</div>
                       </div>
-                      <div className="mt-4 overflow-auto rounded-2xl border border-slate-200 bg-white">
+                      <div className="mt-4 overflow-auto rounded-2xl border border-slate-200 bg-slate-50">
                         <table className="min-w-[980px] divide-y divide-slate-200 text-left text-xs">
                           <thead style={{ backgroundColor: LK.surfaceRaised, color: LK.muted }}>
                             <tr>
@@ -5993,7 +5992,7 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
                               <th className="px-3 py-3">关联进程</th>
                             </tr>
                           </thead>
-                          <tbody style={{ display: 'flex', flexDirection: 'column', borderBottom: `1px solid ${LK.borderSoft}`, backgroundColor: LK.surface }}>
+                          <tbody style={{ display: 'flex', flexDirection: 'column', borderBottom:`1px solid ${LK.borderSoft}`, backgroundColor: LK.surface }}>
                             {activeAgentPodTasks.length ? (
                               activeAgentPodTasks.map((task) => (
                                 <tr key={`${activeAgentPodCard.pod_name}:${task.task_id}:${task.stage_key || '-'}`} style={{ cursor: 'pointer', transition: 'background-color 0.15s' }}>
@@ -6053,7 +6052,7 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
                           共 {formatNumber(activeAgentPodProcesses.length)} 条，可终止 {formatNumber(activeAgentPodKillablePids.length)} 条
                         </div>
                       </div>
-                      <div className="mt-4 overflow-auto rounded-2xl border border-slate-200 bg-white">
+                      <div className="mt-4 overflow-auto rounded-2xl border border-slate-200 bg-slate-50">
                         <table className="min-w-[1480px] divide-y divide-slate-200 text-left text-xs">
                           <thead style={{ backgroundColor: LK.surfaceRaised, color: LK.muted }}>
                             <tr>
@@ -6078,7 +6077,7 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
                               <th className="px-3 py-3">操作</th>
                             </tr>
                           </thead>
-                          <tbody style={{ display: 'flex', flexDirection: 'column', borderBottom: `1px solid ${LK.borderSoft}`, backgroundColor: LK.surface }}>
+                          <tbody style={{ display: 'flex', flexDirection: 'column', borderBottom:`1px solid ${LK.borderSoft}`, backgroundColor: LK.surface }}>
                             {activeAgentPodProcesses.length ? (
                               activeAgentPodProcesses.map((process) => (
                                 <tr key={`${activeAgentPodCard.pod_name}:${process.pid}`} style={{ cursor: 'pointer', transition: 'background-color 0.15s' }}>
@@ -6182,8 +6181,7 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
             <div className="mx-auto max-w-2xl">
               <div className="text-[11px] font-black uppercase tracking-[0.24em] text-slate-400">Agent</div>
               <h2 style={{ marginTop: '8px', fontSize: '24px', fontWeight: 600, letterSpacing: '-0.02em', color: LK.ink }}>当前服务未接入智能体观测</h2>
-              <p className="mt-3 text-sm text-slate-500">
-                `智能体` Tab 当前仅对入口分析、系统分析和数据流分析开放。其他服务继续使用 `AI专区` 查看 AI 指标。
+              <p className="mt-3 text-sm text-slate-500">`智能体` Tab 当前仅对入口分析、系统分析和数据流分析开放。其他服务继续使用`AI专区` 查看 AI 指标。
               </p>
             </div>
           </section>
@@ -6234,7 +6232,7 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
                           <div className="mt-3 text-base font-black text-slate-900">{effectiveAiViewModel.coverageLabel}</div>
                         </div>
                       </div>
-                      <div className="mt-4 rounded-2xl border border-slate-200 bg-white px-4 py-4">
+                      <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4">
                         <div className="text-sm font-bold text-slate-800">已识别 canonical 维度</div>
                         <div className="mt-3 flex flex-wrap gap-2">
                           {BINARY_SECURITY_CANONICAL_AI_METRICS.map((item) => {
@@ -6322,7 +6320,7 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
                         <th className="px-3 py-3">Type</th>
                       </tr>
                     </thead>
-                    <tbody style={{ display: 'flex', flexDirection: 'column', borderBottom: `1px solid ${LK.borderSoft}`, backgroundColor: LK.surface }}>
+                    <tbody style={{ display: 'flex', flexDirection: 'column', borderBottom:`1px solid ${LK.borderSoft}`, backgroundColor: LK.surface }}>
                       {aiRows.map((row) => (
                         <tr key={`${row.name}:${row.labelText}`} style={{ cursor: 'pointer', transition: 'background-color 0.15s' }}>
                           <td className="px-3 py-3 align-top">

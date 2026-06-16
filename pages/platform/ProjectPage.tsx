@@ -139,7 +139,7 @@ export const ProjectPage: React.FC = () => {
   const handleDelete = async (project: Project) => {
     const confirmed = await showConfirm({
       title: '删除项目',
-      message: `确认删除该项目 "${project.name}"？`,
+      message:`确认删除该项目"${project.name}"？`,
       confirmText: '确认删除',
       cancelText: '取消',
       danger: true,
@@ -204,7 +204,7 @@ export const ProjectPage: React.FC = () => {
       <div className="flex justify-between items-end">
         <div className="space-y-1">
           <div className="flex items-center gap-3">
-            <div className="p-3 bg-gradient-to-br from-blue-600 via-cyan-500 to-sky-500 text-white rounded-2xl shadow-xl shadow-blue-500/20">
+ <div className="p-3 bg-gradient-to-br from-blue-600 via-cyan-500 to-sky-500 text-white rounded-2xl">
               <FolderOpen size={28} />
             </div>
             <div>
@@ -214,7 +214,7 @@ export const ProjectPage: React.FC = () => {
           </div>
         </div>
         <div className="flex gap-4">
-          <button onClick={() => void refreshPageData()} className="p-4 bg-white/80 backdrop-blur border border-slate-200 text-slate-500 rounded-2xl hover:bg-white transition-all shadow-sm active:scale-95">
+ <button onClick={() => void refreshPageData()} className="p-4 bg-slate-50 backdrop-blur border border-slate-200 text-slate-500 rounded-2xl hover:bg-slate-50 transition-all active:scale-95">
             <RefreshCw size={20} className={loading ? 'animate-spin' : ''} />
           </button>
           {canManageOrgProjects && (
@@ -223,7 +223,7 @@ export const ProjectPage: React.FC = () => {
                 setFormData({ name: '', description: '', is_public: false, department_ids: [] });
                 setIsCreateModalOpen(true);
               }}
-              className="bg-blue-600 text-white px-8 py-4 rounded-2xl font-black flex items-center gap-3 shadow-xl shadow-blue-500/20 hover:bg-blue-700 transition-all active:scale-95"
+ className="bg-blue-600 text-white px-8 py-4 rounded-2xl font-black flex items-center gap-3 hover:bg-blue-700 transition-all active:scale-95"
             >
               <Plus size={20} /> 创建新项目
             </button>
@@ -232,7 +232,7 @@ export const ProjectPage: React.FC = () => {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <div className="bg-[linear-gradient(135deg,_#0f172a,_#1d4ed8_65%,_#38bdf8)] p-8 rounded-[3rem] text-white flex flex-col justify-between group overflow-hidden relative shadow-2xl">
+ <div className="bg-[linear-gradient(135deg,_#0f172a,_#1d4ed8_65%,_#38bdf8)] p-8 rounded-[3rem] text-white flex flex-col justify-between group overflow-hidden relative">
           <FolderOpen className="absolute right-[-20px] top-[-20px] w-32 h-32 opacity-5 rotate-12 group-hover:rotate-0 transition-transform duration-700" />
           <p className="text-slate-200 text-[10px] font-black uppercase tracking-widest relative z-10">总项目数</p>
           <h3 className="text-5xl font-black mt-4 relative z-10">{projectStats.total}</h3>
@@ -240,21 +240,21 @@ export const ProjectPage: React.FC = () => {
             <Sparkles size={12} /> Unified Access View
           </p>
         </div>
-        <div className="bg-white/85 backdrop-blur p-8 rounded-[3rem] border border-emerald-100 shadow-sm flex flex-col justify-between">
+ <div className="bg-slate-50 backdrop-blur p-8 rounded-[3rem] border border-emerald-100 flex flex-col justify-between">
           <p className="text-slate-400 text-[10px] font-black uppercase tracking-widest">公开项目</p>
           <h3 className="text-4xl font-black mt-4 text-green-600">{projectStats.publicCount}</h3>
           <div className="h-1 bg-slate-100 rounded-full mt-4 overflow-hidden">
             <div className="h-full bg-green-500" style={{ width: `${publicRatio}%` }} />
           </div>
         </div>
-        <div className="bg-white/85 backdrop-blur p-8 rounded-[3rem] border border-amber-100 shadow-sm flex flex-col justify-between">
+ <div className="bg-slate-50 backdrop-blur p-8 rounded-[3rem] border border-amber-100 flex flex-col justify-between">
           <p className="text-slate-400 text-[10px] font-black uppercase tracking-widest">私有项目</p>
           <h3 className="text-4xl font-black mt-4 text-amber-600">{projectStats.privateCount}</h3>
           <div className="h-1 bg-slate-100 rounded-full mt-4 overflow-hidden">
             <div className="h-full bg-amber-500" style={{ width: `${privateRatio}%` }} />
           </div>
         </div>
-        <div className="bg-white/90 backdrop-blur p-8 rounded-[3rem] border border-slate-200 shadow-sm flex items-center gap-8">
+ <div className="bg-slate-50 backdrop-blur p-8 rounded-[3rem] border border-slate-200 flex items-center gap-8">
           <div className="w-16 h-16 bg-cyan-50 text-cyan-600 rounded-3xl flex items-center justify-center shrink-0">
             <ShieldCheck size={32} />
           </div>
@@ -271,15 +271,15 @@ export const ProjectPage: React.FC = () => {
           <input
             type="text"
             placeholder="搜索项目名称、部门或描述..."
-            className="w-full pl-16 pr-8 py-5 bg-white/90 backdrop-blur border border-slate-200 rounded-[2.5rem] text-sm outline-none focus:ring-4 ring-blue-500/5 transition-all font-medium shadow-sm"
+ className="w-full pl-16 pr-8 py-5 bg-slate-50 backdrop-blur border border-slate-200 rounded-[2.5rem] text-sm outline-none focus:ring-4 ring-blue-500/5 transition-all font-medium"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
 
-        <div className="bg-white/90 backdrop-blur border border-slate-200 rounded-[3rem] shadow-sm overflow-hidden">
+ <div className="bg-slate-50 backdrop-blur border border-slate-200 rounded-[3rem] overflow-hidden">
           <table className="w-full text-left">
-            <thead className="bg-slate-50/50 border-b border-slate-100 font-black text-[10px] text-slate-400 uppercase tracking-widest">
+            <thead className="bg-slate-100/50 border-b border-slate-100 font-black text-[10px] text-slate-400 uppercase tracking-widest">
               <tr>
                 <th className="px-8 py-6">项目信息</th>
                 <th className="px-6 py-6">部门范围</th>
@@ -294,7 +294,7 @@ export const ProjectPage: React.FC = () => {
               ) : filteredProjects.length === 0 ? (
                 <tr><td colSpan={5} className="py-32 text-center text-slate-400 font-bold">暂无项目数据</td></tr>
               ) : filteredProjects.map((project) => (
-                <tr key={project.id} className="hover:bg-slate-50 transition-all group">
+                <tr key={project.id} className="hover:bg-slate-100 transition-all group">
                   <td className="px-8 py-6">
                     <div className="flex items-center gap-4">
                       <div className={`w-12 h-12 rounded-2xl flex items-center justify-center font-black shadow-inner ${project.is_public ? 'bg-emerald-50 text-emerald-600' : 'bg-blue-50 text-blue-600'}`}>
@@ -345,14 +345,14 @@ export const ProjectPage: React.FC = () => {
                         <>
                           <button
                             onClick={() => openEditModal(project)}
-                            className="p-3 bg-white border border-slate-200 text-slate-400 hover:text-blue-600 rounded-xl transition-all shadow-sm"
+ className="p-3 bg-slate-50 border border-slate-200 text-slate-400 hover:text-blue-600 rounded-xl transition-all"
                             title="编辑项目"
                           >
                             <Edit3 size={16} />
                           </button>
                           <button
                             onClick={() => void handleDelete(project)}
-                            className="p-3 bg-red-50 text-red-400 border border-transparent hover:border-red-100 rounded-xl transition-all shadow-sm"
+ className="p-3 bg-red-50 text-red-400 border border-transparent hover:border-red-100 rounded-xl transition-all"
                             title="删除项目"
                           >
                             <Trash2 size={16} />
@@ -372,10 +372,10 @@ export const ProjectPage: React.FC = () => {
 
       {isCreateModalOpen && (
         <div className="fixed inset-0 z-[150] flex items-center justify-center p-6 bg-slate-900/60 backdrop-blur-md animate-in fade-in">
-          <div className="bg-white w-full max-w-md rounded-[3rem] shadow-2xl overflow-hidden animate-in zoom-in-95">
+ <div className="bg-slate-50 w-full max-w-md rounded-[3rem] overflow-hidden animate-in zoom-in-95">
             <div className="p-10 pb-4 border-b border-slate-50 flex items-center justify-between">
               <div className="flex items-center gap-4">
-                <div className="w-12 h-12 bg-blue-600 rounded-2xl flex items-center justify-center text-white shadow-lg shadow-blue-500/20">
+ <div className="w-12 h-12 bg-blue-600 rounded-2xl flex items-center justify-center text-white">
                   <Plus size={24} />
                 </div>
                 <div>
@@ -421,7 +421,7 @@ export const ProjectPage: React.FC = () => {
                     disabled={isOrdinaryAdmin}
                     className={`flex-1 py-4 rounded-2xl font-black transition-all ${
                       formData.is_public
-                        ? 'bg-green-600 text-white shadow-lg shadow-green-500/20'
+ ? 'bg-green-600 text-white shadow-green-500/20'
                         : 'bg-slate-100 text-slate-400'
                     } ${isOrdinaryAdmin ? 'cursor-not-allowed opacity-50' : ''}`}
                   >
@@ -433,7 +433,7 @@ export const ProjectPage: React.FC = () => {
                     onClick={() => setFormData({ ...formData, is_public: false })}
                     className={`flex-1 py-4 rounded-2xl font-black transition-all ${
                       !formData.is_public
-                        ? 'bg-amber-600 text-white shadow-lg shadow-amber-500/20'
+ ? 'bg-amber-600 text-white shadow-amber-500/20'
                         : 'bg-slate-100 text-slate-400'
                     }`}
                   >
@@ -471,7 +471,7 @@ export const ProjectPage: React.FC = () => {
                   普通管理员只能选择所属部门及下级部门，公开项目仅支持超级管理员创建。
                 </p>
               )}
-              <button disabled={formLoading} className="w-full py-5 bg-blue-600 text-white rounded-2xl font-black shadow-xl shadow-blue-500/20 hover:bg-blue-700 transition-all flex items-center justify-center gap-3">
+ <button disabled={formLoading} className="w-full py-5 bg-blue-600 text-white rounded-2xl font-black hover:bg-blue-700 transition-all flex items-center justify-center gap-3">
                 {formLoading ? <Loader2 className="animate-spin" size={20} /> : <FolderOpen size={20} />}
                 确认创建项目
               </button>
@@ -482,7 +482,7 @@ export const ProjectPage: React.FC = () => {
 
       {isEditModalOpen && selectedProject && (
         <div className="fixed inset-0 z-[150] flex items-center justify-center p-6 bg-slate-900/60 backdrop-blur-md animate-in fade-in">
-          <div className="bg-white w-full max-w-md rounded-[3rem] shadow-2xl overflow-hidden animate-in zoom-in-95">
+ <div className="bg-slate-50 w-full max-w-md rounded-[3rem] overflow-hidden animate-in zoom-in-95">
             <div className="p-10 pb-4 border-b border-slate-50 flex items-center justify-between">
               <div className="flex items-center gap-4">
                 <div className="w-12 h-12 bg-amber-600 rounded-2xl flex items-center justify-center text-white">
@@ -531,7 +531,7 @@ export const ProjectPage: React.FC = () => {
                     disabled={isOrdinaryAdmin}
                     className={`flex-1 py-4 rounded-2xl font-black transition-all ${
                       formData.is_public
-                        ? 'bg-green-600 text-white shadow-lg shadow-green-500/20'
+ ? 'bg-green-600 text-white shadow-green-500/20'
                         : 'bg-slate-100 text-slate-400'
                     } ${isOrdinaryAdmin ? 'cursor-not-allowed opacity-50' : ''}`}
                   >
@@ -543,7 +543,7 @@ export const ProjectPage: React.FC = () => {
                     onClick={() => setFormData({ ...formData, is_public: false })}
                     className={`flex-1 py-4 rounded-2xl font-black transition-all ${
                       !formData.is_public
-                        ? 'bg-amber-600 text-white shadow-lg shadow-amber-500/20'
+ ? 'bg-amber-600 text-white shadow-amber-500/20'
                         : 'bg-slate-100 text-slate-400'
                     }`}
                   >
@@ -557,7 +557,7 @@ export const ProjectPage: React.FC = () => {
                   普通管理员不能将项目调整为公开项目，只能维护本部门树内已绑定的组织项目记录。
                 </p>
               )}
-              <button disabled={formLoading} className="w-full py-5 bg-amber-600 text-white rounded-2xl font-black shadow-xl shadow-amber-500/20 hover:bg-amber-700 transition-all flex items-center justify-center gap-3">
+ <button disabled={formLoading} className="w-full py-5 bg-amber-600 text-white rounded-2xl font-black shadow-amber-500/20 hover:bg-amber-700 transition-all flex items-center justify-center gap-3">
                 {formLoading ? <Loader2 className="animate-spin" size={20} /> : <RefreshCw size={20} />}
                 立即更新项目
               </button>

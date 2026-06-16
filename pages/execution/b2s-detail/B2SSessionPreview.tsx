@@ -95,7 +95,7 @@ const getResultText = (result?: any): string => {
 const shortPath = (value?: string | null) => {
   if (!value) return '';
   const parts = value.replace(/\\/g, '/').split('/').filter(Boolean);
-  return parts.length > 3 ? `.../${parts.slice(-3).join('/')}` : value;
+  return parts.length > 3 ?`.../${parts.slice(-3).join('/')}` : value;
 };
 
 const PiToolOutput: React.FC<{ text?: string; maxLines?: number }> = ({ text = '', maxLines = 10 }) => {
@@ -141,7 +141,7 @@ const PiToolExecution: React.FC<{ call: any; result?: any }> = ({ call, result }
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0 flex-1 font-mono" style={{ fontSize: '12px', lineHeight: '18px' }}>
           <div className="font-semibold" style={{ color: LK.inkSoft }}>
-            {name === 'bash' ? `$ ${stringifyValue(args.command) || '...'}` : `${name} ${shortPath(toolPath || '.')}`}
+            {name === 'bash' ?`$ ${stringifyValue(args.command) || '...'}` :`${name} ${shortPath(toolPath || '.')}`}
           </div>
         </div>
         <span
@@ -186,7 +186,7 @@ const PiMessageContent: React.FC<{ entry: PiSessionEntry; entries: PiSessionEntr
             const result = entries.find(
               (candidate) => candidate.type === 'message' && candidate.message?.role === 'toolResult' && candidate.message?.toolCallId === block.id
             )?.message;
-            return <PiToolExecution key={block.id || `${block.name}-${Math.random()}`} call={block} result={result} />;
+            return <PiToolExecution key={block.id ||`${block.name}-${Math.random()}`} call={block} result={result} />;
           })}
       </>
     );
@@ -245,7 +245,7 @@ export const B2SSessionPreview: React.FC<{
   if (entries.length === 0) {
     return (
       <div className="rounded-xl" style={{ backgroundColor: LK.surfaceRaised, border: `1px solid ${LK.border}` }}>
-        <div className="px-6 py-5" style={{ borderBottom: `1px solid ${LK.border}` }}>
+        <div className="px-6 py-5" style={{ borderBottom:`1px solid ${LK.border}` }}>
           <div className="flex flex-wrap items-center gap-3">
             <h2 className="text-xl font-semibold tracking-tight" style={{ color: LK.ink }}>{meta?.displayName || name || '-'}</h2>
             <span
@@ -288,7 +288,7 @@ export const B2SSessionPreview: React.FC<{
 
   return (
     <div className="rounded-xl" style={{ backgroundColor: LK.surfaceRaised, border: `1px solid ${LK.border}` }}>
-      <div className="px-6 py-5" style={{ borderBottom: `1px solid ${LK.border}` }}>
+      <div className="px-6 py-5" style={{ borderBottom:`1px solid ${LK.border}` }}>
         <div className="flex flex-wrap items-center gap-3">
           <h2 className="text-xl font-semibold tracking-tight" style={{ color: LK.ink }}>{meta?.displayName || name || '-'}</h2>
           <span
@@ -331,9 +331,9 @@ export const B2SSessionPreview: React.FC<{
             const isAssistant = role === 'assistant';
             const isTool = role === 'bashExecution';
             const body = entry.type === 'model_change'
-              ? `Model: ${entry.provider || '-'} / ${entry.modelId || '-'}`
+              ?`Model: ${entry.provider || '-'} / ${entry.modelId || '-'}`
               : entry.type === 'thinking_level_change'
-                ? `Thinking level: ${entry.thinkingLevel || '-'}`
+                ?`Thinking level: ${entry.thinkingLevel || '-'}`
                 : entry.type !== 'message'
                   ? JSON.stringify(entry, null, 2)
                   : '';

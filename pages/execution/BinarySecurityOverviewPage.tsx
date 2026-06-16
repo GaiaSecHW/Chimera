@@ -93,9 +93,9 @@ const fmtSize = (value: number) => {
     size /= 1024;
     index += 1;
   }
-  return `${size.toFixed(index === 0 ? 0 : 1)} ${units[index]}`;
+  return`${size.toFixed(index === 0 ? 0 : 1)} ${units[index]}`;
 };
-const fmtSpeed = (value: number) => `${fmtSize(value)}/s`;
+const fmtSpeed = (value: number) =>`${fmtSize(value)}/s`;
 const num = (value?: number | null) => Number.isFinite(value || 0) ? Number(value || 0) : 0;
 const percent = (part: number, total: number) => total > 0 ? Math.round((part / total) * 100) : 0;
 const STAGE_ITEMS_PER_PAGE = 100;
@@ -232,21 +232,21 @@ const dominantStatusLabel = (counts?: Record<string, number>) => {
   const entries = Object.entries(counts || {}).filter(([, count]) => count > 0);
   if (entries.length === 0) return '暂无执行';
   const [status, count] = entries.sort((a, b) => b[1] - a[1])[0];
-  return `${status} ${count}`;
+  return`${status} ${count}`;
 };
 
 const archiveResultLabel = (archive?: BinarySecurityProjectStageAggregate['archive']) => {
   const successCount = num(archive?.success_count);
   const failedCount = num(archive?.failed_count);
   if (successCount === 0 && failedCount === 0) return '暂无结果';
-  return `成功 ${successCount} · 失败 ${failedCount}`;
+  return`成功 ${successCount} · 失败 ${failedCount}`;
 };
 
 const formatDeleteStageTaskIds = (stageName: string, ids: string[]) => {
-  if (ids.length === 0) return `${formatStageLabel(stageName)}：无子任务`;
+  if (ids.length === 0) return`${formatStageLabel(stageName)}：无子任务`;
   const visibleIds = ids.slice(0, DELETE_STAGE_ITEM_PREVIEW_LIMIT);
   const hiddenCount = Math.max(0, ids.length - visibleIds.length);
-  return `${formatStageLabel(stageName)}：${visibleIds.join(', ')}${hiddenCount > 0 ? ` 等 ${hiddenCount} 个` : ''}`;
+  return`${formatStageLabel(stageName)}：${visibleIds.join(', ')}${hiddenCount > 0 ?` 等 ${hiddenCount} 个` : ''}`;
 };
 
 const manualOperationBadgeTone = (overall?: string) => {
@@ -272,7 +272,7 @@ const manualOperationBadgeLabel = (overall?: string) => {
 };
 
 const ProjectStatCard: React.FC<{ label: string; value: number; hint: string }> = ({ label, value, hint }) => (
-  <div className="rounded-2xl border border-slate-200 bg-white px-4 py-4 shadow-sm">
+ <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4">
     <div className="text-[11px] font-bold uppercase tracking-[0.2em] text-slate-400">{label}</div>
     <div className="mt-2 text-2xl font-black text-slate-900">{value}</div>
     <div className="mt-1 text-sm text-slate-500">{hint}</div>
@@ -312,7 +312,7 @@ const StageAggregateCard: React.FC<{ aggregate: BinarySecurityProjectStageAggreg
   const hasData = businessTotal > 0 || archiveTotal > 0;
 
   return (
-    <div className={`rounded-2xl border border-l-4 border-slate-200 bg-white p-4 shadow-sm ${stageAccent(aggregate.stage_name)}`}>
+ <div className={`rounded-2xl border border-l-4 border-slate-200 bg-slate-50 p-4 ${stageAccent(aggregate.stage_name)}`}>
       <div className="flex items-start justify-between gap-3">
         <div>
           <div className="text-sm font-black text-slate-900">{formatStageLabel(aggregate.stage_name)}</div>
@@ -322,7 +322,7 @@ const StageAggregateCard: React.FC<{ aggregate: BinarySecurityProjectStageAggreg
       </div>
 
       <div className="mt-4 space-y-3">
-        <div className="rounded-2xl border border-slate-100 bg-white p-3">
+        <div className="rounded-2xl border border-slate-100 bg-slate-50 p-3">
           <div className="mb-2 flex items-center gap-2 text-xs font-black text-slate-700">
             <Layers3 size={14} className="text-slate-400" />
             业务执行
@@ -337,7 +337,7 @@ const StageAggregateCard: React.FC<{ aggregate: BinarySecurityProjectStageAggreg
           </div>
         </div>
 
-        <div className="rounded-2xl border border-slate-100 bg-white p-3">
+        <div className="rounded-2xl border border-slate-100 bg-slate-50 p-3">
           <div className="mb-2 flex items-center gap-2 text-xs font-black text-slate-700">
             <Archive size={14} className="text-slate-400" />
             归档结果
@@ -350,7 +350,7 @@ const StageAggregateCard: React.FC<{ aggregate: BinarySecurityProjectStageAggreg
       </div>
 
       <div className="mt-3 rounded-xl bg-slate-900 px-3 py-2 text-xs font-bold text-white">
-        {hasData ? `业务成功率 ${businessRate}%` : '暂无执行'}
+        {hasData ?`业务成功率 ${businessRate}%` : '暂无执行'}
       </div>
     </div>
   );
@@ -522,7 +522,7 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
     let deleteMessage =
       taskIds.length === 1
         ? '删除会先取消并删除所有下游阶段任务，然后删除当前任务记录并清空任务目录。删除后不可恢复，是否继续？'
-        : `将删除选中的 ${taskIds.length} 个任务。删除会先取消并删除所有下游阶段任务，然后删除当前任务记录并清空任务目录。删除后不可恢复，是否继续？`;
+        :`将删除选中的 ${taskIds.length} 个任务。删除会先取消并删除所有下游阶段任务，然后删除当前任务记录并清空任务目录。删除后不可恢复，是否继续？`;
 
     if (taskIds.length === 1) {
       try {
@@ -579,7 +579,7 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
       const failed = results.filter((result): result is PromiseRejectedResult => result.status === 'rejected');
       if (failed.length > 0) {
         const first = failed[0]?.reason;
-        throw new Error(first?.message || `删除失败：${failed.length} 个任务未删除成功`);
+        throw new Error(first?.message ||`删除失败：${failed.length} 个任务未删除成功`);
       }
       setSelectedTaskIds((current) => current.filter((id) => !taskIds.includes(id)));
       await load();
@@ -610,7 +610,7 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
     if (nameEdited) return;
     if (name.trim()) return;
     const now = new Date();
-    const ts = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}-${String(now.getHours()).padStart(2, '0')}${String(now.getMinutes()).padStart(2, '0')}`;
+    const ts =`${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}-${String(now.getHours()).padStart(2, '0')}${String(now.getMinutes()).padStart(2, '0')}`;
     setName(`${namePrefix}-${ts}`);
   }, [showCreateDialog, name, nameEdited, namePrefix]);
 
@@ -712,7 +712,7 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
     try {
       defaults = await loadCreateDefaults();
     } catch (e: any) {
-      defaultsError = e?.message ? `项目默认配置已自动兼容旧阶段配置，并使用系统默认值补全：${e.message}` : '项目默认配置已自动兼容旧阶段配置，并使用系统默认值补全';
+      defaultsError = e?.message ?`项目默认配置已自动兼容旧阶段配置，并使用系统默认值补全：${e.message}` : '项目默认配置已自动兼容旧阶段配置，并使用系统默认值补全';
     }
     applyCreateDefaults(defaults);
     resetCreateForm(defaults);
@@ -823,8 +823,8 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
           module_risk_levels: isBinaryModuleTask ? undefined : moduleRiskLevels,
         },
       });
-      const inputDir = created.summary?.input_dir || `/data/files/${projectId}/app/chimera-app-binary-security/${prepared.task_id}/input`;
-      const tempUploadDir = created.summary?.temp_upload_dir || `/data/files/${projectId}/app/chimera-app-binary-security/${prepared.task_id}/run/upload-tmp`;
+      const inputDir = created.summary?.input_dir ||`/data/files/${projectId}/app/chimera-app-binary-security/${prepared.task_id}/input`;
+      const tempUploadDir = created.summary?.temp_upload_dir ||`/data/files/${projectId}/app/chimera-app-binary-security/${prepared.task_id}/run/upload-tmp`;
       const ensuredDirs = new Set<string>();
       const ensureUploadSubdirectories = async (basePath: string, relativeDir: string) => {
         if (!basePath || !relativeDir) return;
@@ -832,7 +832,7 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
         const parts = relativeDir.split('/').filter(Boolean);
         let current = normalizedBase;
         for (const part of parts) {
-          current = current ? `${current}/${part}` : part;
+          current = current ?`${current}/${part}` : part;
           if (ensuredDirs.has(current)) continue;
           try {
             await fileserverApi.createProjectFilesystemDirectory({ project_id: projectId, path: current });
@@ -849,7 +849,7 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
         const normalizedRel = rel.replace(/\\/g, '/');
         const relDir = normalizedRel.includes('/') ? normalizedRel.split('/').slice(0, -1).join('/') : '';
         const uploadBase = isSourceTask ? tempUploadDir : inputDir;
-        const uploadPath = relDir ? `${uploadBase}/${relDir}` : uploadBase;
+        const uploadPath = relDir ?`${uploadBase}/${relDir}` : uploadBase;
         if (relDir) {
           await ensureUploadSubdirectories(uploadBase, relDir);
         }
@@ -888,7 +888,7 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
 
   return (
     <div className="px-8 pb-10 pt-8 space-y-6">
-      <section className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
+ <section className="rounded-[2rem] border border-slate-200 bg-slate-50 p-6">
         <div className="flex items-start justify-between gap-4">
           <div>
             <p className="text-xs font-black uppercase tracking-[0.3em] text-rose-600">Binary Security</p>
@@ -906,7 +906,7 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
               type="button"
               onClick={() => void openCreateDialog()}
               disabled={createDefaultsLoading}
-              className="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-bold text-white shadow-sm hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
+ className="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-bold text-white hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
             >
               {createDefaultsLoading ? <Loader2 size={16} className="animate-spin" /> : <Plus size={16} />}
               {createDefaultsLoading ? '加载默认配置...' : '创建任务'}
@@ -915,7 +915,7 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
               type="button"
               onClick={() => void refresh()}
               disabled={refreshing}
-              className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-bold text-slate-700 shadow-sm hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+ className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm font-bold text-slate-700 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-60"
             >
               {refreshing ? <Loader2 size={16} className="animate-spin" /> : <RefreshCw size={16} />}
               {refreshing ? '刷新中...' : '刷新'}
@@ -930,7 +930,7 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
         </div>
       )}
 
-      <section className="rounded-[2rem] border border-slate-200 bg-slate-50/70 p-6 shadow-sm">
+ <section className="rounded-[2rem] border border-slate-200 bg-slate-50/70 p-6">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-2">
             <ShieldAlert size={18} className="text-rose-600" />
@@ -939,11 +939,11 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
           <button
             type="button"
             onClick={() => setStageStatsExpanded((value) => !value)}
-            className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-bold text-slate-600 shadow-sm transition hover:border-slate-300 hover:bg-slate-50"
+ className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-bold text-slate-600 transition hover:border-slate-300 hover:bg-slate-100"
             aria-expanded={stageStatsExpanded}
           >
             <BarChart3 size={14} />
-            {stageStatsExpanded ? '收起阶段汇总' : `展开阶段汇总${orderedStageAggregates.length ? ` (${orderedStageAggregates.length})` : ''}`}
+            {stageStatsExpanded ? '收起阶段汇总' :`展开阶段汇总${orderedStageAggregates.length ?` (${orderedStageAggregates.length})` : ''}`}
             <ChevronRight size={14} className={`transition-transform ${stageStatsExpanded ? 'rotate-90' : ''}`} />
           </button>
         </div>
@@ -951,8 +951,8 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
         <div className="mt-5 grid grid-cols-2 gap-3 xl:grid-cols-6">
           <ProjectStatCard label="任务总数" value={stats.total} hint={`成功 ${stats.success} · 部分成功 ${stats.partial_success} · 失败 ${stats.failed}`} />
           <ProjectStatCard label="运行中任务" value={stats.running} hint={`全局运行 ${runningCount} · 已入队 ${queuedCount}`} />
-          <ProjectStatCard label={isSourceTask ? '源码输入' : isBinaryModuleTask ? 'ELF 输入' : '固件输入'} value={stats.input_count} hint={isSourceTask ? '当前项目源码输入总量' : isBinaryModuleTask ? '当前项目模块级 ELF 输入总量' : `已解包 ${stats.unpacked_firmware_count} · 失败 ${stats.failed_firmware_count}`} />
-          <ProjectStatCard label={isBinaryModuleTask ? '模块任务' : '已选模块'} value={stats.selected_module_count} hint={isBinaryModuleTask ? `固定模块 ${stats.candidate_module_count}` : `候选 ${stats.candidate_module_count} · 高危 ${stats.high_risk_module_count}`} />
+          <ProjectStatCard label={isSourceTask ? '源码输入' : isBinaryModuleTask ? 'ELF 输入' : '固件输入'} value={stats.input_count} hint={isSourceTask ? '当前项目源码输入总量' : isBinaryModuleTask ? '当前项目模块级 ELF 输入总量' :`已解包 ${stats.unpacked_firmware_count} · 失败 ${stats.failed_firmware_count}`} />
+          <ProjectStatCard label={isBinaryModuleTask ? '模块任务' : '已选模块'} value={stats.selected_module_count} hint={isBinaryModuleTask ?`固定模块 ${stats.candidate_module_count}` :`候选 ${stats.candidate_module_count} · 高危 ${stats.high_risk_module_count}`} />
           <ProjectStatCard label="入口结果" value={stats.entry_count} hint="入口分析产出总量" />
           <ProjectStatCard label="漏洞结果" value={stats.vuln_result_count} hint={`队列最大并发 ${maxConcurrentTasks}`} />
         </div>
@@ -965,14 +965,14 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
               ))}
             </div>
           ) : (
-            <div className="mt-5 rounded-2xl border border-dashed border-slate-300 bg-white px-6 py-8 text-center text-sm font-semibold text-slate-400">
+            <div className="mt-5 rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-6 py-8 text-center text-sm font-semibold text-slate-400">
               暂无阶段汇总统计
             </div>
           )
         ) : null}
       </section>
 
-      <section className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
+ <section className="rounded-[2rem] border border-slate-200 bg-slate-50 p-6">
         <div className="flex items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <h2 className="text-xl font-black text-slate-900">任务列表</h2>
@@ -996,7 +996,7 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
                 disabled={deleting}
                 className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-2.5 text-sm font-bold text-rose-700 disabled:cursor-not-allowed disabled:opacity-60"
               >
-                {deleting ? '删除中...' : `删除选中 (${selectedCount})`}
+                {deleting ? '删除中...' :`删除选中 (${selectedCount})`}
               </button>
             )}
             <div className="text-sm text-slate-500">共 {total} 条</div>
@@ -1025,7 +1025,7 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
                 setStatusFilter(e.target.value);
                 setPage(1);
               }}
-              className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700"
+              className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700"
             >
               <option value="">全部状态</option>
               <option value="pending">pending</option>
@@ -1043,7 +1043,7 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
                 setSortOrder((nextSortOrder as 'asc' | 'desc') || 'desc');
                 setPage(1);
               }}
-              className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700"
+              className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700"
             >
               <option value="created_at:desc">创建时间 最新</option>
               <option value="created_at:asc">创建时间 最早</option>
@@ -1060,7 +1060,7 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
                 setPage(1);
                 setSearch(searchInput.trim());
               }}
-              className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-bold text-slate-700"
+              className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-2 text-sm font-bold text-slate-700"
             >
               查询
             </button>
@@ -1090,7 +1090,7 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
             {items.map((item) => (
               <div
                 key={item.id}
-                className="w-full rounded-[1.5rem] border border-slate-200 bg-slate-50 p-5 text-left transition hover:border-slate-300 hover:bg-white"
+                className="w-full rounded-[1.5rem] border border-slate-200 bg-slate-50 p-5 text-left transition hover:border-slate-300 hover:bg-slate-50"
               >
                 <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
                   <div className="min-w-0 flex-1">
@@ -1135,7 +1135,7 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
                         </span>
                       ) : null}
                     </div>
-                    <div className="mt-3 break-all rounded-xl bg-white px-3 py-2 font-mono text-xs text-slate-500">{item.firmware_path}</div>
+                    <div className="mt-3 break-all rounded-xl bg-slate-50 px-3 py-2 font-mono text-xs text-slate-500">{item.firmware_path}</div>
                     {item.abnormal_reason_title ? (
                       <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
                         <span className="font-black">{item.abnormal_reason_title}</span>
@@ -1165,7 +1165,7 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
                     <button
                       type="button"
                       onClick={() => onOpenTask(item.id)}
-                      className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-bold text-slate-700"
+                      className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm font-bold text-slate-700"
                     >
                       查看详情
                       <ChevronRight size={18} />
@@ -1174,7 +1174,7 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
                       type="button"
                       onClick={() => void deleteTask(item.id)}
                       disabled={deleting}
-                      className="rounded-xl border border-rose-200 bg-white px-4 py-2.5 text-sm font-bold text-rose-700 disabled:cursor-not-allowed disabled:opacity-60"
+                      className="rounded-xl border border-rose-200 bg-slate-50 px-4 py-2.5 text-sm font-bold text-rose-700 disabled:cursor-not-allowed disabled:opacity-60"
                     >
                       删除
                     </button>
@@ -1195,7 +1195,7 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
                 setPageSize(Number(e.target.value) || 50);
                 setPage(1);
               }}
-              className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700"
+              className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700"
             >
               {[10, 50, 100, 200, 500, 1000].map((size) => (
                 <option key={size} value={size}>{size} / 页</option>
@@ -1205,7 +1205,7 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
               type="button"
               onClick={() => setPage((current) => Math.max(1, current - 1))}
               disabled={page <= 1}
-              className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-bold text-slate-700 disabled:cursor-not-allowed disabled:opacity-50"
+              className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-2 text-sm font-bold text-slate-700 disabled:cursor-not-allowed disabled:opacity-50"
             >
               上一页
             </button>
@@ -1213,7 +1213,7 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
               type="button"
               onClick={() => setPage((current) => Math.min(totalPages, current + 1))}
               disabled={page >= totalPages}
-              className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-bold text-slate-700 disabled:cursor-not-allowed disabled:opacity-50"
+              className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-2 text-sm font-bold text-slate-700 disabled:cursor-not-allowed disabled:opacity-50"
             >
               下一页
             </button>
@@ -1223,7 +1223,7 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
 
       {showCreateDialog && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/40 px-4">
-          <div className="w-full max-w-5xl rounded-[2rem] border border-slate-200 bg-white text-slate-900 shadow-2xl">
+ <div className="w-full max-w-5xl rounded-[2rem] border border-slate-200 bg-slate-50 text-slate-900">
             <div className="flex items-center justify-between border-b border-slate-200 px-6 py-5">
               <div>
                 <h3 className="text-xl font-black text-slate-900">{createTitle}</h3>
@@ -1250,7 +1250,7 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
                         key={tab.key}
                         type="button"
                         onClick={() => setCreateDialogTab(tab.key)}
-                        className={`rounded-[1.25rem] px-4 py-3 text-left transition ${active ? 'bg-white shadow-sm ring-1 ring-slate-200' : 'bg-transparent hover:bg-white/70'}`}
+ className={`rounded-[1.25rem] px-4 py-3 text-left transition ${active ? 'bg-slate-50 ring-1 ring-slate-200' : 'bg-transparent hover:bg-slate-100'}`}
                       >
                         <div className="flex items-center justify-between gap-2">
                           <div className={`text-sm font-black ${active ? 'text-slate-900' : 'text-slate-600'}`}>{tab.label}</div>
@@ -1273,13 +1273,13 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
                         setNameEdited(true);
                       }}
                       placeholder="任务名称"
-                      className="rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 placeholder:text-slate-400"
+                      className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 placeholder:text-slate-400"
                     />
                     <input
                       value={description}
                       onChange={(e) => setDescription(e.target.value)}
                       placeholder="任务描述（可选）"
-                      className="rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 placeholder:text-slate-400"
+                      className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 placeholder:text-slate-400"
                     />
                   </div>
                   {isBinaryModuleTask ? (
@@ -1287,7 +1287,7 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
                       value={moduleName}
                       onChange={(e) => setModuleName(e.target.value)}
                       placeholder="模块名"
-                      className="rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 placeholder:text-slate-400"
+                      className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 placeholder:text-slate-400"
                     />
                   ) : null}
                 </>
@@ -1304,7 +1304,7 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
                     <button
                       type="button"
                       onClick={() => fileInputRef.current?.click()}
-                      className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-bold text-slate-700 shadow-sm hover:bg-slate-50"
+ className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm font-bold text-slate-700 hover:bg-slate-100"
                     >
                       <Upload size={16} />
                       {isBinaryModuleTask ? '选择 ELF' : '选择文件'}
@@ -1332,12 +1332,12 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
                 />
                 <div className="mt-4 space-y-3">
                   {files.length === 0 ? (
-                    <div className="rounded-2xl border border-dashed border-slate-300 bg-white px-5 py-8 text-center text-sm text-slate-400">尚未选择输入文件。</div>
+                    <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-5 py-8 text-center text-sm text-slate-400">尚未选择输入文件。</div>
                   ) : files.map((file) => {
                     const key = fileKey(file);
                     const displayPath = file.name;
                     return (
-                      <div key={key} className="rounded-2xl bg-white px-4 py-3">
+                      <div key={key} className="rounded-2xl bg-slate-50 px-4 py-3">
                         <div className="flex flex-wrap items-center justify-between gap-3">
                           <div className="min-w-0">
                             <div className="truncate text-sm font-bold text-slate-900">{displayPath}</div>
@@ -1346,8 +1346,8 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
                           <div className="flex items-center gap-3">
                             {submitting && (
                               <div className="min-w-[160px] text-right text-xs font-semibold text-slate-500">
-                                {uploadProgress[key] ? `${uploadProgress[key]}%` : '等待上传'}
-                                {uploadSpeed[key] > 0 ? ` · ${fmtSpeed(uploadSpeed[key])}` : ''}
+                                {uploadProgress[key] ?`${uploadProgress[key]}%` : '等待上传'}
+                                {uploadSpeed[key] > 0 ?` · ${fmtSpeed(uploadSpeed[key])}` : ''}
                               </div>
                             )}
                             <button type="button" onClick={() => removeFile(key)} disabled={submitting} className="text-sm font-semibold text-rose-600 disabled:opacity-40">
@@ -1369,7 +1369,7 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
                       <div className="text-sm font-black text-slate-900">模块推进方式</div>
                       <div className="mt-3 grid gap-2">
                         {MODULE_SELECTION_OPTIONS.map((option) => (
-                        <label key={option.value} className="flex items-center gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700">
+                        <label key={option.value} className="flex items-center gap-3 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-700">
                           <input
                             type="radio"
                             name="moduleSelectionMode"
@@ -1386,7 +1386,7 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
                       <div className="text-sm font-black text-slate-900">后续分析模块风险等级</div>
                       <div className="mt-3 grid grid-cols-3 gap-2">
                         {MODULE_RISK_OPTIONS.map((risk) => (
-                        <label key={risk} className="flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700">
+                        <label key={risk} className="flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-700">
                           <input
                             type="checkbox"
                             checked={moduleRiskLevels.includes(risk)}
@@ -1417,7 +1417,7 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
                   <div className="mt-1 text-sm text-slate-500">支持为当前任务单独选择广度优先或深度优化模式；默认值来自参数配置页。</div>
                   <div className="mt-3 grid grid-cols-1 gap-3 xl:grid-cols-2">
                     {PIPELINE_MODE_OPTIONS.map((option) => (
-                      <label key={option.value} className="flex items-start gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700">
+                      <label key={option.value} className="flex items-start gap-3 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700">
                         <input
                           type="radio"
                           name="taskPipelineMode"
@@ -1449,7 +1449,7 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
                         max={16}
                         value={stageParallelism[field.key] ?? 1}
                         onChange={(e) => setStageParallelism((current) => ({ ...current, [field.key]: Number(e.target.value || 1) }))}
-                        className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900"
+                        className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900"
                       />
                     </div>
                   ))}
@@ -1461,7 +1461,7 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
                       max={10}
                       value={maxRetries}
                       onChange={(e) => setMaxRetries(Number(e.target.value || 0))}
-                      className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900"
+                      className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900"
                     />
                   </div>
                 </div>
@@ -1471,7 +1471,7 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
                 </label>
                   <div className="mt-4 grid grid-cols-1 gap-3 xl:grid-cols-2">
                     {PARTIAL_SUCCESS_ADVANCEMENT_FIELDS.filter((field) => stages.includes(field.key)).map((field) => (
-                      <label key={field.key} className="flex items-center gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700">
+                      <label key={field.key} className="flex items-center gap-3 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-700">
                         <input
                           type="checkbox"
                           checked={partialSuccessStageAdvancement[field.key] !== false}
@@ -1515,7 +1515,7 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
                   type="button"
                   onClick={() => void submitTask()}
                   disabled={submitting}
-                  className="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-bold text-white shadow-sm hover:bg-slate-800 disabled:opacity-60"
+ className="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-bold text-white hover:bg-slate-800 disabled:opacity-60"
                 >
                   {submitting && <Loader2 size={16} className="animate-spin" />}
                   {submitting ? '创建并上传中...' : '创建并启动'}
