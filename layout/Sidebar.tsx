@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
-import { ChevronDown, ChevronRight, MoonStar, PanelLeftClose, PanelLeftOpen, SunMedium } from 'lucide-react';
-import { SIDEBAR_SECTIONS, SidebarHealthStatus, TOP_LEVEL_NAV_ITEMS, NAV_ROLE_CONFIG } from '../app/navigation';
-import { useTheme } from '../theme/ThemeProvider';
+import { ChevronDown, ChevronRight, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
+import { SIDEBAR_SECTIONS, SidebarHealthStatus, TOP_LEVEL_NAV_ITEMS, NAV_ROLE_CONFIG, getSystemAdminSidebarSections } from '../app/navigation';
 import { UserInfo, ViewType } from '../types/types';
 import { canAccessView } from '../utils/rbac';
 
@@ -42,7 +41,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
 }) => {
   const projectGuard = !hasSelectedProject;
   const projectGuardTitle = '请先选择项目';
-  const { theme, toggleTheme } = useTheme();
 
   const healthStatusMap: SidebarHealthStatus = {
     resourceHealth,
@@ -55,7 +53,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
     configCenterHealth,
   };
 
-  const sections = (SIDEBAR_SECTIONS[activeTopLevelNav as keyof typeof SIDEBAR_SECTIONS] || []).map((section) => ({
+  const rawSections = activeTopLevelNav === 'system-admin'
+    ? getSystemAdminSidebarSections(String(currentView))
+    : (SIDEBAR_SECTIONS[activeTopLevelNav as keyof typeof SIDEBAR_SECTIONS] || []);
+
+  const sections = rawSections.map((section) => ({
     ...section,
     items: section.items.filter((item) => canAccessView(user, item.id)),
   })).filter((section) => section.items.length > 0);
@@ -184,21 +186,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
       </nav>
 
       <div className="p-5 border-t border-theme-sidebar">
-        <div className={`flex items-center gap-3 ${isSidebarCollapsed ? 'justify-between' : 'justify-between'}`}>
-          <button
-            onClick={toggleTheme}
-            className={`rounded-2xl bg-theme-sidebar-muted/60 text-theme-text-faint hover:text-theme-text-inverse hover:bg-theme-sidebar-muted transition-colors ${
-              isSidebarCollapsed ? 'p-3' : 'flex items-center gap-2 px-3 py-3'
-            }`}
-            title={theme === 'chimera-classic' ? '切换到 Chimera 深色主题' : '切换到 Chimera Classic 主题'}
-          >
-            {theme === 'chimera-classic' ? <MoonStar size={16} /> : <SunMedium size={16} />}
-            {!isSidebarCollapsed && (
-              <span className="text-xs font-bold">
-                {theme === 'chimera-classic' ? '深色' : '经典'}
-              </span>
-            )}
-          </button>
+        <div className="flex items-center justify-end">
           {!isSidebarCollapsed ? (
             <button onClick={() => setIsSidebarCollapsed(true)} className="p-3 rounded-2xl bg-theme-sidebar-muted/60 text-theme-text-faint hover:text-theme-text-inverse hover:bg-theme-sidebar-muted transition-colors">
               <PanelLeftClose size={18} />
