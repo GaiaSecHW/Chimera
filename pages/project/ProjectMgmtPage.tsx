@@ -1,21 +1,18 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   AlertTriangle,
-  ArrowRight,
   Building2,
   CheckCircle2,
   CheckSquare,
   Edit3,
-  Globe,
   Layers,
   Loader2,
-  Lock,
   Plus,
   RefreshCw,
   Search,
+  Server,
   Square,
   Trash2,
-  GitBranch,
 } from 'lucide-react';
 import { api } from '../../clients/api';
 import { orgApi, UserPermissionInfo } from '../../clients/org';
@@ -69,8 +66,6 @@ const LK = {
   info: '#4f8cff',
 } as const;
 
-const MONO = 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace';
-
 export const ProjectMgmtPage: React.FC<ProjectMgmtPageProps> = ({
   projects,
   setSelectedProjectId,
@@ -95,6 +90,22 @@ export const ProjectMgmtPage: React.FC<ProjectMgmtPageProps> = ({
   const [userPermissions, setUserPermissions] = useState<UserPermissionInfo | null>(null);
   const [productTree, setProductTree] = useState<ProductTreeNode[]>([]);
 
+  // Placeholder counts for new stat blocks — will be wired to real API later
+  const [taskCount, setTaskCount] = useState<number | null>(null);
+  const [envCount, setEnvCount] = useState<number | null>(null);
+  const [vulnCount, setVulnCount] = useState<number | null>(null);
+
+  // ComboBox state for create dialog
+  const [productSearch, setProductSearch] = useState('');
+  const [selectedProductId, setSelectedProductId] = useState<string | null>(null);
+  const [versionSearch, setVersionSearch] = useState('');
+  const [selectedVersionId, setSelectedVersionId] = useState<string | null>(null);
+  const [showProductDropdown, setShowProductDropdown] = useState(false);
+  const [showVersionDropdown, setShowVersionDropdown] = useState(false);
+
+  const productDropdownRef = useRef<HTMLDivElement>(null);
+  const versionDropdownRef = useRef<HTMLDivElement>(null);
+
   useEffect(() => {
     const bootstrap = async () => {
       try {
@@ -111,6 +122,20 @@ export const ProjectMgmtPage: React.FC<ProjectMgmtPageProps> = ({
       }
     };
     bootstrap();
+  }, []);
+
+  // Close dropdowns on click outside
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (productDropdownRef.current && !productDropdownRef.current.contains(e.target as Node)) {
+        setShowProductDropdown(false);
+      }
+      if (versionDropdownRef.current && !versionDropdownRef.current.contains(e.target as Node)) {
+        setShowVersionDropdown(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
   const allowedDepartmentIds = useMemo(() => {
@@ -141,10 +166,37 @@ export const ProjectMgmtPage: React.FC<ProjectMgmtPageProps> = ({
         (node.versions || []).map((version: ProductVersionNode) => ({
           product: node,
           version,
-          label:`${node.name} / ${version.version}${version.name ?` · ${version.name}` : ''}`,
+          label: `${node.name} / ${version.version}${version.name ? ` · ${version.name}` : ''}`,
         }))
       );
   }, [productTree]);
+
+  // ComboBox derived data
+  const leafProducts = useMemo(() => {
+    const flat = (nodes: ProductTreeNode[]): ProductTreeNode[] =>
+      nodes.flatMap((n) => [n, ...flat(n.children || [])]);
+    return flat(productTree).filter((n) => n.is_leaf);
+  }, [productTree]);
+
+  const filteredProducts = useMemo(() => {
+    if (!productSearch.trim()) return leafProducts;
+    return leafProducts.filter((p) => p.name.toLowerCase().includes(productSearch.toLowerCase()));
+  }, [leafProducts, productSearch]);
+
+  const selectedProductVersions = useMemo(() => {
+    if (!selectedProductId) return [];
+    const product = leafProducts.find((p) => String(p.id) === selectedProductId);
+    return product?.versions || [];
+  }, [selectedProductId, leafProducts]);
+
+  const filteredVersions = useMemo(() => {
+    if (!versionSearch.trim()) return selectedProductVersions;
+    return selectedProductVersions.filter(
+      (v) =>
+        v.version.toLowerCase().includes(versionSearch.toLowerCase()) ||
+        (v.name && v.name.toLowerCase().includes(versionSearch.toLowerCase()))
+    );
+  }, [selectedProductVersions, versionSearch]);
 
   const filteredProjects = useMemo(() => {
     const term = searchTerm.trim().toLowerCase();
@@ -166,33 +218,9 @@ export const ProjectMgmtPage: React.FC<ProjectMgmtPageProps> = ({
     });
   }, [projects, searchTerm]);
 
-  const publicProjects = useMemo(
-    () => filteredProjects.filter((project) => project.is_public),
-    [filteredProjects]
-  );
-  const departmentProjects = useMemo(
-    () => filteredProjects.filter((project) => !project.is_public),
-    [filteredProjects]
-  );
   const manageableProjects = useMemo(
     () => filteredProjects.filter((project) => project.can_manage),
     [filteredProjects]
-  );
-  const productCount = useMemo(
-    () => new Set(
-      projects
-        .map((project) => String(project.product_id || project.product_name || project.product_path || '').trim())
-        .filter(Boolean)
-    ).size,
-    [projects]
-  );
-  const versionCount = useMemo(
-    () => new Set(
-      projects
-        .map((project) => String(project.product_version_id || project.product_version || project.product_version_name || '').trim())
-        .filter(Boolean)
-    ).size,
-    [projects]
   );
 
   const isAllSelected = manageableProjects.length > 0 && manageableProjects.every((project) => selectedIds.has(project.id));
@@ -211,12 +239,22 @@ export const ProjectMgmtPage: React.FC<ProjectMgmtPageProps> = ({
     return defaultDepartment ? String(defaultDepartment.id) : '';
   };
 
+  const resetCreateForm = () => {
+    setNewProject(EMPTY_FORM);
+    setProductSearch('');
+    setSelectedProductId(null);
+    setVersionSearch('');
+    setSelectedVersionId(null);
+    setShowProductDropdown(false);
+    setShowVersionDropdown(false);
+  };
+
   const openCreateModal = () => {
     setError(null);
+    resetCreateForm();
     setNewProject({
       ...EMPTY_FORM,
       department_id: getDefaultDepartmentId(),
-      product_version_id: productVersionOptions[0]?.version.id || '',
     });
     setIsCreateModalOpen(true);
   };
@@ -227,23 +265,41 @@ export const ProjectMgmtPage: React.FC<ProjectMgmtPageProps> = ({
       setError('请选择项目归属部门');
       return;
     }
-    if (!newProject.product_version_id) {
-      setError('请选择产品版本');
+    if (!productSearch.trim()) {
+      setError('请输入或选择产品名称');
+      return;
+    }
+    if (!versionSearch.trim()) {
+      setError('请输入或选择版本号');
       return;
     }
 
     setIsSubmitting(true);
     setError(null);
     try {
+      let productVersionId = selectedVersionId;
+
+      if (!selectedProductId) {
+        // New product + new version
+        const newProd = await projectApi.products.create({ name: productSearch, code: productSearch });
+        const newVer = await projectApi.products.createVersion(String(newProd.id), { version: versionSearch, name: versionSearch });
+        productVersionId = newVer.id;
+      } else if (!selectedVersionId) {
+        // Existing product + new version
+        const newVer = await projectApi.products.createVersion(selectedProductId, { version: versionSearch, name: versionSearch });
+        productVersionId = newVer.id;
+      }
+      // else: existing product + existing version — selectedVersionId already set
+
       await projectApi.projects.create({
         name: newProject.name,
         description: newProject.description,
-        is_public: newProject.is_public,
+        is_public: false, // Always department project
         department_id: Number(newProject.department_id),
-        product_version_id: newProject.product_version_id,
+        product_version_id: productVersionId!,
       });
       setIsCreateModalOpen(false);
-      setNewProject(EMPTY_FORM);
+      resetCreateForm();
       await refreshProjects();
     } catch (err: any) {
       setError(err.message || '创建项目失败');
@@ -349,235 +405,6 @@ export const ProjectMgmtPage: React.FC<ProjectMgmtPageProps> = ({
     setCurrentView('project-detail');
   };
 
-  const renderProjectSection = (
-    title: string,
-    subtitle: string,
-    emptyText: string,
-    projectsInSection: SecurityProject[],
-    accent: 'green' | 'amber'
-  ) => {
-    const accentColor = accent === 'green' ? LK.success : LK.warning;
-    const Icon = accent === 'green' ? Globe : Building2;
-
-    return (
-      <section
-        className="overflow-hidden rounded-xl"
-        style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}` }}
-      >
-        <div
-          className="flex flex-col gap-3 px-5 py-4 md:flex-row md:items-center md:justify-between"
-          style={{ borderBottom:`1px solid ${LK.borderSoft}` }}
-        >
-          <div className="flex items-center gap-3">
-            <div
-              className="flex h-9 w-9 items-center justify-center rounded-md"
-              style={{ backgroundColor: `${accentColor}22`, color: accentColor }}
-            >
-              <Icon size={18} />
-            </div>
-            <div>
-              <h3 className="text-base font-semibold leading-6" style={{ color: LK.ink }}>
-                {title}
-              </h3>
-              <p className="text-xs" style={{ color: LK.muted }}>
-                {subtitle}
-              </p>
-            </div>
-          </div>
-          <span
-            className="inline-flex items-center gap-1.5 self-start rounded-full px-2.5 py-1 text-xs font-medium md:self-auto"
-            style={{ backgroundColor: `${accentColor}22`, color: accentColor }}
-          >
-            <Layers size={13} />
-            {projectsInSection.length} 个项目
-          </span>
-        </div>
-
-        {projectsInSection.length > 0 ? (
-          <div className="overflow-x-auto">
-            <table className="min-w-full border-separate border-spacing-0">
-              <thead>
-                <tr className="text-left text-xs uppercase tracking-wider" style={{ color: LK.mutedSoft }}>
-                  <th className="w-12 px-3 py-2.5 font-medium" style={{ borderBottom:`1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>选择</th>
-                  <th className="min-w-[240px] px-3 py-2.5 font-medium" style={{ borderBottom:`1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>项目</th>
-                  <th className="min-w-[110px] px-3 py-2.5 font-medium" style={{ borderBottom:`1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>可见性</th>
-                  <th className="min-w-[140px] px-3 py-2.5 font-medium" style={{ borderBottom:`1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>归属部门</th>
-                  <th className="min-w-[110px] px-3 py-2.5 font-medium" style={{ borderBottom:`1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>负责人</th>
-                  <th className="min-w-[200px] px-3 py-2.5 font-medium" style={{ borderBottom:`1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>产品版本</th>
-                  <th className="min-w-[180px] px-3 py-2.5 font-medium" style={{ borderBottom:`1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>命名空间</th>
-                  <th className="min-w-[90px] px-3 py-2.5 font-medium" style={{ borderBottom:`1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>状态</th>
-                  <th className="min-w-[140px] px-3 py-2.5 font-medium" style={{ borderBottom:`1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>创建时间</th>
-                  <th className="w-36 px-3 py-2.5 text-right font-medium" style={{ borderBottom:`1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>操作</th>
-                </tr>
-              </thead>
-              <tbody>
-                {projectsInSection.map((project) => {
-                  const selected = selectedIds.has(project.id);
-                  return (
-                    <tr
-                      key={project.id}
-                      onClick={() => handleRowClick(project.id)}
-                      className="cursor-pointer transition-colors"
-                      style={{
-                        backgroundColor: selected ? LK.primaryMuted : 'transparent',
-                        boxShadow: selected ?`inset 2px 0 0 ${LK.primary}` : 'none',
-                      }}
-                      onMouseEnter={(e) => {
-                        if (!selected) e.currentTarget.style.backgroundColor = LK.surfaceRaised;
-                      }}
-                      onMouseLeave={(e) => {
-                        if (!selected) e.currentTarget.style.backgroundColor = 'transparent';
-                      }}
-                    >
-                      <td className="px-3 py-3 align-top" style={{ borderBottom:`1px solid ${LK.borderSoft}` }}>
-                        <button
-                          onClick={(event) => toggleSelect(event, project)}
-                          disabled={!project.can_manage}
-                          className="p-1 transition-colors disabled:cursor-not-allowed disabled:opacity-40"
-                          style={{ color: project.can_manage ? (selected ? LK.primary : LK.muted) : LK.muted }}
-                          title={project.can_manage ? '选择项目' : '仅可查看，无法批量操作'}
-                        >
-                          {selected ? <CheckSquare size={16} /> : <Square size={16} />}
-                        </button>
-                      </td>
-                      <td className="px-3 py-3 align-top" style={{ borderBottom:`1px solid ${LK.borderSoft}` }}>
-                        <div className="min-w-0 space-y-1">
-                          <div className="flex flex-wrap items-center gap-2">
-                            <span className="truncate text-sm font-semibold" style={{ color: LK.ink }}>
-                              {project.name}
-                            </span>
-                            {project.can_manage ? (
-                              <span
-                                className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium"
-                                style={{ backgroundColor: LK.primaryMuted, color: LK.primary }}
-                              >
-                                <Edit3 size={11} />
-                                可管理
-                              </span>
-                            ) : (
-                              <span
-                                className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium"
-                                style={{ backgroundColor: LK.surfaceRaised, color: LK.muted }}
-                              >
-                                <Lock size={11} />
-                                只读
-                              </span>
-                            )}
-                          </div>
-                          <div className="line-clamp-2 text-xs leading-5" style={{ color: LK.body }}>
-                            {project.description || '未填写项目描述。'}
-                          </div>
-                          <div className="text-[11px]" style={{ color: LK.muted, fontFamily: MONO }}>
-                            {project.id}
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-3 py-3 align-top" style={{ borderBottom:`1px solid ${LK.borderSoft}` }}>
-                        <span
-                          className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium"
-                          style={{ backgroundColor: `${accentColor}22`, color: accentColor }}
-                        >
-                          {project.is_public ? <Globe size={11} /> : <Lock size={11} />}
-                          {project.is_public ? '公开' : '部门'}
-                        </span>
-                      </td>
-                      <td className="px-3 py-3 align-top text-sm" style={{ borderBottom:`1px solid ${LK.borderSoft}`, color: LK.body }}>
-                        {project.department_name || '未绑定'}
-                      </td>
-                      <td className="px-3 py-3 align-top text-sm" style={{ borderBottom:`1px solid ${LK.borderSoft}`, color: LK.body }}>
-                        {project.owner_name || '未知'}
-                      </td>
-                      <td className="px-3 py-3 align-top" style={{ borderBottom:`1px solid ${LK.borderSoft}` }}>
-                        <div className="space-y-0.5">
-                          <div className="text-sm font-medium" style={{ color: LK.inkSoft }}>
-                            {project.product_version || project.product_version_name || '未归属版本'}
-                          </div>
-                          <div className="break-all text-[11px]" style={{ color: LK.muted, fontFamily: MONO }}>
-                            {project.product_path || '—'}
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-3 py-3 align-top" style={{ borderBottom:`1px solid ${LK.borderSoft}` }}>
-                        <span
-                          className="inline-block max-w-[200px] break-all rounded px-1.5 py-0.5 text-xs"
-                          style={{ backgroundColor: LK.surfaceRaised, color: LK.body, fontFamily: MONO }}
-                        >
-                          {project.k8s_namespace || '系统自动生成'}
-                        </span>
-                      </td>
-                      <td className="px-3 py-3 align-top" style={{ borderBottom:`1px solid ${LK.borderSoft}` }}>
-                        <StatusBadge status={project.status || 'active'} />
-                      </td>
-                      <td className="px-3 py-3 align-top text-xs" style={{ borderBottom:`1px solid ${LK.borderSoft}`, color: LK.muted }}>
-                        {project.created_at ? new Date(project.created_at).toLocaleString() : '未知'}
-                      </td>
-                      <td className="px-3 py-3 align-top" style={{ borderBottom:`1px solid ${LK.borderSoft}` }}>
-                        <div className="flex items-center justify-end gap-1">
-                          <button
-                            onClick={(event) => {
-                              event.stopPropagation();
-                              switchToProject(project.id);
-                            }}
-                            className="rounded-md px-2.5 py-1.5 text-xs font-medium transition-colors"
-                            style={{ color: LK.body }}
-                            onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = LK.surfaceRaised; e.currentTarget.style.color = LK.ink; }}
-                            onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.color = LK.body; }}
-                            title="切换到此项目"
-                          >
-                            切换
-                          </button>
-                          {project.can_manage && (
-                            <>
-                              <button
-                                onClick={(event) => openEditModal(event, project)}
-                                className="rounded-md p-1.5 transition-colors"
-                                style={{ color: LK.muted }}
-                                onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = LK.primaryMuted; e.currentTarget.style.color = LK.primary; }}
-                                onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.color = LK.muted; }}
-                                title="编辑项目"
-                              >
-                                <Edit3 size={15} />
-                              </button>
-                              <button
-                                onClick={(event) => handleDeleteClick(event, [project.id])}
-                                className="rounded-md p-1.5 transition-colors"
-                                style={{ color: LK.muted }}
-                                onMouseEnter={(e) => { e.currentTarget.style.backgroundColor =`${LK.error}22`; e.currentTarget.style.color = LK.error; }}
-                                onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.color = LK.muted; }}
-                                title="删除项目"
-                              >
-                                <Trash2 size={15} />
-                              </button>
-                            </>
-                          )}
-                          <span style={{ color: accentColor }} className="p-1.5">
-                            <ArrowRight size={15} />
-                          </span>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        ) : (
-          <div className="flex flex-col items-center gap-3 py-14 text-center">
-            <div
-              className="flex h-10 w-10 items-center justify-center rounded-md"
-              style={{ backgroundColor: LK.surfaceRaised, color: LK.muted }}
-            >
-              <Icon size={20} />
-            </div>
-            <p className="text-sm" style={{ color: LK.muted }}>
-              {emptyText}
-            </p>
-          </div>
-        )}
-      </section>
-    );
-  };
-
   const renderDepartmentSelect = (
     value: string,
     onChange: (departmentId: string) => void,
@@ -635,19 +462,20 @@ export const ProjectMgmtPage: React.FC<ProjectMgmtPageProps> = ({
       className="space-y-4 px-5 py-5 pb-20 md:px-6 2xl:px-8"
       style={{ backgroundColor: LK.canvas, minHeight: '100%', color: LK.inkSoft }}
     >
-      <div className="flex flex-col items-end justify-between gap-3 pb-4 md:flex-row" style={{ borderBottom:`1px solid ${LK.borderSoft}` }}>
+      {/* Page header */}
+      <div className="flex flex-col items-end justify-between gap-3 pb-4 md:flex-row" style={{ borderBottom: `1px solid ${LK.borderSoft}` }}>
         <div>
           <span
             className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium"
             style={{ backgroundColor: LK.primaryMuted, color: LK.primary }}
           >
-            <Layers size={13} /> 项目空间
+            <Layers size={13} /> 项目概览
           </span>
           <h1 className="mt-3 text-2xl font-semibold leading-8 tracking-tight" style={{ color: LK.ink }}>
-            项目空间
+            项目概览
           </h1>
           <p className="mt-1.5 text-sm leading-6" style={{ color: LK.body }}>
-            公开项目与部门归属项目分区展示，统一按部门层级控制访问与管理。
+            统一展示用户权限范围内的所有项目
           </p>
         </div>
         <div className="flex gap-2">
@@ -674,6 +502,7 @@ export const ProjectMgmtPage: React.FC<ProjectMgmtPageProps> = ({
         </div>
       </div>
 
+      {/* Batch selection bar */}
       {selectedIds.size > 0 && (
         <div
           className="sticky top-3 z-30 flex items-center justify-between rounded-lg px-4 py-2.5"
@@ -692,8 +521,8 @@ export const ProjectMgmtPage: React.FC<ProjectMgmtPageProps> = ({
               onClick={(event) => handleDeleteClick(event, Array.from(selectedIds))}
               className="inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition-colors"
               style={{ backgroundColor: `${LK.error}22`, color: LK.error }}
-              onMouseEnter={(e) => (e.currentTarget.style.backgroundColor =`${LK.error}3a`)}
-              onMouseLeave={(e) => (e.currentTarget.style.backgroundColor =`${LK.error}22`)}
+              onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = `${LK.error}3a`)}
+              onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = `${LK.error}22`)}
             >
               <Trash2 size={14} /> 批量删除
             </button>
@@ -710,11 +539,13 @@ export const ProjectMgmtPage: React.FC<ProjectMgmtPageProps> = ({
         </div>
       )}
 
-      <div className="grid grid-cols-3 gap-3">
+      {/* Stat blocks — 4 columns */}
+      <div className="grid grid-cols-4 gap-3">
         {[
-          { label: '产品数', value: productCount, icon: Layers, color: LK.primary },
-          { label: '版本数', value: versionCount, icon: GitBranch, color: LK.success },
-          { label: '项目总数', value: projects.length, icon: Building2, color: LK.warning },
+          { label: '项目', value: projects.length, icon: Building2, color: LK.primary },
+          { label: '任务', value: taskCount !== null ? taskCount : '-', icon: Layers, color: LK.success },
+          { label: '环境', value: envCount !== null ? envCount : '-', icon: Server, color: LK.warning },
+          { label: '漏洞', value: vulnCount !== null ? vulnCount : '-', icon: AlertTriangle, color: LK.error },
         ].map((stat) => (
           <div
             key={stat.label}
@@ -739,6 +570,7 @@ export const ProjectMgmtPage: React.FC<ProjectMgmtPageProps> = ({
         ))}
       </div>
 
+      {/* Admin notice */}
       {userPermissions?.platform_role === 'ordinary_admin' && (
         <div
           className="rounded-lg px-4 py-3 text-sm"
@@ -748,6 +580,7 @@ export const ProjectMgmtPage: React.FC<ProjectMgmtPageProps> = ({
         </div>
       )}
 
+      {/* Search bar */}
       <div
         className="flex items-center gap-2 rounded-lg px-3"
         style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}` }}
@@ -755,7 +588,7 @@ export const ProjectMgmtPage: React.FC<ProjectMgmtPageProps> = ({
         <Search size={16} style={{ color: LK.muted }} />
         <input
           type="text"
-          placeholder="搜索项目名称、负责人、归属部门、产品路径、版本号或命名空间..."
+          placeholder="搜索项目名称、负责人、归属部门、产品路径、版本号..."
           className="w-full bg-transparent py-2.5 text-sm outline-none"
           style={{ color: LK.inkSoft }}
           value={searchTerm}
@@ -773,22 +606,144 @@ export const ProjectMgmtPage: React.FC<ProjectMgmtPageProps> = ({
         </button>
       </div>
 
-      {renderProjectSection(
-        '公开项目',
-        '所有登录用户均可查看，适合作为跨部门共享项目空间。',
-        '当前没有公开项目',
-        publicProjects,
-        'green'
-      )}
+      {/* Unified project table */}
+      <section
+        className="overflow-hidden rounded-xl"
+        style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}` }}
+      >
+        {filteredProjects.length > 0 ? (
+          <div className="overflow-x-auto">
+            <table className="min-w-full border-separate border-spacing-0">
+              <thead>
+                <tr className="text-left text-xs uppercase tracking-wider" style={{ color: LK.mutedSoft }}>
+                  <th className="whitespace-nowrap w-12 px-3 py-2.5 font-medium" style={{ borderBottom: `1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>选择</th>
+                  <th className="whitespace-nowrap min-w-[180px] px-3 py-2.5 font-medium" style={{ borderBottom: `1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>项目</th>
+                  <th className="whitespace-nowrap min-w-[140px] px-3 py-2.5 font-medium" style={{ borderBottom: `1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>归属部门</th>
+                  <th className="whitespace-nowrap min-w-[110px] px-3 py-2.5 font-medium" style={{ borderBottom: `1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>项目成员</th>
+                  <th className="whitespace-nowrap min-w-[200px] px-3 py-2.5 font-medium" style={{ borderBottom: `1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>产品版本</th>
+                  <th className="whitespace-nowrap min-w-[90px] px-3 py-2.5 font-medium" style={{ borderBottom: `1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>状态</th>
+                  <th className="whitespace-nowrap min-w-[140px] px-3 py-2.5 font-medium" style={{ borderBottom: `1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>创建时间</th>
+                  <th className="whitespace-nowrap w-24 px-3 py-2.5 text-right font-medium" style={{ borderBottom: `1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>操作</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredProjects.map((project) => {
+                  const selected = selectedIds.has(project.id);
+                  return (
+                    <tr
+                      key={project.id}
+                      onClick={() => handleRowClick(project.id)}
+                      className="cursor-pointer transition-colors"
+                      style={{
+                        backgroundColor: selected ? LK.primaryMuted : 'transparent',
+                        boxShadow: selected ? `inset 2px 0 0 ${LK.primary}` : 'none',
+                      }}
+                      onMouseEnter={(e) => {
+                        if (!selected) e.currentTarget.style.backgroundColor = LK.surfaceRaised;
+                      }}
+                      onMouseLeave={(e) => {
+                        if (!selected) e.currentTarget.style.backgroundColor = 'transparent';
+                      }}
+                    >
+                      {/* 选择 */}
+                      <td className="whitespace-nowrap px-3 py-3" style={{ borderBottom: `1px solid ${LK.borderSoft}` }}>
+                        <button
+                          onClick={(event) => toggleSelect(event, project)}
+                          disabled={!project.can_manage}
+                          className="p-1 transition-colors disabled:cursor-not-allowed disabled:opacity-40"
+                          style={{ color: project.can_manage ? (selected ? LK.primary : LK.muted) : LK.muted }}
+                          title={project.can_manage ? '选择项目' : '仅可查看，无法批量操作'}
+                        >
+                          {selected ? <CheckSquare size={16} /> : <Square size={16} />}
+                        </button>
+                      </td>
+                      {/* 项目 — name only, clickable */}
+                      <td className="whitespace-nowrap px-3 py-3" style={{ borderBottom: `1px solid ${LK.borderSoft}` }}>
+                        <button
+                          onClick={(e) => { e.stopPropagation(); handleRowClick(project.id); }}
+                          className="text-sm font-semibold hover:underline"
+                          style={{ color: LK.primary }}
+                        >
+                          {project.name}
+                        </button>
+                      </td>
+                      {/* 归属部门 */}
+                      <td className="whitespace-nowrap px-3 py-3 text-sm" style={{ borderBottom: `1px solid ${LK.borderSoft}`, color: LK.body }}>
+                        {project.department_name || '未绑定'}
+                      </td>
+                      {/* 项目成员 */}
+                      <td
+                        className="whitespace-nowrap truncate max-w-[120px] px-3 py-3 text-sm"
+                        style={{ borderBottom: `1px solid ${LK.borderSoft}`, color: LK.body }}
+                        title={project.owner_name || '-'}
+                      >
+                        {project.owner_name || '-'}
+                      </td>
+                      {/* 产品版本 */}
+                      <td className="whitespace-nowrap px-3 py-3" style={{ borderBottom: `1px solid ${LK.borderSoft}` }}>
+                        <div className="text-sm font-medium" style={{ color: LK.inkSoft }}>
+                          {project.product_version || project.product_version_name || '未归属版本'}
+                        </div>
+                      </td>
+                      {/* 状态 */}
+                      <td className="whitespace-nowrap px-3 py-3" style={{ borderBottom: `1px solid ${LK.borderSoft}` }}>
+                        <StatusBadge status={project.status || 'active'} />
+                      </td>
+                      {/* 创建时间 */}
+                      <td className="whitespace-nowrap px-3 py-3 text-xs" style={{ borderBottom: `1px solid ${LK.borderSoft}`, color: LK.muted }}>
+                        {project.created_at ? new Date(project.created_at).toLocaleString() : '未知'}
+                      </td>
+                      {/* 操作 — edit + delete only */}
+                      <td className="whitespace-nowrap px-3 py-3" style={{ borderBottom: `1px solid ${LK.borderSoft}` }}>
+                        <div className="flex items-center justify-end gap-1">
+                          {project.can_manage && (
+                            <>
+                              <button
+                                onClick={(event) => openEditModal(event, project)}
+                                className="rounded-md p-1.5 transition-colors"
+                                style={{ color: LK.muted }}
+                                onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = LK.primaryMuted; e.currentTarget.style.color = LK.primary; }}
+                                onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.color = LK.muted; }}
+                                title="编辑项目"
+                              >
+                                <Edit3 size={15} />
+                              </button>
+                              <button
+                                onClick={(event) => handleDeleteClick(event, [project.id])}
+                                className="rounded-md p-1.5 transition-colors"
+                                style={{ color: LK.muted }}
+                                onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = `${LK.error}22`; e.currentTarget.style.color = LK.error; }}
+                                onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.color = LK.muted; }}
+                                title="删除项目"
+                              >
+                                <Trash2 size={15} />
+                              </button>
+                            </>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <div className="flex flex-col items-center gap-3 py-14 text-center">
+            <div
+              className="flex h-10 w-10 items-center justify-center rounded-md"
+              style={{ backgroundColor: LK.surfaceRaised, color: LK.muted }}
+            >
+              <Building2 size={20} />
+            </div>
+            <p className="text-sm" style={{ color: LK.muted }}>
+              {searchTerm.trim() ? '没有匹配的项目' : '当前没有项目'}
+            </p>
+          </div>
+        )}
+      </section>
 
-      {renderProjectSection(
-        '部门归属项目',
-        '展示登录用户所属部门树范围内可见的项目，私有项目按部门层级进行访问控制。',
-        '当前没有部门归属项目',
-        departmentProjects,
-        'amber'
-      )}
-
+      {/* Create project dialog */}
       {isCreateModalOpen && (
         <div
           className="fixed inset-0 z-[100] flex items-center justify-center p-6 animate-in fade-in"
@@ -798,7 +753,7 @@ export const ProjectMgmtPage: React.FC<ProjectMgmtPageProps> = ({
             className="w-full max-w-xl overflow-hidden rounded-2xl animate-in"
             style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}` }}
           >
-            <div className="flex items-start gap-3 px-6 pb-0 pt-6" style={{ borderBottom:`1px solid ${LK.borderSoft}` }}>
+            <div className="flex items-start gap-3 px-6 pb-0 pt-6" style={{ borderBottom: `1px solid ${LK.borderSoft}` }}>
               <div
                 className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md"
                 style={{ backgroundColor: LK.primaryMuted, color: LK.primary }}
@@ -854,56 +809,119 @@ export const ProjectMgmtPage: React.FC<ProjectMgmtPageProps> = ({
               {renderDepartmentSelect(
                 newProject.department_id,
                 (department_id) => setNewProject({ ...newProject, department_id }),
-                '私有项目仅对该部门及其上级部门可见；公开项目仍保留归属部门以便后续管理。'
+                '项目仅对该部门及其上级部门可见；归属部门管理员负责维护。'
               )}
 
-              {renderProductVersionSelect(
-                newProject.product_version_id,
-                (product_version_id) => setNewProject({ ...newProject, product_version_id }),
-                '新建项目必须绑定到一个产品版本，版本从全局产品树的叶子节点下选择。'
-              )}
-
-              <div className="space-y-1.5">
-                <label className="text-xs font-medium" style={{ color: LK.mutedSoft }}>项目可见性 *</label>
-                <div className="grid grid-cols-2 gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setNewProject({ ...newProject, is_public: true })}
-                    className="flex flex-col items-center gap-1.5 rounded-lg px-3 py-3 text-sm font-medium transition-colors"
-                    style={{
-                      backgroundColor: newProject.is_public ? LK.primaryMuted : LK.surfaceRaised,
-                      border: `1px solid ${newProject.is_public ? LK.primary : LK.border}`,
-                      color: newProject.is_public ? LK.primary : LK.body,
+              {/* Product ComboBox */}
+              <div className="space-y-1.5" ref={productDropdownRef}>
+                <label className="text-xs font-medium" style={{ color: LK.mutedSoft }}>产品名称 *</label>
+                <div className="relative">
+                  <input
+                    placeholder="输入产品名称，或从列表选择..."
+                    className="w-full rounded-lg px-3 py-2.5 text-sm outline-none transition-colors"
+                    style={{ backgroundColor: LK.surfaceRaised, color: LK.inkSoft, border: `1px solid ${LK.border}` }}
+                    onFocus={(e) => {
+                      e.currentTarget.style.borderColor = LK.primary;
+                      setShowProductDropdown(true);
                     }}
-                  >
-                    <Globe size={18} />
-                    公开项目
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setNewProject({ ...newProject, is_public: false })}
-                    className="flex flex-col items-center gap-1.5 rounded-lg px-3 py-3 text-sm font-medium transition-colors"
-                    style={{
-                      backgroundColor: !newProject.is_public ? LK.primaryMuted : LK.surfaceRaised,
-                      border: `1px solid ${!newProject.is_public ? LK.primary : LK.border}`,
-                      color: !newProject.is_public ? LK.primary : LK.body,
+                    onBlur={(e) => (e.currentTarget.style.borderColor = LK.border)}
+                    value={productSearch}
+                    onChange={(e) => {
+                      setProductSearch(e.target.value);
+                      setSelectedProductId(null);
+                      setVersionSearch('');
+                      setSelectedVersionId(null);
+                      setShowProductDropdown(true);
                     }}
-                  >
-                    <Lock size={18} />
-                    部门项目
-                  </button>
+                  />
+                  {showProductDropdown && filteredProducts.length > 0 && (
+                    <div
+                      className="absolute left-0 right-0 top-full z-50 mt-1 max-h-48 overflow-y-auto rounded-lg py-1"
+                      style={{ backgroundColor: LK.surfaceRaised, border: `1px solid ${LK.border}`, boxShadow: '0 8px 24px rgba(0,0,0,0.4)' }}
+                    >
+                      {filteredProducts.map((p) => (
+                        <button
+                          key={p.id}
+                          type="button"
+                          className="w-full px-3 py-2 text-left text-sm transition-colors"
+                          style={{ color: LK.inkSoft }}
+                          onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = LK.primaryMuted)}
+                          onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
+                          onMouseDown={(e) => {
+                            e.preventDefault();
+                            setProductSearch(p.name);
+                            setSelectedProductId(String(p.id));
+                            setVersionSearch('');
+                            setSelectedVersionId(null);
+                            setShowProductDropdown(false);
+                          }}
+                        >
+                          {p.name}
+                        </button>
+                      ))}
+                    </div>
+                  )}
                 </div>
                 <p className="text-[11px]" style={{ color: LK.muted }}>
-                  {newProject.is_public
-                    ? '公开项目：所有用户可见，但仍由归属部门管理员负责维护。'
-                    : '部门项目：仅归属部门及上级部门用户可见。'}
+                  {selectedProductId ? '已选择现有产品' : productSearch.trim() ? '将创建新产品' : '从产品树叶子节点选择，或输入新产品名称'}
+                </p>
+              </div>
+
+              {/* Version ComboBox */}
+              <div className="space-y-1.5" ref={versionDropdownRef}>
+                <label className="text-xs font-medium" style={{ color: LK.mutedSoft }}>版本号 *</label>
+                <div className="relative">
+                  <input
+                    placeholder={selectedProductId ? '输入版本号，或从列表选择...' : '请先选择或输入产品名称'}
+                    className="w-full rounded-lg px-3 py-2.5 text-sm outline-none transition-colors"
+                    style={{ backgroundColor: LK.surfaceRaised, color: LK.inkSoft, border: `1px solid ${LK.border}` }}
+                    onFocus={(e) => {
+                      e.currentTarget.style.borderColor = LK.primary;
+                      setShowVersionDropdown(true);
+                    }}
+                    onBlur={(e) => (e.currentTarget.style.borderColor = LK.border)}
+                    value={versionSearch}
+                    onChange={(e) => {
+                      setVersionSearch(e.target.value);
+                      setSelectedVersionId(null);
+                      setShowVersionDropdown(true);
+                    }}
+                  />
+                  {showVersionDropdown && filteredVersions.length > 0 && (
+                    <div
+                      className="absolute left-0 right-0 top-full z-50 mt-1 max-h-48 overflow-y-auto rounded-lg py-1"
+                      style={{ backgroundColor: LK.surfaceRaised, border: `1px solid ${LK.border}`, boxShadow: '0 8px 24px rgba(0,0,0,0.4)' }}
+                    >
+                      {filteredVersions.map((v) => (
+                        <button
+                          key={v.id}
+                          type="button"
+                          className="w-full px-3 py-2 text-left text-sm transition-colors"
+                          style={{ color: LK.inkSoft }}
+                          onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = LK.primaryMuted)}
+                          onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
+                          onMouseDown={(e) => {
+                            e.preventDefault();
+                            setVersionSearch(v.version + (v.name ? ` · ${v.name}` : ''));
+                            setSelectedVersionId(v.id);
+                            setShowVersionDropdown(false);
+                          }}
+                        >
+                          {v.version}{v.name ? ` · ${v.name}` : ''}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+                <p className="text-[11px]" style={{ color: LK.muted }}>
+                  {selectedVersionId ? '已选择现有版本' : versionSearch.trim() ? '将创建新版本' : '选择已有版本或输入新版本号'}
                 </p>
               </div>
 
               <div className="flex gap-2 pt-2">
                 <button
                   type="button"
-                  onClick={() => setIsCreateModalOpen(false)}
+                  onClick={() => { setIsCreateModalOpen(false); resetCreateForm(); }}
                   className="flex-1 rounded-lg px-4 py-2.5 text-sm font-medium transition-colors"
                   style={{ backgroundColor: LK.surfaceRaised, color: LK.body, border: `1px solid ${LK.border}` }}
                   onMouseEnter={(e) => (e.currentTarget.style.color = LK.ink)}
@@ -928,6 +946,7 @@ export const ProjectMgmtPage: React.FC<ProjectMgmtPageProps> = ({
         </div>
       )}
 
+      {/* Delete confirmation dialog */}
       {showConfirm.show && (
         <div
           className="fixed inset-0 z-[100] flex items-center justify-center p-6 animate-in fade-in"
@@ -975,6 +994,7 @@ export const ProjectMgmtPage: React.FC<ProjectMgmtPageProps> = ({
         </div>
       )}
 
+      {/* Edit project dialog */}
       {isEditModalOpen && editingProject && (
         <div
           className="fixed inset-0 z-[100] flex items-center justify-center p-6 animate-in fade-in"
@@ -984,7 +1004,7 @@ export const ProjectMgmtPage: React.FC<ProjectMgmtPageProps> = ({
             className="w-full max-w-xl overflow-hidden rounded-2xl animate-in"
             style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}` }}
           >
-            <div className="flex items-start gap-3 px-6 pb-0 pt-6" style={{ borderBottom:`1px solid ${LK.borderSoft}` }}>
+            <div className="flex items-start gap-3 px-6 pb-0 pt-6" style={{ borderBottom: `1px solid ${LK.borderSoft}` }}>
               <div
                 className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md"
                 style={{ backgroundColor: LK.primaryMuted, color: LK.primary }}
@@ -1048,43 +1068,6 @@ export const ProjectMgmtPage: React.FC<ProjectMgmtPageProps> = ({
                 (product_version_id) => setEditForm({ ...editForm, product_version_id }),
                 '可切换到其他产品版本；历史项目允许暂时为空，但建议尽快补齐。'
               )}
-
-              <div className="space-y-1.5">
-                <label className="text-xs font-medium" style={{ color: LK.mutedSoft }}>项目可见性 *</label>
-                <div className="grid grid-cols-2 gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setEditForm({ ...editForm, is_public: true })}
-                    className="flex flex-col items-center gap-1.5 rounded-lg px-3 py-3 text-sm font-medium transition-colors"
-                    style={{
-                      backgroundColor: editForm.is_public ? LK.primaryMuted : LK.surfaceRaised,
-                      border: `1px solid ${editForm.is_public ? LK.primary : LK.border}`,
-                      color: editForm.is_public ? LK.primary : LK.body,
-                    }}
-                  >
-                    <Globe size={18} />
-                    公开项目
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setEditForm({ ...editForm, is_public: false })}
-                    className="flex flex-col items-center gap-1.5 rounded-lg px-3 py-3 text-sm font-medium transition-colors"
-                    style={{
-                      backgroundColor: !editForm.is_public ? LK.primaryMuted : LK.surfaceRaised,
-                      border: `1px solid ${!editForm.is_public ? LK.primary : LK.border}`,
-                      color: !editForm.is_public ? LK.primary : LK.body,
-                    }}
-                  >
-                    <Lock size={18} />
-                    部门项目
-                  </button>
-                </div>
-                <p className="text-[11px]" style={{ color: LK.muted }}>
-                  {editForm.is_public
-                    ? '公开项目：所有用户可见，编辑/删除仍受归属部门管理员控制。'
-                    : '部门项目：仅归属部门与上级部门用户可见。'}
-                </p>
-              </div>
 
               <div className="flex gap-2 pt-2">
                 <button
