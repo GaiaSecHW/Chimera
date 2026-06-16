@@ -1702,7 +1702,7 @@ export const EntryAnalysisTaskDetailPage: React.FC<{ projectId: string; taskId: 
     const requestSeq = ++detailRequestSeqRef.current;
     setLoading(true);
     try {
-      const nextDetail = await appApi.getTask(taskId);
+      const nextDetail = await appApi.getTask(taskId, { includeFunctionCatalog: true });
       if (detailRequestSeqRef.current === requestSeq) setDetail(nextDetail);
     }
     catch (err: any) { notify(`加载任务详情失败: ${err?.message || err}`, 'error'); }
