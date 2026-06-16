@@ -1017,10 +1017,9 @@ function deriveFuncProgress(
   totalFuncCount: number;
 } {
   const map = new Map<string, FuncProgress>();
+  // 以 function_catalog 为准（来自 pipeline_state.json，权威数据源），
+  // 不再从 r1_static_done 事件累加（多次重启/接管会导致事件重复计数翻倍）。
   let totalFuncCount = 0;
-  for (const evt of events) {
-    if (evt.type === 'r1_static_done') totalFuncCount += Number((evt.data || {}).count) || 0;
-  }
 
   const toStage = (s?: string | null): FuncStage => {
     switch (String(s || 'pending')) {
@@ -1071,12 +1070,12 @@ function deriveFuncProgress(
     if (!isTerminalStage(item[field])) item[field] = next;
   };
 
-  // 先用 function_catalog 初始化所有函数，保证 R2 开始前就有函数表
+  // 先用 function_catalog 初始化所有函数（来自 pipeline_state.json 的权威数据）
   for (const item of functionCatalog || []) {
     const fh = String(item.func_hash || '');
     if (!fh) continue;
+    totalFuncCount += 1;
     const f = getOrCreate(fh, String(item.name || fh), String(item.file || ''));
-    // R2-J: 'failed' 仅是暂时状态（引擎必重试至 passed 或 force-pass），显示为运行中
     f.r2j = item.r2_source_incomplete ? 'failed' : (item.r2j_state === 'failed' ? 'running' : toStage(item.r2j_state));
     f.r3w = toStage(item.r3w_state);
     f.r3j = toStage(item.r3j_state);
@@ -1084,17 +1083,9 @@ function deriveFuncProgress(
     const r4Decision = String(item.r4_decision || '').toLowerCase();
     const r4Actual = toStage(item.r4_state);
     const hasInput = item.has_external_input == null ? undefined : Boolean(item.has_external_input);
-    // r4_decision is the authoritative outcome of R4 (or R3's pre-filter decision):
-    //   'remove' = R4-W ran and decided to remove this function
-    //   'filter' = R3-W pre-filtered it; R4 never ran (r4_state stays pending)
-    //   'keep'   = R4 ran and kept (r4_state='passed' when J confirmed)
-    //   ''       = no decision yet, or single-file bypass (r4_state='passed' = kept)
-    // r4_state='passed' alone is NOT sufficient: a function can have r4_state='passed'
-    // with r4_decision='remove' (R4-W ran, completed, and decided remove).
     if (r4Decision === 'remove' || r4Decision === 'filter') {
       f.r4 = hasInput === false ? 'skip' : 'remove';
     } else {
-      // r4_decision is 'keep' or empty -> r4_state='passed' means kept
       f.r4 = r4Actual === 'passed' ? 'keep' : r4Actual;
     }
     f.rep = toStage(item.rep_state);
@@ -1104,7 +1095,13 @@ function deriveFuncProgress(
     if (item.file_hash) f.file_hash = String(item.file_hash);
     f.is_entry = f.r4 === 'keep';
   }
-  if (!totalFuncCount) totalFuncCount = (functionCatalog || []).length;
+
+  // 兜底：如果 function_catalog 为空（极少数情况），从 r1_static_done 事件累加
+  if (!totalFuncCount) {
+    for (const evt of events) {
+      if (evt.type === 'r1_static_done') totalFuncCount += Number((evt.data || {}).count) || 0;
+    }
+  }
 
   for (const evt of events) {
     const ts = evt.ts || 0;

@@ -4339,6 +4339,7 @@ export interface AppEaTaskResult {
   result_file_path?: string | null;
   functions_list_path?: string | null;
   run_report_path?: string | null;
+  final_report_path?: string | null;
   run_result_path?: string | null;
   result_markdown?: string | null;
   functions_list_markdown?: string | null;
@@ -4346,9 +4347,23 @@ export interface AppEaTaskResult {
   functions: string[];
   entry_details?: AppEaEntryDetail[];
   run_report_markdown?: string | null;
+  final_report_markdown?: string | null;
   result_json?: Record<string, any> | null;
+  live_stats?: AppEaLiveStats | null;
   summary: AppEaTaskResultSummary;
   warnings: string[];
+}
+
+export interface AppEaLiveStats {
+  total_functions: number;
+  r2_done: number;
+  r3_done: number;
+  r4_kept: number;
+  ext_entries: number;
+  hdl_entries: number;
+  cc_state: string;
+  r6_state: string;
+  duration_ms_since_start?: number | null;
 }
 
 export interface AppEaTaskEvaluation {
