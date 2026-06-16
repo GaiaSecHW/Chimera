@@ -43,8 +43,7 @@ export const EnvAiAgentOverviewPage: React.FC<{ projectId: string }> = ({ projec
  <section className="rounded-[2rem] border border-slate-200 bg-slate-50 p-6">
           <div className="flex items-center justify-between gap-4 flex-wrap">
             <div>
-              <p className="text-xs font-black uppercase tracking-[0.3em] text-cyan-600">AI Agent Workspace</p>
-              <h1 className="mt-3 text-3xl font-black tracking-tight text-slate-900">AI Agent 总览</h1>
+              <h1 className="text-3xl font-black tracking-tight text-slate-900">AI Agent 总览</h1>
               <p className="mt-2 text-sm text-slate-500">从项目维度看当前所有 helper 和 AI Agent 的整体状态，再按职责进入具体管理页面。</p>
             </div>
             <div className="flex flex-wrap gap-2">

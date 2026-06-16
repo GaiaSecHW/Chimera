@@ -2323,7 +2323,6 @@ export const EntryAnalysisTaskDetailPage: React.FC<{ projectId: string; taskId: 
             <button onClick={handleBack} className="inline-flex items-center gap-2 rounded-xl border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-100">
               <ArrowLeft size={14} />{hasReturnContext ? '返回原任务' : '返回任务列表'}
             </button>
-            <p className="mt-4 text-xs font-black uppercase tracking-[0.3em] text-violet-600">Entry Analysis</p>
             <div className="mt-3 flex flex-wrap items-center gap-3">
               <h1 className="text-3xl font-black tracking-tight text-slate-900">{detail?.task_name || '任务详情'}</h1>
               {detail ? <span className={`rounded-md px-2.5 py-1 text-xs font-semibold ${STATUS_COLOR[detail.cancel_requested && ['running','pending'].includes(detail.status) ? 'cancelling' : detail.status]}`}>{STATUS_LABEL[detail.cancel_requested && ['running','pending'].includes(detail.status) ? 'cancelling' : detail.status] || detail.status}</span> : null}

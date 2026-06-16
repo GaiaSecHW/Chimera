@@ -445,7 +445,6 @@ export const DepartmentMemberPage: React.FC = () => {
             </div>
             <div>
               <h2 className="text-3xl font-black text-slate-800 tracking-tight">部门成员管理</h2>
-              <p className="text-slate-500 font-medium mt-1 uppercase tracking-widest text-[10px]">Department Member Management</p>
             </div>
           </div>
         </div>

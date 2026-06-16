@@ -88,7 +88,6 @@ export const FileserverArchiveTasksPage: React.FC<Props> = ({ projectId }) => {
         <div className="rounded-3xl border border-slate-200 bg-slate-800 p-5 shadow-panel">
           <div className="flex items-center justify-between">
             <div>
-              <div className="text-[11px] font-black uppercase tracking-[0.26em] text-slate-400">Fileserver Archive Tasks</div>
               <h2 className="mt-1 text-2xl font-black text-slate-900">打包下载任务</h2>
               <div className="mt-1 text-xs text-slate-500">项目: {projectId || '未选择'}</div>
             </div>

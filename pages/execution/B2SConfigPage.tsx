@@ -864,8 +864,7 @@ export const B2SConfigPage: React.FC<{ projectId: string; embedded?: boolean }> 
           <div style={{ margin: '0 auto', maxHeight: '100%', maxWidth: '80rem', overflow: 'hidden', borderRadius: '24px', border: `1px solid ${LK.border}`, backgroundColor: LK.surface, boxShadow: '0 32px 120px rgba(15,23,42,0.35)' }}>
             <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '16px', borderBottom:`1px solid ${LK.border}`, padding: '20px 24px' }}>
               <div>
-                <div style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.18em', color: LK.muted }}>Cache Detail</div>
-                <h3 style={{ marginTop: '8px', fontSize: '20px', fontWeight: 600, color: LK.ink }}>{cacheDetail?.elf_basename || cacheDetail?.cache_key || '缓存详情'}</h3>
+                <h3 style={{ fontSize: '20px', fontWeight: 600, color: LK.ink }}>{cacheDetail?.elf_basename || cacheDetail?.cache_key || '缓存详情'}</h3>
                 <div style={{ marginTop: '4px', fontFamily: MONO, fontSize: '12px', color: LK.body, wordBreak: 'break-all' }}>{cacheDetail?.cache_key || '-'}</div>
               </div>
               <button type="button" onClick={() => setCacheDetail(null)} style={{ borderRadius: '6px', border: `1px solid ${LK.border}`, padding: '8px 12px', fontSize: '12px', fontWeight: 600, color: LK.body, cursor: 'pointer' }}>

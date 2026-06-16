@@ -253,7 +253,6 @@ export const EntryAnalysisModelsPage: React.FC = () => {
       {feedbackNodes}
 
  <section style={{ borderRadius: '32px', border: `1px solid ${LK.borderSoft}`, backgroundColor: LK.surface, padding: '24px' }}>
-        <p style={{ fontSize: '12px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.3em', color: LK.primary }}>Entry Analysis</p>
         <h1 style={{ marginTop: '12px', fontSize: '30px', fontWeight: 600, letterSpacing: '-0.025em', color: LK.ink }}>模型配置</h1>
         <p style={{ marginTop: '8px', fontSize: '14px', color: LK.body }}>
           管理入口分析引擎使用的 LLM 提供商及模型列表。引用格式：

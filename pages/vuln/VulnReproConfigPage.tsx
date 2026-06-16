@@ -18,7 +18,7 @@ export const VulnReproConfigPage: React.FC<VulnPageProps> = ({ projectId, onNavi
     showWorkspaceTabs={false}
     showStats={false}
     summaryCards={[
-      { label: '关键阶段范围', source: 'scope_count', helper: '验证阶段当前关联的疑点量级。' },
+      { label: '关键阶段范围', source: 'scope_count', helper: '验证阶段当前关联的漏洞量级。' },
       { label: '注册服务数', source: 'metric:registered_services', helper: '当前已经注册到漏洞引擎的能力服务。' },
       { label: '排队动作数', source: 'metric:queued_actions', helper: '队列中的动作越多，越需要关注阶段绑定与模块质量。' },
       { label: '活跃服务数', source: 'metric:active_services', helper: '当前可用并能被调度的服务数量。' },
@@ -30,7 +30,7 @@ export const VulnReproConfigPage: React.FC<VulnPageProps> = ({ projectId, onNavi
       bind_stage: 'validation',
     }}
     phaseHighlights={[
-      '这里专门处理疑点复现与验证模块的注册元数据、阶段绑定和能力关联。',
+      '这里专门处理漏洞复现与验证模块的注册元数据、阶段绑定和能力关联。',
       '复现模块配置不只是注册服务，还要明确它服务于验证或终态回传。',
       '建议把自动确认、验证脚本生成和结果回传模块拆成不同能力声明。'
     ]}

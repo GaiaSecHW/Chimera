@@ -318,7 +318,6 @@ export const DepartmentPage: React.FC = () => {
             </div>
             <div>
               <h2 className="text-3xl font-black text-slate-800 tracking-tight">组织架构管理</h2>
-              <p className="text-slate-500 font-medium mt-1 uppercase tracking-widest text-[10px]">Organization Structure Management</p>
             </div>
           </div>
         </div>

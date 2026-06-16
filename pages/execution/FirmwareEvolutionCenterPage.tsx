@@ -454,7 +454,6 @@ function CreateEvolutionModal({
       <div style={{ display: 'flex', maxHeight: '88vh', width: '100%', maxWidth: '64rem', flexDirection: 'column', borderRadius: '24px', border: `1px solid ${LK.border}`, backgroundColor: LK.surface }}>
         <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '1rem', borderBottom:`1px solid ${LK.borderSoft}`, padding: '1.25rem 1.5rem' }}>
           <div>
-            <p style={{ fontSize: '10px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.28em', color: '#d5a13a' }}>Firmware Evolution</p>
             <h3 style={{ marginTop: '0.5rem', fontSize: '1.5rem', fontWeight: 600, color: LK.ink }}>新建进化任务</h3>
             <p style={{ marginTop: '0.5rem', fontSize: '0.875rem', color: LK.body }}>选择一个已 success 的固件解包任务作为进化源任务。</p>
           </div>
@@ -1746,7 +1745,7 @@ export const FirmwareEvolutionCenterPage: React.FC<Props> = ({ projectId }) => {
       {logModalOpen ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/65 p-6 backdrop-blur-sm">
  <div className="flex max-h-[85vh] w-full max-w-5xl flex-col overflow-hidden rounded-[2rem] border border-slate-200 bg-slate-50">
-            <div className="flex items-start justify-between gap-4 border-b border-slate-100 px-6 py-5"><div><p className="text-[10px] font-black uppercase tracking-[0.28em] text-blue-600">Evolution Log</p><h3 className="mt-2 text-xl font-black text-slate-900">{logModalTitle}</h3></div><button onClick={() => setLogModalOpen(false)} className="rounded-xl p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-700"><X size={18} /></button></div>
+            <div className="flex items-start justify-between gap-4 border-b border-slate-100 px-6 py-5"><div><h3 className="mt-2 text-xl font-black text-slate-900">{logModalTitle}</h3></div><button onClick={() => setLogModalOpen(false)} className="rounded-xl p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-700"><X size={18} /></button></div>
             <div className="space-y-3 overflow-auto px-6 py-5">{logLoading ? <div className="flex items-center gap-2 text-sm text-slate-500"><Loader2 size={15} className="animate-spin" /> 加载日志中...</div> : !logPayload?.available ? <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700">{logPayload?.message || '当前阶段日志不可用'}</div> : <><div className="grid grid-cols-1 gap-3 sm:grid-cols-2"><div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3"><p className="text-[11px] font-bold uppercase tracking-wide text-slate-400">日志目录</p><p className="mt-1 break-all font-mono text-xs text-slate-700">{logPayload.run_path || '-'}</p></div><div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3"><p className="text-[11px] font-bold uppercase tracking-wide text-slate-400">日志文件</p><p className="mt-1 break-all font-mono text-xs text-slate-700">{logPayload.files?.join(', ') || '-'}</p></div></div><pre className="min-h-[320px] overflow-auto rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 text-[12px] leading-6 text-slate-900 whitespace-pre-wrap break-words">{logPayload.log_text || logPayload.message || '暂无日志内容'}</pre></> }</div>
           </div>
         </div>

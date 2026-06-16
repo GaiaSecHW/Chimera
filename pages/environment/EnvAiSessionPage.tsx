@@ -602,8 +602,7 @@ export const EnvAiSessionPage: React.FC<{ projectId: string }> = ({ projectId })
  <section className="rounded-3xl border border-slate-200 bg-slate-50 p-5">
           <div className="flex items-center justify-between gap-3 flex-wrap">
             <div>
-              <p className="text-[11px] font-black uppercase tracking-[0.28em] text-cyan-600">AI Agent Workspace</p>
-              <h1 className="mt-2 text-2xl font-black tracking-tight text-slate-900">单会话</h1>
+              <h1 className="text-2xl font-black tracking-tight text-slate-900">单会话</h1>
               <p className="mt-1 text-sm text-slate-500">更紧凑的单会话视图：左侧管理会话，右侧专注对话。</p>
             </div>
             <div className="flex items-center gap-2">

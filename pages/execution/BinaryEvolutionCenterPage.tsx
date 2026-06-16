@@ -167,8 +167,7 @@ const BinaryEvolutionTaskListView: React.FC<Props> = ({ projectId }) => {
       {feedbackNodes}
 
  <section style={{ borderRadius: '24px', border: `1px solid ${LK.borderSoft}`, backgroundColor: LK.surface, padding: '24px' }}>
-        <p style={{ fontSize: '12px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.3em', color: LK.warning }}>Binary Evolution</p>
-        <h1 style={{ marginTop: '12px', fontSize: '30px', fontWeight: 600, letterSpacing: '-0.025em', color: LK.ink }}>进化中心任务</h1>
+        <h1 style={{ fontSize: '30px', fontWeight: 600, letterSpacing: '-0.025em', color: LK.ink }}>进化中心任务</h1>
         <p style={{ marginTop: '8px', maxWidth: '56rem', fontSize: '14px', color: LK.body }}>
           集中管理进化任务的创建与历史回看。点击任意任务可进入独立详情页查看轮次收敛、产物应用与事件轨迹。
         </p>

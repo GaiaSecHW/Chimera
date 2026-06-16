@@ -628,7 +628,6 @@ export const SystemAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask: (
       {feedbackNodes}
 
  <section className="rounded-[2rem] border border-slate-200 bg-slate-50 p-6">
-        <p className="text-xs font-black uppercase tracking-[0.3em] text-cyan-600">System Analysis</p>
         <ServicePageTitle title="分析任务" version={buildVersion} />
         <p className="mt-2 text-sm text-slate-500">指定分析路径，启动安全分析任务。</p>
         <div className="mt-5 grid grid-cols-2 gap-2 sm:grid-cols-4">
@@ -1269,7 +1268,6 @@ export const SystemAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask: (
           <div className="w-full max-w-5xl rounded-[2rem] border border-slate-200 bg-slate-50" onClick={(event) => event.stopPropagation()}>
             <div className="flex items-start justify-between gap-4 border-b border-slate-200 px-6 py-5">
               <div>
-                <div className="text-[11px] font-black uppercase tracking-[0.24em] text-cyan-700">Slot Detail</div>
                 <h3 className="mt-2 text-2xl font-black tracking-tight text-slate-900">执行槽位详情</h3>
                 <p className="mt-2 text-sm text-slate-500">按 worker 展示当前系统分析任务执行情况；点击每个 worker 头部展开或收起详细信息。</p>
               </div>

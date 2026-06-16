@@ -110,7 +110,6 @@ export const BinaryEvolutionTaskDetailPage: React.FC<Props> = ({ projectId, task
               <ArrowLeft size={15} />
               返回任务列表
             </button>
-            <p className="mt-4 text-xs font-black uppercase tracking-[0.3em] text-amber-600">Binary Evolution</p>
             <h1 className="mt-3 text-3xl font-black tracking-tight text-slate-900">进化任务详情</h1>
             <p className="mt-2 max-w-4xl text-sm text-slate-500">
               参考系统分析详情页的独立页面结构，集中查看任务状态、轮次收敛、输入批次、产物与事件。

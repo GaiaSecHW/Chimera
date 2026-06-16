@@ -17,7 +17,6 @@ import {
   Key,
   Layers3,
   Loader2,
-  Plus,
   Puzzle,
   RefreshCw,
   ScrollText,
@@ -207,8 +206,8 @@ const STAGE_LABELS: Record<string, string> = {
 const PUBLIC_FIELDS = [
   { name: 'project_id', required: true, description: '目标项目标识，正式上报时用于项目绑定与项目级权限校验。' },
   { name: 'report_id', required: false, description: '上报方自己的唯一编号，用于追踪、复核与后续回调。' },
-  { name: 'title', required: true, description: '疑点标题。' },
-  { name: 'summary', required: false, description: '疑点摘要与简要说明。' },
+  { name: 'title', required: true, description: '漏洞标题。' },
+  { name: 'summary', required: false, description: '漏洞摘要与简要说明。' },
   { name: 'severity', required: true, description: '风险等级，只支持严重、高危、中危、低危四档。' },
   { name: 'cvss_score', required: true, description: 'CVSS 基础分最终分，用于统一量化风险。' },
   { name: 'confidence', required: true, description: '置信度，0 到 100。' },
@@ -514,8 +513,8 @@ const DetailMetricCard: React.FC<{
   hint?: React.ReactNode;
 }> = ({ label, value, hint }) => (
   <div className="rounded-xl px-4 py-4" style={{ backgroundColor: LK.surfaceRaised, border: '1px solid ' + LK.border }}>
-    <div className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: LK.mutedSoft }}>{label}</div>
-    <div className="mt-2 text-xl font-semibold tabular-nums" style={{ color: LK.ink }}>{value}</div>
+    <div className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: LK.mutedSoft }}>{label}</div>
+    <div className="mt-2 text-2xl font-semibold tabular-nums" style={{ color: LK.ink }}>{value}</div>
     {hint ? <div className="mt-1 text-xs" style={{ color: LK.body }}>{hint}</div> : null}
   </div>
 );
@@ -705,7 +704,7 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
       const response = await vulnApi.vuln.getOverview(projectId);
       setOverview(response);
     } catch (err: any) {
-      setError(err?.message || '加载疑点总览失败');
+      setError(err?.message || '加载漏洞总览失败');
     }
   };
 
@@ -743,7 +742,7 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
         setCurrentPage(response.page);
       }
     } catch (err: any) {
-      setError(err?.message || '加载疑点列表失败');
+      setError(err?.message || '加载漏洞列表失败');
     } finally {
       setLoading(false);
     }
@@ -830,7 +829,7 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
         setLinkedFilePreviewError(null);
       }
     } catch (err: any) {
-      setError(err?.message || '加载疑点详情失败');
+      setError(err?.message || '加载漏洞详情失败');
     } finally {
       setDetailLoading(false);
     }
@@ -849,7 +848,7 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
       setReportDocument(payload);
     } catch (err: any) {
       setReportDocument(null);
-      setReportError(err?.message || '加载疑点报告失败');
+      setReportError(err?.message || '加载漏洞报告失败');
     } finally {
       setReportLoading(false);
     }
@@ -868,7 +867,7 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
       setLinkedFilePreviewError(null);
       setSelectedLinkedPaths([]);
     } catch (err: any) {
-      setError(err?.message || '加载疑点文件失败');
+      setError(err?.message || '加载漏洞文件失败');
     } finally {
       setLinkedFilesLoading(false);
     }
@@ -933,7 +932,7 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
       anchor.remove();
       URL.revokeObjectURL(url);
     } catch (err: any) {
-      setError(err?.message || '下载疑点文件失败');
+      setError(err?.message || '下载漏洞文件失败');
     }
   };
 
@@ -1198,7 +1197,7 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
             source_kind: 'manual',
           },
           custom: {
-            entity_label: '疑点',
+            entity_label: '漏洞',
           },
         },
       });
@@ -1206,9 +1205,9 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
       setShowCreateDialog(false);
       await Promise.all([loadOverview(), loadSuspicions(1)]);
       setSelectedSuspicionId(created.id);
-      setSuccessMessage(`疑点"${created.title}" 已创建。`);
+      setSuccessMessage(`漏洞"${created.title}" 已创建。`);
     } catch (err: any) {
-      setError(err?.message || '创建疑点失败');
+      setError(err?.message || '创建漏洞失败');
     } finally {
       setCreating(false);
     }
@@ -1278,9 +1277,9 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
       await Promise.all([loadOverview(), loadSuspicions()]);
       await loadSuspicionDetail(selectedDetail.id);
       setDetailEditMode(false);
-      setSuccessMessage('疑点上报字段已更新。');
+      setSuccessMessage('漏洞上报字段已更新。');
     } catch (err: any) {
-      setError(err?.message || '保存疑点失败');
+      setError(err?.message || '保存漏洞失败');
     } finally {
       setDetailSaving(false);
     }
@@ -1378,7 +1377,7 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
       });
       await Promise.all([loadOverview(), loadSuspicions()]);
       await loadSuspicionDetail(selectedDetail.id);
-      setSuccessMessage('疑点已标记为待验证。');
+      setSuccessMessage('漏洞已标记为待验证。');
     } catch (err: any) {
       setError(err?.message || '标记待验证失败');
     } finally {
@@ -1394,11 +1393,11 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
     try {
       await vulnApi.vuln.submitDecision(selectedDetail.id, {
         decision_status: 'non_issue',
-        summary: '在疑点上报中心手动判定为非问题',
+        summary: '在漏洞上报中心手动判定为非问题',
       });
       await Promise.all([loadOverview(), loadSuspicions()]);
       await loadSuspicionDetail(selectedDetail.id);
-      setSuccessMessage('疑点已手动标记为非问题。');
+      setSuccessMessage('漏洞已手动标记为非问题。');
     } catch (err: any) {
       setError(err?.message || '标记非问题失败');
     } finally {
@@ -1408,7 +1407,7 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
 
   const handleDeleteSuspicion = async () => {
     if (!selectedDetail?.id) return;
-    const confirmed = window.confirm(`确认删除疑点“${selectedDetail.title}”吗？此操作不可恢复。`);
+    const confirmed = window.confirm(`确认删除漏洞“${selectedDetail.title}”吗？此操作不可恢复。`);
     if (!confirmed) return;
     setProcessingAction('delete');
     setError(null);
@@ -1421,16 +1420,16 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
       setSelectedTimeline([]);
       const nextPage = pagedSuspicions.length <= 1 && currentPage > 1 ? currentPage - 1 : currentPage;
       await Promise.all([loadOverview(), loadSuspicions(nextPage)]);
-      setSuccessMessage(`疑点“${deletedTitle}”已删除。`);
+      setSuccessMessage(`漏洞“${deletedTitle}”已删除。`);
     } catch (err: any) {
-      setError(err?.message || '删除疑点失败');
+      setError(err?.message || '删除漏洞失败');
     } finally {
       setProcessingAction(null);
     }
   };
 
   const handleDeleteSingleFromList = async (caseId: string, title: string) => {
-    const confirmed = window.confirm(`确认删除疑点“${title}”吗？此操作不可恢复。`);
+    const confirmed = window.confirm(`确认删除漏洞“${title}”吗？此操作不可恢复。`);
     if (!confirmed) return;
     setRowDeletingId(caseId);
     setError(null);
@@ -1440,9 +1439,9 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
       const nextPage = pagedSuspicions.length <= 1 && currentPage > 1 ? currentPage - 1 : currentPage;
       await Promise.all([loadOverview(), loadSuspicions(nextPage)]);
       setSelectedSuspicionIds((previous) => previous.filter((id) => id !== caseId));
-      setSuccessMessage(`疑点“${title}”已删除。`);
+      setSuccessMessage(`漏洞“${title}”已删除。`);
     } catch (err: any) {
-      setError(err?.message || '删除疑点失败');
+      setError(err?.message || '删除漏洞失败');
     } finally {
       setRowDeletingId(null);
     }
@@ -1450,7 +1449,7 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
 
   const handleDeleteSelectedFromList = async () => {
     if (selectedSuspicionIds.length === 0) return;
-    const confirmed = window.confirm(`确认删除已选择的 ${selectedSuspicionIds.length} 条疑点吗？此操作不可恢复。`);
+    const confirmed = window.confirm(`确认删除已选择的 ${selectedSuspicionIds.length} 条漏洞吗？此操作不可恢复。`);
     if (!confirmed) return;
     setBulkDeleting(true);
     setError(null);
@@ -1461,9 +1460,9 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
       setSelectedSuspicionIds([]);
       const nextPage = pagedSuspicions.length <= deletedCount && currentPage > 1 ? currentPage - 1 : currentPage;
       await Promise.all([loadOverview(), loadSuspicions(nextPage)]);
-      setSuccessMessage(`已删除 ${deletedCount} 条疑点。`);
+      setSuccessMessage(`已删除 ${deletedCount} 条漏洞。`);
     } catch (err: any) {
-      setError(err?.message || '批量删除疑点失败');
+      setError(err?.message || '批量删除漏洞失败');
     } finally {
       setBulkDeleting(false);
     }
@@ -1574,7 +1573,7 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
     <button
       type="button"
       onClick={() => handleSortChange(field)}
-      className="inline-flex items-center gap-2 text-left text-[11px] font-black uppercase tracking-[0.18em] text-slate-500 hover:text-slate-800"
+      className="inline-flex items-center gap-2 text-left text-xs font-semibold uppercase tracking-wider text-slate-500 hover:text-slate-800"
     >
       {label}
       <ArrowUpDown size={12} className={sortField === field ? 'text-slate-800' : 'text-slate-300'} />
@@ -1585,24 +1584,24 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
     <div className="space-y-4">
       <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-5">
         <div className="rounded-xl px-4 py-3.5" style={{ backgroundColor: LK.surface, border: '1px solid ' + LK.border }}>
-          <div className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: LK.mutedSoft }}>下载任务总数</div>
-          <div className="mt-2 text-3xl font-semibold tabular-nums" style={{ color: LK.ink }}>{downloadStats.total || 0}</div>
+          <div className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: LK.mutedSoft }}>下载任务总数</div>
+          <div className="mt-2 text-2xl font-semibold tabular-nums" style={{ color: LK.ink }}>{downloadStats.total || 0}</div>
         </div>
         <div className="rounded-xl px-4 py-3.5" style={{ backgroundColor: LK.surface, border: '1px solid ' + LK.border }}>
-          <div className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: LK.mutedSoft }}>处理中</div>
-          <div className="mt-2 text-3xl font-semibold tabular-nums" style={{ color: LK.warning }}>{(downloadStats.pending || 0) + (downloadStats.processing || 0)}</div>
+          <div className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: LK.mutedSoft }}>处理中</div>
+          <div className="mt-2 text-2xl font-semibold tabular-nums" style={{ color: LK.warning }}>{(downloadStats.pending || 0) + (downloadStats.processing || 0)}</div>
         </div>
         <div className="rounded-xl px-4 py-3.5" style={{ backgroundColor: LK.surface, border: '1px solid ' + LK.border }}>
-          <div className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: LK.mutedSoft }}>可下载</div>
-          <div className="mt-2 text-3xl font-semibold tabular-nums" style={{ color: LK.success }}>{downloadStats.downloadable || 0}</div>
+          <div className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: LK.mutedSoft }}>可下载</div>
+          <div className="mt-2 text-2xl font-semibold tabular-nums" style={{ color: LK.success }}>{downloadStats.downloadable || 0}</div>
         </div>
         <div className="rounded-xl px-4 py-3.5" style={{ backgroundColor: LK.surface, border: '1px solid ' + LK.border }}>
-          <div className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: LK.mutedSoft }}>失败</div>
-          <div className="mt-2 text-3xl font-semibold tabular-nums" style={{ color: LK.error }}>{downloadStats.failed || 0}</div>
+          <div className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: LK.mutedSoft }}>失败</div>
+          <div className="mt-2 text-2xl font-semibold tabular-nums" style={{ color: LK.error }}>{downloadStats.failed || 0}</div>
         </div>
         <div className="rounded-xl px-4 py-3.5" style={{ backgroundColor: LK.surface, border: '1px solid ' + LK.border }}>
-          <div className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: LK.mutedSoft }}>已过期</div>
-          <div className="mt-2 text-3xl font-semibold tabular-nums" style={{ color: LK.muted }}>{downloadStats.expired || 0}</div>
+          <div className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: LK.mutedSoft }}>已过期</div>
+          <div className="mt-2 text-2xl font-semibold tabular-nums" style={{ color: LK.muted }}>{downloadStats.expired || 0}</div>
         </div>
       </div>
 
@@ -1611,7 +1610,7 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
           <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
             <div>
               <div className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: LK.mutedSoft }}>下载中心</div>
-              <h3 className="mt-1 text-xl font-semibold" style={{ color: LK.ink }}>疑点报告异步下载任务</h3>
+              <h3 className="mt-1 text-xl font-semibold" style={{ color: LK.ink }}>漏洞报告异步下载任务</h3>
             </div>
             <div className="flex flex-wrap items-center gap-2">
               <div className="rounded-lg px-3 py-2 text-[11px] font-semibold uppercase tracking-wider" style={{ backgroundColor: LK.surfaceRaised, color: LK.body }}>
@@ -1720,7 +1719,7 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
     if (!selectedDetail) {
       return (
         <div className="rounded-xl px-8 py-10 text-center text-sm" style={{ border: '1px dashed ' + LK.border, backgroundColor: LK.surface, color: LK.muted }}>
-          从左侧选择疑点查看详情。
+          从左侧选择漏洞查看详情。
         </div>
       );
     }
@@ -1734,8 +1733,8 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
     ];
 
     const detailTabs: Array<{ key: IntakeDetailTab; label: string; icon: React.ReactNode }> = [
-      { key: 'overview', label: '疑点总览', icon: <Layers3 size={14} /> },
-      { key: 'report', label: '疑点报告', icon: <ScrollText size={14} /> },
+      { key: 'overview', label: '漏洞总览', icon: <Layers3 size={14} /> },
+      { key: 'report', label: '漏洞报告', icon: <ScrollText size={14} /> },
       { key: 'evidence', label: '证据与文件', icon: <FolderOpen size={14} /> },
       { key: 'process', label: '处置过程', icon: <Activity size={14} /> },
       { key: 'context', label: '关联上下文', icon: <FileClock size={14} /> },
@@ -1792,7 +1791,7 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
               onMouseLeave={(e) => { e.currentTarget.style.color = LK.inkSoft; }}
             >
               <ArrowLeft size={14} />
-              返回疑点列表
+              返回漏洞列表
             </button>
             <div className="flex flex-wrap items-center gap-2">
               <span className="rounded-lg px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider" style={{ backgroundColor: `${LK.error}22`, color: LK.error }}>
@@ -1808,7 +1807,7 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
           </div>
           <div className="mt-3 flex flex-wrap items-start justify-between gap-3">
             <div className="min-w-0">
-              <h3 className="truncate text-xl font-semibold tracking-tight xl:text-2xl" style={{ color: LK.ink }}>{selectedDetail.title}</h3>
+              <h3 className="truncate text-xl font-semibold" style={{ color: LK.ink }}>{selectedDetail.title}</h3>
               <div className="mt-1 text-xs font-semibold" style={{ fontFamily: MONO, color: LK.muted }}>ID: {selectedDetail.id}</div>
               <p className="mt-1 line-clamp-2 text-sm leading-6" style={{ color: LK.body }}>{selectedDetail.summary || '暂无摘要'}</p>
             </div>
@@ -1854,23 +1853,23 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
           </div>
           <div className="mt-3 grid gap-2 sm:grid-cols-2 xl:grid-cols-5">
             <div className="rounded-lg px-3 py-2.5" style={{ backgroundColor: LK.surfaceRaised, border: '1px solid ' + LK.border }}>
-              <div className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: LK.mutedSoft }}>阶段</div>
+              <div className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: LK.mutedSoft }}>阶段</div>
               <div className="mt-1 text-sm font-semibold" style={{ color: LK.ink }}>{toStageText(selectedDetail.current_stage)}</div>
             </div>
             <div className="rounded-lg px-3 py-2.5" style={{ backgroundColor: LK.surfaceRaised, border: '1px solid ' + LK.border }}>
-              <div className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: LK.mutedSoft }}>状态</div>
+              <div className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: LK.mutedSoft }}>状态</div>
               <div className="mt-1 text-sm font-semibold" style={{ color: LK.ink }}>{toStatusText(selectedDetail.current_status)}</div>
             </div>
             <div className="rounded-lg px-3 py-2.5" style={{ backgroundColor: LK.surfaceRaised, border: '1px solid ' + LK.border }}>
-              <div className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: LK.mutedSoft }}>置信度</div>
+              <div className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: LK.mutedSoft }}>置信度</div>
               <div className="mt-1 text-sm font-semibold tabular-nums" style={{ color: LK.ink }}>{selectedDetail.confidence}</div>
             </div>
             <div className="rounded-lg px-3 py-2.5" style={{ backgroundColor: LK.surfaceRaised, border: '1px solid ' + LK.border }}>
-              <div className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: LK.mutedSoft }}>CVSS</div>
+              <div className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: LK.mutedSoft }}>CVSS</div>
               <div className="mt-1 text-sm font-semibold tabular-nums" style={{ color: LK.ink }}>{Number(selectedDetail.cvss_score || 0).toFixed(1)}</div>
             </div>
             <div className="rounded-lg px-3 py-2.5" style={{ backgroundColor: LK.surfaceRaised, border: '1px solid ' + LK.border }}>
-              <div className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: LK.mutedSoft }}>开放任务</div>
+              <div className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: LK.mutedSoft }}>开放任务</div>
               <div className="mt-1 text-sm font-semibold tabular-nums" style={{ color: LK.ink }}>{stats.openTasks}</div>
             </div>
           </div>
@@ -1935,7 +1934,7 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
               onMouseLeave={(e) => { e.currentTarget.style.backgroundColor =`${LK.error}22`; }}
             >
               <X size={15} />
-              {processingAction === 'delete' ? '删除中...' : '删除疑点'}
+              {processingAction === 'delete' ? '删除中...' : '删除漏洞'}
             </button>
           </div>
         </div>
@@ -1985,7 +1984,7 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
               </div>
               <div className="grid gap-4 xl:grid-cols-[1.15fr_0.85fr]">
                 <div className="space-y-4">
-                  <DetailSectionCard title="疑点摘要" subtitle="先看本条疑点的结论、摘要和对象定位。">
+                  <DetailSectionCard title="漏洞摘要" subtitle="先看本条漏洞的结论、摘要和对象定位。">
                     <div className="mt-3 space-y-3 text-sm leading-7" style={{ color: LK.inkSoft }}>
                       <div>{displaySummary?.subtitle || selectedDetail.summary || '暂无摘要说明'}</div>
                       <div className="rounded-xl p-4" style={{ backgroundColor: LK.surfaceRaised }}>
@@ -2010,9 +2009,9 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
                   </DetailSectionCard>
                 </div>
                 <div className="space-y-4">
-                  <DetailSectionCard title="识别信息" subtitle="用于快速识别、排查和交叉检索本条疑点。">
+                  <DetailSectionCard title="识别信息" subtitle="用于快速识别、排查和交叉检索本条漏洞。">
                     <div className="mt-3 space-y-2 text-sm" style={{ color: LK.inkSoft }}>
-                      <div><span className="font-semibold" style={{ color: LK.ink }}>疑点 ID：</span><span className="font-mono">{selectedDetail.id}</span></div>
+                      <div><span className="font-semibold" style={{ color: LK.ink }}>漏洞 ID：</span><span className="font-mono">{selectedDetail.id}</span></div>
                       <div><span className="font-semibold" style={{ color: LK.ink }}>Finding ID：</span>{selectedDetail.finding_id || '未提供'}</div>
                       <div><span className="font-semibold" style={{ color: LK.ink }}>全局漏洞 ID：</span>{selectedDetail.global_vuln_id || '未提供'}</div>
                       <div><span className="font-semibold" style={{ color: LK.ink }}>当前报告：</span>{displaySummary?.current_report_title || displaySummary?.current_report_id || '未关联'}</div>
@@ -2042,10 +2041,10 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
           {detailActiveTab === 'report' && (
             <div className="grid gap-4 xl:grid-cols-[340px_minmax(0,1fr)]">
               <div className="space-y-3">
-                <DetailSectionCard title="报告列表" subtitle="选择不同阶段或不同来源生成的疑点报告。" compact>
+                <DetailSectionCard title="报告列表" subtitle="选择不同阶段或不同来源生成的漏洞报告。" compact>
                   <div className="mt-3 space-y-2.5">
                     {reportItems.length === 0 ? (
-                      <div className="rounded-xl px-4 py-4 text-sm" style={{ backgroundColor: LK.surfaceRaised, color: LK.body }}>当前疑点还没有生成正式报告，可先查看证据与文件。</div>
+                      <div className="rounded-xl px-4 py-4 text-sm" style={{ backgroundColor: LK.surfaceRaised, color: LK.body }}>当前漏洞还没有生成正式报告，可先查看证据与文件。</div>
                     ) : (
                       reportItems.map((item: any) => {
                         const active = selectedReportId === item.report_id;
@@ -2110,7 +2109,7 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
               <div className="rounded-xl p-5" style={{ backgroundColor: LK.surface, border: '1px solid ' + LK.border }}>
                 <div className="flex flex-wrap items-start justify-between gap-3 pb-4" style={{ borderBottom: '1px solid ' + LK.borderSoft }}>
                   <div>
-                    <div className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: LK.mutedSoft }}>疑点报告</div>
+                    <div className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: LK.mutedSoft }}>漏洞报告</div>
                     <div className="mt-1 text-lg font-semibold" style={{ color: LK.ink }}>{reportDocument?.title || reportItems.find((item) => item.report_id === selectedReportId)?.title || '未选择报告'}</div>
                     <div className="mt-1 text-xs" style={{ color: LK.body }}>
                       类型：{reportDocument?.report_kind || reportItems.find((item) => item.report_id === selectedReportId)?.report_kind || 'unknown'} · 阶段：{toStageText(reportDocument?.stage || reportItems.find((item) => item.report_id === selectedReportId)?.stage)} · 来源：{reportDocument?.source_service_id || reportItems.find((item) => item.report_id === selectedReportId)?.source_service_id || '未提供'}
@@ -2140,7 +2139,7 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
             <div className="space-y-4">
               <div className="grid gap-4 xl:grid-cols-[0.9fr_1.1fr]">
                 <div className="space-y-4">
-                  <DetailSectionCard title="证据摘要" subtitle="用于快速了解当前疑点的核心证据、复现提示和引用材料。">
+                  <DetailSectionCard title="证据摘要" subtitle="用于快速了解当前漏洞的核心证据、复现提示和引用材料。">
                     <div className="mt-3 space-y-3 text-sm" style={{ color: LK.inkSoft }}>
                       <div className="rounded-xl p-4" style={{ backgroundColor: LK.surfaceRaised }}>{evidenceSummary?.summary || selectedDetail?.evidence?.summary || '暂无证据摘要'}</div>
                       <div className="rounded-xl p-4" style={{ backgroundColor: LK.surfaceRaised }}>
@@ -2226,7 +2225,7 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
                     </div>
                   </DetailSectionCard>
                   <DetailSectionCard
-                    title="疑点文件"
+                    title="漏洞文件"
                     subtitle={selectedDetail.files_root_path || '未分配文件根路径'}
                     compact
                     actions={
@@ -2234,7 +2233,7 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
                         <button
                           type="button"
                           onClick={() => openLinkedFilesPath(linkedFiles.root_path)}
-                          className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-black text-slate-700"
+                          className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-700"
                         >
                           根目录
                         </button>
@@ -2245,17 +2244,17 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
                       {linkedFilesLoading ? (
                         <div className="px-4 py-8 text-sm text-slate-600">正在加载关联文件...</div>
                       ) : !linkedFiles ? (
-                        <div className="px-4 py-8 text-sm text-slate-600">当前疑点还没有可展示的文件目录。</div>
+                        <div className="px-4 py-8 text-sm text-slate-600">当前漏洞还没有可展示的文件目录。</div>
                       ) : (
                         <div className="flex h-full min-h-[360px] flex-col">
                           <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 bg-slate-50 px-4 py-3">
-                            <div className="truncate text-xs font-bold text-slate-700">当前路径：{linkedFiles.current_path}</div>
+                            <div className="truncate text-xs font-semibold text-slate-700">当前路径：{linkedFiles.current_path}</div>
                             <div className="flex flex-wrap items-center gap-2">
                               <button
                                 type="button"
                                 onClick={() => void handleCreateLinkedArchiveTask()}
                                 disabled={selectedLinkedPaths.length === 0 || linkedArchiveSubmitting}
-                                className="rounded-lg bg-sky-600 px-3 py-1.5 text-xs font-black text-white disabled:opacity-40"
+                                className="rounded-lg bg-sky-600 px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-40"
                               >
                                 {linkedArchiveSubmitting ? '提交中...' :`打包下载(${selectedLinkedPaths.length})`}
                               </button>
@@ -2277,7 +2276,7 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
                                     const parent = parts.length <= 2 ? linkedFiles.root_path :`/${parts.slice(0, -1).join('/')}`;
                                     openLinkedFilesPath(parent);
                                   }}
-                                  className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-black text-slate-700"
+                                  className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-700"
                                 >
                                   上级目录
                                 </button>
@@ -2285,7 +2284,7 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
                               <button
                                 type="button"
                                 onClick={() => openLinkedFilesPath(linkedFiles.current_path)}
-                                className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-black text-slate-700"
+                                className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-700"
                               >
                                 刷新
                               </button>
@@ -2293,7 +2292,7 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
                           </div>
                           <div className="grid min-h-0 flex-1 xl:grid-cols-[360px_minmax(0,1fr)]">
                             <div className="min-h-0 overflow-auto border-r border-slate-100 p-3">
-                              <div className="grid grid-cols-[24px_minmax(0,1fr)_70px] gap-3 rounded-xl bg-slate-50 px-3 py-2 text-[11px] font-black uppercase tracking-[0.18em] text-slate-600">
+                              <div className="grid grid-cols-[24px_minmax(0,1fr)_70px] gap-3 rounded-xl bg-slate-50 px-3 py-2 text-[11px] font-semibold uppercase tracking-wider text-slate-600">
                                 <div>选</div>
                                 <div>名称</div>
                                 <div>大小</div>
@@ -2379,9 +2378,9 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
                                     </div>
                                   </div>
                                   <div className="p-4 text-sm text-slate-700">
-                                    <div className="text-[11px] font-black uppercase tracking-[0.24em] text-slate-500">文件信息</div>
+                                    <div className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">文件信息</div>
                                     <div className="mt-4 space-y-3">
-                                      <div><div className="text-xs text-slate-500">文件名</div><div className="break-all font-bold text-slate-900">{selectedLinkedFile.filename}</div></div>
+                                      <div><div className="text-xs text-slate-500">文件名</div><div className="break-all font-semibold text-slate-900">{selectedLinkedFile.filename}</div></div>
                                       <div><div className="text-xs text-slate-500">内容类型</div><div className="font-semibold text-slate-800">{selectedLinkedFile.content_type || '未知类型'}</div></div>
                                       <div><div className="text-xs text-slate-500">大小</div><div className="font-semibold text-slate-800">{Number(selectedLinkedFile.size || 0)} bytes</div></div>
                                       <div><div className="text-xs text-slate-500">路径</div><div className="break-all font-semibold text-slate-800">{selectedLinkedFile.path || '-'}</div></div>
@@ -2389,7 +2388,7 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
                                     <button
                                       type="button"
                                       onClick={() => handleLinkedFileDownload(selectedLinkedFile.id, selectedLinkedFile.filename)}
-                                      className="mt-6 inline-flex items-center gap-2 rounded-xl bg-slate-900 px-4 py-2 text-xs font-black text-white"
+                                      className="mt-6 inline-flex items-center gap-2 rounded-xl bg-slate-900 px-4 py-2 text-xs font-semibold text-white"
                                     >
                                       <Download size={14} />
                                       下载文件
@@ -2428,7 +2427,7 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
                       selectedTimeline.map((item: any) => (
                         <div key={item.id} className="rounded-xl border border-slate-200 px-4 py-3">
                           <div className="flex items-center justify-between gap-3">
-                            <div className="text-sm font-black text-slate-800">{item.payload?.summary || item.payload?.event_type || item.item_type}</div>
+                            <div className="text-sm font-semibold text-slate-800">{item.payload?.summary || item.payload?.event_type || item.item_type}</div>
                             <div className="text-[11px] font-semibold text-slate-500">{formatTime(item.created_at)}</div>
                           </div>
                           <div className="mt-1.5 text-xs text-slate-500">
@@ -2450,7 +2449,7 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
                         processActions.map((action: any, index: number) => (
                           <div key={action.id || index} className="rounded-xl border border-slate-200 px-4 py-3">
                             <div className="flex items-center justify-between gap-3">
-                              <div className="text-sm font-black text-slate-800">{action.title || action.action_type || action.name ||`动作 ${index + 1}`}</div>
+                              <div className="text-sm font-semibold text-slate-800">{action.title || action.action_type || action.name ||`动作 ${index + 1}`}</div>
                               <div className="text-[11px] text-slate-500">{action.execution_status || action.status || 'unknown'}</div>
                             </div>
                             <div className="mt-1 text-xs text-slate-500">{action.summary || action.description || action.owner || '暂无摘要'}</div>
@@ -2467,7 +2466,7 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
                         processManualTasks.map((task: any, index: number) => (
                           <div key={task.id || index} className="rounded-xl border border-slate-200 px-4 py-3">
                             <div className="flex items-center justify-between gap-3">
-                              <div className="text-sm font-black text-slate-800">{task.title || task.name ||`人工任务 ${index + 1}`}</div>
+                              <div className="text-sm font-semibold text-slate-800">{task.title || task.name ||`人工任务 ${index + 1}`}</div>
                               <div className="text-[11px] text-slate-500">{task.status || 'unknown'}</div>
                             </div>
                             <div className="mt-1 text-xs text-slate-500">{task.summary || task.description || task.assignee || '暂无说明'}</div>
@@ -2486,13 +2485,13 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
               <div className="grid gap-4 xl:grid-cols-2">
                 <DetailSectionCard title="关联上下文" subtitle="集中展示来源任务、对象、执行引用与存储位置。">
                   <div className="mt-3 space-y-2 text-sm text-slate-700">
-                    <div><span className="font-black text-slate-700">上报者：</span>{selectedDetail.reporter?.name || '未提供'} / {selectedDetail.reporter?.type || 'unknown'}</div>
-                    <div><span className="font-black text-slate-700">目标对象：</span>{selectedDetail.subject?.type || '未提供'} / {selectedDetail.subject?.name || selectedDetail.subject?.locator || '未提供'}</div>
-                    <div><span className="font-black text-slate-700">来源报告 ID：</span>{Array.isArray(displaySummary?.source_report_ids) && displaySummary.source_report_ids.length > 0 ? displaySummary.source_report_ids.join(', ') : '未提供'}</div>
-                    <div><span className="font-black text-slate-700">来源任务 ID：</span>{selectedDetail.source_task_id || '未提供'}</div>
-                    <div><span className="font-black text-slate-700">来源执行引用：</span>{selectedDetail.source_execution_id || '未提供'}</div>
-                    <div><span className="font-black text-slate-700">文件根路径：</span>{selectedDetail.files_root_path || workspaceSummary?.files_root_path || '未提供'}</div>
-                    <div><span className="font-black text-slate-700">当前报告存储路径：</span>{reportDocument?.storage_path || '未提供'}</div>
+                    <div><span className="font-semibold text-slate-700">上报者：</span>{selectedDetail.reporter?.name || '未提供'} / {selectedDetail.reporter?.type || 'unknown'}</div>
+                    <div><span className="font-semibold text-slate-700">目标对象：</span>{selectedDetail.subject?.type || '未提供'} / {selectedDetail.subject?.name || selectedDetail.subject?.locator || '未提供'}</div>
+                    <div><span className="font-semibold text-slate-700">来源报告 ID：</span>{Array.isArray(displaySummary?.source_report_ids) && displaySummary.source_report_ids.length > 0 ? displaySummary.source_report_ids.join(', ') : '未提供'}</div>
+                    <div><span className="font-semibold text-slate-700">来源任务 ID：</span>{selectedDetail.source_task_id || '未提供'}</div>
+                    <div><span className="font-semibold text-slate-700">来源执行引用：</span>{selectedDetail.source_execution_id || '未提供'}</div>
+                    <div><span className="font-semibold text-slate-700">文件根路径：</span>{selectedDetail.files_root_path || workspaceSummary?.files_root_path || '未提供'}</div>
+                    <div><span className="font-semibold text-slate-700">当前报告存储路径：</span>{reportDocument?.storage_path || '未提供'}</div>
                   </div>
                 </DetailSectionCard>
                 <DetailSectionCard
@@ -2505,7 +2504,7 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
                         await navigator.clipboard.writeText(JSON.stringify(relatedRefs, null, 2));
                         setSuccessMessage('已复制相关执行引用。');
                       }}
-                      className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-black text-slate-700"
+                      className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-700"
                     >
                       <Copy size={13} />
                       复制
@@ -2518,7 +2517,7 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
                     ) : (
                       relatedRefs.map((ref: any, index: number) => (
                         <div key={`${ref?.key || 'ref'}-${index}`} className="rounded-xl bg-slate-50 px-4 py-3 text-sm text-slate-700">
-                          <div className="font-black text-slate-800">{ref?.key ||`ref-${index + 1}`}</div>
+                          <div className="font-semibold text-slate-800">{ref?.key ||`ref-${index + 1}`}</div>
                           <div className="mt-1 break-all text-xs text-slate-600">{ref?.value || '-'}</div>
                         </div>
                       ))
@@ -2530,19 +2529,19 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
                 <DetailSectionCard title="JSON 字段" subtitle="用于编辑或查看结构化扩展字段。">
                   <div className="mt-3 space-y-2.5">
                     <label className="grid gap-1">
-                      <span className="text-[11px] font-black text-slate-500">证据引用（evidence.references，JSON 数组）</span>
+                      <span className="text-[11px] font-semibold text-slate-500">证据引用（evidence.references，JSON 数组）</span>
                       <textarea value={editableDetail?.evidence_references_text || '[]'} onChange={(event) => setEditableDetail((prev) => (prev ? { ...prev, evidence_references_text: event.target.value } : prev))} disabled={!detailEditMode || detailSaving} className="min-h-[90px] rounded-lg border border-slate-200 bg-slate-950 p-3 font-mono text-xs leading-5 text-slate-200 outline-none disabled:opacity-80" />
                     </label>
                     <label className="grid gap-1">
-                      <span className="text-[11px] font-black text-slate-500">原始漏洞报告（Markdown）</span>
+                      <span className="text-[11px] font-semibold text-slate-500">原始漏洞报告（Markdown）</span>
                       <textarea value={editableDetail?.raw_report_markdown || ''} onChange={(event) => setEditableDetail((prev) => (prev ? { ...prev, raw_report_markdown: event.target.value } : prev))} disabled={!detailEditMode || detailSaving} className="min-h-[180px] rounded-lg border border-slate-200 bg-slate-950 p-3 font-mono text-xs leading-5 text-slate-200 outline-none disabled:opacity-80" />
                     </label>
                     <label className="grid gap-1">
-                      <span className="text-[11px] font-black text-slate-500">文件清单（artifacts，JSON 数组）</span>
+                      <span className="text-[11px] font-semibold text-slate-500">文件清单（artifacts，JSON 数组）</span>
                       <textarea value={editableDetail?.artifacts_text || '[]'} onChange={(event) => setEditableDetail((prev) => (prev ? { ...prev, artifacts_text: event.target.value } : prev))} disabled={!detailEditMode || detailSaving} className="min-h-[120px] rounded-lg border border-slate-200 bg-slate-950 p-3 font-mono text-xs leading-5 text-slate-200 outline-none disabled:opacity-80" />
                     </label>
                     <label className="grid gap-1">
-                      <span className="text-[11px] font-black text-slate-500">扩展元数据（metadata，JSON 对象）</span>
+                      <span className="text-[11px] font-semibold text-slate-500">扩展元数据（metadata，JSON 对象）</span>
                       <textarea value={editableDetail?.metadata_text || '{}'} onChange={(event) => setEditableDetail((prev) => (prev ? { ...prev, metadata_text: event.target.value } : prev))} disabled={!detailEditMode || detailSaving} className="min-h-[120px] rounded-lg border border-slate-200 bg-slate-950 p-3 font-mono text-xs leading-5 text-slate-200 outline-none disabled:opacity-80" />
                     </label>
                   </div>
@@ -2557,7 +2556,7 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
                         await navigator.clipboard.writeText(JSON.stringify(rawContext, null, 2));
                         setSuccessMessage('已复制完整原始数据。');
                       }}
-                      className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-black text-slate-700"
+                      className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-700"
                     >
                       <Copy size={13} />
                       复制
@@ -2578,136 +2577,29 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
 
   return (
     <div className="animate-in fade-in space-y-5 p-6 pb-16 duration-500 xl:p-8 xl:pb-20">
-      <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
-        <div>
-          <h2 className="text-2xl font-black tracking-tight text-slate-900 xl:text-3xl">疑点上报中心</h2>
-        </div>
-        <div className="flex flex-wrap gap-3">
-          <button
-            type="button"
-            onClick={() => setShowSdkDialog(true)}
- className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm font-black text-slate-700"
-          >
-            <BookOpen size={16} />
-            SDK / 上报方式
-          </button>
-          <button
-            type="button"
-            onClick={() => setShowCreateDialog(true)}
- className="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-black text-white"
-          >
-            <Plus size={16} />
-            手动创建疑点
-          </button>
-        </div>
-      </div>
-
-      {error && (
-        <div className="rounded-[1.5rem] border border-rose-200 bg-rose-50 px-6 py-4 text-sm text-rose-700">
-          {error}
-        </div>
-      )}
-
-      {successMessage && (
-        <div className="rounded-[1.5rem] border border-emerald-200 bg-emerald-50 px-6 py-4 text-sm text-emerald-700">
-          {successMessage}
-        </div>
-      )}
-
-      {!selectedSuspicionId && (
-        <div className="flex flex-wrap gap-2">
-          <button
-            type="button"
-            onClick={() => setRootTab('cases')}
-            className={`inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-black ${
-              rootTab === 'cases' ? 'bg-slate-900 text-white' : 'border border-slate-200 bg-slate-50 text-slate-700'
-            }`}
-          >
-            <ShieldAlert size={14} />
-            疑点列表
-          </button>
-          <button
-            type="button"
-            onClick={() => setRootTab('download-center')}
-            className={`inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-black ${
-              rootTab === 'download-center' ? 'bg-slate-900 text-white' : 'border border-slate-200 bg-slate-50 text-slate-700'
-            }`}
-          >
-            <Download size={14} />
-            下载中心
-          </button>
-        </div>
-      )}
-
       {!selectedSuspicionId ? (
         rootTab === 'download-center' ? renderDownloadCenter() : (
         <>
           <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
  <div className="rounded-[1.5rem] border border-slate-200 bg-slate-50 px-4 py-3.5">
-              <div className="text-[10px] font-black uppercase tracking-[0.22em] text-slate-400">疑点总数</div>
-              <div className="mt-2 text-3xl font-black text-slate-900">{stats.total}</div>
+              <div className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">漏洞总数</div>
+              <div className="mt-2 text-2xl font-semibold text-slate-900">{stats.total}</div>
             </div>
  <div className="rounded-[1.5rem] border border-slate-200 bg-slate-50 px-4 py-3.5">
-              <div className="text-[10px] font-black uppercase tracking-[0.22em] text-slate-400">高风险疑点</div>
-              <div className="mt-2 text-3xl font-black text-rose-600">{stats.highRisk}</div>
+              <div className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">高风险漏洞</div>
+              <div className="mt-2 text-2xl font-semibold text-rose-600">{stats.highRisk}</div>
             </div>
  <div className="rounded-[1.5rem] border border-slate-200 bg-slate-50 px-4 py-3.5">
-              <div className="text-[10px] font-black uppercase tracking-[0.22em] text-slate-400">待验证</div>
-              <div className="mt-2 text-3xl font-black text-amber-600">{stats.pendingAnalyze}</div>
+              <div className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">待验证</div>
+              <div className="mt-2 text-2xl font-semibold text-amber-600">{stats.pendingAnalyze}</div>
             </div>
  <div className="rounded-[1.5rem] border border-slate-200 bg-slate-50 px-4 py-3.5">
-              <div className="text-[10px] font-black uppercase tracking-[0.22em] text-slate-400">认证接入上报</div>
-              <div className="mt-2 text-3xl font-black text-blue-600">{stats.authenticated}</div>
+              <div className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">认证接入上报</div>
+              <div className="mt-2 text-2xl font-semibold text-blue-600">{stats.authenticated}</div>
             </div>
           </div>
 
  <div className="rounded-[2rem] border border-slate-200 bg-slate-50 overflow-hidden">
-            <div className="border-b border-slate-100 px-5 py-4 xl:px-6">
-              <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-                <div>
-                  <div className="text-[11px] font-black uppercase tracking-[0.22em] text-slate-400">疑点列表</div>
-                  <h3 className="mt-1 text-xl font-black text-slate-900">待纳管疑点池</h3>
-                </div>
-                <div className="flex flex-wrap items-center gap-2">
-                  <div className="rounded-xl bg-slate-100 px-3 py-2 text-[11px] font-black uppercase tracking-[0.18em] text-slate-500">
-                    {suspicions.length} / {totalFiltered}
-                  </div>
-                  <div className="rounded-xl bg-emerald-50 px-3 py-2 text-[11px] font-black uppercase tracking-[0.18em] text-emerald-700">
-                    第 {normalizedPage}/{totalPages} 页
-                  </div>
-                  <div className="rounded-xl bg-blue-50 px-3 py-2 text-[11px] font-black uppercase tracking-[0.18em] text-blue-700">
-                    已选 {selectedSuspicionIds.length}
-                  </div>
-                  <button
-                    type="button"
-                    onClick={handleDeleteSelectedFromList}
-                    disabled={selectedSuspicionIds.length === 0 || bulkDeleting}
-                    className="inline-flex items-center gap-2 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-black text-rose-700 disabled:opacity-50"
-                  >
-                    <Trash2 size={14} />
-                    {bulkDeleting ? '删除中...' :`删除选中 (${selectedSuspicionIds.length})`}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleCreateDownloadJob(selectedSuspicionIds, 'batch')}
-                    disabled={selectedSuspicionIds.length === 0 || creatingDownload}
-                    className="inline-flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-black text-emerald-700 disabled:opacity-50"
-                  >
-                    <Download size={14} />
-                    {creatingDownload ? '创建中...' :`打包下载 (${selectedSuspicionIds.length})`}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => void loadSuspicions()}
-                    className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-black text-slate-700"
-                  >
-                    <Send size={14} />
-                    刷新
-                  </button>
-                </div>
-              </div>
-            </div>
-
             <div className="space-y-4 px-5 py-4 xl:px-6">
               <div className="grid gap-3 xl:grid-cols-[minmax(0,1.25fr)_auto_auto_auto_auto]">
                 <div className="relative min-w-0">
@@ -2725,7 +2617,7 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
                       key={key}
                       type="button"
                       onClick={() => setStageFilter(key)}
-                      className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-[11px] font-black uppercase tracking-[0.14em] ${
+                      className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-semibold uppercase tracking-wider ${
                         stageFilter === key ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-600'
                       }`}
                     >
@@ -2784,21 +2676,21 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
                     />
                   </div>
                   {renderSortHeader('标题 / 摘要', 'title')}
-                  <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-500">文件</div>
+                  <div className="text-xs font-semibold uppercase tracking-wider text-slate-500">文件</div>
                   {renderSortHeader('阶段 / 状态', 'current_stage')}
                   {renderSortHeader('等级', 'severity')}
                   {renderSortHeader('CVSS', 'cvss_score')}
                   {renderSortHeader('上报者', 'reporter')}
                   {renderSortHeader('对象', 'subject')}
-                  <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-500">来源方式</div>
+                  <div className="text-xs font-semibold uppercase tracking-wider text-slate-500">来源方式</div>
                   {renderSortHeader('更新时间', 'updated_at')}
                   {renderSortHeader('置信度', 'confidence')}
-                  <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-500">操作</div>
+                  <div className="text-xs font-semibold uppercase tracking-wider text-slate-500">操作</div>
                 </div>
                 {loading ? (
-                  <div className="bg-slate-50 px-4 py-8 text-sm text-slate-400">正在加载疑点列表...</div>
+                  <div className="bg-slate-50 px-4 py-8 text-sm text-slate-400">正在加载漏洞列表...</div>
                 ) : pagedSuspicions.length === 0 ? (
-                  <div className="bg-slate-50 px-4 py-8 text-sm text-slate-400">当前筛选条件下没有疑点。</div>
+                  <div className="bg-slate-50 px-4 py-8 text-sm text-slate-400">当前筛选条件下没有漏洞。</div>
                 ) : (
                   pagedSuspicions.map((item) => (
                     <div
@@ -2820,12 +2712,12 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
                           checked={selectedSuspicionIds.includes(item.id)}
                           onChange={() => toggleSuspicionSelection(item.id)}
                           onClick={(event) => event.stopPropagation()}
-                          aria-label={`选择疑点 ${item.title}`}
+                          aria-label={`选择漏洞 ${item.title}`}
                           className="h-4 w-4 cursor-pointer rounded border-slate-300"
                         />
                       </div>
                       <div className="min-w-0">
-                        <div className="text-sm font-black text-slate-900">{item.title}</div>
+                        <div className="text-sm font-semibold text-slate-900">{item.title}</div>
                         <div className="mt-1 font-mono text-[11px] text-slate-400">{item.id}</div>
                         <div className="mt-1.5 line-clamp-2 text-xs leading-5 text-slate-500">{item.summary || '暂无摘要'}</div>
                       </div>
@@ -2841,8 +2733,8 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
                         )}
                       </div>
                       <div className="min-w-0">
-                        <div className="text-sm font-black text-slate-700">{toStageText(item.current_stage)}</div>
-                        <div className="mt-1 inline-flex items-center rounded-md bg-slate-100 px-2 py-0.5 text-[10px] font-black uppercase tracking-wide text-slate-600">
+                        <div className="text-sm font-semibold text-slate-700">{toStageText(item.current_stage)}</div>
+                        <div className="mt-1 inline-flex items-center rounded-md bg-slate-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-slate-600">
                           {toStatusText(item.current_status)}
                         </div>
                         {item.finished_reason ? (
@@ -2856,11 +2748,11 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
                         ) : null}
                       </div>
                       <div>
-                        <span className={`rounded-lg px-2.5 py-1 text-[10px] font-black uppercase tracking-widest ${toneOf(item.severity)}`}>
+                        <span className={`rounded-lg px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider ${toneOf(item.severity)}`}>
                           {item.severity}
                         </span>
                       </div>
-                      <div className="text-sm font-black text-slate-800">{Number(item.cvss_score || 0).toFixed(1)}</div>
+                      <div className="text-sm font-semibold text-slate-800">{Number(item.cvss_score || 0).toFixed(1)}</div>
                       <div className="min-w-0">
                         <div className="truncate text-sm font-semibold text-slate-800">{item.reporter?.name || 'unknown'}</div>
                         <div className="mt-0.5 text-xs text-slate-400">{item.reporter?.version || 'n/a'}</div>
@@ -2871,7 +2763,7 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
                       </div>
                       <div className="text-sm font-semibold text-slate-700">{item.reporter?.type || 'other'}</div>
                       <div className="text-sm text-slate-500">{formatTime(item.updated_at || item.created_at)}</div>
-                      <div className="text-right text-xl font-black text-slate-900">{item.confidence}</div>
+                      <div className="text-right text-xl font-semibold text-slate-900">{item.confidence}</div>
                       <div>
                         <div className="flex flex-wrap gap-1.5">
                           <button
@@ -2881,7 +2773,7 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
                               handleCreateDownloadJob([item.id], 'single');
                             }}
                             disabled={creatingDownload}
-                            className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-200 bg-emerald-50 px-2.5 py-1.5 text-[11px] font-black text-emerald-700 disabled:opacity-50"
+                            className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-200 bg-emerald-50 px-2.5 py-1.5 text-[11px] font-semibold text-emerald-700 disabled:opacity-50"
                           >
                             <Download size={12} />
                             下载
@@ -2893,7 +2785,7 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
                               handleDeleteSingleFromList(item.id, item.title);
                             }}
                             disabled={bulkDeleting || rowDeletingId === item.id}
-                            className="inline-flex items-center gap-1.5 rounded-lg border border-rose-200 bg-rose-50 px-2.5 py-1.5 text-[11px] font-black text-rose-700 disabled:opacity-50"
+                            className="inline-flex items-center gap-1.5 rounded-lg border border-rose-200 bg-rose-50 px-2.5 py-1.5 text-[11px] font-semibold text-rose-700 disabled:opacity-50"
                           >
                             <Trash2 size={12} />
                             {rowDeletingId === item.id ? '删除中' : '删除'}
@@ -2931,7 +2823,7 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
                     type="button"
                     onClick={() => setCurrentPage(1)}
                     disabled={normalizedPage <= 1}
-                    className="rounded-lg border border-slate-300 bg-slate-50 px-2.5 py-1.5 text-xs font-bold text-slate-700 disabled:opacity-50"
+                    className="rounded-lg border border-slate-300 bg-slate-50 px-2.5 py-1.5 text-xs font-semibold text-slate-700 disabled:opacity-50"
                   >
                     首页
                   </button>
@@ -2939,7 +2831,7 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
                     type="button"
                     onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
                     disabled={normalizedPage <= 1}
-                    className="rounded-lg border border-slate-300 bg-slate-50 px-2.5 py-1.5 text-xs font-bold text-slate-700 disabled:opacity-50"
+                    className="rounded-lg border border-slate-300 bg-slate-50 px-2.5 py-1.5 text-xs font-semibold text-slate-700 disabled:opacity-50"
                   >
                     上一页
                   </button>
@@ -2947,7 +2839,7 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
                     type="button"
                     onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
                     disabled={normalizedPage >= totalPages}
-                    className="rounded-lg border border-slate-300 bg-slate-50 px-2.5 py-1.5 text-xs font-bold text-slate-700 disabled:opacity-50"
+                    className="rounded-lg border border-slate-300 bg-slate-50 px-2.5 py-1.5 text-xs font-semibold text-slate-700 disabled:opacity-50"
                   >
                     下一页
                   </button>
@@ -2955,7 +2847,7 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
                     type="button"
                     onClick={() => setCurrentPage(totalPages)}
                     disabled={normalizedPage >= totalPages}
-                    className="rounded-lg border border-slate-300 bg-slate-50 px-2.5 py-1.5 text-xs font-bold text-slate-700 disabled:opacity-50"
+                    className="rounded-lg border border-slate-300 bg-slate-50 px-2.5 py-1.5 text-xs font-semibold text-slate-700 disabled:opacity-50"
                   >
                     末页
                   </button>
@@ -2969,266 +2861,23 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
         renderDetailView()
       )}
 
-      {showSdkDialog && (
-        <DialogShell
-          title="SDK 下载与认证上报方式"
-          onClose={() => setShowSdkDialog(false)}
-        >
-          <div className="space-y-8">
-            <div className="grid gap-5 xl:grid-cols-2 2xl:grid-cols-4">
-              {(catalog?.items || []).map((item: any) => (
- <div key={item.kind} className="rounded-[1.75rem] border border-slate-200 bg-[rgba(255,255,255,0.04)] p-6">
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="flex items-center gap-3">
-                      <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-slate-900 text-white">
-                        {METHOD_ICONS[item.kind as PublicKind]}
-                      </div>
-                      <div>
-                        <div className="text-sm font-black text-slate-900">{item.title}</div>
-                        <div className="mt-1 text-[11px] font-bold uppercase tracking-widest text-emerald-600">需要认证</div>
-                      </div>
-                    </div>
-                    <a
-                      href={item.download_url}
-                      className="inline-flex items-center gap-2 rounded-2xl bg-slate-900 px-4 py-2 text-xs font-black text-white"
-                    >
-                      <Download size={14} />
-                      下载
-                    </a>
-                  </div>
-                  <p className="mt-4 min-h-[66px] text-sm leading-6 text-slate-600">{item.description}</p>
-                  <div className="mt-4 space-y-2 text-xs text-slate-500">
-                    <div><span className="font-black text-slate-700">版本</span> {catalog?.version || '1.0.0'}</div>
-                    <div><span className="font-black text-slate-700">文件</span> {item.filename}</div>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => setSelectedExample(item.kind)}
-                    className="mt-5 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-2 text-xs font-black text-slate-700"
-                  >
-                    查看示例
-                  </button>
-                </div>
-              ))}
-            </div>
-
-            <div className="grid gap-6 xl:grid-cols-[1.15fr_0.85fr]">
- <div className="rounded-[1.75rem] border border-slate-200 bg-slate-50 p-6">
-                <div className="text-[11px] font-black uppercase tracking-[0.22em] text-slate-400">公共字段</div>
-                <div className="mt-4 overflow-hidden rounded-[1.5rem] border border-slate-200">
-                  <div className="grid grid-cols-[1.3fr_0.7fr_2.5fr] gap-4 border-b border-slate-200 bg-slate-50 px-5 py-3 text-[11px] font-black uppercase tracking-[0.18em] text-slate-500">
-                    <div>字段</div>
-                    <div>是否必填</div>
-                    <div>说明</div>
-                  </div>
-                  {PUBLIC_FIELDS.map((item) => (
-                    <div key={item.name} className="grid grid-cols-[1.3fr_0.7fr_2.5fr] gap-4 border-b border-slate-100 px-5 py-4 text-sm last:border-b-0">
-                      <div className="font-mono font-bold text-slate-800">{item.name}</div>
-                      <div>
-                        <span className={`rounded-xl px-2 py-1 text-[10px] font-black uppercase tracking-widest ${item.required ? 'bg-rose-100 text-rose-700' : 'bg-slate-100 text-slate-600'}`}>
-                          {item.required ? '必填' : '可选'}
-                        </span>
-                      </div>
-                      <div className="leading-6 text-slate-600">{item.description}</div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              <div className="space-y-6">
- <div className="rounded-[1.75rem] border border-slate-200 bg-slate-50 p-6">
-                  <div className="text-[11px] font-black uppercase tracking-[0.22em] text-slate-400">自定义元数据</div>
-                  <div className="mt-4 space-y-3">
-                    {METADATA_GUIDE.map((item) => (
-                      <div key={item.key} className="rounded-[1.25rem] border border-slate-200 bg-[rgba(255,255,255,0.04)] px-4 py-4">
-                        <div className="font-mono text-xs font-black text-slate-800">{item.key}</div>
-                        <div className="mt-2 text-sm leading-6 text-slate-600">{item.value}</div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
- <div className="rounded-[1.75rem] border border-slate-200 bg-slate-50 p-6">
-                  <div className="text-[11px] font-black uppercase tracking-[0.22em] text-slate-400">文件与文件夹上报</div>
-                  <div className="mt-4 space-y-3">
-                    {ARTIFACT_GUIDE.map((item) => (
-                      <div key={item.title} className="rounded-[1.25rem] border border-slate-200 bg-[rgba(255,255,255,0.04)] px-4 py-4">
-                        <div className="text-sm font-black text-slate-800">{item.title}</div>
-                        <div className="mt-2 text-sm leading-6 text-slate-600">{item.detail}</div>
-                      </div>
-                    ))}
-                  </div>
-                  <div className="mt-4 rounded-[1.25rem] border border-dashed border-slate-300 bg-slate-50 px-4 py-4 text-sm leading-6 text-slate-600">
-                    目录结构请使用 <span className="font-mono font-bold text-slate-800">artifacts[].children</span> 递归表达；
-                    外部文件、压缩包、大文件或已有上传对象请放在 <span className="font-mono font-bold text-slate-800">content_ref</span>；
-                    文本、JSON、二进制小文件可直接通过 <span className="font-mono font-bold text-slate-800">content</span> 内联传递。
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div className="grid gap-6 xl:grid-cols-[1.2fr_1fr]">
- <div className="rounded-[1.75rem] border border-slate-200 bg-slate-50 p-6">
-                <div className="flex flex-wrap items-center gap-3">
-                  {(['cli', 'plugin', 'skill', 'openapi'] as PublicKind[]).map((kind) => (
-                    <button
-                      key={kind}
-                      type="button"
-                      onClick={() => setSelectedExample(kind)}
-                      className={`rounded-2xl px-4 py-2 text-xs font-black uppercase tracking-widest ${
-                        selectedExample === kind ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-600'
-                      }`}
-                    >
-                      {kind}
-                    </button>
-                  ))}
-                </div>
-                <div className="mt-5 rounded-[1.5rem] bg-slate-950 p-5 text-xs leading-6 text-slate-200">
-                  <pre className="overflow-auto whitespace-pre-wrap break-all">
-                    {JSON.stringify(selectedExamplePayload || {}, null, 2)}
-                  </pre>
-                </div>
-              </div>
-
- <div className="rounded-[1.75rem] border border-slate-200 bg-slate-50 p-6">
-                <div className="text-[11px] font-black uppercase tracking-[0.22em] text-slate-400">认证正式上报</div>
-                <div className="mt-3 text-lg font-black text-slate-900">公开 API 说明</div>
-                <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-xs text-slate-600">
-                  <div className="flex items-center justify-between gap-3">
-                    <div className="flex items-center gap-2">
-                      <Key size={14} className="text-blue-600" />
-                      <span className="font-black text-slate-900">当前项目 Token</span>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={refreshProjectToken}
-                      disabled={tokenLoading || !projectId}
-                      className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-slate-50 px-3 py-1.5 text-[11px] font-black text-slate-700 disabled:opacity-50"
-                    >
-                      {tokenLoading ? <Loader2 size={12} className="animate-spin" /> : <RefreshCw size={12} />}
-                      刷新
-                    </button>
-                  </div>
-                  <div className="mt-3 rounded-xl bg-slate-900 p-3 pr-12 font-mono text-[11px] leading-5 text-blue-200 break-all min-h-[68px] relative">
-                    {tokenLoading && !projectToken ? '正在加载项目 Token...' : (projectToken?.token || '当前 Token 不可用')}
-                    {!!projectToken?.token && (
-                      <button
-                        type="button"
-                        onClick={copyProjectToken}
- className="absolute right-2 top-2 rounded-lg bg-slate-100 p-2 text-white hover:bg-slate-100"
-                      >
-                        {tokenCopied ? <Check size={12} /> : <Copy size={12} />}
-                      </button>
-                    )}
-                  </div>
-                  <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] text-slate-500">
-                    <span>标识: <span className="font-black text-slate-700">{projectToken?.machine_code ||`project-sdk:${projectId || 'n/a'}`}</span></span>
-                    <span>作用域: <span className="font-black text-slate-700">{projectToken?.token_scope || 'project'}</span></span>
-                    <span>过期: <span className="font-black text-slate-700">{projectToken?.expires_at ? String(projectToken.expires_at).replace('T', ' ') : '永不过期'}</span></span>
-                  </div>
-                  {tokenError ? <div className="mt-2 text-[11px] font-black text-rose-600">{tokenError}</div> : null}
-                </div>
-                <div className="mt-4 rounded-2xl bg-slate-50 p-4 text-xs text-slate-600">
-                  <div className="font-black text-slate-900">POST {API_BASE}/api/vuln/public/intake/submissions</div>
-                  <ul className="mt-3 space-y-2">
-                    <li><span className="font-black text-slate-800">必填</span>`project_id`、`title`、`severity`、`cvss_score`、`confidence`、`reporter`、`subject`</li>
-                    <li><span className="font-black text-slate-800">定位</span>`project_id` 标识目标项目，并执行项目级权限校验</li>
-                    <li><span className="font-black text-slate-800">认证</span> 请求必须携带 Bearer Token（复用 auth 微服务登录态）</li>
-                    <li><span className="font-black text-slate-800">限制</span> 不支持匿名上报</li>
-                    <li><span className="font-black text-slate-800">行为</span> 后端会自动记为`created_by_type=human`，`created_by` 取认证身份</li>
-                    <li><span className="font-black text-slate-800">关联</span> 请在`reporter.name`、`reporter.version` 中明确上报者身份，便于后续验证复现回调</li>
-                    <li><span className="font-black text-slate-800">文件</span> 简易上报可不传`artifacts`；正常上报建议通过`artifacts` 传递文件和目录结构</li>
-                  </ul>
-                </div>
-                <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-xs text-slate-600">
-                  <div className="text-xs font-black uppercase tracking-widest text-slate-500">推荐上报流程</div>
-                  <ol className="mt-3 list-decimal space-y-2 pl-5">
-                    <li>先获取项目级认证 Token（auth 微服务登录态）。</li>
-                    <li>选择模式：简易上报（不带文件）或正常上报（带文件/目录）。</li>
-                    <li>组装 payload 并调用认证接口，后续可按返回疑点 ID 继续补充资料。</li>
-                  </ol>
-                </div>
-                <div className="mt-4 rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-4">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <div className="text-xs font-black uppercase tracking-widest text-slate-500">示例模式</div>
-                    <button
-                      type="button"
-                      onClick={() => applyAuthExampleMode('simple')}
-                      className={`rounded-xl px-3 py-1.5 text-[11px] font-black ${authExampleMode === 'simple' ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-600'}`}
-                    >
-                      简易上报（不带文件）
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => applyAuthExampleMode('normal')}
-                      className={`rounded-xl px-3 py-1.5 text-[11px] font-black ${authExampleMode === 'normal' ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-600'}`}
-                    >
-                      正常上报（带文件）
-                    </button>
-                  </div>
-                  <pre className="mt-3 overflow-auto whitespace-pre-wrap text-[11px] leading-6 text-slate-700">{`curl -X POST"${API_BASE}/api/vuln/public/intake/submissions" \\
-  -H 'Authorization: Bearer <token>' \\
-  -H 'Content-Type: application/json' \\
-  --data @${authExampleMode === 'simple' ? 'payload-simple.json' : 'payload-with-files.json'}`}</pre>
-                </div>
-              </div>
-            </div>
-
- <div className="rounded-[1.75rem] border border-slate-200 bg-slate-50 p-6">
-              <div className="flex items-center justify-between gap-4">
-                <div>
-                  <div className="text-[11px] font-black uppercase tracking-[0.22em] text-slate-400">认证联调</div>
-                  <div className="mt-2 text-xl font-black text-slate-900">测试认证正式上报</div>
-                </div>
-                {authResult && (
-                  <div className="rounded-2xl bg-emerald-50 px-4 py-2 text-xs font-black text-emerald-700">
-                    已创建疑点 {authResult.id}
-                  </div>
-                )}
-              </div>
-              <textarea
-                value={authPayloadText}
-                onChange={(event) => setAuthPayloadText(event.target.value)}
-                className="mt-5 h-72 w-full rounded-[1.5rem] border border-slate-200 bg-slate-50 p-5 font-mono text-xs leading-6 text-slate-900 outline-none"
-              />
-              <div className="mt-4 flex flex-wrap gap-3">
-                <button
-                  type="button"
-                  onClick={handleAuthenticatedSubmit}
-                  disabled={authSubmitting}
-                  className="rounded-2xl bg-slate-900 px-5 py-3 text-sm font-black text-white disabled:opacity-50"
-                >
-                  {authSubmitting ? '提交中...' : '测试认证正式上报'}
-                </button>
-                <a
-                  href={vulnApi.vuln.getPublicOpenApiSpecUrl()}
-                  className="rounded-2xl border border-slate-200 bg-slate-50 px-5 py-3 text-sm font-black text-slate-700"
-                >
-                  获取 OpenAPI 模板
-                </a>
-              </div>
-            </div>
-          </div>
-        </DialogShell>
-      )}
-
       {showCreateDialog && (
         <DialogShell
-          title="手动创建疑点"
+          title="手动创建漏洞"
           onClose={() => setShowCreateDialog(false)}
         >
           <form onSubmit={handleCreateSuspicion} className="grid gap-4">
             <input
               value={suspicionForm.title}
               onChange={(event) => setSuspicionForm({ ...suspicionForm, title: event.target.value })}
-              placeholder="疑点标题"
+              placeholder="漏洞标题"
               className="rounded-2xl border border-slate-200 px-4 py-3 outline-none"
               required
             />
             <textarea
               value={suspicionForm.summary}
               onChange={(event) => setSuspicionForm({ ...suspicionForm, summary: event.target.value })}
-              placeholder="疑点摘要"
+              placeholder="漏洞摘要"
               className="min-h-[8rem] rounded-2xl border border-slate-200 px-4 py-3 outline-none"
             />
             <textarea
@@ -3294,14 +2943,14 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
               <button
                 type="submit"
                 disabled={creating}
-                className="rounded-2xl bg-slate-900 px-5 py-3 text-sm font-black text-white disabled:opacity-50"
+                className="rounded-2xl bg-slate-900 px-5 py-3 text-sm font-semibold text-white disabled:opacity-50"
               >
-                {creating ? '创建中...' : '创建疑点'}
+                {creating ? '创建中...' : '创建漏洞'}
               </button>
               <button
                 type="button"
                 onClick={() => setShowCreateDialog(false)}
-                className="rounded-2xl border border-slate-200 bg-slate-50 px-5 py-3 text-sm font-black text-slate-700"
+                className="rounded-2xl border border-slate-200 bg-slate-50 px-5 py-3 text-sm font-semibold text-slate-700"
               >
                 取消
               </button>

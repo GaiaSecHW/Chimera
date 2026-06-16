@@ -3656,8 +3656,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
             >
               <div className="flex flex-wrap items-start justify-between gap-4 border-b border-slate-200 bg-slate-50/80 px-6 py-5 sm:px-8">
                 <div>
-                  <div className="text-[11px] font-black uppercase tracking-[0.28em] text-slate-400">Module Report</div>
-                  <h3 className="mt-2 text-2xl font-black tracking-tight text-slate-900">{selectedModuleReportDetail?.module_name || selectedModuleReportTarget.moduleName}</h3>
+                  <h3 className="text-2xl font-black tracking-tight text-slate-900">{selectedModuleReportDetail?.module_name || selectedModuleReportTarget.moduleName}</h3>
                   <div className="mt-3 flex flex-wrap gap-2 text-[11px] font-bold">
                     <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-slate-600">{selectedModuleReportTarget.moduleKey}</span>
                     {selectedModuleReportDetail?.risk_level ? <span className="rounded-full border border-rose-200 bg-rose-50 px-3 py-1 text-rose-700">风险 {selectedModuleReportDetail.risk_level}</span> : null}
@@ -3904,8 +3903,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
  <section className="rounded-[1.75rem] border border-slate-200 bg-slate-50 p-4">
             <div className="grid gap-4 xl:grid-cols-[minmax(0,1.35fr)_minmax(320px,0.85fr)] xl:items-start">
               <div className="min-w-0">
-                <p className="text-xs font-black uppercase tracking-[0.3em] text-rose-600">Binary Security Detail</p>
-                <h1 className="mt-2 text-2xl font-black tracking-tight text-slate-900">{detail.name}</h1>
+                <h1 className="text-2xl font-black tracking-tight text-slate-900">{detail.name}</h1>
                 <div className="mt-2 break-all font-mono text-xs text-slate-400">{detail.id}</div>
                 <div className="mt-3 flex flex-wrap items-center gap-3">
                   <span style={{ borderRadius: '9999px', border: '1px solid', padding: '4px 12px', fontSize: '12px', fontWeight: 600, ...statusTone(displayTaskStatus), borderColor: statusTone(displayTaskStatus).borderColor }}>{formatBinarySecurityStatus(displayTaskStatus)}</span>

@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Activity, AlertTriangle, BarChart3, RefreshCw, ShieldAlert, TrendingUp } from 'lucide-react';
+import { AlertTriangle, BarChart3, RefreshCw, ShieldAlert, TrendingUp } from 'lucide-react';
 import { api } from '../../clients/api';
 import {
   ACTION_STATUS_LABELS,
@@ -94,14 +94,10 @@ export const VulnOverviewPage: React.FC<VulnPageProps> = ({ projectId }) => {
   const activeServices = Number(overview?.metrics?.active_services || 0);
   const registeredServices = Number(overview?.metrics?.registered_services || 0);
   const queuedActions = Number(overview?.metrics?.queued_actions || 0);
-  const issueCount = Number(overview?.decision_counts?.issue || 0);
-  const nonIssueCount = Number(overview?.decision_counts?.non_issue || 0);
-  const closedCases = issueCount + nonIssueCount;
   const finishedCount = Number(overview?.stage_counts?.finished || 0);
-  const finishedRate = totalCases > 0 ? ((finishedCount / totalCases) * 100).toFixed(1) : '0.0';
+  const finishedRate = Number(overview?.metrics?.finished_rate || 0).toFixed(1);
   const highRiskRate = totalCases > 0 ? ((highRiskCount / totalCases) * 100).toFixed(1) : '0.0';
   const runningCases = Number(overview?.metrics?.running_cases || 0);
-  const waitingExternal = Number(overview?.metrics?.waiting_external || 0);
   const serviceAvailabilityRate = registeredServices > 0 ? ((activeServices / registeredServices) * 100).toFixed(1) : '0.0';
   const actionStatusEntries = Object.entries(overview?.action_status_counts || {}) as Array<[string, number]>;
   const resultTypeEntries = Object.entries(overview?.result_type_counts || {}) as Array<[string, number]>;
@@ -155,7 +151,7 @@ export const VulnOverviewPage: React.FC<VulnPageProps> = ({ projectId }) => {
         </div>
       </div>
 
-      <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-5">
+      <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
         <div
           className="flex flex-col gap-3 rounded-xl px-4 py-3"
           style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}` }}
@@ -186,22 +182,6 @@ export const VulnOverviewPage: React.FC<VulnPageProps> = ({ projectId }) => {
           </div>
           <div className="text-2xl font-semibold leading-7 tabular-nums" style={{ color: LK.ink }}>{highRiskRate}%</div>
           <div className="text-xs" style={{ color: LK.muted }}>{highRiskCount} 个严重 / 高危</div>
-        </div>
-
-        <div
-          className="flex flex-col gap-3 rounded-xl px-4 py-3"
-          style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}` }}
-        >
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold uppercase tracking-wider" style={{ color: LK.muted }}>
-              外部等待
-            </span>
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg" style={{ backgroundColor: LK.surfaceRaised, color: LK.info }}>
-              <Activity size={16} />
-            </div>
-          </div>
-          <div className="text-2xl font-semibold leading-7 tabular-nums" style={{ color: LK.ink }}>{waitingExternal}</div>
-          <div className="text-xs" style={{ color: LK.muted }}>外部模块尚未回传</div>
         </div>
 
         <div
@@ -538,60 +518,6 @@ export const VulnOverviewPage: React.FC<VulnPageProps> = ({ projectId }) => {
                 </div>
               ))
             )}
-          </div>
-        </section>
-
-        <section
-          className="overflow-hidden rounded-xl"
-          style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}` }}
-        >
-          <div className="px-4 py-3" style={{ borderBottom:`1px solid ${LK.borderSoft}` }}>
-            <h2 className="text-base font-semibold" style={{ color: LK.ink }}>项目运营摘要</h2>
-            <p className="mt-1 text-xs" style={{ color: LK.muted }}>把需要关注的运行信号压成一块简报。</p>
-          </div>
-          <div className="grid gap-3 p-4 md:grid-cols-2">
-            <div
-              className="rounded-lg px-4 py-3"
-              style={{ backgroundColor: LK.surfaceRaised, border: `1px solid ${LK.border}` }}
-            >
-              <div className="text-xs font-semibold uppercase tracking-wider" style={{ color: LK.muted }}>
-                明确结论
-              </div>
-              <div className="mt-2 text-2xl font-semibold tabular-nums" style={{ color: LK.ink }}>{closedCases}</div>
-              <div className="mt-1 text-xs" style={{ color: LK.muted }}>confirmed / false positive / accepted risk</div>
-            </div>
-            <div
-              className="rounded-lg px-4 py-3"
-              style={{ backgroundColor: LK.surfaceRaised, border: `1px solid ${LK.border}` }}
-            >
-              <div className="text-xs font-semibold uppercase tracking-wider" style={{ color: LK.muted }}>
-                待外部结果
-              </div>
-              <div className="mt-2 text-2xl font-semibold tabular-nums" style={{ color: LK.ink }}>{waitingExternal}</div>
-              <div className="mt-1 text-xs" style={{ color: LK.muted }}>说明外部模块回传仍是当前瓶颈</div>
-            </div>
-            <div
-              className="rounded-lg px-4 py-3"
-              style={{ backgroundColor: LK.surfaceRaised, border: `1px solid ${LK.border}` }}
-            >
-              <div className="text-xs font-semibold uppercase tracking-wider" style={{ color: LK.muted }}>
-                活跃 / 注册服务
-              </div>
-              <div className="mt-2 text-2xl font-semibold tabular-nums" style={{ color: LK.ink }}>
-                {activeServices} / {registeredServices}
-              </div>
-              <div className="mt-1 text-xs" style={{ color: LK.muted }}>供给侧健康度</div>
-            </div>
-            <div
-              className="rounded-lg px-4 py-3"
-              style={{ backgroundColor: LK.surfaceRaised, border: `1px solid ${LK.border}` }}
-            >
-              <div className="text-xs font-semibold uppercase tracking-wider" style={{ color: LK.muted }}>
-                高危密度
-              </div>
-              <div className="mt-2 text-2xl font-semibold tabular-nums" style={{ color: LK.ink }}>{highRiskCount}</div>
-              <div className="mt-1 text-xs" style={{ color: LK.muted }}>高风险问题需优先清空验证和裁决链路</div>
-            </div>
           </div>
         </section>
       </div>

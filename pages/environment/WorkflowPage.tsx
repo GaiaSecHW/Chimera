@@ -67,7 +67,6 @@ export const WorkflowPage: React.FC<{ projectId: string }> = ({ projectId }) => 
              </div>
              <div>
                <h2 className="text-3xl font-black text-slate-800 tracking-tight">安全测试工作流</h2>
-               <p className="text-slate-500 font-medium mt-1 uppercase tracking-widest text-[10px]">Orchestration & Automated Testing Pipelines</p>
              </div>
           </div>
         </div>

@@ -519,7 +519,6 @@ export const JobTemplatePage: React.FC<{ projectId: string, onNavigateToDetail: 
                  </div>
                  <div>
                    <h3 className="text-2xl font-black text-slate-800 tracking-tight">注册任务组件</h3>
-                   <p className="text-slate-500 text-[10px] font-black uppercase tracking-widest mt-0.5">Job Execution Blueprint</p>
                  </div>
                </div>
                <button onClick={() => setIsModalOpen(false)} className="p-4 text-slate-400 hover:text-slate-600 transition-colors">

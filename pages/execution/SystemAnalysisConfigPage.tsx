@@ -740,7 +740,6 @@ export const SystemAnalysisConfigPage: React.FC<{ projectId: string; embedded?: 
 
       {!embedded ? (
         <section style={{ borderRadius: '20px', border: `1px solid ${LK.border}`, backgroundColor: `${LK.surface}e6`, padding: '24px' }}>
-          <p style={{ fontSize: '12px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.3em', color: LK.info }}>System Analysis</p>
           <h1 style={{ marginTop: '12px', fontSize: '28px', fontWeight: 600, letterSpacing: '-0.025em', color: LK.ink }}>分析配置</h1>
           <p style={{ marginTop: '8px', fontSize: '14px', color: LK.muted }}>配置分析引擎全局运行参数，包括并发度、重试策略、Pipeline 阶段循环控制及 Agent 模型配置。各项配置作为全局默认值对所有任务生效。</p>
           <p style={{ marginTop: '4px', fontSize: '12px', color: LK.body }}>提示：分析范围（文件类型 / 架构 / 安全维度 / 模块粒度）均可在此作为服务级默认值，也可在「新建任务」弹窗中覆盖。</p>

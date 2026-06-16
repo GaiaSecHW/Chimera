@@ -318,8 +318,7 @@ export const AtomicCapabilityOverviewPage: React.FC<AtomicCapabilityOverviewPage
                     <Icon size={24} />
                   </div>
                   <div>
-                    <div style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.28em', color: '#49c5ff' }}>Atomic Capability</div>
-                    <h3 style={{ marginTop: '8px', fontSize: '24px', fontWeight: 600, letterSpacing: '-0.02em', color: '#f5f7ff' }}>{capability.name}</h3>
+                    <h3 style={{ fontSize: '24px', fontWeight: 600, letterSpacing: '-0.02em', color: '#f5f7ff' }}>{capability.name}</h3>
                   </div>
                 </div>
                 <span style={{ borderRadius: '9999px', border: '1px solid #26324a', backgroundColor: '#18233a', padding: '4px 12px', fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.2em', color: '#72809a' }}>
@@ -399,7 +398,6 @@ export const AtomicCapabilityOverviewPage: React.FC<AtomicCapabilityOverviewPage
           >
             <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '24px', borderBottom: '1px solid #26324a', background: 'linear-gradient(90deg, #111a2b, #18233a)', padding: '20px 24px', '@media (min-width: 768px)': { padding: '20px 32px' } } as any}>
               <div style={{ minWidth: 0 }}>
-                <div style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.3em', color: '#49c5ff' }}>Atomic Capability Detail</div>
                 <div style={{ marginTop: '8px', display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '12px' }}>
                   <h2 style={{ fontSize: '30px', fontWeight: 600, letterSpacing: '-0.02em', color: '#f5f7ff' }}>{selectedCapability.name}</h2>
                   <span style={{ borderRadius: '9999px', border: '1px solid #26324a', backgroundColor: '#18233a', padding: '4px 12px', fontSize: '12px', fontWeight: 600, color: '#72809a' }}>

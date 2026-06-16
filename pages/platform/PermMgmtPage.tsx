@@ -77,7 +77,6 @@ export const PermMgmtPage: React.FC = () => {
              </div>
              <div>
                <h2 className="text-3xl font-black text-slate-800 tracking-tight">功能权限分配</h2>
-               <p className="text-slate-500 font-medium mt-1 uppercase tracking-widest text-[10px]">User-Role Mapping & Authorization Matrix</p>
              </div>
           </div>
         </div>
@@ -139,7 +138,6 @@ export const PermMgmtPage: React.FC = () => {
                         <h3 className="text-2xl font-black text-slate-800 tracking-tight">
                            {activeUser ?`正在为 ${activeUser.username} 分配角色` : '请选择目标身份'}
                         </h3>
-                        <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-1">Matrix Selection Mode</p>
                      </div>
                   </div>
                   {selectedUserId && (

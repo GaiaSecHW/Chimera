@@ -142,6 +142,8 @@ export const PROJECT_REQUIRED_VIEWS = new Set<string>([
   'public-resource-pvc-management',
   'public-resource-task-management',
   'pvc-management',
+  'env-access',
+  'env-management',
   'env-agent',
   'env-service',
   'env-ai-agent',
@@ -350,6 +352,7 @@ const ROLE_VIEWS = new Set([
 const SYSTEM_ADMIN_DASHBOARD_VIEWS = new Set(['dashboard', 'admin-dashboard']);
 
 const SYSTEM_ADMIN_ENVIRONMENT_VIEWS = new Set([
+  'env-access', 'env-management',
   'env-agent', 'env-service', 'env-ai-agent', 'env-ai-agent-overview',
   'env-ai-helper', 'env-ai-agent-manage', 'env-ai-agent-session-manage',
   'env-ai-session', 'env-ai-batch-session', 'env-template', 'env-tasks',
@@ -435,7 +438,7 @@ export const SIDEBAR_SECTIONS: Record<string, NavSection[]> = {
         { id: 'project-mgmt', label: '项目', icon: Briefcase, aliases: ['project-detail'], healthKey: 'projectHealth' },
         { id: 'test-input-root', label: '测试输入', icon: FileBox, requiresProject: true },
         { id: 'task-list', label: '任务', icon: ListTodo, requiresProject: true },
-        { id: 'vuln-overview', label: '漏洞', icon: Shield, aliases: ['vuln-engine'], requiresProject: true, healthKey: 'vulnHealth' },
+        { id: 'vuln-intake', label: '漏洞', icon: Shield, aliases: ['vuln-overview', 'vuln-engine'], requiresProject: true, healthKey: 'vulnHealth' },
       ],
     },
   ],
@@ -527,6 +530,13 @@ const SYSTEM_ADMIN_SIDEBAR_MAP: Record<string, NavSection[]> = {
   ],
   tenant: PLATFORM_ACCOUNT_ORG_SECTIONS,
   environment: [
+    {
+      title: '测试环境',
+      items: [
+        { id: 'env-access', label: '环境接入', icon: Terminal, requiresProject: true, healthKey: 'envHealth' },
+        { id: 'env-management', label: '环境管理', icon: ServerCog, requiresProject: true, healthKey: 'envHealth' },
+      ],
+    },
     {
       title: '执行环境',
       items: [

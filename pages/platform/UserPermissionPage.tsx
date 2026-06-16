@@ -1,5 +1,5 @@
 import React, { useDeferredValue, useEffect, useMemo, useState } from 'react';
-import { ArrowRightLeft, Building2, Loader2, RefreshCw, Search, Shield, ShieldCheck, Sparkles, Users } from 'lucide-react';
+import { ArrowRightLeft, Building2, Loader2, RefreshCw, Search, Shield, ShieldCheck, Users } from 'lucide-react';
 import { api } from '../../clients/api';
 import { Department, UserInfo } from '../../types/types';
 import { getPlatformRoleLabel } from '../../utils/rbac';
@@ -288,10 +288,6 @@ export const UserPermissionPage: React.FC = () => {
           <div className="absolute -left-16 top-0 h-40 w-40 rounded-full bg-sky-400/10 blur-3xl" />
           <div className="relative flex flex-col gap-6 xl:flex-row xl:items-end xl:justify-between">
             <div className="space-y-4 xl:max-w-[48rem] 2xl:max-w-[60rem]">
- <div className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-slate-100/10 px-4 py-2 text-[11px] font-bold uppercase tracking-[0.28em] text-sky-200">
-                <Sparkles size={14} />
-                User Permission Center
-              </div>
               <div className="flex items-start gap-4">
  <div className="flex h-16 w-16 items-center justify-center rounded-[1.75rem] bg-slate-100 text-sky-200 shadow-inner shadow-white/5 backdrop-blur">
                   <ArrowRightLeft size={30} />

@@ -318,8 +318,7 @@ const ModalShell: React.FC<{
     >
       <div className="flex items-start justify-between gap-4 border-b border-slate-200 px-6 py-5 md:px-8">
         <div>
-          <div className="text-xs font-black uppercase tracking-[0.24em] text-cyan-600">AI Agent Workspace</div>
-          <h3 className="mt-2 text-2xl font-black tracking-tight text-slate-900">{title}</h3>
+          <h3 className="text-2xl font-black tracking-tight text-slate-900">{title}</h3>
           <p className="mt-2 text-sm text-slate-500">{description}</p>
         </div>
         <button onClick={onClose} className="rounded-2xl bg-slate-100 p-3 text-slate-500 transition hover:bg-slate-200 hover:text-slate-800">
@@ -1817,8 +1816,7 @@ const AgentDetailDrawer: React.FC<{
         <div className="border-b border-slate-200 bg-slate-800 px-6 py-5">
           <div className="flex items-start justify-between gap-4">
             <div>
-              <div className="text-xs font-black uppercase tracking-[0.24em] text-cyan-400">AI Agent Detail</div>
-              <h2 className="mt-2 text-2xl font-black tracking-tight text-slate-200">{agent.agent_id}</h2>
+              <h2 className="text-2xl font-black tracking-tight text-slate-200">{agent.agent_id}</h2>
               <div className="mt-2 text-sm text-slate-400">{agent.agent_hostname || agent.agent_key} · {agent.service_name} · {agent.backend_type}</div>
               <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-slate-500">
                 <span className="rounded-full bg-slate-700 px-2.5 py-1 font-semibold ring-1 ring-slate-200">当前 LLM: {formatProviderText(agent.llm_provider_snapshot || { provider_key: agent.llm_provider_key })}</span>
@@ -2690,8 +2688,7 @@ export const EnvAiAgentManagePage: React.FC<{ projectId: string }> = ({ projectI
  <section className="rounded-[2rem] border border-slate-200 bg-slate-50 p-6">
             <div className="flex items-center justify-between gap-4 flex-wrap">
               <div>
-                <p className="text-xs font-black uppercase tracking-[0.3em] text-cyan-600">AI Agent Workspace</p>
-                <h1 className="mt-3 text-3xl font-black tracking-tight text-slate-900">AI Agent 管理</h1>
+                <h1 className="text-3xl font-black tracking-tight text-slate-900">AI Agent 管理</h1>
                 <p className="mt-2 max-w-3xl text-sm text-slate-500">
                   先从列表查看当前项目下的全部 AI Agent，再按需进入右侧详情抽屉管理；LLM 快速应用已改为单个与批量两个对话框流程。
                 </p>

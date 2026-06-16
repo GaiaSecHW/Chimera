@@ -324,7 +324,6 @@ export const SystemAnalysisModelsPage: React.FC = () => {
 
       {/* 页头 */}
  <section className="rounded-[2rem] border border-slate-200 bg-slate-50 p-6">
-        <p className="text-xs font-black uppercase tracking-[0.3em] text-cyan-600">System Analysis</p>
         <h1 className="mt-3 text-3xl font-black tracking-tight text-slate-900">模型配置</h1>
         <p className="mt-2 text-sm text-slate-500">
           管理分析引擎使用的 LLM 提供商及模型列表。模型引用格式：

@@ -142,10 +142,6 @@ export const MachineTokenPage: React.FC = () => {
           <div className="absolute inset-y-0 right-0 w-1/2 bg-[radial-gradient(circle_at_center,_rgba(147,197,253,0.18),_transparent_58%)]" />
           <div className="relative flex flex-col gap-6 xl:flex-row xl:items-end xl:justify-between">
             <div className="space-y-4 xl:max-w-[48rem] 2xl:max-w-[60rem]">
- <div className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-slate-100/10 px-4 py-2 text-[11px] font-bold uppercase tracking-[0.26em] text-sky-100">
-                <ShieldCheck size={14} />
-                Machine Credential Vault
-              </div>
               <div className="flex items-start gap-4">
  <div className="flex h-16 w-16 items-center justify-center rounded-[1.75rem] bg-slate-100 text-sky-100 shadow-inner shadow-white/5">
                   <Cpu size={30} />
@@ -411,7 +407,6 @@ export const MachineTokenPage: React.FC = () => {
                   </div>
                   <div>
                     <h3 className="text-xl font-black text-slate-900">{lastCreatedToken ? '新凭据已生成' : '申请机器 Token'}</h3>
-                    <p className="mt-1 text-[10px] font-black uppercase tracking-[0.22em] text-slate-400">Automated Identity Provisioning</p>
                   </div>
                 </div>
                 <button onClick={() => setIsCreateModalOpen(false)} className="p-2 text-slate-300 transition hover:text-slate-600">

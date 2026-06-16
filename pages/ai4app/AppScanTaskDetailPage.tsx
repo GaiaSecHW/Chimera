@@ -595,7 +595,6 @@ export const AppScanTaskDetailPage: React.FC<Props> = ({ projectId, toolTaskId, 
                 <ArrowLeft size={18} />
               </button>
               <div>
-                <p className="text-xs font-black uppercase tracking-[0.3em] text-rose-600">App Security</p>
                 <h1 className="text-xl font-black text-slate-900">应用扫描详情</h1>
               </div>
             </div>
