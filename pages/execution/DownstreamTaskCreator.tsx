@@ -1061,7 +1061,7 @@ export const DownstreamTaskCreator: React.FC<Props> = ({
                               <span>
                                 <span style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '14px', fontWeight: 600, color: LK.success }}>
                                   <ShieldCheck size={16} />
-                                  自动上报漏洞疑点
+                                  自动上报漏洞
                                 </span>
                                 <span style={{ marginTop: '4px', display: 'block', fontSize: '12px', lineHeight: '1.4', color: LK.success }}>
                                   默认开启。任务成功后会将最终有效的 result_NNN.md 上报到当前项目的漏洞引擎，并记录原始任务 ID、执行 ID 和结果文件路径。

@@ -424,7 +424,7 @@ export const getTopLevelDefaultView = (nav: TopLevelNavKey, user: UserInfo | nul
     case 'assets': return 'public-resource-pvc-management';
     case 'task': return 'task-list';
     case 'environment': return 'env-agent';
-    case 'vuln': return 'vuln-overview';
+    case 'vuln': return 'vuln-intake';
     case 'assessment': return 'assessment-coming-soon';
     case 'observe': return 'observe-coming-soon';
     case 'skill': return 'skill-coming-soon';
@@ -534,16 +534,9 @@ export const SIDEBAR_SECTIONS: Record<TopLevelNavKey, NavSection[]> = {
   ],
   vuln: [
     {
-      title: '漏洞闭环',
+      title: '',
       items: [
-        { id: 'vuln-overview', label: '生命周期总览', icon: Cpu, aliases: ['vuln-engine'], requiresProject: true, healthKey: 'vulnHealth' },
-        { id: 'vuln-intake', label: '疑点中心', icon: FolderOpen, requiresProject: true },
-        { id: 'vuln-verification', label: '验证阶段', icon: ShieldCheck, aliases: ['vuln-verification-detail'], requiresProject: true },
-        { id: 'vuln-decision', label: '漏洞中心', icon: ShieldAlert, aliases: ['vuln-decision-detail'], requiresProject: true },
-        { id: 'vuln-queue', label: '运行队列', icon: Workflow, requiresProject: true },
-        { id: 'vuln-services', label: '能力注册', icon: ServerCog, requiresProject: true },
-        { id: 'vuln-repro-config', label: '复现配置', icon: Settings, requiresProject: true },
-        { id: 'vuln-parameter-config', label: '参数配置', icon: Settings, requiresProject: true },
+        { id: 'vuln-intake', label: '漏洞中心', icon: FolderOpen, requiresProject: true },
       ],
     },
   ],

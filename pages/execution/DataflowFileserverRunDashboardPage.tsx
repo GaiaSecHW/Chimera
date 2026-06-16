@@ -3985,7 +3985,7 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
         const tone = failed > 0 || status === 'failed' || status === 'partial_failed' ? 'error' : 'success';
         this.setResultReportFeedback(`已向漏洞引擎提交 ${total} 个问题，成功 ${reported}，失败 ${failed}。`, tone, data.name);
       } catch (error: any) {
-        this.setResultReportFeedback(error?.message || '批量上报疑点失败。', 'error', data.name);
+        this.setResultReportFeedback(error?.message || '批量上报漏洞失败。', 'error', data.name);
       } finally {
         this._resultReportBusy = false;
         if (this.currentRunData?.name === data.name) this.renderResults(this.currentRunData);
@@ -5281,8 +5281,8 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
       <div class="result-toolbar">
         <div class="result-toolbar-head">
           <div>
-            <div class="result-toolbar-title">疑点上报到漏洞引擎</div>
-            <div class="result-toolbar-desc">支持多选结果文件，批量将当前 Run 发现的问题作为疑点上报；“一键上报全部”会直接上报当前所有有效问题。</div>
+            <div class="result-toolbar-title">漏洞上报到漏洞引擎</div>
+            <div class="result-toolbar-desc">支持多选结果文件，批量将当前 Run 发现的问题作为漏洞上报；“一键上报全部”会直接上报当前所有有效问题。</div>
           </div>
           <div class="result-toolbar-meta">
             <span>可上报 ${selectableFiles.length}</span>

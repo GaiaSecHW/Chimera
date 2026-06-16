@@ -128,7 +128,7 @@ const TEMPLATE_OPTIONS = [
 ];
 const DATAFLOW_VULN_FLOW = {
   title: '数据流漏洞挖掘阶段推进关系',
-  subtitle: '展示漏洞挖掘微服务从 Profile 模板到结果评审与疑点上报的静态推进链路，帮助理解不同配置对扫描收敛的影响位置。',
+  subtitle: '展示漏洞挖掘微服务从 Profile 模板到结果评审与漏洞上报的静态推进链路，帮助理解不同配置对扫描收敛的影响位置。',
   lanes: [
     {
       label: '扫描执行链路',
@@ -137,7 +137,7 @@ const DATAFLOW_VULN_FLOW = {
         { id: 'dfv-worker', title: 'Worker 挖掘', desc: '围绕数据流结果开展漏洞候选挖掘，输出 issue 与证据草稿。', badge: '2', tone: 'analysis' as const },
         { id: 'dfv-global-review', title: '全局评审', desc: 'Advisor / Global Review 判断候选质量、收敛方向和是否继续下一轮。', badge: '3', tone: 'review' as const },
         { id: 'dfv-result-review', title: '结果评审', desc: '对 issue 做并发结果复核，压缩误报并形成最终结论。', badge: '4', tone: 'review' as const },
-        { id: 'dfv-report', title: '报告输出与上报', desc: '生成 Run 结果、漏洞报告，并在开启时向漏洞引擎上报疑点。', badge: '5', tone: 'artifact' as const },
+        { id: 'dfv-report', title: '报告输出与上报', desc: '生成 Run 结果、漏洞报告，并在开启时向漏洞引擎上报漏洞。', badge: '5', tone: 'artifact' as const },
       ],
     },
   ],
@@ -412,7 +412,7 @@ const vulnReportStatusLabel = (task: DataflowScanTask) => {
   if (status === 'reported') return { label:`已上报 ${task.vuln_report_status?.reported || 0}`, className: 'border-emerald-200 bg-emerald-50 text-emerald-700' };
   if (status === 'partial_failed') return { label: '部分失败', className: 'border-amber-200 bg-amber-50 text-amber-700' };
   if (status === 'failed') return { label: '上报失败', className: 'border-rose-200 bg-rose-50 text-rose-700' };
-  if (status === 'empty') return { label: '无疑点', className: 'border-slate-200 bg-slate-50 text-slate-500' };
+  if (status === 'empty') return { label: '无漏洞', className: 'border-slate-200 bg-slate-50 text-slate-500' };
   return { label: '待上报', className: 'border-cyan-200 bg-cyan-50 text-cyan-700' };
 };
 
@@ -1583,7 +1583,7 @@ export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ proj
                     <ExecutionTableTh>模型</ExecutionTableTh>
                     <ExecutionTableTh>轮次</ExecutionTableTh>
                     <ExecutionTableTh>结果</ExecutionTableTh>
-                    <ExecutionTableTh>疑点上报</ExecutionTableTh>
+                    <ExecutionTableTh>漏洞上报</ExecutionTableTh>
                     <ExecutionTableTh>开始时间</ExecutionTableTh>
                     <ExecutionTableTh>耗时</ExecutionTableTh>
                     <ExecutionTableTh className="text-right">操作</ExecutionTableTh>
@@ -1701,7 +1701,7 @@ export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ proj
                             type="button"
                             onClick={() => toggleQuickFilter('report', reportStatus.label)}
                             className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-black ${reportStatus.className} ${reportQuickFilter === reportStatus.label ? 'ring-2 ring-cyan-200' : ''}`}
-                            title={reportQuickFilter === reportStatus.label ? '点击取消疑点上报筛选' : '点击按疑点上报状态快速筛选'}
+                            title={reportQuickFilter === reportStatus.label ? '点击取消漏洞上报筛选' : '点击按漏洞上报状态快速筛选'}
                           >
                             {reportStatus.label}
                           </button>
@@ -2443,7 +2443,7 @@ const CreateTaskDialog: React.FC<{
                 <span>
                   <span className="flex items-center gap-2 text-sm font-black text-emerald-950">
                     <ShieldCheck size={16} />
-                    自动上报漏洞疑点
+                    自动上报漏洞漏洞
                   </span>
                   <span className="mt-1 block text-xs leading-5 text-emerald-800">
                     默认开启。任务成功后会将最终有效的 result_NNN.md 上报到当前项目的漏洞引擎，并记录原始任务 ID、执行 ID 和结果文件路径。

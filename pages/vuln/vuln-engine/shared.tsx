@@ -80,8 +80,8 @@ export const LIFECYCLE_NAV_ITEMS = [
   },
   {
     view: 'vuln-intake',
-    label: '疑点中心',
-    description: '聚焦接收阶段，处理新上报疑点与纳管准备。',
+    label: '漏洞中心',
+    description: '聚焦接收阶段，处理新上报漏洞与纳管准备。',
   },
   {
     view: 'vuln-verification',
@@ -101,7 +101,7 @@ export const LIFECYCLE_NAV_ITEMS = [
   {
     view: 'vuln-services',
     label: '能力注册',
-    description: '统一注册疑点分析、验证、证明、反馈等插件式能力服务。',
+    description: '统一注册漏洞分析、验证、证明、反馈等插件式能力服务。',
   },
   {
     view: 'vuln-repro-config',
