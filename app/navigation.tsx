@@ -160,6 +160,8 @@ export const PROJECT_REQUIRED_VIEWS = new Set<string>([
   'public-resource-pvc-management',
   'public-resource-task-management',
   'pvc-management',
+  'env-access',
+  'env-management',
   'env-agent',
   'env-service',
   'env-ai-agent',
@@ -506,6 +508,13 @@ export const SIDEBAR_SECTIONS: Record<TopLevelNavKey, NavSection[]> = {
     },
   ],
   environment: [
+    {
+      title: '测试环境',
+      items: [
+        { id: 'env-access', label: '环境接入', icon: Terminal, requiresProject: true, healthKey: 'envHealth' },
+        { id: 'env-management', label: '环境管理', icon: ServerCog, requiresProject: true, healthKey: 'envHealth' },
+      ],
+    },
     {
       title: '执行环境',
       items: [

@@ -18,6 +18,8 @@ import { PublicResourceManagementPage } from '../pages/assets/PublicResourceMana
 import { ProjectFileExplorerPage } from '../pages/assets/ProjectFileExplorerPage';
 import { FileserverArchiveTasksPage } from '../pages/assets/FileserverArchiveTasksPage';
 import { EnvAgentPage } from '../pages/environment/EnvAgentPage';
+import { EnvAccessPage } from '../pages/environment/EnvAccessPage';
+import { EnvManagementPage } from '../pages/environment/EnvManagementPage';
 import { EnvTemplatePage } from '../pages/environment/EnvTemplatePage';
 import { EnvTasksPage } from '../pages/environment/EnvTasksPage';
 import { ServiceMgmtPage } from '../pages/environment/ServiceMgmtPage';
@@ -290,6 +292,10 @@ export const renderCurrentView = (ctx: ViewRegistryContext): React.ReactNode => 
       return <ProjectFileExplorerPage projectId={ctx.selectedProjectId} projects={ctx.projects} />;
     case 'fileserver-archive-tasks':
       return <FileserverArchiveTasksPage projectId={ctx.selectedProjectId} />;
+    case 'env-access':
+      return <EnvAccessPage projectId={ctx.selectedProjectId} />;
+    case 'env-management':
+      return <EnvManagementPage projectId={ctx.selectedProjectId} agents={ctx.agents} />;
     case 'env-agent':
       return <EnvAgentPage projectId={ctx.selectedProjectId} />;
     case 'env-service':
