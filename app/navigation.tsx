@@ -47,23 +47,15 @@ import { getPlatformRole, getUserAccess, getUserCenterDefaultView } from '../uti
 export type NavRole = 'user' | 'developer' | 'admin' | null;
 
 export type TopLevelNavKey =
-  | 'dashboard'
-  | 'project'
+  | 'home'
+  | 'security-verify'
   | 'assets'
-  | 'task'
-  | 'environment'
-  | 'vuln'
   | 'assessment'
   | 'observe'
   | 'skill'
   | 'tools'
   | 'atomic'
-  | 'aigw'
-  | 'schedule'
-  | 'evolution'
-  | 'tenant'
-  | 'role'
-  | 'user-mgmt';
+  | 'system-admin';
 
 export interface TopLevelNavItem {
   id: TopLevelNavKey;
@@ -114,23 +106,15 @@ export const NAV_ROLE_CONFIG: Record<string, { label: string; color: string; act
 };
 
 export const TOP_LEVEL_NAV_ITEMS: TopLevelNavItem[] = [
-  { id: 'dashboard', label: '仪表盘', role: null },
-  { id: 'project', label: '项目', role: 'user' },
-  { id: 'assets', label: '资产', role: 'user' },
-  { id: 'task', label: '任务', role: 'user' },
-  { id: 'environment', label: '环境', role: 'user' },
-  { id: 'vuln', label: '漏洞', role: 'user' },
-  { id: 'assessment', label: '评测', role: 'developer', showDividerBefore: true },
+  { id: 'home', label: '首页', role: null },
+  { id: 'security-verify', label: '安全验证', role: 'user' },
+  { id: 'assets', label: '资产', role: 'developer', showDividerBefore: true },
+  { id: 'assessment', label: '评测', role: 'developer' },
   { id: 'observe', label: '观测', role: 'developer' },
   { id: 'skill', label: '技能', role: 'developer' },
   { id: 'tools', label: '工具', role: 'developer' },
   { id: 'atomic', label: '原子能力', role: 'developer' },
-  { id: 'aigw', label: 'AI网关', role: 'admin', showDividerBefore: true },
-  { id: 'schedule', label: '任务调度', role: 'admin' },
-  { id: 'evolution', label: '进化', role: 'admin' },
-  { id: 'tenant', label: '租户', role: 'admin' },
-  { id: 'role', label: '角色', role: 'admin' },
-  { id: 'user-mgmt', label: '用户', role: 'admin' },
+  { id: 'system-admin', label: '系统管理', role: 'admin', showDividerBefore: true },
 ];
 
 const ROLE_TAB_ACCESS: Record<string, Set<string>> = {
@@ -142,14 +126,12 @@ const ROLE_TAB_ACCESS: Record<string, Set<string>> = {
 
 export const getVisibleTopLevelNavItems = (
   user: UserInfo | null | undefined,
-  visibleRoles?: Set<NavRole>,
 ): TopLevelNavItem[] => {
   const platformRole = getPlatformRole(user);
   const accessibleRoles = ROLE_TAB_ACCESS[platformRole] || ROLE_TAB_ACCESS.ordinary_user;
   return TOP_LEVEL_NAV_ITEMS.filter((item) => {
-    if (item.id === 'dashboard') return true;
+    if (item.id === 'home') return true;
     if (item.role && !accessibleRoles.has(item.role)) return false;
-    if (visibleRoles && item.role && !visibleRoles.has(item.role)) return false;
     return true;
   });
 };
@@ -365,11 +347,22 @@ const ROLE_VIEWS = new Set([
   'user-mgmt-perms',
 ]);
 
+const SYSTEM_ADMIN_DASHBOARD_VIEWS = new Set(['dashboard', 'admin-dashboard']);
+
+const SYSTEM_ADMIN_ENVIRONMENT_VIEWS = new Set([
+  'env-agent', 'env-service', 'env-ai-agent', 'env-ai-agent-overview',
+  'env-ai-helper', 'env-ai-agent-manage', 'env-ai-agent-session-manage',
+  'env-ai-session', 'env-ai-batch-session', 'env-template', 'env-tasks',
+  'env-process-monitor-root', 'env-process-monitor-overview',
+  'env-process-monitor-detail', 'env-process-monitor-tasks',
+]);
+
 export const getTopLevelNavForView = (view: string): TopLevelNavKey => {
-  if (view === 'dashboard') return 'dashboard';
-
-  if (view === 'project-mgmt' || view === 'project-detail' || view === 'product-mgmt') return 'project';
-
+  if (view === 'home') return 'home';
+  if (view === 'project-mgmt' || view === 'project-detail' || view === 'product-mgmt') return 'security-verify';
+  if (view.startsWith('test-input-')) return 'security-verify';
+  if (view.startsWith('task-') || view === 'task-list' || view === 'task-center-timeline') return 'security-verify';
+  if (view === 'vuln-engine' || view.startsWith('vuln-')) return 'security-verify';
   if (
     view === 'project-file-explorer' ||
     view === 'fileserver-archive-tasks' ||
@@ -377,68 +370,37 @@ export const getTopLevelNavForView = (view: string): TopLevelNavKey => {
     view === 'public-resource-task-management' ||
     view === 'pvc-management'
   ) return 'assets';
-
-  if (view.startsWith('test-input-')) return 'task';
-
-  if (view.startsWith('task-')) return 'task';
-
-  if (view.startsWith('env-')) return 'environment';
-
-  if (view === 'vuln-engine' || view.startsWith('vuln-')) return 'vuln';
-
   if (view === 'assessment-coming-soon') return 'assessment';
-
   if (view === 'observe-coming-soon') return 'observe';
-
   if (view === 'skill-coming-soon') return 'skill';
-
   if (ASSESSMENT_VIEWS.has(view)) return 'assessment';
-
   if (OBSERVE_VIEWS.has(view) || view.startsWith('workflow-')) return 'observe';
-
   if (SKILL_VIEWS.has(view)) return 'skill';
-
   if (DEVELOPER_TOOL_VIEWS.has(view) || view === 'developer-tools-overview' || view === 'developer-tools') return 'tools';
-
   if (DEVELOPER_ATOMIC_CAPABILITY_VIEWS.has(view) || view.startsWith('developer-atomic-capability') || view.startsWith('developer-')) return 'atomic';
-
-  if (EVOLUTION_VIEWS.has(view) || view.startsWith('binary-evolution-')) return 'evolution';
-
-  if (AIGW_VIEWS.has(view)) return 'aigw';
-
-  if (SCHEDULE_VIEWS.has(view)) return 'schedule';
-
-  if (TENANT_VIEWS.has(view)) return 'tenant';
-
-  if (ROLE_VIEWS.has(view)) return 'role';
-
-  return 'dashboard';
+  if (SYSTEM_ADMIN_DASHBOARD_VIEWS.has(view)) return 'system-admin';
+  if (SYSTEM_ADMIN_ENVIRONMENT_VIEWS.has(view) || view.startsWith('env-')) return 'system-admin';
+  if (AIGW_VIEWS.has(view)) return 'system-admin';
+  if (SCHEDULE_VIEWS.has(view)) return 'system-admin';
+  if (EVOLUTION_VIEWS.has(view) || view.startsWith('binary-evolution-')) return 'system-admin';
+  if (TENANT_VIEWS.has(view)) return 'system-admin';
+  if (ROLE_VIEWS.has(view)) return 'system-admin';
+  if (view === 'sys-settings' || view === 'change-password') return 'system-admin';
+  return 'home';
 };
 
 export const getTopLevelDefaultView = (nav: TopLevelNavKey, user: UserInfo | null): string => {
-  const access = getUserAccess(user);
-
   switch (nav) {
-    case 'dashboard': return 'dashboard';
-    case 'project': return 'project-mgmt';
+    case 'home': return 'home';
+    case 'security-verify': return 'project-mgmt';
     case 'assets': return 'public-resource-pvc-management';
-    case 'task': return 'task-list';
-    case 'environment': return 'env-agent';
-    case 'vuln': return 'vuln-overview';
     case 'assessment': return 'assessment-coming-soon';
     case 'observe': return 'observe-coming-soon';
     case 'skill': return 'skill-coming-soon';
     case 'tools': return 'developer-tools-overview';
     case 'atomic': return 'developer-atomic-capability-overview';
-    case 'aigw': return 'aigw-dashboard';
-    case 'schedule': return 'chimera-platform-schedule';
-    case 'evolution': return 'binary-evolution-center';
-    case 'tenant':
-      if (access.canAccessUserCenter) return String(getUserCenterDefaultView(user));
-      return 'user-mgmt-access';
-    case 'role': return 'user-mgmt-roles';
-    case 'user-mgmt': return 'user-mgmt-users';
-    default: return 'dashboard';
+    case 'system-admin': return 'dashboard';
+    default: return 'home';
   }
 };
 
@@ -450,6 +412,8 @@ const PLATFORM_ACCOUNT_ORG_SECTIONS: NavSection[] = [
       { id: 'user-mgmt-users', label: '用户账号管理', icon: Users },
       { id: 'user-mgmt-online', label: '在线会话监控', icon: Globe },
       { id: 'user-mgmt-machine', label: '机机凭证管理', icon: Cpu },
+      { id: 'user-mgmt-roles', label: '角色定义管理', icon: Shield },
+      { id: 'user-mgmt-perms', label: '角色权限分配', icon: Users },
     ],
   },
   {
@@ -462,19 +426,16 @@ const PLATFORM_ACCOUNT_ORG_SECTIONS: NavSection[] = [
   },
 ];
 
-export const SIDEBAR_SECTIONS: Record<TopLevelNavKey, NavSection[]> = {
-  dashboard: [
+export const SIDEBAR_SECTIONS: Record<string, NavSection[]> = {
+  home: [],
+  'security-verify': [
     {
-      title: '总览',
-      items: [{ id: 'dashboard', label: '控制台总览', icon: LayoutDashboard }],
-    },
-  ],
-  project: [
-    {
-      title: '项目空间',
+      title: '安全验证',
       items: [
-        { id: 'project-mgmt', label: '项目管理', icon: Briefcase, aliases: ['project-detail'], healthKey: 'projectHealth' },
-        { id: 'product-mgmt', label: '产品管理', icon: Package, healthKey: 'projectHealth' },
+        { id: 'project-mgmt', label: '项目', icon: Briefcase, aliases: ['project-detail'], healthKey: 'projectHealth' },
+        { id: 'test-input-root', label: '测试输入', icon: FileBox, requiresProject: true },
+        { id: 'task-list', label: '任务', icon: ListTodo, requiresProject: true },
+        { id: 'vuln-overview', label: '漏洞', icon: Shield, aliases: ['vuln-engine'], requiresProject: true, healthKey: 'vulnHealth' },
       ],
     },
   ],
@@ -486,64 +447,6 @@ export const SIDEBAR_SECTIONS: Record<TopLevelNavKey, NavSection[]> = {
         { id: 'fileserver-archive-tasks', label: '打包下载任务', icon: Archive, requiresProject: true },
         { id: 'public-resource-pvc-management', label: 'PVC 管理', icon: HardDrive, requiresProject: true },
         { id: 'public-resource-task-management', label: '资源任务', icon: ListTodo, requiresProject: true },
-      ],
-    },
-  ],
-  task: [
-    {
-      title: '输入',
-      items: [
-        { id: 'test-input-root', label: '任务输入', icon: FileBox, requiresProject: true },
-      ],
-    },
-    {
-      title: '任务中心',
-      items: [
-        { id: 'task-list', label: '任务列表', icon: ListTodo, requiresProject: true },
-        { id: 'task-web-end-to-end', label: 'WEB端到端', icon: Globe, requiresProject: true },
-        { id: 'task-knowledge-graph', label: '知识图谱', icon: Network, requiresProject: true },
-      ],
-    },
-  ],
-  environment: [
-    {
-      title: '执行环境',
-      items: [
-        { id: 'env-template', label: '环境模板', icon: Box, requiresProject: true, healthKey: 'envHealth' },
-        { id: 'env-agent', label: 'Agent 管理', icon: Monitor, requiresProject: true, healthKey: 'envHealth' },
-        { id: 'env-service', label: '服务管理', icon: Zap, requiresProject: true, healthKey: 'envHealth' },
-        { id: 'env-tasks', label: '部署任务', icon: Workflow, requiresProject: true },
-      ],
-    },
-    {
-      title: 'AI Agent',
-      items: [
-        { id: 'env-ai-agent-manage', label: 'Agent 管理', icon: Bot, aliases: ['env-ai-agent', 'env-ai-agent-overview'], requiresProject: true },
-        { id: 'env-ai-session', label: '单会话', icon: MessageSquare, requiresProject: true },
-        { id: 'env-ai-batch-session', label: '批量会话', icon: GitBranch, requiresProject: true },
-      ],
-    },
-    {
-      title: '进程监控',
-      items: [
-        { id: 'env-process-monitor-overview', label: '节点总览', icon: Activity, aliases: ['env-process-monitor-root'], requiresProject: true },
-        { id: 'env-process-monitor-detail', label: '进程详情', icon: FolderOpen, requiresProject: true },
-        { id: 'env-process-monitor-tasks', label: '监控任务', icon: Workflow, requiresProject: true },
-      ],
-    },
-  ],
-  vuln: [
-    {
-      title: '漏洞闭环',
-      items: [
-        { id: 'vuln-overview', label: '生命周期总览', icon: Cpu, aliases: ['vuln-engine'], requiresProject: true, healthKey: 'vulnHealth' },
-        { id: 'vuln-intake', label: '疑点中心', icon: FolderOpen, requiresProject: true },
-        { id: 'vuln-verification', label: '验证阶段', icon: ShieldCheck, aliases: ['vuln-verification-detail'], requiresProject: true },
-        { id: 'vuln-decision', label: '漏洞中心', icon: ShieldAlert, aliases: ['vuln-decision-detail'], requiresProject: true },
-        { id: 'vuln-queue', label: '运行队列', icon: Workflow, requiresProject: true },
-        { id: 'vuln-services', label: '能力注册', icon: ServerCog, requiresProject: true },
-        { id: 'vuln-repro-config', label: '复现配置', icon: Settings, requiresProject: true },
-        { id: 'vuln-parameter-config', label: '参数配置', icon: Settings, requiresProject: true },
       ],
     },
   ],
@@ -575,6 +478,15 @@ export const SIDEBAR_SECTIONS: Record<TopLevelNavKey, NavSection[]> = {
         { id: 'pentest-dataflow-vuln-scan', label: '数据流漏洞挖掘', icon: Zap, aliases: ['dataflow-vuln-scan-task', 'dataflow-vuln-scan-detail', 'dataflow-vuln-scan-config'], requiresProject: true },
         { id: 'pentest-vuln-verify', label: '漏洞验证', icon: Zap, aliases: ['vuln-verify-task'], requiresProject: true },
       ],
+    },
+  ],
+};
+
+const SYSTEM_ADMIN_SIDEBAR_MAP: Record<string, NavSection[]> = {
+  dashboard: [
+    {
+      title: '总览',
+      items: [{ id: 'dashboard', label: '控制台总览', icon: LayoutDashboard }],
     },
   ],
   aigw: [
@@ -614,14 +526,56 @@ export const SIDEBAR_SECTIONS: Record<TopLevelNavKey, NavSection[]> = {
     },
   ],
   tenant: PLATFORM_ACCOUNT_ORG_SECTIONS,
-  role: [
+  environment: [
     {
-      title: '角色管理',
+      title: '执行环境',
       items: [
-        { id: 'user-mgmt-roles', label: '角色列表', icon: Shield },
-        { id: 'user-mgmt-perms', label: '权限分配', icon: Users },
+        { id: 'env-template', label: '环境模板', icon: Box, requiresProject: true, healthKey: 'envHealth' },
+        { id: 'env-agent', label: 'Agent 管理', icon: Monitor, requiresProject: true, healthKey: 'envHealth' },
+        { id: 'env-service', label: '服务管理', icon: Zap, requiresProject: true, healthKey: 'envHealth' },
+        { id: 'env-tasks', label: '部署任务', icon: Workflow, requiresProject: true },
+      ],
+    },
+    {
+      title: 'AI Agent',
+      items: [
+        { id: 'env-ai-agent-manage', label: 'Agent 管理', icon: Bot, aliases: ['env-ai-agent', 'env-ai-agent-overview'], requiresProject: true },
+        { id: 'env-ai-session', label: '单会话', icon: MessageSquare, requiresProject: true },
+        { id: 'env-ai-batch-session', label: '批量会话', icon: GitBranch, requiresProject: true },
+      ],
+    },
+    {
+      title: '进程监控',
+      items: [
+        { id: 'env-process-monitor-overview', label: '节点总览', icon: Activity, aliases: ['env-process-monitor-root'], requiresProject: true },
+        { id: 'env-process-monitor-detail', label: '进程详情', icon: FolderOpen, requiresProject: true },
+        { id: 'env-process-monitor-tasks', label: '监控任务', icon: Workflow, requiresProject: true },
       ],
     },
   ],
-  'user-mgmt': PLATFORM_ACCOUNT_ORG_SECTIONS,
+};
+
+export type SystemAdminChildKey = 'dashboard' | 'aigw' | 'schedule' | 'evolution' | 'tenant' | 'environment';
+
+export const SYSTEM_ADMIN_CHILDREN: { key: SystemAdminChildKey; label: string; defaultView: string }[] = [
+  { key: 'dashboard', label: '仪表盘', defaultView: 'dashboard' },
+  { key: 'aigw', label: 'AI网关', defaultView: 'aigw-dashboard' },
+  { key: 'schedule', label: '任务调度', defaultView: 'chimera-platform-schedule' },
+  { key: 'evolution', label: '进化', defaultView: 'binary-evolution-center' },
+  { key: 'tenant', label: '租户', defaultView: 'user-mgmt-access' },
+  { key: 'environment', label: '环境', defaultView: 'env-agent' },
+];
+
+export const getSystemAdminActiveChild = (currentView: string): SystemAdminChildKey => {
+  if (currentView.startsWith('env-')) return 'environment';
+  if (AIGW_VIEWS.has(currentView) || currentView.startsWith('aigw-') || currentView.startsWith('config-center-')) return 'aigw';
+  if (SCHEDULE_VIEWS.has(currentView) || currentView === 'chimera-platform-schedule-config') return 'schedule';
+  if (EVOLUTION_VIEWS.has(currentView) || currentView.startsWith('binary-evolution-')) return 'evolution';
+  if (TENANT_VIEWS.has(currentView) || ROLE_VIEWS.has(currentView) || currentView.startsWith('user-mgmt-') || currentView.startsWith('org-mgmt-')) return 'tenant';
+  return 'dashboard';
+};
+
+export const getSystemAdminSidebarSections = (currentView: string): NavSection[] => {
+  const childKey = getSystemAdminActiveChild(currentView);
+  return SYSTEM_ADMIN_SIDEBAR_MAP[childKey] || [];
 };
