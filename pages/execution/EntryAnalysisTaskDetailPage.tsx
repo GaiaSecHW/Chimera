@@ -1012,14 +1012,15 @@ interface FuncProgress {
 function deriveFuncProgress(
   events: AppEaStageEvent[],
   functionCatalog?: AppEaFunctionCatalogItem[] | null,
+  liveTotalFunctionCount?: number,
 ): {
   funcs: FuncProgress[];
   totalFuncCount: number;
 } {
   const map = new Map<string, FuncProgress>();
-  // 以 function_catalog 为准（来自 pipeline_state.json，权威数据源），
-  // 不再从 r1_static_done 事件累加（多次重启/接管会导致事件重复计数翻倍）。
-  let totalFuncCount = 0;
+  // 优先使用 live_total（来自 pipeline_state.json 的轻量统计），
+  // 不用 function_catalog（会 OOM）也不累加事件（重启会翻倍）。
+  let totalFuncCount = liveTotalFunctionCount || 0;
 
   const toStage = (s?: string | null): FuncStage => {
     switch (String(s || 'pending')) {
@@ -1070,33 +1071,8 @@ function deriveFuncProgress(
     if (!isTerminalStage(item[field])) item[field] = next;
   };
 
-  // 先用 function_catalog 初始化所有函数（来自 pipeline_state.json 的权威数据）
-  for (const item of functionCatalog || []) {
-    const fh = String(item.func_hash || '');
-    if (!fh) continue;
-    totalFuncCount += 1;
-    const f = getOrCreate(fh, String(item.name || fh), String(item.file || ''));
-    f.r2j = item.r2_source_incomplete ? 'failed' : (item.r2j_state === 'failed' ? 'running' : toStage(item.r2j_state));
-    f.r3w = toStage(item.r3w_state);
-    f.r3j = toStage(item.r3j_state);
-    f.r3 = combineR3(f.r3w, f.r3j);
-    const r4Decision = String(item.r4_decision || '').toLowerCase();
-    const r4Actual = toStage(item.r4_state);
-    const hasInput = item.has_external_input == null ? undefined : Boolean(item.has_external_input);
-    if (r4Decision === 'remove' || r4Decision === 'filter') {
-      f.r4 = hasInput === false ? 'skip' : 'remove';
-    } else {
-      f.r4 = r4Actual === 'passed' ? 'keep' : r4Actual;
-    }
-    f.rep = toStage(item.rep_state);
-    f.has_external_input = hasInput;
-    if (item.entry_role) f.entry_role = String(item.entry_role);
-    if (item.entry_category) f.entry_category = String(item.entry_category);
-    if (item.file_hash) f.file_hash = String(item.file_hash);
-    f.is_entry = f.r4 === 'keep';
-  }
-
-  // 兜底：如果 function_catalog 为空（极少数情况），从 r1_static_done 事件累加
+  // function_catalog 不加载（避免 OOM），totalFuncCount 由调用方从 live_stats 传入
+  // 兜底：如果没有 live_total，从事件估算
   if (!totalFuncCount) {
     for (const evt of events) {
       if (evt.type === 'r1_static_done') totalFuncCount += Number((evt.data || {}).count) || 0;
@@ -1702,7 +1678,7 @@ export const EntryAnalysisTaskDetailPage: React.FC<{ projectId: string; taskId: 
     const requestSeq = ++detailRequestSeqRef.current;
     setLoading(true);
     try {
-      const nextDetail = await appApi.getTask(taskId, { includeFunctionCatalog: true });
+      const nextDetail = await appApi.getTask(taskId);
       if (detailRequestSeqRef.current === requestSeq) setDetail(nextDetail);
     }
     catch (err: any) { notify(`加载任务详情失败: ${err?.message || err}`, 'error'); }
@@ -2072,8 +2048,8 @@ export const EntryAnalysisTaskDetailPage: React.FC<{ projectId: string; taskId: 
     [events, isLeanMode],
   );
   const { funcs: funcProgress, totalFuncCount } = useMemo(
-    () => deriveFuncProgress(events, detail?.function_catalog || []),
-    [events, detail?.function_catalog],
+    () => deriveFuncProgress(events, detail?.function_catalog || [], result?.live_stats?.total_functions),
+    [events, detail?.function_catalog, result?.live_stats?.total_functions],
   );
   const funcStats = useMemo(() => {
     let r2 = 0, r3 = 0, r4Done = 0, r4Total = 0, entries = 0, r5 = 0;
