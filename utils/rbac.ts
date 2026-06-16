@@ -137,8 +137,30 @@ const ORDINARY_ADMIN_VIEWS = new Set<string>([
   'org-mgmt-projects',
 ]);
 
+const ADMIN_VIEWS = new Set<string>([
+  'env-agent',
+  'env-service',
+  'env-ai-agent',
+  'env-ai-agent-overview',
+  'env-ai-helper',
+  'env-ai-agent-manage',
+  'env-ai-agent-session-manage',
+  'env-ai-session',
+  'env-ai-batch-session',
+  'env-template',
+  'env-tasks',
+  'env-process-monitor-root',
+  'env-process-monitor-overview',
+  'env-process-monitor-detail',
+  'env-process-monitor-tasks',
+]);
+
 export const canAccessView = (user: UserInfo | null | undefined, view: ViewType | string): boolean => {
   const access = getUserAccess(user);
+
+  if (ADMIN_VIEWS.has(view)) {
+    return access.platformRole === 'super_admin' || access.platformRole === 'ordinary_admin';
+  }
 
   if (ORDINARY_ADMIN_VIEWS.has(view)) {
     return access.platformRole === 'super_admin' || access.platformRole === 'ordinary_admin';
