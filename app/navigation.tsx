@@ -7,8 +7,6 @@ import {
   Box,
   Briefcase,
   Building2,
-  ClipboardCheck,
-  Code2,
   Cpu,
   FileBox,
   FileSearch,
@@ -19,7 +17,6 @@ import {
   Globe,
   HardDrive,
   Key,
-  Layers,
   Layers3,
   LayoutDashboard,
   ListTodo,
@@ -389,6 +386,12 @@ export const getTopLevelNavForView = (view: string): TopLevelNavKey => {
 
   if (view === 'vuln-engine' || view.startsWith('vuln-')) return 'vuln';
 
+  if (view === 'assessment-coming-soon') return 'assessment';
+
+  if (view === 'observe-coming-soon') return 'observe';
+
+  if (view === 'skill-coming-soon') return 'skill';
+
   if (ASSESSMENT_VIEWS.has(view)) return 'assessment';
 
   if (OBSERVE_VIEWS.has(view) || view.startsWith('workflow-')) return 'observe';
@@ -422,9 +425,9 @@ export const getTopLevelDefaultView = (nav: TopLevelNavKey, user: UserInfo | nul
     case 'task': return 'task-list';
     case 'environment': return 'env-agent';
     case 'vuln': return 'vuln-overview';
-    case 'assessment': return 'pentest-exec-code';
-    case 'observe': return 'workflow-apps';
-    case 'skill': return 'mobile-security-ipc-vuln';
+    case 'assessment': return 'assessment-coming-soon';
+    case 'observe': return 'observe-coming-soon';
+    case 'skill': return 'skill-coming-soon';
     case 'tools': return 'developer-tools-overview';
     case 'atomic': return 'developer-atomic-capability-overview';
     case 'aigw': return 'aigw-dashboard';
@@ -544,47 +547,9 @@ export const SIDEBAR_SECTIONS: Record<TopLevelNavKey, NavSection[]> = {
       ],
     },
   ],
-  assessment: [
-    {
-      title: '安全评测',
-      items: [
-        { id: 'pentest-exec-code', label: '在线代码审计', icon: Code2, requiresProject: true, healthKey: 'codeAuditHealth' },
-        { id: 'security-assessment', label: '安全评估', icon: ClipboardCheck, requiresProject: true },
-        { id: 'pentest-report', label: '测试报告', icon: FileText, requiresProject: true },
-      ],
-    },
-  ],
-  observe: [
-    {
-      title: '工作流模板',
-      items: [
-        { id: 'workflow-apps', label: '应用模板', icon: Layers, aliases: ['workflow-app-detail'], requiresProject: true, healthKey: 'workflowHealth' },
-        { id: 'workflow-jobs', label: '任务模板', icon: Zap, aliases: ['workflow-job-detail'], requiresProject: true },
-      ],
-    },
-    {
-      title: '工作流运行',
-      items: [
-        { id: 'workflow-app-instances', label: '应用实例', icon: Box, aliases: ['workflow-app-instance-detail'], requiresProject: true },
-        { id: 'workflow-instances', label: '工作流实例', icon: Workflow, aliases: ['workflow-instance-detail', 'workflow-instance-logs'], requiresProject: true },
-      ],
-    },
-  ],
-  skill: [
-    {
-      title: '终端安全',
-      items: [
-        { id: 'mobile-security-ipc-vuln', label: '鸿蒙框架漏洞挖掘', icon: Terminal, requiresProject: true },
-        { id: 'kernel-scan', label: '内核扫描', icon: Shield, requiresProject: true },
-      ],
-    },
-    {
-      title: 'WEB安全',
-      items: [
-        { id: 'pentest-exec-work', label: '知微工作台', icon: Target, requiresProject: true },
-      ],
-    },
-  ],
+  assessment: [],
+  observe: [],
+  skill: [],
   tools: [
     {
       title: '开发者工具',

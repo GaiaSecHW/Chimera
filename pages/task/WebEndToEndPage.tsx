@@ -23,6 +23,31 @@ import { Agent, AsyncTask } from '../../types/types';
 const WEB_E2E_API_BASE = `${API_BASE}/api/app/web-e2e`;
 type DeployMode = 'normal' | 'proxy' | 'k8s';
 
+// LOKI design tokens (DESIGN.md) — page-local palette.
+const LK = {
+  primary: '#4f73ff',
+  primarySoft: '#7590ff',
+  primaryDeep: '#3f63f1',
+  primaryMuted: 'rgba(79, 115, 255, 0.14)',
+  canvas: '#070d18',
+  surface: '#111a2b',
+  surfaceRaised: '#18233a',
+  surfaceGlass: 'rgba(17, 26, 43, 0.84)',
+  border: '#26324a',
+  borderSoft: '#1b2438',
+  ink: '#f5f7ff',
+  inkSoft: '#d6def0',
+  body: '#a4aec4',
+  muted: '#72809a',
+  mutedSoft: '#8b95a8',
+  success: '#45c06f',
+  warning: '#d5a13a',
+  error: '#f15d5d',
+  info: '#4f8cff',
+} as const;
+
+const MONO = 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace';
+
 type LoadState = {
   loading: boolean;
   error: string | null;
@@ -194,12 +219,12 @@ const getStatusLabel = (status?: string): string => {
   return labels[key] || status || '-';
 };
 
-const statusBadgeClass = (status?: string): string => {
+const statusBadgeStyle = (status?: string): { bg: string; color: string; border: string } => {
   const key = String(status || '').toLowerCase();
-  if (['online', 'success', 'succeeded', 'completed', 'done', 'healthy'].includes(key)) return 'border-emerald-200 bg-emerald-50 text-emerald-700';
-  if (['running', 'processing', 'pending', 'queued', 'in_progress'].includes(key)) return 'border-blue-200 bg-blue-50 text-blue-700';
-  if (['failed', 'error', 'timeout', 'offline'].includes(key)) return 'border-rose-200 bg-rose-50 text-rose-700';
-  return 'border-slate-200 bg-slate-50 text-slate-600';
+  if (['online', 'success', 'succeeded', 'completed', 'done', 'healthy'].includes(key)) return { bg: 'rgba(69, 192, 111, 0.14)', color: LK.success, border: 'rgba(69, 192, 111, 0.3)' };
+  if (['running', 'processing', 'pending', 'queued', 'in_progress'].includes(key)) return { bg: 'rgba(79, 115, 255, 0.14)', color: LK.primary, border: 'rgba(79, 115, 255, 0.3)' };
+  if (['failed', 'error', 'timeout', 'offline'].includes(key)) return { bg: 'rgba(241, 93, 93, 0.14)', color: LK.error, border: 'rgba(241, 93, 93, 0.3)' };
+  return { bg: LK.surfaceRaised, color: LK.muted, border: LK.borderSoft };
 };
 
 const extractArray = (raw: any, keys: string[]): any[] => {
@@ -395,47 +420,50 @@ const buildProgressStages = (params: {
   });
 };
 
-const StatusBadge: React.FC<{ status?: string; label?: string }> = ({ status, label }) => (
-  <span className={`inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-black ${statusBadgeClass(status)}`}>
-    {['running', 'processing', 'pending', 'queued', 'in_progress'].includes(String(status || '').toLowerCase()) ? <Loader2 size={12} className="mr-1 animate-spin" /> : null}
-    {label || getStatusLabel(status)}
-  </span>
-);
+const StatusBadge: React.FC<{ status?: string; label?: string }> = ({ status, label }) => {
+  const style = statusBadgeStyle(status);
+  return (
+    <span className="inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold" style={{ backgroundColor: style.bg, color: style.color, border: `1px solid ${style.border}` }}>
+      {['running', 'processing', 'pending', 'queued', 'in_progress'].includes(String(status || '').toLowerCase()) ? <Loader2 size={12} className="mr-1 animate-spin" /> : null}
+      {label || getStatusLabel(status)}
+    </span>
+  );
+};
 
 const Panel: React.FC<{ title: string; subtitle?: string; action?: React.ReactNode; children: React.ReactNode }> = ({ title, subtitle, action, children }) => (
-  <section className="rounded-2xl border border-slate-200 bg-white shadow-sm">
-    <div className="flex flex-col gap-3 border-b border-slate-100 px-5 py-4 md:flex-row md:items-center md:justify-between">
+  <section className="overflow-hidden rounded-xl" style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}` }}>
+    <div className="flex flex-col gap-3 px-5 py-4 md:flex-row md:items-center md:justify-between" style={{ borderBottom: `1px solid ${LK.borderSoft}` }}>
       <div>
-        <h2 className="text-base font-black text-slate-900">{title}</h2>
-        {subtitle ? <p className="mt-1 text-sm text-slate-500">{subtitle}</p> : null}
+        <h2 className="text-base font-semibold leading-6" style={{ color: LK.ink }}>{title}</h2>
+        {subtitle ? <p className="mt-1 text-sm" style={{ color: LK.muted }}>{subtitle}</p> : null}
       </div>
       {action}
     </div>
-    <div className="p-5">{children}</div>
+    <div className="p-4">{children}</div>
   </section>
 );
 
 const SummaryMetricCard: React.FC<{ label: string; value: React.ReactNode; hint?: React.ReactNode; icon: React.ReactNode; tone?: 'slate' | 'emerald' | 'blue' | 'rose' | 'orange' }> = ({ label, value, hint, icon, tone = 'slate' }) => {
-  const toneClass = tone === 'emerald' ? 'text-emerald-700 bg-emerald-50 border-emerald-100' : tone === 'blue' ? 'text-blue-700 bg-blue-50 border-blue-100' : tone === 'rose' ? 'text-rose-700 bg-rose-50 border-rose-100' : tone === 'orange' ? 'text-orange-700 bg-orange-50 border-orange-100' : 'text-slate-700 bg-slate-50 border-slate-100';
+  const toneConfig = tone === 'emerald' ? { bg: 'rgba(69, 192, 111, 0.14)', color: LK.success, border: 'rgba(69, 192, 111, 0.3)' } : tone === 'blue' ? { bg: LK.primaryMuted, color: LK.primary, border: 'rgba(79, 115, 255, 0.3)' } : tone === 'rose' ? { bg: 'rgba(241, 93, 93, 0.14)', color: LK.error, border: 'rgba(241, 93, 93, 0.3)' } : tone === 'orange' ? { bg: 'rgba(213, 161, 58, 0.14)', color: LK.warning, border: 'rgba(213, 161, 58, 0.3)' } : { bg: LK.surfaceRaised, color: LK.muted, border: LK.borderSoft };
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+    <div className="rounded-xl p-4" style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}` }}>
       <div className="flex items-start justify-between gap-3">
         <div>
-          <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">{label}</div>
-          <div className="mt-2 text-2xl font-black text-slate-900">{value}</div>
+          <div className="text-[11px] font-semibold uppercase tracking-[0.18em]" style={{ color: LK.mutedSoft }}>{label}</div>
+          <div className="mt-2 text-2xl font-semibold leading-7 tabular-nums" style={{ color: LK.ink }}>{value}</div>
         </div>
-        <div className={`rounded-xl border p-2 ${toneClass}`}>{icon}</div>
+        <div className="rounded-lg p-2" style={{ backgroundColor: toneConfig.bg, color: toneConfig.color, border: `1px solid ${toneConfig.border}` }}>{icon}</div>
       </div>
-      {hint ? <div className="mt-2 text-xs text-slate-500">{hint}</div> : null}
+      {hint ? <div className="mt-2 text-xs" style={{ color: LK.muted }}>{hint}</div> : null}
     </div>
   );
 };
 
 const EmptyState: React.FC<{ icon: React.ReactNode; title: string; description: string }> = ({ icon, title, description }) => (
-  <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-5 py-8 text-center">
-    <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-xl bg-white text-slate-400 shadow-sm">{icon}</div>
-    <div className="mt-3 text-sm font-black text-slate-800">{title}</div>
-    <div className="mt-1 text-sm text-slate-500">{description}</div>
+  <div className="rounded-xl px-5 py-8 text-center" style={{ border: `1px dashed ${LK.borderSoft}`, backgroundColor: LK.surfaceRaised }}>
+    <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-lg" style={{ backgroundColor: LK.surface, color: LK.muted }}>{icon}</div>
+    <div className="mt-3 text-sm font-semibold" style={{ color: LK.inkSoft }}>{title}</div>
+    <div className="mt-1 text-sm" style={{ color: LK.body }}>{description}</div>
   </div>
 );
 
@@ -447,21 +475,21 @@ const DeployScriptBlock: React.FC<{
   onCopy: () => void;
   compact?: boolean;
 }> = ({ title, description, icon, content, onCopy, compact }) => (
-  <div className="rounded-2xl border border-slate-200 p-4">
+  <div className="rounded-xl p-4" style={{ border: `1px solid ${LK.border}` }}>
     <div className="flex items-start justify-between gap-3">
       <div className="flex items-start gap-3">
-        <div className="rounded-xl border border-blue-100 bg-blue-50 p-2 text-blue-700">{icon}</div>
+        <div className="rounded-lg p-2" style={{ backgroundColor: LK.primaryMuted, color: LK.primary, border: `1px solid ${LK.primary}40` }}>{icon}</div>
         <div>
-          <div className="text-sm font-black text-slate-900">{title}</div>
-          <div className="mt-1 text-sm text-slate-500">{description}</div>
+          <div className="text-sm font-semibold" style={{ color: LK.ink }}>{title}</div>
+          <div className="mt-1 text-sm" style={{ color: LK.body }}>{description}</div>
         </div>
       </div>
-      <button className="inline-flex shrink-0 items-center rounded-xl bg-slate-900 px-3 py-2 text-xs font-black text-white hover:bg-slate-700" onClick={onCopy}>
+      <button className="inline-flex shrink-0 items-center rounded-lg px-3 py-2 text-xs font-medium transition-colors" style={{ backgroundColor: LK.primary, color: '#ffffff' }} onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = LK.primaryDeep; }} onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = LK.primary; }} onClick={onCopy}>
         <Copy size={13} className="mr-1" />
         复制
       </button>
     </div>
-    <pre className={`mt-3 overflow-auto rounded-xl border border-slate-200 bg-slate-50 p-4 font-mono text-xs leading-5 text-slate-900 ${compact ? 'max-h-44' : 'max-h-80'}`}>
+    <pre className={`mt-3 overflow-auto rounded-lg p-4 text-xs leading-5 ${compact ? 'max-h-44' : 'max-h-80'}`} style={{ backgroundColor: LK.surfaceRaised, color: LK.ink, border: `1px solid ${LK.border}`, fontFamily: MONO }}>
       {content}
     </pre>
   </div>
@@ -484,32 +512,34 @@ const DeployAgentDialog: React.FC<{
 
   if (!open) return null;
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/35 p-4">
-      <div className="flex max-h-[88vh] w-full max-w-4xl flex-col overflow-hidden rounded-2xl bg-white shadow-2xl">
-        <div className="flex items-start justify-between gap-4 border-b border-slate-100 px-6 py-5">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ backgroundColor: 'rgba(5, 10, 20, 0.72)', backdropFilter: 'blur(6px)' }}>
+      <div className="flex max-h-[88vh] w-full max-w-4xl flex-col overflow-hidden rounded-2xl" style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}` }}>
+        <div className="flex items-start justify-between gap-4 px-6 py-5" style={{ borderBottom: `1px solid ${LK.borderSoft}` }}>
           <div>
-            <div className="flex items-center gap-2 text-sm font-black text-blue-700">
+            <div className="flex items-center gap-2 text-sm font-medium" style={{ color: LK.primary }}>
               <Terminal size={18} />
               一键部署测试节点
             </div>
-            <h3 className="mt-2 text-xl font-black text-slate-950">部署方式选择</h3>
-            <p className="mt-1 text-sm text-slate-500">复制适合目标环境的部署命令，执行后上线 Agent 会自动出现在本页。</p>
+            <h3 className="mt-2 text-xl font-semibold leading-7" style={{ color: LK.ink }}>部署方式选择</h3>
+            <p className="mt-1 text-sm leading-6" style={{ color: LK.body }}>复制适合目标环境的部署命令，执行后上线 Agent 会自动出现在本页。</p>
           </div>
-          <button className="rounded-xl border border-slate-200 p-2 text-slate-500 hover:bg-slate-50" onClick={onClose}>
+          <button className="rounded-lg p-2 transition-colors" style={{ border: `1px solid ${LK.border}`, color: LK.muted }} onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = LK.surfaceRaised; }} onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; }} onClick={onClose}>
             <X size={18} />
           </button>
         </div>
 
-        <div className="border-b border-slate-100 px-6 pt-4">
-          <div className="inline-flex rounded-xl bg-slate-100 p-1">
+        <div className="px-6 pt-4" style={{ borderBottom: `1px solid ${LK.borderSoft}` }}>
+          <div className="inline-flex rounded-xl p-1" style={{ backgroundColor: LK.surfaceRaised }}>
             <button
-              className={`rounded-lg px-4 py-2 text-sm font-black ${activeTab === 'normal-node' ? 'bg-white text-slate-950 shadow-sm' : 'text-slate-500 hover:text-slate-800'}`}
+              className={`rounded-lg px-4 py-2 text-sm font-medium ${activeTab === 'normal-node' ? '' : ''}`}
+              style={{ backgroundColor: activeTab === 'normal-node' ? LK.surface : 'transparent', color: activeTab === 'normal-node' ? LK.ink : LK.body }}
               onClick={() => setActiveTab('normal-node')}
             >
               普通节点部署
             </button>
             <button
-              className={`rounded-lg px-4 py-2 text-sm font-black ${activeTab === 'k8s-cluster' ? 'bg-white text-slate-950 shadow-sm' : 'text-slate-500 hover:text-slate-800'}`}
+              className={`rounded-lg px-4 py-2 text-sm font-medium ${activeTab === 'k8s-cluster' ? '' : ''}`}
+              style={{ backgroundColor: activeTab === 'k8s-cluster' ? LK.surface : 'transparent', color: activeTab === 'k8s-cluster' ? LK.ink : LK.body }}
               onClick={() => setActiveTab('k8s-cluster')}
             >
               K8s集群部署
@@ -520,7 +550,7 @@ const DeployAgentDialog: React.FC<{
         <div className="overflow-y-auto p-6">
           {activeTab === 'normal-node' ? (
             <div className="space-y-4">
-              <p className="text-sm leading-6 text-slate-600">在目标节点上执行以下命令，即可自动下载、安装并启动测试节点。</p>
+              <p className="text-sm leading-6" style={{ color: LK.body }}>在目标节点上执行以下命令，即可自动下载、安装并启动测试节点。</p>
               <DeployScriptBlock
                 title="普通模式部署"
                 description="直接连接到服务器，适用于大多数场景。"
@@ -540,7 +570,7 @@ const DeployAgentDialog: React.FC<{
             </div>
           ) : (
             <div className="space-y-4">
-              <p className="text-sm leading-6 text-slate-600">在 K8s 集群中应用以下 DaemonSet 配置，即可在所有节点上部署测试节点。</p>
+              <p className="text-sm leading-6" style={{ color: LK.body }}>在 K8s 集群中应用以下 DaemonSet 配置，即可在所有节点上部署测试节点。</p>
               <DeployScriptBlock
                 title="K8s DaemonSet部署"
                 description="通过 DaemonSet 在 K8s 集群的所有节点上部署测试节点。"
@@ -548,7 +578,7 @@ const DeployAgentDialog: React.FC<{
                 content={scripts.k8sDaemonSetYaml}
                 onCopy={() => handleCopy('k8s')}
               />
-              <div className="flex items-center gap-2 rounded-xl border border-blue-100 bg-blue-50 px-3 py-2 text-sm font-bold text-blue-700">
+              <div className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium" style={{ border: `1px solid ${LK.primary}40`, backgroundColor: LK.primaryMuted, color: LK.primary }}>
                 <Info size={15} />
                 使用命令：kubectl apply -f gaiasec-daemonset.yaml 部署到 K8s 集群
               </div>
@@ -571,40 +601,40 @@ const AccessEnvironmentPanel: React.FC<{ projectId: string; agents: Agent[]; sel
       title="接入环境"
       subtitle="选择单节点或 K8s 部署方式，将 Agent 接入当前项目。"
       action={(
-        <button className="inline-flex items-center rounded-xl bg-slate-900 px-4 py-2 text-sm font-black text-white shadow-sm hover:bg-slate-700" onClick={onOpenDeploy}>
+        <button className="inline-flex items-center rounded-lg px-4 py-2 text-sm font-medium transition-colors" style={{ backgroundColor: LK.primary, color: '#ffffff' }} onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = LK.primaryDeep; }} onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = LK.primary; }} onClick={onOpenDeploy}>
           <Terminal size={15} className="mr-2" />
           接入环境
         </button>
       )}
     >
       <div className="grid gap-4 lg:grid-cols-[1.1fr_0.9fr]">
-        <div className="rounded-2xl bg-slate-50 p-4">
+        <div className="rounded-lg p-4" style={{ backgroundColor: LK.surfaceRaised }}>
           <div className="flex flex-wrap items-center gap-3">
             <StatusBadge status={tone} label={accessStatus} />
-            {state.loading ? <span className="inline-flex items-center text-xs font-bold text-slate-500"><Loader2 size={13} className="mr-1 animate-spin" />正在刷新</span> : null}
+            {state.loading ? <span className="inline-flex items-center text-xs font-medium" style={{ color: LK.muted }}><Loader2 size={13} className="mr-1 animate-spin" />正在刷新</span> : null}
           </div>
           <div className="mt-4 grid gap-3 sm:grid-cols-3">
             <div>
-              <div className="text-[11px] font-black uppercase tracking-widest text-slate-400">项目 ID</div>
-              <div className="mt-1 break-all text-sm font-bold text-slate-800">{projectId || '-'}</div>
+              <div className="text-[11px] font-semibold uppercase tracking-widest" style={{ color: LK.mutedSoft }}>项目 ID</div>
+              <div className="mt-1 break-all text-sm font-medium" style={{ color: LK.ink, fontFamily: MONO }}>{projectId || '-'}</div>
             </div>
             <div>
-              <div className="text-[11px] font-black uppercase tracking-widest text-slate-400">接入目标</div>
-              <div className="mt-1 break-all text-sm font-bold text-slate-800">{selectedAgent ? getAgentName(selectedAgent) : agents.length ? '项目默认环境' : '-'}</div>
+              <div className="text-[11px] font-semibold uppercase tracking-widest" style={{ color: LK.mutedSoft }}>接入目标</div>
+              <div className="mt-1 break-all text-sm font-medium" style={{ color: LK.ink }}>{selectedAgent ? getAgentName(selectedAgent) : agents.length ? '项目默认环境' : '-'}</div>
             </div>
             <div>
-              <div className="text-[11px] font-black uppercase tracking-widest text-slate-400">最近心跳</div>
-              <div className="mt-1 text-sm font-bold text-slate-800">{formatTime(selectedAgent?.last_seen || lastSeen)}</div>
+              <div className="text-[11px] font-semibold uppercase tracking-widest" style={{ color: LK.mutedSoft }}>最近心跳</div>
+              <div className="mt-1 text-sm font-medium" style={{ color: LK.ink }}>{formatTime(selectedAgent?.last_seen || lastSeen)}</div>
             </div>
           </div>
-          {state.error ? <div className="mt-4 rounded-xl border border-rose-100 bg-rose-50 px-3 py-2 text-sm font-bold text-rose-700">{state.error}</div> : null}
+          {state.error ? <div className="mt-4 rounded-lg px-3 py-2 text-sm font-medium" style={{ border: `1px solid ${LK.error}40`, backgroundColor: 'rgba(241, 93, 93, 0.14)', color: LK.error }}>{state.error}</div> : null}
         </div>
-        <div className="rounded-2xl border border-slate-200 p-4">
-          <div className="text-sm font-black text-slate-900">部署方式</div>
-          <div className="mt-2 text-sm leading-6 text-slate-600">
+        <div className="rounded-lg p-4" style={{ border: `1px solid ${LK.border}` }}>
+          <div className="text-sm font-semibold" style={{ color: LK.ink }}>部署方式</div>
+          <div className="mt-2 text-sm leading-6" style={{ color: LK.body }}>
             支持普通节点部署、代理模式部署和 K8s DaemonSet 部署。复制弹窗中的命令或 YAML 后在目标环境执行，Agent 上线后本页会自动展示状态、Web 应用和分析进度。
           </div>
-          <button className="mt-4 inline-flex items-center rounded-xl border border-slate-200 px-3 py-2 text-xs font-black text-slate-700 hover:bg-slate-50" onClick={onOpenDeploy}>
+          <button className="mt-4 inline-flex items-center rounded-lg px-3 py-2 text-xs font-medium transition-colors" style={{ border: `1px solid ${LK.border}`, color: LK.body }} onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = LK.surfaceRaised; e.currentTarget.style.color = LK.ink; }} onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.color = LK.body; }} onClick={onOpenDeploy}>
             <Copy size={13} className="mr-1" />
             打开部署脚本
           </button>
@@ -630,8 +660,11 @@ const ProjectAccessInfoPanel: React.FC<{
       subtitle="填写被测 Web 界面的访问 URL、账号密码和必要说明，供分析流程使用。"
       action={(
         <button
-          className="inline-flex items-center rounded-xl bg-slate-900 px-4 py-2 text-sm font-black text-white shadow-sm hover:bg-slate-700 disabled:cursor-not-allowed disabled:bg-slate-300"
+          className="inline-flex items-center rounded-lg px-4 py-2 text-sm font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50"
+          style={{ backgroundColor: LK.primary, color: '#ffffff' }}
           disabled={saving || loading}
+          onMouseEnter={(e) => { if (!e.currentTarget.disabled) e.currentTarget.style.backgroundColor = LK.primaryDeep; }}
+          onMouseLeave={(e) => { if (!e.currentTarget.disabled) e.currentTarget.style.backgroundColor = LK.primary; }}
           onClick={onSave}
         >
           {saving ? <Loader2 size={15} className="mr-2 animate-spin" /> : <Save size={15} className="mr-2" />}
@@ -639,20 +672,23 @@ const ProjectAccessInfoPanel: React.FC<{
         </button>
       )}
     >
-      {error ? <div className="mb-4 rounded-xl border border-rose-100 bg-rose-50 px-3 py-2 text-sm font-bold text-rose-700">{error}</div> : null}
+      {error ? <div className="mb-4 rounded-lg px-3 py-2 text-sm font-medium" style={{ border: `1px solid ${LK.error}40`, backgroundColor: 'rgba(241, 93, 93, 0.14)', color: LK.error }}>{error}</div> : null}
       <label className="block">
-        <span className="text-xs font-black uppercase tracking-widest text-slate-400">Description</span>
+        <span className="text-xs font-semibold uppercase tracking-widest" style={{ color: LK.mutedSoft }}>Description</span>
         <textarea
-          className="mt-2 min-h-40 w-full resize-y rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm leading-6 text-slate-800 outline-none focus:border-blue-300 focus:ring-2 focus:ring-blue-100"
+          className="mt-2 min-h-40 w-full resize-y rounded-lg px-3 py-2 text-sm leading-6 outline-none transition-colors"
+          style={{ backgroundColor: LK.surfaceRaised, color: LK.inkSoft, border: `1px solid ${LK.border}` }}
           placeholder="填写 Web 访问 URL、账号密码、登录步骤、验证码说明、测试范围、特殊入口或其他分析需要注意的信息。"
           value={value.description}
           disabled={loading}
+          onFocus={(e) => (e.currentTarget.style.borderColor = LK.primary)}
+          onBlur={(e) => (e.currentTarget.style.borderColor = LK.border)}
           onChange={(event) => patch({ description: event.target.value })}
         />
       </label>
-      <div className="mt-3 rounded-2xl bg-slate-50 p-4">
-        <div className="text-xs font-black uppercase tracking-widest text-slate-400">配置状态</div>
-        <div className="mt-2 text-sm font-bold text-slate-700">
+      <div className="mt-3 rounded-lg p-4" style={{ backgroundColor: LK.surfaceRaised }}>
+        <div className="text-xs font-semibold uppercase tracking-widest" style={{ color: LK.mutedSoft }}>配置状态</div>
+        <div className="mt-2 text-sm font-medium" style={{ color: LK.inkSoft }}>
           {loading ? '正在加载配置...' : value.updated_at ? `最近更新：${formatTime(value.updated_at)}` : '尚未保存项目描述'}
         </div>
       </div>
@@ -674,43 +710,59 @@ const OnlineAgentPanel: React.FC<{
       <EmptyState icon={<Bot size={20} />} title="暂无上线 Agent" description="完成环境接入后，在线 Agent 会出现在这里。" />
     ) : (
       <div className="overflow-x-auto">
-        <table className="min-w-full divide-y divide-slate-100 text-sm">
+        <table className="min-w-full border-separate border-spacing-0 text-sm">
           <thead>
-            <tr className="text-left text-xs font-black uppercase tracking-wider text-slate-400">
-              <th className="px-3 py-3">Agent</th>
-              <th className="px-3 py-3">状态</th>
-              <th className="px-3 py-3">最近活跃</th>
-              <th className="px-3 py-3">Web 应用</th>
-              <th className="px-3 py-3">最近分析</th>
-              <th className="px-3 py-3 text-right">操作</th>
+            <tr className="text-left text-xs uppercase tracking-wider" style={{ color: LK.mutedSoft }}>
+              <th className="px-3 py-2.5 font-medium" style={{ borderBottom: `1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>Agent</th>
+              <th className="px-3 py-2.5 font-medium" style={{ borderBottom: `1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>状态</th>
+              <th className="px-3 py-2.5 font-medium" style={{ borderBottom: `1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>最近活跃</th>
+              <th className="px-3 py-2.5 font-medium" style={{ borderBottom: `1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>Web 应用</th>
+              <th className="px-3 py-2.5 font-medium" style={{ borderBottom: `1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>最近分析</th>
+              <th className="px-3 py-2.5 text-right font-medium" style={{ borderBottom: `1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>操作</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-100">
+          <tbody>
             {agents.map((agent) => {
               const key = getAgentKey(agent);
               const routeCount = routes.filter((route) => !route.agent_key || route.agent_key === key || route.agent_id === key).length;
               const latestTask = pickCurrentTask(tasks, key);
               const selected = selectedAgentId === key;
               return (
-                <tr key={key || getAgentName(agent)} className={selected ? 'bg-blue-50/60' : 'hover:bg-slate-50'}>
-                  <td className="px-3 py-3">
+                <tr
+                  key={key || getAgentName(agent)}
+                  className="transition-colors"
+                  style={{
+                    backgroundColor: selected ? LK.primaryMuted : 'transparent',
+                    boxShadow: selected ? `inset 2px 0 0 ${LK.primary}` : 'none',
+                  }}
+                  onMouseEnter={(e) => {
+                    if (!selected) e.currentTarget.style.backgroundColor = LK.surfaceRaised;
+                  }}
+                  onMouseLeave={(e) => {
+                    if (!selected) e.currentTarget.style.backgroundColor = 'transparent';
+                  }}
+                >
+                  <td className="px-3 py-3" style={{ borderBottom: `1px solid ${LK.borderSoft}` }}>
                     <button className="text-left" onClick={() => onSelect(key)}>
-                      <div className="font-black text-slate-900">{getAgentName(agent)}</div>
-                      <div className="mt-1 break-all text-xs text-slate-500">{key || '-'}</div>
+                      <div className="font-semibold" style={{ color: LK.ink }}>{getAgentName(agent)}</div>
+                      <div className="mt-1 break-all text-xs" style={{ color: LK.muted, fontFamily: MONO }}>{key || '-'}</div>
                     </button>
                   </td>
-                  <td className="px-3 py-3"><StatusBadge status={agent.status} /></td>
-                  <td className="px-3 py-3 text-slate-600">{formatTime(agent.last_seen)}</td>
-                  <td className="px-3 py-3 font-bold text-slate-800">{routeCount}</td>
-                  <td className="px-3 py-3">{latestTask ? <StatusBadge status={latestTask.status} /> : <span className="text-slate-400">无任务</span>}</td>
-                  <td className="px-3 py-3 text-right">
+                  <td className="px-3 py-3" style={{ borderBottom: `1px solid ${LK.borderSoft}` }}><StatusBadge status={agent.status} /></td>
+                  <td className="px-3 py-3" style={{ borderBottom: `1px solid ${LK.borderSoft}`, color: LK.body }}>{formatTime(agent.last_seen)}</td>
+                  <td className="px-3 py-3 font-medium" style={{ borderBottom: `1px solid ${LK.borderSoft}`, color: LK.inkSoft }}>{routeCount}</td>
+                  <td className="px-3 py-3" style={{ borderBottom: `1px solid ${LK.borderSoft}` }}>{latestTask ? <StatusBadge status={latestTask.status} /> : <span style={{ color: LK.muted }}>无任务</span>}</td>
+                  <td className="px-3 py-3 text-right" style={{ borderBottom: `1px solid ${LK.borderSoft}` }}>
                     <div className="flex justify-end gap-2">
-                      <button className="rounded-xl border border-slate-200 px-3 py-2 text-xs font-black text-slate-700 hover:bg-slate-50" onClick={() => onSelect(key)}>
+                      <button className="rounded-lg px-3 py-2 text-xs font-medium transition-colors" style={{ color: LK.body }} onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = LK.surfaceRaised; e.currentTarget.style.color = LK.ink; }} onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.color = LK.body; }} onClick={() => onSelect(key)}>
                         查看应用
                       </button>
                       <button
-                        className="inline-flex items-center rounded-xl bg-slate-900 px-3 py-2 text-xs font-black text-white hover:bg-slate-700 disabled:cursor-not-allowed disabled:bg-slate-300"
+                        className="inline-flex items-center rounded-lg px-3 py-2 text-xs font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50"
+                        style={{ backgroundColor: LK.primary, color: '#ffffff' }}
                         disabled={!isAgentOnline(agent) || analyzing}
+                        onMouseEnter={(e) => { if (!e.currentTarget.disabled) e.currentTarget.style.backgroundColor = LK.primaryDeep; }}
+                        onMouseLeave={(e) => { if (!e.currentTarget.disabled) e.currentTarget.style.backgroundColor = LK.primary; }}
                         onClick={() => onAnalyze(key)}
                       >
                         {analyzing ? <Loader2 size={13} className="mr-1 animate-spin" /> : <Play size={13} className="mr-1" />}
@@ -735,7 +787,7 @@ const AnalysisProgressPanel: React.FC<{ task?: AsyncTask | null; stages: Progres
       title="分析进度"
       subtitle="用用户可理解的阶段展示端到端分析当前进展。"
       action={failedStage && canRetry ? (
-        <button className="inline-flex items-center rounded-xl border border-rose-200 px-3 py-2 text-xs font-black text-rose-700 hover:bg-rose-50" onClick={onRetry}>
+        <button className="inline-flex items-center rounded-lg px-3 py-2 text-xs font-medium transition-colors" style={{ border: `1px solid ${LK.error}40`, backgroundColor: 'rgba(241, 93, 93, 0.14)', color: LK.error }} onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = 'rgba(241, 93, 93, 0.26)'; }} onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'rgba(241, 93, 93, 0.14)'; }} onClick={onRetry}>
           <RefreshCw size={13} className="mr-1" />
           重试失败阶段
         </button>
@@ -746,31 +798,31 @@ const AnalysisProgressPanel: React.FC<{ task?: AsyncTask | null; stages: Progres
       ) : (
         <div className="space-y-4">
           {task ? (
-            <div className="rounded-2xl bg-slate-50 p-4">
+            <div className="rounded-lg p-4" style={{ backgroundColor: LK.surfaceRaised }}>
               <div className="flex flex-wrap items-center gap-3">
                 <StatusBadge status={task.status} />
-                <div className="text-sm font-bold text-slate-800">{task.type || task.service_name || 'WEB 端到端分析'}</div>
-                <div className="text-sm text-slate-500">进度 {Math.round(Number(task.progress || 0))}%</div>
+                <div className="text-sm font-medium" style={{ color: LK.ink }}>{task.type || task.service_name || 'WEB 端到端分析'}</div>
+                <div className="text-sm" style={{ color: LK.body }}>进度 {Math.round(Number(task.progress || 0))}%</div>
               </div>
-              {task.message ? <div className="mt-2 text-sm text-slate-600">{task.message}</div> : null}
+              {task.message ? <div className="mt-2 text-sm" style={{ color: LK.body }}>{task.message}</div> : null}
             </div>
           ) : null}
           <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
             {stages.map((stage) => {
               const icon = stage.status === 'success' ? <CheckCircle2 size={18} /> : stage.status === 'failed' ? <XCircle size={18} /> : stage.status === 'running' ? <Loader2 size={18} className="animate-spin" /> : <Clock3 size={18} />;
-              const cls = stage.status === 'success' ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : stage.status === 'failed' ? 'border-rose-200 bg-rose-50 text-rose-700' : stage.status === 'running' ? 'border-blue-200 bg-blue-50 text-blue-700' : 'border-slate-200 bg-slate-50 text-slate-500';
+              const stageStyle = stage.status === 'success' ? { bg: 'rgba(69, 192, 111, 0.14)', color: LK.success, border: 'rgba(69, 192, 111, 0.3)' } : stage.status === 'failed' ? { bg: 'rgba(241, 93, 93, 0.14)', color: LK.error, border: 'rgba(241, 93, 93, 0.3)' } : stage.status === 'running' ? { bg: 'rgba(79, 115, 255, 0.14)', color: LK.primary, border: 'rgba(79, 115, 255, 0.3)' } : { bg: LK.surfaceRaised, color: LK.muted, border: LK.borderSoft };
               return (
-                <div key={stage.id} className="rounded-2xl border border-slate-200 p-4">
-                  <div className={`inline-flex rounded-xl border p-2 ${cls}`}>{icon}</div>
-                  <div className="mt-3 text-sm font-black text-slate-900">{stage.label}</div>
-                  <div className="mt-1 text-sm leading-5 text-slate-500">{stage.description}</div>
-                  <div className="mt-3 text-xs font-bold text-slate-400">{formatTime(stage.updatedAt)}</div>
+                <div key={stage.id} className="rounded-xl p-4" style={{ border: `1px solid ${LK.border}` }}>
+                  <div className="inline-flex rounded-lg p-2" style={{ backgroundColor: stageStyle.bg, color: stageStyle.color, border: `1px solid ${stageStyle.border}` }}>{icon}</div>
+                  <div className="mt-3 text-sm font-semibold" style={{ color: LK.ink }}>{stage.label}</div>
+                  <div className="mt-1 text-sm leading-5" style={{ color: LK.body }}>{stage.description}</div>
+                  <div className="mt-3 text-xs font-medium" style={{ color: LK.muted }}>{formatTime(stage.updatedAt)}</div>
                 </div>
               );
             })}
           </div>
           {failedStage ? (
-            <div className="rounded-xl border border-rose-100 bg-rose-50 px-3 py-2 text-sm font-bold text-rose-700">
+            <div className="rounded-lg px-3 py-2 text-sm font-medium" style={{ border: `1px solid ${LK.error}40`, backgroundColor: 'rgba(241, 93, 93, 0.14)', color: LK.error }}>
               失败阶段：{failedStage.label}。{task?.message || '请检查 Agent 是否在线后重试。'}
             </div>
           ) : null}
@@ -904,16 +956,29 @@ export const WebEndToEndPage: React.FC<{ projectId: string }> = ({ projectId }) 
   const analysisLabel = currentTask ? getStatusLabel(currentTask.status) : '无任务';
 
   return (
-    <div className="min-h-full bg-slate-50 p-6">
-      <div className="mx-auto max-w-7xl space-y-5">
+    <div className="min-h-full px-5 py-5" style={{ backgroundColor: LK.canvas }}>
+      <div className="mx-auto max-w-7xl space-y-4">
         <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
           <div>
-            <h1 className="text-2xl font-black text-slate-950">WEB端到端</h1>
-            <p className="mt-1 text-sm text-slate-500">面向用户的接入、Agent 和分析进度工作台。</p>
+            <span
+              className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium"
+              style={{ backgroundColor: LK.primaryMuted, color: LK.primary }}
+            >
+              <Globe size={13} /> WEB 端到端
+            </span>
+            <h1 className="mt-3 text-2xl font-semibold leading-8 tracking-tight" style={{ color: LK.ink }}>
+              WEB 端到端分析
+            </h1>
+            <p className="mt-1.5 text-sm leading-6" style={{ color: LK.body }}>
+              面向用户的接入、Agent 和分析进度工作台。
+            </p>
           </div>
           <button
-            className="inline-flex items-center rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-black text-slate-700 shadow-sm hover:bg-slate-50 disabled:cursor-not-allowed disabled:text-slate-300"
+            className="inline-flex items-center rounded-lg px-4 py-2 text-sm font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50"
+            style={{ backgroundColor: LK.surface, color: LK.body, border: `1px solid ${LK.border}` }}
             disabled={loadState.loading}
+            onMouseEnter={(e) => { if (!e.currentTarget.disabled) { e.currentTarget.style.borderColor = LK.primary; e.currentTarget.style.color = LK.primarySoft; } }}
+            onMouseLeave={(e) => { if (!e.currentTarget.disabled) { e.currentTarget.style.borderColor = LK.border; e.currentTarget.style.color = LK.body; } }}
             onClick={loadData}
           >
             <RefreshCw size={16} className={`mr-2 ${loadState.loading ? 'animate-spin' : ''}`} />
@@ -922,7 +987,7 @@ export const WebEndToEndPage: React.FC<{ projectId: string }> = ({ projectId }) 
         </div>
 
         {notice ? (
-          <div className={`rounded-2xl border px-4 py-3 text-sm font-bold ${notice.includes('失败') || notice.includes('未提供') || notice.includes('removed') ? 'border-rose-100 bg-rose-50 text-rose-700' : 'border-emerald-100 bg-emerald-50 text-emerald-700'}`}>
+          <div className="rounded-xl px-4 py-3 text-sm font-medium" style={{ border: notice.includes('失败') || notice.includes('未提供') || notice.includes('removed') ? `1px solid ${LK.error}40` : `1px solid ${LK.success}40`, backgroundColor: notice.includes('失败') || notice.includes('未提供') || notice.includes('removed') ? 'rgba(241, 93, 93, 0.14)' : 'rgba(69, 192, 111, 0.14)', color: notice.includes('失败') || notice.includes('未提供') || notice.includes('removed') ? LK.error : LK.success }}>
             {notice}
           </div>
         ) : null}

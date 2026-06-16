@@ -1589,7 +1589,7 @@ export const AgentDetailPage: React.FC<AgentDetailPageProps> = ({ agentKey, proj
 
         <div className="space-y-8">
           {activeTab === 'services' ? (
-            <div className="bg-slate-900 p-10 rounded-[3rem] text-white shadow-2xl space-y-8 relative overflow-hidden group">
+            <div className="bg-white border border-slate-200 p-10 rounded-[3rem] shadow-sm space-y-8 relative overflow-hidden group">
               <div className="absolute right-[-20px] top-[-20px] w-40 h-40 bg-blue-500 opacity-5 blur-3xl group-hover:opacity-10 transition-opacity" />
               <div className="flex items-center justify-between gap-4">
                 <div>
@@ -1600,7 +1600,7 @@ export const AgentDetailPage: React.FC<AgentDetailPageProps> = ({ agentKey, proj
               </div>
 
               {!selectedNodeService ? (
-                <div className="bg-white/5 rounded-[2rem] p-6 text-sm text-slate-300">
+                <div className="bg-slate-50 rounded-[2rem] p-6 text-sm text-slate-500">
                   请选择左侧一个服务
                 </div>
               ) : (
@@ -1608,21 +1608,21 @@ export const AgentDetailPage: React.FC<AgentDetailPageProps> = ({ agentKey, proj
                   <div className="space-y-3">
                     <div className="flex items-start justify-between gap-4">
                       <div className="min-w-0">
-                        <h4 className="text-xl font-black break-all">{selectedNodeService.name}</h4>
+                        <p className="text-xl font-black text-slate-900 break-all">{selectedNodeService.name}</p>
                         <p className="text-[11px] font-mono text-slate-400 mt-2 break-all">{selectedNodeService.image || 'N/A'}</p>
                       </div>
                       <StatusBadge status={selectedNodeServiceDetail?.status || selectedNodeService.status || 'unknown'} />
                     </div>
                     <div className="grid grid-cols-1 gap-3">
-                      <div className="bg-white/5 rounded-2xl p-4 border border-white/10">
+                      <div className="bg-slate-50 rounded-2xl p-4 border border-slate-200">
                         <p className="text-[10px] font-black text-slate-400 uppercase">模板</p>
                         <p className="text-sm font-black mt-1">{selectedNodeService.template_name || '未识别'}</p>
-                        <p className="text-[11px] text-slate-400 mt-1">ID: {selectedNodeService.template_id ?? 'N/A'}</p>
+                        <p className="text-[11px] text-slate-500 mt-1">ID: {selectedNodeService.template_id ?? 'N/A'}</p>
                       </div>
-                      <div className="bg-white/5 rounded-2xl p-4 border border-white/10">
+                      <div className="bg-slate-50 rounded-2xl p-4 border border-slate-200">
                         <p className="text-[10px] font-black text-slate-400 uppercase">节点</p>
                         <p className="text-sm font-black mt-1">{selectedNodeService.agent_hostname || agent?.hostname || agentKey}</p>
-                        <p className="text-[11px] text-slate-400 mt-1 break-all">{selectedNodeService.agent_key || agentKey}</p>
+                        <p className="text-[11px] text-slate-500 mt-1 break-all">{selectedNodeService.agent_key || agentKey}</p>
                       </div>
                     </div>
                   </div>
@@ -1630,15 +1630,15 @@ export const AgentDetailPage: React.FC<AgentDetailPageProps> = ({ agentKey, proj
                   <div className="space-y-3">
                     <p className="text-slate-500 text-[10px] font-black uppercase tracking-widest">服务绑定的 Ingress</p>
                     {selectedNodeServiceIngress.length === 0 ? (
-                      <div className="bg-white/5 rounded-2xl p-4 text-sm text-slate-300">当前服务未绑定 Ingress</div>
+                      <div className="bg-slate-50 rounded-2xl p-4 text-sm text-slate-500">当前服务未绑定 Ingress</div>
                     ) : (
                       <div className="space-y-3">
                         {selectedNodeServiceIngress.map((route: any) => {
                           const url = route.url || route.http_url || route.https_url || '';
                           return (
-                            <div key={route.id || route.host} className="bg-white/5 rounded-2xl p-4 border border-white/10">
+                            <div key={route.id || route.host} className="bg-slate-50 rounded-2xl p-4 border border-slate-200">
                               <p className="text-sm font-black break-all">{route.host || 'N/A'}{route.path || '/'}</p>
-                              <p className="text-[11px] text-slate-400 mt-2 break-all">{url || '无访问地址'}</p>
+                              <p className="text-[11px] text-slate-500 mt-2 break-all">{url || '无访问地址'}</p>
                               {url && (
                                 <button
                                   type="button"
@@ -1657,15 +1657,15 @@ export const AgentDetailPage: React.FC<AgentDetailPageProps> = ({ agentKey, proj
 
                   <div className="space-y-3">
                     <p className="text-slate-500 text-[10px] font-black uppercase tracking-widest">实时日志</p>
-                    <div className="max-h-72 overflow-auto rounded-2xl border border-slate-200 bg-slate-50 p-4 text-[11px] font-mono whitespace-pre-wrap break-words text-slate-900">
+                    <div className="bg-slate-50 rounded-2xl p-4 max-h-72 overflow-auto text-[11px] font-mono whitespace-pre-wrap break-words text-slate-700 border border-slate-200">
                       {selectedNodeServiceLogs || '暂无日志'}
                     </div>
                   </div>
 
                   <div className="space-y-3">
                     <p className="text-slate-500 text-[10px] font-black uppercase tracking-widest">运行态详情</p>
-                    <div className="max-h-80 overflow-auto rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                      <pre className="whitespace-pre-wrap break-words text-[11px] text-slate-900">
+                    <div className="bg-slate-50 rounded-2xl p-4 max-h-80 overflow-auto border border-slate-200">
+                      <pre className="text-[11px] text-slate-700 whitespace-pre-wrap break-words">
                         {JSON.stringify(selectedNodeServiceDetail || {}, null, 2)}
                       </pre>
                     </div>
@@ -1674,12 +1674,12 @@ export const AgentDetailPage: React.FC<AgentDetailPageProps> = ({ agentKey, proj
               )}
             </div>
           ) : (
-            <div className="bg-slate-900 p-10 rounded-[3rem] text-white shadow-2xl space-y-8 relative overflow-hidden group">
+            <div className="bg-white border border-slate-200 p-10 rounded-[3rem] shadow-sm space-y-8 relative overflow-hidden group">
                <div className="absolute right-[-20px] top-[-20px] w-40 h-40 bg-blue-500 opacity-5 blur-3xl group-hover:opacity-10 transition-opacity" />
                <div className="space-y-2">
                   <p className="text-slate-500 text-[10px] font-black uppercase tracking-widest">节点元数据</p>
                   <div className="flex items-center gap-3 mt-4">
-                     <div className="w-12 h-12 bg-white/5 rounded-2xl flex items-center justify-center text-blue-400">
+                     <div className="w-12 h-12 bg-blue-50 rounded-2xl flex items-center justify-center text-blue-600">
                         <Monitor size={24} />
                      </div>
                      <div>
@@ -1688,34 +1688,34 @@ export const AgentDetailPage: React.FC<AgentDetailPageProps> = ({ agentKey, proj
                      </div>
                   </div>
                </div>
-               <div className="pt-8 border-t border-white/10 space-y-5">
+               <div className="pt-8 border-t border-slate-200 space-y-5">
                   <div className="flex justify-between items-center text-xs font-bold text-slate-400">
                      <span className="uppercase tracking-widest">操作系统</span>
-                     <span className="text-white font-black">{sys?.os_name} {sys?.os_release}</span>
+                     <span className="text-slate-900 font-black">{sys?.os_name} {sys?.os_release}</span>
                   </div>
                   <div className="flex justify-between items-center text-xs font-bold text-slate-400">
                      <span className="uppercase tracking-widest">内核版本</span>
-                     <span className="text-white font-black">{sys?.kernel_version || 'N/A'}</span>
+                     <span className="text-slate-900 font-black">{sys?.kernel_version || 'N/A'}</span>
                   </div>
                   <div className="flex justify-between items-center text-xs font-bold text-slate-400">
                      <span className="uppercase tracking-widest">启动时间</span>
-                     <span className="text-white font-black">{sys?.boot_time?.split('T')[0]}</span>
+                     <span className="text-slate-900 font-black">{sys?.boot_time?.split('T')[0]}</span>
                   </div>
                   <div className="flex justify-between items-center text-xs font-bold text-slate-400">
                      <span className="uppercase tracking-widest">节点唯一ID</span>
-                     <span className="text-white font-black font-mono">{agent.key}</span>
+                     <span className="text-slate-900 font-black font-mono">{agent.key}</span>
                   </div>
                   <div className="flex justify-between items-center text-xs font-bold text-slate-400">
                      <span className="uppercase tracking-widest">最后活跃</span>
-                     <span className="text-white font-black">{agent.last_seen?.split('.')[0].replace('T', ' ')}</span>
+                     <span className="text-slate-900 font-black">{agent.last_seen?.split('.')[0].replace('T', ' ')}</span>
                   </div>
                   <div className="flex justify-between items-center text-xs font-bold text-slate-400">
                      <span className="uppercase tracking-widest">Agent版本</span>
-                     <span className="text-white font-black">{daemonInfo?.version || 'N/A'}</span>
+                     <span className="text-slate-900 font-black">{daemonInfo?.version || 'N/A'}</span>
                   </div>
                   <div className="flex justify-between items-center text-xs font-bold text-slate-400">
                      <span className="uppercase tracking-widest">Agent平台</span>
-                     <span className="text-white font-black">{daemonInfo?.platform || 'N/A'}</span>
+                     <span className="text-slate-900 font-black">{daemonInfo?.platform || 'N/A'}</span>
                   </div>
                </div>
             </div>

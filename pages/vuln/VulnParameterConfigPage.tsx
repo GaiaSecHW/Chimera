@@ -1,7 +1,30 @@
 import React from 'react';
 import { AlertTriangle, CheckCircle2, RefreshCw, Save, SlidersHorizontal } from 'lucide-react';
 import { api } from '../../clients/api';
-import { STAGE_LABELS, cardClass, labelOf } from './vuln-engine/shared';
+import { STAGE_LABELS, labelOf } from './vuln-engine/shared';
+
+// LOKI design tokens (DESIGN.md) — page-local palette.
+const LK = {
+  primary: '#4f73ff',
+  primarySoft: '#7590ff',
+  primaryDeep: '#3f63f1',
+  primaryMuted: 'rgba(79, 115, 255, 0.14)',
+  canvas: '#070d18',
+  surface: '#111a2b',
+  surfaceRaised: '#18233a',
+  surfaceGlass: 'rgba(17, 26, 43, 0.84)',
+  border: '#26324a',
+  borderSoft: '#1b2438',
+  ink: '#f5f7ff',
+  inkSoft: '#d6def0',
+  body: '#a4aec4',
+  muted: '#72809a',
+  mutedSoft: '#8b95a8',
+  success: '#45c06f',
+  warning: '#d5a13a',
+  error: '#f15d5d',
+  info: '#4f8cff',
+} as const;
 
 interface VulnPageProps {
   projectId: string;
@@ -83,7 +106,7 @@ const PHASES: PhaseDefinition[] = [
     label: '全局策略',
     accent: 'from-slate-900 via-slate-800 to-slate-700',
     badge: '全局',
-    summary: '控制默认工作流、并发、超时与去重窗口，决定漏洞引擎如何“整体运转”。',
+    summary: '控制默认工作流、并发、超时与去重窗口，决定漏洞引擎如何"整体运转"。',
     fields: [
       { key: 'workflow_code', label: '默认工作流', type: 'select', helper: '新案例默认挂载的生命周期工作流代码。', options: [{ label: 'default_vuln_lifecycle', value: 'default_vuln_lifecycle' }] },
       { key: 'auto_orchestrate_new_case', label: '新案例自动编排', type: 'boolean', helper: '接收到疑点后立即触发默认编排动作。' },
@@ -265,16 +288,28 @@ export const VulnParameterConfigPage: React.FC<VulnPageProps> = ({ projectId, on
         <button
           type="button"
           onClick={() => updateField(phaseKey, field.key, !value)}
-          className={`w-full rounded-[1.25rem] border px-4 py-4 text-left transition ${
-            value ? 'border-emerald-300 bg-emerald-50 text-emerald-900' : 'border-slate-200 bg-slate-50 text-slate-700'
-          }`}
+          className="w-full rounded-lg px-4 py-4 text-left transition-colors"
+          style={{
+            backgroundColor: value ? `${LK.success}14` : LK.surfaceRaised,
+            border: value ? `1px solid ${LK.success}40` : `1px solid ${LK.border}`,
+            color: value ? LK.success : LK.body,
+          }}
+          onMouseEnter={(e) => { e.currentTarget.style.borderColor = value ? LK.success : LK.primary; }}
+          onMouseLeave={(e) => { e.currentTarget.style.borderColor = value ? `${LK.success}40` : LK.border; }}
         >
           <div className="flex items-center justify-between gap-4">
             <div>
-              <div className="text-sm font-black">{field.label}</div>
-              <div className="mt-1 text-xs leading-5 opacity-80">{field.helper}</div>
+              <div className="text-sm font-semibold">{field.label}</div>
+              <div className="mt-1 text-xs leading-5" style={{ color: value ? LK.success : LK.muted }}>{field.helper}</div>
             </div>
-            <div className={`inline-flex min-w-[5rem] justify-center rounded-full px-3 py-2 text-[11px] font-black uppercase tracking-widest ${value ? 'bg-emerald-600 text-white' : 'bg-white text-slate-500 border border-slate-200'}`}>
+            <div
+              className="inline-flex min-w-[5rem] justify-center rounded-full px-3 py-2 text-xs font-semibold uppercase tracking-wider tabular-nums"
+              style={{
+                backgroundColor: value ? LK.success : LK.surface,
+                color: value ? '#ffffff' : LK.muted,
+                border: value ? 'none' : `1px solid ${LK.border}`,
+              }}
+            >
               {value ? 'Enabled' : 'Disabled'}
             </div>
           </div>
@@ -284,13 +319,19 @@ export const VulnParameterConfigPage: React.FC<VulnPageProps> = ({ projectId, on
 
     if (field.type === 'select') {
       return (
-        <label className="block rounded-[1.25rem] border border-slate-200 bg-white px-4 py-4">
-          <div className="text-sm font-black text-slate-800">{field.label}</div>
-          <div className="mt-1 text-xs leading-5 text-slate-500">{field.helper}</div>
+        <label
+          className="block rounded-lg px-4 py-4"
+          style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}` }}
+        >
+          <div className="text-sm font-semibold" style={{ color: LK.ink }}>{field.label}</div>
+          <div className="mt-1 text-xs leading-5" style={{ color: LK.body }}>{field.helper}</div>
           <select
             value={value ?? ''}
             onChange={(event) => updateField(phaseKey, field.key, event.target.value)}
-            className="mt-3 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none"
+            className="mt-3 w-full rounded-lg px-4 py-3 text-sm outline-none transition-colors"
+            style={{ backgroundColor: LK.surfaceRaised, color: LK.inkSoft, border: `1px solid ${LK.border}` }}
+            onFocus={(e) => (e.currentTarget.style.borderColor = LK.primary)}
+            onBlur={(e) => (e.currentTarget.style.borderColor = LK.border)}
           >
             {(field.options || []).map((option) => (
               <option key={option.value} value={option.value}>{option.label}</option>
@@ -302,9 +343,12 @@ export const VulnParameterConfigPage: React.FC<VulnPageProps> = ({ projectId, on
 
     if (field.type === 'tags') {
       return (
-        <label className="block rounded-[1.25rem] border border-slate-200 bg-white px-4 py-4">
-          <div className="text-sm font-black text-slate-800">{field.label}</div>
-          <div className="mt-1 text-xs leading-5 text-slate-500">{field.helper}</div>
+        <label
+          className="block rounded-lg px-4 py-4"
+          style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}` }}
+        >
+          <div className="text-sm font-semibold" style={{ color: LK.ink }}>{field.label}</div>
+          <div className="mt-1 text-xs leading-5" style={{ color: LK.body }}>{field.helper}</div>
           <textarea
             value={Array.isArray(value) ? value.join(', ') : ''}
             onChange={(event) =>
@@ -318,7 +362,10 @@ export const VulnParameterConfigPage: React.FC<VulnPageProps> = ({ projectId, on
               )
             }
             placeholder="多个值用英文逗号分隔"
-            className="mt-3 min-h-[7rem] w-full resize-none rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none"
+            className="mt-3 min-h-[7rem] w-full resize-none rounded-lg px-4 py-3 text-sm outline-none transition-colors"
+            style={{ backgroundColor: LK.surfaceRaised, color: LK.inkSoft, border: `1px solid ${LK.border}` }}
+            onFocus={(e) => (e.currentTarget.style.borderColor = LK.primary)}
+            onBlur={(e) => (e.currentTarget.style.borderColor = LK.border)}
           />
         </label>
       );
@@ -326,9 +373,12 @@ export const VulnParameterConfigPage: React.FC<VulnPageProps> = ({ projectId, on
 
     const isNumber = field.type === 'number';
     return (
-      <label className="block rounded-[1.25rem] border border-slate-200 bg-white px-4 py-4">
-        <div className="text-sm font-black text-slate-800">{field.label}</div>
-        <div className="mt-1 text-xs leading-5 text-slate-500">{field.helper}</div>
+      <label
+        className="block rounded-lg px-4 py-4"
+        style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}` }}
+      >
+        <div className="text-sm font-semibold" style={{ color: LK.ink }}>{field.label}</div>
+        <div className="mt-1 text-xs leading-5" style={{ color: LK.body }}>{field.helper}</div>
         <input
           type={isNumber ? 'number' : 'text'}
           value={value ?? ''}
@@ -336,66 +386,89 @@ export const VulnParameterConfigPage: React.FC<VulnPageProps> = ({ projectId, on
           max={field.max}
           step={field.step}
           onChange={(event) => updateField(phaseKey, field.key, isNumber ? Number(event.target.value) : event.target.value)}
-          className="mt-3 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none"
+          className="mt-3 w-full rounded-lg px-4 py-3 text-sm outline-none transition-colors"
+          style={{ backgroundColor: LK.surfaceRaised, color: LK.inkSoft, border: `1px solid ${LK.border}` }}
+          onFocus={(e) => (e.currentTarget.style.borderColor = LK.primary)}
+          onBlur={(e) => (e.currentTarget.style.borderColor = LK.border)}
         />
       </label>
     );
   };
 
   return (
-    <div className="space-y-6">
-      <div className="overflow-hidden rounded-[2rem] border border-slate-200 bg-white shadow-sm">
-        <div className="bg-[radial-gradient(circle_at_top_left,_rgba(56,189,248,0.22),_transparent_36%),linear-gradient(135deg,#0f172a,#1e293b_52%,#334155)] px-8 py-8 text-white">
-          <div className="flex flex-col gap-5 xl:flex-row xl:items-end xl:justify-between">
-            <div className="max-w-3xl">
-              <div className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3 py-1 text-[11px] font-black uppercase tracking-[0.28em] text-sky-100">
-                <SlidersHorizontal size={14} />
-                Vulnerability Engine Runtime Controls
-              </div>
-              <h1 className="mt-4 text-3xl font-black tracking-tight">漏洞引擎参数配置</h1>
-              <p className="mt-3 max-w-2xl text-sm leading-7 text-slate-200">
-                将漏洞引擎的动态参数拆成全局、上报、研判、验证、结束五个维度管理。
-                参数保存后，后续案例在各阶段的调度、去重、验证与收敛策略会按这里的配置执行。
-              </p>
-            </div>
-            <div className="grid grid-cols-2 gap-3 xl:min-w-[22rem]">
-              <div className="rounded-[1.5rem] border border-white/10 bg-white/10 px-4 py-4">
-                <div className="text-[11px] font-black uppercase tracking-widest text-sky-100">阶段页签</div>
-                <div className="mt-2 text-3xl font-black">{PHASES.length}</div>
-              </div>
-              <div className="rounded-[1.5rem] border border-white/10 bg-white/10 px-4 py-4">
-                <div className="text-[11px] font-black uppercase tracking-widest text-sky-100">当前项目</div>
-                <div className="mt-2 text-sm font-black break-all">{projectId}</div>
-              </div>
-            </div>
-          </div>
+    <div
+      className="space-y-4 px-5 py-5 md:px-6 2xl:px-8"
+      style={{ backgroundColor: LK.canvas, minHeight: '100%', color: LK.inkSoft }}
+    >
+      <div className="flex flex-wrap items-start justify-between gap-3 pb-4" style={{ borderBottom: `1px solid ${LK.borderSoft}` }}>
+        <div>
+          <span
+            className="inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-medium uppercase tracking-wider"
+            style={{ backgroundColor: LK.primaryMuted, color: LK.primary }}
+          >
+            <SlidersHorizontal size={14} />
+            Vulnerability Engine Runtime Controls
+          </span>
+          <h1 className="mt-3 text-2xl font-semibold leading-8 tracking-tight" style={{ color: LK.ink }}>
+            漏洞引擎参数配置
+          </h1>
+          <p className="mt-2 max-w-2xl text-sm leading-7" style={{ color: LK.body }}>
+            将漏洞引擎的动态参数拆成全局、上报、研判、验证、结束五个维度管理。
+            参数保存后，后续案例在各阶段的调度、去重、验证与收敛策略会按这里的配置执行。
+          </p>
         </div>
-        <div className="border-t border-slate-200 bg-[rgba(255,255,255,0.04)] px-8 py-4">
-          <div className="flex flex-wrap items-center gap-3 text-xs text-slate-500">
-            <span>最近保存：{updatedAt ? new Date(updatedAt).toLocaleString() : '尚未保存'}</span>
-            <span>保存人：{updatedBy || '系统默认'}</span>
+        <div className="grid grid-cols-2 gap-3 xl:min-w-[22rem]">
+          <div
+            className="rounded-xl px-4 py-4"
+            style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}` }}
+          >
+            <div className="text-xs font-semibold uppercase tracking-wider" style={{ color: LK.muted }}>
+              阶段页签
+            </div>
+            <div className="mt-2 text-2xl font-semibold tabular-nums" style={{ color: LK.ink }}>{PHASES.length}</div>
+          </div>
+          <div
+            className="rounded-xl px-4 py-4"
+            style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}` }}
+          >
+            <div className="text-xs font-semibold uppercase tracking-wider" style={{ color: LK.muted }}>
+              当前项目
+            </div>
+            <div className="mt-2 text-sm font-semibold break-all" style={{ color: LK.ink }}>{projectId}</div>
           </div>
         </div>
       </div>
 
-      {error && (
-        <div className="flex items-start gap-3 rounded-[1.5rem] border border-rose-200 bg-rose-50 px-5 py-4 text-sm text-rose-700">
+      <div className="flex flex-wrap items-center gap-3 text-xs" style={{ color: LK.muted }}>
+        <span>最近保存：{updatedAt ? new Date(updatedAt).toLocaleString() : '尚未保存'}</span>
+        <span>保存人：{updatedBy || '系统默认'}</span>
+      </div>
+
+      {error ? (
+        <div className="flex items-start gap-3 rounded-lg px-4 py-3 text-sm" style={{ backgroundColor: `${LK.error}14`, border: `1px solid ${LK.error}40`, color: LK.error }}>
           <AlertTriangle size={18} className="mt-0.5 shrink-0" />
           <div>{error}</div>
         </div>
-      )}
-      {success && (
-        <div className="flex items-start gap-3 rounded-[1.5rem] border border-emerald-200 bg-emerald-50 px-5 py-4 text-sm text-emerald-700">
+      ) : null}
+      {success ? (
+        <div className="flex items-start gap-3 rounded-lg px-4 py-3 text-sm" style={{ backgroundColor: `${LK.success}14`, border: `1px solid ${LK.success}40`, color: LK.success }}>
           <CheckCircle2 size={18} className="mt-0.5 shrink-0" />
           <div>{success}</div>
         </div>
-      )}
+      ) : null}
 
-      <div className="grid grid-cols-1 gap-6 xl:grid-cols-[19rem_minmax(0,1fr)]">
-        <aside className={`${cardClass} p-4`}>
+      <div className="grid grid-cols-1 gap-4 xl:grid-cols-[19rem_minmax(0,1fr)]">
+        <aside
+          className="space-y-2 rounded-xl p-4"
+          style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}` }}
+        >
           <div className="px-2 pb-3">
-            <div className="text-xs font-black uppercase tracking-[0.24em] text-slate-400">阶段页签</div>
-            <div className="mt-2 text-sm text-slate-500">左侧按阶段切换，右侧编辑当前阶段的动态参数。</div>
+            <div className="text-xs font-semibold uppercase tracking-wider" style={{ color: LK.muted }}>
+              阶段页签
+            </div>
+            <div className="mt-2 text-sm" style={{ color: LK.body }}>
+              左侧按阶段切换，右侧编辑当前阶段的动态参数。
+            </div>
           </div>
           <div className="space-y-2">
             {PHASES.map((phase) => {
@@ -406,40 +479,70 @@ export const VulnParameterConfigPage: React.FC<VulnPageProps> = ({ projectId, on
                   key={phase.key}
                   type="button"
                   onClick={() => setActiveTab(phase.key)}
-                  className={`w-full rounded-[1.4rem] border px-4 py-4 text-left transition ${
-                    active ? 'border-slate-900 bg-slate-900 text-white shadow-sm' : 'border-slate-200 bg-slate-50 text-slate-700 hover:bg-white'
-                  }`}
+                  className="w-full rounded-lg px-4 py-4 text-left transition-colors"
+                  style={{
+                    backgroundColor: active ? LK.primaryMuted : LK.surfaceRaised,
+                    border: active ? `1px solid ${LK.primary}` : `1px solid ${LK.border}`,
+                    color: active ? LK.primary : LK.body,
+                  }}
+                  onMouseEnter={(e) => { if (!active) e.currentTarget.style.color = LK.ink; }}
+                  onMouseLeave={(e) => { if (!active) e.currentTarget.style.color = LK.body; }}
                 >
                   <div className="flex items-center justify-between gap-3">
                     <div>
-                      <div className="text-sm font-black">{phase.label}</div>
-                      <div className={`mt-1 text-[11px] ${active ? 'text-slate-300' : 'text-slate-500'}`}>{phase.badge}</div>
+                      <div className="text-sm font-semibold">{phase.label}</div>
+                      <div className={`mt-1 text-xs ${active ? 'text-primary-soft' : ''}`} style={{ color: active ? LK.primarySoft : LK.muted }}>
+                        {phase.badge}
+                      </div>
                     </div>
-                    <div className={`rounded-full px-2.5 py-1 text-[10px] font-black uppercase tracking-widest ${active ? 'bg-white/10 text-sky-100' : 'bg-white text-slate-500 border border-slate-200'}`}>
+                    <div
+                      className="rounded-full px-2.5 py-1 text-xs font-semibold uppercase tracking-wider tabular-nums"
+                      style={{
+                        backgroundColor: active ? 'rgba(255, 255, 255, 0.15)' : LK.surface,
+                        color: active ? LK.primarySoft : LK.muted,
+                        border: active ? 'none' : `1px solid ${LK.border}`,
+                      }}
+                    >
                       {configuredCount}/{phase.fields.length}
                     </div>
                   </div>
-                  <div className={`mt-3 text-xs leading-5 ${active ? 'text-slate-300' : 'text-slate-500'}`}>{phase.summary}</div>
+                  <div className={`mt-3 text-xs leading-5 ${active ? 'text-primary-soft' : ''}`} style={{ color: active ? LK.primarySoft : LK.muted }}>
+                    {phase.summary}
+                  </div>
                 </button>
               );
             })}
           </div>
         </aside>
 
-        <section className="space-y-6">
-          <div className="overflow-hidden rounded-[2rem] border border-slate-200 bg-white shadow-sm">
-            <div className={`bg-gradient-to-r ${activePhase.accent} px-6 py-6 text-white`}>
+        <section className="space-y-4">
+          <div
+            className="overflow-hidden rounded-xl"
+            style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}` }}
+          >
+            <div
+              className="px-6 py-6"
+              style={{
+                background: `linear-gradient(135deg, ${LK.primary}, ${LK.primarySoft})`,
+                color: '#ffffff'
+              }}
+            >
               <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
                 <div className="max-w-3xl">
-                  <div className="text-[11px] font-black uppercase tracking-[0.28em] text-white/70">{activePhase.badge}</div>
-                  <h2 className="mt-2 text-2xl font-black">{activePhase.label}</h2>
-                  <p className="mt-2 text-sm leading-7 text-white/80">{activePhase.summary}</p>
+                  <div className="text-xs font-semibold uppercase tracking-wider" style={{ color: 'rgba(255, 255, 255, 0.8)' }}>
+                    {activePhase.badge}
+                  </div>
+                  <h2 className="mt-2 text-2xl font-semibold">{activePhase.label}</h2>
+                  <p className="mt-2 text-sm leading-7" style={{ color: 'rgba(255, 255, 255, 0.9)' }}>{activePhase.summary}</p>
                 </div>
                 <div className="flex flex-wrap gap-3">
                   <button
                     type="button"
                     onClick={() => resetPhase(activePhase.key)}
-                    className="inline-flex items-center gap-2 rounded-2xl border border-white/20 bg-white/10 px-4 py-3 text-sm font-black"
+                    className="inline-flex items-center gap-2 rounded-lg border px-4 py-3 text-sm font-semibold transition-colors"
+                    style={{ backgroundColor: 'rgba(255, 255, 255, 0.1)', borderColor: 'rgba(255, 255, 255, 0.2)', color: '#ffffff' }}
+                    onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.15)'; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.1)'; }}
                   >
                     <RefreshCw size={16} />
                     恢复本页默认
@@ -448,7 +551,10 @@ export const VulnParameterConfigPage: React.FC<VulnPageProps> = ({ projectId, on
                     type="button"
                     onClick={handleSave}
                     disabled={saving || loading}
-                    className="inline-flex items-center gap-2 rounded-2xl bg-white px-4 py-3 text-sm font-black text-slate-900 disabled:opacity-60"
+                    className="inline-flex items-center gap-2 rounded-lg px-4 py-3 text-sm font-semibold transition-colors disabled:opacity-50"
+                    style={{ backgroundColor: '#ffffff', color: LK.primary }}
+                    onMouseEnter={(e) => { if (!e.currentTarget.disabled) e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.9)'; }}
+                    onMouseLeave={(e) => { if (!e.currentTarget.disabled) e.currentTarget.style.backgroundColor = '#ffffff'; }}
                   >
                     <Save size={16} />
                     {saving ? '保存中...' : '保存全部参数'}
@@ -456,14 +562,16 @@ export const VulnParameterConfigPage: React.FC<VulnPageProps> = ({ projectId, on
                 </div>
               </div>
             </div>
-            <div className="border-t border-slate-100 bg-[rgba(255,255,255,0.04)] px-6 py-4 text-xs text-slate-500">
+            <div className="px-6 py-4 text-xs" style={{ borderTop: `1px solid ${LK.borderSoft}`, color: LK.muted }}>
               当前正在编辑 {activePhase.fields.length} 个动态参数字段。阶段参数会与默认结构深度合并，避免因局部更新导致其它阶段配置丢失。
             </div>
           </div>
 
           <div className="grid grid-cols-1 gap-4 2xl:grid-cols-2">
             {loading ? (
-              <div className={`${cardClass} p-8 text-sm text-slate-500`}>正在加载当前项目的漏洞引擎参数...</div>
+              <div className="rounded-lg p-8 text-sm" style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}`, color: LK.muted }}>
+                正在加载当前项目的漏洞引擎参数...
+              </div>
             ) : (
               activePhase.fields.map((field) => (
                 <div key={`${activePhase.key}-${field.key}`}>{renderField(activePhase.key, field)}</div>
@@ -471,12 +579,15 @@ export const VulnParameterConfigPage: React.FC<VulnPageProps> = ({ projectId, on
             )}
           </div>
 
-          <div className={`${cardClass} p-6`}>
+          <div
+            className="rounded-lg p-6"
+            style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}` }}
+          >
             <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
               <div>
-                <div className="text-lg font-black text-slate-800">阶段联动提示</div>
-                <div className="mt-1 text-sm text-slate-500">
-                  “{activePhase.label}”阶段的参数改动最容易影响后续的
+                <div className="text-lg font-semibold" style={{ color: LK.ink }}>阶段联动提示</div>
+                <div className="mt-1 text-sm" style={{ color: LK.body }}>
+                  "{activePhase.label}"阶段的参数改动最容易影响后续的
                   {activePhase.key === 'global' && ' 全链路调度、超时和去重策略。'}
                   {activePhase.key === 'receive' && ' 接收池质量、去重效果和进入研判的入口压力。'}
                   {activePhase.key === 'triage' && ' 自动研判次数、人工闸门频率和进入验证的速度。'}
@@ -484,7 +595,10 @@ export const VulnParameterConfigPage: React.FC<VulnPageProps> = ({ projectId, on
                   {activePhase.key === 'finished' && ' 结论收敛、归档保留和对外同步行为。'}
                 </div>
               </div>
-              <div className="rounded-[1.25rem] border border-slate-200 bg-slate-50 px-4 py-3 text-xs font-black text-slate-600">
+              <div
+                className="rounded-lg px-4 py-3 text-xs font-semibold tabular-nums"
+                style={{ backgroundColor: LK.surfaceRaised, color: LK.body, border: `1px solid ${LK.border}` }}
+              >
                 当前阶段已配置 {stageMetricValue(activePhase, config)} / {activePhase.fields.length}
               </div>
             </div>

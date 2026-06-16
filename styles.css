@@ -5,52 +5,52 @@
 @layer base {
   :root,
   :root[data-theme='chimera-classic'] {
-    --bg-app: #0f172a;
-    --bg-surface: #1e293b;
-    --bg-elevated: #253348;
-    --bg-sidebar: #101a2f;
-    --bg-sidebar-muted: #18243a;
-    --bg-header: #10192d;
-    --bg-login: #020617;
-    --bg-login-card: rgba(255, 255, 255, 0.04);
-    --bg-login-input: rgba(255, 255, 255, 0.06);
-    --login-border: rgba(255, 255, 255, 0.10);
-    --text-primary: #f8fbff;
-    --text-secondary: #d4deeb;
-    --text-muted: #b4c1d2;
-    --text-faint: #92a3b8;
-    --text-inverse: #f8fbff;
-    --text-soft: #e2eaf4;
-    --border-default: rgba(255, 255, 255, 0.08);
-    --border-strong: rgba(255, 255, 255, 0.14);
-    --brand-primary: #3b82f6;
-    --brand-primary-hover: #60a5fa;
-    --brand-secondary: #2563eb;
+    --bg-app: #070d18;
+    --bg-surface: #111a2b;
+    --bg-elevated: #18233a;
+    --bg-sidebar: #0d1526;
+    --bg-sidebar-muted: #18233a;
+    --bg-header: #0d1526;
+    --bg-login: #070d18;
+    --bg-login-card: rgba(17, 26, 43, 0.84);
+    --bg-login-input: #18233a;
+    --login-border: rgba(38, 50, 74, 0.9);
+    --text-primary: #f5f7ff;
+    --text-secondary: #d6def0;
+    --text-muted: #a4aec4;
+    --text-faint: #72809a;
+    --text-inverse: #f5f7ff;
+    --text-soft: #d6def0;
+    --border-default: #26324a;
+    --border-strong: #33415c;
+    --brand-primary: #4f73ff;
+    --brand-primary-hover: #7590ff;
+    --brand-secondary: #3f63f1;
     --brand-accent: #6366f1;
-    --brand-soft: rgba(59, 130, 246, 0.12);
-    --brand-border: rgba(59, 130, 246, 0.28);
-    --success: #10b981;
-    --warning: #f59e0b;
-    --danger: #ef4444;
-    --info: #3b82f6;
-    --success-soft: rgba(16, 185, 129, 0.12);
-    --warning-soft: rgba(245, 158, 11, 0.12);
-    --danger-soft: rgba(239, 68, 68, 0.12);
-    --info-soft: rgba(59, 130, 246, 0.12);
-    --success-border: rgba(16, 185, 129, 0.28);
-    --warning-border: rgba(245, 158, 11, 0.28);
-    --danger-border: rgba(239, 68, 68, 0.28);
-    --info-border: rgba(59, 130, 246, 0.28);
-    --logo-surface: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
-    --gradient-brand: radial-gradient(circle at top left, rgba(59, 130, 246, 0.08), transparent 30%), linear-gradient(135deg, #0f172a 0%, #111c30 50%, #0f172a 100%);
-    --shadow-panel: 0 8px 32px rgba(0, 0, 0, 0.28);
-    --shadow-section: 0 16px 48px rgba(0, 0, 0, 0.36);
-    --shadow-brand: 0 8px 24px rgba(59, 130, 246, 0.16);
-    --xterm-bg: #0b1120;
-    --xterm-fg: #e2e8f0;
-    --xterm-cursor: #3b82f6;
-    --shell-muted-bg: rgba(24, 36, 58, 0.92);
-    --shell-muted-hover-bg: #22314b;
+    --brand-soft: rgba(79, 115, 255, 0.14);
+    --brand-border: rgba(79, 115, 255, 0.42);
+    --success: #45c06f;
+    --warning: #d5a13a;
+    --danger: #f15d5d;
+    --info: #4f8cff;
+    --success-soft: rgba(69, 192, 111, 0.14);
+    --warning-soft: rgba(213, 161, 58, 0.14);
+    --danger-soft: rgba(241, 93, 93, 0.14);
+    --info-soft: rgba(79, 140, 255, 0.14);
+    --success-border: rgba(69, 192, 111, 0.42);
+    --warning-border: rgba(213, 161, 58, 0.42);
+    --danger-border: rgba(241, 93, 93, 0.42);
+    --info-border: rgba(79, 140, 255, 0.42);
+    --logo-surface: linear-gradient(135deg, #4f73ff 0%, #3f63f1 100%);
+    --gradient-brand: radial-gradient(circle at top left, rgba(79, 115, 255, 0.08), transparent 30%), linear-gradient(135deg, #070d18 0%, #111a2b 50%, #070d18 100%);
+    --shadow-panel: none;
+    --shadow-section: none;
+    --shadow-brand: none;
+    --xterm-bg: #050810;
+    --xterm-fg: #e7ecf6;
+    --xterm-cursor: #4f73ff;
+    --shell-muted-bg: rgba(17, 26, 43, 0.92);
+    --shell-muted-hover-bg: #18233a;
   }
 
   :root[data-theme='chimera'] {
@@ -534,3 +534,35 @@
     border-color: color-mix(in srgb, var(--border-subtle) 72%, var(--brand-soft));
   }
 }
+
+/* LOKI DESIGN.md global overrides — dark theme only.
+   Applies DESIGN radii (panel/card/table 12px, modal 16px), demotes font-black
+   to 600, and flattens Tailwind shadows (depth comes from border/fill, not shadow). */
+:root[data-theme='chimera-classic'] .rounded-2xl { border-radius: 12px; }
+:root[data-theme='chimera-classic'] .rounded-3xl { border-radius: 16px; }
+:root[data-theme='chimera-classic'] .rounded-\[2rem\],
+:root[data-theme='chimera-classic'] .rounded-\[1\.25rem\],
+:root[data-theme='chimera-classic'] .rounded-\[1\.35rem\] { border-radius: 12px; }
+:root[data-theme='chimera-classic'] .rounded-\[3rem\],
+:root[data-theme='chimera-classic'] .rounded-\[2\.25rem\],
+:root[data-theme='chimera-classic'] .rounded-\[2\.5rem\],
+:root[data-theme='chimera-classic'] .rounded-\[1\.5rem\] { border-radius: 16px; }
+:root[data-theme='chimera-classic'] .rounded-panel,
+:root[data-theme='chimera-classic'] .rounded-card,
+:root[data-theme='chimera-classic'] .rounded-timeline,
+:root[data-theme='chimera-classic'] .rounded-detail { border-radius: 12px; }
+:root[data-theme='chimera-classic'] .rounded-section { border-radius: 16px; }
+
+:root[data-theme='chimera-classic'] .font-black { font-weight: 600; }
+
+:root[data-theme='chimera-classic'] .shadow,
+:root[data-theme='chimera-classic'] .shadow-sm,
+:root[data-theme='chimera-classic'] .shadow-md,
+:root[data-theme='chimera-classic'] .shadow-lg,
+:root[data-theme='chimera-classic'] .shadow-xl,
+:root[data-theme='chimera-classic'] .shadow-2xl,
+:root[data-theme='chimera-classic'] .hover\:shadow-sm:hover,
+:root[data-theme='chimera-classic'] .hover\:shadow-md:hover,
+:root[data-theme='chimera-classic'] .hover\:shadow-lg:hover,
+:root[data-theme='chimera-classic'] .hover\:shadow-xl:hover,
+:root[data-theme='chimera-classic'] .hover\:shadow-2xl:hover { box-shadow: none; }

@@ -384,7 +384,7 @@ const AppShell: React.FC = () => {
   };
 
   useEffect(() => {
-    if (token && currentView === 'admin-dashboard' && isAdmin) {
+    if (token && (currentView === 'admin-dashboard' || currentView === 'dashboard') && isAdmin) {
       fetchAdminStats();
     }
   }, [token, currentView, user]);

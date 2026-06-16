@@ -1,6 +1,7 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   AlertTriangle,
+  CheckCircle2,
   ChevronRight,
   Edit3,
   FolderTree,
@@ -55,6 +56,8 @@ export const ProductMgmtPage: React.FC = () => {
   const [editingProductId, setEditingProductId] = useState<string | null>(null);
   const [editingVersionId, setEditingVersionId] = useState<string | null>(null);
   const [createChildForId, setCreateChildForId] = useState<string | null>(null);
+  const [successMsg, setSuccessMsg] = useState<string | null>(null);
+  const nameInputRef = useRef<HTMLInputElement>(null);
 
   const loadTree = async () => {
     setLoading(true);
@@ -85,6 +88,7 @@ export const ProductMgmtPage: React.FC = () => {
     setProductForm(EMPTY_PRODUCT_FORM);
     setEditingProductId(null);
     setCreateChildForId(null);
+    setTimeout(() => nameInputRef.current?.focus(), 50);
   };
 
   const resetVersionForm = () => {
@@ -138,7 +142,9 @@ export const ProductMgmtPage: React.FC = () => {
         });
       }
       resetProductForm();
+      setSuccessMsg(editingProductId ? '产品更新成功' : createChildForId ? '子产品创建成功' : '根产品创建成功');
       await loadTree();
+      setTimeout(() => setSuccessMsg(null), 3000);
     } catch (submitError: any) {
       setError(submitError?.message || '保存产品失败');
     } finally {
@@ -163,7 +169,9 @@ export const ProductMgmtPage: React.FC = () => {
         await productApi.createVersion(selectedProduct.id, payload);
       }
       resetVersionForm();
+      setSuccessMsg(editingVersionId ? '版本更新成功' : '版本创建成功');
       await loadTree();
+      setTimeout(() => setSuccessMsg(null), 3000);
     } catch (submitError: any) {
       setError(submitError?.message || '保存产品版本失败');
     } finally {
@@ -179,7 +187,9 @@ export const ProductMgmtPage: React.FC = () => {
       if (selectedProductId === product.id) {
         setSelectedProductId('');
       }
+      setSuccessMsg('产品删除成功');
       await loadTree();
+      setTimeout(() => setSuccessMsg(null), 3000);
     } catch (deleteError: any) {
       setError(deleteError?.message || '删除产品失败');
     }
@@ -190,7 +200,9 @@ export const ProductMgmtPage: React.FC = () => {
     if (!confirmed) return;
     try {
       await productApi.deleteVersion(version.id);
+      setSuccessMsg('版本删除成功');
       await loadTree();
+      setTimeout(() => setSuccessMsg(null), 3000);
     } catch (deleteError: any) {
       setError(deleteError?.message || '删除产品版本失败');
     }
@@ -254,6 +266,13 @@ export const ProductMgmtPage: React.FC = () => {
         <div className="flex items-center gap-3 rounded-2xl border border-red-100 bg-red-50 px-5 py-4 text-sm font-semibold text-red-600">
           <AlertTriangle size={16} />
           {error}
+        </div>
+      )}
+
+      {successMsg && (
+        <div className="flex items-center gap-3 rounded-2xl border border-emerald-100 bg-emerald-50 px-5 py-4 text-sm font-semibold text-emerald-600">
+          <CheckCircle2 size={16} />
+          {successMsg}
         </div>
       )}
 
@@ -331,6 +350,7 @@ export const ProductMgmtPage: React.FC = () => {
               {editingProductId ? '编辑产品' : createChildForId ? '新增子产品' : '新增根产品'}
             </div>
             <input
+              ref={nameInputRef}
               required
               value={productForm.name}
               onChange={(event) => setProductForm((prev) => ({ ...prev, name: event.target.value }))}

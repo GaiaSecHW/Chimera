@@ -140,6 +140,32 @@ export const severityTone: Record<string, string> = {
   low: 'bg-emerald-100 text-emerald-700',
 };
 
+const LK = {
+  primary: '#4f73ff',
+  primarySoft: '#7590ff',
+  primaryDeep: '#3f63f1',
+  primaryMuted: 'rgba(79, 115, 255, 0.14)',
+  canvas: '#070d18',
+  surface: '#111a2b',
+  surfaceRaised: '#18233a',
+  surfaceGlass: 'rgba(17, 26, 43, 0.84)',
+  border: '#26324a',
+  borderSoft: '#1b2438',
+  ink: '#f5f7ff',
+  inkSoft: '#d6def0',
+  body: '#a4aec4',
+  muted: '#72809a',
+  mutedSoft: '#8b95a8',
+  success: '#45c06f',
+  warning: '#d5a13a',
+  error: '#f15d5d',
+  info: '#4f8cff',
+  critical: '#ff4d4f',
+  high: '#ff8b3d',
+  medium: '#f0b64c',
+  low: '#49c5ff',
+} as const;
+
 export const STAGE_LABELS: Record<string, string> = {
   all: '全部阶段',
   receive: '接收阶段',
@@ -259,7 +285,7 @@ export const decisionTone: Record<string, string> = {
   observe: 'bg-blue-100 text-blue-700',
 };
 
-export const cardClass = 'bg-[var(--bg-surface)] border border-[rgba(255,255,255,0.08)] rounded-[2rem] shadow-sm overflow-hidden';
+export const cardClass = 'rounded-xl overflow-hidden';
 
 export const toneOf = (value: string, mapper: Record<string, string>) => mapper[value] || 'bg-slate-100 text-slate-600';
 
@@ -280,38 +306,80 @@ interface StatCardsProps {
 }
 
 export const StatCards: React.FC<StatCardsProps> = ({ overview }) => (
-  <div className="grid grid-cols-1 lg:grid-cols-2 2xl:grid-cols-4 gap-6">
-    <div className="bg-white p-6 rounded-[2rem] border border-slate-200 shadow-sm">
-      <div className="flex items-center justify-between">
-        <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">案例总数</span>
-        <ShieldAlert className="text-rose-200" size={20} />
+  <div className="grid grid-cols-1 lg:grid-cols-2 2xl:grid-cols-4 gap-3">
+    <div
+      className="flex items-center justify-between rounded-xl px-4 py-3"
+      style={{ backgroundColor: LK.surface, border: '1px solid ' + LK.border }}
+    >
+      <div>
+        <div className="text-xs" style={{ color: LK.muted }}>案例总数</div>
+        <div className="mt-1 text-2xl font-semibold leading-7 tabular-nums" style={{ color: LK.ink }}>
+          {overview?.metrics?.total_cases || 0}
+        </div>
+        <p className="mt-1 text-xs" style={{ color: LK.body }}>当前项目内纳入引擎管理的全部案例</p>
       </div>
-      <div className="mt-4 text-4xl font-black text-slate-800">{overview?.metrics?.total_cases || 0}</div>
-      <p className="mt-2 text-sm text-slate-500">当前项目内纳入引擎管理的全部案例</p>
+      <div
+        className="flex h-9 w-9 items-center justify-center rounded-md"
+        style={{ backgroundColor: `${LK.error}22`, color: LK.error }}
+      >
+        <ShieldAlert size={18} />
+      </div>
     </div>
-    <div className="bg-white p-6 rounded-[2rem] border border-slate-200 shadow-sm">
-      <div className="flex items-center justify-between">
-        <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">等待外部结果</span>
-        <Waypoints className="text-indigo-200" size={20} />
+    <div
+      className="flex items-center justify-between rounded-xl px-4 py-3"
+      style={{ backgroundColor: LK.surface, border: '1px solid ' + LK.border }}
+    >
+      <div>
+        <div className="text-xs" style={{ color: LK.muted }}>等待外部结果</div>
+        <div className="mt-1 text-2xl font-semibold leading-7 tabular-nums" style={{ color: LK.ink }}>
+          {overview?.metrics?.waiting_external || 0}
+        </div>
+        <p className="mt-1 text-xs" style={{ color: LK.body }}>已派发动作，等待分析、验证或证明服务回调</p>
       </div>
-      <div className="mt-4 text-4xl font-black text-slate-800">{overview?.metrics?.waiting_external || 0}</div>
-      <p className="mt-2 text-sm text-slate-500">已派发动作，等待分析、验证或证明服务回调</p>
+      <div
+        className="flex h-9 w-9 items-center justify-center rounded-md"
+        style={{ backgroundColor: `${LK.primary}22`, color: LK.primary }}
+      >
+        <Waypoints size={18} />
+      </div>
     </div>
-    <div className="bg-white p-6 rounded-[2rem] border border-slate-200 shadow-sm">
-      <div className="flex items-center justify-between">
-        <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">人工待办</span>
-        <ListTodo className="text-amber-200" size={20} />
+    <div
+      className="flex items-center justify-between rounded-xl px-4 py-3"
+      style={{ backgroundColor: LK.surface, border: '1px solid ' + LK.border }}
+    >
+      <div>
+        <div className="text-xs" style={{ color: LK.muted }}>人工待办</div>
+        <div className="mt-1 text-2xl font-semibold leading-7 tabular-nums" style={{ color: LK.ink }}>
+          {overview?.metrics?.manual_tasks_open || 0}
+        </div>
+        <p className="mt-1 text-xs" style={{ color: LK.body }}>需要人工分析、复核或裁决的手动工作项</p>
       </div>
-      <div className="mt-4 text-4xl font-black text-slate-800">{overview?.metrics?.manual_tasks_open || 0}</div>
-      <p className="mt-2 text-sm text-slate-500">需要人工分析、复核或裁决的手动工作项</p>
+      <div
+        className="flex h-9 w-9 items-center justify-center rounded-md"
+        style={{ backgroundColor: `${LK.warning}22`, color: LK.warning }}
+      >
+        <ListTodo size={18} />
+      </div>
     </div>
-    <div className="bg-slate-900 p-6 rounded-[2rem] shadow-xl shadow-slate-900/10 text-white">
-      <div className="flex items-center justify-between">
-        <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">活跃能力服务</span>
-        <ServerCog className="text-emerald-300" size={20} />
+    <div
+      className="flex items-center justify-between rounded-xl px-4 py-3"
+      style={{ backgroundColor: LK.surface, border: '1px solid ' + LK.border }}
+    >
+      <div>
+        <div className="text-xs" style={{ color: LK.muted }}>活跃能力服务</div>
+        <div className="mt-1 text-2xl font-semibold leading-7 tabular-nums" style={{ color: LK.ink }}>
+          {overview?.metrics?.active_services || 0}
+        </div>
+        <p className="mt-1 text-xs" style={{ color: LK.body }}>
+          注册服务 {overview?.metrics?.registered_services || 0} 个，排队动作 {overview?.metrics?.queued_actions || 0} 个
+        </p>
       </div>
-      <div className="mt-4 text-4xl font-black">{overview?.metrics?.active_services || 0}</div>
-      <p className="mt-2 text-sm text-slate-300">注册服务 {overview?.metrics?.registered_services || 0} 个，排队动作 {overview?.metrics?.queued_actions || 0} 个</p>
+      <div
+        className="flex h-9 w-9 items-center justify-center rounded-md"
+        style={{ backgroundColor: `${LK.success}22`, color: LK.success }}
+      >
+        <ServerCog size={18} />
+      </div>
     </div>
   </div>
 );

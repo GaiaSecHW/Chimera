@@ -281,55 +281,58 @@ export const ChimeraScheduleConfigPage: React.FC = () => {
   }
 
   return (
-    <div className="h-full overflow-auto bg-gradient-to-br from-slate-50 via-white to-cyan-50/40 p-6">
+    <div className="min-h-full bg-slate-50 px-4 py-5 md:px-6 2xl:px-8">
       {feedbackNodes}
-      <div className="mx-auto max-w-7xl space-y-6">
-        <div className="rounded-3xl border border-slate-200 bg-white/90 p-6 shadow-sm">
-          <div className="flex flex-wrap items-start justify-between gap-4">
-            <div>
-              <div className="text-xs font-black uppercase tracking-[0.3em] text-cyan-600">Task Schedule</div>
-              <h1 className="mt-2 text-3xl font-black text-slate-900">调度参数</h1>
-              <p className="mt-2 text-sm text-slate-600">统一管理全局调度策略、工具默认并发与分时段并发覆盖。</p>
-            </div>
-            <div className="flex gap-3">
-              <button onClick={() => void load()} className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm font-bold text-slate-700 hover:bg-slate-50">
-                <RefreshCw size={16} />
-                刷新
-              </button>
-              <button onClick={() => void handleReset()} disabled={saving} className="inline-flex items-center gap-2 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-2 text-sm font-bold text-amber-700 hover:bg-amber-100 disabled:opacity-60">
-                <RotateCcw size={16} />
-                恢复默认
-              </button>
-              <button onClick={() => void handleSave()} disabled={saving || !dirty} className="inline-flex items-center gap-2 rounded-2xl bg-cyan-600 px-4 py-2 text-sm font-bold text-white hover:bg-cyan-700 disabled:cursor-not-allowed disabled:opacity-60">
-                {saving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
-                保存配置
-              </button>
-            </div>
+      <div className="w-full space-y-4">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div>
+            <h1 className="text-lg font-black text-slate-900">调度参数</h1>
+            <p className="text-sm text-slate-500">统一管理全局调度策略、工具默认并发与分时段并发覆盖。</p>
           </div>
-          <div className="mt-5 grid gap-4 md:grid-cols-4">
-            <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-              <div className="text-xs font-bold uppercase tracking-wider text-slate-500">时区</div>
-              <div className="mt-2 text-lg font-black text-slate-900">{draft.timezone}</div>
-            </div>
-            <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-              <div className="text-xs font-bold uppercase tracking-wider text-slate-500">当前命中时段</div>
-              <div className="mt-2 text-lg font-black text-slate-900">{draft.effective_now.active_time_window_name || '基础配置'}</div>
-            </div>
-            <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-              <div className="text-xs font-bold uppercase tracking-wider text-slate-500">更新人</div>
-              <div className="mt-2 text-lg font-black text-slate-900">{draft.updated_by || '-'}</div>
-            </div>
-            <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-              <div className="text-xs font-bold uppercase tracking-wider text-slate-500">更新时间</div>
-              <div className="mt-2 text-lg font-black text-slate-900">{draft.updated_at ? new Date(draft.updated_at).toLocaleString('zh-CN') : '-'}</div>
-            </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <button onClick={() => void load()} className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-bold text-slate-700 hover:bg-slate-50">
+              <RefreshCw size={16} />
+              刷新
+            </button>
+            <button onClick={() => void handleReset()} disabled={saving} className="inline-flex items-center gap-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm font-bold text-amber-700 hover:bg-amber-100 disabled:opacity-60">
+              <RotateCcw size={16} />
+              恢复默认
+            </button>
+            <button onClick={() => void handleSave()} disabled={saving || !dirty} className="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-3 py-2 text-sm font-black text-white hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60">
+              {saving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
+              保存配置
+            </button>
           </div>
-          {error ? <div className="mt-4 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700">{error}</div> : null}
         </div>
 
-        <section className="rounded-3xl border border-slate-200 bg-white/90 p-6 shadow-sm">
-          <h2 className="text-xl font-black text-slate-900">调度策略</h2>
-          <div className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+        {error ? (
+          <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700">{error}</div>
+        ) : null}
+
+        <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <article className="rounded-xl border bg-gradient-to-br p-4 shadow-sm from-slate-50 via-white to-slate-100/70 border-slate-200/70">
+            <div className="truncate text-center text-xs font-bold text-slate-500">时区</div>
+            <div className="mt-1.5 truncate text-center text-sm font-semibold tabular-nums text-slate-900">{draft.timezone}</div>
+          </article>
+          <article className="rounded-xl border bg-gradient-to-br p-4 shadow-sm from-slate-50 via-white to-slate-100/70 border-slate-200/70">
+            <div className="truncate text-center text-xs font-bold text-slate-500">当前命中时段</div>
+            <div className="mt-1.5 truncate text-center text-sm font-semibold tabular-nums text-slate-900">{draft.effective_now.active_time_window_name || '基础配置'}</div>
+          </article>
+          <article className="rounded-xl border bg-gradient-to-br p-4 shadow-sm from-slate-50 via-white to-slate-100/70 border-slate-200/70">
+            <div className="truncate text-center text-xs font-bold text-slate-500">更新人</div>
+            <div className="mt-1.5 truncate text-center text-sm font-semibold tabular-nums text-slate-900">{draft.updated_by || '-'}</div>
+          </article>
+          <article className="rounded-xl border bg-gradient-to-br p-4 shadow-sm from-slate-50 via-white to-slate-100/70 border-slate-200/70">
+            <div className="truncate text-center text-xs font-bold text-slate-500">更新时间</div>
+            <div className="mt-1.5 truncate text-center text-sm font-semibold tabular-nums text-slate-900">{draft.updated_at ? new Date(draft.updated_at).toLocaleString('zh-CN') : '-'}</div>
+          </article>
+        </section>
+
+        <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+          <div className="border-b border-slate-200 bg-slate-50/70 px-4 py-4 md:px-5">
+            <h2 className="text-lg font-black text-slate-900">调度策略</h2>
+          </div>
+          <div className="grid gap-4 p-4 md:grid-cols-2 md:p-5 xl:grid-cols-3">
             {[
               ['project_default_concurrency', '项目默认并发'],
               ['target_default_concurrency', '目标默认并发'],
@@ -337,7 +340,7 @@ export const ChimeraScheduleConfigPage: React.FC = () => {
               ['ready_backfill_batch_size', 'Ready 回填批量'],
               ['db_fallback_batch_size', 'DB 回扫批量'],
             ].map(([key, label]) => (
-              <label key={key} className="block rounded-2xl border border-slate-200 bg-slate-50 p-4">
+              <label key={key} className="block rounded-xl border border-slate-200 bg-slate-50 p-4">
                 <div className="text-sm font-bold text-slate-700">{label}</div>
                 <input
                   type="number"
@@ -348,7 +351,7 @@ export const ChimeraScheduleConfigPage: React.FC = () => {
                 />
               </label>
             ))}
-            <label className="block rounded-2xl border border-slate-200 bg-slate-50 p-4">
+            <label className="block rounded-xl border border-slate-200 bg-slate-50 p-4">
               <div className="text-sm font-bold text-slate-700">分发策略</div>
               <select value={draft.scheduler_policy.dispatch_mode} onChange={(event) => updateSchedulerPolicy('dispatch_mode', event.target.value)} className="mt-3 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-900 outline-none focus:border-cyan-400">
                 <option value="balanced">balanced</option>
@@ -356,7 +359,7 @@ export const ChimeraScheduleConfigPage: React.FC = () => {
                 <option value="priority_first">priority_first</option>
               </select>
             </label>
-            <label className="block rounded-2xl border border-slate-200 bg-slate-50 p-4">
+            <label className="block rounded-xl border border-slate-200 bg-slate-50 p-4">
               <div className="text-sm font-bold text-slate-700">队列策略</div>
               <select value={draft.scheduler_policy.queue_strategy} onChange={(event) => updateSchedulerPolicy('queue_strategy', event.target.value)} className="mt-3 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-900 outline-none focus:border-cyan-400">
                 <option value="capacity_aware">capacity_aware</option>
@@ -366,11 +369,13 @@ export const ChimeraScheduleConfigPage: React.FC = () => {
           </div>
         </section>
 
-        <section className="rounded-3xl border border-slate-200 bg-white/90 p-6 shadow-sm">
-          <h2 className="text-xl font-black text-slate-900">工具默认并发</h2>
-          <div className="mt-5 grid gap-4 xl:grid-cols-2">
+        <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+          <div className="border-b border-slate-200 bg-slate-50/70 px-4 py-4 md:px-5">
+            <h2 className="text-lg font-black text-slate-900">工具默认并发</h2>
+          </div>
+          <div className="grid gap-4 p-4 md:p-5 xl:grid-cols-2">
             {draft.tool_defaults.map((item) => (
-              <div key={item.task_type} className="rounded-3xl border border-slate-200 bg-gradient-to-br from-white to-slate-50 p-5">
+              <div key={item.task_type} className="rounded-2xl border border-slate-200 bg-slate-50 p-5">
                 <div className="text-lg font-black text-slate-900">{item.label}</div>
                 <div className="mt-4 grid gap-4 md:grid-cols-2">
                   <label className="block">
@@ -391,20 +396,20 @@ export const ChimeraScheduleConfigPage: React.FC = () => {
           </div>
         </section>
 
-        <section className="rounded-3xl border border-slate-200 bg-white/90 p-6 shadow-sm">
-          <div className="flex items-center justify-between gap-4">
+        <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 bg-slate-50/70 px-4 py-4 md:px-5">
             <div>
-              <h2 className="text-xl font-black text-slate-900">时段规则</h2>
+              <h2 className="text-lg font-black text-slate-900">时段规则</h2>
               <p className="mt-1 text-sm text-slate-500">支持配置多个白天/夜间时段，命中后覆盖基础调度参数。</p>
             </div>
-            <button onClick={addWindow} className="inline-flex items-center gap-2 rounded-2xl border border-cyan-200 bg-cyan-50 px-4 py-2 text-sm font-bold text-cyan-700 hover:bg-cyan-100">
+            <button onClick={addWindow} className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-bold text-slate-700 hover:bg-slate-50">
               <Plus size={16} />
               新增时段
             </button>
           </div>
-          <div className="mt-5 space-y-5">
+          <div className="space-y-5 p-4 md:p-5">
             {draft.time_windows.map((window, index) => (
-              <div key={`${window.name}-${index}`} className="rounded-3xl border border-slate-200 bg-slate-50/70 p-5">
+              <div key={`${window.name}-${index}`} className="rounded-2xl border border-slate-200 bg-slate-50 p-5">
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <div className="flex flex-wrap items-center gap-3">
                     <input value={window.name} onChange={(event) => updateTimeWindow(index, { name: event.target.value })} className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-bold text-slate-900 outline-none focus:border-cyan-400" />
@@ -416,7 +421,7 @@ export const ChimeraScheduleConfigPage: React.FC = () => {
                       启用
                     </label>
                   </div>
-                  <button onClick={() => void removeWindow(index)} className="inline-flex items-center gap-2 rounded-2xl border border-rose-200 bg-rose-50 px-3 py-2 text-sm font-bold text-rose-700 hover:bg-rose-100">
+                  <button onClick={() => void removeWindow(index)} className="inline-flex items-center gap-2 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-sm font-bold text-rose-700 hover:bg-rose-100">
                     <Trash2 size={16} />
                     删除
                   </button>
@@ -429,7 +434,7 @@ export const ChimeraScheduleConfigPage: React.FC = () => {
                     ['ready_backfill_batch_size', 'Ready 回填批量'],
                     ['db_fallback_batch_size', 'DB 回扫批量'],
                   ].map(([key, label]) => (
-                    <label key={`${window.name}-${key}`} className="block rounded-2xl border border-slate-200 bg-white p-4">
+                    <label key={`${window.name}-${key}`} className="block rounded-xl border border-slate-200 bg-white p-4">
                       <div className="text-sm font-bold text-slate-700">{label}</div>
                       <input type="number" min={1} value={(window.scheduler_policy as any)?.[key] ?? 0} onChange={(event) => updateTimeWindowPolicy(index, key as keyof ScheduleRuntimeSchedulerPolicy, event.target.value)} className="mt-3 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-semibold text-slate-900 outline-none focus:border-cyan-400" />
                     </label>
@@ -437,7 +442,7 @@ export const ChimeraScheduleConfigPage: React.FC = () => {
                 </div>
                 <div className="mt-5 grid gap-4 xl:grid-cols-2">
                   {window.tool_defaults.map((tool) => (
-                    <div key={`${window.name}-${tool.task_type}`} className="rounded-2xl border border-slate-200 bg-white p-4">
+                    <div key={`${window.name}-${tool.task_type}`} className="rounded-xl border border-slate-200 bg-white p-4">
                       <div className="text-sm font-black text-slate-900">{tool.label}</div>
                       <div className="mt-3 grid gap-3 md:grid-cols-2">
                         <label className="block">

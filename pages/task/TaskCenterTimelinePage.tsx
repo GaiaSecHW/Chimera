@@ -11,6 +11,31 @@ interface Props {
 
 const formatDateTime = (value?: string | null) => (value ? new Date(value).toLocaleString('zh-CN') : '—');
 
+// LOKI design tokens (DESIGN.md) — page-local palette.
+const LK = {
+  primary: '#4f73ff',
+  primarySoft: '#7590ff',
+  primaryDeep: '#3f63f1',
+  primaryMuted: 'rgba(79, 115, 255, 0.14)',
+  canvas: '#070d18',
+  surface: '#111a2b',
+  surfaceRaised: '#18233a',
+  surfaceGlass: 'rgba(17, 26, 43, 0.84)',
+  border: '#26324a',
+  borderSoft: '#1b2438',
+  ink: '#f5f7ff',
+  inkSoft: '#d6def0',
+  body: '#a4aec4',
+  muted: '#72809a',
+  mutedSoft: '#8b95a8',
+  success: '#45c06f',
+  warning: '#d5a13a',
+  error: '#f15d5d',
+  info: '#4f8cff',
+} as const;
+
+const MONO = 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace';
+
 type FiltersState = {
   search: string;
   event_category: string;
@@ -98,114 +123,221 @@ export const TaskCenterTimelinePage: React.FC<Props> = ({ projectId, taskId, onB
   };
 
   return (
-    <div className="space-y-6 p-6">
-      <div className="flex flex-wrap items-start justify-between gap-4">
+    <div
+      className="space-y-4 px-5 py-5 md:px-6 2xl:px-8"
+      style={{ backgroundColor: LK.canvas, minHeight: '100%', color: LK.inkSoft }}
+    >
+      <div className="flex flex-wrap items-start justify-between gap-3 pb-4" style={{ borderBottom: `1px solid ${LK.borderSoft}` }}>
         <div>
           <button
             type="button"
             onClick={onBack}
-            className="mb-3 inline-flex items-center gap-2 rounded-xl border border-theme-border bg-theme-surface px-3 py-2 text-sm font-semibold text-theme-text-secondary"
+            className="mb-3 inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-semibold transition-colors"
+            style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}`, color: LK.body }}
+            onMouseEnter={(e) => { e.currentTarget.style.borderColor = LK.primary; e.currentTarget.style.color = LK.primarySoft; }}
+            onMouseLeave={(e) => { e.currentTarget.style.borderColor = LK.border; e.currentTarget.style.color = LK.body; }}
           >
             <ArrowLeft size={16} />
             返回任务中心
           </button>
-          <h1 className="text-2xl font-black text-theme-text-primary">任务调度事件</h1>
-          <div className="mt-2 text-sm text-theme-text-faint">
-            {task?.name || '—'} / {taskId || '—'}
+          <h1 className="text-2xl font-semibold leading-8 tracking-tight" style={{ color: LK.ink }}>
+            任务调度事件
+          </h1>
+          <div className="mt-2 text-sm" style={{ color: LK.body }}>
+            {task?.name || '—'} <span style={{ color: LK.muted }}>/</span> {taskId || '—'}
           </div>
-          <div className="mt-1 text-xs text-theme-text-faint">
+          <div className="mt-1 text-xs" style={{ color: LK.muted }}>
             下游任务：{task?.downstream_task_id || '—'}，同步状态：{task?.sync_status || 'none'}
           </div>
         </div>
         <button
           type="button"
           onClick={() => void loadEvents(page, pageSize, filters)}
-          className="inline-flex items-center gap-2 rounded-xl border border-theme-border bg-theme-surface px-4 py-2 text-sm font-semibold text-theme-text-primary"
+          className="inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition-colors"
+          style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}`, color: LK.inkSoft }}
+          onMouseEnter={(e) => { e.currentTarget.style.borderColor = LK.primary; e.currentTarget.style.color = LK.primarySoft; }}
+          onMouseLeave={(e) => { e.currentTarget.style.borderColor = LK.border; e.currentTarget.style.color = LK.inkSoft; }}
         >
           <RefreshCw size={15} className={loading ? 'animate-spin' : ''} />
           刷新
         </button>
       </div>
 
-      <form onSubmit={submitFilters} className="rounded-2xl border border-theme-border bg-theme-surface p-4 shadow-sm">
-        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-5">
-          <label className="block text-sm font-semibold text-theme-text-secondary xl:col-span-2">
-            搜索
-            <div className="mt-1 flex items-center gap-2 rounded-xl border border-theme-border bg-theme-elevated px-3 py-2">
-              <Search size={15} className="text-theme-text-faint" />
+      <form
+        onSubmit={submitFilters}
+        className="overflow-hidden rounded-xl"
+        style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}` }}
+      >
+        <div className="p-4">
+          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-5">
+            <label className="block text-sm font-semibold xl:col-span-2" style={{ color: LK.inkSoft }}>
+              搜索
+              <div
+                className="mt-1 flex items-center gap-2 rounded-lg px-3 py-2"
+                style={{ backgroundColor: LK.surfaceRaised, border: `1px solid ${LK.border}` }}
+              >
+                <Search size={15} style={{ color: LK.muted }} />
+                <input
+                  value={filters.search}
+                  onChange={(e) => setFilters((current) => ({ ...current, search: e.target.value }))}
+                  placeholder="任务名、消息、Actor、下游任务 ID"
+                  className="w-full bg-transparent text-sm outline-none"
+                  style={{ color: LK.inkSoft }}
+                />
+              </div>
+            </label>
+            <label className="block text-sm font-semibold" style={{ color: LK.inkSoft }}>
+              事件分类
               <input
-                value={filters.search}
-                onChange={(e) => setFilters((current) => ({ ...current, search: e.target.value }))}
-                placeholder="任务名、消息、Actor、下游任务 ID"
-                className="w-full bg-transparent text-sm text-theme-text-primary outline-none"
+                value={filters.event_category}
+                onChange={(e) => setFilters((current) => ({ ...current, event_category: e.target.value }))}
+                className="mt-1 w-full rounded-lg px-3 py-2 text-sm outline-none transition-colors"
+                style={{ backgroundColor: LK.surfaceRaised, color: LK.inkSoft, border: `1px solid ${LK.border}` }}
+                onFocus={(e) => (e.currentTarget.style.borderColor = LK.primary)}
+                onBlur={(e) => (e.currentTarget.style.borderColor = LK.border)}
               />
+            </label>
+            <label className="block text-sm font-semibold" style={{ color: LK.inkSoft }}>
+              事件类型
+              <input
+                value={filters.event_type}
+                onChange={(e) => setFilters((current) => ({ ...current, event_type: e.target.value }))}
+                className="mt-1 w-full rounded-lg px-3 py-2 text-sm outline-none transition-colors"
+                style={{ backgroundColor: LK.surfaceRaised, color: LK.inkSoft, border: `1px solid ${LK.border}` }}
+                onFocus={(e) => (e.currentTarget.style.borderColor = LK.primary)}
+                onBlur={(e) => (e.currentTarget.style.borderColor = LK.border)}
+              />
+            </label>
+            <label className="block text-sm font-semibold" style={{ color: LK.inkSoft }}>
+              结果状态
+              <select
+                value={filters.result_status}
+                onChange={(e) => setFilters((current) => ({ ...current, result_status: e.target.value }))}
+                className="mt-1 w-full rounded-lg px-3 py-2 text-sm outline-none transition-colors"
+                style={{ backgroundColor: LK.surfaceRaised, color: LK.inkSoft, border: `1px solid ${LK.border}` }}
+                onFocus={(e) => (e.currentTarget.style.borderColor = LK.primary)}
+                onBlur={(e) => (e.currentTarget.style.borderColor = LK.border)}
+              >
+                <option value="">全部</option>
+                <option value="success">success</option>
+                <option value="failed">failed</option>
+                <option value="running">running</option>
+              </select>
+            </label>
+            <label className="block text-sm font-semibold" style={{ color: LK.inkSoft }}>
+              事件来源
+              <input
+                value={filters.event_source}
+                onChange={(e) => setFilters((current) => ({ ...current, event_source: e.target.value }))}
+                className="mt-1 w-full rounded-lg px-3 py-2 text-sm outline-none transition-colors"
+                style={{ backgroundColor: LK.surfaceRaised, color: LK.inkSoft, border: `1px solid ${LK.border}` }}
+                onFocus={(e) => (e.currentTarget.style.borderColor = LK.primary)}
+                onBlur={(e) => (e.currentTarget.style.borderColor = LK.border)}
+              />
+            </label>
+            <label className="block text-sm font-semibold" style={{ color: LK.inkSoft }}>
+              Actor
+              <input
+                value={filters.actor}
+                onChange={(e) => setFilters((current) => ({ ...current, actor: e.target.value }))}
+                className="mt-1 w-full rounded-lg px-3 py-2 text-sm outline-none transition-colors"
+                style={{ backgroundColor: LK.surfaceRaised, color: LK.inkSoft, border: `1px solid ${LK.border}` }}
+                onFocus={(e) => (e.currentTarget.style.borderColor = LK.primary)}
+                onBlur={(e) => (e.currentTarget.style.borderColor = LK.border)}
+              />
+            </label>
+            <label className="block text-sm font-semibold" style={{ color: LK.inkSoft }}>
+              下游任务 ID
+              <input
+                value={filters.downstream_task_id}
+                onChange={(e) => setFilters((current) => ({ ...current, downstream_task_id: e.target.value }))}
+                className="mt-1 w-full rounded-lg px-3 py-2 text-sm outline-none transition-colors"
+                style={{ backgroundColor: LK.surfaceRaised, color: LK.inkSoft, border: `1px solid ${LK.border}` }}
+                onFocus={(e) => (e.currentTarget.style.borderColor = LK.primary)}
+                onBlur={(e) => (e.currentTarget.style.borderColor = LK.border)}
+              />
+            </label>
+            <label className="block text-sm font-semibold" style={{ color: LK.inkSoft }}>
+              起始时间
+              <input
+                type="datetime-local"
+                value={filters.from_time}
+                onChange={(e) => setFilters((current) => ({ ...current, from_time: e.target.value }))}
+                className="mt-1 w-full rounded-lg px-3 py-2 text-sm outline-none transition-colors"
+                style={{ backgroundColor: LK.surfaceRaised, color: LK.inkSoft, border: `1px solid ${LK.border}` }}
+                onFocus={(e) => (e.currentTarget.style.borderColor = LK.primary)}
+                onBlur={(e) => (e.currentTarget.style.borderColor = LK.border)}
+              />
+            </label>
+            <label className="block text-sm font-semibold" style={{ color: LK.inkSoft }}>
+              结束时间
+              <input
+                type="datetime-local"
+                value={filters.to_time}
+                onChange={(e) => setFilters((current) => ({ ...current, to_time: e.target.value }))}
+                className="mt-1 w-full rounded-lg px-3 py-2 text-sm outline-none transition-colors"
+                style={{ backgroundColor: LK.surfaceRaised, color: LK.inkSoft, border: `1px solid ${LK.border}` }}
+                onFocus={(e) => (e.currentTarget.style.borderColor = LK.primary)}
+                onBlur={(e) => (e.currentTarget.style.borderColor = LK.border)}
+              />
+            </label>
+          </div>
+          <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
+            <label className="inline-flex items-center gap-2 text-sm" style={{ color: LK.body }}>
+              <input
+                type="checkbox"
+                checked={filters.only_failed}
+                onChange={(e) => setFilters((current) => ({ ...current, only_failed: e.target.checked }))}
+              />
+              仅看失败事件
+            </label>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => void resetFilters()}
+                className="rounded-lg px-4 py-2 text-sm font-semibold transition-colors"
+                style={{ backgroundColor: LK.surfaceRaised, color: LK.body, border: `1px solid ${LK.border}` }}
+                onMouseEnter={(e) => (e.currentTarget.style.color = LK.ink)}
+                onMouseLeave={(e) => (e.currentTarget.style.color = LK.body)}
+              >
+                重置
+              </button>
+              <button
+                type="submit"
+                className="rounded-lg px-4 py-2 text-sm font-semibold transition-colors"
+                style={{ backgroundColor: LK.primary, color: '#ffffff' }}
+                onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = LK.primaryDeep)}
+                onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = LK.primary)}
+              >
+                服务端筛选
+              </button>
             </div>
-          </label>
-          <label className="block text-sm font-semibold text-theme-text-secondary">
-            事件分类
-            <input value={filters.event_category} onChange={(e) => setFilters((current) => ({ ...current, event_category: e.target.value }))} className="mt-1 w-full rounded-xl border border-theme-border bg-theme-elevated px-3 py-2 text-sm text-theme-text-primary" />
-          </label>
-          <label className="block text-sm font-semibold text-theme-text-secondary">
-            事件类型
-            <input value={filters.event_type} onChange={(e) => setFilters((current) => ({ ...current, event_type: e.target.value }))} className="mt-1 w-full rounded-xl border border-theme-border bg-theme-elevated px-3 py-2 text-sm text-theme-text-primary" />
-          </label>
-          <label className="block text-sm font-semibold text-theme-text-secondary">
-            结果状态
-            <select value={filters.result_status} onChange={(e) => setFilters((current) => ({ ...current, result_status: e.target.value }))} className="mt-1 w-full rounded-xl border border-theme-border bg-theme-elevated px-3 py-2 text-sm text-theme-text-primary">
-              <option value="">全部</option>
-              <option value="success">success</option>
-              <option value="failed">failed</option>
-              <option value="running">running</option>
-            </select>
-          </label>
-          <label className="block text-sm font-semibold text-theme-text-secondary">
-            事件来源
-            <input value={filters.event_source} onChange={(e) => setFilters((current) => ({ ...current, event_source: e.target.value }))} className="mt-1 w-full rounded-xl border border-theme-border bg-theme-elevated px-3 py-2 text-sm text-theme-text-primary" />
-          </label>
-          <label className="block text-sm font-semibold text-theme-text-secondary">
-            Actor
-            <input value={filters.actor} onChange={(e) => setFilters((current) => ({ ...current, actor: e.target.value }))} className="mt-1 w-full rounded-xl border border-theme-border bg-theme-elevated px-3 py-2 text-sm text-theme-text-primary" />
-          </label>
-          <label className="block text-sm font-semibold text-theme-text-secondary">
-            下游任务 ID
-            <input value={filters.downstream_task_id} onChange={(e) => setFilters((current) => ({ ...current, downstream_task_id: e.target.value }))} className="mt-1 w-full rounded-xl border border-theme-border bg-theme-elevated px-3 py-2 text-sm text-theme-text-primary" />
-          </label>
-          <label className="block text-sm font-semibold text-theme-text-secondary">
-            起始时间
-            <input type="datetime-local" value={filters.from_time} onChange={(e) => setFilters((current) => ({ ...current, from_time: e.target.value }))} className="mt-1 w-full rounded-xl border border-theme-border bg-theme-elevated px-3 py-2 text-sm text-theme-text-primary" />
-          </label>
-          <label className="block text-sm font-semibold text-theme-text-secondary">
-            结束时间
-            <input type="datetime-local" value={filters.to_time} onChange={(e) => setFilters((current) => ({ ...current, to_time: e.target.value }))} className="mt-1 w-full rounded-xl border border-theme-border bg-theme-elevated px-3 py-2 text-sm text-theme-text-primary" />
-          </label>
-        </div>
-        <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
-          <label className="inline-flex items-center gap-2 text-sm text-theme-text-secondary">
-            <input
-              type="checkbox"
-              checked={filters.only_failed}
-              onChange={(e) => setFilters((current) => ({ ...current, only_failed: e.target.checked }))}
-            />
-            仅看失败事件
-          </label>
-          <div className="flex items-center gap-2">
-            <button type="button" onClick={() => void resetFilters()} className="rounded-xl border border-theme-border px-4 py-2 text-sm font-semibold text-theme-text-secondary">
-              重置
-            </button>
-            <button type="submit" className="rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white">
-              服务端筛选
-            </button>
           </div>
         </div>
       </form>
 
-      {error ? <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">{error}</div> : null}
+      {error ? (
+        <div
+          className="rounded-lg px-4 py-3 text-sm"
+          style={{ backgroundColor: `${LK.error}14`, border: `1px solid ${LK.error}40`, color: LK.error }}
+        >
+          {error}
+        </div>
+      ) : null}
 
-      <div className="overflow-hidden rounded-2xl border border-theme-border bg-theme-surface shadow-sm">
-        <div className="flex items-center justify-between border-b border-theme-border px-4 py-3">
-          <div className="text-sm text-theme-text-faint">共 {total} 条事件</div>
+      <div
+        className="overflow-hidden rounded-xl"
+        style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}` }}
+      >
+        <div
+          className="flex items-center justify-between px-4 py-3"
+          style={{ borderBottom: `1px solid ${LK.border}` }}
+        >
+          <div className="text-sm" style={{ color: LK.muted }}>
+            共 {total} 条事件
+          </div>
           <div className="flex items-center gap-2 text-sm">
-            <span className="text-theme-text-faint">每页</span>
+            <span style={{ color: LK.muted }}>每页</span>
             <select
               value={pageSize}
               onChange={(e) => {
@@ -213,67 +345,105 @@ export const TaskCenterTimelinePage: React.FC<Props> = ({ projectId, taskId, onB
                 setPageSize(next);
                 setPage(1);
               }}
-              className="rounded-lg border border-theme-border bg-theme-elevated px-2 py-1 text-theme-text-primary"
+              className="rounded-lg px-2 py-1 outline-none transition-colors"
+              style={{ backgroundColor: LK.surfaceRaised, color: LK.inkSoft, border: `1px solid ${LK.border}` }}
+              onFocus={(e) => (e.currentTarget.style.borderColor = LK.primary)}
+              onBlur={(e) => (e.currentTarget.style.borderColor = LK.border)}
             >
               {[20, 50, 100, 200].map((size) => <option key={size} value={size}>{size}</option>)}
             </select>
           </div>
         </div>
         <div className="overflow-auto">
-          <table className="min-w-full text-sm">
-            <thead className="bg-theme-elevated text-left text-theme-text-faint">
-              <tr>
-                <th className="px-4 py-3">时间</th>
-                <th className="px-4 py-3">分类</th>
-                <th className="px-4 py-3">类型</th>
-                <th className="px-4 py-3">结果</th>
-                <th className="px-4 py-3">来源</th>
-                <th className="px-4 py-3">Actor</th>
-                <th className="px-4 py-3">消息</th>
-                <th className="px-4 py-3">下游任务</th>
-                <th className="px-4 py-3">调度载荷</th>
+          <table className="min-w-full border-separate border-spacing-0 text-sm">
+            <thead>
+              <tr className="text-left text-xs uppercase tracking-wider" style={{ color: LK.mutedSoft }}>
+                <th className="px-4 py-2.5 font-medium" style={{ borderBottom: `1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>时间</th>
+                <th className="px-4 py-2.5 font-medium" style={{ borderBottom: `1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>分类</th>
+                <th className="px-4 py-2.5 font-medium" style={{ borderBottom: `1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>类型</th>
+                <th className="px-4 py-2.5 font-medium" style={{ borderBottom: `1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>结果</th>
+                <th className="px-4 py-2.5 font-medium" style={{ borderBottom: `1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>来源</th>
+                <th className="px-4 py-2.5 font-medium" style={{ borderBottom: `1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>Actor</th>
+                <th className="px-4 py-2.5 font-medium" style={{ borderBottom: `1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>消息</th>
+                <th className="px-4 py-2.5 font-medium" style={{ borderBottom: `1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>下游任务</th>
+                <th className="px-4 py-2.5 font-medium" style={{ borderBottom: `1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>调度载荷</th>
               </tr>
             </thead>
             <tbody>
               {loading ? (
-                <tr><td className="px-4 py-10 text-center text-theme-text-faint" colSpan={9}><span className="inline-flex items-center gap-2"><Loader2 size={16} className="animate-spin" />加载中...</span></td></tr>
+                <tr>
+                  <td
+                    className="px-4 py-10 text-center"
+                    colSpan={9}
+                    style={{ color: LK.muted }}
+                  >
+                    <span className="inline-flex items-center gap-2">
+                      <Loader2 size={16} className="animate-spin" /> 加载中...
+                    </span>
+                  </td>
+                </tr>
               ) : null}
               {!loading && items.length === 0 ? (
-                <tr><td className="px-4 py-10 text-center text-theme-text-faint" colSpan={9}>暂无事件</td></tr>
+                <tr>
+                  <td className="px-4 py-10 text-center" colSpan={9} style={{ color: LK.muted }}>
+                    暂无事件
+                  </td>
+                </tr>
               ) : null}
               {!loading && items.map((item) => {
                 const expanded = expandedEventId === item.id;
                 const hasPayload = !!item.payload && Object.keys(item.payload).length > 0;
+                const resultColor = item.result_status === 'failed' ? LK.error : LK.success;
                 return (
                   <React.Fragment key={item.id}>
-                    <tr className="border-t border-theme-border align-top">
-                      <td className="px-4 py-3 whitespace-nowrap">{formatDateTime(item.created_at)}</td>
-                      <td className="px-4 py-3 font-mono text-xs">{item.event_category}</td>
-                      <td className="px-4 py-3 font-mono text-xs">{item.event_type}</td>
-                      <td className="px-4 py-3">
-                        <span className={item.result_status === 'failed' ? 'text-rose-600' : 'text-emerald-600'}>
+                    <tr className="align-top">
+                      <td className="px-4 py-3 whitespace-nowrap" style={{ borderBottom: `1px solid ${LK.borderSoft}`, color: LK.body }}>
+                        {formatDateTime(item.created_at)}
+                      </td>
+                      <td className="px-4 py-3" style={{ borderBottom: `1px solid ${LK.borderSoft}`, fontFamily: MONO, fontSize: '12px', color: LK.body }}>
+                        {item.event_category}
+                      </td>
+                      <td className="px-4 py-3" style={{ borderBottom: `1px solid ${LK.borderSoft}`, fontFamily: MONO, fontSize: '12px', color: LK.body }}>
+                        {item.event_type}
+                      </td>
+                      <td className="px-4 py-3" style={{ borderBottom: `1px solid ${LK.borderSoft}` }}>
+                        <span style={{ color: resultColor }}>
                           {item.result_status}
                         </span>
                       </td>
-                      <td className="px-4 py-3 font-mono text-xs">{item.event_source || '—'}</td>
-                      <td className="px-4 py-3 font-mono text-xs">{item.actor || '—'}</td>
-                      <td className="px-4 py-3 min-w-[24rem] text-theme-text-primary">{item.message || '—'}</td>
-                      <td className="px-4 py-3 font-mono text-xs">{item.downstream_task_id || '—'}</td>
-                      <td className="px-4 py-3">
+                      <td className="px-4 py-3" style={{ borderBottom: `1px solid ${LK.borderSoft}`, fontFamily: MONO, fontSize: '12px', color: LK.body }}>
+                        {item.event_source || '—'}
+                      </td>
+                      <td className="px-4 py-3" style={{ borderBottom: `1px solid ${LK.borderSoft}`, fontFamily: MONO, fontSize: '12px', color: LK.body }}>
+                        {item.actor || '—'}
+                      </td>
+                      <td className="px-4 py-3 min-w-[24rem]" style={{ borderBottom: `1px solid ${LK.borderSoft}`, color: LK.inkSoft }}>
+                        {item.message || '—'}
+                      </td>
+                      <td className="px-4 py-3" style={{ borderBottom: `1px solid ${LK.borderSoft}`, fontFamily: MONO, fontSize: '12px', color: LK.body }}>
+                        {item.downstream_task_id || '—'}
+                      </td>
+                      <td className="px-4 py-3" style={{ borderBottom: `1px solid ${LK.borderSoft}` }}>
                         <button
                           type="button"
                           disabled={!hasPayload}
                           onClick={() => setExpandedEventId(expanded ? '' : item.id)}
-                          className="rounded-lg border border-theme-border px-3 py-1 text-xs font-semibold text-theme-text-secondary disabled:opacity-40"
+                          className="rounded-lg px-3 py-1 text-xs font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-40"
+                          style={{ backgroundColor: LK.surfaceRaised, color: LK.body, border: `1px solid ${LK.border}` }}
+                          onMouseEnter={(e) => { if (!e.currentTarget.disabled) e.currentTarget.style.color = LK.ink; }}
+                          onMouseLeave={(e) => { e.currentTarget.style.color = LK.body; }}
                         >
                           {expanded ? '收起' : '查看'}
                         </button>
                       </td>
                     </tr>
                     {expanded && hasPayload ? (
-                      <tr className="border-t border-theme-border bg-theme-elevated/50">
+                      <tr style={{ backgroundColor: `${LK.surfaceRaised}80` }}>
                         <td className="px-4 py-3" colSpan={9}>
-                          <pre className="overflow-auto rounded-xl bg-theme-surface p-3 text-xs text-theme-text-primary">
+                          <pre
+                            className="overflow-auto rounded-lg p-3"
+                            style={{ backgroundColor: LK.surface, fontFamily: MONO, fontSize: '12px', color: LK.inkSoft }}
+                          >
                             {JSON.stringify(item.payload, null, 2)}
                           </pre>
                         </td>
@@ -285,13 +455,34 @@ export const TaskCenterTimelinePage: React.FC<Props> = ({ projectId, taskId, onB
             </tbody>
           </table>
         </div>
-        <div className="flex items-center justify-between border-t border-theme-border px-4 py-3 text-sm">
-          <div className="text-theme-text-faint">第 {page} / {totalPages} 页</div>
+        <div
+          className="flex items-center justify-between px-4 py-3 text-sm"
+          style={{ borderTop: `1px solid ${LK.border}` }}
+        >
+          <div style={{ color: LK.muted }}>
+            第 {page} / {totalPages} 页
+          </div>
           <div className="flex items-center gap-2">
-            <button type="button" onClick={() => setPage((current) => Math.max(1, current - 1))} disabled={page <= 1 || loading} className="rounded-lg border border-theme-border px-3 py-1.5 text-theme-text-secondary disabled:opacity-40">
+            <button
+              type="button"
+              onClick={() => setPage((current) => Math.max(1, current - 1))}
+              disabled={page <= 1 || loading}
+              className="rounded-lg px-3 py-1.5 text-sm font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-40"
+              style={{ backgroundColor: LK.surfaceRaised, color: LK.body, border: `1px solid ${LK.border}` }}
+              onMouseEnter={(e) => { if (!e.currentTarget.disabled) e.currentTarget.style.color = LK.ink; }}
+              onMouseLeave={(e) => { e.currentTarget.style.color = LK.body; }}
+            >
               上一页
             </button>
-            <button type="button" onClick={() => setPage((current) => Math.min(totalPages, current + 1))} disabled={page >= totalPages || loading} className="rounded-lg border border-theme-border px-3 py-1.5 text-theme-text-secondary disabled:opacity-40">
+            <button
+              type="button"
+              onClick={() => setPage((current) => Math.min(totalPages, current + 1))}
+              disabled={page >= totalPages || loading}
+              className="rounded-lg px-3 py-1.5 text-sm font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-40"
+              style={{ backgroundColor: LK.surfaceRaised, color: LK.body, border: `1px solid ${LK.border}` }}
+              onMouseEnter={(e) => { if (!e.currentTarget.disabled) e.currentTarget.style.color = LK.ink; }}
+              onMouseLeave={(e) => { e.currentTarget.style.color = LK.body; }}
+            >
               下一页
             </button>
           </div>

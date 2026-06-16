@@ -186,6 +186,10 @@ export const renderCurrentView = (ctx: ViewRegistryContext): React.ReactNode => 
           staticPackages={ctx.staticPackages}
           templates={ctx.templates}
           servicesCount={ctx.dashboardServicesCount}
+          packageStats={ctx.packageStats}
+          adminStats={ctx.adminStats}
+          adminStatsLoading={ctx.adminStatsLoading}
+          fetchAdminStats={ctx.fetchAdminStats}
           setCurrentView={ctx.setCurrentView}
         />
       );
@@ -226,6 +230,10 @@ export const renderCurrentView = (ctx: ViewRegistryContext): React.ReactNode => 
       return <WebEndToEndPage projectId={ctx.selectedProjectId} />;
     case 'task-knowledge-graph':
       return <KnowledgeGraphPage projectId={ctx.selectedProjectId} projects={ctx.projects} />;
+    case 'assessment-coming-soon':
+    case 'observe-coming-soon':
+    case 'skill-coming-soon':
+      return <EmptyPlaceholderPage title="开发中" />;
     case 'developer-atomic-capability':
     case 'developer-atomic-capability-overview':
       return <AtomicCapabilityOverviewPage projectId={ctx.selectedProjectId} onNavigate={ctx.setCurrentView} />;

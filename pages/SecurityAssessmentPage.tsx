@@ -91,22 +91,22 @@ export const SecurityAssessmentPage: React.FC = () => {
         </div>
 
         <div className="space-y-6">
-          <div className="bg-slate-900 p-8 rounded-[2.5rem] text-white space-y-6 relative overflow-hidden">
-            <Activity className="absolute right-[-20px] top-[-20px] w-40 h-40 opacity-5 rotate-12" />
+          <div className="bg-white p-8 rounded-[2.5rem] border border-slate-200 shadow-sm space-y-6 relative overflow-hidden">
+            <Activity className="absolute right-[-20px] top-[-20px] w-40 h-40 text-slate-100 opacity-80 rotate-12" />
             <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-widest">实时评估统计</h4>
             <div className="grid grid-cols-2 gap-4">
-              <div className="bg-white/5 p-4 rounded-2xl border border-white/5">
+              <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200">
                 <p className="text-[10px] font-bold text-slate-400 uppercase">累计评估</p>
-                <p className="text-2xl font-black mt-1">128</p>
+                <p className="text-2xl font-black mt-1 text-slate-900">128</p>
               </div>
-              <div className="bg-white/5 p-4 rounded-2xl border border-white/5">
+              <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200">
                 <p className="text-[10px] font-bold text-slate-400 uppercase">平均得分</p>
-                <p className="text-2xl font-black mt-1 text-green-400">82</p>
+                <p className="text-2xl font-black mt-1 text-green-600">82</p>
               </div>
             </div>
-            <div className="pt-6 border-t border-white/10">
+            <div className="pt-6 border-t border-slate-200">
               <div className="flex items-center justify-between mb-4">
-                <span className="text-xs font-bold text-slate-400">风险分布</span>
+                <span className="text-xs font-bold text-slate-500">风险分布</span>
               </div>
               <div className="space-y-3">
                 <div className="flex justify-between items-center text-xs">

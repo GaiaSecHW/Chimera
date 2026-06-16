@@ -6,7 +6,6 @@ import {
   AlertTriangle,
   ClipboardCopy,
   FileClock,
-  FolderOpen,
   Layers3,
   ListTodo,
   RefreshCw,
@@ -14,6 +13,34 @@ import {
   ShieldCheck,
   Sparkles,
 } from 'lucide-react';
+
+const LK = {
+  primary: '#4f73ff',
+  primarySoft: '#7590ff',
+  primaryDeep: '#3f63f1',
+  primaryMuted: 'rgba(79, 115, 255, 0.14)',
+  canvas: '#070d18',
+  surface: '#111a2b',
+  surfaceRaised: '#18233a',
+  surfaceGlass: 'rgba(17, 26, 43, 0.84)',
+  border: '#26324a',
+  borderSoft: '#1b2438',
+  ink: '#f5f7ff',
+  inkSoft: '#d6def0',
+  body: '#a4aec4',
+  muted: '#72809a',
+  mutedSoft: '#8b95a8',
+  success: '#45c06f',
+  warning: '#d5a13a',
+  error: '#f15d5d',
+  info: '#4f8cff',
+  critical: '#ff4d4f',
+  high: '#ff8b3d',
+  medium: '#f0b64c',
+  low: '#49c5ff',
+} as const;
+
+const MONO = 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace';
 
 import type {
   VulnCaseDisplaySummary,
@@ -40,7 +67,7 @@ type DetailTab = 'report' | 'evidence' | 'timeline' | 'actions' | 'tasks' | 'con
 
 function MarkdownContent({ content }: { content: string }) {
   return (
-    <div className="markdown-body break-words leading-7 text-sm text-slate-700">
+    <div className="markdown-body break-words leading-7 text-sm" style={{ color: LK.body }}>
       <ReactMarkdown remarkPlugins={[remarkGfm]}>{content}</ReactMarkdown>
     </div>
   );
@@ -48,10 +75,13 @@ function MarkdownContent({ content }: { content: string }) {
 
 function MetricCard({ label, value, helper }: { label: string; value: React.ReactNode; helper?: React.ReactNode }) {
   return (
-    <div className="rounded-[1.35rem] border border-slate-200 bg-white px-4 py-4 shadow-sm">
-      <div className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-400">{label}</div>
-      <div className="mt-2 text-xl font-black text-slate-900">{value}</div>
-      {helper ? <div className="mt-1 text-xs text-slate-500">{helper}</div> : null}
+    <div
+      className="rounded-lg px-3 py-3"
+      style={{ backgroundColor: LK.surfaceRaised, border: '1px solid ' + LK.borderSoft }}
+    >
+      <div className="text-xs" style={{ color: LK.muted }}>{label}</div>
+      <div className="mt-2 text-lg font-semibold leading-6" style={{ color: LK.ink }}>{value}</div>
+      {helper ? <div className="mt-1 text-xs" style={{ color: LK.body }}>{helper}</div> : null}
     </div>
   );
 }
@@ -125,45 +155,79 @@ export const VulnCaseDetailLayout: React.FC<{
   );
 
   return (
-    <div className="space-y-5">
-      <section className="rounded-[2rem] border border-slate-200 bg-gradient-to-br from-white via-white to-slate-50 px-6 py-6 shadow-sm">
-        <div className="flex flex-col gap-5 xl:flex-row xl:items-start xl:justify-between">
+    <div className="space-y-4">
+      <section
+        className="overflow-hidden rounded-xl"
+        style={{ backgroundColor: LK.surface, border: '1px solid ' + LK.border }}
+      >
+        <div className="flex flex-col gap-4 px-4 py-4 xl:flex-row xl:items-start xl:justify-between">
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-2">
-              <span className={`rounded-lg px-2.5 py-1 text-[10px] font-black uppercase tracking-widest ${toneOf(caseDetail?.severity, severityTone)}`}>
+              <span
+                className="inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium"
+                style={{ backgroundColor: LK.primaryMuted, color: LK.primary }}
+              >
                 {labelOf(caseDetail?.severity, SEVERITY_LABELS)}
               </span>
-              <span className="rounded-lg bg-slate-100 px-2.5 py-1 text-[10px] font-black uppercase tracking-widest text-slate-600">
+              <span
+                className="inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium"
+                style={{ backgroundColor: LK.surfaceRaised, color: LK.body }}
+              >
                 {labelOf(caseDetail?.current_stage, STAGE_LABELS)}
               </span>
               {caseDetail?.decision_status ? (
-                <span className="rounded-lg bg-blue-100 px-2.5 py-1 text-[10px] font-black uppercase tracking-widest text-blue-700">
+                <span
+                  className="inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium"
+                  style={{ backgroundColor: `${LK.primary}22`, color: LK.primary }}
+                >
                   {labelOf(caseDetail?.decision_status, DECISION_LABELS)}
                 </span>
               ) : null}
             </div>
-            <h2 className="mt-4 text-3xl font-black tracking-tight text-slate-900">{displaySummary.title || caseDetail?.title}</h2>
-            <p className="mt-2 max-w-4xl text-sm leading-7 text-slate-600">{displaySummary.subtitle || caseDetail?.summary || '暂无摘要'}</p>
-            <div className="mt-4 flex flex-wrap gap-4 text-xs text-slate-500">
-              <span>案例 ID：<span className="font-mono text-slate-700">{caseDetail?.id}</span></span>
-              {caseDetail?.global_vuln_id ? <span>全局 ID：<span className="font-mono text-slate-700">{caseDetail.global_vuln_id}</span></span> : null}
+            <h2 className="mt-3 text-2xl font-semibold leading-8 tracking-tight" style={{ color: LK.ink }}>
+              {displaySummary.title || caseDetail?.title}
+            </h2>
+            <p className="mt-2 max-w-4xl text-sm leading-6" style={{ color: LK.body }}>
+              {displaySummary.subtitle || caseDetail?.summary || '暂无摘要'}
+            </p>
+            <div className="mt-3 flex flex-wrap gap-4 text-xs" style={{ color: LK.muted }}>
+              <span>案例 ID：<span style={{ fontFamily: MONO, color: LK.body }}>{caseDetail?.id}</span></span>
+              {caseDetail?.global_vuln_id ? <span>全局 ID：<span style={{ fontFamily: MONO, color: LK.body }}>{caseDetail.global_vuln_id}</span></span> : null}
               <span>更新时间：{formatTime(caseDetail?.updated_at || caseDetail?.created_at)}</span>
               {displaySummary.current_report_updated_at ? <span>报告更新：{formatTime(displaySummary.current_report_updated_at)}</span> : null}
             </div>
           </div>
           <div className="flex shrink-0 flex-wrap gap-2">
             {onCreateAutoVerify ? (
-              <button onClick={onCreateAutoVerify} className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-4 py-2 text-xs font-black text-white shadow-sm shadow-blue-500/20 transition hover:bg-blue-700">
+              <button
+                onClick={onCreateAutoVerify}
+                className="inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition-colors"
+                style={{ backgroundColor: LK.primary, color: '#ffffff' }}
+                onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = LK.primaryDeep; }}
+                onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = LK.primary; }}
+              >
                 <ShieldCheck size={14} />
                 新建自动化验证任务
               </button>
             ) : null}
-            <button onClick={onRefresh} className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-black text-slate-700">
+            <button
+              onClick={onRefresh}
+              className="inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition-colors"
+              style={{ backgroundColor: LK.surfaceRaised, color: LK.body, border: '1px solid ' + LK.border }}
+              onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = LK.primaryMuted; e.currentTarget.style.color = LK.primary; e.currentTarget.style.borderColor = LK.primary; }}
+              onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = LK.surfaceRaised; e.currentTarget.style.color = LK.body; e.currentTarget.style.borderColor = LK.border; }}
+            >
               <RefreshCw size={14} />
               刷新
             </button>
             {selectedReportMeta?.download_url ? (
-              <a href={selectedReportMeta.download_url} className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-black text-slate-700">
+              <a
+                href={selectedReportMeta.download_url}
+                className="inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition-colors"
+                style={{ backgroundColor: LK.surfaceRaised, color: LK.body, border: '1px solid ' + LK.border }}
+                onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = LK.primaryMuted; e.currentTarget.style.color = LK.primary; e.currentTarget.style.borderColor = LK.primary; }}
+                onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = LK.surfaceRaised; e.currentTarget.style.color = LK.body; e.currentTarget.style.borderColor = LK.border; }}
+              >
                 <ScrollText size={14} />
                 下载报告
               </a>
@@ -171,7 +235,7 @@ export const VulnCaseDetailLayout: React.FC<{
           </div>
         </div>
 
-        <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+        <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4 px-4 pb-4">
           <MetricCard label="验证结果" value={labelOf(caseDetail?.validation_result, VALIDATION_RESULT_LABELS) || '-'} helper={caseDetail?.finished_reason ? `结束原因：${labelOf(caseDetail?.finished_reason, FINISHED_REASON_LABELS)}` : undefined} />
           <MetricCard label="主报告" value={displaySummary.current_report_title || selectedReportMeta?.title || '-'} helper={selectedReportMeta?.report_kind || undefined} />
           <MetricCard label="主体对象" value={displaySummary.subject?.locator || caseDetail?.subject?.locator || '-'} helper={displaySummary.subject?.type || caseDetail?.subject?.type || undefined} />
@@ -179,63 +243,81 @@ export const VulnCaseDetailLayout: React.FC<{
         </div>
       </section>
 
-      <section className="grid gap-5 xl:grid-cols-[minmax(0,1.6fr)_340px]">
-        <div className="rounded-[2rem] border border-slate-200 bg-white shadow-sm overflow-hidden">
-          <div className="border-b border-slate-100 px-6 py-4">
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <div>
-                <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">主报告</div>
-                <div className="mt-1 text-lg font-black text-slate-900">{selectedReportMeta?.title || '暂无结构化报告'}</div>
+      <section className="grid gap-4 xl:grid-cols-[minmax(0,1.6fr)_340px]">
+        <div
+          className="overflow-hidden rounded-xl"
+          style={{ backgroundColor: LK.surface, border: '1px solid ' + LK.border }}
+        >
+          <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3" style={{ borderBottom: '1px solid ' + LK.borderSoft }}>
+            <div>
+              <div className="text-xs font-semibold uppercase tracking-wider" style={{ color: LK.mutedSoft }}>主报告</div>
+              <div className="mt-1 text-base font-semibold leading-6" style={{ color: LK.ink }}>
+                {selectedReportMeta?.title || '暂无结构化报告'}
               </div>
-              {reportItems.length > 0 ? (
-                <select
-                  value={selectedReportId}
-                  onChange={(event) => onSelectReport(event.target.value)}
-                  className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700"
-                >
-                  {reportItems.map((item) => (
-                    <option key={item.report_id} value={item.report_id}>
-                      {item.title} · {item.stage}
-                    </option>
-                  ))}
-                </select>
-              ) : null}
             </div>
+            {reportItems.length > 0 ? (
+              <select
+                value={selectedReportId}
+                onChange={(event) => onSelectReport(event.target.value)}
+                className="rounded-lg px-3 py-2 text-sm font-semibold outline-none transition-colors"
+                style={{ backgroundColor: LK.surfaceRaised, color: LK.inkSoft, border: '1px solid ' + LK.border }}
+                onFocus={(e) => (e.currentTarget.style.borderColor = LK.primary)}
+                onBlur={(e) => (e.currentTarget.style.borderColor = LK.border)}
+              >
+                {reportItems.map((item) => (
+                  <option key={item.report_id} value={item.report_id}>
+                    {item.title} · {item.stage}
+                  </option>
+                ))}
+              </select>
+            ) : null}
           </div>
-          <div className="max-h-[calc(100vh-22rem)] overflow-auto px-6 py-6">
+          <div className="max-h-[calc(100vh-22rem)] overflow-auto px-4 py-4">
             {reportLoading ? (
-              <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-6 py-14 text-center text-sm text-slate-500">报告加载中...</div>
+              <div className="rounded-xl px-4 py-8 text-center text-sm" style={{ color: LK.muted }}>报告加载中...</div>
             ) : reportError ? (
-              <div className="rounded-2xl border border-rose-200 bg-rose-50 px-6 py-10 text-sm text-rose-700">{reportError}</div>
+              <div className="rounded-lg px-4 py-6 text-sm" style={{ backgroundColor: `${LK.error}14`, border: '1px solid ' + LK.error + '40', color: LK.error }}>
+                {reportError}
+              </div>
             ) : reportDocument?.content ? (
               <MarkdownContent content={reportDocument.content} />
             ) : (
-              <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-6 py-14 text-center text-sm text-slate-500">
-                当前案例暂无结构化 Markdown 报告，请查看“证据”或“原始数据”标签。
+              <div className="rounded-xl px-4 py-8 text-center text-sm" style={{ color: LK.muted }}>
+                当前案例暂无结构化 Markdown 报告，请查看"证据"或"原始数据"标签。
               </div>
             )}
           </div>
         </div>
 
         <div className="space-y-4">
-          <section className="rounded-[2rem] border border-slate-200 bg-white p-5 shadow-sm">
-            <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">关键结论</div>
-            <div className="mt-4 space-y-3">
+          <section
+            className="rounded-xl px-4 py-4"
+            style={{ backgroundColor: LK.surface, border: '1px solid ' + LK.border }}
+          >
+            <div className="text-xs font-semibold uppercase tracking-wider" style={{ color: LK.mutedSoft }}>关键结论</div>
+            <div className="mt-3 space-y-2">
               {(displaySummary.key_points || []).length > 0 ? (
                 (displaySummary.key_points || []).map((point, index) => (
-                  <div key={`${index}-${point}`} className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 text-sm text-slate-700">
+                  <div
+                    key={`${index}-${point}`}
+                    className="rounded-lg px-3 py-3 text-sm"
+                    style={{ backgroundColor: LK.surfaceRaised, border: '1px solid ' + LK.borderSoft, color: LK.body }}
+                  >
                     {point}
                   </div>
                 ))
               ) : (
-                <div className="rounded-xl border border-dashed border-slate-300 px-3 py-4 text-sm text-slate-400">暂无关键结论摘要</div>
+                <div className="rounded-lg px-3 py-4 text-sm" style={{ color: LK.muted }}>暂无关键结论摘要</div>
               )}
             </div>
           </section>
 
-          <section className="rounded-[2rem] border border-slate-200 bg-white p-5 shadow-sm">
-            <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">工作区概览</div>
-            <div className="mt-4 grid grid-cols-2 gap-3">
+          <section
+            className="rounded-xl px-4 py-4"
+            style={{ backgroundColor: LK.surface, border: '1px solid ' + LK.border }}
+          >
+            <div className="text-xs font-semibold uppercase tracking-wider" style={{ color: LK.mutedSoft }}>工作区概览</div>
+            <div className="mt-3 grid grid-cols-2 gap-2">
               <MetricCard label="时间线" value={workspaceSummary.timeline_count ?? timeline.length} />
               <MetricCard label="动作" value={workspaceSummary.action_count ?? actions.length} />
               <MetricCard label="结果" value={workspaceSummary.result_count ?? results.length} />
@@ -244,97 +326,160 @@ export const VulnCaseDetailLayout: React.FC<{
           </section>
 
           {stageActionContent ? (
-            <section className="rounded-[2rem] border border-slate-200 bg-white p-5 shadow-sm">
-              <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">阶段操作</div>
-              <div className="mt-4">{stageActionContent}</div>
+            <section
+              className="rounded-xl px-4 py-4"
+              style={{ backgroundColor: LK.surface, border: '1px solid ' + LK.border }}
+            >
+              <div className="text-xs font-semibold uppercase tracking-wider" style={{ color: LK.mutedSoft }}>阶段操作</div>
+              <div className="mt-3">{stageActionContent}</div>
             </section>
           ) : null}
         </div>
       </section>
 
-      <section className="rounded-[2rem] border border-slate-200 bg-white shadow-sm overflow-hidden">
-        <div className="border-b border-slate-100 px-4 py-3">
-          <div className="flex flex-wrap gap-2">
-            {[
-              { key: 'report', label: '报告', icon: ScrollText },
-              { key: 'evidence', label: '证据', icon: AlertTriangle },
-              { key: 'timeline', label: '时间线', icon: FileClock },
-              { key: 'actions', label: '动作', icon: Sparkles },
-              { key: 'tasks', label: '人工任务', icon: ListTodo },
-              { key: 'context', label: '关联上下文', icon: Layers3 },
-              { key: 'raw', label: '原始数据', icon: Activity },
-            ].map((tab) => {
-              const Icon = tab.icon;
-              const active = activeTab === tab.key;
-              return (
-                <button
-                  key={tab.key}
-                  onClick={() => setActiveTab(tab.key as DetailTab)}
-                  className={`inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-black ${active ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-600'}`}
-                >
-                  <Icon size={15} />
-                  {tab.label}
-                </button>
-              );
-            })}
-          </div>
+      <section
+        className="overflow-hidden rounded-xl"
+        style={{ backgroundColor: LK.surface, border: '1px solid ' + LK.border }}
+      >
+        <div className="flex flex-wrap gap-2 px-4 py-3" style={{ borderBottom: '1px solid ' + LK.borderSoft }}>
+          {[
+            { key: 'report', label: '报告', icon: ScrollText },
+            { key: 'evidence', label: '证据', icon: AlertTriangle },
+            { key: 'timeline', label: '时间线', icon: FileClock },
+            { key: 'actions', label: '动作', icon: Sparkles },
+            { key: 'tasks', label: '人工任务', icon: ListTodo },
+            { key: 'context', label: '关联上下文', icon: Layers3 },
+            { key: 'raw', label: '原始数据', icon: Activity },
+          ].map((tab) => {
+            const Icon = tab.icon;
+            const active = activeTab === tab.key;
+            return (
+              <button
+                key={tab.key}
+                onClick={() => setActiveTab(tab.key as DetailTab)}
+                className="inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition-colors"
+                style={{
+                  backgroundColor: active ? LK.primaryMuted : LK.surfaceRaised,
+                  color: active ? LK.primary : LK.body,
+                  borderBottom: active ? '2px solid ' + LK.primary : '2px solid transparent',
+                }}
+                onMouseEnter={(e) => { if (!active) e.currentTarget.style.color = LK.ink; }}
+                onMouseLeave={(e) => { if (!active) e.currentTarget.style.color = LK.body; }}
+              >
+                <Icon size={15} />
+                {tab.label}
+              </button>
+            );
+          })}
         </div>
 
-        <div className="px-6 py-5">
+        <div className="px-4 py-4">
           {activeTab === 'report' ? (
-            <div className="space-y-4">
+            <div className="space-y-3">
               {resultSummary.report_candidates?.length ? (
                 <div className="grid gap-3 xl:grid-cols-2">
                   {resultSummary.report_candidates.map((item: VulnCaseReportSummary) => (
-                    <button key={item.report_id} onClick={() => onSelectReport(item.report_id)} className={`rounded-[1.3rem] border px-4 py-4 text-left ${selectedReportId === item.report_id ? 'border-slate-900 bg-slate-900 text-white' : 'border-slate-200 bg-slate-50 text-slate-700'}`}>
+                    <button
+                      key={item.report_id}
+                      onClick={() => onSelectReport(item.report_id)}
+                      className="rounded-lg px-4 py-3 text-left transition-colors"
+                      style={{
+                        border: '1px solid ' + (selectedReportId === item.report_id ? LK.primary : LK.border),
+                        backgroundColor: selectedReportId === item.report_id ? LK.primaryMuted : LK.surfaceRaised,
+                        color: selectedReportId === item.report_id ? LK.primary : LK.body,
+                      }}
+                      onMouseEnter={(e) => {
+                        if (selectedReportId !== item.report_id) {
+                          e.currentTarget.style.backgroundColor = LK.surface;
+                          e.currentTarget.style.color = LK.inkSoft;
+                        }
+                      }}
+                      onMouseLeave={(e) => {
+                        if (selectedReportId !== item.report_id) {
+                          e.currentTarget.style.backgroundColor = LK.surfaceRaised;
+                          e.currentTarget.style.color = LK.body;
+                        }
+                      }}
+                    >
                       <div className="flex items-center justify-between gap-3">
-                        <div className="text-sm font-black">{item.title}</div>
-                        <div className="text-[10px] font-black uppercase tracking-widest">{item.stage}</div>
+                        <div className="text-sm font-semibold">{item.title}</div>
+                        <div className="text-xs font-semibold uppercase" style={{ color: selectedReportId === item.report_id ? LK.primary : LK.muted }}>
+                          {item.stage}
+                        </div>
                       </div>
-                      <div className={`mt-2 text-xs ${selectedReportId === item.report_id ? 'text-slate-300' : 'text-slate-500'}`}>{item.excerpt || '暂无摘要'}</div>
+                      <div className="mt-2 text-xs" style={{ color: selectedReportId === item.report_id ? LK.primarySoft : LK.muted }}>
+                        {item.excerpt || '暂无摘要'}
+                      </div>
                     </button>
                   ))}
                 </div>
               ) : (
-                <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-6 py-10 text-center text-sm text-slate-500">暂无报告索引</div>
+                <div className="rounded-xl px-4 py-8 text-center text-sm" style={{ color: LK.muted }}>暂无报告索引</div>
               )}
             </div>
           ) : null}
 
           {activeTab === 'evidence' ? (
             <div className="space-y-4">
-              <div className="rounded-[1.5rem] border border-slate-200 bg-slate-50 px-5 py-4">
-                <div className="text-sm font-black text-slate-900">证据摘要</div>
-                <div className="mt-2 text-sm leading-7 text-slate-600">{evidenceSummary.summary || '暂无证据摘要'}</div>
-                {evidenceSummary.reproduction_hint ? <div className="mt-3 rounded-xl bg-white px-3 py-3 text-sm text-slate-700">复现提示：{evidenceSummary.reproduction_hint}</div> : null}
+              <div
+                className="rounded-xl px-4 py-4"
+                style={{ backgroundColor: LK.surfaceRaised, border: '1px solid ' + LK.borderSoft }}
+              >
+                <div className="text-sm font-semibold" style={{ color: LK.ink }}>证据摘要</div>
+                <div className="mt-2 text-sm leading-6" style={{ color: LK.body }}>
+                  {evidenceSummary.summary || '暂无证据摘要'}
+                </div>
+                {evidenceSummary.reproduction_hint ? (
+                  <div className="mt-3 rounded-lg px-3 py-3 text-sm" style={{ backgroundColor: LK.surface, color: LK.body }}>
+                    复现提示：{evidenceSummary.reproduction_hint}
+                  </div>
+                ) : null}
               </div>
               <div className="grid gap-4 xl:grid-cols-2">
-                <div className="rounded-[1.5rem] border border-slate-200 p-4">
-                  <div className="text-sm font-black text-slate-900">证明项</div>
-                  <div className="mt-3 space-y-3">
-                    {(evidenceSummary.proof_items || []).length > 0 ? (evidenceSummary.proof_items || []).map((item, index) => (
-                      <div key={`${item.result_id || index}`} className="rounded-xl bg-slate-50 px-3 py-3 text-sm text-slate-700">
-                        <div className="font-black">{item.result_type || 'result'} / {item.status || '-'}</div>
-                        <div className="mt-1 text-xs text-slate-500">{item.summary || '暂无摘要'}</div>
-                      </div>
-                    )) : <div className="rounded-xl border border-dashed border-slate-300 px-3 py-6 text-center text-sm text-slate-400">暂无证明项</div>}
+                <div className="rounded-xl p-4" style={{ backgroundColor: LK.surface, border: '1px solid ' + LK.border }}>
+                  <div className="text-sm font-semibold" style={{ color: LK.ink }}>证明项</div>
+                  <div className="mt-3 space-y-2">
+                    {(evidenceSummary.proof_items || []).length > 0 ? (
+                      (evidenceSummary.proof_items || []).map((item, index) => (
+                        <div
+                          key={`${item.result_id || index}`}
+                          className="rounded-lg px-3 py-3 text-sm"
+                          style={{ backgroundColor: LK.surfaceRaised, color: LK.body }}
+                        >
+                          <div className="font-semibold">{item.result_type || 'result'} / {item.status || '-'}</div>
+                          <div className="mt-1 text-xs" style={{ color: LK.muted }}>{item.summary || '暂无摘要'}</div>
+                        </div>
+                      ))
+                    ) : (
+                      <div className="rounded-lg px-3 py-6 text-center text-sm" style={{ color: LK.muted }}>暂无证明项</div>
+                    )}
                   </div>
                 </div>
-                <div className="rounded-[1.5rem] border border-slate-200 p-4">
-                  <div className="text-sm font-black text-slate-900">参考与产物</div>
-                  <div className="mt-3 space-y-3">
+                <div className="rounded-xl p-4" style={{ backgroundColor: LK.surface, border: '1px solid ' + LK.border }}>
+                  <div className="text-sm font-semibold" style={{ color: LK.ink }}>参考与产物</div>
+                  <div className="mt-3 space-y-2">
                     {(evidenceSummary.references || []).map((item: any, index) => (
-                      <div key={`ref-${index}`} className="rounded-xl bg-slate-50 px-3 py-3 text-sm text-slate-700">
+                      <div
+                        key={`ref-${index}`}
+                        className="rounded-lg px-3 py-3 text-sm"
+                        style={{ backgroundColor: LK.surfaceRaised, color: LK.body }}
+                      >
                         <pre className="whitespace-pre-wrap break-words text-xs">{JSON.stringify(item, null, 2)}</pre>
                       </div>
                     ))}
                     {(evidenceSummary.artifacts || []).map((item: any, index) => (
-                      <div key={`artifact-${index}`} className="rounded-xl bg-slate-50 px-3 py-3 text-sm text-slate-700">
-                        <div className="font-black">{item.name || item.path || item.filename || 'artifact'}</div>
-                        <div className="mt-1 text-xs text-slate-500">{item.path || item.relative_path || item.storage_key || '-'}</div>
+                      <div
+                        key={`artifact-${index}`}
+                        className="rounded-lg px-3 py-3 text-sm"
+                        style={{ backgroundColor: LK.surfaceRaised, color: LK.body }}
+                      >
+                        <div className="font-semibold">{item.name || item.path || item.filename || 'artifact'}</div>
+                        <div className="mt-1 text-xs" style={{ color: LK.muted }}>{item.path || item.relative_path || item.storage_key || '-'}</div>
                       </div>
                     ))}
-                    {(evidenceSummary.references || []).length === 0 && (evidenceSummary.artifacts || []).length === 0 ? <div className="rounded-xl border border-dashed border-slate-300 px-3 py-6 text-center text-sm text-slate-400">暂无参考或产物</div> : null}
+                    {(evidenceSummary.references || []).length === 0 && (evidenceSummary.artifacts || []).length === 0 ? (
+                      <div className="rounded-lg px-3 py-6 text-center text-sm" style={{ color: LK.muted }}>暂无参考或产物</div>
+                    ) : null}
                   </div>
                 </div>
               </div>
@@ -344,63 +489,109 @@ export const VulnCaseDetailLayout: React.FC<{
           {activeTab === 'timeline' ? (
             <div className="space-y-3">
               {timeline.length ? timeline.map((item: any) => (
-                <div key={item.id} className="rounded-[1.3rem] border border-slate-200 px-4 py-4">
+                <div
+                  key={item.id}
+                  className="rounded-lg px-4 py-3"
+                  style={{ backgroundColor: LK.surface, border: '1px solid ' + LK.border }}
+                >
                   <div className="flex items-center justify-between gap-3">
                     <div className="flex items-center gap-2">
-                      <span className="rounded-lg bg-blue-100 px-2 py-1 text-[10px] font-black uppercase tracking-widest text-blue-700">{item.item_type}</span>
-                      <span className="text-xs text-slate-400">{formatTime(item.created_at)}</span>
+                      <span
+                        className="rounded-full px-2 py-1 text-xs font-medium"
+                        style={{ backgroundColor: `${LK.primary}22`, color: LK.primary }}
+                      >
+                        {item.item_type}
+                      </span>
+                      <span className="text-xs" style={{ color: LK.muted }}>{formatTime(item.created_at)}</span>
                     </div>
                   </div>
-                  <pre className="mt-3 whitespace-pre-wrap break-words text-xs text-slate-600">{JSON.stringify(item.payload, null, 2)}</pre>
+                  <pre className="mt-3 whitespace-pre-wrap break-words text-xs" style={{ color: LK.body }}>
+                    {JSON.stringify(item.payload, null, 2)}
+                  </pre>
                 </div>
-              )) : <div className="rounded-2xl border border-dashed border-slate-300 px-6 py-10 text-center text-sm text-slate-400">暂无时间线</div>}
+              )) : <div className="rounded-xl px-4 py-8 text-center text-sm" style={{ color: LK.muted }}>暂无时间线</div>}
             </div>
           ) : null}
 
           {activeTab === 'actions' ? (
             <div className="space-y-3">
               {actions.length ? actions.map((item: any) => (
-                <div key={item.id} className="rounded-[1.3rem] border border-slate-200 px-4 py-4">
+                <div
+                  key={item.id}
+                  className="rounded-lg px-4 py-3"
+                  style={{ backgroundColor: LK.surface, border: '1px solid ' + LK.border }}
+                >
                   <div className="flex flex-wrap items-center gap-2">
-                    <span className="rounded-lg bg-blue-100 px-2 py-1 text-[10px] font-black uppercase tracking-widest text-blue-700">{labelOf(item.action_type, ACTION_TYPE_LABELS)}</span>
-                    <span className="rounded-lg bg-slate-100 px-2 py-1 text-[10px] font-black uppercase tracking-widest text-slate-600">{item.execution_status}</span>
-                    {item.target_service_id ? <span className="rounded-lg bg-emerald-100 px-2 py-1 text-[10px] font-black uppercase tracking-widest text-emerald-700">{item.target_service_id}</span> : null}
+                    <span
+                      className="rounded-full px-2 py-1 text-xs font-medium"
+                      style={{ backgroundColor: `${LK.primary}22`, color: LK.primary }}
+                    >
+                      {labelOf(item.action_type, ACTION_TYPE_LABELS)}
+                    </span>
+                    <span
+                      className="rounded-full px-2 py-1 text-xs font-medium"
+                      style={{ backgroundColor: LK.surfaceRaised, color: LK.body }}
+                    >
+                      {item.execution_status}
+                    </span>
+                    {item.target_service_id ? (
+                      <span
+                        className="rounded-full px-2 py-1 text-xs font-medium"
+                        style={{ backgroundColor: `${LK.success}22`, color: LK.success }}
+                      >
+                        {item.target_service_id}
+                      </span>
+                    ) : null}
                   </div>
-                  <div className="mt-3 text-sm font-black text-slate-900">{item.result_summary || '暂无结果摘要'}</div>
-                  <div className="mt-2 flex flex-wrap gap-4 text-xs text-slate-500">
+                  <div className="mt-3 text-sm font-semibold" style={{ color: LK.ink }}>{item.result_summary || '暂无结果摘要'}</div>
+                  <div className="mt-2 flex flex-wrap gap-4 text-xs" style={{ color: LK.muted }}>
                     <span>阶段：{labelOf(item.stage, STAGE_LABELS)}</span>
                     <span>派发：{item.dispatch_status || '-'}</span>
                     <span>创建：{formatTime(item.created_at)}</span>
                   </div>
                 </div>
-              )) : <div className="rounded-2xl border border-dashed border-slate-300 px-6 py-10 text-center text-sm text-slate-400">暂无动作</div>}
+              )) : <div className="rounded-xl px-4 py-8 text-center text-sm" style={{ color: LK.muted }}>暂无动作</div>}
             </div>
           ) : null}
 
           {activeTab === 'tasks' ? (
             <div className="space-y-3">
               {tasks.length ? tasks.map((item: any) => (
-                <div key={item.id} className="rounded-[1.3rem] border border-slate-200 px-4 py-4">
+                <div
+                  key={item.id}
+                  className="rounded-lg px-4 py-3"
+                  style={{ backgroundColor: LK.surface, border: '1px solid ' + LK.border }}
+                >
                   <div className="flex flex-wrap items-center gap-2">
-                    <span className="rounded-lg bg-amber-100 px-2 py-1 text-[10px] font-black uppercase tracking-widest text-amber-700">{labelOf(item.task_type, TASK_TYPE_LABELS)}</span>
-                    <span className="rounded-lg bg-slate-100 px-2 py-1 text-[10px] font-black uppercase tracking-widest text-slate-600">{item.status}</span>
+                    <span
+                      className="rounded-full px-2 py-1 text-xs font-medium"
+                      style={{ backgroundColor: `${LK.warning}22`, color: LK.warning }}
+                    >
+                      {labelOf(item.task_type, TASK_TYPE_LABELS)}
+                    </span>
+                    <span
+                      className="rounded-full px-2 py-1 text-xs font-medium"
+                      style={{ backgroundColor: LK.surfaceRaised, color: LK.body }}
+                    >
+                      {item.status}
+                    </span>
                   </div>
-                  <div className="mt-3 text-sm font-black text-slate-900">{item.title}</div>
-                  <div className="mt-1 text-sm text-slate-600">{item.summary || '暂无说明'}</div>
-                  <div className="mt-2 flex flex-wrap gap-4 text-xs text-slate-500">
+                  <div className="mt-3 text-sm font-semibold" style={{ color: LK.ink }}>{item.title}</div>
+                  <div className="mt-1 text-sm" style={{ color: LK.body }}>{item.summary || '暂无说明'}</div>
+                  <div className="mt-2 flex flex-wrap gap-4 text-xs" style={{ color: LK.muted }}>
                     <span>负责人：{item.assignee || '-'}</span>
                     <span>创建：{formatTime(item.created_at)}</span>
                   </div>
                 </div>
-              )) : <div className="rounded-2xl border border-dashed border-slate-300 px-6 py-10 text-center text-sm text-slate-400">暂无人工任务</div>}
+              )) : <div className="rounded-xl px-4 py-8 text-center text-sm" style={{ color: LK.muted }}>暂无人工任务</div>}
             </div>
           ) : null}
 
           {activeTab === 'context' ? (
             <div className="grid gap-4 xl:grid-cols-2">
-              <div className="rounded-[1.5rem] border border-slate-200 p-4">
-                <div className="text-sm font-black text-slate-900">来源上下文</div>
-                <div className="mt-3 space-y-2 text-sm text-slate-600">
+              <div className="rounded-xl p-4" style={{ backgroundColor: LK.surface, border: '1px solid ' + LK.border }}>
+                <div className="text-sm font-semibold" style={{ color: LK.ink }}>来源上下文</div>
+                <div className="mt-3 space-y-2 text-sm" style={{ color: LK.body }}>
                   <div>上报方：{displaySummary.reporter?.name || '-'}</div>
                   <div>上报类型：{displaySummary.reporter?.type || '-'}</div>
                   <div>来源报告：{(displaySummary.source_report_ids || []).join(', ') || '-'}</div>
@@ -408,22 +599,40 @@ export const VulnCaseDetailLayout: React.FC<{
                   <div>发现 ID：{caseDetail?.finding_id || '-'}</div>
                 </div>
               </div>
-              <div className="rounded-[1.5rem] border border-slate-200 p-4">
-                <div className="text-sm font-black text-slate-900">任务与文件</div>
-                <div className="mt-3 space-y-2 text-sm text-slate-600">
+              <div className="rounded-xl p-4" style={{ backgroundColor: LK.surface, border: '1px solid ' + LK.border }}>
+                <div className="text-sm font-semibold" style={{ color: LK.ink }}>任务与文件</div>
+                <div className="mt-3 space-y-2 text-sm" style={{ color: LK.body }}>
                   {(workspaceSummary.related_execution_refs || []).map((item) => (
-                    <div key={item.key}>{item.key}: <span className="font-mono text-slate-700">{item.value}</span></div>
+                    <div key={item.key}>{item.key}: <span style={{ fontFamily: MONO, color: LK.inkSoft }}>{item.value}</span></div>
                   ))}
                   <div className="flex items-center gap-2">
                     <span>文件根：</span>
-                    <span className="font-mono text-slate-700">{workspaceSummary.files_root_path || '-'}</span>
-                    {workspaceSummary.files_root_path ? <button onClick={() => copyText(workspaceSummary.files_root_path || '')} className="inline-flex items-center gap-1 rounded-lg border border-slate-200 px-2 py-1 text-[11px] font-black text-slate-600"><ClipboardCopy size={11} />复制</button> : null}
+                    <span style={{ fontFamily: MONO, color: LK.inkSoft }}>{workspaceSummary.files_root_path || '-'}</span>
+                    {workspaceSummary.files_root_path ? (
+                      <button
+                        onClick={() => copyText(workspaceSummary.files_root_path || '')}
+                        className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-semibold transition-colors"
+                        style={{ backgroundColor: LK.surfaceRaised, color: LK.body, border: '1px solid ' + LK.border }}
+                        onMouseEnter={(e) => { e.currentTarget.style.color = LK.ink; }}
+                        onMouseLeave={(e) => { e.currentTarget.style.color = LK.body; }}
+                      >
+                        <ClipboardCopy size={11} />复制
+                      </button>
+                    ) : null}
                   </div>
                   {selectedReportMeta?.storage_path ? (
                     <div className="flex flex-wrap items-center gap-2">
                       <span>报告文件：</span>
-                      <span className="font-mono text-slate-700 break-all">{selectedReportMeta.storage_path}</span>
-                      <button onClick={() => copyText(selectedReportMeta.storage_path || '')} className="inline-flex items-center gap-1 rounded-lg border border-slate-200 px-2 py-1 text-[11px] font-black text-slate-600"><ClipboardCopy size={11} />复制</button>
+                      <span className="break-all" style={{ fontFamily: MONO, color: LK.inkSoft }}>{selectedReportMeta.storage_path}</span>
+                      <button
+                        onClick={() => copyText(selectedReportMeta.storage_path || '')}
+                        className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-semibold transition-colors"
+                        style={{ backgroundColor: LK.surfaceRaised, color: LK.body, border: '1px solid ' + LK.border }}
+                        onMouseEnter={(e) => { e.currentTarget.style.color = LK.ink; }}
+                        onMouseLeave={(e) => { e.currentTarget.style.color = LK.body; }}
+                      >
+                        <ClipboardCopy size={11} />复制
+                      </button>
                     </div>
                   ) : null}
                 </div>
@@ -433,7 +642,10 @@ export const VulnCaseDetailLayout: React.FC<{
 
           {activeTab === 'raw' ? (
             <div className="space-y-4">
-              <div className="overflow-auto rounded-[1.5rem] border border-slate-200 bg-slate-50 p-4 text-xs text-slate-900">
+              <div
+                className="overflow-auto rounded-xl p-4 text-xs"
+                style={{ backgroundColor: LK.surfaceRaised, border: '1px solid ' + LK.border, color: LK.ink }}
+              >
                 <pre className="whitespace-pre-wrap break-words">{JSON.stringify(rawPayload, null, 2)}</pre>
               </div>
             </div>

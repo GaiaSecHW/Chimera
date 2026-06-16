@@ -98,6 +98,31 @@ const truncateText = (value?: string | null, max = 80) => {
   return normalized.length > max ? `${normalized.slice(0, max)}...` : normalized;
 };
 
+// LOKI design tokens (DESIGN.md) — page-local palette.
+const LK = {
+  primary: '#4f73ff',
+  primarySoft: '#7590ff',
+  primaryDeep: '#3f63f1',
+  primaryMuted: 'rgba(79, 115, 255, 0.14)',
+  canvas: '#070d18',
+  surface: '#111a2b',
+  surfaceRaised: '#18233a',
+  surfaceGlass: 'rgba(17, 26, 43, 0.84)',
+  border: '#26324a',
+  borderSoft: '#1b2438',
+  ink: '#f5f7ff',
+  inkSoft: '#d6def0',
+  body: '#a4aec4',
+  muted: '#72809a',
+  mutedSoft: '#8b95a8',
+  success: '#45c06f',
+  warning: '#d5a13a',
+  error: '#f15d5d',
+  info: '#4f8cff',
+} as const;
+
+const MONO = 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace';
+
 export const TaskCenterPage: React.FC<Props> = ({ projectId, projects }) => {
   const scheduleApi = api.domains.platform.scheduleCenter;
   const fileserverApi = api.domains.assets.fileserver;
@@ -612,16 +637,33 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects }) => {
           ? selectedRelativePath === entry.relative_path
           : selectedRelativePath === entry.relative_path;
       rows.push(
-        <tr key={entry.relative_path || `${relativePath}:${entry.name}`} className="border-t border-theme-border">
+        <tr
+          key={entry.relative_path || `${relativePath}:${entry.name}`}
+          style={{ borderBottom: `1px solid ${LK.borderSoft}` }}
+        >
           <td className="px-4 py-3">
             {isDirectory ? (
               selectionMode === 'directory' ? (
-                <button type="button" onClick={() => selectDirectoryPath(entry.relative_path)} className="text-theme-text-secondary">
+                <button
+                  type="button"
+                  onClick={() => selectDirectoryPath(entry.relative_path)}
+                  className="transition-colors"
+                  style={{ color: LK.muted }}
+                  onMouseEnter={(e) => { e.currentTarget.style.color = LK.ink; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.color = LK.muted; }}
+                >
                   {isSelected ? <SquareCheck size={16} /> : <Square size={16} />}
                 </button>
               ) : null
             ) : (
-              <button type="button" onClick={() => toggleFileSelection(entry)} className="text-theme-text-secondary">
+              <button
+                type="button"
+                onClick={() => toggleFileSelection(entry)}
+                className="transition-colors"
+                style={{ color: LK.muted }}
+                onMouseEnter={(e) => { e.currentTarget.style.color = LK.ink; }}
+                onMouseLeave={(e) => { e.currentTarget.style.color = LK.muted; }}
+              >
                 {isSelected ? <SquareCheck size={16} /> : <Square size={16} />}
               </button>
             )}
@@ -629,24 +671,47 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects }) => {
           <td className="px-4 py-3">
             <div className="flex items-center gap-2" style={{ paddingLeft: `${depth * 16}px` }}>
               {isDirectory ? (
-                <button type="button" onClick={() => toggleDirectoryExpansion(entry.relative_path)} className="rounded-md p-1 text-theme-text-faint hover:bg-theme-elevated">
+                <button
+                  type="button"
+                  onClick={() => toggleDirectoryExpansion(entry.relative_path)}
+                  className="rounded-md p-1 transition-colors"
+                  style={{ color: LK.muted }}
+                  onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = LK.surfaceRaised; e.currentTarget.style.color = LK.ink; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.color = LK.muted; }}
+                >
                   <ChevronRight size={14} className={isExpanded ? 'rotate-90 transition-transform' : 'transition-transform'} />
                 </button>
               ) : (
                 <span className="inline-block h-6 w-6" />
               )}
               {isDirectory ? (
-                <button type="button" onClick={() => openBrowsePath(entry.relative_path)} className="inline-flex items-center gap-2 font-semibold text-theme-text-primary">
+                <button
+                  type="button"
+                  onClick={() => openBrowsePath(entry.relative_path)}
+                  className="inline-flex items-center gap-2 font-semibold transition-colors"
+                  style={{ color: LK.inkSoft }}
+                  onMouseEnter={(e) => { e.currentTarget.style.color = LK.primary; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.color = LK.inkSoft; }}
+                >
                   {isExpanded ? <FolderOpen size={15} /> : <Folder size={15} />}
                   {entry.name}
                 </button>
               ) : (
-                <button type="button" onClick={() => toggleFileSelection(entry)} className="font-medium text-theme-text-primary">{entry.name}</button>
+                <button
+                  type="button"
+                  onClick={() => toggleFileSelection(entry)}
+                  className="font-medium transition-colors"
+                  style={{ color: LK.inkSoft }}
+                  onMouseEnter={(e) => { e.currentTarget.style.color = LK.primary; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.color = LK.inkSoft; }}
+                >
+                  {entry.name}
+                </button>
               )}
             </div>
           </td>
-          <td className="px-4 py-3 font-mono text-xs text-theme-text-faint">{entry.relative_path || '.'}</td>
-          <td className="px-4 py-3 text-theme-text-secondary">{isDirectory ? '文件夹' : '文件'}</td>
+          <td className="px-4 py-3" style={{ fontFamily: MONO, fontSize: '12px', color: LK.muted }}>{entry.relative_path || '.'}</td>
+          <td className="px-4 py-3" style={{ color: LK.body }}>{isDirectory ? '文件夹' : '文件'}</td>
         </tr>,
       );
       if (isDirectory && isExpanded) {
@@ -657,48 +722,119 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects }) => {
   };
 
   return (
-    <div className="min-h-full bg-slate-50 p-6 text-slate-900">
-      <div className="mb-4 flex items-center justify-between">
+    <div
+      className="space-y-4 px-5 py-5 md:px-6 2xl:px-8"
+      style={{ backgroundColor: LK.canvas, minHeight: '100%', color: LK.inkSoft }}
+    >
+      <div className="flex flex-wrap items-start justify-between gap-3 pb-4" style={{ borderBottom: `1px solid ${LK.borderSoft}` }}>
         <div>
-          <h1 className="text-2xl font-black">任务中心</h1>
-          <div className="text-sm text-slate-500">{projectName}</div>
+          <h1 className="text-2xl font-semibold leading-8 tracking-tight" style={{ color: LK.ink }}>
+            任务中心
+          </h1>
+          <div className="mt-1 text-sm" style={{ color: LK.body }}>
+            {projectName}
+          </div>
         </div>
         <div className="flex items-center gap-2">
-          <button onClick={openDeleteQueue} className="inline-flex items-center gap-2 rounded-xl border px-4 py-2 text-sm font-semibold"><Shield size={15} />删除队列</button>
-          <button onClick={() => void loadData()} className="inline-flex items-center gap-2 rounded-xl border px-4 py-2 text-sm font-semibold"><RefreshCw size={15} />刷新</button>
-          <button onClick={openCreateDialog} className="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white"><Plus size={15} />创建任务</button>
+          <button
+            onClick={openDeleteQueue}
+            className="inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition-colors"
+            style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}`, color: LK.inkSoft }}
+            onMouseEnter={(e) => { e.currentTarget.style.borderColor = LK.primary; e.currentTarget.style.color = LK.primarySoft; }}
+            onMouseLeave={(e) => { e.currentTarget.style.borderColor = LK.border; e.currentTarget.style.color = LK.inkSoft; }}
+          >
+            <Shield size={15} />删除队列
+          </button>
+          <button
+            onClick={() => void loadData()}
+            className="inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition-colors"
+            style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}`, color: LK.inkSoft }}
+            onMouseEnter={(e) => { e.currentTarget.style.borderColor = LK.primary; e.currentTarget.style.color = LK.primarySoft; }}
+            onMouseLeave={(e) => { e.currentTarget.style.borderColor = LK.border; e.currentTarget.style.color = LK.inkSoft; }}
+          >
+            <RefreshCw size={15} />刷新
+          </button>
+          <button
+            onClick={openCreateDialog}
+            className="inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition-colors"
+            style={{ backgroundColor: LK.primary, color: '#ffffff' }}
+            onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = LK.primaryDeep; }}
+            onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = LK.primary; }}
+          >
+            <Plus size={15} />创建任务
+          </button>
         </div>
       </div>
 
-      <div className="mb-4 grid gap-3 md:grid-cols-5">
+      <div className="grid gap-3 md:grid-cols-5">
         {statsCards.map((item) => {
           const Icon = item.icon;
           return (
-            <div key={item.label} className="rounded-2xl border bg-white p-4 shadow-sm">
-              <div className="flex items-center justify-between text-sm text-slate-500"><span>{item.label}</span><Icon size={16} /></div>
-              <div className="mt-2 text-2xl font-black">{item.value}</div>
+            <div
+              key={item.label}
+              className="flex items-center justify-between rounded-xl px-4 py-3"
+              style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}` }}
+            >
+              <div>
+                <div className="text-xs" style={{ color: LK.muted }}>
+                  {item.label}
+                </div>
+                <div className="mt-1 text-2xl font-semibold leading-7 tabular-nums" style={{ color: LK.ink }}>
+                  {item.value}
+                </div>
+              </div>
+              <div
+                className="flex h-9 w-9 items-center justify-center rounded-md"
+                style={{ backgroundColor: LK.surfaceRaised, color: LK.body }}
+              >
+                <Icon size={18} />
+              </div>
             </div>
           );
         })}
       </div>
 
-      <div className="mb-4 flex items-center gap-3 rounded-2xl border bg-white px-4 py-3 shadow-sm">
-        <Search size={16} className="text-slate-400" />
-        <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="搜索任务名、Harness、状态、下游任务 ID" className="w-full bg-transparent outline-none" />
-        <select value={selectedAgentAppFilter} onChange={(e) => setSelectedAgentAppFilter(e.target.value)} className="rounded-lg border px-3 py-1 text-sm">
+      <div
+        className="flex items-center gap-2 rounded-lg px-3"
+        style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}` }}
+      >
+        <Search size={16} style={{ color: LK.muted }} />
+        <input
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder="搜索任务名、Harness、状态、下游任务 ID"
+          className="w-full bg-transparent py-2.5 text-sm outline-none"
+          style={{ color: LK.inkSoft }}
+        />
+        <select
+          value={selectedAgentAppFilter}
+          onChange={(e) => setSelectedAgentAppFilter(e.target.value)}
+          className="rounded-lg px-2 py-1 outline-none transition-colors text-sm"
+          style={{ backgroundColor: LK.surfaceRaised, color: LK.inkSoft, border: `1px solid ${LK.border}` }}
+          onFocus={(e) => (e.currentTarget.style.borderColor = LK.primary)}
+          onBlur={(e) => (e.currentTarget.style.borderColor = LK.border)}
+        >
           <option value="">全部 Harness</option>
           {agentApps.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
         </select>
       </div>
 
-      <div className="mb-4 flex items-center justify-between gap-3 rounded-2xl border bg-white px-4 py-3 shadow-sm">
-        <div className="text-sm text-slate-500">当前页已选 {selectedTaskIds.length} 项</div>
+      <div
+        className="flex items-center justify-between gap-3 rounded-lg px-4 py-3"
+        style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}` }}
+      >
+        <div className="text-sm" style={{ color: LK.body }}>
+          当前页已选 <span style={{ color: LK.ink }}>{selectedTaskIds.length}</span> 项
+        </div>
         <div className="flex items-center gap-2">
           <button
             type="button"
             onClick={() => void submitDeleteAllFiltered()}
             disabled={!deletableTaskIds.length || deleteSubmitting}
-            className="inline-flex items-center gap-2 rounded-xl border border-rose-200 px-4 py-2 text-sm font-semibold text-rose-600 disabled:cursor-not-allowed disabled:opacity-50"
+            className="inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-50"
+            style={{ backgroundColor: `${LK.error}22`, color: LK.error, border: `1px solid ${LK.error}40` }}
+            onMouseEnter={(e) => { if (!e.currentTarget.disabled) e.currentTarget.style.backgroundColor = `${LK.error}3a`; }}
+            onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = `${LK.error}22`; }}
           >
             {deleteSubmitting ? <Loader2 size={14} className="animate-spin" /> : <X size={14} />}
             删除全部任务（{deletableTaskIds.length}）
@@ -706,7 +842,10 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects }) => {
           <button
             onClick={() => void submitDelete(selectedTaskIds)}
             disabled={!selectedTaskIds.length || deleteSubmitting}
-            className="inline-flex items-center gap-2 rounded-xl bg-rose-600 px-4 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
+            className="inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-50"
+            style={{ backgroundColor: LK.error, color: '#ffffff' }}
+            onMouseEnter={(e) => { if (!e.currentTarget.disabled) e.currentTarget.style.backgroundColor = '#e04848'; }}
+            onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = LK.error; }}
           >
             {deleteSubmitting ? <Loader2 size={14} className="animate-spin" /> : <X size={14} />}
             批量删除（{selectedTaskIds.length}）
@@ -714,73 +853,126 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects }) => {
         </div>
       </div>
 
-      {error ? <div className="mb-4 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">{error}</div> : null}
+      {error ? (
+        <div
+          className="rounded-lg px-4 py-3 text-sm"
+          style={{ backgroundColor: `${LK.error}14`, border: `1px solid ${LK.error}40`, color: LK.error }}
+        >
+          {error}
+        </div>
+      ) : null}
 
-      <div className="overflow-hidden rounded-2xl border bg-white shadow-sm">
-        <table className="w-full text-sm">
-          <thead className="bg-slate-50 text-left text-slate-500">
-            <tr>
-              <th className="px-4 py-3">
-                <button type="button" onClick={toggleSelectAllVisible} className="text-slate-500">
+      <div
+        className="overflow-hidden rounded-xl"
+        style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}` }}
+      >
+        <table className="min-w-full border-separate border-spacing-0 text-sm">
+          <thead>
+            <tr className="text-left text-xs uppercase tracking-wider" style={{ color: LK.mutedSoft }}>
+              <th className="px-4 py-2.5 font-medium" style={{ borderBottom: `1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>
+                <button type="button" onClick={toggleSelectAllVisible} style={{ color: LK.muted }}>
                   {allVisibleSelected ? <SquareCheck size={16} /> : <Square size={16} />}
                 </button>
               </th>
-              <th className="px-4 py-3">任务名</th>
-              <th className="px-4 py-3">类型</th>
-              <th className="px-4 py-3">任务状态</th>
-              <th className="px-4 py-3">同步状态</th>
-              <th className="px-4 py-3">运行父凭证</th>
-              <th className="px-4 py-3">下游任务 ID</th>
-              <th className="px-4 py-3">更新时间</th>
-              <th className="px-4 py-3">操作</th>
+              <th className="px-4 py-2.5 font-medium" style={{ borderBottom: `1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>任务名</th>
+              <th className="px-4 py-2.5 font-medium" style={{ borderBottom: `1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>类型</th>
+              <th className="px-4 py-2.5 font-medium" style={{ borderBottom: `1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>任务状态</th>
+              <th className="px-4 py-2.5 font-medium" style={{ borderBottom: `1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>同步状态</th>
+              <th className="px-4 py-2.5 font-medium" style={{ borderBottom: `1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>运行父凭证</th>
+              <th className="px-4 py-2.5 font-medium" style={{ borderBottom: `1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>下游任务 ID</th>
+              <th className="px-4 py-2.5 font-medium" style={{ borderBottom: `1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>更新时间</th>
+              <th className="px-4 py-2.5 font-medium" style={{ borderBottom: `1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>操作</th>
             </tr>
           </thead>
           <tbody>
-            {loading ? <tr><td className="px-4 py-8 text-center text-slate-500" colSpan={10}>加载中...</td></tr> : null}
-            {!loading && filteredTasks.length === 0 ? <tr><td className="px-4 py-8 text-center text-slate-500" colSpan={10}>暂无任务</td></tr> : null}
+            {loading ? <tr><td className="px-4 py-10 text-center" colSpan={10} style={{ color: LK.muted }}><span className="inline-flex items-center gap-2"><Loader2 size={16} className="animate-spin" />加载中...</span></td></tr> : null}
+            {!loading && filteredTasks.length === 0 ? <tr><td className="px-4 py-10 text-center" colSpan={10} style={{ color: LK.muted }}>暂无任务</td></tr> : null}
             {filteredTasks.map((task) => (
-              <tr key={task.id} className="border-t">
+              <tr
+                key={task.id}
+                className="transition-colors"
+                style={{ borderBottom: `1px solid ${LK.borderSoft}` }}
+                onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = LK.surfaceRaised; }}
+                onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; }}
+              >
                 <td className="px-4 py-3">
                   <button
                     type="button"
                     onClick={() => toggleTaskSelection(task.id)}
                     disabled={['queued', 'running'].includes(String(task.delete_status || 'none'))}
-                    className="text-slate-500 disabled:cursor-not-allowed disabled:opacity-40"
+                    className="transition-colors disabled:cursor-not-allowed disabled:opacity-40"
+                    style={{ color: LK.muted }}
+                    onMouseEnter={(e) => { if (!e.currentTarget.disabled) e.currentTarget.style.color = LK.ink; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.color = LK.muted; }}
                   >
                     {selectedTaskIds.includes(task.id) ? <SquareCheck size={16} /> : <Square size={16} />}
                   </button>
                 </td>
-                <td className="px-4 py-3 font-semibold">{task.name}</td>
-                <td className="px-4 py-3">
-                  <div className="font-semibold">{getTaskHarnessLabel(task)}</div>
-                  {task.task_type === 'sechps_tool' ? <div className="text-xs text-slate-500">Agent Harness / {task.agent_app_engine || 'unknown'}</div> : null}
+                <td className="px-4 py-3" style={{ color: LK.inkSoft }}>
+                  <div className="font-semibold">{task.name}</div>
+                  <div className="text-[11px]" style={{ color: LK.muted, fontFamily: MONO }}>{task.id}</div>
                 </td>
                 <td className="px-4 py-3">
-                  <div className="font-semibold">{getDisplayStatus(task)}</div>
-                  <div className="text-xs text-slate-500">{task.dispatch_status} / {task.business_status}</div>
+                  <div className="font-semibold" style={{ color: LK.inkSoft }}>{getTaskHarnessLabel(task)}</div>
+                  {task.task_type === 'sechps_tool' ? <div className="text-xs" style={{ color: LK.muted }}>Agent Harness / {task.agent_app_engine || 'unknown'}</div> : null}
                 </td>
-                <td className="px-4 py-3 text-xs text-slate-600" title={getSyncSummary(task)}>
+                <td className="px-4 py-3">
+                  <div className="font-semibold" style={{ color: LK.inkSoft }}>{getDisplayStatus(task)}</div>
+                  <div className="text-xs" style={{ color: LK.muted }}>{task.dispatch_status} / {task.business_status}</div>
+                </td>
+                <td className="px-4 py-3 text-xs" style={{ color: LK.body }} title={getSyncSummary(task)}>
                   {task.sync_status || 'none'}
                 </td>
-                <td className="px-4 py-3 font-mono text-xs">{[task.parent_task_key_name, task.parent_task_key_prefix].filter(Boolean).join(' / ') || getRootTaskKeyDisplay(task)}</td>
-                <td className="px-4 py-3 font-mono text-xs">{task.downstream_task_id || '—'}</td>
-                <td className="px-4 py-3">{formatDateTime(task.updated_at)}</td>
+                <td className="px-4 py-3" style={{ fontFamily: MONO, fontSize: '12px', color: LK.body }}>
+                  {[task.parent_task_key_name, task.parent_task_key_prefix].filter(Boolean).join(' / ') || getRootTaskKeyDisplay(task)}
+                </td>
+                <td className="px-4 py-3" style={{ fontFamily: MONO, fontSize: '12px', color: LK.body }}>
+                  {task.downstream_task_id || '—'}
+                </td>
+                <td className="px-4 py-3 text-xs" style={{ color: LK.muted }}>
+                  {formatDateTime(task.updated_at)}
+                </td>
                 <td className="px-4 py-3">
                   <div className="flex items-center gap-2">
-                    {task.task_type !== 'sechps_tool' ? <button onClick={() => openTask(task)} className="inline-flex items-center gap-1 rounded-lg border px-3 py-1.5 text-xs font-semibold">查看任务 <ArrowRight size={12} /></button> : null}
+                    {task.task_type !== 'sechps_tool' ? (
+                      <button
+                        onClick={() => openTask(task)}
+                        className="inline-flex items-center gap-1 rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors"
+                        style={{ backgroundColor: LK.surfaceRaised, color: LK.body, border: `1px solid ${LK.border}` }}
+                        onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = LK.primaryMuted; e.currentTarget.style.color = LK.primary; e.currentTarget.style.borderColor = LK.primary; }}
+                        onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = LK.surfaceRaised; e.currentTarget.style.color = LK.body; e.currentTarget.style.borderColor = LK.border; }}
+                      >
+                        查看任务 <ArrowRight size={12} />
+                      </button>
+                    ) : null}
                     {task.sync_required ? (
-                      <button onClick={() => void requestSync(task)} className="inline-flex items-center gap-1 rounded-lg border px-3 py-1.5 text-xs font-semibold">
+                      <button
+                        onClick={() => void requestSync(task)}
+                        className="inline-flex items-center gap-1 rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors"
+                        style={{ backgroundColor: LK.surfaceRaised, color: LK.body, border: `1px solid ${LK.border}` }}
+                        onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = LK.primaryMuted; e.currentTarget.style.color = LK.primary; e.currentTarget.style.borderColor = LK.primary; }}
+                        onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = LK.surfaceRaised; e.currentTarget.style.color = LK.body; e.currentTarget.style.borderColor = LK.border; }}
+                      >
                         <RefreshCw size={12} />
                         立即同步
                       </button>
                     ) : null}
-                    <button onClick={() => openTimelinePage(task)} className="inline-flex items-center gap-1 rounded-lg border px-3 py-1.5 text-xs font-semibold">
+                    <button
+                      onClick={() => openTimelinePage(task)}
+                      className="inline-flex items-center gap-1 rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors"
+                      style={{ backgroundColor: LK.surfaceRaised, color: LK.body, border: `1px solid ${LK.border}` }}
+                      onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = LK.primaryMuted; e.currentTarget.style.color = LK.primary; e.currentTarget.style.borderColor = LK.primary; }}
+                      onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = LK.surfaceRaised; e.currentTarget.style.color = LK.body; e.currentTarget.style.borderColor = LK.border; }}
+                    >
                       时间线
                     </button>
                     <button
                       onClick={() => void submitDelete([task.id])}
                       disabled={deleteSubmitting || ['queued', 'running'].includes(String(task.delete_status || 'none'))}
-                      className="inline-flex items-center gap-1 rounded-lg border border-rose-200 px-3 py-1.5 text-xs font-semibold text-rose-600 disabled:cursor-not-allowed disabled:opacity-50"
+                      className="inline-flex items-center gap-1 rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-50"
+                      style={{ backgroundColor: `${LK.error}22`, color: LK.error, border: `1px solid ${LK.error}40` }}
+                      onMouseEnter={(e) => { if (!e.currentTarget.disabled) e.currentTarget.style.backgroundColor = `${LK.error}3a`; }}
+                      onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = `${LK.error}22`; }}
                     >
                       删除
                     </button>
@@ -794,38 +986,70 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects }) => {
       {feedbackNodes}
 
       {deleteQueueOpen ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/45 p-4 backdrop-blur-sm">
-          <div className="flex max-h-[90vh] w-full max-w-7xl flex-col overflow-hidden rounded-[2rem] border border-theme-border bg-theme-surface shadow-2xl">
-            <div className="flex items-start justify-between border-b border-theme-border px-6 py-5">
+        <div
+          className="fixed inset-0 z-[100] flex items-center justify-center p-6 animate-in fade-in"
+          style={{ backgroundColor: 'rgba(5, 10, 20, 0.72)', backdropFilter: 'blur(6px)' }}
+        >
+          <div
+            className="flex max-h-[90vh] w-full max-w-7xl flex-col overflow-hidden rounded-2xl animate-in"
+            style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}` }}
+          >
+            <div className="flex items-start justify-between px-6 py-5" style={{ borderBottom: `1px solid ${LK.borderSoft}` }}>
               <div>
-                <div className="text-lg font-black text-theme-text-primary">删除队列</div>
-                <div className="mt-1 text-sm text-theme-text-faint">{projectName}</div>
+                <div className="text-lg font-semibold leading-7" style={{ color: LK.ink }}>
+                  删除队列
+                </div>
+                <div className="mt-1 text-sm" style={{ color: LK.muted }}>{projectName}</div>
                 <div className="mt-2 flex flex-wrap gap-2 text-xs">
-                  <span className="rounded-full bg-amber-100 px-3 py-1 text-amber-700">排队中 {deleteQueueStats.queued_total}</span>
-                  <span className="rounded-full bg-sky-100 px-3 py-1 text-sky-700">删除中 {deleteQueueStats.running_total}</span>
-                  <span className="rounded-full bg-rose-100 px-3 py-1 text-rose-700">失败 {deleteQueueStats.failed_total}</span>
+                  <span className="rounded-full px-3 py-1 font-medium" style={{ backgroundColor: `${LK.warning}22`, color: LK.warning }}>
+                    排队中 {deleteQueueStats.queued_total}
+                  </span>
+                  <span className="rounded-full px-3 py-1 font-medium" style={{ backgroundColor: `${LK.info}22`, color: LK.info }}>
+                    删除中 {deleteQueueStats.running_total}
+                  </span>
+                  <span className="rounded-full px-3 py-1 font-medium" style={{ backgroundColor: `${LK.error}22`, color: LK.error }}>
+                    失败 {deleteQueueStats.failed_total}
+                  </span>
                 </div>
               </div>
-              <button onClick={closeDeleteQueue} className="rounded-xl p-2 text-theme-text-faint transition hover:bg-theme-elevated hover:text-theme-text-primary"><X size={18} /></button>
+              <button
+                onClick={closeDeleteQueue}
+                className="rounded-lg p-2 transition-colors"
+                style={{ color: LK.muted }}
+                onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = LK.surfaceRaised; e.currentTarget.style.color = LK.ink; }}
+                onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.color = LK.muted; }}
+              >
+                <X size={18} />
+              </button>
             </div>
 
-            <form onSubmit={(event) => { void submitDeleteQueueFilters(event); }} className="border-b border-theme-border px-6 py-4">
+            <form
+              onSubmit={(event) => { void submitDeleteQueueFilters(event); }}
+              className="px-6 py-4"
+              style={{ borderBottom: `1px solid ${LK.borderSoft}` }}
+            >
               <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-6">
-                <label className="block text-sm font-semibold text-theme-text-secondary xl:col-span-2">
+                <label className="block text-sm font-semibold xl:col-span-2" style={{ color: LK.inkSoft }}>
                   搜索
                   <input
                     value={deleteQueueFilters.search}
                     onChange={(e) => setDeleteQueueFilters((current) => ({ ...current, search: e.target.value }))}
                     placeholder="任务名 / 任务ID / 下游任务ID / 删除错误"
-                    className="mt-1 w-full rounded-xl border border-theme-border bg-theme-elevated px-3 py-2 text-sm text-theme-text-primary"
+                    className="mt-1 w-full rounded-lg px-3 py-2 text-sm outline-none transition-colors"
+                    style={{ backgroundColor: LK.surfaceRaised, color: LK.inkSoft, border: `1px solid ${LK.border}` }}
+                    onFocus={(e) => (e.currentTarget.style.borderColor = LK.primary)}
+                    onBlur={(e) => (e.currentTarget.style.borderColor = LK.border)}
                   />
                 </label>
-                <label className="block text-sm font-semibold text-theme-text-secondary">
+                <label className="block text-sm font-semibold" style={{ color: LK.inkSoft }}>
                   删除状态
                   <select
                     value={deleteQueueFilters.delete_status}
                     onChange={(e) => setDeleteQueueFilters((current) => ({ ...current, delete_status: e.target.value }))}
-                    className="mt-1 w-full rounded-xl border border-theme-border bg-theme-elevated px-3 py-2 text-sm text-theme-text-primary"
+                    className="mt-1 w-full rounded-lg px-3 py-2 text-sm outline-none transition-colors"
+                    style={{ backgroundColor: LK.surfaceRaised, color: LK.inkSoft, border: `1px solid ${LK.border}` }}
+                    onFocus={(e) => (e.currentTarget.style.borderColor = LK.primary)}
+                    onBlur={(e) => (e.currentTarget.style.borderColor = LK.border)}
                   >
                     <option value="">全部</option>
                     <option value="queued">queued</option>
@@ -833,95 +1057,170 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects }) => {
                     <option value="failed">failed</option>
                   </select>
                 </label>
-                <label className="block text-sm font-semibold text-theme-text-secondary">
+                <label className="block text-sm font-semibold" style={{ color: LK.inkSoft }}>
                   任务类型
                   <select
                     value={deleteQueueFilters.task_type}
                     onChange={(e) => setDeleteQueueFilters((current) => ({ ...current, task_type: e.target.value }))}
-                    className="mt-1 w-full rounded-xl border border-theme-border bg-theme-elevated px-3 py-2 text-sm text-theme-text-primary"
+                    className="mt-1 w-full rounded-lg px-3 py-2 text-sm outline-none transition-colors"
+                    style={{ backgroundColor: LK.surfaceRaised, color: LK.inkSoft, border: `1px solid ${LK.border}` }}
+                    onFocus={(e) => (e.currentTarget.style.borderColor = LK.primary)}
+                    onBlur={(e) => (e.currentTarget.style.borderColor = LK.border)}
                   >
                     <option value="">全部</option>
                     {TASK_TYPES.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}
                   </select>
                 </label>
-                <label className="block text-sm font-semibold text-theme-text-secondary">
+                <label className="block text-sm font-semibold" style={{ color: LK.inkSoft }}>
                   请求开始
-                  <input type="datetime-local" value={deleteQueueFilters.from_time} onChange={(e) => setDeleteQueueFilters((current) => ({ ...current, from_time: e.target.value }))} className="mt-1 w-full rounded-xl border border-theme-border bg-theme-elevated px-3 py-2 text-sm text-theme-text-primary" />
+                  <input
+                    type="datetime-local"
+                    value={deleteQueueFilters.from_time}
+                    onChange={(e) => setDeleteQueueFilters((current) => ({ ...current, from_time: e.target.value }))}
+                    className="mt-1 w-full rounded-lg px-3 py-2 text-sm outline-none transition-colors"
+                    style={{ backgroundColor: LK.surfaceRaised, color: LK.inkSoft, border: `1px solid ${LK.border}` }}
+                    onFocus={(e) => (e.currentTarget.style.borderColor = LK.primary)}
+                    onBlur={(e) => (e.currentTarget.style.borderColor = LK.border)}
+                  />
                 </label>
-                <label className="block text-sm font-semibold text-theme-text-secondary">
+                <label className="block text-sm font-semibold" style={{ color: LK.inkSoft }}>
                   请求结束
-                  <input type="datetime-local" value={deleteQueueFilters.to_time} onChange={(e) => setDeleteQueueFilters((current) => ({ ...current, to_time: e.target.value }))} className="mt-1 w-full rounded-xl border border-theme-border bg-theme-elevated px-3 py-2 text-sm text-theme-text-primary" />
+                  <input
+                    type="datetime-local"
+                    value={deleteQueueFilters.to_time}
+                    onChange={(e) => setDeleteQueueFilters((current) => ({ ...current, to_time: e.target.value }))}
+                    className="mt-1 w-full rounded-lg px-3 py-2 text-sm outline-none transition-colors"
+                    style={{ backgroundColor: LK.surfaceRaised, color: LK.inkSoft, border: `1px solid ${LK.border}` }}
+                    onFocus={(e) => (e.currentTarget.style.borderColor = LK.primary)}
+                    onBlur={(e) => (e.currentTarget.style.borderColor = LK.border)}
+                  />
                 </label>
               </div>
               <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
-                <label className="inline-flex items-center gap-2 text-sm text-theme-text-secondary">
-                  <input type="checkbox" checked={deleteQueueFilters.has_error} onChange={(e) => setDeleteQueueFilters((current) => ({ ...current, has_error: e.target.checked }))} />
+                <label className="inline-flex items-center gap-2 text-sm" style={{ color: LK.body }}>
+                  <input
+                    type="checkbox"
+                    checked={deleteQueueFilters.has_error}
+                    onChange={(e) => setDeleteQueueFilters((current) => ({ ...current, has_error: e.target.checked }))}
+                  />
                   仅看有错误项
                 </label>
                 <div className="flex items-center gap-2">
-                  <button type="button" onClick={() => void loadDeleteQueue(deleteQueuePage, deleteQueuePageSize, deleteQueueSortBy, deleteQueueSortDirection, deleteQueueFilters)} className="rounded-xl border border-theme-border px-4 py-2 text-sm font-semibold text-theme-text-secondary">刷新</button>
-                  <button type="button" onClick={() => void resetDeleteQueueFilters()} className="rounded-xl border border-theme-border px-4 py-2 text-sm font-semibold text-theme-text-secondary">重置</button>
-                  <button type="submit" className="rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white">查询</button>
+                  <button
+                    type="button"
+                    onClick={() => void loadDeleteQueue(deleteQueuePage, deleteQueuePageSize, deleteQueueSortBy, deleteQueueSortDirection, deleteQueueFilters)}
+                    className="rounded-lg px-4 py-2 text-sm font-semibold transition-colors"
+                    style={{ backgroundColor: LK.surfaceRaised, color: LK.body, border: `1px solid ${LK.border}` }}
+                    onMouseEnter={(e) => { e.currentTarget.style.color = LK.ink; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.color = LK.body; }}
+                  >
+                    刷新
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => void resetDeleteQueueFilters()}
+                    className="rounded-lg px-4 py-2 text-sm font-semibold transition-colors"
+                    style={{ backgroundColor: LK.surfaceRaised, color: LK.body, border: `1px solid ${LK.border}` }}
+                    onMouseEnter={(e) => { e.currentTarget.style.color = LK.ink; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.color = LK.body; }}
+                  >
+                    重置
+                  </button>
+                  <button
+                    type="submit"
+                    className="rounded-lg px-4 py-2 text-sm font-semibold transition-colors"
+                    style={{ backgroundColor: LK.primary, color: '#ffffff' }}
+                    onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = LK.primaryDeep; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = LK.primary; }}
+                  >
+                    查询
+                  </button>
                 </div>
               </div>
             </form>
 
-            {deleteQueueError ? <div className="mx-6 mt-4 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">{deleteQueueError}</div> : null}
+            {deleteQueueError ? (
+              <div
+                className="mx-6 mt-4 rounded-lg px-4 py-3 text-sm"
+                style={{ backgroundColor: `${LK.error}14`, border: `1px solid ${LK.error}40`, color: LK.error }}
+              >
+                {deleteQueueError}
+              </div>
+            ) : null}
 
             <div className="flex-1 overflow-auto px-6 py-4">
-              <div className="overflow-hidden rounded-2xl border border-theme-border bg-theme-surface">
+              <div
+                className="overflow-hidden rounded-xl"
+                style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}` }}
+              >
                 <table className="min-w-full text-sm">
-                  <thead className="bg-theme-elevated text-left text-theme-text-faint">
-                    <tr>
-                      <th className="px-4 py-3"><button type="button" onClick={() => void toggleDeleteQueueSort('name')} className="font-semibold">任务名</button></th>
-                      <th className="px-4 py-3">类型</th>
-                      <th className="px-4 py-3">当前任务状态</th>
-                      <th className="px-4 py-3">删除状态</th>
-                      <th className="px-4 py-3">删除错误</th>
-                      <th className="px-4 py-3">下游任务 ID</th>
-                      <th className="px-4 py-3"><button type="button" onClick={() => void toggleDeleteQueueSort('delete_requested_at')} className="font-semibold">删除请求时间</button></th>
-                      <th className="px-4 py-3">删除开始时间</th>
-                      <th className="px-4 py-3">删除完成时间</th>
-                      <th className="px-4 py-3"><button type="button" onClick={() => void toggleDeleteQueueSort('updated_at')} className="font-semibold">更新时间</button></th>
+                  <thead>
+                    <tr className="text-left text-xs uppercase tracking-wider" style={{ color: LK.mutedSoft }}>
+                      <th className="px-4 py-2.5 font-medium" style={{ borderBottom: `1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>
+                        <button type="button" onClick={() => void toggleDeleteQueueSort('name')} className="font-semibold">任务名</button>
+                      </th>
+                      <th className="px-4 py-2.5 font-medium" style={{ borderBottom: `1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>类型</th>
+                      <th className="px-4 py-2.5 font-medium" style={{ borderBottom: `1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>当前任务状态</th>
+                      <th className="px-4 py-2.5 font-medium" style={{ borderBottom: `1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>删除状态</th>
+                      <th className="px-4 py-2.5 font-medium" style={{ borderBottom: `1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>删除错误</th>
+                      <th className="px-4 py-2.5 font-medium" style={{ borderBottom: `1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>下游任务 ID</th>
+                      <th className="px-4 py-2.5 font-medium" style={{ borderBottom: `1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>
+                        <button type="button" onClick={() => void toggleDeleteQueueSort('delete_requested_at')} className="font-semibold">删除请求时间</button>
+                      </th>
+                      <th className="px-4 py-2.5 font-medium" style={{ borderBottom: `1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>删除开始时间</th>
+                      <th className="px-4 py-2.5 font-medium" style={{ borderBottom: `1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>删除完成时间</th>
+                      <th className="px-4 py-2.5 font-medium" style={{ borderBottom: `1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>
+                        <button type="button" onClick={() => void toggleDeleteQueueSort('updated_at')} className="font-semibold">更新时间</button>
+                      </th>
                     </tr>
                   </thead>
                   <tbody>
-                    {deleteQueueLoading ? <tr><td className="px-4 py-10 text-center text-theme-text-faint" colSpan={10}><span className="inline-flex items-center gap-2"><Loader2 size={16} className="animate-spin" />加载中...</span></td></tr> : null}
-                    {!deleteQueueLoading && deleteQueueItems.length === 0 ? <tr><td className="px-4 py-10 text-center text-theme-text-faint" colSpan={10}>当前项目暂无删除队列任务</td></tr> : null}
-                    {!deleteQueueLoading && deleteQueueItems.map((item) => (
-                      <tr
-                        key={item.id}
-                        className={`border-t border-theme-border ${
-                          item.delete_status === 'failed'
-                            ? 'bg-rose-50/70'
-                            : item.delete_status === 'running'
-                              ? 'bg-sky-50/60'
-                              : 'bg-amber-50/40'
-                        }`}
-                      >
-                        <td className="px-4 py-3 font-semibold">{item.name}</td>
-                        <td className="px-4 py-3">{getDeleteQueueTypeLabel(String(item.task_type || ''))}</td>
-                        <td className="px-4 py-3">{item.display_status}</td>
-                        <td className="px-4 py-3">
-                          <span className={item.delete_status === 'failed' ? 'text-rose-600' : item.delete_status === 'running' ? 'text-sky-600' : 'text-amber-600'}>
-                            {item.delete_status}
-                          </span>
-                        </td>
-                        <td className="px-4 py-3 text-xs text-theme-text-secondary" title={item.delete_error || item.last_error || ''}>{truncateText(item.delete_error || item.last_error, 120)}</td>
-                        <td className="px-4 py-3 font-mono text-xs">{item.downstream_task_id || '—'}</td>
-                        <td className="px-4 py-3 whitespace-nowrap">{formatDateTime(item.delete_requested_at)}</td>
-                        <td className="px-4 py-3 whitespace-nowrap">{formatDateTime(item.delete_started_at)}</td>
-                        <td className="px-4 py-3 whitespace-nowrap">{formatDateTime(item.delete_finished_at)}</td>
-                        <td className="px-4 py-3 whitespace-nowrap">{formatDateTime(item.updated_at)}</td>
-                      </tr>
-                    ))}
+                    {deleteQueueLoading ? <tr><td className="px-4 py-10 text-center" colSpan={10} style={{ color: LK.muted }}><span className="inline-flex items-center gap-2"><Loader2 size={16} className="animate-spin" />加载中...</span></td></tr> : null}
+                    {!deleteQueueLoading && deleteQueueItems.length === 0 ? <tr><td className="px-4 py-10 text-center" colSpan={10} style={{ color: LK.muted }}>当前项目暂无删除队列任务</td></tr> : null}
+                    {!deleteQueueLoading && deleteQueueItems.map((item) => {
+                      const statusColor = item.delete_status === 'failed' ? LK.error : item.delete_status === 'running' ? LK.info : LK.warning;
+                      return (
+                        <tr
+                          key={item.id}
+                          className="transition-colors"
+                          style={{
+                            borderBottom: `1px solid ${LK.borderSoft}`,
+                            backgroundColor: item.delete_status === 'failed'
+                              ? `${LK.error}10`
+                              : item.delete_status === 'running'
+                                ? `${LK.info}10`
+                                : `${LK.warning}10`,
+                          }}
+                        >
+                          <td className="px-4 py-3 font-semibold" style={{ color: LK.inkSoft }}>{item.name}</td>
+                          <td className="px-4 py-3" style={{ color: LK.body }}>{getDeleteQueueTypeLabel(String(item.task_type || ''))}</td>
+                          <td className="px-4 py-3" style={{ color: LK.body }}>{item.display_status}</td>
+                          <td className="px-4 py-3">
+                            <span style={{ color: statusColor }}>
+                              {item.delete_status}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3 text-xs" style={{ color: LK.body }} title={item.delete_error || item.last_error || ''}>{truncateText(item.delete_error || item.last_error, 120)}</td>
+                          <td className="px-4 py-3" style={{ fontFamily: MONO, fontSize: '12px', color: LK.body }}>{item.downstream_task_id || '—'}</td>
+                          <td className="px-4 py-3 whitespace-nowrap text-xs" style={{ color: LK.muted }}>{formatDateTime(item.delete_requested_at)}</td>
+                          <td className="px-4 py-3 whitespace-nowrap text-xs" style={{ color: LK.muted }}>{formatDateTime(item.delete_started_at)}</td>
+                          <td className="px-4 py-3 whitespace-nowrap text-xs" style={{ color: LK.muted }}>{formatDateTime(item.delete_finished_at)}</td>
+                          <td className="px-4 py-3 whitespace-nowrap text-xs" style={{ color: LK.muted }}>{formatDateTime(item.updated_at)}</td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>
             </div>
 
-            <div className="flex items-center justify-between border-t border-theme-border px-6 py-4">
-              <div className="text-sm text-theme-text-faint">共 {deleteQueueTotal} 条，当前第 {deleteQueuePage} / {deleteQueueTotalPages} 页</div>
+            <div
+              className="flex items-center justify-between px-6 py-4 text-sm"
+              style={{ borderTop: `1px solid ${LK.border}` }}
+            >
+              <div style={{ color: LK.muted }}>
+                共 {deleteQueueTotal} 条，当前第 {deleteQueuePage} / {deleteQueueTotalPages} 页
+              </div>
               <div className="flex items-center gap-2">
                 <select
                   value={deleteQueuePageSize}
@@ -931,12 +1230,35 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects }) => {
                     setDeleteQueuePage(1);
                     void loadDeleteQueue(1, nextPageSize, deleteQueueSortBy, deleteQueueSortDirection, deleteQueueFilters);
                   }}
-                  className="rounded-xl border border-theme-border bg-theme-surface px-3 py-2 text-sm text-theme-text-primary"
+                  className="rounded-lg px-2 py-1 outline-none transition-colors"
+                  style={{ backgroundColor: LK.surfaceRaised, color: LK.inkSoft, border: `1px solid ${LK.border}` }}
+                  onFocus={(e) => (e.currentTarget.style.borderColor = LK.primary)}
+                  onBlur={(e) => (e.currentTarget.style.borderColor = LK.border)}
                 >
                   {[20, 50, 100].map((size) => <option key={size} value={size}>{size} / 页</option>)}
                 </select>
-                <button type="button" onClick={() => { const next = Math.max(1, deleteQueuePage - 1); setDeleteQueuePage(next); void loadDeleteQueue(next, deleteQueuePageSize, deleteQueueSortBy, deleteQueueSortDirection, deleteQueueFilters); }} disabled={deleteQueuePage <= 1 || deleteQueueLoading} className="rounded-xl border border-theme-border px-4 py-2 text-sm font-semibold text-theme-text-secondary disabled:opacity-40">上一页</button>
-                <button type="button" onClick={() => { const next = Math.min(deleteQueueTotalPages, deleteQueuePage + 1); setDeleteQueuePage(next); void loadDeleteQueue(next, deleteQueuePageSize, deleteQueueSortBy, deleteQueueSortDirection, deleteQueueFilters); }} disabled={deleteQueuePage >= deleteQueueTotalPages || deleteQueueLoading} className="rounded-xl border border-theme-border px-4 py-2 text-sm font-semibold text-theme-text-secondary disabled:opacity-40">下一页</button>
+                <button
+                  type="button"
+                  onClick={() => { const next = Math.max(1, deleteQueuePage - 1); setDeleteQueuePage(next); void loadDeleteQueue(next, deleteQueuePageSize, deleteQueueSortBy, deleteQueueSortDirection, deleteQueueFilters); }}
+                  disabled={deleteQueuePage <= 1 || deleteQueueLoading}
+                  className="rounded-lg px-3 py-1.5 text-sm font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-40"
+                  style={{ backgroundColor: LK.surfaceRaised, color: LK.body, border: `1px solid ${LK.border}` }}
+                  onMouseEnter={(e) => { if (!e.currentTarget.disabled) e.currentTarget.style.color = LK.ink; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.color = LK.body; }}
+                >
+                  上一页
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { const next = Math.min(deleteQueueTotalPages, deleteQueuePage + 1); setDeleteQueuePage(next); void loadDeleteQueue(next, deleteQueuePageSize, deleteQueueSortBy, deleteQueueSortDirection, deleteQueueFilters); }}
+                  disabled={deleteQueuePage >= deleteQueueTotalPages || deleteQueueLoading}
+                  className="rounded-lg px-3 py-1.5 text-sm font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-40"
+                  style={{ backgroundColor: LK.surfaceRaised, color: LK.body, border: `1px solid ${LK.border}` }}
+                  onMouseEnter={(e) => { if (!e.currentTarget.disabled) e.currentTarget.style.color = LK.ink; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.color = LK.body; }}
+                >
+                  下一页
+                </button>
               </div>
             </div>
           </div>
@@ -944,17 +1266,35 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects }) => {
       ) : null}
 
       {createOpen ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/45 p-4 backdrop-blur-sm">
-          <div className="flex max-h-[calc(100vh-2rem)] w-full max-w-4xl flex-col overflow-hidden rounded-[2rem] border border-theme-border bg-theme-surface shadow-2xl">
-            <div className="flex items-start justify-between border-b border-theme-border px-6 py-5">
+        <div
+          className="fixed inset-0 z-[100] flex items-center justify-center p-6 animate-in fade-in"
+          style={{ backgroundColor: 'rgba(5, 10, 20, 0.72)', backdropFilter: 'blur(6px)' }}
+        >
+          <div
+            className="flex max-h-[calc(100vh-2rem)] w-full max-w-4xl flex-col overflow-hidden rounded-2xl animate-in"
+            style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}` }}
+          >
+            <div className="flex items-start justify-between px-6 py-5" style={{ borderBottom: `1px solid ${LK.borderSoft}` }}>
               <div>
-                <div className="text-lg font-black text-theme-text-primary">创建任务</div>
-                <div className="mt-1 text-sm text-theme-text-faint">使用多阶段表单选择现有任务输入，不支持直接上传文件</div>
+                <div className="text-lg font-semibold leading-7" style={{ color: LK.ink }}>
+                  创建任务
+                </div>
+                <div className="mt-1 text-sm" style={{ color: LK.muted }}>
+                  使用多阶段表单选择现有任务输入，不支持直接上传文件
+                </div>
               </div>
-              <button onClick={closeCreateDialog} className="rounded-xl p-2 text-theme-text-faint transition hover:bg-theme-elevated hover:text-theme-text-primary"><X size={18} /></button>
+              <button
+                onClick={closeCreateDialog}
+                className="rounded-lg p-2 transition-colors"
+                style={{ color: LK.muted }}
+                onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = LK.surfaceRaised; e.currentTarget.style.color = LK.ink; }}
+                onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.color = LK.muted; }}
+              >
+                <X size={18} />
+              </button>
             </div>
 
-            <div className="border-b border-theme-border px-6 py-4">
+            <div className="px-6 py-4" style={{ borderBottom: `1px solid ${LK.borderSoft}` }}>
               <div className="flex flex-wrap gap-2">
                 {createTabs.map((tab, index) => {
                   const active = tab.key === activeCreateTab;
@@ -963,11 +1303,21 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects }) => {
                       key={tab.key}
                       type="button"
                       onClick={() => setActiveCreateTab(tab.key)}
-                      className={`inline-flex items-center gap-2 rounded-2xl px-4 py-2 text-sm font-bold transition ${
-                        active ? 'bg-slate-900 text-white' : 'bg-theme-elevated text-theme-text-secondary hover:text-theme-text-primary'
-                      }`}
+                      className="inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition-colors"
+                      style={{
+                        backgroundColor: active ? LK.primaryMuted : LK.surfaceRaised,
+                        color: active ? LK.primary : LK.body,
+                        borderBottom: active ? `2px solid ${LK.primary}` : '2px solid transparent',
+                      }}
+                      onMouseEnter={(e) => { if (!active) e.currentTarget.style.color = LK.ink; }}
+                      onMouseLeave={(e) => { if (!active) e.currentTarget.style.color = LK.body; }}
                     >
-                      <span className={`flex h-6 w-6 items-center justify-center rounded-full text-xs ${active ? 'bg-white/15' : 'bg-theme-surface'}`}>{index + 1}</span>
+                      <span
+                        className="flex h-6 w-6 items-center justify-center rounded-full text-xs"
+                        style={{ backgroundColor: active ? 'rgba(255, 255, 255, 0.15)' : LK.surface }}
+                      >
+                        {index + 1}
+                      </span>
                       {tab.label}
                     </button>
                   );
@@ -975,35 +1325,78 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects }) => {
               </div>
             </div>
 
-            <div className="min-h-0 flex-1 overflow-y-auto px-6 py-6">
+            <div className="min-h-0 flex-1 overflow-y-auto px-6 py-5">
               {activeCreateTab === 'basic' ? (
                 <div className="grid gap-4 md:grid-cols-2">
-                  <label className="block text-sm font-semibold text-theme-text-secondary">任务类型
-                    <select value={taskType} onChange={(e) => setTaskType(e.target.value as any)} className="mt-1 w-full rounded-xl border border-theme-border bg-theme-surface px-3 py-2 text-theme-text-primary">
+                  <label className="block text-sm font-semibold" style={{ color: LK.inkSoft }}>
+                    任务类型
+                    <select
+                      value={taskType}
+                      onChange={(e) => setTaskType(e.target.value as any)}
+                      className="mt-1 w-full rounded-lg px-3 py-2.5 text-sm outline-none transition-colors"
+                      style={{ backgroundColor: LK.surfaceRaised, color: LK.inkSoft, border: `1px solid ${LK.border}` }}
+                      onFocus={(e) => (e.currentTarget.style.borderColor = LK.primary)}
+                      onBlur={(e) => (e.currentTarget.style.borderColor = LK.border)}
+                    >
                       {TASK_TYPES.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}
                     </select>
                   </label>
-                  <div className="rounded-2xl border border-theme-border bg-theme-elevated px-4 py-3">
-                    <div className="text-xs font-bold uppercase tracking-[0.18em] text-theme-text-faint">项目</div>
-                    <div className="mt-2 text-sm font-semibold text-theme-text-primary">{projectName}</div>
-                    <div className="mt-1 text-xs text-theme-text-faint">
+                  <div className="rounded-lg px-4 py-3" style={{ backgroundColor: LK.surfaceRaised, border: `1px solid ${LK.borderSoft}` }}>
+                    <div className="text-xs font-semibold uppercase tracking-wider" style={{ color: LK.mutedSoft }}>项目</div>
+                    <div className="mt-2 text-sm font-semibold" style={{ color: LK.ink }}>{projectName}</div>
+                    <div className="mt-1 text-xs" style={{ color: LK.muted }}>
                       {taskType === 'sechps_tool' ? 'SecHPS 作为执行引擎运行具体 Agent Harness，不提供单独业务详情页。' : `下游详情会跳转到 ${taskTypeMeta.label} 的原任务页面。`}
                     </div>
                   </div>
-                  <label className="block text-sm font-semibold text-theme-text-secondary md:col-span-2">任务名称
-                    <input value={name} onChange={(e) => setName(e.target.value)} className="mt-1 w-full rounded-xl border border-theme-border bg-theme-surface px-3 py-2 text-theme-text-primary" />
+                  <label className="block text-sm font-semibold md:col-span-2" style={{ color: LK.inkSoft }}>
+                    任务名称
+                    <input
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                      className="mt-1 w-full rounded-lg px-3 py-2.5 text-sm outline-none transition-colors"
+                      style={{ backgroundColor: LK.surfaceRaised, color: LK.inkSoft, border: `1px solid ${LK.border}` }}
+                      onFocus={(e) => (e.currentTarget.style.borderColor = LK.primary)}
+                      onBlur={(e) => (e.currentTarget.style.borderColor = LK.border)}
+                    />
                   </label>
-                  <label className="block text-sm font-semibold text-theme-text-secondary md:col-span-2">描述
-                    <textarea value={description} onChange={(e) => setDescription(e.target.value)} className="mt-1 w-full rounded-xl border border-theme-border bg-theme-surface px-3 py-2 text-theme-text-primary" rows={4} />
+                  <label className="block text-sm font-semibold md:col-span-2" style={{ color: LK.inkSoft }}>
+                    描述
+                    <textarea
+                      value={description}
+                      onChange={(e) => setDescription(e.target.value)}
+                      className="mt-1 w-full resize-none rounded-lg px-3 py-2.5 text-sm outline-none transition-colors"
+                      style={{ backgroundColor: LK.surfaceRaised, color: LK.inkSoft, border: `1px solid ${LK.border}` }}
+                      onFocus={(e) => (e.currentTarget.style.borderColor = LK.primary)}
+                      onBlur={(e) => (e.currentTarget.style.borderColor = LK.border)}
+                      rows={4}
+                    />
                   </label>
                   {taskType === 'binary_module_e2e' ? (
-                    <label className="block text-sm font-semibold text-theme-text-secondary md:col-span-2">模块名
-                      <input value={moduleName} onChange={(e) => setModuleName(e.target.value)} className="mt-1 w-full rounded-xl border border-theme-border bg-theme-surface px-3 py-2 text-theme-text-primary" />
+                    <label className="block text-sm font-semibold md:col-span-2" style={{ color: LK.inkSoft }}>
+                      模块名
+                      <input
+                        value={moduleName}
+                        onChange={(e) => setModuleName(e.target.value)}
+                        className="mt-1 w-full rounded-lg px-3 py-2.5 text-sm outline-none transition-colors"
+                        style={{ backgroundColor: LK.surfaceRaised, color: LK.inkSoft, border: `1px solid ${LK.border}` }}
+                        onFocus={(e) => (e.currentTarget.style.borderColor = LK.primary)}
+                        onBlur={(e) => (e.currentTarget.style.borderColor = LK.border)}
+                      />
                     </label>
                   ) : null}
                   {taskType === 'sechps_tool' ? (
-                    <label className="block text-sm font-semibold text-theme-text-secondary md:col-span-2">执行指令（可选，不填则使用 Agent Harness 注册的启动命令）
-                      <textarea value={instruction} onChange={(e) => setInstruction(e.target.value)} rows={3} className="mt-1 w-full rounded-xl border border-theme-border bg-theme-surface px-3 py-2 text-theme-text-primary" placeholder="不填时使用 Agent Harness 的启动命令，例如 /project:xxx" />
+                    <label className="block text-sm font-semibold md:col-span-2" style={{ color: LK.inkSoft }}>
+                      执行指令（可选，不填则使用 Agent Harness 注册的启动命令）
+                      <textarea
+                        value={instruction}
+                        onChange={(e) => setInstruction(e.target.value)}
+                        rows={3}
+                        className="mt-1 w-full resize-none rounded-lg px-3 py-2.5 text-sm outline-none transition-colors"
+                        style={{ backgroundColor: LK.surfaceRaised, color: LK.inkSoft, border: `1px solid ${LK.border}` }}
+                        onFocus={(e) => (e.currentTarget.style.borderColor = LK.primary)}
+                        onBlur={(e) => (e.currentTarget.style.borderColor = LK.border)}
+                        placeholder="不填时使用 Agent Harness 的启动命令，例如 /project:xxx"
+                      />
                     </label>
                   ) : null}
                 </div>
@@ -1013,50 +1406,77 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects }) => {
                 <div className="space-y-4">
                   {taskType === 'sechps_tool' ? (
                     <>
-                      <div className="rounded-2xl border border-theme-border bg-theme-elevated px-4 py-4 text-sm text-theme-text-secondary">
+                      <div
+                        className="rounded-lg px-4 py-3 text-sm"
+                        style={{ backgroundColor: LK.surfaceRaised, border: `1px solid ${LK.borderSoft}`, color: LK.body }}
+                      >
                         先选择任务输入中的目录，再选择具体 Agent Harness。分发时调度中心会自动申请 Task Key，并把所选目录直接传给 SecHPS。
                       </div>
-                      <label className="block text-sm font-semibold text-theme-text-secondary">Agent Harness
-                        <select value={selectedAgentAppId} onChange={(e) => setSelectedAgentAppId(e.target.value)} className="mt-1 w-full rounded-xl border border-theme-border bg-theme-surface px-3 py-2 text-theme-text-primary">
+                      <label className="block text-sm font-semibold" style={{ color: LK.inkSoft }}>
+                        Agent Harness
+                        <select
+                          value={selectedAgentAppId}
+                          onChange={(e) => setSelectedAgentAppId(e.target.value)}
+                          className="mt-1 w-full rounded-lg px-3 py-2.5 text-sm outline-none transition-colors"
+                          style={{ backgroundColor: LK.surfaceRaised, color: LK.inkSoft, border: `1px solid ${LK.border}` }}
+                          onFocus={(e) => (e.currentTarget.style.borderColor = LK.primary)}
+                          onBlur={(e) => (e.currentTarget.style.borderColor = LK.border)}
+                        >
                           <option value="">请选择具体 Harness</option>
                           {agentApps.map((item) => <option key={item.id} value={item.id}>{`${item.name} / ${item.engine}`}</option>)}
                         </select>
                       </label>
                       {selectedAgentApp ? (
-                        <div className="rounded-xl border border-theme-border bg-theme-surface px-4 py-3 text-xs text-theme-text-secondary">
-                          <div>Harness: <span className="font-semibold text-theme-text-primary">{selectedAgentApp.name}</span></div>
-                          <div className="mt-1">Engine: <span className="font-semibold text-theme-text-primary">{selectedAgentApp.engine}</span></div>
-                          <div className="mt-1 break-all">Harness Path: <span className="font-semibold text-theme-text-primary">{selectedAgentApp.agentHarnessPath || '—'}</span></div>
+                        <div className="rounded-lg px-4 py-3 text-xs" style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}`, color: LK.body }}>
+                          <div>Harness: <span className="font-semibold" style={{ color: LK.ink }}>{selectedAgentApp.name}</span></div>
+                          <div className="mt-1">Engine: <span className="font-semibold" style={{ color: LK.ink }}>{selectedAgentApp.engine}</span></div>
+                          <div className="mt-1 break-all">Harness Path: <span className="font-semibold" style={{ color: LK.ink }}>{selectedAgentApp.agentHarnessPath || '—'}</span></div>
                         </div>
                       ) : null}
                     </>
                   ) : null}
-                  <label className="block text-sm font-semibold text-theme-text-secondary">任务输入记录
-                    <select value={selectedInputId} onChange={(e) => setSelectedInputId(e.target.value)} className="mt-1 w-full rounded-xl border border-theme-border bg-theme-surface px-3 py-2 text-theme-text-primary">
+                  <label className="block text-sm font-semibold" style={{ color: LK.inkSoft }}>
+                    任务输入记录
+                    <select
+                      value={selectedInputId}
+                      onChange={(e) => setSelectedInputId(e.target.value)}
+                      className="mt-1 w-full rounded-lg px-3 py-2.5 text-sm outline-none transition-colors"
+                      style={{ backgroundColor: LK.surfaceRaised, color: LK.inkSoft, border: `1px solid ${LK.border}` }}
+                      onFocus={(e) => (e.currentTarget.style.borderColor = LK.primary)}
+                      onBlur={(e) => (e.currentTarget.style.borderColor = LK.border)}
+                    >
                       {selectableInputs.map((item) => <option key={item.upload_id} value={item.upload_id}>{`${getUploadRecordDisplayName(item)} · ${item.status}`}</option>)}
                     </select>
                   </label>
-                  <div className="rounded-2xl border border-theme-border bg-theme-elevated px-4 py-3 text-sm text-theme-text-secondary">
-                    当前输入模式：
-                    <span className="ml-2 font-semibold text-theme-text-primary">
-                      {selectionMode === 'file' ? '选择单个文件' : selectionMode === 'file_list' ? '选择多个文件' : '选择文件夹'}
-                    </span>
-                    <div className="mt-2 text-xs text-theme-text-faint">{inputSelectionHint}</div>
+                  <div className="rounded-lg px-4 py-3" style={{ backgroundColor: LK.surfaceRaised, border: `1px solid ${LK.borderSoft}` }}>
+                    <div className="text-sm" style={{ color: LK.body }}>
+                      当前输入模式：
+                      <span className="ml-2 font-semibold" style={{ color: LK.ink }}>
+                        {selectionMode === 'file' ? '选择单个文件' : selectionMode === 'file_list' ? '选择多个文件' : '选择文件夹'}
+                      </span>
+                    </div>
+                    <div className="mt-2 text-xs" style={{ color: LK.muted }}>{inputSelectionHint}</div>
                   </div>
                   {selectableInputs.length === 0 ? (
-                    <div className="rounded-2xl border border-amber-300/50 bg-amber-50 px-4 py-3 text-sm text-amber-700">
-                      没有可用输入，请先到“任务输入”上传记录。
+                    <div
+                      className="rounded-lg px-4 py-3 text-sm"
+                      style={{ backgroundColor: `${LK.warning}14`, border: `1px solid ${LK.warning}40`, color: LK.warning }}
+                    >
+                      没有可用输入，请先到"任务输入"上传记录。
                     </div>
                   ) : (
                     <div className="space-y-4">
-                      <div className="rounded-2xl border border-theme-border bg-theme-surface px-4 py-3">
-                        <div className="flex flex-wrap items-center gap-2 text-xs text-theme-text-faint">
+                      <div className="rounded-lg px-4 py-3" style={{ backgroundColor: LK.surface, border: `1px solid ${LK.borderSoft}` }}>
+                        <div className="flex flex-wrap items-center gap-2 text-xs" style={{ color: LK.muted }}>
                           {((browseCache[inputCurrentPath]?.breadcrumbs) || (rootBrowse?.breadcrumbs) || []).map((crumb, index, items) => (
                             <button
                               key={`${crumb.path}-${index}`}
                               type="button"
                               onClick={() => openBrowsePath(crumb.path)}
-                              className="inline-flex items-center gap-1 rounded-lg px-2 py-1 hover:bg-theme-elevated"
+                              className="inline-flex items-center gap-1 rounded-lg px-2 py-1 transition-colors"
+                              style={{ color: LK.body }}
+                              onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = LK.surfaceRaised; e.currentTarget.style.color = LK.ink; }}
+                              onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.color = LK.body; }}
                             >
                               <Folder size={12} />
                               <span>{crumb.name}</span>
@@ -1066,51 +1486,63 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects }) => {
                         </div>
                       </div>
                       {inputBrowseError ? (
-                        <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">{inputBrowseError}</div>
+                        <div
+                          className="rounded-lg px-4 py-3 text-sm"
+                          style={{ backgroundColor: `${LK.error}14`, border: `1px solid ${LK.error}40`, color: LK.error }}
+                        >
+                          {inputBrowseError}
+                        </div>
                       ) : null}
-                      <div className="max-h-[min(24rem,45vh)] overflow-auto rounded-2xl border border-theme-border bg-theme-surface">
+                      <div className="max-h-[min(24rem,45vh)] overflow-auto rounded-xl" style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}` }}>
                         <table className="min-w-full text-sm">
-                          <thead className="bg-theme-elevated text-theme-text-faint">
-                            <tr>
-                              <th className="px-4 py-3 text-left">选择</th>
-                              <th className="px-4 py-3 text-left">名称</th>
-                              <th className="px-4 py-3 text-left">相对路径</th>
-                              <th className="px-4 py-3 text-left">类型</th>
+                          <thead>
+                            <tr className="text-left text-xs uppercase tracking-wider" style={{ color: LK.mutedSoft }}>
+                              <th className="px-4 py-2.5 font-medium" style={{ borderBottom: `1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>选择</th>
+                              <th className="px-4 py-2.5 font-medium" style={{ borderBottom: `1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>名称</th>
+                              <th className="px-4 py-2.5 font-medium" style={{ borderBottom: `1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>相对路径</th>
+                              <th className="px-4 py-2.5 font-medium" style={{ borderBottom: `1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>类型</th>
                             </tr>
                           </thead>
                           <tbody>
                             {inputBrowseLoading ? (
-                              <tr><td className="px-4 py-6 text-center text-theme-text-faint" colSpan={4}>加载目录中...</td></tr>
+                              <tr><td className="px-4 py-6 text-center" colSpan={4} style={{ color: LK.muted }}>加载目录中...</td></tr>
                             ) : null}
                             {!inputBrowseLoading && !rootBrowse ? (
-                              <tr><td className="px-4 py-6 text-center text-theme-text-faint" colSpan={4}>暂无可浏览目录</td></tr>
+                              <tr><td className="px-4 py-6 text-center" colSpan={4} style={{ color: LK.muted }}>暂无可浏览目录</td></tr>
                             ) : null}
                             {rootBrowse ? (
-                              <tr className="border-t border-theme-border bg-theme-elevated/40">
+                              <tr style={{ borderBottom: `1px solid ${LK.borderSoft}`, backgroundColor: `${LK.surfaceRaised}40` }}>
                                 <td className="px-4 py-3">
                                   {selectionMode === 'directory' ? (
-                                    <button type="button" onClick={() => selectDirectoryPath('')} className="text-theme-text-secondary">
+                                    <button
+                                      type="button"
+                                      onClick={() => selectDirectoryPath('')}
+                                      className="transition-colors"
+                                      style={{ color: LK.muted }}
+                                      onMouseEnter={(e) => { e.currentTarget.style.color = LK.ink; }}
+                                      onMouseLeave={(e) => { e.currentTarget.style.color = LK.muted; }}
+                                    >
                                       {selectedRelativePath === '' && directorySelectionTouched ? <SquareCheck size={16} /> : <Square size={16} />}
                                     </button>
                                   ) : null}
                                 </td>
                                 <td className="px-4 py-3">
-                                  <div className="flex items-center gap-2 font-semibold text-theme-text-primary">
+                                  <div className="flex items-center gap-2 font-semibold" style={{ color: LK.ink }}>
                                     <FolderOpen size={15} />
                                     上传根目录
                                   </div>
                                 </td>
-                                <td className="px-4 py-3 font-mono text-xs text-theme-text-faint">.</td>
-                                <td className="px-4 py-3 text-theme-text-secondary">文件夹</td>
+                                <td className="px-4 py-3" style={{ fontFamily: MONO, fontSize: '12px', color: LK.muted }}>.</td>
+                                <td className="px-4 py-3" style={{ color: LK.body }}>文件夹</td>
                               </tr>
                             ) : null}
                             {rootBrowse ? renderTreeRows('', 0) : null}
                           </tbody>
                         </table>
                       </div>
-                      <div className="rounded-2xl border border-theme-border bg-theme-elevated px-4 py-3">
-                        <div className="text-xs font-bold uppercase tracking-[0.18em] text-theme-text-faint">当前选择</div>
-                        <div className="mt-2 text-sm font-semibold text-theme-text-primary">{inputSummary}</div>
+                      <div className="rounded-lg px-4 py-3" style={{ backgroundColor: LK.surfaceRaised, border: `1px solid ${LK.borderSoft}` }}>
+                        <div className="text-xs font-semibold uppercase tracking-wider" style={{ color: LK.mutedSoft }}>当前选择</div>
+                        <div className="mt-2 text-sm font-semibold" style={{ color: LK.ink }}>{inputSummary}</div>
                       </div>
                     </div>
                   )}
@@ -1119,17 +1551,17 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects }) => {
 
               {activeCreateTab === 'options' ? (
                 <div className="grid gap-4 md:grid-cols-2">
-                  <div className="rounded-2xl border border-theme-border bg-theme-elevated px-4 py-3">
-                    <div className="text-xs font-bold uppercase tracking-[0.18em] text-theme-text-faint">创建后状态</div>
-                    <div className="mt-2 text-sm font-semibold text-theme-text-primary">created / ready_for_dispatch / 自动进入分发队列</div>
-                    <div className="mt-1 text-xs text-theme-text-faint">
+                  <div className="rounded-lg px-4 py-3" style={{ backgroundColor: LK.surfaceRaised, border: `1px solid ${LK.borderSoft}` }}>
+                    <div className="text-xs font-semibold uppercase tracking-wider" style={{ color: LK.mutedSoft }}>创建后状态</div>
+                    <div className="mt-2 text-sm font-semibold" style={{ color: LK.ink }}>created / ready_for_dispatch / 自动进入分发队列</div>
+                    <div className="mt-1 text-xs" style={{ color: LK.muted }}>
                       {taskType === 'sechps_tool' ? '创建阶段会登记具体 Agent Harness 与目录绑定。Task Key 由调度中心在分发阶段自动申请。' : '创建阶段只登记业务任务，不要求手动填写 Task Key、Secret 或算力池。'}
                     </div>
                   </div>
-                  <div className="rounded-2xl border border-theme-border bg-theme-elevated px-4 py-3">
-                    <div className="text-xs font-bold uppercase tracking-[0.18em] text-theme-text-faint">自动分发</div>
-                    <div className="mt-2 text-sm font-semibold text-theme-text-primary">调度中心后台排队并执行分发</div>
-                    <div className="mt-1 text-xs text-theme-text-faint">
+                  <div className="rounded-lg px-4 py-3" style={{ backgroundColor: LK.surfaceRaised, border: `1px solid ${LK.borderSoft}` }}>
+                    <div className="text-xs font-semibold uppercase tracking-wider" style={{ color: LK.mutedSoft }}>自动分发</div>
+                    <div className="mt-2 text-sm font-semibold" style={{ color: LK.ink }}>调度中心后台排队并执行分发</div>
+                    <div className="mt-1 text-xs" style={{ color: LK.muted }}>
                       {taskType === 'ai4apk'
                         ? '创建成功后任务会自动进入分发队列；调度中心会把所选文件路径（APK/HAP 安装包或其源码压缩包）直接传给 AI4APP 进行扫描。'
                         : taskType === 'sechps_tool'
@@ -1137,25 +1569,25 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects }) => {
                           : '创建成功后任务会自动进入分发队列；调度中心会在分发期创建 root task key，并直接传给下游。'}
                     </div>
                   </div>
-                  <div className="rounded-2xl border border-theme-border bg-theme-surface px-4 py-3 md:col-span-2">
-                    <div className="text-xs font-bold uppercase tracking-[0.18em] text-theme-text-faint">创建摘要</div>
+                  <div className="rounded-lg px-4 py-3 md:col-span-2" style={{ backgroundColor: LK.surface, border: `1px solid ${LK.borderSoft}` }}>
+                    <div className="text-xs font-semibold uppercase tracking-wider" style={{ color: LK.mutedSoft }}>创建摘要</div>
                     <div className="mt-3 grid gap-3 md:grid-cols-3">
                       <div>
-                        <div className="text-xs text-theme-text-faint">任务类型</div>
-                        <div className="mt-1 text-sm font-semibold text-theme-text-primary">{taskTypeMeta.label}</div>
+                        <div className="text-xs" style={{ color: LK.muted }}>任务类型</div>
+                        <div className="mt-1 text-sm font-semibold" style={{ color: LK.ink }}>{taskTypeMeta.label}</div>
                       </div>
                       <div>
-                        <div className="text-xs text-theme-text-faint">输入记录</div>
-                        <div className="mt-1 text-sm font-semibold text-theme-text-primary">{taskType === 'sechps_tool' ? (selectedAgentApp?.name || '未选择 Harness') : (selectedInputId || '未选择')}</div>
+                        <div className="text-xs" style={{ color: LK.muted }}>输入记录</div>
+                        <div className="mt-1 text-sm font-semibold" style={{ color: LK.ink }}>{taskType === 'sechps_tool' ? (selectedAgentApp?.name || '未选择 Harness') : (selectedInputId || '未选择')}</div>
                       </div>
                       <div>
-                        <div className="text-xs text-theme-text-faint">输入路径</div>
-                        <div className="mt-1 text-sm font-semibold text-theme-text-primary break-all">{inputSummary}</div>
+                        <div className="text-xs" style={{ color: LK.muted }}>输入路径</div>
+                        <div className="mt-1 text-sm font-semibold break-all" style={{ color: LK.ink }}>{inputSummary}</div>
                       </div>
                       {taskType === 'binary_module_e2e' ? (
                         <div>
-                          <div className="text-xs text-theme-text-faint">模块名</div>
-                          <div className="mt-1 text-sm font-semibold text-theme-text-primary">{moduleName || '未填写'}</div>
+                          <div className="text-xs" style={{ color: LK.muted }}>模块名</div>
+                          <div className="mt-1 text-sm font-semibold" style={{ color: LK.ink }}>{moduleName || '未填写'}</div>
                         </div>
                       ) : null}
                     </div>
@@ -1164,15 +1596,52 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects }) => {
               ) : null}
             </div>
 
-            <div className="flex items-center justify-between border-t border-theme-border px-6 py-4">
-              <div className="text-xs text-theme-text-faint">第 {activeCreateTabIndex + 1} 步 / 共 {createTabs.length} 步</div>
+            <div
+              className="flex items-center justify-between px-6 py-4"
+              style={{ borderTop: `1px solid ${LK.border}` }}
+            >
+              <div className="text-xs" style={{ color: LK.muted }}>第 {activeCreateTabIndex + 1} 步 / 共 {createTabs.length} 步</div>
               <div className="flex items-center gap-2">
-                <button onClick={closeCreateDialog} className="rounded-xl border border-theme-border px-4 py-2 text-sm font-semibold text-theme-text-secondary">取消</button>
-                <button onClick={() => goCreateTab(-1)} disabled={activeCreateTabIndex === 0} className="rounded-xl border border-theme-border px-4 py-2 text-sm font-semibold text-theme-text-secondary disabled:opacity-40">上一步</button>
+                <button
+                  onClick={closeCreateDialog}
+                  className="rounded-lg px-4 py-2 text-sm font-semibold transition-colors"
+                  style={{ backgroundColor: LK.surfaceRaised, color: LK.body, border: `1px solid ${LK.border}` }}
+                  onMouseEnter={(e) => { e.currentTarget.style.color = LK.ink; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.color = LK.body; }}
+                >
+                  取消
+                </button>
+                <button
+                  onClick={() => goCreateTab(-1)}
+                  disabled={activeCreateTabIndex === 0}
+                  className="rounded-lg px-4 py-2 text-sm font-semibold transition-colors disabled:opacity-40"
+                  style={{ backgroundColor: LK.surfaceRaised, color: LK.body, border: `1px solid ${LK.border}` }}
+                  onMouseEnter={(e) => { if (!e.currentTarget.disabled) e.currentTarget.style.color = LK.ink; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.color = LK.body; }}
+                >
+                  上一步
+                </button>
                 {activeCreateTabIndex < createTabs.length - 1 ? (
-                  <button onClick={() => goCreateTab(1)} className="rounded-xl bg-theme-elevated px-4 py-2 text-sm font-semibold text-theme-text-primary">下一步</button>
+                  <button
+                    onClick={() => goCreateTab(1)}
+                    className="rounded-lg px-4 py-2 text-sm font-semibold transition-colors"
+                    style={{ backgroundColor: LK.surfaceRaised, color: LK.inkSoft, border: `1px solid ${LK.border}` }}
+                    onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = LK.primaryMuted; e.currentTarget.style.color = LK.primary; e.currentTarget.style.borderColor = LK.primary; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = LK.surfaceRaised; e.currentTarget.style.color = LK.inkSoft; e.currentTarget.style.borderColor = LK.border; }}
+                  >
+                    下一步
+                  </button>
                 ) : (
-                  <button onClick={() => void createTask()} disabled={saving || !canCreateTask} className="rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white disabled:opacity-60">{saving ? '创建中...' : '创建任务'}</button>
+                  <button
+                    onClick={() => void createTask()}
+                    disabled={saving || !canCreateTask}
+                    className="rounded-lg px-4 py-2 text-sm font-semibold transition-colors disabled:opacity-50"
+                    style={{ backgroundColor: LK.primary, color: '#ffffff' }}
+                    onMouseEnter={(e) => { if (!e.currentTarget.disabled) e.currentTarget.style.backgroundColor = LK.primaryDeep; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = LK.primary; }}
+                  >
+                    {saving ? '创建中...' : '创建任务'}
+                  </button>
                 )}
               </div>
             </div>

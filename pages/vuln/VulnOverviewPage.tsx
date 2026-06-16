@@ -6,13 +6,40 @@ import {
   FINISHED_REASON_LABELS,
   SEVERITY_LABELS,
   STAGE_LABELS,
-  cardClass,
   labelOf,
-  stageTone,
-  toneOf,
 } from './vuln-engine/shared';
 
 const vulnApi = api.domains.vuln;
+
+// LOKI design tokens (DESIGN.md) — page-local palette.
+const LK = {
+  primary: '#4f73ff',
+  primarySoft: '#7590ff',
+  primaryDeep: '#3f63f1',
+  primaryMuted: 'rgba(79, 115, 255, 0.14)',
+  canvas: '#070d18',
+  surface: '#111a2b',
+  surfaceRaised: '#18233a',
+  surfaceGlass: 'rgba(17, 26, 43, 0.84)',
+  border: '#26324a',
+  borderSoft: '#1b2438',
+  ink: '#f5f7ff',
+  inkSoft: '#d6def0',
+  body: '#a4aec4',
+  muted: '#72809a',
+  mutedSoft: '#8b95a8',
+  success: '#45c06f',
+  warning: '#d5a13a',
+  error: '#f15d5d',
+  info: '#4f8cff',
+} as const;
+
+const SEVERITY_COLORS: Record<string, string> = {
+  critical: LK.error,
+  high: '#ff8b3d',
+  medium: LK.warning,
+  low: LK.success,
+};
 
 interface VulnPageProps {
   projectId: string;
@@ -25,13 +52,6 @@ const STAGE_EXPLANATIONS: Record<string, string> = {
   receive: '已接收漏洞，等待进入验证。',
   validation: '正在真实验证，尚无最终验证结果。',
   finished: '生命周期终态，已形成漏洞或归档结论。',
-};
-
-const severityPalette: Record<string, string> = {
-  critical: 'bg-rose-500',
-  high: 'bg-orange-500',
-  medium: 'bg-amber-500',
-  low: 'bg-emerald-500',
 };
 
 export const VulnOverviewPage: React.FC<VulnPageProps> = ({ projectId }) => {
@@ -91,338 +111,499 @@ export const VulnOverviewPage: React.FC<VulnPageProps> = ({ projectId }) => {
   const maxFinishedReasonCount = Math.max(1, ...finishedReasonEntries.map(([, count]) => Number(count || 0)));
 
   return (
-    <div className="animate-in fade-in space-y-5 p-6 pb-16 duration-500 xl:p-8 xl:pb-20">
-      <section className="overflow-hidden rounded-[2rem] border border-[rgba(255,255,255,0.08)] bg-[radial-gradient(circle_at_top_left,_rgba(244,63,94,0.08),_transparent_28%),radial-gradient(circle_at_top_right,_rgba(59,130,246,0.08),_transparent_24%),var(--bg-surface)] shadow-sm">
-        <div className="flex flex-col gap-5 px-5 py-5 xl:flex-row xl:items-start xl:justify-between xl:px-6">
-          <div className="min-w-0">
-            <div className="inline-flex items-center gap-2 rounded-full bg-rose-50 px-3 py-1.5 text-[11px] font-black uppercase tracking-[0.2em] text-rose-700">
-              <BarChart3 size={13} />
-              生命周期总览
+    <div
+      className="space-y-4 px-5 py-5 md:px-6 2xl:px-8"
+      style={{ backgroundColor: LK.canvas, minHeight: '100%', color: LK.inkSoft }}
+    >
+      <div className="flex flex-wrap items-start justify-between gap-3 pb-4" style={{ borderBottom: `1px solid ${LK.borderSoft}` }}>
+        <div>
+          <span
+            className="inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-medium uppercase tracking-wider"
+            style={{ backgroundColor: LK.primaryMuted, color: LK.primary }}
+          >
+            <BarChart3 size={13} />
+            生命周期总览
+          </span>
+          <h1 className="mt-3 text-2xl font-semibold leading-8 tracking-tight" style={{ color: LK.ink }}>
+            漏洞生命周期指挥台
+          </h1>
+          <p className="mt-2 max-w-3xl text-sm leading-6" style={{ color: LK.body }}>
+            把阶段堆积、风险密度、队列压力和结论收敛压缩到一屏内，快速判断项目当前最需要介入的位置。
+          </p>
+        </div>
+        <div className="flex flex-wrap items-center gap-3">
+          <div
+            className="rounded-xl px-4 py-2.5"
+            style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}` }}
+          >
+            <div className="text-xs font-semibold uppercase tracking-wider" style={{ color: LK.muted }}>
+              项目
             </div>
-            <h2 className="mt-3 text-2xl font-black tracking-tight text-slate-900 xl:text-3xl">漏洞生命周期指挥台</h2>
-            <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-600">
-              把阶段堆积、风险密度、队列压力和结论收敛压缩到一屏内，快速判断项目当前最需要介入的位置。
-            </p>
+            <div className="mt-1 text-sm font-semibold" style={{ color: LK.ink }}>{projectId || 'n/a'}</div>
           </div>
-          <div className="flex flex-wrap items-center gap-2">
-            <div className="rounded-xl border border-slate-200 bg-[var(--bg-surface)] px-3 py-2">
-              <div className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-400">项目</div>
-              <div className="mt-1 text-sm font-black text-slate-800">{projectId || 'n/a'}</div>
+          <button
+            type="button"
+            onClick={loadOverview}
+            className="inline-flex items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold transition-colors"
+            style={{ backgroundColor: LK.primary, color: '#ffffff' }}
+            onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = LK.primaryDeep)}
+            onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = LK.primary)}
+          >
+            <RefreshCw size={15} />
+            刷新统计
+          </button>
+        </div>
+      </div>
+
+      <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-5">
+        <div
+          className="flex flex-col gap-3 rounded-xl px-4 py-3"
+          style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}` }}
+        >
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-semibold uppercase tracking-wider" style={{ color: LK.muted }}>
+              漏洞总数
+            </span>
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg" style={{ backgroundColor: LK.surfaceRaised, color: LK.error }}>
+              <ShieldAlert size={16} />
             </div>
-            <button
-              onClick={loadOverview}
-              className="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-black text-white shadow-lg shadow-slate-900/10"
-            >
-              <RefreshCw size={15} />
-              刷新统计
-            </button>
           </div>
+          <div className="text-2xl font-semibold leading-7 tabular-nums" style={{ color: LK.ink }}>{totalCases}</div>
+          <div className="text-xs" style={{ color: LK.muted }}>生命周期纳管总量</div>
         </div>
 
-        <div className="grid gap-3 border-t border-slate-100 px-5 py-4 md:grid-cols-2 xl:grid-cols-5 xl:px-6">
-          <div className="rounded-[1.4rem] border border-slate-200 bg-[var(--bg-surface)] px-4 py-3 shadow-sm">
-            <div className="flex items-center justify-between">
-              <span className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-400">漏洞总数</span>
-              <ShieldAlert className="text-rose-200" size={18} />
+        <div
+          className="flex flex-col gap-3 rounded-xl px-4 py-3"
+          style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}` }}
+        >
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-semibold uppercase tracking-wider" style={{ color: LK.muted }}>
+              高危占比
+            </span>
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg" style={{ backgroundColor: LK.surfaceRaised, color: '#ff8b3d' }}>
+              <AlertTriangle size={16} />
             </div>
-            <div className="mt-2 text-3xl font-black text-slate-900">{totalCases}</div>
-            <div className="mt-1 text-xs text-slate-500">生命周期纳管总量</div>
           </div>
+          <div className="text-2xl font-semibold leading-7 tabular-nums" style={{ color: LK.ink }}>{highRiskRate}%</div>
+          <div className="text-xs" style={{ color: LK.muted }}>{highRiskCount} 个严重 / 高危</div>
+        </div>
 
-          <div className="rounded-[1.4rem] border border-slate-200 bg-[var(--bg-surface)] px-4 py-3 shadow-sm">
-            <div className="flex items-center justify-between">
-              <span className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-400">高危占比</span>
-              <AlertTriangle className="text-orange-200" size={18} />
+        <div
+          className="flex flex-col gap-3 rounded-xl px-4 py-3"
+          style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}` }}
+        >
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-semibold uppercase tracking-wider" style={{ color: LK.muted }}>
+              外部等待
+            </span>
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg" style={{ backgroundColor: LK.surfaceRaised, color: LK.info }}>
+              <Activity size={16} />
             </div>
-            <div className="mt-2 text-3xl font-black text-slate-900">{highRiskRate}%</div>
-            <div className="mt-1 text-xs text-slate-500">{highRiskCount} 个严重 / 高危</div>
           </div>
+          <div className="text-2xl font-semibold leading-7 tabular-nums" style={{ color: LK.ink }}>{waitingExternal}</div>
+          <div className="text-xs" style={{ color: LK.muted }}>外部模块尚未回传</div>
+        </div>
 
-          <div className="rounded-[1.4rem] border border-slate-200 bg-[var(--bg-surface)] px-4 py-3 shadow-sm">
-            <div className="flex items-center justify-between">
-              <span className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-400">外部等待</span>
-              <Activity className="text-indigo-200" size={18} />
+        <div
+          className="flex flex-col gap-3 rounded-xl px-4 py-3"
+          style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}` }}
+        >
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-semibold uppercase tracking-wider" style={{ color: LK.muted }}>
+              结束占比
+            </span>
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg" style={{ backgroundColor: LK.surfaceRaised, color: LK.success }}>
+              <TrendingUp size={16} />
             </div>
-            <div className="mt-2 text-3xl font-black text-slate-900">{waitingExternal}</div>
-            <div className="mt-1 text-xs text-slate-500">外部模块尚未回传</div>
           </div>
+          <div className="text-2xl font-semibold leading-7 tabular-nums" style={{ color: LK.ink }}>{finishedRate}%</div>
+          <div className="text-xs" style={{ color: LK.muted }}>已结束 {finishedCount} 个</div>
+        </div>
 
-          <div className="rounded-[1.4rem] border border-slate-200 bg-[var(--bg-surface)] px-4 py-3 shadow-sm">
-            <div className="flex items-center justify-between">
-              <span className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-400">结束占比</span>
-              <TrendingUp className="text-emerald-300" size={18} />
+        <div
+          className="flex flex-col gap-3 rounded-xl px-4 py-3"
+          style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}` }}
+        >
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-semibold uppercase tracking-wider" style={{ color: LK.muted }}>
+              人工待办
+            </span>
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg" style={{ backgroundColor: LK.surfaceRaised, color: LK.primary }}>
+              <BarChart3 size={16} />
             </div>
-            <div className="mt-2 text-3xl font-black text-slate-900">{finishedRate}%</div>
-            <div className="mt-1 text-xs text-slate-500">已结束 {finishedCount} 个</div>
           </div>
-
-          <div className="rounded-[1.4rem] bg-slate-900 px-4 py-3 text-white shadow-lg shadow-slate-900/10">
-            <div className="flex items-center justify-between">
-              <span className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-400">人工待办</span>
-              <BarChart3 className="text-blue-300" size={18} />
-            </div>
-            <div className="mt-2 text-3xl font-black">{overview?.metrics?.manual_tasks_open || 0}</div>
-            <div className="mt-1 text-xs text-slate-300">需要人工介入的任务</div>
-          </div>
+          <div className="text-2xl font-semibold leading-7 tabular-nums" style={{ color: LK.ink }}>{overview?.metrics?.manual_tasks_open || 0}</div>
+          <div className="text-xs" style={{ color: LK.muted }}>需要人工介入的任务</div>
         </div>
       </section>
 
-      {error && (
-        <div className="rounded-[1.25rem] border border-rose-200 bg-rose-50 px-5 py-3 text-sm text-rose-700">
+      {error ? (
+        <div
+          className="rounded-lg px-4 py-3 text-sm"
+          style={{ backgroundColor: `${LK.error}14`, border: `1px solid ${LK.error}40`, color: LK.error }}
+        >
           {error}
         </div>
-      )}
+      ) : null}
 
       <div className="grid gap-4 xl:grid-cols-[1.15fr_0.85fr]">
         <div className="grid gap-4">
-          <div className={cardClass}>
-            <div className="border-b border-slate-100 px-5 py-4">
-              <h3 className="text-base font-black text-slate-900">生命周期流转</h3>
-              <p className="mt-1 text-xs text-slate-500">上报、验证、漏洞/归档三段主流程与当前项目分布。</p>
+          <section
+            className="overflow-hidden rounded-xl"
+            style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}` }}
+          >
+            <div className="px-4 py-3" style={{ borderBottom: `1px solid ${LK.borderSoft}` }}>
+              <h2 className="text-base font-semibold" style={{ color: LK.ink }}>生命周期流转</h2>
+              <p className="mt-1 text-xs" style={{ color: LK.muted }}>上报、验证、漏洞/归档三段主流程与当前项目分布。</p>
             </div>
-            <div className="p-5">
+            <div className="p-4">
               <div className="grid gap-3 md:grid-cols-3">
-                {STAGE_ORDER.map((stage, index) => (
-                  <div key={stage} className="relative rounded-[1.2rem] border border-slate-200 bg-[rgba(255,255,255,0.04)] px-4 py-3">
-                    {index < STAGE_ORDER.length - 1 && (
-                      <div className="absolute -right-2 top-1/2 hidden h-px w-4 -translate-y-1/2 bg-slate-300 md:block" />
-                    )}
-                    <div className={`inline-flex rounded-lg px-2 py-1 text-[10px] font-black uppercase tracking-widest ${toneOf(stage, stageTone)}`}>
+                {STAGE_ORDER.map((stage) => (
+                  <div
+                    key={stage}
+                    className="rounded-lg px-4 py-3"
+                    style={{ backgroundColor: LK.surfaceRaised, border: `1px solid ${LK.border}` }}
+                  >
+                    <div
+                      className="inline-block rounded px-2 py-1 text-xs font-semibold uppercase tracking-wider"
+                      style={{ backgroundColor: `${LK.primary}22`, color: LK.primary }}
+                    >
                       {labelOf(stage, STAGE_LABELS)}
                     </div>
-                    <div className="mt-2 text-2xl font-black text-slate-900">{Number(overview?.stage_counts?.[stage] || 0)}</div>
-                    <p className="mt-1 text-[11px] leading-5 text-slate-500">{STAGE_EXPLANATIONS[stage]}</p>
+                    <div className="mt-2 text-2xl font-semibold tabular-nums" style={{ color: LK.ink }}>
+                      {Number(overview?.stage_counts?.[stage] || 0)}
+                    </div>
+                    <p className="mt-1 text-xs leading-5" style={{ color: LK.muted }}>{STAGE_EXPLANATIONS[stage]}</p>
                   </div>
                 ))}
               </div>
             </div>
-          </div>
+          </section>
 
-          <div className={cardClass}>
-            <div className="flex items-center justify-between gap-4 border-b border-slate-100 px-5 py-4">
+          <section
+            className="overflow-hidden rounded-xl"
+            style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}` }}
+          >
+            <div className="flex items-center justify-between gap-4 px-4 py-3" style={{ borderBottom: `1px solid ${LK.borderSoft}` }}>
               <div>
-                <h3 className="text-base font-black text-slate-900">阶段分布</h3>
-                <p className="mt-1 text-xs text-slate-500">看清当前堆积点和推进压力。</p>
+                <h2 className="text-base font-semibold" style={{ color: LK.ink }}>阶段分布</h2>
+                <p className="mt-1 text-xs" style={{ color: LK.muted }}>看清当前堆积点和推进压力。</p>
               </div>
-              <div className="rounded-xl bg-slate-100 px-3 py-2 text-[11px] font-black uppercase tracking-[0.18em] text-slate-500">
+              <div
+                className="rounded-lg px-3 py-2 text-xs font-semibold uppercase tracking-wider"
+                style={{ backgroundColor: LK.surfaceRaised, color: LK.muted }}
+              >
                 {totalCases} Cases
               </div>
             </div>
-            <div className="grid gap-3 p-5">
+            <div className="grid gap-3 p-4">
               {stageItems.map((item) => (
-                <div key={item.stage} className="rounded-[1.2rem] border border-slate-200 bg-[rgba(255,255,255,0.04)] px-4 py-3">
+                <div
+                  key={item.stage}
+                  className="rounded-lg px-4 py-3"
+                  style={{ backgroundColor: LK.surfaceRaised, border: `1px solid ${LK.border}` }}
+                >
                   <div className="flex items-center justify-between gap-4">
                     <div className="flex min-w-0 items-center gap-3">
-                      <span className={`rounded-lg px-2.5 py-1 text-[10px] font-black uppercase tracking-widest ${toneOf(item.stage, stageTone)}`}>
+                      <span
+                        className="inline-block rounded px-2.5 py-1 text-xs font-semibold uppercase tracking-wider"
+                        style={{ backgroundColor: `${LK.primary}22`, color: LK.primary }}
+                      >
                         {labelOf(item.stage, STAGE_LABELS)}
                       </span>
-                      <span className="text-sm font-semibold text-slate-700">{item.count}</span>
+                      <span className="text-sm font-semibold" style={{ color: LK.inkSoft }}>{item.count}</span>
                     </div>
-                    <span className="text-xs font-semibold text-slate-400">
+                    <span className="text-xs font-semibold" style={{ color: LK.muted }}>
                       {totalCases > 0 ? `${((item.count / totalCases) * 100).toFixed(1)}%` : '0.0%'}
                     </span>
                   </div>
-                  <div className="mt-2.5 h-2 overflow-hidden rounded-full bg-slate-200">
+                  <div className="mt-2.5 h-2 overflow-hidden rounded-full" style={{ backgroundColor: LK.surfaceRaised }}>
                     <div
-                      className="h-full rounded-full bg-gradient-to-r from-slate-900 via-slate-800 to-blue-600"
-                      style={{ width: `${(item.count / maxStageCount) * 100}%` }}
+                      className="h-full rounded-full"
+                      style={{ width: `${(item.count / maxStageCount) * 100}%`, backgroundColor: LK.primary }}
                     />
                   </div>
                 </div>
               ))}
             </div>
-          </div>
+          </section>
 
           <div className="grid gap-4 2xl:grid-cols-[1.05fr_0.95fr]">
-            <div className={cardClass}>
-              <div className="border-b border-slate-100 px-5 py-4">
-                <h3 className="text-base font-black text-slate-900">近 7 天趋势</h3>
-                <p className="mt-1 text-xs text-slate-500">每天新进入生命周期的漏洞数量。</p>
+            <section
+              className="overflow-hidden rounded-xl"
+              style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}` }}
+            >
+              <div className="px-4 py-3" style={{ borderBottom: `1px solid ${LK.borderSoft}` }}>
+                <h2 className="text-base font-semibold" style={{ color: LK.ink }}>近 7 天趋势</h2>
+                <p className="mt-1 text-xs" style={{ color: LK.muted }}>每天新进入生命周期的漏洞数量。</p>
               </div>
-              <div className="p-5">
+              <div className="p-4">
                 <div className="flex h-52 items-end gap-2.5">
                   {trendItems.map((item: any) => (
                     <div key={item.date} className="flex min-w-0 flex-1 flex-col items-center justify-end gap-2">
-                      <div className="text-[11px] font-black text-slate-500">{item.count}</div>
+                      <div className="text-xs font-semibold tabular-nums" style={{ color: LK.muted }}>{item.count}</div>
                       <div
-                        className="w-full max-w-[3.5rem] rounded-t-2xl bg-gradient-to-t from-slate-900 via-slate-800 to-blue-500"
-                        style={{ height: `${Math.max(12, (Number(item.count || 0) / maxTrendCount) * 100)}%` }}
+                        className="w-full max-w-[3.5rem] rounded-t-lg"
+                        style={{
+                          height: `${Math.max(12, (Number(item.count || 0) / maxTrendCount) * 100)}%`,
+                          backgroundColor: LK.primary
+                        }}
                       />
-                      <div className="text-[10px] text-slate-400">{String(item.date).slice(5)}</div>
+                      <div className="text-xs" style={{ color: LK.mutedSoft }}>{String(item.date).slice(5)}</div>
                     </div>
                   ))}
                 </div>
               </div>
-            </div>
+            </section>
 
-            <div className={cardClass}>
-              <div className="border-b border-slate-100 px-5 py-4">
-                <h3 className="text-base font-black text-slate-900">严重等级</h3>
-                <p className="mt-1 text-xs text-slate-500">风险层级分布一眼看清。</p>
+            <section
+              className="overflow-hidden rounded-xl"
+              style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}` }}
+            >
+              <div className="px-4 py-3" style={{ borderBottom: `1px solid ${LK.borderSoft}` }}>
+                <h2 className="text-base font-semibold" style={{ color: LK.ink }}>严重等级</h2>
+                <p className="mt-1 text-xs" style={{ color: LK.muted }}>风险层级分布一眼看清。</p>
               </div>
-              <div className="grid gap-3 p-5">
+              <div className="grid gap-3 p-4">
                 {severityItems.map((item) => (
-                  <div key={item.severity} className="flex items-center justify-between rounded-[1.2rem] border border-slate-200 bg-[rgba(255,255,255,0.04)] px-4 py-3">
+                  <div
+                    key={item.severity}
+                    className="flex items-center justify-between rounded-lg px-4 py-3"
+                    style={{ backgroundColor: LK.surfaceRaised, border: `1px solid ${LK.border}` }}
+                  >
                     <div className="flex items-center gap-3">
-                      <span className={`h-3 w-3 rounded-full ${severityPalette[item.severity] || 'bg-slate-400'}`} />
-                      <span className="text-sm font-black tracking-[0.08em] text-slate-700">{labelOf(item.severity, SEVERITY_LABELS)}</span>
+                      <span
+                        className="h-3 w-3 rounded-full"
+                        style={{ backgroundColor: SEVERITY_COLORS[item.severity] || LK.muted }}
+                      />
+                      <span className="text-sm font-semibold tracking-wider" style={{ color: LK.inkSoft }}>
+                        {labelOf(item.severity, SEVERITY_LABELS)}
+                      </span>
                     </div>
-                    <span className="text-2xl font-black text-slate-900">{item.count}</span>
+                    <span className="text-2xl font-semibold tabular-nums" style={{ color: LK.ink }}>{item.count}</span>
                   </div>
                 ))}
               </div>
-            </div>
+            </section>
           </div>
         </div>
 
         <div className="grid gap-4">
-          <div className={cardClass}>
-            <div className="border-b border-slate-100 px-5 py-4">
-              <h3 className="text-base font-black text-slate-900">运行指挥板</h3>
-              <p className="mt-1 text-xs text-slate-500">服务供给、动作队列和运行中案例的即时状态。</p>
+          <section
+            className="overflow-hidden rounded-xl"
+            style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}` }}
+          >
+            <div className="px-4 py-3" style={{ borderBottom: `1px solid ${LK.borderSoft}` }}>
+              <h2 className="text-base font-semibold" style={{ color: LK.ink }}>运行指挥板</h2>
+              <p className="mt-1 text-xs" style={{ color: LK.muted }}>服务供给、动作队列和运行中案例的即时状态。</p>
             </div>
-            <div className="grid gap-3 p-5 sm:grid-cols-2">
-              <div className="rounded-[1.2rem] border border-slate-200 bg-[rgba(255,255,255,0.04)] px-4 py-3">
-                <div className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-400">运行中 Case</div>
-                <div className="mt-2 text-3xl font-black text-slate-900">{runningCases}</div>
+            <div className="grid gap-3 p-4 sm:grid-cols-2">
+              <div
+                className="rounded-lg px-4 py-3"
+                style={{ backgroundColor: LK.surfaceRaised, border: `1px solid ${LK.border}` }}
+              >
+                <div className="text-xs font-semibold uppercase tracking-wider" style={{ color: LK.muted }}>
+                  运行中 Case
+                </div>
+                <div className="mt-2 text-2xl font-semibold tabular-nums" style={{ color: LK.ink }}>{runningCases}</div>
               </div>
-              <div className="rounded-[1.2rem] border border-slate-200 bg-[rgba(255,255,255,0.04)] px-4 py-3">
-                <div className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-400">排队动作</div>
-                <div className="mt-2 text-3xl font-black text-slate-900">{queuedActions}</div>
+              <div
+                className="rounded-lg px-4 py-3"
+                style={{ backgroundColor: LK.surfaceRaised, border: `1px solid ${LK.border}` }}
+              >
+                <div className="text-xs font-semibold uppercase tracking-wider" style={{ color: LK.muted }}>
+                  排队动作
+                </div>
+                <div className="mt-2 text-2xl font-semibold tabular-nums" style={{ color: LK.ink }}>{queuedActions}</div>
               </div>
-              <div className="rounded-[1.2rem] border border-slate-200 bg-[rgba(255,255,255,0.04)] px-4 py-3">
-                <div className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-400">活跃服务</div>
-                <div className="mt-2 text-3xl font-black text-slate-900">{activeServices}</div>
-                <div className="mt-1 text-xs text-slate-500">注册 {registeredServices}</div>
+              <div
+                className="rounded-lg px-4 py-3"
+                style={{ backgroundColor: LK.surfaceRaised, border: `1px solid ${LK.border}` }}
+              >
+                <div className="text-xs font-semibold uppercase tracking-wider" style={{ color: LK.muted }}>
+                  活跃服务
+                </div>
+                <div className="mt-2 text-2xl font-semibold tabular-nums" style={{ color: LK.ink }}>{activeServices}</div>
+                <div className="mt-1 text-xs" style={{ color: LK.muted }}>注册 {registeredServices}</div>
               </div>
-              <div className="rounded-[1.2rem] border border-slate-200 bg-[rgba(255,255,255,0.04)] px-4 py-3">
-                <div className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-400">服务可用率</div>
-                <div className="mt-2 text-3xl font-black text-slate-900">{serviceAvailabilityRate}%</div>
+              <div
+                className="rounded-lg px-4 py-3"
+                style={{ backgroundColor: LK.surfaceRaised, border: `1px solid ${LK.border}` }}
+              >
+                <div className="text-xs font-semibold uppercase tracking-wider" style={{ color: LK.muted }}>
+                  服务可用率
+                </div>
+                <div className="mt-2 text-2xl font-semibold tabular-nums" style={{ color: LK.ink }}>{serviceAvailabilityRate}%</div>
               </div>
             </div>
-          </div>
+          </section>
 
-          <div className={cardClass}>
-            <div className="border-b border-slate-100 px-5 py-4">
-              <h3 className="text-base font-black text-slate-900">结束结论分布</h3>
-              <p className="mt-1 text-xs text-slate-500">观察结论收敛与误报/接受风险分布。</p>
+          <section
+            className="overflow-hidden rounded-xl"
+            style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}` }}
+          >
+            <div className="px-4 py-3" style={{ borderBottom: `1px solid ${LK.borderSoft}` }}>
+              <h2 className="text-base font-semibold" style={{ color: LK.ink }}>结束结论分布</h2>
+              <p className="mt-1 text-xs" style={{ color: LK.muted }}>观察结论收敛与误报/接受风险分布。</p>
             </div>
-            <div className="grid gap-3 p-5">
+            <div className="grid gap-3 p-4">
               {finishedReasonEntries.length === 0 ? (
-                <div className="text-sm text-slate-400">暂无结束结论统计</div>
+                <div className="text-sm" style={{ color: LK.muted }}>暂无结束结论统计</div>
               ) : (
                 finishedReasonEntries.map(([status, count]) => (
                   <div key={status} className="space-y-2">
                     <div className="flex items-center justify-between gap-4">
-                      <span className="text-sm font-black text-slate-700">{labelOf(status, FINISHED_REASON_LABELS)}</span>
-                      <span className="text-sm font-semibold text-slate-500">{Number(count || 0)}</span>
+                      <span className="text-sm font-semibold" style={{ color: LK.inkSoft }}>
+                        {labelOf(status, FINISHED_REASON_LABELS)}
+                      </span>
+                      <span className="text-sm font-semibold tabular-nums" style={{ color: LK.muted }}>
+                        {Number(count || 0)}
+                      </span>
                     </div>
-                    <div className="h-2 overflow-hidden rounded-full bg-slate-200">
+                    <div className="h-2 overflow-hidden rounded-full" style={{ backgroundColor: LK.surfaceRaised }}>
                       <div
-                        className="h-full rounded-full bg-gradient-to-r from-slate-900 to-emerald-500"
-                        style={{ width: `${(Number(count || 0) / maxFinishedReasonCount) * 100}%` }}
+                        className="h-full rounded-full"
+                        style={{ width: `${(Number(count || 0) / maxFinishedReasonCount) * 100}%`, backgroundColor: LK.success }}
                       />
                     </div>
                   </div>
                 ))
               )}
             </div>
-          </div>
+          </section>
 
-          <div className={cardClass}>
-            <div className="border-b border-slate-100 px-5 py-4">
-              <h3 className="text-base font-black text-slate-900">动作状态分布</h3>
-              <p className="mt-1 text-xs text-slate-500">快速识别队列是否卡在某个执行态。</p>
+          <section
+            className="overflow-hidden rounded-xl"
+            style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}` }}
+          >
+            <div className="px-4 py-3" style={{ borderBottom: `1px solid ${LK.borderSoft}` }}>
+              <h2 className="text-base font-semibold" style={{ color: LK.ink }}>动作状态分布</h2>
+              <p className="mt-1 text-xs" style={{ color: LK.muted }}>快速识别队列是否卡在某个执行态。</p>
             </div>
-            <div className="grid gap-3 p-5">
+            <div className="grid gap-3 p-4">
               {actionStatusEntries.length === 0 ? (
-                <div className="text-sm text-slate-400">暂无动作状态数据</div>
+                <div className="text-sm" style={{ color: LK.muted }}>暂无动作状态数据</div>
               ) : (
                 actionStatusEntries.map(([status, count]) => (
                   <div key={status} className="space-y-2">
                     <div className="flex items-center justify-between gap-4">
-                      <span className="text-sm font-black text-slate-700">{labelOf(status, ACTION_STATUS_LABELS)}</span>
-                      <span className="text-sm font-semibold text-slate-500">{Number(count || 0)}</span>
+                      <span className="text-sm font-semibold" style={{ color: LK.inkSoft }}>
+                        {labelOf(status, ACTION_STATUS_LABELS)}
+                      </span>
+                      <span className="text-sm font-semibold tabular-nums" style={{ color: LK.muted }}>
+                        {Number(count || 0)}
+                      </span>
                     </div>
-                    <div className="h-2 overflow-hidden rounded-full bg-slate-200">
+                    <div className="h-2 overflow-hidden rounded-full" style={{ backgroundColor: LK.surfaceRaised }}>
                       <div
-                        className="h-full rounded-full bg-gradient-to-r from-slate-900 to-cyan-500"
-                        style={{ width: `${(Number(count || 0) / maxActionCount) * 100}%` }}
+                        className="h-full rounded-full"
+                        style={{ width: `${(Number(count || 0) / maxActionCount) * 100}%`, backgroundColor: LK.info }}
                       />
                     </div>
                   </div>
                 ))
               )}
             </div>
-          </div>
+          </section>
         </div>
       </div>
 
       <div className="grid gap-4 2xl:grid-cols-[0.95fr_1.05fr]">
-        <div className={cardClass}>
-          <div className="border-b border-slate-100 px-5 py-4">
-            <h3 className="text-base font-black text-slate-900">结果类型分布</h3>
-            <p className="mt-1 text-xs text-slate-500">识别当前回传结果更偏分析、验证还是证明。</p>
+        <section
+          className="overflow-hidden rounded-xl"
+          style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}` }}
+        >
+          <div className="px-4 py-3" style={{ borderBottom: `1px solid ${LK.borderSoft}` }}>
+            <h2 className="text-base font-semibold" style={{ color: LK.ink }}>结果类型分布</h2>
+            <p className="mt-1 text-xs" style={{ color: LK.muted }}>识别当前回传结果更偏分析、验证还是证明。</p>
           </div>
-          <div className="grid gap-3 p-5">
+          <div className="grid gap-3 p-4">
             {resultTypeEntries.length === 0 ? (
-              <div className="text-sm text-slate-400">暂无结果类型数据</div>
+              <div className="text-sm" style={{ color: LK.muted }}>暂无结果类型数据</div>
             ) : (
               resultTypeEntries.map(([resultType, count]) => (
                 <div key={resultType} className="space-y-2">
                   <div className="flex items-center justify-between gap-4">
-                    <span className="text-sm font-black text-slate-700">{resultType}</span>
-                    <span className="text-sm font-semibold text-slate-500">{Number(count || 0)}</span>
+                    <span className="text-sm font-semibold" style={{ color: LK.inkSoft }}>{resultType}</span>
+                    <span className="text-sm font-semibold tabular-nums" style={{ color: LK.muted }}>
+                      {Number(count || 0)}
+                    </span>
                   </div>
-                  <div className="h-2 overflow-hidden rounded-full bg-slate-200">
+                  <div className="h-2 overflow-hidden rounded-full" style={{ backgroundColor: LK.surfaceRaised }}>
                     <div
-                      className="h-full rounded-full bg-gradient-to-r from-blue-600 to-emerald-500"
-                      style={{ width: `${(Number(count || 0) / maxResultCount) * 100}%` }}
+                      className="h-full rounded-full"
+                      style={{ width: `${(Number(count || 0) / maxResultCount) * 100}%`, backgroundColor: LK.primarySoft }}
                     />
                   </div>
                 </div>
               ))
             )}
           </div>
-        </div>
+        </section>
 
-        <div className={cardClass}>
-          <div className="border-b border-slate-100 px-5 py-4">
-            <h3 className="text-base font-black text-slate-900">项目运营摘要</h3>
-            <p className="mt-1 text-xs text-slate-500">把需要关注的运行信号压成一块简报。</p>
+        <section
+          className="overflow-hidden rounded-xl"
+          style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}` }}
+        >
+          <div className="px-4 py-3" style={{ borderBottom: `1px solid ${LK.borderSoft}` }}>
+            <h2 className="text-base font-semibold" style={{ color: LK.ink }}>项目运营摘要</h2>
+            <p className="mt-1 text-xs" style={{ color: LK.muted }}>把需要关注的运行信号压成一块简报。</p>
           </div>
-          <div className="grid gap-3 p-5 md:grid-cols-2">
-            <div className="rounded-[1.2rem] bg-slate-50 px-4 py-3">
-              <div className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-400">明确结论</div>
-              <div className="mt-2 text-2xl font-black text-slate-900">{closedCases}</div>
-              <div className="mt-1 text-xs text-slate-500">confirmed / false positive / accepted risk</div>
+          <div className="grid gap-3 p-4 md:grid-cols-2">
+            <div
+              className="rounded-lg px-4 py-3"
+              style={{ backgroundColor: LK.surfaceRaised, border: `1px solid ${LK.border}` }}
+            >
+              <div className="text-xs font-semibold uppercase tracking-wider" style={{ color: LK.muted }}>
+                明确结论
+              </div>
+              <div className="mt-2 text-2xl font-semibold tabular-nums" style={{ color: LK.ink }}>{closedCases}</div>
+              <div className="mt-1 text-xs" style={{ color: LK.muted }}>confirmed / false positive / accepted risk</div>
             </div>
-            <div className="rounded-[1.2rem] bg-slate-50 px-4 py-3">
-              <div className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-400">待外部结果</div>
-              <div className="mt-2 text-2xl font-black text-slate-900">{waitingExternal}</div>
-              <div className="mt-1 text-xs text-slate-500">说明外部模块回传仍是当前瓶颈</div>
+            <div
+              className="rounded-lg px-4 py-3"
+              style={{ backgroundColor: LK.surfaceRaised, border: `1px solid ${LK.border}` }}
+            >
+              <div className="text-xs font-semibold uppercase tracking-wider" style={{ color: LK.muted }}>
+                待外部结果
+              </div>
+              <div className="mt-2 text-2xl font-semibold tabular-nums" style={{ color: LK.ink }}>{waitingExternal}</div>
+              <div className="mt-1 text-xs" style={{ color: LK.muted }}>说明外部模块回传仍是当前瓶颈</div>
             </div>
-            <div className="rounded-[1.2rem] bg-slate-50 px-4 py-3">
-              <div className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-400">活跃 / 注册服务</div>
-              <div className="mt-2 text-2xl font-black text-slate-900">
+            <div
+              className="rounded-lg px-4 py-3"
+              style={{ backgroundColor: LK.surfaceRaised, border: `1px solid ${LK.border}` }}
+            >
+              <div className="text-xs font-semibold uppercase tracking-wider" style={{ color: LK.muted }}>
+                活跃 / 注册服务
+              </div>
+              <div className="mt-2 text-2xl font-semibold tabular-nums" style={{ color: LK.ink }}>
                 {activeServices} / {registeredServices}
               </div>
-              <div className="mt-1 text-xs text-slate-500">供给侧健康度</div>
+              <div className="mt-1 text-xs" style={{ color: LK.muted }}>供给侧健康度</div>
             </div>
-            <div className="rounded-[1.2rem] bg-slate-50 px-4 py-3">
-              <div className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-400">高危密度</div>
-              <div className="mt-2 text-2xl font-black text-slate-900">{highRiskCount}</div>
-              <div className="mt-1 text-xs text-slate-500">高风险问题需优先清空验证和裁决链路</div>
+            <div
+              className="rounded-lg px-4 py-3"
+              style={{ backgroundColor: LK.surfaceRaised, border: `1px solid ${LK.border}` }}
+            >
+              <div className="text-xs font-semibold uppercase tracking-wider" style={{ color: LK.muted }}>
+                高危密度
+              </div>
+              <div className="mt-2 text-2xl font-semibold tabular-nums" style={{ color: LK.ink }}>{highRiskCount}</div>
+              <div className="mt-1 text-xs" style={{ color: LK.muted }}>高风险问题需优先清空验证和裁决链路</div>
             </div>
           </div>
-        </div>
+        </section>
       </div>
 
-      {loading && (
-        <div className="rounded-[1.25rem] border border-slate-200 bg-white px-5 py-4 text-sm text-slate-500">
+      {loading ? (
+        <div
+          className="rounded-lg px-4 py-3 text-sm"
+          style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}`, color: LK.muted }}
+        >
           正在加载漏洞生命周期统计...
         </div>
-      )}
+      ) : null}
     </div>
   );
 };

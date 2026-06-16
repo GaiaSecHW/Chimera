@@ -53,6 +53,31 @@ const STATUS_LABELS: Record<string, string> = {
 const errorMessage = (error: unknown): string =>
   error instanceof Error ? error.message : '请求失败';
 
+// LOKI design tokens (DESIGN.md) — page-local palette.
+const LK = {
+  primary: '#4f73ff',
+  primarySoft: '#7590ff',
+  primaryDeep: '#3f63f1',
+  primaryMuted: 'rgba(79, 115, 255, 0.14)',
+  canvas: '#070d18',
+  surface: '#111a2b',
+  surfaceRaised: '#18233a',
+  surfaceGlass: 'rgba(17, 26, 43, 0.84)',
+  border: '#26324a',
+  borderSoft: '#1b2438',
+  ink: '#f5f7ff',
+  inkSoft: '#d6def0',
+  body: '#a4aec4',
+  muted: '#72809a',
+  mutedSoft: '#8b95a8',
+  success: '#45c06f',
+  warning: '#d5a13a',
+  error: '#f15d5d',
+  info: '#4f8cff',
+} as const;
+
+const MONO = 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace';
+
 export const KnowledgeGraphPage: React.FC<Props> = ({ projectId, projects }) => {
   const [phase, setPhase] = useState<Phase>('loading');
   const [status, setStatus] = useState<CodemapTaskStatus | null>(null);
@@ -193,23 +218,26 @@ export const KnowledgeGraphPage: React.FC<Props> = ({ projectId, projects }) => 
         ? Math.round((progress.completed / progress.total) * 100)
         : null;
     return (
-      <div className="flex h-full flex-col bg-slate-50">
-        <div className="flex items-center justify-between border-b border-slate-200 bg-white px-6 py-3">
+      <div className="flex h-full flex-col" style={{ backgroundColor: LK.canvas }}>
+        <div className="flex items-center justify-between px-5 py-4" style={{ borderBottom: `1px solid ${LK.border}`, backgroundColor: LK.surface }}>
           <div className="flex items-center gap-2">
-            <Network size={18} className="text-blue-600" />
-            <h1 className="text-base font-black text-slate-900">知识图谱</h1>
-            <span className="text-sm text-slate-400">{projectName}</span>
+            <Network size={18} style={{ color: LK.primary }} />
+            <h1 className="text-base font-semibold" style={{ color: LK.ink }}>知识图谱</h1>
+            <span className="text-sm" style={{ color: LK.muted }}>{projectName}</span>
           </div>
           <button
-            className="inline-flex items-center rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-black text-slate-700 hover:bg-slate-50"
+            className="inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-medium transition-colors"
+            style={{ backgroundColor: LK.surfaceRaised, color: LK.body, border: `1px solid ${LK.border}` }}
             onClick={() => void bootstrap()}
+            onMouseEnter={(e) => { e.currentTarget.style.color = LK.primarySoft; e.currentTarget.style.borderColor = LK.primary; }}
+            onMouseLeave={(e) => { e.currentTarget.style.color = LK.body; e.currentTarget.style.borderColor = LK.border; }}
           >
-            <RefreshCw size={14} className="mr-1" />
+            <RefreshCw size={14} />
             刷新
           </button>
         </div>
         {building ? (
-          <div className="flex items-center gap-3 border-b border-blue-100 bg-blue-50 px-6 py-2 text-xs font-bold text-blue-700">
+          <div className="flex items-center gap-3 px-5 py-2.5 text-xs" style={{ borderBottom: `1px solid ${LK.border}`, backgroundColor: `${LK.info}14`, color: LK.info }}>
             <Loader2 size={14} className="animate-spin" />
             <span>
               图谱构建中 · {STATUS_LABELS[status?.status || ''] || '处理中'}
@@ -218,7 +246,7 @@ export const KnowledgeGraphPage: React.FC<Props> = ({ projectId, projects }) => 
             </span>
           </div>
         ) : failed ? (
-          <div className="flex items-center gap-3 border-b border-rose-100 bg-rose-50 px-6 py-2 text-xs font-bold text-rose-700">
+          <div className="flex items-center gap-3 px-5 py-2.5 text-xs" style={{ borderBottom: `1px solid ${LK.border}`, backgroundColor: `${LK.error}14`, color: LK.error }}>
             <XCircle size={14} />
             <span>{status?.error || '构建部分失败'}，图谱可能不完整。</span>
           </div>
@@ -227,18 +255,19 @@ export const KnowledgeGraphPage: React.FC<Props> = ({ projectId, projects }) => 
           title="codemap-knowledge-graph"
           src={serveUrl}
           className="min-h-0 flex-1 border-0"
+          style={{ backgroundColor: LK.canvas }}
         />
       </div>
     );
   }
 
   return (
-    <div className="min-h-full bg-slate-50 p-6">
+    <div className="min-h-full px-5 py-5" style={{ backgroundColor: LK.canvas }}>
       <div className="mx-auto max-w-3xl">
-        <div className="mb-5 flex items-center gap-2">
-          <Network size={20} className="text-blue-600" />
-          <h1 className="text-2xl font-black text-slate-950">知识图谱</h1>
-          <span className="text-sm text-slate-400">{projectName}</span>
+        <div className="mb-5 flex items-center gap-2 pb-4" style={{ borderBottom: `1px solid ${LK.borderSoft}` }}>
+          <Network size={20} style={{ color: LK.primary }} />
+          <h1 className="text-2xl font-semibold" style={{ color: LK.ink }}>知识图谱</h1>
+          <span className="text-sm" style={{ color: LK.muted }}>{projectName}</span>
         </div>
         <PhaseCard
           phase={phase}
@@ -256,13 +285,13 @@ const CenteredState: React.FC<{
   description: React.ReactNode;
   action?: React.ReactNode;
 }> = ({ icon, title, description, action }) => (
-  <div className="flex min-h-full items-center justify-center bg-slate-50 p-6">
-    <div className="w-full max-w-md rounded-2xl border border-dashed border-slate-200 bg-white px-6 py-10 text-center shadow-sm">
-      <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl bg-slate-50 text-slate-400">
+  <div className="flex min-h-full items-center justify-center px-5 py-5" style={{ backgroundColor: LK.canvas }}>
+    <div className="w-full max-w-md rounded-xl border border-dashed px-6 py-10 text-center" style={{ backgroundColor: LK.surface, borderColor: LK.border }}>
+      <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-[10px]" style={{ backgroundColor: LK.surfaceRaised, color: LK.muted }}>
         {icon}
       </div>
-      <div className="mt-4 text-base font-black text-slate-800">{title}</div>
-      <div className="mt-2 text-sm leading-6 text-slate-500">{description}</div>
+      <div className="mt-4 text-base font-semibold" style={{ color: LK.ink }}>{title}</div>
+      <div className="mt-2 text-sm leading-6" style={{ color: LK.body }}>{description}</div>
       {action ? <div className="mt-5">{action}</div> : null}
     </div>
   </div>
@@ -275,10 +304,13 @@ const PhaseCard: React.FC<{
 }> = ({ phase, message, onRetry }) => {
   const retryButton = (
     <button
-      className="inline-flex items-center rounded-xl bg-slate-900 px-4 py-2 text-sm font-black text-white hover:bg-slate-700"
+      className="inline-flex items-center gap-1.5 rounded-lg px-4 py-2.5 text-sm font-medium transition-colors"
+      style={{ backgroundColor: LK.primary, color: '#ffffff' }}
       onClick={onRetry}
+      onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = LK.primaryDeep; }}
+      onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = LK.primary; }}
     >
-      <RefreshCw size={15} className="mr-2" />
+      <RefreshCw size={15} />
       重试
     </button>
   );
@@ -298,7 +330,7 @@ const PhaseCard: React.FC<{
       <CenteredCardInner
         icon={<FolderUp size={22} />}
         title="还未上传代码"
-        description="请先在“任务输入”中上传代码(当前仅支持 C/C++),上传后回到本页即可查看知识图谱。"
+        description="请先在「任务输入」中上传代码(当前仅支持 C/C++),上传后回到本页即可查看知识图谱。"
       />
     );
   }
@@ -317,7 +349,7 @@ const PhaseCard: React.FC<{
   if (phase === 'starting') {
     return (
       <CenteredCardInner
-        icon={<Loader2 size={22} className="animate-spin text-blue-600" />}
+        icon={<Loader2 size={22} className="animate-spin" style={{ color: LK.primary }} />}
         title="正在打开图谱"
         description="正在启动图谱服务,马上就好…"
       />
@@ -327,7 +359,7 @@ const PhaseCard: React.FC<{
   // error
   return (
     <CenteredCardInner
-      icon={<AlertCircle size={22} className="text-rose-500" />}
+      icon={<AlertCircle size={22} style={{ color: LK.error }} />}
       title="加载失败"
       description={message || '无法连接知识图谱服务,请稍后重试。'}
       action={retryButton}
@@ -341,12 +373,12 @@ const CenteredCardInner: React.FC<{
   description: React.ReactNode;
   action?: React.ReactNode;
 }> = ({ icon, title, description, action }) => (
-  <div className="rounded-2xl border border-slate-200 bg-white px-6 py-10 text-center shadow-sm">
-    <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl bg-slate-50 text-slate-400">
+  <div className="rounded-xl px-6 py-10 text-center" style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}` }}>
+    <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-[10px]" style={{ backgroundColor: LK.surfaceRaised, color: LK.muted }}>
       {icon}
     </div>
-    <div className="mt-4 text-base font-black text-slate-800">{title}</div>
-    <div className="mt-2 text-sm leading-6 text-slate-500">{description}</div>
+    <div className="mt-4 text-base font-semibold" style={{ color: LK.ink }}>{title}</div>
+    <div className="mt-2 text-sm leading-6" style={{ color: LK.body }}>{description}</div>
     {action ? <div className="mt-5">{action}</div> : null}
   </div>
 );

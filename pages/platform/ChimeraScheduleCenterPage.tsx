@@ -10,6 +10,7 @@ import {
   ChevronRight,
   ChevronDown,
   Clock3,
+  Copy,
   FolderKanban,
   Layers3,
   Waypoints,
@@ -108,6 +109,26 @@ const TASK_TYPE_OPTIONS = [
 ];
 
 const PAGE_SIZE_OPTIONS = [20, 50, 100];
+
+type ColumnKey = 'name' | 'taskType' | 'status' | 'project' | 'queueState' | 'retryCount' | 'createdBy' | 'createdAt' | 'updatedAt' | 'startedAt' | 'finishedAt' | 'lastError' | 'actions';
+
+const ALL_COLUMNS: Array<{ key: ColumnKey; label: string; defaultVisible: boolean }> = [
+  { key: 'name', label: '任务名称', defaultVisible: true },
+  { key: 'taskType', label: '任务类型', defaultVisible: true },
+  { key: 'status', label: '状态', defaultVisible: true },
+  { key: 'project', label: '项目', defaultVisible: true },
+  { key: 'queueState', label: '队列状态', defaultVisible: false },
+  { key: 'retryCount', label: '重试次数', defaultVisible: false },
+  { key: 'createdBy', label: '创建人', defaultVisible: true },
+  { key: 'createdAt', label: '创建时间', defaultVisible: false },
+  { key: 'updatedAt', label: '更新时间', defaultVisible: false },
+  { key: 'startedAt', label: '开始时间', defaultVisible: true },
+  { key: 'finishedAt', label: '结束时间', defaultVisible: true },
+  { key: 'lastError', label: '失败原因', defaultVisible: true },
+  { key: 'actions', label: '操作', defaultVisible: true },
+];
+
+const DEFAULT_VISIBLE_COLUMNS = new Set<ColumnKey>(ALL_COLUMNS.filter((c) => c.defaultVisible).map((c) => c.key));
 
 const NAV_ITEMS: Array<{ key: OverviewNav; label: string; icon: React.ComponentType<{ size?: number; className?: string }> }> = [
   { key: 'overview', label: '全局任务', icon: Workflow },
@@ -525,6 +546,9 @@ export const ChimeraScheduleCenterPage: React.FC<ChimeraScheduleCenterPageProps>
   const [sortField, setSortField] = useState<BackendSortField>('updated_at');
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
   const [openColumnFilter, setOpenColumnFilter] = useState<ColumnFilterKey | null>(null);
+  const [visibleColumns, setVisibleColumns] = useState<Set<ColumnKey>>(DEFAULT_VISIBLE_COLUMNS);
+  const [columnPickerOpen, setColumnPickerOpen] = useState(false);
+  const [errorPopupText, setErrorPopupText] = useState<string | null>(null);
   const [filters, setFilters] = useState<TaskFilters>({
     status: '',
     taskType: '',
@@ -600,6 +624,32 @@ export const ChimeraScheduleCenterPage: React.FC<ChimeraScheduleCenterPageProps>
     };
   }, [queuePreviewItems]);
 
+  const taskEventStats = useMemo(() => {
+    const countBy = (predicate: (event: ScheduleUserTaskEvent) => boolean) =>
+      taskEventItems.filter(predicate).length;
+    return {
+      total: taskEventTotal,
+      currentPage: taskEventItems.length,
+      succeeded: countBy((event) => event.result_status === 'succeeded'),
+      failed: countBy((event) => event.result_status === 'failed' || event.result_status === 'timeout'),
+      dispatch: countBy((event) => event.event_category === 'dispatch'),
+      sync: countBy((event) => event.event_category === 'sync'),
+      delete: countBy((event) => event.event_category === 'delete'),
+      stateRefresh: countBy((event) => event.event_category === 'state_refresh'),
+    };
+  }, [taskEventItems, taskEventTotal]);
+
+  const taskEventStatCards = useMemo(() => [
+    { key: 'neutral', label: '事件总数', value: taskEventStats.total, hint: '当前筛选命中的调度日志总数' },
+    { key: 'success', label: '成功', value: taskEventStats.succeeded, hint: 'result_status=succeeded 的本页事件' },
+    { key: 'failed', label: '失败/超时', value: taskEventStats.failed, hint: 'result_status=failed/timeout 的本页事件' },
+    { key: 'running', label: '调度事件', value: taskEventStats.dispatch, hint: 'event_category=dispatch 的本页事件' },
+    { key: 'queue', label: '同步事件', value: taskEventStats.sync, hint: 'event_category=sync 的本页事件' },
+    { key: 'retry', label: '删除事件', value: taskEventStats.delete, hint: 'event_category=delete 的本页事件' },
+    { key: 'neutral', label: '状态刷新', value: taskEventStats.stateRefresh, hint: 'event_category=state_refresh 的本页事件' },
+    { key: 'neutral', label: '本页事件', value: taskEventStats.currentPage, hint: '当前页实际加载的事件条数' },
+  ], [taskEventStats]);
+
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
   const allVisibleSelected = tableItems.length > 0 && tableItems.every((item) => selectedTaskIds.includes(item.task_id));
 
@@ -611,22 +661,22 @@ export const ChimeraScheduleCenterPage: React.FC<ChimeraScheduleCenterPageProps>
 
   const statCards = useMemo(() => {
     const items = [
-      { key: 'total', label: '任务总数', value: overview.stats.total_tasks, hint: '全部调度任务实例' },
-      { key: 'neutral', label: '未处理', value: overview.stats.unprocessed_tasks, hint: 'created / ready_for_dispatch' },
-      { key: 'neutral', label: '计划中', value: overview.stats.scheduled_tasks, hint: '已计划但尚未入队' },
-      { key: 'queue', label: '排队中', value: overview.stats.queued_tasks, hint: 'queued / leased' },
-      { key: 'retry', label: '重试中', value: overview.stats.retry_wait_tasks, hint: '等待重试窗口' },
-      { key: 'running', label: '进行中', value: overview.stats.running_tasks, hint: 'dispatching / running' },
-      { key: 'success', label: '成功', value: overview.stats.succeeded_tasks, hint: '已完成任务' },
-      { key: 'failed', label: '失败', value: overview.stats.failed_tasks, hint: 'failed / timeout' },
-      { key: 'queue', label: '当前队列深度', value: overview.queue.depth, hint: `backend ${overview.queue.backend || 'unknown'}` },
-      { key: 'neutral', label: '最老等待时长', value: formatDurationSeconds(overview.queue.oldest_age_seconds), hint: 'ready queue oldest age' },
-      { key: 'neutral', label: '活跃 worker 数', value: overview.workers.active, hint: '当前可用调度执行器' },
-      { key: 'neutral', label: 'worker 并发总量', value: overview.workers.concurrency, hint: '调度槽位总量' },
-      { key: 'running', label: '当前 inflight', value: overview.workers.inflight, hint: '当前飞行中执行数' },
-      { key: 'neutral', label: '已取消', value: overview.stats.cancelled_tasks, hint: 'cancelled' },
-      { key: 'neutral', label: '最近刷新时间', value: overview.refreshed_at ? formatTime(overview.refreshed_at) : '-', hint: 'overview snapshot' },
-      { key: overview.health.status === 'ok' ? 'success' : 'failed', label: '服务健康', value: overview.health.status || 'unknown', hint: overview.health.redis_available ? 'Redis Ready' : 'Redis Unavailable' },
+      { key: 'total', label: '任务总数', value: overview.stats.total_tasks, hint: '系统中所有调度任务的数量' },
+      { key: 'neutral', label: '未处理', value: overview.stats.unprocessed_tasks, hint: '已创建但尚未开始执行的任务' },
+      { key: 'neutral', label: '计划中', value: overview.stats.scheduled_tasks, hint: '已安排计划，等待执行的任务' },
+      { key: 'queue', label: '排队中', value: overview.stats.queued_tasks, hint: '已进入队列，等待被分配执行' },
+      { key: 'retry', label: '重试中', value: overview.stats.retry_wait_tasks, hint: '执行失败后等待自动重试的任务' },
+      { key: 'running', label: '进行中', value: overview.stats.running_tasks, hint: '正在执行中的任务' },
+      { key: 'success', label: '成功', value: overview.stats.succeeded_tasks, hint: '已成功完成的任务' },
+      { key: 'failed', label: '失败', value: overview.stats.failed_tasks, hint: '执行失败或超时的任务' },
+      { key: 'queue', label: '当前队列深度', value: overview.queue.depth, hint: '队列中等待执行的任务积压数量' },
+      { key: 'neutral', label: '最老等待时长', value: formatDurationSeconds(overview.queue.oldest_age_seconds), hint: '队列中等待最久的任务已等待的时间' },
+      { key: 'neutral', label: '活跃 worker 数', value: overview.workers.active, hint: '当前在线可执行任务的调度器数量' },
+      { key: 'neutral', label: 'worker 并发总量', value: overview.workers.concurrency, hint: '所有调度器可同时执行的任务上限' },
+      { key: 'running', label: '当前 inflight', value: overview.workers.inflight, hint: '正在被调度器执行中的任务数' },
+      { key: 'neutral', label: '已取消', value: overview.stats.cancelled_tasks, hint: '被手动取消的任务' },
+      { key: 'neutral', label: '最近刷新时间', value: overview.refreshed_at ? formatTime(overview.refreshed_at) : '-', hint: '上次获取统计数据的时间' },
+      { key: overview.health.status === 'ok' ? 'success' : 'failed', label: '服务健康', value: overview.health.status || 'unknown', hint: overview.health.redis_available ? '缓存服务正常，调度系统运行良好' : '缓存服务不可用，部分功能可能降级' },
     ];
     return items;
   }, [overview]);
@@ -997,7 +1047,7 @@ export const ChimeraScheduleCenterPage: React.FC<ChimeraScheduleCenterPageProps>
   };
 
   const renderNavButtons = () => (
-    <div className="flex flex-wrap gap-3">
+    <div className="flex flex-wrap gap-2">
       {NAV_ITEMS.map((item) => {
         const Icon = item.icon;
         const active = item.key === nav;
@@ -1005,9 +1055,9 @@ export const ChimeraScheduleCenterPage: React.FC<ChimeraScheduleCenterPageProps>
           <button
             key={item.key}
             onClick={() => handleLegacyNav(item.key)}
-            className={`inline-flex items-center gap-2 rounded-2xl px-4 py-3 text-sm font-black transition ${
+            className={`inline-flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-bold transition ${
               active
-                ? 'bg-slate-900 text-white shadow-[0_10px_30px_rgba(15,23,42,0.18)]'
+                ? 'bg-slate-900 text-white shadow-sm'
                 : 'border border-slate-200 bg-white text-slate-700 hover:bg-slate-50'
             }`}
           >
@@ -1020,8 +1070,8 @@ export const ChimeraScheduleCenterPage: React.FC<ChimeraScheduleCenterPageProps>
   );
 
   return (
-    <div className="min-h-full bg-[radial-gradient(circle_at_top_left,rgba(14,165,233,0.10),transparent_24%),linear-gradient(180deg,#f8fafc_0%,#eef2f7_100%)] px-4 py-6 md:px-8 2xl:px-10">
-      <div className="w-full space-y-6">
+    <div className="min-h-full bg-slate-50 px-4 py-5 md:px-6 2xl:px-8">
+      <div className="w-full space-y-4">
         {notice ? (
           <div className="rounded-2xl border border-amber-200 bg-amber-50 px-5 py-4 text-sm font-bold text-amber-800">
             {notice}
@@ -1035,50 +1085,40 @@ export const ChimeraScheduleCenterPage: React.FC<ChimeraScheduleCenterPageProps>
 
         {nav === 'overview' ? (
           <>
-            <section className="grid gap-4 md:grid-cols-2 2xl:grid-cols-4">
+            <div className="flex flex-wrap items-center justify-center gap-2">
+              {renderNavButtons()}
+              <div className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-bold text-slate-600">
+                <Layers3 size={16} />
+                总计 {formatCount(total)}
+              </div>
+              <button
+                onClick={() => void handleRefresh()}
+                className="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-3 py-2 text-sm font-black text-white transition hover:bg-slate-800 disabled:opacity-60"
+                disabled={refreshing}
+              >
+                <RefreshCw size={16} className={refreshing ? 'animate-spin' : ''} />
+                刷新
+              </button>
+            </div>
+
+            <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4 2xl:grid-cols-8">
               {statCards.map((card, index) => (
                 <article
                   key={`${card.label}-${index}`}
-                  className={`rounded-[1.6rem] border bg-gradient-to-br p-5 shadow-sm ${metricTone(card.key)}`}
+                  className={`rounded-xl border bg-gradient-to-br p-4 shadow-sm ${metricTone(card.key)}`}
                 >
-                  <div className="text-xs font-black uppercase tracking-[0.2em] text-slate-500">{card.label}</div>
-                  <div className="mt-3 break-all text-3xl font-black text-slate-900">{typeof card.value === 'string' ? card.value : formatCount(card.value as number)}</div>
-                  <div className="mt-2 text-xs font-bold text-slate-500">{card.hint}</div>
+                  <div className="truncate text-center text-xs font-bold text-slate-500" title={card.hint}>{card.label}</div>
+                  <div className={`mt-1.5 truncate text-center font-semibold tabular-nums text-slate-900 ${card.label === '最近刷新时间' ? 'text-[10px]' : 'text-sm'}`} title={`${card.value}`}>{typeof card.value === 'string' ? card.value : formatCount(card.value as number)}</div>
                 </article>
               ))}
             </section>
 
-            <section className="rounded-[2rem] border border-slate-200/70 bg-white/90 shadow-[0_18px_60px_rgba(15,23,42,0.08)] backdrop-blur">
-              <div className="border-b border-slate-200 px-5 py-5 md:px-6">
-                <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
-                  <div>
-                    <div className="text-xs font-black uppercase tracking-[0.24em] text-slate-500">Global Task Overview</div>
-                    <h2 className="mt-2 text-2xl font-black text-slate-900">全局任务总览</h2>
-                    <div className="mt-2 text-sm text-slate-500">默认按更新时间倒序展示全部调度任务实例，不再按项目隔离首页视图。</div>
-                  </div>
-                  <div className="flex flex-wrap items-center gap-3">
-                    {renderNavButtons()}
-                    <div className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold text-slate-600">
-                      <Layers3 size={16} />
-                      总计 {formatCount(total)}
-                    </div>
-                    <button
-                      onClick={() => void handleRefresh()}
-                      className="inline-flex items-center gap-2 rounded-2xl bg-slate-900 px-4 py-3 text-sm font-black text-white transition hover:bg-slate-800 disabled:opacity-60"
-                      disabled={refreshing}
-                    >
-                      <RefreshCw size={16} className={refreshing ? 'animate-spin' : ''} />
-                      刷新
-                    </button>
-                  </div>
-                </div>
-              </div>
+            <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
 
-              <div className="border-b border-slate-200 px-5 py-5 md:px-6">
-                <div className="grid gap-4 xl:grid-cols-[1.45fr_0.95fr_1fr_1fr_0.95fr_0.8fr_auto] xl:items-end">
-                  <label className="block">
-                    <span className="text-xs font-black uppercase tracking-[0.18em] text-slate-500">关键词搜索</span>
-                    <div className="mt-2 flex items-center gap-2 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
+              <div className="border-b border-slate-200 bg-slate-50/70 px-4 py-4 md:px-5">
+                <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-[1.5fr_repeat(4,minmax(0,0.9fr))] 2xl:grid-cols-[1.7fr_repeat(4,minmax(0,0.85fr))_auto] xl:items-end">
+                  <div className="block">
+                    <div className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2">
                       <Search size={16} className="text-slate-400" />
                       <input
                         value={filters.search}
@@ -1088,77 +1128,73 @@ export const ChimeraScheduleCenterPage: React.FC<ChimeraScheduleCenterPageProps>
                           if (page !== 1) setPage(1);
                         }}
                         placeholder="任务名 / 下游任务 ID / 创建人"
-                        className="w-full bg-transparent text-sm font-semibold text-slate-800 outline-none placeholder:text-slate-400"
+                        className="w-full bg-transparent text-sm font-medium text-slate-800 outline-none placeholder:text-slate-400"
                       />
                     </div>
-                  </label>
+                  </div>
 
-                  <label className="block">
-                    <span className="text-xs font-black uppercase tracking-[0.18em] text-slate-500">状态</span>
+                  <div className="block">
                     <select
                       value={filters.status}
                       onChange={(event) => {
                         setFilters((current) => ({ ...current, status: event.target.value }));
                         setPage(1);
                       }}
-                      className="mt-2 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-800 outline-none"
+                      className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-800 outline-none"
                     >
                       {STATUS_OPTIONS.map((item) => (
                         <option key={item.value} value={item.value}>{item.label}</option>
                       ))}
                     </select>
-                  </label>
+                  </div>
 
-                  <label className="block">
-                    <span className="text-xs font-black uppercase tracking-[0.18em] text-slate-500">任务类型</span>
+                  <div className="block">
                     <select
                       value={filters.taskType}
                       onChange={(event) => {
                         setFilters((current) => ({ ...current, taskType: event.target.value }));
                         setPage(1);
                       }}
-                      className="mt-2 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-800 outline-none"
+                      className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-800 outline-none"
                     >
                       {TASK_TYPE_OPTIONS.map((item) => (
                         <option key={item.value} value={item.value}>{item.label}</option>
                       ))}
                     </select>
-                  </label>
+                  </div>
 
-                  <label className="block">
-                    <span className="text-xs font-black uppercase tracking-[0.18em] text-slate-500">项目过滤</span>
+                  <div className="block">
                     <select
                       value={filters.projectId}
                       onChange={(event) => {
                         setFilters((current) => ({ ...current, projectId: event.target.value }));
                         setPage(1);
                       }}
-                      className="mt-2 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-800 outline-none"
+                      className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-800 outline-none"
                     >
                       {projectOptions.map((item) => (
                         <option key={item.id} value={item.id}>{item.label}</option>
                       ))}
                     </select>
-                  </label>
+                  </div>
 
-                  <label className="block">
-                    <span className="text-xs font-black uppercase tracking-[0.18em] text-slate-500">每页条数</span>
+                  <div className="block">
                     <select
                       value={pageSize}
                       onChange={(event) => {
                         setPageSize(Number(event.target.value));
                         setPage(1);
                       }}
-                      className="mt-2 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-800 outline-none"
+                      className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-800 outline-none"
                     >
                       {PAGE_SIZE_OPTIONS.map((value) => (
                         <option key={value} value={value}>{value}</option>
                       ))}
                     </select>
-                  </label>
+                  </div>
 
-                  <div className="flex flex-wrap items-center gap-3 xl:justify-end">
-                    <label className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-700">
+                  <div className="flex flex-wrap items-center gap-2 md:col-span-2 xl:col-span-5 2xl:col-span-1 2xl:justify-end">
+                    <label className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700">
                       <input
                         type="checkbox"
                         checked={selectAllMatching}
@@ -1170,7 +1206,7 @@ export const ChimeraScheduleCenterPage: React.FC<ChimeraScheduleCenterPageProps>
                       />
                       删除全部筛选结果
                     </label>
-                    <label className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-700">
+                    <label className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700">
                       <input
                         type="checkbox"
                         checked={filters.isRetrying}
@@ -1182,7 +1218,7 @@ export const ChimeraScheduleCenterPage: React.FC<ChimeraScheduleCenterPageProps>
                       />
                       仅重试中
                     </label>
-                    <label className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-700">
+                    <label className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700">
                       <input
                         type="checkbox"
                         checked={filters.hasError}
@@ -1198,7 +1234,7 @@ export const ChimeraScheduleCenterPage: React.FC<ChimeraScheduleCenterPageProps>
                       type="button"
                       onClick={() => void handleDeleteTasks(selectAllMatching ? 'filtered' : 'selected')}
                       disabled={(selectAllMatching && !filters.projectId) || (!selectAllMatching && selectedTaskIds.length === 0)}
-                      className="inline-flex items-center gap-2 rounded-2xl bg-rose-600 px-4 py-3 text-sm font-black text-white transition hover:bg-rose-700 disabled:cursor-not-allowed disabled:opacity-50"
+                      className="inline-flex items-center gap-2 rounded-xl bg-rose-600 px-3 py-2 text-sm font-black text-white transition hover:bg-rose-700 disabled:cursor-not-allowed disabled:opacity-50"
                     >
                       删除任务
                     </button>
@@ -1206,10 +1242,10 @@ export const ChimeraScheduleCenterPage: React.FC<ChimeraScheduleCenterPageProps>
                 </div>
               </div>
 
-              <div className="overflow-x-auto px-5 py-5 md:px-6">
-                <table className="min-w-full border-separate border-spacing-y-3">
-                  <thead>
-                    <tr className="text-left text-xs font-black uppercase tracking-[0.18em] text-slate-500">
+              <div className="overflow-x-auto px-4 py-4 md:px-5">
+                <table className="min-w-full border-separate border-spacing-0 text-sm">
+                  <thead className="bg-slate-50">
+                    <tr className="text-left text-xs font-bold text-slate-500">
                       <th className="px-4 py-2">
                         <input
                           type="checkbox"
@@ -1218,137 +1254,167 @@ export const ChimeraScheduleCenterPage: React.FC<ChimeraScheduleCenterPageProps>
                           className="h-4 w-4 rounded border-slate-300"
                         />
                       </th>
-                      <th className="px-4 py-2">
-                        <button type="button" onClick={() => handleSortChange('name')} className="inline-flex items-center gap-2">
-                          任务名称
-                          {sortIndicator('name', sortField, sortDirection)}
-                        </button>
-                      </th>
+                      {visibleColumns.has('name') ? (
+                        <th className="px-4 py-2">
+                          <button type="button" onClick={() => handleSortChange('name')} className="inline-flex items-center gap-2">
+                            任务名称
+                            {sortIndicator('name', sortField, sortDirection)}
+                          </button>
+                        </th>
+                      ) : null}
+                      {visibleColumns.has('taskType') ? (
+                        <th className="relative px-4 py-2">
+                          <div className="inline-flex items-center gap-2">
+                            <button type="button" onClick={() => handleSortChange('task_type')} className="inline-flex items-center gap-2">
+                              任务类型
+                              {sortIndicator('task_type', sortField, sortDirection)}
+                            </button>
+                            <button type="button" onClick={() => setOpenColumnFilter((current) => current === 'taskType' ? null : 'taskType')} className="text-slate-400 hover:text-slate-700">
+                              <ChevronDown size={14} />
+                            </button>
+                          </div>
+                          {openColumnFilter === 'taskType' ? (
+                            <div className="absolute left-0 top-full z-20 mt-2 w-56 rounded-xl border border-slate-200 bg-white p-2 shadow-lg">
+                              {TASK_TYPE_OPTIONS.map((item) => (
+                                <button
+                                  key={item.value}
+                                  type="button"
+                                  onClick={() => {
+                                    setFilters((current) => ({ ...current, taskType: item.value }));
+                                    setOpenColumnFilter(null);
+                                    setPage(1);
+                                  }}
+                                  className="flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-sm font-medium text-slate-700 hover:bg-slate-50"
+                                >
+                                  <span>{item.label}</span>
+                                  {filters.taskType === item.value ? <Check size={14} className="text-slate-700" /> : null}
+                                </button>
+                              ))}
+                            </div>
+                          ) : null}
+                        </th>
+                      ) : null}
+                      {visibleColumns.has('status') ? (
+                        <th className="relative px-4 py-2">
+                          <div className="inline-flex items-center gap-2">
+                            <button type="button" onClick={() => handleSortChange('downstream_status_mapped')} className="inline-flex items-center gap-2">
+                              状态
+                              {sortIndicator('downstream_status_mapped', sortField, sortDirection)}
+                            </button>
+                            <button type="button" onClick={() => setOpenColumnFilter((current) => current === 'status' ? null : 'status')} className="text-slate-400 hover:text-slate-700">
+                              <ChevronDown size={14} />
+                            </button>
+                          </div>
+                          {openColumnFilter === 'status' ? (
+                            <div className="absolute left-0 top-full z-20 mt-2 w-56 rounded-xl border border-slate-200 bg-white p-2 shadow-lg">
+                              {STATUS_OPTIONS.map((item) => (
+                                <button
+                                  key={item.value}
+                                  type="button"
+                                  onClick={() => {
+                                    setFilters((current) => ({ ...current, status: item.value }));
+                                    setOpenColumnFilter(null);
+                                    setPage(1);
+                                  }}
+                                  className="flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-sm font-medium text-slate-700 hover:bg-slate-50"
+                                >
+                                  <span>{item.label}</span>
+                                  {filters.status === item.value ? <Check size={14} className="text-slate-700" /> : null}
+                                </button>
+                              ))}
+                            </div>
+                          ) : null}
+                        </th>
+                      ) : null}
+                      {visibleColumns.has('project') ? <th className="px-4 py-2">项目</th> : null}
+                      {visibleColumns.has('queueState') ? (
+                        <th className="px-4 py-2">
+                          <button type="button" onClick={() => handleSortChange('business_status')} className="inline-flex items-center gap-2">
+                            队列状态
+                            {sortIndicator('business_status', sortField, sortDirection)}
+                          </button>
+                        </th>
+                      ) : null}
+                      {visibleColumns.has('retryCount') ? <th className="px-4 py-2">重试次数</th> : null}
+                      {visibleColumns.has('createdBy') ? (
+                        <th className="px-4 py-2">
+                          <button type="button" onClick={() => handleSortChange('created_by')} className="inline-flex items-center gap-2">
+                            创建人
+                            {sortIndicator('created_by', sortField, sortDirection)}
+                          </button>
+                        </th>
+                      ) : null}
+                      {visibleColumns.has('createdAt') ? (
+                        <th className="px-4 py-2">
+                          <button type="button" onClick={() => handleSortChange('created_at')} className="inline-flex items-center gap-2">
+                            创建时间
+                            {sortIndicator('created_at', sortField, sortDirection)}
+                          </button>
+                        </th>
+                      ) : null}
+                      {visibleColumns.has('updatedAt') ? (
+                        <th className="px-4 py-2">
+                          <button type="button" onClick={() => handleSortChange('updated_at')} className="inline-flex items-center gap-2">
+                            更新时间
+                            {sortIndicator('updated_at', sortField, sortDirection)}
+                          </button>
+                        </th>
+                      ) : null}
+                      {visibleColumns.has('startedAt') ? <th className="px-4 py-2">开始时间</th> : null}
+                      {visibleColumns.has('finishedAt') ? <th className="px-4 py-2">结束时间</th> : null}
+                      {visibleColumns.has('lastError') ? (
+                        <th className="relative px-4 py-2">
+                          <div className="inline-flex items-center gap-2">
+                            失败原因
+                            <button type="button" onClick={() => {
+                              setFilters((current) => ({ ...current, hasError: !current.hasError }));
+                              setPage(1);
+                            }} className={`rounded-full border px-2 py-0.5 text-[10px] font-bold ${filters.hasError ? 'border-rose-300 bg-rose-50 text-rose-700' : 'border-slate-300 bg-white text-slate-500'}`}>
+                              {filters.hasError ? '仅失败' : '全部'}
+                            </button>
+                          </div>
+                        </th>
+                      ) : null}
+                      {visibleColumns.has('actions') ? <th className="px-4 py-2">操作</th> : null}
                       <th className="relative px-4 py-2">
-                        <div className="inline-flex items-center gap-2">
-                          <button type="button" onClick={() => handleSortChange('task_type')} className="inline-flex items-center gap-2">
-                            任务类型
-                            {sortIndicator('task_type', sortField, sortDirection)}
-                          </button>
-                          <button type="button" onClick={() => setOpenColumnFilter((current) => current === 'taskType' ? null : 'taskType')} className="text-slate-400 hover:text-slate-700">
-                            <ChevronDown size={14} />
-                          </button>
-                        </div>
-                        {openColumnFilter === 'taskType' ? (
-                          <div className="absolute left-0 top-full z-20 mt-2 w-56 rounded-2xl border border-slate-200 bg-white p-2 shadow-[0_18px_40px_rgba(15,23,42,0.14)]">
-                            {TASK_TYPE_OPTIONS.map((item) => (
-                              <button
-                                key={item.value}
-                                type="button"
-                                onClick={() => {
-                                  setFilters((current) => ({ ...current, taskType: item.value }));
-                                  setOpenColumnFilter(null);
-                                  setPage(1);
-                                }}
-                                className="flex w-full items-center justify-between rounded-xl px-3 py-2 text-left text-sm font-semibold text-slate-700 hover:bg-slate-50"
-                              >
-                                <span>{item.label}</span>
-                                {filters.taskType === item.value ? <Check size={14} className="text-slate-700" /> : null}
-                              </button>
+                        <button type="button" onClick={() => setColumnPickerOpen((v) => !v)} className="inline-flex items-center gap-1 text-slate-400 hover:text-slate-700" title="选择列">
+                          <Waypoints size={14} />
+                        </button>
+                        {columnPickerOpen ? (
+                          <div className="absolute right-0 top-full z-30 mt-2 w-48 rounded-xl border border-slate-200 bg-white p-2 shadow-lg">
+                            {ALL_COLUMNS.map((col) => (
+                              <label key={col.key} className="flex cursor-pointer items-center gap-2 rounded-lg px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-50">
+                                <input
+                                  type="checkbox"
+                                  checked={visibleColumns.has(col.key)}
+                                  onChange={() => {
+                                    setVisibleColumns((prev) => {
+                                      const next = new Set(prev);
+                                      if (next.has(col.key)) next.delete(col.key); else next.add(col.key);
+                                      return next;
+                                    });
+                                  }}
+                                  className="h-4 w-4 rounded border-slate-300"
+                                />
+                                {col.label}
+                              </label>
                             ))}
                           </div>
                         ) : null}
                       </th>
-                      <th className="relative px-4 py-2">
-                        <div className="inline-flex items-center gap-2">
-                          <button type="button" onClick={() => handleSortChange('downstream_status_mapped')} className="inline-flex items-center gap-2">
-                            状态
-                            {sortIndicator('downstream_status_mapped', sortField, sortDirection)}
-                          </button>
-                          <button type="button" onClick={() => setOpenColumnFilter((current) => current === 'status' ? null : 'status')} className="text-slate-400 hover:text-slate-700">
-                            <ChevronDown size={14} />
-                          </button>
-                        </div>
-                        {openColumnFilter === 'status' ? (
-                          <div className="absolute left-0 top-full z-20 mt-2 w-56 rounded-2xl border border-slate-200 bg-white p-2 shadow-[0_18px_40px_rgba(15,23,42,0.14)]">
-                            {STATUS_OPTIONS.map((item) => (
-                              <button
-                                key={item.value}
-                                type="button"
-                                onClick={() => {
-                                  setFilters((current) => ({ ...current, status: item.value }));
-                                  setOpenColumnFilter(null);
-                                  setPage(1);
-                                }}
-                                className="flex w-full items-center justify-between rounded-xl px-3 py-2 text-left text-sm font-semibold text-slate-700 hover:bg-slate-50"
-                              >
-                                <span>{item.label}</span>
-                                {filters.status === item.value ? <Check size={14} className="text-slate-700" /> : null}
-                              </button>
-                            ))}
-                          </div>
-                        ) : null}
-                      </th>
-                      <th className="px-4 py-2">项目</th>
-                      <th className="px-4 py-2">
-                        <button type="button" onClick={() => handleSortChange('business_status')} className="inline-flex items-center gap-2">
-                          队列状态
-                          {sortIndicator('business_status', sortField, sortDirection)}
-                        </button>
-                      </th>
-                      <th className="px-4 py-2">重试次数</th>
-                      <th className="px-4 py-2">
-                        <button type="button" onClick={() => handleSortChange('created_by')} className="inline-flex items-center gap-2">
-                          创建人
-                          {sortIndicator('created_by', sortField, sortDirection)}
-                        </button>
-                      </th>
-                      <th className="px-4 py-2">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            handleSortChange('created_at');
-                          }}
-                          className="inline-flex items-center gap-2"
-                        >
-                          创建时间
-                          {sortIndicator('created_at', sortField, sortDirection)}
-                        </button>
-                      </th>
-                      <th className="px-4 py-2">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            handleSortChange('updated_at');
-                          }}
-                          className="inline-flex items-center gap-2"
-                        >
-                          更新时间
-                          {sortIndicator('updated_at', sortField, sortDirection)}
-                        </button>
-                      </th>
-                      <th className="px-4 py-2">开始时间</th>
-                      <th className="px-4 py-2">结束时间</th>
-                      <th className="relative px-4 py-2">
-                        <div className="inline-flex items-center gap-2">
-                          失败原因
-                          <button type="button" onClick={() => {
-                            setFilters((current) => ({ ...current, hasError: !current.hasError }));
-                            setPage(1);
-                          }} className={`rounded-full border px-2 py-0.5 text-[10px] font-black ${filters.hasError ? 'border-rose-300 bg-rose-50 text-rose-700' : 'border-slate-300 bg-white text-slate-500'}`}>
-                            {filters.hasError ? '仅失败' : '全部'}
-                          </button>
-                        </div>
-                      </th>
-                      <th className="px-4 py-2">操作</th>
                     </tr>
                   </thead>
                   <tbody>
                     {loadingTable ? (
                       <tr>
-                        <td colSpan={14} className="px-4 py-12 text-center text-sm font-bold text-slate-500">
+                        <td colSpan={2 + visibleColumns.size} className="px-4 py-12 text-center text-sm font-bold text-slate-500">
                           全局任务列表加载中...
                         </td>
                       </tr>
                     ) : tableItems.length ? (
                       tableItems.map((item) => (
-                        <tr key={item.task_id} className="rounded-3xl bg-white shadow-[0_8px_24px_rgba(15,23,42,0.06)]">
-                          <td className="rounded-l-[1.5rem] px-4 py-4 align-top">
+                        <tr key={item.task_id} className="border-b border-slate-100 hover:bg-slate-50/80">
+                          <td className="px-4 py-3 align-top">
                             <input
                               type="checkbox"
                               checked={selectedTaskIds.includes(item.task_id)}
@@ -1356,77 +1422,99 @@ export const ChimeraScheduleCenterPage: React.FC<ChimeraScheduleCenterPageProps>
                               className="h-4 w-4 rounded border-slate-300"
                             />
                           </td>
-                          <td className="px-4 py-4 align-top">
-                            <div className="font-black text-slate-900">{item.task_name || item.task_id}</div>
-                            <div className="mt-1 text-xs text-slate-500">{item.task_id}</div>
-                          </td>
-                          <td className="px-4 py-4 align-top text-sm font-semibold text-slate-700">{item.task_type || '-'}</td>
-                          <td className="px-4 py-4 align-top">
-                            <span className={`rounded-full border px-3 py-1 text-[11px] font-black uppercase tracking-[0.18em] ${statusTone(item.display_status_group)}`}>
-                              {summarizeStatus(item)}
-                            </span>
-                          </td>
-                          <td className="px-4 py-4 align-top text-sm font-semibold text-slate-700">{item.project_name || item.project_id || '-'}</td>
-                          <td className="px-4 py-4 align-top text-sm font-semibold text-slate-700">{item.queue_state || '-'}</td>
-                          <td className="px-4 py-4 align-top text-sm font-semibold text-slate-700">{item.retry_count ?? 0}</td>
-                          <td className="px-4 py-4 align-top text-sm font-semibold text-slate-700">{item.created_by || '-'}</td>
-                          <td className="px-4 py-4 align-top text-xs font-semibold text-slate-600">{formatTime(item.created_at)}</td>
-                          <td className="px-4 py-4 align-top text-xs font-semibold text-slate-600">{formatTime(item.updated_at)}</td>
-                          <td className="px-4 py-4 align-top text-xs font-semibold text-slate-600">{formatTime(item.started_at)}</td>
-                          <td className="px-4 py-4 align-top text-xs font-semibold text-slate-600">{formatTime(item.finished_at)}</td>
-                          <td className="max-w-[220px] px-4 py-4 align-top text-xs font-semibold text-rose-700">{item.last_error || '-'}</td>
-                          <td className="rounded-r-[1.5rem] px-4 py-4 align-top">
-                            <div className="flex items-center gap-2">
-                              <button
-                                onClick={() => void openTaskDetail(item)}
-                                title="查看详情"
-                                aria-label="查看详情"
-                                className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 text-slate-700 transition hover:bg-slate-50"
-                              >
-                                <Eye size={16} />
-                              </button>
-                              <button
-                                onClick={() => void handleViewExecution(item)}
-                                title="查看执行记录"
-                                aria-label="查看执行记录"
-                                className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 text-slate-700 transition hover:bg-slate-50"
-                              >
-                                <ListChecks size={16} />
-                              </button>
-                              <button
-                                onClick={() => void handleRetryDispatch(item)}
-                                title="重试分发"
-                                aria-label="重试分发"
-                                className="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-slate-900 text-white transition hover:bg-slate-800"
-                              >
-                                <RotateCcw size={16} />
-                              </button>
-                              <button
-                                onClick={() => void handleDeleteTasks('selected', item)}
-                                title="删除任务"
-                                aria-label="删除任务"
-                                className="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-rose-600 text-white transition hover:bg-rose-700"
-                              >
-                                <Trash2 size={16} />
-                              </button>
-                              {item.downstream_detail_view ? (
+                          {visibleColumns.has('name') ? (
+                            <td className="px-4 py-3 align-top">
+                              <div className="font-bold text-slate-900">{item.task_name || item.task_id}</div>
+                              <div className="mt-1 max-w-[260px] truncate text-xs text-slate-500" title={item.task_id}>{item.task_id}</div>
+                            </td>
+                          ) : null}
+                          {visibleColumns.has('taskType') ? <td className="px-4 py-3 align-top text-sm font-medium text-slate-700">{item.task_type || '-'}</td> : null}
+                          {visibleColumns.has('status') ? (
+                            <td className="px-4 py-3 align-top">
+                              <span className={`rounded-full border px-2.5 py-1 text-[11px] font-bold ${statusTone(item.display_status_group)}`}>
+                                {summarizeStatus(item)}
+                              </span>
+                            </td>
+                          ) : null}
+                          {visibleColumns.has('project') ? <td className="px-4 py-3 align-top text-sm font-medium text-slate-700">{item.project_name || item.project_id || '-'}</td> : null}
+                          {visibleColumns.has('queueState') ? <td className="px-4 py-3 align-top text-sm font-medium text-slate-700">{item.queue_state || '-'}</td> : null}
+                          {visibleColumns.has('retryCount') ? <td className="px-4 py-3 align-top text-sm font-medium text-slate-700">{item.retry_count ?? 0}</td> : null}
+                          {visibleColumns.has('createdBy') ? <td className="max-w-[100px] truncate px-4 py-3 align-top text-sm font-medium text-slate-700" title={item.created_by || undefined}>{item.created_by || '-'}</td> : null}
+                          {visibleColumns.has('createdAt') ? <td className="px-4 py-3 align-top text-xs font-medium text-slate-600">{formatTime(item.created_at)}</td> : null}
+                          {visibleColumns.has('updatedAt') ? <td className="px-4 py-3 align-top text-xs font-medium text-slate-600">{formatTime(item.updated_at)}</td> : null}
+                          {visibleColumns.has('startedAt') ? <td className="px-4 py-3 align-top text-xs font-medium text-slate-600">{formatTime(item.started_at)}</td> : null}
+                          {visibleColumns.has('finishedAt') ? <td className="px-4 py-3 align-top text-xs font-medium text-slate-600">{formatTime(item.finished_at)}</td> : null}
+                          {visibleColumns.has('lastError') ? (
+                            <td className="px-4 py-3 align-top">
+                              {item.last_error ? (
                                 <button
-                                  onClick={() => window.open(item.downstream_detail_view || '', '_blank', 'noopener,noreferrer')}
-                                  title="跳转下游任务"
-                                  aria-label="跳转下游任务"
-                                  className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 text-slate-700 transition hover:bg-slate-50"
+                                  type="button"
+                                  onClick={() => setErrorPopupText(item.last_error || '')}
+                                  className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-rose-200 bg-rose-50 px-2.5 text-xs font-medium text-rose-700 transition hover:bg-rose-100"
                                 >
-                                  <ExternalLink size={16} />
+                                  <AlertCircle size={13} />
+                                  查看原因
                                 </button>
-                              ) : null}
-                            </div>
-                          </td>
+                              ) : (
+                                <span className="text-xs text-slate-400">-</span>
+                              )}
+                            </td>
+                          ) : null}
+                          {visibleColumns.has('actions') ? (
+                            <td className="px-4 py-3 align-top">
+                              <div className="flex items-center gap-1.5">
+                                <button
+                                  onClick={() => void openTaskDetail(item)}
+                                  title="查看详情"
+                                  aria-label="查看详情"
+                                  className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 text-slate-700 transition hover:bg-white"
+                                >
+                                  <Eye size={15} />
+                                </button>
+                                <button
+                                  onClick={() => void handleViewExecution(item)}
+                                  title="查看执行记录"
+                                  aria-label="查看执行记录"
+                                  className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 text-slate-700 transition hover:bg-white"
+                                >
+                                  <ListChecks size={15} />
+                                </button>
+                                <button
+                                  onClick={() => void handleRetryDispatch(item)}
+                                  title="重试分发"
+                                  aria-label="重试分发"
+                                  className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-slate-900 text-white transition hover:bg-slate-800"
+                                >
+                                  <RotateCcw size={15} />
+                                </button>
+                                <button
+                                  onClick={() => void handleDeleteTasks('selected', item)}
+                                  title="删除任务"
+                                  aria-label="删除任务"
+                                  className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-rose-600 text-white transition hover:bg-rose-700"
+                                >
+                                  <Trash2 size={15} />
+                                </button>
+                                {item.downstream_detail_view ? (
+                                  <button
+                                    onClick={() => window.open(item.downstream_detail_view || '', '_blank', 'noopener,noreferrer')}
+                                    title="跳转下游任务"
+                                    aria-label="跳转下游任务"
+                                    className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 text-slate-700 transition hover:bg-white"
+                                  >
+                                    <ExternalLink size={15} />
+                                  </button>
+                                ) : null}
+                              </div>
+                            </td>
+                          ) : null}
+                          <td />
                         </tr>
                       ))
                     ) : (
                       <tr>
-                        <td colSpan={17} className="px-4 py-12">
-                          <div className="rounded-[2rem] border border-dashed border-slate-300 bg-slate-50 px-6 py-10 text-center">
+                        <td colSpan={2 + visibleColumns.size} className="px-4 py-12">
+                          <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-6 py-10 text-center">
                             <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-white shadow-sm">
                               <AlertCircle className="text-slate-400" size={24} />
                             </div>
@@ -1442,7 +1530,7 @@ export const ChimeraScheduleCenterPage: React.FC<ChimeraScheduleCenterPageProps>
                 </table>
               </div>
 
-              <div className="border-t border-slate-200 px-5 py-4 md:px-6">
+              <div className="border-t border-slate-200 bg-slate-50/70 px-4 py-3 md:px-5">
                 <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
                   <div className="text-sm font-semibold text-slate-500">
                     第 {page} / {totalPages} 页，共 {formatCount(total)} 条
@@ -1451,7 +1539,7 @@ export const ChimeraScheduleCenterPage: React.FC<ChimeraScheduleCenterPageProps>
                     <button
                       onClick={() => setPage((current) => Math.max(1, current - 1))}
                       disabled={page <= 1}
-                      className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 px-4 py-2 text-sm font-black text-slate-700 transition hover:bg-slate-50 disabled:opacity-50"
+                      className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-bold text-slate-700 transition hover:bg-slate-50 disabled:opacity-50"
                     >
                       <ChevronLeft size={16} />
                       上一页
@@ -1459,7 +1547,7 @@ export const ChimeraScheduleCenterPage: React.FC<ChimeraScheduleCenterPageProps>
                     <button
                       onClick={() => setPage((current) => Math.min(totalPages, current + 1))}
                       disabled={page >= totalPages}
-                      className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 px-4 py-2 text-sm font-black text-slate-700 transition hover:bg-slate-50 disabled:opacity-50"
+                      className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-bold text-slate-700 transition hover:bg-slate-50 disabled:opacity-50"
                     >
                       下一页
                       <ChevronRight size={16} />
@@ -1470,25 +1558,40 @@ export const ChimeraScheduleCenterPage: React.FC<ChimeraScheduleCenterPageProps>
             </section>
           </>
         ) : nav === 'task-event-log' ? (
-          <section className="rounded-[2rem] border border-slate-200/70 bg-white/90 p-6 shadow-[0_18px_60px_rgba(15,23,42,0.08)] backdrop-blur md:p-8">
-            <div className="flex flex-col gap-6">
-              <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
-                <div>
-                  <div className="text-xs font-black uppercase tracking-[0.24em] text-slate-500">Task Event Log</div>
-                  <h2 className="mt-2 text-3xl font-black text-slate-900">调度日志</h2>
-                  <p className="mt-3 text-sm text-slate-600">查看任务级调度、同步、删除与状态刷新事件，支持项目范围与全局范围切换。</p>
-                </div>
-                <div className="flex flex-wrap gap-3">
-                  {renderNavButtons()}
-                  <button onClick={() => void loadTaskEventLogs()} className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-black text-slate-700 transition hover:bg-slate-50">
-                    <RefreshCw size={16} className={taskEventLoading ? 'animate-spin' : ''} />
-                    刷新日志
-                  </button>
-                </div>
+          <>
+            <div className="flex flex-wrap items-center justify-center gap-2">
+              {renderNavButtons()}
+              <div className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-bold text-slate-600">
+                <Layers3 size={16} />
+                总计 {formatCount(taskEventTotal)}
               </div>
+              <button onClick={() => void loadTaskEventLogs()} className="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-3 py-2 text-sm font-black text-white transition hover:bg-slate-800">
+                <RefreshCw size={16} className={taskEventLoading ? 'animate-spin' : ''} />
+                刷新日志
+              </button>
+            </div>
 
-              <div className="grid gap-3 rounded-[1.6rem] border border-slate-200 bg-slate-50 p-4 md:grid-cols-2 xl:grid-cols-6">
-                <label className="text-sm font-bold text-slate-600">
+            <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4 2xl:grid-cols-8">
+              {taskEventStatCards.map((card, index) => (
+                <article
+                  key={`${card.label}-${index}`}
+                  className={`rounded-xl border bg-gradient-to-br p-4 shadow-sm ${metricTone(card.key)}`}
+                >
+                  <div className="truncate text-center text-xs font-bold text-slate-500" title={card.hint}>{card.label}</div>
+                  <div className="mt-1.5 truncate text-center text-sm font-semibold tabular-nums text-slate-900" title={`${card.value}`}>{formatCount(card.value as number)}</div>
+                </article>
+              ))}
+            </section>
+
+
+            <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+              <div className="border-b border-slate-200 bg-slate-50/70 px-4 py-4 md:px-5">
+                <div className="mb-4">
+                  <h2 className="text-lg font-black text-slate-900">调度日志</h2>
+                  <p className="mt-1 text-sm font-medium text-slate-500">查看任务级调度、同步、删除与状态刷新事件。</p>
+                </div>
+                <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-6">
+                  <label className="text-sm font-bold text-slate-600">
                   范围
                   <select value={taskEventFilters.scope} onChange={(e) => { setTaskEventFilters((current) => ({ ...current, scope: e.target.value as 'project' | 'global' })); setTaskEventPage(1); }} className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800">
                     <option value="project">当前项目</option>
@@ -1538,10 +1641,11 @@ export const ChimeraScheduleCenterPage: React.FC<ChimeraScheduleCenterPageProps>
                   仅失败
                 </label>
               </div>
+            </div>
 
-              <div className="overflow-hidden rounded-[1.6rem] border border-slate-200 bg-white">
-                <table className="min-w-full text-sm">
-                  <thead className="bg-slate-50 text-left text-slate-500">
+              <div className="overflow-x-auto px-4 py-4 md:px-5">
+                <table className="min-w-full border-separate border-spacing-0 text-sm">
+                  <thead className="bg-slate-50 text-left text-xs font-bold text-slate-500">
                     <tr>
                       <th className="px-4 py-3">时间</th>
                       <th className="px-4 py-3">项目</th>
@@ -1559,7 +1663,7 @@ export const ChimeraScheduleCenterPage: React.FC<ChimeraScheduleCenterPageProps>
                     {taskEventLoading ? <tr><td colSpan={10} className="px-4 py-10 text-center text-sm text-slate-500">调度日志加载中...</td></tr> : null}
                     {!taskEventLoading && taskEventItems.length === 0 ? <tr><td colSpan={10} className="px-4 py-10 text-center text-sm text-slate-500">暂无调度日志</td></tr> : null}
                     {taskEventItems.map((event) => (
-                      <tr key={event.id} className="cursor-pointer border-t hover:bg-slate-50" onClick={() => setSelectedTaskEvent(event)}>
+                      <tr key={event.id} className="cursor-pointer border-b border-slate-100 hover:bg-slate-50/80" onClick={() => setSelectedTaskEvent(event)}>
                         <td className="px-4 py-3 text-xs">{formatTime(event.created_at)}</td>
                         <td className="px-4 py-3 text-xs">{event.project_id}</td>
                         <td className="px-4 py-3 font-mono text-xs">{event.user_task_id}</td>
@@ -1576,25 +1680,27 @@ export const ChimeraScheduleCenterPage: React.FC<ChimeraScheduleCenterPageProps>
                 </table>
               </div>
 
-              <div className="flex items-center justify-between">
-                <div className="text-sm font-semibold text-slate-500">第 {taskEventPage} 页，共 {Math.max(1, Math.ceil(taskEventTotal / taskEventPageSize))} 页，共 {formatCount(taskEventTotal)} 条</div>
-                <div className="flex items-center gap-3">
+              <div className="border-t border-slate-200 bg-slate-50/70 px-4 py-3 md:px-5">
+                <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+                  <div className="text-sm font-semibold text-slate-500">第 {taskEventPage} 页，共 {Math.max(1, Math.ceil(taskEventTotal / taskEventPageSize))} 页，共 {formatCount(taskEventTotal)} 条</div>
+                  <div className="flex items-center gap-3">
                   <select value={taskEventPageSize} onChange={(e) => { setTaskEventPageSize(Number(e.target.value)); setTaskEventPage(1); }} className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700">
                     {[20, 50, 100, 200, 500, 1000].map((size) => <option key={size} value={size}>{size} / 页</option>)}
                   </select>
-                  <button onClick={() => setTaskEventPage((current) => Math.max(1, current - 1))} disabled={taskEventPage <= 1} className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 px-4 py-2 text-sm font-black text-slate-700 transition hover:bg-slate-50 disabled:opacity-50">
+                  <button onClick={() => setTaskEventPage((current) => Math.max(1, current - 1))} disabled={taskEventPage <= 1} className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-bold text-slate-700 transition hover:bg-slate-50 disabled:opacity-50">
                     <ChevronLeft size={16} />
                     上一页
                   </button>
-                  <button onClick={() => setTaskEventPage((current) => current + 1)} disabled={taskEventPage * taskEventPageSize >= taskEventTotal} className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 px-4 py-2 text-sm font-black text-slate-700 transition hover:bg-slate-50 disabled:opacity-50">
+                  <button onClick={() => setTaskEventPage((current) => current + 1)} disabled={taskEventPage * taskEventPageSize >= taskEventTotal} className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-bold text-slate-700 transition hover:bg-slate-50 disabled:opacity-50">
                     下一页
                     <ChevronRight size={16} />
                   </button>
+                  </div>
                 </div>
               </div>
 
               {selectedTaskEvent ? (
-                <div className="rounded-[1.6rem] border border-slate-200 bg-slate-50 p-5">
+                <div className="border-t border-slate-200 bg-slate-50/70 px-4 py-4 md:px-5">
                   <div className="flex items-center justify-between">
                     <div className="text-sm font-black text-slate-900">事件详情：{selectedTaskEvent.event_type}</div>
                     <button onClick={() => setSelectedTaskEvent(null)} className="rounded-lg p-1 text-slate-500 hover:bg-slate-200"><X size={16} /></button>
@@ -1602,72 +1708,75 @@ export const ChimeraScheduleCenterPage: React.FC<ChimeraScheduleCenterPageProps>
                   <pre className="mt-4 overflow-auto whitespace-pre-wrap break-all rounded-2xl border border-slate-200 bg-white p-4 text-xs text-slate-700">{JSON.stringify(selectedTaskEvent, null, 2)}</pre>
                 </div>
               ) : null}
-            </div>
-          </section>
+            </section>
+          </>
         ) : nav === 'queue-preview' ? (
-          <section className="rounded-[2rem] border border-slate-200/70 bg-white/90 p-6 shadow-[0_18px_60px_rgba(15,23,42,0.08)] backdrop-blur md:p-8">
-            <div className="flex flex-col gap-6">
-              <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
-                <div>
-                  <div className="text-xs font-black uppercase tracking-[0.24em] text-slate-500">Queue Preview</div>
-                  <h2 className="mt-2 text-3xl font-black text-slate-900">调度队列预览</h2>
-                  <div className="mt-2 text-sm text-slate-500">查看调度执行、删除维护和用户任务同步队列的当前积压与等待时长。</div>
-                </div>
-                <div className="flex flex-wrap items-center gap-3">
-                  {renderNavButtons()}
-                  <label className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold text-slate-700">
-                    <input
-                      type="checkbox"
-                      checked={queuePreviewAutoRefresh}
-                      onChange={(event) => setQueuePreviewAutoRefresh(event.target.checked)}
-                      className="h-4 w-4 rounded border-slate-300"
-                    />
-                    自动刷新
-                  </label>
-                  <button
-                    onClick={() => void loadQueuePreview()}
-                    className="inline-flex items-center gap-2 rounded-2xl bg-slate-900 px-4 py-3 text-sm font-black text-white transition hover:bg-slate-800 disabled:opacity-60"
-                    disabled={queuePreviewLoading}
-                  >
-                    <RefreshCw size={16} className={queuePreviewLoading ? 'animate-spin' : ''} />
-                    刷新
-                  </button>
-                </div>
+          <>
+            <div className="flex flex-wrap items-center justify-center gap-2">
+              {renderNavButtons()}
+              <div className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-bold text-slate-600">
+                <Layers3 size={16} />
+                总计 {formatCount(queuePreviewItems.length)} 队列
+              </div>
+              <label className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-bold text-slate-700">
+                <input
+                  type="checkbox"
+                  checked={queuePreviewAutoRefresh}
+                  onChange={(event) => setQueuePreviewAutoRefresh(event.target.checked)}
+                  className="h-4 w-4 rounded border-slate-300"
+                />
+                自动刷新
+              </label>
+              <button
+                onClick={() => void loadQueuePreview()}
+                className="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-3 py-2 text-sm font-black text-white transition hover:bg-slate-800 disabled:opacity-60"
+                disabled={queuePreviewLoading}
+              >
+                <RefreshCw size={16} className={queuePreviewLoading ? 'animate-spin' : ''} />
+                刷新
+              </button>
+            </div>
+
+            <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+              <article className={`rounded-xl border bg-gradient-to-br p-4 shadow-sm ${metricTone('queue')}`}>
+                <div className="truncate text-center text-xs font-bold text-slate-500">Redis 状态</div>
+                <div className="mt-1.5 truncate text-center text-sm font-semibold text-slate-900">{queuePreview?.redis_available ? 'Available' : 'Fallback'}</div>
+                <div className="mt-1 truncate text-center text-xs font-bold text-slate-500">Backend {queuePreview?.backend || 'unknown'}</div>
+              </article>
+              <article className={`rounded-xl border bg-gradient-to-br p-4 shadow-sm ${metricTone('running')}`}>
+                <div className="truncate text-center text-xs font-bold text-slate-500">主执行 / 删除</div>
+                <div className="mt-1.5 truncate text-center text-sm font-semibold text-slate-900">{formatCount(queuePreviewSummary.readyLength)} / {formatCount(queuePreviewSummary.deleteLength)}</div>
+                <div className="mt-1 truncate text-center text-xs font-bold text-slate-500">同步总排队 {formatCount(queuePreviewSummary.syncTotal)}</div>
+              </article>
+              <article className={`rounded-xl border bg-gradient-to-br p-4 shadow-sm ${metricTone('retry')}`}>
+                <div className="truncate text-center text-xs font-bold text-slate-500">延迟队列</div>
+                <div className="mt-1.5 truncate text-center text-sm font-semibold text-slate-900">{formatCount(queuePreviewSummary.delayLength)}</div>
+                <div className="mt-1 truncate text-center text-xs font-bold text-slate-500">最近刷新 {formatTime(queuePreview?.refreshed_at)}</div>
+              </article>
+            </section>
+
+            <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+              <div className="border-b border-slate-200 bg-slate-50/70 px-4 py-4 md:px-5">
+                <h2 className="text-lg font-black text-slate-900">调度队列预览</h2>
+                <p className="mt-1 text-sm font-medium text-slate-500">查看调度执行、删除维护和用户任务同步队列的当前积压与等待时长。</p>
               </div>
 
-              <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-                <article className={`rounded-[1.6rem] border bg-gradient-to-br p-5 shadow-sm ${metricTone('queue')}`}>
-                  <div className="text-xs font-black uppercase tracking-[0.2em] text-slate-500">Redis 状态</div>
-                  <div className="mt-3 text-3xl font-black text-slate-900">{queuePreview?.redis_available ? 'Available' : 'Fallback'}</div>
-                  <div className="mt-2 text-xs font-bold text-slate-500">Backend {queuePreview?.backend || 'unknown'}</div>
-                </article>
-                <article className={`rounded-[1.6rem] border bg-gradient-to-br p-5 shadow-sm ${metricTone('running')}`}>
-                  <div className="text-xs font-black uppercase tracking-[0.2em] text-slate-500">主执行 / 删除</div>
-                  <div className="mt-3 text-3xl font-black text-slate-900">{formatCount(queuePreviewSummary.readyLength)} / {formatCount(queuePreviewSummary.deleteLength)}</div>
-                  <div className="mt-2 text-xs font-bold text-slate-500">同步总排队 {formatCount(queuePreviewSummary.syncTotal)}</div>
-                </article>
-                <article className={`rounded-[1.6rem] border bg-gradient-to-br p-5 shadow-sm ${metricTone('retry')}`}>
-                  <div className="text-xs font-black uppercase tracking-[0.2em] text-slate-500">延迟队列</div>
-                  <div className="mt-3 text-3xl font-black text-slate-900">{formatCount(queuePreviewSummary.delayLength)}</div>
-                  <div className="mt-2 text-xs font-bold text-slate-500">最近刷新 {formatTime(queuePreview?.refreshed_at)}</div>
-                </article>
-              </section>
-
               {queuePreviewLoading && !queuePreview ? (
-                <div className="rounded-[1.6rem] border border-slate-200 bg-slate-50 px-6 py-10 text-center text-sm font-bold text-slate-500">
+                <div className="px-4 py-12 text-center text-sm font-bold text-slate-500">
                   调度队列预览加载中...
                 </div>
               ) : (
-                (queuePreview?.groups || []).map((group: ScheduleRuntimeQueuePreviewGroup) => (
-                  <section key={group.group_key} className="rounded-[1.6rem] border border-slate-200 bg-slate-50 p-5">
-                    <div>
-                      <div className="text-xs font-black uppercase tracking-[0.2em] text-slate-500">{group.group_key}</div>
-                      <h3 className="mt-2 text-xl font-black text-slate-900">{group.group_name}</h3>
-                    </div>
-                    <div className="mt-4 overflow-x-auto">
-                      <table className="min-w-full border-separate border-spacing-y-3">
-                        <thead>
-                          <tr className="text-left text-xs font-black uppercase tracking-[0.16em] text-slate-500">
+                <div className="space-y-4 px-4 py-4 md:px-5">
+                  {(queuePreview?.groups || []).map((group: ScheduleRuntimeQueuePreviewGroup) => (
+                    <section key={group.group_key} className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
+                      <div className="border-b border-slate-200 bg-slate-50/70 px-4 py-3">
+                        <div className="text-xs font-bold uppercase tracking-[0.16em] text-slate-500">{group.group_key}</div>
+                        <h3 className="mt-1 text-base font-black text-slate-900">{group.group_name}</h3>
+                      </div>
+                      <div className="overflow-x-auto px-4 py-4">
+                      <table className="min-w-full border-separate border-spacing-0 text-sm">
+                        <thead className="bg-slate-50">
+                          <tr className="text-left text-xs font-bold text-slate-500">
                             <th className="px-4 py-2">队列名称</th>
                             <th className="px-4 py-2">队列键</th>
                             <th className="px-4 py-2">类型</th>
@@ -1681,23 +1790,23 @@ export const ChimeraScheduleCenterPage: React.FC<ChimeraScheduleCenterPageProps>
                         </thead>
                         <tbody>
                           {group.items.map((item: ScheduleRuntimeQueuePreviewItem) => (
-                            <tr key={item.queue_key} className="rounded-3xl bg-white shadow-[0_8px_24px_rgba(15,23,42,0.06)]">
-                              <td className="rounded-l-[1.5rem] px-4 py-4 align-top">
+                            <tr key={item.queue_key} className="border-b border-slate-100 hover:bg-slate-50/80">
+                              <td className="px-4 py-3 align-top">
                                 <div className="font-black text-slate-900">{item.queue_name}</div>
                                 <div className="mt-1 text-xs text-slate-500">{item.backend || 'unknown'}</div>
                               </td>
-                              <td className="px-4 py-4 align-top text-xs font-semibold text-slate-600">{item.queue_key}</td>
-                              <td className="px-4 py-4 align-top text-sm font-semibold text-slate-700">{queueKindLabel(item.queue_kind)}</td>
-                              <td className="px-4 py-4 align-top text-sm font-semibold text-slate-700">{formatCount(item.length)}</td>
-                              <td className="px-4 py-4 align-top text-sm font-semibold text-slate-700">{formatDurationSeconds(item.oldest_age_seconds)}</td>
-                              <td className="px-4 py-4 align-top text-xs font-semibold text-slate-600">{item.consumer_runtime}</td>
-                              <td className="px-4 py-4 align-top text-sm font-semibold text-slate-700">{item.priority ?? '-'}</td>
-                              <td className="px-4 py-4 align-top">
-                                <span className={`rounded-full border px-3 py-1 text-[11px] font-black uppercase tracking-[0.18em] ${queueStatusTone(item.status)}`}>
+                              <td className="px-4 py-3 align-top text-xs font-semibold text-slate-600">{item.queue_key}</td>
+                              <td className="px-4 py-3 align-top text-sm font-semibold text-slate-700">{queueKindLabel(item.queue_kind)}</td>
+                              <td className="px-4 py-3 align-top text-sm font-semibold text-slate-700">{formatCount(item.length)}</td>
+                              <td className="px-4 py-3 align-top text-sm font-semibold text-slate-700">{formatDurationSeconds(item.oldest_age_seconds)}</td>
+                              <td className="px-4 py-3 align-top text-xs font-semibold text-slate-600">{item.consumer_runtime}</td>
+                              <td className="px-4 py-3 align-top text-sm font-semibold text-slate-700">{item.priority ?? '-'}</td>
+                              <td className="px-4 py-3 align-top">
+                                <span className={`rounded-full border px-2.5 py-1 text-[11px] font-bold ${queueStatusTone(item.status)}`}>
                                   {item.status}
                                 </span>
                               </td>
-                              <td className="rounded-r-[1.5rem] px-4 py-4 align-top text-xs font-semibold text-slate-600">
+                              <td className="px-4 py-3 align-top text-xs font-semibold text-slate-600">
                                 {item.description}
                                 {item.queue_key === 'delay' && item.next_due_in_seconds !== null && item.next_due_in_seconds !== undefined ? (
                                   <div className="mt-2 text-[11px] font-bold text-slate-500">next due {formatDurationSeconds(item.next_due_in_seconds)}</div>
@@ -1707,68 +1816,76 @@ export const ChimeraScheduleCenterPage: React.FC<ChimeraScheduleCenterPageProps>
                           ))}
                         </tbody>
                       </table>
-                    </div>
-                  </section>
-                ))
+                      </div>
+                    </section>
+                  ))}
+                </div>
               )}
-            </div>
-          </section>
+            </section>
+          </>
         ) : (
-          <section className="rounded-[2rem] border border-slate-200/70 bg-white/90 p-6 shadow-[0_18px_60px_rgba(15,23,42,0.08)] backdrop-blur md:p-8">
-            <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
-              <div className="max-w-3xl">
-                <div className="text-xs font-black uppercase tracking-[0.24em] text-slate-500">Secondary Capability</div>
-                <h2 className="mt-2 text-3xl font-black text-slate-900">{legacySectionContent[nav as Exclude<OverviewNav, 'overview'>].title}</h2>
-                <p className="mt-4 text-sm leading-7 text-slate-600">
+          <>
+            <div className="flex flex-wrap items-center justify-center gap-2">
+              {renderNavButtons()}
+              <div className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-bold text-slate-600">
+                <Layers3 size={16} />
+                总计 {formatCount(overview.stats.total_tasks)}
+              </div>
+              <button
+                onClick={() => void handleRefresh()}
+                className="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-3 py-2 text-sm font-black text-white transition hover:bg-slate-800"
+              >
+                <RefreshCw size={16} className={refreshing ? 'animate-spin' : ''} />
+                刷新总览数据
+              </button>
+            </div>
+
+            <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4 2xl:grid-cols-8">
+              {[
+                { key: 'total', label: '任务总数', value: formatCount(overview.stats.total_tasks), hint: '系统中所有调度任务的数量' },
+                { key: 'running', label: '进行中', value: formatCount(overview.stats.running_tasks), hint: '正在执行中的任务' },
+                { key: 'success', label: '成功', value: formatCount(overview.stats.succeeded_tasks), hint: '已成功完成的任务' },
+                { key: 'failed', label: '失败', value: formatCount(overview.stats.failed_tasks), hint: '执行失败或超时的任务' },
+                { key: 'queue', label: '队列深度', value: formatCount(overview.queue.depth), hint: '队列中等待执行的任务积压数量' },
+                { key: 'retry', label: '重试中', value: formatCount(overview.stats.retry_wait_tasks), hint: '执行失败后等待自动重试的任务' },
+                { key: overview.health.status === 'ok' ? 'success' : 'failed', label: '服务健康', value: overview.health.status || health?.status || 'unknown', hint: '调度系统当前健康状态' },
+                { key: 'neutral', label: '最近刷新', value: overview.refreshed_at ? formatTime(overview.refreshed_at) : '-', hint: '上次获取统计数据的时间' },
+              ].map((card, index) => (
+                <article
+                  key={`${card.label}-${index}`}
+                  className={`rounded-xl border bg-gradient-to-br p-4 shadow-sm ${metricTone(card.key)}`}
+                >
+                  <div className="truncate text-center text-xs font-bold text-slate-500" title={card.hint}>{card.label}</div>
+                  <div className={`mt-1.5 truncate text-center font-semibold tabular-nums text-slate-900 ${card.label === '最近刷新' ? 'text-[10px]' : 'text-sm'}`} title={`${card.value}`}>{card.value}</div>
+                </article>
+              ))}
+            </section>
+
+            <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+              <div className="border-b border-slate-200 bg-slate-50/70 px-4 py-4 md:px-5">
+                <h2 className="text-lg font-black text-slate-900">{legacySectionContent[nav as Exclude<OverviewNav, 'overview'>].title}</h2>
+                <p className="mt-1 text-sm font-medium leading-6 text-slate-500">
                   {legacySectionContent[nav as Exclude<OverviewNav, 'overview'>].summary}
                 </p>
               </div>
-              <div className="flex flex-wrap gap-3">
-                {renderNavButtons()}
-                <button
-                  onClick={() => void handleRefresh()}
-                  className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-black text-slate-700 transition hover:bg-slate-50"
-                >
-                  <RefreshCw size={16} className={refreshing ? 'animate-spin' : ''} />
-                  刷新总览数据
-                </button>
-              </div>
-            </div>
 
-            <div className="mt-8 grid gap-4 xl:grid-cols-[1.2fr_0.8fr]">
-              <div className="rounded-[1.6rem] border border-slate-200 bg-slate-50 p-5">
-                <div className="text-xs font-black uppercase tracking-[0.2em] text-slate-500">能力迁移说明</div>
-                <div className="mt-4 space-y-3">
-                  {legacySectionContent[nav as Exclude<OverviewNav, 'overview'>].bullets.map((bullet) => (
-                    <div key={bullet} className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700">
-                      {bullet}
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              <div className="rounded-[1.6rem] border border-slate-200 bg-white p-5">
-                <div className="text-xs font-black uppercase tracking-[0.2em] text-slate-500">当前全局快照</div>
-                <div className="mt-4 grid gap-3">
-                  <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm">
-                    <span className="font-black text-slate-900">任务总数：</span>{formatCount(overview.stats.total_tasks)}
+              <div className="px-4 py-4 md:px-5">
+                <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-6 py-10">
+                  <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-white shadow-sm">
+                    <AlertCircle className="text-slate-400" size={24} />
                   </div>
-                  <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm">
-                    <span className="font-black text-slate-900">进行中：</span>{formatCount(overview.stats.running_tasks)}
-                  </div>
-                  <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm">
-                    <span className="font-black text-slate-900">队列深度：</span>{formatCount(overview.queue.depth)}
-                  </div>
-                  <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm">
-                    <span className="font-black text-slate-900">最近刷新：</span>{overview.refreshed_at ? formatTime(overview.refreshed_at) : '-'}
-                  </div>
-                  <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm">
-                    <span className="font-black text-slate-900">服务健康：</span>{overview.health.status || health?.status || 'unknown'}
+                  <div className="mt-4 text-center text-lg font-black text-slate-900">能力已下沉，子页建设中</div>
+                  <div className="mx-auto mt-4 max-w-2xl space-y-2">
+                    {legacySectionContent[nav as Exclude<OverviewNav, 'overview'>].bullets.map((bullet) => (
+                      <div key={bullet} className="rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700">
+                        {bullet}
+                      </div>
+                    ))}
                   </div>
                 </div>
               </div>
-            </div>
-          </section>
+            </section>
+          </>
         )}
       </div>
 
@@ -1784,6 +1901,34 @@ export const ChimeraScheduleCenterPage: React.FC<ChimeraScheduleCenterPageProps>
         onRetryDispatch={() => void handleRetryDispatch(selectedTaskDetail)}
         onDeleteTask={() => void handleDeleteTasks('selected', selectedTaskDetail)}
       />
+
+      {errorPopupText !== null ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={() => setErrorPopupText(null)}>
+          <div className="mx-4 w-full max-w-lg rounded-2xl border border-slate-200 bg-white p-6 shadow-2xl" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2 text-sm font-bold text-rose-700">
+                <AlertCircle size={18} />
+                失败原因
+              </div>
+              <div className="flex items-center gap-1">
+                <button
+                  type="button"
+                  onClick={() => { navigator.clipboard.writeText(errorPopupText); }}
+                  className="inline-flex items-center gap-1.5 rounded-lg px-2 py-1 text-xs font-medium text-slate-600 hover:bg-slate-100 hover:text-slate-900"
+                  title="复制内容"
+                >
+                  <Copy size={14} />
+                  复制
+                </button>
+                <button type="button" onClick={() => setErrorPopupText(null)} className="rounded-lg p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-700">
+                  <X size={18} />
+                </button>
+              </div>
+            </div>
+            <pre className="mt-4 max-h-72 overflow-auto whitespace-pre-wrap break-all rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm font-medium text-slate-800">{errorPopupText}</pre>
+          </div>
+        </div>
+      ) : null}
 
       {(loadingOverview || refreshing) ? (
         <div className="fixed bottom-6 right-6 inline-flex items-center gap-3 rounded-full bg-slate-950 px-5 py-3 text-sm font-black text-white shadow-2xl">
