@@ -3,6 +3,7 @@ import { Settings } from 'lucide-react';
 import { api } from '../clients/api';
 import { WorkflowPlaceholder } from '../components/WorkflowPlaceholder';
 import { DashboardPage } from '../pages/DashboardPage';
+import { HomePage } from '../pages/HomePage';
 import { ProjectMgmtPage } from '../pages/project/ProjectMgmtPage';
 import { ProjectDetailPage } from '../pages/project/ProjectDetailPage';
 import { ProductMgmtPage } from '../pages/project/ProductMgmtPage';
@@ -178,6 +179,8 @@ const EmptyPlaceholderPage: React.FC<{ title: string }> = ({ title }) => (
 
 export const renderCurrentView = (ctx: ViewRegistryContext): React.ReactNode => {
   switch (ctx.currentView) {
+    case 'home':
+      return <HomePage setCurrentView={ctx.setCurrentView} />;
     case 'dashboard':
       return (
         <DashboardPage
