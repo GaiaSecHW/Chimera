@@ -2761,7 +2761,7 @@ function TaskDetailPanel({
                               onClick={() => setSelectedSessionPath(session.relative_path)}
                               className={`w-full rounded-2xl border px-4 py-3 text-left transition ${
                                 selected
-                                  ? 'border-slate-900 bg-slate-900 text-white shadow-[0_12px_30px_rgba(15,23,42,0.16)]'
+                                  ? 'border-slate-900 bg-slate-900 text-white'
                                   : 'border-slate-200 bg-slate-50 text-slate-700 hover:bg-white'
                               }`}
                             >
@@ -3320,7 +3320,7 @@ function TaskDetailPanel({
                                 <div className="mt-3 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 break-all font-mono text-[11px] text-slate-500">
                                   {resultDocumentState.selectedPath || '-'}
                                 </div>
-                                <div className="mt-5 rounded-[1.5rem] border border-slate-200 bg-[linear-gradient(180deg,#ffffff_0%,#f8fafc_100%)] px-6 py-5">
+                                <div className="mt-5 rounded-[1.5rem] border border-slate-200 bg-slate-50 px-6 py-5">
                                   <div className="mb-4 flex items-center justify-between gap-3 border-b border-slate-200 pb-3">
                                     <div className="rounded-full border border-slate-200 bg-white px-3 py-1 text-[11px] font-bold text-slate-500">
                                       {resultDocumentState.selectedDoc === 'summary' ? 'summary.md' : 'reason.md'}

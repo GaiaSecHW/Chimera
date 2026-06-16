@@ -4694,7 +4694,7 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
                     ) : (
                       <div className="mt-4 grid gap-4 xl:grid-cols-[minmax(0,1fr)_360px]">
                         <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
-                          <div className="h-[440px] bg-[radial-gradient(circle_at_top_left,_rgba(14,165,233,0.08),_transparent_40%),linear-gradient(180deg,_#f8fafc_0%,_#ffffff_100%)]">
+                          <div className="h-[440px] bg-slate-50">
                             <ReactFlow
                               nodes={taskGraphFlow.nodes}
                               edges={taskGraphFlow.edges}

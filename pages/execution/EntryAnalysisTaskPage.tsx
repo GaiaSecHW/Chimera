@@ -1637,7 +1637,7 @@ export const EntryAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?: (
       </section>
 
       {stageFocusHint || riskPreset ? (
-        <section className="rounded-[2rem] border border-indigo-200 bg-[radial-gradient(circle_at_top_left,_rgba(99,102,241,0.10),_transparent_38%),linear-gradient(180deg,#ffffff_0%,#eef2ff_100%)] p-5 shadow-sm">
+        <section className="rounded-[2rem] border border-indigo-200 bg-slate-50 p-5">
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div>
               <div className="text-[11px] font-black uppercase tracking-[0.18em] text-indigo-700">Stage Guided Tasks</div>
