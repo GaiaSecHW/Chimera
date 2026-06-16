@@ -3666,7 +3666,6 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
       <section style={{ borderRadius: '12px', border: `1px solid ${LK.border}`, backgroundColor: LK.surface, padding: '24px' }}>
         <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'flex-start', justifyContent: 'space-between', gap: '16px' }}>
           <div>
-            <p style={{ fontSize: '12px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.3em', color: '#14b8a6' }}>Binary Security</p>
             <h1 style={{ marginTop: '12px', fontSize: '30px', fontWeight: 600, letterSpacing: '-0.02em', color: LK.ink }}>性能看板</h1>
             <p style={{ marginTop: '8px', maxWidth: '48rem', fontSize: '14px', color: LK.muted }}>
               面向二进制安全链路的轻量指标看板，按微服务和 Tab 拉取后端 summary 数据；原始 Prometheus 指标保留为兜底排查入口。
@@ -3815,7 +3814,6 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
             >
               <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'flex-start', justifyContent: 'space-between', gap: '16px' }}>
                 <div>
-                  <div style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.18em', color: LK.muted }}>Cluster Aggregate</div>
                   <h2 style={{ marginTop: '8px', fontSize: '18px', fontWeight: 600, letterSpacing: '-0.02em', color: LK.ink }}>当前展示的是二进制安全编排器聚合健康视图</h2>
                   <p style={{ marginTop: '8px', fontSize: '14px', color: LK.inkSoft }}>
                     当前角色覆盖 {aggregateCoverage.successful}/{aggregateCoverage.attempted}。
@@ -3842,7 +3840,6 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
             <section style={{ display: 'flex', flexDirection: 'column', gap: '16px', borderRadius: '12px', border: '1px solid #14b8a6', backgroundColor: LK.surface, padding: '20px' }}>
               <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'flex-start', justifyContent: 'space-between', gap: '16px' }}>
                 <div>
-                  <div style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.2em', color: '#14b8a6' }}>Light Summary</div>
                   <h2 style={{ marginTop: '8px', fontSize: '20px', fontWeight: 600, letterSpacing: '-0.02em', color: LK.ink }}>{activeService.label} 轻量观测摘要</h2>
                   <p style={{ marginTop: '8px', maxWidth: '48rem', fontSize: '14px', color: LK.inkSoft }}>
                     当前 Tab 使用后端`metrics/summary` JSON，不再下载整包 Prometheus 文本；槽位和智能体明细仍由各自独立接口按需加载。
@@ -3873,7 +3870,6 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
               </div>
 
               <div style={{ borderRadius: '12px', border: `1px solid ${LK.border}`, backgroundColor: LK.surface, padding: '16px' }}>
-                <div style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.18em', color: LK.muted }}>Status Counts</div>
                 <h3 style={{ marginTop: '8px', fontSize: '18px', fontWeight: 600, letterSpacing: '-0.02em', color: LK.ink }}>任务状态分布</h3>
                 <div style={{ marginTop: '16px', display: 'grid', gap: '8px', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))' }}>
                   {summaryObservabilityViewModel.statusRows.length ? (
@@ -3895,7 +3891,6 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
             <section style={{ display: 'flex', flexDirection: 'column', gap: '16px', borderRadius: '12px', border: '1px solid #10b981', backgroundColor: LK.surface, padding: '20px' }}>
               <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'flex-start', justifyContent: 'space-between', gap: '16px' }}>
                 <div>
-                  <div style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.22em', color: LK.success }}>Binary Security Health</div>
                   <h2 style={{ marginTop: '8px', fontSize: '24px', fontWeight: 600, letterSpacing: '-0.02em', color: LK.ink }}>编排器诊断总览</h2>
                   <p style={{ marginTop: '8px', maxWidth: '48rem', fontSize: '14px', color: LK.inkSoft }}>
                     这一屏优先回答“编排有没有卡住、聚合是否完整、状态事件是否积压、锁和归档是否拖慢收口”，不再把指标族数量当作核心 KPI。
@@ -3936,7 +3931,6 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
               <div style={{ display: 'grid', gap: '16px', gridTemplateColumns: '1.05fr 0.95fr' }}>
                 <ReducerMetricList title="后台同步摘要" items={binarySecurityObservabilityViewModel.syncSummary} emptyText="暂无后台同步摘要。" />
                 <div style={{ borderRadius: '12px', border: `1px solid ${LK.border}`, backgroundColor: LK.surface, padding: '16px' }}>
-                  <div style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.18em', color: LK.muted }}>Task List Query</div>
                   <h3 style={{ marginTop: '8px', fontSize: '18px', fontWeight: 600, letterSpacing: '-0.02em', color: LK.ink }}>任务列表查询性能</h3>
                   <p style={{ marginTop: '8px', fontSize: '14px', color: LK.muted }}>
                     只展示列表读路径性能，不夹带同步副作用。这里可以直接看整体延迟、错误，以及最慢子分段是否出在计数、聚合还是序列化。
@@ -4015,7 +4009,6 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
  <section className="space-y-4 rounded-[2rem] border border-teal-200 bg-slate-50 p-5">
               <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'flex-start', justifyContent: 'space-between', gap: '16px' }}>
                 <div>
-                  <div style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.2em', color: '#14b8a6' }}>Dataflow Analysis Cluster</div>
                   <h2 style={{ marginTop: '8px', fontSize: '20px', fontWeight: 600, letterSpacing: '-0.02em', color: LK.ink }}>数据流分析聚合观测</h2>
                   <p style={{ marginTop: '8px', maxWidth: '48rem', fontSize: '14px', color: LK.inkSoft }}>
                     当前展示的是 DFA`metrics/aggregate` 聚合视图，不再只看 API Pod。本区重点看积压、租约/心跳健康、时延、失败归因和 token/trace 复杂度。
@@ -4102,7 +4095,6 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
  <div className="rounded-[1.6rem] border border-teal-100 bg-slate-50 p-4">
                 <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'flex-start', justifyContent: 'space-between', gap: '16px' }}>
                   <div>
-                    <div style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.18em', color: LK.muted }}>Worker Detail</div>
                     <h3 style={{ marginTop: '8px', fontSize: '20px', fontWeight: 600, letterSpacing: '-0.02em', color: LK.ink }}>执行槽位明细</h3>
                     <p className="mt-2 max-w-3xl text-sm text-slate-500">
                       直接复用 DFA worker cluster capacity 接口，和任务列表页保持同一口径，用于核对聚合指标背后的具体 owner / task 归属。
@@ -4229,7 +4221,6 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
  <section className="space-y-4 rounded-[2rem] border border-indigo-200 bg-slate-50 p-5">
               <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'flex-start', justifyContent: 'space-between', gap: '16px' }}>
                 <div>
-                  <div className="text-[11px] font-black uppercase tracking-[0.2em] text-indigo-700">Entry Analysis Business</div>
                   <h2 style={{ marginTop: '8px', fontSize: '20px', fontWeight: 600, letterSpacing: '-0.02em', color: LK.ink }}>入口分析业务聚合观测</h2>
                   <p style={{ marginTop: '8px', maxWidth: '48rem', fontSize: '14px', color: LK.inkSoft }}>
                     面向服务级聚合快照，重点看排队、执行、轮次、Worker/Judge 负载以及失败归因；这里不是单任务的 R1/R2/R3/R4 详情页，而是集群级健康视图。
@@ -4326,7 +4317,6 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
               <div style={{ borderRadius: '12px', border: `1px solid #6366f1`, backgroundColor: 'rgba(99, 102, 241, 0.1)', padding: '16px' }}>
                 <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'flex-start', justifyContent: 'space-between', gap: '16px' }}>
                   <div>
-                    <div style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.18em', color: LK.muted }}>Worker Detail</div>
                     <h3 style={{ marginTop: '8px', fontSize: '20px', fontWeight: 600, letterSpacing: '-0.02em', color: LK.ink }}>执行槽位明细</h3>
                     <p className="mt-2 max-w-3xl text-sm text-slate-500">
                       直接复用入口分析任务页的槽位聚合接口，和任务页保持同一口径，用于从性能看板快速下钻到具体 worker / owner / active task。
@@ -4629,7 +4619,6 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
  <section className="rounded-[2rem] border border-cyan-200 bg-slate-50 p-5">
               <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'flex-start', justifyContent: 'space-between', gap: '16px' }}>
                 <div>
-                  <div className="text-[11px] font-black uppercase tracking-[0.2em] text-cyan-700">Binary To Source Business</div>
                   <h2 style={{ marginTop: '8px', fontSize: '20px', fontWeight: 600, letterSpacing: '-0.02em', color: LK.ink }}>二进制逆向业务指标</h2>
                   <p style={{ marginTop: '8px', maxWidth: '48rem', fontSize: '14px', color: LK.inkSoft }}>
                     来自 PI 任务内部埋点，不从日志反推；用于观察头文件还原、函数体还原、批次吞吐、Token/成本与产物规模。
@@ -4710,7 +4699,6 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
  <section className="rounded-[2rem] border border-emerald-200 bg-slate-50 p-5">
               <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'flex-start', justifyContent: 'space-between', gap: '16px' }}>
                 <div>
-                  <div className="text-[11px] font-black uppercase tracking-[0.2em] text-emerald-700">Binary To Source Cache</div>
                   <h2 style={{ marginTop: '8px', fontSize: '20px', fontWeight: 600, letterSpacing: '-0.02em', color: LK.ink }}>二进制逆向缓存指标</h2>
                   <p style={{ marginTop: '8px', maxWidth: '48rem', fontSize: '14px', color: LK.inkSoft }}>
                     观察 ELF 级缓存请求、命中、绕过、覆盖和当前缓存条目数量，辅助判断相同输入是否被有效复用。
@@ -4743,7 +4731,6 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
  <section className="space-y-4 rounded-[2rem] border border-sky-200 bg-slate-50 p-5">
               <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'flex-start', justifyContent: 'space-between', gap: '16px' }}>
                 <div>
-                  <div className="text-[11px] font-black uppercase tracking-[0.22em] text-sky-700">System Analysis Observability</div>
                   <h2 style={{ marginTop: '8px', fontSize: '20px', fontWeight: 600, letterSpacing: '-0.02em', color: LK.ink }}>系统分析专属观测</h2>
                   <p style={{ marginTop: '8px', maxWidth: '48rem', fontSize: '14px', color: LK.inkSoft }}>
                     以运行总览、阶段健康、AI 成本、并发治理和质量收益为主视图，优先回答“卡在哪、贵不贵、并发是否打满、失败是否集中”。
@@ -4779,7 +4766,6 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
  <div className="rounded-[1.6rem] border border-sky-100 bg-slate-50 p-4">
                 <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'flex-start', justifyContent: 'space-between', gap: '16px' }}>
                   <div>
-                    <div style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.18em', color: LK.muted }}>Worker Detail</div>
                     <h3 style={{ marginTop: '8px', fontSize: '20px', fontWeight: 600, letterSpacing: '-0.02em', color: LK.ink }}>执行槽位明细</h3>
                     <p className="mt-2 max-w-3xl text-sm text-slate-500">
                       直接复用系统分析任务页的 worker cluster capacity 接口，和任务列表保持同一口径，用于核对聚合指标背后的具体 owner / task 归属，并支持动态扩缩容自动识别 worker。
@@ -5174,7 +5160,6 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
  <section className="space-y-4 rounded-[2rem] border border-amber-200 bg-slate-50 p-5">
               <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'flex-start', justifyContent: 'space-between', gap: '16px' }}>
                 <div>
-                  <div className="text-[11px] font-black uppercase tracking-[0.22em] text-amber-700">Firmware Unpacker Health</div>
                   <h2 style={{ marginTop: '8px', fontSize: '20px', fontWeight: 600, letterSpacing: '-0.02em', color: LK.ink }}>固件解包运行健康</h2>
                   <p style={{ marginTop: '8px', maxWidth: '48rem', fontSize: '14px', color: LK.inkSoft }}>
                     优先展示任务状态、队列积压、Worker 在线能力、并发槽位和清理异常；原始 Prometheus 样本仍保留在下方用于排障。
@@ -5441,7 +5426,6 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
         activeServiceKey !== 'binary-security' ? (
           <section style={{ borderRadius: '12px', border: `1px solid ${LK.border}`, backgroundColor: LK.surface, padding: '48px 24px', textAlign: 'center' }}>
             <div className="mx-auto max-w-2xl">
-              <div className="text-[11px] font-black uppercase tracking-[0.24em] text-slate-400">Reducer</div>
               <h2 style={{ marginTop: '8px', fontSize: '24px', fontWeight: 600, letterSpacing: '-0.02em', color: LK.ink }}>当前服务无独立 reducer 观测</h2>
               <p className="mt-3 text-sm text-slate-500">`Reducer` Tab 当前只对`二进制安全编排器` 开放，用来持续观测状态事件队列、收口时延、死信、锁竞争和落盘行为。
               </p>
@@ -5460,7 +5444,6 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
  <section className="space-y-4 rounded-[2rem] border border-slate-200 bg-slate-50 p-5">
             <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'flex-start', justifyContent: 'space-between', gap: '16px' }}>
               <div>
-                <div className="text-[11px] font-black uppercase tracking-[0.22em] text-teal-600">Reducer Watch</div>
                 <h2 style={{ marginTop: '8px', fontSize: '24px', fontWeight: 600, letterSpacing: '-0.02em', color: LK.ink }}>状态收口观测</h2>
                 <p className="mt-2 max-w-3xl text-sm text-slate-500">
                   持续观测 reducer 是否在及时消费状态事件、是否出现队列积压、锁竞争、死信和文件落盘异常，专门对应“下游已恢复但父任务仍然失败/不收敛”的问题。
@@ -6179,7 +6162,6 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
         ) : (
           <section style={{ borderRadius: '12px', border: `1px solid ${LK.border}`, backgroundColor: LK.surface, padding: '48px 24px', textAlign: 'center' }}>
             <div className="mx-auto max-w-2xl">
-              <div className="text-[11px] font-black uppercase tracking-[0.24em] text-slate-400">Agent</div>
               <h2 style={{ marginTop: '8px', fontSize: '24px', fontWeight: 600, letterSpacing: '-0.02em', color: LK.ink }}>当前服务未接入智能体观测</h2>
               <p className="mt-3 text-sm text-slate-500">`智能体` Tab 当前仅对入口分析、系统分析和数据流分析开放。其他服务继续使用`AI专区` 查看 AI 指标。
               </p>
@@ -6269,7 +6251,6 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
                   </section>
 
                   <section style={{ borderRadius: '12px', border: `1px solid ${LK.border}`, backgroundColor: LK.surface, padding: '20px' }}>
-                    <div style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.18em', color: LK.muted }}>Token / Cost</div>
                     <h3 style={{ marginTop: '8px', fontSize: '20px', fontWeight: 600, letterSpacing: '-0.02em', color: LK.ink }}>AI Token/Cost 图</h3>
                     <div style={{ marginTop: '16px', height: '288px' }}>
                       {effectiveAiViewModel.tokenChart.length ? (

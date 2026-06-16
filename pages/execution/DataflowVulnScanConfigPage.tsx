@@ -354,7 +354,6 @@ export const DataflowVulnScanConfigPage: React.FC<{ projectId: string; embedded?
 
       {!embedded ? (
  <section className="rounded-[2rem] border border-slate-200 bg-slate-50 p-6">
-          <p className="text-xs font-black uppercase tracking-[0.3em] text-violet-600">Dataflow Analysis</p>
           <h1 className="mt-3 text-3xl font-black tracking-tight text-slate-900">分析配置</h1>
           <p className="mt-2 text-sm text-slate-500">
             配置 secflow-app-dataflow-vuln-scan 数据流漏洞挖掘引擎的运行参数，修改后点击「保存配置」生效。

@@ -709,7 +709,6 @@ function RoundDetailModal({
  <div className="flex max-h-[88vh] w-full max-w-6xl flex-col overflow-hidden rounded-[2rem] border border-slate-200 bg-slate-50">
         <div className="flex items-start justify-between gap-4 border-b border-slate-100 px-6 py-5">
           <div>
-            <p className="text-[10px] font-black uppercase tracking-[0.28em] text-blue-600">Round Detail</p>
             <h3 className="mt-2 text-xl font-black text-slate-900">轮次 #{round.round} 结果详情</h3>
             <div className="mt-2 flex flex-wrap items-center gap-2">
               <span className={`rounded-full border px-2.5 py-1 text-[11px] font-bold ${roundStatusTone(round.status)}`}>{roundStatusLabel(round.status)}</span>
@@ -3399,7 +3398,6 @@ function TaskDetailPanel({
  <div className="flex max-h-[85vh] w-full max-w-5xl flex-col overflow-hidden rounded-[2rem] border border-slate-200 bg-slate-50">
             <div className="flex items-start justify-between gap-4 border-b border-slate-100 px-6 py-5">
               <div>
-                <p className="text-[10px] font-black uppercase tracking-[0.28em] text-blue-600">Stage Log</p>
                 <h3 className="mt-2 text-xl font-black text-slate-900">{logModalTitle}</h3>
                 <p className="mt-1 text-xs text-slate-500">阶段标识：<span className="font-mono text-slate-600">{logModalPhase || '-'}</span></p>
               </div>
@@ -3446,7 +3444,6 @@ function TaskDetailPanel({
  <div className="flex max-h-[85vh] w-full max-w-5xl flex-col overflow-hidden rounded-[2rem] border border-slate-200 bg-slate-50">
             <div className="flex items-start justify-between gap-4 border-b border-slate-100 px-6 py-5">
               <div>
-                <p className="text-[10px] font-black uppercase tracking-[0.28em] text-blue-600">Evolution Log</p>
                 <h3 className="mt-2 text-xl font-black text-slate-900">{evolutionLogModalTitle}</h3>
               </div>
               <button
@@ -3965,7 +3962,6 @@ export const FirmwareUnpackerPage: React.FC<Props> = ({ projectId, projects = []
  <div className="w-full max-w-2xl rounded-[2rem] border border-slate-200 bg-slate-50">
             <div className="flex items-start justify-between gap-4 border-b border-slate-100 px-6 py-5">
               <div>
-                <p className="text-[10px] font-black uppercase tracking-[0.28em] text-blue-600">Firmware Unpacker</p>
                 <h3 className="mt-2 text-2xl font-black text-slate-900">新建解包任务</h3>
                 <p className="mt-2 text-sm text-slate-500">使用右上角当前项目，从该项目文件系统中选择待解包固件文件。</p>
               </div>

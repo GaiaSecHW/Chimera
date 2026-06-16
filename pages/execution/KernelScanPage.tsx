@@ -766,7 +766,6 @@ export const KernelScanPage: React.FC<{ projectId: string }> = ({ projectId }) =
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
           <Shield size={24} style={{ color: LK.inkSoft }} />
           <div>
-            <div style={{ fontSize: '0.6875rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.18em', color: LK.muted }}>Kernel Security</div>
             <h1 style={{ marginTop: '0.25rem', fontSize: '1.5rem', fontWeight: 600, color: LK.ink }}>内核扫描</h1>
           </div>
         </div>
@@ -818,7 +817,6 @@ export const KernelScanPage: React.FC<{ projectId: string }> = ({ projectId }) =
             <div style={{ display: 'flex', minWidth: 0, alignItems: 'center', gap: '0.75rem' }}>
               <Smartphone size={22} style={{ flexShrink: 0, color: LK.inkSoft }} />
               <div style={{ minWidth: 0 }}>
-                <div style={{ fontSize: '0.6875rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.18em', color: LK.muted }}>Remote ADB</div>
                 <h2 style={{ marginTop: '0.25rem', fontSize: '1.25rem', fontWeight: 600, color: LK.ink }}>远程终端设备</h2>
                 <div style={{ marginTop: '0.25rem', wordBreak: 'break-all', fontFamily: MONO, fontSize: '0.6875rem', fontWeight: 600, color: LK.muted }}>
                   转发设备端口：ssh -N -R 0.0.0.0:15037:127.0.0.1:5037 remote_user@IP
@@ -905,7 +903,6 @@ export const KernelScanPage: React.FC<{ projectId: string }> = ({ projectId }) =
         <section style={{ borderRadius: '2rem', border: `1px solid ${LK.border}`, backgroundColor: LK.surface, padding: '1.5rem' }}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', alignItems: 'flex-start', justifyContent: 'space-between' }}>
             <div>
-              <div style={{ fontSize: '0.6875rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.18em', color: LK.muted }}>Task Queue</div>
               <h2 style={{ marginTop: '0.5rem', fontSize: '1.25rem', fontWeight: 600, color: LK.ink }}>{CATEGORY_LABELS[activeTab]} · 任务列表</h2>
             </div>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
@@ -1079,7 +1076,6 @@ export const KernelScanPage: React.FC<{ projectId: string }> = ({ projectId }) =
                 <ArrowLeft size={16} />
                 返回任务列表
               </button>
-              <div style={{ marginTop: '0.75rem', fontSize: '0.6875rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.18em', color: LK.muted }}>Task Detail</div>
               <h2 style={{ marginTop: '0.5rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontSize: '1.5rem', fontWeight: 600, color: LK.ink }}>{selectedTask?.title || '任务详情'}</h2>
               {selectedTask ? (() => {
                 const statusStyle = statusTone(selectedTask.status);

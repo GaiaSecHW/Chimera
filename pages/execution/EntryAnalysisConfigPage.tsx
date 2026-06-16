@@ -388,7 +388,6 @@ export const EntryAnalysisConfigPage: React.FC<{ projectId: string; embedded?: b
 
       {!embedded && (
         <section style={{ borderRadius: '24px', border: '1px solid #26324a', backgroundColor: 'rgba(17,26,43,0.9)', padding: '24px' }}>
-          <p style={{ fontSize: '12px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.3em', color: '#4f73ff' }}>Entry Analysis</p>
           <h1 style={{ marginTop: '12px', fontSize: '30px', fontWeight: 600, letterSpacing: '-0.02em', color: '#f5f7ff' }}>分析配置</h1>
           <p style={{ marginTop: '8px', fontSize: '14px', color: '#a4aec4' }}>配置 chimera-app-entry-analyse 分析引擎的运行参数，修改后点击「保存配置」生效。</p>
           {config.updated_at && (

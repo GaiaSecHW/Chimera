@@ -292,7 +292,6 @@ export const UserMgmtPage: React.FC = () => {
             </div>
             <div>
               <h2 className="text-3xl font-black text-slate-800 tracking-tight">用户账号管理</h2>
-              <p className="text-slate-500 font-medium mt-1 uppercase tracking-widest text-[10px]">Access Control & Identity Directory</p>
             </div>
           </div>
         </div>
@@ -600,7 +599,6 @@ export const UserMgmtPage: React.FC = () => {
                 </div>
                 <div>
                   <h3 className="text-2xl font-black text-slate-900">批量导入用户</h3>
-                  <p className="text-xs font-bold uppercase tracking-[0.24em] text-slate-400 mt-1">Upload Excel Or CSV / Preview / Commit</p>
                 </div>
               </div>
               <button onClick={closeImportModal} className="p-3 text-slate-300 hover:text-slate-600"><X size={28} /></button>

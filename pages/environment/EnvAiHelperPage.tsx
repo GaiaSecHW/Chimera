@@ -119,8 +119,7 @@ export const EnvAiHelperPage: React.FC<{ projectId: string; initialHelperKey?: s
           </div>
           <div className="flex items-center justify-between gap-4 flex-wrap">
             <div>
-              <p className="text-xs font-black uppercase tracking-[0.3em] text-cyan-600">AI Agent Workspace</p>
-              <h1 className="mt-3 text-3xl font-black tracking-tight text-slate-900">Helper 服务管理</h1>
+              <h1 className="text-3xl font-black tracking-tight text-slate-900">Helper 服务管理</h1>
               <p className="mt-2 text-sm text-slate-500">从 helper 服务实例视角查看节点、健康状态、内部 AI Agent 摘要与会话概况。</p>
             </div>
             <button onClick={() => void reload(true)} className="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white">

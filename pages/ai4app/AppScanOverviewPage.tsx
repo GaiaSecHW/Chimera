@@ -273,7 +273,6 @@ export const AppScanOverviewPage: React.FC<Props> = ({ projectId, onOpenTask, on
  <section className="rounded-[2rem] border border-slate-200 bg-slate-50 p-6">
         <div className="flex items-start justify-between gap-4">
           <div>
-            <p className="text-xs font-black uppercase tracking-[0.3em] text-rose-600">App Security</p>
             <h1 className="text-2xl font-black text-slate-900">应用端到端扫描</h1>
             <p className="mt-2 max-w-3xl text-sm text-slate-500">
               上传 APK/HAP 应用包，系统自动完成反编译并启动检测→挖掘→验证三阶段扫描流水线，实现 AI 驱动的端到端安全审计。

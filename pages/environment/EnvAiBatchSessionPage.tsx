@@ -465,8 +465,7 @@ export const EnvAiBatchSessionPage: React.FC<{ projectId: string }> = ({ project
  <section className="rounded-[2rem] border border-slate-200 bg-slate-50 p-6">
           <div className="flex items-center justify-between gap-4 flex-wrap">
             <div>
-              <p className="text-xs font-black uppercase tracking-[0.3em] text-cyan-600">AI Agent Workspace</p>
-              <h1 className="mt-3 text-3xl font-black tracking-tight text-slate-900">批量会话</h1>
+              <h1 className="text-3xl font-black tracking-tight text-slate-900">批量会话</h1>
               <p className="mt-2 text-sm text-slate-500">先查看批量会话列表，再点击进入会话详情对话界面；支持创建与批量删除。</p>
             </div>
             <div className="flex items-center gap-2">
@@ -598,8 +597,7 @@ export const EnvAiBatchSessionPage: React.FC<{ projectId: string }> = ({ project
  <div className="w-full max-w-5xl rounded-2xl border border-slate-200 bg-slate-50">
             <div className="flex items-center justify-between border-b border-slate-200 px-5 py-4">
               <div>
-                <div className="text-xs font-black uppercase tracking-[0.2em] text-slate-500">Create Batch</div>
-                <h3 className="mt-1 text-lg font-black text-slate-900">创建批量会话</h3>
+                <h3 className="text-lg font-black text-slate-900">创建批量会话</h3>
               </div>
               <button onClick={() => setCreateOpen(false)} className="rounded-lg border border-slate-200 p-2 text-slate-500"><X size={16} /></button>
             </div>
@@ -691,8 +689,7 @@ export const EnvAiBatchSessionPage: React.FC<{ projectId: string }> = ({ project
  <div className="flex h-[92vh] w-full max-w-7xl flex-col rounded-2xl border border-slate-200 bg-slate-50">
             <div className="flex items-center justify-between border-b border-slate-200 px-5 py-3">
               <div className="min-w-0">
-                <div className="text-xs font-black uppercase tracking-[0.2em] text-slate-500">Batch Dialog</div>
-                <h3 className="mt-1 truncate text-lg font-black text-slate-900">{batchDetail.batch_id}</h3>
+                <h3 className="truncate text-lg font-black text-slate-900">{batchDetail.batch_id}</h3>
                 <div className="mt-1 text-xs text-slate-500">状态：{batchDetail.status} · 目标：{batchDetail.items.length} · 模式：{modeLabel(batchDetail.session_mode)}</div>
               </div>
               <div className="flex items-center gap-2">

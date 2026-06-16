@@ -891,7 +891,6 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
  <section className="rounded-[2rem] border border-slate-200 bg-slate-50 p-6">
         <div className="flex items-start justify-between gap-4">
           <div>
-            <p className="text-xs font-black uppercase tracking-[0.3em] text-rose-600">Binary Security</p>
             <ServicePageTitle title={pageTitle} version={buildVersion} />
             <p className="mt-2 max-w-3xl text-sm text-slate-500">
               {isSourceTask

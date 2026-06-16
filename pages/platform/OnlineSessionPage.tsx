@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Activity, Clock, Globe, Loader2, MapPin, Monitor, RefreshCw, Search, ShieldCheck, UserX, Zap } from 'lucide-react';
+import { Clock, Globe, Loader2, MapPin, Monitor, RefreshCw, Search, ShieldCheck, UserX, Zap } from 'lucide-react';
 import { api } from '../../clients/api';
 import { showConfirm } from '../../components/DialogService';
 import { UserSession } from '../../types/types';
@@ -91,10 +91,6 @@ export const OnlineSessionPage: React.FC = () => {
           <div className="absolute inset-y-0 right-0 w-1/2 bg-[radial-gradient(circle_at_center,_rgba(110,231,183,0.18),_transparent_58%)]" />
           <div className="relative flex flex-col gap-6 xl:flex-row xl:items-end xl:justify-between">
             <div className="space-y-4 xl:max-w-[48rem] 2xl:max-w-[60rem]">
- <div className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-slate-100/10 px-4 py-2 text-[11px] font-bold uppercase tracking-[0.26em] text-emerald-100">
-                <Activity size={14} />
-                Session Intelligence
-              </div>
               <div className="flex items-start gap-4">
  <div className="flex h-16 w-16 items-center justify-center rounded-[1.75rem] bg-slate-100 text-emerald-100 shadow-inner shadow-white/5">
                   <Globe size={30} />

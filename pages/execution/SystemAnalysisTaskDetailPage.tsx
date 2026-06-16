@@ -1823,7 +1823,6 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
               <ArrowLeft size={14} />
               {hasReturnContext ? '返回原任务' : '返回任务列表'}
             </button>
-            <p className="mt-4 text-xs font-black uppercase tracking-[0.3em] text-cyan-600">System Analysis</p>
             <div className="mt-3 flex flex-wrap items-center gap-3">
               <h1 className="text-3xl font-black tracking-tight text-slate-900">{detail?.task_name || '任务详情'}</h1>
               {detail ? (
@@ -2965,7 +2964,6 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
                               <ArrowLeft size={14} />
                               返回轮次列表
                             </button>
-                            <div className="mt-4 text-xs font-black uppercase tracking-[0.2em] text-cyan-600">Round Detail</div>
                             <h2 className="mt-2 text-2xl font-black tracking-tight text-slate-900">
                               #{selectedEvaluationRound.round ?? '-'} · {selectedEvaluationRound.module_name || '全局任务'}
                             </h2>

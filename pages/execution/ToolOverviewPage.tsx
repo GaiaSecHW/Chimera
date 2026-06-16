@@ -9,7 +9,6 @@ import {
   Lock,
   Plus,
   RefreshCw,
-  Sparkles,
   Trash2,
   Upload,
   X,
@@ -533,8 +532,7 @@ const AgentAppModal: React.FC<AgentAppModalProps> = ({ mode, app, saving, depart
       <form onSubmit={handleSubmit} style={{ margin: '0 auto', display: 'flex', height: '100%', width: '100%', maxWidth: '64rem', flexDirection: 'column', overflow: 'hidden', borderRadius: '24px', border: `1px solid ${LK.border}`, backgroundColor: LK.surface, boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)' }} onClick={(event) => event.stopPropagation()}>
         <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '16px', borderBottom:`1px solid ${LK.border}`, padding: '20px 24px', background: `linear-gradient(to right, ${LK.surface}, ${LK.surfaceRaised})` }}>
           <div>
-            <div style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.3em', color: LK.primary }}>{mode === 'create' ? 'Create Tool' : 'Edit Tool'}</div>
-            <h2 style={{ marginTop: '8px', fontSize: '24px', fontWeight: 600, color: LK.ink }}>{mode === 'create' ? '创建新工具' : '工具详情'}</h2>
+            <h2 style={{ fontSize: '24px', fontWeight: 600, color: LK.ink }}>{mode === 'create' ? '创建新工具' : '工具详情'}</h2>
             {app ? <p style={{ marginTop: '4px', wordBreak: 'break-all', fontSize: '12px', fontWeight: 600, color: LK.body }}>{app.id}</p> : null}
           </div>
           <button type="button" onClick={onClose} style={{ borderRadius: '12px', border: `1px solid ${LK.border}`, backgroundColor: LK.surface, padding: '12px', color: LK.body, transition: 'all 0.2s', cursor: 'pointer' }} aria-label="关闭 Agent 弹窗"><X size={20} /></button>
@@ -772,11 +770,7 @@ export const ToolOverviewPage: React.FC<ToolOverviewPageProps> = ({ projectId, u
       <section style={{ borderRadius: '24px', border: `1px solid ${LK.border}`, background: `linear-gradient(to bottom right, ${LK.surface}, ${LK.primaryMuted.replace('0.14', '0.04')}, ${LK.primaryMuted.replace('0.14', '0.06')})`, padding: '28px' }}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
           <div style={{ maxWidth: '64rem' }}>
-            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', borderRadius: '999px', border: `1px solid ${LK.primary}`, backgroundColor: LK.primaryMuted.replace('0.14', '0.08'), padding: '4px 12px', fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.3em', color: LK.primary }}>
-              <Sparkles size={14} />
-              Developer Tools
-            </div>
-            <h1 style={{ marginTop: '16px', fontSize: '30px', fontWeight: 600, letterSpacing: '-0.025em', color: LK.ink }}>工具总览</h1>
+            <h1 style={{ fontSize: '30px', fontWeight: 600, letterSpacing: '-0.025em', color: LK.ink }}>工具总览</h1>
             <p style={{ marginTop: '12px', maxWidth: '48rem', fontSize: '14px', lineHeight: '28px', color: LK.body }}>
               统一管理 Agent 市场、AgentHarness 仓库、运行指标和平台内置扫描工具入口。页面参考 Agent 市场能力，并适配当前 Chimera 浅色卡片风格。
             </p>
@@ -875,7 +869,7 @@ export const ToolOverviewPage: React.FC<ToolOverviewPageProps> = ({ projectId, u
         <div className="fixed inset-0 z-[260] bg-slate-950/55 p-4 backdrop-blur-sm md:p-8" onClick={() => setPipelineApp(null)}>
  <div className="mx-auto w-full max-w-2xl rounded-[2rem] border border-slate-200 bg-slate-50 p-6" onClick={(event) => event.stopPropagation()}>
             <div className="flex items-start justify-between gap-4">
-              <div><div className="text-[11px] font-black uppercase tracking-[0.3em] text-cyan-700">AgentFlow</div><h2 className="mt-2 text-2xl font-black text-slate-900">流程预览</h2></div>
+              <div><h2 className="text-2xl font-black text-slate-900">流程预览</h2></div>
               <button type="button" onClick={() => setPipelineApp(null)} className="rounded-2xl border border-slate-200 bg-slate-50 p-3 text-slate-500 transition hover:text-slate-800" aria-label="关闭流程预览"><X size={20} /></button>
             </div>
             <div className="mt-6 rounded-2xl border border-slate-200 bg-slate-50 p-5 text-sm leading-7 text-slate-600">{pipelineApp.name} 的 AgentFlow 流程入口已保留；当前 Chimera 未包含 SecHPS 的 PipelineViewModal 组件，因此这里展示轻量占位，避免引入额外跨系统依赖。</div>

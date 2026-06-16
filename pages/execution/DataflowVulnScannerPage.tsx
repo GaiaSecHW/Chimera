@@ -1354,7 +1354,6 @@ export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ proj
               className="flex flex-1 items-start justify-between gap-4 text-left"
             >
               <div>
-                <p className="text-xs font-black uppercase tracking-[0.3em] text-violet-600">Execution Slots</p>
                 <h2 className="mt-2 text-2xl font-black tracking-tight text-slate-900">执行槽位总览</h2>
                 <p className="mt-2 text-sm text-slate-500">展示数据流漏洞挖掘服务全局 worker 槽位、活跃任务和心跳状态，不区分项目。</p>
               </div>
@@ -1818,7 +1817,6 @@ export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ proj
  <div className="w-full max-w-5xl rounded-[2rem] border border-slate-200 bg-slate-50" onClick={(event) => event.stopPropagation()}>
             <div className="flex items-start justify-between gap-4 border-b border-slate-200 px-6 py-5">
               <div>
-                <div className="text-[11px] font-black uppercase tracking-[0.24em] text-cyan-700">Slot Detail</div>
                 <h3 className="mt-2 text-2xl font-black tracking-tight text-slate-900">执行槽位详情</h3>
                 <p className="mt-2 text-sm text-slate-500">按 worker 展示当前正在执行的数据流漏洞挖掘任务。</p>
               </div>

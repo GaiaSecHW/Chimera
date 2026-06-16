@@ -280,7 +280,6 @@ export const AppScanMonitorPage: React.FC<Props> = ({ onBack }) => {
               <ArrowLeft size={18} />
             </button>
             <div>
-              <p className="text-xs font-black uppercase tracking-[0.3em] text-rose-600">App Security</p>
               <h1 className="text-xl font-black text-slate-900">引擎监控</h1>
             </div>
           </div>

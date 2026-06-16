@@ -531,7 +531,6 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
  <section className="rounded-[2rem] border border-slate-200 bg-slate-50 p-6">
         <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
           <div>
-            <p className="text-xs font-black uppercase tracking-[0.3em] text-cyan-600">Binary Reverse</p>
             <ServicePageTitle title="二进制逆向" version={buildVersion} />
             <p className="mt-2 max-w-3xl text-sm text-slate-500">
               集中查看当前项目关联的代码逆向还原任务，统一管理状态、进度、阶段与结果，并从同一入口创建新的逆向任务。
@@ -696,8 +695,7 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
           <div className="w-full max-w-5xl rounded-[2rem] border border-slate-200 bg-slate-800 shadow-panel" onClick={(event) => event.stopPropagation()}>
             <div className="flex items-start justify-between gap-4 border-b border-slate-200 px-6 py-5">
               <div>
-                <div className="text-[11px] font-black uppercase tracking-[0.24em] text-cyan-400">Slot Detail</div>
-                <h3 className="mt-2 text-2xl font-black tracking-tight text-slate-200">执行槽位详情</h3>
+                <h3 className="text-2xl font-black tracking-tight text-slate-200">执行槽位详情</h3>
                 <p className="mt-2 text-sm text-slate-400">按 worker 展示当前正在执行的逆向任务；点击每个 worker 头部展开或收起详细信息。</p>
               </div>
               <div className="flex items-center gap-3">

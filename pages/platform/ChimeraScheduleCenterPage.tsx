@@ -224,15 +224,6 @@ const statusTone = (label?: string | null) => {
   return 'border-slate-200 bg-slate-100 text-slate-700';
 };
 
-const metricTone = (key: string) => {
-  if (key === 'success') return 'from-emerald-50 via-slate-50 to-emerald-100/70 border-emerald-200/70';
-  if (key === 'failed') return 'from-rose-50 via-slate-50 to-rose-100/70 border-rose-200/70';
-  if (key === 'running') return 'from-sky-50 via-slate-50 to-sky-100/70 border-sky-200/70';
-  if (key === 'retry') return 'from-amber-50 via-slate-50 to-amber-100/70 border-amber-200/70';
-  if (key === 'queue') return 'from-cyan-50 via-slate-50 to-cyan-100/70 border-cyan-200/70';
-  return 'from-slate-50 via-slate-50 to-slate-100/70 border-slate-200/70';
-};
-
 const normalizeTaskTypeLabel = (taskType?: string | null) => {
   if (taskType === 'binary_firmware_e2e') return '盖亚-二进制固件';
   if (taskType === 'source_scan_e2e') return '盖亚-源码';
@@ -402,7 +393,6 @@ const DetailDrawer: React.FC<{
  <div className="sticky top-0 z-10 border-b border-slate-200 bg-slate-50 px-6 py-5 backdrop-blur">
           <div className="flex items-start justify-between gap-4">
             <div>
-              <div className="text-xs font-black uppercase tracking-[0.24em] text-slate-500">Task Detail</div>
               <h2 className="mt-2 text-2xl font-black text-slate-900">{detail?.task_name || '加载任务详情'}</h2>
               <div className="mt-2 flex flex-wrap gap-2">
                 <span className={`rounded-full border px-3 py-1 text-[11px] font-black uppercase tracking-[0.18em] ${statusTone(detail?.display_status_group)}`}>
@@ -1105,7 +1095,7 @@ export const ChimeraScheduleCenterPage: React.FC<ChimeraScheduleCenterPageProps>
               {statCards.map((card, index) => (
                 <article
                   key={`${card.label}-${index}`}
- className={`rounded-xl border bg-gradient-to-br p-4 ${metricTone(card.key)}`}
+ className={`rounded-xl border border-slate-200 bg-slate-50 p-4`}
                 >
                   <div className="truncate text-center text-xs font-bold text-slate-500" title={card.hint}>{card.label}</div>
                   <div className={`mt-1.5 truncate text-center font-semibold tabular-nums text-slate-900 ${card.label === '最近刷新时间' ? 'text-[10px]' : 'text-sm'}`} title={`${card.value}`}>{typeof card.value === 'string' ? card.value : formatCount(card.value as number)}</div>
@@ -1575,7 +1565,7 @@ export const ChimeraScheduleCenterPage: React.FC<ChimeraScheduleCenterPageProps>
               {taskEventStatCards.map((card, index) => (
                 <article
                   key={`${card.label}-${index}`}
- className={`rounded-xl border bg-gradient-to-br p-4 ${metricTone(card.key)}`}
+ className={`rounded-xl border border-slate-200 bg-slate-50 p-4`}
                 >
                   <div className="truncate text-center text-xs font-bold text-slate-500" title={card.hint}>{card.label}</div>
                   <div className="mt-1.5 truncate text-center text-sm font-semibold tabular-nums text-slate-900" title={`${card.value}`}>{formatCount(card.value as number)}</div>
@@ -1738,17 +1728,17 @@ export const ChimeraScheduleCenterPage: React.FC<ChimeraScheduleCenterPageProps>
             </div>
 
             <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
- <article className={`rounded-xl border bg-gradient-to-br p-4 ${metricTone('queue')}`}>
+ <article className="rounded-xl border border-slate-200 bg-slate-50 p-4">
                 <div className="truncate text-center text-xs font-bold text-slate-500">Redis 状态</div>
                 <div className="mt-1.5 truncate text-center text-sm font-semibold text-slate-900">{queuePreview?.redis_available ? 'Available' : 'Fallback'}</div>
                 <div className="mt-1 truncate text-center text-xs font-bold text-slate-500">Backend {queuePreview?.backend || 'unknown'}</div>
               </article>
- <article className={`rounded-xl border bg-gradient-to-br p-4 ${metricTone('running')}`}>
+ <article className="rounded-xl border border-slate-200 bg-slate-50 p-4">
                 <div className="truncate text-center text-xs font-bold text-slate-500">主执行 / 删除</div>
                 <div className="mt-1.5 truncate text-center text-sm font-semibold text-slate-900">{formatCount(queuePreviewSummary.readyLength)} / {formatCount(queuePreviewSummary.deleteLength)}</div>
                 <div className="mt-1 truncate text-center text-xs font-bold text-slate-500">同步总排队 {formatCount(queuePreviewSummary.syncTotal)}</div>
               </article>
- <article className={`rounded-xl border bg-gradient-to-br p-4 ${metricTone('retry')}`}>
+ <article className="rounded-xl border border-slate-200 bg-slate-50 p-4">
                 <div className="truncate text-center text-xs font-bold text-slate-500">延迟队列</div>
                 <div className="mt-1.5 truncate text-center text-sm font-semibold text-slate-900">{formatCount(queuePreviewSummary.delayLength)}</div>
                 <div className="mt-1 truncate text-center text-xs font-bold text-slate-500">最近刷新 {formatTime(queuePreview?.refreshed_at)}</div>
@@ -1853,7 +1843,7 @@ export const ChimeraScheduleCenterPage: React.FC<ChimeraScheduleCenterPageProps>
               ].map((card, index) => (
                 <article
                   key={`${card.label}-${index}`}
- className={`rounded-xl border bg-gradient-to-br p-4 ${metricTone(card.key)}`}
+ className={`rounded-xl border border-slate-200 bg-slate-50 p-4`}
                 >
                   <div className="truncate text-center text-xs font-bold text-slate-500" title={card.hint}>{card.label}</div>
                   <div className={`mt-1.5 truncate text-center font-semibold tabular-nums text-slate-900 ${card.label === '最近刷新' ? 'text-[10px]' : 'text-sm'}`} title={`${card.value}`}>{card.value}</div>

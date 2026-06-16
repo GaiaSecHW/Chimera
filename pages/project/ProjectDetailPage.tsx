@@ -619,7 +619,6 @@ export const ProjectDetailPage: React.FC<ProjectDetailPageProps> = ({ projectId,
  <div className="w-10 h-10 bg-blue-600 rounded-2xl flex items-center justify-center text-white"><Terminal size={20} /></div>
                  <div>
                    <h3 className="text-sm font-black text-white">实时容器日志审计 (Pod: {logView.podName})</h3>
-                   <p className="text-[10px] font-mono text-slate-500 uppercase tracking-widest mt-0.5">Stream: K8S Namespaced Socket</p>
                  </div>
                </div>
  <button onClick={() => setLogView({ show: false, podName: '', logs: '' })} className="p-3 bg-slate-100/10 text-slate-400 hover:text-white hover:bg-slate-100 rounded-2xl transition-all">

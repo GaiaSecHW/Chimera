@@ -455,8 +455,7 @@ export const BinarySecurityConfigPage: React.FC<{ projectId: string; initialTab?
       <section style={{ borderRadius: '24px', border: `1px solid ${LK.border}`, backgroundColor: LK.surface, padding: '24px' }}>
         <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '16px' }}>
           <div>
-            <p style={{ fontSize: '12px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.3em', color: LK.error }}>Binary Security</p>
-            <h1 style={{ marginTop: '12px', fontSize: '30px', fontWeight: 600, letterSpacing: '-0.025em', color: LK.ink }}>参数配置</h1>
+            <h1 style={{ fontSize: '30px', fontWeight: 600, letterSpacing: '-0.025em', color: LK.ink }}>参数配置</h1>
             <p style={{ marginTop: '8px', maxWidth: '48rem', fontSize: '14px', color: LK.body }}>
               按微服务分组查看和编辑配置。同一个微服务的参数归入同一个 Tab，不同微服务互相隔离，便于统一管理。
             </p>

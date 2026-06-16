@@ -1489,7 +1489,6 @@ export const EntryAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?: (
           className="flex w-full flex-wrap items-start justify-between gap-4 text-left"
         >
           <div>
-            <p className="text-xs font-black uppercase tracking-[0.3em] text-violet-600">Execution Slots</p>
             <h2 className="mt-2 text-2xl font-black tracking-tight text-slate-900">执行槽位总览</h2>
             <p className="mt-2 text-sm text-slate-500">展示入口分析 Worker Pod 的真实槽位占用、空闲容量与失联 Owner。</p>
           </div>

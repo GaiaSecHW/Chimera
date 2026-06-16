@@ -1962,7 +1962,6 @@ const getPvcDirectoryPath = (target: UnifiedExplorerNode) => {
  <div className="rounded-[2rem] border border-slate-200 bg-slate-50 px-6 py-5 backdrop-blur">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
             <div>
-              <div className="text-[11px] font-black uppercase tracking-[0.35em] text-sky-600">Project File Explorer</div>
               <h2 className="mt-2 text-3xl font-black text-slate-900">项目文件资源管理</h2>
               <p className="mt-1 text-sm text-slate-500">{projectName}</p>
               <p className="mt-1 text-xs text-slate-400">文件夹上传仅支持 Chromium/WebKit 浏览器，支持递归子目录与空文件夹。</p>
