@@ -6,6 +6,17 @@ import { SystemAnalysisPromptTemplate } from '../../types/types';
 import { useUiFeedback } from '../../components/UiFeedback';
 import { showConfirm } from '../../components/DialogService';
 
+const LK = {
+  primary: '#4f73ff', primarySoft: '#7590ff', primaryDeep: '#3f63f1',
+  primaryMuted: 'rgba(79, 115, 255, 0.14)',
+  canvas: '#070d18', surface: '#111a2b', surfaceRaised: '#18233a',
+  surfaceGlass: 'rgba(17, 26, 43, 0.84)',
+  border: '#26324a', borderSoft: '#1b2438',
+  ink: '#f5f7ff', inkSoft: '#d6def0', body: '#a4aec4',
+  muted: '#72809a', mutedSoft: '#8b95a8',
+  success: '#45c06f', warning: '#d5a13a', error: '#f15d5d', info: '#4f8cff',
+} as const;
+
 const emptyForm = {
   name: '',
   category: 'general',
@@ -131,52 +142,52 @@ export const SystemAnalysisPromptPage: React.FC<{ projectId: string }> = ({ proj
   };
 
   return (
-    <div className="px-8 pt-8 pb-10 space-y-6">
+    <div className="px-5 py-5 space-y-4" style={{ backgroundColor: LK.canvas, color: LK.inkSoft }}>
       {feedbackNodes}
-      <section className="rounded-[2rem] border border-slate-200 bg-white/90 p-6 shadow-sm">
-        <p className="text-xs font-black uppercase tracking-[0.3em] text-cyan-600">System Analysis</p>
-        <h1 className="mt-3 text-3xl font-black tracking-tight text-slate-900">Prompt 模板库</h1>
-        <p className="mt-2 text-sm text-slate-500">
-          这里管理可复用的 Prompt 模板。模板不会自动影响系统分析执行链路，需要在“参数配置 - 系统分析”中导入后，后续进入运行态的任务才会使用。
+      <section className="rounded-xl p-4" style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}` }}>
+        <p className="text-xs font-semibold uppercase tracking-wider" style={{ color: LK.primary }}>System Analysis</p>
+        <h1 className="mt-3 text-2xl font-semibold tracking-tight" style={{ color: LK.ink }}>Prompt 模板库</h1>
+        <p className="mt-2 text-sm" style={{ color: LK.body }}>
+          这里管理可复用的 Prompt 模板。模板不会自动影响系统分析执行链路，需要在「参数配置 - 系统分析」中导入后，后续进入运行态的任务才会使用。
         </p>
       </section>
 
-      {loading ? <div className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-600"><Loader2 size={15} className="animate-spin" />加载中...</div> : null}
+      {loading ? <div className="inline-flex items-center gap-2 rounded-lg px-4 py-3 text-sm" style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}` }}><Loader2 size={15} className="animate-spin" />加载中...</div> : null}
 
       {!loading ? (
-        <div className="grid grid-cols-1 gap-6 xl:grid-cols-[360px_minmax(0,1fr)]">
-          <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+        <div className="grid grid-cols-1 gap-4 xl:grid-cols-[360px_minmax(0,1fr)]">
+          <section className="rounded-lg p-4" style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}` }}>
             <div className="flex items-center justify-between gap-2">
-              <h2 className="text-lg font-black text-slate-900">模板列表</h2>
-              <button className="rounded-lg border border-slate-200 px-3 py-2 text-xs" onClick={() => { setSelectedId(''); setForm(emptyForm); }}>新建</button>
+              <h2 className="text-base font-semibold" style={{ color: LK.ink }}>模板列表</h2>
+              <button className="rounded-lg px-3 py-2 text-xs font-medium transition-colors hover:opacity-80" style={{ backgroundColor: LK.primary, color: '#ffffff' }} onClick={() => { setSelectedId(''); setForm(emptyForm); }}>新建</button>
             </div>
             <div className="mt-4 max-h-[700px] space-y-2 overflow-auto pr-1">
               {items.map((item) => (
-                <button key={item.prompt_id} onClick={() => setSelectedId(item.prompt_id)} className={`w-full rounded-xl border p-3 text-left ${selectedId === item.prompt_id ? 'border-blue-500 bg-blue-50' : 'border-slate-200 bg-white'}`}>
-                  <div className="text-sm font-bold text-slate-900 truncate">{item.name}</div>
-                  <div className="mt-1 text-xs text-slate-500">{item.prompt_id} · v{item.version}</div>
+                <button key={item.prompt_id} onClick={() => setSelectedId(item.prompt_id)} className="w-full rounded-lg p-3 text-left" style={{ backgroundColor: selectedId === item.prompt_id ? LK.primaryMuted : LK.surfaceRaised, border: selectedId === item.prompt_id ? `1px solid ${LK.primary}` : `1px solid ${LK.borderSoft}` }}>
+                  <div className="text-sm font-medium truncate" style={{ color: LK.ink }}>{item.name}</div>
+                  <div className="mt-1 text-xs" style={{ color: LK.muted }}>{item.prompt_id} · v{item.version}</div>
                 </button>
               ))}
             </div>
           </section>
 
-          <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm space-y-3">
-            <label className="block text-sm text-slate-600">名称<input className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2" value={form.name} onChange={(e) => setForm((p) => ({ ...p, name: e.target.value }))} /></label>
-            <label className="block text-sm text-slate-600">分类<input className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2" value={form.category} onChange={(e) => setForm((p) => ({ ...p, category: e.target.value }))} /></label>
-            <label className="block text-sm text-slate-600">描述<input className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2" value={form.description} onChange={(e) => setForm((p) => ({ ...p, description: e.target.value }))} /></label>
-            <label className="block text-sm text-slate-600">变量（逗号分隔）<input className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2" value={form.variables} onChange={(e) => setForm((p) => ({ ...p, variables: e.target.value }))} /></label>
-            <label className="block text-sm text-slate-600">内容<textarea className="mt-1 min-h-[260px] w-full rounded-lg border border-slate-200 px-3 py-2" value={form.content} onChange={(e) => setForm((p) => ({ ...p, content: e.target.value }))} /></label>
-            <div className="flex items-center gap-4 text-sm text-slate-700">
+          <section className="rounded-lg p-4 space-y-3" style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}` }}>
+            <label className="block text-sm" style={{ color: LK.body }}>名称<input className="mt-1 w-full rounded-lg px-3 py-2 text-sm" style={{ backgroundColor: LK.surfaceRaised, border: `1px solid ${LK.borderSoft}`, color: LK.ink }} value={form.name} onChange={(e) => setForm((p) => ({ ...p, name: e.target.value }))} /></label>
+            <label className="block text-sm" style={{ color: LK.body }}>分类<input className="mt-1 w-full rounded-lg px-3 py-2 text-sm" style={{ backgroundColor: LK.surfaceRaised, border: `1px solid ${LK.borderSoft}`, color: LK.ink }} value={form.category} onChange={(e) => setForm((p) => ({ ...p, category: e.target.value }))} /></label>
+            <label className="block text-sm" style={{ color: LK.body }}>描述<input className="mt-1 w-full rounded-lg px-3 py-2 text-sm" style={{ backgroundColor: LK.surfaceRaised, border: `1px solid ${LK.borderSoft}`, color: LK.ink }} value={form.description} onChange={(e) => setForm((p) => ({ ...p, description: e.target.value }))} /></label>
+            <label className="block text-sm" style={{ color: LK.body }}>变量（逗号分隔）<input className="mt-1 w-full rounded-lg px-3 py-2 text-sm" style={{ backgroundColor: LK.surfaceRaised, border: `1px solid ${LK.borderSoft}`, color: LK.ink }} value={form.variables} onChange={(e) => setForm((p) => ({ ...p, variables: e.target.value }))} /></label>
+            <label className="block text-sm" style={{ color: LK.body }}>内容<textarea className="mt-1 min-h-[260px] w-full rounded-lg px-3 py-2 text-sm leading-6" style={{ backgroundColor: LK.surfaceRaised, border: `1px solid ${LK.borderSoft}`, color: LK.ink }} value={form.content} onChange={(e) => setForm((p) => ({ ...p, content: e.target.value }))} /></label>
+            <div className="flex items-center gap-4 text-sm" style={{ color: LK.body }}>
               <label className="inline-flex items-center gap-2"><input type="checkbox" checked={form.is_default} onChange={(e) => setForm((p) => ({ ...p, is_default: e.target.checked }))} />默认</label>
               <label className="inline-flex items-center gap-2"><input type="checkbox" checked={form.is_enabled} onChange={(e) => setForm((p) => ({ ...p, is_enabled: e.target.checked }))} />启用</label>
             </div>
             <div className="flex gap-2">
               {!selectedId ? (
-                <button onClick={() => void handleCreate()} disabled={saving} className="rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white">创建</button>
+                <button onClick={() => void handleCreate()} disabled={saving} className="rounded-lg px-4 py-2 text-sm font-medium transition-colors hover:opacity-80 disabled:opacity-50" style={{ backgroundColor: LK.primary, color: '#ffffff' }}>创建</button>
               ) : (
                 <>
-                  <button onClick={() => void handleUpdate()} disabled={saving} className="rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white">保存</button>
-                  <button onClick={() => void handleDelete()} disabled={saving} className="rounded-xl border border-red-200 px-4 py-2 text-sm font-semibold text-red-600">删除</button>
+                  <button onClick={() => void handleUpdate()} disabled={saving} className="rounded-lg px-4 py-2 text-sm font-medium transition-colors hover:opacity-80 disabled:opacity-50" style={{ backgroundColor: LK.primary, color: '#ffffff' }}>保存</button>
+                  <button onClick={() => void handleDelete()} disabled={saving} className="rounded-lg px-4 py-2 text-sm font-medium transition-colors hover:opacity-80 disabled:opacity-50" style={{ backgroundColor: LK.surface, borderColor: LK.error, color: LK.error }}>删除</button>
                 </>
               )}
             </div>

@@ -1,6 +1,29 @@
 import React from 'react';
 import { B2STask } from '../../clients/binaryToSource';
 
+// LOKI design tokens (DESIGN.md) — page-local palette.
+const LK = {
+  primary: '#4f73ff',
+  primarySoft: '#7590ff',
+  primaryDeep: '#3f63f1',
+  primaryMuted: 'rgba(79, 115, 255, 0.14)',
+  canvas: '#070d18',
+  surface: '#111a2b',
+  surfaceRaised: '#18233a',
+  surfaceGlass: 'rgba(17, 26, 43, 0.84)',
+  border: '#26324a',
+  borderSoft: '#1b2438',
+  ink: '#f5f7ff',
+  inkSoft: '#d6def0',
+  body: '#a4aec4',
+  muted: '#72809a',
+  mutedSoft: '#8b95a8',
+  success: '#45c06f',
+  warning: '#d5a13a',
+  error: '#f15d5d',
+  info: '#4f8cff',
+} as const;
+
 export interface B2SStats {
   taskCount: number;
   totalItems: number;
@@ -51,16 +74,19 @@ interface Props {
 }
 
 const StatCard: React.FC<{ label: string; value: number }> = ({ label, value }) => (
-  <div className="rounded-xl border border-slate-200 bg-white px-3 py-2.5 shadow-sm">
-    <div className="truncate text-[10px] font-bold uppercase tracking-[0.14em] text-slate-400" title={label}>{label}</div>
-    <div className="mt-1 text-lg font-black tracking-tight text-slate-900">{value}</div>
+  <div
+    className="rounded-xl px-3 py-2.5"
+    style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}` }}
+  >
+    <div className="truncate text-[10px] font-semibold uppercase tracking-[0.14em]" style={{ color: LK.muted }} title={label}>{label}</div>
+    <div className="mt-1 text-lg font-semibold tracking-tight" style={{ color: LK.ink }}>{value}</div>
   </div>
 );
 
 export const B2SStatsHeader: React.FC<Props> = ({ stats, title = '基础统计' }) => {
   return (
     <div className="space-y-2">
-      <div className="text-sm font-black text-slate-800">{title}</div>
+      <div className="text-sm font-semibold" style={{ color: LK.inkSoft }}>{title}</div>
       <div className="grid grid-cols-2 gap-2 md:grid-cols-6 xl:grid-cols-11">
         <StatCard label="任务数" value={stats.taskCount} />
         <StatCard label="总ELF" value={stats.totalItems} />

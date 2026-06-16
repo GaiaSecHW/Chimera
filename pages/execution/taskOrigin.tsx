@@ -1,6 +1,18 @@
 import React from 'react';
 import { navigateBackByTaskOrigin } from '../../utils/executionReturnContext';
 
+const LK = {
+  primary: '#4f73ff', primarySoft: '#7590ff', primaryDeep: '#3f63f1',
+  primaryMuted: 'rgba(79, 115, 255, 0.14)',
+  canvas: '#070d18', surface: '#111a2b', surfaceRaised: '#18233a',
+  surfaceGlass: 'rgba(17, 26, 43, 0.84)',
+  border: '#26324a', borderSoft: '#1b2438',
+  ink: '#f5f7ff', inkSoft: '#d6def0', body: '#a4aec4',
+  muted: '#72809a', mutedSoft: '#8b95a8',
+  success: '#45c06f', warning: '#d5a13a', error: '#f15d5d', info: '#4f8cff',
+  critical: '#ff4d4f', high: '#ff8b3d', medium: '#f0b64c', low: '#49c5ff',
+} as const;
+
 type OriginInfo = {
   analysis_mode?: string | null;
   analysis_mode_label?: string | null;
@@ -42,22 +54,26 @@ export const TaskOriginInline: React.FC<{ origin: OriginInfo; compact?: boolean 
   const parentTaskId = String(origin.parent_task_id || '').trim();
   const stageLabel = STAGE_LABELS[String(origin.parent_stage_name || '').trim()] || String(origin.parent_stage_name || '').trim();
   const modeInfo = getAnalysisModeInfo(origin);
-  const pillClassName = 'inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-bold';
+  const pillClassName = 'inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-semibold';
   if (!isBinarySecurity) {
     return (
       <span className={`inline-flex flex-wrap items-center gap-1.5 ${compact ? 'text-[10px]' : 'text-xs'}`}>
-        <span className={`${pillClassName} border-slate-200 bg-slate-50 text-slate-600`}>手动任务</span>
-        <span className={`${pillClassName} ${modeInfo.className}`}>{modeInfo.label}</span>
+        <span className={pillClassName}
+          style={{ backgroundColor: LK.surfaceRaised, borderColor: LK.borderSoft, color: LK.mutedSoft }}>手动任务</span>
+        <span className={pillClassName}
+          style={{ backgroundColor: modeInfo.mode === 'source' ? 'rgba(69, 192, 111, 0.15)' : 'rgba(79, 140, 255, 0.15)', borderColor: modeInfo.mode === 'source' ? LK.success : LK.info, color: modeInfo.mode === 'source' ? LK.success : LK.info }}>{modeInfo.label}</span>
       </span>
     );
   }
   if (compact) {
     return (
       <div className="flex flex-wrap items-center gap-1.5 text-[10px]">
-        <span className={`${pillClassName} border-cyan-200 bg-cyan-50 text-cyan-700`}>
+        <span className={pillClassName}
+          style={{ backgroundColor: 'rgba(6, 182, 212, 0.15)', borderColor: LK.info, color: LK.info }}>
           总任务关联
         </span>
-        <span className={`${pillClassName} ${modeInfo.className}`}>
+        <span className={pillClassName}
+          style={{ backgroundColor: modeInfo.mode === 'source' ? 'rgba(69, 192, 111, 0.15)' : 'rgba(79, 140, 255, 0.15)', borderColor: modeInfo.mode === 'source' ? LK.success : LK.info, color: modeInfo.mode === 'source' ? LK.success : LK.info }}>
           {modeInfo.label}
         </span>
         <span
@@ -74,7 +90,10 @@ export const TaskOriginInline: React.FC<{ origin: OriginInfo; compact?: boolean 
               navigateToParentBinarySecurityTask(origin);
             }
           }}
-          className={`${pillClassName} cursor-pointer border-slate-200 bg-white font-mono text-slate-700 hover:bg-slate-50`}
+          className={`${pillClassName} cursor-pointer font-mono`}
+          style={{ backgroundColor: LK.surfaceRaised, borderColor: LK.border, color: LK.inkSoft }}
+          onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = LK.surface; }}
+          onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = LK.surfaceRaised; }}
           title={parentTaskId || '-'}
         >
           {parentTaskId || '-'}
@@ -84,13 +103,15 @@ export const TaskOriginInline: React.FC<{ origin: OriginInfo; compact?: boolean 
   }
   return (
     <div className="flex flex-col gap-1.5">
-      <span className={`${pillClassName} border-cyan-200 bg-cyan-50 text-cyan-700`}>
+      <span className={pillClassName}
+        style={{ backgroundColor: 'rgba(6, 182, 212, 0.15)', borderColor: LK.info, color: LK.info }}>
         总任务关联
       </span>
-      <span className={`${pillClassName} ${modeInfo.className}`}>
+      <span className={pillClassName}
+        style={{ backgroundColor: modeInfo.mode === 'source' ? 'rgba(69, 192, 111, 0.15)' : 'rgba(79, 140, 255, 0.15)', borderColor: modeInfo.mode === 'source' ? LK.success : LK.info, color: modeInfo.mode === 'source' ? LK.success : LK.info }}>
         {modeInfo.label}
       </span>
-      <div className="flex flex-wrap items-center gap-2 text-xs text-slate-600">
+      <div className="flex flex-wrap items-center gap-2 text-xs" style={{ color: LK.body }}>
         <span>{String(origin.origin_label || '').trim() || '二进制安全任务'}</span>
         <span
           role="button"
@@ -106,7 +127,10 @@ export const TaskOriginInline: React.FC<{ origin: OriginInfo; compact?: boolean 
               navigateToParentBinarySecurityTask(origin);
             }
           }}
-          className="rounded-md border border-slate-200 bg-white px-2 py-0.5 font-mono font-semibold text-slate-700 hover:bg-slate-50"
+          className="rounded-md border px-2 py-0.5 font-mono font-semibold cursor-pointer"
+          style={{ backgroundColor: LK.surfaceRaised, borderColor: LK.border, color: LK.inkSoft }}
+          onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = LK.surface; }}
+          onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = LK.surfaceRaised; }}
         >
           {parentTaskId || '-'}
         </span>
@@ -126,32 +150,37 @@ export const TaskOriginCard: React.FC<{ origin: OriginInfo; title?: string; acti
   const modeInfo = getAnalysisModeInfo(origin);
   const originLabel = String(origin.origin_label || '').trim() || '二进制安全任务';
   return (
-    <section className="min-w-0 rounded-2xl border border-slate-200 bg-slate-50/70 p-3">
+    <section className="min-w-0 rounded-xl border p-3"
+      style={{ backgroundColor: 'rgba(17, 26, 43, 0.6)', borderColor: LK.border }}>
       <div className="flex flex-wrap items-start justify-between gap-3">
-        <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-500">{title}</div>
+        <div className="text-[11px] font-semibold uppercase tracking-[0.18em]" style={{ color: LK.muted }}>{title}</div>
         {actions ? <div className="shrink-0">{actions}</div> : null}
       </div>
       <div className="mt-2.5 space-y-2.5">
-        <div className="min-w-0 rounded-xl border border-slate-200 bg-white px-3 py-2.5">
+        <div className="min-w-0 rounded-xl border px-3 py-2.5"
+          style={{ backgroundColor: LK.surface, borderColor: LK.borderSoft }}>
           <div className="flex flex-wrap gap-1.5">
-            <span className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-bold ${modeInfo.className}`}>{modeInfo.label}</span>
-            <span className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-bold ${
-              isBinarySecurity
-                ? 'border-cyan-200 bg-cyan-50 text-cyan-700'
-                : 'border-slate-200 bg-slate-50 text-slate-600'
-            }`}>
+            <span className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-semibold`}
+              style={{ backgroundColor: modeInfo.mode === 'source' ? 'rgba(69, 192, 111, 0.15)' : 'rgba(79, 140, 255, 0.15)', borderColor: modeInfo.mode === 'source' ? LK.success : LK.info, color: modeInfo.mode === 'source' ? LK.success : LK.info }}>{modeInfo.label}</span>
+            <span className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-semibold`}
+              style={{
+                backgroundColor: isBinarySecurity ? 'rgba(6, 182, 212, 0.15)' : LK.surfaceRaised,
+                borderColor: isBinarySecurity ? LK.info : LK.borderSoft,
+                color: isBinarySecurity ? LK.info : LK.mutedSoft
+              }}>
               {isBinarySecurity ? '总任务关联' : '手动创建'}
             </span>
           </div>
-          <div className="mt-2 text-sm font-semibold text-slate-800">
+          <div className="mt-2 text-sm font-semibold" style={{ color: LK.ink }}>
             {isBinarySecurity ? originLabel : '当前任务为独立创建任务'}
           </div>
         </div>
         <div className={`grid gap-2.5 ${isBinarySecurity ? 'grid-cols-1 sm:grid-cols-2' : 'grid-cols-1 sm:grid-cols-2'}`}>
           {isBinarySecurity ? (
             <>
-              <div className="min-w-0 rounded-xl border border-slate-200 bg-white px-3 py-2.5">
-                <div className="text-[11px] font-bold uppercase tracking-[0.12em] text-slate-400">总任务 ID</div>
+              <div className="min-w-0 rounded-xl border px-3 py-2.5"
+                style={{ backgroundColor: LK.surface, borderColor: LK.borderSoft }}>
+                <div className="text-[11px] font-semibold uppercase tracking-[0.12em]" style={{ color: LK.muted }}>总任务 ID</div>
                 <div className="mt-2">
                   <span
                     role="button"
@@ -163,38 +192,46 @@ export const TaskOriginCard: React.FC<{ origin: OriginInfo; title?: string; acti
                         navigateToParentBinarySecurityTask(origin);
                       }
                     }}
-                    className="inline-flex max-w-full cursor-pointer rounded-md border border-slate-200 bg-slate-50 px-2 py-1 font-mono text-xs font-semibold text-slate-700 hover:bg-slate-100"
+                    className="inline-flex max-w-full cursor-pointer rounded-md border px-2 py-1 font-mono text-xs font-semibold"
+                    style={{ backgroundColor: LK.surfaceRaised, borderColor: LK.borderSoft, color: LK.inkSoft }}
+                    onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = LK.surface; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = LK.surfaceRaised; }}
                   >
                     <span className="truncate">{origin.parent_task_id || '-'}</span>
                   </span>
                 </div>
               </div>
-              <div className="min-w-0 rounded-xl border border-slate-200 bg-white px-3 py-2.5">
-                <div className="text-[11px] font-bold uppercase tracking-[0.12em] text-slate-400">来源阶段</div>
-                <div className="mt-2 break-words text-sm font-semibold text-slate-800">{stageLabel || '-'}</div>
+              <div className="min-w-0 rounded-xl border px-3 py-2.5"
+                style={{ backgroundColor: LK.surface, borderColor: LK.borderSoft }}>
+                <div className="text-[11px] font-semibold uppercase tracking-[0.12em]" style={{ color: LK.muted }}>来源阶段</div>
+                <div className="mt-2 break-words text-sm font-semibold" style={{ color: LK.ink }}>{stageLabel || '-'}</div>
               </div>
-              <div className="min-w-0 rounded-xl border border-slate-200 bg-white px-3 py-2.5">
-                <div className="text-[11px] font-bold uppercase tracking-[0.12em] text-slate-400">阶段子项 ID</div>
-                <div className="mt-2 truncate font-mono text-xs font-semibold text-slate-700" title={origin.parent_stage_item_id || '-'}>
+              <div className="min-w-0 rounded-xl border px-3 py-2.5"
+                style={{ backgroundColor: LK.surface, borderColor: LK.borderSoft }}>
+                <div className="text-[11px] font-semibold uppercase tracking-[0.12em]" style={{ color: LK.muted }}>阶段子项 ID</div>
+                <div className="mt-2 truncate font-mono text-xs font-semibold" style={{ color: LK.inkSoft }} title={origin.parent_stage_item_id || '-'}>
                   {origin.parent_stage_item_id || '-'}
                 </div>
               </div>
-              <div className="min-w-0 rounded-xl border border-slate-200 bg-white px-3 py-2.5">
-                <div className="text-[11px] font-bold uppercase tracking-[0.12em] text-slate-400">阶段子项 Key</div>
-                <div className="mt-2 truncate font-mono text-xs font-semibold text-slate-700" title={origin.parent_stage_item_key || '-'}>
+              <div className="min-w-0 rounded-xl border px-3 py-2.5"
+                style={{ backgroundColor: LK.surface, borderColor: LK.borderSoft }}>
+                <div className="text-[11px] font-semibold uppercase tracking-[0.12em]" style={{ color: LK.muted }}>阶段子项 Key</div>
+                <div className="mt-2 truncate font-mono text-xs font-semibold" style={{ color: LK.inkSoft }} title={origin.parent_stage_item_key || '-'}>
                   {origin.parent_stage_item_key || '-'}
                 </div>
               </div>
             </>
           ) : (
             <>
-              <div className="min-w-0 rounded-xl border border-slate-200 bg-white px-3 py-2.5">
-                <div className="text-[11px] font-bold uppercase tracking-[0.12em] text-slate-400">任务来源</div>
-                <div className="mt-2 text-sm font-semibold text-slate-800">手动创建</div>
+              <div className="min-w-0 rounded-xl border px-3 py-2.5"
+                style={{ backgroundColor: LK.surface, borderColor: LK.borderSoft }}>
+                <div className="text-[11px] font-semibold uppercase tracking-[0.12em]" style={{ color: LK.muted }}>任务来源</div>
+                <div className="mt-2 text-sm font-semibold" style={{ color: LK.ink }}>手动创建</div>
               </div>
-              <div className="min-w-0 rounded-xl border border-slate-200 bg-white px-3 py-2.5">
-                <div className="text-[11px] font-bold uppercase tracking-[0.12em] text-slate-400">上游关联</div>
-                <div className="mt-2 text-sm font-semibold text-slate-800">无</div>
+              <div className="min-w-0 rounded-xl border px-3 py-2.5"
+                style={{ backgroundColor: LK.surface, borderColor: LK.borderSoft }}>
+                <div className="text-[11px] font-semibold uppercase tracking-[0.12em]" style={{ color: LK.muted }}>上游关联</div>
+                <div className="mt-2 text-sm font-semibold" style={{ color: LK.ink }}>无</div>
               </div>
             </>
           )}

@@ -4,6 +4,33 @@ import { B2SBatchObservabilityRow, B2SBatchObservabilitySummary, B2SItemPhaseObs
 import { B2SBatchObservabilityTable, B2SBatchTableRowAction } from './B2SBatchObservabilityTable';
 import { B2SBatchSummaryCards, buildBatchSummaryCardItems } from './B2SBatchSummaryCards';
 
+// LOKI design tokens (DESIGN.md) — page-local palette.
+const LK = {
+  primary: '#4f73ff',
+  primarySoft: '#7590ff',
+  primaryDeep: '#3f63f1',
+  primaryMuted: 'rgba(79, 115, 255, 0.14)',
+  canvas: '#070d18',
+  surface: '#111a2b',
+  surfaceRaised: '#18233a',
+  surfaceGlass: 'rgba(17, 26, 43, 0.84)',
+  border: '#26324a',
+  borderSoft: '#1b2438',
+  ink: '#f5f7ff',
+  inkSoft: '#d6def0',
+  body: '#a4aec4',
+  muted: '#72809a',
+  mutedSoft: '#8b95a8',
+  success: '#45c06f',
+  warning: '#d5a13a',
+  error: '#f15d5d',
+  info: '#4f8cff',
+  critical: '#ff4d4f',
+  high: '#ff8b3d',
+  medium: '#f0b64c',
+  low: '#49c5ff',
+} as const;
+
 type Tone = 'slate' | 'blue' | 'emerald' | 'rose' | 'amber' | 'violet';
 
 export interface B2SPhaseMetricTileValue {
@@ -13,14 +40,35 @@ export interface B2SPhaseMetricTileValue {
   icon?: React.ReactNode;
 }
 
+const tileTone = (tone: Tone = 'slate'): { bg: string; color: string; border: string } => {
+  const map: Record<Tone, { bg: string; color: string; border: string }> = {
+    slate: { bg: LK.surfaceRaised, color: LK.ink, border: LK.border },
+    blue: { bg: LK.info + '14', color: LK.info, border: LK.info + '40' },
+    emerald: { bg: LK.success + '14', color: LK.success, border: LK.success + '40' },
+    rose: { bg: LK.error + '14', color: LK.error, border: LK.error + '40' },
+    amber: { bg: LK.warning + '14', color: LK.warning, border: LK.warning + '40' },
+    violet: { bg: LK.primarySoft + '14', color: LK.primarySoft, border: LK.primarySoft + '40' },
+  };
+  return map[tone];
+};
+
 export const B2SPhaseMetricGrid: React.FC<{ items: B2SPhaseMetricTileValue[] }> = ({ items }) => (
   <div className="grid gap-2.5 md:grid-cols-2 xl:grid-cols-4">
-    {items.map((item) => (
-      <div key={item.label} className="rounded-xl border border-slate-200 bg-slate-50/70 px-3 py-2.5">
-        <div className="text-[10px] font-black uppercase tracking-[0.14em] text-slate-400">{item.label}</div>
-        <div className="mt-1 text-base font-black text-slate-900">{item.value}</div>
-      </div>
-    ))}
+    {items.map((item) => {
+      const colors = tileTone(item.tone);
+      return (
+        <div
+          key={item.label}
+          className="rounded-xl px-3 py-2.5"
+          style={{ backgroundColor: colors.bg, border: `1px solid ${colors.border}`, color: colors.color }}
+        >
+          <div className="text-[10px] font-semibold uppercase tracking-[0.14em]" style={{ opacity: 0.6 }}>
+            {item.label}
+          </div>
+          <div className="mt-1 text-base font-semibold">{item.value}</div>
+        </div>
+      );
+    })}
   </div>
 );
 
@@ -54,10 +102,17 @@ export const B2SPhaseObservabilityPanel: React.FC<Props> = ({
         { label: '开始时间', value: phase.started_at || '-' },
         { label: '耗时', value: renderDuration(phase.duration_ms) },
       ]} />
-      {phase.metrics.length ? <B2SPhaseMetricGrid items={phase.metrics.map((metric) => ({ label: metric.label, value: metric.value, tone: (metric.tone as Tone) || 'slate' }))} /> : null}
+      {phase.metrics.length ? (
+        <B2SPhaseMetricGrid items={phase.metrics.map((metric) => ({ label: metric.label, value: metric.value, tone: (metric.tone as Tone) || 'slate' }))} />
+      ) : null}
       {isBody ? (
         !bodyRows?.length ? (
-          <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-4 py-8 text-center text-sm text-slate-500">{bodyEmptyText}</div>
+          <div
+            className="rounded-xl px-4 py-8 text-center text-sm"
+            style={{ border: `1px dashed ${LK.border}`, backgroundColor: LK.surfaceRaised, color: LK.muted }}
+          >
+            {bodyEmptyText}
+          </div>
         ) : (
           <div className="space-y-3">
             {bodySummary ? <B2SBatchSummaryCards items={buildBatchSummaryCardItems(bodySummary)} /> : null}

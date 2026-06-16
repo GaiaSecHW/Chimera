@@ -10,6 +10,17 @@ import {
 } from '../../types/types';
 import { useUiFeedback } from '../../components/UiFeedback';
 
+const LK = {
+  primary: '#4f73ff', primarySoft: '#7590ff', primaryDeep: '#3f63f1',
+  primaryMuted: 'rgba(79, 115, 255, 0.14)',
+  canvas: '#070d18', surface: '#111a2b', surfaceRaised: '#18233a',
+  surfaceGlass: 'rgba(17, 26, 43, 0.84)',
+  border: '#26324a', borderSoft: '#1b2438',
+  ink: '#f5f7ff', inkSoft: '#d6def0', body: '#a4aec4',
+  muted: '#72809a', mutedSoft: '#8b95a8',
+  success: '#45c06f', warning: '#d5a13a', error: '#f15d5d', info: '#4f8cff',
+} as const;
+
 // ─── 常量 ──────────────────────────────────────────────────────────────────────
 
 const API_TYPES = ['openai-completions', 'anthropic', 'google-gemini', 'azure-openai'];
@@ -28,10 +39,10 @@ const emptyConfig = (): SystemAnalysisModelsConfig => ({ providers: {} });
 // ─── 子组件 ────────────────────────────────────────────────────────────────────
 
 const SectionCard: React.FC<{ title: string; subtitle?: string; children: React.ReactNode }> = ({ title, subtitle, children }) => (
-  <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm space-y-4">
+  <section className="rounded-lg p-4 space-y-3" style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}` }}>
     <div>
-      <h2 className="text-base font-black text-slate-900">{title}</h2>
-      {subtitle && <p className="mt-0.5 text-xs text-slate-500">{subtitle}</p>}
+      <h2 className="text-base font-semibold" style={{ color: LK.ink }}>{title}</h2>
+      {subtitle && <p className="mt-0.5 text-xs" style={{ color: LK.muted }}>{subtitle}</p>}
     </div>
     {children}
   </section>
@@ -39,9 +50,9 @@ const SectionCard: React.FC<{ title: string; subtitle?: string; children: React.
 
 const FieldRow: React.FC<{ label: string; hint?: string; children: React.ReactNode }> = ({ label, hint, children }) => (
   <div className="flex flex-col gap-1">
-    <label className="text-sm font-semibold text-slate-700">
+    <label className="text-sm font-medium" style={{ color: LK.inkSoft }}>
       {label}
-      {hint && <span className="ml-2 text-xs font-normal text-slate-400">{hint}</span>}
+      {hint && <span className="ml-2 text-xs font-normal" style={{ color: LK.muted }}>{hint}</span>}
     </label>
     {children}
   </div>
@@ -61,12 +72,14 @@ const ApiKeyInput: React.FC<ApiKeyInputProps> = ({ value, onChange }) => {
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder="sk-..."
-        className="w-full rounded-lg border border-slate-200 px-3 py-2 pr-10 text-sm font-mono"
+        className="w-full rounded-lg px-3 py-2 pr-10 text-sm font-mono"
+        style={{ backgroundColor: LK.surfaceRaised, border: `1px solid ${LK.borderSoft}`, color: LK.ink }}
       />
       <button
         type="button"
         onClick={() => setRevealed((r) => !r)}
-        className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+        className="absolute right-2 top-1/2 -translate-y-1/2 hover:opacity-80"
+        style={{ color: LK.muted }}
         title={revealed ? '隐藏 API Key' : '显示 API Key'}
       >
         {revealed ? <EyeOff size={15} /> : <Eye size={15} />}

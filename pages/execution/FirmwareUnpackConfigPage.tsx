@@ -7,6 +7,33 @@ import { api } from '../../clients/api';
 import { FirmwareClusterInfo, FirmwareConfigEntry, FirmwareLlmConfigFileSummary } from '../../clients/firmwareUnpacker';
 import { StaticPipelineFlow } from './StaticPipelineFlow';
 
+const LK = {
+  primary: '#4f73ff',
+  primarySoft: '#7590ff',
+  primaryDeep: '#3f63f1',
+  primaryMuted: 'rgba(79, 115, 255, 0.14)',
+  canvas: '#070d18',
+  surface: '#111a2b',
+  surfaceRaised: '#18233a',
+  surfaceGlass: 'rgba(17, 26, 43, 0.84)',
+  border: '#26324a',
+  borderSoft: '#1b2438',
+  ink: '#f5f7ff',
+  inkSoft: '#d6def0',
+  body: '#a4aec4',
+  muted: '#72809a',
+  mutedSoft: '#8b95a8',
+  success: '#45c06f',
+  warning: '#d5a13a',
+  error: '#f15d5d',
+  info: '#4f8cff',
+  critical: '#ff4d4f',
+  high: '#ff8b3d',
+  medium: '#f0b64c',
+  low: '#49c5ff',
+} as const;
+const MONO = 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace';
+
 interface Props { projectId: string; embedded?: boolean; }
 
 const fwApi = api.domains.execution.firmwareUnpacker;
@@ -85,25 +112,29 @@ function ConfigRow({
   entry, value, onChange, disabled = false, dirty = false,
 }: { entry: FirmwareConfigEntry; value: string; onChange: (value: string) => void; disabled?: boolean; dirty?: boolean }) {
   return (
-    <div className="rounded-2xl bg-white p-5">
+    <div className="rounded-2xl p-5" style={{ backgroundColor: LK.surface }}>
       <div className="flex-1 min-w-0">
         <div className="mb-1 flex items-center gap-2">
-          <span className="text-xs font-black font-mono text-slate-700">{entry.key}</span>
-          <span className="text-[10px] rounded-full bg-slate-100 px-1.5 py-0.5 text-slate-500">{entry.value_type}</span>
-          {dirty && <span className="text-[10px] font-semibold text-amber-600">未保存</span>}
+          <span className="text-xs font-semibold" style={{ fontFamily: MONO, color: LK.ink }}>{entry.key}</span>
+          <span className="text-[10px] rounded-full px-1.5 py-0.5" style={{ backgroundColor: LK.surfaceRaised, color: LK.muted }}>{entry.value_type}</span>
+          {dirty && <span className="text-[10px] font-semibold" style={{ color: LK.warning }}>未保存</span>}
         </div>
         {entry.description && (
-          <p className="mb-3 text-[11px] text-slate-400">{entry.description}</p>
+          <p className="mb-3 text-[11px]" style={{ color: LK.muted }}>{entry.description}</p>
         )}
         <input
           value={value}
           onChange={e => onChange(e.target.value)}
           disabled={disabled}
-          className={`w-full rounded-lg border px-3 py-1.5 text-xs font-mono outline-none transition ${
-            dirty ? 'border-blue-300 ring-1 ring-blue-100' : 'border-slate-200'
-          } bg-white disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-400`}
+          className="w-full rounded-lg border px-3 py-1.5 text-xs outline-none transition"
+          style={{
+            fontFamily: MONO,
+            backgroundColor: LK.surfaceRaised,
+            color: LK.ink,
+            border: dirty ? `1px solid ${LK.primary}` : `1px solid ${LK.border}`,
+          }}
         />
-        <p className="mt-2 text-[10px] text-slate-400">
+        <p className="mt-2 text-[10px]" style={{ color: LK.muted }}>
           更新于 {fmtTime(entry.updated_at)}
         </p>
       </div>
@@ -117,11 +148,11 @@ const SectionCard: React.FC<{ title: string; subtitle?: string; actions?: React.
   actions,
   children,
 }) => (
-  <section className="rounded-2xl bg-white p-5">
+  <section className="rounded-2xl p-5" style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}` }}>
     <div className="flex items-start justify-between gap-4">
       <div>
-        <div className="text-sm font-bold text-slate-700">{title}</div>
-        {subtitle ? <div className="mt-2 text-xs text-slate-500">{subtitle}</div> : null}
+        <div className="text-sm font-semibold" style={{ color: LK.ink }}>{title}</div>
+        {subtitle ? <div className="mt-2 text-xs" style={{ color: LK.muted }}>{subtitle}</div> : null}
       </div>
       {actions}
     </div>
@@ -140,7 +171,14 @@ const PanelActions: React.FC<{ saving: boolean; disabled?: boolean; onSave: () =
       type="button"
       onClick={onReset}
       disabled={saving}
-      className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-50 disabled:opacity-50"
+      className="rounded-xl border px-3 py-2 text-xs font-semibold transition"
+      style={{
+        backgroundColor: LK.surfaceRaised,
+        border: `1px solid ${LK.border}`,
+        color: LK.body,
+      }}
+      onMouseEnter={(e) => { if (!saving) e.currentTarget.style.backgroundColor = LK.surface; }}
+      onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = LK.surfaceRaised; }}
     >
       重置为默认
     </button>
@@ -148,7 +186,12 @@ const PanelActions: React.FC<{ saving: boolean; disabled?: boolean; onSave: () =
       type="button"
       onClick={onSave}
       disabled={saving || disabled}
-      className="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-3 py-2 text-xs font-semibold text-white shadow-sm hover:bg-slate-800 disabled:opacity-60"
+      className="inline-flex items-center gap-2 rounded-xl px-3 py-2 text-xs font-semibold transition"
+      style={{
+        backgroundColor: disabled ? LK.surfaceRaised : LK.primary,
+        color: '#ffffff',
+        opacity: disabled ? 0.5 : 1,
+      }}
     >
       {saving ? <Loader2 size={12} className="animate-spin" /> : <Save size={12} />}
       保存配置
@@ -382,67 +425,83 @@ export const FirmwareUnpackConfigPage: React.FC<Props> = ({ projectId: _projectI
   };
 
   return (
-    <div className={embedded ? 'space-y-4' : 'p-4 space-y-4'}>
+    <div className={embedded ? 'space-y-4' : 'p-4 space-y-4'} style={{ backgroundColor: LK.canvas, color: LK.inkSoft }}>
       {!embedded && (
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Settings size={18} className="text-violet-600" />
+            <Settings size={18} style={{ color: LK.primarySoft }} />
             <div>
-              <h2 className="text-sm font-bold text-slate-800">固件解包 · 配置</h2>
-              <p className="text-xs text-slate-400">动态配置参数</p>
+              <h2 className="text-sm font-semibold" style={{ color: LK.ink }}>固件解包 · 配置</h2>
+              <p className="text-xs" style={{ color: LK.muted }}>动态配置参数</p>
             </div>
           </div>
           <div className="flex gap-2">
             <button onClick={() => { loadConfig(); loadCluster(); loadLlmConfigFiles(); }}
-              className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50">
+              className="inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-semibold transition"
+              style={{
+                backgroundColor: LK.surface,
+                border: `1px solid ${LK.border}`,
+                color: LK.body,
+              }}
+              onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = LK.surfaceRaised; }}
+              onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = LK.surface; }}
+            >
               <RefreshCw size={12} /> 刷新
             </button>
           </div>
         </div>
       )}
 
-      <section className={`${embedded ? 'rounded-[2rem] border border-slate-200 bg-slate-50/70 p-6 shadow-sm' : 'rounded-2xl border border-slate-200 bg-white p-4 shadow-sm'}`}>
+      <section className={`${embedded ? 'rounded-[2rem] border p-6 shadow-sm' : 'rounded-2xl border p-4 shadow-sm'}`} style={{ backgroundColor: embedded ? LK.surfaceGlass : LK.surface, border: `1px solid ${LK.border}` }}>
         <div className="mb-5 flex items-start justify-between gap-4">
           <div>
             <div className="flex flex-wrap items-center gap-2">
-              <Settings size={18} className="text-rose-600" />
-              <h2 className="text-xl font-black text-slate-900">{embedded ? '固件解包参数配置' : '动态配置参数'}</h2>
-              <span className="rounded-full border border-rose-200 bg-rose-50 px-3 py-1 text-[11px] font-black tracking-[0.12em] text-rose-700">
+              <Settings size={18} style={{ color: LK.error }} />
+              <h2 className="text-xl font-semibold" style={{ color: LK.ink }}>{embedded ? '固件解包参数配置' : '动态配置参数'}</h2>
+              <span className="rounded-full border px-3 py-1 text-[11px] font-semibold tracking-[0.12em]" style={{ backgroundColor: LK.primaryMuted, border: `1px solid ${LK.primary}`, color: LK.primary }}>
                 chimera-app-firmware-unpacker
               </span>
             </div>
-            <p className="mt-2 text-sm text-slate-500">
+            <p className="mt-2 text-sm" style={{ color: LK.body }}>
               当前面板配置项归属于 `chimera-app-firmware-unpacker` 微服务，用于控制固件解包服务的集群并发和运行时参数。
             </p>
           </div>
           <button onClick={() => { loadConfig(); loadCluster(); loadLlmConfigFiles(); }} disabled={configLoading || clusterLoading || llmLoading}
-            className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-bold text-slate-700 shadow-sm hover:bg-slate-50 disabled:opacity-50">
+            className="inline-flex items-center gap-2 rounded-xl border px-4 py-2.5 text-sm font-semibold shadow-sm transition disabled:opacity-50"
+            style={{
+              backgroundColor: LK.surface,
+              border: `1px solid ${LK.border}`,
+              color: LK.body,
+            }}
+            onMouseEnter={(e) => { if (!(configLoading || clusterLoading || llmLoading)) e.currentTarget.style.backgroundColor = LK.surfaceRaised; }}
+            onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = LK.surface; }}
+          >
             {configLoading || clusterLoading || llmLoading ? <Loader2 size={14} className="animate-spin" /> : <RefreshCw size={14} />} 刷新
           </button>
         </div>
 
         {configError && (
-          <div className="mb-4 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700 flex items-center gap-2">
+          <div className="mb-4 rounded-xl border px-4 py-3 text-sm font-semibold flex items-center gap-2" style={{ backgroundColor: `${LK.error}10`, border: `1px solid ${LK.error}40`, color: LK.error }}>
             <AlertCircle size={13} /> {configError}
           </div>
         )}
         {clusterError && (
-          <div className="mb-4 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700 flex items-center gap-2">
+          <div className="mb-4 rounded-xl border px-4 py-3 text-sm font-semibold flex items-center gap-2" style={{ backgroundColor: `${LK.error}10`, border: `1px solid ${LK.error}40`, color: LK.error }}>
             <AlertCircle size={13} /> {clusterError}
           </div>
         )}
         {llmError && (
-          <div className="mb-4 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700 flex items-center gap-2">
+          <div className="mb-4 rounded-xl border px-4 py-3 text-sm font-semibold flex items-center gap-2" style={{ backgroundColor: `${LK.error}10`, border: `1px solid ${LK.error}40`, color: LK.error }}>
             <AlertCircle size={13} /> {llmError}
           </div>
         )}
         {configMessage && (
-          <div className="mb-4 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-700">
+          <div className="mb-4 rounded-xl border px-4 py-3 text-sm font-semibold" style={{ backgroundColor: `${LK.success}10`, border: `1px solid ${LK.success}40`, color: LK.success }}>
             {configMessage}
           </div>
         )}
 
-        <div className="mb-5 rounded-xl border border-amber-100 bg-amber-50 px-4 py-3 text-sm text-amber-700">
+        <div className="mb-5 rounded-xl border px-4 py-3 text-sm" style={{ backgroundColor: `${LK.warning}10`, border: `1px solid ${LK.warning}40`, color: LK.warning }}>
           配置立即生效于后端服务，所有集群实例共享。修改后无需重启。
         </div>
 
@@ -462,57 +521,63 @@ export const FirmwareUnpackConfigPage: React.FC<Props> = ({ projectId: _projectI
         >
           <div className="flex items-center justify-between gap-3">
             <div>
-              <p className="text-sm font-semibold text-slate-800">
+              <p className="text-sm font-semibold" style={{ color: LK.ink }}>
                 {concurrencyMode === 'manual' ? '手动模式' : '自动模式'}
                 {' · '}
                 当前生效上限 {cluster?.concurrency.effective_max_concurrent ?? '-'}
               </p>
             </div>
-            {clusterLoading && <Loader2 size={16} className="animate-spin text-rose-600" />}
+            {clusterLoading && <Loader2 size={16} className="animate-spin" style={{ color: LK.error }} />}
           </div>
           <div className="mt-3 flex flex-wrap gap-2">
             <button
               type="button"
               onClick={() => { void handleModeChange('auto'); }}
-              className={`rounded-lg border px-3 py-1.5 text-xs font-semibold transition ${
+              className="rounded-lg border px-3 py-1.5 text-xs font-semibold transition"
+              style={
                 !isManualMode
-                  ? 'border-slate-900 bg-slate-900 text-white'
-                  : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50'
-              }`}
+                  ? { backgroundColor: LK.primary, border: `1px solid ${LK.primary}`, color: '#ffffff' }
+                  : { backgroundColor: LK.surface, border: `1px solid ${LK.border}`, color: LK.body }
+              }
+              onMouseEnter={(e) => { if (isManualMode) e.currentTarget.style.backgroundColor = LK.surfaceRaised; }}
+              onMouseLeave={(e) => { if (isManualMode) e.currentTarget.style.backgroundColor = LK.surface; }}
             >
               自动模式
             </button>
             <button
               type="button"
               onClick={() => { void handleModeChange('manual'); }}
-              className={`rounded-lg border px-3 py-1.5 text-xs font-semibold transition ${
+              className="rounded-lg border px-3 py-1.5 text-xs font-semibold transition"
+              style={
                 isManualMode
-                  ? 'border-slate-900 bg-slate-900 text-white'
-                  : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50'
-              }`}
+                  ? { backgroundColor: LK.primary, border: `1px solid ${LK.primary}`, color: '#ffffff' }
+                  : { backgroundColor: LK.surface, border: `1px solid ${LK.border}`, color: LK.body }
+              }
+              onMouseEnter={(e) => { if (!isManualMode) e.currentTarget.style.backgroundColor = LK.surfaceRaised; }}
+              onMouseLeave={(e) => { if (!isManualMode) e.currentTarget.style.backgroundColor = LK.surface; }}
             >
               手动模式
             </button>
-            <span className="inline-flex items-center rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-[11px] text-slate-500">
+            <span className="inline-flex items-center rounded-lg border px-3 py-1.5 text-[11px]" style={{ backgroundColor: LK.surfaceRaised, border: `1px solid ${LK.border}`, color: LK.muted }}>
               自动模式下并发参数只读；切换到手动模式后可编辑
             </span>
           </div>
           <div className="mt-3 grid grid-cols-2 gap-2 text-xs sm:grid-cols-4">
-            <div className="rounded-xl bg-slate-50 px-3 py-2">
-              <p className="text-slate-400">在线实例</p>
-              <p className="mt-1 font-bold text-slate-800">{cluster?.alive_workers ?? '-'}</p>
+            <div className="rounded-xl px-3 py-2" style={{ backgroundColor: LK.surfaceRaised }}>
+              <p style={{ color: LK.muted }}>在线实例</p>
+              <p className="mt-1 font-semibold" style={{ color: LK.ink }}>{cluster?.alive_workers ?? '-'}</p>
             </div>
-            <div className="rounded-xl bg-slate-50 px-3 py-2">
-              <p className="text-slate-400">运行中任务</p>
-              <p className="mt-1 font-bold text-slate-800">{cluster?.task_counts?.running ?? 0}</p>
+            <div className="rounded-xl px-3 py-2" style={{ backgroundColor: LK.surfaceRaised }}>
+              <p style={{ color: LK.muted }}>运行中任务</p>
+              <p className="mt-1 font-semibold" style={{ color: LK.ink }}>{cluster?.task_counts?.running ?? 0}</p>
             </div>
-            <div className="rounded-xl bg-slate-50 px-3 py-2">
-              <p className="text-slate-400">CPU 限制</p>
-              <p className="mt-1 font-bold text-slate-800">{cluster?.concurrency.pod_cpu_limit_millicores ?? '-'}m</p>
+            <div className="rounded-xl px-3 py-2" style={{ backgroundColor: LK.surfaceRaised }}>
+              <p style={{ color: LK.muted }}>CPU 限制</p>
+              <p className="mt-1 font-semibold" style={{ color: LK.ink }}>{cluster?.concurrency.pod_cpu_limit_millicores ?? '-'}m</p>
             </div>
-            <div className="rounded-xl bg-slate-50 px-3 py-2">
-              <p className="text-slate-400">内存限制</p>
-              <p className="mt-1 font-bold text-slate-800">{cluster?.concurrency.pod_memory_limit_mib ?? '-'}Mi</p>
+            <div className="rounded-xl px-3 py-2" style={{ backgroundColor: LK.surfaceRaised }}>
+              <p style={{ color: LK.muted }}>内存限制</p>
+              <p className="mt-1 font-semibold" style={{ color: LK.ink }}>{cluster?.concurrency.pod_memory_limit_mib ?? '-'}Mi</p>
             </div>
           </div>
           <div className="mt-3 grid grid-cols-1 gap-2 text-xs sm:grid-cols-2">
@@ -567,19 +632,24 @@ export const FirmwareUnpackConfigPage: React.FC<Props> = ({ projectId: _projectI
           </p>
           <div className="mt-4 grid grid-cols-1 gap-4 xl:grid-cols-2">
             {llmRoleConfigs.map((item) => (
-              <div key={item.key} className="rounded-2xl bg-slate-50 p-4">
+              <div key={item.key} className="rounded-2xl p-4" style={{ backgroundColor: LK.surfaceRaised }}>
                 <div className="mb-1 flex items-center gap-2">
-                  <span className="text-sm font-black text-slate-800">{item.label}</span>
+                  <span className="text-sm font-semibold" style={{ color: LK.ink }}>{item.label}</span>
                   {item.entry && resolveDraftValue(item.entry) !== item.entry.value && (
-                    <span className="text-[10px] font-semibold text-amber-600">未保存</span>
+                    <span className="text-[10px] font-semibold" style={{ color: LK.warning }}>未保存</span>
                   )}
                 </div>
-                <p className="mb-3 text-[11px] text-slate-500">{item.description}</p>
+                <p className="mb-3 text-[11px]" style={{ color: LK.muted }}>{item.description}</p>
                 <select
                   value={item.value}
                   disabled={configLoading || configSaving || llmLoading}
                   onChange={(event) => updateDraftValue(item.key, event.target.value)}
-                  className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800 outline-none transition focus:ring-2 focus:ring-rose-100 disabled:cursor-not-allowed disabled:bg-slate-100"
+                  className="w-full rounded-xl border px-3 py-2 text-sm outline-none transition disabled:cursor-not-allowed"
+                  style={{
+                    backgroundColor: LK.surface,
+                    border: `1px solid ${LK.border}`,
+                    color: LK.ink,
+                  }}
                 >
                   <option value="">请选择配置文件</option>
                   {llmConfigFiles.map((configFile) => (
@@ -588,28 +658,33 @@ export const FirmwareUnpackConfigPage: React.FC<Props> = ({ projectId: _projectI
                     </option>
                   ))}
                 </select>
-                <div className="mt-2 flex flex-wrap gap-2 text-[11px] text-slate-500">
+                <div className="mt-2 flex flex-wrap gap-2 text-[11px]" style={{ color: LK.muted }}>
                   {item.value ? (
                     <>
-                      <span className="rounded-full bg-white px-2 py-1 ring-1 ring-slate-200">config_file_key: {item.value}</span>
+                      <span className="rounded-full px-2 py-1" style={{ backgroundColor: LK.surface, border: `1px solid ${LK.borderSoft}`, color: LK.body }}>config_file_key: {item.value}</span>
                       {item.configFile?.is_default && (
-                        <span className="rounded-full bg-rose-50 px-2 py-1 text-rose-700 ring-1 ring-rose-200">配置中心默认</span>
+                        <span className="rounded-full px-2 py-1" style={{ backgroundColor: `${LK.error}10`, border: `1px solid ${LK.error}40`, color: LK.error }}>配置中心默认</span>
                       )}
                     </>
                   ) : (
-                    <span className="rounded-full bg-white px-2 py-1 text-rose-700 ring-1 ring-rose-200">未配置，保存前必须选择</span>
+                    <span className="rounded-full px-2 py-1" style={{ backgroundColor: LK.surface, border: `1px solid ${LK.error}40`, color: LK.error }}>未配置，保存前必须选择</span>
                   )}
                 </div>
                 <div className="mt-3">
-                  <label className="mb-1 block text-[11px] font-semibold text-slate-500">Provider / Model</label>
+                  <label className="mb-1 block text-[11px] font-semibold" style={{ color: LK.muted }}>Provider / Model</label>
                   <input
                     value={item.modelValue}
                     disabled={configLoading || configSaving}
                     onChange={(event) => updateDraftValue(item.modelKey, event.target.value)}
                     placeholder="例如 openai/gpt-4o，留空则使用配置文件默认"
-                    className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800 outline-none transition focus:ring-2 focus:ring-rose-100 disabled:cursor-not-allowed disabled:bg-slate-100"
+                    className="w-full rounded-xl border px-3 py-2 text-sm outline-none transition disabled:cursor-not-allowed"
+                    style={{
+                      backgroundColor: LK.surface,
+                      border: `1px solid ${LK.border}`,
+                      color: LK.ink,
+                    }}
                   />
-                  <p className="mt-1 text-[11px] text-slate-500">
+                  <p className="mt-1 text-[11px]" style={{ color: LK.muted }}>
                     建议填写 `provider/model`。如果该配置文件只包含单一 provider，也可以只填模型名；留空则继承配置文件默认值。
                   </p>
                   {item.configFile && item.configFile.model_options.length > 0 && (
@@ -619,7 +694,20 @@ export const FirmwareUnpackConfigPage: React.FC<Props> = ({ projectId: _projectI
                           key={`${item.key}-${option.value}`}
                           type="button"
                           onClick={() => updateDraftValue(item.modelKey, option.value)}
-                          className="rounded-full border border-slate-200 bg-white px-2 py-1 text-[11px] text-slate-600 hover:border-rose-200 hover:text-rose-700"
+                          className="rounded-full border px-2 py-1 text-[11px] transition"
+                          style={{
+                            backgroundColor: LK.surface,
+                            border: `1px solid ${LK.border}`,
+                            color: LK.body,
+                          }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.borderColor = LK.error;
+                            e.currentTarget.style.color = LK.error;
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.borderColor = LK.border;
+                            e.currentTarget.style.color = LK.body;
+                          }}
                         >
                           {option.value}
                         </button>
@@ -628,19 +716,19 @@ export const FirmwareUnpackConfigPage: React.FC<Props> = ({ projectId: _projectI
                   )}
                 </div>
                 {item.reuseEntry && (
-                  <div className="mt-4 rounded-2xl border border-slate-200 bg-white p-4">
+                  <div className="mt-4 rounded-2xl border p-4" style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}` }}>
                     <div className="flex items-center justify-between gap-3">
                       <div>
-                        <p className="text-[11px] font-black uppercase tracking-widest text-rose-600">Session Reuse</p>
-                        <p className="mt-1 text-sm font-semibold text-slate-800">轮次间智能体复用策略</p>
+                        <p className="text-[11px] font-semibold uppercase tracking-widest" style={{ color: LK.error }}>Session Reuse</p>
+                        <p className="mt-1 text-sm font-semibold" style={{ color: LK.ink }}>轮次间智能体复用策略</p>
                       </div>
                       {item.reuseValue === 'true' ? (
-                        <span className="rounded-full bg-emerald-50 px-2.5 py-1 text-[10px] font-bold text-emerald-700 ring-1 ring-emerald-200">复用</span>
+                        <span className="rounded-full px-2.5 py-1 text-[10px] font-semibold" style={{ backgroundColor: `${LK.success}10`, border: `1px solid ${LK.success}40`, color: LK.success }}>复用</span>
                       ) : (
-                        <span className="rounded-full bg-slate-50 px-2.5 py-1 text-[10px] font-bold text-slate-600 ring-1 ring-slate-200">每轮新建</span>
+                        <span className="rounded-full px-2.5 py-1 text-[10px] font-semibold" style={{ backgroundColor: LK.surfaceRaised, border: `1px solid ${LK.borderSoft}`, color: LK.muted }}>每轮新建</span>
                       )}
                     </div>
-                    <p className="mt-2 text-[11px] text-slate-500">
+                    <p className="mt-2 text-[11px]" style={{ color: LK.muted }}>
                       当前策略独立归属于 {item.label}。开启后，该角色在后续轮次中尽量复用已有会话；关闭后按轮次创建新会话。
                     </p>
                     <div className="mt-3 grid grid-cols-1 gap-2">
@@ -654,22 +742,25 @@ export const FirmwareUnpackConfigPage: React.FC<Props> = ({ projectId: _projectI
                             key={`${item.reuseKey}-${option.value}`}
                             type="button"
                             onClick={() => updateDraftValue(item.reuseKey, option.value)}
-                            className={`rounded-xl border px-3 py-2.5 text-left transition ${
+                            className="rounded-xl border px-3 py-2.5 text-left transition"
+                            style={
                               active
-                                ? 'border-slate-900 bg-slate-900 text-white'
-                                : 'border-slate-200 bg-slate-50 text-slate-700 hover:bg-white'
-                            }`}
+                                ? { backgroundColor: LK.primary, border: `1px solid ${LK.primary}`, color: '#ffffff' }
+                                : { backgroundColor: LK.surfaceRaised, border: `1px solid ${LK.border}`, color: LK.body }
+                            }
+                            onMouseEnter={(e) => { if (!active) e.currentTarget.style.backgroundColor = LK.surface; }}
+                            onMouseLeave={(e) => { if (!active) e.currentTarget.style.backgroundColor = LK.surfaceRaised; }}
                           >
-                            <div className="text-sm font-bold">{option.label}</div>
-                            <div className={`mt-1 text-[11px] ${active ? 'text-slate-300' : 'text-slate-500'}`}>{option.description}</div>
+                            <div className="text-sm font-semibold">{option.label}</div>
+                            <div className="mt-1 text-[11px]" style={{ color: active ? 'rgba(255,255,255,0.7)' : LK.muted }}>{option.description}</div>
                           </button>
                         );
                       })}
                     </div>
                     {item.reuseValue !== String(item.reuseEntry.value ?? 'true').toLowerCase() && (
-                      <p className="mt-2 text-[10px] font-semibold text-amber-600">未保存</p>
+                      <p className="mt-2 text-[10px] font-semibold" style={{ color: LK.warning }}>未保存</p>
                     )}
-                    <p className="mt-2 text-[10px] text-slate-400">更新于 {fmtTime(item.reuseEntry.updated_at)}</p>
+                    <p className="mt-2 text-[10px]" style={{ color: LK.muted }}>更新于 {fmtTime(item.reuseEntry.updated_at)}</p>
                   </div>
                 )}
               </div>
@@ -683,7 +774,7 @@ export const FirmwareUnpackConfigPage: React.FC<Props> = ({ projectId: _projectI
             subtitle="最大重试次数与超限默认动作。"
             actions={<PanelActions saving={savingPanel === 'retry-policy'} disabled={!hasPanelChanges(retryPanelKeys)} onSave={() => { void saveConfigPanel('retry-policy', '重试策略', retryPanelKeys); }} onReset={() => resetConfigPanel('重试策略', retryPanelKeys)} />}
           >
-            <p className="mt-3 text-xs text-slate-500">
+            <p className="mt-3 text-xs" style={{ color: LK.muted }}>
               控制通用 LLM 解包链路的最大轮次，以及当结果落为 `max_retries_reached` 时，默认按通过还是失败收敛。
             </p>
             <div className="mt-4 grid grid-cols-1 gap-4 xl:grid-cols-2">
@@ -696,14 +787,14 @@ export const FirmwareUnpackConfigPage: React.FC<Props> = ({ projectId: _projectI
                 />
               )}
               {maxRetriesActionEntry && (
-                <div className="rounded-2xl bg-white p-5">
+                <div className="rounded-2xl p-5" style={{ backgroundColor: LK.surface }}>
                   <div className="mb-1 flex items-center gap-2">
-                    <span className="text-xs font-black font-mono text-slate-700">{maxRetriesActionEntry.key}</span>
-                    <span className="text-[10px] rounded-full bg-slate-100 px-1.5 py-0.5 text-slate-500">{maxRetriesActionEntry.value_type}</span>
-                    {maxRetriesActionValue !== maxRetriesActionEntry.value && <span className="text-[10px] font-semibold text-amber-600">未保存</span>}
+                    <span className="text-xs font-semibold" style={{ fontFamily: MONO, color: LK.ink }}>{maxRetriesActionEntry.key}</span>
+                    <span className="text-[10px] rounded-full px-1.5 py-0.5" style={{ backgroundColor: LK.surfaceRaised, color: LK.muted }}>{maxRetriesActionEntry.value_type}</span>
+                    {maxRetriesActionValue !== maxRetriesActionEntry.value && <span className="text-[10px] font-semibold" style={{ color: LK.warning }}>未保存</span>}
                   </div>
                   {maxRetriesActionEntry.description && (
-                    <p className="mb-3 text-[11px] text-slate-400">{maxRetriesActionEntry.description}</p>
+                    <p className="mb-3 text-[11px]" style={{ color: LK.muted }}>{maxRetriesActionEntry.description}</p>
                   )}
                   <div className="space-y-2">
                     {MAX_RETRIES_ACTION_OPTIONS.map((option) => {
@@ -713,24 +804,27 @@ export const FirmwareUnpackConfigPage: React.FC<Props> = ({ projectId: _projectI
                           key={option.value}
                           type="button"
                           onClick={() => updateDraftValue(maxRetriesActionEntry.key, option.value)}
-                          className={`flex w-full items-start justify-between rounded-xl border px-4 py-3 text-left transition ${
+                          className="flex w-full items-start justify-between rounded-xl border px-4 py-3 text-left transition"
+                          style={
                             active
-                              ? 'border-slate-900 bg-slate-900 text-white'
-                              : 'border-slate-200 bg-slate-50 text-slate-700 hover:bg-white'
-                          }`}
+                              ? { backgroundColor: LK.primary, border: `1px solid ${LK.primary}`, color: '#ffffff' }
+                              : { backgroundColor: LK.surfaceRaised, border: `1px solid ${LK.border}`, color: LK.body }
+                          }
+                          onMouseEnter={(e) => { if (!active) e.currentTarget.style.backgroundColor = LK.surface; }}
+                          onMouseLeave={(e) => { if (!active) e.currentTarget.style.backgroundColor = LK.surfaceRaised; }}
                         >
                           <div>
-                            <div className="text-sm font-bold">{option.label}</div>
-                            <div className={`mt-1 text-[11px] ${active ? 'text-slate-300' : 'text-slate-500'}`}>{option.description}</div>
+                            <div className="text-sm font-semibold">{option.label}</div>
+                            <div className="mt-1 text-[11px]" style={{ color: active ? 'rgba(255,255,255,0.7)' : LK.muted }}>{option.description}</div>
                           </div>
-                          <span className={`rounded-full px-2 py-1 text-[10px] font-black ${active ? 'bg-white/10 text-white' : 'bg-white text-slate-500 ring-1 ring-slate-200'}`}>
+                          <span className="rounded-full px-2 py-1 text-[10px] font-semibold" style={{ backgroundColor: active ? 'rgba(255,255,255,0.15)' : LK.surface, border: active ? 'none' : `1px solid ${LK.borderSoft}`, color: active ? '#ffffff' : LK.muted }}>
                             {option.value}
                           </span>
                         </button>
                       );
                     })}
                   </div>
-                  <p className="mt-2 text-[10px] text-slate-400">
+                  <p className="mt-2 text-[10px]" style={{ color: LK.muted }}>
                     更新于 {fmtTime(maxRetriesActionEntry.updated_at)}
                   </p>
                 </div>
@@ -745,21 +839,21 @@ export const FirmwareUnpackConfigPage: React.FC<Props> = ({ projectId: _projectI
             subtitle="控制 PiRpcClient 单次调用的空闲超时，以及空闲超时后的自动重试次数。"
             actions={<PanelActions saving={savingPanel === 'pirpc-runtime'} disabled={!hasPanelChanges(piRpcClientPanelKeys)} onSave={() => { void saveConfigPanel('pirpc-runtime', 'PiRpcClient 运行策略', piRpcClientPanelKeys); }} onReset={() => resetConfigPanel('PiRpcClient 运行策略', piRpcClientPanelKeys)} />}
           >
-            <div className="rounded-2xl border border-sky-100 bg-sky-50 px-4 py-3 text-xs text-sky-800">
+            <div className="rounded-2xl border px-4 py-3 text-xs" style={{ backgroundColor: `${LK.info}10`, border: `1px solid ${LK.info}40`, color: LK.info }}>
               PiRpcClient 默认空闲超时为 1800 秒，默认空闲超时自动重试 20 次。只要持续有消息、事件或工具调用输出，就不会因为总耗时长而被认定超时。
             </div>
             <div className="mt-4 grid grid-cols-1 gap-4 xl:grid-cols-2">
               {piRpcTimeoutEntry && (
-                <div className="rounded-2xl bg-white p-5">
+                <div className="rounded-2xl p-5" style={{ backgroundColor: LK.surface }}>
                   <div className="mb-1 flex items-center gap-2">
-                    <span className="text-xs font-black font-mono text-slate-700">{piRpcTimeoutEntry.key}</span>
-                    <span className="text-[10px] rounded-full bg-slate-100 px-1.5 py-0.5 text-slate-500">{piRpcTimeoutEntry.value_type}</span>
-                    {piRpcTimeoutValue !== piRpcTimeoutEntry.value && <span className="text-[10px] font-semibold text-amber-600">未保存</span>}
+                    <span className="text-xs font-semibold" style={{ fontFamily: MONO, color: LK.ink }}>{piRpcTimeoutEntry.key}</span>
+                    <span className="text-[10px] rounded-full px-1.5 py-0.5" style={{ backgroundColor: LK.surfaceRaised, color: LK.muted }}>{piRpcTimeoutEntry.value_type}</span>
+                    {piRpcTimeoutValue !== piRpcTimeoutEntry.value && <span className="text-[10px] font-semibold" style={{ color: LK.warning }}>未保存</span>}
                   </div>
-                  <p className="mb-3 text-[11px] text-slate-400">
+                  <p className="mb-3 text-[11px]" style={{ color: LK.muted }}>
                     {piRpcTimeoutEntry.description || 'PiRpcClient 单次调用允许的最大空闲时长。'}
                   </p>
-                  <label className="text-xs font-semibold text-slate-700" htmlFor="pirpc-timeout-seconds">
+                  <label className="text-xs font-semibold" style={{ color: LK.body }} htmlFor="pirpc-timeout-seconds">
                     PiRpcClient 空闲超时（秒）
                   </label>
                   <input
@@ -769,24 +863,28 @@ export const FirmwareUnpackConfigPage: React.FC<Props> = ({ projectId: _projectI
                     step={1}
                     value={piRpcTimeoutValue}
                     onChange={(e) => updateDraftValue(piRpcTimeoutEntry.key, e.target.value)}
-                    className={`mt-2 w-full rounded-lg border px-3 py-2 text-sm font-mono outline-none transition ${
-                      piRpcTimeoutValue !== piRpcTimeoutEntry.value ? 'border-blue-300 ring-1 ring-blue-100' : 'border-slate-200'
-                    }`}
+                    className="mt-2 w-full rounded-lg border px-3 py-2 text-sm outline-none transition"
+                    style={{
+                      fontFamily: MONO,
+                      backgroundColor: LK.surfaceRaised,
+                      color: LK.ink,
+                      border: piRpcTimeoutValue !== piRpcTimeoutEntry.value ? `1px solid ${LK.primary}` : `1px solid ${LK.border}`,
+                    }}
                   />
-                  <p className="mt-2 text-[10px] text-slate-400">
+                  <p className="mt-2 text-[10px]" style={{ color: LK.muted }}>
                     默认 1800 秒。只有在完全没有输出、没有事件、没有工具调用结果持续超过该时长时，才会判定超时。设置为 `-1` 表示不限制。
                   </p>
-                  <p className="mt-2 text-[10px] text-slate-400">更新于 {fmtTime(piRpcTimeoutEntry.updated_at)}</p>
+                  <p className="mt-2 text-[10px]" style={{ color: LK.muted }}>更新于 {fmtTime(piRpcTimeoutEntry.updated_at)}</p>
                 </div>
               )}
               {piRpcRetryEnabledEntry && (
-                <div className="rounded-2xl bg-white p-5">
+                <div className="rounded-2xl p-5" style={{ backgroundColor: LK.surface }}>
                   <div className="mb-1 flex items-center gap-2">
-                    <span className="text-xs font-black font-mono text-slate-700">{piRpcRetryEnabledEntry.key}</span>
-                    <span className="text-[10px] rounded-full bg-slate-100 px-1.5 py-0.5 text-slate-500">{piRpcRetryEnabledEntry.value_type}</span>
-                    {piRpcRetryEnabledValue !== String(piRpcRetryEnabledEntry.value ?? PI_RPCCLIENT_DEFAULTS.retryEnabled).toLowerCase() && <span className="text-[10px] font-semibold text-amber-600">未保存</span>}
+                    <span className="text-xs font-semibold" style={{ fontFamily: MONO, color: LK.ink }}>{piRpcRetryEnabledEntry.key}</span>
+                    <span className="text-[10px] rounded-full px-1.5 py-0.5" style={{ backgroundColor: LK.surfaceRaised, color: LK.muted }}>{piRpcRetryEnabledEntry.value_type}</span>
+                    {piRpcRetryEnabledValue !== String(piRpcRetryEnabledEntry.value ?? PI_RPCCLIENT_DEFAULTS.retryEnabled).toLowerCase() && <span className="text-[10px] font-semibold" style={{ color: LK.warning }}>未保存</span>}
                   </div>
-                  <p className="mb-3 text-[11px] text-slate-400">
+                  <p className="mb-3 text-[11px]" style={{ color: LK.muted }}>
                     {piRpcRetryEnabledEntry.description || 'PiRpcClient 单次调用发生空闲超时后是否自动重试。'}
                   </p>
                   <div className="space-y-2">
@@ -800,37 +898,40 @@ export const FirmwareUnpackConfigPage: React.FC<Props> = ({ projectId: _projectI
                           key={option.value}
                           type="button"
                           onClick={() => updateDraftValue(piRpcRetryEnabledEntry.key, option.value)}
-                          className={`flex w-full items-start justify-between rounded-xl border px-4 py-3 text-left transition ${
+                          className="flex w-full items-start justify-between rounded-xl border px-4 py-3 text-left transition"
+                          style={
                             active
-                              ? 'border-slate-900 bg-slate-900 text-white'
-                              : 'border-slate-200 bg-slate-50 text-slate-700 hover:bg-white'
-                          }`}
+                              ? { backgroundColor: LK.primary, border: `1px solid ${LK.primary}`, color: '#ffffff' }
+                              : { backgroundColor: LK.surfaceRaised, border: `1px solid ${LK.border}`, color: LK.body }
+                          }
+                          onMouseEnter={(e) => { if (!active) e.currentTarget.style.backgroundColor = LK.surface; }}
+                          onMouseLeave={(e) => { if (!active) e.currentTarget.style.backgroundColor = LK.surfaceRaised; }}
                         >
                           <div>
-                            <div className="text-sm font-bold">{option.label}</div>
-                            <div className={`mt-1 text-[11px] ${active ? 'text-slate-300' : 'text-slate-500'}`}>{option.description}</div>
+                            <div className="text-sm font-semibold">{option.label}</div>
+                            <div className="mt-1 text-[11px]" style={{ color: active ? 'rgba(255,255,255,0.7)' : LK.muted }}>{option.description}</div>
                           </div>
-                          <span className={`rounded-full px-2 py-1 text-[10px] font-black ${active ? 'bg-white/10 text-white' : 'bg-white text-slate-500 ring-1 ring-slate-200'}`}>
+                          <span className="rounded-full px-2 py-1 text-[10px] font-semibold" style={{ backgroundColor: active ? 'rgba(255,255,255,0.15)' : LK.surface, border: active ? 'none' : `1px solid ${LK.borderSoft}`, color: active ? '#ffffff' : LK.muted }}>
                             {option.value}
                           </span>
                         </button>
                       );
                     })}
                   </div>
-                  <p className="mt-2 text-[10px] text-slate-400">更新于 {fmtTime(piRpcRetryEnabledEntry.updated_at)}</p>
+                  <p className="mt-2 text-[10px]" style={{ color: LK.muted }}>更新于 {fmtTime(piRpcRetryEnabledEntry.updated_at)}</p>
                 </div>
               )}
               {piRpcMaxRetriesEntry && (
-                <div className="rounded-2xl bg-white p-5 xl:col-span-2">
+                <div className="rounded-2xl p-5 xl:col-span-2" style={{ backgroundColor: LK.surface }}>
                   <div className="mb-1 flex items-center gap-2">
-                    <span className="text-xs font-black font-mono text-slate-700">{piRpcMaxRetriesEntry.key}</span>
-                    <span className="text-[10px] rounded-full bg-slate-100 px-1.5 py-0.5 text-slate-500">{piRpcMaxRetriesEntry.value_type}</span>
-                    {piRpcMaxRetriesValue !== piRpcMaxRetriesEntry.value && <span className="text-[10px] font-semibold text-amber-600">未保存</span>}
+                    <span className="text-xs font-semibold" style={{ fontFamily: MONO, color: LK.ink }}>{piRpcMaxRetriesEntry.key}</span>
+                    <span className="text-[10px] rounded-full px-1.5 py-0.5" style={{ backgroundColor: LK.surfaceRaised, color: LK.muted }}>{piRpcMaxRetriesEntry.value_type}</span>
+                    {piRpcMaxRetriesValue !== piRpcMaxRetriesEntry.value && <span className="text-[10px] font-semibold" style={{ color: LK.warning }}>未保存</span>}
                   </div>
-                  <p className="mb-3 text-[11px] text-slate-400">
+                  <p className="mb-3 text-[11px]" style={{ color: LK.muted }}>
                     {piRpcMaxRetriesEntry.description || 'PiRpcClient 空闲超时后的最大自动重试次数。'}
                   </p>
-                  <label className="text-xs font-semibold text-slate-700" htmlFor="pirpc-timeout-max-retries">
+                  <label className="text-xs font-semibold" style={{ color: LK.body }} htmlFor="pirpc-timeout-max-retries">
                     PiRpcClient 空闲超时重试次数
                   </label>
                   <input

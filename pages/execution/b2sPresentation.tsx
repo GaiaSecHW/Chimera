@@ -1,18 +1,45 @@
 import React from 'react';
 import { B2SOverallProgress } from '../../clients/binaryToSource';
 
+// LOKI design tokens (DESIGN.md) — page-local palette.
+const LK = {
+  primary: '#4f73ff',
+  primarySoft: '#7590ff',
+  primaryDeep: '#3f63f1',
+  primaryMuted: 'rgba(79, 115, 255, 0.14)',
+  canvas: '#070d18',
+  surface: '#111a2b',
+  surfaceRaised: '#18233a',
+  surfaceGlass: 'rgba(17, 26, 43, 0.84)',
+  border: '#26324a',
+  borderSoft: '#1b2438',
+  ink: '#f5f7ff',
+  inkSoft: '#d6def0',
+  body: '#a4aec4',
+  muted: '#72809a',
+  mutedSoft: '#8b95a8',
+  success: '#45c06f',
+  warning: '#d5a13a',
+  error: '#f15d5d',
+  info: '#4f8cff',
+  critical: '#ff4d4f',
+  high: '#ff8b3d',
+  medium: '#f0b64c',
+  low: '#49c5ff',
+} as const;
+
 export const B2S_TERMINAL_STATUSES = new Set(['completed', 'failed', 'cancelled', 'partial', 'success']);
 
-const STATUS_STYLES: Record<string, string> = {
-  pending: 'bg-amber-50 text-amber-700 ring-amber-200',
-  queued: 'bg-slate-100 text-slate-700 ring-slate-200',
-  running: 'bg-blue-50 text-blue-700 ring-blue-200',
-  cancelling: 'bg-amber-50 text-amber-700 ring-amber-200',
-  completed: 'bg-emerald-50 text-emerald-700 ring-emerald-200',
-  success: 'bg-emerald-50 text-emerald-700 ring-emerald-200',
-  partial: 'bg-violet-50 text-violet-700 ring-violet-200',
-  failed: 'bg-rose-50 text-rose-700 ring-rose-200',
-  cancelled: 'bg-slate-100 text-slate-500 ring-slate-200',
+const STATUS_STYLES: Record<string, { bg: string; color: string; ring: string }> = {
+  pending: { bg: LK.warning + '14', color: LK.warning, ring: LK.warning + '40' },
+  queued: { bg: LK.surfaceRaised, color: LK.body, ring: LK.border },
+  running: { bg: LK.info + '14', color: LK.info, ring: LK.info + '40' },
+  cancelling: { bg: LK.warning + '14', color: LK.warning, ring: LK.warning + '40' },
+  completed: { bg: LK.success + '14', color: LK.success, ring: LK.success + '40' },
+  success: { bg: LK.success + '14', color: LK.success, ring: LK.success + '40' },
+  partial: { bg: LK.primarySoft + '14', color: LK.primarySoft, ring: LK.primarySoft + '40' },
+  failed: { bg: LK.error + '14', color: LK.error, ring: LK.error + '40' },
+  cancelled: { bg: LK.surfaceRaised, color: LK.muted, ring: LK.border },
 };
 
 const STATUS_LABELS: Record<string, string> = {
@@ -27,16 +54,16 @@ const STATUS_LABELS: Record<string, string> = {
   cancelled: '已取消',
 };
 
-const PHASE_STYLES: Record<string, string> = {
-  queued: 'bg-slate-100 text-slate-700 ring-slate-200',
-  ida: 'bg-blue-50 text-blue-700 ring-blue-200',
-  batching: 'bg-violet-50 text-violet-700 ring-violet-200',
-  header: 'bg-cyan-50 text-cyan-700 ring-cyan-200',
-  body: 'bg-amber-50 text-amber-700 ring-amber-200',
-  merge: 'bg-indigo-50 text-indigo-700 ring-indigo-200',
-  completed: 'bg-emerald-50 text-emerald-700 ring-emerald-200',
-  failed: 'bg-rose-50 text-rose-700 ring-rose-200',
-  cancelled: 'bg-slate-100 text-slate-500 ring-slate-200',
+const PHASE_STYLES: Record<string, { bg: string; color: string; ring: string }> = {
+  queued: { bg: LK.surfaceRaised, color: LK.body, ring: LK.border },
+  ida: { bg: LK.info + '14', color: LK.info, ring: LK.info + '40' },
+  batching: { bg: LK.primarySoft + '14', color: LK.primarySoft, ring: LK.primarySoft + '40' },
+  header: { bg: LK.low + '14', color: LK.low, ring: LK.low + '40' },
+  body: { bg: LK.warning + '14', color: LK.warning, ring: LK.warning + '40' },
+  merge: { bg: LK.primary + '14', color: LK.primary, ring: LK.primary + '40' },
+  completed: { bg: LK.success + '14', color: LK.success, ring: LK.success + '40' },
+  failed: { bg: LK.error + '14', color: LK.error, ring: LK.error + '40' },
+  cancelled: { bg: LK.surfaceRaised, color: LK.muted, ring: LK.border },
 };
 
 export const formatB2SStatus = (status?: string) => STATUS_LABELS[status || ''] || status || '-';
@@ -84,23 +111,35 @@ export const formatB2SOverallProgressSummary = (overall?: B2SOverallProgress | n
   return `${value.toFixed(1)}% · ${basisLabel}`;
 };
 
-export const B2SStatusBadge: React.FC<{ status?: string; className?: string }> = ({ status, className = '' }) => (
-  <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-black ring-1 ${STATUS_STYLES[status || ''] || 'bg-slate-100 text-slate-700 ring-slate-200'} ${className}`.trim()}>
-    {formatB2SStatus(status)}
-  </span>
-);
+export const B2SStatusBadge: React.FC<{ status?: string; className?: string }> = ({ status, className = '' }) => {
+  const style = STATUS_STYLES[status || ''] || STATUS_STYLES.queued;
+  return (
+    <span
+      className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${className || ''}`.trim()}
+      style={{ backgroundColor: style.bg, color: style.color, border: `1px solid ${style.ring}` }}
+    >
+      {formatB2SStatus(status)}
+    </span>
+  );
+};
 
-export const B2SPhaseBadge: React.FC<{ phase?: string; label?: string }> = ({ phase, label }) => (
-  <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-black ring-1 ${PHASE_STYLES[phase || ''] || 'bg-slate-100 text-slate-700 ring-slate-200'}`}>
-    {label || phase || '-'}
-  </span>
-);
+export const B2SPhaseBadge: React.FC<{ phase?: string; label?: string }> = ({ phase, label }) => {
+  const style = PHASE_STYLES[phase || ''] || PHASE_STYLES.queued;
+  return (
+    <span
+      className="inline-flex rounded-full px-2.5 py-1 text-xs font-semibold"
+      style={{ backgroundColor: style.bg, color: style.color, border: `1px solid ${style.ring}` }}
+    >
+      {label || phase || '-'}
+    </span>
+  );
+};
 
 export const B2SProgressBar: React.FC<{ value?: number | null; tone?: 'blue' | 'emerald' }> = ({ value, tone = 'blue' }) => (
-  <div className="h-2 w-full overflow-hidden rounded-full bg-slate-100">
+  <div className="h-2 w-full overflow-hidden rounded-full" style={{ backgroundColor: LK.surfaceRaised }}>
     <div
-      className={`h-full rounded-full ${tone === 'emerald' ? 'bg-emerald-500' : 'bg-blue-500'}`}
-      style={{ width: `${pct(value)}%` }}
+      className="h-full rounded-full"
+      style={{ width: `${pct(value)}%`, backgroundColor: tone === 'emerald' ? LK.success : LK.info }}
     />
   </div>
 );

@@ -1,19 +1,36 @@
-
 import React, { useState } from 'react';
-import { 
-  FileText, 
-  Download, 
-  Trash2, 
-  Search, 
-  RefreshCw, 
-  Filter, 
-  TrendingUp, 
-  ShieldCheck, 
-  AlertTriangle, 
+import {
+  FileText,
+  Download,
+  Trash2,
+  Search,
+  RefreshCw,
+  Filter,
+  TrendingUp,
+  ShieldCheck,
   ChevronRight,
   Plus
 } from 'lucide-react';
 import { StatusBadge } from '../../components/StatusBadge';
+
+const LK = {
+  primary: '#4f73ff', primarySoft: '#7590ff', primaryDeep: '#3f63f1',
+  primaryMuted: 'rgba(79, 115, 255, 0.14)',
+  canvas: '#070d18', surface: '#111a2b', surfaceRaised: '#18233a',
+  surfaceGlass: 'rgba(17, 26, 43, 0.84)',
+  border: '#26324a', borderSoft: '#1b2438',
+  ink: '#f5f7ff', inkSoft: '#d6def0', body: '#a4aec4',
+  muted: '#72809a', mutedSoft: '#8b95a8',
+  success: '#45c06f', warning: '#d5a13a', error: '#f15d5d', info: '#4f8cff',
+  critical: '#ff4d4f', high: '#ff8b3d', medium: '#f0b64c', low: '#49c5ff',
+} as const;
+
+const RISK_STYLES: Record<string, { bg: string; color: string }> = {
+  Critical: { bg: 'rgba(255, 77, 79, 0.15)', color: LK.critical },
+  High: { bg: 'rgba(255, 139, 61, 0.15)', color: LK.high },
+  Medium: { bg: 'rgba(213, 161, 58, 0.15)', color: LK.medium },
+  Low: { bg: 'rgba(73, 197, 255, 0.15)', color: LK.low },
+};
 
 export const ReportsPage: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -26,81 +43,96 @@ export const ReportsPage: React.FC = () => {
   ];
 
   return (
-    <div className="p-10 space-y-10 animate-in fade-in duration-500 pb-24">
+    <div className="p-10 space-y-10 animate-in fade-in duration-500 pb-24"
+      style={{ backgroundColor: LK.canvas, color: LK.inkSoft }}>
       <div className="flex justify-between items-end">
         <div>
-          <h2 className="text-3xl font-black text-slate-800 tracking-tight">安全审计报告</h2>
-          <p className="text-slate-500 mt-1 font-medium">专业化漏洞管理与风险分析中心：支持一键导出与合规性溯源</p>
+          <h2 className="text-3xl font-semibold tracking-tight" style={{ color: LK.ink }}>安全审计报告</h2>
+          <p className="mt-1 font-medium" style={{ color: LK.body }}>专业化漏洞管理与风险分析中心：支持一键导出与合规性溯源</p>
         </div>
         <div className="flex gap-4">
-          <button className="bg-slate-900 text-white px-8 py-4 rounded-2xl font-black flex items-center gap-2 shadow-xl shadow-slate-900/10 hover:bg-slate-800 transition-all active:scale-95">
+          <button className="px-8 py-4 rounded-xl font-semibold flex items-center gap-2 shadow-xl transition-all active:scale-95"
+            style={{ backgroundColor: LK.primary, color: '#ffffff' }}
+            onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = LK.primaryDeep; }}
+            onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = LK.primary; }}>
             <Plus size={18} /> 生成新报告
           </button>
         </div>
       </div>
 
-      {/* Analytics Row */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <div className="bg-white p-8 rounded-[2.5rem] border border-slate-200 shadow-sm flex flex-col justify-between">
-           <div className="flex items-center justify-between">
-              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">总计报告</p>
-              <FileText className="text-blue-100" size={24} />
-           </div>
-           <h3 className="text-4xl font-black text-slate-800 mt-4">128</h3>
-           <p className="text-[10px] text-slate-400 font-bold mt-2 uppercase">Lifetime Assessments</p>
+        <div className="p-8 rounded-[2rem] border shadow-sm flex flex-col justify-between"
+          style={{ backgroundColor: LK.surface, borderColor: LK.border }}>
+          <div className="flex items-center justify-between">
+            <p className="text-[10px] font-semibold uppercase tracking-widest" style={{ color: LK.muted }}>总计报告</p>
+            <FileText size={24} style={{ color: LK.primaryMuted }} />
+          </div>
+          <h3 className="text-4xl font-semibold mt-4" style={{ color: LK.ink }}>128</h3>
+          <p className="text-[10px] font-bold mt-2 uppercase" style={{ color: LK.muted }}>Lifetime Assessments</p>
         </div>
-        <div className="bg-white p-8 rounded-[2.5rem] border border-slate-200 shadow-sm md:col-span-2 flex flex-col justify-between">
-           <div className="flex items-center justify-between">
-              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">风险分布态势</p>
-              <TrendingUp className="text-red-100" size={24} />
-           </div>
-           <div className="mt-6 flex items-end gap-2 h-16">
-              {[60, 40, 90, 30, 70, 45, 80].map((h, i) => (
-                <div key={i} className="flex-1 bg-slate-100 rounded-t-lg group relative cursor-pointer overflow-hidden">
-                   <div className="absolute bottom-0 w-full bg-blue-500 transition-all duration-700" style={{ height: `${h}%` }} />
-                </div>
-              ))}
-           </div>
-           <div className="flex justify-between mt-4">
-              <span className="text-[9px] font-black text-slate-400 uppercase">Mar 15</span>
-              <span className="text-[9px] font-black text-slate-400 uppercase">Today</span>
-           </div>
-        </div>
-        <div className="bg-slate-900 p-8 rounded-[2.5rem] text-white flex flex-col justify-between shadow-xl shadow-slate-900/10 overflow-hidden relative group">
-           <ShieldCheck className="absolute right-[-10px] top-[-10px] w-24 h-24 opacity-5 group-hover:scale-110 transition-transform" />
-           <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest relative z-10">关键修复率</p>
-           <div className="mt-4 flex items-center gap-4 relative z-10">
-              <h3 className="text-4xl font-black text-green-400">92%</h3>
-              <div className="h-1 flex-1 bg-white/10 rounded-full overflow-hidden">
-                 <div className="h-full bg-green-500" style={{ width: '92%' }} />
+        <div className="p-8 rounded-[2rem] border shadow-sm md:col-span-2 flex flex-col justify-between"
+          style={{ backgroundColor: LK.surface, borderColor: LK.border }}>
+          <div className="flex items-center justify-between">
+            <p className="text-[10px] font-semibold uppercase tracking-widest" style={{ color: LK.muted }}>风险分布态势</p>
+            <TrendingUp size={24} style={{ color: LK.error, opacity: 0.3 }} />
+          </div>
+          <div className="mt-6 flex items-end gap-2 h-16">
+            {[60, 40, 90, 30, 70, 45, 80].map((h, i) => (
+              <div key={i} className="flex-1 rounded-t-lg relative cursor-pointer overflow-hidden"
+                style={{ backgroundColor: LK.surfaceRaised }}>
+                <div className="absolute bottom-0 w-full transition-all duration-700"
+                  style={{ height: `${h}%`, backgroundColor: LK.primary }} />
               </div>
-           </div>
-           <p className="text-[10px] text-slate-500 font-bold mt-2 uppercase relative z-10">Target: 100% Compliance</p>
+            ))}
+          </div>
+          <div className="flex justify-between mt-4">
+            <span className="text-[9px] font-semibold uppercase" style={{ color: LK.muted }}>Mar 15</span>
+            <span className="text-[9px] font-semibold uppercase" style={{ color: LK.muted }}>Today</span>
+          </div>
+        </div>
+        <div className="p-8 rounded-[2rem] flex flex-col justify-between shadow-xl overflow-hidden relative group"
+          style={{ backgroundColor: LK.surfaceRaised, color: '#ffffff' }}>
+          <ShieldCheck className="absolute right-[-10px] top-[-10px] w-24 h-24 opacity-5 group-hover:scale-110 transition-transform" />
+          <p className="text-[10px] font-semibold uppercase tracking-widest relative z-10" style={{ color: LK.muted }}>关键修复率</p>
+          <div className="mt-4 flex items-center gap-4 relative z-10">
+            <h3 className="text-4xl font-semibold" style={{ color: LK.success }}>92%</h3>
+            <div className="h-1 flex-1 rounded-full overflow-hidden" style={{ backgroundColor: 'rgba(255, 255, 255, 0.1)' }}>
+              <div className="h-full" style={{ width: '92%', backgroundColor: LK.success }} />
+            </div>
+          </div>
+          <p className="text-[10px] font-bold mt-2 uppercase relative z-10" style={{ color: LK.muted }}>Target: 100% Compliance</p>
         </div>
       </div>
 
-      {/* Main List */}
       <div className="space-y-4">
         <div className="flex gap-4">
-           <div className="flex-1 relative">
-              <Search className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-300" size={20} />
-              <input 
-                type="text" 
-                placeholder="搜索报告标题、报告 ID 或 编写人..." 
-                className="w-full pl-16 pr-8 py-5 bg-white border border-slate-200 rounded-[2rem] text-sm outline-none focus:ring-4 ring-blue-500/5 transition-all font-medium shadow-sm"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
-           </div>
-           <button className="px-8 py-5 bg-white border border-slate-200 rounded-[2rem] text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2 hover:bg-slate-50 transition-all shadow-sm">
-             <Filter size={16} /> Filter
-           </button>
+          <div className="flex-1 relative">
+            <Search className="absolute left-6 top-1/2 -translate-y-1/2" size={20} style={{ color: LK.muted }} />
+            <input
+              type="text"
+              placeholder="搜索报告标题、报告 ID 或 编写人..."
+              className="w-full pl-16 pr-8 py-5 rounded-[2rem] text-sm outline-none transition-all font-medium shadow-sm"
+              style={{ backgroundColor: LK.surface, borderColor: LK.border, color: LK.ink }}
+              onFocus={(e) => { e.currentTarget.style.borderColor = LK.primary; }}
+              onBlur={(e) => { e.currentTarget.style.borderColor = LK.border; }}
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </div>
+          <button className="px-8 py-5 rounded-[2rem] text-[10px] font-semibold uppercase tracking-widest flex items-center gap-2 shadow-sm transition-colors"
+            style={{ backgroundColor: LK.surface, borderColor: LK.border, color: LK.muted }}
+            onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = LK.surfaceRaised; }}
+            onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = LK.surface; }}>
+            <Filter size={16} /> Filter
+          </button>
         </div>
 
-        <div className="bg-white border border-slate-200 rounded-[2.5rem] shadow-sm overflow-hidden">
+        <div className="rounded-[2.5rem] border shadow-sm overflow-hidden"
+          style={{ backgroundColor: LK.surface, borderColor: LK.border }}>
           <table className="w-full text-left">
-            <thead className="bg-slate-50/50 border-b border-slate-100">
-              <tr className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+            <thead className="border-b"
+              style={{ backgroundColor: 'rgba(17, 26, 43, 0.5)', borderColor: LK.borderSoft }}>
+              <tr className="text-[10px] font-semibold uppercase tracking-widest" style={{ color: LK.muted }}>
                 <th className="px-8 py-5">报告标识 (ID)</th>
                 <th className="px-6 py-5">项目/报告名称</th>
                 <th className="px-6 py-5">评估专家 (AI/Human)</th>
@@ -109,35 +141,33 @@ export const ReportsPage: React.FC = () => {
                 <th className="px-8 py-5 text-right">导出</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-50">
+            <tbody>
               {reports.map(rpt => (
-                <tr key={rpt.id} className="hover:bg-slate-50 transition-all cursor-pointer group">
+                <tr key={rpt.id} className="cursor-pointer group transition-colors"
+                  style={{ borderBottom: `1px solid ${LK.borderSoft}` }}
+                  onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = 'rgba(17, 26, 43, 0.8)'; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; }}>
                   <td className="px-8 py-6">
-                    <span className="text-[11px] font-mono font-black text-blue-600">{rpt.id}</span>
+                    <span className="text-[11px] font-mono font-semibold" style={{ color: LK.primary }}>{rpt.id}</span>
                   </td>
                   <td className="px-6 py-6">
                     <div>
-                       <p className="text-sm font-black text-slate-800">{rpt.name}</p>
-                       <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">{rpt.date}</p>
+                      <p className="text-sm font-semibold" style={{ color: LK.ink }}>{rpt.name}</p>
+                      <p className="text-[10px] font-bold uppercase tracking-widest mt-0.5" style={{ color: LK.muted }}>{rpt.date}</p>
                     </div>
                   </td>
                   <td className="px-6 py-6">
-                    <span className="text-[10px] font-black text-slate-500 uppercase flex items-center gap-2">
-                       <StatusBadge status={rpt.author.includes('AI') ? 'AI Agent' : 'Human'} />
-                       {rpt.author}
+                    <span className="text-[10px] font-semibold uppercase flex items-center gap-2" style={{ color: LK.muted }}>
+                      <StatusBadge status={rpt.author.includes('AI') ? 'AI Agent' : 'Human'} />
+                      {rpt.author}
                     </span>
                   </td>
                   <td className="px-6 py-6">
                     <div className="flex items-center gap-2">
-                       <div className={`w-2 h-2 rounded-full ${
-                         rpt.risk === 'Critical' ? 'bg-red-500' : 
-                         rpt.risk === 'High' ? 'bg-orange-500' : 
-                         rpt.risk === 'Medium' ? 'bg-amber-500' : 'bg-green-500'
-                       }`} />
-                       <span className={`text-[11px] font-black uppercase ${
-                         rpt.risk === 'Critical' ? 'text-red-600' : 
-                         rpt.risk === 'High' ? 'text-orange-600' : 'text-slate-600'
-                       }`}>{rpt.risk}</span>
+                      <div className={`w-2 h-2 rounded-full`} style={{ backgroundColor: RISK_STYLES[rpt.risk]?.color || LK.muted }} />
+                      <span className="text-[11px] font-semibold uppercase" style={{ color: RISK_STYLES[rpt.risk]?.color || LK.muted }}>
+                        {rpt.risk}
+                      </span>
                     </div>
                   </td>
                   <td className="px-6 py-6">
@@ -145,12 +175,16 @@ export const ReportsPage: React.FC = () => {
                   </td>
                   <td className="px-8 py-6 text-right">
                     <div className="flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                       <button className="p-3 bg-slate-100 text-slate-400 hover:text-blue-600 rounded-xl transition-all">
-                          <Download size={16} />
-                       </button>
-                       <button className="p-3 bg-slate-100 text-slate-400 hover:text-red-600 rounded-xl transition-all">
-                          <Trash2 size={16} />
-                       </button>
+                      <button className="p-3 rounded-xl transition-all"
+                        style={{ backgroundColor: LK.surfaceRaised, color: LK.muted }}
+                        onMouseEnter={(e) => { e.currentTarget.style.color = LK.primary; }}>
+                        <Download size={16} />
+                      </button>
+                      <button className="p-3 rounded-xl transition-all"
+                        style={{ backgroundColor: LK.surfaceRaised, color: LK.muted }}
+                        onMouseEnter={(e) => { e.currentTarget.style.color = LK.error; }}>
+                        <Trash2 size={16} />
+                      </button>
                     </div>
                   </td>
                 </tr>

@@ -1,6 +1,33 @@
 import React from 'react';
 import { Activity, AlertTriangle, CheckCircle2, Layers3, RotateCcw, XCircle } from 'lucide-react';
 
+// LOKI design tokens (DESIGN.md) — page-local palette.
+const LK = {
+  primary: '#4f73ff',
+  primarySoft: '#7590ff',
+  primaryDeep: '#3f63f1',
+  primaryMuted: 'rgba(79, 115, 255, 0.14)',
+  canvas: '#070d18',
+  surface: '#111a2b',
+  surfaceRaised: '#18233a',
+  surfaceGlass: 'rgba(17, 26, 43, 0.84)',
+  border: '#26324a',
+  borderSoft: '#1b2438',
+  ink: '#f5f7ff',
+  inkSoft: '#d6def0',
+  body: '#a4aec4',
+  muted: '#72809a',
+  mutedSoft: '#8b95a8',
+  success: '#45c06f',
+  warning: '#d5a13a',
+  error: '#f15d5d',
+  info: '#4f8cff',
+  critical: '#ff4d4f',
+  high: '#ff8b3d',
+  medium: '#f0b64c',
+  low: '#49c5ff',
+} as const;
+
 type Tone = 'slate' | 'blue' | 'emerald' | 'rose' | 'amber' | 'violet';
 
 export interface B2SBatchSummaryValue {
@@ -11,15 +38,15 @@ export interface B2SBatchSummaryValue {
   icon?: React.ReactNode;
 }
 
-const tileTone = (tone: Tone = 'slate') => {
-  const map = {
-    slate: 'border-slate-200 bg-slate-50/90 text-slate-900',
-    blue: 'border-blue-100 bg-blue-50/90 text-blue-900',
-    emerald: 'border-emerald-100 bg-emerald-50/90 text-emerald-900',
-    rose: 'border-rose-100 bg-rose-50/90 text-rose-900',
-    amber: 'border-amber-100 bg-amber-50/90 text-amber-900',
-    violet: 'border-violet-100 bg-violet-50/90 text-violet-900',
-  } as const;
+const tileTone = (tone: Tone = 'slate'): { bg: string; color: string; border: string } => {
+  const map: Record<Tone, { bg: string; color: string; border: string }> = {
+    slate: { bg: LK.surfaceRaised, color: LK.ink, border: LK.border },
+    blue: { bg: LK.info + '14', color: LK.info, border: LK.info + '40' },
+    emerald: { bg: LK.success + '14', color: LK.success, border: LK.success + '40' },
+    rose: { bg: LK.error + '14', color: LK.error, border: LK.error + '40' },
+    amber: { bg: LK.warning + '14', color: LK.warning, border: LK.warning + '40' },
+    violet: { bg: LK.primarySoft + '14', color: LK.primarySoft, border: LK.primarySoft + '40' },
+  };
   return map[tone];
 };
 
@@ -50,17 +77,34 @@ export const buildBatchSummaryCardItems = (summary: {
 
 export const B2SBatchSummaryCards: React.FC<{ items: B2SBatchSummaryValue[] }> = ({ items }) => (
   <div className="grid gap-2.5 md:grid-cols-2 xl:grid-cols-6">
-    {items.map((item) => (
-      <div key={item.label} className={`min-w-0 rounded-xl border px-3 py-2.5 ${tileTone(item.tone)}`}>
-        <div className="flex items-start justify-between gap-2">
-          <div className="min-w-0">
-            <div className="text-[10px] font-black uppercase tracking-[0.14em] opacity-60">{item.label}</div>
-            <div className="mt-0.5 break-words text-xl font-black tracking-tight">{item.value}</div>
+    {items.map((item) => {
+      const colors = tileTone(item.tone);
+      return (
+        <div
+          key={item.label}
+          className="min-w-0 rounded-xl px-3 py-2.5"
+          style={{ backgroundColor: colors.bg, border: `1px solid ${colors.border}`, color: colors.color }}
+        >
+          <div className="flex items-start justify-between gap-2">
+            <div className="min-w-0">
+              <div className="text-[10px] font-semibold uppercase tracking-[0.14em]" style={{ opacity: 0.6 }}>
+                {item.label}
+              </div>
+              <div className="mt-0.5 break-words text-xl font-semibold tracking-tight">{item.value}</div>
+            </div>
+            {item.icon ? (
+              <div className="flex h-8 w-8 items-center justify-center rounded-xl" style={{ backgroundColor: LK.surface, color: colors.color }}>
+                {item.icon}
+              </div>
+            ) : null}
           </div>
-          {item.icon ? <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-white/70">{item.icon}</div> : null}
+          {item.hint ? (
+            <div className="mt-1 truncate text-[11px] font-semibold" style={{ opacity: 0.7 }} title={item.hint}>
+              {item.hint}
+            </div>
+          ) : null}
         </div>
-        {item.hint ? <div className="mt-1 truncate text-[11px] font-semibold opacity-70" title={item.hint}>{item.hint}</div> : null}
-      </div>
-    ))}
+      );
+    })}
   </div>
 );

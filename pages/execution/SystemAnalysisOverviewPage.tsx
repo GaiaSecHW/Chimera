@@ -5,6 +5,18 @@ import { api } from '../../clients/api';
 import { SystemAnalysisCapabilitiesResponse } from '../../types/types';
 import { useUiFeedback } from '../../components/UiFeedback';
 
+const LK = {
+  primary: '#4f73ff', primarySoft: '#7590ff', primaryDeep: '#3f63f1',
+  primaryMuted: 'rgba(79, 115, 255, 0.14)',
+  canvas: '#070d18', surface: '#111a2b', surfaceRaised: '#18233a',
+  surfaceGlass: 'rgba(17, 26, 43, 0.84)',
+  border: '#26324a', borderSoft: '#1b2438',
+  ink: '#f5f7ff', inkSoft: '#d6def0', body: '#a4aec4',
+  muted: '#72809a', mutedSoft: '#8b95a8',
+  success: '#45c06f', warning: '#d5a13a', error: '#f15d5d', info: '#4f8cff',
+  critical: '#ff4d4f', high: '#ff8b3d', medium: '#f0b64c', low: '#49c5ff',
+} as const;
+
 export const SystemAnalysisOverviewPage: React.FC<{ projectId: string }> = ({ projectId }) => {
   const executionApi = api.domains.execution;
   const { notify, feedbackNodes } = useUiFeedback();
@@ -44,71 +56,71 @@ export const SystemAnalysisOverviewPage: React.FC<{ projectId: string }> = ({ pr
   }, [capabilities]);
 
   return (
-    <div className="px-8 pt-8 pb-10 space-y-6">
+    <div className="px-5 py-5 space-y-4" style={{ backgroundColor: LK.canvas, color: LK.inkSoft }}>
       {feedbackNodes}
-      <section className="rounded-[2rem] border border-slate-200 bg-white/90 p-6 shadow-sm">
+      <section className="rounded-xl p-4" style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}` }}>
         <div className="flex items-center justify-between gap-3">
           <div>
-            <p className="text-xs font-black uppercase tracking-[0.3em] text-cyan-600">System Analysis</p>
-            <h1 className="mt-3 text-3xl font-black tracking-tight text-slate-900">环境概览</h1>
-            <p className="mt-2 text-sm text-slate-500">展示当前项目系统分析可用能力、近期任务与风险分布。</p>
+            <p className="text-xs font-semibold uppercase tracking-wider" style={{ color: LK.primary }}>System Analysis</p>
+            <h1 className="mt-3 text-2xl font-semibold tracking-tight" style={{ color: LK.ink }}>环境概览</h1>
+            <p className="mt-2 text-sm" style={{ color: LK.body }}>展示当前项目系统分析可用能力、近期任务与风险分布。</p>
           </div>
-          <button onClick={() => void loadData()} className="rounded-xl border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700">刷新</button>
+          <button onClick={() => void loadData()} className="rounded-lg px-4 py-2 text-sm font-medium transition-colors hover:opacity-80" style={{ backgroundColor: LK.primary, color: '#ffffff' }}>刷新</button>
         </div>
       </section>
 
       {loading ? (
-        <div className="rounded-2xl border border-slate-200 bg-white p-6 text-sm text-slate-600 inline-flex items-center gap-2"><Loader2 size={15} className="animate-spin" />加载中...</div>
+        <div className="rounded-lg p-4 text-sm inline-flex items-center gap-2" style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}` }}><Loader2 size={15} className="animate-spin" />加载中...</div>
       ) : (
         <>
-          <section className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+          <section className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
             {statCards.map((item) => (
-              <div key={item.key} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-                <div className="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-[0.16em] text-slate-500">{item.icon}{item.label}</div>
-                <div className="mt-4 text-3xl font-black text-slate-900">{item.value}</div>
+              <div key={item.key} className="rounded-lg p-4" style={{ backgroundColor: LK.surfaceRaised, border: `1px solid ${LK.borderSoft}` }}>
+                <div className="inline-flex items-center gap-2 text-xs font-medium uppercase tracking-wider" style={{ color: LK.muted }}>{item.icon}{item.label}</div>
+                <div className="mt-4 text-2xl font-semibold" style={{ color: LK.ink }}>{item.value}</div>
               </div>
             ))}
           </section>
 
-          <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-            <h2 className="text-lg font-black text-slate-900">近期风险摘要</h2>
-            <div className="mt-3 text-sm text-slate-600">
+          <section className="rounded-xl p-4" style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}` }}>
+            <h2 className="text-base font-semibold" style={{ color: LK.ink }}>近期风险摘要</h2>
+            <div className="mt-3 text-sm" style={{ color: LK.body }}>
               critical {overview?.risk_summary?.critical ?? 0} / high {overview?.risk_summary?.high ?? 0} / medium {overview?.risk_summary?.medium ?? 0} / low {overview?.risk_summary?.low ?? 0}
             </div>
             <div className="mt-4 grid grid-cols-1 gap-3 lg:grid-cols-2">
               {(overview?.recent_findings || []).map((item: any, idx: number) => (
-                <div key={`${item.task_id}-${item.agent_key}-${idx}`} className="rounded-xl border border-slate-200 bg-slate-50 p-3">
-                  <div className="text-xs text-slate-500">{item.task_id} · {item.agent_key} · {item.risk_level}</div>
-                  <div className="mt-1 text-sm text-slate-800">{item.summary || '-'}</div>
+                <div key={`${item.task_id}-${item.agent_key}-${idx}`} className="rounded-lg p-3" style={{ backgroundColor: LK.surfaceRaised, border: `1px solid ${LK.borderSoft}` }}>
+                  <div className="text-xs" style={{ color: LK.muted }}>{item.task_id} · {item.agent_key} · {item.risk_level}</div>
+                  <div className="mt-1 text-sm" style={{ color: LK.ink }}>{item.summary || '-'}</div>
                 </div>
               ))}
-              {(overview?.recent_findings || []).length === 0 ? <div className="text-sm text-slate-500">暂无数据</div> : null}
+              {(overview?.recent_findings || []).length === 0 ? <div className="text-sm" style={{ color: LK.muted }}>暂无数据</div> : null}
             </div>
           </section>
 
-          <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm overflow-auto">
-            <h2 className="text-lg font-black text-slate-900">节点能力矩阵</h2>
+          <section className="rounded-xl p-4 overflow-auto" style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}` }}>
+            <h2 className="text-base font-semibold" style={{ color: LK.ink }}>节点能力矩阵</h2>
             <table className="mt-4 w-full min-w-[900px] text-sm">
               <thead>
-                <tr className="text-left text-slate-500 border-b border-slate-200">
-                  <th className="py-2 pr-2">节点</th>
-                  <th className="py-2 pr-2">状态</th>
-                  <th className="py-2 pr-2">Helper</th>
-                  <th className="py-2 pr-2">可选AI Agent</th>
-                  <th className="py-2 pr-2">最近分析</th>
+                <tr className="text-left" style={{ borderBottom: `1px solid ${LK.borderSoft}` }}>
+                  <th className="py-2 pr-2" style={{ color: LK.muted }}>节点</th>
+                  <th className="py-2 pr-2" style={{ color: LK.muted }}>状态</th>
+                  <th className="py-2 pr-2" style={{ color: LK.muted }}>Helper</th>
+                  <th className="py-2 pr-2" style={{ color: LK.muted }}>可选AI Agent</th>
+                  <th className="py-2 pr-2" style={{ color: LK.muted }}>最近分析</th>
                 </tr>
               </thead>
               <tbody>
                 {(capabilities?.items || []).map((item) => (
-                  <tr key={item.agent_key} className="border-b border-slate-100">
+                  <tr key={item.agent_key} style={{ borderBottom: `1px solid ${LK.borderSoft}` }}>
                     <td className="py-3 pr-2">
-                      <div className="font-semibold text-slate-900">{item.agent_hostname || item.agent_key}</div>
-                      <div className="text-xs text-slate-500">{item.agent_key} · {item.agent_ip || '-'}</div>
+                      <div className="font-medium" style={{ color: LK.ink }}>{item.agent_hostname || item.agent_key}</div>
+                      <div className="text-xs" style={{ color: LK.muted }}>{item.agent_key} · {item.agent_ip || '-'}</div>
                     </td>
                     <td className="py-3 pr-2">{item.agent_status}</td>
                     <td className="py-3 pr-2">{item.helper_installed ? `${item.helper_service_name || '-'} (${item.helper_status || 'unknown'})` : '未部署'}</td>
                     <td className="py-3 pr-2">{item.available_ai_agents.length}</td>
-                    <td className="py-3 pr-2 text-slate-600">{item.last_analysis_summary || '-'}</td>
+                    <td className="py-3 pr-2" style={{ color: LK.body }}>{item.last_analysis_summary || '-'}</td>
                   </tr>
                 ))}
               </tbody>
