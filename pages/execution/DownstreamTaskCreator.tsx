@@ -30,6 +30,19 @@ import {
 } from '../../types/types';
 import { FirmwareTaskResult, FirmwareUnpackTask } from '../../clients/firmwareUnpacker';
 
+const LK = {
+  primary: '#4f73ff', primarySoft: '#7590ff', primaryDeep: '#3f63f1',
+  primaryMuted: 'rgba(79, 115, 255, 0.14)',
+  canvas: '#070d18', surface: '#111a2b', surfaceRaised: '#18233a',
+  surfaceGlass: 'rgba(17, 26, 43, 0.84)',
+  border: '#26324a', borderSoft: '#1b2438',
+  ink: '#f5f7ff', inkSoft: '#d6def0', body: '#a4aec4',
+  muted: '#72809a', mutedSoft: '#8b95a8',
+  success: '#45c06f', warning: '#d5a13a', error: '#f15d5d', info: '#4f8cff',
+  critical: '#ff4d4f', high: '#ff8b3d', medium: '#f0b64c', low: '#49c5ff',
+} as const;
+const MONO = 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace';
+
 type SourceKind = 'firmware_unpack' | 'system_analysis' | 'binary_to_source' | 'entry_analysis' | 'dataflow_analysis';
 type DownstreamMode = 'binary' | 'source';
 type TargetStage = 'system_analysis' | 'binary_to_source' | 'entry_analysis' | 'dataflow_analysis' | 'vuln_scan';
@@ -851,36 +864,36 @@ export const DownstreamTaskCreator: React.FC<Props> = ({
       </button>
 
       {open ? (
-        <div className="fixed inset-0 z-[80] flex items-center justify-center bg-slate-950/45 px-4 py-8 backdrop-blur-sm">
-          <section className="flex max-h-[90vh] w-full max-w-5xl flex-col overflow-hidden rounded-[2rem] border border-slate-200 bg-white shadow-2xl">
-            <header className="flex items-start justify-between gap-4 border-b border-slate-200 px-6 py-5">
+        <div style={{ position: 'fixed', inset: 0, zIndex: 80, display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(7, 13, 24, 0.7)', padding: '16px 32px', backdropFilter: 'blur(4px)' }}>
+          <section style={{ display: 'flex', maxHeight: '90vh', width: '100%', maxWidth: '80rem', flexDirection: 'column', overflow: 'hidden', borderRadius: '20px', border: `1px solid ${LK.border}`, backgroundColor: LK.surface }}>
+            <header style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '16px', borderBottom: `1px solid ${LK.border}`, padding: '20px 24px' }}>
               <div>
-                <div className="text-[11px] font-black uppercase tracking-[0.2em] text-emerald-600">Manual Downstream Task</div>
-                <h2 className="mt-2 text-2xl font-black text-slate-900">创建{TARGET_LABEL[targetStage]}</h2>
-                <p className="mt-1 text-sm text-slate-500">
+                <div style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.2em', color: LK.success }}>Manual Downstream Task</div>
+                <h2 style={{ marginTop: '8px', fontSize: '24px', fontWeight: 600, color: LK.ink }}>创建{TARGET_LABEL[targetStage]}</h2>
+                <p style={{ marginTop: '4px', fontSize: '14px', color: LK.muted }}>
                   来源：{SOURCE_LABEL[sourceKind]} · 新任务按手动任务创建，不记录父任务来源。
                 </p>
               </div>
-              <button type="button" onClick={() => setOpen(false)} className="rounded-xl border border-slate-200 p-2 text-slate-500 hover:bg-slate-50">
+              <button type="button" onClick={() => setOpen(false)} style={{ borderRadius: '8px', border: `1px solid ${LK.border}`, padding: '8px', backgroundColor: 'transparent', color: LK.muted, cursor: 'pointer' }}>
                 <X size={18} />
               </button>
             </header>
 
-            <div className="flex-1 overflow-auto px-6 py-5">
-              <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_280px]">
-                <div className="space-y-4">
+            <div style={{ flex: 1, overflow: 'auto', padding: '20px 24px' }}>
+              <div style={{ display: 'grid', gap: '16px', gridTemplateColumns: 'minmax(0, 1fr) 280px' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                   {isVulnDownstream ? (
                     <>
-                      <div className="rounded-2xl border border-emerald-200 bg-emerald-50/70 p-4 text-sm text-emerald-900">
-                        <div className="text-xs font-black uppercase tracking-[0.18em] text-emerald-700">Downstream Prefill</div>
-                        <div className="mt-2 font-black">已按当前数据流分析任务自动填充默认值</div>
-                        <div className="mt-1 text-xs leading-5 text-emerald-800">
-                          下方配置与“数据流漏洞挖掘 → 创建任务”保持一致；你可以在提交前继续修改 Runs 根目录、数据流目录、代码目录、模型和其它参数。
+                      <div style={{ borderRadius: '12px', border: `1px solid ${LK.success}`, backgroundColor: `${LK.success}1a`, padding: '16px', fontSize: '14px', color: LK.success }}>
+                        <div style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.18em', color: LK.success }}>Downstream Prefill</div>
+                        <div style={{ marginTop: '8px', fontWeight: 600 }}>已按当前数据流分析任务自动填充默认值</div>
+                        <div style={{ marginTop: '4px', fontSize: '12px', lineHeight: '1.4', color: LK.success }}>
+                          下方配置与”数据流漏洞挖掘 → 创建任务”保持一致；你可以在提交前继续修改 Runs 根目录、数据流目录、代码目录、模型和其它参数。
                         </div>
                       </div>
 
                       {!vulnCreateState ? (
-                        <div className="flex items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-12 text-sm font-semibold text-slate-500">
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', borderRadius: '12px', border: `1px solid ${LK.border}`, backgroundColor: LK.surface, padding: '16px 48px', fontSize: '14px', fontWeight: 600, color: LK.muted }}>
                           <Loader2 size={16} className="animate-spin" />
                           正在准备下游任务默认配置...
                         </div>
@@ -888,18 +901,18 @@ export const DownstreamTaskCreator: React.FC<Props> = ({
                         <>
                           <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
                             <label className="lg:col-span-2">
-                              <span className="text-xs font-black text-slate-600">任务标题 / Run 文件夹名</span>
+                              <span style={{ fontSize: '12px', fontWeight: 600, color: LK.body }}>任务标题 / Run 文件夹名</span>
                               <input
                                 value={vulnCreateState.title}
                                 onChange={(event) => setVulnCreateState({ ...vulnCreateState, title: event.target.value })}
-                                className="mt-2 w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm font-semibold outline-none focus:border-emerald-500"
+                                style={{ marginTop: '8px', width: '100%', borderRadius: '8px', border: `1px solid ${LK.border}`, padding: '10px 12px', fontSize: '14px', fontWeight: 600, backgroundColor: LK.surfaceRaised, color: LK.ink, outline: 'none' }}
                               />
-                              <span className="mt-1 block text-xs leading-5 text-slate-500">
+                              <span style={{ marginTop: '4px', display: 'block', fontSize: '12px', lineHeight: '1.4', color: LK.muted }}>
                                 提交后会作为后端 run_vuln_scan.py 的 --run-name，最终目录名会做安全字符清洗。
                               </span>
                             </label>
                             <label className="lg:col-span-2">
-                              <span className="text-xs font-black text-slate-600">Profile</span>
+                              <span style={{ fontSize: '12px', fontWeight: 600, color: LK.body }}>Profile</span>
                               <select
                                 value={vulnCreateState.profileId}
                                 onChange={(event) => {
@@ -918,7 +931,7 @@ export const DownstreamTaskCreator: React.FC<Props> = ({
                                     resultReviewConcurrency: payload.result_review_concurrency,
                                   });
                                 }}
-                                className="mt-2 w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm font-semibold outline-none focus:border-emerald-500"
+                                style={{ marginTop: '8px', width: '100%', borderRadius: '8px', border: `1px solid ${LK.border}`, backgroundColor: LK.surface, padding: '10px 12px', fontSize: '14px', fontWeight: 600, color: LK.ink, outline: 'none' }}
                               >
                                 <option value="">使用项目默认 Profile</option>
                                 {vulnProfiles.map((profile) => (
@@ -927,20 +940,20 @@ export const DownstreamTaskCreator: React.FC<Props> = ({
                                   </option>
                                 ))}
                               </select>
-                              {vulnProfilesLoading ? <div className="mt-2 text-xs text-slate-500">Profile 列表加载中...</div> : null}
+                              {vulnProfilesLoading ? <div style={{ marginTop: '8px', fontSize: '12px', color: LK.muted }}>Profile 列表加载中...</div> : null}
                               {!vulnProfilesLoading && !vulnProfiles.some((profile) => profile.enabled) ? (
-                                <div className="mt-2 text-xs text-slate-500">当前项目还没有可用 Profile，提交任务时系统会自动创建一个默认扫描 Profile。</div>
+                                <div style={{ marginTop: '8px', fontSize: '12px', color: LK.muted }}>当前项目还没有可用 Profile，提交任务时系统会自动创建一个默认扫描 Profile。</div>
                               ) : null}
                             </label>
                           </div>
 
                           <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
-                            <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
-                              <div className="flex items-center gap-2 text-sm font-black text-slate-900">
+                            <div style={{ borderRadius: '8px', border: `1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised, padding: '16px' }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '14px', fontWeight: 600, color: LK.ink }}>
                                 <FolderOpen size={16} />
                                 Runs 根目录
                               </div>
-                              <div className="mt-2 text-xs leading-5 text-slate-500">默认填充为当前项目的 /app/secflow-app-dataflow-vuln-scan，但你仍可修改。</div>
+                              <div style={{ marginTop: '8px', fontSize: '12px', lineHeight: '1.4', color: LK.muted }}>默认填充为当前项目的 /app/secflow-app-dataflow-vuln-scan，但你仍可修改。</div>
                               <div className="mt-3 flex gap-2">
                                 <input
                                   value={vulnCreateState.workspacePath}
@@ -948,18 +961,18 @@ export const DownstreamTaskCreator: React.FC<Props> = ({
                                   placeholder={DEFAULT_DATAFLOW_VULN_RUNS_ROOT}
                                   className={FORM_INPUT_CLASS}
                                 />
-                                <button type="button" onClick={() => setPickerField('workspacePath')} className="shrink-0 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-black text-slate-700 hover:bg-slate-50">
+                                <button type="button" onClick={() => setPickerField('workspacePath')} style={{ flexShrink: 0, borderRadius: '8px', border: `1px solid ${LK.border}`, backgroundColor: LK.surface, padding: '8px 12px', fontSize: '12px', fontWeight: 600, color: LK.body, cursor: 'pointer' }}>
                                   选择
                                 </button>
                               </div>
                             </div>
 
-                            <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
-                              <div className="flex items-center gap-2 text-sm font-black text-slate-900">
+                            <div style={{ borderRadius: '8px', border: `1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised, padding: '16px' }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '14px', fontWeight: 600, color: LK.ink }}>
                                 <FolderOpen size={16} />
                                 数据流目录
                               </div>
-                              <div className="mt-2 text-xs leading-5 text-slate-500">默认填充为当前数据流分析任务的输出目录，但你仍可修改。</div>
+                              <div style={{ marginTop: '8px', fontSize: '12px', lineHeight: '1.4', color: LK.muted }}>默认填充为当前数据流分析任务的输出目录，但你仍可修改。</div>
                               <div className="mt-3 flex gap-2">
                                 <input
                                   value={vulnCreateState.dataFlowPath}
@@ -967,18 +980,18 @@ export const DownstreamTaskCreator: React.FC<Props> = ({
                                   placeholder="/case-a/output"
                                   className={FORM_INPUT_CLASS}
                                 />
-                                <button type="button" onClick={() => setPickerField('dataFlowPath')} className="shrink-0 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-black text-slate-700 hover:bg-slate-50">
+                                <button type="button" onClick={() => setPickerField('dataFlowPath')} style={{ flexShrink: 0, borderRadius: '8px', border: `1px solid ${LK.border}`, backgroundColor: LK.surface, padding: '8px 12px', fontSize: '12px', fontWeight: 600, color: LK.body, cursor: 'pointer' }}>
                                   选择
                                 </button>
                               </div>
                             </div>
 
-                            <div className="rounded-lg border border-slate-200 bg-slate-50 p-4 xl:col-span-2">
-                              <div className="flex items-center gap-2 text-sm font-black text-slate-900">
+                            <div style={{ borderRadius: '8px', border: `1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised, padding: '16px', gridColumn: '1 / -1' }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '14px', fontWeight: 600, color: LK.ink }}>
                                 <FolderOpen size={16} />
                                 代码目录
                               </div>
-                              <div className="mt-2 text-xs leading-5 text-slate-500">默认填充为当前数据流分析任务关联的源码目录，但你仍可修改。</div>
+                              <div style={{ marginTop: '8px', fontSize: '12px', lineHeight: '1.4', color: LK.muted }}>默认填充为当前数据流分析任务关联的源码目录，但你仍可修改。</div>
                               <div className="mt-3 flex gap-2">
                                 <input
                                   value={vulnCreateState.sourcePath}
@@ -986,24 +999,24 @@ export const DownstreamTaskCreator: React.FC<Props> = ({
                                   placeholder="/case-a/source"
                                   className={FORM_INPUT_CLASS}
                                 />
-                                <button type="button" onClick={() => setPickerField('sourcePath')} className="shrink-0 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-black text-slate-700 hover:bg-slate-50">
+                                <button type="button" onClick={() => setPickerField('sourcePath')} style={{ flexShrink: 0, borderRadius: '8px', border: `1px solid ${LK.border}`, backgroundColor: LK.surface, padding: '8px 12px', fontSize: '12px', fontWeight: 600, color: LK.body, cursor: 'pointer' }}>
                                   选择
                                 </button>
                               </div>
                             </div>
                           </div>
 
-                          <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+                          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(1, 1fr)', gap: '16px' }}>
                             <label>
-                              <span className="text-xs font-black text-slate-600">模型</span>
+                              <span style={{ fontSize: '12px', fontWeight: 600, color: LK.body }}>模型</span>
                               <input value={vulnCreateState.model} onChange={(event) => setVulnCreateState({ ...vulnCreateState, model: event.target.value })} className={FORM_INPUT_CLASS} />
                             </label>
                             <label>
-                              <span className="text-xs font-black text-slate-600">Provider（可选）</span>
+                              <span style={{ fontSize: '12px', fontWeight: 600, color: LK.body }}>Provider（可选）</span>
                               <input value={vulnCreateState.provider} onChange={(event) => setVulnCreateState({ ...vulnCreateState, provider: event.target.value })} placeholder="openai / anthropic" className={FORM_INPUT_CLASS} />
                             </label>
                             <label>
-                              <span className="text-xs font-black text-slate-600">Review Profile</span>
+                              <span style={{ fontSize: '12px', fontWeight: 600, color: LK.body }}>Review Profile</span>
                               <select
                                 value={vulnCreateState.reviewProfile}
                                 onChange={(event) => {
@@ -1019,43 +1032,43 @@ export const DownstreamTaskCreator: React.FC<Props> = ({
                                 {REVIEW_PROFILE_OPTIONS.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}
                               </select>
                               {vulnCreateState.reviewProfile === 'fast' ? (
-                                <span className="mt-1 block text-[11px] leading-4 text-slate-500">快速筛选会关闭评审；这里的“1”表示至少执行 1 个发现周期，不代表还会再做 1 轮评审。</span>
+                                <span style={{ marginTop: '4px', display: 'block', fontSize: '11px', lineHeight: '1.4', color: LK.muted }}>快速筛选会关闭评审；这里的”1”表示至少执行 1 个发现周期，不代表还会再做 1 轮评审。</span>
                               ) : null}
                             </label>
                             <label>
-                              <span className="text-xs font-black text-slate-600">最大评审轮次</span>
+                              <span style={{ fontSize: '12px', fontWeight: 600, color: LK.body }}>最大评审轮次</span>
                               <input type="number" min={1} value={vulnCreateState.maxReviewCycles} onChange={(event) => setVulnCreateState({ ...vulnCreateState, maxReviewCycles: Number(event.target.value) || 1 })} className={FORM_INPUT_CLASS} />
                             </label>
                             <label>
-                              <span className="text-xs font-black text-slate-600">Pi Timeout 最大次数</span>
+                              <span style={{ fontSize: '12px', fontWeight: 600, color: LK.body }}>Pi Timeout 最大次数</span>
                               <input type="number" min={1} value={vulnCreateState.timeoutMaxRetries} onChange={(event) => setVulnCreateState({ ...vulnCreateState, timeoutMaxRetries: Number(event.target.value) || 1 })} className={FORM_INPUT_CLASS} />
-                              <span className="mt-1 block text-[11px] leading-4 text-slate-500">默认 3；Pi/provider 返回 timeout 时按该次数重发同一提示词。</span>
+                              <span style={{ marginTop: '4px', display: 'block', fontSize: '11px', lineHeight: '1.4', color: LK.muted }}>默认 3；Pi/provider 返回 timeout 时按该次数重发同一提示词。</span>
                             </label>
                             <label>
-                              <span className="text-xs font-black text-slate-600">Pi Timeout 重试间隔（秒）</span>
+                              <span style={{ fontSize: '12px', fontWeight: 600, color: LK.body }}>Pi Timeout 重试间隔（秒）</span>
                               <input type="number" min={0} value={vulnCreateState.timeoutRetryIntervalSeconds} onChange={(event) => setVulnCreateState({ ...vulnCreateState, timeoutRetryIntervalSeconds: Math.max(0, Number(event.target.value) || 0) })} className={FORM_INPUT_CLASS} />
-                              <span className="mt-1 block text-[11px] leading-4 text-slate-500">默认 30；仅在最大次数大于 1 时生效。</span>
+                              <span style={{ marginTop: '4px', display: 'block', fontSize: '11px', lineHeight: '1.4', color: LK.muted }}>默认 30；仅在最大次数大于 1 时生效。</span>
                             </label>
                             <label>
-                              <span className="text-xs font-black text-slate-600">结果评审并发</span>
+                              <span style={{ fontSize: '12px', fontWeight: 600, color: LK.body }}>结果评审并发</span>
                               <input type="number" min={1} value={vulnCreateState.resultReviewConcurrency} onChange={(event) => setVulnCreateState({ ...vulnCreateState, resultReviewConcurrency: Number(event.target.value) || 1 })} className={FORM_INPUT_CLASS} />
                             </label>
                           </div>
 
-                          <div className="rounded-lg border border-emerald-200 bg-emerald-50/70 p-4">
+                          <div style={{ borderRadius: '8px', border: `1px solid ${LK.success}`, backgroundColor: `${LK.success}1a`, padding: '16px' }}>
                             <label className="flex items-start gap-3">
                               <input
                                 type="checkbox"
                                 checked={vulnCreateState.autoReportVulnerabilities}
                                 onChange={(event) => setVulnCreateState({ ...vulnCreateState, autoReportVulnerabilities: event.target.checked })}
-                                className="mt-1 h-4 w-4 rounded border-emerald-300 text-emerald-700 focus:ring-emerald-600"
+                                style={{ marginTop: '4px', height: '16px', width: '16px', borderRadius: '4px', border: `1px solid ${LK.success}`, color: LK.success }}
                               />
                               <span>
-                                <span className="flex items-center gap-2 text-sm font-black text-emerald-950">
+                                <span style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '14px', fontWeight: 600, color: LK.success }}>
                                   <ShieldCheck size={16} />
                                   自动上报漏洞疑点
                                 </span>
-                                <span className="mt-1 block text-xs leading-5 text-emerald-800">
+                                <span style={{ marginTop: '4px', display: 'block', fontSize: '12px', lineHeight: '1.4', color: LK.success }}>
                                   默认开启。任务成功后会将最终有效的 result_NNN.md 上报到当前项目的漏洞引擎，并记录原始任务 ID、执行 ID 和结果文件路径。
                                 </span>
                               </span>
@@ -1064,12 +1077,12 @@ export const DownstreamTaskCreator: React.FC<Props> = ({
 
                           <div>
                             <label>
-                              <span className="text-xs font-black text-slate-600">运行时覆盖 JSON</span>
+                              <span style={{ fontSize: '12px', fontWeight: 600, color: LK.body }}>运行时覆盖 JSON</span>
                               <textarea
                                 value={vulnCreateState.runtimeOverridesText}
                                 onChange={(event) => setVulnCreateState({ ...vulnCreateState, runtimeOverridesText: event.target.value })}
                                 placeholder={'{\n  "global": { "max_review_cycles": 4 }\n}'}
-                                className="mt-2 min-h-[150px] w-full rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 font-mono text-xs leading-5 text-slate-800 outline-none focus:border-emerald-500"
+                                style={{ marginTop: '8px', minHeight: '150px', width: '100%', borderRadius: '8px', border: `1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised, padding: '12px 16px', fontFamily: MONO, fontSize: '12px', lineHeight: '1.4', color: LK.ink, outline: 'none' }}
                               />
                             </label>
                           </div>
@@ -1078,12 +1091,12 @@ export const DownstreamTaskCreator: React.FC<Props> = ({
                     </>
                   ) : (
                     <>
-                      <div className="rounded-2xl border border-slate-200 bg-slate-50/70 p-4">
-                        <label className="text-xs font-black uppercase tracking-[0.18em] text-slate-400">任务名前缀</label>
+                      <div style={{ borderRadius: '12px', border: `1px solid ${LK.border}`, backgroundColor: `${LK.surfaceRaised}b3`, padding: '16px' }}>
+                        <label style={{ fontSize: '12px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.18em', color: LK.body }}>任务名前缀</label>
                         <input
                           value={taskPrefix}
                           onChange={(event) => setTaskPrefix(event.target.value)}
-                          className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-800 outline-none focus:border-emerald-300"
+                          style={{ marginTop: '8px', width: '100%', borderRadius: '8px', border: `1px solid ${LK.border}`, backgroundColor: LK.surface, padding: '8px 12px', fontSize: '14px', fontWeight: 600, color: LK.ink, outline: 'none' }}
                         />
                         {modeOptions.length > 1 ? (
                           <div className="mt-4 flex flex-wrap gap-2">

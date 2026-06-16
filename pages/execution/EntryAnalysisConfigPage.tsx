@@ -87,11 +87,11 @@ const defaultConfig = (projectId: string): EntryAnalysisServiceConfig => ({
 // ─── 子组件 ────────────────────────────────────────────────────────────────────
 
 const SectionCard: React.FC<{ title: string; subtitle?: string; actions?: React.ReactNode; children: React.ReactNode }> = ({ title, subtitle, actions, children }) => (
-  <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm space-y-4">
-    <div className="flex items-start justify-between gap-4">
+  <section style={{ borderRadius: '12px', border: '1px solid #26324a', backgroundColor: '#111a2b', padding: '24px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+    <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '16px' }}>
       <div>
-        <h2 className="text-base font-black text-slate-900">{title}</h2>
-        {subtitle && <p className="mt-0.5 text-xs text-slate-500">{subtitle}</p>}
+        <h2 style={{ fontSize: '16px', fontWeight: 600, color: '#f5f7ff', margin: 0 }}>{title}</h2>
+        {subtitle && <p style={{ marginTop: '2px', fontSize: '12px', color: '#a4aec4' }}>{subtitle}</p>}
       </div>
       {actions}
     </div>
@@ -100,10 +100,10 @@ const SectionCard: React.FC<{ title: string; subtitle?: string; actions?: React.
 );
 
 const FieldRow: React.FC<{ label: string; hint?: string; children: React.ReactNode }> = ({ label, hint, children }) => (
-  <div className="flex flex-col gap-1">
-    <label className="text-sm font-semibold text-slate-700">
+  <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+    <label style={{ fontSize: '14px', fontWeight: 600, color: '#d6def0' }}>
       {label}
-      {hint && <span className="ml-2 text-xs font-normal text-slate-400">{hint}</span>}
+      {hint && <span style={{ marginLeft: '8px', fontSize: '12px', fontWeight: 400, color: '#72809a' }}>{hint}</span>}
     </label>
     {children}
   </div>
@@ -120,21 +120,21 @@ const NumberInput: React.FC<{ value: number; min?: number; max?: number; step?: 
         if (!isNaN(n)) onChange(n);
       }}
       onBlur={() => setStr(String(value))}
-      className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" />
+      style={{ width: '100%', borderRadius: '8px', border: '1px solid #26324a', padding: '8px 12px', fontSize: '14px', backgroundColor: '#18233a', color: '#f5f7ff', outline: 'none', boxSizing: 'border-box' }} />
   );
 };
 
 const TextInput: React.FC<{ value: string; placeholder?: string; onChange: (v: string) => void }> = ({ value, placeholder, onChange }) => (
   <input type="text" placeholder={placeholder} value={value}
     onChange={(e) => onChange(e.target.value)}
-    className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" />
+    style={{ width: '100%', borderRadius: '8px', border: '1px solid #26324a', padding: '8px 12px', fontSize: '14px', backgroundColor: '#18233a', color: '#f5f7ff', outline: 'none', boxSizing: 'border-box' }} />
 );
 
 const ModelSelect: React.FC<{ value: string; options: string[]; onChange: (v: string) => void }> = ({ value, options, onChange }) => {
   const allOpts = value && !options.includes(value) ? [value, ...options] : options;
   return (
     <select value={value} onChange={(e) => onChange(e.target.value)}
-      className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm bg-white">
+      style={{ width: '100%', borderRadius: '8px', border: '1px solid #26324a', padding: '8px 12px', fontSize: '14px', backgroundColor: '#18233a', color: '#f5f7ff', outline: 'none', boxSizing: 'border-box' }}>
       <option value="">— 选择模型 —</option>
       {allOpts.map((opt) => <option key={opt} value={opt}>{opt}</option>)}
     </select>
@@ -146,16 +146,16 @@ const AgentInstanceList: React.FC<{ agents: EntryAnalysisAgentInstance[]; modelO
   const remove = (i: number) => onChange(agents.filter((_, idx) => idx !== i));
   const update = (i: number, p: Partial<EntryAnalysisAgentInstance>) => onChange(agents.map((a, idx) => idx === i ? { ...a, ...p } : a));
   return (
-    <div className="space-y-2">
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
       {agents.map((agent, i) => (
-        <div key={i} className="flex items-center gap-2 rounded-xl border border-slate-100 bg-slate-50 p-3">
-          <div className="flex-1">
+        <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '8px', borderRadius: '12px', border: '1px solid #1b2438', backgroundColor: '#18233a', padding: '12px' }}>
+          <div style={{ flex: 1 }}>
             <ModelSelect value={agent.model} options={modelOptions} onChange={(v) => update(i, { model: v })} />
           </div>
-          <button onClick={() => remove(i)} className="flex-shrink-0 rounded-lg border border-red-100 p-2 text-red-400 hover:bg-red-50"><Trash2 size={14} /></button>
+          <button onClick={() => remove(i)} style={{ flexShrink: 0, borderRadius: '8px', border: '1px solid rgba(241,93,93,0.3)', padding: '8px', color: '#f15d5d', backgroundColor: 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Trash2 size={14} /></button>
         </div>
       ))}
-      <button onClick={add} className="inline-flex items-center gap-1.5 rounded-xl border border-dashed border-slate-300 px-4 py-2 text-sm text-slate-500 hover:bg-slate-50">
+      <button onClick={add} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', borderRadius: '12px', border: '1px dashed #26324a', padding: '8px 16px', fontSize: '14px', color: '#a4aec4', backgroundColor: 'transparent', cursor: 'pointer' }}>
         <Plus size={14} /> 添加 Agent 实例
       </button>
     </div>
@@ -244,12 +244,12 @@ const restoreOtherEntryPanels = (
 };
 
 const PanelActions: React.FC<{ saving: boolean; onSave: () => void; onReset: () => void }> = ({ saving, onSave, onReset }) => (
-  <div className="flex shrink-0 items-center gap-2">
+  <div style={{ display: 'flex', flexShrink: 0, alignItems: 'center', gap: '8px' }}>
     <button
       type="button"
       onClick={onReset}
       disabled={saving}
-      className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-50 disabled:opacity-50"
+      style={{ borderRadius: '12px', border: '1px solid #26324a', backgroundColor: '#18233a', padding: '8px 12px', fontSize: '12px', fontWeight: 600, color: '#d6def0', cursor: saving ? 'not-allowed' : 'pointer', opacity: saving ? 0.5 : 1 }}
     >
       重置为默认
     </button>
@@ -257,7 +257,7 @@ const PanelActions: React.FC<{ saving: boolean; onSave: () => void; onReset: () 
       type="button"
       onClick={onSave}
       disabled={saving}
-      className="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-3 py-2 text-xs font-semibold text-white disabled:opacity-50"
+      style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', borderRadius: '12px', backgroundColor: '#4f73ff', padding: '8px 12px', fontSize: '12px', fontWeight: 600, color: '#f5f7ff', cursor: saving ? 'not-allowed' : 'pointer', opacity: saving ? 0.5 : 1, border: 'none' }}
     >
       {saving && <Loader2 size={12} className="animate-spin" />}
       保存配置
@@ -383,22 +383,22 @@ export const EntryAnalysisConfigPage: React.FC<{ projectId: string; embedded?: b
   };
 
   return (
-    <div className={embedded ? 'space-y-6' : 'px-8 pt-8 pb-10 space-y-6'}>
+    <div style={embedded ? { display: 'flex', flexDirection: 'column', gap: '24px' } : { padding: '32px', paddingTop: '32px', paddingBottom: '40px', display: 'flex', flexDirection: 'column', gap: '24px' }}>
       {feedbackNodes}
 
       {!embedded && (
-        <section className="rounded-[2rem] border border-slate-200 bg-white/90 p-6 shadow-sm">
-          <p className="text-xs font-black uppercase tracking-[0.3em] text-violet-600">Entry Analysis</p>
-          <h1 className="mt-3 text-3xl font-black tracking-tight text-slate-900">分析配置</h1>
-          <p className="mt-2 text-sm text-slate-500">配置 chimera-app-entry-analyse 分析引擎的运行参数，修改后点击「保存配置」生效。</p>
+        <section style={{ borderRadius: '24px', border: '1px solid #26324a', backgroundColor: 'rgba(17,26,43,0.9)', padding: '24px' }}>
+          <p style={{ fontSize: '12px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.3em', color: '#4f73ff' }}>Entry Analysis</p>
+          <h1 style={{ marginTop: '12px', fontSize: '30px', fontWeight: 600, letterSpacing: '-0.02em', color: '#f5f7ff' }}>分析配置</h1>
+          <p style={{ marginTop: '8px', fontSize: '14px', color: '#a4aec4' }}>配置 chimera-app-entry-analyse 分析引擎的运行参数，修改后点击「保存配置」生效。</p>
           {config.updated_at && (
-            <p className="mt-1 text-xs text-slate-400">上次保存：{new Date(config.updated_at).toLocaleString()}</p>
+            <p style={{ marginTop: '4px', fontSize: '12px', color: '#72809a' }}>上次保存：{new Date(config.updated_at).toLocaleString()}</p>
           )}
         </section>
       )}
 
       {loading ? (
-        <div className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-600">
+        <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', borderRadius: '12px', border: '1px solid #26324a', backgroundColor: '#18233a', padding: '12px 16px', fontSize: '14px', color: '#d6def0' }}>
           <Loader2 size={15} className="animate-spin" />加载中...
         </div>
       ) : (
@@ -429,12 +429,12 @@ export const EntryAnalysisConfigPage: React.FC<{ projectId: string; embedded?: b
                 <NumberInput value={config.agent_process_limit} min={1} max={128} onChange={(v) => patch({ agent_process_limit: Math.max(1, Math.min(128, Math.trunc(v || 1))) })} />
               </FieldRow>
               <FieldRow label="Pod 智能体占用/可用" hint="只读观测值，由 worker 心跳上报">
-                <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700">
+                <div style={{ borderRadius: '8px', border: '1px solid #26324a', backgroundColor: '#18233a', padding: '8px 12px', fontSize: '14px', color: '#d6def0' }}>
                   {(slotCluster?.agent_in_use ?? 0)} / {(slotCluster?.agent_available ?? 0)}
                 </div>
               </FieldRow>
               <FieldRow label="智能体等待请求" hint="多个任务竞争同一 Pod 槽位时按 FIFO 排队">
-                <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700">
+                <div style={{ borderRadius: '8px', border: '1px solid #26324a', backgroundColor: '#18233a', padding: '8px 12px', fontSize: '14px', color: '#d6def0' }}>
                   {(slotCluster?.agent_waiting_requests ?? 0)} 请求 / {(slotCluster?.agent_waiting_tasks ?? 0)} 任务
                 </div>
               </FieldRow>
@@ -442,66 +442,60 @@ export const EntryAnalysisConfigPage: React.FC<{ projectId: string; embedded?: b
 
             {/* 各阶段轮次独立配置 */}
             {/* 精简模式配置（独立区块，橙色边框，与完整模式配置并列） */}
-            <div className={`rounded-xl border-2 px-4 py-4 transition-colors ${
-              config.lean_mode ? 'border-amber-400 bg-amber-50' : 'border-slate-200 bg-slate-50'
-            }`}>
-              <div className="flex items-center justify-between gap-4">
+            <div style={{ borderRadius: '12px', border: '2px solid ' + (config.lean_mode ? '#d5a13a' : '#26324a'), padding: '16px', transitionProperty: 'background-color, border-color', transitionDuration: '150ms', backgroundColor: config.lean_mode ? 'rgba(213,161,58,0.1)' : '#18233a' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '16px' }}>
                 <div>
-                  <div className="text-sm font-black text-slate-900">
-                    精简模式 <span className="font-mono text-xs font-normal text-slate-500">Lean Mode</span>
+                  <div style={{ fontSize: '14px', fontWeight: 600, color: '#f5f7ff' }}>
+                    精简模式 <span style={{ fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace', fontSize: '12px', fontWeight: 400, color: '#a4aec4' }}>Lean Mode</span>
                   </div>
-                  <p className="mt-1 text-xs text-slate-500">
+                  <p style={{ marginTop: '4px', fontSize: '12px', color: '#a4aec4' }}>
                     跳过 R1b 行号校正、调用链建图、per-function R2/R3 精细分析。
                     Worker 编写 Python 分析脚本批量处理整个文件，Judge 先审脚本再审结果。
                     速度提升约 5-10×，允许一定漏报误报，适合快速筛查。
                   </p>
                 </div>
-                <label className="inline-flex cursor-pointer items-center gap-3 shrink-0 ml-4">
-                  <div className="relative">
-                    <input type="checkbox" className="peer sr-only"
+                <label style={{ display: 'inline-flex', cursor: 'pointer', alignItems: 'center', gap: '12px', flexShrink: 0, marginLeft: '16px' }}>
+                  <div style={{ position: 'relative' }}>
+                    <input type="checkbox" style={{ position: 'absolute', width: '1px', height: '1px', padding: 0, margin: '-1px', overflow: 'hidden', clip: 'rect(0,0,0,0)', whiteSpace: 'nowrap', borderWidth: 0 }}
                       checked={config.lean_mode}
                       onChange={(e) => patch({ lean_mode: e.target.checked })} />
-                    <div className="h-6 w-11 rounded-full bg-slate-200 peer-checked:bg-amber-500 transition-colors" />
-                    <div className="absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform peer-checked:translate-x-5" />
+                    <div style={{ height: '24px', width: '44px', borderRadius: '9999px', backgroundColor: config.lean_mode ? '#d5a13a' : '#26324a', transitionProperty: 'background-color', transitionDuration: '150ms' }} />
+                    <div style={{ position: 'absolute', left: '2px', top: '2px', height: '20px', width: '20px', borderRadius: '9999px', backgroundColor: '#fff', transform: config.lean_mode ? 'translateX(20px)' : 'translateX(0)', transitionProperty: 'transform', transitionDuration: '150ms' }} />
                   </div>
-                  <span className={`text-sm font-semibold ${
-                    config.lean_mode ? 'text-amber-700' : 'text-slate-500'
-                  }`}>
+                  <span style={{ fontSize: '14px', fontWeight: 600, color: config.lean_mode ? '#d5a13a' : '#a4aec4' }}>
                     {config.lean_mode ? '精简模式' : '完整模式'}
                   </span>
                 </label>
               </div>
               {config.lean_mode && (
-                <div className="mt-4 text-xs text-amber-700 font-medium">
+                <div style={{ marginTop: '16px', fontSize: '12px', color: '#d5a13a', fontWeight: 500 }}>
                   精简模式已开启：跳过 R2 行号校正、调用链建图及 per-function 精细分析。
                 </div>
               )}
 
               {/* API_Filter 入口判断开关 */}
-              <div className="mt-4 rounded-xl border border-blue-200 bg-blue-50 px-4 py-3">
-                <div className="flex items-center justify-between gap-4">
+              <div style={{ marginTop: '16px', borderRadius: '12px', border: '1px solid #4f8cff', backgroundColor: 'rgba(79,140,255,0.1)', padding: '12px 16px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '16px' }}>
                   <div>
-                    <div className="text-sm font-black text-slate-900">
+                    <div style={{ fontSize: '14px', fontWeight: 600, color: '#f5f7ff' }}>
                       API_Filter 入口判断
-                      <span className="ml-2 font-mono text-xs font-normal text-slate-500">api_filter_entry_judge</span>
+                      <span style={{ marginLeft: '8px', fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace', fontSize: '12px', fontWeight: 400, color: '#a4aec4' }}>api_filter_entry_judge</span>
                     </div>
-                    <p className="mt-1 text-xs text-slate-500">
+                    <p style={{ marginTop: '4px', fontSize: '12px', color: '#a4aec4' }}>
                       {config.api_filter_entry_judge
                         ? 'Direct LLM API 在 R3 前判断函数是否入口；R3 仅做污点分析。速度更快，适合大多数场景。'
                         : 'R3 Agent 完整判断入口 + 分析污点。精确度最高，适合对漏报征阶最严格的场景。'}
                     </p>
                   </div>
-                  <label className="inline-flex cursor-pointer items-center gap-3 shrink-0 ml-4">
-                    <div className="relative">
-                      <input type="checkbox" className="peer sr-only"
+                  <label style={{ display: 'inline-flex', cursor: 'pointer', alignItems: 'center', gap: '12px', flexShrink: 0, marginLeft: '16px' }}>
+                    <div style={{ position: 'relative' }}>
+                      <input type="checkbox" style={{ position: 'absolute', width: '1px', height: '1px', padding: 0, margin: '-1px', overflow: 'hidden', clip: 'rect(0,0,0,0)', whiteSpace: 'nowrap', borderWidth: 0 }}
                         checked={config.api_filter_entry_judge}
                         onChange={(e) => patch({ api_filter_entry_judge: e.target.checked })} />
-                      <div className="h-6 w-11 rounded-full bg-slate-200 peer-checked:bg-blue-600 transition-colors" />
-                      <div className="absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform peer-checked:translate-x-5" />
+                      <div style={{ height: '24px', width: '44px', borderRadius: '9999px', backgroundColor: config.api_filter_entry_judge ? '#4f8cff' : '#26324a', transitionProperty: 'background-color', transitionDuration: '150ms' }} />
+                      <div style={{ position: 'absolute', left: '2px', top: '2px', height: '20px', width: '20px', borderRadius: '9999px', backgroundColor: '#fff', transform: config.api_filter_entry_judge ? 'translateX(20px)' : 'translateX(0)', transitionProperty: 'transform', transitionDuration: '150ms' }} />
                     </div>
-                    <span className={`text-sm font-semibold ${
-                      config.api_filter_entry_judge ? 'text-blue-700' : 'text-slate-500'
-                    }`}>
+                    <span style={{ fontSize: '14px', fontWeight: 600, color: config.api_filter_entry_judge ? '#4f8cff' : '#a4aec4' }}>
                       {config.api_filter_entry_judge ? 'API 判断入口' : 'R3 判断入口'}
                     </span>
                   </label>
@@ -510,7 +504,7 @@ export const EntryAnalysisConfigPage: React.FC<{ projectId: string; embedded?: b
             </div>
 
             <FieldRow label="智能体并发说明" hint="单任务内不再单独限流">
-              <p className="text-xs leading-5 text-slate-500">
+              <p style={{ fontSize: '12px', lineHeight: '20px', color: '#a4aec4' }}>
                 入口分析的任务并发和智能体并发都由配置页动态控制，并通过 worker 心跳热生效，无需重启 Pod。
                 单任务可以吃满所在 Pod 的智能体进程；多个任务同时运行时，所有智能体请求按 FIFO 排队获取槽位。
               </p>
@@ -529,7 +523,7 @@ export const EntryAnalysisConfigPage: React.FC<{ projectId: string; embedded?: b
               />
             )}
           >
-            <div className="grid grid-cols-2 gap-4">
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '16px' }}>
               <FieldRow label="agent_max_retries" hint="默认无限重试"><NumberInput value={config.agent_max_retries} min={-1} onChange={(v) => patch({ agent_max_retries: v })} /></FieldRow>
               <FieldRow label="agent_retry_delay（秒）"><NumberInput value={config.agent_retry_delay} min={0} step={0.5} onChange={(v) => patch({ agent_retry_delay: v })} /></FieldRow>
               <FieldRow label="agent_run_timeout_seconds（秒）" hint="单次会话空闲超时"><NumberInput value={config.agent_run_timeout_seconds} min={60} step={1} onChange={(v) => patch({ agent_run_timeout_seconds: Math.max(60, Math.trunc(v || 60)) })} /></FieldRow>
@@ -538,13 +532,13 @@ export const EntryAnalysisConfigPage: React.FC<{ projectId: string; embedded?: b
               <FieldRow label="pi_retry_delay（秒）"><NumberInput value={config.pi_retry_delay} min={0} step={0.5} onChange={(v) => patch({ pi_retry_delay: v })} /></FieldRow>
             </div>
             <FieldRow label="agent_timeout_retry_enabled" hint="空闲超时后是否自动重试">
-              <label className="inline-flex cursor-pointer items-center gap-3">
-                <div className="relative">
-                  <input type="checkbox" className="peer sr-only" checked={config.agent_timeout_retry_enabled} onChange={(e) => patch({ agent_timeout_retry_enabled: e.target.checked })} />
-                  <div className="h-6 w-11 rounded-full bg-slate-200 peer-checked:bg-violet-600 transition-colors" />
-                  <div className="absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform peer-checked:translate-x-5" />
+              <label style={{ display: 'inline-flex', cursor: 'pointer', alignItems: 'center', gap: '12px' }}>
+                <div style={{ position: 'relative' }}>
+                  <input type="checkbox" style={{ position: 'absolute', width: '1px', height: '1px', padding: 0, margin: '-1px', overflow: 'hidden', clip: 'rect(0,0,0,0)', whiteSpace: 'nowrap', borderWidth: 0 }} checked={config.agent_timeout_retry_enabled} onChange={(e) => patch({ agent_timeout_retry_enabled: e.target.checked })} />
+                  <div style={{ height: '24px', width: '44px', borderRadius: '9999px', backgroundColor: config.agent_timeout_retry_enabled ? '#4f73ff' : '#26324a', transitionProperty: 'background-color', transitionDuration: '150ms' }} />
+                  <div style={{ position: 'absolute', left: '2px', top: '2px', height: '20px', width: '20px', borderRadius: '9999px', backgroundColor: '#fff', transform: config.agent_timeout_retry_enabled ? 'translateX(20px)' : 'translateX(0)', transitionProperty: 'transform', transitionDuration: '150ms' }} />
                 </div>
-                <span className="text-sm text-slate-600">{config.agent_timeout_retry_enabled ? '开启超时自动重试' : '关闭超时自动重试'}</span>
+                <span style={{ fontSize: '14px', color: '#d6def0' }}>{config.agent_timeout_retry_enabled ? '开启超时自动重试' : '关闭超时自动重试'}</span>
               </label>
             </FieldRow>
           </SectionCard>

@@ -26,6 +26,19 @@ import {
   legacyContractValue,
 } from '../../utils/binarySecurityContracts';
 
+const LK = {
+  primary: '#4f73ff', primarySoft: '#7590ff', primaryDeep: '#3f63f1',
+  primaryMuted: 'rgba(79, 115, 255, 0.14)',
+  canvas: '#070d18', surface: '#111a2b', surfaceRaised: '#18233a',
+  surfaceGlass: 'rgba(17, 26, 43, 0.84)',
+  border: '#26324a', borderSoft: '#1b2438',
+  ink: '#f5f7ff', inkSoft: '#d6def0', body: '#a4aec4',
+  muted: '#72809a', mutedSoft: '#8b95a8',
+  success: '#45c06f', warning: '#d5a13a', error: '#f15d5d', info: '#4f8cff',
+  critical: '#ff4d4f', high: '#ff8b3d', medium: '#f0b64c', low: '#49c5ff',
+} as const;
+const MONO = 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace';
+
 const ANALYSE_TARGET_LABELS: Record<string, string> = {
   all: '全部文件',
   binary: '二进制',
@@ -75,23 +88,23 @@ const FILTER_ENGINE_LABELS: Record<string, string> = {
 };
 
 const SectionCard: React.FC<{ title: React.ReactNode; children: React.ReactNode }> = ({ title, children }) => (
-  <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-    <h2 className="mb-4 text-sm font-black uppercase tracking-[0.18em] text-slate-500">{title}</h2>
+  <section style={{ borderRadius: '12px', border: `1px solid ${LK.border}`, backgroundColor: LK.surface, padding: '20px' }}>
+    <h2 style={{ marginBottom: '16px', fontSize: '12px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.18em', color: LK.muted }}>{title}</h2>
     {children}
   </section>
 );
 
 const ConfigRow: React.FC<{ label: React.ReactNode; children: React.ReactNode }> = ({ label, children }) => (
-  <div className="flex flex-col gap-1 py-2 sm:flex-row sm:items-start sm:gap-4">
-    <span className="w-40 shrink-0 text-xs font-semibold text-slate-500">{label}</span>
-    <div className="min-w-0 flex-1 text-sm text-slate-800">{children}</div>
+  <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', padding: '8px 0' }}>
+    <span style={{ width: '160px', flexShrink: 0, fontSize: '12px', fontWeight: 600, color: LK.muted }}>{label}</span>
+    <div style={{ minWidth: 0, flex: 1, fontSize: '14px', color: LK.ink }}>{children}</div>
   </div>
 );
 
-const Divider: React.FC = () => <hr className="border-slate-100" />;
+const Divider: React.FC = () => <hr style={{ border: 'none', borderTop: `1px solid ${LK.borderSoft}` }} />;
 
 const EmptyState: React.FC<{ text: string }> = ({ text }) => (
-  <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50 px-4 py-4 text-sm text-slate-500">{text}</div>
+  <div style={{ borderRadius: '8px', border: `1px dashed ${LK.borderSoft}`, backgroundColor: LK.surfaceRaised, padding: '16px', fontSize: '14px', color: LK.muted }}>{text}</div>
 );
 
 const TagList: React.FC<{ items: string[]; labelMap?: Record<string, string>; emptyText?: string }> = ({
@@ -99,11 +112,11 @@ const TagList: React.FC<{ items: string[]; labelMap?: Record<string, string>; em
   labelMap,
   emptyText = '未配置',
 }) => {
-  if (!items || items.length === 0) return <span className="text-xs text-slate-400">{emptyText}</span>;
+  if (!items || items.length === 0) return <span style={{ fontSize: '12px', color: LK.body }}>{emptyText}</span>;
   return (
-    <div className="flex flex-wrap gap-1.5">
+    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
       {items.map((item) => (
-        <span key={item} className="inline-flex items-center rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-medium text-slate-700">
+        <span key={item} style={{ display: 'inline-flex', alignItems: 'center', borderRadius: '9999px', backgroundColor: LK.surfaceRaised, padding: '2px 10px', fontSize: '12px', fontWeight: 500, color: LK.inkSoft }}>
           {labelMap?.[item] ? `${labelMap[item]}（${item}）` : item}
         </span>
       ))}
@@ -183,15 +196,15 @@ const ProjectDirectoryValue: React.FC<{ path?: string | null; projectId?: string
   const explorerPath = normalizeProjectFileExplorerPath(normalizedPath, projectId);
   const showRawPath = explorerPath !== normalizedPath;
   return (
-    <div className="flex flex-wrap items-center gap-2">
-      <div className="min-w-0">
-        <div className="break-all font-mono text-xs">{explorerPath}</div>
-        {showRawPath ? <div className="mt-1 break-all font-mono text-[11px] text-slate-400">{normalizedPath}</div> : null}
+    <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '8px' }}>
+      <div style={{ minWidth: 0 }}>
+        <div style={{ wordBreak: 'break-all', fontFamily: MONO, fontSize: '12px' }}>{explorerPath}</div>
+        {showRawPath ? <div style={{ marginTop: '4px', wordBreak: 'break-all', fontFamily: MONO, fontSize: '11px', color: LK.body }}>{normalizedPath}</div> : null}
       </div>
       <button
         type="button"
         onClick={() => window.open(buildProjectFileExplorerUrl(normalizedPath, projectId), '_blank', 'noopener,noreferrer')}
-        className="inline-flex items-center gap-1 rounded-lg border border-violet-200 px-2 py-1 text-[11px] font-semibold text-violet-700 hover:bg-violet-50"
+        style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', borderRadius: '8px', border: `1px solid ${LK.primaryMuted}`, padding: '4px 8px', fontSize: '11px', fontWeight: 600, color: LK.primary, backgroundColor: 'transparent', cursor: 'pointer' }}
       >
         <ExternalLink size={11} />
         项目文件
@@ -208,8 +221,8 @@ const JsonPreview: React.FC<{ value: unknown; emptyText?: string }> = ({ value, 
   if (!hasValue) return <EmptyState text={emptyText} />;
   return (
     <details>
-      <summary className="cursor-pointer text-xs text-slate-500 hover:text-slate-700">展开查看原始 JSON</summary>
-      <pre className="mt-3 max-h-80 overflow-auto rounded-xl bg-slate-950 p-4 text-xs leading-relaxed text-black whitespace-pre-wrap">
+      <summary style={{ cursor: 'pointer', fontSize: '12px', color: LK.muted }}>展开查看原始 JSON</summary>
+      <pre style={{ marginTop: '12px', maxHeight: '320px', overflow: 'auto', borderRadius: '8px', backgroundColor: LK.canvas, padding: '16px', fontSize: '12px', lineHeight: '1.6', color: LK.ink, whiteSpace: 'pre-wrap' }}>
         {JSON.stringify(value, null, 2)}
       </pre>
     </details>
@@ -230,14 +243,14 @@ const TaskIdentitySection: React.FC<{
   extraRows?: Array<{ label: string; value: React.ReactNode }>;
 }> = ({ taskId, projectId, taskOriginType, originLabel, parentTaskId, parentTaskType, parentStageName, extraRows = [] }) => (
   <SectionCard title="任务标识">
-    <div className="divide-y divide-slate-100">
-      <ConfigRow label="任务 ID"><span className="break-all font-mono text-xs">{taskId}</span></ConfigRow>
+    <div style={{ display: 'flex', flexDirection: 'column' }}>
+      <ConfigRow label="任务 ID"><span style={{ wordBreak: 'break-all', fontFamily: MONO, fontSize: '12px' }}>{taskId}</span></ConfigRow>
       <Divider />
-      <ConfigRow label="项目 ID"><span className="break-all font-mono text-xs">{projectId || '-'}</span></ConfigRow>
+      <ConfigRow label="项目 ID"><span style={{ wordBreak: 'break-all', fontFamily: MONO, fontSize: '12px' }}>{projectId || '-'}</span></ConfigRow>
       <Divider />
       <ConfigRow label="来源">{originLabel || taskOriginType || '-'}</ConfigRow>
       <Divider />
-      <ConfigRow label="父任务"><span className="break-all font-mono text-xs">{parentTaskId || '-'}</span></ConfigRow>
+      <ConfigRow label="父任务"><span style={{ wordBreak: 'break-all', fontFamily: MONO, fontSize: '12px' }}>{parentTaskId || '-'}</span></ConfigRow>
       <Divider />
       <ConfigRow label="父任务类型">{parentTaskType || '-'}</ConfigRow>
       <Divider />
@@ -258,7 +271,7 @@ const PathSummarySection: React.FC<{
   rows: Array<{ label: string; path?: string | null; value?: React.ReactNode }>;
 }> = ({ title, projectId, rows }) => (
   <SectionCard title={title}>
-    <div className="divide-y divide-slate-100">
+    <div style={{ display: 'flex', flexDirection: 'column' }}>
       {rows.map((row, index) => (
         <React.Fragment key={`${row.label}-${index}`}>
           <ConfigRow label={row.label}>
@@ -313,7 +326,7 @@ export const SystemAnalysisTaskConfigPanel: React.FC<{ detail: AppSaTaskDetail }
     .filter((key) => taskConfig[key] !== undefined);
 
   return (
-    <div className="space-y-4">
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
       <TaskIdentitySection
         taskId={detail.task_id}
         projectId={detail.project_id}
@@ -353,7 +366,7 @@ export const SystemAnalysisTaskConfigPanel: React.FC<{ detail: AppSaTaskDetail }
         {overrideKeys.length === 0 ? (
           <EmptyState text="当前任务没有显式任务级覆盖项，运行时使用项目默认配置。" />
         ) : (
-          <div className="divide-y divide-slate-100">
+          <div style={{ display: 'flex', flexDirection: 'column' }}>
             {taskConfig.analyse_targets !== undefined ? (
               <>
                 <ConfigRow label="文件类型过滤"><TagList items={analyseTargets} labelMap={ANALYSE_TARGET_LABELS} /></ConfigRow>
@@ -405,7 +418,7 @@ export const SystemAnalysisTaskConfigPanel: React.FC<{ detail: AppSaTaskDetail }
 
       {(startStage || resumeWorkspace) ? (
         <SectionCard title="续跑配置">
-          <div className="divide-y divide-slate-100">
+          <div style={{ display: 'flex', flexDirection: 'column' }}>
             {startStage ? (
               <>
                 <ConfigRow label="起始阶段">{`Stage ${startStage}`}</ConfigRow>
@@ -423,8 +436,8 @@ export const SystemAnalysisTaskConfigPanel: React.FC<{ detail: AppSaTaskDetail }
         {Object.keys(agentAuthJson).length === 0 ? (
           <EmptyState text="当前任务没有冻结的智能体认证快照。" />
         ) : (
-          <div className="divide-y divide-slate-100">
-            <ConfigRow label="Task Key ID"><span className="break-all font-mono text-xs">{String(agentAuthJson.agent_task_key_id || '-')}</span></ConfigRow>
+          <div style={{ display: 'flex', flexDirection: 'column' }}>
+            <ConfigRow label="Task Key ID"><span style={{ wordBreak: 'break-all', fontFamily: MONO, fontSize: '12px' }}>{String(agentAuthJson.agent_task_key_id || '-')}</span></ConfigRow>
             <Divider />
             <ConfigRow label="名称">{String(agentAuthJson.agent_task_key_name || '-')}</ConfigRow>
             <Divider />
@@ -432,7 +445,7 @@ export const SystemAnalysisTaskConfigPanel: React.FC<{ detail: AppSaTaskDetail }
             <Divider />
             <ConfigRow label="来源">{String(agentAuthJson.agent_task_key_source || '-')}</ConfigRow>
             <Divider />
-            <ConfigRow label="Secret"><span className="break-all font-mono text-xs">{String(agentAuthJson.agent_task_key_secret || '-')}</span></ConfigRow>
+            <ConfigRow label="Secret"><span style={{ wordBreak: 'break-all', fontFamily: MONO, fontSize: '12px' }}>{String(agentAuthJson.agent_task_key_secret || '-')}</span></ConfigRow>
           </div>
         )}
       </SectionCard>
@@ -441,19 +454,19 @@ export const SystemAnalysisTaskConfigPanel: React.FC<{ detail: AppSaTaskDetail }
         {roleKeys.length === 0 ? (
           <EmptyState text="该任务未保存角色级运行快照，历史任务可继续参考下方实际运行快照与原始 JSON。" />
         ) : (
-          <div className="grid gap-4 xl:grid-cols-2">
+          <div style={{ display: 'grid', gap: '16px', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))' }}>
             {roleKeys.map((roleKey) => {
               const roleRuntime = asRecord(providerRuntimeSummary[roleKey]);
               const roleSnapshot = asRecord(roleConfigSnapshot[roleKey] || asRecord(llmBindingSnapshot.roles)[roleKey]);
               const agents = Array.isArray(roleRuntime.agents) ? roleRuntime.agents : (Array.isArray(roleSnapshot.agents) ? roleSnapshot.agents : []);
               const stageModels = asRecord(roleRuntime.stage_models || roleSnapshot.stage_models);
               return (
-                <div key={roleKey} className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                <div key={roleKey} style={{ borderRadius: '12px', border: `1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised, padding: '16px' }}>
                   <div>
-                    <div className="text-sm font-black text-slate-900">{SYSTEM_ANALYSIS_ROLE_LABELS[roleKey] || roleKey}</div>
-                    <div className="mt-1 font-mono text-[11px] text-slate-400">{roleKey}</div>
+                    <div style={{ fontSize: '14px', fontWeight: 600, color: LK.ink }}>{SYSTEM_ANALYSIS_ROLE_LABELS[roleKey] || roleKey}</div>
+                    <div style={{ marginTop: '4px', fontFamily: MONO, fontSize: '11px', color: LK.body }}>{roleKey}</div>
                   </div>
-                  <div className="mt-4 divide-y divide-slate-200">
+                  <div style={{ marginTop: '16px', display: 'flex', flexDirection: 'column' }}>
                     <ConfigRow label="默认模型">{String(roleRuntime.default_model || roleRuntime.model || roleSnapshot.default_model || '-')}</ConfigRow>
                     <Divider />
                     <ConfigRow label="默认工具">
@@ -462,7 +475,7 @@ export const SystemAnalysisTaskConfigPanel: React.FC<{ detail: AppSaTaskDetail }
                     <Divider />
                     <ConfigRow label="默认思考级别">{String(roleRuntime.default_thinking_level || roleSnapshot.default_thinking_level || '-')}</ConfigRow>
                     <Divider />
-                    <ConfigRow label="Prompt 目录"><span className="break-all font-mono text-xs">{String(roleRuntime.system_prompt_dir || roleSnapshot.system_prompt_dir || '-')}</span></ConfigRow>
+                    <ConfigRow label="Prompt 目录"><span style={{ wordBreak: 'break-all', fontFamily: MONO, fontSize: '12px' }}>{String(roleRuntime.system_prompt_dir || roleSnapshot.system_prompt_dir || '-')}</span></ConfigRow>
                     <Divider />
                     <ConfigRow label="阶段模型覆盖">
                       <JsonPreview value={Object.keys(stageModels).length > 0 ? stageModels : null} emptyText="当前角色没有阶段模型覆盖。" />
@@ -493,7 +506,7 @@ export const SystemAnalysisTaskConfigPanel: React.FC<{ detail: AppSaTaskDetail }
 
       {hasResolved ? (
         <SectionCard title="实际运行快照">
-          <div className="divide-y divide-slate-100">
+          <div style={{ display: 'flex', flexDirection: 'column' }}>
             <ConfigRow label="文件类型过滤"><TagList items={resolvedAnalyseTargets} labelMap={ANALYSE_TARGET_LABELS} emptyText="-" /></ConfigRow>
             <Divider />
             <ConfigRow label="ELF 架构过滤"><TagList items={resolvedBinaryArch} labelMap={BINARY_ARCH_LABELS} emptyText="-" /></ConfigRow>
@@ -558,7 +571,7 @@ export const EntryAnalysisTaskConfigPanel: React.FC<{ detail: AppEaTaskDetail }>
     return leftIndex - rightIndex;
   });
   return (
-    <div className="space-y-4">
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
       <TaskIdentitySection
         taskId={detail.task_id}
         projectId={detail.project_id}
@@ -602,10 +615,10 @@ export const EntryAnalysisTaskConfigPanel: React.FC<{ detail: AppEaTaskDetail }>
         {Object.keys(taskConfig).length === 0 ? (
           <EmptyState text="当前任务没有额外 task_config_json 配置。" />
         ) : (
-          <div className="divide-y divide-slate-100">
+          <div style={{ display: 'flex', flexDirection: 'column' }}>
             {taskConfig.resume_task_id !== undefined ? (
               <>
-                <ConfigRow label="断点续跑来源任务"><span className="break-all font-mono text-xs">{resumeTaskId || '-'}</span></ConfigRow>
+                <ConfigRow label="断点续跑来源任务"><span style={{ wordBreak: 'break-all', fontFamily: MONO, fontSize: '12px' }}>{resumeTaskId || '-'}</span></ConfigRow>
                 <Divider />
               </>
             ) : null}
@@ -627,7 +640,7 @@ export const EntryAnalysisTaskConfigPanel: React.FC<{ detail: AppEaTaskDetail }>
       </SectionCard>
 
       <SectionCard title="智能体认证">
-        <div className="mb-3 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-600">
+        <div style={{ marginBottom: '12px', borderRadius: '8px', border: `1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised, padding: '8px 12px', fontSize: '12px', color: LK.body }}>
           {runtimeMode === 'task_scoped'
             ? '当前展示的是任务级运行时快照。'
             : Object.keys(agentAuthJson).length === 0 && roleKeys.length > 0
@@ -637,8 +650,8 @@ export const EntryAnalysisTaskConfigPanel: React.FC<{ detail: AppEaTaskDetail }>
         {Object.keys(agentAuthJson).length === 0 ? (
           <EmptyState text="当前任务没有冻结的智能体认证快照。" />
         ) : (
-          <div className="divide-y divide-slate-100">
-            <ConfigRow label="Task Key ID"><span className="break-all font-mono text-xs">{String(agentAuthJson.agent_task_key_id || '-')}</span></ConfigRow>
+          <div style={{ display: 'flex', flexDirection: 'column' }}>
+            <ConfigRow label="Task Key ID"><span style={{ wordBreak: 'break-all', fontFamily: MONO, fontSize: '12px' }}>{String(agentAuthJson.agent_task_key_id || '-')}</span></ConfigRow>
             <Divider />
             <ConfigRow label="名称">{String(agentAuthJson.agent_task_key_name || '-')}</ConfigRow>
             <Divider />
@@ -646,7 +659,7 @@ export const EntryAnalysisTaskConfigPanel: React.FC<{ detail: AppEaTaskDetail }>
             <Divider />
             <ConfigRow label="来源">{String(agentAuthJson.agent_task_key_source || '-')}</ConfigRow>
             <Divider />
-            <ConfigRow label="Secret"><span className="break-all font-mono text-xs">{String(agentAuthJson.agent_task_key_secret || '-')}</span></ConfigRow>
+            <ConfigRow label="Secret"><span style={{ wordBreak: 'break-all', fontFamily: MONO, fontSize: '12px' }}>{String(agentAuthJson.agent_task_key_secret || '-')}</span></ConfigRow>
           </div>
         )}
       </SectionCard>
@@ -655,18 +668,18 @@ export const EntryAnalysisTaskConfigPanel: React.FC<{ detail: AppEaTaskDetail }>
         {roleKeys.length === 0 ? (
           <EmptyState text="该任务未保存角色级运行快照，历史任务可继续参考下方原始 JSON。" />
         ) : (
-          <div className="grid gap-4 xl:grid-cols-2">
+          <div style={{ display: 'grid', gap: '16px', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))' }}>
             {roleKeys.map((roleKey) => {
               const roleRuntime = asRecord(providerRuntimeSummary[roleKey]);
               const roleSnapshot = asRecord(roleConfigSnapshot[roleKey] || asRecord(llmBindingSnapshot.roles)[roleKey]);
               const agents = Array.isArray(roleRuntime.agents) ? roleRuntime.agents : (Array.isArray(roleSnapshot.agents) ? roleSnapshot.agents : []);
               return (
-                <div key={roleKey} className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                <div key={roleKey} style={{ borderRadius: '12px', border: `1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised, padding: '16px' }}>
                   <div>
-                    <div className="text-sm font-black text-slate-900">{ENTRY_ANALYSIS_ROLE_LABELS[roleKey] || roleKey}</div>
-                    <div className="mt-1 font-mono text-[11px] text-slate-400">{roleKey}</div>
+                    <div style={{ fontSize: '14px', fontWeight: 600, color: LK.ink }}>{ENTRY_ANALYSIS_ROLE_LABELS[roleKey] || roleKey}</div>
+                    <div style={{ marginTop: '4px', fontFamily: MONO, fontSize: '11px', color: LK.body }}>{roleKey}</div>
                   </div>
-                  <div className="mt-4 divide-y divide-slate-200">
+                  <div style={{ marginTop: '16px', display: 'flex', flexDirection: 'column' }}>
                     <ConfigRow label="默认模型">{String(roleRuntime.default_model || roleSnapshot.default_model || '-')}</ConfigRow>
                     <Divider />
                     <ConfigRow label="默认工具">
@@ -675,7 +688,7 @@ export const EntryAnalysisTaskConfigPanel: React.FC<{ detail: AppEaTaskDetail }>
                     <Divider />
                     <ConfigRow label="默认思考级别">{String(roleRuntime.default_thinking_level || roleSnapshot.default_thinking_level || '-')}</ConfigRow>
                     <Divider />
-                    <ConfigRow label="Prompt 目录"><span className="break-all font-mono text-xs">{String(roleRuntime.system_prompt_dir || roleSnapshot.system_prompt_dir || '-')}</span></ConfigRow>
+                    <ConfigRow label="Prompt 目录"><span style={{ wordBreak: 'break-all', fontFamily: MONO, fontSize: '12px' }}>{String(roleRuntime.system_prompt_dir || roleSnapshot.system_prompt_dir || '-')}</span></ConfigRow>
                     <Divider />
                     <ConfigRow label="运行时 models.json">
                       <JsonPreview value={roleRuntime.models_json ?? null} emptyText="当前任务没有冻结 models.json 快照。" />
@@ -776,13 +789,13 @@ export const DataflowAnalysisTaskConfigPanel: React.FC<{ detail: AppDfaTaskDetai
         {inputContractRows.length === 0 ? (
           <EmptyState text="当前任务未记录结构化 DFA 输入 Contract。" />
         ) : (
-          <div className="divide-y divide-slate-100">
+          <div style={{ display: 'flex', flexDirection: 'column' }}>
             {inputContractRows.map((row, index) => (
               <React.Fragment key={`${row.label}-${index}`}>
                 <ConfigRow label={row.label}>
-                  <div className="space-y-1">
-                    {row.semantic ? <div className="text-[11px] font-semibold text-slate-500">{row.semantic}</div> : null}
-                    <span className="break-all font-mono text-xs text-slate-800">{row.value}</span>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                    {row.semantic ? <div style={{ fontSize: '11px', fontWeight: 600, color: LK.muted }}>{row.semantic}</div> : null}
+                    <span style={{ wordBreak: 'break-all', fontFamily: MONO, fontSize: '12px', color: LK.ink }}>{row.value}</span>
                   </div>
                 </ConfigRow>
                 {index < inputContractRows.length - 1 ? <Divider /> : null}
@@ -796,13 +809,13 @@ export const DataflowAnalysisTaskConfigPanel: React.FC<{ detail: AppDfaTaskDetai
         {outputContractRows.length === 0 ? (
           <EmptyState text="当前任务未记录结构化 DFA 输出 Contract。" />
         ) : (
-          <div className="divide-y divide-slate-100">
+          <div style={{ display: 'flex', flexDirection: 'column' }}>
             {outputContractRows.map((row, index) => (
               <React.Fragment key={`${row.label}-${index}`}>
                 <ConfigRow label={row.label}>
-                  <div className="space-y-1">
-                    {row.semantic ? <div className="text-[11px] font-semibold text-slate-500">{row.semantic}</div> : null}
-                    <span className="break-all font-mono text-xs text-slate-800">{row.value}</span>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                    {row.semantic ? <div style={{ fontSize: '11px', fontWeight: 600, color: LK.muted }}>{row.semantic}</div> : null}
+                    <span style={{ wordBreak: 'break-all', fontFamily: MONO, fontSize: '12px', color: LK.ink }}>{row.value}</span>
                   </div>
                 </ConfigRow>
                 {index < outputContractRows.length - 1 ? <Divider /> : null}
@@ -828,10 +841,10 @@ export const DataflowAnalysisTaskConfigPanel: React.FC<{ detail: AppDfaTaskDetai
         {Object.keys(taskConfig).length === 0 ? (
           <EmptyState text="当前任务没有额外 task_config_json 配置。" />
         ) : (
-          <div className="divide-y divide-slate-100">
+          <div style={{ display: 'flex', flexDirection: 'column' }}>
             {sourceFile ? (
               <>
-                <ConfigRow label="源码文件"><span className="break-all font-mono text-xs">{sourceFile || '-'}</span></ConfigRow>
+                <ConfigRow label="源码文件"><span style={{ wordBreak: 'break-all', fontFamily: MONO, fontSize: '12px' }}>{sourceFile || '-'}</span></ConfigRow>
                 <Divider />
               </>
             ) : null}
@@ -856,17 +869,17 @@ export const DataflowAnalysisTaskConfigPanel: React.FC<{ detail: AppDfaTaskDetai
             {taintDetails.length > 0 ? (
               <>
                 <ConfigRow label="污点详情">
-                  <div className="space-y-2">
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                     {taintDetails.map((item: any, index: number) => {
                       const name = String(item.name || item.taint || item.param || '').trim() || `污点${index + 1}`;
                       const description = String(item.description || item.summary || '').trim();
                       const sourceKind = String(item.source_kind || '').trim();
                       const source = String(item.description_source || '').trim();
                       return (
-                        <div key={`${name}-${index}`} className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
-                          <div className="font-mono text-xs font-black text-slate-800">{name}</div>
-                          {description ? <div className="mt-1 text-xs text-slate-600">{description}</div> : null}
-                          {(sourceKind || source) ? <div className="mt-1 text-[10px] font-semibold text-slate-400">{[sourceKind ? `source_kind=${sourceKind}` : '', source ? `source=${source}` : ''].filter(Boolean).join(' · ')}</div> : null}
+                        <div key={`${name}-${index}`} style={{ borderRadius: '8px', border: `1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised, padding: '8px 12px' }}>
+                          <div style={{ fontFamily: MONO, fontSize: '12px', fontWeight: 600, color: LK.ink }}>{name}</div>
+                          {description ? <div style={{ marginTop: '4px', fontSize: '12px', color: LK.body }}>{description}</div> : null}
+                          {(sourceKind || source) ? <div style={{ marginTop: '4px', fontSize: '10px', fontWeight: 600, color: LK.muted }}>{[sourceKind ? `source_kind=${sourceKind}` : '', source ? `source=${source}` : ''].filter(Boolean).join(' · ')}</div> : null}
                         </div>
                       );
                     })}
@@ -907,7 +920,7 @@ export const DataflowAnalysisTaskConfigPanel: React.FC<{ detail: AppDfaTaskDetai
       </SectionCard>
 
       <SectionCard title="智能体认证">
-        <div className="mb-3 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-600">
+        <div style={{ marginBottom: '12px', borderRadius: '8px', border: `1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised, padding: '8px 12px', fontSize: '12px', color: LK.body }}>
           {runtimeMode === 'task_scoped'
             ? '当前展示的是任务级运行时快照。'
             : Object.keys(agentAuthJson).length === 0 && roleKeys.length > 0
@@ -917,8 +930,8 @@ export const DataflowAnalysisTaskConfigPanel: React.FC<{ detail: AppDfaTaskDetai
         {Object.keys(agentAuthJson).length === 0 ? (
           <EmptyState text="当前任务没有冻结的智能体认证快照。" />
         ) : (
-          <div className="divide-y divide-slate-100">
-            <ConfigRow label="Task Key ID"><span className="break-all font-mono text-xs">{String(agentAuthJson.agent_task_key_id || '-')}</span></ConfigRow>
+          <div style={{ display: 'flex', flexDirection: 'column' }}>
+            <ConfigRow label="Task Key ID"><span style={{ wordBreak: 'break-all', fontFamily: MONO, fontSize: '12px' }}>{String(agentAuthJson.agent_task_key_id || '-')}</span></ConfigRow>
             <Divider />
             <ConfigRow label="名称">{String(agentAuthJson.agent_task_key_name || '-')}</ConfigRow>
             <Divider />
@@ -926,7 +939,7 @@ export const DataflowAnalysisTaskConfigPanel: React.FC<{ detail: AppDfaTaskDetai
             <Divider />
             <ConfigRow label="来源">{String(agentAuthJson.agent_task_key_source || '-')}</ConfigRow>
             <Divider />
-            <ConfigRow label="Secret"><span className="break-all font-mono text-xs">{String(agentAuthJson.agent_task_key_secret || '-')}</span></ConfigRow>
+            <ConfigRow label="Secret"><span style={{ wordBreak: 'break-all', fontFamily: MONO, fontSize: '12px' }}>{String(agentAuthJson.agent_task_key_secret || '-')}</span></ConfigRow>
           </div>
         )}
       </SectionCard>
@@ -935,19 +948,19 @@ export const DataflowAnalysisTaskConfigPanel: React.FC<{ detail: AppDfaTaskDetai
         {roleKeys.length === 0 ? (
           <EmptyState text="该任务未保存角色级运行快照，历史任务可继续参考下方原始 JSON。" />
         ) : (
-          <div className="grid gap-4 xl:grid-cols-2">
+          <div style={{ display: 'grid', gap: '16px', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))' }}>
             {roleKeys.map((roleKey) => {
               const roleRuntime = asRecord(providerRuntimeSummary[roleKey]);
               const roleSnapshot = asRecord(roleConfigSnapshot[roleKey] || asRecord(llmBindingSnapshot.roles)[roleKey]);
               const agents = Array.isArray(roleRuntime.agents) ? roleRuntime.agents : (Array.isArray(roleSnapshot.agents) ? roleSnapshot.agents : []);
               const stageModels = asRecord(roleRuntime.stage_models || roleSnapshot.stage_models);
               return (
-                <div key={roleKey} className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                <div key={roleKey} style={{ borderRadius: '12px', border: `1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised, padding: '16px' }}>
                   <div>
-                    <div className="text-sm font-black text-slate-900">{DATAFLOW_ROLE_LABELS[roleKey] || roleKey}</div>
-                    <div className="mt-1 font-mono text-[11px] text-slate-400">{roleKey}</div>
+                    <div style={{ fontSize: '14px', fontWeight: 600, color: LK.ink }}>{DATAFLOW_ROLE_LABELS[roleKey] || roleKey}</div>
+                    <div style={{ marginTop: '4px', fontFamily: MONO, fontSize: '11px', color: LK.body }}>{roleKey}</div>
                   </div>
-                  <div className="mt-4 divide-y divide-slate-200">
+                  <div style={{ marginTop: '16px', display: 'flex', flexDirection: 'column' }}>
                     <ConfigRow label="默认模型">{String(roleRuntime.default_model || roleSnapshot.default_model || '-')}</ConfigRow>
                     <Divider />
                     <ConfigRow label="默认工具">
@@ -956,7 +969,7 @@ export const DataflowAnalysisTaskConfigPanel: React.FC<{ detail: AppDfaTaskDetai
                     <Divider />
                     <ConfigRow label="默认思考级别">{String(roleRuntime.default_thinking_level || roleSnapshot.default_thinking_level || '-')}</ConfigRow>
                     <Divider />
-                    <ConfigRow label="Prompt 目录"><span className="break-all font-mono text-xs">{String(roleRuntime.system_prompt_dir || roleSnapshot.system_prompt_dir || '-')}</span></ConfigRow>
+                    <ConfigRow label="Prompt 目录"><span style={{ wordBreak: 'break-all', fontFamily: MONO, fontSize: '12px' }}>{String(roleRuntime.system_prompt_dir || roleSnapshot.system_prompt_dir || '-')}</span></ConfigRow>
                     <Divider />
                     <ConfigRow label="阶段模型覆盖">
                       <JsonPreview value={Object.keys(stageModels).length > 0 ? stageModels : null} emptyText="当前角色没有阶段模型覆盖。" />
@@ -1024,7 +1037,7 @@ export const FirmwareUnpackerTaskConfigPanel: React.FC<{
   });
 
   return (
-    <div className="space-y-4">
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
       <TaskIdentitySection
         taskId={detail.id}
         projectId={detail.project_id}
@@ -1067,16 +1080,16 @@ export const FirmwareUnpackerTaskConfigPanel: React.FC<{
 
       <SectionCard title="智能体认证">
         {taskConfigLoading ? (
-          <div className="text-sm text-slate-500">加载中...</div>
+          <div style={{ fontSize: '14px', color: LK.muted }}>加载中...</div>
         ) : taskConfigError ? (
-          <div className="text-sm text-rose-600">{taskConfigError}</div>
+          <div style={{ fontSize: '14px', color: LK.error }}>{taskConfigError}</div>
         ) : !taskConfigSnapshot || taskConfigSnapshot.available === false ? (
-          <div className="text-sm text-slate-500">{taskConfigSnapshot?.message || '当前任务没有可展示的智能体认证快照。'}</div>
+          <div style={{ fontSize: '14px', color: LK.muted }}>{taskConfigSnapshot?.message || '当前任务没有可展示的智能体认证快照。'}</div>
         ) : !taskConfigSnapshot.agent_auth_json ? (
           <EmptyState text="当前任务没有冻结的智能体认证信息。" />
         ) : (
-          <div className="divide-y divide-slate-100">
-            <ConfigRow label="Task Key ID"><span className="break-all font-mono text-xs">{String(taskConfigSnapshot.agent_auth_json.agent_task_key_id || '-')}</span></ConfigRow>
+          <div style={{ display: 'flex', flexDirection: 'column' }}>
+            <ConfigRow label="Task Key ID"><span style={{ wordBreak: 'break-all', fontFamily: MONO, fontSize: '12px' }}>{String(taskConfigSnapshot.agent_auth_json.agent_task_key_id || '-')}</span></ConfigRow>
             <Divider />
             <ConfigRow label="名称">{String(taskConfigSnapshot.agent_auth_json.agent_task_key_name || '-')}</ConfigRow>
             <Divider />
@@ -1084,34 +1097,34 @@ export const FirmwareUnpackerTaskConfigPanel: React.FC<{
             <Divider />
             <ConfigRow label="来源">{String(taskConfigSnapshot.agent_auth_json.agent_task_key_source || '-')}</ConfigRow>
             <Divider />
-            <ConfigRow label="Secret"><span className="break-all font-mono text-xs">{String(taskConfigSnapshot.agent_auth_json.agent_task_key_secret || '-')}</span></ConfigRow>
+            <ConfigRow label="Secret"><span style={{ wordBreak: 'break-all', fontFamily: MONO, fontSize: '12px' }}>{String(taskConfigSnapshot.agent_auth_json.agent_task_key_secret || '-')}</span></ConfigRow>
           </div>
         )}
       </SectionCard>
 
       <SectionCard title="角色配置">
         {taskConfigLoading ? (
-          <div className="text-sm text-slate-500">加载中...</div>
+          <div style={{ fontSize: '14px', color: LK.muted }}>加载中...</div>
         ) : taskConfigError ? (
-          <div className="text-sm text-rose-600">{taskConfigError}</div>
+          <div style={{ fontSize: '14px', color: LK.error }}>{taskConfigError}</div>
         ) : !taskConfigSnapshot || taskConfigSnapshot.available === false ? (
-          <div className="text-sm text-slate-500">{taskConfigSnapshot?.message || '当前任务没有可展示的角色配置快照。'}</div>
+          <div style={{ fontSize: '14px', color: LK.muted }}>{taskConfigSnapshot?.message || '当前任务没有可展示的角色配置快照。'}</div>
         ) : roleKeys.length === 0 ? (
           <EmptyState text="当前任务没有冻结的角色级配置。" />
         ) : (
-          <div className="grid gap-4 xl:grid-cols-2">
+          <div style={{ display: 'grid', gap: '16px', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))' }}>
             {roleKeys.map((roleKey) => {
               const runtimeSummary = asRecord(providerRuntimeSummary[roleKey]);
               const roleSnapshot = asRecord(roleSnapshots[roleKey]);
               return (
-                <div key={roleKey} className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                  <div className="flex items-center justify-between gap-3">
+                <div key={roleKey} style={{ borderRadius: '12px', border: `1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised, padding: '16px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px' }}>
                     <div>
-                      <div className="text-sm font-black text-slate-900">{FIRMWARE_ROLE_LABELS[roleKey] || roleKey}</div>
-                      <div className="mt-1 font-mono text-[11px] text-slate-400">{roleKey}</div>
+                      <div style={{ fontSize: '14px', fontWeight: 600, color: LK.ink }}>{FIRMWARE_ROLE_LABELS[roleKey] || roleKey}</div>
+                      <div style={{ marginTop: '4px', fontFamily: MONO, fontSize: '11px', color: LK.body }}>{roleKey}</div>
                     </div>
                   </div>
-                  <div className="mt-4 divide-y divide-slate-200">
+                  <div style={{ marginTop: '16px', display: 'flex', flexDirection: 'column' }}>
                     <ConfigRow label="配置文件 Key">{String(runtimeSummary.config_file_key || roleSnapshot.config_file_key || '-')}</ConfigRow>
                     <Divider />
                     <ConfigRow label="Provider Key">{String(runtimeSummary.provider_key || roleSnapshot.provider_key || '-')}</ConfigRow>
@@ -1141,13 +1154,13 @@ export const FirmwareUnpackerTaskConfigPanel: React.FC<{
 
       <SectionCard title="智能体任务配置 JSON">
         {taskConfigLoading ? (
-          <div className="text-sm text-slate-500">加载中...</div>
+          <div style={{ fontSize: '14px', color: LK.muted }}>加载中...</div>
         ) : taskConfigError ? (
-          <div className="text-sm text-rose-600">{taskConfigError}</div>
+          <div style={{ fontSize: '14px', color: LK.error }}>{taskConfigError}</div>
         ) : !taskConfigSnapshot ? (
-          <div className="text-sm text-slate-500">当前任务没有可展示的智能体配置快照。</div>
+          <div style={{ fontSize: '14px', color: LK.muted }}>当前任务没有可展示的智能体配置快照。</div>
         ) : taskConfigSnapshot.available === false ? (
-          <div className="text-sm text-slate-500">{taskConfigSnapshot.message || '当前任务没有可展示的智能体配置快照。'}</div>
+          <div style={{ fontSize: '14px', color: LK.muted }}>{taskConfigSnapshot.message || '当前任务没有可展示的智能体配置快照。'}</div>
         ) : (
           <JsonPreview value={taskConfigSnapshot} emptyText="当前任务没有可展示的智能体配置快照。" />
         )}

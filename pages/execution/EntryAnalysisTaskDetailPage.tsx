@@ -51,6 +51,19 @@ import {
   entryContractSourceRoot,
 } from '../../utils/binarySecurityContracts';
 
+const LK = {
+  primary: '#4f73ff', primarySoft: '#7590ff', primaryDeep: '#3f63f1',
+  primaryMuted: 'rgba(79, 115, 255, 0.14)',
+  canvas: '#070d18', surface: '#111a2b', surfaceRaised: '#18233a',
+  surfaceGlass: 'rgba(17, 26, 43, 0.84)',
+  border: '#26324a', borderSoft: '#1b2438',
+  ink: '#f5f7ff', inkSoft: '#d6def0', body: '#a4aec4',
+  muted: '#72809a', mutedSoft: '#8b95a8',
+  success: '#45c06f', warning: '#d5a13a', error: '#f15d5d', info: '#4f8cff',
+  critical: '#ff4d4f', high: '#ff8b3d', medium: '#f0b64c', low: '#49c5ff',
+} as const;
+const MONO = 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace';
+
 const STATUS_LABEL: Record<string, string> = {
   pending: '等待中',
   running: '分析中',
@@ -183,10 +196,10 @@ type StepStatus = 'pending' | 'running' | 'completed' | 'failed';
 
 function timelineLevelTone(level?: string | null) {
   const normalized = String(level || '').toLowerCase();
-  if (normalized === 'error') return 'border-rose-200 bg-rose-50 text-rose-700';
-  if (normalized === 'warning' || normalized === 'warn') return 'border-amber-200 bg-amber-50 text-amber-700';
-  if (normalized === 'success') return 'border-emerald-200 bg-emerald-50 text-emerald-700';
-  return 'border-slate-200 bg-slate-50 text-slate-700';
+  if (normalized === 'error') return `border-color: ${LK.error}; background-color: ${LK.error}15; color: ${LK.error}`;
+  if (normalized === 'warning' || normalized === 'warn') return `border-color: ${LK.warning}; background-color: ${LK.warning}15; color: ${LK.warning}`;
+  if (normalized === 'success') return `border-color: ${LK.success}; background-color: ${LK.success}15; color: ${LK.success}`;
+  return `border-color: ${LK.borderSoft}; background-color: ${LK.surfaceRaised}; color: ${LK.body}`;
 }
 
 function isAgentKillTimelineEvent(eventType?: string | null) {
@@ -212,17 +225,17 @@ function timelineEventCategoryLabel(eventType?: string | null) {
 
 function timelineEventCategoryTone(eventType?: string | null) {
   const category = timelineEventCategory(eventType);
-  if (category === 'task_mutation') return 'border-cyan-200 bg-cyan-50 text-cyan-700';
-  if (category === 'failure') return 'border-rose-200 bg-rose-50 text-rose-700';
-  if (category === 'stage_progress') return 'border-emerald-200 bg-emerald-50 text-emerald-700';
-  return 'border-slate-200 bg-white text-slate-700';
+  if (category === 'task_mutation') return `border-color: ${LK.info}; background-color: ${LK.info}15; color: ${LK.info}`;
+  if (category === 'failure') return `border-color: ${LK.error}; background-color: ${LK.error}15; color: ${LK.error}`;
+  if (category === 'stage_progress') return `border-color: ${LK.success}; background-color: ${LK.success}15; color: ${LK.success}`;
+  return `border-color: ${LK.borderSoft}; background-color: ${LK.surface}; color: ${LK.body}`;
 }
 
 function timelineEventTypeTone(eventType?: string | null) {
   const normalized = String(eventType || '').trim();
-  if (normalized === 'agent_process_manual_kill') return 'border-rose-200 bg-rose-50 text-rose-700';
-  if (normalized === 'agent_process_bulk_manual_kill') return 'border-amber-200 bg-amber-50 text-amber-700';
-  return 'border-slate-200 bg-white text-slate-700';
+  if (normalized === 'agent_process_manual_kill') return `border-color: ${LK.error}; background-color: ${LK.error}15; color: ${LK.error}`;
+  if (normalized === 'agent_process_bulk_manual_kill') return `border-color: ${LK.warning}; background-color: ${LK.warning}15; color: ${LK.warning}`;
+  return `border-color: ${LK.borderSoft}; background-color: ${LK.surface}; color: ${LK.body}`;
 }
 
 function formatTimelineEventTypeLabel(eventType?: string | null) {
@@ -629,12 +642,12 @@ function stageLabel(stage: string | undefined): string {
 }
 
 function evaluationStatusTone(status?: string) {
-  if (status === 'passed') return 'border-emerald-200 bg-emerald-50 text-emerald-700';
-  if (status === 'failed') return 'border-red-200 bg-red-50 text-red-700';
-  if (status === 'running') return 'border-blue-200 bg-blue-50 text-blue-700';
-  if (status === 'partial') return 'border-amber-200 bg-amber-50 text-amber-700';
-  if (status === 'skipped') return 'border-amber-200 bg-amber-50 text-amber-700';
-  return 'border-slate-200 bg-slate-100 text-slate-600';
+  if (status === 'passed') return `border-color: ${LK.success}; background-color: ${LK.success}15; color: ${LK.success}`;
+  if (status === 'failed') return `border-color: ${LK.error}; background-color: ${LK.error}15; color: ${LK.error}`;
+  if (status === 'running') return `border-color: ${LK.info}; background-color: ${LK.info}15; color: ${LK.info}`;
+  if (status === 'partial') return `border-color: ${LK.warning}; background-color: ${LK.warning}15; color: ${LK.warning}`;
+  if (status === 'skipped') return `border-color: ${LK.warning}; background-color: ${LK.warning}15; color: ${LK.warning}`;
+  return `border-color: ${LK.borderSoft}; background-color: ${LK.surfaceRaised}; color: ${LK.muted}`;
 }
 
 function evaluationRoundKey(round: AppEaEvaluationRound): string {
@@ -686,14 +699,14 @@ function sessionRoleLabel(role?: string) {
 }
 
 function sessionRoleTone(role?: string) {
-  if (role === 'judge' || role?.endsWith('_judge')) return 'border-amber-200 bg-amber-50 text-amber-700';
-  if (role === 'r1_worker') return 'border-sky-200 bg-sky-50 text-sky-700';
-  if (role === 'r2_worker') return 'border-indigo-200 bg-indigo-50 text-indigo-700';
-  if (role === 'r3_worker') return 'border-teal-200 bg-teal-50 text-teal-700';
-  if (role === 'r4_worker') return 'border-cyan-200 bg-cyan-50 text-cyan-700';
-  if (role === 'sub_worker') return 'border-violet-200 bg-violet-50 text-violet-700';
-  if (role === 'master' || role === 'master_worker') return 'border-cyan-200 bg-cyan-50 text-cyan-700';
-  return 'border-slate-200 bg-slate-50 text-slate-600';
+  if (role === 'judge' || role?.endsWith('_judge')) return `border-color: ${LK.warning}; background-color: ${LK.warning}15; color: ${LK.warning}`;
+  if (role === 'r1_worker') return `border-color: ${LK.info}; background-color: ${LK.info}15; color: ${LK.info}`;
+  if (role === 'r2_worker') return `border-color: #6366f1; background-color: rgba(99,102,241,0.15); color: #6366f1`;
+  if (role === 'r3_worker') return `border-color: #14b8a6; background-color: rgba(20,184,166,0.15); color: #14b8a6`;
+  if (role === 'r4_worker') return `border-color: #06b6d4; background-color: rgba(6,182,212,0.15); color: #06b6d4`;
+  if (role === 'sub_worker') return `border-color: #8b5cf6; background-color: rgba(139,92,246,0.15); color: #8b5cf6`;
+  if (role === 'master' || role === 'master_worker') return `border-color: ${LK.info}; background-color: ${LK.info}15; color: ${LK.info}`;
+  return `border-color: ${LK.borderSoft}; background-color: ${LK.surfaceRaised}; color: ${LK.muted}`;
 }
 
 function getEntryAnalysisRiskPreset(riskKey: string): { label: string; description: string; statusReason: string } | null {
@@ -1250,12 +1263,12 @@ function deriveFuncProgress(
 
 function FuncStageDot({ state, label }: { state: FuncStage; label: string }) {
   const cls =
-    state === 'passed' || state === 'keep' ? 'bg-emerald-500 text-white' :
-    state === 'running'   ? 'bg-blue-500 text-white animate-pulse' :
-    state === 'failed'    ? 'bg-red-500 text-white' :
-    state === 'remove'    ? 'bg-orange-400 text-white' :
-    state === 'skip'      ? 'bg-slate-200 text-slate-400' :
-    'bg-slate-100 text-slate-400';
+    state === 'passed' || state === 'keep' ? `background-color: ${LK.success}; color: white` :
+    state === 'running'   ? `background-color: ${LK.info}; color: white; animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite` :
+    state === 'failed'    ? `background-color: ${LK.error}; color: white` :
+    state === 'remove'    ? `background-color: ${LK.warning}; color: white` :
+    state === 'skip'      ? `background-color: ${LK.borderSoft}; color: ${LK.muted}` :
+    `background-color: ${LK.surfaceRaised}; color: ${LK.muted}`;
   const icon =
     state === 'passed' || state === 'keep' ? '✓' :
     state === 'running' ? '…' :
@@ -1263,7 +1276,7 @@ function FuncStageDot({ state, label }: { state: FuncStage; label: string }) {
     state === 'remove'  ? '✗' :
     state === 'skip'    ? '—' : '·';
   return (
-    <span title={`${label}: ${state}`} className={`inline-flex h-4 w-4 items-center justify-center rounded text-[9px] font-black ${cls}`}>
+    <span title={`${label}: ${state}`} style={{ display: 'inline-flex', height: 16, width: 16, alignItems: 'center', justifyContent: 'center', borderRadius: 4, fontSize: 9, fontFamily: MONO, cssText: cls } as React.CSSProperties}>
       {icon}
     </span>
   );
@@ -1281,30 +1294,26 @@ const ROLE_LABELS: Record<string, string> = {
 };
 
 const ROLE_COLORS: Record<string, string> = {
-  boundary:        'bg-blue-100 text-blue-700 border-blue-200',
-  callback:        'bg-purple-100 text-purple-700 border-purple-200',
-  ipc_handler:     'bg-orange-100 text-orange-700 border-orange-200',
-  dispatch_target: 'bg-teal-100 text-teal-700 border-teal-200',
-  syscall_handler: 'bg-rose-100 text-rose-700 border-rose-200',
-  entry:           'bg-emerald-100 text-emerald-700 border-emerald-200',
+  boundary:        'background-color: #dbeafe; color: #1d4ed8; border-color: #93c5fd',
+  callback:        'background-color: #f3e8ff; color: #7c3aed; border-color: #d8b4fe',
+  ipc_handler:     'background-color: #ffedd5; color: #c2410c; border-color: #fed7aa',
+  dispatch_target: 'background-color: #ccfbf1; color: #0f766e; border-color: #99f6e4',
+  syscall_handler: 'background-color: #ffe4e6; color: #e11d48; border-color: #fda4af',
+  entry:           'background-color: #d1fae5; color: #047857; border-color: #a7f3d0',
 };
 
 function ConfidenceBar({ score }: { score: number | null | undefined }) {
-  if (score == null) return <span className="text-slate-400 text-xs">—</span>;
+  if (score == null) return <span style={{ color: LK.muted, fontSize: 12 }}>—</span>;
   const pct = Math.round(score * 100);
-  const color = score >= 0.75 ? 'bg-emerald-500' : score >= 0.5 ? 'bg-amber-400' : 'bg-red-400';
+  const color = score >= 0.75 ? LK.success : score >= 0.5 ? LK.warning : LK.error;
   const label = score >= 0.75 ? '高' : score >= 0.5 ? '中' : '低';
   return (
-    <div className="flex items-center gap-2">
-      <div className="h-2 w-32 overflow-hidden rounded-full bg-slate-100">
-        <div className={`h-full rounded-full ${color}`} style={{ width: `${pct}%` }} />
+    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+      <div style={{ height: 8, width: 128, overflow: 'hidden', borderRadius: 9999, backgroundColor: LK.surfaceRaised }}>
+        <div style={{ height: '100%', borderRadius: 9999, backgroundColor: color, width: `${pct}%` }} />
       </div>
-      <span className="text-xs font-semibold text-slate-700">{pct}%</span>
-      <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${
-        score >= 0.75 ? 'bg-emerald-100 text-emerald-700' :
-        score >= 0.5  ? 'bg-amber-100 text-amber-700' :
-                        'bg-red-100 text-red-600'
-      }`}>{label}</span>
+      <span style={{ fontSize: 12, fontWeight: 600, color: LK.ink }}>{pct}%</span>
+      <span style={{ fontSize: 10, fontWeight: 600, padding: '2px 6px', borderRadius: 9999, backgroundColor: color + '20', color: color }}>{label}</span>
     </div>
   );
 }
@@ -1531,7 +1540,7 @@ function buildJudgeRoundSessionMeta(sessionPath: { displayPath: string; rawPath:
 }
 
 function InfoRow({ label, value }: { label: string; value: React.ReactNode }) {
-  return <div className="flex gap-3"><span className="w-24 shrink-0 text-xs text-slate-400">{label}</span><span className="text-xs text-slate-700 break-all">{value}</span></div>;
+  return <div style={{ display: 'flex', gap: 12 }}><span style={{ width: 96, flexShrink: 0, fontSize: 12, color: LK.muted }}>{label}</span><span style={{ fontSize: 12, color: LK.body, wordBreak: 'break-all' }}>{value}</span></div>;
 }
 
 function ProjectDirectoryOverviewValue({
@@ -1547,13 +1556,15 @@ function ProjectDirectoryOverviewValue({
   if (!normalizedPath) return <>-</>;
   const fsPath = extractFsRelPath(normalizedPath, projectId);
   return (
-    <span className="inline-flex flex-wrap items-center gap-2">
-      <span className="break-all font-mono">{normalizedPath}</span>
+    <span style={{ display: 'inline-flex', flexWrap: 'wrap', alignItems: 'center', gap: 8 }}>
+      <span style={{ wordBreak: 'break-all', fontFamily: MONO }}>{normalizedPath}</span>
       <button
         type="button"
         disabled={!fsPath}
         onClick={() => fsPath && openInExplorer(fsPath)}
-        className="inline-flex items-center gap-1 rounded-md border border-violet-200 px-1.5 py-0.5 text-[10px] font-semibold text-violet-700 hover:bg-violet-50 disabled:cursor-not-allowed disabled:opacity-50"
+        style={{ display: 'inline-flex', alignItems: 'center', gap: 4, borderRadius: 6, border: `1px solid ${LK.info}40`, backgroundColor: 'transparent', padding: '2px 6px', fontSize: 10, fontWeight: 600, color: LK.info, cursor: fsPath ? 'pointer' : 'not-allowed', opacity: fsPath ? 1 : 0.5 }}
+        onMouseEnter={(e) => { if (fsPath) e.currentTarget.style.backgroundColor = LK.info + '15'; }}
+        onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; }}
       >
         <FolderOpen size={10} />
         项目文件
@@ -1563,11 +1574,11 @@ function ProjectDirectoryOverviewValue({
 }
 
 function MetricCard({ label, value, icon }: { label: string; value: React.ReactNode; icon: React.ReactNode }) {
-  return <div className="rounded-2xl border border-slate-200 bg-white px-4 py-4 shadow-sm"><div className="flex items-center justify-between gap-3"><div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">{label}</div><div className="text-slate-400">{icon}</div></div><div className="mt-3 text-2xl font-black text-slate-900">{value}</div></div>;
+  return <div style={{ borderRadius: 12, border: `1px solid ${LK.borderSoft}`, backgroundColor: LK.surface, padding: '16px' }}><div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}><div style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.18em', color: LK.muted }}>{label}</div><div style={{ color: LK.muted }}>{icon}</div></div><div style={{ marginTop: 12, fontSize: 24, fontWeight: 600, color: LK.ink }}>{value}</div></div>;
 }
 
 function MarkdownContent({ content }: { content: string }) {
-  return <article className="prose prose-slate max-w-none prose-headings:font-black prose-pre:border prose-pre:border-slate-200 prose-pre:bg-slate-50 prose-pre:text-slate-900 prose-code:text-rose-700"><ReactMarkdown remarkPlugins={[remarkGfm]}>{content}</ReactMarkdown></article>;
+  return <article style={{ display: 'contents' }}><ReactMarkdown remarkPlugins={[remarkGfm]}>{content}</ReactMarkdown></article>;
 }
 
 export const EntryAnalysisTaskDetailPage: React.FC<{ projectId: string; taskId: string; onBack: () => void }> = ({ projectId, taskId, onBack }) => {
@@ -2320,13 +2331,13 @@ export const EntryAnalysisTaskDetailPage: React.FC<{ projectId: string; taskId: 
             </div>
             <p className="mt-2 text-sm text-slate-500 break-all">{detail?.input_path || '正在加载任务详情。'}</p>
           </div>
-          <div className="flex flex-wrap items-center gap-2">
-            {detail && ['running', 'pending'].includes(detail.status) && !detail.cancel_requested ? <button onClick={() => void handleCancel()} className="rounded-xl border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-50">取消任务</button> : null}
-            {detail && ['running', 'pending'].includes(detail.status) && detail.cancel_requested ? <button disabled className="inline-flex items-center gap-1.5 rounded-xl border border-orange-200 bg-orange-50 px-3 py-2 text-xs font-semibold text-orange-600 opacity-80 cursor-not-allowed"><Loader2 size={13} className="animate-spin" />取消中...</button> : null}
-            {detail && !['pending', 'running'].includes(detail.status) ? <button onClick={() => void handleRestart()} disabled={restarting} className="inline-flex items-center gap-1.5 rounded-xl border border-violet-200 bg-violet-50 px-3 py-2 text-xs font-semibold text-violet-700 hover:bg-violet-100 disabled:opacity-50">{restarting ? <Loader2 size={13} className="animate-spin" /> : <RotateCcw size={13} />}重新运行</button> : null}
+          <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 8 }}>
+            {detail && ['running', 'pending'].includes(detail.status) && !detail.cancel_requested ? <button onClick={() => void handleCancel()} style={{ borderRadius: 12, border: `1px solid ${LK.borderSoft}`, backgroundColor: 'transparent', padding: '8px 12px', fontSize: 12, fontWeight: 600, color: LK.body, cursor: 'pointer' }} onMouseEnter={(e) => e.currentTarget.style.backgroundColor = LK.surfaceRaised} onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}>取消任务</button> : null}
+            {detail && ['running', 'pending'].includes(detail.status) && detail.cancel_requested ? <button disabled style={{ display: 'inline-flex', alignItems: 'center', gap: 6, borderRadius: 12, border: `1px solid ${LK.warning}40`, backgroundColor: `${LK.warning}15`, padding: '8px 12px', fontSize: 12, fontWeight: 600, color: LK.warning, opacity: 0.8, cursor: 'not-allowed' }}><Loader2 size={13} className="animate-spin" />取消中...</button> : null}
+            {detail && !['pending', 'running'].includes(detail.status) ? <button onClick={() => void handleRestart()} disabled={restarting} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, borderRadius: 12, border: `1px solid #8b5cf640`, backgroundColor: '#8b5cf615', padding: '8px 12px', fontSize: 12, fontWeight: 600, color: '#8b5cf6', cursor: 'pointer', opacity: restarting ? 0.5 : 1 }} onMouseEnter={(e) => { if (!restarting) e.currentTarget.style.backgroundColor = '#8b5cf625'; }} onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = '#8b5cf615'; }}>{restarting ? <Loader2 size={13} className="animate-spin" /> : <RotateCcw size={13} />}重新运行</button> : null}
             {detail ? <DownstreamTaskCreator projectId={projectId} sourceKind="entry_analysis" task={detail} /> : null}
-            {detail ? <button onClick={() => void handleDelete()} className="inline-flex items-center gap-1.5 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-xs font-semibold text-red-700 hover:bg-red-100"><Trash2 size={13} />删除任务</button> : null}
-            <button onClick={() => { void Promise.all([loadDetail(), loadLogs(false)]); if (activeTab === 'result') void loadResult(); if (activeTab === 'evaluation') void loadEvaluation(); if (sessionFeatureActive) void loadSessions(false, true); }} className="rounded-xl border border-slate-200 p-2 text-slate-500 hover:bg-slate-50"><RefreshCw size={14} className={loading || resultLoading || evaluationLoading || sessionsLoading ? 'animate-spin' : ''} /></button>
+            {detail ? <button onClick={() => void handleDelete()} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, borderRadius: 12, border: `1px solid ${LK.error}40`, backgroundColor: `${LK.error}15`, padding: '8px 12px', fontSize: 12, fontWeight: 600, color: LK.error, cursor: 'pointer' }} onMouseEnter={(e) => e.currentTarget.style.backgroundColor = `${LK.error}25`} onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = `${LK.error}15`; }}><Trash2 size={13} />删除任务</button> : null}
+            <button onClick={() => { void Promise.all([loadDetail(), loadLogs(false)]); if (activeTab === 'result') void loadResult(); if (activeTab === 'evaluation') void loadEvaluation(); if (sessionFeatureActive) void loadSessions(false, true); }} style={{ borderRadius: 12, border: `1px solid ${LK.borderSoft}`, backgroundColor: 'transparent', padding: 8, color: LK.muted, cursor: 'pointer' }} onMouseEnter={(e) => e.currentTarget.style.backgroundColor = LK.surfaceRaised} onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}><RefreshCw size={14} className={loading || resultLoading || evaluationLoading || sessionsLoading ? 'animate-spin' : ''} /></button>
           </div>
         </div>
         {detail ? <div className="mt-5"><TaskOriginCard origin={detail} /></div> : null}

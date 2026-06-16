@@ -75,18 +75,18 @@ const CATEGORY_LABELS: Record<KernelScanCategory, string> = {
 const statusTone = (status?: string | null) => {
   switch (String(status || '').toLowerCase()) {
     case 'succeeded':
-      return 'border-emerald-200 bg-emerald-50 text-emerald-700';
+      return { borderColor: LK.success, backgroundColor: 'rgba(69, 192, 111, 0.14)', color: LK.success };
     case 'failed':
-      return 'border-rose-200 bg-rose-50 text-rose-700';
+      return { borderColor: LK.error, backgroundColor: 'rgba(241, 93, 93, 0.14)', color: LK.error };
     case 'cancelled':
-      return 'border-slate-200 bg-slate-100 text-slate-500';
+      return { borderColor: LK.borderSoft, backgroundColor: LK.surfaceRaised, color: LK.muted };
     case 'cancel_requested':
     case 'running':
-      return 'border-blue-200 bg-blue-50 text-blue-700';
+      return { borderColor: LK.info, backgroundColor: 'rgba(79, 140, 255, 0.14)', color: LK.info };
     case 'queued':
-      return 'border-violet-200 bg-violet-50 text-violet-700';
+      return { borderColor: LK.primary, backgroundColor: 'rgba(79, 115, 255, 0.14)', color: LK.primary };
     default:
-      return 'border-slate-200 bg-slate-50 text-slate-600';
+      return { borderColor: LK.borderSoft, backgroundColor: LK.surface, color: LK.body };
   }
 };
 
@@ -139,6 +139,19 @@ const getTaskWorkspaceRoot = (task: KernelScanTaskDetail, category: KernelScanCa
 };
 
 type PathPickerTarget = 'target_dir' | 'entrylist_file' | 'report_dir';
+
+const LK = {
+  primary: '#4f73ff', primarySoft: '#7590ff', primaryDeep: '#3f63f1',
+  primaryMuted: 'rgba(79, 115, 255, 0.14)',
+  canvas: '#070d18', surface: '#111a2b', surfaceRaised: '#18233a',
+  surfaceGlass: 'rgba(17, 26, 43, 0.84)',
+  border: '#26324a', borderSoft: '#1b2438',
+  ink: '#f5f7ff', inkSoft: '#d6def0', body: '#a4aec4',
+  muted: '#72809a', mutedSoft: '#8b95a8',
+  success: '#45c06f', warning: '#d5a13a', error: '#f15d5d', info: '#4f8cff',
+  critical: '#ff4d4f', high: '#ff8b3d', medium: '#f0b64c', low: '#49c5ff',
+} as const;
+const MONO = 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace';
 
 const panelClassName = 'rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm';
 
@@ -739,30 +752,36 @@ export const KernelScanPage: React.FC<{ projectId: string }> = ({ projectId }) =
 
   if (bootstrapping) {
     return (
-      <div className="flex items-center justify-center py-32">
-        <Loader2 size={32} className="animate-spin text-slate-400" />
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '8rem 0' }}>
+        <Loader2 size={32} className="animate-spin" style={{ color: LK.muted }} />
       </div>
     );
   }
 
   return (
-    <div className="space-y-8 p-10 animate-in fade-in duration-300">
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem', padding: '2.5rem', backgroundColor: LK.canvas, minHeight: '100vh' }}>
       {feedbackNodes}
 
-      <section className={panelClassName}>
-        <div className="flex items-center gap-3">
-          <Shield size={24} className="text-slate-700" />
+      <section style={{ borderRadius: '1.5rem', border: `1px solid ${LK.border}`, backgroundColor: LK.surface, padding: '1.5rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+          <Shield size={24} style={{ color: LK.inkSoft }} />
           <div>
-            <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-500">Kernel Security</div>
-            <h1 className="mt-1 text-2xl font-black text-slate-950">内核扫描</h1>
+            <div style={{ fontSize: '0.6875rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.18em', color: LK.muted }}>Kernel Security</div>
+            <h1 style={{ marginTop: '0.25rem', fontSize: '1.5rem', fontWeight: 600, color: LK.ink }}>内核扫描</h1>
           </div>
         </div>
         {readyState ? (
-          <div className="mt-4 flex flex-wrap gap-2">
+          <div style={{ marginTop: '1rem', display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
             {Object.entries(readyState.checks || {}).map(([key, passed]) => (
               <span
                 key={key}
-                className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-bold ${passed ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-amber-200 bg-amber-50 text-amber-700'}`}
+                style={{
+                  display: 'inline-flex', alignItems: 'center', gap: '0.375rem',
+                  borderRadius: '9999px', border: `1px solid ${passed ? LK.success : LK.warning}`,
+                  backgroundColor: passed ? 'rgba(69, 192, 111, 0.14)' : 'rgba(213, 161, 58, 0.14)',
+                  padding: '0.25rem 0.75rem', fontSize: '0.75rem', fontWeight: 600,
+                  color: passed ? LK.success : LK.warning
+                }}
               >
                 {passed ? <CheckCircle2 size={14} /> : <AlertTriangle size={14} />}
                 {key}
@@ -771,17 +790,22 @@ export const KernelScanPage: React.FC<{ projectId: string }> = ({ projectId }) =
           </div>
         ) : null}
         {overviewError ? (
-          <div className="mt-4 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700">{overviewError}</div>
+          <div style={{ marginTop: '1rem', borderRadius: '1.25rem', border: `1px solid ${LK.error}`, backgroundColor: 'rgba(241, 93, 93, 0.14)', padding: '0.75rem 1rem', fontSize: '0.875rem', fontWeight: 600, color: LK.error }}>{overviewError}</div>
         ) : null}
       </section>
 
-      <div className="flex gap-2">
+      <div style={{ display: 'flex', gap: '0.5rem' }}>
         {(['attack_entry', 'vuln_scan', 'vuln_verify'] as KernelScanCategory[]).map((cat) => (
           <button
             key={cat}
             type="button"
             onClick={() => { setActiveTab(cat); setShowTaskDetail(false); setTaskKeyword(''); }}
-            className={`rounded-lg px-4 py-2.5 text-sm font-bold transition ${activeTab === cat ? 'bg-slate-950 text-white' : 'border border-slate-200 bg-white text-slate-700 hover:bg-slate-50'}`}
+            style={{
+              borderRadius: '0.5rem', padding: '0.625rem 1rem', fontSize: '0.875rem', fontWeight: 600, transition: 'all 0.2s',
+              backgroundColor: activeTab === cat ? LK.ink : LK.surface,
+              color: activeTab === cat ? LK.canvas : LK.inkSoft,
+              border: activeTab === cat ? 'none' : `1px solid ${LK.borderSoft}`
+            }}
           >
             {CATEGORY_LABELS[cat]}
           </button>
@@ -789,24 +813,29 @@ export const KernelScanPage: React.FC<{ projectId: string }> = ({ projectId }) =
       </div>
 
       {!showTaskDetail && activeTab === 'vuln_verify' ? (
-        <section className={panelClassName}>
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-            <div className="flex min-w-0 items-center gap-3">
-              <Smartphone size={22} className="shrink-0 text-slate-700" />
-              <div className="min-w-0">
-                <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-500">Remote ADB</div>
-                <h2 className="mt-1 text-xl font-black text-slate-950">远程终端设备</h2>
-                <div className="mt-1 break-all font-mono text-[11px] font-semibold text-slate-500">
+        <section style={{ borderRadius: '2rem', border: `1px solid ${LK.border}`, backgroundColor: LK.surface, padding: '1.5rem' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', alignItems: 'flex-start', justifyContent: 'space-between' }}>
+            <div style={{ display: 'flex', minWidth: 0, alignItems: 'center', gap: '0.75rem' }}>
+              <Smartphone size={22} style={{ flexShrink: 0, color: LK.inkSoft }} />
+              <div style={{ minWidth: 0 }}>
+                <div style={{ fontSize: '0.6875rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.18em', color: LK.muted }}>Remote ADB</div>
+                <h2 style={{ marginTop: '0.25rem', fontSize: '1.25rem', fontWeight: 600, color: LK.ink }}>远程终端设备</h2>
+                <div style={{ marginTop: '0.25rem', wordBreak: 'break-all', fontFamily: MONO, fontSize: '0.6875rem', fontWeight: 600, color: LK.muted }}>
                   转发设备端口：ssh -N -R 0.0.0.0:15037:127.0.0.1:5037 remote_user@IP
                 </div>
               </div>
             </div>
-            <div className="flex w-full flex-col gap-2 sm:flex-row lg:w-auto">
+            <div style={{ display: 'flex', width: '100%', flexDirection: 'column', gap: '0.5rem' }}>
               <button
                 type="button"
                 onClick={handleConnectRemoteAdbDevice}
                 disabled={adbDevicesLoading}
-                className="inline-flex shrink-0 items-center justify-center gap-2 rounded-lg bg-slate-950 px-4 py-2.5 text-sm font-bold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50"
+                style={{
+                  display: 'inline-flex', flexShrink: 0, alignItems: 'center', justifyContent: 'center', gap: '0.5rem',
+                  borderRadius: '0.5rem', backgroundColor: LK.ink, padding: '0.625rem 1rem',
+                  fontSize: '0.875rem', fontWeight: 600, color: LK.canvas, transition: 'all 0.2s',
+                  opacity: adbDevicesLoading ? 0.5 : 1, cursor: adbDevicesLoading ? 'not-allowed' : 'pointer'
+                }}
               >
                 {adbDevicesLoading ? <Loader2 size={16} className="animate-spin" /> : <RefreshCw size={16} />}
                 连接设备
@@ -815,55 +844,55 @@ export const KernelScanPage: React.FC<{ projectId: string }> = ({ projectId }) =
           </div>
 
           {adbDevicesError ? (
-            <div className="mt-4 rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-sm font-semibold text-rose-700">
+            <div style={{ marginTop: '1rem', borderRadius: '0.5rem', border: `1px solid ${LK.error}`, backgroundColor: 'rgba(241, 93, 93, 0.14)', padding: '0.5rem 0.75rem', fontSize: '0.875rem', fontWeight: 600, color: LK.error }}>
               {adbDevicesError}
             </div>
           ) : null}
           {adbDevicesMessage ? (
-            <div className={`mt-4 rounded-lg border px-3 py-2 text-sm font-semibold ${adbConnected ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-slate-200 bg-slate-50 text-slate-600'}`}>
+            <div style={{ marginTop: '1rem', borderRadius: '0.5rem', border: `1px solid ${adbConnected ? LK.success : LK.borderSoft}`, backgroundColor: adbConnected ? 'rgba(69, 192, 111, 0.14)' : LK.surfaceRaised, padding: '0.5rem 0.75rem', fontSize: '0.875rem', fontWeight: 600, color: adbConnected ? LK.success : LK.body }}>
               {adbDevicesMessage}
             </div>
           ) : null}
 
-          <div className="mt-4 overflow-hidden rounded-lg border border-slate-200 bg-white">
-            <div className="hidden grid-cols-[minmax(0,1.1fr)_120px_minmax(0,1.4fr)] gap-3 border-b border-slate-200 bg-slate-50 px-3 py-2 text-[11px] font-black uppercase tracking-[0.16em] text-slate-500 sm:grid">
+          <div style={{ marginTop: '1rem', overflow: 'hidden', borderRadius: '0.5rem', border: `1px solid ${LK.border}`, backgroundColor: LK.surface }}>
+            <div style={{ display: 'none', gridTemplateColumns: 'minmax(0,1.1fr) 120px minmax(0,1.4fr)', gap: '0.75rem', borderBottom: `1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised, padding: '0.5rem 0.75rem', fontSize: '0.6875rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.16em', color: LK.muted }} className="sm:grid">
               <span>Serial</span>
               <span>Status</span>
               <span>Info</span>
             </div>
             {adbDevicesLoading ? (
-              <div className="flex items-center justify-center gap-2 px-3 py-8 text-sm font-semibold text-slate-500">
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', padding: '0.75rem 2rem', fontSize: '0.875rem', fontWeight: 600, color: LK.body }}>
                 <Loader2 size={16} className="animate-spin" />
                 连接中...
               </div>
             ) : adbDevices.length > 0 ? (
-              <div className="divide-y divide-slate-100">
+              <div style={{ borderTop: `1px solid ${LK.borderSoft}` }}>
                 {adbDevices.map((device) => (
                   <div
                     key={`${device.serial}-${device.transport_id || ''}`}
-                    className="grid gap-2 px-3 py-3 sm:grid-cols-[minmax(0,1.1fr)_120px_minmax(0,1.4fr)] sm:gap-3"
+                    style={{ display: 'grid', gap: '0.5rem', padding: '0.75rem', gridTemplateColumns: 'minmax(0,1.1fr) 120px minmax(0,1.4fr)' }} className="sm:grid-cols-[minmax(0,1.1fr)_120px_minmax(0,1.4fr)] sm:gap-3"
                   >
-                    <div className="min-w-0 break-all font-mono text-sm font-semibold text-slate-800">{device.serial}</div>
+                    <div style={{ minWidth: 0, wordBreak: 'break-all', fontFamily: MONO, fontSize: '0.875rem', fontWeight: 600, color: LK.inkSoft }}>{device.serial}</div>
                     <div>
-                      <span className={`inline-flex rounded-full border px-2 py-0.5 text-[11px] font-bold ${device.status === 'device' ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-amber-200 bg-amber-50 text-amber-700'}`}>
+                      <span style={{ display: 'inline-flex', borderRadius: '9999px', border: `1px solid ${device.status === 'device' ? LK.success : LK.warning}`, backgroundColor: device.status === 'device' ? 'rgba(69, 192, 111, 0.14)' : 'rgba(213, 161, 58, 0.14)', padding: '0 0.5rem', fontSize: '0.6875rem', fontWeight: 600, color: device.status === 'device' ? LK.success : LK.warning }}>
                         {device.status || '-'}
                       </span>
                     </div>
-                    <div className="min-w-0 space-y-1 text-xs font-semibold text-slate-600">
-                      <div className="break-all">{[device.model, device.product, device.device].filter(Boolean).join(' / ') || '-'}</div>
+                    <div style={{ minWidth: 0, display: 'flex', flexDirection: 'column', gap: '0.25rem', fontSize: '0.75rem', fontWeight: 600, color: LK.muted }}>
+                      <div style={{ wordBreak: 'break-all' }}>{[device.model, device.product, device.device].filter(Boolean).join(' / ') || '-'}</div>
                       {device.transport_id ? (
-                        <div className="font-mono text-slate-400">transport_id={device.transport_id}</div>
+                        <div style={{ fontFamily: MONO, color: LK.mutedSoft }}>transport_id={device.transport_id}</div>
                       ) : null}
                     </div>
                   </div>
                 ))}
               </div>
             ) : adbDevicesQueried ? (
-              <div className="px-3 py-8 text-center text-sm font-semibold text-slate-400">
+              <div style={{ padding: '0.75rem 2rem', textAlign: 'center', fontSize: '0.875rem', fontWeight: 600, color: LK.muted }}>
                 未发现远程 ADB 设备
               </div>
             ) : (
-              <div className="px-3 py-8 text-center text-sm font-semibold text-slate-400">
+              <div style={{ padding: '0.75rem 2rem', textAlign: 'center', fontSize: '0.875rem', fontWeight: 600, color: LK.muted }}>
                 点击连接设备
               </div>
             )}
@@ -873,17 +902,17 @@ export const KernelScanPage: React.FC<{ projectId: string }> = ({ projectId }) =
       ) : null}
 
       {!showTaskDetail ? (
-        <section className={panelClassName}>
-          <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+        <section style={{ borderRadius: '2rem', border: `1px solid ${LK.border}`, backgroundColor: LK.surface, padding: '1.5rem' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', alignItems: 'flex-start', justifyContent: 'space-between' }}>
             <div>
-              <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-500">Task Queue</div>
-              <h2 className="mt-2 text-xl font-black text-slate-950">{CATEGORY_LABELS[activeTab]} · 任务列表</h2>
+              <div style={{ fontSize: '0.6875rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.18em', color: LK.muted }}>Task Queue</div>
+              <h2 style={{ marginTop: '0.5rem', fontSize: '1.25rem', fontWeight: 600, color: LK.ink }}>{CATEGORY_LABELS[activeTab]} · 任务列表</h2>
             </div>
-            <div className="flex flex-wrap gap-2">
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
               <button
                 type="button"
                 onClick={() => setCreateModalOpen(true)}
-                className="inline-flex items-center gap-2 rounded-lg bg-slate-950 px-3 py-2 text-sm font-bold text-white transition hover:bg-slate-800"
+                style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', borderRadius: '0.5rem', backgroundColor: LK.ink, padding: '0.5rem 0.75rem', fontSize: '0.875rem', fontWeight: 600, color: LK.canvas, transition: 'all 0.2s' }}
               >
                 <Plus size={16} />
                 新建任务
@@ -892,7 +921,7 @@ export const KernelScanPage: React.FC<{ projectId: string }> = ({ projectId }) =
                 type="button"
                 onClick={() => handleRefreshTasks()}
                 disabled={tasksLoading}
-                className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-bold text-slate-700 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50"
+                style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', borderRadius: '0.5rem', border: `1px solid ${LK.borderSoft}`, backgroundColor: LK.surfaceRaised, padding: '0.5rem 0.75rem', fontSize: '0.875rem', fontWeight: 600, color: LK.inkSoft, transition: 'all 0.2s', opacity: tasksLoading ? 0.5 : 1, cursor: tasksLoading ? 'not-allowed' : 'pointer' }}
               >
                 {tasksLoading ? <Loader2 size={16} className="animate-spin" /> : <RefreshCw size={16} />}
                 刷新
@@ -900,49 +929,50 @@ export const KernelScanPage: React.FC<{ projectId: string }> = ({ projectId }) =
             </div>
           </div>
 
-          <div className="mt-4 grid gap-3 sm:grid-cols-4">
-            <div className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3">
-              <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-500">任务总数</div>
-              <div className="mt-1 text-lg font-black text-slate-900">{tasks.length}</div>
+          <div style={{ marginTop: '1rem', display: 'grid', gap: '0.75rem', gridTemplateColumns: 'repeat(4, 1fr)' }} className="sm:grid-cols-4">
+            <div style={{ borderRadius: '0.5rem', border: `1px solid ${LK.borderSoft}`, backgroundColor: LK.surfaceRaised, padding: '0.75rem 1rem' }}>
+              <div style={{ fontSize: '0.6875rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.18em', color: LK.muted }}>任务总数</div>
+              <div style={{ marginTop: '0.25rem', fontSize: '1.125rem', fontWeight: 600, color: LK.ink }}>{tasks.length}</div>
             </div>
-            <div className="rounded-lg border border-blue-200 bg-blue-50 px-4 py-3">
-              <div className="text-[11px] font-black uppercase tracking-[0.18em] text-blue-600">进行中</div>
-              <div className="mt-1 text-lg font-black text-blue-700">{activeTaskCount}</div>
+            <div style={{ borderRadius: '0.5rem', border: `1px solid ${LK.info}`, backgroundColor: 'rgba(79, 140, 255, 0.14)', padding: '0.75rem 1rem' }}>
+              <div style={{ fontSize: '0.6875rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.18em', color: LK.info }}>进行中</div>
+              <div style={{ marginTop: '0.25rem', fontSize: '1.125rem', fontWeight: 600, color: LK.info }}>{activeTaskCount}</div>
             </div>
-            <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3">
-              <div className="text-[11px] font-black uppercase tracking-[0.18em] text-emerald-600">已完成</div>
-              <div className="mt-1 text-lg font-black text-emerald-700">{succeededTaskCount}</div>
+            <div style={{ borderRadius: '0.5rem', border: `1px solid ${LK.success}`, backgroundColor: 'rgba(69, 192, 111, 0.14)', padding: '0.75rem 1rem' }}>
+              <div style={{ fontSize: '0.6875rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.18em', color: LK.success }}>已完成</div>
+              <div style={{ marginTop: '0.25rem', fontSize: '1.125rem', fontWeight: 600, color: LK.success }}>{succeededTaskCount}</div>
             </div>
-            <div className="rounded-lg border border-rose-200 bg-rose-50 px-4 py-3">
-              <div className="text-[11px] font-black uppercase tracking-[0.18em] text-rose-600">失败</div>
-              <div className="mt-1 text-lg font-black text-rose-700">{failedTaskCount}</div>
+            <div style={{ borderRadius: '0.5rem', border: `1px solid ${LK.error}`, backgroundColor: 'rgba(241, 93, 93, 0.14)', padding: '0.75rem 1rem' }}>
+              <div style={{ fontSize: '0.6875rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.18em', color: LK.error }}>失败</div>
+              <div style={{ marginTop: '0.25rem', fontSize: '1.125rem', fontWeight: 600, color: LK.error }}>{failedTaskCount}</div>
             </div>
           </div>
 
-          <div className="mt-4 flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5">
-            <Search size={16} className="text-slate-400" />
+          <div style={{ marginTop: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem', borderRadius: '0.5rem', border: `1px solid ${LK.borderSoft}`, backgroundColor: LK.surfaceRaised, padding: '0.625rem 0.75rem' }}>
+            <Search size={16} style={{ color: LK.muted }} />
             <input
               value={taskKeyword}
               onChange={(event) => setTaskKeyword(event.target.value)}
               placeholder="筛选标题、路径或任务 ID"
-              className="w-full bg-transparent text-sm font-semibold text-slate-700 outline-none placeholder:text-slate-400"
+              style={{ width: '100%', backgroundColor: 'transparent', fontSize: '0.875rem', fontWeight: 600, color: LK.inkSoft, outline: 'none', border: 'none' }}
             />
           </div>
 
-          <div className="mt-4 max-h-[840px] space-y-3 overflow-auto pr-1">
+          <div style={{ marginTop: '1rem', maxHeight: '840px', overflow: 'auto', paddingRight: '0.25rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
             {tasksLoading ? (
-              <div className="flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-600">
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', borderRadius: '0.5rem', border: `1px solid ${LK.borderSoft}`, backgroundColor: LK.surfaceRaised, padding: '0.75rem 1rem', fontSize: '0.875rem', fontWeight: 600, color: LK.body }}>
                 <Loader2 size={16} className="animate-spin" />
                 正在加载任务列表...
               </div>
             ) : filteredTasks.length === 0 ? (
-              <div className="rounded-lg border border-dashed border-slate-200 bg-slate-50 px-4 py-12 text-center text-sm font-semibold text-slate-500">
+              <div style={{ borderRadius: '0.5rem', border: `1px dashed ${LK.borderSoft}`, backgroundColor: LK.surfaceRaised, padding: '1rem 3rem', textAlign: 'center', fontSize: '0.875rem', fontWeight: 600, color: LK.muted }}>
                 当前没有{CATEGORY_LABELS[activeTab]}任务。
               </div>
             ) : (
               filteredTasks.map((item) => {
                 const active = item.task_id === selectedTaskId;
                 const deleting = deletingTaskId === item.task_id;
+                const statusStyle = statusTone(item.status);
                 return (
                   <div
                     key={item.task_id}
@@ -950,15 +980,20 @@ export const KernelScanPage: React.FC<{ projectId: string }> = ({ projectId }) =
                     tabIndex={0}
                     onClick={() => handleOpenTaskDetail(item.task_id)}
                     onKeyDown={(event) => { if (event.key === 'Enter') handleOpenTaskDetail(item.task_id); }}
-                    className={`block w-full cursor-pointer rounded-lg border px-4 py-4 text-left transition ${active ? 'border-sky-300 bg-sky-50 shadow-sm' : 'border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50'}`}
+                    style={{
+                      display: 'block', width: '100%', cursor: 'pointer', borderRadius: '0.5rem',
+                      border: `1px solid ${active ? LK.info : LK.border}`,
+                      padding: '1rem', textAlign: 'left', transition: 'all 0.2s',
+                      backgroundColor: active ? 'rgba(79, 140, 255, 0.14)' : LK.surface
+                    }}
                   >
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="min-w-0">
-                        <div className="truncate text-sm font-black text-slate-900">{item.title}</div>
-                        <div className="mt-2 break-all font-mono text-[11px] text-slate-500">{item.kernel_dir || '-'}</div>
+                    <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '0.75rem' }}>
+                      <div style={{ minWidth: 0 }}>
+                        <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontSize: '0.875rem', fontWeight: 600, color: LK.ink }}>{item.title}</div>
+                        <div style={{ marginTop: '0.5rem', wordBreak: 'break-all', fontFamily: MONO, fontSize: '0.6875rem', color: LK.muted }}>{item.kernel_dir || '-'}</div>
                       </div>
-                      <div className="flex shrink-0 items-center gap-2">
-                        <span className={`rounded-full border px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.16em] ${statusTone(item.status)}`}>
+                      <div style={{ display: 'flex', flexShrink: 0, alignItems: 'center', gap: '0.5rem' }}>
+                        <span style={{ borderRadius: '9999px', border: `1px solid ${statusStyle.borderColor}`, backgroundColor: statusStyle.backgroundColor, padding: '0 0.625rem', fontSize: '0.625rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.16em', color: statusStyle.color }}>
                           {formatTaskStatus(item.status)}
                         </span>
                         <button
@@ -966,17 +1001,17 @@ export const KernelScanPage: React.FC<{ projectId: string }> = ({ projectId }) =
                           onClick={(event) => handleDeleteTaskById(item, event)}
                           disabled={deleting}
                           title="删除任务"
-                          className="inline-flex items-center gap-1 rounded-lg border border-rose-200 bg-white px-2 py-1 text-[11px] font-bold text-rose-600 transition hover:bg-rose-50 disabled:cursor-not-allowed disabled:opacity-50"
+                          style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem', borderRadius: '0.5rem', border: `1px solid ${LK.error}`, backgroundColor: LK.surface, padding: '0.25rem 0.5rem', fontSize: '0.6875rem', fontWeight: 600, color: LK.error, transition: 'all 0.2s', opacity: deleting ? 0.5 : 1, cursor: deleting ? 'not-allowed' : 'pointer' }}
                         >
                           {deleting ? <Loader2 size={12} className="animate-spin" /> : <Trash2 size={12} />}
                           删除
                         </button>
                       </div>
                     </div>
-                    <div className="mt-3 flex flex-wrap gap-2 text-[11px] font-semibold text-slate-500">
+                    <div style={{ marginTop: '0.75rem', display: 'flex', flexWrap: 'wrap', gap: '0.5rem', fontSize: '0.6875rem', fontWeight: 600, color: LK.muted }}>
                       <span>{formatDateTime(item.created_at)}</span>
                     </div>
-                    <div className="mt-2 font-mono text-[11px] text-slate-400">{item.task_id}</div>
+                    <div style={{ marginTop: '0.5rem', fontFamily: MONO, fontSize: '0.6875rem', color: LK.mutedSoft }}>{item.task_id}</div>
                     {activeTab === 'attack_entry' ? (() => {
                       const progress = entryProgress[item.task_id];
                       const status = String(item.status || '').toLowerCase();
@@ -990,13 +1025,13 @@ export const KernelScanPage: React.FC<{ projectId: string }> = ({ projectId }) =
                       const hasPct = typeof pct === 'number' && Number.isFinite(pct);
                       const display = hasPct ? Math.round(pct as number) : null;
 
-                      let barClass = 'bg-sky-500';
+                      let barColor: string = LK.info;
                       let hint = '';
                       let indeterminate = false;
-                      if (isSucceeded) { barClass = 'bg-emerald-500'; hint = '已完成'; }
-                      else if (isFailed) { barClass = 'bg-rose-500'; hint = hasPct ? '已失败' : '失败'; }
-                      else if (isCancelled) { barClass = 'bg-slate-400'; hint = '已取消'; }
-                      else if (isQueued) { barClass = 'bg-violet-400'; hint = '排队中'; }
+                      if (isSucceeded) { barColor = LK.success; hint = '已完成'; }
+                      else if (isFailed) { barColor = LK.error; hint = hasPct ? '已失败' : '失败'; }
+                      else if (isCancelled) { barColor = LK.muted; hint = '已取消'; }
+                      else if (isQueued) { barColor = LK.primary; hint = '排队中'; }
                       else if (isRunning && !hasPct) { indeterminate = true; hint = '正在启动…'; }
 
                       const widthPercent = isSucceeded
@@ -1006,22 +1041,22 @@ export const KernelScanPage: React.FC<{ projectId: string }> = ({ projectId }) =
                           : 0;
 
                       return (
-                        <div className="mt-3">
-                          <div className="flex items-center justify-between text-[10px] font-bold text-slate-500">
+                        <div style={{ marginTop: '0.75rem' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.625rem', fontWeight: 600, color: LK.muted }}>
                             <span>扫描进度{hint ? ` · ${hint}` : ''}</span>
-                            <span className="font-mono text-slate-700">
+                            <span style={{ fontFamily: MONO, color: LK.inkSoft }}>
                               {display !== null ? `${display}%` : '—'}
                               {progress?.current != null && progress?.total != null ? ` (${progress.current}/${progress.total})` : ''}
                             </span>
                           </div>
-                          <div className="mt-1 h-1.5 w-full overflow-hidden rounded-full bg-slate-200">
+                          <div style={{ marginTop: '0.25rem', height: '0.375rem', width: '100%', overflow: 'hidden', borderRadius: '9999px', backgroundColor: LK.borderSoft }}>
                             <div
-                              className={`h-full ${barClass} transition-all ${indeterminate ? 'animate-pulse' : ''}`}
-                              style={{ width: `${widthPercent}%` }}
+                              style={{ height: '100%', backgroundColor: barColor, transition: 'all 0.3s', width: `${widthPercent}%`, opacity: indeterminate ? 0.5 : 1 }}
+                              className={indeterminate ? 'animate-pulse' : ''}
                             />
                           </div>
                           {progress?.label && !isQueued ? (
-                            <div className="mt-1 truncate font-mono text-[10px] text-slate-400" title={progress.label}>{progress.label}</div>
+                            <div style={{ marginTop: '0.25rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontFamily: MONO, fontSize: '0.625rem', color: LK.mutedSoft }} title={progress.label}>{progress.label}</div>
                           ) : null}
                         </div>
                       );
@@ -1033,39 +1068,42 @@ export const KernelScanPage: React.FC<{ projectId: string }> = ({ projectId }) =
           </div>
         </section>
       ) : (
-        <section className={panelClassName}>
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-            <div className="min-w-0">
+        <section style={{ borderRadius: '2rem', border: `1px solid ${LK.border}`, backgroundColor: LK.surface, padding: '1.5rem' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', alignItems: 'flex-start', justifyContent: 'space-between' }}>
+            <div style={{ minWidth: 0 }}>
               <button
                 type="button"
                 onClick={handleBackToList}
-                className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-bold text-slate-700 transition hover:bg-slate-100"
+                style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', borderRadius: '1.25rem', border: `1px solid ${LK.borderSoft}`, backgroundColor: LK.surfaceRaised, padding: '0.5rem 0.75rem', fontSize: '0.875rem', fontWeight: 600, color: LK.inkSoft, transition: 'all 0.2s' }}
               >
                 <ArrowLeft size={16} />
                 返回任务列表
               </button>
-              <div className="mt-3 text-[11px] font-black uppercase tracking-[0.18em] text-slate-500">Task Detail</div>
-              <h2 className="mt-2 truncate text-2xl font-black text-slate-950">{selectedTask?.title || '任务详情'}</h2>
-              {selectedTask ? (
-                <div className="mt-3 flex flex-wrap items-center gap-2">
-                  <span className={`rounded-full border px-3 py-1 text-xs font-bold ${statusTone(selectedTask.status)}`}>
+              <div style={{ marginTop: '0.75rem', fontSize: '0.6875rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.18em', color: LK.muted }}>Task Detail</div>
+              <h2 style={{ marginTop: '0.5rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontSize: '1.5rem', fontWeight: 600, color: LK.ink }}>{selectedTask?.title || '任务详情'}</h2>
+              {selectedTask ? (() => {
+                const statusStyle = statusTone(selectedTask.status);
+                return (
+                <div style={{ marginTop: '0.75rem', display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '0.5rem' }}>
+                  <span style={{ borderRadius: '9999px', border: `1px solid ${statusStyle.borderColor}`, backgroundColor: statusStyle.backgroundColor, padding: '0 0.75rem', fontSize: '0.75rem', fontWeight: 600, color: statusStyle.color }}>
                     {formatTaskStatus(selectedTask.status)}
                   </span>
-                  <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-bold text-slate-600">
+                  <span style={{ borderRadius: '9999px', border: `1px solid ${LK.borderSoft}`, backgroundColor: LK.surfaceRaised, padding: '0 0.75rem', fontSize: '0.75rem', fontWeight: 600, color: LK.body }}>
                     {CATEGORY_LABELS[activeTab]}
                   </span>
                 </div>
-              ) : null}
+                );
+              })() : null}
             </div>
 
             {selectedTask ? (
-              <div className="flex flex-wrap gap-2">
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
                 {ACTIVE_TASK_STATUSES.has(String(selectedTask.status || '').toLowerCase()) ? (
                   <button
                     type="button"
                     onClick={handleCancelTask}
                     disabled={actingTask}
-                    className="inline-flex items-center gap-2 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-2 text-sm font-bold text-rose-700 transition hover:bg-rose-100 disabled:cursor-not-allowed disabled:opacity-50"
+                    style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', borderRadius: '1.25rem', border: `1px solid ${LK.error}`, backgroundColor: 'rgba(241, 93, 93, 0.14)', padding: '0.5rem 1rem', fontSize: '0.875rem', fontWeight: 600, color: LK.error, transition: 'all 0.2s', opacity: actingTask ? 0.5 : 1, cursor: actingTask ? 'not-allowed' : 'pointer' }}
                   >
                     {actingTask ? <Loader2 size={16} className="animate-spin" /> : <XCircle size={16} />}
                     取消任务
@@ -1076,7 +1114,7 @@ export const KernelScanPage: React.FC<{ projectId: string }> = ({ projectId }) =
                     type="button"
                     onClick={handleRestartTask}
                     disabled={restartingTask}
-                    className="inline-flex items-center gap-2 rounded-2xl border border-blue-200 bg-blue-50 px-4 py-2 text-sm font-bold text-blue-700 transition hover:bg-blue-100 disabled:cursor-not-allowed disabled:opacity-50"
+                    style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', borderRadius: '1.25rem', border: `1px solid ${LK.info}`, backgroundColor: 'rgba(79, 140, 255, 0.14)', padding: '0.5rem 1rem', fontSize: '0.875rem', fontWeight: 600, color: LK.info, transition: 'all 0.2s', opacity: restartingTask ? 0.5 : 1, cursor: restartingTask ? 'not-allowed' : 'pointer' }}
                   >
                     {restartingTask ? <Loader2 size={16} className="animate-spin" /> : <RotateCcw size={16} />}
                     重启任务
@@ -1086,7 +1124,7 @@ export const KernelScanPage: React.FC<{ projectId: string }> = ({ projectId }) =
                   type="button"
                   onClick={() => handleDeleteTaskById(selectedTask)}
                   disabled={deletingTaskId === selectedTask.task_id}
-                  className="inline-flex items-center gap-2 rounded-2xl border border-rose-200 bg-white px-4 py-2 text-sm font-bold text-rose-700 transition hover:bg-rose-50 disabled:cursor-not-allowed disabled:opacity-50"
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', borderRadius: '1.25rem', border: `1px solid ${LK.error}`, backgroundColor: LK.surface, padding: '0.5rem 1rem', fontSize: '0.875rem', fontWeight: 600, color: LK.error, transition: 'all 0.2s', opacity: deletingTaskId === selectedTask.task_id ? 0.5 : 1, cursor: deletingTaskId === selectedTask.task_id ? 'not-allowed' : 'pointer' }}
                 >
                   {deletingTaskId === selectedTask.task_id ? <Loader2 size={16} className="animate-spin" /> : <Trash2 size={16} />}
                   删除任务

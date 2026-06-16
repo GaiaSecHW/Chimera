@@ -8,6 +8,19 @@ import { EntryAnalysisConfigPage } from './EntryAnalysisConfigPage';
 import { DataflowVulnScanConfigPage } from './DataflowVulnScanConfigPage';
 import { B2SConfigPage } from './B2SConfigPage';
 
+const LK = {
+  primary: '#4f73ff', primarySoft: '#7590ff', primaryDeep: '#3f63f1',
+  primaryMuted: 'rgba(79, 115, 255, 0.14)',
+  canvas: '#070d18', surface: '#111a2b', surfaceRaised: '#18233a',
+  surfaceGlass: 'rgba(17, 26, 43, 0.84)',
+  border: '#26324a', borderSoft: '#1b2438',
+  ink: '#f5f7ff', inkSoft: '#d6def0', body: '#a4aec4',
+  muted: '#72809a', mutedSoft: '#8b95a8',
+  success: '#45c06f', warning: '#d5a13a', error: '#f15d5d', info: '#4f8cff',
+  critical: '#ff4d4f', high: '#ff8b3d', medium: '#f0b64c', low: '#49c5ff',
+} as const;
+const MONO = 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace';
+
 type ConfigTab = 'binary-security' | 'binary-evolution' | 'firmware-unpacker' | 'system-analysis' | 'binary-to-source' | 'entry-analysis' | 'dataflow-vuln';
 const ORCHESTRATOR_STAGE_FIELDS = [
   { key: 'firmware_unpack', label: '固件解包' },
@@ -109,25 +122,25 @@ const normalizeBinaryEvolutionConfig = (value: unknown) => {
 };
 
 const SectionCard: React.FC<{ title: string; subtitle?: string; actions?: React.ReactNode; children: React.ReactNode }> = ({ title, subtitle, actions, children }) => (
-  <section className="rounded-2xl bg-white p-5">
-    <div className="flex items-start justify-between gap-4">
+  <section style={{ borderRadius: '12px', backgroundColor: LK.surface, padding: '20px' }}>
+    <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '16px' }}>
       <div>
-        <div className="text-sm font-bold text-slate-700">{title}</div>
-        {subtitle ? <div className="mt-2 text-xs text-slate-500">{subtitle}</div> : null}
+        <div style={{ fontSize: '14px', fontWeight: 600, color: LK.inkSoft }}>{title}</div>
+        {subtitle ? <div style={{ marginTop: '8px', fontSize: '12px', color: LK.body }}>{subtitle}</div> : null}
       </div>
       {actions}
     </div>
-    <div className="mt-4">{children}</div>
+    <div style={{ marginTop: '16px' }}>{children}</div>
   </section>
 );
 
 const PanelActions: React.FC<{ saving: boolean; onSave: () => void; onReset: () => void }> = ({ saving, onSave, onReset }) => (
-  <div className="flex shrink-0 items-center gap-2">
+  <div style={{ display: 'flex', flexShrink: 0, alignItems: 'center', gap: '8px' }}>
     <button
       type="button"
       onClick={onReset}
       disabled={saving}
-      className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-50 disabled:opacity-50"
+      style={{ borderRadius: '8px', border: `1px solid ${LK.border}`, backgroundColor: LK.surface, padding: '8px 12px', fontSize: '12px', fontWeight: 600, color: LK.body, cursor: saving ? 'not-allowed' : 'pointer', opacity: saving ? 0.5 : 1 }}
     >
       重置为默认
     </button>
@@ -135,7 +148,7 @@ const PanelActions: React.FC<{ saving: boolean; onSave: () => void; onReset: () 
       type="button"
       onClick={onSave}
       disabled={saving}
-      className="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-3 py-2 text-xs font-semibold text-white shadow-sm hover:bg-slate-800 disabled:opacity-60"
+      style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', borderRadius: '8px', backgroundColor: LK.primary, padding: '8px 12px', fontSize: '12px', fontWeight: 600, color: '#ffffff', cursor: saving ? 'not-allowed' : 'pointer', opacity: saving ? 0.6 : 1 }}
     >
       {saving ? <Loader2 size={12} className="animate-spin" /> : <Save size={12} />}
       保存配置
@@ -438,13 +451,13 @@ export const BinarySecurityConfigPage: React.FC<{ projectId: string; initialTab?
   };
 
   return (
-    <div className="px-8 pb-10 pt-8 space-y-6">
-      <section className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
-        <div className="flex items-start justify-between gap-4">
+    <div style={{ padding: '32px 32px 40px', display: 'flex', flexDirection: 'column', gap: '24px' }}>
+      <section style={{ borderRadius: '24px', border: `1px solid ${LK.border}`, backgroundColor: LK.surface, padding: '24px' }}>
+        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '16px' }}>
           <div>
-            <p className="text-xs font-black uppercase tracking-[0.3em] text-rose-600">Binary Security</p>
-            <h1 className="mt-3 text-3xl font-black tracking-tight text-slate-900">参数配置</h1>
-            <p className="mt-2 max-w-3xl text-sm text-slate-500">
+            <p style={{ fontSize: '12px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.3em', color: LK.error }}>Binary Security</p>
+            <h1 style={{ marginTop: '12px', fontSize: '30px', fontWeight: 600, letterSpacing: '-0.025em', color: LK.ink }}>参数配置</h1>
+            <p style={{ marginTop: '8px', maxWidth: '48rem', fontSize: '14px', color: LK.body }}>
               按微服务分组查看和编辑配置。同一个微服务的参数归入同一个 Tab，不同微服务互相隔离，便于统一管理。
             </p>
           </div>

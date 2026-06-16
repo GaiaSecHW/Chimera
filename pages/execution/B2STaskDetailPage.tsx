@@ -1,5 +1,18 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Editor from '@monaco-editor/react';
+
+const LK = {
+  primary: '#4f73ff', primarySoft: '#7590ff', primaryDeep: '#3f63f1',
+  primaryMuted: 'rgba(79, 115, 255, 0.14)',
+  canvas: '#070d18', surface: '#111a2b', surfaceRaised: '#18233a',
+  surfaceGlass: 'rgba(17, 26, 43, 0.84)',
+  border: '#26324a', borderSoft: '#1b2438',
+  ink: '#f5f7ff', inkSoft: '#d6def0', body: '#a4aec4',
+  muted: '#72809a', mutedSoft: '#8b95a8',
+  success: '#45c06f', warning: '#d5a13a', error: '#f15d5d', info: '#4f8cff',
+  critical: '#ff4d4f', high: '#ff8b3d', medium: '#f0b64c', low: '#49c5ff',
+} as const;
+const MONO = 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace';
 import {
   AlertTriangle,
   ArrowLeft,
@@ -280,32 +293,32 @@ const buildFallbackRuntimeEntries = (agents: B2SAgentRuntimeEntry[]): B2SAgentSe
 const runtimeStatusTone = (entry: B2SAgentSessionRuntimeEntry | null, selected = false) => {
   if (!entry) {
     return selected
-      ? 'border-slate-500 bg-slate-800 text-slate-100'
-      : 'border-slate-200 bg-white text-slate-500';
+      ? { borderColor: LK.border, backgroundColor: LK.surfaceRaised, color: LK.inkSoft }
+      : { borderColor: LK.borderSoft, backgroundColor: LK.surface, color: LK.muted };
   }
   if (entry.status === 'failed' || entry.status === 'cancelled') {
     return selected
-      ? 'border-rose-300 bg-rose-100 text-rose-800'
-      : 'border-rose-200 bg-rose-50 text-rose-700';
+      ? { borderColor: LK.error, backgroundColor: 'rgba(241, 93, 93, 0.14)', color: LK.error }
+      : { borderColor: 'rgba(241, 93, 93, 0.5)', backgroundColor: 'rgba(241, 93, 93, 0.1)', color: LK.error };
   }
   if (entry.is_stale) {
     return selected
-      ? 'border-amber-300 bg-amber-100 text-amber-800'
-      : 'border-amber-200 bg-amber-50 text-amber-700';
+      ? { borderColor: LK.warning, backgroundColor: 'rgba(213, 161, 58, 0.14)', color: LK.warning }
+      : { borderColor: 'rgba(213, 161, 58, 0.5)', backgroundColor: 'rgba(213, 161, 58, 0.1)', color: LK.warning };
   }
   if (entry.is_orphan) {
     return selected
-      ? 'border-slate-300 bg-slate-100 text-slate-800'
-      : 'border-slate-200 bg-slate-100 text-slate-700';
+      ? { borderColor: LK.borderSoft, backgroundColor: LK.surfaceRaised, color: LK.inkSoft }
+      : { borderColor: LK.borderSoft, backgroundColor: LK.surfaceRaised, color: LK.body };
   }
   if (entry.is_active) {
     return selected
-      ? 'border-emerald-300 bg-emerald-100 text-emerald-800'
-      : 'border-emerald-200 bg-emerald-50 text-emerald-700';
+      ? { borderColor: LK.success, backgroundColor: 'rgba(69, 192, 111, 0.14)', color: LK.success }
+      : { borderColor: 'rgba(69, 192, 111, 0.5)', backgroundColor: 'rgba(69, 192, 111, 0.1)', color: LK.success };
   }
   return selected
-    ? 'border-slate-500 bg-slate-800 text-slate-100'
-    : 'border-slate-200 bg-white text-slate-500';
+    ? { borderColor: LK.border, backgroundColor: LK.surfaceRaised, color: LK.inkSoft }
+    : { borderColor: LK.borderSoft, backgroundColor: LK.surface, color: LK.muted };
 };
 
 const buildB2SSessionMeta = (
@@ -340,16 +353,16 @@ const extractFsRelPath = (absolutePath: string, projectId: string): string | nul
 
 const tabButtonTone = (active: boolean) => (
   active
-    ? 'border-slate-900 bg-slate-900 text-white shadow-[0_10px_28px_rgba(15,23,42,0.18)]'
-    : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-50'
+    ? { borderColor: LK.border, backgroundColor: LK.surfaceRaised, color: LK.ink }
+    : { borderColor: LK.borderSoft, backgroundColor: LK.surface, color: LK.body, ':hover': { borderColor: LK.border, backgroundColor: LK.surfaceRaised } }
 );
 
 const timelineLevelTone = (level?: string | null) => {
   const normalized = String(level || '').toLowerCase();
-  if (normalized === 'error') return 'border-rose-200 bg-rose-50 text-rose-700';
-  if (normalized === 'warning' || normalized === 'warn') return 'border-amber-200 bg-amber-50 text-amber-700';
-  if (normalized === 'success') return 'border-emerald-200 bg-emerald-50 text-emerald-700';
-  return 'border-slate-200 bg-slate-50 text-slate-700';
+  if (normalized === 'error') return { borderColor: 'rgba(241, 93, 93, 0.5)', backgroundColor: 'rgba(241, 93, 93, 0.1)', color: LK.error };
+  if (normalized === 'warning' || normalized === 'warn') return { borderColor: 'rgba(213, 161, 58, 0.5)', backgroundColor: 'rgba(213, 161, 58, 0.1)', color: LK.warning };
+  if (normalized === 'success') return { borderColor: 'rgba(69, 192, 111, 0.5)', backgroundColor: 'rgba(69, 192, 111, 0.1)', color: LK.success };
+  return { borderColor: LK.borderSoft, backgroundColor: LK.surfaceRaised, color: LK.body };
 };
 
 const formatTimelineEventTypeLabel = (eventType?: string | null) => {
@@ -427,19 +440,19 @@ const TimelinePayloadBlock: React.FC<{ payload: Record<string, any> }> = ({ payl
   const rows = timelinePayloadRows(payload);
   if (rows.length === 0) return null;
   return (
-    <div className="space-y-3 rounded-xl border border-slate-200 bg-slate-50/80 p-3">
-      <div className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-400">事件细节</div>
-      <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-3">
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', borderRadius: '12px', border: `1px solid ${LK.borderSoft}`, backgroundColor: 'rgba(24, 35, 58, 0.8)', padding: '12px' }}>
+      <div style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.16em', color: LK.muted }}>事件细节</div>
+      <div style={{ display: 'grid', gap: '8px', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))' }}>
         {rows.slice(0, 12).map((row) => (
-          <div key={row.key} className="min-w-0 rounded-lg border border-white bg-white px-3 py-2 text-xs">
-            <div className="font-bold capitalize text-slate-400">{row.label}</div>
-            <div className="mt-1 break-all font-mono text-slate-700">{row.value}</div>
+          <div key={row.key} style={{ minWidth: 0, borderRadius: '8px', border: `1px solid ${LK.surfaceRaised}`, backgroundColor: LK.surfaceRaised, padding: '12px', fontSize: '12px' }}>
+            <div style={{ fontWeight: 600, textTransform: 'capitalize', color: LK.muted }}>{row.label}</div>
+            <div style={{ marginTop: '4px', wordBreak: 'break-all', fontFamily: MONO, color: LK.body }}>{row.value}</div>
           </div>
         ))}
       </div>
       <details>
-        <summary className="cursor-pointer text-xs font-bold text-slate-500 hover:text-slate-800">查看原始 JSON</summary>
-        <pre className="mt-2 max-h-64 overflow-auto rounded-lg border border-slate-200 bg-slate-50 p-3 text-[11px] leading-5 text-slate-900">
+        <summary style={{ cursor: 'pointer', fontSize: '12px', fontWeight: 600, color: LK.body }}>查看原始 JSON</summary>
+        <pre style={{ marginTop: '8px', maxHeight: '256px', overflow: 'auto', borderRadius: '8px', border: `1px solid ${LK.borderSoft}`, backgroundColor: 'rgba(24, 35, 58, 0.8)', padding: '12px', fontSize: '11px', lineHeight: '20px', color: LK.ink, whiteSpace: 'pre-wrap' }}>
           {JSON.stringify(payload, null, 2)}
         </pre>
       </details>
@@ -455,20 +468,20 @@ const FilePreviewDialog: React.FC<{
   loading?: boolean;
   onClose: () => void;
 }> = ({ title, subtitle, content, language, loading, onClose }) => (
-  <div className="fixed inset-0 z-[90] flex items-center justify-center bg-slate-950/65 p-6">
-    <div className="flex h-[85vh] w-full max-w-6xl flex-col overflow-hidden rounded-[1.5rem] border border-slate-800 bg-slate-950 shadow-2xl">
-      <div className="flex items-center justify-between gap-4 border-b border-slate-800 px-5 py-4">
-        <div className="min-w-0">
-          <div className="truncate text-sm font-black text-white">{title}</div>
-          {subtitle ? <div className="mt-1 truncate text-xs text-slate-400">{subtitle}</div> : null}
+  <div style={{ position: 'fixed', inset: 0, zIndex: 90, display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(7, 13, 24, 0.85)', padding: '24px' }}>
+    <div style={{ display: 'flex', height: '85vh', width: '100%', maxWidth: '72rem', flexDirection: 'column', overflow: 'hidden', borderRadius: '24px', border: `1px solid ${LK.border}`, backgroundColor: LK.canvas }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '16px', borderBottom: `1px solid ${LK.border}`, padding: '0 20px', height: '64px' }}>
+        <div style={{ minWidth: 0 }}>
+          <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontSize: '14px', fontWeight: 600, color: LK.ink }}>{title}</div>
+          {subtitle ? <div style={{ marginTop: '4px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontSize: '12px', color: LK.muted }}>{subtitle}</div> : null}
         </div>
-        <button type="button" onClick={onClose} className="rounded-xl border border-slate-700 bg-slate-900 px-3 py-2 text-slate-300 hover:bg-slate-800">
+        <button type="button" onClick={onClose} style={{ borderRadius: '12px', border: `1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised, padding: '8px 12px', color: LK.body, cursor: 'pointer' }}>
           <X size={16} />
         </button>
       </div>
-      <div className="min-h-0 flex-1">
+      <div style={{ minHeight: 0, flex: 1 }}>
         {loading ? (
-          <div className="flex h-full items-center justify-center gap-2 text-sm text-slate-400"><Loader2 size={16} className="animate-spin" />加载中...</div>
+          <div style={{ display: 'flex', height: '100%', alignItems: 'center', justifyContent: 'center', gap: '8px', fontSize: '14px', color: LK.muted }}><Loader2 size={16} className="animate-spin" />加载中...</div>
         ) : language === 'json' && title.toLowerCase().endsWith('.jsonl') ? (
           <B2SSessionPreview name={title} content={content} />
         ) : title.toLowerCase().endsWith('.jsonl') ? (
@@ -1243,7 +1256,7 @@ export const B2STaskDetailPage: React.FC<Props> = ({ projectId, taskId, onBack, 
   };
 
   if (!taskId) {
-    return <div className="px-6 pb-8 pt-6 text-sm text-slate-500">未指定任务，请返回列表重新选择。</div>;
+    return <div style={{ padding: '24px', paddingBottom: '32px', paddingTop: '24px', fontSize: '14px', color: LK.body }}>未指定任务，请返回列表重新选择。</div>;
   }
 
   const renderOverview = () => (
@@ -2132,84 +2145,84 @@ export const B2STaskDetailPage: React.FC<Props> = ({ projectId, taskId, onBack, 
   );
 
   return (
-    <div className="space-y-4 px-6 pb-8 pt-6">
-      <div className="flex flex-wrap items-center justify-between gap-2.5">
-        <button type="button" onClick={handleBack} className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-sm font-bold text-slate-700 shadow-sm hover:bg-slate-50">
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', padding: '24px', paddingBottom: '32px', paddingTop: '24px' }}>
+      <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: '10px' }}>
+        <button type="button" onClick={handleBack} style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', borderRadius: '12px', border: `1px solid ${LK.borderSoft}`, backgroundColor: LK.surface, padding: '10px 14px', fontSize: '14px', fontWeight: 600, color: LK.body, cursor: 'pointer' }}>
           <ArrowLeft size={16} />
           {hasReturnContext ? '返回原任务' : '返回二进制逆向'}
         </button>
-        <div className="flex flex-wrap items-center gap-2">
-          <button type="button" onClick={() => void loadDetail()} disabled={loading} className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-sm font-bold text-slate-700 shadow-sm hover:bg-slate-50 disabled:opacity-60">
+        <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '8px' }}>
+          <button type="button" onClick={() => void loadDetail()} disabled={loading} style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', borderRadius: '12px', border: `1px solid ${LK.borderSoft}`, backgroundColor: LK.surface, padding: '10px 14px', fontSize: '14px', fontWeight: 600, color: LK.body, cursor: loading ? 'not-allowed' : 'pointer', opacity: loading ? 0.6 : 1 }}>
             <RefreshCw size={16} className={loading ? 'animate-spin' : ''} />
             刷新
           </button>
           {detail && !B2S_TERMINAL_STATUSES.has(detail.status) ? (
-            <button type="button" onClick={() => void cancelTask()} disabled={cancelling} className="inline-flex items-center gap-2 rounded-xl border border-amber-200 bg-amber-50 px-3.5 py-2 text-sm font-bold text-amber-700 shadow-sm hover:bg-amber-100 disabled:opacity-60">
+            <button type="button" onClick={() => void cancelTask()} disabled={cancelling} style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', borderRadius: '12px', border: `1px solid ${LK.warning}`, backgroundColor: 'rgba(213, 161, 58, 0.1)', padding: '10px 14px', fontSize: '14px', fontWeight: 600, color: LK.warning, cursor: cancelling ? 'not-allowed' : 'pointer', opacity: cancelling ? 0.6 : 1 }}>
               <XCircle size={16} />
               {cancelling ? '取消中...' : '取消任务'}
             </button>
           ) : null}
-          <button type="button" onClick={() => void rerunTask()} disabled={rerunning} className="inline-flex items-center gap-2 rounded-xl border border-violet-200 bg-violet-50 px-3.5 py-2 text-sm font-bold text-violet-700 shadow-sm hover:bg-violet-100 disabled:opacity-60">
+          <button type="button" onClick={() => void rerunTask()} disabled={rerunning} style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', borderRadius: '12px', border: `1px solid ${LK.primarySoft}`, backgroundColor: 'rgba(79, 115, 255, 0.1)', padding: '10px 14px', fontSize: '14px', fontWeight: 600, color: LK.primary, cursor: rerunning ? 'not-allowed' : 'pointer', opacity: rerunning ? 0.6 : 1 }}>
             <RotateCcw size={16} />
             {rerunning ? '重跑中...' : '从头重跑'}
           </button>
-          <button type="button" onClick={() => void deleteTask()} disabled={deleting} className="inline-flex items-center gap-2 rounded-xl border border-rose-200 bg-rose-50 px-3.5 py-2 text-sm font-bold text-rose-700 shadow-sm hover:bg-rose-100 disabled:opacity-60">
+          <button type="button" onClick={() => void deleteTask()} disabled={deleting} style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', borderRadius: '12px', border: `1px solid ${LK.error}`, backgroundColor: 'rgba(241, 93, 93, 0.1)', padding: '10px 14px', fontSize: '14px', fontWeight: 600, color: LK.error, cursor: deleting ? 'not-allowed' : 'pointer', opacity: deleting ? 0.6 : 1 }}>
             <Trash2 size={16} />
             {deleting ? '删除中...' : '删除任务'}
           </button>
         </div>
       </div>
 
-      {error ? <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700">{error}</div> : null}
+      {error ? <div style={{ borderRadius: '16px', border: `1px solid ${LK.error}`, backgroundColor: 'rgba(241, 93, 93, 0.1)', padding: '12px 16px', fontSize: '14px', fontWeight: 600, color: LK.error }}>{error}</div> : null}
 
-      <section className="overflow-hidden rounded-[1.5rem] border border-slate-200 bg-white shadow-sm">
+      <section style={{ overflow: 'hidden', borderRadius: '24px', border: `1px solid ${LK.borderSoft}`, backgroundColor: LK.surface }}>
         {loading && !detail ? (
-          <div className="flex items-center gap-2 p-6 text-sm text-slate-500"><Loader2 size={16} className="animate-spin" />加载中...</div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '24px', fontSize: '14px', color: LK.body }}><Loader2 size={16} className="animate-spin" />加载中...</div>
         ) : detail ? (
           <>
-            <div className="bg-[radial-gradient(circle_at_top_left,#eff6ff_0,#ffffff_42%,#f8fafc_100%)] p-3.5">
-              <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(280px,320px)]">
-                <div className="min-w-0">
-                  <div className="flex flex-wrap items-center gap-1.5">
+            <div style={{ background: 'radial-gradient(circle at top left, rgba(79, 115, 255, 0.05) 0%, rgba(17, 26, 43, 0.7) 42%, rgba(24, 35, 58, 0.8) 100%)', padding: '14px' }}>
+              <div style={{ display: 'grid', gap: '16px', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))' }}>
+                <div style={{ minWidth: 0 }}>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '6px' }}>
                     <B2SStatusBadge status={detail.status} />
-                    {detail.mode_label ? <span className="inline-flex items-center gap-1 rounded-full bg-indigo-50 px-2.5 py-1 text-xs font-black text-indigo-700 ring-1 ring-indigo-200"><Sparkles size={13} />{detail.mode_label}</span> : null}
+                    {detail.mode_label ? <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', borderRadius: '9999px', backgroundColor: 'rgba(79, 115, 255, 0.1)', padding: '4px 10px', fontSize: '12px', fontWeight: 600, color: LK.primary, border: `1px solid ${LK.primarySoft}` }}><Sparkles size={13} />{detail.mode_label}</span> : null}
                   </div>
-                  <h1 className="mt-1.5 break-words text-[1.5rem] font-black leading-tight tracking-tight text-slate-950">{detail.name || detail.id}</h1>
-                  <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] font-semibold text-slate-500">
-                    <span className="font-mono">任务 ID：{detail.id}</span>
+                  <h1 style={{ marginTop: '6px', overflowWrap: 'break-word', fontSize: '24px', fontWeight: 600, lineHeight: 1.2, letterSpacing: '-0.025em', color: LK.ink }}>{detail.name || detail.id}</h1>
+                  <div style={{ marginTop: '4px', display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '12px 4px', fontSize: '11px', fontWeight: 600, color: LK.body }}>
+                    <span style={{ fontFamily: MONO }}>任务 ID：{detail.id}</span>
                     <span>创建：{formatDateTime(detail.created_at)}</span>
                     <span>更新：{formatDateTime(detail.updated_at)}</span>
                   </div>
-                  <div className="mt-2.5 rounded-[1.25rem] border border-white/80 bg-white/75 p-2.5 shadow-sm backdrop-blur">
-                    <div className="flex items-end justify-between gap-3">
+                  <div style={{ marginTop: '10px', borderRadius: '20px', border: `1px solid ${LK.border}`, backgroundColor: 'rgba(17, 26, 43, 0.75)', padding: '10px', backdropFilter: 'blur(8px)' }}>
+                    <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: '12px' }}>
                       <div>
-                        <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">任务进度</div>
-                        <div className="mt-0.5 text-[1.6rem] font-black tracking-tight text-slate-950">{pct(primaryProgress).toFixed(1)}%</div>
-                        <div className="mt-1 text-[11px] font-semibold text-slate-500">{progressBasisLabel} · ELF 完成 {overall?.completed_items || 0}/{overall?.total_items || detail.total_items || 0}</div>
+                        <div style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.18em', color: LK.muted }}>任务进度</div>
+                        <div style={{ marginTop: '2px', fontSize: '25px', fontWeight: 600, letterSpacing: '-0.025em', color: LK.ink }}>{pct(primaryProgress).toFixed(1)}%</div>
+                        <div style={{ marginTop: '4px', fontSize: '11px', fontWeight: 600, color: LK.body }}>{progressBasisLabel} · ELF 完成 {overall?.completed_items || 0}/{overall?.total_items || detail.total_items || 0}</div>
                       </div>
-                      <div className="text-right text-[11px] font-bold text-slate-500">{progressBasisLabel}</div>
+                      <div style={{ textAlign: 'right', fontSize: '11px', fontWeight: 600, color: LK.body }}>{progressBasisLabel}</div>
                     </div>
-                    <div className="mt-2.5">
+                    <div style={{ marginTop: '10px' }}>
                       <B2SProgressBar value={primaryProgress} tone={B2S_TERMINAL_STATUSES.has(detail.status) ? 'emerald' : 'blue'} />
                     </div>
-                    <div className="mt-2 grid grid-cols-2 gap-2 text-[11px] font-semibold text-slate-600 md:grid-cols-4">
-                      <div className="rounded-lg bg-slate-50 px-2.5 py-1.5">运行中：<span className="font-black text-slate-800">{detail.running_items}</span></div>
-                      <div className="rounded-lg bg-amber-50 px-2.5 py-1.5 text-amber-800">取消中：<span className="font-black">{detail.cancelling_items || 0}</span></div>
-                      <div className="rounded-lg bg-slate-50 px-2.5 py-1.5">ELF：<span className="font-black text-slate-800">{detail.total_items}</span></div>
-                      <div className="rounded-lg bg-slate-50 px-2.5 py-1.5">会话：<span className="font-black text-slate-800">{runtimeSummary?.total_sessions || detail.agent_runtime_summary?.total_sessions || 0}</span></div>
+                    <div style={{ marginTop: '8px', display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '8px', fontSize: '11px', fontWeight: 600, color: LK.body }}>
+                      <div style={{ borderRadius: '8px', backgroundColor: LK.surfaceRaised, padding: '6px 10px' }}>运行中：<span style={{ fontWeight: 600, color: LK.inkSoft }}>{detail.running_items}</span></div>
+                      <div style={{ borderRadius: '8px', backgroundColor: 'rgba(213, 161, 58, 0.1)', padding: '6px 10px', color: LK.warning }}>取消中：<span style={{ fontWeight: 600 }}>{detail.cancelling_items || 0}</span></div>
+                      <div style={{ borderRadius: '8px', backgroundColor: LK.surfaceRaised, padding: '6px 10px' }}>ELF：<span style={{ fontWeight: 600, color: LK.inkSoft }}>{detail.total_items}</span></div>
+                      <div style={{ borderRadius: '8px', backgroundColor: LK.surfaceRaised, padding: '6px 10px' }}>会话：<span style={{ fontWeight: 600, color: LK.inkSoft }}>{runtimeSummary?.total_sessions || detail.agent_runtime_summary?.total_sessions || 0}</span></div>
                     </div>
                   </div>
                 </div>
-                <div className="min-w-0">
+                <div style={{ minWidth: 0 }}>
                   <TaskOriginCard origin={detail} />
                 </div>
               </div>
             </div>
 
-            <div className="border-t border-slate-200 bg-slate-50/70 px-5 py-3">
-              <div className="grid gap-2.5 md:grid-cols-[220px_minmax(0,1fr)]">
-                <div className="rounded-xl border border-slate-200 bg-white px-3 py-2.5">
-                  <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">ELF Item 选择器</div>
+            <div style={{ borderTop: `1px solid ${LK.borderSoft}`, backgroundColor: 'rgba(24, 35, 58, 0.7)', padding: '12px 20px' }}>
+              <div style={{ display: 'grid', gap: '10px', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))' }}>
+                <div style={{ borderRadius: '12px', border: `1px solid ${LK.borderSoft}`, backgroundColor: LK.surface, padding: '10px 12px' }}>
+                  <div style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.18em', color: LK.muted }}>ELF Item 选择器</div>
                   <select
                     value={selectedItemId}
                     onChange={(event) => {
@@ -2218,7 +2231,7 @@ export const B2STaskDetailPage: React.FC<Props> = ({ projectId, taskId, onBack, 
                       setSelectedArtifactId('');
                       setItemAnalytics(null);
                     }}
-                    className="mt-1.5 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 outline-none focus:border-slate-400"
+                    style={{ marginTop: '6px', width: '100%', borderRadius: '8px', border: `1px solid ${LK.borderSoft}`, backgroundColor: LK.surface, padding: '8px 12px', fontSize: '14px', fontWeight: 600, color: LK.body, outline: 'none' }}
                   >
                     <option value="__all__">全部汇总</option>
                     {detail.items.map((item) => (
@@ -2226,7 +2239,7 @@ export const B2STaskDetailPage: React.FC<Props> = ({ projectId, taskId, onBack, 
                     ))}
                   </select>
                 </div>
-                <div className="flex flex-wrap gap-1.5">
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
                   {[
                     { id: 'overview' as DetailTab, label: '总览', icon: <Gauge size={14} /> },
                     { id: 'run-config' as DetailTab, label: '任务配置', icon: <Settings2 size={14} /> },
@@ -2235,16 +2248,19 @@ export const B2STaskDetailPage: React.FC<Props> = ({ projectId, taskId, onBack, 
                     { id: 'relationship' as DetailTab, label: '智能体关系', icon: <Waypoints size={14} /> },
                     { id: 'result' as DetailTab, label: '结果', icon: <FileJson2 size={14} /> },
                     { id: 'evaluation' as DetailTab, label: '观测指标', icon: <Gauge size={14} /> },
-                  ].map((tab) => (
-                    <button key={tab.id} type="button" onClick={() => setActiveTab(tab.id)} className={`inline-flex items-center gap-1.5 rounded-xl border px-3 py-2 text-sm font-black transition ${tabButtonTone(activeTab === tab.id)}`}>
-                      {tab.icon}
-                      {tab.label}
-                    </button>
-                  ))}
+                  ].map((tab) => {
+                    const tone = tabButtonTone(activeTab === tab.id);
+                    return (
+                      <button key={tab.id} type="button" onClick={() => setActiveTab(tab.id)} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', borderRadius: '12px', border: `1px solid ${tone.borderColor || LK.borderSoft}`, padding: '8px 12px', fontSize: '14px', fontWeight: 600, transition: 'all 0.2s', backgroundColor: tone.backgroundColor || LK.surface, color: tone.color || LK.body, cursor: 'pointer' }}>
+                        {tab.icon}
+                        {tab.label}
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
               {detail && !B2S_TERMINAL_STATUSES.has(detail.status) ? (
-                <div className="mt-2.5 border-t border-slate-200 pt-2.5">
+                <div style={{ marginTop: '10px', borderTop: `1px solid ${LK.borderSoft}`, paddingTop: '10px' }}>
                   <DownstreamTaskCreator projectId={projectId} task={detail} sourceKind="binary_to_source" />
                 </div>
               ) : null}

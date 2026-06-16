@@ -5,6 +5,19 @@ import { AppSaSessionIndex, AppSaSessionIndexEdge, AppSaSessionIndexNode } from 
 import { AgentSessionDialogHeader } from './AgentSessionDialogHeader';
 import { AgentSessionViewer } from './AgentSessionViewer';
 
+const LK = {
+  primary: '#4f73ff', primarySoft: '#7590ff', primaryDeep: '#3f63f1',
+  primaryMuted: 'rgba(79, 115, 255, 0.14)',
+  canvas: '#070d18', surface: '#111a2b', surfaceRaised: '#18233a',
+  surfaceGlass: 'rgba(17, 26, 43, 0.84)',
+  border: '#26324a', borderSoft: '#1b2438',
+  ink: '#f5f7ff', inkSoft: '#d6def0', body: '#a4aec4',
+  muted: '#72809a', mutedSoft: '#8b95a8',
+  success: '#45c06f', warning: '#d5a13a', error: '#f15d5d', info: '#4f8cff',
+  critical: '#ff4d4f', high: '#ff8b3d', medium: '#f0b64c', low: '#49c5ff',
+} as const;
+const MONO = 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace';
+
 function nodeStatusTone(status?: string) {
   if (status === 'running') return 'border-blue-200 bg-blue-50 text-blue-700';
   if (status === 'completed') return 'border-emerald-200 bg-emerald-50 text-emerald-700';
@@ -56,32 +69,28 @@ const SessionNodeCard: React.FC<{
   <button
     type="button"
     onClick={() => onSelect(node.relative_path)}
-    className={`w-full rounded-2xl border px-4 py-3 text-left transition ${
-      selected
-        ? 'border-slate-900 bg-slate-900 text-white shadow-[0_16px_40px_rgba(15,23,42,0.22)]'
-        : 'border-slate-200 bg-white text-slate-800 hover:border-slate-300 hover:bg-slate-50'
-    }`}
+    style={{ width: '100%', borderRadius: '16px', border: `1px solid ${selected ? LK.border : LK.borderSoft}`, paddingLeft: '16px', paddingRight: '16px', paddingTop: '12px', paddingBottom: '12px', textAlign: 'left', transition: 'all 0.2s', backgroundColor: selected ? LK.surface : LK.surfaceRaised, color: selected ? LK.ink : LK.inkSoft, cursor: 'pointer' }}
   >
-    <div className="flex items-start justify-between gap-3">
-      <div className="min-w-0">
-        <div className="truncate text-sm font-black">{node.display_name}</div>
-        <div className={`mt-1 text-[11px] ${selected ? 'text-slate-300' : 'text-slate-500'}`}>
+    <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '12px' }}>
+      <div style={{ minWidth: 0 }}>
+        <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontSize: '14px', fontWeight: 600 }}>{node.display_name}</div>
+        <div style={{ marginTop: '4px', fontSize: '11px', color: selected ? LK.body : LK.body }}>
           {formatNodeSubtitle(node) || node.relative_path}
         </div>
       </div>
-      <span className={`rounded-full border px-2 py-0.5 text-[10px] font-bold ${selected ? 'border-white/20 bg-white/10 text-white' : nodeStatusTone(node.status)}`}>
+      <span style={{ borderRadius: '9999px', border: `1px solid ${selected ? 'rgba(255, 255, 255, 0.2)' : 'transparent'}`, paddingLeft: '8px', paddingRight: '8px', paddingTop: '2px', paddingBottom: '2px', fontSize: '10px', fontWeight: 600, backgroundColor: selected ? 'rgba(255, 255, 255, 0.1)' : 'transparent', color: selected ? LK.ink : LK.body }}>
         {node.is_active ? '运行中' : node.status}
       </span>
     </div>
-    <div className="mt-3 flex flex-wrap gap-2 text-[10px]">
-      <span className={`rounded-full border px-2 py-0.5 font-bold ${selected ? 'border-white/15 bg-white/10 text-slate-100' : roleTone(node.role)}`}>
+    <div style={{ marginTop: '12px', display: 'flex', flexWrap: 'wrap', gap: '8px', fontSize: '10px' }}>
+      <span style={{ borderRadius: '9999px', border: `1px solid ${selected ? 'rgba(255, 255, 255, 0.15)' : 'transparent'}`, paddingLeft: '8px', paddingRight: '8px', paddingTop: '2px', paddingBottom: '2px', fontWeight: 600, backgroundColor: selected ? 'rgba(255, 255, 255, 0.1)' : 'transparent', color: selected ? LK.inkSoft : LK.body }}>
         {node.role_label}
       </span>
-      <span className={`rounded-full border px-2 py-0.5 font-bold ${selected ? 'border-white/15 bg-white/10 text-slate-100' : 'border-slate-200 bg-slate-50 text-slate-600'}`}>
+      <span style={{ borderRadius: '9999px', border: `1px solid ${selected ? 'rgba(255, 255, 255, 0.15)' : LK.borderSoft}`, paddingLeft: '8px', paddingRight: '8px', paddingTop: '2px', paddingBottom: '2px', fontWeight: 600, backgroundColor: selected ? 'rgba(255, 255, 255, 0.1)' : LK.surfaceRaised, color: selected ? LK.inkSoft : LK.body }}>
         {node.event_count} events
       </span>
     </div>
-    <div className={`mt-3 text-[11px] ${selected ? 'text-slate-300' : 'text-slate-500'}`}>
+    <div style={{ marginTop: '12px', fontSize: '11px', color: selected ? LK.body : LK.body }}>
       开始 {formatTime(node.started_at || node.session_header?.timestamp as string | undefined)}
     </div>
   </button>
@@ -139,31 +148,31 @@ const DetailedStageGraph: React.FC<{
   selectedPath: string | null;
   onSelect: (path: string) => void;
 }> = ({ stage, nodeMap, childMap, selectedPath, onSelect }) => (
-  <div className="space-y-4">
-    <div className="grid gap-3 md:grid-cols-4">
-      <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3">
-        <div className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-400">Nodes</div>
-        <div className="mt-2 text-2xl font-black text-slate-900">{stage.items.length}</div>
+  <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: '12px' }}>
+      <div style={{ borderRadius: '16px', border: `1px solid ${LK.borderSoft}`, backgroundColor: LK.surfaceRaised, paddingLeft: '16px', paddingRight: '16px', paddingTop: '12px', paddingBottom: '12px' }}>
+        <div style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.16em', color: LK.muted }}>Nodes</div>
+        <div style={{ marginTop: '8px', fontSize: '24px', fontWeight: 600, color: LK.ink }}>{stage.items.length}</div>
       </div>
-      <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3">
-        <div className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-400">Workers</div>
-        <div className="mt-2 text-2xl font-black text-cyan-700">{stage.workerCount + stage.subWorkerCount}</div>
+      <div style={{ borderRadius: '16px', border: `1px solid ${LK.borderSoft}`, backgroundColor: LK.surfaceRaised, paddingLeft: '16px', paddingRight: '16px', paddingTop: '12px', paddingBottom: '12px' }}>
+        <div style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.16em', color: LK.muted }}>Workers</div>
+        <div style={{ marginTop: '8px', fontSize: '24px', fontWeight: 600, color: LK.info }}>{stage.workerCount + stage.subWorkerCount}</div>
       </div>
-      <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3">
-        <div className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-400">Judges</div>
-        <div className="mt-2 text-2xl font-black text-amber-700">{stage.judgeCount}</div>
+      <div style={{ borderRadius: '16px', border: `1px solid ${LK.borderSoft}`, backgroundColor: LK.surfaceRaised, paddingLeft: '16px', paddingRight: '16px', paddingTop: '12px', paddingBottom: '12px' }}>
+        <div style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.16em', color: LK.muted }}>Judges</div>
+        <div style={{ marginTop: '8px', fontSize: '24px', fontWeight: 600, color: LK.warning }}>{stage.judgeCount}</div>
       </div>
-      <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3">
-        <div className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-400">Parallel</div>
-        <div className="mt-2 text-2xl font-black text-slate-900">{stage.parallelGroupCount}</div>
+      <div style={{ borderRadius: '16px', border: `1px solid ${LK.borderSoft}`, backgroundColor: LK.surfaceRaised, paddingLeft: '16px', paddingRight: '16px', paddingTop: '12px', paddingBottom: '12px' }}>
+        <div style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.16em', color: LK.muted }}>Parallel</div>
+        <div style={{ marginTop: '8px', fontSize: '24px', fontWeight: 600, color: LK.ink }}>{stage.parallelGroupCount}</div>
       </div>
     </div>
 
-    <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
-      <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">Agent Graph</div>
-      <div className="mt-1 text-sm text-slate-500">展示该阶段内的智能体节点，以及派生出的并行 Judge / Sub Worker 关系。</div>
+    <div style={{ borderRadius: '24px', border: `1px solid ${LK.borderSoft}`, backgroundColor: LK.surfaceRaised, paddingLeft: '20px', paddingRight: '20px', paddingTop: '20px', paddingBottom: '20px' }}>
+      <div style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.18em', color: LK.muted }}>Agent Graph</div>
+      <div style={{ marginTop: '4px', fontSize: '14px', color: LK.body }}>展示该阶段内的智能体节点，以及派生出的并行 Judge / Sub Worker 关系。</div>
 
-      <div className="mt-5 space-y-4">
+      <div style={{ marginTop: '20px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
         {stage.items.map((node, nodeIndex) => {
           const childEdges = (childMap.get(node.node_id) || []).filter((edge) => {
             const target = nodeMap.get(edge.target_node_id);
@@ -181,7 +190,7 @@ const DetailedStageGraph: React.FC<{
           return (
             <div key={node.node_id}>
               {nodeIndex > 0 ? (
-                <div className="mb-3 flex items-center gap-2 pl-2 text-[11px] font-bold text-slate-400">
+                <div style={{ marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px', paddingLeft: '8px', fontSize: '11px', fontWeight: 600, color: LK.muted }}>
                   <TimerReset size={12} />
                   同阶段推进
                 </div>
@@ -189,14 +198,14 @@ const DetailedStageGraph: React.FC<{
               <SessionNodeCard node={node} selected={selectedPath === node.relative_path} onSelect={onSelect} />
 
               {groupedChildren.size > 0 ? (
-                <div className="mt-3 space-y-3 pl-4">
+                <div style={{ marginTop: '12px', display: 'flex', flexDirection: 'column', gap: '12px', paddingLeft: '16px' }}>
                   {Array.from(groupedChildren.entries()).map(([groupKey, children]) => (
-                    <div key={groupKey} className="rounded-2xl border border-dashed border-slate-300 bg-slate-50/70 p-3">
-                      <div className="mb-2 flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.14em] text-slate-400">
+                    <div key={groupKey} style={{ borderRadius: '16px', border: `1px dashed ${LK.borderSoft}`, backgroundColor: 'rgba(24, 35, 58, 0.7)', paddingLeft: '12px', paddingRight: '12px', paddingTop: '12px', paddingBottom: '12px' }}>
+                      <div style={{ marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.14em', color: LK.muted }}>
                         <GitBranch size={12} />
                         {children[0]?.role === 'judge' ? '并列 Judge' : '并列 Sub Worker'}
                       </div>
-                      <div className="grid gap-3 lg:grid-cols-2 xl:grid-cols-3">
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: '12px' }}>
                         {children
                           .sort((a, b) => (a.started_ts || a.mtime || 0) - (b.started_ts || b.mtime || 0))
                           .map((child) => (
@@ -251,7 +260,7 @@ export const SessionRelationshipGraph: React.FC<{
 
   if (!index || graph.orderedStages.length === 0) {
     return (
-      <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-4 py-10 text-center text-sm text-slate-500">
+      <div style={{ borderRadius: '16px', border: `1px dashed ${LK.borderSoft}`, backgroundColor: LK.surfaceRaised, paddingLeft: '16px', paddingRight: '16px', paddingTop: '40px', paddingBottom: '40px', textAlign: 'center', fontSize: '14px', color: LK.body }}>
         暂无可视化会话关系
       </div>
     );
@@ -259,47 +268,47 @@ export const SessionRelationshipGraph: React.FC<{
 
   return (
     <>
-      <div className="space-y-4">
-        <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-          <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3">
-            <div className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-400">Session Count</div>
-            <div className="mt-2 text-2xl font-black text-slate-900">{index.summary?.session_count ?? index.nodes.length}</div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+        <section style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: '12px' }}>
+          <div style={{ borderRadius: '16px', border: `1px solid ${LK.borderSoft}`, backgroundColor: LK.surfaceRaised, paddingLeft: '16px', paddingRight: '16px', paddingTop: '12px', paddingBottom: '12px' }}>
+            <div style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.16em', color: LK.muted }}>Session Count</div>
+            <div style={{ marginTop: '8px', fontSize: '24px', fontWeight: 600, color: LK.ink }}>{index.summary?.session_count ?? index.nodes.length}</div>
           </div>
-          <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3">
-            <div className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-400">Stage Count</div>
-            <div className="mt-2 text-2xl font-black text-cyan-700">{graph.orderedStages.length}</div>
+          <div style={{ borderRadius: '16px', border: `1px solid ${LK.borderSoft}`, backgroundColor: LK.surfaceRaised, paddingLeft: '16px', paddingRight: '16px', paddingTop: '12px', paddingBottom: '12px' }}>
+            <div style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.16em', color: LK.muted }}>Stage Count</div>
+            <div style={{ marginTop: '8px', fontSize: '24px', fontWeight: 600, color: LK.info }}>{graph.orderedStages.length}</div>
           </div>
-          <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3">
-            <div className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-400">Active</div>
-            <div className="mt-2 text-2xl font-black text-blue-700">{index.summary?.active_session_count ?? 0}</div>
+          <div style={{ borderRadius: '16px', border: `1px solid ${LK.borderSoft}`, backgroundColor: LK.surfaceRaised, paddingLeft: '16px', paddingRight: '16px', paddingTop: '12px', paddingBottom: '12px' }}>
+            <div style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.16em', color: LK.muted }}>Active</div>
+            <div style={{ marginTop: '8px', fontSize: '24px', fontWeight: 600, color: LK.primary }}>{index.summary?.active_session_count ?? 0}</div>
           </div>
-          <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3">
-            <div className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-400">Index File</div>
-            <div className="mt-2 truncate font-mono text-[11px] text-slate-600">{index.index_path || '-'}</div>
+          <div style={{ borderRadius: '16px', border: `1px solid ${LK.borderSoft}`, backgroundColor: LK.surfaceRaised, paddingLeft: '16px', paddingRight: '16px', paddingTop: '12px', paddingBottom: '12px' }}>
+            <div style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.16em', color: LK.muted }}>Index File</div>
+            <div style={{ marginTop: '8px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontFamily: MONO, fontSize: '11px', color: LK.body }}>{index.index_path || '-'}</div>
           </div>
         </section>
 
-        <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
-          <div className="flex flex-wrap items-start justify-between gap-3">
+        <section style={{ borderRadius: '24px', border: `1px solid ${LK.borderSoft}`, backgroundColor: LK.surfaceRaised, paddingLeft: '20px', paddingRight: '20px', paddingTop: '20px', paddingBottom: '20px' }}>
+          <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'flex-start', justifyContent: 'space-between', gap: '12px' }}>
             <div>
-              <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">Stage Graph</div>
-              <div className="mt-1 text-sm text-slate-500">
+              <div style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.18em', color: LK.muted }}>Stage Graph</div>
+              <div style={{ marginTop: '4px', fontSize: '14px', color: LK.body }}>
                 默认只展示阶段之间的推进关系，避免 500+ 智能体节点直接铺开；点击阶段卡片可全屏查看该阶段的智能体关系。
               </div>
             </div>
-            <div className="rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2 text-[11px] text-slate-500">
+            <div style={{ borderRadius: '16px', border: `1px solid ${LK.borderSoft}`, backgroundColor: LK.surface, paddingLeft: '12px', paddingRight: '12px', paddingTop: '8px', paddingBottom: '8px', fontSize: '11px', color: LK.body }}>
               更新时间 {formatTime(index.generated_at)}
             </div>
           </div>
 
-          <div className="mt-5 space-y-6">
+          <div style={{ marginTop: '20px', display: 'flex', flexDirection: 'column', gap: '24px' }}>
             {graph.orderedStages.map((stage, stageIndex) => (
               <div key={stage.stageKey}>
                 {stageIndex > 0 ? (
                   <button
                     type="button"
                     onClick={() => setExpandedStageKey(stage.stageKey)}
-                    className="mb-4 flex w-full items-center justify-center gap-2 rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-4 py-3 text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500 transition hover:border-slate-400 hover:bg-slate-100"
+                    style={{ marginBottom: '16px', display: 'flex', width: '100%', alignItems: 'center', justifyContent: 'center', gap: '8px', borderRadius: '16px', border: `1px dashed ${LK.borderSoft}`, backgroundColor: LK.surfaceRaised, paddingLeft: '16px', paddingRight: '16px', paddingTop: '12px', paddingBottom: '12px', fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.18em', color: LK.body, transition: 'all 0.2s', cursor: 'pointer' }}
                   >
                     <ArrowDown size={13} />
                     推进到下一阶段，点击查看阶段内智能体关系
@@ -309,54 +318,52 @@ export const SessionRelationshipGraph: React.FC<{
                 <button
                   type="button"
                   onClick={() => setExpandedStageKey(stage.stageKey)}
-                  className={`w-full rounded-2xl border p-4 text-left transition hover:border-slate-300 hover:bg-slate-50 ${
-                    stage.stageKey === normalizedFocusedStageKey ? 'border-cyan-300 bg-cyan-50/70 shadow-sm' : 'border-slate-200 bg-slate-50/80'
-                  }`}
+                  style={{ width: '100%', borderRadius: '16px', border: `1px solid ${stage.stageKey === normalizedFocusedStageKey ? LK.info : LK.borderSoft}`, padding: '16px', textAlign: 'left', transition: 'all 0.2s', backgroundColor: stage.stageKey === normalizedFocusedStageKey ? 'rgba(79, 140, 255, 0.15)' : LK.surfaceRaised, cursor: 'pointer' }}
                 >
-                  <div className="flex flex-wrap items-start justify-between gap-4">
+                  <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'flex-start', justifyContent: 'space-between', gap: '16px' }}>
                     <div>
-                      <div className="flex items-center gap-2">
-                        <Radar size={15} className="text-cyan-600" />
-                        <div className="text-sm font-black text-slate-900">{stage.stageLabel}</div>
-                        <span className={`rounded-full border px-2 py-0.5 text-[10px] font-bold ${nodeStatusTone(stage.status)}`}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <Radar size={15} style={{ color: LK.info }} />
+                        <div style={{ fontSize: '15px', fontWeight: 600, color: LK.ink }}>{stage.stageLabel}</div>
+                        <span style={{ borderRadius: '9999px', border: `1px solid transparent`, paddingLeft: '8px', paddingRight: '8px', paddingTop: '2px', paddingBottom: '2px', fontSize: '10px', fontWeight: 600, backgroundColor: 'transparent', color: LK.body }}>
                           {stage.activeCount > 0 ? '运行中' : stage.status}
                         </span>
                       </div>
-                      <div className="mt-2 text-xs text-slate-500">
+                      <div style={{ marginTop: '8px', fontSize: '12px', color: LK.body }}>
                         仅展示阶段摘要。点击后进入全屏视图查看智能体推进、并列 Judge / Sub Worker 关系。
                       </div>
                       {stage.stageKey === normalizedFocusedStageKey ? (
-                        <div className="mt-2 inline-flex rounded-full border border-cyan-200 bg-white px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.14em] text-cyan-700">
+                        <div style={{ marginTop: '8px', display: 'inline-flex', borderRadius: '9999px', border: `1px solid ${LK.info}`, backgroundColor: LK.surfaceRaised, paddingLeft: '10px', paddingRight: '10px', paddingTop: '4px', paddingBottom: '4px', fontSize: '10px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.14em', color: LK.info }}>
                           当前阶段聚焦
                         </div>
                       ) : null}
                     </div>
-                    <span className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-600">
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', borderRadius: '16px', border: `1px solid ${LK.borderSoft}`, backgroundColor: LK.surfaceRaised, paddingLeft: '12px', paddingRight: '12px', paddingTop: '8px', paddingBottom: '8px', fontSize: '12px', fontWeight: 600, color: LK.body }}>
                       <Expand size={14} />
                       查看智能体关系
                     </span>
                   </div>
 
-                  <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-5">
-                    <div className="rounded-2xl border border-slate-200 bg-white px-3 py-3">
-                      <div className="text-[10px] font-black uppercase tracking-[0.14em] text-slate-400">Nodes</div>
-                      <div className="mt-2 text-xl font-black text-slate-900">{stage.items.length}</div>
+                  <div style={{ marginTop: '16px', display: 'grid', gridTemplateColumns: 'repeat(5, minmax(0, 1fr))', gap: '12px' }}>
+                    <div style={{ borderRadius: '16px', border: `1px solid ${LK.borderSoft}`, backgroundColor: LK.surfaceRaised, paddingLeft: '12px', paddingRight: '12px', paddingTop: '12px', paddingBottom: '12px' }}>
+                      <div style={{ fontSize: '10px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.14em', color: LK.muted }}>Nodes</div>
+                      <div style={{ marginTop: '8px', fontSize: '20px', fontWeight: 600, color: LK.ink }}>{stage.items.length}</div>
                     </div>
-                    <div className="rounded-2xl border border-slate-200 bg-white px-3 py-3">
-                      <div className="text-[10px] font-black uppercase tracking-[0.14em] text-slate-400">Workers</div>
-                      <div className="mt-2 text-xl font-black text-cyan-700">{stage.workerCount}</div>
+                    <div style={{ borderRadius: '16px', border: `1px solid ${LK.borderSoft}`, backgroundColor: LK.surfaceRaised, paddingLeft: '12px', paddingRight: '12px', paddingTop: '12px', paddingBottom: '12px' }}>
+                      <div style={{ fontSize: '10px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.14em', color: LK.muted }}>Workers</div>
+                      <div style={{ marginTop: '8px', fontSize: '20px', fontWeight: 600, color: LK.info }}>{stage.workerCount}</div>
                     </div>
-                    <div className="rounded-2xl border border-slate-200 bg-white px-3 py-3">
-                      <div className="text-[10px] font-black uppercase tracking-[0.14em] text-slate-400">Sub Workers</div>
-                      <div className="mt-2 text-xl font-black text-violet-700">{stage.subWorkerCount}</div>
+                    <div style={{ borderRadius: '16px', border: `1px solid ${LK.borderSoft}`, backgroundColor: LK.surfaceRaised, paddingLeft: '12px', paddingRight: '12px', paddingTop: '12px', paddingBottom: '12px' }}>
+                      <div style={{ fontSize: '10px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.14em', color: LK.muted }}>Sub Workers</div>
+                      <div style={{ marginTop: '8px', fontSize: '20px', fontWeight: 600, color: LK.primary }}>{stage.subWorkerCount}</div>
                     </div>
-                    <div className="rounded-2xl border border-slate-200 bg-white px-3 py-3">
-                      <div className="text-[10px] font-black uppercase tracking-[0.14em] text-slate-400">Judges</div>
-                      <div className="mt-2 text-xl font-black text-amber-700">{stage.judgeCount}</div>
+                    <div style={{ borderRadius: '16px', border: `1px solid ${LK.borderSoft}`, backgroundColor: LK.surfaceRaised, paddingLeft: '12px', paddingRight: '12px', paddingTop: '12px', paddingBottom: '12px' }}>
+                      <div style={{ fontSize: '10px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.14em', color: LK.muted }}>Judges</div>
+                      <div style={{ marginTop: '8px', fontSize: '20px', fontWeight: 600, color: LK.warning }}>{stage.judgeCount}</div>
                     </div>
-                    <div className="rounded-2xl border border-slate-200 bg-white px-3 py-3">
-                      <div className="text-[10px] font-black uppercase tracking-[0.14em] text-slate-400">Parallel Groups</div>
-                      <div className="mt-2 text-xl font-black text-slate-900">{stage.parallelGroupCount}</div>
+                    <div style={{ borderRadius: '16px', border: `1px solid ${LK.borderSoft}`, backgroundColor: LK.surfaceRaised, paddingLeft: '12px', paddingRight: '12px', paddingTop: '12px', paddingBottom: '12px' }}>
+                      <div style={{ fontSize: '10px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.14em', color: LK.muted }}>Parallel Groups</div>
+                      <div style={{ marginTop: '8px', fontSize: '20px', fontWeight: 600, color: LK.ink }}>{stage.parallelGroupCount}</div>
                     </div>
                   </div>
                 </button>
@@ -367,26 +374,26 @@ export const SessionRelationshipGraph: React.FC<{
       </div>
 
       {expandedStage ? (
-        <div className="fixed inset-0 z-[260] bg-slate-950/70 p-4 backdrop-blur-sm">
-          <div className="flex h-full flex-col overflow-hidden rounded-[2rem] border border-slate-200 bg-[linear-gradient(180deg,#f8fafc_0%,#ffffff_100%)] shadow-[0_32px_120px_rgba(15,23,42,0.35)]">
-            <div className="flex items-start justify-between gap-4 border-b border-slate-200 px-6 py-5">
+        <div style={{ position: 'fixed', inset: 0, zIndex: 260, backgroundColor: 'rgba(2, 6, 23, 0.7)', padding: '16px', backdropFilter: 'blur(4px)' }}>
+          <div style={{ display: 'flex', height: '100%', flexDirection: 'column', overflow: 'hidden', borderRadius: '32px', border: `1px solid ${LK.borderSoft}`, backgroundColor: 'linear-gradient(180deg, rgba(248, 250, 252, 1) 0%, rgba(255, 255, 255, 1) 100%)' }}>
+            <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '16px', borderBottom: `1px solid ${LK.borderSoft}`, paddingLeft: '24px', paddingRight: '24px', paddingTop: '20px', paddingBottom: '20px' }}>
               <div>
-                <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">Agent Relationship</div>
-                <div className="mt-2 text-2xl font-black tracking-tight text-slate-900">{expandedStage.stageLabel}</div>
-                <div className="mt-2 text-sm text-slate-500">
+                <div style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.18em', color: LK.muted }}>Agent Relationship</div>
+                <div style={{ marginTop: '8px', fontSize: '24px', fontWeight: 600, letterSpacing: '-0.025em', color: LK.ink }}>{expandedStage.stageLabel}</div>
+                <div style={{ marginTop: '8px', fontSize: '14px', color: LK.body }}>
                   当前查看阶段内的智能体推进与并列关系。选择节点后，下方任务详情中的会话查看器会同步切到对应会话。
                 </div>
               </div>
               <button
                 type="button"
                 onClick={() => setExpandedStageKey(null)}
-                className="rounded-2xl border border-slate-200 bg-white p-3 text-slate-500 transition hover:bg-slate-50"
+                style={{ borderRadius: '16px', border: `1px solid ${LK.borderSoft}`, backgroundColor: LK.surfaceRaised, padding: '12px', color: LK.body, transition: 'background-color 0.2s', cursor: 'pointer' }}
               >
                 <X size={18} />
               </button>
             </div>
 
-            <div className="flex-1 overflow-auto px-6 py-6">
+            <div style={{ flex: 1, overflow: 'auto', paddingLeft: '24px', paddingRight: '24px', paddingTop: '24px', paddingBottom: '24px' }}>
               <DetailedStageGraph
                 stage={expandedStage}
                 nodeMap={graph.nodeMap}
@@ -400,8 +407,8 @@ export const SessionRelationshipGraph: React.FC<{
       ) : null}
 
       {inspectedPath ? (
-        <div className="fixed inset-0 z-[280] bg-slate-950/70 p-4 backdrop-blur-sm">
-          <div className="flex h-full flex-col overflow-hidden rounded-[2rem] border border-slate-200 bg-[linear-gradient(180deg,#f8fafc_0%,#ffffff_100%)] shadow-[0_32px_120px_rgba(15,23,42,0.35)]">
+        <div style={{ position: 'fixed', inset: 0, zIndex: 280, backgroundColor: 'rgba(2, 6, 23, 0.7)', padding: '16px', backdropFilter: 'blur(4px)' }}>
+          <div style={{ display: 'flex', height: '100%', flexDirection: 'column', overflow: 'hidden', borderRadius: '32px', border: `1px solid ${LK.borderSoft}`, backgroundColor: 'linear-gradient(180deg, rgba(248, 250, 252, 1) 0%, rgba(255, 255, 255, 1) 100%)' }}>
             <AgentSessionDialogHeader
               title={inspectedNode?.display_name || inspectedPath}
               subtitle={inspectedNode ? formatNodeSubtitle(inspectedNode) || inspectedNode.relative_path : inspectedPath}
@@ -413,7 +420,7 @@ export const SessionRelationshipGraph: React.FC<{
               onClose={() => setInspectedPath(null)}
             />
 
-            <div className="flex-1 overflow-auto px-6 py-6">
+            <div style={{ flex: 1, overflow: 'auto', paddingLeft: '24px', paddingRight: '24px', paddingTop: '24px', paddingBottom: '24px' }}>
               <AgentSessionViewer
                 sessionMeta={inspectedPreview?.sessionMeta}
                 sessionHeader={inspectedPreview?.sessionHeader}

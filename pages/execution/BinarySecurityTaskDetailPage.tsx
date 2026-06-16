@@ -36,6 +36,19 @@ import {
 } from '../../utils/binarySecurityContracts';
 import { clearExecutionReturnContext, saveBinarySecurityReturnContext } from '../../utils/executionReturnContext';
 
+const LK = {
+  primary: '#4f73ff', primarySoft: '#7590ff', primaryDeep: '#3f63f1',
+  primaryMuted: 'rgba(79, 115, 255, 0.14)',
+  canvas: '#070d18', surface: '#111a2b', surfaceRaised: '#18233a',
+  surfaceGlass: 'rgba(17, 26, 43, 0.84)',
+  border: '#26324a', borderSoft: '#1b2438',
+  ink: '#f5f7ff', inkSoft: '#d6def0', body: '#a4aec4',
+  muted: '#72809a', mutedSoft: '#8b95a8',
+  success: '#45c06f', warning: '#d5a13a', error: '#f15d5d', info: '#4f8cff',
+  critical: '#ff4d4f', high: '#ff8b3d', medium: '#f0b64c', low: '#49c5ff',
+} as const;
+const MONO = 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace';
+
 interface Props {
   projectId: string;
   taskId: string;
@@ -192,98 +205,95 @@ const taskRuntimeOwnerSummary = (detail: BinarySecurityTaskDetail) => {
   };
 };
 
-const statusTone = (status: string) => {
+const statusTone = (status: string): { backgroundColor: string; color: string; borderColor: string } => {
   switch (status) {
     case 'success':
-      return 'bg-emerald-50 text-emerald-700 border-emerald-200';
+      return { backgroundColor: 'rgba(69, 192, 111, 0.1)', color: LK.success, borderColor: LK.success };
     case 'partial_success':
-      return 'bg-amber-50 text-amber-700 border-amber-200';
+      return { backgroundColor: 'rgba(213, 161, 58, 0.1)', color: LK.warning, borderColor: LK.warning };
     case 'failed':
     case 'delete_failed':
-      return 'bg-rose-50 text-rose-700 border-rose-200';
+      return { backgroundColor: 'rgba(241, 93, 93, 0.1)', color: LK.error, borderColor: LK.error };
     case 'downstream_missing':
-      return 'bg-orange-50 text-orange-700 border-orange-200';
+      return { backgroundColor: 'rgba(249, 115, 22, 0.1)', color: '#f97316', borderColor: '#f97316' };
     case 'cancelled':
-      return 'bg-slate-100 text-slate-500 border-slate-200';
+      return { backgroundColor: LK.surfaceRaised, color: LK.muted, borderColor: LK.border };
     case 'pending_module_confirmation':
-      return 'bg-amber-50 text-amber-700 border-amber-200';
     case 'waiting_confirmation':
-      return 'bg-amber-50 text-amber-700 border-amber-200';
+      return { backgroundColor: 'rgba(213, 161, 58, 0.1)', color: LK.warning, borderColor: LK.warning };
     case 'pending_upload':
-      return 'bg-violet-50 text-violet-700 border-violet-200';
+    case 'applying':
+      return { backgroundColor: 'rgba(139, 92, 246, 0.1)', color: '#8b5cf6', borderColor: '#8b5cf6' };
     case 'uploading':
-      return 'bg-sky-50 text-sky-700 border-sky-200';
-    case 'ready_to_start':
-      return 'bg-indigo-50 text-indigo-700 border-indigo-200';
-    case 'running':
-      return 'bg-blue-50 text-blue-700 border-blue-200';
-    case 'continue_in_progress':
-      return 'bg-emerald-50 text-emerald-700 border-emerald-200';
-    case 'retry_in_progress':
-      return 'bg-orange-50 text-orange-700 border-orange-200';
-    case 'applying':
-      return 'bg-violet-50 text-violet-700 border-violet-200';
     case 'dispatching':
-      return 'bg-sky-50 text-sky-700 border-sky-200';
+      return { backgroundColor: 'rgba(14, 165, 233, 0.1)', color: LK.info, borderColor: LK.info };
+    case 'ready_to_start':
+      return { backgroundColor: 'rgba(99, 102, 241, 0.1)', color: '#6366f1', borderColor: '#6366f1' };
+    case 'running':
+      return { backgroundColor: 'rgba(59, 130, 246, 0.1)', color: '#3b82f6', borderColor: '#3b82f6' };
+    case 'continue_in_progress':
+      return { backgroundColor: 'rgba(69, 192, 111, 0.1)', color: LK.success, borderColor: LK.success };
+    case 'retry_in_progress':
+      return { backgroundColor: 'rgba(249, 115, 22, 0.1)', color: '#f97316', borderColor: '#f97316' };
     case 'queued':
-      return 'bg-cyan-50 text-cyan-700 border-cyan-200';
+      return { backgroundColor: 'rgba(6, 182, 212, 0.1)', color: '#06b6d4', borderColor: '#06b6d4' };
     case 'skipped':
-      return 'bg-slate-100 text-slate-500 border-slate-200';
+      return { backgroundColor: LK.surfaceRaised, color: LK.muted, borderColor: LK.border };
     default:
-      return 'bg-slate-50 text-slate-600 border-slate-200';
+      return { backgroundColor: LK.surfaceRaised, color: LK.body, borderColor: LK.border };
   }
 };
 
-const stageNodeTone = (status: string, selected: boolean) => {
-  const selectedDepth = selected ? '-translate-y-1 shadow-[0_18px_40px_-18px_rgba(15,23,42,0.45)]' : 'shadow-sm';
+const stageNodeTone = (status: string, selected: boolean): { backgroundColor: string; color: string; borderColor: string; transform?: string } => {
+  const transform = selected ? 'translateY(-4px)' : undefined;
   switch (status) {
     case 'success':
-      return `border-emerald-300 bg-emerald-50 text-emerald-800 ${selectedDepth}`;
+      return { backgroundColor: 'rgba(69, 192, 111, 0.1)', color: LK.success, borderColor: LK.success, transform };
     case 'partial_success':
-      return `border-amber-300 bg-amber-50 text-amber-800 ${selectedDepth}`;
+      return { backgroundColor: 'rgba(213, 161, 58, 0.1)', color: LK.warning, borderColor: LK.warning, transform };
     case 'failed':
-      return `border-rose-300 bg-rose-50 text-rose-800 ${selectedDepth}`;
+      return { backgroundColor: 'rgba(241, 93, 93, 0.1)', color: LK.error, borderColor: LK.error, transform };
     case 'downstream_missing':
-      return `border-orange-300 bg-orange-50 text-orange-800 ${selectedDepth}`;
+      return { backgroundColor: 'rgba(249, 115, 22, 0.1)', color: '#f97316', borderColor: '#f97316', transform };
     case 'running':
-      return `border-blue-300 bg-blue-50 text-blue-800 ${selectedDepth}`;
+      return { backgroundColor: 'rgba(59, 130, 246, 0.1)', color: '#3b82f6', borderColor: '#3b82f6', transform };
     case 'continue_in_progress':
-      return `border-emerald-300 bg-emerald-50 text-emerald-800 ${selectedDepth}`;
+      return { backgroundColor: 'rgba(69, 192, 111, 0.1)', color: LK.success, borderColor: LK.success, transform };
     case 'retry_in_progress':
-      return `border-orange-300 bg-orange-50 text-orange-800 ${selectedDepth}`;
+      return { backgroundColor: 'rgba(249, 115, 22, 0.1)', color: '#f97316', borderColor: '#f97316', transform };
     case 'applying':
-      return `border-violet-300 bg-violet-50 text-violet-800 ${selectedDepth}`;
+      return { backgroundColor: 'rgba(139, 92, 246, 0.1)', color: '#8b5cf6', borderColor: '#8b5cf6', transform };
     case 'cancelled':
-      return `border-slate-300 bg-slate-100 text-slate-600 ${selectedDepth}`;
+      return { backgroundColor: LK.surfaceRaised, color: LK.body, borderColor: LK.border, transform };
     case 'waiting_confirmation':
-      return `border-amber-300 bg-amber-50 text-amber-800 ${selectedDepth}`;
+      return { backgroundColor: 'rgba(213, 161, 58, 0.1)', color: LK.warning, borderColor: LK.warning, transform };
     case 'skipped':
-      return `border-slate-300 bg-slate-50 text-slate-500 ${selectedDepth}`;
+      return { backgroundColor: LK.surfaceRaised, color: LK.muted, borderColor: LK.border, transform };
     default:
-      return `border-slate-200 bg-white text-slate-600 ${selectedDepth}`;
+      return { backgroundColor: LK.surface, color: LK.body, borderColor: LK.border, transform };
   }
 };
 
-const stageConnectorTone = (status: string) => {
+const stageConnectorTone = (status: string): string => {
   switch (status) {
     case 'success':
-      return 'text-emerald-400';
+      return LK.success;
     case 'partial_success':
-      return 'text-amber-400';
+      return LK.warning;
     case 'failed':
-      return 'text-rose-400';
+      return LK.error;
     case 'downstream_missing':
-      return 'text-orange-400';
+      return '#f97316';
     case 'running':
-      return 'text-blue-400';
+      return '#3b82f6';
     case 'continue_in_progress':
-      return 'text-emerald-400';
+      return LK.success;
     case 'retry_in_progress':
-      return 'text-orange-400';
+      return '#f97316';
     case 'applying':
-      return 'text-violet-400';
+      return '#8b5cf6';
     default:
-      return 'text-slate-400';
+      return LK.muted;
   }
 };
 
@@ -663,20 +673,20 @@ const formatRuntimeHealthStatus = (status?: string | null) => {
   }
 };
 
-const runtimeHealthTone = (status?: string | null) => {
+const runtimeHealthTone = (status?: string | null): { backgroundColor: string; color: string; borderColor: string } => {
   switch (String(status || '').trim().toLowerCase()) {
     case 'healthy':
     case 'done':
     case 'terminal':
-      return 'border-emerald-200 bg-emerald-50 text-emerald-700';
+      return { backgroundColor: 'rgba(69, 192, 111, 0.1)', color: LK.success, borderColor: LK.success };
     case 'degraded':
-      return 'border-amber-200 bg-amber-50 text-amber-700';
+      return { backgroundColor: 'rgba(213, 161, 58, 0.1)', color: LK.warning, borderColor: LK.warning };
     case 'unhealthy':
-      return 'border-rose-200 bg-rose-50 text-rose-700';
+      return { backgroundColor: 'rgba(241, 93, 93, 0.1)', color: LK.error, borderColor: LK.error };
     case 'idle':
     case 'unknown':
     default:
-      return 'border-slate-200 bg-slate-50 text-slate-600';
+      return { backgroundColor: LK.surfaceRaised, color: LK.body, borderColor: LK.border };
   }
 };
 

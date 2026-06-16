@@ -58,6 +58,19 @@ import { DataflowFileserverRunDashboardPage } from './DataflowFileserverRunDashb
 import { StaticPipelineFlow } from './StaticPipelineFlow';
 import { navigateBackByTaskOrigin, navigateBackToBinarySecurityTask } from '../../utils/executionReturnContext';
 
+const LK = {
+  primary: '#4f73ff', primarySoft: '#7590ff', primaryDeep: '#3f63f1',
+  primaryMuted: 'rgba(79, 115, 255, 0.14)',
+  canvas: '#070d18', surface: '#111a2b', surfaceRaised: '#18233a',
+  surfaceGlass: 'rgba(17, 26, 43, 0.84)',
+  border: '#26324a', borderSoft: '#1b2438',
+  ink: '#f5f7ff', inkSoft: '#d6def0', body: '#a4aec4',
+  muted: '#72809a', mutedSoft: '#8b95a8',
+  success: '#45c06f', warning: '#d5a13a', error: '#f15d5d', info: '#4f8cff',
+  critical: '#ff4d4f', high: '#ff8b3d', medium: '#f0b64c', low: '#49c5ff',
+} as const;
+const MONO = 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace';
+
 const STATUS_META: Record<string, { label: string; className: string; icon: React.ReactNode }> = {
   pending: { label: '待启动', className: 'bg-slate-100 text-slate-700 border-slate-200', icon: <Clock size={13} /> },
   queued: { label: '启动中', className: 'bg-sky-50 text-sky-700 border-sky-200', icon: <Clock size={13} /> },
@@ -141,12 +154,25 @@ const DATAFLOW_VULN_FLOW = {
     },
   ],
 };
-const FORM_INPUT_CLASS = 'w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm font-semibold text-slate-800 outline-none focus:border-cyan-600';
+
+const FORM_INPUT_STYLE = {
+  width: '100%',
+  borderRadius: 8,
+  border: `1px solid ${LK.borderSoft}`,
+  backgroundColor: LK.surface,
+  padding: '10px 12px',
+  fontSize: 14,
+  fontWeight: 600,
+  color: LK.ink,
+  outline: 'none',
+  transition: 'border-color 0.2s',
+};
+
 const DEFAULT_DATAFLOW_VULN_RUNS_ROOT = '/app/secflow-app-dataflow-vuln-scan';
 const DEFAULT_CREATE_TASK_MODEL = 'local_minimax/MiniMax/MiniMax-M2.5';
 const TASK_PURPOSE_META: Record<string, { label: string; className: string }> = {
-  normal: { label: '正常任务', className: 'border-slate-200 bg-slate-50 text-slate-700' },
-  evolution: { label: '进化任务', className: 'border-amber-200 bg-amber-50 text-amber-700' },
+  normal: { label: '正常任务', className: 'border-[#1b2438] bg-[#18233a] text-[#a4aec4]' },
+  evolution: { label: '进化任务', className: 'border-[#d5a13a] bg-[rgba(213,161,58,0.15)] text-[#d5a13a]' },
 };
 
 const defaultConfigPayload = (): DataflowProfileConfigPayload => ({
@@ -536,8 +562,23 @@ function getExecutionSlotView(task: DataflowScanTask): {
 
 const StatusBadge: React.FC<{ status?: string | null }> = ({ status }) => {
   const meta = statusMeta(status);
+  const style = meta.className.includes('bg-slate-100')
+    ? { backgroundColor: LK.surfaceRaised, color: LK.body, borderColor: LK.borderSoft }
+    : meta.className.includes('bg-sky-50')
+    ? { backgroundColor: `${LK.info}15`, color: LK.info, borderColor: `${LK.info}40` }
+    : meta.className.includes('bg-cyan-50')
+    ? { backgroundColor: `${LK.primary}15`, color: LK.primary, borderColor: `${LK.primary}40` }
+    : meta.className.includes('bg-amber-50')
+    ? { backgroundColor: `${LK.warning}15`, color: LK.warning, borderColor: `${LK.warning}40` }
+    : meta.className.includes('bg-rose-50')
+    ? { backgroundColor: `${LK.error}15`, color: LK.error, borderColor: `${LK.error}40` }
+    : meta.className.includes('bg-emerald-50')
+    ? { backgroundColor: `${LK.success}15`, color: LK.success, borderColor: `${LK.success}40` }
+    : meta.className.includes('bg-orange-50')
+    ? { backgroundColor: `${LK.warning}15`, color: LK.warning, borderColor: `${LK.warning}40` }
+    : { backgroundColor: LK.surfaceRaised, color: LK.body, borderColor: LK.borderSoft };
   return (
-    <span className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[11px] font-black ${meta.className}`}>
+    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, borderRadius: 9999, border: '1px solid', padding: '4px 10px', fontSize: 11, fontWeight: 600, ...style }}>
       {meta.icon}
       {meta.label}
     </span>
@@ -550,27 +591,30 @@ const MetricCard: React.FC<{ label: string; value: React.ReactNode; icon: React.
   icon,
   tone = 'bg-white',
   hint,
-}) => (
-  <div className={`rounded-lg border border-slate-200 ${tone} p-4 shadow-sm`}>
-    <div className="flex items-center justify-between gap-3">
-      <span className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-500">{label}</span>
-      <span className="text-slate-500">{icon}</span>
+}) => {
+  const bgColor = tone === 'bg-white' ? LK.surface : tone === 'bg-emerald-50/70' ? `${LK.success}20` : tone === 'bg-rose-50/70' ? `${LK.error}20` : LK.surface;
+  return (
+  <div style={{ borderRadius: 12, border: `1px solid ${LK.borderSoft}`, backgroundColor: bgColor, padding: 16 }}>
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+      <span style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.16em', color: LK.muted }}>{label}</span>
+      <span style={{ color: LK.muted }}>{icon}</span>
     </div>
-    <div className="mt-3 text-2xl font-black text-slate-900">{value}</div>
-    {hint ? <div className="mt-1 text-xs text-slate-500">{hint}</div> : null}
+    <div style={{ marginTop: 12, fontSize: 24, fontWeight: 600, color: LK.ink }}>{value}</div>
+    {hint ? <div style={{ marginTop: 4, fontSize: 12, color: LK.muted }}>{hint}</div> : null}
   </div>
-);
+  );
+};
 
 const EmptyPanel: React.FC<{ title: string; description: string; icon?: React.ReactNode }> = ({ title, description, icon = <FileSearch size={22} /> }) => (
-  <div className="rounded-lg border border-dashed border-slate-300 bg-slate-50 px-6 py-12 text-center">
-    <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-400">{icon}</div>
-    <div className="mt-4 text-sm font-black text-slate-800">{title}</div>
-    <div className="mt-2 text-sm text-slate-500">{description}</div>
+  <div style={{ borderRadius: 12, border: `1px dashed ${LK.borderSoft}`, backgroundColor: LK.surfaceRaised, padding: '24px 48px', textAlign: 'center' }}>
+    <div style={{ margin: '0 auto', display: 'flex', height: 48, width: 48, alignItems: 'center', justifyContent: 'center', borderRadius: 8, border: `1px solid ${LK.borderSoft}`, backgroundColor: LK.surface, color: LK.muted }}>{icon}</div>
+    <div style={{ marginTop: 16, fontSize: 14, fontWeight: 600, color: LK.ink }}>{title}</div>
+    <div style={{ marginTop: 8, fontSize: 14, color: LK.body }}>{description}</div>
   </div>
 );
 
 const JsonBlock: React.FC<{ value: any; maxHeight?: string }> = ({ value, maxHeight = 'max-h-80' }) => (
-  <pre className={`${maxHeight} overflow-auto rounded-lg border border-slate-200 bg-slate-50 p-4 text-xs leading-5 text-slate-900`}>
+  <pre style={{ maxHeight: maxHeight === 'max-h-80' ? 320 : maxHeight, overflow: 'auto', borderRadius: 8, border: `1px solid ${LK.borderSoft}`, backgroundColor: LK.surfaceRaised, padding: 16, fontSize: 12, lineHeight: 1.25, color: LK.ink, fontFamily: MONO }}>
     {JSON.stringify(value ?? {}, null, 2)}
   </pre>
 );
@@ -582,20 +626,20 @@ const PageHeader: React.FC<{
   description?: string;
   children?: React.ReactNode;
 }> = ({ eyebrow, title, version, description, children }) => (
-  <section className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
-    <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-      <div className="min-w-0">
-        <p className="text-[11px] font-black uppercase tracking-[0.2em] text-cyan-700">{eyebrow}</p>
+  <section style={{ borderRadius: 12, border: `1px solid ${LK.borderSoft}`, backgroundColor: LK.surface, padding: 20 }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 16, alignItems: 'flex-start', justifyContent: 'space-between' }}>
+      <div style={{ minWidth: 0, flex: 1 }}>
+        <p style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.2em', color: LK.primary }}>{eyebrow}</p>
         <ServicePageTitle
           title={title}
           version={version}
           className="mt-2"
-          titleClassName="text-2xl font-black tracking-tight text-slate-950"
+          titleClassName="text-2xl font-semibold tracking-tight text-slate-950"
           badgeClassName="text-[10px]"
         />
-        {description ? <p className="mt-2 max-w-4xl text-sm leading-6 text-slate-500">{description}</p> : null}
+        {description ? <p style={{ marginTop: 8, maxWidth: 896, fontSize: 14, lineHeight: 1.5, color: LK.body }}>{description}</p> : null}
       </div>
-      {children ? <div className="flex shrink-0 flex-wrap items-center gap-2">{children}</div> : null}
+      {children ? <div style={{ display: 'flex', flexShrink: 0, flexWrap: 'wrap', alignItems: 'center', gap: 8 }}>{children}</div> : null}
     </div>
   </section>
 );
@@ -609,7 +653,9 @@ const TableSortButton: React.FC<{
   <button
     type="button"
     onClick={onClick}
-    className={`inline-flex items-center gap-1 font-inherit ${active ? 'text-cyan-700' : 'text-inherit hover:text-slate-900'}`}
+    style={{ display: 'inline-flex', alignItems: 'center', gap: 4, color: active ? LK.primary : 'inherit', cursor: 'pointer' }}
+    onMouseEnter={(e) => { if (!active) e.currentTarget.style.color = LK.ink; }}
+    onMouseLeave={(e) => { if (!active) e.currentTarget.style.color = 'inherit'; }}
   >
     <span>{label}</span>
     {active ? (order === 'asc' ? <ChevronUp size={14} /> : <ChevronDown size={14} />) : <SlidersHorizontal size={13} />}
@@ -622,12 +668,14 @@ const PanelActions: React.FC<{ saving: boolean; disabled?: boolean; onSave: () =
   onSave,
   onReset,
 }) => (
-  <div className="flex shrink-0 flex-wrap items-center gap-2">
+  <div style={{ display: 'flex', flexShrink: 0, flexWrap: 'wrap', alignItems: 'center', gap: 8 }}>
     <button
       type="button"
       onClick={onReset}
       disabled={saving}
-      className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+      style={{ borderRadius: 8, border: `1px solid ${LK.borderSoft}`, backgroundColor: LK.surface, padding: '8px 12px', fontSize: 12, fontWeight: 600, color: LK.body, cursor: saving ? 'not-allowed' : 'pointer', opacity: saving ? 0.5 : 1 }}
+      onMouseEnter={(e) => { if (!saving) e.currentTarget.style.backgroundColor = LK.surfaceRaised; }}
+      onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = LK.surface; }}
     >
       重置为默认
     </button>
@@ -635,7 +683,9 @@ const PanelActions: React.FC<{ saving: boolean; disabled?: boolean; onSave: () =
       type="button"
       onClick={onSave}
       disabled={saving || disabled}
-      className="inline-flex items-center gap-2 rounded-lg bg-cyan-700 px-3 py-2 text-xs font-black text-white shadow-sm hover:bg-cyan-800 disabled:opacity-50"
+      style={{ display: 'inline-flex', alignItems: 'center', gap: 8, borderRadius: 8, backgroundColor: LK.primary, padding: '8px 12px', fontSize: 12, fontWeight: 600, color: 'white', cursor: (saving || disabled) ? 'not-allowed' : 'pointer', opacity: (saving || disabled) ? 0.5 : 1 }}
+      onMouseEnter={(e) => { if (!saving && !disabled) e.currentTarget.style.backgroundColor = LK.primaryDeep; }}
+      onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = LK.primary; }}
     >
       {saving ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
       保存配置
@@ -2286,7 +2336,7 @@ const CreateTaskDialog: React.FC<{
                     value={state.workspacePath}
                     onChange={(event) => onChange({ ...state, workspacePath: event.target.value })}
                     placeholder={DEFAULT_DATAFLOW_VULN_RUNS_ROOT}
-                    className={FORM_INPUT_CLASS}
+                    style={FORM_INPUT_STYLE}
                   />
                   <button type="button" onClick={() => setPickerField('workspacePath')} className="shrink-0 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-black text-slate-700 hover:bg-slate-50">
                     选择
@@ -2305,7 +2355,7 @@ const CreateTaskDialog: React.FC<{
                     value={state.dataFlowPath}
                     onChange={(event) => onChange({ ...state, dataFlowPath: event.target.value })}
                     placeholder="/case-a/data_flow"
-                    className={FORM_INPUT_CLASS}
+                    style={FORM_INPUT_STYLE}
                   />
                   <button type="button" onClick={() => setPickerField('dataFlowPath')} className="shrink-0 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-black text-slate-700 hover:bg-slate-50">
                     选择
@@ -2324,7 +2374,7 @@ const CreateTaskDialog: React.FC<{
                     value={state.sourcePath}
                     onChange={(event) => onChange({ ...state, sourcePath: event.target.value })}
                     placeholder="/case-a/source"
-                    className={FORM_INPUT_CLASS}
+                    style={FORM_INPUT_STYLE}
                   />
                   <button type="button" onClick={() => setPickerField('sourcePath')} className="shrink-0 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-black text-slate-700 hover:bg-slate-50">
                     选择
@@ -2336,11 +2386,11 @@ const CreateTaskDialog: React.FC<{
             <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-3">
               <label>
                 <span className="text-xs font-black text-slate-600">模型</span>
-                <input value={state.model} onChange={(event) => onChange({ ...state, model: event.target.value })} className={FORM_INPUT_CLASS} />
+                <input value={state.model} onChange={(event) => onChange({ ...state, model: event.target.value })} style={FORM_INPUT_STYLE} />
               </label>
               <label>
                 <span className="text-xs font-black text-slate-600">Provider（可选）</span>
-                <input value={state.provider} onChange={(event) => onChange({ ...state, provider: event.target.value })} placeholder="openai / anthropic" className={FORM_INPUT_CLASS} />
+                <input value={state.provider} onChange={(event) => onChange({ ...state, provider: event.target.value })} placeholder="openai / anthropic" style={FORM_INPUT_STYLE} />
               </label>
               <label>
                 <span className="text-xs font-black text-slate-600">Review Profile</span>
@@ -2354,7 +2404,7 @@ const CreateTaskDialog: React.FC<{
                       maxReviewCycles: REVIEW_PROFILE_DEFAULT_MAX_CYCLES[nextProfile] || state.maxReviewCycles,
                     });
                   }}
-                  className={FORM_INPUT_CLASS}
+                  style={FORM_INPUT_STYLE}
                 >
                   {REVIEW_PROFILE_OPTIONS.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}
                 </select>
@@ -2364,21 +2414,21 @@ const CreateTaskDialog: React.FC<{
               </label>
               <label>
                 <span className="text-xs font-black text-slate-600">最大评审轮次</span>
-                <input type="number" min={1} value={state.maxReviewCycles} onChange={(event) => onChange({ ...state, maxReviewCycles: Number(event.target.value) || 1 })} className={FORM_INPUT_CLASS} />
+                <input type="number" min={1} value={state.maxReviewCycles} onChange={(event) => onChange({ ...state, maxReviewCycles: Number(event.target.value) || 1 })} style={FORM_INPUT_STYLE} />
               </label>
               <label>
                 <span className="text-xs font-black text-slate-600">Pi Timeout 最大次数</span>
-                <input type="number" min={1} value={state.timeoutMaxRetries} onChange={(event) => onChange({ ...state, timeoutMaxRetries: Number(event.target.value) || 1 })} className={FORM_INPUT_CLASS} />
+                <input type="number" min={1} value={state.timeoutMaxRetries} onChange={(event) => onChange({ ...state, timeoutMaxRetries: Number(event.target.value) || 1 })} style={FORM_INPUT_STYLE} />
                 <span className="mt-1 block text-[11px] leading-4 text-slate-500">默认 3；Pi/provider 返回 timeout 时按该次数重发同一提示词。</span>
               </label>
               <label>
                 <span className="text-xs font-black text-slate-600">Pi Timeout 重试间隔（秒）</span>
-                <input type="number" min={0} value={state.timeoutRetryIntervalSeconds} onChange={(event) => onChange({ ...state, timeoutRetryIntervalSeconds: Math.max(0, Number(event.target.value) || 0) })} className={FORM_INPUT_CLASS} />
+                <input type="number" min={0} value={state.timeoutRetryIntervalSeconds} onChange={(event) => onChange({ ...state, timeoutRetryIntervalSeconds: Math.max(0, Number(event.target.value) || 0) })} style={FORM_INPUT_STYLE} />
                 <span className="mt-1 block text-[11px] leading-4 text-slate-500">默认 30；仅在最大次数大于 1 时生效。</span>
               </label>
               <label>
                 <span className="text-xs font-black text-slate-600">结果评审并发</span>
-                <input type="number" min={1} value={state.resultReviewConcurrency} onChange={(event) => onChange({ ...state, resultReviewConcurrency: Number(event.target.value) || 1 })} className={FORM_INPUT_CLASS} />
+                <input type="number" min={1} value={state.resultReviewConcurrency} onChange={(event) => onChange({ ...state, resultReviewConcurrency: Number(event.target.value) || 1 })} style={FORM_INPUT_STYLE} />
               </label>
             </div>
 
@@ -2861,16 +2911,16 @@ export const DataflowVulnConfigPage: React.FC<{ projectId: string; embedded?: bo
                 </div>
                 <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
                   <Field label="名称">
-                    <input value={form.name} onChange={(event) => setForm({ ...form, name: event.target.value })} className={FORM_INPUT_CLASS} />
+                    <input value={form.name} onChange={(event) => setForm({ ...form, name: event.target.value })} style={FORM_INPUT_STYLE} />
                   </Field>
                   <Field label="模板类型">
-                    <select value={form.templateKind} onChange={(event) => setForm({ ...form, templateKind: event.target.value })} className={FORM_INPUT_CLASS}>
+                    <select value={form.templateKind} onChange={(event) => setForm({ ...form, templateKind: event.target.value })} style={FORM_INPUT_STYLE}>
                       {TEMPLATE_OPTIONS.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}
                     </select>
                   </Field>
                 </div>
                 <Field label="描述">
-                  <textarea value={form.description} onChange={(event) => setForm({ ...form, description: event.target.value })} className={`${FORM_INPUT_CLASS} min-h-[72px]`} />
+                  <textarea value={form.description} onChange={(event) => setForm({ ...form, description: event.target.value })} style={{ ...FORM_INPUT_STYLE, minHeight: 72 }} />
                 </Field>
                 <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
                   <label className="flex items-center gap-3 rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm font-bold text-slate-700">
@@ -2901,10 +2951,10 @@ export const DataflowVulnConfigPage: React.FC<{ projectId: string; embedded?: bo
                 </div>
                 <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
                   <Field label="模型">
-                    <input value={form.model} onChange={(event) => setForm({ ...form, model: event.target.value })} className={FORM_INPUT_CLASS} />
+                    <input value={form.model} onChange={(event) => setForm({ ...form, model: event.target.value })} style={FORM_INPUT_STYLE} />
                   </Field>
                   <Field label="评审档位">
-                    <select value={form.reviewProfile} onChange={(event) => setForm({ ...form, reviewProfile: event.target.value })} className={FORM_INPUT_CLASS}>
+                    <select value={form.reviewProfile} onChange={(event) => setForm({ ...form, reviewProfile: event.target.value })} style={FORM_INPUT_STYLE}>
                       {REVIEW_PROFILE_OPTIONS.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}
                     </select>
                   </Field>
@@ -2936,7 +2986,7 @@ export const DataflowVulnConfigPage: React.FC<{ projectId: string; embedded?: bo
                   <textarea
                     value={form.runtimeOverridesText}
                     onChange={(event) => setForm({ ...form, runtimeOverridesText: event.target.value })}
-                    className={`${FORM_INPUT_CLASS} min-h-[180px] font-mono text-xs`}
+                    style={{ ...FORM_INPUT_STYLE, minHeight: 180, fontFamily: MONO, fontSize: 12 }}
                   />
                 </Field>
               </div>
@@ -3012,7 +3062,7 @@ export const DataflowVulnConfigPage: React.FC<{ projectId: string; embedded?: bo
                 <input
                   value={String(serviceRuntimeConfig?.config?.dataflow_worker?.advertise_url_template || '')}
                   onChange={(event) => updateServiceWorkerField('advertise_url_template', event.target.value)}
-                  className={FORM_INPUT_CLASS}
+                  style={FORM_INPUT_STYLE}
                   placeholder="http://{pod_id}.{headless_service_name}.{pod_namespace}.svc.cluster.local:8080"
                 />
                 <span className="mt-1 block text-[11px] leading-4 text-slate-500">留空时自动使用 registry FQDN：`pod_id.headless_service_name.pod_namespace.svc.cluster.local`。</span>
@@ -3079,6 +3129,6 @@ const NumberInput: React.FC<{ value: number; onChange: (value: number) => void }
     type="number"
     value={value}
     onChange={(event) => onChange(Number(event.target.value) || 0)}
-    className={FORM_INPUT_CLASS}
+    style={FORM_INPUT_STYLE}
   />
 );

@@ -18,6 +18,19 @@ import {
   type AtomicCapabilityDescriptor,
 } from './atomicCapabilityCatalog';
 
+const LK = {
+  primary: '#4f73ff', primarySoft: '#7590ff', primaryDeep: '#3f63f1',
+  primaryMuted: 'rgba(79, 115, 255, 0.14)',
+  canvas: '#070d18', surface: '#111a2b', surfaceRaised: '#18233a',
+  surfaceGlass: 'rgba(17, 26, 43, 0.84)',
+  border: '#26324a', borderSoft: '#1b2438',
+  ink: '#f5f7ff', inkSoft: '#d6def0', body: '#a4aec4',
+  muted: '#72809a', mutedSoft: '#8b95a8',
+  success: '#45c06f', warning: '#d5a13a', error: '#f15d5d', info: '#4f8cff',
+  critical: '#ff4d4f', high: '#ff8b3d', medium: '#f0b64c', low: '#49c5ff',
+} as const;
+const MONO = 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace';
+
 interface AtomicCapabilityOverviewPageProps {
   projectId: string;
   onNavigate: (view: ViewType) => void;
@@ -58,18 +71,18 @@ const createInitialDocsState = (): OnlineDocsState => ({
   pathCount: null,
 });
 
-const endpointMethodTone = (method: string): string => {
+const endpointMethodTone = (method: string): { bg: string; color: string; border: string } => {
   switch (method) {
     case 'GET':
-      return 'bg-sky-100 text-sky-700 border-sky-200';
+      return { bg: 'rgba(73,197,255,0.15)', color: '#49c5ff', border: '#49c5ff' };
     case 'POST':
-      return 'bg-emerald-100 text-emerald-700 border-emerald-200';
+      return { bg: 'rgba(69,192,111,0.15)', color: '#45c06f', border: '#45c06f' };
     case 'PUT':
-      return 'bg-amber-100 text-amber-700 border-amber-200';
+      return { bg: 'rgba(213,161,58,0.15)', color: '#d5a13a', border: '#d5a13a' };
     case 'DELETE':
-      return 'bg-rose-100 text-rose-700 border-rose-200';
+      return { bg: 'rgba(241,93,93,0.15)', color: '#f15d5d', border: '#f15d5d' };
     default:
-      return 'bg-slate-100 text-slate-700 border-slate-200';
+      return { bg: 'rgba(114,128,154,0.15)', color: '#72809a', border: '#72809a' };
   }
 };
 
@@ -148,47 +161,70 @@ const probeOnlineDocs = async (capability: AtomicCapabilityDescriptor): Promise<
   };
 };
 
-const ApiGroupSection: React.FC<{ group: AtomicCapabilityApiGroup; index: number }> = ({ group, index }) => (
-  <section className="rounded-[1.75rem] border border-slate-200 bg-white/90 p-5 shadow-sm">
-    <div className="flex items-start gap-4">
-      <div className={`mt-1 flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br ${sectionIconTone(index)} text-white shadow-lg`}>
-        <Sparkles size={18} />
-      </div>
-      <div className="min-w-0">
-        <h4 className="text-lg font-black text-slate-900">{group.groupName}</h4>
-        <p className="mt-1 text-sm leading-relaxed text-slate-500">{group.description}</p>
-      </div>
-    </div>
-    <div className="mt-5 space-y-3">
-      {group.endpoints.map((endpoint) => (
-        <div key={`${endpoint.method}-${endpoint.path}`} className="rounded-2xl border border-slate-200 bg-slate-50/90 p-4">
-          <div className="flex flex-wrap items-center gap-3">
-            <span className={`inline-flex rounded-full border px-2.5 py-1 text-[11px] font-black tracking-[0.2em] ${endpointMethodTone(endpoint.method)}`}>
-              {endpoint.method}
-            </span>
-            <code className="break-all text-sm font-semibold text-slate-800">{endpoint.path}</code>
-          </div>
-          <p className="mt-3 text-sm font-semibold text-slate-800">{endpoint.purpose}</p>
-          <div className="mt-3 grid gap-3 md:grid-cols-2">
-            <div className="rounded-xl border border-slate-200 bg-white px-3 py-3">
-              <div className="text-[11px] font-black uppercase tracking-[0.2em] text-slate-500">请求说明</div>
-              <div className="mt-2 text-sm leading-relaxed text-slate-700">{endpoint.requestSummary}</div>
-            </div>
-            <div className="rounded-xl border border-slate-200 bg-white px-3 py-3">
-              <div className="text-[11px] font-black uppercase tracking-[0.2em] text-slate-500">响应说明</div>
-              <div className="mt-2 text-sm leading-relaxed text-slate-700">{endpoint.responseSummary}</div>
-            </div>
-          </div>
-          {endpoint.notes ? (
-            <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
-              {endpoint.notes}
-            </div>
-          ) : null}
+const ApiGroupSection: React.FC<{ group: AtomicCapabilityApiGroup; index: number }> = ({ group, index }) => {
+  const tones = [
+    'from-cyan-500 to-sky-600',
+    'from-emerald-500 to-teal-600',
+    'from-violet-500 to-fuchsia-600',
+    'from-amber-500 to-orange-600',
+  ];
+  const tone = tones[index % tones.length] || tones[0];
+
+  const getGradientColors = (t: string): { from: string; to: string } => {
+    if (t.includes('cyan')) return { from: '#06b6d4', to: '#0284c7' };
+    if (t.includes('emerald')) return { from: '#10b981', to: '#0d9488' };
+    if (t.includes('violet')) return { from: '#8b5cf6', to: '#a855f7' };
+    if (t.includes('amber')) return { from: '#f59e0b', to: '#ea580c' };
+    return { from: '#4f73ff', to: '#3f63f1' };
+  };
+
+  const gradient = getGradientColors(tone);
+
+  return (
+    <section style={{ borderRadius: '20px', border: '1px solid #26324a', backgroundColor: 'rgba(17,26,43,0.9)', padding: '20px' }}>
+      <div style={{ display: 'flex', alignItems: 'flex-start', gap: '16px' }}>
+        <div style={{ marginTop: '4px', display: 'flex', height: '44px', width: '44px', flexShrink: 0, alignItems: 'center', justifyContent: 'center', borderRadius: '16px', background: `linear-gradient(135deg, ${gradient.from}, ${gradient.to})`, color: '#fff' }}>
+          <Sparkles size={18} />
         </div>
-      ))}
-    </div>
-  </section>
-);
+        <div style={{ minWidth: 0 }}>
+          <h4 style={{ fontSize: '18px', fontWeight: 600, color: '#f5f7ff' }}>{group.groupName}</h4>
+          <p style={{ marginTop: '4px', fontSize: '14px', lineHeight: '20px', color: '#a4aec4' }}>{group.description}</p>
+        </div>
+      </div>
+      <div style={{ marginTop: '20px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+        {group.endpoints.map((endpoint) => {
+          const tones = endpointMethodTone(endpoint.method);
+          return (
+            <div key={`${endpoint.method}-${endpoint.path}`} style={{ borderRadius: '16px', border: '1px solid #26324a', backgroundColor: '#18233a', padding: '16px' }}>
+              <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '12px' }}>
+                <span style={{ display: 'inline-flex', borderRadius: '9999px', border: `1px solid ${tones.border}`, padding: '4px 10px', fontSize: '11px', fontWeight: 600, letterSpacing: '0.2em', backgroundColor: tones.bg, color: tones.color }}>
+                  {endpoint.method}
+                </span>
+                <code style={{ wordBreak: 'break-all', fontSize: '14px', fontWeight: 600, color: '#d6def0', fontFamily: MONO }}>{endpoint.path}</code>
+              </div>
+              <p style={{ marginTop: '12px', fontSize: '14px', fontWeight: 600, color: '#d6def0' }}>{endpoint.purpose}</p>
+              <div style={{ marginTop: '12px', display: 'grid', gap: '12px', gridTemplateColumns: 'repeat(1, minmax(0, 1fr))', '@media (min-width: 768px)': { gridTemplateColumns: 'repeat(2, minmax(0, 1fr))' } } as any}>
+                <div style={{ borderRadius: '12px', border: '1px solid #26324a', backgroundColor: '#111a2b', padding: '12px' }}>
+                  <div style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.2em', color: '#72809a' }}>请求说明</div>
+                  <div style={{ marginTop: '8px', fontSize: '14px', lineHeight: '20px', color: '#d6def0' }}>{endpoint.requestSummary}</div>
+                </div>
+                <div style={{ borderRadius: '12px', border: '1px solid #26324a', backgroundColor: '#111a2b', padding: '12px' }}>
+                  <div style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.2em', color: '#72809a' }}>响应说明</div>
+                  <div style={{ marginTop: '8px', fontSize: '14px', lineHeight: '20px', color: '#d6def0' }}>{endpoint.responseSummary}</div>
+                </div>
+              </div>
+              {endpoint.notes ? (
+                <div style={{ marginTop: '12px', borderRadius: '12px', border: '1px solid #d5a13a', backgroundColor: 'rgba(213,161,58,0.1)', padding: '8px 12px', fontSize: '14px', color: '#d5a13a' }}>
+                  {endpoint.notes}
+                </div>
+              ) : null}
+            </div>
+          );
+        })}
+      </div>
+    </section>
+  );
+};
 
 export const AtomicCapabilityOverviewPage: React.FC<AtomicCapabilityOverviewPageProps> = ({ projectId, onNavigate }) => {
   const [selectedCapabilityId, setSelectedCapabilityId] = useState<string>('');
@@ -235,38 +271,38 @@ export const AtomicCapabilityOverviewPage: React.FC<AtomicCapabilityOverviewPage
   }, [selectedCapability]);
 
   return (
-    <div className="px-8 pb-10 pt-8">
-      <section className="rounded-[2rem] border border-slate-200 bg-gradient-to-br from-white via-cyan-50/70 to-sky-50 p-7 shadow-sm">
-        <div className="flex flex-col gap-6 xl:flex-row xl:items-end xl:justify-between">
-          <div className="max-w-4xl">
-            <div className="inline-flex items-center gap-2 rounded-full border border-cyan-200 bg-cyan-50 px-3 py-1 text-[11px] font-black uppercase tracking-[0.3em] text-cyan-700">
+    <div style={{ padding: '32px', paddingBottom: '40px', paddingTop: '32px' }}>
+      <section style={{ borderRadius: '24px', border: '1px solid #26324a', backgroundColor: 'linear-gradient(135deg, #111a2b 0%, rgba(79,115,255,0.08) 50%, rgba(73,197,255,0.08) 100%)', padding: '28px' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', '@media (min-width: 1280px)': { flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between' } } as any}>
+          <div style={{ maxWidth: '56rem' }}>
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', borderRadius: '9999px', border: '1px solid #49c5ff', backgroundColor: 'rgba(73,197,255,0.1)', padding: '4px 12px', fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.3em', color: '#49c5ff' }}>
               <Sparkles size={14} />
               Atomic Capabilities
             </div>
-            <h1 className="mt-4 text-3xl font-black tracking-tight text-slate-900">原子能力总览</h1>
-            <p className="mt-3 max-w-3xl text-sm leading-7 text-slate-600">
+            <h1 style={{ marginTop: '16px', fontSize: '30px', fontWeight: 600, letterSpacing: '-0.02em', color: '#f5f7ff' }}>原子能力总览</h1>
+            <p style={{ marginTop: '12px', maxWidth: '48rem', fontSize: '14px', lineHeight: '28px', color: '#d6def0' }}>
               聚焦当前平台已上线的五类原子能力。每张卡片展示能力定位、输入输出链路、K8S 服务入口和核心 API。
               点击卡片即可查看内置接口文档、K8S 内访问地址以及在线 OpenAPI 文档探测结果。
             </p>
           </div>
-          <div className="grid gap-3 sm:grid-cols-3">
-            <div className="rounded-2xl border border-white/70 bg-white/90 px-5 py-4 shadow-sm">
-              <div className="text-[11px] font-black uppercase tracking-[0.2em] text-slate-500">原子能力</div>
-              <div className="mt-2 text-3xl font-black text-slate-900">{atomicCapabilityCatalog.length}</div>
+          <div style={{ display: 'grid', gap: '12px', gridTemplateColumns: 'repeat(1, minmax(0, 1fr))', '@media (min-width: 640px)': { gridTemplateColumns: 'repeat(3, minmax(0, 1fr))' } } as any}>
+            <div style={{ borderRadius: '16px', border: '1px solid rgba(255,255,255,0.1)', backgroundColor: 'rgba(17,26,43,0.9)', padding: '20px' }}>
+              <div style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.2em', color: '#72809a' }}>原子能力</div>
+              <div style={{ marginTop: '8px', fontSize: '30px', fontWeight: 600, color: '#f5f7ff' }}>{atomicCapabilityCatalog.length}</div>
             </div>
-            <div className="rounded-2xl border border-white/70 bg-white/90 px-5 py-4 shadow-sm">
-              <div className="text-[11px] font-black uppercase tracking-[0.2em] text-slate-500">已选项目</div>
-              <div className="mt-2 break-all text-sm font-bold text-slate-800">{projectId || '未选择项目'}</div>
+            <div style={{ borderRadius: '16px', border: '1px solid rgba(255,255,255,0.1)', backgroundColor: 'rgba(17,26,43,0.9)', padding: '20px' }}>
+              <div style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.2em', color: '#72809a' }}>已选项目</div>
+              <div style={{ marginTop: '8px', wordBreak: 'break-all', fontSize: '14px', fontWeight: 600, color: '#d6def0' }}>{projectId || '未选择项目'}</div>
             </div>
-            <div className="rounded-2xl border border-white/70 bg-white/90 px-5 py-4 shadow-sm">
-              <div className="text-[11px] font-black uppercase tracking-[0.2em] text-slate-500">展示内容</div>
-              <div className="mt-2 text-sm font-bold text-slate-800">能力简介 / K8S API / API 文档</div>
+            <div style={{ borderRadius: '16px', border: '1px solid rgba(255,255,255,0.1)', backgroundColor: 'rgba(17,26,43,0.9)', padding: '20px' }}>
+              <div style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.2em', color: '#72809a' }}>展示内容</div>
+              <div style={{ marginTop: '8px', fontSize: '14px', fontWeight: 600, color: '#d6def0' }}>能力简介 / K8S API / API 文档</div>
             </div>
           </div>
         </div>
       </section>
 
-      <section className="mt-8 grid grid-cols-1 gap-5 xl:grid-cols-2 2xl:grid-cols-3">
+      <section style={{ marginTop: '32px', display: 'grid', gridTemplateColumns: 'repeat(1, minmax(0, 1fr))', gap: '20px', '@media (min-width: 1280px)': { gridTemplateColumns: 'repeat(2, minmax(0, 1fr))' }, '@media (min-width: 1536px)': { gridTemplateColumns: 'repeat(3, minmax(0, 1fr))' } } as any}>
         {atomicCapabilityCatalog.map((capability) => {
           const Icon = capability.icon;
           return (
@@ -274,63 +310,67 @@ export const AtomicCapabilityOverviewPage: React.FC<AtomicCapabilityOverviewPage
               key={capability.id}
               type="button"
               onClick={() => setSelectedCapabilityId(capability.id)}
-              className="group rounded-[2rem] border border-slate-200 bg-white/95 p-6 text-left shadow-sm transition-all hover:-translate-y-1 hover:shadow-xl hover:shadow-slate-200/70"
+              style={{ borderRadius: '24px', border: '1px solid #26324a', backgroundColor: 'rgba(17,26,43,0.95)', padding: '24px', textAlign: 'left', transitionProperty: 'transform, border-color', transitionDuration: '150ms', cursor: 'pointer' }}
+              onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-4px)'; e.currentTarget.style.borderColor = '#4f73ff'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.borderColor = '#26324a'; }}
             >
-              <div className="flex items-start justify-between gap-4">
-                <div className="flex items-center gap-4">
-                  <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-[1.35rem] bg-gradient-to-br from-cyan-500 to-blue-600 text-white shadow-lg shadow-cyan-200/70">
+              <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '16px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                  <div style={{ display: 'flex', height: '56px', width: '56px', flexShrink: 0, alignItems: 'center', justifyContent: 'center', borderRadius: '20px', background: 'linear-gradient(135deg, #06b6d4, #2563eb)', color: '#fff' }}>
                     <Icon size={24} />
                   </div>
                   <div>
-                    <div className="text-[11px] font-black uppercase tracking-[0.28em] text-cyan-700">Atomic Capability</div>
-                    <h3 className="mt-2 text-2xl font-black tracking-tight text-slate-900">{capability.name}</h3>
+                    <div style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.28em', color: '#49c5ff' }}>Atomic Capability</div>
+                    <h3 style={{ marginTop: '8px', fontSize: '24px', fontWeight: 600, letterSpacing: '-0.02em', color: '#f5f7ff' }}>{capability.name}</h3>
                   </div>
                 </div>
-                <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-[11px] font-black uppercase tracking-[0.2em] text-slate-500">
+                <span style={{ borderRadius: '9999px', border: '1px solid #26324a', backgroundColor: '#18233a', padding: '4px 12px', fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.2em', color: '#72809a' }}>
                   {capability.serviceName}
                 </span>
               </div>
 
-              <p className="mt-5 min-h-[48px] text-sm leading-7 text-slate-600">{capability.summary}</p>
+              <p style={{ marginTop: '20px', minHeight: '48px', fontSize: '14px', lineHeight: '28px', color: '#d6def0' }}>{capability.summary}</p>
 
-              <div className="mt-5 grid gap-3">
-                <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
-                  <div className="text-[11px] font-black uppercase tracking-[0.2em] text-slate-500">输入</div>
-                  <div className="mt-2 text-sm leading-6 text-slate-700">{capability.inputDescription}</div>
+              <div style={{ marginTop: '20px', display: 'grid', gap: '12px' }}>
+                <div style={{ borderRadius: '16px', border: '1px solid #26324a', backgroundColor: '#18233a', padding: '12px 16px' }}>
+                  <div style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.2em', color: '#72809a' }}>输入</div>
+                  <div style={{ marginTop: '8px', fontSize: '14px', lineHeight: '24px', color: '#d6def0' }}>{capability.inputDescription}</div>
                 </div>
-                <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
-                  <div className="text-[11px] font-black uppercase tracking-[0.2em] text-slate-500">输出</div>
-                  <div className="mt-2 text-sm leading-6 text-slate-700">{capability.outputDescription}</div>
+                <div style={{ borderRadius: '16px', border: '1px solid #26324a', backgroundColor: '#18233a', padding: '12px 16px' }}>
+                  <div style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.2em', color: '#72809a' }}>输出</div>
+                  <div style={{ marginTop: '8px', fontSize: '14px', lineHeight: '24px', color: '#d6def0' }}>{capability.outputDescription}</div>
                 </div>
               </div>
 
-              <div className="mt-5 flex flex-wrap gap-2">
+              <div style={{ marginTop: '20px', display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
                 {capability.tags.map((tag) => (
-                  <span key={tag} className="rounded-full border border-cyan-200 bg-cyan-50 px-3 py-1 text-xs font-bold text-cyan-700">
+                  <span key={tag} style={{ borderRadius: '9999px', border: '1px solid #49c5ff', backgroundColor: 'rgba(73,197,255,0.1)', padding: '4px 12px', fontSize: '12px', fontWeight: 600, color: '#49c5ff' }}>
                     {tag}
                   </span>
                 ))}
               </div>
 
-              <div className="mt-5 grid gap-3 md:grid-cols-2">
-                <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
-                  <div className="text-[11px] font-black uppercase tracking-[0.2em] text-slate-500">K8S 服务名</div>
-                  <div className="mt-2 break-all text-sm font-bold text-slate-800">{capability.k8sServiceHost}</div>
+              <div style={{ marginTop: '20px', display: 'grid', gap: '12px', gridTemplateColumns: 'repeat(1, minmax(0, 1fr))', '@media (min-width: 768px)': { gridTemplateColumns: 'repeat(2, minmax(0, 1fr))' } } as any}>
+                <div style={{ borderRadius: '16px', border: '1px solid #26324a', backgroundColor: '#18233a', padding: '12px 16px' }}>
+                  <div style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.2em', color: '#72809a' }}>K8S 服务名</div>
+                  <div style={{ marginTop: '8px', wordBreak: 'break-all', fontSize: '14px', fontWeight: 600, color: '#d6def0' }}>{capability.k8sServiceHost}</div>
                 </div>
-                <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
-                  <div className="text-[11px] font-black uppercase tracking-[0.2em] text-slate-500">API 前缀</div>
-                  <div className="mt-2 break-all font-mono text-sm font-semibold text-slate-800">{capability.apiPrefix}</div>
+                <div style={{ borderRadius: '16px', border: '1px solid #26324a', backgroundColor: '#18233a', padding: '12px 16px' }}>
+                  <div style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.2em', color: '#72809a' }}>API 前缀</div>
+                  <div style={{ marginTop: '8px', wordBreak: 'break-all', fontFamily: MONO, fontSize: '14px', fontWeight: 600, color: '#d6def0' }}>{capability.apiPrefix}</div>
                 </div>
               </div>
 
-              <div className="mt-6 flex flex-wrap items-center gap-3">
+              <div style={{ marginTop: '24px', display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '12px' }}>
                 <button
                   type="button"
                   onClick={(event) => {
                     event.stopPropagation();
                     setSelectedCapabilityId(capability.id);
                   }}
-                  className="inline-flex items-center gap-2 rounded-2xl bg-slate-900 px-4 py-3 text-sm font-black text-white transition-all hover:bg-slate-800"
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', borderRadius: '16px', backgroundColor: '#4f73ff', padding: '12px 16px', fontSize: '14px', fontWeight: 600, color: '#f5f7ff', transitionProperty: 'background-color', transitionDuration: '150ms', border: 'none', cursor: 'pointer' }}
+                  onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#3f63f1'; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = '#4f73ff'; }}
                 >
                   查看 API 说明
                   <ArrowRight size={16} />
@@ -341,7 +381,9 @@ export const AtomicCapabilityOverviewPage: React.FC<AtomicCapabilityOverviewPage
                     event.stopPropagation();
                     onNavigate(capability.viewId);
                   }}
-                  className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-black text-slate-700 transition-all hover:border-slate-300 hover:bg-slate-50"
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', borderRadius: '16px', border: '1px solid #26324a', backgroundColor: '#18233a', padding: '12px 16px', fontSize: '14px', fontWeight: 600, color: '#d6def0', transitionProperty: 'border-color, background-color', transitionDuration: '150ms', cursor: 'pointer' }}
+                  onMouseEnter={(e) => { e.currentTarget.style.borderColor = '#4f73ff'; e.currentTarget.style.backgroundColor = '#26324a'; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.borderColor = '#26324a'; e.currentTarget.style.backgroundColor = '#18233a'; }}
                 >
                   进入能力页面
                 </button>
@@ -352,26 +394,28 @@ export const AtomicCapabilityOverviewPage: React.FC<AtomicCapabilityOverviewPage
       </section>
 
       {selectedCapability ? (
-        <div className="fixed inset-0 z-[260] bg-slate-950/55 p-4 backdrop-blur-sm md:p-8" onClick={() => setSelectedCapabilityId('')}>
+        <div style={{ position: 'fixed', inset: 0, zIndex: 260, backgroundColor: 'rgba(2,6,23,0.55)', padding: '16px', backdropFilter: 'blur(4px)', '@media (min-width: 768px)': { padding: '32px' } } as any} onClick={() => setSelectedCapabilityId('')}>
           <div
-            className="mx-auto flex h-full w-full max-w-7xl flex-col overflow-hidden rounded-[2rem] border border-slate-200 bg-white shadow-2xl"
+            style={{ margin: '0 auto', display: 'flex', height: '100%', width: '100%', maxWidth: '80rem', flexDirection: 'column', overflow: 'hidden', borderRadius: '24px', border: '1px solid #26324a', backgroundColor: '#111a2b' }}
             onClick={(event) => event.stopPropagation()}
           >
-            <div className="flex items-start justify-between gap-6 border-b border-slate-200 bg-gradient-to-r from-white to-slate-50 px-6 py-5 md:px-8">
-              <div className="min-w-0">
-                <div className="text-[11px] font-black uppercase tracking-[0.3em] text-cyan-700">Atomic Capability Detail</div>
-                <div className="mt-2 flex flex-wrap items-center gap-3">
-                  <h2 className="text-3xl font-black tracking-tight text-slate-900">{selectedCapability.name}</h2>
-                  <span className="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-bold text-slate-500">
+            <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '24px', borderBottom: '1px solid #26324a', background: 'linear-gradient(90deg, #111a2b, #18233a)', padding: '20px 24px', '@media (min-width: 768px)': { padding: '20px 32px' } } as any}>
+              <div style={{ minWidth: 0 }}>
+                <div style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.3em', color: '#49c5ff' }}>Atomic Capability Detail</div>
+                <div style={{ marginTop: '8px', display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '12px' }}>
+                  <h2 style={{ fontSize: '30px', fontWeight: 600, letterSpacing: '-0.02em', color: '#f5f7ff' }}>{selectedCapability.name}</h2>
+                  <span style={{ borderRadius: '9999px', border: '1px solid #26324a', backgroundColor: '#18233a', padding: '4px 12px', fontSize: '12px', fontWeight: 600, color: '#72809a' }}>
                     {selectedCapability.serviceName}
                   </span>
                 </div>
-                <p className="mt-3 max-w-4xl text-sm leading-7 text-slate-600">{selectedCapability.summary}</p>
+                <p style={{ marginTop: '12px', maxWidth: '64rem', fontSize: '14px', lineHeight: '28px', color: '#d6def0' }}>{selectedCapability.summary}</p>
               </div>
               <button
                 type="button"
                 onClick={() => setSelectedCapabilityId('')}
-                className="rounded-2xl border border-slate-200 bg-white p-3 text-slate-500 transition hover:text-slate-800"
+                style={{ borderRadius: '16px', border: '1px solid #26324a', backgroundColor: '#18233a', padding: '12px', color: '#a4aec4', transitionProperty: 'color', transitionDuration: '150ms', cursor: 'pointer' }}
+                onMouseEnter={(e) => { e.currentTarget.style.color = '#f5f7ff'; }}
+                onMouseLeave={(e) => { e.currentTarget.style.color = '#a4aec4'; }}
                 title="关闭"
               >
                 <X size={20} />

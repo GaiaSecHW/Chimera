@@ -17,6 +17,19 @@ import {
 import { useUiFeedback } from '../../components/UiFeedback';
 import { StaticPipelineFlow } from './StaticPipelineFlow';
 
+const LK = {
+  primary: '#4f73ff', primarySoft: '#7590ff', primaryDeep: '#3f63f1',
+  primaryMuted: 'rgba(79, 115, 255, 0.14)',
+  canvas: '#070d18', surface: '#111a2b', surfaceRaised: '#18233a',
+  surfaceGlass: 'rgba(17, 26, 43, 0.84)',
+  border: '#26324a', borderSoft: '#1b2438',
+  ink: '#f5f7ff', inkSoft: '#d6def0', body: '#a4aec4',
+  muted: '#72809a', mutedSoft: '#8b95a8',
+  success: '#45c06f', warning: '#d5a13a', error: '#f15d5d', info: '#4f8cff',
+  critical: '#ff4d4f', high: '#ff8b3d', medium: '#f0b64c', low: '#49c5ff',
+} as const;
+const MONO = 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace';
+
 // ─── 常量 ──────────────────────────────────────────────────────────────────────
 
 const WORKER_STAGES = ['explore', 'classify', 'refine', 'sub_read', 'analyse', 'report'];
@@ -324,11 +337,11 @@ const restoreOtherSystemAnalysisPanels = (
 // ─── 子组件 ────────────────────────────────────────────────────────────────────
 
 const SectionCard: React.FC<{ title: string; subtitle?: string; actions?: React.ReactNode; children: React.ReactNode }> = ({ title, subtitle, actions, children }) => (
-  <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm space-y-4">
-    <div className="flex items-start justify-between gap-4">
+  <section style={{ borderRadius: '12px', border: `1px solid ${LK.border}`, backgroundColor: LK.surface, padding: '24px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+    <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '16px' }}>
       <div>
-        <h2 className="text-base font-black text-slate-900">{title}</h2>
-        {subtitle && <p className="mt-0.5 text-xs text-slate-500">{subtitle}</p>}
+        <h2 style={{ fontSize: '16px', fontWeight: 600, color: LK.ink }}>{title}</h2>
+        {subtitle && <p style={{ marginTop: '2px', fontSize: '12px', color: LK.muted }}>{subtitle}</p>}
       </div>
       {actions}
     </div>
@@ -337,12 +350,12 @@ const SectionCard: React.FC<{ title: string; subtitle?: string; actions?: React.
 );
 
 const FieldRow: React.FC<{ label: string; hint?: string; desc?: string; children: React.ReactNode }> = ({ label, hint, desc, children }) => (
-  <div className="flex flex-col gap-1">
-    <label className="text-sm font-semibold text-slate-700">
+  <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+    <label style={{ fontSize: '14px', fontWeight: 600, color: LK.inkSoft }}>
       {label}
-      {hint && <span className="ml-2 text-xs font-normal text-slate-400">{hint}</span>}
+      {hint && <span style={{ marginLeft: '8px', fontSize: '12px', fontWeight: 400, color: LK.body }}>{hint}</span>}
     </label>
-    {desc && <p className="text-xs text-slate-500 leading-relaxed -mt-0.5 mb-0.5">{desc}</p>}
+    {desc && <p style={{ fontSize: '12px', color: LK.muted, lineHeight: '1.5', marginTop: '-2px', marginBottom: '2px' }}>{desc}</p>}
     {children}
   </div>
 );
@@ -358,30 +371,33 @@ const NumberInput: React.FC<{ value: number; min?: number; max?: number; step?: 
         if (!isNaN(n)) onChange(n);
       }}
       onBlur={() => setStr(String(value))}
-      className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" />
+      style={{ width: '100%', borderRadius: '8px', border: `1px solid ${LK.border}`, padding: '8px 12px', fontSize: '14px', backgroundColor: LK.surfaceRaised, color: LK.ink, outline: 'none' }}
+    />
   );
 };
 
 const TextInput: React.FC<{ value: string; placeholder?: string; onChange: (v: string) => void }> = ({ value, placeholder, onChange }) => (
   <input type="text" placeholder={placeholder} value={value}
     onChange={(e) => onChange(e.target.value)}
-    className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" />
+    style={{ width: '100%', borderRadius: '8px', border: `1px solid ${LK.border}`, padding: '8px 12px', fontSize: '14px', backgroundColor: LK.surfaceRaised, color: LK.ink, outline: 'none' }}
+  />
 );
 
 const SelectInput: React.FC<{ value: string; options: string[]; onChange: (v: string) => void }> = ({ value, options, onChange }) => (
   <select value={value} onChange={(e) => onChange(e.target.value)}
-    className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm bg-white">
+    style={{ width: '100%', borderRadius: '8px', border: `1px solid ${LK.border}`, padding: '8px 12px', fontSize: '14px', backgroundColor: LK.surfaceRaised, color: LK.ink, outline: 'none' }}
+  >
     {options.map((opt) => <option key={opt} value={opt}>{opt}</option>)}
   </select>
 );
 
 const StageCard: React.FC<{ label: string; desc?: string; value: SystemAnalysisStageLoopConfig; onChange: (v: SystemAnalysisStageLoopConfig) => void }> = ({ label, desc, value, onChange }) => (
-  <div className="rounded-xl border border-slate-200 p-4 space-y-3">
+  <div style={{ borderRadius: '8px', border: `1px solid ${LK.border}`, padding: '16px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
     <div>
-      <p className="text-sm font-bold text-slate-800">{label}</p>
-      {desc && <p className="text-xs text-slate-500 mt-0.5 leading-relaxed">{desc}</p>}
+      <p style={{ fontSize: '14px', fontWeight: 600, color: LK.ink }}>{label}</p>
+      {desc && <p style={{ fontSize: '12px', color: LK.muted, marginTop: '2px', lineHeight: '1.5' }}>{desc}</p>}
     </div>
-    <div className="grid grid-cols-2 gap-3">
+    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '12px' }}>
       <FieldRow label="最少轮数" desc="至少执行的 Worker-Judge 对话轮数，即使提前满足通过条件也不会停止"><NumberInput value={value.min_rounds} min={0} onChange={(v) => onChange({ ...value, min_rounds: v })} /></FieldRow>
       <FieldRow label="通过模式" desc="majority=多数 judge 同意即继续，all=所有 judge 必须全部同意"><SelectInput value={value.pass_mode} options={['majority', 'all']} onChange={(v) => onChange({ ...value, pass_mode: v as 'majority' | 'all' })} /></FieldRow>
     </div>
@@ -393,7 +409,8 @@ const ModelSelect: React.FC<{ value: string; options: string[]; allowEmpty?: boo
   const allOpts = value && !options.includes(value) ? [value, ...options] : options;
   return (
     <select value={value} onChange={(e) => onChange(e.target.value)}
-      className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm bg-white">
+      style={{ width: '100%', borderRadius: '8px', border: `1px solid ${LK.border}`, padding: '8px 12px', fontSize: '14px', backgroundColor: LK.surfaceRaised, color: LK.ink, outline: 'none' }}
+    >
       {allowEmpty && <option value="">{emptyLabel}</option>}
       {allOpts.map((opt) => <option key={opt} value={opt}>{opt}</option>)}
     </select>
@@ -405,16 +422,16 @@ const AgentInstanceList: React.FC<{ agents: SystemAnalysisAgentInstance[]; model
   const remove = (i: number) => onChange(agents.filter((_, idx) => idx !== i));
   const update = (i: number, patch: Partial<SystemAnalysisAgentInstance>) => onChange(agents.map((a, idx) => idx === i ? { ...a, ...patch } : a));
   return (
-    <div className="space-y-2">
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
       {agents.map((agent, i) => (
-        <div key={i} className="flex items-center gap-2 rounded-xl border border-slate-100 bg-slate-50 p-3">
-          <div className="flex-1">
+        <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '8px', borderRadius: '8px', border: `1px solid ${LK.borderSoft}`, backgroundColor: LK.surfaceRaised, padding: '12px' }}>
+          <div style={{ flex: 1 }}>
             <ModelSelect value={agent.model} options={modelOptions} allowEmpty onChange={(v) => update(i, { model: v })} emptyLabel="— 选择模型 —" />
           </div>
-          <button onClick={() => remove(i)} className="flex-shrink-0 rounded-lg border border-red-100 p-2 text-red-400 hover:bg-red-50"><Trash2 size={14} /></button>
+          <button onClick={() => remove(i)} style={{ flexShrink: 0, borderRadius: '8px', border: `1px solid ${LK.error}`, padding: '8px', color: LK.error, backgroundColor: 'transparent', cursor: 'pointer' }}><Trash2 size={14} /></button>
         </div>
       ))}
-      <button onClick={add} className="inline-flex items-center gap-1.5 rounded-xl border border-dashed border-slate-300 px-4 py-2 text-sm text-slate-500 hover:bg-slate-50">
+      <button onClick={add} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', borderRadius: '8px', border: `1px dashed ${LK.border}`, padding: '8px 16px', fontSize: '14px', color: LK.muted, backgroundColor: 'transparent', cursor: 'pointer' }}>
         <Plus size={14} /> 添加实例
       </button>
     </div>
@@ -422,12 +439,12 @@ const AgentInstanceList: React.FC<{ agents: SystemAnalysisAgentInstance[]; model
 };
 
 const StageModelsEditor: React.FC<{ stageNames: string[]; modelOptions: string[]; stageDescs?: Record<string, string>; value: Record<string, string>; onChange: (v: Record<string, string>) => void }> = ({ stageNames, modelOptions, stageDescs, value, onChange }) => (
-  <div className="space-y-2">
+  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
     {stageNames.map((stage) => (
-      <div key={stage} className="rounded-xl border border-slate-100 bg-slate-50/60 p-3 space-y-1.5">
+      <div key={stage} style={{ borderRadius: '8px', border: `1px solid ${LK.borderSoft}`, backgroundColor: `${LK.surfaceRaised}99`, padding: '12px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
         <div>
-          <p className="text-sm font-semibold text-slate-800">{stage}</p>
-          {stageDescs?.[stage] && <p className="text-xs text-slate-500 leading-relaxed">{stageDescs[stage]}</p>}
+          <p style={{ fontSize: '14px', fontWeight: 600, color: LK.ink }}>{stage}</p>
+          {stageDescs?.[stage] && <p style={{ fontSize: '12px', color: LK.muted, lineHeight: '1.5' }}>{stageDescs[stage]}</p>}
         </div>
         <ModelSelect value={value[stage] ?? ''} options={modelOptions} allowEmpty
           onChange={(v) => { const next = { ...value }; if (v) next[stage] = v; else delete next[stage]; onChange(next); }} />
@@ -473,12 +490,12 @@ const PanelActions: React.FC<{
   onSave: () => void;
   onReset: () => void;
 }> = ({ saving, onSave, onReset }) => (
-  <div className="flex shrink-0 items-center gap-2">
+  <div style={{ display: 'flex', flexShrink: 0, alignItems: 'center', gap: '8px' }}>
     <button
       type="button"
       onClick={onReset}
       disabled={saving}
-      className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-50 disabled:opacity-50"
+      style={{ borderRadius: '8px', border: `1px solid ${LK.border}`, backgroundColor: LK.surface, padding: '8px 12px', fontSize: '12px', fontWeight: 600, color: LK.body, cursor: 'pointer', opacity: saving ? 0.5 : 1 }}
     >
       重置为默认
     </button>
@@ -486,7 +503,7 @@ const PanelActions: React.FC<{
       type="button"
       onClick={onSave}
       disabled={saving}
-      className="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-3 py-2 text-xs font-semibold text-white disabled:opacity-50"
+      style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', borderRadius: '8px', backgroundColor: LK.ink, padding: '8px 12px', fontSize: '12px', fontWeight: 600, color: LK.canvas, cursor: 'pointer', opacity: saving ? 0.5 : 1, border: 'none' }}
     >
       {saving && <Loader2 size={12} className="animate-spin" />}
       保存配置
@@ -517,17 +534,13 @@ const PromptEditorCard: React.FC<{
   onImportTemplate,
   onRestoreDefault,
 }) => (
-  <div className="rounded-2xl border border-slate-200 bg-slate-50/60 p-4 space-y-3">
-    <div className="flex items-start justify-between gap-4">
+  <div style={{ borderRadius: '12px', border: `1px solid ${LK.border}`, backgroundColor: `${LK.surfaceRaised}99`, padding: '16px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+    <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '16px' }}>
       <div>
-        <p className="text-sm font-bold text-slate-900">{promptKey}</p>
-        <p className="mt-1 text-xs leading-5 text-slate-500">{desc}</p>
+        <p style={{ fontSize: '14px', fontWeight: 600, color: LK.ink }}>{promptKey}</p>
+        <p style={{ marginTop: '4px', fontSize: '12px', lineHeight: '1.4', color: LK.muted }}>{desc}</p>
       </div>
-      <span className={`rounded-full border px-2.5 py-1 text-[11px] font-black tracking-[0.12em] ${
-        item.source === 'project'
-          ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
-          : 'border-slate-200 bg-white text-slate-500'
-      }`}>
+      <span style={{ borderRadius: '9999px', border: `1px solid ${item.source === 'project' ? LK.success : LK.border}`, padding: '4px 10px', fontSize: '11px', fontWeight: 600, letterSpacing: '0.12em', backgroundColor: item.source === 'project' ? `${LK.success}1a` : LK.surface, color: item.source === 'project' ? LK.success : LK.muted }}>
         {item.source === 'project' ? 'PROJECT' : 'DEFAULT'}
       </span>
     </div>
@@ -535,16 +548,16 @@ const PromptEditorCard: React.FC<{
     <textarea
       value={item.content}
       onChange={(event) => onChange({ ...item, content: event.target.value, source: 'project' })}
-      className="min-h-[180px] w-full rounded-xl border border-slate-200 bg-white px-4 py-3 font-mono text-xs leading-6 text-slate-800"
+      style={{ minHeight: '180px', width: '100%', borderRadius: '8px', border: `1px solid ${LK.border}`, backgroundColor: LK.surface, padding: '12px 16px', fontFamily: MONO, fontSize: '12px', lineHeight: '1.5', color: LK.ink, outline: 'none' }}
       spellCheck={false}
     />
 
-    <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
-      <div className="flex items-center gap-2">
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
         <select
           value={selectedTemplateId}
           onChange={(event) => onChangeTemplateId(event.target.value)}
-          className="min-w-[220px] rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm"
+          style={{ minWidth: '220px', borderRadius: '8px', border: `1px solid ${LK.border}`, backgroundColor: LK.surface, padding: '8px 12px', fontSize: '14px', color: LK.ink, outline: 'none' }}
         >
           <option value="">从模板库选择</option>
           {templates.map((template) => (
@@ -557,7 +570,7 @@ const PromptEditorCard: React.FC<{
           type="button"
           onClick={onImportTemplate}
           disabled={!selectedTemplateId}
-          className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 disabled:opacity-50"
+          style={{ borderRadius: '8px', border: `1px solid ${LK.border}`, backgroundColor: LK.surface, padding: '8px 12px', fontSize: '14px', fontWeight: 600, color: LK.inkSoft, cursor: 'pointer', opacity: !selectedTemplateId ? 0.5 : 1 }}
         >
           导入模板
         </button>
@@ -565,7 +578,7 @@ const PromptEditorCard: React.FC<{
       <button
         type="button"
         onClick={onRestoreDefault}
-        className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700"
+        style={{ borderRadius: '8px', border: `1px solid ${LK.border}`, backgroundColor: LK.surface, padding: '8px 12px', fontSize: '14px', fontWeight: 600, color: LK.inkSoft, cursor: 'pointer' }}
       >
         恢复默认
       </button>
@@ -722,61 +735,61 @@ export const SystemAnalysisConfigPage: React.FC<{ projectId: string; embedded?: 
   };
 
   return (
-    <div className={embedded ? 'space-y-4' : 'px-8 pt-8 pb-10 space-y-6'}>
+    <div style={embedded ? { display: 'flex', flexDirection: 'column', gap: '16px' } : { padding: '32px', paddingTop: '32px', paddingBottom: '40px', display: 'flex', flexDirection: 'column', gap: '24px' }}>
       {feedbackNodes}
 
       {!embedded ? (
-        <section className="rounded-[2rem] border border-slate-200 bg-white/90 p-6 shadow-sm">
-          <p className="text-xs font-black uppercase tracking-[0.3em] text-cyan-600">System Analysis</p>
-          <h1 className="mt-3 text-3xl font-black tracking-tight text-slate-900">分析配置</h1>
-          <p className="mt-2 text-sm text-slate-500">配置分析引擎全局运行参数，包括并发度、重试策略、Pipeline 阶段循环控制及 Agent 模型配置。各项配置作为全局默认值对所有任务生效。</p>
-          <p className="mt-1 text-xs text-slate-400">提示：分析范围（文件类型 / 架构 / 安全维度 / 模块粒度）均可在此作为服务级默认值，也可在「新建任务」弹窗中覆盖。</p>
+        <section style={{ borderRadius: '20px', border: `1px solid ${LK.border}`, backgroundColor: `${LK.surface}e6`, padding: '24px' }}>
+          <p style={{ fontSize: '12px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.3em', color: LK.info }}>System Analysis</p>
+          <h1 style={{ marginTop: '12px', fontSize: '28px', fontWeight: 600, letterSpacing: '-0.025em', color: LK.ink }}>分析配置</h1>
+          <p style={{ marginTop: '8px', fontSize: '14px', color: LK.muted }}>配置分析引擎全局运行参数，包括并发度、重试策略、Pipeline 阶段循环控制及 Agent 模型配置。各项配置作为全局默认值对所有任务生效。</p>
+          <p style={{ marginTop: '4px', fontSize: '12px', color: LK.body }}>提示：分析范围（文件类型 / 架构 / 安全维度 / 模块粒度）均可在此作为服务级默认值，也可在「新建任务」弹窗中覆盖。</p>
           {config.updated_at && (
-            <p className="mt-1 text-xs text-slate-400">上次保存：{new Date(config.updated_at).toLocaleString()}</p>
+            <p style={{ marginTop: '4px', fontSize: '12px', color: LK.body }}>上次保存：{new Date(config.updated_at).toLocaleString()}</p>
           )}
         </section>
       ) : (
-        <section className="rounded-[2rem] border border-slate-200 bg-slate-50/70 p-6 shadow-sm">
-          <div className="mb-5 flex items-start justify-between gap-4">
+        <section style={{ borderRadius: '20px', border: `1px solid ${LK.border}`, backgroundColor: `${LK.surfaceRaised}b3`, padding: '24px' }}>
+          <div style={{ marginBottom: '20px', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '16px' }}>
             <div>
-              <div className="flex flex-wrap items-center gap-2">
-                <Settings size={18} className="text-rose-600" />
-                <h2 className="text-xl font-black text-slate-900">系统分析参数配置</h2>
-                <span className="rounded-full border border-rose-200 bg-rose-50 px-3 py-1 text-[11px] font-black tracking-[0.12em] text-rose-700">
+              <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '8px' }}>
+                <Settings size={18} style={{ color: LK.error }} />
+                <h2 style={{ fontSize: '20px', fontWeight: 600, color: LK.ink }}>系统分析参数配置</h2>
+                <span style={{ borderRadius: '9999px', border: `1px solid ${LK.error}`, backgroundColor: `${LK.error}1a`, padding: '4px 12px', fontSize: '11px', fontWeight: 600, letterSpacing: '0.12em', color: LK.error }}>
                   chimera-app-system-analyse
                 </span>
               </div>
-              <p className="mt-2 text-sm text-slate-500">
+              <p style={{ marginTop: '8px', fontSize: '14px', color: LK.muted }}>
                 当前 Tab 中的全部配置项都归属于 `chimera-app-system-analyse` 微服务，用于控制系统分析服务的并发、重试、阶段循环和 Agent 模型行为。
               </p>
-              <p className="mt-1 text-xs text-slate-400">提示：分析范围（文件类型 / 架构 / 安全维度 / 模块粒度）可在此设置服务级默认值，也可在「新建任务」弹窗中单独覆盖。</p>
+              <p style={{ marginTop: '4px', fontSize: '12px', color: LK.body }}>提示：分析范围（文件类型 / 架构 / 安全维度 / 模块粒度）可在此设置服务级默认值，也可在「新建任务」弹窗中单独覆盖。</p>
               {config.updated_at && (
-                <p className="mt-1 text-xs text-slate-400">上次保存：{new Date(config.updated_at).toLocaleString()}</p>
+                <p style={{ marginTop: '4px', fontSize: '12px', color: LK.body }}>上次保存：{new Date(config.updated_at).toLocaleString()}</p>
               )}
             </div>
             <button
               type="button"
               onClick={reload}
               disabled={loading || saving}
-              className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-bold text-slate-700 shadow-sm hover:bg-slate-50 disabled:opacity-50"
+              style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', borderRadius: '8px', border: `1px solid ${LK.border}`, backgroundColor: LK.surface, padding: '10px 16px', fontSize: '14px', fontWeight: 600, color: LK.body, cursor: 'pointer', opacity: (loading || saving) ? 0.5 : 1 }}
             >
               {loading ? <Loader2 size={14} className="animate-spin" /> : <RefreshCw size={14} />}
               刷新
             </button>
           </div>
 
-          <div className="mb-5 rounded-xl border border-amber-100 bg-amber-50 px-4 py-3 text-sm text-amber-700">
+          <div style={{ marginBottom: '20px', borderRadius: '8px', border: `1px solid ${LK.warning}`, backgroundColor: `${LK.warning}1a`, padding: '12px 16px', fontSize: '14px', color: LK.warning }}>
             配置立即生效于后端服务，所有该项目下的系统分析任务默认共享这些参数。修改后无需重启。
           </div>
         </section>
       )}
 
       {loading ? (
-        <div className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-600">
+        <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', borderRadius: '8px', border: `1px solid ${LK.border}`, backgroundColor: LK.surface, padding: '12px 16px', fontSize: '14px', color: LK.body }}>
           <Loader2 size={15} className="animate-spin" />加载中...
         </div>
       ) : (
-        <div className="space-y-6">
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
           <StaticPipelineFlow
             title={SYSTEM_ANALYSIS_FLOW.title}
             subtitle={SYSTEM_ANALYSIS_FLOW.subtitle}
@@ -800,7 +813,7 @@ export const SystemAnalysisConfigPage: React.FC<{ projectId: string; embedded?: 
               label="文件类型"
               hint="analyse_targets"
               desc="S0 文件过滤阶段只处理勾选类型。选择「all」不过滤。">
-              <div className="flex flex-wrap gap-2 pt-0.5">
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', paddingTop: '2px' }}>
                 {['all', 'binary', 'script', 'source', 'config', 'firmware', 'crypto', 'database', 'web', 'network_model', 'document', 'archive'].map((t) => {
                   const selected = config.analyse_targets?.includes(t) ?? false;
                   return (
@@ -815,11 +828,17 @@ export const SystemAnalysisConfigPage: React.FC<{ projectId: string; embedded?: 
                         else { next = cur.filter(c => c !== 'all').concat(t); }
                         patch({ analyse_targets: next });
                       }}
-                      className={`rounded-full border px-3 py-1 text-xs font-semibold transition-colors ${
-                        selected
-                          ? 'border-rose-400 bg-rose-50 text-rose-700'
-                          : 'border-slate-200 bg-white text-slate-500 hover:border-slate-300 hover:text-slate-700'
-                      }`}
+                      style={{
+                        borderRadius: '9999px',
+                        border: `1px solid ${selected ? LK.error : LK.border}`,
+                        padding: '4px 12px',
+                        fontSize: '12px',
+                        fontWeight: 600,
+                        backgroundColor: selected ? `${LK.error}1a` : LK.surface,
+                        color: selected ? LK.error : LK.muted,
+                        cursor: 'pointer',
+                        transition: 'all 0.2s'
+                      } as React.CSSProperties}
                     >{t}</button>
                   );
                 })}
@@ -831,7 +850,7 @@ export const SystemAnalysisConfigPage: React.FC<{ projectId: string; embedded?: 
               label="二进制架构"
               hint="binary_arch"
               desc="binary 类型文件的架构过滤，只在 analyse_targets 含 binary 时生效。选择「all」不过滤。">
-              <div className="flex flex-wrap gap-2 pt-0.5">
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', paddingTop: '2px' }}>
                 {['all', 'x86', 'x86_64', 'arm', 'aarch64', 'mips', 'mips64', 'ppc', 'ppc64', 'riscv', 's390'].map((t) => {
                   const selected = config.binary_arch?.includes(t) ?? false;
                   return (
@@ -846,11 +865,17 @@ export const SystemAnalysisConfigPage: React.FC<{ projectId: string; embedded?: 
                         else { next = cur.filter(c => c !== 'all').concat(t); }
                         patch({ binary_arch: next });
                       }}
-                      className={`rounded-full border px-3 py-1 text-xs font-semibold transition-colors ${
-                        selected
-                          ? 'border-rose-400 bg-rose-50 text-rose-700'
-                          : 'border-slate-200 bg-white text-slate-500 hover:border-slate-300 hover:text-slate-700'
-                      }`}
+                      style={{
+                        borderRadius: '9999px',
+                        border: `1px solid ${selected ? LK.error : LK.border}`,
+                        padding: '4px 12px',
+                        fontSize: '12px',
+                        fontWeight: 600,
+                        backgroundColor: selected ? `${LK.error}1a` : LK.surface,
+                        color: selected ? LK.error : LK.muted,
+                        cursor: 'pointer',
+                        transition: 'all 0.2s'
+                      } as React.CSSProperties}
                     >{t}</button>
                   );
                 })}
@@ -862,7 +887,7 @@ export const SystemAnalysisConfigPage: React.FC<{ projectId: string; embedded?: 
               label="安全维度过滤"
               hint="security_focus_categories"
               desc="S1 分类时只将与指定安全维度相关的文件归入模块，无关文件（构建脚本、i18n、文档等）直接丢弃。选择「全部」不做过滤。">
-              <div className="flex flex-wrap gap-2 pt-0.5">
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', paddingTop: '2px' }}>
                 {[
                   { key: 'all', label: '全部（不过滤）' },
                   { key: 'network_protocol', label: '网络协议解析' },
@@ -894,11 +919,17 @@ export const SystemAnalysisConfigPage: React.FC<{ projectId: string; embedded?: 
                         }
                         patch({ security_focus_categories: next });
                       }}
-                      className={`rounded-full border px-3 py-1 text-xs font-semibold transition-colors ${
-                        selected
-                          ? 'border-rose-400 bg-rose-50 text-rose-700'
-                          : 'border-slate-200 bg-white text-slate-500 hover:border-slate-300 hover:text-slate-700'
-                      }`}
+                      style={{
+                        borderRadius: '9999px',
+                        border: `1px solid ${selected ? LK.error : LK.border}`,
+                        padding: '4px 12px',
+                        fontSize: '12px',
+                        fontWeight: 600,
+                        backgroundColor: selected ? `${LK.error}1a` : LK.surface,
+                        color: selected ? LK.error : LK.muted,
+                        cursor: 'pointer',
+                        transition: 'all 0.2s'
+                      } as React.CSSProperties}
                     >
                       {label}
                     </button>
@@ -912,7 +943,7 @@ export const SystemAnalysisConfigPage: React.FC<{ projectId: string; embedded?: 
               label="模块划分粒度"
               hint="module_granularity"
               desc="粗粒度：以完整协议/服务/安全功能为边界（HTTP 全部代码 = 1 模块），适合协议多、文件多的固件。细粒度：当前默认行为，按子组件/功能模块拆分。">
-              <div className="flex gap-2">
+              <div style={{ display: 'flex', gap: '8px' }}>
                 {[
                   { value: 'fine', label: '细粒度（子组件级，默认）' },
                   { value: 'coarse', label: '粗粒度（协议/服务/功能级）' },
@@ -921,11 +952,18 @@ export const SystemAnalysisConfigPage: React.FC<{ projectId: string; embedded?: 
                     key={v}
                     type="button"
                     onClick={() => patch({ module_granularity: v })}
-                    className={`flex-1 rounded-xl border px-4 py-2.5 text-sm font-semibold transition-colors ${
-                      config.module_granularity === v
-                        ? 'border-rose-400 bg-rose-50 text-rose-700'
-                        : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
-                    }`}
+                    style={{
+                      flex: 1,
+                      borderRadius: '8px',
+                      border: `1px solid ${config.module_granularity === v ? LK.error : LK.border}`,
+                      padding: '10px 16px',
+                      fontSize: '14px',
+                      fontWeight: 600,
+                      backgroundColor: config.module_granularity === v ? `${LK.error}1a` : LK.surface,
+                      color: config.module_granularity === v ? LK.error : LK.body,
+                      cursor: 'pointer',
+                      transition: 'all 0.2s'
+                    } as React.CSSProperties}
                   >
                     {label}
                   </button>
@@ -937,7 +975,7 @@ export const SystemAnalysisConfigPage: React.FC<{ projectId: string; embedded?: 
               label="过滤引擎"
               hint="filter_engine"
               desc="智能体驱动会直接替代脚本过滤与 S1 粗分类，默认复用 classify 模型；若执行失败会自动回退到脚本驱动。">
-              <div className="flex gap-2">
+              <div style={{ display: 'flex', gap: '8px' }}>
                 {[
                   { value: 'script', label: '脚本驱动（兼容现有）' },
                   { value: 'agent', label: '智能体驱动' },
@@ -946,11 +984,18 @@ export const SystemAnalysisConfigPage: React.FC<{ projectId: string; embedded?: 
                     key={v}
                     type="button"
                     onClick={() => patch({ filter_engine: v as SystemAnalysisServiceConfig['filter_engine'] })}
-                    className={`flex-1 rounded-xl border px-4 py-2.5 text-sm font-semibold transition-colors ${
-                      config.filter_engine === v
-                        ? 'border-rose-400 bg-rose-50 text-rose-700'
-                        : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
-                    }`}
+                    style={{
+                      flex: 1,
+                      borderRadius: '8px',
+                      border: `1px solid ${config.filter_engine === v ? LK.error : LK.border}`,
+                      padding: '10px 16px',
+                      fontSize: '14px',
+                      fontWeight: 600,
+                      backgroundColor: config.filter_engine === v ? `${LK.error}1a` : LK.surface,
+                      color: config.filter_engine === v ? LK.error : LK.body,
+                      cursor: 'pointer',
+                      transition: 'all 0.2s'
+                    } as React.CSSProperties}
                   >
                     {label}
                   </button>
@@ -962,7 +1007,7 @@ export const SystemAnalysisConfigPage: React.FC<{ projectId: string; embedded?: 
               label="完整性检查阶段开关"
               hint="enable_final_check"
               desc="控制是否执行 `final_check — 完整性检查` 阶段。默认关闭；关闭时仅跳过 Stage 4a，不影响最终报告生成与评审。任务创建时如果未单独指定，将继承这里的服务级默认值。">
-              <div className="flex gap-2">
+              <div style={{ display: 'flex', gap: '8px' }}>
                 {([
                   { value: true, label: '开启 Stage 4a' },
                   { value: false, label: '关闭 Stage 4a（默认）' },
@@ -971,11 +1016,18 @@ export const SystemAnalysisConfigPage: React.FC<{ projectId: string; embedded?: 
                     key={String(value)}
                     type="button"
                     onClick={() => patch({ enable_final_check: value })}
-                    className={`flex-1 rounded-xl border px-4 py-2.5 text-sm font-semibold transition-colors ${
-                      config.enable_final_check === value
-                        ? 'border-rose-400 bg-rose-50 text-rose-700'
-                        : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
-                    }`}
+                    style={{
+                      flex: 1,
+                      borderRadius: '8px',
+                      border: `1px solid ${config.enable_final_check === value ? LK.error : LK.border}`,
+                      padding: '10px 16px',
+                      fontSize: '14px',
+                      fontWeight: 600,
+                      backgroundColor: config.enable_final_check === value ? `${LK.error}1a` : LK.surface,
+                      color: config.enable_final_check === value ? LK.error : LK.body,
+                      cursor: 'pointer',
+                      transition: 'all 0.2s'
+                    } as React.CSSProperties}
                   >
                     {label}
                   </button>
@@ -987,7 +1039,7 @@ export const SystemAnalysisConfigPage: React.FC<{ projectId: string; embedded?: 
               label="单模块失败后继续"
               hint="continue_on_module_failure"
               desc="控制当单个模块在 refine/analyse/补做阶段失败时，是否继续推进其他模块和后续阶段。默认开启。开启后失败模块会保留在评估结果中，但不阻断整任务；关闭后任一模块失败都会使任务失败。">
-              <div className="flex gap-2">
+              <div style={{ display: 'flex', gap: '8px' }}>
                 {([
                   { value: true, label: '允许继续（默认）' },
                   { value: false, label: '失败即终止任务' },
@@ -996,11 +1048,18 @@ export const SystemAnalysisConfigPage: React.FC<{ projectId: string; embedded?: 
                     key={String(value)}
                     type="button"
                     onClick={() => patch({ continue_on_module_failure: value })}
-                    className={`flex-1 rounded-xl border px-4 py-2.5 text-sm font-semibold transition-colors ${
-                      config.continue_on_module_failure === value
-                        ? 'border-rose-400 bg-rose-50 text-rose-700'
-                        : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
-                    }`}
+                    style={{
+                      flex: 1,
+                      borderRadius: '8px',
+                      border: `1px solid ${config.continue_on_module_failure === value ? LK.error : LK.border}`,
+                      padding: '10px 16px',
+                      fontSize: '14px',
+                      fontWeight: 600,
+                      backgroundColor: config.continue_on_module_failure === value ? `${LK.error}1a` : LK.surface,
+                      color: config.continue_on_module_failure === value ? LK.error : LK.body,
+                      cursor: 'pointer',
+                      transition: 'all 0.2s'
+                    } as React.CSSProperties}
                   >
                     {label}
                   </button>
@@ -1021,7 +1080,7 @@ export const SystemAnalysisConfigPage: React.FC<{ projectId: string; embedded?: 
               />
             )}
           >
-            <div className="grid grid-cols-2 gap-4">
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '16px' }}>
               <FieldRow label="worker_task_concurrency" hint="≥1，默认 4"
                 desc="系统分析 runner 单实例最多同时执行的任务数。该项为服务级在线配置，保存后会对整个系统分析 runner 池生效，无需重启。建议结合 runner 副本数、节点 CPU/内存和下游 LLM 配额一起评估。">
                 <NumberInput value={config.worker_task_concurrency} min={1} max={32} onChange={(v) => patch({ worker_task_concurrency: v })} />
@@ -1049,7 +1108,7 @@ export const SystemAnalysisConfigPage: React.FC<{ projectId: string; embedded?: 
               />
             )}
           >
-            <div className="grid grid-cols-2 gap-4">
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '16px' }}>
               <FieldRow label="agent_max_retries" hint="默认无限重试"
                 desc="LLM API 调用失败（限流 429、请求超时、4xx/5xx、连接错误）默认会自动无限重试。该字段保留用于兼容展示，推荐保持 -1；进入 30 秒退避档后，每 10 次重试会记录一次任务时间线。">
                 <NumberInput value={config.agent_max_retries} min={-1} onChange={(v) => patch({ agent_max_retries: v })} />
@@ -1079,8 +1138,8 @@ export const SystemAnalysisConfigPage: React.FC<{ projectId: string; embedded?: 
                 <NumberInput value={config.model_stuck_max_activations ?? 5} min={1} step={1} onChange={(v) => patch({ model_stuck_max_activations: v })} />
               </FieldRow>
             </div>
-            <div className="mt-4 grid grid-cols-1 gap-4">
-              <p className="text-xs leading-5 text-slate-500 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2">
+            <div style={{ marginTop: '16px', display: 'grid', gridTemplateColumns: 'repeat(1, 1fr)', gap: '16px' }}>
+              <p style={{ fontSize: '12px', lineHeight: '1.4', color: LK.muted, borderRadius: '8px', border: `1px solid ${LK.warning}`, backgroundColor: `${LK.warning}1a`, padding: '8px 12px' }}>
                 ⚠️ <strong>max_rounds 已禁止配置</strong>：所有阶段的最大迭代轮数固定为 <code>-1（无限）</code>，由模型自己收敛而不是被硬性截断。
               </p>
             </div>
@@ -1098,7 +1157,7 @@ export const SystemAnalysisConfigPage: React.FC<{ projectId: string; embedded?: 
               />
             )}
           >
-            <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(1, 1fr)', gap: '16px' }}>
               <StageCard label="classify — 全局分类"
                 desc="Worker 遍历目标目录，对所有文件进行类型识别和分类，输出带注释的文件清单；Judge 评审分类结果的完整性和准确性。"
                 value={config.stages.classify} onChange={(v) => patchStage('classify', v)} />
@@ -1131,7 +1190,7 @@ export const SystemAnalysisConfigPage: React.FC<{ projectId: string; embedded?: 
               label="启用自省分析"
               hint="self_reflection.enabled"
               desc="任务完成后（passed/failed/error）在后台异步运行，不阻塞任务本身的执行和结果。分析报告存储在配置的输出目录中。">
-              <div className="flex gap-2">
+              <div style={{ display: 'flex', gap: '8px' }}>
                 {([true, false] as const).map((val) => (
                   <button
                     key={String(val)}
@@ -1142,11 +1201,18 @@ export const SystemAnalysisConfigPage: React.FC<{ projectId: string; embedded?: 
                         enabled: val,
                       } as SystemAnalysisSelfReflectionConfig,
                     })}
-                    className={`flex-1 rounded-xl border px-4 py-2.5 text-sm font-semibold transition-colors ${
-                      (config.self_reflection?.enabled ?? false) === val
-                        ? 'border-rose-400 bg-rose-50 text-rose-700'
-                        : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
-                    }`}
+                    style={{
+                      flex: 1,
+                      borderRadius: '8px',
+                      border: `1px solid ${(config.self_reflection?.enabled ?? false) === val ? LK.error : LK.border}`,
+                      padding: '10px 16px',
+                      fontSize: '14px',
+                      fontWeight: 600,
+                      backgroundColor: (config.self_reflection?.enabled ?? false) === val ? `${LK.error}1a` : LK.surface,
+                      color: (config.self_reflection?.enabled ?? false) === val ? LK.error : LK.body,
+                      cursor: 'pointer',
+                      transition: 'all 0.2s'
+                    } as React.CSSProperties}
                   >
                     {val ? '启用' : '关闭'}
                   </button>
@@ -1167,7 +1233,7 @@ export const SystemAnalysisConfigPage: React.FC<{ projectId: string; embedded?: 
                     model: e.target.value,
                   } as SystemAnalysisSelfReflectionConfig,
                 })}
-                className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm"
+                style={{ width: '100%', borderRadius: '8px', border: `1px solid ${LK.border}`, backgroundColor: LK.surface, padding: '8px 12px', fontSize: '14px', color: LK.ink, outline: 'none' }}
               >
                 <option value="">(与 workers.agents[0] 相同)</option>
                 {modelOptions.map((m) => (
@@ -1181,7 +1247,7 @@ export const SystemAnalysisConfigPage: React.FC<{ projectId: string; embedded?: 
               label="报告存储目录"
               hint="self_reflection.output_dir"
               desc="自省报告存储路径（容器内绝对路径）。默认为项目级目录，所有任务的报告统一存入此目录，每份报告标名为 {task_id}_{timestamp}.md。">
-              <div className="relative flex items-center gap-2">
+              <div style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <input
                   type="text"
                   value={config.self_reflection?.output_dir ?? `/data/files/${projectId}/app/chimera-app-system-analyse/self-reflection`}
@@ -1191,7 +1257,7 @@ export const SystemAnalysisConfigPage: React.FC<{ projectId: string; embedded?: 
                       output_dir: e.target.value,
                     } as SystemAnalysisSelfReflectionConfig,
                   })}
-                  className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm font-mono"
+                  style={{ width: '100%', borderRadius: '8px', border: `1px solid ${LK.border}`, padding: '8px 12px', fontSize: '14px', fontFamily: MONO, color: LK.ink, backgroundColor: LK.surfaceRaised, outline: 'none' }}
                 />
                 <button
                   type="button"
@@ -1201,7 +1267,7 @@ export const SystemAnalysisConfigPage: React.FC<{ projectId: string; embedded?: 
                       output_dir: `/data/files/${projectId}/app/chimera-app-system-analyse/self-reflection`,
                     } as SystemAnalysisSelfReflectionConfig,
                   })}
-                  className="shrink-0 rounded-lg border border-slate-200 px-3 py-2 text-xs text-slate-500 hover:bg-slate-50 hover:text-slate-700"
+                  style={{ flexShrink: 0, borderRadius: '8px', border: `1px solid ${LK.border}`, backgroundColor: LK.surface, padding: '8px 12px', fontSize: '12px', color: LK.muted, cursor: 'pointer' }}
                 >重置</button>
               </div>
             </FieldRow>
@@ -1269,16 +1335,16 @@ export const SystemAnalysisConfigPage: React.FC<{ projectId: string; embedded?: 
               title="执行 Prompt 配置"
               subtitle="这里管理系统分析执行链路实际使用的 Worker / Judge system prompt。只要任务还没进入 running，后续启动时都会使用这里的最新配置。"
             >
-              <div className="rounded-xl border border-sky-100 bg-sky-50 px-4 py-3 text-sm text-sky-700">
+              <div style={{ borderRadius: '8px', border: `1px solid ${LK.info}`, backgroundColor: `${LK.info}1a`, padding: '12px 16px', fontSize: '14px', color: LK.info }}>
                 Prompt 管理页面继续作为模板库使用。这里编辑的是当前项目实际生效的执行 Prompt；从模板库导入只会复制文本，不建立动态绑定。
               </div>
 
-              <div className="space-y-4">
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                 <div>
-                  <h3 className="text-sm font-black text-slate-900">Workers Prompt</h3>
-                  <p className="mt-1 text-xs text-slate-500">覆盖目录探索、分类、细分、分析、报告生成以及反思相关的 Worker system prompt。</p>
+                  <h3 style={{ fontSize: '14px', fontWeight: 600, color: LK.ink }}>Workers Prompt</h3>
+                  <p style={{ marginTop: '4px', fontSize: '12px', color: LK.muted }}>覆盖目录探索、分类、细分、分析、报告生成以及反思相关的 Worker system prompt。</p>
                 </div>
-                <div className="grid grid-cols-1 gap-4 2xl:grid-cols-2">
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(1, 1fr)', gap: '16px' }}>
                   {WORKER_PROMPT_KEYS.map((promptKey) => (
                     <PromptEditorCard
                       key={`worker-${promptKey}`}
@@ -1297,12 +1363,12 @@ export const SystemAnalysisConfigPage: React.FC<{ projectId: string; embedded?: 
                 </div>
               </div>
 
-              <div className="space-y-4">
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                 <div>
-                  <h3 className="text-sm font-black text-slate-900">Judges Prompt</h3>
-                  <p className="mt-1 text-xs text-slate-500">覆盖分类评审、细分评审、安全分析评审、完整性检查和最终报告评审的 Judge system prompt。</p>
+                  <h3 style={{ fontSize: '14px', fontWeight: 600, color: LK.ink }}>Judges Prompt</h3>
+                  <p style={{ marginTop: '4px', fontSize: '12px', color: LK.muted }}>覆盖分类评审、细分评审、安全分析评审、完整性检查和最终报告评审的 Judge system prompt。</p>
                 </div>
-                <div className="grid grid-cols-1 gap-4 2xl:grid-cols-2">
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(1, 1fr)', gap: '16px' }}>
                   {JUDGE_PROMPT_KEYS.map((promptKey) => (
                     <PromptEditorCard
                       key={`judge-${promptKey}`}

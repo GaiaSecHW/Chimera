@@ -10,6 +10,19 @@ import {
 } from '../../types/types';
 import { useUiFeedback } from '../../components/UiFeedback';
 
+const LK = {
+  primary: '#4f73ff', primarySoft: '#7590ff', primaryDeep: '#3f63f1',
+  primaryMuted: 'rgba(79, 115, 255, 0.14)',
+  canvas: '#070d18', surface: '#111a2b', surfaceRaised: '#18233a',
+  surfaceGlass: 'rgba(17, 26, 43, 0.84)',
+  border: '#26324a', borderSoft: '#1b2438',
+  ink: '#f5f7ff', inkSoft: '#d6def0', body: '#a4aec4',
+  muted: '#72809a', mutedSoft: '#8b95a8',
+  success: '#45c06f', warning: '#d5a13a', error: '#f15d5d', info: '#4f8cff',
+  critical: '#ff4d4f', high: '#ff8b3d', medium: '#f0b64c', low: '#49c5ff',
+} as const;
+const MONO = 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace';
+
 const API_TYPES = ['openai-completions', 'anthropic', 'google-gemini', 'azure-openai'];
 
 const emptyProvider = (): EntryAnalysisProviderConfig => ({
@@ -26,20 +39,20 @@ const emptyConfig = (): EntryAnalysisModelsConfig => ({ providers: {} });
 // ─── 子组件 ────────────────────────────────────────────────────────────────────
 
 const SectionCard: React.FC<{ title: string; subtitle?: string; children: React.ReactNode }> = ({ title, subtitle, children }) => (
-  <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm space-y-4">
+  <section style={{ borderRadius: '16px', border: `1px solid ${LK.borderSoft}`, backgroundColor: LK.surface, padding: '24px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
     <div>
-      <h2 className="text-base font-black text-slate-900">{title}</h2>
-      {subtitle && <p className="mt-0.5 text-xs text-slate-500">{subtitle}</p>}
+      <h2 style={{ fontSize: '16px', fontWeight: 600, color: LK.ink }}>{title}</h2>
+      {subtitle && <p style={{ marginTop: '2px', fontSize: '12px', color: LK.body }}>{subtitle}</p>}
     </div>
     {children}
   </section>
 );
 
 const FieldRow: React.FC<{ label: string; hint?: string; children: React.ReactNode }> = ({ label, hint, children }) => (
-  <div className="flex flex-col gap-1">
-    <label className="text-sm font-semibold text-slate-700">
+  <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+    <label style={{ fontSize: '14px', fontWeight: 600, color: LK.inkSoft }}>
       {label}
-      {hint && <span className="ml-2 text-xs font-normal text-slate-400">{hint}</span>}
+      {hint && <span style={{ marginLeft: '8px', fontSize: '12px', fontWeight: 400, color: LK.muted }}>{hint}</span>}
     </label>
     {children}
   </div>
@@ -48,16 +61,16 @@ const FieldRow: React.FC<{ label: string; hint?: string; children: React.ReactNo
 const ApiKeyInput: React.FC<{ value: string; onChange: (v: string) => void }> = ({ value, onChange }) => {
   const [revealed, setRevealed] = useState(false);
   return (
-    <div className="relative">
+    <div style={{ position: 'relative' }}>
       <input
         type={revealed ? 'text' : 'password'}
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder="sk-..."
-        className="w-full rounded-lg border border-slate-200 px-3 py-2 pr-10 text-sm font-mono"
+        style={{ width: '100%', borderRadius: '8px', border: `1px solid ${LK.borderSoft}`, paddingLeft: '12px', paddingRight: '12px', paddingTop: '8px', paddingBottom: '8px', fontSize: '14px', fontFamily: MONO, backgroundColor: LK.surfaceRaised, color: LK.ink }}
       />
       <button type="button" onClick={() => setRevealed((r) => !r)}
-        className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+        style={{ position: 'absolute', right: '8px', top: '50%', transform: 'translateY(-50%)', color: LK.muted, cursor: 'pointer', backgroundColor: 'transparent', border: 'none', padding: '0' }}
         title={revealed ? '隐藏 API Key' : '显示 API Key'}>
         {revealed ? <EyeOff size={15} /> : <Eye size={15} />}
       </button>
@@ -76,25 +89,25 @@ const ModelsList: React.FC<{
     onChange(models.map((m, idx) => (idx === i ? { ...m, ...patch } : m)));
 
   return (
-    <div className="space-y-2">
-      <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">模型列表</p>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+      <p style={{ fontSize: '12px', fontWeight: 600, color: LK.body, textTransform: 'uppercase', letterSpacing: '0.1em' }}>模型列表</p>
       {models.map((model, i) => (
-        <div key={i} className="flex items-center gap-2 rounded-xl border border-slate-100 bg-slate-50 px-3 py-2">
+        <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '8px', borderRadius: '12px', border: `1px solid ${LK.borderSoft}`, backgroundColor: LK.surfaceRaised, paddingLeft: '12px', paddingRight: '12px', paddingTop: '8px', paddingBottom: '8px' }}>
           <input type="text" value={model.id} onChange={(e) => update(i, { id: e.target.value })}
             placeholder="model-id"
-            className="flex-1 rounded-lg border border-slate-200 px-2 py-1.5 text-sm font-mono" />
-          <label className="inline-flex items-center gap-1.5 text-sm text-slate-600 cursor-pointer whitespace-nowrap">
+            style={{ flex: 1, borderRadius: '8px', border: `1px solid ${LK.borderSoft}`, paddingLeft: '8px', paddingRight: '8px', paddingTop: '6px', paddingBottom: '6px', fontSize: '14px', fontFamily: MONO, backgroundColor: LK.surface, color: LK.ink }} />
+          <label style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '14px', color: LK.body, cursor: 'pointer', whiteSpace: 'nowrap' }}>
             <input type="checkbox" checked={model.reasoning} onChange={(e) => update(i, { reasoning: e.target.checked })} />
             推理模型
           </label>
           {model.id && (
-            <span className="hidden sm:inline text-xs text-slate-400 font-mono whitespace-nowrap">→ {providerName}/{model.id}</span>
+            <span style={{ display: 'none', fontSize: '12px', color: LK.muted, fontFamily: MONO, whiteSpace: 'nowrap' }} className="sm:inline">→ {providerName}/{model.id}</span>
           )}
-          <button onClick={() => remove(i)} className="rounded-lg border border-red-100 p-1.5 text-red-400 hover:bg-red-50"><Trash2 size={13} /></button>
+          <button onClick={() => remove(i)} style={{ borderRadius: '8px', border: `1px solid ${LK.error}`, padding: '6px', color: LK.error, cursor: 'pointer', backgroundColor: 'transparent' }}><Trash2 size={13} /></button>
         </div>
       ))}
       <button onClick={add}
-        className="inline-flex items-center gap-1.5 rounded-xl border border-dashed border-slate-300 px-3 py-1.5 text-sm text-slate-500 hover:bg-slate-50">
+        style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', borderRadius: '12px', border: `1px dashed ${LK.borderSoft}`, paddingLeft: '12px', paddingRight: '12px', paddingTop: '6px', paddingBottom: '6px', fontSize: '14px', color: LK.body, cursor: 'pointer', backgroundColor: 'transparent' }}>
         <Plus size={13} /> 添加模型
       </button>
     </div>
@@ -120,36 +133,36 @@ const ProviderCard: React.FC<{
   };
 
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white shadow-sm">
-      <div className="flex items-center gap-3 px-4 py-3 border-b border-slate-100">
-        <button onClick={() => setExpanded((e) => !e)} className="text-slate-400 hover:text-slate-600">
+    <div style={{ borderRadius: '16px', border: `1px solid ${LK.borderSoft}`, backgroundColor: LK.surface }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '12px', paddingLeft: '16px', paddingRight: '16px', paddingTop: '12px', paddingBottom: '12px', borderBottom: `1px solid ${LK.borderSoft}` }}>
+        <button onClick={() => setExpanded((e) => !e)} style={{ color: LK.muted, cursor: 'pointer', backgroundColor: 'transparent', border: 'none', padding: '0' }}>
           {expanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
         </button>
         {editingName ? (
           <input autoFocus value={nameValue} onChange={(e) => setNameValue(e.target.value)}
             onBlur={commitName}
             onKeyDown={(e) => { if (e.key === 'Enter') commitName(); if (e.key === 'Escape') { setNameValue(name); setEditingName(false); } }}
-            className="flex-1 rounded-lg border border-violet-300 px-2 py-1 text-sm font-mono font-bold" />
+            style={{ flex: 1, borderRadius: '8px', border: `1px solid ${LK.primary}`, paddingLeft: '8px', paddingRight: '8px', paddingTop: '4px', paddingBottom: '4px', fontSize: '14px', fontFamily: MONO, fontWeight: 600, backgroundColor: LK.surfaceRaised, color: LK.ink }} />
         ) : (
           <button onClick={() => setEditingName(true)}
-            className="flex-1 text-left text-sm font-mono font-bold text-slate-800 hover:text-violet-700"
+            style={{ flex: 1, textAlign: 'left', fontSize: '14px', fontFamily: MONO, fontWeight: 600, color: LK.inkSoft, cursor: 'pointer', backgroundColor: 'transparent', border: 'none', padding: '0' }}
             title="点击编辑 provider 名称">{name}</button>
         )}
-        <span className="text-xs text-slate-400">{config.models.length} 个模型</span>
-        <button onClick={onRemove} className="rounded-lg border border-red-100 p-1.5 text-red-400 hover:bg-red-50" title="删除 Provider"><Trash2 size={14} /></button>
+        <span style={{ fontSize: '12px', color: LK.muted }}>{config.models.length} 个模型</span>
+        <button onClick={onRemove} style={{ borderRadius: '8px', border: `1px solid ${LK.error}`, padding: '6px', color: LK.error, cursor: 'pointer', backgroundColor: 'transparent' }} title="删除 Provider"><Trash2 size={14} /></button>
       </div>
 
       {expanded && (
-        <div className="p-4 space-y-4">
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+        <div style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '16px' }}>
             <FieldRow label="baseUrl">
               <input type="text" value={config.baseUrl} onChange={(e) => onChange({ ...config, baseUrl: e.target.value })}
                 placeholder="https://api.openai.com/v1"
-                className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" />
+                style={{ width: '100%', borderRadius: '8px', border: `1px solid ${LK.borderSoft}`, paddingLeft: '12px', paddingRight: '12px', paddingTop: '8px', paddingBottom: '8px', fontSize: '14px', backgroundColor: LK.surfaceRaised, color: LK.ink }} />
             </FieldRow>
             <FieldRow label="API 类型">
               <select value={config.api} onChange={(e) => onChange({ ...config, api: e.target.value })}
-                className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm bg-white">
+                style={{ width: '100%', borderRadius: '8px', border: `1px solid ${LK.borderSoft}`, paddingLeft: '12px', paddingRight: '12px', paddingTop: '8px', paddingBottom: '8px', fontSize: '14px', backgroundColor: LK.surfaceRaised, color: LK.ink }}>
                 {API_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
               </select>
             </FieldRow>
@@ -236,36 +249,36 @@ export const EntryAnalysisModelsPage: React.FC = () => {
   );
 
   return (
-    <div className="px-8 pt-8 pb-10 space-y-6">
+    <div style={{ paddingLeft: '32px', paddingRight: '32px', paddingTop: '32px', paddingBottom: '40px', display: 'flex', flexDirection: 'column', gap: '24px' }}>
       {feedbackNodes}
 
-      <section className="rounded-[2rem] border border-slate-200 bg-white/90 p-6 shadow-sm">
-        <p className="text-xs font-black uppercase tracking-[0.3em] text-violet-600">Entry Analysis</p>
-        <h1 className="mt-3 text-3xl font-black tracking-tight text-slate-900">模型配置</h1>
-        <p className="mt-2 text-sm text-slate-500">
+      <section style={{ borderRadius: '32px', border: `1px solid ${LK.borderSoft}`, backgroundColor: 'rgba(255, 255, 255, 0.9)', padding: '24px' }}>
+        <p style={{ fontSize: '12px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.3em', color: LK.primary }}>Entry Analysis</p>
+        <h1 style={{ marginTop: '12px', fontSize: '30px', fontWeight: 600, letterSpacing: '-0.025em', color: LK.ink }}>模型配置</h1>
+        <p style={{ marginTop: '8px', fontSize: '14px', color: LK.body }}>
           管理入口分析引擎使用的 LLM 提供商及模型列表。引用格式：
-          <code className="mx-1 rounded bg-slate-100 px-1.5 py-0.5 font-mono text-xs text-slate-700">
+          <code style={{ marginLeft: '4px', marginRight: '4px', borderRadius: '8px', backgroundColor: LK.surfaceRaised, paddingLeft: '6px', paddingRight: '6px', paddingTop: '2px', paddingBottom: '2px', fontFamily: MONO, fontSize: '12px', color: LK.inkSoft }}>
             {'{'}provider_name{'}'}/{'{'}model_id{'}'}
           </code>
         </p>
         {config.updated_at && (
-          <p className="mt-1 text-xs text-slate-400">上次保存：{new Date(config.updated_at).toLocaleString()}</p>
+          <p style={{ marginTop: '4px', fontSize: '12px', color: LK.muted }}>上次保存：{new Date(config.updated_at).toLocaleString()}</p>
         )}
       </section>
 
       {loading ? (
-        <div className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-600">
+        <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', borderRadius: '12px', border: `1px solid ${LK.borderSoft}`, backgroundColor: LK.surface, paddingLeft: '16px', paddingRight: '16px', paddingTop: '12px', paddingBottom: '12px', fontSize: '14px', color: LK.body }}>
           <Loader2 size={15} className="animate-spin" />加载中...
         </div>
       ) : (
-        <div className="space-y-6">
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
           {allModelRefs.length > 0 && (
             <SectionCard title="可用模型引用" subtitle="在分析配置中 agents[].model 中使用这些值">
-              <div className="flex flex-wrap gap-2">
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
                 {allModelRefs.map((ref) => (
                   <button key={ref}
                     onClick={() => { navigator.clipboard.writeText(ref).catch(() => {}); notify(`已复制 ${ref}`, 'success'); }}
-                    className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-mono text-slate-700 hover:border-violet-300 hover:bg-violet-50 hover:text-violet-700 transition-colors"
+                    style={{ borderRadius: '8px', border: `1px solid ${LK.borderSoft}`, backgroundColor: LK.surfaceRaised, paddingLeft: '12px', paddingRight: '12px', paddingTop: '6px', paddingBottom: '6px', fontSize: '12px', fontFamily: MONO, color: LK.inkSoft, cursor: 'pointer', transition: 'all 0.2s' }}
                     title="点击复制">
                     {ref}
                   </button>
@@ -274,7 +287,7 @@ export const EntryAnalysisModelsPage: React.FC = () => {
             </SectionCard>
           )}
 
-          <div className="space-y-4">
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
             {Object.entries(config.providers).map(([name, provCfg]) => (
               <ProviderCard key={name} name={name} config={provCfg}
                 onRename={(newName) => renameProvider(name, newName)}
@@ -282,20 +295,20 @@ export const EntryAnalysisModelsPage: React.FC = () => {
                 onRemove={() => removeProvider(name)} />
             ))}
             {Object.keys(config.providers).length === 0 && (
-              <div className="rounded-2xl border border-dashed border-slate-300 py-10 text-center text-sm text-slate-400">
+              <div style={{ borderRadius: '16px', border: `1px dashed ${LK.borderSoft}`, paddingTop: '40px', paddingBottom: '40px', textAlign: 'center', fontSize: '14px', color: LK.muted }}>
                 暂无 Provider，点击「添加 Provider」开始配置
               </div>
             )}
           </div>
 
           <button onClick={addProvider}
-            className="inline-flex items-center gap-2 rounded-xl border border-dashed border-slate-400 px-5 py-2.5 text-sm text-slate-600 hover:bg-slate-50">
+            style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', borderRadius: '12px', border: `1px dashed ${LK.border}`, paddingLeft: '20px', paddingRight: '20px', paddingTop: '10px', paddingBottom: '10px', fontSize: '14px', color: LK.body, cursor: 'pointer', backgroundColor: 'transparent' }}>
             <Plus size={15} /> 添加 Provider
           </button>
 
-          <div className="flex items-center gap-3 pt-2">
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', paddingTop: '8px' }}>
             <button onClick={() => void handleSave()} disabled={saving}
-              className="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-5 py-2.5 text-sm font-semibold text-white disabled:opacity-50">
+              style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', borderRadius: '12px', backgroundColor: LK.surface, paddingLeft: '20px', paddingRight: '20px', paddingTop: '10px', paddingBottom: '10px', fontSize: '14px', fontWeight: 600, color: LK.ink, cursor: 'pointer', border: `1px solid ${LK.border}`, opacity: saving ? 0.5 : 1 }}>
               {saving && <Loader2 size={14} className="animate-spin" />}
               保存配置
             </button>

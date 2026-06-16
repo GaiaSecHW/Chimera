@@ -20,6 +20,19 @@ import { AppSaSessionEvent, AppSaSessionMeta, AppSaSessionSnapshot } from '../..
 import { AgentSessionViewer } from './AgentSessionViewer';
 import { blobToText, buildFirmwareSessionMeta, buildSessionSnapshotFromText, parseSessionJsonlDelta } from './sessionParsing';
 
+const LK = {
+  primary: '#4f73ff', primarySoft: '#7590ff', primaryDeep: '#3f63f1',
+  primaryMuted: 'rgba(79, 115, 255, 0.14)',
+  canvas: '#070d18', surface: '#111a2b', surfaceRaised: '#18233a',
+  surfaceGlass: 'rgba(17, 26, 43, 0.84)',
+  border: '#26324a', borderSoft: '#1b2438',
+  ink: '#f5f7ff', inkSoft: '#d6def0', body: '#a4aec4',
+  muted: '#72809a', mutedSoft: '#8b95a8',
+  success: '#45c06f', warning: '#d5a13a', error: '#f15d5d', info: '#4f8cff',
+  critical: '#ff4d4f', high: '#ff8b3d', medium: '#f0b64c', low: '#49c5ff',
+} as const;
+const MONO = 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace';
+
 interface Props {
   projectId: string;
 }
@@ -218,12 +231,12 @@ function formatStatus(status: string | null | undefined) {
 
 function statusTone(status: string | null | undefined) {
   const raw = String(status || '').toLowerCase();
-  if (raw === 'success') return 'border-emerald-200 bg-emerald-50 text-emerald-700';
-  if (raw === 'running') return 'border-blue-200 bg-blue-50 text-blue-700';
-  if (raw === 'pending') return 'border-amber-200 bg-amber-50 text-amber-700';
-  if (raw === 'failed') return 'border-red-200 bg-red-50 text-red-700';
-  if (raw === 'cancelled') return 'border-slate-200 bg-slate-50 text-slate-600';
-  return 'border-slate-200 bg-slate-50 text-slate-600';
+  if (raw === 'success') return 'border-[rgba(69,192,111,0.3)] bg-[rgba(69,192,111,0.15)] text-[#45c06f]';
+  if (raw === 'running') return 'border-[rgba(79,140,255,0.3)] bg-[rgba(79,140,255,0.15)] text-[#4f8cff]';
+  if (raw === 'pending') return 'border-[rgba(213,161,58,0.3)] bg-[rgba(213,161,58,0.15)] text-[#d5a13a]';
+  if (raw === 'failed') return 'border-[rgba(241,93,93,0.3)] bg-[rgba(241,93,93,0.15)] text-[#f15d5d]';
+  if (raw === 'cancelled') return 'border-[#26324a] bg-[#18233a] text-[#a4aec4]';
+  return 'border-[#26324a] bg-[#18233a] text-[#a4aec4]';
 }
 
 function stageLabel(stage: string | null | undefined) {
@@ -254,27 +267,27 @@ function roundStatusLabel(status: string | null | undefined) {
 
 function roundStatusTone(status: string | null | undefined) {
   const raw = String(status || '').toLowerCase();
-  if (['review_passed', 'success', 'completed'].includes(raw)) return 'border-emerald-200 bg-emerald-50 text-emerald-700';
-  if (['review_failed', 'evolve_completed'].includes(raw)) return 'border-amber-200 bg-amber-50 text-amber-700';
-  if (['failed', 'tool_failed', 'error'].includes(raw)) return 'border-red-200 bg-red-50 text-red-700';
-  if (['running', 'active'].includes(raw)) return 'border-blue-200 bg-blue-50 text-blue-700';
-  return 'border-slate-200 bg-slate-50 text-slate-600';
+  if (['review_passed', 'success', 'completed'].includes(raw)) return 'border-[rgba(69,192,111,0.3)] bg-[rgba(69,192,111,0.15)] text-[#45c06f]';
+  if (['review_failed', 'evolve_completed'].includes(raw)) return 'border-[rgba(213,161,58,0.3)] bg-[rgba(213,161,58,0.15)] text-[#d5a13a]';
+  if (['failed', 'tool_failed', 'error'].includes(raw)) return 'border-[rgba(241,93,93,0.3)] bg-[rgba(241,93,93,0.15)] text-[#f15d5d]';
+  if (['running', 'active'].includes(raw)) return 'border-[rgba(79,140,255,0.3)] bg-[rgba(79,140,255,0.15)] text-[#4f8cff]';
+  return 'border-[#26324a] bg-[#18233a] text-[#a4aec4]';
 }
 
 function DetailField({ label, value, mono = false }: { label: string; value: React.ReactNode; mono?: boolean }) {
   return (
-    <div className="rounded-xl border border-slate-200 bg-white px-3 py-3">
-      <div className="text-[11px] font-black uppercase tracking-[0.12em] text-slate-400">{label}</div>
-      <div className={`mt-1 text-sm text-slate-700 ${mono ? 'break-all font-mono text-[12px]' : ''}`}>{value}</div>
+    <div style={{ borderRadius: '8px', border: `1px solid ${LK.borderSoft}`, backgroundColor: LK.surface, padding: '0.75rem' }}>
+      <div style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.12em', color: LK.muted }}>{label}</div>
+      <div style={{ marginTop: '0.25rem', fontSize: '0.875rem', color: LK.inkSoft, ...(mono ? { wordBreak: 'break-all', fontFamily: MONO, fontSize: '12px' } : {}) }}>{value}</div>
     </div>
   );
 }
 
 function StatCard({ label, value, tone }: { label: string; value: React.ReactNode; tone: string }) {
   return (
-    <div className={`rounded-2xl border px-4 py-3 ${tone}`}>
-      <div className="text-[11px] font-black uppercase tracking-[0.14em] opacity-70">{label}</div>
-      <div className="mt-2 text-2xl font-black">{value}</div>
+    <div className={`rounded-xl border px-4 py-3 ${tone}`} style={{ borderRadius: '12px' }}>
+      <div style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.14em', opacity: 0.7 }}>{label}</div>
+      <div style={{ marginTop: '0.5rem', fontSize: '1.5rem', fontWeight: 600 }}>{value}</div>
     </div>
   );
 }
@@ -389,11 +402,11 @@ function buildEvolutionProgressPhases(job: FirmwareEvolutionJob) {
 }
 
 function progressStatusClass(status: string) {
-  if (status === 'completed') return 'border-emerald-200 bg-emerald-50 text-emerald-700';
-  if (status === 'running') return 'border-blue-200 bg-blue-50 text-blue-700';
-  if (status === 'failed') return 'border-red-200 bg-red-50 text-red-700';
-  if (status === 'skipped') return 'border-slate-200 bg-slate-50 text-slate-500';
-  return 'border-slate-200 bg-slate-50 text-slate-400';
+  if (status === 'completed') return 'border-[rgba(69,192,111,0.3)] bg-[rgba(69,192,111,0.15)] text-[#45c06f]';
+  if (status === 'running') return 'border-[rgba(79,140,255,0.3)] bg-[rgba(79,140,255,0.15)] text-[#4f8cff]';
+  if (status === 'failed') return 'border-[rgba(241,93,93,0.3)] bg-[rgba(241,93,93,0.15)] text-[#f15d5d]';
+  if (status === 'skipped') return 'border-[#26324a] bg-[#18233a] text-[#72809a]';
+  return 'border-[#26324a] bg-[#18233a] text-[#8b95a8]';
 }
 
 function progressStatusLabel(status: string) {
@@ -437,31 +450,32 @@ function CreateEvolutionModal({
   }, [keyword, sourceTasks]);
   if (!open) return null;
   return (
-    <div className="fixed inset-0 z-40 flex items-center justify-center bg-slate-950/65 p-6 backdrop-blur-sm">
-      <div className="flex max-h-[88vh] w-full max-w-4xl flex-col rounded-[2rem] border border-slate-200 bg-white shadow-2xl">
-        <div className="flex items-start justify-between gap-4 border-b border-slate-100 px-6 py-5">
+    <div style={{ position: 'fixed', inset: 0, zIndex: 40, display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(2, 6, 23, 0.65)', padding: '1.5rem', backdropFilter: 'blur(4px)' }}>
+      <div style={{ display: 'flex', maxHeight: '88vh', width: '100%', maxWidth: '64rem', flexDirection: 'column', borderRadius: '24px', border: `1px solid ${LK.border}`, backgroundColor: LK.surface }}>
+        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '1rem', borderBottom: `1px solid ${LK.borderSoft}`, padding: '1.25rem 1.5rem' }}>
           <div>
-            <p className="text-[10px] font-black uppercase tracking-[0.28em] text-amber-600">Firmware Evolution</p>
-            <h3 className="mt-2 text-2xl font-black text-slate-900">新建进化任务</h3>
-            <p className="mt-2 text-sm text-slate-500">选择一个已 success 的固件解包任务作为进化源任务。</p>
+            <p style={{ fontSize: '10px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.28em', color: '#d5a13a' }}>Firmware Evolution</p>
+            <h3 style={{ marginTop: '0.5rem', fontSize: '1.5rem', fontWeight: 600, color: LK.ink }}>新建进化任务</h3>
+            <p style={{ marginTop: '0.5rem', fontSize: '0.875rem', color: LK.body }}>选择一个已 success 的固件解包任务作为进化源任务。</p>
           </div>
-          <button type="button" onClick={onClose} className="rounded-xl p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-700">
+          <button type="button" onClick={onClose} style={{ borderRadius: '8px', padding: '0.5rem', color: LK.muted, transition: 'all 0.15s' }} className="hover:bg-slate-100 hover:text-slate-700">
             <X size={18} />
           </button>
         </div>
-        <div className="min-h-0 flex-1 overflow-auto px-6 py-5">
-          <div className="flex items-center gap-2 rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2">
-            <Search size={14} className="text-slate-400" />
+        <div style={{ minHeight: 0, flex: 1, overflow: 'auto', padding: '1.25rem 1.5rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', borderRadius: '12px', border: `1px solid ${LK.borderSoft}`, backgroundColor: LK.surfaceRaised, padding: '0.5rem 0.75rem' }}>
+            <Search size={14} style={{ color: LK.muted }} />
             <input
               value={keyword}
               onChange={(e) => setKeyword(e.target.value)}
               placeholder="搜索解包任务 ID / 固件路径"
-              className="min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-slate-400"
+              style={{ minWidth: 0, flex: 1, backgroundColor: 'transparent', fontSize: '0.875rem', color: LK.ink, outline: 'none' }}
+              className="placeholder:text-slate-400"
             />
           </div>
-          <div className="mt-4 overflow-hidden rounded-2xl border border-slate-200">
-            <table className="w-full text-left text-sm">
-              <thead className="bg-slate-50 text-xs font-black uppercase tracking-[0.14em] text-slate-400">
+          <div style={{ marginTop: '1rem', overflow: 'hidden', borderRadius: '12px', border: `1px solid ${LK.borderSoft}` }}>
+            <table style={{ width: '100%', textAlign: 'left', fontSize: '0.875rem' }}>
+              <thead style={{ backgroundColor: LK.surfaceRaised, fontSize: '12px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.14em', color: LK.muted }}>
                 <tr>
                   <th className="px-4 py-3">选择</th>
                   <th className="px-4 py-3">解包任务</th>

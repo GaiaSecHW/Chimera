@@ -15,6 +15,19 @@ import { ExecutionTable, ExecutionTableEmptyRow, ExecutionTableHead, ExecutionTa
 import { useUiFeedback } from '../../components/UiFeedback';
 import { StaticPipelineFlow } from './StaticPipelineFlow';
 
+const LK = {
+  primary: '#4f73ff', primarySoft: '#7590ff', primaryDeep: '#3f63f1',
+  primaryMuted: 'rgba(79, 115, 255, 0.14)',
+  canvas: '#070d18', surface: '#111a2b', surfaceRaised: '#18233a',
+  surfaceGlass: 'rgba(17, 26, 43, 0.84)',
+  border: '#26324a', borderSoft: '#1b2438',
+  ink: '#f5f7ff', inkSoft: '#d6def0', body: '#a4aec4',
+  muted: '#72809a', mutedSoft: '#8b95a8',
+  success: '#45c06f', warning: '#d5a13a', error: '#f15d5d', info: '#4f8cff',
+  critical: '#ff4d4f', high: '#ff8b3d', medium: '#f0b64c', low: '#49c5ff',
+} as const;
+const MONO = 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace';
+
 type B2SInnerTab = 'runtime' | 'cache';
 
 const defaultConfig = (projectId: string): B2SServiceConfig => ({
@@ -80,11 +93,11 @@ const SectionCard: React.FC<{ title: string; subtitle?: string; actions?: React.
   actions,
   children,
 }) => (
-  <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm space-y-4">
-    <div className="flex items-start justify-between gap-4">
+  <section style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}`, borderRadius: '12px', padding: '24px', boxShadow: 'none' }}>
+    <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '16px' }}>
       <div>
-        <h2 className="text-base font-black text-slate-900">{title}</h2>
-        {subtitle && <p className="mt-0.5 text-xs text-slate-500">{subtitle}</p>}
+        <h2 style={{ fontSize: '16px', fontWeight: 600, color: LK.ink }}>{title}</h2>
+        {subtitle && <p style={{ marginTop: '2px', fontSize: '12px', color: LK.body }}>{subtitle}</p>}
       </div>
       {actions}
     </div>
@@ -93,22 +106,22 @@ const SectionCard: React.FC<{ title: string; subtitle?: string; actions?: React.
 );
 
 const FieldRow: React.FC<{ label: string; hint?: string; children: React.ReactNode }> = ({ label, hint, children }) => (
-  <div className="flex flex-col gap-1">
-    <label className="text-sm font-semibold text-slate-700">
+  <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+    <label style={{ fontSize: '14px', fontWeight: 600, color: LK.inkSoft }}>
       {label}
-      {hint && <span className="ml-2 text-xs font-normal text-slate-400">{hint}</span>}
+      {hint && <span style={{ marginLeft: '8px', fontSize: '12px', fontWeight: 400, color: LK.muted }}>{hint}</span>}
     </label>
     {children}
   </div>
 );
 
 const PanelActions: React.FC<{ saving: boolean; onSave: () => void; onReset: () => void }> = ({ saving, onSave, onReset }) => (
-  <div className="flex shrink-0 items-center gap-2">
+  <div style={{ display: 'flex', flexShrink: 0, alignItems: 'center', gap: '8px' }}>
     <button
       type="button"
       onClick={onReset}
       disabled={saving}
-      className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-50 disabled:opacity-50"
+      style={{ borderRadius: '8px', border: `1px solid ${LK.border}`, backgroundColor: LK.surface, padding: '8px 12px', fontSize: '12px', fontWeight: 600, color: LK.body, cursor: saving ? 'not-allowed' : 'pointer', opacity: saving ? 0.5 : 1 }}
     >
       重置为默认
     </button>
@@ -116,7 +129,7 @@ const PanelActions: React.FC<{ saving: boolean; onSave: () => void; onReset: () 
       type="button"
       onClick={onSave}
       disabled={saving}
-      className="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-3 py-2 text-xs font-semibold text-white shadow-sm hover:bg-slate-800 disabled:opacity-60"
+      style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', borderRadius: '8px', backgroundColor: LK.primary, padding: '8px 12px', fontSize: '12px', fontWeight: 600, color: '#ffffff', cursor: saving ? 'not-allowed' : 'pointer', opacity: saving ? 0.6 : 1 }}
     >
       {saving ? <Loader2 size={12} className="animate-spin" /> : <Save size={12} />}
       保存配置
@@ -442,27 +455,27 @@ export const B2SConfigPage: React.FC<{ projectId: string; embedded?: boolean }> 
       {feedbackNodes}
 
       {embedded ? (
-        <section className="rounded-[2rem] border border-slate-200 bg-slate-50/70 p-6 shadow-sm">
-          <div className="flex items-start justify-between gap-4">
+        <section style={{ borderRadius: '20px', border: `1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised, padding: '24px' }}>
+          <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '16px' }}>
             <div>
-              <div className="flex flex-wrap items-center gap-2">
-                <Settings size={18} className="text-rose-600" />
-                <h2 className="text-xl font-black text-slate-900">二进制逆向参数配置</h2>
-                <span className="rounded-full border border-rose-200 bg-rose-50 px-3 py-1 text-[11px] font-black tracking-[0.12em] text-rose-700">
+              <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '8px' }}>
+                <Settings size={18} style={{ color: LK.error }} />
+                <h2 style={{ fontSize: '20px', fontWeight: 600, color: LK.ink }}>二进制逆向参数配置</h2>
+                <span style={{ borderRadius: '999px', border: `1px solid ${LK.error}`, backgroundColor: LK.primaryMuted.replace('0.14', '0.08'), padding: '4px 12px', fontSize: '11px', fontWeight: 600, letterSpacing: '0.12em', color: LK.error }}>
                   chimera-app-binary-to-source
                 </span>
               </div>
-              <p className="mt-2 text-sm text-slate-500">
+              <p style={{ marginTop: '8px', fontSize: '14px', color: LK.body }}>
                 这里既管理二进制逆向运行配置，也管理共享结果缓存。缓存页面默认只按当前项目做上下文筛选，但缓存本体仍是共享缓存池。
               </p>
-              {config.updated_at && <p className="mt-1 text-xs text-slate-400">上次保存：{new Date(config.updated_at).toLocaleString()}</p>}
+              {config.updated_at && <p style={{ marginTop: '4px', fontSize: '12px', color: LK.muted }}>上次保存：{new Date(config.updated_at).toLocaleString()}</p>}
             </div>
-            <div className="flex items-center gap-2">
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <button
                 type="button"
                 onClick={() => { void loadRuntimeConfig(); }}
                 disabled={loading || saving}
-                className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-bold text-slate-700 shadow-sm hover:bg-slate-50 disabled:opacity-50"
+                style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', borderRadius: '8px', border: `1px solid ${LK.border}`, backgroundColor: LK.surface, padding: '10px 16px', fontSize: '14px', fontWeight: 600, color: LK.inkSoft, cursor: (loading || saving) ? 'not-allowed' : 'pointer', opacity: (loading || saving) ? 0.5 : 1 }}
               >
                 {loading ? <Loader2 size={14} className="animate-spin" /> : <RefreshCw size={14} />}
                 刷新配置
@@ -471,7 +484,7 @@ export const B2SConfigPage: React.FC<{ projectId: string; embedded?: boolean }> 
                 type="button"
                 onClick={() => { void loadCacheEntries(); }}
                 disabled={cacheLoading}
-                className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-bold text-slate-700 shadow-sm hover:bg-slate-50 disabled:opacity-50"
+                style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', borderRadius: '8px', border: `1px solid ${LK.border}`, backgroundColor: LK.surface, padding: '10px 16px', fontSize: '14px', fontWeight: 600, color: LK.inkSoft, cursor: cacheLoading ? 'not-allowed' : 'pointer', opacity: cacheLoading ? 0.5 : 1 }}
               >
                 {cacheLoading ? <Loader2 size={14} className="animate-spin" /> : <RefreshCw size={14} />}
                 刷新缓存
@@ -481,8 +494,8 @@ export const B2SConfigPage: React.FC<{ projectId: string; embedded?: boolean }> 
         </section>
       ) : null}
 
-      <section className="rounded-2xl border border-slate-200 bg-white p-2 shadow-sm">
-        <div className="flex flex-wrap items-center gap-2">
+      <section style={{ borderRadius: '12px', border: `1px solid ${LK.border}`, backgroundColor: LK.surface, padding: '8px' }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '8px' }}>
           {[
             ['runtime', '运行配置'],
             ['cache', '缓存管理'],
@@ -491,7 +504,7 @@ export const B2SConfigPage: React.FC<{ projectId: string; embedded?: boolean }> 
               key={id}
               type="button"
               onClick={() => setActiveTab(id as B2SInnerTab)}
-              className={`rounded-2xl px-5 py-3 text-sm font-black transition ${activeTab === id ? 'bg-slate-900 text-white shadow-sm' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-700'}`}
+              style={{ borderRadius: '8px', padding: '12px 20px', fontSize: '14px', fontWeight: 600, transition: 'all 0.2s', backgroundColor: activeTab === id ? LK.primary : 'transparent', color: activeTab === id ? '#ffffff' : LK.body, cursor: 'pointer' }}
             >
               {label}
             </button>
@@ -501,7 +514,7 @@ export const B2SConfigPage: React.FC<{ projectId: string; embedded?: boolean }> 
 
       {activeTab === 'runtime' ? (
         loading ? (
-          <div className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-600">
+          <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', borderRadius: '8px', border: `1px solid ${LK.border}`, backgroundColor: LK.surface, padding: '12px 16px', fontSize: '14px', color: LK.body }}>
             <Loader2 size={15} className="animate-spin" />加载中...
           </div>
         ) : (
@@ -521,7 +534,7 @@ export const B2SConfigPage: React.FC<{ projectId: string; embedded?: boolean }> 
                 <select
                   value={config.llm_provider_key || ''}
                   onChange={(e) => setConfig((prev) => ({ ...prev, llm_provider_key: e.target.value || null }))}
-                  className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm bg-white"
+                  style={{ width: '100%', borderRadius: '6px', border: `1px solid ${LK.border}`, padding: '8px 12px', fontSize: '14px', backgroundColor: LK.surface, color: LK.ink }}
                 >
                   <option value="">跟随配置中心默认 Provider</option>
                   {!hasSelectedProviderInList && config.llm_provider_key ? (
@@ -536,8 +549,8 @@ export const B2SConfigPage: React.FC<{ projectId: string; embedded?: boolean }> 
                   ))}
                 </select>
               </FieldRow>
-              <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
-                <div className="font-semibold text-slate-800">当前生效 Provider</div>
+              <div style={{ borderRadius: '8px', border: `1px solid ${LK.borderSoft}`, backgroundColor: LK.surfaceRaised, padding: '12px 16px', fontSize: '14px', color: LK.body }}>
+                <div style={{ fontWeight: 600, color: LK.inkSoft }}>当前生效 Provider</div>
                 {effectiveProvider ? (
                   <div className="mt-2 space-y-1 text-xs">
                     <div>名称：{effectiveProvider.display_name || effectiveProvider.provider_key}</div>
@@ -552,7 +565,7 @@ export const B2SConfigPage: React.FC<{ projectId: string; embedded?: boolean }> 
                   </div>
                 )}
               </div>
-              <p className="text-xs leading-5 text-slate-500">
+              <p style={{ fontSize: '12px', lineHeight: '20px', color: LK.body }}>
                 任务创建时若未手工指定 `llm_provider_key`，默认取这里的项目级 Provider；若这里留空，则回退到配置中心默认 Provider。
               </p>
             </SectionCard>
@@ -568,10 +581,10 @@ export const B2SConfigPage: React.FC<{ projectId: string; embedded?: boolean }> 
                   max={16}
                   value={config.concurrency}
                   onChange={(e) => setConfig((prev) => ({ ...prev, concurrency: Math.max(1, Math.min(16, Number(e.target.value) || 8)) }))}
-                  className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm bg-white"
+                  style={{ width: '100%', borderRadius: '6px', border: `1px solid ${LK.border}`, padding: '8px 12px', fontSize: '14px', backgroundColor: LK.surface, color: LK.ink }}
                 />
               </FieldRow>
-              <p className="text-xs leading-5 text-slate-500">
+              <p style={{ fontSize: '12px', lineHeight: '20px', color: LK.body }}>
                 这里维护的是项目默认并发。新任务创建时会默认带出该值；如果用户在创建弹窗里手工修改，只影响本次任务。
               </p>
             </SectionCard>
@@ -587,19 +600,22 @@ export const B2SConfigPage: React.FC<{ projectId: string; embedded?: boolean }> 
                       key={option.value}
                       type="button"
                       onClick={() => setConfig((prev) => ({ ...prev, default_mode: option.value }))}
-                      className={`rounded-2xl border px-4 py-4 text-left transition ${
-                        config.default_mode === option.value
-                          ? 'border-cyan-300 bg-cyan-50 ring-2 ring-cyan-100'
-                          : 'border-slate-200 bg-white hover:bg-slate-50'
-                      }`}
+                      style={{
+                        borderRadius: '12px',
+                        border: `1px solid ${config.default_mode === option.value ? LK.info : LK.border}`,
+                        padding: '16px',
+                        textAlign: 'left',
+                        transition: 'all 0.2s',
+                        backgroundColor: config.default_mode === option.value ? LK.primaryMuted.replace('0.14', '0.08') : LK.surface
+                      }}
                     >
-                      <div className="text-sm font-black text-slate-900">{option.label}</div>
-                      <div className="mt-2 text-xs font-semibold leading-5 text-slate-500">{option.description}</div>
+                      <div style={{ fontSize: '14px', fontWeight: 600, color: LK.ink }}>{option.label}</div>
+                      <div style={{ marginTop: '8px', fontSize: '12px', fontWeight: 600, lineHeight: '20px', color: LK.body }}>{option.description}</div>
                     </button>
                   ))}
                 </div>
               </FieldRow>
-              <p className="text-xs leading-5 text-slate-500">
+              <p style={{ fontSize: '12px', lineHeight: '20px', color: LK.body }}>
                 如果创建任务时没有手工覆盖 `mode`，后端会自动回退到这里配置的项目默认模式；当前后端默认值为 `turbo`。
               </p>
             </SectionCard>
@@ -612,13 +628,13 @@ export const B2SConfigPage: React.FC<{ projectId: string; embedded?: boolean }> 
                 <select
                   value={config.budget_exhausted_action}
                   onChange={(e) => setConfig((prev) => ({ ...prev, budget_exhausted_action: e.target.value as B2SServiceConfig['budget_exhausted_action'] }))}
-                  className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm bg-white"
+                  style={{ width: '100%', borderRadius: '6px', border: `1px solid ${LK.border}`, padding: '8px 12px', fontSize: '14px', backgroundColor: LK.surface, color: LK.ink }}
                 >
                   <option value="treat_as_passed">默认通过，子任务按成功收敛</option>
                   <option value="treat_as_failed">判定失败，子任务按失败收敛</option>
                 </select>
               </FieldRow>
-              <p className="text-xs leading-5 text-slate-500">
+              <p style={{ fontSize: '12px', lineHeight: '20px', color: LK.body }}>
                 默认值为 `treat_as_passed`。当 `pi-re-agent` 返回预算耗尽类失败时，B2S 会按这里的策略把该子任务收敛为成功或失败。
               </p>
             </SectionCard>
@@ -635,7 +651,7 @@ export const B2SConfigPage: React.FC<{ projectId: string; embedded?: boolean }> 
                   type="button"
                   onClick={() => { void loadCacheEntries(); }}
                   disabled={cacheLoading}
-                  className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', borderRadius: '8px', border: `1px solid ${LK.border}`, backgroundColor: LK.surface, padding: '8px 12px', fontSize: '12px', fontWeight: 600, color: LK.inkSoft, cursor: 'pointer', opacity: 1 }}
                 >
                   {cacheLoading ? <Loader2 size={12} className="animate-spin" /> : <RefreshCw size={12} />}
                   刷新列表
@@ -645,17 +661,17 @@ export const B2SConfigPage: React.FC<{ projectId: string; embedded?: boolean }> 
           >
             <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-7">
               {[
-                { label: '当前可见条目', value: formatNumber(cacheSummary.visible_entries), tone: 'text-slate-900' },
+                { label: '当前可见条目', value: formatNumber(cacheSummary.visible_entries), tone: LK.ink },
                 { label: '当前项目条目', value: formatNumber(cacheSummary.current_project_entries), tone: 'text-indigo-700' },
                 { label: 'Fast 条目', value: formatNumber(cacheSummary.fast_entries), tone: 'text-emerald-700' },
                 { label: 'Deep 条目', value: formatNumber(cacheSummary.deep_entries), tone: 'text-cyan-700' },
                 { label: 'Turbo 条目', value: formatNumber(cacheSummary.turbo_entries), tone: 'text-fuchsia-700' },
                 { label: '总命中次数', value: formatNumber(cacheSummary.total_hit_count), tone: 'text-amber-700' },
-                { label: '最近命中时间', value: formatDateTime(cacheSummary.latest_hit_at), tone: 'text-slate-900' },
+                { label: '最近命中时间', value: formatDateTime(cacheSummary.latest_hit_at), tone: LK.ink },
               ].map((item) => (
-                <div key={item.label} className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
-                  <div className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-400">{item.label}</div>
-                  <div className={`mt-2 text-lg font-black ${item.tone}`}>{item.value}</div>
+                <div key={item.label} style={{ borderRadius: '12px', border: `1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised, padding: '12px 16px' }}>
+                  <div style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.16em', color: LK.muted }}>{item.label}</div>
+                  <div style={{ marginTop: '8px', fontSize: '18px', fontWeight: 600, color: item.tone.includes('slate-900') ? LK.ink : item.tone.includes('emerald') ? LK.success : item.tone.includes('rose') ? LK.error : LK.primary }}>{item.value}</div>
                 </div>
               ))}
             </div>
@@ -668,42 +684,42 @@ export const B2SConfigPage: React.FC<{ projectId: string; embedded?: boolean }> 
           >
             <div className="grid gap-4 xl:grid-cols-4">
               <FieldRow label="当前项目">
-                <input value={projectId} disabled className="w-full rounded-lg border border-slate-200 bg-slate-100 px-3 py-2 text-sm text-slate-600" />
+                <input value={projectId} disabled style={{ width: '100%', borderRadius: '6px', border: `1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised, padding: '8px 12px', fontSize: '14px', color: LK.body }} />
               </FieldRow>
               <FieldRow label="模式" hint="支持 fast / deep / turbo / 其他">
-                <select value={cacheModeFilter} onChange={(e) => { setCacheModeFilter(e.target.value); setCachePage(1); }} className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm bg-white">
+                <select value={cacheModeFilter} onChange={(e) => { setCacheModeFilter(e.target.value); setCachePage(1); }} style={{ width: '100%', borderRadius: '6px', border: `1px solid ${LK.border}`, padding: '8px 12px', fontSize: '14px', backgroundColor: LK.surface, color: LK.ink }}>
                   {cacheModeOptions.map((option) => (
                     <option key={option.value} value={option.value}>{option.label}</option>
                   ))}
                 </select>
               </FieldRow>
               <FieldRow label="状态">
-                <select value={cacheStatusFilter} onChange={(e) => { setCacheStatusFilter(e.target.value); setCachePage(1); }} className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm bg-white">
+                <select value={cacheStatusFilter} onChange={(e) => { setCacheStatusFilter(e.target.value); setCachePage(1); }} style={{ width: '100%', borderRadius: '6px', border: `1px solid ${LK.border}`, padding: '8px 12px', fontSize: '14px', backgroundColor: LK.surface, color: LK.ink }}>
                   <option value="ready">ready</option>
                   <option value="all">全部</option>
                 </select>
               </FieldRow>
               <FieldRow label="命中情况">
-                <select value={cacheHitsFilter} onChange={(e) => { setCacheHitsFilter(e.target.value); setCachePage(1); }} className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm bg-white">
+                <select value={cacheHitsFilter} onChange={(e) => { setCacheHitsFilter(e.target.value); setCachePage(1); }} style={{ width: '100%', borderRadius: '6px', border: `1px solid ${LK.border}`, padding: '8px 12px', fontSize: '14px', backgroundColor: LK.surface, color: LK.ink }}>
                   <option value="all">全部</option>
                   <option value="hit">已命中</option>
                   <option value="never">从未命中</option>
                 </select>
               </FieldRow>
               <FieldRow label="cache_key">
-                <input value={cacheKeyFilter} onChange={(e) => { setCacheKeyFilter(e.target.value); setCachePage(1); }} className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm bg-white" />
+                <input value={cacheKeyFilter} onChange={(e) => { setCacheKeyFilter(e.target.value); setCachePage(1); }} style={{ width: '100%', borderRadius: '6px', border: `1px solid ${LK.border}`, padding: '8px 12px', fontSize: '14px', backgroundColor: LK.surface, color: LK.ink }} />
               </FieldRow>
               <FieldRow label="elf_basename">
-                <input value={elfBasenameFilter} onChange={(e) => { setElfBasenameFilter(e.target.value); setCachePage(1); }} className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm bg-white" />
+                <input value={elfBasenameFilter} onChange={(e) => { setElfBasenameFilter(e.target.value); setCachePage(1); }} style={{ width: '100%', borderRadius: '6px', border: `1px solid ${LK.border}`, padding: '8px 12px', fontSize: '14px', backgroundColor: LK.surface, color: LK.ink }} />
               </FieldRow>
               <FieldRow label="source_task_id">
-                <input value={sourceTaskIdFilter} onChange={(e) => { setSourceTaskIdFilter(e.target.value); setCachePage(1); }} className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm bg-white" />
+                <input value={sourceTaskIdFilter} onChange={(e) => { setSourceTaskIdFilter(e.target.value); setCachePage(1); }} style={{ width: '100%', borderRadius: '6px', border: `1px solid ${LK.border}`, padding: '8px 12px', fontSize: '14px', backgroundColor: LK.surface, color: LK.ink }} />
               </FieldRow>
               <FieldRow label="source_item_id">
-                <input value={sourceItemIdFilter} onChange={(e) => { setSourceItemIdFilter(e.target.value); setCachePage(1); }} className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm bg-white" />
+                <input value={sourceItemIdFilter} onChange={(e) => { setSourceItemIdFilter(e.target.value); setCachePage(1); }} style={{ width: '100%', borderRadius: '6px', border: `1px solid ${LK.border}`, padding: '8px 12px', fontSize: '14px', backgroundColor: LK.surface, color: LK.ink }} />
               </FieldRow>
             </div>
-            <label className="flex items-center gap-3 text-sm font-semibold text-slate-700">
+            <label style={{ display: 'flex', alignItems: 'center', gap: '12px', fontSize: '14px', fontWeight: 600, color: LK.inkSoft }}>
               <input type="checkbox" checked={includeAllProjects} onChange={(e) => { setIncludeAllProjects(e.target.checked); setCachePage(1); }} />
               查看全部共享缓存（默认仅显示 source_project_id = 当前项目）
             </label>
@@ -717,7 +733,7 @@ export const B2SConfigPage: React.FC<{ projectId: string; embedded?: boolean }> 
                 <select
                   value={cachePageSize}
                   onChange={(e) => { setCachePageSize(Number(e.target.value)); setCachePage(1); }}
-                  className="rounded-lg border border-slate-200 px-3 py-2 text-xs bg-white"
+                  style={{ borderRadius: '6px', border: `1px solid ${LK.border}`, padding: '8px 12px', fontSize: '12px', backgroundColor: LK.surface, color: LK.ink }}
                 >
                   {[20, 50, 100, 200].map((size) => <option key={size} value={size}>{size} / 页</option>)}
                 </select>
@@ -733,7 +749,7 @@ export const B2SConfigPage: React.FC<{ projectId: string; embedded?: boolean }> 
               </div>
             )}
           >
-            <div className="mb-4 flex flex-wrap items-center gap-3 text-xs text-slate-500">
+            <div style={{ marginBottom: '16px', display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '12px', fontSize: '12px', color: LK.body }}>
               <span>当前选择 {selectedCount} 条</span>
               <span>分页 {cachePage} / {cacheTotalPages}</span>
               {cacheLoading ? <span className="text-indigo-600">正在刷新缓存列表…</span> : null}
@@ -777,11 +793,11 @@ export const B2SConfigPage: React.FC<{ projectId: string; embedded?: boolean }> 
                       />
                     </ExecutionTableTd>
                     <ExecutionTableTd className="min-w-[180px]">
-                      <div className="font-semibold text-slate-800">{entry.elf_basename || '-'}</div>
+                      <div style={{ fontWeight: 600, color: LK.inkSoft }}>{entry.elf_basename || '-'}</div>
                     </ExecutionTableTd>
                     <ExecutionTableTd className="min-w-[260px] font-mono text-xs break-all">{entry.cache_key}</ExecutionTableTd>
                     <ExecutionTableTd>
-                      <span className="inline-flex rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-xs font-semibold text-slate-700">
+                      <span style={{ display: 'inline-flex', borderRadius: '999px', border: `1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised, padding: '2px 8px', fontSize: '12px', fontWeight: 600, color: LK.inkSoft }}>
                         {entry.mode || 'unknown'}
                       </span>
                     </ExecutionTableTd>
@@ -797,7 +813,7 @@ export const B2SConfigPage: React.FC<{ projectId: string; embedded?: boolean }> 
                         <button
                           type="button"
                           onClick={() => { void openCacheDetail(entry.cache_key); }}
-                          className="inline-flex items-center gap-1 rounded-lg border border-slate-200 px-2 py-1 text-xs font-semibold text-slate-700 hover:bg-slate-50"
+                          style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', borderRadius: '6px', border: `1px solid ${LK.border}`, padding: '4px 8px', fontSize: '12px', fontWeight: 600, color: LK.inkSoft, cursor: 'pointer' }}
                         >
                           <Eye size={12} />
                           查看详情
@@ -818,22 +834,22 @@ export const B2SConfigPage: React.FC<{ projectId: string; embedded?: boolean }> 
               </tbody>
             </ExecutionTable>
             <div className="mt-4 flex items-center justify-between gap-3">
-              <div className="text-xs text-slate-500">共 {formatNumber(cacheTotal)} 条</div>
+              <div style={{ fontSize: '12px', color: LK.body }}>共 {formatNumber(cacheTotal)} 条</div>
               <div className="flex items-center gap-2">
                 <button
                   type="button"
                   onClick={() => setCachePage((current) => Math.max(1, current - 1))}
                   disabled={cachePage <= 1}
-                  className="rounded-lg border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-50 disabled:opacity-50"
+                  style={{ borderRadius: '6px', border: `1px solid ${LK.border}`, padding: '8px 12px', fontSize: '12px', fontWeight: 600, color: LK.body, cursor: 'pointer', opacity: 1 }}
                 >
                   上一页
                 </button>
-                <span className="text-xs text-slate-500">{cachePage} / {cacheTotalPages}</span>
+                <span style={{ fontSize: '12px', color: LK.body }}>{cachePage} / {cacheTotalPages}</span>
                 <button
                   type="button"
                   onClick={() => setCachePage((current) => Math.min(cacheTotalPages, current + 1))}
                   disabled={cachePage >= cacheTotalPages}
-                  className="rounded-lg border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-50 disabled:opacity-50"
+                  style={{ borderRadius: '6px', border: `1px solid ${LK.border}`, padding: '8px 12px', fontSize: '12px', fontWeight: 600, color: LK.body, cursor: 'pointer', opacity: 1 }}
                 >
                   下一页
                 </button>
@@ -844,21 +860,21 @@ export const B2SConfigPage: React.FC<{ projectId: string; embedded?: boolean }> 
       )}
 
       {cacheDetail || cacheDetailLoading ? (
-        <div className="fixed inset-0 z-[280] bg-slate-950/60 p-4 backdrop-blur-sm">
-          <div className="mx-auto max-h-full max-w-5xl overflow-hidden rounded-[2rem] border border-slate-200 bg-white shadow-[0_32px_120px_rgba(15,23,42,0.35)]">
-            <div className="flex items-start justify-between gap-4 border-b border-slate-200 px-6 py-5">
+        <div style={{ position: 'fixed', inset: 0, zIndex: 280, backgroundColor: 'rgba(7, 13, 24, 0.6)', padding: '16px', backdropFilter: 'blur(4px)' }}>
+          <div style={{ margin: '0 auto', maxHeight: '100%', maxWidth: '80rem', overflow: 'hidden', borderRadius: '24px', border: `1px solid ${LK.border}`, backgroundColor: LK.surface, boxShadow: '0 32px 120px rgba(15,23,42,0.35)' }}>
+            <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '16px', borderBottom: `1px solid ${LK.border}`, padding: '20px 24px' }}>
               <div>
-                <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">Cache Detail</div>
-                <h3 className="mt-2 text-xl font-black text-slate-900">{cacheDetail?.elf_basename || cacheDetail?.cache_key || '缓存详情'}</h3>
-                <div className="mt-1 font-mono text-xs text-slate-500 break-all">{cacheDetail?.cache_key || '-'}</div>
+                <div style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.18em', color: LK.muted }}>Cache Detail</div>
+                <h3 style={{ marginTop: '8px', fontSize: '20px', fontWeight: 600, color: LK.ink }}>{cacheDetail?.elf_basename || cacheDetail?.cache_key || '缓存详情'}</h3>
+                <div style={{ marginTop: '4px', fontFamily: MONO, fontSize: '12px', color: LK.body, wordBreak: 'break-all' }}>{cacheDetail?.cache_key || '-'}</div>
               </div>
-              <button type="button" onClick={() => setCacheDetail(null)} className="rounded-lg border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-50">
+              <button type="button" onClick={() => setCacheDetail(null)} style={{ borderRadius: '6px', border: `1px solid ${LK.border}`, padding: '8px 12px', fontSize: '12px', fontWeight: 600, color: LK.body, cursor: 'pointer' }}>
                 关闭
               </button>
             </div>
-            <div className="max-h-[calc(100vh-10rem)] overflow-auto px-6 py-6">
+            <div style={{ maxHeight: 'calc(100vh - 10rem)', overflow: 'auto', padding: '24px' }}>
               {cacheDetailLoading || !cacheDetail ? (
-                <div className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
+                <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', borderRadius: '8px', border: `1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised, padding: '12px 16px', fontSize: '14px', color: LK.body }}>
                   <Loader2 size={14} className="animate-spin" />正在加载缓存详情...
                 </div>
               ) : (
@@ -874,40 +890,40 @@ export const B2SConfigPage: React.FC<{ projectId: string; embedded?: boolean }> 
                       ['Output Dir Exists', cacheDetail.output_dir_exists ? '是' : '否'],
                       ['Manifest Exists', cacheDetail.manifest_exists ? '是' : '否'],
                     ].map(([label, value]) => (
-                      <div key={label} className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
-                        <div className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-400">{label}</div>
-                        <div className="mt-2 text-sm font-bold text-slate-900 break-all">{value}</div>
+                      <div key={label} style={{ borderRadius: '12px', border: `1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised, padding: '12px 16px' }}>
+                        <div style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.16em', color: LK.muted }}>{label}</div>
+                        <div style={{ marginTop: '8px', fontSize: '14px', fontWeight: 600, color: LK.ink, wordBreak: 'break-all' }}>{value}</div>
                       </div>
                     ))}
                   </div>
 
                   <SectionCard title="基础元数据">
                     <div className="grid gap-3 md:grid-cols-2">
-                      <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700">
-                        <div className="font-black text-slate-900">analysis_signature</div>
-                        <div className="mt-2 break-all font-mono text-xs">{cacheDetail.analysis_signature || '-'}</div>
+                      <div style={{ borderRadius: '8px', border: `1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised, padding: '12px 16px', fontSize: '14px', color: LK.inkSoft }}>
+                        <div style={{ fontWeight: 600, color: LK.ink }}>analysis_signature</div>
+                        <div style={{ marginTop: '8px', wordBreak: 'break-all', fontFamily: MONO, fontSize: '12px' }}>{cacheDetail.analysis_signature || '-'}</div>
                       </div>
-                      <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700">
-                        <div className="font-black text-slate-900">canonical_input_path</div>
+                      <div style={{ borderRadius: '8px', border: `1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised, padding: '12px 16px', fontSize: '14px', color: LK.inkSoft }}>
+                        <div style={{ fontWeight: 600, color: LK.ink }}>canonical_input_path</div>
                         <div className="mt-2 break-all font-mono text-xs">{cacheDetail.canonical_input_path || '-'}</div>
                       </div>
-                      <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700 md:col-span-2">
-                        <div className="font-black text-slate-900">canonical_output_dir</div>
-                        <div className="mt-2 break-all font-mono text-xs">{cacheDetail.canonical_output_dir || '-'}</div>
+                      <div style={{ borderRadius: '8px', border: `1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised, padding: '12px 16px', fontSize: '14px', color: LK.inkSoft, gridColumn: '1 / -1' }}>
+                        <div style={{ fontWeight: 600, color: LK.ink }}>canonical_output_dir</div>
+                        <div style={{ marginTop: '8px', wordBreak: 'break-all', fontFamily: MONO, fontSize: '12px' }}>{cacheDetail.canonical_output_dir || '-'}</div>
                       </div>
                     </div>
                   </SectionCard>
 
                   <SectionCard title="generated_files 预览">
-                    <pre className="max-h-64 overflow-auto rounded-2xl border border-slate-200 bg-slate-50 p-4 text-xs text-slate-900">{JSON.stringify(cacheDetail.generated_files, null, 2)}</pre>
+                    <pre style={{ maxHeight: '256px', overflow: 'auto', borderRadius: '12px', border: `1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised, padding: '16px', fontSize: '12px', color: LK.ink }}>{JSON.stringify(cacheDetail.generated_files, null, 2)}</pre>
                   </SectionCard>
 
                   <SectionCard title="manifest.json 预览" subtitle={cacheDetail.manifest_parse_error ? `解析失败：${cacheDetail.manifest_parse_error}` : undefined}>
-                    <pre className="max-h-64 overflow-auto rounded-2xl border border-slate-200 bg-slate-50 p-4 text-xs text-slate-900">{JSON.stringify(cacheDetail.manifest, null, 2)}</pre>
+                    <pre style={{ maxHeight: '256px', overflow: 'auto', borderRadius: '12px', border: `1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised, padding: '16px', fontSize: '12px', color: LK.ink }}>{JSON.stringify(cacheDetail.manifest, null, 2)}</pre>
                   </SectionCard>
 
                   <SectionCard title="source_metadata 预览">
-                    <pre className="max-h-64 overflow-auto rounded-2xl border border-slate-200 bg-slate-50 p-4 text-xs text-slate-900">{JSON.stringify(cacheDetail.source_metadata, null, 2)}</pre>
+                    <pre style={{ maxHeight: '256px', overflow: 'auto', borderRadius: '12px', border: `1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised, padding: '16px', fontSize: '12px', color: LK.ink }}>{JSON.stringify(cacheDetail.source_metadata, null, 2)}</pre>
                   </SectionCard>
                 </div>
               )}

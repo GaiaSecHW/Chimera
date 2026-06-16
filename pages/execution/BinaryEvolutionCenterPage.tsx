@@ -26,6 +26,19 @@ import {
 } from './BinaryEvolutionShared';
 import { BinaryEvolutionTaskDetailPage } from './BinaryEvolutionTaskDetailPage';
 
+const LK = {
+  primary: '#4f73ff', primarySoft: '#7590ff', primaryDeep: '#3f63f1',
+  primaryMuted: 'rgba(79, 115, 255, 0.14)',
+  canvas: '#070d18', surface: '#111a2b', surfaceRaised: '#18233a',
+  surfaceGlass: 'rgba(17, 26, 43, 0.84)',
+  border: '#26324a', borderSoft: '#1b2438',
+  ink: '#f5f7ff', inkSoft: '#d6def0', body: '#a4aec4',
+  muted: '#72809a', mutedSoft: '#8b95a8',
+  success: '#45c06f', warning: '#d5a13a', error: '#f15d5d', info: '#4f8cff',
+  critical: '#ff4d4f', high: '#ff8b3d', medium: '#f0b64c', low: '#49c5ff',
+} as const;
+const MONO = 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace';
+
 interface Props {
   projectId: string;
 }
@@ -150,31 +163,31 @@ const BinaryEvolutionTaskListView: React.FC<Props> = ({ projectId }) => {
   };
 
   return (
-    <div className="space-y-6 px-8 pb-10 pt-8">
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', paddingLeft: '32px', paddingBottom: '40px', paddingTop: '32px' }}>
       {feedbackNodes}
 
-      <section className="rounded-[2rem] border border-slate-200 bg-white/90 p-6 shadow-sm">
-        <p className="text-xs font-black uppercase tracking-[0.3em] text-amber-600">Binary Evolution</p>
-        <h1 className="mt-3 text-3xl font-black tracking-tight text-slate-900">进化中心任务</h1>
-        <p className="mt-2 max-w-4xl text-sm text-slate-500">
+      <section style={{ borderRadius: '24px', border: `1px solid ${LK.borderSoft}`, backgroundColor: 'rgba(255, 255, 255, 0.9)', padding: '24px' }}>
+        <p style={{ fontSize: '12px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.3em', color: LK.warning }}>Binary Evolution</p>
+        <h1 style={{ marginTop: '12px', fontSize: '30px', fontWeight: 600, letterSpacing: '-0.025em', color: LK.ink }}>进化中心任务</h1>
+        <p style={{ marginTop: '8px', maxWidth: '56rem', fontSize: '14px', color: LK.body }}>
           集中管理进化任务的创建与历史回看。点击任意任务可进入独立详情页查看轮次收敛、产物应用与事件轨迹。
         </p>
       </section>
 
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '16px' }}>
         <StatCard label="总任务" value={tasks.length} />
         <StatCard label="运行中" value={activeCount} tone="bg-blue-50 border-blue-200 text-blue-700" />
         <StatCard label="已完成" value={succeededCount} tone="bg-emerald-50 border-emerald-200 text-emerald-700" />
         <StatCard label="失败/取消" value={failedCount} tone="bg-red-50 border-red-200 text-red-700" />
       </div>
 
-      <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-        <div className="flex items-center justify-between gap-2">
-          <h2 className="text-lg font-black text-slate-900">
-            任务列表 <span className="text-sm font-normal text-slate-400">({filteredTasks.length})</span>
+      <section style={{ borderRadius: '16px', border: `1px solid ${LK.borderSoft}`, backgroundColor: LK.surface, padding: '20px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
+          <h2 style={{ fontSize: '18px', fontWeight: 600, color: LK.ink }}>
+            任务列表 <span style={{ fontSize: '14px', fontWeight: 400, color: LK.muted }}>({filteredTasks.length})</span>
           </h2>
-          <div className="flex flex-wrap items-center justify-end gap-2">
-            <label className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs text-slate-600">
+          <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'flex-end', gap: '8px' }}>
+            <label style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', borderRadius: '8px', border: `1px solid ${LK.borderSoft}`, backgroundColor: LK.surfaceRaised, paddingLeft: '12px', paddingRight: '12px', paddingTop: '6px', paddingBottom: '6px', fontSize: '12px', color: LK.body }}>
               <input
                 type="checkbox"
                 checked={autoRefreshEnabled}
@@ -182,7 +195,7 @@ const BinaryEvolutionTaskListView: React.FC<Props> = ({ projectId }) => {
               />
               自动刷新
             </label>
-            <label className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs text-slate-600">
+            <label style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', borderRadius: '8px', border: `1px solid ${LK.borderSoft}`, backgroundColor: LK.surfaceRaised, paddingLeft: '12px', paddingRight: '12px', paddingTop: '6px', paddingBottom: '6px', fontSize: '12px', color: LK.body }}>
               间隔
               <input
                 type="number"
@@ -193,14 +206,14 @@ const BinaryEvolutionTaskListView: React.FC<Props> = ({ projectId }) => {
                   const value = Number(e.target.value);
                   setRefreshIntervalSec(Number.isFinite(value) ? Math.max(5, Math.floor(value)) : 5);
                 }}
-                className="w-16 rounded border border-slate-200 bg-white px-2 py-1 text-xs text-slate-700"
+                style={{ width: '64px', borderRadius: '8px', border: `1px solid ${LK.borderSoft}`, backgroundColor: LK.surface, paddingLeft: '8px', paddingRight: '8px', paddingTop: '4px', paddingBottom: '4px', fontSize: '12px', color: LK.inkSoft }}
               />
               秒
             </label>
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
-              className="rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-xs text-slate-600"
+              style={{ borderRadius: '8px', border: `1px solid ${LK.borderSoft}`, backgroundColor: LK.surface, paddingLeft: '8px', paddingRight: '8px', paddingTop: '6px', paddingBottom: '6px', fontSize: '12px', color: LK.body }}
             >
               <option value="">全部状态</option>
               {Object.entries(STATUS_LABEL).map(([value, label]) => (
@@ -210,14 +223,14 @@ const BinaryEvolutionTaskListView: React.FC<Props> = ({ projectId }) => {
             <button
               type="button"
               onClick={() => void loadTasks()}
-              className="rounded-lg border border-slate-200 p-2 text-slate-500 hover:bg-slate-50"
+              style={{ borderRadius: '8px', border: `1px solid ${LK.borderSoft}`, padding: '8px', color: LK.body, cursor: 'pointer', backgroundColor: 'transparent' }}
             >
               <RefreshCw size={14} />
             </button>
             <button
               type="button"
               onClick={() => setShowCreate(true)}
-              className="inline-flex items-center gap-1.5 rounded-lg bg-slate-900 px-3 py-1.5 text-xs font-semibold text-white hover:bg-slate-700"
+              style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', borderRadius: '8px', backgroundColor: LK.surface, paddingLeft: '12px', paddingRight: '12px', paddingTop: '6px', paddingBottom: '6px', fontSize: '12px', fontWeight: 600, color: LK.ink, cursor: 'pointer', border: `1px solid ${LK.border}` }}
             >
               <Plus size={13} />
               新建任务
@@ -225,47 +238,47 @@ const BinaryEvolutionTaskListView: React.FC<Props> = ({ projectId }) => {
           </div>
         </div>
 
-        <div className="mt-4 flex flex-wrap items-center gap-3 text-xs text-slate-500">
+        <div style={{ marginTop: '16px', display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '12px', fontSize: '12px', color: LK.body }}>
           <span>项目：{projectId}</span>
           <span>活跃任务：{activeCount}</span>
-          {autoRefreshEnabled ? <span className="text-violet-600">自动刷新已开启（{Math.max(5, refreshIntervalSec)}s）</span> : null}
+          {autoRefreshEnabled ? <span style={{ color: LK.primary }}>自动刷新已开启（{Math.max(5, refreshIntervalSec)}s）</span> : null}
         </div>
 
         {loading ? (
-          <div className="flex items-center gap-2 py-10 text-sm text-slate-500">
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', paddingTop: '40px', paddingBottom: '40px', fontSize: '14px', color: LK.body }}>
             <Loader2 size={14} className="animate-spin" />
             加载中...
           </div>
         ) : filteredTasks.length === 0 ? (
-          <div className="py-10 text-center text-sm text-slate-400">暂无进化任务，点击右上角「新建任务」创建</div>
+          <div style={{ paddingTop: '40px', paddingBottom: '40px', textAlign: 'center', fontSize: '14px', color: LK.muted }}>暂无进化任务，点击右上角「新建任务」创建</div>
         ) : (
-          <div className="mt-4 space-y-2">
+          <div style={{ marginTop: '16px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
             {filteredTasks.map((task) => (
               <button
                 key={task.task_id}
                 type="button"
                 onClick={() => navigate(`/binary-evolution-dataflow-vuln/${encodeURIComponent(task.task_id)}`)}
-                className="w-full rounded-xl border border-slate-200 bg-white px-4 py-4 text-left transition-colors hover:bg-slate-50"
+                style={{ width: '100%', borderRadius: '12px', border: `1px solid ${LK.borderSoft}`, backgroundColor: LK.surface, paddingLeft: '16px', paddingRight: '16px', paddingTop: '16px', paddingBottom: '16px', textAlign: 'left', transition: 'background-color 0.2s', cursor: 'pointer' }}
               >
-                <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <div className="truncate text-base font-black text-slate-900">{task.title}</div>
-                    <div className="mt-1 truncate font-mono text-xs text-slate-500">{task.task_id}</div>
-                    <div className="mt-2 flex flex-wrap gap-2">
-                      <span className={`rounded-full px-2.5 py-1 text-[11px] font-black ${STATUS_STYLE[task.status] || STATUS_STYLE.pending}`}>
+                <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '12px' }}>
+                  <div style={{ minWidth: 0 }}>
+                    <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontSize: '16px', fontWeight: 600, color: LK.ink }}>{task.title}</div>
+                    <div style={{ marginTop: '4px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontFamily: MONO, fontSize: '12px', color: LK.body }}>{task.task_id}</div>
+                    <div style={{ marginTop: '8px', display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                      <span style={{ borderRadius: '9999px', paddingLeft: '10px', paddingRight: '10px', paddingTop: '4px', paddingBottom: '4px', fontSize: '11px', fontWeight: 600, ...(STATUS_STYLE[task.status] ? { className: STATUS_STYLE[task.status] } : {}) }}>
                         {STATUS_LABEL[task.status] || task.status}
                       </span>
-                      <span className={`rounded-full px-2.5 py-1 text-[11px] font-black ${APPLY_STYLE[task.apply_status] || 'bg-slate-100 text-slate-600'}`}>
+                      <span style={{ borderRadius: '9999px', paddingLeft: '10px', paddingRight: '10px', paddingTop: '4px', paddingBottom: '4px', fontSize: '11px', fontWeight: 600, ...(APPLY_STYLE[task.apply_status] ? { className: APPLY_STYLE[task.apply_status] } : { backgroundColor: LK.surfaceRaised, color: LK.body }) }}>
                         {task.apply_status || 'pending'}
                       </span>
-                      <span className="rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-black text-slate-600">
+                      <span style={{ borderRadius: '9999px', backgroundColor: LK.surfaceRaised, paddingLeft: '10px', paddingRight: '10px', paddingTop: '4px', paddingBottom: '4px', fontSize: '11px', fontWeight: 600, color: LK.body }}>
                         round {task.current_round}/{task.config?.max_rounds || '-'}
                       </span>
                     </div>
                   </div>
-                  <div className="text-right text-xs text-slate-500">
+                  <div style={{ textAlign: 'right', fontSize: '12px', color: LK.body }}>
                     <div>{fmtTime(task.updated_at)}</div>
-                    <div className="mt-2 font-black text-slate-700">score {task.overall_score ?? '-'}</div>
+                    <div style={{ marginTop: '8px', fontWeight: 600, color: LK.inkSoft }}>score {task.overall_score ?? '-'}</div>
                   </div>
                 </div>
               </button>
@@ -275,16 +288,16 @@ const BinaryEvolutionTaskListView: React.FC<Props> = ({ projectId }) => {
       </section>
 
       {showCreate ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/40 p-6">
-          <div className="max-h-[92vh] w-full max-w-6xl overflow-y-auto rounded-[2rem] border border-slate-200 bg-white p-6 shadow-2xl">
-            <div className="flex items-start justify-between gap-4">
+        <div style={{ position: 'fixed', inset: 0, zIndex: 50, display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(2, 6, 23, 0.4)', padding: '24px' }}>
+          <div style={{ maxHeight: '92vh', width: '100%', maxWidth: '72rem', overflowY: 'auto', borderRadius: '32px', border: `1px solid ${LK.borderSoft}`, backgroundColor: LK.surface, padding: '24px' }}>
+            <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '16px' }}>
               <div>
-                <div className="inline-flex items-center gap-2 rounded-full bg-amber-50 px-3 py-1 text-[11px] font-black uppercase tracking-[0.18em] text-amber-700">
+                <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', borderRadius: '9999px', backgroundColor: 'rgba(245, 158, 11, 0.1)', paddingLeft: '12px', paddingRight: '12px', paddingTop: '4px', paddingBottom: '4px', fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.18em', color: LK.warning }}>
                   <Sparkles size={14} />
                   创建进化任务
                 </div>
-                <h2 className="mt-3 text-2xl font-black text-slate-900">先预览整批样本，再确认创建</h2>
-                <p className="mt-2 text-sm text-slate-500">沿用入口分析任务页的创建风格，把输入参数和预览结果放在同一个弹窗里完成确认。</p>
+                <h2 style={{ marginTop: '12px', fontSize: '24px', fontWeight: 600, color: LK.ink }}>先预览整批样本，再确认创建</h2>
+                <p style={{ marginTop: '8px', fontSize: '14px', color: LK.body }}>沿用入口分析任务页的创建风格，把输入参数和预览结果放在同一个弹窗里完成确认。</p>
               </div>
               <button
                 type="button"
@@ -292,84 +305,84 @@ const BinaryEvolutionTaskListView: React.FC<Props> = ({ projectId }) => {
                   setShowCreate(false);
                   setPreview(null);
                 }}
-                className="rounded-2xl border border-slate-200 px-4 py-2 text-sm font-black text-slate-600 hover:bg-slate-50"
+                style={{ borderRadius: '16px', border: `1px solid ${LK.borderSoft}`, paddingLeft: '16px', paddingRight: '16px', paddingTop: '8px', paddingBottom: '8px', fontSize: '14px', fontWeight: 600, color: LK.body, cursor: 'pointer', backgroundColor: 'transparent' }}
               >
                 关闭
               </button>
             </div>
 
-            <div className="mt-6 grid gap-6 xl:grid-cols-[0.92fr_1.08fr]">
-              <section className="space-y-4 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+            <div style={{ marginTop: '24px', display: 'grid', gap: '24px', gridTemplateColumns: '0.92fr 1.08fr' }}>
+              <section style={{ display: 'flex', flexDirection: 'column', gap: '16px', borderRadius: '16px', border: `1px solid ${LK.borderSoft}`, backgroundColor: LK.surface, padding: '20px' }}>
                 <div>
-                  <div className="mb-2 text-sm font-black text-slate-800">任务标题</div>
+                  <div style={{ marginBottom: '8px', fontSize: '14px', fontWeight: 600, color: LK.inkSoft }}>任务标题</div>
                   <input
                     value={form.title}
                     onChange={(event) => setForm((current) => ({ ...current, title: event.target.value }))}
-                    className="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm"
+                    style={{ width: '100%', borderRadius: '16px', border: `1px solid ${LK.borderSoft}`, paddingLeft: '16px', paddingRight: '16px', paddingTop: '12px', paddingBottom: '12px', fontSize: '14px', backgroundColor: LK.surfaceRaised, color: LK.ink }}
                     placeholder="例如：DFVS 漏报率优化 - 批次 A"
                   />
                 </div>
                 <div>
-                  <div className="mb-2 text-sm font-black text-slate-800">进化目标</div>
+                  <div style={{ marginBottom: '8px', fontSize: '14px', fontWeight: 600, color: LK.inkSoft }}>进化目标</div>
                   <textarea
                     value={form.objective}
                     onChange={(event) => setForm((current) => ({ ...current, objective: event.target.value }))}
-                    className="min-h-[9rem] w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm"
+                    style={{ minHeight: '9rem', width: '100%', borderRadius: '16px', border: `1px solid ${LK.borderSoft}`, paddingLeft: '16px', paddingRight: '16px', paddingTop: '12px', paddingBottom: '12px', fontSize: '14px', backgroundColor: LK.surfaceRaised, color: LK.ink, fontFamily: MONO }}
                     placeholder="说明本次主要想优化漏报、误报，还是更早发现。"
                   />
                 </div>
                 <div>
-                  <div className="mb-2 text-sm font-black text-slate-800">案例 ID 列表</div>
+                  <div style={{ marginBottom: '8px', fontSize: '14px', fontWeight: 600, color: LK.inkSoft }}>案例 ID 列表</div>
                   <textarea
                     value={form.caseIdsText}
                     onChange={(event) => setForm((current) => ({ ...current, caseIdsText: event.target.value }))}
-                    className="min-h-[12rem] w-full rounded-2xl border border-slate-200 px-4 py-3 font-mono text-sm"
+                    style={{ minHeight: '12rem', width: '100%', borderRadius: '16px', border: `1px solid ${LK.borderSoft}`, paddingLeft: '16px', paddingRight: '16px', paddingTop: '12px', paddingBottom: '12px', fontSize: '14px', backgroundColor: LK.surfaceRaised, color: LK.ink, fontFamily: MONO }}
                     placeholder="每行一个 case id，也支持空格/逗号分隔"
                   />
-                  <div className="mt-2 text-xs text-slate-500">已解析 {caseIds.length} 个案例 ID。</div>
+                  <div style={{ marginTop: '8px', fontSize: '12px', color: LK.body }}>已解析 {caseIds.length} 个案例 ID。</div>
                 </div>
-                <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: '12px' }}>
                   <div>
-                    <div className="mb-2 text-sm font-black text-slate-800">最小轮次</div>
+                    <div style={{ marginBottom: '8px', fontSize: '14px', fontWeight: 600, color: LK.inkSoft }}>最小轮次</div>
                     <input
                       type="number"
                       min={1}
                       max={100}
                       value={form.minRounds}
                       onChange={(event) => setForm((current) => ({ ...current, minRounds: Number(event.target.value || 1) }))}
-                      className="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm"
+                      style={{ width: '100%', borderRadius: '16px', border: `1px solid ${LK.borderSoft}`, paddingLeft: '16px', paddingRight: '16px', paddingTop: '12px', paddingBottom: '12px', fontSize: '14px', backgroundColor: LK.surfaceRaised, color: LK.ink }}
                     />
                   </div>
                   <div>
-                    <div className="mb-2 text-sm font-black text-slate-800">最大轮次</div>
+                    <div style={{ marginBottom: '8px', fontSize: '14px', fontWeight: 600, color: LK.inkSoft }}>最大轮次</div>
                     <input
                       type="number"
                       min={1}
                       max={100}
                       value={form.maxRounds}
                       onChange={(event) => setForm((current) => ({ ...current, maxRounds: Number(event.target.value || 1) }))}
-                      className="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm"
+                      style={{ width: '100%', borderRadius: '16px', border: `1px solid ${LK.borderSoft}`, paddingLeft: '16px', paddingRight: '16px', paddingTop: '12px', paddingBottom: '12px', fontSize: '14px', backgroundColor: LK.surfaceRaised, color: LK.ink }}
                     />
                   </div>
                   <div>
-                    <div className="mb-2 text-sm font-black text-slate-800">轮内并发</div>
+                    <div style={{ marginBottom: '8px', fontSize: '14px', fontWeight: 600, color: LK.inkSoft }}>轮内并发</div>
                     <input
                       type="number"
                       min={1}
                       max={64}
                       value={form.maxConcurrentSourceTasks}
                       onChange={(event) => setForm((current) => ({ ...current, maxConcurrentSourceTasks: Number(event.target.value || 1) }))}
-                      className="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm"
+                      style={{ width: '100%', borderRadius: '16px', border: `1px solid ${LK.borderSoft}`, paddingLeft: '16px', paddingRight: '16px', paddingTop: '12px', paddingBottom: '12px', fontSize: '14px', backgroundColor: LK.surfaceRaised, color: LK.ink }}
                     />
                   </div>
                 </div>
-                <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                  <div className="flex flex-wrap gap-3">
+                <div style={{ borderRadius: '16px', border: `1px solid ${LK.borderSoft}`, backgroundColor: LK.surfaceRaised, padding: '16px' }}>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px' }}>
                     <button
                       type="button"
                       disabled={submitting || caseIds.length === 0}
                       onClick={() => void handlePreview()}
-                      className="inline-flex items-center gap-2 rounded-2xl bg-slate-900 px-4 py-3 text-sm font-black text-white disabled:cursor-not-allowed disabled:opacity-50"
+                      style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', borderRadius: '16px', backgroundColor: LK.surface, paddingLeft: '16px', paddingRight: '16px', paddingTop: '12px', paddingBottom: '12px', fontSize: '14px', fontWeight: 600, color: LK.ink, cursor: 'pointer', border: `1px solid ${LK.border}`, opacity: (submitting || caseIds.length === 0) ? 0.5 : 1 }}
                     >
                       <RefreshCw size={15} />
                       预览整批
@@ -378,53 +391,53 @@ const BinaryEvolutionTaskListView: React.FC<Props> = ({ projectId }) => {
                       type="button"
                       disabled={submitting || !preview?.can_create}
                       onClick={() => void handleCreate()}
-                      className="inline-flex items-center gap-2 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-black text-emerald-700 disabled:cursor-not-allowed disabled:opacity-50"
+                      style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', borderRadius: '16px', border: `1px solid ${LK.success}`, backgroundColor: 'rgba(69, 192, 111, 0.1)', paddingLeft: '16px', paddingRight: '16px', paddingTop: '12px', paddingBottom: '12px', fontSize: '14px', fontWeight: 600, color: LK.success, cursor: 'pointer', opacity: (submitting || !preview?.can_create) ? 0.5 : 1 }}
                     >
                       <Play size={15} />
                       确认创建
                     </button>
                   </div>
-                  <div className="mt-3 text-xs text-slate-500">如果同一原始 normal 任务的 case 不完整，预览会自动补齐并展示阻塞原因。</div>
+                  <div style={{ marginTop: '12px', fontSize: '12px', color: LK.body }}>如果同一原始 normal 任务的 case 不完整，预览会自动补齐并展示阻塞原因。</div>
                 </div>
               </section>
 
-              <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+              <section style={{ borderRadius: '16px', border: `1px solid ${LK.borderSoft}`, backgroundColor: LK.surface, padding: '20px' }}>
                 {!preview ? (
-                  <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-4 py-12 text-center text-sm text-slate-400">
+                  <div style={{ borderRadius: '16px', border: `1px dashed ${LK.borderSoft}`, backgroundColor: LK.surfaceRaised, paddingLeft: '16px', paddingRight: '16px', paddingTop: '48px', paddingBottom: '48px', textAlign: 'center', fontSize: '14px', color: LK.muted }}>
                     预览结果会在这里展示。
                   </div>
                 ) : (
-                  <div className="space-y-4">
-                    <div className="flex items-center gap-2">
-                      {preview.can_create ? <CheckCircle2 size={16} className="text-emerald-600" /> : <AlertTriangle size={16} className="text-rose-600" />}
-                      <div className="font-black text-slate-900">{preview.can_create ? '预览通过，可创建' : '预览未通过'}</div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      {preview.can_create ? <CheckCircle2 size={16} style={{ color: LK.success }} /> : <AlertTriangle size={16} style={{ color: LK.error }} />}
+                      <div style={{ fontWeight: 600, color: LK.ink }}>{preview.can_create ? '预览通过，可创建' : '预览未通过'}</div>
                     </div>
-                    <div className="grid grid-cols-2 gap-4 xl:grid-cols-4">
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: '16px' }}>
                       <StatCard label="请求案例" value={preview.requested_case_ids.length} />
                       <StatCard label="生效案例" value={preview.effective_case_ids.length} tone="bg-emerald-50 border-emerald-200 text-emerald-700" />
                       <StatCard label="涉及任务" value={preview.sources.length} tone="bg-sky-50 border-sky-200 text-sky-700" />
                       <StatCard label="可创建" value={preview.can_create ? '是' : '否'} tone={preview.can_create ? 'bg-violet-50 border-violet-200 text-violet-700' : 'bg-red-50 border-red-200 text-red-700'} />
                     </div>
                     {preview.blocked_reasons.length > 0 ? (
-                      <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+                      <div style={{ borderRadius: '16px', border: `1px solid ${LK.error}`, backgroundColor: 'rgba(241, 93, 93, 0.1)', paddingLeft: '16px', paddingRight: '16px', paddingTop: '12px', paddingBottom: '12px', fontSize: '14px', color: LK.error }}>
                         {preview.blocked_reasons.map((reason) => <div key={reason}>{reason}</div>)}
                       </div>
                     ) : null}
-                    <div className="space-y-3">
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                       {preview.sources.map((source) => (
-                        <div key={source.source_task_id} className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
-                          <div className="flex items-center justify-between gap-3">
-                            <div className="font-black text-slate-800">{source.source_title || source.source_task_id}</div>
-                            <span className={`rounded-full px-2.5 py-1 text-[11px] font-black ${source.replay_ready ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'}`}>
+                        <div key={source.source_task_id} style={{ borderRadius: '16px', border: `1px solid ${LK.borderSoft}`, backgroundColor: LK.surfaceRaised, paddingLeft: '16px', paddingRight: '16px', paddingTop: '12px', paddingBottom: '12px' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px' }}>
+                            <div style={{ fontWeight: 600, color: LK.inkSoft }}>{source.source_title || source.source_task_id}</div>
+                            <span style={{ borderRadius: '9999px', paddingLeft: '10px', paddingRight: '10px', paddingTop: '4px', paddingBottom: '4px', fontSize: '11px', fontWeight: 600, backgroundColor: source.replay_ready ? 'rgba(69, 192, 111, 0.2)' : 'rgba(241, 93, 93, 0.2)', color: source.replay_ready ? LK.success : LK.error }}>
                               {source.replay_ready ? 'ready' : 'blocked'}
                             </span>
                           </div>
-                          <div className="mt-2 text-xs text-slate-500">已选 {source.selected_case_ids.length} / 整批 {source.all_case_ids.length}</div>
+                          <div style={{ marginTop: '8px', fontSize: '12px', color: LK.body }}>已选 {source.selected_case_ids.length} / 整批 {source.all_case_ids.length}</div>
                           {source.auto_expanded_case_ids.length > 0 ? (
-                            <div className="mt-1 text-xs text-amber-700">自动补齐 {source.auto_expanded_case_ids.length} 个遗漏 case。</div>
+                            <div style={{ marginTop: '4px', fontSize: '12px', color: LK.warning }}>自动补齐 {source.auto_expanded_case_ids.length} 个遗漏 case。</div>
                           ) : null}
                           {source.blocked_reasons.length > 0 ? (
-                            <div className="mt-2 space-y-1 text-xs text-rose-600">
+                            <div style={{ marginTop: '8px', display: 'flex', flexDirection: 'column', gap: '4px', fontSize: '12px', color: LK.error }}>
                               {source.blocked_reasons.map((reason) => <div key={reason}>{reason}</div>)}
                             </div>
                           ) : null}

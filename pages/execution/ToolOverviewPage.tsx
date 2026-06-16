@@ -22,6 +22,19 @@ import { agentManageApiPath } from '../../clients/agentManage';
 import { aigwApi } from '../../clients/aigw';
 import type { AiGatewayModelAlias, UserInfo, ViewType } from '../../types/types';
 
+const LK = {
+  primary: '#4f73ff', primarySoft: '#7590ff', primaryDeep: '#3f63f1',
+  primaryMuted: 'rgba(79, 115, 255, 0.14)',
+  canvas: '#070d18', surface: '#111a2b', surfaceRaised: '#18233a',
+  surfaceGlass: 'rgba(17, 26, 43, 0.84)',
+  border: '#26324a', borderSoft: '#1b2438',
+  ink: '#f5f7ff', inkSoft: '#d6def0', body: '#a4aec4',
+  muted: '#72809a', mutedSoft: '#8b95a8',
+  success: '#45c06f', warning: '#d5a13a', error: '#f15d5d', info: '#4f8cff',
+  critical: '#ff4d4f', high: '#ff8b3d', medium: '#f0b64c', low: '#49c5ff',
+} as const;
+const MONO = 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace';
+
 interface ToolOverviewPageProps {
   projectId: string;
   user: UserInfo | null;
@@ -517,66 +530,66 @@ const AgentAppModal: React.FC<AgentAppModalProps> = ({ mode, app, saving, depart
     await onSubmit(formState, agentHarnessFile, isPublic);
   };
 
-  const inputClass = 'mt-2 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-cyan-300 focus:bg-white';
+  const inputClass = {'marginTop': '8px', 'width': '100%', 'borderRadius': '12px', 'border': `1px solid ${LK.border}`, 'backgroundColor': LK.surfaceRaised, 'padding': '12px 16px', 'fontSize': '14px', 'color': LK.ink, 'outline': 'none', 'transition': 'all 0.2s', 'cursor': 'text'};
 
   return (
-    <div className="fixed inset-0 z-[260] bg-slate-950/55 p-4 backdrop-blur-sm md:p-8" onClick={onClose}>
-      <form onSubmit={handleSubmit} className="mx-auto flex h-full w-full max-w-4xl flex-col overflow-hidden rounded-[2rem] border border-slate-200 bg-white shadow-2xl" onClick={(event) => event.stopPropagation()}>
-        <div className="flex items-start justify-between gap-4 border-b border-slate-200 bg-gradient-to-r from-white to-slate-50 px-6 py-5">
+    <div style={{ position: 'fixed', inset: 0, zIndex: 260, backgroundColor: 'rgba(7, 13, 24, 0.55)', padding: '16px', backdropFilter: 'blur(4px)' }} onClick={onClose}>
+      <form onSubmit={handleSubmit} style={{ margin: '0 auto', display: 'flex', height: '100%', width: '100%', maxWidth: '64rem', flexDirection: 'column', overflow: 'hidden', borderRadius: '24px', border: `1px solid ${LK.border}`, backgroundColor: LK.surface, boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)' }} onClick={(event) => event.stopPropagation()}>
+        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '16px', borderBottom: `1px solid ${LK.border}`, padding: '20px 24px', background: `linear-gradient(to right, ${LK.surface}, ${LK.surfaceRaised})` }}>
           <div>
-            <div className="text-[11px] font-black uppercase tracking-[0.3em] text-cyan-700">{mode === 'create' ? 'Create Tool' : 'Edit Tool'}</div>
-            <h2 className="mt-2 text-2xl font-black text-slate-900">{mode === 'create' ? '创建新工具' : '工具详情'}</h2>
-            {app ? <p className="mt-1 break-all text-xs font-semibold text-slate-500">{app.id}</p> : null}
+            <div style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.3em', color: LK.primary }}>{mode === 'create' ? 'Create Tool' : 'Edit Tool'}</div>
+            <h2 style={{ marginTop: '8px', fontSize: '24px', fontWeight: 600, color: LK.ink }}>{mode === 'create' ? '创建新工具' : '工具详情'}</h2>
+            {app ? <p style={{ marginTop: '4px', wordBreak: 'break-all', fontSize: '12px', fontWeight: 600, color: LK.body }}>{app.id}</p> : null}
           </div>
-          <button type="button" onClick={onClose} className="rounded-2xl border border-slate-200 bg-white p-3 text-slate-500 transition hover:text-slate-800" aria-label="关闭 Agent 弹窗"><X size={20} /></button>
+          <button type="button" onClick={onClose} style={{ borderRadius: '12px', border: `1px solid ${LK.border}`, backgroundColor: LK.surface, padding: '12px', color: LK.body, transition: 'all 0.2s', cursor: 'pointer' }} aria-label="关闭 Agent 弹窗"><X size={20} /></button>
         </div>
 
-        <div className="flex-1 overflow-y-auto px-6 py-5">
-          {localError ? <div className="mb-5 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700">{localError}</div> : null}
+        <div style={{ flex: 1, overflowY: 'auto', padding: '20px 24px' }}>
+          {localError ? <div style={{ marginBottom: '20px', borderRadius: '12px', border: `1px solid ${LK.error}`, backgroundColor: LK.primaryMuted.replace('0.14', '0.08').replace('79, 115, 255', '241, 93, 93'), padding: '12px 16px', fontSize: '14px', fontWeight: 600, color: LK.error }}>{localError}</div> : null}
 
           {mode === 'edit' && app ? (
             <div className="mb-5 grid gap-3 text-sm md:grid-cols-3">
-              <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3"><div className="text-[11px] font-black uppercase tracking-[0.2em] text-slate-500">创建时间</div><div className="mt-2 font-semibold text-slate-800">{formatTime(app.createdAt)}</div></div>
-              <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3"><div className="text-[11px] font-black uppercase tracking-[0.2em] text-slate-500">更新时间</div><div className="mt-2 font-semibold text-slate-800">{formatTime(app.updatedAt)}</div></div>
-              <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3"><div className="text-[11px] font-black uppercase tracking-[0.2em] text-slate-500">Harness</div><div className="mt-2 truncate font-semibold text-slate-800">{app.agentHarnessPath || '-'}</div></div>
+              <div style={{ borderRadius: '12px', border: `1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised, padding: '12px 16px' }}><div style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.2em', color: LK.muted }}>创建时间</div><div style={{ marginTop: '8px', fontWeight: 600, color: LK.inkSoft }}>{formatTime(app.createdAt)}</div></div>
+              <div style={{ borderRadius: '12px', border: `1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised, padding: '12px 16px' }}><div style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.2em', color: LK.muted }}>更新时间</div><div style={{ marginTop: '8px', fontWeight: 600, color: LK.inkSoft }}>{formatTime(app.updatedAt)}</div></div>
+              <div style={{ borderRadius: '12px', border: `1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised, padding: '12px 16px' }}><div style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.2em', color: LK.muted }}>Harness</div><div style={{ marginTop: '8px', overflow: 'hidden', textOverflow: 'ellipsis', fontWeight: 600, color: LK.inkSoft }}>{app.agentHarnessPath || '-'}</div></div>
             </div>
           ) : null}
 
           <div className="grid gap-5 md:grid-cols-2">
-            <label className="block text-sm font-bold text-slate-700">Agent 名称 <span className="text-rose-500">*</span><input className={inputClass} value={formState.name} onChange={(event) => setFormState({ ...formState, name: event.target.value })} disabled={saving} /></label>
-            <label className="block text-sm font-bold text-slate-700">使用引擎 <span className="text-rose-500">*</span><select className={inputClass} value={formState.engine} onChange={async (event) => { const newEngine = event.target.value as AgentAppEngine; setFormState((cur) => ({ ...cur, engine: newEngine, defaultAgentName: '', startCommand: '' })); setClaudeCodeInfo(null); if (agentHarnessFile?.type === 'archive' && agentHarnessFile.file && agentHarnessFile.name.match(/\.zip$/i)) { await applyZipDetection(agentHarnessFile.file, newEngine); } else if (agentHarnessFile?.type === 'folder' && agentHarnessFile.files) { await applyFolderDetection(agentHarnessFile.files, newEngine); } }} disabled={saving}><option value="opencode">OpenCode</option><option value="claudecode">Claude Code</option><option value="agentflow">AgentFlow</option></select></label>
-            <label className="block text-sm font-bold text-slate-700">默认 Agent <span className="text-rose-500">*</span><input className={inputClass} value={formState.defaultAgentName} onChange={(event) => setFormState({ ...formState, defaultAgentName: event.target.value })} disabled={saving} placeholder="例如 security-reviewer" /></label>
-            <label className="block text-sm font-bold text-slate-700">启动命令<input className={inputClass} value={formState.startCommand} onChange={(event) => setFormState({ ...formState, startCommand: event.target.value })} disabled={saving} placeholder="例如 /project:review" /></label>
+            <label style={{ display: 'block', fontSize: '14px', fontWeight: 600, color: LK.inkSoft }}>Agent 名称 <span style={{ color: LK.error }}>*</span><input style={inputClass} value={formState.name} onChange={(event) => setFormState({ ...formState, name: event.target.value })} disabled={saving} /></label>
+            <label style={{ display: 'block', fontSize: '14px', fontWeight: 600, color: LK.inkSoft }}>使用引擎 <span style={{ color: LK.error }}>*</span><select style={inputClass} value={formState.engine} onChange={async (event) => { const newEngine = event.target.value as AgentAppEngine; setFormState((cur) => ({ ...cur, engine: newEngine, defaultAgentName: '', startCommand: '' })); setClaudeCodeInfo(null); if (agentHarnessFile?.type === 'archive' && agentHarnessFile.file && agentHarnessFile.name.match(/\.zip$/i)) { await applyZipDetection(agentHarnessFile.file, newEngine); } else if (agentHarnessFile?.type === 'folder' && agentHarnessFile.files) { await applyFolderDetection(agentHarnessFile.files, newEngine); } }} disabled={saving}><option value="opencode">OpenCode</option><option value="claudecode">Claude Code</option><option value="agentflow">AgentFlow</option></select></label>
+            <label style={{ display: 'block', fontSize: '14px', fontWeight: 600, color: LK.inkSoft }}>默认 Agent <span style={{ color: LK.error }}>*</span><input style={inputClass} value={formState.defaultAgentName} onChange={(event) => setFormState({ ...formState, defaultAgentName: event.target.value })} disabled={saving} placeholder="例如 security-reviewer" /></label>
+            <label style={{ display: 'block', fontSize: '14px', fontWeight: 600, color: LK.inkSoft }}>启动命令<input style={inputClass} value={formState.startCommand} onChange={(event) => setFormState({ ...formState, startCommand: event.target.value })} disabled={saving} placeholder="例如 /project:review" /></label>
           </div>
 
-          <label className="mt-5 block text-sm font-bold text-slate-700">部门范围<select className={inputClass} value={formState.departmentId} onChange={(event) => setFormState({ ...formState, departmentId: event.target.value })} disabled={saving}><option value="">请选择部门范围</option>{canChoosePublic ? <option value="__public__">公开</option> : null}{departments.map((department) => <option key={department.id} value={String(department.id)}>{department.name}</option>)}</select></label>
-          <label className="mt-5 block text-sm font-bold text-slate-700">模型<select className={inputClass} value={formState.modelAliasId} onChange={(event) => setFormState({ ...formState, modelAliasId: event.target.value })} disabled={saving || modelAliasesLoading}><option value="">{modelAliasesLoading ? '正在加载模型' : '请选择模型'}</option>{modelAliases.map((alias) => <option key={alias.id} value={String(alias.id)}>{alias.alias_name}</option>)}</select></label>
+          <label style={{ marginTop: '20px', display: 'block', fontSize: '14px', fontWeight: 600, color: LK.inkSoft }}>部门范围<select style={inputClass} value={formState.departmentId} onChange={(event) => setFormState({ ...formState, departmentId: event.target.value })} disabled={saving}><option value="">请选择部门范围</option>{canChoosePublic ? <option value="__public__">公开</option> : null}{departments.map((department) => <option key={department.id} value={String(department.id)}>{department.name}</option>)}</select></label>
+          <label style={{ marginTop: '20px', display: 'block', fontSize: '14px', fontWeight: 600, color: LK.inkSoft }}>模型<select style={inputClass} value={formState.modelAliasId} onChange={(event) => setFormState({ ...formState, modelAliasId: event.target.value })} disabled={saving || modelAliasesLoading}><option value="">{modelAliasesLoading ? '正在加载模型' : '请选择模型'}</option>{modelAliases.map((alias) => <option key={alias.id} value={String(alias.id)}>{alias.alias_name}</option>)}</select></label>
 
-          <div className="mt-5">
-            <div className="text-sm font-bold text-slate-700">AgentHarness 文件 {mode === 'create' ? <span className="text-rose-500">*</span> : <span className="text-slate-400">（可选更新）</span>}</div>
+          <div style={{ marginTop: '20px' }}>
+            <div style={{ fontSize: '14px', fontWeight: 600, color: LK.inkSoft }}>AgentHarness 文件 {mode === 'create' ? <span style={{ color: LK.error }}>*</span> : <span style={{ color: LK.muted }}>（可选更新）</span>}</div>
             <div className="mt-2">
-              <button type="button" onClick={() => archiveInputRef.current?.click()} disabled={saving} className="flex w-full items-center justify-center gap-2 rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-4 py-5 text-sm font-black text-slate-700 transition hover:border-cyan-300 hover:bg-cyan-50 disabled:opacity-60"><Upload size={18} />上传压缩包</button>
+              <button type="button" onClick={() => archiveInputRef.current?.click()} disabled={saving} style={{ display: 'flex', width: '100%', alignItems: 'center', justifyContent: 'center', gap: '8px', borderRadius: '12px', border: `1px dashed ${LK.border}`, backgroundColor: LK.surfaceRaised, padding: '16px 20px', fontSize: '14px', fontWeight: 600, color: LK.inkSoft, transition: 'all 0.2s', cursor: saving ? 'not-allowed' : 'pointer', opacity: saving ? 0.6 : 1 }}><Upload size={18} />上传压缩包</button>
             </div>
             <input ref={archiveInputRef} type="file" accept=".zip,.7z,.tar,.tar.gz,.tgz" className="hidden" onChange={(event) => void handleFilesSelected(event.target.files)} disabled={saving} />
             {agentHarnessFile ? <div className="mt-3 flex items-center justify-between gap-3 rounded-2xl border border-cyan-200 bg-cyan-50 px-4 py-3 text-sm font-semibold text-cyan-800"><span className="truncate">{agentHarnessFile.type === 'folder' ? '文件夹' : '压缩包'}：{agentHarnessFile.name}</span><button type="button" onClick={() => setAgentHarnessFile(null)} className="text-cyan-700 hover:text-cyan-900">移除</button></div> : null}
           </div>
 
           {claudeCodeInfo && (claudeCodeInfo.agents.length > 0 || claudeCodeInfo.commands.length > 0) ? (
-            <div className="mt-5 rounded-2xl border border-slate-200 bg-slate-50 p-4">
-              <div className="text-sm font-black text-slate-800">检测到 Claude Code 配置</div>
+            <div style={{ marginTop: '20px', borderRadius: '12px', border: `1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised, padding: '16px' }}>
+              <div style={{ fontSize: '14px', fontWeight: 600, color: LK.inkSoft }}>检测到 Claude Code 配置</div>
               <div className="mt-3 flex flex-wrap gap-2">
-                {claudeCodeInfo.agents.map((agent) => <button key={`agent-${agent}`} type="button" onClick={() => setFormState({ ...formState, defaultAgentName: agent, startCommand: formState.startCommand || `/project:${agent}` })} className="rounded-full border border-cyan-200 bg-white px-3 py-1 text-xs font-bold text-cyan-700">Agent: {agent}</button>)}
-                {claudeCodeInfo.commands.map((command) => <button key={`command-${command}`} type="button" onClick={() => setFormState({ ...formState, startCommand: `/project:${command}` })} className="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-bold text-slate-700">Command: {command}</button>)}
+                {claudeCodeInfo.agents.map((agent) => <button key={`agent-${agent}`} type="button" onClick={() => setFormState({ ...formState, defaultAgentName: agent, startCommand: formState.startCommand || `/project:${agent}` })} style={{ borderRadius: '999px', border: `1px solid ${LK.primary}`, backgroundColor: LK.surface, padding: '4px 12px', fontSize: '12px', fontWeight: 600, color: LK.primary, cursor: 'pointer' }}>Agent: {agent}</button>)}
+                {claudeCodeInfo.commands.map((command) => <button key={`command-${command}`} type="button" onClick={() => setFormState({ ...formState, startCommand: `/project:${command}` })} style={{ borderRadius: '999px', border: `1px solid ${LK.border}`, backgroundColor: LK.surface, padding: '4px 12px', fontSize: '12px', fontWeight: 600, color: LK.inkSoft, cursor: 'pointer' }}>Command: {command}</button>)}
               </div>
             </div>
           ) : null}
 
-          <label className="mt-5 block text-sm font-bold text-slate-700">Agent说明<textarea className={`${inputClass} min-h-28 resize-y`} value={formState.inputRequirements} onChange={(event) => setFormState({ ...formState, inputRequirements: event.target.value })} disabled={saving} placeholder="说明 Agent 的用途、能力和适用场景" /></label>
+          <label style={{ marginTop: '20px', display: 'block', fontSize: '14px', fontWeight: 600, color: LK.inkSoft }}>Agent说明<textarea style={{...inputClass, minHeight: '112px', resize: 'vertical'}} value={formState.inputRequirements} onChange={(event) => setFormState({ ...formState, inputRequirements: event.target.value })} disabled={saving} placeholder="说明 Agent 的用途、能力和适用场景" /></label>
         </div>
 
-        <div className="flex justify-end gap-3 border-t border-slate-200 bg-slate-50 px-6 py-4">
-          <button type="button" onClick={onClose} className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-black text-slate-700 transition hover:bg-slate-50" disabled={saving}>取消</button>
-          <button disabled={saving} className="inline-flex items-center gap-2 rounded-2xl bg-slate-900 px-4 py-3 text-sm font-black text-white transition hover:bg-slate-800 disabled:opacity-60">{saving ? <Loader2 size={16} className="animate-spin" /> : mode === 'create' ? <Plus size={16} /> : <Edit2 size={16} />}{mode === 'create' ? '创建' : '保存'}</button>
+        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', borderTop: `1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised, padding: '16px 24px' }}>
+          <button type="button" onClick={onClose} style={{ borderRadius: '12px', border: `1px solid ${LK.border}`, backgroundColor: LK.surface, padding: '12px 16px', fontSize: '14px', fontWeight: 600, color: LK.inkSoft, transition: 'all 0.2s', cursor: saving ? 'not-allowed' : 'pointer' }} disabled={saving}>取消</button>
+          <button disabled={saving} style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', borderRadius: '12px', backgroundColor: LK.primary, padding: '12px 16px', fontSize: '14px', fontWeight: 600, color: '#ffffff', transition: 'all 0.2s', cursor: saving ? 'not-allowed' : 'pointer', opacity: saving ? 0.6 : 1 }}>{saving ? <Loader2 size={16} className="animate-spin" /> : mode === 'create' ? <Plus size={16} /> : <Edit2 size={16} />}{mode === 'create' ? '创建' : '保存'}</button>
         </div>
       </form>
     </div>
@@ -759,34 +772,34 @@ export const ToolOverviewPage: React.FC<ToolOverviewPageProps> = ({ projectId, u
   ];
 
   return (
-    <div className="px-8 pb-10 pt-8">
-      <section className="rounded-[2rem] border border-slate-200 bg-gradient-to-br from-white via-cyan-50/70 to-sky-50 p-7 shadow-sm">
-        <div className="flex flex-col gap-6 xl:flex-row xl:items-end xl:justify-between">
-          <div className="max-w-4xl">
-            <div className="inline-flex items-center gap-2 rounded-full border border-cyan-200 bg-cyan-50 px-3 py-1 text-[11px] font-black uppercase tracking-[0.3em] text-cyan-700">
+    <div style={{ padding: '32px 32px 40px' }}>
+      <section style={{ borderRadius: '24px', border: `1px solid ${LK.border}`, background: `linear-gradient(to bottom right, ${LK.surface}, ${LK.primaryMuted.replace('0.14', '0.04')}, ${LK.primaryMuted.replace('0.14', '0.06')})`, padding: '28px' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+          <div style={{ maxWidth: '64rem' }}>
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', borderRadius: '999px', border: `1px solid ${LK.primary}`, backgroundColor: LK.primaryMuted.replace('0.14', '0.08'), padding: '4px 12px', fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.3em', color: LK.primary }}>
               <Sparkles size={14} />
               Developer Tools
             </div>
-            <h1 className="mt-4 text-3xl font-black tracking-tight text-slate-900">工具总览</h1>
-            <p className="mt-3 max-w-3xl text-sm leading-7 text-slate-600">
+            <h1 style={{ marginTop: '16px', fontSize: '30px', fontWeight: 600, letterSpacing: '-0.025em', color: LK.ink }}>工具总览</h1>
+            <p style={{ marginTop: '12px', maxWidth: '48rem', fontSize: '14px', lineHeight: '28px', color: LK.body }}>
               统一管理 Agent 市场、AgentHarness 仓库、运行指标和平台内置扫描工具入口。页面参考 Agent 市场能力，并适配当前 Chimera 浅色卡片风格。
             </p>
           </div>
-          <div className="grid gap-3 sm:grid-cols-3">
-            <div className="rounded-2xl border border-white/70 bg-white/90 px-5 py-4 shadow-sm"><div className="text-[11px] font-black uppercase tracking-[0.2em] text-slate-500">Agent</div><div className="mt-2 text-3xl font-black text-slate-900">{apps.length}</div></div>
-            <div className="rounded-2xl border border-white/70 bg-white/90 px-5 py-4 shadow-sm"><div className="text-[11px] font-black uppercase tracking-[0.2em] text-slate-500">已选项目</div><div className="mt-2 break-all text-sm font-bold text-slate-800">{projectId || '未选择项目'}</div></div>
+          <div style={{ display: 'grid', gap: '12px', gridTemplateColumns: 'repeat(3, 1fr)' }}>
+            <div style={{ borderRadius: '12px', border: `1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised, padding: '20px' }}><div style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.2em', color: LK.muted }}>Agent</div><div style={{ marginTop: '8px', fontSize: '30px', fontWeight: 600, color: LK.ink }}>{apps.length}</div></div>
+            <div style={{ borderRadius: '12px', border: `1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised, padding: '20px' }}><div style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.2em', color: LK.muted }}>已选项目</div><div style={{ marginTop: '8px', wordBreak: 'break-all', fontSize: '14px', fontWeight: 600, color: LK.inkSoft }}>{projectId || '未选择项目'}</div></div>
           </div>
         </div>
       </section>
 
       {message ? (
-        <div className={`mt-5 rounded-2xl border px-4 py-3 text-sm font-semibold ${message.type === 'success' ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-rose-200 bg-rose-50 text-rose-700'}`}>
+        <div style={{ marginTop: '20px', borderRadius: '12px', border: `1px solid ${message.type === 'success' ? LK.success : LK.error}`, backgroundColor: message.type === 'success' ? LK.primaryMuted.replace('0.14', '0.08').replace('79, 115, 255', '69, 192, 111') : LK.primaryMuted.replace('0.14', '0.08').replace('79, 115, 255', '241, 93, 93'), padding: '12px 16px', fontSize: '14px', fontWeight: 600, color: message.type === 'success' ? LK.success : LK.error }}>
           {message.text}
         </div>
       ) : null}
 
-      <section className="mt-8 rounded-[2rem] border border-slate-200 bg-white/95 p-6 shadow-sm">
-        <div className="flex flex-wrap items-start justify-between gap-4">
+      <section style={{ marginTop: '32px', borderRadius: '24px', border: `1px solid ${LK.border}`, backgroundColor: LK.surface, padding: '24px' }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'flex-start', justifyContent: 'space-between', gap: '16px' }}>
           <div>
           </div>
           <div className="flex flex-wrap gap-3">

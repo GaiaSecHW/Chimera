@@ -63,6 +63,19 @@ import type { DataflowVulnAiViewModel, DataflowVulnOverviewViewModel, DataflowVu
 import { buildDataflowVulnAiViewModel, buildDataflowVulnOverviewViewModel, matchesDataflowVulnSampleScope } from './binarySecurityMetricsDataflowVulnBuilders';
 import { buildUnifiedAgentRuntimeViewModel, type UnifiedAgentPodCard } from './agentRuntimeViewModel';
 
+const LK = {
+  primary: '#4f73ff', primarySoft: '#7590ff', primaryDeep: '#3f63f1',
+  primaryMuted: 'rgba(79, 115, 255, 0.14)',
+  canvas: '#070d18', surface: '#111a2b', surfaceRaised: '#18233a',
+  surfaceGlass: 'rgba(17, 26, 43, 0.84)',
+  border: '#26324a', borderSoft: '#1b2438',
+  ink: '#f5f7ff', inkSoft: '#d6def0', body: '#a4aec4',
+  muted: '#72809a', mutedSoft: '#8b95a8',
+  success: '#45c06f', warning: '#d5a13a', error: '#f15d5d', info: '#4f8cff',
+  critical: '#ff4d4f', high: '#ff8b3d', medium: '#f0b64c', low: '#49c5ff',
+} as const;
+const MONO = 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace';
+
 type MetricsState = {
   loading: boolean;
   rawText: string;
@@ -108,13 +121,13 @@ const resolveAgentOwnerKindLabel = (ownerKind: string | null | undefined): strin
   return '未归属进程';
 };
 
-const resolveAgentOwnerKindBadge = (ownerKind: string | null | undefined): string => {
+const resolveAgentOwnerKindBadge = (ownerKind: string | null | undefined): { backgroundColor: string; color: string } => {
   if (ownerKind === 'tracked' || ownerKind === 'tracked_subprocess' || ownerKind === 'tracked_inferred') {
-    return 'bg-emerald-100 text-emerald-700';
+    return { backgroundColor: LK.success, color: LK.ink };
   }
-  if (ownerKind === 'residual') return 'bg-rose-100 text-rose-700';
-  if (ownerKind === 'suspected_orphan') return 'bg-amber-100 text-amber-800';
-  return 'bg-slate-100 text-slate-700';
+  if (ownerKind === 'residual') return { backgroundColor: LK.error, color: LK.ink };
+  if (ownerKind === 'suspected_orphan') return { backgroundColor: LK.warning, color: LK.ink };
+  return { backgroundColor: LK.surfaceRaised, color: LK.ink };
 };
 const FIRST_BATCH_SUMMARY_SERVICES: BinarySecurityMetricsServiceKey[] = BINARY_SECURITY_METRICS_SERVICES.map((service) => service.key);
 const supportsSummaryApi = (serviceKey: BinarySecurityMetricsServiceKey) => FIRST_BATCH_SUMMARY_SERVICES.includes(serviceKey);
@@ -496,28 +509,28 @@ const GROUP_LABELS: Record<BinarySecurityMetricsGroup, string> = {
   other: '其他',
 };
 
-const GROUP_BADGE: Record<BinarySecurityMetricsGroup, string> = {
-  health: 'border-emerald-200 bg-emerald-50 text-emerald-700',
-  orchestration: 'border-teal-200 bg-teal-50 text-teal-700',
-  reducer: 'border-cyan-200 bg-cyan-50 text-cyan-700',
-  lock: 'border-orange-200 bg-orange-50 text-orange-700',
-  http: 'border-sky-200 bg-sky-50 text-sky-700',
-  task: 'border-slate-200 bg-slate-100 text-slate-700',
-  queue: 'border-amber-200 bg-amber-50 text-amber-700',
-  worker: 'border-indigo-200 bg-indigo-50 text-indigo-700',
-  duration: 'border-cyan-200 bg-cyan-50 text-cyan-700',
-  'error-retry-timeout': 'border-rose-200 bg-rose-50 text-rose-700',
-  'llm-token-cost': 'border-violet-200 bg-violet-50 text-violet-700',
-  'ai-agent': 'border-fuchsia-200 bg-fuchsia-50 text-fuchsia-700',
-  'service-specific': 'border-emerald-200 bg-emerald-50 text-emerald-700',
-  other: 'border-slate-200 bg-slate-50 text-slate-600',
+const GROUP_BADGE: Record<BinarySecurityMetricsGroup, { backgroundColor: string; borderColor: string; color: string }> = {
+  health: { backgroundColor: LK.success, borderColor: LK.success, color: LK.ink },
+  orchestration: { backgroundColor: '#14b8a6', borderColor: '#14b8a6', color: LK.ink },
+  reducer: { backgroundColor: '#06b6d4', borderColor: '#06b6d4', color: LK.ink },
+  lock: { backgroundColor: LK.warning, borderColor: LK.warning, color: LK.ink },
+  http: { backgroundColor: LK.info, borderColor: LK.info, color: LK.ink },
+  task: { backgroundColor: LK.surfaceRaised, borderColor: LK.border, color: LK.ink },
+  queue: { backgroundColor: LK.warning, borderColor: LK.warning, color: LK.ink },
+  worker: { backgroundColor: '#6366f1', borderColor: '#6366f1', color: LK.ink },
+  duration: { backgroundColor: '#06b6d4', borderColor: '#06b6d4', color: LK.ink },
+  'error-retry-timeout': { backgroundColor: LK.error, borderColor: LK.error, color: LK.ink },
+  'llm-token-cost': { backgroundColor: '#8b5cf6', borderColor: '#8b5cf6', color: LK.ink },
+  'ai-agent': { backgroundColor: '#a855f7', borderColor: '#a855f7', color: LK.ink },
+  'service-specific': { backgroundColor: LK.success, borderColor: LK.success, color: LK.ink },
+  other: { backgroundColor: LK.surfaceRaised, borderColor: LK.border, color: LK.muted },
 };
 
-const AI_COVERAGE_BADGE: Record<AiCoverage, string> = {
-  none: 'border-slate-200 bg-slate-50 text-slate-600',
-  basic: 'border-amber-200 bg-amber-50 text-amber-700',
-  partial: 'border-sky-200 bg-sky-50 text-sky-700',
-  complete: 'border-emerald-200 bg-emerald-50 text-emerald-700',
+const AI_COVERAGE_BADGE: Record<AiCoverage, { backgroundColor: string; borderColor: string; color: string }> = {
+  none: { backgroundColor: LK.surfaceRaised, borderColor: LK.border, color: LK.muted },
+  basic: { backgroundColor: LK.warning, borderColor: LK.warning, color: LK.ink },
+  partial: { backgroundColor: LK.info, borderColor: LK.info, color: LK.ink },
+  complete: { backgroundColor: LK.success, borderColor: LK.success, color: LK.ink },
 };
 
 const AI_SERVICE_SCOPE: Record<BinarySecurityMetricsServiceKey, string> = {
@@ -530,6 +543,24 @@ const AI_SERVICE_SCOPE: Record<BinarySecurityMetricsServiceKey, string> = {
   'dataflow-analysis': '数据流分析 AI 观测覆盖 judge/session、token/cost、轮次、trace 相关 AI 行为。',
   'dataflow-vuln-scan': '数据流漏洞挖掘 AI 观测覆盖 judge/session、token/cost、轮次、trace 与漏洞挖掘相关 AI 行为。',
   'dataflow-vuln': '数据流漏洞挖掘 AI 观测覆盖 cycle/review/plugin、runtime trace、token/cost 与失败分布。',
+};
+
+const toneToColor = (tone: string): string => {
+  if (tone.includes('emerald')) return LK.success;
+  if (tone.includes('rose')) return LK.error;
+  if (tone.includes('amber')) return LK.warning;
+  if (tone.includes('sky')) return LK.info;
+  if (tone.includes('violet')) return '#8b5cf6';
+  if (tone.includes('fuchsia')) return '#a855f7';
+  if (tone.includes('teal')) return '#14b8a6';
+  if (tone.includes('cyan')) return '#06b6d4';
+  if (tone.includes('indigo')) return '#6366f1';
+  if (tone.includes('slate-900')) return LK.ink;
+  if (tone.includes('slate-800')) return LK.inkSoft;
+  if (tone.includes('slate-700')) return LK.inkSoft;
+  if (tone.includes('slate-600')) return LK.body;
+  if (tone.includes('slate-500')) return LK.muted;
+  return LK.body;
 };
 
 const CHART_COLOR = '#0f766e';
@@ -2396,17 +2427,17 @@ const buildBinarySecurityReducerViewModel = (rows: DisplayMetricRow[], history: 
 };
 
 const MetricCard: React.FC<{ label: string; value: number; icon: React.ReactNode }> = ({ label, value, icon }) => (
-  <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4">
-    <div className="flex items-center justify-between gap-3 text-slate-500">
-      <span className="text-[11px] font-black uppercase tracking-[0.18em]">{label}</span>
+  <div style={{ backgroundColor: LK.surfaceRaised, borderColor: LK.border, borderWidth: '1px', borderStyle: 'solid', borderRadius: '12px', padding: '16px' }}>
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', color: LK.muted }}>
+      <span style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.18em' }}>{label}</span>
       <span>{icon}</span>
     </div>
-    <div className="mt-3 text-2xl font-black tracking-tight text-slate-900">{formatNumber(value, 2)}</div>
+    <div style={{ marginTop: '12px', fontSize: '24px', fontWeight: 600, letterSpacing: '-0.02em', color: LK.ink }}>{formatNumber(value, 2)}</div>
   </div>
 );
 
 const EmptyCard: React.FC<{ text: string }> = ({ text }) => (
-  <div className="flex h-full min-h-[220px] items-center justify-center rounded-[2rem] border border-dashed border-slate-200 bg-slate-50 px-6 text-center text-sm text-slate-500">
+  <div style={{ display: 'flex', height: '100%', minHeight: '220px', alignItems: 'center', justifyContent: 'center', borderRadius: '12px', borderWidth: '1px', borderStyle: 'dashed', borderColor: LK.border, backgroundColor: LK.surfaceRaised, padding: '24px', textAlign: 'center', fontSize: '14px', color: LK.muted }}>
     {text}
   </div>
 );
@@ -2467,18 +2498,18 @@ const buildAgentRuntimeSummaryFromState = (
 };
 
 const ReducerMetricList: React.FC<{ title: string; items: ReducerBreakdownItem[]; emptyText: string }> = ({ title, items, emptyText }) => (
-  <div className="rounded-[1.6rem] border border-slate-200 bg-white p-4 shadow-sm">
-    <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">{title}</div>
-    <div className="mt-3 space-y-2">
+  <div style={{ backgroundColor: LK.surface, borderColor: LK.border, borderWidth: '1px', borderStyle: 'solid', borderRadius: '12px', padding: '16px' }}>
+    <div style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.18em', color: LK.muted }}>{title}</div>
+    <div style={{ marginTop: '12px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
       {items.length ? (
         items.map((item) => (
-          <div key={item.label} className="flex items-center justify-between gap-3 rounded-xl border border-slate-100 bg-slate-50 px-3 py-2">
-            <div className="min-w-0 truncate text-[12px] font-semibold text-slate-700">{item.label}</div>
-            <div className={`font-mono text-[12px] font-black ${item.tone}`}>{formatMetricValue(item.value)}</div>
+          <div key={item.label} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', borderRadius: '8px', border: `1px solid ${LK.borderSoft}`, backgroundColor: LK.surfaceRaised, padding: '8px 12px' }}>
+            <div style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontSize: '12px', fontWeight: 600, color: LK.inkSoft }}>{item.label}</div>
+            <div style={{ fontFamily: MONO, fontSize: '12px', fontWeight: 600, color: toneToColor(item.tone) }}>{formatMetricValue(item.value)}</div>
           </div>
         ))
       ) : (
-        <div className="rounded-xl border border-dashed border-slate-200 px-3 py-6 text-center text-sm text-slate-500">{emptyText}</div>
+        <div style={{ borderRadius: '8px', border: `1px dashed ${LK.border}`, padding: '24px 12px', textAlign: 'center', fontSize: '14px', color: LK.muted }}>{emptyText}</div>
       )}
     </div>
   </div>
@@ -2486,11 +2517,12 @@ const ReducerMetricList: React.FC<{ title: string; items: ReducerBreakdownItem[]
 
 const reducerFailedKinds = new Set(['retryable', 'dead_letter', 'reducer_failed', 'lease_expired', 'unknown']);
 
-function reducerRowClassName(item: BinarySecurityReducerEventRecord): string {
+function reducerRowStyle(item: BinarySecurityReducerEventRecord): React.CSSProperties {
+  const baseStyle = {};
   if (reducerFailedKinds.has(item.failure_kind)) {
-    return `${executionTableRowClassName} bg-rose-50/80 hover:bg-rose-50`;
+    return { ...baseStyle, backgroundColor: 'rgba(241, 93, 93, 0.15)' };
   }
-  return executionTableRowClassName;
+  return baseStyle;
 }
 
 const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ projectId }) => {
@@ -3630,23 +3662,23 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
   };
 
   return (
-    <div className="space-y-6 px-8 pb-10 pt-8">
-      <section className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
-        <div className="flex flex-wrap items-start justify-between gap-4">
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', padding: '32px 32px 40px 32px' }}>
+      <section style={{ borderRadius: '12px', border: `1px solid ${LK.border}`, backgroundColor: LK.surface, padding: '24px' }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'flex-start', justifyContent: 'space-between', gap: '16px' }}>
           <div>
-            <p className="text-xs font-black uppercase tracking-[0.3em] text-teal-600">Binary Security</p>
-            <h1 className="mt-3 text-3xl font-black tracking-tight text-slate-900">性能看板</h1>
-            <p className="mt-2 max-w-3xl text-sm text-slate-500">
+            <p style={{ fontSize: '12px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.3em', color: '#14b8a6' }}>Binary Security</p>
+            <h1 style={{ marginTop: '12px', fontSize: '30px', fontWeight: 600, letterSpacing: '-0.02em', color: LK.ink }}>性能看板</h1>
+            <p style={{ marginTop: '8px', maxWidth: '48rem', fontSize: '14px', color: LK.muted }}>
               面向二进制安全链路的轻量指标看板，按微服务和 Tab 拉取后端 summary 数据；原始 Prometheus 指标保留为兜底排查入口。
             </p>
           </div>
-          <div className="flex flex-wrap items-center gap-3">
-            <label className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-semibold text-slate-600">
+          <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '12px' }}>
+            <label style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', borderRadius: '8px', border: `1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised, padding: '8px 12px', fontSize: '14px', fontWeight: 600, color: LK.body }}>
               <input
                 type="checkbox"
                 checked={autoRefresh}
                 onChange={(event) => setAutoRefresh(event.target.checked)}
-                className="h-4 w-4 rounded border-slate-300 text-teal-600 focus:ring-teal-500"
+                style={{ height: '16px', width: '16px', borderRadius: '4px', border: `1px solid ${LK.border}`, color: '#14b8a6' }}
               />
               自动刷新 30s
             </label>
@@ -3673,27 +3705,29 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
                   void (supportsSummaryApi(activeServiceKey) ? loadAiSummary(activeServiceKey) : loadMetrics(activeServiceKey));
                 }
               }}
-              className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-bold text-slate-700 shadow-sm hover:bg-slate-50"
+              style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', borderRadius: '8px', border: `1px solid ${LK.border}`, backgroundColor: LK.surface, padding: '10px 16px', fontSize: '14px', fontWeight: 600, color: LK.inkSoft, cursor: 'pointer', transition: 'background-color 0.15s' }}
+              onMouseEnter={(e) => e.currentTarget.style.backgroundColor = LK.surfaceRaised}
+              onMouseLeave={(e) => e.currentTarget.style.backgroundColor = LK.surface}
             >
               <RefreshCw size={16} />
               刷新
             </button>
           </div>
         </div>
-        <div className="mt-5 flex flex-wrap items-center gap-3 text-xs font-semibold text-slate-500">
-          <span className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-3 py-1">
+        <div style={{ marginTop: '20px', display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '12px', fontSize: '12px', fontWeight: 600, color: LK.muted }}>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', borderRadius: '9999px', border: `1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised, padding: '4px 12px' }}>
             <ServerCog size={13} />
             {activeService.serviceName}
           </span>
-          <span className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-3 py-1">
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', borderRadius: '9999px', border: `1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised, padding: '4px 12px' }}>
             <TimerReset size={13} />
             最近刷新：{formatTime(activeRefreshTimestamp)}
           </span>
         </div>
       </section>
 
-      <section className="rounded-[2rem] border border-slate-200 bg-white p-2 shadow-sm">
-        <div className="flex flex-wrap items-center gap-2">
+      <section style={{ borderRadius: '12px', border: `1px solid ${LK.border}`, backgroundColor: LK.surface, padding: '8px' }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '8px' }}>
           {BINARY_SECURITY_METRICS_SERVICES.map((service) => {
             const state = stateByService[service.key];
             const observabilityTabState = observabilityStateByService[service.key];
@@ -3703,17 +3737,20 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
             const summaryLoading = observabilityTabState.loading || restTabState.loading || aiTabState.loading;
             const summaryError = observabilityTabState.error || restTabState.error || aiTabState.error;
             const active = service.key === activeServiceKey;
+            const buttonStyle = active
+              ? { border: `1px solid ${LK.primary}`, backgroundColor: LK.primary, color: '#ffffff' }
+              : { border: `1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised, color: LK.inkSoft };
             return (
               <button
                 key={service.key}
                 type="button"
                 onClick={() => setActiveServiceKey(service.key)}
-                className={`rounded-2xl border px-4 py-3 text-left transition ${
-                  active ? 'border-slate-900 bg-slate-900 text-white shadow-sm' : 'border-slate-200 bg-slate-50 text-slate-700 hover:bg-white'
-                }`}
+                style={{ borderRadius: '12px', border: buttonStyle.border, backgroundColor: buttonStyle.backgroundColor, color: buttonStyle.color, padding: '12px 16px', textAlign: 'left', cursor: 'pointer', transition: 'all 0.15s' }}
+                onMouseEnter={(e) => { if (!active) e.currentTarget.style.backgroundColor = LK.surface; }}
+                onMouseLeave={(e) => { if (!active) e.currentTarget.style.backgroundColor = LK.surfaceRaised; }}
               >
-                <div className="text-sm font-black">{service.label}</div>
-                <div className={`mt-1 text-[11px] ${active ? 'text-slate-200' : 'text-slate-500'}`}>
+                <div style={{ fontSize: '14px', fontWeight: 600 }}>{service.label}</div>
+                <div style={{ marginTop: '4px', fontSize: '11px', color: active ? LK.mutedSoft : LK.muted }}>
                   {supportsSummaryApi(service.key)
                     ? summaryLoading
                       ? '抓取中...'
@@ -3736,8 +3773,8 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
         </div>
       </section>
 
-      <section className="rounded-[2rem] border border-slate-200 bg-white p-2 shadow-sm">
-        <div className="flex flex-wrap items-center gap-2">
+      <section style={{ borderRadius: '12px', border: `1px solid ${LK.border}`, backgroundColor: LK.surface, padding: '8px' }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '8px' }}>
           {BINARY_SECURITY_METRICS_SECONDARY_TABS.map((tab) => {
             const active = tab.key === activeSecondaryTab;
             return (
@@ -3757,38 +3794,41 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
       </section>
 
       {activeTabLoading ? (
-        <section className="rounded-[2rem] border border-slate-200 bg-white px-6 py-12 text-center shadow-sm">
-          <Loader2 className="mx-auto animate-spin text-slate-400" size={24} />
-          <p className="mt-4 text-sm text-slate-500">正在抓取 {activeService.label} 的指标...</p>
+        <section style={{ borderRadius: '12px', border: `1px solid ${LK.border}`, backgroundColor: LK.surface, padding: '48px 24px', textAlign: 'center' }}>
+          <Loader2 className="mx-auto animate-spin" style={{ color: LK.muted, margin: '0 auto' }} size={24} />
+          <p style={{ marginTop: '16px', fontSize: '14px', color: LK.muted }}>正在抓取 {activeService.label} 的指标...</p>
         </section>
       ) : activeTabError ? (
-        <section className="rounded-[2rem] border border-rose-200 bg-rose-50 px-6 py-12 text-center shadow-sm">
-          <p className="text-sm font-semibold text-rose-700">{activeTabError}</p>
+        <section style={{ borderRadius: '12px', border: `1px solid ${LK.error}`, backgroundColor: 'rgba(241, 93, 93, 0.1)', padding: '48px 24px', textAlign: 'center' }}>
+          <p style={{ fontSize: '14px', fontWeight: 600, color: LK.error }}>{activeTabError}</p>
         </section>
       ) : activeSecondaryTab === 'observability' ? (
         <>
           {aggregateCoverage ? (
             <section
-              className={`rounded-[2rem] border px-5 py-4 shadow-sm ${
-                aggregateCoverage.partial ? 'border-amber-200 bg-amber-50' : 'border-emerald-200 bg-emerald-50'
-              }`}
+              style={{
+                borderRadius: '12px',
+                border: `1px solid ${aggregateCoverage.partial ? LK.warning : LK.success}`,
+                backgroundColor: aggregateCoverage.partial ? 'rgba(213, 161, 58, 0.1)' : 'rgba(69, 192, 111, 0.1)',
+                padding: '16px 20px'
+              }}
             >
-              <div className="flex flex-wrap items-start justify-between gap-4">
+              <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'flex-start', justifyContent: 'space-between', gap: '16px' }}>
                 <div>
-                  <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-500">Cluster Aggregate</div>
-                  <h2 className="mt-2 text-lg font-black tracking-tight text-slate-900">当前展示的是二进制安全编排器聚合健康视图</h2>
-                  <p className="mt-2 text-sm text-slate-600">
+                  <div style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.18em', color: LK.muted }}>Cluster Aggregate</div>
+                  <h2 style={{ marginTop: '8px', fontSize: '18px', fontWeight: 600, letterSpacing: '-0.02em', color: LK.ink }}>当前展示的是二进制安全编排器聚合健康视图</h2>
+                  <p style={{ marginTop: '8px', fontSize: '14px', color: LK.inkSoft }}>
                     当前角色覆盖 {aggregateCoverage.successful}/{aggregateCoverage.attempted}。
                     {aggregateCoverage.partial
                       ? ' 当前为部分聚合结果，说明至少有一个预期角色没有成功提供聚合数据，数值可能偏低。'
                       : ' 当前结果已覆盖本次预期角色，可以作为编排层健康判断的主视图。'}
                   </p>
                 </div>
-                <div className="flex flex-wrap gap-2">
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
                   {aggregateCoverage.attemptedByRole.map((item) => (
                     <span
                       key={item.role}
-                      className="inline-flex items-center gap-2 rounded-full border border-white/70 bg-white px-3 py-1 text-xs font-bold text-slate-700"
+                      style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', borderRadius: '9999px', border: '1px solid rgba(255, 255, 255, 0.3)', backgroundColor: 'rgba(255, 255, 255, 0.8)', padding: '4px 12px', fontSize: '12px', fontWeight: 600, color: LK.inkSoft }}
                     >
                       {item.role}: {formatNumber(item.successful, 0)}/{formatNumber(item.attempted, 0)} 已覆盖
                     </span>
@@ -3799,47 +3839,47 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
           ) : null}
 
           {summaryObservabilityViewModel ? (
-            <section className="space-y-4 rounded-[2rem] border border-teal-200 bg-[radial-gradient(circle_at_top_left,_rgba(20,184,166,0.10),_transparent_36%),linear-gradient(180deg,#ffffff_0%,#f8fafc_100%)] p-5 shadow-sm">
-              <div className="flex flex-wrap items-start justify-between gap-4">
+            <section style={{ display: 'flex', flexDirection: 'column', gap: '16px', borderRadius: '12px', border: '1px solid #14b8a6', backgroundColor: LK.surface, padding: '20px' }}>
+              <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'flex-start', justifyContent: 'space-between', gap: '16px' }}>
                 <div>
-                  <div className="text-[11px] font-black uppercase tracking-[0.2em] text-teal-700">Light Summary</div>
-                  <h2 className="mt-2 text-xl font-black tracking-tight text-slate-900">{activeService.label} 轻量观测摘要</h2>
-                  <p className="mt-2 max-w-3xl text-sm text-slate-600">
+                  <div style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.2em', color: '#14b8a6' }}>Light Summary</div>
+                  <h2 style={{ marginTop: '8px', fontSize: '20px', fontWeight: 600, letterSpacing: '-0.02em', color: LK.ink }}>{activeService.label} 轻量观测摘要</h2>
+                  <p style={{ marginTop: '8px', maxWidth: '48rem', fontSize: '14px', color: LK.inkSoft }}>
                     当前 Tab 使用后端 `metrics/summary` JSON，不再下载整包 Prometheus 文本；槽位和智能体明细仍由各自独立接口按需加载。
                   </p>
                 </div>
-                <span className="inline-flex rounded-full border border-teal-200 bg-white/80 px-3 py-1 text-xs font-black text-teal-800">
+                <span style={{ display: 'inline-flex', borderRadius: '9999px', border: '1px solid #14b8a6', backgroundColor: 'rgba(20, 184, 166, 0.15)', padding: '4px 12px', fontSize: '12px', fontWeight: 600, color: '#14b8a6' }}>
                   summary endpoint
                 </span>
               </div>
 
-              <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-6">
+              <div style={{ display: 'grid', gap: '12px', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))' }}>
                 {summaryObservabilityViewModel.overviewCards.map((item) => (
-                  <div key={item.label} className="rounded-2xl border border-teal-100 bg-white/90 px-4 py-3 shadow-sm">
-                    <div className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-400">{item.label}</div>
+                  <div key={item.label} style={{ borderRadius: '12px', border: `1px solid #14b8a6`, backgroundColor: 'rgba(20, 184, 166, 0.1)', padding: '12px 16px' }}>
+                    <div style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.16em', color: LK.muted }}>{item.label}</div>
                     <div className={`mt-2 text-xl font-black ${item.tone}`}>{item.value}</div>
-                    <div className="mt-1 text-xs text-slate-500">{item.hint}</div>
+                    <div style={{ marginTop: '4px', fontSize: '12px', color: LK.muted }}>{item.hint}</div>
                   </div>
                 ))}
               </div>
 
-              <div className="grid gap-3 xl:grid-cols-3">
+              <div style={{ display: 'grid', gap: '12px', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))' }}>
                 {summaryObservabilityViewModel.alerts.map((alert) => (
                   <div key={alert.label} className={`rounded-2xl border px-4 py-3 shadow-sm ${alert.tone}`}>
-                    <div className="text-sm font-black">{alert.label}</div>
-                    <div className="mt-1 text-xs leading-5 opacity-90">{alert.text}</div>
+                    <div style={{ fontSize: '14px', fontWeight: 600 }}>{alert.label}</div>
+                    <div style={{ marginTop: '4px', fontSize: '12px', lineHeight: '1.25rem', opacity: 0.9 }}>{alert.text}</div>
                   </div>
                 ))}
               </div>
 
-              <div className="rounded-[1.6rem] border border-slate-200 bg-white p-4 shadow-sm">
-                <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">Status Counts</div>
-                <h3 className="mt-2 text-lg font-black tracking-tight text-slate-900">任务状态分布</h3>
-                <div className="mt-4 grid gap-2 sm:grid-cols-2 xl:grid-cols-6">
+              <div style={{ borderRadius: '12px', border: `1px solid ${LK.border}`, backgroundColor: LK.surface, padding: '16px' }}>
+                <div style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.18em', color: LK.muted }}>Status Counts</div>
+                <h3 style={{ marginTop: '8px', fontSize: '18px', fontWeight: 600, letterSpacing: '-0.02em', color: LK.ink }}>任务状态分布</h3>
+                <div style={{ marginTop: '16px', display: 'grid', gap: '8px', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))' }}>
                   {summaryObservabilityViewModel.statusRows.length ? (
                     summaryObservabilityViewModel.statusRows.map((item) => (
-                      <div key={item.label} className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
-                        <div className="text-[11px] font-black uppercase tracking-[0.14em] text-slate-400">{item.label}</div>
+                      <div key={item.label} style={{ borderRadius: '8px', border: `1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised, padding: '8px 12px' }}>
+                        <div style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.14em', color: LK.muted }}>{item.label}</div>
                         <div className={`mt-1 text-base font-black ${item.tone}`}>{formatNumber(item.value)}</div>
                       </div>
                     ))
@@ -3852,71 +3892,71 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
               </div>
             </section>
           ) : binarySecurityObservabilityViewModel ? (
-            <section className="space-y-4 rounded-[2rem] border border-emerald-200 bg-[radial-gradient(circle_at_top_left,_rgba(20,184,166,0.10),_transparent_34%),linear-gradient(180deg,#ffffff_0%,#f8fafc_100%)] p-5 shadow-sm">
-              <div className="flex flex-wrap items-start justify-between gap-4">
+            <section style={{ display: 'flex', flexDirection: 'column', gap: '16px', borderRadius: '12px', border: '1px solid #10b981', backgroundColor: LK.surface, padding: '20px' }}>
+              <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'flex-start', justifyContent: 'space-between', gap: '16px' }}>
                 <div>
-                  <div className="text-[11px] font-black uppercase tracking-[0.22em] text-emerald-700">Binary Security Health</div>
-                  <h2 className="mt-2 text-2xl font-black tracking-tight text-slate-900">编排器诊断总览</h2>
-                  <p className="mt-2 max-w-3xl text-sm text-slate-600">
+                  <div style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.22em', color: LK.success }}>Binary Security Health</div>
+                  <h2 style={{ marginTop: '8px', fontSize: '24px', fontWeight: 600, letterSpacing: '-0.02em', color: LK.ink }}>编排器诊断总览</h2>
+                  <p style={{ marginTop: '8px', maxWidth: '48rem', fontSize: '14px', color: LK.inkSoft }}>
                     这一屏优先回答“编排有没有卡住、聚合是否完整、状态事件是否积压、锁和归档是否拖慢收口”，不再把指标族数量当作核心 KPI。
                   </p>
                 </div>
-                <span className="inline-flex rounded-full border border-emerald-200 bg-white/85 px-3 py-1 text-xs font-black text-emerald-800">
+                <span style={{ display: 'inline-flex', borderRadius: '9999px', border: `1px solid ${LK.success}`, backgroundColor: 'rgba(69, 192, 111, 0.15)', padding: '4px 12px', fontSize: '12px', fontWeight: 600, color: LK.success }}>
                   诊断优先视图
                 </span>
               </div>
 
               <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
                 {binarySecurityObservabilityViewModel.overviewCards.map((item) => (
-                  <div key={item.label} className="rounded-[1.4rem] border border-emerald-100 bg-white/90 px-4 py-4 shadow-sm">
-                    <div className="flex items-center justify-between gap-3 text-slate-500">
+                  <div key={item.label} style={{ borderRadius: '12px', border: `1px solid ${LK.success}`, backgroundColor: 'rgba(69, 192, 111, 0.1)', padding: '16px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', color: LK.muted }}>
                       <span className="text-[11px] font-black uppercase tracking-[0.16em]">{item.label}</span>
                       <span>{item.icon}</span>
                     </div>
                     <div className={`mt-3 text-2xl font-black tracking-tight ${item.tone}`}>{item.value}</div>
-                    <div className="mt-1 text-xs text-slate-500">{item.hint}</div>
+                    <div style={{ marginTop: '4px', fontSize: '12px', color: LK.muted }}>{item.hint}</div>
                   </div>
                 ))}
               </div>
 
-              <div className="grid gap-3 xl:grid-cols-3">
+              <div style={{ display: 'grid', gap: '12px', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))' }}>
                 {binarySecurityObservabilityViewModel.alerts.map((alert) => (
                   <div key={alert.label} className={`rounded-2xl border px-4 py-3 shadow-sm ${alert.tone}`}>
-                    <div className="text-sm font-black">{alert.label}</div>
-                    <div className="mt-1 text-xs leading-5 opacity-90">{alert.text}</div>
+                    <div style={{ fontSize: '14px', fontWeight: 600 }}>{alert.label}</div>
+                    <div style={{ marginTop: '4px', fontSize: '12px', lineHeight: '1.25rem', opacity: 0.9 }}>{alert.text}</div>
                   </div>
                 ))}
               </div>
 
-              <div className="grid gap-4 xl:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)]">
+              <div style={{ display: 'grid', gap: '16px', gridTemplateColumns: '1.05fr 0.95fr' }}>
                 <ReducerMetricList title="编排推进摘要" items={binarySecurityObservabilityViewModel.pipelineSummary} emptyText="暂无编排摘要。" />
                 <ReducerMetricList title="Reducer/锁摘要" items={binarySecurityObservabilityViewModel.reducerSummary} emptyText="暂无 reducer 摘要。" />
               </div>
 
-              <div className="grid gap-4 xl:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)]">
+              <div style={{ display: 'grid', gap: '16px', gridTemplateColumns: '1.05fr 0.95fr' }}>
                 <ReducerMetricList title="后台同步摘要" items={binarySecurityObservabilityViewModel.syncSummary} emptyText="暂无后台同步摘要。" />
-                <div className="rounded-[1.6rem] border border-slate-200 bg-white p-4 shadow-sm">
-                  <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">Task List Query</div>
-                  <h3 className="mt-2 text-lg font-black tracking-tight text-slate-900">任务列表查询性能</h3>
-                  <p className="mt-2 text-sm text-slate-500">
+                <div style={{ borderRadius: '12px', border: `1px solid ${LK.border}`, backgroundColor: LK.surface, padding: '16px' }}>
+                  <div style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.18em', color: LK.muted }}>Task List Query</div>
+                  <h3 style={{ marginTop: '8px', fontSize: '18px', fontWeight: 600, letterSpacing: '-0.02em', color: LK.ink }}>任务列表查询性能</h3>
+                  <p style={{ marginTop: '8px', fontSize: '14px', color: LK.muted }}>
                     只展示列表读路径性能，不夹带同步副作用。这里可以直接看整体延迟、错误，以及最慢子分段是否出在计数、聚合还是序列化。
                   </p>
 
-                  <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-5">
+                  <div style={{ marginTop: '16px', display: 'grid', gap: '12px', gridTemplateColumns: 'repeat(5, minmax(0, 1fr))' }}>
                     {binarySecurityObservabilityViewModel.taskListPerformance.topCards.map((item) => (
-                      <div key={item.label} className="rounded-2xl border border-slate-100 bg-slate-50 px-4 py-3">
-                        <div className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-400">{item.label}</div>
+                      <div key={item.label} style={{ borderRadius: '12px', border: `1px solid ${LK.borderSoft}`, backgroundColor: LK.surfaceRaised, padding: '12px 16px' }}>
+                        <div style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.16em', color: LK.muted }}>{item.label}</div>
                         <div className={`mt-2 text-lg font-black ${item.tone}`}>{item.value}</div>
-                        <div className="mt-1 text-xs text-slate-500">{item.hint}</div>
+                        <div style={{ marginTop: '4px', fontSize: '12px', color: LK.muted }}>{item.hint}</div>
                       </div>
                     ))}
                   </div>
 
-                  <div className="mt-4 space-y-3">
+                  <div style={{ marginTop: '16px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
                     {binarySecurityObservabilityViewModel.taskListPerformance.alerts.map((alert) => (
                       <div key={alert.label} className={`rounded-2xl border px-4 py-3 shadow-sm ${alert.tone}`}>
-                        <div className="text-sm font-black">{alert.label}</div>
-                        <div className="mt-1 text-xs leading-5 opacity-90">{alert.text}</div>
+                        <div style={{ fontSize: '14px', fontWeight: 600 }}>{alert.label}</div>
+                        <div style={{ marginTop: '4px', fontSize: '12px', lineHeight: '1.25rem', opacity: 0.9 }}>{alert.text}</div>
                       </div>
                     ))}
                   </div>
@@ -3925,13 +3965,13 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
                     <table className="min-w-full divide-y divide-slate-200 text-left text-sm">
                       <thead className="bg-slate-50">
                         <tr>
-                          <th className="px-3 py-2 font-black text-slate-500">分段</th>
-                          <th className="px-3 py-2 font-black text-slate-500">调用次数</th>
-                          <th className="px-3 py-2 font-black text-slate-500">平均耗时</th>
-                          <th className="px-3 py-2 font-black text-slate-500">P95</th>
+                          <th style={{ padding: '8px 12px', fontWeight: 600, color: LK.muted }}>分段</th>
+                          <th style={{ padding: '8px 12px', fontWeight: 600, color: LK.muted }}>调用次数</th>
+                          <th style={{ padding: '8px 12px', fontWeight: 600, color: LK.muted }}>平均耗时</th>
+                          <th style={{ padding: '8px 12px', fontWeight: 600, color: LK.muted }}>P95</th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-slate-100 bg-white">
+                      <tbody style={{ display: 'flex', flexDirection: 'column', borderBottom: `1px solid ${LK.borderSoft}`, backgroundColor: LK.surface }}>
                         {binarySecurityObservabilityViewModel.taskListPerformance.stageRows.length ? (
                           binarySecurityObservabilityViewModel.taskListPerformance.stageRows.map((item) => (
                             <tr key={item.stage}>
@@ -3957,7 +3997,7 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
               <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-5">
                 {binarySecurityObservabilityViewModel.groupCounts.map((item) => (
                   <div key={item.group} className="rounded-xl border border-slate-200 bg-white px-3 py-2">
-                    <div className="text-[11px] font-black uppercase tracking-[0.14em] text-slate-400">{GROUP_LABELS[item.group]}</div>
+                    <div style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.14em', color: LK.muted }}>{GROUP_LABELS[item.group]}</div>
                     <div className="mt-1 text-base font-black text-slate-800">{formatNumber(item.count)}</div>
                   </div>
                 ))}
@@ -3973,65 +4013,65 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
 
           {dataflowAnalysisViewModel ? (
             <section className="space-y-4 rounded-[2rem] border border-teal-200 bg-[radial-gradient(circle_at_top_left,_rgba(20,184,166,0.10),_transparent_36%),linear-gradient(180deg,#ffffff_0%,#f0fdfa_100%)] p-5 shadow-sm">
-              <div className="flex flex-wrap items-start justify-between gap-4">
+              <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'flex-start', justifyContent: 'space-between', gap: '16px' }}>
                 <div>
-                  <div className="text-[11px] font-black uppercase tracking-[0.2em] text-teal-700">Dataflow Analysis Cluster</div>
-                  <h2 className="mt-2 text-xl font-black tracking-tight text-slate-900">数据流分析聚合观测</h2>
-                  <p className="mt-2 max-w-3xl text-sm text-slate-600">
+                  <div style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.2em', color: '#14b8a6' }}>Dataflow Analysis Cluster</div>
+                  <h2 style={{ marginTop: '8px', fontSize: '20px', fontWeight: 600, letterSpacing: '-0.02em', color: LK.ink }}>数据流分析聚合观测</h2>
+                  <p style={{ marginTop: '8px', maxWidth: '48rem', fontSize: '14px', color: LK.inkSoft }}>
                     当前展示的是 DFA `metrics/aggregate` 聚合视图，不再只看 API Pod。本区重点看积压、租约/心跳健康、时延、失败归因和 token/trace 复杂度。
                   </p>
                 </div>
-                <span className="inline-flex rounded-full border border-teal-200 bg-white/80 px-3 py-1 text-xs font-black text-teal-800">
+                <span style={{ display: 'inline-flex', borderRadius: '9999px', border: '1px solid #14b8a6', backgroundColor: 'rgba(20, 184, 166, 0.15)', padding: '4px 12px', fontSize: '12px', fontWeight: 600, color: '#14b8a6' }}>
                   aggregate {formatMetricValue(metricValueByName(viewModel.rows, 'chimera_dfa_metrics_aggregate_up') ?? Number.NaN)} / db{' '}
                   {formatMetricValue(metricValueByName(viewModel.rows, 'chimera_dfa_db_up') ?? Number.NaN)}
                 </span>
               </div>
 
-              <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-6">
+              <div style={{ display: 'grid', gap: '12px', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))' }}>
                 {dataflowAnalysisViewModel.kpis.map((item) => (
                   <div key={item.label} className="rounded-2xl border border-teal-100 bg-white/85 px-4 py-3 shadow-sm">
-                    <div className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-400">{item.label}</div>
+                    <div style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.16em', color: LK.muted }}>{item.label}</div>
                     <div className={`mt-2 text-xl font-black ${item.tone}`}>{item.value}</div>
-                    <div className="mt-1 text-xs text-slate-500">{item.hint}</div>
+                    <div style={{ marginTop: '4px', fontSize: '12px', color: LK.muted }}>{item.hint}</div>
                   </div>
                 ))}
               </div>
 
-              <div className="grid gap-3 xl:grid-cols-3">
+              <div style={{ display: 'grid', gap: '12px', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))' }}>
                 {dataflowAnalysisViewModel.alerts.map((alert) => (
                   <div key={alert.label} className={`rounded-2xl border px-4 py-3 shadow-sm ${alert.tone}`}>
-                    <div className="text-sm font-black">{alert.label}</div>
-                    <div className="mt-1 text-xs leading-5 opacity-90">{alert.text}</div>
+                    <div style={{ fontSize: '14px', fontWeight: 600 }}>{alert.label}</div>
+                    <div style={{ marginTop: '4px', fontSize: '12px', lineHeight: '1.25rem', opacity: 0.9 }}>{alert.text}</div>
                   </div>
                 ))}
               </div>
 
               <div className="grid gap-4 xl:grid-cols-[minmax(0,1.08fr)_minmax(0,0.92fr)]">
                 <div className="rounded-[1.6rem] border border-teal-100 bg-white/90 p-4 shadow-sm">
-                  <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">负载与成本</div>
-                  <h3 className="mt-2 text-xl font-black tracking-tight text-slate-900">Queue / Runtime / Token</h3>
+                  <div style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.18em', color: LK.muted }}>负载与成本</div>
+                  <h3 style={{ marginTop: '8px', fontSize: '20px', fontWeight: 600, letterSpacing: '-0.02em', color: LK.ink }}>Queue / Runtime / Token</h3>
                   <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
                     {dataflowAnalysisViewModel.loadCards.map((item) => (
-                      <div key={item.label} className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
-                        <div className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-400">{item.label}</div>
+                      <div key={item.label} style={{ borderRadius: '12px', border: `1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised, padding: '12px 16px' }}>
+                        <div style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.16em', color: LK.muted }}>{item.label}</div>
                         <div className={`mt-2 text-lg font-black ${item.tone}`}>{item.value}</div>
-                        <div className="mt-1 text-xs text-slate-500">{item.hint}</div>
+                        <div style={{ marginTop: '4px', fontSize: '12px', color: LK.muted }}>{item.hint}</div>
                       </div>
                     ))}
                   </div>
                 </div>
 
                 <div className="rounded-[1.6rem] border border-teal-100 bg-white/90 p-4 shadow-sm">
-                  <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">失败与调度</div>
-                  <h3 className="mt-2 text-xl font-black tracking-tight text-slate-900">Failure Category / Dispatch</h3>
-                  <div className="mt-4 space-y-3">
+                  <div style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.18em', color: LK.muted }}>失败与调度</div>
+                  <h3 style={{ marginTop: '8px', fontSize: '20px', fontWeight: 600, letterSpacing: '-0.02em', color: LK.ink }}>Failure Category / Dispatch</h3>
+                  <div style={{ marginTop: '16px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
                     <div className="grid gap-3 sm:grid-cols-2">
                       {dataflowAnalysisViewModel.failureCategories.length ? (
                         dataflowAnalysisViewModel.failureCategories.slice(0, 6).map((item) => (
-                          <div key={item.label} className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
-                            <div className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-400">{item.label}</div>
+                          <div key={item.label} style={{ borderRadius: '12px', border: `1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised, padding: '12px 16px' }}>
+                            <div style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.16em', color: LK.muted }}>{item.label}</div>
                             <div className={`mt-2 text-lg font-black ${item.tone}`}>{formatNumber(item.value)}</div>
-                            <div className="mt-1 text-xs text-slate-500">cluster failure category snapshot</div>
+                            <div style={{ marginTop: '4px', fontSize: '12px', color: LK.muted }}>cluster failure category snapshot</div>
                           </div>
                         ))
                       ) : (
@@ -4040,18 +4080,18 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
                         </div>
                       )}
                     </div>
-                    <div className="rounded-2xl border border-slate-200 bg-white p-3">
-                      <div className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-400">Dispatch Summary</div>
-                      <div className="mt-3 space-y-2">
+                    <div style={{ borderRadius: '12px', border: `1px solid ${LK.border}`, backgroundColor: LK.surface, padding: '12px' }}>
+                      <div style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.16em', color: LK.muted }}>Dispatch Summary</div>
+                      <div style={{ marginTop: '12px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
                         {dataflowAnalysisViewModel.dispatchSummary.length ? (
                           dataflowAnalysisViewModel.dispatchSummary.map((item) => (
-                            <div key={item.label} className="flex items-center justify-between gap-3 rounded-xl border border-slate-100 bg-slate-50 px-3 py-2">
+                            <div key={item.label} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', borderRadius: '8px', border: `1px solid ${LK.borderSoft}`, backgroundColor: LK.surfaceRaised, padding: '8px 12px' }}>
                               <div className="min-w-0 truncate text-sm font-semibold text-slate-700">{item.label}</div>
                               <div className={`font-mono text-sm font-black ${item.tone}`}>{formatNumber(item.value)}</div>
                             </div>
                           ))
                         ) : (
-                          <div className="rounded-xl border border-dashed border-slate-200 px-3 py-6 text-center text-sm text-slate-500">当前没有 dispatch 聚合指标。</div>
+                          <div style={{ borderRadius: '8px', border: `1px dashed ${LK.border}`, padding: '24px 12px', textAlign: 'center', fontSize: '14px', color: LK.muted }}>当前没有 dispatch 聚合指标。</div>
                         )}
                       </div>
                     </div>
@@ -4060,23 +4100,23 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
               </div>
 
               <div className="rounded-[1.6rem] border border-teal-100 bg-white/90 p-4 shadow-sm">
-                <div className="flex flex-wrap items-start justify-between gap-4">
+                <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'flex-start', justifyContent: 'space-between', gap: '16px' }}>
                   <div>
-                    <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">Worker Detail</div>
-                    <h3 className="mt-2 text-xl font-black tracking-tight text-slate-900">执行槽位明细</h3>
+                    <div style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.18em', color: LK.muted }}>Worker Detail</div>
+                    <h3 style={{ marginTop: '8px', fontSize: '20px', fontWeight: 600, letterSpacing: '-0.02em', color: LK.ink }}>执行槽位明细</h3>
                     <p className="mt-2 max-w-3xl text-sm text-slate-500">
                       直接复用 DFA worker cluster capacity 接口，和任务列表页保持同一口径，用于核对聚合指标背后的具体 owner / task 归属。
                     </p>
                   </div>
-                  <div className="text-right text-xs text-slate-400">
+                  <div style={{ textAlign: 'right', fontSize: '12px', color: LK.muted }}>
                     <div>最近刷新</div>
                     <div className="mt-1 font-semibold text-slate-500">{formatTime(dfaWorkerDetailState.refreshedAt)}</div>
                   </div>
                 </div>
                 {selectedDfaWorkerFilter ? (
                   <div className="mt-3 flex flex-wrap items-center gap-2 rounded-2xl border border-cyan-200 bg-cyan-50 px-4 py-3 text-xs text-cyan-800">
-                    <span className="font-bold">已联动筛选 Worker：</span>
-                    <span className="rounded-full bg-white px-2 py-1 font-mono">{selectedDfaWorkerFilter}</span>
+                    <span style={{ fontWeight: 600 }}>已联动筛选 Worker：</span>
+                    <span style={{ borderRadius: '9999px', backgroundColor: LK.surface, padding: '4px 8px', fontFamily: MONO }}>{selectedDfaWorkerFilter}</span>
                     <button
                       type="button"
                       onClick={() => setSelectedDfaWorkerFilter('')}
@@ -4104,14 +4144,14 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
                         { label: '运行中', value: dfaWorkerDetailState.data?.running_jobs ?? '-', hint: 'active running jobs' },
                         { label: '空闲 / 排队', value: `${dfaWorkerDetailState.data?.available_slots ?? '-'} / ${dfaWorkerDetailState.data?.queued_jobs ?? '-'}`, hint: 'available slots / queued jobs' },
                       ].map((item) => (
-                        <div key={item.label} className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
-                          <div className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-400">{item.label}</div>
+                        <div key={item.label} style={{ borderRadius: '12px', border: `1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised, padding: '12px 16px' }}>
+                          <div style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.16em', color: LK.muted }}>{item.label}</div>
                           <div className="mt-2 text-lg font-black text-slate-900">{item.value}</div>
-                          <div className="mt-1 text-xs text-slate-500">{item.hint}</div>
+                          <div style={{ marginTop: '4px', fontSize: '12px', color: LK.muted }}>{item.hint}</div>
                         </div>
                       ))}
                     </div>
-                    <div className="mt-4 space-y-3">
+                    <div style={{ marginTop: '16px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
                       {(dfaWorkerDetailState.data?.workers || []).length ? (
                         asArray(dfaWorkerDetailState.data?.workers).map((worker) => (
                           <div
@@ -4121,39 +4161,39 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
                               worker.healthy ? 'border-slate-200 bg-slate-50/70' : 'border-rose-200 bg-rose-50/80'
                             } ${selectedDfaWorkerFilter === worker.worker_id ? 'ring-2 ring-cyan-300 ring-offset-1' : 'cursor-pointer hover:border-cyan-200'}`}
                           >
-                            <div className="flex flex-wrap items-start justify-between gap-3">
-                              <div className="min-w-0">
-                                <div className="flex flex-wrap items-center gap-2">
-                                  <div className="text-sm font-black text-slate-900">{worker.host_name || worker.worker_id}</div>
+                            <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'flex-start', justifyContent: 'space-between', gap: '12px' }}>
+                              <div style={{ minWidth: 0 }}>
+                                <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '8px' }}>
+                                  <div style={{ fontSize: '14px', fontWeight: 600, color: LK.ink }}>{worker.host_name || worker.worker_id}</div>
                                   <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${worker.healthy ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'}`}>
                                     {worker.healthy ? 'healthy' : 'unhealthy'}
                                   </span>
-                                  <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-bold text-slate-600">
+                                  <span style={{ borderRadius: '9999px', backgroundColor: LK.surfaceRaised, padding: '2px 8px', fontSize: '10px', fontWeight: 600, color: LK.body }}>
                                     活动任务 {asArray(worker.active_jobs).length}
                                   </span>
                                 </div>
                                 <div className="mt-1 font-mono text-[11px] text-slate-400 break-all">{worker.worker_id}</div>
-                                <div className="mt-2 flex flex-wrap gap-3 text-xs text-slate-500">
+                                <div style={{ marginTop: '8px', display: 'flex', flexWrap: 'wrap', gap: '12px', fontSize: '12px', color: LK.muted }}>
                                   <span>槽位 {worker.running_jobs}/{worker.max_concurrent_jobs}</span>
                                   <span>空闲 {worker.available_slots}</span>
                                   <span>来源 {worker.source || 'worker_registry'}</span>
                                   <span>心跳 {worker.last_heartbeat_at ? formatTime(new Date(worker.last_heartbeat_at).getTime()) : '-'}</span>
                                 </div>
                                 <div className="mt-2 text-[11px] text-cyan-700">点击可联动过滤下方 Prometheus Samples</div>
-                                {worker.error ? <div className="mt-2 text-xs text-rose-600">{worker.error}</div> : null}
+                                {worker.error ? <div style={{ marginTop: '8px', fontSize: '12px', color: LK.error }}>{worker.error}</div> : null}
                               </div>
                             </div>
                             <div className="mt-3 grid gap-2 lg:grid-cols-2">
                               {asArray(worker.active_jobs).length ? (
                                 asArray(worker.active_jobs).map((job) => (
                                   <div key={`${worker.worker_id}:${job.task_id}`} className="rounded-xl border border-slate-200 bg-white px-3 py-3">
-                                    <div className="flex flex-wrap items-center gap-2">
+                                    <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '8px' }}>
                                       <div className="min-w-0 truncate text-sm font-bold text-slate-900" title={job.task_name}>{job.task_name}</div>
-                                      <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-bold text-slate-600">{job.status}</span>
+                                      <span style={{ borderRadius: '9999px', backgroundColor: LK.surfaceRaised, padding: '2px 8px', fontSize: '10px', fontWeight: 600, color: LK.body }}>{job.status}</span>
                                     </div>
                                     <div className="mt-2 space-y-1 text-xs text-slate-500">
                                       <div className="font-mono break-all">task_id: {job.task_id}</div>
-                                      <div className="truncate" title={job.input_path}>input: {job.input_path}</div>
+                                      <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={job.input_path}>input: {job.input_path}</div>
                                       <div>dispatch: {job.dispatch_status || '-'}</div>
                                       <div>lease: {job.execution_lease_until ? formatTime(new Date(job.execution_lease_until).getTime()) : '-'}</div>
                                       <div>heartbeat: {job.execution_heartbeat_at ? formatTime(new Date(job.execution_heartbeat_at).getTime()) : '-'}</div>
@@ -4187,11 +4227,11 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
 
           {entryAnalysisViewModel ? (
             <section className="space-y-4 rounded-[2rem] border border-indigo-200 bg-[radial-gradient(circle_at_top_left,_rgba(99,102,241,0.10),_transparent_36%),linear-gradient(180deg,#ffffff_0%,#eef2ff_100%)] p-5 shadow-sm">
-              <div className="flex flex-wrap items-start justify-between gap-4">
+              <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'flex-start', justifyContent: 'space-between', gap: '16px' }}>
                 <div>
                   <div className="text-[11px] font-black uppercase tracking-[0.2em] text-indigo-700">Entry Analysis Business</div>
-                  <h2 className="mt-2 text-xl font-black tracking-tight text-slate-900">入口分析业务聚合观测</h2>
-                  <p className="mt-2 max-w-3xl text-sm text-slate-600">
+                  <h2 style={{ marginTop: '8px', fontSize: '20px', fontWeight: 600, letterSpacing: '-0.02em', color: LK.ink }}>入口分析业务聚合观测</h2>
+                  <p style={{ marginTop: '8px', maxWidth: '48rem', fontSize: '14px', color: LK.inkSoft }}>
                     面向服务级聚合快照，重点看排队、执行、轮次、Worker/Judge 负载以及失败归因；这里不是单任务的 R1/R2/R3/R4 详情页，而是集群级健康视图。
                   </p>
                 </div>
@@ -4200,22 +4240,22 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
                 </span>
               </div>
 
-              <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-6">
+              <div style={{ display: 'grid', gap: '12px', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))' }}>
                 {entryAnalysisViewModel.kpis.map((item) => (
                   <div key={item.label} className="rounded-2xl border border-indigo-100 bg-white/85 px-4 py-3 shadow-sm">
-                    <div className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-400">{item.label}</div>
+                    <div style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.16em', color: LK.muted }}>{item.label}</div>
                     <div className={`mt-2 text-xl font-black ${item.tone}`}>{item.value}</div>
-                    <div className="mt-1 text-xs text-slate-500">{item.hint}</div>
+                    <div style={{ marginTop: '4px', fontSize: '12px', color: LK.muted }}>{item.hint}</div>
                   </div>
                 ))}
               </div>
 
-              <div className="grid gap-3 xl:grid-cols-3">
+              <div style={{ display: 'grid', gap: '12px', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))' }}>
                 {entryAnalysisViewModel.riskAlerts.map((alert) => (
                   <div key={alert.label} className={`rounded-2xl border px-4 py-3 shadow-sm ${alert.tone}`}>
-                    <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'flex-start', justifyContent: 'space-between', gap: '12px' }}>
                       <div>
-                        <div className="text-sm font-black">{alert.label}</div>
+                        <div style={{ fontSize: '14px', fontWeight: 600 }}>{alert.label}</div>
                         <div className="mt-1 text-xs leading-5 opacity-85">{alert.text}</div>
                       </div>
                       <button
@@ -4236,46 +4276,46 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
                 ))}
               </div>
 
-              <div className="grid gap-4 xl:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)]">
-                <div className="rounded-[1.6rem] border border-indigo-100 bg-white/90 p-4 shadow-sm">
-                  <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">角色与吞吐</div>
-                  <h3 className="mt-2 text-xl font-black tracking-tight text-slate-900">Worker / Judge / Session 负载</h3>
+              <div style={{ display: 'grid', gap: '16px', gridTemplateColumns: '1.05fr 0.95fr' }}>
+                <div style={{ borderRadius: '12px', border: `1px solid #6366f1`, backgroundColor: 'rgba(99, 102, 241, 0.1)', padding: '16px' }}>
+                  <div style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.18em', color: LK.muted }}>角色与吞吐</div>
+                  <h3 style={{ marginTop: '8px', fontSize: '20px', fontWeight: 600, letterSpacing: '-0.02em', color: LK.ink }}>Worker / Judge / Session 负载</h3>
                   <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
                     {entryAnalysisViewModel.roleSummary.map((item) => (
-                      <div key={item.label} className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
-                        <div className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-400">{item.label}</div>
+                      <div key={item.label} style={{ borderRadius: '12px', border: `1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised, padding: '12px 16px' }}>
+                        <div style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.16em', color: LK.muted }}>{item.label}</div>
                         <div className={`mt-2 text-lg font-black ${item.tone}`}>{item.value}</div>
-                        <div className="mt-1 text-xs text-slate-500">{item.hint}</div>
+                        <div style={{ marginTop: '4px', fontSize: '12px', color: LK.muted }}>{item.hint}</div>
                       </div>
                     ))}
                   </div>
                 </div>
 
-                <div className="rounded-[1.6rem] border border-indigo-100 bg-white/90 p-4 shadow-sm">
-                  <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">失败与模块</div>
-                  <h3 className="mt-2 text-xl font-black tracking-tight text-slate-900">异常归因 / Top Modules</h3>
-                  <div className="mt-4 space-y-3">
+                <div style={{ borderRadius: '12px', border: `1px solid #6366f1`, backgroundColor: 'rgba(99, 102, 241, 0.1)', padding: '16px' }}>
+                  <div style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.18em', color: LK.muted }}>失败与模块</div>
+                  <h3 style={{ marginTop: '8px', fontSize: '20px', fontWeight: 600, letterSpacing: '-0.02em', color: LK.ink }}>异常归因 / Top Modules</h3>
+                  <div style={{ marginTop: '16px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
                     <div className="grid gap-3 sm:grid-cols-2">
                       {entryAnalysisViewModel.failureSummary.map((item) => (
-                        <div key={item.label} className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
-                          <div className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-400">{item.label}</div>
+                        <div key={item.label} style={{ borderRadius: '12px', border: `1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised, padding: '12px 16px' }}>
+                          <div style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.16em', color: LK.muted }}>{item.label}</div>
                           <div className={`mt-2 text-lg font-black ${item.tone}`}>{formatMetricValue(item.value ?? Number.NaN)}</div>
-                          <div className="mt-1 text-xs text-slate-500">{item.hint}</div>
+                          <div style={{ marginTop: '4px', fontSize: '12px', color: LK.muted }}>{item.hint}</div>
                         </div>
                       ))}
                     </div>
-                    <div className="rounded-2xl border border-slate-200 bg-white p-3">
-                      <div className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-400">模块热度</div>
-                      <div className="mt-3 space-y-2">
+                    <div style={{ borderRadius: '12px', border: `1px solid ${LK.border}`, backgroundColor: LK.surface, padding: '12px' }}>
+                      <div style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.16em', color: LK.muted }}>模块热度</div>
+                      <div style={{ marginTop: '12px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
                         {entryAnalysisViewModel.topModules.length ? (
                           entryAnalysisViewModel.topModules.map((item) => (
-                            <div key={item.name} className="flex items-center justify-between gap-3 rounded-xl border border-slate-100 bg-slate-50 px-3 py-2">
+                            <div key={item.name} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', borderRadius: '8px', border: `1px solid ${LK.borderSoft}`, backgroundColor: LK.surfaceRaised, padding: '8px 12px' }}>
                               <div className="min-w-0 truncate text-sm font-semibold text-slate-700">{item.name}</div>
                               <div className="font-mono text-sm font-black text-indigo-700">{formatNumber(item.value)}</div>
                             </div>
                           ))
                         ) : (
-                          <div className="rounded-xl border border-dashed border-slate-200 px-3 py-6 text-center text-sm text-slate-500">当前没有模块级聚合指标。</div>
+                          <div style={{ borderRadius: '8px', border: `1px dashed ${LK.border}`, padding: '24px 12px', textAlign: 'center', fontSize: '14px', color: LK.muted }}>当前没有模块级聚合指标。</div>
                         )}
                       </div>
                     </div>
@@ -4283,24 +4323,24 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
                 </div>
               </div>
 
-              <div className="rounded-[1.6rem] border border-indigo-100 bg-white/90 p-4 shadow-sm">
-                <div className="flex flex-wrap items-start justify-between gap-4">
+              <div style={{ borderRadius: '12px', border: `1px solid #6366f1`, backgroundColor: 'rgba(99, 102, 241, 0.1)', padding: '16px' }}>
+                <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'flex-start', justifyContent: 'space-between', gap: '16px' }}>
                   <div>
-                    <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">Worker Detail</div>
-                    <h3 className="mt-2 text-xl font-black tracking-tight text-slate-900">执行槽位明细</h3>
+                    <div style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.18em', color: LK.muted }}>Worker Detail</div>
+                    <h3 style={{ marginTop: '8px', fontSize: '20px', fontWeight: 600, letterSpacing: '-0.02em', color: LK.ink }}>执行槽位明细</h3>
                     <p className="mt-2 max-w-3xl text-sm text-slate-500">
                       直接复用入口分析任务页的槽位聚合接口，和任务页保持同一口径，用于从性能看板快速下钻到具体 worker / owner / active task。
                     </p>
                   </div>
-                  <div className="text-right text-xs text-slate-400">
+                  <div style={{ textAlign: 'right', fontSize: '12px', color: LK.muted }}>
                     <div>最近刷新</div>
                     <div className="mt-1 font-semibold text-slate-500">{formatTime(entryWorkerDetailState.refreshedAt)}</div>
                   </div>
                 </div>
                 {selectedEntryWorkerFilter ? (
                   <div className="mt-3 flex flex-wrap items-center gap-2 rounded-2xl border border-indigo-200 bg-indigo-50 px-4 py-3 text-xs text-indigo-800">
-                    <span className="font-bold">已联动筛选 Worker：</span>
-                    <span className="rounded-full bg-white px-2 py-1 font-mono">{selectedEntryWorkerFilter}</span>
+                    <span style={{ fontWeight: 600 }}>已联动筛选 Worker：</span>
+                    <span style={{ borderRadius: '9999px', backgroundColor: LK.surface, padding: '4px 8px', fontFamily: MONO }}>{selectedEntryWorkerFilter}</span>
                     <button
                       type="button"
                       onClick={() => setSelectedEntryWorkerFilter('')}
@@ -4328,14 +4368,14 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
                         { label: '运行中', value: entryWorkerDetailState.data?.running_jobs ?? '-', hint: 'active running jobs' },
                         { label: '空闲 / 排队', value: `${entryWorkerDetailState.data?.available_slots ?? '-'} / ${entryWorkerDetailState.data?.queued_jobs ?? '-'}`, hint: 'available slots / queued jobs' },
                       ].map((item) => (
-                        <div key={item.label} className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
-                          <div className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-400">{item.label}</div>
+                        <div key={item.label} style={{ borderRadius: '12px', border: `1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised, padding: '12px 16px' }}>
+                          <div style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.16em', color: LK.muted }}>{item.label}</div>
                           <div className="mt-2 text-lg font-black text-slate-900">{item.value}</div>
-                          <div className="mt-1 text-xs text-slate-500">{item.hint}</div>
+                          <div style={{ marginTop: '4px', fontSize: '12px', color: LK.muted }}>{item.hint}</div>
                         </div>
                       ))}
                     </div>
-                    <div className="mt-4 space-y-3">
+                    <div style={{ marginTop: '16px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
                       {(entryWorkerDetailState.data?.workers || []).length ? (
                         asArray(entryWorkerDetailState.data?.workers).map((worker) => (
                           <div
@@ -4345,39 +4385,39 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
                               worker.healthy ? 'border-slate-200 bg-slate-50/70' : 'border-rose-200 bg-rose-50/80'
                             } ${selectedEntryWorkerFilter === worker.worker_id ? 'ring-2 ring-indigo-300 ring-offset-1' : 'cursor-pointer hover:border-indigo-200'}`}
                           >
-                            <div className="flex flex-wrap items-start justify-between gap-3">
-                              <div className="min-w-0">
-                                <div className="flex flex-wrap items-center gap-2">
-                                  <div className="text-sm font-black text-slate-900">{worker.pod_name || worker.worker_id}</div>
+                            <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'flex-start', justifyContent: 'space-between', gap: '12px' }}>
+                              <div style={{ minWidth: 0 }}>
+                                <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '8px' }}>
+                                  <div style={{ fontSize: '14px', fontWeight: 600, color: LK.ink }}>{worker.pod_name || worker.worker_id}</div>
                                   <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${worker.healthy ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'}`}>
                                     {worker.healthy ? 'healthy' : worker.source === 'stale_owner' ? 'stale owner' : 'unhealthy'}
                                   </span>
-                                  <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-bold text-slate-600">
+                                  <span style={{ borderRadius: '9999px', backgroundColor: LK.surfaceRaised, padding: '2px 8px', fontSize: '10px', fontWeight: 600, color: LK.body }}>
                                     活动任务 {asArray(worker.active_tasks).length}
                                   </span>
                                 </div>
                                 <div className="mt-1 font-mono text-[11px] text-slate-400 break-all">{worker.url || worker.pod_ip || worker.worker_id}</div>
-                                <div className="mt-2 flex flex-wrap gap-3 text-xs text-slate-500">
+                                <div style={{ marginTop: '8px', display: 'flex', flexWrap: 'wrap', gap: '12px', fontSize: '12px', color: LK.muted }}>
                                   <span>槽位 {worker.running_jobs}/{worker.max_concurrent_jobs}</span>
                                   <span>空闲 {worker.available_slots}</span>
                                   <span>来源 {worker.source || 'worker_registry'}</span>
                                   <span>心跳 {worker.last_heartbeat_at ? formatTime(new Date(worker.last_heartbeat_at).getTime()) : '-'}</span>
                                 </div>
                                 <div className="mt-2 text-[11px] text-indigo-700">点击可联动过滤下方 Prometheus Samples</div>
-                                {worker.error ? <div className="mt-2 text-xs text-rose-600">{worker.error}</div> : null}
+                                {worker.error ? <div style={{ marginTop: '8px', fontSize: '12px', color: LK.error }}>{worker.error}</div> : null}
                               </div>
                             </div>
                             <div className="mt-3 grid gap-2 lg:grid-cols-2">
                               {asArray(worker.active_tasks).length ? (
                                 asArray(worker.active_tasks).map((job) => (
                                   <div key={`${worker.worker_id}:${job.task_id}`} className="rounded-xl border border-slate-200 bg-white px-3 py-3">
-                                    <div className="flex flex-wrap items-center gap-2">
+                                    <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '8px' }}>
                                       <div className="min-w-0 truncate text-sm font-bold text-slate-900" title={job.task_id}>{job.task_id}</div>
-                                      <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-bold text-slate-600">{job.status}</span>
+                                      <span style={{ borderRadius: '9999px', backgroundColor: LK.surfaceRaised, padding: '2px 8px', fontSize: '10px', fontWeight: 600, color: LK.body }}>{job.status}</span>
                                     </div>
                                     <div className="mt-2 space-y-1 text-xs text-slate-500">
                                       <div className="font-mono break-all">task_id: {job.task_id}</div>
-                                      <div className="truncate" title={job.entry_id || '-'}>entry: {job.entry_id || '-'}</div>
+                                      <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={job.entry_id || '-'}>entry: {job.entry_id || '-'}</div>
                                       <div>owner: {worker.pod_name || worker.worker_id}</div>
                                       <div>lease: {job.lease_expires_at ? formatTime(new Date(job.lease_expires_at).getTime()) : '-'}</div>
                                     </div>
@@ -4409,21 +4449,21 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
               <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-5">
                 {entryAnalysisViewModel.stageCards.map((item) => (
                   <div key={item.label} className="rounded-2xl border border-indigo-100 bg-white/85 px-4 py-3 shadow-sm">
-                    <div className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-400">{item.label}</div>
+                    <div style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.16em', color: LK.muted }}>{item.label}</div>
                     <div className={`mt-2 text-xl font-black ${item.tone}`}>{item.value}</div>
-                    <div className="mt-1 text-xs text-slate-500">{item.hint}</div>
+                    <div style={{ marginTop: '4px', fontSize: '12px', color: LK.muted }}>{item.hint}</div>
                   </div>
                 ))}
               </div>
 
-              <div className="rounded-[1.6rem] border border-indigo-100 bg-white/90 p-4 shadow-sm">
-                <div className="flex flex-wrap items-start justify-between gap-4">
+              <div style={{ borderRadius: '12px', border: `1px solid #6366f1`, backgroundColor: 'rgba(99, 102, 241, 0.1)', padding: '16px' }}>
+                <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'flex-start', justifyContent: 'space-between', gap: '16px' }}>
                   <div>
-                    <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">阶段聚焦</div>
-                    <h3 className="mt-2 text-xl font-black tracking-tight text-slate-900">按阶段查看诊断</h3>
-                    <div className="mt-1 text-xs text-slate-500">点击阶段后会切换到对应的诊断卡，并支持把下方原始指标表过滤到该阶段。</div>
+                    <div style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.18em', color: LK.muted }}>阶段聚焦</div>
+                    <h3 style={{ marginTop: '8px', fontSize: '20px', fontWeight: 600, letterSpacing: '-0.02em', color: LK.ink }}>按阶段查看诊断</h3>
+                    <div style={{ marginTop: '4px', fontSize: '12px', color: LK.muted }}>点击阶段后会切换到对应的诊断卡，并支持把下方原始指标表过滤到该阶段。</div>
                   </div>
-                  <div className="flex flex-wrap gap-2">
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
                     <button
                       type="button"
                       onClick={() => setSelectedEntryStage('all')}
@@ -4459,9 +4499,9 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
                       { label: 'Sessions', value: formatNumber(focusedEntryStageRow.sessionCount, 0), hint: 'stage_session_total', tone: focusedEntryStageRow.sessionCount > 0 ? 'text-slate-900' : 'text-amber-700' },
                     ].map((item) => (
                       <div key={item.label} className="rounded-2xl border border-indigo-100 bg-indigo-50/40 px-4 py-3">
-                        <div className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-400">{item.label}</div>
+                        <div style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.16em', color: LK.muted }}>{item.label}</div>
                         <div className={`mt-2 text-xl font-black ${item.tone}`}>{item.value}</div>
-                        <div className="mt-1 text-xs text-slate-500">{item.hint}</div>
+                        <div style={{ marginTop: '4px', fontSize: '12px', color: LK.muted }}>{item.hint}</div>
                       </div>
                     ))}
                   </div>
@@ -4510,10 +4550,10 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
               </div>
 
               <div className="grid gap-4 xl:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)]">
-                <div className="rounded-[1.6rem] border border-indigo-100 bg-white/90 p-4 shadow-sm">
-                  <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">阶段状态图</div>
-                  <h3 className="mt-2 text-xl font-black tracking-tight text-slate-900">R1 / R2 / R3 / R4 运行态</h3>
-                  <div className="mt-4 h-72">
+                <div style={{ borderRadius: '12px', border: `1px solid #6366f1`, backgroundColor: 'rgba(99, 102, 241, 0.1)', padding: '16px' }}>
+                  <div style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.18em', color: LK.muted }}>阶段状态图</div>
+                  <h3 style={{ marginTop: '8px', fontSize: '20px', fontWeight: 600, letterSpacing: '-0.02em', color: LK.ink }}>R1 / R2 / R3 / R4 运行态</h3>
+                  <div style={{ marginTop: '16px', height: '288px' }}>
                     {entryAnalysisViewModel.stageStatusChart.length ? (
                       <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={240}>
                         <BarChart data={entryAnalysisViewModel.stageStatusChart} margin={{ top: 8, right: 12, left: 0, bottom: 8 }}>
@@ -4533,12 +4573,12 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
                   </div>
                 </div>
 
-                <div className="rounded-[1.6rem] border border-indigo-100 bg-white/90 p-4 shadow-sm">
-                  <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">阶段健康矩阵</div>
-                  <h3 className="mt-2 text-xl font-black tracking-tight text-slate-900">阶段级诊断明细</h3>
-                  <div className="mt-4 overflow-auto rounded-2xl border border-slate-200">
+                <div style={{ borderRadius: '12px', border: `1px solid #6366f1`, backgroundColor: 'rgba(99, 102, 241, 0.1)', padding: '16px' }}>
+                  <div style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.18em', color: LK.muted }}>阶段健康矩阵</div>
+                  <h3 style={{ marginTop: '8px', fontSize: '20px', fontWeight: 600, letterSpacing: '-0.02em', color: LK.ink }}>阶段级诊断明细</h3>
+                  <div style={{ marginTop: '16px', overflow: 'auto', borderRadius: '12px', border: `1px solid ${LK.border}` }}>
                     <table className="min-w-full divide-y divide-slate-200 text-left text-xs">
-                      <thead className="bg-slate-50 text-slate-500">
+                      <thead style={{ backgroundColor: LK.surfaceRaised, color: LK.muted }}>
                         <tr>
                           <th className="px-3 py-3">阶段</th>
                           <th className="px-3 py-3">样本</th>
@@ -4551,23 +4591,23 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
                           <th className="px-3 py-3">Sessions</th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-slate-100 bg-white">
+                      <tbody style={{ display: 'flex', flexDirection: 'column', borderBottom: `1px solid ${LK.borderSoft}`, backgroundColor: LK.surface }}>
                         {entryAnalysisViewModel.stageRows.length ? (
                           entryAnalysisViewModel.stageRows.map((item) => (
                             <tr key={item.stage} className={`cursor-pointer hover:bg-slate-50 ${selectedEntryStage === item.stage ? 'bg-indigo-50/70' : ''}`} onClick={() => setSelectedEntryStage(item.stage as 'R1' | 'R2' | 'R3' | 'R4')}>
                               <td className="px-3 py-3">
                                 <div className={`font-black ${item.healthTone}`}>{item.stage}</div>
                               </td>
-                              <td className="px-3 py-3 font-mono text-slate-800">{formatNumber(item.totalRuns, 0)}</td>
+                              <td style={{ padding: '12px', fontFamily: MONO, color: LK.ink }}>{formatNumber(item.totalRuns, 0)}</td>
                               <td className="px-3 py-3 font-mono text-emerald-700">{formatNumber(item.passedRuns, 0)}</td>
                               <td className="px-3 py-3 font-mono text-rose-700">{formatNumber(item.failedRuns, 0)}</td>
                               <td className="px-3 py-3 font-mono text-amber-700">{formatNumber(item.retryRuns, 0)}</td>
                               <td className="px-3 py-3 font-mono text-sky-700">{formatNumber(item.runningRuns, 0)}</td>
-                              <td className="px-3 py-3 font-mono text-slate-800">{formatSeconds(item.avgDurationSeconds)}</td>
-                              <td className="px-3 py-3 font-mono text-slate-800">
+                              <td style={{ padding: '12px', fontFamily: MONO, color: LK.ink }}>{formatSeconds(item.avgDurationSeconds)}</td>
+                              <td style={{ padding: '12px', fontFamily: MONO, color: LK.ink }}>
                                 {formatNumber(item.workerCalls, 0)} / {formatNumber(item.judgeCalls, 0)}
                               </td>
-                              <td className="px-3 py-3 font-mono text-slate-800">{formatNumber(item.sessionCount, 0)}</td>
+                              <td style={{ padding: '12px', fontFamily: MONO, color: LK.ink }}>{formatNumber(item.sessionCount, 0)}</td>
                             </tr>
                           ))
                         ) : (
@@ -4587,15 +4627,15 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
 
           {b2sBusinessViewModel ? (
             <section className="rounded-[2rem] border border-cyan-200 bg-[radial-gradient(circle_at_top_left,_rgba(6,182,212,0.12),_transparent_35%),linear-gradient(180deg,#ffffff_0%,#ecfeff_100%)] p-5 shadow-sm">
-              <div className="flex flex-wrap items-start justify-between gap-4">
+              <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'flex-start', justifyContent: 'space-between', gap: '16px' }}>
                 <div>
                   <div className="text-[11px] font-black uppercase tracking-[0.2em] text-cyan-700">Binary To Source Business</div>
-                  <h2 className="mt-2 text-xl font-black tracking-tight text-slate-900">二进制逆向业务指标</h2>
-                  <p className="mt-2 max-w-3xl text-sm text-slate-600">
+                  <h2 style={{ marginTop: '8px', fontSize: '20px', fontWeight: 600, letterSpacing: '-0.02em', color: LK.ink }}>二进制逆向业务指标</h2>
+                  <p style={{ marginTop: '8px', maxWidth: '48rem', fontSize: '14px', color: LK.inkSoft }}>
                     来自 PI 任务内部埋点，不从日志反推；用于观察头文件还原、函数体还原、批次吞吐、Token/成本与产物规模。
                   </p>
                 </div>
-                <div className="flex flex-wrap gap-2">
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
                   <span className="inline-flex rounded-full border border-cyan-200 bg-white/80 px-3 py-1 text-xs font-black text-cyan-800">
                     覆盖率 {b2sBusinessViewModel.coverageRate == null ? '-' : `${formatNumber(b2sBusinessViewModel.coverageRate, 1)}%`}
                   </span>
@@ -4638,9 +4678,9 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
                       { label: 'Token / 成本', value: `${formatNumber(b2sBusinessViewModel.tokenTotal)} / ${formatMetricValue(b2sBusinessViewModel.costTotal ?? Number.NaN)}`, hint: 'runtime llm summary', tone: 'text-indigo-700' },
                     ].map((item) => (
                       <div key={item.label} className="rounded-2xl border border-cyan-100 bg-white/80 px-4 py-3 shadow-sm">
-                        <div className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-400">{item.label}</div>
+                        <div style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.16em', color: LK.muted }}>{item.label}</div>
                         <div className={`mt-2 text-xl font-black ${item.tone}`}>{item.value}</div>
-                        <div className="mt-1 text-xs text-slate-500">{item.hint}</div>
+                        <div style={{ marginTop: '4px', fontSize: '12px', color: LK.muted }}>{item.hint}</div>
                       </div>
                     ))}
                   </div>
@@ -4653,9 +4693,9 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
                           { label: '运行中函数体耗时', value: formatSeconds(b2sBusinessViewModel.runningBodyAvgSeconds), hint: 'running body_generation', tone: 'text-cyan-900' },
                         ].map((item) => (
                           <div key={item.label} className="rounded-2xl border border-cyan-100 bg-white/70 px-4 py-3">
-                            <div className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-400">{item.label}</div>
+                            <div style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.16em', color: LK.muted }}>{item.label}</div>
                             <div className={`mt-2 text-xl font-black ${item.tone}`}>{item.value}</div>
-                            <div className="mt-1 text-xs text-slate-500">{item.hint}</div>
+                            <div style={{ marginTop: '4px', fontSize: '12px', color: LK.muted }}>{item.hint}</div>
                           </div>
                         ))}
                       </div>
@@ -4668,11 +4708,11 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
 
           {b2sCacheViewModel ? (
             <section className="rounded-[2rem] border border-emerald-200 bg-[radial-gradient(circle_at_top_left,_rgba(16,185,129,0.12),_transparent_35%),linear-gradient(180deg,#ffffff_0%,#ecfdf5_100%)] p-5 shadow-sm">
-              <div className="flex flex-wrap items-start justify-between gap-4">
+              <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'flex-start', justifyContent: 'space-between', gap: '16px' }}>
                 <div>
                   <div className="text-[11px] font-black uppercase tracking-[0.2em] text-emerald-700">Binary To Source Cache</div>
-                  <h2 className="mt-2 text-xl font-black tracking-tight text-slate-900">二进制逆向缓存指标</h2>
-                  <p className="mt-2 max-w-3xl text-sm text-slate-600">
+                  <h2 style={{ marginTop: '8px', fontSize: '20px', fontWeight: 600, letterSpacing: '-0.02em', color: LK.ink }}>二进制逆向缓存指标</h2>
+                  <p style={{ marginTop: '8px', maxWidth: '48rem', fontSize: '14px', color: LK.inkSoft }}>
                     观察 ELF 级缓存请求、命中、绕过、覆盖和当前缓存条目数量，辅助判断相同输入是否被有效复用。
                   </p>
                 </div>
@@ -4690,9 +4730,9 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
                   { label: '当前条目', value: formatNumber(b2sCacheViewModel.entries), hint: 'ready cache entries', tone: 'text-slate-900' },
                 ].map((item) => (
                   <div key={item.label} className="rounded-2xl border border-emerald-100 bg-white/80 px-4 py-3 shadow-sm">
-                    <div className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-400">{item.label}</div>
+                    <div style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.16em', color: LK.muted }}>{item.label}</div>
                     <div className={`mt-2 text-xl font-black ${item.tone}`}>{item.value}</div>
-                    <div className="mt-1 text-xs text-slate-500">{item.hint}</div>
+                    <div style={{ marginTop: '4px', fontSize: '12px', color: LK.muted }}>{item.hint}</div>
                   </div>
                 ))}
               </div>
@@ -4701,11 +4741,11 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
 
           {systemAnalysisViewModel ? (
             <section className="space-y-4 rounded-[2rem] border border-sky-200 bg-[radial-gradient(circle_at_top_left,_rgba(14,165,233,0.12),_transparent_34%),linear-gradient(180deg,#ffffff_0%,#f0f9ff_100%)] p-5 shadow-sm">
-              <div className="flex flex-wrap items-start justify-between gap-4">
+              <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'flex-start', justifyContent: 'space-between', gap: '16px' }}>
                 <div>
                   <div className="text-[11px] font-black uppercase tracking-[0.22em] text-sky-700">System Analysis Observability</div>
-                  <h2 className="mt-2 text-xl font-black tracking-tight text-slate-900">系统分析专属观测</h2>
-                  <p className="mt-2 max-w-3xl text-sm text-slate-600">
+                  <h2 style={{ marginTop: '8px', fontSize: '20px', fontWeight: 600, letterSpacing: '-0.02em', color: LK.ink }}>系统分析专属观测</h2>
+                  <p style={{ marginTop: '8px', maxWidth: '48rem', fontSize: '14px', color: LK.inkSoft }}>
                     以运行总览、阶段健康、AI 成本、并发治理和质量收益为主视图，优先回答“卡在哪、贵不贵、并发是否打满、失败是否集中”。
                   </p>
                 </div>
@@ -4714,22 +4754,22 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
                 </span>
               </div>
 
-              <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-6">
+              <div style={{ display: 'grid', gap: '12px', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))' }}>
                 {systemAnalysisViewModel.overviewCards.map((item) => (
                   <div key={item.label} className="rounded-2xl border border-sky-100 bg-white/85 px-4 py-3 shadow-sm">
-                    <div className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-400">{item.label}</div>
+                    <div style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.16em', color: LK.muted }}>{item.label}</div>
                     <div className={`mt-2 text-2xl font-black ${item.tone}`}>{item.value}</div>
-                    <div className="mt-1 text-xs text-slate-500">{item.hint}</div>
+                    <div style={{ marginTop: '4px', fontSize: '12px', color: LK.muted }}>{item.hint}</div>
                   </div>
                 ))}
               </div>
 
               <div className="rounded-[1.4rem] border border-sky-100 bg-white/85 px-4 py-3 shadow-sm">
-                <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">快速摘要</div>
+                <div style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.18em', color: LK.muted }}>快速摘要</div>
                 <div className="mt-3 flex flex-wrap gap-x-5 gap-y-2">
                   {systemAnalysisViewModel.compactSummary.map((item) => (
                     <div key={item.label} className="inline-flex items-center gap-2 text-sm">
-                      <span className="text-[11px] font-black uppercase tracking-[0.14em] text-slate-400">{item.label}</span>
+                      <span style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.14em', color: LK.muted }}>{item.label}</span>
                       <span className={`font-mono font-black ${item.tone}`}>{item.value}</span>
                     </div>
                   ))}
@@ -4737,23 +4777,23 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
               </div>
 
               <div className="rounded-[1.6rem] border border-sky-100 bg-white/90 p-4 shadow-sm">
-                <div className="flex flex-wrap items-start justify-between gap-4">
+                <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'flex-start', justifyContent: 'space-between', gap: '16px' }}>
                   <div>
-                    <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">Worker Detail</div>
-                    <h3 className="mt-2 text-xl font-black tracking-tight text-slate-900">执行槽位明细</h3>
+                    <div style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.18em', color: LK.muted }}>Worker Detail</div>
+                    <h3 style={{ marginTop: '8px', fontSize: '20px', fontWeight: 600, letterSpacing: '-0.02em', color: LK.ink }}>执行槽位明细</h3>
                     <p className="mt-2 max-w-3xl text-sm text-slate-500">
                       直接复用系统分析任务页的 worker cluster capacity 接口，和任务列表保持同一口径，用于核对聚合指标背后的具体 owner / task 归属，并支持动态扩缩容自动识别 worker。
                     </p>
                   </div>
-                  <div className="text-right text-xs text-slate-400">
+                  <div style={{ textAlign: 'right', fontSize: '12px', color: LK.muted }}>
                     <div>最近刷新</div>
                     <div className="mt-1 font-semibold text-slate-500">{formatTime(systemWorkerDetailState.refreshedAt)}</div>
                   </div>
                 </div>
                 {selectedSystemWorkerFilter ? (
                   <div className="mt-3 flex flex-wrap items-center gap-2 rounded-2xl border border-sky-200 bg-sky-50 px-4 py-3 text-xs text-sky-800">
-                    <span className="font-bold">已联动筛选 Worker：</span>
-                    <span className="rounded-full bg-white px-2 py-1 font-mono">{selectedSystemWorkerFilter}</span>
+                    <span style={{ fontWeight: 600 }}>已联动筛选 Worker：</span>
+                    <span style={{ borderRadius: '9999px', backgroundColor: LK.surface, padding: '4px 8px', fontFamily: MONO }}>{selectedSystemWorkerFilter}</span>
                     <button
                       type="button"
                       onClick={() => setSelectedSystemWorkerFilter('')}
@@ -4781,14 +4821,14 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
                         { label: '运行中', value: systemWorkerDetailState.data?.busy_slots ?? '-', hint: 'active running jobs' },
                         { label: '空闲 / 排队', value: `${systemWorkerDetailState.data?.available_slots ?? '-'} / ${systemWorkerDetailState.data?.queued_jobs ?? '-'}`, hint: 'available slots / queued jobs' },
                       ].map((item) => (
-                        <div key={item.label} className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
-                          <div className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-400">{item.label}</div>
+                        <div key={item.label} style={{ borderRadius: '12px', border: `1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised, padding: '12px 16px' }}>
+                          <div style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.16em', color: LK.muted }}>{item.label}</div>
                           <div className="mt-2 text-lg font-black text-slate-900">{item.value}</div>
-                          <div className="mt-1 text-xs text-slate-500">{item.hint}</div>
+                          <div style={{ marginTop: '4px', fontSize: '12px', color: LK.muted }}>{item.hint}</div>
                         </div>
                       ))}
                     </div>
-                    <div className="mt-4 space-y-3">
+                    <div style={{ marginTop: '16px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
                       {(systemWorkerDetailState.data?.workers || []).length ? (
                         asArray(systemWorkerDetailState.data?.workers).map((worker) => (
                           <div
@@ -4798,39 +4838,39 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
                               worker.healthy ? 'border-slate-200 bg-slate-50/70' : 'border-rose-200 bg-rose-50/80'
                             } ${selectedSystemWorkerFilter === worker.worker_id ? 'ring-2 ring-sky-300 ring-offset-1' : 'cursor-pointer hover:border-sky-200'}`}
                           >
-                            <div className="flex flex-wrap items-start justify-between gap-3">
-                              <div className="min-w-0">
-                                <div className="flex flex-wrap items-center gap-2">
-                                  <div className="text-sm font-black text-slate-900">{worker.host_name || worker.worker_id}</div>
+                            <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'flex-start', justifyContent: 'space-between', gap: '12px' }}>
+                              <div style={{ minWidth: 0 }}>
+                                <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '8px' }}>
+                                  <div style={{ fontSize: '14px', fontWeight: 600, color: LK.ink }}>{worker.host_name || worker.worker_id}</div>
                                   <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${worker.healthy ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'}`}>
                                     {worker.healthy ? 'healthy' : 'unhealthy'}
                                   </span>
-                                  <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-bold text-slate-600">
+                                  <span style={{ borderRadius: '9999px', backgroundColor: LK.surfaceRaised, padding: '2px 8px', fontSize: '10px', fontWeight: 600, color: LK.body }}>
                                     活动任务 {asArray(worker.active_jobs).length}
                                   </span>
                                 </div>
                                 <div className="mt-1 font-mono text-[11px] text-slate-400 break-all">{worker.worker_id}</div>
-                                <div className="mt-2 flex flex-wrap gap-3 text-xs text-slate-500">
+                                <div style={{ marginTop: '8px', display: 'flex', flexWrap: 'wrap', gap: '12px', fontSize: '12px', color: LK.muted }}>
                                   <span>槽位 {worker.running_jobs}/{worker.max_concurrent_jobs}</span>
                                   <span>空闲 {worker.available_slots}</span>
                                   <span>来源 {worker.source || 'runner_registry'}</span>
                                   <span>心跳 {worker.last_heartbeat_at ? formatTime(new Date(worker.last_heartbeat_at).getTime()) : '-'}</span>
                                 </div>
                                 <div className="mt-2 text-[11px] text-sky-700">点击可联动过滤下方 Prometheus Samples</div>
-                                {worker.error ? <div className="mt-2 text-xs text-rose-600">{worker.error}</div> : null}
+                                {worker.error ? <div style={{ marginTop: '8px', fontSize: '12px', color: LK.error }}>{worker.error}</div> : null}
                               </div>
                             </div>
                             <div className="mt-3 grid gap-2 lg:grid-cols-2">
                               {asArray(worker.active_jobs).length ? (
                                 asArray(worker.active_jobs).map((job) => (
                                   <div key={`${worker.worker_id}:${job.task_id}`} className="rounded-xl border border-slate-200 bg-white px-3 py-3">
-                                    <div className="flex flex-wrap items-center gap-2">
+                                    <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '8px' }}>
                                       <div className="min-w-0 truncate text-sm font-bold text-slate-900" title={job.task_id}>{job.task_id}</div>
-                                      <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-bold text-slate-600">{job.status}</span>
+                                      <span style={{ borderRadius: '9999px', backgroundColor: LK.surfaceRaised, padding: '2px 8px', fontSize: '10px', fontWeight: 600, color: LK.body }}>{job.status}</span>
                                     </div>
                                     <div className="mt-2 space-y-1 text-xs text-slate-500">
                                       <div className="font-mono break-all">task_id: {job.task_id}</div>
-                                      <div className="truncate" title={job.input_path || '-'}>input: {job.input_path || '-'}</div>
+                                      <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={job.input_path || '-'}>input: {job.input_path || '-'}</div>
                                       <div>mode: {job.analysis_mode || '-'}</div>
                                       <div>owner: {worker.host_name || worker.worker_id}</div>
                                       <div>lease: {job.execution_lease_until ? formatTime(new Date(job.execution_lease_until).getTime()) : '-'}</div>
@@ -4861,19 +4901,19 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
               </div>
 
               <div className="grid gap-4 xl:grid-cols-[minmax(0,1.2fr)_minmax(0,0.8fr)]">
-                <div className="rounded-[1.6rem] border border-sky-100 bg-white/85 p-4 shadow-sm">
-                  <div className="flex items-center justify-between gap-3">
+                <div style={{ borderRadius: '12px', border: `1px solid ${LK.info}`, backgroundColor: 'rgba(79, 140, 255, 0.1)', padding: '16px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px' }}>
                     <div>
-                      <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">阶段健康</div>
-                      <h3 className="mt-2 text-lg font-black tracking-tight text-slate-900">Stage 健康矩阵</h3>
+                      <div style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.18em', color: LK.muted }}>阶段健康</div>
+                      <h3 style={{ marginTop: '8px', fontSize: '18px', fontWeight: 600, letterSpacing: '-0.02em', color: LK.ink }}>Stage 健康矩阵</h3>
                     </div>
                     <span className="inline-flex rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-[11px] font-bold text-slate-500">
                       runs / duration / score / cost
                     </span>
                   </div>
-                  <div className="mt-4 overflow-auto rounded-2xl border border-slate-200">
+                  <div style={{ marginTop: '16px', overflow: 'auto', borderRadius: '12px', border: `1px solid ${LK.border}` }}>
                     <table className="min-w-full divide-y divide-slate-200 text-left text-xs">
-                      <thead className="bg-slate-50 text-slate-500">
+                      <thead style={{ backgroundColor: LK.surfaceRaised, color: LK.muted }}>
                         <tr>
                           <th className="px-3 py-3">阶段</th>
                           <th className="px-3 py-3">运行</th>
@@ -4884,22 +4924,22 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
                           <th className="px-3 py-3">均成本</th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-slate-100 bg-white">
+                      <tbody style={{ display: 'flex', flexDirection: 'column', borderBottom: `1px solid ${LK.borderSoft}`, backgroundColor: LK.surface }}>
                         {systemAnalysisViewModel.stageRows.length ? (
                           systemAnalysisViewModel.stageRows.map((row) => (
-                            <tr key={row.stage} className="hover:bg-slate-50">
+                            <tr key={row.stage} style={{ cursor: 'pointer', transition: 'background-color 0.15s' }}>
                               <td className="px-3 py-3 font-mono text-[11px] font-bold text-slate-800">{row.stage}</td>
-                              <td className="px-3 py-3 font-mono text-[11px] text-slate-700">
+                              <td style={{ padding: '12px', fontFamily: MONO, fontSize: '11px', color: LK.inkSoft }}>
                                 {formatNumber(row.totalRuns)} / {formatNumber(row.successRuns)} / {formatNumber(row.failedRuns)}
                                 <div className="text-[10px] text-slate-400">all / ok / fail</div>
                               </td>
                               <td className={`px-3 py-3 font-mono text-[11px] font-bold ${(row.successRate || 0) < 70 ? 'text-rose-700' : 'text-emerald-700'}`}>
                                 {row.successRate == null ? '-' : `${formatNumber(row.successRate, 1)}%`}
                               </td>
-                              <td className="px-3 py-3 font-mono text-[11px] text-slate-800">{formatSeconds(row.avgDurationSeconds)}</td>
-                              <td className="px-3 py-3 font-mono text-[11px] text-slate-800">{formatNumber(row.avgRounds, 2)}</td>
-                              <td className="px-3 py-3 font-mono text-[11px] text-slate-800">{formatNumber(row.avgScore, 1)}</td>
-                              <td className="px-3 py-3 font-mono text-[11px] text-slate-800">{formatMetricValue(row.avgCost ?? Number.NaN)}</td>
+                              <td style={{ padding: '12px', fontFamily: MONO, fontSize: '11px', color: LK.ink }}>{formatSeconds(row.avgDurationSeconds)}</td>
+                              <td style={{ padding: '12px', fontFamily: MONO, fontSize: '11px', color: LK.ink }}>{formatNumber(row.avgRounds, 2)}</td>
+                              <td style={{ padding: '12px', fontFamily: MONO, fontSize: '11px', color: LK.ink }}>{formatNumber(row.avgScore, 1)}</td>
+                              <td style={{ padding: '12px', fontFamily: MONO, fontSize: '11px', color: LK.ink }}>{formatMetricValue(row.avgCost ?? Number.NaN)}</td>
                             </tr>
                           ))
                         ) : (
@@ -4915,30 +4955,30 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
                 </div>
 
                 <div className="space-y-4">
-                  <div className="rounded-[1.6rem] border border-sky-100 bg-white/85 p-4 shadow-sm">
-                    <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">运行风险</div>
+                  <div style={{ borderRadius: '12px', border: `1px solid ${LK.info}`, backgroundColor: 'rgba(79, 140, 255, 0.1)', padding: '16px' }}>
+                    <div style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.18em', color: LK.muted }}>运行风险</div>
                     <div className="mt-3 grid gap-3">
                       {systemAnalysisViewModel.riskAlerts.map((alert) => (
                         <div key={alert.label} className={`rounded-2xl border px-4 py-3 shadow-sm ${alert.tone}`}>
-                          <div className="text-sm font-black">{alert.label}</div>
+                          <div style={{ fontSize: '14px', fontWeight: 600 }}>{alert.label}</div>
                           <div className="mt-1 text-xs leading-5 opacity-85">{alert.text}</div>
                         </div>
                       ))}
                     </div>
                   </div>
 
-                  <div className="rounded-[1.6rem] border border-sky-100 bg-white/85 p-4 shadow-sm">
-                    <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">失败归因</div>
-                    <div className="mt-3 space-y-2">
+                  <div style={{ borderRadius: '12px', border: `1px solid ${LK.info}`, backgroundColor: 'rgba(79, 140, 255, 0.1)', padding: '16px' }}>
+                    <div style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.18em', color: LK.muted }}>失败归因</div>
+                    <div style={{ marginTop: '12px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
                       {systemAnalysisViewModel.failureCategories.length ? (
                         systemAnalysisViewModel.failureCategories.slice(0, 6).map((item) => (
-                          <div key={item.label} className="flex items-center justify-between gap-3 rounded-xl border border-slate-100 bg-slate-50 px-3 py-2">
-                            <div className="text-xs font-black text-slate-700">{item.label}</div>
+                          <div key={item.label} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', borderRadius: '8px', border: `1px solid ${LK.borderSoft}`, backgroundColor: LK.surfaceRaised, padding: '8px 12px' }}>
+                            <div style={{ fontSize: '12px', fontWeight: 600, color: LK.inkSoft }}>{item.label}</div>
                             <div className={`font-mono text-sm font-black ${item.tone}`}>{formatNumber(item.value)}</div>
                           </div>
                         ))
                       ) : (
-                        <div className="rounded-xl border border-dashed border-slate-200 px-3 py-6 text-center text-sm text-slate-500">暂无失败分类指标。</div>
+                        <div style={{ borderRadius: '8px', border: `1px dashed ${LK.border}`, padding: '24px 12px', textAlign: 'center', fontSize: '14px', color: LK.muted }}>暂无失败分类指标。</div>
                       )}
                     </div>
                   </div>
@@ -4951,14 +4991,14 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
                   { title: 'AI 成本', items: systemAnalysisViewModel.costCards },
                   { title: '质量收益', items: systemAnalysisViewModel.qualityCards },
                 ].map((block) => (
-                  <div key={block.title} className="rounded-[1.6rem] border border-sky-100 bg-white/85 p-4 shadow-sm">
-                    <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">{block.title}</div>
+                  <div key={block.title} style={{ borderRadius: '12px', border: `1px solid ${LK.info}`, backgroundColor: 'rgba(79, 140, 255, 0.1)', padding: '16px' }}>
+                    <div style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.18em', color: LK.muted }}>{block.title}</div>
                     <div className="mt-3 grid gap-2">
                       {block.items.map((item) => (
-                        <div key={item.label} className="flex items-center justify-between gap-3 rounded-xl border border-slate-100 bg-slate-50 px-3 py-2">
+                        <div key={item.label} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', borderRadius: '8px', border: `1px solid ${LK.borderSoft}`, backgroundColor: LK.surfaceRaised, padding: '8px 12px' }}>
                           <div>
-                            <div className="text-xs font-black text-slate-700">{item.label}</div>
-                            <div className="text-[11px] text-slate-500">{item.hint}</div>
+                            <div style={{ fontSize: '12px', fontWeight: 600, color: LK.inkSoft }}>{item.label}</div>
+                            <div style={{ fontSize: '11px', color: LK.muted }}>{item.hint}</div>
                           </div>
                           <div className={`font-mono text-sm font-black ${item.tone}`}>{item.value}</div>
                         </div>
@@ -4969,15 +5009,15 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
               </div>
 
               <div className="grid gap-4 xl:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)]">
-                <div className="rounded-[1.6rem] border border-sky-100 bg-white/85 p-4 shadow-sm">
-                  <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">断点续跑</div>
-                  <h3 className="mt-2 text-lg font-black tracking-tight text-slate-900">续跑有效性</h3>
+                <div style={{ borderRadius: '12px', border: `1px solid ${LK.info}`, backgroundColor: 'rgba(79, 140, 255, 0.1)', padding: '16px' }}>
+                  <div style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.18em', color: LK.muted }}>断点续跑</div>
+                  <h3 style={{ marginTop: '8px', fontSize: '18px', fontWeight: 600, letterSpacing: '-0.02em', color: LK.ink }}>续跑有效性</h3>
                   <div className="mt-4 grid gap-3 sm:grid-cols-2">
                     {systemAnalysisViewModel.checkpointCards.map((item) => (
-                      <div key={item.label} className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
-                        <div className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-400">{item.label}</div>
+                      <div key={item.label} style={{ borderRadius: '12px', border: `1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised, padding: '12px 16px' }}>
+                        <div style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.16em', color: LK.muted }}>{item.label}</div>
                         <div className={`mt-2 text-xl font-black ${item.tone}`}>{item.value}</div>
-                        <div className="mt-1 text-xs text-slate-500">{item.hint}</div>
+                        <div style={{ marginTop: '4px', fontSize: '12px', color: LK.muted }}>{item.hint}</div>
                       </div>
                     ))}
                   </div>
@@ -5002,13 +5042,13 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
                   </div>
                 </div>
 
-                <div className="rounded-[1.6rem] border border-sky-100 bg-white/85 p-4 shadow-sm">
-                  <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">并发治理</div>
-                  <h3 className="mt-2 text-lg font-black tracking-tight text-slate-900">并发命中率</h3>
-                  <p className="mt-2 text-sm text-slate-500">
+                <div style={{ borderRadius: '12px', border: `1px solid ${LK.info}`, backgroundColor: 'rgba(79, 140, 255, 0.1)', padding: '16px' }}>
+                  <div style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.18em', color: LK.muted }}>并发治理</div>
+                  <h3 style={{ marginTop: '8px', fontSize: '18px', fontWeight: 600, letterSpacing: '-0.02em', color: LK.ink }}>并发命中率</h3>
+                  <p style={{ marginTop: '8px', fontSize: '14px', color: LK.muted }}>
                     这里用 `tasks_running / workers(capacity)` 观察当前命中情况，同时把 slack 和 pending 一起摆出来，方便判断是容量不够还是调度没打满。
                   </p>
-                  <div className="mt-4 h-72">
+                  <div style={{ marginTop: '16px', height: '288px' }}>
                     {systemAnalysisViewModel.concurrencyChart.some((item) => item.value > 0) ? (
                       <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={240}>
                         <BarChart data={systemAnalysisViewModel.concurrencyChart} margin={{ top: 8, right: 12, left: 0, bottom: 8 }}>
@@ -5030,21 +5070,21 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
                 </div>
               </div>
 
-              <div className="rounded-[1.6rem] border border-sky-100 bg-white/85 p-4 shadow-sm">
-                <div className="flex flex-wrap items-start justify-between gap-4">
+              <div style={{ borderRadius: '12px', border: `1px solid ${LK.info}`, backgroundColor: 'rgba(79, 140, 255, 0.1)', padding: '16px' }}>
+                <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'flex-start', justifyContent: 'space-between', gap: '16px' }}>
                   <div>
-                    <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">阶段关联</div>
-                    <h3 className="mt-2 text-lg font-black tracking-tight text-slate-900">并发拖慢嫌疑阶段</h3>
-                    <p className="mt-2 text-sm text-slate-500">
+                    <div style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.18em', color: LK.muted }}>阶段关联</div>
+                    <h3 style={{ marginTop: '8px', fontSize: '18px', fontWeight: 600, letterSpacing: '-0.02em', color: LK.ink }}>并发拖慢嫌疑阶段</h3>
+                    <p style={{ marginTop: '8px', fontSize: '14px', color: LK.muted }}>
                       用 `运行中轮次 + 平均时长 + 成功率惩罚` 组合成轻量 pressure score，优先找最可能影响并发命中率的阶段。
                     </p>
                   </div>
                   <div className="flex flex-wrap gap-3">
                     {systemAnalysisViewModel.stagePressureCards.map((item) => (
-                      <div key={item.label} className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
-                        <div className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-400">{item.label}</div>
+                      <div key={item.label} style={{ borderRadius: '12px', border: `1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised, padding: '12px 16px' }}>
+                        <div style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.16em', color: LK.muted }}>{item.label}</div>
                         <div className={`mt-2 text-lg font-black ${item.tone}`}>{item.value}</div>
-                        <div className="mt-1 text-xs text-slate-500">{item.hint}</div>
+                        <div style={{ marginTop: '4px', fontSize: '12px', color: LK.muted }}>{item.hint}</div>
                       </div>
                     ))}
                   </div>
@@ -5075,9 +5115,9 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
                     {systemAnalysisViewModel.stagePressureRows.length ? (
                       systemAnalysisViewModel.stagePressureRows.map((item) => (
                         <div key={item.stage} className="flex items-center justify-between gap-3 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
-                          <div className="min-w-0">
+                          <div style={{ minWidth: 0 }}>
                             <div className="truncate text-sm font-black text-slate-800">{item.stage}</div>
-                            <div className="mt-1 text-xs text-slate-500">
+                            <div style={{ marginTop: '4px', fontSize: '12px', color: LK.muted }}>
                               running {formatNumber(item.runningRuns)} · avg {formatSeconds(item.avgDurationSeconds)} · success {item.successRate == null ? '-' : `${formatNumber(item.successRate, 1)}%`}
                             </div>
                           </div>
@@ -5091,9 +5131,9 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
                 </div>
               </div>
 
-              <div className="rounded-[1.6rem] border border-sky-100 bg-white/85 p-4 shadow-sm">
-                <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">指标口径</div>
-                <h3 className="mt-2 text-lg font-black tracking-tight text-slate-900">系统分析观测说明</h3>
+              <div style={{ borderRadius: '12px', border: `1px solid ${LK.info}`, backgroundColor: 'rgba(79, 140, 255, 0.1)', padding: '16px' }}>
+                <div style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.18em', color: LK.muted }}>指标口径</div>
+                <h3 style={{ marginTop: '8px', fontSize: '18px', fontWeight: 600, letterSpacing: '-0.02em', color: LK.ink }}>系统分析观测说明</h3>
                 <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
                   {[
                     {
@@ -5113,7 +5153,7 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
                       text: '由 `运行中轮次 + 平均时长 + 成功率惩罚` 组合得到，用于快速找出最可能拖慢并发的 stage。',
                     },
                   ].map((item) => (
-                    <div key={item.label} className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
+                    <div key={item.label} style={{ borderRadius: '12px', border: `1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised, padding: '12px 16px' }}>
                       <div className="text-xs font-black text-slate-800">{item.label}</div>
                       <div className="mt-2 text-[11px] leading-5 text-slate-500">{item.text}</div>
                     </div>
@@ -5132,11 +5172,11 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
 
           {firmwareUnpackerViewModel ? (
             <section className="space-y-4 rounded-[2rem] border border-amber-200 bg-[radial-gradient(circle_at_top_left,_rgba(245,158,11,0.12),_transparent_34%),linear-gradient(180deg,#ffffff_0%,#fff7ed_100%)] p-5 shadow-sm">
-              <div className="flex flex-wrap items-start justify-between gap-4">
+              <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'flex-start', justifyContent: 'space-between', gap: '16px' }}>
                 <div>
                   <div className="text-[11px] font-black uppercase tracking-[0.22em] text-amber-700">Firmware Unpacker Health</div>
-                  <h2 className="mt-2 text-xl font-black tracking-tight text-slate-900">固件解包运行健康</h2>
-                  <p className="mt-2 max-w-3xl text-sm text-slate-600">
+                  <h2 style={{ marginTop: '8px', fontSize: '20px', fontWeight: 600, letterSpacing: '-0.02em', color: LK.ink }}>固件解包运行健康</h2>
+                  <p style={{ marginTop: '8px', maxWidth: '48rem', fontSize: '14px', color: LK.inkSoft }}>
                     优先展示任务状态、队列积压、Worker 在线能力、并发槽位和清理异常；原始 Prometheus 样本仍保留在下方用于排障。
                   </p>
                 </div>
@@ -5145,20 +5185,20 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
                 </span>
               </div>
 
-              <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-6">
+              <div style={{ display: 'grid', gap: '12px', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))' }}>
                 {firmwareUnpackerViewModel.kpis.map((item) => (
                   <div key={item.label} className="rounded-2xl border border-amber-100 bg-white/85 px-4 py-3 shadow-sm">
-                    <div className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-400">{item.label}</div>
+                    <div style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.16em', color: LK.muted }}>{item.label}</div>
                     <div className={`mt-2 text-2xl font-black ${item.tone}`}>{item.value}</div>
-                    <div className="mt-1 text-xs text-slate-500">{item.hint}</div>
+                    <div style={{ marginTop: '4px', fontSize: '12px', color: LK.muted }}>{item.hint}</div>
                   </div>
                 ))}
               </div>
 
-              <div className="grid gap-3 xl:grid-cols-3">
+              <div style={{ display: 'grid', gap: '12px', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))' }}>
                 {firmwareUnpackerViewModel.alerts.map((alert) => (
                   <div key={alert.label} className={`rounded-2xl border px-4 py-3 shadow-sm ${alert.tone}`}>
-                    <div className="text-sm font-black">{alert.label}</div>
+                    <div style={{ fontSize: '14px', fontWeight: 600 }}>{alert.label}</div>
                     <div className="mt-1 text-xs leading-5 opacity-85">{alert.text}</div>
                   </div>
                 ))}
@@ -5172,7 +5212,7 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
                   { title: 'HTTP 请求 Top 6', data: firmwareUnpackerViewModel.httpTop.map((item) => ({ ...item, fill: '#0f766e' })) },
                 ].map((chart) => (
                   <div key={chart.title} className="rounded-[1.6rem] border border-amber-100 bg-white/85 p-4 shadow-sm">
-                    <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">{chart.title}</div>
+                    <div style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.18em', color: LK.muted }}>{chart.title}</div>
                     <div className="mt-3 h-64">
                       {chart.data.some((item) => item.value > 0) ? (
                         <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={240}>
@@ -5198,25 +5238,25 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
 
               <div className="grid gap-4 xl:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)]">
                 <div className="rounded-[1.6rem] border border-amber-100 bg-white/85 p-4 shadow-sm">
-                  <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">异常 / 调度 / 清理</div>
+                  <div style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.18em', color: LK.muted }}>异常 / 调度 / 清理</div>
                   <div className="mt-3 grid gap-2 md:grid-cols-2">
                     {firmwareUnpackerViewModel.operations.map((item) => (
                       <div key={item.label} className="rounded-xl border border-slate-100 bg-slate-50 px-3 py-2">
-                        <div className="text-xs font-black text-slate-700">{item.label}</div>
+                        <div style={{ fontSize: '12px', fontWeight: 600, color: LK.inkSoft }}>{item.label}</div>
                         <div className={`mt-1 text-lg font-black ${item.tone}`}>{formatNumber(item.value)}</div>
-                        <div className="text-[11px] text-slate-500">{item.hint}</div>
+                        <div style={{ fontSize: '11px', color: LK.muted }}>{item.hint}</div>
                       </div>
                     ))}
                   </div>
                 </div>
                 <div className="rounded-[1.6rem] border border-amber-100 bg-white/85 p-4 shadow-sm">
-                  <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">AI / Token / Cost</div>
+                  <div style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.18em', color: LK.muted }}>AI / Token / Cost</div>
                   <div className="mt-3 grid gap-2">
                     {firmwareUnpackerViewModel.aiSummary.map((item) => (
-                      <div key={item.label} className="flex items-center justify-between gap-3 rounded-xl border border-slate-100 bg-slate-50 px-3 py-2">
+                      <div key={item.label} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', borderRadius: '8px', border: `1px solid ${LK.borderSoft}`, backgroundColor: LK.surfaceRaised, padding: '8px 12px' }}>
                         <div>
-                          <div className="text-xs font-black text-slate-700">{item.label}</div>
-                          <div className="text-[11px] text-slate-500">{item.hint}</div>
+                          <div style={{ fontSize: '12px', fontWeight: 600, color: LK.inkSoft }}>{item.label}</div>
+                          <div style={{ fontSize: '11px', color: LK.muted }}>{item.hint}</div>
                         </div>
                         <div className={`font-mono text-sm font-black ${item.tone}`}>{item.value}</div>
                       </div>
@@ -5234,18 +5274,18 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
             />
           ) : (
             <section className="grid gap-4 xl:grid-cols-[minmax(0,1.4fr)_minmax(320px,0.9fr)]">
-              <div className="rounded-[2rem] border border-slate-200 bg-white p-5 shadow-sm">
-                <div className="flex items-center justify-between gap-3">
+              <div style={{ borderRadius: '12px', border: `1px solid ${LK.border}`, backgroundColor: LK.surface, padding: '20px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px' }}>
                   <div>
-                    <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">热点指标</div>
-                    <h2 className="mt-2 text-xl font-black tracking-tight text-slate-900">关键样本 Top 8</h2>
+                    <div style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.18em', color: LK.muted }}>热点指标</div>
+                    <h2 style={{ marginTop: '8px', fontSize: '20px', fontWeight: 600, letterSpacing: '-0.02em', color: LK.ink }}>关键样本 Top 8</h2>
                   </div>
                   <span className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-[11px] font-bold text-slate-500">
                     <BarChart3 size={12} />
                     当前快照
                   </span>
                 </div>
-                <div className="mt-4 h-72">
+                <div style={{ marginTop: '16px', height: '288px' }}>
                   {viewModel.chartData.length ? (
                     <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={240}>
                       <BarChart data={viewModel.chartData} margin={{ top: 8, right: 12, left: 0, bottom: 8 }}>
@@ -5262,17 +5302,17 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
                 </div>
               </div>
 
-              <div className="rounded-[2rem] border border-slate-200 bg-white p-5 shadow-sm">
-                <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">关键摘要</div>
-                <h2 className="mt-2 text-xl font-black tracking-tight text-slate-900">高优先级指标</h2>
-                <div className="mt-4 space-y-3">
+              <div style={{ borderRadius: '12px', border: `1px solid ${LK.border}`, backgroundColor: LK.surface, padding: '20px' }}>
+                <div style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.18em', color: LK.muted }}>关键摘要</div>
+                <h2 style={{ marginTop: '8px', fontSize: '20px', fontWeight: 600, letterSpacing: '-0.02em', color: LK.ink }}>高优先级指标</h2>
+                <div style={{ marginTop: '16px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
                   {viewModel.insights.length ? (
                     viewModel.insights.slice(0, 8).map((item) => (
-                      <div key={item.label} className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
-                        <div className="flex items-center justify-between gap-3">
+                      <div key={item.label} style={{ borderRadius: '12px', border: `1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised, padding: '12px 16px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px' }}>
                           <div>
                             <div className="text-sm font-black text-slate-800">{item.label}</div>
-                            <div className="mt-1 text-xs text-slate-500">{item.hint}</div>
+                            <div style={{ marginTop: '4px', fontSize: '12px', color: LK.muted }}>{item.hint}</div>
                           </div>
                           <div className="text-right">
                             <div className="text-lg font-black text-slate-900">{formatMetricValue(item.value)}</div>
@@ -5291,7 +5331,7 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
                 <div className="mt-5 grid gap-2 sm:grid-cols-2">
                   {viewModel.groupCounts.map((item) => (
                     <div key={item.group} className="rounded-xl border border-slate-200 bg-white px-3 py-2">
-                      <div className="text-[11px] font-black uppercase tracking-[0.14em] text-slate-400">{GROUP_LABELS[item.group]}</div>
+                      <div style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.14em', color: LK.muted }}>{GROUP_LABELS[item.group]}</div>
                       <div className="mt-1 text-base font-black text-slate-800">{formatNumber(item.count)}</div>
                     </div>
                   ))}
@@ -5300,22 +5340,22 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
             </section>
           )}
 
-          <section className="rounded-[2rem] border border-slate-200 bg-white p-5 shadow-sm">
-            <div className="flex flex-wrap items-start justify-between gap-4">
+          <section style={{ borderRadius: '12px', border: `1px solid ${LK.border}`, backgroundColor: LK.surface, padding: '20px' }}>
+            <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'flex-start', justifyContent: 'space-between', gap: '16px' }}>
               <div>
-                <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">原始指标</div>
-                <h2 className="mt-2 text-xl font-black tracking-tight text-slate-900">Prometheus Samples</h2>
+                <div style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.18em', color: LK.muted }}>原始指标</div>
+                <h2 style={{ marginTop: '8px', fontSize: '20px', fontWeight: 600, letterSpacing: '-0.02em', color: LK.ink }}>Prometheus Samples</h2>
                 {activeServiceKey === 'dataflow-vuln' ? (
                   <p className="mt-2 max-w-3xl text-sm text-slate-500">默认聚焦 cycle、runtime、AI、plugin 与 execution/queue 相关样本，避免全量 Prometheus 噪音淹没业务信号。</p>
                 ) : null}
               </div>
-              <div className="flex flex-wrap gap-2">
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
                 {activeServiceKey === 'dataflow-vuln' ? <DataflowVulnSampleScopeFilter activeScope={dataflowVulnSampleScope} onChange={setDataflowVulnSampleScope} /> : null}
-                <div className="relative">
-                  <Search size={14} className="pointer-events-none absolute left-3 top-2.5 text-slate-400" />
+                <div style={{ position: 'relative' }}>
+                  <Search size={14} style={{ pointerEvents: 'none', position: 'absolute', left: '12px', top: '10px', color: LK.muted }} />
                   <input value={searchKeyword} onChange={(event) => setSearchKeyword(event.target.value)} placeholder="搜索指标名 / labels / help" className="rounded-xl border border-slate-200 py-2 pl-9 pr-3 text-sm text-slate-700" />
                 </div>
-                <select value={groupFilter} onChange={(event) => setGroupFilter(event.target.value as 'all' | BinarySecurityMetricsGroup)} className="rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-700">
+                <select value={groupFilter} onChange={(event) => setGroupFilter(event.target.value as 'all' | BinarySecurityMetricsGroup)} style={{ borderRadius: '8px', border: `1px solid ${LK.border}`, padding: '8px 12px', fontSize: '14px', color: LK.inkSoft }}>
                   <option value="all">全部分组</option>
                   {(Object.keys(GROUP_LABELS) as BinarySecurityMetricsGroup[]).map((group) => (
                     <option key={group} value={group}>{GROUP_LABELS[group]}</option>
@@ -5325,8 +5365,8 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
             </div>
             {activeServiceKey === 'dataflow-analysis' && selectedDfaWorkerFilter ? (
               <div className="mt-3 flex flex-wrap items-center gap-2 rounded-2xl border border-cyan-200 bg-cyan-50 px-4 py-3 text-xs text-cyan-800">
-                <span className="font-bold">当前按 DFA Worker 过滤：</span>
-                <span className="rounded-full bg-white px-2 py-1 font-mono">{selectedDfaWorkerFilter}</span>
+                <span style={{ fontWeight: 600 }}>当前按 DFA Worker 过滤：</span>
+                <span style={{ borderRadius: '9999px', backgroundColor: LK.surface, padding: '4px 8px', fontFamily: MONO }}>{selectedDfaWorkerFilter}</span>
                 <button
                   type="button"
                   onClick={() => setSelectedDfaWorkerFilter('')}
@@ -5338,8 +5378,8 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
             ) : null}
             {activeServiceKey === 'system-analysis' && selectedSystemWorkerFilter ? (
               <div className="mt-3 flex flex-wrap items-center gap-2 rounded-2xl border border-sky-200 bg-sky-50 px-4 py-3 text-xs text-sky-800">
-                <span className="font-bold">当前按 SA Worker 过滤：</span>
-                <span className="rounded-full bg-white px-2 py-1 font-mono">{selectedSystemWorkerFilter}</span>
+                <span style={{ fontWeight: 600 }}>当前按 SA Worker 过滤：</span>
+                <span style={{ borderRadius: '9999px', backgroundColor: LK.surface, padding: '4px 8px', fontFamily: MONO }}>{selectedSystemWorkerFilter}</span>
                 <button
                   type="button"
                   onClick={() => setSelectedSystemWorkerFilter('')}
@@ -5351,8 +5391,8 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
             ) : null}
             {activeServiceKey === 'entry-analysis' && selectedEntryWorkerFilter ? (
               <div className="mt-3 flex flex-wrap items-center gap-2 rounded-2xl border border-indigo-200 bg-indigo-50 px-4 py-3 text-xs text-indigo-800">
-                <span className="font-bold">当前按 Entry Worker 过滤：</span>
-                <span className="rounded-full bg-white px-2 py-1 font-mono">{selectedEntryWorkerFilter}</span>
+                <span style={{ fontWeight: 600 }}>当前按 Entry Worker 过滤：</span>
+                <span style={{ borderRadius: '9999px', backgroundColor: LK.surface, padding: '4px 8px', fontFamily: MONO }}>{selectedEntryWorkerFilter}</span>
                 <button
                   type="button"
                   onClick={() => setSelectedEntryWorkerFilter('')}
@@ -5363,9 +5403,9 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
               </div>
             ) : null}
 
-            <div className="mt-4 overflow-auto rounded-2xl border border-slate-200">
+            <div style={{ marginTop: '16px', overflow: 'auto', borderRadius: '12px', border: `1px solid ${LK.border}` }}>
               <table className="min-w-full divide-y divide-slate-200 text-left text-xs">
-                <thead className="bg-slate-50 text-slate-500">
+                <thead style={{ backgroundColor: LK.surfaceRaised, color: LK.muted }}>
                   <tr>
                     <th className="px-3 py-3">指标名</th>
                     <th className="px-3 py-3">Labels</th>
@@ -5374,9 +5414,9 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
                     <th className="px-3 py-3">Group</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100 bg-white">
+                <tbody style={{ display: 'flex', flexDirection: 'column', borderBottom: `1px solid ${LK.borderSoft}`, backgroundColor: LK.surface }}>
                   {filteredRows.map((row) => (
-                    <tr key={`${row.name}:${row.labelText}`} className="hover:bg-slate-50">
+                    <tr key={`${row.name}:${row.labelText}`} style={{ cursor: 'pointer', transition: 'background-color 0.15s' }}>
                       <td className="px-3 py-3 align-top">
                         <div className="font-mono text-[11px] font-bold text-slate-800">{row.name}</div>
                         {row.help ? <div className="mt-1 max-w-[34rem] text-[11px] text-slate-500">{row.help}</div> : null}
@@ -5399,17 +5439,17 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
         </>
       ) : activeSecondaryTab === 'reducer' ? (
         activeServiceKey !== 'binary-security' ? (
-          <section className="rounded-[2rem] border border-slate-200 bg-white px-6 py-12 text-center shadow-sm">
+          <section style={{ borderRadius: '12px', border: `1px solid ${LK.border}`, backgroundColor: LK.surface, padding: '48px 24px', textAlign: 'center' }}>
             <div className="mx-auto max-w-2xl">
               <div className="text-[11px] font-black uppercase tracking-[0.24em] text-slate-400">Reducer</div>
-              <h2 className="mt-2 text-2xl font-black tracking-tight text-slate-900">当前服务无独立 reducer 观测</h2>
+              <h2 style={{ marginTop: '8px', fontSize: '24px', fontWeight: 600, letterSpacing: '-0.02em', color: LK.ink }}>当前服务无独立 reducer 观测</h2>
               <p className="mt-3 text-sm text-slate-500">
                 `Reducer` Tab 当前只对 `二进制安全编排器` 开放，用来持续观测状态事件队列、收口时延、死信、锁竞争和落盘行为。
               </p>
             </div>
           </section>
         ) : reducerMetricsState.loading && !reducerMetricsState.rawText ? (
-          <section className="rounded-[2rem] border border-slate-200 bg-white px-6 py-12 text-center shadow-sm">
+          <section style={{ borderRadius: '12px', border: `1px solid ${LK.border}`, backgroundColor: LK.surface, padding: '48px 24px', textAlign: 'center' }}>
             <Loader2 className="mx-auto animate-spin text-slate-400" size={24} />
             <p className="mt-4 text-sm text-slate-500">正在抓取 reducer 指标...</p>
           </section>
@@ -5419,15 +5459,15 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
           </section>
         ) : reducerViewModel ? (
           <section className="space-y-4 rounded-[2rem] border border-slate-200 bg-[radial-gradient(circle_at_top_left,_rgba(20,184,166,0.08),_transparent_36%),linear-gradient(180deg,#ffffff_0%,#f8fafc_100%)] p-5 shadow-sm">
-            <div className="flex flex-wrap items-start justify-between gap-4">
+            <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'flex-start', justifyContent: 'space-between', gap: '16px' }}>
               <div>
                 <div className="text-[11px] font-black uppercase tracking-[0.22em] text-teal-600">Reducer Watch</div>
-                <h2 className="mt-2 text-2xl font-black tracking-tight text-slate-900">状态收口观测</h2>
+                <h2 style={{ marginTop: '8px', fontSize: '24px', fontWeight: 600, letterSpacing: '-0.02em', color: LK.ink }}>状态收口观测</h2>
                 <p className="mt-2 max-w-3xl text-sm text-slate-500">
                   持续观测 reducer 是否在及时消费状态事件、是否出现队列积压、锁竞争、死信和文件落盘异常，专门对应“下游已恢复但父任务仍然失败/不收敛”的问题。
                 </p>
               </div>
-              <div className="flex flex-wrap gap-2">
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
                 <span className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white/80 px-3 py-1 text-[11px] font-bold text-slate-600">
                   <TrendingUp size={12} />
                   历史窗口 {formatNumber(reducerViewModel.timeSeries.length)} 点
@@ -5477,7 +5517,7 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
             <div className="grid gap-3 xl:grid-cols-4">
               {reducerViewModel.queueCards.map((item) => (
                 <div key={item.label} className={`rounded-[1.4rem] border px-4 py-4 shadow-sm ${item.tone}`}>
-                  <div className="flex items-center justify-between gap-3">
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px' }}>
                     <div className="text-[11px] font-black uppercase tracking-[0.18em]">{item.label}</div>
                     <span>{item.icon}</span>
                   </div>
@@ -5487,19 +5527,19 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
               ))}
             </div>
 
-            <div className="grid gap-4 xl:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)]">
-              <div className="rounded-[1.6rem] border border-slate-200 bg-white p-4 shadow-sm">
-                <div className="flex items-center justify-between gap-3">
+            <div style={{ display: 'grid', gap: '16px', gridTemplateColumns: '1.05fr 0.95fr' }}>
+              <div style={{ borderRadius: '12px', border: `1px solid ${LK.border}`, backgroundColor: LK.surface, padding: '16px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px' }}>
                   <div>
-                    <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">队列走势</div>
-                    <h3 className="mt-2 text-xl font-black tracking-tight text-slate-900">Pending / Retryable / Dead Letter</h3>
+                    <div style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.18em', color: LK.muted }}>队列走势</div>
+                    <h3 style={{ marginTop: '8px', fontSize: '20px', fontWeight: 600, letterSpacing: '-0.02em', color: LK.ink }}>Pending / Retryable / Dead Letter</h3>
                   </div>
                   <span className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-[11px] font-bold text-slate-500">
                     <BarChart3 size={12} />
                     客户端历史
                   </span>
                 </div>
-                <div className="mt-4 h-72">
+                <div style={{ marginTop: '16px', height: '288px' }}>
                   {reducerViewModel.timeSeries.length ? (
                     <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={240}>
                       <LineChart data={reducerViewModel.timeSeries} margin={{ top: 8, right: 12, left: 0, bottom: 8 }}>
@@ -5518,10 +5558,10 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
                 </div>
               </div>
 
-              <div className="rounded-[1.6rem] border border-slate-200 bg-white p-4 shadow-sm">
-                <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">收口时延</div>
-                <h3 className="mt-2 text-xl font-black tracking-tight text-slate-900">事件老化 / 平均耗时</h3>
-                <div className="mt-4 h-72">
+              <div style={{ borderRadius: '12px', border: `1px solid ${LK.border}`, backgroundColor: LK.surface, padding: '16px' }}>
+                <div style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.18em', color: LK.muted }}>收口时延</div>
+                <h3 style={{ marginTop: '8px', fontSize: '20px', fontWeight: 600, letterSpacing: '-0.02em', color: LK.ink }}>事件老化 / 平均耗时</h3>
+                <div style={{ marginTop: '16px', height: '288px' }}>
                   {reducerViewModel.timeSeries.length ? (
                     <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={240}>
                       <LineChart data={reducerViewModel.timeSeries} margin={{ top: 8, right: 12, left: 0, bottom: 8 }}>
@@ -5542,22 +5582,22 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
             </div>
 
             <div className="grid gap-4 xl:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)]">
-              <div className="rounded-[1.6rem] border border-slate-200 bg-white p-4 shadow-sm">
-                <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">即时状态</div>
-                <h3 className="mt-2 text-xl font-black tracking-tight text-slate-900">队列快照与处理均值</h3>
+              <div style={{ borderRadius: '12px', border: `1px solid ${LK.border}`, backgroundColor: LK.surface, padding: '16px' }}>
+                <div style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.18em', color: LK.muted }}>即时状态</div>
+                <h3 style={{ marginTop: '8px', fontSize: '20px', fontWeight: 600, letterSpacing: '-0.02em', color: LK.ink }}>队列快照与处理均值</h3>
                 <div className="mt-4 grid gap-3 sm:grid-cols-2">
                   {reducerViewModel.healthSummary.map((item) => (
-                    <div key={item.label} className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
-                      <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">{item.label}</div>
+                    <div key={item.label} style={{ borderRadius: '12px', border: `1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised, padding: '12px 16px' }}>
+                      <div style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.18em', color: LK.muted }}>{item.label}</div>
                       <div className={`mt-2 text-2xl font-black ${item.tone}`}>{item.value}</div>
-                      <div className="mt-1 text-xs text-slate-500">{item.hint}</div>
+                      <div style={{ marginTop: '4px', fontSize: '12px', color: LK.muted }}>{item.hint}</div>
                     </div>
                   ))}
                 </div>
 
                 <div className="mt-4 grid gap-4 sm:grid-cols-2">
-                  <div className="rounded-2xl border border-slate-200 bg-white p-3">
-                    <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">Queue Depth</div>
+                  <div style={{ borderRadius: '12px', border: `1px solid ${LK.border}`, backgroundColor: LK.surface, padding: '12px' }}>
+                    <div style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.18em', color: LK.muted }}>Queue Depth</div>
                     <div className="mt-3 h-48">
                       <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={240}>
                         <BarChart data={reducerViewModel.queueBarData} margin={{ top: 8, right: 12, left: 0, bottom: 8 }}>
@@ -5575,8 +5615,8 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
                     </div>
                   </div>
 
-                  <div className="rounded-2xl border border-slate-200 bg-white p-3">
-                    <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">Oldest Age</div>
+                  <div style={{ borderRadius: '12px', border: `1px solid ${LK.border}`, backgroundColor: LK.surface, padding: '12px' }}>
+                    <div style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.18em', color: LK.muted }}>Oldest Age</div>
                     <div className="mt-3 h-48">
                       <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={240}>
                         <BarChart data={reducerViewModel.ageBarData} margin={{ top: 8, right: 12, left: 0, bottom: 8 }}>
@@ -5605,25 +5645,25 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
             </div>
           </section>
         ) : (
-          <section className="rounded-[2rem] border border-slate-200 bg-white px-6 py-12 text-center shadow-sm">
-            <p className="text-sm text-slate-500">Reducer 指标还没有准备好，请刷新后重试。</p>
+          <section style={{ borderRadius: '12px', border: `1px solid ${LK.border}`, backgroundColor: LK.surface, padding: '48px 24px', textAlign: 'center' }}>
+            <p style={{ fontSize: '14px', color: LK.muted }}>Reducer 指标还没有准备好，请刷新后重试。</p>
           </section>
         )
       ) : activeSecondaryTab === 'agent' ? (
         agentObservabilityEnabled ? (
           <div className="space-y-4">
             <section className="rounded-[2rem] border border-cyan-200 bg-[radial-gradient(circle_at_top_left,_rgba(8,145,178,0.10),_transparent_36%),linear-gradient(180deg,#ffffff_0%,#ecfeff_100%)] p-5 shadow-sm">
-              <div className="flex flex-wrap items-start justify-between gap-4">
+              <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'flex-start', justifyContent: 'space-between', gap: '16px' }}>
                 <div>
                   <div className="text-[11px] font-black uppercase tracking-[0.2em] text-cyan-700">
                     {activeServiceKey === 'dataflow-analysis' ? 'DFA Agent Runtime' : activeServiceKey === 'entry-analysis' ? 'Entry Agent Runtime' : 'System Agent Runtime'}
                   </div>
-                  <h2 className="mt-2 text-2xl font-black tracking-tight text-slate-900">按 Worker Pod 展开的智能体运行面板</h2>
-                  <p className="mt-2 max-w-3xl text-sm text-slate-600">
+                  <h2 style={{ marginTop: '8px', fontSize: '24px', fontWeight: 600, letterSpacing: '-0.02em', color: LK.ink }}>按 Worker Pod 展开的智能体运行面板</h2>
+                  <p style={{ marginTop: '8px', maxWidth: '48rem', fontSize: '14px', color: LK.inkSoft }}>
                     这里直接消费 worker 公共智能体运行层的聚合快照，不再复用旧的进程/会话聚合表。重点看每个 Pod 里实际活着的智能体进程、任务归属，以及已确认孤儿和疑似孤儿。
                   </p>
                 </div>
-                <div className="flex flex-wrap gap-2">
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
                   <button
                     type="button"
                     onClick={() => void loadAgentObservability(activeServiceKey)}
@@ -5703,45 +5743,45 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
                   { label: 'Pod 缺口', value: `${formatNumber(unifiedAgentRuntimeViewModel?.slotOnlyPods)} / ${formatNumber(unifiedAgentRuntimeViewModel?.agentOnlyPods)}`, hint: 'slot_only / agent_only', tone: (Number(unifiedAgentRuntimeViewModel?.slotOnlyPods || 0) + Number(unifiedAgentRuntimeViewModel?.agentOnlyPods || 0)) > 0 ? 'text-amber-700' : 'text-emerald-700' },
                 ].map((item) => (
                   <div key={item.label} className="rounded-2xl border border-cyan-100 bg-white/85 px-4 py-3 shadow-sm">
-                    <div className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-400">{item.label}</div>
+                    <div style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.16em', color: LK.muted }}>{item.label}</div>
                     <div className={`mt-2 text-2xl font-black ${item.tone}`}>{item.value}</div>
-                    <div className="mt-1 text-xs text-slate-500">{item.hint}</div>
+                    <div style={{ marginTop: '4px', fontSize: '12px', color: LK.muted }}>{item.hint}</div>
                   </div>
                 ))}
               </div>
             </section>
 
-            <section className="rounded-[2rem] border border-slate-200 bg-white p-5 shadow-sm">
-              <div className="flex flex-wrap items-start justify-between gap-4">
+            <section style={{ borderRadius: '12px', border: `1px solid ${LK.border}`, backgroundColor: LK.surface, padding: '20px' }}>
+              <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'flex-start', justifyContent: 'space-between', gap: '16px' }}>
                 <div>
-                  <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">本地过滤</div>
-                  <h3 className="mt-2 text-xl font-black tracking-tight text-slate-900">按 Pod / 任务 / PID / 归属筛选</h3>
+                  <div style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.18em', color: LK.muted }}>本地过滤</div>
+                  <h3 style={{ marginTop: '8px', fontSize: '20px', fontWeight: 600, letterSpacing: '-0.02em', color: LK.ink }}>按 Pod / 任务 / PID / 归属筛选</h3>
                 </div>
                 <div className="text-xs text-slate-500">
                   每个 worker Pod 独立成表，只展示真实智能体进程，再反查关联任务
                 </div>
               </div>
-              <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-5">
-                <div className="relative">
-                  <Search size={14} className="pointer-events-none absolute left-3 top-2.5 text-slate-400" />
+              <div style={{ marginTop: '16px', display: 'grid', gap: '12px', gridTemplateColumns: 'repeat(5, minmax(0, 1fr))' }}>
+                <div style={{ position: 'relative' }}>
+                  <Search size={14} style={{ pointerEvents: 'none', position: 'absolute', left: '12px', top: '10px', color: LK.muted }} />
                   <input value={dfaAgentPodKeyword} onChange={(event) => setDfaAgentPodKeyword(event.target.value)} placeholder="筛选 Pod 名 / worker_id" className="w-full rounded-xl border border-slate-200 py-2 pl-9 pr-3 text-sm text-slate-700" />
                 </div>
-                <div className="relative">
-                  <Search size={14} className="pointer-events-none absolute left-3 top-2.5 text-slate-400" />
+                <div style={{ position: 'relative' }}>
+                  <Search size={14} style={{ pointerEvents: 'none', position: 'absolute', left: '12px', top: '10px', color: LK.muted }} />
                   <input value={dfaAgentTaskKeyword} onChange={(event) => setDfaAgentTaskKeyword(event.target.value)} placeholder="筛选 task id / task name" className="w-full rounded-xl border border-slate-200 py-2 pl-9 pr-3 text-sm text-slate-700" />
                 </div>
-                <div className="relative">
-                  <Search size={14} className="pointer-events-none absolute left-3 top-2.5 text-slate-400" />
+                <div style={{ position: 'relative' }}>
+                  <Search size={14} style={{ pointerEvents: 'none', position: 'absolute', left: '12px', top: '10px', color: LK.muted }} />
                   <input value={dfaAgentPidKeyword} onChange={(event) => setDfaAgentPidKeyword(event.target.value)} placeholder="筛选 PID / PGID / PPID" className="w-full rounded-xl border border-slate-200 py-2 pl-9 pr-3 text-sm text-slate-700" />
                 </div>
-                <select value={dfaAgentOwnerFilter} onChange={(event) => setDfaAgentOwnerFilter(event.target.value as 'all' | 'tracked' | 'residual' | 'unknown' | 'suspected_orphan')} className="rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-700">
+                <select value={dfaAgentOwnerFilter} onChange={(event) => setDfaAgentOwnerFilter(event.target.value as 'all' | 'tracked' | 'residual' | 'unknown' | 'suspected_orphan')} style={{ borderRadius: '8px', border: `1px solid ${LK.border}`, padding: '8px 12px', fontSize: '14px', color: LK.inkSoft }}>
                   <option value="all">全部归属</option>
                   <option value="tracked">正常进程</option>
                   <option value="residual">残留进程</option>
                   <option value="suspected_orphan">疑似孤儿</option>
                   <option value="unknown">未归属进程</option>
                 </select>
-                <select value={dfaAgentRoleFilter} onChange={(event) => setDfaAgentRoleFilter(event.target.value)} className="rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-700">
+                <select value={dfaAgentRoleFilter} onChange={(event) => setDfaAgentRoleFilter(event.target.value)} style={{ borderRadius: '8px', border: `1px solid ${LK.border}`, padding: '8px 12px', fontSize: '14px', color: LK.inkSoft }}>
                   <option value="all">全部角色</option>
                   {dfaAgentRoleOptions.map((role) => (
                     <option key={role} value={role}>{role}</option>
@@ -5757,7 +5797,7 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
 
             <section className="space-y-3">
               {agentState.loading && !agentState.refreshedAt ? (
-                <section className="rounded-[2rem] border border-slate-200 bg-white px-6 py-12 text-center shadow-sm">
+                <section style={{ borderRadius: '12px', border: `1px solid ${LK.border}`, backgroundColor: LK.surface, padding: '48px 24px', textAlign: 'center' }}>
                   <Loader2 className="mx-auto animate-spin text-slate-400" size={24} />
                   <p className="mt-4 text-sm text-slate-500">
                     正在抓取{activeServiceKey === 'dataflow-analysis' ? '数据流分析' : activeServiceKey === 'entry-analysis' ? '入口分析' : '系统分析'} worker Pod 智能体概览...
@@ -5765,7 +5805,7 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
                 </section>
               ) : !agentState.podsLoaded ? (
                 <section className="rounded-[2rem] border border-dashed border-slate-200 bg-white px-6 py-12 text-center shadow-sm">
-                  <p className="text-sm text-slate-500">当前只加载了聚合概览。点击“加载 Pod 列表”后再查看各 Worker Pod 详情。</p>
+                  <p style={{ fontSize: '14px', color: LK.muted }}>当前只加载了聚合概览。点击“加载 Pod 列表”后再查看各 Worker Pod 详情。</p>
                 </section>
               ) : filteredDfaPods.length ? (
                 filteredDfaPods.map((pod) => {
@@ -5776,13 +5816,13 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
                         onClick={() => openAgentPodDialog(activeServiceKey, pod.pod_name)}
                         className="flex w-full flex-wrap items-start justify-between gap-4 px-5 py-4 text-left"
                       >
-                        <div className="min-w-0">
-                          <div className="flex flex-wrap items-center gap-2">
+                        <div style={{ minWidth: 0 }}>
+                          <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '8px' }}>
                             <div className="text-base font-black text-slate-900">{pod.pod_name}</div>
                             <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${pod.healthy ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'}`}>
                               {pod.healthy ? 'healthy' : 'partial/unhealthy'}
                             </span>
-                            <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-bold text-slate-600">
+                            <span style={{ borderRadius: '9999px', backgroundColor: LK.surfaceRaised, padding: '2px 8px', fontSize: '10px', fontWeight: 600, color: LK.body }}>
                               worker {pod.worker_id || '-'}
                             </span>
                             {pod.mismatch !== 'none' ? (
@@ -5791,7 +5831,7 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
                               </span>
                             ) : null}
                           </div>
-                          <div className="mt-2 flex flex-wrap gap-3 text-xs text-slate-500">
+                          <div style={{ marginTop: '8px', display: 'flex', flexWrap: 'wrap', gap: '12px', fontSize: '12px', color: LK.muted }}>
                             <span>槽位 {formatNumber(pod.running_jobs)}/{formatNumber(pod.max_concurrent_jobs)}</span>
                             <span>空闲 {formatNumber(pod.available_slots)}</span>
                             <span>排队 {formatNumber(pod.queued_jobs)}</span>
@@ -5804,10 +5844,10 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
                             <span>扫描 {pod.last_scanned_at ? formatTime(new Date(pod.last_scanned_at).getTime()) : '-'}</span>
                           </div>
                           {pod.scan_errors ? (
-                            <div className="mt-2 text-xs text-rose-600">scan errors: {formatNumber(pod.scan_errors)}</div>
+                            <div style={{ marginTop: '8px', fontSize: '12px', color: LK.error }}>scan errors: {formatNumber(pod.scan_errors)}</div>
                           ) : null}
                           {pod.error ? (
-                            <div className="mt-2 text-xs text-rose-600">{pod.error}</div>
+                            <div style={{ marginTop: '8px', fontSize: '12px', color: LK.error }}>{pod.error}</div>
                           ) : null}
                         </div>
                         <div className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-bold text-slate-600">
@@ -5818,15 +5858,15 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
                   );
                 })
               ) : (
-                <section className="rounded-[2rem] border border-slate-200 bg-white px-6 py-12 text-center shadow-sm">
-                  <p className="text-sm text-slate-500">当前没有匹配过滤条件的 worker Pod 运行态。</p>
+                <section style={{ borderRadius: '12px', border: `1px solid ${LK.border}`, backgroundColor: LK.surface, padding: '48px 24px', textAlign: 'center' }}>
+                  <p style={{ fontSize: '14px', color: LK.muted }}>当前没有匹配过滤条件的 worker Pod 运行态。</p>
                 </section>
               )}
             </section>
             {agentKillHistory.length ? (
-              <section className="rounded-[2rem] border border-slate-200 bg-white p-5 shadow-sm">
-                <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">最近处置</div>
-                <div className="mt-3 space-y-2">
+              <section style={{ borderRadius: '12px', border: `1px solid ${LK.border}`, backgroundColor: LK.surface, padding: '20px' }}>
+                <div style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.18em', color: LK.muted }}>最近处置</div>
+                <div style={{ marginTop: '12px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
                   {agentKillHistory.map((entry) => (
                     <div key={entry.id} className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-xs text-slate-600">
                       <div className="font-bold text-slate-800">{entry.scope}</div>
@@ -5855,8 +5895,8 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
                     <X size={18} />
                   </button>
                   <div className="flex flex-wrap items-start justify-between gap-4 border-b border-slate-200 px-6 py-5">
-                    <div className="min-w-0">
-                      <div className="flex flex-wrap items-center gap-2">
+                    <div style={{ minWidth: 0 }}>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '8px' }}>
                         <div className="text-xl font-black tracking-tight text-slate-900">{activeAgentPodCard.pod_name}</div>
                         <span className={`rounded-full px-2.5 py-1 text-[11px] font-bold ${activeAgentPodCard.healthy ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'}`}>
                           {activeAgentPodCard.healthy ? 'healthy' : 'partial/unhealthy'}
@@ -5878,7 +5918,7 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
                         <span>扫描 {activeAgentPodCard.last_scanned_at ? formatTime(new Date(activeAgentPodCard.last_scanned_at).getTime()) : '-'}</span>
                       </div>
                       {activeAgentPodCard.error ? (
-                        <div className="mt-2 text-xs text-rose-600">{activeAgentPodCard.error}</div>
+                        <div style={{ marginTop: '8px', fontSize: '12px', color: LK.error }}>{activeAgentPodCard.error}</div>
                       ) : null}
                     </div>
                     <div className="flex flex-wrap items-center gap-3">
@@ -5936,14 +5976,14 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
                     <section className="rounded-[1.8rem] border border-slate-200 bg-slate-50/60 p-5">
                       <div className="flex flex-wrap items-center justify-between gap-3">
                         <div>
-                          <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">关联任务</div>
-                          <h4 className="mt-2 text-lg font-black tracking-tight text-slate-900">Task Ownership</h4>
+                          <div style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.18em', color: LK.muted }}>关联任务</div>
+                          <h4 style={{ marginTop: '8px', fontSize: '18px', fontWeight: 600, letterSpacing: '-0.02em', color: LK.ink }}>Task Ownership</h4>
                         </div>
                         <div className="text-xs font-semibold text-slate-500">共 {formatNumber(activeAgentPodTasks.length)} 条</div>
                       </div>
                       <div className="mt-4 overflow-auto rounded-2xl border border-slate-200 bg-white">
                         <table className="min-w-[980px] divide-y divide-slate-200 text-left text-xs">
-                          <thead className="bg-slate-50 text-slate-500">
+                          <thead style={{ backgroundColor: LK.surfaceRaised, color: LK.muted }}>
                             <tr>
                               <th className="px-3 py-3">任务</th>
                               <th className="px-3 py-3">状态</th>
@@ -5953,10 +5993,10 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
                               <th className="px-3 py-3">关联进程</th>
                             </tr>
                           </thead>
-                          <tbody className="divide-y divide-slate-100 bg-white">
+                          <tbody style={{ display: 'flex', flexDirection: 'column', borderBottom: `1px solid ${LK.borderSoft}`, backgroundColor: LK.surface }}>
                             {activeAgentPodTasks.length ? (
                               activeAgentPodTasks.map((task) => (
-                                <tr key={`${activeAgentPodCard.pod_name}:${task.task_id}:${task.stage_key || '-'}`} className="hover:bg-slate-50">
+                                <tr key={`${activeAgentPodCard.pod_name}:${task.task_id}:${task.stage_key || '-'}`} style={{ cursor: 'pointer', transition: 'background-color 0.15s' }}>
                                   <td className="px-3 py-3 align-top">
                                     <button
                                       type="button"
@@ -5988,7 +6028,7 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
                                   </td>
                                   <td className="px-3 py-3 text-slate-700">{task.stage_key || '-'}</td>
                                   <td className="px-3 py-3 text-slate-700">{asArray(task.agent_roles).join(', ') || '-'}</td>
-                                  <td className="px-3 py-3 font-mono text-[11px] text-slate-700">{asArray(task.process_pids).join(', ') || '-'}</td>
+                                  <td style={{ padding: '12px', fontFamily: MONO, fontSize: '11px', color: LK.inkSoft }}>{asArray(task.process_pids).join(', ') || '-'}</td>
                                 </tr>
                               ))
                             ) : (
@@ -6006,8 +6046,8 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
                     <section className="rounded-[1.8rem] border border-slate-200 bg-slate-50/60 p-5">
                       <div className="flex flex-wrap items-center justify-between gap-3">
                         <div>
-                          <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">智能体进程</div>
-                          <h4 className="mt-2 text-lg font-black tracking-tight text-slate-900">Processes</h4>
+                          <div style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.18em', color: LK.muted }}>智能体进程</div>
+                          <h4 style={{ marginTop: '8px', fontSize: '18px', fontWeight: 600, letterSpacing: '-0.02em', color: LK.ink }}>Processes</h4>
                         </div>
                         <div className="text-xs font-semibold text-slate-500">
                           共 {formatNumber(activeAgentPodProcesses.length)} 条，可终止 {formatNumber(activeAgentPodKillablePids.length)} 条
@@ -6015,7 +6055,7 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
                       </div>
                       <div className="mt-4 overflow-auto rounded-2xl border border-slate-200 bg-white">
                         <table className="min-w-[1480px] divide-y divide-slate-200 text-left text-xs">
-                          <thead className="bg-slate-50 text-slate-500">
+                          <thead style={{ backgroundColor: LK.surfaceRaised, color: LK.muted }}>
                             <tr>
                               <th className="px-3 py-3">
                                 <input
@@ -6038,10 +6078,10 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
                               <th className="px-3 py-3">操作</th>
                             </tr>
                           </thead>
-                          <tbody className="divide-y divide-slate-100 bg-white">
+                          <tbody style={{ display: 'flex', flexDirection: 'column', borderBottom: `1px solid ${LK.borderSoft}`, backgroundColor: LK.surface }}>
                             {activeAgentPodProcesses.length ? (
                               activeAgentPodProcesses.map((process) => (
-                                <tr key={`${activeAgentPodCard.pod_name}:${process.pid}`} className="hover:bg-slate-50">
+                                <tr key={`${activeAgentPodCard.pod_name}:${process.pid}`} style={{ cursor: 'pointer', transition: 'background-color 0.15s' }}>
                                   <td className="px-3 py-3 align-top">
                                     <input
                                       type="checkbox"
@@ -6051,13 +6091,13 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
                                       className="h-4 w-4 rounded border-slate-300 text-rose-600 focus:ring-rose-500"
                                     />
                                   </td>
-                                  <td className="px-3 py-3 font-mono text-[11px] text-slate-700">
+                                  <td style={{ padding: '12px', fontFamily: MONO, fontSize: '11px', color: LK.inkSoft }}>
                                     <div>PID {process.pid}</div>
                                     <div className="text-slate-400">PGID {process.pgid ?? '-'} / PPID {process.ppid ?? '-'}</div>
                                   </td>
                                   <td className="px-3 py-3">
                                     <div className="font-semibold text-slate-700">{process.runtime_kind || '-'}</div>
-                                    <div className="mt-1 text-[10px] text-slate-400">{process.role_kind || '-'}</div>
+                                    <div style={{ marginTop: '4px', fontSize: '10px', color: LK.muted }}>{process.role_kind || '-'}</div>
                                   </td>
                                   <td className="px-3 py-3 align-top">
                                     {process.task_id ? (
@@ -6082,7 +6122,7 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
                                   </td>
                                   <td className="px-3 py-3">
                                     <div className="text-slate-700">{process.task_status || '-'}</div>
-                                    <div className="mt-1 text-[10px] text-slate-400">{process.stage_key || '-'}</div>
+                                    <div style={{ marginTop: '4px', fontSize: '10px', color: LK.muted }}>{process.stage_key || '-'}</div>
                                   </td>
                                   <td className="px-3 py-3">
                                     <span className={`inline-flex rounded-full px-2 py-0.5 text-[10px] font-bold ${resolveAgentOwnerKindBadge(process.owner_kind)}`}>
@@ -6091,13 +6131,13 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
                                   </td>
                                   <td className="px-3 py-3 text-[11px] text-slate-500">
                                     <div>{process.owner_reason || '-'}</div>
-                                    {process.kill_block_reason ? <div className="mt-1 text-[10px] text-slate-400">{process.kill_block_reason}</div> : null}
+                                    {process.kill_block_reason ? <div style={{ marginTop: '4px', fontSize: '10px', color: LK.muted }}>{process.kill_block_reason}</div> : null}
                                   </td>
-                                  <td className="px-3 py-3 font-mono text-[11px] text-slate-700">{formatBytes(process.rss_bytes)}</td>
+                                  <td style={{ padding: '12px', fontFamily: MONO, fontSize: '11px', color: LK.inkSoft }}>{formatBytes(process.rss_bytes)}</td>
                                   <td className="px-3 py-3 align-top text-[11px] text-slate-500">
                                     <div className="max-w-[22rem] break-all">{process.cwd || '-'}</div>
                                     {process.workspace_root ? <div className="mt-1 max-w-[22rem] break-all text-slate-400">workspace: {process.workspace_root}</div> : null}
-                                    {process.match_source || process.match_confidence ? <div className="mt-1 text-[10px] text-slate-400">match: {process.match_source || '-'} / {process.match_confidence || '-'}</div> : null}
+                                    {process.match_source || process.match_confidence ? <div style={{ marginTop: '4px', fontSize: '10px', color: LK.muted }}>match: {process.match_source || '-'} / {process.match_confidence || '-'}</div> : null}
                                   </td>
                                   <td className="px-3 py-3 align-top text-[11px] text-slate-500">
                                     <div className="max-w-[26rem] break-all font-mono">{process.command || '-'}</div>
@@ -6138,10 +6178,10 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
             ) : null}
           </div>
         ) : (
-          <section className="rounded-[2rem] border border-slate-200 bg-white px-6 py-12 text-center shadow-sm">
+          <section style={{ borderRadius: '12px', border: `1px solid ${LK.border}`, backgroundColor: LK.surface, padding: '48px 24px', textAlign: 'center' }}>
             <div className="mx-auto max-w-2xl">
               <div className="text-[11px] font-black uppercase tracking-[0.24em] text-slate-400">Agent</div>
-              <h2 className="mt-2 text-2xl font-black tracking-tight text-slate-900">当前服务未接入智能体观测</h2>
+              <h2 style={{ marginTop: '8px', fontSize: '24px', fontWeight: 600, letterSpacing: '-0.02em', color: LK.ink }}>当前服务未接入智能体观测</h2>
               <p className="mt-3 text-sm text-slate-500">
                 `智能体` Tab 当前仅对入口分析、系统分析和数据流分析开放。其他服务继续使用 `AI专区` 查看 AI 指标。
               </p>
@@ -6150,11 +6190,11 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
         )
       ) : (
         <>
-          <section className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
+          <section style={{ borderRadius: '12px', border: `1px solid ${LK.border}`, backgroundColor: LK.surface, padding: '24px' }}>
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
                 <div className="text-[11px] font-black uppercase tracking-[0.18em] text-fuchsia-500">AI/智能体</div>
-                <h2 className="mt-2 text-2xl font-black tracking-tight text-slate-900">AI专区</h2>
+                <h2 style={{ marginTop: '8px', fontSize: '24px', fontWeight: 600, letterSpacing: '-0.02em', color: LK.ink }}>AI专区</h2>
                 <p className="mt-2 max-w-3xl text-sm text-slate-500">{effectiveAiViewModel.coverageText}</p>
               </div>
               <div className={`inline-flex rounded-full border px-3 py-1 text-xs font-black ${AI_COVERAGE_BADGE[effectiveAiViewModel.coverage]}`}>
@@ -6181,16 +6221,16 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
                   </section>
 
                   <section className="grid gap-4 xl:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
-                    <div className="rounded-[2rem] border border-slate-200 bg-white p-5 shadow-sm">
-                      <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">埋点覆盖</div>
-                      <h3 className="mt-2 text-xl font-black tracking-tight text-slate-900">AI 指标摘要</h3>
+                    <div style={{ borderRadius: '12px', border: `1px solid ${LK.border}`, backgroundColor: LK.surface, padding: '20px' }}>
+                      <div style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.18em', color: LK.muted }}>埋点覆盖</div>
+                      <h3 style={{ marginTop: '8px', fontSize: '20px', fontWeight: 600, letterSpacing: '-0.02em', color: LK.ink }}>AI 指标摘要</h3>
                       <div className="mt-4 grid gap-3 sm:grid-cols-2">
                         <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4">
-                          <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">识别到的 AI 指标族</div>
+                          <div style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.18em', color: LK.muted }}>识别到的 AI 指标族</div>
                           <div className="mt-3 text-3xl font-black text-slate-900">{formatNumber(effectiveAiViewModel.familyCount)}</div>
                         </div>
                         <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4">
-                          <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">Canonical 契约</div>
+                          <div style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.18em', color: LK.muted }}>Canonical 契约</div>
                           <div className="mt-3 text-base font-black text-slate-900">{effectiveAiViewModel.coverageLabel}</div>
                         </div>
                       </div>
@@ -6209,10 +6249,10 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
                       </div>
                     </div>
 
-                    <div className="rounded-[2rem] border border-slate-200 bg-white p-5 shadow-sm">
-                      <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">角色分布</div>
-                      <h3 className="mt-2 text-xl font-black tracking-tight text-slate-900">AI 角色分布图</h3>
-                      <div className="mt-4 h-72">
+                    <div style={{ borderRadius: '12px', border: `1px solid ${LK.border}`, backgroundColor: LK.surface, padding: '20px' }}>
+                      <div style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.18em', color: LK.muted }}>角色分布</div>
+                      <h3 style={{ marginTop: '8px', fontSize: '20px', fontWeight: 600, letterSpacing: '-0.02em', color: LK.ink }}>AI 角色分布图</h3>
+                      <div style={{ marginTop: '16px', height: '288px' }}>
                         {effectiveAiViewModel.roleChart.length ? (
                           <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={240}>
                             <BarChart data={effectiveAiViewModel.roleChart} margin={{ top: 8, right: 12, left: 0, bottom: 8 }}>
@@ -6230,10 +6270,10 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
                     </div>
                   </section>
 
-                  <section className="rounded-[2rem] border border-slate-200 bg-white p-5 shadow-sm">
-                    <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">Token / Cost</div>
-                    <h3 className="mt-2 text-xl font-black tracking-tight text-slate-900">AI Token/Cost 图</h3>
-                    <div className="mt-4 h-72">
+                  <section style={{ borderRadius: '12px', border: `1px solid ${LK.border}`, backgroundColor: LK.surface, padding: '20px' }}>
+                    <div style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.18em', color: LK.muted }}>Token / Cost</div>
+                    <h3 style={{ marginTop: '8px', fontSize: '20px', fontWeight: 600, letterSpacing: '-0.02em', color: LK.ink }}>AI Token/Cost 图</h3>
+                    <div style={{ marginTop: '16px', height: '288px' }}>
                       {effectiveAiViewModel.tokenChart.length ? (
                         <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={240}>
                           <BarChart data={effectiveAiViewModel.tokenChart} margin={{ top: 8, right: 12, left: 0, bottom: 8 }}>
@@ -6252,18 +6292,18 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
                 </>
               )}
 
-              <section className="rounded-[2rem] border border-slate-200 bg-white p-5 shadow-sm">
-                <div className="flex flex-wrap items-start justify-between gap-4">
+              <section style={{ borderRadius: '12px', border: `1px solid ${LK.border}`, backgroundColor: LK.surface, padding: '20px' }}>
+                <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'flex-start', justifyContent: 'space-between', gap: '16px' }}>
                   <div>
-                    <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">AI 指标表</div>
-                    <h3 className="mt-2 text-xl font-black tracking-tight text-slate-900">AI/智能体指标明细</h3>
+                    <div style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.18em', color: LK.muted }}>AI 指标表</div>
+                    <h3 style={{ marginTop: '8px', fontSize: '20px', fontWeight: 600, letterSpacing: '-0.02em', color: LK.ink }}>AI/智能体指标明细</h3>
                   </div>
-                  <div className="flex flex-wrap gap-2">
-                    <div className="relative">
-                      <Search size={14} className="pointer-events-none absolute left-3 top-2.5 text-slate-400" />
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                    <div style={{ position: 'relative' }}>
+                      <Search size={14} style={{ pointerEvents: 'none', position: 'absolute', left: '12px', top: '10px', color: LK.muted }} />
                       <input value={aiSearchKeyword} onChange={(event) => setAiSearchKeyword(event.target.value)} placeholder="搜索 AI 指标名 / labels / help" className="rounded-xl border border-slate-200 py-2 pl-9 pr-3 text-sm text-slate-700" />
                     </div>
-                    <select value={aiRoleFilter} onChange={(event) => setAiRoleFilter(event.target.value)} className="rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-700">
+                    <select value={aiRoleFilter} onChange={(event) => setAiRoleFilter(event.target.value)} style={{ borderRadius: '8px', border: `1px solid ${LK.border}`, padding: '8px 12px', fontSize: '14px', color: LK.inkSoft }}>
                       <option value="all">全部角色/类型</option>
                       {aiRoles.map((role) => (
                         <option key={role} value={role}>{role}</option>
@@ -6272,9 +6312,9 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
                   </div>
                 </div>
 
-                <div className="mt-4 overflow-auto rounded-2xl border border-slate-200">
+                <div style={{ marginTop: '16px', overflow: 'auto', borderRadius: '12px', border: `1px solid ${LK.border}` }}>
                   <table className="min-w-full divide-y divide-slate-200 text-left text-xs">
-                    <thead className="bg-slate-50 text-slate-500">
+                    <thead style={{ backgroundColor: LK.surfaceRaised, color: LK.muted }}>
                       <tr>
                         <th className="px-3 py-3">指标名</th>
                         <th className="px-3 py-3">Labels</th>
@@ -6282,9 +6322,9 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
                         <th className="px-3 py-3">Type</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-slate-100 bg-white">
+                    <tbody style={{ display: 'flex', flexDirection: 'column', borderBottom: `1px solid ${LK.borderSoft}`, backgroundColor: LK.surface }}>
                       {aiRows.map((row) => (
-                        <tr key={`${row.name}:${row.labelText}`} className="hover:bg-slate-50">
+                        <tr key={`${row.name}:${row.labelText}`} style={{ cursor: 'pointer', transition: 'background-color 0.15s' }}>
                           <td className="px-3 py-3 align-top">
                             <div className="font-mono text-[11px] font-bold text-slate-800">{row.name}</div>
                             {row.help ? <div className="mt-1 max-w-[34rem] text-[11px] text-slate-500">{row.help}</div> : null}

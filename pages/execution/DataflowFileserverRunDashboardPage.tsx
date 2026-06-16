@@ -26,6 +26,33 @@ import { AppSaSessionEvent } from '../../types/types';
 import { DATAFLOW_DASHBOARD_MIRROR_CSS } from './DataflowFileserverRunDashboardCss';
 import { mergeAgentSessionToolResults, parseAgentSessionJsonlDelta } from './agentSessionParsing';
 
+const LK = {
+  primary: '#4f73ff',
+  primarySoft: '#7590ff',
+  primaryDeep: '#3f63f1',
+  primaryMuted: 'rgba(79, 115, 255, 0.14)',
+  canvas: '#070d18',
+  surface: '#111a2b',
+  surfaceRaised: '#18233a',
+  surfaceGlass: 'rgba(17, 26, 43, 0.84)',
+  border: '#26324a',
+  borderSoft: '#1b2438',
+  ink: '#f5f7ff',
+  inkSoft: '#d6def0',
+  body: '#a4aec4',
+  muted: '#72809a',
+  mutedSoft: '#8b95a8',
+  success: '#45c06f',
+  warning: '#d5a13a',
+  error: '#f15d5d',
+  info: '#4f8cff',
+  critical: '#ff4d4f',
+  high: '#ff8b3d',
+  medium: '#f0b64c',
+  low: '#49c5ff',
+} as const;
+const MONO = 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace';
+
 const DASHBOARD_HTML = `
 <div class="dfv-dashboard-root">
 <div id="app">
@@ -160,42 +187,39 @@ const DASHBOARD_HTML = `
 `;
 
 const DATAFLOW_DASHBOARD_CHIMERA_REFRESH_CSS = `
-/* Chimera visual refresh */
+/* Chimera visual refresh - LOKI dark theme */
 :host {
   display: block;
-  --bg: #f8fafc;
-  --bg-surface: #ffffff;
-  --bg-hover: #f8fafc;
-  --bg-active: #ecfeff;
-  --border: #dbe4ee;
-  --border-accent: #0891b2;
-  --text: #0f172a;
-  --text-muted: #475569;
-  --text-dim: #94a3b8;
-  --text-bright: #020617;
-  --primary: #0891b2;
-  --success: #047857;
-  --warning: #b45309;
-  --error: #be123c;
-  --info: #0369a1;
-  --purple: #7c3aed;
-  --orange: #c2410c;
-  --radius: 18px;
+  --bg: #111a2b;
+  --bg-surface: #111a2b;
+  --bg-hover: #18233a;
+  --bg-active: #18233a;
+  --border: #26324a;
+  --border-accent: #4f73ff;
+  --text: #f5f7ff;
+  --text-muted: #a4aec4;
+  --text-dim: #72809a;
+  --text-bright: #f5f7ff;
+  --primary: #4f73ff;
+  --success: #45c06f;
+  --warning: #d5a13a;
+  --error: #f15d5d;
+  --info: #4f8cff;
+  --purple: #8b5cf6;
+  --orange: #ff8b3d;
+  --radius: 12px;
   --line-height: 20px;
-  --mono: 'SFMono-Regular', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', monospace;
+  --mono: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace';
   --sans: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
 }
 
 :host, .dfv-dashboard-root {
-  background:
-    radial-gradient(circle at top left, rgba(6, 182, 212, 0.12), transparent 24%),
-    radial-gradient(circle at top right, rgba(14, 165, 233, 0.08), transparent 22%),
-    linear-gradient(180deg, #f8fafc 0%, #eef2ff 100%);
+  background: #070d18;
   color: var(--text);
 }
 
 * {
-  scrollbar-color: #cbd5e1 transparent;
+  scrollbar-color: #26324a transparent;
 }
 
 .dfv-dashboard-root {
@@ -213,9 +237,8 @@ const DATAFLOW_DASHBOARD_CHIMERA_REFRESH_CSS = `
   height: auto;
   min-height: 68px;
   padding: 16px 22px;
-  background: rgba(248, 250, 252, 0.92);
-  border-bottom: 1px solid rgba(148, 163, 184, 0.22);
-  box-shadow: 0 12px 28px rgba(15, 23, 42, 0.06);
+  background: rgba(17, 26, 43, 0.84);
+  border-bottom: 1px solid rgba(38, 50, 74, 0.5);
   backdrop-filter: blur(14px);
 }
 
@@ -226,7 +249,7 @@ const DATAFLOW_DASHBOARD_CHIMERA_REFRESH_CSS = `
 
 .header-left h1 {
   font-size: 18px;
-  font-weight: 800;
+  font-weight: 600;
   letter-spacing: -0.01em;
   color: var(--text-bright);
 }
@@ -237,8 +260,8 @@ const DATAFLOW_DASHBOARD_CHIMERA_REFRESH_CSS = `
   width: 34px;
   height: 34px;
   border-radius: 12px;
-  background: linear-gradient(135deg, #ecfeff 0%, #cffafe 100%);
-  box-shadow: inset 0 0 0 1px rgba(8, 145, 178, 0.12);
+  background: linear-gradient(135deg, #18233a 0%, #111a2b 100%);
+  border: 1px solid rgba(79, 115, 255, 0.2);
   font-size: 18px;
 }
 
@@ -272,10 +295,9 @@ const DATAFLOW_DASHBOARD_CHIMERA_REFRESH_CSS = `
   justify-content: space-between;
   gap: 16px;
   padding: 20px;
-  border-radius: 18px;
-  background: #ffffff;
-  border: 1px solid #e2e8f0;
-  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.05);
+  border-radius: 12px;
+  background: #111a2b;
+  border: 1px solid #26324a;
 }
 
 .page-header-copy {
@@ -284,18 +306,18 @@ const DATAFLOW_DASHBOARD_CHIMERA_REFRESH_CSS = `
 }
 
 .page-eyebrow {
-  color: #0e7490;
+  color: #7590ff;
   font-size: 11px;
-  font-weight: 900;
+  font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.2em;
 }
 
 .page-title {
-  color: #020617;
+  color: #f5f7ff;
   font-size: 28px;
   line-height: 1.15;
-  font-weight: 900;
+  font-weight: 600;
   letter-spacing: -0.02em;
 }
 
@@ -311,7 +333,7 @@ const DATAFLOW_DASHBOARD_CHIMERA_REFRESH_CSS = `
 .page-description {
   max-width: 72rem;
   margin-top: 8px;
-  color: #64748b;
+  color: #a4aec4;
   font-size: 14px;
   line-height: 1.7;
 }
@@ -333,38 +355,34 @@ const DATAFLOW_DASHBOARD_CHIMERA_REFRESH_CSS = `
 }
 
 .toggle-slider {
-  background: #cbd5e1;
-  box-shadow: inset 0 0 0 1px rgba(148, 163, 184, 0.26);
+  background: #26324a;
+  border: 1px solid #1b2438;
 }
 
 .toggle-slider::after {
-  background: #ffffff;
-  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.18);
+  background: #a4aec4;
 }
 
 .toggle-label input:checked + .toggle-slider {
-  background: #22d3ee;
+  background: #4f73ff;
 }
 
 .btn {
   min-height: 34px;
   padding: 0 14px;
   border-radius: 999px;
-  background: #ffffff;
-  color: var(--text-muted);
-  border: 1px solid var(--border);
+  background: #18233a;
+  color: #a4aec4;
+  border: 1px solid #26324a;
   font-family: var(--sans);
   font-size: 12px;
-  font-weight: 700;
-  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.05);
+  font-weight: 600;
 }
 
 .btn:hover {
-  background: #f8fafc;
-  border-color: #bae6fd;
-  color: var(--text-bright);
-  transform: translateY(-1px);
-  box-shadow: 0 8px 18px rgba(14, 165, 233, 0.10);
+  background: #26324a;
+  border-color: #4f73ff;
+  color: #f5f7ff;
 }
 
 .btn-sm {
@@ -381,40 +399,40 @@ const DATAFLOW_DASHBOARD_CHIMERA_REFRESH_CSS = `
 
 .btn-back {
   padding: 0 16px;
-  color: #334155;
-  font-weight: 900;
+  color: #d6def0;
+  font-weight: 600;
 }
 
 .btn-close {
-  color: #64748b;
+  color: #a4aec4;
   border-radius: 999px;
 }
 
 .btn-close:hover {
-  color: var(--error);
-  background: rgba(244, 63, 94, 0.08);
+  color: #f15d5d;
+  background: rgba(241, 93, 93, 0.15);
 }
 
 .btn-danger {
-  background: linear-gradient(135deg, #fb7185 0%, #e11d48 100%);
-  color: #ffffff;
+  background: #f15d5d;
+  color: #f5f7ff;
   border-color: transparent;
 }
 
 .btn-danger:hover {
-  background: linear-gradient(135deg, #f43f5e 0%, #be123c 100%);
+  background: #ff4d4f;
   border-color: transparent;
 }
 
 .btn-warning {
-  background: #fffbeb;
-  color: #92400e;
-  border-color: #fde68a;
+  background: #18233a;
+  color: #d5a13a;
+  border-color: #26324a;
 }
 
 .btn-warning:hover {
-  background: #fef3c7;
-  border-color: #fcd34d;
+  background: #26324a;
+  border-color: #d5a13a;
 }
 
 .btn:disabled,
@@ -430,15 +448,14 @@ const DATAFLOW_DASHBOARD_CHIMERA_REFRESH_CSS = `
 .session-header-card,
 .session-group,
 .modal-content {
-  background: rgba(255, 255, 255, 0.94);
-  border: 1px solid rgba(226, 232, 240, 0.92);
-  box-shadow: 0 18px 45px rgba(15, 23, 42, 0.06);
+  background: rgba(17, 26, 43, 0.9);
+  border: 1px solid #26324a;
 }
 
 .welcome {
   min-height: calc(100vh - 210px);
   padding: 48px 28px;
-  border-radius: 28px;
+  border-radius: 12px;
   text-align: center;
 }
 
@@ -448,9 +465,9 @@ const DATAFLOW_DASHBOARD_CHIMERA_REFRESH_CSS = `
   width: 80px;
   height: 80px;
   margin-bottom: 18px;
-  border-radius: 24px;
-  background: linear-gradient(135deg, #ecfeff 0%, #e0f2fe 100%);
-  box-shadow: inset 0 0 0 1px rgba(8, 145, 178, 0.10);
+  border-radius: 12px;
+  background: #18233a;
+  border: 1px solid rgba(79, 115, 255, 0.2);
   font-size: 38px;
   opacity: 1;
 }
@@ -458,7 +475,7 @@ const DATAFLOW_DASHBOARD_CHIMERA_REFRESH_CSS = `
 .welcome h2 {
   margin-bottom: 8px;
   font-size: 24px;
-  font-weight: 800;
+  font-weight: 600;
   color: var(--text-bright);
 }
 
@@ -484,8 +501,8 @@ const DATAFLOW_DASHBOARD_CHIMERA_REFRESH_CSS = `
 .detail-meta span {
   padding: 8px 12px;
   border-radius: 999px;
-  background: #f8fafc;
-  border: 1px solid #e2e8f0;
+  background: #18233a;
+  border: 1px solid #26324a;
 }
 
 .task-state-line {
@@ -518,7 +535,7 @@ const DATAFLOW_DASHBOARD_CHIMERA_REFRESH_CSS = `
   gap: 12px;
   align-items: start;
   padding: 8px 0;
-  border-bottom: 1px solid #e2e8f0;
+  border-bottom: 1px solid #26324a;
 }
 
 .task-config-summary-row:first-child {
@@ -531,15 +548,15 @@ const DATAFLOW_DASHBOARD_CHIMERA_REFRESH_CSS = `
 }
 
 .task-config-summary-label {
-  color: #64748b;
+  color: #a4aec4;
   font-size: 11px;
-  font-weight: 700;
+  font-weight: 600;
   line-height: 1.35;
 }
 
 .task-config-summary-value {
   min-width: 0;
-  color: #0f172a;
+  color: #f5f7ff;
   font-size: 12px;
 }
 
@@ -551,22 +568,22 @@ const DATAFLOW_DASHBOARD_CHIMERA_REFRESH_CSS = `
   display: grid;
   gap: 4px;
   padding: 12px;
-  border: 1px solid #e2e8f0;
-  border-radius: 16px;
-  background: #f8fafc;
+  border: 1px solid #26324a;
+  border-radius: 12px;
+  background: #18233a;
   min-width: 0;
 }
 
 .task-info-row.compact {
   gap: 2px;
   padding: 6px 8px;
-  border-radius: 10px;
+  border-radius: 8px;
 }
 
 .task-info-label {
-  color: #64748b;
+  color: #a4aec4;
   font-size: 11px;
-  font-weight: 800;
+  font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.08em;
 }
@@ -577,7 +594,7 @@ const DATAFLOW_DASHBOARD_CHIMERA_REFRESH_CSS = `
 }
 
 .task-info-value {
-  color: #0f172a;
+  color: #f5f7ff;
   font-family: var(--mono);
   font-size: 12px;
   overflow-wrap: anywhere;
@@ -591,9 +608,9 @@ const DATAFLOW_DASHBOARD_CHIMERA_REFRESH_CSS = `
 .run-command-block {
   margin-top: 14px;
   padding: 14px;
-  border: 1px solid #bae6fd;
-  border-radius: 16px;
-  background: #f0f9ff;
+  border: 1px solid #26324a;
+  border-radius: 12px;
+  background: #18233a;
 }
 
 .run-command-title {
@@ -601,9 +618,9 @@ const DATAFLOW_DASHBOARD_CHIMERA_REFRESH_CSS = `
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  color: #075985;
+  color: #7590ff;
   font-size: 12px;
-  font-weight: 900;
+  font-weight: 600;
 }
 
 .run-command-pre {
@@ -613,10 +630,10 @@ const DATAFLOW_DASHBOARD_CHIMERA_REFRESH_CSS = `
   white-space: pre-wrap;
   overflow-wrap: anywhere;
   padding: 12px;
-  border: 1px solid #bae6fd;
-  border-radius: 12px;
-  background: #fff;
-  color: #0f172a;
+  border: 1px solid #26324a;
+  border-radius: 8px;
+  background: #070d18;
+  color: #f5f7ff;
   font-family: var(--mono);
   font-size: 12px;
   line-height: 18px;
@@ -641,46 +658,45 @@ const DATAFLOW_DASHBOARD_CHIMERA_REFRESH_CSS = `
   border: 1px solid transparent;
   border-radius: 999px;
   background: transparent;
-  color: #64748b;
+  color: #a4aec4;
   font-size: 13px;
-  font-weight: 700;
+  font-weight: 600;
 }
 
 .tab:hover {
   color: var(--text-bright);
-  background: rgba(255, 255, 255, 0.72);
-  border-color: rgba(186, 230, 253, 0.92);
+  background: rgba(24, 35, 58, 0.8);
+  border-color: rgba(79, 115, 255, 0.3);
 }
 
 .tab.active {
   color: var(--text-bright);
-  background: #ffffff;
-  border-bottom-color: #bae6fd;
-  border-color: #bae6fd;
-  box-shadow: 0 8px 18px rgba(14, 165, 233, 0.10);
+  background: #18233a;
+  border-bottom-color: #4f73ff;
+  border-color: #4f73ff;
 }
 
 .tab-danger {
   margin-left: auto;
-  background: rgba(255, 241, 242, 0.96);
+  background: rgba(241, 93, 93, 0.2);
   color: var(--error) !important;
 }
 
 .tab-danger:hover {
-  background: #ffe4e6;
+  background: rgba(241, 93, 93, 0.3);
 }
 
 .card {
   margin-bottom: 18px;
   padding: 20px;
-  border-radius: 24px;
+  border-radius: 12px;
 }
 
 .card-title {
   margin-bottom: 12px;
-  color: #64748b;
+  color: #a4aec4;
   font-size: 12px;
-  font-weight: 800;
+  font-weight: 600;
   letter-spacing: 0.14em;
 }
 
@@ -705,29 +721,29 @@ const DATAFLOW_DASHBOARD_CHIMERA_REFRESH_CSS = `
 .timeline-summary-pill {
   padding: 8px 12px;
   border-radius: 999px;
-  border: 1px solid #e2e8f0;
-  background: #f8fafc;
-  color: #64748b;
+  border: 1px solid #26324a;
+  background: #18233a;
+  color: #a4aec4;
   font-size: 12px;
-  font-weight: 700;
+  font-weight: 600;
 }
 
 .timeline-select {
   min-height: 34px;
   padding: 0 12px;
-  border: 1px solid #dbe4ee;
+  border: 1px solid #26324a;
   border-radius: 999px;
-  background: #ffffff;
-  color: #334155;
+  background: #111a2b;
+  color: #f5f7ff;
   font-size: 12px;
-  font-weight: 700;
+  font-weight: 600;
 }
 
 .timeline-table-wrap {
   overflow: hidden;
-  border: 1px solid #e2e8f0;
-  border-radius: 20px;
-  background: #ffffff;
+  border: 1px solid #26324a;
+  border-radius: 12px;
+  background: #111a2b;
 }
 
 .timeline-table-scroll {
@@ -742,10 +758,10 @@ const DATAFLOW_DASHBOARD_CHIMERA_REFRESH_CSS = `
 }
 
 .timeline-table thead {
-  background: #f8fafc;
-  color: #94a3b8;
+  background: #18233a;
+  color: #a4aec4;
   font-size: 11px;
-  font-weight: 900;
+  font-weight: 600;
   letter-spacing: 0.12em;
   text-transform: uppercase;
 }
@@ -753,7 +769,7 @@ const DATAFLOW_DASHBOARD_CHIMERA_REFRESH_CSS = `
 .timeline-table th,
 .timeline-table td {
   padding: 10px 12px;
-  border-bottom: 1px solid #e2e8f0;
+  border-bottom: 1px solid #26324a;
   text-align: left;
   vertical-align: top;
 }
@@ -767,7 +783,7 @@ const DATAFLOW_DASHBOARD_CHIMERA_REFRESH_CSS = `
 }
 
 .timeline-expand-row {
-  background: rgba(248, 250, 252, 0.7);
+  background: rgba(24, 35, 58, 0.5);
 }
 
 .timeline-payload-grid {
@@ -779,20 +795,20 @@ const DATAFLOW_DASHBOARD_CHIMERA_REFRESH_CSS = `
 .timeline-payload-item {
   min-width: 0;
   padding: 10px 12px;
-  border: 1px solid #e2e8f0;
-  border-radius: 14px;
-  background: #ffffff;
+  border: 1px solid #26324a;
+  border-radius: 8px;
+  background: #111a2b;
 }
 
 .timeline-payload-item-label {
-  color: #94a3b8;
+  color: #a4aec4;
   font-size: 11px;
-  font-weight: 800;
+  font-weight: 600;
 }
 
 .timeline-payload-item-value {
   margin-top: 6px;
-  color: #334155;
+  color: #d6def0;
   font-size: 12px;
   word-break: break-all;
   font-family: var(--mono);
