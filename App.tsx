@@ -12,11 +12,11 @@ import { DialogViewport } from './components/DialogService';
 import { GlobalUploadWidget } from './components/upload-center/GlobalUploadWidget';
 import { UploadCenterProvider } from './services/uploadCenter';
 import { ServiceTerminalWindowPage } from './pages/environment/ServiceTerminalWindowPage';
-import { canAccessView, getUserAccess, getUserCenterDefaultView } from './utils/rbac';
+import { canAccessView, getUserAccess } from './utils/rbac';
 import { AggregatedServiceHealth, MenuServiceHealthSummary } from './clients/menu';
 import { ThemeLogo } from './components/ThemeLogo';
 
-const DEFAULT_VIEW = 'dashboard';
+const DEFAULT_VIEW = 'home';
 
 type DeepLinkTarget = {
   view: string;
@@ -392,7 +392,7 @@ const AppShell: React.FC = () => {
   useEffect(() => {
     if (!user) return;
     if (canAccessView(user, currentView)) return;
-    navigateToView(getUserCenterDefaultView(user));
+    navigateToView('home');
   }, [user, currentView, navigateToView]);
 
   useEffect(() => {
@@ -403,7 +403,7 @@ const AppShell: React.FC = () => {
 
   useEffect(() => {
     if (!selectedProjectId && PROJECT_REQUIRED_VIEWS.has(currentView)) {
-      navigateToView('dashboard');
+      navigateToView('home');
     }
   }, [selectedProjectId, currentView, navigateToView]);
 
@@ -568,6 +568,8 @@ const AppShell: React.FC = () => {
           user={user} 
           currentTopLevelNav={activeTopLevelNav}
           onSelectTopLevelNav={(nav) => navigateToView(getTopLevelDefaultView(nav, user))}
+          currentView={currentView}
+          onSelectSystemAdminChild={(view) => navigateToView(view)}
           projects={projects} 
           selectedProjectId={selectedProjectId} 
           setSelectedProjectId={setSelectedProjectId} 

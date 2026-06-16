@@ -1,9 +1,17 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { ChevronDown, Lock, LogOut, RotateCw, Settings, UserCog, Users } from 'lucide-react';
-import { TopLevelNavKey, TopLevelNavItem, NAV_ROLE_CONFIG, getVisibleTopLevelNavItems } from '../app/navigation';
+import { ChevronDown, Lock, LogOut, MoonStar, RotateCw, SunMedium } from 'lucide-react';
+import {
+  TopLevelNavKey,
+  TopLevelNavItem,
+  NAV_ROLE_CONFIG,
+  getVisibleTopLevelNavItems,
+  SYSTEM_ADMIN_CHILDREN,
+  getSystemAdminActiveChild,
+} from '../app/navigation';
 import { SecurityProject, UserInfo, ViewType } from '../types/types';
-import { getPlatformRoleLabel, getUserAccess, getUserCenterDefaultView } from '../utils/rbac';
+import { getPlatformRoleLabel, getUserAccess } from '../utils/rbac';
 import { ThemeLogo } from '../components/ThemeLogo';
+import { useTheme } from '../theme/ThemeProvider';
 
 const FRONTEND_BUILD_VERSION = String(
   typeof __CHIMERA_BUILD_VERSION__ !== 'undefined' ? __CHIMERA_BUILD_VERSION__ : '',
@@ -26,6 +34,8 @@ interface HeaderProps {
   user: UserInfo | null;
   currentTopLevelNav: TopLevelNavKey;
   onSelectTopLevelNav: (nav: TopLevelNavKey) => void;
+  currentView: ViewType | string;
+  onSelectSystemAdminChild: (view: string) => void;
   projects: SecurityProject[];
   selectedProjectId: string;
   setSelectedProjectId: (id: string) => void;
@@ -42,6 +52,8 @@ interface HeaderProps {
 export const Header: React.FC<HeaderProps> = ({
   currentTopLevelNav,
   onSelectTopLevelNav,
+  currentView,
+  onSelectSystemAdminChild,
   user,
   projects,
   selectedProjectId,
@@ -56,44 +68,97 @@ export const Header: React.FC<HeaderProps> = ({
   handleLogout,
 }) => {
   const userAccess = getUserAccess(user);
+  const { theme, toggleTheme } = useTheme();
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
-  const [visibleRoles, setVisibleRoles] = useState<Set<string>>(new Set(['user', 'developer', 'admin']));
-  const [isRoleDropdownOpen, setIsRoleDropdownOpen] = useState(false);
   const userMenuRef = useRef<HTMLDivElement>(null);
-  const roleDropdownRef = useRef<HTMLDivElement>(null);
+
+  const [isSystemAdminOpen, setIsSystemAdminOpen] = useState(false);
+  const systemAdminRef = useRef<HTMLDivElement>(null);
+  const systemAdminTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const handleSystemAdminEnter = () => {
+    if (systemAdminTimerRef.current) clearTimeout(systemAdminTimerRef.current);
+    setIsSystemAdminOpen(true);
+  };
+  const handleSystemAdminLeave = () => {
+    systemAdminTimerRef.current = setTimeout(() => setIsSystemAdminOpen(false), 150);
+  };
 
   const currentProject = projects.find((p) => p.id === selectedProjectId) || { name: '选择项目' };
 
-  const visibleNavItems = getVisibleTopLevelNavItems(user, visibleRoles as any);
+  const visibleNavItems = getVisibleTopLevelNavItems(user);
+  const activeSystemAdminChild = getSystemAdminActiveChild(String(currentView));
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (userMenuRef.current && !userMenuRef.current.contains(event.target as Node)) setIsUserMenuOpen(false);
-      if (roleDropdownRef.current && !roleDropdownRef.current.contains(event.target as Node)) setIsRoleDropdownOpen(false);
     };
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const toggleRole = (role: string) => {
-    setVisibleRoles((prev) => {
-      const next = new Set(prev);
-      if (next.has(role)) next.delete(role); else next.add(role);
-      return next;
-    });
-  };
-
   return (
     <header className="bg-theme-header border-b border-theme-sidebar shadow-brand z-20 sticky top-0">
       <div className="h-14 px-6 xl:px-10 grid grid-cols-[1fr_auto_1fr] items-center gap-4">
         <div className="flex items-center gap-4 min-w-0">
-          <ThemeLogo size="small" buildVersion={FRONTEND_BUILD_VERSION} />
+          <ThemeLogo size="small" buildVersion={FRONTEND_BUILD_VERSION} showBadge={false} />
         </div>
 
         <div className="flex justify-center min-w-0">
           <nav className="flex items-center gap-1 overflow-x-auto no-scrollbar max-w-full">
             {visibleNavItems.map((item) => {
               const isActive = currentTopLevelNav === item.id;
+
+              if (item.id === 'system-admin') {
+                return (
+                  <React.Fragment key={item.id}>
+                    {item.showDividerBefore && (
+                      <div className="w-px h-4 bg-theme-text-faint/20 mx-1.5 shrink-0" />
+                    )}
+                    <div
+                      className="relative shrink-0"
+                      ref={systemAdminRef}
+                      onMouseEnter={handleSystemAdminEnter}
+                      onMouseLeave={handleSystemAdminLeave}
+                    >
+                      <button
+                        onClick={() => onSelectTopLevelNav(item.id)}
+                        style={getTabStyle(item, isActive)}
+                        className={`flex items-center gap-1 px-3 py-1.5 rounded-xl text-sm font-bold whitespace-nowrap transition-all ${
+                          isActive ? '' : 'hover:bg-theme-sidebar-muted hover:text-theme-text-inverse'
+                        }`}
+                      >
+                        {item.label}
+                        <ChevronDown size={12} className={`transition-transform ${isSystemAdminOpen ? 'rotate-180' : ''}`} />
+                      </button>
+                      {isSystemAdminOpen && (
+                        <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-44 bg-theme-surface border border-theme-border rounded-2xl shadow-brand p-2 z-50">
+                          {SYSTEM_ADMIN_CHILDREN.map((child) => {
+                            const childActive = isActive && activeSystemAdminChild === child.key;
+                            return (
+                              <button
+                                key={child.key}
+                                onClick={() => {
+                                  onSelectSystemAdminChild(child.defaultView);
+                                  setIsSystemAdminOpen(false);
+                                }}
+                                className={`w-full text-left px-3 py-2.5 text-xs font-bold rounded-xl transition-all ${
+                                  childActive
+                                    ? 'theme-shell-active'
+                                    : 'text-theme-text-secondary hover:bg-theme-elevated'
+                                }`}
+                              >
+                                {child.label}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  </React.Fragment>
+                );
+              }
+
               return (
                 <React.Fragment key={item.id}>
                   {item.showDividerBefore && (
@@ -115,39 +180,13 @@ export const Header: React.FC<HeaderProps> = ({
         </div>
 
         <div className="flex items-center justify-end gap-3 min-w-0">
-          <div className="relative shrink-0" ref={roleDropdownRef}>
-            <button
-              onClick={() => setIsRoleDropdownOpen(!isRoleDropdownOpen)}
-              className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-bold text-theme-text-soft bg-theme-sidebar-muted/60 rounded-xl hover:bg-theme-sidebar-muted transition-all"
-            >
-              <Users size={14} />
-              角色
-              <ChevronDown size={12} className={`transition-transform ${isRoleDropdownOpen ? 'rotate-180' : ''}`} />
-            </button>
-            {isRoleDropdownOpen && (
-              <div className="absolute top-full right-0 mt-2 w-44 bg-theme-surface border border-theme-border rounded-2xl shadow-brand p-2 z-50">
-                {(['user', 'developer', 'admin'] as const).map((role) => {
-                  const cfg = NAV_ROLE_CONFIG[role];
-                  const checked = visibleRoles.has(role);
-                  return (
-                    <button
-                      key={role}
-                      onClick={() => toggleRole(role)}
-                      className="w-full flex items-center gap-2.5 px-3 py-2.5 text-xs font-bold text-theme-text-secondary hover:bg-theme-elevated rounded-xl transition-all"
-                    >
-                      <span className={`w-4 h-4 rounded-md border-2 flex items-center justify-center shrink-0 transition-all ${
-                        checked ? 'border-blue-500 bg-blue-500/15' : 'border-theme-text-faint/30'
-                      }`}>
-                        {checked && <span className="w-2 h-1.5 border-l-2 border-b-2 border-blue-500 -rotate-45 -translate-y-px" />}
-                      </span>
-                      <span className="w-2 h-2 rounded-full shrink-0" style={{ background: cfg.color }} />
-                      {cfg.label.replace('视图', '')}
-                    </button>
-                  );
-                })}
-              </div>
-            )}
-          </div>
+          <button
+            onClick={toggleTheme}
+            className="p-2.5 rounded-xl text-theme-text-soft bg-theme-sidebar-muted/60 hover:bg-theme-sidebar-muted hover:text-theme-text-inverse transition-all shrink-0"
+            title={theme === 'chimera-classic' ? '切换到深色主题' : '切换到经典主题'}
+          >
+            {theme === 'chimera-classic' ? <MoonStar size={16} /> : <SunMedium size={16} />}
+          </button>
 
           <div className="relative min-w-0 max-w-[18rem]">
             <button
@@ -222,26 +261,6 @@ export const Header: React.FC<HeaderProps> = ({
                 </div>
 
                 <div className="p-1 space-y-0.5">
-                  <button
-                    onClick={() => {
-                      setCurrentView('sys-settings');
-                      setIsUserMenuOpen(false);
-                    }}
-                    className="w-full flex items-center gap-3 px-4 py-3 text-xs font-bold text-theme-text-secondary hover:bg-theme-elevated rounded-xl transition-all"
-                  >
-                    <Settings size={16} className="text-theme-text-faint" /> 系统设置
-                  </button>
-                  {userAccess.canAccessUserCenter && (
-                    <button
-                      onClick={() => {
-                        setCurrentView(getUserCenterDefaultView(user));
-                        setIsUserMenuOpen(false);
-                      }}
-                      className="w-full flex items-center gap-3 px-4 py-3 text-xs font-bold text-theme-text-secondary hover:bg-theme-elevated rounded-xl transition-all"
-                    >
-                      <UserCog size={16} className="text-theme-text-faint" /> 用户管理
-                    </button>
-                  )}
                   <button
                     onClick={() => {
                       setCurrentView('change-password');
