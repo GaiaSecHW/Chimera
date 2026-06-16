@@ -2,39 +2,44 @@
 import React, { useState, useEffect } from 'react';
 import {
   ChevronLeft,
-  Terminal,
-  Database,
-  Activity,
   RefreshCw,
   Loader2,
-  Box,
   Clock,
-  HardDrive,
   FileText,
   AlertCircle,
   X,
-  Layers,
-  ShieldCheck,
-  Cpu,
-  Share2,
   Lock,
-  Globe,
-  Settings,
-  Info,
-  Hash,
   User,
-  History,
-  ExternalLink,
   Copy,
   Key,
   Check,
-  Package,
-  GitBranch,
+  Users,
+  Server,
+  Bug,
+  ClipboardList,
 } from 'lucide-react';
-import { SecurityProject, K8sResourceList, MachineToken, NamespaceStatus } from '../../types/types';
-import { api } from '../../clients/api';
+import { SecurityProject, MachineToken } from '../../types/types';
 import { authApi } from '../../clients/auth';
 import { StatusBadge } from '../../components/StatusBadge';
+
+/* ── LOKI design tokens ─────────────────────────────────────── */
+const LK = {
+  primary: '#4f73ff',
+  primaryMuted: 'rgba(79, 115, 255, 0.14)',
+  canvas: '#070d18',
+  surface: '#111a2b',
+  surfaceRaised: '#18233a',
+  border: '#26324a',
+  borderSoft: '#1b2438',
+  ink: '#f5f7ff',
+  inkSoft: '#d6def0',
+  body: '#a4aec4',
+  muted: '#72809a',
+  success: '#45c06f',
+  warning: '#d5a13a',
+  error: '#f15d5d',
+  info: '#4f8cff',
+} as const;
 
 interface ProjectDetailPageProps {
   projectId: string;
@@ -43,21 +48,26 @@ interface ProjectDetailPageProps {
 }
 
 export const ProjectDetailPage: React.FC<ProjectDetailPageProps> = ({ projectId, projects, onBack }) => {
-  const projectApi = api.domains.project;
-  const [activeTab, setActiveTab] = useState<'overview' | 'pods' | 'network' | 'storage'>('overview');
   const [loading, setLoading] = useState(true);
-  const [resources, setResources] = useState<K8sResourceList | null>(null);
-  const [nsStatus, setNsStatus] = useState<NamespaceStatus | null>(null);
-  const [logView, setLogView] = useState<{ show: boolean; podName: string; logs: string }>({ show: false, podName: '', logs: '' });
-  const [logLoading, setLogLoading] = useState(false);
+
+  /* ── block-switched list area ── */
+  const [activeBlock, setActiveBlock] = useState<'task' | 'env' | 'vuln'>('task');
+  const [taskCount, setTaskCount] = useState(0);
+  const [envCount, setEnvCount] = useState(0);
+  const [vulnCount, setVulnCount] = useState(0);
+
+  /* ── SDK Token state ── */
   const [projectToken, setProjectToken] = useState<MachineToken | null>(null);
   const [tokenLoading, setTokenLoading] = useState(false);
   const [tokenError, setTokenError] = useState<string | null>(null);
   const [tokenCopied, setTokenCopied] = useState(false);
-  const [tlsRebuildLoading, setTlsRebuildLoading] = useState(false);
+
+  /* ── Member modal ── */
+  const [showMemberModal, setShowMemberModal] = useState(false);
 
   const project = projects.find(p => p.id === projectId);
 
+  /* ── Data loading ── */
   useEffect(() => {
     loadAllData();
   }, [projectId]);
@@ -65,19 +75,18 @@ export const ProjectDetailPage: React.FC<ProjectDetailPageProps> = ({ projectId,
   const loadAllData = async () => {
     setLoading(true);
     try {
-      const [resData, statusData] = await Promise.all([
-        projectApi.projects.getK8sResources(projectId),
-        projectApi.projects.getNamespaceStatus(projectId)
-      ]);
-      setResources(resData);
-      setNsStatus(statusData);
+      // Placeholder — future: fetch task/env/vuln counts from backend
+      setTaskCount(0);
+      setEnvCount(0);
+      setVulnCount(0);
     } catch (err) {
-      console.error("Failed to load project details", err);
+      console.error('Failed to load project details', err);
     } finally {
       setLoading(false);
     }
   };
 
+  /* ── SDK Token helpers ── */
   const loadProjectToken = async () => {
     if (!project?.can_manage) {
       setProjectToken(null);
@@ -128,532 +137,209 @@ export const ProjectDetailPage: React.FC<ProjectDetailPageProps> = ({ projectId,
     void loadProjectToken();
   }, [projectId, project?.can_manage]);
 
-  const openLogViewer = async (podName: string) => {
-    setLogView({ show: true, podName, logs: 'Initializing stream from API...' });
-    setLogLoading(true);
-    try {
-      const { logs } = await projectApi.projects.getPodLogs(projectId, podName, { tail_lines: 500 });
-      setLogView(prev => ({ ...prev, logs }));
-    } catch (err: any) {
-      setLogView(prev => ({ ...prev, logs:"获取日志失败:" + err.message }));
-    } finally {
-      setLogLoading(false);
-    }
-  };
-
-  const rebuildIngressTls = async () => {
-    if (!project?.can_manage) {
-      window.alert('仅项目管理员可执行重建 Ingress TLS。');
-      return;
-    }
-
-    const confirmed = window.confirm(
-      '将重新复制并覆盖当前项目命名空间中的 TLS Secret。\n是否确认执行“重建 Ingress TLS”？',
-    );
-    if (!confirmed) return;
-
-    setTlsRebuildLoading(true);
-    try {
-      const result = await projectApi.projects.rebuildIngressTls(projectId);
-      window.alert(result?.message || '重建 Ingress TLS 成功');
-      await loadAllData();
-    } catch (err: any) {
-      window.alert(err?.message || '重建 Ingress TLS 失败');
-    } finally {
-      setTlsRebuildLoading(false);
-    }
-  };
-
+  /* ── Loading spinner ── */
   if (loading) {
     return (
       <div className="h-full flex flex-col items-center justify-center p-20 animate-in fade-in">
-        <Loader2 className="animate-spin text-blue-600 mb-6" size={48} />
-        <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">正在同步 K8S 集群资源实时状态...</p>
+        <Loader2 className="animate-spin mb-6" size={48} style={{ color: LK.primary }} />
+        <p className="text-[10px] font-black uppercase tracking-[0.2em]" style={{ color: LK.muted }}>
+          正在加载项目数据...
+        </p>
       </div>
     );
   }
 
   return (
-    <div className="p-10 space-y-8 animate-in fade-in duration-500 pb-24">
-      {/* Header */}
+    <div className="p-10 space-y-8 animate-in fade-in duration-500 pb-24" style={{ backgroundColor: LK.canvas }}>
+
+      {/* ── Header ─────────────────────────────────────────── */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
         <div className="flex items-center gap-6">
- <button onClick={onBack} className="p-4 bg-[var(--bg-surface)] border border-[rgba(255,255,255,0.08)] rounded-2xl hover:bg-[rgba(255,255,255,0.06)] transition-all group active:scale-95">
-            <ChevronLeft size={20} className="group-hover:-translate-x-1 transition-transform" />
+          <button
+            onClick={onBack}
+            className="p-4 rounded-2xl transition-all group active:scale-95"
+            style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}` }}
+          >
+            <ChevronLeft size={20} className="group-hover:-translate-x-1 transition-transform" style={{ color: LK.body }} />
           </button>
           <div>
             <div className="flex items-center gap-3">
-              <h2 className="text-3xl font-black text-slate-800 tracking-tight">{project?.name || '未知项目'}</h2>
-              <StatusBadge status={nsStatus?.namespace.status || 'Active'} />
+              <h2 className="text-3xl font-black tracking-tight" style={{ color: LK.ink }}>
+                {project?.name || '未知项目'}
+              </h2>
+              <StatusBadge status={project?.status || 'Active'} />
             </div>
-            <div className="flex items-center gap-4 mt-2">
-              <div className="flex items-center gap-1.5 text-xs font-bold text-slate-400">
-                <Box size={14} /> 命名空间: <span className="text-blue-600 font-black">{nsStatus?.k8s_namespace}</span>
-              </div>
-              <div className="w-1.5 h-1.5 bg-slate-200 rounded-full" />
-              <div className="flex items-center gap-1.5 text-xs font-bold text-slate-400">
-                <Clock size={14} /> 创建于: <span className="text-slate-600">{nsStatus?.namespace.created_at.split('T')[0]}</span>
-              </div>
-            </div>
+            {project?.description && (
+              <p className="text-sm mt-2 leading-relaxed" style={{ color: LK.body }}>
+                {project.description}
+              </p>
+            )}
           </div>
         </div>
         <div className="flex gap-3">
- <button onClick={loadAllData} className="p-4 bg-[var(--bg-surface)] border border-[rgba(255,255,255,0.08)] text-slate-500 rounded-2xl hover:bg-[rgba(255,255,255,0.06)] transition-all">
+          <button
+            onClick={loadAllData}
+            className="p-4 rounded-2xl transition-all hover:opacity-80"
+            style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}`, color: LK.body }}
+          >
             <RefreshCw size={20} />
+          </button>
+          <button
+            onClick={() => setShowMemberModal(true)}
+            className="flex items-center gap-2 px-5 py-3 rounded-2xl text-sm font-semibold transition-all hover:opacity-90"
+            style={{ backgroundColor: LK.primaryMuted, color: LK.primary, border: `1px solid ${LK.border}` }}
+          >
+            <Users size={18} /> 管理成员
           </button>
         </div>
       </div>
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        {[
-          { label: 'POD 实例', value: (resources?.pods || []).length, icon: <Layers size={20} />, color: 'text-blue-600' },
-          { label: '服务节点', value: (resources?.services || []).length, icon: <Share2 size={20} />, color: 'text-indigo-600' },
-          { label: '存储卷', value: (resources?.pvcs || []).length, icon: <Database size={20} />, color: 'text-amber-600' },
-          { label: '外部入口', value: (resources?.ingresses || []).length, icon: <Globe size={20} />, color: 'text-purple-600' },
-        ].map((stat, i) => (
- <div key={i} className="bg-[var(--bg-surface)] p-6 rounded-[2rem] border border-[rgba(255,255,255,0.08)] flex items-center gap-5">
-             <div className={`w-12 h-12 rounded-2xl bg-[rgba(255,255,255,0.04)] ${stat.color} flex items-center justify-center`}>
-               {stat.icon}
-             </div>
-             <div>
-               <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{stat.label}</p>
-               <h4 className="text-2xl font-black text-slate-800">{stat.value || 0}</h4>
-             </div>
-          </div>
-        ))}
-      </div>
-
-      {/* Action Bar */}
- <div className="flex flex-wrap items-center gap-3 rounded-[1.75rem] border border-[rgba(255,255,255,0.08)] bg-[var(--bg-surface)] px-4 py-3">
-        <button
-          onClick={() => void rebuildIngressTls()}
-          disabled={tlsRebuildLoading || !project?.can_manage}
-          title={project?.can_manage ? '重新同步当前项目命名空间的 Ingress TLS Secret' : '仅项目管理员可操作'}
-          className={`px-5 py-2.5 rounded-xl text-xs font-black flex items-center gap-2 transition-all ${
-            project?.can_manage
-              ? 'bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-60 disabled:cursor-not-allowed'
-              : 'bg-slate-200 text-slate-500 cursor-not-allowed'
-          }`}
-        >
-          {tlsRebuildLoading ? <Loader2 size={14} className="animate-spin" /> : <ShieldCheck size={14} />}
-          重建 Ingress TLS
-        </button>
-        <button
-          disabled
-          className="px-5 py-2.5 rounded-xl text-xs font-black border border-dashed border-[rgba(255,255,255,0.12)] text-slate-500 bg-[rgba(255,255,255,0.03)] cursor-not-allowed"
-        >
-          功能预留
-        </button>
-        <button
-          disabled
-          className="px-5 py-2.5 rounded-xl text-xs font-black border border-dashed border-[rgba(255,255,255,0.12)] text-slate-500 bg-[rgba(255,255,255,0.03)] cursor-not-allowed"
-        >
-          功能预留
-        </button>
-      </div>
-
-      {/* Tabs */}
-      <div className="flex gap-2 p-1.5 bg-[rgba(255,255,255,0.04)] rounded-[1.5rem] w-fit">
-        {[
-          { id: 'overview', label: '项目详情与概览', icon: <Info size={16} /> },
-          { id: 'pods', label: '工作负载 (Pods)', icon: <Layers size={16} /> },
-          { id: 'network', label: '网络服务', icon: <Share2 size={16} /> },
-          { id: 'storage', label: '持久化存储', icon: <Database size={16} /> }
-        ].map(tab => (
+      {/* ── Stat Blocks (task / env / vuln) ─────────────────── */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        {([
+          { key: 'task' as const, label: '任务', value: taskCount, icon: <ClipboardList size={20} />, accent: LK.info },
+          { key: 'env' as const,  label: '环境', value: envCount,  icon: <Server size={20} />,        accent: LK.success },
+          { key: 'vuln' as const, label: '漏洞', value: vulnCount, icon: <Bug size={20} />,           accent: LK.error },
+        ]).map(stat => (
           <button
-            key={tab.id}
-            onClick={() => setActiveTab(tab.id as any)}
- className={`flex items-center gap-2 px-8 py-3 rounded-2xl font-black text-xs transition-all ${activeTab === tab.id ? 'bg-[var(--brand-primary)] text-white ' : 'text-slate-500 hover:text-slate-400'}`}
+            key={stat.key}
+            onClick={() => setActiveBlock(stat.key)}
+            className="p-6 rounded-xl flex items-center gap-5 transition-all cursor-pointer text-left"
+            style={{
+              backgroundColor: activeBlock === stat.key ? LK.surfaceRaised : LK.surface,
+              border: `1px solid ${activeBlock === stat.key ? LK.primary : LK.border}`,
+              boxShadow: activeBlock === stat.key ? `0 0 0 1px ${LK.primary}` : 'none',
+            }}
           >
-            {tab.icon} {tab.label}
+            <div
+              className="w-12 h-12 rounded-xl flex items-center justify-center"
+              style={{ backgroundColor: `${stat.accent}18`, color: stat.accent }}
+            >
+              {stat.icon}
+            </div>
+            <div>
+              <p className="text-[10px] font-black uppercase tracking-widest" style={{ color: LK.muted }}>{stat.label}</p>
+              <h4 className="text-2xl font-black" style={{ color: LK.ink }}>{stat.value}</h4>
+            </div>
           </button>
         ))}
       </div>
 
-      {/* Content Area */}
- <div className="bg-[var(--bg-surface)] border border-[rgba(255,255,255,0.08)] rounded-[3rem] overflow-hidden min-h-[500px]">
-
-        {activeTab === 'overview' && (
-          <div className="p-10 space-y-10 animate-in fade-in slide-in-from-bottom-4">
-             <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
-               {/* Project Info Card */}
-               <div className="lg:col-span-2 space-y-6">
-                  <h3 className="text-xl font-black text-slate-800 flex items-center gap-2">
-                    <Box size={20} className="text-blue-600" /> 项目元数据信息
-                  </h3>
-                  <div className="bg-[rgba(255,255,255,0.03)] rounded-[2.5rem] border border-[rgba(255,255,255,0.06)] p-8 space-y-8">
-                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                        <div className="space-y-1.5">
-                           <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
-                              <Hash size={10} /> 项目唯一标识 ID
-                           </p>
-                           <p className="text-sm font-mono font-black text-blue-400 bg-[rgba(59,130,246,0.08)] px-3 py-2 rounded-xl border border-[rgba(59,130,246,0.18)] w-fit">
-                              {project?.id}
-                           </p>
-                        </div>
-                        <div className="space-y-1.5">
-                           <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
-                              <User size={10} /> 项目负责人
-                           </p>
-                           <p className="text-sm font-black text-slate-700">
-                              {project?.owner_name || 'Administrator'}
-                              <span className="text-[10px] text-slate-400 ml-2 font-mono">({project?.owner_id || '-'})</span>
-                           </p>
-                        </div>
-                        <div className="space-y-1.5">
-                           <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
-                              <Box size={10} /> 集群 Namespace
-                           </p>
-                           <p className="text-sm font-black text-slate-700">{project?.k8s_namespace || 'default'}</p>
-                        </div>
-                        <div className="space-y-1.5">
-                           <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
-                              <History size={10} /> 最后更新时间
-                           </p>
-                           <p className="text-sm font-black text-slate-700">{project?.updated_at?.replace('T', ' ') || '-'}</p>
-                        </div>
-                        <div className="space-y-1.5">
-                           <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
-                              <Package size={10} /> 产品路径
-                           </p>
-                           <p className="text-sm font-black text-slate-700">{project?.product_path || '未归属版本'}</p>
-                        </div>
-                        <div className="space-y-1.5">
-                           <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
-                              <GitBranch size={10} /> 产品版本
-                           </p>
-                           <p className="text-sm font-black text-slate-700">{project?.product_version || project?.product_version_name || '未归属版本'}</p>
-                        </div>
-                     </div>
-
-                     <div className="pt-6 border-t border-slate-200">
-                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1.5 mb-3">
-                           <FileText size={10} /> 项目详细描述
-                        </p>
-                        <div className="bg-[rgba(255,255,255,0.03)] p-6 rounded-3xl border border-[rgba(255,255,255,0.06)] shadow-inner">
-                           <p className="text-sm text-slate-600 leading-relaxed font-medium">
-                              {project?.description ||"该项目暂未填写详细描述信息。项目空间用于隔离不同安全评估目标的 K8S 运行环境与存储卷。"}
-                           </p>
-                        </div>
-                     </div>
-                  </div>
-               </div>
-
-               <div className="space-y-8">
-                 <div className="space-y-6">
-                   <h3 className="text-xl font-black text-slate-800 flex items-center gap-2">
-                     <ShieldCheck size={20} className="text-blue-600" /> 安全审计摘要
-                   </h3>
-                   <div className="p-8 bg-[rgba(255,255,255,0.03)] rounded-[2.5rem] border border-[rgba(255,255,255,0.06)] space-y-6">
-                     <div className="flex justify-between items-center">
-                       <span className="text-sm font-bold text-slate-500">隔离状态</span>
-                       <span className="text-xs font-black text-green-600 bg-green-50 px-3 py-1 rounded-full uppercase">K8S Namespaced</span>
-                     </div>
-                     <div className="flex justify-between items-center">
-                       <span className="text-sm font-bold text-slate-500">部署策略</span>
-                       <span className="text-xs font-black text-slate-700">Rolling Update</span>
-                     </div>
-                     <div className="flex justify-between items-center">
-                       <span className="text-sm font-bold text-slate-500">关联 ConfigMaps</span>
-                       <span className="text-xs font-black text-slate-800">{(resources?.configmaps || []).length}</span>
-                     </div>
-                     <div className="flex justify-between items-center">
-                       <span className="text-sm font-bold text-slate-500">关联 Secrets</span>
-                       <span className="text-xs font-black text-amber-600">{(resources?.secrets || []).length} 密文</span>
-                     </div>
-                   </div>
-                 </div>
-
-                 <div className="space-y-6">
-                   <h3 className="text-xl font-black text-slate-800 flex items-center gap-2">
-                     <Activity size={20} className="text-blue-600" /> 活跃部署拓扑
-                   </h3>
-                   <div className="grid grid-cols-1 gap-4">
-                     {(resources?.deployments || []).map(dep => (
- <div key={dep.name} className="p-6 bg-[var(--bg-surface)] border border-[rgba(255,255,255,0.06)] rounded-2xl flex items-center justify-between transition-all">
-                         <div className="flex items-center gap-4">
-                           <div className="w-10 h-10 bg-indigo-50 text-indigo-600 rounded-xl flex items-center justify-center">
-                             <Cpu size={18} />
-                           </div>
-                           <div>
-                             <p className="text-sm font-black text-slate-800">{dep.name}</p>
-                             <p className="text-[10px] text-slate-400 font-bold uppercase">Deployment</p>
-                           </div>
-                         </div>
-                         <div className="flex items-center gap-4">
-                           <div className="text-right">
-                             <p className="text-xs font-black text-slate-700">{dep.ready_replica} / {dep.replica}</p>
-                             <p className="text-[9px] text-slate-400 font-bold uppercase">Replicas Ready</p>
-                           </div>
-                           <div className={`w-2 h-2 rounded-full ${dep.ready_replica === dep.replica ? 'bg-green-500' : 'bg-amber-500'} animate-pulse`} />
-                         </div>
-                       </div>
-                     ))}
-                   </div>
-                 </div>
-
-                 <div className="space-y-6">
-                   <h3 className="text-xl font-black text-slate-800 flex items-center gap-2">
-                     <Key size={20} className="text-blue-600" /> 项目 SDK Token
-                   </h3>
-                   <div className="p-8 bg-[rgba(255,255,255,0.03)] rounded-[2.5rem] border border-[rgba(255,255,255,0.06)] space-y-5">
-                     {!project?.can_manage && (
-                       <div className="text-sm font-bold text-slate-500 leading-relaxed">
-                         仅项目管理员可查看和手动刷新项目级 SDK Token。
-                       </div>
-                     )}
-                     {project?.can_manage && (
-                       <>
-                         <div className="flex items-center justify-between gap-3">
-                           <div>
-                             <p className="text-sm font-black text-slate-700">第三方 SDK 专用项目凭证</p>
-                             <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mt-1">
-                               {projectToken?.machine_code ||`project-sdk:${projectId}`}
-                             </p>
-                           </div>
-                           <button
-                             onClick={refreshProjectToken}
-                             disabled={tokenLoading}
-                             className="px-4 py-2 rounded-xl bg-[rgba(255,255,255,0.04)] border border-[rgba(255,255,255,0.08)] text-slate-400 text-xs font-black flex items-center gap-2 hover:bg-[rgba(255,255,255,0.08)] transition-all"
-                           >
-                             {tokenLoading ? <Loader2 size={14} className="animate-spin" /> : <RefreshCw size={14} />}
-                             手动刷新
-                           </button>
-                         </div>
-                         <div className="space-y-2">
-                           <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Token</p>
-                           <div className="relative">
-                             <div className="bg-slate-900 text-blue-200 text-xs font-mono break-all rounded-[1.75rem] p-5 pr-16 min-h-[96px]">
-                               {tokenLoading && !projectToken ? '正在加载项目 Token...' : (projectToken?.token || '当前 Token 不可用')}
-                             </div>
-                             {!!projectToken?.token && (
-                               <button
-                                 onClick={copyToken}
- className="absolute top-3 right-3 p-3 rounded-xl bg-slate-100 text-white hover:bg-slate-100 transition-all"
-                               >
-                                 {tokenCopied ? <Check size={16} /> : <Copy size={16} />}
-                               </button>
-                             )}
-                           </div>
-                         </div>
-                         <div className="flex justify-between items-center text-xs font-bold text-slate-500">
-                           <span>作用域: 项目级</span>
-                           <span>过期时间: {projectToken?.expires_at ? projectToken.expires_at.replace('T', ' ') : '永不过期'}</span>
-                         </div>
-                         {tokenError && (
-                           <div className="text-xs font-bold text-red-500">{tokenError}</div>
-                         )}
-                       </>
-                     )}
-                   </div>
-                 </div>
-               </div>
-             </div>
+      {/* ── Block-switched list area ───────────────────────── */}
+      <div className="rounded-xl overflow-hidden" style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}` }}>
+        {activeBlock === 'task' && (
+          <div className="p-8">
+            <div className="text-center py-12">
+              <p className="text-sm" style={{ color: LK.muted }}>任务列表将在此展示</p>
+              <p className="text-xs mt-2" style={{ color: LK.muted }}>此区域将嵌入当前项目下的任务数据</p>
+            </div>
           </div>
         )}
-
-        {activeTab === 'pods' && (
-          <div className="animate-in fade-in slide-in-from-bottom-4 duration-300">
-             <table className="w-full text-left">
-               <thead className="bg-[rgba(255,255,255,0.03)] border-b border-[rgba(255,255,255,0.06)] font-black text-[10px] text-slate-400 uppercase tracking-widest">
-                 <tr>
-                   <th className="px-8 py-6">Pod 实例名称</th>
-                   <th className="px-6 py-6">节点 (Node)</th>
-                   <th className="px-6 py-6">内网 IP</th>
-                   <th className="px-6 py-6">运行状态</th>
-                   <th className="px-8 py-6 text-right">操作</th>
-                 </tr>
-               </thead>
-               <tbody className="divide-y divide-slate-50">
-                 {resources?.pods.map(pod => (
-                   <tr key={pod.name} className="hover:bg-[rgba(255,255,255,0.03)] transition-all group">
-                     <td className="px-8 py-6">
-                       <div className="flex items-center gap-4">
-                         <div className="w-10 h-10 bg-blue-50 text-blue-500 rounded-xl flex items-center justify-center">
-                           <Layers size={18} />
-                         </div>
-                         <span className="text-sm font-black text-slate-700">{pod.name}</span>
-                       </div>
-                     </td>
-                     <td className="px-6 py-6 text-xs font-bold text-slate-500">{pod.node}</td>
-                     <td className="px-6 py-6 font-mono text-xs text-blue-600 font-bold">{pod.ip}</td>
-                     <td className="px-6 py-6"><StatusBadge status={pod.status} /></td>
-                     <td className="px-8 py-6 text-right">
-                       <button
-                         onClick={() => openLogViewer(pod.name)}
- className="flex items-center gap-2 ml-auto px-5 py-2.5 bg-slate-900 text-white rounded-xl font-black text-[10px] uppercase hover:bg-slate-800 transition-all active:scale-95"
-                       >
-                         <Terminal size={14} /> 交互式日志
-                       </button>
-                     </td>
-                   </tr>
-                 ))}
-                 {(!resources?.pods || resources.pods.length === 0) && (
-                   <tr><td colSpan={5} className="py-32 text-center text-slate-400 font-black uppercase text-xs tracking-widest">No active pods found in this context</td></tr>
-                 )}
-               </tbody>
-             </table>
+        {activeBlock === 'env' && (
+          <div className="p-8">
+            <div className="text-center py-12">
+              <p className="text-sm" style={{ color: LK.muted }}>环境列表将在此展示</p>
+              <p className="text-xs mt-2" style={{ color: LK.muted }}>此区域将嵌入当前项目下的环境代理数据</p>
+            </div>
           </div>
         )}
-
-        {activeTab === 'network' && (
-          <div className="p-10 space-y-10 animate-in fade-in slide-in-from-bottom-4">
-             <div className="space-y-6">
-               <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] flex items-center gap-2">
-                 <Share2 size={14} /> 内部服务暴露 (Services)
-               </h4>
-               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                 {resources?.services.map(svc => (
-                   <div key={svc.name} className="p-6 bg-[rgba(255,255,255,0.03)] rounded-3xl border border-[rgba(255,255,255,0.06)] space-y-4">
-                     <div className="flex justify-between items-center">
-                       <h5 className="text-sm font-black text-slate-800">{svc.name}</h5>
-                       <span className="text-[10px] font-black px-2 py-1 bg-[var(--bg-elevated)] border border-[rgba(255,255,255,0.06)] rounded-lg text-slate-400">{svc.type}</span>
-                     </div>
-                     <div className="space-y-2">
-                       <div className="flex justify-between text-xs">
-                         <span className="text-slate-400">Cluster IP</span>
-                         <span className="font-mono font-bold text-blue-600">{svc.cluster_ip}</span>
-                       </div>
-                       <div className="flex justify-between text-xs">
-                         <span className="text-slate-400">暴露端口</span>
-                         <span className="font-bold text-slate-700">{Array.isArray(svc.ports) ? svc.ports.join(', ') : 'N/A'}</span>
-                       </div>
-                     </div>
-                   </div>
-                 ))}
-               </div>
-             </div>
-
-             <div className="space-y-6 pt-6 border-t border-slate-50">
-               <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] flex items-center gap-2">
-                 <Globe size={14} /> 外部网关入口 (Ingress)
-               </h4>
-               <div className="grid grid-cols-1 gap-4">
-                 {resources?.ingresses.map(ing => (
-                   <div key={ing.name} className="p-6 bg-[var(--bg-surface)] border border-[rgba(255,255,255,0.06)] rounded-3xl flex flex-col md:flex-row md:items-center justify-between gap-4">
-                     <div className="flex items-center gap-4">
-                       <div className="w-10 h-10 bg-purple-50 text-purple-600 rounded-xl flex items-center justify-center">
-                         <Globe size={18} />
-                       </div>
-                       <div>
-                         <p className="text-sm font-black text-slate-800">{ing.name}</p>
-                         <p className="text-xs font-bold text-blue-500">{ing.host}</p>
-                       </div>
-                     </div>
-                     <div className="flex items-center gap-2">
-                       {ing.tls?.length > 0 ? (
-                         <div className="flex items-center gap-1.5 px-3 py-1.5 bg-green-50 text-green-600 rounded-xl text-[10px] font-black uppercase">
-                           <Lock size={12} /> TLS Secured
-                         </div>
-                       ) : (
-                         <div className="flex items-center gap-1.5 px-3 py-1.5 bg-amber-50 text-amber-600 rounded-xl text-[10px] font-black uppercase">
-                           <AlertCircle size={12} /> Plain HTTP
-                         </div>
-                       )}
-                     </div>
-                   </div>
-                 ))}
-               </div>
-             </div>
-          </div>
-        )}
-
-        {activeTab === 'storage' && (
-          <div className="animate-in fade-in slide-in-from-bottom-4 duration-300">
-             <table className="w-full text-left">
-               <thead className="bg-[rgba(255,255,255,0.03)] border-b border-[rgba(255,255,255,0.06)] font-black text-[10px] text-slate-400 uppercase tracking-widest">
-                 <tr>
-                   <th className="px-8 py-6">存储卷名称 (PVC)</th>
-                   <th className="px-6 py-6">存储类 (Storage Class)</th>
-                   <th className="px-6 py-6">容量配额</th>
-                   <th className="px-6 py-6">运行状态</th>
-                   <th className="px-8 py-6 text-right">操作</th>
-                 </tr>
-               </thead>
-               <tbody className="divide-y divide-slate-50">
-                 {resources?.pvcs.map(pvc => (
-                   <tr key={pvc.name} className="hover:bg-[rgba(255,255,255,0.03)] transition-all group">
-                     <td className="px-8 py-6">
-                       <div className="flex items-center gap-4">
-                         <div className="w-10 h-10 bg-amber-50 text-amber-600 rounded-xl flex items-center justify-center">
-                           <Database size={18} />
-                         </div>
-                         <span className="text-sm font-black text-slate-700">{pvc.name}</span>
-                       </div>
-                     </td>
-                     <td className="px-6 py-6 text-xs font-bold text-blue-600">{pvc.storage_class}</td>
-                     <td className="px-6 py-6 font-mono text-xs text-slate-800 font-black">
-                        {pvc.capacity?.storage || 'Calculating...'}
-                     </td>
-                     <td className="px-6 py-6"><StatusBadge status={pvc.status} /></td>
-                     <td className="px-8 py-6 text-right">
-                        <button className="p-2.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-all" title="查看详情">
-                           <ExternalLink size={16} />
-                        </button>
-                     </td>
-                   </tr>
-                 ))}
-                 {(!resources?.pvcs || resources.pvcs.length === 0) && (
-                   <tr>
-                     <td colSpan={5} className="py-32 text-center">
-                        <div className="w-16 h-16 bg-[rgba(255,255,255,0.04)] rounded-full flex items-center justify-center mx-auto mb-4 text-slate-500">
-                           <HardDrive size={32} />
-                        </div>
-                        <p className="text-slate-400 font-black uppercase text-xs tracking-widest">No persistent volumes mapped</p>
-                     </td>
-                   </tr>
-                 )}
-               </tbody>
-             </table>
+        {activeBlock === 'vuln' && (
+          <div className="p-8">
+            <div className="text-center py-12">
+              <p className="text-sm" style={{ color: LK.muted }}>漏洞列表将在此展示</p>
+              <p className="text-xs mt-2" style={{ color: LK.muted }}>此区域将嵌入当前项目下的漏洞数据</p>
+            </div>
           </div>
         )}
       </div>
 
-      {/* Log Terminal Overlay */}
-      {logView.show && (
-        <div className="fixed inset-0 z-[110] flex items-center justify-center p-6 bg-slate-900/80 backdrop-blur-xl animate-in fade-in">
- <div className="bg-[#0f172a] w-full max-w-5xl h-[80vh] rounded-[3rem] border border-slate-200 flex flex-col overflow-hidden animate-in zoom-in-95">
- <div className="px-10 py-6 border-b border-slate-200/5 flex items-center justify-between bg-slate-100/10">
-               <div className="flex items-center gap-4">
- <div className="w-10 h-10 bg-blue-600 rounded-2xl flex items-center justify-center text-white"><Terminal size={20} /></div>
-                 <div>
-                   <h3 className="text-sm font-black text-white">实时容器日志审计 (Pod: {logView.podName})</h3>
-                   <p className="text-[10px] font-mono text-slate-500 uppercase tracking-widest mt-0.5">Stream: K8S Namespaced Socket</p>
-                 </div>
-               </div>
- <button onClick={() => setLogView({ show: false, podName: '', logs: '' })} className="p-3 bg-slate-100/10 text-slate-400 hover:text-white hover:bg-slate-100 rounded-2xl transition-all">
-                 <X size={20} />
-               </button>
-             </div>
-             <div className="flex-1 overflow-y-auto p-10 font-mono text-xs text-blue-300/80 space-y-1 bg-black/40 custom-scrollbar scroll-smooth">
-               {logView.logs.split('\n').map((line, i) => (
-                 <div key={i} className="flex gap-6 group">
-                   <span className="text-slate-700 w-8 text-right select-none font-bold group-hover:text-slate-500">{i+1}</span>
-                   <span className="whitespace-pre-wrap leading-relaxed">{line || ' '}</span>
-                 </div>
-               ))}
-               {logLoading && (
-                 <div className="flex items-center gap-3 text-blue-500 font-black mt-8 bg-blue-500/10 p-4 rounded-2xl w-fit">
-                   <Loader2 className="animate-spin" size={16} /> 正在建立加密隧道并同步缓冲区...
-                 </div>
-               )}
-             </div>
- <div className="px-10 py-5 bg-slate-100/10 border-t border-slate-200/5 flex justify-between items-center">
-               <div className="flex items-center gap-4">
-                 <div className="flex items-center gap-2 text-[10px] font-black text-green-500 uppercase tracking-widest">
-                   <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse" /> Tunnel Established
-                 </div>
- <div className="h-4 w-[1px] bg-slate-100" />
-                 <p className="text-[10px] font-black text-slate-500 uppercase">Lines: {logView.logs.split('\n').length}</p>
-               </div>
-               <button
-                onClick={() => openLogViewer(logView.podName)}
-                className="px-6 py-2.5 bg-blue-600 text-white text-[10px] font-black uppercase rounded-xl hover:bg-blue-500 transition-all flex items-center gap-2"
-               >
-                 <RefreshCw size={12} /> 清理并重新捕获
-               </button>
-             </div>
+      {/* ── SDK Token card (can_manage only) ────────────────── */}
+      {project?.can_manage && (
+        <div className="rounded-xl overflow-hidden" style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}` }}>
+          <div className="px-5 py-4 flex items-center justify-between" style={{ borderBottom: `1px solid ${LK.borderSoft}` }}>
+            <h3 className="text-sm font-semibold flex items-center gap-2" style={{ color: LK.ink }}>
+              <Key size={16} style={{ color: LK.primary }} /> 项目 SDK Token
+            </h3>
+          </div>
+          <div className="p-6 space-y-5">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <p className="text-sm font-semibold" style={{ color: LK.inkSoft }}>第三方 SDK 专用项目凭证</p>
+                <p className="text-[10px] font-black uppercase tracking-widest mt-1" style={{ color: LK.muted }}>
+                  {projectToken?.machine_code || `project-sdk:${projectId}`}
+                </p>
+              </div>
+              <button
+                onClick={refreshProjectToken}
+                disabled={tokenLoading}
+                className="px-4 py-2 rounded-lg text-xs font-semibold flex items-center gap-2 transition-all hover:opacity-80 disabled:opacity-50"
+                style={{ backgroundColor: LK.surfaceRaised, color: LK.body, border: `1px solid ${LK.border}` }}
+              >
+                {tokenLoading ? <Loader2 size={14} className="animate-spin" /> : <RefreshCw size={14} />}
+                手动刷新
+              </button>
+            </div>
+            <div className="space-y-2">
+              <p className="text-[10px] font-black uppercase tracking-widest" style={{ color: LK.muted }}>Token</p>
+              <div className="relative">
+                <div
+                  className="text-xs font-mono break-all rounded-lg p-5 pr-16 min-h-[96px]"
+                  style={{ backgroundColor: '#0a1020', color: LK.info, border: `1px solid ${LK.borderSoft}` }}
+                >
+                  {tokenLoading && !projectToken ? '正在加载项目 Token...' : (projectToken?.token || '当前 Token 不可用')}
+                </div>
+                {!!projectToken?.token && (
+                  <button
+                    onClick={copyToken}
+                    className="absolute top-3 right-3 p-3 rounded-lg transition-all hover:opacity-80"
+                    style={{ backgroundColor: LK.surfaceRaised, color: LK.ink, border: `1px solid ${LK.border}` }}
+                  >
+                    {tokenCopied ? <Check size={16} /> : <Copy size={16} />}
+                  </button>
+                )}
+              </div>
+            </div>
+            <div className="flex justify-between items-center text-xs font-medium" style={{ color: LK.muted }}>
+              <span>作用域: 项目级</span>
+              <span>过期时间: {projectToken?.expires_at ? projectToken.expires_at.replace('T', ' ') : '永不过期'}</span>
+            </div>
+            {tokenError && (
+              <div className="text-xs font-medium" style={{ color: LK.error }}>{tokenError}</div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ── Member management modal ────────────────────────── */}
+      {showMemberModal && (
+        <div
+          className="fixed inset-0 z-[100] flex items-center justify-center p-6"
+          style={{ backgroundColor: 'rgba(5, 10, 20, 0.72)', backdropFilter: 'blur(6px)' }}
+        >
+          <div className="w-full max-w-lg rounded-2xl" style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}` }}>
+            <div className="flex items-center justify-between px-6 py-4" style={{ borderBottom: `1px solid ${LK.borderSoft}` }}>
+              <h3 className="text-base font-semibold" style={{ color: LK.ink }}>项目成员管理</h3>
+              <button
+                onClick={() => setShowMemberModal(false)}
+                className="p-1.5 rounded-lg transition-colors hover:opacity-80"
+                style={{ color: LK.muted }}
+              >
+                <X size={18} />
+              </button>
+            </div>
+            <div className="px-6 py-8 text-center">
+              <p className="text-sm" style={{ color: LK.muted }}>成员管理功能即将上线</p>
+              <p className="text-xs mt-2" style={{ color: LK.muted }}>需要后端接口 GET /api/project/{'{id}'}/members</p>
+            </div>
+            <div className="px-6 py-4 flex justify-end" style={{ borderTop: `1px solid ${LK.borderSoft}` }}>
+              <button
+                onClick={() => setShowMemberModal(false)}
+                className="px-4 py-2 rounded-lg text-sm font-medium transition-all hover:opacity-80"
+                style={{ backgroundColor: LK.surfaceRaised, color: LK.body, border: `1px solid ${LK.border}` }}
+              >
+                关闭
+              </button>
+            </div>
           </div>
         </div>
       )}
