@@ -1,6 +1,30 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { AlertTriangle, CheckCircle2, Cpu, RefreshCw, Sparkles } from 'lucide-react';
 import { api } from '../../clients/api';
+
+const LK = {
+  primary: '#4f73ff',
+  primarySoft: '#7590ff',
+  primaryDeep: '#3f63f1',
+  primaryMuted: 'rgba(79, 115, 255, 0.14)',
+  canvas: '#070d18',
+  surface: '#111a2b',
+  surfaceRaised: '#18233a',
+  surfaceGlass: 'rgba(17, 26, 43, 0.84)',
+  border: '#26324a',
+  borderSoft: '#1b2438',
+  ink: '#f5f7ff',
+  inkSoft: '#d6def0',
+  body: '#a4aec4',
+  muted: '#72809a',
+  mutedSoft: '#8b95a8',
+  success: '#45c06f',
+  warning: '#d5a13a',
+  error: '#f15d5d',
+  info: '#4f8cff',
+} as const;
+
+const MONO = 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace';
 import {
   ACTION_TYPE_LABELS,
   DECISION_LABELS,
@@ -214,14 +238,15 @@ export const VulnEnginePage: React.FC<VulnEnginePageProps> = ({
           {items.map((item, index) => (
             <span
               key={`${item}-${index}`}
-              className="rounded-full bg-slate-100 px-3 py-1 text-[11px] font-black text-slate-700"
+              className="rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-wider"
+              style={{ backgroundColor: LK.surfaceRaised, color: LK.body }}
             >
               {item}
             </span>
           ))}
         </div>
       ) : (
-        <div className="mt-3 rounded-xl border border-dashed border-slate-300 px-3 py-3 text-xs text-slate-400">
+        <div className="mt-3 rounded-lg px-3 py-3 text-xs" style={{ backgroundColor: LK.surfaceRaised, border: `1px dashed ${LK.border}`, color: LK.muted }}>
           {emptyLabel}
         </div>
       );
@@ -229,27 +254,27 @@ export const VulnEnginePage: React.FC<VulnEnginePageProps> = ({
     if (stage === 'triage') {
       return (
         <div className="space-y-3">
-          <div className="rounded-xl bg-slate-50 px-4 py-3">
-            <div className="text-xs font-black uppercase tracking-[0.16em] text-slate-400">研判结论</div>
-            <div className="mt-2 text-sm font-black text-slate-900">
+          <div className="rounded-lg px-4 py-3" style={{ backgroundColor: LK.surfaceRaised, border: `1px solid ${LK.border}` }}>
+            <div className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: LK.mutedSoft }}>研判结论</div>
+            <div className="mt-2 text-sm font-semibold" style={{ color: LK.ink }}>
               {labelOf(selectedCaseDetail.decision_status, DECISION_LABELS)}
             </div>
-            <div className="mt-1 text-xs text-slate-500">
+            <div className="mt-1 text-xs" style={{ color: LK.body }}>
               准入 Gate：{labelOf(selectedCaseDetail.triage_gate, TRIAGE_GATE_LABELS)}
             </div>
           </div>
-          <div className="grid grid-cols-2 gap-3 text-sm">
-            <div className="rounded-xl border border-slate-200 px-3 py-3">
-              <div className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-400">推荐动作</div>
-              <div className="mt-2 text-lg font-black text-slate-900">{recommendedActions.length}</div>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="rounded-lg px-4 py-3" style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}` }}>
+              <div className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: LK.mutedSoft }}>推荐动作</div>
+              <div className="mt-2 text-2xl font-semibold tabular-nums" style={{ color: LK.ink }}>{recommendedActions.length}</div>
             </div>
-            <div className="rounded-xl border border-slate-200 px-3 py-3">
-              <div className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-400">待处理人工任务</div>
-              <div className="mt-2 text-lg font-black text-slate-900">{openTaskCount}</div>
+            <div className="rounded-lg px-4 py-3" style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}` }}>
+              <div className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: LK.mutedSoft }}>待处理人工任务</div>
+              <div className="mt-2 text-2xl font-semibold tabular-nums" style={{ color: LK.ink }}>{openTaskCount}</div>
             </div>
           </div>
           <div>
-            <div className="text-xs font-black uppercase tracking-[0.16em] text-slate-400">推荐动作清单</div>
+            <div className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: LK.mutedSoft }}>推荐动作清单</div>
             {chips(recommendedActionTags, '当前还没有推荐动作，可先从报告与证据中补齐研判依据。')}
           </div>
         </div>
@@ -259,27 +284,27 @@ export const VulnEnginePage: React.FC<VulnEnginePageProps> = ({
     if (stage === 'validation') {
       return (
         <div className="space-y-3">
-          <div className="rounded-xl bg-slate-50 px-4 py-3">
-            <div className="text-xs font-black uppercase tracking-[0.16em] text-slate-400">验证结论</div>
-            <div className="mt-2 text-sm font-black text-slate-900">
+          <div className="rounded-lg px-4 py-3" style={{ backgroundColor: LK.surfaceRaised, border: `1px solid ${LK.border}` }}>
+            <div className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: LK.mutedSoft }}>验证结论</div>
+            <div className="mt-2 text-sm font-semibold" style={{ color: LK.ink }}>
               {labelOf(selectedCaseDetail.validation_result, VALIDATION_RESULT_LABELS)}
             </div>
-            <div className="mt-1 text-xs text-slate-500">
+            <div className="mt-1 text-xs" style={{ color: LK.body }}>
               最新验证反馈：{latestValidationLikeResult?.summary || latestResult?.summary || '暂无回传结果'}
             </div>
           </div>
-          <div className="grid grid-cols-2 gap-3 text-sm">
-            <div className="rounded-xl border border-slate-200 px-3 py-3">
-              <div className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-400">运行中动作</div>
-              <div className="mt-2 text-lg font-black text-slate-900">{runningActionCount}</div>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="rounded-lg px-4 py-3" style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}` }}>
+              <div className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: LK.mutedSoft }}>运行中动作</div>
+              <div className="mt-2 text-2xl font-semibold tabular-nums" style={{ color: LK.ink }}>{runningActionCount}</div>
             </div>
-            <div className="rounded-xl border border-slate-200 px-3 py-3">
-              <div className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-400">人工验证任务</div>
-              <div className="mt-2 text-lg font-black text-slate-900">{openTaskCount}</div>
+            <div className="rounded-lg px-4 py-3" style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}` }}>
+              <div className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: LK.mutedSoft }}>人工验证任务</div>
+              <div className="mt-2 text-2xl font-semibold tabular-nums" style={{ color: LK.ink }}>{openTaskCount}</div>
             </div>
           </div>
           <div>
-            <div className="text-xs font-black uppercase tracking-[0.16em] text-slate-400">已覆盖能力</div>
+            <div className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: LK.mutedSoft }}>已覆盖能力</div>
             {chips(
               actionItems.slice(0, 5).map((item) => labelOf(item.action_type, ACTION_TYPE_LABELS)),
               '当前还没有验证类动作记录。',
@@ -292,28 +317,28 @@ export const VulnEnginePage: React.FC<VulnEnginePageProps> = ({
     if (stage === 'finished') {
       return (
         <div className="space-y-3">
-          <div className="rounded-xl bg-slate-50 px-4 py-3">
-            <div className="text-xs font-black uppercase tracking-[0.16em] text-slate-400">最终结论</div>
-            <div className="mt-2 text-sm font-black text-slate-900">
+          <div className="rounded-lg px-4 py-3" style={{ backgroundColor: LK.surfaceRaised, border: `1px solid ${LK.border}` }}>
+            <div className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: LK.mutedSoft }}>最终结论</div>
+            <div className="mt-2 text-sm font-semibold" style={{ color: LK.ink }}>
               {labelOf(selectedCaseDetail.decision_status, DECISION_LABELS)}
             </div>
-            <div className="mt-1 text-xs text-slate-500">
+            <div className="mt-1 text-xs" style={{ color: LK.body }}>
               结束原因：{labelOf(selectedCaseDetail.finished_reason, FINISHED_REASON_LABELS)}
             </div>
           </div>
-          <div className="grid grid-cols-2 gap-3 text-sm">
-            <div className="rounded-xl border border-slate-200 px-3 py-3">
-              <div className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-400">验证结果</div>
-              <div className="mt-2 text-sm font-black text-slate-900">
+          <div className="grid grid-cols-2 gap-3">
+            <div className="rounded-lg px-4 py-3" style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}` }}>
+              <div className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: LK.mutedSoft }}>验证结果</div>
+              <div className="mt-2 text-sm font-semibold" style={{ color: LK.ink }}>
                 {labelOf(selectedCaseDetail.validation_result, VALIDATION_RESULT_LABELS)}
               </div>
             </div>
-            <div className="rounded-xl border border-slate-200 px-3 py-3">
-              <div className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-400">历史报告数</div>
-              <div className="mt-2 text-lg font-black text-slate-900">{caseReports.length}</div>
+            <div className="rounded-lg px-4 py-3" style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}` }}>
+              <div className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: LK.mutedSoft }}>历史报告数</div>
+              <div className="mt-2 text-2xl font-semibold tabular-nums" style={{ color: LK.ink }}>{caseReports.length}</div>
             </div>
           </div>
-          <div className="rounded-xl border border-slate-200 px-3 py-3 text-xs leading-6 text-slate-600">
+          <div className="rounded-lg px-4 py-3 text-sm leading-6" style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}`, color: LK.body }}>
             {latestResult?.summary || selectedCaseDetail.summary || '当前案例已结束，但暂无额外的终态摘要。'}
           </div>
         </div>
@@ -1009,24 +1034,27 @@ export const VulnEnginePage: React.FC<VulnEnginePageProps> = ({
   return (
     <div className={`${
       fullscreenLayout
-        ? 'px-4 py-5 pb-12 space-y-5 xl:px-6 2xl:px-8'
+        ? 'px-5 py-5 pb-12 space-y-5 xl:px-6 2xl:px-8'
         : effectiveListEntryMode
           ? 'p-6 pb-16 space-y-5'
           : 'p-10 pb-24 space-y-8'
-    } animate-in fade-in duration-500`}>
-      <div className="flex flex-col 2xl:flex-row 2xl:items-end 2xl:justify-between gap-6">
+    }`} style={{ backgroundColor: LK.canvas, color: LK.inkSoft }}>
+      <div className="flex flex-col 2xl:flex-row 2xl:items-end 2xl:justify-between gap-6" style={{ borderBottom: `1px solid ${LK.borderSoft}`, paddingBottom: '1rem' }}>
         <div>
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-blue-50 text-blue-700 text-xs font-black tracking-widest uppercase">
+          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-xs font-semibold uppercase tracking-wider" style={{ backgroundColor: LK.primaryMuted, color: LK.primary }}>
             <Cpu size={14} />
             生命周期引擎
           </div>
-          <h2 className="text-3xl font-black text-slate-800 tracking-tight mt-4">{pageTitle}</h2>
-          <p className="text-slate-500 mt-2 font-medium max-w-3xl">{pageDescription}</p>
+          <h2 className="text-3xl font-semibold tracking-tight mt-4" style={{ color: LK.ink }}>{pageTitle}</h2>
+          <p className="mt-2 text-sm max-w-3xl" style={{ color: LK.body }}>{pageDescription}</p>
         </div>
         <div className="flex flex-wrap gap-3">
           <button
             onClick={refreshAll}
-            className="px-5 py-3 rounded-2xl bg-slate-900 text-white font-black flex items-center gap-2 shadow-lg shadow-slate-900/10"
+            className="inline-flex items-center gap-2 px-5 py-3 rounded-lg text-sm font-semibold transition-colors"
+            style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}`, color: LK.inkSoft }}
+            onMouseEnter={(e) => { e.currentTarget.style.borderColor = LK.primary; e.currentTarget.style.color = LK.primarySoft; }}
+            onMouseLeave={(e) => { e.currentTarget.style.borderColor = LK.border; e.currentTarget.style.color = LK.inkSoft; }}
           >
             <RefreshCw size={16} />
             刷新工作台
@@ -1035,30 +1063,32 @@ export const VulnEnginePage: React.FC<VulnEnginePageProps> = ({
       </div>
 
       {error && (
-        <div className="rounded-[1.5rem] border border-rose-200 bg-rose-50 px-6 py-4 text-sm text-rose-700">
+        <div className="rounded-xl px-6 py-4 text-sm" style={{ backgroundColor: `${LK.error}14`, border: `1px solid ${LK.error}40`, color: LK.error }}>
           {error}
         </div>
       )}
 
       {successMessage && (
-        <div className="rounded-[1.5rem] border border-emerald-200 bg-emerald-50 px-6 py-4 text-sm text-emerald-700">
+        <div className="rounded-xl px-6 py-4 text-sm" style={{ backgroundColor: `${LK.success}14`, border: `1px solid ${LK.success}40`, color: LK.success }}>
           {successMessage}
         </div>
       )}
 
-      {(!effectiveListEntryMode || preserveLifecycleProgressBand) && !hideLifecycleChrome && <div className="rounded-[1.5rem] border border-slate-200 bg-white shadow-sm px-4 py-3">
-        <div className="text-[10px] font-black uppercase tracking-[0.22em] text-slate-400">生命周期进度带</div>
-        <div className="mt-2.5 flex flex-wrap gap-2">
+      {(!effectiveListEntryMode || preserveLifecycleProgressBand) && !hideLifecycleChrome && <div className="rounded-xl px-5 py-4" style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}` }}>
+        <div className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: LK.mutedSoft }}>生命周期进度带</div>
+        <div className="mt-3 flex flex-wrap gap-2">
           {LIFECYCLE_STAGE_FLOW.map((item) => (
             <button
               key={item.view}
               type="button"
               onClick={() => onNavigateToView?.(item.view)}
-              className={`px-3.5 py-2 rounded-xl text-xs font-black ${
-                currentViewId === item.view
-                  ? 'bg-slate-900 text-white'
-                  : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-              }`}
+              className="px-4 py-2.5 rounded-lg text-xs font-semibold transition-colors"
+              style={{
+                backgroundColor: currentViewId === item.view ? LK.primary : LK.surfaceRaised,
+                color: currentViewId === item.view ? '#ffffff' : LK.body,
+              }}
+              onMouseEnter={(e) => { if (currentViewId !== item.view) e.currentTarget.style.backgroundColor = LK.surface; }}
+              onMouseLeave={(e) => { if (currentViewId !== item.view) e.currentTarget.style.backgroundColor = LK.surfaceRaised; }}
             >
               {item.label}
             </button>
@@ -1067,54 +1097,64 @@ export const VulnEnginePage: React.FC<VulnEnginePageProps> = ({
       </div>}
 
       {!effectiveListEntryMode && summaryCards.length > 0 && (
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3">
           {summaryCards.map((card) => (
-            <div key={`${card.label}-${card.source}`} className="rounded-[2rem] border border-slate-200 bg-white shadow-sm p-6">
-              <div className="text-[10px] font-black uppercase tracking-widest text-slate-400">{card.label}</div>
-              <div className="mt-3 text-4xl font-black text-slate-800">{resolveSummaryValue(card.source)}</div>
-              {card.helper && <div className="mt-2 text-sm text-slate-500">{card.helper}</div>}
+            <div key={`${card.label}-${card.source}`} className="rounded-xl px-5 py-4" style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}` }}>
+              <div className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: LK.mutedSoft }}>{card.label}</div>
+              <div className="mt-3 text-4xl font-semibold tabular-nums" style={{ color: LK.ink }}>{resolveSummaryValue(card.source)}</div>
+              {card.helper && <div className="mt-2 text-sm" style={{ color: LK.body }}>{card.helper}</div>}
             </div>
           ))}
         </div>
       )}
 
-      {!effectiveListEntryMode && !hideLifecycleChrome && <div className="grid grid-cols-1 xl:grid-cols-[1.35fr_0.95fr] gap-6 items-start">
-        <div className="rounded-[2rem] border border-slate-200 bg-white shadow-sm p-5">
-          <div className="text-[10px] font-black uppercase tracking-widest text-slate-400">生命周期导航</div>
+      {!effectiveListEntryMode && !hideLifecycleChrome && <div className="grid grid-cols-1 xl:grid-cols-[1.35fr_0.95fr] gap-4 items-start">
+        <div className="rounded-xl p-5" style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}` }}>
+          <div className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: LK.mutedSoft }}>生命周期导航</div>
           <div className="mt-4 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
             {LIFECYCLE_NAV_ITEMS.map((item) => (
               <button
                 key={item.view}
                 type="button"
                 onClick={() => onNavigateToView?.(item.view)}
-                className={`rounded-[1.5rem] border px-4 py-4 text-left transition-all ${
-                  currentViewId === item.view
-                    ? 'border-slate-900 bg-slate-900 text-white shadow-lg shadow-slate-900/10'
-                    : 'border-slate-200 bg-[rgba(255,255,255,0.04)] hover:bg-slate-100'
-                }`}
+                className="rounded-lg px-4 py-4 text-left transition-colors"
+                style={{
+                  backgroundColor: currentViewId === item.view ? LK.primaryMuted : LK.surface,
+                  border: `1px solid ${currentViewId === item.view ? LK.primary : LK.border}`,
+                }}
+                onMouseEnter={(e) => { if (currentViewId !== item.view) e.currentTarget.style.backgroundColor = LK.surfaceRaised; }}
+                onMouseLeave={(e) => { if (currentViewId !== item.view) e.currentTarget.style.backgroundColor = LK.surface; }}
               >
                 <div className="flex items-center justify-between gap-3">
-                  <div className={`text-sm font-black ${currentViewId === item.view ? 'text-white' : 'text-slate-800'}`}>{item.label}</div>
-                  <span className={`px-2 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest ${
-                    currentViewId === item.view ? 'bg-[rgba(255,255,255,0.08)] text-white' : 'bg-slate-200 text-slate-700'
-                  }`}>
+                  <div className="text-sm font-semibold" style={{ color: currentViewId === item.view ? LK.primary : LK.ink }}>{item.label}</div>
+                  <span className="px-2 py-1 rounded-lg text-[10px] font-semibold uppercase tracking-wider" style={{
+                    backgroundColor: currentViewId === item.view ? `${LK.primary}22` : LK.surfaceRaised,
+                    color: currentViewId === item.view ? LK.primary : LK.muted,
+                  }}>
                     {countForLifecycleView(item.view)}
                   </span>
                 </div>
-                <div className={`mt-2 text-xs leading-5 ${currentViewId === item.view ? 'text-slate-300' : 'text-slate-500'}`}>{item.description}</div>
+                <div className="mt-2 text-xs leading-5" style={{ color: currentViewId === item.view ? LK.primarySoft : LK.body }}>{item.description}</div>
               </button>
             ))}
           </div>
         </div>
         {showWorkspaceTabs && (
-          <div className="rounded-[2rem] border border-slate-200 bg-white shadow-sm p-5">
-        <div className="text-[10px] font-black uppercase tracking-widest text-slate-400">页面分区</div>
+          <div className="rounded-xl p-5" style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}` }}>
+        <div className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: LK.mutedSoft }}>页面分区</div>
             <div className="mt-4 flex flex-wrap gap-2">
               {WORKSPACE_VIEWS.map((item) => (
                 <button
                   key={item.key}
                   onClick={() => setWorkspaceView(item.key)}
-                  className={`px-4 py-3 rounded-2xl text-sm font-black ${workspaceView === item.key ? 'bg-slate-900 text-white' : 'bg-white border border-slate-200 text-slate-600'}`}
+                  className="px-4 py-3 rounded-lg text-sm font-semibold transition-colors"
+                  style={{
+                    backgroundColor: workspaceView === item.key ? LK.primary : LK.surface,
+                    color: workspaceView === item.key ? '#ffffff' : LK.body,
+                    border: workspaceView === item.key ? 'none' : `1px solid ${LK.border}`,
+                  }}
+                  onMouseEnter={(e) => { if (workspaceView !== item.key) e.currentTarget.style.color = LK.ink; }}
+                  onMouseLeave={(e) => { if (workspaceView !== item.key) e.currentTarget.style.color = LK.body; }}
                 >
                   {item.label}
                 </button>
@@ -1125,55 +1165,58 @@ export const VulnEnginePage: React.FC<VulnEnginePageProps> = ({
       </div>}
 
       {!effectiveListEntryMode && !hidePhaseContext && (phaseHighlights.length > 0 || phaseActions.length > 0 || stageScope?.length) && (
-        <div className="grid grid-cols-1 xl:grid-cols-[1.1fr_0.9fr] gap-6">
-          <div className="rounded-[2rem] border border-slate-200 bg-white shadow-sm p-6">
-            <div className="text-[10px] font-black uppercase tracking-widest text-slate-400">阶段关注点</div>
+        <div className="grid grid-cols-1 xl:grid-cols-[1.1fr_0.9fr] gap-4">
+          <div className="rounded-xl p-6" style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}` }}>
+            <div className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: LK.mutedSoft }}>阶段关注点</div>
             <div className="mt-4 flex flex-wrap gap-2">
               {(stageScope?.length ? stageScope : [defaultStageFilter]).filter(Boolean).map((stage) => (
-                <span key={`scope-${stage}`} className="px-3 py-2 rounded-xl bg-slate-100 text-xs font-black uppercase tracking-widest text-slate-700">
+                <span key={`scope-${stage}`} className="px-3 py-2 rounded-lg text-xs font-semibold uppercase tracking-wider" style={{ backgroundColor: LK.surfaceRaised, color: LK.body }}>
                   {stage}
                 </span>
               ))}
             </div>
             {stageScope?.length ? (
               <div className="mt-4 grid grid-cols-2 gap-3">
-                <div className="rounded-[1.25rem] border border-slate-200 bg-[rgba(255,255,255,0.04)] px-4 py-3">
-                  <div className="text-[10px] font-black uppercase tracking-widest text-slate-400">阶段内案例</div>
-                  <div className="mt-1 text-2xl font-black text-slate-800">{stageScopeCount}</div>
+                <div className="rounded-lg px-4 py-3" style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}` }}>
+                  <div className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: LK.mutedSoft }}>阶段内案例</div>
+                  <div className="mt-1 text-2xl font-semibold tabular-nums" style={{ color: LK.ink }}>{stageScopeCount}</div>
                 </div>
-                <div className="rounded-[1.25rem] border border-slate-200 bg-[rgba(255,255,255,0.04)] px-4 py-3">
-                  <div className="text-[10px] font-black uppercase tracking-widest text-slate-400">覆盖阶段数</div>
-                  <div className="mt-1 text-2xl font-black text-slate-800">{stageScope.length}</div>
+                <div className="rounded-lg px-4 py-3" style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}` }}>
+                  <div className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: LK.mutedSoft }}>覆盖阶段数</div>
+                  <div className="mt-1 text-2xl font-semibold tabular-nums" style={{ color: LK.ink }}>{stageScope.length}</div>
                 </div>
               </div>
             ) : null}
             <div className="mt-5 space-y-3">
               {phaseHighlights.map((item) => (
-                <div key={item} className="rounded-[1.25rem] border border-slate-200 bg-[rgba(255,255,255,0.04)] px-4 py-3 text-sm text-slate-700">
+                <div key={item} className="rounded-lg px-4 py-3 text-sm" style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}`, color: LK.inkSoft }}>
                   {item}
                 </div>
               ))}
             </div>
           </div>
-          <div className="rounded-[2rem] border border-slate-200 bg-white shadow-sm p-6">
-            <div className="text-[10px] font-black uppercase tracking-widest text-slate-400">推荐动作</div>
+          <div className="rounded-xl p-6" style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}` }}>
+            <div className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: LK.mutedSoft }}>推荐动作</div>
             <div className="mt-4 space-y-3">
               {phaseActions.map((item) => (
-                <div key={item} className="rounded-[1.25rem] border border-blue-100 bg-blue-50/70 px-4 py-3 text-sm text-slate-700">
+                <div key={item} className="rounded-lg px-4 py-3 text-sm" style={{ backgroundColor: `${LK.primary}14`, border: `1px solid ${LK.primary}40`, color: LK.inkSoft }}>
                   {item}
                 </div>
               ))}
             </div>
             {phaseActionLinks.length > 0 && (
               <div className="mt-5">
-                <div className="text-[10px] font-black uppercase tracking-widest text-slate-400">快捷跳转</div>
+                <div className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: LK.mutedSoft }}>快捷跳转</div>
                 <div className="mt-3 flex flex-wrap gap-2">
                   {phaseActionLinks.map((item) => (
                     <button
                       key={`${item.view}-${item.label}`}
                       type="button"
                       onClick={() => onNavigateToView?.(item.view)}
-                      className="px-3 py-2 rounded-xl bg-slate-900 text-xs font-black text-white"
+                      className="px-3 py-2 rounded-lg text-xs font-semibold transition-colors"
+                      style={{ backgroundColor: LK.primary, color: '#ffffff' }}
+                      onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = LK.primaryDeep; }}
+                      onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = LK.primary; }}
                     >
                       {item.label}
                     </button>
@@ -1408,16 +1451,16 @@ export const VulnEnginePage: React.FC<VulnEnginePageProps> = ({
       )}
 
       {showEvolutionDialog && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/40 p-6">
-          <div className="max-h-[92vh] w-full max-w-4xl overflow-y-auto rounded-[2rem] border border-slate-200 bg-white p-6 shadow-2xl">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 animate-in fade-in" style={{ backgroundColor: 'rgba(5, 10, 20, 0.72)', backdropFilter: 'blur(6px)' }}>
+          <div className="max-h-[92vh] w-full max-w-4xl overflow-y-auto rounded-2xl p-6 animate-in" style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}` }}>
             <div className="flex items-start justify-between gap-4">
               <div>
-                <div className="inline-flex items-center gap-2 rounded-full bg-amber-50 px-3 py-1 text-[11px] font-black uppercase tracking-[0.18em] text-amber-700">
+                <div className="inline-flex items-center gap-2 rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-wider" style={{ backgroundColor: `${LK.warning}14`, color: LK.warning }}>
                   <Sparkles size={14} />
                   漏洞台账 {'->'} 进化中心
                 </div>
-                <h2 className="mt-3 text-2xl font-black text-slate-900">从已选案例创建进化任务</h2>
-                <p className="mt-2 text-sm text-slate-500">先预览整批，再确认创建。若同一 normal 任务存在遗漏案例，预览会自动补齐。</p>
+                <h2 className="mt-3 text-2xl font-semibold" style={{ color: LK.ink }}>从已选案例创建进化任务</h2>
+                <p className="mt-2 text-sm" style={{ color: LK.body }}>先预览整批，再确认创建。若同一 normal 任务存在遗漏案例，预览会自动补齐。</p>
               </div>
               <button
                 type="button"
@@ -1425,7 +1468,10 @@ export const VulnEnginePage: React.FC<VulnEnginePageProps> = ({
                   setShowEvolutionDialog(false);
                   setEvolutionPreview(null);
                 }}
-                className="rounded-xl border border-slate-200 px-4 py-2 text-sm font-black text-slate-600"
+                className="rounded-lg px-4 py-2 text-sm font-semibold transition-colors"
+                style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}`, color: LK.body }}
+                onMouseEnter={(e) => { e.currentTarget.style.color = LK.ink; }}
+                onMouseLeave={(e) => { e.currentTarget.style.color = LK.body; }}
               >
                 关闭
               </button>
@@ -1433,42 +1479,48 @@ export const VulnEnginePage: React.FC<VulnEnginePageProps> = ({
 
             <div className="mt-6 grid gap-4 xl:grid-cols-[0.9fr_1.1fr]">
               <div className="space-y-4">
-                <div className="rounded-[1.5rem] border border-slate-200 bg-[rgba(255,255,255,0.04)] p-4">
-                  <div className="text-sm font-black text-slate-900">已选案例</div>
-                  <div className="mt-2 text-xs text-slate-500">共 {selectedEvolutionCaseIds.length} 个。</div>
+                <div className="rounded-xl p-4" style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}` }}>
+                  <div className="text-sm font-semibold" style={{ color: LK.ink }}>已选案例</div>
+                  <div className="mt-2 text-xs" style={{ color: LK.body }}>共 {selectedEvolutionCaseIds.length} 个。</div>
                   <div className="mt-3 max-h-64 space-y-2 overflow-y-auto">
                     {selectedEvolutionCases.map((item) => (
-                      <div key={item.id} className="rounded-xl border border-slate-200 bg-white px-3 py-3">
-                        <div className="font-black text-slate-800">{item.title}</div>
-                        <div className="mt-1 text-[11px] font-mono text-slate-500">{item.id}</div>
-                        <div className="mt-1 text-xs text-slate-500">{item.summary || '暂无摘要'}</div>
+                      <div key={item.id} className="rounded-lg px-3 py-3" style={{ backgroundColor: LK.surfaceRaised, border: `1px solid ${LK.borderSoft}` }}>
+                        <div className="font-semibold" style={{ color: LK.ink }}>{item.title}</div>
+                        <div className="mt-1 text-[11px]" style={{ fontFamily: MONO, color: LK.muted }}>{item.id}</div>
+                        <div className="mt-1 text-xs" style={{ color: LK.body }}>{item.summary || '暂无摘要'}</div>
                       </div>
                     ))}
                   </div>
                 </div>
 
                 <div>
-                  <div className="mb-2 text-sm font-black text-slate-800">任务标题</div>
+                  <div className="mb-2 text-sm font-semibold" style={{ color: LK.ink }}>任务标题</div>
                   <input
                     value={evolutionForm.title}
                     onChange={(event) => setEvolutionForm((current) => ({ ...current, title: event.target.value }))}
-                    className="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm"
+                    className="w-full px-4 py-3 text-sm outline-none rounded-lg"
+                    style={{ backgroundColor: LK.surfaceRaised, color: LK.inkSoft, border: `1px solid ${LK.border}` }}
+                    onFocus={(e) => (e.currentTarget.style.borderColor = LK.primary)}
+                    onBlur={(e) => (e.currentTarget.style.borderColor = LK.border)}
                     placeholder="例如：DFVS 误报率压降 - 研判批次 A"
                   />
                 </div>
                 <div>
-                  <div className="mb-2 text-sm font-black text-slate-800">进化目标</div>
+                  <div className="mb-2 text-sm font-semibold" style={{ color: LK.ink }}>进化目标</div>
                   <textarea
                     value={evolutionForm.objective}
                     onChange={(event) => setEvolutionForm((current) => ({ ...current, objective: event.target.value }))}
-                    className="min-h-[8rem] w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm"
+                    className="min-h-[8rem] w-full px-4 py-3 text-sm outline-none resize-none rounded-lg"
+                    style={{ backgroundColor: LK.surfaceRaised, color: LK.inkSoft, border: `1px solid ${LK.border}` }}
+                    onFocus={(e) => (e.currentTarget.style.borderColor = LK.primary)}
+                    onBlur={(e) => (e.currentTarget.style.borderColor = LK.border)}
                     placeholder="说明本次重点优化漏报、误报还是发现轮次。"
                   />
                 </div>
                 <div className="grid grid-cols-3 gap-3">
-                  <input type="number" min={1} max={100} value={evolutionForm.minRounds} onChange={(event) => setEvolutionForm((current) => ({ ...current, minRounds: Number(event.target.value || 1) }))} className="rounded-2xl border border-slate-200 px-4 py-3 text-sm" />
-                  <input type="number" min={1} max={100} value={evolutionForm.maxRounds} onChange={(event) => setEvolutionForm((current) => ({ ...current, maxRounds: Number(event.target.value || 1) }))} className="rounded-2xl border border-slate-200 px-4 py-3 text-sm" />
-                  <input type="number" min={1} max={64} value={evolutionForm.maxConcurrentSourceTasks} onChange={(event) => setEvolutionForm((current) => ({ ...current, maxConcurrentSourceTasks: Number(event.target.value || 1) }))} className="rounded-2xl border border-slate-200 px-4 py-3 text-sm" />
+                  <input type="number" min={1} max={100} value={evolutionForm.minRounds} onChange={(event) => setEvolutionForm((current) => ({ ...current, minRounds: Number(event.target.value || 1) }))} className="px-4 py-3 text-sm outline-none rounded-lg" style={{ backgroundColor: LK.surfaceRaised, color: LK.inkSoft, border: `1px solid ${LK.border}` }} onFocus={(e) => (e.currentTarget.style.borderColor = LK.primary)} onBlur={(e) => (e.currentTarget.style.borderColor = LK.border)} />
+                  <input type="number" min={1} max={100} value={evolutionForm.maxRounds} onChange={(event) => setEvolutionForm((current) => ({ ...current, maxRounds: Number(event.target.value || 1) }))} className="px-4 py-3 text-sm outline-none rounded-lg" style={{ backgroundColor: LK.surfaceRaised, color: LK.inkSoft, border: `1px solid ${LK.border}` }} onFocus={(e) => (e.currentTarget.style.borderColor = LK.primary)} onBlur={(e) => (e.currentTarget.style.borderColor = LK.border)} />
+                  <input type="number" min={1} max={64} value={evolutionForm.maxConcurrentSourceTasks} onChange={(event) => setEvolutionForm((current) => ({ ...current, maxConcurrentSourceTasks: Number(event.target.value || 1) }))} className="px-4 py-3 text-sm outline-none rounded-lg" style={{ backgroundColor: LK.surfaceRaised, color: LK.inkSoft, border: `1px solid ${LK.border}` }} onFocus={(e) => (e.currentTarget.style.borderColor = LK.primary)} onBlur={(e) => (e.currentTarget.style.borderColor = LK.border)} />
                 </div>
               </div>
 
@@ -1478,7 +1530,10 @@ export const VulnEnginePage: React.FC<VulnEnginePageProps> = ({
                     type="button"
                     disabled={evolutionSubmitting || selectedEvolutionCaseIds.length === 0}
                     onClick={() => void handlePreviewEvolution()}
-                    className="inline-flex items-center gap-2 rounded-2xl bg-slate-900 px-4 py-3 text-sm font-black text-white disabled:cursor-not-allowed disabled:opacity-50"
+                    className="inline-flex items-center gap-2 px-4 py-3 text-sm font-semibold rounded-lg transition-colors disabled:cursor-not-allowed disabled:opacity-50"
+                    style={{ backgroundColor: LK.primary, color: '#ffffff' }}
+                    onMouseEnter={(e) => { if (!e.currentTarget.disabled) e.currentTarget.style.backgroundColor = LK.primaryDeep; }}
+                    onMouseLeave={(e) => { if (!e.currentTarget.disabled) e.currentTarget.style.backgroundColor = LK.primary; }}
                   >
                     <RefreshCw size={15} />
                     预览整批
@@ -1487,7 +1542,10 @@ export const VulnEnginePage: React.FC<VulnEnginePageProps> = ({
                     type="button"
                     disabled={evolutionSubmitting || !evolutionPreview?.can_create}
                     onClick={() => void handleCreateEvolution()}
-                    className="inline-flex items-center gap-2 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-black text-emerald-700 disabled:cursor-not-allowed disabled:opacity-50"
+                    className="inline-flex items-center gap-2 px-4 py-3 text-sm font-semibold rounded-lg transition-colors disabled:cursor-not-allowed disabled:opacity-50"
+                    style={{ backgroundColor: `${LK.success}22`, color: LK.success, border: `1px solid ${LK.success}40` }}
+                    onMouseEnter={(e) => { if (!e.currentTarget.disabled) e.currentTarget.style.backgroundColor = `${LK.success}3a`; }}
+                    onMouseLeave={(e) => { if (!e.currentTarget.disabled) e.currentTarget.style.backgroundColor = `${LK.success}22`; }}
                   >
                     <CheckCircle2 size={15} />
                     确认创建
@@ -1495,34 +1553,38 @@ export const VulnEnginePage: React.FC<VulnEnginePageProps> = ({
                 </div>
 
                 {!evolutionPreview ? (
-                  <div className="rounded-[1.5rem] border border-dashed border-slate-300 bg-slate-50 px-4 py-8 text-sm text-slate-400">
+                  <div className="rounded-xl px-4 py-8 text-sm" style={{ border: `1px dashed ${LK.border}`, backgroundColor: LK.surfaceRaised, color: LK.muted }}>
                     预览结果会在这里展示。
                   </div>
                 ) : (
-                  <div className="rounded-[1.5rem] border border-slate-200 bg-[rgba(255,255,255,0.04)] p-4">
+                  <div className="rounded-xl p-4" style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}` }}>
                     <div className="flex items-center gap-2">
-                      {evolutionPreview.can_create ? <CheckCircle2 size={16} className="text-emerald-600" /> : <AlertTriangle size={16} className="text-rose-600" />}
-                      <div className="font-black text-slate-900">{evolutionPreview.can_create ? '预览通过，可创建' : '预览未通过'}</div>
+                      {evolutionPreview.can_create ? <CheckCircle2 size={16} style={{ color: LK.success }} /> : <AlertTriangle size={16} style={{ color: LK.error }} />}
+                      <div className="font-semibold" style={{ color: LK.ink }}>{evolutionPreview.can_create ? '预览通过，可创建' : '预览未通过'}</div>
                     </div>
-                    <div className="mt-3 text-sm text-slate-600">请求 {evolutionPreview.requested_case_ids.length} 个案例，整批后 {evolutionPreview.effective_case_ids.length} 个，涉及 {evolutionPreview.sources.length} 个原始任务。</div>
+                    <div className="mt-3 text-sm" style={{ color: LK.body }}>请求 {evolutionPreview.requested_case_ids.length} 个案例，整批后 {evolutionPreview.effective_case_ids.length} 个，涉及 {evolutionPreview.sources.length} 个原始任务。</div>
                     {evolutionPreview.blocked_reasons.length > 0 && (
-                      <div className="mt-3 space-y-2 text-sm text-rose-600">
+                      <div className="mt-3 space-y-2 text-sm" style={{ color: LK.error }}>
                         {evolutionPreview.blocked_reasons.map((reason: string) => <div key={reason}>{reason}</div>)}
                       </div>
                     )}
                     <div className="mt-4 space-y-3">
                       {evolutionPreview.sources.map((source: any) => (
-                        <div key={source.source_task_id} className="rounded-2xl border border-slate-200 bg-white px-4 py-3">
+                        <div key={source.source_task_id} className="rounded-lg px-4 py-3" style={{ backgroundColor: LK.surfaceRaised, border: `1px solid ${LK.border}` }}>
                           <div className="flex items-center justify-between gap-3">
-                            <div className="font-black text-slate-800">{source.source_title || source.source_task_id}</div>
-                            <span className={`rounded-full border px-2.5 py-1 text-[11px] font-black ${source.replay_ready ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-rose-200 bg-rose-50 text-rose-700'}`}>
+                            <div className="font-semibold" style={{ color: LK.ink }}>{source.source_title || source.source_task_id}</div>
+                            <span className="rounded-full px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wider" style={{
+                              backgroundColor: source.replay_ready ? `${LK.success}22` : `${LK.error}22`,
+                              color: source.replay_ready ? LK.success : LK.error,
+                              border: source.replay_ready ? `1px solid ${LK.success}40` : `1px solid ${LK.error}40`,
+                            }}>
                               {source.replay_ready ? 'ready' : 'blocked'}
                             </span>
                           </div>
-                          <div className="mt-2 text-xs text-slate-500">已选 {source.selected_case_ids.length} / 整批 {source.all_case_ids.length}</div>
-                          {source.auto_expanded_case_ids.length > 0 && <div className="mt-1 text-xs text-amber-700">自动补齐 {source.auto_expanded_case_ids.length} 个遗漏案例。</div>}
+                          <div className="mt-2 text-xs" style={{ color: LK.body }}>已选 {source.selected_case_ids.length} / 整批 {source.all_case_ids.length}</div>
+                          {source.auto_expanded_case_ids.length > 0 && <div className="mt-1 text-xs" style={{ color: LK.warning }}>自动补齐 {source.auto_expanded_case_ids.length} 个遗漏案例。</div>}
                           {source.blocked_reasons.length > 0 && (
-                            <div className="mt-2 space-y-1 text-xs text-rose-600">
+                            <div className="mt-2 space-y-1 text-xs" style={{ color: LK.error }}>
                               {source.blocked_reasons.map((reason: string) => <div key={reason}>{reason}</div>)}
                             </div>
                           )}

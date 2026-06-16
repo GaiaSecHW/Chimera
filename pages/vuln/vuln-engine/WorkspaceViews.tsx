@@ -2,6 +2,30 @@ import React from 'react';
 import { Activity, AlertTriangle, Bot, Briefcase, Clock3, ListTodo, Plus, RefreshCw, Search, ServerCog, Sparkles, Trash2 } from 'lucide-react';
 import { ACTION_QUEUE_FILTERS, ACTION_STATUS_LABELS, ACTION_TYPE_LABELS, MODULE_ROLE_LABELS, REPRO_ACTION_TYPES, REPORT_CHANNEL_LABELS, SERVICE_TYPE_LABELS, STAGE_LABELS, WorkspaceViewKey, cardClass, formatTime, labelOf } from './shared';
 
+const LK = {
+  primary: '#4f73ff',
+  primarySoft: '#7590ff',
+  primaryDeep: '#3f63f1',
+  primaryMuted: 'rgba(79, 115, 255, 0.14)',
+  canvas: '#070d18',
+  surface: '#111a2b',
+  surfaceRaised: '#18233a',
+  surfaceGlass: 'rgba(17, 26, 43, 0.84)',
+  border: '#26324a',
+  borderSoft: '#1b2438',
+  ink: '#f5f7ff',
+  inkSoft: '#d6def0',
+  body: '#a4aec4',
+  muted: '#72809a',
+  mutedSoft: '#8b95a8',
+  success: '#45c06f',
+  warning: '#d5a13a',
+  error: '#f15d5d',
+  info: '#4f8cff',
+} as const;
+
+const MONO = 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace';
+
 export const OverviewWorkspace: React.FC<{
   overview: any;
   projectActions: any[];
@@ -11,24 +35,24 @@ export const OverviewWorkspace: React.FC<{
 }> = ({ overview, projectActions, manualTasks, setWorkspaceView, setSelectedCaseId }) => (
   <div className="grid grid-cols-1 2xl:grid-cols-[1.25fr_1fr] gap-6 items-start">
     <div className="space-y-6">
-      <div className={cardClass}>
-        <div className="px-6 py-5 border-b border-slate-100">
-          <h3 className="text-lg font-black text-slate-800">阶段分布与运行趋势</h3>
+      <div className={cardClass} style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}` }}>
+        <div className="px-6 py-5" style={{ borderBottom: `1px solid ${LK.borderSoft}` }}>
+          <h3 className="text-lg font-semibold" style={{ color: LK.ink }}>阶段分布与运行趋势</h3>
         </div>
         <div className="p-6 space-y-4">
           {Object.entries(overview?.stage_counts || {}).length === 0 ? (
-            <div className="text-sm text-slate-400">暂无阶段统计</div>
+            <div className="text-sm" style={{ color: LK.muted }}>暂无阶段统计</div>
           ) : (
             Object.entries(overview?.stage_counts || {}).map(([stage, count]) => (
               <div key={stage} className="space-y-2">
                 <div className="flex items-center justify-between text-sm">
-                  <span className="font-black text-slate-700">{stage}</span>
-                  <span className="text-slate-400">{count as number}</span>
+                  <span className="font-semibold" style={{ color: LK.ink }}>{stage}</span>
+                  <span style={{ color: LK.body }}>{count as number}</span>
                 </div>
-                <div className="h-2 rounded-full bg-slate-100 overflow-hidden">
+                <div className="h-2 rounded-full overflow-hidden" style={{ backgroundColor: LK.surfaceRaised }}>
                   <div
-                    className="h-full rounded-full bg-slate-900"
-                    style={{ width: `${overview?.metrics?.total_cases ? ((count as number) / overview.metrics.total_cases) * 100 : 0}%` }}
+                    className="h-full rounded-full"
+                    style={{ width: `${overview?.metrics?.total_cases ? ((count as number) / overview.metrics.total_cases) * 100 : 0}%`, backgroundColor: LK.primary }}
                   />
                 </div>
               </div>
@@ -37,62 +61,68 @@ export const OverviewWorkspace: React.FC<{
         </div>
       </div>
 
-      <div className={cardClass}>
-        <div className="px-6 py-5 border-b border-slate-100 flex items-center justify-between gap-4">
+      <div className={cardClass} style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}` }}>
+        <div className="px-6 py-5 flex items-center justify-between gap-4" style={{ borderBottom: `1px solid ${LK.borderSoft}` }}>
           <div>
-            <h3 className="text-lg font-black text-slate-800">项目动作队列</h3>
-            <p className="text-xs text-slate-500 mt-1">快速查看项目级动作拥塞和失败项</p>
+            <h3 className="text-lg font-semibold" style={{ color: LK.ink }}>项目动作队列</h3>
+            <p className="text-xs mt-1" style={{ color: LK.muted }}>快速查看项目级动作拥塞和失败项</p>
           </div>
           <button
             onClick={() => setWorkspaceView('queue')}
-            className="px-4 py-2 rounded-xl bg-slate-100 text-slate-700 text-xs font-black"
+            className="px-4 py-2 rounded-lg text-xs font-semibold transition-colors"
+            style={{ backgroundColor: LK.surface, color: LK.inkSoft, border: `1px solid ${LK.border}` }}
+            onMouseEnter={(e) => { e.currentTarget.style.borderColor = LK.primary; e.currentTarget.style.color = LK.primarySoft; }}
+            onMouseLeave={(e) => { e.currentTarget.style.borderColor = LK.border; e.currentTarget.style.color = LK.inkSoft; }}
           >
             打开队列视图
           </button>
         </div>
         <div className="p-6 space-y-3 max-h-[28rem] overflow-y-auto">
           {projectActions.slice(0, 6).map((item) => (
-            <div key={`overview-${item.id}`} className="rounded-[1.5rem] border border-slate-200 px-4 py-4 bg-[rgba(255,255,255,0.04)]">
+            <div key={`overview-${item.id}`} className="rounded-lg px-4 py-4" style={{ border: `1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>
               <div className="flex items-center justify-between gap-3">
                 <div className="min-w-0">
-                  <p className="text-sm font-black text-slate-800 truncate">{item.case_title}</p>
-                  <p className="text-xs text-slate-500 mt-1">{labelOf(item.action_type, ACTION_TYPE_LABELS)} · {labelOf(item.execution_status, ACTION_STATUS_LABELS)}</p>
+                  <p className="text-sm font-semibold truncate" style={{ color: LK.ink }}>{item.case_title}</p>
+                  <p className="text-xs mt-1" style={{ color: LK.body }}>{labelOf(item.action_type, ACTION_TYPE_LABELS)} · {labelOf(item.execution_status, ACTION_STATUS_LABELS)}</p>
                 </div>
                 <button
                   onClick={() => {
                     setSelectedCaseId(item.case_id);
                     setWorkspaceView('cases');
                   }}
-                  className="px-3 py-2 rounded-xl bg-slate-100 text-xs font-black text-slate-700"
+                  className="px-3 py-2 rounded-lg text-xs font-semibold transition-colors"
+                  style={{ backgroundColor: LK.surface, color: LK.inkSoft, border: `1px solid ${LK.border}` }}
+                  onMouseEnter={(e) => { e.currentTarget.style.borderColor = LK.primary; e.currentTarget.style.color = LK.primarySoft; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.borderColor = LK.border; e.currentTarget.style.color = LK.inkSoft; }}
                 >
                   查看
                 </button>
               </div>
             </div>
           ))}
-          {projectActions.length === 0 && <div className="text-sm text-slate-400">当前暂无项目级动作</div>}
+          {projectActions.length === 0 && <div className="text-sm" style={{ color: LK.muted }}>当前暂无项目级动作</div>}
         </div>
       </div>
     </div>
 
     <div className="space-y-6">
-      <div className={cardClass}>
-        <div className="px-6 py-5 border-b border-slate-100 flex items-center gap-2">
-          <Clock3 size={16} className="text-amber-500" />
-          <h3 className="text-lg font-black text-slate-800">项目人工待办</h3>
+      <div className={cardClass} style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}` }}>
+        <div className="px-6 py-5 flex items-center gap-2" style={{ borderBottom: `1px solid ${LK.borderSoft}` }}>
+          <Clock3 size={16} style={{ color: LK.warning }} />
+          <h3 className="text-lg font-semibold" style={{ color: LK.ink }}>项目人工待办</h3>
         </div>
-        <div className="divide-y divide-slate-100 max-h-[28rem] overflow-y-auto">
+        <div className="max-h-[28rem] overflow-y-auto" style={{ borderTop: `1px solid ${LK.borderSoft}` }}>
           {manualTasks.length === 0 ? (
-            <div className="px-6 py-8 text-sm text-slate-400">当前项目没有人工待办</div>
+            <div className="px-6 py-8 text-sm" style={{ color: LK.muted }}>当前项目没有人工待办</div>
           ) : (
             manualTasks.map((item) => (
-              <div key={item.id} className="px-6 py-4">
+              <div key={item.id} className="px-6 py-4" style={{ borderBottom: `1px solid ${LK.borderSoft}` }}>
                 <div className="flex items-start justify-between gap-3">
                   <div className="space-y-1">
-                    <p className="text-sm font-black text-slate-800">{item.title}</p>
-                    <p className="text-xs text-slate-500">{item.summary || '暂无说明'}</p>
+                    <p className="text-sm font-semibold" style={{ color: LK.ink }}>{item.title}</p>
+                    <p className="text-xs" style={{ color: LK.body }}>{item.summary || '暂无说明'}</p>
                   </div>
-                  <span className="px-2 py-1 rounded-lg bg-amber-100 text-[10px] font-black uppercase tracking-widest text-amber-700">
+                  <span className="px-2 py-1 rounded-lg text-[10px] font-semibold uppercase tracking-wider" style={{ backgroundColor: `${LK.warning}22`, color: LK.warning }}>
                     {item.status}
                   </span>
                 </div>
@@ -102,18 +132,18 @@ export const OverviewWorkspace: React.FC<{
         </div>
       </div>
 
-      <div className="bg-gradient-to-br from-slate-900 via-slate-900 to-blue-950 p-6 rounded-[2rem] text-white shadow-xl shadow-slate-900/10">
+      <div className="p-6 rounded-xl" style={{ background: 'linear-gradient(135deg, #0d1b2a 0%, #1a2d4a 100%)', border: `1px solid ${LK.border}` }}>
         <div className="flex items-center gap-3">
-          <Bot size={18} className="text-blue-300" />
-          <h3 className="text-lg font-black">推荐使用路径</h3>
+          <Bot size={18} style={{ color: LK.primarySoft }} />
+          <h3 className="text-lg font-semibold" style={{ color: LK.ink }}>推荐使用路径</h3>
         </div>
-        <div className="mt-4 space-y-3 text-sm text-slate-200">
+        <div className="mt-4 space-y-3 text-sm" style={{ color: LK.body }}>
           <div className="flex items-start gap-3">
-            <Briefcase size={15} className="mt-0.5 text-slate-400" />
+            <Briefcase size={15} className="mt-0.5" style={{ color: LK.muted }} />
             <p>在总览里先看项目队列和人工任务，再决定是去案例运行页还是服务页操作。</p>
           </div>
           <div className="flex items-start gap-3">
-            <Sparkles size={15} className="mt-0.5 text-blue-300" />
+            <Sparkles size={15} className="mt-0.5" style={{ color: LK.primarySoft }} />
             <p>对单个问题需要深入推进时，再进入案例运行视图做派发、裁决和结果分析。</p>
           </div>
         </div>
@@ -210,110 +240,113 @@ export const ServicesWorkspace: React.FC<{
 
   return (
     <div className="grid grid-cols-1 2xl:grid-cols-[0.95fr_1.35fr] gap-6 items-start">
-      <div className={cardClass}>
-        <div className="px-6 py-5 border-b border-slate-100 flex items-center justify-between gap-3">
+      <div className={cardClass} style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}` }}>
+        <div className="px-6 py-5 flex items-center justify-between gap-3" style={{ borderBottom: `1px solid ${LK.borderSoft}` }}>
           <div className="flex items-center gap-2">
-            <ServerCog size={16} className="text-emerald-500" />
-            <h3 className="text-lg font-black text-slate-800">能力服务注册</h3>
+            <ServerCog size={16} style={{ color: LK.success }} />
+            <h3 className="text-lg font-semibold" style={{ color: LK.ink }}>能力服务注册</h3>
           </div>
           {editingService && (
-            <span className="px-2 py-1 rounded-lg bg-blue-100 text-[10px] font-black uppercase tracking-widest text-blue-700">
+            <span className="px-2 py-1 rounded-lg text-[10px] font-semibold uppercase tracking-widest" style={{ backgroundColor: `${LK.info}22`, color: LK.info }}>
               更新模式
             </span>
           )}
         </div>
         <form onSubmit={handleRegisterService} className="p-6 grid grid-cols-1 gap-3">
-          <div className="rounded-[1.5rem] border border-emerald-200 bg-emerald-50/70 p-4">
-            <div className="text-[10px] font-black uppercase tracking-widest text-emerald-700">配置提醒</div>
-            <div className="mt-2 space-y-1 text-xs text-emerald-800">
+          <div className="rounded-xl border p-4" style={{ borderColor: LK.success, backgroundColor: `${LK.success}14` }}>
+            <div className="text-[10px] font-semibold uppercase tracking-widest" style={{ color: LK.success }}>配置提醒</div>
+            <div className="mt-2 space-y-1 text-xs" style={{ color: LK.success }}>
               <p>建议至少补齐服务地址、健康检查、阶段绑定和能力标识，后续排障会明显轻松很多。</p>
               <p>如果一个阶段有多套同类能力，优先通过优先级和角色说明拉开职责边界。</p>
             </div>
           </div>
-          <input value={serviceForm.service_id} onChange={(event) => setServiceForm({ ...serviceForm, service_id: event.target.value })} placeholder="服务标识" className="px-4 py-3 rounded-2xl border border-slate-200 outline-none" required />
-          <input value={serviceForm.service_name} onChange={(event) => setServiceForm({ ...serviceForm, service_name: event.target.value })} placeholder="服务名称" className="px-4 py-3 rounded-2xl border border-slate-200 outline-none" required />
+          <input value={serviceForm.service_id} onChange={(event) => setServiceForm({ ...serviceForm, service_id: event.target.value })} placeholder="服务标识" className="px-4 py-3 rounded-lg outline-none" style={{ backgroundColor: LK.surfaceRaised, color: LK.inkSoft, border: `1px solid ${LK.border}` }} onFocus={(e) => { e.currentTarget.style.borderColor = LK.primary; }} onBlur={(e) => { e.currentTarget.style.borderColor = LK.border; }} required />
+          <input value={serviceForm.service_name} onChange={(event) => setServiceForm({ ...serviceForm, service_name: event.target.value })} placeholder="服务名称" className="px-4 py-3 rounded-lg outline-none" style={{ backgroundColor: LK.surfaceRaised, color: LK.inkSoft, border: `1px solid ${LK.border}` }} onFocus={(e) => { e.currentTarget.style.borderColor = LK.primary; }} onBlur={(e) => { e.currentTarget.style.borderColor = LK.border; }} required />
           <div className="grid grid-cols-1 xl:grid-cols-2 gap-3">
-            <select value={serviceForm.service_type} onChange={(event) => setServiceForm({ ...serviceForm, service_type: event.target.value })} className="px-4 py-3 rounded-2xl border border-slate-200 outline-none bg-white">
+            <select value={serviceForm.service_type} onChange={(event) => setServiceForm({ ...serviceForm, service_type: event.target.value })} className="px-4 py-3 rounded-lg outline-none" style={{ backgroundColor: LK.surfaceRaised, color: LK.inkSoft, border: `1px solid ${LK.border}` }} onFocus={(e) => { e.currentTarget.style.borderColor = LK.primary; }} onBlur={(e) => { e.currentTarget.style.borderColor = LK.border; }}>
               {Object.keys(SERVICE_TYPE_LABELS).map((item) => (
                 <option key={item} value={item}>{SERVICE_TYPE_LABELS[item]}</option>
               ))}
             </select>
-            <input value={serviceForm.version} onChange={(event) => setServiceForm({ ...serviceForm, version: event.target.value })} placeholder="版本" className="px-4 py-3 rounded-2xl border border-slate-200 outline-none" />
+            <input value={serviceForm.version} onChange={(event) => setServiceForm({ ...serviceForm, version: event.target.value })} placeholder="版本" className="px-4 py-3 rounded-lg outline-none" style={{ backgroundColor: LK.surfaceRaised, color: LK.inkSoft, border: `1px solid ${LK.border}` }} onFocus={(e) => { e.currentTarget.style.borderColor = LK.primary; }} onBlur={(e) => { e.currentTarget.style.borderColor = LK.border; }} />
           </div>
-          <input value={serviceForm.endpoint} onChange={(event) => setServiceForm({ ...serviceForm, endpoint: event.target.value })} placeholder="服务地址" className="px-4 py-3 rounded-2xl border border-slate-200 outline-none" required />
-          <input value={serviceForm.healthcheck_url} onChange={(event) => setServiceForm({ ...serviceForm, healthcheck_url: event.target.value })} placeholder="健康检查地址" className="px-4 py-3 rounded-2xl border border-slate-200 outline-none" />
+          <input value={serviceForm.endpoint} onChange={(event) => setServiceForm({ ...serviceForm, endpoint: event.target.value })} placeholder="服务地址" className="px-4 py-3 rounded-lg outline-none" style={{ backgroundColor: LK.surfaceRaised, color: LK.inkSoft, border: `1px solid ${LK.border}` }} onFocus={(e) => { e.currentTarget.style.borderColor = LK.primary; }} onBlur={(e) => { e.currentTarget.style.borderColor = LK.border; }} required />
+          <input value={serviceForm.healthcheck_url} onChange={(event) => setServiceForm({ ...serviceForm, healthcheck_url: event.target.value })} placeholder="健康检查地址" className="px-4 py-3 rounded-lg outline-none" style={{ backgroundColor: LK.surfaceRaised, color: LK.inkSoft, border: `1px solid ${LK.border}` }} onFocus={(e) => { e.currentTarget.style.borderColor = LK.primary; }} onBlur={(e) => { e.currentTarget.style.borderColor = LK.border; }} />
           <div className="grid grid-cols-1 xl:grid-cols-2 gap-3">
-            <input value={serviceForm.capability_code} onChange={(event) => setServiceForm({ ...serviceForm, capability_code: event.target.value })} placeholder="能力标识" className="px-4 py-3 rounded-2xl border border-slate-200 outline-none" required />
-            <select value={serviceForm.action_type} onChange={(event) => setServiceForm({ ...serviceForm, action_type: event.target.value })} className="px-4 py-3 rounded-2xl border border-slate-200 outline-none bg-white">
+            <input value={serviceForm.capability_code} onChange={(event) => setServiceForm({ ...serviceForm, capability_code: event.target.value })} placeholder="能力标识" className="px-4 py-3 rounded-lg outline-none" style={{ backgroundColor: LK.surfaceRaised, color: LK.inkSoft, border: `1px solid ${LK.border}` }} onFocus={(e) => { e.currentTarget.style.borderColor = LK.primary; }} onBlur={(e) => { e.currentTarget.style.borderColor = LK.border; }} required />
+            <select value={serviceForm.action_type} onChange={(event) => setServiceForm({ ...serviceForm, action_type: event.target.value })} className="px-4 py-3 rounded-lg outline-none" style={{ backgroundColor: LK.surfaceRaised, color: LK.inkSoft, border: `1px solid ${LK.border}` }} onFocus={(e) => { e.currentTarget.style.borderColor = LK.primary; }} onBlur={(e) => { e.currentTarget.style.borderColor = LK.border; }}>
               {Object.keys(ACTION_TYPE_LABELS).map((item) => (
                 <option key={item} value={item}>{ACTION_TYPE_LABELS[item]}</option>
               ))}
             </select>
           </div>
 
-          <div className="rounded-[1.25rem] border border-slate-200 bg-[rgba(255,255,255,0.04)] p-4 space-y-3">
+          <div className="rounded-lg border p-4 space-y-3" style={{ backgroundColor: `${LK.surface}0A`, borderColor: LK.border }}>
             <button
               type="button"
               onClick={() => setShowAdvanced((prev) => !prev)}
               className="w-full flex items-center justify-between text-left"
             >
               <div>
-                <div className="text-sm font-black text-slate-800">高级能力配置</div>
-                <div className="mt-1 text-xs text-slate-500">优先级、超时、并发、回调方式和绑定元数据</div>
+                <div className="text-sm font-semibold" style={{ color: LK.ink }}>高级能力配置</div>
+                <div className="mt-1 text-xs" style={{ color: LK.muted }}>优先级、超时、并发、回调方式和绑定元数据</div>
               </div>
-              <span className="text-xs font-black text-slate-500">{showAdvanced ? '收起' : '展开'}</span>
+              <span className="text-xs font-semibold" style={{ color: LK.muted }}>{showAdvanced ? '收起' : '展开'}</span>
             </button>
 
             {showAdvanced && (
               <div className="grid grid-cols-1 gap-3">
                 <div className="grid grid-cols-3 gap-3">
-                  <input type="number" value={serviceForm.priority} onChange={(event) => setServiceForm({ ...serviceForm, priority: Number(event.target.value) || 100 })} placeholder="优先级" className="px-4 py-3 rounded-2xl border border-slate-200 outline-none bg-white" />
-                  <input type="number" value={serviceForm.timeout_seconds} onChange={(event) => setServiceForm({ ...serviceForm, timeout_seconds: Number(event.target.value) || 300 })} placeholder="超时秒数" className="px-4 py-3 rounded-2xl border border-slate-200 outline-none bg-white" />
-                  <input type="number" value={serviceForm.concurrency_limit} onChange={(event) => setServiceForm({ ...serviceForm, concurrency_limit: Number(event.target.value) || 1 })} placeholder="并发上限" className="px-4 py-3 rounded-2xl border border-slate-200 outline-none bg-white" />
+                  <input type="number" value={serviceForm.priority} onChange={(event) => setServiceForm({ ...serviceForm, priority: Number(event.target.value) || 100 })} placeholder="优先级" className="px-4 py-3 rounded-lg outline-none" style={{ backgroundColor: LK.surfaceRaised, color: LK.inkSoft, border: `1px solid ${LK.border}` }} onFocus={(e) => { e.currentTarget.style.borderColor = LK.primary; }} onBlur={(e) => { e.currentTarget.style.borderColor = LK.border; }} />
+                  <input type="number" value={serviceForm.timeout_seconds} onChange={(event) => setServiceForm({ ...serviceForm, timeout_seconds: Number(event.target.value) || 300 })} placeholder="超时秒数" className="px-4 py-3 rounded-lg outline-none" style={{ backgroundColor: LK.surfaceRaised, color: LK.inkSoft, border: `1px solid ${LK.border}` }} onFocus={(e) => { e.currentTarget.style.borderColor = LK.primary; }} onBlur={(e) => { e.currentTarget.style.borderColor = LK.border; }} />
+                  <input type="number" value={serviceForm.concurrency_limit} onChange={(event) => setServiceForm({ ...serviceForm, concurrency_limit: Number(event.target.value) || 1 })} placeholder="并发上限" className="px-4 py-3 rounded-lg outline-none" style={{ backgroundColor: LK.surfaceRaised, color: LK.inkSoft, border: `1px solid ${LK.border}` }} onFocus={(e) => { e.currentTarget.style.borderColor = LK.primary; }} onBlur={(e) => { e.currentTarget.style.borderColor = LK.border; }} />
                 </div>
                 <div className="grid grid-cols-2 gap-3">
-                  <select value={serviceForm.callback_mode} onChange={(event) => setServiceForm({ ...serviceForm, callback_mode: event.target.value })} className="px-4 py-3 rounded-2xl border border-slate-200 outline-none bg-white">
+                  <select value={serviceForm.callback_mode} onChange={(event) => setServiceForm({ ...serviceForm, callback_mode: event.target.value })} className="px-4 py-3 rounded-lg outline-none" style={{ backgroundColor: LK.surfaceRaised, color: LK.inkSoft, border: `1px solid ${LK.border}` }} onFocus={(e) => { e.currentTarget.style.borderColor = LK.primary; }} onBlur={(e) => { e.currentTarget.style.borderColor = LK.border; }}>
                     {['push', 'polling', 'manual'].map((item) => (
                       <option key={item} value={item}>{labelOf(item, REPORT_CHANNEL_LABELS)}</option>
                     ))}
                   </select>
-                  <select value={serviceForm.auth_mode} onChange={(event) => setServiceForm({ ...serviceForm, auth_mode: event.target.value })} className="px-4 py-3 rounded-2xl border border-slate-200 outline-none bg-white">
+                  <select value={serviceForm.auth_mode} onChange={(event) => setServiceForm({ ...serviceForm, auth_mode: event.target.value })} className="px-4 py-3 rounded-lg outline-none" style={{ backgroundColor: LK.surfaceRaised, color: LK.inkSoft, border: `1px solid ${LK.border}` }} onFocus={(e) => { e.currentTarget.style.borderColor = LK.primary; }} onBlur={(e) => { e.currentTarget.style.borderColor = LK.border; }}>
                     {['machine_token', 'none', 'manual'].map((item) => (
                       <option key={item} value={item}>{item}</option>
                     ))}
                   </select>
                 </div>
                 <div className="grid grid-cols-3 gap-3">
-                  <select value={serviceForm.module_role} onChange={(event) => setServiceForm({ ...serviceForm, module_role: event.target.value })} className="px-4 py-3 rounded-2xl border border-slate-200 outline-none bg-white">
+                  <select value={serviceForm.module_role} onChange={(event) => setServiceForm({ ...serviceForm, module_role: event.target.value })} className="px-4 py-3 rounded-lg outline-none" style={{ backgroundColor: LK.surfaceRaised, color: LK.inkSoft, border: `1px solid ${LK.border}` }} onFocus={(e) => { e.currentTarget.style.borderColor = LK.primary; }} onBlur={(e) => { e.currentTarget.style.borderColor = LK.border; }}>
                     {Object.keys(MODULE_ROLE_LABELS).map((item) => (
                       <option key={item} value={item}>{MODULE_ROLE_LABELS[item]}</option>
                     ))}
                   </select>
-                  <select value={serviceForm.bind_stage} onChange={(event) => setServiceForm({ ...serviceForm, bind_stage: event.target.value })} className="px-4 py-3 rounded-2xl border border-slate-200 outline-none bg-white">
+                  <select value={serviceForm.bind_stage} onChange={(event) => setServiceForm({ ...serviceForm, bind_stage: event.target.value })} className="px-4 py-3 rounded-lg outline-none" style={{ backgroundColor: LK.surfaceRaised, color: LK.inkSoft, border: `1px solid ${LK.border}` }} onFocus={(e) => { e.currentTarget.style.borderColor = LK.primary; }} onBlur={(e) => { e.currentTarget.style.borderColor = LK.border; }}>
                     {['receive', 'triage', 'validation', 'finished'].map((item) => (
                       <option key={item} value={item}>{labelOf(item, STAGE_LABELS)}</option>
                     ))}
                   </select>
-                  <select value={serviceForm.report_channel} onChange={(event) => setServiceForm({ ...serviceForm, report_channel: event.target.value })} className="px-4 py-3 rounded-2xl border border-slate-200 outline-none bg-white">
+                  <select value={serviceForm.report_channel} onChange={(event) => setServiceForm({ ...serviceForm, report_channel: event.target.value })} className="px-4 py-3 rounded-lg outline-none" style={{ backgroundColor: LK.surfaceRaised, color: LK.inkSoft, border: `1px solid ${LK.border}` }} onFocus={(e) => { e.currentTarget.style.borderColor = LK.primary; }} onBlur={(e) => { e.currentTarget.style.borderColor = LK.border; }}>
                     {Object.keys(REPORT_CHANNEL_LABELS).map((item) => (
                       <option key={item} value={item}>{REPORT_CHANNEL_LABELS[item]}</option>
                     ))}
                   </select>
                 </div>
-                <textarea value={serviceForm.association_note} onChange={(event) => setServiceForm({ ...serviceForm, association_note: event.target.value })} placeholder="记录该服务与阶段、环境或路由策略的关联说明" className="min-h-[5rem] px-4 py-3 rounded-2xl border border-slate-200 outline-none bg-white resize-none" />
+                <textarea value={serviceForm.association_note} onChange={(event) => setServiceForm({ ...serviceForm, association_note: event.target.value })} placeholder="记录该服务与阶段、环境或路由策略的关联说明" className="min-h-[5rem] px-4 py-3 rounded-lg outline-none resize-none" style={{ backgroundColor: LK.surfaceRaised, color: LK.inkSoft, border: `1px solid ${LK.border}` }} onFocus={(e) => { e.currentTarget.style.borderColor = LK.primary; }} onBlur={(e) => { e.currentTarget.style.borderColor = LK.border; }} />
               </div>
             )}
           </div>
 
           <div className="flex gap-3">
-            <button type="submit" disabled={submittingService} className="flex-1 px-6 py-3 rounded-2xl bg-emerald-600 text-white font-black flex items-center justify-center gap-2">
+            <button type="submit" disabled={submittingService} className="flex-1 px-6 py-3 rounded-lg font-semibold flex items-center justify-center gap-2 transition-colors disabled:opacity-50" style={{ backgroundColor: LK.success, color: '#ffffff' }} onMouseEnter={(e) => { if (!submittingService) e.currentTarget.style.backgroundColor = '#3da860'; }} onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = LK.success; }}>
               <Plus size={16} />
               {submittingService ? (editingService ? '更新中...' : '注册中...') : (editingService ? '更新能力服务' : '注册能力服务')}
             </button>
             <button
               type="button"
               onClick={() => setServiceForm(defaultServiceForm)}
-              className="px-5 py-3 rounded-2xl bg-slate-100 text-slate-700 font-black"
+              className="px-5 py-3 rounded-lg font-semibold transition-colors"
+              style={{ backgroundColor: LK.surfaceRaised, color: LK.inkSoft, border: `1px solid ${LK.border}` }}
+              onMouseEnter={(e) => { e.currentTarget.style.borderColor = LK.primary; e.currentTarget.style.color = LK.primarySoft; }}
+              onMouseLeave={(e) => { e.currentTarget.style.borderColor = LK.border; e.currentTarget.style.color = LK.inkSoft; }}
             >
               清空
             </button>
@@ -321,22 +354,22 @@ export const ServicesWorkspace: React.FC<{
         </form>
       </div>
 
-      <div className={cardClass}>
-        <div className="px-6 py-5 border-b border-slate-100 space-y-4">
+      <div className={cardClass} style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}` }}>
+        <div className="px-6 py-5 space-y-4" style={{ borderBottom: `1px solid ${LK.borderSoft}` }}>
           <div className="flex items-center justify-between gap-4">
-            <h3 className="text-lg font-black text-slate-800">服务能力一览</h3>
-            <div className="text-xs text-slate-400">共 {filteredServices.length} / {services.length} 项</div>
+            <h3 className="text-lg font-semibold" style={{ color: LK.ink }}>服务能力一览</h3>
+            <div className="text-xs" style={{ color: LK.muted }}>共 {filteredServices.length} / {services.length} 项</div>
           </div>
           <div className="grid grid-cols-1 xl:grid-cols-4 gap-3">
             {[
-              { label: '活跃服务', value: serviceStats.active, tone: 'bg-emerald-50 border-emerald-200 text-emerald-800' },
-              { label: '待检查服务', value: serviceStats.unhealthy, tone: 'bg-amber-50 border-amber-200 text-amber-800' },
-              { label: '缺健康检查', value: serviceStats.missingHealthcheck, tone: 'bg-sky-50 border-sky-200 text-sky-800' },
-              { label: '缺能力声明', value: serviceStats.missingCapability, tone: 'bg-rose-50 border-rose-200 text-rose-800' },
+              { label: '活跃服务', value: serviceStats.active, lkTone: { bg: `${LK.success}14`, border: `${LK.success}40`, color: LK.success } },
+              { label: '待检查服务', value: serviceStats.unhealthy, lkTone: { bg: `${LK.warning}14`, border: `${LK.warning}40`, color: LK.warning } },
+              { label: '缺健康检查', value: serviceStats.missingHealthcheck, lkTone: { bg: `${LK.info}14`, border: `${LK.info}40`, color: LK.info } },
+              { label: '缺能力声明', value: serviceStats.missingCapability, lkTone: { bg: `${LK.error}14`, border: `${LK.error}40`, color: LK.error } },
             ].map((item) => (
-              <div key={item.label} className={`rounded-[1.4rem] border px-4 py-4 ${item.tone}`}>
-                <div className="text-[10px] font-black uppercase tracking-widest opacity-70">{item.label}</div>
-                <div className="mt-2 text-2xl font-black">{item.value}</div>
+              <div key={item.label} className="rounded-xl border px-4 py-4" style={{ backgroundColor: item.lkTone.bg, borderColor: item.lkTone.border, color: item.lkTone.color }}>
+                <div className="text-[10px] font-semibold uppercase tracking-widest opacity-80">{item.label}</div>
+                <div className="mt-2 text-2xl font-semibold">{item.value}</div>
               </div>
             ))}
           </div>
@@ -345,21 +378,24 @@ export const ServicesWorkspace: React.FC<{
               value={serviceSearch}
               onChange={(event) => setServiceSearch(event.target.value)}
               placeholder="搜索服务名、服务标识、能力标识、动作类型或关联说明"
-              className="px-4 py-3 rounded-2xl border border-slate-200 outline-none"
+              className="px-4 py-3 rounded-lg outline-none"
+              style={{ backgroundColor: LK.surfaceRaised, color: LK.inkSoft, border: `1px solid ${LK.border}` }}
+              onFocus={(e) => { e.currentTarget.style.borderColor = LK.primary; }}
+              onBlur={(e) => { e.currentTarget.style.borderColor = LK.border; }}
             />
-            <select value={serviceStageFilter} onChange={(event) => setServiceStageFilter(event.target.value)} className="px-4 py-3 rounded-2xl border border-slate-200 outline-none bg-white">
+            <select value={serviceStageFilter} onChange={(event) => setServiceStageFilter(event.target.value)} className="px-4 py-3 rounded-lg outline-none" style={{ backgroundColor: LK.surfaceRaised, color: LK.inkSoft, border: `1px solid ${LK.border}` }} onFocus={(e) => { e.currentTarget.style.borderColor = LK.primary; }} onBlur={(e) => { e.currentTarget.style.borderColor = LK.border; }}>
               <option value="all">全部阶段</option>
               {['receive', 'triage', 'validation', 'finished'].map((item) => (
                 <option key={item} value={item}>{labelOf(item, STAGE_LABELS)}</option>
               ))}
             </select>
-            <select value={serviceRoleFilter} onChange={(event) => setServiceRoleFilter(event.target.value)} className="px-4 py-3 rounded-2xl border border-slate-200 outline-none bg-white">
+            <select value={serviceRoleFilter} onChange={(event) => setServiceRoleFilter(event.target.value)} className="px-4 py-3 rounded-lg outline-none" style={{ backgroundColor: LK.surfaceRaised, color: LK.inkSoft, border: `1px solid ${LK.border}` }} onFocus={(e) => { e.currentTarget.style.borderColor = LK.primary; }} onBlur={(e) => { e.currentTarget.style.borderColor = LK.border; }}>
               <option value="all">全部角色</option>
               {Object.keys(MODULE_ROLE_LABELS).map((item) => (
                 <option key={item} value={item}>{MODULE_ROLE_LABELS[item]}</option>
               ))}
             </select>
-            <select value={serviceActionFilter} onChange={(event) => setServiceActionFilter(event.target.value)} className="px-4 py-3 rounded-2xl border border-slate-200 outline-none bg-white">
+            <select value={serviceActionFilter} onChange={(event) => setServiceActionFilter(event.target.value)} className="px-4 py-3 rounded-lg outline-none" style={{ backgroundColor: LK.surfaceRaised, color: LK.inkSoft, border: `1px solid ${LK.border}` }} onFocus={(e) => { e.currentTarget.style.borderColor = LK.primary; }} onBlur={(e) => { e.currentTarget.style.borderColor = LK.border; }}>
               <option value="all">全部动作</option>
               {Object.keys(ACTION_TYPE_LABELS).map((item) => (
                 <option key={item} value={item}>{ACTION_TYPE_LABELS[item]}</option>
@@ -370,7 +406,13 @@ export const ServicesWorkspace: React.FC<{
                 <button
                   key={item}
                   onClick={() => setServiceStatusFilter(item)}
-                  className={`px-4 py-3 rounded-2xl text-xs font-black ${serviceStatusFilter === item ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-600'}`}
+                  className="px-4 py-3 rounded-lg text-xs font-semibold transition-colors"
+                  style={{
+                    backgroundColor: serviceStatusFilter === item ? LK.primary : LK.surfaceRaised,
+                    color: serviceStatusFilter === item ? '#ffffff' : LK.body
+                  }}
+                  onMouseEnter={(e) => { if (serviceStatusFilter !== item) { e.currentTarget.style.backgroundColor = LK.surface; e.currentTarget.style.color = LK.ink; } }}
+                  onMouseLeave={(e) => { if (serviceStatusFilter !== item) { e.currentTarget.style.backgroundColor = LK.surfaceRaised; e.currentTarget.style.color = LK.body; } }}
                 >
                   {item === 'all' ? '全部状态' : '仅活跃'}
                 </button>
@@ -384,7 +426,10 @@ export const ServicesWorkspace: React.FC<{
                     setServiceRoleFilter('all');
                     setServiceActionFilter('all');
                   }}
-                  className="px-4 py-3 rounded-2xl text-xs font-black bg-white border border-slate-200 text-slate-600"
+                  className="px-4 py-3 rounded-lg text-xs font-semibold transition-colors"
+                  style={{ backgroundColor: LK.surface, color: LK.body, border: `1px solid ${LK.border}` }}
+                  onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = LK.surfaceRaised; e.currentTarget.style.color = LK.ink; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = LK.surface; e.currentTarget.style.color = LK.body; }}
                 >
                   清空
                 </button>
@@ -507,36 +552,39 @@ export const TasksWorkspace: React.FC<{
   setWorkspaceView: (view: WorkspaceViewKey) => void;
   setActiveTab: (tab: 'timeline' | 'results' | 'tasks' | 'actions') => void;
 }> = ({ manualTasks, setSelectedCaseId, setWorkspaceView, setActiveTab }) => (
-  <div className={cardClass}>
-    <div className="px-6 py-5 border-b border-slate-100 flex items-center gap-2">
-      <Clock3 size={16} className="text-amber-500" />
-      <h3 className="text-lg font-black text-slate-800">项目人工待办</h3>
+  <div className={cardClass} style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}` }}>
+    <div className="px-6 py-5 flex items-center gap-2" style={{ borderBottom: `1px solid ${LK.borderSoft}` }}>
+      <Clock3 size={16} style={{ color: LK.warning }} />
+      <h3 className="text-lg font-semibold" style={{ color: LK.ink }}>项目人工待办</h3>
     </div>
-    <div className="divide-y divide-slate-100 max-h-[48rem] overflow-y-auto">
+    <div className="max-h-[48rem] overflow-y-auto" style={{ borderTop: `1px solid ${LK.borderSoft}` }}>
       {manualTasks.length === 0 ? (
-        <div className="px-6 py-8 text-sm text-slate-400">当前项目没有人工待办</div>
+        <div className="px-6 py-8 text-sm" style={{ color: LK.muted }}>当前项目没有人工待办</div>
       ) : (
         manualTasks.map((item) => (
-          <div key={item.id} className="px-6 py-4">
+          <div key={item.id} className="px-6 py-4" style={{ borderBottom: `1px solid ${LK.borderSoft}` }}>
             <div className="flex items-start justify-between gap-3">
               <div className="space-y-1">
-                <p className="text-sm font-black text-slate-800">{item.title}</p>
-                <p className="text-xs text-slate-500">{item.summary || '暂无说明'}</p>
-                <div className="flex flex-wrap gap-2 text-[11px] text-slate-400">
+                <p className="text-sm font-semibold" style={{ color: LK.ink }}>{item.title}</p>
+                <p className="text-xs" style={{ color: LK.body }}>{item.summary || '暂无说明'}</p>
+                <div className="flex flex-wrap gap-2 text-[11px]" style={{ color: LK.muted, fontFamily: MONO }}>
                   <span>{item.task_type}</span>
                   <span>case: {item.case_id.slice(0, 8)}</span>
                   <span>{item.assignee || 'unassigned'}</span>
                 </div>
               </div>
               <div className="flex flex-col gap-2 items-end">
-                <span className="px-2 py-1 rounded-lg bg-amber-100 text-[10px] font-black uppercase tracking-widest text-amber-700">{item.status}</span>
+                <span className="px-2 py-1 rounded-lg text-[10px] font-semibold uppercase tracking-wider" style={{ backgroundColor: `${LK.warning}22`, color: LK.warning }}>{item.status}</span>
                 <button
                   onClick={() => {
                     setSelectedCaseId(item.case_id);
                     setWorkspaceView('cases');
                     setActiveTab('tasks');
                   }}
-                  className="px-3 py-2 rounded-xl bg-slate-100 text-xs font-black text-slate-700"
+                  className="px-3 py-2 rounded-lg text-xs font-semibold transition-colors"
+                  style={{ backgroundColor: LK.surface, color: LK.inkSoft, border: `1px solid ${LK.border}` }}
+                  onMouseEnter={(e) => { e.currentTarget.style.borderColor = LK.primary; e.currentTarget.style.color = LK.primarySoft; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.borderColor = LK.border; e.currentTarget.style.color = LK.inkSoft; }}
                 >
                   打开案例
                 </button>
@@ -779,34 +827,37 @@ export const QueueWorkspace: React.FC<{
     <div className="space-y-4">
       <div className="grid grid-cols-1 md:grid-cols-2 2xl:grid-cols-5 gap-4">
           {[
-          { label: '排队动作', value: queueMetrics.queued, tone: 'bg-slate-50 text-slate-800 border-slate-200' },
-          { label: '运行中', value: queueMetrics.running, tone: 'bg-blue-50 text-blue-800 border-blue-200' },
-          { label: '失败动作', value: queueMetrics.failed, tone: 'bg-rose-50 text-rose-800 border-rose-200' },
-          { label: '疑似超时', value: queueMetrics.timedOut, tone: 'bg-amber-50 text-amber-800 border-amber-200' },
-          { label: '服务风险', value: queueMetrics.serviceRisk, tone: 'bg-emerald-50 text-emerald-800 border-emerald-200' },
+          { label: '排队动作', value: queueMetrics.queued, bg: LK.surfaceRaised, color: LK.body },
+          { label: '运行中', value: queueMetrics.running, bg: `${LK.primary}14`, color: LK.primary },
+          { label: '失败动作', value: queueMetrics.failed, bg: `${LK.error}14`, color: LK.error },
+          { label: '疑似超时', value: queueMetrics.timedOut, bg: `${LK.warning}14`, color: LK.warning },
+          { label: '服务风险', value: queueMetrics.serviceRisk, bg: `${LK.success}14`, color: LK.success },
         ].map((item) => (
-          <div key={item.label} className={`rounded-[1.6rem] border p-4 ${item.tone}`}>
-            <div className="text-[10px] font-black uppercase tracking-widest opacity-70">{item.label}</div>
-            <div className="mt-3 text-3xl font-black">{item.value}</div>
-            <div className="mt-1 text-xs opacity-80">{item.label === '服务风险' ? '绑定服务未激活或未注册的动作数' : '基于当前筛选前的项目动作计算'}</div>
+          <div key={item.label} className="rounded-xl border p-4" style={{ backgroundColor: item.bg, borderColor: LK.border }}>
+            <div className="text-[10px] font-semibold uppercase tracking-widest opacity-70" style={{ color: LK.muted }}>{item.label}</div>
+            <div className="mt-3 text-3xl font-semibold" style={{ color: LK.ink }}>{item.value}</div>
+            <div className="mt-1 text-xs opacity-80" style={{ color: LK.body }}>{item.label === '服务风险' ? '绑定服务未激活或未注册的动作数' : '基于当前筛选前的项目动作计算'}</div>
           </div>
         ))}
       </div>
 
-      <div className={cardClass}>
-        <div className="px-6 py-5 border-b border-slate-100 flex items-center justify-between gap-4">
+      <div className={cardClass} style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}` }}>
+        <div className="px-6 py-5 flex items-center justify-between gap-4" style={{ borderBottom: `1px solid ${LK.borderSoft}` }}>
           <div>
-            <h3 className="text-lg font-black text-slate-800">项目动作队列</h3>
-            <p className="text-xs text-slate-500 mt-1">从项目视角统一查看排队、运行、失败、超时风险与服务关联状态，支持直接跳转和处置</p>
+            <h3 className="text-lg font-semibold" style={{ color: LK.ink }}>项目动作队列</h3>
+            <p className="text-xs mt-1" style={{ color: LK.muted }}>从项目视角统一查看排队、运行、失败、超时风险与服务关联状态，支持直接跳转和处置</p>
           </div>
           <div className="flex items-center gap-2">
-            <div className="inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-slate-100 text-slate-600 text-xs font-black">
-              <Activity size={14} />
+            <div className="inline-flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-semibold" style={{ backgroundColor: LK.surfaceRaised, color: LK.body }}>
+              <Activity size={14} style={{ color: LK.muted }} />
               {filteredActions.length} / {projectActions.length}
             </div>
             <button
               onClick={refreshAll}
-              className="inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-slate-900 text-white text-xs font-black"
+              className="inline-flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-semibold transition-colors"
+              style={{ backgroundColor: LK.primary, color: '#ffffff' }}
+              onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = LK.primaryDeep; }}
+              onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = LK.primary; }}
             >
               <RefreshCw size={13} />
               刷新
@@ -815,42 +866,48 @@ export const QueueWorkspace: React.FC<{
         </div>
         <div className="p-6 space-y-4">
           {(queueMetrics.failed > 0 || queueMetrics.timedOut > 0 || queueMetrics.serviceRisk > 0) && (
-            <div className="rounded-[1.5rem] border border-amber-200 bg-gradient-to-r from-amber-50 to-rose-50 px-4 py-4">
+            <div className="rounded-xl border px-4 py-4" style={{ background: `linear-gradient(to right, ${LK.warning}14, ${LK.error}14)`, borderColor: LK.warning }}>
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div className="space-y-1">
-                  <div className="flex items-center gap-2 text-sm font-black text-slate-800">
-                    <AlertTriangle size={15} className="text-amber-600" />
+                  <div className="flex items-center gap-2 text-sm font-semibold" style={{ color: LK.ink }}>
+                    <AlertTriangle size={15} style={{ color: LK.warning }} />
                     异常动作优先看板
                   </div>
-                  <p className="text-xs text-slate-600">失败、超时和服务异常动作会直接拖慢阶段推进，建议优先恢复这些链路。</p>
+                  <p className="text-xs" style={{ color: LK.body }}>失败、超时和服务异常动作会直接拖慢阶段推进，建议优先恢复这些链路。</p>
                 </div>
                 <div className="flex flex-wrap gap-2 text-[11px]">
-                  <button onClick={() => setQuickFilter('timed_out')} className="rounded-xl bg-amber-100 px-3 py-2 font-black text-amber-700">超时 {queueMetrics.timedOut}</button>
-                  <button onClick={() => setQuickFilter('service_risk')} className="rounded-xl bg-emerald-100 px-3 py-2 font-black text-emerald-700">服务风险 {queueMetrics.serviceRisk}</button>
+                  <button onClick={() => setQuickFilter('timed_out')} className="rounded-lg px-3 py-2 font-semibold transition-colors" style={{ backgroundColor: `${LK.warning}33`, color: LK.warning }} onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = `${LK.warning}4D`; }} onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = `${LK.warning}33`; }}>超时 {queueMetrics.timedOut}</button>
+                  <button onClick={() => setQuickFilter('service_risk')} className="rounded-lg px-3 py-2 font-semibold transition-colors" style={{ backgroundColor: `${LK.success}33`, color: LK.success }} onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = `${LK.success}4D`; }} onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = `${LK.success}33`; }}>服务风险 {queueMetrics.serviceRisk}</button>
                   <button onClick={() => {
                     setShowOnlyExceptions(true);
                     setQuickFilter('all');
-                  }} className="rounded-xl bg-rose-600 px-3 py-2 font-black text-white">只看异常</button>
+                  }} className="rounded-lg px-3 py-2 font-semibold transition-colors" style={{ backgroundColor: LK.error, color: '#ffffff' }} onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = LK.error; }} onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = LK.error; }}>只看异常</button>
                 </div>
               </div>
             </div>
           )}
 
-          <div className="rounded-[1.5rem] border border-slate-200 bg-[rgba(255,255,255,0.04)] p-4 space-y-3">
+          <div className="rounded-xl border p-4 space-y-3" style={{ backgroundColor: `${LK.surface}0A`, borderColor: LK.border }}>
             <div className="grid grid-cols-1 xl:grid-cols-[1.1fr_repeat(3,minmax(0,0.5fr))_auto] gap-3">
               <label className="relative block">
-                <Search size={14} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
+                <Search size={14} className="absolute left-4 top-1/2 -translate-y-1/2" style={{ color: LK.muted }} />
                 <input
                   value={searchText}
                   onChange={(event) => setSearchText(event.target.value)}
                   placeholder="搜索案例、案例ID、服务、动作类型、阶段或摘要"
-                  className="w-full rounded-2xl border border-slate-200 bg-white pl-10 pr-4 py-3 text-sm outline-none"
+                  className="w-full rounded-lg pl-10 pr-4 py-3 text-sm outline-none"
+                  style={{ backgroundColor: LK.surface, color: LK.inkSoft, border: `1px solid ${LK.border}` }}
+                  onFocus={(e) => { e.currentTarget.style.borderColor = LK.primary; }}
+                  onBlur={(e) => { e.currentTarget.style.borderColor = LK.border; }}
                 />
               </label>
               <select
                 value={selectedStage}
                 onChange={(event) => setSelectedStage(event.target.value)}
-                className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none"
+                className="rounded-lg px-4 py-3 text-sm outline-none"
+                style={{ backgroundColor: LK.surface, color: LK.inkSoft, border: `1px solid ${LK.border}` }}
+                onFocus={(e) => { e.currentTarget.style.borderColor = LK.primary; }}
+                onBlur={(e) => { e.currentTarget.style.borderColor = LK.border; }}
               >
                 <option value="all">全部阶段</option>
                 {stageOptions.map((item) => (
@@ -860,7 +917,10 @@ export const QueueWorkspace: React.FC<{
               <select
                 value={selectedServiceId}
                 onChange={(event) => setSelectedServiceId(event.target.value)}
-                className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none"
+                className="rounded-lg px-4 py-3 text-sm outline-none"
+                style={{ backgroundColor: LK.surface, color: LK.inkSoft, border: `1px solid ${LK.border}` }}
+                onFocus={(e) => { e.currentTarget.style.borderColor = LK.primary; }}
+                onBlur={(e) => { e.currentTarget.style.borderColor = LK.border; }}
               >
                 <option value="all">全部服务</option>
                 {serviceOptions.map((item) => (
@@ -870,7 +930,10 @@ export const QueueWorkspace: React.FC<{
               <select
                 value={quickFilter}
                 onChange={(event) => setQuickFilter(event.target.value as 'all' | 'timed_out' | 'retryable' | 'service_risk')}
-                className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none"
+                className="rounded-lg px-4 py-3 text-sm outline-none"
+                style={{ backgroundColor: LK.surface, color: LK.inkSoft, border: `1px solid ${LK.border}` }}
+                onFocus={(e) => { e.currentTarget.style.borderColor = LK.primary; }}
+                onBlur={(e) => { e.currentTarget.style.borderColor = LK.border; }}
               >
                 <option value="all">全部动作</option>
                 <option value="timed_out">只看超时</option>
@@ -879,14 +942,17 @@ export const QueueWorkspace: React.FC<{
               </select>
               <button
                 onClick={() => setShowOnlyExceptions((prev) => !prev)}
-                className={`px-4 py-3 rounded-2xl text-xs font-black ${showOnlyExceptions ? 'bg-rose-600 text-white' : 'bg-slate-900 text-white'}`}
+                className="px-4 py-3 rounded-lg text-xs font-semibold transition-colors"
+                style={{ backgroundColor: showOnlyExceptions ? LK.error : LK.primary, color: '#ffffff' }}
+                onMouseEnter={(e) => { e.currentTarget.style.opacity = '0.9'; }}
+                onMouseLeave={(e) => { e.currentTarget.style.opacity = '1'; }}
               >
                 {showOnlyExceptions ? '显示全部动作' : '只看异常动作'}
               </button>
             </div>
 
             <div className="flex flex-wrap items-center gap-2">
-              <span className="text-[11px] font-black uppercase tracking-widest text-slate-400">快捷聚焦</span>
+              <span className="text-[11px] font-semibold uppercase tracking-widest" style={{ color: LK.muted }}>快捷聚焦</span>
               {[
                 { key: 'all', label: '全部', count: filteredActions.length },
                 { key: 'timed_out', label: '超时动作', count: queueMetrics.timedOut },
@@ -896,7 +962,14 @@ export const QueueWorkspace: React.FC<{
                 <button
                   key={item.key}
                   onClick={() => setQuickFilter(item.key as 'all' | 'timed_out' | 'retryable' | 'service_risk')}
-                  className={`rounded-xl px-3 py-2 text-xs font-black ${quickFilter === item.key ? 'bg-slate-900 text-white' : 'bg-white text-slate-600 border border-slate-200'}`}
+                  className="rounded-lg px-3 py-2 text-xs font-semibold transition-colors"
+                  style={{
+                    backgroundColor: quickFilter === item.key ? LK.primary : LK.surfaceRaised,
+                    color: quickFilter === item.key ? '#ffffff' : LK.body,
+                    border: quickFilter === item.key ? 'none' : `1px solid ${LK.border}`
+                  }}
+                  onMouseEnter={(e) => { if (quickFilter !== item.key) { e.currentTarget.style.backgroundColor = LK.surface; e.currentTarget.style.color = LK.ink; } }}
+                  onMouseLeave={(e) => { if (quickFilter !== item.key) { e.currentTarget.style.backgroundColor = LK.surfaceRaised; e.currentTarget.style.color = LK.body; } }}
                 >
                   {item.label} {item.count}
                 </button>
@@ -910,7 +983,10 @@ export const QueueWorkspace: React.FC<{
                     setSelectedStage('all');
                     setQuickFilter('all');
                   }}
-                  className="rounded-xl px-3 py-2 text-xs font-black text-slate-500"
+                  className="rounded-lg px-3 py-2 text-xs font-semibold transition-colors"
+                  style={{ backgroundColor: 'transparent', color: LK.body, border: `1px solid ${LK.border}` }}
+                  onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = LK.surfaceRaised; e.currentTarget.style.color = LK.ink; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.color = LK.body; }}
                 >
                   清空筛选
                 </button>
@@ -920,7 +996,10 @@ export const QueueWorkspace: React.FC<{
 
           <div className="flex flex-wrap gap-2">
             {ACTION_QUEUE_FILTERS.map((item) => (
-              <button key={item} onClick={() => setActionQueueFilter(item)} className={`px-3 py-2 rounded-xl text-xs font-black uppercase tracking-widest ${actionQueueFilter === item ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-500'}`}>
+              <button key={item} onClick={() => setActionQueueFilter(item)} className="px-3 py-2 rounded-lg text-xs font-semibold uppercase tracking-widest transition-colors" style={{
+                backgroundColor: actionQueueFilter === item ? LK.primary : LK.surfaceRaised,
+                color: actionQueueFilter === item ? '#ffffff' : LK.body
+              }} onMouseEnter={(e) => { if (actionQueueFilter !== item) { e.currentTarget.style.backgroundColor = LK.surface; e.currentTarget.style.color = LK.ink; } }} onMouseLeave={(e) => { if (actionQueueFilter !== item) { e.currentTarget.style.backgroundColor = LK.surfaceRaised; e.currentTarget.style.color = LK.body; } }}>
                 {labelOf(item, ACTION_STATUS_LABELS)}
               </button>
             ))}
@@ -929,48 +1008,52 @@ export const QueueWorkspace: React.FC<{
           <div className="grid grid-cols-1 2xl:grid-cols-[1.35fr_0.65fr] gap-4">
             <div className="space-y-3 max-h-[46rem] overflow-y-auto pr-1">
               {filteredActions.length === 0 ? (
-                <div className="rounded-[1.5rem] border border-dashed border-slate-300 bg-slate-50 px-5 py-8 text-sm text-slate-500">
-                  <div className="font-black text-slate-700">当前筛选条件下没有动作</div>
-                  <p className="mt-2 text-xs text-slate-500">可以清空筛选回看全部队列，或切到能力注册页检查服务是否已激活并正确绑定阶段。</p>
+                <div className="rounded-xl border border-dashed px-5 py-8 text-sm" style={{ backgroundColor: LK.surfaceRaised, borderColor: LK.borderSoft, color: LK.body }}>
+                  <div className="font-semibold" style={{ color: LK.inkSoft }}>当前筛选条件下没有动作</div>
+                  <p className="mt-2 text-xs" style={{ color: LK.body }}>可以清空筛选回看全部队列，或切到能力注册页检查服务是否已激活并正确绑定阶段。</p>
                 </div>
               ) : (
                 groupedActions.map((group) => (
                   <div key={group.key} className="space-y-3">
-                    <div className="sticky top-0 z-10 rounded-[1.4rem] border border-slate-200 bg-[var(--bg-surface)] px-4 py-3 backdrop-blur">
+                    <div className="sticky top-0 z-10 rounded-lg border px-4 py-3 backdrop-blur" style={{ borderColor: LK.border, backgroundColor: LK.surfaceGlass }}>
                       <div className="flex items-center justify-between gap-3">
                         <div>
-                          <div className="text-sm font-black text-slate-800">{group.title}</div>
-                          <div className="mt-1 text-xs text-slate-500">{group.description}</div>
+                          <div className="text-sm font-semibold" style={{ color: LK.ink }}>{group.title}</div>
+                          <div className="mt-1 text-xs" style={{ color: LK.body }}>{group.description}</div>
                         </div>
-                        <div className="rounded-xl bg-slate-100 px-3 py-2 text-xs font-black text-slate-600">{group.items.length} 条</div>
+                        <div className="rounded-lg px-3 py-2 text-xs font-semibold" style={{ backgroundColor: LK.surfaceRaised, color: LK.body }}>{group.items.length} 条</div>
                       </div>
                     </div>
 
                     {group.items.map((item) => (
-                      <div key={`queue-${item.id}`} className={`rounded-[1.5rem] border px-4 py-4 ${item.execution_status === 'failed' || item.isTimedOut ? 'border-rose-200 bg-[rgba(239,68,68,0.08)]' : 'border-slate-200 bg-[rgba(255,255,255,0.04)]'}`}>
+                      <div key={`queue-${item.id}`} className="rounded-xl border px-4 py-4" style={{
+                        borderColor: item.execution_status === 'failed' || item.isTimedOut ? LK.error : LK.border,
+                        backgroundColor: item.execution_status === 'failed' || item.isTimedOut ? `${LK.error}14` : `${LK.surface}0A`
+                      }}>
                         <div className="flex items-start justify-between gap-3">
                           <div className="space-y-3 min-w-0">
                             <div className="flex flex-wrap items-center gap-2">
-                              <span className="px-2 py-1 rounded-lg bg-blue-100 text-[10px] font-black uppercase tracking-widest text-blue-700">{labelOf(item.action_type, ACTION_TYPE_LABELS)}</span>
-                              <span className="px-2 py-1 rounded-lg bg-slate-100 text-[10px] font-black uppercase tracking-widest text-slate-600">{labelOf(item.execution_status, ACTION_STATUS_LABELS)}</span>
-                              <span className="px-2 py-1 rounded-lg bg-violet-100 text-[10px] font-black uppercase tracking-widest text-violet-700">{labelOf(item.stage, STAGE_LABELS)}</span>
+                              <span className="px-2 py-1 rounded-lg text-[10px] font-semibold uppercase tracking-widest" style={{ backgroundColor: `${LK.primary}22`, color: LK.primary }}>{labelOf(item.action_type, ACTION_TYPE_LABELS)}</span>
+                              <span className="px-2 py-1 rounded-lg text-[10px] font-semibold uppercase tracking-widest" style={{ backgroundColor: LK.surfaceRaised, color: LK.body }}>{labelOf(item.execution_status, ACTION_STATUS_LABELS)}</span>
+                              <span className="px-2 py-1 rounded-lg text-[10px] font-semibold uppercase tracking-widest" style={{ backgroundColor: `${LK.info}22`, color: LK.info }}>{labelOf(item.stage, STAGE_LABELS)}</span>
                               {item.target_service_id && (
                                 <button
                                   onClick={() => setSelectedServiceId(item.target_service_id)}
-                                  className={`px-2 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest ${item.serviceHealthy ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}`}
+                                  className="px-2 py-1 rounded-lg text-[10px] font-semibold uppercase tracking-widest transition-colors"
+                                  style={{ backgroundColor: item.serviceHealthy ? `${LK.success}22` : `${LK.warning}22`, color: item.serviceHealthy ? LK.success : LK.warning }}
                                 >
                                   {item.service?.service_name || item.target_service_id}
                                 </button>
                               )}
                               {item.isTimedOut && (
-                                <span className="px-2 py-1 rounded-lg bg-amber-100 text-[10px] font-black uppercase tracking-widest text-amber-700">疑似超时</span>
+                                <span className="px-2 py-1 rounded-lg text-[10px] font-semibold uppercase tracking-widest" style={{ backgroundColor: `${LK.warning}22`, color: LK.warning }}>疑似超时</span>
                               )}
                             </div>
                             <div>
-                              <p className="text-sm font-black text-slate-800 truncate">{item.case_title}</p>
-                              <p className="mt-1 text-xs text-slate-500">{item.result_summary || '等待结果或尚未生成摘要'}</p>
+                              <p className="text-sm font-semibold truncate" style={{ color: LK.ink }}>{item.case_title}</p>
+                              <p className="mt-1 text-xs" style={{ color: LK.body }}>{item.result_summary || '等待结果或尚未生成摘要'}</p>
                             </div>
-                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-2 text-[11px] text-slate-400">
+                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-2 text-[11px]" style={{ color: LK.muted }}>
                               <div className="flex flex-wrap gap-3">
                                 <span>派发：{item.dispatch_status || '暂无'}</span>
                                 <span>重试：{item.retry_count}</span>
@@ -983,7 +1066,7 @@ export const QueueWorkspace: React.FC<{
                               </div>
                             </div>
                             {!item.serviceHealthy && (
-                              <div className="inline-flex items-center gap-2 rounded-xl bg-amber-50 px-3 py-2 text-[11px] font-semibold text-amber-700">
+                              <div className="inline-flex items-center gap-2 rounded-lg px-3 py-2 text-[11px] font-semibold" style={{ backgroundColor: `${LK.warning}14`, color: LK.warning }}>
                                 <AlertTriangle size={13} />
                                 目标服务未激活或未注册，建议先检查能力注册页。
                               </div>
@@ -996,21 +1079,26 @@ export const QueueWorkspace: React.FC<{
                                 setWorkspaceView('cases');
                                 setActiveTab('actions');
                               }}
-                              className="px-3 py-2 rounded-xl bg-slate-100 text-xs font-black text-slate-700"
+                              className="px-3 py-2 rounded-lg text-xs font-semibold transition-colors"
+                              style={{ backgroundColor: LK.surfaceRaised, color: LK.inkSoft, border: `1px solid ${LK.border}` }}
+                              onMouseEnter={(e) => { e.currentTarget.style.borderColor = LK.primary; e.currentTarget.style.color = LK.primarySoft; }}
+                              onMouseLeave={(e) => { e.currentTarget.style.borderColor = LK.border; e.currentTarget.style.color = LK.inkSoft; }}
                             >
                               打开案例
                             </button>
                             <button
                               onClick={() => handleActionControl(item.id, 'retry')}
                               disabled={actionOperatingId === item.id || !item.canRetry}
-                              className={`px-3 py-2 rounded-xl text-xs font-black ${item.canRetry ? 'bg-emerald-600 text-white' : 'bg-slate-100 text-slate-400'}`}
+                              className="px-3 py-2 rounded-lg text-xs font-semibold transition-colors disabled:opacity-50"
+                              style={{ backgroundColor: item.canRetry ? LK.success : LK.surfaceRaised, color: item.canRetry ? '#ffffff' : LK.muted }}
                             >
                               {actionOperatingId === item.id ? '处理中...' : '重试'}
                             </button>
                             <button
                               onClick={() => handleActionControl(item.id, 'cancel')}
                               disabled={actionOperatingId === item.id || !item.canCancel}
-                              className={`px-3 py-2 rounded-xl text-xs font-black ${item.canCancel ? 'bg-slate-200 text-slate-700' : 'bg-slate-100 text-slate-400'}`}
+                              className="px-3 py-2 rounded-lg text-xs font-semibold transition-colors disabled:opacity-50"
+                              style={{ backgroundColor: item.canCancel ? LK.surfaceRaised : LK.surface, color: item.canCancel ? LK.inkSoft : LK.muted }}
                             >
                               取消
                             </button>
@@ -1024,30 +1112,37 @@ export const QueueWorkspace: React.FC<{
             </div>
 
             <div className="space-y-4">
-              <div className="rounded-[1.5rem] border border-slate-200 bg-[rgba(255,255,255,0.04)] p-4">
-                <div className="text-[10px] font-black uppercase tracking-widest text-slate-400">运行判断</div>
-                <div className="mt-3 space-y-2 text-sm text-slate-600">
+              <div className="rounded-xl border p-4" style={{ backgroundColor: `${LK.surface}0A`, borderColor: LK.border }}>
+                <div className="text-[10px] font-semibold uppercase tracking-widest" style={{ color: LK.muted }}>运行判断</div>
+                <div className="mt-3 space-y-2 text-sm" style={{ color: LK.body }}>
                   <p>项目运行中案例 {overview?.metrics?.running_cases || 0} 个，等待外部回调 {overview?.metrics?.waiting_external || 0} 个。</p>
                   <p>如果失败动作和疑似超时同时增长，优先检查服务健康、能力声明和回调链路。</p>
                   <p>当前筛选命中 {filteredActions.length} 条动作，已启用 {activeFilterCount} 个本地筛选条件。</p>
                 </div>
               </div>
 
-              <div className="rounded-[1.5rem] border border-slate-200 bg-white p-4">
-                <div className="text-[10px] font-black uppercase tracking-widest text-slate-400">阶段拥塞分布</div>
+              <div className="rounded-xl border p-4" style={{ backgroundColor: LK.surface, borderColor: LK.border }}>
+                <div className="text-[10px] font-semibold uppercase tracking-widest" style={{ color: LK.muted }}>阶段拥塞分布</div>
                 <div className="mt-3 space-y-3">
                   {stageBreakdown.length === 0 ? (
-                    <div className="text-sm text-slate-400">暂无阶段队列分布</div>
+                    <div className="text-sm" style={{ color: LK.muted }}>暂无阶段队列分布</div>
                   ) : (
                     stageBreakdown.map((item) => (
                       <button
                         key={item.stage}
                         onClick={() => setSelectedStage(item.stage)}
-                        className={`w-full rounded-2xl border px-3 py-3 text-left ${selectedStage === item.stage ? 'border-slate-900 bg-slate-900 text-white' : 'border-slate-200 bg-slate-50 text-slate-700'}`}
+                        className="w-full rounded-lg border px-3 py-3 text-left transition-colors"
+                        style={{
+                          borderColor: selectedStage === item.stage ? LK.primary : LK.border,
+                          backgroundColor: selectedStage === item.stage ? LK.primary : LK.surfaceRaised,
+                          color: selectedStage === item.stage ? '#ffffff' : LK.inkSoft
+                        }}
+                        onMouseEnter={(e) => { if (selectedStage !== item.stage) { e.currentTarget.style.backgroundColor = LK.surface; e.currentTarget.style.color = LK.ink; } }}
+                        onMouseLeave={(e) => { if (selectedStage !== item.stage) { e.currentTarget.style.backgroundColor = LK.surfaceRaised; e.currentTarget.style.color = LK.inkSoft; } }}
                       >
                         <div className="flex items-center justify-between gap-3">
-                          <div className="text-sm font-black">{labelOf(item.stage, STAGE_LABELS)}</div>
-                          <div className="text-xs font-black">{item.count}</div>
+                          <div className="text-sm font-semibold">{labelOf(item.stage, STAGE_LABELS)}</div>
+                          <div className="text-xs font-semibold">{item.count}</div>
                         </div>
                       </button>
                     ))
@@ -1055,28 +1150,35 @@ export const QueueWorkspace: React.FC<{
                 </div>
               </div>
 
-              <div className="rounded-[1.5rem] border border-slate-200 bg-white p-4">
-                <div className="text-[10px] font-black uppercase tracking-widest text-slate-400">阻塞服务 Top</div>
+              <div className="rounded-xl border p-4" style={{ backgroundColor: LK.surface, borderColor: LK.border }}>
+                <div className="text-[10px] font-semibold uppercase tracking-widest" style={{ color: LK.muted }}>阻塞服务 Top</div>
                 <div className="mt-3 space-y-3">
                   {topBlockedServices.length === 0 ? (
-                    <div className="text-sm text-slate-400">当前没有明显堆积服务</div>
+                    <div className="text-sm" style={{ color: LK.muted }}>当前没有明显堆积服务</div>
                   ) : (
                     topBlockedServices.map((item) => (
                       <button
                         key={item.serviceId}
                         onClick={() => setSelectedServiceId(item.serviceId)}
-                        className={`w-full rounded-2xl border px-3 py-3 text-left ${selectedServiceId === item.serviceId ? 'border-slate-900 bg-slate-900 text-white' : 'border-slate-200 bg-slate-50'}`}
+                        className="w-full rounded-lg border px-3 py-3 text-left transition-colors"
+                        style={{
+                          borderColor: selectedServiceId === item.serviceId ? LK.primary : LK.border,
+                          backgroundColor: selectedServiceId === item.serviceId ? LK.primary : LK.surfaceRaised,
+                          color: selectedServiceId === item.serviceId ? '#ffffff' : LK.inkSoft
+                        }}
+                        onMouseEnter={(e) => { if (selectedServiceId !== item.serviceId) { e.currentTarget.style.backgroundColor = LK.surface; e.currentTarget.style.color = LK.ink; } }}
+                        onMouseLeave={(e) => { if (selectedServiceId !== item.serviceId) { e.currentTarget.style.backgroundColor = LK.surfaceRaised; e.currentTarget.style.color = LK.inkSoft; } }}
                       >
                         <div className="flex items-center justify-between gap-3">
                           <div className="min-w-0">
-                            <div className={`text-sm font-black truncate ${selectedServiceId === item.serviceId ? 'text-white' : 'text-slate-800'}`}>{item.serviceName}</div>
-                            <div className={`mt-1 text-[11px] ${selectedServiceId === item.serviceId ? 'text-slate-300' : 'text-slate-400'}`}>{item.serviceId}</div>
+                            <div className="text-sm font-semibold truncate" style={{ color: selectedServiceId === item.serviceId ? '#ffffff' : LK.ink }}>{item.serviceName}</div>
+                            <div className="mt-1 text-[11px]" style={{ color: selectedServiceId === item.serviceId ? '#cbd5e1' : LK.muted }}>{item.serviceId}</div>
                           </div>
-                          <span className={`px-2 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest ${item.unhealthy ? 'bg-amber-100 text-amber-700' : 'bg-emerald-100 text-emerald-700'}`}>
+                          <span className="px-2 py-1 rounded-lg text-[10px] font-semibold uppercase tracking-widest" style={{ backgroundColor: item.unhealthy ? `${LK.warning}22` : `${LK.success}22`, color: item.unhealthy ? LK.warning : LK.success }}>
                             {item.unhealthy ? '待检查' : '正常'}
                           </span>
                         </div>
-                        <div className={`mt-3 flex flex-wrap gap-2 text-[11px] ${selectedServiceId === item.serviceId ? 'text-slate-300' : 'text-slate-500'}`}>
+                        <div className="mt-3 flex flex-wrap gap-2 text-[11px]" style={{ color: selectedServiceId === item.serviceId ? '#cbd5e1' : LK.body }}>
                           <span>排队/运行 {item.pending}</span>
                           <span>失败/超时 {item.failed}</span>
                         </div>
@@ -1302,15 +1404,15 @@ export const ReproConfigWorkspace: React.FC<{
 
   return (
     <div className="grid grid-cols-1 2xl:grid-cols-[0.95fr_1.05fr] gap-6 items-start">
-      <div className={cardClass}>
-        <div className="px-6 py-5 border-b border-slate-100">
-          <h3 className="text-lg font-black text-slate-800">漏洞上报复现模块配置</h3>
-          <p className="mt-1 text-xs text-slate-500">为复现、验证与终态回传模块配置注册信息与生命周期绑定关系。</p>
+      <div className={cardClass} style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}` }}>
+        <div className="px-6 py-5" style={{ borderBottom: `1px solid ${LK.borderSoft}` }}>
+          <h3 className="text-lg font-semibold" style={{ color: LK.ink }}>漏洞上报复现模块配置</h3>
+          <p className="mt-1 text-xs" style={{ color: LK.muted }}>为复现、验证与终态回传模块配置注册信息与生命周期绑定关系。</p>
         </div>
         <form onSubmit={handleRegisterService} className="p-6 grid grid-cols-1 gap-3">
           {missingStages.length > 0 && (
-            <div className="rounded-[1.5rem] border border-amber-200 bg-amber-50/70 p-4">
-              <div className="text-[10px] font-black uppercase tracking-widest text-amber-700">缺口补齐建议</div>
+            <div className="rounded-xl border p-4" style={{ backgroundColor: `${LK.warning}22`, borderColor: LK.warning }}>
+              <div className="text-[10px] font-semibold uppercase tracking-widest" style={{ color: LK.warning }}>缺口补齐建议</div>
               <div className="mt-2 flex flex-wrap gap-2">
                 {missingStages.map((stage) => {
                   const recommendedTemplate = stage === 'validation' ? templates.find((item) => item.key === 'validation-http') : templates.find((item) => item.key === 'finished-sync');
@@ -1319,7 +1421,10 @@ export const ReproConfigWorkspace: React.FC<{
                       key={`missing-template-${stage}`}
                       type="button"
                       onClick={() => recommendedTemplate && loadTemplate(recommendedTemplate)}
-                      className="rounded-xl bg-white px-3 py-2 text-xs font-black text-amber-700 border border-amber-200"
+                      className="rounded-lg px-3 py-2 text-xs font-semibold transition-colors"
+                      style={{ backgroundColor: LK.surface, color: LK.warning, border: `1px solid ${LK.border}` }}
+                      onMouseEnter={(e) => { e.currentTarget.style.borderColor = LK.warning; e.currentTarget.style.color = LK.warning; }}
+                      onMouseLeave={(e) => { e.currentTarget.style.borderColor = LK.border; e.currentTarget.style.color = LK.warning; }}
                     >
                       补齐 {labelOf(stage, STAGE_LABELS)}
                     </button>
@@ -1329,33 +1434,36 @@ export const ReproConfigWorkspace: React.FC<{
             </div>
           )}
           <div className="space-y-2">
-            <div className="text-[10px] font-black uppercase tracking-widest text-slate-400">快速模板</div>
+            <div className="text-[10px] font-semibold uppercase tracking-widest" style={{ color: LK.muted }}>快速模板</div>
             <div className="grid grid-cols-1 xl:grid-cols-2 gap-2">
               {templates.map((template) => (
                 <button
                   key={template.key}
                   type="button"
                   onClick={() => loadTemplate(template)}
-                  className="px-3 py-3 rounded-xl bg-slate-100 text-left text-xs font-black text-slate-700"
+                  className="px-3 py-3 rounded-lg text-left text-xs font-semibold transition-colors"
+                  style={{ backgroundColor: LK.surfaceRaised, color: LK.body }}
+                  onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = LK.surface; e.currentTarget.style.color = LK.ink; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = LK.surfaceRaised; e.currentTarget.style.color = LK.body; }}
                 >
                   <div>{template.label}</div>
-                  <div className="mt-1 text-[11px] font-medium text-slate-500">{template.values.association_note}</div>
+                  <div className="mt-1 text-[11px] font-medium" style={{ color: LK.muted }}>{template.values.association_note}</div>
                 </button>
               ))}
             </div>
           </div>
           <div className="grid grid-cols-2 gap-3">
-            <input value={serviceForm.service_id} onChange={(event) => setServiceForm({ ...serviceForm, service_id: event.target.value })} placeholder="模块标识" className="px-4 py-3 rounded-2xl border border-slate-200 outline-none" required />
-            <input value={serviceForm.service_name} onChange={(event) => setServiceForm({ ...serviceForm, service_name: event.target.value })} placeholder="模块名称" className="px-4 py-3 rounded-2xl border border-slate-200 outline-none" required />
+            <input value={serviceForm.service_id} onChange={(event) => setServiceForm({ ...serviceForm, service_id: event.target.value })} placeholder="模块标识" className="px-4 py-3 rounded-lg outline-none" style={{ backgroundColor: LK.surfaceRaised, color: LK.inkSoft, border: `1px solid ${LK.border}` }} onFocus={(e) => { e.currentTarget.style.borderColor = LK.primary; }} onBlur={(e) => { e.currentTarget.style.borderColor = LK.border; }} required />
+            <input value={serviceForm.service_name} onChange={(event) => setServiceForm({ ...serviceForm, service_name: event.target.value })} placeholder="模块名称" className="px-4 py-3 rounded-lg outline-none" style={{ backgroundColor: LK.surfaceRaised, color: LK.inkSoft, border: `1px solid ${LK.border}` }} onFocus={(e) => { e.currentTarget.style.borderColor = LK.primary; }} onBlur={(e) => { e.currentTarget.style.borderColor = LK.border; }} required />
           </div>
           <div className="grid grid-cols-2 gap-3">
-            <select value={serviceForm.module_role} onChange={(event) => setServiceForm({ ...serviceForm, module_role: event.target.value })} className="px-4 py-3 rounded-2xl border border-slate-200 outline-none bg-white">
+            <select value={serviceForm.module_role} onChange={(event) => setServiceForm({ ...serviceForm, module_role: event.target.value })} className="px-4 py-3 rounded-lg outline-none" style={{ backgroundColor: LK.surfaceRaised, color: LK.inkSoft, border: `1px solid ${LK.border}` }} onFocus={(e) => { e.currentTarget.style.borderColor = LK.primary; }} onBlur={(e) => { e.currentTarget.style.borderColor = LK.border; }}>
               <option value="reproducer">复现模块</option>
               <option value="reporter">上报模块</option>
               <option value="validator">验证模块</option>
               <option value="proof-provider">证明模块</option>
             </select>
-            <select value={serviceForm.service_type} onChange={(event) => setServiceForm({ ...serviceForm, service_type: event.target.value })} className="px-4 py-3 rounded-2xl border border-slate-200 outline-none bg-white">
+            <select value={serviceForm.service_type} onChange={(event) => setServiceForm({ ...serviceForm, service_type: event.target.value })} className="px-4 py-3 rounded-lg outline-none" style={{ backgroundColor: LK.surfaceRaised, color: LK.inkSoft, border: `1px solid ${LK.border}` }} onFocus={(e) => { e.currentTarget.style.borderColor = LK.primary; }} onBlur={(e) => { e.currentTarget.style.borderColor = LK.border; }}>
               <option value="validator">验证服务</option>
               <option value="analyzer">分析服务</option>
               <option value="poc_generator">验证脚本生成服务</option>
@@ -1363,41 +1471,44 @@ export const ReproConfigWorkspace: React.FC<{
               <option value="reporter">回传服务</option>
             </select>
           </div>
-          <input value={serviceForm.endpoint} onChange={(event) => setServiceForm({ ...serviceForm, endpoint: event.target.value })} placeholder="模块地址" className="px-4 py-3 rounded-2xl border border-slate-200 outline-none" required />
-          <input value={serviceForm.healthcheck_url} onChange={(event) => setServiceForm({ ...serviceForm, healthcheck_url: event.target.value })} placeholder="健康检查地址" className="px-4 py-3 rounded-2xl border border-slate-200 outline-none" />
+          <input value={serviceForm.endpoint} onChange={(event) => setServiceForm({ ...serviceForm, endpoint: event.target.value })} placeholder="模块地址" className="px-4 py-3 rounded-lg outline-none" style={{ backgroundColor: LK.surfaceRaised, color: LK.inkSoft, border: `1px solid ${LK.border}` }} onFocus={(e) => { e.currentTarget.style.borderColor = LK.primary; }} onBlur={(e) => { e.currentTarget.style.borderColor = LK.border; }} required />
+          <input value={serviceForm.healthcheck_url} onChange={(event) => setServiceForm({ ...serviceForm, healthcheck_url: event.target.value })} placeholder="健康检查地址" className="px-4 py-3 rounded-lg outline-none" style={{ backgroundColor: LK.surfaceRaised, color: LK.inkSoft, border: `1px solid ${LK.border}` }} onFocus={(e) => { e.currentTarget.style.borderColor = LK.primary; }} onBlur={(e) => { e.currentTarget.style.borderColor = LK.border; }} />
           <div className="grid grid-cols-3 gap-3">
-            <input value={serviceForm.version} onChange={(event) => setServiceForm({ ...serviceForm, version: event.target.value })} placeholder="版本" className="px-4 py-3 rounded-2xl border border-slate-200 outline-none" />
-            <select value={serviceForm.action_type} onChange={(event) => setServiceForm({ ...serviceForm, action_type: event.target.value })} className="px-4 py-3 rounded-2xl border border-slate-200 outline-none bg-white">
+            <input value={serviceForm.version} onChange={(event) => setServiceForm({ ...serviceForm, version: event.target.value })} placeholder="版本" className="px-4 py-3 rounded-lg outline-none" style={{ backgroundColor: LK.surfaceRaised, color: LK.inkSoft, border: `1px solid ${LK.border}` }} onFocus={(e) => { e.currentTarget.style.borderColor = LK.primary; }} onBlur={(e) => { e.currentTarget.style.borderColor = LK.border; }} />
+            <select value={serviceForm.action_type} onChange={(event) => setServiceForm({ ...serviceForm, action_type: event.target.value })} className="px-4 py-3 rounded-lg outline-none" style={{ backgroundColor: LK.surfaceRaised, color: LK.inkSoft, border: `1px solid ${LK.border}` }} onFocus={(e) => { e.currentTarget.style.borderColor = LK.primary; }} onBlur={(e) => { e.currentTarget.style.borderColor = LK.border; }}>
               {REPRO_ACTION_TYPES.map((item) => <option key={item} value={item}>{labelOf(item, ACTION_TYPE_LABELS)}</option>)}
             </select>
-            <select value={serviceForm.bind_stage} onChange={(event) => setServiceForm({ ...serviceForm, bind_stage: event.target.value })} className="px-4 py-3 rounded-2xl border border-slate-200 outline-none bg-white">
+            <select value={serviceForm.bind_stage} onChange={(event) => setServiceForm({ ...serviceForm, bind_stage: event.target.value })} className="px-4 py-3 rounded-lg outline-none" style={{ backgroundColor: LK.surfaceRaised, color: LK.inkSoft, border: `1px solid ${LK.border}` }} onFocus={(e) => { e.currentTarget.style.borderColor = LK.primary; }} onBlur={(e) => { e.currentTarget.style.borderColor = LK.border; }}>
               <option value="validation">验证</option>
               <option value="finished">已结束</option>
             </select>
           </div>
           <div className="grid grid-cols-2 gap-3">
-            <input value={serviceForm.capability_code} onChange={(event) => setServiceForm({ ...serviceForm, capability_code: event.target.value })} placeholder="能力标识" className="px-4 py-3 rounded-2xl border border-slate-200 outline-none" required />
-            <select value={serviceForm.report_channel} onChange={(event) => setServiceForm({ ...serviceForm, report_channel: event.target.value })} className="px-4 py-3 rounded-2xl border border-slate-200 outline-none bg-white">
+            <input value={serviceForm.capability_code} onChange={(event) => setServiceForm({ ...serviceForm, capability_code: event.target.value })} placeholder="能力标识" className="px-4 py-3 rounded-lg outline-none" style={{ backgroundColor: LK.surfaceRaised, color: LK.inkSoft, border: `1px solid ${LK.border}` }} onFocus={(e) => { e.currentTarget.style.borderColor = LK.primary; }} onBlur={(e) => { e.currentTarget.style.borderColor = LK.border; }} required />
+            <select value={serviceForm.report_channel} onChange={(event) => setServiceForm({ ...serviceForm, report_channel: event.target.value })} className="px-4 py-3 rounded-lg outline-none" style={{ backgroundColor: LK.surfaceRaised, color: LK.inkSoft, border: `1px solid ${LK.border}` }} onFocus={(e) => { e.currentTarget.style.borderColor = LK.primary; }} onBlur={(e) => { e.currentTarget.style.borderColor = LK.border; }}>
               <option value="callback">回调</option>
               <option value="polling">轮询</option>
               <option value="manual">人工</option>
             </select>
           </div>
           <div className="grid grid-cols-3 gap-3">
-            <input type="number" value={serviceForm.priority} onChange={(event) => setServiceForm({ ...serviceForm, priority: Number(event.target.value) || 100 })} placeholder="优先级" className="px-4 py-3 rounded-2xl border border-slate-200 outline-none" />
-            <input type="number" value={serviceForm.timeout_seconds} onChange={(event) => setServiceForm({ ...serviceForm, timeout_seconds: Number(event.target.value) || 300 })} placeholder="超时秒数" className="px-4 py-3 rounded-2xl border border-slate-200 outline-none" />
-            <input type="number" value={serviceForm.concurrency_limit} onChange={(event) => setServiceForm({ ...serviceForm, concurrency_limit: Number(event.target.value) || 1 })} placeholder="并发上限" className="px-4 py-3 rounded-2xl border border-slate-200 outline-none" />
+            <input type="number" value={serviceForm.priority} onChange={(event) => setServiceForm({ ...serviceForm, priority: Number(event.target.value) || 100 })} placeholder="优先级" className="px-4 py-3 rounded-lg outline-none" style={{ backgroundColor: LK.surfaceRaised, color: LK.inkSoft, border: `1px solid ${LK.border}` }} onFocus={(e) => { e.currentTarget.style.borderColor = LK.primary; }} onBlur={(e) => { e.currentTarget.style.borderColor = LK.border; }} />
+            <input type="number" value={serviceForm.timeout_seconds} onChange={(event) => setServiceForm({ ...serviceForm, timeout_seconds: Number(event.target.value) || 300 })} placeholder="超时秒数" className="px-4 py-3 rounded-lg outline-none" style={{ backgroundColor: LK.surfaceRaised, color: LK.inkSoft, border: `1px solid ${LK.border}` }} onFocus={(e) => { e.currentTarget.style.borderColor = LK.primary; }} onBlur={(e) => { e.currentTarget.style.borderColor = LK.border; }} />
+            <input type="number" value={serviceForm.concurrency_limit} onChange={(event) => setServiceForm({ ...serviceForm, concurrency_limit: Number(event.target.value) || 1 })} placeholder="并发上限" className="px-4 py-3 rounded-lg outline-none" style={{ backgroundColor: LK.surfaceRaised, color: LK.inkSoft, border: `1px solid ${LK.border}` }} onFocus={(e) => { e.currentTarget.style.borderColor = LK.primary; }} onBlur={(e) => { e.currentTarget.style.borderColor = LK.border; }} />
           </div>
-          <textarea value={serviceForm.association_note} onChange={(event) => setServiceForm({ ...serviceForm, association_note: event.target.value })} placeholder="关联说明：例如用于验证阶段的 HTTP 复现与自动确认" className="min-h-[6rem] px-4 py-3 rounded-2xl border border-slate-200 outline-none resize-none" />
+          <textarea value={serviceForm.association_note} onChange={(event) => setServiceForm({ ...serviceForm, association_note: event.target.value })} placeholder="关联说明：例如用于验证阶段的 HTTP 复现与自动确认" className="min-h-[6rem] px-4 py-3 rounded-lg outline-none resize-none" style={{ backgroundColor: LK.surfaceRaised, color: LK.inkSoft, border: `1px solid ${LK.border}` }} onFocus={(e) => { e.currentTarget.style.borderColor = LK.primary; }} onBlur={(e) => { e.currentTarget.style.borderColor = LK.border; }} />
           <div className="flex gap-3">
-            <button type="submit" disabled={submittingService} className="flex-1 px-6 py-3 rounded-2xl bg-indigo-600 text-white font-black flex items-center justify-center gap-2">
+            <button type="submit" disabled={submittingService} className="flex-1 px-6 py-3 rounded-lg font-semibold flex items-center justify-center gap-2 transition-colors disabled:opacity-50" style={{ backgroundColor: LK.primary, color: '#ffffff' }} onMouseEnter={(e) => { if (!submittingService) e.currentTarget.style.backgroundColor = LK.primaryDeep; }} onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = LK.primary; }}>
               <Plus size={16} />
               {submittingService ? '注册中...' : '注册并关联复现模块'}
             </button>
             <button
               type="button"
               onClick={() => setServiceForm(defaultServiceForm)}
-              className="px-5 py-3 rounded-2xl bg-slate-100 text-slate-700 font-black"
+              className="px-5 py-3 rounded-lg font-semibold transition-colors"
+              style={{ backgroundColor: LK.surfaceRaised, color: LK.inkSoft, border: `1px solid ${LK.border}` }}
+              onMouseEnter={(e) => { e.currentTarget.style.borderColor = LK.primary; e.currentTarget.style.color = LK.primarySoft; }}
+              onMouseLeave={(e) => { e.currentTarget.style.borderColor = LK.border; e.currentTarget.style.color = LK.inkSoft; }}
             >
               清空
             </button>
@@ -1406,30 +1517,30 @@ export const ReproConfigWorkspace: React.FC<{
       </div>
 
       <div className="space-y-6">
-        <div className={cardClass}>
-          <div className="px-6 py-5 border-b border-slate-100">
-            <h3 className="text-lg font-black text-slate-800">阶段覆盖概览</h3>
-            <p className="mt-1 text-xs text-slate-500">先看模块覆盖和质量，再进入下方链路矩阵与模块清单。</p>
+        <div className={cardClass} style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}` }}>
+          <div className="px-6 py-5" style={{ borderBottom: `1px solid ${LK.borderSoft}` }}>
+            <h3 className="text-lg font-semibold" style={{ color: LK.ink }}>阶段覆盖概览</h3>
+            <p className="mt-1 text-xs" style={{ color: LK.muted }}>先看模块覆盖和质量，再进入下方链路矩阵与模块清单。</p>
           </div>
           <div className="p-6 grid grid-cols-1 xl:grid-cols-4 gap-4">
             {[
-              { label: '复现模块总数', value: reproOverview.total, tone: 'bg-slate-50 border-slate-200 text-slate-800' },
-              { label: '验证阶段模块', value: reproOverview.validation, tone: 'bg-emerald-50 border-emerald-200 text-emerald-800' },
-              { label: '结束阶段模块', value: reproOverview.finished, tone: 'bg-indigo-50 border-indigo-200 text-indigo-800' },
-              { label: '质量待检查', value: reproOverview.risky, tone: 'bg-amber-50 border-amber-200 text-amber-800' },
+              { label: '复现模块总数', value: reproOverview.total, bg: LK.surfaceRaised, color: LK.body },
+              { label: '验证阶段模块', value: reproOverview.validation, bg: `${LK.success}14`, color: LK.success },
+              { label: '结束阶段模块', value: reproOverview.finished, bg: `${LK.info}14`, color: LK.info },
+              { label: '质量待检查', value: reproOverview.risky, bg: `${LK.warning}14`, color: LK.warning },
             ].map((item) => (
-              <div key={item.label} className={`rounded-[1.5rem] border px-4 py-4 ${item.tone}`}>
-                <div className="text-[10px] font-black uppercase tracking-widest opacity-70">{item.label}</div>
-                <div className="mt-2 text-3xl font-black">{item.value}</div>
+              <div key={item.label} className="rounded-xl border px-4 py-4" style={{ backgroundColor: item.bg, borderColor: LK.border }}>
+                <div className="text-[10px] font-semibold uppercase tracking-widest opacity-70" style={{ color: LK.muted }}>{item.label}</div>
+                <div className="mt-2 text-3xl font-semibold" style={{ color: LK.ink }}>{item.value}</div>
               </div>
             ))}
           </div>
           <div className="px-6 pb-6 grid grid-cols-1 xl:grid-cols-3 gap-4">
             {stageMatrix.map((item) => (
-              <div key={`coverage-${item.stage}`} className="rounded-[1.5rem] border border-slate-200 bg-[rgba(255,255,255,0.04)] px-4 py-4">
-                <div className="text-[10px] font-black uppercase tracking-widest text-slate-400">{labelOf(item.stage, STAGE_LABELS)}</div>
-                <div className="mt-2 text-3xl font-black text-slate-800">{item.services.length}</div>
-                <div className="mt-2 text-xs text-slate-500">
+              <div key={`coverage-${item.stage}`} className="rounded-xl border px-4 py-4" style={{ backgroundColor: `${LK.surface}0A`, borderColor: LK.border }}>
+                <div className="text-[10px] font-semibold uppercase tracking-widest" style={{ color: LK.muted }}>{labelOf(item.stage, STAGE_LABELS)}</div>
+                <div className="mt-2 text-3xl font-semibold" style={{ color: LK.ink }}>{item.services.length}</div>
+                <div className="mt-2 text-xs" style={{ color: LK.body }}>
                   {item.services.length === 0 ? '当前阶段尚未配置模块' : `当前阶段已配置 ${item.services.length} 个模块`}
                 </div>
               </div>
@@ -1437,20 +1548,20 @@ export const ReproConfigWorkspace: React.FC<{
           </div>
         </div>
 
-        <div className={cardClass}>
-          <div className="px-6 py-5 border-b border-slate-100">
-            <h3 className="text-lg font-black text-slate-800">链路覆盖矩阵</h3>
-            <p className="mt-1 text-xs text-slate-500">按关键动作确认验证链路和终态回传链路是否完整，而不只是看有没有服务。</p>
+        <div className={cardClass} style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}` }}>
+          <div className="px-6 py-5" style={{ borderBottom: `1px solid ${LK.borderSoft}` }}>
+            <h3 className="text-lg font-semibold" style={{ color: LK.ink }}>链路覆盖矩阵</h3>
+            <p className="mt-1 text-xs" style={{ color: LK.muted }}>按关键动作确认验证链路和终态回传链路是否完整，而不只是看有没有服务。</p>
           </div>
           <div className="px-6 pt-6">
-            <div className="rounded-[1.5rem] border border-slate-200 bg-[rgba(255,255,255,0.04)] p-4">
-              <div className="text-[10px] font-black uppercase tracking-widest text-slate-400">阶段动作流</div>
+            <div className="rounded-xl border p-4" style={{ backgroundColor: `${LK.surface}0A`, borderColor: LK.border }}>
+              <div className="text-[10px] font-semibold uppercase tracking-widest" style={{ color: LK.muted }}>阶段动作流</div>
               <div className="mt-3 grid grid-cols-1 xl:grid-cols-4 gap-3">
                 {flowStatus.map((item) => (
-                  <div key={item.key} className={`rounded-xl border px-3 py-3 ${item.count > 0 ? 'border-emerald-200 bg-white' : 'border-amber-200 bg-amber-50/60'}`}>
-                    <div className="text-xs font-black text-slate-800">{item.label}</div>
-                    <div className="mt-2 text-2xl font-black text-slate-800">{item.count}</div>
-                    <div className="mt-1 text-[11px] text-slate-500">{item.count > 0 ? '已接入模块' : '当前缺失'}</div>
+                  <div key={item.key} className="rounded-lg border px-3 py-3" style={{ borderColor: item.count > 0 ? LK.success : LK.warning, backgroundColor: item.count > 0 ? LK.surface : `${LK.warning}14` }}>
+                    <div className="text-xs font-semibold" style={{ color: LK.ink }}>{item.label}</div>
+                    <div className="mt-2 text-2xl font-semibold" style={{ color: LK.ink }}>{item.count}</div>
+                    <div className="mt-1 text-[11px]" style={{ color: LK.body }}>{item.count > 0 ? '已接入模块' : '当前缺失'}</div>
                   </div>
                 ))}
               </div>
@@ -1458,22 +1569,22 @@ export const ReproConfigWorkspace: React.FC<{
           </div>
           <div className="p-6 space-y-4">
             {coverageMatrix.map((group) => (
-              <div key={`coverage-group-${group.stage}`} className="rounded-[1.5rem] border border-slate-200 bg-[rgba(255,255,255,0.04)] p-4">
+              <div key={`coverage-group-${group.stage}`} className="rounded-xl border p-4" style={{ backgroundColor: `${LK.surface}0A`, borderColor: LK.border }}>
                 <div className="flex items-center justify-between gap-3">
-                  <div className="text-sm font-black text-slate-800">{labelOf(group.stage, STAGE_LABELS)}</div>
-                  <div className="text-[11px] text-slate-400">{group.rows.filter((row) => row.matchedServices.length > 0).length} / {group.rows.length} 已覆盖</div>
+                  <div className="text-sm font-semibold" style={{ color: LK.ink }}>{labelOf(group.stage, STAGE_LABELS)}</div>
+                  <div className="text-[11px]" style={{ color: LK.muted }}>{group.rows.filter((row) => row.matchedServices.length > 0).length} / {group.rows.length} 已覆盖</div>
                 </div>
                 <div className="mt-3 grid grid-cols-1 xl:grid-cols-3 gap-3">
                   {group.rows.map((row) => (
-                    <div key={`${group.stage}-${row.key}`} className={`rounded-xl border px-3 py-3 ${row.matchedServices.length > 0 ? 'border-emerald-200 bg-emerald-50/60' : 'border-amber-200 bg-amber-50/60'}`}>
-                      <div className="text-xs font-black text-slate-800">{row.label}</div>
-                      <div className="mt-1 text-[11px] text-slate-500">
+                    <div key={`${group.stage}-${row.key}`} className="rounded-lg border px-3 py-3" style={{ borderColor: row.matchedServices.length > 0 ? LK.success : LK.warning, backgroundColor: row.matchedServices.length > 0 ? `${LK.success}14` : `${LK.warning}14` }}>
+                      <div className="text-xs font-semibold" style={{ color: LK.ink }}>{row.label}</div>
+                      <div className="mt-1 text-[11px]" style={{ color: LK.body }}>
                         {row.matchedServices.length > 0 ? `已配置 ${row.matchedServices.length} 个服务` : '当前缺失'}
                       </div>
                       {row.matchedServices.length > 0 && (
                         <div className="mt-2 flex flex-wrap gap-2">
                           {row.matchedServices.slice(0, 2).map((service) => (
-                            <span key={`${row.key}-${service.service_id}`} className="px-2 py-1 rounded-lg bg-white text-[10px] font-black text-slate-700 border border-slate-200">
+                            <span key={`${row.key}-${service.service_id}`} className="px-2 py-1 rounded-lg text-[10px] font-semibold" style={{ backgroundColor: LK.surface, color: LK.inkSoft, border: `1px solid ${LK.border}` }}>
                               {service.service_name}
                             </span>
                           ))}
@@ -1487,51 +1598,51 @@ export const ReproConfigWorkspace: React.FC<{
           </div>
         </div>
 
-        <div className={cardClass}>
-          <div className="px-6 py-5 border-b border-slate-100">
-            <h3 className="text-lg font-black text-slate-800">配置建议</h3>
-            <p className="mt-1 text-xs text-slate-500">根据当前覆盖情况给出下一步补齐建议。</p>
+        <div className={cardClass} style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}` }}>
+          <div className="px-6 py-5" style={{ borderBottom: `1px solid ${LK.borderSoft}` }}>
+            <h3 className="text-lg font-semibold" style={{ color: LK.ink }}>配置建议</h3>
+            <p className="mt-1 text-xs" style={{ color: LK.muted }}>根据当前覆盖情况给出下一步补齐建议。</p>
           </div>
           <div className="p-6 space-y-3">
             {missingStages.length === 0 ? (
-              <div className="rounded-[1.5rem] border border-emerald-200 bg-emerald-50 px-4 py-4 text-sm text-emerald-700">
+              <div className="rounded-xl border px-4 py-4 text-sm" style={{ borderColor: LK.success, backgroundColor: `${LK.success}14`, color: LK.success }}>
                 验证与结束两个关键阶段都已经存在至少一个复现或回传模块，可以继续优化模块质量与回调策略。
               </div>
             ) : (
               missingStages.map((stage) => (
-                <div key={`advice-${stage}`} className="rounded-[1.5rem] border border-amber-200 bg-amber-50 px-4 py-4 text-sm text-amber-700">
-                  <span className="font-black">{labelOf(stage, STAGE_LABELS)}</span>
+                <div key={`advice-${stage}`} className="rounded-xl border px-4 py-4 text-sm" style={{ borderColor: LK.warning, backgroundColor: `${LK.warning}14`, color: LK.warning }}>
+                  <span className="font-semibold">{labelOf(stage, STAGE_LABELS)}</span>
                   {stage === 'validation' && ' 阶段还缺验证或复现模块，建议优先注册 HTTP 验证器或自动确认模块。'}
                   {stage === 'finished' && ' 阶段还缺上报回传或复核模块，建议注册结果同步或结论回传模块。'}
                 </div>
               ))
             )}
             {filteredReproServices.filter((item) => !item.healthcheck_url).length > 0 && (
-              <div className="rounded-[1.5rem] border border-sky-200 bg-sky-50 px-4 py-4 text-sm text-sky-700">
+              <div className="rounded-xl border px-4 py-4 text-sm" style={{ borderColor: LK.info, backgroundColor: `${LK.info}14`, color: LK.info }}>
                 当前有 {filteredReproServices.filter((item) => !item.healthcheck_url).length} 个复现模块没有健康检查地址，建议补齐，避免覆盖存在但不可观测。
               </div>
             )}
           </div>
         </div>
 
-        <div className={cardClass}>
-          <div className="px-6 py-5 border-b border-slate-100">
-            <h3 className="text-lg font-black text-slate-800">阶段关联视图</h3>
-            <p className="mt-1 text-xs text-slate-500">展示复现与上报模块在漏洞生命周期中的绑定位置。</p>
+        <div className={cardClass} style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}` }}>
+          <div className="px-6 py-5" style={{ borderBottom: `1px solid ${LK.borderSoft}` }}>
+            <h3 className="text-lg font-semibold" style={{ color: LK.ink }}>阶段关联视图</h3>
+            <p className="mt-1 text-xs" style={{ color: LK.muted }}>展示复现与上报模块在漏洞生命周期中的绑定位置。</p>
           </div>
           <div className="p-6 grid grid-cols-1 xl:grid-cols-3 gap-4">
             {stageMatrix.map((item) => (
-              <div key={item.stage} className="rounded-[1.5rem] border border-slate-200 bg-[rgba(255,255,255,0.04)] px-4 py-4">
-                <div className="text-[10px] font-black uppercase tracking-widest text-slate-400">{labelOf(item.stage, STAGE_LABELS)}</div>
-                <div className="mt-2 text-2xl font-black text-slate-800">{item.services.length}</div>
+              <div key={item.stage} className="rounded-xl border px-4 py-4" style={{ backgroundColor: `${LK.surface}0A`, borderColor: LK.border }}>
+                <div className="text-[10px] font-semibold uppercase tracking-widest" style={{ color: LK.muted }}>{labelOf(item.stage, STAGE_LABELS)}</div>
+                <div className="mt-2 text-2xl font-semibold" style={{ color: LK.ink }}>{item.services.length}</div>
                 <div className="mt-3 space-y-2">
                   {item.services.length === 0 ? (
-                    <div className="text-xs text-slate-400">暂无绑定服务</div>
+                    <div className="text-xs" style={{ color: LK.muted }}>暂无绑定服务</div>
                   ) : (
                     item.services.map((service) => (
-                      <div key={`${item.stage}-${service.service_id}`} className="rounded-xl bg-white border border-slate-200 px-3 py-2">
-                        <div className="text-xs font-black text-slate-800">{service.service_name}</div>
-                        <div className="mt-1 text-[11px] text-slate-500">{service.service_id}</div>
+                      <div key={`${item.stage}-${service.service_id}`} className="rounded-lg border px-3 py-2" style={{ backgroundColor: LK.surface, borderColor: LK.border }}>
+                        <div className="text-xs font-semibold" style={{ color: LK.ink }}>{service.service_name}</div>
+                        <div className="mt-1 text-[11px]" style={{ color: LK.muted }}>{service.service_id}</div>
                       </div>
                     ))
                   )}
@@ -1541,35 +1652,50 @@ export const ReproConfigWorkspace: React.FC<{
           </div>
         </div>
 
-        <div className={cardClass}>
-          <div className="px-6 py-5 border-b border-slate-100">
-            <h3 className="text-lg font-black text-slate-800">已注册复现能力</h3>
+        <div className={cardClass} style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}` }}>
+          <div className="px-6 py-5" style={{ borderBottom: `1px solid ${LK.borderSoft}` }}>
+            <h3 className="text-lg font-semibold" style={{ color: LK.ink }}>已注册复现能力</h3>
           </div>
-          <div className="px-6 py-4 border-b border-slate-100 grid grid-cols-1 xl:grid-cols-[1fr_auto] gap-3">
+          <div className="px-6 py-4 grid grid-cols-1 xl:grid-cols-[1fr_auto] gap-3" style={{ borderBottom: `1px solid ${LK.borderSoft}` }}>
             <input
               value={serviceSearch}
               onChange={(event) => setServiceSearch(event.target.value)}
               placeholder="搜索复现服务、动作类型、能力标识或关联说明"
-              className="px-4 py-3 rounded-2xl border border-slate-200 outline-none"
+              className="px-4 py-3 rounded-lg outline-none"
+              style={{ backgroundColor: LK.surfaceRaised, color: LK.inkSoft, border: `1px solid ${LK.border}` }}
+              onFocus={(e) => { e.currentTarget.style.borderColor = LK.primary; }}
+              onBlur={(e) => { e.currentTarget.style.borderColor = LK.border; }}
             />
             <div className="flex gap-2">
               {['all', 'validation', 'finished'].map((item) => (
                 <button
                   key={item}
                   onClick={() => setStageFilter(item as 'all' | 'validation' | 'finished')}
-                  className={`px-4 py-3 rounded-2xl text-xs font-black ${stageFilter === item ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-600'}`}
+                  className="px-4 py-3 rounded-lg text-xs font-semibold transition-colors"
+                  style={{
+                    backgroundColor: stageFilter === item ? LK.primary : LK.surfaceRaised,
+                    color: stageFilter === item ? '#ffffff' : LK.body
+                  }}
+                  onMouseEnter={(e) => { if (stageFilter !== item) { e.currentTarget.style.backgroundColor = LK.surface; e.currentTarget.style.color = LK.ink; } }}
+                  onMouseLeave={(e) => { if (stageFilter !== item) { e.currentTarget.style.backgroundColor = LK.surfaceRaised; e.currentTarget.style.color = LK.body; } }}
                 >
                   {item === 'all' ? '全部阶段' : labelOf(item, STAGE_LABELS)}
                 </button>
               ))}
             </div>
           </div>
-          <div className="px-6 py-4 border-b border-slate-100 flex flex-wrap gap-2">
+          <div className="px-6 py-4 flex flex-wrap gap-2" style={{ borderBottom: `1px solid ${LK.borderSoft}` }}>
             {['all', ...REPRO_ACTION_TYPES].map((item) => (
               <button
                 key={`repro-action-${item}`}
                 onClick={() => setActionFilter(item as 'all' | (typeof REPRO_ACTION_TYPES)[number])}
-                className={`px-3 py-2 rounded-xl text-xs font-black ${actionFilter === item ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-600'}`}
+                className="px-3 py-2 rounded-lg text-xs font-semibold transition-colors"
+                style={{
+                  backgroundColor: actionFilter === item ? LK.primary : LK.surfaceRaised,
+                  color: actionFilter === item ? '#ffffff' : LK.body
+                }}
+                onMouseEnter={(e) => { if (actionFilter !== item) { e.currentTarget.style.backgroundColor = LK.surface; e.currentTarget.style.color = LK.ink; } }}
+                onMouseLeave={(e) => { if (actionFilter !== item) { e.currentTarget.style.backgroundColor = LK.surfaceRaised; e.currentTarget.style.color = LK.body; } }}
               >
                 {item === 'all' ? '全部动作' : labelOf(item, ACTION_TYPE_LABELS)}
               </button>
@@ -1581,57 +1707,63 @@ export const ReproConfigWorkspace: React.FC<{
                   setStageFilter('all');
                   setActionFilter('all');
                 }}
-                className="px-3 py-2 rounded-xl text-xs font-black bg-white border border-slate-200 text-slate-600"
+                className="px-3 py-2 rounded-lg text-xs font-semibold transition-colors"
+                style={{ backgroundColor: LK.surface, color: LK.body, border: `1px solid ${LK.border}` }}
+                onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = LK.surfaceRaised; e.currentTarget.style.color = LK.ink; }}
+                onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = LK.surface; e.currentTarget.style.color = LK.body; }}
               >
                 清空筛选
               </button>
             )}
           </div>
-          <div className="divide-y divide-slate-100 max-h-[34rem] overflow-y-auto">
+          <div className="max-h-[34rem] overflow-y-auto" style={{ borderTop: `1px solid ${LK.borderSoft}` }}>
             {filteredReproServices.length === 0 ? (
-              <div className="px-6 py-8 text-sm text-slate-400">当前还没有注册任何复现或证明模块</div>
+              <div className="px-6 py-8 text-sm" style={{ color: LK.muted }}>当前还没有注册任何复现或证明模块</div>
             ) : (
               filteredReproServices.map((item) => {
                 const stats = reproActionStats.get(item.service_id) || { total: 0, queued: 0, running: 0, failed: 0 };
                 return (
-                <div key={item.service_id} className="px-6 py-4 space-y-3">
+                <div key={item.service_id} className="px-6 py-4 space-y-3" style={{ borderBottom: `1px solid ${LK.borderSoft}` }}>
                   <div className="flex items-start justify-between gap-4">
                     <div>
                       <div className="flex flex-wrap items-center gap-2">
-                        <div className="text-sm font-black text-slate-800">{item.service_name}</div>
-                        {!item.healthcheck_url && <span className="px-2 py-1 rounded-lg bg-sky-100 text-[10px] font-black uppercase tracking-widest text-sky-700">缺健康检查</span>}
-                        {stats.failed > 0 && <span className="px-2 py-1 rounded-lg bg-amber-100 text-[10px] font-black uppercase tracking-widest text-amber-700">有失败动作</span>}
+                        <div className="text-sm font-semibold" style={{ color: LK.ink }}>{item.service_name}</div>
+                        {!item.healthcheck_url && <span className="px-2 py-1 rounded-lg text-[10px] font-semibold uppercase tracking-widest" style={{ backgroundColor: `${LK.info}22`, color: LK.info }}>缺健康检查</span>}
+                        {stats.failed > 0 && <span className="px-2 py-1 rounded-lg text-[10px] font-semibold uppercase tracking-widest" style={{ backgroundColor: `${LK.warning}22`, color: LK.warning }}>有失败动作</span>}
                       </div>
-                      <div className="mt-1 text-xs text-slate-500">{item.endpoint}</div>
-                      <div className="mt-2 flex flex-wrap gap-2 text-[11px] text-slate-400">
+                      <div className="mt-1 text-xs" style={{ color: LK.body }}>{item.endpoint}</div>
+                      <div className="mt-2 flex flex-wrap gap-2 text-[11px]" style={{ color: LK.muted }}>
                         <span>累计动作 {stats.total}</span>
                         <span>排队 {stats.queued}</span>
                         <span>运行 {stats.running}</span>
                         <span>失败 {stats.failed}</span>
                       </div>
                     </div>
-                    <span className="px-2 py-1 rounded-lg bg-indigo-100 text-[10px] font-black uppercase tracking-widest text-indigo-700">{labelOf(item.meta?.module_role || item.service_type, { ...MODULE_ROLE_LABELS, ...SERVICE_TYPE_LABELS })}</span>
+                    <span className="px-2 py-1 rounded-lg text-[10px] font-semibold uppercase tracking-widest" style={{ backgroundColor: `${LK.info}22`, color: LK.info }}>{labelOf(item.meta?.module_role || item.service_type, { ...MODULE_ROLE_LABELS, ...SERVICE_TYPE_LABELS })}</span>
                   </div>
                   <div className="flex flex-wrap gap-2">
                     {(item.capabilities || []).map((cap: any) => (
-                      <span key={`${item.service_id}-${cap.capability_code}`} className="px-3 py-2 rounded-xl bg-slate-100 text-xs font-black text-slate-700">
+                      <span key={`${item.service_id}-${cap.capability_code}`} className="px-3 py-2 rounded-lg text-xs font-semibold" style={{ backgroundColor: LK.surfaceRaised, color: LK.body }}>
                         {labelOf(cap.meta?.bind_stage || item.meta?.bind_stage || 'validation', STAGE_LABELS)} · {labelOf(cap.action_type, ACTION_TYPE_LABELS)}
                       </span>
                     ))}
                   </div>
                   <div className="flex flex-wrap gap-2 text-[11px]">
-                    <span className="rounded-xl bg-slate-100 px-3 py-2 font-black text-slate-700">优先级 {Math.min(...(item.capabilities || []).map((cap: any) => cap.priority ?? 100))}</span>
-                    <span className="rounded-xl bg-slate-100 px-3 py-2 font-black text-slate-700">超时 {Math.max(...(item.capabilities || []).map((cap: any) => cap.timeout_seconds ?? 300))}s</span>
-                    <span className="rounded-xl bg-slate-100 px-3 py-2 font-black text-slate-700">并发 {Math.max(...(item.capabilities || []).map((cap: any) => cap.concurrency_limit ?? 1))}</span>
+                    <span className="rounded-lg px-3 py-2 font-semibold" style={{ backgroundColor: LK.surfaceRaised, color: LK.inkSoft }}>优先级 {Math.min(...(item.capabilities || []).map((cap: any) => cap.priority ?? 100))}</span>
+                    <span className="rounded-lg px-3 py-2 font-semibold" style={{ backgroundColor: LK.surfaceRaised, color: LK.inkSoft }}>超时 {Math.max(...(item.capabilities || []).map((cap: any) => cap.timeout_seconds ?? 300))}s</span>
+                    <span className="rounded-lg px-3 py-2 font-semibold" style={{ backgroundColor: LK.surfaceRaised, color: LK.inkSoft }}>并发 {Math.max(...(item.capabilities || []).map((cap: any) => cap.concurrency_limit ?? 1))}</span>
                   </div>
                   {item.meta?.association_note && (
-                    <div className="text-xs text-slate-500">{item.meta.association_note}</div>
+                    <div className="text-xs" style={{ color: LK.body }}>{item.meta.association_note}</div>
                   )}
                   <div className="flex gap-2">
                     <button
                       type="button"
                       onClick={() => editService(item)}
-                      className="px-3 py-2 rounded-xl bg-slate-100 text-xs font-black text-slate-700"
+                      className="px-3 py-2 rounded-lg text-xs font-semibold transition-colors"
+                      style={{ backgroundColor: LK.surfaceRaised, color: LK.inkSoft, border: `1px solid ${LK.border}` }}
+                      onMouseEnter={(e) => { e.currentTarget.style.borderColor = LK.primary; e.currentTarget.style.color = LK.primarySoft; }}
+                      onMouseLeave={(e) => { e.currentTarget.style.borderColor = LK.border; e.currentTarget.style.color = LK.inkSoft; }}
                     >
                       回填编辑
                     </button>
