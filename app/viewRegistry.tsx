@@ -295,7 +295,7 @@ export const renderCurrentView = (ctx: ViewRegistryContext): React.ReactNode => 
     case 'env-access':
       return <EnvAccessPage projectId={ctx.selectedProjectId} />;
     case 'env-management':
-      return <EnvManagementPage projectId={ctx.selectedProjectId} agents={ctx.agents} />;
+      return <EnvManagementPage projectId={ctx.selectedProjectId} />;
     case 'env-agent':
       return <EnvAgentPage projectId={ctx.selectedProjectId} />;
     case 'env-service':
