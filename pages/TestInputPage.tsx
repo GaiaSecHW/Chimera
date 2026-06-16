@@ -19,8 +19,9 @@ import {
 import { useNavigate } from 'react-router-dom';
 import { api } from '../clients/api';
 import { StatusBadge } from '../components/StatusBadge';
-import type { ProjectInputOverview, ProjectInputUploadDetail, ProjectInputUploadRecord, ProjectInputUploadStats, UserInfo } from '../types/types';
+import type { ProjectInputOverview, ProjectInputUploadDetail, ProjectInputUploadRecord, ProjectInputUploadStats, SecurityProject, UserInfo } from '../types/types';
 import { formatUploadBytes, getLatestBatchSummary, getUploadModeLabel, getUploadRecordDisplayName, isAllowedArchiveFileName } from './assets/baseResourcePageModel';
+import { CreateTaskDialog } from './task/CreateTaskDialog';
 
 type InputType = 'document' | 'code' | 'software' | 'other';
 
@@ -28,6 +29,7 @@ interface TestInputPageProps {
   currentView: string;
   selectedProjectId?: string;
   user?: UserInfo | null;
+  projects?: SecurityProject[];
 }
 
 interface UploadQueueItem {
@@ -89,7 +91,7 @@ const emptyStats = (projectId: string, inputType: InputType): ProjectInputUpload
   stored_total_size_bytes: 0,
 });
 
-export const TestInputPage: React.FC<TestInputPageProps> = ({ selectedProjectId, user = null }) => {
+export const TestInputPage: React.FC<TestInputPageProps> = ({ selectedProjectId, user = null, projects = [] }) => {
   const navigate = useNavigate();
   const fileserverApi = api.domains.assets.fileserver;
   const projectId = selectedProjectId || localStorage.getItem('last_project_id') || localStorage.getItem('selectedProjectId') || '';
@@ -118,6 +120,8 @@ export const TestInputPage: React.FC<TestInputPageProps> = ({ selectedProjectId,
   const [detailLoadingIds, setDetailLoadingIds] = useState<string[]>([]);
   const [detailErrors, setDetailErrors] = useState<Record<string, string>>({});
   const [detailDialogTarget, setDetailDialogTarget] = useState<UploadDetailDialogState | null>(null);
+  const [createTaskOpen, setCreateTaskOpen] = useState(false);
+  const [selectedRecordForTask, setSelectedRecordForTask] = useState<string | undefined>(undefined);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -596,6 +600,13 @@ export const TestInputPage: React.FC<TestInputPageProps> = ({ selectedProjectId,
                                 <Plus size={14} className="mr-1 inline-block" />
                                 追加
                               </button>
+                              <button onClick={() => {
+                                setSelectedRecordForTask(record.upload_id);
+                                setCreateTaskOpen(true);
+                              }} className="rounded-xl border border-slate-200 px-3 py-2 text-xs font-black text-slate-600 hover:bg-slate-100">
+                                <Plus size={14} className="mr-1 inline-block" />
+                                创建任务
+                              </button>
                               <button onClick={() => setDeleteTarget(record)} className="rounded-xl border border-rose-200 px-3 py-2 text-xs font-black text-rose-600 hover:bg-rose-50">
                                 <Trash2 size={14} className="mr-1 inline-block" />
                                 删除
@@ -982,6 +993,14 @@ export const TestInputPage: React.FC<TestInputPageProps> = ({ selectedProjectId,
           </div>
         </div>
       ) : null}
+      <CreateTaskDialog
+        open={createTaskOpen}
+        onClose={() => { setCreateTaskOpen(false); setSelectedRecordForTask(undefined); }}
+        projectId={projectId}
+        projectName={projects.find(p => p.id === projectId)?.name || ''}
+        preSelectedInputId={selectedRecordForTask}
+        onCreated={() => { setCreateTaskOpen(false); setSelectedRecordForTask(undefined); }}
+      />
     </div>
   );
 };

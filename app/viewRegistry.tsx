@@ -286,7 +286,7 @@ export const renderCurrentView = (ctx: ViewRegistryContext): React.ReactNode => 
     case 'test-input-doc':
     case 'test-input-other':
     case 'test-input-tasks':
-      return <TestInputPage currentView={ctx.currentView} selectedProjectId={ctx.selectedProjectId} user={ctx.user} />;
+      return <TestInputPage currentView={ctx.currentView} selectedProjectId={ctx.selectedProjectId} user={ctx.user} projects={ctx.projects} />;
     case 'pvc-management':
       return <PublicResourceManagementPage projectId={ctx.selectedProjectId} initialTab="pvc" />;
     case 'project-file-explorer':
