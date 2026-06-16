@@ -500,10 +500,6 @@ const AgentAppModal: React.FC<AgentAppModalProps> = ({ mode, app, saving, depart
       setLocalError('请输入 Agent 名称');
       return;
     }
-    if (!formState.defaultAgentName.trim()) {
-      setLocalError('请输入默认 Agent');
-      return;
-    }
     if (mode === 'create' && !agentHarnessFile) {
       setLocalError('请上传 AgentHarness 文件');
       return;
@@ -558,7 +554,7 @@ const AgentAppModal: React.FC<AgentAppModalProps> = ({ mode, app, saving, depart
           <div className="grid gap-5 md:grid-cols-2">
             <label style={{ display: 'block', fontSize: '14px', fontWeight: 600, color: LK.inkSoft }}>Agent 名称 <span style={{ color: LK.error }}>*</span><input style={inputClass} value={formState.name} onChange={(event) => setFormState({ ...formState, name: event.target.value })} disabled={saving} /></label>
             <label style={{ display: 'block', fontSize: '14px', fontWeight: 600, color: LK.inkSoft }}>使用引擎 <span style={{ color: LK.error }}>*</span><select style={inputClass} value={formState.engine} onChange={async (event) => { const newEngine = event.target.value as AgentAppEngine; setFormState((cur) => ({ ...cur, engine: newEngine, defaultAgentName: '', startCommand: '' })); setClaudeCodeInfo(null); if (agentHarnessFile?.type === 'archive' && agentHarnessFile.file && agentHarnessFile.name.match(/\.zip$/i)) { await applyZipDetection(agentHarnessFile.file, newEngine); } else if (agentHarnessFile?.type === 'folder' && agentHarnessFile.files) { await applyFolderDetection(agentHarnessFile.files, newEngine); } }} disabled={saving}><option value="opencode">OpenCode</option><option value="claudecode">Claude Code</option><option value="agentflow">AgentFlow</option></select></label>
-            <label style={{ display: 'block', fontSize: '14px', fontWeight: 600, color: LK.inkSoft }}>默认 Agent <span style={{ color: LK.error }}>*</span><input style={inputClass} value={formState.defaultAgentName} onChange={(event) => setFormState({ ...formState, defaultAgentName: event.target.value })} disabled={saving} placeholder="例如 security-reviewer" /></label>
+            <label style={{ display: 'block', fontSize: '14px', fontWeight: 600, color: LK.inkSoft }}>默认 Agent<input style={inputClass} value={formState.defaultAgentName} onChange={(event) => setFormState({ ...formState, defaultAgentName: event.target.value })} disabled={saving} placeholder="例如 security-reviewer" /></label>
             <label style={{ display: 'block', fontSize: '14px', fontWeight: 600, color: LK.inkSoft }}>启动命令<input style={inputClass} value={formState.startCommand} onChange={(event) => setFormState({ ...formState, startCommand: event.target.value })} disabled={saving} placeholder="例如 /project:review" /></label>
           </div>
 
