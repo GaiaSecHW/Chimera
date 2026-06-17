@@ -202,7 +202,7 @@ export const appDataflowVulnScanApi = {
       body: JSON.stringify({ input_path: inputPath }),
     })),
 
-  // ── Config ────────────────────────────────────────────────────────────────
+  // ── Config (global, shared across all projects) ───────────────────────────
   getConfig: async (): Promise<AppDfaServiceConfig> =>
     handleResponse(await fetch(`${BASE}/config`, { headers: getHeaders() })),
 
