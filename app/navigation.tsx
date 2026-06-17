@@ -496,7 +496,14 @@ export const SIDEBAR_SECTIONS: Record<string, NavSection[]> = {
       ],
     },
   ],
-  assessment: [],
+  assessment: [
+    {
+      title: '评测',
+      items: [
+        { id: 'assessment-coming-soon', label: '排行榜', icon: BarChart3, requiresProject: true },
+      ],
+    },
+  ],
   observe: [],
   skill: [],
   tools: [

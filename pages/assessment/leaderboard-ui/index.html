@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="zh-CN" data-theme="chimera-classic">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>AI4SecBench Leaderboard 排行榜</title>
+    <link rel="stylesheet" href="./style.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <!-- Fixed sidebar — mirrors the Chimera/LOKI navy sidebar -->
+      <aside class="sidebar">
+        <div class="sidebar-brand">
+          <span class="brand-mark">A4</span>
+          <div class="brand-text">
+            <strong>AI4SecBench</strong>
+            <span>评测平台</span>
+          </div>
+        </div>
+        <nav class="sidebar-nav">
+          <div class="nav-group">评测 · Evaluation</div>
+          <a class="nav-row active" href="#">
+            <span class="nav-ico">🏆</span> Leaderboard 排行榜
+          </a>
+        </nav>
+        <div class="sidebar-foot">
+          <button id="btn-theme" class="theme-toggle" type="button" title="切换主题" aria-label="切换主题">
+            <span class="theme-toggle-ico">🌙</span>
+            <span id="theme-label">Chimera Classic</span>
+          </button>
+          <span id="sidebar-meta">v1.0.1</span>
+        </div>
+      </aside>
+
+      <!-- Main column -->
+      <main class="main">
+        <header class="page-header">
+          <div>
+            <h1>Leaderboard 排行榜</h1>
+            <p class="subtitle">按 Agent / 模型 / 领域横向比较表现</p>
+          </div>
+          <button id="btn-refresh" class="btn btn-primary">刷新</button>
+        </header>
+
+        <!-- Stat cards -->
+        <section class="stat-row">
+          <div class="stat-card">
+            <span class="stat-label">参与 Agent</span>
+            <span class="stat-value" id="stat-agents">—</span>
+          </div>
+          <div class="stat-card">
+            <span class="stat-label">任务总数</span>
+            <span class="stat-value" id="stat-tasks">—</span>
+          </div>
+          <div class="stat-card">
+            <span class="stat-label">领域数</span>
+            <span class="stat-value" id="stat-domains">—</span>
+          </div>
+          <div class="stat-card">
+            <span class="stat-label">最高均分</span>
+            <span class="stat-value" id="stat-topscore">—</span>
+          </div>
+        </section>
+
+        <!-- Leaderboard page-section (领域 / 任务类型 / 显示维度 panels + the
+             per-column sort+filter data-grid) rendered by leaderboard.js so it
+             is identical to the cybergym-dev local leaderboard page. -->
+        <div id="app-root">
+          <section class="page-section"><div class="status">加载中…</div></section>
+        </div>
+
+        <footer class="footer">
+          <span id="footer-meta"></span>
+        </footer>
+      </main>
+    </div>
+
+    <!-- Detail modal -->
+    <div id="modal" class="modal" hidden>
+      <div class="modal-card panel">
+        <header>
+          <h2 id="modal-title"></h2>
+          <button id="btn-modal-close" class="btn-close">×</button>
+        </header>
+        <div id="modal-body"></div>
+      </div>
+    </div>
+
+    <script src="./leaderboard.js" type="module"></script>
+  </body>
+</html>

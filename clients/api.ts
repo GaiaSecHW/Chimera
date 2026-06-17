@@ -1,4 +1,5 @@
 import { assetClients } from './assets';
+import { assessmentClients } from './assessment-domain';
 import { codemapManagerApi } from './codemapManager';
 import { environmentClients } from './environment-domain';
 import { executionClients } from './execution';
@@ -17,6 +18,7 @@ export const api = {
     execution: executionClients,
     vuln: vulnClients,
     platform: platformClients,
+    assessment: assessmentClients,
   },
 
   // Legacy flat entrypoints kept for compatibility during migration.

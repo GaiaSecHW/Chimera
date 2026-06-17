@@ -2,6 +2,7 @@ import React from 'react';
 import { Settings } from 'lucide-react';
 import { api } from '../clients/api';
 import { WorkflowPlaceholder } from '../components/WorkflowPlaceholder';
+import { AssessmentLeaderboardPage } from '../pages/assessment/AssessmentLeaderboardPage';
 import { DashboardPage } from '../pages/DashboardPage';
 import { HomePage } from '../pages/HomePage';
 import { ProjectMgmtPage } from '../pages/project/ProjectMgmtPage';
@@ -236,6 +237,7 @@ export const renderCurrentView = (ctx: ViewRegistryContext): React.ReactNode => 
     case 'task-knowledge-graph':
       return <KnowledgeGraphPage projectId={ctx.selectedProjectId} projects={ctx.projects} />;
     case 'assessment-coming-soon':
+      return <AssessmentLeaderboardPage projectId={ctx.selectedProjectId} />;
     case 'observe-coming-soon':
     case 'skill-coming-soon':
       return <EmptyPlaceholderPage title="开发中" />;
