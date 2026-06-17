@@ -20,26 +20,26 @@ interface Props {
 }
 
 const STATUS_MAP: Record<string, { label: string; tone: string }> = {
-  CREATED: { label: '待上传', tone: 'bg-slate-100 text-slate-600 border-slate-200' },
-  PARSE_PENDING: { label: '排队中', tone: 'bg-sky-50 text-sky-700 border-sky-200' },
-  PARSING: { label: '解析中', tone: 'bg-sky-50 text-sky-700 border-sky-200' },
-  PARSED: { label: '待执行', tone: 'bg-amber-50 text-amber-700 border-amber-200' },
-  EXECUTING: { label: '执行中', tone: 'bg-blue-50 text-blue-700 border-blue-200' },
-  COMPLETED: { label: '已完成', tone: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
-  FAILED: { label: '失败', tone: 'bg-rose-50 text-rose-700 border-rose-200' },
-  UPLOAD_FAILED: { label: '上传失败', tone: 'bg-rose-50 text-rose-700 border-rose-200' },
+  CREATED: { label: '待上传', tone: 'bg-theme-elevated text-theme-text-secondary border-theme-border' },
+  PARSE_PENDING: { label: '排队中', tone: 'bg-sky-500/15 text-sky-400 border-sky-500/20' },
+  PARSING: { label: '解析中', tone: 'bg-sky-500/15 text-sky-400 border-sky-500/20' },
+  PARSED: { label: '待执行', tone: 'bg-amber-500/15 text-amber-400 border-amber-500/20' },
+  EXECUTING: { label: '执行中', tone: 'bg-blue-500/15 text-blue-400 border-blue-500/20' },
+  COMPLETED: { label: '已完成', tone: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/20' },
+  FAILED: { label: '失败', tone: 'bg-rose-500/15 text-rose-400 border-rose-500/20' },
+  UPLOAD_FAILED: { label: '上传失败', tone: 'bg-rose-500/15 text-rose-400 border-rose-500/20' },
 };
 
 function getStatusDisplay(task: RedlineTask) {
   if (task.status === 'COMPLETED') {
     if (task.execSuccess === true) {
-      return { label: '成功', tone: 'bg-emerald-50 text-emerald-700 border-emerald-200' };
+      return { label: '成功', tone: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/20' };
     }
     if (task.execSuccess === false) {
-      return { label: '失败', tone: 'bg-rose-50 text-rose-700 border-rose-200' };
+      return { label: '失败', tone: 'bg-rose-500/15 text-rose-400 border-rose-500/20' };
     }
   }
-  return STATUS_MAP[task.status] || { label: task.status, tone: 'bg-slate-100 text-slate-600 border-slate-200' };
+  return STATUS_MAP[task.status] || { label: task.status, tone: 'bg-theme-elevated text-theme-text-secondary border-theme-border' };
 }
 
 export const RedlineOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {

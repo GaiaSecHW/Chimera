@@ -32,8 +32,8 @@ export function getAnalysisModeInfo(origin: OriginInfo): { mode: 'binary' | 'sou
     mode,
     label: String(origin.analysis_mode_label || '').trim() || (mode === 'source' ? '源码模式' : '二进制模式'),
     className: mode === 'source'
-      ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
-      : 'border-sky-200 bg-sky-50 text-sky-700',
+      ? 'border-emerald-500/20 bg-emerald-500/15 text-emerald-400'
+      : 'border-sky-500/20 bg-sky-500/15 text-sky-400',
   };
 }
 

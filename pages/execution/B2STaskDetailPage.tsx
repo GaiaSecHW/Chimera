@@ -1264,7 +1264,7 @@ export const B2STaskDetailPage: React.FC<Props> = ({ projectId, taskId, onBack, 
       <SectionCard
         title="阶段进度"
         description="按 B2S 语义展示任务的当前推进位置。"
-        right={<div className="text-xs font-black text-slate-500">任务进度 {progressSummaryLabel}</div>}
+        right={<div className="text-xs font-black text-theme-text-muted">任务进度 {progressSummaryLabel}</div>}
       >
         <div className="grid gap-2 lg:grid-cols-7">
           {PHASE_ORDER.map((phase) => {
@@ -1272,11 +1272,11 @@ export const B2STaskDetailPage: React.FC<Props> = ({ projectId, taskId, onBack, 
             const count = timing?.current_items || 0;
             const completed = timing?.completed_items || 0;
             return (
-              <div key={phase} className="rounded-xl border border-slate-200 bg-slate-50/70 px-3 py-2.5">
-                <div className={`h-1.5 rounded-full ${count ? 'bg-blue-500' : completed ? 'bg-emerald-400' : 'bg-slate-200'}`} />
-                <div className="mt-2 text-sm font-black text-slate-900">{timing?.phase_label || PHASE_LABELS[phase]}</div>
-                <div className="mt-0.5 text-[11px] font-semibold text-slate-500">当前 {count} · 已过 {completed}</div>
-                <div className="mt-1.5 space-y-0.5 text-[10px] font-semibold text-slate-500">
+              <div key={phase} className="rounded-xl border border-theme-border bg-slate-50/70 px-3 py-2.5">
+                <div className={`h-1.5 rounded-full ${count ? 'bg-blue-500' : completed ? 'bg-emerald-400' : 'bg-theme-elevated'}`} />
+                <div className="mt-2 text-sm font-black text-theme-text-primary">{timing?.phase_label || PHASE_LABELS[phase]}</div>
+                <div className="mt-0.5 text-[11px] font-semibold text-theme-text-muted">当前 {count} · 已过 {completed}</div>
+                <div className="mt-1.5 space-y-0.5 text-[10px] font-semibold text-theme-text-muted">
                   <div>开始 {timing?.started_at ? formatDateTime(timing.started_at) : '-'}</div>
                   <div>结束 {timing?.finished_at ? formatDateTime(timing.finished_at) : timing?.is_active ? '进行中' : '-'}</div>
                   <div>耗时 {formatDurationMs(timing?.duration_ms)}</div>
@@ -1290,10 +1290,10 @@ export const B2STaskDetailPage: React.FC<Props> = ({ projectId, taskId, onBack, 
       <SectionCard
         title="当前运行智能体"
         description="展示当前任务里的活跃 agent，会话点击后直接弹出实时对话。"
-        right={<div className="text-xs font-black text-slate-500">活跃/失活/孤立 {runtimeSummary?.active_sessions || 0}/{runtimeSummary?.stale_sessions || 0}/{runtimeSummary?.orphan_sessions || 0}</div>}
+        right={<div className="text-xs font-black text-theme-text-muted">活跃/失活/孤立 {runtimeSummary?.active_sessions || 0}/{runtimeSummary?.stale_sessions || 0}/{runtimeSummary?.orphan_sessions || 0}</div>}
       >
         {activeAgentSessions.length === 0 ? (
-          <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 px-4 py-6 text-center text-sm text-slate-500">当前没有运行中的智能体。快速模式或已完成任务可能不会保留活跃会话。</div>
+          <div className="rounded-xl border border-dashed border-theme-border bg-theme-bg-app px-4 py-6 text-center text-sm text-theme-text-muted">当前没有运行中的智能体。快速模式或已完成任务可能不会保留活跃会话。</div>
         ) : (
           <div className="grid gap-2.5 md:grid-cols-2 xl:grid-cols-3">
             {activeAgentSessions.map((agent) => (
@@ -1308,22 +1308,22 @@ export const B2STaskDetailPage: React.FC<Props> = ({ projectId, taskId, onBack, 
                     fullPath: agent.full_path,
                   });
                 }}
-                className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-left transition hover:border-slate-300 hover:bg-slate-100"
+                className="rounded-xl border border-theme-border bg-theme-bg-app px-3 py-2.5 text-left transition hover:border-theme-border hover:bg-theme-elevated"
               >
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0">
-                    <div className="truncate text-sm font-black text-slate-900">{agent.agent || agent.role || 'agent session'}</div>
-                    <div className="mt-0.5 truncate text-[11px] font-semibold text-slate-500">{agent.item_name} · {agent.stage || '-'} · {agent.run_name || '-'}</div>
+                    <div className="truncate text-sm font-black text-theme-text-primary">{agent.agent || agent.role || 'agent session'}</div>
+                    <div className="mt-0.5 truncate text-[11px] font-semibold text-theme-text-muted">{agent.item_name} · {agent.stage || '-'} · {agent.run_name || '-'}</div>
                   </div>
-                  <span className={`rounded-full px-2 py-1 text-[10px] font-black ${agent.is_stale ? 'bg-amber-50 text-amber-700' : agent.is_orphan ? 'bg-slate-100 text-slate-700' : agent.status === 'failed' || agent.status === 'cancelled' ? 'bg-rose-50 text-rose-700' : 'bg-blue-50 text-blue-700'}`}>{agent.status_title}</span>
+                  <span className={`rounded-full px-2 py-1 text-[10px] font-black ${agent.is_stale ? 'bg-amber-500/15 text-amber-400' : agent.is_orphan ? 'bg-theme-elevated text-theme-text-secondary' : agent.status === 'failed' || agent.status === 'cancelled' ? 'bg-rose-500/15 text-rose-400' : 'bg-blue-500/15 text-blue-400'}`}>{agent.status_title}</span>
                 </div>
-                <div className="mt-1 line-clamp-2 text-[11px] font-semibold text-slate-500" title={agent.status_reason}>{agent.status_reason}</div>
-                <div className="mt-2 flex flex-wrap gap-1.5 text-[10px] font-semibold text-slate-600">
-                  <span className="rounded-full bg-slate-100 px-2 py-0.5">{agent.role || 'session'}</span>
-                  {agent.batch_no ? <span className="rounded-full bg-slate-100 px-2 py-0.5">Batch {agent.batch_no}</span> : null}
-                  {agent.attempt_no ? <span className="rounded-full bg-slate-100 px-2 py-0.5">第 {agent.attempt_no} 轮</span> : null}
-                  {agent.current_function ? <span className="rounded-full bg-slate-100 px-2 py-0.5">{agent.current_function}</span> : null}
-                  <span className="rounded-full bg-slate-100 px-2 py-0.5">{agent.updated_at ? formatDateTime(agent.updated_at) : '实时'}</span>
+                <div className="mt-1 line-clamp-2 text-[11px] font-semibold text-theme-text-muted" title={agent.status_reason}>{agent.status_reason}</div>
+                <div className="mt-2 flex flex-wrap gap-1.5 text-[10px] font-semibold text-theme-text-secondary">
+                  <span className="rounded-full bg-theme-elevated px-2 py-0.5">{agent.role || 'session'}</span>
+                  {agent.batch_no ? <span className="rounded-full bg-theme-elevated px-2 py-0.5">Batch {agent.batch_no}</span> : null}
+                  {agent.attempt_no ? <span className="rounded-full bg-theme-elevated px-2 py-0.5">第 {agent.attempt_no} 轮</span> : null}
+                  {agent.current_function ? <span className="rounded-full bg-theme-elevated px-2 py-0.5">{agent.current_function}</span> : null}
+                  <span className="rounded-full bg-theme-elevated px-2 py-0.5">{agent.updated_at ? formatDateTime(agent.updated_at) : '实时'}</span>
                 </div>
               </button>
             ))}
@@ -1343,7 +1343,7 @@ export const B2STaskDetailPage: React.FC<Props> = ({ projectId, taskId, onBack, 
 
       <SectionCard title="快速风险" description="优先展示失败项、评审未通过项和结果缺失项。">
         <div className="grid gap-3 lg:grid-cols-3">
-          <div className="rounded-xl border border-rose-200 bg-rose-50 p-3">
+          <div className="rounded-xl border border-rose-500/20 bg-rose-500/15 p-3">
             <div className="text-xs font-black uppercase tracking-[0.18em] text-rose-500">失败 Item</div>
             <div className="mt-2.5 space-y-1.5">
               {failedItems.slice(0, 4).map((item) => (
@@ -1354,36 +1354,36 @@ export const B2STaskDetailPage: React.FC<Props> = ({ projectId, taskId, onBack, 
                     setSelectedItemId(item.id);
                     setActiveTab('result');
                   }}
-                  className="w-full rounded-lg bg-slate-50 px-3 py-2 text-left text-sm font-semibold text-rose-800 ring-1 ring-rose-100 transition hover:bg-rose-50"
+                  className="w-full rounded-lg bg-theme-bg-app px-3 py-2 text-left text-sm font-semibold text-rose-400 ring-1 ring-rose-100 transition hover:bg-rose-500/15"
                 >
                   <div className="flex items-center justify-between gap-2">
                     <span className="truncate">{`#${item.sequence_no} ${fileNameOf(item.elf_path)}`}</span>
-                    <span className="shrink-0 rounded-full bg-rose-100 px-2 py-0.5 text-[10px] font-black text-rose-700">{item.failure_type || item.phase || 'failed'}</span>
+                    <span className="shrink-0 rounded-full bg-rose-500/15 px-2 py-0.5 text-[10px] font-black text-rose-400">{item.failure_type || item.phase || 'failed'}</span>
                   </div>
-                  <div className="mt-1 line-clamp-2 text-[11px] font-semibold text-rose-600" title={compactText(item.error_reason || item.phase_message)}>
+                  <div className="mt-1 line-clamp-2 text-[11px] font-semibold text-rose-400" title={compactText(item.error_reason || item.phase_message)}>
                     {compactText(item.error_reason || item.phase_message, '无详细错误信息')}
                   </div>
                 </button>
               ))}
-              {failedItems.length === 0 ? <div className="rounded-lg bg-slate-50 px-3 py-3 text-sm text-slate-500">暂无失败项</div> : null}
+              {failedItems.length === 0 ? <div className="rounded-lg bg-theme-bg-app px-3 py-3 text-sm text-theme-text-muted">暂无失败项</div> : null}
             </div>
           </div>
-          <div className="rounded-xl border border-amber-200 bg-amber-50 p-3">
-            <div className="text-xs font-black uppercase tracking-[0.18em] text-amber-600">评审未通过</div>
+          <div className="rounded-xl border border-amber-500/20 bg-amber-500/15 p-3">
+            <div className="text-xs font-black uppercase tracking-[0.18em] text-amber-400">评审未通过</div>
             <div className="mt-2.5 space-y-1.5">
               {(resultSummary?.items.filter((item) => String(item.final_verdict || '').toUpperCase() !== 'PASS').slice(0, 4) || []).map((item) => (
-                <div key={item.item_id} className="rounded-lg bg-slate-50 px-3 py-1.5 text-sm font-semibold text-amber-700">{`#${item.sequence_no} ${item.item_name} · ${item.final_verdict_label || item.final_verdict || '-'}`}</div>
+                <div key={item.item_id} className="rounded-lg bg-theme-bg-app px-3 py-1.5 text-sm font-semibold text-amber-400">{`#${item.sequence_no} ${item.item_name} · ${item.final_verdict_label || item.final_verdict || '-'}`}</div>
               ))}
-              {(resultSummary?.items.filter((item) => String(item.final_verdict || '').toUpperCase() !== 'PASS').length || 0) === 0 ? <div className="rounded-lg bg-slate-50 px-3 py-3 text-sm text-slate-500">暂无未通过项</div> : null}
+              {(resultSummary?.items.filter((item) => String(item.final_verdict || '').toUpperCase() !== 'PASS').length || 0) === 0 ? <div className="rounded-lg bg-theme-bg-app px-3 py-3 text-sm text-theme-text-muted">暂无未通过项</div> : null}
             </div>
           </div>
-          <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
-            <div className="text-xs font-black uppercase tracking-[0.18em] text-slate-500">结果缺失</div>
+          <div className="rounded-xl border border-theme-border bg-theme-bg-app p-3">
+            <div className="text-xs font-black uppercase tracking-[0.18em] text-theme-text-muted">结果缺失</div>
             <div className="mt-2.5 space-y-1.5">
               {(resultSummary?.items.filter((item) => item.result_file_count === 0).slice(0, 4) || []).map((item) => (
-                <div key={item.item_id} className="rounded-lg bg-slate-50 px-3 py-1.5 text-sm font-semibold text-slate-700">{`#${item.sequence_no} ${item.item_name}`}</div>
+                <div key={item.item_id} className="rounded-lg bg-theme-bg-app px-3 py-1.5 text-sm font-semibold text-theme-text-secondary">{`#${item.sequence_no} ${item.item_name}`}</div>
               ))}
-              {(resultSummary?.items.filter((item) => item.result_file_count === 0).length || 0) === 0 ? <div className="rounded-lg bg-slate-50 px-3 py-3 text-sm text-slate-500">所有 item 都已有结果文件</div> : null}
+              {(resultSummary?.items.filter((item) => item.result_file_count === 0).length || 0) === 0 ? <div className="rounded-lg bg-theme-bg-app px-3 py-3 text-sm text-theme-text-muted">所有 item 都已有结果文件</div> : null}
             </div>
           </div>
         </div>
@@ -1400,7 +1400,7 @@ export const B2STaskDetailPage: React.FC<Props> = ({ projectId, taskId, onBack, 
           <button
             type="button"
             onClick={() => void loadTimeline()}
-            className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-black text-slate-700 hover:bg-slate-100"
+            className="inline-flex items-center gap-1.5 rounded-xl border border-theme-border bg-theme-bg-app px-3 py-2 text-xs font-black text-theme-text-secondary hover:bg-theme-elevated"
           >
             <RefreshCw size={14} />
             刷新
@@ -1409,7 +1409,7 @@ export const B2STaskDetailPage: React.FC<Props> = ({ projectId, taskId, onBack, 
             type="button"
             onClick={() => void clearTimeline()}
             disabled={timelineClearing || timelineLoading || timeline.length === 0}
-            className="inline-flex items-center gap-1.5 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-black text-rose-700 disabled:cursor-not-allowed disabled:opacity-50"
+            className="inline-flex items-center gap-1.5 rounded-xl border border-rose-500/20 bg-rose-500/15 px-3 py-2 text-xs font-black text-rose-400 disabled:cursor-not-allowed disabled:opacity-50"
           >
             {timelineClearing ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
             清空
@@ -1425,31 +1425,31 @@ export const B2STaskDetailPage: React.FC<Props> = ({ projectId, taskId, onBack, 
           <MetricTile label="当前函数" value={detail?.event_summary?.current_function || '-'} tone="emerald" icon={<Code2 size={18} />} />
         </div>
         <div className="grid gap-2 md:grid-cols-4">
-          <select value={timelinePhaseFilter} onChange={(event) => setTimelinePhaseFilter(event.target.value)} className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-semibold text-slate-700 outline-none focus:border-slate-400">
+          <select value={timelinePhaseFilter} onChange={(event) => setTimelinePhaseFilter(event.target.value)} className="rounded-xl border border-theme-border bg-theme-bg-app px-3 py-2 text-sm font-semibold text-theme-text-secondary outline-none focus:border-slate-400">
             <option value="__all__">全部阶段</option>
             {timelinePhaseOptions.map((value) => <option key={value} value={value}>{PHASE_LABELS[value] || value}</option>)}
           </select>
-          <select value={timelineEventTypeFilter} onChange={(event) => setTimelineEventTypeFilter(event.target.value)} className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-semibold text-slate-700 outline-none focus:border-slate-400">
+          <select value={timelineEventTypeFilter} onChange={(event) => setTimelineEventTypeFilter(event.target.value)} className="rounded-xl border border-theme-border bg-theme-bg-app px-3 py-2 text-sm font-semibold text-theme-text-secondary outline-none focus:border-slate-400">
             <option value="__all__">全部事件</option>
             {timelineEventTypeOptions.map((value) => <option key={value} value={value}>{formatTimelineEventTypeLabel(value)}</option>)}
           </select>
-          <select value={timelineLevelFilter} onChange={(event) => setTimelineLevelFilter(event.target.value)} className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-semibold text-slate-700 outline-none focus:border-slate-400">
+          <select value={timelineLevelFilter} onChange={(event) => setTimelineLevelFilter(event.target.value)} className="rounded-xl border border-theme-border bg-theme-bg-app px-3 py-2 text-sm font-semibold text-theme-text-secondary outline-none focus:border-slate-400">
             <option value="__all__">全部级别</option>
             {timelineLevelOptions.map((value) => <option key={value} value={value}>{value}</option>)}
           </select>
-          <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-semibold text-slate-600">
-            当前显示 <span className="font-black text-slate-900">{filteredTimeline.length}</span> / {timeline.length}
+          <div className="rounded-xl border border-theme-border bg-theme-bg-app px-3 py-2 text-sm font-semibold text-theme-text-secondary">
+            当前显示 <span className="font-black text-theme-text-primary">{filteredTimeline.length}</span> / {timeline.length}
           </div>
         </div>
         {timelineLoading ? (
-          <div className="flex items-center gap-2 text-sm text-slate-500"><Loader2 size={16} className="animate-spin" />加载事件时间线中...</div>
+          <div className="flex items-center gap-2 text-sm text-theme-text-muted"><Loader2 size={16} className="animate-spin" />加载事件时间线中...</div>
         ) : filteredTimeline.length === 0 ? (
-          <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-4 py-8 text-center text-sm text-slate-500">当前筛选条件下没有事件记录。</div>
+          <div className="rounded-2xl border border-dashed border-theme-border bg-theme-bg-app px-4 py-8 text-center text-sm text-theme-text-muted">当前筛选条件下没有事件记录。</div>
         ) : (
-          <div className="overflow-hidden rounded-2xl border border-slate-200">
+          <div className="overflow-hidden rounded-2xl border border-theme-border">
             <div className="overflow-x-auto">
-              <table className="min-w-[1180px] w-full divide-y divide-slate-100 text-left text-xs">
-                <thead className="bg-slate-50 text-[11px] font-black uppercase tracking-[0.12em] text-slate-400">
+              <table className="min-w-[1180px] w-full divide-y divide-theme-border text-left text-xs">
+                <thead className="bg-theme-bg-app text-[11px] font-black uppercase tracking-[0.12em] text-theme-text-muted">
                   <tr>
                     <th className="w-16 px-3 py-2">#</th>
                     <th className="w-44 px-3 py-2">时间</th>
@@ -1466,29 +1466,29 @@ export const B2STaskDetailPage: React.FC<Props> = ({ projectId, taskId, onBack, 
                     <th className="w-36 px-3 py-2 text-right">操作</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100 bg-slate-50">
+                <tbody className="divide-y divide-theme-border bg-theme-bg-app">
                   {filteredTimeline.map((event, index) => {
                     const expanded = expandedTimelineEventId === event.id;
                     const hasPayload = !!(event.payload && Object.keys(event.payload).length);
                     return (
                       <React.Fragment key={event.id}>
                         <tr className="align-top hover:bg-slate-100/80">
-                          <td className="px-3 py-2.5 font-mono text-[11px] font-bold text-slate-400">#{index + 1}</td>
-                          <td className="whitespace-nowrap px-3 py-2.5 font-mono text-[11px] font-semibold text-slate-600">
+                          <td className="px-3 py-2.5 font-mono text-[11px] font-bold text-theme-text-muted">#{index + 1}</td>
+                          <td className="whitespace-nowrap px-3 py-2.5 font-mono text-[11px] font-semibold text-theme-text-secondary">
                             {formatDateTime(event.created_at)}
                           </td>
                           <td className="px-3 py-2.5">
-                            <span className="inline-flex max-w-[140px] rounded-full border border-sky-200 bg-sky-50 px-2 py-0.5 text-[11px] font-black text-sky-700">
+                            <span className="inline-flex max-w-[140px] rounded-full border border-sky-500/20 bg-sky-500/15 px-2 py-0.5 text-[11px] font-black text-sky-400">
                               <span className="truncate">{formatTimelineEventTypeLabel(event.event_type)}</span>
                             </span>
                           </td>
                           <td className="px-3 py-2.5">
                             {event.phase ? (
-                              <span className="inline-flex max-w-[110px] rounded-full border border-blue-100 bg-blue-50 px-2 py-0.5 text-[11px] font-black text-blue-700">
+                              <span className="inline-flex max-w-[110px] rounded-full border border-blue-500/20 bg-blue-500/15 px-2 py-0.5 text-[11px] font-black text-blue-400">
                                 <span className="truncate">{PHASE_LABELS[event.phase] || event.phase}</span>
                               </span>
                             ) : (
-                              <span className="text-slate-400">-</span>
+                              <span className="text-theme-text-muted">-</span>
                             )}
                           </td>
                           <td className="px-3 py-2.5">
@@ -1497,40 +1497,40 @@ export const B2STaskDetailPage: React.FC<Props> = ({ projectId, taskId, onBack, 
                             </span>
                           </td>
                           <td className="max-w-[360px] px-3 py-2.5">
-                            <div className="truncate text-sm font-black text-slate-900" title={event.message}>
+                            <div className="truncate text-sm font-black text-theme-text-primary" title={event.message}>
                               {event.message}
                             </div>
                           </td>
-                          <td className="px-3 py-2.5 text-[11px] font-semibold text-slate-600">
+                          <td className="px-3 py-2.5 text-[11px] font-semibold text-theme-text-secondary">
                             {event.batch_id != null ? (
-                              <span className="rounded-full bg-violet-50 px-2 py-0.5 font-black text-violet-700">Batch {event.batch_id}</span>
+                              <span className="rounded-full bg-violet-500/15 px-2 py-0.5 font-black text-violet-400">Batch {event.batch_id}</span>
                             ) : (
-                              <span className="text-slate-400">-</span>
+                              <span className="text-theme-text-muted">-</span>
                             )}
                           </td>
-                          <td className="px-3 py-2.5 text-[11px] font-semibold text-slate-600">
+                          <td className="px-3 py-2.5 text-[11px] font-semibold text-theme-text-secondary">
                             {event.attempt != null ? (
-                              <span className="rounded-full bg-amber-50 px-2 py-0.5 font-black text-amber-700">Attempt {event.attempt}</span>
+                              <span className="rounded-full bg-amber-500/15 px-2 py-0.5 font-black text-amber-400">Attempt {event.attempt}</span>
                             ) : (
-                              <span className="text-slate-400">-</span>
+                              <span className="text-theme-text-muted">-</span>
                             )}
                           </td>
-                          <td className="px-3 py-2.5 text-[11px] text-slate-600">
+                          <td className="px-3 py-2.5 text-[11px] text-theme-text-secondary">
                             <div className="truncate font-mono" title={event.function_name || '-'}>
                               {event.function_name || '-'}
                             </div>
                           </td>
-                          <td className="px-3 py-2.5 text-[11px] text-slate-600">
-                            <div className="truncate font-semibold text-slate-700" title={formatTimelineSourceLabel(event.source)}>
+                          <td className="px-3 py-2.5 text-[11px] text-theme-text-secondary">
+                            <div className="truncate font-semibold text-theme-text-secondary" title={formatTimelineSourceLabel(event.source)}>
                               {formatTimelineSourceLabel(event.source)}
                             </div>
                           </td>
-                          <td className="px-3 py-2.5 text-[11px] text-slate-600">
+                          <td className="px-3 py-2.5 text-[11px] text-theme-text-secondary">
                             <div className="truncate font-mono" title={event.sequence_no != null ?`Item #${event.sequence_no}` : event.item_id || '-'}>
                               {event.sequence_no != null ?`Item #${event.sequence_no}` : event.item_id || '-'}
                             </div>
                           </td>
-                          <td className="px-3 py-2.5 text-[11px] text-slate-600">
+                          <td className="px-3 py-2.5 text-[11px] text-theme-text-secondary">
                             <div className="truncate font-mono" title={event.pi_job_id || '-'}>
                               {event.pi_job_id || '-'}
                             </div>
@@ -1540,7 +1540,7 @@ export const B2STaskDetailPage: React.FC<Props> = ({ projectId, taskId, onBack, 
                               <button
                                 type="button"
                                 onClick={() => setExpandedTimelineEventId((current) => (current === event.id ? '' : event.id))}
-                                className="text-[11px] font-black text-slate-500 transition hover:text-slate-900"
+                                className="text-[11px] font-black text-theme-text-muted transition hover:text-theme-text-primary"
                               >
                                 {expanded ? '收起' : hasPayload ? '查看' : '详情'}
                               </button>
@@ -1548,7 +1548,7 @@ export const B2STaskDetailPage: React.FC<Props> = ({ projectId, taskId, onBack, 
                                 type="button"
                                 onClick={() => void deleteTimelineEvent(event.id)}
                                 disabled={deletingTimelineEventId === event.id || timelineClearing}
-                                className="text-[11px] font-black text-rose-600 transition hover:text-rose-800 disabled:opacity-40"
+                                className="text-[11px] font-black text-rose-400 transition hover:text-rose-400 disabled:opacity-40"
                               >
                                 {deletingTimelineEventId === event.id ? '删除中' : '删除'}
                               </button>
@@ -1561,7 +1561,7 @@ export const B2STaskDetailPage: React.FC<Props> = ({ projectId, taskId, onBack, 
                               {hasPayload ? (
                                 <TimelinePayloadBlock payload={event.payload} />
                               ) : (
-                                <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 px-4 py-6 text-center text-sm text-slate-400">
+                                <div className="rounded-xl border border-dashed border-theme-border bg-theme-bg-app px-4 py-6 text-center text-sm text-theme-text-muted">
                                   当前事件没有额外 payload 细节。
                                 </div>
                               )}
@@ -1583,7 +1583,7 @@ export const B2STaskDetailPage: React.FC<Props> = ({ projectId, taskId, onBack, 
   const renderConfig = () => {
     const snapshot = detail?.task_config_snapshot;
     if (!snapshot) {
-      return <SectionCard title="任务配置"><div className="text-sm text-slate-500">当前任务没有可展示的冻结配置。</div></SectionCard>;
+      return <SectionCard title="任务配置"><div className="text-sm text-theme-text-muted">当前任务没有可展示的冻结配置。</div></SectionCard>;
     }
     return (
       <div className="space-y-4">
@@ -1595,13 +1595,13 @@ export const B2STaskDetailPage: React.FC<Props> = ({ projectId, taskId, onBack, 
             <MetricTile label="引擎" value={snapshot.engine || '-'} tone="blue" />
           </div>
           <div className="mt-3 grid gap-3 lg:grid-cols-2">
-            <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
-              <div className="text-xs font-black uppercase tracking-[0.18em] text-slate-400">描述</div>
-              <div className="mt-1.5 whitespace-pre-wrap break-words text-sm text-slate-700">{snapshot.description || '-'}</div>
+            <div className="rounded-xl border border-theme-border bg-theme-bg-app p-3">
+              <div className="text-xs font-black uppercase tracking-[0.18em] text-theme-text-muted">描述</div>
+              <div className="mt-1.5 whitespace-pre-wrap break-words text-sm text-theme-text-secondary">{snapshot.description || '-'}</div>
             </div>
-            <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
-              <div className="text-xs font-black uppercase tracking-[0.18em] text-slate-400">标签</div>
-              <div className="mt-1.5 flex flex-wrap gap-1.5">{snapshot.tags.length ? snapshot.tags.map((tag) => <span key={tag} className="rounded-full bg-slate-50 px-2.5 py-0.5 text-[11px] font-black text-slate-700">{tag}</span>) : <span className="text-sm text-slate-500">-</span>}</div>
+            <div className="rounded-xl border border-theme-border bg-theme-bg-app p-3">
+              <div className="text-xs font-black uppercase tracking-[0.18em] text-theme-text-muted">标签</div>
+              <div className="mt-1.5 flex flex-wrap gap-1.5">{snapshot.tags.length ? snapshot.tags.map((tag) => <span key={tag} className="rounded-full bg-theme-bg-app px-2.5 py-0.5 text-[11px] font-black text-theme-text-secondary">{tag}</span>) : <span className="text-sm text-theme-text-muted">-</span>}</div>
             </div>
           </div>
         </SectionCard>
@@ -1643,47 +1643,47 @@ export const B2STaskDetailPage: React.FC<Props> = ({ projectId, taskId, onBack, 
               const idaRoot =`${taskRoot}/ida`;
               const artifactsRoot =`${taskRoot}/artifacts`;
               return (
-                <div key={item.item_id} className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                <div key={item.item_id} className="rounded-2xl border border-theme-border bg-theme-bg-app p-4">
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div>
-                      <div className="text-sm font-black text-slate-900">#{item.sequence_no} {fileNameOf(item.source_elf_path || item.elf_path)}</div>
-                      <div className="mt-1 break-all font-mono text-[11px] text-slate-500">{item.source_elf_path || item.elf_path}</div>
+                      <div className="text-sm font-black text-theme-text-primary">#{item.sequence_no} {fileNameOf(item.source_elf_path || item.elf_path)}</div>
+                      <div className="mt-1 break-all font-mono text-[11px] text-theme-text-muted">{item.source_elf_path || item.elf_path}</div>
                     </div>
-                    <div className="rounded-full bg-slate-50 px-3 py-1 text-[11px] font-black text-slate-700">
+                    <div className="rounded-full bg-theme-bg-app px-3 py-1 text-[11px] font-black text-theme-text-secondary">
                       {item.output_subdir || '默认输出目录'}
                     </div>
                   </div>
                   <div className="mt-4 grid gap-3 lg:grid-cols-2">
-                    <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
-                      <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">输入</div>
-                      <div className="mt-2 space-y-2 text-sm text-slate-700">
+                    <div className="rounded-xl border border-theme-border bg-theme-bg-app p-3">
+                      <div className="text-[11px] font-black uppercase tracking-[0.18em] text-theme-text-muted">输入</div>
+                      <div className="mt-2 space-y-2 text-sm text-theme-text-secondary">
                         <div>
-                          <div className="text-xs font-semibold text-slate-500">ELF 输入</div>
+                          <div className="text-xs font-semibold text-theme-text-muted">ELF 输入</div>
                           <div className="mt-1 break-all font-mono text-[11px]">{item.elf_path}</div>
                         </div>
                         <div>
-                          <div className="text-xs font-semibold text-slate-500">源 ELF</div>
+                          <div className="text-xs font-semibold text-theme-text-muted">源 ELF</div>
                           <div className="mt-1 break-all font-mono text-[11px]">{item.source_elf_path || '-'}</div>
                         </div>
                         <div>
-                          <div className="text-xs font-semibold text-slate-500">函数白名单</div>
+                          <div className="text-xs font-semibold text-theme-text-muted">函数白名单</div>
                           <div className="mt-1 text-[11px]">{item.file_list.length ?`${item.file_list.length} 项` : '未指定'}</div>
                         </div>
                       </div>
                     </div>
-                    <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
-                      <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">输出</div>
-                      <div className="mt-2 space-y-2 text-sm text-slate-700">
+                    <div className="rounded-xl border border-theme-border bg-theme-bg-app p-3">
+                      <div className="text-[11px] font-black uppercase tracking-[0.18em] text-theme-text-muted">输出</div>
+                      <div className="mt-2 space-y-2 text-sm text-theme-text-secondary">
                         <div>
-                          <div className="text-xs font-semibold text-slate-500">Item 输出目录</div>
+                          <div className="text-xs font-semibold text-theme-text-muted">Item 输出目录</div>
                           <div className="mt-1 break-all font-mono text-[11px]">{item.output_dir}</div>
                         </div>
                         <div>
-                          <div className="text-xs font-semibold text-slate-500">运行目录</div>
+                          <div className="text-xs font-semibold text-theme-text-muted">运行目录</div>
                           <div className="mt-1 break-all font-mono text-[11px]">{runRoot}</div>
                         </div>
                         <div>
-                          <div className="text-xs font-semibold text-slate-500">IDA / 产物目录</div>
+                          <div className="text-xs font-semibold text-theme-text-muted">IDA / 产物目录</div>
                           <div className="mt-1 break-all font-mono text-[11px]">{idaRoot}</div>
                           <div className="mt-1 break-all font-mono text-[11px]">{artifactsRoot}</div>
                         </div>
@@ -1691,11 +1691,11 @@ export const B2STaskDetailPage: React.FC<Props> = ({ projectId, taskId, onBack, 
                     </div>
                   </div>
                   {item.file_list.length ? (
-                    <div className="mt-3 rounded-xl border border-slate-200 bg-slate-50 p-3">
-                      <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">函数白名单明细</div>
+                    <div className="mt-3 rounded-xl border border-theme-border bg-theme-bg-app p-3">
+                      <div className="text-[11px] font-black uppercase tracking-[0.18em] text-theme-text-muted">函数白名单明细</div>
                       <div className="mt-2 flex flex-wrap gap-1.5">
                         {item.file_list.map((entry) => (
-                          <span key={entry} className="rounded-full bg-slate-100 px-2.5 py-0.5 text-[11px] font-semibold text-slate-700">
+                          <span key={entry} className="rounded-full bg-theme-elevated px-2.5 py-0.5 text-[11px] font-semibold text-theme-text-secondary">
                             {entry}
                           </span>
                         ))}
@@ -1710,8 +1710,8 @@ export const B2STaskDetailPage: React.FC<Props> = ({ projectId, taskId, onBack, 
 
         <SectionCard title="原始冻结配置">
           <details>
-            <summary className="cursor-pointer text-xs text-slate-500 hover:text-slate-700">展开查看冻结配置 JSON</summary>
-            <pre className="mt-3 max-h-96 overflow-auto rounded-xl border border-slate-200 bg-slate-50 p-4 text-xs leading-relaxed text-slate-900 whitespace-pre-wrap">
+            <summary className="cursor-pointer text-xs text-theme-text-muted hover:text-theme-text-secondary">展开查看冻结配置 JSON</summary>
+            <pre className="mt-3 max-h-96 overflow-auto rounded-xl border border-theme-border bg-theme-bg-app p-4 text-xs leading-relaxed text-theme-text-primary whitespace-pre-wrap">
               {JSON.stringify(snapshot, null, 2)}
             </pre>
           </details>
@@ -1725,33 +1725,33 @@ export const B2STaskDetailPage: React.FC<Props> = ({ projectId, taskId, onBack, 
       title="智能体会话"
       description="参考系统分析任务详情页的查看方式，按 ELF Item 与会话索引统一预览 B2S 智能体会话。"
       right={
-        <button type="button" onClick={() => { void loadSessions(); void loadSessionRuntime({ silent: true }); }} className="rounded-xl border border-slate-200 bg-slate-50 p-2 text-slate-500 hover:bg-slate-100" title="刷新会话">
+        <button type="button" onClick={() => { void loadSessions(); void loadSessionRuntime({ silent: true }); }} className="rounded-xl border border-theme-border bg-theme-bg-app p-2 text-theme-text-muted hover:bg-theme-elevated" title="刷新会话">
           <RefreshCw size={14} />
         </button>
       }
     >
       {!sessions ? (
-        <div className="flex items-center gap-2 text-sm text-slate-500"><Loader2 size={16} className="animate-spin" />加载会话索引中...</div>
+        <div className="flex items-center gap-2 text-sm text-theme-text-muted"><Loader2 size={16} className="animate-spin" />加载会话索引中...</div>
       ) : (
         <div className="space-y-4">
-          <div className="rounded-2xl border border-slate-200 bg-slate-50/70 p-4">
+          <div className="rounded-2xl border border-theme-border bg-slate-50/70 p-4">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
-                <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">ELF 会话分区</div>
-                <div className="mt-1 text-xs text-slate-500">
+                <div className="text-[11px] font-black uppercase tracking-[0.18em] text-theme-text-muted">ELF 会话分区</div>
+                <div className="mt-1 text-xs text-theme-text-muted">
                   {sessions.nodes.length} 个会话文件，运行态统计 {runtimeSummary?.total_sessions || runtimeEntries.length} 个会话；任务取消后会话会以历史文件形式保留在这里。
                 </div>
               </div>
-              <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-600">
-                当前筛选 <span className="font-black text-slate-900">{selectedItemId === '__all__' ? '全部 ELF' :`1 个 ELF`}</span>
+              <div className="rounded-xl border border-theme-border bg-theme-bg-app px-3 py-2 text-xs font-semibold text-theme-text-secondary">
+                当前筛选 <span className="font-black text-theme-text-primary">{selectedItemId === '__all__' ? '全部 ELF' :`1 个 ELF`}</span>
               </div>
             </div>
             {runtimeSummary ? (
               <div className="mt-3 grid gap-2 md:grid-cols-4">
-                <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-600">总会话 <span className="font-black text-slate-900">{runtimeSummary.total_sessions}</span></div>
-                <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-600">活跃 <span className="font-black text-slate-900">{runtimeSummary.active_sessions}</span></div>
-                <div className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-700">失活 <span className="font-black text-amber-900">{runtimeSummary.stale_sessions}</span></div>
-                <div className="rounded-xl border border-slate-200 bg-slate-100 px-3 py-2 text-xs font-semibold text-slate-700">孤立 <span className="font-black text-slate-900">{runtimeSummary.orphan_sessions}</span></div>
+                <div className="rounded-xl border border-theme-border bg-theme-bg-app px-3 py-2 text-xs font-semibold text-theme-text-secondary">总会话 <span className="font-black text-theme-text-primary">{runtimeSummary.total_sessions}</span></div>
+                <div className="rounded-xl border border-theme-border bg-theme-bg-app px-3 py-2 text-xs font-semibold text-theme-text-secondary">活跃 <span className="font-black text-theme-text-primary">{runtimeSummary.active_sessions}</span></div>
+                <div className="rounded-xl border border-amber-500/20 bg-amber-500/15 px-3 py-2 text-xs font-semibold text-amber-400">失活 <span className="font-black text-amber-300">{runtimeSummary.stale_sessions}</span></div>
+                <div className="rounded-xl border border-theme-border bg-theme-elevated px-3 py-2 text-xs font-semibold text-theme-text-secondary">孤立 <span className="font-black text-theme-text-primary">{runtimeSummary.orphan_sessions}</span></div>
               </div>
             ) : null}
             <div className="mt-3 flex flex-wrap gap-2">
@@ -1760,8 +1760,8 @@ export const B2STaskDetailPage: React.FC<Props> = ({ projectId, taskId, onBack, 
                 onClick={() => setSelectedItemId('__all__')}
                 className={`rounded-xl border px-3 py-2 text-xs font-black transition ${
                   selectedItemId === '__all__'
-                    ? 'border-slate-900 bg-slate-900 text-white'
-                    : 'border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100'
+                    ? 'border-theme-border bg-theme-surface text-white'
+                    : 'border-theme-border bg-theme-bg-app text-theme-text-secondary hover:bg-theme-elevated'
                 }`}
               >
                 全部 ELF
@@ -1773,12 +1773,12 @@ export const B2STaskDetailPage: React.FC<Props> = ({ projectId, taskId, onBack, 
                   onClick={() => setSelectedItemId(group.itemId)}
                   className={`rounded-xl border px-3 py-2 text-left text-xs transition ${
                     selectedItemId === group.itemId
-                      ? 'border-slate-900 bg-slate-900 text-white'
-                      : 'border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100'
+                      ? 'border-theme-border bg-theme-surface text-white'
+                      : 'border-theme-border bg-theme-bg-app text-theme-text-secondary hover:bg-theme-elevated'
                   }`}
                 >
                   <div className="font-black">{`#${group.sequenceNo} ${group.itemName}`}</div>
-                  <div className={`mt-1 font-semibold ${selectedItemId === group.itemId ? 'text-slate-300' : 'text-slate-500'}`}>
+                  <div className={`mt-1 font-semibold ${selectedItemId === group.itemId ? 'text-theme-text-faint' : 'text-theme-text-muted'}`}>
                     会话 {group.count} · 活跃 {group.activeCount}
                   </div>
                 </button>
@@ -1787,7 +1787,7 @@ export const B2STaskDetailPage: React.FC<Props> = ({ projectId, taskId, onBack, 
           </div>
 
           {filteredSessionNodes.length === 0 ? (
-            <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-4 py-8 text-center text-sm text-slate-500">
+            <div className="rounded-2xl border border-dashed border-theme-border bg-theme-bg-app px-4 py-8 text-center text-sm text-theme-text-muted">
               {sessions.nodes.length === 0
                 ? '当前任务未生成智能体会话。快速模式或尚未进入深度阶段时会出现这个状态。'
                 : selectedItemId === '__all__'
@@ -1796,13 +1796,13 @@ export const B2STaskDetailPage: React.FC<Props> = ({ projectId, taskId, onBack, 
             </div>
           ) : (
         <section className="grid gap-4 xl:grid-cols-[320px_minmax(0,1fr)]">
- <aside className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+ <aside className="rounded-2xl border border-theme-border bg-theme-bg-app p-4">
             <div className="flex items-center justify-between gap-3">
               <div>
-                <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">会话列表</div>
-                <div className="mt-1 text-xs text-slate-500">{filteredSessionNodes.length} 个会话文件</div>
+                <div className="text-[11px] font-black uppercase tracking-[0.18em] text-theme-text-muted">会话列表</div>
+                <div className="mt-1 text-xs text-theme-text-muted">{filteredSessionNodes.length} 个会话文件</div>
               </div>
-              <button type="button" onClick={() => void loadSessions()} className="rounded-xl border border-slate-200 p-2 text-slate-500 hover:bg-slate-100" title="刷新会话">
+              <button type="button" onClick={() => void loadSessions()} className="rounded-xl border border-theme-border p-2 text-theme-text-muted hover:bg-theme-elevated" title="刷新会话">
                 <RefreshCw size={14} className={selectedSessionLoading ? 'animate-spin' : ''} />
               </button>
             </div>
@@ -1821,7 +1821,7 @@ export const B2STaskDetailPage: React.FC<Props> = ({ projectId, taskId, onBack, 
             <div className="mt-4 max-h-[calc(100vh-20rem)] space-y-4 overflow-auto pr-1">
               {groupedSessionNodes.map(([group, nodes]) => (
                 <div key={group}>
-                  <div className="mb-2 text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">
+                  <div className="mb-2 text-[11px] font-black uppercase tracking-[0.18em] text-theme-text-muted">
                     {sessionGroupLabel(group)}
                   </div>
                   <div className="space-y-2">
@@ -1835,18 +1835,18 @@ export const B2STaskDetailPage: React.FC<Props> = ({ projectId, taskId, onBack, 
                           onClick={() => setSelectedSessionNodeId(node.node_id)}
                           className={`w-full rounded-2xl border px-4 py-3 text-left transition ${
                             selected
-                              ? 'border-slate-900 bg-slate-900 text-white'
-                              : 'border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-50'
+                              ? 'border-theme-border bg-theme-surface text-white'
+                              : 'border-theme-border bg-theme-bg-app text-theme-text-secondary hover:bg-theme-bg-app'
                           }`}
                         >
                           <div className="flex items-start justify-between gap-3">
                             <div className="min-w-0">
                               <div className="truncate text-sm font-black">{node.agent || node.role || fileNameOf(node.relative_path)}</div>
-                              <div className={`mt-1 truncate text-[11px] ${selected ? 'text-slate-300' : 'text-slate-500'}`}>
+                              <div className={`mt-1 truncate text-[11px] ${selected ? 'text-theme-text-faint' : 'text-theme-text-muted'}`}>
                                 {node.relative_path}
                               </div>
                               {runtimeEntry?.status_reason ? (
-                                <div className={`mt-1 line-clamp-2 text-[11px] ${selected ? 'text-slate-300' : 'text-slate-500'}`}>
+                                <div className={`mt-1 line-clamp-2 text-[11px] ${selected ? 'text-theme-text-faint' : 'text-theme-text-muted'}`}>
                                   {runtimeEntry.status_reason}
                                 </div>
                               ) : null}
@@ -1855,12 +1855,12 @@ export const B2STaskDetailPage: React.FC<Props> = ({ projectId, taskId, onBack, 
                               {runtimeEntry?.status_title || (node.is_active ? '活跃' : '历史')}
                             </span>
                           </div>
-                          <div className={`mt-3 flex flex-wrap gap-3 text-[11px] ${selected ? 'text-slate-300' : 'text-slate-500'}`}>
+                          <div className={`mt-3 flex flex-wrap gap-3 text-[11px] ${selected ? 'text-theme-text-faint' : 'text-theme-text-muted'}`}>
                             <span>事件 {selected ? (selectedSessionNodeId === node.node_id ? sessionEvents.length : '-') : '-'}</span>
                             <span>更新时间 {formatSessionUpdatedAt(node.updated_at)}</span>
                             {runtimeEntry?.current_function ? <span>函数 {runtimeEntry.current_function}</span> : null}
                           </div>
-                          <div className={`mt-2 text-[11px] ${selected ? 'text-slate-300' : 'text-slate-500'}`}>
+                          <div className={`mt-2 text-[11px] ${selected ? 'text-theme-text-faint' : 'text-theme-text-muted'}`}>
                             {[node.stage || '-', node.run_name || '-', runtimeEntry?.role || node.role || 'session'].join(' · ')}
                           </div>
                         </button>
@@ -1871,17 +1871,17 @@ export const B2STaskDetailPage: React.FC<Props> = ({ projectId, taskId, onBack, 
               ))}
               {filteredRuntimeOnlyEntries.length > 0 ? (
                 <div>
-                  <div className="mb-2 text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">
+                  <div className="mb-2 text-[11px] font-black uppercase tracking-[0.18em] text-theme-text-muted">
                     无文件会话
                   </div>
                   <div className="space-y-2">
                     {filteredRuntimeOnlyEntries.map((entry) => (
-                      <div key={entry.session_id} className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-4 py-3 text-left">
+                      <div key={entry.session_id} className="rounded-2xl border border-dashed border-theme-border bg-theme-bg-app px-4 py-3 text-left">
                         <div className="flex items-start justify-between gap-3">
                           <div className="min-w-0">
-                            <div className="truncate text-sm font-black text-slate-900">{entry.agent || entry.role || 'agent session'}</div>
-                            <div className="mt-1 text-[11px] text-slate-500">{entry.item_name} · {entry.stage || '-'} · {entry.run_name || 'virtual'}</div>
-                            <div className="mt-1 line-clamp-2 text-[11px] text-slate-500">{entry.status_reason}</div>
+                            <div className="truncate text-sm font-black text-theme-text-primary">{entry.agent || entry.role || 'agent session'}</div>
+                            <div className="mt-1 text-[11px] text-theme-text-muted">{entry.item_name} · {entry.stage || '-'} · {entry.run_name || 'virtual'}</div>
+                            <div className="mt-1 line-clamp-2 text-[11px] text-theme-text-muted">{entry.status_reason}</div>
                           </div>
                           <span className={`inline-flex shrink-0 whitespace-nowrap rounded-full border px-2 py-0.5 text-[10px] font-bold ${runtimeStatusTone(entry, false)}`}>
                             {entry.status_title}
@@ -1898,22 +1898,22 @@ export const B2STaskDetailPage: React.FC<Props> = ({ projectId, taskId, onBack, 
           <div className="space-y-4">
             <AgentSessionWarningPanel warnings={sessionWarnings} />
             {selectedSessionRuntimeEntry ? (
-              <div className="rounded-2xl border border-slate-200 bg-slate-50/70 p-4">
+              <div className="rounded-2xl border border-theme-border bg-slate-50/70 p-4">
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div>
-                    <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">当前会话状态</div>
-                    <div className="mt-1 text-sm font-black text-slate-900">{selectedSessionRuntimeEntry.status_title}</div>
-                    <div className="mt-1 text-xs text-slate-500">{selectedSessionRuntimeEntry.status_reason}</div>
+                    <div className="text-[11px] font-black uppercase tracking-[0.18em] text-theme-text-muted">当前会话状态</div>
+                    <div className="mt-1 text-sm font-black text-theme-text-primary">{selectedSessionRuntimeEntry.status_title}</div>
+                    <div className="mt-1 text-xs text-theme-text-muted">{selectedSessionRuntimeEntry.status_reason}</div>
                   </div>
                   <div className={`rounded-full border px-2.5 py-1 text-[10px] font-black ${runtimeStatusTone(selectedSessionRuntimeEntry, false)}`}>
                     {selectedSessionRuntimeEntry.status}
                   </div>
                 </div>
-                <div className="mt-3 flex flex-wrap gap-2 text-[11px] font-semibold text-slate-600">
-                  {selectedSessionRuntimeEntry.batch_no ? <span className="rounded-full bg-slate-50 px-2 py-1">Batch {selectedSessionRuntimeEntry.batch_no}</span> : null}
-                  {selectedSessionRuntimeEntry.attempt_no ? <span className="rounded-full bg-slate-50 px-2 py-1">Attempt {selectedSessionRuntimeEntry.attempt_no}</span> : null}
-                  {selectedSessionRuntimeEntry.current_function ? <span className="rounded-full bg-slate-50 px-2 py-1">{selectedSessionRuntimeEntry.current_function}</span> : null}
-                  {selectedSessionRuntimeEntry.pi_job_id ? <span className="rounded-full bg-slate-50 px-2 py-1">Job {selectedSessionRuntimeEntry.pi_job_id}</span> : null}
+                <div className="mt-3 flex flex-wrap gap-2 text-[11px] font-semibold text-theme-text-secondary">
+                  {selectedSessionRuntimeEntry.batch_no ? <span className="rounded-full bg-theme-bg-app px-2 py-1">Batch {selectedSessionRuntimeEntry.batch_no}</span> : null}
+                  {selectedSessionRuntimeEntry.attempt_no ? <span className="rounded-full bg-theme-bg-app px-2 py-1">Attempt {selectedSessionRuntimeEntry.attempt_no}</span> : null}
+                  {selectedSessionRuntimeEntry.current_function ? <span className="rounded-full bg-theme-bg-app px-2 py-1">{selectedSessionRuntimeEntry.current_function}</span> : null}
+                  {selectedSessionRuntimeEntry.pi_job_id ? <span className="rounded-full bg-theme-bg-app px-2 py-1">Job {selectedSessionRuntimeEntry.pi_job_id}</span> : null}
                 </div>
               </div>
             ) : null}
@@ -1937,12 +1937,12 @@ export const B2STaskDetailPage: React.FC<Props> = ({ projectId, taskId, onBack, 
     <SectionCard
       title="智能体关系"
       description="展示 item、run、batch、review 与 agent 会话之间的关联。"
-      right={<button type="button" onClick={() => void loadRelationship()} className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-black text-slate-700 hover:bg-slate-100">刷新关系图</button>}
+      right={<button type="button" onClick={() => void loadRelationship()} className="rounded-xl border border-theme-border bg-theme-bg-app px-3 py-2 text-xs font-black text-theme-text-secondary hover:bg-theme-elevated">刷新关系图</button>}
     >
       {!relationship ? (
-        <div className="flex items-center gap-2 text-sm text-slate-500"><Loader2 size={16} className="animate-spin" />加载关系图中...</div>
+        <div className="flex items-center gap-2 text-sm text-theme-text-muted"><Loader2 size={16} className="animate-spin" />加载关系图中...</div>
       ) : relationshipNodes.length === 0 ? (
-        <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-4 py-8 text-center text-sm text-slate-500">当前任务未生成可展示的智能体关系数据。</div>
+        <div className="rounded-2xl border border-dashed border-theme-border bg-theme-bg-app px-4 py-8 text-center text-sm text-theme-text-muted">当前任务未生成可展示的智能体关系数据。</div>
       ) : (
         <div className="space-y-4">
           <div className="grid gap-2.5 md:grid-cols-4">
@@ -1958,8 +1958,8 @@ export const B2STaskDetailPage: React.FC<Props> = ({ projectId, taskId, onBack, 
               acc[key].push(node);
               return acc;
             }, {})).map(([group, nodes]) => (
-              <div key={group} className="rounded-xl border border-slate-200 bg-slate-50/70 p-3">
-                <div className="mb-2 text-[11px] font-black uppercase tracking-[0.16em] text-slate-500">{group}</div>
+              <div key={group} className="rounded-xl border border-theme-border bg-slate-50/70 p-3">
+                <div className="mb-2 text-[11px] font-black uppercase tracking-[0.16em] text-theme-text-muted">{group}</div>
                 <div className="space-y-1.5">
                   {nodes.slice(0, 24).map((node) => {
                     const relatedEdges = relationshipEdges.filter((edge) => edge.source_node_id === node.node_id || edge.target_node_id === node.node_id);
@@ -1976,14 +1976,14 @@ export const B2STaskDetailPage: React.FC<Props> = ({ projectId, taskId, onBack, 
                             });
                           }
                         }}
-                        className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-left hover:border-slate-300 hover:bg-slate-100"
+                        className="w-full rounded-lg border border-theme-border bg-theme-bg-app px-3 py-2.5 text-left hover:border-theme-border hover:bg-theme-elevated"
                       >
                         <div className="flex items-start justify-between gap-3">
                           <div className="min-w-0">
-                            <div className="truncate text-sm font-black text-slate-900">{node.title}</div>
-                            <div className="mt-0.5 truncate text-[11px] text-slate-500">{node.subtitle || '-'} · 关联 {relatedEdges.length}</div>
+                            <div className="truncate text-sm font-black text-theme-text-primary">{node.title}</div>
+                            <div className="mt-0.5 truncate text-[11px] text-theme-text-muted">{node.subtitle || '-'} · 关联 {relatedEdges.length}</div>
                           </div>
-                          {node.node_type === 'agent' ? <span className="rounded-full bg-blue-50 px-2 py-1 text-[10px] font-black text-blue-700">会话</span> : null}
+                          {node.node_type === 'agent' ? <span className="rounded-full bg-blue-500/15 px-2 py-1 text-[10px] font-black text-blue-400">会话</span> : null}
                         </div>
                       </button>
                     );
@@ -2009,7 +2009,7 @@ export const B2STaskDetailPage: React.FC<Props> = ({ projectId, taskId, onBack, 
               saveExecutionReturnContext({ view: 'pentest-exec-b2s-detail', b2sTaskId: taskId });
               onOpenAdvanced(selectedItem.id);
             }}
-            className="rounded-xl border border-violet-200 bg-violet-50 px-3 py-2 text-xs font-black text-violet-700 hover:bg-violet-100"
+            className="rounded-xl border border-violet-500/20 bg-violet-500/15 px-3 py-2 text-xs font-black text-violet-400 hover:bg-violet-500/15"
           >
             查看高级视图
           </button>
@@ -2027,24 +2027,24 @@ export const B2STaskDetailPage: React.FC<Props> = ({ projectId, taskId, onBack, 
       {selectedItem ? (
         <SectionCard title={`当前 Item 结果 · #${selectedItem.sequence_no} ${fileNameOf(selectedItem.elf_path)}`} description={`状态 ${selectedItem.status} · Verdict ${selectedItemResultSummary?.final_verdict_label || selectedItemResultSummary?.final_verdict || '-'}`}>
           {selectedItem.status === 'failed' || selectedItem.error_reason ? (
-            <div className="mb-3 rounded-2xl border border-rose-200 bg-rose-50 p-3 text-sm text-rose-900">
+            <div className="mb-3 rounded-2xl border border-rose-500/20 bg-rose-500/15 p-3 text-sm text-rose-300">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <div className="inline-flex items-center gap-2 font-black">
                   <AlertTriangle size={16} />
                   失败原因
                 </div>
                 <div className="flex flex-wrap gap-1.5 text-[10px] font-black">
-                  <span className="rounded-full bg-slate-50 px-2 py-0.5 text-rose-700 ring-1 ring-rose-100">类型：{selectedItem.failure_type || '-'}</span>
-                  <span className="rounded-full bg-slate-50 px-2 py-0.5 text-rose-700 ring-1 ring-rose-100">阶段：{selectedItem.phase_label || selectedItem.phase || '-'}</span>
-                  <span className="rounded-full bg-slate-50 px-2 py-0.5 text-rose-700 ring-1 ring-rose-100">pi job：{selectedItem.pi_job_id || '-'}</span>
+                  <span className="rounded-full bg-theme-bg-app px-2 py-0.5 text-rose-400 ring-1 ring-rose-100">类型：{selectedItem.failure_type || '-'}</span>
+                  <span className="rounded-full bg-theme-bg-app px-2 py-0.5 text-rose-400 ring-1 ring-rose-100">阶段：{selectedItem.phase_label || selectedItem.phase || '-'}</span>
+                  <span className="rounded-full bg-theme-bg-app px-2 py-0.5 text-rose-400 ring-1 ring-rose-100">pi job：{selectedItem.pi_job_id || '-'}</span>
                 </div>
               </div>
               <div className="mt-2 grid gap-2 lg:grid-cols-[minmax(0,1fr)_minmax(260px,0.7fr)]">
- <div className="rounded-xl bg-slate-50 p-2.5 ring-1 ring-rose-100">
+ <div className="rounded-xl bg-theme-bg-app p-2.5 ring-1 ring-rose-100">
                   <div className="text-[10px] font-black uppercase tracking-[0.14em] text-rose-400">Error</div>
                   <div className="mt-1 break-words font-semibold">{compactText(selectedItem.error_reason || selectedItem.phase_message, '无详细错误信息')}</div>
                 </div>
- <div className="rounded-xl bg-slate-50 p-2.5 ring-1 ring-rose-100">
+ <div className="rounded-xl bg-theme-bg-app p-2.5 ring-1 ring-rose-100">
                   <div className="text-[10px] font-black uppercase tracking-[0.14em] text-rose-400">定位建议</div>
                   <div className="mt-1 font-semibold">{failureSuggestion(selectedItem)}</div>
                   {selectedItem.pi_worker_url ? <div className="mt-1 truncate text-[11px] text-rose-500" title={selectedItem.pi_worker_url}>Worker: {selectedItem.pi_worker_url}</div> : null}
@@ -2053,32 +2053,32 @@ export const B2STaskDetailPage: React.FC<Props> = ({ projectId, taskId, onBack, 
             </div>
           ) : null}
           {!itemArtifacts ? (
-            <div className="flex items-center gap-2 text-sm text-slate-500"><Loader2 size={16} className="animate-spin" />加载结果文件中...</div>
+            <div className="flex items-center gap-2 text-sm text-theme-text-muted"><Loader2 size={16} className="animate-spin" />加载结果文件中...</div>
           ) : itemArtifacts.artifacts.length === 0 ? (
-            <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-4 py-8 text-center text-sm text-slate-500">当前 item 还没有可展示的结果文件。</div>
+            <div className="rounded-2xl border border-dashed border-theme-border bg-theme-bg-app px-4 py-8 text-center text-sm text-theme-text-muted">当前 item 还没有可展示的结果文件。</div>
           ) : (
             <div className="grid min-h-[600px] grid-cols-1 xl:grid-cols-[300px_minmax(0,1fr)]">
-              <aside className="border-b border-slate-200 bg-slate-50/80 xl:border-b-0 xl:border-r">
+              <aside className="border-b border-theme-border bg-slate-50/80 xl:border-b-0 xl:border-r">
                 <div className="max-h-[600px] overflow-auto p-2.5">
                   {itemArtifacts.artifacts.map((artifact) => {
                     const active = selectedArtifactId === artifact.id;
                     return (
-                      <button key={artifact.id} type="button" onClick={() => setSelectedArtifactId(artifact.id)} className={`mb-1.5 w-full rounded-xl border px-3 py-2.5 text-left transition ${active ? 'border-slate-900 bg-slate-900 text-white' : 'border-slate-200 bg-slate-50 text-slate-800 hover:border-slate-300 hover:bg-slate-100'}`}>
+                      <button key={artifact.id} type="button" onClick={() => setSelectedArtifactId(artifact.id)} className={`mb-1.5 w-full rounded-xl border px-3 py-2.5 text-left transition ${active ? 'border-theme-border bg-theme-surface text-white' : 'border-theme-border bg-theme-bg-app text-theme-text-primary hover:border-theme-border hover:bg-theme-elevated'}`}>
                         <div className="truncate text-sm font-black">{artifact.name}</div>
-                        <div className={`mt-0.5 truncate text-[10px] ${active ? 'text-slate-300' : 'text-slate-500'}`}>{artifact.stage || artifact.kind} · {artifact.section || '-'}</div>
+                        <div className={`mt-0.5 truncate text-[10px] ${active ? 'text-theme-text-faint' : 'text-theme-text-muted'}`}>{artifact.stage || artifact.kind} · {artifact.section || '-'}</div>
                       </button>
                     );
                   })}
                 </div>
               </aside>
-              <div className="min-h-[600px] bg-slate-950">
-                <div className="flex items-center justify-between gap-3 border-b border-slate-800 px-4 py-2.5 text-sm font-black text-slate-100">
+              <div className="min-h-[600px] bg-theme-bg-app">
+                <div className="flex items-center justify-between gap-3 border-b border-theme-border px-4 py-2.5 text-sm font-black text-slate-100">
                   <div className="truncate">{selectedArtifact?.name || '请选择左侧文件'}</div>
                   {selectedArtifact ? (
                     <button
                       type="button"
                       onClick={() => setPreviewDialog({ title: selectedArtifact.name, subtitle: selectedArtifact.path, content: artifactContent, language: languageFromName(selectedArtifact.name), loading: artifactLoading })}
-                      className="rounded-xl border border-slate-700 bg-slate-900 px-3 py-2 text-xs text-slate-200 hover:bg-slate-800"
+                      className="rounded-xl border border-theme-border bg-theme-surface px-3 py-2 text-xs text-slate-200 hover:bg-theme-elevated"
                     >
                       弹窗查看
                     </button>
@@ -2087,7 +2087,7 @@ export const B2STaskDetailPage: React.FC<Props> = ({ projectId, taskId, onBack, 
                 <div className="h-[546px]">
                   {selectedArtifact ? (
                     artifactLoading ? (
-                      <div className="flex h-full items-center justify-center gap-2 text-sm text-slate-400"><Loader2 size={16} className="animate-spin" />加载文件中...</div>
+                      <div className="flex h-full items-center justify-center gap-2 text-sm text-theme-text-muted"><Loader2 size={16} className="animate-spin" />加载文件中...</div>
                     ) : selectedArtifact.name.toLowerCase().endsWith('.jsonl') ? (
                       <B2SSessionPreview name={selectedArtifact.name} content={artifactContent} />
                     ) : (
@@ -2100,7 +2100,7 @@ export const B2STaskDetailPage: React.FC<Props> = ({ projectId, taskId, onBack, 
                       />
                     )
                   ) : (
-                    <div className="flex h-full items-center justify-center text-sm text-slate-500">请选择左侧文件</div>
+                    <div className="flex h-full items-center justify-center text-sm text-theme-text-muted">请选择左侧文件</div>
                   )}
                 </div>
               </div>
@@ -2109,7 +2109,7 @@ export const B2STaskDetailPage: React.FC<Props> = ({ projectId, taskId, onBack, 
         </SectionCard>
       ) : (
         <SectionCard title="按 Item 查看结果" description="请先通过顶部 ELF Item 选择器切到某个 item。">
-          <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-4 py-8 text-center text-sm text-slate-500">当前处于任务级汇总视角。切换到具体 item 后会展示源码、头文件、中间产物、评审文件和会话文件。</div>
+          <div className="rounded-2xl border border-dashed border-theme-border bg-theme-bg-app px-4 py-8 text-center text-sm text-theme-text-muted">当前处于任务级汇总视角。切换到具体 item 后会展示源码、头文件、中间产物、评审文件和会话文件。</div>
         </SectionCard>
       )}
     </div>

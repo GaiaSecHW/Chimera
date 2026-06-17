@@ -23,32 +23,34 @@
     --text-soft: #d6def0;
     --border-default: #26324a;
     --border-strong: #33415c;
-    --brand-primary: #4f73ff;
-    --brand-primary-hover: #7590ff;
-    --brand-secondary: #3f63f1;
+    --border-subtle: #1b2438;
+    --text-muted-soft: #8b95a8;
+    --brand-primary: #6366f1;
+    --brand-primary-hover: #818cf8;
+    --brand-secondary: #4f46e5;
     --brand-accent: #6366f1;
-    --brand-soft: rgba(79, 115, 255, 0.14);
-    --brand-border: rgba(79, 115, 255, 0.42);
-    --success: #45c06f;
-    --warning: #d5a13a;
-    --danger: #f15d5d;
-    --info: #4f8cff;
-    --success-soft: rgba(69, 192, 111, 0.14);
-    --warning-soft: rgba(213, 161, 58, 0.14);
-    --danger-soft: rgba(241, 93, 93, 0.14);
-    --info-soft: rgba(79, 140, 255, 0.14);
-    --success-border: rgba(69, 192, 111, 0.42);
-    --warning-border: rgba(213, 161, 58, 0.42);
-    --danger-border: rgba(241, 93, 93, 0.42);
-    --info-border: rgba(79, 140, 255, 0.42);
-    --logo-surface: linear-gradient(135deg, #4f73ff 0%, #3f63f1 100%);
-    --gradient-brand: radial-gradient(circle at top left, rgba(79, 115, 255, 0.08), transparent 30%), linear-gradient(135deg, #070d18 0%, #111a2b 50%, #070d18 100%);
-    --shadow-panel: none;
-    --shadow-section: none;
-    --shadow-brand: none;
+    --brand-soft: rgba(99, 102, 241, 0.15);
+    --brand-border: rgba(99, 102, 241, 0.4);
+    --success: #10b981;
+    --warning: #f59e0b;
+    --danger: #f43f5e;
+    --info: #3b82f6;
+    --success-soft: rgba(16, 185, 129, 0.15);
+    --warning-soft: rgba(245, 158, 11, 0.15);
+    --danger-soft: rgba(244, 63, 94, 0.15);
+    --info-soft: rgba(59, 130, 246, 0.15);
+    --success-border: rgba(16, 185, 129, 0.4);
+    --warning-border: rgba(245, 158, 11, 0.4);
+    --danger-border: rgba(244, 63, 94, 0.4);
+    --info-border: rgba(59, 130, 246, 0.4);
+    --logo-surface: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+    --gradient-brand: radial-gradient(circle at top left, rgba(99, 102, 241, 0.08), transparent 30%), linear-gradient(135deg, #070d18 0%, #111a2b 50%, #070d18 100%);
+    --shadow-panel: 0 1px 2px 0 rgba(0, 0, 0, 0.2), 0 1px 3px 0 rgba(0, 0, 0, 0.15);
+    --shadow-section: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.25);
+    --shadow-brand: 0 0 20px rgba(99, 102, 241, 0.15);
     --xterm-bg: #050810;
     --xterm-fg: #e7ecf6;
-    --xterm-cursor: #4f73ff;
+    --xterm-cursor: #6366f1;
     --shell-muted-bg: rgba(17, 26, 43, 0.92);
     --shell-muted-hover-bg: #18233a;
   }
@@ -72,6 +74,8 @@
     --text-soft: #4c3d2e;
     --border-default: rgba(134, 104, 58, 0.16);
     --border-strong: rgba(134, 104, 58, 0.28);
+    --border-subtle: rgba(134, 104, 58, 0.08);
+    --text-muted-soft: #8f7d68;
     --brand-primary: #b7791f;
     --brand-primary-hover: #c68a2a;
     --brand-secondary: #d97706;
@@ -134,8 +138,8 @@
   }
 
   select option {
-    color: #0f172a;
-    background-color: #ffffff;
+    background-color: #18233a;
+    color: #d6def0;
   }
 }
 
@@ -173,7 +177,9 @@
   .text-theme-text-faint { color: var(--text-faint); }
   .text-theme-text-inverse { color: var(--text-inverse); }
   .text-theme-text-soft { color: var(--text-soft); }
+  .text-theme-text-muted-soft { color: var(--text-muted-soft); }
   .border-theme-border { border-color: var(--border-default); }
+  .border-theme-border-subtle { border-color: var(--border-subtle); }
   .border-theme-sidebar { border-color: var(--border-default); }
   .text-brand-primary { color: var(--brand-primary); }
   .bg-brand-primary { background-color: var(--brand-primary); }
@@ -216,6 +222,103 @@
   }
   .theme-login-input::placeholder {
     color: var(--text-faint);
+  }
+  .table-container {
+    @apply rounded-2xl border overflow-hidden;
+    background-color: var(--bg-surface);
+    border-color: var(--border-default);
+  }
+  .form-input {
+    @apply rounded-lg border px-3 py-2.5 text-sm outline-none transition-colors;
+    background-color: var(--bg-elevated);
+    border-color: var(--border-default);
+    color: var(--text-secondary);
+  }
+  .form-input:focus {
+    border-color: var(--brand-primary);
+    box-shadow: 0 0 0 2px var(--brand-soft);
+  }
+  .form-select {
+    @apply rounded-lg border px-3 py-2.5 text-sm outline-none transition-colors;
+    background-color: var(--bg-elevated);
+    border-color: var(--border-default);
+    color: var(--text-secondary);
+  }
+  .form-select:focus {
+    border-color: var(--brand-primary);
+    box-shadow: 0 0 0 2px var(--brand-soft);
+  }
+  .form-select option {
+    background-color: #18233a;
+    color: #d6def0;
+  }
+  .form-label {
+    @apply text-xs font-medium;
+    color: var(--text-muted-soft);
+  }
+  .form-label .required {
+    color: var(--danger);
+  }
+  .metric-card {
+    @apply flex items-center justify-between rounded-xl px-4 py-3;
+    background-color: var(--bg-surface);
+    border: 1px solid var(--border-default);
+  }
+  .modal-overlay {
+    @apply fixed inset-0 z-[100] flex items-center justify-center p-6;
+    background-color: rgba(5, 10, 20, 0.72);
+    backdrop-filter: blur(6px);
+  }
+  .modal-container {
+    @apply w-full overflow-hidden rounded-2xl;
+    background-color: var(--bg-surface);
+    border: 1px solid var(--border-default);
+  }
+  .modal-xl {
+    max-width: 576px;
+  }
+  .modal-md {
+    max-width: 448px;
+  }
+  .btn {
+    @apply inline-flex items-center gap-1.5 rounded-lg px-3.5 py-2.5 text-sm font-medium transition-colors;
+  }
+  .btn-icon {
+    @apply rounded-lg p-2.5 transition-colors;
+    background-color: var(--bg-surface);
+    border: 1px solid var(--border-default);
+    color: var(--text-muted);
+  }
+  .btn-icon:hover {
+    border-color: var(--brand-primary);
+    color: var(--brand-primary-hover);
+  }
+  .btn-primary {
+    @apply rounded-lg px-3.5 py-2.5 text-sm font-medium text-white transition-colors;
+    background-color: var(--brand-primary);
+  }
+  .btn-primary:hover {
+    background-color: var(--brand-secondary);
+  }
+  .btn-primary:disabled {
+    @apply cursor-not-allowed opacity-50;
+  }
+  .btn-secondary {
+    @apply rounded-lg px-3.5 py-2.5 text-sm font-medium transition-colors;
+    background-color: var(--bg-elevated);
+    color: var(--text-muted);
+    border: 1px solid var(--border-default);
+  }
+  .btn-secondary:hover {
+    color: var(--text-primary);
+  }
+  .btn-danger-soft {
+    @apply inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition-colors;
+    background-color: var(--danger-soft);
+    color: var(--danger);
+  }
+  .btn-danger-soft:hover {
+    background-color: color-mix(in srgb, var(--danger-soft) 80%, var(--danger));
   }
 }
 

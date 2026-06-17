@@ -235,8 +235,8 @@ function statusTone(status: string | null | undefined) {
   if (raw === 'running') return 'border-[rgba(79,140,255,0.3)] bg-[rgba(79,140,255,0.15)] text-[#4f8cff]';
   if (raw === 'pending') return 'border-[rgba(213,161,58,0.3)] bg-[rgba(213,161,58,0.15)] text-[#d5a13a]';
   if (raw === 'failed') return 'border-[rgba(241,93,93,0.3)] bg-[rgba(241,93,93,0.15)] text-[#f15d5d]';
-  if (raw === 'cancelled') return 'border-[#26324a] bg-[#18233a] text-[#a4aec4]';
-  return 'border-[#26324a] bg-[#18233a] text-[#a4aec4]';
+  if (raw === 'cancelled') return 'border-[#26324a] bg-theme-elevated text-[#a4aec4]';
+  return 'border-[#26324a] bg-theme-elevated text-[#a4aec4]';
 }
 
 function stageLabel(stage: string | null | undefined) {
@@ -271,7 +271,7 @@ function roundStatusTone(status: string | null | undefined) {
   if (['review_failed', 'evolve_completed'].includes(raw)) return 'border-[rgba(213,161,58,0.3)] bg-[rgba(213,161,58,0.15)] text-[#d5a13a]';
   if (['failed', 'tool_failed', 'error'].includes(raw)) return 'border-[rgba(241,93,93,0.3)] bg-[rgba(241,93,93,0.15)] text-[#f15d5d]';
   if (['running', 'active'].includes(raw)) return 'border-[rgba(79,140,255,0.3)] bg-[rgba(79,140,255,0.15)] text-[#4f8cff]';
-  return 'border-[#26324a] bg-[#18233a] text-[#a4aec4]';
+  return 'border-[#26324a] bg-theme-elevated text-[#a4aec4]';
 }
 
 function DetailField({ label, value, mono = false }: { label: string; value: React.ReactNode; mono?: boolean }) {
@@ -405,8 +405,8 @@ function progressStatusClass(status: string) {
   if (status === 'completed') return 'border-[rgba(69,192,111,0.3)] bg-[rgba(69,192,111,0.15)] text-[#45c06f]';
   if (status === 'running') return 'border-[rgba(79,140,255,0.3)] bg-[rgba(79,140,255,0.15)] text-[#4f8cff]';
   if (status === 'failed') return 'border-[rgba(241,93,93,0.3)] bg-[rgba(241,93,93,0.15)] text-[#f15d5d]';
-  if (status === 'skipped') return 'border-[#26324a] bg-[#18233a] text-[#72809a]';
-  return 'border-[#26324a] bg-[#18233a] text-[#8b95a8]';
+  if (status === 'skipped') return 'border-[#26324a] bg-theme-elevated text-[#72809a]';
+  return 'border-[#26324a] bg-theme-elevated text-[#8b95a8]';
 }
 
 function progressStatusLabel(status: string) {
@@ -457,7 +457,7 @@ function CreateEvolutionModal({
             <h3 style={{ marginTop: '0.5rem', fontSize: '1.5rem', fontWeight: 600, color: LK.ink }}>新建进化任务</h3>
             <p style={{ marginTop: '0.5rem', fontSize: '0.875rem', color: LK.body }}>选择一个已 success 的固件解包任务作为进化源任务。</p>
           </div>
-          <button type="button" onClick={onClose} style={{ borderRadius: '8px', padding: '0.5rem', color: LK.muted, transition: 'all 0.15s' }} className="hover:bg-slate-100 hover:text-slate-700">
+          <button type="button" onClick={onClose} style={{ borderRadius: '8px', padding: '0.5rem', color: LK.muted, transition: 'all 0.15s' }} className="hover:bg-theme-elevated hover:text-theme-text-secondary">
             <X size={18} />
           </button>
         </div>
@@ -469,7 +469,7 @@ function CreateEvolutionModal({
               onChange={(e) => setKeyword(e.target.value)}
               placeholder="搜索解包任务 ID / 固件路径"
               style={{ minWidth: 0, flex: 1, backgroundColor: 'transparent', fontSize: '0.875rem', color: LK.ink, outline: 'none' }}
-              className="placeholder:text-slate-400"
+              className="placeholder:text-theme-text-muted"
             />
           </div>
           <div style={{ marginTop: '1rem', overflow: 'hidden', borderRadius: '12px', border: `1px solid ${LK.borderSoft}` }}>
@@ -485,15 +485,15 @@ function CreateEvolutionModal({
               </thead>
               <tbody>
                 {loading ? (
-                  <tr><td colSpan={5} className="px-4 py-10 text-center text-slate-500">加载 success 解包任务中...</td></tr>
+                  <tr><td colSpan={5} className="px-4 py-10 text-center text-theme-text-muted">加载 success 解包任务中...</td></tr>
                 ) : filtered.length === 0 ? (
-                  <tr><td colSpan={5} className="px-4 py-10 text-center text-slate-500">暂无可选 success 解包任务</td></tr>
+                  <tr><td colSpan={5} className="px-4 py-10 text-center text-theme-text-muted">暂无可选 success 解包任务</td></tr>
                 ) : filtered.map((task) => (
-                  <tr key={task.id} onClick={() => onSelectTask(task.id)} className="cursor-pointer border-t border-slate-100 hover:bg-slate-100">
+                  <tr key={task.id} onClick={() => onSelectTask(task.id)} className="cursor-pointer border-t border-theme-border hover:bg-theme-elevated">
                     <td className="px-4 py-3"><input type="radio" checked={selectedTaskId === task.id} onChange={() => onSelectTask(task.id)} /></td>
-                    <td className="px-4 py-3 font-mono text-xs text-slate-700">{task.id}</td>
-                    <td className="px-4 py-3"><div className="max-w-[320px] truncate font-medium text-slate-800">{basename(task.firmware_path)}</div><div className="mt-1 max-w-[320px] truncate font-mono text-[11px] text-slate-400">{task.firmware_path}</div></td>
-                    <td className="px-4 py-3 text-xs text-slate-500">{fmtTime(task.completed_at)}</td>
+                    <td className="px-4 py-3 font-mono text-xs text-theme-text-secondary">{task.id}</td>
+                    <td className="px-4 py-3"><div className="max-w-[320px] truncate font-medium text-theme-text-primary">{basename(task.firmware_path)}</div><div className="mt-1 max-w-[320px] truncate font-mono text-[11px] text-theme-text-muted">{task.firmware_path}</div></td>
+                    <td className="px-4 py-3 text-xs text-theme-text-muted">{fmtTime(task.completed_at)}</td>
                     <td className="px-4 py-3"><span className={`rounded-full border px-2 py-0.5 text-[10px] font-bold ${statusTone(task.latest_evolution_status)}`}>{task.latest_evolution_status ? formatStatus(task.latest_evolution_status) : '未进化'}</span></td>
                   </tr>
                 ))}
@@ -501,8 +501,8 @@ function CreateEvolutionModal({
             </table>
           </div>
         </div>
-        <div className="flex items-center justify-end gap-3 border-t border-slate-100 px-6 py-5">
-          <button type="button" onClick={onClose} className="rounded-2xl border border-slate-200 px-5 py-3 text-sm font-semibold text-slate-600 hover:bg-slate-100">取消</button>
+        <div className="flex items-center justify-end gap-3 border-t border-theme-border px-6 py-5">
+          <button type="button" onClick={onClose} className="rounded-2xl border border-theme-border px-5 py-3 text-sm font-semibold text-theme-text-secondary hover:bg-theme-elevated">取消</button>
           <button
             type="button"
             onClick={onSubmit}
@@ -842,17 +842,17 @@ export const FirmwareEvolutionCenterPage: React.FC<Props> = ({ projectId }) => {
             }
             setRuntimeSelectedPath(node.path);
           }}
-          className={`flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left text-xs transition ${selected ? 'bg-sky-50 text-sky-700' : 'text-slate-700 hover:bg-slate-100'}`}
+          className={`flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left text-xs transition ${selected ? 'bg-sky-500/15 text-sky-400' : 'text-theme-text-secondary hover:bg-theme-elevated'}`}
           style={{ paddingLeft:`${12 + depth * 16}px` }}
         >
           {isDirectory ? (
-            expanded ? <ChevronDown size={14} className="shrink-0 text-slate-400" /> : <ChevronRight size={14} className="shrink-0 text-slate-400" />
+            expanded ? <ChevronDown size={14} className="shrink-0 text-theme-text-muted" /> : <ChevronRight size={14} className="shrink-0 text-theme-text-muted" />
           ) : (
             <span className="w-[14px] shrink-0" />
           )}
-          {isDirectory ? <Folder size={14} className="shrink-0 text-amber-600" /> : <FileText size={14} className="shrink-0 text-slate-500" />}
+          {isDirectory ? <Folder size={14} className="shrink-0 text-amber-400" /> : <FileText size={14} className="shrink-0 text-theme-text-muted" />}
           <span className="min-w-0 flex-1 truncate font-mono">{node.name}</span>
-          {!isDirectory ? <span className="shrink-0 text-[10px] text-slate-400">{formatBytes(node.sizeBytes)}</span> : null}
+          {!isDirectory ? <span className="shrink-0 text-[10px] text-theme-text-muted">{formatBytes(node.sizeBytes)}</span> : null}
         </button>
         {isDirectory && expanded && node.children.length > 0 ? (
           <div>{renderRuntimeTree(node.children, depth + 1)}</div>
@@ -1220,12 +1220,12 @@ export const FirmwareEvolutionCenterPage: React.FC<Props> = ({ projectId }) => {
   const renderDetail = () => {
     if (!activeJob) {
       return (
-        <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-10 text-center text-sm text-slate-500">
+        <div className="rounded-2xl border border-theme-border bg-theme-bg-app px-4 py-10 text-center text-sm text-theme-text-muted">
           <div>{detailError || '加载进化任务详情中...'}</div>
           <div className="mt-4 flex items-center justify-center gap-2">
-            <button onClick={() => setActiveJobId('')} className="rounded-xl border border-slate-200 px-3 py-2 text-xs font-bold text-slate-600 hover:bg-slate-100">返回列表</button>
+            <button onClick={() => setActiveJobId('')} className="rounded-xl border border-theme-border px-3 py-2 text-xs font-bold text-theme-text-secondary hover:bg-theme-elevated">返回列表</button>
             {activeJobId ? (
-              <button onClick={() => refreshJobDetail(activeJobId)} className="rounded-xl bg-slate-900 px-3 py-2 text-xs font-bold text-white">
+              <button onClick={() => refreshJobDetail(activeJobId)} className="rounded-xl bg-theme-surface px-3 py-2 text-xs font-bold text-white">
                 重试加载
               </button>
             ) : null}
@@ -1249,21 +1249,21 @@ export const FirmwareEvolutionCenterPage: React.FC<Props> = ({ projectId }) => {
       <div className="space-y-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-3">
-            <button onClick={() => setActiveJobId('')} className="rounded-xl border border-slate-200 px-3 py-2 text-xs font-bold text-slate-600 hover:bg-slate-100">返回列表</button>
+            <button onClick={() => setActiveJobId('')} className="rounded-xl border border-theme-border px-3 py-2 text-xs font-bold text-theme-text-secondary hover:bg-theme-elevated">返回列表</button>
             <div>
-              <div className="text-sm font-black text-slate-900">进化任务详情</div>
-              <div className="mt-1 font-mono text-xs text-slate-500">{activeJob.id}</div>
+              <div className="text-sm font-black text-theme-text-primary">进化任务详情</div>
+              <div className="mt-1 font-mono text-xs text-theme-text-muted">{activeJob.id}</div>
             </div>
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            <button onClick={() => refreshJobDetail(activeJob.id)} className="inline-flex items-center gap-1.5 rounded-lg bg-slate-900 px-3 py-1.5 text-xs font-semibold text-white"><RefreshCw size={12} />刷新详情</button>
-            <button onClick={() => handleRetry(activeJob.id)} disabled={!isTerminal(activeJob.status)} className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-700 disabled:cursor-not-allowed disabled:opacity-40"><RotateCcw size={12} />重试</button>
-            <button onClick={() => handleCancel(activeJob.id)} disabled={isTerminal(activeJob.status)} className="inline-flex items-center gap-1.5 rounded-lg border border-amber-200 bg-amber-50 px-3 py-1.5 text-xs font-semibold text-amber-700 disabled:cursor-not-allowed disabled:opacity-40"><Square size={12} />结束</button>
-            <button onClick={() => handleDelete(activeJob.id)} disabled={!isTerminal(activeJob.status) || deletingJobId === activeJob.id} className="inline-flex items-center gap-1.5 rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-semibold text-red-700 disabled:cursor-not-allowed disabled:opacity-40"><Trash2 size={12} />删除</button>
+            <button onClick={() => refreshJobDetail(activeJob.id)} className="inline-flex items-center gap-1.5 rounded-lg bg-theme-surface px-3 py-1.5 text-xs font-semibold text-white"><RefreshCw size={12} />刷新详情</button>
+            <button onClick={() => handleRetry(activeJob.id)} disabled={!isTerminal(activeJob.status)} className="inline-flex items-center gap-1.5 rounded-lg border border-theme-border px-3 py-1.5 text-xs font-semibold text-theme-text-secondary disabled:cursor-not-allowed disabled:opacity-40"><RotateCcw size={12} />重试</button>
+            <button onClick={() => handleCancel(activeJob.id)} disabled={isTerminal(activeJob.status)} className="inline-flex items-center gap-1.5 rounded-lg border border-amber-500/20 bg-amber-500/15 px-3 py-1.5 text-xs font-semibold text-amber-400 disabled:cursor-not-allowed disabled:opacity-40"><Square size={12} />结束</button>
+            <button onClick={() => handleDelete(activeJob.id)} disabled={!isTerminal(activeJob.status) || deletingJobId === activeJob.id} className="inline-flex items-center gap-1.5 rounded-lg border border-red-500/20 bg-red-500/15 px-3 py-1.5 text-xs font-semibold text-red-400 disabled:cursor-not-allowed disabled:opacity-40"><Trash2 size={12} />删除</button>
           </div>
         </div>
 
- <div className="rounded-2xl border border-slate-200 bg-slate-50 p-2">
+ <div className="rounded-2xl border border-theme-border bg-theme-bg-app p-2">
           <div className="flex flex-wrap gap-2">
             {[
               ['overview', '总览'],
@@ -1272,26 +1272,26 @@ export const FirmwareEvolutionCenterPage: React.FC<Props> = ({ projectId }) => {
               ['session', '智能体会话'],
               ['result', '结果'],
             ].map(([id, label]) => (
-              <button key={id} onClick={() => setActiveTab(id as DetailTab)} className={`rounded-xl px-4 py-2 text-sm font-bold ${activeTab === id ? 'bg-slate-900 text-white' : 'text-slate-600 hover:bg-slate-100'}`}>{label}</button>
+              <button key={id} onClick={() => setActiveTab(id as DetailTab)} className={`rounded-xl px-4 py-2 text-sm font-bold ${activeTab === id ? 'bg-theme-surface text-white' : 'text-theme-text-secondary hover:bg-theme-elevated'}`}>{label}</button>
             ))}
           </div>
         </div>
 
-        {detailLoading ? <div className="flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-500"><Loader2 size={14} className="animate-spin" />刷新详情中...</div> : null}
+        {detailLoading ? <div className="flex items-center gap-2 rounded-xl border border-theme-border bg-theme-bg-app px-4 py-3 text-sm text-theme-text-muted"><Loader2 size={14} className="animate-spin" />刷新详情中...</div> : null}
 
         {activeTab === 'overview' ? (
           <div className="space-y-4">
- <section className="rounded-2xl border border-slate-200 bg-slate-50 p-5">
+ <section className="rounded-2xl border border-theme-border bg-theme-bg-app p-5">
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
-                  <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">Realtime Progress</div>
-                  <h3 className="mt-2 text-lg font-black text-slate-900">实时进展</h3>
-                  <p className="mt-1 text-xs text-slate-500">
+                  <div className="text-[11px] font-black uppercase tracking-[0.18em] text-theme-text-muted">Realtime Progress</div>
+                  <h3 className="mt-2 text-lg font-black text-theme-text-primary">实时进展</h3>
+                  <p className="mt-1 text-xs text-theme-text-muted">
                     当前轮次 {activeJob.current_round ?? 0}/{activeJob.max_rounds} · 当前阶段 {stageLabel(activeJob.current_stage)} · 状态 {formatStatus(activeJob.status)}
                   </p>
                 </div>
                 {!isTerminal(activeJob.status) ? (
-                  <span className="inline-flex items-center gap-2 rounded-full border border-blue-200 bg-blue-50 px-3 py-1 text-xs font-bold text-blue-700">
+                  <span className="inline-flex items-center gap-2 rounded-full border border-blue-500/20 bg-blue-500/15 px-3 py-1 text-xs font-bold text-blue-400">
                     <Loader2 size={12} className="animate-spin" />
                     实时更新中
                   </span>
@@ -1303,19 +1303,19 @@ export const FirmwareEvolutionCenterPage: React.FC<Props> = ({ projectId }) => {
                 {progressPhases.map((phase, index) => {
                   const isRunning = phase.status === 'running';
                   return (
- <div key={phase.key} className={`rounded-2xl border px-4 py-4 ${isRunning ? 'border-blue-300 bg-blue-50/70 ' : 'border-slate-200 bg-slate-50'}`}>
+ <div key={phase.key} className={`rounded-2xl border px-4 py-4 ${isRunning ? 'border-blue-300 bg-blue-50/70 ' : 'border-theme-border bg-theme-bg-app'}`}>
                       <div className="flex items-start gap-3">
                         <div className={`mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full border text-xs font-black ${progressStatusClass(phase.status)}`}>
                           {phase.status === 'completed' ? <CheckCircle2 size={14} /> : phase.status === 'failed' ? <XCircle size={14} /> : phase.status === 'running' ? <Loader2 size={14} className="animate-spin" /> : index + 1}
                         </div>
                         <div className="min-w-0 flex-1">
                           <div className="flex flex-wrap items-center gap-2">
-                            <div className="text-sm font-black text-slate-900">{phase.label}</div>
+                            <div className="text-sm font-black text-theme-text-primary">{phase.label}</div>
                             <span className={`rounded-full border px-2 py-0.5 text-[10px] font-bold ${progressStatusClass(phase.status)}`}>
                               {progressStatusLabel(phase.status)}
                             </span>
                           </div>
-                          <div className="mt-2 line-clamp-3 break-all text-xs leading-5 text-slate-500">{phase.detail || '-'}</div>
+                          <div className="mt-2 line-clamp-3 break-all text-xs leading-5 text-theme-text-muted">{phase.detail || '-'}</div>
                         </div>
                       </div>
                     </div>
@@ -1324,25 +1324,25 @@ export const FirmwareEvolutionCenterPage: React.FC<Props> = ({ projectId }) => {
               </div>
             </section>
 
- <section className="rounded-2xl border border-slate-200 bg-slate-50 p-5">
+ <section className="rounded-2xl border border-theme-border bg-theme-bg-app p-5">
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div>
-                  <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">Evolution Effect</div>
-                  <h3 className="mt-2 text-lg font-black text-slate-900">进化效果对比</h3>
-                  <p className="mt-1 text-xs text-slate-500">按轮次展示工具解包耗时和 token 消耗，用于判断工具是否更快、更省 token。</p>
+                  <div className="text-[11px] font-black uppercase tracking-[0.18em] text-theme-text-muted">Evolution Effect</div>
+                  <h3 className="mt-2 text-lg font-black text-theme-text-primary">进化效果对比</h3>
+                  <p className="mt-1 text-xs text-theme-text-muted">按轮次展示工具解包耗时和 token 消耗，用于判断工具是否更快、更省 token。</p>
                 </div>
-                <span className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-bold text-slate-600">
+                <span className="inline-flex items-center gap-2 rounded-full border border-theme-border bg-theme-bg-app px-3 py-1 text-xs font-bold text-theme-text-secondary">
                   <BarChart3 size={12} />
                   {effectRows.length} 轮
                 </span>
               </div>
               {effectRows.length === 0 ? (
-                <div className="mt-4 rounded-xl border border-dashed border-slate-200 bg-slate-50 px-3 py-6 text-center text-sm text-slate-500">暂无进化效果数据</div>
+                <div className="mt-4 rounded-xl border border-dashed border-theme-border bg-theme-bg-app px-3 py-6 text-center text-sm text-theme-text-muted">暂无进化效果数据</div>
               ) : (
                 <div className="mt-4 overflow-x-auto">
                   <table className="min-w-full text-left text-sm">
                     <thead>
-                      <tr className="border-b border-slate-200 text-xs font-black uppercase tracking-[0.12em] text-slate-400">
+                      <tr className="border-b border-theme-border text-xs font-black uppercase tracking-[0.12em] text-theme-text-muted">
                         <th className="px-3 py-2">轮次</th>
                         <th className="px-3 py-2">状态</th>
                         <th className="px-3 py-2">工具解包时间</th>
@@ -1357,20 +1357,20 @@ export const FirmwareEvolutionCenterPage: React.FC<Props> = ({ projectId }) => {
                         const durationIsBest = bestDuration !== null && metrics.toolDurationSeconds > 0 && metrics.toolDurationSeconds === bestDuration;
                         const tokenIsBest = bestTokens !== null && metrics.totalTokenCount > 0 && metrics.totalTokenCount === bestTokens;
                         return (
-                          <tr key={round.id} className="border-b border-slate-100 last:border-0">
-                            <td className="px-3 py-3 font-black text-slate-900">第 {round.round} 轮</td>
+                          <tr key={round.id} className="border-b border-theme-border last:border-0">
+                            <td className="px-3 py-3 font-black text-theme-text-primary">第 {round.round} 轮</td>
                             <td className="px-3 py-3"><span className={`rounded-full border px-2 py-0.5 text-[11px] font-bold ${roundStatusTone(round.status)}`}>{roundStatusLabel(round.status)}</span></td>
                             <td className="px-3 py-3">
-                              <span className={durationIsBest ? 'font-black text-emerald-700' : 'font-semibold text-slate-700'}>{metrics.toolDurationSeconds ? fmtSeconds(metrics.toolDurationSeconds) : '-'}</span>
-                              {durationIsBest ? <span className="ml-2 rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-700">最快</span> : null}
+                              <span className={durationIsBest ? 'font-black text-emerald-400' : 'font-semibold text-theme-text-secondary'}>{metrics.toolDurationSeconds ? fmtSeconds(metrics.toolDurationSeconds) : '-'}</span>
+                              {durationIsBest ? <span className="ml-2 rounded-full bg-emerald-500/15 px-2 py-0.5 text-[10px] font-bold text-emerald-400">最快</span> : null}
                             </td>
                             <td className="px-3 py-3">
-                              <span className={tokenIsBest ? 'font-black text-emerald-700' : 'font-semibold text-slate-700'}>{metrics.totalTokenCount ? fmtToken(metrics.totalTokenCount) : '-'}</span>
-                              {tokenIsBest ? <span className="ml-2 rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-700">最省</span> : null}
+                              <span className={tokenIsBest ? 'font-black text-emerald-400' : 'font-semibold text-theme-text-secondary'}>{metrics.totalTokenCount ? fmtToken(metrics.totalTokenCount) : '-'}</span>
+                              {tokenIsBest ? <span className="ml-2 rounded-full bg-emerald-500/15 px-2 py-0.5 text-[10px] font-bold text-emerald-400">最省</span> : null}
                             </td>
-                            <td className="px-3 py-3 text-slate-600">{fmtToken(metrics.executorTokenCount)}</td>
-                            <td className="px-3 py-3 text-slate-600">{fmtToken(metrics.reviewerTokenCount)}</td>
-                            <td className="px-3 py-3 text-slate-600">{round.tool_changed ? '已改进' : '未改动'}</td>
+                            <td className="px-3 py-3 text-theme-text-secondary">{fmtToken(metrics.executorTokenCount)}</td>
+                            <td className="px-3 py-3 text-theme-text-secondary">{fmtToken(metrics.reviewerTokenCount)}</td>
+                            <td className="px-3 py-3 text-theme-text-secondary">{round.tool_changed ? '已改进' : '未改动'}</td>
                           </tr>
                         );
                       })}
@@ -1382,11 +1382,11 @@ export const FirmwareEvolutionCenterPage: React.FC<Props> = ({ projectId }) => {
 
             <section className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_360px]">
               <div className="space-y-4">
- <div className="rounded-2xl border border-slate-200 bg-slate-50 p-5">
+ <div className="rounded-2xl border border-theme-border bg-theme-bg-app p-5">
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <div>
-                    <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">Overview</div>
-                    <h3 className="mt-2 text-lg font-black text-slate-900">进化执行状态</h3>
+                    <div className="text-[11px] font-black uppercase tracking-[0.18em] text-theme-text-muted">Overview</div>
+                    <h3 className="mt-2 text-lg font-black text-theme-text-primary">进化执行状态</h3>
                   </div>
                   <span className={`rounded-full border px-3 py-1 text-xs font-bold ${statusTone(activeJob.status)}`}>{formatStatus(activeJob.status)}</span>
                 </div>
@@ -1401,18 +1401,18 @@ export const FirmwareEvolutionCenterPage: React.FC<Props> = ({ projectId }) => {
                   <DetailField label="尝试次数" value={activeJob.attempts} />
                 </div>
               </div>
- <div className="rounded-2xl border border-slate-200 bg-slate-50 p-5">
-                <div className="text-sm font-black text-slate-900">轮次时间线</div>
+ <div className="rounded-2xl border border-theme-border bg-theme-bg-app p-5">
+                <div className="text-sm font-black text-theme-text-primary">轮次时间线</div>
                 {activeJob.rounds.length === 0 ? (
-                  <div className="mt-3 rounded-xl border border-dashed border-slate-200 bg-slate-50 px-3 py-6 text-center text-sm text-slate-500">当前进化任务暂未产出轮次记录</div>
+                  <div className="mt-3 rounded-xl border border-dashed border-theme-border bg-theme-bg-app px-3 py-6 text-center text-sm text-theme-text-muted">当前进化任务暂未产出轮次记录</div>
                 ) : (
                   <div className="mt-4 space-y-4">
                     {activeJob.rounds.map((round) => (
-                      <div key={round.id} className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4">
+                      <div key={round.id} className="rounded-2xl border border-theme-border bg-theme-bg-app px-4 py-4">
                         <div className="flex flex-wrap items-center justify-between gap-3">
                           <div>
-                            <div className="text-sm font-black text-slate-900">第 {round.round} 轮</div>
-                            <div className="mt-1 text-xs text-slate-500">{fmtTime(round.created_at)} {'->'} {fmtTime(round.completed_at)}</div>
+                            <div className="text-sm font-black text-theme-text-primary">第 {round.round} 轮</div>
+                            <div className="mt-1 text-xs text-theme-text-muted">{fmtTime(round.created_at)} {'->'} {fmtTime(round.completed_at)}</div>
                           </div>
                           <span className={`rounded-full border px-2.5 py-1 text-[11px] font-bold ${roundStatusTone(round.status)}`}>{roundStatusLabel(round.status)}</span>
                         </div>
@@ -1423,8 +1423,8 @@ export const FirmwareEvolutionCenterPage: React.FC<Props> = ({ projectId }) => {
                           <DetailField label="评审结果摘要" value={round.review_result || '-'} />
                         </div>
                         <div className="mt-4 grid gap-3 md:grid-cols-2">
-                          <button onClick={() => handleOpenLog(activeJob.id, round.round, 'evolution_executor')} className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-bold text-slate-700 hover:bg-slate-100"><Terminal size={12} />工具进化执行器日志</button>
-                          <button onClick={() => handleOpenLog(activeJob.id, round.round, 'reviewer')} className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-bold text-slate-700 hover:bg-slate-100"><Terminal size={12} />评审器日志</button>
+                          <button onClick={() => handleOpenLog(activeJob.id, round.round, 'evolution_executor')} className="inline-flex items-center justify-center gap-2 rounded-xl border border-theme-border bg-theme-bg-app px-3 py-2 text-xs font-bold text-theme-text-secondary hover:bg-theme-elevated"><Terminal size={12} />工具进化执行器日志</button>
+                          <button onClick={() => handleOpenLog(activeJob.id, round.round, 'reviewer')} className="inline-flex items-center justify-center gap-2 rounded-xl border border-theme-border bg-theme-bg-app px-3 py-2 text-xs font-bold text-theme-text-secondary hover:bg-theme-elevated"><Terminal size={12} />评审器日志</button>
                         </div>
                       </div>
                     ))}
@@ -1433,19 +1433,19 @@ export const FirmwareEvolutionCenterPage: React.FC<Props> = ({ projectId }) => {
               </div>
             </div>
             <aside className="space-y-4">
- <div className="rounded-2xl border border-slate-200 bg-slate-50 p-5">
-                <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">工具结果</div>
+ <div className="rounded-2xl border border-theme-border bg-theme-bg-app p-5">
+                <div className="text-[11px] font-black uppercase tracking-[0.18em] text-theme-text-muted">工具结果</div>
                 <div className="mt-4 space-y-3">
                   <DetailField label="源工具" value={activeJob.source_tool_path || activeJob.source_skill_path || '-'} mono />
                   <DetailField label="工作副本" value={activeJob.working_tool_path || activeJob.working_skill_path || '-'} mono />
                   <DetailField label="最终工具" value={activeJob.final_tool_path || activeJob.final_skill_path || '-'} mono />
                   <DetailField label="覆盖目标" value={activeJob.replaced_tool_path || activeJob.replaced_skill_path || '-'} mono />
                 </div>
- <button onClick={handleConfirmReplacement} disabled={!canConfirmReplacement} className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-xl border border-amber-300 bg-amber-500 px-4 py-2 text-sm font-bold text-white hover:bg-amber-600 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-200 disabled:text-slate-500">{replacing ? <Loader2 size={14} className="animate-spin" /> : <Sparkles size={14} />}确认替换原工具</button>
+ <button onClick={handleConfirmReplacement} disabled={!canConfirmReplacement} className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-xl border border-amber-300 bg-amber-500 px-4 py-2 text-sm font-bold text-white hover:bg-amber-600 disabled:cursor-not-allowed disabled:border-theme-border disabled:bg-theme-elevated disabled:text-theme-text-muted">{replacing ? <Loader2 size={14} className="animate-spin" /> : <Sparkles size={14} />}确认替换原工具</button>
               </div>
- <div className="rounded-2xl border border-slate-200 bg-slate-50 p-5">
-                <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">错误信息</div>
-                <div className="mt-3 whitespace-pre-wrap text-sm text-slate-700">{activeJob.error_message || '无'}</div>
+ <div className="rounded-2xl border border-theme-border bg-theme-bg-app p-5">
+                <div className="text-[11px] font-black uppercase tracking-[0.18em] text-theme-text-muted">错误信息</div>
+                <div className="mt-3 whitespace-pre-wrap text-sm text-theme-text-secondary">{activeJob.error_message || '无'}</div>
               </div>
             </aside>
           </section>
@@ -1454,12 +1454,12 @@ export const FirmwareEvolutionCenterPage: React.FC<Props> = ({ projectId }) => {
 
         {activeTab === 'metrics' ? (
           <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-            <StatCard label="轮次" value={`${activeJob.current_round ?? 0}/${activeJob.max_rounds}`} tone="border-blue-200 bg-blue-50 text-blue-700" />
-            <StatCard label="阶段" value={stageLabel(activeJob.current_stage)} tone="border-violet-200 bg-violet-50 text-violet-700" />
-            <StatCard label="耗时" value={fmtDuration(activeJob.started_at, activeJob.completed_at)} tone="border-slate-200 bg-slate-50 text-slate-700" />
-            <StatCard label="会话数" value={sessions?.items?.length ?? '-'} tone="border-emerald-200 bg-emerald-50 text-emerald-700" />
-            <div className="rounded-2xl border border-slate-200 bg-slate-50 p-5 md:col-span-2 xl:col-span-4">
-              <div className="text-sm font-black text-slate-900">运行路径</div>
+            <StatCard label="轮次" value={`${activeJob.current_round ?? 0}/${activeJob.max_rounds}`} tone="border-blue-500/20 bg-blue-500/15 text-blue-400" />
+            <StatCard label="阶段" value={stageLabel(activeJob.current_stage)} tone="border-violet-500/20 bg-violet-500/15 text-violet-400" />
+            <StatCard label="耗时" value={fmtDuration(activeJob.started_at, activeJob.completed_at)} tone="border-theme-border bg-theme-bg-app text-theme-text-secondary" />
+            <StatCard label="会话数" value={sessions?.items?.length ?? '-'} tone="border-emerald-500/20 bg-emerald-500/15 text-emerald-400" />
+            <div className="rounded-2xl border border-theme-border bg-theme-bg-app p-5 md:col-span-2 xl:col-span-4">
+              <div className="text-sm font-black text-theme-text-primary">运行路径</div>
               <div className="mt-4 grid gap-3 md:grid-cols-2">
                 <DetailField label="run_root" value={activeJob.run_root || '-'} mono />
                 <DetailField label="session_root" value={activeJob.session_root || '-'} mono />
@@ -1471,15 +1471,15 @@ export const FirmwareEvolutionCenterPage: React.FC<Props> = ({ projectId }) => {
         ) : null}
 
         {activeTab === 'events' ? (
- <section className="rounded-2xl border border-slate-200 bg-slate-50 p-5">
-            <div className="flex items-center justify-between gap-3"><div className="text-sm font-black text-slate-900">事件记录</div>{eventsLoading ? <Loader2 size={14} className="animate-spin text-slate-400" /> : null}</div>
-            {events.length === 0 ? <div className="mt-3 rounded-xl border border-dashed border-slate-200 bg-slate-50 px-3 py-8 text-center text-sm text-slate-500">暂无进化事件</div> : (
+ <section className="rounded-2xl border border-theme-border bg-theme-bg-app p-5">
+            <div className="flex items-center justify-between gap-3"><div className="text-sm font-black text-theme-text-primary">事件记录</div>{eventsLoading ? <Loader2 size={14} className="animate-spin text-theme-text-muted" /> : null}</div>
+            {events.length === 0 ? <div className="mt-3 rounded-xl border border-dashed border-theme-border bg-theme-bg-app px-3 py-8 text-center text-sm text-theme-text-muted">暂无进化事件</div> : (
               <div className="mt-4 space-y-3">
                 {events.map((event) => (
-                  <div key={event.id} className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
-                    <div className="flex flex-wrap items-center justify-between gap-3"><div className="text-sm font-bold text-slate-900">{event.summary || event.event_type}</div><div className="text-xs text-slate-500">{fmtTime(event.created_at)}</div></div>
+                  <div key={event.id} className="rounded-2xl border border-theme-border bg-theme-bg-app px-4 py-3">
+                    <div className="flex flex-wrap items-center justify-between gap-3"><div className="text-sm font-bold text-theme-text-primary">{event.summary || event.event_type}</div><div className="text-xs text-theme-text-muted">{fmtTime(event.created_at)}</div></div>
                     <div className="mt-2 grid gap-2 md:grid-cols-3"><DetailField label="事件" value={event.event_type} /><DetailField label="阶段" value={event.stage_key || '-'} /><DetailField label="状态" value={event.status || '-'} /></div>
-                    {event.detail ? <pre className="mt-3 max-h-48 overflow-auto rounded-xl bg-slate-50 px-3 py-3 text-xs leading-6 text-slate-700">{JSON.stringify(event.detail, null, 2)}</pre> : null}
+                    {event.detail ? <pre className="mt-3 max-h-48 overflow-auto rounded-xl bg-theme-bg-app px-3 py-3 text-xs leading-6 text-theme-text-secondary">{JSON.stringify(event.detail, null, 2)}</pre> : null}
                   </div>
                 ))}
               </div>
@@ -1489,40 +1489,40 @@ export const FirmwareEvolutionCenterPage: React.FC<Props> = ({ projectId }) => {
 
         {activeTab === 'session' ? (
           <section className="grid gap-4 xl:grid-cols-[320px_minmax(0,1fr)]">
- <aside className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+ <aside className="rounded-2xl border border-theme-border bg-theme-bg-app p-4">
               <div className="flex items-center justify-between gap-3">
                 <div>
-                  <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">会话列表</div>
-                  <div className="mt-1 text-xs text-slate-500">{sessionItems.length} 个会话文件</div>
+                  <div className="text-[11px] font-black uppercase tracking-[0.18em] text-theme-text-muted">会话列表</div>
+                  <div className="mt-1 text-xs text-theme-text-muted">{sessionItems.length} 个会话文件</div>
                 </div>
                 <button
                   type="button"
                   onClick={() => void loadSessions()}
-                  className="rounded-xl border border-slate-200 p-2 text-slate-500 hover:bg-slate-100"
+                  className="rounded-xl border border-theme-border p-2 text-theme-text-muted hover:bg-theme-elevated"
                   title="刷新会话"
                 >
                   <RefreshCw size={14} className={sessionsLoading ? 'animate-spin' : ''} />
                 </button>
               </div>
-              <div className="mt-3 rounded-xl border border-slate-200 bg-slate-50 px-3 py-3">
-                <div className="text-[11px] font-black uppercase tracking-[0.12em] text-slate-400">Session Root</div>
-                <div className="mt-1 break-all font-mono text-[11px] text-slate-700">{sessionRoot || '-'}</div>
+              <div className="mt-3 rounded-xl border border-theme-border bg-theme-bg-app px-3 py-3">
+                <div className="text-[11px] font-black uppercase tracking-[0.12em] text-theme-text-muted">Session Root</div>
+                <div className="mt-1 break-all font-mono text-[11px] text-theme-text-secondary">{sessionRoot || '-'}</div>
               </div>
-              {sessionsError ? <div className="mt-4 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-4 text-sm text-rose-700">{sessionsError}</div> : null}
+              {sessionsError ? <div className="mt-4 rounded-2xl border border-rose-500/20 bg-rose-500/15 px-4 py-4 text-sm text-rose-400">{sessionsError}</div> : null}
               {sessionsLoading && sessionMetas.length === 0 ? (
-                <div className="mt-4 flex min-h-[240px] items-center justify-center rounded-2xl border border-slate-200 bg-slate-50 text-sm text-slate-500">
+                <div className="mt-4 flex min-h-[240px] items-center justify-center rounded-2xl border border-theme-border bg-theme-bg-app text-sm text-theme-text-muted">
                   <Loader2 size={16} className="mr-2 animate-spin" />
                   加载会话中...
                 </div>
               ) : sessionMetas.length === 0 ? (
-                <div className="mt-4 rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-4 py-10 text-center text-sm text-slate-500">
+                <div className="mt-4 rounded-2xl border border-dashed border-theme-border bg-theme-bg-app px-4 py-10 text-center text-sm text-theme-text-muted">
                   暂无智能体会话
                 </div>
               ) : (
                 <div className="mt-4 max-h-[calc(100vh-20rem)] space-y-4 overflow-auto pr-1">
                   {groupedSessions.map(([group, items]) => (
                     <div key={group}>
-                      <div className="mb-2 text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">{group}</div>
+                      <div className="mb-2 text-[11px] font-black uppercase tracking-[0.18em] text-theme-text-muted">{group}</div>
                       <div className="space-y-2">
                         {items.map((session) => {
                           const indexItem = sessionItems.find((item) => item.session_file === session.relative_path);
@@ -1534,24 +1534,24 @@ export const FirmwareEvolutionCenterPage: React.FC<Props> = ({ projectId }) => {
                               onClick={() => setSelectedSessionPath(session.relative_path)}
                               className={`w-full rounded-2xl border px-4 py-3 text-left transition ${
                                 selected
-                                  ? 'border-slate-900 bg-slate-900 text-white'
-                                  : 'border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-50'
+                                  ? 'border-theme-border bg-theme-surface text-white'
+                                  : 'border-theme-border bg-theme-bg-app text-theme-text-secondary hover:bg-theme-bg-app'
                               }`}
                             >
                               <div className="flex items-start justify-between gap-3">
                                 <div className="min-w-0">
                                   <div className="truncate text-sm font-black">{session.display_name}</div>
-                                  <div className={`mt-1 text-[11px] ${selected ? 'text-slate-300' : 'text-slate-500'}`}>
+                                  <div className={`mt-1 text-[11px] ${selected ? 'text-theme-text-faint' : 'text-theme-text-muted'}`}>
                                     {session.relative_path}
                                   </div>
-                                  <div className={`mt-1 text-[11px] ${selected ? 'text-slate-300' : 'text-slate-500'}`}>
+                                  <div className={`mt-1 text-[11px] ${selected ? 'text-theme-text-faint' : 'text-theme-text-muted'}`}>
                                     轮次 {indexItem?.round ?? '-'} · 阶段 {stageLabel(indexItem?.phase)}
                                   </div>
                                 </div>
                                 <span className={`inline-flex shrink-0 whitespace-nowrap rounded-full px-2 py-1 text-[10px] font-bold ${
                                   indexItem?.status === 'running'
-                                    ? selected ? 'bg-emerald-400/20 text-emerald-100' : 'bg-emerald-50 text-emerald-700'
-                                    : selected ? 'bg-slate-700 text-slate-200' : 'bg-slate-200 text-slate-600'
+                                    ? selected ? 'bg-emerald-400/20 text-emerald-100' : 'bg-emerald-500/15 text-emerald-400'
+                                    : selected ? 'bg-theme-elevated text-slate-200' : 'bg-theme-elevated text-theme-text-secondary'
                                 }`}>
                                   {indexItem?.status === 'running' ? '运行中' : '历史'}
                                 </span>
@@ -1568,9 +1568,9 @@ export const FirmwareEvolutionCenterPage: React.FC<Props> = ({ projectId }) => {
 
             <div className="space-y-4">
               {sessionWarnings.length > 0 ? (
- <section className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-4 text-sm text-amber-800">
+ <section className="rounded-2xl border border-amber-500/20 bg-amber-500/15 px-4 py-4 text-sm text-amber-400">
                   <div className="font-bold">会话文件存在部分异常行，已跳过不可解析内容</div>
-                  <ul className="mt-2 list-disc space-y-1 pl-5 text-xs text-amber-700">
+                  <ul className="mt-2 list-disc space-y-1 pl-5 text-xs text-amber-400">
                     {sessionWarnings.map((warning, index) => (
                       <li key={`${warning}-${index}`}>{warning}</li>
                     ))}
@@ -1591,8 +1591,8 @@ export const FirmwareEvolutionCenterPage: React.FC<Props> = ({ projectId }) => {
         ) : null}
 
         {activeTab === 'result' ? (
- <section className="rounded-2xl border border-slate-200 bg-slate-50 p-5">
-            <div className="text-sm font-black text-slate-900">进化结果</div>
+ <section className="rounded-2xl border border-theme-border bg-theme-bg-app p-5">
+            <div className="text-sm font-black text-theme-text-primary">进化结果</div>
             <div className="mt-4 grid gap-3 md:grid-cols-2">
               <DetailField label="评审是否通过" value={activeJob.review_passed ? '通过' : '未通过'} />
               <DetailField label="是否生成新工具" value={activeJob.generated_new_tool || activeJob.generated_new_skill ? '是' : '否'} />
@@ -1601,7 +1601,7 @@ export const FirmwareEvolutionCenterPage: React.FC<Props> = ({ projectId }) => {
               <DetailField label="最终工具" value={activeJob.final_tool_path || activeJob.final_skill_path || '-'} mono />
               <DetailField label="覆盖目标" value={activeJob.replaced_tool_path || activeJob.replaced_skill_path || '-'} mono />
             </div>
-            <pre className="mt-4 max-h-[420px] overflow-auto rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 text-xs leading-6 text-slate-900">{JSON.stringify(activeJob, null, 2)}</pre>
+            <pre className="mt-4 max-h-[420px] overflow-auto rounded-2xl border border-theme-border bg-theme-bg-app px-4 py-4 text-xs leading-6 text-theme-text-primary">{JSON.stringify(activeJob, null, 2)}</pre>
           </section>
         ) : null}
       </div>
@@ -1624,85 +1624,85 @@ export const FirmwareEvolutionCenterPage: React.FC<Props> = ({ projectId }) => {
 
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="flex items-center gap-2">
-          <Sparkles size={18} className="text-amber-600" />
+          <Sparkles size={18} className="text-amber-400" />
           <div>
-            <h2 className="text-sm font-bold text-slate-800">{showingDetail ? '进化固件解包 · 任务详情' : '进化固件解包 · 任务列表'}</h2>
-            {!showingDetail && hasRunning ? <p className="animate-pulse text-xs font-semibold text-blue-600">● 有进化任务运行中，每5秒自动刷新</p> : null}
+            <h2 className="text-sm font-bold text-theme-text-primary">{showingDetail ? '进化固件解包 · 任务详情' : '进化固件解包 · 任务列表'}</h2>
+            {!showingDetail && hasRunning ? <p className="animate-pulse text-xs font-semibold text-blue-400">● 有进化任务运行中，每5秒自动刷新</p> : null}
           </div>
         </div>
-        <button onClick={() => void (showingDetail && activeJobId ? refreshJobDetail(activeJobId) : handleRefreshList())} className="inline-flex items-center gap-1.5 rounded-lg bg-slate-900 px-3 py-1.5 text-xs font-semibold text-white"><RefreshCw size={12} />{showingDetail ? '刷新详情' : '刷新列表'}</button>
+        <button onClick={() => void (showingDetail && activeJobId ? refreshJobDetail(activeJobId) : handleRefreshList())} className="inline-flex items-center gap-1.5 rounded-lg bg-theme-surface px-3 py-1.5 text-xs font-semibold text-white"><RefreshCw size={12} />{showingDetail ? '刷新详情' : '刷新列表'}</button>
       </div>
 
       {showingDetail ? renderDetail() : (
         <div className="space-y-4">
           <div className="grid gap-3 md:grid-cols-4">
-            <StatCard label="总计" value={stats.total} tone="border-slate-200 bg-slate-50 text-slate-800" />
-            <StatCard label="运行中" value={stats.running} tone="border-blue-200 bg-blue-50 text-blue-700" />
-            <StatCard label="成功" value={stats.success} tone="border-emerald-200 bg-emerald-50 text-emerald-700" />
-            <StatCard label="失败/取消" value={stats.failed} tone="border-red-200 bg-red-50 text-red-700" />
+            <StatCard label="总计" value={stats.total} tone="border-theme-border bg-theme-bg-app text-theme-text-primary" />
+            <StatCard label="运行中" value={stats.running} tone="border-blue-500/20 bg-blue-500/15 text-blue-400" />
+            <StatCard label="成功" value={stats.success} tone="border-emerald-500/20 bg-emerald-500/15 text-emerald-400" />
+            <StatCard label="失败/取消" value={stats.failed} tone="border-red-500/20 bg-red-500/15 text-red-400" />
           </div>
 
- <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+ <div className="rounded-2xl border border-theme-border bg-theme-bg-app p-4">
             <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
               <div className="min-w-0">
-                <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">Runtime Explorer</div>
-                <h3 className="mt-1 text-sm font-bold text-slate-800">运行时文件</h3>
-                <p className="mt-1 text-xs text-slate-400">
+                <div className="text-[11px] font-black uppercase tracking-[0.18em] text-theme-text-muted">Runtime Explorer</div>
+                <h3 className="mt-1 text-sm font-bold text-theme-text-primary">运行时文件</h3>
+                <p className="mt-1 text-xs text-theme-text-muted">
                   当前展示 <span className="font-mono">{runtimeFiles?.root || '/data/chimera-app-firmware-unpacker'}</span> 下的文件与目录。
                 </p>
               </div>
-              <button onClick={() => void loadRuntimeFiles()} className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-100">
+              <button onClick={() => void loadRuntimeFiles()} className="inline-flex items-center gap-1.5 rounded-lg border border-theme-border px-3 py-1.5 text-xs font-semibold text-theme-text-secondary hover:bg-theme-elevated">
                 <RefreshCw size={12} className={runtimeFilesLoading ? 'animate-spin' : ''} />
                 刷新文件
               </button>
             </div>
-            <div className="mb-4 flex flex-wrap items-center gap-3 text-xs text-slate-500">
+            <div className="mb-4 flex flex-wrap items-center gap-3 text-xs text-theme-text-muted">
               <span>总项数：{runtimeFiles?.total ?? '-'}</span>
-              {runtimeFiles?.truncated ? <span className="text-amber-700">结果已截断，当前最多展示 2000 项</span> : null}
+              {runtimeFiles?.truncated ? <span className="text-amber-400">结果已截断，当前最多展示 2000 项</span> : null}
             </div>
-            {runtimeFilesError ? <div className="mb-3 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">{runtimeFilesError}</div> : null}
+            {runtimeFilesError ? <div className="mb-3 rounded-xl border border-red-500/20 bg-red-500/15 px-3 py-2 text-xs text-red-400">{runtimeFilesError}</div> : null}
             {runtimeFilesLoading && !runtimeFiles ? (
-              <div className="flex items-center gap-2 py-10 text-sm text-slate-500"><Loader2 size={14} className="animate-spin" />加载中...</div>
+              <div className="flex items-center gap-2 py-10 text-sm text-theme-text-muted"><Loader2 size={14} className="animate-spin" />加载中...</div>
             ) : !runtimeFiles || runtimeFiles.items.length === 0 ? (
-              <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50 px-3 py-10 text-center text-sm text-slate-500">
+              <div className="rounded-xl border border-dashed border-theme-border bg-theme-bg-app px-3 py-10 text-center text-sm text-theme-text-muted">
                 {runtimeFilesLoading ? '加载中...' : '当前目录下暂无可展示文件'}
               </div>
             ) : (
               <div className="grid gap-4 xl:grid-cols-[380px_minmax(0,1fr)]">
-                <div className="overflow-hidden rounded-2xl border border-slate-200">
-                  <div className="border-b border-slate-200 bg-slate-50 px-4 py-3 text-xs font-black uppercase tracking-[0.14em] text-slate-500">文件树</div>
+                <div className="overflow-hidden rounded-2xl border border-theme-border">
+                  <div className="border-b border-theme-border bg-theme-bg-app px-4 py-3 text-xs font-black uppercase tracking-[0.14em] text-theme-text-muted">文件树</div>
                   <div className="max-h-[36rem] overflow-auto p-2">
                     {runtimeTree.length === 0 ? (
-                      <div className="px-3 py-8 text-center text-sm text-slate-400">暂无可展示节点</div>
+                      <div className="px-3 py-8 text-center text-sm text-theme-text-muted">暂无可展示节点</div>
                     ) : (
                       <div className="space-y-1">{renderRuntimeTree(runtimeTree)}</div>
                     )}
                   </div>
                 </div>
-                <div className="overflow-hidden rounded-2xl border border-slate-200">
-                  <div className="border-b border-slate-200 bg-slate-50 px-4 py-3">
-                    <div className="text-xs font-black uppercase tracking-[0.14em] text-slate-500">文件预览</div>
-                    <div className="mt-1 break-all font-mono text-[11px] text-slate-700">{runtimeSelectedPath || '-'}</div>
+                <div className="overflow-hidden rounded-2xl border border-theme-border">
+                  <div className="border-b border-theme-border bg-theme-bg-app px-4 py-3">
+                    <div className="text-xs font-black uppercase tracking-[0.14em] text-theme-text-muted">文件预览</div>
+                    <div className="mt-1 break-all font-mono text-[11px] text-theme-text-secondary">{runtimeSelectedPath || '-'}</div>
                     {runtimeSelectedPath ? (
-                      <div className="mt-2 flex flex-wrap items-center gap-2 text-[11px] text-slate-500">
+                      <div className="mt-2 flex flex-wrap items-center gap-2 text-[11px] text-theme-text-muted">
                         <span>{runtimePreviewMeta.mode === 'binary' ? '二进制' : runtimePreviewMeta.mode === 'text' ? '文本' : '目录'}</span>
                         <span>{formatBytes(runtimePreviewMeta.size)}</span>
                         <span>{runtimePreviewMeta.contentType || '-'}</span>
-                        {runtimePreviewMeta.truncated ? <span className="text-amber-700">预览已截断</span> : null}
+                        {runtimePreviewMeta.truncated ? <span className="text-amber-400">预览已截断</span> : null}
                       </div>
                     ) : null}
                   </div>
-                  <div className="max-h-[36rem] overflow-auto bg-slate-50">
+                  <div className="max-h-[36rem] overflow-auto bg-theme-bg-app">
                     {runtimePreviewLoading ? (
-                      <div className="flex items-center gap-2 px-4 py-10 text-sm text-slate-500"><Loader2 size={14} className="animate-spin" />加载预览中...</div>
+                      <div className="flex items-center gap-2 px-4 py-10 text-sm text-theme-text-muted"><Loader2 size={14} className="animate-spin" />加载预览中...</div>
                     ) : runtimePreviewError ? (
-                      <div className="m-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{runtimePreviewError}</div>
+                      <div className="m-4 rounded-xl border border-red-500/20 bg-red-500/15 px-4 py-3 text-sm text-red-400">{runtimePreviewError}</div>
                     ) : !runtimeSelectedPath ? (
-                      <div className="px-4 py-10 text-center text-sm text-slate-400">请选择左侧文件</div>
+                      <div className="px-4 py-10 text-center text-sm text-theme-text-muted">请选择左侧文件</div>
                     ) : runtimePreviewMeta.mode === '' ? (
-                      <div className="px-4 py-10 text-center text-sm text-slate-400">当前选择为目录，请展开或选择文件</div>
+                      <div className="px-4 py-10 text-center text-sm text-theme-text-muted">当前选择为目录，请展开或选择文件</div>
                     ) : (
-                      <pre className="min-h-[28rem] whitespace-pre-wrap break-words px-4 py-4 font-mono text-[12px] leading-6 text-slate-800">{runtimePreviewMeta.mode === 'text' ? runtimePreviewText : runtimePreviewHex}</pre>
+                      <pre className="min-h-[28rem] whitespace-pre-wrap break-words px-4 py-4 font-mono text-[12px] leading-6 text-theme-text-primary">{runtimePreviewMeta.mode === 'text' ? runtimePreviewText : runtimePreviewHex}</pre>
                     )}
                   </div>
                 </div>
@@ -1710,43 +1710,43 @@ export const FirmwareEvolutionCenterPage: React.FC<Props> = ({ projectId }) => {
             )}
           </div>
 
- <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+ <div className="rounded-2xl border border-theme-border bg-theme-bg-app p-4">
             <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-              <div className="min-w-0"><div className="flex items-center gap-2"><Package size={14} className="shrink-0 text-amber-600" /><h3 className="text-sm font-bold text-slate-800">进化任务列表</h3></div><p className="mt-1 text-xs text-slate-400">管理固件解包进化任务，支持进入详情查看轮次、事件、会话和结果。</p></div>
+              <div className="min-w-0"><div className="flex items-center gap-2"><Package size={14} className="shrink-0 text-amber-400" /><h3 className="text-sm font-bold text-theme-text-primary">进化任务列表</h3></div><p className="mt-1 text-xs text-theme-text-muted">管理固件解包进化任务，支持进入详情查看轮次、事件、会话和结果。</p></div>
               <button onClick={openCreateModal} className="inline-flex items-center gap-1.5 rounded-lg bg-amber-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-amber-700"><Play size={12} />新建进化任务</button>
             </div>
             <div className="mb-4 grid gap-3 md:grid-cols-[160px_minmax(0,1fr)_auto]">
-              <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} className="rounded-xl border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-600 outline-none focus:border-amber-400"><option value="">全部状态</option><option value="pending">排队中</option><option value="running">运行中</option><option value="success">成功</option><option value="failed">失败</option><option value="cancelled">已取消</option></select>
-              <div className="flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2"><Search size={14} className="text-slate-400" /><input value={filterSearch} onChange={(e) => setFilterSearch(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') void handleQueryList(); }} placeholder="搜索进化任务 ID / 主任务 ID / 固件路径" className="min-w-0 flex-1 bg-transparent text-xs outline-none placeholder:text-slate-400" /></div>
-              <button onClick={() => void handleQueryList()} className="inline-flex items-center justify-center gap-1.5 rounded-xl border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100"><Search size={12} />查询</button>
+              <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} className="rounded-xl border border-theme-border px-3 py-2 text-xs font-semibold text-theme-text-secondary outline-none focus:border-amber-400"><option value="">全部状态</option><option value="pending">排队中</option><option value="running">运行中</option><option value="success">成功</option><option value="failed">失败</option><option value="cancelled">已取消</option></select>
+              <div className="flex items-center gap-2 rounded-xl border border-theme-border bg-theme-bg-app px-3 py-2"><Search size={14} className="text-theme-text-muted" /><input value={filterSearch} onChange={(e) => setFilterSearch(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') void handleQueryList(); }} placeholder="搜索进化任务 ID / 主任务 ID / 固件路径" className="min-w-0 flex-1 bg-transparent text-xs outline-none placeholder:text-theme-text-muted" /></div>
+              <button onClick={() => void handleQueryList()} className="inline-flex items-center justify-center gap-1.5 rounded-xl border border-theme-border px-3 py-2 text-xs font-semibold text-theme-text-secondary hover:bg-theme-elevated"><Search size={12} />查询</button>
             </div>
-            {listError ? <div className="mb-3 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">{listError}</div> : null}
+            {listError ? <div className="mb-3 rounded-xl border border-red-500/20 bg-red-500/15 px-3 py-2 text-xs text-red-400">{listError}</div> : null}
             <ExecutionTable>
               <ExecutionTableHead><tr><ExecutionTableTh>任务 ID</ExecutionTableTh><ExecutionTableTh>状态</ExecutionTableTh><ExecutionTableTh>源解包任务</ExecutionTableTh><ExecutionTableTh>固件</ExecutionTableTh><ExecutionTableTh>轮次/阶段</ExecutionTableTh><ExecutionTableTh>时间</ExecutionTableTh><ExecutionTableTh align="right">操作</ExecutionTableTh></tr></ExecutionTableHead>
               <tbody>
-                {loading && jobs.length === 0 ? <tr><ExecutionTableTd colSpan={7} className="py-10 text-center text-slate-500">加载中...</ExecutionTableTd></tr> : jobs.length === 0 ? <tr><ExecutionTableTd colSpan={7} className="py-10 text-center text-slate-500">暂无进化任务</ExecutionTableTd></tr> : jobs.map((job) => (
+                {loading && jobs.length === 0 ? <tr><ExecutionTableTd colSpan={7} className="py-10 text-center text-theme-text-muted">加载中...</ExecutionTableTd></tr> : jobs.length === 0 ? <tr><ExecutionTableTd colSpan={7} className="py-10 text-center text-theme-text-muted">暂无进化任务</ExecutionTableTd></tr> : jobs.map((job) => (
                   <tr key={job.id} onClick={() => setActiveJobId(job.id)} className={executionTableInteractiveRowClassName}>
-                    <ExecutionTableTd><div className="font-mono text-xs font-bold text-slate-800">{job.id}</div></ExecutionTableTd>
+                    <ExecutionTableTd><div className="font-mono text-xs font-bold text-theme-text-primary">{job.id}</div></ExecutionTableTd>
                     <ExecutionTableTd><span className={`rounded-full border px-2 py-0.5 text-[10px] font-bold ${statusTone(job.status)}`}>{formatStatus(job.status)}</span></ExecutionTableTd>
-                    <ExecutionTableTd><div className="font-mono text-xs text-slate-700">{job.task_id}</div></ExecutionTableTd>
-                    <ExecutionTableTd><div className="max-w-[220px] truncate text-xs text-slate-700">{basename(job.source_task?.firmware_path)}</div></ExecutionTableTd>
-                    <ExecutionTableTd><div className="text-xs font-semibold text-slate-700">{job.current_round ?? 0}/{job.max_rounds}</div><div className="mt-1 text-[11px] text-slate-400">{stageLabel(job.current_stage)}</div></ExecutionTableTd>
-                    <ExecutionTableTd><div className="text-xs text-slate-500">创建：{fmtTime(job.created_at)}</div><div className="mt-1 text-[11px] text-slate-400">耗时：{fmtDuration(job.started_at, job.completed_at)}</div></ExecutionTableTd>
-                    <ExecutionTableTd className="text-right"><div className="flex justify-end gap-1" onClick={(e) => e.stopPropagation()}><button onClick={() => setActiveJobId(job.id)} className="rounded-lg border border-slate-200 px-2 py-1 text-[11px] font-bold text-slate-600 hover:bg-slate-100">详情</button><button onClick={() => handleCancel(job.id)} disabled={isTerminal(job.status)} className="rounded-lg border border-amber-200 px-2 py-1 text-[11px] font-bold text-amber-700 disabled:opacity-40">结束</button><button onClick={() => handleRetry(job.id)} disabled={!isTerminal(job.status)} className="rounded-lg border border-slate-200 px-2 py-1 text-[11px] font-bold text-slate-600 disabled:opacity-40">重试</button><button onClick={() => handleDelete(job.id)} disabled={!isTerminal(job.status) || deletingJobId === job.id} className="rounded-lg border border-red-200 px-2 py-1 text-[11px] font-bold text-red-700 disabled:opacity-40">删除</button></div></ExecutionTableTd>
+                    <ExecutionTableTd><div className="font-mono text-xs text-theme-text-secondary">{job.task_id}</div></ExecutionTableTd>
+                    <ExecutionTableTd><div className="max-w-[220px] truncate text-xs text-theme-text-secondary">{basename(job.source_task?.firmware_path)}</div></ExecutionTableTd>
+                    <ExecutionTableTd><div className="text-xs font-semibold text-theme-text-secondary">{job.current_round ?? 0}/{job.max_rounds}</div><div className="mt-1 text-[11px] text-theme-text-muted">{stageLabel(job.current_stage)}</div></ExecutionTableTd>
+                    <ExecutionTableTd><div className="text-xs text-theme-text-muted">创建：{fmtTime(job.created_at)}</div><div className="mt-1 text-[11px] text-theme-text-muted">耗时：{fmtDuration(job.started_at, job.completed_at)}</div></ExecutionTableTd>
+                    <ExecutionTableTd className="text-right"><div className="flex justify-end gap-1" onClick={(e) => e.stopPropagation()}><button onClick={() => setActiveJobId(job.id)} className="rounded-lg border border-theme-border px-2 py-1 text-[11px] font-bold text-theme-text-secondary hover:bg-theme-elevated">详情</button><button onClick={() => handleCancel(job.id)} disabled={isTerminal(job.status)} className="rounded-lg border border-amber-500/20 px-2 py-1 text-[11px] font-bold text-amber-400 disabled:opacity-40">结束</button><button onClick={() => handleRetry(job.id)} disabled={!isTerminal(job.status)} className="rounded-lg border border-theme-border px-2 py-1 text-[11px] font-bold text-theme-text-secondary disabled:opacity-40">重试</button><button onClick={() => handleDelete(job.id)} disabled={!isTerminal(job.status) || deletingJobId === job.id} className="rounded-lg border border-red-500/20 px-2 py-1 text-[11px] font-bold text-red-400 disabled:opacity-40">删除</button></div></ExecutionTableTd>
                   </tr>
                 ))}
               </tbody>
             </ExecutionTable>
-            <div className="mt-4 flex flex-wrap items-center justify-between gap-3 text-xs text-slate-500"><span>第 {page + 1} / {totalPages} 页，共 {total} 条</span><div className="flex items-center gap-2"><select value={pageSize} onChange={(e) => { setPageSize(Number(e.target.value)); setPage(0); }} className="rounded-lg border border-slate-200 px-2 py-1">{PAGE_SIZE_OPTIONS.map((size) => <option key={size} value={size}>{size}/页</option>)}</select><button onClick={() => setPage((value) => Math.max(0, value - 1))} disabled={page <= 0} className="rounded-lg border border-slate-200 px-3 py-1 disabled:opacity-40">上一页</button><button onClick={() => setPage((value) => Math.min(totalPages - 1, value + 1))} disabled={page >= totalPages - 1} className="rounded-lg border border-slate-200 px-3 py-1 disabled:opacity-40">下一页</button></div></div>
+            <div className="mt-4 flex flex-wrap items-center justify-between gap-3 text-xs text-theme-text-muted"><span>第 {page + 1} / {totalPages} 页，共 {total} 条</span><div className="flex items-center gap-2"><select value={pageSize} onChange={(e) => { setPageSize(Number(e.target.value)); setPage(0); }} className="rounded-lg border border-theme-border px-2 py-1">{PAGE_SIZE_OPTIONS.map((size) => <option key={size} value={size}>{size}/页</option>)}</select><button onClick={() => setPage((value) => Math.max(0, value - 1))} disabled={page <= 0} className="rounded-lg border border-theme-border px-3 py-1 disabled:opacity-40">上一页</button><button onClick={() => setPage((value) => Math.min(totalPages - 1, value + 1))} disabled={page >= totalPages - 1} className="rounded-lg border border-theme-border px-3 py-1 disabled:opacity-40">下一页</button></div></div>
           </div>
         </div>
       )}
 
       {logModalOpen ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/65 p-6 backdrop-blur-sm">
- <div className="flex max-h-[85vh] w-full max-w-5xl flex-col overflow-hidden rounded-[2rem] border border-slate-200 bg-slate-50">
-            <div className="flex items-start justify-between gap-4 border-b border-slate-100 px-6 py-5"><div><h3 className="mt-2 text-xl font-black text-slate-900">{logModalTitle}</h3></div><button onClick={() => setLogModalOpen(false)} className="rounded-xl p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-700"><X size={18} /></button></div>
-            <div className="space-y-3 overflow-auto px-6 py-5">{logLoading ? <div className="flex items-center gap-2 text-sm text-slate-500"><Loader2 size={15} className="animate-spin" /> 加载日志中...</div> : !logPayload?.available ? <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700">{logPayload?.message || '当前阶段日志不可用'}</div> : <><div className="grid grid-cols-1 gap-3 sm:grid-cols-2"><div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3"><p className="text-[11px] font-bold uppercase tracking-wide text-slate-400">日志目录</p><p className="mt-1 break-all font-mono text-xs text-slate-700">{logPayload.run_path || '-'}</p></div><div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3"><p className="text-[11px] font-bold uppercase tracking-wide text-slate-400">日志文件</p><p className="mt-1 break-all font-mono text-xs text-slate-700">{logPayload.files?.join(', ') || '-'}</p></div></div><pre className="min-h-[320px] overflow-auto rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 text-[12px] leading-6 text-slate-900 whitespace-pre-wrap break-words">{logPayload.log_text || logPayload.message || '暂无日志内容'}</pre></> }</div>
+ <div className="flex max-h-[85vh] w-full max-w-5xl flex-col overflow-hidden rounded-[2rem] border border-theme-border bg-theme-bg-app">
+            <div className="flex items-start justify-between gap-4 border-b border-theme-border px-6 py-5"><div><h3 className="mt-2 text-xl font-black text-theme-text-primary">{logModalTitle}</h3></div><button onClick={() => setLogModalOpen(false)} className="rounded-xl p-2 text-theme-text-muted hover:bg-theme-elevated hover:text-theme-text-secondary"><X size={18} /></button></div>
+            <div className="space-y-3 overflow-auto px-6 py-5">{logLoading ? <div className="flex items-center gap-2 text-sm text-theme-text-muted"><Loader2 size={15} className="animate-spin" /> 加载日志中...</div> : !logPayload?.available ? <div className="rounded-xl border border-amber-500/20 bg-amber-500/15 px-4 py-3 text-sm text-amber-400">{logPayload?.message || '当前阶段日志不可用'}</div> : <><div className="grid grid-cols-1 gap-3 sm:grid-cols-2"><div className="rounded-xl border border-theme-border bg-theme-bg-app px-4 py-3"><p className="text-[11px] font-bold uppercase tracking-wide text-theme-text-muted">日志目录</p><p className="mt-1 break-all font-mono text-xs text-theme-text-secondary">{logPayload.run_path || '-'}</p></div><div className="rounded-xl border border-theme-border bg-theme-bg-app px-4 py-3"><p className="text-[11px] font-bold uppercase tracking-wide text-theme-text-muted">日志文件</p><p className="mt-1 break-all font-mono text-xs text-theme-text-secondary">{logPayload.files?.join(', ') || '-'}</p></div></div><pre className="min-h-[320px] overflow-auto rounded-2xl border border-theme-border bg-theme-bg-app px-4 py-4 text-[12px] leading-6 text-theme-text-primary whitespace-pre-wrap break-words">{logPayload.log_text || logPayload.message || '暂无日志内容'}</pre></> }</div>
           </div>
         </div>
       ) : null}

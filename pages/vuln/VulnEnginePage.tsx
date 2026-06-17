@@ -1352,7 +1352,7 @@ export const VulnEnginePage: React.FC<VulnEnginePageProps> = ({
           onClearBulkSelection={clearEvolutionSelection}
           bulkActionBar={showValidationListFilters ? (
             <div className="flex flex-wrap items-center justify-between gap-3">
-              <div className="text-xs text-slate-600">
+              <div className="text-xs text-theme-text-secondary">
                 使用 vuln-verification 批量同步接口拉取当前自动化验证任务结果。
                 {filteredCases.length > 100 &&` 当前筛选 ${filteredCases.length} 条，本次最多同步前 100 条。`}
               </div>
@@ -1361,7 +1361,7 @@ export const VulnEnginePage: React.FC<VulnEnginePageProps> = ({
                   type="button"
                   onClick={() => void handleBatchSyncAutoVerify(selectedEvolutionCaseIds)}
                   disabled={batchSyncingAutoVerify || selectedEvolutionCaseIds.length === 0}
-                  className="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-3 py-2 text-xs font-black text-white disabled:cursor-not-allowed disabled:opacity-50"
+                  className="inline-flex items-center gap-2 rounded-xl bg-theme-surface px-3 py-2 text-xs font-black text-white disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   <RefreshCw size={14} className={batchSyncingAutoVerify ? 'animate-spin' : ''} />
                   {batchSyncingAutoVerify ? '同步中...' : '同步选中'}
@@ -1370,7 +1370,7 @@ export const VulnEnginePage: React.FC<VulnEnginePageProps> = ({
                   type="button"
                   onClick={() => void handleBatchSyncAutoVerify(currentBatchSyncCaseIds)}
                   disabled={batchSyncingAutoVerify || currentBatchSyncCaseIds.length === 0}
-                  className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-black text-slate-700 disabled:cursor-not-allowed disabled:opacity-50"
+                  className="inline-flex items-center gap-2 rounded-xl border border-theme-border bg-theme-bg-app px-3 py-2 text-xs font-black text-theme-text-secondary disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   <RefreshCw size={14} className={batchSyncingAutoVerify ? 'animate-spin' : ''} />
                   {batchSyncingAutoVerify ? '同步中...' : '同步当前筛选前100条'}
@@ -1379,7 +1379,7 @@ export const VulnEnginePage: React.FC<VulnEnginePageProps> = ({
             </div>
           ) : (
             <div className="flex flex-wrap items-center justify-between gap-3">
-              <div className="text-xs text-slate-600">
+              <div className="text-xs text-theme-text-secondary">
                 支持从已人工收敛的数据流漏洞案例中，整批预览并创建进化任务。
               </div>
               <button
@@ -1389,7 +1389,7 @@ export const VulnEnginePage: React.FC<VulnEnginePageProps> = ({
                   setEvolutionPreview(null);
                 }}
                 disabled={selectedEvolutionCaseIds.length === 0}
-                className="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-3 py-2 text-xs font-black text-white disabled:cursor-not-allowed disabled:opacity-50"
+                className="inline-flex items-center gap-2 rounded-xl bg-theme-surface px-3 py-2 text-xs font-black text-white disabled:cursor-not-allowed disabled:opacity-50"
               >
                 <Sparkles size={14} />
                 创建进化任务

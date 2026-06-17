@@ -70,34 +70,34 @@ const LiveIndicator: React.FC<{ status: string }> = ({ status }) => {
           <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
           <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
         </div>
-        <span className="text-[10px] font-black text-green-600 uppercase tracking-widest">LIVE / ONLINE</span>
+        <span className="text-[10px] font-black text-green-400 uppercase tracking-widest">LIVE / ONLINE</span>
       </div>
     );
   }
   if (s === 'offline' || s === 'timeout') {
     return (
-      <div className="flex items-center gap-2 px-3 py-1.5 bg-slate-100 rounded-full border border-slate-200">
+      <div className="flex items-center gap-2 px-3 py-1.5 bg-theme-elevated rounded-full border border-theme-border">
         <div className="h-2 w-2 rounded-full bg-slate-400"></div>
-        <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">{s.toUpperCase()}</span>
+        <span className="text-[10px] font-black text-theme-text-muted uppercase tracking-widest">{s.toUpperCase()}</span>
       </div>
     );
   }
   return (
     <div className="flex items-center gap-2 px-3 py-1.5 bg-red-500/10 rounded-full border border-red-500/20">
       <div className="h-2 w-2 rounded-full bg-red-500"></div>
-      <span className="text-[10px] font-black text-red-600 uppercase tracking-widest">{status?.toUpperCase() || 'UNKNOWN'}</span>
+      <span className="text-[10px] font-black text-red-400 uppercase tracking-widest">{status?.toUpperCase() || 'UNKNOWN'}</span>
     </div>
   );
 };
 
 const syncStatusTone = (status: string) => {
   const normalized = String(status || '').toLowerCase();
-  if (normalized === 'ok' || normalized === 'success') return 'bg-green-50 text-green-700 border-green-200';
-  if (normalized === 'partial') return 'bg-amber-50 text-amber-700 border-amber-200';
-  if (normalized === 'failed' || normalized === 'error') return 'bg-rose-50 text-rose-700 border-rose-200';
-  if (normalized === 'queued' || normalized === 'running') return 'bg-blue-50 text-blue-700 border-blue-200';
-  if (normalized === 'empty') return 'bg-slate-100 text-slate-600 border-slate-200';
-  return 'bg-slate-100 text-slate-600 border-slate-200';
+  if (normalized === 'ok' || normalized === 'success') return 'bg-green-500/15 text-green-400 border-green-500/20';
+  if (normalized === 'partial') return 'bg-amber-500/15 text-amber-400 border-amber-500/20';
+  if (normalized === 'failed' || normalized === 'error') return 'bg-rose-500/15 text-rose-400 border-rose-500/20';
+  if (normalized === 'queued' || normalized === 'running') return 'bg-blue-500/15 text-blue-400 border-blue-500/20';
+  if (normalized === 'empty') return 'bg-theme-elevated text-theme-text-secondary border-theme-border';
+  return 'bg-theme-elevated text-theme-text-secondary border-theme-border';
 };
 
 export const EnvAgentPage: React.FC<{ projectId: string }> = ({ projectId }) => {
@@ -620,12 +620,12 @@ export const EnvAgentPage: React.FC<{ projectId: string }> = ({ projectId }) => 
   const getPermissionInfo = (agent: Agent) => {
     if (typeof agent.is_allowed === 'boolean') {
       return agent.is_allowed
-        ? { label: '允许', className: 'bg-emerald-50 text-emerald-700 border-emerald-200' }
-        : { label: '离线/受限', className: 'bg-rose-50 text-rose-700 border-rose-200' };
+        ? { label: '允许', className: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/20' }
+        : { label: '离线/受限', className: 'bg-rose-500/15 text-rose-400 border-rose-500/20' };
     }
     return agent.status === 'online'
-      ? { label: '允许', className: 'bg-emerald-50 text-emerald-700 border-emerald-200' }
-      : { label: '离线/受限', className: 'bg-rose-50 text-rose-700 border-rose-200' };
+      ? { label: '允许', className: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/20' }
+      : { label: '离线/受限', className: 'bg-rose-500/15 text-rose-400 border-rose-500/20' };
   };
 
   const toggleSelectAllFilteredAgents = () => {
@@ -807,7 +807,7 @@ export const EnvAgentPage: React.FC<{ projectId: string }> = ({ projectId }) => 
     <>
     <div className="p-10 space-y-10 animate-in fade-in duration-500 pb-24 h-full overflow-y-auto custom-scrollbar">
       {!projectId && (
-        <div className="mb-6 p-4 bg-amber-50 border border-amber-100 text-amber-700 rounded-2xl text-xs font-bold flex items-center gap-3">
+        <div className="mb-6 p-4 bg-amber-500/15 border border-amber-500/20 text-amber-400 rounded-2xl text-xs font-bold flex items-center gap-3">
           <AlertCircle size={16} /> 请先在顶部菜单选择一个项目
         </div>
       )}
@@ -819,15 +819,15 @@ export const EnvAgentPage: React.FC<{ projectId: string }> = ({ projectId }) => 
  <div className="p-3 bg-blue-600 text-white rounded-2xl">
                <Monitor size={24} />
              </div>
-             <h2 className="text-3xl font-black text-slate-800 tracking-tight">Agent 节点集群</h2>
+             <h2 className="text-3xl font-black text-theme-text-primary tracking-tight">Agent 节点集群</h2>
           </div>
-          <p className="text-slate-500 mt-1 font-medium italic">基于分布式容器化引擎的实时感知与安全探测底座</p>
+          <p className="text-theme-text-muted mt-1 font-medium italic">基于分布式容器化引擎的实时感知与安全探测底座</p>
         </div>
         <div className="flex gap-4">
           <button
             onClick={handleRefreshAgents}
             disabled={!projectId || refreshingAgents}
- className="p-4 bg-slate-50 border border-slate-200 text-slate-500 rounded-2xl hover:bg-slate-100 transition-all group active:scale-95 disabled:opacity-50"
+ className="p-4 bg-theme-bg-app border border-theme-border text-theme-text-muted rounded-2xl hover:bg-theme-elevated transition-all group active:scale-95 disabled:opacity-50"
           >
             <RefreshCw size={20} className={(loading || refreshingAgents) ? 'animate-spin' : 'group-hover:rotate-180 transition-transform duration-500'} />
           </button>
@@ -869,12 +869,12 @@ export const EnvAgentPage: React.FC<{ projectId: string }> = ({ projectId }) => 
       </div>
 
       <div className="space-y-3">
-        <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 flex flex-col md:flex-row md:items-center gap-3">
-          <div className="text-[11px] font-black text-slate-500 uppercase tracking-wider">强制同步模式</div>
+        <div className="bg-theme-bg-app border border-theme-border rounded-2xl p-4 flex flex-col md:flex-row md:items-center gap-3">
+          <div className="text-[11px] font-black text-theme-text-muted uppercase tracking-wider">强制同步模式</div>
           <select
             value={syncScope}
             onChange={(e) => setSyncScope(e.target.value as 'project' | 'stale' | 'agent')}
-            className="px-3 py-2 border border-slate-200 rounded-xl text-sm text-slate-700 bg-slate-50"
+            className="px-3 py-2 border border-theme-border rounded-xl text-sm text-theme-text-secondary bg-theme-bg-app"
           >
             <option value="stale">仅异常/过期Agent</option>
             <option value="project">当前项目全部在线Agent</option>
@@ -886,36 +886,36 @@ export const EnvAgentPage: React.FC<{ projectId: string }> = ({ projectId }) => 
               value={targetAgentKey}
               onChange={(e) => setTargetAgentKey(e.target.value)}
               placeholder="输入完整 agent_key（可选）"
-              className="flex-1 px-3 py-2 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 ring-blue-500/10"
+              className="flex-1 px-3 py-2 border border-theme-border rounded-xl text-sm outline-none focus:ring-2 ring-blue-500/10"
             />
           )}
           {lastSyncMessage && (
-            <div className="text-xs font-bold text-slate-500">{lastSyncMessage}</div>
+            <div className="text-xs font-bold text-theme-text-muted">{lastSyncMessage}</div>
           )}
         </div>
 
-        <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4">
+        <div className="bg-theme-bg-app border border-theme-border rounded-2xl p-4">
           <div className="flex items-center justify-between mb-3">
             <button
               onClick={() => setSyncHistoryCollapsed(v => !v)}
-              className="text-[11px] font-black text-slate-500 uppercase tracking-wider flex items-center gap-2 hover:text-slate-700"
+              className="text-[11px] font-black text-theme-text-muted uppercase tracking-wider flex items-center gap-2 hover:text-theme-text-secondary"
             >
               {syncHistoryCollapsed ? <ChevronRight size={14} /> : <ChevronDown size={14} />}
               <Clock size={14} /> 最近同步记录
-              <span className="text-[10px] text-slate-400 normal-case tracking-normal">({syncHistory.length})</span>
+              <span className="text-[10px] text-theme-text-muted normal-case tracking-normal">({syncHistory.length})</span>
             </button>
             <div className="flex items-center gap-3">
               <button
                 onClick={handleClearSyncHistory}
                 disabled={historyOperating || syncHistory.length === 0}
-                className="text-xs font-bold text-rose-600 hover:text-rose-700 disabled:opacity-40"
+                className="text-xs font-bold text-rose-400 hover:text-rose-400 disabled:opacity-40"
               >
                 清空
               </button>
               <button
                 onClick={loadSyncHistory}
                 disabled={historyOperating}
-                className="text-xs font-bold text-blue-600 hover:text-blue-700 disabled:opacity-40"
+                className="text-xs font-bold text-blue-400 hover:text-blue-400 disabled:opacity-40"
               >
                 刷新
               </button>
@@ -924,37 +924,37 @@ export const EnvAgentPage: React.FC<{ projectId: string }> = ({ projectId }) => 
           {!syncHistoryCollapsed && (
           <div className="space-y-1.5">
             {syncHistory.length === 0 ? (
-              <div className="text-xs text-slate-400">暂无同步记录</div>
+              <div className="text-xs text-theme-text-muted">暂无同步记录</div>
             ) : syncHistory.map(item => (
               <div
                 key={item.sync_id}
-                className="w-full border border-slate-100 rounded-xl px-2.5 py-2 hover:border-blue-200 hover:bg-blue-50/30 transition-all"
+                className="w-full border border-theme-border rounded-xl px-2.5 py-2 hover:border-blue-500/20 hover:bg-blue-50/30 transition-all"
               >
                 <div className="flex items-center gap-2">
                   <button
                     onClick={() => setSelectedHistory(item)}
                     className="min-w-0 flex-1 text-left flex items-center gap-2"
                   >
-                    <span className="text-[10px] font-black uppercase text-slate-500 shrink-0">{item.scope}</span>
+                    <span className="text-[10px] font-black uppercase text-theme-text-muted shrink-0">{item.scope}</span>
                     <span className={`text-[10px] font-black uppercase px-2 py-0.5 rounded-md border shrink-0 ${syncStatusTone(item.status)}`}>
                       {item.status || 'unknown'}
                     </span>
-                    <span className="text-[10px] font-mono text-slate-400 shrink-0">
+                    <span className="text-[10px] font-mono text-theme-text-muted shrink-0">
                       {String(item.sync_id || '').slice(0, 12)}
                     </span>
-                    <span className="text-xs text-slate-700 truncate">{item.message || '-'}</span>
-                    <span className="text-[11px] font-mono text-slate-500 shrink-0">
+                    <span className="text-xs text-theme-text-secondary truncate">{item.message || '-'}</span>
+                    <span className="text-[11px] font-mono text-theme-text-muted shrink-0">
                       total={getDisplayTotal(item)} ok={item.ok_count} fail={item.fail_count}
                     </span>
                     {item.lock_wait_sec !== undefined && (
-                      <span className="text-[10px] font-mono text-blue-600 shrink-0">wait={item.lock_wait_sec}s</span>
+                      <span className="text-[10px] font-mono text-blue-400 shrink-0">wait={item.lock_wait_sec}s</span>
                     )}
-                    <span className="text-[10px] text-slate-400 shrink-0">{item.created_at}</span>
+                    <span className="text-[10px] text-theme-text-muted shrink-0">{item.created_at}</span>
                   </button>
                   <button
                     onClick={() => handleDeleteSyncHistoryItem(item.sync_id)}
                     disabled={historyOperating}
-                    className="text-[11px] font-bold text-rose-600 hover:text-rose-700 disabled:opacity-40 shrink-0"
+                    className="text-[11px] font-bold text-rose-400 hover:text-rose-400 disabled:opacity-40 shrink-0"
                   >
                     删除
                   </button>
@@ -965,17 +965,17 @@ export const EnvAgentPage: React.FC<{ projectId: string }> = ({ projectId }) => 
           )}
         </div>
 
-        <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 space-y-3">
+        <div className="bg-theme-bg-app border border-theme-border rounded-2xl p-4 space-y-3">
           <div className="flex flex-wrap items-center gap-2">
-            <p className="text-xs font-black text-slate-700">Agent 节点入口 Ingress 管理</p>
-            <span className="text-[11px] text-slate-500">
+            <p className="text-xs font-black text-theme-text-secondary">Agent 节点入口 Ingress 管理</p>
+            <span className="text-[11px] text-theme-text-muted">
               总计 {agentIngressStats?.total || 0} · 在线节点关联 {((agentIngressStats?.total || 0) - (agentIngressStats?.stale_agent_ingress || 0))} · 无效 {agentIngressStats?.stale_agent_ingress || 0}
             </span>
-            <button onClick={loadGlobalAgentIngress} className="px-3 py-1.5 rounded-lg bg-slate-100 text-slate-700 text-xs font-black hover:bg-slate-200">刷新</button>
+            <button onClick={loadGlobalAgentIngress} className="px-3 py-1.5 rounded-lg bg-theme-elevated text-theme-text-secondary text-xs font-black hover:bg-theme-elevated">刷新</button>
             <button
               onClick={toggleSelectAllAgentIngress}
               disabled={agentIngressItems.length === 0}
-              className="px-3 py-1.5 rounded-lg bg-slate-100 text-slate-700 text-xs font-black hover:bg-slate-200 disabled:opacity-50"
+              className="px-3 py-1.5 rounded-lg bg-theme-elevated text-theme-text-secondary text-xs font-black hover:bg-theme-elevated disabled:opacity-50"
             >
               全选
             </button>
@@ -996,16 +996,16 @@ export const EnvAgentPage: React.FC<{ projectId: string }> = ({ projectId }) => 
             <button
               onClick={clearAllAgentIngress}
               disabled={agentIngressActionLoading}
-              className="px-3 py-1.5 rounded-lg bg-slate-900 text-white text-xs font-black hover:bg-slate-800 disabled:opacity-50"
+              className="px-3 py-1.5 rounded-lg bg-theme-surface text-white text-xs font-black hover:bg-theme-elevated disabled:opacity-50"
             >
               清空全部Ingress
             </button>
-            <span className="text-[11px] text-slate-500 ml-auto">已选 {selectedAgentIngressRouteIds.size}</span>
+            <span className="text-[11px] text-theme-text-muted ml-auto">已选 {selectedAgentIngressRouteIds.size}</span>
           </div>
-          <div className="border border-slate-100 rounded-xl overflow-hidden">
+          <div className="border border-theme-border rounded-xl overflow-hidden">
             <table className="w-full text-left">
-              <thead className="bg-slate-50">
-                <tr className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+              <thead className="bg-theme-bg-app">
+                <tr className="text-[10px] font-black uppercase tracking-widest text-theme-text-muted">
                   <th className="px-3 py-2">选</th>
                   <th className="px-3 py-2">Host/Path</th>
                   <th className="px-3 py-2">节点</th>
@@ -1013,15 +1013,15 @@ export const EnvAgentPage: React.FC<{ projectId: string }> = ({ projectId }) => 
                   <th className="px-3 py-2">状态</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100">
+              <tbody className="divide-y divide-theme-border">
                 {agentIngressLoading && (
-                  <tr><td colSpan={5} className="px-3 py-8 text-center text-xs text-slate-400">加载Ingress中...</td></tr>
+                  <tr><td colSpan={5} className="px-3 py-8 text-center text-xs text-theme-text-muted">加载Ingress中...</td></tr>
                 )}
                 {!agentIngressLoading && agentIngressItems.length === 0 && (
-                  <tr><td colSpan={5} className="px-3 py-8 text-center text-xs text-slate-400">暂无Agent入口Ingress路由</td></tr>
+                  <tr><td colSpan={5} className="px-3 py-8 text-center text-xs text-theme-text-muted">暂无Agent入口Ingress路由</td></tr>
                 )}
                 {!agentIngressLoading && agentIngressItems.map((item) => (
-                  <tr key={item.route_id} className="hover:bg-slate-100">
+                  <tr key={item.route_id} className="hover:bg-theme-elevated">
                     <td className="px-3 py-2">
                       <input
                         type="checkbox"
@@ -1031,25 +1031,25 @@ export const EnvAgentPage: React.FC<{ projectId: string }> = ({ projectId }) => 
                       />
                     </td>
                     <td className="px-3 py-2">
-                      <div className="text-xs font-mono text-slate-700 truncate max-w-[360px]">{item.host}{item.path}</div>
+                      <div className="text-xs font-mono text-theme-text-secondary truncate max-w-[360px]">{item.host}{item.path}</div>
                     </td>
                     <td className="px-3 py-2">
-                      <div className="text-xs font-bold text-slate-700">{agentNameMap.get(item.agent_key || '') || item.agent_key || '-'}</div>
-                      <div className="text-[10px] font-mono text-slate-400">{item.agent_key || '-'}</div>
-                      <div className={`text-[10px] font-black ${item.agent_online ? 'text-green-600' : 'text-amber-600'}`}>
+                      <div className="text-xs font-bold text-theme-text-secondary">{agentNameMap.get(item.agent_key || '') || item.agent_key || '-'}</div>
+                      <div className="text-[10px] font-mono text-theme-text-muted">{item.agent_key || '-'}</div>
+                      <div className={`text-[10px] font-black ${item.agent_online ? 'text-green-400' : 'text-amber-400'}`}>
                         {item.agent_online ? '节点在线' : '节点离线/无效'}
                       </div>
                     </td>
                     <td className="px-3 py-2">
-                      <div className="text-xs text-slate-700">{item.target_port} / {item.tls_enabled ? 'HTTPS' : 'HTTP'}</div>
+                      <div className="text-xs text-theme-text-secondary">{item.target_port} / {item.tls_enabled ? 'HTTPS' : 'HTTP'}</div>
                     </td>
                     <td className="px-3 py-2">
                       <div className="flex items-center gap-2">
-                        <span className={`text-[10px] font-black uppercase px-2 py-1 rounded-lg border ${item.status === 'ready' ? 'bg-green-50 text-green-700 border-green-100' : 'bg-amber-50 text-amber-700 border-amber-100'}`}>
+                        <span className={`text-[10px] font-black uppercase px-2 py-1 rounded-lg border ${item.status === 'ready' ? 'bg-green-500/15 text-green-400 border-green-500/20' : 'bg-amber-500/15 text-amber-400 border-amber-500/20'}`}>
                           {item.status}
                         </span>
                         {item.access_url && (
-                          <a href={item.access_url} target="_blank" rel="noreferrer" className="text-[10px] font-black text-blue-600 hover:text-blue-700">
+                          <a href={item.access_url} target="_blank" rel="noreferrer" className="text-[10px] font-black text-blue-400 hover:text-blue-400">
                             打开
                           </a>
                         )}
@@ -1060,7 +1060,7 @@ export const EnvAgentPage: React.FC<{ projectId: string }> = ({ projectId }) => 
               </tbody>
             </table>
           </div>
-          <div className="flex flex-wrap items-center justify-between gap-3 text-xs text-slate-500">
+          <div className="flex flex-wrap items-center justify-between gap-3 text-xs text-theme-text-muted">
             <div>共 {agentIngressTotal} 条，当前第 {agentIngressPage}/{agentIngressTotalPages} 页</div>
             <div className="flex items-center gap-2">
               <span>每页</span>
@@ -1070,7 +1070,7 @@ export const EnvAgentPage: React.FC<{ projectId: string }> = ({ projectId }) => 
                   setAgentIngressPerPage(Math.max(1, Math.min(Number(event.target.value || 10), 1000)));
                   setAgentIngressPage(1);
                 }}
-                className="rounded-lg border border-slate-200 bg-slate-50 px-2 py-1 text-xs"
+                className="rounded-lg border border-theme-border bg-theme-bg-app px-2 py-1 text-xs"
               >
                 {[10, 20, 50, 100, 200, 500, 1000].map((size) => (
                   <option key={size} value={size}>{size}</option>
@@ -1079,14 +1079,14 @@ export const EnvAgentPage: React.FC<{ projectId: string }> = ({ projectId }) => 
               <button
                 onClick={() => setAgentIngressPage((p) => Math.max(1, p - 1))}
                 disabled={agentIngressPage <= 1 || agentIngressLoading}
-                className="rounded-lg border border-slate-200 px-2 py-1 text-xs disabled:opacity-50"
+                className="rounded-lg border border-theme-border px-2 py-1 text-xs disabled:opacity-50"
               >
                 上一页
               </button>
               <button
                 onClick={() => setAgentIngressPage((p) => Math.min(agentIngressTotalPages, p + 1))}
                 disabled={agentIngressPage >= agentIngressTotalPages || agentIngressLoading}
-                className="rounded-lg border border-slate-200 px-2 py-1 text-xs disabled:opacity-50"
+                className="rounded-lg border border-theme-border px-2 py-1 text-xs disabled:opacity-50"
               >
                 下一页
               </button>
@@ -1098,28 +1098,28 @@ export const EnvAgentPage: React.FC<{ projectId: string }> = ({ projectId }) => 
       {/* Main List Section */}
       <div className="space-y-6">
         <div className="relative group">
-          <Search className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-blue-500 transition-colors" size={20} />
+          <Search className="absolute left-6 top-1/2 -translate-y-1/2 text-theme-text-faint group-focus-within:text-blue-500 transition-colors" size={20} />
           <input
             type="text"
             placeholder="通过主机名、IP 地址或 Agent Key 检索节点..."
- className="w-full pl-16 pr-8 py-5 bg-slate-50 border border-slate-200 rounded-[2rem] text-sm outline-none focus:ring-4 ring-blue-500/5 transition-all font-medium"
+ className="w-full pl-16 pr-8 py-5 bg-theme-bg-app border border-theme-border rounded-[2rem] text-sm outline-none focus:ring-4 ring-blue-500/5 transition-all font-medium"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
         <div className="flex items-center justify-between px-2">
-          <p className="text-xs font-bold text-slate-500">
-            已选择 <span className="text-blue-600 font-black">{selectedAgentKeys.size}</span> / {agentsTotal} 个节点
+          <p className="text-xs font-bold text-theme-text-muted">
+            已选择 <span className="text-blue-400 font-black">{selectedAgentKeys.size}</span> / {agentsTotal} 个节点
           </p>
           <div className="flex items-center gap-2">
-            <span className="text-xs text-slate-500">每页</span>
+            <span className="text-xs text-theme-text-muted">每页</span>
             <select
               value={String(agentsPerPage)}
               onChange={(event) => {
                 setAgentsPerPage(Math.max(1, Math.min(Number(event.target.value || 100), 1000)));
                 setAgentsPage(1);
               }}
-              className="rounded-lg border border-slate-200 bg-slate-50 px-2 py-1 text-xs"
+              className="rounded-lg border border-theme-border bg-theme-bg-app px-2 py-1 text-xs"
             >
               {[50, 100, 200, 500, 1000].map((size) => (
                 <option key={size} value={size}>{size}</option>
@@ -1128,17 +1128,17 @@ export const EnvAgentPage: React.FC<{ projectId: string }> = ({ projectId }) => 
             <button
               onClick={toggleSelectAllFilteredAgents}
               disabled={!projectId || filteredAgents.length === 0}
-              className="px-4 py-2 bg-slate-50 border border-slate-200 text-slate-600 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-slate-100 disabled:opacity-50"
+              className="px-4 py-2 bg-theme-bg-app border border-theme-border text-theme-text-secondary rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-theme-elevated disabled:opacity-50"
             >
               {filteredAgents.length > 0 && filteredAgents.every(a => selectedAgentKeys.has(a.key)) ? '取消全选筛选项' : '全选筛选项'}
             </button>
           </div>
         </div>
 
- <div className="bg-slate-50 border border-slate-200 rounded-[2.5rem] overflow-hidden min-h-[500px]">
+ <div className="bg-theme-bg-app border border-theme-border rounded-[2.5rem] overflow-hidden min-h-[500px]">
           <table className="w-full text-left">
-            <thead className="bg-slate-100/50 border-b border-slate-100">
-              <tr className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+            <thead className="bg-slate-100/50 border-b border-theme-border">
+              <tr className="text-[10px] font-black text-theme-text-muted uppercase tracking-widest">
                 <th className="px-6 py-6 w-[72px] text-center">选择</th>
                 <th className="px-8 py-6">节点标识 (Hostname / OS)</th>
                 <th className="px-6 py-6">网络配置 (IP)</th>
@@ -1153,7 +1153,7 @@ export const EnvAgentPage: React.FC<{ projectId: string }> = ({ projectId }) => 
               {!projectId ? (
                 <tr>
                   <td colSpan={8} className="py-40 text-center">
-                    <p className="text-sm font-black text-slate-400 uppercase tracking-widest italic">请先在顶部菜单选择项目</p>
+                    <p className="text-sm font-black text-theme-text-muted uppercase tracking-widest italic">请先在顶部菜单选择项目</p>
                   </td>
                 </tr>
               ) : filteredAgents.map(agent => {
@@ -1178,7 +1178,7 @@ export const EnvAgentPage: React.FC<{ projectId: string }> = ({ projectId }) => 
                         className={`w-6 h-6 rounded-md border-2 inline-flex items-center justify-center transition-all ${
                           selectedAgentKeys.has(agent.key)
                             ? 'bg-blue-600 border-blue-600 text-white'
-                            : 'border-slate-300 text-transparent hover:border-blue-400'
+                            : 'border-theme-border text-transparent hover:border-blue-400'
                         }`}
                         aria-label={`select-${agent.key}`}
                       >
@@ -1187,7 +1187,7 @@ export const EnvAgentPage: React.FC<{ projectId: string }> = ({ projectId }) => 
                     </td>
                     <td className="px-8 py-6">
                       <div className="flex items-center gap-5">
- <div className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-all ${isOnline ? 'bg-green-50 text-green-600' : 'bg-slate-100 text-slate-400'}`}>
+ <div className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-all ${isOnline ? 'bg-green-500/15 text-green-400' : 'bg-theme-elevated text-theme-text-muted'}`}>
                           <Server size={22} />
                         </div>
                         <div>
@@ -1197,20 +1197,20 @@ export const EnvAgentPage: React.FC<{ projectId: string }> = ({ projectId }) => 
                               e.stopPropagation();
                               handleAgentClick(agent.key);
                             }}
-                            className="text-sm font-black text-slate-800 group-hover:text-blue-600 hover:text-blue-600 transition-colors underline decoration-dotted underline-offset-2"
+                            className="text-sm font-black text-theme-text-primary group-hover:text-blue-400 hover:text-blue-400 transition-colors underline decoration-dotted underline-offset-2"
                             title="查看 Agent 详情"
                           >
                             {agent.hostname || agent.key}
                           </button>
                           <div className="flex items-center gap-1.5 mt-0.5">
                              <div className="w-1.5 h-1.5 rounded-full bg-slate-300" />
-                             <span className="text-[10px] font-black text-slate-400 uppercase tracking-tighter">
+                             <span className="text-[10px] font-black text-theme-text-muted uppercase tracking-tighter">
                                {sys?.os_name} {sys?.architecture} ({sys?.os_release})
                              </span>
                           </div>
                           <div className="flex items-center gap-1.5 mt-1">
                              <div className={`w-1.5 h-1.5 rounded-full ${daemon?.status === 'running' ? 'bg-green-400' : 'bg-slate-300'}`} />
-                             <span className="text-[10px] font-black text-slate-400 uppercase tracking-tighter">
+                             <span className="text-[10px] font-black text-theme-text-muted uppercase tracking-tighter">
                                AGENT {daemon?.version || 'N/A'} / {daemon?.platform || 'N/A'}
                              </span>
                           </div>
@@ -1219,27 +1219,27 @@ export const EnvAgentPage: React.FC<{ projectId: string }> = ({ projectId }) => 
                     </td>
                     <td className="px-6 py-6">
                       <div className="flex flex-col">
-                        <span className="text-xs font-mono font-black text-blue-600 mb-1">{agent.ip_address}</span>
-                        <span className="text-[9px] font-mono text-slate-300 uppercase truncate max-w-[120px]">Key: {agent.key.slice(0, 12)}...</span>
+                        <span className="text-xs font-mono font-black text-blue-400 mb-1">{agent.ip_address}</span>
+                        <span className="text-[9px] font-mono text-theme-text-faint uppercase truncate max-w-[120px]">Key: {agent.key.slice(0, 12)}...</span>
                       </div>
                     </td>
                     <td className="px-6 py-6">
                       <div className="space-y-3 w-56">
                         <div className="space-y-1.5">
-                           <div className="flex justify-between text-[9px] font-black uppercase text-slate-400 tracking-tighter">
+                           <div className="flex justify-between text-[9px] font-black uppercase text-theme-text-muted tracking-tighter">
                              <span>CPU Usage</span>
-                             <span className={ (sys?.cpu?.usage_percent || 0) > 80 ? 'text-red-500' : 'text-slate-600' }>{sys?.cpu?.usage_percent || 0}%</span>
+                             <span className={ (sys?.cpu?.usage_percent || 0) > 80 ? 'text-red-500' : 'text-theme-text-secondary' }>{sys?.cpu?.usage_percent || 0}%</span>
                            </div>
-                           <div className="h-1 bg-slate-100 rounded-full overflow-hidden">
+                           <div className="h-1 bg-theme-elevated rounded-full overflow-hidden">
                              <div className={`h-full transition-all duration-700 ${isOnline ? 'bg-blue-500' : 'bg-slate-300'}`} style={{ width: `${sys?.cpu?.usage_percent || 0}%` }} />
                            </div>
                         </div>
                         <div className="space-y-1.5">
-                           <div className="flex justify-between text-[9px] font-black uppercase text-slate-400 tracking-tighter">
+                           <div className="flex justify-between text-[9px] font-black uppercase text-theme-text-muted tracking-tighter">
                              <span>Memory ({formatted?.memory?.used} / {formatted?.memory?.total})</span>
-                             <span className="text-slate-600">{sys?.memory?.usage_percent || 0}%</span>
+                             <span className="text-theme-text-secondary">{sys?.memory?.usage_percent || 0}%</span>
                            </div>
-                           <div className="h-1 bg-slate-100 rounded-full overflow-hidden">
+                           <div className="h-1 bg-theme-elevated rounded-full overflow-hidden">
                              <div className={`h-full transition-all duration-700 ${isOnline ? 'bg-indigo-500' : 'bg-slate-300'}`} style={{ width: `${sys?.memory?.usage_percent || 0}%` }} />
                            </div>
                         </div>
@@ -1247,15 +1247,15 @@ export const EnvAgentPage: React.FC<{ projectId: string }> = ({ projectId }) => 
                     </td>
                     <td className="px-6 py-6">
                       <div className="flex flex-col gap-1">
-                         <div className="flex items-center gap-2 text-xs font-black text-slate-700">
+                         <div className="flex items-center gap-2 text-xs font-black text-theme-text-secondary">
                             <Activity size={14} className="text-green-500" />
                             <span>{formatted?.uptime || 'Updating...'}</span>
                          </div>
-                         <p className="text-[9px] font-black text-slate-300 uppercase ml-5 tracking-widest truncate max-w-[180px]">Last: {agent.last_seen?.split('.')[0].replace('T', ' ')}</p>
+                         <p className="text-[9px] font-black text-theme-text-faint uppercase ml-5 tracking-widest truncate max-w-[180px]">Last: {agent.last_seen?.split('.')[0].replace('T', ' ')}</p>
                       </div>
                     </td>
                     <td className="px-6 py-6">
-                      <div className="text-xs font-mono text-slate-700">
+                      <div className="text-xs font-mono text-theme-text-secondary">
                         {agent.last_seen ? agent.last_seen.split('.')[0].replace('T', ' ') : '-'}
                       </div>
                     </td>
@@ -1265,7 +1265,7 @@ export const EnvAgentPage: React.FC<{ projectId: string }> = ({ projectId }) => 
                           {permission.label}
                         </span>
                         {agent.allow_reason && (
-                          <span className="text-[10px] text-slate-500 max-w-[200px] truncate" title={agent.allow_reason}>
+                          <span className="text-[10px] text-theme-text-muted max-w-[200px] truncate" title={agent.allow_reason}>
                             {agent.allow_reason}
                           </span>
                         )}
@@ -1275,7 +1275,7 @@ export const EnvAgentPage: React.FC<{ projectId: string }> = ({ projectId }) => 
                       <div className="flex items-center justify-end gap-3">
                         {agent.status_reason && (
                           <span
-                            className="max-w-[280px] truncate text-[10px] text-amber-700 bg-amber-50 border border-amber-200 px-2 py-1 rounded-lg"
+                            className="max-w-[280px] truncate text-[10px] text-amber-400 bg-amber-500/15 border border-amber-500/20 px-2 py-1 rounded-lg"
                             title={agent.status_reason}
                           >
                             {agent.status_reason}
@@ -1291,30 +1291,30 @@ export const EnvAgentPage: React.FC<{ projectId: string }> = ({ projectId }) => 
               {!loading && projectId && filteredAgents.length === 0 && (
                 <tr>
                   <td colSpan={8} className="py-40 text-center">
-                    <div className="w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-4 text-slate-200">
+                    <div className="w-20 h-20 bg-theme-bg-app rounded-full flex items-center justify-center mx-auto mb-4 text-slate-200">
                       <Monitor size={40} />
                     </div>
-                    <p className="text-sm font-black text-slate-400 uppercase tracking-widest">未检索到匹配的 Agent 资产</p>
+                    <p className="text-sm font-black text-theme-text-muted uppercase tracking-widest">未检索到匹配的 Agent 资产</p>
                   </td>
                 </tr>
               )}
             </tbody>
           </table>
         </div>
-        <div className="flex flex-wrap items-center justify-between gap-3 px-2 text-xs text-slate-500">
+        <div className="flex flex-wrap items-center justify-between gap-3 px-2 text-xs text-theme-text-muted">
           <div>共 {agentsTotal} 条，当前第 {agentsPage}/{agentTotalPages} 页</div>
           <div className="flex items-center gap-2">
             <button
               onClick={() => setAgentsPage((p) => Math.max(1, p - 1))}
               disabled={agentsPage <= 1 || loading}
-              className="rounded-lg border border-slate-200 px-2 py-1 text-xs disabled:opacity-50"
+              className="rounded-lg border border-theme-border px-2 py-1 text-xs disabled:opacity-50"
             >
               上一页
             </button>
             <button
               onClick={() => setAgentsPage((p) => Math.min(agentTotalPages, p + 1))}
               disabled={agentsPage >= agentTotalPages || loading}
-              className="rounded-lg border border-slate-200 px-2 py-1 text-xs disabled:opacity-50"
+              className="rounded-lg border border-theme-border px-2 py-1 text-xs disabled:opacity-50"
             >
               下一页
             </button>
@@ -1324,17 +1324,17 @@ export const EnvAgentPage: React.FC<{ projectId: string }> = ({ projectId }) => 
 
       {selectedHistory && (
         <div className="fixed inset-0 z-[220] bg-slate-900/70 backdrop-blur-sm flex items-center justify-center p-6" onClick={() => setSelectedHistory(null)}>
- <div className="w-full max-w-6xl h-[78vh] bg-slate-50 border border-slate-200 rounded-3xl flex flex-col overflow-hidden" onClick={(e) => e.stopPropagation()}>
-            <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+ <div className="w-full max-w-6xl h-[78vh] bg-theme-bg-app border border-theme-border rounded-3xl flex flex-col overflow-hidden" onClick={(e) => e.stopPropagation()}>
+            <div className="px-6 py-4 border-b border-theme-border flex items-center justify-between">
               <div>
-                <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">同步记录详情</p>
-                <p className="text-sm font-black text-slate-800 mt-1">
+                <p className="text-[10px] font-black uppercase tracking-widest text-theme-text-muted">同步记录详情</p>
+                <p className="text-sm font-black text-theme-text-primary mt-1">
                   {selectedHistory.scope.toUpperCase()} · {selectedHistory.sync_id}
                 </p>
               </div>
-              <button onClick={() => setSelectedHistory(null)} className="px-3 py-1.5 text-xs font-bold text-slate-500 hover:text-slate-700">关闭</button>
+              <button onClick={() => setSelectedHistory(null)} className="px-3 py-1.5 text-xs font-bold text-theme-text-muted hover:text-theme-text-secondary">关闭</button>
             </div>
-            <div className="px-6 py-3 border-b border-slate-100 text-xs text-slate-600 flex flex-wrap gap-4">
+            <div className="px-6 py-3 border-b border-theme-border text-xs text-theme-text-secondary flex flex-wrap gap-4">
               <span>status={selectedHistory.status}</span>
               {selectedHistory.lock_wait_sec !== undefined && (
                 <span>lock_wait={selectedHistory.lock_wait_sec}s</span>
@@ -1347,7 +1347,7 @@ export const EnvAgentPage: React.FC<{ projectId: string }> = ({ projectId }) => 
             <div className="flex-1 overflow-auto p-4 custom-scrollbar">
               {Array.isArray(selectedHistory.details) && selectedHistory.details.length > 0 ? (
                 <table className="w-full text-left">
-                  <thead className="bg-slate-50 border border-slate-100 text-[10px] uppercase text-slate-400 font-black tracking-wider">
+                  <thead className="bg-theme-bg-app border border-theme-border text-[10px] uppercase text-theme-text-muted font-black tracking-wider">
                     <tr>
                       <th className="px-3 py-2">Agent</th>
                       <th className="px-3 py-2">Result</th>
@@ -1356,26 +1356,26 @@ export const EnvAgentPage: React.FC<{ projectId: string }> = ({ projectId }) => 
                       <th className="px-3 py-2">Error</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-100 border border-slate-100 border-t-0 text-xs">
+                  <tbody className="divide-y divide-theme-border border border-theme-border border-t-0 text-xs">
                     {selectedHistory.details.map((d: any, idx: number) => (
                       <tr key={`${d.agent_key || 'na'}-${idx}`}>
-                        <td className="px-3 py-2 font-mono text-slate-700">{d.agent_key || '-'}</td>
+                        <td className="px-3 py-2 font-mono text-theme-text-secondary">{d.agent_key || '-'}</td>
                         <td className="px-3 py-2">
                           {d.phase ? (
-                            <span className="font-black text-blue-600 uppercase">{String(d.phase)}</span>
+                            <span className="font-black text-blue-400 uppercase">{String(d.phase)}</span>
                           ) : (
-                            <span className={`font-black ${d.ok ? 'text-green-600' : 'text-red-600'}`}>{d.ok ? 'OK' : 'FAILED'}</span>
+                            <span className={`font-black ${d.ok ? 'text-green-400' : 'text-red-400'}`}>{d.ok ? 'OK' : 'FAILED'}</span>
                           )}
                         </td>
                         <td className="px-3 py-2">{d.seen ?? '-'}</td>
                         <td className="px-3 py-2">{d.upserted ?? '-'}</td>
-                        <td className="px-3 py-2 text-slate-500">{d.error || d.message || (d.status_code ?`status_code=${d.status_code}` : '-')}</td>
+                        <td className="px-3 py-2 text-theme-text-muted">{d.error || d.message || (d.status_code ?`status_code=${d.status_code}` : '-')}</td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
               ) : (
-                <div className="text-sm text-slate-400 py-10 text-center">该记录没有明细数据</div>
+                <div className="text-sm text-theme-text-muted py-10 text-center">该记录没有明细数据</div>
               )}
             </div>
           </div>
@@ -1385,15 +1385,15 @@ export const EnvAgentPage: React.FC<{ projectId: string }> = ({ projectId }) => 
       {/* Batch Deploy Modal */}
       {isBatchDeployModalOpen && (
         <div className="fixed inset-0 z-[119] flex items-center justify-center p-6 bg-slate-950/80 backdrop-blur-xl animate-in fade-in">
- <div className="bg-slate-50 w-full max-w-5xl rounded-[3rem] overflow-hidden animate-in zoom-in-95 flex flex-col max-h-[88vh]">
-            <div className="p-8 border-b border-slate-100 flex items-center justify-between">
+ <div className="bg-theme-bg-app w-full max-w-5xl rounded-[3rem] overflow-hidden animate-in zoom-in-95 flex flex-col max-h-[88vh]">
+            <div className="p-8 border-b border-theme-border flex items-center justify-between">
               <div>
-                <h3 className="text-2xl font-black text-slate-800 tracking-tight">批量部署环境模板服务</h3>
-                <p className="text-xs text-slate-400 font-bold uppercase tracking-widest mt-1">
+                <h3 className="text-2xl font-black text-theme-text-primary tracking-tight">批量部署环境模板服务</h3>
+                <p className="text-xs text-theme-text-muted font-bold uppercase tracking-widest mt-1">
                   已选 Agent: {selectedAgentKeys.size}，请选择要部署的模板
                 </p>
               </div>
-              <button onClick={() => setIsBatchDeployModalOpen(false)} className="p-3 bg-slate-50 text-slate-400 hover:text-slate-800 rounded-2xl transition-all">
+              <button onClick={() => setIsBatchDeployModalOpen(false)} className="p-3 bg-theme-bg-app text-theme-text-muted hover:text-theme-text-primary rounded-2xl transition-all">
                 <X size={20} />
               </button>
             </div>
@@ -1401,19 +1401,19 @@ export const EnvAgentPage: React.FC<{ projectId: string }> = ({ projectId }) => 
             <div className="p-8 space-y-5 overflow-y-auto">
               <div className="flex items-center justify-between gap-4">
                 <div className="relative flex-1">
-                  <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" size={16} />
+                  <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-theme-text-faint" size={16} />
                   <input
                     type="text"
                     value={templateSearch}
                     onChange={(e) => setTemplateSearch(e.target.value)}
                     placeholder="检索模板名称或描述..."
-                    className="w-full pl-11 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-sm outline-none focus:ring-4 ring-blue-500/10"
+                    className="w-full pl-11 pr-4 py-3 bg-theme-bg-app border border-theme-border rounded-2xl text-sm outline-none focus:ring-4 ring-blue-500/10"
                   />
                 </div>
                 <button
                   onClick={toggleSelectAllFilteredTemplates}
                   disabled={filteredTemplates.length === 0}
-                  className="px-5 py-3 bg-slate-50 border border-slate-200 text-slate-600 rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-slate-100 disabled:opacity-50 flex items-center gap-2"
+                  className="px-5 py-3 bg-theme-bg-app border border-theme-border text-theme-text-secondary rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-theme-elevated disabled:opacity-50 flex items-center gap-2"
                 >
                   <CheckSquare size={15} />
                   {filteredTemplates.length > 0 && filteredTemplates.every(t => selectedTemplateNames.has(t.name)) ? '取消全选' : '全选筛选模板'}
@@ -1422,8 +1422,8 @@ export const EnvAgentPage: React.FC<{ projectId: string }> = ({ projectId }) => 
 
               {templatesLoading ? (
                 <div className="py-24 text-center">
-                  <Loader2 className="animate-spin mx-auto text-blue-600" size={28} />
-                  <p className="mt-3 text-xs font-bold text-slate-400">正在加载模板...</p>
+                  <Loader2 className="animate-spin mx-auto text-blue-400" size={28} />
+                  <p className="mt-3 text-xs font-bold text-theme-text-muted">正在加载模板...</p>
                 </div>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -1433,22 +1433,22 @@ export const EnvAgentPage: React.FC<{ projectId: string }> = ({ projectId }) => 
                       onClick={() => toggleTemplateSelect(template.name)}
                       className={`p-5 rounded-2xl border-2 transition-all text-left ${
                         selectedTemplateNames.has(template.name)
-                          ? 'bg-blue-50 border-blue-600'
-                          : 'bg-slate-50 border-slate-100 hover:border-blue-200'
+                          ? 'bg-blue-500/15 border-blue-600'
+                          : 'bg-theme-bg-app border-theme-border hover:border-blue-500/20'
                       }`}
                     >
                       <div className="flex items-start justify-between gap-3">
                         <div>
-                          <p className="text-sm font-black text-slate-800">{template.name}</p>
-                          <p className="text-[11px] text-slate-500 mt-1 line-clamp-2">{template.description || '无描述'}</p>
-                          <p className="text-[10px] text-slate-400 mt-1">
+                          <p className="text-sm font-black text-theme-text-primary">{template.name}</p>
+                          <p className="text-[11px] text-theme-text-muted mt-1 line-clamp-2">{template.description || '无描述'}</p>
+                          <p className="text-[10px] text-theme-text-muted mt-1">
                             作者: {template.owner_name || template.owner_id || 'system'}
                           </p>
                         </div>
                         <div className={`w-6 h-6 rounded-md border-2 flex items-center justify-center ${
                           selectedTemplateNames.has(template.name)
                             ? 'bg-blue-600 border-blue-600 text-white'
-                            : 'border-slate-200 text-transparent'
+                            : 'border-theme-border text-transparent'
                         }`}>
                           <Check size={14} />
                         </div>
@@ -1456,7 +1456,7 @@ export const EnvAgentPage: React.FC<{ projectId: string }> = ({ projectId }) => 
                     </button>
                   ))}
                   {!templatesLoading && filteredTemplates.length === 0 && (
-                    <div className="col-span-2 py-16 text-center text-slate-400 text-sm font-bold">无匹配模板</div>
+                    <div className="col-span-2 py-16 text-center text-theme-text-muted text-sm font-bold">无匹配模板</div>
                   )}
                 </div>
               )}
@@ -1471,16 +1471,16 @@ export const EnvAgentPage: React.FC<{ projectId: string }> = ({ projectId }) => 
               />
             </div>
 
-            <div className="p-8 bg-slate-50 border-t border-slate-100 flex items-center justify-between">
-              <p className="text-xs font-bold text-slate-500">
-                本次将提交 <span className="text-blue-600 font-black">{selectedTemplateNames.size}</span> 个模板 ×
-                <span className="text-blue-600 font-black"> {selectedAgentKeys.size}</span> 个 Agent 的部署任务
+            <div className="p-8 bg-theme-bg-app border-t border-theme-border flex items-center justify-between">
+              <p className="text-xs font-bold text-theme-text-muted">
+                本次将提交 <span className="text-blue-400 font-black">{selectedTemplateNames.size}</span> 个模板 ×
+                <span className="text-blue-400 font-black"> {selectedAgentKeys.size}</span> 个 Agent 的部署任务
               </p>
               <div className="flex gap-3">
                 <button
                   onClick={() => setIsBatchDeployModalOpen(false)}
                   disabled={deployingBatch}
-                  className="px-6 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-600 font-black hover:bg-slate-100 disabled:opacity-50"
+                  className="px-6 py-3 bg-theme-bg-app border border-theme-border rounded-xl text-theme-text-secondary font-black hover:bg-theme-elevated disabled:opacity-50"
                 >
                   取消
                 </button>
@@ -1501,18 +1501,18 @@ export const EnvAgentPage: React.FC<{ projectId: string }> = ({ projectId }) => 
       {/* Integration Choice Modal */}
       {isIntegrationModalOpen && (
         <div className="fixed inset-0 z-[120] flex items-center justify-center p-6 bg-slate-950/80 backdrop-blur-xl animate-in fade-in">
- <div className="bg-slate-50 w-full max-w-2xl rounded-[3.5rem] overflow-hidden animate-in zoom-in-95 flex flex-col">
+ <div className="bg-theme-bg-app w-full max-w-2xl rounded-[3.5rem] overflow-hidden animate-in zoom-in-95 flex flex-col">
               <div className="p-10 pb-8 border-b border-slate-50 flex items-center justify-between">
                 <div className="flex items-center gap-5">
  <div className="w-14 h-14 bg-blue-600 rounded-[1.5rem] flex items-center justify-center text-white">
                      <Terminal size={28} />
                    </div>
                    <div>
-                     <h3 className="text-2xl font-black text-slate-800 tracking-tight">接入新执行节点</h3>
-                     <p className="text-xs text-slate-400 font-bold uppercase tracking-widest mt-1">扩展分布式安全探测网络</p>
+                     <h3 className="text-2xl font-black text-theme-text-primary tracking-tight">接入新执行节点</h3>
+                     <p className="text-xs text-theme-text-muted font-bold uppercase tracking-widest mt-1">扩展分布式安全探测网络</p>
                    </div>
                 </div>
-                <button onClick={() => setIsIntegrationModalOpen(false)} className="p-4 bg-slate-50 text-slate-400 hover:text-slate-800 rounded-2xl transition-all">
+                <button onClick={() => setIsIntegrationModalOpen(false)} className="p-4 bg-theme-bg-app text-theme-text-muted hover:text-theme-text-primary rounded-2xl transition-all">
                   <X size={24} />
                 </button>
               </div>
@@ -1522,31 +1522,31 @@ export const EnvAgentPage: React.FC<{ projectId: string }> = ({ projectId }) => 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <button
                       onClick={() => setIntegrationType('manual')}
- className="group p-8 bg-slate-50 border-2 border-transparent hover:border-blue-600 rounded-[2.5rem] text-left transition-all hover:bg-slate-50 hover:"
+ className="group p-8 bg-theme-bg-app border-2 border-transparent hover:border-blue-600 rounded-[2.5rem] text-left transition-all hover:bg-theme-bg-app hover:"
                     >
- <div className="w-12 h-12 bg-slate-50 rounded-2xl flex items-center justify-center text-slate-400 group-hover:text-blue-600 transition-colors mb-6">
+ <div className="w-12 h-12 bg-theme-bg-app rounded-2xl flex items-center justify-center text-theme-text-muted group-hover:text-blue-400 transition-colors mb-6">
                           <Terminal size={24} />
                        </div>
-                       <h4 className="text-lg font-black text-slate-800 mb-2">手动脚本接入</h4>
-                       <p className="text-xs text-slate-500 font-medium leading-relaxed">在 Linux 主机一键执行初始化脚本，建立加密指令隧道。</p>
-                       <div className="mt-6 flex items-center gap-2 text-blue-600 text-[10px] font-black uppercase">
+                       <h4 className="text-lg font-black text-theme-text-primary mb-2">手动脚本接入</h4>
+                       <p className="text-xs text-theme-text-muted font-medium leading-relaxed">在 Linux 主机一键执行初始化脚本，建立加密指令隧道。</p>
+                       <div className="mt-6 flex items-center gap-2 text-blue-400 text-[10px] font-black uppercase">
                          查看指令 <ChevronRight size={14} />
                        </div>
                     </button>
 
                     <button
                       onClick={() => setIntegrationType('auto')}
- className="group p-8 bg-slate-50 border-2 border-transparent hover:border-indigo-600 rounded-[2.5rem] text-left transition-all hover:bg-slate-100 relative overflow-hidden"
+ className="group p-8 bg-theme-bg-app border-2 border-transparent hover:border-indigo-600 rounded-[2.5rem] text-left transition-all hover:bg-theme-elevated relative overflow-hidden"
                     >
                        <div className="absolute top-6 right-6">
-                          <span className="bg-amber-100 text-amber-600 px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest">Developing</span>
+                          <span className="bg-amber-500/15 text-amber-400 px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest">Developing</span>
                        </div>
- <div className="w-12 h-12 bg-slate-50 rounded-2xl flex items-center justify-center text-slate-400 group-hover:text-indigo-600 transition-colors mb-6">
+ <div className="w-12 h-12 bg-theme-bg-app rounded-2xl flex items-center justify-center text-theme-text-muted group-hover:text-indigo-400 transition-colors mb-6">
                           <Zap size={24} />
                        </div>
-                       <h4 className="text-lg font-black text-slate-800 mb-2">自动化扫描接入</h4>
-                       <p className="text-xs text-slate-500 font-medium leading-relaxed">基于 SSH 凭据池自动探测内网存活资产并批量静默分发 Agent。</p>
-                       <div className="mt-6 flex items-center gap-2 text-slate-300 text-[10px] font-black uppercase">
+                       <h4 className="text-lg font-black text-theme-text-primary mb-2">自动化扫描接入</h4>
+                       <p className="text-xs text-theme-text-muted font-medium leading-relaxed">基于 SSH 凭据池自动探测内网存活资产并批量静默分发 Agent。</p>
+                       <div className="mt-6 flex items-center gap-2 text-theme-text-faint text-[10px] font-black uppercase">
                          开发中 <ChevronRight size={14} />
                        </div>
                     </button>
@@ -1555,14 +1555,14 @@ export const EnvAgentPage: React.FC<{ projectId: string }> = ({ projectId }) => 
                   <div className="space-y-8 animate-in slide-in-from-bottom-4">
                     {/* IP Selection UI */}
                     <div className="space-y-4">
-                       <h5 className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                       <h5 className="text-[10px] font-black text-theme-text-muted uppercase tracking-widest flex items-center gap-2">
                          <Globe size={14} className="text-blue-500" /> 选择接入代理 IP (External Gateway)
                        </h5>
 
                        {ipsLoading ? (
-                         <div className="flex items-center gap-3 p-6 bg-slate-50 rounded-2xl border border-slate-100">
-                           <Loader2 size={16} className="animate-spin text-blue-600" />
-                           <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">正在拉取可用路由节点...</span>
+                         <div className="flex items-center gap-3 p-6 bg-theme-bg-app rounded-2xl border border-theme-border">
+                           <Loader2 size={16} className="animate-spin text-blue-400" />
+                           <span className="text-xs font-bold text-theme-text-muted uppercase tracking-widest">正在拉取可用路由节点...</span>
                          </div>
                        ) : externalIps.length > 0 ? (
                          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
@@ -1572,19 +1572,19 @@ export const EnvAgentPage: React.FC<{ projectId: string }> = ({ projectId }) => 
                                 onClick={() => setSelectedIp(ip)}
                                 className={`px-4 py-3 rounded-2xl border-2 transition-all font-mono text-xs font-black flex items-center justify-between group ${
                                   selectedIp === ip
- ? 'bg-blue-50 border-blue-600 text-blue-700'
-                                    : 'bg-slate-50 border-slate-100 text-slate-500 hover:border-blue-200'
+ ? 'bg-blue-500/15 border-blue-600 text-blue-400'
+                                    : 'bg-theme-bg-app border-theme-border text-theme-text-muted hover:border-blue-500/20'
                                 }`}
                               >
                                 {ip}
                                 <div className={`w-3 h-3 rounded-full border-2 transition-all ${
-                                  selectedIp === ip ? 'bg-blue-600 border-blue-600' : 'border-slate-200'
+                                  selectedIp === ip ? 'bg-blue-600 border-blue-600' : 'border-theme-border'
                                 }`} />
                               </button>
                             ))}
                          </div>
                        ) : (
-                         <div className="p-6 bg-red-50 rounded-2xl border border-red-100 flex items-center gap-3 text-red-500">
+                         <div className="p-6 bg-red-500/15 rounded-2xl border border-red-500/20 flex items-center gap-3 text-red-500">
                             <AlertCircle size={18} />
                             <p className="text-xs font-bold">未获取到后台配置的接入 IP，请联系系统管理员。</p>
                          </div>
@@ -1592,19 +1592,19 @@ export const EnvAgentPage: React.FC<{ projectId: string }> = ({ projectId }) => 
                     </div>
 
                     <div className="space-y-4">
-                       <h5 className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                       <h5 className="text-[10px] font-black text-theme-text-muted uppercase tracking-widest flex items-center gap-2">
                          <Command size={14} className="text-blue-500" /> 请在目标服务器终端执行 (Root Auth)
                        </h5>
                        <div className="relative group">
                           <div className="absolute inset-0 bg-blue-600/5 blur-2xl opacity-0 group-hover:opacity-100 transition-opacity" />
- <div className="relative bg-[#0f172a] p-8 rounded-[2rem] border border-slate-200/5 font-mono text-[11px] leading-relaxed group shadow-inner">
+ <div className="relative bg-theme-surface p-8 rounded-[2rem] border border-slate-200/5 font-mono text-[11px] leading-relaxed group shadow-inner">
                              <p className="text-blue-300/90 break-all select-all font-mono">
                                {getIntegrationCommand()}
                              </p>
                              <div className="absolute top-4 right-4">
                                 <button
                                   onClick={handleCopyCommand}
- className={`p-3 rounded-xl transition-all ${copied ? 'bg-green-500 text-white' : 'bg-slate-100/10 text-slate-500 hover:text-white hover:bg-slate-100'}`}
+ className={`p-3 rounded-xl transition-all ${copied ? 'bg-green-500 text-white' : 'bg-slate-100/10 text-theme-text-muted hover:text-white hover:bg-theme-elevated'}`}
                                 >
                                   {copied ? <Check size={16} /> : <Copy size={16} />}
                                 </button>
@@ -1613,30 +1613,30 @@ export const EnvAgentPage: React.FC<{ projectId: string }> = ({ projectId }) => 
                        </div>
                     </div>
 
-                    <div className="p-6 bg-slate-50 rounded-3xl border border-slate-100 space-y-3">
-                       <div className="flex items-center gap-3 text-slate-600">
-                          <AlertCircle size={18} className="text-blue-600" />
+                    <div className="p-6 bg-theme-bg-app rounded-3xl border border-theme-border space-y-3">
+                       <div className="flex items-center gap-3 text-theme-text-secondary">
+                          <AlertCircle size={18} className="text-blue-400" />
                           <h6 className="text-[10px] font-black uppercase tracking-widest">配置说明</h6>
                        </div>
-                       <ul className="text-[11px] text-slate-500 space-y-1.5 font-medium list-disc pl-5 leading-relaxed">
+                       <ul className="text-[11px] text-theme-text-muted space-y-1.5 font-medium list-disc pl-5 leading-relaxed">
                           <li>脚本会自动配置 Docker 运行时并建立与 Nacos 的长连接。</li>
-                          <li>请确保目标主机可以访问所选 IP <code className="bg-slate-200 px-1 rounded text-slate-800 font-mono">{selectedIp || 'Gateway'}</code> 的 80 端口。</li>
+                          <li>请确保目标主机可以访问所选 IP <code className="bg-theme-elevated px-1 rounded text-theme-text-primary font-mono">{selectedIp || 'Gateway'}</code> 的 80 端口。</li>
                           <li>节点注册成功后，其状态将在此管理页面实时呈现。</li>
                        </ul>
                     </div>
                   </div>
                 ) : (
                   <div className="py-20 text-center space-y-6 animate-in zoom-in-95">
-                     <div className="w-20 h-20 bg-indigo-50 text-indigo-600 rounded-[2rem] flex items-center justify-center mx-auto shadow-inner">
+                     <div className="w-20 h-20 bg-indigo-500/15 text-indigo-400 rounded-[2rem] flex items-center justify-center mx-auto shadow-inner">
                         <Sparkles size={40} className="animate-pulse" />
                      </div>
                      <div>
-                        <h4 className="text-xl font-black text-slate-800">自动接入功能开发中</h4>
-                        <p className="text-sm text-slate-400 mt-2 font-medium italic">正在对接企业级资产指纹库与 SSH 自动化运维通道</p>
+                        <h4 className="text-xl font-black text-theme-text-primary">自动接入功能开发中</h4>
+                        <p className="text-sm text-theme-text-muted mt-2 font-medium italic">正在对接企业级资产指纹库与 SSH 自动化运维通道</p>
                      </div>
                      <button
                         onClick={() => setIntegrationType('manual')}
-                        className="text-blue-600 font-black text-[10px] uppercase hover:underline"
+                        className="text-blue-400 font-black text-[10px] uppercase hover:underline"
                       >
                         返回使用手动脚本接入
                       </button>
@@ -1644,11 +1644,11 @@ export const EnvAgentPage: React.FC<{ projectId: string }> = ({ projectId }) => 
                 )}
               </div>
 
-              <div className="p-10 bg-slate-50 border-t border-slate-100 flex justify-between items-center">
+              <div className="p-10 bg-theme-bg-app border-t border-theme-border flex justify-between items-center">
                  {integrationType && (
                    <button
                      onClick={() => setIntegrationType(null)}
-                     className="text-[10px] font-black text-slate-400 uppercase hover:text-slate-600 transition-all flex items-center gap-2"
+                     className="text-[10px] font-black text-theme-text-muted uppercase hover:text-theme-text-secondary transition-all flex items-center gap-2"
                    >
                      <RefreshCw size={14} /> 切换接入方案
                    </button>
@@ -1656,7 +1656,7 @@ export const EnvAgentPage: React.FC<{ projectId: string }> = ({ projectId }) => 
                  <div className="flex-1" />
                  <button
                    onClick={() => setIsIntegrationModalOpen(false)}
- className="px-10 py-4 bg-slate-900 text-white rounded-[1.5rem] font-black text-sm hover:bg-slate-800 transition-all"
+ className="px-10 py-4 bg-theme-surface text-white rounded-[1.5rem] font-black text-sm hover:bg-theme-elevated transition-all"
                  >
                    关闭界面
                  </button>

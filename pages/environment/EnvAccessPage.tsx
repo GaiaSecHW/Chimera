@@ -87,10 +87,10 @@ const copyText = async (text: string): Promise<boolean> => {
 };
 
 const Section: React.FC<{ title: string; description: string; children: React.ReactNode }> = ({ title, description, children }) => (
-  <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+  <section className="rounded-2xl border border-theme-border bg-theme-surface p-6 shadow-sm">
     <div>
-      <h2 className="text-lg font-black text-slate-900">{title}</h2>
-      <p className="mt-1 text-sm leading-6 text-slate-500">{description}</p>
+      <h2 className="text-lg font-black text-theme-text-primary">{title}</h2>
+      <p className="mt-1 text-sm leading-6 text-theme-text-muted">{description}</p>
     </div>
     <div className="mt-5">{children}</div>
   </section>
@@ -105,22 +105,22 @@ const CommandBlock: React.FC<{
   tall?: boolean;
   compact?: boolean;
 }> = ({ title, description, command, language, onCopy, tall = false, compact = false }) => (
-  <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+  <div className="rounded-xl border border-theme-border bg-theme-bg-app p-4">
     <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
       <div>
-        <div className="text-sm font-bold text-slate-900">{title}</div>
-        <div className="mt-1 text-sm leading-6 text-slate-500">{description}</div>
+        <div className="text-sm font-bold text-theme-text-primary">{title}</div>
+        <div className="mt-1 text-sm leading-6 text-theme-text-muted">{description}</div>
       </div>
       <button
         type="button"
         onClick={() => onCopy(command)}
-        className="inline-flex shrink-0 items-center justify-center gap-2 rounded-lg bg-slate-900 px-3 py-2 text-xs font-bold text-white transition hover:bg-slate-700"
+        className="inline-flex shrink-0 items-center justify-center gap-2 rounded-lg bg-theme-surface px-3 py-2 text-xs font-bold text-white transition hover:bg-theme-elevated"
       >
         <Copy size={14} />
         复制
       </button>
     </div>
-    <div className={`mt-3 overflow-hidden rounded-lg border border-slate-200 bg-slate-950 ${tall ? 'h-[520px]' : compact ? 'h-[104px]' : 'h-[260px]'}`}>
+    <div className={`mt-3 overflow-hidden rounded-lg border border-theme-border bg-theme-bg-app ${tall ? 'h-[520px]' : compact ? 'h-[104px]' : 'h-[260px]'}`}>
       <MonacoEditor
         height="100%"
         language={language}
@@ -154,57 +154,57 @@ export const EnvAccessPage: React.FC<{ projectId: string }> = ({ projectId }) =>
   };
 
   return (
-    <div className="min-h-full bg-slate-50 px-8 py-8">
+    <div className="min-h-full bg-theme-bg-app px-8 py-8">
       {feedbackNodes}
       <div className="mx-auto max-w-7xl space-y-6">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div>
-            <div className="inline-flex items-center gap-2 rounded-full border border-blue-200 bg-blue-50 px-3 py-1 text-xs font-black uppercase tracking-[0.18em] text-blue-700">
+            <div className="inline-flex items-center gap-2 rounded-full border border-blue-500/20 bg-blue-500/15 px-3 py-1 text-xs font-black uppercase tracking-[0.18em] text-blue-400">
               <Terminal size={14} />
               Environment Access
             </div>
-            <h1 className="mt-4 text-3xl font-black tracking-tight text-slate-900">环境接入</h1>
-            <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-600">
+            <h1 className="mt-4 text-3xl font-black tracking-tight text-theme-text-primary">环境接入</h1>
+            <p className="mt-2 max-w-3xl text-sm leading-6 text-theme-text-secondary">
               面向测试环境的接入入口。选择部署方式后，在目标节点或集群执行命令，上线后的 Agent 会进入环境管理页面。
             </p>
           </div>
-          <div className="rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-600 shadow-sm">
-            <span className="font-bold text-slate-900">项目 ID：</span>
+          <div className="rounded-xl border border-theme-border bg-theme-surface px-4 py-3 text-sm text-theme-text-secondary shadow-sm">
+            <span className="font-bold text-theme-text-primary">项目 ID：</span>
             <span className="font-mono">{projectId || '-'}</span>
           </div>
         </div>
 
         <div className="grid gap-4 lg:grid-cols-3">
-          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-            <Server className="text-blue-600" size={22} />
-            <div className="mt-3 text-base font-black text-slate-900">普通节点</div>
-            <p className="mt-2 text-sm leading-6 text-slate-500">适合单机、虚机和物理机，直接部署 Agent 到目标环境。</p>
+          <div className="rounded-2xl border border-theme-border bg-theme-surface p-5 shadow-sm">
+            <Server className="text-blue-400" size={22} />
+            <div className="mt-3 text-base font-black text-theme-text-primary">普通节点</div>
+            <p className="mt-2 text-sm leading-6 text-theme-text-muted">适合单机、虚机和物理机，直接部署 Agent 到目标环境。</p>
           </div>
-          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-            <Network className="text-cyan-600" size={22} />
-            <div className="mt-3 text-base font-black text-slate-900">代理接入</div>
-            <p className="mt-2 text-sm leading-6 text-slate-500">适合网络受限环境，通过代理模式完成 Agent 接入。</p>
+          <div className="rounded-2xl border border-theme-border bg-theme-surface p-5 shadow-sm">
+            <Network className="text-cyan-400" size={22} />
+            <div className="mt-3 text-base font-black text-theme-text-primary">代理接入</div>
+            <p className="mt-2 text-sm leading-6 text-theme-text-muted">适合网络受限环境，通过代理模式完成 Agent 接入。</p>
           </div>
-          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-            <Terminal className="text-emerald-600" size={22} />
-            <div className="mt-3 text-base font-black text-slate-900">K8s 集群</div>
-            <p className="mt-2 text-sm leading-6 text-slate-500">适合集群节点批量覆盖，通过 DaemonSet 统一上线。</p>
+          <div className="rounded-2xl border border-theme-border bg-theme-surface p-5 shadow-sm">
+            <Terminal className="text-emerald-400" size={22} />
+            <div className="mt-3 text-base font-black text-theme-text-primary">K8s 集群</div>
+            <p className="mt-2 text-sm leading-6 text-theme-text-muted">适合集群节点批量覆盖，通过 DaemonSet 统一上线。</p>
           </div>
         </div>
 
         <Section title="部署命令" description="命令使用当前项目 ID 和当前平台访问地址生成，请保持原样执行。">
-          <div className="mb-5 inline-flex rounded-xl bg-slate-100 p-1">
+          <div className="mb-5 inline-flex rounded-xl bg-theme-elevated p-1">
             <button
               type="button"
               onClick={() => setActiveTab('normal-node')}
-              className={`rounded-lg px-4 py-2 text-sm font-bold transition ${activeTab === 'normal-node' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-900'}`}
+              className={`rounded-lg px-4 py-2 text-sm font-bold transition ${activeTab === 'normal-node' ? 'bg-theme-surface text-theme-text-primary shadow-sm' : 'text-theme-text-muted hover:text-theme-text-primary'}`}
             >
               普通节点
             </button>
             <button
               type="button"
               onClick={() => setActiveTab('k8s-cluster')}
-              className={`rounded-lg px-4 py-2 text-sm font-bold transition ${activeTab === 'k8s-cluster' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-900'}`}
+              className={`rounded-lg px-4 py-2 text-sm font-bold transition ${activeTab === 'k8s-cluster' ? 'bg-theme-surface text-theme-text-primary shadow-sm' : 'text-theme-text-muted hover:text-theme-text-primary'}`}
             >
               K8s 部署
             </button>
@@ -218,7 +218,7 @@ export const EnvAccessPage: React.FC<{ projectId: string }> = ({ projectId }) =>
           ) : (
             <div className="space-y-4">
               <CommandBlock title="K8s DaemonSet 部署" description="通过 DaemonSet 在 K8s 集群的所有节点上部署测试节点。" command={commands.k8sDaemonSetYaml} language="yaml" onCopy={handleCopy} tall />
-              <div className="rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-sm font-semibold text-blue-700">
+              <div className="rounded-lg border border-blue-500/20 bg-blue-500/15 px-3 py-2 text-sm font-semibold text-blue-400">
                 使用命令：kubectl apply -f gaiasec-daemonset.yaml 部署到 K8s 集群
               </div>
             </div>

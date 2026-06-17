@@ -934,68 +934,68 @@ export const AiGatewayPage: React.FC<AiGatewayPageProps> = ({ entryView = 'aigw-
   };
 
   const renderLogsSection = () => (
- <section className="flex h-full min-h-0 flex-col rounded-[2rem] border border-slate-200 bg-slate-50 p-6">
+ <section className="flex h-full min-h-0 flex-col rounded-[2rem] border border-theme-border bg-theme-bg-app p-6">
       <div className="mb-5 flex shrink-0 items-start justify-between gap-4">
         <div>
-          <div className="text-[11px] font-black uppercase tracking-[0.2em] text-slate-400">日志工作区</div>
-          <h2 className="mt-2 text-xl font-black text-slate-900">请求日志</h2>
+          <div className="text-[11px] font-black uppercase tracking-[0.2em] text-theme-text-muted">日志工作区</div>
+          <h2 className="mt-2 text-xl font-black text-theme-text-primary">请求日志</h2>
         </div>
         <div className="flex items-center gap-2">
-          <label className="flex items-center gap-2 rounded-2xl bg-slate-100 px-4 py-2 text-sm font-bold text-slate-700">
+          <label className="flex items-center gap-2 rounded-2xl bg-theme-elevated px-4 py-2 text-sm font-bold text-theme-text-secondary">
             <input type="checkbox" checked={logAutoRefresh} onChange={(e) => setLogAutoRefresh(e.target.checked)} />
             自动刷新
           </label>
-          <button onClick={() => { setLogPage(1); void loadLogs(); }} className="rounded-2xl bg-slate-100 px-4 py-2 text-sm font-bold text-slate-700 hover:bg-slate-200">刷新日志</button>
+          <button onClick={() => { setLogPage(1); void loadLogs(); }} className="rounded-2xl bg-theme-elevated px-4 py-2 text-sm font-bold text-theme-text-secondary hover:bg-theme-elevated">刷新日志</button>
         </div>
       </div>
 
-      <div className="mb-3 shrink-0 rounded-[1.5rem] border border-slate-200 bg-slate-50">
+      <div className="mb-3 shrink-0 rounded-[1.5rem] border border-theme-border bg-theme-bg-app">
         <button onClick={() => setLogFiltersExpanded(!logFiltersExpanded)} className="w-full flex items-center justify-between gap-3 p-3 text-left">
           <div className="flex items-center gap-2">
-            <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">筛选条件</div>
-            {logModel || logBackendModel || logAliasId || logBackendUnitId || logLlmKeyId || logTaskKeyId || logCapacityPoolId || logTaskId || logSubTaskId || logStartDate || logEndDate ? <span className="rounded-full bg-sky-100 px-2 py-0.5 text-xs font-bold text-sky-700">已筛选</span> : null}
+            <div className="text-[11px] font-black uppercase tracking-[0.18em] text-theme-text-muted">筛选条件</div>
+            {logModel || logBackendModel || logAliasId || logBackendUnitId || logLlmKeyId || logTaskKeyId || logCapacityPoolId || logTaskId || logSubTaskId || logStartDate || logEndDate ? <span className="rounded-full bg-sky-500/15 px-2 py-0.5 text-xs font-bold text-sky-400">已筛选</span> : null}
           </div>
-          {logFiltersExpanded ? <ChevronUp className="h-4 w-4 text-slate-400" /> : <ChevronDown className="h-4 w-4 text-slate-400" />}
+          {logFiltersExpanded ? <ChevronUp className="h-4 w-4 text-theme-text-muted" /> : <ChevronDown className="h-4 w-4 text-theme-text-muted" />}
         </button>
         {logFiltersExpanded ? (
           <>
             <div className="grid gap-3 p-3 pt-0 md:grid-cols-2 xl:grid-cols-5">
-              <input value={logModel} onChange={(e) => setLogModel(e.target.value)} placeholder="公开模型" className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-2 text-sm outline-none" />
-              <select value={logBackendModel} onChange={(e) => setLogBackendModel(e.target.value)} className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-2 text-sm outline-none">
+              <input value={logModel} onChange={(e) => setLogModel(e.target.value)} placeholder="公开模型" className="rounded-2xl border border-theme-border bg-theme-bg-app px-4 py-2 text-sm outline-none" />
+              <select value={logBackendModel} onChange={(e) => setLogBackendModel(e.target.value)} className="rounded-2xl border border-theme-border bg-theme-bg-app px-4 py-2 text-sm outline-none">
                 <option value="">后端模型</option>
                 {backendModels.map((item) => <option key={item} value={item}>{item}</option>)}
               </select>
-              <select value={logAliasId} onChange={(e) => setLogAliasId(e.target.value)} className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-2 text-sm outline-none">
+              <select value={logAliasId} onChange={(e) => setLogAliasId(e.target.value)} className="rounded-2xl border border-theme-border bg-theme-bg-app px-4 py-2 text-sm outline-none">
                 <option value="">模型别名</option>
                 {aliasOptions.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}
               </select>
-              <select value={logBackendUnitId} onChange={(e) => setLogBackendUnitId(e.target.value)} className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-2 text-sm outline-none">
+              <select value={logBackendUnitId} onChange={(e) => setLogBackendUnitId(e.target.value)} className="rounded-2xl border border-theme-border bg-theme-bg-app px-4 py-2 text-sm outline-none">
                 <option value="">模型</option>
                 {backendUnitOptions.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}
               </select>
-              <select value={logLlmKeyId} onChange={(e) => setLogLlmKeyId(e.target.value)} className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-2 text-sm outline-none">
+              <select value={logLlmKeyId} onChange={(e) => setLogLlmKeyId(e.target.value)} className="rounded-2xl border border-theme-border bg-theme-bg-app px-4 py-2 text-sm outline-none">
                 <option value="">调用密钥</option>
                 {llmKeys.map((item) => <option key={item.id} value={item.id}>{item.key_name ||`#${item.id}`}</option>)}
               </select>
-              <select value={logCapacityPoolId} onChange={(e) => setLogCapacityPoolId(e.target.value)} className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-2 text-sm outline-none">
+              <select value={logCapacityPoolId} onChange={(e) => setLogCapacityPoolId(e.target.value)} className="rounded-2xl border border-theme-border bg-theme-bg-app px-4 py-2 text-sm outline-none">
                 <option value="">算力池</option>
                 {capacityPools.map((item) => <option key={item.id} value={item.id}>{item.pool_name}</option>)}
               </select>
-              <input value={logTaskKeyId} onChange={(e) => setLogTaskKeyId(e.target.value)} placeholder="任务密钥 ID" className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-2 text-sm outline-none" />
-              <input value={logTaskId} onChange={(e) => setLogTaskId(e.target.value)} placeholder="任务 ID" className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-2 text-sm outline-none" />
-              <input value={logSubTaskId} onChange={(e) => setLogSubTaskId(e.target.value)} placeholder="子任务 ID" className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-2 text-sm outline-none" />
-              <input type="datetime-local" value={logStartDate} onChange={(e) => setLogStartDate(e.target.value)} className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-2 text-sm outline-none" />
-              <input type="datetime-local" value={logEndDate} onChange={(e) => setLogEndDate(e.target.value)} className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-2 text-sm outline-none" />
+              <input value={logTaskKeyId} onChange={(e) => setLogTaskKeyId(e.target.value)} placeholder="任务密钥 ID" className="rounded-2xl border border-theme-border bg-theme-bg-app px-4 py-2 text-sm outline-none" />
+              <input value={logTaskId} onChange={(e) => setLogTaskId(e.target.value)} placeholder="任务 ID" className="rounded-2xl border border-theme-border bg-theme-bg-app px-4 py-2 text-sm outline-none" />
+              <input value={logSubTaskId} onChange={(e) => setLogSubTaskId(e.target.value)} placeholder="子任务 ID" className="rounded-2xl border border-theme-border bg-theme-bg-app px-4 py-2 text-sm outline-none" />
+              <input type="datetime-local" value={logStartDate} onChange={(e) => setLogStartDate(e.target.value)} className="rounded-2xl border border-theme-border bg-theme-bg-app px-4 py-2 text-sm outline-none" />
+              <input type="datetime-local" value={logEndDate} onChange={(e) => setLogEndDate(e.target.value)} className="rounded-2xl border border-theme-border bg-theme-bg-app px-4 py-2 text-sm outline-none" />
             </div>
             <div className="flex items-center gap-2 p-3 pt-0">
-              <button onClick={() => { setLogPage(1); void loadLogs(); }} disabled={logsLoading} className="rounded-2xl bg-slate-900 px-4 py-2 text-sm font-bold text-white disabled:opacity-50">查询</button>
-              <button onClick={() => { setLogModel(''); setLogBackendModel(''); setLogAliasId(''); setLogBackendUnitId(''); setLogLlmKeyId(''); setLogTaskKeyId(''); setLogCapacityPoolId(''); setLogTaskId(''); setLogSubTaskId(''); setLogStartDate(''); setLogEndDate(''); setLogPage(1); void loadLogs(); }} className="rounded-2xl bg-slate-100 px-4 py-2 text-sm font-bold text-slate-700">重置</button>
+              <button onClick={() => { setLogPage(1); void loadLogs(); }} disabled={logsLoading} className="rounded-2xl bg-theme-surface px-4 py-2 text-sm font-bold text-white disabled:opacity-50">查询</button>
+              <button onClick={() => { setLogModel(''); setLogBackendModel(''); setLogAliasId(''); setLogBackendUnitId(''); setLogLlmKeyId(''); setLogTaskKeyId(''); setLogCapacityPoolId(''); setLogTaskId(''); setLogSubTaskId(''); setLogStartDate(''); setLogEndDate(''); setLogPage(1); void loadLogs(); }} className="rounded-2xl bg-theme-elevated px-4 py-2 text-sm font-bold text-theme-text-secondary">重置</button>
             </div>
           </>
         ) : null}
       </div>
       <div className="mb-3 flex shrink-0 flex-wrap items-center justify-end gap-3">
-        <div className="text-xs font-bold text-slate-400">
+        <div className="text-xs font-bold text-theme-text-muted">
           {logsLoading ? '日志加载中...' :`当前第 ${logPage} 页，共 ${logsTotal} 条`}
         </div>
       </div>
@@ -1003,7 +1003,7 @@ export const AiGatewayPage: React.FC<AiGatewayPageProps> = ({ entryView = 'aigw-
       <div className="min-h-0 flex-1 overflow-auto">
         <table className="min-w-full text-sm">
           <thead>
-            <tr className="border-b border-slate-200 text-left text-slate-500">
+            <tr className="border-b border-theme-border text-left text-theme-text-muted">
               <th className="px-3 py-2 font-bold">时间</th>
               <th className="px-3 py-2 font-bold">模型</th>
               <th className="px-3 py-2 font-bold">任务</th>
@@ -1016,34 +1016,34 @@ export const AiGatewayPage: React.FC<AiGatewayPageProps> = ({ entryView = 'aigw-
           </thead>
           <tbody>
             {logs.map((log) => (
-              <tr key={log.id} className="border-b border-slate-100">
-                <td className="px-3 py-2 text-slate-700">{new Date(log.created_at).toLocaleString('zh-CN')}</td>
+              <tr key={log.id} className="border-b border-theme-border">
+                <td className="px-3 py-2 text-theme-text-secondary">{new Date(log.created_at).toLocaleString('zh-CN')}</td>
                 <td className="px-3 py-2">
-                  <div className="truncate font-bold text-slate-900" title={`后端: ${log.backend_model_name || '-'}`}>{log.model_name || '-'}</div>
+                  <div className="truncate font-bold text-theme-text-primary" title={`后端: ${log.backend_model_name || '-'}`}>{log.model_name || '-'}</div>
                 </td>
                 <td className="px-3 py-2">
-                  <div className="truncate font-mono text-xs text-slate-700" title={log.sub_task_id || '-'}>{log.task_id || '-'}</div>
+                  <div className="truncate font-mono text-xs text-theme-text-secondary" title={log.sub_task_id || '-'}>{log.task_id || '-'}</div>
                 </td>
-                <td className="px-3 py-2 text-slate-700 text-xs">A{log.model_alias_id || '-'} / U{log.backend_unit_id || '-'}</td>
+                <td className="px-3 py-2 text-theme-text-secondary text-xs">A{log.model_alias_id || '-'} / U{log.backend_unit_id || '-'}</td>
                 <td className="px-3 py-2">
                   <div className="flex items-center gap-1.5">
-                    <span className={`rounded-full px-2 py-0.5 text-xs font-bold ${log.status_code >= 200 && log.status_code < 300 ? 'bg-emerald-100 text-emerald-700' : log.status_code >= 400 ? 'bg-rose-100 text-rose-700' : 'bg-slate-100 text-slate-600'}`}>{log.status_code || '-'}</span>
-                    <span className="text-xs text-slate-500">{log.is_stream ? 'stream' : 'json'}</span>
+                    <span className={`rounded-full px-2 py-0.5 text-xs font-bold ${log.status_code >= 200 && log.status_code < 300 ? 'bg-emerald-500/15 text-emerald-400' : log.status_code >= 400 ? 'bg-rose-500/15 text-rose-400' : 'bg-theme-elevated text-theme-text-secondary'}`}>{log.status_code || '-'}</span>
+                    <span className="text-xs text-theme-text-muted">{log.is_stream ? 'stream' : 'json'}</span>
                   </div>
                 </td>
-                <td className="px-3 py-2 text-slate-700 text-xs">{log.response_time || 0} ms / 首 Token {log.first_token_latency || 0} ms</td>
-                <td className="max-w-[300px] px-3 py-2 text-slate-700"><div className="truncate text-xs" title={log.request_preview}>{log.request_preview || '-'}</div></td>
+                <td className="px-3 py-2 text-theme-text-secondary text-xs">{log.response_time || 0} ms / 首 Token {log.first_token_latency || 0} ms</td>
+                <td className="max-w-[300px] px-3 py-2 text-theme-text-secondary"><div className="truncate text-xs" title={log.request_preview}>{log.request_preview || '-'}</div></td>
                 <td className="px-3 py-2">
                   <div className="flex items-center gap-1.5">
-                    <button onClick={() => openLogDetail(log.id)} disabled={detailLoading} className="rounded-lg bg-slate-100 px-2 py-1 text-xs font-bold text-slate-700 hover:bg-slate-200 disabled:opacity-50"><Eye className="h-3 w-3" /></button>
-                    <button onClick={() => replayLog(log.id)} disabled={replayingLogId === log.id} className="rounded-lg bg-amber-100 px-2 py-1 text-xs font-bold text-amber-700 hover:bg-amber-200 disabled:opacity-50"><RefreshCw className={`h-3 w-3 ${replayingLogId === log.id ? 'animate-spin' : ''}`} /></button>
+                    <button onClick={() => openLogDetail(log.id)} disabled={detailLoading} className="rounded-lg bg-theme-elevated px-2 py-1 text-xs font-bold text-theme-text-secondary hover:bg-theme-elevated disabled:opacity-50"><Eye className="h-3 w-3" /></button>
+                    <button onClick={() => replayLog(log.id)} disabled={replayingLogId === log.id} className="rounded-lg bg-amber-500/15 px-2 py-1 text-xs font-bold text-amber-400 hover:bg-amber-200 disabled:opacity-50"><RefreshCw className={`h-3 w-3 ${replayingLogId === log.id ? 'animate-spin' : ''}`} /></button>
                   </div>
                 </td>
               </tr>
             ))}
             {!logs.length && !logsLoading ? (
               <tr>
-                <td colSpan={8} className="px-3 py-10 text-center text-slate-400">暂无日志</td>
+                <td colSpan={8} className="px-3 py-10 text-center text-theme-text-muted">暂无日志</td>
               </tr>
             ) : null}
           </tbody>
@@ -1051,69 +1051,69 @@ export const AiGatewayPage: React.FC<AiGatewayPageProps> = ({ entryView = 'aigw-
       </div>
 
       <div className="mt-5 flex shrink-0 items-center justify-between">
-        <div className="text-sm text-slate-500">共 {logsTotal} 条</div>
+        <div className="text-sm text-theme-text-muted">共 {logsTotal} 条</div>
         <div className="flex items-center gap-2">
-          <button onClick={clearLogs} className="rounded-xl bg-rose-100 px-3 py-2 text-sm font-bold text-rose-700 hover:bg-rose-200">清空日志</button>
-          <select value={logPageSize} onChange={(e) => { setLogPageSize(Number(e.target.value)); setLogPage(1); }} className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm outline-none">
+          <button onClick={clearLogs} className="rounded-xl bg-rose-500/15 px-3 py-2 text-sm font-bold text-rose-400 hover:bg-rose-200">清空日志</button>
+          <select value={logPageSize} onChange={(e) => { setLogPageSize(Number(e.target.value)); setLogPage(1); }} className="rounded-xl border border-theme-border bg-theme-bg-app px-3 py-2 text-sm outline-none">
             {[10, 20, 50, 100].map((size) => <option key={size} value={size}>{size} / 页</option>)}
           </select>
-          <button disabled={logPage <= 1} onClick={() => setLogPage((v) => Math.max(1, v - 1))} className="rounded-xl bg-slate-100 px-3 py-2 text-sm font-bold text-slate-700 disabled:opacity-40">上一页</button>
-          <span className="text-sm font-bold text-slate-700">{logPage}</span>
-          <button disabled={logPage * logPageSize >= logsTotal} onClick={() => setLogPage((v) => v + 1)} className="rounded-xl bg-slate-100 px-3 py-2 text-sm font-bold text-slate-700 disabled:opacity-40">下一页</button>
+          <button disabled={logPage <= 1} onClick={() => setLogPage((v) => Math.max(1, v - 1))} className="rounded-xl bg-theme-elevated px-3 py-2 text-sm font-bold text-theme-text-secondary disabled:opacity-40">上一页</button>
+          <span className="text-sm font-bold text-theme-text-secondary">{logPage}</span>
+          <button disabled={logPage * logPageSize >= logsTotal} onClick={() => setLogPage((v) => v + 1)} className="rounded-xl bg-theme-elevated px-3 py-2 text-sm font-bold text-theme-text-secondary disabled:opacity-40">下一页</button>
         </div>
       </div>
     </section>
   );
 
   const renderKeyManagementSection = (options?: { onClose?: () => void }) => (
- <section className="flex h-full min-h-0 flex-col rounded-[2rem] border border-slate-200 bg-slate-50 p-6">
+ <section className="flex h-full min-h-0 flex-col rounded-[2rem] border border-theme-border bg-theme-bg-app p-6">
       <div className="mb-5 flex shrink-0 items-start justify-between gap-4">
         <div>
-          <div className="text-[11px] font-black uppercase tracking-[0.2em] text-slate-400">调用凭证</div>
-          <h2 className="mt-2 text-xl font-black text-slate-900">调用密钥管理</h2>
+          <div className="text-[11px] font-black uppercase tracking-[0.2em] text-theme-text-muted">调用凭证</div>
+          <h2 className="mt-2 text-xl font-black text-theme-text-primary">调用密钥管理</h2>
         </div>
         <div className="flex items-center gap-2">
-          <button onClick={() => { setKeyPage(1); void loadKeys(); }} className="rounded-2xl bg-slate-100 px-4 py-2 text-sm font-bold text-slate-700 hover:bg-slate-200">刷新</button>
-          <button onClick={() => openLlmKeyModal()} className="inline-flex items-center gap-2 rounded-2xl bg-slate-900 px-4 py-2.5 text-sm font-bold text-white">
+          <button onClick={() => { setKeyPage(1); void loadKeys(); }} className="rounded-2xl bg-theme-elevated px-4 py-2 text-sm font-bold text-theme-text-secondary hover:bg-theme-elevated">刷新</button>
+          <button onClick={() => openLlmKeyModal()} className="inline-flex items-center gap-2 rounded-2xl bg-theme-surface px-4 py-2.5 text-sm font-bold text-white">
             <Plus className="h-4 w-4" />
             新建调用密钥
           </button>
           {options?.onClose ? (
-            <button onClick={options.onClose} className="rounded-2xl bg-slate-100 p-2 text-slate-600 hover:bg-slate-200">
+            <button onClick={options.onClose} className="rounded-2xl bg-theme-elevated p-2 text-theme-text-secondary hover:bg-theme-elevated">
               <X className="h-5 w-5" />
             </button>
           ) : null}
         </div>
       </div>
 
-      <div className="mb-3 shrink-0 rounded-[1.5rem] border border-slate-200 bg-slate-50">
+      <div className="mb-3 shrink-0 rounded-[1.5rem] border border-theme-border bg-theme-bg-app">
         <button onClick={() => setKeyFiltersExpanded(!keyFiltersExpanded)} className="w-full flex items-center justify-between gap-3 p-3 text-left">
           <div className="flex items-center gap-2">
-            <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">筛选条件</div>
-            {keySearch || keyKeyType || keyEnabled ? <span className="rounded-full bg-sky-100 px-2 py-0.5 text-xs font-bold text-sky-700">已筛选</span> : null}
+            <div className="text-[11px] font-black uppercase tracking-[0.18em] text-theme-text-muted">筛选条件</div>
+            {keySearch || keyKeyType || keyEnabled ? <span className="rounded-full bg-sky-500/15 px-2 py-0.5 text-xs font-bold text-sky-400">已筛选</span> : null}
           </div>
-          {keyFiltersExpanded ? <ChevronUp className="h-4 w-4 text-slate-400" /> : <ChevronDown className="h-4 w-4 text-slate-400" />}
+          {keyFiltersExpanded ? <ChevronUp className="h-4 w-4 text-theme-text-muted" /> : <ChevronDown className="h-4 w-4 text-theme-text-muted" />}
         </button>
         {keyFiltersExpanded ? (
           <div className="grid gap-3 p-3 pt-0 md:grid-cols-2 xl:grid-cols-4">
-            <input value={keySearch} onChange={(e) => setKeySearch(e.target.value)} placeholder="搜索名称、任务 ID、备注..." className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-2 text-sm outline-none" />
-            <select value={keyKeyType} onChange={(e) => setKeyKeyType(e.target.value)} className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-2 text-sm outline-none">
+            <input value={keySearch} onChange={(e) => setKeySearch(e.target.value)} placeholder="搜索名称、任务 ID、备注..." className="rounded-2xl border border-theme-border bg-theme-bg-app px-4 py-2 text-sm outline-none" />
+            <select value={keyKeyType} onChange={(e) => setKeyKeyType(e.target.value)} className="rounded-2xl border border-theme-border bg-theme-bg-app px-4 py-2 text-sm outline-none">
               <option value="">全部类型</option>
               <option value="task">任务密钥</option>
               <option value="work">工作密钥</option>
             </select>
-            <select value={keyEnabled} onChange={(e) => setKeyEnabled(e.target.value)} className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-2 text-sm outline-none">
+            <select value={keyEnabled} onChange={(e) => setKeyEnabled(e.target.value)} className="rounded-2xl border border-theme-border bg-theme-bg-app px-4 py-2 text-sm outline-none">
               <option value="">全部状态</option>
               <option value="true">启用</option>
               <option value="false">禁用</option>
             </select>
-            <button onClick={() => { setKeySearch(''); setKeyKeyType(''); setKeyEnabled(''); setKeyPage(1); }} className="rounded-2xl bg-slate-100 px-4 py-2 text-sm font-bold text-slate-700 hover:bg-slate-200">重置</button>
+            <button onClick={() => { setKeySearch(''); setKeyKeyType(''); setKeyEnabled(''); setKeyPage(1); }} className="rounded-2xl bg-theme-elevated px-4 py-2 text-sm font-bold text-theme-text-secondary hover:bg-theme-elevated">重置</button>
           </div>
         ) : null}
       </div>
 
       <div className="mb-3 flex shrink-0 flex-wrap items-center justify-between gap-3">
-        <div className="text-xs font-bold text-slate-400">
+        <div className="text-xs font-bold text-theme-text-muted">
           {llmKeysLoading ? '加载中...' :`当前第 ${keyPage} 页，共 ${llmKeysTotal} 条`}
         </div>
       </div>
@@ -1121,7 +1121,7 @@ export const AiGatewayPage: React.FC<AiGatewayPageProps> = ({ entryView = 'aigw-
       <div className="min-h-0 flex-1 overflow-auto">
         <table className="min-w-full text-sm">
           <thead>
-            <tr className="border-b border-slate-200 text-left text-slate-500">
+            <tr className="border-b border-theme-border text-left text-theme-text-muted">
               <th className="px-3 py-2 font-bold">名称</th>
               <th className="px-3 py-2 font-bold">类型</th>
               <th className="px-3 py-2 font-bold">最大并发</th>
@@ -1133,28 +1133,28 @@ export const AiGatewayPage: React.FC<AiGatewayPageProps> = ({ entryView = 'aigw-
           </thead>
           <tbody>
             {llmKeys.map((item) => (
-              <tr className="border-b border-slate-100">
+              <tr className="border-b border-theme-border">
                 <td className="px-3 py-2">
-                  <div className="truncate font-bold text-slate-900" title={item.description || '无备注'}>{item.key_name ||`密钥 #${item.id}`}</div>
+                  <div className="truncate font-bold text-theme-text-primary" title={item.description || '无备注'}>{item.key_name ||`密钥 #${item.id}`}</div>
                 </td>
-                <td className="px-3 py-2 text-slate-700">{item.key_type === 'task' ? '任务密钥' : item.key_type === 'work' ? '工作密钥' : item.key_type}</td>
-                <td className="px-3 py-2 text-slate-700">{item.max_concurrency || 0}</td>
-                <td className="px-3 py-2 text-slate-700">{item.task_id ? (item.key_type === 'work' && item.sub_task_id ?`${item.task_id} / ${item.sub_task_id}` : item.task_id) : '-'}</td>
-                <td className="px-3 py-2"><span className={`rounded-full px-2 py-0.5 text-xs font-bold ${item.enabled ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500'}`}>{item.enabled ? '启用' : '禁用'}</span></td>
-                <td className="px-3 py-2 text-slate-700">{item.updated_at ? new Date(item.updated_at).toLocaleString('zh-CN') : '-'}</td>
+                <td className="px-3 py-2 text-theme-text-secondary">{item.key_type === 'task' ? '任务密钥' : item.key_type === 'work' ? '工作密钥' : item.key_type}</td>
+                <td className="px-3 py-2 text-theme-text-secondary">{item.max_concurrency || 0}</td>
+                <td className="px-3 py-2 text-theme-text-secondary">{item.task_id ? (item.key_type === 'work' && item.sub_task_id ?`${item.task_id} / ${item.sub_task_id}` : item.task_id) : '-'}</td>
+                <td className="px-3 py-2"><span className={`rounded-full px-2 py-0.5 text-xs font-bold ${item.enabled ? 'bg-emerald-500/15 text-emerald-400' : 'bg-theme-elevated text-theme-text-muted'}`}>{item.enabled ? '启用' : '禁用'}</span></td>
+                <td className="px-3 py-2 text-theme-text-secondary">{item.updated_at ? new Date(item.updated_at).toLocaleString('zh-CN') : '-'}</td>
                 <td className="px-3 py-2">
                   <div className="flex items-center gap-1.5">
-                    <button onClick={() => openLlmKeyModal(item)} className="rounded-lg bg-slate-100 px-2 py-1 text-xs font-bold text-slate-700 hover:bg-slate-200"><Pencil className="h-3 w-3" /></button>
-                    <button onClick={() => openLogsDrawer({ title:`${item.key_name ||`密钥 #${item.id}`} 日志`, llmKeyId: String(item.id) })} className="rounded-lg bg-slate-100 px-2 py-1 text-xs font-bold text-slate-700 hover:bg-slate-200"><FileText className="h-3 w-3" /></button>
-                    <button onClick={() => openLlmKeyDetail(item.id)} className="rounded-lg bg-slate-100 px-2 py-1 text-xs font-bold text-slate-700 hover:bg-slate-200"><Eye className="h-3 w-3" /></button>
-                    <button onClick={() => deleteLlmKey(item)} className="rounded-lg bg-rose-100 px-2 py-1 text-xs font-bold text-rose-700 hover:bg-rose-200"><Trash2 className="h-3 w-3" /></button>
+                    <button onClick={() => openLlmKeyModal(item)} className="rounded-lg bg-theme-elevated px-2 py-1 text-xs font-bold text-theme-text-secondary hover:bg-theme-elevated"><Pencil className="h-3 w-3" /></button>
+                    <button onClick={() => openLogsDrawer({ title:`${item.key_name ||`密钥 #${item.id}`} 日志`, llmKeyId: String(item.id) })} className="rounded-lg bg-theme-elevated px-2 py-1 text-xs font-bold text-theme-text-secondary hover:bg-theme-elevated"><FileText className="h-3 w-3" /></button>
+                    <button onClick={() => openLlmKeyDetail(item.id)} className="rounded-lg bg-theme-elevated px-2 py-1 text-xs font-bold text-theme-text-secondary hover:bg-theme-elevated"><Eye className="h-3 w-3" /></button>
+                    <button onClick={() => deleteLlmKey(item)} className="rounded-lg bg-rose-500/15 px-2 py-1 text-xs font-bold text-rose-400 hover:bg-rose-200"><Trash2 className="h-3 w-3" /></button>
                   </div>
                 </td>
               </tr>
             ))}
             {!llmKeys.length && !llmKeysLoading ? (
               <tr>
-                <td colSpan={7} className="px-3 py-10 text-center text-slate-400">暂无调用密钥</td>
+                <td colSpan={7} className="px-3 py-10 text-center text-theme-text-muted">暂无调用密钥</td>
               </tr>
             ) : null}
           </tbody>
@@ -1162,14 +1162,14 @@ export const AiGatewayPage: React.FC<AiGatewayPageProps> = ({ entryView = 'aigw-
       </div>
 
       <div className="mt-5 flex shrink-0 items-center justify-between">
-        <div className="text-sm text-slate-500">共 {llmKeysTotal} 条</div>
+        <div className="text-sm text-theme-text-muted">共 {llmKeysTotal} 条</div>
         <div className="flex items-center gap-2">
-          <select value={keyPageSize} onChange={(e) => { setKeyPageSize(Number(e.target.value)); setKeyPage(1); }} className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm outline-none">
+          <select value={keyPageSize} onChange={(e) => { setKeyPageSize(Number(e.target.value)); setKeyPage(1); }} className="rounded-xl border border-theme-border bg-theme-bg-app px-3 py-2 text-sm outline-none">
             {[10, 20, 50, 100].map((size) => <option key={size} value={size}>{size} / 页</option>)}
           </select>
-          <button disabled={keyPage <= 1} onClick={() => setKeyPage((v) => Math.max(1, v - 1))} className="rounded-xl bg-slate-100 px-3 py-2 text-sm font-bold text-slate-700 disabled:opacity-40">上一页</button>
-          <span className="text-sm font-bold text-slate-700">{keyPage}</span>
-          <button disabled={keyPage * keyPageSize >= llmKeysTotal} onClick={() => setKeyPage((v) => v + 1)} className="rounded-xl bg-slate-100 px-3 py-2 text-sm font-bold text-slate-700 disabled:opacity-40">下一页</button>
+          <button disabled={keyPage <= 1} onClick={() => setKeyPage((v) => Math.max(1, v - 1))} className="rounded-xl bg-theme-elevated px-3 py-2 text-sm font-bold text-theme-text-secondary disabled:opacity-40">上一页</button>
+          <span className="text-sm font-bold text-theme-text-secondary">{keyPage}</span>
+          <button disabled={keyPage * keyPageSize >= llmKeysTotal} onClick={() => setKeyPage((v) => v + 1)} className="rounded-xl bg-theme-elevated px-3 py-2 text-sm font-bold text-theme-text-secondary disabled:opacity-40">下一页</button>
         </div>
       </div>
     </section>
@@ -1182,21 +1182,21 @@ export const AiGatewayPage: React.FC<AiGatewayPageProps> = ({ entryView = 'aigw-
       {feedbackNodes}
       <div className="flex shrink-0 items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-black tracking-tight text-slate-900">{pageTitle}</h1>
+          <h1 className="text-3xl font-black tracking-tight text-theme-text-primary">{pageTitle}</h1>
         </div>
         <button
           onClick={refreshData}
           disabled={refreshing || loading}
-          className="inline-flex items-center gap-2 rounded-2xl bg-slate-900 px-4 py-2.5 text-sm font-bold text-white transition hover:bg-slate-700 disabled:opacity-50"
+          className="inline-flex items-center gap-2 rounded-2xl bg-theme-surface px-4 py-2.5 text-sm font-bold text-white transition hover:bg-theme-elevated disabled:opacity-50"
         >
           <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
           刷新
         </button>
       </div>
 
-      {error ? <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-medium text-rose-700">{error}</div> : null}
+      {error ? <div className="rounded-2xl border border-rose-500/20 bg-rose-500/15 px-4 py-3 text-sm font-medium text-rose-400">{error}</div> : null}
       {testResult ? (
-        <div className="rounded-2xl border border-sky-200 bg-sky-50 px-4 py-3 text-sm text-sky-800">
+        <div className="rounded-2xl border border-sky-500/20 bg-sky-500/15 px-4 py-3 text-sm text-sky-400">
           测试结果：{testResult.message || testResult.error_message || testResult.error || (testResult.success || testResult.reachable ? 'success' : 'failed')}
           {typeof testResult.latency_ms === 'number' ?` · ${testResult.latency_ms} ms` : ''}
           {typeof testResult.status_code === 'number' ?` · HTTP ${testResult.status_code}` : ''}
@@ -1214,33 +1214,33 @@ export const AiGatewayPage: React.FC<AiGatewayPageProps> = ({ entryView = 'aigw-
       ) : entryView === 'aigw-token-stats' ? (
         <AiGatewayTokenStatsPage onNavigate={onNavigate} />
       ) : (
- <section className="flex min-h-[680px] flex-1 flex-col rounded-[2rem] border border-slate-200 bg-slate-50 p-6">
+ <section className="flex min-h-[680px] flex-1 flex-col rounded-[2rem] border border-theme-border bg-theme-bg-app p-6">
         <div className="mb-5 flex shrink-0 flex-wrap items-center justify-between gap-3">
           <div>
-            <h2 className="text-xl font-black text-slate-900">模型配置工作台</h2>
+            <h2 className="text-xl font-black text-theme-text-primary">模型配置工作台</h2>
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            <button onClick={() => onNavigate ? onNavigate('aigw-keys') : setKeyManagementOpen(true)} className="inline-flex items-center gap-2 rounded-2xl bg-slate-100 px-4 py-2.5 text-sm font-bold text-slate-700 hover:bg-slate-200">
+            <button onClick={() => onNavigate ? onNavigate('aigw-keys') : setKeyManagementOpen(true)} className="inline-flex items-center gap-2 rounded-2xl bg-theme-elevated px-4 py-2.5 text-sm font-bold text-theme-text-secondary hover:bg-theme-elevated">
               <KeyRound className="h-4 w-4" />
               密钥管理
             </button>
-            <button onClick={() => onNavigate ? onNavigate('aigw-logs') : openLogsDrawer()} className="inline-flex items-center gap-2 rounded-2xl bg-slate-100 px-4 py-2.5 text-sm font-bold text-slate-700 hover:bg-slate-200">
+            <button onClick={() => onNavigate ? onNavigate('aigw-logs') : openLogsDrawer()} className="inline-flex items-center gap-2 rounded-2xl bg-theme-elevated px-4 py-2.5 text-sm font-bold text-theme-text-secondary hover:bg-theme-elevated">
               <FileText className="h-4 w-4" />
               查看日志
             </button>
           </div>
         </div>
         <div className="grid min-h-0 flex-1 gap-4 xl:grid-cols-[240px,1fr,360px]">
-          <aside className="flex min-h-0 flex-col rounded-[1.5rem] border border-slate-200 bg-slate-50 p-4">
+          <aside className="flex min-h-0 flex-col rounded-[1.5rem] border border-theme-border bg-theme-bg-app p-4">
             <div className="flex items-start justify-between gap-3">
               <div>
-                <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">别名列</div>
-                <h3 className="mt-1 text-lg font-black text-slate-900">模型别名</h3>
+                <div className="text-[11px] font-black uppercase tracking-[0.18em] text-theme-text-muted">别名列</div>
+                <h3 className="mt-1 text-lg font-black text-theme-text-primary">模型别名</h3>
               </div>
               <button
                 type="button"
                 onClick={() => openAliasModal()}
-                className="rounded-xl bg-slate-900 p-2 text-white hover:bg-slate-700"
+                className="rounded-xl bg-theme-surface p-2 text-white hover:bg-theme-elevated"
                 aria-label="新建模型别名"
                 title="新建模型别名"
               >
@@ -1262,12 +1262,12 @@ export const AiGatewayPage: React.FC<AiGatewayPageProps> = ({ entryView = 'aigw-
                         setSelectedAliasId(group.alias.id);
                       }
                     }}
-                    className={`w-full rounded-2xl border px-4 py-3 text-left transition ${active ? 'border-slate-900 bg-slate-900 text-white' : 'border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100'}`}
+                    className={`w-full rounded-2xl border px-4 py-3 text-left transition ${active ? 'border-theme-border bg-theme-surface text-white' : 'border-theme-border bg-theme-bg-app text-theme-text-secondary hover:bg-theme-elevated'}`}
                   >
                     <div className="flex items-center justify-between gap-2">
                       <div className="flex items-center gap-2">
                         <div className="font-black">{group.alias.alias_name}</div>
-                        <span className={`rounded-full px-2 py-0.5 text-[11px] font-bold ${active ? 'bg-slate-50/15 text-white' : 'bg-slate-100 text-slate-500'}`}>{group.bindings.length}</span>
+                        <span className={`rounded-full px-2 py-0.5 text-[11px] font-bold ${active ? 'bg-slate-50/15 text-white' : 'bg-theme-elevated text-theme-text-muted'}`}>{group.bindings.length}</span>
                       </div>
                       <div className="flex flex-wrap gap-2">
                         <button
@@ -1276,7 +1276,7 @@ export const AiGatewayPage: React.FC<AiGatewayPageProps> = ({ entryView = 'aigw-
                             e.stopPropagation();
                             openAliasModal(group.alias);
                           }}
- className={`rounded-xl p-1.5 ${active ? 'bg-slate-50/15 text-white hover:bg-slate-100' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'}`}
+ className={`rounded-xl p-1.5 ${active ? 'bg-slate-50/15 text-white hover:bg-theme-elevated' : 'bg-theme-elevated text-theme-text-secondary hover:bg-theme-elevated'}`}
                           aria-label={`编辑模型别名 ${group.alias.alias_name}`}
                         >
                           <Pencil className="h-3.5 w-3.5" />
@@ -1287,7 +1287,7 @@ export const AiGatewayPage: React.FC<AiGatewayPageProps> = ({ entryView = 'aigw-
                             e.stopPropagation();
                             void deleteItem('alias', group.alias.id,`模型别名 ${group.alias.alias_name}`);
                           }}
-                          className="rounded-xl bg-rose-100 p-1.5 text-rose-700 hover:bg-rose-200"
+                          className="rounded-xl bg-rose-500/15 p-1.5 text-rose-400 hover:bg-rose-200"
                           aria-label={`删除模型别名 ${group.alias.alias_name}`}
                         >
                           <Trash2 className="h-3.5 w-3.5" />
@@ -1297,20 +1297,20 @@ export const AiGatewayPage: React.FC<AiGatewayPageProps> = ({ entryView = 'aigw-
                   </div>
                 );
               })}
-              {!aliasGroups.length ? <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-4 py-8 text-center text-sm text-slate-500">暂无模型别名</div> : null}
+              {!aliasGroups.length ? <div className="rounded-2xl border border-dashed border-theme-border bg-theme-bg-app px-4 py-8 text-center text-sm text-theme-text-muted">暂无模型别名</div> : null}
             </div>
           </aside>
 
-          <section className="flex min-h-0 flex-col rounded-[1.5rem] border border-slate-200 bg-slate-50 p-4">
+          <section className="flex min-h-0 flex-col rounded-[1.5rem] border border-theme-border bg-theme-bg-app p-4">
             <div className="flex shrink-0 items-center justify-between gap-3">
               <div>
-                <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">绑定区</div>
-                <h3 className="mt-1 text-lg font-black text-slate-900">{selectedAlias ?`${selectedAlias.alias_name} 的真实路由绑定` : '请选择模型别名'}</h3>
+                <div className="text-[11px] font-black uppercase tracking-[0.18em] text-theme-text-muted">绑定区</div>
+                <h3 className="mt-1 text-lg font-black text-theme-text-primary">{selectedAlias ?`${selectedAlias.alias_name} 的真实路由绑定` : '请选择模型别名'}</h3>
               </div>
               {selectedAlias ? (
                 <button
                   onClick={() => openBindingModal(undefined, { modelAliasId: selectedAlias.id })}
-                  className="inline-flex items-center gap-2 rounded-2xl bg-slate-900 px-4 py-2 text-sm font-bold text-white"
+                  className="inline-flex items-center gap-2 rounded-2xl bg-theme-surface px-4 py-2 text-sm font-bold text-white"
                 >
                   <Plus className="h-4 w-4" />
                   新增真实路由
@@ -1322,33 +1322,33 @@ export const AiGatewayPage: React.FC<AiGatewayPageProps> = ({ entryView = 'aigw-
                 if (selectedAliasId && draggingBackendUnitId) event.preventDefault();
               }}
               onDrop={createBindingFromDrop}
-              className={`mt-4 min-h-[420px] flex-1 overflow-auto rounded-[1.5rem] border p-4 transition ${selectedAliasId && draggingBackendUnitId ? 'border-sky-300 bg-sky-50/70' : selectedAliasId ? 'border-slate-200 bg-slate-50' : 'border-slate-200 bg-slate-50/60'}`}
+              className={`mt-4 min-h-[420px] flex-1 overflow-auto rounded-[1.5rem] border p-4 transition ${selectedAliasId && draggingBackendUnitId ? 'border-sky-300 bg-sky-50/70' : selectedAliasId ? 'border-theme-border bg-theme-bg-app' : 'border-theme-border bg-slate-50/60'}`}
             >
               {selectedAliasId ? (
                 <div className="space-y-6">
                   <div>
                     <div className="mb-3 flex items-center justify-between gap-3">
-                      <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">真实路由</div>
-                      <div className="text-xs font-bold text-slate-500">{selectedAliasBindingCards.length} 个 backend unit</div>
+                      <div className="text-[11px] font-black uppercase tracking-[0.18em] text-theme-text-muted">真实路由</div>
+                      <div className="text-xs font-bold text-theme-text-muted">{selectedAliasBindingCards.length} 个 backend unit</div>
                     </div>
                     <div className="grid gap-2 md:grid-cols-2">
                       {selectedAliasBindingCards.map(({ binding, unit }) => (
-                        <div key={binding.id} className={`rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 transition hover:bg-slate-100 ${binding.enabled ? '' : 'opacity-60'}`}>
+                        <div key={binding.id} className={`rounded-2xl border border-theme-border bg-theme-bg-app px-4 py-3 transition hover:bg-theme-elevated ${binding.enabled ? '' : 'opacity-60'}`}>
                           <div className="flex items-center justify-between gap-3">
                             <div className="min-w-0">
-                              <div className="truncate text-sm font-black text-slate-900">{unit?.model_name ||`U${binding.backend_unit_id}`}</div>
-                              <div className="mt-0.5 text-xs font-bold text-slate-400">U{binding.backend_unit_id} · P{binding.priority} / W{binding.weight}{binding.enabled ? '' : ' · off'}</div>
+                              <div className="truncate text-sm font-black text-theme-text-primary">{unit?.model_name ||`U${binding.backend_unit_id}`}</div>
+                              <div className="mt-0.5 text-xs font-bold text-theme-text-muted">U{binding.backend_unit_id} · P{binding.priority} / W{binding.weight}{binding.enabled ? '' : ' · off'}</div>
                             </div>
                             <div className="flex shrink-0 flex-wrap gap-2">
-                              <button onClick={() => openBindingModal(binding)} className="rounded-xl bg-slate-100 p-1.5 text-slate-700 hover:bg-slate-200" aria-label={`编辑真实路由 #${binding.id}`}><Pencil className="h-3.5 w-3.5" /></button>
-                              {unit ? <button onClick={() => openLogsDrawer({ title:`${unit.model_name} 的请求日志`, aliasId: String(binding.model_alias_id), backendUnitId: String(binding.backend_unit_id) })} className="rounded-xl bg-slate-100 p-1.5 text-slate-700 hover:bg-slate-200" aria-label={`查看 ${unit.model_name} 的请求日志`}><FileText className="h-3.5 w-3.5" /></button> : null}
-                              <button onClick={() => void deleteItem('binding', binding.id,`真实路由绑定 #${binding.id}`)} className="rounded-xl bg-rose-100 p-1.5 text-rose-700 hover:bg-rose-200" aria-label={`删除真实路由 #${binding.id}`}><Trash2 className="h-3.5 w-3.5" /></button>
+                              <button onClick={() => openBindingModal(binding)} className="rounded-xl bg-theme-elevated p-1.5 text-theme-text-secondary hover:bg-theme-elevated" aria-label={`编辑真实路由 #${binding.id}`}><Pencil className="h-3.5 w-3.5" /></button>
+                              {unit ? <button onClick={() => openLogsDrawer({ title:`${unit.model_name} 的请求日志`, aliasId: String(binding.model_alias_id), backendUnitId: String(binding.backend_unit_id) })} className="rounded-xl bg-theme-elevated p-1.5 text-theme-text-secondary hover:bg-theme-elevated" aria-label={`查看 ${unit.model_name} 的请求日志`}><FileText className="h-3.5 w-3.5" /></button> : null}
+                              <button onClick={() => void deleteItem('binding', binding.id,`真实路由绑定 #${binding.id}`)} className="rounded-xl bg-rose-500/15 p-1.5 text-rose-400 hover:bg-rose-200" aria-label={`删除真实路由 #${binding.id}`}><Trash2 className="h-3.5 w-3.5" /></button>
                             </div>
                           </div>
                         </div>
                       ))}
                       {!selectedAliasBindingCards.length ? (
-                        <div className="col-span-full rounded-[1.5rem] border border-dashed border-slate-300 bg-slate-50 px-4 py-16 text-center text-sm text-slate-500">
+                        <div className="col-span-full rounded-[1.5rem] border border-dashed border-theme-border bg-theme-bg-app px-4 py-16 text-center text-sm text-theme-text-muted">
                           当前公开模型还没有真实路由绑定。可拖动右侧模型到这里添加真实路由。
                         </div>
                       ) : null}
@@ -1357,21 +1357,21 @@ export const AiGatewayPage: React.FC<AiGatewayPageProps> = ({ entryView = 'aigw-
 
                 </div>
               ) : (
-                <div className="flex h-full min-h-[360px] items-center justify-center text-sm text-slate-500">请先从左侧选择一个模型别名</div>
+                <div className="flex h-full min-h-[360px] items-center justify-center text-sm text-theme-text-muted">请先从左侧选择一个模型别名</div>
               )}
             </div>
           </section>
 
-          <aside className="flex min-h-0 flex-col rounded-[1.5rem] border border-slate-200 bg-slate-50 p-4">
+          <aside className="flex min-h-0 flex-col rounded-[1.5rem] border border-theme-border bg-theme-bg-app p-4">
             <div className="flex items-start justify-between gap-3">
               <div>
-                <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">模型库</div>
-                <h3 className="mt-1 text-lg font-black text-slate-900">真实算力池</h3>
+                <div className="text-[11px] font-black uppercase tracking-[0.18em] text-theme-text-muted">模型库</div>
+                <h3 className="mt-1 text-lg font-black text-theme-text-primary">真实算力池</h3>
               </div>
               <button
                 type="button"
                 onClick={() => openCapacityPoolModal()}
-                className="rounded-xl bg-slate-900 p-2 text-white hover:bg-slate-700"
+                className="rounded-xl bg-theme-surface p-2 text-white hover:bg-theme-elevated"
                 aria-label="新建算力池"
                 title="新建算力池"
               >
@@ -1382,12 +1382,12 @@ export const AiGatewayPage: React.FC<AiGatewayPageProps> = ({ entryView = 'aigw-
               {capacityPools.map((pool) => (
                 <div
                   key={pool.id}
-                  className="rounded-[1.25rem] border border-slate-200 bg-slate-50 p-3"
+                  className="rounded-[1.25rem] border border-theme-border bg-theme-bg-app p-3"
                 >
                   <div className="mb-3 flex items-start justify-between gap-3">
                     <div>
-                      <div className="font-black text-slate-900">{pool.pool_name}</div>
-                      <div className="text-xs font-bold text-slate-400">{pool.enabled ? '启用中' : '已禁用'}</div>
+                      <div className="font-black text-theme-text-primary">{pool.pool_name}</div>
+                      <div className="text-xs font-bold text-theme-text-muted">{pool.enabled ? '启用中' : '已禁用'}</div>
                     </div>
                     <div className="flex flex-wrap gap-2">
                       <button
@@ -1398,7 +1398,7 @@ export const AiGatewayPage: React.FC<AiGatewayPageProps> = ({ entryView = 'aigw-
                           setEditingBackendUnitId(null);
                           setBackendModalOpen(true);
                         }}
-                        className="rounded-xl bg-slate-100 p-1.5 text-slate-700 hover:bg-slate-200"
+                        className="rounded-xl bg-theme-elevated p-1.5 text-theme-text-secondary hover:bg-theme-elevated"
                         aria-label={`向算力池 ${pool.pool_name} 添加模型`}
                       >
                         <Plus className="h-3.5 w-3.5" />
@@ -1406,7 +1406,7 @@ export const AiGatewayPage: React.FC<AiGatewayPageProps> = ({ entryView = 'aigw-
                       <button
                         type="button"
                         onClick={() => openCapacityPoolModal(pool)}
-                        className="rounded-xl bg-slate-100 p-1.5 text-slate-700 hover:bg-slate-200"
+                        className="rounded-xl bg-theme-elevated p-1.5 text-theme-text-secondary hover:bg-theme-elevated"
                         aria-label={`编辑算力池 ${pool.pool_name}`}
                       >
                         <Pencil className="h-3.5 w-3.5" />
@@ -1414,7 +1414,7 @@ export const AiGatewayPage: React.FC<AiGatewayPageProps> = ({ entryView = 'aigw-
                       <button
                         type="button"
                         onClick={() => void deleteCapacityPool(pool)}
-                        className="rounded-xl bg-rose-100 p-1.5 text-rose-700 hover:bg-rose-200"
+                        className="rounded-xl bg-rose-500/15 p-1.5 text-rose-400 hover:bg-rose-200"
                         aria-label={`删除算力池 ${pool.pool_name}`}
                       >
                         <Trash2 className="h-3.5 w-3.5" />
@@ -1432,10 +1432,10 @@ export const AiGatewayPage: React.FC<AiGatewayPageProps> = ({ entryView = 'aigw-
                           e.dataTransfer.setData('text/backend-unit-id', String(unit.id));
                         }}
                         onDragEnd={() => setDraggingBackendUnitId(null)}
-                        className={`rounded-2xl border px-4 py-3 transition ${draggingBackendUnitId === unit.id ? 'opacity-50' : 'cursor-grab active:cursor-grabbing'} border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100`}
+                        className={`rounded-2xl border px-4 py-3 transition ${draggingBackendUnitId === unit.id ? 'opacity-50' : 'cursor-grab active:cursor-grabbing'} border-theme-border bg-theme-bg-app text-theme-text-secondary hover:bg-theme-elevated`}
                       >
                         <div className="flex items-center justify-between gap-2">
-                          <div className="min-w-0 font-black text-slate-900">
+                          <div className="min-w-0 font-black text-theme-text-primary">
                             <div className="truncate">{unit.model_name ||`模型 #${unit.id}`}</div>
                           </div>
                           <div className="flex flex-wrap gap-2">
@@ -1445,7 +1445,7 @@ export const AiGatewayPage: React.FC<AiGatewayPageProps> = ({ entryView = 'aigw-
                                 e.stopPropagation();
                                 openBackendModal(unit);
                               }}
-                              className="rounded-xl bg-slate-100 p-1.5 text-slate-700 hover:bg-slate-200"
+                              className="rounded-xl bg-theme-elevated p-1.5 text-theme-text-secondary hover:bg-theme-elevated"
                               aria-label={`编辑模型 ${unit.model_name}`}
                             >
                               <Pencil className="h-3.5 w-3.5" />
@@ -1456,7 +1456,7 @@ export const AiGatewayPage: React.FC<AiGatewayPageProps> = ({ entryView = 'aigw-
                                 e.stopPropagation();
                                 void deleteItem('backend', unit.id,`模型 ${unit.model_name}`);
                               }}
-                              className="rounded-xl bg-rose-100 p-1.5 text-rose-700 hover:bg-rose-200"
+                              className="rounded-xl bg-rose-500/15 p-1.5 text-rose-400 hover:bg-rose-200"
                               aria-label={`删除模型 ${unit.model_name}`}
                             >
                               <Trash2 className="h-3.5 w-3.5" />
@@ -1476,28 +1476,28 @@ export const AiGatewayPage: React.FC<AiGatewayPageProps> = ({ entryView = 'aigw-
 
       {aliasModalOpen ? (
         <div className="fixed inset-0 z-[280] flex items-center justify-center bg-slate-950/60 p-6 backdrop-blur-sm">
- <div className="w-full max-w-2xl overflow-hidden rounded-[2rem] bg-slate-50">
-            <div className="flex items-center justify-between border-b border-slate-200 px-6 py-5">
+ <div className="w-full max-w-2xl overflow-hidden rounded-[2rem] bg-theme-bg-app">
+            <div className="flex items-center justify-between border-b border-theme-border px-6 py-5">
               <div>
-                <h3 className="text-xl font-black text-slate-900">{editingAliasId ? '编辑模型别名' : '新增模型别名'}</h3>
-                <p className="mt-1 text-sm text-slate-500">管理模型别名的默认参数与启停状态。</p>
-                {editingAliasId ? <div className="mt-2 text-xs font-bold text-slate-400">当前编辑对象：模型别名 #{editingAliasId}</div> : null}
+                <h3 className="text-xl font-black text-theme-text-primary">{editingAliasId ? '编辑模型别名' : '新增模型别名'}</h3>
+                <p className="mt-1 text-sm text-theme-text-muted">管理模型别名的默认参数与启停状态。</p>
+                {editingAliasId ? <div className="mt-2 text-xs font-bold text-theme-text-muted">当前编辑对象：模型别名 #{editingAliasId}</div> : null}
               </div>
-              <button onClick={resetAliasForm} className="rounded-2xl bg-slate-100 p-2 text-slate-600 hover:bg-slate-200"><X className="h-5 w-5" /></button>
+              <button onClick={resetAliasForm} className="rounded-2xl bg-theme-elevated p-2 text-theme-text-secondary hover:bg-theme-elevated"><X className="h-5 w-5" /></button>
             </div>
             <div className="space-y-4 p-6">
-              <div className="text-[11px] font-black uppercase tracking-[0.2em] text-slate-400">模型别名默认参数</div>
-              <label className="block text-sm font-bold text-slate-600">模型别名<input value={aliasForm.alias_name} onChange={(e) => setAliasForm((v) => ({ ...v, alias_name: e.target.value }))} placeholder="例如 gpt-4o-mini / deepseek-chat" className="mt-1 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 outline-none" /></label>
+              <div className="text-[11px] font-black uppercase tracking-[0.2em] text-theme-text-muted">模型别名默认参数</div>
+              <label className="block text-sm font-bold text-theme-text-secondary">模型别名<input value={aliasForm.alias_name} onChange={(e) => setAliasForm((v) => ({ ...v, alias_name: e.target.value }))} placeholder="例如 gpt-4o-mini / deepseek-chat" className="mt-1 w-full rounded-2xl border border-theme-border bg-theme-bg-app px-4 py-3 outline-none" /></label>
               <div className="grid gap-4 sm:grid-cols-2">
-                <label className="block text-sm font-bold text-slate-600">Max Tokens<input type="number" value={aliasForm.max_tokens_default} onChange={(e) => setAliasForm((v) => ({ ...v, max_tokens_default: Number(e.target.value) || 0 }))} className="mt-1 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 outline-none" /></label>
-                <label className="block text-sm font-bold text-slate-600">Temperature<input type="number" step="0.1" value={aliasForm.temperature_default} onChange={(e) => setAliasForm((v) => ({ ...v, temperature_default: Number(e.target.value) || 0 }))} className="mt-1 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 outline-none" /></label>
+                <label className="block text-sm font-bold text-theme-text-secondary">Max Tokens<input type="number" value={aliasForm.max_tokens_default} onChange={(e) => setAliasForm((v) => ({ ...v, max_tokens_default: Number(e.target.value) || 0 }))} className="mt-1 w-full rounded-2xl border border-theme-border bg-theme-bg-app px-4 py-3 outline-none" /></label>
+                <label className="block text-sm font-bold text-theme-text-secondary">Temperature<input type="number" step="0.1" value={aliasForm.temperature_default} onChange={(e) => setAliasForm((v) => ({ ...v, temperature_default: Number(e.target.value) || 0 }))} className="mt-1 w-full rounded-2xl border border-theme-border bg-theme-bg-app px-4 py-3 outline-none" /></label>
               </div>
-              <p className="-mt-1 text-xs text-slate-400">这里配置的是公开模型别名的默认推理参数，供上游请求未显式传值时回退使用。</p>
-              <label className="flex items-center gap-3 text-sm font-bold text-slate-700"><input type="checkbox" checked={aliasForm.enabled} onChange={(e) => setAliasForm((v) => ({ ...v, enabled: e.target.checked }))} />启用</label>
+              <p className="-mt-1 text-xs text-theme-text-muted">这里配置的是公开模型别名的默认推理参数，供上游请求未显式传值时回退使用。</p>
+              <label className="flex items-center gap-3 text-sm font-bold text-theme-text-secondary"><input type="checkbox" checked={aliasForm.enabled} onChange={(e) => setAliasForm((v) => ({ ...v, enabled: e.target.checked }))} />启用</label>
             </div>
-            <div className="flex items-center justify-end gap-3 border-t border-slate-200 px-6 py-4">
-              <button onClick={resetAliasForm} className="rounded-2xl bg-slate-100 px-4 py-2.5 text-sm font-bold text-slate-700">取消</button>
-              <button onClick={submitAlias} disabled={saving} className="inline-flex items-center gap-2 rounded-2xl bg-slate-900 px-4 py-2.5 text-sm font-bold text-white disabled:opacity-50"><Save className="h-4 w-4" />保存</button>
+            <div className="flex items-center justify-end gap-3 border-t border-theme-border px-6 py-4">
+              <button onClick={resetAliasForm} className="rounded-2xl bg-theme-elevated px-4 py-2.5 text-sm font-bold text-theme-text-secondary">取消</button>
+              <button onClick={submitAlias} disabled={saving} className="inline-flex items-center gap-2 rounded-2xl bg-theme-surface px-4 py-2.5 text-sm font-bold text-white disabled:opacity-50"><Save className="h-4 w-4" />保存</button>
             </div>
           </div>
         </div>
@@ -1505,45 +1505,45 @@ export const AiGatewayPage: React.FC<AiGatewayPageProps> = ({ entryView = 'aigw-
 
       {backendModalOpen ? (
         <div className="fixed inset-0 z-[280] flex items-center justify-center bg-slate-950/60 p-6 backdrop-blur-sm">
- <div className="w-full max-w-3xl overflow-hidden rounded-[2rem] bg-slate-50">
-            <div className="flex items-center justify-between border-b border-slate-200 px-6 py-5">
+ <div className="w-full max-w-3xl overflow-hidden rounded-[2rem] bg-theme-bg-app">
+            <div className="flex items-center justify-between border-b border-theme-border px-6 py-5">
               <div>
-                <h3 className="text-xl font-black text-slate-900">{editingBackendUnitId ? '编辑模型' : '新增模型'}</h3>
-                <p className="mt-1 text-sm text-slate-500">配置模型、Provider、地址和容量上限。</p>
-                {editingBackendUnitId ? <div className="mt-2 text-xs font-bold text-slate-400">当前编辑对象：模型 #{editingBackendUnitId}{backendUnitForm.api_key_fingerprint ?` · 指纹 ${backendUnitForm.api_key_fingerprint}` : ''}</div> : null}
+                <h3 className="text-xl font-black text-theme-text-primary">{editingBackendUnitId ? '编辑模型' : '新增模型'}</h3>
+                <p className="mt-1 text-sm text-theme-text-muted">配置模型、Provider、地址和容量上限。</p>
+                {editingBackendUnitId ? <div className="mt-2 text-xs font-bold text-theme-text-muted">当前编辑对象：模型 #{editingBackendUnitId}{backendUnitForm.api_key_fingerprint ?` · 指纹 ${backendUnitForm.api_key_fingerprint}` : ''}</div> : null}
               </div>
-              <button onClick={resetBackendUnitForm} className="rounded-2xl bg-slate-100 p-2 text-slate-600 hover:bg-slate-200"><X className="h-5 w-5" /></button>
+              <button onClick={resetBackendUnitForm} className="rounded-2xl bg-theme-elevated p-2 text-theme-text-secondary hover:bg-theme-elevated"><X className="h-5 w-5" /></button>
             </div>
             <div className="space-y-4 p-6">
-              <div className="text-[11px] font-black uppercase tracking-[0.2em] text-slate-400">模型</div>
+              <div className="text-[11px] font-black uppercase tracking-[0.2em] text-theme-text-muted">模型</div>
               <div className="grid gap-4 sm:grid-cols-2">
-                <label className="block text-sm font-bold text-slate-600">模型名称<input value={backendUnitForm.model_name} onChange={(e) => setBackendUnitForm((v) => ({ ...v, model_name: e.target.value }))} placeholder="实际下游模型名" className="mt-1 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 outline-none" /></label>
-                <label className="block text-sm font-bold text-slate-600">API 地址<input value={backendUnitForm.api_base_url} onChange={(e) => setBackendUnitForm((v) => ({ ...v, api_base_url: e.target.value }))} placeholder="https://..." className="mt-1 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 outline-none" /></label>
-                <label className="block text-sm font-bold text-slate-600">最大并发<input type="number" value={backendUnitForm.total_max_concurrency} onChange={(e) => setBackendUnitForm((v) => ({ ...v, total_max_concurrency: Number(e.target.value) || 0 }))} className="mt-1 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 outline-none" /></label>
-                <label className="block text-sm font-bold text-slate-600">默认优先级<input type="number" value={backendUnitForm.priority_default} onChange={(e) => setBackendUnitForm((v) => ({ ...v, priority_default: Number(e.target.value) || 0 }))} className="mt-1 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 outline-none" /></label>
+                <label className="block text-sm font-bold text-theme-text-secondary">模型名称<input value={backendUnitForm.model_name} onChange={(e) => setBackendUnitForm((v) => ({ ...v, model_name: e.target.value }))} placeholder="实际下游模型名" className="mt-1 w-full rounded-2xl border border-theme-border bg-theme-bg-app px-4 py-3 outline-none" /></label>
+                <label className="block text-sm font-bold text-theme-text-secondary">API 地址<input value={backendUnitForm.api_base_url} onChange={(e) => setBackendUnitForm((v) => ({ ...v, api_base_url: e.target.value }))} placeholder="https://..." className="mt-1 w-full rounded-2xl border border-theme-border bg-theme-bg-app px-4 py-3 outline-none" /></label>
+                <label className="block text-sm font-bold text-theme-text-secondary">最大并发<input type="number" value={backendUnitForm.total_max_concurrency} onChange={(e) => setBackendUnitForm((v) => ({ ...v, total_max_concurrency: Number(e.target.value) || 0 }))} className="mt-1 w-full rounded-2xl border border-theme-border bg-theme-bg-app px-4 py-3 outline-none" /></label>
+                <label className="block text-sm font-bold text-theme-text-secondary">默认优先级<input type="number" value={backendUnitForm.priority_default} onChange={(e) => setBackendUnitForm((v) => ({ ...v, priority_default: Number(e.target.value) || 0 }))} className="mt-1 w-full rounded-2xl border border-theme-border bg-theme-bg-app px-4 py-3 outline-none" /></label>
               </div>
-              <p className="-mt-1 text-xs text-slate-400">一个模型对应一个真实的接入点，下面的 Chat / Responses / Messages 开关会直接写入`gaiasec-llm-gateway` 的真实后端能力字段。</p>
-              <label className="block text-sm font-bold text-slate-600">API 密钥<input type="password" value={backendUnitForm.api_key_ciphertext || ''} onChange={(e) => setBackendUnitForm((v) => ({ ...v, api_key_ciphertext: e.target.value }))} placeholder={editingBackendUnitId ? '留空则保持现有 API 密钥' : ''} className="mt-1 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 outline-none" /></label>
+              <p className="-mt-1 text-xs text-theme-text-muted">一个模型对应一个真实的接入点，下面的 Chat / Responses / Messages 开关会直接写入`gaiasec-llm-gateway` 的真实后端能力字段。</p>
+              <label className="block text-sm font-bold text-theme-text-secondary">API 密钥<input type="password" value={backendUnitForm.api_key_ciphertext || ''} onChange={(e) => setBackendUnitForm((v) => ({ ...v, api_key_ciphertext: e.target.value }))} placeholder={editingBackendUnitId ? '留空则保持现有 API 密钥' : ''} className="mt-1 w-full rounded-2xl border border-theme-border bg-theme-bg-app px-4 py-3 outline-none" /></label>
               <div className="grid gap-3 sm:grid-cols-3">
-                <label className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold text-slate-700">
+                <label className="flex items-center gap-3 rounded-2xl border border-theme-border bg-theme-bg-app px-4 py-3 text-sm font-bold text-theme-text-secondary">
                   <input type="checkbox" checked={backendUnitForm.supports_chat_completions} onChange={(e) => setBackendUnitForm((v) => ({ ...v, supports_chat_completions: e.target.checked }))} />
                   支持 Chat
                 </label>
-                <label className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold text-slate-700">
+                <label className="flex items-center gap-3 rounded-2xl border border-theme-border bg-theme-bg-app px-4 py-3 text-sm font-bold text-theme-text-secondary">
                   <input type="checkbox" checked={backendUnitForm.supports_responses} onChange={(e) => setBackendUnitForm((v) => ({ ...v, supports_responses: e.target.checked }))} />
                   支持 Responses
                 </label>
-                <label className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold text-slate-700">
+                <label className="flex items-center gap-3 rounded-2xl border border-theme-border bg-theme-bg-app px-4 py-3 text-sm font-bold text-theme-text-secondary">
                   <input type="checkbox" checked={backendUnitForm.supports_messages} onChange={(e) => setBackendUnitForm((v) => ({ ...v, supports_messages: e.target.checked }))} />
                   支持 Messages
                 </label>
               </div>
-              <label className="block text-sm font-bold text-slate-600">描述<textarea value={backendUnitForm.description || ''} onChange={(e) => setBackendUnitForm((v) => ({ ...v, description: e.target.value }))} className="mt-1 min-h-24 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 outline-none" /></label>
-              <label className="flex items-center gap-3 text-sm font-bold text-slate-700"><input type="checkbox" checked={backendUnitForm.enabled} onChange={(e) => setBackendUnitForm((v) => ({ ...v, enabled: e.target.checked }))} />启用</label>
+              <label className="block text-sm font-bold text-theme-text-secondary">描述<textarea value={backendUnitForm.description || ''} onChange={(e) => setBackendUnitForm((v) => ({ ...v, description: e.target.value }))} className="mt-1 min-h-24 w-full rounded-2xl border border-theme-border bg-theme-bg-app px-4 py-3 outline-none" /></label>
+              <label className="flex items-center gap-3 text-sm font-bold text-theme-text-secondary"><input type="checkbox" checked={backendUnitForm.enabled} onChange={(e) => setBackendUnitForm((v) => ({ ...v, enabled: e.target.checked }))} />启用</label>
             </div>
-            <div className="flex items-center justify-end gap-3 border-t border-slate-200 px-6 py-4">
-              <button onClick={resetBackendUnitForm} className="rounded-2xl bg-slate-100 px-4 py-2.5 text-sm font-bold text-slate-700">取消</button>
-              <button onClick={submitBackendUnit} disabled={saving} className="inline-flex items-center gap-2 rounded-2xl bg-slate-900 px-4 py-2.5 text-sm font-bold text-white disabled:opacity-50"><Save className="h-4 w-4" />保存</button>
+            <div className="flex items-center justify-end gap-3 border-t border-theme-border px-6 py-4">
+              <button onClick={resetBackendUnitForm} className="rounded-2xl bg-theme-elevated px-4 py-2.5 text-sm font-bold text-theme-text-secondary">取消</button>
+              <button onClick={submitBackendUnit} disabled={saving} className="inline-flex items-center gap-2 rounded-2xl bg-theme-surface px-4 py-2.5 text-sm font-bold text-white disabled:opacity-50"><Save className="h-4 w-4" />保存</button>
             </div>
           </div>
         </div>
@@ -1551,37 +1551,37 @@ export const AiGatewayPage: React.FC<AiGatewayPageProps> = ({ entryView = 'aigw-
 
       {bindingModalOpen ? (
         <div className="fixed inset-0 z-[280] flex items-center justify-center bg-slate-950/60 p-6 backdrop-blur-sm">
- <div className="w-full max-w-2xl overflow-hidden rounded-[2rem] bg-slate-50">
-            <div className="flex items-center justify-between border-b border-slate-200 px-6 py-5">
+ <div className="w-full max-w-2xl overflow-hidden rounded-[2rem] bg-theme-bg-app">
+            <div className="flex items-center justify-between border-b border-theme-border px-6 py-5">
               <div>
-                <h3 className="text-xl font-black text-slate-900">{editingBindingId ? '编辑绑定关系' : '新增绑定关系'}</h3>
-                <p className="mt-1 text-sm text-slate-500">管理模型别名到模型的调度关系。</p>
-                {editingBindingId ? <div className="mt-2 text-xs font-bold text-slate-400">当前编辑对象：绑定关系 #{editingBindingId}</div> : null}
+                <h3 className="text-xl font-black text-theme-text-primary">{editingBindingId ? '编辑绑定关系' : '新增绑定关系'}</h3>
+                <p className="mt-1 text-sm text-theme-text-muted">管理模型别名到模型的调度关系。</p>
+                {editingBindingId ? <div className="mt-2 text-xs font-bold text-theme-text-muted">当前编辑对象：绑定关系 #{editingBindingId}</div> : null}
               </div>
-              <button onClick={resetBindingForm} className="rounded-2xl bg-slate-100 p-2 text-slate-600 hover:bg-slate-200"><X className="h-5 w-5" /></button>
+              <button onClick={resetBindingForm} className="rounded-2xl bg-theme-elevated p-2 text-theme-text-secondary hover:bg-theme-elevated"><X className="h-5 w-5" /></button>
             </div>
             <div className="space-y-4 p-6">
-              <div className="text-[11px] font-black uppercase tracking-[0.2em] text-slate-400">绑定调度</div>
-              <label className="block text-sm font-bold text-slate-600">模型别名
-                <select value={bindingForm.model_alias_id} onChange={(e) => setBindingForm((v) => ({ ...v, model_alias_id: Number(e.target.value) }))} className="mt-1 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 outline-none">
+              <div className="text-[11px] font-black uppercase tracking-[0.2em] text-theme-text-muted">绑定调度</div>
+              <label className="block text-sm font-bold text-theme-text-secondary">模型别名
+                <select value={bindingForm.model_alias_id} onChange={(e) => setBindingForm((v) => ({ ...v, model_alias_id: Number(e.target.value) }))} className="mt-1 w-full rounded-2xl border border-theme-border bg-theme-bg-app px-4 py-3 outline-none">
                   {modelAliases.map((item) => <option key={item.id} value={item.id}>{item.alias_name}</option>)}
                 </select>
               </label>
-              <label className="block text-sm font-bold text-slate-600">模型
-                <select value={bindingForm.backend_unit_id} onChange={(e) => setBindingForm((v) => ({ ...v, backend_unit_id: Number(e.target.value) }))} className="mt-1 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 outline-none">
+              <label className="block text-sm font-bold text-theme-text-secondary">模型
+                <select value={bindingForm.backend_unit_id} onChange={(e) => setBindingForm((v) => ({ ...v, backend_unit_id: Number(e.target.value) }))} className="mt-1 w-full rounded-2xl border border-theme-border bg-theme-bg-app px-4 py-3 outline-none">
                   {backendUnits.map((item) => <option key={item.id} value={item.id}>{item.model_name} (#${item.id})</option>)}
                 </select>
               </label>
               <div className="grid gap-4 sm:grid-cols-2">
-                <label className="block text-sm font-bold text-slate-600">优先级<input type="number" value={bindingForm.priority} onChange={(e) => setBindingForm((v) => ({ ...v, priority: Number(e.target.value) || 0 }))} className="mt-1 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 outline-none" /></label>
-                <label className="block text-sm font-bold text-slate-600">权重<input type="number" value={bindingForm.weight} onChange={(e) => setBindingForm((v) => ({ ...v, weight: Number(e.target.value) || 0 }))} className="mt-1 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 outline-none" /></label>
+                <label className="block text-sm font-bold text-theme-text-secondary">优先级<input type="number" value={bindingForm.priority} onChange={(e) => setBindingForm((v) => ({ ...v, priority: Number(e.target.value) || 0 }))} className="mt-1 w-full rounded-2xl border border-theme-border bg-theme-bg-app px-4 py-3 outline-none" /></label>
+                <label className="block text-sm font-bold text-theme-text-secondary">权重<input type="number" value={bindingForm.weight} onChange={(e) => setBindingForm((v) => ({ ...v, weight: Number(e.target.value) || 0 }))} className="mt-1 w-full rounded-2xl border border-theme-border bg-theme-bg-app px-4 py-3 outline-none" /></label>
               </div>
-              <p className="-mt-1 text-xs text-slate-400">优先级决定优先调度顺序，权重用于同层级的流量分配。</p>
-              <label className="flex items-center gap-3 text-sm font-bold text-slate-700"><input type="checkbox" checked={bindingForm.enabled} onChange={(e) => setBindingForm((v) => ({ ...v, enabled: e.target.checked }))} />启用</label>
+              <p className="-mt-1 text-xs text-theme-text-muted">优先级决定优先调度顺序，权重用于同层级的流量分配。</p>
+              <label className="flex items-center gap-3 text-sm font-bold text-theme-text-secondary"><input type="checkbox" checked={bindingForm.enabled} onChange={(e) => setBindingForm((v) => ({ ...v, enabled: e.target.checked }))} />启用</label>
             </div>
-            <div className="flex items-center justify-end gap-3 border-t border-slate-200 px-6 py-4">
-              <button onClick={resetBindingForm} className="rounded-2xl bg-slate-100 px-4 py-2.5 text-sm font-bold text-slate-700">取消</button>
-              <button onClick={submitBinding} disabled={saving} className="inline-flex items-center gap-2 rounded-2xl bg-slate-900 px-4 py-2.5 text-sm font-bold text-white disabled:opacity-50"><Save className="h-4 w-4" />保存</button>
+            <div className="flex items-center justify-end gap-3 border-t border-theme-border px-6 py-4">
+              <button onClick={resetBindingForm} className="rounded-2xl bg-theme-elevated px-4 py-2.5 text-sm font-bold text-theme-text-secondary">取消</button>
+              <button onClick={submitBinding} disabled={saving} className="inline-flex items-center gap-2 rounded-2xl bg-theme-surface px-4 py-2.5 text-sm font-bold text-white disabled:opacity-50"><Save className="h-4 w-4" />保存</button>
             </div>
           </div>
         </div>
@@ -1589,23 +1589,23 @@ export const AiGatewayPage: React.FC<AiGatewayPageProps> = ({ entryView = 'aigw-
 
       {capacityPoolModalOpen ? (
         <div className="fixed inset-0 z-[280] flex items-center justify-center bg-slate-950/60 p-6 backdrop-blur-sm">
- <div className="w-full max-w-2xl overflow-hidden rounded-[2rem] bg-slate-50">
-            <div className="flex items-center justify-between border-b border-slate-200 px-6 py-5">
+ <div className="w-full max-w-2xl overflow-hidden rounded-[2rem] bg-theme-bg-app">
+            <div className="flex items-center justify-between border-b border-theme-border px-6 py-5">
               <div>
-                <h3 className="text-xl font-black text-slate-900">{editingCapacityPoolId ? '编辑算力池' : '新增算力池'}</h3>
-                <p className="mt-1 text-sm text-slate-500">算力池是面向模型别名暴露的容量抽象层，一个池可承接多个模型。</p>
-                {editingCapacityPoolId ? <div className="mt-2 text-xs font-bold text-slate-400">当前编辑对象：算力池 #{editingCapacityPoolId}</div> : null}
+                <h3 className="text-xl font-black text-theme-text-primary">{editingCapacityPoolId ? '编辑算力池' : '新增算力池'}</h3>
+                <p className="mt-1 text-sm text-theme-text-muted">算力池是面向模型别名暴露的容量抽象层，一个池可承接多个模型。</p>
+                {editingCapacityPoolId ? <div className="mt-2 text-xs font-bold text-theme-text-muted">当前编辑对象：算力池 #{editingCapacityPoolId}</div> : null}
               </div>
-              <button onClick={resetCapacityPoolForm} className="rounded-2xl bg-slate-100 p-2 text-slate-600 hover:bg-slate-200"><X className="h-5 w-5" /></button>
+              <button onClick={resetCapacityPoolForm} className="rounded-2xl bg-theme-elevated p-2 text-theme-text-secondary hover:bg-theme-elevated"><X className="h-5 w-5" /></button>
             </div>
             <div className="space-y-4 p-6">
-              <label className="block text-sm font-bold text-slate-600">池名称<input value={capacityPoolForm.pool_name} onChange={(e) => setCapacityPoolForm((v) => ({ ...v, pool_name: e.target.value }))} placeholder="例如 GPT-4o 生产池" className="mt-1 w-full rounded-2xl border border-slate-200 px-4 py-3 outline-none" /></label>
-              <label className="block text-sm font-bold text-slate-600">描述<textarea value={capacityPoolForm.description} onChange={(e) => setCapacityPoolForm((v) => ({ ...v, description: e.target.value }))} className="mt-1 min-h-24 w-full rounded-2xl border border-slate-200 px-4 py-3 outline-none" /></label>
-              <label className="flex items-center gap-3 text-sm font-bold text-slate-700"><input type="checkbox" checked={capacityPoolForm.enabled} onChange={(e) => setCapacityPoolForm((v) => ({ ...v, enabled: e.target.checked }))} />启用</label>
+              <label className="block text-sm font-bold text-theme-text-secondary">池名称<input value={capacityPoolForm.pool_name} onChange={(e) => setCapacityPoolForm((v) => ({ ...v, pool_name: e.target.value }))} placeholder="例如 GPT-4o 生产池" className="mt-1 w-full rounded-2xl border border-theme-border px-4 py-3 outline-none" /></label>
+              <label className="block text-sm font-bold text-theme-text-secondary">描述<textarea value={capacityPoolForm.description} onChange={(e) => setCapacityPoolForm((v) => ({ ...v, description: e.target.value }))} className="mt-1 min-h-24 w-full rounded-2xl border border-theme-border px-4 py-3 outline-none" /></label>
+              <label className="flex items-center gap-3 text-sm font-bold text-theme-text-secondary"><input type="checkbox" checked={capacityPoolForm.enabled} onChange={(e) => setCapacityPoolForm((v) => ({ ...v, enabled: e.target.checked }))} />启用</label>
             </div>
-            <div className="flex items-center justify-end gap-3 border-t border-slate-200 px-6 py-4">
-              <button onClick={resetCapacityPoolForm} className="rounded-2xl bg-slate-100 px-4 py-2.5 text-sm font-bold text-slate-700">取消</button>
-              <button onClick={submitCapacityPool} disabled={saving} className="inline-flex items-center gap-2 rounded-2xl bg-slate-900 px-4 py-2.5 text-sm font-bold text-white disabled:opacity-50"><Save className="h-4 w-4" />保存算力池</button>
+            <div className="flex items-center justify-end gap-3 border-t border-theme-border px-6 py-4">
+              <button onClick={resetCapacityPoolForm} className="rounded-2xl bg-theme-elevated px-4 py-2.5 text-sm font-bold text-theme-text-secondary">取消</button>
+              <button onClick={submitCapacityPool} disabled={saving} className="inline-flex items-center gap-2 rounded-2xl bg-theme-surface px-4 py-2.5 text-sm font-bold text-white disabled:opacity-50"><Save className="h-4 w-4" />保存算力池</button>
             </div>
           </div>
         </div>
@@ -1614,52 +1614,52 @@ export const AiGatewayPage: React.FC<AiGatewayPageProps> = ({ entryView = 'aigw-
       {keyManagementOpen ? createPortal((
         <div className="fixed inset-0 z-[260]">
           <div className="absolute inset-0 bg-slate-950/40" onClick={() => setKeyManagementOpen(false)} />
- <section className="absolute inset-0 flex h-full w-full flex-col overflow-hidden bg-slate-50 p-6">
+ <section className="absolute inset-0 flex h-full w-full flex-col overflow-hidden bg-theme-bg-app p-6">
         <div className="mb-5 flex shrink-0 items-start justify-between gap-4">
           <div>
-            <div className="text-[11px] font-black uppercase tracking-[0.2em] text-slate-400">调用凭证</div>
-            <h2 className="mt-2 text-xl font-black text-slate-900">调用密钥管理</h2>
+            <div className="text-[11px] font-black uppercase tracking-[0.2em] text-theme-text-muted">调用凭证</div>
+            <h2 className="mt-2 text-xl font-black text-theme-text-primary">调用密钥管理</h2>
           </div>
           <div className="flex items-center gap-2">
-            <button onClick={() => { setKeyPage(1); void loadKeys(); }} className="rounded-2xl bg-slate-100 px-4 py-2 text-sm font-bold text-slate-700 hover:bg-slate-200">刷新</button>
-            <button onClick={() => openLlmKeyModal()} className="inline-flex items-center gap-2 rounded-2xl bg-slate-900 px-4 py-2.5 text-sm font-bold text-white">
+            <button onClick={() => { setKeyPage(1); void loadKeys(); }} className="rounded-2xl bg-theme-elevated px-4 py-2 text-sm font-bold text-theme-text-secondary hover:bg-theme-elevated">刷新</button>
+            <button onClick={() => openLlmKeyModal()} className="inline-flex items-center gap-2 rounded-2xl bg-theme-surface px-4 py-2.5 text-sm font-bold text-white">
               <Plus className="h-4 w-4" />
               新建调用密钥
             </button>
-            <button onClick={() => setKeyManagementOpen(false)} className="rounded-2xl bg-slate-100 p-2 text-slate-600 hover:bg-slate-200">
+            <button onClick={() => setKeyManagementOpen(false)} className="rounded-2xl bg-theme-elevated p-2 text-theme-text-secondary hover:bg-theme-elevated">
               <X className="h-5 w-5" />
             </button>
           </div>
         </div>
 
-        <div className="mb-3 shrink-0 rounded-[1.5rem] border border-slate-200 bg-slate-50">
+        <div className="mb-3 shrink-0 rounded-[1.5rem] border border-theme-border bg-theme-bg-app">
           <button onClick={() => setKeyFiltersExpanded(!keyFiltersExpanded)} className="w-full flex items-center justify-between gap-3 p-3 text-left">
             <div className="flex items-center gap-2">
-              <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">筛选条件</div>
-              {keySearch || keyKeyType || keyEnabled ? <span className="rounded-full bg-sky-100 px-2 py-0.5 text-xs font-bold text-sky-700">已筛选</span> : null}
+              <div className="text-[11px] font-black uppercase tracking-[0.18em] text-theme-text-muted">筛选条件</div>
+              {keySearch || keyKeyType || keyEnabled ? <span className="rounded-full bg-sky-500/15 px-2 py-0.5 text-xs font-bold text-sky-400">已筛选</span> : null}
             </div>
-            {keyFiltersExpanded ? <ChevronUp className="h-4 w-4 text-slate-400" /> : <ChevronDown className="h-4 w-4 text-slate-400" />}
+            {keyFiltersExpanded ? <ChevronUp className="h-4 w-4 text-theme-text-muted" /> : <ChevronDown className="h-4 w-4 text-theme-text-muted" />}
           </button>
           {keyFiltersExpanded ? (
             <div className="grid gap-3 p-3 pt-0 md:grid-cols-2 xl:grid-cols-4">
-              <input value={keySearch} onChange={(e) => setKeySearch(e.target.value)} placeholder="搜索名称、任务 ID、备注..." className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-2 text-sm outline-none" />
-              <select value={keyKeyType} onChange={(e) => setKeyKeyType(e.target.value)} className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-2 text-sm outline-none">
+              <input value={keySearch} onChange={(e) => setKeySearch(e.target.value)} placeholder="搜索名称、任务 ID、备注..." className="rounded-2xl border border-theme-border bg-theme-bg-app px-4 py-2 text-sm outline-none" />
+              <select value={keyKeyType} onChange={(e) => setKeyKeyType(e.target.value)} className="rounded-2xl border border-theme-border bg-theme-bg-app px-4 py-2 text-sm outline-none">
                 <option value="">全部类型</option>
                 <option value="task">任务密钥</option>
                 <option value="work">工作密钥</option>
               </select>
-              <select value={keyEnabled} onChange={(e) => setKeyEnabled(e.target.value)} className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-2 text-sm outline-none">
+              <select value={keyEnabled} onChange={(e) => setKeyEnabled(e.target.value)} className="rounded-2xl border border-theme-border bg-theme-bg-app px-4 py-2 text-sm outline-none">
                 <option value="">全部状态</option>
                 <option value="true">启用</option>
                 <option value="false">禁用</option>
               </select>
-              <button onClick={() => { setKeySearch(''); setKeyKeyType(''); setKeyEnabled(''); setKeyPage(1); }} className="rounded-2xl bg-slate-100 px-4 py-2 text-sm font-bold text-slate-700 hover:bg-slate-200">重置</button>
+              <button onClick={() => { setKeySearch(''); setKeyKeyType(''); setKeyEnabled(''); setKeyPage(1); }} className="rounded-2xl bg-theme-elevated px-4 py-2 text-sm font-bold text-theme-text-secondary hover:bg-theme-elevated">重置</button>
             </div>
           ) : null}
         </div>
 
         <div className="mb-3 flex shrink-0 flex-wrap items-center justify-between gap-3">
-          <div className="text-xs font-bold text-slate-400">
+          <div className="text-xs font-bold text-theme-text-muted">
             {llmKeysLoading ? '加载中...' :`当前第 ${keyPage} 页，共 ${llmKeysTotal} 条`}
           </div>
         </div>
@@ -1667,7 +1667,7 @@ export const AiGatewayPage: React.FC<AiGatewayPageProps> = ({ entryView = 'aigw-
         <div className="min-h-0 flex-1 overflow-auto">
           <table className="min-w-full text-sm">
             <thead>
-              <tr className="border-b border-slate-200 text-left text-slate-500">
+              <tr className="border-b border-theme-border text-left text-theme-text-muted">
                 <th className="px-3 py-2 font-bold">名称</th>
                 <th className="px-3 py-2 font-bold">前缀</th>
                 <th className="px-3 py-2 font-bold">类型</th>
@@ -1680,28 +1680,28 @@ export const AiGatewayPage: React.FC<AiGatewayPageProps> = ({ entryView = 'aigw-
             </thead>
             <tbody>
               {llmKeys.map((item) => (
-                <tr key={item.id} className="border-b border-slate-100">
+                <tr key={item.id} className="border-b border-theme-border">
                   <td className="px-3 py-2">
-                    <div className="truncate font-bold text-slate-900" title={item.description || '无备注'}>{item.key_name ||`密钥 #${item.id}`}</div>
+                    <div className="truncate font-bold text-theme-text-primary" title={item.description || '无备注'}>{item.key_name ||`密钥 #${item.id}`}</div>
                   </td>
-                  <td className="px-3 py-2 font-mono text-xs text-slate-700">{item.key_prefix || '-'}</td>
-                  <td className="px-3 py-2 text-slate-700">{item.key_type === 'task' ? '任务密钥' : item.key_type === 'work' ? '工作密钥' : item.key_type}</td>
-                  <td className="px-3 py-2 text-slate-700">{item.max_concurrency || 0}</td>
-                  <td className="px-3 py-2 text-slate-700">{item.task_id ? (item.key_type === 'work' && item.sub_task_id ?`${item.task_id} / ${item.sub_task_id}` : item.task_id) : '-'}</td>
-                  <td className="px-3 py-2"><span className={`rounded-full px-2 py-0.5 text-xs font-bold ${item.enabled ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500'}`}>{item.enabled ? '启用' : '禁用'}</span></td>
-                  <td className="px-3 py-2 text-slate-700">{item.updated_at ? new Date(item.updated_at).toLocaleString('zh-CN') : '-'}</td>
+                  <td className="px-3 py-2 font-mono text-xs text-theme-text-secondary">{item.key_prefix || '-'}</td>
+                  <td className="px-3 py-2 text-theme-text-secondary">{item.key_type === 'task' ? '任务密钥' : item.key_type === 'work' ? '工作密钥' : item.key_type}</td>
+                  <td className="px-3 py-2 text-theme-text-secondary">{item.max_concurrency || 0}</td>
+                  <td className="px-3 py-2 text-theme-text-secondary">{item.task_id ? (item.key_type === 'work' && item.sub_task_id ?`${item.task_id} / ${item.sub_task_id}` : item.task_id) : '-'}</td>
+                  <td className="px-3 py-2"><span className={`rounded-full px-2 py-0.5 text-xs font-bold ${item.enabled ? 'bg-emerald-500/15 text-emerald-400' : 'bg-theme-elevated text-theme-text-muted'}`}>{item.enabled ? '启用' : '禁用'}</span></td>
+                  <td className="px-3 py-2 text-theme-text-secondary">{item.updated_at ? new Date(item.updated_at).toLocaleString('zh-CN') : '-'}</td>
                   <td className="px-3 py-2">
                     <div className="flex items-center gap-1.5">
-                      <button onClick={() => openLlmKeyModal(item)} className="rounded-lg bg-slate-100 px-2 py-1 text-xs font-bold text-slate-700 hover:bg-slate-200">编辑</button>
-                      <button onClick={() => openLlmKeyDetail(item.id)} className="rounded-lg bg-slate-100 px-2 py-1 text-xs font-bold text-slate-700 hover:bg-slate-200">查看</button>
-                      <button onClick={() => deleteLlmKey(item)} className="rounded-lg bg-rose-100 px-2 py-1 text-xs font-bold text-rose-700 hover:bg-rose-200"><Trash2 className="h-3 w-3" /></button>
+                      <button onClick={() => openLlmKeyModal(item)} className="rounded-lg bg-theme-elevated px-2 py-1 text-xs font-bold text-theme-text-secondary hover:bg-theme-elevated">编辑</button>
+                      <button onClick={() => openLlmKeyDetail(item.id)} className="rounded-lg bg-theme-elevated px-2 py-1 text-xs font-bold text-theme-text-secondary hover:bg-theme-elevated">查看</button>
+                      <button onClick={() => deleteLlmKey(item)} className="rounded-lg bg-rose-500/15 px-2 py-1 text-xs font-bold text-rose-400 hover:bg-rose-200"><Trash2 className="h-3 w-3" /></button>
                     </div>
                   </td>
                 </tr>
               ))}
               {!llmKeys.length && !llmKeysLoading ? (
                 <tr>
-                  <td colSpan={8} className="px-3 py-10 text-center text-slate-400">暂无调用密钥</td>
+                  <td colSpan={8} className="px-3 py-10 text-center text-theme-text-muted">暂无调用密钥</td>
                 </tr>
               ) : null}
             </tbody>
@@ -1709,14 +1709,14 @@ export const AiGatewayPage: React.FC<AiGatewayPageProps> = ({ entryView = 'aigw-
         </div>
 
         <div className="mt-5 flex shrink-0 items-center justify-between">
-          <div className="text-sm text-slate-500">共 {llmKeysTotal} 条</div>
+          <div className="text-sm text-theme-text-muted">共 {llmKeysTotal} 条</div>
           <div className="flex items-center gap-2">
-            <select value={keyPageSize} onChange={(e) => { setKeyPageSize(Number(e.target.value)); setKeyPage(1); }} className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm outline-none">
+            <select value={keyPageSize} onChange={(e) => { setKeyPageSize(Number(e.target.value)); setKeyPage(1); }} className="rounded-xl border border-theme-border bg-theme-bg-app px-3 py-2 text-sm outline-none">
               {[10, 20, 50, 100].map((size) => <option key={size} value={size}>{size} / 页</option>)}
             </select>
-            <button disabled={keyPage <= 1} onClick={() => setKeyPage((v) => Math.max(1, v - 1))} className="rounded-xl bg-slate-100 px-3 py-2 text-sm font-bold text-slate-700 disabled:opacity-40">上一页</button>
-            <span className="text-sm font-bold text-slate-700">{keyPage}</span>
-            <button disabled={keyPage * keyPageSize >= llmKeysTotal} onClick={() => setKeyPage((v) => v + 1)} className="rounded-xl bg-slate-100 px-3 py-2 text-sm font-bold text-slate-700 disabled:opacity-40">下一页</button>
+            <button disabled={keyPage <= 1} onClick={() => setKeyPage((v) => Math.max(1, v - 1))} className="rounded-xl bg-theme-elevated px-3 py-2 text-sm font-bold text-theme-text-secondary disabled:opacity-40">上一页</button>
+            <span className="text-sm font-bold text-theme-text-secondary">{keyPage}</span>
+            <button disabled={keyPage * keyPageSize >= llmKeysTotal} onClick={() => setKeyPage((v) => v + 1)} className="rounded-xl bg-theme-elevated px-3 py-2 text-sm font-bold text-theme-text-secondary disabled:opacity-40">下一页</button>
           </div>
         </div>
           </section>
@@ -1726,14 +1726,14 @@ export const AiGatewayPage: React.FC<AiGatewayPageProps> = ({ entryView = 'aigw-
       {logDrawerOpen ? createPortal((
         <div className="fixed inset-0 z-[260]">
           <div className="absolute inset-0 bg-slate-950/40" onClick={() => setLogDrawerOpen(false)} />
- <div className="absolute inset-0 h-full w-full overflow-hidden bg-slate-50">
+ <div className="absolute inset-0 h-full w-full overflow-hidden bg-theme-bg-app">
             <div className="flex h-full flex-col">
-              <div className="flex items-center justify-between border-b border-slate-200 bg-slate-50 px-6 py-5">
+              <div className="flex items-center justify-between border-b border-theme-border bg-theme-bg-app px-6 py-5">
                 <div>
-                  <div className="text-[11px] font-black uppercase tracking-[0.2em] text-slate-400">日志抽屉</div>
-                  <h2 className="mt-2 text-xl font-black text-slate-900">{logDrawerPreset?.title || '请求日志'}</h2>
+                  <div className="text-[11px] font-black uppercase tracking-[0.2em] text-theme-text-muted">日志抽屉</div>
+                  <h2 className="mt-2 text-xl font-black text-theme-text-primary">{logDrawerPreset?.title || '请求日志'}</h2>
                 </div>
-                <button onClick={() => setLogDrawerOpen(false)} className="rounded-2xl bg-slate-100 p-2 text-slate-600 hover:bg-slate-200">
+                <button onClick={() => setLogDrawerOpen(false)} className="rounded-2xl bg-theme-elevated p-2 text-theme-text-secondary hover:bg-theme-elevated">
                   <X className="h-5 w-5" />
                 </button>
               </div>
@@ -1752,28 +1752,28 @@ export const AiGatewayPage: React.FC<AiGatewayPageProps> = ({ entryView = 'aigw-
 
       {replayOpen && replayResult ? (
         <div className="fixed inset-0 z-[300] flex items-center justify-center bg-slate-950/60 p-6">
- <div className="max-h-[90vh] w-full max-w-6xl overflow-hidden rounded-[2rem] bg-slate-50">
-            <div className="flex items-center justify-between border-b border-slate-200 px-6 py-5">
+ <div className="max-h-[90vh] w-full max-w-6xl overflow-hidden rounded-[2rem] bg-theme-bg-app">
+            <div className="flex items-center justify-between border-b border-theme-border px-6 py-5">
               <div>
-                <h3 className="text-xl font-black text-slate-900">日志重放结果</h3>
-                <p className="mt-1 text-sm text-slate-500">{replayResult.model_name} {'->'} {replayResult.actual_model_name || '-'}</p>
+                <h3 className="text-xl font-black text-theme-text-primary">日志重放结果</h3>
+                <p className="mt-1 text-sm text-theme-text-muted">{replayResult.model_name} {'->'} {replayResult.actual_model_name || '-'}</p>
               </div>
-              <button onClick={() => setReplayOpen(false)} className="rounded-2xl bg-slate-100 px-4 py-2 text-sm font-bold text-slate-700">关闭</button>
+              <button onClick={() => setReplayOpen(false)} className="rounded-2xl bg-theme-elevated px-4 py-2 text-sm font-bold text-theme-text-secondary">关闭</button>
             </div>
             <div className="grid max-h-[calc(90vh-88px)] gap-4 overflow-auto p-6 lg:grid-cols-2">
               <div>
-                <div className="mb-2 flex items-center justify-between gap-3 text-sm font-black text-slate-800">
+                <div className="mb-2 flex items-center justify-between gap-3 text-sm font-black text-theme-text-primary">
                   <span>Modified Request</span>
-                  <button onClick={() => void copyText(replayResult.modified_request || '', '重放请求已复制')} className="rounded-xl bg-slate-100 px-3 py-1.5 text-[11px] font-bold text-slate-700">复制</button>
+                  <button onClick={() => void copyText(replayResult.modified_request || '', '重放请求已复制')} className="rounded-xl bg-theme-elevated px-3 py-1.5 text-[11px] font-bold text-theme-text-secondary">复制</button>
                 </div>
-                <pre className="max-h-[320px] overflow-auto rounded-2xl border border-slate-200 bg-slate-50 p-4 text-xs text-slate-900">{formatJsonBlock(replayResult.modified_request)}</pre>
+                <pre className="max-h-[320px] overflow-auto rounded-2xl border border-theme-border bg-theme-bg-app p-4 text-xs text-theme-text-primary">{formatJsonBlock(replayResult.modified_request)}</pre>
               </div>
               <div>
-                <div className="mb-2 flex items-center justify-between gap-3 text-sm font-black text-slate-800">
+                <div className="mb-2 flex items-center justify-between gap-3 text-sm font-black text-theme-text-primary">
                   <span>New Response</span>
-                  <button onClick={() => void copyText(replayResult.error || replayResult.new_response || '', '重放响应已复制')} className="rounded-xl bg-slate-100 px-3 py-1.5 text-[11px] font-bold text-slate-700">复制</button>
+                  <button onClick={() => void copyText(replayResult.error || replayResult.new_response || '', '重放响应已复制')} className="rounded-xl bg-theme-elevated px-3 py-1.5 text-[11px] font-bold text-theme-text-secondary">复制</button>
                 </div>
-                <pre className="max-h-[320px] overflow-auto rounded-2xl border border-slate-200 bg-slate-50 p-4 text-xs text-slate-900">{formatJsonBlock(replayResult.error || replayResult.new_response)}</pre>
+                <pre className="max-h-[320px] overflow-auto rounded-2xl border border-theme-border bg-theme-bg-app p-4 text-xs text-theme-text-primary">{formatJsonBlock(replayResult.error || replayResult.new_response)}</pre>
               </div>
             </div>
           </div>
@@ -1782,32 +1782,32 @@ export const AiGatewayPage: React.FC<AiGatewayPageProps> = ({ entryView = 'aigw-
 
       {llmKeyModalOpen ? (
         <div className="fixed inset-0 z-[280] flex items-center justify-center bg-slate-950/60 p-6 backdrop-blur-sm">
- <div className="w-full max-w-3xl overflow-hidden rounded-[2rem] bg-slate-50">
-            <div className="flex items-center justify-between border-b border-slate-200 px-6 py-5">
+ <div className="w-full max-w-3xl overflow-hidden rounded-[2rem] bg-theme-bg-app">
+            <div className="flex items-center justify-between border-b border-theme-border px-6 py-5">
               <div>
-                <h3 className="text-xl font-black text-slate-900">{editingLlmKeyId ? '编辑调用密钥' : '新建调用密钥'}</h3>
-                <p className="mt-1 text-sm text-slate-500">{editingLlmKeyId ? '更新可变字段，任务边界与 key 类型保持后端约束。' : '为调用方创建一个虚拟访问密钥，并配置允许访问的算力池。'}</p>
+                <h3 className="text-xl font-black text-theme-text-primary">{editingLlmKeyId ? '编辑调用密钥' : '新建调用密钥'}</h3>
+                <p className="mt-1 text-sm text-theme-text-muted">{editingLlmKeyId ? '更新可变字段，任务边界与 key 类型保持后端约束。' : '为调用方创建一个虚拟访问密钥，并配置允许访问的算力池。'}</p>
               </div>
-              <button onClick={resetLlmKeyForm} className="rounded-2xl bg-slate-100 p-2 text-slate-600 hover:bg-slate-200"><X className="h-5 w-5" /></button>
+              <button onClick={resetLlmKeyForm} className="rounded-2xl bg-theme-elevated p-2 text-theme-text-secondary hover:bg-theme-elevated"><X className="h-5 w-5" /></button>
             </div>
             <div className="space-y-4 p-6">
               <div className="grid gap-4 sm:grid-cols-2">
-                <label className="block text-sm font-bold text-slate-600">密钥名称<input value={llmKeyForm.key_name} onChange={(e) => setLlmKeyForm((v) => ({ ...v, key_name: e.target.value }))} className="mt-1 w-full rounded-2xl border border-slate-200 px-4 py-3 outline-none" /></label>
-                <label className="block text-sm font-bold text-slate-600">密钥类型
-                  <select value={llmKeyForm.key_type} disabled={Boolean(editingLlmKeyId)} onChange={(e) => setLlmKeyForm((v) => ({ ...v, key_type: e.target.value as 'task' | 'work' }))} className="mt-1 w-full rounded-2xl border border-slate-200 px-4 py-3 outline-none disabled:bg-slate-100 disabled:text-slate-500">
+                <label className="block text-sm font-bold text-theme-text-secondary">密钥名称<input value={llmKeyForm.key_name} onChange={(e) => setLlmKeyForm((v) => ({ ...v, key_name: e.target.value }))} className="mt-1 w-full rounded-2xl border border-theme-border px-4 py-3 outline-none" /></label>
+                <label className="block text-sm font-bold text-theme-text-secondary">密钥类型
+                  <select value={llmKeyForm.key_type} disabled={Boolean(editingLlmKeyId)} onChange={(e) => setLlmKeyForm((v) => ({ ...v, key_type: e.target.value as 'task' | 'work' }))} className="mt-1 w-full rounded-2xl border border-theme-border px-4 py-3 outline-none disabled:bg-theme-elevated disabled:text-theme-text-muted">
                     <option value="task">任务密钥</option>
                     <option value="work">工作密钥</option>
                   </select>
                 </label>
               </div>
               <div className="grid gap-4 sm:grid-cols-2">
-                <label className="block text-sm font-bold text-slate-600">最大并发<input type="number" value={llmKeyForm.max_concurrency} onChange={(e) => setLlmKeyForm((v) => ({ ...v, max_concurrency: Number(e.target.value) || 0 }))} className="mt-1 w-full rounded-2xl border border-slate-200 px-4 py-3 outline-none" /></label>
-                <label className="flex items-center gap-3 pt-8 text-sm font-bold text-slate-700"><input type="checkbox" checked={llmKeyForm.enabled} onChange={(e) => setLlmKeyForm((v) => ({ ...v, enabled: e.target.checked }))} />创建后立即启用</label>
+                <label className="block text-sm font-bold text-theme-text-secondary">最大并发<input type="number" value={llmKeyForm.max_concurrency} onChange={(e) => setLlmKeyForm((v) => ({ ...v, max_concurrency: Number(e.target.value) || 0 }))} className="mt-1 w-full rounded-2xl border border-theme-border px-4 py-3 outline-none" /></label>
+                <label className="flex items-center gap-3 pt-8 text-sm font-bold text-theme-text-secondary"><input type="checkbox" checked={llmKeyForm.enabled} onChange={(e) => setLlmKeyForm((v) => ({ ...v, enabled: e.target.checked }))} />创建后立即启用</label>
               </div>
               <div className="grid gap-4 sm:grid-cols-2">
-                <label className="block text-sm font-bold text-slate-600">过期时间<input type="datetime-local" value={String(llmKeyForm.expires_at || '')} onChange={(e) => setLlmKeyForm((v) => ({ ...v, expires_at: e.target.value || null }))} className="mt-1 w-full rounded-2xl border border-slate-200 px-4 py-3 outline-none" /></label>
+                <label className="block text-sm font-bold text-theme-text-secondary">过期时间<input type="datetime-local" value={String(llmKeyForm.expires_at || '')} onChange={(e) => setLlmKeyForm((v) => ({ ...v, expires_at: e.target.value || null }))} className="mt-1 w-full rounded-2xl border border-theme-border px-4 py-3 outline-none" /></label>
                 {llmKeyForm.key_type === 'work' ? (
-                  <label className="block text-sm font-bold text-slate-600">父任务密钥
+                  <label className="block text-sm font-bold text-theme-text-secondary">父任务密钥
                     <select value={String(llmKeyForm.parent_key_id || '')} disabled={Boolean(editingLlmKeyId)} onChange={(e) => {
                       const parentId = Number(e.target.value) || null;
                       const parent = taskKeys.find((item) => item.id === parentId) || null;
@@ -1816,27 +1816,27 @@ export const AiGatewayPage: React.FC<AiGatewayPageProps> = ({ entryView = 'aigw-
                         parent_key_id: parentId,
                         task_id: parent?.task_id || '',
                       }));
-                    }} className="mt-1 w-full rounded-2xl border border-slate-200 px-4 py-3 outline-none disabled:bg-slate-100 disabled:text-slate-500">
+                    }} className="mt-1 w-full rounded-2xl border border-theme-border px-4 py-3 outline-none disabled:bg-theme-elevated disabled:text-theme-text-muted">
                       <option value="">选择父任务密钥</option>
                       {taskKeys.map((item) => <option key={item.id} value={item.id}>{item.key_name} · {item.task_id}</option>)}
                     </select>
                   </label>
-                ) : <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-500">任务密钥可直接配置授权算力池；工作密钥会继承父任务密钥的任务边界。</div>}
+                ) : <div className="rounded-2xl border border-theme-border bg-theme-bg-app px-4 py-3 text-sm text-theme-text-muted">任务密钥可直接配置授权算力池；工作密钥会继承父任务密钥的任务边界。</div>}
               </div>
               <div className="grid gap-4 sm:grid-cols-2">
-                <label className="block text-sm font-bold text-slate-600">任务 ID<input value={llmKeyForm.task_id} disabled={llmKeyForm.key_type === 'work' || Boolean(editingLlmKeyId)} onChange={(e) => setLlmKeyForm((v) => ({ ...v, task_id: e.target.value }))} className="mt-1 w-full rounded-2xl border border-slate-200 px-4 py-3 outline-none disabled:bg-slate-100 disabled:text-slate-500" /></label>
+                <label className="block text-sm font-bold text-theme-text-secondary">任务 ID<input value={llmKeyForm.task_id} disabled={llmKeyForm.key_type === 'work' || Boolean(editingLlmKeyId)} onChange={(e) => setLlmKeyForm((v) => ({ ...v, task_id: e.target.value }))} className="mt-1 w-full rounded-2xl border border-theme-border px-4 py-3 outline-none disabled:bg-theme-elevated disabled:text-theme-text-muted" /></label>
                 {llmKeyForm.key_type === 'work' ? (
-                  <label className="block text-sm font-bold text-slate-600">子任务 ID<input value={llmKeyForm.sub_task_id} disabled={Boolean(editingLlmKeyId)} onChange={(e) => setLlmKeyForm((v) => ({ ...v, sub_task_id: e.target.value }))} className="mt-1 w-full rounded-2xl border border-slate-200 px-4 py-3 outline-none disabled:bg-slate-100 disabled:text-slate-500" /></label>
+                  <label className="block text-sm font-bold text-theme-text-secondary">子任务 ID<input value={llmKeyForm.sub_task_id} disabled={Boolean(editingLlmKeyId)} onChange={(e) => setLlmKeyForm((v) => ({ ...v, sub_task_id: e.target.value }))} className="mt-1 w-full rounded-2xl border border-theme-border px-4 py-3 outline-none disabled:bg-theme-elevated disabled:text-theme-text-muted" /></label>
                 ) : (
-                  <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-500">任务密钥不需要填写子任务 ID；如需限定到子任务，请创建工作密钥。</div>
+                  <div className="rounded-2xl border border-theme-border bg-theme-bg-app px-4 py-3 text-sm text-theme-text-muted">任务密钥不需要填写子任务 ID；如需限定到子任务，请创建工作密钥。</div>
                 )}
               </div>
-              <label className="block text-sm font-bold text-slate-600">允许访问的算力池
-                <div className="mt-2 flex flex-wrap gap-2 rounded-2xl border border-slate-200 p-3">
+              <label className="block text-sm font-bold text-theme-text-secondary">允许访问的算力池
+                <div className="mt-2 flex flex-wrap gap-2 rounded-2xl border border-theme-border p-3">
                   {capacityPools.map((item) => {
                     const checked = llmKeyForm.capacity_pool_ids.includes(item.id);
                     return (
-                      <label key={item.id} className={`rounded-full border px-3 py-1.5 text-xs font-bold ${checked ? 'border-slate-900 bg-slate-900 text-white' : 'border-slate-200 bg-slate-50 text-slate-600'} ${llmKeyForm.key_type === 'work' ? 'opacity-50' : ''}`}>
+                      <label key={item.id} className={`rounded-full border px-3 py-1.5 text-xs font-bold ${checked ? 'border-theme-border bg-theme-surface text-white' : 'border-theme-border bg-theme-bg-app text-theme-text-secondary'} ${llmKeyForm.key_type === 'work' ? 'opacity-50' : ''}`}>
                         <input
                           type="checkbox"
                           className="hidden"
@@ -1854,13 +1854,13 @@ export const AiGatewayPage: React.FC<AiGatewayPageProps> = ({ entryView = 'aigw-
                     );
                   })}
                 </div>
-                {llmKeyForm.key_type === 'work' ? <div className="mt-2 text-xs text-slate-500">工作密钥不能单独定义算力池范围，会继承父任务密钥授权。</div> : null}
+                {llmKeyForm.key_type === 'work' ? <div className="mt-2 text-xs text-theme-text-muted">工作密钥不能单独定义算力池范围，会继承父任务密钥授权。</div> : null}
               </label>
-              <label className="block text-sm font-bold text-slate-600">备注<textarea value={llmKeyForm.description} onChange={(e) => setLlmKeyForm((v) => ({ ...v, description: e.target.value }))} className="mt-1 min-h-24 w-full rounded-2xl border border-slate-200 px-4 py-3 outline-none" /></label>
+              <label className="block text-sm font-bold text-theme-text-secondary">备注<textarea value={llmKeyForm.description} onChange={(e) => setLlmKeyForm((v) => ({ ...v, description: e.target.value }))} className="mt-1 min-h-24 w-full rounded-2xl border border-theme-border px-4 py-3 outline-none" /></label>
             </div>
-            <div className="flex items-center justify-end gap-3 border-t border-slate-200 px-6 py-4">
-              <button onClick={resetLlmKeyForm} className="rounded-2xl bg-slate-100 px-4 py-2.5 text-sm font-bold text-slate-700">取消</button>
-              <button onClick={submitLlmKey} disabled={saving} className="inline-flex items-center gap-2 rounded-2xl bg-slate-900 px-4 py-2.5 text-sm font-bold text-white disabled:opacity-50"><Save className="h-4 w-4" />{editingLlmKeyId ? '保存修改' : '创建密钥'}</button>
+            <div className="flex items-center justify-end gap-3 border-t border-theme-border px-6 py-4">
+              <button onClick={resetLlmKeyForm} className="rounded-2xl bg-theme-elevated px-4 py-2.5 text-sm font-bold text-theme-text-secondary">取消</button>
+              <button onClick={submitLlmKey} disabled={saving} className="inline-flex items-center gap-2 rounded-2xl bg-theme-surface px-4 py-2.5 text-sm font-bold text-white disabled:opacity-50"><Save className="h-4 w-4" />{editingLlmKeyId ? '保存修改' : '创建密钥'}</button>
             </div>
           </div>
         </div>
@@ -1868,18 +1868,18 @@ export const AiGatewayPage: React.FC<AiGatewayPageProps> = ({ entryView = 'aigw-
 
       {llmKeyResultOpen && createdLlmKeyMeta ? (
         <div className="fixed inset-0 z-[290] flex items-center justify-center bg-slate-950/60 p-6 backdrop-blur-sm">
- <div className="w-full max-w-2xl overflow-hidden rounded-[2rem] bg-slate-50">
-            <div className="border-b border-slate-200 px-6 py-5">
-              <h3 className="text-xl font-black text-slate-900">调用密钥创建成功</h3>
-              <p className="mt-1 text-sm text-slate-500">完整密钥只会展示这一次，请立即保存。</p>
+ <div className="w-full max-w-2xl overflow-hidden rounded-[2rem] bg-theme-bg-app">
+            <div className="border-b border-theme-border px-6 py-5">
+              <h3 className="text-xl font-black text-theme-text-primary">调用密钥创建成功</h3>
+              <p className="mt-1 text-sm text-theme-text-muted">完整密钥只会展示这一次，请立即保存。</p>
             </div>
             <div className="space-y-4 p-6">
-              <div className="rounded-2xl bg-slate-50 px-4 py-3 text-sm">名称：<span className="font-black text-slate-900">{createdLlmKeyMeta.key_name}</span></div>
-              <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 font-mono text-sm text-slate-900 break-all">{createdLlmKeySecret || '-'}</div>
+              <div className="rounded-2xl bg-theme-bg-app px-4 py-3 text-sm">名称：<span className="font-black text-theme-text-primary">{createdLlmKeyMeta.key_name}</span></div>
+              <div className="rounded-2xl border border-theme-border bg-theme-bg-app px-4 py-4 font-mono text-sm text-theme-text-primary break-all">{createdLlmKeySecret || '-'}</div>
             </div>
-            <div className="flex items-center justify-end gap-3 border-t border-slate-200 px-6 py-4">
-              <button onClick={() => { navigator.clipboard?.writeText(createdLlmKeySecret || ''); }} className="rounded-2xl bg-slate-100 px-4 py-2.5 text-sm font-bold text-slate-700">复制密钥</button>
-              <button onClick={() => { setLlmKeyResultOpen(false); setCreatedLlmKeyMeta(null); setCreatedLlmKeySecret(''); }} className="rounded-2xl bg-slate-900 px-4 py-2.5 text-sm font-bold text-white">我已保存</button>
+            <div className="flex items-center justify-end gap-3 border-t border-theme-border px-6 py-4">
+              <button onClick={() => { navigator.clipboard?.writeText(createdLlmKeySecret || ''); }} className="rounded-2xl bg-theme-elevated px-4 py-2.5 text-sm font-bold text-theme-text-secondary">复制密钥</button>
+              <button onClick={() => { setLlmKeyResultOpen(false); setCreatedLlmKeyMeta(null); setCreatedLlmKeySecret(''); }} className="rounded-2xl bg-theme-surface px-4 py-2.5 text-sm font-bold text-white">我已保存</button>
             </div>
           </div>
         </div>
@@ -1887,23 +1887,23 @@ export const AiGatewayPage: React.FC<AiGatewayPageProps> = ({ entryView = 'aigw-
 
       {llmKeyDetailOpen && selectedLlmKey ? (
         <div className="fixed inset-0 z-[290] flex items-center justify-center bg-slate-950/60 p-6 backdrop-blur-sm">
- <div className="w-full max-w-2xl overflow-hidden rounded-[2rem] bg-slate-50">
-            <div className="flex items-center justify-between border-b border-slate-200 px-6 py-5">
+ <div className="w-full max-w-2xl overflow-hidden rounded-[2rem] bg-theme-bg-app">
+            <div className="flex items-center justify-between border-b border-theme-border px-6 py-5">
               <div>
-                <h3 className="text-xl font-black text-slate-900">{selectedLlmKey.key_name ||`调用密钥 #${selectedLlmKey.id}`}</h3>
-                <p className="mt-1 text-sm text-slate-500">完整密钥不会再次回显，如需替换请重新创建或轮换。</p>
+                <h3 className="text-xl font-black text-theme-text-primary">{selectedLlmKey.key_name ||`调用密钥 #${selectedLlmKey.id}`}</h3>
+                <p className="mt-1 text-sm text-theme-text-muted">完整密钥不会再次回显，如需替换请重新创建或轮换。</p>
               </div>
-              <button onClick={() => setLlmKeyDetailOpen(false)} className="rounded-2xl bg-slate-100 p-2 text-slate-600 hover:bg-slate-200"><X className="h-5 w-5" /></button>
+              <button onClick={() => setLlmKeyDetailOpen(false)} className="rounded-2xl bg-theme-elevated p-2 text-theme-text-secondary hover:bg-theme-elevated"><X className="h-5 w-5" /></button>
             </div>
             <div className="grid gap-3 p-6 text-sm">
-              <div className="rounded-2xl bg-slate-50 px-4 py-3">前缀：<span className="font-mono font-bold text-slate-900">{selectedLlmKey.key_prefix || '-'}</span></div>
-              <div className="rounded-2xl bg-slate-50 px-4 py-3">类型：<span className="font-bold text-slate-900">{selectedLlmKey.key_type === 'task' ? '任务密钥' : selectedLlmKey.key_type === 'work' ? '工作密钥' : selectedLlmKey.key_type}</span></div>
-              <div className="rounded-2xl bg-slate-50 px-4 py-3">父任务密钥：<span className="font-bold text-slate-900">{selectedLlmKey.parent_key_id ?`#${selectedLlmKey.parent_key_id}` : '-'}</span></div>
-              <div className="rounded-2xl bg-slate-50 px-4 py-3">最大并发：<span className="font-bold text-slate-900">{selectedLlmKey.max_concurrency || 0}</span></div>
-              <div className="rounded-2xl bg-slate-50 px-4 py-3">任务范围：<span className="font-bold text-slate-900">{selectedLlmKey.task_id ? (selectedLlmKey.key_type === 'work' && selectedLlmKey.sub_task_id ?`${selectedLlmKey.task_id} / ${selectedLlmKey.sub_task_id}` : selectedLlmKey.task_id) : '-'}</span></div>
-              <div className="rounded-2xl bg-slate-50 px-4 py-3">过期时间：<span className="font-bold text-slate-900">{formatDateTime(selectedLlmKey.expires_at)}</span></div>
-              <div className="rounded-2xl bg-slate-50 px-4 py-3">授权算力池：<span className="font-bold text-slate-900">{selectedLlmKey.capacity_pool_ids?.length ? selectedLlmKey.capacity_pool_ids.map((id) => capacityPools.find((pool) => pool.id === id)?.pool_name ||`#${id}`).join(' / ') : '-'}</span></div>
-              <div className="rounded-2xl bg-slate-50 px-4 py-3">备注：<span className="font-bold text-slate-900">{selectedLlmKey.description || '-'}</span></div>
+              <div className="rounded-2xl bg-theme-bg-app px-4 py-3">前缀：<span className="font-mono font-bold text-theme-text-primary">{selectedLlmKey.key_prefix || '-'}</span></div>
+              <div className="rounded-2xl bg-theme-bg-app px-4 py-3">类型：<span className="font-bold text-theme-text-primary">{selectedLlmKey.key_type === 'task' ? '任务密钥' : selectedLlmKey.key_type === 'work' ? '工作密钥' : selectedLlmKey.key_type}</span></div>
+              <div className="rounded-2xl bg-theme-bg-app px-4 py-3">父任务密钥：<span className="font-bold text-theme-text-primary">{selectedLlmKey.parent_key_id ?`#${selectedLlmKey.parent_key_id}` : '-'}</span></div>
+              <div className="rounded-2xl bg-theme-bg-app px-4 py-3">最大并发：<span className="font-bold text-theme-text-primary">{selectedLlmKey.max_concurrency || 0}</span></div>
+              <div className="rounded-2xl bg-theme-bg-app px-4 py-3">任务范围：<span className="font-bold text-theme-text-primary">{selectedLlmKey.task_id ? (selectedLlmKey.key_type === 'work' && selectedLlmKey.sub_task_id ?`${selectedLlmKey.task_id} / ${selectedLlmKey.sub_task_id}` : selectedLlmKey.task_id) : '-'}</span></div>
+              <div className="rounded-2xl bg-theme-bg-app px-4 py-3">过期时间：<span className="font-bold text-theme-text-primary">{formatDateTime(selectedLlmKey.expires_at)}</span></div>
+              <div className="rounded-2xl bg-theme-bg-app px-4 py-3">授权算力池：<span className="font-bold text-theme-text-primary">{selectedLlmKey.capacity_pool_ids?.length ? selectedLlmKey.capacity_pool_ids.map((id) => capacityPools.find((pool) => pool.id === id)?.pool_name ||`#${id}`).join(' / ') : '-'}</span></div>
+              <div className="rounded-2xl bg-theme-bg-app px-4 py-3">备注：<span className="font-bold text-theme-text-primary">{selectedLlmKey.description || '-'}</span></div>
             </div>
           </div>
         </div>

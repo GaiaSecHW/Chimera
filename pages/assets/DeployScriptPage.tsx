@@ -205,30 +205,30 @@ export const DeployScriptPage: React.FC = () => {
   const pathParts = currentPath.split('/').filter(Boolean);
 
   return (
-    <div className="min-h-full bg-slate-50 px-4 py-5 md:px-6 2xl:px-8 flex flex-col animate-in fade-in duration-500">
+    <div className="min-h-full bg-theme-bg-app px-4 py-5 md:px-6 2xl:px-8 flex flex-col animate-in fade-in duration-500">
       <div className="w-full space-y-4 flex flex-col flex-1 min-h-0">
       {/* Header Section */}
       <div className="flex flex-wrap items-center justify-between gap-2 shrink-0">
         <div>
-          <h1 className="text-lg font-black text-slate-900">部署脚本管理</h1>
+          <h1 className="text-lg font-black text-theme-text-primary">部署脚本管理</h1>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <button onClick={fetchItems} className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-bold text-slate-700 hover:bg-slate-100">
+          <button onClick={fetchItems} className="inline-flex items-center gap-2 rounded-xl border border-theme-border bg-theme-bg-app px-3 py-2 text-sm font-bold text-theme-text-secondary hover:bg-theme-elevated">
             <RefreshCw size={16} className={loading ? 'animate-spin' : ''} /> 刷新
           </button>
           <button
             onClick={() => { setNewName(''); setIsCreateFileOpen(true); }}
-            className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-bold text-slate-700 hover:bg-slate-100"
+            className="inline-flex items-center gap-2 rounded-xl border border-theme-border bg-theme-bg-app px-3 py-2 text-sm font-bold text-theme-text-secondary hover:bg-theme-elevated"
           >
             <FilePlus size={16} /> 新建文件
           </button>
           <button
             onClick={() => { setNewName(''); setIsMkdirOpen(true); }}
-            className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-bold text-slate-700 hover:bg-slate-100"
+            className="inline-flex items-center gap-2 rounded-xl border border-theme-border bg-theme-bg-app px-3 py-2 text-sm font-bold text-theme-text-secondary hover:bg-theme-elevated"
           >
             <FolderPlus size={16} /> 新建目录
           </button>
-          <button onClick={() => fileInputRef.current?.click()} className="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-3 py-2 text-sm font-black text-white hover:bg-slate-800">
+          <button onClick={() => fileInputRef.current?.click()} className="inline-flex items-center gap-2 rounded-xl bg-theme-surface px-3 py-2 text-sm font-black text-white hover:bg-theme-elevated">
             <Upload size={16} /> 上传文件
           </button>
           <input type="file" multiple hidden ref={fileInputRef} onChange={handleUpload} />
@@ -236,26 +236,26 @@ export const DeployScriptPage: React.FC = () => {
       </div>
 
       {/* Main Browser Window */}
- <div className="flex-1 min-h-0 bg-slate-50 overflow-hidden rounded-2xl border border-slate-200 flex flex-col relative">
+ <div className="flex-1 min-h-0 bg-theme-bg-app overflow-hidden rounded-2xl border border-theme-border flex flex-col relative">
         {/* Browser Navbar */}
-        <div className="border-b border-slate-200 bg-slate-50/70 px-4 py-4 md:px-5 flex items-center justify-between shrink-0">
+        <div className="border-b border-theme-border bg-slate-50/70 px-4 py-4 md:px-5 flex items-center justify-between shrink-0">
            <div className="flex items-center gap-4 flex-1 min-w-0">
               <button
                 onClick={goBack}
                 disabled={currentPath === '/'}
-                className="p-2 text-slate-400 hover:text-slate-800 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                className="p-2 text-theme-text-muted hover:text-theme-text-primary disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
               >
                 <ArrowLeft size={20} />
               </button>
 
               <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-1">
-                 <button onClick={() => navigateTo('/')} className="text-sm font-black text-slate-400 hover:text-blue-600 transition-colors">ROOT</button>
+                 <button onClick={() => navigateTo('/')} className="text-sm font-black text-theme-text-muted hover:text-blue-400 transition-colors">ROOT</button>
                  {pathParts.map((part, idx) => (
                    <React.Fragment key={idx}>
-                      <ChevronRight size={14} className="text-slate-300 shrink-0" />
+                      <ChevronRight size={14} className="text-theme-text-faint shrink-0" />
                       <button
                         onClick={() => navigateTo('/' + pathParts.slice(0, idx + 1).join('/'))}
-                        className={`text-sm font-black transition-colors whitespace-nowrap ${idx === pathParts.length - 1 ? 'text-blue-600' : 'text-slate-400 hover:text-slate-600'}`}
+                        className={`text-sm font-black transition-colors whitespace-nowrap ${idx === pathParts.length - 1 ? 'text-blue-400' : 'text-theme-text-muted hover:text-theme-text-secondary'}`}
                       >
                         {part.toUpperCase()}
                       </button>
@@ -265,10 +265,10 @@ export const DeployScriptPage: React.FC = () => {
            </div>
 
            <div className="relative w-64 ml-4">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-300" size={16} />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-theme-text-faint" size={16} />
               <input
                 placeholder="搜索当前目录..."
-                className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs outline-none focus:ring-2 ring-blue-500/10 transition-all font-medium"
+                className="w-full pl-10 pr-4 py-2 bg-theme-bg-app border border-theme-border rounded-xl text-xs outline-none focus:ring-2 ring-blue-500/10 transition-all font-medium"
                 value={searchTerm}
                 onChange={e => setSearchTerm(e.target.value)}
               />
@@ -278,14 +278,14 @@ export const DeployScriptPage: React.FC = () => {
         {/* Browser List Area */}
         <div className="flex-1 overflow-y-auto custom-scrollbar">
            {loading && items.length === 0 ? (
-             <div className="h-full flex flex-col items-center justify-center text-slate-400 gap-4">
-                <Loader2 className="animate-spin text-blue-600" size={48} />
+             <div className="h-full flex flex-col items-center justify-center text-theme-text-muted gap-4">
+                <Loader2 className="animate-spin text-blue-400" size={48} />
                 <p className="text-[10px] font-black uppercase tracking-[0.2em]">Synchronizing Repository...</p>
              </div>
            ) : (
              <table className="w-full text-left table-fixed">
-                <thead className="bg-slate-50 border-b border-slate-50 sticky top-0 z-10">
-                   <tr className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                <thead className="bg-theme-bg-app border-b border-slate-50 sticky top-0 z-10">
+                   <tr className="text-[10px] font-black text-theme-text-muted uppercase tracking-widest">
                       <th className="px-8 py-4 w-[50%]">名称</th>
                       <th className="px-6 py-4 w-[15%]">大小</th>
                       <th className="px-6 py-4 w-[20%]">修改日期</th>
@@ -300,18 +300,18 @@ export const DeployScriptPage: React.FC = () => {
                               className="flex items-center gap-4 cursor-pointer"
                               onClick={() => item.is_dir ? navigateTo(item.path) : openEditor(item)}
                             >
-                               <div className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all ${item.is_dir ? 'bg-amber-50 text-amber-500' : 'bg-blue-50 text-blue-500'}`}>
+                               <div className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all ${item.is_dir ? 'bg-amber-500/15 text-amber-500' : 'bg-blue-500/15 text-blue-500'}`}>
                                   {item.is_dir ? <Folder size={18} fill="currentColor" className="opacity-40" /> : <FileCode size={18} />}
                                </div>
                                <div className="min-w-0">
-                                  <p className="text-sm font-black text-slate-700 truncate group-hover:text-blue-600 transition-colors">{item.name}</p>
-                                  {item.is_dir && <p className="text-[9px] text-slate-400 font-bold uppercase tracking-tighter">Directory</p>}
+                                  <p className="text-sm font-black text-theme-text-secondary truncate group-hover:text-blue-400 transition-colors">{item.name}</p>
+                                  {item.is_dir && <p className="text-[9px] text-theme-text-muted font-bold uppercase tracking-tighter">Directory</p>}
                                </div>
                             </div>
                          </td>
-                         <td className="px-6 py-4 text-xs font-bold text-slate-400">{item.is_dir ? '-' : formatSize(item.size)}</td>
+                         <td className="px-6 py-4 text-xs font-bold text-theme-text-muted">{item.is_dir ? '-' : formatSize(item.size)}</td>
                          <td className="px-6 py-4">
-                            <div className="flex items-center gap-2 text-[10px] font-bold text-slate-400 uppercase">
+                            <div className="flex items-center gap-2 text-[10px] font-bold text-theme-text-muted uppercase">
                                <Clock size={12} /> {new Date(item.modified_at * 1000).toLocaleString().split(' ')[0]}
                             </div>
                          </td>
@@ -321,13 +321,13 @@ export const DeployScriptPage: React.FC = () => {
                                  <>
                                    <button
                                      onClick={() => openEditor(item)}
-                                     className="p-2 text-slate-400 hover:text-blue-600 rounded-lg" title="编辑脚本"
+                                     className="p-2 text-theme-text-muted hover:text-blue-400 rounded-lg" title="编辑脚本"
                                    >
                                      <Edit3 size={16} />
                                    </button>
                                    <a
                                      href={assetApi.deployScript.downloadUrl(item.path)}
-                                     className="p-2 text-slate-400 hover:text-green-600 rounded-lg" title="下载"
+                                     className="p-2 text-theme-text-muted hover:text-green-400 rounded-lg" title="下载"
                                    >
                                      <Download size={16} />
                                    </a>
@@ -335,13 +335,13 @@ export const DeployScriptPage: React.FC = () => {
                                )}
                                <button
                                  onClick={() => { setTargetItem(item); setNewName(item.name); setIsRenameOpen(true); }}
-                                 className="p-2 text-slate-400 hover:text-amber-600 rounded-lg" title="重命名"
+                                 className="p-2 text-theme-text-muted hover:text-amber-400 rounded-lg" title="重命名"
                                >
                                  <Type size={16} />
                                </button>
                                <button
                                  onClick={() => { setTargetItem(item); setIsDeleteOpen(true); }}
-                                 className="p-2 text-slate-400 hover:text-red-500 rounded-lg" title="删除"
+                                 className="p-2 text-theme-text-muted hover:text-red-500 rounded-lg" title="删除"
                                >
                                  <Trash2 size={16} />
                                </button>
@@ -352,10 +352,10 @@ export const DeployScriptPage: React.FC = () => {
                    {filteredItems.length === 0 && !loading && (
                       <tr>
                         <td colSpan={4} className="py-32 text-center">
-                           <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-4 text-slate-200">
+                           <div className="w-16 h-16 bg-theme-bg-app rounded-full flex items-center justify-center mx-auto mb-4 text-slate-200">
                              <HardDrive size={32} />
                            </div>
-                           <p className="text-xs font-black text-slate-400 uppercase tracking-widest">Directory is currently empty</p>
+                           <p className="text-xs font-black text-theme-text-muted uppercase tracking-widest">Directory is currently empty</p>
                         </td>
                       </tr>
                    )}
@@ -375,18 +375,18 @@ export const DeployScriptPage: React.FC = () => {
       {/* ONLINE EDITOR OVERLAY */}
       {isEditorOpen && editingFile && (
         <div className="fixed inset-0 z-[250] flex items-center justify-center p-6 bg-slate-950/80 backdrop-blur-xl animate-in fade-in">
- <div className="bg-[#0f172a] w-full max-w-6xl h-[90vh] rounded-2xl border border-slate-200 flex flex-col overflow-hidden animate-in zoom-in-95">
+ <div className="bg-theme-surface w-full max-w-6xl h-[90vh] rounded-2xl border border-theme-border flex flex-col overflow-hidden animate-in zoom-in-95">
  <div className="px-5 py-4 border-b border-slate-200/5 flex items-center justify-between bg-slate-100/10 shrink-0">
                  <div className="flex items-center gap-3">
-                    <div className="w-9 h-9 bg-slate-700 rounded-2xl flex items-center justify-center text-white">
+                    <div className="w-9 h-9 bg-theme-elevated rounded-2xl flex items-center justify-center text-white">
                        <FileCode size={18} />
                     </div>
                     <div>
                        <h3 className="text-lg font-black text-white">在线编辑: {editingFile.path.split('/').pop()}</h3>
-                       <p className="text-xs font-mono text-slate-500 mt-0.5">{editingFile.path}</p>
+                       <p className="text-xs font-mono text-theme-text-muted mt-0.5">{editingFile.path}</p>
                     </div>
                  </div>
- <button onClick={() => setIsEditorOpen(false)} className="rounded-xl p-2 bg-slate-100/10 text-slate-400 hover:text-white hover:bg-slate-100 transition-all">
+ <button onClick={() => setIsEditorOpen(false)} className="rounded-xl p-2 bg-slate-100/10 text-theme-text-muted hover:text-white hover:bg-theme-elevated transition-all">
                     <X size={18} />
                  </button>
               </div>
@@ -400,11 +400,11 @@ export const DeployScriptPage: React.FC = () => {
                  />
               </div>
  <div className="px-5 py-4 bg-slate-100/10 border-t border-slate-200/5 flex justify-end gap-2 shrink-0">
- <button onClick={() => setIsEditorOpen(false)} className="rounded-xl border border-slate-200 bg-slate-100/10 px-3 py-2 text-sm font-bold text-slate-300 hover:bg-slate-100 transition-all">放弃更改</button>
+ <button onClick={() => setIsEditorOpen(false)} className="rounded-xl border border-theme-border bg-slate-100/10 px-3 py-2 text-sm font-bold text-theme-text-faint hover:bg-theme-elevated transition-all">放弃更改</button>
                  <button
                    onClick={saveFile}
                    disabled={isActionLoading}
-                   className="inline-flex items-center gap-2 rounded-xl bg-slate-100 px-3 py-2 text-sm font-black text-slate-900 hover:bg-slate-50 transition-all disabled:opacity-50"
+                   className="inline-flex items-center gap-2 rounded-xl bg-theme-elevated px-3 py-2 text-sm font-black text-theme-text-primary hover:bg-theme-bg-app transition-all disabled:opacity-50"
                  >
                     {isActionLoading ? <Loader2 className="animate-spin" size={16} /> : <Save size={16} />}
                     保存至服务器
@@ -417,21 +417,21 @@ export const DeployScriptPage: React.FC = () => {
       {/* RENAME MODAL */}
       {isRenameOpen && (
         <div className="fixed inset-0 z-[300] flex items-center justify-center p-6 bg-slate-950/60 backdrop-blur-md animate-in fade-in">
- <div className="bg-slate-50 w-full max-w-md rounded-2xl overflow-hidden animate-in zoom-in-95 border border-slate-200">
+ <div className="bg-theme-bg-app w-full max-w-md rounded-2xl overflow-hidden animate-in zoom-in-95 border border-theme-border">
               <div className="px-5 pt-5 pb-3">
-                 <h3 className="text-lg font-black text-slate-900">重命名资产</h3>
-                 <p className="text-sm text-slate-500 mt-1">请输入新的名称，确保不包含非法字符</p>
+                 <h3 className="text-lg font-black text-theme-text-primary">重命名资产</h3>
+                 <p className="text-sm text-theme-text-muted mt-1">请输入新的名称，确保不包含非法字符</p>
               </div>
               <div className="px-5 pb-5 space-y-4">
                  <input
                    autoFocus
-                   className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-medium text-slate-800 outline-none focus:ring-2 ring-slate-900/10"
+                   className="w-full rounded-xl border border-theme-border bg-theme-bg-app px-3 py-2 text-sm font-medium text-theme-text-primary outline-none focus:ring-2 ring-slate-900/10"
                    value={newName} onChange={e => setNewName(e.target.value)}
                    onKeyDown={e => e.key === 'Enter' && handleRename()}
                  />
                  <div className="flex justify-end gap-2">
-                    <button onClick={() => setIsRenameOpen(false)} className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-bold text-slate-700 hover:bg-slate-100">取消</button>
-                    <button onClick={handleRename} disabled={isActionLoading} className="rounded-xl bg-slate-900 px-3 py-2 text-sm font-black text-white hover:bg-slate-800 disabled:opacity-50">确认更改</button>
+                    <button onClick={() => setIsRenameOpen(false)} className="rounded-xl border border-theme-border bg-theme-bg-app px-3 py-2 text-sm font-bold text-theme-text-secondary hover:bg-theme-elevated">取消</button>
+                    <button onClick={handleRename} disabled={isActionLoading} className="rounded-xl bg-theme-surface px-3 py-2 text-sm font-black text-white hover:bg-theme-elevated disabled:opacity-50">确认更改</button>
                  </div>
               </div>
            </div>
@@ -441,21 +441,21 @@ export const DeployScriptPage: React.FC = () => {
       {/* MKDIR MODAL */}
       {isMkdirOpen && (
         <div className="fixed inset-0 z-[300] flex items-center justify-center p-6 bg-slate-950/60 backdrop-blur-md animate-in fade-in">
- <div className="bg-slate-50 w-full max-w-md rounded-2xl overflow-hidden animate-in zoom-in-95 border border-slate-200">
+ <div className="bg-theme-bg-app w-full max-w-md rounded-2xl overflow-hidden animate-in zoom-in-95 border border-theme-border">
               <div className="px-5 pt-5 pb-3">
-                 <h3 className="text-lg font-black text-slate-900">创建新目录</h3>
-                 <p className="text-sm text-slate-500 mt-1">将在当前路径下创建一个新的子文件夹</p>
+                 <h3 className="text-lg font-black text-theme-text-primary">创建新目录</h3>
+                 <p className="text-sm text-theme-text-muted mt-1">将在当前路径下创建一个新的子文件夹</p>
               </div>
               <div className="px-5 pb-5 space-y-4">
                  <input
                    autoFocus placeholder="请输入目录名"
-                   className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-medium text-slate-800 outline-none focus:ring-2 ring-slate-900/10"
+                   className="w-full rounded-xl border border-theme-border bg-theme-bg-app px-3 py-2 text-sm font-medium text-theme-text-primary outline-none focus:ring-2 ring-slate-900/10"
                    value={newName} onChange={e => setNewName(e.target.value)}
                    onKeyDown={e => e.key === 'Enter' && handleCreateDir()}
                  />
                  <div className="flex justify-end gap-2">
-                    <button onClick={() => { setIsMkdirOpen(false); setNewName(''); }} className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-bold text-slate-700 hover:bg-slate-100">取消</button>
-                    <button onClick={handleCreateDir} disabled={isActionLoading} className="rounded-xl bg-slate-900 px-3 py-2 text-sm font-black text-white hover:bg-slate-800 disabled:opacity-50">创建目录</button>
+                    <button onClick={() => { setIsMkdirOpen(false); setNewName(''); }} className="rounded-xl border border-theme-border bg-theme-bg-app px-3 py-2 text-sm font-bold text-theme-text-secondary hover:bg-theme-elevated">取消</button>
+                    <button onClick={handleCreateDir} disabled={isActionLoading} className="rounded-xl bg-theme-surface px-3 py-2 text-sm font-black text-white hover:bg-theme-elevated disabled:opacity-50">创建目录</button>
                  </div>
               </div>
            </div>
@@ -465,21 +465,21 @@ export const DeployScriptPage: React.FC = () => {
       {/* CREATE FILE MODAL */}
       {isCreateFileOpen && (
         <div className="fixed inset-0 z-[300] flex items-center justify-center p-6 bg-slate-950/60 backdrop-blur-md animate-in fade-in">
- <div className="bg-slate-50 w-full max-w-md rounded-2xl overflow-hidden animate-in zoom-in-95 border border-slate-200">
+ <div className="bg-theme-bg-app w-full max-w-md rounded-2xl overflow-hidden animate-in zoom-in-95 border border-theme-border">
               <div className="px-5 pt-5 pb-3">
-                 <h3 className="text-lg font-black text-slate-900">新建脚本文件</h3>
-                 <p className="text-sm text-slate-500 mt-1">请输入文件名（建议包含后缀，如 .sh, .yaml）</p>
+                 <h3 className="text-lg font-black text-theme-text-primary">新建脚本文件</h3>
+                 <p className="text-sm text-theme-text-muted mt-1">请输入文件名（建议包含后缀，如 .sh, .yaml）</p>
               </div>
               <div className="px-5 pb-5 space-y-4">
                  <input
                    autoFocus placeholder="e.g. exploit.sh"
-                   className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-medium text-slate-800 outline-none focus:ring-2 ring-slate-900/10"
+                   className="w-full rounded-xl border border-theme-border bg-theme-bg-app px-3 py-2 text-sm font-medium text-theme-text-primary outline-none focus:ring-2 ring-slate-900/10"
                    value={newName} onChange={e => setNewName(e.target.value)}
                    onKeyDown={e => e.key === 'Enter' && handleCreateFile()}
                  />
                  <div className="flex justify-end gap-2">
-                    <button onClick={() => { setIsCreateFileOpen(false); setNewName(''); }} className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-bold text-slate-700 hover:bg-slate-100">取消</button>
-                    <button onClick={handleCreateFile} disabled={isActionLoading} className="rounded-xl bg-slate-900 px-3 py-2 text-sm font-black text-white hover:bg-slate-800 disabled:opacity-50">立即创建</button>
+                    <button onClick={() => { setIsCreateFileOpen(false); setNewName(''); }} className="rounded-xl border border-theme-border bg-theme-bg-app px-3 py-2 text-sm font-bold text-theme-text-secondary hover:bg-theme-elevated">取消</button>
+                    <button onClick={handleCreateFile} disabled={isActionLoading} className="rounded-xl bg-theme-surface px-3 py-2 text-sm font-black text-white hover:bg-theme-elevated disabled:opacity-50">立即创建</button>
                  </div>
               </div>
            </div>
@@ -489,19 +489,19 @@ export const DeployScriptPage: React.FC = () => {
       {/* DELETE CONFIRMATION */}
       {isDeleteOpen && targetItem && (
         <div className="fixed inset-0 z-[300] flex items-center justify-center p-6 bg-slate-950/60 backdrop-blur-md animate-in fade-in">
- <div className="bg-slate-50 w-full max-w-md rounded-2xl overflow-hidden animate-in zoom-in-95 border border-slate-200">
+ <div className="bg-theme-bg-app w-full max-w-md rounded-2xl overflow-hidden animate-in zoom-in-95 border border-theme-border">
               <div className="px-5 pt-5 pb-2 text-center">
-                 <div className="w-14 h-14 bg-red-50 text-red-600 rounded-2xl flex items-center justify-center mx-auto mb-3">
+                 <div className="w-14 h-14 bg-red-500/15 text-red-400 rounded-2xl flex items-center justify-center mx-auto mb-3">
                     <AlertTriangle size={28} />
                  </div>
-                 <h3 className="text-lg font-black text-slate-900">确认删除？</h3>
-                 <p className="text-sm text-slate-500 mt-2 leading-relaxed">
-                   您确定要永久删除 <span className="font-black text-red-600">"{targetItem.name}"</span> 吗？<br/>
+                 <h3 className="text-lg font-black text-theme-text-primary">确认删除？</h3>
+                 <p className="text-sm text-theme-text-muted mt-2 leading-relaxed">
+                   您确定要永久删除 <span className="font-black text-red-400">"{targetItem.name}"</span> 吗？<br/>
                    如果这是一个目录，其包含的所有子项将被<span className="font-bold underline">递归删除</span>。
                  </p>
               </div>
               <div className="px-5 pb-5 pt-3 flex justify-end gap-2">
-                 <button onClick={() => setIsDeleteOpen(false)} className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-bold text-slate-700 hover:bg-slate-100">取消</button>
+                 <button onClick={() => setIsDeleteOpen(false)} className="rounded-xl border border-theme-border bg-theme-bg-app px-3 py-2 text-sm font-bold text-theme-text-secondary hover:bg-theme-elevated">取消</button>
                  <button onClick={handleDelete} disabled={isActionLoading} className="rounded-xl bg-red-600 px-3 py-2 text-sm font-black text-white hover:bg-red-700 disabled:opacity-50">立即删除</button>
               </div>
            </div>

@@ -14,7 +14,6 @@ interface ThemeContextValue {
   themeDefinition: ThemeDefinition;
   themes: ThemeDefinition[];
   setTheme: (themeId: ThemeId) => void;
-  toggleTheme: () => void;
 }
 
 const ThemeContext = createContext<ThemeContextValue | null>(null);
@@ -37,17 +36,12 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     setThemeState(themeId);
   };
 
-  const toggleTheme = () => {
-    setThemeState((current) => (current === 'chimera-classic' ? 'chimera' : 'chimera-classic'));
-  };
-
   const value = useMemo<ThemeContextValue>(
     () => ({
       theme,
       themeDefinition: getThemeDefinition(theme),
       themes: THEME_DEFINITIONS,
       setTheme,
-      toggleTheme,
     }),
     [theme],
   );

@@ -93,10 +93,10 @@ const dotClassForDimension = (dimension: B2SReviewAnalyticsDimension, index: num
 };
 
 const labelClassForDimension = (dimension: B2SReviewAnalyticsDimension, index: number): string => {
-  if (dimension.color_hint === 'logic') return 'text-indigo-700';
-  if (dimension.color_hint === 'structure') return 'text-violet-700';
-  if (dimension.color_hint === 'readability') return 'text-pink-700';
-  return ['text-indigo-700', 'text-violet-700', 'text-pink-700'][index] || 'text-slate-700';
+  if (dimension.color_hint === 'logic') return 'text-indigo-400';
+  if (dimension.color_hint === 'structure') return 'text-violet-400';
+  if (dimension.color_hint === 'readability') return 'text-pink-400';
+  return ['text-indigo-400', 'text-violet-400', 'text-pink-400'][index] || 'text-theme-text-secondary';
 };
 
 const verdictColors = (passed: boolean): { border: string; borderLeft: string; bg: string; color: string } => {

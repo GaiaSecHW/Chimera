@@ -66,7 +66,7 @@ export const ComposeViewer: React.FC<ComposeViewerProps> = ({
           {isStale && (
             <button
               onClick={onRefresh}
-              className="flex items-center gap-2 px-6 py-3 bg-amber-50 text-amber-700 rounded-xl text-sm font-black hover:bg-amber-100 transition-all shadow-panel"
+              className="flex items-center gap-2 px-6 py-3 bg-amber-500/15 text-amber-400 rounded-xl text-sm font-black hover:bg-amber-500/15 transition-all shadow-panel"
             >
               <RefreshCw size={16} />
               配置已更新，点击刷新
@@ -78,7 +78,7 @@ export const ComposeViewer: React.FC<ComposeViewerProps> = ({
       {/* Services 展示 */}
       <div>
         <h4 className="text-lg font-black text-theme-text-primary mb-4 flex items-center gap-2">
-          <Container size={20} className="text-blue-600" />
+          <Container size={20} className="text-blue-400" />
           Services ({servicesCount})
         </h4>
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
@@ -92,7 +92,7 @@ export const ComposeViewer: React.FC<ComposeViewerProps> = ({
       {parsedCompose.networks && Object.keys(parsedCompose.networks).length > 0 && (
         <div>
           <h4 className="text-lg font-black text-theme-text-primary mb-4 flex items-center gap-2">
-            <Network size={20} className="text-purple-600" />
+            <Network size={20} className="text-purple-400" />
             Networks ({networksCount})
           </h4>
           <div className="bg-theme-surface rounded-xl border border-theme-border p-6 shadow-panel">
@@ -115,7 +115,7 @@ export const ComposeViewer: React.FC<ComposeViewerProps> = ({
       {parsedCompose.volumes && Object.keys(parsedCompose.volumes).length > 0 && (
         <div>
         <h4 className="text-lg font-black text-theme-text-primary mb-4 flex items-center gap-2">
-            <HardDrive size={20} className="text-green-600" />
+            <HardDrive size={20} className="text-green-400" />
             Volumes ({volumesCount})
           </h4>
           <div className="bg-theme-surface rounded-xl border border-theme-border p-6 shadow-panel">
@@ -137,7 +137,7 @@ export const ComposeViewer: React.FC<ComposeViewerProps> = ({
       {parsedCompose.configs && Object.keys(parsedCompose.configs).length > 0 && (
         <div>
         <h4 className="text-lg font-black text-theme-text-primary mb-4 flex items-center gap-2">
-            <Settings size={20} className="text-orange-600" />
+            <Settings size={20} className="text-orange-400" />
             Configs ({Object.keys(parsedCompose.configs).length})
           </h4>
           <div className="bg-theme-surface rounded-xl border border-theme-border p-6 shadow-panel">
@@ -159,15 +159,15 @@ export const ComposeViewer: React.FC<ComposeViewerProps> = ({
       {parsedCompose.secrets && Object.keys(parsedCompose.secrets).length > 0 && (
         <div>
         <h4 className="text-lg font-black text-theme-text-primary mb-4 flex items-center gap-2">
-            <Lock size={20} className="text-red-600" />
+            <Lock size={20} className="text-red-400" />
             Secrets ({Object.keys(parsedCompose.secrets).length})
           </h4>
           <div className="bg-theme-surface rounded-xl border border-theme-border p-6 shadow-panel">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {Object.entries(parsedCompose.secrets).map(([name, secret]) => (
-                <div key={name} className="p-4 bg-red-50 rounded-lg border border-red-100">
+                <div key={name} className="p-4 bg-red-500/15 rounded-lg border border-red-500/20">
                   <div className="flex items-center gap-2 mb-1">
-                    <Key size={14} className="text-red-600" />
+                    <Key size={14} className="text-red-400" />
                     <span className="font-black text-theme-text-primary">{name}</span>
                   </div>
                   <div className="text-xs text-theme-text-muted font-mono">
@@ -228,7 +228,7 @@ const ServiceCard: React.FC<{ name: string; service: ComposeService }> = ({ name
             {service.ports.map((port, idx) => (
               <span
                 key={idx}
-                className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded font-mono"
+                className="text-xs bg-green-500/15 text-green-400 px-2 py-1 rounded font-mono"
               >
                 {port.published}:{port.target}/{port.protocol}
               </span>
@@ -242,7 +242,7 @@ const ServiceCard: React.FC<{ name: string; service: ComposeService }> = ({ name
             {service.networks.map(net => (
               <span
                 key={net}
-                className="text-xs bg-purple-100 text-purple-800 px-2 py-1 rounded"
+                className="text-xs bg-purple-500/15 text-purple-400 px-2 py-1 rounded"
               >
                 {net}
               </span>
@@ -331,8 +331,8 @@ const VolumeMountList: React.FC<{ volumes: ComposeVolume[] }> = ({ volumes }) =>
           <span
             className={`px-2 py-1 rounded font-black uppercase ${
               vol.type === 'bind'
-                ? 'bg-orange-100 text-orange-800'
-                : 'bg-blue-100 text-blue-800'
+                ? 'bg-orange-500/15 text-orange-400'
+                : 'bg-blue-500/15 text-blue-400'
             }`}
           >
             {vol.type}

@@ -222,30 +222,30 @@ export const SystemAnalysisTaskFormModal: React.FC<SystemAnalysisTaskFormModalPr
 
       <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
         <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={creating ? undefined : onClose} />
- <div className="relative z-10 max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-2xl border border-slate-200 bg-slate-50">
+ <div className="relative z-10 max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-2xl border border-theme-border bg-theme-bg-app">
           <div className="space-y-4 p-6">
             <div className="flex items-center justify-between">
-              <h2 className="text-lg font-black text-slate-900">{title}</h2>
-              <button onClick={onClose} disabled={creating} className="rounded-lg p-1 text-slate-400 hover:text-slate-700 disabled:opacity-50">
+              <h2 className="text-lg font-black text-theme-text-primary">{title}</h2>
+              <button onClick={onClose} disabled={creating} className="rounded-lg p-1 text-theme-text-muted hover:text-theme-text-secondary disabled:opacity-50">
                 <X size={16} />
               </button>
             </div>
 
-            <label className="block text-sm text-slate-600">
+            <label className="block text-sm text-theme-text-secondary">
               任务名称 <span className="text-red-500">*</span>
               <input
-                className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
+                className="mt-1 w-full rounded-lg border border-theme-border px-3 py-2 text-sm"
                 value={form.task_name}
                 onChange={(e) => setForm((prev) => ({ ...prev, task_name: e.target.value }))}
                 placeholder="例：固件安全分析-2025"
               />
             </label>
 
-            <label className="block text-sm text-slate-600">
+            <label className="block text-sm text-theme-text-secondary">
               输入路径 <span className="text-red-500">*</span>
               <div className="mt-1 flex gap-1">
                 <input
-                  className="flex-1 rounded-lg border border-slate-200 px-3 py-2 text-sm font-mono"
+                  className="flex-1 rounded-lg border border-theme-border px-3 py-2 text-sm font-mono"
                   value={form.input_path}
                   onChange={(e) => setForm((prev) => ({ ...prev, input_path: e.target.value }))}
                   placeholder="/data/files/<project>/<subproject>"
@@ -254,18 +254,18 @@ export const SystemAnalysisTaskFormModal: React.FC<SystemAnalysisTaskFormModalPr
                   type="button"
                   title="从文件资源中选择目录"
                   onClick={() => { setPickerTarget('input'); setPickerOpen(true); }}
-                  className="flex shrink-0 items-center gap-1 rounded-lg border border-slate-200 px-3 py-2 text-xs text-slate-600 hover:bg-slate-100"
+                  className="flex shrink-0 items-center gap-1 rounded-lg border border-theme-border px-3 py-2 text-xs text-theme-text-secondary hover:bg-theme-elevated"
                 >
                   <FolderOpen size={13} />浏览
                 </button>
               </div>
             </label>
 
-            <label className="block text-sm text-slate-600">
+            <label className="block text-sm text-theme-text-secondary">
               输出路径 <span className="text-red-500">*</span>
               <div className="mt-1 flex gap-1">
                 <input
-                  className="flex-1 rounded-lg border border-slate-200 px-3 py-2 text-sm font-mono"
+                  className="flex-1 rounded-lg border border-theme-border px-3 py-2 text-sm font-mono"
                   value={form.output_path}
                   onChange={(e) => setForm((prev) => ({ ...prev, output_path: e.target.value }))}
                   placeholder="/data/files/<project>/<subproject>"
@@ -274,35 +274,35 @@ export const SystemAnalysisTaskFormModal: React.FC<SystemAnalysisTaskFormModalPr
                   type="button"
                   title="从文件资源中选择目录"
                   onClick={() => { setPickerTarget('output'); setPickerOpen(true); }}
-                  className="flex shrink-0 items-center gap-1 rounded-lg border border-slate-200 px-3 py-2 text-xs text-slate-600 hover:bg-slate-100"
+                  className="flex shrink-0 items-center gap-1 rounded-lg border border-theme-border px-3 py-2 text-xs text-theme-text-secondary hover:bg-theme-elevated"
                 >
                   <FolderOpen size={13} />浏览
                 </button>
               </div>
             </label>
 
-            <label className="block text-sm text-slate-600">
-              任务描述 <span className="text-slate-400 text-xs">(可选)</span>
+            <label className="block text-sm text-theme-text-secondary">
+              任务描述 <span className="text-theme-text-muted text-xs">(可选)</span>
               <input
-                className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
+                className="mt-1 w-full rounded-lg border border-theme-border px-3 py-2 text-sm"
                 value={form.task_description}
                 onChange={(e) => setForm((prev) => ({ ...prev, task_description: e.target.value }))}
                 placeholder="简要说明分析目标或背景"
               />
             </label>
 
-            <label className="block text-sm text-slate-600">
-              分析 Prompt <span className="text-slate-400 text-xs">(可选，不填则使用服务默认生成逻辑)</span>
+            <label className="block text-sm text-theme-text-secondary">
+              分析 Prompt <span className="text-theme-text-muted text-xs">(可选，不填则使用服务默认生成逻辑)</span>
               <textarea
-                className="mt-1 min-h-[120px] w-full rounded-lg border border-slate-200 px-3 py-2 text-sm leading-6"
+                className="mt-1 min-h-[120px] w-full rounded-lg border border-theme-border px-3 py-2 text-sm leading-6"
                 value={form.prompt_content}
                 onChange={(e) => setForm((prev) => ({ ...prev, prompt_content: e.target.value }))}
                 placeholder="可复用原任务的 Prompt，或在此调整新的分析指令"
               />
             </label>
 
-            <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
-              <p className="text-xs font-semibold text-slate-600">分析模式</p>
+            <div className="rounded-xl border border-theme-border bg-theme-bg-app p-4">
+              <p className="text-xs font-semibold text-theme-text-secondary">分析模式</p>
               <div className="mt-2 grid gap-2 sm:grid-cols-2">
                 {[
                   { value: 'binary' as const, label: '二进制模式', desc: '面向固件、解包目录、二进制与系统组件分析' },
@@ -311,7 +311,7 @@ export const SystemAnalysisTaskFormModal: React.FC<SystemAnalysisTaskFormModalPr
                   <label
                     key={option.value}
                     className={`cursor-pointer rounded-xl border px-3 py-2 text-sm ${
-                      form.analysis_mode === option.value ? 'border-cyan-300 bg-cyan-50 text-cyan-800' : 'border-slate-200 bg-slate-50 text-slate-600'
+                      form.analysis_mode === option.value ? 'border-cyan-300 bg-cyan-500/15 text-cyan-400' : 'border-theme-border bg-theme-bg-app text-theme-text-secondary'
                     }`}
                   >
                     <input
@@ -336,10 +336,10 @@ export const SystemAnalysisTaskFormModal: React.FC<SystemAnalysisTaskFormModalPr
               </div>
             </div>
 
-            <div className="space-y-3 rounded-xl border border-slate-200 bg-slate-50 p-4">
-              <p className="text-xs font-semibold text-slate-600">分析范围 <span className="font-normal text-slate-400">(覆盖服务默认配置，默认 all)</span></p>
+            <div className="space-y-3 rounded-xl border border-theme-border bg-theme-bg-app p-4">
+              <p className="text-xs font-semibold text-theme-text-secondary">分析范围 <span className="font-normal text-theme-text-muted">(覆盖服务默认配置，默认 all)</span></p>
               <div>
-                <p className="mb-1.5 text-xs text-slate-500">文件类型</p>
+                <p className="mb-1.5 text-xs text-theme-text-muted">文件类型</p>
                 <div className="flex flex-wrap gap-2">
                   {ANALYSE_TARGET_OPTIONS.map((target) => (
                     <label key={target} className="flex cursor-pointer items-center gap-1 text-xs">
@@ -364,7 +364,7 @@ export const SystemAnalysisTaskFormModal: React.FC<SystemAnalysisTaskFormModalPr
                 </div>
               </div>
               <div>
-                <p className="mb-1.5 text-xs text-slate-500">二进制架构</p>
+                <p className="mb-1.5 text-xs text-theme-text-muted">二进制架构</p>
                 <div className="flex flex-wrap gap-2">
                   {BINARY_ARCH_OPTIONS.map((arch) => (
                     <label key={arch} className="flex cursor-pointer items-center gap-1 text-xs">
@@ -390,7 +390,7 @@ export const SystemAnalysisTaskFormModal: React.FC<SystemAnalysisTaskFormModalPr
             </div>
 
             <div>
-              <p className="mb-1.5 text-xs text-slate-500">安全维度过滤 <span className="text-slate-400">(覆盖服务默认，all=不过滤)</span></p>
+              <p className="mb-1.5 text-xs text-theme-text-muted">安全维度过滤 <span className="text-theme-text-muted">(覆盖服务默认，all=不过滤)</span></p>
               <div className="flex flex-wrap gap-1.5">
                 {SECURITY_CATEGORY_OPTIONS.map(({ key, label }) => {
                   const selected = form.security_focus_categories.includes(key);
@@ -410,7 +410,7 @@ export const SystemAnalysisTaskFormModal: React.FC<SystemAnalysisTaskFormModalPr
                         }
                         setForm((prev) => ({ ...prev, security_focus_categories: next }));
                       }}
-                      className={`rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors ${selected ? 'border-rose-400 bg-rose-50 text-rose-700' : 'border-slate-200 bg-slate-50 text-slate-500 hover:border-slate-300'}`}
+                      className={`rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors ${selected ? 'border-rose-400 bg-rose-500/15 text-rose-400' : 'border-theme-border bg-theme-bg-app text-theme-text-muted hover:border-theme-border'}`}
                     >
                       {label}
                     </button>
@@ -420,14 +420,14 @@ export const SystemAnalysisTaskFormModal: React.FC<SystemAnalysisTaskFormModalPr
             </div>
 
             <div>
-              <p className="mb-1.5 text-xs text-slate-500">模块划分粒度 <span className="text-slate-400">(覆盖服务默认)</span></p>
+              <p className="mb-1.5 text-xs text-theme-text-muted">模块划分粒度 <span className="text-theme-text-muted">(覆盖服务默认)</span></p>
               <div className="flex gap-2">
                 {[{ value: 'fine', label: '细粒度（默认）' }, { value: 'coarse', label: '粗粒度（协议/服务/功能级）' }].map(({ value, label }) => (
                   <button
                     key={value}
                     type="button"
                     onClick={() => setForm((prev) => ({ ...prev, module_granularity: value }))}
-                    className={`flex-1 rounded-lg border px-3 py-1.5 text-xs font-semibold transition-colors ${form.module_granularity === value ? 'border-rose-400 bg-rose-50 text-rose-700' : 'border-slate-200 bg-slate-50 text-slate-500 hover:border-slate-300'}`}
+                    className={`flex-1 rounded-lg border px-3 py-1.5 text-xs font-semibold transition-colors ${form.module_granularity === value ? 'border-rose-400 bg-rose-500/15 text-rose-400' : 'border-theme-border bg-theme-bg-app text-theme-text-muted hover:border-theme-border'}`}
                   >
                     {label}
                   </button>
@@ -436,26 +436,26 @@ export const SystemAnalysisTaskFormModal: React.FC<SystemAnalysisTaskFormModalPr
             </div>
 
             <div>
-              <p className="mb-1.5 text-xs text-slate-500">过滤引擎 <span className="text-slate-400">(覆盖服务默认)</span></p>
+              <p className="mb-1.5 text-xs text-theme-text-muted">过滤引擎 <span className="text-theme-text-muted">(覆盖服务默认)</span></p>
               <div className="flex gap-2">
                 {[{ value: 'script', label: '脚本驱动' }, { value: 'agent', label: '智能体驱动' }].map(({ value, label }) => (
                   <button
                     key={value}
                     type="button"
                     onClick={() => setForm((prev) => ({ ...prev, filter_engine: value as 'script' | 'agent' }))}
-                    className={`flex-1 rounded-lg border px-3 py-1.5 text-xs font-semibold transition-colors ${form.filter_engine === value ? 'border-rose-400 bg-rose-50 text-rose-700' : 'border-slate-200 bg-slate-50 text-slate-500 hover:border-slate-300'}`}
+                    className={`flex-1 rounded-lg border px-3 py-1.5 text-xs font-semibold transition-colors ${form.filter_engine === value ? 'border-rose-400 bg-rose-500/15 text-rose-400' : 'border-theme-border bg-theme-bg-app text-theme-text-muted hover:border-theme-border'}`}
                   >
                     {label}
                   </button>
                 ))}
               </div>
-              <p className="mt-1.5 text-xs leading-relaxed text-slate-500">
+              <p className="mt-1.5 text-xs leading-relaxed text-theme-text-muted">
                 智能体驱动会直接替代脚本过滤与 S1 粗分类，复用 classify 模型，失败后自动回退脚本路径。
               </p>
             </div>
 
             <div>
-              <p className="mb-1.5 text-xs text-slate-500">final_check — 完整性检查 <span className="text-slate-400">(任务级可选；未指定时继承全局配置)</span></p>
+              <p className="mb-1.5 text-xs text-theme-text-muted">final_check — 完整性检查 <span className="text-theme-text-muted">(任务级可选；未指定时继承全局配置)</span></p>
               <div className="grid gap-2 sm:grid-cols-3">
                 {[
                   {
@@ -480,8 +480,8 @@ export const SystemAnalysisTaskFormModal: React.FC<SystemAnalysisTaskFormModalPr
                     onClick={() => setForm((prev) => ({ ...prev, enable_final_check_mode: value }))}
                     className={`rounded-xl border px-3 py-2 text-left transition-colors ${
                       form.enable_final_check_mode === value
-                        ? 'border-rose-400 bg-rose-50 text-rose-700'
-                        : 'border-slate-200 bg-slate-50 text-slate-600 hover:bg-slate-100'
+                        ? 'border-rose-400 bg-rose-500/15 text-rose-400'
+                        : 'border-theme-border bg-theme-bg-app text-theme-text-secondary hover:bg-theme-elevated'
                     }`}
                   >
                     <span className="block text-sm font-semibold">{label}</span>
@@ -492,7 +492,7 @@ export const SystemAnalysisTaskFormModal: React.FC<SystemAnalysisTaskFormModalPr
             </div>
 
             <div>
-              <p className="mb-1.5 text-xs text-slate-500">单模块失败后继续 <span className="text-slate-400">(任务级可选；未指定时继承全局配置)</span></p>
+              <p className="mb-1.5 text-xs text-theme-text-muted">单模块失败后继续 <span className="text-theme-text-muted">(任务级可选；未指定时继承全局配置)</span></p>
               <div className="grid gap-2 sm:grid-cols-3">
                 {[
                   {
@@ -517,8 +517,8 @@ export const SystemAnalysisTaskFormModal: React.FC<SystemAnalysisTaskFormModalPr
                     onClick={() => setForm((prev) => ({ ...prev, continue_on_module_failure_mode: value }))}
                     className={`rounded-xl border px-3 py-2 text-left transition-colors ${
                       form.continue_on_module_failure_mode === value
-                        ? 'border-rose-400 bg-rose-50 text-rose-700'
-                        : 'border-slate-200 bg-slate-50 text-slate-600 hover:bg-slate-100'
+                        ? 'border-rose-400 bg-rose-500/15 text-rose-400'
+                        : 'border-theme-border bg-theme-bg-app text-theme-text-secondary hover:bg-theme-elevated'
                     }`}
                   >
                     <span className="block text-sm font-semibold">{label}</span>
@@ -531,7 +531,7 @@ export const SystemAnalysisTaskFormModal: React.FC<SystemAnalysisTaskFormModalPr
             <button
               onClick={() => void handleCreate()}
               disabled={creating || !canSubmit}
-              className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-slate-900 px-5 py-2.5 text-sm font-semibold text-white disabled:opacity-50"
+              className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-theme-surface px-5 py-2.5 text-sm font-semibold text-white disabled:opacity-50"
             >
               {creating ? <Loader2 size={15} className="animate-spin" /> : null}
               {submitLabel}
