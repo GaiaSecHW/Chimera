@@ -1831,7 +1831,8 @@ export const EntryAnalysisTaskDetailPage: React.FC<{ projectId: string; taskId: 
     setSessionIndex(null);
     setSelectedSessionPath(null);
     setActiveAgentSessionPath(null);
-    void Promise.all([loadDetail(), loadLogs(false)]);
+    // 只加载任务详情和结果，不预加载全量事件日志（大任务 events.jsonl 可达数 MB）
+    void loadDetail();
   }, [taskId]);
   useEffect(() => {
     const stored = sessionStorage.getItem(stageFocusStorageKey) || '';
@@ -1845,11 +1846,11 @@ export const EntryAnalysisTaskDetailPage: React.FC<{ projectId: string; taskId: 
   useEffect(() => () => { closeSessionSocket(); closeJudgeSessionSocket(); }, []);
   const sessionFeatureActive = activeTab === 'session' || activeTab === 'relationship' || Boolean(activeAgentSessionPath);
 
-  const refreshDetailAndLogs = async () => {
+  const refreshDetail = async () => {
     if (detailRefreshInFlightRef.current) return;
     detailRefreshInFlightRef.current = true;
     try {
-      await Promise.all([loadDetail(), loadLogs(true)]);
+      await loadDetail();
     } finally {
       detailRefreshInFlightRef.current = false;
     }
@@ -1857,7 +1858,7 @@ export const EntryAnalysisTaskDetailPage: React.FC<{ projectId: string; taskId: 
 
   useEffect(() => {
     if (!detail || !['pending', 'running'].includes(detail.status)) return;
-    const timer = window.setInterval(() => void refreshDetailAndLogs(), 30000);
+    const timer = window.setInterval(() => void refreshDetail(), 30000);
     return () => window.clearInterval(timer);
   }, [detail?.status, taskId]);
   useEffect(() => {
@@ -2299,7 +2300,7 @@ export const EntryAnalysisTaskDetailPage: React.FC<{ projectId: string; taskId: 
             {detail && !['pending', 'running'].includes(detail.status) ? <button onClick={() => void handleRestart()} disabled={restarting} className="inline-flex items-center gap-1.5 rounded-xl border border-violet-200 bg-violet-50 px-3 py-2 text-xs font-semibold text-violet-700 hover:bg-violet-100 disabled:opacity-50">{restarting ? <Loader2 size={13} className="animate-spin" /> : <RotateCcw size={13} />}重新运行</button> : null}
             {detail ? <DownstreamTaskCreator projectId={projectId} sourceKind="entry_analysis" task={detail} /> : null}
             {detail ? <button onClick={() => void handleDelete()} className="inline-flex items-center gap-1.5 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-xs font-semibold text-red-700 hover:bg-red-100"><Trash2 size={13} />删除任务</button> : null}
-            <button onClick={() => { void Promise.all([loadDetail(), loadLogs(false)]); if (activeTab === 'result') void loadResult(); if (activeTab === 'evaluation') void loadEvaluation(); if (sessionFeatureActive) void loadSessions(false, true); }} className="rounded-xl border border-slate-200 p-2 text-slate-500 hover:bg-slate-50"><RefreshCw size={14} className={loading || resultLoading || evaluationLoading || sessionsLoading ? 'animate-spin' : ''} /></button>
+            <button onClick={() => { void loadDetail(); if (activeTab === 'result') void loadResult(); if (activeTab === 'evaluation') void loadEvaluation(); if (sessionFeatureActive) void loadSessions(false, true); }} className="rounded-xl border border-slate-200 p-2 text-slate-500 hover:bg-slate-50"><RefreshCw size={14} className={loading || resultLoading || evaluationLoading || sessionsLoading ? 'animate-spin' : ''} /></button>
           </div>
         </div>
         {detail ? <div className="mt-5"><TaskOriginCard origin={detail} /></div> : null}
