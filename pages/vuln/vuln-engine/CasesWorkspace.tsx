@@ -253,10 +253,23 @@ export const CasesWorkspace: React.FC<any> = ({
   };
   const getCaseStatusLabel = (item: any) => labelOf(item.current_status, CASE_STATUS_LABELS, '') || item.current_status || '未知状态';
   const getValidationConclusionLabel = (item: any) => {
-    if (item.current_stage !== 'validation') return '-';
-    return item.current_status === 'validation_completed'
-      ? labelOf(item.validation_result, VALIDATION_RESULT_LABELS, '') || '结论不确定'
-      : '待验证';
+    // finished 阶段：显示 finished_reason 作为最终结论，缺失时回退到 decision_status
+    if (item.current_stage === 'finished') {
+      return labelOf(item.finished_reason, FINISHED_REASON_LABELS, '')
+        || labelOf(item.decision_status, DECISION_LABELS, '')
+        || '已结束';
+    }
+    // validation 阶段：显示 validation_result 作为验证结论
+    if (item.current_stage === 'validation') {
+      if (item.current_status !== 'validation_completed') return '待验证';
+      // 如果 validation_result 是异常值（如 'observe'），回退到 decision_status
+      const vrLabel = labelOf(item.validation_result, VALIDATION_RESULT_LABELS, '');
+      if (vrLabel && vrLabel !== item.validation_result) return vrLabel;
+      // validation_result 不在合法取值范围内，尝试用 decision_status 兜底
+      const dsLabel = labelOf(item.decision_status, DECISION_LABELS, '');
+      return dsLabel || vrLabel || '结论不确定';
+    }
+    return '-';
   };
   const resultSummaryCards = React.useMemo<Array<{
     id: string;

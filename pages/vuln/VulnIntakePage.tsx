@@ -396,9 +396,20 @@ const DECISION_TEXT: Record<string, string> = {
   unknown: '未知',
 };
 
+const CONCLUSION_TEXT: Record<string, string> = {
+  vulnerable: '确认漏洞',
+  not_vulnerable: '漏洞不成立',
+  inconclusive: '结论不确定',
+  issue: '问题',
+  non_issue: '非问题',
+  observe: '继续观察',
+  manual_terminated: '人工终止',
+};
+
 const toStageText = (value?: string) => (value ? STAGE_TEXT[value] || value : '未知');
 const toStatusText = (value?: string) => (value ? STATUS_TEXT[value] || value : '未知');
 const toDecisionText = (value?: string) => (value ? DECISION_TEXT[value] || value : '未知');
+const toConclusionText = (value?: string) => (value ? CONCLUSION_TEXT[value] || DECISION_TEXT[value] || value : '未形成结论');
 
 const DOWNLOAD_STATUS_TEXT: Record<string, string> = {
   pending: '等待处理中',
@@ -477,6 +488,44 @@ const hasArtifactFiles = (artifacts: any): boolean => {
   return false;
 };
 
+const normalizeConclusionValue = (value?: string | null) => {
+  const normalized = String(value || '').trim();
+  if (!normalized) return '';
+  if (normalized === 'non_vulnerable') return 'not_vulnerable';
+  return normalized;
+};
+
+const getCaseConclusionMeta = (item: any): { code: string; label: string; source: 'finished' | 'validation' | 'decision' } | null => {
+  const stage = String(item?.current_stage || '').trim();
+  const status = String(item?.current_status || '').trim();
+  const finishedReason = normalizeConclusionValue(item?.finished_reason);
+  const validationResult = normalizeConclusionValue(item?.validation_result);
+  const decisionStatus = normalizeConclusionValue(item?.decision_status);
+
+  if (stage === 'finished') {
+    const code = finishedReason || validationResult || decisionStatus;
+    if (!code) return null;
+    return { code, label: toConclusionText(code), source: finishedReason ? 'finished' : validationResult ? 'validation' : 'decision' };
+  }
+
+  if (stage === 'validation' && status === 'validation_completed') {
+    const code = validationResult || decisionStatus;
+    if (!code) return null;
+    return { code, label: toConclusionText(code), source: validationResult ? 'validation' : 'decision' };
+  }
+
+  if (decisionStatus) {
+    return { code: decisionStatus, label: toConclusionText(decisionStatus), source: 'decision' };
+  }
+
+  return null;
+};
+
+const matchesCaseConclusion = (item: any, filter: string) => {
+  if (filter === 'all') return true;
+  return getCaseConclusionMeta(item)?.code === filter;
+};
+
 const DialogShell: React.FC<{
   title: string;
   subtitle?: string;
@@ -518,6 +567,55 @@ const DetailMetricCard: React.FC<{
     {hint ? <div className="mt-1 text-xs" style={{ color: LK.body }}>{hint}</div> : null}
   </div>
 );
+
+type HoverPreviewEntry = {
+  label: string;
+  value?: string | null;
+};
+
+const buildHoverPreviewTitle = (title: string | undefined, entries: HoverPreviewEntry[]) => {
+  const lines = [
+    title?.trim(),
+    ...entries
+      .filter((entry) => String(entry.value || '').trim())
+      .map((entry) => `${entry.label}: ${String(entry.value || '').trim()}`),
+  ].filter(Boolean);
+  return lines.join('\n');
+};
+
+const HoverPreviewField: React.FC<{
+  primary: string;
+  secondary?: string | null;
+  previewTitle?: string;
+  entries: HoverPreviewEntry[];
+  align?: 'left' | 'right';
+}> = ({ primary, secondary, previewTitle, entries, align = 'left' }) => {
+  const filteredEntries = entries.filter((entry) => String(entry.value || '').trim());
+  const tooltipText = buildHoverPreviewTitle(previewTitle, filteredEntries);
+  const tooltipAnchor = align === 'right' ? 'right-0 origin-top-right' : 'left-0 origin-top-left';
+
+  return (
+    <div className="group/hover-preview relative min-w-0" title={tooltipText || primary}>
+      <div className="truncate text-sm font-semibold text-slate-800">{primary}</div>
+      {secondary ? <div className="mt-0.5 truncate text-xs text-slate-400">{secondary}</div> : null}
+      {filteredEntries.length > 0 ? (
+        <div
+          className={`pointer-events-none absolute ${tooltipAnchor} top-full z-20 mt-2 w-max max-w-[28rem] translate-y-1 rounded-xl border border-slate-200 bg-white/95 px-3 py-3 text-left opacity-0 shadow-[0_20px_50px_-24px_rgba(15,23,42,0.55)] ring-1 ring-slate-900/5 backdrop-blur-sm transition duration-150 group-hover/hover-preview:translate-y-0 group-hover/hover-preview:opacity-100`}
+        >
+          {previewTitle ? <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">{previewTitle}</div> : null}
+          <div className={previewTitle ? 'mt-2 space-y-1.5' : 'space-y-1.5'}>
+            {filteredEntries.map((entry) => (
+              <div key={`${previewTitle || 'preview'}-${entry.label}`} className="text-xs leading-5 text-slate-600">
+                <span className="font-semibold text-slate-900">{entry.label}：</span>
+                <span className="break-all">{entry.value}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      ) : null}
+    </div>
+  );
+};
 
 const slugifyHeading = (value: string) =>
   value
@@ -589,6 +687,7 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
   const [severityFilter, setSeverityFilter] = useState('all');
   const [cvssBandFilter, setCvssBandFilter] = useState('all');
   const [reporterTypeFilter, setReporterTypeFilter] = useState('all');
+  const [conclusionFilter, setConclusionFilter] = useState('all');
   const [sortField, setSortField] = useState<SortField>('updated_at');
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
   const [currentPage, setCurrentPage] = useState(1);
@@ -628,6 +727,7 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
   const [downloadJobsLoading, setDownloadJobsLoading] = useState(false);
   const [creatingDownload, setCreatingDownload] = useState(false);
   const [downloadActionJobId, setDownloadActionJobId] = useState<string | null>(null);
+  const [filteredDownloadCaseIds, setFilteredDownloadCaseIds] = useState<string[]>([]);
   const [detailEditMode, setDetailEditMode] = useState(false);
   const [detailSaving, setDetailSaving] = useState(false);
   const [editableDetail, setEditableDetail] = useState<EditableCaseIntake | null>(null);
@@ -694,6 +794,42 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
   const processActions = Array.isArray(selectedDetail?.actions) ? selectedDetail.actions : [];
   const openProcessTasks = processManualTasks.filter((item: any) => !['completed', 'closed'].includes(item.status));
   const runningProcessActions = processActions.filter((item: any) => ['queued', 'running'].includes(item.execution_status));
+  const hasActiveConclusionFilter = conclusionFilter !== 'all';
+
+  const buildCaseListParams = (page: number, size: number) => ({
+    project_id: projectId,
+    current_stage: stageFilter === 'all' ? undefined : stageFilter,
+    severity: severityFilter === 'all' ? undefined : severityFilter,
+    reporter_type: reporterTypeFilter === 'all' ? undefined : reporterTypeFilter,
+    cvss_band: cvssBandFilter === 'all' ? undefined : cvssBandFilter,
+    search: search.trim() || undefined,
+    sort_field: sortField,
+    sort_direction: sortDirection,
+    page,
+    page_size: size,
+  });
+
+  const fetchAllCasesForActiveFilters = async () => {
+    const batchSize = 200;
+    const items: any[] = [];
+    let page = 1;
+    let total = 0;
+
+    while (true) {
+      const response = await vulnApi.vuln.listCases(buildCaseListParams(page, batchSize));
+      const batch = Array.isArray(response?.items) ? response.items : [];
+      if (page === 1) {
+        total = Number(response?.total || 0);
+      }
+      items.push(...batch);
+      if (!batch.length || batch.length < batchSize || items.length >= total) {
+        break;
+      }
+      page += 1;
+    }
+
+    return items;
+  };
 
   const loadOverview = async () => {
     if (!projectId) {
@@ -718,28 +854,36 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
       setSelectedDetail(null);
       setSelectedTimeline([]);
       setLinkedFiles(null);
+      setFilteredDownloadCaseIds([]);
       setLoading(false);
       return;
     }
     setLoading(true);
     setError(null);
     try {
-      const response = await vulnApi.vuln.listCases({
-        project_id: projectId,
-        current_stage: stageFilter === 'all' ? undefined : stageFilter,
-        severity: severityFilter === 'all' ? undefined : severityFilter,
-        reporter_type: reporterTypeFilter === 'all' ? undefined : reporterTypeFilter,
-        cvss_band: cvssBandFilter === 'all' ? undefined : cvssBandFilter,
-        search: search.trim() || undefined,
-        sort_field: sortField,
-        sort_direction: sortDirection,
-        page: pageOverride ?? currentPage,
-        page_size: pageSize,
-      });
-      setSuspicions(response.items || []);
-      setListTotal(Number(response.total || 0));
-      if (response.page && response.page !== currentPage) {
-        setCurrentPage(response.page);
+      if (hasActiveConclusionFilter) {
+        const allItems = await fetchAllCasesForActiveFilters();
+        const filteredItems = allItems.filter((item) => matchesCaseConclusion(item, conclusionFilter));
+        const allIds = Array.from(new Set(filteredItems.map((item) => String(item?.id || '')).filter(Boolean)));
+        const total = filteredItems.length;
+        const totalPagesForFilter = Math.max(1, Math.ceil(total / Math.max(1, pageSize)));
+        const requestedPage = pageOverride ?? currentPage;
+        const nextPage = Math.min(Math.max(1, requestedPage), totalPagesForFilter);
+        const pageStartIndex = (nextPage - 1) * pageSize;
+        setFilteredDownloadCaseIds(allIds);
+        setListTotal(total);
+        setSuspicions(filteredItems.slice(pageStartIndex, pageStartIndex + pageSize));
+        if (nextPage !== currentPage) {
+          setCurrentPage(nextPage);
+        }
+      } else {
+        const response = await vulnApi.vuln.listCases(buildCaseListParams(pageOverride ?? currentPage, pageSize));
+        setFilteredDownloadCaseIds([]);
+        setSuspicions(response.items || []);
+        setListTotal(Number(response.total || 0));
+        if (response.page && response.page !== currentPage) {
+          setCurrentPage(response.page);
+        }
       }
     } catch (err: any) {
       setError(err?.message || '加载漏洞列表失败');
@@ -1009,7 +1153,7 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
 
   useEffect(() => {
     void loadSuspicions();
-  }, [projectId, currentPage, pageSize, search, stageFilter, severityFilter, reporterTypeFilter, cvssBandFilter, sortField, sortDirection]);
+  }, [projectId, currentPage, pageSize, search, stageFilter, severityFilter, reporterTypeFilter, cvssBandFilter, conclusionFilter, sortField, sortDirection]);
 
   useEffect(() => {
     if (rootTab !== 'download-center') return;
@@ -1117,7 +1261,7 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [search, stageFilter, severityFilter, reporterTypeFilter, cvssBandFilter, pageSize, sortField, sortDirection]);
+  }, [search, stageFilter, severityFilter, reporterTypeFilter, cvssBandFilter, conclusionFilter, pageSize, sortField, sortDirection]);
 
   useEffect(() => {
     if (currentPage > totalPages) {
@@ -2601,7 +2745,7 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
 
  <div className="rounded-[2rem] border border-slate-200 bg-slate-50 overflow-hidden">
             <div className="space-y-4 px-5 py-4 xl:px-6">
-              <div className="grid gap-3 xl:grid-cols-[minmax(0,1.25fr)_auto_auto_auto_auto]">
+              <div className="grid gap-3 xl:grid-cols-[minmax(0,1.25fr)_auto_auto_auto_auto_auto]">
                 <div className="relative min-w-0">
                   <Search size={15} className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
                   <input
@@ -2662,7 +2806,85 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
                   <option value="medium">medium (4.0-6.9)</option>
                   <option value="low">low (0.1-3.9)</option>
                 </select>
+                <select
+                  value={conclusionFilter}
+                  onChange={(event) => setConclusionFilter(event.target.value)}
+                  className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm outline-none"
+                >
+                  <option value="all">全部结论</option>
+                  <option value="vulnerable">确认漏洞</option>
+                  <option value="not_vulnerable">漏洞不成立</option>
+                  <option value="inconclusive">结论不确定</option>
+                  <option value="issue">问题</option>
+                  <option value="non_issue">非问题</option>
+                  <option value="observe">继续观察</option>
+                  <option value="manual_terminated">人工终止</option>
+                </select>
               </div>
+
+              {hasActiveConclusionFilter && (
+                <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-emerald-200 bg-emerald-50/70 px-4 py-3">
+                  <div className="flex items-center gap-2 text-xs font-semibold text-emerald-700">
+                    已按结论“{toConclusionText(conclusionFilter)}”匹配 {listTotal} 条漏洞
+                  </div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => handleCreateDownloadJob(filteredDownloadCaseIds, 'batch')}
+                      disabled={creatingDownload || filteredDownloadCaseIds.length === 0}
+                      className="inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-xs font-semibold text-white transition-colors disabled:opacity-50"
+                      onMouseEnter={(e) => { if (!creatingDownload) e.currentTarget.style.backgroundColor = '#059669'; }}
+                      onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = '#059669'; }}
+                      style={{ backgroundColor: '#059669' }}
+                    >
+                      <Download size={14} />
+                      {creatingDownload ? '创建下载任务中...' : `下载当前筛选结果 (${filteredDownloadCaseIds.length})`}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setConclusionFilter('all')}
+                      className="rounded-lg border border-emerald-200 bg-white px-3 py-2 text-xs font-semibold text-emerald-700 transition-colors"
+                      onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#ecfdf5'; }}
+                      onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = '#ffffff'; }}
+                    >
+                      清空结论筛选
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {selectedSuspicionIds.length > 0 && (
+                <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-sky-200 bg-sky-50/60 px-4 py-3">
+                  <div className="flex items-center gap-2 text-xs font-semibold text-sky-700">
+                    已选择 {selectedSuspicionIds.length} 条漏洞
+                  </div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => handleCreateDownloadJob(selectedSuspicionIds, 'batch')}
+                      disabled={creatingDownload || selectedSuspicionIds.length === 0}
+                      className="inline-flex items-center gap-2 rounded-lg bg-sky-600 px-4 py-2 text-xs font-semibold text-white transition-colors disabled:opacity-50"
+                      onMouseEnter={(e) => { if (!creatingDownload) e.currentTarget.style.backgroundColor = '#0284c7'; }}
+                      onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = '#0284c7'; }}
+                      style={{ backgroundColor: '#0284c7' }}
+                    >
+                      <Download size={14} />
+                      {creatingDownload ? '创建下载任务中...' :`批量下载 (${selectedSuspicionIds.length})`}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleDeleteSelectedFromList}
+                      disabled={bulkDeleting || selectedSuspicionIds.length === 0}
+                      className="inline-flex items-center gap-2 rounded-lg border border-rose-200 bg-rose-50 px-4 py-2 text-xs font-semibold text-rose-700 transition-colors disabled:opacity-50"
+                      onMouseEnter={(e) => { if (!bulkDeleting) e.currentTarget.style.backgroundColor = '#fff1f2'; }}
+                      onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = ''; }}
+                    >
+                      <Trash2 size={14} />
+                      {bulkDeleting ? '删除中...' :`批量删除 (${selectedSuspicionIds.length})`}
+                    </button>
+                  </div>
+                </div>
+              )}
 
               <div className="overflow-hidden rounded-[1.25rem] border border-slate-200">
                   <div className="grid grid-cols-[0.45fr_2.1fr_0.6fr_1.2fr_0.8fr_0.8fr_1fr_1.5fr_0.9fr_1.1fr_0.7fr_0.9fr] gap-3 border-b border-slate-200 bg-slate-50 px-4 py-2.5">
@@ -2692,116 +2914,191 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
                 ) : pagedSuspicions.length === 0 ? (
                   <div className="bg-slate-50 px-4 py-8 text-sm text-slate-400">当前筛选条件下没有漏洞。</div>
                 ) : (
-                  pagedSuspicions.map((item) => (
-                    <div
-                      key={item.id}
-                      role="button"
-                      tabIndex={0}
-                      onClick={() => setSelectedSuspicionId(item.id)}
-                      onKeyDown={(event) => {
-                        if (event.key === 'Enter' || event.key === ' ') {
-                          event.preventDefault();
-                          setSelectedSuspicionId(item.id);
-                        }
-                      }}
-                      className="grid cursor-pointer grid-cols-[0.45fr_2.1fr_0.6fr_1.2fr_0.8fr_0.8fr_1fr_1.5fr_0.9fr_1.1fr_0.7fr_0.9fr] gap-3 border-b border-slate-100 bg-slate-50 px-4 py-3.5 text-left transition hover:bg-slate-100 last:border-b-0"
-                    >
-                      <div className="flex items-center justify-center">
-                        <input
-                          type="checkbox"
-                          checked={selectedSuspicionIds.includes(item.id)}
-                          onChange={() => toggleSuspicionSelection(item.id)}
-                          onClick={(event) => event.stopPropagation()}
-                          aria-label={`选择漏洞 ${item.title}`}
-                          className="h-4 w-4 cursor-pointer rounded border-slate-300"
-                        />
-                      </div>
-                      <div className="min-w-0">
-                        <div className="text-sm font-semibold text-slate-900">{item.title}</div>
-                        <div className="mt-1 font-mono text-[11px] text-slate-400">{item.id}</div>
-                        <div className="mt-1.5 line-clamp-2 text-xs leading-5 text-slate-500">{item.summary || '暂无摘要'}</div>
-                      </div>
-                      <div className="flex items-start justify-center">
-                        {item.has_artifact_files || hasArtifactFiles(item.artifacts) ? (
-                          <span title="含文件/文件夹" className="inline-flex items-center justify-center rounded-md bg-emerald-100 p-1 text-emerald-700">
-                            <FolderOpen size={14} />
-                          </span>
-                        ) : (
-                          <span title="无文件" className="inline-flex items-center justify-center rounded-md bg-slate-100 p-1 text-slate-400">
-                            <FolderOpen size={14} />
-                          </span>
-                        )}
-                      </div>
-                      <div className="min-w-0">
-                        <div className="text-sm font-semibold text-slate-700">{toStageText(item.current_stage)}</div>
-                        <div className="mt-1 inline-flex items-center rounded-md bg-slate-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-slate-600">
-                          {toStatusText(item.current_status)}
+                  pagedSuspicions.map((item) => {
+                    const conclusionMeta = getCaseConclusionMeta(item);
+                    return (
+                      <div
+                        key={item.id}
+                        role="button"
+                        tabIndex={0}
+                        onClick={() => setSelectedSuspicionId(item.id)}
+                        onKeyDown={(event) => {
+                          if (event.key === 'Enter' || event.key === ' ') {
+                            event.preventDefault();
+                            setSelectedSuspicionId(item.id);
+                          }
+                        }}
+                        className="grid cursor-pointer grid-cols-[0.45fr_2.1fr_0.6fr_1.2fr_0.8fr_0.8fr_1fr_1.5fr_0.9fr_1.1fr_0.7fr_0.9fr] gap-3 border-b border-slate-100 bg-slate-50 px-4 py-3.5 text-left transition hover:bg-slate-100 last:border-b-0"
+                      >
+                        <div className="flex items-center justify-center">
+                          <input
+                            type="checkbox"
+                            checked={selectedSuspicionIds.includes(item.id)}
+                            onChange={() => toggleSuspicionSelection(item.id)}
+                            onClick={(event) => event.stopPropagation()}
+                            aria-label={`选择漏洞 ${item.title}`}
+                            className="h-4 w-4 cursor-pointer rounded border-slate-300"
+                          />
                         </div>
-                        {item.finished_reason ? (
-                          <div className="mt-1 text-[10px] font-semibold text-slate-500">
-                            结论: {item.finished_reason}
+                        <div className="min-w-0">
+                          <div className="text-sm font-semibold text-slate-900">{item.title}</div>
+                          <div className="mt-1 font-mono text-[11px] text-slate-400">{item.id}</div>
+                          <div className="mt-1.5 line-clamp-2 text-xs leading-5 text-slate-500">{item.summary || '暂无摘要'}</div>
+                        </div>
+                        <div className="flex items-start justify-center">
+                          {item.has_artifact_files || hasArtifactFiles(item.artifacts) ? (
+                            <span title="含文件/文件夹" className="inline-flex items-center justify-center rounded-md bg-emerald-100 p-1 text-emerald-700">
+                              <FolderOpen size={14} />
+                            </span>
+                          ) : (
+                            <span title="无文件" className="inline-flex items-center justify-center rounded-md bg-slate-100 p-1 text-slate-400">
+                              <FolderOpen size={14} />
+                            </span>
+                          )}
+                        </div>
+                        <div className="min-w-0">
+                          <div className="text-sm font-semibold text-slate-700">{toStageText(item.current_stage)}</div>
+                          <div className="mt-1 inline-flex items-center rounded-md bg-slate-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-slate-600">
+                            {toStatusText(item.current_status)}
                           </div>
-                        ) : item.decision_status ? (
-                          <div className="mt-1 text-[10px] font-semibold text-slate-500">
-                            结论: {item.decision_status}
+                          {conclusionMeta ? (
+                            <div className="mt-1 text-[10px] font-semibold text-slate-500">
+                              结论: {conclusionMeta.label}
+                            </div>
+                          ) : null}
+                        </div>
+                        <div>
+                          <span className={`rounded-lg px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider ${toneOf(item.severity)}`}>
+                            {item.severity}
+                          </span>
+                        </div>
+                        <div className="text-sm font-semibold text-slate-800">{Number(item.cvss_score || 0).toFixed(1)}</div>
+                        <div className="min-w-0">
+                          <HoverPreviewField
+                            primary={item.reporter?.name || 'unknown'}
+                            secondary={item.reporter?.version || 'n/a'}
+                            previewTitle="上报者"
+                            entries={[
+                              { label: '名称', value: item.reporter?.name || 'unknown' },
+                              { label: '版本', value: item.reporter?.version || 'n/a' },
+                              { label: '类型', value: item.reporter?.type || 'other' },
+                              { label: '接口', value: item.reporter?.endpoint || null },
+                              { label: '实例', value: item.reporter?.instance_id || null },
+                            ]}
+                          />
+                        </div>
+                        <div className="min-w-0">
+                          <HoverPreviewField
+                            primary={item.subject?.locator || 'unscoped asset'}
+                            secondary={item.subject?.type || 'generic'}
+                            previewTitle="目标对象"
+                            entries={[
+                              { label: '定位', value: item.subject?.locator || 'unscoped asset' },
+                              { label: '类型', value: item.subject?.type || 'generic' },
+                              { label: '名称', value: item.subject?.name || null },
+                              { label: '版本', value: item.subject?.version || null },
+                            ]}
+                          />
+                        </div>
+                        <div className="text-sm font-semibold text-slate-700">{item.reporter?.type || 'other'}</div>
+                        <div className="text-sm text-slate-500">{formatTime(item.updated_at || item.created_at)}</div>
+                        <div className="text-right text-xl font-semibold text-slate-900">{item.confidence}</div>
+                        <div>
+                          <div className="flex flex-wrap gap-1.5">
+                            <button
+                              type="button"
+                              onClick={(event) => {
+                                event.stopPropagation();
+                                handleCreateDownloadJob([item.id], 'single');
+                              }}
+                              disabled={creatingDownload}
+                              className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-200 bg-emerald-50 px-2.5 py-1.5 text-[11px] font-semibold text-emerald-700 disabled:opacity-50"
+                            >
+                              <Download size={12} />
+                              下载
+                            </button>
+                            <button
+                              type="button"
+                              onClick={(event) => {
+                                event.stopPropagation();
+                                handleDeleteSingleFromList(item.id, item.title);
+                              }}
+                              disabled={bulkDeleting || rowDeletingId === item.id}
+                              className="inline-flex items-center gap-1.5 rounded-lg border border-rose-200 bg-rose-50 px-2.5 py-1.5 text-[11px] font-semibold text-rose-700 disabled:opacity-50"
+                            >
+                              <Trash2 size={12} />
+                              {rowDeletingId === item.id ? '删除中' : '删除'}
+                            </button>
                           </div>
-                        ) : null}
-                      </div>
-                      <div>
-                        <span className={`rounded-lg px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider ${toneOf(item.severity)}`}>
-                          {item.severity}
-                        </span>
-                      </div>
-                      <div className="text-sm font-semibold text-slate-800">{Number(item.cvss_score || 0).toFixed(1)}</div>
-                      <div className="min-w-0">
-                        <div className="truncate text-sm font-semibold text-slate-800">{item.reporter?.name || 'unknown'}</div>
-                        <div className="mt-0.5 text-xs text-slate-400">{item.reporter?.version || 'n/a'}</div>
-                      </div>
-                      <div className="min-w-0">
-                        <div className="truncate text-sm font-semibold text-slate-800">{item.subject?.locator || 'unscoped asset'}</div>
-                        <div className="mt-0.5 text-xs text-slate-400">{item.subject?.type || 'generic'}</div>
-                      </div>
-                      <div className="text-sm font-semibold text-slate-700">{item.reporter?.type || 'other'}</div>
-                      <div className="text-sm text-slate-500">{formatTime(item.updated_at || item.created_at)}</div>
-                      <div className="text-right text-xl font-semibold text-slate-900">{item.confidence}</div>
-                      <div>
-                        <div className="flex flex-wrap gap-1.5">
-                          <button
-                            type="button"
-                            onClick={(event) => {
-                              event.stopPropagation();
-                              handleCreateDownloadJob([item.id], 'single');
-                            }}
-                            disabled={creatingDownload}
-                            className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-200 bg-emerald-50 px-2.5 py-1.5 text-[11px] font-semibold text-emerald-700 disabled:opacity-50"
-                          >
-                            <Download size={12} />
-                            下载
-                          </button>
-                          <button
-                            type="button"
-                            onClick={(event) => {
-                              event.stopPropagation();
-                              handleDeleteSingleFromList(item.id, item.title);
-                            }}
-                            disabled={bulkDeleting || rowDeletingId === item.id}
-                            className="inline-flex items-center gap-1.5 rounded-lg border border-rose-200 bg-rose-50 px-2.5 py-1.5 text-[11px] font-semibold text-rose-700 disabled:opacity-50"
-                          >
-                            <Trash2 size={12} />
-                            {rowDeletingId === item.id ? '删除中' : '删除'}
-                          </button>
                         </div>
                       </div>
-                    </div>
-                  ))
+                    );
+                  })
                 )}
               </div>
 
-              <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5">
-                <div className="text-xs font-semibold text-slate-600">
-                  当前显示 {totalFiltered === 0 ? 0 : pageStart + 1} - {Math.min(pageStart + pageSize, totalFiltered)} / {totalFiltered}
+              <div className="flex flex-col gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5">
+                <div className="flex flex-wrap items-center justify-center gap-1.5">
+                  <button
+                    type="button"
+                    onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
+                    disabled={normalizedPage <= 1}
+                    className="rounded-lg border border-slate-300 bg-slate-50 px-2.5 py-1.5 text-xs font-semibold text-slate-700 disabled:opacity-50"
+                  >
+                    上一页
+                  </button>
+                  {(() => {
+                    const MAX_VISIBLE = 7;
+                    const pages: (number | 'ellipsis-start' | 'ellipsis-end')[] = [];
+                    if (totalPages <= MAX_VISIBLE) {
+                      for (let i = 1; i <= totalPages; i++) pages.push(i);
+                    } else {
+                      pages.push(1);
+                      if (normalizedPage > 3) pages.push('ellipsis-start');
+                      const start = Math.max(2, normalizedPage - 1);
+                      const end = Math.min(totalPages - 1, normalizedPage + 1);
+                      for (let i = start; i <= end; i++) pages.push(i);
+                      if (normalizedPage < totalPages - 2) pages.push('ellipsis-end');
+                      pages.push(totalPages);
+                    }
+                    return pages.map((page, idx) => {
+                      if (typeof page === 'string') {
+                        return (
+                          <span key={page} className="px-1 text-xs text-slate-400">
+                            ...
+                          </span>
+                        );
+                      }
+                      const isActive = page === normalizedPage;
+                      return (
+                        <button
+                          key={page}
+                          type="button"
+                          onClick={() => setCurrentPage(page)}
+                          className={`rounded-lg px-2.5 py-1.5 text-xs font-semibold transition-colors ${
+                            isActive
+                              ? 'bg-slate-900 text-white'
+                              : 'border border-slate-300 bg-slate-50 text-slate-700 hover:bg-slate-100'
+                          }`}
+                        >
+                          {page}
+                        </button>
+                      );
+                    });
+                  })()}
+                  <button
+                    type="button"
+                    onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
+                    disabled={normalizedPage >= totalPages}
+                    className="rounded-lg border border-slate-300 bg-slate-50 px-2.5 py-1.5 text-xs font-semibold text-slate-700 disabled:opacity-50"
+                  >
+                    下一页
+                  </button>
                 </div>
-                <div className="flex flex-wrap items-center gap-2">
+                <div className="flex flex-wrap items-center justify-center gap-2">
+                  <div className="text-xs font-semibold text-slate-600">
+                    当前显示 {totalFiltered === 0 ? 0 : pageStart + 1} - {Math.min(pageStart + pageSize, totalFiltered)} / {totalFiltered}
+                  </div>
                   <label className="text-xs font-semibold text-slate-600">
                     每页
                     <select
@@ -2819,38 +3116,6 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
                       ))}
                     </select>
                   </label>
-                  <button
-                    type="button"
-                    onClick={() => setCurrentPage(1)}
-                    disabled={normalizedPage <= 1}
-                    className="rounded-lg border border-slate-300 bg-slate-50 px-2.5 py-1.5 text-xs font-semibold text-slate-700 disabled:opacity-50"
-                  >
-                    首页
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
-                    disabled={normalizedPage <= 1}
-                    className="rounded-lg border border-slate-300 bg-slate-50 px-2.5 py-1.5 text-xs font-semibold text-slate-700 disabled:opacity-50"
-                  >
-                    上一页
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
-                    disabled={normalizedPage >= totalPages}
-                    className="rounded-lg border border-slate-300 bg-slate-50 px-2.5 py-1.5 text-xs font-semibold text-slate-700 disabled:opacity-50"
-                  >
-                    下一页
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setCurrentPage(totalPages)}
-                    disabled={normalizedPage >= totalPages}
-                    className="rounded-lg border border-slate-300 bg-slate-50 px-2.5 py-1.5 text-xs font-semibold text-slate-700 disabled:opacity-50"
-                  >
-                    末页
-                  </button>
                 </div>
               </div>
             </div>
