@@ -4002,6 +4002,7 @@ export interface AppEaTaskItem {
   owner_valid?: boolean;
   owner_live?: boolean;
   lease_expires_at?: string | null;
+  lease_state?: 'none' | 'active' | 'expired' | 'awaiting_takeover' | 'reconcile_pending' | 'invalid_owner' | null;
   awaiting_takeover?: boolean;
   reconcile_pending?: boolean;
   reconcile_reason?: string | null;

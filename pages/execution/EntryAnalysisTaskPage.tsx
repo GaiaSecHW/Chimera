@@ -26,7 +26,7 @@ const STATUS_COLOR: Record<string, string> = {
   pending: 'bg-slate-100 text-slate-600',
   running: 'bg-blue-100 text-blue-700',
   takeover: 'bg-amber-100 text-amber-700',
-  lease_error: 'bg-rose-100 text-rose-700',
+  lease_stale: 'bg-slate-100 text-slate-600',
   cancelling: 'bg-orange-100 text-orange-700',
   passed: 'bg-emerald-100 text-emerald-700',
   failed: 'bg-red-100 text-red-700',
@@ -44,8 +44,6 @@ const SLOT_TASK_STATUS_LABEL: Record<string, string> = {
 };
 
 const SLOT_WORKER_PAGE_SIZE = 6;
-const ENTRY_ANALYSIS_LEASE_WARNING_GRACE_SECONDS = 180;
-
 function formatBytes(value?: number | null): string {
   const bytes = Number(value || 0);
   if (!Number.isFinite(bytes) || bytes <= 0) return '0 B';
@@ -206,23 +204,20 @@ function getEntryAnalysisRecommendationReason(
 }
 
 function getEntryTaskDisplayStatus(
-  task: Pick<AppEaTaskItem, 'status' | 'cancel_requested' | 'awaiting_takeover' | 'reconcile_pending' | 'lease_expires_at'>,
-  nowSeconds: number,
+  task: Pick<AppEaTaskItem, 'status' | 'cancel_requested' | 'awaiting_takeover' | 'reconcile_pending' | 'lease_state'>,
 ): { key: string; label: string } {
   if (task.cancel_requested && ['running', 'pending'].includes(task.status)) {
     return { key: 'cancelling', label: STATUS_LABEL.cancelling };
   }
   if (task.status === 'running') {
-    const leaseExpiryTs = task.lease_expires_at ? Math.floor(new Date(task.lease_expires_at).getTime() / 1000) : null;
-    const leaseExpired = typeof leaseExpiryTs === 'number'
-      && Number.isFinite(leaseExpiryTs)
-      && leaseExpiryTs > 0
-      && leaseExpiryTs < nowSeconds;
     if (task.awaiting_takeover || task.reconcile_pending) {
       return { key: 'takeover', label: '等待接管' };
     }
-    if (leaseExpired) {
-      return { key: 'lease_error', label: '租约异常' };
+    if (task.lease_state === 'invalid_owner') {
+      return { key: 'takeover', label: '非法 Owner' };
+    }
+    if (task.lease_state === 'expired') {
+      return { key: 'lease_stale', label: '租约待刷新' };
     }
   }
   return { key: task.status, label: STATUS_LABEL[task.status] ?? task.status };
@@ -1924,26 +1919,15 @@ export const EntryAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?: (
                 const riskMatch = riskFocusHint ? getEntryAnalysisRiskMatch(t, riskFocusHint) : null;
                 const matchedRisk = Boolean(riskMatch?.matched);
                 const recommendationReason = recommended ? getEntryAnalysisRecommendationReason(t, stageFocusHint, riskPreset) : '';
-                const leaseExpiryTs = t.lease_expires_at ? Math.floor(new Date(t.lease_expires_at).getTime() / 1000) : null;
-                const leaseExpired = typeof leaseExpiryTs === 'number'
-                  && Number.isFinite(leaseExpiryTs)
-                  && leaseExpiryTs > 0
-                  && leaseExpiryTs < clockNow;
-                const expiredLeaseAgeSeconds = leaseExpired && typeof leaseExpiryTs === 'number'
-                  ? Math.max(0, clockNow - leaseExpiryTs)
-                  : 0;
                 const hasInvalidOwner = Boolean(t.owner_pod && t.owner_valid === false);
                 const isAwaitingTakeover = Boolean(t.awaiting_takeover || t.reconcile_pending);
-                const shouldHighlightLeaseError = leaseExpired && (!isAwaitingTakeover || expiredLeaseAgeSeconds >= ENTRY_ANALYSIS_LEASE_WARNING_GRACE_SECONDS);
-                const shouldHighlightLeaseWarning = leaseExpired && !shouldHighlightLeaseError;
-                const displayStatus = getEntryTaskDisplayStatus(t, clockNow);
+                const hasStaleLeaseSnapshot = t.lease_state === 'expired';
+                const displayStatus = getEntryTaskDisplayStatus(t);
                 const contextualRowClassName = selectedTaskIds.has(t.task_id)
                   ? 'bg-violet-50/60'
                   : hasInvalidOwner
                     ? 'bg-rose-50/70 hover:bg-rose-100/70'
-                  : shouldHighlightLeaseError
-                    ? 'bg-rose-50/70 hover:bg-rose-100/70'
-                  : shouldHighlightLeaseWarning
+                  : isAwaitingTakeover
                     ? 'bg-amber-50/50 hover:bg-amber-100/60'
                   : recommended
                     ? 'bg-indigo-50/40'
@@ -2082,14 +2066,14 @@ export const EntryAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?: (
                         owner 是 API/非法实例，正在回收重调度
                       </div>
                     ) : null}
-                    {shouldHighlightLeaseWarning ? (
+                    {isAwaitingTakeover ? (
                       <div className="mt-1 text-[11px] font-semibold text-amber-600">
                         正在等待回收/接管
                       </div>
                     ) : null}
-                    {shouldHighlightLeaseError ? (
-                      <div className="mt-1 text-[11px] font-semibold text-rose-600">
-                        {t.owner_live ? 'owner worker 仍存活但未续租' :`租约过期超过 ${ENTRY_ANALYSIS_LEASE_WARNING_GRACE_SECONDS}s`}
+                    {hasStaleLeaseSnapshot ? (
+                      <div className="mt-1 text-[11px] font-semibold text-slate-500">
+                        租约时间已过，请刷新查看最新状态
                       </div>
                     ) : null}
                   </ExecutionTableTd>
