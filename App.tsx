@@ -88,6 +88,7 @@ const AppShell: React.FC = () => {
   const [activeEntryAnalysisTaskId, setActiveEntryAnalysisTaskId] = useState<string>('');
   const [activeDataflowAnalysisTaskId, setActiveDataflowAnalysisTaskId] = useState<string>('');
   const [activeDataflowVulnScanTaskId, setActiveDataflowVulnScanTaskId] = useState<string>('');
+  const [activeCfgGuidedExploreTaskId, setActiveCfgGuidedExploreTaskId] = useState<string>('');
   const [activeFirmwareUnpackerTaskId, setActiveFirmwareUnpackerTaskId] = useState<string>('');
   const [activeBinarySecurityTaskId, setActiveBinarySecurityTaskId] = useState<string>('');
   const [activeSourceSecurityTaskId, setActiveSourceSecurityTaskId] = useState<string>('');
@@ -257,6 +258,7 @@ const AppShell: React.FC = () => {
         entryAnalysisTaskId?: string;
         dataflowAnalysisTaskId?: string;
         dataflowVulnScanTaskId?: string;
+        cfgGuidedExploreTaskId?: string;
         firmwareUnpackerTaskId?: string;
         binarySecurityTaskId?: string;
         sourceSecurityTaskId?: string;
@@ -292,6 +294,10 @@ const AppShell: React.FC = () => {
       const dataflowVulnScanTaskId = String(detail?.dataflowVulnScanTaskId || '').trim();
       if (dataflowVulnScanTaskId) {
         setActiveDataflowVulnScanTaskId(dataflowVulnScanTaskId);
+      }
+      const cfgGuidedExploreTaskId = String(detail?.cfgGuidedExploreTaskId || '').trim();
+      if (cfgGuidedExploreTaskId) {
+        setActiveCfgGuidedExploreTaskId(cfgGuidedExploreTaskId);
       }
       const firmwareUnpackerTaskId = String(detail?.firmwareUnpackerTaskId || '').trim();
       if (firmwareUnpackerTaskId) {
@@ -709,6 +715,7 @@ const AppShell: React.FC = () => {
                     activeEntryAnalysisTaskId,
                     activeDataflowAnalysisTaskId,
                     activeDataflowVulnScanTaskId,
+                    activeCfgGuidedExploreTaskId,
                     activeFirmwareUnpackerTaskId,
                     activeBinarySecurityTaskId,
                     activeSourceSecurityTaskId,
@@ -731,6 +738,7 @@ const AppShell: React.FC = () => {
                     setActiveEntryAnalysisTaskId: (id) => setActiveEntryAnalysisTaskId(id),
                     setActiveDataflowAnalysisTaskId: (id) => setActiveDataflowAnalysisTaskId(id),
                     setActiveDataflowVulnScanTaskId: (id) => setActiveDataflowVulnScanTaskId(id),
+                    setActiveCfgGuidedExploreTaskId: (id) => setActiveCfgGuidedExploreTaskId(id),
                     setActiveFirmwareUnpackerTaskId: (id) => setActiveFirmwareUnpackerTaskId(id),
                     setActiveBinarySecurityTaskId: (id) => setActiveBinarySecurityTaskId(id),
                     setActiveSourceSecurityTaskId: (id) => setActiveSourceSecurityTaskId(id),
