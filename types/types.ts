@@ -2700,12 +2700,18 @@ export interface AiGatewayProviderStat {
 export interface AiGatewayLlmKey {
   id: number;
   key_name: string;
-  key_type: 'task' | 'work' | string;
+  key_type: 'task' | 'work' | 'app' | string;
+  app_id?: string;
+  app_name?: string;
   parent_key_id?: number | null;
   key_prefix: string;
   max_concurrency: number;
+  project_id?: string;
+  project_name?: string;
   task_id: string;
+  task_name?: string;
   sub_task_id: string;
+  sub_task_name?: string;
   enabled: boolean;
   expires_at?: string | null;
   description: string;
@@ -2725,11 +2731,17 @@ export interface AiGatewayLlmKeyTaskBindingInput {
 
 export interface AiGatewayLlmKeyCreatePayload {
   key_name: string;
-  key_type: 'task' | 'work';
+  key_type: 'task' | 'work' | 'app';
+  app_id?: string;
+  app_name?: string;
   parent_key_id?: number | null;
   max_concurrency: number;
+  project_id?: string;
+  project_name?: string;
   task_id: string;
+  task_name?: string;
   sub_task_id: string;
+  sub_task_name?: string;
   enabled: boolean;
   expires_at?: string | null;
   description: string;
@@ -2776,6 +2788,8 @@ export interface AiGatewayLogSummary {
   llm_key_prefix: string;
   task_key_id: number;
   task_key_prefix: string;
+  app_id: string;
+  app_name?: string;
   task_id: string;
   sub_task_id: string;
   model_alias_id: number;

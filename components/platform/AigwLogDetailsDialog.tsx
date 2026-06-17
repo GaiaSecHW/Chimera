@@ -35,6 +35,14 @@ const formatCost = (value?: number) => typeof value === 'number' ? `$${value.toF
 const formatLatency = (value?: number) => value ? `${Math.round(value)} ms` : '-';
 const formatBytes = (value?: number) => typeof value === 'number' ? `${value} B` : '-';
 const formatNumber = (value?: number) => typeof value === 'number' ? String(value) : '-';
+const getAttributionLabel = (log: AiGatewayLogDetail) => {
+  if (log.app_id) return log.app_name ? `${log.app_name} / ${log.app_id}` : log.app_id;
+  return log.task_id || '-';
+};
+const getAttributionHint = (log: AiGatewayLogDetail) => {
+  if (log.app_id) return '应用归因';
+  return log.sub_task_id || '无子任务';
+};
 
 const parseJsonMaybe = (value?: string | null): unknown => {
   if (!value) return null;
@@ -566,7 +574,7 @@ export const AigwLogDetailsDialog: React.FC<AigwLogDetailsDialogProps> = ({ log,
                 <MetricCard icon={<Cpu className="h-4 w-4" />} label="公开模型" value={log.model_name || '-'} hint={`Backend: ${log.backend_model_name || '-'}`} />
                 <MetricCard icon={<Hash className="h-4 w-4" />} label="日志时间" value={formatDateTime(log.created_at)} hint={`状态 ${log.status_code || '-'}`} />
                 <MetricCard icon={<Layers3 className="h-4 w-4" />} label="调用模式" value={log.is_stream ? 'Stream' : 'JSON'} hint={`Endpoint ${log.endpoint || '-'}`} />
-                <MetricCard icon={<MessageSquareText className="h-4 w-4" />} label="任务归因" value={log.task_id || '-'} hint={log.sub_task_id || '无子任务'} />
+                <MetricCard icon={<MessageSquareText className="h-4 w-4" />} label="调用归因" value={getAttributionLabel(log)} hint={getAttributionHint(log)} />
                 <MetricCard icon={<Route className="h-4 w-4" />} label="别名 / 单元 / 配置" value={`A${log.model_alias_id || '-'} / U${log.backend_unit_id || '-'} / B${log.backend_config_id || '-'}`} />
                 <MetricCard icon={<CheckCircle2 className="h-4 w-4" />} label="密钥前缀" value={log.llm_key_prefix || '-'} hint={`Task Key: ${log.task_key_prefix || '-'}`} />
               </div>

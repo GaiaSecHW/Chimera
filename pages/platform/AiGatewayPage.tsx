@@ -31,7 +31,9 @@ type AiGatewayBackendUnitForm = Omit<AiGatewayBackendUnitWithPool, 'id'> & {
 };
 type AiGatewayLlmKeyForm = {
   key_name: string;
-  key_type: 'task' | 'work';
+  key_type: 'task' | 'work' | 'app';
+  app_id: string;
+  app_name: string;
   parent_key_id?: number | null;
   max_concurrency: number;
   task_id: string;
@@ -48,6 +50,7 @@ type LogDrawerPreset = {
   backendUnitId?: string;
   llmKeyId?: string;
   taskKeyId?: string;
+  appId?: string;
   capacityPoolId?: string;
   taskId?: string;
   subTaskId?: string;
@@ -93,6 +96,8 @@ const emptyBinding = (): Omit<AiGatewayModelAliasBinding, 'id'> => ({
 const emptyLlmKeyForm = (): AiGatewayLlmKeyForm => ({
   key_name: '',
   key_type: 'task',
+  app_id: '',
+  app_name: '',
   parent_key_id: null,
   max_concurrency: 0,
   task_id: '',
@@ -113,6 +118,16 @@ const emptyCapacityPool = (): Omit<AiGatewayCapacityPool, 'id'> => ({
 
 const formatDateTime = (value?: string | null) => value ? new Date(value).toLocaleString('zh-CN') : '-';
 const formatDateTimeInput = (value?: string | null) => value ? new Date(value).toISOString().slice(0, 16) : '';
+const getLlmKeyTypeLabel = (keyType?: string) => keyType === 'task' ? '任务密钥' : keyType === 'work' ? '工作密钥' : keyType === 'app' ? '应用密钥' : (keyType || '-');
+const getLlmKeyScopeLabel = (item: Pick<AiGatewayLlmKey, 'key_type' | 'app_id' | 'app_name' | 'task_id' | 'sub_task_id'>) => {
+  if (item.key_type === 'app') {
+    if (item.app_name && item.app_id) return `${item.app_name} / ${item.app_id}`;
+    return item.app_id || item.app_name || '-';
+  }
+  if (!item.task_id) return '-';
+  if (item.key_type === 'work' && item.sub_task_id) return `${item.task_id} / ${item.sub_task_id}`;
+  return item.task_id;
+};
 const formatJsonBlock = (value?: string | null) => {
   const text = String(value || '').trim();
   if (!text) return '-';
@@ -168,6 +183,7 @@ export const AiGatewayPage: React.FC<AiGatewayPageProps> = ({ entryView = 'aigw-
   const [logBackendUnitId, setLogBackendUnitId] = useState('');
   const [logLlmKeyId, setLogLlmKeyId] = useState('');
   const [logTaskKeyId, setLogTaskKeyId] = useState('');
+  const [logAppId, setLogAppId] = useState('');
   const [logCapacityPoolId, setLogCapacityPoolId] = useState('');
   const [logTaskId, setLogTaskId] = useState('');
   const [logSubTaskId, setLogSubTaskId] = useState('');
@@ -301,6 +317,7 @@ export const AiGatewayPage: React.FC<AiGatewayPageProps> = ({ entryView = 'aigw-
         ...(logBackendUnitId ? { backend_unit_id: logBackendUnitId } : {}),
         ...(logLlmKeyId ? { llm_key_id: logLlmKeyId } : {}),
         ...(logTaskKeyId ? { task_key_id: logTaskKeyId } : {}),
+        ...(logAppId ? { app_id: logAppId } : {}),
         ...(logCapacityPoolId ? { capacity_pool_id: logCapacityPoolId } : {}),
         ...(logTaskId ? { task_id: logTaskId } : {}),
         ...(logSubTaskId ? { sub_task_id: logSubTaskId } : {}),
@@ -362,6 +379,7 @@ export const AiGatewayPage: React.FC<AiGatewayPageProps> = ({ entryView = 'aigw-
     logBackendUnitId,
     logLlmKeyId,
     logTaskKeyId,
+    logAppId,
     logCapacityPoolId,
     logTaskId,
     logSubTaskId,
@@ -479,6 +497,7 @@ export const AiGatewayPage: React.FC<AiGatewayPageProps> = ({ entryView = 'aigw-
       setLogBackendUnitId(preset.backendUnitId || '');
       setLogLlmKeyId(preset.llmKeyId || '');
       setLogTaskKeyId(preset.taskKeyId || '');
+      setLogAppId(preset.appId || '');
       setLogCapacityPoolId(preset.capacityPoolId || '');
       setLogTaskId(preset.taskId || '');
       setLogSubTaskId(preset.subTaskId || '');
@@ -557,7 +576,9 @@ export const AiGatewayPage: React.FC<AiGatewayPageProps> = ({ entryView = 'aigw-
       setEditingLlmKeyId(item.id);
       setLlmKeyForm({
         key_name: item.key_name || '',
-        key_type: item.key_type === 'work' ? 'work' : 'task',
+        key_type: item.key_type === 'work' ? 'work' : item.key_type === 'app' ? 'app' : 'task',
+        app_id: item.app_id || '',
+        app_name: item.app_name || '',
         parent_key_id: item.parent_key_id || null,
         max_concurrency: item.max_concurrency || 0,
         task_id: item.task_id || '',
@@ -575,13 +596,26 @@ export const AiGatewayPage: React.FC<AiGatewayPageProps> = ({ entryView = 'aigw-
   };
 
   useEffect(() => {
-    if (llmKeyForm.key_type !== 'work') {
-      if (llmKeyForm.parent_key_id !== null || llmKeyForm.capacity_pool_ids.length > 0 || llmKeyForm.sub_task_id !== '') {
+    if (llmKeyForm.key_type === 'app') {
+      if (llmKeyForm.parent_key_id !== null || llmKeyForm.task_id !== '' || llmKeyForm.sub_task_id !== '') {
         setLlmKeyForm((current) => ({
           ...current,
           parent_key_id: null,
+          task_id: '',
           sub_task_id: '',
-          capacity_pool_ids: current.key_type === 'work' ? [] : current.capacity_pool_ids,
+        }));
+      }
+      return;
+    }
+
+    if (llmKeyForm.key_type !== 'work') {
+      if (llmKeyForm.parent_key_id !== null || llmKeyForm.sub_task_id !== '' || llmKeyForm.app_id !== '' || llmKeyForm.app_name !== '') {
+        setLlmKeyForm((current) => ({
+          ...current,
+          app_id: '',
+          app_name: '',
+          parent_key_id: null,
+          sub_task_id: '',
         }));
       }
       return;
@@ -591,6 +625,8 @@ export const AiGatewayPage: React.FC<AiGatewayPageProps> = ({ entryView = 'aigw-
     if (!parent && taskKeys[0]) {
       setLlmKeyForm((current) => ({
         ...current,
+        app_id: '',
+        app_name: '',
         parent_key_id: taskKeys[0].id,
         task_id: taskKeys[0].task_id || '',
         capacity_pool_ids: [],
@@ -600,11 +636,13 @@ export const AiGatewayPage: React.FC<AiGatewayPageProps> = ({ entryView = 'aigw-
     if (parent && (llmKeyForm.task_id !== parent.task_id || llmKeyForm.capacity_pool_ids.length > 0)) {
       setLlmKeyForm((current) => ({
         ...current,
+        app_id: '',
+        app_name: '',
         task_id: parent.task_id || '',
         capacity_pool_ids: [],
       }));
     }
-  }, [llmKeyForm.capacity_pool_ids.length, llmKeyForm.key_type, llmKeyForm.parent_key_id, llmKeyForm.task_id, taskKeys]);
+  }, [llmKeyForm.app_id, llmKeyForm.app_name, llmKeyForm.capacity_pool_ids.length, llmKeyForm.key_type, llmKeyForm.parent_key_id, llmKeyForm.sub_task_id, llmKeyForm.task_id, taskKeys]);
 
   const resetCapacityPoolForm = () => {
     setEditingCapacityPoolId(null);
@@ -708,19 +746,23 @@ export const AiGatewayPage: React.FC<AiGatewayPageProps> = ({ entryView = 'aigw-
     setError('');
     try {
       if (!llmKeyForm.key_name.trim()) throw new Error('密钥名称不能为空');
-      if (!llmKeyForm.task_id.trim()) throw new Error('任务 ID 不能为空');
+      if (llmKeyForm.key_type === 'task' && !llmKeyForm.task_id.trim()) throw new Error('任务密钥必须填写任务 ID');
       if (llmKeyForm.key_type === 'task' && llmKeyForm.capacity_pool_ids.length === 0) throw new Error('任务密钥必须至少选择一个算力池');
       if (llmKeyForm.key_type === 'work' && !llmKeyForm.parent_key_id) throw new Error('工作密钥必须选择父任务密钥');
       if (llmKeyForm.key_type === 'work' && !llmKeyForm.sub_task_id.trim()) throw new Error('工作密钥必须填写子任务 ID');
+      if (llmKeyForm.key_type === 'app' && !llmKeyForm.app_id.trim()) throw new Error('应用密钥必须填写应用 ID');
+      if (llmKeyForm.key_type === 'app' && llmKeyForm.capacity_pool_ids.length === 0) throw new Error('应用密钥必须至少选择一个算力池');
       const payload = {
         key_name: llmKeyForm.key_name.trim(),
         key_type: llmKeyForm.key_type,
+        app_id: llmKeyForm.key_type === 'app' ? llmKeyForm.app_id.trim() : '',
+        app_name: llmKeyForm.key_type === 'app' ? llmKeyForm.app_name.trim() : '',
         max_concurrency: llmKeyForm.max_concurrency,
-        task_id: llmKeyForm.task_id.trim(),
-        sub_task_id: llmKeyForm.sub_task_id.trim(),
+        task_id: llmKeyForm.key_type === 'app' ? '' : llmKeyForm.task_id.trim(),
+        sub_task_id: llmKeyForm.key_type === 'work' ? llmKeyForm.sub_task_id.trim() : '',
         enabled: llmKeyForm.enabled,
         description: llmKeyForm.description.trim(),
-        parent_key_id: llmKeyForm.parent_key_id || null,
+        parent_key_id: llmKeyForm.key_type === 'work' ? (llmKeyForm.parent_key_id || null) : null,
         expires_at: llmKeyForm.expires_at || null,
         capacity_pool_ids: llmKeyForm.key_type === 'work' ? [] : llmKeyForm.capacity_pool_ids,
       };
@@ -953,7 +995,7 @@ export const AiGatewayPage: React.FC<AiGatewayPageProps> = ({ entryView = 'aigw-
         <button onClick={() => setLogFiltersExpanded(!logFiltersExpanded)} className="w-full flex items-center justify-between gap-3 p-3 text-left">
           <div className="flex items-center gap-2">
             <div className="text-[11px] font-black uppercase tracking-[0.18em] text-theme-text-muted">筛选条件</div>
-            {logModel || logBackendModel || logAliasId || logBackendUnitId || logLlmKeyId || logTaskKeyId || logCapacityPoolId || logTaskId || logSubTaskId || logStartDate || logEndDate ? <span className="rounded-full bg-sky-500/15 px-2 py-0.5 text-xs font-bold text-sky-400">已筛选</span> : null}
+            {logModel || logBackendModel || logAliasId || logBackendUnitId || logLlmKeyId || logTaskKeyId || logAppId || logCapacityPoolId || logTaskId || logSubTaskId || logStartDate || logEndDate ? <span className="rounded-full bg-sky-500/15 px-2 py-0.5 text-xs font-bold text-sky-400">已筛选</span> : null}
           </div>
           {logFiltersExpanded ? <ChevronUp className="h-4 w-4 text-theme-text-muted" /> : <ChevronDown className="h-4 w-4 text-theme-text-muted" />}
         </button>
@@ -982,6 +1024,7 @@ export const AiGatewayPage: React.FC<AiGatewayPageProps> = ({ entryView = 'aigw-
                 {capacityPools.map((item) => <option key={item.id} value={item.id}>{item.pool_name}</option>)}
               </select>
               <input value={logTaskKeyId} onChange={(e) => setLogTaskKeyId(e.target.value)} placeholder="任务密钥 ID" className="rounded-2xl border border-theme-border bg-theme-bg-app px-4 py-2 text-sm outline-none" />
+              <input value={logAppId} onChange={(e) => setLogAppId(e.target.value)} placeholder="应用 ID" className="rounded-2xl border border-theme-border bg-theme-bg-app px-4 py-2 text-sm outline-none" />
               <input value={logTaskId} onChange={(e) => setLogTaskId(e.target.value)} placeholder="任务 ID" className="rounded-2xl border border-theme-border bg-theme-bg-app px-4 py-2 text-sm outline-none" />
               <input value={logSubTaskId} onChange={(e) => setLogSubTaskId(e.target.value)} placeholder="子任务 ID" className="rounded-2xl border border-theme-border bg-theme-bg-app px-4 py-2 text-sm outline-none" />
               <input type="datetime-local" value={logStartDate} onChange={(e) => setLogStartDate(e.target.value)} className="rounded-2xl border border-theme-border bg-theme-bg-app px-4 py-2 text-sm outline-none" />
@@ -989,7 +1032,7 @@ export const AiGatewayPage: React.FC<AiGatewayPageProps> = ({ entryView = 'aigw-
             </div>
             <div className="flex items-center gap-2 p-3 pt-0">
               <button onClick={() => { setLogPage(1); void loadLogs(); }} disabled={logsLoading} className="rounded-2xl bg-theme-surface px-4 py-2 text-sm font-bold text-white disabled:opacity-50">查询</button>
-              <button onClick={() => { setLogModel(''); setLogBackendModel(''); setLogAliasId(''); setLogBackendUnitId(''); setLogLlmKeyId(''); setLogTaskKeyId(''); setLogCapacityPoolId(''); setLogTaskId(''); setLogSubTaskId(''); setLogStartDate(''); setLogEndDate(''); setLogPage(1); void loadLogs(); }} className="rounded-2xl bg-theme-elevated px-4 py-2 text-sm font-bold text-theme-text-secondary">重置</button>
+              <button onClick={() => { setLogModel(''); setLogBackendModel(''); setLogAliasId(''); setLogBackendUnitId(''); setLogLlmKeyId(''); setLogTaskKeyId(''); setLogAppId(''); setLogCapacityPoolId(''); setLogTaskId(''); setLogSubTaskId(''); setLogStartDate(''); setLogEndDate(''); setLogPage(1); void loadLogs(); }} className="rounded-2xl bg-theme-elevated px-4 py-2 text-sm font-bold text-theme-text-secondary">重置</button>
             </div>
           </>
         ) : null}
@@ -1006,7 +1049,7 @@ export const AiGatewayPage: React.FC<AiGatewayPageProps> = ({ entryView = 'aigw-
             <tr className="border-b border-theme-border text-left text-theme-text-muted">
               <th className="px-3 py-2 font-bold">时间</th>
               <th className="px-3 py-2 font-bold">模型</th>
-              <th className="px-3 py-2 font-bold">任务</th>
+              <th className="px-3 py-2 font-bold">归因</th>
               <th className="px-3 py-2 font-bold">别名 / 单元</th>
               <th className="px-3 py-2 font-bold">状态</th>
               <th className="px-3 py-2 font-bold">延迟</th>
@@ -1022,7 +1065,10 @@ export const AiGatewayPage: React.FC<AiGatewayPageProps> = ({ entryView = 'aigw-
                   <div className="truncate font-bold text-theme-text-primary" title={`后端: ${log.backend_model_name || '-'}`}>{log.model_name || '-'}</div>
                 </td>
                 <td className="px-3 py-2">
-                  <div className="truncate font-mono text-xs text-theme-text-secondary" title={log.sub_task_id || '-'}>{log.task_id || '-'}</div>
+                  <div className="truncate font-mono text-xs text-theme-text-secondary" title={log.app_id ? (log.app_name ? `${log.app_name} / ${log.app_id}` : log.app_id) : (log.sub_task_id || log.task_id || '-')}>
+                    {log.app_id ? (log.app_name ? `${log.app_name} / ${log.app_id}` : log.app_id) : (log.task_id || '-')}
+                  </div>
+                  {!log.app_id && log.sub_task_id ? <div className="mt-0.5 truncate text-[11px] text-theme-text-muted">{log.sub_task_id}</div> : null}
                 </td>
                 <td className="px-3 py-2 text-theme-text-secondary text-xs">A{log.model_alias_id || '-'} / U{log.backend_unit_id || '-'}</td>
                 <td className="px-3 py-2">
@@ -1125,7 +1171,7 @@ export const AiGatewayPage: React.FC<AiGatewayPageProps> = ({ entryView = 'aigw-
               <th className="px-3 py-2 font-bold">名称</th>
               <th className="px-3 py-2 font-bold">类型</th>
               <th className="px-3 py-2 font-bold">最大并发</th>
-              <th className="px-3 py-2 font-bold">任务范围</th>
+              <th className="px-3 py-2 font-bold">身份范围</th>
               <th className="px-3 py-2 font-bold">状态</th>
               <th className="px-3 py-2 font-bold">更新时间</th>
               <th className="px-3 py-2 font-bold">操作</th>
@@ -1137,15 +1183,15 @@ export const AiGatewayPage: React.FC<AiGatewayPageProps> = ({ entryView = 'aigw-
                 <td className="px-3 py-2">
                   <div className="truncate font-bold text-theme-text-primary" title={item.description || '无备注'}>{item.key_name ||`密钥 #${item.id}`}</div>
                 </td>
-                <td className="px-3 py-2 text-theme-text-secondary">{item.key_type === 'task' ? '任务密钥' : item.key_type === 'work' ? '工作密钥' : item.key_type}</td>
+                <td className="px-3 py-2 text-theme-text-secondary">{getLlmKeyTypeLabel(item.key_type)}</td>
                 <td className="px-3 py-2 text-theme-text-secondary">{item.max_concurrency || 0}</td>
-                <td className="px-3 py-2 text-theme-text-secondary">{item.task_id ? (item.key_type === 'work' && item.sub_task_id ?`${item.task_id} / ${item.sub_task_id}` : item.task_id) : '-'}</td>
+                <td className="px-3 py-2 text-theme-text-secondary">{getLlmKeyScopeLabel(item)}</td>
                 <td className="px-3 py-2"><span className={`rounded-full px-2 py-0.5 text-xs font-bold ${item.enabled ? 'bg-emerald-500/15 text-emerald-400' : 'bg-theme-elevated text-theme-text-muted'}`}>{item.enabled ? '启用' : '禁用'}</span></td>
                 <td className="px-3 py-2 text-theme-text-secondary">{item.updated_at ? new Date(item.updated_at).toLocaleString('zh-CN') : '-'}</td>
                 <td className="px-3 py-2">
                   <div className="flex items-center gap-1.5">
                     <button onClick={() => openLlmKeyModal(item)} className="rounded-lg bg-theme-elevated px-2 py-1 text-xs font-bold text-theme-text-secondary hover:bg-theme-elevated"><Pencil className="h-3 w-3" /></button>
-                    <button onClick={() => openLogsDrawer({ title:`${item.key_name ||`密钥 #${item.id}`} 日志`, llmKeyId: String(item.id) })} className="rounded-lg bg-theme-elevated px-2 py-1 text-xs font-bold text-theme-text-secondary hover:bg-theme-elevated"><FileText className="h-3 w-3" /></button>
+                    <button onClick={() => openLogsDrawer({ title:`${item.key_name ||`密钥 #${item.id}`} 日志`, llmKeyId: String(item.id), appId: item.key_type === 'app' ? (item.app_id || '') : undefined, taskId: item.key_type !== 'app' ? (item.task_id || '') : undefined, subTaskId: item.key_type === 'work' ? (item.sub_task_id || '') : undefined })} className="rounded-lg bg-theme-elevated px-2 py-1 text-xs font-bold text-theme-text-secondary hover:bg-theme-elevated"><FileText className="h-3 w-3" /></button>
                     <button onClick={() => openLlmKeyDetail(item.id)} className="rounded-lg bg-theme-elevated px-2 py-1 text-xs font-bold text-theme-text-secondary hover:bg-theme-elevated"><Eye className="h-3 w-3" /></button>
                     <button onClick={() => deleteLlmKey(item)} className="rounded-lg bg-rose-500/15 px-2 py-1 text-xs font-bold text-rose-400 hover:bg-rose-200"><Trash2 className="h-3 w-3" /></button>
                   </div>
@@ -1672,7 +1718,7 @@ export const AiGatewayPage: React.FC<AiGatewayPageProps> = ({ entryView = 'aigw-
                 <th className="px-3 py-2 font-bold">前缀</th>
                 <th className="px-3 py-2 font-bold">类型</th>
                 <th className="px-3 py-2 font-bold">最大并发</th>
-                <th className="px-3 py-2 font-bold">任务范围</th>
+                <th className="px-3 py-2 font-bold">身份范围</th>
                 <th className="px-3 py-2 font-bold">状态</th>
                 <th className="px-3 py-2 font-bold">更新时间</th>
                 <th className="px-3 py-2 font-bold">操作</th>
@@ -1685,9 +1731,9 @@ export const AiGatewayPage: React.FC<AiGatewayPageProps> = ({ entryView = 'aigw-
                     <div className="truncate font-bold text-theme-text-primary" title={item.description || '无备注'}>{item.key_name ||`密钥 #${item.id}`}</div>
                   </td>
                   <td className="px-3 py-2 font-mono text-xs text-theme-text-secondary">{item.key_prefix || '-'}</td>
-                  <td className="px-3 py-2 text-theme-text-secondary">{item.key_type === 'task' ? '任务密钥' : item.key_type === 'work' ? '工作密钥' : item.key_type}</td>
+                  <td className="px-3 py-2 text-theme-text-secondary">{getLlmKeyTypeLabel(item.key_type)}</td>
                   <td className="px-3 py-2 text-theme-text-secondary">{item.max_concurrency || 0}</td>
-                  <td className="px-3 py-2 text-theme-text-secondary">{item.task_id ? (item.key_type === 'work' && item.sub_task_id ?`${item.task_id} / ${item.sub_task_id}` : item.task_id) : '-'}</td>
+                  <td className="px-3 py-2 text-theme-text-secondary">{getLlmKeyScopeLabel(item)}</td>
                   <td className="px-3 py-2"><span className={`rounded-full px-2 py-0.5 text-xs font-bold ${item.enabled ? 'bg-emerald-500/15 text-emerald-400' : 'bg-theme-elevated text-theme-text-muted'}`}>{item.enabled ? '启用' : '禁用'}</span></td>
                   <td className="px-3 py-2 text-theme-text-secondary">{item.updated_at ? new Date(item.updated_at).toLocaleString('zh-CN') : '-'}</td>
                   <td className="px-3 py-2">
@@ -1794,9 +1840,10 @@ export const AiGatewayPage: React.FC<AiGatewayPageProps> = ({ entryView = 'aigw-
               <div className="grid gap-4 sm:grid-cols-2">
                 <label className="block text-sm font-bold text-theme-text-secondary">密钥名称<input value={llmKeyForm.key_name} onChange={(e) => setLlmKeyForm((v) => ({ ...v, key_name: e.target.value }))} className="mt-1 w-full rounded-2xl border border-theme-border px-4 py-3 outline-none" /></label>
                 <label className="block text-sm font-bold text-theme-text-secondary">密钥类型
-                  <select value={llmKeyForm.key_type} disabled={Boolean(editingLlmKeyId)} onChange={(e) => setLlmKeyForm((v) => ({ ...v, key_type: e.target.value as 'task' | 'work' }))} className="mt-1 w-full rounded-2xl border border-theme-border px-4 py-3 outline-none disabled:bg-theme-elevated disabled:text-theme-text-muted">
+                  <select value={llmKeyForm.key_type} disabled={Boolean(editingLlmKeyId)} onChange={(e) => setLlmKeyForm((v) => ({ ...v, key_type: e.target.value as 'task' | 'work' | 'app' }))} className="mt-1 w-full rounded-2xl border border-theme-border px-4 py-3 outline-none disabled:bg-theme-elevated disabled:text-theme-text-muted">
                     <option value="task">任务密钥</option>
                     <option value="work">工作密钥</option>
+                    <option value="app">应用密钥</option>
                   </select>
                 </label>
               </div>
@@ -1821,12 +1868,18 @@ export const AiGatewayPage: React.FC<AiGatewayPageProps> = ({ entryView = 'aigw-
                       {taskKeys.map((item) => <option key={item.id} value={item.id}>{item.key_name} · {item.task_id}</option>)}
                     </select>
                   </label>
-                ) : <div className="rounded-2xl border border-theme-border bg-theme-bg-app px-4 py-3 text-sm text-theme-text-muted">任务密钥可直接配置授权算力池；工作密钥会继承父任务密钥的任务边界。</div>}
+                ) : llmKeyForm.key_type === 'app' ? <div className="rounded-2xl border border-theme-border bg-theme-bg-app px-4 py-3 text-sm text-theme-text-muted">应用密钥直接绑定应用标识和授权算力池，不参与任务树继承。</div> : <div className="rounded-2xl border border-theme-border bg-theme-bg-app px-4 py-3 text-sm text-theme-text-muted">任务密钥可直接配置授权算力池；工作密钥会继承父任务密钥的任务边界。</div>}
               </div>
               <div className="grid gap-4 sm:grid-cols-2">
-                <label className="block text-sm font-bold text-theme-text-secondary">任务 ID<input value={llmKeyForm.task_id} disabled={llmKeyForm.key_type === 'work' || Boolean(editingLlmKeyId)} onChange={(e) => setLlmKeyForm((v) => ({ ...v, task_id: e.target.value }))} className="mt-1 w-full rounded-2xl border border-theme-border px-4 py-3 outline-none disabled:bg-theme-elevated disabled:text-theme-text-muted" /></label>
+                {llmKeyForm.key_type === 'app' ? (
+                  <label className="block text-sm font-bold text-theme-text-secondary">应用 ID<input value={llmKeyForm.app_id} disabled={Boolean(editingLlmKeyId)} onChange={(e) => setLlmKeyForm((v) => ({ ...v, app_id: e.target.value }))} className="mt-1 w-full rounded-2xl border border-theme-border px-4 py-3 outline-none disabled:bg-theme-elevated disabled:text-theme-text-muted" /></label>
+                ) : (
+                  <label className="block text-sm font-bold text-theme-text-secondary">任务 ID<input value={llmKeyForm.task_id} disabled={llmKeyForm.key_type === 'work' || Boolean(editingLlmKeyId)} onChange={(e) => setLlmKeyForm((v) => ({ ...v, task_id: e.target.value }))} className="mt-1 w-full rounded-2xl border border-theme-border px-4 py-3 outline-none disabled:bg-theme-elevated disabled:text-theme-text-muted" /></label>
+                )}
                 {llmKeyForm.key_type === 'work' ? (
                   <label className="block text-sm font-bold text-theme-text-secondary">子任务 ID<input value={llmKeyForm.sub_task_id} disabled={Boolean(editingLlmKeyId)} onChange={(e) => setLlmKeyForm((v) => ({ ...v, sub_task_id: e.target.value }))} className="mt-1 w-full rounded-2xl border border-theme-border px-4 py-3 outline-none disabled:bg-theme-elevated disabled:text-theme-text-muted" /></label>
+                ) : llmKeyForm.key_type === 'app' ? (
+                  <label className="block text-sm font-bold text-theme-text-secondary">应用名称<input value={llmKeyForm.app_name} disabled={Boolean(editingLlmKeyId)} onChange={(e) => setLlmKeyForm((v) => ({ ...v, app_name: e.target.value }))} className="mt-1 w-full rounded-2xl border border-theme-border px-4 py-3 outline-none disabled:bg-theme-elevated disabled:text-theme-text-muted" /></label>
                 ) : (
                   <div className="rounded-2xl border border-theme-border bg-theme-bg-app px-4 py-3 text-sm text-theme-text-muted">任务密钥不需要填写子任务 ID；如需限定到子任务，请创建工作密钥。</div>
                 )}
@@ -1854,7 +1907,7 @@ export const AiGatewayPage: React.FC<AiGatewayPageProps> = ({ entryView = 'aigw-
                     );
                   })}
                 </div>
-                {llmKeyForm.key_type === 'work' ? <div className="mt-2 text-xs text-theme-text-muted">工作密钥不能单独定义算力池范围，会继承父任务密钥授权。</div> : null}
+                {llmKeyForm.key_type === 'work' ? <div className="mt-2 text-xs text-theme-text-muted">工作密钥不能单独定义算力池范围，会继承父任务密钥授权。</div> : llmKeyForm.key_type === 'app' ? <div className="mt-2 text-xs text-theme-text-muted">应用密钥必须显式选择可访问的算力池。</div> : null}
               </label>
               <label className="block text-sm font-bold text-theme-text-secondary">备注<textarea value={llmKeyForm.description} onChange={(e) => setLlmKeyForm((v) => ({ ...v, description: e.target.value }))} className="mt-1 min-h-24 w-full rounded-2xl border border-theme-border px-4 py-3 outline-none" /></label>
             </div>
@@ -1897,10 +1950,11 @@ export const AiGatewayPage: React.FC<AiGatewayPageProps> = ({ entryView = 'aigw-
             </div>
             <div className="grid gap-3 p-6 text-sm">
               <div className="rounded-2xl bg-theme-bg-app px-4 py-3">前缀：<span className="font-mono font-bold text-theme-text-primary">{selectedLlmKey.key_prefix || '-'}</span></div>
-              <div className="rounded-2xl bg-theme-bg-app px-4 py-3">类型：<span className="font-bold text-theme-text-primary">{selectedLlmKey.key_type === 'task' ? '任务密钥' : selectedLlmKey.key_type === 'work' ? '工作密钥' : selectedLlmKey.key_type}</span></div>
+              <div className="rounded-2xl bg-theme-bg-app px-4 py-3">类型：<span className="font-bold text-theme-text-primary">{getLlmKeyTypeLabel(selectedLlmKey.key_type)}</span></div>
               <div className="rounded-2xl bg-theme-bg-app px-4 py-3">父任务密钥：<span className="font-bold text-theme-text-primary">{selectedLlmKey.parent_key_id ?`#${selectedLlmKey.parent_key_id}` : '-'}</span></div>
               <div className="rounded-2xl bg-theme-bg-app px-4 py-3">最大并发：<span className="font-bold text-theme-text-primary">{selectedLlmKey.max_concurrency || 0}</span></div>
-              <div className="rounded-2xl bg-theme-bg-app px-4 py-3">任务范围：<span className="font-bold text-theme-text-primary">{selectedLlmKey.task_id ? (selectedLlmKey.key_type === 'work' && selectedLlmKey.sub_task_id ?`${selectedLlmKey.task_id} / ${selectedLlmKey.sub_task_id}` : selectedLlmKey.task_id) : '-'}</span></div>
+              <div className="rounded-2xl bg-theme-bg-app px-4 py-3">身份范围：<span className="font-bold text-theme-text-primary">{getLlmKeyScopeLabel(selectedLlmKey)}</span></div>
+              <div className="rounded-2xl bg-theme-bg-app px-4 py-3">应用标识：<span className="font-bold text-theme-text-primary">{selectedLlmKey.app_id ? (selectedLlmKey.app_name ? `${selectedLlmKey.app_name} / ${selectedLlmKey.app_id}` : selectedLlmKey.app_id) : '-'}</span></div>
               <div className="rounded-2xl bg-theme-bg-app px-4 py-3">过期时间：<span className="font-bold text-theme-text-primary">{formatDateTime(selectedLlmKey.expires_at)}</span></div>
               <div className="rounded-2xl bg-theme-bg-app px-4 py-3">授权算力池：<span className="font-bold text-theme-text-primary">{selectedLlmKey.capacity_pool_ids?.length ? selectedLlmKey.capacity_pool_ids.map((id) => capacityPools.find((pool) => pool.id === id)?.pool_name ||`#${id}`).join(' / ') : '-'}</span></div>
               <div className="rounded-2xl bg-theme-bg-app px-4 py-3">备注：<span className="font-bold text-theme-text-primary">{selectedLlmKey.description || '-'}</span></div>
