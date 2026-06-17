@@ -38,13 +38,12 @@ export default defineConfig(({ mode }) => {
         host: '0.0.0.0',
         sourcemapIgnoreList: (sourcePath) => sourcePath.includes('node_modules'),
         proxy: {
-          // Turing App Security (M2M + upload) — /turing/api/* → turing backend
-          '/turing/api': {
-            target: 'https://secflow.ai.icsl.huawei.com/turing-app-security',
+          // Turing App Security (M2M + upload) — /turing-app-security/api/* forwarded as-is
+          '/turing-app-security/api': {
+            target: 'https://secflow.ai.icsl.huawei.com',
             changeOrigin: true,
             secure: false,
             agent: keepAliveHttpsAgent,
-            rewrite: (path) => path.replace(/^\/turing/, ''),
           },
           '/api/aigw': {
             target: aigwProxyTarget,

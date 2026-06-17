@@ -2,12 +2,12 @@ import { API_BASE, getAuthHeaders, getHeaders, handleResponse, type XhrUploadPro
 
 // ---------------------------------------------------------------------------
 //  M2M prefix — turing-ui-service external task APIs
-//  Frontend uses /turing/api prefix, Vite proxy rewrites to /api and forwards
-//  to http://turing.ai.icsl.huawei.com/turing-app-security
+//  Frontend calls /turing-app-security/api/* directly; nginx proxies the path
+//  through unchanged to the turing-app-security backend (no rewrite).
 // ---------------------------------------------------------------------------
-const PREFIX =`${API_BASE}/turing/api/v1/tasks`;
-const UPLOAD_PREFIX =`${API_BASE}/turing/api/projects/upload`;
-const MONITOR_PREFIX =`${API_BASE}/turing/api`;
+const PREFIX =`${API_BASE}/turing-app-security/api/v1/tasks`;
+const UPLOAD_PREFIX =`${API_BASE}/turing-app-security/api/projects/upload`;
+const MONITOR_PREFIX =`${API_BASE}/turing-app-security/api`;
 
 // ---------------------------------------------------------------------------
 //  Types
