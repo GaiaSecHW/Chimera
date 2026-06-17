@@ -281,25 +281,21 @@ export const EntryAnalysisConfigPage: React.FC<{ projectId: string; embedded?: b
 
   useEffect(() => {
     // 合并两个数据源：配置中心 + entry-analyse providers
-    Promise.allSettled([
-      api.configCenter.listLlmProviders(),
-      entryAnalysis.getProviders() as Promise<any>,
-    ]).then(([r1, r2]) => {
+    const sources: Promise<any>[] = [api.configCenter.listLlmProviders()];
+    if (typeof entryAnalysis.getProviders === 'function') {
+      sources.push(entryAnalysis.getProviders());
+    }
+    Promise.allSettled(sources).then((results) => {
       const seen = new Set<string>();
-      const addProvider = (p: any) => {
-        if (p?.provider_key && p?.model && seen.size < 100) {
-          seen.add(`${p.provider_key}/${p.model}`);
+      for (const r of results) {
+        if (r.status === 'fulfilled') {
+          const items = Array.isArray(r.value?.items) ? r.value.items : [];
+          for (const p of items) {
+            if (p?.provider_key && p?.model && seen.size < 100) {
+              seen.add(`${p.provider_key}/${p.model}`);
+            }
+          }
         }
-      };
-      // 配置中心
-      if (r1.status === 'fulfilled') {
-        (Array.isArray(r1.value?.items) ? r1.value.items : [])
-          .filter((p: any) => p.enabled)
-          .forEach(addProvider);
-      }
-      // entry-analyse providers
-      if (r2.status === 'fulfilled') {
-        (Array.isArray(r2.value?.items) ? r2.value.items : []).forEach(addProvider);
       }
       setModelOptions([...seen]);
     });
