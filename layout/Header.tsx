@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { ChevronDown, Lock, LogOut, MoonStar, RotateCw, SunMedium } from 'lucide-react';
+import { ChevronDown, Lock, LogOut, RotateCw } from 'lucide-react';
 import {
   TopLevelNavKey,
   TopLevelNavItem,
@@ -68,7 +68,6 @@ export const Header: React.FC<HeaderProps> = ({
   handleLogout,
 }) => {
   const userAccess = getUserAccess(user);
-  const { theme, toggleTheme } = useTheme();
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const userMenuRef = useRef<HTMLDivElement>(null);
 
@@ -180,14 +179,6 @@ export const Header: React.FC<HeaderProps> = ({
         </div>
 
         <div className="flex items-center justify-end gap-3 min-w-0">
-          <button
-            onClick={toggleTheme}
-            className="p-2.5 rounded-xl text-theme-text-soft bg-theme-sidebar-muted/60 hover:bg-theme-sidebar-muted hover:text-theme-text-inverse transition-all shrink-0"
-            title={theme === 'chimera-classic' ? '切换到深色主题' : '切换到经典主题'}
-          >
-            {theme === 'chimera-classic' ? <MoonStar size={16} /> : <SunMedium size={16} />}
-          </button>
-
           <div className="relative min-w-0 max-w-[18rem]">
             <button
               onClick={() => setIsProjectDropdownOpen(!isProjectDropdownOpen)}

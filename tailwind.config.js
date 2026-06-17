@@ -30,10 +30,12 @@ export default {
             faint: 'var(--text-faint)',
             inverse: 'var(--text-inverse)',
             soft: 'var(--text-soft)',
+            mutedSoft: 'var(--text-muted-soft)',
           },
           border: {
             DEFAULT: 'var(--border-default)',
             strong: 'var(--border-strong)',
+            subtle: 'var(--border-subtle)',
           },
         },
         brand: {
@@ -57,10 +59,10 @@ export default {
           user: '#343541',
         },
         chart: {
-          logic: '#2563eb',
-          logic1: '#bfdbfe',
-          logic2: '#60a5fa',
-          logic3: '#2563eb',
+          logic: '#6366f1',
+          logic1: '#c7d2fe',
+          logic2: '#a5b4fc',
+          logic3: '#6366f1',
           structure: '#8b5cf6',
           structure1: '#ddd6fe',
           structure2: '#a78bfa',
