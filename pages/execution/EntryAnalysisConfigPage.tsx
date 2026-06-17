@@ -280,15 +280,29 @@ export const EntryAnalysisConfigPage: React.FC<{ projectId: string; embedded?: b
   const patch = (p: Partial<EntryAnalysisServiceConfig>) => setConfig((prev) => ({ ...prev, ...p }));
 
   useEffect(() => {
-    api.configCenter.listLlmProviders()
-      .then((res: { items?: LlmProviderSummary[] }) => {
-        const items = Array.isArray(res?.items) ? res.items : [];
-        const opts = items
-          .filter((p) => p.enabled && p.provider_key && p.model)
-          .map((p) => `${p.provider_key}/${p.model}`);
-        setModelOptions(opts);
-      })
-      .catch(() => { /* 静默忽略 */ });
+    // 合并两个数据源：配置中心 + entry-analyse providers
+    Promise.allSettled([
+      api.configCenter.listLlmProviders(),
+      entryAnalysis.getProviders() as Promise<any>,
+    ]).then(([r1, r2]) => {
+      const seen = new Set<string>();
+      const addProvider = (p: any) => {
+        if (p?.provider_key && p?.model && seen.size < 100) {
+          seen.add(`${p.provider_key}/${p.model}`);
+        }
+      };
+      // 配置中心
+      if (r1.status === 'fulfilled') {
+        (Array.isArray(r1.value?.items) ? r1.value.items : [])
+          .filter((p: any) => p.enabled)
+          .forEach(addProvider);
+      }
+      // entry-analyse providers
+      if (r2.status === 'fulfilled') {
+        (Array.isArray(r2.value?.items) ? r2.value.items : []).forEach(addProvider);
+      }
+      setModelOptions([...seen]);
+    });
   }, []);
 
   useEffect(() => {

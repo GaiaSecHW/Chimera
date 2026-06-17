@@ -244,6 +244,9 @@ export const appEntryAnalyseApi = {
       body: JSON.stringify({ config }),
     }, { retries: 2, retryDelayMs: 200, retryOnStatus: [500, 502, 503, 504] })),
 
+  getProviders: async (): Promise<{ items: { provider_key: string; model: string; enabled: boolean }[] }> =>
+    handleResponse(await fetch(`${BASE}/providers`, { headers: getHeaders() })),
+
   // ── Models config ─────────────────────────────────────────────────────────
   getModels: async (): Promise<EntryAnalysisModelsConfig> => {
     const response = await fetch(`${BASE}/models`, { headers: getHeaders() });
