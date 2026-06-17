@@ -4468,12 +4468,9 @@ export interface EntryAnalysisServiceConfig {
   output_dir: string;
   archive_dir: string;
   result_dir: string;
-  // 精简模式（与完整模式配置并列，互不影响）
-  lean_mode: boolean;
-  lean_file_max_rounds: number;
-  lean_module_max_rounds: number;
-  // API_Filter 入口判断开关：true = AF 主导入口判断 + R3 仅做污点分析
-  api_filter_entry_judge: boolean;
+  // 快速模式：R2 完成后批量 LLM 预筛入口（不保证全面性）
+  fast_mode: boolean;
+  fast_mode_batch_size: number;
   updated_at?: string | null;
 }
 
