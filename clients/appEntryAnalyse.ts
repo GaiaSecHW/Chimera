@@ -234,15 +234,13 @@ export const appEntryAnalyseApi = {
     })),
 
   // ── Config ────────────────────────────────────────────────────────────────
-  getConfig: async (projectId: string): Promise<EntryAnalysisServiceConfig> =>
-    handleResponse(await fetch(`${BASE}/config?project_id=${encodeURIComponent(projectId)}`, { headers: getHeaders() })),
+  getConfig: async (): Promise<EntryAnalysisServiceConfig> =>
+    handleResponse(await fetch(`${BASE}/config`, { headers: getHeaders() })),
 
-  saveConfig: async (config: EntryAnalysisServiceConfig): Promise<EntryAnalysisServiceConfig> =>
-    handleResponse(await fetchWithRetry(`${BASE}/config`, {
-      method: 'PUT',
-      headers: getHeaders(),
-      body: JSON.stringify({ project_id: config.project_id, config }),
-    }, { retries: 2, retryDelayMs: 200, retryOnStatus: [500, 502, 503, 504] })),
+  saveConfig: async (_config: EntryAnalysisServiceConfig): Promise<EntryAnalysisServiceConfig> => {
+    // 配置由配置中心统一管理，前端不再提供保存功能
+    throw new Error('配置已由配置中心统一管理，请在配置中心修改');
+  },
 
   // ── Models config ─────────────────────────────────────────────────────────
   getModels: async (): Promise<EntryAnalysisModelsConfig> => {
