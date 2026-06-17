@@ -234,14 +234,14 @@ export const appEntryAnalyseApi = {
     })),
 
   // ── Config ────────────────────────────────────────────────────────────────
-  getConfig: async (): Promise<EntryAnalysisServiceConfig> =>
-    handleResponse(await fetch(`${BASE}/config`, { headers: getHeaders() })),
+  getConfig: async (projectId: string): Promise<EntryAnalysisServiceConfig> =>
+    handleResponse(await fetch(`${BASE}/config?project_id=${encodeURIComponent(projectId)}`, { headers: getHeaders() })),
 
   saveConfig: async (config: EntryAnalysisServiceConfig): Promise<EntryAnalysisServiceConfig> =>
     handleResponse(await fetchWithRetry(`${BASE}/config`, {
       method: 'PUT',
       headers: getHeaders(),
-      body: JSON.stringify({ config }),
+      body: JSON.stringify({ project_id: config.project_id, config }),
     }, { retries: 2, retryDelayMs: 200, retryOnStatus: [500, 502, 503, 504] })),
 
   // ── Models config ─────────────────────────────────────────────────────────
