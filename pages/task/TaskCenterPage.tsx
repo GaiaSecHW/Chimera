@@ -5,6 +5,7 @@ import { getAuthHeaders, handleResponse } from '../../clients/base';
 import { agentManageApiPath } from '../../clients/agentManage';
 import { useUiFeedback } from '../../components/UiFeedback';
 import { saveTaskCenterReturnContext } from '../../utils/executionReturnContext';
+import { getPlatformRole } from '../../utils/rbac';
 import { CreateTaskDialog } from './CreateTaskDialog';
 import {
   AgentAppSummary,
@@ -106,6 +107,10 @@ const MONO = 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace';
 export const TaskCenterPage: React.FC<Props> = ({ projectId, projects }) => {
   const scheduleApi = api.domains.platform.scheduleCenter;
   const currentUser = useMemo(() => getLocalUserInfo(), []);
+  const isAdmin = useMemo(() => {
+    const role = getPlatformRole(currentUser);
+    return role === 'super_admin' || role === 'ordinary_admin';
+  }, [currentUser]);
   const [loading, setLoading] = useState(true);
   const [tasks, setTasks] = useState<ScheduleCenterUserTask[]>([]);
   const [stats, setStats] = useState<Record<string, number>>({});
@@ -589,7 +594,7 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects }) => {
                 </td>
                 <td className="px-4 py-3">
                   <div className="flex items-center gap-2">
-                    {task.task_type !== 'sechps_tool' ? (
+                    {task.task_type !== 'sechps_tool' && isAdmin ? (
                       <button
                         onClick={() => openTask(task)}
                         className="inline-flex items-center gap-1 rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors"
@@ -598,6 +603,21 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects }) => {
                         onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = LK.surfaceRaised; e.currentTarget.style.color = LK.body; e.currentTarget.style.borderColor = LK.border; }}
                       >
                         查看任务 <ArrowRight size={12} />
+                      </button>
+                    ) : null}
+                    {task.task_type !== 'sechps_tool' ? (
+                      <button
+                        onClick={() => {
+                          window.dispatchEvent(new CustomEvent('chimera-navigate-view', {
+                            detail: { view: 'task-vuln-list', taskVulnListTaskId: task.downstream_task_id || task.id },
+                          }));
+                        }}
+                        className="inline-flex items-center gap-1 rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors"
+                        style={{ backgroundColor: LK.surfaceRaised, color: LK.body, border: `1px solid ${LK.border}` }}
+                        onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = LK.primaryMuted; e.currentTarget.style.color = LK.primary; e.currentTarget.style.borderColor = LK.primary; }}
+                        onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = LK.surfaceRaised; e.currentTarget.style.color = LK.body; e.currentTarget.style.borderColor = LK.border; }}
+                      >
+                        查看漏洞 <ArrowRight size={12} />
                       </button>
                     ) : null}
                     {task.sync_required ? (

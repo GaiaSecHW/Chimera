@@ -229,6 +229,7 @@ export const PROJECT_REQUIRED_VIEWS = new Set<string>([
   'vuln-repro-config',
   'vuln-parameter-config',
   'task-list',
+  'task-vuln-list',
   'developer-atomic-capability',
   'developer-atomic-capability-overview',
   'developer-tools',
@@ -434,7 +435,7 @@ export const SIDEBAR_SECTIONS: Record<string, NavSection[]> = {
       title: '安全验证',
       items: [
         { id: 'project-mgmt', label: '项目', icon: Briefcase, aliases: ['project-detail'], healthKey: 'projectHealth' },
-        { id: 'test-input-root', label: '测试输入', icon: FileBox, requiresProject: true },
+        { id: 'test-input-root', label: '测试对象', icon: FileBox, requiresProject: true },
         { id: 'task-list', label: '任务', icon: ListTodo, requiresProject: true },
         { id: 'vuln-intake', label: '漏洞', icon: Shield, aliases: ['vuln-overview', 'vuln-engine'], requiresProject: true, healthKey: 'vulnHealth' },
       ],

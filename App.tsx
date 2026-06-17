@@ -95,10 +95,24 @@ const AppShell: React.FC = () => {
   const [activeAppScanTaskId, setActiveAppScanTaskId] = useState<string>('');
   const [activeRedlineTaskId, setActiveRedlineTaskId] = useState<string>('');
   const [activeTaskCenterTimelineTaskId, setActiveTaskCenterTimelineTaskId] = useState<string>('');
+  const [activeTaskVulnListTaskId, setActiveTaskVulnListTaskId] = useState<string>('');
   const [isLoading, setIsLoading] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(true);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState<boolean>(() => {
+    try {
+      return localStorage.getItem('chimera:sidebarCollapsed') !== 'false';
+    } catch {
+      return true;
+    }
+  });
+  useEffect(() => {
+    try {
+      localStorage.setItem('chimera:sidebarCollapsed', String(isSidebarCollapsed));
+    } catch {
+      /* ignore quota / privacy mode */
+    }
+  }, [isSidebarCollapsed]);
   const [isProjectDropdownOpen, setIsProjectDropdownOpen] = useState(false);
 
   // Data States
@@ -250,6 +264,7 @@ const AppShell: React.FC = () => {
         redlineTaskId?: string;
         appScanTaskId?: string;
         taskCenterTimelineTaskId?: string;
+        taskVulnListTaskId?: string;
         path?: string;
       }>).detail;
       const nextView = String(detail?.view || '').trim();
@@ -297,6 +312,10 @@ const AppShell: React.FC = () => {
       const taskCenterTimelineTaskId = String(detail?.taskCenterTimelineTaskId || '').trim();
       if (taskCenterTimelineTaskId) {
         setActiveTaskCenterTimelineTaskId(taskCenterTimelineTaskId);
+      }
+      const taskVulnListTaskId = String(detail?.taskVulnListTaskId || '').trim();
+      if (taskVulnListTaskId) {
+        setActiveTaskVulnListTaskId(taskVulnListTaskId);
       }
       const appScanTaskId = String(detail?.appScanTaskId || '').trim();
       if (appScanTaskId) {
@@ -695,6 +714,7 @@ const AppShell: React.FC = () => {
                     activeSourceSecurityTaskId,
                     activeBinaryModuleSecurityTaskId,
                     activeTaskCenterTimelineTaskId,
+                    activeTaskVulnListTaskId,
                     activeRedlineTaskId,
                     selectedStaticPkgIds,
                     setCurrentView: navigateToView,
@@ -719,6 +739,7 @@ const AppShell: React.FC = () => {
                     setActiveAppScanTaskId: (id) => setActiveAppScanTaskId(id),
                     setActiveRedlineTaskId: (id) => setActiveRedlineTaskId(id),
                     setActiveTaskCenterTimelineTaskId: (id) => setActiveTaskCenterTimelineTaskId(id),
+                    setActiveTaskVulnListTaskId: (id) => setActiveTaskVulnListTaskId(id),
                     setSelectedStaticPkgIds: (ids) => setSelectedStaticPkgIds(ids),
                     fetchProjects,
                     fetchAdminStats,
