@@ -13,10 +13,18 @@ const MONITOR_PREFIX =`${API_BASE}/turing-app-security/api`;
 //  Types
 // ---------------------------------------------------------------------------
 
-export type AppScanTaskType = 'APK' | 'HAP';
+// 内部文件类型，由后端按 platform + 文件内容推断，仅在响应中回显
+export type AppScanTaskType = 'APK' | 'HAP' | 'SOURCE' | 'WEB';
+
+// 扫描线别（请求入参）：APP 走反编译；WEB 走预处理 Agent
+export type AppScanPlatform = 'APP' | 'WEB';
+
+// 扫描模式（请求入参）：fast 只跑 sink(taint)；deep 跑 source(surface) 并启用深挖
+export type AppScanScanMode = 'fast' | 'deep';
 
 export type AppScanStatus =
   | 'pending'
+  | 'preprocessing'
   | 'decompiling'
   | 'running'
   | 'paused'
@@ -57,7 +65,8 @@ export interface AppScanCreateRequest {
   project_id: string;
   task_id: string;
   file_path: string;
-  task_type: AppScanTaskType;
+  platform: AppScanPlatform;
+  scan_mode: AppScanScanMode;
 }
 
 export interface AppScanCreateResponse {

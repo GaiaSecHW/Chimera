@@ -94,22 +94,27 @@ const fmtStringTimestamp = (value?: string | null) => {
   return Number.isNaN(d.getTime()) ? value : d.toLocaleString();
 };
 
+// 阶段规范顺序：仅渲染 phases 中实际存在的 key
+const PHASE_ORDER = ['preprocessing', 'detection', 'mining', 'deep_mining', 'validation'] as const;
+
 const phaseLabel = (phase: string) => {
   const map: Record<string, string> = {
+    preprocessing: '预处理',
     detection: '检测',
     mining: '挖掘',
+    deep_mining: '深度挖掘',
     validation: '验证',
   };
   return map[phase] || phase;
 };
 
 const phaseColor = (index: number) => {
-  const colors = ['text-violet-400', 'text-sky-400', 'text-emerald-400'];
+  const colors = ['text-amber-400', 'text-violet-400', 'text-sky-400', 'text-cyan-400', 'text-emerald-400'];
   return colors[index % colors.length];
 };
 
 const phaseBorderColor = (index: number) => {
-  const colors = ['border-violet-500/20', 'border-sky-500/20', 'border-emerald-500/20'];
+  const colors = ['border-amber-500/20', 'border-violet-500/20', 'border-sky-500/20', 'border-cyan-500/20', 'border-emerald-500/20'];
   return colors[index % colors.length];
 };
 
@@ -553,11 +558,14 @@ export const AppScanTaskDetailPage: React.FC<Props> = ({ projectId, toolTaskId, 
   const isTerminal = task ? !isActive && !isPaused : false;
 
   const phases = useMemo(() => {
-    if (!task?.progress?.phases) return [];
-    return Object.entries(task.progress.phases).map(([name, progress]) => ({
-      name,
-      progress,
-    }));
+    const raw = task?.progress?.phases;
+    if (!raw) return [];
+    const present = Object.keys(raw);
+    const ordered = [
+      ...PHASE_ORDER.filter((name) => name in raw),
+      ...present.filter((name) => !PHASE_ORDER.includes(name as (typeof PHASE_ORDER)[number])),
+    ];
+    return ordered.map((name) => ({ name, progress: raw[name] }));
   }, [task]);
 
   const filteredFindings = useMemo(() => {
@@ -703,10 +711,10 @@ export const AppScanTaskDetailPage: React.FC<Props> = ({ projectId, toolTaskId, 
             </div>
           </section>
 
-          {/* Three-phase progress */}
+          {/* Phase progress */}
  <section className="rounded-[2rem] border border-theme-border bg-theme-bg-app p-6">
             <div className="flex items-center gap-2">
-              <h2 className="text-lg font-black text-theme-text-primary">三阶段进度</h2>
+              <h2 className="text-lg font-black text-theme-text-primary">阶段进度</h2>
               {isActive && (
                 <span className="inline-flex items-center gap-1.5 rounded-full bg-sky-500/15 px-2.5 py-0.5 text-xs font-bold text-sky-400">
                   <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-sky-500" />
@@ -714,13 +722,17 @@ export const AppScanTaskDetailPage: React.FC<Props> = ({ projectId, toolTaskId, 
                 </span>
               )}
             </div>
-            <p className="mt-1 text-sm text-theme-text-muted">检测 → 挖掘 → 验证</p>
             {phases.length > 0 ? (
-              <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-3">
-                {phases.map((phase, idx) => (
-                  <PhaseCard key={phase.name} phase={phase.name} progress={phase.progress} index={idx} />
-                ))}
-              </div>
+              <>
+                <p className="mt-1 text-sm text-theme-text-muted">{phases.map((p) => phaseLabel(p.name)).join(' → ')}</p>
+                <div className="mt-4 flex flex-wrap gap-4">
+                  {phases.map((phase, idx) => (
+                    <div key={phase.name} className="min-w-[200px] flex-1">
+                      <PhaseCard phase={phase.name} progress={phase.progress} index={idx} />
+                    </div>
+                  ))}
+                </div>
+              </>
             ) : (
               <div className="mt-4 rounded-xl border border-dashed border-theme-border bg-theme-bg-app py-8 text-center text-sm text-theme-text-muted">
                 暂无阶段进度数据

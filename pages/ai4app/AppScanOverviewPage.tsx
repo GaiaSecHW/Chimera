@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ChevronRight, Loader2, Monitor, Pause, Play, Plus, RefreshCw, Search, Smartphone, Trash2, Upload } from 'lucide-react';
 
-import type { AppScanStatus, AppScanTaskSummary, AppScanTaskType } from './appScan';
+import type { AppScanPlatform, AppScanScanMode, AppScanStatus, AppScanTaskSummary } from './appScan';
 import { appScanApi } from './appScan';
 import { showConfirm } from '../../components/DialogService';
 
@@ -30,6 +30,8 @@ const statusTone = (status: string) => {
       return 'bg-sky-500/15 text-sky-400 border-sky-500/20';
     case 'decompiling':
       return 'bg-violet-500/15 text-violet-400 border-violet-500/20';
+    case 'preprocessing':
+      return 'bg-indigo-500/15 text-indigo-400 border-indigo-500/20';
     case 'paused':
       return 'bg-amber-500/15 text-amber-400 border-amber-500/20';
     case 'pending':
@@ -42,6 +44,7 @@ const statusTone = (status: string) => {
 const statusLabel = (status: string) => {
   const map: Record<string, string> = {
     pending: '等待中',
+    preprocessing: '预处理中',
     decompiling: '反编译中',
     running: '扫描中',
     paused: '已暂停',
@@ -55,13 +58,6 @@ const fmtTimestamp = (value?: string | number | null) => {
   if (!value) return '-';
   const date = typeof value === 'number' ? new Date(value * 1000) : new Date(value);
   return date.toLocaleString();
-};
-
-const guessTaskType = (filename: string): AppScanTaskType | '' => {
-  const lowered = filename.toLowerCase();
-  if (lowered.endsWith('.apk')) return 'APK';
-  if (lowered.endsWith('.hap')) return 'HAP';
-  return '';
 };
 
 // ---------------------------------------------------------------------------
@@ -79,7 +75,8 @@ export const AppScanOverviewPage: React.FC<Props> = ({ projectId, onOpenTask, on
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [uploadFile, setUploadFile] = useState<File | null>(null);
   const [taskName, setTaskName] = useState('');
-  const [taskType, setTaskType] = useState<AppScanTaskType | ''>('');
+  const [platform, setPlatform] = useState<AppScanPlatform>('APP');
+  const [scanMode, setScanMode] = useState<AppScanScanMode>('fast');
   const [submitting, setSubmitting] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
   const [uploadProgress, setUploadProgress] = useState<number | null>(null);
@@ -147,19 +144,15 @@ export const AppScanOverviewPage: React.FC<Props> = ({ projectId, onOpenTask, on
     const file = e.target.files?.[0] || null;
     setUploadFile(file);
     setCreateError(null);
-    if (file) {
-      const guessed = guessTaskType(file.name);
-      if (guessed) setTaskType(guessed);
-      if (!taskName) {
-        setTaskName(file.name.replace(/\.(apk|hap)$/i, ''));
-      }
+    if (file && !taskName) {
+      setTaskName(file.name.replace(/\.(apk|hap|zip|rar|gz|tar\.gz)$/i, ''));
     }
   };
 
   // ---- Create task ----
   const handleCreate = async () => {
-    if (!uploadFile || !taskType) {
-      setCreateError('请选择 APK/HAP 文件');
+    if (!uploadFile) {
+      setCreateError('请选择应用包或源码压缩包文件');
       return;
     }
     if (!taskName.trim()) {
@@ -193,7 +186,8 @@ export const AppScanOverviewPage: React.FC<Props> = ({ projectId, onOpenTask, on
         project_id: projectId,
         task_id:`${taskName.trim()}-${Date.now()}`,
         file_path: uploadResp.file_path,
-        task_type: taskType as AppScanTaskType,
+        platform,
+        scan_mode: scanMode,
       });
 
       setShowCreateDialog(false);
@@ -213,7 +207,8 @@ export const AppScanOverviewPage: React.FC<Props> = ({ projectId, onOpenTask, on
   const resetCreateForm = () => {
     setUploadFile(null);
     setTaskName('');
-    setTaskType('');
+    setPlatform('APP');
+    setScanMode('fast');
     setCreateError(null);
     setUploadProgress(null);
   };
@@ -273,9 +268,9 @@ export const AppScanOverviewPage: React.FC<Props> = ({ projectId, onOpenTask, on
  <section className="rounded-[2rem] border border-theme-border bg-theme-bg-app p-6">
         <div className="flex items-start justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-black text-theme-text-primary">应用端到端扫描</h1>
+            <h1 className="text-2xl font-black text-theme-text-primary">turing 扫描工具</h1>
             <p className="mt-2 max-w-3xl text-sm text-theme-text-muted">
-              上传 APK/HAP 应用包，系统自动完成反编译并启动检测→挖掘→验证三阶段扫描流水线，实现 AI 驱动的端到端安全审计。
+              上传 APK/HAP 应用包或源码压缩包，按平台线别（APP 直接反编译 / WEB 预处理拆分服务）启动检测→挖掘→验证三阶段扫描流水线，实现 AI 驱动的端到端安全审计。
             </p>
           </div>
           <div className="flex items-center gap-3">
@@ -460,22 +455,22 @@ export const AppScanOverviewPage: React.FC<Props> = ({ projectId, onOpenTask, on
       {showCreateDialog && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={() => !submitting && setShowCreateDialog(false)}>
  <div className="w-full max-w-lg rounded-2xl border border-theme-border bg-theme-bg-app p-6" onClick={(e) => e.stopPropagation()}>
-            <h3 className="text-lg font-black text-theme-text-primary">创建应用扫描任务</h3>
-            <p className="mt-1 text-sm text-theme-text-muted">上传 APK 或 HAP 文件，系统将自动完成反编译并启动三阶段扫描。</p>
+            <h3 className="text-lg font-black text-theme-text-primary">创建扫描任务</h3>
+            <p className="mt-1 text-sm text-theme-text-muted">上传应用包或源码压缩包，选择平台线别与扫描模式后启动三阶段扫描。</p>
 
             <div className="mt-5 space-y-4">
               {/* File upload */}
               <div>
-                <label className="mb-1.5 block text-sm font-bold text-theme-text-secondary">应用文件</label>
+                <label className="mb-1.5 block text-sm font-bold text-theme-text-secondary">扫描文件</label>
                 <label className="flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed border-theme-border bg-theme-bg-app px-4 py-6 transition hover:border-theme-border hover:bg-theme-elevated">
                   <Upload size={24} className="mb-2 text-theme-text-muted" />
                   <span className="text-sm font-semibold text-theme-text-secondary">
-                    {uploadFile ? uploadFile.name : '点击选择 APK / HAP 文件'}
+                    {uploadFile ? uploadFile.name : '点击选择应用包 / 源码压缩包'}
                   </span>
-                  <span className="mt-1 text-xs text-theme-text-muted">支持 .apk, .hap</span>
+                  <span className="mt-1 text-xs text-theme-text-muted">支持 .apk, .hap, .zip, .rar, .tar.gz, .gz</span>
                   <input
                     type="file"
-                    accept=".apk,.hap"
+                    accept=".apk,.hap,.zip,.rar,.tar.gz,.gz"
                     onChange={handleFileChange}
                     className="hidden"
                   />
@@ -494,17 +489,29 @@ export const AppScanOverviewPage: React.FC<Props> = ({ projectId, onOpenTask, on
                 />
               </div>
 
-              {/* Task type */}
+              {/* Platform */}
               <div>
-                <label className="mb-1.5 block text-sm font-bold text-theme-text-secondary">文件类型</label>
+                <label className="mb-1.5 block text-sm font-bold text-theme-text-secondary">平台线别</label>
                 <select
-                  value={taskType}
-                  onChange={(e) => setTaskType(e.target.value as AppScanTaskType)}
+                  value={platform}
+                  onChange={(e) => setPlatform(e.target.value as AppScanPlatform)}
                   className="w-full rounded-xl border border-theme-border bg-theme-bg-app px-3 py-2.5 text-sm text-theme-text-secondary"
                 >
-                  <option value="">自动识别</option>
-                  <option value="APK">APK (Android)</option>
-                  <option value="HAP">HAP (HarmonyOS)</option>
+                  <option value="APP">APP（APK/HAP/源码包，直接反编译）</option>
+                  <option value="WEB">WEB（源码包，预处理 Agent 拆分服务）</option>
+                </select>
+              </div>
+
+              {/* Scan mode */}
+              <div>
+                <label className="mb-1.5 block text-sm font-bold text-theme-text-secondary">扫描模式</label>
+                <select
+                  value={scanMode}
+                  onChange={(e) => setScanMode(e.target.value as AppScanScanMode)}
+                  className="w-full rounded-xl border border-theme-border bg-theme-bg-app px-3 py-2.5 text-sm text-theme-text-secondary"
+                >
+                  <option value="fast">fast（仅 sink/taint，速度优先）</option>
+                  <option value="deep">deep（source/surface + 深度挖掘）</option>
                 </select>
               </div>
 

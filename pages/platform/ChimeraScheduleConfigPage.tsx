@@ -17,7 +17,10 @@ const TASK_TYPE_ORDER: ScheduleRuntimeTaskType[] = [
   'source_scan_e2e',
   'binary_module_e2e',
   'ai4red',
-  'ai4apk',
+  'ai4app_fast',
+  'ai4app_deep',
+  'ai4web_fast',
+  'ai4web_deep',
   'sechps_tool',
 ];
 
@@ -26,7 +29,10 @@ const DEFAULT_CAPACITY_POOL_IDS: Record<ScheduleRuntimeTaskType, number[]> = {
   source_scan_e2e: [1],
   binary_module_e2e: [1],
   ai4red: [],
-  ai4apk: [1],
+  ai4app_fast: [1],
+  ai4app_deep: [1],
+  ai4web_fast: [1],
+  ai4web_deep: [1],
   sechps_tool: [1],
 };
 

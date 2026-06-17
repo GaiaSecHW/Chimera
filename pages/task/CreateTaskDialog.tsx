@@ -32,19 +32,25 @@ export interface CreateTaskDialogProps {
 /*  Constants                                                          */
 /* ------------------------------------------------------------------ */
 
+type TaskMode = 'dragon-tail' | 'ram-horn';
+
 type TaskTypeOption = {
   value: ScheduleCenterUserTaskType;
   label: string;
   downstreamView?: string;
+  modes: readonly TaskMode[];
 };
 
 const TASK_TYPES: readonly TaskTypeOption[] = [
-  { value: 'binary_firmware_e2e', label: '盖亚-二进制固件', downstreamView: 'binary-security-detail' },
-  { value: 'source_scan_e2e', label: '盖亚-源码', downstreamView: 'source-security-detail' },
-  { value: 'binary_module_e2e', label: '盖亚-二进制模块', downstreamView: 'binary-module-security-detail' },
-  { value: 'ai4apk', label: 'AI4APP 应用安全扫描', downstreamView: 'app-security-scan-detail' },
-  { value: 'ai4red', label: 'AI4RED 红线验证', downstreamView: 'task-redline-detail' },
-  { value: 'sechps_tool', label: 'Agent Harness 任务' },
+  { value: 'binary_firmware_e2e', label: '盖亚-二进制固件', downstreamView: 'binary-security-detail', modes: ['dragon-tail', 'ram-horn'] },
+  { value: 'source_scan_e2e', label: '盖亚-源码', downstreamView: 'source-security-detail', modes: ['dragon-tail', 'ram-horn'] },
+  { value: 'binary_module_e2e', label: '盖亚-二进制模块', downstreamView: 'binary-module-security-detail', modes: ['dragon-tail', 'ram-horn'] },
+  { value: 'ai4app_fast', label: 'AI4APP 扫描（快速）', downstreamView: 'app-security-scan-detail', modes: ['dragon-tail'] },
+  { value: 'ai4web_fast', label: 'AI4WEB 扫描（快速）', downstreamView: 'app-security-scan-detail', modes: ['dragon-tail'] },
+  { value: 'ai4app_deep', label: 'AI4APP 扫描（深度）', downstreamView: 'app-security-scan-detail', modes: ['ram-horn'] },
+  { value: 'ai4web_deep', label: 'AI4WEB 扫描（深度）', downstreamView: 'app-security-scan-detail', modes: ['ram-horn'] },
+  { value: 'ai4red', label: 'AI4RED 红线验证', downstreamView: 'task-redline-detail', modes: ['dragon-tail', 'ram-horn'] },
+  { value: 'sechps_tool', label: 'Agent Harness 任务', modes: ['dragon-tail', 'ram-horn'] },
 ];
 
 const CREATE_TABS = [
@@ -57,7 +63,10 @@ const INPUT_MODES: Record<string, 'file' | 'file_list' | 'directory'> = {
   binary_module_e2e: 'file_list',
   source_scan_e2e: 'directory',
   ai4red: 'directory',
-  ai4apk: 'file',
+  ai4app_fast: 'file',
+  ai4app_deep: 'file',
+  ai4web_fast: 'file',
+  ai4web_deep: 'file',
   sechps_tool: 'directory',
 };
 
@@ -173,6 +182,10 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
   const rootBrowse = browseCache[''] || null;
   const isDirectorySelectionValid = directorySelectionTouched && selectedRelativePath !== null;
   const taskTypeMeta = useMemo(() => TASK_TYPES.find((item) => item.value === taskType) || TASK_TYPES[0], [taskType]);
+  const availableTaskTypes = useMemo(
+    () => TASK_TYPES.filter((item) => item.modes.includes(mode as TaskMode)),
+    [mode],
+  );
 
   const inputSummary = useMemo(() => {
     if (!selectedInput) return '未选择上传记录';
@@ -184,7 +197,8 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
 
   const inputSelectionHint = useMemo(() => {
     if (taskType === 'sechps_tool') return '请选择一个已注册的 Agent Harness，并选择一个目录。调度中心会在分发时自动申请 Task Key，并把所选目录直接传给下游。';
-    if (taskType === 'ai4apk') return '请选择一个 APK/HAP 安装包，或 zip/rar/tar.gz/gz 等常见压缩包作为测试对象；压缩包将作为 APK/HAP 的源码包处理。';
+    if (taskType === 'ai4app_fast' || taskType === 'ai4app_deep') return '请选择一个 APK/HAP 安装包，或 zip/rar/tar.gz/gz 等常见压缩包作为测试对象；压缩包将作为 APK/HAP 的源码包处理。';
+    if (taskType === 'ai4web_fast' || taskType === 'ai4web_deep') return '请选择一个 Web 源码包（zip/rar/tar.gz/gz 等压缩包）作为测试对象。';
     if (selectionMode === 'directory') return '请选择一个目录作为测试对象。';
     if (selectionMode === 'file_list') return '请选择一个或多个文件作为测试对象。';
     return '请选择一个文件作为测试对象。';
@@ -247,6 +261,14 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
     if (!open || !selectedInputId || !projectId) return;
     void loadBrowsePath('');
   }, [open, projectId, selectedInputId, taskType]);
+
+  /* --- keep taskType valid for the selected mode --- */
+  useEffect(() => {
+    if (mode === 'lion-head') return;
+    if (!availableTaskTypes.some((item) => item.value === taskType)) {
+      setTaskType(availableTaskTypes[0]?.value || 'binary_firmware_e2e');
+    }
+  }, [mode, availableTaskTypes, taskType]);
 
   /* --- reset on task-type change --- */
   useEffect(() => {
@@ -327,7 +349,7 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
   const toggleFileSelection = (entry: ProjectInputUploadBrowseEntry) => {
     if (entry.node_type !== 'file') return;
     if (selectionMode === 'file') {
-      setSelectedRelativePath(entry.relative_path);
+      setSelectedRelativePath((current) => (current === entry.relative_path ? null : entry.relative_path));
       return;
     }
     if (selectionMode === 'file_list') {
@@ -371,7 +393,7 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
       /* reset form state */
       setName('');
       setDescription('');
-      setMode('');
+      setMode('dragon-tail');
       setModuleName('');
       setSelectedAgentAppId('');
       setInstruction('');
@@ -502,7 +524,7 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
       style={{ backgroundColor: 'rgba(5, 10, 20, 0.72)', backdropFilter: 'blur(6px)' }}
     >
       <div
-        className="flex max-h-[calc(100vh-2rem)] w-full max-w-4xl flex-col overflow-hidden rounded-2xl animate-in"
+        className="flex h-[min(1160px,calc(100vh-2rem))] w-full max-w-4xl flex-col overflow-hidden rounded-2xl animate-in"
         style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}` }}
       >
         {/* header */}
@@ -564,7 +586,7 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
         >
           {/* =============== TAB: basic =============== */}
           {activeCreateTab === 'basic' ? (
-            <div className="space-y-3">
+            <div className="flex h-full flex-col space-y-3">
               {/* 任务名称 */}
               <label className="block text-sm font-semibold" style={{ color: LK.inkSoft }}>
                 任务名称
@@ -600,7 +622,7 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
 
               {mode === 'lion-head' ? (
                 <div
-                  className="rounded-lg px-4 py-12 text-center text-sm font-semibold"
+                  className="flex flex-1 flex-col items-center justify-center rounded-lg px-4 py-12 text-center text-sm font-semibold"
                   style={{ backgroundColor: `${LK.warning}14`, border: `1px solid ${LK.warning}40`, color: LK.warning }}
                 >
                   「狮首」模式正在开发中，敬请期待
@@ -618,7 +640,7 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
                   onFocus={(e) => (e.currentTarget.style.borderColor = LK.primary)}
                   onBlur={(e) => (e.currentTarget.style.borderColor = LK.border)}
                 >
-                  {TASK_TYPES.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}
+                  {availableTaskTypes.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}
                 </select>
               </label>
 
