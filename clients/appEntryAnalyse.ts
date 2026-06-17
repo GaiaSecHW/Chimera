@@ -237,10 +237,12 @@ export const appEntryAnalyseApi = {
   getConfig: async (): Promise<EntryAnalysisServiceConfig> =>
     handleResponse(await fetch(`${BASE}/config`, { headers: getHeaders() })),
 
-  saveConfig: async (_config: EntryAnalysisServiceConfig): Promise<EntryAnalysisServiceConfig> => {
-    // 配置由配置中心统一管理，前端不再提供保存功能
-    throw new Error('配置已由配置中心统一管理，请在配置中心修改');
-  },
+  saveConfig: async (config: EntryAnalysisServiceConfig): Promise<EntryAnalysisServiceConfig> =>
+    handleResponse(await fetchWithRetry(`${BASE}/config`, {
+      method: 'PUT',
+      headers: getHeaders(),
+      body: JSON.stringify({ config }),
+    }, { retries: 2, retryDelayMs: 200, retryOnStatus: [500, 502, 503, 504] })),
 
   // ── Models config ─────────────────────────────────────────────────────────
   getModels: async (): Promise<EntryAnalysisModelsConfig> => {
