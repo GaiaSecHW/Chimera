@@ -170,16 +170,19 @@ export const ProjectPage: React.FC = () => {
 
   const filteredProjects = useMemo(() => {
     const keyword = searchTerm.trim().toLowerCase();
-    if (!keyword) return projects;
-    return projects.filter((project) => {
-      const haystacks = [
-        project.name,
-        project.description || '',
-        project.department_name || '',
-        project.owner_department_name || '',
-      ];
-      return haystacks.some((value) => value.toLowerCase().includes(keyword));
-    });
+    const list = keyword
+      ? projects.filter((project) => {
+          const haystacks = [
+            project.name,
+            project.description || '',
+            project.department_name || '',
+            project.owner_department_name || '',
+          ];
+          return haystacks.some((value) => value.toLowerCase().includes(keyword));
+        })
+      : [...projects];
+    list.sort((a, b) => (b.updated_at || b.created_at || '').localeCompare(a.updated_at || a.created_at || ''));
+    return list;
   }, [projects, searchTerm]);
 
   const projectStats = useMemo(() => {

@@ -534,19 +534,18 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects }) => {
                   {allVisibleSelected ? <SquareCheck size={16} /> : <Square size={16} />}
                 </button>
               </th>
-              <th className="px-4 py-2.5 font-medium" style={{ borderBottom:`1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>任务名</th>
-              <th className="px-4 py-2.5 font-medium" style={{ borderBottom:`1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>类型</th>
-              <th className="px-4 py-2.5 font-medium" style={{ borderBottom:`1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>任务状态</th>
-              <th className="px-4 py-2.5 font-medium" style={{ borderBottom:`1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>同步状态</th>
-              <th className="px-4 py-2.5 font-medium" style={{ borderBottom:`1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>运行父凭证</th>
-              <th className="px-4 py-2.5 font-medium" style={{ borderBottom:`1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>下游任务 ID</th>
-              <th className="px-4 py-2.5 font-medium" style={{ borderBottom:`1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>更新时间</th>
-              <th className="px-4 py-2.5 font-medium" style={{ borderBottom:`1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>操作</th>
+              <th className="px-4 py-2.5 font-medium whitespace-nowrap" style={{ borderBottom:`1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>任务名</th>
+              <th className="px-4 py-2.5 font-medium whitespace-nowrap" style={{ borderBottom:`1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>类型</th>
+              <th className="px-4 py-2.5 font-medium whitespace-nowrap" style={{ borderBottom:`1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>任务状态</th>
+              <th className="px-4 py-2.5 font-medium whitespace-nowrap" style={{ borderBottom:`1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>同步状态</th>
+              <th className="px-4 py-2.5 font-medium whitespace-nowrap" style={{ borderBottom:`1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>下游任务 ID</th>
+              <th className="px-4 py-2.5 font-medium whitespace-nowrap" style={{ borderBottom:`1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>更新时间</th>
+              <th className="px-4 py-2.5 font-medium whitespace-nowrap" style={{ borderBottom:`1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>操作</th>
             </tr>
           </thead>
           <tbody>
-            {loading ? <tr><td className="px-4 py-10 text-center" colSpan={10} style={{ color: LK.muted }}><span className="inline-flex items-center gap-2"><Loader2 size={16} className="animate-spin" />加载中...</span></td></tr> : null}
-            {!loading && filteredTasks.length === 0 ? <tr><td className="px-4 py-10 text-center" colSpan={10} style={{ color: LK.muted }}>暂无任务</td></tr> : null}
+            {loading ? <tr><td className="px-4 py-10 text-center" colSpan={9} style={{ color: LK.muted }}><span className="inline-flex items-center gap-2"><Loader2 size={16} className="animate-spin" />加载中...</span></td></tr> : null}
+            {!loading && filteredTasks.length === 0 ? <tr><td className="px-4 py-10 text-center" colSpan={9} style={{ color: LK.muted }}>暂无任务</td></tr> : null}
             {filteredTasks.map((task) => (
               <tr
                 key={task.id}
@@ -568,28 +567,24 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects }) => {
                     {selectedTaskIds.includes(task.id) ? <SquareCheck size={16} /> : <Square size={16} />}
                   </button>
                 </td>
-                <td className="px-4 py-3" style={{ color: LK.inkSoft }}>
+                <td className="px-4 py-3 whitespace-nowrap" style={{ color: LK.inkSoft }}>
                   <div className="font-semibold">{task.name}</div>
-                  <div className="text-[11px]" style={{ color: LK.muted, fontFamily: MONO }}>{task.id}</div>
                 </td>
-                <td className="px-4 py-3">
+                <td className="px-4 py-3 whitespace-nowrap">
                   <div className="font-semibold" style={{ color: LK.inkSoft }}>{getTaskHarnessLabel(task)}</div>
                   {task.task_type === 'sechps_tool' ? <div className="text-xs" style={{ color: LK.muted }}>Agent Harness / {task.agent_app_engine || 'unknown'}</div> : null}
                 </td>
-                <td className="px-4 py-3">
+                <td className="px-4 py-3 whitespace-nowrap">
                   <div className="font-semibold" style={{ color: LK.inkSoft }}>{getDisplayStatus(task)}</div>
                   <div className="text-xs" style={{ color: LK.muted }}>{task.dispatch_status} / {task.business_status}</div>
                 </td>
-                <td className="px-4 py-3 text-xs" style={{ color: LK.body }} title={getSyncSummary(task)}>
+                <td className="px-4 py-3 text-xs whitespace-nowrap" style={{ color: LK.body }} title={getSyncSummary(task)}>
                   {task.sync_status || 'none'}
                 </td>
-                <td className="px-4 py-3" style={{ fontFamily: MONO, fontSize: '12px', color: LK.body }}>
-                  {[task.parent_task_key_name, task.parent_task_key_prefix].filter(Boolean).join(' / ') || getRootTaskKeyDisplay(task)}
-                </td>
-                <td className="px-4 py-3" style={{ fontFamily: MONO, fontSize: '12px', color: LK.body }}>
+                <td className="px-4 py-3 whitespace-nowrap" style={{ fontFamily: MONO, fontSize: '12px', color: LK.body }}>
                   {task.downstream_task_id || '—'}
                 </td>
-                <td className="px-4 py-3 text-xs" style={{ color: LK.muted }}>
+                <td className="px-4 py-3 text-xs whitespace-nowrap" style={{ color: LK.muted }}>
                   {formatDateTime(task.updated_at)}
                 </td>
                 <td className="px-4 py-3">

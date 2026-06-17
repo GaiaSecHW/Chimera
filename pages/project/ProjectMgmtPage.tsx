@@ -465,12 +465,6 @@ export const ProjectMgmtPage: React.FC<ProjectMgmtPageProps> = ({
       {/* Page header */}
       <div className="flex flex-col items-end justify-between gap-3 pb-4 md:flex-row" style={{ borderBottom: `1px solid ${LK.borderSoft}` }}>
         <div>
-          <span
-            className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium"
-            style={{ backgroundColor: LK.primaryMuted, color: LK.primary }}
-          >
-            <Layers size={13} /> 项目概览
-          </span>
           <h1 className="mt-3 text-2xl font-semibold leading-8 tracking-tight" style={{ color: LK.ink }}>
             项目概览
           </h1>

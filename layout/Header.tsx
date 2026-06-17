@@ -104,8 +104,8 @@ export const Header: React.FC<HeaderProps> = ({
           <ThemeLogo size="small" buildVersion={FRONTEND_BUILD_VERSION} showBadge={false} />
         </div>
 
-        <div className="flex justify-center min-w-0">
-          <nav className="flex items-center gap-1 overflow-x-auto no-scrollbar max-w-full">
+        <div className="flex justify-center min-w-0 overflow-visible">
+          <nav className="flex items-center gap-1 flex-wrap max-w-full">
             {visibleNavItems.map((item) => {
               const isActive = currentTopLevelNav === item.id;
 
@@ -122,7 +122,7 @@ export const Header: React.FC<HeaderProps> = ({
                       onMouseLeave={handleSystemAdminLeave}
                     >
                       <button
-                        onClick={() => onSelectTopLevelNav(item.id)}
+                        onClick={() => setIsSystemAdminOpen((v) => !v)}
                         style={getTabStyle(item, isActive)}
                         className={`flex items-center gap-1 px-3 py-1.5 rounded-xl text-sm font-bold whitespace-nowrap transition-all ${
                           isActive ? '' : 'hover:bg-theme-sidebar-muted hover:text-theme-text-inverse'

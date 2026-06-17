@@ -287,6 +287,12 @@ await projectsApi.create({ name, description, is_public: false, department_id, p
 
 ### 2.4 任务创建弹框重构
 
+**任务列表（TaskCenterPage）表格改动：**
+- 去掉"运行父凭证"列（`parent_task_key_name` / `parent_task_key_prefix`）
+- "任务名"列只显示 `task.name`，不再显示 `task.id`
+- 所有列添加 `whitespace-nowrap`，确保单行展示
+- 表头列数从 10 调整为 9（含 checkbox 列）
+
 **提取为独立组件：** `pages/task/CreateTaskDialog.tsx`
 
 原来内联在 `TaskCenterPage.tsx` 中（约 380 行 modal 代码），提取为独立组件以支持复用（测试输入页面也需要调用）。
@@ -451,7 +457,7 @@ const PLATFORM_ACCOUNT_ORG_SECTIONS: NavSection[] = [
 | `types/types.ts` | 第一层 | ViewType 联合类型新增 'home', 'security-verify' |
 | `pages/project/ProjectMgmtPage.tsx` | 第二层 | 概览方块改4个、列表列调整、创建弹框改造（ComboBox产品/版本）、移除分区 |
 | `pages/project/ProjectDetailPage.tsx` | 第二层 | 方块改任务/环境/漏洞、成员管理 Modal、移除K8s标签页 |
-| `pages/task/TaskCenterPage.tsx` | 第二层 | 任务创建逻辑提取到 CreateTaskDialog、调用新组件 |
+| `pages/task/TaskCenterPage.tsx` | 第二层 | 任务创建逻辑提取到 CreateTaskDialog、调用新组件；任务列表去掉"运行父凭证"列，"任务名"列不再显示 ID，所有列单行展示（whitespace-nowrap） |
 | `pages/TestInputPage.tsx` | 第二层 | 增加"创建任务"按钮、集成 CreateTaskDialog |
 
 ### 不变的文件

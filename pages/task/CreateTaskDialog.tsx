@@ -142,7 +142,7 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
   const [taskType, setTaskType] = useState<(typeof TASK_TYPES)[number]['value']>('binary_firmware_e2e');
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
-  const [mode, setMode] = useState('');
+  const [mode, setMode] = useState('dragon-tail');
   const [selectedInputId, setSelectedInputId] = useState('');
   const [inputs, setInputs] = useState<ProjectInputUploadRecord[]>([]);
   const [agentApps, setAgentApps] = useState<AgentAppSummary[]>([]);
@@ -184,10 +184,10 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
 
   const inputSelectionHint = useMemo(() => {
     if (taskType === 'sechps_tool') return '请选择一个已注册的 Agent Harness，并选择一个目录。调度中心会在分发时自动申请 Task Key，并把所选目录直接传给下游。';
-    if (taskType === 'ai4apk') return '请选择一个 APK/HAP 安装包，或 zip/rar/tar.gz/gz 等常见压缩包作为任务输入；压缩包将作为 APK/HAP 的源码包处理。';
-    if (selectionMode === 'directory') return '请选择一个目录作为任务输入。';
-    if (selectionMode === 'file_list') return '请选择一个或多个文件作为任务输入。';
-    return '请选择一个文件作为任务输入。';
+    if (taskType === 'ai4apk') return '请选择一个 APK/HAP 安装包，或 zip/rar/tar.gz/gz 等常见压缩包作为测试对象；压缩包将作为 APK/HAP 的源码包处理。';
+    if (selectionMode === 'directory') return '请选择一个目录作为测试对象。';
+    if (selectionMode === 'file_list') return '请选择一个或多个文件作为测试对象。';
+    return '请选择一个文件作为测试对象。';
   }, [selectionMode, taskType]);
 
   const canCreateTask = taskType === 'sechps_tool'
@@ -577,24 +577,28 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
               </label>
 
               {/* 模式 */}
-              <label className="block text-sm font-semibold" style={{ color: LK.inkSoft }}>
-                模式
-                <select
-                  value={mode}
-                  onChange={(e) => setMode(e.target.value)}
-                  className="mt-1 w-full rounded-lg px-3 py-2.5 text-sm outline-none transition-colors"
-                  style={{ backgroundColor: LK.surfaceRaised, color: LK.inkSoft, border: `1px solid ${LK.border}` }}
-                  onFocus={(e) => (e.currentTarget.style.borderColor = LK.primary)}
-                  onBlur={(e) => (e.currentTarget.style.borderColor = LK.border)}
-                >
-                  <option value="">请选择模式</option>
-                  {MODE_OPTIONS.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}
-                </select>
-              </label>
+              <div>
+                <div className="mb-1.5 text-sm font-semibold" style={{ color: LK.inkSoft }}>模式</div>
+                <div className="flex gap-1 rounded-lg p-1" style={{ backgroundColor: LK.surfaceRaised, border: `1px solid ${LK.border}` }}>
+                  {MODE_OPTIONS.map((item) => (
+                    <button
+                      key={item.value}
+                      type="button"
+                      onClick={() => setMode(item.value)}
+                      className="flex-1 rounded-md px-3 py-2 text-sm font-bold transition-all"
+                      style={mode === item.value
+                        ? { backgroundColor: LK.primary, color: '#fff' }
+                        : { color: LK.body }}
+                    >
+                      {item.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
 
-              {/* 任务类型 */}
+              {/* 工具 */}
               <label className="block text-sm font-semibold" style={{ color: LK.inkSoft }}>
-                任务类型
+                工具
                 <select
                   value={taskType}
                   onChange={(e) => setTaskType(e.target.value as any)}
@@ -662,9 +666,9 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
                 </label>
               ) : null}
 
-              {/* -------- 测试输入 section -------- */}
+              {/* -------- 测试对象 section -------- */}
               <div>
-                <div className="mb-2 text-sm font-semibold" style={{ color: LK.inkSoft }}>测试输入</div>
+                <div className="mb-2 text-sm font-semibold" style={{ color: LK.inkSoft }}>测试对象</div>
                 {/* sub-mode toggle */}
                 <div className="mb-3 flex gap-2">
                   {(['existing', 'upload'] as const).map((src) => {
@@ -708,7 +712,7 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
 
                     {/* input record selector */}
                     <label className="block text-sm font-semibold" style={{ color: LK.inkSoft }}>
-                      任务输入记录
+                      测试对象记录
                       <select
                         value={selectedInputId}
                         onChange={(e) => setSelectedInputId(e.target.value)}
@@ -726,7 +730,7 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
                         className="rounded-lg px-4 py-3 text-sm"
                         style={{ backgroundColor: `${LK.warning}14`, border: `1px solid ${LK.warning}40`, color: LK.warning }}
                       >
-                        没有可用输入，请先到"任务输入"上传记录。
+                        没有可用输入，请先到"测试对象"上传记录。
                       </div>
                     ) : (
                       <div className="space-y-4">

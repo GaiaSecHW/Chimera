@@ -404,8 +404,8 @@ export const TestInputPage: React.FC<TestInputPageProps> = ({ selectedProjectId,
           <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-theme-elevated text-theme-text-primary">
             <FileBox size={28} />
           </div>
-          <h1 className="mt-6 text-3xl font-black tracking-tight text-theme-text-primary">任务输入</h1>
-          <p className="mt-3 text-base font-medium text-theme-text-faint">请先选择项目，再查看任务输入统计和上传记录。</p>
+          <h1 className="mt-6 text-3xl font-black tracking-tight text-theme-text-primary">测试对象</h1>
+          <p className="mt-3 text-base font-medium text-theme-text-faint">请先选择项目，再查看测试对象统计和上传记录。</p>
         </section>
       </div>
     );
@@ -449,7 +449,7 @@ export const TestInputPage: React.FC<TestInputPageProps> = ({ selectedProjectId,
             <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
               <div>
                 <h2 className="text-2xl font-black text-slate-900">上传记录</h2>
-                <p className="mt-1 text-sm font-medium text-slate-500">查看各类任务输入上传批次、容量、状态和落盘路径。</p>
+                <p className="mt-1 text-sm font-medium text-slate-500">查看各类测试对象上传批次、容量、状态和落盘路径。</p>
               </div>
               <div className="flex flex-wrap gap-3">
                 <button
@@ -863,7 +863,7 @@ export const TestInputPage: React.FC<TestInputPageProps> = ({ selectedProjectId,
  }} className="w-full max-w-2xl overflow-hidden rounded-[2rem] bg-slate-50">
             <div className="border-b border-slate-100 px-6 py-5">
               <div className="text-sm font-black uppercase tracking-[0.2em] text-slate-500">{isAppendMode ? '追加上传' : '新建上传'}</div>
-              <div className="mt-2 text-2xl font-black text-slate-900">{INPUT_TYPE_META[activeInputType].label}任务输入</div>
+              <div className="mt-2 text-2xl font-black text-slate-900">{INPUT_TYPE_META[activeInputType].label}测试对象</div>
             </div>
             <div className="space-y-5 px-6 py-6">
               {uploadDialogError ? (
