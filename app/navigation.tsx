@@ -48,7 +48,11 @@ export type NavRole = 'user' | 'developer' | 'admin' | null;
 
 export type TopLevelNavKey =
   | 'home'
-  | 'security-verify'
+  | 'project-mgmt-nav'
+  | 'test-object'
+  | 'test-env'
+  | 'test-task'
+  | 'vuln-center'
   | 'assets'
   | 'assessment'
   | 'observe'
@@ -107,7 +111,11 @@ export const NAV_ROLE_CONFIG: Record<string, { label: string; color: string; act
 
 export const TOP_LEVEL_NAV_ITEMS: TopLevelNavItem[] = [
   { id: 'home', label: '首页', role: null },
-  { id: 'security-verify', label: '安全验证', role: 'user' },
+  { id: 'project-mgmt-nav', label: '项目管理', role: null },
+  { id: 'test-object', label: '测试对象', role: null },
+  { id: 'test-env', label: '测试环境', role: null },
+  { id: 'test-task', label: '测试任务', role: null },
+  { id: 'vuln-center', label: '漏洞中心', role: null },
   { id: 'assets', label: '资产', role: 'developer', showDividerBefore: true },
   { id: 'assessment', label: '评测', role: 'developer' },
   { id: 'observe', label: '观测', role: 'developer' },
@@ -278,7 +286,6 @@ const DEVELOPER_TOOL_VIEWS = new Set<string>([
   'app-security-scan-monitor',
   'redline-verification',
   'redline-verification-detail',
-  'task-redline-detail',
 ]);
 const ASSESSMENT_VIEWS = new Set([
   'pentest-exec-code',
@@ -361,10 +368,11 @@ const SYSTEM_ADMIN_ENVIRONMENT_VIEWS = new Set([
 
 export const getTopLevelNavForView = (view: string): TopLevelNavKey => {
   if (view === 'home') return 'home';
-  if (view === 'project-mgmt' || view === 'project-detail' || view === 'product-mgmt') return 'security-verify';
-  if (view.startsWith('test-input-')) return 'security-verify';
-  if (view.startsWith('task-') || view === 'task-list' || view === 'task-center-timeline') return 'security-verify';
-  if (view === 'vuln-engine' || view.startsWith('vuln-')) return 'security-verify';
+  if (view === 'project-mgmt' || view === 'project-detail' || view === 'product-mgmt') return 'project-mgmt-nav';
+  if (view.startsWith('test-input-')) return 'test-object';
+  if (view === 'env-access' || view === 'env-management') return 'test-env';
+  if (view.startsWith('task-') || view === 'task-list' || view === 'task-center-timeline') return 'test-task';
+  if (view === 'vuln-engine' || view.startsWith('vuln-')) return 'vuln-center';
   if (
     view === 'project-file-explorer' ||
     view === 'fileserver-archive-tasks' ||
@@ -394,7 +402,11 @@ export const getTopLevelNavForView = (view: string): TopLevelNavKey => {
 export const getTopLevelDefaultView = (nav: TopLevelNavKey, user: UserInfo | null): string => {
   switch (nav) {
     case 'home': return 'home';
-    case 'security-verify': return 'project-mgmt';
+    case 'project-mgmt-nav': return 'project-mgmt';
+    case 'test-object': return 'test-input-root';
+    case 'test-env': return 'env-access';
+    case 'test-task': return 'task-list';
+    case 'vuln-center': return 'vuln-intake';
     case 'assets': return 'public-resource-pvc-management';
     case 'assessment': return 'assessment-coming-soon';
     case 'observe': return 'observe-coming-soon';
@@ -430,14 +442,44 @@ const PLATFORM_ACCOUNT_ORG_SECTIONS: NavSection[] = [
 
 export const SIDEBAR_SECTIONS: Record<string, NavSection[]> = {
   home: [],
-  'security-verify': [
+  'project-mgmt-nav': [
     {
-      title: '安全验证',
+      title: '项目管理',
       items: [
-        { id: 'project-mgmt', label: '项目', icon: Briefcase, aliases: ['project-detail'], healthKey: 'projectHealth' },
+        { id: 'project-mgmt', label: '项目管理', icon: Briefcase, aliases: ['project-detail'], healthKey: 'projectHealth' },
+      ],
+    },
+  ],
+  'test-object': [
+    {
+      title: '测试对象',
+      items: [
         { id: 'test-input-root', label: '测试对象', icon: FileBox, requiresProject: true },
-        { id: 'task-list', label: '任务', icon: ListTodo, requiresProject: true },
-        { id: 'vuln-intake', label: '漏洞', icon: Shield, aliases: ['vuln-overview', 'vuln-engine'], requiresProject: true, healthKey: 'vulnHealth' },
+      ],
+    },
+  ],
+  'test-env': [
+    {
+      title: '测试环境',
+      items: [
+        { id: 'env-access', label: '环境接入', icon: Terminal, requiresProject: true, healthKey: 'envHealth' },
+        { id: 'env-management', label: '环境管理', icon: ServerCog, requiresProject: true, healthKey: 'envHealth' },
+      ],
+    },
+  ],
+  'test-task': [
+    {
+      title: '测试任务',
+      items: [
+        { id: 'task-list', label: '测试任务', icon: ListTodo, requiresProject: true },
+      ],
+    },
+  ],
+  'vuln-center': [
+    {
+      title: '漏洞中心',
+      items: [
+        { id: 'vuln-intake', label: '漏洞中心', icon: Shield, aliases: ['vuln-overview', 'vuln-engine'], requiresProject: true, healthKey: 'vulnHealth' },
       ],
     },
   ],

@@ -21,7 +21,7 @@ export default defineConfig(({ mode }) => {
     const keepAliveHttpAgent = new http.Agent({ keepAlive: true, maxSockets: 50, keepAliveMsecs: 3000 });
     const keepAliveHttpsAgent = new https.Agent({ keepAlive: true, maxSockets: 50, keepAliveMsecs: 3000 });
     const buildVersion = String(env.SECFLOW_BUILD_VERSION || '').trim() || 'dev';
-    const aigwProxyTarget = String(env.VITE_AIGW_PROXY_TARGET || 'https://secflow.ai.icsl.huawei.com').trim();
+    const aigwProxyTarget = String(env.VITE_AIGW_PROXY_TARGET || 'http://secflow.ai.icsl.huawei.com').trim();
     const aigwProxyIsHttps = aigwProxyTarget.startsWith('https://');
     const aigwProxyAgent = aigwProxyIsHttps ? keepAliveHttpsAgent : keepAliveHttpAgent;
     // codemap manager(知识图谱):本地 dev 经 ingress 域名访问 k8s 里的 manager,
@@ -68,7 +68,7 @@ export default defineConfig(({ mode }) => {
             secure: false,
           },
           '/api/app/ai4red': {
-            target: 'http://ai4red.secflow.ai.icsl.huawei.com/',
+            target: 'http://ai4red.secflow.ai.icsl.huawei.com:12345',
             changeOrigin: true,
             secure: false,
             ws: true,
@@ -85,11 +85,11 @@ export default defineConfig(({ mode }) => {
             rewrite: (path) => path.replace(/^\/api\/codemap-manager/, ''),
           },
           '/api/agentmanage': {
-            target: 'https://secflow.ai.icsl.huawei.com',
+            target: 'http://secflow.ai.icsl.huawei.com',
             changeOrigin: true,
             secure: false,
             ws: true,
-            agent: keepAliveHttpsAgent,
+            agent: keepAliveHttpAgent,
             configure: (proxy) => {
               proxy.on('error', (err: Error & { code?: string }, _req, res) => {
                 if (err.code === 'ECONNRESET' && res && !('headersSent' in res && (res as any).headersSent)) {
@@ -103,7 +103,7 @@ export default defineConfig(({ mode }) => {
             },
           },
           '/api': {
-            target: 'https://secflow.ai.icsl.huawei.com',
+            target: 'http://secflow.ai.icsl.huawei.com',
             changeOrigin: true,
             secure: false,
             ws: true,
@@ -112,7 +112,7 @@ export default defineConfig(({ mode }) => {
             // the socket immediately after each response; on Windows the OS
             // then sends TCP RST to Nginx, Nginx echoes RST back, and
             // Node fires ECONNRESET -> Vite returns empty 500 -> ERR_ABORTED.
-            agent: keepAliveHttpsAgent,
+            agent: keepAliveHttpAgent,
             configure: (proxy) => {
               // If a stale pooled socket is reused and gets ECONNRESET,
               // send 503 JSON so fetchWithRetry can retry on a fresh socket.
@@ -128,11 +128,11 @@ export default defineConfig(({ mode }) => {
             },
           },
           '/ws': {
-            target: 'wss://secflow.ai.icsl.huawei.com',
+            target: 'ws://secflow.ai.icsl.huawei.com',
             changeOrigin: true,
             secure: false,
             ws: true,
-            agent: keepAliveHttpsAgent,
+            agent: keepAliveHttpAgent,
           },
         },
       },
