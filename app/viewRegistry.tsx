@@ -38,6 +38,9 @@ import { SystemAnalysisConfigPage } from '../pages/execution/SystemAnalysisConfi
 import { DataflowVulnScanTaskPage } from '../pages/execution/DataflowVulnScanTaskPage';
 import { DataflowVulnScanTaskDetailPage } from '../pages/execution/DataflowVulnScanTaskDetailPage';
 import { DataflowVulnScanConfigPage } from '../pages/execution/DataflowVulnScanConfigPage';
+import { CfgGuidedExploreTaskPage } from '../pages/execution/CfgGuidedExploreTaskPage';
+import { CfgGuidedExploreTaskDetailPage } from '../pages/execution/CfgGuidedExploreTaskDetailPage';
+import { CfgGuidedExploreConfigPage } from '../pages/execution/CfgGuidedExploreConfigPage';
 import { VulnVerifyTaskPage } from '../pages/execution/VulnVerifyTaskPage';
 import { EntryAnalysisTaskPage } from '../pages/execution/EntryAnalysisTaskPage';
 import { EntryAnalysisTaskDetailPage } from '../pages/execution/EntryAnalysisTaskDetailPage';
@@ -138,6 +141,7 @@ export interface ViewRegistryContext {
   activeEntryAnalysisTaskId: string;
   activeDataflowAnalysisTaskId: string;
   activeDataflowVulnScanTaskId: string;
+  activeCfgGuidedExploreTaskId: string;
   activeFirmwareUnpackerTaskId: string;
   activeBinarySecurityTaskId: string;
   activeSourceSecurityTaskId: string;
@@ -160,6 +164,7 @@ export interface ViewRegistryContext {
   setActiveEntryAnalysisTaskId: (id: string) => void;
   setActiveDataflowAnalysisTaskId: (id: string) => void;
   setActiveDataflowVulnScanTaskId: (id: string) => void;
+  setActiveCfgGuidedExploreTaskId: (id: string) => void;
   setActiveFirmwareUnpackerTaskId: (id: string) => void;
   setActiveBinarySecurityTaskId: (id: string) => void;
   setActiveSourceSecurityTaskId: (id: string) => void;
@@ -380,6 +385,28 @@ export const renderCurrentView = (ctx: ViewRegistryContext): React.ReactNode => 
       );
     case 'dataflow-vuln-scan-config':
       return <DataflowVulnScanConfigPage projectId={ctx.selectedProjectId} />;
+    case 'pentest-cfg-guided-explore':
+    case 'cfg-guided-explore-task':
+      return (
+        <CfgGuidedExploreTaskPage
+          projectId={ctx.selectedProjectId}
+          onOpenTask={(taskId) => {
+            saveExecutionReturnContext({ view: 'cfg-guided-explore-task' });
+            ctx.setActiveCfgGuidedExploreTaskId(taskId);
+            ctx.setCurrentView('cfg-guided-explore-detail');
+          }}
+        />
+      );
+    case 'cfg-guided-explore-detail':
+      return (
+        <CfgGuidedExploreTaskDetailPage
+          projectId={ctx.selectedProjectId}
+          taskId={ctx.activeCfgGuidedExploreTaskId}
+          onBack={() => ctx.setCurrentView('cfg-guided-explore-task')}
+        />
+      );
+    case 'cfg-guided-explore-config':
+      return <CfgGuidedExploreConfigPage projectId={ctx.selectedProjectId} />;
     case 'pentest-vuln-verify':
     case 'vuln-verify-task':
       return <VulnVerifyTaskPage projectId={ctx.selectedProjectId} />;

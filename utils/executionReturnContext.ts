@@ -9,6 +9,7 @@ export type ExecutionReturnContext =
   | { view: 'system-analysis-task' }
   | { view: 'dataflow-analysis-task' }
   | { view: 'dataflow-vuln-scan-task' }
+  | { view: 'cfg-guided-explore-task' }
   | { view: 'pentest-exec-b2s' }
   | { view: 'pentest-exec-b2s-detail'; b2sTaskId: string };
 
@@ -19,6 +20,8 @@ type NavigateDetail = {
   binarySecurityTaskId?: string;
   sourceSecurityTaskId?: string;
   b2sTaskId?: string;
+  dataflowVulnScanTaskId?: string;
+  cfgGuidedExploreTaskId?: string;
 };
 
 export type BinarySecurityTaskOrigin = {
@@ -76,6 +79,7 @@ export const getExecutionReturnContext = (): ExecutionReturnContext | null => {
         || parsed.view === 'system-analysis-task'
         || parsed.view === 'dataflow-analysis-task'
         || parsed.view === 'dataflow-vuln-scan-task'
+        || parsed.view === 'cfg-guided-explore-task'
         || parsed.view === 'pentest-exec-b2s')
     ) {
       return { view: parsed.view };
