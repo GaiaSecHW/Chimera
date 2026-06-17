@@ -9,10 +9,10 @@ export const StatusBadge: React.FC<{ status: string }> = ({ status }) => {
   const isUnready = ['unready', 'not_ready'].includes(s);
 
   let colorClass = 'bg-theme-elevated text-theme-text-muted border-theme-border';
-  if (isActive) colorClass = 'bg-green-100/10 text-green-700 border-green-200';
-  if (isInvalid) colorClass = 'bg-red-100/10 text-red-700 border-red-200';
-  if (isPending) colorClass = 'bg-amber-100/10 text-amber-700 border-amber-200';
-  if (isUnready) colorClass = 'bg-orange-100/10 text-orange-700 border-orange-200';
+  if (isActive) colorClass = 'bg-emerald-500/15 text-emerald-400 border-emerald-500/20';
+  if (isInvalid) colorClass = 'bg-rose-500/15 text-rose-400 border-rose-500/20';
+  if (isPending) colorClass = 'bg-amber-500/15 text-amber-400 border-amber-500/20';
+  if (isUnready) colorClass = 'bg-orange-500/15 text-orange-400 border-orange-500/20';
 
   return (
     <span className={`text-[10px] px-2 py-0.5 rounded-full border font-bold uppercase tracking-wider shrink-0 ${colorClass}`}>

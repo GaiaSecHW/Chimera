@@ -510,10 +510,10 @@ export const AppInstancePage: React.FC<{
   };
 
   const getStatusColor = (status: AppWorkflowStatus) => ({
-    pending: 'bg-gray-100 text-gray-700',
-    unready: 'bg-orange-100 text-orange-700',
-    ready: 'bg-green-100 text-green-700'
-  }[status] || 'bg-gray-100 text-gray-700');
+    pending: 'bg-theme-elevated text-theme-text-secondary',
+    unready: 'bg-orange-500/15 text-orange-400',
+    ready: 'bg-green-500/15 text-green-400'
+  }[status] || 'bg-theme-elevated text-theme-text-secondary');
 
   const getStatusText = (status: AppWorkflowStatus) => ({
     pending: '待初始化',
@@ -531,14 +531,14 @@ export const AppInstancePage: React.FC<{
     <div className="p-8">
       <div className="mb-8 flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-black text-slate-900 tracking-tight">应用实例</h1>
-          <p className="mt-1 text-sm text-slate-500">管理单应用工作流实例</p>
+          <h1 className="text-3xl font-black text-theme-text-primary tracking-tight">应用实例</h1>
+          <p className="mt-1 text-sm text-theme-text-muted">管理单应用工作流实例</p>
         </div>
         <div className="flex items-center gap-3">
           <button
             onClick={handleRefreshInstances}
             disabled={loading || isRefreshingList}
- className="flex items-center gap-2 rounded-2xl border border-slate-200 bg-slate-50 px-5 py-3 font-bold text-slate-700 hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
+ className="flex items-center gap-2 rounded-2xl border border-theme-border bg-theme-bg-app px-5 py-3 font-bold text-theme-text-secondary hover:border-blue-500/20 hover:bg-blue-500/15 hover:text-blue-400 disabled:cursor-not-allowed disabled:opacity-60"
             title="刷新"
             aria-label="刷新"
           >
@@ -552,10 +552,10 @@ export const AppInstancePage: React.FC<{
       </div>
       <div className="mb-6 flex items-center gap-4">
         <div className="relative flex-1">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-          <input type="text" value={searchTerm} onChange={(event) => setSearchTerm(event.target.value)} placeholder="搜索实例名称、ID 或模板名称" className="w-full rounded-2xl border border-slate-200 bg-slate-50 py-3 pl-12 pr-4 text-sm outline-none focus:border-blue-500" />
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-theme-text-muted" size={18} />
+          <input type="text" value={searchTerm} onChange={(event) => setSearchTerm(event.target.value)} placeholder="搜索实例名称、ID 或模板名称" className="w-full rounded-2xl border border-theme-border bg-theme-bg-app py-3 pl-12 pr-4 text-sm outline-none focus:border-blue-500" />
         </div>
-        <select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)} className="rounded-2xl border border-slate-200 bg-slate-50 px-5 py-3 text-sm outline-none focus:border-blue-500">
+        <select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)} className="rounded-2xl border border-theme-border bg-theme-bg-app px-5 py-3 text-sm outline-none focus:border-blue-500">
           <option value="">全部状态</option>
           <option value="pending">待初始化</option>
           <option value="unready">未就绪</option>
@@ -563,47 +563,47 @@ export const AppInstancePage: React.FC<{
         </select>
       </div>
       {loading ? (
-        <div className="flex items-center justify-center py-20"><Loader2 className="animate-spin text-blue-600" size={32} /></div>
+        <div className="flex items-center justify-center py-20"><Loader2 className="animate-spin text-blue-400" size={32} /></div>
       ) : filteredInstances.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-20">
-          <Box className="mb-4 text-slate-300" size={64} />
-          <p className="font-medium text-slate-400">暂无应用实例</p>
+          <Box className="mb-4 text-theme-text-faint" size={64} />
+          <p className="font-medium text-theme-text-muted">暂无应用实例</p>
         </div>
       ) : (
- <div className="overflow-hidden rounded-3xl border border-slate-100 bg-slate-50">
+ <div className="overflow-hidden rounded-3xl border border-theme-border bg-theme-bg-app">
           <table className="w-full">
-            <thead className="border-b border-slate-100 bg-slate-50">
+            <thead className="border-b border-theme-border bg-theme-bg-app">
               <tr>
-                <th className="px-6 py-4 text-left text-xs font-black uppercase tracking-wider text-slate-500">实例名称</th>
-                <th className="px-6 py-4 text-left text-xs font-black uppercase tracking-wider text-slate-500">模板</th>
-                <th className="px-6 py-4 text-left text-xs font-black uppercase tracking-wider text-slate-500">状态</th>
-                <th className="px-6 py-4 text-left text-xs font-black uppercase tracking-wider text-slate-500">Service</th>
-                <th className="px-6 py-4 text-left text-xs font-black uppercase tracking-wider text-slate-500">创建时间</th>
-                <th className="px-6 py-4 text-right text-xs font-black uppercase tracking-wider text-slate-500">操作</th>
+                <th className="px-6 py-4 text-left text-xs font-black uppercase tracking-wider text-theme-text-muted">实例名称</th>
+                <th className="px-6 py-4 text-left text-xs font-black uppercase tracking-wider text-theme-text-muted">模板</th>
+                <th className="px-6 py-4 text-left text-xs font-black uppercase tracking-wider text-theme-text-muted">状态</th>
+                <th className="px-6 py-4 text-left text-xs font-black uppercase tracking-wider text-theme-text-muted">Service</th>
+                <th className="px-6 py-4 text-left text-xs font-black uppercase tracking-wider text-theme-text-muted">创建时间</th>
+                <th className="px-6 py-4 text-right text-xs font-black uppercase tracking-wider text-theme-text-muted">操作</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100">
+            <tbody className="divide-y divide-theme-border">
               {paginatedInstances.map((instance) => {
                 const actions = getAvailableActions(instance.status);
                 return (
-                  <tr key={instance.id} className="group hover:bg-slate-100">
+                  <tr key={instance.id} className="group hover:bg-theme-elevated">
                     <td className="px-6 py-4">
-                      <button onClick={() => onNavigateToDetail(instance.id)} className="text-left text-sm font-bold text-blue-600 hover:text-blue-700">{instance.name}</button>
-                      <p className="mt-1 text-xs text-slate-400">{instance.id}</p>
+                      <button onClick={() => onNavigateToDetail(instance.id)} className="text-left text-sm font-bold text-blue-400 hover:text-blue-400">{instance.name}</button>
+                      <p className="mt-1 text-xs text-theme-text-muted">{instance.id}</p>
                     </td>
-                    <td className="px-6 py-4 text-sm text-slate-600">{instance.template_name || '-'}</td>
+                    <td className="px-6 py-4 text-sm text-theme-text-secondary">{instance.template_name || '-'}</td>
                     <td className="px-6 py-4"><span className={`rounded-full px-3 py-1 text-xs font-bold ${getStatusColor(instance.status)}`}>{getStatusText(instance.status)}</span></td>
-                    <td className="px-6 py-4 text-sm text-slate-600">{instance.service_name || '-'}</td>
-                    <td className="px-6 py-4 text-sm text-slate-500">{new Date(instance.created_at).toLocaleString('zh-CN')}</td>
+                    <td className="px-6 py-4 text-sm text-theme-text-secondary">{instance.service_name || '-'}</td>
+                    <td className="px-6 py-4 text-sm text-theme-text-muted">{new Date(instance.created_at).toLocaleString('zh-CN')}</td>
                     <td className="px-6 py-4">
                       <div className="flex items-center justify-end gap-2 opacity-0 transition-all group-hover:opacity-100">
-                        <button onClick={() => onNavigateToDetail(instance.id)} className="rounded-xl bg-indigo-50 p-3 text-indigo-600 transition-all hover:bg-indigo-600 hover:text-white" title="查看详情"><Search size={16} /></button>
-                        {actions.includes('sync') && <button onClick={() => handleSyncStatus(instance.id)} className="rounded-xl bg-blue-50 p-3 text-blue-600 transition-all hover:bg-blue-600 hover:text-white" title="同步状态"><RefreshCw size={16} /></button>}
-                        {actions.includes('initialize') && <button onClick={() => handleInitialize(instance.id)} className="rounded-xl bg-purple-50 p-3 text-purple-600 transition-all hover:bg-purple-600 hover:text-white" title="初始化"><Activity size={16} /></button>}
-                        {actions.includes('uninitialize') && <button onClick={() => { setUninitializingId(instance.id); setIsUninitModalOpen(true); }} className="rounded-xl bg-orange-50 p-3 text-orange-600 transition-all hover:bg-orange-600 hover:text-white" title="反初始化"><RotateCcw size={16} /></button>}
-                        {actions.includes('start') && <button onClick={() => handleStart(instance.id)} className="rounded-xl bg-green-50 p-3 text-green-600 transition-all hover:bg-green-600 hover:text-white" title="启动"><Play size={16} /></button>}
-                        {actions.includes('stop') && <button onClick={() => handleStop(instance.id)} className="rounded-xl bg-amber-50 p-3 text-amber-600 transition-all hover:bg-amber-600 hover:text-white" title="停止"><StopCircle size={16} /></button>}
-                        <button onClick={() => { setDeletingId(instance.id); setIsDeleteModalOpen(true); }} className="rounded-xl bg-red-50 p-3 text-red-600 transition-all hover:bg-red-600 hover:text-white" title="删除"><Trash2 size={16} /></button>
+                        <button onClick={() => onNavigateToDetail(instance.id)} className="rounded-xl bg-indigo-500/15 p-3 text-indigo-400 transition-all hover:bg-indigo-600 hover:text-white" title="查看详情"><Search size={16} /></button>
+                        {actions.includes('sync') && <button onClick={() => handleSyncStatus(instance.id)} className="rounded-xl bg-blue-500/15 p-3 text-blue-400 transition-all hover:bg-blue-600 hover:text-white" title="同步状态"><RefreshCw size={16} /></button>}
+                        {actions.includes('initialize') && <button onClick={() => handleInitialize(instance.id)} className="rounded-xl bg-purple-500/15 p-3 text-purple-400 transition-all hover:bg-purple-600 hover:text-white" title="初始化"><Activity size={16} /></button>}
+                        {actions.includes('uninitialize') && <button onClick={() => { setUninitializingId(instance.id); setIsUninitModalOpen(true); }} className="rounded-xl bg-orange-500/15 p-3 text-orange-400 transition-all hover:bg-orange-600 hover:text-white" title="反初始化"><RotateCcw size={16} /></button>}
+                        {actions.includes('start') && <button onClick={() => handleStart(instance.id)} className="rounded-xl bg-green-500/15 p-3 text-green-400 transition-all hover:bg-green-600 hover:text-white" title="启动"><Play size={16} /></button>}
+                        {actions.includes('stop') && <button onClick={() => handleStop(instance.id)} className="rounded-xl bg-amber-500/15 p-3 text-amber-400 transition-all hover:bg-amber-600 hover:text-white" title="停止"><StopCircle size={16} /></button>}
+                        <button onClick={() => { setDeletingId(instance.id); setIsDeleteModalOpen(true); }} className="rounded-xl bg-red-500/15 p-3 text-red-400 transition-all hover:bg-red-600 hover:text-white" title="删除"><Trash2 size={16} /></button>
                       </div>
                     </td>
                   </tr>
@@ -611,44 +611,44 @@ export const AppInstancePage: React.FC<{
               })}
             </tbody>
           </table>
-          <div className="flex items-center justify-between border-t border-slate-100 bg-slate-100/50 px-8 py-4">
+          <div className="flex items-center justify-between border-t border-theme-border bg-slate-100/50 px-8 py-4">
             <div className="flex items-center gap-4">
-              <span className="text-xs font-bold uppercase tracking-widest text-slate-400">每页</span>
-              <select value={pageSize} onChange={(event) => { setPageSize(Number(event.target.value)); setCurrentPage(1); }} className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-bold text-slate-700 outline-none focus:border-blue-500">
+              <span className="text-xs font-bold uppercase tracking-widest text-theme-text-muted">每页</span>
+              <select value={pageSize} onChange={(event) => { setPageSize(Number(event.target.value)); setCurrentPage(1); }} className="rounded-xl border border-theme-border bg-theme-bg-app px-3 py-2 text-sm font-bold text-theme-text-secondary outline-none focus:border-blue-500">
                 <option value={10}>10</option>
                 <option value={20}>20</option>
                 <option value={50}>50</option>
                 <option value={100}>100</option>
               </select>
-              <span className="text-xs font-bold uppercase tracking-widest text-slate-400">共 {filteredInstances.length} 条</span>
+              <span className="text-xs font-bold uppercase tracking-widest text-theme-text-muted">共 {filteredInstances.length} 条</span>
             </div>
             <div className="flex items-center gap-2">
-              <button disabled={currentPage === 1} onClick={() => setCurrentPage((page) => page - 1)} className="p-2 text-slate-400 hover:text-slate-800 disabled:opacity-30"><ChevronLeft size={20} /></button>
-              <span className="rounded-xl bg-slate-100 px-4 py-2 text-sm font-black text-slate-800">{currentPage} / {totalPages}</span>
-              <button disabled={currentPage >= totalPages} onClick={() => setCurrentPage((page) => page + 1)} className="p-2 text-slate-400 hover:text-slate-800 disabled:opacity-30"><ChevronRight size={20} /></button>
+              <button disabled={currentPage === 1} onClick={() => setCurrentPage((page) => page - 1)} className="p-2 text-theme-text-muted hover:text-theme-text-primary disabled:opacity-30"><ChevronLeft size={20} /></button>
+              <span className="rounded-xl bg-theme-elevated px-4 py-2 text-sm font-black text-theme-text-primary">{currentPage} / {totalPages}</span>
+              <button disabled={currentPage >= totalPages} onClick={() => setCurrentPage((page) => page + 1)} className="p-2 text-theme-text-muted hover:text-theme-text-primary disabled:opacity-30"><ChevronRight size={20} /></button>
             </div>
           </div>
         </div>
       )}
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-8">
- <div className="max-h-[94vh] w-full max-w-5xl overflow-auto rounded-3xl bg-slate-50">
+ <div className="max-h-[94vh] w-full max-w-5xl overflow-auto rounded-3xl bg-theme-bg-app">
             {createStep === 'select-template' ? (
               <>
-                <div className="border-b border-slate-100 p-6">
+                <div className="border-b border-theme-border p-6">
                   <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
                     <div>
-                      <h2 className="text-2xl font-black text-slate-900">选择应用模板</h2>
+                      <h2 className="text-2xl font-black text-theme-text-primary">选择应用模板</h2>
                     </div>
                     <div className="w-full max-w-xs">
                       <div className="relative">
-                        <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+                        <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-theme-text-muted" size={16} />
                         <input
                           type="text"
                           value={templateSearchTerm}
                           onChange={(event) => setTemplateSearchTerm(event.target.value)}
                           placeholder="搜索模板名称、描述、标签或创建人"
-                          className="w-full rounded-2xl border border-slate-200 bg-slate-50 py-2.5 pl-10 pr-3.5 text-[13px] text-slate-700 outline-none transition-all focus:border-blue-500 focus:bg-slate-50"
+                          className="w-full rounded-2xl border border-theme-border bg-theme-bg-app py-2.5 pl-10 pr-3.5 text-[13px] text-theme-text-secondary outline-none transition-all focus:border-blue-500 focus:bg-theme-bg-app"
                         />
                       </div>
                     </div>
@@ -667,7 +667,7 @@ export const AppInstancePage: React.FC<{
                           className={`rounded-2xl px-4 py-2 text-sm font-bold transition-all ${
                             isActive
  ? 'bg-blue-600 text-white '
-                              : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                              : 'bg-theme-elevated text-theme-text-secondary hover:bg-theme-elevated'
                           }`}
                         >
                           {option.label}
@@ -678,36 +678,36 @@ export const AppInstancePage: React.FC<{
                 </div>
                 <div className="p-6">
                   {loadingTemplates ? (
-                    <div className="flex items-center justify-center py-16"><Loader2 className="animate-spin text-blue-600" size={32} /></div>
+                    <div className="flex items-center justify-center py-16"><Loader2 className="animate-spin text-blue-400" size={32} /></div>
                   ) : templates.length === 0 ? (
-                    <div className="py-12 text-center text-slate-400">暂无可用模板</div>
+                    <div className="py-12 text-center text-theme-text-muted">暂无可用模板</div>
                   ) : filteredTemplates.length === 0 ? (
-                    <div className="rounded-3xl border border-dashed border-slate-200 bg-slate-50/80 px-6 py-14 text-center">
- <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-slate-50 text-slate-300">
+                    <div className="rounded-3xl border border-dashed border-theme-border bg-slate-50/80 px-6 py-14 text-center">
+ <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-theme-bg-app text-theme-text-faint">
                         <Search size={22} />
                       </div>
-                      <div className="text-base font-bold text-slate-700">没有找到匹配的模板</div>
-                      <p className="mt-2 text-sm text-slate-500">可以尝试更短的关键词，或按模板名称、标签重新检索。</p>
+                      <div className="text-base font-bold text-theme-text-secondary">没有找到匹配的模板</div>
+                      <p className="mt-2 text-sm text-theme-text-muted">可以尝试更短的关键词，或按模板名称、标签重新检索。</p>
                     </div>
                   ) : (
                     <div className="space-y-5">
-                      <div className="max-h-[68vh] overflow-y-auto rounded-[1.75rem] border border-slate-200 bg-slate-50 shadow-inner shadow-slate-100/70">
-                        <div className="divide-y divide-slate-100">
+                      <div className="max-h-[68vh] overflow-y-auto rounded-[1.75rem] border border-theme-border bg-theme-bg-app shadow-inner shadow-slate-100/70">
+                        <div className="divide-y divide-theme-border">
                           {paginatedTemplates.map((template) => (
                             <button
                               key={template.id}
                               onClick={() => handleTemplateSelect(template.id)}
-                              className="group flex w-full flex-col gap-2.5 px-4 py-3 text-left transition-all hover:bg-slate-100 md:px-5"
+                              className="group flex w-full flex-col gap-2.5 px-4 py-3 text-left transition-all hover:bg-theme-elevated md:px-5"
                             >
                               <div className="flex flex-col gap-2.5 xl:flex-row xl:items-start xl:justify-between">
                                 <div className="min-w-0 flex-1">
                                   <div className="flex flex-wrap items-center gap-2.5">
-                                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-blue-600 transition-all group-hover:bg-blue-600 group-hover:text-white">
+                                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-blue-500/15 text-blue-400 transition-all group-hover:bg-blue-600 group-hover:text-white">
                                       <Box size={16} />
                                     </div>
                                     <div className="min-w-0">
-                                      <div className="truncate text-[15px] font-black text-slate-900 md:text-base">{template.name}</div>
-                                      <div className="mt-0.5 flex flex-wrap items-center gap-2 text-[10px] font-bold uppercase tracking-[0.12em] text-slate-400">
+                                      <div className="truncate text-[15px] font-black text-theme-text-primary md:text-base">{template.name}</div>
+                                      <div className="mt-0.5 flex flex-wrap items-center gap-2 text-[10px] font-bold uppercase tracking-[0.12em] text-theme-text-muted">
                                         <span>{template.scope === 'global' ? '全局模板' : '项目模板'}</span>
                                         {template.created_by && (
                                           <>
@@ -719,7 +719,7 @@ export const AppInstancePage: React.FC<{
                                     </div>
                                   </div>
 
-                                  <p className="mt-1.5 line-clamp-2 text-[13px] leading-5 text-slate-600">
+                                  <p className="mt-1.5 line-clamp-2 text-[13px] leading-5 text-theme-text-secondary">
                                     {template.description || '暂无描述，点击后可继续补充实例配置。'}
                                   </p>
 
@@ -728,13 +728,13 @@ export const AppInstancePage: React.FC<{
                                       {template.tags.slice(0, 4).map((tag) => (
                                         <span
                                           key={`${template.id}-${tag.tag_key}`}
-                                          className="rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-[11px] font-bold text-slate-600"
+                                          className="rounded-full border border-theme-border bg-theme-bg-app px-2.5 py-1 text-[11px] font-bold text-theme-text-secondary"
                                         >
                                           {tag.tag_label}
                                         </span>
                                       ))}
                                       {template.tags.length > 4 && (
-                                        <span className="rounded-full border border-dashed border-slate-300 px-2.5 py-1 text-[11px] font-bold text-slate-400">
+                                        <span className="rounded-full border border-dashed border-theme-border px-2.5 py-1 text-[11px] font-bold text-theme-text-muted">
                                           +{template.tags.length - 4}
                                         </span>
                                       )}
@@ -743,14 +743,14 @@ export const AppInstancePage: React.FC<{
                                 </div>
 
                                 <div className="flex shrink-0 flex-wrap gap-1.5 xl:max-w-[15rem] xl:justify-end">
-                                  <span className="rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-bold text-slate-600">
+                                  <span className="rounded-full bg-theme-elevated px-2.5 py-1 text-[11px] font-bold text-theme-text-secondary">
                                     容器 {template.containers.length}
                                   </span>
-                                  <span className="rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-bold text-slate-600">
+                                  <span className="rounded-full bg-theme-elevated px-2.5 py-1 text-[11px] font-bold text-theme-text-secondary">
                                     副本 {template.replicas}
                                   </span>
                                   {template.service_ports && template.service_ports.length > 0 && (
-                                    <span className="rounded-full bg-emerald-50 px-2.5 py-1 text-[11px] font-bold text-emerald-700">
+                                    <span className="rounded-full bg-emerald-500/15 px-2.5 py-1 text-[11px] font-bold text-emerald-400">
                                       端口 {template.service_ports.length}
                                     </span>
                                   )}
@@ -761,21 +761,21 @@ export const AppInstancePage: React.FC<{
                         </div>
                       </div>
 
-                      <div className="flex flex-col gap-3 rounded-[1.75rem] border border-slate-200 bg-gradient-to-r from-slate-50 via-slate-50 to-blue-50/70 px-5 py-4 md:flex-row md:items-center md:justify-between">
+                      <div className="flex flex-col gap-3 rounded-[1.75rem] border border-theme-border bg-gradient-to-r from-slate-50 via-slate-50 to-blue-50/70 px-5 py-4 md:flex-row md:items-center md:justify-between">
                         <div>
-                          <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">分页浏览</div>
-                          <div className="mt-1 text-sm text-slate-600">共 <span className="font-black text-slate-900">{filteredTemplates.length}</span> 个模板</div>
+                          <div className="text-[11px] font-black uppercase tracking-[0.18em] text-theme-text-muted">分页浏览</div>
+                          <div className="mt-1 text-sm text-theme-text-secondary">共 <span className="font-black text-theme-text-primary">{filteredTemplates.length}</span> 个模板</div>
                         </div>
                         <div className="flex flex-wrap items-center gap-3">
                           <div className="flex items-center gap-2">
-                            <span className="text-xs font-bold uppercase tracking-widest text-slate-400">每页</span>
+                            <span className="text-xs font-bold uppercase tracking-widest text-theme-text-muted">每页</span>
                             <select
                               value={templatePageSize}
                               onChange={(event) => {
                                 setTemplatePageSize(Number(event.target.value));
                                 setTemplatePage(1);
                               }}
-                              className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-bold text-slate-700 outline-none focus:border-blue-500"
+                              className="rounded-xl border border-theme-border bg-theme-bg-app px-3 py-2 text-sm font-bold text-theme-text-secondary outline-none focus:border-blue-500"
                             >
                               <option value={5}>5</option>
                               <option value={10}>10</option>
@@ -787,17 +787,17 @@ export const AppInstancePage: React.FC<{
                             <button
                               disabled={templatePage === 1}
                               onClick={() => setTemplatePage((page) => page - 1)}
-                              className="p-2 text-slate-400 hover:text-slate-800 disabled:opacity-30"
+                              className="p-2 text-theme-text-muted hover:text-theme-text-primary disabled:opacity-30"
                             >
                               <ChevronLeft size={18} />
                             </button>
-                            <span className="rounded-xl bg-slate-50 px-4 py-2 text-sm font-black text-slate-800 ring-1 ring-slate-200">
+                            <span className="rounded-xl bg-theme-bg-app px-4 py-2 text-sm font-black text-theme-text-primary ring-1 ring-theme-border">
                               {templatePage} / {templateTotalPages}
                             </span>
                             <button
                               disabled={templatePage >= templateTotalPages}
                               onClick={() => setTemplatePage((page) => page + 1)}
-                              className="p-2 text-slate-400 hover:text-slate-800 disabled:opacity-30"
+                              className="p-2 text-theme-text-muted hover:text-theme-text-primary disabled:opacity-30"
                             >
                               <ChevronRight size={18} />
                             </button>
@@ -807,63 +807,63 @@ export const AppInstancePage: React.FC<{
                     </div>
                   )}
                 </div>
-                <div className="border-t border-slate-100 p-6 text-right">
-                  <button onClick={() => setIsModalOpen(false)} className="px-6 py-3 font-medium text-slate-600 hover:text-slate-700">取消</button>
+                <div className="border-t border-theme-border p-6 text-right">
+                  <button onClick={() => setIsModalOpen(false)} className="px-6 py-3 font-medium text-theme-text-secondary hover:text-theme-text-secondary">取消</button>
                 </div>
               </>
             ) : (
               <>
-                <div className="border-b border-slate-100 p-8">
-                  <h2 className="text-2xl font-black text-slate-900">配置应用实例</h2>
-                  <p className="mt-1 text-sm text-slate-500">补充实例、Service 和域名访问参数。</p>
+                <div className="border-b border-theme-border p-8">
+                  <h2 className="text-2xl font-black text-theme-text-primary">配置应用实例</h2>
+                  <p className="mt-1 text-sm text-theme-text-muted">补充实例、Service 和域名访问参数。</p>
                 </div>
                 <div className="space-y-6 p-8">
                   {selectedTemplate && (
-                    <div className="rounded-2xl border border-slate-200 bg-slate-50 p-5">
+                    <div className="rounded-2xl border border-theme-border bg-theme-bg-app p-5">
                       <div className="grid grid-cols-2 gap-4 text-sm md:grid-cols-4">
-                        <div><div className="text-xs text-slate-400">模板</div><div className="font-bold text-slate-800">{selectedTemplate.name}</div></div>
-                        <div><div className="text-xs text-slate-400">范围</div><div className="font-bold text-slate-800">{selectedTemplate.scope}</div></div>
-                        <div><div className="text-xs text-slate-400">容器数</div><div className="font-bold text-slate-800">{selectedTemplate.containers.length}</div></div>
-                        <div><div className="text-xs text-slate-400">副本</div><div className="font-bold text-slate-800">{selectedTemplate.replicas}</div></div>
+                        <div><div className="text-xs text-theme-text-muted">模板</div><div className="font-bold text-theme-text-primary">{selectedTemplate.name}</div></div>
+                        <div><div className="text-xs text-theme-text-muted">范围</div><div className="font-bold text-theme-text-primary">{selectedTemplate.scope}</div></div>
+                        <div><div className="text-xs text-theme-text-muted">容器数</div><div className="font-bold text-theme-text-primary">{selectedTemplate.containers.length}</div></div>
+                        <div><div className="text-xs text-theme-text-muted">副本</div><div className="font-bold text-theme-text-primary">{selectedTemplate.replicas}</div></div>
                       </div>
                     </div>
                   )}
                   <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                     <div>
-                      <label className="mb-2 block text-xs font-black uppercase text-slate-500">实例名称 *</label>
-                      <input value={formData.name} onChange={(event) => setFormData({ ...formData, name: event.target.value })} className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none focus:border-blue-500" placeholder="例如：demo-nginx" />
+                      <label className="mb-2 block text-xs font-black uppercase text-theme-text-muted">实例名称 *</label>
+                      <input value={formData.name} onChange={(event) => setFormData({ ...formData, name: event.target.value })} className="w-full rounded-2xl border border-theme-border bg-theme-bg-app px-4 py-3 text-sm outline-none focus:border-blue-500" placeholder="例如：demo-nginx" />
                     </div>
                     <div>
-                      <label className="mb-2 block text-xs font-black uppercase text-slate-500">Service 名称 *</label>
-                      <input value={formData.service_name} onChange={(event) => setFormData({ ...formData, service_name: event.target.value })} className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none focus:border-blue-500" placeholder="例如：nginx-svc" />
+                      <label className="mb-2 block text-xs font-black uppercase text-theme-text-muted">Service 名称 *</label>
+                      <input value={formData.service_name} onChange={(event) => setFormData({ ...formData, service_name: event.target.value })} className="w-full rounded-2xl border border-theme-border bg-theme-bg-app px-4 py-3 text-sm outline-none focus:border-blue-500" placeholder="例如：nginx-svc" />
                     </div>
                     <div className="md:col-span-2">
-                      <label className="mb-2 block text-xs font-black uppercase text-slate-500">描述</label>
-                      <textarea value={formData.description} onChange={(event) => setFormData({ ...formData, description: event.target.value })} rows={3} className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none focus:border-blue-500" />
+                      <label className="mb-2 block text-xs font-black uppercase text-theme-text-muted">描述</label>
+                      <textarea value={formData.description} onChange={(event) => setFormData({ ...formData, description: event.target.value })} rows={3} className="w-full rounded-2xl border border-theme-border bg-theme-bg-app px-4 py-3 text-sm outline-none focus:border-blue-500" />
                     </div>
                     <div>
-                      <label className="mb-2 block text-xs font-black uppercase text-slate-500">Service 类型</label>
-                      <select value={formData.service_type} onChange={(event) => setFormData({ ...formData, service_type: event.target.value as any })} className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none focus:border-blue-500">
+                      <label className="mb-2 block text-xs font-black uppercase text-theme-text-muted">Service 类型</label>
+                      <select value={formData.service_type} onChange={(event) => setFormData({ ...formData, service_type: event.target.value as any })} className="w-full rounded-2xl border border-theme-border bg-theme-bg-app px-4 py-3 text-sm outline-none focus:border-blue-500">
                         <option value="ClusterIP">集群内部访问</option>
                         <option value="NodePort">节点端口访问</option>
                         <option value="LoadBalancer">负载均衡访问</option>
                       </select>
                     </div>
                     <div>
-                      <label className="mb-2 block text-xs font-black uppercase text-slate-500">副本数</label>
-                      <input type="number" min="1" value={formData.replicas} onChange={(event) => setFormData({ ...formData, replicas: parseInt(event.target.value, 10) || 1 })} className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none focus:border-blue-500" />
+                      <label className="mb-2 block text-xs font-black uppercase text-theme-text-muted">副本数</label>
+                      <input type="number" min="1" value={formData.replicas} onChange={(event) => setFormData({ ...formData, replicas: parseInt(event.target.value, 10) || 1 })} className="w-full rounded-2xl border border-theme-border bg-theme-bg-app px-4 py-3 text-sm outline-none focus:border-blue-500" />
                     </div>
                   </div>
                   {selectedTemplate?.containers.some((container) => (container.input_env_vars || []).length > 0) && (
-                    <div className="rounded-2xl border border-blue-200 bg-blue-50 p-5">
-                      <div className="mb-4 text-sm font-black text-blue-700">环境变量依赖</div>
+                    <div className="rounded-2xl border border-blue-500/20 bg-blue-500/15 p-5">
+                      <div className="mb-4 text-sm font-black text-blue-400">环境变量依赖</div>
                       <div className="space-y-4">
                         {selectedTemplate.containers.map((container) => (container.input_env_vars || []).map((envVar) => {
                           const key =`${container.name}.${envVar.name}`;
                           return (
                             <div key={key}>
-                              <label className="mb-1 block text-xs font-bold text-slate-600">{envVar.name}<span className="ml-2 text-slate-400">容器：{container.name}</span></label>
-                              <input value={inputEnvVarValues[key] || ''} onChange={(event) => setInputEnvVarValues({ ...inputEnvVarValues, [key]: event.target.value })} placeholder={envVar.default_value || '请输入变量值'} className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm outline-none focus:border-blue-500" />
+                              <label className="mb-1 block text-xs font-bold text-theme-text-secondary">{envVar.name}<span className="ml-2 text-theme-text-muted">容器：{container.name}</span></label>
+                              <input value={inputEnvVarValues[key] || ''} onChange={(event) => setInputEnvVarValues({ ...inputEnvVarValues, [key]: event.target.value })} placeholder={envVar.default_value || '请输入变量值'} className="w-full rounded-xl border border-theme-border bg-theme-bg-app px-3 py-2 text-sm outline-none focus:border-blue-500" />
                             </div>
                           );
                         }))}
@@ -871,21 +871,21 @@ export const AppInstancePage: React.FC<{
                     </div>
                   )}
                   {selectedTemplate?.containers.some((container) => (container.input_volume_mounts || []).length > 0) && (
-                    <div className="rounded-2xl border border-purple-200 bg-purple-50 p-5">
-                      <div className="mb-4 text-sm font-black text-purple-700">PVC 挂载依赖</div>
+                    <div className="rounded-2xl border border-purple-500/20 bg-purple-500/15 p-5">
+                      <div className="mb-4 text-sm font-black text-purple-400">PVC 挂载依赖</div>
                       <div className="space-y-4">
                         {selectedTemplate.containers.map((container) => (container.input_volume_mounts || []).map((mount) => {
                           const key =`${container.name}.${mount.mount_path}`;
                           const config = inputVolumeMountConfigs[key] || createMountConfig(mount.read_only ?? true);
                           return (
-                            <div key={key} className="rounded-xl border border-purple-200 bg-slate-50 p-4">
-                              <div className="mb-3 text-sm font-bold text-slate-700">挂载路径：{mount.mount_path}<span className="ml-2 text-xs text-slate-400">容器：{container.name}</span></div>
+                            <div key={key} className="rounded-xl border border-purple-500/20 bg-theme-bg-app p-4">
+                              <div className="mb-3 text-sm font-bold text-theme-text-secondary">挂载路径：{mount.mount_path}<span className="ml-2 text-xs text-theme-text-muted">容器：{container.name}</span></div>
                               <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-                                <select value={config.pvc_name} onChange={(event) => setInputVolumeMountConfigs({ ...inputVolumeMountConfigs, [key]: { ...config, pvc_name: event.target.value } })} className="rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-purple-500">
+                                <select value={config.pvc_name} onChange={(event) => setInputVolumeMountConfigs({ ...inputVolumeMountConfigs, [key]: { ...config, pvc_name: event.target.value } })} className="rounded-lg border border-theme-border px-3 py-2 text-sm outline-none focus:border-purple-500">
                                   <option value="">选择 PVC</option>
                                   {pvcList.map((pvc) => <option key={pvc.pvc_name} value={pvc.pvc_name}>{pvc.pvc_name} {pvc.resource_name ?`(${pvc.resource_name})` : ''}</option>)}
                                 </select>
-                                <input value={config.sub_path} onChange={(event) => setInputVolumeMountConfigs({ ...inputVolumeMountConfigs, [key]: { ...config, sub_path: event.target.value } })} placeholder="子路径，可留空" className="rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-purple-500" />
+                                <input value={config.sub_path} onChange={(event) => setInputVolumeMountConfigs({ ...inputVolumeMountConfigs, [key]: { ...config, sub_path: event.target.value } })} placeholder="子路径，可留空" className="rounded-lg border border-theme-border px-3 py-2 text-sm outline-none focus:border-purple-500" />
                               </div>
                             </div>
                           );
@@ -893,10 +893,10 @@ export const AppInstancePage: React.FC<{
                       </div>
                     </div>
                   )}
-                  <div className="rounded-2xl border border-amber-200 bg-amber-50 p-5">
+                  <div className="rounded-2xl border border-amber-500/20 bg-amber-500/15 p-5">
                     <div className="mb-4 flex items-center justify-between gap-4">
                       <div className="flex-1">
-                        <div className="text-sm font-black text-amber-700">附加 PVC 挂载</div>
+                        <div className="text-sm font-black text-amber-400">附加 PVC 挂载</div>
                         <div className="mt-1 text-xs text-amber-700/80">从公共资源管理的 PVC 资源中选择，并绑定到实例容器路径。</div>
                       </div>
                       <button
@@ -909,19 +909,19 @@ export const AppInstancePage: React.FC<{
                       </button>
                     </div>
                     {additionalPvcMounts.length === 0 ? (
- <div className="rounded-xl border border-dashed border-amber-200 bg-slate-50 px-4 py-4 text-sm text-amber-700">
+ <div className="rounded-xl border border-dashed border-amber-500/20 bg-theme-bg-app px-4 py-4 text-sm text-amber-400">
                         如需额外挂载 PVC，可以在这里选择公共 PVC 资源并填写容器内挂载路径。
                       </div>
                     ) : (
                       <div className="space-y-4">
                         {additionalPvcMounts.map((mount, index) => (
-                          <div key={index} className="rounded-xl border border-amber-200 bg-slate-50 p-4">
+                          <div key={index} className="rounded-xl border border-amber-500/20 bg-theme-bg-app p-4">
                             <div className="mb-3 flex items-center justify-between gap-3">
-                              <div className="text-sm font-bold text-slate-700">附加 PVC 挂载 #{index + 1}</div>
+                              <div className="text-sm font-bold text-theme-text-secondary">附加 PVC 挂载 #{index + 1}</div>
                               <button
                                 type="button"
                                 onClick={() => setAdditionalPvcMounts(additionalPvcMounts.filter((_, itemIndex) => itemIndex !== index))}
-                                className="rounded-lg p-2 text-red-500 hover:bg-red-50"
+                                className="rounded-lg p-2 text-red-500 hover:bg-red-500/15"
                                 title="删除挂载"
                               >
                                 <Trash2 size={16} />
@@ -931,7 +931,7 @@ export const AppInstancePage: React.FC<{
                               <select
                                 value={mount.pvc_name}
                                 onChange={(event) => setAdditionalPvcMounts(additionalPvcMounts.map((item, itemIndex) => itemIndex === index ? { ...item, pvc_name: event.target.value } : item))}
-                                className="rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-amber-500"
+                                className="rounded-lg border border-theme-border px-3 py-2 text-sm outline-none focus:border-amber-500"
                               >
                                 <option value="">选择 PVC 资源</option>
                                 {pvcList.map((pvc) => (
@@ -944,15 +944,15 @@ export const AppInstancePage: React.FC<{
                                 value={mount.mount_path}
                                 onChange={(event) => setAdditionalPvcMounts(additionalPvcMounts.map((item, itemIndex) => itemIndex === index ? { ...item, mount_path: event.target.value } : item))}
                                 placeholder="容器内挂载路径，例如 /workspace/shared"
-                                className="rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-amber-500"
+                                className="rounded-lg border border-theme-border px-3 py-2 text-sm outline-none focus:border-amber-500"
                               />
                               <input
                                 value={mount.sub_path}
                                 onChange={(event) => setAdditionalPvcMounts(additionalPvcMounts.map((item, itemIndex) => itemIndex === index ? { ...item, sub_path: event.target.value } : item))}
                                 placeholder="PVC 子路径，可留空"
-                                className="rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-amber-500"
+                                className="rounded-lg border border-theme-border px-3 py-2 text-sm outline-none focus:border-amber-500"
                               />
-                              <label className="flex items-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-700">
+                              <label className="flex items-center gap-2 rounded-lg border border-theme-border px-3 py-2 text-sm text-theme-text-secondary">
                                 <input
                                   type="checkbox"
                                   checked={mount.read_only}
@@ -970,37 +970,37 @@ export const AppInstancePage: React.FC<{
                     value={llmBindings}
                     onChange={setLlmBindings}
                   />
-                  <div className="rounded-2xl border border-green-200 bg-green-50 p-5">
+                  <div className="rounded-2xl border border-green-500/20 bg-green-500/15 p-5">
                     <div className="mb-4 flex items-center justify-between">
                       <div className="flex-1">
-                        <div className="text-sm font-black text-green-700">绑定 Ingress</div>
+                        <div className="text-sm font-black text-green-400">绑定 Ingress</div>
                       </div>
                       {renderHelpToggle(
                         'ingress-binding',
                         '勾选后系统会基于当前 Service 自动生成域名，并在创建后自动初始化、启动实例。',
                         {
- button: 'border-green-300 bg-slate-50 text-green-700 hover:border-green-400 hover:bg-slate-50 focus:ring-green-300',
- panel: 'border-green-200 bg-slate-50',
-                          text: 'text-green-700',
+ button: 'border-green-300 bg-theme-bg-app text-green-400 hover:border-green-400 hover:bg-theme-bg-app focus:ring-green-300',
+ panel: 'border-green-500/20 bg-theme-bg-app',
+                          text: 'text-green-400',
                         },
                         'mr-2 md:mr-3'
                       )}
                       <label className="inline-flex cursor-pointer items-center">
                         <input type="checkbox" checked={enableIngress} onChange={(event) => setEnableIngress(event.target.checked)} className="sr-only peer" />
- <div className="relative h-6 w-11 rounded-full bg-gray-200 transition-all after:absolute after:left-[2px] after:top-[2px] after:h-5 after:w-5 after:rounded-full after:border after:border-gray-300 after:bg-slate-50 after:transition-all after:content-[''] peer-checked:bg-green-600 peer-checked:after:translate-x-full peer-checked:after:border-slate-200" />
+ <div className="relative h-6 w-11 rounded-full bg-theme-elevated transition-all after:absolute after:left-[2px] after:top-[2px] after:h-5 after:w-5 after:rounded-full after:border after:border-theme-border after:bg-theme-bg-app after:transition-all after:content-[''] peer-checked:bg-green-600 peer-checked:after:translate-x-full peer-checked:after:border-theme-border" />
                       </label>
                     </div>
                     {enableIngress && (
- <div className="rounded-xl border border-dashed border-green-300 bg-slate-50 px-4 py-3 text-sm text-green-700">
+ <div className="rounded-xl border border-dashed border-green-300 bg-theme-bg-app px-4 py-3 text-sm text-green-400">
                         默认使用`nginx` Ingress，域名规则会按当前 Service 自动生成。创建完成后可直接在实例详情的“访问”页点击“访问服务”按钮。
                       </div>
                     )}
                   </div>
                 </div>
-                <div className="flex items-center justify-between border-t border-slate-100 p-8">
-                  <button onClick={() => setCreateStep('select-template')} className="px-6 py-3 font-medium text-slate-600 hover:text-slate-700">返回模板列表</button>
+                <div className="flex items-center justify-between border-t border-theme-border p-8">
+                  <button onClick={() => setCreateStep('select-template')} className="px-6 py-3 font-medium text-theme-text-secondary hover:text-theme-text-secondary">返回模板列表</button>
                   <div className="flex items-center gap-3">
-                    <button onClick={() => setIsModalOpen(false)} className="px-6 py-3 font-medium text-slate-600 hover:text-slate-700">取消</button>
+                    <button onClick={() => setIsModalOpen(false)} className="px-6 py-3 font-medium text-theme-text-secondary hover:text-theme-text-secondary">取消</button>
  <button onClick={handleCreate} disabled={isSubmitting} className="flex items-center gap-2 rounded-2xl bg-blue-600 px-6 py-3 font-bold text-white hover:bg-blue-500 disabled:opacity-50">
                       {isSubmitting && <Loader2 className="animate-spin" size={16} />}
                       {enableIngress ? '创建并启动实例' : '创建实例'}
@@ -1014,25 +1014,25 @@ export const AppInstancePage: React.FC<{
       )}
       {isUninitModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4 backdrop-blur-sm">
- <div className="w-full max-w-md overflow-hidden rounded-[2rem] bg-slate-50 animate-in zoom-in-95 duration-200">
+ <div className="w-full max-w-md overflow-hidden rounded-[2rem] bg-theme-bg-app animate-in zoom-in-95 duration-200">
             <div className="p-8 text-center">
-              <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-[2rem] bg-orange-50 text-orange-600">
+              <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-[2rem] bg-orange-500/15 text-orange-400">
                 <RotateCcw size={40} />
               </div>
-              <h3 className="text-2xl font-black text-slate-800">确认反初始化？</h3>
-              <p className="mt-4 font-medium text-slate-500">
+              <h3 className="text-2xl font-black text-theme-text-primary">确认反初始化？</h3>
+              <p className="mt-4 font-medium text-theme-text-muted">
                 您确定要反初始化这个应用实例吗？这将删除所有关联的 K8S 资源并重置状态。</p>
-              <p className="mt-2 rounded-xl border border-red-100 bg-red-50 p-3 text-sm font-bold text-red-500">
+              <p className="mt-2 rounded-xl border border-red-500/20 bg-red-500/15 p-3 text-sm font-bold text-red-500">
                 警告：所有的非持久化数据将全部丢失！
               </p>
             </div>
-            <div className="flex gap-4 bg-slate-50 p-8">
+            <div className="flex gap-4 bg-theme-bg-app p-8">
               <button
                 onClick={() => {
                   setIsUninitModalOpen(false);
                   setUninitializingId(null);
                 }}
-                className="flex-1 rounded-2xl border border-slate-200 bg-slate-50 py-4 font-bold text-slate-600 transition-all hover:bg-slate-100"
+                className="flex-1 rounded-2xl border border-theme-border bg-theme-bg-app py-4 font-bold text-theme-text-secondary transition-all hover:bg-theme-elevated"
               >
                 取消
               </button>
@@ -1050,19 +1050,19 @@ export const AppInstancePage: React.FC<{
       )}
       {isDeleteModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-8">
- <div className="w-full max-w-md rounded-3xl bg-slate-50">
+ <div className="w-full max-w-md rounded-3xl bg-theme-bg-app">
             <div className="p-8">
               <div className="mb-6 flex items-center gap-4">
-                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-red-100"><AlertCircle className="text-red-600" size={24} /></div>
+                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-red-500/15"><AlertCircle className="text-red-400" size={24} /></div>
                 <div>
-                  <h3 className="text-xl font-black text-slate-900">确认删除</h3>
-                  <p className="mt-1 text-sm text-slate-500">此操作不可撤销。</p>
+                  <h3 className="text-xl font-black text-theme-text-primary">确认删除</h3>
+                  <p className="mt-1 text-sm text-theme-text-muted">此操作不可撤销。</p>
                 </div>
               </div>
-              <p className="text-sm text-slate-600">删除应用实例时，会一并清理关联的 K8s 资源与域名绑定记录。</p>
+              <p className="text-sm text-theme-text-secondary">删除应用实例时，会一并清理关联的 K8s 资源与域名绑定记录。</p>
             </div>
-            <div className="flex items-center justify-end gap-3 border-t border-slate-100 p-8">
-              <button onClick={() => { setIsDeleteModalOpen(false); setDeletingId(null); }} className="px-6 py-3 font-medium text-slate-600 hover:text-slate-700">取消</button>
+            <div className="flex items-center justify-end gap-3 border-t border-theme-border p-8">
+              <button onClick={() => { setIsDeleteModalOpen(false); setDeletingId(null); }} className="px-6 py-3 font-medium text-theme-text-secondary hover:text-theme-text-secondary">取消</button>
  <button onClick={handleDelete} className="rounded-2xl bg-red-600 px-6 py-3 font-bold text-white shadow-red-500/20 hover:bg-red-500">确认删除</button>
             </div>
           </div>
@@ -1091,8 +1091,8 @@ export const AppInstancePage: React.FC<{
  <div className={`flex items-center gap-2 rounded-xl border px-6 py-3 text-sm font-bold ${
             toast.type === 'success' ? 'border-green-500 bg-green-600 text-white' :
             toast.type === 'error' ? 'border-red-500 bg-red-600 text-white' :
-            toast.type === 'warning' ? 'border-yellow-400 bg-yellow-500 text-yellow-900' :
-            'border-slate-700 bg-slate-800 text-white'
+            toast.type === 'warning' ? 'border-yellow-400 bg-yellow-500 text-yellow-300' :
+            'border-theme-border bg-theme-elevated text-white'
           }`}>
             {toast.type === 'success' && <CheckCircle size={18} />}
             {toast.type === 'error' && <XCircle size={18} />}

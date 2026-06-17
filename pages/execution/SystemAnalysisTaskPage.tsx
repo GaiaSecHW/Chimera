@@ -23,12 +23,12 @@ const STATUS_LABEL: Record<string, string> = {
 };
 
 const STATUS_COLOR: Record<string, string> = {
-  pending: 'bg-slate-100 text-slate-600',
-  running: 'bg-blue-100 text-blue-700',
-  passed: 'bg-emerald-100 text-emerald-700',
-  failed: 'bg-red-100 text-red-700',
-  error: 'bg-orange-100 text-orange-700',
-  cancelled: 'bg-gray-100 text-gray-500',
+  pending: 'bg-theme-elevated text-theme-text-secondary',
+  running: 'bg-blue-500/15 text-blue-400',
+  passed: 'bg-emerald-500/15 text-emerald-400',
+  failed: 'bg-red-500/15 text-red-400',
+  error: 'bg-orange-500/15 text-orange-400',
+  cancelled: 'bg-theme-elevated text-theme-text-muted',
 };
 
 function formatDuration(startedAt: string | null | undefined, finishedAt: string | null | undefined, nowSecs = Math.floor(Date.now() / 1000)): string {
@@ -73,23 +73,23 @@ const SortableHeader: React.FC<SortableHeaderProps> = ({ label, active, directio
       <button
         type="button"
         onClick={onClick}
-        className={`inline-flex items-center gap-1 transition-colors ${active ? 'text-slate-900' : 'text-slate-500 hover:text-slate-800'}`}
+        className={`inline-flex items-center gap-1 transition-colors ${active ? 'text-theme-text-primary' : 'text-theme-text-muted hover:text-theme-text-primary'}`}
         title={`按${label}排序`}
       >
         <span>{label}</span>
-        <ArrowDownUp size={13} className={active ? 'text-sky-600' : 'text-slate-400'} />
-        {active ? <span className="text-[10px] text-sky-600">{direction === 'asc' ? '升序' : '降序'}</span> : null}
+        <ArrowDownUp size={13} className={active ? 'text-sky-400' : 'text-theme-text-muted'} />
+        {active ? <span className="text-[10px] text-sky-400">{direction === 'asc' ? '升序' : '降序'}</span> : null}
       </button>
     </ExecutionTableTh>
   );
 };
 
 function getModeBadgeClassName(mode: string): string {
-  return mode === 'source' ? 'bg-emerald-50 text-emerald-700' : 'bg-cyan-50 text-cyan-700';
+  return mode === 'source' ? 'bg-emerald-500/15 text-emerald-400' : 'bg-cyan-500/15 text-cyan-400';
 }
 
 function getQuickFilterButtonClassName(active: boolean, baseClassName: string): string {
-  return`${baseClassName} transition-all ${active ? 'ring-2 ring-cyan-200 ring-offset-1' : 'hover:opacity-80'}`;
+  return`${baseClassName} transition-all ${active ? 'ring-2 ring-cyan-500/20 ring-offset-1' : 'hover:opacity-80'}`;
 }
 
 function formatDateTime(value?: string | null): string {
@@ -120,7 +120,7 @@ function getExecutionSlotPresentation(
   if (['passed', 'failed', 'error', 'cancelled'].includes(task.status)) {
     return {
       label: '已释放',
-      tone: 'bg-slate-100 text-slate-600',
+      tone: 'bg-theme-elevated text-theme-text-secondary',
       ownerText: ownerId || '-',
       detailText: '任务已结束',
     };
@@ -128,7 +128,7 @@ function getExecutionSlotPresentation(
   if (task.status === 'running' && ownerId && workerState && !workerState.healthy) {
     return {
       label: '状态过期',
-      tone: 'bg-rose-100 text-rose-700',
+      tone: 'bg-rose-500/15 text-rose-400',
       ownerText: hostName || ownerId,
       detailText: workerState.source === 'task_lease_fallback'
         ? '服务端已判定 owner 状态异常'
@@ -138,7 +138,7 @@ function getExecutionSlotPresentation(
   if (task.status === 'running' && ownerId) {
     return {
       label: '运行中',
-      tone: 'bg-cyan-100 text-cyan-700',
+      tone: 'bg-cyan-500/15 text-cyan-400',
       ownerText: hostName || ownerId,
       detailText: task.lease_expires_at ?`lease ${formatDateTime(task.lease_expires_at)}` :`dispatch ${formatDateTime(task.dispatch_started_at)}`,
     };
@@ -146,14 +146,14 @@ function getExecutionSlotPresentation(
   if (task.status === 'pending' && !ownerId) {
     return {
       label: '未占用槽位',
-      tone: 'bg-amber-100 text-amber-700',
+      tone: 'bg-amber-500/15 text-amber-400',
       ownerText: '-',
       detailText: '排队中',
     };
   }
   return {
     label: ownerId ? '占用中' : '未占用槽位',
-    tone: ownerId ? 'bg-cyan-100 text-cyan-700' : 'bg-amber-100 text-amber-700',
+    tone: ownerId ? 'bg-cyan-500/15 text-cyan-400' : 'bg-amber-500/15 text-amber-400',
     ownerText: hostName || ownerId || '-',
     detailText: ownerId ?`dispatch ${formatDateTime(task.dispatch_started_at)}` : '等待调度',
   };
@@ -627,39 +627,39 @@ export const SystemAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask: (
     <div className="px-8 pt-8 pb-10 space-y-6">
       {feedbackNodes}
 
- <section className="rounded-[2rem] border border-slate-200 bg-slate-50 p-6">
+ <section className="rounded-[2rem] border border-theme-border bg-theme-bg-app p-6">
         <ServicePageTitle title="分析任务" version={buildVersion} />
-        <p className="mt-2 text-sm text-slate-500">指定分析路径，启动安全分析任务。</p>
+        <p className="mt-2 text-sm text-theme-text-muted">指定分析路径，启动安全分析任务。</p>
         <div className="mt-5 grid grid-cols-2 gap-2 sm:grid-cols-4">
             {[
-              { label: '总任务', value: taskStats.total, bg: 'bg-slate-50', text: 'text-slate-800', border: 'border-slate-200' },
-              { label: '运行中', value: taskStats.running + taskStats.pending, bg: 'bg-blue-50', text: 'text-blue-700', border: 'border-blue-200' },
-              { label: '已通过', value: taskStats.passed, bg: 'bg-emerald-50', text: 'text-emerald-700', border: 'border-emerald-200' },
-              { label: '失败/取消', value: taskStats.failed + taskStats.error + taskStats.cancelled, bg: 'bg-red-50', text: 'text-red-700', border: 'border-red-200' },
+              { label: '总任务', value: taskStats.total, bg: 'bg-theme-bg-app', text: 'text-theme-text-primary', border: 'border-theme-border' },
+              { label: '运行中', value: taskStats.running + taskStats.pending, bg: 'bg-blue-500/15', text: 'text-blue-400', border: 'border-blue-500/20' },
+              { label: '已通过', value: taskStats.passed, bg: 'bg-emerald-500/15', text: 'text-emerald-400', border: 'border-emerald-500/20' },
+              { label: '失败/取消', value: taskStats.failed + taskStats.error + taskStats.cancelled, bg: 'bg-red-500/15', text: 'text-red-400', border: 'border-red-500/20' },
           ].map((s) => (
             <div key={s.label} className={`min-w-[96px] rounded-xl border ${s.border} ${s.bg} px-3 py-2`}>
               <p className={`text-lg font-black ${s.text}`}>{s.value}</p>
-              <p className="mt-1 text-[11px] text-slate-500">{s.label}</p>
+              <p className="mt-1 text-[11px] text-theme-text-muted">{s.label}</p>
             </div>
           ))}
         </div>
         {taskStatsError ? (
-          <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+          <div className="mt-4 rounded-2xl border border-amber-500/20 bg-amber-500/15 px-4 py-3 text-sm text-amber-400">
             统计摘要暂不可用：{taskStatsError}
           </div>
         ) : null}
       </section>
 
- <section className="rounded-[2rem] border border-slate-200 bg-slate-50">
+ <section className="rounded-[2rem] border border-theme-border bg-theme-bg-app">
         <button
           type="button"
           onClick={() => setSlotOverviewExpanded((current) => !current)}
           className="flex w-full flex-wrap items-start justify-between gap-3 px-5 pb-4 pt-5 text-left"
         >
           <div>
-            <h2 className="text-sm font-black uppercase tracking-[0.2em] text-slate-500">EXECUTION SLOTS</h2>
-            <div className="mt-2 text-lg font-black text-slate-900">执行槽位总览</div>
-            <p className="mt-1 text-xs text-slate-400">对齐入口分析的运行态展示方式，先给出集群槽位摘要，再按需查看 worker 和活跃任务详情。</p>
+            <h2 className="text-sm font-black uppercase tracking-[0.2em] text-theme-text-muted">EXECUTION SLOTS</h2>
+            <div className="mt-2 text-lg font-black text-theme-text-primary">执行槽位总览</div>
+            <p className="mt-1 text-xs text-theme-text-muted">对齐入口分析的运行态展示方式，先给出集群槽位摘要，再按需查看 worker 和活跃任务详情。</p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
             <button
@@ -670,7 +670,7 @@ export const SystemAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask: (
                 setShowSlotDetailModal(true);
                 void loadClusterCapacityDetail();
               }}
-              className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-2 text-xs font-bold text-slate-700 hover:bg-slate-100"
+              className="rounded-xl border border-theme-border bg-theme-bg-app px-4 py-2 text-xs font-bold text-theme-text-secondary hover:bg-theme-elevated"
             >
               查看槽位详情
             </button>
@@ -680,26 +680,26 @@ export const SystemAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask: (
                 event.stopPropagation();
                 void loadClusterCapacity();
               }}
-              className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-bold text-slate-700 hover:bg-slate-100"
+              className="inline-flex items-center gap-2 rounded-xl border border-theme-border bg-theme-bg-app px-3 py-2 text-xs font-bold text-theme-text-secondary hover:bg-theme-elevated"
               title="手动刷新执行槽位"
               aria-label="手动刷新执行槽位"
             >
               <RefreshCw size={14} className={slotLoading ? 'animate-spin' : ''} />
               手动刷新
             </button>
-            <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-[11px] font-bold text-slate-600">
+            <span className="rounded-full border border-theme-border bg-theme-bg-app px-3 py-1 text-[11px] font-bold text-theme-text-secondary">
               {clusterCapacitySummary ?`${clusterCapacitySummary.busy_slots} / ${clusterCapacitySummary.total_capacity} 槽位运行中` : '槽位摘要待加载'}
             </span>
-            <span className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 bg-slate-50 text-slate-500">
+            <span className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-theme-border bg-theme-bg-app text-theme-text-muted">
               {slotOverviewExpanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
             </span>
           </div>
         </button>
         {slotOverviewExpanded ? (
           <>
-            <div className="border-t border-slate-100" />
+            <div className="border-t border-theme-border" />
             {slotLoading && !clusterCapacitySummary ? (
-          <div className="flex items-center justify-center gap-2 px-5 py-8 text-sm text-slate-500">
+          <div className="flex items-center justify-center gap-2 px-5 py-8 text-sm text-theme-text-muted">
             <Loader2 size={15} className="animate-spin" />
             加载执行槽位摘要中...
           </div>
@@ -707,70 +707,70 @@ export const SystemAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask: (
           <div className="px-5 py-6">
             <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
               {[
-                { label: '总槽位', value: clusterCapacitySummary.total_capacity, bg: 'bg-slate-50', text: 'text-slate-900', border: 'border-slate-200' },
-                { label: '占用槽位', value: clusterCapacitySummary.busy_slots, bg: 'bg-cyan-50/70', text: 'text-cyan-700', border: 'border-cyan-200' },
-                { label: '空闲槽位', value: clusterCapacitySummary.available_slots, bg: 'bg-emerald-50/70', text: 'text-emerald-700', border: 'border-emerald-200' },
-                { label: '排队任务', value: clusterCapacitySummary.queued_jobs, bg: 'bg-amber-50/80', text: 'text-amber-700', border: 'border-amber-200' },
-                { label: 'Worker', value: clusterCapacitySummary.worker_count, bg: 'bg-slate-50', text: 'text-slate-900', border: 'border-slate-200' },
-                { label: 'Healthy', value: clusterCapacitySummary.healthy_workers, bg: 'bg-emerald-50/70', text: 'text-emerald-700', border: 'border-emerald-200' },
-                { label: 'Stale', value: clusterCapacitySummary.stale_workers, bg: 'bg-rose-50/70', text: 'text-rose-700', border: 'border-rose-200' },
-                { label: 'Live Pod', value: clusterCapacityDetail ? slotLivePodCount : '-', bg: 'bg-sky-50/70', text: 'text-sky-700', border: 'border-sky-200' },
+                { label: '总槽位', value: clusterCapacitySummary.total_capacity, bg: 'bg-theme-bg-app', text: 'text-theme-text-primary', border: 'border-theme-border' },
+                { label: '占用槽位', value: clusterCapacitySummary.busy_slots, bg: 'bg-cyan-50/70', text: 'text-cyan-400', border: 'border-cyan-500/20' },
+                { label: '空闲槽位', value: clusterCapacitySummary.available_slots, bg: 'bg-emerald-50/70', text: 'text-emerald-400', border: 'border-emerald-500/20' },
+                { label: '排队任务', value: clusterCapacitySummary.queued_jobs, bg: 'bg-amber-50/80', text: 'text-amber-400', border: 'border-amber-500/20' },
+                { label: 'Worker', value: clusterCapacitySummary.worker_count, bg: 'bg-theme-bg-app', text: 'text-theme-text-primary', border: 'border-theme-border' },
+                { label: 'Healthy', value: clusterCapacitySummary.healthy_workers, bg: 'bg-emerald-50/70', text: 'text-emerald-400', border: 'border-emerald-500/20' },
+                { label: 'Stale', value: clusterCapacitySummary.stale_workers, bg: 'bg-rose-50/70', text: 'text-rose-400', border: 'border-rose-500/20' },
+                { label: 'Live Pod', value: clusterCapacityDetail ? slotLivePodCount : '-', bg: 'bg-sky-50/70', text: 'text-sky-400', border: 'border-sky-500/20' },
               ].map((item) => (
                 <div key={item.label} className={`rounded-[1.5rem] border ${item.border} ${item.bg} px-4 py-4`}>
                   <div className={`text-2xl font-black leading-none ${item.text}`}>{item.value}</div>
-                  <div className="mt-2 text-xs font-bold text-slate-500">{item.label}</div>
+                  <div className="mt-2 text-xs font-bold text-theme-text-muted">{item.label}</div>
                 </div>
               ))}
             </div>
-            <div className="mt-4 flex flex-wrap gap-3 text-xs text-slate-500">
-              <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 font-bold text-slate-700">
+            <div className="mt-4 flex flex-wrap gap-3 text-xs text-theme-text-muted">
+              <span className="rounded-full border border-theme-border bg-theme-bg-app px-3 py-1 font-bold text-theme-text-secondary">
                 Healthy {clusterCapacitySummary.healthy_workers}
               </span>
-              <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 font-bold text-slate-700">
+              <span className="rounded-full border border-theme-border bg-theme-bg-app px-3 py-1 font-bold text-theme-text-secondary">
                 Worker {clusterCapacitySummary.worker_count}
               </span>
-              <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 font-bold text-slate-700">
+              <span className="rounded-full border border-theme-border bg-theme-bg-app px-3 py-1 font-bold text-theme-text-secondary">
                 Live Pod {clusterCapacityDetail ? slotLivePodCount : '-'}
               </span>
-              <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 font-bold text-slate-700">
+              <span className="rounded-full border border-theme-border bg-theme-bg-app px-3 py-1 font-bold text-theme-text-secondary">
                 Registry Worker {clusterCapacityDetail ? slotRegistryCount : '-'}
               </span>
-              <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 font-bold text-slate-700">
+              <span className="rounded-full border border-theme-border bg-theme-bg-app px-3 py-1 font-bold text-theme-text-secondary">
                 Fallback {clusterCapacityDetail ? slotFallbackWorkerCount : '-'}
               </span>
-              <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 font-bold text-slate-700">
+              <span className="rounded-full border border-theme-border bg-theme-bg-app px-3 py-1 font-bold text-theme-text-secondary">
                 Stale {clusterCapacitySummary.stale_workers}
               </span>
-              <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 font-bold text-slate-700">
+              <span className="rounded-full border border-theme-border bg-theme-bg-app px-3 py-1 font-bold text-theme-text-secondary">
                 Updated {formatDateTime(clusterCapacitySummary.updated_at)}
               </span>
             </div>
             {clusterCapacitySummary.stale_workers > 0 ? (
-              <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs text-amber-800">
+              <div className="mt-4 rounded-2xl border border-amber-500/20 bg-amber-500/15 px-4 py-3 text-xs text-amber-400">
                 当前检测到 {clusterCapacitySummary.stale_workers} 个异常或过期 worker，建议打开“查看槽位详情”定位具体节点。
               </div>
             ) : null}
             {clusterCapacitySummary.busy_slots > 0 ? (
-              <div className="mt-4 text-xs text-slate-500">
+              <div className="mt-4 text-xs text-theme-text-muted">
                 当前存在正在占用槽位的系统分析任务，进入详情弹窗可继续查看具体 worker、资源使用和任务映射。
               </div>
             ) : clusterCapacitySummary.queued_jobs > 0 ? (
-              <div className="mt-4 text-xs text-slate-500">
+              <div className="mt-4 text-xs text-theme-text-muted">
                 当前没有运行中的槽位，但存在排队任务，可继续观察调度情况。
               </div>
             ) : null}
-            <div className="mt-5 border-t border-slate-100 pt-5">
+            <div className="mt-5 border-t border-theme-border pt-5">
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
-                  <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">当前运行槽位</div>
-                  <div className="mt-1 text-sm text-slate-500">这里直接前置展示两个 worker 槽位，完整明细继续在“查看槽位详情”中展开。</div>
+                  <div className="text-[11px] font-black uppercase tracking-[0.18em] text-theme-text-muted">当前运行槽位</div>
+                  <div className="mt-1 text-sm text-theme-text-muted">这里直接前置展示两个 worker 槽位，完整明细继续在“查看槽位详情”中展开。</div>
                 </div>
-                <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-[11px] font-bold text-slate-600">
+                <span className="rounded-full border border-theme-border bg-theme-bg-app px-3 py-1 text-[11px] font-bold text-theme-text-secondary">
                   预览 {previewWorkers.length} / {clusterCapacitySummary.worker_count} 个 worker
                 </span>
               </div>
               {previewWorkers.length === 0 ? (
-                <div className="mt-4 rounded-xl border border-dashed border-slate-200 bg-slate-50 px-4 py-8 text-center text-sm text-slate-400">
+                <div className="mt-4 rounded-xl border border-dashed border-theme-border bg-theme-bg-app px-4 py-8 text-center text-sm text-theme-text-muted">
                   当前没有可预览的执行槽位 worker。
                 </div>
               ) : (
@@ -780,20 +780,20 @@ export const SystemAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask: (
                     return (
                       <section
                         key={worker.worker_id}
-                        className={`overflow-hidden rounded-[1.5rem] border ${worker.healthy ? 'border-slate-200 bg-slate-50' : 'border-rose-200 bg-rose-50/70'}`}
+                        className={`overflow-hidden rounded-[1.5rem] border ${worker.healthy ? 'border-theme-border bg-theme-bg-app' : 'border-rose-500/20 bg-rose-50/70'}`}
                       >
                         <div className="px-5 py-4">
                           <div className="flex flex-wrap items-start justify-between gap-3">
                             <div className="min-w-0 flex-1">
                               <div className="flex flex-wrap items-center gap-2">
-                                <div className="text-sm font-black text-slate-900">{worker.host_name || worker.worker_id}</div>
-                                <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${worker.healthy ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'}`}>
+                                <div className="text-sm font-black text-theme-text-primary">{worker.host_name || worker.worker_id}</div>
+                                <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${worker.healthy ? 'bg-emerald-500/15 text-emerald-400' : 'bg-rose-500/15 text-rose-400'}`}>
                                   {worker.healthy ? 'healthy' : 'unhealthy'}
                                 </span>
-                                <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-bold text-slate-600">活动任务 {activeJobs.length}</span>
+                                <span className="rounded-full bg-theme-elevated px-2 py-0.5 text-[10px] font-bold text-theme-text-secondary">活动任务 {activeJobs.length}</span>
                               </div>
-                              <div className="mt-1 break-all font-mono text-[11px] text-slate-400">{worker.worker_id}</div>
-                              <div className="mt-2 flex flex-wrap gap-3 text-xs text-slate-500">
+                              <div className="mt-1 break-all font-mono text-[11px] text-theme-text-muted">{worker.worker_id}</div>
+                              <div className="mt-2 flex flex-wrap gap-3 text-xs text-theme-text-muted">
                                 <span>槽位 {worker.running_jobs}/{worker.max_concurrent_jobs}</span>
                                 <span>空闲 {worker.available_slots}</span>
                                 <span>来源 {worker.source || 'runner_registry'}</span>
@@ -814,33 +814,33 @@ export const SystemAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask: (
                             </div>
                           </div>
                           {!worker.healthy ? (
-                            <div className="mt-4 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+                            <div className="mt-4 rounded-2xl border border-rose-500/20 bg-rose-500/15 px-4 py-3 text-sm text-rose-400">
                               Worker 当前不可用。{worker.error ?`原因：${worker.error}` : ''}
                             </div>
                           ) : activeJobs.length > 0 ? (
                             <div className="mt-4 space-y-3">
                               {activeJobs.slice(0, 2).map((job) => (
-                                <div key={`${worker.worker_id}:${job.task_id}`} className={`rounded-2xl border px-4 py-4 ${job.mapped ? 'border-slate-200 bg-slate-50/70' : 'border-amber-200 bg-amber-50/80'}`}>
+                                <div key={`${worker.worker_id}:${job.task_id}`} className={`rounded-2xl border px-4 py-4 ${job.mapped ? 'border-theme-border bg-slate-50/70' : 'border-amber-500/20 bg-amber-50/80'}`}>
                                   <div className="flex flex-wrap items-start justify-between gap-3">
                                     <div className="min-w-0 flex-1">
                                       <div className="flex flex-wrap items-center gap-2">
-                                        <div className="truncate text-sm font-black text-slate-900" title={job.task_name}>{job.task_name}</div>
-                                        <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${job.mapped ? 'bg-cyan-100 text-cyan-700' : 'bg-amber-100 text-amber-700'}`}>
+                                        <div className="truncate text-sm font-black text-theme-text-primary" title={job.task_name}>{job.task_name}</div>
+                                        <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${job.mapped ? 'bg-cyan-500/15 text-cyan-400' : 'bg-amber-500/15 text-amber-400'}`}>
                                           {job.mapped ? '已关联任务' : '未关联任务'}
                                         </span>
-                                        <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-bold text-slate-600">{job.status}</span>
+                                        <span className="rounded-full bg-theme-elevated px-2 py-0.5 text-[10px] font-bold text-theme-text-secondary">{job.status}</span>
                                       </div>
-                                      <div className="mt-1 break-all font-mono text-[11px] text-slate-500">{job.input_path || '-'}</div>
+                                      <div className="mt-1 break-all font-mono text-[11px] text-theme-text-muted">{job.input_path || '-'}</div>
                                     </div>
-                                    <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-[11px] text-slate-500">
-                                      <div className="font-semibold text-slate-700">task id</div>
+                                    <div className="rounded-xl border border-theme-border bg-theme-bg-app px-3 py-2 text-[11px] text-theme-text-muted">
+                                      <div className="font-semibold text-theme-text-secondary">task id</div>
                                       <div className="mt-1 font-mono">{job.task_id}</div>
                                     </div>
                                   </div>
                                 </div>
                               ))}
                               {activeJobs.length > 2 ? (
-                                <div className="text-xs text-slate-500">
+                                <div className="text-xs text-theme-text-muted">
                                   当前 worker 还有 {activeJobs.length - 2} 个活跃任务未在总览区展开，可点击“查看槽位详情”查看完整列表。
                                 </div>
                               ) : null}
@@ -855,12 +855,12 @@ export const SystemAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask: (
             </div>
           </div>
         ) : (
-          <div className="px-5 py-10 text-center text-sm text-slate-500">
+          <div className="px-5 py-10 text-center text-sm text-theme-text-muted">
             <div>当前尚未加载执行槽位摘要。</div>
             <button
               type="button"
               onClick={() => void loadClusterCapacity()}
-              className="mt-4 rounded-xl border border-slate-200 bg-slate-50 px-4 py-2 text-xs font-bold text-slate-600 hover:bg-slate-100"
+              className="mt-4 rounded-xl border border-theme-border bg-theme-bg-app px-4 py-2 text-xs font-bold text-theme-text-secondary hover:bg-theme-elevated"
             >
               加载执行槽位摘要
             </button>
@@ -869,23 +869,23 @@ export const SystemAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask: (
           </>
         ) : null}
         {slotOverviewExpanded && slotLoading && clusterCapacitySummary ? (
-          <div className="px-5 pb-5 text-xs text-slate-400">正在刷新执行槽位摘要...</div>
+          <div className="px-5 pb-5 text-xs text-theme-text-muted">正在刷新执行槽位摘要...</div>
         ) : null}
         {slotOverviewExpanded && slotError ? (
-          <div className="mx-5 mb-5 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+          <div className="mx-5 mb-5 rounded-2xl border border-amber-500/20 bg-amber-500/15 px-4 py-3 text-sm text-amber-400">
             暂无槽位数据：{slotError}
           </div>
         ) : null}
       </section>
 
       {/* Task list */}
- <section className="rounded-2xl border border-slate-200 bg-slate-50 p-5">
+ <section className="rounded-2xl border border-theme-border bg-theme-bg-app p-5">
         <div className="mb-4 flex flex-wrap items-start justify-between gap-4">
           <div>
-            <h2 className="text-lg font-black text-slate-900">任务列表 <span className="text-sm font-normal text-slate-400">({total})</span></h2>
+            <h2 className="text-lg font-black text-theme-text-primary">任务列表 <span className="text-sm font-normal text-theme-text-muted">({total})</span></h2>
           </div>
           <div className="flex flex-wrap items-center justify-end gap-2">
-            <label className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs text-slate-600">
+            <label className="inline-flex items-center gap-2 rounded-lg border border-theme-border bg-theme-bg-app px-3 py-1.5 text-xs text-theme-text-secondary">
               <input
                 type="checkbox"
                 checked={autoRefreshEnabled}
@@ -893,7 +893,7 @@ export const SystemAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask: (
               />
               自动刷新
             </label>
-            <label className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs text-slate-600">
+            <label className="inline-flex items-center gap-2 rounded-lg border border-theme-border bg-theme-bg-app px-3 py-1.5 text-xs text-theme-text-secondary">
               间隔
               <input
                 type="number"
@@ -904,14 +904,14 @@ export const SystemAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask: (
                   const value = Number(e.target.value);
                   setRefreshIntervalSec(Number.isFinite(value) ? Math.max(5, Math.floor(value)) : 5);
                 }}
-                className="w-16 rounded border border-slate-200 bg-slate-50 px-2 py-1 text-xs text-slate-700"
+                className="w-16 rounded border border-theme-border bg-theme-bg-app px-2 py-1 text-xs text-theme-text-secondary"
               />
               秒
             </label>
             <select
               value={analysisModeFilter}
               onChange={(e) => { setAnalysisModeFilter(e.target.value as '' | 'binary' | 'source'); setPage(1); }}
-              className="rounded-lg border border-slate-200 px-2 py-1.5 text-xs text-slate-600 bg-slate-50"
+              className="rounded-lg border border-theme-border px-2 py-1.5 text-xs text-theme-text-secondary bg-theme-bg-app"
               title="分析模式筛选"
             >
               <option value="">全部模式</option>
@@ -922,13 +922,13 @@ export const SystemAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask: (
               value={parentTaskIdFilter}
               onChange={(e) => { setParentTaskIdFilter(e.target.value); setPage(1); }}
               placeholder="筛选主任务ID"
-              className="w-44 rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs text-slate-600 placeholder:text-slate-400"
+              className="w-44 rounded-lg border border-theme-border bg-theme-bg-app px-3 py-1.5 text-xs text-theme-text-secondary placeholder:text-theme-text-muted"
               title="按主任务 ID 筛选"
             />
             <select
               value={statusFilter}
               onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
-              className="rounded-lg border border-slate-200 px-2 py-1.5 text-xs text-slate-600 bg-slate-50"
+              className="rounded-lg border border-theme-border px-2 py-1.5 text-xs text-theme-text-secondary bg-theme-bg-app"
               title="任务状态筛选"
             >
               <option value="">全部状态</option>
@@ -939,7 +939,7 @@ export const SystemAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask: (
             <select
               value={sortBy}
               onChange={(e) => { setSortBy(e.target.value); setPage(1); }}
-              className="rounded-lg border border-slate-200 px-2 py-1.5 text-xs text-slate-600 bg-slate-50"
+              className="rounded-lg border border-theme-border px-2 py-1.5 text-xs text-theme-text-secondary bg-theme-bg-app"
               title="排序字段"
             >
               {SORT_OPTIONS.map((option) => (
@@ -949,41 +949,41 @@ export const SystemAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask: (
             <select
               value={sortOrder}
               onChange={(e) => { setSortOrder(e.target.value === 'asc' ? 'asc' : 'desc'); setPage(1); }}
-              className="rounded-lg border border-slate-200 px-2 py-1.5 text-xs text-slate-600 bg-slate-50"
+              className="rounded-lg border border-theme-border px-2 py-1.5 text-xs text-theme-text-secondary bg-theme-bg-app"
               title="排序方向"
             >
               <option value="desc">降序</option>
               <option value="asc">升序</option>
             </select>
-            <button onClick={() => { void loadTasks(page); void loadTaskStats(); void loadClusterCapacity(); }} className="rounded-lg border border-slate-200 p-2 text-slate-500 hover:bg-slate-100">
+            <button onClick={() => { void loadTasks(page); void loadTaskStats(); void loadClusterCapacity(); }} className="rounded-lg border border-theme-border p-2 text-theme-text-muted hover:bg-theme-elevated">
               <RefreshCw size={14} />
             </button>
             <button onClick={() => { setCreateModalInitialForm(buildDefaultSystemAnalysisTaskForm(projectId)); setCreateModalOpen(true); }}
-              className="inline-flex items-center gap-1.5 rounded-lg bg-slate-900 px-3 py-1.5 text-xs font-semibold text-white hover:bg-slate-700">
+              className="inline-flex items-center gap-1.5 rounded-lg bg-theme-surface px-3 py-1.5 text-xs font-semibold text-white hover:bg-theme-elevated">
               <Plus size={13} />新建任务
             </button>
           </div>
         </div>
 
-        <div className="mb-4 flex flex-wrap items-center gap-3 text-xs text-slate-500">
+        <div className="mb-4 flex flex-wrap items-center gap-3 text-xs text-theme-text-muted">
           <span>
             自动刷新：{autoRefreshEnabled ?`开启（${Math.max(5, refreshIntervalSec)}s）` : '关闭'}
           </span>
           {autoRefreshEnabled && !hasActiveTasks ? (
-            <span className="text-amber-600">当前无运行中任务，自动刷新暂不触发</span>
+            <span className="text-amber-400">当前无运行中任务，自动刷新暂不触发</span>
           ) : null}
           {autoRefreshEnabled && !pageVisible ? (
-            <span className="text-slate-400">页面不可见时暂停自动刷新</span>
+            <span className="text-theme-text-muted">页面不可见时暂停自动刷新</span>
           ) : null}
           {autoRefreshEnabled && hasActiveTasks ? (
-            <span className="text-cyan-600">检测到活跃任务，按设定间隔自动刷新</span>
+            <span className="text-cyan-400">检测到活跃任务，按设定间隔自动刷新</span>
           ) : null}
         </div>
 
         {hasSelection ? (
-          <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-cyan-200 bg-cyan-50 px-4 py-3">
+          <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-cyan-500/20 bg-cyan-500/15 px-4 py-3">
             <div className="flex items-center gap-3">
-              <label className="inline-flex items-center gap-2 text-sm text-slate-600">
+              <label className="inline-flex items-center gap-2 text-sm text-theme-text-secondary">
                 <input
                   type="checkbox"
                   checked={allPageSelected}
@@ -991,13 +991,13 @@ export const SystemAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask: (
                 />
                 全选当前页（{tasks.length} 条）
               </label>
-              <span className="text-sm font-semibold text-cyan-700">已选择 {selectedTaskIds.size} 个任务</span>
+              <span className="text-sm font-semibold text-cyan-400">已选择 {selectedTaskIds.size} 个任务</span>
             </div>
             <div className="flex flex-wrap items-center gap-2">
               <button
                 onClick={() => void handleBatchCancel()}
                 disabled={batchCancelling || batchDeleting || batchRestarting}
-                className="inline-flex items-center gap-2 rounded-xl border border-amber-200 bg-slate-50 px-4 py-2 text-sm font-semibold text-amber-700 hover:bg-amber-50 disabled:opacity-50"
+                className="inline-flex items-center gap-2 rounded-xl border border-amber-500/20 bg-theme-bg-app px-4 py-2 text-sm font-semibold text-amber-400 hover:bg-amber-500/15 disabled:opacity-50"
               >
                 {batchCancelling ? <Loader2 size={14} className="animate-spin" /> : <XCircle size={14} />}
                 批量停止
@@ -1005,7 +1005,7 @@ export const SystemAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask: (
               <button
                 onClick={() => void handleBatchRestart()}
                 disabled={batchRestarting || batchCancelling || batchDeleting}
-                className="inline-flex items-center gap-2 rounded-xl border border-violet-200 bg-slate-50 px-4 py-2 text-sm font-semibold text-violet-700 hover:bg-violet-50 disabled:opacity-50"
+                className="inline-flex items-center gap-2 rounded-xl border border-violet-500/20 bg-theme-bg-app px-4 py-2 text-sm font-semibold text-violet-400 hover:bg-violet-500/15 disabled:opacity-50"
               >
                 {batchRestarting ? <Loader2 size={14} className="animate-spin" /> : <RotateCcw size={14} />}
                 批量重试
@@ -1013,14 +1013,14 @@ export const SystemAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask: (
               <button
                 onClick={() => setSelectedTaskIds(new Set())}
                 disabled={batchDeleting || batchCancelling || batchRestarting}
-                className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-100 disabled:opacity-50"
+                className="inline-flex items-center gap-2 rounded-xl border border-theme-border bg-theme-bg-app px-4 py-2 text-sm font-semibold text-theme-text-secondary hover:bg-theme-elevated disabled:opacity-50"
               >
                 清除选择
               </button>
               <button
                 onClick={() => void handleBatchDelete()}
                 disabled={batchDeleting || batchCancelling || batchRestarting}
-                className="inline-flex items-center gap-2 rounded-xl border border-red-200 bg-slate-50 px-4 py-2 text-sm font-semibold text-red-700 hover:bg-red-100 disabled:opacity-50"
+                className="inline-flex items-center gap-2 rounded-xl border border-red-500/20 bg-theme-bg-app px-4 py-2 text-sm font-semibold text-red-400 hover:bg-red-500/15 disabled:opacity-50"
               >
                 {batchDeleting ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
                 批量删除（{selectedTaskIds.size}）
@@ -1030,11 +1030,11 @@ export const SystemAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask: (
         ) : null}
 
         {loading && tasks.length === 0 ? (
-          <div className="flex items-center justify-center py-12 text-slate-400">
+          <div className="flex items-center justify-center py-12 text-theme-text-muted">
             <Loader2 size={20} className="mr-2 animate-spin" /> 加载中...
           </div>
         ) : tasks.length === 0 ? (
-          <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50 py-10 text-center text-xs text-slate-400">
+          <div className="rounded-xl border border-dashed border-theme-border bg-theme-bg-app py-10 text-center text-xs text-theme-text-muted">
             暂无任务，点击右上角「新建任务」创建
           </div>
         ) : (
@@ -1101,13 +1101,13 @@ export const SystemAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask: (
                         saveExecutionReturnContext({ view: 'system-analysis-task' });
                         onOpenTask(t.task_id);
                       }}
-                      className="text-left text-sm font-bold text-slate-900 hover:text-cyan-700"
+                      className="text-left text-sm font-bold text-theme-text-primary hover:text-cyan-400"
                       title={`查看任务 ${t.task_name}`}
                     >
                       {t.task_name}
                     </button>
                     {t.abnormal_reason_title && ['failed', 'error', 'cancelled'].includes(t.status) ? (
-                      <div className="mt-1 text-xs text-red-600">
+                      <div className="mt-1 text-xs text-red-400">
                         <span className="font-bold">{t.abnormal_reason_title}</span>
                         {t.abnormal_reason_code ? <span className="ml-2 font-mono uppercase tracking-[0.12em] text-red-500">{t.abnormal_reason_code}</span> : null}
                       </div>
@@ -1130,7 +1130,7 @@ export const SystemAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask: (
                       type="button"
                       onClick={() => toggleStatusQuickFilter(t.status)}
                       className={getQuickFilterButtonClassName(
-                        statusFilter === t.status,`shrink-0 rounded-md px-2 py-1 text-xs font-semibold ${STATUS_COLOR[t.status] ?? 'bg-slate-100 text-slate-600'}`
+                        statusFilter === t.status,`shrink-0 rounded-md px-2 py-1 text-xs font-semibold ${STATUS_COLOR[t.status] ?? 'bg-theme-elevated text-theme-text-secondary'}`
                       )}
                       title={statusFilter === t.status ? '再次点击取消状态筛选' : '点击按状态快速筛选'}
                     >
@@ -1146,10 +1146,10 @@ export const SystemAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask: (
                       return (
                         <div className="space-y-1">
                           <span className={`inline-flex rounded-full px-2 py-0.5 text-[10px] font-bold ${slot.tone}`}>{slot.label}</span>
-                          <div className="truncate text-xs font-semibold text-slate-700" title={t.dispatcher_instance_id || slot.ownerText}>
+                          <div className="truncate text-xs font-semibold text-theme-text-secondary" title={t.dispatcher_instance_id || slot.ownerText}>
                             {slot.ownerText}
                           </div>
-                          <div className="truncate text-[11px] text-slate-400" title={slot.detailText}>{slot.detailText}</div>
+                          <div className="truncate text-[11px] text-theme-text-muted" title={slot.detailText}>{slot.detailText}</div>
                         </div>
                       );
                     })()}
@@ -1161,27 +1161,27 @@ export const SystemAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask: (
                         onClick={() => toggleParentTaskQuickFilter(t.parent_task_id || '')}
                         className={getQuickFilterButtonClassName(
                           parentTaskIdFilter === t.parent_task_id,
-                          'inline-flex max-w-full items-center rounded-md border border-slate-200 bg-slate-50 px-2.5 py-1 font-mono text-xs font-semibold text-slate-700'
+                          'inline-flex max-w-full items-center rounded-md border border-theme-border bg-theme-bg-app px-2.5 py-1 font-mono text-xs font-semibold text-theme-text-secondary'
                         )}
                         title={parentTaskIdFilter === t.parent_task_id ? '再次点击取消主任务筛选' : '点击按主任务 ID 快速筛选'}
                       >
                         <span className="truncate" title={t.parent_task_id}>{t.parent_task_id}</span>
                       </button>
                     ) : (
-                      <span className="text-xs text-slate-400">-</span>
+                      <span className="text-xs text-theme-text-muted">-</span>
                     )}
                   </ExecutionTableTd>
-                  <ExecutionTableTd className="whitespace-nowrap text-xs text-slate-500">
+                  <ExecutionTableTd className="whitespace-nowrap text-xs text-theme-text-muted">
                     {t.created_at ? new Date(t.created_at).toLocaleString('zh-CN') : '-'}
                   </ExecutionTableTd>
-                  <ExecutionTableTd className="whitespace-nowrap text-xs text-slate-500">
+                  <ExecutionTableTd className="whitespace-nowrap text-xs text-theme-text-muted">
                     {formatDuration(t.started_at, t.finished_at, clockNow)}
                   </ExecutionTableTd>
                   <ExecutionTableTd className="text-right">
                     <button
                       onClick={(e) => { e.stopPropagation(); void handleDelete(t.task_id, t.task_name); }}
                       title="删除任务及输出文件"
-                      className="inline-flex items-center justify-center rounded-lg p-1.5 text-slate-400 hover:bg-red-50 hover:text-red-500 transition-colors"
+                      className="inline-flex items-center justify-center rounded-lg p-1.5 text-theme-text-muted hover:bg-red-500/15 hover:text-red-500 transition-colors"
                     >
                       <Trash2 size={14} />
                     </button>
@@ -1192,12 +1192,12 @@ export const SystemAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask: (
           </ExecutionTable>
         )}
 
-        <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 pt-3">
-          <div className="text-xs text-slate-500">
+        <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-theme-border pt-3">
+          <div className="text-xs text-theme-text-muted">
             共 {total} 条，当前显示 {pageStart}-{pageEnd}
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            <label className="inline-flex items-center gap-1.5 text-xs text-slate-500">
+            <label className="inline-flex items-center gap-1.5 text-xs text-theme-text-muted">
               每页
               <select
                 value={perPage}
@@ -1206,7 +1206,7 @@ export const SystemAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask: (
                   setPerPage(nextSize);
                   setPage(1);
                 }}
-                className="rounded-lg border border-slate-200 bg-slate-50 px-2 py-1.5 text-xs text-slate-700 outline-none"
+                className="rounded-lg border border-theme-border bg-theme-bg-app px-2 py-1.5 text-xs text-theme-text-secondary outline-none"
               >
                 {[10, 50, 100, 200, 500, 1000].map((n) => <option key={n} value={n}>{n}</option>)}
               </select>
@@ -1215,29 +1215,29 @@ export const SystemAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask: (
             <button
               disabled={page <= 1}
               onClick={() => setPage(1)}
-              className="rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs font-semibold text-slate-600 disabled:opacity-40 hover:bg-slate-100"
+              className="rounded-lg border border-theme-border px-2.5 py-1.5 text-xs font-semibold text-theme-text-secondary disabled:opacity-40 hover:bg-theme-elevated"
             >
               首页
             </button>
             <button
               disabled={page <= 1}
               onClick={() => setPage((p) => Math.max(1, p - 1))}
-              className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-600 disabled:opacity-40 hover:bg-slate-100"
+              className="rounded-lg border border-theme-border px-3 py-1.5 text-xs font-semibold text-theme-text-secondary disabled:opacity-40 hover:bg-theme-elevated"
             >
               上一页
             </button>
-            <span className="min-w-16 text-center text-xs text-slate-500">{page} / {totalPages}</span>
+            <span className="min-w-16 text-center text-xs text-theme-text-muted">{page} / {totalPages}</span>
             <button
               disabled={page >= totalPages}
               onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-              className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-600 disabled:opacity-40 hover:bg-slate-100"
+              className="rounded-lg border border-theme-border px-3 py-1.5 text-xs font-semibold text-theme-text-secondary disabled:opacity-40 hover:bg-theme-elevated"
             >
               下一页
             </button>
             <button
               disabled={page >= totalPages}
               onClick={() => setPage(totalPages)}
-              className="rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs font-semibold text-slate-600 disabled:opacity-40 hover:bg-slate-100"
+              className="rounded-lg border border-theme-border px-2.5 py-1.5 text-xs font-semibold text-theme-text-secondary disabled:opacity-40 hover:bg-theme-elevated"
             >
               末页
             </button>
@@ -1265,21 +1265,21 @@ export const SystemAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask: (
 
       {showSlotDetailModal ? (
         <div className="fixed inset-0 z-[180] flex items-center justify-center bg-slate-950/65 p-4 backdrop-blur-sm" onClick={() => setShowSlotDetailModal(false)}>
-          <div className="w-full max-w-5xl rounded-[2rem] border border-slate-200 bg-slate-50" onClick={(event) => event.stopPropagation()}>
-            <div className="flex items-start justify-between gap-4 border-b border-slate-200 px-6 py-5">
+          <div className="w-full max-w-5xl rounded-[2rem] border border-theme-border bg-theme-bg-app" onClick={(event) => event.stopPropagation()}>
+            <div className="flex items-start justify-between gap-4 border-b border-theme-border px-6 py-5">
               <div>
-                <h3 className="mt-2 text-2xl font-black tracking-tight text-slate-900">执行槽位详情</h3>
-                <p className="mt-2 text-sm text-slate-500">按 worker 展示当前系统分析任务执行情况；点击每个 worker 头部展开或收起详细信息。</p>
+                <h3 className="mt-2 text-2xl font-black tracking-tight text-theme-text-primary">执行槽位详情</h3>
+                <p className="mt-2 text-sm text-theme-text-muted">按 worker 展示当前系统分析任务执行情况；点击每个 worker 头部展开或收起详细信息。</p>
               </div>
               <div className="flex items-center gap-3">
-                <div className="text-right text-xs text-slate-400">
+                <div className="text-right text-xs text-theme-text-muted">
                   <div>最近同步</div>
-                  <div className="mt-1 font-semibold text-slate-500">{formatDateTime(clusterCapacityDetail?.updated_at || clusterCapacitySummary?.updated_at)}</div>
+                  <div className="mt-1 font-semibold text-theme-text-muted">{formatDateTime(clusterCapacityDetail?.updated_at || clusterCapacitySummary?.updated_at)}</div>
                 </div>
                 <button
                   type="button"
                   onClick={() => setShowSlotDetailModal(false)}
-                  className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-slate-50 text-slate-600 hover:bg-slate-100"
+                  className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-theme-border bg-theme-bg-app text-theme-text-secondary hover:bg-theme-elevated"
                   aria-label="关闭执行槽位详情"
                 >
                   <X size={16} />
@@ -1288,7 +1288,7 @@ export const SystemAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask: (
             </div>
             <div className="max-h-[75vh] overflow-auto px-6 py-5">
               {(clusterCapacityDetail?.workers || []).length === 0 ? (
-                <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-4 py-10 text-center text-sm text-slate-400">
+                <div className="rounded-2xl border border-dashed border-theme-border bg-theme-bg-app px-4 py-10 text-center text-sm text-theme-text-muted">
                   当前未发现可用的系统分析 worker。
                 </div>
               ) : (
@@ -1299,7 +1299,7 @@ export const SystemAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask: (
                     return (
                       <section
                         key={worker.worker_id}
-                        className={`overflow-hidden rounded-[1.5rem] border ${worker.healthy ? 'border-slate-200 bg-slate-50' : 'border-rose-200 bg-rose-50/70'}`}
+                        className={`overflow-hidden rounded-[1.5rem] border ${worker.healthy ? 'border-theme-border bg-theme-bg-app' : 'border-rose-500/20 bg-rose-50/70'}`}
                       >
                         <button
                           type="button"
@@ -1308,14 +1308,14 @@ export const SystemAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask: (
                         >
                           <div className="min-w-0">
                             <div className="flex flex-wrap items-center gap-2">
-                              <div className="text-sm font-black text-slate-900">{worker.host_name || worker.worker_id}</div>
-                              <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${worker.healthy ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'}`}>
+                              <div className="text-sm font-black text-theme-text-primary">{worker.host_name || worker.worker_id}</div>
+                              <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${worker.healthy ? 'bg-emerald-500/15 text-emerald-400' : 'bg-rose-500/15 text-rose-400'}`}>
                                 {worker.healthy ? 'healthy' : 'unhealthy'}
                               </span>
-                              <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-bold text-slate-600">活动任务 {activeJobs.length}</span>
+                              <span className="rounded-full bg-theme-elevated px-2 py-0.5 text-[10px] font-bold text-theme-text-secondary">活动任务 {activeJobs.length}</span>
                             </div>
-                            <div className="mt-1 break-all font-mono text-[11px] text-slate-400">{worker.worker_id}</div>
-                            <div className="mt-2 flex flex-wrap gap-3 text-xs text-slate-500">
+                            <div className="mt-1 break-all font-mono text-[11px] text-theme-text-muted">{worker.worker_id}</div>
+                            <div className="mt-2 flex flex-wrap gap-3 text-xs text-theme-text-muted">
                               <span>槽位 {worker.running_jobs}/{worker.max_concurrent_jobs}</span>
                               <span>空闲 {worker.available_slots}</span>
                               <span>来源 {worker.source || 'runner_registry'}</span>
@@ -1334,64 +1334,64 @@ export const SystemAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask: (
                               />
                             </div>
                           </div>
-                          <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 bg-slate-50 text-slate-500">
+                          <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-theme-border bg-theme-bg-app text-theme-text-muted">
                             {expanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
                           </div>
                         </button>
                         {expanded ? (
-                          <div className="border-t border-slate-100 px-5 py-4">
+                          <div className="border-t border-theme-border px-5 py-4">
                             {!worker.healthy ? (
-                              <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+                              <div className="rounded-2xl border border-rose-500/20 bg-rose-500/15 px-4 py-3 text-sm text-rose-400">
                                 Worker 当前不可用。{worker.error ?`原因：${worker.error}` : ''}
                               </div>
                             ) : activeJobs.length === 0 ? (
-                              <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-4 py-8 text-center text-sm text-slate-400">
+                              <div className="rounded-2xl border border-dashed border-theme-border bg-theme-bg-app px-4 py-8 text-center text-sm text-theme-text-muted">
                                 当前无活跃系统分析任务。
                               </div>
                             ) : (
                               <div className="space-y-3">
                                 {activeJobs.map((job) => (
-                                  <div key={`${worker.worker_id}:${job.task_id}`} className={`rounded-2xl border px-4 py-4 ${job.mapped ? 'border-slate-200 bg-slate-50/70' : 'border-amber-200 bg-amber-50/80'}`}>
+                                  <div key={`${worker.worker_id}:${job.task_id}`} className={`rounded-2xl border px-4 py-4 ${job.mapped ? 'border-theme-border bg-slate-50/70' : 'border-amber-500/20 bg-amber-50/80'}`}>
                                     <div className="flex flex-wrap items-start justify-between gap-3">
                                       <div className="min-w-0 flex-1">
                                         <div className="flex flex-wrap items-center gap-2">
-                                          <div className="truncate text-sm font-black text-slate-900" title={job.task_name}>{job.task_name}</div>
-                                          <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${job.mapped ? 'bg-cyan-100 text-cyan-700' : 'bg-amber-100 text-amber-700'}`}>
+                                          <div className="truncate text-sm font-black text-theme-text-primary" title={job.task_name}>{job.task_name}</div>
+                                          <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${job.mapped ? 'bg-cyan-500/15 text-cyan-400' : 'bg-amber-500/15 text-amber-400'}`}>
                                             {job.mapped ? '已关联任务' : '未关联任务'}
                                           </span>
-                                          <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-bold text-slate-600">{job.status}</span>
+                                          <span className="rounded-full bg-theme-elevated px-2 py-0.5 text-[10px] font-bold text-theme-text-secondary">{job.status}</span>
                                         </div>
-                                        <div className="mt-1 break-all font-mono text-[11px] text-slate-500">{job.input_path || '-'}</div>
+                                        <div className="mt-1 break-all font-mono text-[11px] text-theme-text-muted">{job.input_path || '-'}</div>
                                       </div>
-                                      <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-[11px] text-slate-500">
-                                        <div className="font-semibold text-slate-700">task id</div>
+                                      <div className="rounded-xl border border-theme-border bg-theme-bg-app px-3 py-2 text-[11px] text-theme-text-muted">
+                                        <div className="font-semibold text-theme-text-secondary">task id</div>
                                         <div className="mt-1 font-mono">{job.task_id}</div>
                                       </div>
                                     </div>
                                     <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
- <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-3">
-                                        <div className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">分析模式</div>
-                                        <div className="mt-1 text-sm font-semibold text-slate-700">{job.analysis_mode === 'source' ? '源码' : job.analysis_mode === 'binary' ? '二进制' : '-'}</div>
+ <div className="rounded-xl border border-theme-border bg-theme-bg-app px-3 py-3">
+                                        <div className="text-[10px] font-black uppercase tracking-[0.2em] text-theme-text-muted">分析模式</div>
+                                        <div className="mt-1 text-sm font-semibold text-theme-text-secondary">{job.analysis_mode === 'source' ? '源码' : job.analysis_mode === 'binary' ? '二进制' : '-'}</div>
                                       </div>
- <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-3">
-                                        <div className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">主任务</div>
-                                        <div className="mt-1 break-all font-mono text-[11px] text-slate-600">{job.parent_task_id || '-'}</div>
+ <div className="rounded-xl border border-theme-border bg-theme-bg-app px-3 py-3">
+                                        <div className="text-[10px] font-black uppercase tracking-[0.2em] text-theme-text-muted">主任务</div>
+                                        <div className="mt-1 break-all font-mono text-[11px] text-theme-text-secondary">{job.parent_task_id || '-'}</div>
                                       </div>
- <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-3">
-                                        <div className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">租约</div>
-                                        <div className="mt-1 text-sm font-semibold text-slate-700">{formatDateTime(job.execution_lease_until)}</div>
+ <div className="rounded-xl border border-theme-border bg-theme-bg-app px-3 py-3">
+                                        <div className="text-[10px] font-black uppercase tracking-[0.2em] text-theme-text-muted">租约</div>
+                                        <div className="mt-1 text-sm font-semibold text-theme-text-secondary">{formatDateTime(job.execution_lease_until)}</div>
                                       </div>
- <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-3">
-                                        <div className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">调度开始</div>
-                                        <div className="mt-1 text-sm font-semibold text-slate-700">{formatDateTime(job.dispatch_started_at)}</div>
+ <div className="rounded-xl border border-theme-border bg-theme-bg-app px-3 py-3">
+                                        <div className="text-[10px] font-black uppercase tracking-[0.2em] text-theme-text-muted">调度开始</div>
+                                        <div className="mt-1 text-sm font-semibold text-theme-text-secondary">{formatDateTime(job.dispatch_started_at)}</div>
                                       </div>
- <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-3">
-                                        <div className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">最近更新</div>
-                                        <div className="mt-1 text-sm font-semibold text-slate-700">{formatDateTime(job.updated_at)}</div>
+ <div className="rounded-xl border border-theme-border bg-theme-bg-app px-3 py-3">
+                                        <div className="text-[10px] font-black uppercase tracking-[0.2em] text-theme-text-muted">最近更新</div>
+                                        <div className="mt-1 text-sm font-semibold text-theme-text-secondary">{formatDateTime(job.updated_at)}</div>
                                       </div>
- <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-3">
-                                        <div className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">映射结果</div>
-                                        <div className="mt-1 text-sm font-semibold text-slate-700">{job.mapping_reason}</div>
+ <div className="rounded-xl border border-theme-border bg-theme-bg-app px-3 py-3">
+                                        <div className="text-[10px] font-black uppercase tracking-[0.2em] text-theme-text-muted">映射结果</div>
+                                        <div className="mt-1 text-sm font-semibold text-theme-text-secondary">{job.mapping_reason}</div>
                                       </div>
                                     </div>
                                   </div>

@@ -153,7 +153,7 @@ const LK = {
 } as const;
 const MONO = 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace';
 
-const panelClassName = 'rounded-[2rem] border border-slate-200 bg-slate-50 p-6 ';
+const panelClassName = 'rounded-[2rem] border border-theme-border bg-theme-bg-app p-6 ';
 
 export const KernelScanPage: React.FC<{ projectId: string }> = ({ projectId }) => {
   const executionApi = api.domains.execution.kernelScan;
@@ -1130,15 +1130,15 @@ export const KernelScanPage: React.FC<{ projectId: string }> = ({ projectId }) =
           </div>
 
           {taskDetailLoading ? (
-            <div className="mt-6 flex items-center gap-2 text-sm font-semibold text-slate-600">
+            <div className="mt-6 flex items-center gap-2 text-sm font-semibold text-theme-text-secondary">
               <Loader2 size={16} className="animate-spin" />
               正在加载任务详情...
             </div>
           ) : selectedTask ? (
             <div className="mt-6 space-y-4">
-              <div className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3">
+              <div className="rounded-lg border border-theme-border bg-theme-bg-app px-4 py-3">
                 <div className="flex items-center justify-between gap-2">
-                  <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-500">任务 ID</div>
+                  <div className="text-[11px] font-black uppercase tracking-[0.18em] text-theme-text-muted">任务 ID</div>
                   <button
                     type="button"
                     onClick={async () => {
@@ -1149,14 +1149,14 @@ export const KernelScanPage: React.FC<{ projectId: string }> = ({ projectId }) =
                         notify('复制失败，请手动选择文本', 'error');
                       }
                     }}
-                    className="inline-flex items-center gap-1 rounded-md border border-slate-200 bg-slate-50 px-2 py-1 text-[11px] font-bold text-slate-700 transition hover:bg-slate-100"
+                    className="inline-flex items-center gap-1 rounded-md border border-theme-border bg-theme-bg-app px-2 py-1 text-[11px] font-bold text-theme-text-secondary transition hover:bg-theme-elevated"
                   >
                     <Copy size={12} />
                     复制
                   </button>
                 </div>
                 <div
-                  className="mt-2 break-all font-mono text-sm text-slate-800 select-all cursor-text"
+                  className="mt-2 break-all font-mono text-sm text-theme-text-primary select-all cursor-text"
                   onClick={(event) => {
                     const range = document.createRange();
                     range.selectNodeContents(event.currentTarget);
@@ -1168,41 +1168,41 @@ export const KernelScanPage: React.FC<{ projectId: string }> = ({ projectId }) =
                   {selectedTask.task_id}
                 </div>
               </div>
-              <div className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3">
-                <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-500">目标路径</div>
-                <div className="mt-2 break-all font-mono text-sm text-slate-800">{selectedTask.kernel_dir || '-'}</div>
+              <div className="rounded-lg border border-theme-border bg-theme-bg-app px-4 py-3">
+                <div className="text-[11px] font-black uppercase tracking-[0.18em] text-theme-text-muted">目标路径</div>
+                <div className="mt-2 break-all font-mono text-sm text-theme-text-primary">{selectedTask.kernel_dir || '-'}</div>
               </div>
               <div className="grid gap-4 sm:grid-cols-2">
-                <div className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3">
-                  <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-500">创建时间</div>
-                  <div className="mt-2 text-sm font-semibold text-slate-800">{formatDateTime(selectedTask.created_at)}</div>
+                <div className="rounded-lg border border-theme-border bg-theme-bg-app px-4 py-3">
+                  <div className="text-[11px] font-black uppercase tracking-[0.18em] text-theme-text-muted">创建时间</div>
+                  <div className="mt-2 text-sm font-semibold text-theme-text-primary">{formatDateTime(selectedTask.created_at)}</div>
                 </div>
-                <div className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3">
-                  <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-500">完成时间</div>
-                  <div className="mt-2 text-sm font-semibold text-slate-800">{formatDateTime(selectedTask.finished_at)}</div>
+                <div className="rounded-lg border border-theme-border bg-theme-bg-app px-4 py-3">
+                  <div className="text-[11px] font-black uppercase tracking-[0.18em] text-theme-text-muted">完成时间</div>
+                  <div className="mt-2 text-sm font-semibold text-theme-text-primary">{formatDateTime(selectedTask.finished_at)}</div>
                 </div>
               </div>
               {selectedTask.notes ? (
-                <div className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3">
-                  <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-500">备注</div>
-                  <div className="mt-2 whitespace-pre-wrap text-sm text-slate-800">{selectedTask.notes}</div>
+                <div className="rounded-lg border border-theme-border bg-theme-bg-app px-4 py-3">
+                  <div className="text-[11px] font-black uppercase tracking-[0.18em] text-theme-text-muted">备注</div>
+                  <div className="mt-2 whitespace-pre-wrap text-sm text-theme-text-primary">{selectedTask.notes}</div>
                 </div>
               ) : null}
               {showTaskWorkspaceFiles ? (
-                <div className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3">
+                <div className="rounded-lg border border-theme-border bg-theme-bg-app px-4 py-3">
                   <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
                     <div className="min-w-0">
                       <div className="flex items-center gap-2">
-                        <FolderOpen size={14} className="text-slate-500" />
-                        <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-500">{isVulnVerifyDetail ? '扫描结果预览' : '任务 Workspace 文件'}</div>
+                        <FolderOpen size={14} className="text-theme-text-muted" />
+                        <div className="text-[11px] font-black uppercase tracking-[0.18em] text-theme-text-muted">{isVulnVerifyDetail ? '扫描结果预览' : '任务 Workspace 文件'}</div>
                       </div>
-                      <div className="mt-2 break-all font-mono text-[11px] text-slate-500">{taskWorkspaceDisplayPath}</div>
+                      <div className="mt-2 break-all font-mono text-[11px] text-theme-text-muted">{taskWorkspaceDisplayPath}</div>
                     </div>
                     <button
                       type="button"
                       onClick={() => loadTaskWorkspace(taskWorkspacePath || taskWorkspaceRoot)}
                       disabled={taskWorkspaceLoading || !taskWorkspaceRoot}
-                      className="inline-flex shrink-0 items-center gap-1 rounded-md border border-slate-200 bg-slate-50 px-2 py-1 text-[11px] font-bold text-slate-700 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50"
+                      className="inline-flex shrink-0 items-center gap-1 rounded-md border border-theme-border bg-theme-bg-app px-2 py-1 text-[11px] font-bold text-theme-text-secondary transition hover:bg-theme-elevated disabled:cursor-not-allowed disabled:opacity-50"
                     >
                       {taskWorkspaceLoading ? <Loader2 size={12} className="animate-spin" /> : <RefreshCw size={12} />}
                       刷新
@@ -1210,20 +1210,20 @@ export const KernelScanPage: React.FC<{ projectId: string }> = ({ projectId }) =
                   </div>
 
                   {taskWorkspaceError ? (
-                    <div className="mt-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm font-semibold text-amber-700">
+                    <div className="mt-3 rounded-lg border border-amber-500/20 bg-amber-500/15 px-3 py-2 text-sm font-semibold text-amber-400">
                       {taskWorkspaceError}
                     </div>
                   ) : null}
 
                   <div className="mt-3 grid gap-3 lg:grid-cols-[minmax(0,0.95fr)_minmax(0,1.35fr)]">
-                    <div className="min-h-[320px] overflow-hidden rounded-lg border border-slate-200 bg-slate-50">
-                      <div className="flex items-center justify-between gap-2 border-b border-slate-200 bg-slate-50 px-3 py-2">
-                        <span className="text-xs font-bold text-slate-600">{isVulnVerifyDetail ? '结果文件' : '文件列表'}</span>
+                    <div className="min-h-[320px] overflow-hidden rounded-lg border border-theme-border bg-theme-bg-app">
+                      <div className="flex items-center justify-between gap-2 border-b border-theme-border bg-theme-bg-app px-3 py-2">
+                        <span className="text-xs font-bold text-theme-text-secondary">{isVulnVerifyDetail ? '结果文件' : '文件列表'}</span>
                         {canGoTaskWorkspaceUp ? (
                           <button
                             type="button"
                             onClick={handleTaskWorkspaceUp}
-                            className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-[11px] font-bold text-slate-600 transition hover:bg-slate-200"
+                            className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-[11px] font-bold text-theme-text-secondary transition hover:bg-theme-elevated"
                           >
                             <ArrowLeft size={12} />
                             上级
@@ -1232,7 +1232,7 @@ export const KernelScanPage: React.FC<{ projectId: string }> = ({ projectId }) =
                       </div>
                       <div className="max-h-[420px] overflow-auto p-2">
                         {taskWorkspaceLoading && !taskWorkspaceData ? (
-                          <div className="flex items-center justify-center gap-2 py-10 text-sm font-semibold text-slate-500">
+                          <div className="flex items-center justify-center gap-2 py-10 text-sm font-semibold text-theme-text-muted">
                             <Loader2 size={16} className="animate-spin" />
                             加载中...
                           </div>
@@ -1245,58 +1245,58 @@ export const KernelScanPage: React.FC<{ projectId: string }> = ({ projectId }) =
                                   key={entry.path}
                                   type="button"
                                   onClick={() => handleTaskWorkspaceNavigate(entry)}
-                                  className={`flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left transition ${selected ? 'bg-sky-50 text-sky-800' : 'text-slate-700 hover:bg-slate-100'}`}
+                                  className={`flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left transition ${selected ? 'bg-sky-500/15 text-sky-400' : 'text-theme-text-secondary hover:bg-theme-elevated'}`}
                                 >
                                   {entry.is_dir ? (
                                     <Folder size={16} className="shrink-0 text-amber-500" />
                                   ) : (
-                                    <FileText size={16} className="shrink-0 text-slate-400" />
+                                    <FileText size={16} className="shrink-0 text-theme-text-muted" />
                                   )}
                                   <span className="min-w-0 flex-1 truncate text-sm font-semibold">{entry.name}</span>
                                   {entry.is_dir ? (
-                                    <ChevronRight size={14} className="shrink-0 text-slate-300" />
+                                    <ChevronRight size={14} className="shrink-0 text-theme-text-faint" />
                                   ) : (
-                                    <span className="shrink-0 text-[11px] font-semibold text-slate-400">{formatBytes(entry.size)}</span>
+                                    <span className="shrink-0 text-[11px] font-semibold text-theme-text-muted">{formatBytes(entry.size)}</span>
                                   )}
                                 </button>
                               );
                             })}
                           </div>
                         ) : (
-                          <div className="py-10 text-center text-sm font-semibold text-slate-400">
+                          <div className="py-10 text-center text-sm font-semibold text-theme-text-muted">
                             {isVulnVerifyDetail ? '暂无扫描结果文件' : '暂无 workspace 文件'}
                           </div>
                         )}
                       </div>
                     </div>
 
-                    <div className="min-h-[320px] overflow-hidden rounded-lg border border-slate-200 bg-slate-50">
-                      <div className="border-b border-slate-200 bg-slate-50 px-3 py-2">
-                        <div className="truncate text-xs font-bold text-slate-600">
+                    <div className="min-h-[320px] overflow-hidden rounded-lg border border-theme-border bg-theme-bg-app">
+                      <div className="border-b border-theme-border bg-theme-bg-app px-3 py-2">
+                        <div className="truncate text-xs font-bold text-theme-text-secondary">
                           {previewFile ? previewFile.name : '文件预览'}
                         </div>
                         {previewFile ? (
-                          <div className="mt-1 break-all font-mono text-[11px] text-slate-400">
+                          <div className="mt-1 break-all font-mono text-[11px] text-theme-text-muted">
                             {stripWorkspacePrefix(previewFile.path)} · {formatBytes(previewFile.size)}
                           </div>
                         ) : null}
                       </div>
                       <div className="max-h-[420px] overflow-auto p-3">
                         {previewLoading ? (
-                          <div className="flex items-center justify-center gap-2 py-10 text-sm font-semibold text-slate-500">
+                          <div className="flex items-center justify-center gap-2 py-10 text-sm font-semibold text-theme-text-muted">
                             <Loader2 size={16} className="animate-spin" />
                             正在读取文件...
                           </div>
                         ) : previewError ? (
-                          <div className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-sm font-semibold text-rose-700">
+                          <div className="rounded-lg border border-rose-500/20 bg-rose-500/15 px-3 py-2 text-sm font-semibold text-rose-400">
                             {previewError}
                           </div>
                         ) : previewFile ? (
-                          <pre className="min-h-[260px] whitespace-pre-wrap break-all font-mono text-xs leading-relaxed text-slate-800">
+                          <pre className="min-h-[260px] whitespace-pre-wrap break-all font-mono text-xs leading-relaxed text-theme-text-primary">
 {previewContent || '(空文件)'}
                           </pre>
                         ) : (
-                          <div className="flex min-h-[260px] items-center justify-center text-sm font-semibold text-slate-400">
+                          <div className="flex min-h-[260px] items-center justify-center text-sm font-semibold text-theme-text-muted">
                             点击左侧文件进行预览
                           </div>
                         )}
@@ -1306,21 +1306,21 @@ export const KernelScanPage: React.FC<{ projectId: string }> = ({ projectId }) =
                 </div>
               ) : null}
               {activeTab !== 'vuln_verify' ? (
-              <div className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3">
+              <div className="rounded-lg border border-theme-border bg-theme-bg-app px-4 py-3">
                 <div className="flex items-center justify-between gap-2">
                   <div className="flex items-center gap-2">
-                    <FileText size={14} className="text-slate-500" />
-                    <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-500">扫描结果预览</div>
+                    <FileText size={14} className="text-theme-text-muted" />
+                    <div className="text-[11px] font-black uppercase tracking-[0.18em] text-theme-text-muted">扫描结果预览</div>
                   </div>
                   <div className="flex items-center gap-2">
                     {ACTIVE_TASK_STATUSES.has(String(selectedTask.status || '').toLowerCase()) ? (
-                      <span className="text-[10px] font-bold text-blue-600">自动刷新中</span>
+                      <span className="text-[10px] font-bold text-blue-400">自动刷新中</span>
                     ) : null}
                     <button
                       type="button"
                       onClick={() => fetchEntryResult(selectedTask.task_id)}
                       disabled={entryResultLoading}
-                      className="inline-flex items-center gap-1 rounded-md border border-slate-200 bg-slate-50 px-2 py-1 text-[11px] font-bold text-slate-700 transition hover:bg-slate-100 disabled:opacity-50"
+                      className="inline-flex items-center gap-1 rounded-md border border-theme-border bg-theme-bg-app px-2 py-1 text-[11px] font-bold text-theme-text-secondary transition hover:bg-theme-elevated disabled:opacity-50"
                     >
                       {entryResultLoading ? <Loader2 size={12} className="animate-spin" /> : <RefreshCw size={12} />}
                       刷新
@@ -1328,21 +1328,21 @@ export const KernelScanPage: React.FC<{ projectId: string }> = ({ projectId }) =
                   </div>
                 </div>
                 {entryResultLoading && !entryResult ? (
-                  <div className="mt-3 flex items-center gap-2 text-sm font-semibold text-slate-500">
+                  <div className="mt-3 flex items-center gap-2 text-sm font-semibold text-theme-text-muted">
                     <Loader2 size={14} className="animate-spin" />
                     加载中...
                   </div>
                 ) : entryResult?.exists ? (
                   <div className="mt-3">
-                    <div className="mb-2 break-all font-mono text-[11px] text-slate-400">
+                    <div className="mb-2 break-all font-mono text-[11px] text-theme-text-muted">
                       {entryResult.path} ({entryResult.size ?? 0} bytes)
                     </div>
-                    <pre className="max-h-[400px] overflow-auto whitespace-pre-wrap break-all rounded-lg border border-slate-200 bg-slate-50 p-3 font-mono text-xs leading-relaxed text-slate-800">
+                    <pre className="max-h-[400px] overflow-auto whitespace-pre-wrap break-all rounded-lg border border-theme-border bg-theme-bg-app p-3 font-mono text-xs leading-relaxed text-theme-text-primary">
 {entryResult.content || '(空文件)'}
                     </pre>
                   </div>
                 ) : (
-                  <div className="mt-3 text-sm font-semibold text-slate-400">
+                  <div className="mt-3 text-sm font-semibold text-theme-text-muted">
                     暂无扫描结果文件
                   </div>
                 )}
@@ -1350,7 +1350,7 @@ export const KernelScanPage: React.FC<{ projectId: string }> = ({ projectId }) =
               ) : null}
             </div>
           ) : (
-            <div className="mt-6 text-sm font-semibold text-slate-500">
+            <div className="mt-6 text-sm font-semibold text-theme-text-muted">
               任务详情不可用，请返回任务列表重新选择。
             </div>
           )}
@@ -1359,35 +1359,35 @@ export const KernelScanPage: React.FC<{ projectId: string }> = ({ projectId }) =
 
       {createModalOpen ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 px-4 py-6 backdrop-blur-sm">
- <div className="flex w-full max-w-lg flex-col overflow-hidden rounded-2xl border border-slate-200 bg-slate-50">
-            <div className="shrink-0 border-b border-slate-200 bg-slate-50/90 px-5 py-4">
+ <div className="flex w-full max-w-lg flex-col overflow-hidden rounded-2xl border border-theme-border bg-theme-bg-app">
+            <div className="shrink-0 border-b border-theme-border bg-slate-50/90 px-5 py-4">
               <h3 className="text-lg font-black text-slate-950">新建{CATEGORY_LABELS[activeTab]}任务</h3>
             </div>
             <div className="flex-1 space-y-5 overflow-auto p-5">
               <label className="block">
-                <div className="mb-2 text-xs font-black uppercase tracking-[0.18em] text-slate-500">
+                <div className="mb-2 text-xs font-black uppercase tracking-[0.18em] text-theme-text-muted">
                   {activeTab === 'vuln_verify' ? '自定义任务名' : '任务标题'}
                 </div>
                 <input
                   value={createTitle}
                   onChange={(event) => setCreateTitle(event.target.value)}
                   placeholder={activeTab === 'vuln_verify' ? '留空则按报告目录自动生成' :`输入${CATEGORY_LABELS[activeTab]}任务标题`}
-                  className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm font-semibold text-slate-700 outline-none transition focus:border-sky-300 focus:ring-4 focus:ring-sky-100"
+                  className="w-full rounded-lg border border-theme-border bg-theme-bg-app px-3 py-2.5 text-sm font-semibold text-theme-text-secondary outline-none transition focus:border-sky-300 focus:ring-4 focus:ring-sky-100"
                 />
               </label>
               <label className="block">
-                <div className="mb-2 text-xs font-black uppercase tracking-[0.18em] text-slate-500">{activeTab === 'vuln_verify' ? '源码目录' : '目标路径（内核源码目录）'}</div>
+                <div className="mb-2 text-xs font-black uppercase tracking-[0.18em] text-theme-text-muted">{activeTab === 'vuln_verify' ? '源码目录' : '目标路径（内核源码目录）'}</div>
                 <div className="flex items-center gap-2">
                   <input
                     value={createTargetPath}
                     readOnly
                     placeholder={activeTab === 'vuln_verify' ? '选择内核源码目录' : '从项目资产中选择路径'}
-                    className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm font-semibold text-slate-700 outline-none"
+                    className="w-full rounded-lg border border-theme-border bg-theme-bg-app px-3 py-2.5 text-sm font-semibold text-theme-text-secondary outline-none"
                   />
                   <button
                     type="button"
                     onClick={() => handleOpenPathPicker('target_dir')}
-                    className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm font-bold text-slate-700 transition hover:bg-slate-100"
+                    className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-theme-border bg-theme-bg-app px-3 py-2.5 text-sm font-bold text-theme-text-secondary transition hover:bg-theme-elevated"
                   >
                     <FolderOpen size={16} />
                     选择
@@ -1396,18 +1396,18 @@ export const KernelScanPage: React.FC<{ projectId: string }> = ({ projectId }) =
               </label>
               {activeTab === 'vuln_scan' ? (
                 <label className="block">
-                  <div className="mb-2 text-xs font-black uppercase tracking-[0.18em] text-slate-500">Devlist 文件路径</div>
+                  <div className="mb-2 text-xs font-black uppercase tracking-[0.18em] text-theme-text-muted">Devlist 文件路径</div>
                   <div className="flex items-center gap-2">
                     <input
                       value={createDevlistPath}
                       readOnly
                       placeholder="选择入口清单文件（每行 <func> <method>）"
-                      className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm font-semibold text-slate-700 outline-none"
+                      className="w-full rounded-lg border border-theme-border bg-theme-bg-app px-3 py-2.5 text-sm font-semibold text-theme-text-secondary outline-none"
                     />
                     <button
                       type="button"
                       onClick={() => handleOpenPathPicker('entrylist_file')}
-                      className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm font-bold text-slate-700 transition hover:bg-slate-100"
+                      className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-theme-border bg-theme-bg-app px-3 py-2.5 text-sm font-bold text-theme-text-secondary transition hover:bg-theme-elevated"
                     >
                       <FileText size={16} />
                       选择
@@ -1417,18 +1417,18 @@ export const KernelScanPage: React.FC<{ projectId: string }> = ({ projectId }) =
               ) : null}
               {activeTab === 'vuln_verify' ? (
                 <label className="block">
-                  <div className="mb-2 text-xs font-black uppercase tracking-[0.18em] text-slate-500">漏洞报告目录</div>
+                  <div className="mb-2 text-xs font-black uppercase tracking-[0.18em] text-theme-text-muted">漏洞报告目录</div>
                   <div className="flex items-center gap-2">
                     <input
                       value={createReportDir}
                       readOnly
                       placeholder="选择漏洞扫描生成的报告目录"
-                      className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm font-semibold text-slate-700 outline-none"
+                      className="w-full rounded-lg border border-theme-border bg-theme-bg-app px-3 py-2.5 text-sm font-semibold text-theme-text-secondary outline-none"
                     />
                     <button
                       type="button"
                       onClick={() => handleOpenPathPicker('report_dir')}
-                      className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm font-bold text-slate-700 transition hover:bg-slate-100"
+                      className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-theme-border bg-theme-bg-app px-3 py-2.5 text-sm font-bold text-theme-text-secondary transition hover:bg-theme-elevated"
                     >
                       <FolderOpen size={16} />
                       选择
@@ -1438,7 +1438,7 @@ export const KernelScanPage: React.FC<{ projectId: string }> = ({ projectId }) =
               ) : null}
               {activeTab !== 'vuln_verify' ? (
                 <label className="block">
-                  <div className="mb-2 text-xs font-black uppercase tracking-[0.18em] text-slate-500">并行数</div>
+                  <div className="mb-2 text-xs font-black uppercase tracking-[0.18em] text-theme-text-muted">并行数</div>
                   <input
                     type="number"
                     min={1}
@@ -1446,18 +1446,18 @@ export const KernelScanPage: React.FC<{ projectId: string }> = ({ projectId }) =
                     value={createParallelCount}
                     onChange={(event) => setCreateParallelCount(event.target.value)}
                     placeholder="1"
-                    className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm font-semibold text-slate-700 outline-none transition focus:border-sky-300 focus:ring-4 focus:ring-sky-100"
+                    className="w-full rounded-lg border border-theme-border bg-theme-bg-app px-3 py-2.5 text-sm font-semibold text-theme-text-secondary outline-none transition focus:border-sky-300 focus:ring-4 focus:ring-sky-100"
                   />
                 </label>
               ) : null}
             </div>
-            <div className="shrink-0 border-t border-slate-200 bg-slate-50/90 px-5 py-4">
+            <div className="shrink-0 border-t border-theme-border bg-slate-50/90 px-5 py-4">
               <div className="flex items-center justify-end gap-3">
                 <button
                   type="button"
                   onClick={() => setCreateModalOpen(false)}
                   disabled={creating}
-                  className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm font-bold text-slate-700 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50"
+                  className="rounded-lg border border-theme-border bg-theme-bg-app px-4 py-2.5 text-sm font-bold text-theme-text-secondary transition hover:bg-theme-elevated disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   取消
                 </button>
@@ -1465,7 +1465,7 @@ export const KernelScanPage: React.FC<{ projectId: string }> = ({ projectId }) =
                   type="button"
                   onClick={handleCreateTask}
                   disabled={creating || (activeTab !== 'vuln_verify' && !createTitle.trim()) || !createTargetPath.trim() || (activeTab === 'vuln_scan' && !createDevlistPath.trim()) || (activeTab === 'vuln_verify' && !createReportDir.trim())}
-                  className="inline-flex items-center gap-2 rounded-lg bg-slate-950 px-4 py-2.5 text-sm font-bold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50"
+                  className="inline-flex items-center gap-2 rounded-lg bg-theme-bg-app px-4 py-2.5 text-sm font-bold text-white transition hover:bg-theme-elevated disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   {creating ? <Loader2 size={16} className="animate-spin" /> : <Plus size={16} />}
                   创建任务
@@ -1478,19 +1478,19 @@ export const KernelScanPage: React.FC<{ projectId: string }> = ({ projectId }) =
 
       {showPathPicker ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 px-4 py-6 backdrop-blur-sm">
- <div className="flex h-[70vh] w-full max-w-xl flex-col overflow-hidden rounded-2xl border border-slate-200 bg-slate-50">
-            <div className="flex shrink-0 items-center justify-between border-b border-slate-200 bg-slate-50/90 px-5 py-4">
+ <div className="flex h-[70vh] w-full max-w-xl flex-col overflow-hidden rounded-2xl border border-theme-border bg-theme-bg-app">
+            <div className="flex shrink-0 items-center justify-between border-b border-theme-border bg-slate-50/90 px-5 py-4">
               <div>
                 <h3 className="text-lg font-black text-slate-950">{pathPickerTitle}</h3>
-                <div className="mt-1 break-all font-mono text-xs text-slate-500">{formatWorkspaceDisplayPath(browsePath)}</div>
+                <div className="mt-1 break-all font-mono text-xs text-theme-text-muted">{formatWorkspaceDisplayPath(browsePath)}</div>
               </div>
-              <button type="button" onClick={() => setShowPathPicker(false)} className="rounded-lg p-1.5 text-slate-500 transition hover:bg-slate-200">
+              <button type="button" onClick={() => setShowPathPicker(false)} className="rounded-lg p-1.5 text-theme-text-muted transition hover:bg-theme-elevated">
                 <X size={18} />
               </button>
             </div>
             <div className="flex-1 overflow-auto p-4">
               {browseLoading ? (
-                <div className="flex items-center gap-2 py-8 justify-center text-sm font-semibold text-slate-500">
+                <div className="flex items-center gap-2 py-8 justify-center text-sm font-semibold text-theme-text-muted">
                   <Loader2 size={16} className="animate-spin" />
                   加载中...
                 </div>
@@ -1500,9 +1500,9 @@ export const KernelScanPage: React.FC<{ projectId: string }> = ({ projectId }) =
                     <button
                       type="button"
                       onClick={handleBrowseUp}
-                      className="flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-left text-sm font-semibold text-slate-600 transition hover:bg-slate-100"
+                      className="flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-left text-sm font-semibold text-theme-text-secondary transition hover:bg-theme-elevated"
                     >
-                      <ArrowLeft size={16} className="text-slate-400" />
+                      <ArrowLeft size={16} className="text-theme-text-muted" />
                       ..
                     </button>
                   ) : null}
@@ -1511,17 +1511,17 @@ export const KernelScanPage: React.FC<{ projectId: string }> = ({ projectId }) =
                       <button
                         type="button"
                         onClick={() => handleBrowseNavigate(entry)}
-                        className="flex flex-1 items-center gap-2 rounded-lg px-3 py-2.5 text-left text-sm font-semibold text-slate-800 transition hover:bg-slate-100"
+                        className="flex flex-1 items-center gap-2 rounded-lg px-3 py-2.5 text-left text-sm font-semibold text-theme-text-primary transition hover:bg-theme-elevated"
                       >
                         <Folder size={16} className="text-amber-500" />
                         {entry.name}
-                        <ChevronRight size={14} className="ml-auto text-slate-300" />
+                        <ChevronRight size={14} className="ml-auto text-theme-text-faint" />
                       </button>
                       {pathPickerMode === 'dir' ? (
                         <button
                           type="button"
                           onClick={() => handleSelectPath(entry.path)}
-                          className="shrink-0 rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1.5 text-xs font-bold text-slate-700 transition hover:bg-slate-100"
+                          className="shrink-0 rounded-lg border border-theme-border bg-theme-bg-app px-2.5 py-1.5 text-xs font-bold text-theme-text-secondary transition hover:bg-theme-elevated"
                         >
                           选择
                         </button>
@@ -1530,15 +1530,15 @@ export const KernelScanPage: React.FC<{ projectId: string }> = ({ projectId }) =
                   ))}
                   {(browseData?.items || []).filter((e) => !e.is_dir).map((entry) => (
                     <div key={entry.path} className="flex items-center gap-1 rounded-lg px-3 py-2.5">
-                      <div className="flex flex-1 items-center gap-2 text-sm font-semibold text-slate-700">
-                        <FileText size={16} className="text-slate-400" />
+                      <div className="flex flex-1 items-center gap-2 text-sm font-semibold text-theme-text-secondary">
+                        <FileText size={16} className="text-theme-text-muted" />
                         {entry.name}
                       </div>
                       {pathPickerMode === 'file' ? (
                         <button
                           type="button"
                           onClick={() => handleSelectPath(entry.path)}
-                          className="shrink-0 rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1.5 text-xs font-bold text-slate-700 transition hover:bg-slate-100"
+                          className="shrink-0 rounded-lg border border-theme-border bg-theme-bg-app px-2.5 py-1.5 text-xs font-bold text-theme-text-secondary transition hover:bg-theme-elevated"
                         >
                           选择
                         </button>
@@ -1546,14 +1546,14 @@ export const KernelScanPage: React.FC<{ projectId: string }> = ({ projectId }) =
                     </div>
                   ))}
                   {!browseLoading && (browseData?.items || []).length === 0 ? (
-                    <div className="py-8 text-center text-sm font-semibold text-slate-400">空目录</div>
+                    <div className="py-8 text-center text-sm font-semibold text-theme-text-muted">空目录</div>
                   ) : null}
                 </div>
               )}
             </div>
-            <div className="shrink-0 border-t border-slate-200 bg-slate-50/90 px-5 py-3">
+            <div className="shrink-0 border-t border-theme-border bg-slate-50/90 px-5 py-3">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-semibold text-slate-500">
+                <span className="text-xs font-semibold text-theme-text-muted">
                   {pathPickerMode === 'file' ? '进入目录后点击文件旁的"选择"' : '点击目录名进入，点击"选择"确认路径'}
                 </span>
                 {pathPickerMode === 'dir' ? (
@@ -1561,14 +1561,14 @@ export const KernelScanPage: React.FC<{ projectId: string }> = ({ projectId }) =
                     <button
                       type="button"
                       onClick={() => setShowPathPicker(false)}
-                      className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-bold text-slate-700 transition hover:bg-slate-100"
+                      className="rounded-lg border border-theme-border bg-theme-bg-app px-3 py-2 text-xs font-bold text-theme-text-secondary transition hover:bg-theme-elevated"
                     >
                       取消
                     </button>
                     <button
                       type="button"
                       onClick={() => handleSelectPath(browsePath)}
-                      className="rounded-lg bg-slate-950 px-3 py-2 text-xs font-bold text-white transition hover:bg-slate-800"
+                      className="rounded-lg bg-theme-bg-app px-3 py-2 text-xs font-bold text-white transition hover:bg-theme-elevated"
                     >
                       选择当前目录
                     </button>
@@ -1577,7 +1577,7 @@ export const KernelScanPage: React.FC<{ projectId: string }> = ({ projectId }) =
                   <button
                     type="button"
                     onClick={() => setShowPathPicker(false)}
-                    className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-bold text-slate-700 transition hover:bg-slate-100"
+                    className="rounded-lg border border-theme-border bg-theme-bg-app px-3 py-2 text-xs font-bold text-theme-text-secondary transition hover:bg-theme-elevated"
                   >
                     取消
                   </button>

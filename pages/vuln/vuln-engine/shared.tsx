@@ -134,10 +134,10 @@ export const LIFECYCLE_STAGE_FLOW = [
 ] as const;
 
 export const severityTone: Record<string, string> = {
-  critical: 'bg-rose-100 text-rose-700',
-  high: 'bg-orange-100 text-orange-700',
-  medium: 'bg-amber-100 text-amber-700',
-  low: 'bg-emerald-100 text-emerald-700',
+  critical: 'bg-rose-500/15 text-rose-400',
+  high: 'bg-orange-500/15 text-orange-400',
+  medium: 'bg-amber-500/15 text-amber-400',
+  low: 'bg-emerald-500/15 text-emerald-400',
 };
 
 const LK = {
@@ -273,21 +273,21 @@ export const MODULE_ROLE_LABELS: Record<string, string> = {
 };
 
 export const stageTone: Record<string, string> = {
-  receive: 'bg-blue-100 text-blue-700',
-  triage: 'bg-amber-100 text-amber-700',
-  validation: 'bg-emerald-100 text-emerald-700',
-  finished: 'bg-slate-200 text-slate-700',
+  receive: 'bg-blue-500/15 text-blue-400',
+  triage: 'bg-amber-500/15 text-amber-400',
+  validation: 'bg-emerald-500/15 text-emerald-400',
+  finished: 'bg-theme-elevated text-theme-text-secondary',
 };
 
 export const decisionTone: Record<string, string> = {
-  issue: 'bg-rose-100 text-rose-700',
-  non_issue: 'bg-emerald-100 text-emerald-700',
-  observe: 'bg-blue-100 text-blue-700',
+  issue: 'bg-rose-500/15 text-rose-400',
+  non_issue: 'bg-emerald-500/15 text-emerald-400',
+  observe: 'bg-blue-500/15 text-blue-400',
 };
 
 export const cardClass = 'rounded-xl overflow-hidden';
 
-export const toneOf = (value: string, mapper: Record<string, string>) => mapper[value] || 'bg-slate-100 text-slate-600';
+export const toneOf = (value: string, mapper: Record<string, string>) => mapper[value] || 'bg-theme-elevated text-theme-text-secondary';
 
 export const formatTime = (value?: string | null) => {
   if (!value) return '暂无';

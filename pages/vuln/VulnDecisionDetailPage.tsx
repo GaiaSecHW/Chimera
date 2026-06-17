@@ -18,7 +18,7 @@ export const VulnDecisionDetailPage: React.FC<VulnPageProps> = ({ projectId, onN
         <button
           type="button"
           onClick={() => onNavigateToView?.('vuln-decision')}
- className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm font-black text-slate-700"
+ className="inline-flex items-center gap-2 rounded-xl border border-theme-border bg-theme-bg-app px-4 py-2.5 text-sm font-black text-theme-text-secondary"
         >
           <ArrowLeft size={16} />
           返回漏洞中心

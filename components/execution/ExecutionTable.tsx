@@ -83,7 +83,7 @@ export function ExecutionTableEmptyRow({
 }) {
   return (
     <tr>
-      <td colSpan={colSpan} className="px-6 py-12 text-center text-sm text-slate-400">
+      <td colSpan={colSpan} className="px-6 py-12 text-center text-sm text-theme-text-muted">
         {message}
       </td>
     </tr>

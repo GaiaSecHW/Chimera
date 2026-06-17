@@ -19,10 +19,10 @@ import {
 
 const statusTone = (status?: string) => {
   const text = String(status || '').toLowerCase();
-  if (text === 'ready') return 'bg-emerald-100 text-emerald-700 border-emerald-200';
-  if (text === 'broken') return 'bg-rose-100 text-rose-700 border-rose-200';
-  if (text === 'closed') return 'bg-zinc-100 text-zinc-700 border-zinc-200';
-  return 'bg-slate-100 text-slate-600 border-slate-200';
+  if (text === 'ready') return 'bg-emerald-500/15 text-emerald-400 border-emerald-500/20';
+  if (text === 'broken') return 'bg-rose-500/15 text-rose-400 border-rose-500/20';
+  if (text === 'closed') return 'bg-theme-elevated text-theme-text-secondary border-theme-border';
+  return 'bg-theme-elevated text-theme-text-secondary border-theme-border';
 };
 
 const sessionModeLabel = (mode?: string) => {
@@ -35,10 +35,10 @@ const sessionModeLabel = (mode?: string) => {
 
 const sessionModeTone = (mode?: string) =>
   String(mode || '').toLowerCase() === 'pty'
-    ? 'bg-violet-100 text-violet-700 border-violet-200'
+    ? 'bg-violet-500/15 text-violet-400 border-violet-500/20'
     : String(mode || '').toLowerCase() === 'invoke'
-    ? 'bg-amber-100 text-amber-700 border-amber-200'
-    : 'bg-cyan-100 text-cyan-700 border-cyan-200';
+    ? 'bg-amber-500/15 text-amber-400 border-amber-500/20'
+    : 'bg-cyan-500/15 text-cyan-400 border-cyan-500/20';
 
 const resolveBackendPid = (session?: AiAgentSession | null) => {
   if (!session) return null;
@@ -107,11 +107,11 @@ export const EnvAiHelperPage: React.FC<{ projectId: string; initialHelperKey?: s
     <div className="px-8 pt-8 pb-10">
       <div className="space-y-6">
         {feedbackNodes}
- <section className="rounded-[2rem] border border-slate-200 bg-slate-50 p-6">
+ <section className="rounded-[2rem] border border-theme-border bg-theme-bg-app p-6">
           <div className="mb-4">
             <button
               onClick={() => navigateToAppView('env-ai-agent-manage')}
-              className="inline-flex items-center gap-2 rounded-xl border border-slate-200 px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-100"
+              className="inline-flex items-center gap-2 rounded-xl border border-theme-border px-3 py-2 text-sm font-semibold text-theme-text-secondary hover:bg-theme-elevated"
             >
               <ArrowLeft size={16} />
               返回 AI Agent 管理
@@ -119,34 +119,34 @@ export const EnvAiHelperPage: React.FC<{ projectId: string; initialHelperKey?: s
           </div>
           <div className="flex items-center justify-between gap-4 flex-wrap">
             <div>
-              <h1 className="text-3xl font-black tracking-tight text-slate-900">Helper 服务管理</h1>
-              <p className="mt-2 text-sm text-slate-500">从 helper 服务实例视角查看节点、健康状态、内部 AI Agent 摘要与会话概况。</p>
+              <h1 className="text-3xl font-black tracking-tight text-theme-text-primary">Helper 服务管理</h1>
+              <p className="mt-2 text-sm text-theme-text-muted">从 helper 服务实例视角查看节点、健康状态、内部 AI Agent 摘要与会话概况。</p>
             </div>
-            <button onClick={() => void reload(true)} className="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white">
+            <button onClick={() => void reload(true)} className="inline-flex items-center gap-2 rounded-xl bg-theme-surface px-4 py-2 text-sm font-semibold text-white">
               <RefreshCw size={16} />刷新
             </button>
           </div>
         </section>
 
         <div className="grid grid-cols-1 gap-6 xl:grid-cols-[360px_minmax(0,1fr)]">
- <section className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+ <section className="rounded-2xl border border-theme-border bg-theme-bg-app p-4">
           <div className="flex gap-2">
-            <input value={search} onChange={(e) => setSearch(e.target.value)} className="flex-1 rounded-xl border border-slate-200 px-3 py-2 text-sm" placeholder="搜索节点、服务名、agent_key" />
+            <input value={search} onChange={(e) => setSearch(e.target.value)} className="flex-1 rounded-xl border border-theme-border px-3 py-2 text-sm" placeholder="搜索节点、服务名、agent_key" />
           </div>
           <div className="mt-3 grid grid-cols-2 gap-2">
-            <select value={healthFilter} onChange={(e) => setHealthFilter(e.target.value)} className="rounded-xl border border-slate-200 px-3 py-2 text-sm">
+            <select value={healthFilter} onChange={(e) => setHealthFilter(e.target.value)} className="rounded-xl border border-theme-border px-3 py-2 text-sm">
               <option value="">全部健康状态</option>
               <option value="healthy">healthy</option>
               <option value="unhealthy">unhealthy</option>
             </select>
-            <select value={nodeFilter} onChange={(e) => setNodeFilter(e.target.value)} className="rounded-xl border border-slate-200 px-3 py-2 text-sm">
+            <select value={nodeFilter} onChange={(e) => setNodeFilter(e.target.value)} className="rounded-xl border border-theme-border px-3 py-2 text-sm">
               <option value="">全部节点</option>
               {nodeOptions.map((node) => <option key={node} value={node}>{node}</option>)}
             </select>
           </div>
           <div className="mt-4 space-y-2 max-h-[900px] overflow-auto pr-1">
             {loading ? (
-              <div className="flex items-center gap-2 text-sm text-slate-500"><Loader2 size={15} className="animate-spin" />加载中...</div>
+              <div className="flex items-center gap-2 text-sm text-theme-text-muted"><Loader2 size={15} className="animate-spin" />加载中...</div>
             ) : filteredHelpers.length === 0 ? (
               <EmptyState text="当前项目下没有识别到 AI helper 服务。" />
             ) : filteredHelpers.map((helper) => {
@@ -156,16 +156,16 @@ export const EnvAiHelperPage: React.FC<{ projectId: string; initialHelperKey?: s
                 <button
                   key={key}
                   onClick={() => setSelectedKey(key)}
-                  className={`w-full rounded-2xl border px-4 py-3 text-left transition ${selected ? 'border-blue-500 bg-blue-50' : 'border-slate-200 bg-slate-50 hover:border-slate-300'}`}
+                  className={`w-full rounded-2xl border px-4 py-3 text-left transition ${selected ? 'border-blue-500 bg-blue-500/15' : 'border-theme-border bg-theme-bg-app hover:border-theme-border'}`}
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div>
-                      <div className="text-sm font-bold text-slate-900">{helper.service_name}</div>
-                      <div className="mt-1 text-xs text-slate-500">{helper.agent_hostname} · {helper.agent_key}</div>
+                      <div className="text-sm font-bold text-theme-text-primary">{helper.service_name}</div>
+                      <div className="mt-1 text-xs text-theme-text-muted">{helper.agent_hostname} · {helper.agent_key}</div>
                     </div>
                     <HealthBadge status={helper.health_status} />
                   </div>
-                  <div className="mt-3 flex items-center gap-2 text-xs text-slate-600">
+                  <div className="mt-3 flex items-center gap-2 text-xs text-theme-text-secondary">
                     <Server size={12} />
                     <span>{helper.ai_agent_count} 个 AI Agent</span>
                     <span>Active: {helper.active_agent_id || '-'}</span>
@@ -176,43 +176,43 @@ export const EnvAiHelperPage: React.FC<{ projectId: string; initialHelperKey?: s
           </div>
         </section>
 
- <section className="rounded-2xl border border-slate-200 bg-slate-50 p-5">
+ <section className="rounded-2xl border border-theme-border bg-theme-bg-app p-5">
           {!selectedHelper ? (
             <EmptyState text="请先从左侧选择一个 AI Helper 服务。" />
           ) : detailLoading ? (
-            <div className="flex items-center gap-2 text-sm text-slate-500"><Loader2 size={15} className="animate-spin" />加载详情中...</div>
+            <div className="flex items-center gap-2 text-sm text-theme-text-muted"><Loader2 size={15} className="animate-spin" />加载详情中...</div>
           ) : (
             <div className="space-y-6">
               <div className="flex items-start justify-between gap-4 flex-wrap">
                 <div>
-                  <div className="text-xs font-black uppercase tracking-[0.2em] text-slate-500">Helper 服务</div>
-                  <h2 className="mt-2 text-2xl font-black text-slate-900">{selectedHelper.service_name}</h2>
-                  <div className="mt-2 text-sm text-slate-600">{selectedHelper.agent_hostname} · {selectedHelper.agent_ip || '-'}</div>
-                  <div className="mt-2 text-xs text-slate-500 break-all">Tags: {(selectedHelper.tags || []).join(', ') || '-'}</div>
+                  <div className="text-xs font-black uppercase tracking-[0.2em] text-theme-text-muted">Helper 服务</div>
+                  <h2 className="mt-2 text-2xl font-black text-theme-text-primary">{selectedHelper.service_name}</h2>
+                  <div className="mt-2 text-sm text-theme-text-secondary">{selectedHelper.agent_hostname} · {selectedHelper.agent_ip || '-'}</div>
+                  <div className="mt-2 text-xs text-theme-text-muted break-all">Tags: {(selectedHelper.tags || []).join(', ') || '-'}</div>
                 </div>
-                <button onClick={() => void loadDetail(selectedHelper.agent_key, selectedHelper.service_name)} className="rounded-xl border border-slate-200 px-3 py-2 text-sm font-semibold">刷新详情</button>
+                <button onClick={() => void loadDetail(selectedHelper.agent_key, selectedHelper.service_name)} className="rounded-xl border border-theme-border px-3 py-2 text-sm font-semibold">刷新详情</button>
               </div>
 
               <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
-                <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4"><div className="text-xs font-black uppercase tracking-[0.16em] text-slate-500">AI Agent 总数</div><div className="mt-3 text-3xl font-black text-slate-900">{helperSummary.total}</div></div>
-                <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4"><div className="text-xs font-black uppercase tracking-[0.16em] text-slate-500">Installed</div><div className="mt-3 text-3xl font-black text-slate-900">{helperSummary.installed}</div></div>
-                <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4"><div className="text-xs font-black uppercase tracking-[0.16em] text-slate-500">Running</div><div className="mt-3 text-3xl font-black text-slate-900">{helperSummary.running}</div></div>
-                <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4"><div className="text-xs font-black uppercase tracking-[0.16em] text-slate-500">Active</div><div className="mt-3 text-3xl font-black text-slate-900">{helperSummary.active}</div></div>
+                <div className="rounded-2xl border border-theme-border bg-theme-bg-app p-4"><div className="text-xs font-black uppercase tracking-[0.16em] text-theme-text-muted">AI Agent 总数</div><div className="mt-3 text-3xl font-black text-theme-text-primary">{helperSummary.total}</div></div>
+                <div className="rounded-2xl border border-theme-border bg-theme-bg-app p-4"><div className="text-xs font-black uppercase tracking-[0.16em] text-theme-text-muted">Installed</div><div className="mt-3 text-3xl font-black text-theme-text-primary">{helperSummary.installed}</div></div>
+                <div className="rounded-2xl border border-theme-border bg-theme-bg-app p-4"><div className="text-xs font-black uppercase tracking-[0.16em] text-theme-text-muted">Running</div><div className="mt-3 text-3xl font-black text-theme-text-primary">{helperSummary.running}</div></div>
+                <div className="rounded-2xl border border-theme-border bg-theme-bg-app p-4"><div className="text-xs font-black uppercase tracking-[0.16em] text-theme-text-muted">Active</div><div className="mt-3 text-3xl font-black text-theme-text-primary">{helperSummary.active}</div></div>
               </div>
 
               <div className="grid grid-cols-1 gap-6 xl:grid-cols-[1.1fr_0.9fr]">
                 <div className="space-y-4">
-                  <div className="rounded-2xl border border-slate-200 p-4">
-                    <div className="text-sm font-bold text-slate-900">AI Agent 摘要</div>
+                  <div className="rounded-2xl border border-theme-border p-4">
+                    <div className="text-sm font-bold text-theme-text-primary">AI Agent 摘要</div>
                     <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2">
-                      {(selectedHelper.agents || []).length === 0 ? <div className="text-sm text-slate-500">当前 helper 下暂无 AI Agent。</div> : (selectedHelper.agents || []).map((agent) => (
-                        <div key={agent.agent_id} className="rounded-xl border border-slate-200 p-3">
-                          <div className="text-sm font-bold text-slate-900">{agent.agent_id}</div>
-                          <div className="mt-1 text-xs text-slate-500">{agent.backend_type} · {agent.command || '-'}</div>
+                      {(selectedHelper.agents || []).length === 0 ? <div className="text-sm text-theme-text-muted">当前 helper 下暂无 AI Agent。</div> : (selectedHelper.agents || []).map((agent) => (
+                        <div key={agent.agent_id} className="rounded-xl border border-theme-border p-3">
+                          <div className="text-sm font-bold text-theme-text-primary">{agent.agent_id}</div>
+                          <div className="mt-1 text-xs text-theme-text-muted">{agent.backend_type} · {agent.command || '-'}</div>
                           <div className="mt-2 flex flex-wrap gap-2 text-[11px] font-black uppercase tracking-[0.16em]">
-                            <span className={agent.installed ? 'text-green-600' : 'text-slate-400'}>{agent.installed ? 'INSTALLED' : 'MISSING'}</span>
-                            <span className={agent.running ? 'text-emerald-600' : 'text-slate-400'}>{agent.running ? 'RUNNING' : 'STOPPED'}</span>
-                            <span className={agent.active ? 'text-blue-600' : 'text-slate-400'}>{agent.active ? 'ACTIVE' : 'INACTIVE'}</span>
+                            <span className={agent.installed ? 'text-green-400' : 'text-theme-text-muted'}>{agent.installed ? 'INSTALLED' : 'MISSING'}</span>
+                            <span className={agent.running ? 'text-emerald-400' : 'text-theme-text-muted'}>{agent.running ? 'RUNNING' : 'STOPPED'}</span>
+                            <span className={agent.active ? 'text-blue-400' : 'text-theme-text-muted'}>{agent.active ? 'ACTIVE' : 'INACTIVE'}</span>
                           </div>
                         </div>
                       ))}
@@ -221,24 +221,24 @@ export const EnvAiHelperPage: React.FC<{ projectId: string; initialHelperKey?: s
                   <JsonBlock title="Helper 健康详情" value={selectedHelper.health || {}} />
                 </div>
                 <div className="space-y-4">
-                  <div className="rounded-2xl border border-slate-200 p-4">
-                    <div className="text-sm font-bold text-slate-900">最近会话</div>
+                  <div className="rounded-2xl border border-theme-border p-4">
+                    <div className="text-sm font-bold text-theme-text-primary">最近会话</div>
                     <div className="mt-3 space-y-2">
-                      {selectedSessions.length === 0 ? <div className="text-sm text-slate-500">当前 helper 还没有会话记录。</div> : selectedSessions.map((session) => (
-                        <div key={session.session_id} className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5">
+                      {selectedSessions.length === 0 ? <div className="text-sm text-theme-text-muted">当前 helper 还没有会话记录。</div> : selectedSessions.map((session) => (
+                        <div key={session.session_id} className="rounded-xl border border-theme-border bg-theme-bg-app px-3 py-2.5">
                           <div className="flex items-start justify-between gap-2">
                             <div className="min-w-0">
-                              <div className="truncate font-mono text-[11px] font-semibold text-slate-900">{session.session_id}</div>
-                              <div className="mt-1 inline-flex max-w-[220px] items-center rounded-full border border-cyan-200 bg-cyan-50 px-2 py-0.5 text-[10px] font-semibold text-cyan-800">
+                              <div className="truncate font-mono text-[11px] font-semibold text-theme-text-primary">{session.session_id}</div>
+                              <div className="mt-1 inline-flex max-w-[220px] items-center rounded-full border border-cyan-500/20 bg-cyan-500/15 px-2 py-0.5 text-[10px] font-semibold text-cyan-400">
                                 {(session.agent_ids || []).join(', ') || session.backend || '-'}
                               </div>
                               <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
                                 <span className={`rounded-full border px-1.5 py-0.5 text-[10px] font-semibold ${sessionModeTone(session.session_mode)}`}>{sessionModeLabel(session.session_mode)}</span>
                                 <span className={`rounded-full border px-1.5 py-0.5 text-[10px] font-semibold ${statusTone(session.status)}`}>{session.status || 'unknown'}</span>
-                                <span className="rounded-full border border-slate-200 bg-slate-50 px-1.5 py-0.5 text-[10px] font-semibold text-slate-600">PID {resolveBackendPid(session) ?? '-'}</span>
+                                <span className="rounded-full border border-theme-border bg-theme-bg-app px-1.5 py-0.5 text-[10px] font-semibold text-theme-text-secondary">PID {resolveBackendPid(session) ?? '-'}</span>
                               </div>
                             </div>
-                            <span className="shrink-0 rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-[10px] font-semibold text-slate-600">
+                            <span className="shrink-0 rounded-full border border-theme-border bg-theme-bg-app px-2 py-0.5 text-[10px] font-semibold text-theme-text-secondary">
                               消息 {session.messages?.length || 0}
                             </span>
                           </div>

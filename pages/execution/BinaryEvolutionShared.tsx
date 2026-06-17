@@ -91,7 +91,7 @@ export const normalizeTaskDetail = (value: BinaryEvolutionTaskDetail): BinaryEvo
 });
 
 export const StatCard: React.FC<{ label: string; value: React.ReactNode; tone?: string }> = ({ label, value, tone }) => (
-  <div className={`rounded-xl border p-5 ${tone || 'bg-[#18233a] border-[#1b2438] text-[#f5f7ff]'}`}
+  <div className={`rounded-xl border p-5 ${tone || 'bg-theme-elevated border-[#1b2438] text-[#f5f7ff]'}`}
     style={tone ? undefined : { backgroundColor: LK.surfaceRaised, borderColor: LK.borderSoft, color: LK.ink }}>
     <div className="text-3xl font-semibold">{value}</div>
     <div className="mt-1 text-xs" style={{ color: LK.muted }}>{label}</div>

@@ -606,8 +606,8 @@ export const AgentDetailPage: React.FC<AgentDetailPageProps> = ({ agentKey, proj
   if (loading) {
     return (
       <div className="h-full flex flex-col items-center justify-center p-20 animate-in fade-in">
-        <Loader2 className="animate-spin text-blue-600 mb-6" size={48} />
-        <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">正在与远程节点同步状态...</p>
+        <Loader2 className="animate-spin text-blue-400 mb-6" size={48} />
+        <p className="text-[10px] font-black text-theme-text-muted uppercase tracking-[0.2em]">正在与远程节点同步状态...</p>
       </div>
     );
   }
@@ -615,8 +615,8 @@ export const AgentDetailPage: React.FC<AgentDetailPageProps> = ({ agentKey, proj
   if (!agent) return (
     <div className="p-20 text-center flex flex-col items-center gap-4">
       <ShieldAlert size={48} className="text-slate-200" />
-      <p className="font-black text-slate-400 uppercase tracking-widest">未找到该节点资产或连接已中断</p>
-      <button onClick={onBack} className="text-blue-600 font-bold hover:underline">返回列表</button>
+      <p className="font-black text-theme-text-muted uppercase tracking-widest">未找到该节点资产或连接已中断</p>
+      <button onClick={onBack} className="text-blue-400 font-bold hover:underline">返回列表</button>
     </div>
   );
 
@@ -630,31 +630,31 @@ export const AgentDetailPage: React.FC<AgentDetailPageProps> = ({ agentKey, proj
       {/* Header */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
         <div className="flex items-center gap-6">
- <button onClick={onBack} className="p-4 bg-slate-50 border border-slate-200 rounded-2xl hover:bg-slate-100 transition-all group active:scale-95">
+ <button onClick={onBack} className="p-4 bg-theme-bg-app border border-theme-border rounded-2xl hover:bg-theme-elevated transition-all group active:scale-95">
             <ChevronLeft size={20} className="group-hover:-translate-x-1 transition-transform" />
           </button>
           <div>
             <div className="flex items-center gap-3">
-              <h2 className="text-3xl font-black text-slate-800 tracking-tight">{agent.hostname}</h2>
+              <h2 className="text-3xl font-black text-theme-text-primary tracking-tight">{agent.hostname}</h2>
               <StatusBadge status={agent.status} />
             </div>
             <div className="flex items-center gap-4 mt-2">
-              <div className="flex items-center gap-1.5 text-xs font-bold text-slate-400">
-                <Server size={14} /> 主机 IP: <span className="text-blue-600 font-black">{agent.ip_address}</span>
+              <div className="flex items-center gap-1.5 text-xs font-bold text-theme-text-muted">
+                <Server size={14} /> 主机 IP: <span className="text-blue-400 font-black">{agent.ip_address}</span>
               </div>
-              <div className="w-1.5 h-1.5 bg-slate-200 rounded-full" />
-              <div className="flex items-center gap-1.5 text-xs font-bold text-slate-400">
-                <Hash size={14} /> 节点唯一ID: <span className="text-slate-700 font-black font-mono">{agent.key}</span>
+              <div className="w-1.5 h-1.5 bg-theme-elevated rounded-full" />
+              <div className="flex items-center gap-1.5 text-xs font-bold text-theme-text-muted">
+                <Hash size={14} /> 节点唯一ID: <span className="text-theme-text-secondary font-black font-mono">{agent.key}</span>
               </div>
-              <div className="w-1.5 h-1.5 bg-slate-200 rounded-full" />
-              <div className="flex items-center gap-1.5 text-xs font-bold text-slate-400">
-                <Clock size={14} /> 运行时间: <span className="text-slate-600 font-black">{formatted?.uptime || 'N/A'}</span>
+              <div className="w-1.5 h-1.5 bg-theme-elevated rounded-full" />
+              <div className="flex items-center gap-1.5 text-xs font-bold text-theme-text-muted">
+                <Clock size={14} /> 运行时间: <span className="text-theme-text-secondary font-black">{formatted?.uptime || 'N/A'}</span>
               </div>
             </div>
           </div>
         </div>
         <div className="flex gap-3">
- <button onClick={loadAllData} className="p-4 bg-slate-50 border border-slate-200 text-slate-500 rounded-2xl hover:bg-slate-100 transition-all">
+ <button onClick={loadAllData} className="p-4 bg-theme-bg-app border border-theme-border text-theme-text-muted rounded-2xl hover:bg-theme-elevated transition-all">
             <RefreshCw size={20} />
           </button>
           <button
@@ -665,14 +665,14 @@ export const AgentDetailPage: React.FC<AgentDetailPageProps> = ({ agentKey, proj
           </button>
           <button
             onClick={handleDeepHealthCheck}
- className="px-8 py-4 bg-slate-900 text-white rounded-2xl font-black flex items-center gap-2 hover:bg-slate-800 transition-all"
+ className="px-8 py-4 bg-theme-surface text-white rounded-2xl font-black flex items-center gap-2 hover:bg-theme-elevated transition-all"
           >
             <ShieldCheck size={18} /> 执行全量巡检
           </button>
         </div>
       </div>
 
-      <div className="flex gap-2 p-1.5 bg-slate-100 rounded-[1.5rem] w-fit">
+      <div className="flex gap-2 p-1.5 bg-theme-elevated rounded-[1.5rem] w-fit">
         {[
           { id: 'overview', label: '运行概览', icon: <Activity size={16} /> },
           { id: 'processes', label: '进程监控', icon: <Terminal size={16} /> },
@@ -683,7 +683,7 @@ export const AgentDetailPage: React.FC<AgentDetailPageProps> = ({ agentKey, proj
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id as any)}
- className={`flex items-center gap-2 px-6 py-2.5 rounded-2xl font-black text-[11px] uppercase transition-all ${activeTab === tab.id ? 'bg-slate-50 text-blue-600 ' : 'text-slate-500 hover:text-slate-700'}`}
+ className={`flex items-center gap-2 px-6 py-2.5 rounded-2xl font-black text-[11px] uppercase transition-all ${activeTab === tab.id ? 'bg-theme-bg-app text-blue-400 ' : 'text-theme-text-muted hover:text-theme-text-secondary'}`}
           >
             {tab.icon} {tab.label}
           </button>
@@ -695,52 +695,52 @@ export const AgentDetailPage: React.FC<AgentDetailPageProps> = ({ agentKey, proj
           {activeTab === 'overview' && (
             <div className="space-y-8 animate-in fade-in slide-in-from-bottom-2">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
- <div className="bg-slate-50 p-8 rounded-[2.5rem] border border-slate-200 space-y-6">
+ <div className="bg-theme-bg-app p-8 rounded-[2.5rem] border border-theme-border space-y-6">
                    <div className="flex items-center justify-between">
-                     <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                     <h4 className="text-[10px] font-black text-theme-text-muted uppercase tracking-widest flex items-center gap-2">
                        <CpuIcon size={14} className="text-blue-500" /> 处理器负载
                      </h4>
-                     <span className="text-xl font-black text-slate-800">{sys?.cpu?.usage_percent || 0}%</span>
+                     <span className="text-xl font-black text-theme-text-primary">{sys?.cpu?.usage_percent || 0}%</span>
                    </div>
                    <div className="space-y-4">
-                      <div className="h-3 bg-slate-100 rounded-full overflow-hidden">
+                      <div className="h-3 bg-theme-elevated rounded-full overflow-hidden">
                         <div className="h-full bg-blue-500 transition-all duration-1000" style={{ width: `${sys?.cpu?.usage_percent || 0}%` }} />
                       </div>
                       <div className="grid grid-cols-2 gap-4 pt-4 border-t border-slate-50">
                         <div>
-                          <p className="text-[9px] font-black text-slate-400 uppercase">型号</p>
-                          <p className="text-xs font-black text-slate-700 truncate">{sys?.cpu?.model || 'Generic x86_64'}</p>
+                          <p className="text-[9px] font-black text-theme-text-muted uppercase">型号</p>
+                          <p className="text-xs font-black text-theme-text-secondary truncate">{sys?.cpu?.model || 'Generic x86_64'}</p>
                         </div>
                         <div>
-                          <p className="text-[9px] font-black text-slate-400 uppercase">核心数</p>
-                          <p className="text-xs font-black text-slate-700">{sys?.cpu?.logical_cores || 0} vCPU</p>
+                          <p className="text-[9px] font-black text-theme-text-muted uppercase">核心数</p>
+                          <p className="text-xs font-black text-theme-text-secondary">{sys?.cpu?.logical_cores || 0} vCPU</p>
                         </div>
                       </div>
                    </div>
                 </div>
- <div className="bg-slate-50 p-8 rounded-[2.5rem] border border-slate-200 space-y-6">
+ <div className="bg-theme-bg-app p-8 rounded-[2.5rem] border border-theme-border space-y-6">
                    <div className="flex items-center justify-between">
-                     <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                     <h4 className="text-[10px] font-black text-theme-text-muted uppercase tracking-widest flex items-center gap-2">
                        <Database size={14} className="text-indigo-500" /> 内存状态
                      </h4>
-                     <span className="text-xl font-black text-slate-800">{sys?.memory?.usage_percent || 0}%</span>
+                     <span className="text-xl font-black text-theme-text-primary">{sys?.memory?.usage_percent || 0}%</span>
                    </div>
                    <div className="space-y-4">
-                      <div className="h-3 bg-slate-100 rounded-full overflow-hidden">
+                      <div className="h-3 bg-theme-elevated rounded-full overflow-hidden">
                         <div className="h-full bg-indigo-500 transition-all duration-1000" style={{ width: `${sys?.memory?.usage_percent || 0}%` }} />
                       </div>
                       <div className="grid grid-cols-3 gap-2 pt-4 border-t border-slate-50">
                         <div>
-                          <p className="text-[9px] font-black text-slate-400 uppercase">总量</p>
-                          <p className="text-xs font-black text-slate-700">{formatted?.memory?.total || '0 GB'}</p>
+                          <p className="text-[9px] font-black text-theme-text-muted uppercase">总量</p>
+                          <p className="text-xs font-black text-theme-text-secondary">{formatted?.memory?.total || '0 GB'}</p>
                         </div>
                         <div>
-                          <p className="text-[9px] font-black text-slate-400 uppercase">已用</p>
-                          <p className="text-xs font-black text-slate-700">{formatted?.memory?.used || '0 GB'}</p>
+                          <p className="text-[9px] font-black text-theme-text-muted uppercase">已用</p>
+                          <p className="text-xs font-black text-theme-text-secondary">{formatted?.memory?.used || '0 GB'}</p>
                         </div>
                         <div>
-                          <p className="text-[9px] font-black text-slate-400 uppercase">空闲</p>
-                          <p className="text-xs font-black text-slate-700">{formatted?.memory?.available || '0 GB'}</p>
+                          <p className="text-[9px] font-black text-theme-text-muted uppercase">空闲</p>
+                          <p className="text-xs font-black text-theme-text-secondary">{formatted?.memory?.available || '0 GB'}</p>
                         </div>
                       </div>
                    </div>
@@ -748,29 +748,29 @@ export const AgentDetailPage: React.FC<AgentDetailPageProps> = ({ agentKey, proj
               </div>
 
               {/* Docker Runtime Section */}
- <div className="bg-slate-50 p-8 rounded-[2.5rem] border border-slate-200 space-y-6">
+ <div className="bg-theme-bg-app p-8 rounded-[2.5rem] border border-theme-border space-y-6">
                  <div className="flex items-center justify-between">
-                    <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
-                      <Container size={16} className="text-blue-600" /> Docker 运行时摘要
+                    <h4 className="text-[10px] font-black text-theme-text-muted uppercase tracking-widest flex items-center gap-2">
+                      <Container size={16} className="text-blue-400" /> Docker 运行时摘要
                     </h4>
-                    <span className="text-xs font-black text-slate-400">VERSION: {sys?.docker?.version || 'N/A'}</span>
+                    <span className="text-xs font-black text-theme-text-muted">VERSION: {sys?.docker?.version || 'N/A'}</span>
                  </div>
                  <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-                    <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100">
-                       <p className="text-[9px] font-black text-slate-400 uppercase">容器总量</p>
-                       <p className="text-lg font-black text-slate-800">{sys?.docker?.containers_total || 0}</p>
+                    <div className="p-4 bg-theme-bg-app rounded-2xl border border-theme-border">
+                       <p className="text-[9px] font-black text-theme-text-muted uppercase">容器总量</p>
+                       <p className="text-lg font-black text-theme-text-primary">{sys?.docker?.containers_total || 0}</p>
                     </div>
-                    <div className="p-4 bg-blue-50 rounded-2xl border border-blue-100">
+                    <div className="p-4 bg-blue-500/15 rounded-2xl border border-blue-500/20">
                        <p className="text-[9px] font-black text-blue-400 uppercase">运行中</p>
-                       <p className="text-lg font-black text-blue-600">{sys?.docker?.containers_running || 0}</p>
+                       <p className="text-lg font-black text-blue-400">{sys?.docker?.containers_running || 0}</p>
                     </div>
-                    <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100">
-                       <p className="text-[9px] font-black text-slate-400 uppercase">镜像数量</p>
-                       <p className="text-lg font-black text-slate-800">{sys?.docker?.images_total || 0}</p>
+                    <div className="p-4 bg-theme-bg-app rounded-2xl border border-theme-border">
+                       <p className="text-[9px] font-black text-theme-text-muted uppercase">镜像数量</p>
+                       <p className="text-lg font-black text-theme-text-primary">{sys?.docker?.images_total || 0}</p>
                     </div>
-                    <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100">
-                       <p className="text-[9px] font-black text-slate-400 uppercase">网络/卷</p>
-                       <p className="text-lg font-black text-slate-800">{sys?.docker?.networks_total || 0} / {sys?.docker?.volumes_total || 0}</p>
+                    <div className="p-4 bg-theme-bg-app rounded-2xl border border-theme-border">
+                       <p className="text-[9px] font-black text-theme-text-muted uppercase">网络/卷</p>
+                       <p className="text-lg font-black text-theme-text-primary">{sys?.docker?.networks_total || 0} / {sys?.docker?.volumes_total || 0}</p>
                     </div>
                  </div>
               </div>
@@ -778,22 +778,22 @@ export const AgentDetailPage: React.FC<AgentDetailPageProps> = ({ agentKey, proj
           )}
 
           {activeTab === 'processes' && (
- <div className="bg-slate-50 rounded-[2.5rem] border border-slate-200 overflow-hidden animate-in fade-in">
-              <div className="px-8 py-6 border-b border-slate-100 bg-slate-100/50 flex justify-between items-center">
-                 <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
+ <div className="bg-theme-bg-app rounded-[2.5rem] border border-theme-border overflow-hidden animate-in fade-in">
+              <div className="px-8 py-6 border-b border-theme-border bg-slate-100/50 flex justify-between items-center">
+                 <h4 className="text-[10px] font-black text-theme-text-muted uppercase tracking-widest flex items-center gap-2">
                    <TerminalSquare size={16} /> 进程列表 (Top 10)
                  </h4>
                  <div className="flex gap-4">
-                    <div className="flex items-center gap-2 text-[9px] font-bold text-slate-400">
+                    <div className="flex items-center gap-2 text-[9px] font-bold text-theme-text-muted">
                        <div className="w-2 h-2 rounded-full bg-blue-500" /> CPU
                     </div>
-                    <div className="flex items-center gap-2 text-[9px] font-bold text-slate-400">
+                    <div className="flex items-center gap-2 text-[9px] font-bold text-theme-text-muted">
                        <div className="w-2 h-2 rounded-full bg-indigo-500" /> Memory
                     </div>
                  </div>
               </div>
               <table className="w-full text-left">
-                 <thead className="bg-slate-100/30 border-b border-slate-100 font-black text-[9px] text-slate-400 uppercase tracking-widest">
+                 <thead className="bg-slate-100/30 border-b border-theme-border font-black text-[9px] text-theme-text-muted uppercase tracking-widest">
                     <tr>
                        <th className="px-8 py-4">PID</th>
                        <th className="px-6 py-4">进程名称 / 指令</th>
@@ -805,31 +805,31 @@ export const AgentDetailPage: React.FC<AgentDetailPageProps> = ({ agentKey, proj
                  <tbody className="divide-y divide-slate-50">
                     {sys?.processes_top?.map((p: any) => (
                        <tr key={p.pid} className="hover:bg-slate-100/50 transition-all group">
-                          <td className="px-8 py-4 font-mono text-xs text-slate-400">{p.pid}</td>
+                          <td className="px-8 py-4 font-mono text-xs text-theme-text-muted">{p.pid}</td>
                           <td className="px-6 py-4">
-                             <p className="text-xs font-black text-slate-700">{p.name}</p>
-                             <p className="text-[9px] text-slate-400 font-mono truncate max-w-[300px] mt-0.5" title={p.cmdline?.join(' ')}>
+                             <p className="text-xs font-black text-theme-text-secondary">{p.name}</p>
+                             <p className="text-[9px] text-theme-text-muted font-mono truncate max-w-[300px] mt-0.5" title={p.cmdline?.join(' ')}>
                                 {p.cmdline?.join(' ') || 'N/A'}
                              </p>
                           </td>
                           <td className="px-6 py-4">
                              <div className="flex items-center gap-2">
-                                <span className="text-xs font-bold text-slate-600">{p.cpu_percent.toFixed(1)}%</span>
-                                <div className="w-12 h-1 bg-slate-100 rounded-full overflow-hidden">
+                                <span className="text-xs font-bold text-theme-text-secondary">{p.cpu_percent.toFixed(1)}%</span>
+                                <div className="w-12 h-1 bg-theme-elevated rounded-full overflow-hidden">
                                    <div className="h-full bg-blue-500" style={{ width: `${p.cpu_percent}%` }} />
                                 </div>
                              </div>
                           </td>
                           <td className="px-6 py-4">
                              <div className="flex items-center gap-2">
-                                <span className="text-xs font-bold text-slate-600">{p.memory_percent.toFixed(1)}%</span>
-                                <div className="w-12 h-1 bg-slate-100 rounded-full overflow-hidden">
+                                <span className="text-xs font-bold text-theme-text-secondary">{p.memory_percent.toFixed(1)}%</span>
+                                <div className="w-12 h-1 bg-theme-elevated rounded-full overflow-hidden">
                                    <div className="h-full bg-indigo-500" style={{ width: `${p.memory_percent}%` }} />
                                 </div>
                              </div>
                           </td>
                           <td className="px-8 py-4 text-right">
-                             <span className="text-[9px] font-black uppercase text-slate-400 bg-slate-100 px-2 py-0.5 rounded-lg">{p.status}</span>
+                             <span className="text-[9px] font-black uppercase text-theme-text-muted bg-theme-elevated px-2 py-0.5 rounded-lg">{p.status}</span>
                           </td>
                        </tr>
                     ))}
@@ -842,31 +842,31 @@ export const AgentDetailPage: React.FC<AgentDetailPageProps> = ({ agentKey, proj
             <div className="space-y-6 animate-in fade-in">
                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {sys?.network_interfaces?.map((iface: any) => (
- <div key={iface.name} className="bg-slate-50 p-6 rounded-[2rem] border border-slate-200 flex flex-col gap-4">
+ <div key={iface.name} className="bg-theme-bg-app p-6 rounded-[2rem] border border-theme-border flex flex-col gap-4">
                         <div className="flex justify-between items-start">
                            <div className="flex items-center gap-4">
-                              <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${iface.is_up ? 'bg-green-50 text-green-600' : 'bg-slate-50 text-slate-400'}`}>
+                              <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${iface.is_up ? 'bg-green-500/15 text-green-400' : 'bg-theme-bg-app text-theme-text-muted'}`}>
                                  <Network size={22} />
                               </div>
                               <div>
-                                 <h5 className="text-sm font-black text-slate-800">{iface.name}</h5>
-                                 <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">{iface.is_up ? 'Interface Up' : 'Interface Down'}</span>
+                                 <h5 className="text-sm font-black text-theme-text-primary">{iface.name}</h5>
+                                 <span className="text-[9px] font-black text-theme-text-muted uppercase tracking-widest">{iface.is_up ? 'Interface Up' : 'Interface Down'}</span>
                               </div>
                            </div>
                            {iface.is_up && <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />}
                         </div>
                         <div className="space-y-2 border-t border-slate-50 pt-4">
                            <div className="flex justify-between items-center text-xs">
-                              <span className="text-slate-400 font-bold">IPv4 Address</span>
-                              <span className="font-mono font-black text-blue-600">{iface.ip_address || 'Unassigned'}</span>
+                              <span className="text-theme-text-muted font-bold">IPv4 Address</span>
+                              <span className="font-mono font-black text-blue-400">{iface.ip_address || 'Unassigned'}</span>
                            </div>
                            <div className="flex justify-between items-center text-xs">
-                              <span className="text-slate-400 font-bold">MAC Address</span>
-                              <span className="font-mono text-slate-500 uppercase">{iface.mac_address || 'N/A'}</span>
+                              <span className="text-theme-text-muted font-bold">MAC Address</span>
+                              <span className="font-mono text-theme-text-muted uppercase">{iface.mac_address || 'N/A'}</span>
                            </div>
                            <div className="flex justify-between items-center text-xs">
-                              <span className="text-slate-400 font-bold">Data Sent/Recv</span>
-                              <span className="text-slate-700 font-black">
+                              <span className="text-theme-text-muted font-bold">Data Sent/Recv</span>
+                              <span className="text-theme-text-secondary font-black">
                                  {(iface.bytes_sent / 1024 / 1024).toFixed(1)} MB / {(iface.bytes_recv / 1024 / 1024).toFixed(1)} MB
                               </span>
                            </div>
@@ -880,27 +880,27 @@ export const AgentDetailPage: React.FC<AgentDetailPageProps> = ({ agentKey, proj
           {activeTab === 'disks' && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 animate-in fade-in">
                {formatted?.disks?.map((disk: any, idx: number) => (
- <div key={idx} className="bg-slate-50 p-8 rounded-[2.5rem] border border-slate-200 space-y-6 group">
+ <div key={idx} className="bg-theme-bg-app p-8 rounded-[2.5rem] border border-theme-border space-y-6 group">
                      <div className="flex justify-between items-start">
                         <div className="flex items-center gap-4">
-                           <div className="w-12 h-12 bg-amber-50 text-amber-600 rounded-2xl flex items-center justify-center group-hover:bg-amber-600 group-hover:text-white transition-all">
+                           <div className="w-12 h-12 bg-amber-500/15 text-amber-400 rounded-2xl flex items-center justify-center group-hover:bg-amber-600 group-hover:text-white transition-all">
                               <HardDrive size={22} />
                            </div>
                            <div>
-                              <h5 className="text-sm font-black text-slate-800">{disk.device}</h5>
-                              <p className="text-[10px] text-slate-400 font-bold truncate max-w-[150px]">MOUNT: {disk.mountpoint}</p>
+                              <h5 className="text-sm font-black text-theme-text-primary">{disk.device}</h5>
+                              <p className="text-[10px] text-theme-text-muted font-bold truncate max-w-[150px]">MOUNT: {disk.mountpoint}</p>
                            </div>
                         </div>
-                        <span className="text-xs font-black text-slate-700">{disk.usage_percent}</span>
+                        <span className="text-xs font-black text-theme-text-secondary">{disk.usage_percent}</span>
                      </div>
                      <div className="space-y-2">
-                        <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
+                        <div className="h-2 bg-theme-elevated rounded-full overflow-hidden">
                            <div
                               className={`h-full transition-all duration-1000 ${parseFloat(disk.usage_percent) > 90 ? 'bg-red-500' : 'bg-amber-500'}`}
                               style={{ width: disk.usage_percent }}
                            />
                         </div>
-                        <div className="flex justify-between text-[10px] font-black text-slate-400 uppercase tracking-tighter">
+                        <div className="flex justify-between text-[10px] font-black text-theme-text-muted uppercase tracking-tighter">
                            <span>USED: {disk.used}</span>
                            <span>FREE: {disk.free}</span>
                            <span>TOTAL: {disk.total}</span>
@@ -912,16 +912,16 @@ export const AgentDetailPage: React.FC<AgentDetailPageProps> = ({ agentKey, proj
           )}
 
           {activeTab === 'services' && (
- <div className="bg-slate-50 rounded-[2.5rem] border border-slate-200 overflow-hidden animate-in fade-in">
-                <div className="px-8 py-6 border-b border-slate-100 bg-slate-100/50 flex items-center justify-between gap-4">
-                  <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
+ <div className="bg-theme-bg-app rounded-[2.5rem] border border-theme-border overflow-hidden animate-in fade-in">
+                <div className="px-8 py-6 border-b border-theme-border bg-slate-100/50 flex items-center justify-between gap-4">
+                  <h4 className="text-[10px] font-black text-theme-text-muted uppercase tracking-widest flex items-center gap-2">
                     <Zap size={16} className="text-blue-500" /> 节点服务
                   </h4>
-                  <span className="text-[10px] font-black text-slate-400 uppercase">{services.length} 个服务</span>
+                  <span className="text-[10px] font-black text-theme-text-muted uppercase">{services.length} 个服务</span>
                 </div>
 
                 {services.length === 0 ? (
-                  <div className="py-24 text-center text-slate-300 italic text-sm">当前节点暂无聚合服务记录</div>
+                  <div className="py-24 text-center text-theme-text-faint italic text-sm">当前节点暂无聚合服务记录</div>
                 ) : (
                   <div className="divide-y divide-slate-50">
                     {services.map(svc => {
@@ -937,29 +937,29 @@ export const AgentDetailPage: React.FC<AgentDetailPageProps> = ({ agentKey, proj
                           <div className="flex items-start justify-between gap-4">
                             <div className="min-w-0 flex-1 space-y-2">
                               <div className="flex items-center gap-3">
-                                <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-black ${isSelected ? 'bg-blue-600 text-white' : 'bg-blue-50 text-blue-600'}`}>
+                                <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-black ${isSelected ? 'bg-blue-600 text-white' : 'bg-blue-500/15 text-blue-400'}`}>
                                   {svc.name[0].toUpperCase()}
                                 </div>
                                 <div className="min-w-0">
-                                  <div className="text-sm font-black text-slate-800 break-all">{svc.name}</div>
+                                  <div className="text-sm font-black text-theme-text-primary break-all">{svc.name}</div>
                                   <div className="flex flex-wrap items-center gap-2 mt-1">
                                     <StatusBadge status={svc.status || 'unknown'} />
-                                    <span className="text-[10px] font-bold text-slate-400">
+                                    <span className="text-[10px] font-bold text-theme-text-muted">
                                       模板：{svc.template_name || '未识别'}
                                     </span>
                                   </div>
                                 </div>
                               </div>
-                              <div className="text-[11px] font-mono text-slate-400 break-all">{svc.image || 'N/A'}</div>
+                              <div className="text-[11px] font-mono text-theme-text-muted break-all">{svc.image || 'N/A'}</div>
                               <div className="flex flex-wrap gap-1.5">
                                 {Object.entries(svc.ports || {}).length > 0 ? (
                                   Object.entries(svc.ports || {}).map(([p, v]) => (
-                                    <span key={p} className="text-[10px] font-black bg-blue-50 text-blue-600 px-2 py-0.5 rounded-lg border border-blue-100">
+                                    <span key={p} className="text-[10px] font-black bg-blue-500/15 text-blue-400 px-2 py-0.5 rounded-lg border border-blue-500/20">
                                       {p}➔{v}
                                     </span>
                                   ))
                                 ) : (
-                                  <span className="text-[10px] text-slate-300 italic">无端口映射</span>
+                                  <span className="text-[10px] text-theme-text-faint italic">无端口映射</span>
                                 )}
                               </div>
                             </div>
@@ -971,7 +971,7 @@ export const AgentDetailPage: React.FC<AgentDetailPageProps> = ({ agentKey, proj
                                 type="button"
                                 onClick={() => handleNodeServiceAction(svc, 'start')}
                                 disabled={isBusy}
-                                className="px-3 py-1.5 rounded-lg bg-emerald-50 text-emerald-700 text-xs font-black hover:bg-emerald-100 disabled:opacity-50"
+                                className="px-3 py-1.5 rounded-lg bg-emerald-500/15 text-emerald-400 text-xs font-black hover:bg-emerald-500/15 disabled:opacity-50"
                               >
                                 启动
                               </button>
@@ -979,7 +979,7 @@ export const AgentDetailPage: React.FC<AgentDetailPageProps> = ({ agentKey, proj
                                 type="button"
                                 onClick={() => handleNodeServiceAction(svc, 'stop')}
                                 disabled={isBusy}
-                                className="px-3 py-1.5 rounded-lg bg-amber-50 text-amber-700 text-xs font-black hover:bg-amber-100 disabled:opacity-50"
+                                className="px-3 py-1.5 rounded-lg bg-amber-500/15 text-amber-400 text-xs font-black hover:bg-amber-500/15 disabled:opacity-50"
                               >
                                 停止
                               </button>
@@ -987,7 +987,7 @@ export const AgentDetailPage: React.FC<AgentDetailPageProps> = ({ agentKey, proj
                                 type="button"
                                 onClick={() => handleNodeServiceAction(svc, 'delete')}
                                 disabled={isBusy}
-                                className="px-3 py-1.5 rounded-lg bg-red-50 text-red-700 text-xs font-black hover:bg-red-100 disabled:opacity-50 flex items-center gap-1"
+                                className="px-3 py-1.5 rounded-lg bg-red-500/15 text-red-400 text-xs font-black hover:bg-red-500/15 disabled:opacity-50 flex items-center gap-1"
                               >
                                 {isBusy ? <Loader2 size={12} className="animate-spin" /> : <Trash2 size={12} />}
                                 删除
@@ -1006,131 +1006,131 @@ export const AgentDetailPage: React.FC<AgentDetailPageProps> = ({ agentKey, proj
             <div className="space-y-6 animate-in fade-in">
               {/* Agent 离线提示 */}
               {agent.status !== 'online' && (
-                <div className="bg-amber-50 border border-amber-200 rounded-[2rem] p-6 flex items-center gap-4">
-                  <ShieldAlert className="text-amber-600" size={24} />
+                <div className="bg-amber-500/15 border border-amber-500/20 rounded-[2rem] p-6 flex items-center gap-4">
+                  <ShieldAlert className="text-amber-400" size={24} />
                   <div>
-                    <h4 className="font-black text-amber-800">节点离线</h4>
-                    <p className="text-xs text-amber-600">无法获取守护进程服务状态，请检查节点连接</p>
+                    <h4 className="font-black text-amber-400">节点离线</h4>
+                    <p className="text-xs text-amber-400">无法获取守护进程服务状态，请检查节点连接</p>
                   </div>
                 </div>
               )}
 
- <div className="bg-slate-50 rounded-[2.5rem] border border-slate-200 p-8">
+ <div className="bg-theme-bg-app rounded-[2.5rem] border border-theme-border p-8">
                 <div className="flex items-center justify-between mb-4">
-                  <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
-                    <Activity size={16} className="text-cyan-600" /> 诊断信息
+                  <h4 className="text-[10px] font-black text-theme-text-muted uppercase tracking-widest flex items-center gap-2">
+                    <Activity size={16} className="text-cyan-400" /> 诊断信息
                   </h4>
                   <button
                     onClick={() => void loadAgentDiagnostics()}
-                    className="p-2 text-slate-400 hover:text-cyan-600 hover:bg-cyan-50 rounded-lg"
+                    className="p-2 text-theme-text-muted hover:text-cyan-400 hover:bg-cyan-500/15 rounded-lg"
                     title="刷新诊断信息"
                   >
                     <RefreshCw size={16} className={agentDiagnosticsLoading ? 'animate-spin' : ''} />
                   </button>
                 </div>
-                <p className="text-[11px] text-slate-500 mb-4">
+                <p className="text-[11px] text-theme-text-muted mb-4">
                   稳定快照模式：仅展示后端刷新线程与数据库快照，不触发实时探测。
                 </p>
 
                 {agentDiagnosticsError ? (
-                  <div className="text-xs text-rose-600 bg-rose-50 border border-rose-100 rounded-xl px-3 py-2">
+                  <div className="text-xs text-rose-400 bg-rose-500/15 border border-rose-500/20 rounded-xl px-3 py-2">
                     诊断加载失败: {agentDiagnosticsError}
                   </div>
                 ) : agentDiagnosticsLoading && !agentDiagnostics ? (
-                  <div className="py-8 flex items-center gap-2 text-xs text-slate-500">
+                  <div className="py-8 flex items-center gap-2 text-xs text-theme-text-muted">
                     <Loader2 className="animate-spin" size={14} /> 正在加载诊断信息...
                   </div>
                 ) : (
                   <div className="space-y-4">
                     <div className="grid grid-cols-1 lg:grid-cols-4 gap-3">
-                      <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
-                        <div className="text-[10px] font-black uppercase tracking-wider text-slate-400">当前状态</div>
-                        <div className="mt-1 text-sm font-black text-slate-800">{agentDiagnostics?.agent_snapshot?.status || '-'}</div>
+                      <div className="rounded-xl border border-theme-border bg-theme-bg-app px-3 py-2">
+                        <div className="text-[10px] font-black uppercase tracking-wider text-theme-text-muted">当前状态</div>
+                        <div className="mt-1 text-sm font-black text-theme-text-primary">{agentDiagnostics?.agent_snapshot?.status || '-'}</div>
                       </div>
-                      <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
-                        <div className="text-[10px] font-black uppercase tracking-wider text-slate-400">最后心跳</div>
-                        <div className="mt-1 text-xs font-mono text-slate-700">{formatIsoTime(agentDiagnostics?.agent_snapshot?.last_seen || undefined)}</div>
+                      <div className="rounded-xl border border-theme-border bg-theme-bg-app px-3 py-2">
+                        <div className="text-[10px] font-black uppercase tracking-wider text-theme-text-muted">最后心跳</div>
+                        <div className="mt-1 text-xs font-mono text-theme-text-secondary">{formatIsoTime(agentDiagnostics?.agent_snapshot?.last_seen || undefined)}</div>
                       </div>
-                      <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
-                        <div className="text-[10px] font-black uppercase tracking-wider text-slate-400">刷新结果</div>
-                        <div className={`mt-1 text-sm font-black ${agentDiagnostics?.refresh_diag?.success ? 'text-emerald-700' : 'text-rose-700'}`}>
+                      <div className="rounded-xl border border-theme-border bg-theme-bg-app px-3 py-2">
+                        <div className="text-[10px] font-black uppercase tracking-wider text-theme-text-muted">刷新结果</div>
+                        <div className={`mt-1 text-sm font-black ${agentDiagnostics?.refresh_diag?.success ? 'text-emerald-400' : 'text-rose-400'}`}>
                           {agentDiagnostics?.refresh_diag?.success === undefined || agentDiagnostics?.refresh_diag?.success === null
                             ? '-'
                             : (agentDiagnostics?.refresh_diag?.success ? '成功' : '失败')}
                         </div>
                       </div>
-                      <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
-                        <div className="text-[10px] font-black uppercase tracking-wider text-slate-400">诊断时间</div>
-                        <div className="mt-1 text-xs font-mono text-slate-700">{formatIsoTime(agentDiagnostics?.generated_at || undefined)}</div>
+                      <div className="rounded-xl border border-theme-border bg-theme-bg-app px-3 py-2">
+                        <div className="text-[10px] font-black uppercase tracking-wider text-theme-text-muted">诊断时间</div>
+                        <div className="mt-1 text-xs font-mono text-theme-text-secondary">{formatIsoTime(agentDiagnostics?.generated_at || undefined)}</div>
                       </div>
                     </div>
 
                     {agentDiagnostics?.agent_snapshot?.status_reason ? (
-                      <div className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-700">
+                      <div className="rounded-xl border border-amber-500/20 bg-amber-500/15 px-3 py-2 text-xs text-amber-400">
                         {agentDiagnostics.agent_snapshot.status_reason}
                       </div>
                     ) : null}
 
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                      <div className="rounded-2xl border border-slate-200 p-4">
-                        <div className="text-xs font-black text-slate-700 mb-3">刷新线程诊断</div>
+                      <div className="rounded-2xl border border-theme-border p-4">
+                        <div className="text-xs font-black text-theme-text-secondary mb-3">刷新线程诊断</div>
                         <div className="grid grid-cols-2 gap-2 text-[11px]">
-                          <div className="text-slate-500">attempted_at</div>
-                          <div className="font-mono text-slate-700">{formatIsoTime(agentDiagnostics?.refresh_diag?.attempted_at || undefined)}</div>
-                          <div className="text-slate-500">completed_at</div>
-                          <div className="font-mono text-slate-700">{formatIsoTime(agentDiagnostics?.refresh_diag?.completed_at || undefined)}</div>
-                          <div className="text-slate-500">service_total</div>
-                          <div className="font-mono text-slate-700">{String(agentDiagnostics?.refresh_diag?.service_total ?? '-')}</div>
-                          <div className="text-slate-500">saved</div>
-                          <div className="font-mono text-slate-700">{String(agentDiagnostics?.refresh_diag?.agent_saved ?? '-')}</div>
-                          <div className="text-slate-500">skip(unhealthy)</div>
-                          <div className="font-mono text-slate-700">{String(agentDiagnostics?.refresh_diag?.service_unhealthy_skipped ?? '-')}</div>
-                          <div className="text-slate-500">pod</div>
-                          <div className="font-mono text-slate-700 break-all">{agentDiagnostics?.refresh_diag?.pod_id || '-'}</div>
+                          <div className="text-theme-text-muted">attempted_at</div>
+                          <div className="font-mono text-theme-text-secondary">{formatIsoTime(agentDiagnostics?.refresh_diag?.attempted_at || undefined)}</div>
+                          <div className="text-theme-text-muted">completed_at</div>
+                          <div className="font-mono text-theme-text-secondary">{formatIsoTime(agentDiagnostics?.refresh_diag?.completed_at || undefined)}</div>
+                          <div className="text-theme-text-muted">service_total</div>
+                          <div className="font-mono text-theme-text-secondary">{String(agentDiagnostics?.refresh_diag?.service_total ?? '-')}</div>
+                          <div className="text-theme-text-muted">saved</div>
+                          <div className="font-mono text-theme-text-secondary">{String(agentDiagnostics?.refresh_diag?.agent_saved ?? '-')}</div>
+                          <div className="text-theme-text-muted">skip(unhealthy)</div>
+                          <div className="font-mono text-theme-text-secondary">{String(agentDiagnostics?.refresh_diag?.service_unhealthy_skipped ?? '-')}</div>
+                          <div className="text-theme-text-muted">pod</div>
+                          <div className="font-mono text-theme-text-secondary break-all">{agentDiagnostics?.refresh_diag?.pod_id || '-'}</div>
                         </div>
-                        <div className="mt-3 rounded-lg bg-slate-50 border border-slate-200 px-2 py-1.5 text-[11px] text-slate-600">
+                        <div className="mt-3 rounded-lg bg-theme-bg-app border border-theme-border px-2 py-1.5 text-[11px] text-theme-text-secondary">
                           {agentDiagnostics?.refresh_diag?.message || '-'}
                         </div>
                       </div>
 
-                      <div className="rounded-2xl border border-slate-200 p-4">
-                        <div className="text-xs font-black text-slate-700 mb-3">列表快照诊断</div>
+                      <div className="rounded-2xl border border-theme-border p-4">
+                        <div className="text-xs font-black text-theme-text-secondary mb-3">列表快照诊断</div>
                         <div className="grid grid-cols-2 gap-2 text-[11px]">
-                          <div className="text-slate-500">generated_at</div>
-                          <div className="font-mono text-slate-700">{formatIsoTime(agentDiagnostics?.list_diag?.generated_at || undefined)}</div>
-                          <div className="text-slate-500">memory_lock</div>
-                          <div className="font-mono text-slate-700">
+                          <div className="text-theme-text-muted">generated_at</div>
+                          <div className="font-mono text-theme-text-secondary">{formatIsoTime(agentDiagnostics?.list_diag?.generated_at || undefined)}</div>
+                          <div className="text-theme-text-muted">memory_lock</div>
+                          <div className="font-mono text-theme-text-secondary">
                             {agentDiagnostics?.list_diag?.memory_lock_acquired === undefined ? '-' : (agentDiagnostics?.list_diag?.memory_lock_acquired ? 'acquired' : 'timeout')}
                           </div>
-                          <div className="text-slate-500">db_rows_count</div>
-                          <div className="font-mono text-slate-700">{String(agentDiagnostics?.list_diag?.db_rows_count ?? '-')}</div>
-                          <div className="text-slate-500">memory_agents_count</div>
-                          <div className="font-mono text-slate-700">{String(agentDiagnostics?.list_diag?.memory_agents_count ?? '-')}</div>
-                          <div className="text-slate-500">pod</div>
-                          <div className="font-mono text-slate-700 break-all">{agentDiagnostics?.list_diag?.pod_id || '-'}</div>
+                          <div className="text-theme-text-muted">db_rows_count</div>
+                          <div className="font-mono text-theme-text-secondary">{String(agentDiagnostics?.list_diag?.db_rows_count ?? '-')}</div>
+                          <div className="text-theme-text-muted">memory_agents_count</div>
+                          <div className="font-mono text-theme-text-secondary">{String(agentDiagnostics?.list_diag?.memory_agents_count ?? '-')}</div>
+                          <div className="text-theme-text-muted">pod</div>
+                          <div className="font-mono text-theme-text-secondary break-all">{agentDiagnostics?.list_diag?.pod_id || '-'}</div>
                         </div>
                       </div>
                     </div>
 
-                    <div className="rounded-2xl border border-slate-200 p-4">
-                      <div className="text-xs font-black text-slate-700 mb-3">上下线摘要（24h）</div>
+                    <div className="rounded-2xl border border-theme-border p-4">
+                      <div className="text-xs font-black text-theme-text-secondary mb-3">上下线摘要（24h）</div>
                       <div className="grid grid-cols-1 md:grid-cols-4 gap-3 text-[11px]">
-                        <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2">
-                          <div className="text-emerald-700 font-black uppercase tracking-wider text-[10px]">上线次数</div>
-                          <div className="mt-1 font-mono text-emerald-800">{String(agentDiagnostics?.event_diag?.up_count_24h ?? 0)}</div>
+                        <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/15 px-3 py-2">
+                          <div className="text-emerald-400 font-black uppercase tracking-wider text-[10px]">上线次数</div>
+                          <div className="mt-1 font-mono text-emerald-400">{String(agentDiagnostics?.event_diag?.up_count_24h ?? 0)}</div>
                         </div>
-                        <div className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2">
-                          <div className="text-amber-700 font-black uppercase tracking-wider text-[10px]">下线次数</div>
-                          <div className="mt-1 font-mono text-amber-800">{String(agentDiagnostics?.event_diag?.down_count_24h ?? 0)}</div>
+                        <div className="rounded-xl border border-amber-500/20 bg-amber-500/15 px-3 py-2">
+                          <div className="text-amber-400 font-black uppercase tracking-wider text-[10px]">下线次数</div>
+                          <div className="mt-1 font-mono text-amber-400">{String(agentDiagnostics?.event_diag?.down_count_24h ?? 0)}</div>
                         </div>
-                        <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 md:col-span-2">
-                          <div className="text-slate-500 font-black uppercase tracking-wider text-[10px]">最新事件</div>
-                          <div className="mt-1 text-slate-700 font-mono">
+                        <div className="rounded-xl border border-theme-border bg-theme-bg-app px-3 py-2 md:col-span-2">
+                          <div className="text-theme-text-muted font-black uppercase tracking-wider text-[10px]">最新事件</div>
+                          <div className="mt-1 text-theme-text-secondary font-mono">
                             {agentDiagnostics?.event_diag?.latest_event?.from_status || '-'}
-                            <span className="mx-1 text-slate-400">→</span>
+                            <span className="mx-1 text-theme-text-muted">→</span>
                             {agentDiagnostics?.event_diag?.latest_event?.to_status || '-'}
                           </div>
-                          <div className="mt-1 text-slate-500">
+                          <div className="mt-1 text-theme-text-muted">
                             {agentDiagnostics?.event_diag?.latest_event?.reason_code || '-'} · {agentDiagnostics?.event_diag?.latest_event?.source || '-'} · pod: {agentDiagnostics?.event_diag?.latest_event?.pod_id || '-'}
                           </div>
                         </div>
@@ -1140,10 +1140,10 @@ export const AgentDetailPage: React.FC<AgentDetailPageProps> = ({ agentKey, proj
                 )}
               </div>
 
- <div className="bg-slate-50 rounded-[2.5rem] border border-slate-200 p-8">
+ <div className="bg-theme-bg-app rounded-[2.5rem] border border-theme-border p-8">
                 <div className="flex items-center justify-between mb-4">
-                  <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
-                    <Clock size={16} className="text-indigo-600" /> 节点上下线记录
+                  <h4 className="text-[10px] font-black text-theme-text-muted uppercase tracking-widest flex items-center gap-2">
+                    <Clock size={16} className="text-indigo-400" /> 节点上下线记录
                   </h4>
                   <div className="flex items-center gap-2">
                     <button
@@ -1159,38 +1159,38 @@ export const AgentDetailPage: React.FC<AgentDetailPageProps> = ({ agentKey, proj
                         setStatusHistoryLimit(next);
                         void loadAgentStatusHistory(next);
                       }}
-                      className="px-3 py-1.5 rounded-lg bg-slate-100 text-slate-700 text-[11px] font-black hover:bg-slate-200"
+                      className="px-3 py-1.5 rounded-lg bg-theme-elevated text-theme-text-secondary text-[11px] font-black hover:bg-theme-elevated"
                     >
                       {statusHistoryLimit === 20 ? '查看更多(100)' : '收起到20条'}
                     </button>
                     <button
                       onClick={() => loadAgentStatusHistory(statusHistoryLimit)}
-                      className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg"
+                      className="p-2 text-theme-text-muted hover:text-indigo-400 hover:bg-indigo-500/15 rounded-lg"
                       title="刷新上下线记录"
                     >
                       <RefreshCw size={16} className={statusHistoryLoading ? 'animate-spin' : ''} />
                     </button>
                   </div>
                 </div>
-                <p className="text-[11px] text-slate-500 mb-4">
+                <p className="text-[11px] text-theme-text-muted mb-4">
                   仅记录状态边变化（online 与非online之间切换），每个节点最多保留最近100条。
                 </p>
 
                 {statusHistoryError ? (
-                  <div className="text-xs text-rose-600 bg-rose-50 border border-rose-100 rounded-xl px-3 py-2">
+                  <div className="text-xs text-rose-400 bg-rose-500/15 border border-rose-500/20 rounded-xl px-3 py-2">
                     记录加载失败: {statusHistoryError}
                   </div>
                 ) : statusHistoryLoading ? (
-                  <div className="py-8 flex items-center gap-2 text-xs text-slate-500">
+                  <div className="py-8 flex items-center gap-2 text-xs text-theme-text-muted">
                     <Loader2 className="animate-spin" size={14} /> 正在加载上下线记录...
                   </div>
                 ) : statusHistory.length === 0 ? (
-                  <div className="py-8 text-xs text-slate-400">暂无上下线记录</div>
+                  <div className="py-8 text-xs text-theme-text-muted">暂无上下线记录</div>
                 ) : (
-                  <div className="border border-slate-100 rounded-2xl overflow-hidden">
+                  <div className="border border-theme-border rounded-2xl overflow-hidden">
                     <table className="w-full text-left">
-                      <thead className="bg-slate-50">
-                        <tr className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+                      <thead className="bg-theme-bg-app">
+                        <tr className="text-[10px] font-black uppercase tracking-widest text-theme-text-muted">
                           <th className="px-3 py-2">时间</th>
                           <th className="px-3 py-2">方向</th>
                           <th className="px-3 py-2">状态变化</th>
@@ -1198,31 +1198,31 @@ export const AgentDetailPage: React.FC<AgentDetailPageProps> = ({ agentKey, proj
                           <th className="px-3 py-2">来源</th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-slate-100">
+                      <tbody className="divide-y divide-theme-border">
                         {statusHistory.map((item) => {
                           const toOnline = String(item.edge_state_to || '').toLowerCase() === 'online';
                           return (
-                            <tr key={`${item.id}-${item.created_at || ''}`} className="hover:bg-slate-100">
-                              <td className="px-3 py-2 text-[11px] font-mono text-slate-600 whitespace-nowrap">
+                            <tr key={`${item.id}-${item.created_at || ''}`} className="hover:bg-theme-elevated">
+                              <td className="px-3 py-2 text-[11px] font-mono text-theme-text-secondary whitespace-nowrap">
                                 {item.observed_at ? String(item.observed_at).replace('T', ' ').split('.')[0] : '-'}
                               </td>
                               <td className="px-3 py-2">
-                                <span className={`text-[10px] font-black uppercase px-2 py-1 rounded-lg border ${toOnline ? 'bg-green-50 text-green-700 border-green-100' : 'bg-amber-50 text-amber-700 border-amber-100'}`}>
+                                <span className={`text-[10px] font-black uppercase px-2 py-1 rounded-lg border ${toOnline ? 'bg-green-500/15 text-green-400 border-green-500/20' : 'bg-amber-500/15 text-amber-400 border-amber-500/20'}`}>
                                   {item.direction || (toOnline ? '上线' : '下线')}
                                 </span>
                               </td>
-                              <td className="px-3 py-2 text-xs text-slate-700">
+                              <td className="px-3 py-2 text-xs text-theme-text-secondary">
                                 <span className="font-mono">{item.from_status || '-'}</span>
-                                <span className="mx-1 text-slate-400">→</span>
+                                <span className="mx-1 text-theme-text-muted">→</span>
                                 <span className="font-mono">{item.to_status || '-'}</span>
                               </td>
-                              <td className="px-3 py-2 text-xs text-slate-600">
-                                <div className="font-bold text-slate-700">{item.reason_code || '-'}</div>
-                                <div className="text-[11px] text-slate-500">{item.reason_message || '-'}</div>
+                              <td className="px-3 py-2 text-xs text-theme-text-secondary">
+                                <div className="font-bold text-theme-text-secondary">{item.reason_code || '-'}</div>
+                                <div className="text-[11px] text-theme-text-muted">{item.reason_message || '-'}</div>
                               </td>
-                              <td className="px-3 py-2 text-[11px] text-slate-500">
+                              <td className="px-3 py-2 text-[11px] text-theme-text-muted">
                                 <div>{item.source || '-'}</div>
-                                <div className="font-mono text-slate-400">pod: {item.pod_id || '-'}</div>
+                                <div className="font-mono text-theme-text-muted">pod: {item.pod_id || '-'}</div>
                               </td>
                             </tr>
                           );
@@ -1233,14 +1233,14 @@ export const AgentDetailPage: React.FC<AgentDetailPageProps> = ({ agentKey, proj
                 )}
               </div>
 
- <div className="bg-slate-50 rounded-[2.5rem] border border-slate-200 p-8">
+ <div className="bg-theme-bg-app rounded-[2.5rem] border border-theme-border p-8">
                 <div className="flex items-center justify-between mb-6">
-                  <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
-                    <SquareTerminal size={16} className="text-emerald-600" /> TTYD 终端转发
+                  <h4 className="text-[10px] font-black text-theme-text-muted uppercase tracking-widest flex items-center gap-2">
+                    <SquareTerminal size={16} className="text-emerald-400" /> TTYD 终端转发
                   </h4>
                   <button
                     onClick={loadTtydConnection}
-                    className="p-2 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg"
+                    className="p-2 text-theme-text-muted hover:text-emerald-400 hover:bg-emerald-500/15 rounded-lg"
                     title="刷新TTYD连接状态"
                   >
                     <RefreshCw size={16} className={ttydLoading ? 'animate-spin' : ''} />
@@ -1248,18 +1248,18 @@ export const AgentDetailPage: React.FC<AgentDetailPageProps> = ({ agentKey, proj
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-5">
-                  <div className="bg-slate-50 rounded-2xl p-4 border border-slate-100">
-                    <p className="text-[10px] font-black text-slate-400 uppercase">HTTP 入口</p>
-                    <p className="text-xs font-mono font-black text-slate-700 break-all">{ttydInfo?.http_url || 'N/A'}</p>
+                  <div className="bg-theme-bg-app rounded-2xl p-4 border border-theme-border">
+                    <p className="text-[10px] font-black text-theme-text-muted uppercase">HTTP 入口</p>
+                    <p className="text-xs font-mono font-black text-theme-text-secondary break-all">{ttydInfo?.http_url || 'N/A'}</p>
                   </div>
-                  <div className="bg-slate-50 rounded-2xl p-4 border border-slate-100">
-                    <p className="text-[10px] font-black text-slate-400 uppercase">WebSocket 入口</p>
-                    <p className="text-xs font-mono font-black text-slate-700 break-all">{ttydInfo?.ws_url || 'N/A'}</p>
+                  <div className="bg-theme-bg-app rounded-2xl p-4 border border-theme-border">
+                    <p className="text-[10px] font-black text-theme-text-muted uppercase">WebSocket 入口</p>
+                    <p className="text-xs font-mono font-black text-theme-text-secondary break-all">{ttydInfo?.ws_url || 'N/A'}</p>
                   </div>
                 </div>
 
                 <div className="flex flex-wrap items-center gap-3 mb-4">
-                  <span className={`text-[10px] font-black uppercase px-2 py-1 rounded-lg border ${ttydInfo?.reachable ? 'bg-green-50 text-green-600 border-green-100' : 'bg-amber-50 text-amber-700 border-amber-100'}`}>
+                  <span className={`text-[10px] font-black uppercase px-2 py-1 rounded-lg border ${ttydInfo?.reachable ? 'bg-green-500/15 text-green-400 border-green-500/20' : 'bg-amber-500/15 text-amber-400 border-amber-500/20'}`}>
                     {ttydInfo?.reachable ? 'TTYD 可达' : 'TTYD 不可达'}
                   </span>
                   <button
@@ -1272,20 +1272,20 @@ export const AgentDetailPage: React.FC<AgentDetailPageProps> = ({ agentKey, proj
                   <button
                     onClick={() => setShowTtydShell(v => !v)}
                     disabled={!ttydInfo?.http_url}
-                    className="px-4 py-2 bg-slate-900 text-white rounded-xl text-xs font-bold hover:bg-slate-800 disabled:opacity-50 flex items-center gap-1"
+                    className="px-4 py-2 bg-theme-surface text-white rounded-xl text-xs font-bold hover:bg-theme-elevated disabled:opacity-50 flex items-center gap-1"
                   >
                     <TerminalSquare size={14} /> {showTtydShell ? '收起内嵌终端' : '展开内嵌终端'}
                   </button>
                 </div>
 
                 {ttydInfo?.probe_error && (
-                  <p className="text-xs text-amber-700 bg-amber-50 border border-amber-100 rounded-xl px-3 py-2">
+                  <p className="text-xs text-amber-400 bg-amber-500/15 border border-amber-500/20 rounded-xl px-3 py-2">
                     探测错误: {ttydInfo.probe_error}
                   </p>
                 )}
 
                 {showTtydShell && ttydInfo?.http_url && (
-                  <div className="mt-5 border border-slate-200 rounded-2xl overflow-hidden">
+                  <div className="mt-5 border border-theme-border rounded-2xl overflow-hidden">
                     <iframe
                       src={ttydInfo.http_url}
                       title={`ttyd-${agentKey}`}
@@ -1295,14 +1295,14 @@ export const AgentDetailPage: React.FC<AgentDetailPageProps> = ({ agentKey, proj
                 )}
               </div>
 
- <div className="bg-slate-50 rounded-[2.5rem] border border-slate-200 p-8">
+ <div className="bg-theme-bg-app rounded-[2.5rem] border border-theme-border p-8">
                 <div className="flex items-center justify-between mb-6">
-                  <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
-                    <Globe size={16} className="text-blue-600" /> 动态 Ingress 转发
+                  <h4 className="text-[10px] font-black text-theme-text-muted uppercase tracking-widest flex items-center gap-2">
+                    <Globe size={16} className="text-blue-400" /> 动态 Ingress 转发
                   </h4>
                   <button
                     onClick={loadIngressRoutes}
-                    className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg"
+                    className="p-2 text-theme-text-muted hover:text-blue-400 hover:bg-blue-500/15 rounded-lg"
                     title="刷新转发规则"
                   >
                     <RefreshCw size={16} className={ingressLoading ? 'animate-spin' : ''} />
@@ -1325,32 +1325,32 @@ export const AgentDetailPage: React.FC<AgentDetailPageProps> = ({ agentKey, proj
                 </div>
 
                 {ingressLoading ? (
-                  <div className="py-10 flex items-center gap-2 text-xs text-slate-500">
+                  <div className="py-10 flex items-center gap-2 text-xs text-theme-text-muted">
                     <Loader2 className="animate-spin" size={14} /> 正在加载Ingress路由...
                   </div>
                 ) : ingressRoutes.length === 0 ? (
-                  <div className="py-8 text-xs text-slate-400">暂无动态Ingress路由</div>
+                  <div className="py-8 text-xs text-theme-text-muted">暂无动态Ingress路由</div>
                 ) : (
                   <div className="space-y-3">
                     {ingressRoutes.map(route => (
-                      <div key={route.route_id} className="border border-slate-100 rounded-2xl p-4">
+                      <div key={route.route_id} className="border border-theme-border rounded-2xl p-4">
                         <div className="flex items-center justify-between gap-3">
                           <div>
-                            <div className="text-xs font-black text-slate-700">
+                            <div className="text-xs font-black text-theme-text-secondary">
                               {route.host}{route.path} - {route.target_port}
                             </div>
-                            <div className="text-[11px] text-slate-500 mt-1 font-mono break-all">
+                            <div className="text-[11px] text-theme-text-muted mt-1 font-mono break-all">
                               {route.access_url || 'N/A'}
                             </div>
                           </div>
                           <div className="flex items-center gap-2">
-                            <span className={`text-[10px] font-black uppercase px-2 py-1 rounded-lg border ${route.status === 'ready' ? 'bg-green-50 text-green-700 border-green-100' : 'bg-amber-50 text-amber-700 border-amber-100'}`}>
+                            <span className={`text-[10px] font-black uppercase px-2 py-1 rounded-lg border ${route.status === 'ready' ? 'bg-green-500/15 text-green-400 border-green-500/20' : 'bg-amber-500/15 text-amber-400 border-amber-500/20'}`}>
                               {route.status}
                             </span>
                             <button
                               onClick={() => route.access_url && window.open(route.access_url, '_blank', 'noopener,noreferrer')}
                               disabled={!route.access_url}
-                              className="px-2 py-1 text-xs bg-slate-900 text-white rounded-lg disabled:opacity-50"
+                              className="px-2 py-1 text-xs bg-theme-surface text-white rounded-lg disabled:opacity-50"
                             >
                               打开
                             </button>
@@ -1368,74 +1368,74 @@ export const AgentDetailPage: React.FC<AgentDetailPageProps> = ({ agentKey, proj
                 )}
               </div>
 
- <div className="bg-slate-50 rounded-[2.5rem] border border-slate-200 p-8">
+ <div className="bg-theme-bg-app rounded-[2.5rem] border border-theme-border p-8">
                 <div className="flex items-center justify-between mb-6">
-                  <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                  <h4 className="text-[10px] font-black text-theme-text-muted uppercase tracking-widest flex items-center gap-2">
                     <Info size={16} className="text-blue-500" /> Agent 运行信息
                   </h4>
-                  <span className="text-[10px] font-black text-slate-400 uppercase">
-                    状态: <span className="text-slate-700">{daemonInfo?.status || 'N/A'}</span>
+                  <span className="text-[10px] font-black text-theme-text-muted uppercase">
+                    状态: <span className="text-theme-text-secondary">{daemonInfo?.status || 'N/A'}</span>
                   </span>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-                  <div className="bg-slate-50 rounded-2xl p-4 border border-slate-100">
-                    <p className="text-[10px] font-black text-slate-400 uppercase">Version</p>
-                    <p className="text-sm font-black text-slate-800">{daemonInfo?.version || 'N/A'}</p>
+                  <div className="bg-theme-bg-app rounded-2xl p-4 border border-theme-border">
+                    <p className="text-[10px] font-black text-theme-text-muted uppercase">Version</p>
+                    <p className="text-sm font-black text-theme-text-primary">{daemonInfo?.version || 'N/A'}</p>
                   </div>
-                  <div className="bg-slate-50 rounded-2xl p-4 border border-slate-100">
-                    <p className="text-[10px] font-black text-slate-400 uppercase">Go/Platform</p>
-                    <p className="text-sm font-black text-slate-800">{daemonInfo?.go_version || 'N/A'} / {daemonInfo?.platform || 'N/A'}</p>
+                  <div className="bg-theme-bg-app rounded-2xl p-4 border border-theme-border">
+                    <p className="text-[10px] font-black text-theme-text-muted uppercase">Go/Platform</p>
+                    <p className="text-sm font-black text-theme-text-primary">{daemonInfo?.go_version || 'N/A'} / {daemonInfo?.platform || 'N/A'}</p>
                   </div>
-                  <div className="bg-slate-50 rounded-2xl p-4 border border-slate-100">
-                    <p className="text-[10px] font-black text-slate-400 uppercase">UUID / Project</p>
-                    <p className="text-xs font-mono font-black text-slate-700 break-all">{daemonInfo?.uuid || 'N/A'} / {daemonInfo?.project_id || 'N/A'}</p>
+                  <div className="bg-theme-bg-app rounded-2xl p-4 border border-theme-border">
+                    <p className="text-[10px] font-black text-theme-text-muted uppercase">UUID / Project</p>
+                    <p className="text-xs font-mono font-black text-theme-text-secondary break-all">{daemonInfo?.uuid || 'N/A'} / {daemonInfo?.project_id || 'N/A'}</p>
                   </div>
-                  <div className="bg-slate-50 rounded-2xl p-4 border border-slate-100">
-                    <p className="text-[10px] font-black text-slate-400 uppercase">Workspace / Server</p>
-                    <p className="text-xs font-mono font-black text-slate-700 break-all">{daemonInfo?.workspace || 'N/A'} / {daemonInfo?.server || 'N/A'}</p>
+                  <div className="bg-theme-bg-app rounded-2xl p-4 border border-theme-border">
+                    <p className="text-[10px] font-black text-theme-text-muted uppercase">Workspace / Server</p>
+                    <p className="text-xs font-mono font-black text-theme-text-secondary break-all">{daemonInfo?.workspace || 'N/A'} / {daemonInfo?.server || 'N/A'}</p>
                   </div>
                 </div>
 
                 <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-6">
-                  <div className="bg-slate-50 rounded-xl p-3 border border-slate-100">
-                    <p className="text-[9px] font-black text-slate-400 uppercase">总服务</p>
-                    <p className="text-lg font-black text-slate-800">{daemonInfo?.services_total ?? 0}</p>
+                  <div className="bg-theme-bg-app rounded-xl p-3 border border-theme-border">
+                    <p className="text-[9px] font-black text-theme-text-muted uppercase">总服务</p>
+                    <p className="text-lg font-black text-theme-text-primary">{daemonInfo?.services_total ?? 0}</p>
                   </div>
-                  <div className="bg-green-50 rounded-xl p-3 border border-green-100">
+                  <div className="bg-green-500/15 rounded-xl p-3 border border-green-500/20">
                     <p className="text-[9px] font-black text-green-400 uppercase">运行中</p>
-                    <p className="text-lg font-black text-green-600">{daemonInfo?.services_running ?? 0}</p>
+                    <p className="text-lg font-black text-green-400">{daemonInfo?.services_running ?? 0}</p>
                   </div>
-                  <div className="bg-red-50 rounded-xl p-3 border border-red-100">
+                  <div className="bg-red-500/15 rounded-xl p-3 border border-red-500/20">
                     <p className="text-[9px] font-black text-red-400 uppercase">已停止</p>
-                    <p className="text-lg font-black text-red-600">{daemonInfo?.services_stopped ?? 0}</p>
+                    <p className="text-lg font-black text-red-400">{daemonInfo?.services_stopped ?? 0}</p>
                   </div>
-                  <div className="bg-amber-50 rounded-xl p-3 border border-amber-100">
+                  <div className="bg-amber-500/15 rounded-xl p-3 border border-amber-500/20">
                     <p className="text-[9px] font-black text-amber-400 uppercase">异常服务</p>
-                    <p className="text-lg font-black text-amber-600">{daemonInfo?.services_error ?? 0}</p>
+                    <p className="text-lg font-black text-amber-400">{daemonInfo?.services_error ?? 0}</p>
                   </div>
-                  <div className="bg-slate-50 rounded-xl p-3 border border-slate-100">
-                    <p className="text-[9px] font-black text-slate-400 uppercase">Agent Uptime</p>
-                    <p className="text-lg font-black text-slate-800">{formatUptime(daemonInfo?.uptime_seconds || 0)}</p>
+                  <div className="bg-theme-bg-app rounded-xl p-3 border border-theme-border">
+                    <p className="text-[9px] font-black text-theme-text-muted uppercase">Agent Uptime</p>
+                    <p className="text-lg font-black text-theme-text-primary">{formatUptime(daemonInfo?.uptime_seconds || 0)}</p>
                   </div>
                 </div>
 
-                <div className="text-[11px] text-slate-500 font-bold">
-                  启动时间: <span className="font-black text-slate-700">{formatIsoTime(daemonInfo?.start_time)}</span>
+                <div className="text-[11px] text-theme-text-muted font-bold">
+                  启动时间: <span className="font-black text-theme-text-secondary">{formatIsoTime(daemonInfo?.start_time)}</span>
                 </div>
-                <div className="text-[11px] text-slate-500 font-bold mt-1">
-                  健康检查: <span className="font-black text-slate-700">{daemonAgentHealth?.status || 'N/A'}</span>
-                  <span className="ml-3 text-slate-400">{formatIsoTime(daemonAgentHealth?.timestamp)}</span>
+                <div className="text-[11px] text-theme-text-muted font-bold mt-1">
+                  健康检查: <span className="font-black text-theme-text-secondary">{daemonAgentHealth?.status || 'N/A'}</span>
+                  <span className="ml-3 text-theme-text-muted">{formatIsoTime(daemonAgentHealth?.timestamp)}</span>
                 </div>
 
                 {daemonInfo?.services && daemonInfo.services.length > 0 && (
-                  <div className="mt-6 border border-slate-100 rounded-2xl overflow-hidden">
-                    <div className="bg-slate-50 px-4 py-3 text-[10px] font-black text-slate-400 uppercase tracking-widest">守护服务简表（来自 /api/v1/agent/info）</div>
+                  <div className="mt-6 border border-theme-border rounded-2xl overflow-hidden">
+                    <div className="bg-theme-bg-app px-4 py-3 text-[10px] font-black text-theme-text-muted uppercase tracking-widest">守护服务简表（来自 /api/v1/agent/info）</div>
                     <div className="divide-y divide-slate-50">
                       {daemonInfo.services.map(svc => (
                         <div key={svc.name} className="px-4 py-3 flex items-center justify-between text-xs">
-                          <span className="font-black text-slate-800">{svc.name}</span>
-                          <span className="text-slate-500 font-bold">
+                          <span className="font-black text-theme-text-primary">{svc.name}</span>
+                          <span className="text-theme-text-muted font-bold">
                             {svc.is_running ? 'RUNNING' : 'STOPPED'} / PID {svc.pid || 'N/A'} / UPTIME {formatUptime(svc.uptime_seconds || 0)} / FAIL {svc.fail_count} / MODE {svc.monitor_mode || 'N/A'}
                           </span>
                         </div>
@@ -1446,12 +1446,12 @@ export const AgentDetailPage: React.FC<AgentDetailPageProps> = ({ agentKey, proj
               </div>
 
               {/* 服务列表 */}
- <div className="bg-slate-50 rounded-[2.5rem] border border-slate-200 overflow-hidden">
-                <div className="px-8 py-6 border-b border-slate-100 bg-slate-100/50 flex justify-between items-center">
-                  <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
+ <div className="bg-theme-bg-app rounded-[2.5rem] border border-theme-border overflow-hidden">
+                <div className="px-8 py-6 border-b border-theme-border bg-slate-100/50 flex justify-between items-center">
+                  <h4 className="text-[10px] font-black text-theme-text-muted uppercase tracking-widest flex items-center gap-2">
                     <Zap size={16} className="text-blue-500" /> 守护进程服务
                     {daemonUnavailableReason && (
-                      <span className="text-[10px] normal-case text-amber-600 font-bold">
+                      <span className="text-[10px] normal-case text-amber-400 font-bold">
                         (降级显示: {daemonUnavailableReason})
                       </span>
                     )}
@@ -1461,7 +1461,7 @@ export const AgentDetailPage: React.FC<AgentDetailPageProps> = ({ agentKey, proj
                       await Promise.all([loadDaemonServices(), loadDaemonAgentInfo()]);
                     }}
                     disabled={daemonLoading || agent.status !== 'online'}
-                    className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg disabled:opacity-50"
+                    className="p-2 text-theme-text-muted hover:text-blue-400 hover:bg-blue-500/15 rounded-lg disabled:opacity-50"
                   >
                     <RefreshCw size={16} className={daemonLoading ? 'animate-spin' : ''} />
                   </button>
@@ -1469,13 +1469,13 @@ export const AgentDetailPage: React.FC<AgentDetailPageProps> = ({ agentKey, proj
 
                 {daemonLoading ? (
                   <div className="py-20 flex flex-col items-center justify-center">
-                    <Loader2 className="animate-spin text-blue-600 mb-4" size={32} />
-                    <p className="text-xs text-slate-400">正在加载服务状态...</p>
+                    <Loader2 className="animate-spin text-blue-400 mb-4" size={32} />
+                    <p className="text-xs text-theme-text-muted">正在加载服务状态...</p>
                   </div>
                 ) : daemonServices.length === 0 ? (
                   <div className="py-20 text-center">
                     <Server className="text-slate-200 mx-auto mb-4" size={48} />
-                    <p className="text-xs text-slate-300 italic">未发现守护进程服务</p>
+                    <p className="text-xs text-theme-text-faint italic">未发现守护进程服务</p>
                   </div>
                 ) : (
                   <div className="divide-y divide-slate-50">
@@ -1485,38 +1485,38 @@ export const AgentDetailPage: React.FC<AgentDetailPageProps> = ({ agentKey, proj
                           {/* 服务信息 */}
                           <div className="flex items-start gap-4 flex-1">
                             <div className={`w-12 h-12 rounded-2xl flex items-center justify-center flex-shrink-0 ${
-                              service.is_running ? 'bg-green-50 text-green-600' : 'bg-slate-100 text-slate-400'
+                              service.is_running ? 'bg-green-500/15 text-green-400' : 'bg-theme-elevated text-theme-text-muted'
                             }`}>
                               <Zap size={22} />
                             </div>
                             <div className="flex-1 min-w-0">
                               <div className="flex items-center gap-3 mb-1">
-                                <h5 className="text-sm font-black text-slate-800">{service.name}</h5>
+                                <h5 className="text-sm font-black text-theme-text-primary">{service.name}</h5>
                                 <StatusBadge status={service.is_running ? 'online' : 'offline'} />
                               </div>
-                              <p className="text-xs text-slate-500 mb-3">{service.description}</p>
+                              <p className="text-xs text-theme-text-muted mb-3">{service.description}</p>
 
                               {/* 服务指标 */}
                               <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                                 <div className="text-xs">
-                                  <span className="text-slate-400 font-bold">PID:</span>
-                                  <span className="text-slate-700 font-black ml-1">{service.pid || 'N/A'}</span>
+                                  <span className="text-theme-text-muted font-bold">PID:</span>
+                                  <span className="text-theme-text-secondary font-black ml-1">{service.pid || 'N/A'}</span>
                                 </div>
                                 <div className="text-xs">
-                                  <span className="text-slate-400 font-bold">运行时间:</span>
-                                  <span className="text-slate-700 font-black ml-1">
+                                  <span className="text-theme-text-muted font-bold">运行时间:</span>
+                                  <span className="text-theme-text-secondary font-black ml-1">
                                     {formatUptime(service.uptime_seconds)}
                                   </span>
                                 </div>
                                 <div className="text-xs">
-                                  <span className="text-slate-400 font-bold">失败次数:</span>
-                                  <span className={`font-black ml-1 ${service.fail_count > 0 ? 'text-red-600' : 'text-slate-700'}`}>
+                                  <span className="text-theme-text-muted font-bold">失败次数:</span>
+                                  <span className={`font-black ml-1 ${service.fail_count > 0 ? 'text-red-400' : 'text-theme-text-secondary'}`}>
                                     {service.fail_count}
                                   </span>
                                 </div>
                                 <div className="text-xs">
-                                  <span className="text-slate-400 font-bold">监控模式:</span>
-                                  <span className="text-slate-700 font-black ml-1">{service.monitor_mode}</span>
+                                  <span className="text-theme-text-muted font-bold">监控模式:</span>
+                                  <span className="text-theme-text-secondary font-black ml-1">{service.monitor_mode}</span>
                                 </div>
                               </div>
                             </div>
@@ -1528,13 +1528,13 @@ export const AgentDetailPage: React.FC<AgentDetailPageProps> = ({ agentKey, proj
                               <>
                                 <button
                                   onClick={() => handleDaemonServiceAction(service.name, 'restart')}
-                                  className="px-4 py-2 bg-amber-50 text-amber-600 rounded-xl text-xs font-bold hover:bg-amber-100 transition-all flex items-center gap-1"
+                                  className="px-4 py-2 bg-amber-500/15 text-amber-400 rounded-xl text-xs font-bold hover:bg-amber-500/15 transition-all flex items-center gap-1"
                                 >
                                   <RefreshCw size={14} /> 重启
                                 </button>
                                 <button
                                   onClick={() => handleDaemonServiceAction(service.name, 'stop')}
-                                  className="px-4 py-2 bg-red-50 text-red-600 rounded-xl text-xs font-bold hover:bg-red-100 transition-all flex items-center gap-1"
+                                  className="px-4 py-2 bg-red-500/15 text-red-400 rounded-xl text-xs font-bold hover:bg-red-500/15 transition-all flex items-center gap-1"
                                 >
                                   <Activity size={14} /> 停止
                                 </button>
@@ -1542,14 +1542,14 @@ export const AgentDetailPage: React.FC<AgentDetailPageProps> = ({ agentKey, proj
                             ) : (
                               <button
                                 onClick={() => handleDaemonServiceAction(service.name, 'start')}
-                                className="px-4 py-2 bg-blue-50 text-blue-600 rounded-xl text-xs font-bold hover:bg-blue-100 transition-all flex items-center gap-1"
+                                className="px-4 py-2 bg-blue-500/15 text-blue-400 rounded-xl text-xs font-bold hover:bg-blue-500/15 transition-all flex items-center gap-1"
                               >
                                 <Activity size={14} /> 启动
                               </button>
                             )}
                             <button
                               onClick={() => handleViewLogs(service.name)}
-                              className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-xl transition-all"
+                              className="p-2 text-theme-text-muted hover:text-theme-text-secondary hover:bg-theme-elevated rounded-xl transition-all"
                               title="查看日志"
                             >
                               <FileText size={16} />
@@ -1565,19 +1565,19 @@ export const AgentDetailPage: React.FC<AgentDetailPageProps> = ({ agentKey, proj
               {/* 统计摘要 */}
               {daemonServices.length > 0 && (
                 <div className="grid grid-cols-3 gap-4">
-                  <div className="bg-slate-50 p-6 rounded-2xl border border-slate-100">
-                    <p className="text-[9px] font-black text-slate-400 uppercase">服务总数</p>
-                    <p className="text-2xl font-black text-slate-800">{daemonServices.length}</p>
+                  <div className="bg-theme-bg-app p-6 rounded-2xl border border-theme-border">
+                    <p className="text-[9px] font-black text-theme-text-muted uppercase">服务总数</p>
+                    <p className="text-2xl font-black text-theme-text-primary">{daemonServices.length}</p>
                   </div>
-                  <div className="bg-green-50 p-6 rounded-2xl border border-green-100">
+                  <div className="bg-green-500/15 p-6 rounded-2xl border border-green-500/20">
                     <p className="text-[9px] font-black text-green-400 uppercase">运行中</p>
-                    <p className="text-2xl font-black text-green-600">
+                    <p className="text-2xl font-black text-green-400">
                       {daemonServices.filter(s => s.is_running).length}
                     </p>
                   </div>
-                  <div className="bg-red-50 p-6 rounded-2xl border border-red-100">
+                  <div className="bg-red-500/15 p-6 rounded-2xl border border-red-500/20">
                     <p className="text-[9px] font-black text-red-400 uppercase">已停止</p>
-                    <p className="text-2xl font-black text-red-600">
+                    <p className="text-2xl font-black text-red-400">
                       {daemonServices.filter(s => !s.is_running).length}
                     </p>
                   </div>
@@ -1589,18 +1589,18 @@ export const AgentDetailPage: React.FC<AgentDetailPageProps> = ({ agentKey, proj
 
         <div className="space-y-8">
           {activeTab === 'services' ? (
- <div className="bg-slate-50 border border-slate-200 p-10 rounded-[3rem] space-y-8 relative overflow-hidden group">
+ <div className="bg-theme-bg-app border border-theme-border p-10 rounded-[3rem] space-y-8 relative overflow-hidden group">
               <div className="absolute right-[-20px] top-[-20px] w-40 h-40 bg-blue-500 opacity-5 blur-3xl group-hover:opacity-10 transition-opacity" />
               <div className="flex items-center justify-between gap-4">
                 <div>
-                  <p className="text-slate-500 text-[10px] font-black uppercase tracking-widest">服务详情</p>
-                  <p className="text-xs text-slate-400 mt-2">点击左侧服务后，在这里查看详情、Ingress 与日志</p>
+                  <p className="text-theme-text-muted text-[10px] font-black uppercase tracking-widest">服务详情</p>
+                  <p className="text-xs text-theme-text-muted mt-2">点击左侧服务后，在这里查看详情、Ingress 与日志</p>
                 </div>
-                {nodeServiceLoading && <Loader2 size={18} className="animate-spin text-slate-400" />}
+                {nodeServiceLoading && <Loader2 size={18} className="animate-spin text-theme-text-muted" />}
               </div>
 
               {!selectedNodeService ? (
-                <div className="bg-slate-50 rounded-[2rem] p-6 text-sm text-slate-500">
+                <div className="bg-theme-bg-app rounded-[2rem] p-6 text-sm text-theme-text-muted">
                   请选择左侧一个服务
                 </div>
               ) : (
@@ -1608,37 +1608,37 @@ export const AgentDetailPage: React.FC<AgentDetailPageProps> = ({ agentKey, proj
                   <div className="space-y-3">
                     <div className="flex items-start justify-between gap-4">
                       <div className="min-w-0">
-                        <p className="text-xl font-black text-slate-900 break-all">{selectedNodeService.name}</p>
-                        <p className="text-[11px] font-mono text-slate-400 mt-2 break-all">{selectedNodeService.image || 'N/A'}</p>
+                        <p className="text-xl font-black text-theme-text-primary break-all">{selectedNodeService.name}</p>
+                        <p className="text-[11px] font-mono text-theme-text-muted mt-2 break-all">{selectedNodeService.image || 'N/A'}</p>
                       </div>
                       <StatusBadge status={selectedNodeServiceDetail?.status || selectedNodeService.status || 'unknown'} />
                     </div>
                     <div className="grid grid-cols-1 gap-3">
-                      <div className="bg-slate-50 rounded-2xl p-4 border border-slate-200">
-                        <p className="text-[10px] font-black text-slate-400 uppercase">模板</p>
+                      <div className="bg-theme-bg-app rounded-2xl p-4 border border-theme-border">
+                        <p className="text-[10px] font-black text-theme-text-muted uppercase">模板</p>
                         <p className="text-sm font-black mt-1">{selectedNodeService.template_name || '未识别'}</p>
-                        <p className="text-[11px] text-slate-500 mt-1">ID: {selectedNodeService.template_id ?? 'N/A'}</p>
+                        <p className="text-[11px] text-theme-text-muted mt-1">ID: {selectedNodeService.template_id ?? 'N/A'}</p>
                       </div>
-                      <div className="bg-slate-50 rounded-2xl p-4 border border-slate-200">
-                        <p className="text-[10px] font-black text-slate-400 uppercase">节点</p>
+                      <div className="bg-theme-bg-app rounded-2xl p-4 border border-theme-border">
+                        <p className="text-[10px] font-black text-theme-text-muted uppercase">节点</p>
                         <p className="text-sm font-black mt-1">{selectedNodeService.agent_hostname || agent?.hostname || agentKey}</p>
-                        <p className="text-[11px] text-slate-500 mt-1 break-all">{selectedNodeService.agent_key || agentKey}</p>
+                        <p className="text-[11px] text-theme-text-muted mt-1 break-all">{selectedNodeService.agent_key || agentKey}</p>
                       </div>
                     </div>
                   </div>
 
                   <div className="space-y-3">
-                    <p className="text-slate-500 text-[10px] font-black uppercase tracking-widest">服务绑定的 Ingress</p>
+                    <p className="text-theme-text-muted text-[10px] font-black uppercase tracking-widest">服务绑定的 Ingress</p>
                     {selectedNodeServiceIngress.length === 0 ? (
-                      <div className="bg-slate-50 rounded-2xl p-4 text-sm text-slate-500">当前服务未绑定 Ingress</div>
+                      <div className="bg-theme-bg-app rounded-2xl p-4 text-sm text-theme-text-muted">当前服务未绑定 Ingress</div>
                     ) : (
                       <div className="space-y-3">
                         {selectedNodeServiceIngress.map((route: any) => {
                           const url = route.url || route.http_url || route.https_url || '';
                           return (
-                            <div key={route.id || route.host} className="bg-slate-50 rounded-2xl p-4 border border-slate-200">
+                            <div key={route.id || route.host} className="bg-theme-bg-app rounded-2xl p-4 border border-theme-border">
                               <p className="text-sm font-black break-all">{route.host || 'N/A'}{route.path || '/'}</p>
-                              <p className="text-[11px] text-slate-500 mt-2 break-all">{url || '无访问地址'}</p>
+                              <p className="text-[11px] text-theme-text-muted mt-2 break-all">{url || '无访问地址'}</p>
                               {url && (
                                 <button
                                   type="button"
@@ -1656,16 +1656,16 @@ export const AgentDetailPage: React.FC<AgentDetailPageProps> = ({ agentKey, proj
                   </div>
 
                   <div className="space-y-3">
-                    <p className="text-slate-500 text-[10px] font-black uppercase tracking-widest">实时日志</p>
-                    <div className="bg-slate-50 rounded-2xl p-4 max-h-72 overflow-auto text-[11px] font-mono whitespace-pre-wrap break-words text-slate-700 border border-slate-200">
+                    <p className="text-theme-text-muted text-[10px] font-black uppercase tracking-widest">实时日志</p>
+                    <div className="bg-theme-bg-app rounded-2xl p-4 max-h-72 overflow-auto text-[11px] font-mono whitespace-pre-wrap break-words text-theme-text-secondary border border-theme-border">
                       {selectedNodeServiceLogs || '暂无日志'}
                     </div>
                   </div>
 
                   <div className="space-y-3">
-                    <p className="text-slate-500 text-[10px] font-black uppercase tracking-widest">运行态详情</p>
-                    <div className="bg-slate-50 rounded-2xl p-4 max-h-80 overflow-auto border border-slate-200">
-                      <pre className="text-[11px] text-slate-700 whitespace-pre-wrap break-words">
+                    <p className="text-theme-text-muted text-[10px] font-black uppercase tracking-widest">运行态详情</p>
+                    <div className="bg-theme-bg-app rounded-2xl p-4 max-h-80 overflow-auto border border-theme-border">
+                      <pre className="text-[11px] text-theme-text-secondary whitespace-pre-wrap break-words">
                         {JSON.stringify(selectedNodeServiceDetail || {}, null, 2)}
                       </pre>
                     </div>
@@ -1674,68 +1674,68 @@ export const AgentDetailPage: React.FC<AgentDetailPageProps> = ({ agentKey, proj
               )}
             </div>
           ) : (
- <div className="bg-slate-50 border border-slate-200 p-10 rounded-[3rem] space-y-8 relative overflow-hidden group">
+ <div className="bg-theme-bg-app border border-theme-border p-10 rounded-[3rem] space-y-8 relative overflow-hidden group">
                <div className="absolute right-[-20px] top-[-20px] w-40 h-40 bg-blue-500 opacity-5 blur-3xl group-hover:opacity-10 transition-opacity" />
                <div className="space-y-2">
-                  <p className="text-slate-500 text-[10px] font-black uppercase tracking-widest">节点元数据</p>
+                  <p className="text-theme-text-muted text-[10px] font-black uppercase tracking-widest">节点元数据</p>
                   <div className="flex items-center gap-3 mt-4">
-                     <div className="w-12 h-12 bg-blue-50 rounded-2xl flex items-center justify-center text-blue-600">
+                     <div className="w-12 h-12 bg-blue-500/15 rounded-2xl flex items-center justify-center text-blue-400">
                         <Monitor size={24} />
                      </div>
                      <div>
-                        <p className="text-xs font-black text-slate-400 uppercase tracking-widest">系统架构</p>
+                        <p className="text-xs font-black text-theme-text-muted uppercase tracking-widest">系统架构</p>
                         <p className="text-lg font-black">{sys?.architecture || 'x86_64'}</p>
                      </div>
                   </div>
                </div>
-               <div className="pt-8 border-t border-slate-200 space-y-5">
-                  <div className="flex justify-between items-center text-xs font-bold text-slate-400">
+               <div className="pt-8 border-t border-theme-border space-y-5">
+                  <div className="flex justify-between items-center text-xs font-bold text-theme-text-muted">
                      <span className="uppercase tracking-widest">操作系统</span>
-                     <span className="text-slate-900 font-black">{sys?.os_name} {sys?.os_release}</span>
+                     <span className="text-theme-text-primary font-black">{sys?.os_name} {sys?.os_release}</span>
                   </div>
-                  <div className="flex justify-between items-center text-xs font-bold text-slate-400">
+                  <div className="flex justify-between items-center text-xs font-bold text-theme-text-muted">
                      <span className="uppercase tracking-widest">内核版本</span>
-                     <span className="text-slate-900 font-black">{sys?.kernel_version || 'N/A'}</span>
+                     <span className="text-theme-text-primary font-black">{sys?.kernel_version || 'N/A'}</span>
                   </div>
-                  <div className="flex justify-between items-center text-xs font-bold text-slate-400">
+                  <div className="flex justify-between items-center text-xs font-bold text-theme-text-muted">
                      <span className="uppercase tracking-widest">启动时间</span>
-                     <span className="text-slate-900 font-black">{sys?.boot_time?.split('T')[0]}</span>
+                     <span className="text-theme-text-primary font-black">{sys?.boot_time?.split('T')[0]}</span>
                   </div>
-                  <div className="flex justify-between items-center text-xs font-bold text-slate-400">
+                  <div className="flex justify-between items-center text-xs font-bold text-theme-text-muted">
                      <span className="uppercase tracking-widest">节点唯一ID</span>
-                     <span className="text-slate-900 font-black font-mono">{agent.key}</span>
+                     <span className="text-theme-text-primary font-black font-mono">{agent.key}</span>
                   </div>
-                  <div className="flex justify-between items-center text-xs font-bold text-slate-400">
+                  <div className="flex justify-between items-center text-xs font-bold text-theme-text-muted">
                      <span className="uppercase tracking-widest">最后活跃</span>
-                     <span className="text-slate-900 font-black">{agent.last_seen?.split('.')[0].replace('T', ' ')}</span>
+                     <span className="text-theme-text-primary font-black">{agent.last_seen?.split('.')[0].replace('T', ' ')}</span>
                   </div>
-                  <div className="flex justify-between items-center text-xs font-bold text-slate-400">
+                  <div className="flex justify-between items-center text-xs font-bold text-theme-text-muted">
                      <span className="uppercase tracking-widest">Agent版本</span>
-                     <span className="text-slate-900 font-black">{daemonInfo?.version || 'N/A'}</span>
+                     <span className="text-theme-text-primary font-black">{daemonInfo?.version || 'N/A'}</span>
                   </div>
-                  <div className="flex justify-between items-center text-xs font-bold text-slate-400">
+                  <div className="flex justify-between items-center text-xs font-bold text-theme-text-muted">
                      <span className="uppercase tracking-widest">Agent平台</span>
-                     <span className="text-slate-900 font-black">{daemonInfo?.platform || 'N/A'}</span>
+                     <span className="text-theme-text-primary font-black">{daemonInfo?.platform || 'N/A'}</span>
                   </div>
                </div>
             </div>
           )}
 
           {/* Activity Log / Tasks Card */}
- <div className="bg-slate-50 p-8 rounded-[3rem] border border-slate-200 space-y-6">
-             <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
+ <div className="bg-theme-bg-app p-8 rounded-[3rem] border border-theme-border space-y-6">
+             <h4 className="text-[10px] font-black text-theme-text-muted uppercase tracking-widest flex items-center gap-2">
                 <History size={16} /> 关联部署任务 (Latest 5)
              </h4>
              <div className="space-y-4">
                 {tasks.slice(0, 5).map(task => (
-                   <div key={task.id} className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl border border-slate-100 hover:border-blue-200 transition-colors">
+                   <div key={task.id} className="flex items-center justify-between p-4 bg-theme-bg-app rounded-2xl border border-theme-border hover:border-blue-500/20 transition-colors">
                       <div className="flex items-center gap-3">
-                         <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${task.status === 'succeeded' ? 'bg-green-100 text-green-600' : 'bg-blue-100 text-blue-600'}`}>
+                         <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${task.status === 'succeeded' ? 'bg-green-500/15 text-green-400' : 'bg-blue-500/15 text-blue-400'}`}>
                             <Zap size={14} />
                          </div>
                          <div className="min-w-0">
-                            <p className="text-xs font-black text-slate-700 truncate max-w-[120px]">{task.service_name}</p>
-                            <p className="text-[9px] font-black text-slate-400 uppercase">{task.type}</p>
+                            <p className="text-xs font-black text-theme-text-secondary truncate max-w-[120px]">{task.service_name}</p>
+                            <p className="text-[9px] font-black text-theme-text-muted uppercase">{task.type}</p>
                          </div>
                       </div>
                       <StatusBadge status={task.status} />
@@ -1743,7 +1743,7 @@ export const AgentDetailPage: React.FC<AgentDetailPageProps> = ({ agentKey, proj
                 ))}
                 {tasks.length === 0 && (
                    <div className="text-center py-10">
-                      <p className="text-xs font-bold text-slate-300 italic">No tasks executed on node</p>
+                      <p className="text-xs font-bold text-theme-text-faint italic">No tasks executed on node</p>
                    </div>
                 )}
              </div>
@@ -1753,15 +1753,15 @@ export const AgentDetailPage: React.FC<AgentDetailPageProps> = ({ agentKey, proj
 
       {isBatchDeployModalOpen && (
         <div className="fixed inset-0 z-[119] flex items-center justify-center p-6 bg-slate-950/80 backdrop-blur-xl animate-in fade-in">
- <div className="bg-slate-50 w-full max-w-4xl rounded-[3rem] overflow-hidden animate-in zoom-in-95 flex flex-col max-h-[86vh]">
-            <div className="p-8 border-b border-slate-100 flex items-center justify-between">
+ <div className="bg-theme-bg-app w-full max-w-4xl rounded-[3rem] overflow-hidden animate-in zoom-in-95 flex flex-col max-h-[86vh]">
+            <div className="p-8 border-b border-theme-border flex items-center justify-between">
               <div>
-                <h3 className="text-2xl font-black text-slate-800 tracking-tight">批量部署模板到当前 Agent</h3>
-                <p className="text-xs text-slate-400 font-bold uppercase tracking-widest mt-1">
+                <h3 className="text-2xl font-black text-theme-text-primary tracking-tight">批量部署模板到当前 Agent</h3>
+                <p className="text-xs text-theme-text-muted font-bold uppercase tracking-widest mt-1">
                   目标节点: {agent.hostname} ({agent.ip_address})
                 </p>
               </div>
-              <button onClick={() => setIsBatchDeployModalOpen(false)} className="p-3 bg-slate-50 text-slate-400 hover:text-slate-800 rounded-2xl transition-all">
+              <button onClick={() => setIsBatchDeployModalOpen(false)} className="p-3 bg-theme-bg-app text-theme-text-muted hover:text-theme-text-primary rounded-2xl transition-all">
                 <X size={20} />
               </button>
             </div>
@@ -1769,19 +1769,19 @@ export const AgentDetailPage: React.FC<AgentDetailPageProps> = ({ agentKey, proj
             <div className="p-8 space-y-5 overflow-y-auto">
               <div className="flex items-center justify-between gap-4">
                 <div className="relative flex-1">
-                  <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" size={16} />
+                  <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-theme-text-faint" size={16} />
                   <input
                     type="text"
                     value={templateSearch}
                     onChange={(e) => setTemplateSearch(e.target.value)}
                     placeholder="检索模板名称或描述..."
-                    className="w-full pl-11 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-sm outline-none focus:ring-4 ring-blue-500/10"
+                    className="w-full pl-11 pr-4 py-3 bg-theme-bg-app border border-theme-border rounded-2xl text-sm outline-none focus:ring-4 ring-blue-500/10"
                   />
                 </div>
                 <button
                   onClick={toggleSelectAllFilteredTemplates}
                   disabled={filteredTemplates.length === 0}
-                  className="px-5 py-3 bg-slate-50 border border-slate-200 text-slate-600 rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-slate-100 disabled:opacity-50 flex items-center gap-2"
+                  className="px-5 py-3 bg-theme-bg-app border border-theme-border text-theme-text-secondary rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-theme-elevated disabled:opacity-50 flex items-center gap-2"
                 >
                   <CheckSquare size={15} />
                   {filteredTemplates.length > 0 && filteredTemplates.every(t => selectedTemplateNames.has(t.name)) ? '取消全选' : '全选筛选模板'}
@@ -1790,8 +1790,8 @@ export const AgentDetailPage: React.FC<AgentDetailPageProps> = ({ agentKey, proj
 
               {templatesLoading ? (
                 <div className="py-24 text-center">
-                  <Loader2 className="animate-spin mx-auto text-blue-600" size={28} />
-                  <p className="mt-3 text-xs font-bold text-slate-400">正在加载模板...</p>
+                  <Loader2 className="animate-spin mx-auto text-blue-400" size={28} />
+                  <p className="mt-3 text-xs font-bold text-theme-text-muted">正在加载模板...</p>
                 </div>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -1801,22 +1801,22 @@ export const AgentDetailPage: React.FC<AgentDetailPageProps> = ({ agentKey, proj
                       onClick={() => toggleTemplateSelect(template.name)}
                       className={`p-5 rounded-2xl border-2 transition-all text-left ${
                         selectedTemplateNames.has(template.name)
-                          ? 'bg-blue-50 border-blue-600'
-                          : 'bg-slate-50 border-slate-100 hover:border-blue-200'
+                          ? 'bg-blue-500/15 border-blue-600'
+                          : 'bg-theme-bg-app border-theme-border hover:border-blue-500/20'
                       }`}
                     >
                       <div className="flex items-start justify-between gap-3">
                         <div>
-                          <p className="text-sm font-black text-slate-800">{template.name}</p>
-                          <p className="text-[11px] text-slate-500 mt-1 line-clamp-2">{template.description || '无描述'}</p>
-                          <p className="text-[10px] text-slate-400 mt-1">
+                          <p className="text-sm font-black text-theme-text-primary">{template.name}</p>
+                          <p className="text-[11px] text-theme-text-muted mt-1 line-clamp-2">{template.description || '无描述'}</p>
+                          <p className="text-[10px] text-theme-text-muted mt-1">
                             作者: {template.owner_name || template.owner_id || 'system'}
                           </p>
                         </div>
                         <div className={`w-6 h-6 rounded-md border-2 flex items-center justify-center ${
                           selectedTemplateNames.has(template.name)
                             ? 'bg-blue-600 border-blue-600 text-white'
-                            : 'border-slate-200 text-transparent'
+                            : 'border-theme-border text-transparent'
                         }`}>
                           <Check size={14} />
                         </div>
@@ -1824,7 +1824,7 @@ export const AgentDetailPage: React.FC<AgentDetailPageProps> = ({ agentKey, proj
                     </button>
                   ))}
                   {!templatesLoading && filteredTemplates.length === 0 && (
-                    <div className="col-span-2 py-16 text-center text-slate-400 text-sm font-bold">无匹配模板</div>
+                    <div className="col-span-2 py-16 text-center text-theme-text-muted text-sm font-bold">无匹配模板</div>
                   )}
                 </div>
               )}
@@ -1839,15 +1839,15 @@ export const AgentDetailPage: React.FC<AgentDetailPageProps> = ({ agentKey, proj
               />
             </div>
 
-            <div className="p-8 bg-slate-50 border-t border-slate-100 flex items-center justify-between">
-              <p className="text-xs font-bold text-slate-500">
-                将提交 <span className="text-blue-600 font-black">{selectedTemplateNames.size}</span> 个部署任务到当前节点
+            <div className="p-8 bg-theme-bg-app border-t border-theme-border flex items-center justify-between">
+              <p className="text-xs font-bold text-theme-text-muted">
+                将提交 <span className="text-blue-400 font-black">{selectedTemplateNames.size}</span> 个部署任务到当前节点
               </p>
               <div className="flex gap-3">
                 <button
                   onClick={() => setIsBatchDeployModalOpen(false)}
                   disabled={deployingBatch}
-                  className="px-6 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-600 font-black hover:bg-slate-100 disabled:opacity-50"
+                  className="px-6 py-3 bg-theme-bg-app border border-theme-border rounded-xl text-theme-text-secondary font-black hover:bg-theme-elevated disabled:opacity-50"
                 >
                   取消
                 </button>
@@ -1868,20 +1868,20 @@ export const AgentDetailPage: React.FC<AgentDetailPageProps> = ({ agentKey, proj
       {/* 日志查看 Modal */}
       {showLogsModal && selectedService && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-8" onClick={() => setShowLogsModal(false)}>
-          <div className="bg-slate-50 rounded-[2rem] w-full max-w-4xl max-h-[80vh] flex flex-col overflow-hidden" onClick={e => e.stopPropagation()}>
-            <div className="px-8 py-6 border-b border-slate-100 flex items-center justify-between">
+          <div className="bg-theme-bg-app rounded-[2rem] w-full max-w-4xl max-h-[80vh] flex flex-col overflow-hidden" onClick={e => e.stopPropagation()}>
+            <div className="px-8 py-6 border-b border-theme-border flex items-center justify-between">
               <div>
-                <h4 className="text-sm font-black text-slate-800">服务日志 - {selectedService.name}</h4>
-                <p className="text-xs text-slate-400 mt-1">{selectedService.description}</p>
+                <h4 className="text-sm font-black text-theme-text-primary">服务日志 - {selectedService.name}</h4>
+                <p className="text-xs text-theme-text-muted mt-1">{selectedService.description}</p>
               </div>
               <button
                 onClick={() => setShowLogsModal(false)}
-                className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-xl"
+                className="p-2 text-theme-text-muted hover:text-theme-text-secondary hover:bg-theme-elevated rounded-xl"
               >
                 <X size={20} />
               </button>
             </div>
-            <div className="flex-1 overflow-auto p-6 bg-slate-900">
+            <div className="flex-1 overflow-auto p-6 bg-theme-surface">
               {logsLoading ? (
                 <div className="flex items-center justify-center h-full">
                   <Loader2 className="animate-spin text-blue-400" size={32} />

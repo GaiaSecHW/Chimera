@@ -25,39 +25,39 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
   const serviceStatusMeta: Record<string, { label: string; panelClass: string; textClass: string; icon: React.ReactNode }> = {
     healthy: {
       label: '正常',
-      panelClass: 'bg-green-50 border-green-200',
-      textClass: 'text-green-600',
+      panelClass: 'bg-green-500/15 border-green-500/20',
+      textClass: 'text-green-400',
       icon: <CheckCircle className="w-5 h-5 text-green-500" />,
     },
     unhealthy: {
       label: '异常',
-      panelClass: 'bg-red-50 border-red-200',
-      textClass: 'text-red-600',
+      panelClass: 'bg-red-500/15 border-red-500/20',
+      textClass: 'text-red-400',
       icon: <XCircle className="w-5 h-5 text-red-500" />,
     },
     degraded: {
       label: '降级',
-      panelClass: 'bg-amber-50 border-amber-200',
-      textClass: 'text-amber-600',
+      panelClass: 'bg-amber-500/15 border-amber-500/20',
+      textClass: 'text-amber-400',
       icon: <AlertCircle className="w-5 h-5 text-amber-500" />,
     },
     stale: {
       label: '陈旧',
-      panelClass: 'bg-orange-50 border-orange-200',
-      textClass: 'text-orange-600',
+      panelClass: 'bg-orange-500/15 border-orange-500/20',
+      textClass: 'text-orange-400',
       icon: <Clock className="w-5 h-5 text-orange-500" />,
     },
     unknown: {
       label: '未知',
-      panelClass: 'bg-yellow-50 border-yellow-200',
-      textClass: 'text-yellow-600',
+      panelClass: 'bg-yellow-500/15 border-yellow-500/20',
+      textClass: 'text-yellow-400',
       icon: <AlertCircle className="w-5 h-5 text-yellow-500" />,
     },
     unregistered: {
       label: '未纳管',
-      panelClass: 'bg-slate-50 border-slate-200',
-      textClass: 'text-slate-500',
-      icon: <Server className="w-5 h-5 text-slate-400" />,
+      panelClass: 'bg-theme-bg-app border-theme-border',
+      textClass: 'text-theme-text-muted',
+      icon: <Server className="w-5 h-5 text-theme-text-muted" />,
     },
   };
 
@@ -88,16 +88,16 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-black text-slate-800 tracking-tight flex items-center gap-3">
-            <Shield className="w-8 h-8 text-blue-600" />
+          <h1 className="text-3xl font-black text-theme-text-primary tracking-tight flex items-center gap-3">
+            <Shield className="w-8 h-8 text-blue-400" />
             全局管理员控制台
           </h1>
-          <p className="text-slate-500 mt-2 text-sm">
+          <p className="text-theme-text-muted mt-2 text-sm">
             平台整体运行态势与服务健康监控
           </p>
         </div>
         <div className="flex items-center gap-4">
-          <span className="text-xs text-slate-400">
+          <span className="text-xs text-theme-text-muted">
             更新于: {new Date(stats.lastUpdated).toLocaleString('zh-CN')}
           </span>
           <button
@@ -112,8 +112,8 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
       </div>
 
       {/* Service Health Overview */}
- <div className="bg-slate-50 p-8 rounded-[3rem] border border-slate-200">
-        <h3 className="text-xl font-black text-slate-800 mb-6 flex items-center gap-2">
+ <div className="bg-theme-bg-app p-8 rounded-[3rem] border border-theme-border">
+        <h3 className="text-xl font-black text-theme-text-primary mb-6 flex items-center gap-2">
           <Server className="w-5 h-5" />
           服务健康状态
         </h3>
@@ -124,7 +124,7 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
                 {meta.icon}
                 <span className={`text-xs font-black uppercase ${meta.textClass}`}>{meta.label}</span>
               </div>
-              <p className="text-2xl font-black text-slate-900">{serviceStatusCounts[status] || 0}</p>
+              <p className="text-2xl font-black text-theme-text-primary">{serviceStatusCounts[status] || 0}</p>
             </div>
           ))}
         </div>
@@ -137,15 +137,15 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
                   {serviceStatusMeta[service.status].label}
                 </span>
               </div>
-              <p className="text-xs font-bold text-slate-700 truncate" title={service.name}>
+              <p className="text-xs font-bold text-theme-text-secondary truncate" title={service.name}>
                 {service.name}
               </p>
               {service.runtimeStatus ? (
-                <p className="mt-1 text-[11px] text-slate-500 truncate" title={service.id}>
+                <p className="mt-1 text-[11px] text-theme-text-muted truncate" title={service.id}>
                   {service.runtimeStatus}
                 </p>
               ) : null}
-              <p className="mt-2 text-[11px] font-bold text-slate-700">
+              <p className="mt-2 text-[11px] font-bold text-theme-text-secondary">
                 {service.replicas !== null && service.replicas !== undefined
                   ?`副本 ${service.readyReplicas ?? 0}/${service.replicas} · Available ${service.availableReplicas ?? 0}`
                   : '副本信息暂不可用'}
@@ -160,84 +160,84 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
         {/* Users */}
         <div
           onClick={() => setCurrentView('user-mgmt-access')}
- className="bg-slate-50 p-6 rounded-[2.5rem] border border-slate-200 transition-all cursor-pointer group"
+ className="bg-theme-bg-app p-6 rounded-[2.5rem] border border-theme-border transition-all cursor-pointer group"
         >
-          <div className="w-12 h-12 bg-blue-100 text-blue-600 rounded-2xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+          <div className="w-12 h-12 bg-blue-500/15 text-blue-400 rounded-2xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
             <Users size={24} />
           </div>
-          <p className="text-slate-500 text-sm font-bold uppercase tracking-wider">用户总数</p>
-          <div className="text-3xl font-black mt-2 text-slate-900">{stats.users.total}</div>
-          <p className="text-xs font-bold text-slate-400 mt-1">活跃: {stats.users.active} · 在线: {stats.users.online}</p>
+          <p className="text-theme-text-muted text-sm font-bold uppercase tracking-wider">用户总数</p>
+          <div className="text-3xl font-black mt-2 text-theme-text-primary">{stats.users.total}</div>
+          <p className="text-xs font-bold text-theme-text-muted mt-1">活跃: {stats.users.active} · 在线: {stats.users.online}</p>
         </div>
 
         {/* Roles */}
         <div
           onClick={() => setCurrentView('user-mgmt-access')}
- className="bg-slate-50 p-6 rounded-[2.5rem] border border-slate-200 transition-all cursor-pointer group"
+ className="bg-theme-bg-app p-6 rounded-[2.5rem] border border-theme-border transition-all cursor-pointer group"
         >
-          <div className="w-12 h-12 bg-indigo-100 text-indigo-600 rounded-2xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+          <div className="w-12 h-12 bg-indigo-500/15 text-indigo-400 rounded-2xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
             <Shield size={24} />
           </div>
-          <p className="text-slate-500 text-sm font-bold uppercase tracking-wider">角色定义</p>
-          <div className="text-3xl font-black mt-2 text-slate-900">{stats.roles.total}</div>
+          <p className="text-theme-text-muted text-sm font-bold uppercase tracking-wider">角色定义</p>
+          <div className="text-3xl font-black mt-2 text-theme-text-primary">{stats.roles.total}</div>
         </div>
 
         {/* Projects */}
         <div
           onClick={() => setCurrentView('project-mgmt')}
- className="bg-slate-50 p-6 rounded-[2.5rem] border border-slate-200 transition-all cursor-pointer group"
+ className="bg-theme-bg-app p-6 rounded-[2.5rem] border border-theme-border transition-all cursor-pointer group"
         >
-          <div className="w-12 h-12 bg-amber-100 text-amber-600 rounded-2xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+          <div className="w-12 h-12 bg-amber-500/15 text-amber-400 rounded-2xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
             <Briefcase size={24} />
           </div>
-          <p className="text-slate-500 text-sm font-bold uppercase tracking-wider">项目空间</p>
-          <div className="text-3xl font-black mt-2 text-slate-900">{stats.projects.total}</div>
+          <p className="text-theme-text-muted text-sm font-bold uppercase tracking-wider">项目空间</p>
+          <div className="text-3xl font-black mt-2 text-theme-text-primary">{stats.projects.total}</div>
         </div>
 
         {/* Agents */}
         <div
           onClick={() => setCurrentView('env-agent')}
- className="bg-slate-50 p-6 rounded-[2.5rem] border border-slate-200 transition-all cursor-pointer group"
+ className="bg-theme-bg-app p-6 rounded-[2.5rem] border border-theme-border transition-all cursor-pointer group"
         >
-          <div className="w-12 h-12 bg-green-100 text-green-600 rounded-2xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+          <div className="w-12 h-12 bg-green-500/15 text-green-400 rounded-2xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
             <Monitor size={24} />
           </div>
-          <p className="text-slate-500 text-sm font-bold uppercase tracking-wider">Agent 节点</p>
-          <div className="text-3xl font-black mt-2 text-slate-900">{stats.agents.total}</div>
-          <p className="text-xs font-bold text-slate-400 mt-1">在线: {stats.agents.online}</p>
+          <p className="text-theme-text-muted text-sm font-bold uppercase tracking-wider">Agent 节点</p>
+          <div className="text-3xl font-black mt-2 text-theme-text-primary">{stats.agents.total}</div>
+          <p className="text-xs font-bold text-theme-text-muted mt-1">在线: {stats.agents.online}</p>
         </div>
 
         {/* PVC Storage */}
         <div
           onClick={() => setCurrentView('pvc-management')}
- className="bg-slate-50 p-6 rounded-[2.5rem] border border-slate-200 transition-all cursor-pointer group"
+ className="bg-theme-bg-app p-6 rounded-[2.5rem] border border-theme-border transition-all cursor-pointer group"
         >
-          <div className="w-12 h-12 bg-cyan-100 text-cyan-600 rounded-2xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+          <div className="w-12 h-12 bg-cyan-500/15 text-cyan-400 rounded-2xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
             <HardDrive size={24} />
           </div>
-          <p className="text-slate-500 text-sm font-bold uppercase tracking-wider">PVC 存储</p>
-          <div className="text-3xl font-black mt-2 text-slate-900">{stats.resources.totalPvcs}</div>
-          <p className="text-xs font-bold text-slate-400 mt-1">{stats.resources.totalStorageGi.toFixed(2)} Gi</p>
+          <p className="text-theme-text-muted text-sm font-bold uppercase tracking-wider">PVC 存储</p>
+          <div className="text-3xl font-black mt-2 text-theme-text-primary">{stats.resources.totalPvcs}</div>
+          <p className="text-xs font-bold text-theme-text-muted mt-1">{stats.resources.totalStorageGi.toFixed(2)} Gi</p>
         </div>
 
         {/* Workflows */}
         <div
           onClick={() => setCurrentView('workflow-instances')}
- className="bg-slate-50 p-6 rounded-[2.5rem] border border-slate-200 transition-all cursor-pointer group"
+ className="bg-theme-bg-app p-6 rounded-[2.5rem] border border-theme-border transition-all cursor-pointer group"
         >
-          <div className="w-12 h-12 bg-purple-100 text-purple-600 rounded-2xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+          <div className="w-12 h-12 bg-purple-500/15 text-purple-400 rounded-2xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
             <Workflow size={24} />
           </div>
-          <p className="text-slate-500 text-sm font-bold uppercase tracking-wider">工作流实例</p>
-          <div className="text-3xl font-black mt-2 text-slate-900">{stats.workflows.totalInstances}</div>
+          <p className="text-theme-text-muted text-sm font-bold uppercase tracking-wider">工作流实例</p>
+          <div className="text-3xl font-black mt-2 text-theme-text-primary">{stats.workflows.totalInstances}</div>
         </div>
       </div>
 
       {/* Detailed Stats Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         {/* Agent Status Distribution */}
- <div className="bg-slate-50 p-8 rounded-[3rem] border border-slate-200">
-          <h3 className="text-xl font-black text-slate-800 mb-6 flex items-center gap-2">
+ <div className="bg-theme-bg-app p-8 rounded-[3rem] border border-theme-border">
+          <h3 className="text-xl font-black text-theme-text-primary mb-6 flex items-center gap-2">
             <Monitor className="w-5 h-5" />
             Agent 状态分布
           </h3>
@@ -250,12 +250,12 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
                     status === 'offline' ? 'bg-slate-300' :
                     status === 'error' ? 'bg-red-500' : 'bg-yellow-500'
                   }`} />
-                  <span className="text-sm font-bold text-slate-600 capitalize">{status}</span>
+                  <span className="text-sm font-bold text-theme-text-secondary capitalize">{status}</span>
                 </div>
-                <span className="text-sm font-black text-slate-800">{count}</span>
+                <span className="text-sm font-black text-theme-text-primary">{count}</span>
               </div>
             ))}
-            <div className="h-2 bg-slate-100 rounded-full overflow-hidden flex mt-4">
+            <div className="h-2 bg-theme-elevated rounded-full overflow-hidden flex mt-4">
               {stats.agents.total > 0 && (
                 <>
                   {stats.agents.statusDistribution.online > 0 && (
@@ -283,8 +283,8 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
         </div>
 
         {/* Workflow Status Distribution */}
- <div className="bg-slate-50 p-8 rounded-[3rem] border border-slate-200">
-          <h3 className="text-xl font-black text-slate-800 mb-6 flex items-center gap-2">
+ <div className="bg-theme-bg-app p-8 rounded-[3rem] border border-theme-border">
+          <h3 className="text-xl font-black text-theme-text-primary mb-6 flex items-center gap-2">
             <Activity className="w-5 h-5" />
             工作流状态分布
           </h3>
@@ -298,36 +298,36 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
                     status === 'failed' ? 'bg-red-500' :
                     status === 'pending' ? 'bg-yellow-500' : 'bg-slate-300'
                   }`} />
-                  <span className="text-sm font-bold text-slate-600 capitalize">{status}</span>
+                  <span className="text-sm font-bold text-theme-text-secondary capitalize">{status}</span>
                 </div>
-                <span className="text-sm font-black text-slate-800">{count}</span>
+                <span className="text-sm font-black text-theme-text-primary">{count}</span>
               </div>
             ))}
           </div>
-          <div className="mt-6 pt-6 border-t border-slate-100">
-            <h4 className="text-sm font-bold text-slate-500 mb-4">模板统计</h4>
+          <div className="mt-6 pt-6 border-t border-theme-border">
+            <h4 className="text-sm font-bold text-theme-text-muted mb-4">模板统计</h4>
             <div className="flex gap-4">
-              <div className="flex-1 p-4 bg-slate-50 rounded-2xl">
+              <div className="flex-1 p-4 bg-theme-bg-app rounded-2xl">
                 <div className="flex items-center gap-2 mb-2">
                   <Layers className="w-4 h-4 text-purple-500" />
-                  <span className="text-xs font-bold text-slate-500">应用模板</span>
+                  <span className="text-xs font-bold text-theme-text-muted">应用模板</span>
                 </div>
-                <p className="text-2xl font-black text-slate-800">{stats.workflows.templates.appTemplates}</p>
+                <p className="text-2xl font-black text-theme-text-primary">{stats.workflows.templates.appTemplates}</p>
               </div>
-              <div className="flex-1 p-4 bg-slate-50 rounded-2xl">
+              <div className="flex-1 p-4 bg-theme-bg-app rounded-2xl">
                 <div className="flex items-center gap-2 mb-2">
                   <Zap className="w-4 h-4 text-amber-500" />
-                  <span className="text-xs font-bold text-slate-500">任务模板</span>
+                  <span className="text-xs font-bold text-theme-text-muted">任务模板</span>
                 </div>
-                <p className="text-2xl font-black text-slate-800">{stats.workflows.templates.jobTemplates}</p>
+                <p className="text-2xl font-black text-theme-text-primary">{stats.workflows.templates.jobTemplates}</p>
               </div>
             </div>
           </div>
         </div>
 
         {/* PVC Status Distribution */}
- <div className="bg-slate-50 p-8 rounded-[3rem] border border-slate-200">
-          <h3 className="text-xl font-black text-slate-800 mb-6 flex items-center gap-2">
+ <div className="bg-theme-bg-app p-8 rounded-[3rem] border border-theme-border">
+          <h3 className="text-xl font-black text-theme-text-primary mb-6 flex items-center gap-2">
             <HardDrive className="w-5 h-5" />
             PVC 状态分布
           </h3>
@@ -340,16 +340,16 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
                     status === 'Pending' ? 'bg-yellow-500' :
                     status === 'Lost' ? 'bg-red-500' : 'bg-slate-300'
                   }`} />
-                  <span className="text-sm font-bold text-slate-600">{status}</span>
+                  <span className="text-sm font-bold text-theme-text-secondary">{status}</span>
                 </div>
-                <span className="text-sm font-black text-slate-800">{count}</span>
+                <span className="text-sm font-black text-theme-text-primary">{count}</span>
               </div>
             ))}
           </div>
         </div>
 
         {/* Quick Actions */}
-        <div className="bg-slate-900 p-8 rounded-[3rem] text-white relative overflow-hidden group">
+        <div className="bg-theme-surface p-8 rounded-[3rem] text-white relative overflow-hidden group">
           <div className="absolute right-[-20px] top-[-20px] w-40 h-40 bg-blue-500 opacity-10 rounded-full blur-[80px]" />
           <h3 className="text-xl font-black mb-6 relative z-10 flex items-center gap-2">
             <Clock className="w-5 h-5" />
@@ -358,25 +358,25 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
           <div className="grid grid-cols-2 gap-4 relative z-10">
             <button
               onClick={() => setCurrentView('user-mgmt-access')}
- className="px-4 py-3 bg-slate-100 hover:bg-slate-100 rounded-xl font-bold transition-all text-sm"
+ className="px-4 py-3 bg-theme-elevated hover:bg-theme-elevated rounded-xl font-bold transition-all text-sm"
             >
               权限管理
             </button>
             <button
               onClick={() => setCurrentView('user-mgmt-online')}
- className="px-4 py-3 bg-slate-100 hover:bg-slate-100 rounded-xl font-bold transition-all text-sm"
+ className="px-4 py-3 bg-theme-elevated hover:bg-theme-elevated rounded-xl font-bold transition-all text-sm"
             >
               在线会话
             </button>
             <button
               onClick={() => setCurrentView('project-mgmt')}
- className="px-4 py-3 bg-slate-100 hover:bg-slate-100 rounded-xl font-bold transition-all text-sm"
+ className="px-4 py-3 bg-theme-elevated hover:bg-theme-elevated rounded-xl font-bold transition-all text-sm"
             >
               项目管理
             </button>
             <button
               onClick={() => setCurrentView('env-agent')}
- className="px-4 py-3 bg-slate-100 hover:bg-slate-100 rounded-xl font-bold transition-all text-sm"
+ className="px-4 py-3 bg-theme-elevated hover:bg-theme-elevated rounded-xl font-bold transition-all text-sm"
             >
               Agent 管理
             </button>

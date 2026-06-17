@@ -560,7 +560,7 @@ export const B2SConfigPage: React.FC<{ projectId: string; embedded?: boolean }> 
                     <div>{effectiveProvider.is_default ? '平台默认 Provider' : '项目指定 Provider'}</div>
                   </div>
                 ) : (
-                  <div className="mt-2 text-xs text-amber-700">
+                  <div className="mt-2 text-xs text-amber-400">
                     当前无法解析有效 Provider。若项目已保存特定 Provider，请检查该 Provider 是否仍在配置中心启用。
                   </div>
                 )}
@@ -662,11 +662,11 @@ export const B2SConfigPage: React.FC<{ projectId: string; embedded?: boolean }> 
             <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-7">
               {[
                 { label: '当前可见条目', value: formatNumber(cacheSummary.visible_entries), tone: LK.ink },
-                { label: '当前项目条目', value: formatNumber(cacheSummary.current_project_entries), tone: 'text-indigo-700' },
-                { label: 'Fast 条目', value: formatNumber(cacheSummary.fast_entries), tone: 'text-emerald-700' },
-                { label: 'Deep 条目', value: formatNumber(cacheSummary.deep_entries), tone: 'text-cyan-700' },
-                { label: 'Turbo 条目', value: formatNumber(cacheSummary.turbo_entries), tone: 'text-fuchsia-700' },
-                { label: '总命中次数', value: formatNumber(cacheSummary.total_hit_count), tone: 'text-amber-700' },
+                { label: '当前项目条目', value: formatNumber(cacheSummary.current_project_entries), tone: 'text-indigo-400' },
+                { label: 'Fast 条目', value: formatNumber(cacheSummary.fast_entries), tone: 'text-emerald-400' },
+                { label: 'Deep 条目', value: formatNumber(cacheSummary.deep_entries), tone: 'text-cyan-400' },
+                { label: 'Turbo 条目', value: formatNumber(cacheSummary.turbo_entries), tone: 'text-fuchsia-400' },
+                { label: '总命中次数', value: formatNumber(cacheSummary.total_hit_count), tone: 'text-amber-400' },
                 { label: '最近命中时间', value: formatDateTime(cacheSummary.latest_hit_at), tone: LK.ink },
               ].map((item) => (
                 <div key={item.label} style={{ borderRadius: '12px', border: `1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised, padding: '12px 16px' }}>
@@ -741,7 +741,7 @@ export const B2SConfigPage: React.FC<{ projectId: string; embedded?: boolean }> 
                   type="button"
                   onClick={() => { void deleteSelectedCaches(); }}
                   disabled={selectedCount === 0 || cacheBatchDeleting}
-                  className="inline-flex items-center gap-2 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-semibold text-rose-700 hover:bg-rose-100 disabled:opacity-50"
+                  className="inline-flex items-center gap-2 rounded-xl border border-rose-500/20 bg-rose-500/15 px-3 py-2 text-xs font-semibold text-rose-400 hover:bg-rose-500/15 disabled:opacity-50"
                 >
                   {cacheBatchDeleting ? <Loader2 size={12} className="animate-spin" /> : <Trash2 size={12} />}
                   批量删除
@@ -752,7 +752,7 @@ export const B2SConfigPage: React.FC<{ projectId: string; embedded?: boolean }> 
             <div style={{ marginBottom: '16px', display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '12px', fontSize: '12px', color: LK.body }}>
               <span>当前选择 {selectedCount} 条</span>
               <span>分页 {cachePage} / {cacheTotalPages}</span>
-              {cacheLoading ? <span className="text-indigo-600">正在刷新缓存列表…</span> : null}
+              {cacheLoading ? <span className="text-indigo-400">正在刷新缓存列表…</span> : null}
             </div>
             <ExecutionTable minWidth={1280}>
               <ExecutionTableHead>
@@ -822,7 +822,7 @@ export const B2SConfigPage: React.FC<{ projectId: string; embedded?: boolean }> 
                           type="button"
                           onClick={() => { void deleteSingleCache(entry.cache_key); }}
                           disabled={cacheDeletingKeys.has(entry.cache_key)}
-                          className="inline-flex items-center gap-1 rounded-lg border border-rose-200 px-2 py-1 text-xs font-semibold text-rose-700 hover:bg-rose-50 disabled:opacity-50"
+                          className="inline-flex items-center gap-1 rounded-lg border border-rose-500/20 px-2 py-1 text-xs font-semibold text-rose-400 hover:bg-rose-500/15 disabled:opacity-50"
                         >
                           {cacheDeletingKeys.has(entry.cache_key) ? <Loader2 size={12} className="animate-spin" /> : <Trash2 size={12} />}
                           删除

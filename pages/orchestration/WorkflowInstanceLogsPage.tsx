@@ -75,14 +75,14 @@ export const WorkflowInstanceLogsPage: React.FC<{ instanceId: string; onBack: ()
         <div className="space-y-3">
           <button
             onClick={onBack}
-            className="inline-flex items-center gap-2 text-sm font-bold text-slate-500 hover:text-slate-800 transition-colors"
+            className="inline-flex items-center gap-2 text-sm font-bold text-theme-text-muted hover:text-theme-text-primary transition-colors"
           >
             <ArrowLeft size={16} />
             返回工作流实例
           </button>
           <div>
-            <h2 className="text-3xl font-black text-slate-800 tracking-tight">实例节点日志</h2>
-            <p className="text-slate-500 mt-1 font-medium italic">
+            <h2 className="text-3xl font-black text-theme-text-primary tracking-tight">实例节点日志</h2>
+            <p className="text-theme-text-muted mt-1 font-medium italic">
               {instance ?`${instance.name} · ${instance.id}` : '加载实例信息中...'}
             </p>
           </div>
@@ -90,7 +90,7 @@ export const WorkflowInstanceLogsPage: React.FC<{ instanceId: string; onBack: ()
 
         <button
           onClick={() => loadLogs(true)}
- className="inline-flex items-center justify-center gap-2 px-5 py-3 bg-slate-50 border border-slate-200 text-slate-600 rounded-2xl hover:bg-slate-100 transition-all font-bold"
+ className="inline-flex items-center justify-center gap-2 px-5 py-3 bg-theme-bg-app border border-theme-border text-theme-text-secondary rounded-2xl hover:bg-theme-elevated transition-all font-bold"
         >
           <RefreshCw size={18} className={refreshing ? 'animate-spin' : ''} />
           刷新日志
@@ -99,14 +99,14 @@ export const WorkflowInstanceLogsPage: React.FC<{ instanceId: string; onBack: ()
 
       <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_220px_140px]">
         <div className="relative">
-          <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-300" size={18} />
+          <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-theme-text-faint" size={18} />
           <select
             value={selectedNodeId}
             onChange={(e) => {
               setSelectedNodeId(e.target.value);
               setPage(1);
             }}
- className="w-full pl-14 pr-5 py-4 bg-slate-50 border border-slate-200 rounded-[1.75rem] text-sm outline-none focus:ring-4 ring-blue-500/5 transition-all font-medium appearance-none"
+ className="w-full pl-14 pr-5 py-4 bg-theme-bg-app border border-theme-border rounded-[1.75rem] text-sm outline-none focus:ring-4 ring-blue-500/5 transition-all font-medium appearance-none"
           >
             <option value="">全部节点日志</option>
             {availableNodes.map((node) => (
@@ -117,7 +117,7 @@ export const WorkflowInstanceLogsPage: React.FC<{ instanceId: string; onBack: ()
           </select>
         </div>
 
- <div className="bg-slate-50 border border-slate-200 rounded-[1.75rem] px-5 py-4 text-sm font-semibold text-slate-600">
+ <div className="bg-theme-bg-app border border-theme-border rounded-[1.75rem] px-5 py-4 text-sm font-semibold text-theme-text-secondary">
           共 {total} 条记录
         </div>
 
@@ -127,7 +127,7 @@ export const WorkflowInstanceLogsPage: React.FC<{ instanceId: string; onBack: ()
             setPageSize(Number(e.target.value));
             setPage(1);
           }}
- className="bg-slate-50 border border-slate-200 rounded-[1.75rem] px-5 py-4 text-sm font-semibold text-slate-600 outline-none focus:ring-4 ring-blue-500/5"
+ className="bg-theme-bg-app border border-theme-border rounded-[1.75rem] px-5 py-4 text-sm font-semibold text-theme-text-secondary outline-none focus:ring-4 ring-blue-500/5"
         >
           {[10, 20, 50].map((size) => (
             <option key={size} value={size}>
@@ -139,70 +139,70 @@ export const WorkflowInstanceLogsPage: React.FC<{ instanceId: string; onBack: ()
 
       <div className="space-y-5">
         {loading ? (
- <div className="bg-slate-50 border border-slate-200 rounded-[2rem] p-16 text-center text-slate-400 font-semibold">
+ <div className="bg-theme-bg-app border border-theme-border rounded-[2rem] p-16 text-center text-theme-text-muted font-semibold">
             日志加载中...
           </div>
         ) : records.length === 0 ? (
- <div className="bg-slate-50 border border-slate-200 rounded-[2rem] p-16 text-center text-slate-400 font-semibold">
+ <div className="bg-theme-bg-app border border-theme-border rounded-[2rem] p-16 text-center text-theme-text-muted font-semibold">
             当前筛选条件下暂无日志记录
           </div>
         ) : (
           records.map((record) => (
- <div key={record.id} className="bg-slate-50 border border-slate-200 rounded-[2rem] overflow-hidden">
-              <div className="px-7 py-6 border-b border-slate-100 bg-slate-50/70">
+ <div key={record.id} className="bg-theme-bg-app border border-theme-border rounded-[2rem] overflow-hidden">
+              <div className="px-7 py-6 border-b border-theme-border bg-slate-50/70">
                 <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
                   <div className="space-y-2">
                     <div className="flex items-center gap-3">
-                      <div className="w-11 h-11 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center">
+                      <div className="w-11 h-11 rounded-2xl bg-blue-500/15 text-blue-400 flex items-center justify-center">
                         <TerminalSquare size={20} />
                       </div>
                       <div>
-                        <div className="text-lg font-black text-slate-800">{record.node_name || record.node_id}</div>
-                        <div className="text-xs font-mono text-slate-400 uppercase">节点ID: {record.node_id}</div>
+                        <div className="text-lg font-black text-theme-text-primary">{record.node_name || record.node_id}</div>
+                        <div className="text-xs font-mono text-theme-text-muted uppercase">节点ID: {record.node_id}</div>
                       </div>
                     </div>
-                    <div className="flex flex-wrap gap-2 text-xs font-bold text-slate-500">
-                      <span className="px-3 py-1 rounded-full bg-slate-100 text-slate-600">任务ID: {record.task_id || '暂无'}</span>
-                      <span className="px-3 py-1 rounded-full bg-blue-50 text-blue-700">状态: {record.status}</span>
-                      <span className="px-3 py-1 rounded-full bg-slate-100 text-slate-600">类型: {record.node_type}</span>
+                    <div className="flex flex-wrap gap-2 text-xs font-bold text-theme-text-muted">
+                      <span className="px-3 py-1 rounded-full bg-theme-elevated text-theme-text-secondary">任务ID: {record.task_id || '暂无'}</span>
+                      <span className="px-3 py-1 rounded-full bg-blue-500/15 text-blue-400">状态: {record.status}</span>
+                      <span className="px-3 py-1 rounded-full bg-theme-elevated text-theme-text-secondary">类型: {record.node_type}</span>
                     </div>
                   </div>
 
-                  <div className="grid gap-2 text-xs font-semibold text-slate-500 xl:text-right">
+                  <div className="grid gap-2 text-xs font-semibold text-theme-text-muted xl:text-right">
                     <div>创建时间: {formatTime(record.created_at)}</div>
                     <div>日志更新时间: {formatTime(record.log_updated_at)}</div>
                     <div>资源名称: {record.k8s_resource_name || '暂无'}</div>
                   </div>
                 </div>
 
-                <div className="mt-4 text-sm text-slate-600">
+                <div className="mt-4 text-sm text-theme-text-secondary">
                   {record.message || '暂无状态说明'}
                 </div>
               </div>
 
-              <div className="grid gap-px bg-slate-100 lg:grid-cols-2">
-                <div className="bg-slate-50 p-6 space-y-3">
-                  <div className="flex items-center gap-2 text-sm font-black text-slate-700">
+              <div className="grid gap-px bg-theme-elevated lg:grid-cols-2">
+                <div className="bg-theme-bg-app p-6 space-y-3">
+                  <div className="flex items-center gap-2 text-sm font-black text-theme-text-secondary">
                     <FileText size={16} />
                     初始化日志
                   </div>
-                  <div className="text-xs font-semibold text-slate-400">
+                  <div className="text-xs font-semibold text-theme-text-muted">
                     抓取时间: {formatTime(record.init_logs?.fetched_at)}
                   </div>
-                  <pre className="min-h-[220px] max-h-[420px] overflow-auto rounded-2xl border border-slate-200 bg-slate-50 text-slate-900 p-5 text-xs leading-6 whitespace-pre-wrap break-words">
+                  <pre className="min-h-[220px] max-h-[420px] overflow-auto rounded-2xl border border-theme-border bg-theme-bg-app text-theme-text-primary p-5 text-xs leading-6 whitespace-pre-wrap break-words">
                     {renderLogText(record, 'init_logs')}
                   </pre>
                 </div>
 
-                <div className="bg-slate-50 p-6 space-y-3">
-                  <div className="flex items-center gap-2 text-sm font-black text-slate-700">
+                <div className="bg-theme-bg-app p-6 space-y-3">
+                  <div className="flex items-center gap-2 text-sm font-black text-theme-text-secondary">
                     <FileText size={16} />
                     执行日志
                   </div>
-                  <div className="text-xs font-semibold text-slate-400">
+                  <div className="text-xs font-semibold text-theme-text-muted">
                     抓取时间: {formatTime(record.execution_logs?.fetched_at)}
                   </div>
-                  <pre className="min-h-[220px] max-h-[420px] overflow-auto rounded-2xl border border-slate-200 bg-slate-50 text-slate-900 p-5 text-xs leading-6 whitespace-pre-wrap break-words">
+                  <pre className="min-h-[220px] max-h-[420px] overflow-auto rounded-2xl border border-theme-border bg-theme-bg-app text-theme-text-primary p-5 text-xs leading-6 whitespace-pre-wrap break-words">
                     {renderLogText(record, 'execution_logs')}
                   </pre>
                 </div>
@@ -212,22 +212,22 @@ export const WorkflowInstanceLogsPage: React.FC<{ instanceId: string; onBack: ()
         )}
       </div>
 
- <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between bg-slate-50 border border-slate-200 rounded-[2rem] px-6 py-5">
-        <div className="text-sm font-semibold text-slate-500">
+ <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between bg-theme-bg-app border border-theme-border rounded-[2rem] px-6 py-5">
+        <div className="text-sm font-semibold text-theme-text-muted">
           第 {page} / {totalPages} 页
         </div>
         <div className="flex items-center gap-3">
           <button
             disabled={page <= 1 || loading}
             onClick={() => setPage(page - 1)}
-            className="w-11 h-11 rounded-2xl border border-slate-200 text-slate-500 hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed transition-all flex items-center justify-center"
+            className="w-11 h-11 rounded-2xl border border-theme-border text-theme-text-muted hover:bg-theme-elevated disabled:opacity-40 disabled:cursor-not-allowed transition-all flex items-center justify-center"
           >
             <ChevronLeft size={18} />
           </button>
           <button
             disabled={page >= totalPages || loading}
             onClick={() => setPage(page + 1)}
-            className="w-11 h-11 rounded-2xl border border-slate-200 text-slate-500 hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed transition-all flex items-center justify-center"
+            className="w-11 h-11 rounded-2xl border border-theme-border text-theme-text-muted hover:bg-theme-elevated disabled:opacity-40 disabled:cursor-not-allowed transition-all flex items-center justify-center"
           >
             <ChevronRight size={18} />
           </button>

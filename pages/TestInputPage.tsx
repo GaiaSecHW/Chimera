@@ -47,10 +47,10 @@ interface UploadDetailDialogState {
 }
 
 const INPUT_TYPE_META: Record<InputType, { label: string; icon: React.ReactNode; tone: string }> = {
-  document: { label: '文档', icon: <FileText size={18} />, tone: 'text-sky-700 bg-sky-50 border-sky-200' },
-  code: { label: '代码', icon: <Code2 size={18} />, tone: 'text-emerald-700 bg-emerald-50 border-emerald-200' },
-  software: { label: '软件包', icon: <Package size={18} />, tone: 'text-amber-700 bg-amber-50 border-amber-200' },
-  other: { label: '其他', icon: <FileBox size={18} />, tone: 'text-slate-700 bg-slate-100 border-slate-200' },
+  document: { label: '文档', icon: <FileText size={18} />, tone: 'text-sky-400 bg-sky-500/15 border-sky-500/20' },
+  code: { label: '代码', icon: <Code2 size={18} />, tone: 'text-emerald-400 bg-emerald-500/15 border-emerald-500/20' },
+  software: { label: '软件包', icon: <Package size={18} />, tone: 'text-amber-400 bg-amber-500/15 border-amber-500/20' },
+  other: { label: '其他', icon: <FileBox size={18} />, tone: 'text-theme-text-secondary bg-theme-elevated border-theme-border' },
 };
 
 const INPUT_TYPE_ORDER: InputType[] = ['document', 'code', 'software', 'other'];
@@ -412,7 +412,7 @@ export const TestInputPage: React.FC<TestInputPageProps> = ({ selectedProjectId,
   }
 
   return (
- <div className="min-h-[calc(100vh-5rem)] bg-[#070d18] p-4 md:p-6 xl:p-8">
+ <div className="min-h-[calc(100vh-5rem)] bg-theme-bg-app p-4 md:p-6 xl:p-8">
       <div className="flex min-h-[calc(100vh-7rem)] w-full flex-col gap-5">
         <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
           {INPUT_TYPE_ORDER.map((inputType) => {
@@ -426,9 +426,9 @@ export const TestInputPage: React.FC<TestInputPageProps> = ({ selectedProjectId,
                   setSelectedType(inputType);
                   setPage(1);
                 }}
- className={`rounded-[2rem] border p-5 text-left transition ${selectedType === inputType ? 'border-slate-900 bg-slate-900 text-white' : 'border-slate-200 bg-slate-50 text-slate-900 hover:border-slate-200'}`}
+ className={`rounded-[2rem] border p-5 text-left transition ${selectedType === inputType ? 'border-theme-border bg-theme-surface text-white' : 'border-theme-border bg-theme-bg-app text-theme-text-primary hover:border-theme-border'}`}
               >
- <div className={`inline-flex items-center gap-2 rounded-full border px-3 py-1 text-[11px] font-black uppercase tracking-[0.2em] ${selectedType === inputType ? 'border-slate-200 bg-slate-100 text-white' : meta.tone}`}>
+ <div className={`inline-flex items-center gap-2 rounded-full border px-3 py-1 text-[11px] font-black uppercase tracking-[0.2em] ${selectedType === inputType ? 'border-theme-border bg-theme-elevated text-white' : meta.tone}`}>
                   {meta.icon}
                   {meta.label}
                 </div>
@@ -444,26 +444,26 @@ export const TestInputPage: React.FC<TestInputPageProps> = ({ selectedProjectId,
           })}
         </section>
 
- <section className="flex min-h-[calc(100vh-22rem)] flex-1 flex-col rounded-[2rem] border border-slate-200 bg-slate-50 p-5">
-          <div className="flex flex-col gap-4 border-b border-slate-100 pb-5">
+ <section className="flex min-h-[calc(100vh-22rem)] flex-1 flex-col rounded-[2rem] border border-theme-border bg-theme-surface p-5">
+          <div className="flex flex-col gap-4 border-b border-theme-border pb-5">
             <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
               <div>
-                <h2 className="text-2xl font-black text-slate-900">上传记录</h2>
-                <p className="mt-1 text-sm font-medium text-slate-500">查看各类任务输入上传批次、容量、状态和落盘路径。</p>
+                <h2 className="text-2xl font-black text-theme-text-primary">上传记录</h2>
+                <p className="mt-1 text-sm font-medium text-theme-text-muted">查看各类任务输入上传批次、容量、状态和落盘路径。</p>
               </div>
               <div className="flex flex-wrap gap-3">
                 <button
                   onClick={() => {
                     void Promise.all([loadOverview(), loadRecords()]);
                   }}
- className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-black text-slate-600 transition hover:border-slate-300 hover:text-slate-900"
+ className="inline-flex items-center gap-2 rounded-2xl border border-theme-border bg-theme-surface px-4 py-3 text-sm font-black text-theme-text-secondary transition hover:border-theme-border hover:text-theme-text-primary"
                 >
                   <RefreshCw size={16} className={(loading || overviewLoading) ? 'animate-spin' : ''} />
                   刷新
                 </button>
                 <button
                   onClick={() => openCreateModal(selectedType === 'all' ? 'document' : selectedType)}
- className="inline-flex items-center gap-2 rounded-2xl bg-slate-950 px-4 py-3 text-sm font-black text-white transition hover:bg-slate-800"
+ className="inline-flex items-center gap-2 rounded-2xl bg-theme-bg-app px-4 py-3 text-sm font-black text-white transition hover:bg-theme-elevated"
                 >
                   <Plus size={16} />
                   新建上传
@@ -473,12 +473,12 @@ export const TestInputPage: React.FC<TestInputPageProps> = ({ selectedProjectId,
 
             <div className="flex flex-col gap-3 lg:flex-row lg:flex-wrap lg:items-center">
               <div className="relative w-full lg:max-w-sm lg:flex-1">
-                <Search className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" size={16} />
+                <Search className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-theme-text-faint" size={16} />
                 <input
                   value={searchTerm}
                   onChange={(event) => setSearchTerm(event.target.value)}
                   placeholder="搜索记录、路径或错误信息"
-                  className="w-full rounded-2xl border border-slate-200 bg-slate-50 py-3 pl-11 pr-4 text-sm font-medium text-slate-700 outline-none transition focus:border-slate-400"
+                  className="w-full rounded-2xl border border-theme-border bg-theme-surface py-3 pl-11 pr-4 text-sm font-medium text-theme-text-secondary outline-none transition focus:border-slate-400"
                 />
               </div>
               <select
@@ -487,7 +487,7 @@ export const TestInputPage: React.FC<TestInputPageProps> = ({ selectedProjectId,
                   setSelectedType(event.target.value as InputType | 'all');
                   setPage(1);
                 }}
-                className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-700 outline-none sm:w-auto"
+                className="w-full rounded-2xl border border-theme-border bg-theme-surface px-4 py-3 text-sm font-semibold text-theme-text-secondary outline-none sm:w-auto"
               >
                 <option value="all">全部类型</option>
                 {INPUT_TYPE_ORDER.map((type) => (
@@ -500,7 +500,7 @@ export const TestInputPage: React.FC<TestInputPageProps> = ({ selectedProjectId,
                   setSelectedStatus(event.target.value);
                   setPage(1);
                 }}
-                className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-700 outline-none sm:w-auto"
+                className="w-full rounded-2xl border border-theme-border bg-theme-surface px-4 py-3 text-sm font-semibold text-theme-text-secondary outline-none sm:w-auto"
               >
                 <option value="all">全部状态</option>
                 <option value="pending">pending</option>
@@ -513,15 +513,15 @@ export const TestInputPage: React.FC<TestInputPageProps> = ({ selectedProjectId,
           </div>
 
           {!isUploadModalOpen && errorMessage ? (
-            <div className="mt-4 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-medium text-rose-700">
+            <div className="mt-4 rounded-2xl border border-rose-500/20 bg-rose-500/15 px-4 py-3 text-sm font-medium text-rose-400">
               {errorMessage}
             </div>
           ) : null}
 
-          <div className="mt-5 flex-1 overflow-hidden rounded-[1.5rem] border border-slate-200 bg-slate-50">
+          <div className="mt-5 flex-1 overflow-hidden rounded-[1.5rem] border border-theme-border bg-theme-surface">
             <div className="h-full overflow-auto">
-              <table className="min-w-full divide-y divide-slate-200">
-                <thead className="bg-slate-50 text-left text-[11px] font-black uppercase tracking-[0.18em] text-slate-500">
+              <table className="min-w-full divide-y divide-theme-border">
+                <thead className="bg-theme-bg-app text-left text-[11px] font-black uppercase tracking-[0.18em] text-theme-text-muted">
                   <tr>
                     <th className="px-4 py-4">类型</th>
                     <th className="px-4 py-4">上传记录</th>
@@ -531,11 +531,11 @@ export const TestInputPage: React.FC<TestInputPageProps> = ({ selectedProjectId,
                     <th className="px-4 py-4 text-right">操作</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100 bg-slate-50 text-sm">
+                <tbody className="divide-y divide-theme-border bg-theme-bg-app text-sm">
                   {loading ? (
-                    <tr><td colSpan={6} className="px-6 py-20 text-center"><Loader2 className="mx-auto animate-spin text-slate-400" size={32} /></td></tr>
+                    <tr><td colSpan={6} className="px-6 py-20 text-center"><Loader2 className="mx-auto animate-spin text-theme-text-muted" size={32} /></td></tr>
                   ) : filteredRecords.length === 0 ? (
-                    <tr><td colSpan={6} className="px-6 py-20 text-center text-slate-400">暂无上传记录</td></tr>
+                    <tr><td colSpan={6} className="px-6 py-20 text-center text-theme-text-muted">暂无上传记录</td></tr>
                   ) : filteredRecords.map((record) => {
                     const inputType = normalizeType(record.input_type);
                     const isExpanded = expandedUploadIds.includes(record.upload_id);
@@ -557,57 +557,57 @@ export const TestInputPage: React.FC<TestInputPageProps> = ({ selectedProjectId,
                               <button
                                 type="button"
                                 onClick={(event) => { event.stopPropagation(); void toggleUploadDetail(record.upload_id); }}
-                                className="mt-0.5 inline-flex h-8 w-8 flex-none items-center justify-center rounded-xl border border-slate-200 bg-slate-50 text-slate-600 transition hover:border-slate-300 hover:bg-slate-100"
+                                className="mt-0.5 inline-flex h-8 w-8 flex-none items-center justify-center rounded-xl border border-theme-border bg-theme-surface text-theme-text-secondary transition hover:border-theme-border hover:bg-theme-elevated"
                                 aria-expanded={isExpanded}
                                 aria-label={isExpanded ? '收起批次历史' : '展开批次历史'}
                               >
                                 <ChevronDown size={16} className={isExpanded ? 'rotate-180 transition-transform' : 'transition-transform'} />
                               </button>
                               <div className="min-w-0">
-                                <div className="font-black text-slate-900">{getUploadRecordDisplayName(record)}</div>
-                                <div className="mt-1 text-xs font-mono text-slate-500">{record.upload_id}</div>
-                                <div className="mt-1 text-xs text-slate-500">{record.source_archive_count} 个源压缩包</div>
+                                <div className="font-black text-theme-text-primary">{getUploadRecordDisplayName(record)}</div>
+                                <div className="mt-1 text-xs font-mono text-theme-text-muted">{record.upload_id}</div>
+                                <div className="mt-1 text-xs text-theme-text-muted">{record.source_archive_count} 个源压缩包</div>
                               </div>
                             </div>
                           </td>
                           <td className="px-4 py-4">
-                            <div className="font-semibold text-slate-800">{record.batch_count || (record.latest_batch ? 1 : 0)} 批次</div>
-                            <div className="mt-1 text-xs text-slate-500">{getUploadModeLabel(record.keep_original)}</div>
-                            <div className="mt-1 text-xs text-slate-400">{getLatestBatchSummary(record)}</div>
+                            <div className="font-semibold text-theme-text-primary">{record.batch_count || (record.latest_batch ? 1 : 0)} 批次</div>
+                            <div className="mt-1 text-xs text-theme-text-muted">{getUploadModeLabel(record.keep_original)}</div>
+                            <div className="mt-1 text-xs text-theme-text-muted">{getLatestBatchSummary(record)}</div>
                           </td>
                           <td className="px-4 py-4">
-                            <div className="font-semibold text-slate-800">{record.stored_file_count} 个文件</div>
-                            <div className="mt-1 text-xs text-slate-500">{formatUploadBytes(record.stored_total_size_bytes)}</div>
+                            <div className="font-semibold text-theme-text-primary">{record.stored_file_count} 个文件</div>
+                            <div className="mt-1 text-xs text-theme-text-muted">{formatUploadBytes(record.stored_total_size_bytes)}</div>
                           </td>
                           <td className="px-4 py-4">
-                            <div className="font-semibold text-slate-800">{record.created_by || '-'}</div>
-                            <div className="mt-1 text-xs text-slate-500">创建 {formatDateTime(record.created_at)}</div>
-                            <div className="mt-1 text-xs text-slate-400">完成 {formatDateTime(record.finished_at)}</div>
+                            <div className="font-semibold text-theme-text-primary">{record.created_by || '-'}</div>
+                            <div className="mt-1 text-xs text-theme-text-muted">创建 {formatDateTime(record.created_at)}</div>
+                            <div className="mt-1 text-xs text-theme-text-muted">完成 {formatDateTime(record.finished_at)}</div>
                           </td>
                           <td className="px-4 py-4">
                             <div className="flex justify-end gap-2" onClick={(event) => event.stopPropagation()}>
-                              <button onClick={() => { void openUploadDetailDialog(record); }} className="rounded-xl border border-slate-200 px-3 py-2 text-xs font-black text-slate-600 hover:bg-slate-100">
+                              <button onClick={() => { void openUploadDetailDialog(record); }} className="rounded-xl border border-theme-border px-3 py-2 text-xs font-black text-theme-text-secondary hover:bg-theme-elevated">
                                 <Eye size={14} className="mr-1 inline-block" />
                                 详情
                               </button>
                               {canOpenDirectory ? (
-                                <button onClick={() => openProjectPath(record.target_path)} className="rounded-xl border border-slate-200 px-3 py-2 text-xs font-black text-slate-600 hover:bg-slate-100">
+                                <button onClick={() => openProjectPath(record.target_path)} className="rounded-xl border border-theme-border px-3 py-2 text-xs font-black text-theme-text-secondary hover:bg-theme-elevated">
                                   <HardDrive size={14} className="mr-1 inline-block" />
                                   打开目录
                                 </button>
                               ) : null}
-                              <button onClick={() => openAppendModal(record)} className="rounded-xl border border-slate-200 px-3 py-2 text-xs font-black text-slate-600 hover:bg-slate-100">
+                              <button onClick={() => openAppendModal(record)} className="rounded-xl border border-theme-border px-3 py-2 text-xs font-black text-theme-text-secondary hover:bg-theme-elevated">
                                 <Plus size={14} className="mr-1 inline-block" />
                                 追加
                               </button>
                               <button onClick={() => {
                                 setSelectedRecordForTask(record.upload_id);
                                 setCreateTaskOpen(true);
-                              }} className="rounded-xl border border-slate-200 px-3 py-2 text-xs font-black text-slate-600 hover:bg-slate-100">
+                              }} className="rounded-xl border border-theme-border px-3 py-2 text-xs font-black text-theme-text-secondary hover:bg-theme-elevated">
                                 <Plus size={14} className="mr-1 inline-block" />
                                 创建任务
                               </button>
-                              <button onClick={() => setDeleteTarget(record)} className="rounded-xl border border-rose-200 px-3 py-2 text-xs font-black text-rose-600 hover:bg-rose-50">
+                              <button onClick={() => setDeleteTarget(record)} className="rounded-xl border border-rose-500/20 px-3 py-2 text-xs font-black text-rose-400 hover:bg-rose-500/15">
                                 <Trash2 size={14} className="mr-1 inline-block" />
                                 删除
                               </button>
@@ -617,63 +617,63 @@ export const TestInputPage: React.FC<TestInputPageProps> = ({ selectedProjectId,
                         {isExpanded ? (
                           <tr className="bg-slate-50/70">
                             <td colSpan={6} className="px-6 py-5">
-                              <div className="rounded-[1.5rem] border border-slate-200 bg-slate-50 p-5">
+                              <div className="rounded-[1.5rem] border border-theme-border bg-theme-surface p-5">
                                 <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
                                   <div>
-                                    <div className="text-sm font-black text-slate-900">批次历史</div>
-                                    <div className="mt-1 text-xs text-slate-500">{record.upload_id} · {batches.length > 0 ?`${batches.length} 个批次` : '暂无批次明细'}</div>
+                                    <div className="text-sm font-black text-theme-text-primary">批次历史</div>
+                                    <div className="mt-1 text-xs text-theme-text-muted">{record.upload_id} · {batches.length > 0 ?`${batches.length} 个批次` : '暂无批次明细'}</div>
                                   </div>
-                                  <div className="flex flex-wrap gap-2 text-xs font-semibold text-slate-500">
-                                    <span className="rounded-full bg-slate-100 px-3 py-1">模式：{getUploadModeLabel(record.keep_original)}</span>
+                                  <div className="flex flex-wrap gap-2 text-xs font-semibold text-theme-text-muted">
+                                    <span className="rounded-full bg-theme-elevated px-3 py-1">模式：{getUploadModeLabel(record.keep_original)}</span>
                                   </div>
                                 </div>
 
                                 {isDetailLoading ? (
-                                  <div className="mt-5 rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-4 py-8 text-center text-sm text-slate-500">
-                                    <Loader2 className="mx-auto mb-3 animate-spin text-slate-400" size={24} />
+                                  <div className="mt-5 rounded-2xl border border-dashed border-theme-border bg-theme-bg-app px-4 py-8 text-center text-sm text-theme-text-muted">
+                                    <Loader2 className="mx-auto mb-3 animate-spin text-theme-text-muted" size={24} />
                                     正在加载批次历史...
                                   </div>
                                 ) : detailError ? (
-                                  <div className="mt-5 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-4 text-sm text-rose-700">
+                                  <div className="mt-5 rounded-2xl border border-rose-500/20 bg-rose-500/15 px-4 py-4 text-sm text-rose-400">
                                     {detailError}
                                   </div>
                                 ) : batches.length === 0 ? (
-                                  <div className="mt-5 rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-4 py-8 text-center text-sm text-slate-500">
+                                  <div className="mt-5 rounded-2xl border border-dashed border-theme-border bg-theme-bg-app px-4 py-8 text-center text-sm text-theme-text-muted">
                                     该上传记录暂无批次历史。
                                   </div>
                                 ) : (
                                   <div className="mt-5 space-y-3">
                                     {batches.map((batch, index) => (
-                                      <div key={batch.batch_id} className="rounded-[1.25rem] border border-slate-200 bg-slate-50 p-4">
+                                      <div key={batch.batch_id} className="rounded-[1.25rem] border border-theme-border bg-theme-surface p-4">
                                         <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
                                           <div>
                                             <div className="flex flex-wrap items-center gap-2">
-                                              <span className="text-sm font-black text-slate-900">批次 #{index + 1}</span>
+                                              <span className="text-sm font-black text-theme-text-primary">批次 #{index + 1}</span>
                                               <StatusBadge status={batch.status} />
-                                              <span className="rounded-full bg-slate-50 px-3 py-1 text-[11px] font-black uppercase tracking-[0.18em] text-slate-500">{batch.mode}</span>
+                                              <span className="rounded-full bg-theme-bg-app px-3 py-1 text-[11px] font-black uppercase tracking-[0.18em] text-theme-text-muted">{batch.mode}</span>
                                             </div>
-                                            <div className="mt-2 text-xs text-slate-500">batch_id: <span className="font-mono text-slate-700">{batch.batch_id}</span></div>
+                                            <div className="mt-2 text-xs text-theme-text-muted">batch_id: <span className="font-mono text-theme-text-secondary">{batch.batch_id}</span></div>
                                           </div>
-                                          <div className="flex flex-wrap gap-2 text-xs font-semibold text-slate-500">
-                                            <span className="rounded-full bg-slate-50 px-3 py-1">提交 {batch.submitted_file_count} 个</span>
-                                            <span className="rounded-full bg-slate-50 px-3 py-1">处理 {batch.processed_file_count} 个</span>
-                                            <span className="rounded-full bg-slate-50 px-3 py-1">{formatUploadBytes(batch.processed_size_bytes)}</span>
-                                            <span className="rounded-full bg-slate-50 px-3 py-1">保留原包：{batch.keep_original ? '是' : '否'}</span>
+                                          <div className="flex flex-wrap gap-2 text-xs font-semibold text-theme-text-muted">
+                                            <span className="rounded-full bg-theme-bg-app px-3 py-1">提交 {batch.submitted_file_count} 个</span>
+                                            <span className="rounded-full bg-theme-bg-app px-3 py-1">处理 {batch.processed_file_count} 个</span>
+                                            <span className="rounded-full bg-theme-bg-app px-3 py-1">{formatUploadBytes(batch.processed_size_bytes)}</span>
+                                            <span className="rounded-full bg-theme-bg-app px-3 py-1">保留原包：{batch.keep_original ? '是' : '否'}</span>
                                           </div>
                                         </div>
 
                                         <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
                                           <div>
-                                            <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">创建时间</div>
-                                            <div className="mt-1 text-sm font-semibold text-slate-700">{formatDateTime(batch.created_at)}</div>
+                                            <div className="text-[11px] font-black uppercase tracking-[0.18em] text-theme-text-muted">创建时间</div>
+                                            <div className="mt-1 text-sm font-semibold text-theme-text-secondary">{formatDateTime(batch.created_at)}</div>
                                           </div>
                                           <div>
-                                            <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">完成时间</div>
-                                            <div className="mt-1 text-sm font-semibold text-slate-700">{formatDateTime(batch.finished_at)}</div>
+                                            <div className="text-[11px] font-black uppercase tracking-[0.18em] text-theme-text-muted">完成时间</div>
+                                            <div className="mt-1 text-sm font-semibold text-theme-text-secondary">{formatDateTime(batch.finished_at)}</div>
                                           </div>
                                           <div className="md:col-span-2">
-                                            <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">错误摘要</div>
-                                            <div className="mt-1 text-sm font-semibold text-slate-700">{batch.error_summary || '-'}</div>
+                                            <div className="text-[11px] font-black uppercase tracking-[0.18em] text-theme-text-muted">错误摘要</div>
+                                            <div className="mt-1 text-sm font-semibold text-theme-text-secondary">{batch.error_summary || '-'}</div>
                                           </div>
                                         </div>
                                       </div>
@@ -692,13 +692,13 @@ export const TestInputPage: React.FC<TestInputPageProps> = ({ selectedProjectId,
             </div>
           </div>
 
-          <div className="mt-4 flex items-center justify-between text-sm text-slate-500">
+          <div className="mt-4 flex items-center justify-between text-sm text-theme-text-muted">
             <div>共 {total} 条记录</div>
             <div className="flex items-center gap-2">
               <button
                 disabled={page <= 1}
                 onClick={() => setPage((current) => Math.max(1, current - 1))}
-                className="rounded-xl border border-slate-200 px-3 py-2 disabled:opacity-40"
+                className="rounded-xl border border-theme-border px-3 py-2 disabled:opacity-40"
               >
                 上一页
               </button>
@@ -706,7 +706,7 @@ export const TestInputPage: React.FC<TestInputPageProps> = ({ selectedProjectId,
               <button
                 disabled={page >= totalPages}
                 onClick={() => setPage((current) => Math.min(totalPages, current + 1))}
-                className="rounded-xl border border-slate-200 px-3 py-2 disabled:opacity-40"
+                className="rounded-xl border border-theme-border px-3 py-2 disabled:opacity-40"
               >
                 下一页
               </button>
@@ -724,22 +724,22 @@ export const TestInputPage: React.FC<TestInputPageProps> = ({ selectedProjectId,
         const latestBatch = detail?.latest_batch || record.latest_batch || null;
         return (
           <div className="fixed inset-0 z-[125] flex items-center justify-center bg-slate-950/60 p-6 backdrop-blur-sm">
- <div className="flex max-h-[90vh] w-full max-w-5xl flex-col overflow-hidden rounded-[2rem] bg-slate-50">
-              <div className="flex items-start justify-between gap-4 border-b border-slate-100 px-6 py-5">
+ <div className="flex max-h-[90vh] w-full max-w-5xl flex-col overflow-hidden rounded-[2rem] bg-theme-bg-app">
+              <div className="flex items-start justify-between gap-4 border-b border-theme-border px-6 py-5">
                 <div>
-                  <div className="text-sm font-black uppercase tracking-[0.18em] text-slate-500">上传记录详情</div>
-                  <div className="mt-2 text-2xl font-black text-slate-900">{getUploadRecordDisplayName(record)}</div>
+                  <div className="text-sm font-black uppercase tracking-[0.18em] text-theme-text-muted">上传记录详情</div>
+                  <div className="mt-2 text-2xl font-black text-theme-text-primary">{getUploadRecordDisplayName(record)}</div>
                   <div className="mt-2 flex flex-wrap items-center gap-2 text-xs">
-                    <span className="rounded-full bg-slate-100 px-3 py-1 font-mono text-slate-600">{record.upload_id}</span>
+                    <span className="rounded-full bg-theme-elevated px-3 py-1 font-mono text-theme-text-secondary">{record.upload_id}</span>
                     <StatusBadge status={record.status} />
-                    {latestBatch ? <span className="rounded-full bg-slate-100 px-3 py-1 font-semibold text-slate-600">最新批次：{latestBatch.status}</span> : null}
-                    <span className="rounded-full bg-slate-100 px-3 py-1 font-semibold text-slate-600">类型：{INPUT_TYPE_META[normalizeType(record.input_type)].label}</span>
+                    {latestBatch ? <span className="rounded-full bg-theme-elevated px-3 py-1 font-semibold text-theme-text-secondary">最新批次：{latestBatch.status}</span> : null}
+                    <span className="rounded-full bg-theme-elevated px-3 py-1 font-semibold text-theme-text-secondary">类型：{INPUT_TYPE_META[normalizeType(record.input_type)].label}</span>
                   </div>
                 </div>
                 <button
                   type="button"
                   onClick={() => setDetailDialogTarget(null)}
-                  className="inline-flex h-10 w-10 items-center justify-center rounded-2xl border border-slate-200 text-slate-500 hover:bg-slate-100"
+                  className="inline-flex h-10 w-10 items-center justify-center rounded-2xl border border-theme-border text-theme-text-muted hover:bg-theme-elevated"
                 >
                   <X size={18} />
                 </button>
@@ -747,89 +747,89 @@ export const TestInputPage: React.FC<TestInputPageProps> = ({ selectedProjectId,
 
               <div className="overflow-y-auto px-6 py-6">
                 <div className="space-y-5">
-                  <section className="rounded-[1.5rem] border border-slate-200 bg-slate-50 p-5">
-                    <div className="text-sm font-black text-slate-900">基础信息</div>
+                  <section className="rounded-[1.5rem] border border-theme-border bg-theme-surface p-5">
+                    <div className="text-sm font-black text-theme-text-primary">基础信息</div>
                     <div className="mt-4 grid gap-4 md:grid-cols-2">
                       <div>
-                        <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">目标路径</div>
-                        <div className="mt-1 break-all text-sm font-mono text-slate-700">{record.target_path}</div>
+                        <div className="text-[11px] font-black uppercase tracking-[0.18em] text-theme-text-muted">目标路径</div>
+                        <div className="mt-1 break-all text-sm font-mono text-theme-text-secondary">{record.target_path}</div>
                       </div>
                       <div>
-                        <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">上传模式</div>
-                        <div className="mt-1 text-sm font-semibold text-slate-700">{getUploadModeLabel(record.keep_original)}</div>
+                        <div className="text-[11px] font-black uppercase tracking-[0.18em] text-theme-text-muted">上传模式</div>
+                        <div className="mt-1 text-sm font-semibold text-theme-text-secondary">{getUploadModeLabel(record.keep_original)}</div>
                       </div>
                       <div>
-                        <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">创建人</div>
-                        <div className="mt-1 text-sm font-semibold text-slate-700">{record.created_by || '-'}</div>
+                        <div className="text-[11px] font-black uppercase tracking-[0.18em] text-theme-text-muted">创建人</div>
+                        <div className="mt-1 text-sm font-semibold text-theme-text-secondary">{record.created_by || '-'}</div>
                       </div>
                       <div>
-                        <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">创建时间</div>
-                        <div className="mt-1 text-sm font-semibold text-slate-700">{formatDateTime(record.created_at)}</div>
+                        <div className="text-[11px] font-black uppercase tracking-[0.18em] text-theme-text-muted">创建时间</div>
+                        <div className="mt-1 text-sm font-semibold text-theme-text-secondary">{formatDateTime(record.created_at)}</div>
                       </div>
                       <div>
-                        <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">完成时间</div>
-                        <div className="mt-1 text-sm font-semibold text-slate-700">{formatDateTime(record.finished_at)}</div>
+                        <div className="text-[11px] font-black uppercase tracking-[0.18em] text-theme-text-muted">完成时间</div>
+                        <div className="mt-1 text-sm font-semibold text-theme-text-secondary">{formatDateTime(record.finished_at)}</div>
                       </div>
                       <div>
-                        <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">源压缩包</div>
-                        <div className="mt-1 text-sm font-semibold text-slate-700">{record.source_archive_count}</div>
+                        <div className="text-[11px] font-black uppercase tracking-[0.18em] text-theme-text-muted">源压缩包</div>
+                        <div className="mt-1 text-sm font-semibold text-theme-text-secondary">{record.source_archive_count}</div>
                       </div>
                       <div>
-                        <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">落盘文件</div>
-                        <div className="mt-1 text-sm font-semibold text-slate-700">{record.stored_file_count}</div>
+                        <div className="text-[11px] font-black uppercase tracking-[0.18em] text-theme-text-muted">落盘文件</div>
+                        <div className="mt-1 text-sm font-semibold text-theme-text-secondary">{record.stored_file_count}</div>
                       </div>
                       <div>
-                        <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">落盘容量</div>
-                        <div className="mt-1 text-sm font-semibold text-slate-700">{formatUploadBytes(record.stored_total_size_bytes)}</div>
+                        <div className="text-[11px] font-black uppercase tracking-[0.18em] text-theme-text-muted">落盘容量</div>
+                        <div className="mt-1 text-sm font-semibold text-theme-text-secondary">{formatUploadBytes(record.stored_total_size_bytes)}</div>
                       </div>
                     </div>
                   </section>
 
-                  <section className="rounded-[1.5rem] border border-slate-200 bg-slate-50 p-5">
-                    <div className="text-sm font-black text-slate-900">批次历史</div>
+                  <section className="rounded-[1.5rem] border border-theme-border bg-theme-surface p-5">
+                    <div className="text-sm font-black text-theme-text-primary">批次历史</div>
                     {isDetailLoading ? (
-                      <div className="mt-5 rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-4 py-8 text-center text-sm text-slate-500">
-                        <Loader2 className="mx-auto mb-3 animate-spin text-slate-400" size={24} />
+                      <div className="mt-5 rounded-2xl border border-dashed border-theme-border bg-theme-bg-app px-4 py-8 text-center text-sm text-theme-text-muted">
+                        <Loader2 className="mx-auto mb-3 animate-spin text-theme-text-muted" size={24} />
                         正在加载批次历史...
                       </div>
                     ) : detailError ? (
-                      <div className="mt-5 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-4 text-sm text-rose-700">
+                      <div className="mt-5 rounded-2xl border border-rose-500/20 bg-rose-500/15 px-4 py-4 text-sm text-rose-400">
                         {detailError}
                       </div>
                     ) : batches.length === 0 ? (
-                      <div className="mt-5 rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-4 py-8 text-center text-sm text-slate-500">
+                      <div className="mt-5 rounded-2xl border border-dashed border-theme-border bg-theme-bg-app px-4 py-8 text-center text-sm text-theme-text-muted">
                         该上传记录暂无批次历史。
                       </div>
                     ) : (
                       <div className="mt-5 space-y-3">
                         {batches.map((batch, index) => (
-                          <div key={batch.batch_id} className="rounded-[1.25rem] border border-slate-200 bg-slate-50 p-4">
+                          <div key={batch.batch_id} className="rounded-[1.25rem] border border-theme-border bg-theme-surface p-4">
                             <div className="flex flex-wrap items-center gap-2">
-                              <span className="text-sm font-black text-slate-900">批次 #{index + 1}</span>
+                              <span className="text-sm font-black text-theme-text-primary">批次 #{index + 1}</span>
                               <StatusBadge status={batch.status} />
-                              <span className="rounded-full bg-slate-50 px-3 py-1 text-[11px] font-black uppercase tracking-[0.18em] text-slate-500">{batch.mode}</span>
+                              <span className="rounded-full bg-theme-bg-app px-3 py-1 text-[11px] font-black uppercase tracking-[0.18em] text-theme-text-muted">{batch.mode}</span>
                             </div>
-                            <div className="mt-2 text-xs text-slate-500">batch_id: <span className="font-mono text-slate-700">{batch.batch_id}</span></div>
+                            <div className="mt-2 text-xs text-theme-text-muted">batch_id: <span className="font-mono text-theme-text-secondary">{batch.batch_id}</span></div>
                             <div className="mt-4 grid gap-3 md:grid-cols-2">
                               <div>
-                                <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">提交 / 处理</div>
-                                <div className="mt-1 text-sm font-semibold text-slate-700">{batch.submitted_file_count} / {batch.processed_file_count}</div>
+                                <div className="text-[11px] font-black uppercase tracking-[0.18em] text-theme-text-muted">提交 / 处理</div>
+                                <div className="mt-1 text-sm font-semibold text-theme-text-secondary">{batch.submitted_file_count} / {batch.processed_file_count}</div>
                               </div>
                               <div>
-                                <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">容量</div>
-                                <div className="mt-1 text-sm font-semibold text-slate-700">{formatUploadBytes(batch.processed_size_bytes)}</div>
+                                <div className="text-[11px] font-black uppercase tracking-[0.18em] text-theme-text-muted">容量</div>
+                                <div className="mt-1 text-sm font-semibold text-theme-text-secondary">{formatUploadBytes(batch.processed_size_bytes)}</div>
                               </div>
                               <div>
-                                <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">创建时间</div>
-                                <div className="mt-1 text-sm font-semibold text-slate-700">{formatDateTime(batch.created_at)}</div>
+                                <div className="text-[11px] font-black uppercase tracking-[0.18em] text-theme-text-muted">创建时间</div>
+                                <div className="mt-1 text-sm font-semibold text-theme-text-secondary">{formatDateTime(batch.created_at)}</div>
                               </div>
                               <div>
-                                <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">完成时间</div>
-                                <div className="mt-1 text-sm font-semibold text-slate-700">{formatDateTime(batch.finished_at)}</div>
+                                <div className="text-[11px] font-black uppercase tracking-[0.18em] text-theme-text-muted">完成时间</div>
+                                <div className="mt-1 text-sm font-semibold text-theme-text-secondary">{formatDateTime(batch.finished_at)}</div>
                               </div>
                               <div className="md:col-span-2">
-                                <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">错误摘要</div>
-                                <div className="mt-1 text-sm font-semibold text-slate-700">{batch.error_summary || '-'}</div>
+                                <div className="text-[11px] font-black uppercase tracking-[0.18em] text-theme-text-muted">错误摘要</div>
+                                <div className="mt-1 text-sm font-semibold text-theme-text-secondary">{batch.error_summary || '-'}</div>
                               </div>
                             </div>
                           </div>
@@ -840,12 +840,12 @@ export const TestInputPage: React.FC<TestInputPageProps> = ({ selectedProjectId,
                 </div>
               </div>
 
-              <div className="flex justify-end gap-3 border-t border-slate-100 px-6 py-5">
-                <button type="button" onClick={() => setDetailDialogTarget(null)} className="rounded-2xl border border-slate-200 px-4 py-3 text-sm font-black text-slate-600">
+              <div className="flex justify-end gap-3 border-t border-theme-border px-6 py-5">
+                <button type="button" onClick={() => setDetailDialogTarget(null)} className="rounded-2xl border border-theme-border px-4 py-3 text-sm font-black text-theme-text-secondary">
                   关闭
                 </button>
                 {canOpenDirectory ? (
-                  <button type="button" onClick={() => openProjectPath(record.target_path)} className="rounded-2xl bg-slate-950 px-4 py-3 text-sm font-black text-white">
+                  <button type="button" onClick={() => openProjectPath(record.target_path)} className="rounded-2xl bg-theme-bg-app px-4 py-3 text-sm font-black text-white">
                     打开目录
                   </button>
                 ) : null}
@@ -860,33 +860,33 @@ export const TestInputPage: React.FC<TestInputPageProps> = ({ selectedProjectId,
           <form onSubmit={(event) => {
             event.preventDefault();
             void submitUpload();
- }} className="w-full max-w-2xl overflow-hidden rounded-[2rem] bg-slate-50">
-            <div className="border-b border-slate-100 px-6 py-5">
-              <div className="text-sm font-black uppercase tracking-[0.2em] text-slate-500">{isAppendMode ? '追加上传' : '新建上传'}</div>
-              <div className="mt-2 text-2xl font-black text-slate-900">{INPUT_TYPE_META[activeInputType].label}任务输入</div>
+ }} className="w-full max-w-2xl overflow-hidden rounded-[2rem] bg-theme-bg-app">
+            <div className="border-b border-theme-border px-6 py-5">
+              <div className="text-sm font-black uppercase tracking-[0.2em] text-theme-text-muted">{isAppendMode ? '追加上传' : '新建上传'}</div>
+              <div className="mt-2 text-2xl font-black text-theme-text-primary">{INPUT_TYPE_META[activeInputType].label}任务输入</div>
             </div>
             <div className="space-y-5 px-6 py-6">
               {uploadDialogError ? (
-                <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-medium text-rose-700">
+                <div className="rounded-2xl border border-rose-500/20 bg-rose-500/15 px-4 py-3 text-sm font-medium text-rose-400">
                   {uploadDialogError}
                 </div>
               ) : null}
               {!isAppendMode ? (
                 <div className="space-y-5">
                   <div>
-                    <label className="mb-2 block text-sm font-black text-slate-700">上传记录名称</label>
+                    <label className="mb-2 block text-sm font-black text-theme-text-secondary">上传记录名称</label>
                     <input
                       value={uploadDisplayName}
                       onChange={(event) => setUploadDisplayName(event.target.value)}
-                      className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-800"
+                      className="w-full rounded-2xl border border-theme-border bg-theme-surface px-4 py-3 text-sm font-semibold text-theme-text-primary"
                       placeholder="请输入上传记录名称"
                     />
                   </div>
-                  <label className="mb-2 block text-sm font-black text-slate-700">输入类型</label>
+                  <label className="mb-2 block text-sm font-black text-theme-text-secondary">输入类型</label>
                   <select
                     value={activeInputType}
                     onChange={(event) => setActiveInputType(event.target.value as InputType)}
-                    className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-800"
+                    className="w-full rounded-2xl border border-theme-border bg-theme-surface px-4 py-3 text-sm font-semibold text-theme-text-primary"
                   >
                     {INPUT_TYPE_ORDER.map((type) => (
                       <option key={type} value={type}>{INPUT_TYPE_META[type].label}</option>
@@ -895,22 +895,22 @@ export const TestInputPage: React.FC<TestInputPageProps> = ({ selectedProjectId,
                 </div>
               ) : null}
 
-              <label className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 text-sm font-semibold text-slate-700">
+              <label className="flex items-center gap-3 rounded-2xl border border-theme-border bg-theme-surface px-4 py-4 text-sm font-semibold text-theme-text-secondary">
                 <input
                   type="checkbox"
                   checked={keepOriginal}
                   onChange={(event) => setKeepOriginal(event.target.checked)}
-                  className="h-4 w-4 rounded border-slate-300"
+                  className="h-4 w-4 rounded border-theme-border"
                 />
                 保留原始文件，不自动解压
               </label>
 
-              <div className="rounded-[1.25rem] border border-dashed border-slate-300 bg-slate-50 px-4 py-5 text-center">
- <div className="mx-auto flex h-11 w-11 items-center justify-center rounded-2xl bg-slate-50 text-slate-700">
+              <div className="rounded-[1.25rem] border border-dashed border-theme-border bg-theme-bg-app px-4 py-5 text-center">
+ <div className="mx-auto flex h-11 w-11 items-center justify-center rounded-2xl bg-theme-bg-app text-theme-text-secondary">
                   <Upload size={22} />
                 </div>
-                <div className="mt-3 text-sm font-black text-slate-900">{keepOriginal ? '上传原始文件' : '上传压缩包'}</div>
-                <div className="mt-1 text-xs leading-5 text-slate-500">
+                <div className="mt-3 text-sm font-black text-theme-text-primary">{keepOriginal ? '上传原始文件' : '上传压缩包'}</div>
+                <div className="mt-1 text-xs leading-5 text-theme-text-muted">
                   {keepOriginal
                     ? '当前保留原始文件模式下，支持上传任意文件，一次可选择多个文件。'
                     : '支持`zip / tar / tar.gz / tgz / tar.bz2 / tbz2 / tar.xz / txz`，一次可选择多个文件。'}
@@ -919,7 +919,7 @@ export const TestInputPage: React.FC<TestInputPageProps> = ({ selectedProjectId,
                   <button
                     type="button"
                     onClick={() => fileInputRef.current?.click()}
-                    className="rounded-2xl bg-slate-950 px-4 py-3 text-sm font-black text-white hover:bg-slate-800"
+                    className="rounded-2xl bg-theme-bg-app px-4 py-3 text-sm font-black text-white hover:bg-theme-elevated"
                   >
                     选择文件
                   </button>
@@ -936,36 +936,36 @@ export const TestInputPage: React.FC<TestInputPageProps> = ({ selectedProjectId,
 
               <div className="space-y-3">
                 {uploadQueue.length === 0 ? (
-                  <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 text-sm text-slate-400">还没有选择上传文件。</div>
+                  <div className="rounded-2xl border border-theme-border bg-theme-surface px-4 py-4 text-sm text-theme-text-muted">还没有选择上传文件。</div>
                 ) : uploadQueue.map((item) => (
-                  <div key={item.id} className="rounded-2xl border border-slate-200 px-4 py-4">
+                  <div key={item.id} className="rounded-2xl border border-theme-border px-4 py-4">
                     <div className="flex items-center justify-between gap-3">
                       <div className="min-w-0">
-                        <div className="truncate text-sm font-black text-slate-900">{item.file.name}</div>
-                        <div className="mt-1 text-xs text-slate-500">{formatUploadBytes(item.file.size)} · {formatSpeed(item.speedBytesPerSec)}</div>
+                        <div className="truncate text-sm font-black text-theme-text-primary">{item.file.name}</div>
+                        <div className="mt-1 text-xs text-theme-text-muted">{formatUploadBytes(item.file.size)} · {formatSpeed(item.speedBytesPerSec)}</div>
                       </div>
-                      <div className="text-xs font-semibold text-slate-500">{item.error || item.status}</div>
+                      <div className="text-xs font-semibold text-theme-text-muted">{item.error || item.status}</div>
                     </div>
-                    <div className="mt-3 h-2 rounded-full bg-slate-100">
-                      <div className={`h-2 rounded-full ${item.status === 'failed' ? 'bg-rose-400' : 'bg-slate-900'}`} style={{ width: `${item.progress}%` }} />
+                    <div className="mt-3 h-2 rounded-full bg-theme-elevated">
+                      <div className={`h-2 rounded-full ${item.status === 'failed' ? 'bg-rose-400' : 'bg-theme-surface'}`} style={{ width: `${item.progress}%` }} />
                     </div>
                   </div>
                 ))}
               </div>
             </div>
-            <div className="flex justify-end gap-3 border-t border-slate-100 px-6 py-5">
-              <button type="button" onClick={() => setIsUploadModalOpen(false)} className="rounded-2xl border border-slate-200 px-4 py-3 text-sm font-black text-slate-600">
+            <div className="flex justify-end gap-3 border-t border-theme-border px-6 py-5">
+              <button type="button" onClick={() => setIsUploadModalOpen(false)} className="rounded-2xl border border-theme-border px-4 py-3 text-sm font-black text-theme-text-secondary">
                 取消
               </button>
               <button
                 type="button"
                 onClick={() => { void submitUpload({ runInBackground: true }); }}
                 disabled={isUploading || uploadQueue.length === 0 || (!isAppendMode && !uploadDisplayName.trim())}
-                className="rounded-2xl border border-slate-300 px-4 py-3 text-sm font-black text-slate-700 disabled:opacity-50"
+                className="rounded-2xl border border-theme-border px-4 py-3 text-sm font-black text-theme-text-secondary disabled:opacity-50"
               >
                 后台运行
               </button>
-              <button type="submit" disabled={isUploading || uploadQueue.length === 0 || (!isAppendMode && !uploadDisplayName.trim())} className="rounded-2xl bg-slate-950 px-4 py-3 text-sm font-black text-white disabled:opacity-50">
+              <button type="submit" disabled={isUploading || uploadQueue.length === 0 || (!isAppendMode && !uploadDisplayName.trim())} className="rounded-2xl bg-theme-bg-app px-4 py-3 text-sm font-black text-white disabled:opacity-50">
                 {isUploading ? <Loader2 size={16} className="mr-2 inline-block animate-spin" /> : null}
                 {isAppendMode ? '提交追加上传' : '创建上传记录'}
               </button>
@@ -976,18 +976,18 @@ export const TestInputPage: React.FC<TestInputPageProps> = ({ selectedProjectId,
 
       {deleteTarget ? (
         <div className="fixed inset-0 z-[130] flex items-center justify-center bg-slate-950/60 p-6 backdrop-blur-sm">
- <div className="w-full max-w-md rounded-[2rem] bg-slate-50 p-6">
+ <div className="w-full max-w-md rounded-[2rem] bg-theme-bg-app p-6">
             <div className="flex items-start gap-4">
-              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-rose-50 text-rose-600">
+              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-rose-500/15 text-rose-400">
                 <AlertCircle size={22} />
               </div>
               <div>
-                <div className="text-xl font-black text-slate-900">删除上传记录</div>
-                <div className="mt-2 text-sm leading-6 text-slate-500">将删除记录`{deleteTarget.upload_id}` 以及`{deleteTarget.target_path}` 下的内容，此操作不可恢复。</div>
+                <div className="text-xl font-black text-theme-text-primary">删除上传记录</div>
+                <div className="mt-2 text-sm leading-6 text-theme-text-muted">将删除记录`{deleteTarget.upload_id}` 以及`{deleteTarget.target_path}` 下的内容，此操作不可恢复。</div>
               </div>
             </div>
             <div className="mt-6 flex justify-end gap-3">
-              <button onClick={() => setDeleteTarget(null)} className="rounded-2xl border border-slate-200 px-4 py-3 text-sm font-black text-slate-600">取消</button>
+              <button onClick={() => setDeleteTarget(null)} className="rounded-2xl border border-theme-border px-4 py-3 text-sm font-black text-theme-text-secondary">取消</button>
               <button onClick={() => { void executeDelete(); }} className="rounded-2xl bg-rose-600 px-4 py-3 text-sm font-black text-white">确认删除</button>
             </div>
           </div>

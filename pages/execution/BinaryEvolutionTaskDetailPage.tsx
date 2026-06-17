@@ -25,19 +25,19 @@ const fmtNumber = (value: unknown, digits = 0) => {
 };
 
 const DetailBlock: React.FC<{ title: string; subtitle?: string; children: React.ReactNode }> = ({ title, subtitle, children }) => (
- <section className="rounded-2xl border border-slate-200 bg-slate-50 p-5">
+ <section className="rounded-2xl border border-theme-border bg-theme-bg-app p-5">
     <div>
-      <h3 className="text-sm font-black uppercase tracking-[0.18em] text-slate-500">{title}</h3>
-      {subtitle ? <p className="mt-1 text-xs text-slate-400">{subtitle}</p> : null}
+      <h3 className="text-sm font-black uppercase tracking-[0.18em] text-theme-text-muted">{title}</h3>
+      {subtitle ? <p className="mt-1 text-xs text-theme-text-muted">{subtitle}</p> : null}
     </div>
     <div className="mt-4">{children}</div>
   </section>
 );
 
 const InfoRow: React.FC<{ label: string; value: React.ReactNode }> = ({ label, value }) => (
-  <div className="flex items-start justify-between gap-4 border-b border-slate-100 py-2 first:pt-0 last:border-b-0 last:pb-0">
-    <div className="text-xs font-bold uppercase tracking-[0.16em] text-slate-400">{label}</div>
-    <div className="max-w-[70%] break-all text-right text-sm text-slate-700">{value}</div>
+  <div className="flex items-start justify-between gap-4 border-b border-theme-border py-2 first:pt-0 last:border-b-0 last:pb-0">
+    <div className="text-xs font-bold uppercase tracking-[0.16em] text-theme-text-muted">{label}</div>
+    <div className="max-w-[70%] break-all text-right text-sm text-theme-text-secondary">{value}</div>
   </div>
 );
 
@@ -99,19 +99,19 @@ export const BinaryEvolutionTaskDetailPage: React.FC<Props> = ({ projectId, task
     <div className="space-y-6 px-8 pb-10 pt-8">
       {feedbackNodes}
 
- <section className="rounded-[2rem] border border-slate-200 bg-slate-50 p-6">
+ <section className="rounded-[2rem] border border-theme-border bg-theme-bg-app p-6">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
             <button
               type="button"
               onClick={() => navigate('/binary-evolution-dataflow-vuln')}
-              className="inline-flex items-center gap-2 rounded-xl border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-100"
+              className="inline-flex items-center gap-2 rounded-xl border border-theme-border px-4 py-2 text-sm font-semibold text-theme-text-secondary hover:bg-theme-elevated"
             >
               <ArrowLeft size={15} />
               返回任务列表
             </button>
-            <h1 className="mt-3 text-3xl font-black tracking-tight text-slate-900">进化任务详情</h1>
-            <p className="mt-2 max-w-4xl text-sm text-slate-500">
+            <h1 className="mt-3 text-3xl font-black tracking-tight text-theme-text-primary">进化任务详情</h1>
+            <p className="mt-2 max-w-4xl text-sm text-theme-text-muted">
               参考系统分析详情页的独立页面结构，集中查看任务状态、轮次收敛、输入批次、产物与事件。
             </p>
           </div>
@@ -119,7 +119,7 @@ export const BinaryEvolutionTaskDetailPage: React.FC<Props> = ({ projectId, task
             <button
               type="button"
               onClick={() => void loadDetail()}
-              className="inline-flex items-center gap-2 rounded-xl border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-100"
+              className="inline-flex items-center gap-2 rounded-xl border border-theme-border px-4 py-2 text-sm font-semibold text-theme-text-secondary hover:bg-theme-elevated"
             >
               <RefreshCw size={14} />
               刷新详情
@@ -128,7 +128,7 @@ export const BinaryEvolutionTaskDetailPage: React.FC<Props> = ({ projectId, task
               type="button"
               disabled={submitting || detail?.status !== 'succeeded'}
               onClick={() => void handleApply()}
-              className="inline-flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-2 text-sm font-semibold text-emerald-700 disabled:cursor-not-allowed disabled:opacity-50"
+              className="inline-flex items-center gap-2 rounded-xl border border-emerald-500/20 bg-emerald-500/15 px-4 py-2 text-sm font-semibold text-emerald-400 disabled:cursor-not-allowed disabled:opacity-50"
             >
               <CheckCircle2 size={14} />
               应用产物
@@ -137,7 +137,7 @@ export const BinaryEvolutionTaskDetailPage: React.FC<Props> = ({ projectId, task
               type="button"
               disabled={submitting || !detail}
               onClick={() => void handleDelete()}
-              className="inline-flex items-center gap-2 rounded-xl border border-red-200 bg-slate-50 px-4 py-2 text-sm font-semibold text-red-700 hover:bg-red-50 disabled:opacity-50"
+              className="inline-flex items-center gap-2 rounded-xl border border-red-500/20 bg-theme-bg-app px-4 py-2 text-sm font-semibold text-red-400 hover:bg-red-500/15 disabled:opacity-50"
             >
               <Trash2 size={14} />
               删除任务
@@ -147,41 +147,41 @@ export const BinaryEvolutionTaskDetailPage: React.FC<Props> = ({ projectId, task
       </section>
 
       {loading ? (
- <section className="rounded-2xl border border-slate-200 bg-slate-50 p-10 text-center text-sm text-slate-500">
+ <section className="rounded-2xl border border-theme-border bg-theme-bg-app p-10 text-center text-sm text-theme-text-muted">
           <div className="inline-flex items-center gap-2">
             <Loader2 size={15} className="animate-spin" />
             详情加载中...
           </div>
         </section>
       ) : !detail ? (
- <section className="rounded-2xl border border-slate-200 bg-slate-50 p-10 text-center text-sm text-slate-400">
+ <section className="rounded-2xl border border-theme-border bg-theme-bg-app p-10 text-center text-sm text-theme-text-muted">
           暂无详情。
         </section>
       ) : (
         <>
- <section className="rounded-2xl border border-slate-200 bg-slate-50 p-5">
+ <section className="rounded-2xl border border-theme-border bg-theme-bg-app p-5">
             <div className="flex flex-wrap items-start justify-between gap-4">
               <div>
                 <div className="flex flex-wrap items-center gap-2">
                   <span className={`rounded-full px-3 py-1 text-xs font-black ${STATUS_STYLE[detail.status] || STATUS_STYLE.pending}`}>
                     {STATUS_LABEL[detail.status] || detail.status}
                   </span>
-                  <span className={`rounded-full px-3 py-1 text-xs font-black ${APPLY_STYLE[detail.apply_status] || 'bg-slate-100 text-slate-600'}`}>
+                  <span className={`rounded-full px-3 py-1 text-xs font-black ${APPLY_STYLE[detail.apply_status] || 'bg-theme-elevated text-theme-text-secondary'}`}>
                     {detail.apply_status || 'pending'}
                   </span>
                 </div>
-                <h2 className="mt-3 text-2xl font-black tracking-tight text-slate-900">{detail.title}</h2>
-                <div className="mt-1 font-mono text-xs text-slate-500">{detail.task_id}</div>
-                <p className="mt-3 text-sm leading-6 text-slate-600">{detail.objective || '未填写进化目标'}</p>
+                <h2 className="mt-3 text-2xl font-black tracking-tight text-theme-text-primary">{detail.title}</h2>
+                <div className="mt-1 font-mono text-xs text-theme-text-muted">{detail.task_id}</div>
+                <p className="mt-3 text-sm leading-6 text-theme-text-secondary">{detail.objective || '未填写进化目标'}</p>
               </div>
             </div>
           </section>
 
           <div className="grid grid-cols-2 gap-4 xl:grid-cols-4">
             <StatCard label="当前轮次" value={detail.current_round} />
-            <StatCard label="最佳轮次" value={detail.best_round ?? '-'} tone="bg-amber-50 border-amber-200 text-amber-700" />
-            <StatCard label="综合评分" value={detail.overall_score ?? '-'} tone="bg-violet-50 border-violet-200 text-violet-700" />
-            <StatCard label="案例总数" value={detail.source_case_ids.length} tone="bg-sky-50 border-sky-200 text-sky-700" />
+            <StatCard label="最佳轮次" value={detail.best_round ?? '-'} tone="bg-amber-500/15 border-amber-500/20 text-amber-400" />
+            <StatCard label="综合评分" value={detail.overall_score ?? '-'} tone="bg-violet-500/15 border-violet-500/20 text-violet-400" />
+            <StatCard label="案例总数" value={detail.source_case_ids.length} tone="bg-sky-500/15 border-sky-500/20 text-sky-400" />
           </div>
 
           <div className="grid gap-4 xl:grid-cols-[0.92fr_1.08fr]">
@@ -200,23 +200,23 @@ export const BinaryEvolutionTaskDetailPage: React.FC<Props> = ({ projectId, task
             <DetailBlock title="输入批次" subtitle="本次进化任务引用的原始任务与案例集合">
               <div className="space-y-3">
                 {detail.preview.sources.length === 0 ? (
-                  <div className="text-sm text-slate-400">暂无输入批次。</div>
+                  <div className="text-sm text-theme-text-muted">暂无输入批次。</div>
                 ) : (
                   detail.preview.sources.map((source) => (
-                    <div key={source.source_task_id} className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                    <div key={source.source_task_id} className="rounded-2xl border border-theme-border bg-theme-bg-app p-4">
                       <div className="flex flex-wrap items-center justify-between gap-2">
-                        <div className="font-black text-slate-800">{source.source_title || source.source_task_id}</div>
-                        <span className={`rounded-full px-2.5 py-1 text-[11px] font-black ${source.replay_ready ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'}`}>
+                        <div className="font-black text-theme-text-primary">{source.source_title || source.source_task_id}</div>
+                        <span className={`rounded-full px-2.5 py-1 text-[11px] font-black ${source.replay_ready ? 'bg-emerald-500/15 text-emerald-400' : 'bg-red-500/15 text-red-400'}`}>
                           {source.replay_ready ? 'ready' : 'blocked'}
                         </span>
                       </div>
-                      <div className="mt-2 font-mono text-xs text-slate-500">{source.source_task_id}</div>
-                      <div className="mt-2 text-sm text-slate-600">
+                      <div className="mt-2 font-mono text-xs text-theme-text-muted">{source.source_task_id}</div>
+                      <div className="mt-2 text-sm text-theme-text-secondary">
                         已选 {source.selected_case_ids.length} / 整批 {source.all_case_ids.length}
                         {source.auto_expanded_case_ids.length > 0 ?` · 自动补齐 ${source.auto_expanded_case_ids.length}` : ''}
                       </div>
                       {source.blocked_reasons.length > 0 ? (
-                        <div className="mt-2 space-y-1 text-xs text-rose-600">
+                        <div className="mt-2 space-y-1 text-xs text-rose-400">
                           {source.blocked_reasons.map((reason) => <div key={reason}>{reason}</div>)}
                         </div>
                       ) : null}
@@ -228,9 +228,9 @@ export const BinaryEvolutionTaskDetailPage: React.FC<Props> = ({ projectId, task
           </div>
 
           <DetailBlock title="轮次记录" subtitle="每轮评分、指标与收敛决策">
-            <div className="overflow-x-auto rounded-2xl border border-slate-200">
-              <table className="min-w-full divide-y divide-slate-200 text-left text-xs">
-                <thead className="bg-slate-50 text-slate-500">
+            <div className="overflow-x-auto rounded-2xl border border-theme-border">
+              <table className="min-w-full divide-y divide-theme-border text-left text-xs">
+                <thead className="bg-theme-bg-app text-theme-text-muted">
                   <tr>
                     <th className="px-3 py-3">轮次</th>
                     <th className="px-3 py-3">状态</th>
@@ -241,15 +241,15 @@ export const BinaryEvolutionTaskDetailPage: React.FC<Props> = ({ projectId, task
                     <th className="px-3 py-3">收敛</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100 bg-slate-50">
+                <tbody className="divide-y divide-theme-border bg-theme-bg-app">
                   {detail.rounds.length === 0 ? (
                     <tr>
-                      <td className="px-3 py-10 text-center text-sm text-slate-400" colSpan={7}>暂无轮次数据</td>
+                      <td className="px-3 py-10 text-center text-sm text-theme-text-muted" colSpan={7}>暂无轮次数据</td>
                     </tr>
                   ) : (
                     detail.rounds.map((round) => (
                       <tr key={round.round_no}>
-                        <td className="px-3 py-3 font-black text-slate-800">{round.round_no}</td>
+                        <td className="px-3 py-3 font-black text-theme-text-primary">{round.round_no}</td>
                         <td className="px-3 py-3">{round.status || '-'}</td>
                         <td className="px-3 py-3">{round.score ?? '-'}</td>
                         <td className="px-3 py-3">{fmtNumber(round.metrics?.false_negative_rate, 4)}</td>
@@ -268,15 +268,15 @@ export const BinaryEvolutionTaskDetailPage: React.FC<Props> = ({ projectId, task
             <DetailBlock title="Agent 目录映射" subtitle="进化态目录与正常态目录的对应关系">
               <div className="space-y-3">
                 {Object.keys(detail.agent_state_roots).length === 0 ? (
-                  <div className="text-sm text-slate-400">暂无 agent 目录。</div>
+                  <div className="text-sm text-theme-text-muted">暂无 agent 目录。</div>
                 ) : (
                   Object.entries(detail.agent_state_roots).map(([agentId, root]) => (
-                    <div key={agentId} className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                      <div className="font-black text-slate-800">{agentId}</div>
-                      <div className="mt-2 text-xs text-slate-500">evolution root</div>
-                      <div className="mt-1 break-all font-mono text-xs text-slate-700">{root}</div>
-                      <div className="mt-2 text-xs text-slate-500">normal root</div>
-                      <div className="mt-1 break-all font-mono text-xs text-slate-700">{detail.default_agent_source_dirs[agentId] || '-'}</div>
+                    <div key={agentId} className="rounded-2xl border border-theme-border bg-theme-bg-app p-4">
+                      <div className="font-black text-theme-text-primary">{agentId}</div>
+                      <div className="mt-2 text-xs text-theme-text-muted">evolution root</div>
+                      <div className="mt-1 break-all font-mono text-xs text-theme-text-secondary">{root}</div>
+                      <div className="mt-2 text-xs text-theme-text-muted">normal root</div>
+                      <div className="mt-1 break-all font-mono text-xs text-theme-text-secondary">{detail.default_agent_source_dirs[agentId] || '-'}</div>
                     </div>
                   ))
                 )}
@@ -286,16 +286,16 @@ export const BinaryEvolutionTaskDetailPage: React.FC<Props> = ({ projectId, task
             <DetailBlock title="产物与事件" subtitle="最近事件及持久化产物路径">
               <div className="space-y-4">
                 <div>
-                  <div className="mb-2 text-xs font-bold uppercase tracking-[0.16em] text-slate-400">最近事件</div>
+                  <div className="mb-2 text-xs font-bold uppercase tracking-[0.16em] text-theme-text-muted">最近事件</div>
                   <div className="space-y-2">
                     {detail.events.length === 0 ? (
-                      <div className="text-sm text-slate-400">暂无事件</div>
+                      <div className="text-sm text-theme-text-muted">暂无事件</div>
                     ) : (
                       detail.events.slice(0, 6).map((event) => (
-                        <div key={`${event.event_type}-${event.created_at}`} className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
+                        <div key={`${event.event_type}-${event.created_at}`} className="rounded-2xl border border-theme-border bg-theme-bg-app px-4 py-3">
                           <div className="flex items-center justify-between gap-3">
-                            <div className="font-black text-slate-800">{event.summary || event.event_type}</div>
-                            <div className="text-xs text-slate-500">{fmtTime(String(event.created_at || ''))}</div>
+                            <div className="font-black text-theme-text-primary">{event.summary || event.event_type}</div>
+                            <div className="text-xs text-theme-text-muted">{fmtTime(String(event.created_at || ''))}</div>
                           </div>
                         </div>
                       ))
@@ -303,15 +303,15 @@ export const BinaryEvolutionTaskDetailPage: React.FC<Props> = ({ projectId, task
                   </div>
                 </div>
                 <div>
-                  <div className="mb-2 text-xs font-bold uppercase tracking-[0.16em] text-slate-400">产物路径</div>
+                  <div className="mb-2 text-xs font-bold uppercase tracking-[0.16em] text-theme-text-muted">产物路径</div>
                   <div className="space-y-2">
                     {detail.artifacts.length === 0 ? (
-                      <div className="text-sm text-slate-400">暂无产物</div>
+                      <div className="text-sm text-theme-text-muted">暂无产物</div>
                     ) : (
                       detail.artifacts.map((artifact) => (
-                        <div key={`${artifact.artifact_type}-${artifact.path}`} className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
-                          <div className="font-black text-slate-800">{artifact.artifact_type}</div>
-                          <div className="mt-2 break-all font-mono text-xs text-slate-600">{artifact.path}</div>
+                        <div key={`${artifact.artifact_type}-${artifact.path}`} className="rounded-2xl border border-theme-border bg-theme-bg-app px-4 py-3">
+                          <div className="font-black text-theme-text-primary">{artifact.artifact_type}</div>
+                          <div className="mt-2 break-all font-mono text-xs text-theme-text-secondary">{artifact.path}</div>
                         </div>
                       ))
                     )}

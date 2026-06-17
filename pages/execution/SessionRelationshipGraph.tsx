@@ -19,17 +19,17 @@ const LK = {
 const MONO = 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace';
 
 function nodeStatusTone(status?: string) {
-  if (status === 'running') return 'border-blue-200 bg-blue-50 text-blue-700';
-  if (status === 'completed') return 'border-emerald-200 bg-emerald-50 text-emerald-700';
-  if (status === 'blocked') return 'border-red-200 bg-red-50 text-red-700';
-  if (status === 'waiting') return 'border-amber-200 bg-amber-50 text-amber-700';
-  return 'border-slate-200 bg-slate-100 text-slate-600';
+  if (status === 'running') return 'border-blue-500/20 bg-blue-500/15 text-blue-400';
+  if (status === 'completed') return 'border-emerald-500/20 bg-emerald-500/15 text-emerald-400';
+  if (status === 'blocked') return 'border-red-500/20 bg-red-500/15 text-red-400';
+  if (status === 'waiting') return 'border-amber-500/20 bg-amber-500/15 text-amber-400';
+  return 'border-theme-border bg-theme-elevated text-theme-text-secondary';
 }
 
 function roleTone(role?: string) {
-  if (role === 'judge') return 'border-amber-200 bg-amber-50 text-amber-700';
-  if (role === 'sub_worker') return 'border-violet-200 bg-violet-50 text-violet-700';
-  return 'border-cyan-200 bg-cyan-50 text-cyan-700';
+  if (role === 'judge') return 'border-amber-500/20 bg-amber-500/15 text-amber-400';
+  if (role === 'sub_worker') return 'border-violet-500/20 bg-violet-500/15 text-violet-400';
+  return 'border-cyan-500/20 bg-cyan-500/15 text-cyan-400';
 }
 
 function formatTime(value?: string | null) {

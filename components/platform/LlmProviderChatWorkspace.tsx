@@ -25,7 +25,7 @@ const createFallbackModelList = (provider: LlmProviderSummary, errorMessage?: st
 });
 
 const getProviderStatusTone = (provider: LlmProviderSummary) =>
-  provider.enabled ? 'bg-green-100 text-green-700' : 'bg-theme-elevated text-theme-text-muted';
+  provider.enabled ? 'bg-green-500/15 text-green-400' : 'bg-theme-elevated text-theme-text-muted';
 
 const MarkdownMessage: React.FC<{ content: string }> = ({ content }) => (
   <div className="markdown-body break-words leading-6">
@@ -66,7 +66,7 @@ const MarkdownMessage: React.FC<{ content: string }> = ({ content }) => (
           const isBlock = Boolean(className);
           if (isBlock) {
             return (
-              <code className="block overflow-x-auto rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 font-mono text-xs text-slate-900">
+              <code className="block overflow-x-auto rounded-2xl border border-theme-border bg-theme-bg-app px-4 py-3 font-mono text-xs text-theme-text-primary">
                 {children}
               </code>
             );
@@ -303,7 +303,7 @@ export const LlmProviderChatWorkspace: React.FC<LlmProviderChatWorkspaceProps> =
       </div>
 
       {(chatError || chatNotice) && (
-        <div className={`mt-5 rounded-[1.75rem] border px-5 py-4 text-sm font-bold ${chatError ? 'border-red-200 bg-red-50 text-red-600' : 'border-blue-200 bg-blue-50 text-blue-700'}`}>
+        <div className={`mt-5 rounded-[1.75rem] border px-5 py-4 text-sm font-bold ${chatError ? 'border-red-500/20 bg-red-500/15 text-red-400' : 'border-blue-500/20 bg-blue-500/15 text-blue-400'}`}>
           {chatError || chatNotice}
         </div>
       )}
@@ -400,7 +400,7 @@ export const LlmProviderChatWorkspace: React.FC<LlmProviderChatWorkspaceProps> =
                     当前发送模型：<span className="font-mono font-bold text-theme-text-primary">{effectiveModel || '未选择'}</span>
                   </div>
                   {modelOptions[provider.provider_key]?.error_message && (
-                    <div className="rounded-[1.5rem] border border-amber-200 bg-amber-50 px-4 py-3 text-xs text-amber-700">
+                    <div className="rounded-[1.5rem] border border-amber-500/20 bg-amber-500/15 px-4 py-3 text-xs text-amber-400">
                       {modelOptions[provider.provider_key]?.error_message}
                     </div>
                   )}
@@ -476,7 +476,7 @@ export const LlmProviderChatWorkspace: React.FC<LlmProviderChatWorkspaceProps> =
                           {streamingProviderKeys.includes(provider.provider_key) && (
                             <span className="rounded-full bg-brand-soft px-3 py-1 text-brand-primary">streaming...</span>
                           )}
-                          {result && <span className={`rounded-full px-3 py-1 ${result.ok ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'}`}>{result.latency_ms} ms</span>}
+                          {result && <span className={`rounded-full px-3 py-1 ${result.ok ? 'bg-emerald-500/15 text-emerald-400' : 'bg-red-500/15 text-red-400'}`}>{result.latency_ms} ms</span>}
                         </div>
                       </div>
                       <div className="flex-1 space-y-3 overflow-y-auto px-4 py-4">
@@ -492,7 +492,7 @@ export const LlmProviderChatWorkspace: React.FC<LlmProviderChatWorkspaceProps> =
                                 ? 'ml-8 bg-brand-primary text-theme-text-inverse'
                                 : message.role === 'assistant'
                                   ? 'mr-8 bg-theme-elevated text-theme-text-primary'
-                                  : 'border border-amber-200 bg-amber-50 text-amber-800'
+                                  : 'border border-amber-500/20 bg-amber-500/15 text-amber-400'
                             }`}
                           >
                             <div className="mb-1 text-[10px] font-black uppercase tracking-widest opacity-70">

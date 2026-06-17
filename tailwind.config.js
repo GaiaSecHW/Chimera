@@ -79,11 +79,11 @@ export default {
         },
       },
       borderRadius: {
-        panel: '1.6rem',
-        section: '2.25rem',
-        card: '2rem',
-        timeline: '1.35rem',
-        detail: '1.5rem',
+        panel: '0.75rem',
+        section: '0.75rem',
+        card: '0.75rem',
+        timeline: '0.5rem',
+        detail: '0.5rem',
       },
       boxShadow: {
         panel: 'var(--shadow-panel)',
