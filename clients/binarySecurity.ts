@@ -794,9 +794,11 @@ export interface BinarySecurityArtifacts {
   files: Array<{ path: string; size: number }>;
 }
 
-export interface BinarySecurityProjectConfig {
-  project_id: string;
+export interface BinarySecurityGlobalConfig {
   config: {
+    max_concurrent_tasks: number;
+    dispatch_timeout_seconds: number;
+    lease_timeout_seconds?: number;
     max_stage_parallelism: number;
     max_retries_per_item: number;
     continue_on_item_failure: boolean;
@@ -804,13 +806,6 @@ export interface BinarySecurityProjectConfig {
     partial_success_stage_advancement: Record<string, boolean>;
     stage_parallelism: Record<string, number>;
     stage_options: Record<string, { enabled: boolean }>;
-  };
-}
-
-export interface BinarySecurityServiceConfig {
-  config: {
-    max_concurrent_tasks: number;
-    dispatch_timeout_seconds: number;
   };
 }
 
@@ -1253,31 +1248,15 @@ export const binarySecurityApi = {
     return handleResponse(resp);
   },
 
-  getProjectConfig: async (projectId: string): Promise<BinarySecurityProjectConfig> => {
-    const resp = await fetch(`${API_BASE}/api/app/binary-security/projects/${projectId}/config`, {
+  getConfig: async (): Promise<BinarySecurityGlobalConfig> => {
+    const resp = await fetch(`${API_BASE}/api/app/binary-security/config`, {
       headers: getHeaders(),
     });
     return handleResponse(resp);
   },
 
-  updateProjectConfig: async (projectId: string, payload: BinarySecurityProjectConfig['config']): Promise<BinarySecurityProjectConfig> => {
-    const resp = await fetch(`${API_BASE}/api/app/binary-security/projects/${projectId}/config`, {
-      method: 'PUT',
-      headers: getHeaders(),
-      body: JSON.stringify(payload),
-    });
-    return handleResponse(resp);
-  },
-
-  getServiceConfig: async (): Promise<BinarySecurityServiceConfig> => {
-    const resp = await fetch(`${API_BASE}/api/app/binary-security/service/config`, {
-      headers: getHeaders(),
-    });
-    return handleResponse(resp);
-  },
-
-  updateServiceConfig: async (payload: BinarySecurityServiceConfig['config']): Promise<BinarySecurityServiceConfig> => {
-    const resp = await fetch(`${API_BASE}/api/app/binary-security/service/config`, {
+  updateConfig: async (payload: BinarySecurityGlobalConfig['config']): Promise<BinarySecurityGlobalConfig> => {
+    const resp = await fetch(`${API_BASE}/api/app/binary-security/config`, {
       method: 'PUT',
       headers: getHeaders(),
       body: JSON.stringify(payload),

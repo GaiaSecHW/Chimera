@@ -244,11 +244,38 @@ const statusTone = (status: string): { backgroundColor: string; color: string; b
   }
 };
 
-const stageNodeTone = (status: string, selected: boolean): { backgroundColor: string; color: string; borderColor: string; transform?: string } => {
+const STAGE_NODE_BASE_TONES = [
+  { backgroundColor: 'rgba(34, 211, 238, 0.12)', color: '#0f766e', borderColor: '#67e8f9' },
+  { backgroundColor: 'rgba(99, 102, 241, 0.12)', color: '#4338ca', borderColor: '#a5b4fc' },
+  { backgroundColor: 'rgba(168, 85, 247, 0.12)', color: '#7e22ce', borderColor: '#d8b4fe' },
+  { backgroundColor: 'rgba(236, 72, 153, 0.12)', color: '#be185d', borderColor: '#f9a8d4' },
+  { backgroundColor: 'rgba(245, 158, 11, 0.12)', color: '#b45309', borderColor: '#fcd34d' },
+  { backgroundColor: 'rgba(16, 185, 129, 0.12)', color: '#047857', borderColor: '#86efac' },
+] as const;
+
+const stageNodeBaseTone = (stageName: string, kind: 'business' | 'archive', sequenceNo?: number) => {
+  if (kind === 'archive') {
+    return { backgroundColor: 'rgba(148, 163, 184, 0.12)', color: '#475569', borderColor: '#cbd5e1' };
+  }
+  const normalized = String(stageName || '').trim();
+  const seed = Number.isFinite(Number(sequenceNo))
+    ? Math.max(0, Number(sequenceNo) - 1)
+    : normalized.split('').reduce((sum, ch) => sum + ch.charCodeAt(0), 0);
+  return STAGE_NODE_BASE_TONES[seed % STAGE_NODE_BASE_TONES.length];
+};
+
+const stageNodeTone = (
+  stageName: string,
+  kind: 'business' | 'archive',
+  status: string,
+  selected: boolean,
+  sequenceNo?: number,
+): { backgroundColor: string; color: string; borderColor: string; transform?: string } => {
   const transform = selected ? 'translateY(-4px)' : undefined;
+  const baseTone = stageNodeBaseTone(stageName, kind, sequenceNo);
   switch (status) {
     case 'success':
-      return { backgroundColor: 'rgba(69, 192, 111, 0.1)', color: LK.success, borderColor: LK.success, transform };
+      return { ...baseTone, transform };
     case 'partial_success':
       return { backgroundColor: 'rgba(213, 161, 58, 0.1)', color: LK.warning, borderColor: LK.warning, transform };
     case 'failed':
@@ -270,7 +297,7 @@ const stageNodeTone = (status: string, selected: boolean): { backgroundColor: st
     case 'skipped':
       return { backgroundColor: LK.surfaceRaised, color: LK.muted, borderColor: LK.border, transform };
     default:
-      return { backgroundColor: LK.surface, color: LK.body, borderColor: LK.border, transform };
+      return { ...baseTone, transform };
   }
 };
 
@@ -4642,7 +4669,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                             : stageFlowLayout.mode === 'horizontal'
                               ? 'p-4'
                               : 'w-full p-4'
-                        } ${stageNodeTone(stage.status, selectedStage === stage.stage_name && selectedNodeKind === stage.kind)}`}
+                        } ${stageNodeTone(stage.stage_name, stage.kind, stage.status, selectedStage === stage.stage_name && selectedNodeKind === stage.kind, stage.sequence_no)}`}
                       >
                         {stage.abnormal_reason ? (
                           <div className="mb-2">
@@ -4873,7 +4900,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                       当前阶段暂无归档记录，等待下游阶段产物归档。
                     </div>
                   ) : selectedArchiveJobs.map((job) => (
-                    <div key={job.id} className={`rounded-[1.5rem] border p-5 ${stageNodeTone(job.archive_status === 'archived' || job.archive_status === 'applying' ? 'running' : job.archive_status, false)}`}>
+                    <div key={job.id} className={`rounded-[1.5rem] border p-5 ${stageNodeTone(job.stage_name, 'archive', job.archive_status === 'archived' || job.archive_status === 'applying' ? 'running' : job.archive_status, false)}`}>
                       <div className="flex flex-col gap-3 xl:flex-row xl:items-start xl:justify-between">
                         <div className="min-w-0">
                           <div className="flex flex-wrap items-center gap-2">

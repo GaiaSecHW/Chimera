@@ -203,14 +203,14 @@ export const appDataflowVulnScanApi = {
     })),
 
   // ── Config ────────────────────────────────────────────────────────────────
-  getConfig: async (projectId: string): Promise<AppDfaServiceConfig> =>
-    handleResponse(await fetch(`${BASE}/config?project_id=${encodeURIComponent(projectId)}`, { headers: getHeaders() })),
+  getConfig: async (): Promise<AppDfaServiceConfig> =>
+    handleResponse(await fetch(`${BASE}/config`, { headers: getHeaders() })),
 
   saveConfig: async (config: AppDfaServiceConfig): Promise<AppDfaServiceConfig> =>
     handleResponse(await fetchWithRetry(`${BASE}/config`, {
       method: 'PUT',
       headers: getHeaders(),
-      body: JSON.stringify({ project_id: config.project_id, config }),
+      body: JSON.stringify({ config }),
     }, { retries: 5, retryDelayMs: 800 })),
 
 };

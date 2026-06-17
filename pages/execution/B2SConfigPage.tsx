@@ -30,8 +30,7 @@ const MONO = 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace';
 
 type B2SInnerTab = 'runtime' | 'cache';
 
-const defaultConfig = (projectId: string): B2SServiceConfig => ({
-  project_id: projectId,
+const defaultConfig = (): B2SServiceConfig => ({
   budget_exhausted_action: 'treat_as_passed',
   concurrency: 8,
   default_mode: 'turbo',
@@ -170,8 +169,8 @@ export const B2SConfigPage: React.FC<{ projectId: string; embedded?: boolean }> 
   const [activeTab, setActiveTab] = useState<B2SInnerTab>('runtime');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [config, setConfig] = useState<B2SServiceConfig>(() => defaultConfig(projectId));
-  const [savedConfig, setSavedConfig] = useState<B2SServiceConfig>(() => defaultConfig(projectId));
+  const [config, setConfig] = useState<B2SServiceConfig>(() => defaultConfig());
+  const [savedConfig, setSavedConfig] = useState<B2SServiceConfig>(() => defaultConfig());
   const [llmProviders, setLlmProviders] = useState<B2SLlmProviderSummary[]>([]);
 
   const [cacheLoading, setCacheLoading] = useState(false);
@@ -198,16 +197,16 @@ export const B2SConfigPage: React.FC<{ projectId: string; embedded?: boolean }> 
     setLoading(true);
     try {
       const [next, providerResponse] = await Promise.all([
-        b2sApi.getConfig(projectId),
+        b2sApi.getConfig(),
         b2sApi.listLlmProviders(projectId),
       ]);
-      const normalized = { ...defaultConfig(projectId), ...next, project_id: projectId };
+      const normalized = { ...defaultConfig(), ...next };
       setConfig(normalized);
       setSavedConfig(normalized);
       setLlmProviders(Array.isArray(providerResponse?.items) ? providerResponse.items : []);
     } catch (err: any) {
       notify(`加载配置失败: ${err?.message ?? err}`, 'error');
-      const fallback = defaultConfig(projectId);
+      const fallback = defaultConfig();
       setConfig(fallback);
       setSavedConfig(fallback);
       setLlmProviders([]);
@@ -272,8 +271,8 @@ export const B2SConfigPage: React.FC<{ projectId: string; embedded?: boolean }> 
   const persistConfig = async (nextConfig: B2SServiceConfig, message: string) => {
     setSaving(true);
     try {
-      const saved = await b2sApi.saveConfig(projectId, nextConfig);
-      const normalized = { ...defaultConfig(projectId), ...saved, project_id: projectId };
+      const saved = await b2sApi.saveConfig(nextConfig);
+      const normalized = { ...defaultConfig(), ...saved };
       setConfig(normalized);
       setSavedConfig(normalized);
       notify(message, 'success');
@@ -318,7 +317,7 @@ export const B2SConfigPage: React.FC<{ projectId: string; embedded?: boolean }> 
     await persistConfig(
       {
         ...savedConfig,
-        default_mode: config.default_mode || defaultConfig(projectId).default_mode,
+        default_mode: config.default_mode || defaultConfig().default_mode,
       },
       '默认模式配置已保存',
     );
@@ -330,17 +329,17 @@ export const B2SConfigPage: React.FC<{ projectId: string; embedded?: boolean }> 
   };
 
   const resetPolicy = () => {
-    setConfig((prev) => ({ ...prev, budget_exhausted_action: defaultConfig(projectId).budget_exhausted_action }));
+    setConfig((prev) => ({ ...prev, budget_exhausted_action: defaultConfig().budget_exhausted_action }));
     notify('终态策略已重置为默认值（尚未保存）', 'info');
   };
 
   const resetConcurrencyConfig = () => {
-    setConfig((prev) => ({ ...prev, concurrency: defaultConfig(projectId).concurrency }));
+    setConfig((prev) => ({ ...prev, concurrency: defaultConfig().concurrency }));
     notify('批次并发已重置为默认值（尚未保存）', 'info');
   };
 
   const resetDefaultModeConfig = () => {
-    setConfig((prev) => ({ ...prev, default_mode: defaultConfig(projectId).default_mode }));
+    setConfig((prev) => ({ ...prev, default_mode: defaultConfig().default_mode }));
     notify('默认模式已重置为默认值（尚未保存）', 'info');
   };
 

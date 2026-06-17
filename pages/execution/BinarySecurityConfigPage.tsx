@@ -7,6 +7,7 @@ import { SystemAnalysisConfigPage } from './SystemAnalysisConfigPage';
 import { EntryAnalysisConfigPage } from './EntryAnalysisConfigPage';
 import { DataflowVulnScanConfigPage } from './DataflowVulnScanConfigPage';
 import { B2SConfigPage } from './B2SConfigPage';
+import { VulnVerifyConfigPage } from './VulnVerifyConfigPage';
 
 const LK = {
   primary: '#4f73ff', primarySoft: '#7590ff', primaryDeep: '#3f63f1',
@@ -21,7 +22,7 @@ const LK = {
 } as const;
 const MONO = 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace';
 
-type ConfigTab = 'binary-security' | 'binary-evolution' | 'firmware-unpacker' | 'system-analysis' | 'binary-to-source' | 'entry-analysis' | 'dataflow-vuln';
+type ConfigTab = 'binary-security' | 'binary-evolution' | 'firmware-unpacker' | 'system-analysis' | 'binary-to-source' | 'entry-analysis' | 'dataflow-vuln' | 'vuln-verify';
 const ORCHESTRATOR_STAGE_FIELDS = [
   { key: 'firmware_unpack', label: '固件解包' },
   { key: 'system_analysis', label: '系统分析' },
@@ -38,12 +39,9 @@ const DEFAULT_PARTIAL_SUCCESS_STAGE_ADVANCEMENT = Object.fromEntries(
   PARTIAL_SUCCESS_ADVANCEMENT_FIELDS.map((field) => [field.key, false]),
 ) as Record<string, boolean>;
 
-const DEFAULT_BINARY_SECURITY_SERVICE_CONFIG = {
+const DEFAULT_BINARY_SECURITY_GLOBAL_CONFIG = {
   max_concurrent_tasks: 50,
   dispatch_timeout_seconds: 60,
-};
-
-const DEFAULT_BINARY_SECURITY_PROJECT_CONFIG = {
   max_stage_parallelism: 4,
   max_retries_per_item: 2,
   continue_on_item_failure: true,
@@ -97,7 +95,7 @@ const pickConfigRecord = (value: unknown): Record<string, any> => {
 const normalizeBinarySecurityServiceConfig = (value: unknown) => {
   const config = pickConfigRecord(value);
   return {
-    ...DEFAULT_BINARY_SECURITY_SERVICE_CONFIG,
+    ...DEFAULT_BINARY_SECURITY_GLOBAL_CONFIG,
     ...config,
   };
 };
@@ -105,7 +103,7 @@ const normalizeBinarySecurityServiceConfig = (value: unknown) => {
 const normalizeBinarySecurityProjectConfig = (value: unknown) => {
   const config = pickConfigRecord(value);
   return {
-    ...DEFAULT_BINARY_SECURITY_PROJECT_CONFIG,
+    ...DEFAULT_BINARY_SECURITY_GLOBAL_CONFIG,
     ...config,
     partial_success_stage_advancement: normalizePartialSuccessStageAdvancement(config.partial_success_stage_advancement),
     stage_parallelism: asRecord(config.stage_parallelism),
@@ -189,12 +187,10 @@ export const BinarySecurityConfigPage: React.FC<{ projectId: string; initialTab?
     setError(null);
     setMessage(null);
     try {
-      const [serviceDataRaw, projectDataRaw] = await Promise.all([
-        executionApi.binarySecurity.getServiceConfig(),
-        executionApi.binarySecurity.getProjectConfig(projectId),
+      const [configDataRaw] = await Promise.all([
+        executionApi.binarySecurity.getConfig(),
       ]);
-      const serviceConfig = normalizeBinarySecurityServiceConfig(serviceDataRaw);
-      const projectConfig = normalizeBinarySecurityProjectConfig(projectDataRaw);
+      const mergedConfig = normalizeBinarySecurityProjectConfig(configDataRaw);
       let evolutionConfig = DEFAULT_BINARY_EVOLUTION_CONFIG;
       try {
         const evolutionConfigRaw = await executionApi.binaryEvolution.getConfig();
@@ -206,18 +202,18 @@ export const BinarySecurityConfigPage: React.FC<{ projectId: string; initialTab?
         }
       }
       setSavedEvolutionConfig(evolutionConfig);
-      setMaxConcurrentTasks(serviceConfig.max_concurrent_tasks);
-      setDispatchTimeoutSeconds(serviceConfig.dispatch_timeout_seconds);
-      setMaxRetriesPerItem(projectConfig.max_retries_per_item);
-      setContinueOnItemFailure(projectConfig.continue_on_item_failure);
-      setPipelineMode((String(projectConfig.pipeline_mode) === 'mixed_streaming' ? 'mixed_streaming' : 'barrier') as 'barrier' | 'mixed_streaming');
+      setMaxConcurrentTasks(mergedConfig.max_concurrent_tasks);
+      setDispatchTimeoutSeconds(mergedConfig.dispatch_timeout_seconds);
+      setMaxRetriesPerItem(mergedConfig.max_retries_per_item);
+      setContinueOnItemFailure(mergedConfig.continue_on_item_failure);
+      setPipelineMode((String(mergedConfig.pipeline_mode) === 'mixed_streaming' ? 'mixed_streaming' : 'barrier') as 'barrier' | 'mixed_streaming');
       setPartialSuccessStageAdvancement({
         ...DEFAULT_PARTIAL_SUCCESS_STAGE_ADVANCEMENT,
-        ...(projectConfig.partial_success_stage_advancement || {}),
+        ...(mergedConfig.partial_success_stage_advancement || {}),
       });
       setStageParallelism({
         ...Object.fromEntries(ORCHESTRATOR_STAGE_FIELDS.map((field) => [field.key, 4])),
-        ...(projectConfig.stage_parallelism || {}),
+        ...(mergedConfig.stage_parallelism || {}),
       });
       setEvolutionMaxConcurrentTasks(evolutionConfig.max_concurrent_tasks);
       setEvolutionMaxConcurrentSourceTasks(evolutionConfig.max_concurrent_source_tasks);
@@ -266,12 +262,30 @@ export const BinarySecurityConfigPage: React.FC<{ projectId: string; initialTab?
     setError(null);
     setMessage(null);
     try {
-      const serviceData = await executionApi.binarySecurity.updateServiceConfig({
+      const serviceData = await executionApi.binarySecurity.updateConfig({
         max_concurrent_tasks: Math.max(1, Math.min(200, Number(maxConcurrentTasks) || 50)),
         dispatch_timeout_seconds: Math.max(10, Math.min(600, Number(dispatchTimeoutSeconds) || 60)),
+        max_stage_parallelism: Math.max(...Object.values(stageParallelism)),
+        max_retries_per_item: Math.max(0, Math.min(20, Number(maxRetriesPerItem) || 0)),
+        continue_on_item_failure: continueOnItemFailure,
+        pipeline_mode: pipelineMode,
+        partial_success_stage_advancement: Object.fromEntries(
+          PARTIAL_SUCCESS_ADVANCEMENT_FIELDS.map((field) => [
+            field.key,
+            partialSuccessStageAdvancement[field.key] !== false,
+          ]),
+        ),
+        stage_parallelism: Object.fromEntries(
+          ORCHESTRATOR_STAGE_FIELDS.map((field) => [
+            field.key,
+            Math.max(1, Math.min(32, Number(stageParallelism[field.key]) || 4)),
+          ]),
+        ),
+        stage_options: Object.fromEntries(ORCHESTRATOR_STAGE_FIELDS.map((field) => [field.key, { enabled: true }])),
       });
       const normalizedServiceData = normalizeBinarySecurityServiceConfig(serviceData);
       syncServiceDraft(normalizedServiceData);
+      syncProjectDraft(normalizedServiceData);
       setMessage('队列控制配置已保存');
     } catch (e: any) {
       setError(e?.message || '保存失败');
@@ -293,7 +307,9 @@ export const BinarySecurityConfigPage: React.FC<{ projectId: string; initialTab?
           Math.max(1, Math.min(32, Number(stageParallelism[field.key]) || 4)),
         ]),
       );
-      const projectData = await executionApi.binarySecurity.updateProjectConfig(projectId, {
+      const projectData = await executionApi.binarySecurity.updateConfig({
+        max_concurrent_tasks: Math.max(1, Math.min(200, Number(maxConcurrentTasks) || 50)),
+        dispatch_timeout_seconds: Math.max(10, Math.min(600, Number(dispatchTimeoutSeconds) || 60)),
         max_stage_parallelism: Math.max(...Object.values(normalizedStageParallelism)),
         max_retries_per_item: Math.max(0, Math.min(20, Number(maxRetriesPerItem) || 0)),
         continue_on_item_failure: continueOnItemFailure,
@@ -309,14 +325,15 @@ export const BinarySecurityConfigPage: React.FC<{ projectId: string; initialTab?
       });
       const normalizedProjectData = normalizeBinarySecurityProjectConfig(projectData);
       syncProjectDraft({
-        ...DEFAULT_BINARY_SECURITY_PROJECT_CONFIG,
+        ...DEFAULT_BINARY_SECURITY_GLOBAL_CONFIG,
         ...normalizedProjectData,
         stage_parallelism: {
           ...Object.fromEntries(ORCHESTRATOR_STAGE_FIELDS.map((field) => [field.key, 4])),
           ...(normalizedProjectData.stage_parallelism || {}),
         },
       });
-      setMessage('任务创建默认策略已保存');
+      syncServiceDraft(normalizedProjectData);
+      setMessage('全局任务策略已保存');
     } catch (e: any) {
       setError(e?.message || '保存失败');
     } finally {
@@ -326,14 +343,14 @@ export const BinarySecurityConfigPage: React.FC<{ projectId: string; initialTab?
   };
 
   const resetBinarySecurityQueue = () => {
-    syncServiceDraft(DEFAULT_BINARY_SECURITY_SERVICE_CONFIG);
+    syncServiceDraft(DEFAULT_BINARY_SECURITY_GLOBAL_CONFIG);
     setError(null);
     setMessage('队列控制已重置为默认值（尚未保存）');
   };
 
   const resetBinarySecurityPolicy = () => {
     syncProjectDraft({
-      ...DEFAULT_BINARY_SECURITY_PROJECT_CONFIG,
+      ...DEFAULT_BINARY_SECURITY_GLOBAL_CONFIG,
       stage_parallelism: Object.fromEntries(ORCHESTRATOR_STAGE_FIELDS.map((field) => [field.key, 4])),
     });
     setError(null);
@@ -457,7 +474,7 @@ export const BinarySecurityConfigPage: React.FC<{ projectId: string; initialTab?
           <div>
             <h1 style={{ fontSize: '30px', fontWeight: 600, letterSpacing: '-0.025em', color: LK.ink }}>参数配置</h1>
             <p style={{ marginTop: '8px', maxWidth: '48rem', fontSize: '14px', color: LK.body }}>
-              按微服务分组查看和编辑配置。同一个微服务的参数归入同一个 Tab，不同微服务互相隔离，便于统一管理。
+              按微服务分组查看和编辑配置。同一个微服务的参数归入同一个 Tab，不同微服务互相隔离；当前页面中的配置均按全局默认值管理，对所有项目生效。
             </p>
           </div>
           <button
@@ -508,6 +525,11 @@ export const BinarySecurityConfigPage: React.FC<{ projectId: string; initialTab?
               id: 'dataflow-vuln' as ConfigTab,
               label: '数据流漏洞挖掘',
               service: 'secflow-app-dataflow-vuln-scan',
+            },
+            {
+              id: 'vuln-verify' as ConfigTab,
+              label: '漏洞验证',
+              service: 'secflow-app-vuln-verify',
             },
           ].map((tab) => (
             <button
@@ -676,6 +698,9 @@ export const BinarySecurityConfigPage: React.FC<{ projectId: string; initialTab?
           <p style={{ marginTop: '8px', fontSize: '14px', color: LK.body }}>
             这里控制进化中心的服务级任务并发、单个进化任务的轮内并发，以及进化智能体的默认模型和轮次策略。
           </p>
+          <p style={{ marginTop: '4px', fontSize: '12px', color: LK.muted }}>
+            当前页面中的进化中心配置为全局默认配置，保存后对所有项目生效。
+          </p>
 
           {error && <div style={{ marginTop: '16px', borderRadius: '8px', border: `1px solid ${LK.error}`, backgroundColor: LK.primaryMuted.replace('0.14', '0.08').replace('79, 115, 255', '241, 93, 93'), padding: '12px 16px', fontSize: '14px', fontWeight: 600, color: LK.error }}>{error}</div>}
           {message && <div style={{ marginTop: '16px', borderRadius: '8px', border: `1px solid ${LK.success}`, backgroundColor: LK.primaryMuted.replace('0.14', '0.08').replace('79, 115, 255', '69, 192, 111'), padding: '12px 16px', fontSize: '14px', fontWeight: 600, color: LK.success }}>{message}</div>}
@@ -741,8 +766,10 @@ export const BinarySecurityConfigPage: React.FC<{ projectId: string; initialTab?
         <B2SConfigPage projectId={projectId} embedded />
       ) : activeTab === 'entry-analysis' ? (
         <EntryAnalysisConfigPage projectId={projectId} embedded />
-      ) : (
+      ) : activeTab === 'dataflow-vuln' ? (
         <DataflowVulnScanConfigPage projectId={projectId} embedded />
+      ) : (
+        <VulnVerifyConfigPage projectId={projectId} embedded />
       )}
     </div>
   );

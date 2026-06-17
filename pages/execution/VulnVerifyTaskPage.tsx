@@ -18,7 +18,7 @@ const LK = {
 } as const;
 const MONO = 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace';
 
-const DEFAULT_MODEL = 'local_minimax/MiniMax/MiniMax-M2.5';
+const DEFAULT_MODEL_HINT = '留空则继承参数配置中的默认模型';
 const ACTIVE_STATUSES = new Set(['pending', 'running', 'cancelling']);
 const TERMINAL_STATUSES = new Set(['success', 'failed', 'cancelled']);
 const VERIFY_OPEN_TASK_ID_KEY = 'chimera-vuln-verify-open-task-id';
@@ -76,7 +76,7 @@ function makeDefaultForm(projectId: string): CreateFormState {
     source_root:`/data/files/${projectId}/source`,
     binary_root:`/data/files/${projectId}/binary`,
     threat_path:`/data/files/${projectId}/vuln-verify/threat_model.md`,
-    model: DEFAULT_MODEL,
+    model: '',
     concurrency: 1,
   };
 }
@@ -365,7 +365,7 @@ export const VulnVerifyTaskPage: React.FC<{ projectId: string }> = ({ projectId 
         source_root: form.source_root.trim(),
         binary_root: form.binary_root.trim(),
         threat_path: form.threat_path.trim(),
-        model: form.model.trim() || DEFAULT_MODEL,
+        model: form.model.trim() || undefined,
         concurrency: Number(form.concurrency || 1),
         resume: false,
       });
@@ -605,7 +605,7 @@ export const VulnVerifyTaskPage: React.FC<{ projectId: string }> = ({ projectId 
                     </ExecutionTableTd>
                     <ExecutionTableTd><StatusBadge status={task.status} /></ExecutionTableTd>
                     <ExecutionTableTd className="max-w-[260px]"><div className="truncate text-xs text-slate-600" title={getProgressText(task)}>{getProgressText(task)}</div></ExecutionTableTd>
-                    <ExecutionTableTd className="max-w-[220px]"><div className="truncate font-mono text-xs text-slate-600" title={task.model || DEFAULT_MODEL}>{task.model || '-'}</div></ExecutionTableTd>
+                    <ExecutionTableTd className="max-w-[220px]"><div className="truncate font-mono text-xs text-slate-600" title={task.model || DEFAULT_MODEL_HINT}>{task.model || '继承默认'}</div></ExecutionTableTd>
                     <ExecutionTableTd className="text-xs text-slate-600">{task.concurrency}</ExecutionTableTd>
                     <ExecutionTableTd className="min-w-[180px] text-xs text-slate-600">
                       {(() => {
@@ -675,7 +675,7 @@ export const VulnVerifyTaskPage: React.FC<{ projectId: string }> = ({ projectId 
                 ['source_root', '源码根目录', '源码文件根目录'],
                 ['binary_root', '二进制根目录', '二进制文件根目录'],
                 ['threat_path', '威胁模型文件', 'threat_model.md 路径'],
-                ['model', '模型', DEFAULT_MODEL],
+                ['model', '模型', DEFAULT_MODEL_HINT],
               ].map(([key, label, help]) => (
                 <label key={key} className="block text-sm font-semibold text-slate-600">
                   {label} {key !== 'model' ? <span className="text-rose-500">*</span> : null}
@@ -733,7 +733,7 @@ export const VulnVerifyTaskPage: React.FC<{ projectId: string }> = ({ projectId 
                   {detail.error_reason ? <div className="flex gap-2 rounded-2xl border border-rose-200 bg-rose-50 p-3 text-sm font-bold text-rose-700"><AlertCircle size={16} />{detail.error_reason}</div> : null}
 
                   <div className="grid gap-3 md:grid-cols-3">
-                    <InfoRow label="模型" value={detail.model || '-'} />
+                    <InfoRow label="模型" value={detail.model || '继承默认'} />
                     <InfoRow label="Worker" value={detail.worker_id || '-'} />
                     <InfoRow label="输出目录" value={detail.output_dir} />
                     <InfoRow label="报告目录" value={detail.reports_dir} />

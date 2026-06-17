@@ -41,8 +41,7 @@ const defaultRole = (): AppDfaRoleConfig => ({
   stage_models: {},
 });
 
-const defaultConfig = (projectId: string): AppDfaServiceConfig => ({
-  project_id: projectId,
+const defaultConfig = (): AppDfaServiceConfig => ({
   max_rounds: 3,
   max_rounds_exceeded_review_strategy: 'treat_as_passed',
   min_rounds: 2,
@@ -252,8 +251,8 @@ export const DataflowVulnScanConfigPage: React.FC<{ projectId: string; embedded?
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [savingPanel, setSavingPanel] = useState<DfaPanelKey | null>(null);
-  const [config, setConfig] = useState<AppDfaServiceConfig>(() => defaultConfig(projectId));
-  const [savedConfig, setSavedConfig] = useState<AppDfaServiceConfig>(() => defaultConfig(projectId));
+  const [config, setConfig] = useState<AppDfaServiceConfig>(() => defaultConfig());
+  const [savedConfig, setSavedConfig] = useState<AppDfaServiceConfig>(() => defaultConfig());
   const [modelOptions, setModelOptions] = useState<string[]>([]);
 
   const patch = (p: Partial<AppDfaServiceConfig>) => setConfig((prev) => ({ ...prev, ...p }));
@@ -271,12 +270,11 @@ export const DataflowVulnScanConfigPage: React.FC<{ projectId: string; embedded?
   }, []);
 
   const mergeConfig = (raw: Partial<AppDfaServiceConfig>): AppDfaServiceConfig => {
-    const base = defaultConfig(projectId);
+    const base = defaultConfig();
     return {
       ...base,
       ...raw,
       pass_threshold: 0,
-      project_id: projectId,
       workers: { ...base.workers, ...(raw.workers && typeof raw.workers === 'object' ? raw.workers : {}) },
       judges: { ...base.judges, agents: [] },
     };
@@ -285,7 +283,7 @@ export const DataflowVulnScanConfigPage: React.FC<{ projectId: string; embedded?
   const reload = () => {
     let cancelled = false;
     setLoading(true);
-    dfaApi.getConfig(projectId)
+    dfaApi.getConfig()
       .then((cfg) => {
         if (!cancelled) {
           const normalized = mergeConfig(cfg);
@@ -296,7 +294,7 @@ export const DataflowVulnScanConfigPage: React.FC<{ projectId: string; embedded?
       .catch((err) => {
         if (!cancelled) {
           notify(`加载配置失败: ${err?.message ?? err}`, 'error');
-          const fallback = defaultConfig(projectId);
+          const fallback = defaultConfig();
           setConfig(fallback);
           setSavedConfig(fallback);
         }
@@ -313,7 +311,7 @@ export const DataflowVulnScanConfigPage: React.FC<{ projectId: string; embedded?
   const persistConfig = async (nextConfig: AppDfaServiceConfig) => {
     setSaving(true);
     try {
-      const saved = await dfaApi.saveConfig({ ...nextConfig, project_id: projectId });
+      const saved = await dfaApi.saveConfig(nextConfig);
       return mergeConfig(saved);
     } catch (err: any) {
       notify(`保存失败: ${err?.message ?? err}`, 'error');
@@ -343,7 +341,7 @@ export const DataflowVulnScanConfigPage: React.FC<{ projectId: string; embedded?
   };
 
   const handlePanelReset = (panel: DfaPanelKey, label: string) => {
-    const defaults = defaultConfig(projectId);
+    const defaults = defaultConfig();
     setConfig((prev) => applyDfaPanel(prev, defaults, panel));
     notify(`${label}已重置为默认值（尚未保存）`, 'info');
   };
@@ -356,7 +354,7 @@ export const DataflowVulnScanConfigPage: React.FC<{ projectId: string; embedded?
  <section className="rounded-[2rem] border border-slate-200 bg-slate-50 p-6">
           <h1 className="mt-3 text-3xl font-black tracking-tight text-slate-900">分析配置</h1>
           <p className="mt-2 text-sm text-slate-500">
-            配置 secflow-app-dataflow-vuln-scan 数据流漏洞挖掘引擎的运行参数，修改后点击「保存配置」生效。
+            配置 secflow-app-dataflow-vuln-scan 全局运行参数，保存后会对所有项目生效。
           </p>
           {config.updated_at && (
             <p className="mt-1 text-xs text-slate-400">上次保存：{new Date(config.updated_at).toLocaleString()}</p>
@@ -374,7 +372,7 @@ export const DataflowVulnScanConfigPage: React.FC<{ projectId: string; embedded?
                 </span>
               </div>
               <p className="mt-2 text-sm text-slate-500">
-                当前 Tab 中的全部配置项都归属于`secflow-app-dataflow-vuln-scan` 微服务，用于控制数据流漏洞挖掘服务的追踪深度、轮次、重试和 Agent 模型行为。
+                当前 Tab 中的全部配置项都归属于`secflow-app-dataflow-vuln-scan` 微服务，且按全局配置生效，不再随项目切换。
               </p>
               {config.updated_at && (
                 <p className="mt-1 text-xs text-slate-400">上次保存：{new Date(config.updated_at).toLocaleString()}</p>

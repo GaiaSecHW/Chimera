@@ -373,7 +373,7 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
     try {
       const [data, projectConfig] = await Promise.all([
         executionApi.binaryToSource.listLlmProviders(projectId),
-        executionApi.binaryToSource.getConfig(projectId),
+        executionApi.binaryToSource.getConfig(),
       ]);
       const providers = (data.items || []).filter((item) => item.enabled);
       const projectProviderKey = String(projectConfig?.llm_provider_key || '').trim();

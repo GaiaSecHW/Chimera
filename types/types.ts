@@ -3052,7 +3052,7 @@ export interface SystemAnalysisSelfReflectionConfig {
 }
 
 export interface SystemAnalysisServiceConfig {
-  project_id: string;
+  project_id?: string;
   max_rounds_exceeded_action: 'treat_as_passed' | 'treat_as_failed';
   continue_on_module_failure: boolean;
   analyse_targets: string[];
@@ -4339,6 +4339,7 @@ export interface AppEaTaskResult {
   result_file_path?: string | null;
   functions_list_path?: string | null;
   run_report_path?: string | null;
+  final_report_path?: string | null;
   run_result_path?: string | null;
   result_markdown?: string | null;
   functions_list_markdown?: string | null;
@@ -4346,9 +4347,23 @@ export interface AppEaTaskResult {
   functions: string[];
   entry_details?: AppEaEntryDetail[];
   run_report_markdown?: string | null;
+  final_report_markdown?: string | null;
   result_json?: Record<string, any> | null;
+  live_stats?: AppEaLiveStats | null;
   summary: AppEaTaskResultSummary;
   warnings: string[];
+}
+
+export interface AppEaLiveStats {
+  total_functions: number;
+  r2_done: number;
+  r3_done: number;
+  r4_kept: number;
+  ext_entries: number;
+  hdl_entries: number;
+  cc_state: string;
+  r6_state: string;
+  duration_ms_since_start?: number | null;
 }
 
 export interface AppEaTaskEvaluation {
@@ -4425,7 +4440,7 @@ export interface EntryAnalysisRoleConfig {
 }
 
 export interface EntryAnalysisServiceConfig {
-  project_id: string;
+  project_id?: string;
   max_rounds: number;
   max_rounds_exceeded_action: 'treat_as_passed' | 'treat_as_failed';
   min_rounds: number;
@@ -4453,12 +4468,9 @@ export interface EntryAnalysisServiceConfig {
   output_dir: string;
   archive_dir: string;
   result_dir: string;
-  // 精简模式（与完整模式配置并列，互不影响）
-  lean_mode: boolean;
-  lean_file_max_rounds: number;
-  lean_module_max_rounds: number;
-  // API_Filter 入口判断开关：true = AF 主导入口判断 + R3 仅做污点分析
-  api_filter_entry_judge: boolean;
+  // 快速模式：R2 完成后批量 LLM 预筛入口（不保证全面性）
+  fast_mode: boolean;
+  fast_mode_batch_size: number;
   updated_at?: string | null;
 }
 
@@ -4805,7 +4817,7 @@ export interface AppDfaRoleConfig {
 }
 
 export interface AppDfaServiceConfig {
-  project_id: string;
+  project_id?: string;
   max_rounds: number;
   max_rounds_exceeded_review_strategy: 'treat_as_passed' | 'treat_as_failed';
   min_rounds: number;
