@@ -138,12 +138,34 @@ export interface VulnVerifyProjectStats {
   unverified_count?: number;
 }
 
+export interface VulnVerifyServiceConfig {
+  default_model?: string | null;
+}
+
+export interface VulnVerifyServiceConfigResponse {
+  config: VulnVerifyServiceConfig;
+  effective_default_model?: string | null;
+  source?: string;
+  updated_by?: string | null;
+  updated_at?: string | null;
+}
+
 export const vulnVerifyApi = {
   getHealth: async (): Promise<{ status: string; service?: string } & ServiceHealthMeta> =>
     getJsonWithDedupe(`${BASE}/health`, { headers: getHeaders() }),
 
   getProjectStats: async (projectId: string): Promise<VulnVerifyProjectStats> =>
     getJsonWithDedupe(`${BASE}/projects/${encodeURIComponent(projectId)}/stats`, { headers: getHeaders() }),
+
+  getServiceConfig: async (projectId: string): Promise<VulnVerifyServiceConfigResponse> =>
+    handleResponse(await fetch(`${BASE}/projects/${encodeURIComponent(projectId)}/service-config`, { headers: getHeaders() })),
+
+  saveServiceConfig: async (projectId: string, config: VulnVerifyServiceConfig): Promise<VulnVerifyServiceConfigResponse> =>
+    handleResponse(await fetch(`${BASE}/projects/${encodeURIComponent(projectId)}/service-config`, {
+      method: 'PUT',
+      headers: getHeaders(),
+      body: JSON.stringify({ config }),
+    })),
 
   listTasks: async (projectId: string, params?: { status?: string; search?: string; resultVerdict?: string; limit?: number; offset?: number }): Promise<{ total: number; items: VulnVerifyTask[] }> => {
     const query = new URLSearchParams();

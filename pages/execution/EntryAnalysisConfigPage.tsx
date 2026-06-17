@@ -73,10 +73,6 @@ const defaultConfig = (projectId: string): EntryAnalysisServiceConfig => ({
   r4_final_max_rounds: -1,
   report_func_max_rounds: -1,
   report_final_max_rounds: -1,
-  lean_mode: false,  // 已废弃，保留兼容
-  lean_file_max_rounds: -1,  // 已废弃
-  lean_module_max_rounds: -1,  // 已废弃
-  api_filter_entry_judge: false,  // 已废弃
   fast_mode: false,
   fast_mode_batch_size: 20,
   workers: defaultRole(),

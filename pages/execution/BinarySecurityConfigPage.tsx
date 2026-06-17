@@ -7,6 +7,7 @@ import { SystemAnalysisConfigPage } from './SystemAnalysisConfigPage';
 import { EntryAnalysisConfigPage } from './EntryAnalysisConfigPage';
 import { DataflowVulnScanConfigPage } from './DataflowVulnScanConfigPage';
 import { B2SConfigPage } from './B2SConfigPage';
+import { VulnVerifyConfigPage } from './VulnVerifyConfigPage';
 
 const LK = {
   primary: '#4f73ff', primarySoft: '#7590ff', primaryDeep: '#3f63f1',
@@ -21,7 +22,7 @@ const LK = {
 } as const;
 const MONO = 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace';
 
-type ConfigTab = 'binary-security' | 'binary-evolution' | 'firmware-unpacker' | 'system-analysis' | 'binary-to-source' | 'entry-analysis' | 'dataflow-vuln';
+type ConfigTab = 'binary-security' | 'binary-evolution' | 'firmware-unpacker' | 'system-analysis' | 'binary-to-source' | 'entry-analysis' | 'dataflow-vuln' | 'vuln-verify';
 const ORCHESTRATOR_STAGE_FIELDS = [
   { key: 'firmware_unpack', label: '固件解包' },
   { key: 'system_analysis', label: '系统分析' },
@@ -525,6 +526,11 @@ export const BinarySecurityConfigPage: React.FC<{ projectId: string; initialTab?
               label: '数据流漏洞挖掘',
               service: 'secflow-app-dataflow-vuln-scan',
             },
+            {
+              id: 'vuln-verify' as ConfigTab,
+              label: '漏洞验证',
+              service: 'secflow-app-vuln-verify',
+            },
           ].map((tab) => (
             <button
               key={tab.id}
@@ -760,8 +766,10 @@ export const BinarySecurityConfigPage: React.FC<{ projectId: string; initialTab?
         <B2SConfigPage projectId={projectId} embedded />
       ) : activeTab === 'entry-analysis' ? (
         <EntryAnalysisConfigPage projectId={projectId} embedded />
-      ) : (
+      ) : activeTab === 'dataflow-vuln' ? (
         <DataflowVulnScanConfigPage projectId={projectId} embedded />
+      ) : (
+        <VulnVerifyConfigPage projectId={projectId} embedded />
       )}
     </div>
   );
