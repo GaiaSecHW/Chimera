@@ -135,7 +135,7 @@ export const SystemAnalysisTaskFormModal: React.FC<SystemAnalysisTaskFormModalPr
   useEffect(() => {
     if (!isOpen || !projectId || !loadProjectDefaultsOnOpen) return;
     let cancelled = false;
-    void appApi.getConfig(projectId)
+    void appApi.getConfig()
       .then((cfg) => {
         if (cancelled) return;
         setProjectFinalCheckDefault(Boolean(cfg.enable_final_check));

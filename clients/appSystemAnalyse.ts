@@ -255,14 +255,14 @@ export const appSystemAnalyseApi = {
     })),
 
   // ── Config ────────────────────────────────────────────────────────────────
-  getConfig: async (projectId: string): Promise<SystemAnalysisServiceConfig> =>
-    handleResponse(await fetch(`${BASE}/config?project_id=${encodeURIComponent(projectId)}`, { headers: getHeaders() })),
+  getConfig: async (): Promise<SystemAnalysisServiceConfig> =>
+    handleResponse(await fetch(`${BASE}/config`, { headers: getHeaders() })),
 
   saveConfig: async (config: SystemAnalysisServiceConfig): Promise<SystemAnalysisServiceConfig> =>
     handleResponse(await fetch(`${BASE}/config`, {
       method: 'PUT',
       headers: getHeaders(),
-      body: JSON.stringify({ project_id: config.project_id, config }),
+      body: JSON.stringify({ config }),
     })),
 
   // ── Models config ─────────────────────────────────────────────────────────

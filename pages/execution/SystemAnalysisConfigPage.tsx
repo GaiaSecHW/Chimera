@@ -160,8 +160,7 @@ const defaultRole = (): SystemAnalysisRoleConfig => ({
   stage_models: {},
 });
 
-const defaultConfig = (projectId: string): SystemAnalysisServiceConfig => ({
-  project_id: projectId,
+const defaultConfig = (): SystemAnalysisServiceConfig => ({
   max_rounds_exceeded_action: 'treat_as_passed',
   continue_on_module_failure: true,
   analyse_targets: ['all'],
@@ -197,7 +196,7 @@ const defaultConfig = (projectId: string): SystemAnalysisServiceConfig => ({
   self_reflection: {
     enabled: false,
     model: '',
-    output_dir:`/data/files/${projectId}/app/chimera-app-system-analyse/self-reflection`,
+    output_dir: '',
     max_session_lines: 1000,
   },
 });
@@ -231,12 +230,11 @@ const normalizePromptOverrides = (value: unknown): SystemAnalysisPromptOverrideG
   };
 };
 
-const buildSafeConfig = (projectId: string, cfg?: Partial<SystemAnalysisServiceConfig> | null): SystemAnalysisServiceConfig => {
-  const base = defaultConfig(projectId);
+const buildSafeConfig = (cfg?: Partial<SystemAnalysisServiceConfig> | null): SystemAnalysisServiceConfig => {
+  const base = defaultConfig();
   return {
     ...base,
     ...(cfg || {}),
-    project_id: projectId,
     stages: {
       ...base.stages,
       ...(cfg?.stages && typeof cfg.stages === 'object' ? cfg.stages : {}),
@@ -595,8 +593,8 @@ export const SystemAnalysisConfigPage: React.FC<{ projectId: string; embedded?: 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [savingPanel, setSavingPanel] = useState<SystemAnalysisPanelKey | null>(null);
-  const [config, setConfig] = useState<SystemAnalysisServiceConfig>(() => defaultConfig(projectId));
-  const [savedConfig, setSavedConfig] = useState<SystemAnalysisServiceConfig>(() => defaultConfig(projectId));
+  const [config, setConfig] = useState<SystemAnalysisServiceConfig>(() => defaultConfig());
+  const [savedConfig, setSavedConfig] = useState<SystemAnalysisServiceConfig>(() => defaultConfig());
   const [modelOptions, setModelOptions] = useState<string[]>([]);
   const [promptTemplates, setPromptTemplates] = useState<SystemAnalysisPromptTemplate[]>([]);
   const [selectedPromptTemplates, setSelectedPromptTemplates] = useState<Record<string, string>>({});
@@ -647,15 +645,15 @@ export const SystemAnalysisConfigPage: React.FC<{ projectId: string; embedded?: 
 
   const reload = () => {
     setLoading(true);
-    systemAnalysis.getConfig(projectId)
+    systemAnalysis.getConfig()
       .then((cfg) => {
-        const normalized = buildSafeConfig(projectId, cfg);
+        const normalized = buildSafeConfig(cfg);
         setConfig(normalized);
         setSavedConfig(normalized);
       })
       .catch((err) => {
         notify(`加载配置失败: ${err?.message ?? err}`, 'error');
-        const fallback = defaultConfig(projectId);
+        const fallback = defaultConfig();
         setConfig(fallback);
         setSavedConfig(fallback);
       })
@@ -683,10 +681,10 @@ export const SystemAnalysisConfigPage: React.FC<{ projectId: string; embedded?: 
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
-    systemAnalysis.getConfig(projectId)
+    systemAnalysis.getConfig()
       .then((cfg) => {
         if (!cancelled) {
-          const normalized = buildSafeConfig(projectId, cfg);
+          const normalized = buildSafeConfig(cfg);
           setConfig(normalized);
           setSavedConfig(normalized);
         }
@@ -694,7 +692,7 @@ export const SystemAnalysisConfigPage: React.FC<{ projectId: string; embedded?: 
       .catch((err) => {
         if (!cancelled) {
           notify(`加载配置失败: ${err?.message ?? err}`, 'error');
-          const fallback = defaultConfig(projectId);
+          const fallback = defaultConfig();
           setConfig(fallback);
           setSavedConfig(fallback);
         }
@@ -706,8 +704,8 @@ export const SystemAnalysisConfigPage: React.FC<{ projectId: string; embedded?: 
   const persistConfig = async (nextConfig: SystemAnalysisServiceConfig) => {
     setSaving(true);
     try {
-      const saved = await systemAnalysis.saveConfig({ ...nextConfig, project_id: projectId });
-      return buildSafeConfig(projectId, saved);
+      const saved = await systemAnalysis.saveConfig(nextConfig);
+      return buildSafeConfig(saved);
     } catch (err: any) {
       notify(`保存失败: ${err?.message ?? err}`, 'error');
       return null;
@@ -729,7 +727,7 @@ export const SystemAnalysisConfigPage: React.FC<{ projectId: string; embedded?: 
   };
 
   const handlePanelReset = (panel: SystemAnalysisPanelKey, label: string) => {
-    const defaults = defaultConfig(projectId);
+    const defaults = defaultConfig();
     setConfig((prev) => applySystemAnalysisPanel(prev, defaults, panel));
     notify(`${label}已重置为默认值（尚未保存）`, 'info');
   };
@@ -1245,11 +1243,11 @@ export const SystemAnalysisConfigPage: React.FC<{ projectId: string; embedded?: 
             <FieldRow
               label="报告存储目录"
               hint="self_reflection.output_dir"
-              desc="自省报告存储路径（容器内绝对路径）。默认为项目级目录，所有任务的报告统一存入此目录，每份报告标名为 {task_id}_{timestamp}.md。">
+              desc="自省报告存储路径（容器内绝对路径）。留空时由服务端按运行时默认策略决定；填写后作为全局默认目录，对所有项目生效。">
               <div style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <input
                   type="text"
-                  value={config.self_reflection?.output_dir ??`/data/files/${projectId}/app/chimera-app-system-analyse/self-reflection`}
+                  value={config.self_reflection?.output_dir ?? ''}
                   onChange={(e) => patch({
                     self_reflection: {
                       ...(config.self_reflection ?? {}),
@@ -1263,7 +1261,7 @@ export const SystemAnalysisConfigPage: React.FC<{ projectId: string; embedded?: 
                   onClick={() => patch({
                     self_reflection: {
                       ...(config.self_reflection ?? {}),
-                      output_dir:`/data/files/${projectId}/app/chimera-app-system-analyse/self-reflection`,
+                      output_dir: '',
                     } as SystemAnalysisSelfReflectionConfig,
                   })}
                   style={{ flexShrink: 0, borderRadius: '8px', border: `1px solid ${LK.border}`, backgroundColor: LK.surface, padding: '8px 12px', fontSize: '12px', color: LK.muted, cursor: 'pointer' }}

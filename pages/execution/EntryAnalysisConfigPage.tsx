@@ -50,8 +50,7 @@ const defaultRole = (): EntryAnalysisRoleConfig => ({
   stage_models: {},
 });
 
-const defaultConfig = (projectId: string): EntryAnalysisServiceConfig => ({
-  project_id: projectId,
+const defaultConfig = (): EntryAnalysisServiceConfig => ({
   max_rounds: -1,
   max_rounds_exceeded_action: 'treat_as_passed',
   min_rounds: 2,
@@ -274,8 +273,8 @@ export const EntryAnalysisConfigPage: React.FC<{ projectId: string; embedded?: b
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [savingPanel, setSavingPanel] = useState<EntryPanelKey | null>(null);
-  const [config, setConfig] = useState<EntryAnalysisServiceConfig>(() => defaultConfig(projectId));
-  const [savedConfig, setSavedConfig] = useState<EntryAnalysisServiceConfig>(() => defaultConfig(projectId));
+  const [config, setConfig] = useState<EntryAnalysisServiceConfig>(() => defaultConfig());
+  const [savedConfig, setSavedConfig] = useState<EntryAnalysisServiceConfig>(() => defaultConfig());
   const [modelOptions, setModelOptions] = useState<string[]>([]);
   const [slotCluster, setSlotCluster] = useState<any | null>(null);
 
@@ -296,14 +295,13 @@ export const EntryAnalysisConfigPage: React.FC<{ projectId: string; embedded?: b
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
-    entryAnalysis.getConfig(projectId)
+    entryAnalysis.getConfig()
       .then((cfg) => {
         if (!cancelled) {
-          const base = defaultConfig(projectId);
+          const base = defaultConfig();
           const safe: EntryAnalysisServiceConfig = {
             ...base,
             ...cfg,
-            project_id: projectId,
             workers: { ...base.workers, ...(cfg.workers && typeof cfg.workers === 'object' ? cfg.workers : {}) },
             judges: { ...base.judges, ...(cfg.judges && typeof cfg.judges === 'object' ? cfg.judges : {}) },
           };
@@ -314,7 +312,7 @@ export const EntryAnalysisConfigPage: React.FC<{ projectId: string; embedded?: b
       .catch((err) => {
         if (!cancelled) {
           notify(`加载配置失败: ${err?.message ?? err}`, 'error');
-          const fallback = defaultConfig(projectId);
+          const fallback = defaultConfig();
           setConfig(fallback);
           setSavedConfig(fallback);
         }
@@ -342,12 +340,11 @@ export const EntryAnalysisConfigPage: React.FC<{ projectId: string; embedded?: b
   const persistConfig = async (nextConfig: EntryAnalysisServiceConfig) => {
     setSaving(true);
     try {
-      const saved = await entryAnalysis.saveConfig({ ...nextConfig, project_id: projectId });
-      const base = defaultConfig(projectId);
+      const saved = await entryAnalysis.saveConfig(nextConfig);
+      const base = defaultConfig();
       return {
         ...base,
         ...saved,
-        project_id: projectId,
         workers: { ...base.workers, ...(saved.workers && typeof saved.workers === 'object' ? saved.workers : {}) },
         judges: { ...base.judges, ...(saved.judges && typeof saved.judges === 'object' ? saved.judges : {}) },
       };
@@ -377,7 +374,7 @@ export const EntryAnalysisConfigPage: React.FC<{ projectId: string; embedded?: b
   };
 
   const handlePanelReset = (panel: EntryPanelKey, label: string) => {
-    const defaults = defaultConfig(projectId);
+    const defaults = defaultConfig();
     setConfig((prev) => applyEntryPanel(prev, defaults, panel));
     notify(`${label}已重置为默认值（尚未保存）`, 'info');
   };
@@ -389,7 +386,7 @@ export const EntryAnalysisConfigPage: React.FC<{ projectId: string; embedded?: b
       {!embedded && (
         <section style={{ borderRadius: '24px', border: '1px solid #26324a', backgroundColor: 'rgba(17,26,43,0.9)', padding: '24px' }}>
           <h1 style={{ marginTop: '12px', fontSize: '30px', fontWeight: 600, letterSpacing: '-0.02em', color: '#f5f7ff' }}>分析配置</h1>
-          <p style={{ marginTop: '8px', fontSize: '14px', color: '#a4aec4' }}>配置 chimera-app-entry-analyse 分析引擎的运行参数，修改后点击「保存配置」生效。</p>
+          <p style={{ marginTop: '8px', fontSize: '14px', color: '#a4aec4' }}>配置 secflow-app-entry-analyse 全局运行参数，保存后会对所有项目生效。</p>
           {config.updated_at && (
             <p style={{ marginTop: '4px', fontSize: '12px', color: '#72809a' }}>上次保存：{new Date(config.updated_at).toLocaleString()}</p>
           )}

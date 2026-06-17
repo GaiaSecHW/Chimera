@@ -88,6 +88,58 @@ const EVT_STAGE: Record<string, number> = {
 type DetailTab = 'overview' | 'timeline' | 'task-config' | 'session' | 'relationship' | 'result' | 'evaluation';
 type StepStatus = 'pending' | 'running' | 'completed' | 'failed';
 
+const STAGE_STEP_TONES: Record<string, { card: string; dot: string; badge: string }> = {
+  init: {
+    card: 'border-cyan-200 bg-cyan-50/80',
+    dot: 'border-cyan-300 bg-cyan-100 text-cyan-700',
+    badge: 'border-cyan-200 bg-cyan-50 text-cyan-700',
+  },
+  worker: {
+    card: 'border-indigo-200 bg-indigo-50/80',
+    dot: 'border-indigo-300 bg-indigo-100 text-indigo-700',
+    badge: 'border-indigo-200 bg-indigo-50 text-indigo-700',
+  },
+  judge: {
+    card: 'border-violet-200 bg-violet-50/80',
+    dot: 'border-violet-300 bg-violet-100 text-violet-700',
+    badge: 'border-violet-200 bg-violet-50 text-violet-700',
+  },
+  report: {
+    card: 'border-emerald-200 bg-emerald-50/80',
+    dot: 'border-emerald-300 bg-emerald-100 text-emerald-700',
+    badge: 'border-emerald-200 bg-emerald-50 text-emerald-700',
+  },
+};
+
+function stageStepTone(stepKey: string, state: StepStatus) {
+  if (state === 'failed') {
+    return {
+      card: 'border-red-300 bg-red-50',
+      dot: 'border-red-400 bg-red-100 text-red-600',
+      badge: 'border-red-200 bg-red-50 text-red-700',
+    };
+  }
+  if (state === 'running') {
+    return {
+      card: 'border-blue-300 bg-blue-50',
+      dot: 'border-blue-400 bg-blue-500 text-white',
+      badge: 'border-blue-200 bg-blue-50 text-blue-700',
+    };
+  }
+  if (state === 'completed') {
+    return STAGE_STEP_TONES[stepKey] || {
+      card: 'border-slate-300 bg-slate-50',
+      dot: 'border-slate-300 bg-slate-200 text-slate-700',
+      badge: 'border-slate-200 bg-slate-50 text-slate-700',
+    };
+  }
+  return {
+    card: 'border-slate-200 bg-slate-50/80',
+    dot: 'border-slate-200 bg-slate-50 text-slate-400',
+    badge: 'border-slate-200 bg-slate-50 text-slate-500',
+  };
+}
+
 function extractFsRelPath(path: string, projectId: string): string | null {
   const prefix =`/data/files/${projectId}`;
   if (!path.startsWith(prefix)) return null;
@@ -885,8 +937,9 @@ export const DataflowAnalysisTaskDetailPage: React.FC<{ projectId: string; taskI
                 <h2 className="text-sm font-black uppercase tracking-[0.2em] text-slate-500">阶段进度</h2>
                 <div className="mt-4 space-y-3">{STAGE_STEPS.map((step, index) => {
                   const state = statusSteps[index];
+                  const tone = stageStepTone(step.key, state);
                   const artifactPath = detail.output_path ? extractFsRelPath(`${detail.output_path}/${detail.task_id}/${step.artifactSubpath}`, projectId) : null;
-                  return <div key={step.key} className="rounded-xl border border-slate-200 bg-slate-50/70 px-4 py-3"><div className="flex items-start gap-3"><div className={`mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-2 ${state === 'completed' ? 'border-emerald-500 bg-emerald-50 text-emerald-600' : state === 'running' ? 'border-blue-500 bg-blue-50 text-blue-600' : state === 'failed' ? 'border-red-400 bg-red-50 text-red-600' : 'border-slate-200 bg-slate-50 text-slate-400'}`}>{state === 'completed' ? <CheckCircle2 size={16} /> : state === 'running' ? <Loader2 size={14} className="animate-spin" /> : state === 'failed' ? <XCircle size={16} /> : index + 1}</div><div className="min-w-0 flex-1"><p className="text-sm font-bold text-slate-900">{step.label}</p><p className="mt-1 text-xs text-slate-500">{step.desc}</p>{artifactPath && state !== 'pending' ? <button onClick={() => openInFileExplorer(artifactPath)} className="mt-2 inline-flex items-center gap-1 rounded-lg border border-violet-200 px-2 py-1 text-[11px] font-semibold text-violet-700 hover:bg-violet-50"><FolderOpen size={11} />打开阶段输出</button> : null}</div></div></div>;
+                  return <div key={step.key} className={`rounded-xl border px-4 py-3 ${tone.card}`}><div className="flex items-start gap-3"><div className={`mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-2 ${tone.dot}`}>{state === 'completed' ? <CheckCircle2 size={16} /> : state === 'running' ? <Loader2 size={14} className="animate-spin" /> : state === 'failed' ? <XCircle size={16} /> : index + 1}</div><div className="min-w-0 flex-1"><p className="text-sm font-bold text-slate-900">{step.label}</p><p className="mt-1 text-xs text-slate-500">{step.desc}</p>{artifactPath && state !== 'pending' ? <button onClick={() => openInFileExplorer(artifactPath)} className={`mt-2 inline-flex items-center gap-1 rounded-lg border px-2 py-1 text-[11px] font-semibold hover:bg-white/70 ${tone.badge}`}><FolderOpen size={11} />打开阶段输出</button> : null}</div></div></div>;
                 })}</div>
               </div>
             </div>

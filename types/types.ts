@@ -3052,7 +3052,7 @@ export interface SystemAnalysisSelfReflectionConfig {
 }
 
 export interface SystemAnalysisServiceConfig {
-  project_id: string;
+  project_id?: string;
   max_rounds_exceeded_action: 'treat_as_passed' | 'treat_as_failed';
   continue_on_module_failure: boolean;
   analyse_targets: string[];
@@ -4425,7 +4425,7 @@ export interface EntryAnalysisRoleConfig {
 }
 
 export interface EntryAnalysisServiceConfig {
-  project_id: string;
+  project_id?: string;
   max_rounds: number;
   max_rounds_exceeded_action: 'treat_as_passed' | 'treat_as_failed';
   min_rounds: number;
@@ -4805,7 +4805,7 @@ export interface AppDfaRoleConfig {
 }
 
 export interface AppDfaServiceConfig {
-  project_id: string;
+  project_id?: string;
   max_rounds: number;
   max_rounds_exceeded_review_strategy: 'treat_as_passed' | 'treat_as_failed';
   min_rounds: number;

@@ -691,7 +691,7 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
     if (!projectId) {
       return fallbackCreateDefaults;
     }
-    const projectConfig = await executionApi.binarySecurity.getProjectConfig(projectId);
+    const projectConfig = await executionApi.binarySecurity.getConfig();
     return {
       stageParallelism: {
         ...DEFAULT_STAGE_PARALLELISM,

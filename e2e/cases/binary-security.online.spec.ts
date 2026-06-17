@@ -71,7 +71,7 @@ test.describe('Binary security online smoke', () => {
 
     const configResp = await fetchJson(
       page,
-      `${baseURL}/api/app/binary-security/projects/${E2E_PROJECT_ID}/config`,
+      `${baseURL}/api/app/binary-security/config`,
       token,
     );
     expect(configResp.status).toBe(200);
@@ -107,13 +107,13 @@ test.describe('Binary security online smoke', () => {
     await expect(page.getByText('当前阶段：').first()).toBeVisible({ timeout: 60_000 });
     await expect(page.getByText('编排观测').first()).toBeVisible({ timeout: 60_000 });
 
-    expect(configResp.payload?.config?.pipeline_mode, 'online project config should expose pipeline_mode after rollout').toBeTruthy();
+    expect(configResp.payload?.config?.pipeline_mode, 'online global config should expose pipeline_mode after rollout').toBeTruthy();
     expect(stageItemsResp.status, 'online stage-items endpoint should be available after rollout').toBe(200);
   });
 
-  test('should apply project default pipeline mode to create dialog', async ({ page, request }) => {
+  test('should apply global default pipeline mode to create dialog', async ({ page, request }) => {
     const token = await loginByApi(request, baseURL);
-    const configUrl = `${baseURL}/api/app/binary-security/projects/${E2E_PROJECT_ID}/config`;
+    const configUrl = `${baseURL}/api/app/binary-security/config`;
 
     const originalConfigResp = await fetchJson(page, configUrl, token);
     expect(originalConfigResp.status).toBe(200);

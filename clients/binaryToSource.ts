@@ -12,7 +12,7 @@ export type B2SRunMode = 'fast' | 'deep' | 'turbo';
 export type B2SBudgetExhaustedAction = 'treat_as_passed' | 'treat_as_failed';
 
 export interface B2SServiceConfig {
-  project_id: string;
+  project_id?: string;
   budget_exhausted_action: B2SBudgetExhaustedAction;
   concurrency: number;
   default_mode: B2SRunMode;
@@ -935,15 +935,15 @@ export const binaryToSourceApi = {
   getHealth: async (): Promise<B2SHealth> =>
     getJsonWithDedupe(`${API_BASE}/api/app/binary-to-source/health`, { headers: getHeaders() }),
 
-  getConfig: async (projectId: string): Promise<B2SServiceConfig> => {
-    const resp = await fetch(`${API_BASE}/api/app/binary-to-source/projects/${projectId}/config`, {
+  getConfig: async (): Promise<B2SServiceConfig> => {
+    const resp = await fetch(`${API_BASE}/api/app/binary-to-source/config`, {
       headers: getHeaders(),
     });
     return handleResponse(resp);
   },
 
-  saveConfig: async (projectId: string, config: B2SServiceConfig): Promise<B2SServiceConfig> => {
-    const resp = await fetch(`${API_BASE}/api/app/binary-to-source/projects/${projectId}/config`, {
+  saveConfig: async (config: B2SServiceConfig): Promise<B2SServiceConfig> => {
+    const resp = await fetch(`${API_BASE}/api/app/binary-to-source/config`, {
       method: 'PUT',
       headers: getHeaders(),
       body: JSON.stringify({ config }),

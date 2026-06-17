@@ -194,6 +194,44 @@ const LEAN_STAGE_STEPS = [
 type DetailTab = 'overview' | 'timeline' | 'task-config' | 'session' | 'relationship' | 'result' | 'evaluation';
 type StepStatus = 'pending' | 'running' | 'completed' | 'failed';
 
+const ENTRY_STAGE_STEP_TONES: Record<string, { card: string; dot: string; badge: string }> = {
+  lean_r1: { card: 'border-cyan-200 bg-cyan-50/85', dot: 'bg-cyan-100 text-cyan-700', badge: 'border-cyan-200 bg-cyan-50 text-cyan-700' },
+  lean_r2: { card: 'border-indigo-200 bg-indigo-50/85', dot: 'bg-indigo-100 text-indigo-700', badge: 'border-indigo-200 bg-indigo-50 text-indigo-700' },
+  lean_af: { card: 'border-sky-200 bg-sky-50/85', dot: 'bg-sky-100 text-sky-700', badge: 'border-sky-200 bg-sky-50 text-sky-700' },
+  lean_r3: { card: 'border-violet-200 bg-violet-50/85', dot: 'bg-violet-100 text-violet-700', badge: 'border-violet-200 bg-violet-50 text-violet-700' },
+  lean_r4cc: { card: 'border-fuchsia-200 bg-fuchsia-50/85', dot: 'bg-fuchsia-100 text-fuchsia-700', badge: 'border-fuchsia-200 bg-fuchsia-50 text-fuchsia-700' },
+  lean_output: { card: 'border-emerald-200 bg-emerald-50/85', dot: 'bg-emerald-100 text-emerald-700', badge: 'border-emerald-200 bg-emerald-50 text-emerald-700' },
+  r1: { card: 'border-cyan-200 bg-cyan-50/85', dot: 'bg-cyan-100 text-cyan-700', badge: 'border-cyan-200 bg-cyan-50 text-cyan-700' },
+  r2: { card: 'border-indigo-200 bg-indigo-50/85', dot: 'bg-indigo-100 text-indigo-700', badge: 'border-indigo-200 bg-indigo-50 text-indigo-700' },
+  r3: { card: 'border-sky-200 bg-sky-50/85', dot: 'bg-sky-100 text-sky-700', badge: 'border-sky-200 bg-sky-50 text-sky-700' },
+  cc: { card: 'border-violet-200 bg-violet-50/85', dot: 'bg-violet-100 text-violet-700', badge: 'border-violet-200 bg-violet-50 text-violet-700' },
+  r4: { card: 'border-fuchsia-200 bg-fuchsia-50/85', dot: 'bg-fuchsia-100 text-fuchsia-700', badge: 'border-fuchsia-200 bg-fuchsia-50 text-fuchsia-700' },
+  r5: { card: 'border-emerald-200 bg-emerald-50/85', dot: 'bg-emerald-100 text-emerald-700', badge: 'border-emerald-200 bg-emerald-50 text-emerald-700' },
+};
+
+function entryStageStepTone(stepKey: string, state: StepStatus) {
+  if (state === 'failed') {
+    return {
+      card: 'border-red-300 bg-red-50',
+      dot: 'bg-red-500 text-white',
+      badge: 'border-red-200 bg-red-50 text-red-700',
+    };
+  }
+  if (state === 'running') {
+    return {
+      card: 'border-blue-300 bg-blue-50',
+      dot: 'bg-blue-500 text-white',
+      badge: 'border-blue-200 bg-blue-50 text-blue-700',
+    };
+  }
+  if (state === 'completed') return ENTRY_STAGE_STEP_TONES[stepKey] || ENTRY_STAGE_STEP_TONES.r1;
+  return {
+    card: 'border-slate-200 bg-slate-50',
+    dot: 'bg-slate-200 text-slate-500',
+    badge: 'border-slate-200 bg-slate-50 text-slate-500',
+  };
+}
+
 function timelineLevelTone(level?: string | null) {
   const normalized = String(level || '').toLowerCase();
   if (normalized === 'error') return`border-color: ${LK.error}; background-color: ${LK.error}15; color: ${LK.error}`;
@@ -2655,15 +2693,13 @@ export const EntryAnalysisTaskDetailPage: React.FC<{ projectId: string; taskId: 
                 {activeStageSteps.map((step, index) => {
                   const state = statusSteps[index];
                   const stat  = stageStats[index];
-                  const borderColor = state === 'completed' ? 'border-emerald-400' : state === 'running' ? 'border-blue-400' : state === 'failed' ? 'border-red-400' : 'border-slate-200';
-                  const bgColor     = state === 'completed' ? 'bg-emerald-50'      : state === 'running' ? 'bg-blue-50'      : state === 'failed' ? 'bg-red-50'      : 'bg-slate-50';
-                  const dotColor    = state === 'completed' ? 'bg-emerald-500 text-white' : state === 'running' ? 'bg-blue-500 text-white' : state === 'failed' ? 'bg-red-500 text-white' : 'bg-slate-200 text-slate-500';
+                  const tone = entryStageStepTone(step.key, state);
                   const artifactFull = detail.output_path ?`${detail.output_path}/${detail.task_id}/${step.artifactSubpath}` : '';
                   const artifactFsPath = artifactFull ? extractFsRelPath(artifactFull, projectId) : null;
                   return (
-                    <div key={step.key} className={`w-[160px] shrink-0 rounded-xl border-2 px-3 py-3 ${borderColor} ${bgColor}`}>
+                    <div key={step.key} className={`w-[160px] shrink-0 rounded-xl border-2 px-3 py-3 ${tone.card}`}>
                       <div className="flex items-center gap-2 mb-2">
-                        <div className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[10px] font-black ${dotColor}`}>
+                        <div className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[10px] font-black ${tone.dot}`}>
                           {state === 'completed' ? '✓' : state === 'running' ? <Loader2 size={10} className="animate-spin" /> : state === 'failed' ? '✗' : index + 1}
                         </div>
                         <p className="text-xs font-black text-slate-900 leading-tight">{step.label}</p>
@@ -2689,7 +2725,7 @@ export const EntryAnalysisTaskDetailPage: React.FC<{ projectId: string; taskId: 
                         </div>
                       ) : null}
                       {artifactFsPath && state !== 'pending' ? (
-                        <button onClick={() => openInFileExplorer(artifactFsPath)} className="mt-1.5 inline-flex items-center gap-0.5 text-[9px] font-semibold text-violet-600 hover:underline">
+                        <button onClick={() => openInFileExplorer(artifactFsPath)} className={`mt-1.5 inline-flex items-center gap-0.5 rounded border px-1.5 py-0.5 text-[9px] font-semibold hover:bg-white/70 ${tone.badge}`}>
                           <FolderOpen size={9} />查看输出
                         </button>
                       ) : null}
