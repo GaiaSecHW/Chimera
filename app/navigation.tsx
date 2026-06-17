@@ -235,7 +235,6 @@ export const PROJECT_REQUIRED_VIEWS = new Set<string>([
   'developer-tools-overview',
   'redline-verification',
   'redline-verification-detail',
-  'ai4red-detail',
 ]);
 
 const DEVELOPER_ATOMIC_CAPABILITY_VIEWS = new Set<string>([
@@ -278,9 +277,8 @@ const DEVELOPER_TOOL_VIEWS = new Set<string>([
   'app-security-scan-monitor',
   'redline-verification',
   'redline-verification-detail',
-  'ai4red-detail',
+  'task-redline-detail',
 ]);
-
 const ASSESSMENT_VIEWS = new Set([
   'pentest-exec-code',
   'security-assessment',
@@ -472,7 +470,7 @@ export const SIDEBAR_SECTIONS: Record<string, NavSection[]> = {
         { id: 'source-security', label: '盖亚-源码', icon: Settings, aliases: ['source-security-detail'], requiresProject: true },
         { id: 'binary-module-security', label: '盖亚-二进制模块', icon: Settings, aliases: ['binary-module-security-detail'], requiresProject: true },
         { id: 'app-security-scan', label: '应用端到端扫描', icon: Smartphone, aliases: ['app-security-scan-detail', 'app-security-scan-monitor'], requiresProject: true },
-        { id: 'redline-verification', label: '红线验证', icon: ShieldCheck, aliases: ['redline-verification-detail', 'ai4red-detail'], requiresProject: true },
+        { id: 'redline-verification', label: '红线验证', icon: ShieldCheck, aliases: ['redline-verification-detail'], requiresProject: true },
       ],
     },
   ],

@@ -686,7 +686,7 @@ export const renderCurrentView = (ctx: ViewRegistryContext): React.ReactNode => 
           onBack={() => ctx.setCurrentView('redline-verification')}
         />
       );
-    case 'ai4red-detail':
+    case 'task-redline-detail':
       if (!ctx.activeRedlineTaskId) {
         return (
           <RedlineOverviewPage
