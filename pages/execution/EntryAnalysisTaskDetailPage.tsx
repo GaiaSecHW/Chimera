@@ -1905,7 +1905,7 @@ export const EntryAnalysisTaskDetailPage: React.FC<{ projectId: string; taskId: 
 
   useEffect(() => {
     if (!detail || !['pending', 'running'].includes(detail.status)) return;
-    const timer = window.setInterval(() => void refreshDetailAndLogs(), 5000);
+    const timer = window.setInterval(() => void refreshDetailAndLogs(), 30000);
     return () => window.clearInterval(timer);
   }, [detail?.status, taskId]);
   useEffect(() => {
