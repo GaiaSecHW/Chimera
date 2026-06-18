@@ -50,6 +50,7 @@ import {
   entryContractModuleDir,
   entryContractSourceRoot,
 } from '../../utils/binarySecurityContracts';
+import { StatisticCard } from '../../design-system';
 
 const STATUS_LABEL: Record<string, string> = {
   pending: '等待中',
@@ -1536,7 +1537,7 @@ function ProjectDirectoryOverviewValue({
 }
 
 function MetricCard({ label, value, icon }: { label: string; value: React.ReactNode; icon: React.ReactNode }) {
-  return <div className="rounded-2xl border border-theme-border bg-theme-surface px-4 py-4 shadow-sm"><div className="flex items-center justify-between gap-3"><div className="text-[11px] font-black uppercase tracking-[0.18em] text-theme-text-muted">{label}</div><div className="text-theme-text-muted">{icon}</div></div><div className="mt-3 text-2xl font-black text-theme-text-primary">{value}</div></div>;
+  return <StatisticCard label={label} value={value} icon={icon} />;
 }
 
 function MarkdownContent({ content }: { content: string }) {

@@ -57,6 +57,7 @@ import { buildCloneFormFromTask, SystemAnalysisTaskFormModal } from './SystemAna
 import { SystemAnalysisTaskConfigPanel } from './TaskConfigPanels';
 import { WarningListPanel } from './WarningListPanel';
 import { AbnormalReasonCard } from './AbnormalReasonCard';
+import { StatisticCard } from '../../design-system';
 
 const STATUS_LABEL: Record<string, string> = {
   pending: '等待中',
@@ -380,17 +381,7 @@ function InfoRow({ label, value }: { label: string; value: React.ReactNode }) {
 }
 
 function MetricCard({ label, value, icon }: { label: string; value: React.ReactNode; icon: React.ReactNode }) {
-  return (
- <div className="rounded-2xl border border-theme-border bg-theme-bg-app px-4 py-4">
-      <div className="flex items-center justify-between gap-3">
-        <div>
-          <div className="text-[11px] font-black uppercase tracking-[0.18em] text-theme-text-muted">{label}</div>
-          <div className="mt-2 text-2xl font-black tracking-tight text-theme-text-primary">{value}</div>
-        </div>
-        <div className="rounded-2xl bg-theme-elevated p-3 text-theme-text-secondary">{icon}</div>
-      </div>
-    </div>
-  );
+  return <StatisticCard label={label} value={value} icon={icon} />;
 }
 
 function formatNumber(value: unknown, digits = 0): string {

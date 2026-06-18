@@ -57,6 +57,7 @@ import { useUiFeedback } from '../../components/UiFeedback';
 import { DataflowFileserverRunDashboardPage } from './DataflowFileserverRunDashboardPage';
 import { StaticPipelineFlow } from './StaticPipelineFlow';
 import { navigateBackByTaskOrigin, navigateBackToBinarySecurityTask } from '../../utils/executionReturnContext';
+import { StatisticCard } from '../../design-system';
 
 const LK = {
   primary: '#4f73ff', primarySoft: '#7590ff', primaryDeep: '#3f63f1',
@@ -585,24 +586,13 @@ const StatusBadge: React.FC<{ status?: string | null }> = ({ status }) => {
   );
 };
 
-const MetricCard: React.FC<{ label: string; value: React.ReactNode; icon: React.ReactNode; tone?: string; hint?: string }> = ({
-  label,
-  value,
-  icon,
-  tone = 'bg-theme-bg-app',
-  hint,
-}) => {
-  const bgColor = tone === 'bg-theme-bg-app' ? LK.surface : tone === 'bg-emerald-50/70' ?`${LK.success}20` : tone === 'bg-rose-50/70' ?`${LK.error}20` : LK.surface;
-  return (
-  <div style={{ borderRadius: 12, border: `1px solid ${LK.borderSoft}`, backgroundColor: bgColor, padding: 16 }}>
-    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
-      <span style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.16em', color: LK.muted }}>{label}</span>
-      <span style={{ color: LK.muted }}>{icon}</span>
-    </div>
-    <div style={{ marginTop: 12, fontSize: 24, fontWeight: 600, color: LK.ink }}>{value}</div>
-    {hint ? <div style={{ marginTop: 4, fontSize: 12, color: LK.muted }}>{hint}</div> : null}
-  </div>
-  );
+const MetricCard: React.FC<{ label: string; value: React.ReactNode; icon: React.ReactNode; tone?: string; hint?: string }> = ({ label, value, icon, tone, hint }) => {
+  const toneMap: Record<string, 'default' | 'success' | 'warning' | 'danger' | 'info' | 'brand'> = {
+    success: 'success', warning: 'warning', danger: 'danger', info: 'info', brand: 'brand',
+    emerald: 'success', rose: 'danger', amber: 'warning', red: 'danger', green: 'success',
+    'bg-emerald-50/70': 'success', 'bg-rose-50/70': 'danger', 'bg-theme-bg-app': 'default',
+  };
+  return <StatisticCard label={label} value={value} icon={icon} hint={hint} tone={tone ? (toneMap[tone] ?? 'default') : 'default'} />;
 };
 
 const EmptyPanel: React.FC<{ title: string; description: string; icon?: React.ReactNode }> = ({ title, description, icon = <FileSearch size={22} /> }) => (

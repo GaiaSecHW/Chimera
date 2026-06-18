@@ -31,6 +31,7 @@ import {
   IpcAuditTaskTemplate,
   IpcAuditWorkspaceSummary,
 } from '../../clients/ipcAudit';
+import { StatisticCard } from '../../design-system';
 import { AppSaSessionEvent, AppSaSessionMeta } from '../../types/types';
 import { useUiFeedback } from '../../components/UiFeedback';
 import { mergeAgentSessionToolResults } from './agentSessionParsing';
@@ -1788,11 +1789,7 @@ const modelHintForExecutor = (mode?: string | null, providerModel?: string | nul
 const panelClassName = 'rounded-xl border border-theme-border bg-theme-bg-app p-5 ';
 
 const MetricCard: React.FC<{ label: string; value: React.ReactNode; sub?: string }> = ({ label, value, sub }) => (
-  <div className="rounded-lg border border-theme-border bg-slate-50/90 px-4 py-3">
-    <div className="text-[11px] font-black uppercase tracking-[0.18em] text-theme-text-muted">{label}</div>
-    <div className="mt-2 text-lg font-black text-theme-text-primary">{value}</div>
-    {sub ? <div className="mt-1 text-xs font-medium text-theme-text-muted">{sub}</div> : null}
-  </div>
+  <StatisticCard label={label} value={value} hint={sub} />
 );
 
 const TaskGraphCanvasNode: React.FC<NodeProps<TaskGraphCanvasNodeType>> = ({ data }) => (

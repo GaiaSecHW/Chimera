@@ -62,6 +62,7 @@ import {
 import type { DataflowVulnAiViewModel, DataflowVulnOverviewViewModel, DataflowVulnSampleScope } from './binarySecurityMetricsDataflowVuln';
 import { buildDataflowVulnAiViewModel, buildDataflowVulnOverviewViewModel, matchesDataflowVulnSampleScope } from './binarySecurityMetricsDataflowVulnBuilders';
 import { buildUnifiedAgentRuntimeViewModel, type UnifiedAgentPodCard } from './agentRuntimeViewModel';
+import { StatisticCard } from '../../design-system';
 
 const LK = {
   primary: '#4f73ff', primarySoft: '#7590ff', primaryDeep: '#3f63f1',
@@ -2427,13 +2428,7 @@ const buildBinarySecurityReducerViewModel = (rows: DisplayMetricRow[], history: 
 };
 
 const MetricCard: React.FC<{ label: string; value: number; icon: React.ReactNode }> = ({ label, value, icon }) => (
-  <div style={{ backgroundColor: LK.surfaceRaised, borderColor: LK.border, borderWidth: '1px', borderStyle: 'solid', borderRadius: '12px', padding: '16px' }}>
-    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', color: LK.muted }}>
-      <span style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.18em' }}>{label}</span>
-      <span>{icon}</span>
-    </div>
-    <div style={{ marginTop: '12px', fontSize: '24px', fontWeight: 600, letterSpacing: '-0.02em', color: LK.ink }}>{formatNumber(value, 2)}</div>
-  </div>
+  <StatisticCard label={label} value={value} icon={icon} />
 );
 
 const EmptyCard: React.FC<{ text: string }> = ({ text }) => (
