@@ -75,6 +75,7 @@ const defaultConfig = (projectId: string): EntryAnalysisServiceConfig => ({
   report_final_max_rounds: -1,
   fast_mode: false,
   fast_mode_batch_size: 20,
+  super_fast_mode: false,
   workers: defaultRole(),
   judges: defaultRole(),
   output_dir: '/data/output',
@@ -207,6 +208,7 @@ const applyEntryPanel = (
         agent_process_limit: source.agent_process_limit,
         fast_mode: source.fast_mode,
         fast_mode_batch_size: source.fast_mode_batch_size,
+        super_fast_mode: source.super_fast_mode,
       };
     case 'retry':
       return {
@@ -489,6 +491,41 @@ export const EntryAnalysisConfigPage: React.FC<{ projectId: string; embedded?: b
                   </div>
                 </>
               )}
+
+              {/* 极速模式开关 */}
+              <div className={`mt-4 rounded-xl border-2 px-4 py-3 transition-colors ${
+                config.super_fast_mode ? 'border-red-400 bg-red-50' : 'border-slate-200 bg-slate-50'
+              }`}>
+                <div className="flex items-center justify-between gap-4">
+                  <div>
+                    <div className="text-sm font-black text-slate-900">
+                      极速模式 <span className="font-mono text-xs font-normal text-slate-500">Super Fast</span>
+                    </div>
+                    <p className="mt-1 text-xs text-slate-500">
+                      关闭所有评审者(J)，只用脚本保证输出格式正确；跳过函数功能解读报告，只输出入口决策和污点信息。
+                    </p>
+                  </div>
+                  <label className="inline-flex cursor-pointer items-center gap-3 shrink-0 ml-4">
+                    <div className="relative">
+                      <input type="checkbox" className="peer sr-only"
+                        checked={config.super_fast_mode}
+                        onChange={(e) => patch({ super_fast_mode: e.target.checked })} />
+                      <div className="h-6 w-11 rounded-full bg-slate-200 peer-checked:bg-red-600 transition-colors" />
+                      <div className="absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform peer-checked:translate-x-5" />
+                    </div>
+                    <span className={`text-sm font-semibold ${
+                      config.super_fast_mode ? 'text-red-700' : 'text-slate-500'
+                    }`}>
+                      {config.super_fast_mode ? '极速模式' : '标准模式'}
+                    </span>
+                  </label>
+                </div>
+                {config.super_fast_mode && (
+                  <div className="mt-3 text-xs text-red-700 font-medium">
+                    极速模式已开启：关闭所有 Judge，跳过函数解读报告。输出仅含入口决策、污点信息、文件行号、置信度等必要信息。
+                  </div>
+                )}
+              </div>
             </div>
 
             <FieldRow label="智能体并发说明" hint="单任务内不再单独限流">
