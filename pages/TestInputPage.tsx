@@ -105,6 +105,14 @@ const CodemapProgressChip: React.FC<{
   if (!status) return null;
   const s = status.status;
   const progress = status.progress;
+  // 与同行「详情/打开目录」按钮统一外形:rounded-xl + px-3 py-2 + text-xs +
+  // font-black;配色走主题暗色语义色(StatusBadge 同款 -500/15 底 / -500/20 边)。
+  const pillBase = 'inline-flex items-center rounded-xl border px-3 py-2 text-xs font-black';
+  const toneSuccess = 'border-emerald-500/20 bg-emerald-500/15 text-emerald-400';
+  const toneProgress = 'border-sky-500/20 bg-sky-500/15 text-sky-400';
+  const toneWarn = 'border-amber-500/20 bg-amber-500/15 text-amber-400';
+  const toneFail = 'border-rose-500/20 bg-rose-500/15 text-rose-400';
+  const toneNeutral = 'border-theme-border bg-theme-elevated text-theme-text-muted';
   // 进入过 repair 阶段就有 progress.sources(building_repair/completed/failed 都算)。
   // 显示"静态分析成功 · 调用链修复 X/Y"——静态分析必然已经成功了才会到这里。
   const hasRepairProgress = progress && progress.total > 0;
@@ -116,7 +124,7 @@ const CodemapProgressChip: React.FC<{
       type="button"
       onClick={(e) => { e.stopPropagation(); onRebuild?.(); }}
       disabled={rebuilding}
-      className="ml-1 inline-flex items-center rounded-full border border-rose-300 bg-white px-2 py-0.5 text-[11px] font-black text-rose-700 hover:bg-rose-50 disabled:cursor-not-allowed disabled:opacity-50"
+      className="rounded-xl border border-theme-border px-3 py-2 text-xs font-black text-theme-text-secondary hover:bg-theme-elevated disabled:cursor-not-allowed disabled:opacity-50"
     >
       {rebuilding ? '重派中…' : '重新构建'}
     </button>
@@ -126,21 +134,19 @@ const CodemapProgressChip: React.FC<{
     const completed = progress.completed;
     if (s === 'completed') {
       return (
-        <span className="inline-flex items-center rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[11px] font-black text-emerald-700">
+        <span className={`${pillBase} ${toneSuccess}`}>
           静态分析成功 · 调用链修复 {completed}/{total}
         </span>
       );
     }
-    // building_repair / failed(部分成功)都用"修复中"语义,色调按比例区分。
+    // building_repair / failed(部分成功)都用"修复中"语义,色调按状态区分。
     const allDone = completed === total;
-    const tone = s === 'failed'
-      ? 'border-amber-200 bg-amber-50 text-amber-700'  // 终态但未全成,黄色提示
-      : 'border-indigo-200 bg-indigo-50 text-indigo-700'; // 进行中,蓝色
+    const tone = s === 'failed' ? toneWarn : toneProgress;
     const label = s === 'building_repair' ? '调用链修复中' : (allDone ? '调用链修复完成' : '调用链修复');
     return (
       <span
         title={s === 'failed' ? `${truncateError(status.error)} (${completed}/${total} 源点已修复)` : undefined}
-        className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[11px] font-black ${tone}`}
+        className={`${pillBase} ${tone}`}
       >
         静态分析成功 · {label} {completed}/{total}
       </span>
@@ -149,11 +155,8 @@ const CodemapProgressChip: React.FC<{
   // 没有 repair progress 才回到原始状态文案。
   if (s === 'failed') {
     return (
-      <span className="inline-flex items-center gap-1">
-        <span
-          title={truncateError(status.error)}
-          className="inline-flex items-center rounded-full border border-rose-200 bg-rose-50 px-2 py-0.5 text-[11px] font-black text-rose-700"
-        >
+      <span className="inline-flex items-center gap-2">
+        <span title={truncateError(status.error)} className={`${pillBase} ${toneFail}`}>
           静态分析失败
         </span>
         {rebuildButton}
@@ -162,18 +165,10 @@ const CodemapProgressChip: React.FC<{
   }
   if (s === 'completed') {
     // 兜底:理论上 completed 应有 progress;真无 progress 就只能说"已完成"。
-    return (
-      <span className="inline-flex items-center rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[11px] font-black text-emerald-700">
-        已完成
-      </span>
-    );
+    return <span className={`${pillBase} ${toneSuccess}`}>已完成</span>;
   }
   const label = STATUS_LABELS_SHORT[s] || s;
-  return (
-    <span className="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-[11px] font-black text-slate-600">
-      {label}
-    </span>
-  );
+  return <span className={`${pillBase} ${toneNeutral}`}>{label}</span>;
 };
 
 const emptyStats = (projectId: string, inputType: InputType): ProjectInputUploadStats => ({
