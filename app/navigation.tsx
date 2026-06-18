@@ -7,6 +7,7 @@ import {
   Box,
   Briefcase,
   Building2,
+  Brain,
   Cpu,
   FileBox,
   FileSearch,
@@ -15,6 +16,7 @@ import {
   FolderTree,
   GitBranch,
   Globe,
+  GraduationCap,
   HardDrive,
   Key,
   Layers3,
@@ -340,6 +342,10 @@ const EVOLUTION_VIEWS = new Set([
   'binary-evolution-firmware-unpacker',
   'binary-security-config',
   'binary-security-metrics',
+  'secocto-overview',
+  'secocto-browse',
+  'secocto-cards',
+  'secocto-vulns',
 ]);
 
 const TENANT_VIEWS = new Set([
@@ -394,7 +400,7 @@ export const getTopLevelNavForView = (view: string): TopLevelNavKey => {
   if (SYSTEM_ADMIN_ENVIRONMENT_VIEWS.has(view) || view.startsWith('env-')) return 'system-admin';
   if (AIGW_VIEWS.has(view)) return 'system-admin';
   if (SCHEDULE_VIEWS.has(view)) return 'system-admin';
-  if (EVOLUTION_VIEWS.has(view) || view.startsWith('binary-evolution-')) return 'system-admin';
+  if (EVOLUTION_VIEWS.has(view) || view.startsWith('binary-evolution-') || view.startsWith('secocto-')) return 'system-admin';
   if (TENANT_VIEWS.has(view)) return 'system-admin';
   if (ROLE_VIEWS.has(view)) return 'system-admin';
   if (view === 'sys-settings' || view === 'change-password') return 'system-admin';
@@ -577,6 +583,15 @@ const SYSTEM_ADMIN_SIDEBAR_MAP: Record<string, NavSection[]> = {
         { id: 'binary-security-metrics', label: '性能看板', icon: Monitor, requiresProject: true },
       ],
     },
+    {
+      title: 'SecEvo',
+      items: [
+        { id: 'secocto-overview', label: '总览', icon: LayoutDashboard },
+        { id: 'secocto-browse', label: '技能进化', icon: GraduationCap },
+        { id: 'secocto-cards', label: '记忆进化', icon: Brain },
+        { id: 'secocto-vulns', label: '漏洞管理', icon: ShieldAlert },
+      ],
+    },
   ],
   tenant: PLATFORM_ACCOUNT_ORG_SECTIONS,
   environment: [
@@ -630,7 +645,7 @@ export const getSystemAdminActiveChild = (currentView: string): SystemAdminChild
   if (currentView.startsWith('env-')) return 'environment';
   if (AIGW_VIEWS.has(currentView) || currentView.startsWith('aigw-') || currentView.startsWith('config-center-')) return 'aigw';
   if (SCHEDULE_VIEWS.has(currentView) || currentView === 'chimera-platform-schedule-config') return 'schedule';
-  if (EVOLUTION_VIEWS.has(currentView) || currentView.startsWith('binary-evolution-')) return 'evolution';
+  if (EVOLUTION_VIEWS.has(currentView) || currentView.startsWith('binary-evolution-') || currentView.startsWith('secocto-')) return 'evolution';
   if (TENANT_VIEWS.has(currentView) || ROLE_VIEWS.has(currentView) || currentView.startsWith('user-mgmt-') || currentView.startsWith('org-mgmt-')) return 'tenant';
   return 'dashboard';
 };

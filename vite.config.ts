@@ -102,6 +102,48 @@ export default defineConfig(({ mode }) => {
               });
             },
           },
+          '/api/secocto-vuln': {
+            target: 'http://27.106.118.208:8301',
+            changeOrigin: true,
+            secure: false,
+            rewrite: (path) => path.replace(/^\/api\/secocto-vuln/, ''),
+            agent: keepAliveHttpAgent,
+          },
+          '/api/memories-api': {
+            target: 'http://27.106.118.208:18790',
+            changeOrigin: true,
+            secure: false,
+            rewrite: (path) => path.replace(/^\/api\/memories-api/, ''),
+            agent: keepAliveHttpAgent,
+          },
+          '/api/tasks-api': {
+            target: 'http://27.106.118.208:8300',
+            changeOrigin: true,
+            secure: false,
+            rewrite: (path) => path.replace(/^\/api\/tasks-api/, ''),
+            agent: keepAliveHttpAgent,
+          },
+          '/api/skills-api': {
+            target: 'http://27.106.118.208:8090',
+            changeOrigin: true,
+            secure: false,
+            rewrite: (path) => path.replace(/^\/api\/skills-api/, ''),
+            agent: keepAliveHttpAgent,
+          },
+          '/api/wiki-api': {
+            target: 'http://27.106.118.208:18780',
+            changeOrigin: true,
+            secure: false,
+            rewrite: (path) => path.replace(/^\/api\/wiki-api/, ''),
+            agent: keepAliveHttpAgent,
+          },
+          '/api/gitea': {
+            target: 'http://27.106.118.208:3010',
+            changeOrigin: true,
+            secure: false,
+            rewrite: (path) => path.replace(/^\/api\/gitea/, ''),
+            agent: keepAliveHttpAgent,
+          },
           '/api': {
             target: 'https://secflow.ai.icsl.huawei.com',
             changeOrigin: true,

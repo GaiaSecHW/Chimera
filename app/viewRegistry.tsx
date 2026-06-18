@@ -111,6 +111,11 @@ import { AdminDashboardPage } from '../pages/platform/AdminDashboardPage';
 import { AiGatewayDashboardPage } from '../pages/platform/AiGatewayDashboardPage';
 import { AiGatewayPage } from '../pages/platform/AiGatewayPage';
 import { ChangePasswordPage } from '../pages/platform/ChangePasswordPage';
+import { SecOctoCardsPage } from '../pages/secocto/CardsPage';
+import { SecOctoCompilePage } from '../pages/secocto/CompilePage';
+import { SecOctoVulnsListPage, SecOctoVulnDetailPage, SecOctoReportDetailPage } from '../pages/secocto/VulnsPages';
+import { SecOctoOverviewPage, SecOctoTaskDetailPage } from '../pages/secocto/OverviewPages';
+import { SecOctoBrowsePage, SecOctoSkillDetailPage, SecOctoEvolvePage, SecOctoResultPage } from '../pages/secocto/GatePages';
 import { Agent, AdminDashboardStats, EnvTemplate, SecurityProject, StaticPackage, PackageStats, UserInfo } from '../types/types';
 
 export interface ViewRegistryContext {
@@ -729,6 +734,19 @@ export const renderCurrentView = (ctx: ViewRegistryContext): React.ReactNode => 
       return <BinaryEvolutionCenterPage projectId={ctx.selectedProjectId} />;
     case 'binary-evolution-firmware-unpacker':
       return <FirmwareEvolutionCenterPage projectId={ctx.selectedProjectId} />;
+    case 'secocto-cards':
+      return <SecOctoCardsPage onNavigate={(navKey) => {
+        const viewMap: Record<string, string> = { overview: 'secocto-overview', browse: 'secocto-browse', cards: 'secocto-cards', vulns: 'secocto-vulns', compile: 'secocto-cards' };
+        ctx.setCurrentView(viewMap[navKey] || 'secocto-cards');
+      }} />;
+    case 'secocto-vulns':
+      return <SecOctoVulnsListPage onNavigateDetail={(id) => ctx.setCurrentView(`secocto-vuln-detail-${id}`)} onNavigate={(navKey) => ctx.setCurrentView('secocto-vulns')} />;
+    case 'secocto-overview':
+      return <SecOctoOverviewPage onNavigateTask={(taskId) => ctx.setCurrentView(`secocto-task-detail-${taskId}`)} />;
+    case 'secocto-browse':
+      return <SecOctoBrowsePage onNavigateSkill={(fullName) => ctx.setCurrentView(`secocto-skill-${fullName}`)} onNavigate={(navKey) => ctx.setCurrentView('secocto-browse')} />;
+    case 'secocto-cards-compile':
+      return <SecOctoCompilePage onBack={() => ctx.setCurrentView('secocto-cards')} />;
     case 'pentest-report':
       return <ReportsPage />;
     case 'security-assessment':
@@ -787,11 +805,36 @@ export const renderCurrentView = (ctx: ViewRegistryContext): React.ReactNode => 
       return <DepartmentMemberPage />;
     case 'org-mgmt-projects':
       return <ProjectPage />;
-    default:
+    default: {
+      if (ctx.currentView.startsWith('secocto-vuln-detail-')) {
+        const id = parseInt(ctx.currentView.replace('secocto-vuln-detail-', ''), 10);
+        if (id) return <SecOctoVulnDetailPage findingId={id} onBack={() => ctx.setCurrentView('secocto-vulns')} onNavigateReport={(rid) => ctx.setCurrentView(`secocto-report-detail-${rid}`)} />;
+      }
+      if (ctx.currentView.startsWith('secocto-report-detail-')) {
+        const id = parseInt(ctx.currentView.replace('secocto-report-detail-', ''), 10);
+        if (id) return <SecOctoReportDetailPage reportId={id} onBack={() => ctx.setCurrentView('secocto-vulns')} onNavigateFinding={(fid) => ctx.setCurrentView(`secocto-vuln-detail-${fid}`)} />;
+      }
+      if (ctx.currentView.startsWith('secocto-task-detail-')) {
+        const taskId = ctx.currentView.replace('secocto-task-detail-', '');
+        return <SecOctoTaskDetailPage taskId={decodeURIComponent(taskId)} onBack={() => ctx.setCurrentView('secocto-overview')} />;
+      }
+      if (ctx.currentView.startsWith('secocto-skill-')) {
+        const fullName = ctx.currentView.replace('secocto-skill-', '');
+        return <SecOctoSkillDetailPage fullName={decodeURIComponent(fullName)} onNavigateEvolve={(fn) => ctx.setCurrentView(`secocto-evolve-${fn}`)} onBack={() => ctx.setCurrentView('secocto-browse')} />;
+      }
+      if (ctx.currentView.startsWith('secocto-evolve-')) {
+        const fullName = ctx.currentView.replace('secocto-evolve-', '');
+        return <SecOctoEvolvePage fullName={decodeURIComponent(fullName)} onBack={() => ctx.setCurrentView(`secocto-skill-${fullName}`)} onNavigateResult={(fn, proposalIds) => ctx.setCurrentView(`secocto-result-${fn}`)} />;
+      }
+      if (ctx.currentView.startsWith('secocto-result-')) {
+        const fullName = ctx.currentView.replace('secocto-result-', '');
+        return <SecOctoResultPage fullName={decodeURIComponent(fullName)} decisionId={0} onBack={() => ctx.setCurrentView(`secocto-skill-${fullName}`)} />;
+      }
       return (
         <div className="p-20 text-center">
           <h3 className="text-xl font-black text-slate-400">模块 "{ctx.currentView}" 开发中...</h3>
         </div>
       );
+    }
   }
 };

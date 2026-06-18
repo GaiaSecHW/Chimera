@@ -6,6 +6,7 @@ import { executionClients } from './execution';
 import { orchestrationClients } from './orchestration';
 import { platformClients } from './platform';
 import { projectClients } from './project';
+import { secoctoClients } from './secocto';
 import { vulnClients } from './vuln-domain';
 
 export const api = {
@@ -19,6 +20,7 @@ export const api = {
     vuln: vulnClients,
     platform: platformClients,
     assessment: assessmentClients,
+    secocto: secoctoClients,
   },
 
   // Legacy flat entrypoints kept for compatibility during migration.
