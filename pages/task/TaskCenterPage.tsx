@@ -131,6 +131,7 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects }) => {
   const [selectedAgentAppFilter, setSelectedAgentAppFilter] = useState('');
   const [createOpen, setCreateOpen] = useState(false);
   const [error, setError] = useState('');
+  const [agentAppsLoadError, setAgentAppsLoadError] = useState('');
   const [selectedTaskIds, setSelectedTaskIds] = useState<string[]>([]);
   const [deleteSubmitting, setDeleteSubmitting] = useState(false);
   const [deleteQueueOpen, setDeleteQueueOpen] = useState(false);
@@ -180,16 +181,20 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects }) => {
     if (!projectId) return;
     setLoading(true);
     setError('');
+    setAgentAppsLoadError('');
     try {
-      const [taskResp, appResp] = await Promise.all([
-        scheduleApi.listUserTasks(projectId, selectedAgentAppFilter ? { agent_app_id: selectedAgentAppFilter } : {}) as Promise<ScheduleCenterUserTaskListResponse>,
-        loadAgentApps(currentUser?.department_id, currentUser?.department_id),
-      ]);
+      const taskResp = await scheduleApi.listUserTasks(projectId, selectedAgentAppFilter ? { agent_app_id: selectedAgentAppFilter } : {}) as Promise<ScheduleCenterUserTaskListResponse>;
       setTasks(taskResp.items || []);
       setStats(taskResp.stats || {});
-      setAgentApps(appResp || []);
     } catch (err: any) {
       setError(err?.message || '加载失败');
+    }
+    try {
+      const appResp = await loadAgentApps(currentUser?.department_id, currentUser?.department_id);
+      setAgentApps(appResp || []);
+    } catch (err: any) {
+      setAgentApps([]);
+      setAgentAppsLoadError(err?.message || '加载 Agent Harness 列表失败');
     } finally {
       setLoading(false);
     }
@@ -468,6 +473,15 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects }) => {
           {agentApps.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
         </select>
       </div>
+
+      {agentAppsLoadError ? (
+        <div
+          className="rounded-lg px-4 py-3 text-sm"
+          style={{ backgroundColor: `${LK.warning}14`, border: `1px solid ${LK.warning}40`, color: LK.warning }}
+        >
+          {agentAppsLoadError}。当前任务列表已正常加载，但 Harness 筛选与 Agent Harness 创建能力暂时不可用。
+        </div>
+      ) : null}
 
       <div
         className="flex items-center justify-between gap-3 rounded-lg px-4 py-3"
