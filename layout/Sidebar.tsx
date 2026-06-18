@@ -86,7 +86,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const roleConfig = navRole ? NAV_ROLE_CONFIG[navRole] : null;
 
   return (
-    <aside className={`${isSidebarCollapsed ? 'w-24' : 'w-60'} bg-theme-sidebar text-theme-text-soft flex flex-col transition-all duration-300 z-30 shadow-brand shrink-0`}>
+    <aside className={`${isSidebarCollapsed ? 'w-15' : 'w-60'} bg-theme-sidebar text-theme-text-soft flex flex-col transition-all duration-300 z-30 shadow-brand shrink-0`}>
       {!isSidebarCollapsed && roleConfig && (
         <div className="px-5 pt-4 pb-1 flex items-center gap-2">
           <span className="w-1.5 h-1.5 rounded-full" style={{ background: roleConfig.color }} />
@@ -95,7 +95,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           </span>
         </div>
       )}
-      <nav className="flex-1 px-4 py-5 overflow-y-auto custom-scrollbar">
+      <nav className={`flex-1 ${isSidebarCollapsed ? 'px-2' : 'px-4'} py-5 overflow-y-auto custom-scrollbar`}>
         <div className="space-y-5">
           {sections.map((section) => (
             <div key={section.title} className="space-y-2">
@@ -185,8 +185,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
         </div>
       </nav>
 
-      <div className="p-5 border-t border-theme-sidebar">
-        <div className="flex items-center justify-end">
+      <div className={`${isSidebarCollapsed ? 'p-2' : 'p-5'} border-t border-theme-sidebar`}>
+        <div className="flex items-center justify-center">
           {!isSidebarCollapsed ? (
             <button onClick={() => setIsSidebarCollapsed(true)} className="p-3 rounded-2xl bg-theme-sidebar-muted/60 text-theme-text-faint hover:text-theme-text-inverse hover:bg-theme-sidebar-muted transition-colors">
               <PanelLeftClose size={18} />

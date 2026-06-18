@@ -1034,10 +1034,6 @@ export const EnvManagementPage: React.FC<{ projectId: string }> = ({ projectId }
       <div className="mx-auto max-w-7xl space-y-6">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div>
-            <div className="inline-flex items-center gap-2 rounded-full border border-cyan-500/20 bg-cyan-500/15 px-3 py-1 text-xs font-black uppercase tracking-[0.18em] text-cyan-400">
-              <ServerCog size={14} />
-              Environment Management
-            </div>
             <h1 className="mt-4 text-3xl font-black tracking-tight text-theme-text-primary">环境管理</h1>
             <p className="mt-2 max-w-3xl text-sm leading-6 text-theme-text-secondary">
               查看当前项目已上线的 Agent、运行状态和最近心跳。该页面为独立入口，不影响现有环境管理页面。

@@ -159,10 +159,6 @@ export const EnvAccessPage: React.FC<{ projectId: string }> = ({ projectId }) =>
       <div className="mx-auto max-w-7xl space-y-6">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div>
-            <div className="inline-flex items-center gap-2 rounded-full border border-blue-500/20 bg-blue-500/15 px-3 py-1 text-xs font-black uppercase tracking-[0.18em] text-blue-400">
-              <Terminal size={14} />
-              Environment Access
-            </div>
             <h1 className="mt-4 text-3xl font-black tracking-tight text-theme-text-primary">环境接入</h1>
             <p className="mt-2 max-w-3xl text-sm leading-6 text-theme-text-secondary">
               面向测试环境的接入入口。选择部署方式后，在目标节点或集群执行命令，上线后的 Agent 会进入环境管理页面。

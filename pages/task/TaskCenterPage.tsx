@@ -405,12 +405,12 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects }) => {
     >
       <div className="flex flex-wrap items-start justify-between gap-3 pb-4" style={{ borderBottom:`1px solid ${LK.borderSoft}` }}>
         <div>
-          <h1 className="text-2xl font-semibold leading-8 tracking-tight" style={{ color: LK.ink }}>
+          <h1 className="mt-3 text-2xl font-semibold leading-8 tracking-tight" style={{ color: LK.ink }}>
             任务中心
           </h1>
-          <div className="mt-1 text-sm" style={{ color: LK.body }}>
-            {projectName}
-          </div>
+          <p className="mt-1.5 text-sm leading-6" style={{ color: LK.body }}>
+            统一展示当前项目下的所有测试任务，追踪分发、执行与同步状态
+          </p>
         </div>
         <div className="flex items-center gap-2">
           <button

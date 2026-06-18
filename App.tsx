@@ -755,7 +755,13 @@ const AppShell: React.FC = () => {
         </div>
         <style>{`
           .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+          .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
           .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 10px; }
+          .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.25); }
+          *::-webkit-scrollbar { width: 6px; }
+          *::-webkit-scrollbar-track { background: rgba(7,13,24,0.5); }
+          *::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.12); border-radius: 10px; }
+          *::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.22); }
           @keyframes zoom-fade-in {
             from { opacity: 0; transform: scale(0.96); }
             to { opacity: 1; transform: scale(1); }
