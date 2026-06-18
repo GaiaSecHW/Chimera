@@ -24,6 +24,7 @@ import {
 import { api } from '../../clients/api';
 import { showConfirm, showPrompt } from '../../components/DialogService';
 import { StatusBadge } from '../../components/StatusBadge';
+import { Modal } from '../../design-system';
 import {
   OutputPvcDetail,
   ProjectPVC,
@@ -1626,9 +1627,7 @@ export const PvcManagementPage: React.FC<{ projectId: string }> = ({ projectId }
         )}
       </div>
 
-      {previewModalState.visible && (
-        <div className="fixed inset-0 z-[190] flex items-center justify-center bg-slate-950/70 p-5 backdrop-blur-sm" onClick={closePreviewModal}>
- <div className="h-[86vh] w-full max-w-6xl rounded-2xl border border-theme-border bg-theme-surface" onClick={(event) => event.stopPropagation()}>
+      <Modal open={previewModalState.visible} onClose={closePreviewModal} className="max-w-6xl h-[86vh]">
             <div className="flex items-center justify-between border-b border-theme-border px-4 py-3">
               <div>
                 <div className="text-[10px] font-black uppercase tracking-[0.24em] text-theme-text-muted">弹框预览</div>
@@ -1667,14 +1666,10 @@ export const PvcManagementPage: React.FC<{ projectId: string }> = ({ projectId }
                 <div className="flex h-full items-center justify-center text-xs font-semibold text-theme-text-muted">该文件类型不支持弹框预览。</div>
               )}
             </div>
-          </div>
-        </div>
-      )}
+        </Modal>
       {renderContextMenu()}
 
-      {showCreateModal && (
-        <div data-testid="pvc-create-modal" className="fixed inset-0 z-[200] flex items-center justify-center bg-slate-950/60 p-6 backdrop-blur-sm">
- <div className="w-full max-w-xl rounded-[2rem] bg-theme-bg-app p-8">
+      <Modal open={showCreateModal} onClose={() => setShowCreateModal(false)} className="max-w-xl">
             <div className="text-2xl font-black text-theme-text-primary">创建 PVC</div>
             <p className="mt-2 text-sm font-medium text-theme-text-muted">为当前项目创建任意资源类型的持久化存储。</p>
             <form onSubmit={handleCreatePvc} className="mt-6 space-y-5">
@@ -1710,13 +1705,9 @@ export const PvcManagementPage: React.FC<{ projectId: string }> = ({ projectId }
                 </button>
               </div>
             </form>
-          </div>
-        </div>
-      )}
+      </Modal>
 
-      {showArchiveUploadModal && (
-        <div data-testid="pvc-archive-upload-modal" className="fixed inset-0 z-[210] flex items-center justify-center bg-slate-950/60 p-6 backdrop-blur-sm">
- <div className="w-full max-w-2xl rounded-[2rem] bg-theme-bg-app p-6">
+      <Modal open={showArchiveUploadModal} onClose={() => setShowArchiveUploadModal(false)} className="max-w-2xl">
             <div className="text-2xl font-black text-theme-text-primary">上传 PVC 压缩包</div>
             <p className="mt-2 text-sm font-medium text-theme-text-muted">沿用历史流程：上传压缩包后由任务自动下载并解压到新创建的 PVC 根目录。</p>
             <form onSubmit={submitArchiveUpload} className="mt-5 space-y-4">
@@ -1811,9 +1802,7 @@ export const PvcManagementPage: React.FC<{ projectId: string }> = ({ projectId }
                 </button>
               </div>
             </form>
-          </div>
-        </div>
-      )}
+      </Modal>
 
       {busy && (
  <div className="fixed bottom-6 right-6 inline-flex items-center gap-2 rounded-2xl bg-brand-primary px-4 py-3 text-sm font-black text-white">

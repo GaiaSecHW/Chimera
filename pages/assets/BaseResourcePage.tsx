@@ -20,6 +20,7 @@ import {
 } from 'lucide-react';
 import { api } from '../../clients/api';
 import { StatusBadge } from '../../components/StatusBadge';
+import { Modal } from '../../design-system';
 import { ProjectInputUploadRecord, ProjectInputUploadStats } from '../../types/types';
 import {
   filterUploadRecords,
@@ -490,9 +491,7 @@ export const BaseResourcePage: React.FC<BaseResourcePageProps> = ({ type, title,
         </div>
       </div>
 
-      {deleteConfirm.show && (
-        <div className="fixed inset-0 z-[200] flex items-center justify-center p-6 bg-slate-900/60 backdrop-blur-sm animate-in fade-in">
- <div className="bg-theme-bg-app w-full max-w-md rounded-[3rem] overflow-hidden animate-in zoom-in-95 border border-theme-border">
+      <Modal open={deleteConfirm.show} onClose={() => setDeleteConfirm({ show: false, ids: [], error: null })} className="max-w-md">
             <div className="p-10 text-center">
               <div className="w-20 h-20 bg-red-500/15 text-red-400 rounded-3xl flex items-center justify-center mx-auto mb-8">
                 <AlertCircle size={48} />
@@ -533,13 +532,10 @@ export const BaseResourcePage: React.FC<BaseResourcePageProps> = ({ type, title,
                 </button>
               )}
             </div>
-          </div>
-        </div>
-      )}
+      </Modal>
 
       {isUploadModalOpen && (
-        <div className="fixed inset-0 z-[150] flex items-center justify-center p-6 bg-slate-900/60 backdrop-blur-md animate-in fade-in">
- <div className="bg-theme-bg-app w-full max-w-2xl rounded-[3rem] overflow-hidden animate-in zoom-in-95 flex flex-col max-h-[85vh] border border-theme-border">
+        <Modal open={isUploadModalOpen} onClose={() => !isUploadingBatch && setIsUploadModalOpen(false)} className="max-w-2xl">
  <div className="p-8 border-b border-theme-border bg-theme-bg-app flex items-center justify-between shrink-0">
               <div className="flex items-center gap-4">
  <div className="w-14 h-14 bg-blue-600 text-white rounded-[1.5rem] flex items-center justify-center">
@@ -688,8 +684,7 @@ export const BaseResourcePage: React.FC<BaseResourcePageProps> = ({ type, title,
                 {isAppendMode ? '提交追加上传' : '创建上传记录'}
               </button>
             </div>
-          </div>
-        </div>
+        </Modal>
       )}
     </div>
   );

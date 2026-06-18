@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { AlertTriangle, CheckCircle2, Cpu, RefreshCw, Sparkles } from 'lucide-react';
+import { Modal } from '../../design-system';
 import { api } from '../../clients/api';
 
 const LK = {
@@ -1450,9 +1451,14 @@ export const VulnEnginePage: React.FC<VulnEnginePageProps> = ({
         />
       )}
 
-      {showEvolutionDialog && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 animate-in fade-in" style={{ backgroundColor: 'rgba(5, 10, 20, 0.72)', backdropFilter: 'blur(6px)' }}>
-          <div className="max-h-[92vh] w-full max-w-4xl overflow-y-auto rounded-2xl p-6 animate-in" style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}` }}>
+      <Modal
+        open={showEvolutionDialog}
+        onClose={() => {
+          setShowEvolutionDialog(false);
+          setEvolutionPreview(null);
+        }}
+        className="max-w-4xl w-full"
+      >
             <div className="flex items-start justify-between gap-4">
               <div>
                 <div className="inline-flex items-center gap-2 rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-wider" style={{ backgroundColor: `${LK.warning}14`, color: LK.warning }}>
@@ -1595,9 +1601,7 @@ export const VulnEnginePage: React.FC<VulnEnginePageProps> = ({
                 )}
               </div>
             </div>
-          </div>
-        </div>
-      )}
+        </Modal>
     </div>
   );
 };

@@ -1,4 +1,5 @@
 import React from 'react';
+import { DataTable, DataTableColumn } from '../../design-system';
 
 interface ReviewJudgmentPageProps {
   projectId: string;
@@ -153,26 +154,37 @@ export const ReviewJudgmentPage: React.FC<ReviewJudgmentPageProps> = ({ projectI
           <h2 className="mb-4 text-base font-semibold" style={{ color: LK.ink }}>
             评审记录
           </h2>
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="text-left text-xs uppercase tracking-wider" style={{ color: LK.mutedSoft }}>
-                <th className="pb-3 font-medium" style={{ borderBottom:`1px solid ${LK.border}` }}>漏洞案例</th>
-                <th className="pb-3 font-medium" style={{ borderBottom:`1px solid ${LK.border}` }}>评审结论</th>
-                <th className="pb-3 font-medium" style={{ borderBottom:`1px solid ${LK.border}` }}>严重程度</th>
-                <th className="pb-3 font-medium" style={{ borderBottom:`1px solid ${LK.border}` }}>评审人</th>
-                <th className="pb-3 font-medium" style={{ borderBottom:`1px solid ${LK.border}` }}>状态</th>
-                <th className="pb-3 font-medium" style={{ borderBottom:`1px solid ${LK.border}` }}>更新时间</th>
-                <th className="pb-3 font-medium" style={{ borderBottom:`1px solid ${LK.border}` }}>操作</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td className="py-16 text-center" colSpan={7} style={{ color: LK.muted }}>
-                  暂无评审记录，请先创建评审任务并关联研判案例。
-                </td>
-              </tr>
-            </tbody>
-          </table>
+          {(() => {
+            interface ReviewRecord {
+              id: string;
+              case: string;
+              conclusion: string;
+              severity: string;
+              reviewer: string;
+              status: string;
+              updatedAt: string;
+              action: string;
+            }
+            const columns: DataTableColumn<ReviewRecord>[] = [
+              { key: 'case', header: '漏洞案例', render: (r) => r.case },
+              { key: 'conclusion', header: '评审结论', render: (r) => r.conclusion },
+              { key: 'severity', header: '严重程度', render: (r) => r.severity },
+              { key: 'reviewer', header: '评审人', render: (r) => r.reviewer },
+              { key: 'status', header: '状态', render: (r) => r.status },
+              { key: 'updatedAt', header: '更新时间', render: (r) => r.updatedAt },
+              { key: 'action', header: '操作', render: (r) => r.action },
+            ];
+            const records: ReviewRecord[] = [];
+            return (
+              <DataTable<ReviewRecord>
+                columns={columns}
+                data={records}
+                rowKey={(r) => String(r.id)}
+                loading={false}
+                empty="暂无评审记录，请先创建评审任务并关联研判案例。"
+              />
+            );
+          })()}
 
           <div className="mt-4 flex items-center justify-between pt-4" style={{ borderTop:`1px solid ${LK.borderSoft}` }}>
             <span className="text-xs" style={{ color: LK.muted }}>共 0 条记录</span>
