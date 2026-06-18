@@ -2491,6 +2491,7 @@ export type ScheduleRuntimeTaskType =
   | 'source_scan_e2e'
   | 'binary_module_e2e'
   | 'ai4red'
+  | 'ai4apk'
   | 'ai4app_fast'
   | 'ai4app_deep'
   | 'ai4web_fast'
@@ -2510,10 +2511,26 @@ export interface ScheduleRuntimeSchedulerPolicy {
   db_fallback_batch_size: number;
 }
 
+export interface ScheduleRuntimeUserTaskSyncPolicy {
+  enabled: boolean;
+  worker_concurrency: number;
+  lease_seconds: number;
+  heartbeat_interval_seconds: number;
+  db_fallback_batch_size: number;
+  queue_pop_timeout_seconds: number;
+  reclaim_batch_size: number;
+  dispatching_seconds: number;
+  running_seconds: number;
+  paused_seconds: number;
+  terminal_verify_seconds: number;
+  retry_initial_seconds: number;
+  retry_max_seconds: number;
+  failure_threshold: number;
+}
+
 export interface ScheduleRuntimeToolDefault {
   task_type: ScheduleRuntimeTaskType;
   label: string;
-  default_concurrency: number;
   root_task_key_max_concurrency: number;
   capacity_pool_ids: number[];
   root_task_key_expires_at?: string | null;
@@ -2525,6 +2542,7 @@ export interface ScheduleRuntimeTimeWindow {
   start_time: string;
   end_time: string;
   scheduler_policy?: ScheduleRuntimeSchedulerPolicy | null;
+  user_task_sync_policy?: ScheduleRuntimeUserTaskSyncPolicy | null;
   tool_defaults: ScheduleRuntimeToolDefault[];
 }
 
@@ -2533,6 +2551,7 @@ export interface ScheduleRuntimeEffectiveConfig {
   active_time_window_name?: string | null;
   timezone: string;
   scheduler_policy: ScheduleRuntimeSchedulerPolicy;
+  user_task_sync_policy: ScheduleRuntimeUserTaskSyncPolicy;
   tool_defaults: ScheduleRuntimeToolDefault[];
 }
 
@@ -2540,6 +2559,7 @@ export interface ScheduleRuntimeConfig {
   config_key: string;
   timezone: string;
   scheduler_policy: ScheduleRuntimeSchedulerPolicy;
+  user_task_sync_policy: ScheduleRuntimeUserTaskSyncPolicy;
   tool_defaults: ScheduleRuntimeToolDefault[];
   time_windows: ScheduleRuntimeTimeWindow[];
   version: number;

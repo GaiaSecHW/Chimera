@@ -330,6 +330,7 @@ const AIGW_VIEWS = new Set([
 
 const SCHEDULE_VIEWS = new Set([
   'chimera-platform-schedule',
+  'chimera-platform-schedule-config',
   'static-packages',
   'static-package-detail',
   'deploy-script-mgmt',
