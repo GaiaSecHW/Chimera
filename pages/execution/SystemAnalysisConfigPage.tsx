@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Loader2, Plus, RefreshCw, Settings, Trash2 } from 'lucide-react';
 
 import { api } from '../../clients/api';
+import { PageSection, FormField, FormActionBar } from '../../design-system';
 import {
   LlmProviderSummary,
   SystemAnalysisAgentInstance,
@@ -336,27 +337,14 @@ const restoreOtherSystemAnalysisPanels = (
 // ─── 子组件 ────────────────────────────────────────────────────────────────────
 
 const SectionCard: React.FC<{ title: string; subtitle?: string; actions?: React.ReactNode; children: React.ReactNode }> = ({ title, subtitle, actions, children }) => (
-  <section style={{ borderRadius: '12px', border: `1px solid ${LK.border}`, backgroundColor: LK.surface, padding: '24px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
-    <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '16px' }}>
-      <div>
-        <h2 style={{ fontSize: '16px', fontWeight: 600, color: LK.ink }}>{title}</h2>
-        {subtitle && <p style={{ marginTop: '2px', fontSize: '12px', color: LK.muted }}>{subtitle}</p>}
-      </div>
-      {actions}
-    </div>
-    {children}
-  </section>
+  <PageSection title={title} description={subtitle} actions={actions}>{children}</PageSection>
 );
 
 const FieldRow: React.FC<{ label: string; hint?: string; desc?: string; children: React.ReactNode }> = ({ label, hint, desc, children }) => (
-  <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-    <label style={{ fontSize: '14px', fontWeight: 600, color: LK.inkSoft }}>
-      {label}
-      {hint && <span style={{ marginLeft: '8px', fontSize: '12px', fontWeight: 400, color: LK.body }}>{hint}</span>}
-    </label>
-    {desc && <p style={{ fontSize: '12px', color: LK.muted, lineHeight: '1.5', marginTop: '-2px', marginBottom: '2px' }}>{desc}</p>}
+  <FormField label={label} hint={hint}>
+    {desc && <p className="text-xs leading-5 text-theme-text-muted">{desc}</p>}
     {children}
-  </div>
+  </FormField>
 );
 
 const NumberInput: React.FC<{ value: number; min?: number; max?: number; step?: number; onChange: (v: number) => void }> = ({ value, min, max, step = 1, onChange }) => {
@@ -489,25 +477,7 @@ const PanelActions: React.FC<{
   onSave: () => void;
   onReset: () => void;
 }> = ({ saving, onSave, onReset }) => (
-  <div style={{ display: 'flex', flexShrink: 0, alignItems: 'center', gap: '8px' }}>
-    <button
-      type="button"
-      onClick={onReset}
-      disabled={saving}
-      style={{ borderRadius: '8px', border: `1px solid ${LK.border}`, backgroundColor: LK.surface, padding: '8px 12px', fontSize: '12px', fontWeight: 600, color: LK.body, cursor: 'pointer', opacity: saving ? 0.5 : 1 }}
-    >
-      重置为默认
-    </button>
-    <button
-      type="button"
-      onClick={onSave}
-      disabled={saving}
-      style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', borderRadius: '8px', backgroundColor: LK.ink, padding: '8px 12px', fontSize: '12px', fontWeight: 600, color: LK.canvas, cursor: 'pointer', opacity: saving ? 0.5 : 1, border: 'none' }}
-    >
-      {saving && <Loader2 size={12} className="animate-spin" />}
-      保存配置
-    </button>
-  </div>
+  <FormActionBar saving={saving} onSave={onSave} onReset={onReset} saveText="保存配置" resetText="重置为默认" />
 );
 
 const PromptEditorCard: React.FC<{

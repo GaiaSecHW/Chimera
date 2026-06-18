@@ -6,6 +6,7 @@ import {
 import { api } from '../../clients/api';
 import { FirmwareClusterInfo, FirmwareConfigEntry, FirmwareLlmConfigFileSummary } from '../../clients/firmwareUnpacker';
 import { StaticPipelineFlow } from './StaticPipelineFlow';
+import { PageSection, FormActionBar } from '../../design-system';
 
 const LK = {
   primary: '#4f73ff',
@@ -148,16 +149,7 @@ const SectionCard: React.FC<{ title: string; subtitle?: string; actions?: React.
   actions,
   children,
 }) => (
-  <section className="rounded-2xl p-5" style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}` }}>
-    <div className="flex items-start justify-between gap-4">
-      <div>
-        <div className="text-sm font-semibold" style={{ color: LK.ink }}>{title}</div>
-        {subtitle ? <div className="mt-2 text-xs" style={{ color: LK.muted }}>{subtitle}</div> : null}
-      </div>
-      {actions}
-    </div>
-    <div className="mt-4">{children}</div>
-  </section>
+  <PageSection title={title} description={subtitle} actions={actions}>{children}</PageSection>
 );
 
 const PanelActions: React.FC<{ saving: boolean; disabled?: boolean; onSave: () => void; onReset: () => void }> = ({
@@ -166,37 +158,7 @@ const PanelActions: React.FC<{ saving: boolean; disabled?: boolean; onSave: () =
   onSave,
   onReset,
 }) => (
-  <div className="flex shrink-0 items-center gap-2">
-    <button
-      type="button"
-      onClick={onReset}
-      disabled={saving}
-      className="rounded-xl border px-3 py-2 text-xs font-semibold transition"
-      style={{
-        backgroundColor: LK.surfaceRaised,
-        border: `1px solid ${LK.border}`,
-        color: LK.body,
-      }}
-      onMouseEnter={(e) => { if (!saving) e.currentTarget.style.backgroundColor = LK.surface; }}
-      onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = LK.surfaceRaised; }}
-    >
-      重置为默认
-    </button>
-    <button
-      type="button"
-      onClick={onSave}
-      disabled={saving || disabled}
-      className="inline-flex items-center gap-2 rounded-xl px-3 py-2 text-xs font-semibold transition"
-      style={{
-        backgroundColor: disabled ? LK.surfaceRaised : LK.primary,
-        color: '#ffffff',
-        opacity: disabled ? 0.5 : 1,
-      }}
-    >
-      {saving ? <Loader2 size={12} className="animate-spin" /> : <Save size={12} />}
-      保存配置
-    </button>
-  </div>
+  <FormActionBar saving={saving} disabled={disabled} onSave={onSave} onReset={onReset} saveText="保存配置" resetText="重置为默认" />
 );
 
 // ──────────────────────────────────────────────────────────

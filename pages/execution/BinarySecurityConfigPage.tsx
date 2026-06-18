@@ -8,6 +8,7 @@ import { EntryAnalysisConfigPage } from './EntryAnalysisConfigPage';
 import { DataflowVulnScanConfigPage } from './DataflowVulnScanConfigPage';
 import { B2SConfigPage } from './B2SConfigPage';
 import { VulnVerifyConfigPage } from './VulnVerifyConfigPage';
+import { PageSection, FormActionBar } from '../../design-system';
 
 const LK = {
   primary: '#4f73ff', primarySoft: '#7590ff', primaryDeep: '#3f63f1',
@@ -120,38 +121,11 @@ const normalizeBinaryEvolutionConfig = (value: unknown) => {
 };
 
 const SectionCard: React.FC<{ title: string; subtitle?: string; actions?: React.ReactNode; children: React.ReactNode }> = ({ title, subtitle, actions, children }) => (
-  <section style={{ borderRadius: '12px', backgroundColor: LK.surface, padding: '20px' }}>
-    <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '16px' }}>
-      <div>
-        <div style={{ fontSize: '14px', fontWeight: 600, color: LK.inkSoft }}>{title}</div>
-        {subtitle ? <div style={{ marginTop: '8px', fontSize: '12px', color: LK.body }}>{subtitle}</div> : null}
-      </div>
-      {actions}
-    </div>
-    <div style={{ marginTop: '16px' }}>{children}</div>
-  </section>
+  <PageSection title={title} description={subtitle} actions={actions}>{children}</PageSection>
 );
 
 const PanelActions: React.FC<{ saving: boolean; onSave: () => void; onReset: () => void }> = ({ saving, onSave, onReset }) => (
-  <div style={{ display: 'flex', flexShrink: 0, alignItems: 'center', gap: '8px' }}>
-    <button
-      type="button"
-      onClick={onReset}
-      disabled={saving}
-      style={{ borderRadius: '8px', border: `1px solid ${LK.border}`, backgroundColor: LK.surface, padding: '8px 12px', fontSize: '12px', fontWeight: 600, color: LK.body, cursor: saving ? 'not-allowed' : 'pointer', opacity: saving ? 0.5 : 1 }}
-    >
-      重置为默认
-    </button>
-    <button
-      type="button"
-      onClick={onSave}
-      disabled={saving}
-      style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', borderRadius: '8px', backgroundColor: LK.primary, padding: '8px 12px', fontSize: '12px', fontWeight: 600, color: '#ffffff', cursor: saving ? 'not-allowed' : 'pointer', opacity: saving ? 0.6 : 1 }}
-    >
-      {saving ? <Loader2 size={12} className="animate-spin" /> : <Save size={12} />}
-      保存配置
-    </button>
-  </div>
+  <FormActionBar saving={saving} onSave={onSave} onReset={onReset} saveText="保存配置" resetText="重置为默认" />
 );
 
 export const BinarySecurityConfigPage: React.FC<{ projectId: string; initialTab?: ConfigTab }> = ({ projectId, initialTab = 'binary-security' }) => {

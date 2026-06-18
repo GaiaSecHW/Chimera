@@ -9,6 +9,7 @@ import {
   SystemAnalysisProviderConfig,
 } from '../../types/types';
 import { useUiFeedback } from '../../components/UiFeedback';
+import { PageSection, FormField } from '../../design-system';
 
 const LK = {
   primary: '#4f73ff', primarySoft: '#7590ff', primaryDeep: '#3f63f1',
@@ -39,23 +40,11 @@ const emptyConfig = (): SystemAnalysisModelsConfig => ({ providers: {} });
 // ─── 子组件 ────────────────────────────────────────────────────────────────────
 
 const SectionCard: React.FC<{ title: string; subtitle?: string; children: React.ReactNode }> = ({ title, subtitle, children }) => (
-  <section className="rounded-lg p-4 space-y-3" style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}` }}>
-    <div>
-      <h2 className="text-base font-semibold" style={{ color: LK.ink }}>{title}</h2>
-      {subtitle && <p className="mt-0.5 text-xs" style={{ color: LK.muted }}>{subtitle}</p>}
-    </div>
-    {children}
-  </section>
+  <PageSection title={title} description={subtitle}>{children}</PageSection>
 );
 
 const FieldRow: React.FC<{ label: string; hint?: string; children: React.ReactNode }> = ({ label, hint, children }) => (
-  <div className="flex flex-col gap-1">
-    <label className="text-sm font-medium" style={{ color: LK.inkSoft }}>
-      {label}
-      {hint && <span className="ml-2 text-xs font-normal" style={{ color: LK.muted }}>{hint}</span>}
-    </label>
-    {children}
-  </div>
+  <FormField label={label} hint={hint}>{children}</FormField>
 );
 
 interface ApiKeyInputProps {
