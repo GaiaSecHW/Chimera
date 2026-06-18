@@ -34,12 +34,12 @@ const STATUS_LABEL: Record<string, string> = {
 };
 
 const STATUS_BADGE_CLASS: Record<string, string> = {
-  pending: 'bg-slate-100 text-slate-600 border-slate-200',
-  running: 'bg-blue-50 text-blue-700 border-blue-200',
-  success: 'bg-emerald-50 text-emerald-700 border-emerald-200',
-  failed: 'bg-rose-50 text-rose-700 border-rose-200',
-  cancelled: 'bg-amber-50 text-amber-700 border-amber-200',
-  cancelling: 'bg-amber-50 text-amber-700 border-amber-200',
+  pending: 'bg-theme-elevated text-theme-text-secondary border-theme-border',
+  running: 'bg-blue-500/15 text-blue-400 border-blue-500/20',
+  success: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/20',
+  failed: 'bg-rose-500/15 text-rose-400 border-rose-500/20',
+  cancelled: 'bg-amber-500/15 text-amber-400 border-amber-500/20',
+  cancelling: 'bg-amber-500/15 text-amber-400 border-amber-500/20',
 };
 
 const QUICK_STATUS_FILTERS: Array<{ value: string; label: string }> = [
@@ -113,7 +113,7 @@ function getStatusLabel(status?: string): string {
 }
 
 function getStatusClass(status?: string): string {
-  return STATUS_BADGE_CLASS[status || ''] || 'bg-slate-100 text-slate-600 border-slate-200';
+  return STATUS_BADGE_CLASS[status || ''] || 'bg-theme-elevated text-theme-text-secondary border-theme-border';
 }
 
 function getProgressText(task: VulnVerifyTask): string {
@@ -129,8 +129,8 @@ function getProgressText(task: VulnVerifyTask): string {
 
 function getFilterChipClassName(active: boolean): string {
   return active
- ? 'border-violet-300 bg-violet-50 text-violet-700 '
-    : 'border-slate-200 bg-slate-50 text-slate-600 hover:border-slate-300 hover:bg-slate-100';
+ ? 'border-violet-300 bg-violet-500/15 text-violet-400 '
+    : 'border-theme-border bg-theme-bg-app text-theme-text-secondary hover:border-theme-border hover:bg-theme-elevated';
 }
 
 function getTaskVerdictCounts(task: VulnVerifyTask): { confirmed: number; ruledOut: number; unresolved: number } {
@@ -145,21 +145,21 @@ function getTaskVerdictCounts(task: VulnVerifyTask): { confirmed: number; ruledO
 
 const SummaryCard: React.FC<{ label: string; value: React.ReactNode; hint?: React.ReactNode; accent?: 'violet' | 'blue' | 'emerald' | 'rose' | 'amber' | 'slate' }> = ({ label, value, hint, accent = 'slate' }) => {
   const accentClass = accent === 'violet'
-    ? 'text-violet-600'
+    ? 'text-violet-400'
     : accent === 'blue'
-      ? 'text-blue-600'
+      ? 'text-blue-400'
       : accent === 'emerald'
-        ? 'text-emerald-600'
+        ? 'text-emerald-400'
         : accent === 'rose'
-          ? 'text-rose-600'
+          ? 'text-rose-400'
           : accent === 'amber'
-            ? 'text-amber-600'
-            : 'text-slate-900';
+            ? 'text-amber-400'
+            : 'text-theme-text-primary';
   return (
- <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-      <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">{label}</div>
+ <div className="rounded-2xl border border-theme-border bg-theme-bg-app p-4">
+      <div className="text-[11px] font-black uppercase tracking-[0.18em] text-theme-text-muted">{label}</div>
       <div className={`mt-2 text-2xl font-black ${accentClass}`}>{value}</div>
-      {hint ? <div className="mt-1 text-xs text-slate-400">{hint}</div> : null}
+      {hint ? <div className="mt-1 text-xs text-theme-text-muted">{hint}</div> : null}
     </div>
   );
 };
@@ -172,9 +172,9 @@ const StatusBadge: React.FC<{ status?: string }> = ({ status }) => (
 );
 
 const InfoRow: React.FC<{ label: string; value: React.ReactNode }> = ({ label, value }) => (
-  <div className="rounded-2xl bg-slate-50 p-3">
-    <div className="text-[10px] font-black uppercase tracking-widest text-slate-400">{label}</div>
-    <div className="mt-1 break-all text-xs font-bold text-slate-700">{value || '-'}</div>
+  <div className="rounded-2xl bg-theme-bg-app p-3">
+    <div className="text-[10px] font-black uppercase tracking-widest text-theme-text-muted">{label}</div>
+    <div className="mt-1 break-all text-xs font-bold text-theme-text-secondary">{value || '-'}</div>
   </div>
 );
 
@@ -363,8 +363,8 @@ export const VulnVerifyTaskPage: React.FC<{ projectId: string }> = ({ projectId 
         description: form.description.trim() || undefined,
         reports_dir: form.reports_dir.trim(),
         source_root: form.source_root.trim(),
-        binary_root: form.binary_root.trim(),
-        threat_path: form.threat_path.trim(),
+        binary_root: form.binary_root.trim() || undefined,
+        threat_path: form.threat_path.trim() || undefined,
         model: form.model.trim() || undefined,
         concurrency: Number(form.concurrency || 1),
         resume: false,
@@ -412,14 +412,14 @@ export const VulnVerifyTaskPage: React.FC<{ projectId: string }> = ({ projectId 
   };
 
   return (
-    <div className="min-h-full bg-slate-50 p-6">
+    <div className="min-h-full bg-theme-bg-app p-6">
       <div className="w-full space-y-6">
- <header className="rounded-[2rem] border border-slate-200 bg-slate-50 p-6">
+ <header className="rounded-[2rem] border border-theme-border bg-theme-bg-app p-6">
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div>
-              <p className="text-xs font-black uppercase tracking-[0.3em] text-violet-600">漏洞验证原子能力</p>
+              <p className="text-xs font-black uppercase tracking-[0.3em] text-violet-400">漏洞验证原子能力</p>
               <ServicePageTitle title="漏洞验证任务" version={buildVersion} />
-              <p className="mt-2 max-w-3xl text-sm text-slate-500">
+              <p className="mt-2 max-w-3xl text-sm text-theme-text-muted">
                 参考数据流漏洞挖掘的任务列表模式：集中查看任务状态，点击任务进入详情，使用右上角「新建任务」提交报告目录、源码、二进制与威胁模型。
               </p>
             </div>
@@ -427,7 +427,7 @@ export const VulnVerifyTaskPage: React.FC<{ projectId: string }> = ({ projectId 
               <button
                 type="button"
                 onClick={() => void loadOverview()}
- className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-4 py-2 text-sm font-black text-slate-700 hover:bg-slate-100"
+ className="inline-flex items-center gap-2 rounded-xl border border-theme-border bg-theme-bg-app px-4 py-2 text-sm font-black text-theme-text-secondary hover:bg-theme-elevated"
               >
                 <RefreshCw size={16} className={loading || statsLoading ? 'animate-spin' : ''} /> 刷新
               </button>
@@ -443,7 +443,7 @@ export const VulnVerifyTaskPage: React.FC<{ projectId: string }> = ({ projectId 
         </header>
 
         {message ? (
-          <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-bold text-amber-800">
+          <div className="rounded-2xl border border-amber-500/20 bg-amber-500/15 px-4 py-3 text-sm font-bold text-amber-400">
             {message}
           </div>
         ) : null}
@@ -463,25 +463,25 @@ export const VulnVerifyTaskPage: React.FC<{ projectId: string }> = ({ projectId 
           <SummaryCard label="总结果" value={projectStats?.total_results ?? '-'} accent="violet" hint={`项目全部任务${projectStats ?` · 已验证任务 ${projectStats.verified_tasks}` : ''}`} />
         </section>
 
- <section className="rounded-2xl border border-slate-200 bg-slate-50 p-5">
+ <section className="rounded-2xl border border-theme-border bg-theme-bg-app p-5">
           <div className="mb-4 flex flex-wrap items-start justify-between gap-4">
             <div>
-              <h2 className="text-lg font-black text-slate-900">任务列表 <span className="text-sm font-normal text-slate-400">({total})</span></h2>
-              <p className="mt-1 text-xs text-slate-400">点击任务名称或查看按钮打开任务详情、结果和产物。</p>
+              <h2 className="text-lg font-black text-theme-text-primary">任务列表 <span className="text-sm font-normal text-theme-text-muted">({total})</span></h2>
+              <p className="mt-1 text-xs text-theme-text-muted">点击任务名称或查看按钮打开任务详情、结果和产物。</p>
             </div>
             <div className="flex flex-wrap items-center justify-end gap-2">
-              <label className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs text-slate-600">
+              <label className="inline-flex items-center gap-2 rounded-lg border border-theme-border bg-theme-bg-app px-3 py-1.5 text-xs text-theme-text-secondary">
                 <input type="checkbox" checked={autoRefreshEnabled} onChange={(e) => setAutoRefreshEnabled(e.target.checked)} />
                 自动刷新
               </label>
-              <label className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs text-slate-600">
+              <label className="inline-flex items-center gap-2 rounded-lg border border-theme-border bg-theme-bg-app px-3 py-1.5 text-xs text-theme-text-secondary">
                 间隔
                 <input
                   type="number"
                   min={5}
                   value={refreshIntervalSec}
                   onChange={(e) => setRefreshIntervalSec(Math.max(5, Number(e.target.value || 5)))}
-                  className="w-16 rounded border border-slate-200 bg-slate-50 px-2 py-1 text-xs text-slate-700"
+                  className="w-16 rounded border border-theme-border bg-theme-bg-app px-2 py-1 text-xs text-theme-text-secondary"
                 />
                 秒
               </label>
@@ -494,7 +494,7 @@ export const VulnVerifyTaskPage: React.FC<{ projectId: string }> = ({ projectId 
                   setPage(1);
                 }}
                 disabled={!hasFilters}
-                className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-600 disabled:cursor-not-allowed disabled:opacity-50"
+                className="inline-flex items-center gap-1.5 rounded-lg border border-theme-border bg-theme-bg-app px-3 py-1.5 text-xs font-semibold text-theme-text-secondary disabled:cursor-not-allowed disabled:opacity-50"
               >
                 <X size={13} />
                 清空筛选
@@ -502,7 +502,7 @@ export const VulnVerifyTaskPage: React.FC<{ projectId: string }> = ({ projectId 
               <select
                 value={statusFilter}
                 onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
-                className="rounded-lg border border-slate-200 bg-slate-50 px-2 py-1.5 text-xs text-slate-600"
+                className="rounded-lg border border-theme-border bg-theme-bg-app px-2 py-1.5 text-xs text-theme-text-secondary"
               >
                 <option value="">全部状态</option>
                 {Object.entries(STATUS_LABEL).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
@@ -510,28 +510,28 @@ export const VulnVerifyTaskPage: React.FC<{ projectId: string }> = ({ projectId 
               <select
                 value={resultVerdictFilter}
                 onChange={(e) => { setResultVerdictFilter(e.target.value); setPage(1); }}
-                className="rounded-lg border border-slate-200 bg-slate-50 px-2 py-1.5 text-xs text-slate-600"
+                className="rounded-lg border border-theme-border bg-theme-bg-app px-2 py-1.5 text-xs text-theme-text-secondary"
               >
                 <option value="">全部结果</option>
                 {Object.entries(RESULT_VERDICT_LABEL).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
               </select>
               <div className="relative">
-                <Search size={13} className="pointer-events-none absolute left-2.5 top-2 text-slate-400" />
+                <Search size={13} className="pointer-events-none absolute left-2.5 top-2 text-theme-text-muted" />
                 <input
                   value={search}
                   onChange={(e) => { setSearch(e.target.value); setPage(1); }}
                   placeholder="搜索任务"
-                  className="w-48 rounded-lg border border-slate-200 bg-slate-50 py-1.5 pl-8 pr-3 text-xs text-slate-600 placeholder:text-slate-400"
+                  className="w-48 rounded-lg border border-theme-border bg-theme-bg-app py-1.5 pl-8 pr-3 text-xs text-theme-text-secondary placeholder:text-theme-text-muted"
                 />
               </div>
               <select
                 value={perPage}
                 onChange={(e) => { setPerPage(Number(e.target.value)); setPage(1); }}
-                className="rounded-lg border border-slate-200 bg-slate-50 px-2 py-1.5 text-xs text-slate-600"
+                className="rounded-lg border border-theme-border bg-theme-bg-app px-2 py-1.5 text-xs text-theme-text-secondary"
               >
                 {[10, 20, 50, 100].map((n) => <option key={n} value={n}>{n}条/页</option>)}
               </select>
-              <button onClick={() => void loadOverview()} className="rounded-lg border border-slate-200 p-2 text-slate-500 hover:bg-slate-100">
+              <button onClick={() => void loadOverview()} className="rounded-lg border border-theme-border p-2 text-theme-text-muted hover:bg-theme-elevated">
                 <RefreshCw size={14} className={loading || statsLoading ? 'animate-spin' : ''} />
               </button>
               <button onClick={openCreateModal} className="inline-flex items-center gap-1.5 rounded-lg bg-violet-700 px-3 py-1.5 text-xs font-semibold text-white hover:bg-violet-800">
@@ -555,27 +555,27 @@ export const VulnVerifyTaskPage: React.FC<{ projectId: string }> = ({ projectId 
               </button>
             ))}
             {resultVerdictFilter ? (
-              <span className="rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs text-emerald-700">
+              <span className="rounded-full border border-emerald-500/20 bg-emerald-500/15 px-3 py-1.5 text-xs text-emerald-400">
                 结果：{RESULT_VERDICT_LABEL[resultVerdictFilter] || resultVerdictFilter}
               </span>
             ) : null}
             {search.trim() ? (
-              <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs text-slate-500">
+              <span className="rounded-full border border-theme-border bg-theme-bg-app px-3 py-1.5 text-xs text-theme-text-muted">
                 关键词：{search.trim()}
               </span>
             ) : null}
           </div>
 
-          <div className="mb-4 flex flex-wrap items-center gap-3 text-xs text-slate-500">
+          <div className="mb-4 flex flex-wrap items-center gap-3 text-xs text-theme-text-muted">
             <span>自动刷新：{autoRefreshEnabled ?`开启（${Math.max(5, refreshIntervalSec)}s）` : '关闭'}</span>
-            {autoRefreshEnabled ? <span className="text-violet-600">按设定间隔刷新任务列表与项目级漏洞验证统计</span> : null}
-            {hasFilters ? <span className="text-slate-600">已按筛选条件查询表格</span> : null}
+            {autoRefreshEnabled ? <span className="text-violet-400">按设定间隔刷新任务列表与项目级漏洞验证统计</span> : null}
+            {hasFilters ? <span className="text-theme-text-secondary">已按筛选条件查询表格</span> : null}
           </div>
 
           {loading ? (
-            <div className="flex items-center gap-2 py-10 text-sm text-slate-500"><Loader2 size={14} className="animate-spin" />加载中...</div>
+            <div className="flex items-center gap-2 py-10 text-sm text-theme-text-muted"><Loader2 size={14} className="animate-spin" />加载中...</div>
           ) : tasks.length === 0 ? (
-            <div className="py-16 text-center text-sm text-slate-400">
+            <div className="py-16 text-center text-sm text-theme-text-muted">
               {hasFilters ? '当前筛选条件下暂无任务，建议调整状态或关键词。' : '暂无任务，点击右上角「新建任务」创建。'}
             </div>
           ) : (
@@ -597,38 +597,38 @@ export const VulnVerifyTaskPage: React.FC<{ projectId: string }> = ({ projectId 
                 {tasks.map((task) => (
                   <tr key={task.id} className={executionTableInteractiveRowClassName} onClick={() => void openDetailModal(task.id)}>
                     <ExecutionTableTd className="min-w-[220px]">
-                      <button type="button" className="text-left text-sm font-black text-slate-900 hover:text-violet-700" onClick={(e) => { e.stopPropagation(); void openDetailModal(task.id); }}>
+                      <button type="button" className="text-left text-sm font-black text-theme-text-primary hover:text-violet-400" onClick={(e) => { e.stopPropagation(); void openDetailModal(task.id); }}>
                         {task.name}
                       </button>
-                      <div className="mt-1 font-mono text-[11px] text-slate-400">{task.id}</div>
-                      <div className="mt-1 max-w-[360px] truncate text-[11px] text-slate-400" title={task.output_dir}>输出：{task.output_dir || '-'}</div>
+                      <div className="mt-1 font-mono text-[11px] text-theme-text-muted">{task.id}</div>
+                      <div className="mt-1 max-w-[360px] truncate text-[11px] text-theme-text-muted" title={task.output_dir}>输出：{task.output_dir || '-'}</div>
                     </ExecutionTableTd>
                     <ExecutionTableTd><StatusBadge status={task.status} /></ExecutionTableTd>
-                    <ExecutionTableTd className="max-w-[260px]"><div className="truncate text-xs text-slate-600" title={getProgressText(task)}>{getProgressText(task)}</div></ExecutionTableTd>
-                    <ExecutionTableTd className="max-w-[220px]"><div className="truncate font-mono text-xs text-slate-600" title={task.model || DEFAULT_MODEL_HINT}>{task.model || '继承默认'}</div></ExecutionTableTd>
-                    <ExecutionTableTd className="text-xs text-slate-600">{task.concurrency}</ExecutionTableTd>
-                    <ExecutionTableTd className="min-w-[180px] text-xs text-slate-600">
+                    <ExecutionTableTd className="max-w-[260px]"><div className="truncate text-xs text-theme-text-secondary" title={getProgressText(task)}>{getProgressText(task)}</div></ExecutionTableTd>
+                    <ExecutionTableTd className="max-w-[220px]"><div className="truncate font-mono text-xs text-theme-text-secondary" title={task.model || DEFAULT_MODEL_HINT}>{task.model || '继承默认'}</div></ExecutionTableTd>
+                    <ExecutionTableTd className="text-xs text-theme-text-secondary">{task.concurrency}</ExecutionTableTd>
+                    <ExecutionTableTd className="min-w-[180px] text-xs text-theme-text-secondary">
                       {(() => {
                         const verdictCounts = getTaskVerdictCounts(task);
                         return (
                           <>
-                            <div className="font-semibold text-rose-600">确认 {verdictCounts.confirmed}</div>
-                            <div className="mt-1 text-emerald-700">排除 {verdictCounts.ruledOut}</div>
-                            <div className="mt-1 text-slate-400">待确认 {verdictCounts.unresolved}</div>
+                            <div className="font-semibold text-rose-400">确认 {verdictCounts.confirmed}</div>
+                            <div className="mt-1 text-emerald-400">排除 {verdictCounts.ruledOut}</div>
+                            <div className="mt-1 text-theme-text-muted">待确认 {verdictCounts.unresolved}</div>
                           </>
                         );
                       })()}
                     </ExecutionTableTd>
-                    <ExecutionTableTd className="whitespace-nowrap text-xs text-slate-500">{formatDate(task.created_at)}</ExecutionTableTd>
-                    <ExecutionTableTd className="whitespace-nowrap text-xs text-slate-500">{formatDuration(task.started_at, task.finished_at)}</ExecutionTableTd>
+                    <ExecutionTableTd className="whitespace-nowrap text-xs text-theme-text-muted">{formatDate(task.created_at)}</ExecutionTableTd>
+                    <ExecutionTableTd className="whitespace-nowrap text-xs text-theme-text-muted">{formatDuration(task.started_at, task.finished_at)}</ExecutionTableTd>
                     <ExecutionTableTd className="text-right">
                       <div className="inline-flex items-center justify-end gap-1">
-                        <button type="button" onClick={(e) => { e.stopPropagation(); void openDetailModal(task.id); }} title="查看详情" className="rounded-lg p-1.5 text-slate-400 hover:bg-violet-50 hover:text-violet-600"><Eye size={14} /></button>
+                        <button type="button" onClick={(e) => { e.stopPropagation(); void openDetailModal(task.id); }} title="查看详情" className="rounded-lg p-1.5 text-theme-text-muted hover:bg-violet-500/15 hover:text-violet-400"><Eye size={14} /></button>
                         {ACTIVE_STATUSES.has(task.status) ? (
-                          <button type="button" onClick={(e) => { e.stopPropagation(); void terminateTask(task.id); }} title="取消任务" className="rounded-lg p-1.5 text-slate-400 hover:bg-rose-50 hover:text-rose-600"><Square size={14} /></button>
+                          <button type="button" onClick={(e) => { e.stopPropagation(); void terminateTask(task.id); }} title="取消任务" className="rounded-lg p-1.5 text-theme-text-muted hover:bg-rose-500/15 hover:text-rose-400"><Square size={14} /></button>
                         ) : null}
                         {TERMINAL_STATUSES.has(task.status) ? (
-                          <button type="button" onClick={(e) => { e.stopPropagation(); void rerunTask(task.id); }} title="重跑任务" className="rounded-lg p-1.5 text-slate-400 hover:bg-violet-50 hover:text-violet-600"><RotateCcw size={14} /></button>
+                          <button type="button" onClick={(e) => { e.stopPropagation(); void rerunTask(task.id); }} title="重跑任务" className="rounded-lg p-1.5 text-theme-text-muted hover:bg-violet-500/15 hover:text-violet-400"><RotateCcw size={14} /></button>
                         ) : null}
                       </div>
                     </ExecutionTableTd>
@@ -639,11 +639,11 @@ export const VulnVerifyTaskPage: React.FC<{ projectId: string }> = ({ projectId 
           )}
 
           <div className="mt-4 flex flex-wrap items-center justify-between gap-3 text-sm">
-            <span className="text-xs text-slate-400">当前显示 {tasks.length ? offset + 1 : 0} - {offset + tasks.length} / {total}</span>
+            <span className="text-xs text-theme-text-muted">当前显示 {tasks.length ? offset + 1 : 0} - {offset + tasks.length} / {total}</span>
             <div className="flex items-center justify-center gap-2">
-              <button onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page <= 1} className="rounded-lg border border-slate-200 px-3 py-1.5 text-slate-600 disabled:opacity-40">上一页</button>
-              <span className="text-slate-500">{page} / {totalPages}</span>
-              <button onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={page >= totalPages} className="rounded-lg border border-slate-200 px-3 py-1.5 text-slate-600 disabled:opacity-40">下一页</button>
+              <button onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page <= 1} className="rounded-lg border border-theme-border px-3 py-1.5 text-theme-text-secondary disabled:opacity-40">上一页</button>
+              <span className="text-theme-text-muted">{page} / {totalPages}</span>
+              <button onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={page >= totalPages} className="rounded-lg border border-theme-border px-3 py-1.5 text-theme-text-secondary disabled:opacity-40">下一页</button>
             </div>
           </div>
         </section>
@@ -652,49 +652,49 @@ export const VulnVerifyTaskPage: React.FC<{ projectId: string }> = ({ projectId 
       {createModalOpen ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setCreateModalOpen(false)} />
- <div className="relative z-10 max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-2xl border border-slate-200 bg-slate-50">
+ <div className="relative z-10 max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-2xl border border-theme-border bg-theme-bg-app">
             <form onSubmit={createTask} className="space-y-4 p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <h2 className="text-lg font-black text-slate-900">新建漏洞验证任务</h2>
-                  <p className="mt-1 text-xs text-slate-400">所有输入路径必须位于当前项目数据目录下。</p>
+                  <h2 className="text-lg font-black text-theme-text-primary">新建漏洞验证任务</h2>
+                  <p className="mt-1 text-xs text-theme-text-muted">所有输入路径必须位于当前项目数据目录下。</p>
                 </div>
-                <button type="button" onClick={() => setCreateModalOpen(false)} className="rounded-lg p-1 text-slate-400 hover:text-slate-700"><X size={16} /></button>
+                <button type="button" onClick={() => setCreateModalOpen(false)} className="rounded-lg p-1 text-theme-text-muted hover:text-theme-text-secondary"><X size={16} /></button>
               </div>
 
-              <label className="block text-sm font-semibold text-slate-600">
+              <label className="block text-sm font-semibold text-theme-text-secondary">
                 任务名称 <span className="text-rose-500">*</span>
-                <input className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" value={form.name} onChange={(e) => setForm((p) => ({ ...p, name: e.target.value }))} required />
+                <input className="mt-1 w-full rounded-lg border border-theme-border px-3 py-2 text-sm" value={form.name} onChange={(e) => setForm((p) => ({ ...p, name: e.target.value }))} required />
               </label>
-              <label className="block text-sm font-semibold text-slate-600">
+              <label className="block text-sm font-semibold text-theme-text-secondary">
                 描述
-                <textarea className="mt-1 min-h-20 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" value={form.description} onChange={(e) => setForm((p) => ({ ...p, description: e.target.value }))} placeholder="可选：说明本次验证范围或报告来源" />
+                <textarea className="mt-1 min-h-20 w-full rounded-lg border border-theme-border px-3 py-2 text-sm" value={form.description} onChange={(e) => setForm((p) => ({ ...p, description: e.target.value }))} placeholder="可选：说明本次验证范围或报告来源" />
               </label>
               {[
                 ['reports_dir', '报告目录', '扫描报告所在目录'],
                 ['source_root', '源码根目录', '源码文件根目录'],
-                ['binary_root', '二进制根目录', '二进制文件根目录'],
-                ['threat_path', '威胁模型文件', 'threat_model.md 路径'],
+                ['binary_root', '二进制根目录', '二进制文件根目录（可选）'],
+                ['threat_path', '威胁模型文件', 'threat_model.md 路径（可选，留空使用内置威胁模型）'],
                 ['model', '模型', DEFAULT_MODEL_HINT],
               ].map(([key, label, help]) => (
-                <label key={key} className="block text-sm font-semibold text-slate-600">
-                  {label} {key !== 'model' ? <span className="text-rose-500">*</span> : null}
+                <label key={key} className="block text-sm font-semibold text-theme-text-secondary">
+                  {label} {key !== 'model' && key !== 'binary_root' && key !== 'threat_path' ? <span className="text-rose-500">*</span> : null}
                   <input
-                    className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 font-mono text-xs"
+                    className="mt-1 w-full rounded-lg border border-theme-border px-3 py-2 font-mono text-xs"
                     value={(form as any)[key]}
                     onChange={(e) => setForm((p) => ({ ...p, [key]: e.target.value }))}
                     placeholder={help}
-                    required={key !== 'model'}
+                    required={key !== 'model' && key !== 'binary_root' && key !== 'threat_path'}
                   />
                 </label>
               ))}
-              <label className="block text-sm font-semibold text-slate-600">
+              <label className="block text-sm font-semibold text-theme-text-secondary">
                 并发
-                <input type="number" min={1} max={16} className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" value={form.concurrency} onChange={(e) => setForm((p) => ({ ...p, concurrency: Number(e.target.value || 1) }))} />
+                <input type="number" min={1} max={16} className="mt-1 w-full rounded-lg border border-theme-border px-3 py-2 text-sm" value={form.concurrency} onChange={(e) => setForm((p) => ({ ...p, concurrency: Number(e.target.value || 1) }))} />
               </label>
 
               <div className="flex justify-end gap-2 pt-2">
-                <button type="button" onClick={() => setCreateModalOpen(false)} className="rounded-xl border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-100">取消</button>
+                <button type="button" onClick={() => setCreateModalOpen(false)} className="rounded-xl border border-theme-border px-4 py-2 text-sm font-semibold text-theme-text-secondary hover:bg-theme-elevated">取消</button>
                 <button type="submit" disabled={creating} className="inline-flex items-center gap-2 rounded-xl bg-violet-700 px-4 py-2 text-sm font-black text-white hover:bg-violet-800 disabled:opacity-50">
                   {creating ? <Loader2 size={14} className="animate-spin" /> : <Plus size={14} />}创建任务
                 </button>
@@ -707,30 +707,30 @@ export const VulnVerifyTaskPage: React.FC<{ projectId: string }> = ({ projectId 
       {detailModalOpen ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setDetailModalOpen(false)} />
- <div className="relative z-10 flex max-h-[92vh] w-full max-w-6xl flex-col overflow-hidden rounded-2xl border border-slate-200 bg-slate-50">
-            <div className="flex flex-wrap items-start justify-between gap-4 border-b border-slate-200 p-5">
+ <div className="relative z-10 flex max-h-[92vh] w-full max-w-6xl flex-col overflow-hidden rounded-2xl border border-theme-border bg-theme-bg-app">
+            <div className="flex flex-wrap items-start justify-between gap-4 border-b border-theme-border p-5">
               <div>
                 <div className="flex flex-wrap items-center gap-3">
                   {detail?.status === 'success' ? <CheckCircle2 className="text-emerald-500" /> : detail?.status === 'failed' ? <XCircle className="text-rose-500" /> : detail?.status === 'running' ? <Loader2 className="animate-spin text-blue-500" /> : <ShieldCheck className="text-violet-500" />}
-                  <h2 className="text-xl font-black text-slate-900">{detail?.name || selectedTaskId}</h2>
+                  <h2 className="text-xl font-black text-theme-text-primary">{detail?.name || selectedTaskId}</h2>
                   <StatusBadge status={detail?.status} />
                 </div>
-                <div className="mt-2 font-mono text-xs text-slate-400">{selectedTaskId}</div>
+                <div className="mt-2 font-mono text-xs text-theme-text-muted">{selectedTaskId}</div>
               </div>
               <div className="flex items-center gap-2">
-                {detail && ACTIVE_STATUSES.has(detail.status) ? <button onClick={() => void terminateTask(detail.id)} className="inline-flex items-center gap-2 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-sm font-black text-rose-700"><Square size={14} />取消</button> : null}
-                {detail && TERMINAL_STATUSES.has(detail.status) ? <button onClick={() => void rerunTask(detail.id)} className="inline-flex items-center gap-2 rounded-xl border border-violet-200 bg-violet-50 px-3 py-2 text-sm font-black text-violet-700"><RotateCcw size={14} />重跑</button> : null}
-                <button onClick={() => detail && void loadDetail(detail.id)} className="rounded-xl border border-slate-200 p-2 text-slate-500 hover:bg-slate-100"><RefreshCw size={15} className={detailLoading ? 'animate-spin' : ''} /></button>
-                <button onClick={() => setDetailModalOpen(false)} className="rounded-xl p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-700"><X size={16} /></button>
+                {detail && ACTIVE_STATUSES.has(detail.status) ? <button onClick={() => void terminateTask(detail.id)} className="inline-flex items-center gap-2 rounded-xl border border-rose-500/20 bg-rose-500/15 px-3 py-2 text-sm font-black text-rose-400"><Square size={14} />取消</button> : null}
+                {detail && TERMINAL_STATUSES.has(detail.status) ? <button onClick={() => void rerunTask(detail.id)} className="inline-flex items-center gap-2 rounded-xl border border-violet-500/20 bg-violet-500/15 px-3 py-2 text-sm font-black text-violet-400"><RotateCcw size={14} />重跑</button> : null}
+                <button onClick={() => detail && void loadDetail(detail.id)} className="rounded-xl border border-theme-border p-2 text-theme-text-muted hover:bg-theme-elevated"><RefreshCw size={15} className={detailLoading ? 'animate-spin' : ''} /></button>
+                <button onClick={() => setDetailModalOpen(false)} className="rounded-xl p-2 text-theme-text-muted hover:bg-theme-elevated hover:text-theme-text-secondary"><X size={16} /></button>
               </div>
             </div>
 
             <div className="overflow-y-auto p-5">
               {detailLoading && !detail ? (
-                <div className="flex items-center gap-2 py-12 text-sm text-slate-500"><Loader2 size={14} className="animate-spin" />加载任务详情...</div>
+                <div className="flex items-center gap-2 py-12 text-sm text-theme-text-muted"><Loader2 size={14} className="animate-spin" />加载任务详情...</div>
               ) : detail ? (
                 <div className="space-y-5">
-                  {detail.error_reason ? <div className="flex gap-2 rounded-2xl border border-rose-200 bg-rose-50 p-3 text-sm font-bold text-rose-700"><AlertCircle size={16} />{detail.error_reason}</div> : null}
+                  {detail.error_reason ? <div className="flex gap-2 rounded-2xl border border-rose-500/20 bg-rose-500/15 p-3 text-sm font-bold text-rose-400"><AlertCircle size={16} />{detail.error_reason}</div> : null}
 
                   <div className="grid gap-3 md:grid-cols-3">
                     <InfoRow label="模型" value={detail.model || '继承默认'} />
@@ -754,46 +754,46 @@ export const VulnVerifyTaskPage: React.FC<{ projectId: string }> = ({ projectId 
                   <VulnVerifyReportView data={reportData} loading={detailLoading && !reportData} error={reportDataError} />
 
                   <div className="grid gap-5 xl:grid-cols-[320px_minmax(0,1fr)]">
-                    <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                      <h3 className="text-sm font-black text-slate-900">产物文件</h3>
+                    <div className="rounded-2xl border border-theme-border bg-theme-bg-app p-4">
+                      <h3 className="text-sm font-black text-theme-text-primary">产物文件</h3>
                       <div className="mt-3 max-h-[420px] space-y-2 overflow-auto pr-1">
-                        {artifacts.length === 0 ? <div className="rounded-2xl border border-dashed border-slate-200 p-8 text-center text-xs text-slate-400">暂无产物</div> : artifacts.map((file) => (
-                          <button key={file.path} onClick={() => void openArtifact(file.path)} className="w-full rounded-2xl border border-slate-200 bg-slate-50 p-3 text-left hover:bg-slate-100">
-                            <div className="flex items-center gap-2 text-xs font-black text-slate-700"><FileText size={14} /> <span className="break-all">{file.path}</span></div>
-                            <div className="mt-1 text-[10px] text-slate-400">{formatBytes(file.size)}</div>
+                        {artifacts.length === 0 ? <div className="rounded-2xl border border-dashed border-theme-border p-8 text-center text-xs text-theme-text-muted">暂无产物</div> : artifacts.map((file) => (
+                          <button key={file.path} onClick={() => void openArtifact(file.path)} className="w-full rounded-2xl border border-theme-border bg-theme-bg-app p-3 text-left hover:bg-theme-elevated">
+                            <div className="flex items-center gap-2 text-xs font-black text-theme-text-secondary"><FileText size={14} /> <span className="break-all">{file.path}</span></div>
+                            <div className="mt-1 text-[10px] text-theme-text-muted">{formatBytes(file.size)}</div>
                           </button>
                         ))}
                       </div>
                     </div>
-                    <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                      <h3 className="text-sm font-black text-slate-900">{artifactContent?.path || '结果预览'}</h3>
+                    <div className="rounded-2xl border border-theme-border bg-theme-bg-app p-4">
+                      <h3 className="text-sm font-black text-theme-text-primary">{artifactContent?.path || '结果预览'}</h3>
                       {artifactContent ? (
                         <pre className="mt-3 max-h-[420px] overflow-auto rounded-2xl border border-theme-border bg-theme-elevated p-4 font-mono text-xs leading-6 text-theme-text-primary">{artifactContent.content}{artifactContent.truncated ? '\n\n... truncated ...' : ''}</pre>
                       ) : result?.results?.length ? (
                         <pre className="mt-3 max-h-[420px] overflow-auto rounded-2xl border border-theme-border bg-theme-elevated p-4 font-mono text-xs leading-6 text-theme-text-primary">{JSON.stringify(result.results, null, 2)}</pre>
                       ) : (
-                        <div className="mt-3 rounded-2xl border border-dashed border-slate-200 p-12 text-center text-sm text-slate-400">选择左侧产物或等待任务生成结果。</div>
+                        <div className="mt-3 rounded-2xl border border-dashed border-theme-border p-12 text-center text-sm text-theme-text-muted">选择左侧产物或等待任务生成结果。</div>
                       )}
                     </div>
                   </div>
 
-                  <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                    <h3 className="text-sm font-black text-slate-900">事件</h3>
+                  <div className="rounded-2xl border border-theme-border bg-theme-bg-app p-4">
+                    <h3 className="text-sm font-black text-theme-text-primary">事件</h3>
                     <div className="mt-3 max-h-56 space-y-2 overflow-auto pr-1">
                       {detail.events?.length ? detail.events.map((event) => (
-                        <div key={event.id} className="rounded-xl bg-slate-50 p-3 text-xs">
+                        <div key={event.id} className="rounded-xl bg-theme-bg-app p-3 text-xs">
                           <div className="flex flex-wrap items-center justify-between gap-2">
-                            <span className="font-black text-slate-700">{event.event_type}</span>
-                            <span className="text-slate-400">{formatDate(event.created_at)}</span>
+                            <span className="font-black text-theme-text-secondary">{event.event_type}</span>
+                            <span className="text-theme-text-muted">{formatDate(event.created_at)}</span>
                           </div>
-                          <div className="mt-1 text-slate-600">{event.message}</div>
+                          <div className="mt-1 text-theme-text-secondary">{event.message}</div>
                         </div>
-                      )) : <div className="rounded-2xl border border-dashed border-slate-200 p-8 text-center text-xs text-slate-400">暂无事件</div>}
+                      )) : <div className="rounded-2xl border border-dashed border-theme-border p-8 text-center text-xs text-theme-text-muted">暂无事件</div>}
                     </div>
                   </div>
                 </div>
               ) : (
-                <div className="py-12 text-center text-sm text-slate-400">暂无详情</div>
+                <div className="py-12 text-center text-sm text-theme-text-muted">暂无详情</div>
               )}
             </div>
           </div>

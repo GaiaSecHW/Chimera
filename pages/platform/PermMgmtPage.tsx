@@ -76,12 +76,12 @@ export const PermMgmtPage: React.FC = () => {
                <ArrowRightLeft size={28} />
              </div>
              <div>
-               <h2 className="text-3xl font-black text-slate-800 tracking-tight">功能权限分配</h2>
+               <h2 className="text-3xl font-black text-theme-text-primary tracking-tight">功能权限分配</h2>
              </div>
           </div>
         </div>
         <div className="flex gap-4">
- <button onClick={loadInitialData} className="p-4 bg-slate-50 border border-slate-200 text-slate-500 rounded-2xl hover:bg-slate-100 transition-all active:scale-95">
+ <button onClick={loadInitialData} className="p-4 bg-theme-bg-app border border-theme-border text-theme-text-muted rounded-2xl hover:bg-theme-elevated transition-all active:scale-95">
             <RefreshCw size={20} className={loading ? 'animate-spin' : ''} />
           </button>
         </div>
@@ -91,16 +91,16 @@ export const PermMgmtPage: React.FC = () => {
          {/* Left Column: User Explorer */}
          <div className="w-[400px] flex flex-col gap-6 shrink-0 min-h-0">
             <div className="relative">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" size={18} />
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-theme-text-faint" size={18} />
               <input
                 type="text" placeholder="检索用户列表..."
- className="w-full pl-12 pr-4 py-4 bg-slate-50 border border-slate-200 rounded-3xl text-xs outline-none focus:ring-4 ring-purple-500/5 transition-all font-bold"
+ className="w-full pl-12 pr-4 py-4 bg-theme-bg-app border border-theme-border rounded-3xl text-xs outline-none focus:ring-4 ring-purple-500/5 transition-all font-bold"
                 value={searchTerm} onChange={e => setSearchTerm(e.target.value)}
               />
             </div>
- <div className="flex-1 bg-slate-50 border border-slate-200 rounded-[3rem] overflow-hidden flex flex-col min-h-0">
+ <div className="flex-1 bg-theme-bg-app border border-theme-border rounded-[3rem] overflow-hidden flex flex-col min-h-0">
                <div className="px-8 py-5 border-b border-slate-50 bg-slate-100/50 flex items-center justify-between">
-                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Identities Directory</span>
+                  <span className="text-[10px] font-black text-theme-text-muted uppercase tracking-widest">Identities Directory</span>
                   <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
                </div>
                <div className="flex-1 overflow-y-auto custom-scrollbar p-3 space-y-1">
@@ -108,15 +108,15 @@ export const PermMgmtPage: React.FC = () => {
                     <div
                       key={user.id}
                       onClick={() => handleUserSelect(user.id)}
- className={`flex items-center justify-between p-4 rounded-3xl cursor-pointer transition-all ${selectedUserId === user.id ? 'bg-purple-600 text-white shadow-purple-500/20' : 'hover:bg-slate-100 text-slate-600'}`}
+ className={`flex items-center justify-between p-4 rounded-3xl cursor-pointer transition-all ${selectedUserId === user.id ? 'bg-purple-600 text-white shadow-purple-500/20' : 'hover:bg-theme-elevated text-theme-text-secondary'}`}
                     >
                        <div className="flex items-center gap-4 min-w-0">
- <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-black shadow-inner ${selectedUserId === user.id ? 'bg-slate-100' : 'bg-slate-100 text-slate-400'}`}>
+ <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-black shadow-inner ${selectedUserId === user.id ? 'bg-theme-elevated' : 'bg-theme-elevated text-theme-text-muted'}`}>
                              {user.username[0].toUpperCase()}
                           </div>
                           <div className="min-w-0">
                              <p className="text-sm font-black truncate">{user.username}</p>
-                             <p className={`text-[9px] font-bold uppercase ${selectedUserId === user.id ? 'text-purple-200' : 'text-slate-400'}`}>{user.role?.length || 0} Roles Attached</p>
+                             <p className={`text-[9px] font-bold uppercase ${selectedUserId === user.id ? 'text-purple-200' : 'text-theme-text-muted'}`}>{user.role?.length || 0} Roles Attached</p>
                           </div>
                        </div>
                        <ChevronRight size={14} className={selectedUserId === user.id ? 'text-white' : 'text-slate-200'} />
@@ -128,14 +128,14 @@ export const PermMgmtPage: React.FC = () => {
 
          {/* Right Column: Permission Matrix */}
          <div className="flex-1 flex flex-col gap-6 min-h-0">
- <div className="flex-1 bg-slate-50 border border-slate-200 rounded-[3rem] flex flex-col overflow-hidden min-h-0">
+ <div className="flex-1 bg-theme-bg-app border border-theme-border rounded-[3rem] flex flex-col overflow-hidden min-h-0">
                <div className="p-10 border-b border-slate-50 flex items-center justify-between shrink-0">
                   <div className="flex items-center gap-6">
-                     <div className="w-16 h-16 bg-purple-50 text-purple-600 rounded-[1.75rem] flex items-center justify-center shadow-inner">
+                     <div className="w-16 h-16 bg-purple-500/15 text-purple-400 rounded-[1.75rem] flex items-center justify-center shadow-inner">
                         <Tags size={32} />
                      </div>
                      <div>
-                        <h3 className="text-2xl font-black text-slate-800 tracking-tight">
+                        <h3 className="text-2xl font-black text-theme-text-primary tracking-tight">
                            {activeUser ?`正在为 ${activeUser.username} 分配角色` : '请选择目标身份'}
                         </h3>
                      </div>
@@ -154,7 +154,7 @@ export const PermMgmtPage: React.FC = () => {
 
                <div className="flex-1 overflow-y-auto p-10 custom-scrollbar">
                   {!selectedUserId ? (
-                    <div className="h-full flex flex-col items-center justify-center text-slate-300 gap-6 opacity-30">
+                    <div className="h-full flex flex-col items-center justify-center text-theme-text-faint gap-6 opacity-30">
                        <Shield size={80} />
                        <p className="text-xl font-black uppercase tracking-widest">Select user from left pane</p>
                     </div>
@@ -165,19 +165,19 @@ export const PermMgmtPage: React.FC = () => {
                             <div
                               key={role.id}
                               onClick={() => toggleRole(role.id)}
- className={`p-8 rounded-[2.5rem] border-2 transition-all cursor-pointer group relative overflow-hidden flex flex-col justify-between min-h-[160px] ${userRoles.includes(role.id) ? 'bg-purple-50 border-purple-600 shadow-purple-500/5' : 'bg-slate-50 border-slate-100 hover:border-purple-200'}`}
+ className={`p-8 rounded-[2.5rem] border-2 transition-all cursor-pointer group relative overflow-hidden flex flex-col justify-between min-h-[160px] ${userRoles.includes(role.id) ? 'bg-purple-500/15 border-purple-600 shadow-purple-500/5' : 'bg-theme-bg-app border-theme-border hover:border-purple-500/20'}`}
                             >
                                <div className="flex justify-between items-start">
-                                  <div className={`w-12 h-12 rounded-2xl flex items-center justify-center font-black transition-all ${userRoles.includes(role.id) ? 'bg-purple-600 text-white' : 'bg-slate-50 text-slate-400 group-hover:bg-purple-100 group-hover:text-purple-600'}`}>
+                                  <div className={`w-12 h-12 rounded-2xl flex items-center justify-center font-black transition-all ${userRoles.includes(role.id) ? 'bg-purple-600 text-white' : 'bg-theme-bg-app text-theme-text-muted group-hover:bg-purple-500/15 group-hover:text-purple-400'}`}>
                                      <ShieldCheck size={24} />
                                   </div>
-                                  <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all ${userRoles.includes(role.id) ? 'bg-purple-600 border-purple-600 text-white' : 'border-slate-200'}`}>
+                                  <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all ${userRoles.includes(role.id) ? 'bg-purple-600 border-purple-600 text-white' : 'border-theme-border'}`}>
                                      {userRoles.includes(role.id) && <X size={12} strokeWidth={4} />}
                                   </div>
                                </div>
                                <div className="mt-4">
-                                  <h5 className="font-black text-slate-800 uppercase tracking-tight">{role.name}</h5>
-                                  <p className="text-[10px] text-slate-400 font-medium mt-1 leading-relaxed line-clamp-1">{role.description || 'No blueprint provided.'}</p>
+                                  <h5 className="font-black text-theme-text-primary uppercase tracking-tight">{role.name}</h5>
+                                  <p className="text-[10px] text-theme-text-muted font-medium mt-1 leading-relaxed line-clamp-1">{role.description || 'No blueprint provided.'}</p>
                                </div>
                             </div>
                           ))}
@@ -187,19 +187,19 @@ export const PermMgmtPage: React.FC = () => {
                </div>
 
                {selectedUserId && (
-                 <div className="px-10 py-6 bg-slate-50 border-t border-slate-100 flex items-center gap-4">
-                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Selected Roles:</span>
+                 <div className="px-10 py-6 bg-theme-bg-app border-t border-theme-border flex items-center gap-4">
+                    <span className="text-[10px] font-black text-theme-text-muted uppercase tracking-widest">Selected Roles:</span>
                     <div className="flex flex-wrap gap-2">
                        {userRoles.map(rid => {
                          const r = roles.find(ro => ro.id === rid);
                          return (
- <div key={rid} className="flex items-center gap-2 px-3 py-1.5 bg-slate-50 border border-purple-200 text-purple-600 rounded-xl text-[10px] font-black">
+ <div key={rid} className="flex items-center gap-2 px-3 py-1.5 bg-theme-bg-app border border-purple-500/20 text-purple-400 rounded-xl text-[10px] font-black">
                               {r?.name.toUpperCase()}
                               <button onClick={() => toggleRole(rid)} className="hover:text-red-500"><X size={12} strokeWidth={3} /></button>
                            </div>
                          );
                        })}
-                       {userRoles.length === 0 && <span className="text-[10px] font-black text-slate-300 uppercase italic">No permissions set</span>}
+                       {userRoles.length === 0 && <span className="text-[10px] font-black text-theme-text-faint uppercase italic">No permissions set</span>}
                     </div>
                  </div>
                )}

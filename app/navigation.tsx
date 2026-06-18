@@ -115,8 +115,8 @@ export const TOP_LEVEL_NAV_ITEMS: TopLevelNavItem[] = [
   { id: 'home', label: '首页', role: null },
   { id: 'project-mgmt-nav', label: '项目管理', role: null },
   { id: 'test-object', label: '测试对象', role: null },
-  { id: 'test-env', label: '测试环境', role: null },
   { id: 'test-task', label: '测试任务', role: null },
+  { id: 'test-env', label: '测试环境', role: null },
   { id: 'vuln-center', label: '漏洞中心', role: null },
   { id: 'assets', label: '资产', role: 'developer', showDividerBefore: true },
   { id: 'assessment', label: '评测', role: 'developer' },
@@ -239,13 +239,13 @@ export const PROJECT_REQUIRED_VIEWS = new Set<string>([
   'vuln-repro-config',
   'vuln-parameter-config',
   'task-list',
+  'task-vuln-list',
   'developer-atomic-capability',
   'developer-atomic-capability-overview',
   'developer-tools',
   'developer-tools-overview',
   'redline-verification',
   'redline-verification-detail',
-  'ai4red-detail',
 ]);
 
 const DEVELOPER_ATOMIC_CAPABILITY_VIEWS = new Set<string>([
@@ -288,9 +288,7 @@ const DEVELOPER_TOOL_VIEWS = new Set<string>([
   'app-security-scan-monitor',
   'redline-verification',
   'redline-verification-detail',
-  'ai4red-detail',
 ]);
-
 const ASSESSMENT_VIEWS = new Set([
   'pentest-exec-code',
   'security-assessment',
@@ -520,8 +518,8 @@ export const SIDEBAR_SECTIONS: Record<string, NavSection[]> = {
         { id: 'binary-security', label: '盖亚-二进制固件', icon: Settings, aliases: ['binary-security-root', 'binary-security-task-list', 'binary-security-detail'], requiresProject: true },
         { id: 'source-security', label: '盖亚-源码', icon: Settings, aliases: ['source-security-detail'], requiresProject: true },
         { id: 'binary-module-security', label: '盖亚-二进制模块', icon: Settings, aliases: ['binary-module-security-detail'], requiresProject: true },
-        { id: 'app-security-scan', label: '应用端到端扫描', icon: Smartphone, aliases: ['app-security-scan-detail', 'app-security-scan-monitor'], requiresProject: true },
-        { id: 'redline-verification', label: '红线验证', icon: ShieldCheck, aliases: ['redline-verification-detail', 'ai4red-detail'], requiresProject: true },
+        { id: 'app-security-scan', label: 'turing 扫描工具', icon: Smartphone, aliases: ['app-security-scan-detail', 'app-security-scan-monitor'], requiresProject: true },
+        { id: 'redline-verification', label: '红线验证', icon: ShieldCheck, aliases: ['redline-verification-detail'], requiresProject: true },
       ],
     },
   ],

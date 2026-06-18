@@ -25,14 +25,6 @@ const bootTheme = () => {
   return theme;
 };
 
-const applyTheme = (theme: string) => {
-  if (!isThemeId(theme)) {
-    throw new Error(`invalid theme: ${theme}`);
-  }
-  documentElement.dataset.theme = theme;
-  localStorage.setItem(THEME_STORAGE_KEY, theme);
-};
-
 const assert = (condition: unknown, message: string) => {
   if (!condition) {
     throw new Error(message);
@@ -43,12 +35,5 @@ const initialTheme = bootTheme();
 assert(initialTheme === 'chimera-classic', 'default theme should be chimera-classic');
 assert(documentElement.dataset.theme === 'chimera-classic', 'dataset should use default theme');
 assert(localStorage.getItem(THEME_STORAGE_KEY) === 'chimera-classic', 'storage should persist default theme');
-
-applyTheme('chimera');
-assert(documentElement.dataset.theme === 'chimera', 'dataset should switch to chimera');
-assert(localStorage.getItem(THEME_STORAGE_KEY) === 'chimera', 'storage should persist chimera');
-
-const restoredTheme = bootTheme();
-assert(restoredTheme === 'chimera', 'boot should restore stored chimera theme');
 
 console.log('themeProvider.smoke.ts passed');

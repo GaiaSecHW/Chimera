@@ -32,19 +32,25 @@ export interface CreateTaskDialogProps {
 /*  Constants                                                          */
 /* ------------------------------------------------------------------ */
 
+type TaskMode = 'dragon-tail' | 'ram-horn';
+
 type TaskTypeOption = {
   value: ScheduleCenterUserTaskType;
   label: string;
   downstreamView?: string;
+  modes: readonly TaskMode[];
 };
 
 const TASK_TYPES: readonly TaskTypeOption[] = [
-  { value: 'binary_firmware_e2e', label: '盖亚-二进制固件', downstreamView: 'binary-security-detail' },
-  { value: 'source_scan_e2e', label: '盖亚-源码', downstreamView: 'source-security-detail' },
-  { value: 'binary_module_e2e', label: '盖亚-二进制模块', downstreamView: 'binary-module-security-detail' },
-  { value: 'ai4apk', label: 'AI4APP 应用安全扫描', downstreamView: 'app-security-scan-detail' },
-  { value: 'ai4red', label: 'AI4RED 红线验证', downstreamView: 'ai4red-detail' },
-  { value: 'sechps_tool', label: 'Agent Harness 任务' },
+  { value: 'binary_firmware_e2e', label: '盖亚-二进制固件', downstreamView: 'binary-security-detail', modes: ['dragon-tail', 'ram-horn'] },
+  { value: 'source_scan_e2e', label: '盖亚-源码', downstreamView: 'source-security-detail', modes: ['dragon-tail', 'ram-horn'] },
+  { value: 'binary_module_e2e', label: '盖亚-二进制模块', downstreamView: 'binary-module-security-detail', modes: ['dragon-tail', 'ram-horn'] },
+  { value: 'ai4app_fast', label: 'AI4APP 扫描（快速）', downstreamView: 'app-security-scan-detail', modes: ['dragon-tail'] },
+  { value: 'ai4web_fast', label: 'AI4WEB 扫描（快速）', downstreamView: 'app-security-scan-detail', modes: ['dragon-tail'] },
+  { value: 'ai4app_deep', label: 'AI4APP 扫描（深度）', downstreamView: 'app-security-scan-detail', modes: ['ram-horn'] },
+  { value: 'ai4web_deep', label: 'AI4WEB 扫描（深度）', downstreamView: 'app-security-scan-detail', modes: ['ram-horn'] },
+  { value: 'ai4red', label: 'AI4RED 红线验证', downstreamView: 'task-redline-detail', modes: ['dragon-tail', 'ram-horn'] },
+  { value: 'sechps_tool', label: 'Agent Harness 任务', modes: ['dragon-tail', 'ram-horn'] },
 ];
 
 const CREATE_TABS = [
@@ -57,14 +63,17 @@ const INPUT_MODES: Record<string, 'file' | 'file_list' | 'directory'> = {
   binary_module_e2e: 'file_list',
   source_scan_e2e: 'directory',
   ai4red: 'directory',
-  ai4apk: 'file',
+  ai4app_fast: 'file',
+  ai4app_deep: 'file',
+  ai4web_fast: 'file',
+  ai4web_deep: 'file',
   sechps_tool: 'directory',
 };
 
 const MODE_OPTIONS = [
   { value: 'dragon-tail', label: '龙尾' },
-  { value: 'devouring-head', label: '噬首' },
   { value: 'ram-horn', label: '羊角' },
+  { value: 'lion-head', label: '狮首' },
 ];
 
 /* ------------------------------------------------------------------ */
@@ -173,6 +182,10 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
   const rootBrowse = browseCache[''] || null;
   const isDirectorySelectionValid = directorySelectionTouched && selectedRelativePath !== null;
   const taskTypeMeta = useMemo(() => TASK_TYPES.find((item) => item.value === taskType) || TASK_TYPES[0], [taskType]);
+  const availableTaskTypes = useMemo(
+    () => TASK_TYPES.filter((item) => item.modes.includes(mode as TaskMode)),
+    [mode],
+  );
 
   const inputSummary = useMemo(() => {
     if (!selectedInput) return '未选择上传记录';
@@ -184,19 +197,20 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
 
   const inputSelectionHint = useMemo(() => {
     if (taskType === 'sechps_tool') return '请选择一个已注册的 Agent Harness，并选择一个目录。调度中心会在分发时自动申请 Task Key，并把所选目录直接传给下游。';
-    if (taskType === 'ai4apk') return '请选择一个 APK/HAP 安装包，或 zip/rar/tar.gz/gz 等常见压缩包作为测试对象；压缩包将作为 APK/HAP 的源码包处理。';
+    if (taskType === 'ai4app_fast' || taskType === 'ai4app_deep') return '请选择一个 APK/HAP 安装包，或 zip/rar/tar.gz/gz 等常见压缩包作为测试对象；压缩包将作为 APK/HAP 的源码包处理。';
+    if (taskType === 'ai4web_fast' || taskType === 'ai4web_deep') return '请选择一个 Web 源码包（zip/rar/tar.gz/gz 等压缩包）作为测试对象。';
     if (selectionMode === 'directory') return '请选择一个目录作为测试对象。';
     if (selectionMode === 'file_list') return '请选择一个或多个文件作为测试对象。';
     return '请选择一个文件作为测试对象。';
   }, [selectionMode, taskType]);
 
-  const canCreateTask = taskType === 'sechps_tool'
+  const canCreateTask = mode !== 'lion-head' && (taskType === 'sechps_tool'
     ? Boolean(name && selectedAgentApp && selectedInputId && isDirectorySelectionValid)
     : Boolean(name && selectedInputId && (
       (selectionMode === 'file' && selectedRelativePath) ||
       (selectionMode === 'file_list' && selectedRelativePaths.length > 0) ||
       (selectionMode === 'directory' && isDirectorySelectionValid)
-    ) && (taskType !== 'binary_module_e2e' || moduleName.trim()));
+    ) && (taskType !== 'binary_module_e2e' || moduleName.trim())));
 
   const activeCreateTabIndex = useMemo(() => CREATE_TABS.findIndex((item) => item.key === activeCreateTab), [activeCreateTab]);
 
@@ -247,6 +261,14 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
     if (!open || !selectedInputId || !projectId) return;
     void loadBrowsePath('');
   }, [open, projectId, selectedInputId, taskType]);
+
+  /* --- keep taskType valid for the selected mode --- */
+  useEffect(() => {
+    if (mode === 'lion-head') return;
+    if (!availableTaskTypes.some((item) => item.value === taskType)) {
+      setTaskType(availableTaskTypes[0]?.value || 'binary_firmware_e2e');
+    }
+  }, [mode, availableTaskTypes, taskType]);
 
   /* --- reset on task-type change --- */
   useEffect(() => {
@@ -327,7 +349,7 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
   const toggleFileSelection = (entry: ProjectInputUploadBrowseEntry) => {
     if (entry.node_type !== 'file') return;
     if (selectionMode === 'file') {
-      setSelectedRelativePath(entry.relative_path);
+      setSelectedRelativePath((current) => (current === entry.relative_path ? null : entry.relative_path));
       return;
     }
     if (selectionMode === 'file_list') {
@@ -371,7 +393,7 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
       /* reset form state */
       setName('');
       setDescription('');
-      setMode('');
+      setMode('dragon-tail');
       setModuleName('');
       setSelectedAgentAppId('');
       setInstruction('');
@@ -413,7 +435,7 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
           key={entry.relative_path || `${relativePath}:${entry.name}`}
           style={{ borderBottom: `1px solid ${LK.borderSoft}` }}
         >
-          <td className="px-4 py-3">
+          <td className="px-4 py-2">
             {isDirectory ? (
               selectionMode === 'directory' ? (
                 <button
@@ -440,7 +462,7 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
               </button>
             )}
           </td>
-          <td className="px-4 py-3">
+          <td className="px-4 py-2">
             <div className="flex items-center gap-2" style={{ paddingLeft: `${depth * 16}px` }}>
               {isDirectory ? (
                 <button
@@ -482,8 +504,8 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
               )}
             </div>
           </td>
-          <td className="px-4 py-3" style={{ fontFamily: MONO, fontSize: '12px', color: LK.muted }}>{entry.relative_path || '.'}</td>
-          <td className="px-4 py-3" style={{ color: LK.body }}>{isDirectory ? '文件夹' : '文件'}</td>
+          <td className="px-4 py-2" style={{ fontFamily: MONO, fontSize: '12px', color: LK.muted }}>{entry.relative_path || '.'}</td>
+          <td className="px-4 py-2" style={{ color: LK.body }}>{isDirectory ? '文件夹' : '文件'}</td>
         </tr>,
       );
       if (isDirectory && isExpanded) {
@@ -502,17 +524,17 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
       style={{ backgroundColor: 'rgba(5, 10, 20, 0.72)', backdropFilter: 'blur(6px)' }}
     >
       <div
-        className="flex max-h-[calc(100vh-2rem)] w-full max-w-4xl flex-col overflow-hidden rounded-2xl animate-in"
+        className="flex h-[min(1160px,calc(100vh-2rem))] w-full max-w-4xl flex-col overflow-hidden rounded-2xl animate-in"
         style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}` }}
       >
         {/* header */}
-        <div className="flex items-start justify-between px-6 py-5" style={{ borderBottom: `1px solid ${LK.borderSoft}` }}>
+        <div className="flex items-start justify-between px-6 py-3" style={{ borderBottom: `1px solid ${LK.borderSoft}` }}>
           <div>
             <div className="text-lg font-semibold leading-7" style={{ color: LK.ink }}>
               创建任务
             </div>
-            <div className="mt-1 text-sm" style={{ color: LK.muted }}>
-              {projectName}
+            <div className="mt-1 text-xs font-semibold" style={{ color: LK.error }}>
+              当前处于「{projectName}」项目下
             </div>
           </div>
           <button
@@ -527,7 +549,7 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
         </div>
 
         {/* tabs */}
-        <div className="px-6 py-4" style={{ borderBottom: `1px solid ${LK.borderSoft}` }}>
+        <div className="px-6 py-2.5" style={{ borderBottom: `1px solid ${LK.borderSoft}` }}>
           <div className="flex flex-wrap gap-2">
             {CREATE_TABS.map((tab, index) => {
               const active = tab.key === activeCreateTab;
@@ -559,17 +581,19 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
         </div>
 
         {/* body */}
-        <div className="min-h-0 flex-1 overflow-y-auto px-6 py-5">
+        <div
+          className="min-h-0 flex-1 overflow-y-auto px-6 py-3 [&::-webkit-scrollbar]:hidden [scrollbar-width:none] [-ms-overflow-style:none]"
+        >
           {/* =============== TAB: basic =============== */}
           {activeCreateTab === 'basic' ? (
-            <div className="space-y-5">
+            <div className="flex h-full flex-col space-y-3">
               {/* 任务名称 */}
               <label className="block text-sm font-semibold" style={{ color: LK.inkSoft }}>
                 任务名称
                 <input
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  className="mt-1 w-full rounded-lg px-3 py-2.5 text-sm outline-none transition-colors"
+                  className="mt-1 w-full rounded-lg px-3 py-2 text-sm outline-none transition-colors"
                   style={{ backgroundColor: LK.surfaceRaised, color: LK.inkSoft, border: `1px solid ${LK.border}` }}
                   onFocus={(e) => (e.currentTarget.style.borderColor = LK.primary)}
                   onBlur={(e) => (e.currentTarget.style.borderColor = LK.border)}
@@ -596,18 +620,27 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
                 </div>
               </div>
 
+              {mode === 'lion-head' ? (
+                <div
+                  className="flex flex-1 flex-col items-center justify-center rounded-lg px-4 py-12 text-center text-sm font-semibold"
+                  style={{ backgroundColor: `${LK.warning}14`, border: `1px solid ${LK.warning}40`, color: LK.warning }}
+                >
+                  「狮首」模式正在开发中，敬请期待
+                </div>
+              ) : (
+                <>
               {/* 工具 */}
               <label className="block text-sm font-semibold" style={{ color: LK.inkSoft }}>
                 工具
                 <select
                   value={taskType}
                   onChange={(e) => setTaskType(e.target.value as any)}
-                  className="mt-1 w-full rounded-lg px-3 py-2.5 text-sm outline-none transition-colors"
+                  className="mt-1 w-full rounded-lg px-3 py-2 text-sm outline-none transition-colors"
                   style={{ backgroundColor: LK.surfaceRaised, color: LK.inkSoft, border: `1px solid ${LK.border}` }}
                   onFocus={(e) => (e.currentTarget.style.borderColor = LK.primary)}
                   onBlur={(e) => (e.currentTarget.style.borderColor = LK.border)}
                 >
-                  {TASK_TYPES.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}
+                  {availableTaskTypes.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}
                 </select>
               </label>
 
@@ -619,7 +652,7 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
                     <select
                       value={selectedAgentAppId}
                       onChange={(e) => setSelectedAgentAppId(e.target.value)}
-                      className="mt-1 w-full rounded-lg px-3 py-2.5 text-sm outline-none transition-colors"
+                      className="mt-1 w-full rounded-lg px-3 py-2 text-sm outline-none transition-colors"
                       style={{ backgroundColor: LK.surfaceRaised, color: LK.inkSoft, border: `1px solid ${LK.border}` }}
                       onFocus={(e) => (e.currentTarget.style.borderColor = LK.primary)}
                       onBlur={(e) => (e.currentTarget.style.borderColor = LK.border)}
@@ -641,7 +674,7 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
                       value={instruction}
                       onChange={(e) => setInstruction(e.target.value)}
                       rows={3}
-                      className="mt-1 w-full resize-none rounded-lg px-3 py-2.5 text-sm outline-none transition-colors"
+                      className="mt-1 w-full resize-none rounded-lg px-3 py-2 text-sm outline-none transition-colors"
                       style={{ backgroundColor: LK.surfaceRaised, color: LK.inkSoft, border: `1px solid ${LK.border}` }}
                       onFocus={(e) => (e.currentTarget.style.borderColor = LK.primary)}
                       onBlur={(e) => (e.currentTarget.style.borderColor = LK.border)}
@@ -658,7 +691,7 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
                   <input
                     value={moduleName}
                     onChange={(e) => setModuleName(e.target.value)}
-                    className="mt-1 w-full rounded-lg px-3 py-2.5 text-sm outline-none transition-colors"
+                    className="mt-1 w-full rounded-lg px-3 py-2 text-sm outline-none transition-colors"
                     style={{ backgroundColor: LK.surfaceRaised, color: LK.inkSoft, border: `1px solid ${LK.border}` }}
                     onFocus={(e) => (e.currentTarget.style.borderColor = LK.primary)}
                     onBlur={(e) => (e.currentTarget.style.borderColor = LK.border)}
@@ -698,16 +731,16 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
                     <p className="text-sm" style={{ color: LK.muted }}>直接上传功能即将支持</p>
                   </div>
                 ) : (
-                  <div className="space-y-4">
+                  <div className="space-y-3">
                     {/* hint block */}
-                    <div className="rounded-lg px-4 py-3" style={{ backgroundColor: LK.surfaceRaised, border: `1px solid ${LK.borderSoft}` }}>
+                    <div className="rounded-lg px-3 py-2" style={{ backgroundColor: LK.surfaceRaised, border: `1px solid ${LK.borderSoft}` }}>
                       <div className="text-sm" style={{ color: LK.body }}>
                         当前输入模式：
                         <span className="ml-2 font-semibold" style={{ color: LK.ink }}>
                           {selectionMode === 'file' ? '选择单个文件' : selectionMode === 'file_list' ? '选择多个文件' : '选择文件夹'}
                         </span>
                       </div>
-                      <div className="mt-2 text-xs" style={{ color: LK.muted }}>{inputSelectionHint}</div>
+                      <div className="mt-1 text-xs" style={{ color: LK.muted }}>{inputSelectionHint}</div>
                     </div>
 
                     {/* input record selector */}
@@ -716,7 +749,7 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
                       <select
                         value={selectedInputId}
                         onChange={(e) => setSelectedInputId(e.target.value)}
-                        className="mt-1 w-full rounded-lg px-3 py-2.5 text-sm outline-none transition-colors"
+                        className="mt-1 w-full rounded-lg px-3 py-2 text-sm outline-none transition-colors"
                         style={{ backgroundColor: LK.surfaceRaised, color: LK.inkSoft, border: `1px solid ${LK.border}` }}
                         onFocus={(e) => (e.currentTarget.style.borderColor = LK.primary)}
                         onBlur={(e) => (e.currentTarget.style.borderColor = LK.border)}
@@ -730,12 +763,26 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
                         className="rounded-lg px-4 py-3 text-sm"
                         style={{ backgroundColor: `${LK.warning}14`, border: `1px solid ${LK.warning}40`, color: LK.warning }}
                       >
-                        没有可用输入，请先到"测试对象"上传记录。
+                        没有可用输入，请先到
+                        <button
+                          type="button"
+                          onClick={() => {
+                            onClose();
+                            window.dispatchEvent(new CustomEvent('chimera-navigate-view', {
+                              detail: { view: 'test-input-root' },
+                            }));
+                          }}
+                          className="mx-1 font-semibold underline underline-offset-2 transition-opacity hover:opacity-80"
+                          style={{ color: LK.warning }}
+                        >
+                          "测试对象"
+                        </button>
+                        上传记录。
                       </div>
                     ) : (
-                      <div className="space-y-4">
+                      <div className="space-y-3">
                         {/* breadcrumbs */}
-                        <div className="rounded-lg px-4 py-3" style={{ backgroundColor: LK.surface, border: `1px solid ${LK.borderSoft}` }}>
+                        <div className="rounded-lg px-3 py-2" style={{ backgroundColor: LK.surface, border: `1px solid ${LK.borderSoft}` }}>
                           <div className="flex flex-wrap items-center gap-2 text-xs" style={{ color: LK.muted }}>
                             {((browseCache[inputCurrentPath]?.breadcrumbs) || (rootBrowse?.breadcrumbs) || []).map((crumb, index, items) => (
                               <button
@@ -766,7 +813,7 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
                         ) : null}
 
                         {/* file tree table */}
-                        <div className="max-h-[min(24rem,45vh)] overflow-auto rounded-xl" style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}` }}>
+                        <div className="max-h-[min(14rem,28vh)] overflow-auto rounded-xl" style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}` }}>
                           <table className="min-w-full text-sm">
                             <thead>
                               <tr className="text-left text-xs uppercase tracking-wider" style={{ color: LK.mutedSoft }}>
@@ -785,7 +832,7 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
                               ) : null}
                               {rootBrowse ? (
                                 <tr style={{ borderBottom: `1px solid ${LK.borderSoft}`, backgroundColor: `${LK.surfaceRaised}40` }}>
-                                  <td className="px-4 py-3">
+                                  <td className="px-4 py-2">
                                     {selectionMode === 'directory' ? (
                                       <button
                                         type="button"
@@ -799,14 +846,14 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
                                       </button>
                                     ) : null}
                                   </td>
-                                  <td className="px-4 py-3">
+                                  <td className="px-4 py-2">
                                     <div className="flex items-center gap-2 font-semibold" style={{ color: LK.ink }}>
                                       <FolderOpen size={15} />
                                       上传根目录
                                     </div>
                                   </td>
-                                  <td className="px-4 py-3" style={{ fontFamily: MONO, fontSize: '12px', color: LK.muted }}>.</td>
-                                  <td className="px-4 py-3" style={{ color: LK.body }}>文件夹</td>
+                                  <td className="px-4 py-2" style={{ fontFamily: MONO, fontSize: '12px', color: LK.muted }}>.</td>
+                                  <td className="px-4 py-2" style={{ color: LK.body }}>文件夹</td>
                                 </tr>
                               ) : null}
                               {rootBrowse ? renderTreeRows('', 0) : null}
@@ -815,9 +862,9 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
                         </div>
 
                         {/* current selection summary */}
-                        <div className="rounded-lg px-4 py-3" style={{ backgroundColor: LK.surfaceRaised, border: `1px solid ${LK.borderSoft}` }}>
+                        <div className="rounded-lg px-3 py-2" style={{ backgroundColor: LK.surfaceRaised, border: `1px solid ${LK.borderSoft}` }}>
                           <div className="text-xs font-semibold uppercase tracking-wider" style={{ color: LK.mutedSoft }}>当前选择</div>
-                          <div className="mt-2 text-sm font-semibold" style={{ color: LK.ink }}>{inputSummary}</div>
+                          <div className="mt-1 text-sm font-semibold" style={{ color: LK.ink }}>{inputSummary}</div>
                         </div>
                       </div>
                     )}
@@ -831,11 +878,11 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
                 <textarea
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
-                  className="mt-1 w-full resize-none rounded-lg px-3 py-2.5 text-sm outline-none transition-colors"
+                  className="mt-1 w-full resize-none rounded-lg px-3 py-2 text-sm outline-none transition-colors"
                   style={{ backgroundColor: LK.surfaceRaised, color: LK.inkSoft, border: `1px solid ${LK.border}` }}
                   onFocus={(e) => (e.currentTarget.style.borderColor = LK.primary)}
                   onBlur={(e) => (e.currentTarget.style.borderColor = LK.border)}
-                  rows={4}
+                  rows={2}
                 />
               </label>
 
@@ -848,6 +895,8 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
                   {error}
                 </div>
               ) : null}
+                </>
+              )}
             </div>
           ) : null}
 
@@ -861,7 +910,7 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
 
         {/* footer */}
         <div
-          className="flex items-center justify-between px-6 py-4"
+          className="flex items-center justify-between px-6 py-3"
           style={{ borderTop: `1px solid ${LK.border}` }}
         >
           <div className="text-xs" style={{ color: LK.muted }}>第 {activeCreateTabIndex + 1} 步 / 共 {CREATE_TABS.length} 步</div>

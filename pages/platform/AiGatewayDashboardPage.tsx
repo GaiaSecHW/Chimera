@@ -26,13 +26,13 @@ const MetricCard: React.FC<{
   value: string | number;
   hint: string;
 }> = ({ icon, label, value, hint }) => (
- <div className="rounded-[1.5rem] border border-slate-200 bg-slate-50 p-5">
+ <div className="rounded-[1.5rem] border border-theme-border bg-theme-bg-app p-5">
     <div className="flex items-center justify-between gap-3">
-      <div className="rounded-2xl bg-slate-100 p-3 text-slate-700">{icon}</div>
-      <div className="text-right text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">{label}</div>
+      <div className="rounded-2xl bg-theme-elevated p-3 text-theme-text-secondary">{icon}</div>
+      <div className="text-right text-[11px] font-black uppercase tracking-[0.18em] text-theme-text-muted">{label}</div>
     </div>
-    <div className="mt-5 text-3xl font-black tracking-tight text-slate-900">{value}</div>
-    <div className="mt-2 text-sm font-medium text-slate-500">{hint}</div>
+    <div className="mt-5 text-3xl font-black tracking-tight text-theme-text-primary">{value}</div>
+    <div className="mt-2 text-sm font-medium text-theme-text-muted">{hint}</div>
   </div>
 );
 
@@ -106,19 +106,19 @@ export const AiGatewayDashboardPage: React.FC<AiGatewayDashboardPageProps> = ({ 
     <div className="flex min-h-full flex-col gap-6 p-8">
       <div className="flex shrink-0 items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-black tracking-tight text-slate-900">Dashboard</h1>
+          <h1 className="text-3xl font-black tracking-tight text-theme-text-primary">Dashboard</h1>
         </div>
         <button
           onClick={() => void loadDashboard(true)}
           disabled={refreshing || loading}
-          className="inline-flex items-center gap-2 rounded-2xl bg-slate-900 px-4 py-2.5 text-sm font-bold text-white transition hover:bg-slate-700 disabled:opacity-50"
+          className="inline-flex items-center gap-2 rounded-2xl bg-theme-surface px-4 py-2.5 text-sm font-bold text-white transition hover:bg-theme-elevated disabled:opacity-50"
         >
           <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
           刷新
         </button>
       </div>
 
-      {error ? <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-medium text-rose-700">{error}</div> : null}
+      {error ? <div className="rounded-2xl border border-rose-500/20 bg-rose-500/15 px-4 py-3 text-sm font-medium text-rose-400">{error}</div> : null}
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         <MetricCard icon={<Layers3 className="h-5 w-5" />} label="公开模型" value={loading ? '-' : modelAliases.length} hint={`${summary.enabledAliases} 个启用，${bindings.length} 条真实路由`} />
@@ -128,13 +128,13 @@ export const AiGatewayDashboardPage: React.FC<AiGatewayDashboardPageProps> = ({ 
       </div>
 
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_360px]">
- <section className="rounded-[2rem] border border-slate-200 bg-slate-50 p-6">
+ <section className="rounded-[2rem] border border-theme-border bg-theme-bg-app p-6">
           <div className="flex items-start justify-between gap-4">
             <div>
-              <div className="text-[11px] font-black uppercase tracking-[0.2em] text-slate-400">近期请求</div>
-              <h2 className="mt-2 text-xl font-black text-slate-900">网关调用日志</h2>
+              <div className="text-[11px] font-black uppercase tracking-[0.2em] text-theme-text-muted">近期请求</div>
+              <h2 className="mt-2 text-xl font-black text-theme-text-primary">网关调用日志</h2>
             </div>
-            <button onClick={() => onNavigate('aigw-logs')} className="inline-flex items-center gap-2 rounded-2xl bg-slate-100 px-4 py-2.5 text-sm font-bold text-slate-700 hover:bg-slate-200">
+            <button onClick={() => onNavigate('aigw-logs')} className="inline-flex items-center gap-2 rounded-2xl bg-theme-elevated px-4 py-2.5 text-sm font-bold text-theme-text-secondary hover:bg-theme-elevated">
               <FileText className="h-4 w-4" />
               查看全部
             </button>
@@ -142,7 +142,7 @@ export const AiGatewayDashboardPage: React.FC<AiGatewayDashboardPageProps> = ({ 
           <div className="mt-5 overflow-auto">
             <table className="min-w-full text-left text-sm">
               <thead>
-                <tr className="border-b border-slate-200 text-slate-500">
+                <tr className="border-b border-theme-border text-theme-text-muted">
                   <th className="px-3 py-3 font-bold">时间</th>
                   <th className="px-3 py-3 font-bold">模型</th>
                   <th className="px-3 py-3 font-bold">状态</th>
@@ -151,57 +151,57 @@ export const AiGatewayDashboardPage: React.FC<AiGatewayDashboardPageProps> = ({ 
               </thead>
               <tbody>
                 {logs.map((log) => (
-                  <tr key={log.id} className="border-b border-slate-100">
-                    <td className="px-3 py-3 text-slate-700">{formatDateTime(log.created_at)}</td>
+                  <tr key={log.id} className="border-b border-theme-border">
+                    <td className="px-3 py-3 text-theme-text-secondary">{formatDateTime(log.created_at)}</td>
                     <td className="px-3 py-3">
-                      <div className="font-bold text-slate-900">{log.model_name || '-'}</div>
-                      <div className="text-xs text-slate-500">{log.backend_model_name || '-'}</div>
+                      <div className="font-bold text-theme-text-primary">{log.model_name || '-'}</div>
+                      <div className="text-xs text-theme-text-muted">{log.backend_model_name || '-'}</div>
                     </td>
                     <td className="px-3 py-3">
-                      <span className={`rounded-full px-2.5 py-1 text-xs font-bold ${Number(log.status_code || 0) >= 200 && Number(log.status_code || 0) < 300 ? 'bg-emerald-100 text-emerald-700' : Number(log.status_code || 0) >= 400 ? 'bg-rose-100 text-rose-700' : 'bg-slate-100 text-slate-600'}`}>{log.status_code || '-'}</span>
+                      <span className={`rounded-full px-2.5 py-1 text-xs font-bold ${Number(log.status_code || 0) >= 200 && Number(log.status_code || 0) < 300 ? 'bg-emerald-500/15 text-emerald-400' : Number(log.status_code || 0) >= 400 ? 'bg-rose-500/15 text-rose-400' : 'bg-theme-elevated text-theme-text-secondary'}`}>{log.status_code || '-'}</span>
                     </td>
-                    <td className="px-3 py-3 text-slate-700">{log.response_time || 0} ms</td>
+                    <td className="px-3 py-3 text-theme-text-secondary">{log.response_time || 0} ms</td>
                   </tr>
                 ))}
                 {!logs.length && !loading ? (
                   <tr>
-                    <td colSpan={4} className="px-3 py-10 text-center text-slate-400">暂无请求日志</td>
+                    <td colSpan={4} className="px-3 py-10 text-center text-theme-text-muted">暂无请求日志</td>
                   </tr>
                 ) : null}
               </tbody>
             </table>
           </div>
-          <div className="mt-4 text-xs font-bold text-slate-400">共 {numberText(logsTotal)} 条日志，当前预览 {logs.length} 条，错误预览 {summary.errorLogs} 条。</div>
+          <div className="mt-4 text-xs font-bold text-theme-text-muted">共 {numberText(logsTotal)} 条日志，当前预览 {logs.length} 条，错误预览 {summary.errorLogs} 条。</div>
         </section>
 
         <aside className="space-y-4">
- <button onClick={() => onNavigate('aigw-config')} className="flex w-full items-center justify-between rounded-[1.5rem] border border-slate-200 bg-slate-50 p-5 text-left hover:bg-slate-100">
+ <button onClick={() => onNavigate('aigw-config')} className="flex w-full items-center justify-between rounded-[1.5rem] border border-theme-border bg-theme-bg-app p-5 text-left hover:bg-theme-elevated">
             <span>
-              <span className="block text-sm font-black text-slate-900">网关配置</span>
-              <span className="mt-1 block text-xs font-medium text-slate-500">模型别名、真实路由、算力池</span>
+              <span className="block text-sm font-black text-theme-text-primary">网关配置</span>
+              <span className="mt-1 block text-xs font-medium text-theme-text-muted">模型别名、真实路由、算力池</span>
             </span>
-            <Settings className="h-5 w-5 text-slate-500" />
+            <Settings className="h-5 w-5 text-theme-text-muted" />
           </button>
- <button onClick={() => onNavigate('aigw-keys')} className="flex w-full items-center justify-between rounded-[1.5rem] border border-slate-200 bg-slate-50 p-5 text-left hover:bg-slate-100">
+ <button onClick={() => onNavigate('aigw-keys')} className="flex w-full items-center justify-between rounded-[1.5rem] border border-theme-border bg-theme-bg-app p-5 text-left hover:bg-theme-elevated">
             <span>
-              <span className="block text-sm font-black text-slate-900">密钥管理</span>
-              <span className="mt-1 block text-xs font-medium text-slate-500">任务密钥、工作密钥、授权范围</span>
+              <span className="block text-sm font-black text-theme-text-primary">密钥管理</span>
+              <span className="mt-1 block text-xs font-medium text-theme-text-muted">任务密钥、工作密钥、授权范围</span>
             </span>
-            <KeyRound className="h-5 w-5 text-slate-500" />
+            <KeyRound className="h-5 w-5 text-theme-text-muted" />
           </button>
- <div className="rounded-[1.5rem] border border-slate-200 bg-slate-50 p-5">
-            <div className="flex items-center gap-2 text-sm font-black text-slate-900"><Route className="h-4 w-4" /> 路由健康</div>
+ <div className="rounded-[1.5rem] border border-theme-border bg-theme-bg-app p-5">
+            <div className="flex items-center gap-2 text-sm font-black text-theme-text-primary"><Route className="h-4 w-4" /> 路由健康</div>
             <div className="mt-4 space-y-3">
               {providerStats.slice(0, 5).map((item, index) => (
-                <div key={`${item.backend_unit_id || item.backend_config_id || index}`} className="rounded-2xl bg-slate-50 px-4 py-3">
+                <div key={`${item.backend_unit_id || item.backend_config_id || index}`} className="rounded-2xl bg-theme-bg-app px-4 py-3">
                   <div className="flex items-center justify-between gap-3 text-sm">
-                    <span className="font-bold text-slate-900">{item.model_name || item.backend_model_name ||`Backend #${item.backend_unit_id || item.backend_config_id || index + 1}`}</span>
-                    <span className="font-mono text-xs text-slate-500">{Number(item.success_rate || 0).toFixed(1)}%</span>
+                    <span className="font-bold text-theme-text-primary">{item.model_name || item.backend_model_name ||`Backend #${item.backend_unit_id || item.backend_config_id || index + 1}`}</span>
+                    <span className="font-mono text-xs text-theme-text-muted">{Number(item.success_rate || 0).toFixed(1)}%</span>
                   </div>
-                  <div className="mt-1 text-xs text-slate-500">活跃 {numberText(item.active_requests)} / 等待 {numberText(item.waiting_requests)}</div>
+                  <div className="mt-1 text-xs text-theme-text-muted">活跃 {numberText(item.active_requests)} / 等待 {numberText(item.waiting_requests)}</div>
                 </div>
               ))}
-              {!providerStats.length && !loading ? <div className="rounded-2xl bg-slate-50 px-4 py-8 text-center text-sm text-slate-400">暂无路由统计</div> : null}
+              {!providerStats.length && !loading ? <div className="rounded-2xl bg-theme-bg-app px-4 py-8 text-center text-sm text-theme-text-muted">暂无路由统计</div> : null}
             </div>
           </div>
         </aside>

@@ -35,33 +35,7 @@ import { API_BASE } from '../../clients/base';
 const vulnApi = api.domains.vuln;
 const assetApi = api.domains.assets;
 
-const LK = {
-  primary: '#4f73ff',
-  primarySoft: '#7590ff',
-  primaryDeep: '#3f63f1',
-  primaryMuted: 'rgba(79, 115, 255, 0.14)',
-  canvas: '#070d18',
-  surface: '#111a2b',
-  surfaceRaised: '#18233a',
-  surfaceGlass: 'rgba(17, 26, 43, 0.84)',
-  border: '#26324a',
-  borderSoft: '#1b2438',
-  ink: '#f5f7ff',
-  inkSoft: '#d6def0',
-  body: '#a4aec4',
-  muted: '#72809a',
-  mutedSoft: '#8b95a8',
-  success: '#45c06f',
-  warning: '#d5a13a',
-  error: '#f15d5d',
-  info: '#4f8cff',
-  critical: '#ff4d4f',
-  high: '#ff8b3d',
-  medium: '#f0b64c',
-  low: '#49c5ff',
-} as const;
 
-const MONO = 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace';
 
 interface VulnPageProps {
   projectId: string;
@@ -300,12 +274,12 @@ const makeEditableCaseIntake = (detail: any): EditableCaseIntake => {
 };
 
 const toneOf = (value?: string) => {
-  if (!value) return`backgroundColor: ${LK.surfaceRaised}, color: ${LK.muted}`;
-  if (['critical', 'high', 'confirmed'].includes(value)) return`backgroundColor: ${LK.error}22, color: ${LK.error}`;
-  if (['medium', 'triage', 'issue'].includes(value)) return`backgroundColor: ${LK.warning}22, color: ${LK.warning}`;
-  if (['low', 'validation', 'non_issue'].includes(value)) return`backgroundColor: ${LK.success}22, color: ${LK.success}`;
-  if (['receive', 'observe'].includes(value)) return`backgroundColor: ${LK.info}22, color: ${LK.info}`;
-  return`backgroundColor: ${LK.surfaceRaised}, color: ${LK.muted}`;
+  if (!value) return 'bg-theme-elevated text-theme-text-faint';
+  if (['critical', 'high', 'confirmed'].includes(value)) return 'bg-state-danger-soft text-state-danger';
+  if (['medium', 'triage', 'issue'].includes(value)) return 'bg-state-warning-soft text-state-warning';
+  if (['low', 'validation', 'non_issue'].includes(value)) return 'bg-state-success-soft text-state-success';
+  if (['receive', 'observe'].includes(value)) return 'bg-state-info-soft text-state-info';
+  return 'bg-theme-elevated text-theme-text-faint';
 };
 
 const formatTime = (value?: string) => {
@@ -483,21 +457,18 @@ const DialogShell: React.FC<{
   onClose: () => void;
   children: React.ReactNode;
 }> = ({ title, subtitle, onClose, children }) => (
-  <div className="fixed inset-0 z-[220] flex items-center justify-center p-6 backdrop-blur-sm" style={{ backgroundColor: 'rgba(7, 13, 24, 0.75)' }}>
-    <div className="w-full max-w-6xl overflow-hidden" style={{ backgroundColor: LK.surface, border: '1px solid ' + LK.border, borderRadius: '16px' }}>
-      <div className="flex items-start justify-between gap-6 px-8 py-6" style={{ borderBottom: '1px solid ' + LK.borderSoft }}>
+  <div className="modal-overlay animate-in fade-in">
+    <div className="modal-container modal-xl animate-in rounded-2xl">
+      <div className="modal-header flex items-start justify-between gap-6 px-8 py-6 border-b border-theme-border-subtle">
         <div>
-          <div className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: LK.mutedSoft }}>漏洞上报中心</div>
-          <h3 className="mt-2 text-2xl font-semibold" style={{ color: LK.ink }}>{title}</h3>
-          {subtitle ? <p className="mt-2 max-w-3xl text-sm leading-6" style={{ color: LK.body }}>{subtitle}</p> : null}
+          <div className="text-[11px] font-semibold uppercase tracking-wider text-theme-text-muted-soft">漏洞上报中心</div>
+          <h3 className="mt-2 text-2xl font-semibold text-theme-text-primary">{title}</h3>
+          {subtitle ? <p className="mt-2 max-w-3xl text-sm leading-6 text-theme-text-muted">{subtitle}</p> : null}
         </div>
         <button
           type="button"
           onClick={onClose}
-          className="rounded-lg p-3 transition-colors"
-          style={{ backgroundColor: LK.surfaceRaised, color: LK.muted, border: '1px solid ' + LK.border }}
-          onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = LK.surface; e.currentTarget.style.color = LK.ink; }}
-          onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = LK.surfaceRaised; e.currentTarget.style.color = LK.muted; }}
+          className="btn btn-icon"
         >
           <X size={18} />
         </button>
@@ -512,10 +483,10 @@ const DetailMetricCard: React.FC<{
   value: React.ReactNode;
   hint?: React.ReactNode;
 }> = ({ label, value, hint }) => (
-  <div className="rounded-xl px-4 py-4" style={{ backgroundColor: LK.surfaceRaised, border: '1px solid ' + LK.border }}>
-    <div className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: LK.mutedSoft }}>{label}</div>
-    <div className="mt-2 text-2xl font-semibold tabular-nums" style={{ color: LK.ink }}>{value}</div>
-    {hint ? <div className="mt-1 text-xs" style={{ color: LK.body }}>{hint}</div> : null}
+  <div className="metric-card rounded-xl px-4 py-4 bg-theme-elevated border border-theme-border">
+    <div className="text-[11px] font-semibold uppercase tracking-wider text-theme-text-muted-soft">{label}</div>
+    <div className="mt-2 text-2xl font-semibold tabular-nums text-theme-text-primary">{value}</div>
+    {hint ? <div className="mt-1 text-xs text-theme-text-muted">{hint}</div> : null}
   </div>
 );
 
@@ -539,7 +510,7 @@ const extractMarkdownHeadings = (content: string) =>
     }));
 
 const MarkdownContent: React.FC<{ content: string }> = ({ content }) => (
-  <div className="markdown-body break-words leading-7 text-sm" style={{ color: LK.inkSoft }}>
+  <div className="markdown-body break-words leading-7 text-sm text-theme-text-secondary">
     <ReactMarkdown remarkPlugins={[remarkGfm]}>{content}</ReactMarkdown>
   </div>
 );
@@ -551,11 +522,11 @@ const DetailSectionCard: React.FC<{
   actions?: React.ReactNode;
   compact?: boolean;
 }> = ({ title, subtitle, children, actions, compact = false }) => (
-  <div className={`rounded-xl ${compact ? 'p-4' : 'p-5'}`} style={{ backgroundColor: LK.surface, border: '1px solid ' + LK.border }}>
+  <div className={`rounded-xl bg-theme-surface border border-theme-border ${compact ? 'p-4' : 'p-5'}`}>
     <div className="flex flex-wrap items-start justify-between gap-3">
       <div>
-        <div className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: LK.mutedSoft }}>{title}</div>
-        {subtitle ? <div className="mt-1 text-xs leading-5" style={{ color: LK.body }}>{subtitle}</div> : null}
+        <div className="text-[11px] font-semibold uppercase tracking-wider text-theme-text-muted-soft">{title}</div>
+        {subtitle ? <div className="mt-1 text-xs leading-5 text-theme-text-muted">{subtitle}</div> : null}
       </div>
       {actions ? <div className="shrink-0">{actions}</div> : null}
     </div>
@@ -674,9 +645,11 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
     ).length;
     return {
       total: Number(overview?.metrics?.total_cases || 0),
-      highRisk: Number(overview?.severity_counts?.critical || 0) + Number(overview?.severity_counts?.high || 0),
-      pendingAnalyze: Number(overview?.stage_counts?.triage || 0),
-      authenticated: Number(overview?.created_by_type_counts?.human || 0),
+      pendingVerify: Number(overview?.stage_counts?.receive || 0) + Number(overview?.stage_counts?.triage || 0),
+      validating: Number(overview?.stage_counts?.validation || 0),
+      verified: Number(overview?.metrics?.finished_cases || 0),
+      confirmed: Number(overview?.finished_reason_counts?.vulnerable || 0),
+      ruledOut: Number(overview?.finished_reason_counts?.non_vulnerable || 0),
       openTasks,
     };
   }, [overview, selectedDetail]);
@@ -1573,56 +1546,53 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
     <button
       type="button"
       onClick={() => handleSortChange(field)}
-      className="inline-flex items-center gap-2 text-left text-xs font-semibold uppercase tracking-wider text-slate-500 hover:text-slate-800"
+      className="inline-flex items-center gap-2 text-left text-xs font-semibold uppercase tracking-wider text-theme-text-muted hover:text-theme-text-primary"
     >
       {label}
-      <ArrowUpDown size={12} className={sortField === field ? 'text-slate-800' : 'text-slate-300'} />
+      <ArrowUpDown size={12} className={sortField === field ? 'text-theme-text-secondary' : 'text-theme-text-faint'} />
     </button>
   );
 
   const renderDownloadCenter = () => (
     <div className="space-y-4">
       <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-5">
-        <div className="rounded-xl px-4 py-3.5" style={{ backgroundColor: LK.surface, border: '1px solid ' + LK.border }}>
-          <div className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: LK.mutedSoft }}>下载任务总数</div>
-          <div className="mt-2 text-2xl font-semibold tabular-nums" style={{ color: LK.ink }}>{downloadStats.total || 0}</div>
+        <div className="metric-card rounded-xl px-4 py-3.5">
+          <div className="metric-label text-[11px] font-semibold uppercase tracking-wider text-theme-text-muted-soft">下载任务总数</div>
+          <div className="metric-value mt-2 text-2xl font-semibold tabular-nums text-theme-text-primary">{downloadStats.total || 0}</div>
         </div>
-        <div className="rounded-xl px-4 py-3.5" style={{ backgroundColor: LK.surface, border: '1px solid ' + LK.border }}>
-          <div className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: LK.mutedSoft }}>处理中</div>
-          <div className="mt-2 text-2xl font-semibold tabular-nums" style={{ color: LK.warning }}>{(downloadStats.pending || 0) + (downloadStats.processing || 0)}</div>
+        <div className="metric-card rounded-xl px-4 py-3.5">
+          <div className="metric-label text-[11px] font-semibold uppercase tracking-wider text-theme-text-muted-soft">处理中</div>
+          <div className="metric-value mt-2 text-2xl font-semibold tabular-nums text-state-warning">{(downloadStats.pending || 0) + (downloadStats.processing || 0)}</div>
         </div>
-        <div className="rounded-xl px-4 py-3.5" style={{ backgroundColor: LK.surface, border: '1px solid ' + LK.border }}>
-          <div className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: LK.mutedSoft }}>可下载</div>
-          <div className="mt-2 text-2xl font-semibold tabular-nums" style={{ color: LK.success }}>{downloadStats.downloadable || 0}</div>
+        <div className="metric-card rounded-xl px-4 py-3.5">
+          <div className="metric-label text-[11px] font-semibold uppercase tracking-wider text-theme-text-muted-soft">可下载</div>
+          <div className="metric-value mt-2 text-2xl font-semibold tabular-nums text-state-success">{downloadStats.downloadable || 0}</div>
         </div>
-        <div className="rounded-xl px-4 py-3.5" style={{ backgroundColor: LK.surface, border: '1px solid ' + LK.border }}>
-          <div className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: LK.mutedSoft }}>失败</div>
-          <div className="mt-2 text-2xl font-semibold tabular-nums" style={{ color: LK.error }}>{downloadStats.failed || 0}</div>
+        <div className="metric-card rounded-xl px-4 py-3.5">
+          <div className="metric-label text-[11px] font-semibold uppercase tracking-wider text-theme-text-muted-soft">失败</div>
+          <div className="metric-value mt-2 text-2xl font-semibold tabular-nums text-state-danger">{downloadStats.failed || 0}</div>
         </div>
-        <div className="rounded-xl px-4 py-3.5" style={{ backgroundColor: LK.surface, border: '1px solid ' + LK.border }}>
-          <div className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: LK.mutedSoft }}>已过期</div>
-          <div className="mt-2 text-2xl font-semibold tabular-nums" style={{ color: LK.muted }}>{downloadStats.expired || 0}</div>
+        <div className="metric-card rounded-xl px-4 py-3.5">
+          <div className="metric-label text-[11px] font-semibold uppercase tracking-wider text-theme-text-muted-soft">已过期</div>
+          <div className="metric-value mt-2 text-2xl font-semibold tabular-nums text-theme-text-faint">{downloadStats.expired || 0}</div>
         </div>
       </div>
 
-      <div className="rounded-xl overflow-hidden" style={{ backgroundColor: LK.surface, border: '1px solid ' + LK.border }}>
-        <div className="px-5 py-4 xl:px-6" style={{ borderBottom: '1px solid ' + LK.borderSoft }}>
+      <div className="rounded-xl overflow-hidden bg-theme-surface border border-theme-border">
+        <div className="px-5 py-4 xl:px-6 border-b border-theme-border-subtle">
           <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
             <div>
-              <div className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: LK.mutedSoft }}>下载中心</div>
-              <h3 className="mt-1 text-xl font-semibold" style={{ color: LK.ink }}>漏洞报告异步下载任务</h3>
+              <div className="text-[11px] font-semibold uppercase tracking-wider text-theme-text-muted-soft">下载中心</div>
+              <h3 className="mt-1 text-xl font-semibold text-theme-text-primary">漏洞报告异步下载任务</h3>
             </div>
             <div className="flex flex-wrap items-center gap-2">
-              <div className="rounded-lg px-3 py-2 text-[11px] font-semibold uppercase tracking-wider" style={{ backgroundColor: LK.surfaceRaised, color: LK.body }}>
+              <div className="rounded-lg px-3 py-2 text-[11px] font-semibold uppercase tracking-wider bg-theme-elevated text-theme-text-muted">
                 {downloadJobs.length} 条记录
               </div>
               <button
                 type="button"
                 onClick={() => loadDownloadCenter()}
-                className="inline-flex items-center gap-2 rounded-lg px-3 py-2 text-xs font-semibold transition-colors"
-                style={{ backgroundColor: LK.surfaceRaised, color: LK.inkSoft, border: '1px solid ' + LK.border }}
-                onMouseEnter={(e) => { e.currentTarget.style.color = LK.ink; }}
-                onMouseLeave={(e) => { e.currentTarget.style.color = LK.inkSoft; }}
+                className="btn btn-secondary btn-sm inline-flex items-center gap-2"
               >
                 <RefreshCw size={14} />
                 刷新
@@ -1631,48 +1601,42 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
           </div>
         </div>
         <div className="overflow-hidden">
-          <div className="grid grid-cols-[1.2fr_0.8fr_0.7fr_0.8fr_1.2fr_0.8fr_0.8fr_1fr_1fr_1fr_1.2fr_1.2fr] gap-3 px-4 py-2.5" style={{ borderBottom:`1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>
+          <div className="grid grid-cols-[1.2fr_0.8fr_0.7fr_0.8fr_1.2fr_0.8fr_0.8fr_1fr_1fr_1fr_1.2fr_1.2fr] gap-3 px-4 py-2.5 border-b border-theme-border bg-theme-elevated">
             {['任务 ID', '类型', '报告数', '状态', '文件名', '大小', '创建人', '创建时间', '完成时间', '过期时间', '错误摘要', '操作'].map((label) => (
-              <div key={label} className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: LK.mutedSoft }}>{label}</div>
+              <div key={label} className="text-[11px] font-semibold uppercase tracking-wider text-theme-text-muted-soft">{label}</div>
             ))}
           </div>
           {downloadJobsLoading ? (
-            <div className="px-4 py-8 text-sm" style={{ backgroundColor: LK.surface, color: LK.muted }}>正在加载下载任务...</div>
+            <div className="px-4 py-8 text-sm bg-theme-surface text-theme-text-faint">正在加载下载任务...</div>
           ) : downloadJobs.length === 0 ? (
-            <div className="px-4 py-8 text-sm" style={{ backgroundColor: LK.surface, color: LK.muted }}>当前项目还没有下载任务。</div>
+            <div className="px-4 py-8 text-sm bg-theme-surface text-theme-text-faint">当前项目还没有下载任务。</div>
           ) : (
             downloadJobs.map((job) => (
-              <div key={job.job_id} className="grid grid-cols-[1.2fr_0.8fr_0.7fr_0.8fr_1.2fr_0.8fr_0.8fr_1fr_1fr_1fr_1.2fr_1.2fr] gap-3 px-4 py-3 text-sm last:border-b-0" style={{ borderBottom:`1px solid ${LK.borderSoft}`, backgroundColor: LK.surface }}>
+              <div key={job.job_id} className="grid grid-cols-[1.2fr_0.8fr_0.7fr_0.8fr_1.2fr_0.8fr_0.8fr_1fr_1fr_1fr_1.2fr_1.2fr] gap-3 px-4 py-3 text-sm last:border-b-0 border-b border-theme-border-subtle bg-theme-surface">
                 <div className="min-w-0">
-                  <div className="truncate font-semibold" style={{ fontFamily: MONO, color: LK.ink }}>{job.job_id}</div>
+                  <div className="truncate font-semibold font-mono text-theme-text-primary">{job.job_id}</div>
                 </div>
-                <div className="font-semibold" style={{ color: LK.inkSoft }}>{job.scope_type === 'single' ? '单个' : '批量'}</div>
-                <div className="font-semibold tabular-nums" style={{ color: LK.ink }}>{job.report_count}</div>
+                <div className="font-semibold text-theme-text-secondary">{job.scope_type === 'single' ? '单个' : '批量'}</div>
+                <div className="font-semibold tabular-nums text-theme-text-primary">{job.report_count}</div>
                 <div>
-                  <span className="rounded-lg px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider" style={{
-                    backgroundColor: job.status === 'succeeded' ?`${LK.success}22` : job.status === 'failed' ?`${LK.error}22` : job.status === 'expired' ?`${LK.muted}22` :`${LK.warning}22`,
-                    color: job.status === 'succeeded' ? LK.success : job.status === 'failed' ? LK.error : job.status === 'expired' ? LK.muted : LK.warning
-                  }}>
+                  <span className={`rounded-lg px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider ${toneOf(job.status === 'succeeded' ? 'low' : job.status === 'failed' ? 'critical' : job.status === 'expired' ? undefined : 'medium')}`}>
                     {toDownloadStatusText(job.status)}
                   </span>
                 </div>
-                <div className="truncate" style={{ color: LK.body }}>{job.output_filename || '-'}</div>
-                <div className="font-semibold tabular-nums" style={{ color: LK.inkSoft }}>{formatBytes(job.output_size_bytes)}</div>
-                <div className="truncate" style={{ color: LK.body }}>{job.created_by || '-'}</div>
-                <div style={{ color: LK.muted }}>{formatTime(job.created_at)}</div>
-                <div style={{ color: LK.muted }}>{formatTime(job.finished_at)}</div>
-                <div style={{ color: LK.muted }}>{formatTime(job.expires_at)}</div>
-                <div className="truncate text-xs" style={{ color: LK.error }}>{job.last_error || '-'}</div>
+                <div className="truncate text-theme-text-muted">{job.output_filename || '-'}</div>
+                <div className="font-semibold tabular-nums text-theme-text-secondary">{formatBytes(job.output_size_bytes)}</div>
+                <div className="truncate text-theme-text-muted">{job.created_by || '-'}</div>
+                <div className="text-theme-text-faint">{formatTime(job.created_at)}</div>
+                <div className="text-theme-text-faint">{formatTime(job.finished_at)}</div>
+                <div className="text-theme-text-faint">{formatTime(job.expires_at)}</div>
+                <div className="truncate text-xs text-state-danger">{job.last_error || '-'}</div>
                 <div className="flex flex-wrap gap-1.5">
                   {job.downloadable ? (
                     <button
                       type="button"
                       onClick={() => handleDownloadJobFile(job)}
                       disabled={downloadActionJobId === job.job_id}
-                      className="inline-flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-[11px] font-semibold transition-colors disabled:opacity-50"
-                      style={{ backgroundColor: `${LK.success}22`, color: LK.success, border: `1px solid ${LK.success}40` }}
-                      onMouseEnter={(e) => { if (downloadActionJobId !== job.job_id) e.currentTarget.style.backgroundColor =`${LK.success}3a`; }}
-                      onMouseLeave={(e) => { e.currentTarget.style.backgroundColor =`${LK.success}22`; }}
+                      className="btn btn-sm bg-state-success-soft text-state-success border-state-success-border inline-flex items-center gap-1 rounded-lg border"
                     >
                       <Download size={12} />
                       下载
@@ -1683,10 +1647,7 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
                       type="button"
                       onClick={() => handleRetryDownloadJob(job.job_id)}
                       disabled={downloadActionJobId === job.job_id}
-                      className="inline-flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-[11px] font-semibold transition-colors disabled:opacity-50"
-                      style={{ backgroundColor: `${LK.warning}22`, color: LK.warning, border: `1px solid ${LK.warning}40` }}
-                      onMouseEnter={(e) => { if (downloadActionJobId !== job.job_id) e.currentTarget.style.backgroundColor =`${LK.warning}3a`; }}
-                      onMouseLeave={(e) => { e.currentTarget.style.backgroundColor =`${LK.warning}22`; }}
+                      className="btn btn-sm bg-state-warning-soft text-state-warning border-state-warning-border inline-flex items-center gap-1 rounded-lg border"
                     >
                       <RefreshCw size={12} />
                       重试
@@ -1697,10 +1658,7 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
                       type="button"
                       onClick={() => handleDeleteDownloadJob(job.job_id)}
                       disabled={downloadActionJobId === job.job_id}
-                      className="inline-flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-[11px] font-semibold transition-colors disabled:opacity-50"
-                      style={{ backgroundColor: `${LK.error}22`, color: LK.error, border: `1px solid ${LK.error}40` }}
-                      onMouseEnter={(e) => { if (downloadActionJobId !== job.job_id) e.currentTarget.style.backgroundColor =`${LK.error}3a`; }}
-                      onMouseLeave={(e) => { e.currentTarget.style.backgroundColor =`${LK.error}22`; }}
+                      className="btn btn-sm bg-state-danger-soft text-state-danger border-state-danger-border inline-flex items-center gap-1 rounded-lg border"
                     >
                       <Trash2 size={12} />
                       删除
@@ -1718,7 +1676,7 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
   const renderDetailView = () => {
     if (!selectedDetail) {
       return (
-        <div className="rounded-xl px-8 py-10 text-center text-sm" style={{ border: '1px dashed ' + LK.border, backgroundColor: LK.surface, color: LK.muted }}>
+        <div className="rounded-xl px-8 py-10 text-center text-sm border border-dashed border-theme-border bg-theme-surface text-theme-text-faint">
           从左侧选择漏洞查看详情。
         </div>
       );
@@ -1779,47 +1737,41 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
       }));
 
     return (
-      <div className="overflow-hidden rounded-xl" style={{ backgroundColor: LK.surface, border: '1px solid ' + LK.border }}>
-        <div className="px-5 py-4 xl:px-6" style={{ borderBottom: '1px solid ' + LK.borderSoft, background: `radial-gradient(circle at top left, ${LK.primaryMuted}, transparent 35%), linear-gradient(180deg, ${LK.surface} 0%, ${LK.surfaceRaised} 100%)` }}>
+      <div className="overflow-hidden rounded-xl bg-theme-surface border border-theme-border">
+        <div className="px-5 py-4 xl:px-6 border-b border-theme-border-subtle bg-gradient-radial">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <button
               type="button"
               onClick={() => setSelectedSuspicionId('')}
-              className="inline-flex items-center gap-2 rounded-lg px-3 py-2 text-xs font-semibold transition-colors"
-              style={{ backgroundColor: LK.surface, color: LK.inkSoft, border: '1px solid ' + LK.border }}
-              onMouseEnter={(e) => { e.currentTarget.style.color = LK.ink; }}
-              onMouseLeave={(e) => { e.currentTarget.style.color = LK.inkSoft; }}
+              className="btn btn-secondary btn-sm inline-flex items-center gap-2"
             >
               <ArrowLeft size={14} />
               返回漏洞列表
             </button>
             <div className="flex flex-wrap items-center gap-2">
-              <span className="rounded-lg px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider" style={{ backgroundColor: `${LK.error}22`, color: LK.error }}>
+              <span className="rounded-lg px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider bg-state-danger-soft text-state-danger">
                 {selectedDetail.severity}
               </span>
-              <span className="rounded-lg px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider" style={{ backgroundColor: `${LK.info}22`, color: LK.info }}>
+              <span className="rounded-lg px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider bg-state-info-soft text-state-info">
                 {toStageText(selectedDetail.current_stage)}
               </span>
-              <span className="rounded-lg px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider" style={{ backgroundColor: `${LK.warning}22`, color: LK.warning }}>
+              <span className="rounded-lg px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider bg-state-warning-soft text-state-warning">
                 {toDecisionText(selectedDetail.decision_status)}
               </span>
             </div>
           </div>
           <div className="mt-3 flex flex-wrap items-start justify-between gap-3">
             <div className="min-w-0">
-              <h3 className="truncate text-xl font-semibold" style={{ color: LK.ink }}>{selectedDetail.title}</h3>
-              <div className="mt-1 text-xs font-semibold" style={{ fontFamily: MONO, color: LK.muted }}>ID: {selectedDetail.id}</div>
-              <p className="mt-1 line-clamp-2 text-sm leading-6" style={{ color: LK.body }}>{selectedDetail.summary || '暂无摘要'}</p>
+              <h3 className="truncate text-xl font-semibold text-theme-text-primary">{selectedDetail.title}</h3>
+              <div className="mt-1 text-xs font-semibold font-mono text-theme-text-faint">ID: {selectedDetail.id}</div>
+              <p className="mt-1 line-clamp-2 text-sm leading-6 text-theme-text-muted">{selectedDetail.summary || '暂无摘要'}</p>
             </div>
             <div className="flex flex-wrap items-center gap-2">
               {!detailEditMode ? (
                 <button
                   type="button"
                   onClick={() => setDetailEditMode(true)}
-                  className="rounded-lg px-3 py-2 text-xs font-semibold transition-colors"
-                  style={{ backgroundColor: LK.surface, color: LK.inkSoft, border: '1px solid ' + LK.border }}
-                  onMouseEnter={(e) => { e.currentTarget.style.color = LK.ink; }}
-                  onMouseLeave={(e) => { e.currentTarget.style.color = LK.inkSoft; }}
+                  className="btn btn-secondary btn-sm"
                 >
                   编辑上报字段
                 </button>
@@ -1829,10 +1781,7 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
                     type="button"
                     onClick={handleSaveDetailEdit}
                     disabled={detailSaving}
-                    className="rounded-lg px-3 py-2 text-xs font-semibold text-white transition-colors disabled:opacity-50"
-                    style={{ backgroundColor: LK.primary }}
-                    onMouseEnter={(e) => { if (!detailSaving) e.currentTarget.style.backgroundColor = LK.primaryDeep; }}
-                    onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = LK.primary; }}
+                    className="btn btn-primary btn-sm"
                   >
                     {detailSaving ? '保存中...' : '保存'}
                   </button>
@@ -1840,10 +1789,7 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
                     type="button"
                     onClick={handleCancelDetailEdit}
                     disabled={detailSaving}
-                    className="rounded-lg px-3 py-2 text-xs font-semibold transition-colors disabled:opacity-50"
-                    style={{ backgroundColor: LK.surface, color: LK.inkSoft, border: '1px solid ' + LK.border }}
-                    onMouseEnter={(e) => { if (!detailSaving) e.currentTarget.style.color = LK.ink; }}
-                    onMouseLeave={(e) => { e.currentTarget.style.color = LK.inkSoft; }}
+                    className="btn btn-secondary btn-sm"
                   >
                     取消
                   </button>
@@ -1852,25 +1798,25 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
             </div>
           </div>
           <div className="mt-3 grid gap-2 sm:grid-cols-2 xl:grid-cols-5">
-            <div className="rounded-lg px-3 py-2.5" style={{ backgroundColor: LK.surfaceRaised, border: '1px solid ' + LK.border }}>
-              <div className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: LK.mutedSoft }}>阶段</div>
-              <div className="mt-1 text-sm font-semibold" style={{ color: LK.ink }}>{toStageText(selectedDetail.current_stage)}</div>
+            <div className="rounded-lg px-3 py-2.5 bg-theme-elevated border border-theme-border">
+              <div className="text-[11px] font-semibold uppercase tracking-wider text-theme-text-muted-soft">阶段</div>
+              <div className="mt-1 text-sm font-semibold text-theme-text-primary">{toStageText(selectedDetail.current_stage)}</div>
             </div>
-            <div className="rounded-lg px-3 py-2.5" style={{ backgroundColor: LK.surfaceRaised, border: '1px solid ' + LK.border }}>
-              <div className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: LK.mutedSoft }}>状态</div>
-              <div className="mt-1 text-sm font-semibold" style={{ color: LK.ink }}>{toStatusText(selectedDetail.current_status)}</div>
+            <div className="rounded-lg px-3 py-2.5 bg-theme-elevated border border-theme-border">
+              <div className="text-[11px] font-semibold uppercase tracking-wider text-theme-text-muted-soft">状态</div>
+              <div className="mt-1 text-sm font-semibold text-theme-text-primary">{toStatusText(selectedDetail.current_status)}</div>
             </div>
-            <div className="rounded-lg px-3 py-2.5" style={{ backgroundColor: LK.surfaceRaised, border: '1px solid ' + LK.border }}>
-              <div className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: LK.mutedSoft }}>置信度</div>
-              <div className="mt-1 text-sm font-semibold tabular-nums" style={{ color: LK.ink }}>{selectedDetail.confidence}</div>
+            <div className="rounded-lg px-3 py-2.5 bg-theme-elevated border border-theme-border">
+              <div className="text-[11px] font-semibold uppercase tracking-wider text-theme-text-muted-soft">置信度</div>
+              <div className="mt-1 text-sm font-semibold tabular-nums text-theme-text-primary">{selectedDetail.confidence}</div>
             </div>
-            <div className="rounded-lg px-3 py-2.5" style={{ backgroundColor: LK.surfaceRaised, border: '1px solid ' + LK.border }}>
-              <div className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: LK.mutedSoft }}>CVSS</div>
-              <div className="mt-1 text-sm font-semibold tabular-nums" style={{ color: LK.ink }}>{Number(selectedDetail.cvss_score || 0).toFixed(1)}</div>
+            <div className="rounded-lg px-3 py-2.5 bg-theme-elevated border border-theme-border">
+              <div className="text-[11px] font-semibold uppercase tracking-wider text-theme-text-muted-soft">CVSS</div>
+              <div className="mt-1 text-sm font-semibold tabular-nums text-theme-text-primary">{Number(selectedDetail.cvss_score || 0).toFixed(1)}</div>
             </div>
-            <div className="rounded-lg px-3 py-2.5" style={{ backgroundColor: LK.surfaceRaised, border: '1px solid ' + LK.border }}>
-              <div className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: LK.mutedSoft }}>开放任务</div>
-              <div className="mt-1 text-sm font-semibold tabular-nums" style={{ color: LK.ink }}>{stats.openTasks}</div>
+            <div className="rounded-lg px-3 py-2.5 bg-theme-elevated border border-theme-border">
+              <div className="text-[11px] font-semibold uppercase tracking-wider text-theme-text-muted-soft">开放任务</div>
+              <div className="mt-1 text-sm font-semibold tabular-nums text-theme-text-primary">{stats.openTasks}</div>
             </div>
           </div>
           <div className="mt-3 flex flex-wrap gap-2.5">
@@ -1878,10 +1824,7 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
               type="button"
               onClick={handleMarkReadyForTriage}
               disabled={processingAction !== null || selectedDetail.current_stage !== 'receive'}
-              className="inline-flex items-center gap-2 rounded-lg px-3.5 py-2.5 text-sm font-semibold text-white transition-colors disabled:opacity-50"
-              style={{ backgroundColor: LK.info }}
-              onMouseEnter={(e) => { if (processingAction === null && selectedDetail.current_stage === 'receive') e.currentTarget.style.opacity = '0.9'; }}
-              onMouseLeave={(e) => { e.currentTarget.style.opacity = '1'; }}
+              className="btn btn-sm text-white bg-state-info-soft text-state-info border-state-info-border inline-flex items-center gap-2 border"
             >
               <Check size={15} />
               {processingAction === 'ready_for_triage' ? '处理中...' : '标记待验证'}
@@ -1890,10 +1833,7 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
               type="button"
               onClick={handleOpenAutoVerifyTask}
               disabled={processingAction !== null || !selectedDetail?.id || (!latestAutoVerifyTask && selectedDetail.current_stage === 'finished')}
-              className="inline-flex items-center gap-2 rounded-lg px-3.5 py-2.5 text-sm font-semibold text-white transition-colors disabled:opacity-50"
-              style={{ backgroundColor: LK.primary }}
-              onMouseEnter={(e) => { if (processingAction === null && selectedDetail?.id && (latestAutoVerifyTask || selectedDetail.current_stage !== 'finished')) e.currentTarget.style.backgroundColor = LK.primaryDeep; }}
-              onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = LK.primary; }}
+              className="btn btn-primary btn-sm inline-flex items-center gap-2"
             >
               <FolderOpen size={15} />
               {processingAction === 'verify' ? '处理中...' : latestAutoVerifyTask ? '跳转验证任务' : '生成验证任务'}
@@ -1903,10 +1843,7 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
                 type="button"
                 onClick={handleSyncAutoVerifyTask}
                 disabled={processingAction !== null || !selectedDetail?.id}
-                className="inline-flex items-center gap-2 rounded-lg px-3.5 py-2.5 text-sm font-semibold transition-colors disabled:opacity-50"
-                style={{ backgroundColor: `${LK.success}22`, color: LK.success, border: `1px solid ${LK.success}40` }}
-                onMouseEnter={(e) => { if (processingAction === null && selectedDetail?.id) e.currentTarget.style.backgroundColor =`${LK.success}3a`; }}
-                onMouseLeave={(e) => { e.currentTarget.style.backgroundColor =`${LK.success}22`; }}
+                className="btn btn-sm bg-state-success-soft text-state-success border-state-success-border inline-flex items-center gap-2 border"
               >
                 <RefreshCw size={15} className={processingAction === 'sync_verify' ? 'animate-spin' : ''} />
                 {processingAction === 'sync_verify' ? '同步中...' : '同步验证结果'}
@@ -1916,10 +1853,7 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
               type="button"
               onClick={handleMarkFalsePositive}
               disabled={processingAction !== null || selectedDetail.current_stage !== 'triage'}
-              className="inline-flex items-center gap-2 rounded-lg px-3.5 py-2.5 text-sm font-semibold transition-colors disabled:opacity-50"
-              style={{ backgroundColor: `${LK.warning}22`, color: LK.warning, border: `1px solid ${LK.warning}40` }}
-              onMouseEnter={(e) => { if (processingAction === null && selectedDetail.current_stage === 'triage') e.currentTarget.style.backgroundColor =`${LK.warning}3a`; }}
-              onMouseLeave={(e) => { e.currentTarget.style.backgroundColor =`${LK.warning}22`; }}
+              className="btn btn-sm bg-state-warning-soft text-state-warning border-state-warning-border inline-flex items-center gap-2 border"
             >
               <ShieldAlert size={15} />
               {processingAction === 'false_positive' ? '处理中...' : '标记非问题'}
@@ -1928,10 +1862,7 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
               type="button"
               onClick={handleDeleteSuspicion}
               disabled={processingAction !== null}
-              className="inline-flex items-center gap-2 rounded-lg px-3.5 py-2.5 text-sm font-semibold transition-colors disabled:opacity-50"
-              style={{ backgroundColor: `${LK.error}22`, color: LK.error, border: `1px solid ${LK.error}40` }}
-              onMouseEnter={(e) => { if (processingAction === null) e.currentTarget.style.backgroundColor =`${LK.error}3a`; }}
-              onMouseLeave={(e) => { e.currentTarget.style.backgroundColor =`${LK.error}22`; }}
+              className="btn btn-sm bg-state-danger-soft text-state-danger border-state-danger-border inline-flex items-center gap-2 border"
             >
               <X size={15} />
               {processingAction === 'delete' ? '删除中...' : '删除漏洞'}
@@ -1939,13 +1870,13 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
           </div>
         </div>
 
-        <div className="px-5 pt-4 xl:px-6" style={{ borderBottom: '1px solid ' + LK.borderSoft, backgroundColor: `${LK.surfaceRaised}cc` }}>
+        <div className="px-5 pt-4 xl:px-6 border-b border-theme-border-subtle bg-theme-elevated/80">
           <div className="mb-3 flex items-center justify-between gap-3">
             <div>
-              <div className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: LK.mutedSoft }}>详情视图</div>
-              <div className="mt-1 text-sm" style={{ color: LK.body }}>先看结论，再查看报告、证据、过程和关联上下文。</div>
+              <div className="text-[11px] font-semibold uppercase tracking-wider text-theme-text-muted-soft">详情视图</div>
+              <div className="mt-1 text-sm text-theme-text-muted">先看结论，再查看报告、证据、过程和关联上下文。</div>
             </div>
-            <div className="hidden rounded-lg px-3 py-2 text-xs font-semibold xl:block" style={{ backgroundColor: LK.surface, color: LK.inkSoft, border: '1px solid ' + LK.border }}>
+            <div className="hidden rounded-lg px-3 py-2 text-xs font-semibold xl:block bg-theme-surface text-theme-text-secondary border border-theme-border">
               当前：{detailTabs.find((tab) => tab.key === detailActiveTab)?.label}
             </div>
           </div>
@@ -1957,14 +1888,11 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
                   key={tab.key}
                   type="button"
                   onClick={() => setDetailActiveTab(tab.key)}
-                  className="inline-flex shrink-0 items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold transition-colors"
-                  style={{
-                    border: active ?`1px solid ${LK.primary}` :`1px solid ${LK.border}`,
-                    backgroundColor: active ? LK.primaryMuted : LK.surface,
-                    color: active ? LK.primary : LK.body
-                  }}
-                  onMouseEnter={(e) => { if (!active) e.currentTarget.style.color = LK.ink; }}
-                  onMouseLeave={(e) => { if (!active) e.currentTarget.style.color = LK.body; }}
+                  className={`inline-flex shrink-0 items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold transition-colors border ${
+                    active
+                      ? 'border-brand-border bg-brand-soft text-brand-primary'
+                      : 'border-theme-border bg-theme-surface text-theme-text-muted hover:text-theme-text-primary hover:bg-theme-elevated'
+                  }`}
                 >
                   {tab.icon}
                   {tab.label}
@@ -1985,17 +1913,17 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
               <div className="grid gap-4 xl:grid-cols-[1.15fr_0.85fr]">
                 <div className="space-y-4">
                   <DetailSectionCard title="漏洞摘要" subtitle="先看本条漏洞的结论、摘要和对象定位。">
-                    <div className="mt-3 space-y-3 text-sm leading-7" style={{ color: LK.inkSoft }}>
+                    <div className="mt-3 space-y-3 text-sm leading-7 text-theme-text-secondary">
                       <div>{displaySummary?.subtitle || selectedDetail.summary || '暂无摘要说明'}</div>
-                      <div className="rounded-xl p-4" style={{ backgroundColor: LK.surfaceRaised }}>
-                        <div className="text-xs font-semibold" style={{ color: LK.mutedSoft }}>当前结论</div>
-                        <div className="mt-1 text-sm font-semibold" style={{ color: LK.ink }}>
+                      <div className="rounded-xl p-4 bg-theme-elevated">
+                        <div className="text-xs font-semibold text-theme-text-muted-soft">当前结论</div>
+                        <div className="mt-1 text-sm font-semibold text-theme-text-primary">
                           {displaySummary?.validation_result || resultSummary?.summary || toDecisionText(selectedDetail.decision_status)}
                         </div>
                       </div>
-                      <div className="rounded-xl p-4" style={{ backgroundColor: LK.surfaceRaised }}>
-                        <div className="text-xs font-semibold" style={{ color: LK.mutedSoft }}>对象定位</div>
-                        <div className="mt-1 break-all text-sm font-semibold" style={{ color: LK.ink }}>{selectedDetail.subject?.locator || '未提供定位信息'}</div>
+                      <div className="rounded-xl p-4 bg-theme-elevated">
+                        <div className="text-xs font-semibold text-theme-text-muted-soft">对象定位</div>
+                        <div className="mt-1 break-all text-sm font-semibold text-theme-text-primary">{selectedDetail.subject?.locator || '未提供定位信息'}</div>
                       </div>
                     </div>
                   </DetailSectionCard>
@@ -2010,26 +1938,26 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
                 </div>
                 <div className="space-y-4">
                   <DetailSectionCard title="识别信息" subtitle="用于快速识别、排查和交叉检索本条漏洞。">
-                    <div className="mt-3 space-y-2 text-sm" style={{ color: LK.inkSoft }}>
-                      <div><span className="font-semibold" style={{ color: LK.ink }}>漏洞 ID：</span><span className="font-mono">{selectedDetail.id}</span></div>
-                      <div><span className="font-semibold" style={{ color: LK.ink }}>Finding ID：</span>{selectedDetail.finding_id || '未提供'}</div>
-                      <div><span className="font-semibold" style={{ color: LK.ink }}>全局漏洞 ID：</span>{selectedDetail.global_vuln_id || '未提供'}</div>
-                      <div><span className="font-semibold" style={{ color: LK.ink }}>当前报告：</span>{displaySummary?.current_report_title || displaySummary?.current_report_id || '未关联'}</div>
-                      <div><span className="font-semibold" style={{ color: LK.ink }}>报告更新时间：</span>{formatTime(displaySummary?.current_report_updated_at || selectedDetail.current_report_updated_at)}</div>
-                      <div><span className="font-semibold" style={{ color: LK.ink }}>创建时间：</span>{formatTime(selectedDetail.created_at)}</div>
-                      <div><span className="font-semibold" style={{ color: LK.ink }}>最近更新：</span>{formatTime(selectedDetail.updated_at)}</div>
+                    <div className="mt-3 space-y-2 text-sm text-theme-text-secondary">
+                      <div><span className="font-semibold text-theme-text-primary">漏洞 ID：</span><span className="font-mono">{selectedDetail.id}</span></div>
+                      <div><span className="font-semibold text-theme-text-primary">Finding ID：</span>{selectedDetail.finding_id || '未提供'}</div>
+                      <div><span className="font-semibold text-theme-text-primary">全局漏洞 ID：</span>{selectedDetail.global_vuln_id || '未提供'}</div>
+                      <div><span className="font-semibold text-theme-text-primary">当前报告：</span>{displaySummary?.current_report_title || displaySummary?.current_report_id || '未关联'}</div>
+                      <div><span className="font-semibold text-theme-text-primary">报告更新时间：</span>{formatTime(displaySummary?.current_report_updated_at || selectedDetail.current_report_updated_at)}</div>
+                      <div><span className="font-semibold text-theme-text-primary">创建时间：</span>{formatTime(selectedDetail.created_at)}</div>
+                      <div><span className="font-semibold text-theme-text-primary">最近更新：</span>{formatTime(selectedDetail.updated_at)}</div>
                     </div>
                   </DetailSectionCard>
                   <DetailSectionCard title="关键提示" subtitle="从报告和结果中提炼出的要点，方便快速浏览。">
                     <div className="mt-3 space-y-2">
                       {(Array.isArray(displaySummary?.key_points) ? displaySummary.key_points : []).length > 0 ? (
                         (displaySummary.key_points as string[]).map((point, index) => (
-                          <div key={`${point}-${index}`} className="rounded-xl px-4 py-3 text-sm" style={{ backgroundColor: LK.surfaceRaised, color: LK.inkSoft }}>
+                          <div key={`${point}-${index}`} className="rounded-xl px-4 py-3 text-sm bg-theme-elevated text-theme-text-secondary">
                             {point}
                           </div>
                         ))
                       ) : (
-                        <div className="rounded-xl px-4 py-4 text-sm" style={{ backgroundColor: LK.surfaceRaised, color: LK.body }}>当前没有提炼出的关键提示。</div>
+                        <div className="rounded-xl px-4 py-4 text-sm bg-theme-elevated text-theme-text-muted">当前没有提炼出的关键提示。</div>
                       )}
                     </div>
                   </DetailSectionCard>
@@ -2044,7 +1972,7 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
                 <DetailSectionCard title="报告列表" subtitle="选择不同阶段或不同来源生成的漏洞报告。" compact>
                   <div className="mt-3 space-y-2.5">
                     {reportItems.length === 0 ? (
-                      <div className="rounded-xl px-4 py-4 text-sm" style={{ backgroundColor: LK.surfaceRaised, color: LK.body }}>当前漏洞还没有生成正式报告，可先查看证据与文件。</div>
+                      <div className="rounded-xl px-4 py-4 text-sm bg-theme-elevated text-theme-text-muted">当前漏洞还没有生成正式报告，可先查看证据与文件。</div>
                     ) : (
                       reportItems.map((item: any) => {
                         const active = selectedReportId === item.report_id;
@@ -2054,26 +1982,22 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
                             key={item.report_id}
                             type="button"
                             onClick={() => setSelectedReportId(item.report_id)}
-                            className="w-full rounded-xl border p-4 text-left transition-colors"
-                            style={{
-                              borderColor: active ? LK.primary : LK.border,
-                              backgroundColor: active ? LK.primaryMuted : LK.surface,
-                              color: active ? LK.primary : LK.inkSoft
-                            }}
-                            onMouseEnter={(e) => { if (!active) e.currentTarget.style.backgroundColor = LK.surfaceRaised; }}
-                            onMouseLeave={(e) => { if (!active) e.currentTarget.style.backgroundColor = LK.surface; }}
+                            className={`w-full rounded-xl border p-4 text-left transition-colors ${
+                              active
+                                ? 'border-brand-border bg-brand-soft text-brand-primary'
+                                : 'border-theme-border bg-theme-surface text-theme-text-secondary hover:bg-theme-elevated hover:text-theme-text-primary'
+                            }`}
                           >
                             <div className="flex items-center justify-between gap-3">
                               <div className="text-sm font-semibold">{isRawReport ? '原始漏洞报告' : (item.title || item.report_id)}</div>
-                              <span className="rounded-lg px-2 py-1 text-[10px] font-semibold" style={{
-                                backgroundColor: active ?`${LK.primary}22` : LK.surfaceRaised,
-                                color: active ? LK.primary : LK.body
-                              }}>
+                              <span className={`rounded-lg px-2 py-1 text-[10px] font-semibold ${
+                                active ? 'bg-brand-soft text-brand-primary' : 'bg-theme-elevated text-theme-text-muted'
+                              }`}>
                                 {toStageText(item.stage)}
                               </span>
                             </div>
-                            <div className="mt-1 text-xs" style={{ color: active ? LK.inkSoft : LK.muted }}>{(isRawReport ? '原始报告' : toStageText(item.stage))} · {item.generated_at ? formatTime(item.generated_at) : '未记录时间'}</div>
-                            <div className="mt-2 line-clamp-3 text-xs leading-5" style={{ color: active ? LK.inkSoft : LK.muted }}>{item.excerpt || item.source_service_id || '暂无摘要'}</div>
+                            <div className="mt-1 text-xs text-theme-text-faint">{(isRawReport ? '原始报告' : toStageText(item.stage))} · {item.generated_at ? formatTime(item.generated_at) : '未记录时间'}</div>
+                            <div className="mt-2 line-clamp-3 text-xs leading-5 text-theme-text-faint">{item.excerpt || item.source_service_id || '暂无摘要'}</div>
                           </button>
                         );
                       })
@@ -2090,14 +2014,11 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
                           onClick={() => {
                             document.getElementById(heading.id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
                           }}
-                          className="block w-full rounded-lg px-3 py-2 text-left text-sm transition-colors"
-                          style={{
-                            paddingLeft:`${heading.level * 12}px`,
-                            backgroundColor: activeReportHeadingId === heading.id ? LK.primary : 'transparent',
-                            color: activeReportHeadingId === heading.id ? '#ffffff' : LK.body
-                          }}
-                          onMouseEnter={(e) => { if (activeReportHeadingId !== heading.id) e.currentTarget.style.backgroundColor = LK.surfaceRaised; e.currentTarget.style.color = LK.ink; }}
-                          onMouseLeave={(e) => { if (activeReportHeadingId !== heading.id) e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.color = LK.body; }}
+                          className={`block w-full rounded-lg py-2 text-left text-sm transition-colors ${
+                            activeReportHeadingId === heading.id
+                              ? 'bg-brand-primary text-theme-text-inverse'
+                              : 'hover:bg-theme-elevated hover:text-theme-text-primary text-theme-text-muted'
+                          } ${heading.level === 1 ? 'pl-3' : heading.level === 2 ? 'pl-6' : heading.level === 3 ? 'pl-9' : 'pl-12'}`}
                         >
                           {heading.text}
                         </button>
@@ -2106,27 +2027,27 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
                   </DetailSectionCard>
                 ) : null}
               </div>
-              <div className="rounded-xl p-5" style={{ backgroundColor: LK.surface, border: '1px solid ' + LK.border }}>
-                <div className="flex flex-wrap items-start justify-between gap-3 pb-4" style={{ borderBottom: '1px solid ' + LK.borderSoft }}>
+              <div className="rounded-xl p-5 bg-theme-surface border border-theme-border">
+                <div className="flex flex-wrap items-start justify-between gap-3 pb-4 border-b border-theme-border-subtle">
                   <div>
-                    <div className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: LK.mutedSoft }}>漏洞报告</div>
-                    <div className="mt-1 text-lg font-semibold" style={{ color: LK.ink }}>{reportDocument?.title || reportItems.find((item) => item.report_id === selectedReportId)?.title || '未选择报告'}</div>
-                    <div className="mt-1 text-xs" style={{ color: LK.body }}>
+                    <div className="text-[11px] font-semibold uppercase tracking-wider text-theme-text-muted-soft">漏洞报告</div>
+                    <div className="mt-1 text-lg font-semibold text-theme-text-primary">{reportDocument?.title || reportItems.find((item) => item.report_id === selectedReportId)?.title || '未选择报告'}</div>
+                    <div className="mt-1 text-xs text-theme-text-muted">
                       类型：{reportDocument?.report_kind || reportItems.find((item) => item.report_id === selectedReportId)?.report_kind || 'unknown'} · 阶段：{toStageText(reportDocument?.stage || reportItems.find((item) => item.report_id === selectedReportId)?.stage)} · 来源：{reportDocument?.source_service_id || reportItems.find((item) => item.report_id === selectedReportId)?.source_service_id || '未提供'}
                     </div>
                   </div>
                   <div className="flex flex-wrap gap-2">
-                    {reportDocument?.storage_path ? <div className="rounded-lg px-3 py-2 text-xs" style={{ backgroundColor: LK.surfaceRaised, color: LK.body }}>存储路径：{reportDocument.storage_path}</div> : null}
-                    {reportDocument?.generated_at ? <div className="rounded-lg px-3 py-2 text-xs" style={{ backgroundColor: LK.surfaceRaised, color: LK.body }}>生成时间：{formatTime(reportDocument.generated_at)}</div> : null}
+                    {reportDocument?.storage_path ? <div className="rounded-lg px-3 py-2 text-xs bg-theme-elevated text-theme-text-muted">存储路径：{reportDocument.storage_path}</div> : null}
+                    {reportDocument?.generated_at ? <div className="rounded-lg px-3 py-2 text-xs bg-theme-elevated text-theme-text-muted">生成时间：{formatTime(reportDocument.generated_at)}</div> : null}
                   </div>
                 </div>
                 <div ref={reportScrollRef} className="mt-5 min-h-[28rem] max-h-[calc(100vh-22rem)] overflow-auto pr-1">
                   {reportLoading ? (
-                    <div className="flex items-center gap-2 text-sm" style={{ color: LK.body }}><Loader2 size={16} className="animate-spin" /> 正在加载报告...</div>
+                    <div className="flex items-center gap-2 text-sm text-theme-text-muted"><Loader2 size={16} className="animate-spin" /> 正在加载报告...</div>
                   ) : reportError ? (
-                    <div className="rounded-lg px-4 py-3 text-sm" style={{ backgroundColor: `${LK.error}22`, color: LK.error, border: `1px solid ${LK.error}40` }}>{reportError}</div>
+                    <div className="alert--danger rounded-lg px-4 py-3 text-sm bg-state-danger-soft text-state-danger border border-state-danger-border">{reportError}</div>
                   ) : reportItems.length === 0 ? (
-                    <div className="rounded-xl px-6 py-12 text-center text-sm" style={{ border: '1px dashed ' + LK.border, color: LK.body }}>暂无正式报告，请切换到「证据与文件」查看原始材料与文件目录。</div>
+                    <div className="rounded-xl px-6 py-12 text-center text-sm border border-dashed border-theme-border text-theme-text-muted">暂无正式报告，请切换到「证据与文件」查看原始材料与文件目录。</div>
                   ) : (
                     <MarkdownContent content={reportDocument?.content || ''} />
                   )}
@@ -2140,22 +2061,22 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
               <div className="grid gap-4 xl:grid-cols-[0.9fr_1.1fr]">
                 <div className="space-y-4">
                   <DetailSectionCard title="证据摘要" subtitle="用于快速了解当前漏洞的核心证据、复现提示和引用材料。">
-                    <div className="mt-3 space-y-3 text-sm" style={{ color: LK.inkSoft }}>
-                      <div className="rounded-xl p-4" style={{ backgroundColor: LK.surfaceRaised }}>{evidenceSummary?.summary || selectedDetail?.evidence?.summary || '暂无证据摘要'}</div>
-                      <div className="rounded-xl p-4" style={{ backgroundColor: LK.surfaceRaised }}>
-                        <div className="text-xs font-semibold" style={{ color: LK.mutedSoft }}>复现提示</div>
+                    <div className="mt-3 space-y-3 text-sm text-theme-text-secondary">
+                      <div className="rounded-xl p-4 bg-theme-elevated">{evidenceSummary?.summary || selectedDetail?.evidence?.summary || '暂无证据摘要'}</div>
+                      <div className="rounded-xl p-4 bg-theme-elevated">
+                        <div className="text-xs font-semibold text-theme-text-muted-soft">复现提示</div>
                         <div className="mt-1 whitespace-pre-wrap leading-6">{evidenceSummary?.reproduction_hint || selectedDetail?.evidence?.reproduction_hint || '暂无复现提示'}</div>
                       </div>
-                      <div className="rounded-xl p-4" style={{ backgroundColor: LK.surfaceRaised }}>
-                        <div className="text-xs font-semibold" style={{ color: LK.mutedSoft }}>证据引用</div>
+                      <div className="rounded-xl p-4 bg-theme-elevated">
+                        <div className="text-xs font-semibold text-theme-text-muted-soft">证据引用</div>
                         {Array.isArray(evidenceSummary?.references) && evidenceSummary.references.length > 0 ? (
                           <div className="mt-2 space-y-2">
                             {evidenceSummary.references.map((reference: any, index: number) => (
-                              <div key={index} className="rounded-lg px-3 py-2 text-xs" style={{ backgroundColor: LK.surface, color: LK.body }}>{typeof reference === 'string' ? reference : JSON.stringify(reference)}</div>
+                              <div key={index} className="rounded-lg px-3 py-2 text-xs bg-theme-surface text-theme-text-muted">{typeof reference === 'string' ? reference : JSON.stringify(reference)}</div>
                             ))}
                           </div>
                         ) : (
-                          <div className="mt-1 text-sm" style={{ color: LK.body }}>暂无证据引用</div>
+                          <div className="mt-1 text-sm text-theme-text-muted">暂无证据引用</div>
                         )}
                       </div>
                     </div>
@@ -2164,17 +2085,17 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
                     <div className="mt-3 space-y-2">
                       {(Array.isArray(selectedDetail.artifacts) ? selectedDetail.artifacts : []).length > 0 ? (
                         (selectedDetail.artifacts as any[]).map((artifact, index) => (
-                          <div key={`${artifact?.name || artifact?.path || index}`} className="rounded-xl px-4 py-3" style={{ border: '1px solid ' + LK.border }}>
+                          <div key={`${artifact?.name || artifact?.path || index}`} className="rounded-xl px-4 py-3 border border-theme-border">
                             <div className="flex flex-wrap items-center justify-between gap-3">
-                              <div className="text-sm font-semibold" style={{ color: LK.ink }}>{artifact?.name || artifact?.path ||`artifact-${index + 1}`}</div>
-                              <span className="rounded-lg px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider" style={{ backgroundColor: LK.surfaceRaised, color: LK.body }}>{artifact?.kind || 'unknown'}</span>
+                              <div className="text-sm font-semibold text-theme-text-primary">{artifact?.name || artifact?.path ||`artifact-${index + 1}`}</div>
+                              <span className="rounded-lg px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider bg-theme-elevated text-theme-text-muted">{artifact?.kind || 'unknown'}</span>
                             </div>
-                            <div className="mt-1 text-xs" style={{ color: LK.muted }}>{artifact?.media_type ?`媒体类型：${artifact.media_type}` : '未提供媒体类型'}</div>
-                            {artifact?.path || artifact?.content_ref ? <div className="mt-2 break-all text-xs" style={{ color: LK.muted }}>{artifact.path || artifact.content_ref}</div> : null}
+                            <div className="mt-1 text-xs text-theme-text-faint">{artifact?.media_type ?`媒体类型：${artifact.media_type}` : '未提供媒体类型'}</div>
+                            {artifact?.path || artifact?.content_ref ? <div className="mt-2 break-all text-xs text-theme-text-faint">{artifact.path || artifact.content_ref}</div> : null}
                           </div>
                         ))
                       ) : (
-                        <div className="rounded-xl px-4 py-4 text-sm" style={{ backgroundColor: LK.surfaceRaised, color: LK.body }}>暂无 artifact 清单</div>
+                        <div className="rounded-xl px-4 py-4 text-sm bg-theme-elevated text-theme-text-muted">暂无 artifact 清单</div>
                       )}
                     </div>
                   </DetailSectionCard>
@@ -2184,43 +2105,43 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
                     <div className="mt-3 grid gap-2.5">
                       <div className="grid grid-cols-2 gap-2.5">
                         <label className="grid gap-1">
-                          <span className="text-[11px] font-semibold" style={{ color: LK.mutedSoft }}>上报者名称（reporter.name）</span>
-                          <input value={editableDetail?.reporter?.name || ''} onChange={(event) => setEditableDetail((prev) => (prev ? { ...prev, reporter: { ...prev.reporter, name: event.target.value } } : prev))} disabled={!detailEditMode || detailSaving} className="rounded-lg px-3 py-2 text-sm outline-none transition-colors" style={{ backgroundColor: detailEditMode ? LK.surfaceRaised : LK.surface, color: detailEditMode ? LK.inkSoft : LK.muted, border: '1px solid ' + LK.border }} onFocus={(e) => { if (detailEditMode) e.currentTarget.style.borderColor = LK.primary; }} onBlur={(e) => { if (detailEditMode) e.currentTarget.style.borderColor = LK.border; }} />
+                          <span className="text-[11px] font-semibold text-theme-text-muted-soft">上报者名称（reporter.name）</span>
+                          <input value={editableDetail?.reporter?.name || ''} onChange={(event) => setEditableDetail((prev) => (prev ? { ...prev, reporter: { ...prev.reporter, name: event.target.value } } : prev))} disabled={!detailEditMode || detailSaving} className="form-input rounded-lg px-3 py-2 text-sm" />
                         </label>
                         <label className="grid gap-1">
-                          <span className="text-[11px] font-semibold" style={{ color: LK.mutedSoft }}>上报者版本（reporter.version）</span>
-                          <input value={editableDetail?.reporter?.version || ''} onChange={(event) => setEditableDetail((prev) => (prev ? { ...prev, reporter: { ...prev.reporter, version: event.target.value } } : prev))} disabled={!detailEditMode || detailSaving} className="rounded-lg px-3 py-2 text-sm outline-none transition-colors" style={{ backgroundColor: detailEditMode ? LK.surfaceRaised : LK.surface, color: detailEditMode ? LK.inkSoft : LK.muted, border: '1px solid ' + LK.border }} onFocus={(e) => { if (detailEditMode) e.currentTarget.style.borderColor = LK.primary; }} onBlur={(e) => { if (detailEditMode) e.currentTarget.style.borderColor = LK.border; }} />
+                          <span className="text-[11px] font-semibold text-theme-text-muted-soft">上报者版本（reporter.version）</span>
+                          <input value={editableDetail?.reporter?.version || ''} onChange={(event) => setEditableDetail((prev) => (prev ? { ...prev, reporter: { ...prev.reporter, version: event.target.value } } : prev))} disabled={!detailEditMode || detailSaving} className="form-input rounded-lg px-3 py-2 text-sm" />
                         </label>
                         <label className="grid gap-1">
-                          <span className="text-[11px] font-semibold" style={{ color: LK.mutedSoft }}>上报方式（reporter.type）</span>
-                          <input value={editableDetail?.reporter?.type || ''} onChange={(event) => setEditableDetail((prev) => (prev ? { ...prev, reporter: { ...prev.reporter, type: event.target.value } } : prev))} disabled={!detailEditMode || detailSaving} className="rounded-lg px-3 py-2 text-sm outline-none transition-colors" style={{ backgroundColor: detailEditMode ? LK.surfaceRaised : LK.surface, color: detailEditMode ? LK.inkSoft : LK.muted, border: '1px solid ' + LK.border }} onFocus={(e) => { if (detailEditMode) e.currentTarget.style.borderColor = LK.primary; }} onBlur={(e) => { if (detailEditMode) e.currentTarget.style.borderColor = LK.border; }} />
+                          <span className="text-[11px] font-semibold text-theme-text-muted-soft">上报方式（reporter.type）</span>
+                          <input value={editableDetail?.reporter?.type || ''} onChange={(event) => setEditableDetail((prev) => (prev ? { ...prev, reporter: { ...prev.reporter, type: event.target.value } } : prev))} disabled={!detailEditMode || detailSaving} className="form-input rounded-lg px-3 py-2 text-sm" />
                         </label>
                         <label className="grid gap-1">
-                          <span className="text-[11px] font-semibold" style={{ color: LK.mutedSoft }}>上报入口（reporter.endpoint）</span>
-                          <input value={editableDetail?.reporter?.endpoint || ''} onChange={(event) => setEditableDetail((prev) => (prev ? { ...prev, reporter: { ...prev.reporter, endpoint: event.target.value } } : prev))} disabled={!detailEditMode || detailSaving} className="rounded-lg px-3 py-2 text-sm outline-none transition-colors" style={{ backgroundColor: detailEditMode ? LK.surfaceRaised : LK.surface, color: detailEditMode ? LK.inkSoft : LK.muted, border: '1px solid ' + LK.border }} onFocus={(e) => { if (detailEditMode) e.currentTarget.style.borderColor = LK.primary; }} onBlur={(e) => { if (detailEditMode) e.currentTarget.style.borderColor = LK.border; }} />
+                          <span className="text-[11px] font-semibold text-theme-text-muted-soft">上报入口（reporter.endpoint）</span>
+                          <input value={editableDetail?.reporter?.endpoint || ''} onChange={(event) => setEditableDetail((prev) => (prev ? { ...prev, reporter: { ...prev.reporter, endpoint: event.target.value } } : prev))} disabled={!detailEditMode || detailSaving} className="form-input rounded-lg px-3 py-2 text-sm" />
                         </label>
                       </div>
                       <div className="grid grid-cols-2 gap-2.5">
                         <label className="grid gap-1">
-                          <span className="text-[11px] font-semibold" style={{ color: LK.mutedSoft }}>对象类型（subject.type）</span>
-                          <input value={editableDetail?.subject?.type || ''} onChange={(event) => setEditableDetail((prev) => (prev ? { ...prev, subject: { ...prev.subject, type: event.target.value } } : prev))} disabled={!detailEditMode || detailSaving} className="rounded-lg px-3 py-2 text-sm outline-none transition-colors" style={{ backgroundColor: detailEditMode ? LK.surfaceRaised : LK.surface, color: detailEditMode ? LK.inkSoft : LK.muted, border: '1px solid ' + LK.border }} onFocus={(e) => { if (detailEditMode) e.currentTarget.style.borderColor = LK.primary; }} onBlur={(e) => { if (detailEditMode) e.currentTarget.style.borderColor = LK.border; }} />
+                          <span className="text-[11px] font-semibold text-theme-text-muted-soft">对象类型（subject.type）</span>
+                          <input value={editableDetail?.subject?.type || ''} onChange={(event) => setEditableDetail((prev) => (prev ? { ...prev, subject: { ...prev.subject, type: event.target.value } } : prev))} disabled={!detailEditMode || detailSaving} className="form-input rounded-lg px-3 py-2 text-sm" />
                         </label>
                         <label className="grid gap-1">
-                          <span className="text-[11px] font-semibold" style={{ color: LK.mutedSoft }}>对象名称（subject.name）</span>
-                          <input value={editableDetail?.subject?.name || ''} onChange={(event) => setEditableDetail((prev) => (prev ? { ...prev, subject: { ...prev.subject, name: event.target.value } } : prev))} disabled={!detailEditMode || detailSaving} className="rounded-lg px-3 py-2 text-sm outline-none transition-colors" style={{ backgroundColor: detailEditMode ? LK.surfaceRaised : LK.surface, color: detailEditMode ? LK.inkSoft : LK.muted, border: '1px solid ' + LK.border }} onFocus={(e) => { if (detailEditMode) e.currentTarget.style.borderColor = LK.primary; }} onBlur={(e) => { if (detailEditMode) e.currentTarget.style.borderColor = LK.border; }} />
+                          <span className="text-[11px] font-semibold text-theme-text-muted-soft">对象名称（subject.name）</span>
+                          <input value={editableDetail?.subject?.name || ''} onChange={(event) => setEditableDetail((prev) => (prev ? { ...prev, subject: { ...prev.subject, name: event.target.value } } : prev))} disabled={!detailEditMode || detailSaving} className="form-input rounded-lg px-3 py-2 text-sm" />
                         </label>
                         <label className="grid gap-1 col-span-2">
-                          <span className="text-[11px] font-semibold" style={{ color: LK.mutedSoft }}>对象定位（subject.locator）</span>
-                          <input value={editableDetail?.subject?.locator || ''} onChange={(event) => setEditableDetail((prev) => (prev ? { ...prev, subject: { ...prev.subject, locator: event.target.value } } : prev))} disabled={!detailEditMode || detailSaving} className="rounded-lg px-3 py-2 text-sm outline-none transition-colors" style={{ backgroundColor: detailEditMode ? LK.surfaceRaised : LK.surface, color: detailEditMode ? LK.inkSoft : LK.muted, border: '1px solid ' + LK.border }} onFocus={(e) => { if (detailEditMode) e.currentTarget.style.borderColor = LK.primary; }} onBlur={(e) => { if (detailEditMode) e.currentTarget.style.borderColor = LK.border; }} />
+                          <span className="text-[11px] font-semibold text-theme-text-muted-soft">对象定位（subject.locator）</span>
+                          <input value={editableDetail?.subject?.locator || ''} onChange={(event) => setEditableDetail((prev) => (prev ? { ...prev, subject: { ...prev.subject, locator: event.target.value } } : prev))} disabled={!detailEditMode || detailSaving} className="form-input rounded-lg px-3 py-2 text-sm" />
                         </label>
                       </div>
                       <label className="grid gap-1">
-                        <span className="text-[11px] font-semibold" style={{ color: LK.mutedSoft }}>证据摘要（evidence.summary）</span>
-                        <textarea value={editableDetail?.evidence_summary || ''} onChange={(event) => setEditableDetail((prev) => (prev ? { ...prev, evidence_summary: event.target.value } : prev))} disabled={!detailEditMode || detailSaving} className="min-h-[66px] rounded-lg px-3 py-2 text-sm outline-none resize-none transition-colors" style={{ backgroundColor: detailEditMode ? LK.surfaceRaised : LK.surface, color: detailEditMode ? LK.inkSoft : LK.muted, border: '1px solid ' + LK.border }} onFocus={(e) => { if (detailEditMode) e.currentTarget.style.borderColor = LK.primary; }} onBlur={(e) => { if (detailEditMode) e.currentTarget.style.borderColor = LK.border; }} />
+                        <span className="text-[11px] font-semibold text-theme-text-muted-soft">证据摘要（evidence.summary）</span>
+                        <textarea value={editableDetail?.evidence_summary || ''} onChange={(event) => setEditableDetail((prev) => (prev ? { ...prev, evidence_summary: event.target.value } : prev))} disabled={!detailEditMode || detailSaving} className="form-input min-h-[66px] rounded-lg px-3 py-2 text-sm resize-none" />
                       </label>
                       <label className="grid gap-1">
-                        <span className="text-[11px] font-semibold" style={{ color: LK.mutedSoft }}>复现提示（evidence.reproduction_hint）</span>
-                        <textarea value={editableDetail?.evidence_reproduction_hint || ''} onChange={(event) => setEditableDetail((prev) => (prev ? { ...prev, evidence_reproduction_hint: event.target.value } : prev))} disabled={!detailEditMode || detailSaving} className="min-h-[66px] rounded-lg px-3 py-2 text-sm outline-none resize-none transition-colors" style={{ backgroundColor: detailEditMode ? LK.surfaceRaised : LK.surface, color: detailEditMode ? LK.inkSoft : LK.muted, border: '1px solid ' + LK.border }} onFocus={(e) => { if (detailEditMode) e.currentTarget.style.borderColor = LK.primary; }} onBlur={(e) => { if (detailEditMode) e.currentTarget.style.borderColor = LK.border; }} />
+                        <span className="text-[11px] font-semibold text-theme-text-muted-soft">复现提示（evidence.reproduction_hint）</span>
+                        <textarea value={editableDetail?.evidence_reproduction_hint || ''} onChange={(event) => setEditableDetail((prev) => (prev ? { ...prev, evidence_reproduction_hint: event.target.value } : prev))} disabled={!detailEditMode || detailSaving} className="form-input min-h-[66px] rounded-lg px-3 py-2 text-sm resize-none" />
                       </label>
                     </div>
                   </DetailSectionCard>
@@ -2233,38 +2154,38 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
                         <button
                           type="button"
                           onClick={() => openLinkedFilesPath(linkedFiles.root_path)}
-                          className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-700"
+                          className="btn btn-secondary btn-sm"
                         >
                           根目录
                         </button>
                       ) : null
                     }
                   >
- <div className="mt-3 overflow-hidden rounded-[1.25rem] border border-slate-200 bg-slate-50">
+ <div className="mt-3 overflow-hidden rounded-xl border border-theme-border bg-theme-surface">
                       {linkedFilesLoading ? (
-                        <div className="px-4 py-8 text-sm text-slate-600">正在加载关联文件...</div>
+                        <div className="px-4 py-8 text-sm text-theme-text-muted">正在加载关联文件...</div>
                       ) : !linkedFiles ? (
-                        <div className="px-4 py-8 text-sm text-slate-600">当前漏洞还没有可展示的文件目录。</div>
+                        <div className="px-4 py-8 text-sm text-theme-text-muted">当前漏洞还没有可展示的文件目录。</div>
                       ) : (
                         <div className="flex h-full min-h-[360px] flex-col">
-                          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 bg-slate-50 px-4 py-3">
-                            <div className="truncate text-xs font-semibold text-slate-700">当前路径：{linkedFiles.current_path}</div>
+                          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-theme-border-subtle bg-theme-surface px-4 py-3">
+                            <div className="truncate text-xs font-semibold text-theme-text-secondary">当前路径：{linkedFiles.current_path}</div>
                             <div className="flex flex-wrap items-center gap-2">
                               <button
                                 type="button"
                                 onClick={() => void handleCreateLinkedArchiveTask()}
                                 disabled={selectedLinkedPaths.length === 0 || linkedArchiveSubmitting}
-                                className="rounded-lg bg-sky-600 px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-40"
+                                className="btn btn-primary btn-sm"
                               >
                                 {linkedArchiveSubmitting ? '提交中...' :`打包下载(${selectedLinkedPaths.length})`}
                               </button>
-                              <div className="flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1.5">
-                                <Search size={12} className="text-slate-400" />
+                              <div className="search-bar">
+                                <Search size={12} className="text-theme-text-faint" />
                                 <input
                                   value={linkedFileSearch}
                                   onChange={(event) => setLinkedFileSearch(event.target.value)}
                                   placeholder="搜索文件名/路径"
-                                  className="w-36 bg-transparent text-xs font-semibold text-slate-700 outline-none placeholder:text-slate-400"
+                                  className="search-input text-xs"
                                 />
                               </div>
                               {linkedFiles.current_path !== linkedFiles.root_path && (
@@ -2276,7 +2197,7 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
                                     const parent = parts.length <= 2 ? linkedFiles.root_path :`/${parts.slice(0, -1).join('/')}`;
                                     openLinkedFilesPath(parent);
                                   }}
-                                  className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-700"
+                                  className="btn btn-secondary btn-sm"
                                 >
                                   上级目录
                                 </button>
@@ -2284,15 +2205,15 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
                               <button
                                 type="button"
                                 onClick={() => openLinkedFilesPath(linkedFiles.current_path)}
-                                className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-700"
+                                className="btn btn-secondary btn-sm"
                               >
                                 刷新
                               </button>
                             </div>
                           </div>
                           <div className="grid min-h-0 flex-1 xl:grid-cols-[360px_minmax(0,1fr)]">
-                            <div className="min-h-0 overflow-auto border-r border-slate-100 p-3">
-                              <div className="grid grid-cols-[24px_minmax(0,1fr)_70px] gap-3 rounded-xl bg-slate-50 px-3 py-2 text-[11px] font-semibold uppercase tracking-wider text-slate-600">
+                            <div className="min-h-0 overflow-auto border-r border-theme-border-subtle p-3">
+                              <div className="grid grid-cols-[24px_minmax(0,1fr)_70px] gap-3 rounded-xl bg-theme-elevated px-3 py-2 text-[11px] font-semibold uppercase tracking-wider text-theme-text-muted-soft">
                                 <div>选</div>
                                 <div>名称</div>
                                 <div>大小</div>
@@ -2301,7 +2222,7 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
                                 {linkedDirectoryItems.map((directory: any) => (
                                   <div
                                     key={directory.id}
-                                    className="grid w-full grid-cols-[24px_minmax(0,1fr)_70px] items-center gap-3 rounded-xl px-3 py-2 text-left hover:bg-slate-100"
+                                    className="grid w-full grid-cols-[24px_minmax(0,1fr)_70px] items-center gap-3 rounded-xl px-3 py-2 text-left hover:bg-theme-elevated"
                                   >
                                     <input
                                       type="checkbox"
@@ -2310,8 +2231,8 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
                                       className="h-4 w-4"
                                       aria-label={`选择目录 ${directory.name}`}
                                     />
-                                    <span className="inline-flex min-w-0 items-center gap-2 truncate text-sm font-semibold text-slate-800">
-                                      <FolderOpen size={14} className="shrink-0 text-amber-500" />
+                                    <span className="inline-flex min-w-0 items-center gap-2 truncate text-sm font-semibold text-theme-text-secondary">
+                                      <FolderOpen size={14} className="shrink-0 text-state-warning" />
                                       <button
                                         type="button"
                                         onClick={() => openLinkedFilesPath(directory.path)}
@@ -2320,7 +2241,7 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
                                         {directory.name}
                                       </button>
                                     </span>
-                                    <span className="text-xs text-slate-500">--</span>
+                                    <span className="text-xs text-theme-text-muted">--</span>
                                   </div>
                                 ))}
                                 {linkedFileItems.map((file: any) => {
@@ -2328,7 +2249,7 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
                                   return (
                                     <div
                                       key={file.id}
-                                      className={`grid grid-cols-[24px_minmax(0,1fr)_70px] items-center gap-3 rounded-xl px-3 py-2 ${active ? 'bg-sky-50' : 'hover:bg-slate-100'}`}
+                                      className={`grid grid-cols-[24px_minmax(0,1fr)_70px] items-center gap-3 rounded-xl px-3 py-2 ${active ? 'bg-brand-soft' : 'hover:bg-theme-elevated'}`}
                                     >
                                       <input
                                         type="checkbox"
@@ -2343,17 +2264,17 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
                                         className="min-w-0 text-left"
                                       >
                                         <div className="inline-flex min-w-0 items-center gap-2">
-                                          <FileCode2 size={13} className="shrink-0 text-slate-500" />
-                                          <span className="truncate text-sm font-semibold text-slate-800">{file.filename}</span>
+                                          <FileCode2 size={13} className="shrink-0 text-theme-text-muted" />
+                                          <span className="truncate text-sm font-semibold text-theme-text-secondary">{file.filename}</span>
                                         </div>
-                                        <div className="mt-0.5 truncate text-[10px] text-slate-500">{file.path}</div>
+                                        <div className="mt-0.5 truncate text-[10px] text-theme-text-muted">{file.path}</div>
                                       </button>
-                                      <span className="text-xs text-slate-500">{Math.max(0, Math.round(Number(file.size || 0) / 1024))}KB</span>
+                                      <span className="text-xs text-theme-text-muted">{Math.max(0, Math.round(Number(file.size || 0) / 1024))}KB</span>
                                     </div>
                                   );
                                 })}
                                 {linkedDirectoryItems.length === 0 && linkedFileItems.length === 0 && (
-                                  <div className="rounded-xl border border-dashed border-slate-200 px-4 py-8 text-center text-sm text-slate-600">
+                                  <div className="rounded-xl border border-dashed border-theme-border px-4 py-8 text-center text-sm text-theme-text-muted">
                                     当前目录没有匹配的文件或文件夹
                                   </div>
                                 )}
@@ -2362,33 +2283,33 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
                             <div className="min-h-0">
                               {selectedLinkedFile ? (
                                 <div className="grid h-full min-h-0 xl:grid-cols-[minmax(0,1fr)_240px]">
-                                  <div className="min-h-0 border-r border-slate-100 p-4">
-                                    <div className="mb-3 inline-flex items-center gap-2 text-xs font-semibold text-slate-700">
+                                  <div className="min-h-0 border-r border-theme-border-subtle p-4">
+                                    <div className="mb-3 inline-flex items-center gap-2 text-xs font-semibold text-theme-text-secondary">
                                       <FileCode2 size={13} />
                                       {selectedLinkedFile.filename}
                                     </div>
                                     <div className="h-[calc(100%-1.5rem)] min-h-[260px] overflow-auto">
                                       {linkedFilePreviewLoading ? (
-                                        <div className="text-sm text-slate-600">正在加载文件内容...</div>
+                                        <div className="text-sm text-theme-text-muted">正在加载文件内容...</div>
                                       ) : linkedFilePreviewError ? (
-                                        <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700">{linkedFilePreviewError}</div>
+                                        <div className="alert alert--warning">{linkedFilePreviewError}</div>
                                       ) : (
-                                        <pre className="h-full overflow-auto rounded-2xl border border-slate-200 bg-slate-50 p-5 font-mono text-[12px] whitespace-pre-wrap text-slate-900">{linkedFilePreview || ''}</pre>
+                                        <pre className="h-full overflow-auto rounded-xl border border-theme-border bg-theme-surface p-5 font-mono text-[12px] whitespace-pre-wrap text-theme-text-primary">{linkedFilePreview || ''}</pre>
                                       )}
                                     </div>
                                   </div>
-                                  <div className="p-4 text-sm text-slate-700">
-                                    <div className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">文件信息</div>
+                                  <div className="p-4 text-sm text-theme-text-secondary">
+                                    <div className="text-[11px] font-semibold uppercase tracking-wider text-theme-text-muted-soft">文件信息</div>
                                     <div className="mt-4 space-y-3">
-                                      <div><div className="text-xs text-slate-500">文件名</div><div className="break-all font-semibold text-slate-900">{selectedLinkedFile.filename}</div></div>
-                                      <div><div className="text-xs text-slate-500">内容类型</div><div className="font-semibold text-slate-800">{selectedLinkedFile.content_type || '未知类型'}</div></div>
-                                      <div><div className="text-xs text-slate-500">大小</div><div className="font-semibold text-slate-800">{Number(selectedLinkedFile.size || 0)} bytes</div></div>
-                                      <div><div className="text-xs text-slate-500">路径</div><div className="break-all font-semibold text-slate-800">{selectedLinkedFile.path || '-'}</div></div>
+                                      <div><div className="text-xs text-theme-text-muted">文件名</div><div className="break-all font-semibold text-theme-text-primary">{selectedLinkedFile.filename}</div></div>
+                                      <div><div className="text-xs text-theme-text-muted">内容类型</div><div className="font-semibold text-theme-text-secondary">{selectedLinkedFile.content_type || '未知类型'}</div></div>
+                                      <div><div className="text-xs text-theme-text-muted">大小</div><div className="font-semibold text-theme-text-secondary">{Number(selectedLinkedFile.size || 0)} bytes</div></div>
+                                      <div><div className="text-xs text-theme-text-muted">路径</div><div className="break-all font-semibold text-theme-text-secondary">{selectedLinkedFile.path || '-'}</div></div>
                                     </div>
                                     <button
                                       type="button"
                                       onClick={() => handleLinkedFileDownload(selectedLinkedFile.id, selectedLinkedFile.filename)}
-                                      className="mt-6 inline-flex items-center gap-2 rounded-xl bg-slate-900 px-4 py-2 text-xs font-semibold text-white"
+                                      className="btn btn-primary btn-sm mt-6"
                                     >
                                       <Download size={14} />
                                       下载文件
@@ -2396,7 +2317,7 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
                                   </div>
                                 </div>
                               ) : (
-                                <div className="flex h-full min-h-[320px] items-center justify-center text-sm text-slate-600">
+                                <div className="flex h-full min-h-[320px] items-center justify-center text-sm text-theme-text-muted">
                                   从左侧列表选择文件进行预览
                                 </div>
                               )}
@@ -2422,15 +2343,15 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
                 <DetailSectionCard title="时间线事件" subtitle="按时间顺序查看阶段变化、裁决、系统事件和执行人。">
                   <div className="mt-3 space-y-2.5">
                     {selectedTimeline.length === 0 ? (
-                      <div className="rounded-xl bg-slate-50 px-4 py-4 text-sm text-slate-600">暂无时间线数据</div>
+                      <div className="rounded-xl bg-theme-surface px-4 py-4 text-sm text-theme-text-muted">暂无时间线数据</div>
                     ) : (
                       selectedTimeline.map((item: any) => (
-                        <div key={item.id} className="rounded-xl border border-slate-200 px-4 py-3">
+                        <div key={item.id} className="rounded-xl border border-theme-border px-4 py-3">
                           <div className="flex items-center justify-between gap-3">
-                            <div className="text-sm font-semibold text-slate-800">{item.payload?.summary || item.payload?.event_type || item.item_type}</div>
-                            <div className="text-[11px] font-semibold text-slate-500">{formatTime(item.created_at)}</div>
+                            <div className="text-sm font-semibold text-theme-text-secondary">{item.payload?.summary || item.payload?.event_type || item.item_type}</div>
+                            <div className="text-[11px] font-semibold text-theme-text-muted">{formatTime(item.created_at)}</div>
                           </div>
-                          <div className="mt-1.5 text-xs text-slate-500">
+                          <div className="mt-1.5 text-xs text-theme-text-muted">
                             类型：{item.item_type}
                             {item.payload?.status ?` · 状态：${item.payload.status}` : ''}
                             {item.payload?.actor ?` · 执行者：${item.payload.actor}` : ''}
@@ -2444,15 +2365,15 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
                   <DetailSectionCard title="协同记录 / 动作" subtitle="展示自动动作、执行状态和摘要信息。">
                     <div className="mt-3 space-y-2.5">
                       {processActions.length === 0 ? (
-                        <div className="rounded-xl bg-slate-50 px-4 py-4 text-sm text-slate-600">暂无动作记录</div>
+                        <div className="rounded-xl bg-theme-surface px-4 py-4 text-sm text-theme-text-muted">暂无动作记录</div>
                       ) : (
                         processActions.map((action: any, index: number) => (
-                          <div key={action.id || index} className="rounded-xl border border-slate-200 px-4 py-3">
+                          <div key={action.id || index} className="rounded-xl border border-theme-border px-4 py-3">
                             <div className="flex items-center justify-between gap-3">
-                              <div className="text-sm font-semibold text-slate-800">{action.title || action.action_type || action.name ||`动作 ${index + 1}`}</div>
-                              <div className="text-[11px] text-slate-500">{action.execution_status || action.status || 'unknown'}</div>
+                              <div className="text-sm font-semibold text-theme-text-secondary">{action.title || action.action_type || action.name ||`动作 ${index + 1}`}</div>
+                              <div className="text-[11px] text-theme-text-muted">{action.execution_status || action.status || 'unknown'}</div>
                             </div>
-                            <div className="mt-1 text-xs text-slate-500">{action.summary || action.description || action.owner || '暂无摘要'}</div>
+                            <div className="mt-1 text-xs text-theme-text-muted">{action.summary || action.description || action.owner || '暂无摘要'}</div>
                           </div>
                         ))
                       )}
@@ -2461,15 +2382,15 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
                   <DetailSectionCard title="协同记录 / 人工任务" subtitle="展示人工介入项、状态和当前说明。">
                     <div className="mt-3 space-y-2.5">
                       {processManualTasks.length === 0 ? (
-                        <div className="rounded-xl bg-slate-50 px-4 py-4 text-sm text-slate-600">暂无人工任务</div>
+                        <div className="rounded-xl bg-theme-surface px-4 py-4 text-sm text-theme-text-muted">暂无人工任务</div>
                       ) : (
                         processManualTasks.map((task: any, index: number) => (
-                          <div key={task.id || index} className="rounded-xl border border-slate-200 px-4 py-3">
+                          <div key={task.id || index} className="rounded-xl border border-theme-border px-4 py-3">
                             <div className="flex items-center justify-between gap-3">
-                              <div className="text-sm font-semibold text-slate-800">{task.title || task.name ||`人工任务 ${index + 1}`}</div>
-                              <div className="text-[11px] text-slate-500">{task.status || 'unknown'}</div>
+                              <div className="text-sm font-semibold text-theme-text-secondary">{task.title || task.name ||`人工任务 ${index + 1}`}</div>
+                              <div className="text-[11px] text-theme-text-muted">{task.status || 'unknown'}</div>
                             </div>
-                            <div className="mt-1 text-xs text-slate-500">{task.summary || task.description || task.assignee || '暂无说明'}</div>
+                            <div className="mt-1 text-xs text-theme-text-muted">{task.summary || task.description || task.assignee || '暂无说明'}</div>
                           </div>
                         ))
                       )}
@@ -2484,14 +2405,14 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
             <div className="space-y-4">
               <div className="grid gap-4 xl:grid-cols-2">
                 <DetailSectionCard title="关联上下文" subtitle="集中展示来源任务、对象、执行引用与存储位置。">
-                  <div className="mt-3 space-y-2 text-sm text-slate-700">
-                    <div><span className="font-semibold text-slate-700">上报者：</span>{selectedDetail.reporter?.name || '未提供'} / {selectedDetail.reporter?.type || 'unknown'}</div>
-                    <div><span className="font-semibold text-slate-700">目标对象：</span>{selectedDetail.subject?.type || '未提供'} / {selectedDetail.subject?.name || selectedDetail.subject?.locator || '未提供'}</div>
-                    <div><span className="font-semibold text-slate-700">来源报告 ID：</span>{Array.isArray(displaySummary?.source_report_ids) && displaySummary.source_report_ids.length > 0 ? displaySummary.source_report_ids.join(', ') : '未提供'}</div>
-                    <div><span className="font-semibold text-slate-700">来源任务 ID：</span>{selectedDetail.source_task_id || '未提供'}</div>
-                    <div><span className="font-semibold text-slate-700">来源执行引用：</span>{selectedDetail.source_execution_id || '未提供'}</div>
-                    <div><span className="font-semibold text-slate-700">文件根路径：</span>{selectedDetail.files_root_path || workspaceSummary?.files_root_path || '未提供'}</div>
-                    <div><span className="font-semibold text-slate-700">当前报告存储路径：</span>{reportDocument?.storage_path || '未提供'}</div>
+                  <div className="mt-3 space-y-2 text-sm text-theme-text-secondary">
+                    <div><span className="font-semibold text-theme-text-secondary">上报者：</span>{selectedDetail.reporter?.name || '未提供'} / {selectedDetail.reporter?.type || 'unknown'}</div>
+                    <div><span className="font-semibold text-theme-text-secondary">目标对象：</span>{selectedDetail.subject?.type || '未提供'} / {selectedDetail.subject?.name || selectedDetail.subject?.locator || '未提供'}</div>
+                    <div><span className="font-semibold text-theme-text-secondary">来源报告 ID：</span>{Array.isArray(displaySummary?.source_report_ids) && displaySummary.source_report_ids.length > 0 ? displaySummary.source_report_ids.join(', ') : '未提供'}</div>
+                    <div><span className="font-semibold text-theme-text-secondary">来源任务 ID：</span>{selectedDetail.source_task_id || '未提供'}</div>
+                    <div><span className="font-semibold text-theme-text-secondary">来源执行引用：</span>{selectedDetail.source_execution_id || '未提供'}</div>
+                    <div><span className="font-semibold text-theme-text-secondary">文件根路径：</span>{selectedDetail.files_root_path || workspaceSummary?.files_root_path || '未提供'}</div>
+                    <div><span className="font-semibold text-theme-text-secondary">当前报告存储路径：</span>{reportDocument?.storage_path || '未提供'}</div>
                   </div>
                 </DetailSectionCard>
                 <DetailSectionCard
@@ -2504,7 +2425,7 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
                         await navigator.clipboard.writeText(JSON.stringify(relatedRefs, null, 2));
                         setSuccessMessage('已复制相关执行引用。');
                       }}
-                      className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-700"
+                      className="btn btn-secondary btn-sm"
                     >
                       <Copy size={13} />
                       复制
@@ -2513,12 +2434,12 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
                 >
                   <div className="mt-3 space-y-2">
                     {relatedRefs.length === 0 ? (
-                      <div className="rounded-xl bg-slate-50 px-4 py-4 text-sm text-slate-600">暂无关联执行引用</div>
+                      <div className="rounded-xl bg-theme-surface px-4 py-4 text-sm text-theme-text-muted">暂无关联执行引用</div>
                     ) : (
                       relatedRefs.map((ref: any, index: number) => (
-                        <div key={`${ref?.key || 'ref'}-${index}`} className="rounded-xl bg-slate-50 px-4 py-3 text-sm text-slate-700">
-                          <div className="font-semibold text-slate-800">{ref?.key ||`ref-${index + 1}`}</div>
-                          <div className="mt-1 break-all text-xs text-slate-600">{ref?.value || '-'}</div>
+                        <div key={`${ref?.key || 'ref'}-${index}`} className="rounded-xl bg-theme-surface px-4 py-3 text-sm text-theme-text-secondary">
+                          <div className="font-semibold text-theme-text-secondary">{ref?.key ||`ref-${index + 1}`}</div>
+                          <div className="mt-1 break-all text-xs text-theme-text-muted">{ref?.value || '-'}</div>
                         </div>
                       ))
                     )}
@@ -2529,20 +2450,20 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
                 <DetailSectionCard title="JSON 字段" subtitle="用于编辑或查看结构化扩展字段。">
                   <div className="mt-3 space-y-2.5">
                     <label className="grid gap-1">
-                      <span className="text-[11px] font-semibold text-slate-500">证据引用（evidence.references，JSON 数组）</span>
-                      <textarea value={editableDetail?.evidence_references_text || '[]'} onChange={(event) => setEditableDetail((prev) => (prev ? { ...prev, evidence_references_text: event.target.value } : prev))} disabled={!detailEditMode || detailSaving} className="min-h-[90px] rounded-lg border border-slate-200 bg-slate-950 p-3 font-mono text-xs leading-5 text-slate-200 outline-none disabled:opacity-80" />
+                      <span className="text-[11px] font-semibold text-theme-text-muted">证据引用（evidence.references，JSON 数组）</span>
+                      <textarea value={editableDetail?.evidence_references_text || '[]'} onChange={(event) => setEditableDetail((prev) => (prev ? { ...prev, evidence_references_text: event.target.value } : prev))} disabled={!detailEditMode || detailSaving} className="form-textarea font-mono text-xs min-h-[90px]" />
                     </label>
                     <label className="grid gap-1">
-                      <span className="text-[11px] font-semibold text-slate-500">原始漏洞报告（Markdown）</span>
-                      <textarea value={editableDetail?.raw_report_markdown || ''} onChange={(event) => setEditableDetail((prev) => (prev ? { ...prev, raw_report_markdown: event.target.value } : prev))} disabled={!detailEditMode || detailSaving} className="min-h-[180px] rounded-lg border border-slate-200 bg-slate-950 p-3 font-mono text-xs leading-5 text-slate-200 outline-none disabled:opacity-80" />
+                      <span className="text-[11px] font-semibold text-theme-text-muted">原始漏洞报告（Markdown）</span>
+                      <textarea value={editableDetail?.raw_report_markdown || ''} onChange={(event) => setEditableDetail((prev) => (prev ? { ...prev, raw_report_markdown: event.target.value } : prev))} disabled={!detailEditMode || detailSaving} className="form-textarea font-mono text-xs min-h-[180px]" />
                     </label>
                     <label className="grid gap-1">
-                      <span className="text-[11px] font-semibold text-slate-500">文件清单（artifacts，JSON 数组）</span>
-                      <textarea value={editableDetail?.artifacts_text || '[]'} onChange={(event) => setEditableDetail((prev) => (prev ? { ...prev, artifacts_text: event.target.value } : prev))} disabled={!detailEditMode || detailSaving} className="min-h-[120px] rounded-lg border border-slate-200 bg-slate-950 p-3 font-mono text-xs leading-5 text-slate-200 outline-none disabled:opacity-80" />
+                      <span className="text-[11px] font-semibold text-theme-text-muted">文件清单（artifacts，JSON 数组）</span>
+                      <textarea value={editableDetail?.artifacts_text || '[]'} onChange={(event) => setEditableDetail((prev) => (prev ? { ...prev, artifacts_text: event.target.value } : prev))} disabled={!detailEditMode || detailSaving} className="form-textarea font-mono text-xs min-h-[120px]" />
                     </label>
                     <label className="grid gap-1">
-                      <span className="text-[11px] font-semibold text-slate-500">扩展元数据（metadata，JSON 对象）</span>
-                      <textarea value={editableDetail?.metadata_text || '{}'} onChange={(event) => setEditableDetail((prev) => (prev ? { ...prev, metadata_text: event.target.value } : prev))} disabled={!detailEditMode || detailSaving} className="min-h-[120px] rounded-lg border border-slate-200 bg-slate-950 p-3 font-mono text-xs leading-5 text-slate-200 outline-none disabled:opacity-80" />
+                      <span className="text-[11px] font-semibold text-theme-text-muted">扩展元数据（metadata，JSON 对象）</span>
+                      <textarea value={editableDetail?.metadata_text || '{}'} onChange={(event) => setEditableDetail((prev) => (prev ? { ...prev, metadata_text: event.target.value } : prev))} disabled={!detailEditMode || detailSaving} className="form-textarea font-mono text-xs min-h-[120px]" />
                     </label>
                   </div>
                 </DetailSectionCard>
@@ -2556,14 +2477,14 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
                         await navigator.clipboard.writeText(JSON.stringify(rawContext, null, 2));
                         setSuccessMessage('已复制完整原始数据。');
                       }}
-                      className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-700"
+                      className="btn btn-secondary btn-sm"
                     >
                       <Copy size={13} />
                       复制
                     </button>
                   }
                 >
-                  <div className="mt-3 rounded-xl border border-slate-200 bg-slate-50 p-3 text-xs leading-5 text-slate-900">
+                  <div className="mt-3 rounded-xl border border-theme-border bg-theme-surface p-3 text-xs leading-5 text-theme-text-primary">
                     <pre className="max-h-[24rem] overflow-auto whitespace-pre-wrap break-all">{JSON.stringify(rawContext, null, 2)}</pre>
                   </div>
                 </DetailSectionCard>
@@ -2580,56 +2501,63 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
       {!selectedSuspicionId ? (
         rootTab === 'download-center' ? renderDownloadCenter() : (
         <>
-          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
- <div className="rounded-[1.5rem] border border-slate-200 bg-slate-50 px-4 py-3.5">
-              <div className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">漏洞总数</div>
-              <div className="mt-2 text-2xl font-semibold text-slate-900">{stats.total}</div>
+          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+            <div className="metric-card">
+              <div className="text-[11px] font-semibold uppercase tracking-wider text-theme-text-muted-soft">漏洞总数</div>
+              <div className="mt-2 text-2xl font-semibold text-theme-text-primary">{stats.total}</div>
             </div>
- <div className="rounded-[1.5rem] border border-slate-200 bg-slate-50 px-4 py-3.5">
-              <div className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">高风险漏洞</div>
-              <div className="mt-2 text-2xl font-semibold text-rose-600">{stats.highRisk}</div>
+            <div className="metric-card">
+              <div className="text-[11px] font-semibold uppercase tracking-wider text-theme-text-muted-soft">待验证</div>
+              <div className="mt-2 text-2xl font-semibold text-theme-text-faint">{stats.pendingVerify}</div>
             </div>
- <div className="rounded-[1.5rem] border border-slate-200 bg-slate-50 px-4 py-3.5">
-              <div className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">待验证</div>
-              <div className="mt-2 text-2xl font-semibold text-amber-600">{stats.pendingAnalyze}</div>
+            <div className="metric-card">
+              <div className="text-[11px] font-semibold uppercase tracking-wider text-theme-text-muted-soft">验证中</div>
+              <div className="mt-2 text-2xl font-semibold text-state-warning">{stats.validating}</div>
             </div>
- <div className="rounded-[1.5rem] border border-slate-200 bg-slate-50 px-4 py-3.5">
-              <div className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">认证接入上报</div>
-              <div className="mt-2 text-2xl font-semibold text-blue-600">{stats.authenticated}</div>
+            <div className="metric-card">
+              <div className="text-[11px] font-semibold uppercase tracking-wider text-theme-text-muted-soft">已验证</div>
+              <div className="mt-2 text-2xl font-semibold text-brand-primary">{stats.verified}</div>
+            </div>
+            <div className="metric-card">
+              <div className="text-[11px] font-semibold uppercase tracking-wider text-theme-text-muted-soft">漏洞</div>
+              <div className="mt-2 text-2xl font-semibold text-state-danger">{stats.confirmed}</div>
+            </div>
+            <div className="metric-card">
+              <div className="text-[11px] font-semibold uppercase tracking-wider text-theme-text-muted-soft">非漏洞</div>
+              <div className="mt-2 text-2xl font-semibold text-state-success">{stats.ruledOut}</div>
             </div>
           </div>
 
- <div className="rounded-[2rem] border border-slate-200 bg-slate-50 overflow-hidden">
-            <div className="space-y-4 px-5 py-4 xl:px-6">
-              <div className="grid gap-3 xl:grid-cols-[minmax(0,1.25fr)_auto_auto_auto_auto]">
-                <div className="relative min-w-0">
-                  <Search size={15} className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
-                  <input
-                    value={search}
-                    onChange={(event) => setSearch(event.target.value)}
-                    placeholder="搜索标题、摘要、资产定位、来源服务"
-                    className="w-full rounded-xl border border-slate-200 py-2.5 pl-10 pr-4 text-sm outline-none"
-                  />
-                </div>
-                <div className="flex flex-wrap gap-1.5">
-                  {Object.entries(STAGE_LABELS).map(([key, label]) => (
-                    <button
-                      key={key}
-                      type="button"
-                      onClick={() => setStageFilter(key)}
-                      className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-semibold uppercase tracking-wider ${
-                        stageFilter === key ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-600'
-                      }`}
-                    >
-                      <Filter size={12} />
-                      {label}
-                    </button>
-                  ))}
-                </div>
+          <div className="table-container">
+            <div className="flex items-center justify-between gap-3 px-4 py-3 border-b border-theme-border-subtle">
+              <div className="relative max-w-[420px] flex-1">
+                <Search size={15} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-theme-text-faint" />
+                <input
+                  value={search}
+                  onChange={(event) => setSearch(event.target.value)}
+                  placeholder="搜索标题、摘要、资产定位、来源服务"
+                  className="form-input w-full !pl-9"
+                />
+              </div>
+              <div className="flex items-center gap-1.5">
+                {Object.entries(STAGE_LABELS).map(([key, label]) => (
+                  <button
+                    key={key}
+                    type="button"
+                    onClick={() => setStageFilter(key)}
+                    className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-semibold uppercase tracking-wider ${
+                      stageFilter === key ? 'theme-shell-active' : 'btn btn-secondary'
+                    }`}
+                  >
+                    <Filter size={12} />
+                    {label}
+                  </button>
+                ))}
                 <select
                   value={severityFilter}
                   onChange={(event) => setSeverityFilter(event.target.value)}
-                  className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm outline-none"
+                  className="form-select"
+                  style={{ width: '120px' }}
                 >
                   <option value="all">全部等级</option>
                   <option value="critical">critical</option>
@@ -2640,7 +2568,8 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
                 <select
                   value={reporterTypeFilter}
                   onChange={(event) => setReporterTypeFilter(event.target.value)}
-                  className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm outline-none"
+                  className="form-select"
+                  style={{ width: '150px' }}
                 >
                   <option value="all">全部来源方式</option>
                   <option value="plugin">plugin</option>
@@ -2654,7 +2583,8 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
                 <select
                   value={cvssBandFilter}
                   onChange={(event) => setCvssBandFilter(event.target.value)}
-                  className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm outline-none"
+                  className="form-select"
+                  style={{ width: '160px' }}
                 >
                   <option value="all">全部 CVSS 档位</option>
                   <option value="critical">critical (9.0-10.0)</option>
@@ -2663,34 +2593,36 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
                   <option value="low">low (0.1-3.9)</option>
                 </select>
               </div>
+            </div>
 
-              <div className="overflow-hidden rounded-[1.25rem] border border-slate-200">
-                  <div className="grid grid-cols-[0.45fr_2.1fr_0.6fr_1.2fr_0.8fr_0.8fr_1fr_1.5fr_0.9fr_1.1fr_0.7fr_0.9fr] gap-3 border-b border-slate-200 bg-slate-50 px-4 py-2.5">
+            <div className="space-y-4 px-5 py-4 xl:px-6">
+              <div className="overflow-hidden rounded-xl border border-theme-border">
+                  <div className="grid grid-cols-[0.45fr_2.1fr_0.6fr_1.2fr_0.8fr_0.8fr_1fr_1.5fr_0.9fr_1.1fr_0.7fr_0.9fr] gap-3 border-b border-theme-border bg-theme-elevated px-4 py-2.5">
                   <div className="flex items-center justify-center">
                     <input
                       type="checkbox"
                         checked={allVisibleSelected}
                         onChange={toggleSelectAllVisible}
                       aria-label="全选当前页"
-                      className="h-4 w-4 cursor-pointer rounded border-slate-300"
+                      className="h-4 w-4 cursor-pointer rounded border-theme-border"
                     />
                   </div>
                   {renderSortHeader('标题 / 摘要', 'title')}
-                  <div className="text-xs font-semibold uppercase tracking-wider text-slate-500">文件</div>
+                  <div className="text-xs font-semibold uppercase tracking-wider text-theme-text-muted-soft">文件</div>
                   {renderSortHeader('阶段 / 状态', 'current_stage')}
                   {renderSortHeader('等级', 'severity')}
                   {renderSortHeader('CVSS', 'cvss_score')}
                   {renderSortHeader('上报者', 'reporter')}
                   {renderSortHeader('对象', 'subject')}
-                  <div className="text-xs font-semibold uppercase tracking-wider text-slate-500">来源方式</div>
+                  <div className="text-xs font-semibold uppercase tracking-wider text-theme-text-muted-soft">来源方式</div>
                   {renderSortHeader('更新时间', 'updated_at')}
                   {renderSortHeader('置信度', 'confidence')}
-                  <div className="text-xs font-semibold uppercase tracking-wider text-slate-500">操作</div>
+                  <div className="text-xs font-semibold uppercase tracking-wider text-theme-text-muted-soft">操作</div>
                 </div>
                 {loading ? (
-                  <div className="bg-slate-50 px-4 py-8 text-sm text-slate-400">正在加载漏洞列表...</div>
+                  <div className="bg-theme-surface px-4 py-8 text-sm text-theme-text-faint">正在加载漏洞列表...</div>
                 ) : pagedSuspicions.length === 0 ? (
-                  <div className="bg-slate-50 px-4 py-8 text-sm text-slate-400">当前筛选条件下没有漏洞。</div>
+                  <div className="bg-theme-surface px-4 py-8 text-sm text-theme-text-faint">当前筛选条件下没有漏洞。</div>
                 ) : (
                   pagedSuspicions.map((item) => (
                     <div
@@ -2704,7 +2636,7 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
                           setSelectedSuspicionId(item.id);
                         }
                       }}
-                      className="grid cursor-pointer grid-cols-[0.45fr_2.1fr_0.6fr_1.2fr_0.8fr_0.8fr_1fr_1.5fr_0.9fr_1.1fr_0.7fr_0.9fr] gap-3 border-b border-slate-100 bg-slate-50 px-4 py-3.5 text-left transition hover:bg-slate-100 last:border-b-0"
+                      className="grid cursor-pointer grid-cols-[0.45fr_2.1fr_0.6fr_1.2fr_0.8fr_0.8fr_1fr_1.5fr_0.9fr_1.1fr_0.7fr_0.9fr] gap-3 border-b border-theme-border-subtle bg-theme-surface px-4 py-3.5 text-left transition hover:bg-theme-elevated last:border-b-0"
                     >
                       <div className="flex items-center justify-center">
                         <input
@@ -2713,36 +2645,36 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
                           onChange={() => toggleSuspicionSelection(item.id)}
                           onClick={(event) => event.stopPropagation()}
                           aria-label={`选择漏洞 ${item.title}`}
-                          className="h-4 w-4 cursor-pointer rounded border-slate-300"
+                          className="h-4 w-4 cursor-pointer rounded border-theme-border"
                         />
                       </div>
                       <div className="min-w-0">
-                        <div className="text-sm font-semibold text-slate-900">{item.title}</div>
-                        <div className="mt-1 font-mono text-[11px] text-slate-400">{item.id}</div>
-                        <div className="mt-1.5 line-clamp-2 text-xs leading-5 text-slate-500">{item.summary || '暂无摘要'}</div>
+                        <div className="text-sm font-semibold text-theme-text-primary">{item.title}</div>
+                        <div className="mt-1 font-mono text-[11px] text-theme-text-faint">{item.id}</div>
+                        <div className="mt-1.5 line-clamp-2 text-xs leading-5 text-theme-text-muted">{item.summary || '暂无摘要'}</div>
                       </div>
                       <div className="flex items-start justify-center">
                         {item.has_artifact_files || hasArtifactFiles(item.artifacts) ? (
-                          <span title="含文件/文件夹" className="inline-flex items-center justify-center rounded-md bg-emerald-100 p-1 text-emerald-700">
+                          <span title="含文件/文件夹" className="inline-flex items-center justify-center rounded-md bg-state-success-soft p-1 text-state-success">
                             <FolderOpen size={14} />
                           </span>
                         ) : (
-                          <span title="无文件" className="inline-flex items-center justify-center rounded-md bg-slate-100 p-1 text-slate-400">
+                          <span title="无文件" className="inline-flex items-center justify-center rounded-md bg-theme-elevated p-1 text-theme-text-faint">
                             <FolderOpen size={14} />
                           </span>
                         )}
                       </div>
                       <div className="min-w-0">
-                        <div className="text-sm font-semibold text-slate-700">{toStageText(item.current_stage)}</div>
-                        <div className="mt-1 inline-flex items-center rounded-md bg-slate-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-slate-600">
+                        <div className="text-sm font-semibold text-theme-text-secondary">{toStageText(item.current_stage)}</div>
+                        <div className="mt-1 inline-flex items-center rounded-md bg-theme-elevated px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-theme-text-muted">
                           {toStatusText(item.current_status)}
                         </div>
                         {item.finished_reason ? (
-                          <div className="mt-1 text-[10px] font-semibold text-slate-500">
+                          <div className="mt-1 text-[10px] font-semibold text-theme-text-muted">
                             结论: {item.finished_reason}
                           </div>
                         ) : item.decision_status ? (
-                          <div className="mt-1 text-[10px] font-semibold text-slate-500">
+                          <div className="mt-1 text-[10px] font-semibold text-theme-text-muted">
                             结论: {item.decision_status}
                           </div>
                         ) : null}
@@ -2752,18 +2684,18 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
                           {item.severity}
                         </span>
                       </div>
-                      <div className="text-sm font-semibold text-slate-800">{Number(item.cvss_score || 0).toFixed(1)}</div>
+                      <div className="text-sm font-semibold text-theme-text-secondary">{Number(item.cvss_score || 0).toFixed(1)}</div>
                       <div className="min-w-0">
-                        <div className="truncate text-sm font-semibold text-slate-800">{item.reporter?.name || 'unknown'}</div>
-                        <div className="mt-0.5 text-xs text-slate-400">{item.reporter?.version || 'n/a'}</div>
+                        <div className="truncate text-sm font-semibold text-theme-text-secondary">{item.reporter?.name || 'unknown'}</div>
+                        <div className="mt-0.5 text-xs text-theme-text-faint">{item.reporter?.version || 'n/a'}</div>
                       </div>
                       <div className="min-w-0">
-                        <div className="truncate text-sm font-semibold text-slate-800">{item.subject?.locator || 'unscoped asset'}</div>
-                        <div className="mt-0.5 text-xs text-slate-400">{item.subject?.type || 'generic'}</div>
+                        <div className="truncate text-sm font-semibold text-theme-text-secondary">{item.subject?.locator || 'unscoped asset'}</div>
+                        <div className="mt-0.5 text-xs text-theme-text-faint">{item.subject?.type || 'generic'}</div>
                       </div>
-                      <div className="text-sm font-semibold text-slate-700">{item.reporter?.type || 'other'}</div>
-                      <div className="text-sm text-slate-500">{formatTime(item.updated_at || item.created_at)}</div>
-                      <div className="text-right text-xl font-semibold text-slate-900">{item.confidence}</div>
+                      <div className="text-sm font-semibold text-theme-text-secondary">{item.reporter?.type || 'other'}</div>
+                      <div className="text-sm text-theme-text-muted">{formatTime(item.updated_at || item.created_at)}</div>
+                      <div className="text-right text-xl font-semibold text-theme-text-primary">{item.confidence}</div>
                       <div>
                         <div className="flex flex-wrap gap-1.5">
                           <button
@@ -2773,7 +2705,7 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
                               handleCreateDownloadJob([item.id], 'single');
                             }}
                             disabled={creatingDownload}
-                            className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-200 bg-emerald-50 px-2.5 py-1.5 text-[11px] font-semibold text-emerald-700 disabled:opacity-50"
+                            className="btn btn-secondary btn-sm"
                           >
                             <Download size={12} />
                             下载
@@ -2785,7 +2717,7 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
                               handleDeleteSingleFromList(item.id, item.title);
                             }}
                             disabled={bulkDeleting || rowDeletingId === item.id}
-                            className="inline-flex items-center gap-1.5 rounded-lg border border-rose-200 bg-rose-50 px-2.5 py-1.5 text-[11px] font-semibold text-rose-700 disabled:opacity-50"
+                            className="btn btn-ghost-danger btn-sm"
                           >
                             <Trash2 size={12} />
                             {rowDeletingId === item.id ? '删除中' : '删除'}
@@ -2797,12 +2729,12 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
                 )}
               </div>
 
-              <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5">
-                <div className="text-xs font-semibold text-slate-600">
+              <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-theme-border bg-theme-surface px-3 py-2.5">
+                <div className="text-xs font-semibold text-theme-text-muted">
                   当前显示 {totalFiltered === 0 ? 0 : pageStart + 1} - {Math.min(pageStart + pageSize, totalFiltered)} / {totalFiltered}
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
-                  <label className="text-xs font-semibold text-slate-600">
+                  <label className="text-xs font-semibold text-theme-text-muted">
                     每页
                     <select
                       value={pageSize}
@@ -2810,7 +2742,8 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
                         const value = Math.min(1000, Math.max(10, Number(event.target.value) || 20));
                         setPageSize(value);
                       }}
-                      className="ml-2 rounded-lg border border-slate-300 bg-slate-50 px-2 py-1 text-xs font-semibold outline-none"
+                      className="ml-2 form-select text-xs"
+                      style={{ width: '68px' }}
                     >
                       {[20, 50, 100, 200, 500, 1000].map((size) => (
                         <option key={size} value={size}>
@@ -2819,38 +2752,10 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
                       ))}
                     </select>
                   </label>
-                  <button
-                    type="button"
-                    onClick={() => setCurrentPage(1)}
-                    disabled={normalizedPage <= 1}
-                    className="rounded-lg border border-slate-300 bg-slate-50 px-2.5 py-1.5 text-xs font-semibold text-slate-700 disabled:opacity-50"
-                  >
-                    首页
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
-                    disabled={normalizedPage <= 1}
-                    className="rounded-lg border border-slate-300 bg-slate-50 px-2.5 py-1.5 text-xs font-semibold text-slate-700 disabled:opacity-50"
-                  >
-                    上一页
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
-                    disabled={normalizedPage >= totalPages}
-                    className="rounded-lg border border-slate-300 bg-slate-50 px-2.5 py-1.5 text-xs font-semibold text-slate-700 disabled:opacity-50"
-                  >
-                    下一页
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setCurrentPage(totalPages)}
-                    disabled={normalizedPage >= totalPages}
-                    className="rounded-lg border border-slate-300 bg-slate-50 px-2.5 py-1.5 text-xs font-semibold text-slate-700 disabled:opacity-50"
-                  >
-                    末页
-                  </button>
+                  <button type="button" onClick={() => setCurrentPage(1)} disabled={normalizedPage <= 1} className="btn btn-secondary btn-sm">首页</button>
+                  <button type="button" onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))} disabled={normalizedPage <= 1} className="btn btn-secondary btn-sm">上一页</button>
+                  <button type="button" onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))} disabled={normalizedPage >= totalPages} className="btn btn-secondary btn-sm">下一页</button>
+                  <button type="button" onClick={() => setCurrentPage(totalPages)} disabled={normalizedPage >= totalPages} className="btn btn-secondary btn-sm">末页</button>
                 </div>
               </div>
             </div>
@@ -2871,26 +2776,26 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
               value={suspicionForm.title}
               onChange={(event) => setSuspicionForm({ ...suspicionForm, title: event.target.value })}
               placeholder="漏洞标题"
-              className="rounded-2xl border border-slate-200 px-4 py-3 outline-none"
+              className="form-input"
               required
             />
             <textarea
               value={suspicionForm.summary}
               onChange={(event) => setSuspicionForm({ ...suspicionForm, summary: event.target.value })}
               placeholder="漏洞摘要"
-              className="min-h-[8rem] rounded-2xl border border-slate-200 px-4 py-3 outline-none"
+              className="form-textarea min-h-[8rem]"
             />
             <textarea
               value={suspicionForm.raw_report_markdown}
               onChange={(event) => setSuspicionForm({ ...suspicionForm, raw_report_markdown: event.target.value })}
               placeholder="原始漏洞报告 Markdown"
-              className="min-h-[10rem] rounded-2xl border border-slate-200 px-4 py-3 font-mono text-xs outline-none"
+              className="form-textarea min-h-[10rem] font-mono text-xs"
             />
             <div className="grid gap-4 md:grid-cols-2">
                 <select
                   value={suspicionForm.severity}
                   onChange={(event) => setSuspicionForm({ ...suspicionForm, severity: event.target.value })}
-                  className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 outline-none"
+                  className="form-select"
                 >
                   <option value="critical">critical</option>
                   <option value="high">high</option>
@@ -2905,7 +2810,7 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
                   value={suspicionForm.cvss_score}
                   onChange={(event) => setSuspicionForm({ ...suspicionForm, cvss_score: Number(event.target.value) })}
                   placeholder="CVSS 基础分"
-                  className="rounded-2xl border border-slate-200 px-4 py-3 outline-none"
+                  className="form-input"
                 />
               </div>
               <div className="grid gap-4 md:grid-cols-2">
@@ -2913,10 +2818,10 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
                   type="number"
                   min={0}
                 max={100}
-                value={suspicionForm.confidence}
-                onChange={(event) => setSuspicionForm({ ...suspicionForm, confidence: Number(event.target.value) })}
-                placeholder="置信度"
-                className="rounded-2xl border border-slate-200 px-4 py-3 outline-none"
+                  value={suspicionForm.confidence}
+                  onChange={(event) => setSuspicionForm({ ...suspicionForm, confidence: Number(event.target.value) })}
+                  placeholder="置信度"
+                  className="form-input"
               />
             </div>
             <div className="grid gap-4 md:grid-cols-2">
@@ -2924,33 +2829,33 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
                 value={suspicionForm.source_service}
                 onChange={(event) => setSuspicionForm({ ...suspicionForm, source_service: event.target.value })}
                 placeholder="来源服务"
-                className="rounded-2xl border border-slate-200 px-4 py-3 outline-none"
+                className="form-input"
               />
               <input
                 value={suspicionForm.asset_type}
                 onChange={(event) => setSuspicionForm({ ...suspicionForm, asset_type: event.target.value })}
                 placeholder="资产类型"
-                className="rounded-2xl border border-slate-200 px-4 py-3 outline-none"
+                className="form-input"
               />
             </div>
             <input
               value={suspicionForm.asset_locator}
               onChange={(event) => setSuspicionForm({ ...suspicionForm, asset_locator: event.target.value })}
               placeholder="资产定位"
-              className="rounded-2xl border border-slate-200 px-4 py-3 outline-none"
+              className="form-input"
             />
             <div className="flex flex-wrap gap-3 pt-2">
               <button
                 type="submit"
                 disabled={creating}
-                className="rounded-2xl bg-slate-900 px-5 py-3 text-sm font-semibold text-white disabled:opacity-50"
+                className="btn btn-primary"
               >
                 {creating ? '创建中...' : '创建漏洞'}
               </button>
               <button
                 type="button"
                 onClick={() => setShowCreateDialog(false)}
-                className="rounded-2xl border border-slate-200 bg-slate-50 px-5 py-3 text-sm font-semibold text-slate-700"
+                className="btn btn-secondary"
               >
                 取消
               </button>

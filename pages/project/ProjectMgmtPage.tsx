@@ -4,6 +4,8 @@ import {
   Building2,
   CheckCircle2,
   CheckSquare,
+  ChevronLeft,
+  ChevronRight,
   Edit3,
   Layers,
   Loader2,
@@ -15,6 +17,7 @@ import {
   Trash2,
 } from 'lucide-react';
 import { api } from '../../clients/api';
+import { API_BASE, getHeaders, handleResponse } from '../../clients/base';
 import { orgApi, UserPermissionInfo } from '../../clients/org';
 import { Department, ProductTreeNode, ProductVersionNode, SecurityProject } from '../../types/types';
 import { StatusBadge } from '../../components/StatusBadge';
@@ -74,7 +77,14 @@ export const ProjectMgmtPage: React.FC<ProjectMgmtPageProps> = ({
   refreshProjects,
 }) => {
   const projectApi = api.domains.project;
+  const scheduleApi = api.domains.platform.scheduleCenter;
+  const vulnApi = api.domains.vuln.vuln;
   const [searchTerm, setSearchTerm] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState<number>(() => {
+    const saved = Number(localStorage.getItem('chimera:projectList:pageSize'));
+    return saved && [10, 20, 50, 100].includes(saved) ? saved : 10;
+  });
   const [isDeleting, setIsDeleting] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -106,6 +116,28 @@ export const ProjectMgmtPage: React.FC<ProjectMgmtPageProps> = ({
   const productDropdownRef = useRef<HTMLDivElement>(null);
   const versionDropdownRef = useRef<HTMLDivElement>(null);
 
+  const loadStats = async () => {
+    const envStats = (projects || []).map((p) =>
+      fetch(`${API_BASE}/api/agent/agents/stats?project_id=${encodeURIComponent(p.id)}`, { headers: getHeaders() })
+        .then((r) => handleResponse(r))
+        .catch(() => null),
+    );
+    const [taskRes, vulnRes, ...envResults] = await Promise.allSettled([
+      scheduleApi.listGlobalTasks({ page: 1, page_size: 1 }),
+      vulnApi.getOverview(),
+      ...envStats,
+    ]);
+    setTaskCount(taskRes.status === 'fulfilled' ? Number(taskRes.value?.total || 0) : null);
+    setVulnCount(vulnRes.status === 'fulfilled' ? Number(vulnRes.value?.metrics?.total_cases || 0) : null);
+    const envTotal = envResults.reduce<number>((sum, res) => {
+      if (res.status === 'fulfilled' && res.value) {
+        return sum + Number(res.value?.summary?.total_agents || 0);
+      }
+      return sum;
+    }, 0);
+    setEnvCount(envResults.some((res) => res.status === 'fulfilled') ? envTotal : null);
+  };
+
   useEffect(() => {
     const bootstrap = async () => {
       try {
@@ -123,6 +155,11 @@ export const ProjectMgmtPage: React.FC<ProjectMgmtPageProps> = ({
     };
     bootstrap();
   }, []);
+
+  useEffect(() => {
+    if (projects.length === 0) return;
+    void loadStats();
+  }, [projects.length]);
 
   // Close dropdowns on click outside
   useEffect(() => {
@@ -223,12 +260,37 @@ export const ProjectMgmtPage: React.FC<ProjectMgmtPageProps> = ({
     [filteredProjects]
   );
 
+  const totalPages = Math.max(1, Math.ceil(filteredProjects.length / pageSize));
+  const safePage = Math.min(currentPage, totalPages);
+  const pagedProjects = useMemo(
+    () => filteredProjects.slice((safePage - 1) * pageSize, safePage * pageSize),
+    [filteredProjects, safePage, pageSize]
+  );
+  const pageStart = filteredProjects.length === 0 ? 0 : (safePage - 1) * pageSize + 1;
+  const pageEnd = Math.min(safePage * pageSize, filteredProjects.length);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm]);
+
+  useEffect(() => {
+    if (currentPage > totalPages) {
+      setCurrentPage(totalPages);
+    }
+  }, [totalPages, currentPage]);
+
+  const handlePageSizeChange = (next: number) => {
+    setPageSize(next);
+    localStorage.setItem('chimera:projectList:pageSize', String(next));
+    setCurrentPage(1);
+  };
+
   const isAllSelected = manageableProjects.length > 0 && manageableProjects.every((project) => selectedIds.has(project.id));
 
   const handleRefresh = async () => {
     setIsRefreshing(true);
     try {
-      await refreshProjects(true);
+      await Promise.all([refreshProjects(true), loadStats()]);
     } finally {
       setIsRefreshing(false);
     }
@@ -621,7 +683,7 @@ export const ProjectMgmtPage: React.FC<ProjectMgmtPageProps> = ({
                 </tr>
               </thead>
               <tbody>
-                {filteredProjects.map((project) => {
+                {pagedProjects.map((project) => {
                   const selected = selectedIds.has(project.id);
                   return (
                     <tr
@@ -736,6 +798,61 @@ export const ProjectMgmtPage: React.FC<ProjectMgmtPageProps> = ({
           </div>
         )}
       </section>
+
+      {/* Pagination */}
+      {filteredProjects.length > 0 && (
+        <div
+          className="flex flex-col items-center justify-between gap-3 rounded-xl px-4 py-3 md:flex-row"
+          style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}` }}
+        >
+          <div className="text-xs" style={{ color: LK.muted }}>
+            共 <span style={{ color: LK.inkSoft }} className="font-semibold">{filteredProjects.length}</span> 项，
+            当前显示 <span style={{ color: LK.inkSoft }}>{pageStart}-{pageEnd}</span>
+          </div>
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2">
+              <span className="text-xs" style={{ color: LK.muted }}>每页</span>
+              <select
+                value={pageSize}
+                onChange={(e) => handlePageSizeChange(Number(e.target.value))}
+                className="rounded-md px-2 py-1 text-xs outline-none transition-colors"
+                style={{ backgroundColor: LK.surfaceRaised, color: LK.inkSoft, border: `1px solid ${LK.border}` }}
+              >
+                {[10, 20, 50, 100].map((size) => (
+                  <option key={size} value={size}>{size} 条</option>
+                ))}
+              </select>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <button
+                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                disabled={safePage <= 1}
+                className="rounded-md p-1.5 transition-colors disabled:cursor-not-allowed disabled:opacity-40"
+                style={{ color: LK.body, border: `1px solid ${LK.border}` }}
+                onMouseEnter={(e) => { if (!e.currentTarget.disabled) e.currentTarget.style.color = LK.primary; }}
+                onMouseLeave={(e) => { e.currentTarget.style.color = LK.body; }}
+                title="上一页"
+              >
+                <ChevronLeft size={14} />
+              </button>
+              <span className="min-w-[60px] text-center text-xs tabular-nums" style={{ color: LK.inkSoft }}>
+                {safePage} / {totalPages}
+              </span>
+              <button
+                onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                disabled={safePage >= totalPages}
+                className="rounded-md p-1.5 transition-colors disabled:cursor-not-allowed disabled:opacity-40"
+                style={{ color: LK.body, border: `1px solid ${LK.border}` }}
+                onMouseEnter={(e) => { if (!e.currentTarget.disabled) e.currentTarget.style.color = LK.primary; }}
+                onMouseLeave={(e) => { e.currentTarget.style.color = LK.body; }}
+                title="下一页"
+              >
+                <ChevronRight size={14} />
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Create project dialog */}
       {isCreateModalOpen && (

@@ -5,6 +5,7 @@ import { getAuthHeaders, handleResponse } from '../../clients/base';
 import { agentManageApiPath } from '../../clients/agentManage';
 import { useUiFeedback } from '../../components/UiFeedback';
 import { saveTaskCenterReturnContext } from '../../utils/executionReturnContext';
+import { getPlatformRole } from '../../utils/rbac';
 import { CreateTaskDialog } from './CreateTaskDialog';
 import {
   AgentAppSummary,
@@ -32,8 +33,11 @@ const TASK_TYPES: readonly TaskTypeOption[] = [
   { value: 'binary_firmware_e2e', label: '盖亚-二进制固件', downstreamView: 'binary-security-detail' },
   { value: 'source_scan_e2e', label: '盖亚-源码', downstreamView: 'source-security-detail' },
   { value: 'binary_module_e2e', label: '盖亚-二进制模块', downstreamView: 'binary-module-security-detail' },
-  { value: 'ai4apk', label: 'AI4APP 应用安全扫描', downstreamView: 'app-security-scan-detail' },
-  { value: 'ai4red', label: 'AI4RED 红线验证', downstreamView: 'ai4red-detail' },
+  { value: 'ai4app_fast', label: 'AI4APP 扫描（快速）', downstreamView: 'app-security-scan-detail' },
+  { value: 'ai4web_fast', label: 'AI4WEB 扫描（快速）', downstreamView: 'app-security-scan-detail' },
+  { value: 'ai4app_deep', label: 'AI4APP 扫描（深度）', downstreamView: 'app-security-scan-detail' },
+  { value: 'ai4web_deep', label: 'AI4WEB 扫描（深度）', downstreamView: 'app-security-scan-detail' },
+  { value: 'ai4red', label: 'AI4RED 红线验证', downstreamView: 'task-redline-detail' },
   { value: 'sechps_tool', label: 'Agent Harness 任务' },
 ];
 
@@ -72,6 +76,14 @@ const getTaskTypeLabel = (taskType: string) => TASK_TYPES.find((item) => item.va
 const getTaskHarnessLabel = (task: Pick<ScheduleCenterUserTask, 'task_type' | 'agent_app_name'>) =>
   task.task_type === 'sechps_tool' ? (task.agent_app_name || 'Agent Harness') : getTaskTypeLabel(String(task.task_type || ''));
 const getDeleteQueueTypeLabel = (taskType: string) => taskType === 'sechps_tool' ? 'Agent Harness 任务' : getTaskTypeLabel(taskType);
+const getDeleteStatusLabel = (status: string) => {
+  if (status === 'queued') return '排队中';
+  if (status === 'running') return '删除中';
+  if (status === 'blocked') return '阻塞';
+  if (status === 'failed') return '失败';
+  if (status === 'deleted') return '已删除';
+  return status || '—';
+};
 const truncateText = (value?: string | null, max = 80) => {
   const normalized = String(value || '').trim();
   if (!normalized) return '—';
@@ -106,6 +118,10 @@ const MONO = 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace';
 export const TaskCenterPage: React.FC<Props> = ({ projectId, projects }) => {
   const scheduleApi = api.domains.platform.scheduleCenter;
   const currentUser = useMemo(() => getLocalUserInfo(), []);
+  const isAdmin = useMemo(() => {
+    const role = getPlatformRole(currentUser);
+    return role === 'super_admin' || role === 'ordinary_admin';
+  }, [currentUser]);
   const [loading, setLoading] = useState(true);
   const [tasks, setTasks] = useState<ScheduleCenterUserTask[]>([]);
   const [stats, setStats] = useState<Record<string, number>>({});
@@ -232,10 +248,10 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects }) => {
     if (!meta || !meta.downstreamView) return;
     const taskIdentifier = task.downstream_task_id || task.id;
     saveTaskCenterReturnContext();
-    if (meta.downstreamView === 'ai4red-detail') {
+    if (meta.downstreamView === 'task-redline-detail') {
       window.dispatchEvent(new CustomEvent('chimera-navigate-view', {
         detail: {
-          view: 'ai4red-detail',
+          view: 'task-redline-detail',
           redlineTaskId: taskIdentifier,
         },
       }));
@@ -323,6 +339,7 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects }) => {
     const status = String(task.delete_status || 'none');
     if (status === 'queued') return '删除排队中';
     if (status === 'running') return '删除中';
+    if (status === 'blocked') return task.delete_error || task.last_error || '删除被阻塞';
     if (status === 'failed') return task.delete_error || task.last_error || '删除失败';
     return '';
   };
@@ -388,12 +405,12 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects }) => {
     >
       <div className="flex flex-wrap items-start justify-between gap-3 pb-4" style={{ borderBottom:`1px solid ${LK.borderSoft}` }}>
         <div>
-          <h1 className="text-2xl font-semibold leading-8 tracking-tight" style={{ color: LK.ink }}>
+          <h1 className="mt-3 text-2xl font-semibold leading-8 tracking-tight" style={{ color: LK.ink }}>
             任务中心
           </h1>
-          <div className="mt-1 text-sm" style={{ color: LK.body }}>
-            {projectName}
-          </div>
+          <p className="mt-1.5 text-sm leading-6" style={{ color: LK.body }}>
+            统一展示当前项目下的所有测试任务，追踪分发、执行与同步状态
+          </p>
         </div>
         <div className="flex items-center gap-2">
           <button
@@ -589,7 +606,7 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects }) => {
                 </td>
                 <td className="px-4 py-3">
                   <div className="flex items-center gap-2">
-                    {task.task_type !== 'sechps_tool' ? (
+                    {task.task_type !== 'sechps_tool' && isAdmin ? (
                       <button
                         onClick={() => openTask(task)}
                         className="inline-flex items-center gap-1 rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors"
@@ -598,6 +615,21 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects }) => {
                         onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = LK.surfaceRaised; e.currentTarget.style.color = LK.body; e.currentTarget.style.borderColor = LK.border; }}
                       >
                         查看任务 <ArrowRight size={12} />
+                      </button>
+                    ) : null}
+                    {task.task_type !== 'sechps_tool' ? (
+                      <button
+                        onClick={() => {
+                          window.dispatchEvent(new CustomEvent('chimera-navigate-view', {
+                            detail: { view: 'task-vuln-list', taskVulnListTaskId: task.downstream_task_id || task.id },
+                          }));
+                        }}
+                        className="inline-flex items-center gap-1 rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors"
+                        style={{ backgroundColor: LK.surfaceRaised, color: LK.body, border: `1px solid ${LK.border}` }}
+                        onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = LK.primaryMuted; e.currentTarget.style.color = LK.primary; e.currentTarget.style.borderColor = LK.primary; }}
+                        onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = LK.surfaceRaised; e.currentTarget.style.color = LK.body; e.currentTarget.style.borderColor = LK.border; }}
+                      >
+                        查看漏洞 <ArrowRight size={12} />
                       </button>
                     ) : null}
                     {task.sync_required ? (
@@ -833,7 +865,7 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects }) => {
                     {deleteQueueLoading ? <tr><td className="px-4 py-10 text-center" colSpan={10} style={{ color: LK.muted }}><span className="inline-flex items-center gap-2"><Loader2 size={16} className="animate-spin" />加载中...</span></td></tr> : null}
                     {!deleteQueueLoading && deleteQueueItems.length === 0 ? <tr><td className="px-4 py-10 text-center" colSpan={10} style={{ color: LK.muted }}>当前项目暂无删除队列任务</td></tr> : null}
                     {!deleteQueueLoading && deleteQueueItems.map((item) => {
-                      const statusColor = item.delete_status === 'failed' ? LK.error : item.delete_status === 'running' ? LK.info : LK.warning;
+                      const statusColor = item.delete_status === 'failed' ? LK.error : item.delete_status === 'blocked' ? LK.warning : item.delete_status === 'running' ? LK.info : LK.warning;
                       return (
                         <tr
                           key={item.id}
@@ -842,6 +874,8 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects }) => {
                             borderBottom:`1px solid ${LK.borderSoft}`,
                             backgroundColor: item.delete_status === 'failed'
                               ?`${LK.error}10`
+                              : item.delete_status === 'blocked'
+                                ? `${LK.warning}10`
                               : item.delete_status === 'running'
                                 ?`${LK.info}10`
                                 :`${LK.warning}10`,
@@ -852,7 +886,7 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects }) => {
                           <td className="px-4 py-3" style={{ color: LK.body }}>{item.display_status}</td>
                           <td className="px-4 py-3">
                             <span style={{ color: statusColor }}>
-                              {item.delete_status}
+                              {getDeleteStatusLabel(String(item.delete_status || ''))}
                             </span>
                           </td>
                           <td className="px-4 py-3 text-xs" style={{ color: LK.body }} title={item.delete_error || item.last_error || ''}>{truncateText(item.delete_error || item.last_error, 120)}</td>

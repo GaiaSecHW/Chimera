@@ -462,6 +462,13 @@ export const vulnApi = {
       body: JSON.stringify(payload)
     })),
 
+  submitTriageDecision: async (caseId: string, payload: { triage_decision: 'issue' | 'vulnerable' | 'non_issue'; summary?: string }): Promise<any> =>
+    handleResponse(await fetch(`${API_BASE}/api/vuln/cases/${caseId}/triage/decision`, {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify(payload),
+    })),
+
   submitValidationResult: async (caseId: string, payload: any): Promise<any> =>
     handleResponse(await fetch(`${API_BASE}/api/vuln/cases/${caseId}/validation/result`, {
       method: 'POST',

@@ -175,9 +175,9 @@ const BinaryEvolutionTaskListView: React.FC<Props> = ({ projectId }) => {
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '16px' }}>
         <StatCard label="总任务" value={tasks.length} />
-        <StatCard label="运行中" value={activeCount} tone="bg-blue-50 border-blue-200 text-blue-700" />
-        <StatCard label="已完成" value={succeededCount} tone="bg-emerald-50 border-emerald-200 text-emerald-700" />
-        <StatCard label="失败/取消" value={failedCount} tone="bg-red-50 border-red-200 text-red-700" />
+        <StatCard label="运行中" value={activeCount} tone="bg-blue-500/15 border-blue-500/20 text-blue-400" />
+        <StatCard label="已完成" value={succeededCount} tone="bg-emerald-500/15 border-emerald-500/20 text-emerald-400" />
+        <StatCard label="失败/取消" value={failedCount} tone="bg-red-500/15 border-red-500/20 text-red-400" />
       </div>
 
       <section style={{ borderRadius: '16px', border: `1px solid ${LK.borderSoft}`, backgroundColor: LK.surface, padding: '20px' }}>
@@ -413,9 +413,9 @@ const BinaryEvolutionTaskListView: React.FC<Props> = ({ projectId }) => {
                     </div>
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: '16px' }}>
                       <StatCard label="请求案例" value={preview.requested_case_ids.length} />
-                      <StatCard label="生效案例" value={preview.effective_case_ids.length} tone="bg-emerald-50 border-emerald-200 text-emerald-700" />
-                      <StatCard label="涉及任务" value={preview.sources.length} tone="bg-sky-50 border-sky-200 text-sky-700" />
-                      <StatCard label="可创建" value={preview.can_create ? '是' : '否'} tone={preview.can_create ? 'bg-violet-50 border-violet-200 text-violet-700' : 'bg-red-50 border-red-200 text-red-700'} />
+                      <StatCard label="生效案例" value={preview.effective_case_ids.length} tone="bg-emerald-500/15 border-emerald-500/20 text-emerald-400" />
+                      <StatCard label="涉及任务" value={preview.sources.length} tone="bg-sky-500/15 border-sky-500/20 text-sky-400" />
+                      <StatCard label="可创建" value={preview.can_create ? '是' : '否'} tone={preview.can_create ? 'bg-violet-500/15 border-violet-500/20 text-violet-400' : 'bg-red-500/15 border-red-500/20 text-red-400'} />
                     </div>
                     {preview.blocked_reasons.length > 0 ? (
                       <div style={{ borderRadius: '16px', border: `1px solid ${LK.error}`, backgroundColor: 'rgba(241, 93, 93, 0.1)', paddingLeft: '16px', paddingRight: '16px', paddingTop: '12px', paddingBottom: '12px', fontSize: '14px', color: LK.error }}>

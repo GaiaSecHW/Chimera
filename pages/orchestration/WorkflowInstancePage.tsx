@@ -207,8 +207,8 @@ export const WorkflowInstancePage: React.FC<{
     <div className="p-10 space-y-8 animate-in fade-in duration-500">
       <div className="flex justify-between items-end">
         <div>
-          <h2 className="text-3xl font-black text-slate-800 tracking-tight">工作流实例</h2>
-          <p className="text-slate-500 mt-1 font-medium italic">实时监控安全评估流水线的执行进度与底层容器负载</p>
+          <h2 className="text-3xl font-black text-theme-text-primary tracking-tight">工作流实例</h2>
+          <p className="text-theme-text-muted mt-1 font-medium italic">实时监控安全评估流水线的执行进度与底层容器负载</p>
         </div>
         <div className="flex gap-4">
           {selectedIds.length > 0 && (
@@ -217,16 +217,16 @@ export const WorkflowInstancePage: React.FC<{
                 setDeletingId(null);
                 setIsDeleteModalOpen(true);
               }}
-              className="flex items-center gap-2 px-6 py-4 bg-red-50 text-red-600 rounded-2xl hover:bg-red-100 transition-all font-bold border border-red-100"
+              className="flex items-center gap-2 px-6 py-4 bg-red-500/15 text-red-400 rounded-2xl hover:bg-red-500/15 transition-all font-bold border border-red-500/20"
             >
               <Trash2 size={20} />
               批量删除 ({selectedIds.length})
             </button>
           )}
-          <button onClick={() => loadInstances()} className="p-4 bg-slate-50 border border-slate-200 text-slate-500 rounded-2xl hover:bg-slate-100 transition-all">
+          <button onClick={() => loadInstances()} className="p-4 bg-theme-bg-app border border-theme-border text-theme-text-muted rounded-2xl hover:bg-theme-elevated transition-all">
             <RefreshCw size={20} className={loading ? 'animate-spin' : ''} />
           </button>
- <button onClick={() => setIsCreateModalOpen(true)} className="flex items-center gap-2 px-6 py-4 bg-slate-900 text-white rounded-2xl hover:bg-slate-800 transition-all font-bold">
+ <button onClick={() => setIsCreateModalOpen(true)} className="flex items-center gap-2 px-6 py-4 bg-theme-surface text-white rounded-2xl hover:bg-theme-elevated transition-all font-bold">
             <Plus size={20} />
             创建实例
           </button>
@@ -235,10 +235,10 @@ export const WorkflowInstancePage: React.FC<{
 
       <div className="flex gap-4">
         <div className="relative flex-1">
-        <Search className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-300" size={20} />
+        <Search className="absolute left-6 top-1/2 -translate-y-1/2 text-theme-text-faint" size={20} />
         <input
           type="text" placeholder="搜索实例名称或 ID..."
- className="w-full pl-16 pr-8 py-5 bg-slate-50 border border-slate-200 rounded-[2rem] text-sm outline-none focus:ring-4 ring-blue-500/5 transition-all font-medium"
+ className="w-full pl-16 pr-8 py-5 bg-theme-bg-app border border-theme-border rounded-[2rem] text-sm outline-none focus:ring-4 ring-blue-500/5 transition-all font-medium"
           value={searchTerm} onChange={e => setSearchTerm(e.target.value)}
         />
         </div>
@@ -248,7 +248,7 @@ export const WorkflowInstancePage: React.FC<{
             setStatusFilter(e.target.value);
             setPage(1);
           }}
- className="px-5 py-5 bg-slate-50 border border-slate-200 rounded-[2rem] text-sm font-medium outline-none focus:ring-4 ring-blue-500/5 transition-all"
+ className="px-5 py-5 bg-theme-bg-app border border-theme-border rounded-[2rem] text-sm font-medium outline-none focus:ring-4 ring-blue-500/5 transition-all"
         >
           <option value="">全部状态</option>
           <option value="pending">待初始化</option>
@@ -257,14 +257,14 @@ export const WorkflowInstancePage: React.FC<{
         </select>
       </div>
 
- <div className="bg-slate-50 border border-slate-200 rounded-[2.5rem] overflow-hidden min-h-[500px]">
+ <div className="bg-theme-bg-app border border-theme-border rounded-[2.5rem] overflow-hidden min-h-[500px]">
         <table className="w-full text-left">
-          <thead className="bg-slate-100/50 border-b border-slate-100 font-black text-[10px] text-slate-400 uppercase tracking-widest">
+          <thead className="bg-slate-100/50 border-b border-theme-border font-black text-[10px] text-theme-text-muted uppercase tracking-widest">
             <tr>
               <th className="px-8 py-6 w-10">
                 <input
                   type="checkbox"
-                  className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                  className="w-4 h-4 rounded border-theme-border text-blue-400 focus:ring-blue-500"
                   checked={instances.length > 0 && selectedIds.length === instances.length}
                   onChange={toggleSelectAll}
                 />
@@ -279,53 +279,53 @@ export const WorkflowInstancePage: React.FC<{
           </thead>
           <tbody className="divide-y divide-slate-50">
             {loading && instances.length === 0 ? (
-              <tr><td colSpan={7} className="py-32 text-center"><Loader2 className="animate-spin mx-auto text-blue-600" size={40} /></td></tr>
+              <tr><td colSpan={7} className="py-32 text-center"><Loader2 className="animate-spin mx-auto text-blue-400" size={40} /></td></tr>
             ) : paginatedInstances.map(instance => (
-              <tr key={instance.id} className={`hover:bg-slate-100 transition-all group ${selectedIds.includes(instance.id) ? 'bg-blue-50/30' : ''}`}>
+              <tr key={instance.id} className={`hover:bg-theme-elevated transition-all group ${selectedIds.includes(instance.id) ? 'bg-blue-50/30' : ''}`}>
                 <td className="px-8 py-6">
                   <input
                     type="checkbox"
-                    className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                    className="w-4 h-4 rounded border-theme-border text-blue-400 focus:ring-blue-500"
                     checked={selectedIds.includes(instance.id)}
                     onChange={() => toggleSelect(instance.id)}
                   />
                 </td>
                 <td className="px-6 py-6">
                   <div className="flex items-center gap-4">
-                    <div className={`w-12 h-12 rounded-2xl flex items-center justify-center font-black shadow-inner transition-all ${(instance.status || '').toLowerCase() === 'running' ? 'bg-blue-600 text-white animate-pulse' : 'bg-slate-100 text-slate-400'}`}>
+                    <div className={`w-12 h-12 rounded-2xl flex items-center justify-center font-black shadow-inner transition-all ${(instance.status || '').toLowerCase() === 'running' ? 'bg-blue-600 text-white animate-pulse' : 'bg-theme-elevated text-theme-text-muted'}`}>
                       <Activity size={22} />
                     </div>
                     <div>
                       <p
-                        className="text-sm font-black text-slate-800 cursor-pointer hover:text-blue-600 transition-colors"
+                        className="text-sm font-black text-theme-text-primary cursor-pointer hover:text-blue-400 transition-colors"
                         onClick={() => onNavigateToDetail(instance.id)}
                       >
                         {instance.name}
                       </p>
-                      <p className="text-[10px] font-mono text-slate-400 uppercase mt-0.5">ID: {instance.id.slice(0, 8)}</p>
+                      <p className="text-[10px] font-mono text-theme-text-muted uppercase mt-0.5">ID: {instance.id.slice(0, 8)}</p>
                     </div>
                   </div>
                 </td>
                 <td className="px-6 py-6">
                   <div className="flex flex-col gap-1">
-                    <span className="text-xs font-bold text-slate-600 uppercase bg-slate-100 px-2 py-1 rounded-md w-fit">
+                    <span className="text-xs font-bold text-theme-text-secondary uppercase bg-theme-elevated px-2 py-1 rounded-md w-fit">
                       {instance.run_mode === 'persistent' ? '持久化' : '一次性'}
                     </span>
                     {instance.run_mode === 'persistent' && (
-                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md w-fit ${instance.is_active ? 'bg-green-100 text-green-700' : 'bg-slate-200 text-slate-500'}`}>
+                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md w-fit ${instance.is_active ? 'bg-green-500/15 text-green-400' : 'bg-theme-elevated text-theme-text-muted'}`}>
                         {instance.is_active ? '已激活' : '未激活'}
                       </span>
                     )}
                   </div>
                 </td>
                 <td className="px-6 py-6">
-                  <div className="flex items-center gap-2 text-xs font-bold text-slate-600">
+                  <div className="flex items-center gap-2 text-xs font-bold text-theme-text-secondary">
                     <Terminal size={14} className="text-blue-500" />
                     <span>{instance.nodes?.length || 0} 节点</span>
                   </div>
                 </td>
                 <td className="px-6 py-6">
-                  <div className="flex items-center gap-2 text-[10px] font-bold text-slate-400 uppercase">
+                  <div className="flex items-center gap-2 text-[10px] font-bold text-theme-text-muted uppercase">
                     <Clock size={12} /> {instance.last_run_at ? instance.last_run_at.replace('T', ' ').split('.')[0] : '尚未运行'}
                   </div>
                 </td>
@@ -334,13 +334,13 @@ export const WorkflowInstancePage: React.FC<{
                 </td>
                 <td className="px-8 py-6 text-right">
                   <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-all">
-                    <button onClick={() => onNavigateToLogs(instance.id)} title="查看日志" className="p-3 bg-sky-50 text-sky-600 rounded-xl hover:bg-sky-600 hover:text-white transition-all">
+                    <button onClick={() => onNavigateToLogs(instance.id)} title="查看日志" className="p-3 bg-sky-500/15 text-sky-400 rounded-xl hover:bg-sky-600 hover:text-white transition-all">
                       <FileText size={16} />
                     </button>
-                    <button onClick={() => onNavigateToDetail(instance.id)} title="查看详情" className="p-3 bg-indigo-50 text-indigo-600 rounded-xl hover:bg-indigo-600 hover:text-white transition-all">
+                    <button onClick={() => onNavigateToDetail(instance.id)} title="查看详情" className="p-3 bg-indigo-500/15 text-indigo-400 rounded-xl hover:bg-indigo-600 hover:text-white transition-all">
                       <Search size={16} />
                     </button>
-                    <button onClick={() => handleSync(instance.id)} title="同步状态" className="p-3 bg-blue-50 text-blue-600 rounded-xl hover:bg-blue-600 hover:text-white transition-all">
+                    <button onClick={() => handleSync(instance.id)} title="同步状态" className="p-3 bg-blue-500/15 text-blue-400 rounded-xl hover:bg-blue-600 hover:text-white transition-all">
                       <RefreshCw size={16} />
                     </button>
 
@@ -353,7 +353,7 @@ export const WorkflowInstancePage: React.FC<{
                         } catch (e: any) {
                           showToast("初始化失败:" + e.message,"error");
                         }
-                      }} title="初始化" className="p-3 bg-purple-50 text-purple-600 rounded-xl hover:bg-purple-600 hover:text-white transition-all">
+                      }} title="初始化" className="p-3 bg-purple-500/15 text-purple-400 rounded-xl hover:bg-purple-600 hover:text-white transition-all">
                         <Activity size={16} />
                       </button>
                     )}
@@ -362,19 +362,19 @@ export const WorkflowInstancePage: React.FC<{
                       <button onClick={() => {
                         setUninitId(instance.id);
                         setIsUninitModalOpen(true);
-                      }} title="反初始化" className="p-3 bg-orange-50 text-orange-600 rounded-xl hover:bg-orange-600 hover:text-white transition-all">
+                      }} title="反初始化" className="p-3 bg-orange-500/15 text-orange-400 rounded-xl hover:bg-orange-600 hover:text-white transition-all">
                         <RotateCcw size={16} />
                       </button>
                     )}
 
                     {(instance.status || '').toLowerCase() === 'pending' && (
-                      <button onClick={() => handleStart(instance.id)} title="启动" className="p-3 bg-green-50 text-green-600 rounded-xl hover:bg-green-600 hover:text-white transition-all">
+                      <button onClick={() => handleStart(instance.id)} title="启动" className="p-3 bg-green-500/15 text-green-400 rounded-xl hover:bg-green-600 hover:text-white transition-all">
                         <Play size={16} />
                       </button>
                     )}
 
                     {['unready', 'ready'].includes((instance.status || '').toLowerCase()) && (
-                      <button onClick={() => handleStop(instance.id)} title="停止" className="p-3 bg-amber-50 text-amber-600 rounded-xl hover:bg-amber-600 hover:text-white transition-all">
+                      <button onClick={() => handleStop(instance.id)} title="停止" className="p-3 bg-amber-500/15 text-amber-400 rounded-xl hover:bg-amber-600 hover:text-white transition-all">
                         <StopCircle size={16} />
                       </button>
                     )}
@@ -388,19 +388,19 @@ export const WorkflowInstancePage: React.FC<{
                         } catch (e: any) {
                           showToast("触发执行失败:" + e.message,"error");
                         }
-                      }} title="触发执行" className="p-3 bg-cyan-50 text-cyan-600 rounded-xl hover:bg-cyan-600 hover:text-white transition-all">
+                      }} title="触发执行" className="p-3 bg-cyan-500/15 text-cyan-400 rounded-xl hover:bg-cyan-600 hover:text-white transition-all">
                         <Zap size={16} />
                       </button>
                     )}
 
                     {instance.run_mode === 'persistent' && !instance.is_active && (
-                      <button onClick={() => handleActivate(instance.id)} title="激活" className="p-3 bg-emerald-50 text-emerald-600 rounded-xl hover:bg-emerald-600 hover:text-white transition-all">
+                      <button onClick={() => handleActivate(instance.id)} title="激活" className="p-3 bg-emerald-500/15 text-emerald-400 rounded-xl hover:bg-emerald-600 hover:text-white transition-all">
                         <Power size={16} />
                       </button>
                     )}
 
                     {instance.run_mode === 'persistent' && instance.is_active && (
-                      <button onClick={() => handleDeactivate(instance.id)} title="停用" className="p-3 bg-slate-100 text-slate-600 rounded-xl hover:bg-slate-600 hover:text-white transition-all">
+                      <button onClick={() => handleDeactivate(instance.id)} title="停用" className="p-3 bg-theme-elevated text-theme-text-secondary rounded-xl hover:bg-slate-600 hover:text-white transition-all">
                         <PowerOff size={16} />
                       </button>
                     )}
@@ -411,7 +411,7 @@ export const WorkflowInstancePage: React.FC<{
                         setIsDeleteModalOpen(true);
                       }}
                       title="删除"
-                      className="p-3 bg-red-50 text-red-600 rounded-xl hover:bg-red-600 hover:text-white transition-all"
+                      className="p-3 bg-red-500/15 text-red-400 rounded-xl hover:bg-red-600 hover:text-white transition-all"
                     >
                       <Trash2 size={16} />
                     </button>
@@ -420,7 +420,7 @@ export const WorkflowInstancePage: React.FC<{
               </tr>
             ))}
             {instances.length === 0 && !loading && (
-              <tr><td colSpan={7} className="py-40 text-center text-slate-400 font-black uppercase text-xs tracking-widest italic">暂无工作流实例</td></tr>
+              <tr><td colSpan={7} className="py-40 text-center text-theme-text-muted font-black uppercase text-xs tracking-widest italic">暂无工作流实例</td></tr>
             )}
           </tbody>
         </table>
@@ -428,20 +428,20 @@ export const WorkflowInstancePage: React.FC<{
 
       {/* Pagination */}
       {filteredInstances.length > 0 && (
- <div className="flex items-center justify-between px-8 py-4 bg-slate-50 border border-slate-200 rounded-[2rem]">
+ <div className="flex items-center justify-between px-8 py-4 bg-theme-bg-app border border-theme-border rounded-[2rem]">
           <div className="flex items-center gap-4">
-            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">每页</span>
+            <span className="text-[10px] font-black text-theme-text-muted uppercase tracking-widest">每页</span>
             <select
               value={pageSize}
               onChange={(e) => { setPageSize(Number(e.target.value)); setPage(1); }}
-              className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-700 outline-none focus:border-blue-500 transition-all"
+              className="px-3 py-2 bg-theme-bg-app border border-theme-border rounded-xl text-sm font-bold text-theme-text-secondary outline-none focus:border-blue-500 transition-all"
             >
               <option value={10}>10</option>
               <option value={20}>20</option>
               <option value={50}>50</option>
               <option value={100}>100</option>
             </select>
-            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+            <span className="text-[10px] font-black text-theme-text-muted uppercase tracking-widest">
               条 | 共 {filteredInstances.length} 条
             </span>
           </div>
@@ -449,17 +449,17 @@ export const WorkflowInstancePage: React.FC<{
             <button
               disabled={page === 1}
               onClick={() => setPage(page - 1)}
-              className="p-2 text-slate-400 hover:text-slate-800 disabled:opacity-30 transition-all"
+              className="p-2 text-theme-text-muted hover:text-theme-text-primary disabled:opacity-30 transition-all"
             >
               <ChevronLeft size={20} />
             </button>
-            <span className="px-4 py-2 bg-slate-100 rounded-xl text-sm font-black text-slate-800">
+            <span className="px-4 py-2 bg-theme-elevated rounded-xl text-sm font-black text-theme-text-primary">
               {page} / {totalPages}
             </span>
             <button
               disabled={page >= totalPages}
               onClick={() => setPage(page + 1)}
-              className="p-2 text-slate-400 hover:text-slate-800 disabled:opacity-30 transition-all"
+              className="p-2 text-theme-text-muted hover:text-theme-text-primary disabled:opacity-30 transition-all"
             >
               <ChevronRight size={20} />
             </button>
@@ -469,45 +469,45 @@ export const WorkflowInstancePage: React.FC<{
 
       {isCreateModalOpen && (
         <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
- <div className="bg-slate-50 rounded-[2rem] w-full max-w-lg overflow-hidden animate-in zoom-in-95 duration-200">
-            <div className="p-8 border-b border-slate-100">
-              <h3 className="text-2xl font-black text-slate-800">创建空白实例</h3>
-              <p className="text-sm text-slate-500 mt-2 font-medium">创建一个不包含任何节点的空白工作流实例，稍后可添加节点。</p>
+ <div className="bg-theme-bg-app rounded-[2rem] w-full max-w-lg overflow-hidden animate-in zoom-in-95 duration-200">
+            <div className="p-8 border-b border-theme-border">
+              <h3 className="text-2xl font-black text-theme-text-primary">创建空白实例</h3>
+              <p className="text-sm text-theme-text-muted mt-2 font-medium">创建一个不包含任何节点的空白工作流实例，稍后可添加节点。</p>
             </div>
             <form onSubmit={handleCreate} className="p-8 space-y-6">
               <div>
-                <label className="block text-sm font-bold text-slate-700 mb-2">实例名称</label>
-                <input required type="text" className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 ring-blue-500 outline-none transition-all" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} placeholder="例如: prod-security-scan" />
+                <label className="block text-sm font-bold text-theme-text-secondary mb-2">实例名称</label>
+                <input required type="text" className="w-full px-4 py-3 bg-theme-bg-app border border-theme-border rounded-xl text-sm focus:ring-2 ring-blue-500 outline-none transition-all" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} placeholder="例如: prod-security-scan" />
               </div>
               <div>
-                <label className="block text-sm font-bold text-slate-700 mb-2">描述</label>
-                <textarea className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 ring-blue-500 outline-none transition-all" rows={3} value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} placeholder="实例描述信息..." />
+                <label className="block text-sm font-bold text-theme-text-secondary mb-2">描述</label>
+                <textarea className="w-full px-4 py-3 bg-theme-bg-app border border-theme-border rounded-xl text-sm focus:ring-2 ring-blue-500 outline-none transition-all" rows={3} value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} placeholder="实例描述信息..." />
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-bold text-slate-700 mb-2">运行模式</label>
-                  <select className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 ring-blue-500 outline-none transition-all" value={formData.run_mode} onChange={e => setFormData({...formData, run_mode: e.target.value})}>
+                  <label className="block text-sm font-bold text-theme-text-secondary mb-2">运行模式</label>
+                  <select className="w-full px-4 py-3 bg-theme-bg-app border border-theme-border rounded-xl text-sm focus:ring-2 ring-blue-500 outline-none transition-all" value={formData.run_mode} onChange={e => setFormData({...formData, run_mode: e.target.value})}>
                     <option value="once">一次性 (Once)</option>
                     <option value="persistent">持久化 (Persistent)</option>
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-bold text-slate-700 mb-2">触发类型</label>
-                  <select className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 ring-blue-500 outline-none transition-all" value={formData.trigger_type} onChange={e => setFormData({...formData, trigger_type: e.target.value})}>
+                  <label className="block text-sm font-bold text-theme-text-secondary mb-2">触发类型</label>
+                  <select className="w-full px-4 py-3 bg-theme-bg-app border border-theme-border rounded-xl text-sm focus:ring-2 ring-blue-500 outline-none transition-all" value={formData.trigger_type} onChange={e => setFormData({...formData, trigger_type: e.target.value})}>
                     <option value="manual">手动 (Manual)</option>
                     <option value="http">HTTP触发 (HTTP)</option>
                   </select>
                 </div>
               </div>
               {formData.run_mode === 'persistent' && formData.trigger_type === 'http' && (
-                <div className="flex items-center gap-3 p-4 bg-blue-50 rounded-xl border border-blue-100">
-                  <input type="checkbox" id="trigger_enabled" className="w-4 h-4 text-blue-600 rounded border-slate-300 focus:ring-blue-500" checked={formData.trigger_enabled} onChange={e => setFormData({...formData, trigger_enabled: e.target.checked})} />
-                  <label htmlFor="trigger_enabled" className="text-sm font-bold text-blue-900 cursor-pointer">启用触发器</label>
+                <div className="flex items-center gap-3 p-4 bg-blue-500/15 rounded-xl border border-blue-500/20">
+                  <input type="checkbox" id="trigger_enabled" className="w-4 h-4 text-blue-400 rounded border-theme-border focus:ring-blue-500" checked={formData.trigger_enabled} onChange={e => setFormData({...formData, trigger_enabled: e.target.checked})} />
+                  <label htmlFor="trigger_enabled" className="text-sm font-bold text-blue-300 cursor-pointer">启用触发器</label>
                 </div>
               )}
               <div className="flex gap-4 pt-4">
-                <button type="button" onClick={() => setIsCreateModalOpen(false)} className="flex-1 py-4 bg-slate-100 text-slate-600 rounded-xl font-bold hover:bg-slate-200 transition-all">取消</button>
- <button type="submit" className="flex-1 py-4 bg-slate-900 text-white rounded-xl font-bold hover:bg-slate-800 transition-all">创建</button>
+                <button type="button" onClick={() => setIsCreateModalOpen(false)} className="flex-1 py-4 bg-theme-elevated text-theme-text-secondary rounded-xl font-bold hover:bg-theme-elevated transition-all">取消</button>
+ <button type="submit" className="flex-1 py-4 bg-theme-surface text-white rounded-xl font-bold hover:bg-theme-elevated transition-all">创建</button>
               </div>
             </form>
           </div>
@@ -517,26 +517,26 @@ export const WorkflowInstancePage: React.FC<{
       {/* Uninitialize Confirmation Modal */}
       {isUninitModalOpen && (
         <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
- <div className="bg-slate-50 rounded-[2rem] w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200">
+ <div className="bg-theme-bg-app rounded-[2rem] w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200">
             <div className="p-8 text-center">
-              <div className="w-20 h-20 bg-orange-50 text-orange-600 rounded-[2rem] flex items-center justify-center mx-auto mb-6">
+              <div className="w-20 h-20 bg-orange-500/15 text-orange-400 rounded-[2rem] flex items-center justify-center mx-auto mb-6">
                 <RotateCcw size={40} />
               </div>
-              <h3 className="text-2xl font-black text-slate-800">确认反初始化？</h3>
-              <p className="text-slate-500 mt-4 font-medium">
+              <h3 className="text-2xl font-black text-theme-text-primary">确认反初始化？</h3>
+              <p className="text-theme-text-muted mt-4 font-medium">
                 您确定要反初始化这个工作流实例吗？这将删除所有关联的 K8S 资源并重置状态。
               </p>
-              <p className="text-red-500 mt-2 font-bold text-sm bg-red-50 p-3 rounded-xl border border-red-100">
+              <p className="text-red-500 mt-2 font-bold text-sm bg-red-500/15 p-3 rounded-xl border border-red-500/20">
                 警告：所有的非持久化数据将全部丢失！
               </p>
             </div>
-            <div className="p-8 bg-slate-50 flex gap-4">
+            <div className="p-8 bg-theme-bg-app flex gap-4">
               <button
                 onClick={() => {
                   setIsUninitModalOpen(false);
                   setUninitId(null);
                 }}
-                className="flex-1 py-4 bg-slate-50 border border-slate-200 text-slate-600 rounded-2xl font-bold hover:bg-slate-100 transition-all"
+                className="flex-1 py-4 bg-theme-bg-app border border-theme-border text-theme-text-secondary rounded-2xl font-bold hover:bg-theme-elevated transition-all"
               >
                 取消
               </button>
@@ -556,25 +556,25 @@ export const WorkflowInstancePage: React.FC<{
       {/* Delete Confirmation Modal */}
       {isDeleteModalOpen && (
         <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
- <div className="bg-slate-50 rounded-[2rem] w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200">
+ <div className="bg-theme-bg-app rounded-[2rem] w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200">
             <div className="p-8 text-center">
-              <div className="w-20 h-20 bg-red-50 text-red-600 rounded-[2rem] flex items-center justify-center mx-auto mb-6">
+              <div className="w-20 h-20 bg-red-500/15 text-red-400 rounded-[2rem] flex items-center justify-center mx-auto mb-6">
                 <Trash2 size={40} />
               </div>
-              <h3 className="text-2xl font-black text-slate-800">确认删除？</h3>
-              <p className="text-slate-500 mt-4 font-medium">
+              <h3 className="text-2xl font-black text-theme-text-primary">确认删除？</h3>
+              <p className="text-theme-text-muted mt-4 font-medium">
                 {deletingId
                   ?"您确定要删除这个工作流实例吗？此操作不可撤销，且会清理关联的 K8S 资源。"
                   :`您确定要删除选中的 ${selectedIds.length} 个工作流实例吗？此操作将批量清理所有关联资源。`}
               </p>
             </div>
-            <div className="p-8 bg-slate-50 flex gap-4">
+            <div className="p-8 bg-theme-bg-app flex gap-4">
               <button
                 onClick={() => {
                   setIsDeleteModalOpen(false);
                   setDeletingId(null);
                 }}
-                className="flex-1 py-4 bg-slate-50 border border-slate-200 text-slate-600 rounded-2xl font-bold hover:bg-slate-100 transition-all"
+                className="flex-1 py-4 bg-theme-bg-app border border-theme-border text-theme-text-secondary rounded-2xl font-bold hover:bg-theme-elevated transition-all"
               >
                 取消
               </button>
@@ -613,8 +613,8 @@ export const WorkflowInstancePage: React.FC<{
  <div className={`px-6 py-3 rounded-xl border font-bold text-sm flex items-center gap-2 ${
             toast.type === 'success' ? 'bg-green-600 text-white border-green-500' :
             toast.type === 'error' ? 'bg-red-600 text-white border-red-500' :
-            toast.type === 'warning' ? 'bg-yellow-500 text-yellow-900 border-yellow-400' :
-            'bg-slate-800 text-white border-slate-700'
+            toast.type === 'warning' ? 'bg-yellow-500 text-yellow-300 border-yellow-400' :
+            'bg-theme-elevated text-white border-theme-border'
           }`}>
             {toast.type === 'success' && <CheckCircle size={18} />}
             {toast.type === 'error' && <XCircle size={18} />}

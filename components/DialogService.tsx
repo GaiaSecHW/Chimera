@@ -99,23 +99,23 @@ export const showPrompt = (options: string | PromptOptions) =>
 
 const alertStyles = {
   info: {
-    icon: <BellRing size={20} className="text-sky-600" />,
-    chip: 'bg-sky-100 text-sky-700 border-sky-200',
+    icon: <BellRing size={20} className="text-sky-400" />,
+    chip: 'bg-sky-500/15 text-sky-400 border-sky-500/20',
     button: 'bg-sky-600 hover:bg-sky-700',
   },
   success: {
-    icon: <CheckCircle2 size={20} className="text-emerald-600" />,
-    chip: 'bg-emerald-100 text-emerald-700 border-emerald-200',
+    icon: <CheckCircle2 size={20} className="text-emerald-400" />,
+    chip: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/20',
     button: 'bg-emerald-600 hover:bg-emerald-700',
   },
   warning: {
-    icon: <AlertTriangle size={20} className="text-amber-600" />,
-    chip: 'bg-amber-100 text-amber-700 border-amber-200',
+    icon: <AlertTriangle size={20} className="text-amber-400" />,
+    chip: 'bg-amber-500/15 text-amber-400 border-amber-500/20',
     button: 'bg-amber-600 hover:bg-amber-700',
   },
   error: {
-    icon: <AlertTriangle size={20} className="text-rose-600" />,
-    chip: 'bg-rose-100 text-rose-700 border-rose-200',
+    icon: <AlertTriangle size={20} className="text-rose-400" />,
+    chip: 'bg-rose-500/15 text-rose-400 border-rose-500/20',
     button: 'bg-rose-600 hover:bg-rose-700',
   },
 } as const;
@@ -191,7 +191,7 @@ export const DialogViewport: React.FC = () => {
           <div className="border-b border-theme-border px-8 py-7">
             <div className="flex items-center gap-3">
               <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-theme-elevated shadow-sm ring-1 ring-theme-border">
-                {active.kind === 'prompt' ? <MessageSquareQuote size={20} className="text-violet-600" /> : style.icon}
+                {active.kind === 'prompt' ? <MessageSquareQuote size={20} className="text-violet-400" /> : style.icon}
               </div>
               <div>
                 <div className={`inline-flex rounded-full border px-3 py-1 text-[10px] font-black uppercase tracking-[0.24em] ${style.chip}`}>

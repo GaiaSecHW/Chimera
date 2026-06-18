@@ -104,7 +104,7 @@ const ProcessTreeView: React.FC<{
     return (
       <div key={node.pid}>
         <div
-          className="px-2 py-1 rounded-lg hover:bg-slate-100 cursor-pointer"
+          className="px-2 py-1 rounded-lg hover:bg-theme-elevated cursor-pointer"
           style={{ paddingLeft:`${depth * 16 + 8}px` }}
           onClick={() => onOpenDetail(node.pid)}
           onContextMenu={(event) => onContext(event, node.pid)}
@@ -116,16 +116,16 @@ const ProcessTreeView: React.FC<{
                 event.stopPropagation();
                 onTogglePid(node.pid);
               }}
-              className="text-slate-500 hover:text-blue-600"
+              className="text-theme-text-muted hover:text-blue-400"
               title="选择进程"
             >
               {selectedPids.has(node.pid) ? <CheckSquare size={14} /> : <Square size={14} />}
             </button>
-            <span className="text-xs font-mono text-slate-500">{node.pid}</span>
-            <span className="text-sm font-semibold text-slate-800">{node.name || 'unknown'}</span>
-            <span className="text-[11px] text-slate-400">{node.status || 'unknown'}</span>
+            <span className="text-xs font-mono text-theme-text-muted">{node.pid}</span>
+            <span className="text-sm font-semibold text-theme-text-primary">{node.name || 'unknown'}</span>
+            <span className="text-[11px] text-theme-text-muted">{node.status || 'unknown'}</span>
           </div>
-          <div className="pl-6 text-[11px] leading-5 text-slate-500 font-mono whitespace-pre-wrap break-all">
+          <div className="pl-6 text-[11px] leading-5 text-theme-text-muted font-mono whitespace-pre-wrap break-all">
             {cmdline || '(no cmdline)'}
           </div>
         </div>
@@ -146,7 +146,7 @@ const PathTreeView: React.FC<{
   const renderNode = (node: FileTreeNode, depth = 0): React.ReactNode => (
     <div key={node.path}>
       <div
-        className="flex items-center gap-2 px-2 py-1 rounded-lg hover:bg-slate-100 cursor-default"
+        className="flex items-center gap-2 px-2 py-1 rounded-lg hover:bg-theme-elevated cursor-default"
         style={{ paddingLeft:`${depth * 16 + 8}px` }}
         onClick={() => {
           if (node.type === 'dir') onToggleDir(node.path);
@@ -156,7 +156,7 @@ const PathTreeView: React.FC<{
         {node.type === 'dir' ? (
           <button
             type="button"
-            className="text-slate-500 hover:text-blue-600"
+            className="text-theme-text-muted hover:text-blue-400"
             onClick={(event) => {
               event.stopPropagation();
               onToggleDir(node.path);
@@ -167,9 +167,9 @@ const PathTreeView: React.FC<{
         ) : (
           <span className="inline-block w-[14px]" />
         )}
-        <span className="text-[11px] uppercase text-slate-400">{node.type}</span>
-        <span className="text-sm text-slate-700">{node.name}</span>
-        {loadingPaths.has(node.path) ? <Loader2 size={12} className="animate-spin text-blue-600" /> : null}
+        <span className="text-[11px] uppercase text-theme-text-muted">{node.type}</span>
+        <span className="text-sm text-theme-text-secondary">{node.name}</span>
+        {loadingPaths.has(node.path) ? <Loader2 size={12} className="animate-spin text-blue-400" /> : null}
       </div>
       {node.type === 'dir' && expandedPaths.has(node.path) ? (node.children || []).map((child) => renderNode(child, depth + 1)) : null}
     </div>
@@ -442,14 +442,14 @@ export const EnvProcessMonitorDetailPage: React.FC<{ projectId: string; initialS
       <div className="p-10 space-y-5">
         <div className="flex items-end justify-between">
           <div>
-            <h2 className="text-3xl font-black text-slate-800 tracking-tight">节点进程监控 - 进程详情</h2>
-            <p className="text-slate-500 mt-1 font-medium">左侧全局文件系统树，右侧进程树；支持进程详情与同步确认</p>
+            <h2 className="text-3xl font-black text-theme-text-primary tracking-tight">节点进程监控 - 进程详情</h2>
+            <p className="text-theme-text-muted mt-1 font-medium">左侧全局文件系统树，右侧进程树；支持进程详情与同步确认</p>
           </div>
           <div className="flex items-center gap-3">
             <button
               onClick={() => void loadNodes()}
               disabled={!projectId || loadingNodes}
-              className="px-4 py-3 rounded-2xl border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-600 text-xs font-bold uppercase tracking-wider flex items-center gap-2"
+              className="px-4 py-3 rounded-2xl border border-theme-border bg-theme-bg-app hover:bg-theme-elevated text-theme-text-secondary text-xs font-bold uppercase tracking-wider flex items-center gap-2"
             >
               {loadingNodes ? <Loader2 size={16} className="animate-spin" /> : <RefreshCw size={16} />}
               刷新节点
@@ -457,7 +457,7 @@ export const EnvProcessMonitorDetailPage: React.FC<{ projectId: string; initialS
             <button
               onClick={() => void loadProcesses()}
               disabled={!projectId || !selectedService || loadingProcesses}
-              className="px-4 py-3 rounded-2xl border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-600 text-xs font-bold uppercase tracking-wider flex items-center gap-2"
+              className="px-4 py-3 rounded-2xl border border-theme-border bg-theme-bg-app hover:bg-theme-elevated text-theme-text-secondary text-xs font-bold uppercase tracking-wider flex items-center gap-2"
             >
               {loadingProcesses ? <Loader2 size={16} className="animate-spin" /> : <RefreshCw size={16} />}
               刷新进程
@@ -467,11 +467,11 @@ export const EnvProcessMonitorDetailPage: React.FC<{ projectId: string; initialS
 
         <div className="grid grid-cols-1 xl:grid-cols-1 gap-3">
           <div>
-            <label className="text-xs font-black text-slate-500 uppercase tracking-widest">节点服务</label>
+            <label className="text-xs font-black text-theme-text-muted uppercase tracking-widest">节点服务</label>
             <select
               value={selectedServiceKey}
               onChange={(event) => setSelectedServiceKey(event.target.value)}
-              className="mt-1 w-full rounded-2xl border border-slate-200 bg-slate-50 px-3 py-3"
+              className="mt-1 w-full rounded-2xl border border-theme-border bg-theme-bg-app px-3 py-3"
             >
               {nodes.map((item) => (
                 <option key={`${item.agent_key}:${item.service_name}`} value={`${item.agent_key}:${item.service_name}`}>
@@ -482,9 +482,9 @@ export const EnvProcessMonitorDetailPage: React.FC<{ projectId: string; initialS
           </div>
         </div>
 
-        <div className="rounded-3xl border border-slate-200 bg-slate-50 overflow-hidden">
-          <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3">
-            <div className="text-xs font-black text-slate-500 uppercase tracking-widest flex items-center gap-2">
+        <div className="rounded-3xl border border-theme-border bg-theme-bg-app overflow-hidden">
+          <div className="flex items-center justify-between border-b border-theme-border px-4 py-3">
+            <div className="text-xs font-black text-theme-text-muted uppercase tracking-widest flex items-center gap-2">
               <Server size={14} />
               {selectedService
                 ?`${selectedService.agent_hostname || selectedService.agent_key} / ${selectedService.service_name} / 节点ID: ${selectedService.agent_key}`
@@ -494,7 +494,7 @@ export const EnvProcessMonitorDetailPage: React.FC<{ projectId: string; initialS
               <button
                 onClick={toggleSelectAllPids}
                 disabled={loadingProcesses || !selectedService || allProcessPids.length === 0}
-                className="px-3 py-2 rounded-xl border border-slate-200 bg-slate-50 text-slate-700 text-xs font-black uppercase tracking-wider disabled:opacity-50 flex items-center gap-2 hover:bg-slate-100"
+                className="px-3 py-2 rounded-xl border border-theme-border bg-theme-bg-app text-theme-text-secondary text-xs font-black uppercase tracking-wider disabled:opacity-50 flex items-center gap-2 hover:bg-theme-elevated"
               >
                 {isAllProcessesSelected ? <Square size={14} /> : <CheckSquare size={14} />}
                 {isAllProcessesSelected ? '清空全部选择' :`全选全部进程 (${allProcessPids.length})`}
@@ -512,16 +512,16 @@ export const EnvProcessMonitorDetailPage: React.FC<{ projectId: string; initialS
 
           <div className="relative" style={{ height: '68vh' }}>
             <div className="absolute inset-0 flex">
-              <div style={{ width: `${leftPaneWidth}%` }} className="h-full border-r border-slate-100 overflow-auto">
-                <div className="sticky top-0 bg-slate-50 border-b border-slate-100 px-3 py-2 text-xs font-black uppercase tracking-widest text-slate-500 flex items-center gap-2">
+              <div style={{ width: `${leftPaneWidth}%` }} className="h-full border-r border-theme-border overflow-auto">
+                <div className="sticky top-0 bg-theme-bg-app border-b border-theme-border px-3 py-2 text-xs font-black uppercase tracking-widest text-theme-text-muted flex items-center gap-2">
                   <FolderTree size={14} />
                   全局文件系统树
                 </div>
                 <div className="p-2">
                   {loadingFiles ? (
-                    <div className="py-10 text-center"><Loader2 className="animate-spin mx-auto text-blue-600" /></div>
+                    <div className="py-10 text-center"><Loader2 className="animate-spin mx-auto text-blue-400" /></div>
                   ) : fileTree.length === 0 ? (
-                    <div className="py-10 text-center text-sm text-slate-400">暂无文件系统数据</div>
+                    <div className="py-10 text-center text-sm text-theme-text-muted">暂无文件系统数据</div>
                   ) : (
                     <PathTreeView
                       nodes={fileTree}
@@ -557,19 +557,19 @@ export const EnvProcessMonitorDetailPage: React.FC<{ projectId: string; initialS
               </div>
 
               <div
-                className="w-1.5 bg-slate-100 hover:bg-blue-300 cursor-col-resize"
+                className="w-1.5 bg-theme-elevated hover:bg-blue-300 cursor-col-resize"
                 onMouseDown={() => {
                   draggingRef.current = true;
                 }}
               />
 
               <div style={{ width: `${100 - leftPaneWidth}%` }} className="h-full overflow-auto">
-                <div className="sticky top-0 bg-slate-50 border-b border-slate-100 px-3 py-2 text-xs font-black uppercase tracking-widest text-slate-500">进程树（单击查看详情，右键同步）</div>
+                <div className="sticky top-0 bg-theme-bg-app border-b border-theme-border px-3 py-2 text-xs font-black uppercase tracking-widest text-theme-text-muted">进程树（单击查看详情，右键同步）</div>
                 <div className="p-2">
                   {loadingProcesses ? (
-                    <div className="py-10 text-center"><Loader2 className="animate-spin mx-auto text-blue-600" /></div>
+                    <div className="py-10 text-center"><Loader2 className="animate-spin mx-auto text-blue-400" /></div>
                   ) : treeNodes.length === 0 ? (
-                    <div className="py-10 text-center text-sm text-slate-400">暂无进程数据</div>
+                    <div className="py-10 text-center text-sm text-theme-text-muted">暂无进程数据</div>
                   ) : (
                     <ProcessTreeView
                       nodes={treeNodes}
@@ -589,10 +589,10 @@ export const EnvProcessMonitorDetailPage: React.FC<{ projectId: string; initialS
         </div>
 
         {menu && (
- <div className="fixed z-50 rounded-xl border border-slate-200 bg-slate-50 p-1 min-w-[180px]" style={{ left: menu.x, top: menu.y }}>
+ <div className="fixed z-50 rounded-xl border border-theme-border bg-theme-bg-app p-1 min-w-[180px]" style={{ left: menu.x, top: menu.y }}>
             {menu.type === 'process' ? (
               <button
-                className="w-full text-left px-3 py-2 rounded-lg hover:bg-slate-100 text-sm"
+                className="w-full text-left px-3 py-2 rounded-lg hover:bg-theme-elevated text-sm"
                 onClick={() => {
                   void openSyncPreview({ mode: 'pid_files', pids: [menu.pid] });
                 }}
@@ -601,7 +601,7 @@ export const EnvProcessMonitorDetailPage: React.FC<{ projectId: string; initialS
               </button>
             ) : (
               <button
-                className="w-full text-left px-3 py-2 rounded-lg hover:bg-slate-100 text-sm"
+                className="w-full text-left px-3 py-2 rounded-lg hover:bg-theme-elevated text-sm"
                 onClick={() => {
                   void openSyncPreview({ mode: 'path_files', paths: [menu.path] });
                 }}
@@ -614,16 +614,16 @@ export const EnvProcessMonitorDetailPage: React.FC<{ projectId: string; initialS
 
         {processDetailPid !== null && (
           <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-6" onClick={() => setProcessDetailPid(null)}>
- <div className="w-[min(1200px,95vw)] h-[85vh] rounded-3xl bg-slate-50 border border-slate-200 flex flex-col" onClick={(event) => event.stopPropagation()}>
-              <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
+ <div className="w-[min(1200px,95vw)] h-[85vh] rounded-3xl bg-theme-bg-app border border-theme-border flex flex-col" onClick={(event) => event.stopPropagation()}>
+              <div className="flex items-center justify-between px-6 py-4 border-b border-theme-border">
                 <div>
-                  <h3 className="text-xl font-black text-slate-800">进程详情 / PID {processDetailPid}</h3>
-                  <p className="text-xs text-slate-500">/proc/{processDetailPid} 视图</p>
+                  <h3 className="text-xl font-black text-theme-text-primary">进程详情 / PID {processDetailPid}</h3>
+                  <p className="text-xs text-theme-text-muted">/proc/{processDetailPid} 视图</p>
                 </div>
-                <button className="p-2 rounded-xl hover:bg-slate-100" onClick={() => setProcessDetailPid(null)}><X size={18} /></button>
+                <button className="p-2 rounded-xl hover:bg-theme-elevated" onClick={() => setProcessDetailPid(null)}><X size={18} /></button>
               </div>
 
-              <div className="px-6 pt-4 flex items-center gap-2 border-b border-slate-100">
+              <div className="px-6 pt-4 flex items-center gap-2 border-b border-theme-border">
                 {[
                   { id: 'overview', label: '概览', icon: <Info size={14} /> },
                   { id: 'basic', label: '基本信息', icon: <Server size={14} /> },
@@ -633,7 +633,7 @@ export const EnvProcessMonitorDetailPage: React.FC<{ projectId: string; initialS
                 ].map((tab) => (
                   <button
                     key={tab.id}
-                    className={`px-4 py-2 rounded-t-xl text-xs font-black uppercase tracking-wider flex items-center gap-2 ${processDetailTab === tab.id ? 'bg-blue-50 text-blue-700 border border-b-0 border-blue-100' : 'text-slate-500 hover:text-slate-800'}`}
+                    className={`px-4 py-2 rounded-t-xl text-xs font-black uppercase tracking-wider flex items-center gap-2 ${processDetailTab === tab.id ? 'bg-blue-500/15 text-blue-400 border border-b-0 border-blue-500/20' : 'text-theme-text-muted hover:text-theme-text-primary'}`}
                     onClick={() => setProcessDetailTab(tab.id as ProcessDetailTab)}
                   >
                     {tab.icon}
@@ -644,69 +644,69 @@ export const EnvProcessMonitorDetailPage: React.FC<{ projectId: string; initialS
 
               <div className="flex-1 overflow-auto p-6">
                 {processDetailLoading ? (
-                  <div className="py-16 text-center"><Loader2 className="animate-spin mx-auto text-blue-600" /></div>
+                  <div className="py-16 text-center"><Loader2 className="animate-spin mx-auto text-blue-400" /></div>
                 ) : !processDetailData ? (
-                  <div className="py-16 text-center text-slate-400">暂无进程详情</div>
+                  <div className="py-16 text-center text-theme-text-muted">暂无进程详情</div>
                 ) : (
                   <>
                     {processDetailTab === 'overview' && (
                       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3">
-                        <div className="rounded-2xl border border-slate-200 p-4"><div className="text-xs text-slate-500">名称</div><div className="mt-1 font-semibold text-slate-800">{proc.name || '-'}</div></div>
-                        <div className="rounded-2xl border border-slate-200 p-4"><div className="text-xs text-slate-500">状态</div><div className="mt-1 font-semibold text-slate-800">{proc.status || '-'}</div></div>
-                        <div className="rounded-2xl border border-slate-200 p-4"><div className="text-xs text-slate-500">用户</div><div className="mt-1 font-semibold text-slate-800">{proc.username || '-'}</div></div>
-                        <div className="rounded-2xl border border-slate-200 p-4"><div className="text-xs text-slate-500">线程数</div><div className="mt-1 font-semibold text-slate-800">{proc.num_threads ?? '-'}</div></div>
-                        <div className="md:col-span-2 xl:col-span-4 rounded-2xl border border-slate-200 p-4">
-                          <div className="text-xs text-slate-500">命令行</div>
-                          <pre className="mt-2 text-xs whitespace-pre-wrap break-all text-slate-700 font-mono">{Array.isArray(proc.cmdline) ? proc.cmdline.join(' ') : '-'}</pre>
+                        <div className="rounded-2xl border border-theme-border p-4"><div className="text-xs text-theme-text-muted">名称</div><div className="mt-1 font-semibold text-theme-text-primary">{proc.name || '-'}</div></div>
+                        <div className="rounded-2xl border border-theme-border p-4"><div className="text-xs text-theme-text-muted">状态</div><div className="mt-1 font-semibold text-theme-text-primary">{proc.status || '-'}</div></div>
+                        <div className="rounded-2xl border border-theme-border p-4"><div className="text-xs text-theme-text-muted">用户</div><div className="mt-1 font-semibold text-theme-text-primary">{proc.username || '-'}</div></div>
+                        <div className="rounded-2xl border border-theme-border p-4"><div className="text-xs text-theme-text-muted">线程数</div><div className="mt-1 font-semibold text-theme-text-primary">{proc.num_threads ?? '-'}</div></div>
+                        <div className="md:col-span-2 xl:col-span-4 rounded-2xl border border-theme-border p-4">
+                          <div className="text-xs text-theme-text-muted">命令行</div>
+                          <pre className="mt-2 text-xs whitespace-pre-wrap break-all text-theme-text-secondary font-mono">{Array.isArray(proc.cmdline) ? proc.cmdline.join(' ') : '-'}</pre>
                         </div>
-                        <div className="md:col-span-2 xl:col-span-2 rounded-2xl border border-slate-200 p-4"><div className="text-xs text-slate-500">CWD</div><pre className="mt-2 text-xs whitespace-pre-wrap break-all text-slate-700 font-mono">{proc.cwd || '-'}</pre></div>
-                        <div className="md:col-span-2 xl:col-span-2 rounded-2xl border border-slate-200 p-4"><div className="text-xs text-slate-500">EXE</div><pre className="mt-2 text-xs whitespace-pre-wrap break-all text-slate-700 font-mono">{proc.exe || '-'}</pre></div>
+                        <div className="md:col-span-2 xl:col-span-2 rounded-2xl border border-theme-border p-4"><div className="text-xs text-theme-text-muted">CWD</div><pre className="mt-2 text-xs whitespace-pre-wrap break-all text-theme-text-secondary font-mono">{proc.cwd || '-'}</pre></div>
+                        <div className="md:col-span-2 xl:col-span-2 rounded-2xl border border-theme-border p-4"><div className="text-xs text-theme-text-muted">EXE</div><pre className="mt-2 text-xs whitespace-pre-wrap break-all text-theme-text-secondary font-mono">{proc.exe || '-'}</pre></div>
                       </div>
                     )}
 
                     {processDetailTab === 'basic' && (
                       <div className="space-y-3">
-                        <div className="rounded-2xl border border-slate-200 p-4"><div className="text-xs text-slate-500">UID/GID</div><pre className="mt-2 text-xs text-slate-700 font-mono whitespace-pre-wrap">{JSON.stringify({ uids: proc.uids, gids: proc.gids }, null, 2)}</pre></div>
-                        <div className="rounded-2xl border border-slate-200 p-4"><div className="text-xs text-slate-500">环境变量</div><pre className="mt-2 text-xs text-slate-700 font-mono whitespace-pre-wrap break-all">{JSON.stringify(proc.environ || {}, null, 2)}</pre></div>
+                        <div className="rounded-2xl border border-theme-border p-4"><div className="text-xs text-theme-text-muted">UID/GID</div><pre className="mt-2 text-xs text-theme-text-secondary font-mono whitespace-pre-wrap">{JSON.stringify({ uids: proc.uids, gids: proc.gids }, null, 2)}</pre></div>
+                        <div className="rounded-2xl border border-theme-border p-4"><div className="text-xs text-theme-text-muted">环境变量</div><pre className="mt-2 text-xs text-theme-text-secondary font-mono whitespace-pre-wrap break-all">{JSON.stringify(proc.environ || {}, null, 2)}</pre></div>
                       </div>
                     )}
 
                     {processDetailTab === 'resources' && (
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                        <div className="rounded-2xl border border-slate-200 p-4"><div className="text-xs text-slate-500">CPU</div><pre className="mt-2 text-xs text-slate-700 font-mono whitespace-pre-wrap">{JSON.stringify({ cpu_percent: proc.cpu_percent, cpu_times: proc.cpu_times }, null, 2)}</pre></div>
-                        <div className="rounded-2xl border border-slate-200 p-4"><div className="text-xs text-slate-500">Memory</div><pre className="mt-2 text-xs text-slate-700 font-mono whitespace-pre-wrap">{JSON.stringify({ memory_percent: proc.memory_percent, memory_info: proc.memory_info }, null, 2)}</pre></div>
-                        <div className="rounded-2xl border border-slate-200 p-4 md:col-span-2"><div className="text-xs text-slate-500">IO Counters</div><pre className="mt-2 text-xs text-slate-700 font-mono whitespace-pre-wrap">{JSON.stringify(proc.io_counters || {}, null, 2)}</pre></div>
+                        <div className="rounded-2xl border border-theme-border p-4"><div className="text-xs text-theme-text-muted">CPU</div><pre className="mt-2 text-xs text-theme-text-secondary font-mono whitespace-pre-wrap">{JSON.stringify({ cpu_percent: proc.cpu_percent, cpu_times: proc.cpu_times }, null, 2)}</pre></div>
+                        <div className="rounded-2xl border border-theme-border p-4"><div className="text-xs text-theme-text-muted">Memory</div><pre className="mt-2 text-xs text-theme-text-secondary font-mono whitespace-pre-wrap">{JSON.stringify({ memory_percent: proc.memory_percent, memory_info: proc.memory_info }, null, 2)}</pre></div>
+                        <div className="rounded-2xl border border-theme-border p-4 md:col-span-2"><div className="text-xs text-theme-text-muted">IO Counters</div><pre className="mt-2 text-xs text-theme-text-secondary font-mono whitespace-pre-wrap">{JSON.stringify(proc.io_counters || {}, null, 2)}</pre></div>
                       </div>
                     )}
 
                     {processDetailTab === 'proc' && (
                       <div className="space-y-3">
                         {procTextSections.map((section) => (
-                          <div key={section.key} className="rounded-2xl border border-slate-200 p-4">
-                            <div className="text-xs uppercase tracking-wider text-slate-500">{section.label}</div>
-                            <pre className="mt-2 max-h-64 overflow-auto text-xs text-slate-700 font-mono whitespace-pre-wrap break-all">{extractProcText(procEntries?.[section.key]) || '(empty)'}</pre>
+                          <div key={section.key} className="rounded-2xl border border-theme-border p-4">
+                            <div className="text-xs uppercase tracking-wider text-theme-text-muted">{section.label}</div>
+                            <pre className="mt-2 max-h-64 overflow-auto text-xs text-theme-text-secondary font-mono whitespace-pre-wrap break-all">{extractProcText(procEntries?.[section.key]) || '(empty)'}</pre>
                           </div>
                         ))}
-                        <div className="rounded-2xl border border-slate-200 p-4">
-                          <div className="text-xs uppercase tracking-wider text-slate-500">net*</div>
-                          <pre className="mt-2 max-h-72 overflow-auto text-xs text-slate-700 font-mono whitespace-pre-wrap break-all">{extractProcText(procEntries?.net) || '(empty)'}</pre>
+                        <div className="rounded-2xl border border-theme-border p-4">
+                          <div className="text-xs uppercase tracking-wider text-theme-text-muted">net*</div>
+                          <pre className="mt-2 max-h-72 overflow-auto text-xs text-theme-text-secondary font-mono whitespace-pre-wrap break-all">{extractProcText(procEntries?.net) || '(empty)'}</pre>
                         </div>
                       </div>
                     )}
 
                     {processDetailTab === 'files-net' && (
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                        <div className="rounded-2xl border border-slate-200 p-4">
-                          <div className="text-xs text-slate-500">Open Files ({Array.isArray(proc.open_files) ? proc.open_files.length : 0})</div>
-                          <pre className="mt-2 max-h-72 overflow-auto text-xs text-slate-700 font-mono whitespace-pre-wrap break-all">{JSON.stringify(proc.open_files || [], null, 2)}</pre>
+                        <div className="rounded-2xl border border-theme-border p-4">
+                          <div className="text-xs text-theme-text-muted">Open Files ({Array.isArray(proc.open_files) ? proc.open_files.length : 0})</div>
+                          <pre className="mt-2 max-h-72 overflow-auto text-xs text-theme-text-secondary font-mono whitespace-pre-wrap break-all">{JSON.stringify(proc.open_files || [], null, 2)}</pre>
                         </div>
-                        <div className="rounded-2xl border border-slate-200 p-4">
-                          <div className="text-xs text-slate-500">Connections ({Array.isArray(proc.connections) ? proc.connections.length : 0})</div>
-                          <pre className="mt-2 max-h-72 overflow-auto text-xs text-slate-700 font-mono whitespace-pre-wrap break-all">{JSON.stringify(proc.connections || [], null, 2)}</pre>
+                        <div className="rounded-2xl border border-theme-border p-4">
+                          <div className="text-xs text-theme-text-muted">Connections ({Array.isArray(proc.connections) ? proc.connections.length : 0})</div>
+                          <pre className="mt-2 max-h-72 overflow-auto text-xs text-theme-text-secondary font-mono whitespace-pre-wrap break-all">{JSON.stringify(proc.connections || [], null, 2)}</pre>
                         </div>
-                        <div className="rounded-2xl border border-slate-200 p-4 md:col-span-2">
-                          <div className="text-xs text-slate-500">/proc/fd 摘要</div>
-                          <pre className="mt-2 max-h-72 overflow-auto text-xs text-slate-700 font-mono whitespace-pre-wrap break-all">{extractProcText(procEntries?.fd) || '(empty)'}</pre>
+                        <div className="rounded-2xl border border-theme-border p-4 md:col-span-2">
+                          <div className="text-xs text-theme-text-muted">/proc/fd 摘要</div>
+                          <pre className="mt-2 max-h-72 overflow-auto text-xs text-theme-text-secondary font-mono whitespace-pre-wrap break-all">{extractProcText(procEntries?.fd) || '(empty)'}</pre>
                         </div>
                       </div>
                     )}
@@ -719,54 +719,54 @@ export const EnvProcessMonitorDetailPage: React.FC<{ projectId: string; initialS
 
         {syncPreviewOpen && (
           <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-6" onClick={() => setSyncPreviewOpen(false)}>
- <div className="w-[min(920px,95vw)] max-h-[85vh] rounded-3xl bg-slate-50 border border-slate-200 flex flex-col" onClick={(event) => event.stopPropagation()}>
-              <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
+ <div className="w-[min(920px,95vw)] max-h-[85vh] rounded-3xl bg-theme-bg-app border border-theme-border flex flex-col" onClick={(event) => event.stopPropagation()}>
+              <div className="flex items-center justify-between px-6 py-4 border-b border-theme-border">
                 <div>
-                  <h3 className="text-xl font-black text-slate-800">同步预览确认</h3>
-                  <p className="text-xs text-slate-500">请确认统计信息和目标地址后再执行同步</p>
+                  <h3 className="text-xl font-black text-theme-text-primary">同步预览确认</h3>
+                  <p className="text-xs text-theme-text-muted">请确认统计信息和目标地址后再执行同步</p>
                 </div>
-                <button className="p-2 rounded-xl hover:bg-slate-100" onClick={() => setSyncPreviewOpen(false)}><X size={18} /></button>
+                <button className="p-2 rounded-xl hover:bg-theme-elevated" onClick={() => setSyncPreviewOpen(false)}><X size={18} /></button>
               </div>
 
               <div className="flex-1 overflow-auto p-6 space-y-4">
                 {syncPreviewLoading ? (
-                  <div className="py-16 text-center"><Loader2 className="animate-spin mx-auto text-blue-600" /></div>
+                  <div className="py-16 text-center"><Loader2 className="animate-spin mx-auto text-blue-400" /></div>
                 ) : syncPreviewError ? (
-                  <div className="rounded-2xl border border-rose-200 bg-rose-50 text-rose-700 px-4 py-3 text-sm">{syncPreviewError}</div>
+                  <div className="rounded-2xl border border-rose-500/20 bg-rose-500/15 text-rose-400 px-4 py-3 text-sm">{syncPreviewError}</div>
                 ) : syncPreviewData ? (
                   <>
                     <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                      <div className="rounded-2xl border border-slate-200 p-4"><div className="text-xs text-slate-500">候选总数</div><div className="mt-1 text-xl font-black text-slate-800">{syncPreviewData.summary?.total_candidates ?? 0}</div></div>
-                      <div className="rounded-2xl border border-slate-200 p-4"><div className="text-xs text-slate-500">文件数</div><div className="mt-1 text-xl font-black text-slate-800">{syncPreviewData.summary?.total_files ?? 0}</div></div>
-                      <div className="rounded-2xl border border-slate-200 p-4"><div className="text-xs text-slate-500">符号链接</div><div className="mt-1 text-xl font-black text-slate-800">{syncPreviewData.summary?.total_symlinks ?? 0}</div></div>
-                      <div className="rounded-2xl border border-slate-200 p-4"><div className="text-xs text-slate-500">预计总大小</div><div className="mt-1 text-xl font-black text-slate-800">{formatBytes(syncPreviewData.summary?.estimated_total_bytes)}</div></div>
-                      <div className="rounded-2xl border border-slate-200 p-4"><div className="text-xs text-slate-500">失败项</div><div className="mt-1 text-xl font-black text-rose-600">{syncPreviewData.summary?.failed_count ?? 0}</div></div>
-                      <div className="rounded-2xl border border-slate-200 p-4"><div className="text-xs text-slate-500">跳过项</div><div className="mt-1 text-xl font-black text-amber-600">{syncPreviewData.summary?.skipped_count ?? 0}</div></div>
+                      <div className="rounded-2xl border border-theme-border p-4"><div className="text-xs text-theme-text-muted">候选总数</div><div className="mt-1 text-xl font-black text-theme-text-primary">{syncPreviewData.summary?.total_candidates ?? 0}</div></div>
+                      <div className="rounded-2xl border border-theme-border p-4"><div className="text-xs text-theme-text-muted">文件数</div><div className="mt-1 text-xl font-black text-theme-text-primary">{syncPreviewData.summary?.total_files ?? 0}</div></div>
+                      <div className="rounded-2xl border border-theme-border p-4"><div className="text-xs text-theme-text-muted">符号链接</div><div className="mt-1 text-xl font-black text-theme-text-primary">{syncPreviewData.summary?.total_symlinks ?? 0}</div></div>
+                      <div className="rounded-2xl border border-theme-border p-4"><div className="text-xs text-theme-text-muted">预计总大小</div><div className="mt-1 text-xl font-black text-theme-text-primary">{formatBytes(syncPreviewData.summary?.estimated_total_bytes)}</div></div>
+                      <div className="rounded-2xl border border-theme-border p-4"><div className="text-xs text-theme-text-muted">失败项</div><div className="mt-1 text-xl font-black text-rose-400">{syncPreviewData.summary?.failed_count ?? 0}</div></div>
+                      <div className="rounded-2xl border border-theme-border p-4"><div className="text-xs text-theme-text-muted">跳过项</div><div className="mt-1 text-xl font-black text-amber-400">{syncPreviewData.summary?.skipped_count ?? 0}</div></div>
                     </div>
 
-                    <div className="rounded-2xl border border-slate-200 p-4">
-                      <div className="text-xs uppercase tracking-wider text-slate-500">目标地址</div>
-                      <div className="mt-2 text-sm text-slate-700 break-all font-mono">{syncPreviewData.target?.remote_root_url || '-'}</div>
-                      <div className="mt-1 text-sm text-slate-700 break-all font-mono">{syncPreviewData.target?.remote_path_prefix || '-'}</div>
+                    <div className="rounded-2xl border border-theme-border p-4">
+                      <div className="text-xs uppercase tracking-wider text-theme-text-muted">目标地址</div>
+                      <div className="mt-2 text-sm text-theme-text-secondary break-all font-mono">{syncPreviewData.target?.remote_root_url || '-'}</div>
+                      <div className="mt-1 text-sm text-theme-text-secondary break-all font-mono">{syncPreviewData.target?.remote_path_prefix || '-'}</div>
                     </div>
 
-                    <div className="rounded-2xl border border-slate-200 p-4">
-                      <div className="text-xs uppercase tracking-wider text-slate-500">示例目标路径</div>
-                      <pre className="mt-2 max-h-40 overflow-auto text-xs text-slate-700 font-mono whitespace-pre-wrap break-all">{JSON.stringify(syncPreviewData.target?.sample_remote_paths || [], null, 2)}</pre>
+                    <div className="rounded-2xl border border-theme-border p-4">
+                      <div className="text-xs uppercase tracking-wider text-theme-text-muted">示例目标路径</div>
+                      <pre className="mt-2 max-h-40 overflow-auto text-xs text-theme-text-secondary font-mono whitespace-pre-wrap break-all">{JSON.stringify(syncPreviewData.target?.sample_remote_paths || [], null, 2)}</pre>
                     </div>
 
-                    <div className="rounded-2xl border border-slate-200 p-4">
-                      <div className="text-xs uppercase tracking-wider text-slate-500">问题摘要</div>
-                      <pre className="mt-2 max-h-40 overflow-auto text-xs text-slate-700 font-mono whitespace-pre-wrap break-all">{JSON.stringify((syncPreviewData.issues || []).slice(0, 50), null, 2)}</pre>
+                    <div className="rounded-2xl border border-theme-border p-4">
+                      <div className="text-xs uppercase tracking-wider text-theme-text-muted">问题摘要</div>
+                      <pre className="mt-2 max-h-40 overflow-auto text-xs text-theme-text-secondary font-mono whitespace-pre-wrap break-all">{JSON.stringify((syncPreviewData.issues || []).slice(0, 50), null, 2)}</pre>
                     </div>
                   </>
                 ) : (
-                  <div className="py-16 text-center text-slate-400">暂无预览数据</div>
+                  <div className="py-16 text-center text-theme-text-muted">暂无预览数据</div>
                 )}
               </div>
 
-              <div className="px-6 py-4 border-t border-slate-100 flex items-center justify-end gap-3">
-                <button className="px-4 py-2 rounded-xl border border-slate-200 text-slate-700" onClick={() => setSyncPreviewOpen(false)}>取消</button>
+              <div className="px-6 py-4 border-t border-theme-border flex items-center justify-end gap-3">
+                <button className="px-4 py-2 rounded-xl border border-theme-border text-theme-text-secondary" onClick={() => setSyncPreviewOpen(false)}>取消</button>
                 <button
                   className="px-4 py-2 rounded-xl bg-blue-600 text-white disabled:opacity-50"
                   disabled={syncing || !syncPreviewPayload || (syncPreviewData?.summary?.total_candidates || 0) <= 0}

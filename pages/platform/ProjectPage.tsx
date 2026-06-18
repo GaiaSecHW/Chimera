@@ -211,12 +211,12 @@ export const ProjectPage: React.FC = () => {
               <FolderOpen size={28} />
             </div>
             <div>
-              <h2 className="text-3xl font-black text-slate-800 tracking-tight">项目权限管理</h2>
+              <h2 className="text-3xl font-black text-theme-text-primary tracking-tight">项目权限管理</h2>
             </div>
           </div>
         </div>
         <div className="flex gap-4">
- <button onClick={() => void refreshPageData()} className="p-4 bg-slate-50 backdrop-blur border border-slate-200 text-slate-500 rounded-2xl hover:bg-slate-50 transition-all active:scale-95">
+ <button onClick={() => void refreshPageData()} className="p-4 bg-theme-bg-app backdrop-blur border border-theme-border text-theme-text-muted rounded-2xl hover:bg-theme-bg-app transition-all active:scale-95">
             <RefreshCw size={20} className={loading ? 'animate-spin' : ''} />
           </button>
           {canManageOrgProjects && (
@@ -242,46 +242,46 @@ export const ProjectPage: React.FC = () => {
             <Sparkles size={12} /> Unified Access View
           </p>
         </div>
- <div className="bg-slate-50 backdrop-blur p-8 rounded-[3rem] border border-emerald-100 flex flex-col justify-between">
-          <p className="text-slate-400 text-[10px] font-black uppercase tracking-widest">公开项目</p>
-          <h3 className="text-4xl font-black mt-4 text-green-600">{projectStats.publicCount}</h3>
-          <div className="h-1 bg-slate-100 rounded-full mt-4 overflow-hidden">
+ <div className="bg-theme-bg-app backdrop-blur p-8 rounded-[3rem] border border-emerald-500/20 flex flex-col justify-between">
+          <p className="text-theme-text-muted text-[10px] font-black uppercase tracking-widest">公开项目</p>
+          <h3 className="text-4xl font-black mt-4 text-green-400">{projectStats.publicCount}</h3>
+          <div className="h-1 bg-theme-elevated rounded-full mt-4 overflow-hidden">
             <div className="h-full bg-green-500" style={{ width: `${publicRatio}%` }} />
           </div>
         </div>
- <div className="bg-slate-50 backdrop-blur p-8 rounded-[3rem] border border-amber-100 flex flex-col justify-between">
-          <p className="text-slate-400 text-[10px] font-black uppercase tracking-widest">私有项目</p>
-          <h3 className="text-4xl font-black mt-4 text-amber-600">{projectStats.privateCount}</h3>
-          <div className="h-1 bg-slate-100 rounded-full mt-4 overflow-hidden">
+ <div className="bg-theme-bg-app backdrop-blur p-8 rounded-[3rem] border border-amber-500/20 flex flex-col justify-between">
+          <p className="text-theme-text-muted text-[10px] font-black uppercase tracking-widest">私有项目</p>
+          <h3 className="text-4xl font-black mt-4 text-amber-400">{projectStats.privateCount}</h3>
+          <div className="h-1 bg-theme-elevated rounded-full mt-4 overflow-hidden">
             <div className="h-full bg-amber-500" style={{ width: `${privateRatio}%` }} />
           </div>
         </div>
- <div className="bg-slate-50 backdrop-blur p-8 rounded-[3rem] border border-slate-200 flex items-center gap-8">
-          <div className="w-16 h-16 bg-cyan-50 text-cyan-600 rounded-3xl flex items-center justify-center shrink-0">
+ <div className="bg-theme-bg-app backdrop-blur p-8 rounded-[3rem] border border-theme-border flex items-center gap-8">
+          <div className="w-16 h-16 bg-cyan-500/15 text-cyan-400 rounded-3xl flex items-center justify-center shrink-0">
             <ShieldCheck size={32} />
           </div>
           <div>
-            <h4 className="text-lg font-black text-slate-800">组织绑定视图</h4>
-            <p className="text-sm text-slate-400 mt-1 font-medium">已绑定部门的项目 {projectStats.boundCount} 个，私有项目仅对绑定部门成员可见。</p>
+            <h4 className="text-lg font-black text-theme-text-primary">组织绑定视图</h4>
+            <p className="text-sm text-theme-text-muted mt-1 font-medium">已绑定部门的项目 {projectStats.boundCount} 个，私有项目仅对绑定部门成员可见。</p>
           </div>
         </div>
       </div>
 
       <div className="space-y-4">
         <div className="relative">
-          <Search className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-300" size={20} />
+          <Search className="absolute left-6 top-1/2 -translate-y-1/2 text-theme-text-faint" size={20} />
           <input
             type="text"
             placeholder="搜索项目名称、部门或描述..."
- className="w-full pl-16 pr-8 py-5 bg-slate-50 backdrop-blur border border-slate-200 rounded-[2.5rem] text-sm outline-none focus:ring-4 ring-blue-500/5 transition-all font-medium"
+ className="w-full pl-16 pr-8 py-5 bg-theme-bg-app backdrop-blur border border-theme-border rounded-[2.5rem] text-sm outline-none focus:ring-4 ring-blue-500/5 transition-all font-medium"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
 
- <div className="bg-slate-50 backdrop-blur border border-slate-200 rounded-[3rem] overflow-hidden">
+ <div className="bg-theme-bg-app backdrop-blur border border-theme-border rounded-[3rem] overflow-hidden">
           <table className="w-full text-left">
-            <thead className="bg-slate-100/50 border-b border-slate-100 font-black text-[10px] text-slate-400 uppercase tracking-widest">
+            <thead className="bg-slate-100/50 border-b border-theme-border font-black text-[10px] text-theme-text-muted uppercase tracking-widest">
               <tr>
                 <th className="px-8 py-6">项目信息</th>
                 <th className="px-6 py-6">部门范围</th>
@@ -292,21 +292,21 @@ export const ProjectPage: React.FC = () => {
             </thead>
             <tbody className="divide-y divide-slate-50">
               {loading ? (
-                <tr><td colSpan={5} className="py-32 text-center"><Loader2 className="animate-spin mx-auto text-blue-600" size={40} /></td></tr>
+                <tr><td colSpan={5} className="py-32 text-center"><Loader2 className="animate-spin mx-auto text-blue-400" size={40} /></td></tr>
               ) : filteredProjects.length === 0 ? (
-                <tr><td colSpan={5} className="py-32 text-center text-slate-400 font-bold">暂无项目数据</td></tr>
+                <tr><td colSpan={5} className="py-32 text-center text-theme-text-muted font-bold">暂无项目数据</td></tr>
               ) : filteredProjects.map((project) => (
-                <tr key={project.id} className="hover:bg-slate-100 transition-all group">
+                <tr key={project.id} className="hover:bg-theme-elevated transition-all group">
                   <td className="px-8 py-6">
                     <div className="flex items-center gap-4">
-                      <div className={`w-12 h-12 rounded-2xl flex items-center justify-center font-black shadow-inner ${project.is_public ? 'bg-emerald-50 text-emerald-600' : 'bg-blue-50 text-blue-600'}`}>
+                      <div className={`w-12 h-12 rounded-2xl flex items-center justify-center font-black shadow-inner ${project.is_public ? 'bg-emerald-500/15 text-emerald-400' : 'bg-blue-500/15 text-blue-400'}`}>
                         <FolderOpen size={18} />
                       </div>
                       <div>
-                        <p className="text-sm font-black text-slate-800">{project.name}</p>
-                        <p className="text-[10px] text-slate-400 font-mono mt-0.5">{project.description || '无描述'}</p>
+                        <p className="text-sm font-black text-theme-text-primary">{project.name}</p>
+                        <p className="text-[10px] text-theme-text-muted font-mono mt-0.5">{project.description || '无描述'}</p>
                         {project.owner_department_name && (
-                          <p className="mt-2 text-[10px] font-bold text-slate-500 flex items-center gap-1.5">
+                          <p className="mt-2 text-[10px] font-bold text-theme-text-muted flex items-center gap-1.5">
                             <Building2 size={12} />
                             归属部门: {project.owner_department_name}
                           </p>
@@ -318,12 +318,12 @@ export const ProjectPage: React.FC = () => {
                     <div className="flex flex-wrap gap-2">
                       {(project.departments || []).length > 0 ? (
                         (project.departments || []).map((department) => (
-                          <span key={`${project.id}-${department.id}`} className="inline-flex items-center rounded-full border border-blue-100 bg-blue-50 px-3 py-1 text-[10px] font-black text-blue-700">
+                          <span key={`${project.id}-${department.id}`} className="inline-flex items-center rounded-full border border-blue-500/20 bg-blue-500/15 px-3 py-1 text-[10px] font-black text-blue-400">
                             {department.name}
                           </span>
                         ))
                       ) : (
-                        <span className="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-[10px] font-black text-slate-500">
+                        <span className="inline-flex items-center rounded-full border border-theme-border bg-theme-bg-app px-3 py-1 text-[10px] font-black text-theme-text-muted">
                           {project.is_public ? '全员可访问' : '未绑定'}
                         </span>
                       )}
@@ -332,13 +332,13 @@ export const ProjectPage: React.FC = () => {
                   <td className="px-6 py-6 text-center">
                     <span className={`px-4 py-1.5 rounded-full text-[10px] font-black uppercase border transition-all ${
                       project.is_public
-                        ? 'bg-green-50 text-green-600 border-green-100'
-                        : 'bg-amber-50 text-amber-600 border-amber-100'
+                        ? 'bg-green-500/15 text-green-400 border-green-500/20'
+                        : 'bg-amber-500/15 text-amber-400 border-amber-500/20'
                     }`}>
                       {project.is_public ? '公开' : '私有'}
                     </span>
                   </td>
-                  <td className="px-6 py-6 text-xs font-bold text-slate-500">
+                  <td className="px-6 py-6 text-xs font-bold text-theme-text-muted">
                     {project.created_at?.split('T')[0] || '2024-01-01'}
                   </td>
                   <td className="px-8 py-6 text-right">
@@ -347,21 +347,21 @@ export const ProjectPage: React.FC = () => {
                         <>
                           <button
                             onClick={() => openEditModal(project)}
- className="p-3 bg-slate-50 border border-slate-200 text-slate-400 hover:text-blue-600 rounded-xl transition-all"
+ className="p-3 bg-theme-bg-app border border-theme-border text-theme-text-muted hover:text-blue-400 rounded-xl transition-all"
                             title="编辑项目"
                           >
                             <Edit3 size={16} />
                           </button>
                           <button
                             onClick={() => void handleDelete(project)}
- className="p-3 bg-red-50 text-red-400 border border-transparent hover:border-red-100 rounded-xl transition-all"
+ className="p-3 bg-red-500/15 text-red-400 border border-transparent hover:border-red-500/20 rounded-xl transition-all"
                             title="删除项目"
                           >
                             <Trash2 size={16} />
                           </button>
                         </>
                       ) : (
-                        <span className="text-[10px] text-slate-300 font-medium px-3 py-1.5 bg-slate-50 rounded-full">只读</span>
+                        <span className="text-[10px] text-theme-text-faint font-medium px-3 py-1.5 bg-theme-bg-app rounded-full">只读</span>
                       )}
                     </div>
                   </td>
@@ -374,44 +374,44 @@ export const ProjectPage: React.FC = () => {
 
       {isCreateModalOpen && (
         <div className="fixed inset-0 z-[150] flex items-center justify-center p-6 bg-slate-900/60 backdrop-blur-md animate-in fade-in">
- <div className="bg-slate-50 w-full max-w-md rounded-[3rem] overflow-hidden animate-in zoom-in-95">
+ <div className="bg-theme-bg-app w-full max-w-md rounded-[3rem] overflow-hidden animate-in zoom-in-95">
             <div className="p-10 pb-4 border-b border-slate-50 flex items-center justify-between">
               <div className="flex items-center gap-4">
  <div className="w-12 h-12 bg-blue-600 rounded-2xl flex items-center justify-center text-white">
                   <Plus size={24} />
                 </div>
                 <div>
-                  <h3 className="text-xl font-black text-slate-800">创建新项目</h3>
-                  <p className="text-[10px] text-slate-400 font-bold uppercase mt-0.5">Create Project</p>
+                  <h3 className="text-xl font-black text-theme-text-primary">创建新项目</h3>
+                  <p className="text-[10px] text-theme-text-muted font-bold uppercase mt-0.5">Create Project</p>
                 </div>
               </div>
-              <button onClick={() => setIsCreateModalOpen(false)} className="p-3 text-slate-300 hover:text-slate-600">
+              <button onClick={() => setIsCreateModalOpen(false)} className="p-3 text-theme-text-faint hover:text-theme-text-secondary">
                 <X size={28} />
               </button>
             </div>
             <form onSubmit={handleCreate} className="p-10 space-y-6">
               <div className="space-y-1.5">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">项目名称 *</label>
+                <label className="text-[10px] font-black text-theme-text-muted uppercase tracking-widest ml-1">项目名称 *</label>
                 <input
                   required
                   placeholder="Project Name"
-                  className="w-full px-6 py-4 bg-slate-50 rounded-2xl border-none outline-none focus:ring-4 ring-blue-500/10 font-bold text-slate-800"
+                  className="w-full px-6 py-4 bg-theme-bg-app rounded-2xl border-none outline-none focus:ring-4 ring-blue-500/10 font-bold text-theme-text-primary"
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                 />
               </div>
               <div className="space-y-1.5">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">项目描述</label>
+                <label className="text-[10px] font-black text-theme-text-muted uppercase tracking-widest ml-1">项目描述</label>
                 <textarea
                   placeholder="Description"
                   rows={3}
-                  className="w-full px-6 py-4 bg-slate-50 rounded-2xl border-none outline-none focus:ring-4 ring-blue-500/10 font-bold text-slate-800 resize-none"
+                  className="w-full px-6 py-4 bg-theme-bg-app rounded-2xl border-none outline-none focus:ring-4 ring-blue-500/10 font-bold text-theme-text-primary resize-none"
                   value={formData.description}
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                 />
               </div>
               <div className="space-y-1.5">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">项目类型 *</label>
+                <label className="text-[10px] font-black text-theme-text-muted uppercase tracking-widest ml-1">项目类型 *</label>
                 <div className="flex gap-4">
                   <button
                     type="button"
@@ -424,7 +424,7 @@ export const ProjectPage: React.FC = () => {
                     className={`flex-1 py-4 rounded-2xl font-black transition-all ${
                       formData.is_public
  ? 'bg-green-600 text-white shadow-green-500/20'
-                        : 'bg-slate-100 text-slate-400'
+                        : 'bg-theme-elevated text-theme-text-muted'
                     } ${isOrdinaryAdmin ? 'cursor-not-allowed opacity-50' : ''}`}
                   >
                     <Globe size={20} className="mx-auto mb-2" />
@@ -436,7 +436,7 @@ export const ProjectPage: React.FC = () => {
                     className={`flex-1 py-4 rounded-2xl font-black transition-all ${
                       !formData.is_public
  ? 'bg-amber-600 text-white shadow-amber-500/20'
-                        : 'bg-slate-100 text-slate-400'
+                        : 'bg-theme-elevated text-theme-text-muted'
                     }`}
                   >
                     <Lock size={20} className="mx-auto mb-2" />
@@ -446,8 +446,8 @@ export const ProjectPage: React.FC = () => {
               </div>
               {!formData.is_public && (
                 <div className="space-y-1.5">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">绑定部门（多选）</label>
-                  <div className="max-h-40 overflow-y-auto bg-slate-50 rounded-2xl p-4 space-y-2">
+                  <label className="text-[10px] font-black text-theme-text-muted uppercase tracking-widest ml-1">绑定部门（多选）</label>
+                  <div className="max-h-40 overflow-y-auto bg-theme-bg-app rounded-2xl p-4 space-y-2">
                     {selectableDepartments.map((dept) => (
                       <label key={dept.id} className="flex items-center gap-3 cursor-pointer">
                         <input
@@ -462,14 +462,14 @@ export const ProjectPage: React.FC = () => {
                           }}
                           className="w-4 h-4 rounded"
                         />
-                        <span className="text-sm font-bold text-slate-700">{dept.name}</span>
+                        <span className="text-sm font-bold text-theme-text-secondary">{dept.name}</span>
                       </label>
                     ))}
                   </div>
                 </div>
               )}
               {isOrdinaryAdmin && (
-                <p className="text-xs text-slate-400 font-semibold">
+                <p className="text-xs text-theme-text-muted font-semibold">
                   普通管理员只能选择所属部门及下级部门，公开项目仅支持超级管理员创建。
                 </p>
               )}
@@ -484,44 +484,44 @@ export const ProjectPage: React.FC = () => {
 
       {isEditModalOpen && selectedProject && (
         <div className="fixed inset-0 z-[150] flex items-center justify-center p-6 bg-slate-900/60 backdrop-blur-md animate-in fade-in">
- <div className="bg-slate-50 w-full max-w-md rounded-[3rem] overflow-hidden animate-in zoom-in-95">
+ <div className="bg-theme-bg-app w-full max-w-md rounded-[3rem] overflow-hidden animate-in zoom-in-95">
             <div className="p-10 pb-4 border-b border-slate-50 flex items-center justify-between">
               <div className="flex items-center gap-4">
                 <div className="w-12 h-12 bg-amber-600 rounded-2xl flex items-center justify-center text-white">
                   <Edit3 size={24} />
                 </div>
                 <div>
-                  <h3 className="text-xl font-black text-slate-800 tracking-tight">编辑项目: {selectedProject.name}</h3>
-                  <p className="text-[10px] text-slate-400 font-bold uppercase mt-0.5">Edit Project</p>
+                  <h3 className="text-xl font-black text-theme-text-primary tracking-tight">编辑项目: {selectedProject.name}</h3>
+                  <p className="text-[10px] text-theme-text-muted font-bold uppercase mt-0.5">Edit Project</p>
                 </div>
               </div>
-              <button onClick={() => setIsEditModalOpen(false)} className="p-3 text-slate-300 hover:text-slate-600">
+              <button onClick={() => setIsEditModalOpen(false)} className="p-3 text-theme-text-faint hover:text-theme-text-secondary">
                 <X size={28} />
               </button>
             </div>
             <form onSubmit={handleEdit} className="p-10 space-y-6">
               <div className="space-y-1.5">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">项目名称 *</label>
+                <label className="text-[10px] font-black text-theme-text-muted uppercase tracking-widest ml-1">项目名称 *</label>
                 <input
                   required
                   placeholder="Project Name"
-                  className="w-full px-6 py-4 bg-slate-50 rounded-2xl border-none outline-none focus:ring-4 ring-amber-500/10 font-bold text-slate-800"
+                  className="w-full px-6 py-4 bg-theme-bg-app rounded-2xl border-none outline-none focus:ring-4 ring-amber-500/10 font-bold text-theme-text-primary"
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                 />
               </div>
               <div className="space-y-1.5">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">项目描述</label>
+                <label className="text-[10px] font-black text-theme-text-muted uppercase tracking-widest ml-1">项目描述</label>
                 <textarea
                   placeholder="Description"
                   rows={3}
-                  className="w-full px-6 py-4 bg-slate-50 rounded-2xl border-none outline-none focus:ring-4 ring-amber-500/10 font-bold text-slate-800 resize-none"
+                  className="w-full px-6 py-4 bg-theme-bg-app rounded-2xl border-none outline-none focus:ring-4 ring-amber-500/10 font-bold text-theme-text-primary resize-none"
                   value={formData.description}
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                 />
               </div>
               <div className="space-y-1.5">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">项目类型 *</label>
+                <label className="text-[10px] font-black text-theme-text-muted uppercase tracking-widest ml-1">项目类型 *</label>
                 <div className="flex gap-4">
                   <button
                     type="button"
@@ -534,7 +534,7 @@ export const ProjectPage: React.FC = () => {
                     className={`flex-1 py-4 rounded-2xl font-black transition-all ${
                       formData.is_public
  ? 'bg-green-600 text-white shadow-green-500/20'
-                        : 'bg-slate-100 text-slate-400'
+                        : 'bg-theme-elevated text-theme-text-muted'
                     } ${isOrdinaryAdmin ? 'cursor-not-allowed opacity-50' : ''}`}
                   >
                     <Globe size={20} className="mx-auto mb-2" />
@@ -546,7 +546,7 @@ export const ProjectPage: React.FC = () => {
                     className={`flex-1 py-4 rounded-2xl font-black transition-all ${
                       !formData.is_public
  ? 'bg-amber-600 text-white shadow-amber-500/20'
-                        : 'bg-slate-100 text-slate-400'
+                        : 'bg-theme-elevated text-theme-text-muted'
                     }`}
                   >
                     <Lock size={20} className="mx-auto mb-2" />
@@ -555,7 +555,7 @@ export const ProjectPage: React.FC = () => {
                 </div>
               </div>
               {isOrdinaryAdmin && (
-                <p className="text-xs text-slate-400 font-semibold">
+                <p className="text-xs text-theme-text-muted font-semibold">
                   普通管理员不能将项目调整为公开项目，只能维护本部门树内已绑定的组织项目记录。
                 </p>
               )}

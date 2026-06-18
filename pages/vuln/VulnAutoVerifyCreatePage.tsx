@@ -74,9 +74,9 @@ export const VulnAutoVerifyCreatePage: React.FC<VulnAutoVerifyCreatePageProps> =
 
   const canCreate = useMemo(() => {
     if (!context || submitting) return false;
-    if (!taskName.trim() || !threatModel.trim()) return false;
-    return Boolean(context.path_status?.source_root?.ok && context.path_status?.binary_root?.ok);
-  }, [context, submitting, taskName, threatModel]);
+    if (!taskName.trim()) return false;
+    return Boolean(context.path_status?.source_root?.ok);
+  }, [context, submitting, taskName]);
 
   const loadContext = async (targetCaseId = caseId) => {
     if (!targetCaseId.trim()) {
@@ -420,8 +420,8 @@ export const VulnAutoVerifyCreatePage: React.FC<VulnAutoVerifyCreatePageProps> =
                 </div>
                 <ul className="space-y-1">
                   <li>源码路径：{context?.path_status?.source_root?.ok ? '已解析' : '缺失'}</li>
-                  <li>二进制路径：{context?.path_status?.binary_root?.ok ? '已解析' : '缺失'}</li>
-                  <li>威胁模型：{threatModel.trim() ?`${threatModel.length} 字符` : '未填写'}</li>
+                  <li>二进制路径：{context?.path_status?.binary_root?.ok ? '已解析' : '未提供（可选）'}</li>
+                  <li>威胁模型：{threatModel.trim() ? `${threatModel.length} 字符` : '未填写（将使用内置威胁模型）'}</li>
                 </ul>
               </div>
 

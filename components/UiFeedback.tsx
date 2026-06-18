@@ -47,20 +47,20 @@ interface PromptOptions {
 
 const noticeStyles: Record<NoticeLevel, { box: string; icon: React.ReactNode }> = {
   info: {
-    box: 'bg-blue-50 border-blue-200 text-blue-700 shadow-panel',
-    icon: <Info size={16} className="text-blue-600" />,
+    box: 'bg-blue-500/15 border-blue-500/20 text-blue-400 shadow-panel',
+    icon: <Info size={16} className="text-blue-400" />,
   },
   success: {
-    box: 'bg-emerald-50 border-emerald-200 text-emerald-700 shadow-panel',
-    icon: <CheckCircle2 size={16} className="text-emerald-600" />,
+    box: 'bg-emerald-500/15 border-emerald-500/20 text-emerald-400 shadow-panel',
+    icon: <CheckCircle2 size={16} className="text-emerald-400" />,
   },
   warning: {
-    box: 'bg-amber-50 border-amber-200 text-amber-700 shadow-panel',
-    icon: <AlertTriangle size={16} className="text-amber-600" />,
+    box: 'bg-amber-500/15 border-amber-500/20 text-amber-400 shadow-panel',
+    icon: <AlertTriangle size={16} className="text-amber-400" />,
   },
   error: {
-    box: 'bg-rose-50 border-rose-200 text-rose-700 shadow-panel',
-    icon: <AlertTriangle size={16} className="text-rose-600" />,
+    box: 'bg-rose-500/15 border-rose-500/20 text-rose-400 shadow-panel',
+    icon: <AlertTriangle size={16} className="text-rose-400" />,
   },
 };
 

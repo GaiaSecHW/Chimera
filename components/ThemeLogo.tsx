@@ -36,7 +36,7 @@ export const ThemeLogo: React.FC<ThemeLogoProps> = ({
 }) => {
   const { theme, themeDefinition } = useTheme();
   const sizing = SIZE_MAP[size];
-  const wordmarkClass = forceDarkWordmark || theme === 'chimera'
+  const wordmarkClass = forceDarkWordmark
     ? 'text-theme-text-primary'
     : 'text-theme-text-inverse';
 

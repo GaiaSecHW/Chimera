@@ -199,15 +199,15 @@ const getAgentTypeLabel = (type: string): string => {
 const getAgentTypeClass = (type: string): string => {
   switch (String(type || '').toUpperCase()) {
     case 'NODE_AGENT':
-      return 'border-blue-200 bg-blue-50 text-blue-700';
+      return 'border-blue-500/20 bg-blue-500/15 text-blue-400';
     case 'JAVA_AGENT':
-      return 'border-emerald-200 bg-emerald-50 text-emerald-700';
+      return 'border-emerald-500/20 bg-emerald-500/15 text-emerald-400';
     case 'GAIASEC_AGENT':
-      return 'border-amber-200 bg-amber-50 text-amber-700';
+      return 'border-amber-500/20 bg-amber-500/15 text-amber-400';
     case 'PACKAGE':
-      return 'border-violet-200 bg-violet-50 text-violet-700';
+      return 'border-violet-500/20 bg-violet-500/15 text-violet-400';
     default:
-      return 'border-slate-200 bg-slate-50 text-slate-600';
+      return 'border-theme-border bg-theme-bg-app text-theme-text-secondary';
   }
 };
 
@@ -313,15 +313,15 @@ const formatTime = (value?: string | null): string => {
 };
 
 const statusMeta = (agent: Agent) => {
-  if (isOnline(agent)) return { label: '在线', icon: CheckCircle2, cls: 'border-emerald-200 bg-emerald-50 text-emerald-700' };
+  if (isOnline(agent)) return { label: '在线', icon: CheckCircle2, cls: 'border-emerald-500/20 bg-emerald-500/15 text-emerald-400' };
   const status = normalizeStatus(agent.status);
   if (['offline', 'error', 'timeout'].includes(status) || agent.is_offline) {
-    return { label: '离线', icon: XCircle, cls: 'border-rose-200 bg-rose-50 text-rose-700' };
+    return { label: '离线', icon: XCircle, cls: 'border-rose-500/20 bg-rose-500/15 text-rose-400' };
   }
   if (['connecting', 'pending'].includes(status)) {
-    return { label: '连接中', icon: Clock3, cls: 'border-amber-200 bg-amber-50 text-amber-700' };
+    return { label: '连接中', icon: Clock3, cls: 'border-amber-500/20 bg-amber-500/15 text-amber-400' };
   }
-  return { label: agent.status || '未知', icon: Clock3, cls: 'border-slate-200 bg-slate-50 text-slate-600' };
+  return { label: agent.status || '未知', icon: Clock3, cls: 'border-theme-border bg-theme-bg-app text-theme-text-secondary' };
 };
 
 const getStatusDotClass = (agent: Agent): string => {
@@ -332,18 +332,18 @@ const getStatusDotClass = (agent: Agent): string => {
   return 'bg-slate-400';
 };
 
-const StatCard: React.FC<{ label: string; value: React.ReactNode; hint: string; tone?: string }> = ({ label, value, hint, tone = 'text-slate-900' }) => (
-  <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-    <div className="text-xs font-black uppercase tracking-[0.18em] text-slate-500">{label}</div>
+const StatCard: React.FC<{ label: string; value: React.ReactNode; hint: string; tone?: string }> = ({ label, value, hint, tone = 'text-theme-text-primary' }) => (
+  <div className="rounded-2xl border border-theme-border bg-theme-surface p-5 shadow-sm">
+    <div className="text-xs font-black uppercase tracking-[0.18em] text-theme-text-muted">{label}</div>
     <div className={`mt-3 text-3xl font-black ${tone}`}>{value}</div>
-    <div className="mt-2 text-sm text-slate-500">{hint}</div>
+    <div className="mt-2 text-sm text-theme-text-muted">{hint}</div>
   </div>
 );
 
 const DetailItem: React.FC<{ label: string; children: React.ReactNode }> = ({ label, children }) => (
-  <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
-    <div className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-500">{label}</div>
-    <div className="mt-2 break-words text-sm font-semibold text-slate-800">{children || '-'}</div>
+  <div className="rounded-xl border border-theme-border bg-theme-bg-app px-4 py-3">
+    <div className="text-[11px] font-black uppercase tracking-[0.16em] text-theme-text-muted">{label}</div>
+    <div className="mt-2 break-words text-sm font-semibold text-theme-text-primary">{children || '-'}</div>
   </div>
 );
 
@@ -358,7 +358,7 @@ const AgentProgressCell: React.FC<{ agent: Agent }> = ({ agent }) => {
     { label: '验证', completed: aiVerification?.completed, total: aiVerification?.total, color: 'bg-amber-500' },
   ].filter((item) => Number(item.total || 0) > 0);
 
-  if (items.length === 0) return <span className="text-slate-400">-</span>;
+  if (items.length === 0) return <span className="text-theme-text-muted">-</span>;
 
   return (
     <div className="min-w-[150px] space-y-1.5">
@@ -366,11 +366,11 @@ const AgentProgressCell: React.FC<{ agent: Agent }> = ({ agent }) => {
         const percent = getProgressPercent(item.completed, item.total);
         return (
           <div key={item.label}>
-            <div className="mb-0.5 flex items-center justify-between text-[11px] text-slate-500">
+            <div className="mb-0.5 flex items-center justify-between text-[11px] text-theme-text-muted">
               <span>{item.label}</span>
               <span>{Number(item.completed || 0)} / {Number(item.total || 0)}</span>
             </div>
-            <div className="h-1 overflow-hidden rounded-full bg-slate-200">
+            <div className="h-1 overflow-hidden rounded-full bg-theme-elevated">
               <div className={`h-full rounded-full ${item.color}`} style={{ width: `${percent}%` }} />
             </div>
           </div>
@@ -388,9 +388,9 @@ const AgentTreeTable: React.FC<{
   onOpenDetail: (agent: Agent) => void;
   onOpenArchitecture: (agent: Agent) => void;
 }> = ({ rows, childCountByParent, expandedKeys, onToggleExpand, onOpenDetail, onOpenArchitecture }) => (
-  <div className="overflow-x-auto bg-white">
+  <div className="overflow-x-auto bg-theme-surface">
     <table className="min-w-full text-left text-sm">
-      <thead className="border-b border-slate-200 bg-slate-50/70 text-xs font-semibold text-slate-500">
+      <thead className="border-b border-theme-border bg-slate-50/70 text-xs font-semibold text-theme-text-muted">
         <tr>
           <th className="px-5 py-3">Agent</th>
           <th className="px-4 py-3">状态</th>
@@ -403,7 +403,7 @@ const AgentTreeTable: React.FC<{
           <th className="px-5 py-3 text-right">操作</th>
         </tr>
       </thead>
-      <tbody className="divide-y divide-slate-100">
+      <tbody className="divide-y divide-theme-border">
         {rows.map((row) => {
           const agent = row.agent;
           const meta = statusMeta(agent);
@@ -427,7 +427,7 @@ const AgentTreeTable: React.FC<{
                         if (agentKey) onToggleExpand(agentKey);
                       }}
                       disabled={!agentKey}
-                      className="mt-0.5 inline-flex h-5 w-5 shrink-0 items-center justify-center rounded text-slate-400 transition hover:bg-slate-100 hover:text-slate-700 disabled:cursor-not-allowed disabled:opacity-40"
+                      className="mt-0.5 inline-flex h-5 w-5 shrink-0 items-center justify-center rounded text-theme-text-muted transition hover:bg-theme-elevated hover:text-theme-text-secondary disabled:cursor-not-allowed disabled:opacity-40"
                       aria-label={isExpanded ? '收起子 Agent' : '展开子 Agent'}
                     >
                       {isExpanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
@@ -438,47 +438,47 @@ const AgentTreeTable: React.FC<{
                   <div className="min-w-0">
                     <div className="flex min-w-0 items-center gap-2">
                       <button type="button" onClick={() => onOpenDetail(agent)} className="min-w-0 text-left">
-                        <div className="truncate font-semibold text-slate-900 hover:text-cyan-700">{getAgentName(agent)}</div>
+                        <div className="truncate font-semibold text-theme-text-primary hover:text-cyan-400">{getAgentName(agent)}</div>
                       </button>
-                      {row.depth > 0 ? <span className="shrink-0 text-xs text-slate-400">子节点</span> : null}
-                      {childrenCount > 0 ? <span className="shrink-0 text-xs text-slate-400">{childrenCount} 子节点</span> : null}
+                      {row.depth > 0 ? <span className="shrink-0 text-xs text-theme-text-muted">子节点</span> : null}
+                      {childrenCount > 0 ? <span className="shrink-0 text-xs text-theme-text-muted">{childrenCount} 子节点</span> : null}
                     </div>
-                    <div className="mt-1 break-all font-mono text-[11px] text-slate-400">{agentKey || '-'}</div>
-                    {row.depth > 0 ? <div className="mt-0.5 break-all font-mono text-[11px] text-slate-400">父：{getAgentParentKey(agent)}</div> : null}
+                    <div className="mt-1 break-all font-mono text-[11px] text-theme-text-muted">{agentKey || '-'}</div>
+                    {row.depth > 0 ? <div className="mt-0.5 break-all font-mono text-[11px] text-theme-text-muted">父：{getAgentParentKey(agent)}</div> : null}
                   </div>
                 </div>
               </td>
               <td className="px-4 py-3.5">
-                <span className="inline-flex items-center gap-2 whitespace-nowrap text-sm font-medium text-slate-700">
+                <span className="inline-flex items-center gap-2 whitespace-nowrap text-sm font-medium text-theme-text-secondary">
                   <span className={`h-2 w-2 rounded-full ${getStatusDotClass(agent)}`} />
                   {meta.label}
                 </span>
               </td>
-              <td className="px-4 py-3.5 text-sm text-slate-600">{getAgentTypeLabel(type)}</td>
+              <td className="px-4 py-3.5 text-sm text-theme-text-secondary">{getAgentTypeLabel(type)}</td>
               <td className="px-4 py-3.5">
                 {ips.length ? (
-                  <div className="max-w-[240px] text-xs leading-5 text-slate-600">
+                  <div className="max-w-[240px] text-xs leading-5 text-theme-text-secondary">
                     <span className="font-mono">{ips.slice(0, 2).join(', ')}</span>
-                    {ips.length > 2 ? <span className="ml-1 text-slate-400">+{ips.length - 2}</span> : null}
+                    {ips.length > 2 ? <span className="ml-1 text-theme-text-muted">+{ips.length - 2}</span> : null}
                   </div>
-                ) : <span className="text-slate-400">-</span>}
+                ) : <span className="text-theme-text-muted">-</span>}
               </td>
-              <td className="px-4 py-3.5 font-mono text-xs text-slate-500">{getAgentVersion(agent) || '-'}</td>
-              <td className="whitespace-nowrap px-4 py-3.5 text-xs text-slate-500">{formatTime(agent.last_seen)}</td>
+              <td className="px-4 py-3.5 font-mono text-xs text-theme-text-muted">{getAgentVersion(agent) || '-'}</td>
+              <td className="whitespace-nowrap px-4 py-3.5 text-xs text-theme-text-muted">{formatTime(agent.last_seen)}</td>
               <td className="px-4 py-3.5"><AgentProgressCell agent={agent} /></td>
-              <td className="max-w-md px-4 py-3.5 text-xs text-slate-500">{agent.status_reason || '-'}</td>
+              <td className="max-w-md px-4 py-3.5 text-xs text-theme-text-muted">{agent.status_reason || '-'}</td>
               <td className="px-5 py-3.5 text-right">
                 <div className="flex justify-end gap-3">
                   {isJavaAgent(agent) ? (
                     <button
                       type="button"
                       onClick={() => onOpenArchitecture(agent)}
-                      className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-700 transition hover:text-emerald-900"
+                      className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-400 transition hover:text-emerald-300"
                     >
                       <GitBranch size={12} />
                       架构
                     </button>
-                  ) : <span className="text-xs text-slate-400">-</span>}
+                  ) : <span className="text-xs text-theme-text-muted">-</span>}
                 </div>
               </td>
             </tr>
@@ -498,14 +498,14 @@ const AgentDetailModal: React.FC<{ agent: Agent | null; onClose: () => void }> =
 
   return (
     <div className="fixed inset-0 z-[260] flex items-center justify-center bg-slate-950/60 p-6 backdrop-blur-sm" onClick={onClose}>
-      <div className="w-full max-w-3xl overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl" onClick={(event) => event.stopPropagation()}>
-        <div className="flex items-start justify-between gap-4 border-b border-slate-200 px-6 py-5">
+      <div className="w-full max-w-3xl overflow-hidden rounded-2xl border border-theme-border bg-theme-surface shadow-2xl" onClick={(event) => event.stopPropagation()}>
+        <div className="flex items-start justify-between gap-4 border-b border-theme-border px-6 py-5">
           <div className="min-w-0">
-            <div className="text-xs font-black uppercase tracking-[0.18em] text-cyan-700">Agent Detail</div>
-            <h3 className="mt-2 truncate text-2xl font-black text-slate-900">{getAgentName(agent)}</h3>
-            <div className="mt-2 break-all font-mono text-xs text-slate-500">{getAgentKey(agent) || '-'}</div>
+            <div className="text-xs font-black uppercase tracking-[0.18em] text-cyan-400">Agent Detail</div>
+            <h3 className="mt-2 truncate text-2xl font-black text-theme-text-primary">{getAgentName(agent)}</h3>
+            <div className="mt-2 break-all font-mono text-xs text-theme-text-muted">{getAgentKey(agent) || '-'}</div>
           </div>
-          <button type="button" onClick={onClose} className="rounded-lg p-2 text-slate-400 transition hover:bg-slate-100 hover:text-slate-700">
+          <button type="button" onClick={onClose} className="rounded-lg p-2 text-theme-text-muted transition hover:bg-theme-elevated hover:text-theme-text-secondary">
             <X size={18} />
           </button>
         </div>
@@ -516,12 +516,12 @@ const AgentDetailModal: React.FC<{ agent: Agent | null; onClose: () => void }> =
               {meta.label}
             </span>
             <span className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-bold ${getAgentTypeClass(type)}`}>{getAgentTypeLabel(type)}</span>
-            {getAgentVersion(agent) ? <span className="inline-flex rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-bold text-slate-600">v{getAgentVersion(agent)}</span> : null}
+            {getAgentVersion(agent) ? <span className="inline-flex rounded-full border border-theme-border bg-theme-bg-app px-2.5 py-1 text-xs font-bold text-theme-text-secondary">v{getAgentVersion(agent)}</span> : null}
           </div>
           <div className="grid gap-3 md:grid-cols-2">
             <DetailItem label="主机名">{agent.hostname || '-'}</DetailItem>
             <DetailItem label="所属项目">{agent.project_id || '-'}</DetailItem>
-            <DetailItem label="IP 地址">{ips.length ? <div className="flex flex-wrap gap-1.5">{ips.map((ip) => <span key={ip} className="rounded-md bg-white px-2 py-1 font-mono text-xs text-slate-700 ring-1 ring-slate-200">{ip}</span>)}</div> : '-'}</DetailItem>
+            <DetailItem label="IP 地址">{ips.length ? <div className="flex flex-wrap gap-1.5">{ips.map((ip) => <span key={ip} className="rounded-md bg-theme-surface px-2 py-1 font-mono text-xs text-theme-text-secondary ring-1 ring-theme-border">{ip}</span>)}</div> : '-'}</DetailItem>
             <DetailItem label="进程 ID">{String((agent as any).pid || '-')}</DetailItem>
             <DetailItem label="注册时间">{formatTime(getAgentCreatedAt(agent))}</DetailItem>
             <DetailItem label="更新时间">{formatTime(getAgentUpdatedAt(agent))}</DetailItem>
@@ -561,10 +561,10 @@ const FlowNode: React.FC<{
     <div className="flex flex-col items-center gap-1">
       <div>{icon}</div>
       <div className="text-sm font-medium">{label}</div>
-      {badge ? <div className="rounded bg-white/60 px-2 py-0.5 text-[11px] text-slate-600">{badge}</div> : null}
+      {badge ? <div className="rounded bg-white/60 px-2 py-0.5 text-[11px] text-theme-text-secondary">{badge}</div> : null}
       {stats.length > 0 ? (
         <div className="mt-1 flex flex-col items-center gap-1">
-          {stats.map((item) => <span key={item} className="rounded border border-white/60 bg-white/60 px-2 py-0.5 text-[11px] text-slate-700">{item}</span>)}
+          {stats.map((item) => <span key={item} className="rounded border border-white/60 bg-white/60 px-2 py-0.5 text-[11px] text-theme-text-secondary">{item}</span>)}
         </div>
       ) : null}
     </div>
@@ -572,11 +572,11 @@ const FlowNode: React.FC<{
 );
 
 const DescriptionGrid: React.FC<{ items: Array<{ label: string; value: React.ReactNode; span?: boolean }> }> = ({ items }) => (
-  <div className="grid overflow-hidden rounded border border-slate-200 md:grid-cols-3">
+  <div className="grid overflow-hidden rounded border border-theme-border md:grid-cols-3">
     {items.map((item) => (
-      <div key={item.label} className={`${item.span ? 'md:col-span-3' : ''} grid grid-cols-[110px_minmax(0,1fr)] border-b border-r border-slate-200 last:border-b-0`}>
-        <div className="bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-500">{item.label}</div>
-        <div className="break-words px-3 py-2 text-xs text-slate-800">{item.value || '-'}</div>
+      <div key={item.label} className={`${item.span ? 'md:col-span-3' : ''} grid grid-cols-[110px_minmax(0,1fr)] border-b border-r border-theme-border last:border-b-0`}>
+        <div className="bg-theme-bg-app px-3 py-2 text-xs font-semibold text-theme-text-muted">{item.label}</div>
+        <div className="break-words px-3 py-2 text-xs text-theme-text-primary">{item.value || '-'}</div>
       </div>
     ))}
   </div>
@@ -609,23 +609,23 @@ const ArchitectureOverview: React.FC<{ routes: ArchitectureRoute[]; agent: Agent
   return (
     <div className="space-y-5 p-5">
       <div className="flex items-center justify-start gap-2 overflow-x-auto py-2">
-        <FlowNode icon={<Monitor size={32} />} label="客户端" tone="bg-violet-50 text-violet-700" />
-        <div className="text-xl text-slate-400">→</div>
-        <FlowNode icon={<Network size={32} />} label="端口" badge={connector} tone="bg-cyan-50 text-cyan-700" />
-        <div className="text-xl text-slate-400">→</div>
-        <FlowNode icon={<Settings size={32} />} label={appType || 'Web容器'} stats={[`Filters: ${filterCount}`, `Servlets: ${servletCount}`]} tone="bg-amber-50 text-amber-700" />
-        <div className="text-xl text-slate-400">→</div>
-        <FlowNode icon={<Cpu size={32} />} label={frameworkType || 'Web框架'} stats={[`Controllers: ${controllerCount}`, ...(interceptorCount > 0 ? [`Interceptors: ${interceptorCount}`] : [])]} tone="bg-emerald-50 text-emerald-700" />
-        <div className="text-xl text-slate-400">→</div>
-        <FlowNode icon={<Box size={32} />} label="SCA" stats={['Components: 0']} tone="bg-slate-100 text-slate-700" />
-        <div className="text-xl text-slate-400">→</div>
-        <FlowNode icon={<Database size={32} />} label="数据库" stats={['DataSources: 0']} tone="bg-rose-50 text-rose-700" />
+        <FlowNode icon={<Monitor size={32} />} label="客户端" tone="bg-violet-500/15 text-violet-400" />
+        <div className="text-xl text-theme-text-muted">→</div>
+        <FlowNode icon={<Network size={32} />} label="端口" badge={connector} tone="bg-cyan-500/15 text-cyan-400" />
+        <div className="text-xl text-theme-text-muted">→</div>
+        <FlowNode icon={<Settings size={32} />} label={appType || 'Web容器'} stats={[`Filters: ${filterCount}`, `Servlets: ${servletCount}`]} tone="bg-amber-500/15 text-amber-400" />
+        <div className="text-xl text-theme-text-muted">→</div>
+        <FlowNode icon={<Cpu size={32} />} label={frameworkType || 'Web框架'} stats={[`Controllers: ${controllerCount}`, ...(interceptorCount > 0 ? [`Interceptors: ${interceptorCount}`] : [])]} tone="bg-emerald-500/15 text-emerald-400" />
+        <div className="text-xl text-theme-text-muted">→</div>
+        <FlowNode icon={<Box size={32} />} label="SCA" stats={['Components: 0']} tone="bg-theme-elevated text-theme-text-secondary" />
+        <div className="text-xl text-theme-text-muted">→</div>
+        <FlowNode icon={<Database size={32} />} label="数据库" stats={['DataSources: 0']} tone="bg-rose-500/15 text-rose-400" />
       </div>
 
-      <div className="border-t border-slate-200" />
+      <div className="border-t border-theme-border" />
 
       <section className="space-y-3">
-        <h4 className="text-sm font-semibold text-slate-700">Agent信息</h4>
+        <h4 className="text-sm font-semibold text-theme-text-secondary">Agent信息</h4>
         <DescriptionGrid
           items={[
             { label: 'Agent ID', value: getAgentKey(agent) || '-' },
@@ -638,7 +638,7 @@ const ArchitectureOverview: React.FC<{ routes: ArchitectureRoute[]; agent: Agent
       </section>
 
       <section className="space-y-3">
-        <h4 className="text-sm font-semibold text-slate-700">应用信息</h4>
+        <h4 className="text-sm font-semibold text-theme-text-secondary">应用信息</h4>
         <DescriptionGrid
           items={[
             { label: '应用类型', value: appType || '-' },
@@ -653,12 +653,12 @@ const ArchitectureOverview: React.FC<{ routes: ArchitectureRoute[]; agent: Agent
       </section>
 
       <section className="space-y-3">
-        <h4 className="text-sm font-semibold text-slate-700">组件统计</h4>
+        <h4 className="text-sm font-semibold text-theme-text-secondary">组件统计</h4>
         <div className="grid gap-3 md:grid-cols-4">
           {stats.map((item) => (
-            <div key={item.label} className="rounded border border-slate-200 bg-white px-4 py-3">
-              <div className="flex items-center gap-2 text-xs text-slate-500">{item.icon}{item.label}</div>
-              <div className="mt-2 text-2xl font-semibold text-slate-900">{item.value}</div>
+            <div key={item.label} className="rounded border border-theme-border bg-theme-surface px-4 py-3">
+              <div className="flex items-center gap-2 text-xs text-theme-text-muted">{item.icon}{item.label}</div>
+              <div className="mt-2 text-2xl font-semibold text-theme-text-primary">{item.value}</div>
             </div>
           ))}
         </div>
@@ -688,22 +688,22 @@ const RouteTableWithSearch: React.FC<{
 
   return (
     <section className="space-y-3">
-      <h4 className="flex items-center gap-2 text-sm font-semibold text-slate-600">
+      <h4 className="flex items-center gap-2 text-sm font-semibold text-theme-text-secondary">
         {icon}
         {title} ({routes.length})
       </h4>
       <div className="relative">
-        <Search size={14} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+        <Search size={14} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-theme-text-muted" />
         <input
           value={searchValue}
           onChange={(event) => setSearchValue(event.target.value)}
           placeholder={placeholder}
-          className="w-full rounded border border-slate-200 bg-white py-2 pl-8 pr-3 text-xs text-slate-700 outline-none focus:border-cyan-400"
+          className="w-full rounded border border-theme-border bg-theme-surface py-2 pl-8 pr-3 text-xs text-theme-text-secondary outline-none focus:border-cyan-400"
         />
       </div>
-      <div className="overflow-hidden rounded border border-slate-200">
+      <div className="overflow-hidden rounded border border-theme-border">
         <table className="min-w-full table-fixed text-left text-xs">
-          <thead className="bg-slate-50 text-slate-500">
+          <thead className="bg-theme-bg-app text-theme-text-muted">
             <tr>
               <th className="w-24 px-3 py-2 font-semibold">Method</th>
               <th className="px-3 py-2 font-semibold">Pattern</th>
@@ -711,17 +711,17 @@ const RouteTableWithSearch: React.FC<{
               <th className="px-3 py-2 font-semibold">Name</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-100">
+          <tbody className="divide-y divide-theme-border">
             {filteredRoutes.length === 0 ? (
               <tr>
-                <td colSpan={4} className="px-3 py-8 text-center text-slate-400">暂无数据</td>
+                <td colSpan={4} className="px-3 py-8 text-center text-theme-text-muted">暂无数据</td>
               </tr>
             ) : filteredRoutes.map((route, index) => (
-              <tr key={route.id || `${title}-${index}`} className="odd:bg-white even:bg-slate-50/60">
-                <td className="truncate px-3 py-2 font-semibold text-cyan-700">{getRouteMethod(route)}</td>
-                <td className="truncate px-3 py-2 font-mono text-slate-700" title={getRoutePath(route)}>{getRoutePath(route)}</td>
-                <td className="truncate px-3 py-2 font-mono text-slate-600" title={getRouteHandler(route)}>{getRouteHandler(route) || '-'}</td>
-                <td className="truncate px-3 py-2 text-slate-600" title={getRouteName(route)}>{getRouteName(route) || '-'}</td>
+              <tr key={route.id || `${title}-${index}`} className="odd:bg-theme-surface even:bg-slate-50/60">
+                <td className="truncate px-3 py-2 font-semibold text-cyan-400">{getRouteMethod(route)}</td>
+                <td className="truncate px-3 py-2 font-mono text-theme-text-secondary" title={getRoutePath(route)}>{getRoutePath(route)}</td>
+                <td className="truncate px-3 py-2 font-mono text-theme-text-secondary" title={getRouteHandler(route)}>{getRouteHandler(route) || '-'}</td>
+                <td className="truncate px-3 py-2 text-theme-text-secondary" title={getRouteName(route)}>{getRouteName(route) || '-'}</td>
               </tr>
             ))}
           </tbody>
@@ -748,14 +748,14 @@ const WebFrameworkArchitectureTab: React.FC<{
     {interceptors.length > 0 ? <RouteTableWithSearch title="Interceptors" icon={<Network size={16} />} placeholder="搜索拦截器" routes={interceptors} /> : null}
     {handlerAdapters.length > 0 ? <RouteTableWithSearch title="Handler Adapters" icon={<Cpu size={16} />} placeholder="搜索处理器适配器" routes={handlerAdapters} /> : null}
     {controllers.length === 0 && interceptors.length === 0 && handlerAdapters.length === 0 ? (
-      <div className="px-6 py-16 text-center text-sm text-slate-400">暂无Web框架数据</div>
+      <div className="px-6 py-16 text-center text-sm text-theme-text-muted">暂无Web框架数据</div>
     ) : null}
   </div>
 );
 
 const EmptyArchitectureTab: React.FC<{ icon: React.ReactNode; label: string }> = ({ icon, label }) => (
-  <div className="flex flex-col items-center justify-center px-6 py-20 text-sm text-slate-400">
-    <div className="mb-3 text-slate-300">{icon}</div>
+  <div className="flex flex-col items-center justify-center px-6 py-20 text-sm text-theme-text-muted">
+    <div className="mb-3 text-theme-text-faint">{icon}</div>
     {label}
   </div>
 );
@@ -772,14 +772,14 @@ const ArchitectureTabs: React.FC<{
     { id: 'sca', label: 'SCA' },
   ];
   return (
-    <div className="border-b border-slate-200 bg-slate-50">
+    <div className="border-b border-theme-border bg-theme-bg-app">
       <div className="flex overflow-x-auto">
         {tabs.map((tab) => (
           <button
             key={tab.id}
             type="button"
             onClick={() => onChange(tab.id)}
-            className={`border-r border-slate-200 px-5 py-3 text-sm font-medium transition ${activeTab === tab.id ? 'bg-white text-cyan-700' : 'text-slate-600 hover:bg-white/70 hover:text-slate-900'}`}
+            className={`border-r border-theme-border px-5 py-3 text-sm font-medium transition ${activeTab === tab.id ? 'bg-theme-surface text-cyan-400' : 'text-theme-text-secondary hover:bg-white/70 hover:text-theme-text-primary'}`}
           >
             {tab.label}
           </button>
@@ -852,30 +852,30 @@ const ProcessArchitectureModal: React.FC<{
 
   return (
     <div className="fixed inset-0 z-[270] flex items-start justify-center bg-slate-950/60 p-6 pt-[5vh] backdrop-blur-sm" onClick={onClose}>
-      <div className="flex max-h-[90vh] w-[90vw] max-w-none flex-col overflow-hidden rounded border border-slate-200 bg-white shadow-2xl" onClick={(event) => event.stopPropagation()}>
-        <div className="flex items-center justify-between gap-4 border-b border-slate-200 bg-white px-5 py-4">
-          <h3 className="truncate text-lg font-semibold text-slate-900">进程架构 - {getAgentName(agent)}</h3>
+      <div className="flex max-h-[90vh] w-[90vw] max-w-none flex-col overflow-hidden rounded border border-theme-border bg-theme-surface shadow-2xl" onClick={(event) => event.stopPropagation()}>
+        <div className="flex items-center justify-between gap-4 border-b border-theme-border bg-theme-surface px-5 py-4">
+          <h3 className="truncate text-lg font-semibold text-theme-text-primary">进程架构 - {getAgentName(agent)}</h3>
           <div className="flex shrink-0 items-center gap-2">
-            <button type="button" onClick={() => loadRoutes(false)} disabled={loading} className="inline-flex items-center gap-2 rounded border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 transition hover:bg-slate-50 disabled:opacity-60">
+            <button type="button" onClick={() => loadRoutes(false)} disabled={loading} className="inline-flex items-center gap-2 rounded border border-theme-border bg-theme-surface px-3 py-2 text-xs font-semibold text-theme-text-secondary transition hover:bg-theme-bg-app disabled:opacity-60">
               {loading ? <Loader2 size={14} className="animate-spin" /> : <RefreshCw size={14} />}
               刷新
             </button>
-            <button type="button" onClick={onClose} className="rounded p-2 text-slate-400 transition hover:bg-slate-100 hover:text-slate-700">
+            <button type="button" onClick={onClose} className="rounded p-2 text-theme-text-muted transition hover:bg-theme-elevated hover:text-theme-text-secondary">
               <X size={18} />
             </button>
           </div>
         </div>
 
-        <div className="architecture-content max-h-[70vh] min-h-[400px] overflow-y-auto bg-white">
-          {error ? <div className="m-5 rounded border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700">{error}</div> : null}
+        <div className="architecture-content max-h-[70vh] min-h-[400px] overflow-y-auto bg-theme-surface">
+          {error ? <div className="m-5 rounded border border-rose-500/20 bg-rose-500/15 px-4 py-3 text-sm font-semibold text-rose-400">{error}</div> : null}
           {loading ? (
             <div className="space-y-4 p-10">
-              {Array.from({ length: 10 }).map((_, index) => <div key={index} className="h-5 animate-pulse rounded bg-slate-100" />)}
+              {Array.from({ length: 10 }).map((_, index) => <div key={index} className="h-5 animate-pulse rounded bg-theme-elevated" />)}
             </div>
           ) : routes.length === 0 ? (
-            <div className="flex flex-col items-center justify-center px-6 py-20 text-center text-sm text-slate-500">
-              <GitBranch size={28} className="mb-3 text-slate-300" />
-              <div className="font-semibold text-slate-700">暂无进程架构数据</div>
+            <div className="flex flex-col items-center justify-center px-6 py-20 text-center text-sm text-theme-text-muted">
+              <GitBranch size={28} className="mb-3 text-theme-text-faint" />
+              <div className="font-semibold text-theme-text-secondary">暂无进程架构数据</div>
               <div className="mt-1">请确认 Java Agent 在线且已完成 Web 应用采集。</div>
             </div>
           ) : (
@@ -886,8 +886,8 @@ const ProcessArchitectureModal: React.FC<{
           )}
         </div>
 
-        <div className="flex justify-end border-t border-slate-200 bg-white px-5 py-3">
-          <button type="button" onClick={onClose} className="rounded border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50">关闭</button>
+        <div className="flex justify-end border-t border-theme-border bg-theme-surface px-5 py-3">
+          <button type="button" onClick={onClose} className="rounded border border-theme-border bg-theme-surface px-4 py-2 text-sm font-semibold text-theme-text-secondary transition hover:bg-theme-bg-app">关闭</button>
         </div>
       </div>
     </div>
@@ -1029,17 +1029,13 @@ export const EnvManagementPage: React.FC<{ projectId: string }> = ({ projectId }
   }, [parentAgentKeys]);
 
   return (
-    <div className="min-h-full bg-slate-50 px-8 py-8">
+    <div className="min-h-full bg-theme-bg-app px-8 py-8">
       {feedbackNodes}
       <div className="mx-auto max-w-7xl space-y-6">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div>
-            <div className="inline-flex items-center gap-2 rounded-full border border-cyan-200 bg-cyan-50 px-3 py-1 text-xs font-black uppercase tracking-[0.18em] text-cyan-700">
-              <ServerCog size={14} />
-              Environment Management
-            </div>
-            <h1 className="mt-4 text-3xl font-black tracking-tight text-slate-900">环境管理</h1>
-            <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-600">
+            <h1 className="mt-4 text-3xl font-black tracking-tight text-theme-text-primary">环境管理</h1>
+            <p className="mt-2 max-w-3xl text-sm leading-6 text-theme-text-secondary">
               查看当前项目已上线的 Agent、运行状态和最近心跳。该页面为独立入口，不影响现有环境管理页面。
             </p>
           </div>
@@ -1047,7 +1043,7 @@ export const EnvManagementPage: React.FC<{ projectId: string }> = ({ projectId }
             type="button"
             onClick={() => loadAgents(true)}
             disabled={!projectId || loading}
-            className="inline-flex items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-bold text-slate-700 shadow-sm transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50"
+            className="inline-flex items-center justify-center gap-2 rounded-lg border border-theme-border bg-theme-surface px-4 py-2 text-sm font-bold text-theme-text-secondary shadow-sm transition hover:bg-theme-elevated disabled:cursor-not-allowed disabled:opacity-50"
           >
             {loading ? <Loader2 size={16} className="animate-spin" /> : <RefreshCw size={16} />}
             刷新
@@ -1055,36 +1051,36 @@ export const EnvManagementPage: React.FC<{ projectId: string }> = ({ projectId }
         </div>
 
         {error ? (
-          <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700">{error}</div>
+          <div className="rounded-xl border border-rose-500/20 bg-rose-500/15 px-4 py-3 text-sm font-semibold text-rose-400">{error}</div>
         ) : null}
 
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
           <StatCard label="Agent 总数" value={projectAgents.length} hint="当前项目可见 Agent" />
-          <StatCard label="在线 Agent" value={onlineCount} hint="可执行任务的在线节点" tone="text-emerald-700" />
-          <StatCard label="离线/异常" value={offlineCount} hint="需要关注的节点" tone={offlineCount > 0 ? 'text-rose-700' : 'text-slate-900'} />
+          <StatCard label="在线 Agent" value={onlineCount} hint="可执行任务的在线节点" tone="text-emerald-400" />
+          <StatCard label="离线/异常" value={offlineCount} hint="需要关注的节点" tone={offlineCount > 0 ? 'text-rose-400' : 'text-theme-text-primary'} />
           <StatCard label="最近心跳" value={<span className="text-lg">{formatTime(latestSeen)}</span>} hint="按 Agent last_seen 汇总" />
         </div>
 
-        <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-          <div className="flex flex-col gap-4 border-b border-slate-200 px-6 py-4">
+        <section className="overflow-hidden rounded-2xl border border-theme-border bg-theme-surface shadow-sm">
+          <div className="flex flex-col gap-4 border-b border-theme-border px-6 py-4">
             <div className="flex items-center justify-between gap-3">
               <div>
-                <h2 className="text-lg font-black text-slate-900">上线 Agent</h2>
-                <p className="mt-1 text-sm text-slate-500">环境接入完成后，Agent 会在这里进行统一查看。</p>
+                <h2 className="text-lg font-black text-theme-text-primary">上线 Agent</h2>
+                <p className="mt-1 text-sm text-theme-text-muted">环境接入完成后，Agent 会在这里进行统一查看。</p>
               </div>
               <div className="flex flex-wrap items-center justify-end gap-3">
-                <span className="text-xs font-medium text-slate-500">
+                <span className="text-xs font-medium text-theme-text-muted">
                   显示 {filteredAgents.length} / {projectAgents.length}，父 {parentCount}，子 {childCount}
                 </span>
-                <label className="inline-flex items-center gap-2 text-xs font-medium text-slate-600">
-                  <input type="checkbox" checked={autoRefresh} onChange={(event) => setAutoRefresh(event.target.checked)} className="h-4 w-4 rounded border-slate-300" />
+                <label className="inline-flex items-center gap-2 text-xs font-medium text-theme-text-secondary">
+                  <input type="checkbox" checked={autoRefresh} onChange={(event) => setAutoRefresh(event.target.checked)} className="h-4 w-4 rounded border-theme-border" />
                   自动刷新
                 </label>
                 <button
                   type="button"
                   onClick={toggleAllExpanded}
                   disabled={parentAgentKeys.length === 0}
-                  className="inline-flex items-center gap-1 text-xs font-semibold text-slate-600 transition hover:text-slate-900 disabled:cursor-not-allowed disabled:opacity-50"
+                  className="inline-flex items-center gap-1 text-xs font-semibold text-theme-text-secondary transition hover:text-theme-text-primary disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   {allParentsExpanded ? <ChevronDown size={13} /> : <ChevronRight size={13} />}
                   {allParentsExpanded ? '收起全部' : '展开全部'}
@@ -1092,29 +1088,29 @@ export const EnvManagementPage: React.FC<{ projectId: string }> = ({ projectId }
               </div>
             </div>
             <div className="grid gap-3 lg:grid-cols-[180px_180px_minmax(0,1fr)_auto]">
-              <select value={typeFilter} onChange={(event) => setTypeFilter(event.target.value)} className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-semibold text-slate-700 outline-none focus:border-cyan-400">
+              <select value={typeFilter} onChange={(event) => setTypeFilter(event.target.value)} className="rounded-lg border border-theme-border bg-theme-bg-app px-3 py-2 text-sm font-semibold text-theme-text-secondary outline-none focus:border-cyan-400">
                 <option value="">全部类型</option>
                 {agentTypes.map((type) => <option key={type} value={type}>{getAgentTypeLabel(type)}</option>)}
               </select>
-              <select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)} className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-semibold text-slate-700 outline-none focus:border-cyan-400">
+              <select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)} className="rounded-lg border border-theme-border bg-theme-bg-app px-3 py-2 text-sm font-semibold text-theme-text-secondary outline-none focus:border-cyan-400">
                 <option value="">全部状态</option>
                 <option value="online">在线</option>
                 <option value="offline">离线/异常</option>
                 <option value="unknown">未知</option>
               </select>
               <div className="relative">
-                <Search size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                <Search size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-theme-text-muted" />
                 <input
                   value={searchText}
                   onChange={(event) => setSearchText(event.target.value)}
                   placeholder="搜索 ID / 名称 / 主机名 / IP / 版本..."
-                  className="w-full rounded-lg border border-slate-200 bg-slate-50 py-2 pl-9 pr-3 text-sm font-semibold text-slate-700 outline-none focus:border-cyan-400"
+                  className="w-full rounded-lg border border-theme-border bg-theme-bg-app py-2 pl-9 pr-3 text-sm font-semibold text-theme-text-secondary outline-none focus:border-cyan-400"
                 />
               </div>
               <button
                 type="button"
                 onClick={() => { setTypeFilter(''); setStatusFilter(''); setSearchText(''); }}
-                className="rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-bold text-slate-600 transition hover:bg-slate-100"
+                className="rounded-lg border border-theme-border bg-theme-surface px-4 py-2 text-sm font-bold text-theme-text-secondary transition hover:bg-theme-elevated"
               >
                 重置
               </button>
@@ -1122,25 +1118,25 @@ export const EnvManagementPage: React.FC<{ projectId: string }> = ({ projectId }
           </div>
 
           {loading ? (
-            <div className="flex items-center justify-center gap-2 px-6 py-16 text-sm font-semibold text-slate-500">
+            <div className="flex items-center justify-center gap-2 px-6 py-16 text-sm font-semibold text-theme-text-muted">
               <Loader2 size={18} className="animate-spin" />
               正在加载 Agent 状态...
             </div>
           ) : projectAgents.length === 0 ? (
             <div className="px-6 py-16 text-center">
-              <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl bg-slate-100 text-slate-500">
+              <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl bg-theme-elevated text-theme-text-muted">
                 <Bot size={22} />
               </div>
-              <div className="mt-4 text-base font-black text-slate-900">暂无上线 Agent</div>
-              <div className="mt-2 text-sm text-slate-500">请先在环境接入页面完成节点部署。</div>
+              <div className="mt-4 text-base font-black text-theme-text-primary">暂无上线 Agent</div>
+              <div className="mt-2 text-sm text-theme-text-muted">请先在环境接入页面完成节点部署。</div>
             </div>
           ) : filteredAgents.length === 0 ? (
             <div className="px-6 py-16 text-center">
-              <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl bg-slate-100 text-slate-500">
+              <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl bg-theme-elevated text-theme-text-muted">
                 <Search size={22} />
               </div>
-              <div className="mt-4 text-base font-black text-slate-900">没有匹配的 Agent</div>
-              <div className="mt-2 text-sm text-slate-500">请调整类型、状态或搜索条件。</div>
+              <div className="mt-4 text-base font-black text-theme-text-primary">没有匹配的 Agent</div>
+              <div className="mt-2 text-sm text-theme-text-muted">请调整类型、状态或搜索条件。</div>
             </div>
           ) : (
             <AgentTreeTable

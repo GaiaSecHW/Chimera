@@ -2262,7 +2262,10 @@ export type ScheduleCenterUserTaskType =
   | 'source_scan_e2e'
   | 'binary_module_e2e'
   | 'ai4red'
-  | 'ai4apk'
+  | 'ai4app_fast'
+  | 'ai4app_deep'
+  | 'ai4web_fast'
+  | 'ai4web_deep'
   | 'sechps_tool'
   | 'redline_verification_e2e';
 
@@ -2344,7 +2347,7 @@ export interface ScheduleCenterUserTask {
   sync_lease_expires_at?: string | null;
   last_sync_error?: string | null;
   last_sync_http_status?: number | null;
-  delete_status?: 'none' | 'queued' | 'running' | 'failed' | string;
+  delete_status?: 'none' | 'queued' | 'running' | 'blocked' | 'failed' | string;
   delete_error?: string | null;
   delete_requested_at?: string | null;
   delete_started_at?: string | null;
@@ -2373,7 +2376,7 @@ export interface ScheduleCenterUserTaskDeleteQueueItem {
   name: string;
   task_type: ScheduleCenterUserTaskType | string;
   display_status: string;
-  delete_status: 'queued' | 'running' | 'failed' | string;
+  delete_status: 'queued' | 'running' | 'blocked' | 'failed' | string;
   delete_error?: string | null;
   last_error?: string | null;
   downstream_task_id?: string | null;
@@ -2391,6 +2394,7 @@ export interface ScheduleCenterUserTaskDeleteQueueResponse {
   stats: {
     queued_total: number;
     running_total: number;
+    blocked_total: number;
     failed_total: number;
   };
 }
@@ -2487,7 +2491,10 @@ export type ScheduleRuntimeTaskType =
   | 'source_scan_e2e'
   | 'binary_module_e2e'
   | 'ai4red'
-  | 'ai4apk'
+  | 'ai4app_fast'
+  | 'ai4app_deep'
+  | 'ai4web_fast'
+  | 'ai4web_deep'
   | 'sechps_tool';
 
 export type ScheduleDispatchMode = 'balanced' | 'fifo' | 'priority_first';
@@ -2700,12 +2707,18 @@ export interface AiGatewayProviderStat {
 export interface AiGatewayLlmKey {
   id: number;
   key_name: string;
-  key_type: 'task' | 'work' | string;
+  key_type: 'task' | 'work' | 'app' | string;
+  app_id?: string;
+  app_name?: string;
   parent_key_id?: number | null;
   key_prefix: string;
   max_concurrency: number;
+  project_id?: string;
+  project_name?: string;
   task_id: string;
+  task_name?: string;
   sub_task_id: string;
+  sub_task_name?: string;
   enabled: boolean;
   expires_at?: string | null;
   description: string;
@@ -2725,11 +2738,17 @@ export interface AiGatewayLlmKeyTaskBindingInput {
 
 export interface AiGatewayLlmKeyCreatePayload {
   key_name: string;
-  key_type: 'task' | 'work';
+  key_type: 'task' | 'work' | 'app';
+  app_id?: string;
+  app_name?: string;
   parent_key_id?: number | null;
   max_concurrency: number;
+  project_id?: string;
+  project_name?: string;
   task_id: string;
+  task_name?: string;
   sub_task_id: string;
+  sub_task_name?: string;
   enabled: boolean;
   expires_at?: string | null;
   description: string;
@@ -2776,6 +2795,8 @@ export interface AiGatewayLogSummary {
   llm_key_prefix: string;
   task_key_id: number;
   task_key_prefix: string;
+  app_id: string;
+  app_name?: string;
   task_id: string;
   sub_task_id: string;
   model_alias_id: number;
@@ -3061,6 +3082,7 @@ export interface SystemAnalysisServiceConfig {
   module_granularity: string;
   filter_engine: 'script' | 'agent';
   enable_final_check: boolean;
+  super_fast_mode: boolean;
   worker_task_concurrency: number;
   parallel_modules: number;
   parallel_sub_workers: number;
@@ -4471,6 +4493,8 @@ export interface EntryAnalysisServiceConfig {
   // 快速模式：R2 完成后批量 LLM 预筛入口（不保证全面性）
   fast_mode: boolean;
   fast_mode_batch_size: number;
+  // 极速模式：关闭所有 Judge，跳过报告阶段
+  super_fast_mode: boolean;
   updated_at?: string | null;
 }
 

@@ -9,6 +9,13 @@ import {
 } from 'lucide-react';
 import { api } from '../../clients/api';
 import type { CodemapTaskStatus } from '../../clients/codemapManager';
+import {
+  IN_PROGRESS_STATUSES,
+  STATUS_LABELS,
+  USABLE_UPLOAD_STATUSES,
+  buildCodemapTaskId,
+  buildManagerTargetDir,
+} from '../../clients/codemapManager';
 import type { SecurityProject } from '../../types/types';
 
 interface Props {
@@ -16,21 +23,7 @@ interface Props {
   projects: SecurityProject[];
 }
 
-// 知识图谱构建是项目维度、幂等的:固定 task_id = kg-<projectId>,product_id=projectId
-// → manager 算出的 db_name 不变 → 一个项目始终一张图(重新上传更新图依赖后续的增量分析)。
-const buildTaskId = (projectId: string) =>`kg-${projectId}`;
-
-// manager 读取代码的文件系统根。manager 挂载了平台 fileserver 的共享卷到 /data,
-// 上传代码物理路径是 /data/files/<projectId>/<target_path>;而 fileserver API 返回的
-// target_path 只是 /user_input/code/<id>(缺前缀)。这里补全成 manager 视角的绝对路径。
-const MANAGER_SOURCE_ROOT = '/data/files';
-const buildTargetDir = (projectId: string, targetPath: string) =>`${MANAGER_SOURCE_ROOT}/${projectId}${targetPath.startsWith('/') ? '' : '/'}${targetPath}`;
-
-// 构建仍在进行的状态(manager FSM)。completed/failed 为终态。
-const IN_PROGRESS_STATUSES = new Set(['queued', 'accepted', 'building_analyze', 'building_repair']);
 const POLL_INTERVAL_MS = 3000;
-// fileserver 上传记录里“文件已落盘、可被 analyze 扫描”的状态。
-const USABLE_UPLOAD_STATUSES = new Set(['succeeded', 'partial_failed']);
 
 type Phase =
   | 'loading'        // 查上传记录中
@@ -39,15 +32,6 @@ type Phase =
   | 'starting'       // 已触发构建,正在起 serve
   | 'ready'          // serve 就绪,iframe 展示(构建可能仍在后台进行)
   | 'error';         // 起 serve / 接口异常
-
-const STATUS_LABELS: Record<string, string> = {
-  queued: '排队中',
-  accepted: '已受理',
-  building_analyze: '解析代码中',
-  building_repair: '补全调用关系中',
-  completed: '已完成',
-  failed: '构建失败',
-};
 
 const errorMessage = (error: unknown): string =>
   error instanceof Error ? error.message : '请求失败';
@@ -82,6 +66,8 @@ export const KnowledgeGraphPage: React.FC<Props> = ({ projectId, projects }) => 
   const [status, setStatus] = useState<CodemapTaskStatus | null>(null);
   const [serveUrl, setServeUrl] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
+  // failed 横幅的"重新构建"按钮:DELETE → setStatus(null) → bootstrap 重派。
+  const [rebuilding, setRebuilding] = useState(false);
   // 防止 serve 重复启动。
   const startingServeRef = useRef(false);
 
@@ -89,7 +75,7 @@ export const KnowledgeGraphPage: React.FC<Props> = ({ projectId, projects }) => 
     () => projects.find((item) => item.id === projectId)?.name || projectId,
     [projectId, projects],
   );
-  const taskId = useMemo(() => buildTaskId(projectId), [projectId]);
+  const taskId = useMemo(() => buildCodemapTaskId(projectId), [projectId]);
 
   // 起 serve → iframe。serve 子进程端口立即绑定,即使库还空着也能起,
   // 图谱随后台 analyze/repair 进度渐进填充。幂等:已在起则跳过。
@@ -149,7 +135,7 @@ export const KnowledgeGraphPage: React.FC<Props> = ({ projectId, projects }) => 
           task_id: taskId,
           product_id: projectId,
           product_name: projectName,
-          target_dir: buildTargetDir(projectId, latest.target_path),
+          target_dir: buildManagerTargetDir(projectId, latest.target_path),
         });
         current = {
           task_id: triggered.task_id,
@@ -173,6 +159,22 @@ export const KnowledgeGraphPage: React.FC<Props> = ({ projectId, projects }) => 
       setPhase('error');
     }
   }, [projectId, projectName, taskId, startServe]);
+
+  // failed 红色横幅旁的"重新构建"按钮:bootstrap 里只在 status===null 时 trigger,
+  // 老 failed task 一直存在 → 永远不会重派。先 DELETE 清掉再 bootstrap。
+  const handleRebuild = useCallback(async () => {
+    if (rebuilding) return;
+    setRebuilding(true);
+    try {
+      await api.codemapManager.deleteTask(taskId);
+      setStatus(null);
+      await bootstrap();
+    } catch (error) {
+      setMessage(errorMessage(error));
+    } finally {
+      setRebuilding(false);
+    }
+  }, [taskId, bootstrap, rebuilding]);
 
   useEffect(() => {
     void bootstrap();
@@ -247,7 +249,17 @@ export const KnowledgeGraphPage: React.FC<Props> = ({ projectId, projects }) => 
         ) : failed ? (
           <div className="flex items-center gap-3 px-5 py-2.5 text-xs" style={{ borderBottom:`1px solid ${LK.border}`, backgroundColor: `${LK.error}14`, color: LK.error }}>
             <XCircle size={14} />
-            <span>{status?.error || '构建部分失败'}，图谱可能不完整。</span>
+            <span className="flex-1">{status?.error || '构建部分失败'}，图谱可能不完整。</span>
+            <button
+              type="button"
+              onClick={() => void handleRebuild()}
+              disabled={rebuilding}
+              className="inline-flex items-center gap-1 rounded-md border px-2 py-1 text-[11px] font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-50"
+              style={{ borderColor: LK.error, color: LK.error, backgroundColor: 'transparent' }}
+            >
+              <RefreshCw size={12} />
+              {rebuilding ? '重派中…' : '重新构建'}
+            </button>
           </div>
         ) : null}
         <iframe

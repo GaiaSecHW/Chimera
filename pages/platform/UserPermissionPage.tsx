@@ -283,13 +283,13 @@ export const UserPermissionPage: React.FC = () => {
   return (
     <div className="h-full overflow-y-auto bg-theme-app px-6 py-8 md:px-8 xl:px-10">
       <div className="flex w-full flex-col gap-6 pb-24">
-        <section className="relative overflow-hidden rounded-[2rem] border border-slate-200/80 bg-slate-950 px-8 py-8 text-white md:px-10">
+        <section className="relative overflow-hidden rounded-[2rem] border border-slate-200/80 bg-theme-bg-app px-8 py-8 text-white md:px-10">
           <div className="absolute inset-y-0 right-0 w-1/2 bg-[radial-gradient(circle_at_center,_rgba(56,189,248,0.22),_transparent_56%)]" />
           <div className="absolute -left-16 top-0 h-40 w-40 rounded-full bg-sky-400/10 blur-3xl" />
           <div className="relative flex flex-col gap-6 xl:flex-row xl:items-end xl:justify-between">
             <div className="space-y-4 xl:max-w-[48rem] 2xl:max-w-[60rem]">
               <div className="flex items-start gap-4">
- <div className="flex h-16 w-16 items-center justify-center rounded-[1.75rem] bg-slate-100 text-sky-200 shadow-inner shadow-white/5 backdrop-blur">
+ <div className="flex h-16 w-16 items-center justify-center rounded-[1.75rem] bg-theme-elevated text-sky-200 shadow-inner shadow-white/5 backdrop-blur">
                   <ArrowRightLeft size={30} />
                 </div>
                 <div className="space-y-2">
@@ -299,8 +299,8 @@ export const UserPermissionPage: React.FC = () => {
             </div>
 
             <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
- <div className="rounded-[1.6rem] border border-slate-200 bg-slate-100/10 px-5 py-4 backdrop-blur">
-                <p className="text-[10px] font-black uppercase tracking-[0.25em] text-slate-400">超级管理员</p>
+ <div className="rounded-[1.6rem] border border-theme-border bg-slate-100/10 px-5 py-4 backdrop-blur">
+                <p className="text-[10px] font-black uppercase tracking-[0.25em] text-theme-text-muted">超级管理员</p>
                 <p className="mt-3 text-3xl font-black text-white">{roleStats.superAdmin}</p>
               </div>
               <div className="rounded-[1.6rem] border border-amber-400/15 bg-amber-400/10 px-5 py-4">
@@ -326,20 +326,20 @@ export const UserPermissionPage: React.FC = () => {
           </div>
         </section>
 
- <section className="rounded-[2rem] border border-slate-200/80 bg-slate-50 p-5 backdrop-blur">
+ <section className="rounded-[2rem] border border-slate-200/80 bg-theme-bg-app p-5 backdrop-blur">
             <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
               <div className="flex items-center gap-3">
-                <div className="flex h-12 w-12 items-center justify-center rounded-[1.25rem] bg-sky-100 text-sky-700">
+                <div className="flex h-12 w-12 items-center justify-center rounded-[1.25rem] bg-sky-500/15 text-sky-400">
                   <Search size={20} />
                 </div>
                 <div>
-                  <h3 className="text-lg font-black text-slate-900">筛选与检索</h3>
+                  <h3 className="text-lg font-black text-theme-text-primary">筛选与检索</h3>
                 </div>
               </div>
               <div className="flex items-center gap-3">
                 <button
                   onClick={() => void loadData(false)}
-                  className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-black text-slate-600 transition hover:border-sky-200 hover:text-sky-700"
+                  className="inline-flex items-center gap-2 rounded-2xl border border-theme-border bg-theme-bg-app px-4 py-3 text-sm font-black text-theme-text-secondary transition hover:border-sky-500/20 hover:text-sky-400"
                 >
                   <RefreshCw size={16} className={refreshing ? 'animate-spin' : ''} />
                   刷新数据
@@ -356,14 +356,14 @@ export const UserPermissionPage: React.FC = () => {
             </div>
 
             <div className="mt-5 grid gap-4 lg:grid-cols-[minmax(0,1fr)_auto]">
-              <label className="flex items-center gap-3 rounded-[1.6rem] border border-slate-200 bg-slate-50 px-5 py-4">
-                <Search size={18} className="text-slate-400" />
+              <label className="flex items-center gap-3 rounded-[1.6rem] border border-theme-border bg-theme-bg-app px-5 py-4">
+                <Search size={18} className="text-theme-text-muted" />
                 <input
                   type="text"
                   value={searchTerm}
                   onChange={(event) => setSearchTerm(event.target.value)}
                   placeholder="搜索用户名、当前角色或所属部门..."
-                  className="w-full bg-transparent text-sm font-medium text-slate-700 outline-none placeholder:text-slate-400"
+                  className="w-full bg-transparent text-sm font-medium text-theme-text-secondary outline-none placeholder:text-theme-text-muted"
                 />
               </label>
 
@@ -376,8 +376,8 @@ export const UserPermissionPage: React.FC = () => {
                       onClick={() => setRoleFilter(option.key)}
                       className={`rounded-2xl px-4 py-3 text-sm font-black transition ${
                         active
- ? 'bg-slate-900 text-white '
-                          : 'border border-slate-200 bg-slate-50 text-slate-500 hover:border-sky-200 hover:text-sky-700'
+ ? 'bg-theme-surface text-white '
+                          : 'border border-theme-border bg-theme-bg-app text-theme-text-muted hover:border-sky-500/20 hover:text-sky-400'
                       }`}
                     >
                       {option.label} ({option.count})
@@ -388,19 +388,19 @@ export const UserPermissionPage: React.FC = () => {
             </div>
         </section>
 
- <section className="overflow-hidden rounded-[2rem] border border-slate-200/80 bg-slate-50">
-          <div className="border-b border-slate-100 px-6 py-5 md:px-8">
+ <section className="overflow-hidden rounded-[2rem] border border-slate-200/80 bg-theme-bg-app">
+          <div className="border-b border-theme-border px-6 py-5 md:px-8">
             <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
               <div className="flex items-center gap-3">
-                <div className="flex h-12 w-12 items-center justify-center rounded-[1.25rem] bg-indigo-50 text-indigo-600">
+                <div className="flex h-12 w-12 items-center justify-center rounded-[1.25rem] bg-indigo-500/15 text-indigo-400">
                   <Users size={22} />
                 </div>
                 <div>
-                  <h3 className="text-lg font-black text-slate-900">权限分配列表</h3>
-                  <p className="text-sm font-medium text-slate-500">当前共 {filteredUsers.length} 个账号，其中 {roleStats.changed} 个存在未保存变更。</p>
+                  <h3 className="text-lg font-black text-theme-text-primary">权限分配列表</h3>
+                  <p className="text-sm font-medium text-theme-text-muted">当前共 {filteredUsers.length} 个账号，其中 {roleStats.changed} 个存在未保存变更。</p>
                 </div>
               </div>
-              <div className="inline-flex items-center gap-2 rounded-full bg-slate-100 px-4 py-2 text-xs font-black uppercase tracking-[0.24em] text-slate-500">
+              <div className="inline-flex items-center gap-2 rounded-full bg-theme-elevated px-4 py-2 text-xs font-black uppercase tracking-[0.24em] text-theme-text-muted">
                 <Building2 size={14} />
               </div>
             </div>
@@ -408,7 +408,7 @@ export const UserPermissionPage: React.FC = () => {
 
           <div className="overflow-x-auto">
             <table className="min-w-full text-left">
-              <thead className="bg-slate-50 text-[11px] font-black uppercase tracking-[0.22em] text-slate-400">
+              <thead className="bg-theme-bg-app text-[11px] font-black uppercase tracking-[0.22em] text-theme-text-muted">
                 <tr>
                   <th className="px-8 py-4">用户</th>
                   <th className="px-6 py-4">当前角色</th>
@@ -419,18 +419,18 @@ export const UserPermissionPage: React.FC = () => {
                   <th className="px-8 py-4 text-right">操作</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100">
+              <tbody className="divide-y divide-theme-border">
                 {loading ? (
                   <tr>
                     <td colSpan={7} className="px-8 py-24 text-center">
-                      <Loader2 className="mx-auto animate-spin text-sky-600" size={34} />
+                      <Loader2 className="mx-auto animate-spin text-sky-400" size={34} />
                     </td>
                   </tr>
                 ) : filteredUsers.length === 0 ? (
                   <tr>
                     <td colSpan={7} className="px-8 py-20 text-center">
-                      <p className="text-base font-black text-slate-500">暂无匹配用户</p>
-                      <p className="mt-2 text-sm font-medium text-slate-400">可以试试切换筛选条件或清空搜索关键字。</p>
+                      <p className="text-base font-black text-theme-text-muted">暂无匹配用户</p>
+                      <p className="mt-2 text-sm font-medium text-theme-text-muted">可以试试切换筛选条件或清空搜索关键字。</p>
                     </td>
                   </tr>
                 ) : (
@@ -444,12 +444,12 @@ export const UserPermissionPage: React.FC = () => {
                       <tr key={user.id} className="transition hover:bg-[rgba(79,115,255,0.10)]">
                         <td className="px-8 py-5">
                           <div className="flex items-center gap-4">
-                            <div className="flex h-12 w-12 items-center justify-center rounded-[1.2rem] bg-slate-100 font-black text-slate-700 shadow-inner">
+                            <div className="flex h-12 w-12 items-center justify-center rounded-[1.2rem] bg-theme-elevated font-black text-theme-text-secondary shadow-inner">
                               {getUserInitial(user.username)}
                             </div>
                             <div>
-                              <p className="text-sm font-black text-slate-900">{user.username}</p>
-                              <p className="mt-1 text-[11px] font-mono text-slate-400">UID: {String(user.id).padStart(5, '0')}</p>
+                              <p className="text-sm font-black text-theme-text-primary">{user.username}</p>
+                              <p className="mt-1 text-[11px] font-mono text-theme-text-muted">UID: {String(user.id).padStart(5, '0')}</p>
                             </div>
                           </div>
                         </td>
@@ -457,12 +457,12 @@ export const UserPermissionPage: React.FC = () => {
                           <span
                             className={`inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-[11px] font-black ${
                               user.platform_role === 'super_admin'
-                                ? 'border-slate-900 bg-slate-900 text-white'
+                                ? 'border-theme-border bg-theme-surface text-white'
                                 : user.platform_role === 'ordinary_admin'
-                                  ? 'border-amber-200 bg-amber-50 text-amber-700'
+                                  ? 'border-amber-500/20 bg-amber-500/15 text-amber-400'
                                   : user.platform_role === 'developer'
-                                    ? 'border-fuchsia-200 bg-fuchsia-50 text-fuchsia-700'
-                                  : 'border-sky-200 bg-sky-50 text-sky-700'
+                                    ? 'border-fuchsia-500/20 bg-fuchsia-500/15 text-fuchsia-400'
+                                  : 'border-sky-500/20 bg-sky-500/15 text-sky-400'
                             }`}
                           >
                             <Shield size={12} />
@@ -474,7 +474,7 @@ export const UserPermissionPage: React.FC = () => {
                             disabled={!editable}
                             value={draft?.platformRole || 'ordinary_user'}
                             onChange={(event) => updateDraft(user.id, { platformRole: event.target.value as UserDraft['platformRole'] })}
-                            className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-medium text-slate-700 outline-none transition focus:border-sky-300 focus:bg-slate-50 focus:ring-4 focus:ring-sky-500/10 disabled:cursor-not-allowed disabled:opacity-60"
+                            className="w-full rounded-2xl border border-theme-border bg-theme-bg-app px-4 py-3 text-sm font-medium text-theme-text-secondary outline-none transition focus:border-sky-300 focus:bg-theme-bg-app focus:ring-4 focus:ring-sky-500/10 disabled:cursor-not-allowed disabled:opacity-60"
                           >
                             <option value="ordinary_user">普通用户</option>
                             <option value="developer">开发者</option>
@@ -482,14 +482,14 @@ export const UserPermissionPage: React.FC = () => {
                           </select>
                         </td>
                         <td className="px-6 py-5">
-                          <div className="text-sm font-bold text-slate-700">{user.department_name || '未分配'}</div>
+                          <div className="text-sm font-bold text-theme-text-secondary">{user.department_name || '未分配'}</div>
                         </td>
                         <td className="px-6 py-5">
                           <select
                             disabled={!editable}
                             value={draft?.departmentId || ''}
                             onChange={(event) => updateDraft(user.id, { departmentId: event.target.value })}
-                            className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-medium text-slate-700 outline-none transition focus:border-sky-300 focus:bg-slate-50 focus:ring-4 focus:ring-sky-500/10 disabled:cursor-not-allowed disabled:opacity-60"
+                            className="w-full rounded-2xl border border-theme-border bg-theme-bg-app px-4 py-3 text-sm font-medium text-theme-text-secondary outline-none transition focus:border-sky-300 focus:bg-theme-bg-app focus:ring-4 focus:ring-sky-500/10 disabled:cursor-not-allowed disabled:opacity-60"
                           >
                             <option value="">未分配</option>
                             {departmentOptions.map((department) => (
@@ -501,11 +501,11 @@ export const UserPermissionPage: React.FC = () => {
                         </td>
                         <td className="px-6 py-5">
                           {!editable ? (
-                            <span className="inline-flex rounded-full bg-slate-100 px-3 py-1.5 text-[11px] font-black text-slate-500">保留账户</span>
+                            <span className="inline-flex rounded-full bg-theme-elevated px-3 py-1.5 text-[11px] font-black text-theme-text-muted">保留账户</span>
                           ) : hasChanged ? (
-                            <span className="inline-flex rounded-full bg-emerald-50 px-3 py-1.5 text-[11px] font-black text-emerald-700">待保存</span>
+                            <span className="inline-flex rounded-full bg-emerald-500/15 px-3 py-1.5 text-[11px] font-black text-emerald-400">待保存</span>
                           ) : (
-                            <span className="inline-flex rounded-full bg-slate-100 px-3 py-1.5 text-[11px] font-black text-slate-500">已同步</span>
+                            <span className="inline-flex rounded-full bg-theme-elevated px-3 py-1.5 text-[11px] font-black text-theme-text-muted">已同步</span>
                           )}
                         </td>
                         <td className="px-8 py-5 text-right">
@@ -513,12 +513,12 @@ export const UserPermissionPage: React.FC = () => {
                             <button
                               onClick={() => void saveUserPermission(user)}
                               disabled={!hasChanged || isSaving}
-                              className="inline-flex min-w-[112px] items-center justify-center gap-2 rounded-2xl bg-slate-900 px-5 py-3 text-sm font-black text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50"
+                              className="inline-flex min-w-[112px] items-center justify-center gap-2 rounded-2xl bg-theme-surface px-5 py-3 text-sm font-black text-white transition hover:bg-theme-elevated disabled:cursor-not-allowed disabled:opacity-50"
                             >
                               {isSaving ? <Loader2 size={16} className="animate-spin" /> : '保存变更'}
                             </button>
                           ) : (
-                            <span className="text-[11px] font-black uppercase tracking-[0.24em] text-slate-400">只读</span>
+                            <span className="text-[11px] font-black uppercase tracking-[0.24em] text-theme-text-muted">只读</span>
                           )}
                         </td>
                       </tr>
@@ -530,13 +530,13 @@ export const UserPermissionPage: React.FC = () => {
           </div>
 
           {!loading && filteredUsers.length > 0 && (
-            <div className="flex flex-col gap-4 border-t border-slate-100 px-6 py-5 md:flex-row md:items-center md:justify-between md:px-8">
-              <div className="flex items-center gap-3 text-sm font-medium text-slate-500">
+            <div className="flex flex-col gap-4 border-t border-theme-border px-6 py-5 md:flex-row md:items-center md:justify-between md:px-8">
+              <div className="flex items-center gap-3 text-sm font-medium text-theme-text-muted">
                 <span>每页显示</span>
                 <select
                   value={pageSize}
                   onChange={(event) => setPageSize(Number(event.target.value))}
-                  className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-bold text-slate-700 outline-none transition focus:border-sky-300 focus:ring-4 focus:ring-sky-500/10"
+                  className="rounded-xl border border-theme-border bg-theme-bg-app px-3 py-2 text-sm font-bold text-theme-text-secondary outline-none transition focus:border-sky-300 focus:ring-4 focus:ring-sky-500/10"
                 >
                   <option value={10}>10</option>
                   <option value={20}>20</option>
@@ -549,21 +549,21 @@ export const UserPermissionPage: React.FC = () => {
               </div>
 
               <div className="flex items-center justify-between gap-3 md:justify-end">
-                <span className="text-sm font-medium text-slate-500">
+                <span className="text-sm font-medium text-theme-text-muted">
                   当前展示 {(page - 1) * pageSize + 1}-{Math.min(page * pageSize, filteredUsers.length)} / {filteredUsers.length}
                 </span>
                 <div className="flex items-center gap-2">
                   <button
                     onClick={() => setPage((current) => Math.max(1, current - 1))}
                     disabled={page <= 1}
-                    className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-2 text-sm font-black text-slate-600 transition hover:border-sky-200 hover:text-sky-700 disabled:cursor-not-allowed disabled:opacity-40"
+                    className="rounded-xl border border-theme-border bg-theme-bg-app px-4 py-2 text-sm font-black text-theme-text-secondary transition hover:border-sky-500/20 hover:text-sky-400 disabled:cursor-not-allowed disabled:opacity-40"
                   >
                     上一页
                   </button>
                   <button
                     onClick={() => setPage((current) => Math.min(totalPages, current + 1))}
                     disabled={page >= totalPages}
-                    className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-2 text-sm font-black text-slate-600 transition hover:border-sky-200 hover:text-sky-700 disabled:cursor-not-allowed disabled:opacity-40"
+                    className="rounded-xl border border-theme-border bg-theme-bg-app px-4 py-2 text-sm font-black text-theme-text-secondary transition hover:border-sky-500/20 hover:text-sky-400 disabled:cursor-not-allowed disabled:opacity-40"
                   >
                     下一页
                   </button>
