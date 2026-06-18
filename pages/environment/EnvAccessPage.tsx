@@ -1,11 +1,15 @@
-import React, { useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import MonacoEditor from '@monaco-editor/react';
-import { Copy, Network, Server, Terminal } from 'lucide-react';
-import { API_BASE } from '../../clients/base';
+import { Copy, Loader2, Network, Save, Server, Terminal } from 'lucide-react';
+import { API_BASE, getHeaders, handleResponse } from '../../clients/base';
 import { useUiFeedback } from '../../components/UiFeedback';
 
 const WEB_E2E_API_BASE = `${API_BASE}/api/app/web-e2e`;
 type DeployTab = 'normal-node' | 'k8s-cluster';
+type ProjectAccessInfo = {
+  description: string;
+  updated_at?: string;
+};
 
 const getPublicWebE2EBase = (): string => `${window.location.origin}${WEB_E2E_API_BASE}`;
 
@@ -86,6 +90,42 @@ const copyText = async (text: string): Promise<boolean> => {
   }
 };
 
+const requestWebE2E = async (url: string, init?: RequestInit): Promise<any> => {
+  const raw = await handleResponse(await fetch(url, { ...init, headers: { ...getHeaders(), ...(init?.headers || {}) } }));
+  if (raw && typeof raw === 'object' && 'success' in raw && 'data' in raw) {
+    if (raw.success === false) throw new Error(raw.message || 'WEB 端到端 API 请求失败');
+    return raw.data;
+  }
+  return raw;
+};
+
+const normalizeProjectAccessInfo = (raw: any): ProjectAccessInfo => {
+  const source = raw?.project || raw;
+  return {
+    description: String(source?.description || ''),
+    updated_at: source?.updated_at || source?.updatedAt,
+  };
+};
+
+const fetchProjectAccessInfo = async (projectId: string): Promise<ProjectAccessInfo> => {
+  const raw = await requestWebE2E(`${WEB_E2E_API_BASE}/projects/${encodeURIComponent(projectId)}`);
+  return normalizeProjectAccessInfo(raw || {});
+};
+
+const saveProjectAccessInfo = async (projectId: string, payload: ProjectAccessInfo): Promise<ProjectAccessInfo> => {
+  const raw = await requestWebE2E(`${WEB_E2E_API_BASE}/projects/${encodeURIComponent(projectId)}`, {
+    method: 'PUT',
+    body: JSON.stringify({ description: payload.description }),
+  });
+  return normalizeProjectAccessInfo(raw || payload);
+};
+
+const formatTime = (value?: string | null): string => {
+  if (!value) return '-';
+  const date = new Date(value);
+  return Number.isFinite(date.getTime()) ? date.toLocaleString('zh-CN', { hour12: false }) : value;
+};
+
 const Section: React.FC<{ title: string; description: string; children: React.ReactNode }> = ({ title, description, children }) => (
   <section className="rounded-2xl border border-theme-border bg-theme-surface p-6 shadow-sm">
     <div>
@@ -94,6 +134,45 @@ const Section: React.FC<{ title: string; description: string; children: React.Re
     </div>
     <div className="mt-5">{children}</div>
   </section>
+);
+
+const ProjectAccessInfoSection: React.FC<{
+  value: ProjectAccessInfo;
+  loading: boolean;
+  saving: boolean;
+  error: string;
+  onChange: (value: ProjectAccessInfo) => void;
+  onSave: () => void;
+}> = ({ value, loading, saving, error, onChange, onSave }) => (
+  <Section title="WEB 访问配置" description="填写被测 Web URL、账号密码、登录步骤和测试范围。分析流程会直接使用这里的项目级配置。">
+    <div className="flex flex-col gap-4">
+      <div className="flex justify-end">
+        <button
+          type="button"
+          onClick={onSave}
+          disabled={loading || saving}
+          className="inline-flex items-center justify-center gap-2 rounded-lg bg-cyan-500 px-4 py-2 text-sm font-bold text-white transition hover:bg-cyan-400 disabled:cursor-not-allowed disabled:opacity-60"
+        >
+          {saving ? <Loader2 size={15} className="animate-spin" /> : <Save size={15} />}
+          保存配置
+        </button>
+      </div>
+      {error ? <div className="rounded-xl border border-rose-500/20 bg-rose-500/10 px-4 py-3 text-sm font-medium text-rose-400">{error}</div> : null}
+      <label className="block">
+        <div className="text-[11px] font-black uppercase tracking-[0.18em] text-theme-text-muted">Description</div>
+        <textarea
+          value={value.description}
+          disabled={loading}
+          onChange={(event) => onChange({ ...value, description: event.target.value })}
+          placeholder="填写 Web 访问 URL、账号密码、登录步骤、验证码说明、测试范围、特殊入口或其他分析需要注意的信息。"
+          className="mt-2 min-h-44 w-full resize-y rounded-xl border border-theme-border bg-theme-bg-app px-4 py-3 text-sm leading-6 text-theme-text-primary outline-none transition focus:border-cyan-400 disabled:cursor-not-allowed disabled:opacity-70"
+        />
+      </label>
+      <div className="rounded-xl border border-theme-border bg-theme-bg-app px-4 py-3 text-sm text-theme-text-secondary">
+        {loading ? '正在加载配置...' : value.updated_at ? `最近更新：${formatTime(value.updated_at)}` : '尚未保存 WEB 访问配置'}
+      </div>
+    </div>
+  </Section>
 );
 
 const CommandBlock: React.FC<{
@@ -146,12 +225,57 @@ const CommandBlock: React.FC<{
 export const EnvAccessPage: React.FC<{ projectId: string }> = ({ projectId }) => {
   const { notify, feedbackNodes } = useUiFeedback();
   const [activeTab, setActiveTab] = useState<DeployTab>('normal-node');
+  const [accessInfo, setAccessInfo] = useState<ProjectAccessInfo>({ description: '' });
+  const [accessInfoLoading, setAccessInfoLoading] = useState(false);
+  const [accessInfoSaving, setAccessInfoSaving] = useState(false);
+  const [accessInfoError, setAccessInfoError] = useState('');
   const commands = useMemo(() => buildAccessCommands(projectId), [projectId]);
 
   const handleCopy = async (value: string) => {
     const ok = await copyText(value);
     notify(ok ? '部署命令已复制' : '复制失败，请手动复制命令', ok ? 'success' : 'error');
   };
+
+  const loadProjectAccessInfo = useCallback(async () => {
+    if (!projectId) {
+      setAccessInfo({ description: '' });
+      setAccessInfoError('');
+      return;
+    }
+    setAccessInfoLoading(true);
+    setAccessInfoError('');
+    try {
+      const next = await fetchProjectAccessInfo(projectId);
+      setAccessInfo(next);
+    } catch (err: any) {
+      const message = err?.message || '加载 WEB 访问配置失败';
+      setAccessInfoError(message);
+      notify(message, 'error');
+    } finally {
+      setAccessInfoLoading(false);
+    }
+  }, [notify, projectId]);
+
+  useEffect(() => {
+    void loadProjectAccessInfo();
+  }, [loadProjectAccessInfo]);
+
+  const handleSaveProjectAccessInfo = useCallback(async () => {
+    if (!projectId) return;
+    setAccessInfoSaving(true);
+    setAccessInfoError('');
+    try {
+      const saved = await saveProjectAccessInfo(projectId, accessInfo);
+      setAccessInfo(saved);
+      notify('WEB 访问配置已保存', 'success');
+    } catch (err: any) {
+      const message = err?.message || '保存 WEB 访问配置失败';
+      setAccessInfoError(message);
+      notify(message, 'error');
+    } finally {
+      setAccessInfoSaving(false);
+    }
+  }, [accessInfo, notify, projectId]);
 
   return (
     <div className="min-h-full bg-theme-bg-app px-8 py-8">
@@ -169,6 +293,15 @@ export const EnvAccessPage: React.FC<{ projectId: string }> = ({ projectId }) =>
             <span className="font-mono">{projectId || '-'}</span>
           </div>
         </div>
+
+        <ProjectAccessInfoSection
+          value={accessInfo}
+          loading={accessInfoLoading}
+          saving={accessInfoSaving}
+          error={accessInfoError}
+          onChange={setAccessInfo}
+          onSave={handleSaveProjectAccessInfo}
+        />
 
         <div className="grid gap-4 lg:grid-cols-3">
           <div className="rounded-2xl border border-theme-border bg-theme-surface p-5 shadow-sm">
