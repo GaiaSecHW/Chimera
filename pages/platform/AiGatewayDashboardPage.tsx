@@ -152,7 +152,7 @@ export const AiGatewayDashboardPage: React.FC<AiGatewayDashboardPageProps> = ({ 
           icon={<Activity className="h-5 w-5" />}
           label="实时队列"
           value={loading ? '-' : `${numberText(summary?.runtime?.active_requests || 0)} / ${numberText(summary?.runtime?.waiting_requests || 0)}`}
-          hint={`${numberText(summary?.runtime?.active_models || 0)} 个活跃模型 / ${numberText(summary?.runtime?.waiting_task_keys || 0)} 个任务密钥存在等待`}
+          hint={`${numberText(summary?.runtime?.active_models || 0)} 个模型活跃，${numberText(summary?.runtime?.waiting_task_keys || 0)} 个任务密钥处于等待`}
         />
         <MetricCard
           icon={<TrendingUp className="h-5 w-5" />}
