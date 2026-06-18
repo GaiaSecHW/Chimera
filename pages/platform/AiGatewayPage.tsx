@@ -1645,8 +1645,8 @@ export const AiGatewayPage: React.FC<AiGatewayPageProps> = ({ entryView = 'aigw-
               <button onClick={resetCapacityPoolForm} className="rounded-2xl bg-theme-elevated p-2 text-theme-text-secondary hover:bg-theme-elevated"><X className="h-5 w-5" /></button>
             </div>
             <div className="space-y-4 p-6">
-              <label className="block text-sm font-bold text-theme-text-secondary">池名称<input value={capacityPoolForm.pool_name} onChange={(e) => setCapacityPoolForm((v) => ({ ...v, pool_name: e.target.value }))} placeholder="例如 GPT-4o 生产池" className="mt-1 w-full rounded-2xl border border-theme-border px-4 py-3 outline-none" /></label>
-              <label className="block text-sm font-bold text-theme-text-secondary">描述<textarea value={capacityPoolForm.description} onChange={(e) => setCapacityPoolForm((v) => ({ ...v, description: e.target.value }))} className="mt-1 min-h-24 w-full rounded-2xl border border-theme-border px-4 py-3 outline-none" /></label>
+              <label className="block text-sm font-bold text-theme-text-secondary">池名称<input value={capacityPoolForm.pool_name} onChange={(e) => setCapacityPoolForm((v) => ({ ...v, pool_name: e.target.value }))} placeholder="例如 GPT-4o 生产池" className="mt-1 w-full rounded-2xl border border-theme-border bg-theme-bg-app px-4 py-3 outline-none" /></label>
+              <label className="block text-sm font-bold text-theme-text-secondary">描述<textarea value={capacityPoolForm.description} onChange={(e) => setCapacityPoolForm((v) => ({ ...v, description: e.target.value }))} className="mt-1 min-h-24 w-full rounded-2xl border border-theme-border bg-theme-bg-app px-4 py-3 outline-none" /></label>
               <label className="flex items-center gap-3 text-sm font-bold text-theme-text-secondary"><input type="checkbox" checked={capacityPoolForm.enabled} onChange={(e) => setCapacityPoolForm((v) => ({ ...v, enabled: e.target.checked }))} />启用</label>
             </div>
             <div className="flex items-center justify-end gap-3 border-t border-theme-border px-6 py-4">
@@ -1838,9 +1838,9 @@ export const AiGatewayPage: React.FC<AiGatewayPageProps> = ({ entryView = 'aigw-
             </div>
             <div className="space-y-4 p-6">
               <div className="grid gap-4 sm:grid-cols-2">
-                <label className="block text-sm font-bold text-theme-text-secondary">密钥名称<input value={llmKeyForm.key_name} onChange={(e) => setLlmKeyForm((v) => ({ ...v, key_name: e.target.value }))} className="mt-1 w-full rounded-2xl border border-theme-border px-4 py-3 outline-none" /></label>
+                <label className="block text-sm font-bold text-theme-text-secondary">密钥名称<input value={llmKeyForm.key_name} onChange={(e) => setLlmKeyForm((v) => ({ ...v, key_name: e.target.value }))} className="mt-1 w-full rounded-2xl border border-theme-border bg-theme-bg-app px-4 py-3 outline-none" /></label>
                 <label className="block text-sm font-bold text-theme-text-secondary">密钥类型
-                  <select value={llmKeyForm.key_type} disabled={Boolean(editingLlmKeyId)} onChange={(e) => setLlmKeyForm((v) => ({ ...v, key_type: e.target.value as 'task' | 'work' | 'app' }))} className="mt-1 w-full rounded-2xl border border-theme-border px-4 py-3 outline-none disabled:bg-theme-elevated disabled:text-theme-text-muted">
+                  <select value={llmKeyForm.key_type} disabled={Boolean(editingLlmKeyId)} onChange={(e) => setLlmKeyForm((v) => ({ ...v, key_type: e.target.value as 'task' | 'work' | 'app' }))} className="mt-1 w-full rounded-2xl border border-theme-border bg-theme-bg-app px-4 py-3 outline-none disabled:bg-theme-elevated disabled:text-theme-text-muted">
                     <option value="task">任务密钥</option>
                     <option value="work">工作密钥</option>
                     <option value="app">应用密钥</option>
@@ -1848,11 +1848,11 @@ export const AiGatewayPage: React.FC<AiGatewayPageProps> = ({ entryView = 'aigw-
                 </label>
               </div>
               <div className="grid gap-4 sm:grid-cols-2">
-                <label className="block text-sm font-bold text-theme-text-secondary">最大并发<input type="number" value={llmKeyForm.max_concurrency} onChange={(e) => setLlmKeyForm((v) => ({ ...v, max_concurrency: Number(e.target.value) || 0 }))} className="mt-1 w-full rounded-2xl border border-theme-border px-4 py-3 outline-none" /></label>
+                <label className="block text-sm font-bold text-theme-text-secondary">最大并发<input type="number" value={llmKeyForm.max_concurrency} onChange={(e) => setLlmKeyForm((v) => ({ ...v, max_concurrency: Number(e.target.value) || 0 }))} className="mt-1 w-full rounded-2xl border border-theme-border bg-theme-bg-app px-4 py-3 outline-none" /></label>
                 <label className="flex items-center gap-3 pt-8 text-sm font-bold text-theme-text-secondary"><input type="checkbox" checked={llmKeyForm.enabled} onChange={(e) => setLlmKeyForm((v) => ({ ...v, enabled: e.target.checked }))} />创建后立即启用</label>
               </div>
               <div className="grid gap-4 sm:grid-cols-2">
-                <label className="block text-sm font-bold text-theme-text-secondary">过期时间<input type="datetime-local" value={String(llmKeyForm.expires_at || '')} onChange={(e) => setLlmKeyForm((v) => ({ ...v, expires_at: e.target.value || null }))} className="mt-1 w-full rounded-2xl border border-theme-border px-4 py-3 outline-none" /></label>
+                <label className="block text-sm font-bold text-theme-text-secondary">过期时间<input type="datetime-local" value={String(llmKeyForm.expires_at || '')} onChange={(e) => setLlmKeyForm((v) => ({ ...v, expires_at: e.target.value || null }))} className="mt-1 w-full rounded-2xl border border-theme-border bg-theme-bg-app px-4 py-3 outline-none" /></label>
                 {llmKeyForm.key_type === 'work' ? (
                   <label className="block text-sm font-bold text-theme-text-secondary">父任务密钥
                     <select value={String(llmKeyForm.parent_key_id || '')} disabled={Boolean(editingLlmKeyId)} onChange={(e) => {
@@ -1863,7 +1863,7 @@ export const AiGatewayPage: React.FC<AiGatewayPageProps> = ({ entryView = 'aigw-
                         parent_key_id: parentId,
                         task_id: parent?.task_id || '',
                       }));
-                    }} className="mt-1 w-full rounded-2xl border border-theme-border px-4 py-3 outline-none disabled:bg-theme-elevated disabled:text-theme-text-muted">
+                    }} className="mt-1 w-full rounded-2xl border border-theme-border bg-theme-bg-app px-4 py-3 outline-none disabled:bg-theme-elevated disabled:text-theme-text-muted">
                       <option value="">选择父任务密钥</option>
                       {taskKeys.map((item) => <option key={item.id} value={item.id}>{item.key_name} · {item.task_id}</option>)}
                     </select>
@@ -1872,20 +1872,20 @@ export const AiGatewayPage: React.FC<AiGatewayPageProps> = ({ entryView = 'aigw-
               </div>
               <div className="grid gap-4 sm:grid-cols-2">
                 {llmKeyForm.key_type === 'app' ? (
-                  <label className="block text-sm font-bold text-theme-text-secondary">应用 ID<input value={llmKeyForm.app_id} disabled={Boolean(editingLlmKeyId)} onChange={(e) => setLlmKeyForm((v) => ({ ...v, app_id: e.target.value }))} className="mt-1 w-full rounded-2xl border border-theme-border px-4 py-3 outline-none disabled:bg-theme-elevated disabled:text-theme-text-muted" /></label>
+                  <label className="block text-sm font-bold text-theme-text-secondary">应用 ID<input value={llmKeyForm.app_id} disabled={Boolean(editingLlmKeyId)} onChange={(e) => setLlmKeyForm((v) => ({ ...v, app_id: e.target.value }))} className="mt-1 w-full rounded-2xl border border-theme-border bg-theme-bg-app px-4 py-3 outline-none disabled:bg-theme-elevated disabled:text-theme-text-muted" /></label>
                 ) : (
-                  <label className="block text-sm font-bold text-theme-text-secondary">任务 ID<input value={llmKeyForm.task_id} disabled={llmKeyForm.key_type === 'work' || Boolean(editingLlmKeyId)} onChange={(e) => setLlmKeyForm((v) => ({ ...v, task_id: e.target.value }))} className="mt-1 w-full rounded-2xl border border-theme-border px-4 py-3 outline-none disabled:bg-theme-elevated disabled:text-theme-text-muted" /></label>
+                  <label className="block text-sm font-bold text-theme-text-secondary">任务 ID<input value={llmKeyForm.task_id} disabled={llmKeyForm.key_type === 'work' || Boolean(editingLlmKeyId)} onChange={(e) => setLlmKeyForm((v) => ({ ...v, task_id: e.target.value }))} className="mt-1 w-full rounded-2xl border border-theme-border bg-theme-bg-app px-4 py-3 outline-none disabled:bg-theme-elevated disabled:text-theme-text-muted" /></label>
                 )}
                 {llmKeyForm.key_type === 'work' ? (
-                  <label className="block text-sm font-bold text-theme-text-secondary">子任务 ID<input value={llmKeyForm.sub_task_id} disabled={Boolean(editingLlmKeyId)} onChange={(e) => setLlmKeyForm((v) => ({ ...v, sub_task_id: e.target.value }))} className="mt-1 w-full rounded-2xl border border-theme-border px-4 py-3 outline-none disabled:bg-theme-elevated disabled:text-theme-text-muted" /></label>
+                  <label className="block text-sm font-bold text-theme-text-secondary">子任务 ID<input value={llmKeyForm.sub_task_id} disabled={Boolean(editingLlmKeyId)} onChange={(e) => setLlmKeyForm((v) => ({ ...v, sub_task_id: e.target.value }))} className="mt-1 w-full rounded-2xl border border-theme-border bg-theme-bg-app px-4 py-3 outline-none disabled:bg-theme-elevated disabled:text-theme-text-muted" /></label>
                 ) : llmKeyForm.key_type === 'app' ? (
-                  <label className="block text-sm font-bold text-theme-text-secondary">应用名称<input value={llmKeyForm.app_name} disabled={Boolean(editingLlmKeyId)} onChange={(e) => setLlmKeyForm((v) => ({ ...v, app_name: e.target.value }))} className="mt-1 w-full rounded-2xl border border-theme-border px-4 py-3 outline-none disabled:bg-theme-elevated disabled:text-theme-text-muted" /></label>
+                  <label className="block text-sm font-bold text-theme-text-secondary">应用名称<input value={llmKeyForm.app_name} disabled={Boolean(editingLlmKeyId)} onChange={(e) => setLlmKeyForm((v) => ({ ...v, app_name: e.target.value }))} className="mt-1 w-full rounded-2xl border border-theme-border bg-theme-bg-app px-4 py-3 outline-none disabled:bg-theme-elevated disabled:text-theme-text-muted" /></label>
                 ) : (
                   <div className="rounded-2xl border border-theme-border bg-theme-bg-app px-4 py-3 text-sm text-theme-text-muted">任务密钥不需要填写子任务 ID；如需限定到子任务，请创建工作密钥。</div>
                 )}
               </div>
               <label className="block text-sm font-bold text-theme-text-secondary">允许访问的算力池
-                <div className="mt-2 flex flex-wrap gap-2 rounded-2xl border border-theme-border p-3">
+                <div className="mt-2 flex flex-wrap gap-2 rounded-2xl border border-theme-border bg-theme-bg-app p-3">
                   {capacityPools.map((item) => {
                     const checked = llmKeyForm.capacity_pool_ids.includes(item.id);
                     return (
@@ -1909,7 +1909,7 @@ export const AiGatewayPage: React.FC<AiGatewayPageProps> = ({ entryView = 'aigw-
                 </div>
                 {llmKeyForm.key_type === 'work' ? <div className="mt-2 text-xs text-theme-text-muted">工作密钥不能单独定义算力池范围，会继承父任务密钥授权。</div> : llmKeyForm.key_type === 'app' ? <div className="mt-2 text-xs text-theme-text-muted">应用密钥必须显式选择可访问的算力池。</div> : null}
               </label>
-              <label className="block text-sm font-bold text-theme-text-secondary">备注<textarea value={llmKeyForm.description} onChange={(e) => setLlmKeyForm((v) => ({ ...v, description: e.target.value }))} className="mt-1 min-h-24 w-full rounded-2xl border border-theme-border px-4 py-3 outline-none" /></label>
+              <label className="block text-sm font-bold text-theme-text-secondary">备注<textarea value={llmKeyForm.description} onChange={(e) => setLlmKeyForm((v) => ({ ...v, description: e.target.value }))} className="mt-1 min-h-24 w-full rounded-2xl border border-theme-border bg-theme-bg-app px-4 py-3 outline-none" /></label>
             </div>
             <div className="flex items-center justify-end gap-3 border-t border-theme-border px-6 py-4">
               <button onClick={resetLlmKeyForm} className="rounded-2xl bg-theme-elevated px-4 py-2.5 text-sm font-bold text-theme-text-secondary">取消</button>
