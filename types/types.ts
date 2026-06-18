@@ -2347,7 +2347,7 @@ export interface ScheduleCenterUserTask {
   sync_lease_expires_at?: string | null;
   last_sync_error?: string | null;
   last_sync_http_status?: number | null;
-  delete_status?: 'none' | 'queued' | 'running' | 'failed' | string;
+  delete_status?: 'none' | 'queued' | 'running' | 'blocked' | 'failed' | string;
   delete_error?: string | null;
   delete_requested_at?: string | null;
   delete_started_at?: string | null;
@@ -2376,7 +2376,7 @@ export interface ScheduleCenterUserTaskDeleteQueueItem {
   name: string;
   task_type: ScheduleCenterUserTaskType | string;
   display_status: string;
-  delete_status: 'queued' | 'running' | 'failed' | string;
+  delete_status: 'queued' | 'running' | 'blocked' | 'failed' | string;
   delete_error?: string | null;
   last_error?: string | null;
   downstream_task_id?: string | null;
@@ -2394,6 +2394,7 @@ export interface ScheduleCenterUserTaskDeleteQueueResponse {
   stats: {
     queued_total: number;
     running_total: number;
+    blocked_total: number;
     failed_total: number;
   };
 }
