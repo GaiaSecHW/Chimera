@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { History, Loader2, Pencil, Play, Plus, RefreshCw, Search, Share2, Trash2 } from 'lucide-react';
+import { PageHeader } from '../../design-system';
 import {
   ExecutionTable,
   ExecutionTableEmptyRow,
@@ -200,26 +201,13 @@ export const RedlineOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) 
 
   return (
     <div className="flex flex-col gap-5 p-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <h1 className="text-xl font-semibold text-theme-text-primary">红线验证</h1>
-        <div className="flex items-center gap-2">
-          <button
-            onClick={fetchTasks}
-            className="p-1.5 rounded-lg hover:bg-theme-surface-hover transition-colors"
-            title="刷新"
-          >
-            <RefreshCw className="h-4 w-4 text-theme-text-secondary" />
-          </button>
-          <button
-            onClick={openCreateDialog}
-            className="px-4 py-2 text-sm rounded-lg bg-blue-600 text-white hover:bg-blue-700 flex items-center gap-1.5"
-          >
-            <Plus className="h-4 w-4" />
-            新建任务
-          </button>
-        </div>
-      </div>
+      <PageHeader
+        title="红线验证"
+        actions={<div className="flex items-center gap-2">
+          <button onClick={fetchTasks} className="p-1.5 rounded-lg hover:bg-theme-surface-hover transition-colors" title="刷新"><RefreshCw className="h-4 w-4 text-theme-text-secondary" /></button>
+          <button onClick={openCreateDialog} className="px-4 py-2 text-sm rounded-lg bg-blue-600 text-white hover:bg-blue-700 flex items-center gap-1.5"><Plus className="h-4 w-4" />新建任务</button>
+        </div>}
+      />
 
       {/* Filters */}
       <div className="flex items-center gap-3">

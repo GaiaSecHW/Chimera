@@ -3,6 +3,7 @@ import { ArrowLeft, ChevronRight, Search } from 'lucide-react';
 import { secoctoClients } from '../../clients/secocto';
 import type { SecOctoSkill, SecOctoSkillHealth, SecOctoProposal, SecOctoDecision, SecOctoPagerState, SecOctoNavKey } from '../../types/secocto';
 import { SecOctoPager, PAGE_SIZE_OPTIONS } from './shared/Pager';
+import { PageHeader } from '../../design-system';
 
 interface BrowseProps {
   onNavigateSkill: (fullName: string) => void;
@@ -57,18 +58,14 @@ export const SecOctoBrowsePage: React.FC<BrowseProps> = ({ onNavigateSkill, onNa
 
   return (
     <div className="px-8 pt-8 pb-12 animate-in fade-in duration-300">
-      <div className="flex items-end justify-between gap-3 flex-wrap pb-6">
-        <div>
-          <h1 className="text-2xl font-bold text-theme-text-primary mb-1">
-            技能<span className="gradient-text bg-gradient-to-r from-indigo-500 via-purple-500 to-violet-400 bg-clip-text text-transparent">进化</span>
-          </h1>
-          <p className="text-sm text-theme-text-secondary">Agent 可调用的安全检测能力 · 共 {healthTotal ?? total} 个技能</p>
-        </div>
-        <div className="relative">
+      <PageHeader
+        title={<>技能<span className="gradient-text bg-gradient-to-r from-indigo-500 via-purple-500 to-violet-400 bg-clip-text text-transparent">进化</span></>}
+        description={<>Agent 可调用的安全检测能力 · 共 {healthTotal ?? total} 个技能</>}
+        actions={<div className="relative">
           <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-theme-text-faint" />
           <input type="text" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="搜索技能…" className="pl-9 pr-4 py-2 rounded-xl border border-theme-border bg-theme-surface text-theme-text-primary text-sm w-56 outline-none focus:border-brand-primary transition-colors" />
-        </div>
-      </div>
+        </div>}
+      />
 
       {loading ? (
         <div className="py-12 text-center text-theme-text-secondary">加载中…</div>
@@ -125,17 +122,15 @@ export const SecOctoSkillDetailPage: React.FC<SkillDetailProps> = ({ fullName, o
 
   return (
     <div className="px-8 pt-8 pb-12 animate-in fade-in duration-300">
-      <button onClick={onBack} className="inline-flex items-center gap-1 text-sm text-theme-text-secondary hover:text-brand-primary mb-4 transition-colors">
-        <ArrowLeft size={14} />返回技能列表
-      </button>
+      <PageHeader
+        title={skill.name || skill.full_name}
+        description={skill.description || skill.short_desc || ''}
+        back={{ label: '返回技能列表', onClick: onBack }}
+      />
 
-      <div className="rounded-xl border border-theme-border bg-theme-surface p-5 mb-4">
-        <h1 className="text-xl font-bold text-theme-text-primary">{skill.name || skill.full_name}</h1>
-        <p className="text-sm text-theme-text-secondary mt-1">{skill.description || skill.short_desc || ''}</p>
-        <div className="flex gap-2 mt-2">
-          {skill.risk_level && <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${RISK_CLASS[skill.risk_level] || ''}`}>{skill.risk_level}</span>}
-          {skill.author && <span className="text-xs text-theme-text-faint">by {skill.author}</span>}
-        </div>
+      <div className="flex gap-2">
+        {skill.risk_level && <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${RISK_CLASS[skill.risk_level] || ''}`}>{skill.risk_level}</span>}
+        {skill.author && <span className="text-xs text-theme-text-faint">by {skill.author}</span>}
       </div>
 
       <button onClick={() => onNavigateEvolve(fullName)} className="px-4 py-2 rounded-lg bg-brand-primary text-theme-text-inverse font-medium text-sm hover:opacity-90 mb-6">发起进化合并</button>
@@ -209,13 +204,10 @@ export const SecOctoEvolvePage: React.FC<EvolveProps> = ({ fullName, onBack, onN
 
   return (
     <div className="px-8 pt-8 pb-12 animate-in fade-in duration-300 max-w-2xl mx-auto">
-      <button onClick={onBack} className="inline-flex items-center gap-1 text-sm text-theme-text-secondary hover:text-brand-primary mb-4 transition-colors">
-        <ArrowLeft size={14} />返回技能详情
-      </button>
-
-      <div className="rounded-xl border border-theme-border bg-theme-surface p-5 mb-4">
-        <h1 className="text-xl font-bold text-theme-text-primary">进化合并 · {skill?.name || fullName}</h1>
-      </div>
+      <PageHeader
+        title={`进化合并 · ${skill?.name || fullName}`}
+        back={{ label: '返回技能详情', onClick: onBack }}
+      />
 
       <div className="rounded-xl border border-theme-border bg-theme-surface p-4 mb-4">
         <h3 className="text-sm font-semibold text-theme-text-primary mb-3">选择模式</h3>
@@ -292,16 +284,14 @@ export const SecOctoResultPage: React.FC<ResultProps> = ({ fullName, decisionId,
 
   return (
     <div className="px-8 pt-8 pb-12 animate-in fade-in duration-300">
-      <button onClick={onBack} className="inline-flex items-center gap-1 text-sm text-theme-text-secondary hover:text-brand-primary mb-4 transition-colors">
-        <ArrowLeft size={14} />返回
-      </button>
+      <PageHeader
+        title={`进化结果 · 决策 #${decision.id}`}
+        back={{ label: '返回', onClick: onBack }}
+      />
 
-      <div className="rounded-xl border border-theme-border bg-theme-surface p-5 mb-4">
-        <h1 className="text-xl font-bold text-theme-text-primary">进化结果 · 决策 #{decision.id}</h1>
-        <div className="flex gap-2 mt-2">
-          <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-brand-soft text-brand-primary">{decision.mode || '—'}</span>
-          <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${decision.status === 'approved' ? 'bg-emerald-500/15 text-emerald-700' : decision.status === 'rejected' ? 'bg-red-500/15 text-red-700' : 'bg-amber-500/15 text-amber-700'}`}>{decision.status || '—'}</span>
-        </div>
+      <div className="flex gap-2 mb-4">
+        <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-brand-soft text-brand-primary">{decision.mode || '—'}</span>
+        <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${decision.status === 'approved' ? 'bg-emerald-500/15 text-emerald-700' : decision.status === 'rejected' ? 'bg-red-500/15 text-red-700' : 'bg-amber-500/15 text-amber-700'}`}>{decision.status || '—'}</span>
       </div>
 
       {proposals.length > 0 && (

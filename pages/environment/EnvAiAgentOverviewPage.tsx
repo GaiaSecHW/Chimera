@@ -13,6 +13,7 @@ import {
   useAiHelpers,
   useProjectAiAgents,
 } from './ai-agent/shared';
+import { PageHeader } from '../../design-system';
 
 const StatCard: React.FC<{ label: string; value: number; icon: React.ReactNode }> = ({ label, value, icon }) => (
  <div className="rounded-2xl border border-theme-border bg-theme-bg-app p-5">
@@ -40,19 +41,15 @@ export const EnvAiAgentOverviewPage: React.FC<{ projectId: string }> = ({ projec
     <div className="px-8 pt-8 pb-10">
       <div className="space-y-6">
         {feedbackNodes}
- <section className="rounded-[2rem] border border-theme-border bg-theme-bg-app p-6">
-          <div className="flex items-center justify-between gap-4 flex-wrap">
-            <div>
-              <h1 className="text-3xl font-black tracking-tight text-theme-text-primary">AI Agent 总览</h1>
-              <p className="mt-2 text-sm text-theme-text-muted">从项目维度看当前所有 helper 和 AI Agent 的整体状态，再按职责进入具体管理页面。</p>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              <button onClick={() => navigateToAppView('env-ai-agent-manage')} className="rounded-xl bg-theme-surface px-3 py-2 text-sm font-semibold text-white">AI Agent 管理</button>
-              <button onClick={() => navigateToAppView('env-ai-session')} className="rounded-xl border border-theme-border px-3 py-2 text-sm font-semibold text-theme-text-secondary">单会话</button>
-              <button onClick={() => navigateToAppView('env-ai-batch-session')} className="rounded-xl border border-theme-border px-3 py-2 text-sm font-semibold text-theme-text-secondary">批量会话</button>
-            </div>
-          </div>
-        </section>
+        <PageHeader
+          title="AI Agent 总览"
+          description="从项目维度看当前所有 helper 和 AI Agent 的整体状态，再按职责进入具体管理页面。"
+          actions={<div className="flex flex-wrap gap-2">
+            <button onClick={() => navigateToAppView('env-ai-agent-manage')} className="rounded-xl bg-theme-surface px-3 py-2 text-sm font-semibold text-white">AI Agent 管理</button>
+            <button onClick={() => navigateToAppView('env-ai-session')} className="rounded-xl border border-theme-border px-3 py-2 text-sm font-semibold text-theme-text-secondary">单会话</button>
+            <button onClick={() => navigateToAppView('env-ai-batch-session')} className="rounded-xl border border-theme-border px-3 py-2 text-sm font-semibold text-theme-text-secondary">批量会话</button>
+          </div>}
+        />
 
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-6">
           <StatCard label="Helper 总数" value={helpers.length} icon={<Boxes size={20} />} />

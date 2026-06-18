@@ -1,6 +1,6 @@
-
 import React, { useState, useEffect } from 'react';
 import { ShieldCheck, UserCheck, Search, RefreshCw, Loader2, CheckCircle2, ChevronRight, Layout, Database, Shield, ArrowRightLeft, User, Tags, X, Plus } from 'lucide-react';
+import { PageHeader } from '../../design-system';
 import { api } from '../../clients/api';
 import { UserInfo, Role } from '../../types/types';
 
@@ -69,23 +69,14 @@ export const PermMgmtPage: React.FC = () => {
 
   return (
     <div className="p-10 space-y-10 animate-in fade-in duration-500 pb-24 h-full overflow-hidden flex flex-col">
-      <div className="flex justify-between items-end shrink-0">
-        <div className="space-y-1">
-          <div className="flex items-center gap-3">
- <div className="p-3 bg-purple-600 text-white rounded-2xl shadow-purple-500/20">
-               <ArrowRightLeft size={28} />
-             </div>
-             <div>
-               <h2 className="text-3xl font-black text-theme-text-primary tracking-tight">功能权限分配</h2>
-             </div>
-          </div>
-        </div>
-        <div className="flex gap-4">
- <button onClick={loadInitialData} className="p-4 bg-theme-bg-app border border-theme-border text-theme-text-muted rounded-2xl hover:bg-theme-elevated transition-all active:scale-95">
+      <PageHeader
+        title={<><div className="p-3 bg-purple-600 text-white rounded-2xl shadow-purple-500/20 inline-flex"><ArrowRightLeft size={28} /></div> 功能权限分配</>}
+        actions={<div className="flex gap-4">
+          <button onClick={loadInitialData} className="p-4 bg-theme-bg-app border border-theme-border text-theme-text-muted rounded-2xl hover:bg-theme-elevated transition-all active:scale-95">
             <RefreshCw size={20} className={loading ? 'animate-spin' : ''} />
           </button>
-        </div>
-      </div>
+        </div>}
+      />
 
       <div className="flex-1 flex gap-10 min-h-0">
          {/* Left Column: User Explorer */}

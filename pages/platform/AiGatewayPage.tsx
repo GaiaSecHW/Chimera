@@ -5,7 +5,7 @@ import { api } from '../../clients/api';
 import { showConfirm } from '../../components/DialogService';
 import { AigwLogDetailsDialog } from '../../components/platform/AigwLogDetailsDialog';
 import { useUiFeedback } from '../../components/UiFeedback';
-import { DataTable, DataTableColumn, Modal } from '../../design-system';
+import { DataTable, DataTableColumn, Modal, PageHeader } from '../../design-system';
 import { AiGatewayTokenStatsPage } from './AiGatewayTokenStatsPage';
 import {
   AiGatewayBackendUnit,
@@ -1264,19 +1264,17 @@ export const AiGatewayPage: React.FC<AiGatewayPageProps> = ({ entryView = 'aigw-
   return (
     <div className="flex min-h-full flex-col gap-6 p-8">
       {feedbackNodes}
-      <div className="flex shrink-0 items-center justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-black tracking-tight text-theme-text-primary">{pageTitle}</h1>
-        </div>
-        <button
+      <PageHeader
+        title={pageTitle}
+        actions={<button
           onClick={refreshData}
           disabled={refreshing || loading}
           className="inline-flex items-center gap-2 rounded-2xl bg-theme-surface px-4 py-2.5 text-sm font-bold text-white transition hover:bg-theme-elevated disabled:opacity-50"
         >
           <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
           刷新
-        </button>
-      </div>
+        </button>}
+      />
 
       {error ? <div className="rounded-2xl border border-rose-500/20 bg-rose-500/15 px-4 py-3 text-sm font-medium text-rose-400">{error}</div> : null}
       {testResult ? (

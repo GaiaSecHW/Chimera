@@ -27,6 +27,7 @@ import { api } from '../../clients/api';
 import { AgentDetailPage } from './AgentDetailPage';
 import { useUiFeedback } from '../../components/UiFeedback';
 import { TemplateLlmBindingEditor } from './llm-binding/TemplateLlmBindingEditor';
+import { PageHeader } from '../../design-system';
 
 interface SyncHistoryItem {
   sync_id: string;
@@ -812,61 +813,17 @@ export const EnvAgentPage: React.FC<{ projectId: string }> = ({ projectId }) => 
         </div>
       )}
 
-      {/* Header Section */}
-      <div className="flex flex-col md:flex-row justify-between items-end gap-6">
-        <div>
-          <div className="flex items-center gap-3">
- <div className="p-3 bg-blue-600 text-white rounded-2xl">
-               <Monitor size={24} />
-             </div>
-             <h2 className="text-3xl font-black text-theme-text-primary tracking-tight">Agent 节点集群</h2>
-          </div>
-          <p className="text-theme-text-muted mt-1 font-medium italic">基于分布式容器化引擎的实时感知与安全探测底座</p>
-        </div>
-        <div className="flex gap-4">
-          <button
-            onClick={handleRefreshAgents}
-            disabled={!projectId || refreshingAgents}
- className="p-4 bg-theme-bg-app border border-theme-border text-theme-text-muted rounded-2xl hover:bg-theme-elevated transition-all group active:scale-95 disabled:opacity-50"
-          >
-            <RefreshCw size={20} className={(loading || refreshingAgents) ? 'animate-spin' : 'group-hover:rotate-180 transition-transform duration-500'} />
-          </button>
-          <button
-            onClick={handleCleanupOfflineWithK8s}
-            disabled={isCleaning || !projectId}
- className="bg-rose-600 text-white px-6 py-4 rounded-2xl font-black flex items-center gap-2 shadow-rose-500/20 hover:bg-rose-700 transition-all active:scale-95 disabled:opacity-50"
-          >
-            {isCleaning ? <Loader2 size={18} className="animate-spin" /> : <Trash2 size={18} />}
-            一键清空下线节点
-          </button>
-          <button
-            onClick={openBatchDeployModal}
-            disabled={!projectId || selectedAgentKeys.size === 0}
- className="bg-emerald-600 text-white px-6 py-4 rounded-2xl font-black flex items-center gap-2 shadow-emerald-500/20 hover:bg-emerald-700 transition-all active:scale-95 disabled:opacity-50"
-          >
-            <Zap size={18} /> 批量部署服务
-          </button>
-          <button
-            onClick={handleForceSyncServices}
-            disabled={!projectId || forceSyncing}
- className="bg-indigo-600 text-white px-6 py-4 rounded-2xl font-black flex items-center gap-2 shadow-indigo-500/20 hover:bg-indigo-700 transition-all active:scale-95 disabled:opacity-50"
-            title="强制同步服务状态"
-          >
-            {forceSyncing ? <Loader2 size={18} className="animate-spin" /> : <Sparkles size={18} />}
-            强制同步服务
-          </button>
-          <button
-            onClick={() => {
-              setIntegrationType(null);
-              setIsIntegrationModalOpen(true);
-            }}
-            disabled={!projectId}
- className="bg-blue-600 text-white px-8 py-4 rounded-2xl font-black flex items-center gap-2 hover:bg-blue-700 transition-all active:scale-95 disabled:opacity-50"
-          >
-            <Plus size={20} /> 接入新节点
-          </button>
-        </div>
-      </div>
+      <PageHeader
+        title={<span className="flex items-center gap-3"><span className="p-3 bg-blue-600 text-white rounded-2xl inline-flex"><Monitor size={24} /></span>Agent 节点集群</span>}
+        description={<span className="italic">基于分布式容器化引擎的实时感知与安全探测底座</span>}
+        actions={<div className="flex gap-4">
+            <button onClick={handleRefreshAgents} disabled={!projectId || refreshingAgents} className="p-4 bg-theme-bg-app border border-theme-border text-theme-text-muted rounded-2xl hover:bg-theme-elevated transition-all group active:scale-95 disabled:opacity-50"><RefreshCw size={20} className={(loading || refreshingAgents) ? 'animate-spin' : 'group-hover:rotate-180 transition-transform duration-500'} /></button>
+            <button onClick={handleCleanupOfflineWithK8s} disabled={isCleaning || !projectId} className="bg-rose-600 text-white px-6 py-4 rounded-2xl font-black flex items-center gap-2 shadow-rose-500/20 hover:bg-rose-700 transition-all active:scale-95 disabled:opacity-50">{isCleaning ? <Loader2 size={18} className="animate-spin" /> : <Trash2 size={18} />}一键清空下线节点</button>
+            <button onClick={openBatchDeployModal} disabled={!projectId || selectedAgentKeys.size === 0} className="bg-emerald-600 text-white px-6 py-4 rounded-2xl font-black flex items-center gap-2 shadow-emerald-500/20 hover:bg-emerald-700 transition-all active:scale-95 disabled:opacity-50"><Zap size={18} /> 批量部署服务</button>
+            <button onClick={handleForceSyncServices} disabled={!projectId || forceSyncing} className="bg-indigo-600 text-white px-6 py-4 rounded-2xl font-black flex items-center gap-2 shadow-indigo-500/20 hover:bg-indigo-700 transition-all active:scale-95 disabled:opacity-50" title="强制同步服务状态">{forceSyncing ? <Loader2 size={18} className="animate-spin" /> : <Sparkles size={18} />}强制同步服务</button>
+            <button onClick={() => { setIntegrationType(null); setIsIntegrationModalOpen(true); }} disabled={!projectId} className="bg-blue-600 text-white px-8 py-4 rounded-2xl font-black flex items-center gap-2 hover:bg-blue-700 transition-all active:scale-95 disabled:opacity-50"><Plus size={20} /> 接入新节点</button>
+          </div>}
+      />
 
       <div className="space-y-3">
         <div className="bg-theme-bg-app border border-theme-border rounded-2xl p-4 flex flex-col md:flex-row md:items-center gap-3">

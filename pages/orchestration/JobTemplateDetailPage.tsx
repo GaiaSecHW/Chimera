@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import { JobTemplate, TemplateScope, TemplateTag } from '../../types/types';
 import { api } from '../../clients/api';
+import { PageHeader } from '../../design-system';
 
 export const JobTemplateDetailPage: React.FC<{ templateId: string, onBack: () => void }> = ({ templateId, onBack }) => {
   const orchestrationApi = api.domains.orchestration;
@@ -175,37 +176,29 @@ export const JobTemplateDetailPage: React.FC<{ templateId: string, onBack: () =>
   return (
     <div className="flex flex-col h-full bg-theme-bg-app animate-in fade-in duration-500">
       {/* Header */}
-      <div className="flex items-center justify-between p-6 bg-theme-bg-app border-b border-theme-border shrink-0">
-        <div className="flex items-center gap-4">
-          <button onClick={onBack} className="p-2 text-theme-text-muted hover:text-theme-text-primary hover:bg-theme-elevated rounded-xl transition-all">
-            <ArrowLeft size={20} />
-          </button>
-          <div className="w-10 h-10 bg-amber-500/15 text-amber-400 rounded-xl flex items-center justify-center font-black shadow-inner">
-            <Zap size={20} />
-          </div>
-          <div>
-            <h2 className="text-2xl font-black text-theme-text-primary tracking-tight">{template?.name}</h2>
-            <p className="text-xs font-mono text-theme-text-muted mt-1">ID: {template?.id}</p>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-3">
-          {isEditMode ? (
-            <>
-              <button onClick={() => { setIsEditMode(false); loadTemplate(); }} className="px-5 py-2.5 text-sm font-bold text-theme-text-secondary bg-theme-elevated hover:bg-theme-elevated rounded-xl transition-all">
-                取消
+      <PageHeader
+        title={template?.name}
+        description={<p className="text-xs font-mono text-theme-text-muted mt-1">ID: {template?.id}</p>}
+        back={{ label: '返回模板列表', onClick: onBack }}
+        actions={
+          <div className="flex items-center gap-3">
+            {isEditMode ? (
+              <>
+                <button onClick={() => { setIsEditMode(false); loadTemplate(); }} className="px-5 py-2.5 text-sm font-bold text-theme-text-secondary bg-theme-elevated hover:bg-theme-elevated rounded-xl transition-all">
+                  取消
+                </button>
+                <button disabled={isSubmitting} onClick={handleSave} className="flex items-center gap-2 px-5 py-2.5 text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-xl transition-all disabled:opacity-50">
+                  {isSubmitting ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />} 保存
+                </button>
+              </>
+            ) : (
+              <button onClick={() => setIsEditMode(true)} className="flex items-center gap-2 px-5 py-2.5 text-sm font-bold text-theme-text-secondary bg-theme-bg-app border border-theme-border hover:bg-theme-elevated rounded-xl transition-all">
+                <Settings size={16} /> 编辑模式
               </button>
- <button disabled={isSubmitting} onClick={handleSave} className="flex items-center gap-2 px-5 py-2.5 text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-xl transition-all disabled:opacity-50">
-                {isSubmitting ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />} 保存
-              </button>
-            </>
-          ) : (
- <button onClick={() => setIsEditMode(true)} className="flex items-center gap-2 px-5 py-2.5 text-sm font-bold text-theme-text-secondary bg-theme-bg-app border border-theme-border hover:bg-theme-elevated rounded-xl transition-all">
-              <Settings size={16} /> 编辑模式
-            </button>
-          )}
-        </div>
-      </div>
+            )}
+          </div>
+        }
+      />
 
       {/* Main Content */}
       <div className="flex-1 overflow-y-auto p-8 custom-scrollbar">

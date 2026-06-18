@@ -5,6 +5,7 @@ import {
   RefreshCw, CheckCircle, XCircle, AlertCircle, Activity,
   Layers, Zap, Server, Clock
 } from 'lucide-react';
+import { PageHeader } from '../../design-system';
 import { AdminDashboardStats } from '../../types/types';
 
 interface AdminDashboardPageProps {
@@ -85,31 +86,23 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
   }, {});
   return (
     <div className="p-8 space-y-8 animate-in fade-in duration-500">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-black text-theme-text-primary tracking-tight flex items-center gap-3">
-            <Shield className="w-8 h-8 text-blue-400" />
-            全局管理员控制台
-          </h1>
-          <p className="text-theme-text-muted mt-2 text-sm">
-            平台整体运行态势与服务健康监控
-          </p>
-        </div>
-        <div className="flex items-center gap-4">
+      <PageHeader
+        title={<><Shield className="w-8 h-8 text-blue-400 inline" /> 全局管理员控制台</>}
+        description="平台整体运行态势与服务健康监控"
+        actions={<div className="flex items-center gap-4">
           <span className="text-xs text-theme-text-muted">
             更新于: {new Date(stats.lastUpdated).toLocaleString('zh-CN')}
           </span>
           <button
             onClick={handleRefresh}
             disabled={isRefreshing || loading}
- className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-500 transition-all disabled:opacity-50"
+            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-500 transition-all disabled:opacity-50"
           >
             <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
             刷新数据
           </button>
-        </div>
-      </div>
+        </div>}
+      />
 
       {/* Service Health Overview */}
  <div className="bg-theme-bg-app p-8 rounded-[3rem] border border-theme-border">

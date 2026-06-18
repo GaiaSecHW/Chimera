@@ -10,6 +10,7 @@ import type {
   AppScanTokenStats,
 } from './appScan';
 import { appScanApi } from './appScan';
+import { PageHeader } from '../../design-system';
 
 // ---------------------------------------------------------------------------
 //  Props
@@ -268,32 +269,21 @@ export const AppScanMonitorPage: React.FC<Props> = ({ onBack }) => {
   // ---- Render ----
   return (
     <div className="px-8 pb-10 pt-8 space-y-6">
-      {/* Header */}
- <section className="rounded-[2rem] border border-theme-border bg-theme-bg-app p-6">
-        <div className="flex items-start justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <button
-              type="button"
-              onClick={onBack}
-              className="rounded-lg p-2 text-theme-text-muted transition hover:bg-theme-elevated hover:text-theme-text-secondary"
-            >
-              <ArrowLeft size={18} />
-            </button>
-            <div>
-              <h1 className="text-xl font-black text-theme-text-primary">引擎监控</h1>
-            </div>
-          </div>
+      <PageHeader
+        title="引擎监控"
+        back={{ onClick: onBack }}
+        actions={
           <button
             type="button"
             onClick={() => void loadPool()}
             disabled={refreshing}
- className="inline-flex items-center gap-2 rounded-xl border border-theme-border bg-theme-bg-app px-4 py-2.5 text-sm font-bold text-theme-text-secondary hover:bg-theme-elevated disabled:opacity-60"
+            className="inline-flex items-center gap-2 rounded-xl border border-theme-border bg-theme-bg-app px-4 py-2.5 text-sm font-bold text-theme-text-secondary hover:bg-theme-elevated disabled:opacity-60"
           >
             {refreshing ? <Loader2 size={16} className="animate-spin" /> : <RefreshCw size={16} />}
             {refreshing ? '刷新中...' : '刷新'}
           </button>
-        </div>
-      </section>
+        }
+      />
 
       {/* Loading */}
       {loading && (

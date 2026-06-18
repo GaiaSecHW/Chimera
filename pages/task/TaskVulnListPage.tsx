@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { PageHeader } from '../../design-system';
 import { ArrowLeft, CheckCircle2, ChevronDown, Loader2, RefreshCw, Shield, X } from 'lucide-react';
 import { vulnApi } from '../../clients/vuln';
 import { useUiFeedback } from '../../components/UiFeedback';
@@ -197,84 +198,70 @@ export const TaskVulnListPage: React.FC<Props> = ({ projectId, taskId, onBack })
       className="space-y-4 px-5 py-5 md:px-6 2xl:px-8"
       style={{ backgroundColor: LK.canvas, minHeight: '100%', color: LK.inkSoft }}
     >
-      <div className="flex flex-wrap items-center justify-between gap-3 pb-4" style={{ borderBottom: `1px solid ${LK.borderSoft}` }}>
-        <div className="flex items-center gap-3">
-          <button
-            onClick={onBack}
-            className="inline-flex items-center gap-1 rounded-lg px-3 py-2 text-sm font-semibold transition-colors"
-            style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}`, color: LK.inkSoft }}
-            onMouseEnter={(e) => { e.currentTarget.style.borderColor = LK.primary; e.currentTarget.style.color = LK.primarySoft; }}
-            onMouseLeave={(e) => { e.currentTarget.style.borderColor = LK.border; e.currentTarget.style.color = LK.inkSoft; }}
-          >
-            <ArrowLeft size={15} /> 返回
-          </button>
-          <div>
-            <h1 className="text-2xl font-semibold leading-8 tracking-tight" style={{ color: LK.ink }}>
-              任务漏洞
-            </h1>
-            <div className="mt-0.5 text-xs" style={{ color: LK.muted, fontFamily: MONO }}>
-              source_task_id: {taskId || '—'}
+      <PageHeader
+        title="任务漏洞"
+        description={<span className="font-mono text-xs" style={{ color: LK.muted }}>source_task_id: {taskId || '—'}</span>}
+        back={{ label: '返回', onClick: onBack }}
+        actions={
+          <div className="flex items-center gap-2">
+            <div className="relative">
+              <button
+                onClick={() => setColumnMenuOpen((v) => !v)}
+                className="inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition-colors"
+                style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}`, color: LK.inkSoft }}
+                onMouseEnter={(e) => { e.currentTarget.style.borderColor = LK.primary; e.currentTarget.style.color = LK.primarySoft; }}
+                onMouseLeave={(e) => { e.currentTarget.style.borderColor = LK.border; e.currentTarget.style.color = LK.inkSoft; }}
+              >
+                列设置 <ChevronDown size={14} />
+              </button>
+              {columnMenuOpen ? (
+                <>
+                  <div
+                    className="fixed inset-0 z-10"
+                    onClick={() => setColumnMenuOpen(false)}
+                  />
+                  <div
+                    className="absolute right-0 z-20 mt-1 max-h-[60vh] w-56 overflow-auto rounded-lg p-2"
+                    style={{ backgroundColor: LK.surfaceRaised, border: `1px solid ${LK.border}` }}
+                  >
+                    <div className="px-2 py-1 text-[10px] font-black uppercase tracking-widest" style={{ color: LK.mutedSoft }}>
+                      可选列
+                    </div>
+                    {OPTIONAL_COLUMNS.map((col) => {
+                      const checked = optionalColumns.has(col.key);
+                      return (
+                        <button
+                          key={col.key}
+                          type="button"
+                          onClick={() => toggleColumn(col.key)}
+                          className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-xs transition-colors"
+                          style={{ color: LK.body }}
+                          onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = LK.surface; e.currentTarget.style.color = LK.ink; }}
+                          onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.color = LK.body; }}
+                        >
+                          <span style={{ color: checked ? LK.primary : LK.muted }}>
+                            {checked ? <CheckCircle2 size={13} /> : <span className="inline-block h-[13px] w-[13px] rounded-full" style={{ border: `1px solid ${LK.border}` }} />}
+                          </span>
+                          {col.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </>
+              ) : null}
             </div>
-          </div>
-        </div>
-        <div className="flex items-center gap-2">
-          <div className="relative">
             <button
-              onClick={() => setColumnMenuOpen((v) => !v)}
+              onClick={() => void loadCases(page)}
               className="inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition-colors"
               style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}`, color: LK.inkSoft }}
               onMouseEnter={(e) => { e.currentTarget.style.borderColor = LK.primary; e.currentTarget.style.color = LK.primarySoft; }}
               onMouseLeave={(e) => { e.currentTarget.style.borderColor = LK.border; e.currentTarget.style.color = LK.inkSoft; }}
             >
-              列设置 <ChevronDown size={14} />
+              <RefreshCw size={15} /> 刷新
             </button>
-            {columnMenuOpen ? (
-              <>
-                <div
-                  className="fixed inset-0 z-10"
-                  onClick={() => setColumnMenuOpen(false)}
-                />
-                <div
-                  className="absolute right-0 z-20 mt-1 max-h-[60vh] w-56 overflow-auto rounded-lg p-2"
-                  style={{ backgroundColor: LK.surfaceRaised, border: `1px solid ${LK.border}` }}
-                >
-                  <div className="px-2 py-1 text-[10px] font-black uppercase tracking-widest" style={{ color: LK.mutedSoft }}>
-                    可选列
-                  </div>
-                  {OPTIONAL_COLUMNS.map((col) => {
-                    const checked = optionalColumns.has(col.key);
-                    return (
-                      <button
-                        key={col.key}
-                        type="button"
-                        onClick={() => toggleColumn(col.key)}
-                        className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-xs transition-colors"
-                        style={{ color: LK.body }}
-                        onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = LK.surface; e.currentTarget.style.color = LK.ink; }}
-                        onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.color = LK.body; }}
-                      >
-                        <span style={{ color: checked ? LK.primary : LK.muted }}>
-                          {checked ? <CheckCircle2 size={13} /> : <span className="inline-block h-[13px] w-[13px] rounded-full" style={{ border: `1px solid ${LK.border}` }} />}
-                        </span>
-                        {col.label}
-                      </button>
-                    );
-                  })}
-                </div>
-              </>
-            ) : null}
           </div>
-          <button
-            onClick={() => void loadCases(page)}
-            className="inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition-colors"
-            style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}`, color: LK.inkSoft }}
-            onMouseEnter={(e) => { e.currentTarget.style.borderColor = LK.primary; e.currentTarget.style.color = LK.primarySoft; }}
-            onMouseLeave={(e) => { e.currentTarget.style.borderColor = LK.border; e.currentTarget.style.color = LK.inkSoft; }}
-          >
-            <RefreshCw size={15} /> 刷新
-          </button>
-        </div>
-      </div>
+        }
+      />
 
       <div className="grid gap-3 md:grid-cols-4">
         {[

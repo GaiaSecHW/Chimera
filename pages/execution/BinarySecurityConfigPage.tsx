@@ -8,7 +8,7 @@ import { EntryAnalysisConfigPage } from './EntryAnalysisConfigPage';
 import { DataflowVulnScanConfigPage } from './DataflowVulnScanConfigPage';
 import { B2SConfigPage } from './B2SConfigPage';
 import { VulnVerifyConfigPage } from './VulnVerifyConfigPage';
-import { PageSection, FormActionBar } from '../../design-system';
+import { PageSection, FormActionBar, PageHeader } from '../../design-system';
 
 const LK = {
   primary: '#4f73ff', primarySoft: '#7590ff', primaryDeep: '#3f63f1',
@@ -443,24 +443,11 @@ export const BinarySecurityConfigPage: React.FC<{ projectId: string; initialTab?
 
   return (
     <div style={{ padding: '32px 32px 40px', display: 'flex', flexDirection: 'column', gap: '24px' }}>
-      <section style={{ borderRadius: '24px', border: `1px solid ${LK.border}`, backgroundColor: LK.surface, padding: '24px' }}>
-        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '16px' }}>
-          <div>
-            <h1 style={{ fontSize: '30px', fontWeight: 600, letterSpacing: '-0.025em', color: LK.ink }}>参数配置</h1>
-            <p style={{ marginTop: '8px', maxWidth: '48rem', fontSize: '14px', color: LK.body }}>
-              按微服务分组查看和编辑配置。同一个微服务的参数归入同一个 Tab，不同微服务互相隔离；当前页面中的配置均按全局默认值管理，对所有项目生效。
-            </p>
-          </div>
-          <button
-            type="button"
-            onClick={() => void load()}
-            style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', borderRadius: '12px', border: `1px solid ${LK.border}`, backgroundColor: LK.surface, padding: '10px 16px', fontSize: '14px', fontWeight: 600, color: LK.inkSoft, cursor: 'pointer' }}
-          >
-            <RefreshCw size={16} />
-            刷新
-          </button>
-        </div>
-      </section>
+      <PageHeader
+        title="参数配置"
+        description="按微服务分组查看和编辑配置。同一个微服务的参数归入同一个 Tab，不同微服务互相隔离；当前页面中的配置均按全局默认值管理，对所有项目生效。"
+        actions={<button type="button" onClick={() => void load()} className="inline-flex items-center gap-2 rounded-xl border border-theme-border bg-theme-bg-app px-4 py-2.5 text-sm font-semibold text-theme-text-secondary hover:bg-theme-elevated transition-all active:scale-95"><RefreshCw size={16} />刷新</button>}
+      />
 
       <section style={{ borderRadius: '24px', border: `1px solid ${LK.border}`, backgroundColor: LK.surface, padding: '8px' }}>
         <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '8px' }}>

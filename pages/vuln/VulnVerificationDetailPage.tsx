@@ -1,5 +1,6 @@
 import React, { useMemo } from 'react';
 import { ArrowLeft } from 'lucide-react';
+import { PageHeader } from '../../design-system';
 import { VulnEnginePage } from './VulnEnginePage';
 
 interface VulnPageProps {
@@ -13,17 +14,11 @@ export const VulnVerificationDetailPage: React.FC<VulnPageProps> = ({ projectId,
   const targetCaseId = useMemo(() => localStorage.getItem(VERIFICATION_DETAIL_TARGET_KEY) || '', []);
 
   return (
- <div className="min-h-screen bg-theme-bg-app animate-in fade-in duration-300">
-      <div className="px-4 pt-4 xl:px-6 2xl:px-8">
-        <button
-          type="button"
-          onClick={() => onNavigateToView?.('vuln-verification')}
- className="inline-flex items-center gap-2 rounded-xl border border-theme-border bg-theme-bg-app px-4 py-2.5 text-sm font-black text-theme-text-secondary"
-        >
-          <ArrowLeft size={16} />
-          返回验证列表
-        </button>
-      </div>
+  <div className="min-h-screen bg-theme-bg-app animate-in fade-in duration-300">
+      <PageHeader
+        title="验证详情"
+        back={{ label: '返回验证列表', onClick: () => onNavigateToView?.('vuln-verification') }}
+      />
       <VulnEnginePage
         projectId={projectId}
         currentViewId="vuln-verification-detail"

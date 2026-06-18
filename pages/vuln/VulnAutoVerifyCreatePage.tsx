@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { ArrowLeft, CheckCircle2, FileText, Loader2, Play, RefreshCw, ShieldCheck, Wand2 } from 'lucide-react';
+import { PageHeader } from '../../design-system';
 import { api } from '../../clients/api';
 import type { VulnAutoVerifyContext, VulnAutoVerifyTaskCreateResponse, VulnThreatModelTemplate } from '../../clients/vuln';
 
@@ -169,38 +170,11 @@ export const VulnAutoVerifyCreatePage: React.FC<VulnAutoVerifyCreatePageProps> =
       style={{ backgroundColor: LK.canvas, color: LK.inkSoft }}
     >
       <div className="mx-auto max-w-[1500px] space-y-5">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div className="flex items-center gap-3">
-            <button
-              type="button"
-              onClick={goBack}
-              className="inline-flex items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold transition-colors"
-              style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}`, color: LK.body }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.borderColor = LK.primary;
-                e.currentTarget.style.color = LK.ink;
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.borderColor = LK.border;
-                e.currentTarget.style.color = LK.body;
-              }}
-            >
-              <ArrowLeft size={16} />
-              返回验证详情
-            </button>
-            <div>
-              <div className="text-[11px] font-semibold uppercase tracking-[0.24em]" style={{ color: LK.primary }}>
-                Auto Verification
-              </div>
-              <h1 className="mt-1 text-2xl font-semibold" style={{ color: LK.ink }}>
-                新建自动化验证任务
-              </h1>
-              <p className="mt-1 text-sm" style={{ color: LK.body }}>
-                从单个验证案例自动获取源码/二进制路径，编辑威胁模型后创建漏洞验证任务。
-              </p>
-            </div>
-          </div>
-          <button
+        <PageHeader
+          title="新建自动化验证任务"
+          description="从单个验证案例自动获取源码/二进制路径，编辑威胁模型后创建漏洞验证任务。"
+          back={{ label: '返回验证详情', onClick: goBack }}
+          actions={<button
             type="button"
             onClick={() => void loadContext(caseId)}
             className="inline-flex items-center gap-2 rounded-lg px-4 py-2.5 text-xs font-semibold transition-colors"
@@ -216,8 +190,8 @@ export const VulnAutoVerifyCreatePage: React.FC<VulnAutoVerifyCreatePageProps> =
           >
             <RefreshCw size={14} />
             重新加载
-          </button>
-        </div>
+          </button>}
+        />
 
         {error ? (
           <div

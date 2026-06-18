@@ -1,9 +1,10 @@
 
 import React, { useState, useEffect } from 'react';
-import { ChevronLeft, Download, Search, FileText, HardDrive, ShieldCheck, Loader2, Info, FolderOpen, RefreshCw, Layers } from 'lucide-react';
+import { Download, Search, FileText, HardDrive, ShieldCheck, Loader2, Info, FolderOpen, RefreshCw, Layers } from 'lucide-react';
 import { StaticPackage, PackageFile } from '../../types/types';
 import { api } from '../../clients/api';
 import { StatusBadge } from '../../components/StatusBadge';
+import { PageHeader } from '../../design-system';
 
 interface StaticPackageDetailPageProps {
   packageId: string;
@@ -73,41 +74,40 @@ export const StaticPackageDetailPage: React.FC<StaticPackageDetailPageProps> = (
 
   return (
     <div className="p-10 space-y-8 animate-in fade-in duration-500 pb-24">
-      {/* Header Section */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
-        <div className="flex items-center gap-5">
- <button onClick={onBack} className="p-4 bg-theme-bg-app border border-theme-border rounded-2xl hover:bg-theme-elevated transition-all group">
-            <ChevronLeft size={20} className="group-hover:-translate-x-1 transition-transform" />
-          </button>
-          <div>
-            <div className="flex items-center gap-3">
-              <h2 className="text-3xl font-black text-theme-text-primary tracking-tight">{pkg.name}</h2>
-              <StatusBadge status={pkg.check_status} />
-            </div>
-            <div className="flex items-center gap-2 mt-1">
-              <span className="text-theme-text-muted font-bold text-xs">MD5: {pkg.id}</span>
-              <span className="w-1 h-1 bg-slate-300 rounded-full" />
-              <span className="text-theme-text-muted font-bold text-xs">VER: {pkg.version}</span>
-            </div>
+      <PageHeader
+        title={
+          <div className="flex items-center gap-3">
+            {pkg.name}
+            <StatusBadge status={pkg.check_status} />
           </div>
-        </div>
-        <div className="flex gap-3">
-          <button
-            onClick={handleCheck}
-            disabled={checking}
-            className="px-6 py-4 bg-theme-bg-app border border-theme-border text-theme-text-secondary rounded-2xl font-black flex items-center gap-2 hover:bg-theme-elevated transition-all disabled:opacity-50"
-          >
-            {checking ? <Loader2 className="animate-spin" size={18} /> : <ShieldCheck size={18} />}
-            完整性校验
-          </button>
-          <a
-            href={assetApi.staticPackages.getDownloadUrl(pkg.id)}
- className="px-8 py-4 bg-blue-600 text-white rounded-2xl font-black flex items-center gap-2 hover:bg-blue-700 transition-all"
-          >
-            <Download size={18} /> 下载全量包
-          </a>
-        </div>
-      </div>
+        }
+        description={
+          <div className="flex items-center gap-2">
+            <span className="text-theme-text-muted font-bold text-xs">MD5: {pkg.id}</span>
+            <span className="w-1 h-1 bg-slate-300 rounded-full" />
+            <span className="text-theme-text-muted font-bold text-xs">VER: {pkg.version}</span>
+          </div>
+        }
+        back={{ label: '返回资源中心', onClick: onBack }}
+        actions={
+          <div className="flex gap-3">
+            <button
+              onClick={handleCheck}
+              disabled={checking}
+              className="px-6 py-4 bg-theme-bg-app border border-theme-border text-theme-text-secondary rounded-2xl font-black flex items-center gap-2 hover:bg-theme-elevated transition-all disabled:opacity-50"
+            >
+              {checking ? <Loader2 className="animate-spin" size={18} /> : <ShieldCheck size={18} />}
+              完整性校验
+            </button>
+            <a
+              href={assetApi.staticPackages.getDownloadUrl(pkg.id)}
+              className="px-8 py-4 bg-blue-600 text-white rounded-2xl font-black flex items-center gap-2 hover:bg-blue-700 transition-all"
+            >
+              <Download size={18} /> 下载全量包
+            </a>
+          </div>
+        }
+      />
 
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
         {/* Sidebar: Metadata */}

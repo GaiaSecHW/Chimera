@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from 'react';
 import {
-  ArrowLeft,
   CheckCircle2,
   Loader2,
   RefreshCw,
@@ -10,6 +9,7 @@ import { useNavigate } from 'react-router-dom';
 
 import { api } from '../../clients/api';
 import { BinaryEvolutionTaskDetail } from '../../clients/binaryEvolution';
+import { PageHeader } from '../../design-system';
 import { useUiFeedback } from '../../components/UiFeedback';
 import { APPLY_STYLE, fmtTime, normalizeTaskDetail, StatCard, STATUS_LABEL, STATUS_STYLE } from './BinaryEvolutionShared';
 
@@ -99,22 +99,11 @@ export const BinaryEvolutionTaskDetailPage: React.FC<Props> = ({ projectId, task
     <div className="space-y-6 px-8 pb-10 pt-8">
       {feedbackNodes}
 
- <section className="rounded-[2rem] border border-theme-border bg-theme-bg-app p-6">
-        <div className="flex flex-wrap items-start justify-between gap-4">
-          <div>
-            <button
-              type="button"
-              onClick={() => navigate('/binary-evolution-dataflow-vuln')}
-              className="inline-flex items-center gap-2 rounded-xl border border-theme-border px-4 py-2 text-sm font-semibold text-theme-text-secondary hover:bg-theme-elevated"
-            >
-              <ArrowLeft size={15} />
-              返回任务列表
-            </button>
-            <h1 className="mt-3 text-3xl font-black tracking-tight text-theme-text-primary">进化任务详情</h1>
-            <p className="mt-2 max-w-4xl text-sm text-theme-text-muted">
-              参考系统分析详情页的独立页面结构，集中查看任务状态、轮次收敛、输入批次、产物与事件。
-            </p>
-          </div>
+      <PageHeader
+        title="进化任务详情"
+        description="参考系统分析详情页的独立页面结构，集中查看任务状态、轮次收敛、输入批次、产物与事件。"
+        back={{ label: '返回任务列表', onClick: () => navigate('/binary-evolution-dataflow-vuln') }}
+        actions={
           <div className="flex flex-wrap gap-2">
             <button
               type="button"
@@ -143,8 +132,8 @@ export const BinaryEvolutionTaskDetailPage: React.FC<Props> = ({ projectId, task
               删除任务
             </button>
           </div>
-        </div>
-      </section>
+        }
+      />
 
       {loading ? (
  <section className="rounded-2xl border border-theme-border bg-theme-bg-app p-10 text-center text-sm text-theme-text-muted">

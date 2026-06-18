@@ -6,7 +6,7 @@ import {
 import { api } from '../../clients/api';
 import { FirmwareClusterInfo, FirmwareConfigEntry, FirmwareLlmConfigFileSummary } from '../../clients/firmwareUnpacker';
 import { StaticPipelineFlow } from './StaticPipelineFlow';
-import { PageSection, FormActionBar } from '../../design-system';
+import { PageSection, FormActionBar, PageHeader } from '../../design-system';
 
 const LK = {
   primary: '#4f73ff',
@@ -389,29 +389,11 @@ export const FirmwareUnpackConfigPage: React.FC<Props> = ({ projectId: _projectI
   return (
     <div className={embedded ? 'space-y-4' : 'p-4 space-y-4'} style={{ backgroundColor: LK.canvas, color: LK.inkSoft }}>
       {!embedded && (
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Settings size={18} style={{ color: LK.primarySoft }} />
-            <div>
-              <h2 className="text-sm font-semibold" style={{ color: LK.ink }}>固件解包 · 配置</h2>
-              <p className="text-xs" style={{ color: LK.muted }}>动态配置参数</p>
-            </div>
-          </div>
-          <div className="flex gap-2">
-            <button onClick={() => { loadConfig(); loadCluster(); loadLlmConfigFiles(); }}
-              className="inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-semibold transition"
-              style={{
-                backgroundColor: LK.surface,
-                border: `1px solid ${LK.border}`,
-                color: LK.body,
-              }}
-              onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = LK.surfaceRaised; }}
-              onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = LK.surface; }}
-            >
-              <RefreshCw size={12} /> 刷新
-            </button>
-          </div>
-        </div>
+        <PageHeader
+          title="固件解包 · 配置"
+          description="动态配置参数"
+          actions={<button onClick={() => { loadConfig(); loadCluster(); loadLlmConfigFiles(); }} className="inline-flex items-center gap-1.5 rounded-lg border border-theme-border bg-theme-bg-app px-3 py-1.5 text-xs font-semibold text-theme-text-secondary hover:bg-theme-elevated transition-all"><RefreshCw size={12} />刷新</button>}
+        />
       )}
 
  <section className={`${embedded ? 'rounded-[2rem] border p-6 ' : 'rounded-2xl border p-4 '}`} style={{ backgroundColor: embedded ? LK.surfaceGlass : LK.surface, border: `1px solid ${LK.border}` }}>

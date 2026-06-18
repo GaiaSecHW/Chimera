@@ -21,6 +21,7 @@ import { StatusBadge } from '../../components/StatusBadge';
 import { useUiFeedback } from '../../components/UiFeedback';
 import { openServiceTerminalWindow as openServiceTerminalWindowPopup } from './serviceTerminal';
 import { TemplateLlmBindingEditor } from './llm-binding/TemplateLlmBindingEditor';
+import { PageHeader } from '../../design-system';
 
 type BatchAction = 'start' | 'stop' | 'delete' | 'update';
 type DeployModalTab = 'scope' | 'templates' | 'agents' | 'advanced';
@@ -1100,38 +1101,15 @@ export const ServiceMgmtPage: React.FC<{ projectId: string }> = ({ projectId }) 
   return (
     <>
     <div className="p-10 space-y-8 animate-in fade-in duration-500 pb-24">
-      <div className="flex justify-between items-end">
-        <div>
-          <h2 className="text-3xl font-black text-theme-text-primary tracking-tight">集群服务发现</h2>
-          <p className="text-theme-text-muted mt-1 font-medium">服务批量启停删与实例筛选管理</p>
-        </div>
-        <div className="flex gap-4">
-          <button
-            onClick={() => void forceSyncAndReloadServices()}
-            disabled={!projectId || syncRefreshing}
- className="px-4 bg-blue-600 text-white rounded-2xl hover:bg-blue-700 transition-all active:scale-95 disabled:opacity-50 text-xs font-black flex items-center gap-2"
-            title="调用后端服务发现同步，再回填页面"
-          >
-            {syncRefreshing ? <Loader2 size={16} className="animate-spin" /> : <Zap size={16} />}
-            强制发现
-          </button>
-          <button
-            onClick={() => void loadAllServices({ showFullLoading: false })}
-            disabled={!projectId || refreshing}
- className="p-4 bg-theme-bg-app border border-theme-border text-theme-text-muted rounded-2xl hover:bg-theme-elevated transition-all active:scale-95 disabled:opacity-50"
-            title="仅重新拉取当前服务快照"
-          >
-            {refreshing ? <Loader2 size={20} className="animate-spin" /> : <RefreshCw size={20} />}
-          </button>
-          <button
-            onClick={() => void openDeployModal()}
-            disabled={!projectId}
- className="bg-theme-surface text-white px-8 py-4 rounded-2xl font-black flex items-center gap-2 disabled:opacity-60"
-          >
-            <Plus size={18} /> 部署新服务
-          </button>
-        </div>
-      </div>
+      <PageHeader
+        title="集群服务发现"
+        description="服务批量启停删与实例筛选管理"
+        actions={<div className="flex gap-4">
+            <button onClick={() => void forceSyncAndReloadServices()} disabled={!projectId || syncRefreshing} className="px-4 bg-blue-600 text-white rounded-2xl hover:bg-blue-700 transition-all active:scale-95 disabled:opacity-50 text-xs font-black flex items-center gap-2" title="调用后端服务发现同步，再回填页面">{syncRefreshing ? <Loader2 size={16} className="animate-spin" /> : <Zap size={16} />}强制发现</button>
+            <button onClick={() => void loadAllServices({ showFullLoading: false })} disabled={!projectId || refreshing} className="p-4 bg-theme-bg-app border border-theme-border text-theme-text-muted rounded-2xl hover:bg-theme-elevated transition-all active:scale-95 disabled:opacity-50" title="仅重新拉取当前服务快照">{refreshing ? <Loader2 size={20} className="animate-spin" /> : <RefreshCw size={20} />}</button>
+            <button onClick={() => void openDeployModal()} disabled={!projectId} className="bg-theme-surface text-white px-8 py-4 rounded-2xl font-black flex items-center gap-2 disabled:opacity-60"><Plus size={18} /> 部署新服务</button>
+          </div>}
+      />
 
       {!projectId && (
         <div className="p-4 bg-amber-500/15 border border-amber-500/20 text-amber-400 rounded-2xl text-xs font-bold flex items-center gap-3">

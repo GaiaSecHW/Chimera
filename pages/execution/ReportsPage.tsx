@@ -12,6 +12,7 @@ import {
   Plus
 } from 'lucide-react';
 import { StatusBadge } from '../../components/StatusBadge';
+import { PageHeader } from '../../design-system';
 
 const LK = {
   primary: '#4f73ff', primarySoft: '#7590ff', primaryDeep: '#3f63f1',
@@ -45,20 +46,11 @@ export const ReportsPage: React.FC = () => {
   return (
     <div className="p-10 space-y-10 animate-in fade-in duration-500 pb-24"
       style={{ backgroundColor: LK.canvas, color: LK.inkSoft }}>
-      <div className="flex justify-between items-end">
-        <div>
-          <h2 className="text-3xl font-semibold tracking-tight" style={{ color: LK.ink }}>安全审计报告</h2>
-          <p className="mt-1 font-medium" style={{ color: LK.body }}>专业化漏洞管理与风险分析中心：支持一键导出与合规性溯源</p>
-        </div>
-        <div className="flex gap-4">
- <button className="px-8 py-4 rounded-xl font-semibold flex items-center gap-2 transition-all active:scale-95"
-            style={{ backgroundColor: LK.primary, color: '#ffffff' }}
-            onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = LK.primaryDeep; }}
-            onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = LK.primary; }}>
-            <Plus size={18} /> 生成新报告
-          </button>
-        </div>
-      </div>
+      <PageHeader
+        title="安全审计报告"
+        description="专业化漏洞管理与风险分析中心：支持一键导出与合规性溯源"
+        actions={<button className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-5 py-3 text-sm font-semibold text-white transition-all hover:bg-blue-700 active:scale-95"><Plus size={18} />生成新报告</button>}
+      />
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
  <div className="p-8 rounded-[2rem] border flex flex-col justify-between"

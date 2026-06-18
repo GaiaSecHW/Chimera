@@ -4,6 +4,7 @@ import { ChevronRight, Loader2, Monitor, Pause, Play, Plus, RefreshCw, Search, S
 import type { AppScanPlatform, AppScanScanMode, AppScanStatus, AppScanTaskSummary } from './appScan';
 import { appScanApi } from './appScan';
 import { showConfirm } from '../../components/DialogService';
+import { PageHeader } from '../../design-system';
 
 // ---------------------------------------------------------------------------
 //  Props
@@ -264,20 +265,15 @@ export const AppScanOverviewPage: React.FC<Props> = ({ projectId, onOpenTask, on
   // ---- Render ----
   return (
     <div className="px-8 pb-10 pt-8 space-y-6">
-      {/* Header */}
- <section className="rounded-[2rem] border border-theme-border bg-theme-bg-app p-6">
-        <div className="flex items-start justify-between gap-4">
-          <div>
-            <h1 className="text-2xl font-black text-theme-text-primary">turing 扫描工具</h1>
-            <p className="mt-2 max-w-3xl text-sm text-theme-text-muted">
-              上传 APK/HAP 应用包或源码压缩包，按平台线别（APP 直接反编译 / WEB 预处理拆分服务）启动检测→挖掘→验证三阶段扫描流水线，实现 AI 驱动的端到端安全审计。
-            </p>
-          </div>
+      <PageHeader
+        title="turing 扫描工具"
+        description="上传 APK/HAP 应用包或源码压缩包，按平台线别（APP 直接反编译 / WEB 预处理拆分服务）启动检测→挖掘→验证三阶段扫描流水线，实现 AI 驱动的端到端安全审计。"
+        actions={
           <div className="flex items-center gap-3">
             <button
               type="button"
               onClick={() => setShowCreateDialog(true)}
- className="inline-flex items-center gap-2 rounded-xl bg-theme-surface px-4 py-2.5 text-sm font-bold text-white hover:bg-theme-elevated"
+              className="inline-flex items-center gap-2 rounded-xl bg-theme-surface px-4 py-2.5 text-sm font-bold text-white hover:bg-theme-elevated"
             >
               <Plus size={16} />
               创建任务
@@ -285,7 +281,7 @@ export const AppScanOverviewPage: React.FC<Props> = ({ projectId, onOpenTask, on
             <button
               type="button"
               onClick={onOpenMonitor}
- className="inline-flex items-center gap-2 rounded-xl border border-theme-border bg-theme-bg-app px-4 py-2.5 text-sm font-bold text-theme-text-secondary hover:bg-theme-elevated"
+              className="inline-flex items-center gap-2 rounded-xl border border-theme-border bg-theme-bg-app px-4 py-2.5 text-sm font-bold text-theme-text-secondary hover:bg-theme-elevated"
             >
               <Monitor size={16} />
               引擎监控
@@ -294,14 +290,14 @@ export const AppScanOverviewPage: React.FC<Props> = ({ projectId, onOpenTask, on
               type="button"
               onClick={() => void refresh()}
               disabled={refreshing}
- className="inline-flex items-center gap-2 rounded-xl border border-theme-border bg-theme-bg-app px-4 py-2.5 text-sm font-bold text-theme-text-secondary hover:bg-theme-elevated disabled:opacity-60"
+              className="inline-flex items-center gap-2 rounded-xl border border-theme-border bg-theme-bg-app px-4 py-2.5 text-sm font-bold text-theme-text-secondary hover:bg-theme-elevated disabled:opacity-60"
             >
               {refreshing ? <Loader2 size={16} className="animate-spin" /> : <RefreshCw size={16} />}
               {refreshing ? '刷新中...' : '刷新'}
             </button>
           </div>
-        </div>
-      </section>
+        }
+      />
 
       {/* Error banner */}
       {error && (

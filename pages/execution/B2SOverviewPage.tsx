@@ -10,6 +10,7 @@ import { ServicePageTitle, useServiceBuildVersion } from '../../components/execu
 import { B2SStatusBadge, B2S_TERMINAL_STATUSES, formatB2SOverallProgressBasis, formatB2SStatus, formatDateTime, pct } from './b2sPresentation';
 import { SlotResourceBlock } from './slotResourceBlock';
 import { showConfirm } from '../../components/DialogService';
+import { PageHeader } from '../../design-system';
 
 interface Props {
   projectId: string;
@@ -528,19 +529,15 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
 
   return (
     <div className="px-8 pb-10 pt-8 space-y-6">
- <section className="rounded-[2rem] border border-theme-border bg-theme-bg-app p-6">
-        <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
-          <div>
-            <ServicePageTitle title="二进制逆向" version={buildVersion} />
-            <p className="mt-2 max-w-3xl text-sm text-theme-text-muted">
-              集中查看当前项目关联的代码逆向还原任务，统一管理状态、进度、阶段与结果，并从同一入口创建新的逆向任务。
-            </p>
-          </div>
+      <PageHeader
+        title={<ServicePageTitle title="二进制逆向" version={buildVersion} className="" />}
+        description="集中查看当前项目关联的代码逆向还原任务，统一管理状态、进度、阶段与结果，并从同一入口创建新的逆向任务。"
+        actions={
           <div className="flex items-center gap-3">
             <button
               type="button"
               onClick={openCreateDialog}
- className="inline-flex items-center gap-2 rounded-xl bg-theme-surface px-4 py-2.5 text-sm font-bold text-white hover:bg-theme-elevated"
+              className="inline-flex items-center gap-2 rounded-xl bg-theme-surface px-4 py-2.5 text-sm font-bold text-white hover:bg-theme-elevated"
             >
               <Plus size={16} />
               创建任务
@@ -551,14 +548,14 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
                 void load(false);
                 void loadPiClusterCapacity();
               }}
- className="inline-flex items-center gap-2 rounded-xl border border-theme-border bg-theme-bg-app px-4 py-2.5 text-sm font-bold text-theme-text-secondary hover:bg-theme-elevated"
+              className="inline-flex items-center gap-2 rounded-xl border border-theme-border bg-theme-bg-app px-4 py-2.5 text-sm font-bold text-theme-text-secondary hover:bg-theme-elevated"
             >
               {refreshing ? <Loader2 size={16} className="animate-spin" /> : <RefreshCw size={16} />}
               {refreshing ? '刷新中...' : '刷新'}
             </button>
           </div>
-        </div>
-      </section>
+        }
+      />
 
       {error && (
         <div className="rounded-2xl border border-rose-500/20 bg-rose-500/15 px-4 py-3 text-sm font-semibold text-rose-400">

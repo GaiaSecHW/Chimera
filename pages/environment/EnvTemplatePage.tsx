@@ -55,6 +55,7 @@ import { ComposeViewer } from '../../components/ComposeViewer';
 import { useUiFeedback } from '../../components/UiFeedback';
 import { TemplateLlmBindingEditor, normalizeTemplateLlmBinding } from './llm-binding/TemplateLlmBindingEditor';
 import { AgentDetailPage } from './AgentDetailPage';
+import { PageHeader } from '../../design-system';
 
 // Helper to build tree from flat paths
 interface TreeNode {
@@ -2699,20 +2700,14 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
   return (
     <>
     <div className="p-10 space-y-10 animate-in fade-in duration-300 pb-24 h-full overflow-y-auto custom-scrollbar">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6">
-        <div>
-          <h2 className="text-3xl font-black text-theme-text-primary tracking-tight">环境模板管理</h2>
-          <p className="text-theme-text-muted mt-1 font-medium">标准化、可复用的安全测试沙箱编排模版库</p>
-        </div>
-        <div className="flex gap-4">
- <button onClick={loadTemplates} className="p-4 bg-theme-bg-app border border-theme-border text-theme-text-muted rounded-2xl hover:bg-theme-elevated transition-all">
-            <RefreshCw size={20} className={loading ? 'animate-spin' : ''} />
-          </button>
- <button onClick={() => setIsUploadModalOpen(true)} className="bg-blue-600 text-white px-8 py-4 rounded-2xl font-black flex items-center gap-2 hover:bg-blue-700 transition-all active:scale-95">
-            <Plus size={20} /> 上传新模版
-          </button>
-        </div>
-      </div>
+      <PageHeader
+        title="环境模板管理"
+        description="标准化、可复用的安全测试沙箱编排模版库"
+        actions={<div className="flex gap-4">
+            <button onClick={loadTemplates} className="p-4 bg-theme-bg-app border border-theme-border text-theme-text-muted rounded-2xl hover:bg-theme-elevated transition-all"><RefreshCw size={20} className={loading ? 'animate-spin' : ''} /></button>
+            <button onClick={() => setIsUploadModalOpen(true)} className="bg-blue-600 text-white px-8 py-4 rounded-2xl font-black flex items-center gap-2 hover:bg-blue-700 transition-all active:scale-95"><Plus size={20} /> 上传新模版</button>
+          </div>}
+      />
 
       {/* Batch Action Bar */}
       {selectedNames.size > 0 && (

@@ -3,10 +3,11 @@ import React from 'react';
 import { Loader2, Box } from 'lucide-react';
 import { Agent, EnvTemplate, AsyncTask } from '../types/types';
 import { StatusBadge } from '../components/StatusBadge';
+import { PageHeader } from '../design-system';
 
 export const EnvAgentPage: React.FC<{ agents: Agent[]; isLoading: boolean }> = ({ agents, isLoading }) => (
   <div className="p-10 space-y-8 animate-in fade-in duration-300">
-    <h2 className="text-3xl font-black text-theme-text-primary tracking-tight">Agent 管理</h2>
+    <PageHeader title="Agent 管理" />
  <div className="bg-theme-bg-app rounded-[2.5rem] border border-theme-border overflow-hidden">
       <table className="w-full text-left">
         <thead className="bg-slate-100/50 border-b border-theme-border"><tr className="text-[10px] font-black text-theme-text-muted uppercase tracking-widest"><th className="px-8 py-6">主机名</th><th className="px-8 py-6">IP 地址</th><th className="px-8 py-6">负载</th><th className="px-8 py-6">状态</th></tr></thead>
@@ -27,7 +28,7 @@ export const EnvAgentPage: React.FC<{ agents: Agent[]; isLoading: boolean }> = (
 
 export const EnvTemplatePage: React.FC<{ templates: EnvTemplate[]; isLoading: boolean }> = ({ templates, isLoading }) => (
   <div className="p-10 space-y-8 animate-in fade-in duration-300">
-    <h2 className="text-3xl font-black text-theme-text-primary tracking-tight">环境模板管理</h2>
+    <PageHeader title="环境模板管理" />
     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
       {isLoading ? <Loader2 className="animate-spin text-blue-400" /> : templates.map(t => (
  <div key={t.name} className="bg-theme-bg-app p-8 rounded-[2.5rem] border border-theme-border transition-all group">
@@ -43,7 +44,7 @@ export const EnvTemplatePage: React.FC<{ templates: EnvTemplate[]; isLoading: bo
 
 export const EnvTasksPage: React.FC<{ tasks: AsyncTask[]; isLoading: boolean }> = ({ tasks, isLoading }) => (
   <div className="p-10 space-y-8 animate-in fade-in duration-300">
-    <h2 className="text-3xl font-black text-theme-text-primary tracking-tight">环境模板部署/卸载任务管理</h2>
+    <PageHeader title="环境模板部署/卸载任务管理" />
  <div className="bg-theme-bg-app rounded-[2.5rem] border border-theme-border overflow-hidden">
       <table className="w-full text-left">
         <thead className="bg-slate-100/50 border-b border-theme-border"><tr className="text-[10px] font-black text-theme-text-muted uppercase tracking-widest"><th className="px-8 py-6">任务 ID</th><th className="px-8 py-6">类型</th><th className="px-8 py-6">进度</th><th className="px-8 py-6">状态</th></tr></thead>

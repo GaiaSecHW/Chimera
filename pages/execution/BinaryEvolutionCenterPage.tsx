@@ -11,6 +11,7 @@ import {
 import { useNavigate, useParams } from 'react-router-dom';
 
 import { api } from '../../clients/api';
+import { PageHeader } from '../../design-system';
 import {
   BinaryEvolutionPreviewResponse,
   BinaryEvolutionTaskSummary,
@@ -166,12 +167,7 @@ const BinaryEvolutionTaskListView: React.FC<Props> = ({ projectId }) => {
     <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', paddingLeft: '32px', paddingBottom: '40px', paddingTop: '32px' }}>
       {feedbackNodes}
 
- <section style={{ borderRadius: '24px', border: `1px solid ${LK.borderSoft}`, backgroundColor: LK.surface, padding: '24px' }}>
-        <h1 style={{ fontSize: '30px', fontWeight: 600, letterSpacing: '-0.025em', color: LK.ink }}>进化中心任务</h1>
-        <p style={{ marginTop: '8px', maxWidth: '56rem', fontSize: '14px', color: LK.body }}>
-          集中管理进化任务的创建与历史回看。点击任意任务可进入独立详情页查看轮次收敛、产物应用与事件轨迹。
-        </p>
-      </section>
+	<PageHeader title="进化中心任务" description="集中管理进化任务的创建与历史回看。点击任意任务可进入独立详情页查看轮次收敛、产物应用与事件轨迹。" />
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '16px' }}>
         <StatCard label="总任务" value={tasks.length} />

@@ -3,6 +3,7 @@ import { CheckSquare, ChevronRight, Cpu, FileText, FolderTree, Info, Loader2, Ne
 import { api } from '../../clients/api';
 import { ProcessItem, ProcessMonitorNode, ProcessSyncCandidateTreeNode, ProcessSyncPreviewResponse } from '../../types/types';
 import { useUiFeedback } from '../../components/UiFeedback';
+import { PageHeader } from '../../design-system';
 
 type ProcessTreeNode = ProcessItem & { children: ProcessTreeNode[] };
 type FileTreeNode = ProcessSyncCandidateTreeNode & { loaded?: boolean };
@@ -440,30 +441,14 @@ export const EnvProcessMonitorDetailPage: React.FC<{ projectId: string; initialS
   return (
     <>
       <div className="p-10 space-y-5">
-        <div className="flex items-end justify-between">
-          <div>
-            <h2 className="text-3xl font-black text-theme-text-primary tracking-tight">节点进程监控 - 进程详情</h2>
-            <p className="text-theme-text-muted mt-1 font-medium">左侧全局文件系统树，右侧进程树；支持进程详情与同步确认</p>
-          </div>
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => void loadNodes()}
-              disabled={!projectId || loadingNodes}
-              className="px-4 py-3 rounded-2xl border border-theme-border bg-theme-bg-app hover:bg-theme-elevated text-theme-text-secondary text-xs font-bold uppercase tracking-wider flex items-center gap-2"
-            >
-              {loadingNodes ? <Loader2 size={16} className="animate-spin" /> : <RefreshCw size={16} />}
-              刷新节点
-            </button>
-            <button
-              onClick={() => void loadProcesses()}
-              disabled={!projectId || !selectedService || loadingProcesses}
-              className="px-4 py-3 rounded-2xl border border-theme-border bg-theme-bg-app hover:bg-theme-elevated text-theme-text-secondary text-xs font-bold uppercase tracking-wider flex items-center gap-2"
-            >
-              {loadingProcesses ? <Loader2 size={16} className="animate-spin" /> : <RefreshCw size={16} />}
-              刷新进程
-            </button>
-          </div>
-        </div>
+        <PageHeader
+          title="节点进程监控 - 进程详情"
+          description="左侧全局文件系统树，右侧进程树；支持进程详情与同步确认"
+          actions={<div className="flex items-center gap-3">
+            <button onClick={() => void loadNodes()} disabled={!projectId || loadingNodes} className="px-4 py-3 rounded-2xl border border-theme-border bg-theme-bg-app hover:bg-theme-elevated text-theme-text-secondary text-xs font-bold uppercase tracking-wider flex items-center gap-2">{loadingNodes ? <Loader2 size={16} className="animate-spin" /> : <RefreshCw size={16} />}刷新节点</button>
+            <button onClick={() => void loadProcesses()} disabled={!projectId || !selectedService || loadingProcesses} className="px-4 py-3 rounded-2xl border border-theme-border bg-theme-bg-app hover:bg-theme-elevated text-theme-text-secondary text-xs font-bold uppercase tracking-wider flex items-center gap-2">{loadingProcesses ? <Loader2 size={16} className="animate-spin" /> : <RefreshCw size={16} />}刷新进程</button>
+          </div>}
+        />
 
         <div className="grid grid-cols-1 xl:grid-cols-1 gap-3">
           <div>

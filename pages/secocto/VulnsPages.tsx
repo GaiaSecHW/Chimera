@@ -3,6 +3,7 @@ import { ArrowLeft, ChevronRight, Search } from 'lucide-react';
 import { secoctoClients } from '../../clients/secocto';
 import type { SecOctoVulnFinding, SecOctoVulnStats, SecOctoAnnotation, SecOctoPagerState, SecOctoNavKey, SecOctoReport } from '../../types/secocto';
 import { SecOctoPager, PAGE_SIZE_OPTIONS } from './shared/Pager';
+import { PageHeader } from '../../design-system';
 
 const SEVERITY_ORDER = ['critical', 'high', 'medium', 'low', 'note'] as const;
 const STATUS_TABS = ['confirmed', 'pending', 'false_positive', 'disputed'] as const;
@@ -79,16 +80,10 @@ export const SecOctoVulnsListPage: React.FC<VulnsListProps> = ({ onNavigateDetai
 
   return (
     <div className="px-8 pt-8 pb-12 animate-in fade-in duration-300">
-      <div className="flex items-end justify-between gap-3 flex-wrap pb-6">
-        <div>
-          <h1 className="text-2xl font-bold text-theme-text-primary mb-1">
-            漏洞<span className="gradient-text bg-gradient-to-r from-indigo-500 via-purple-500 to-violet-400 bg-clip-text text-transparent">管理</span>
-          </h1>
-          <p className="text-sm text-theme-text-secondary">
-            安全检测发现的风险 · 共 {total} 条
-          </p>
-        </div>
-        <div className="relative">
+      <PageHeader
+        title={<>漏洞<span className="gradient-text bg-gradient-to-r from-indigo-500 via-purple-500 to-violet-400 bg-clip-text text-transparent">管理</span></>}
+        description={<>安全检测发现的风险 · 共 {total} 条</>}
+        actions={<div className="relative">
           <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-theme-text-faint" />
           <input
             type="text"
@@ -97,8 +92,8 @@ export const SecOctoVulnsListPage: React.FC<VulnsListProps> = ({ onNavigateDetai
             placeholder="搜索..."
             className="pl-9 pr-4 py-2 rounded-xl border border-theme-border bg-theme-surface text-theme-text-primary text-sm w-56 outline-none focus:border-brand-primary transition-colors"
           />
-        </div>
-      </div>
+        </div>}
+      />
 
       <div className="flex gap-2 mb-3 flex-wrap">
         {SEVERITY_ORDER.map((sev) => (
@@ -221,13 +216,15 @@ export const SecOctoVulnDetailPage: React.FC<VulnDetailProps> = ({ findingId, on
 
   return (
     <div className="px-8 pt-8 pb-12 animate-in fade-in duration-300">
-      <button onClick={onBack} className="inline-flex items-center gap-1 text-sm text-theme-text-secondary hover:text-brand-primary mb-4 transition-colors">
-        <ArrowLeft size={14} />返回漏洞列表
-      </button>
+      <PageHeader
+        title={finding.title || finding.rule_name || `Finding #${finding.id}`}
+        description={finding.location || finding.file_path || '—'}
+        back={{ label: '返回漏洞列表', onClick: onBack }}
+      />
 
       <div className={`rounded-xl border-l-4 p-4 mb-4 ${severityBanner?.includes('red') ? 'border-l-red-500' : severityBanner?.includes('orange') ? 'border-l-orange-500' : severityBanner?.includes('amber') ? 'border-l-amber-500' : 'border-l-blue-500'}`}>
-        <h1 className="text-xl font-bold text-theme-text-primary">{finding.title || finding.rule_name || `Finding #${finding.id}`}</h1>
-        <div className="text-sm text-theme-text-secondary mt-1">{finding.location || finding.file_path || '—'}</div>
+        {finding.severity && <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${SEV_STYLE[finding.severity] || SEV_STYLE.note}`}>{SEV_LABEL[finding.severity] || finding.severity}</span>}
+        {finding.status && <span className={`ml-2 px-2 py-0.5 rounded-full text-xs font-medium ${STATUS_STYLE[finding.status] || ''}`}>{STATUS_LABEL[finding.status] || finding.status}</span>}
       </div>
 
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
@@ -331,13 +328,13 @@ export const SecOctoReportDetailPage: React.FC<ReportDetailProps> = ({ reportId,
 
   return (
     <div className="px-8 pt-8 pb-12 animate-in fade-in duration-300">
-      <button onClick={onBack} className="inline-flex items-center gap-1 text-sm text-theme-text-secondary hover:text-brand-primary mb-4 transition-colors">
-        <ArrowLeft size={14} />返回漏洞列表
-      </button>
+      <PageHeader
+        title={`报告 #${report.id}`}
+        back={{ label: '返回漏洞列表', onClick: onBack }}
+      />
 
       <div className={`rounded-xl border-l-4 p-4 mb-4 ${highestSev.includes('high') || highestSev.includes('critical') ? 'border-l-red-500' : highestSev.includes('medium') ? 'border-l-amber-500' : 'border-l-blue-500'}`}>
-        <h1 className="text-xl font-bold text-theme-text-primary">报告 #{report.id}</h1>
-        {highestSev && <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-medium mt-2 ${bannerCls}`}>{SEV_LABEL[highestSev] || highestSev}</span>}
+        {highestSev && <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-medium ${bannerCls}`}>{SEV_LABEL[highestSev] || highestSev}</span>}
       </div>
 
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">

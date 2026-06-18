@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Download, RefreshCw } from 'lucide-react';
 import { api } from '../../clients/api';
+import { PageHeader } from '../../design-system';
 
 const assetApi = api.domains.assets;
 
@@ -85,12 +86,10 @@ export const FileserverArchiveTasksPage: React.FC<Props> = ({ projectId }) => {
   return (
     <div className="h-full overflow-auto p-6">
       <div className="mx-auto max-w-[1400px] space-y-4">
-        <div className="rounded-3xl border border-theme-border bg-theme-elevated p-5 shadow-panel">
-          <div className="flex items-center justify-between">
-            <div>
-              <h2 className="mt-1 text-2xl font-black text-theme-text-primary">打包下载任务</h2>
-              <div className="mt-1 text-xs text-theme-text-muted">项目: {projectId || '未选择'}</div>
-            </div>
+        <PageHeader
+          title="打包下载任务"
+          description={`项目: ${projectId || '未选择'}`}
+          actions={
             <button
               type="button"
               onClick={() => void loadTasks()}
@@ -99,8 +98,8 @@ export const FileserverArchiveTasksPage: React.FC<Props> = ({ projectId }) => {
               <RefreshCw size={14} />
               刷新
             </button>
-          </div>
-        </div>
+          }
+        />
 
         {error ? <div className="rounded-xl border border-rose-500/20 bg-rose-500/15 px-4 py-3 text-sm font-semibold text-rose-400">{error}</div> : null}
 

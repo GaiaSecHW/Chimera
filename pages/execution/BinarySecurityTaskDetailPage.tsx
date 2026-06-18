@@ -1,8 +1,10 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { ArrowLeft, Copy, ExternalLink, FileText, Info, Loader2, RefreshCw, SlidersHorizontal, Trash2, X } from 'lucide-react';
+import { Copy, ExternalLink, FileText, Info, Loader2, RefreshCw, SlidersHorizontal, Trash2, X } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { useNavigate } from 'react-router-dom';
+
+import { PageHeader } from '../../design-system';
 
 import {
   BinarySecurityAbnormalReason,
@@ -3996,62 +3998,63 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
 	          </div>
 	        </div>
 	      ) : null}
-	      <div className="flex flex-wrap items-center justify-between gap-3">
- <button type="button" onClick={onBack} className="inline-flex items-center gap-2 rounded-xl border border-theme-border bg-theme-bg-app px-4 py-2.5 text-sm font-bold text-theme-text-secondary hover:bg-theme-elevated">
-          <ArrowLeft size={16} />
-          返回任务列表
-        </button>
-        <div className="flex flex-wrap justify-end gap-3">
-          <button
-            type="button"
-            onClick={() => void refreshActiveTab()}
-            disabled={detailRefreshing}
- className="inline-flex items-center gap-2 rounded-xl border border-theme-border bg-theme-bg-app px-4 py-2.5 text-sm font-bold text-theme-text-secondary hover:bg-theme-elevated disabled:cursor-not-allowed disabled:opacity-60"
-          >
-            {detailRefreshing ? <Loader2 size={16} className="animate-spin" /> : <RefreshCw size={16} />}
-            {detailRefreshing ? '刷新中...' : '刷新'}
-          </button>
-          <button
-            type="button"
-            onClick={() => void syncDownstreamStatus()}
-            title={manualOperationState?.blocking_reason || undefined}
-            disabled={actionLoading !== '' || isManualOperationInProgress}
-            className="inline-flex items-center gap-2 rounded-xl border border-sky-500/20 bg-sky-500/15 px-4 py-2.5 text-sm font-bold text-sky-400 disabled:opacity-60"
-          >
-            <RefreshCw size={16} />
-            同步下游状态
-          </button>
-          <button type="button" title={taskCancelSupported ? undefined : (manualOperationState?.blocking_reason || '当前任务不可取消')} onClick={() => void runAction('cancel')} disabled={actionLoading !== '' || !taskCancelSupported || isManualOperationInProgress} className="rounded-xl border border-rose-500/20 bg-rose-500/15 px-4 py-2.5 text-sm font-bold text-rose-400 disabled:opacity-60">取消</button>
-          <button
-            type="button"
-            title={taskRetrySupported ? undefined : taskRetryReason}
-            onClick={() => setPendingBlockingAction('retry')}
-            disabled={actionLoading !== '' || !taskRetrySupported || isManualOperationInProgress}
-            className="rounded-xl border border-theme-border bg-theme-elevated px-4 py-2.5 text-sm font-bold text-theme-text-secondary disabled:opacity-60"
-          >
-            清空并从头开始
-          </button>
-          <button
-            type="button"
-            title={taskRetryFailedItemsSupported ? undefined : taskRetryFailedItemsReason}
-            onClick={() => setPendingBlockingAction('retry_failed_items')}
-            disabled={actionLoading !== '' || !taskRetryFailedItemsSupported || isManualOperationInProgress}
-            className="rounded-xl border border-emerald-500/20 bg-emerald-500/15 px-4 py-2.5 text-sm font-bold text-emerald-400 disabled:opacity-60"
-          >
-            {actionLoading === 'retry_failed_items' ? '重试中...' : '重试失败项'}
-          </button>
-          <button type="button" title={taskDeleteSupported ? undefined : (manualOperationState?.blocking_reason || '当前任务不可删除')} onClick={() => void runAction('delete')} disabled={actionLoading !== '' || !taskDeleteSupported || isManualOperationInProgress} className="rounded-xl border border-rose-300 bg-theme-bg-app px-4 py-2.5 text-sm font-bold text-rose-400 disabled:opacity-60">删除</button>
-          <button
-            type="button"
-            title={taskDeleteSupported ? '忽略下游删除失败并强制删除主任务' : (manualOperationState?.blocking_reason || '当前任务不可强制删除')}
-            onClick={() => void runAction('delete', { force: true })}
-            disabled={actionLoading !== '' || !taskDeleteSupported || isManualOperationInProgress}
-            className="rounded-xl border border-rose-500 bg-rose-600 px-4 py-2.5 text-sm font-bold text-white disabled:opacity-60"
-          >
-            强制删除
-          </button>
-        </div>
-      </div>
+      <PageHeader
+        title={detail ? detail.name : '任务详情'}
+        description={detail ? <span className="break-all font-mono text-xs text-theme-text-muted">{detail.id}</span> : undefined}
+        back={{ label: '返回任务列表', onClick: onBack }}
+        actions={
+          <div className="flex flex-wrap justify-end gap-3">
+            <button
+              type="button"
+              onClick={() => void refreshActiveTab()}
+              disabled={detailRefreshing}
+              className="inline-flex items-center gap-2 rounded-xl border border-theme-border bg-theme-bg-app px-4 py-2.5 text-sm font-bold text-theme-text-secondary hover:bg-theme-elevated disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {detailRefreshing ? <Loader2 size={16} className="animate-spin" /> : <RefreshCw size={16} />}
+              {detailRefreshing ? '刷新中...' : '刷新'}
+            </button>
+            <button
+              type="button"
+              onClick={() => void syncDownstreamStatus()}
+              title={manualOperationState?.blocking_reason || undefined}
+              disabled={actionLoading !== '' || isManualOperationInProgress}
+              className="inline-flex items-center gap-2 rounded-xl border border-sky-500/20 bg-sky-500/15 px-4 py-2.5 text-sm font-bold text-sky-400 disabled:opacity-60"
+            >
+              <RefreshCw size={16} />
+              同步下游状态
+            </button>
+            <button type="button" title={taskCancelSupported ? undefined : (manualOperationState?.blocking_reason || '当前任务不可取消')} onClick={() => void runAction('cancel')} disabled={actionLoading !== '' || !taskCancelSupported || isManualOperationInProgress} className="rounded-xl border border-rose-500/20 bg-rose-500/15 px-4 py-2.5 text-sm font-bold text-rose-400 disabled:opacity-60">取消</button>
+            <button
+              type="button"
+              title={taskRetrySupported ? undefined : taskRetryReason}
+              onClick={() => setPendingBlockingAction('retry')}
+              disabled={actionLoading !== '' || !taskRetrySupported || isManualOperationInProgress}
+              className="rounded-xl border border-theme-border bg-theme-elevated px-4 py-2.5 text-sm font-bold text-theme-text-secondary disabled:opacity-60"
+            >
+              清空并从头开始
+            </button>
+            <button
+              type="button"
+              title={taskRetryFailedItemsSupported ? undefined : taskRetryFailedItemsReason}
+              onClick={() => setPendingBlockingAction('retry_failed_items')}
+              disabled={actionLoading !== '' || !taskRetryFailedItemsSupported || isManualOperationInProgress}
+              className="rounded-xl border border-emerald-500/20 bg-emerald-500/15 px-4 py-2.5 text-sm font-bold text-emerald-400 disabled:opacity-60"
+            >
+              {actionLoading === 'retry_failed_items' ? '重试中...' : '重试失败项'}
+            </button>
+            <button type="button" title={taskDeleteSupported ? undefined : (manualOperationState?.blocking_reason || '当前任务不可删除')} onClick={() => void runAction('delete')} disabled={actionLoading !== '' || !taskDeleteSupported || isManualOperationInProgress} className="rounded-xl border border-rose-300 bg-theme-bg-app px-4 py-2.5 text-sm font-bold text-rose-400 disabled:opacity-60">删除</button>
+            <button
+              type="button"
+              title={taskDeleteSupported ? '忽略下游删除失败并强制删除主任务' : (manualOperationState?.blocking_reason || '当前任务不可强制删除')}
+              onClick={() => void runAction('delete', { force: true })}
+              disabled={actionLoading !== '' || !taskDeleteSupported || isManualOperationInProgress}
+              className="rounded-xl border border-rose-500 bg-rose-600 px-4 py-2.5 text-sm font-bold text-white disabled:opacity-60"
+            >
+              强制删除
+            </button>
+          </div>
+        }
+      />
 
       {notice && <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/15 px-4 py-3 text-sm font-semibold text-emerald-400">{notice}</div>}
       {error && <div className="rounded-xl border border-rose-500/20 bg-rose-500/15 px-4 py-3 text-sm font-semibold text-rose-400">{error}</div>}

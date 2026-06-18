@@ -6,6 +6,7 @@ import { useUiFeedback } from '../../components/UiFeedback';
 import { AiAgentSession } from '../../types/types';
 import { ProjectAiAgentSessionBatchTerminateResult, ProjectAiAgentSessionItem } from '../../types/types';
 import { EmptyState } from './ai-agent/shared';
+import { PageHeader } from '../../design-system';
 
 const GLOBAL_AUTO_SYNC_ENABLED_KEY = 'chimera_ai_global_session_auto_sync_enabled';
 const GLOBAL_AUTO_SYNC_INTERVAL_KEY = 'chimera_ai_global_session_auto_sync_interval_ms';
@@ -407,13 +408,10 @@ export const EnvAiAgentSessionManagePage: React.FC<{ projectId: string }> = ({ p
     <div className="px-6 pt-6 pb-8">
       <div className="space-y-4">
         {feedbackNodes}
- <section className="rounded-3xl border border-theme-border bg-theme-bg-app p-5">
-          <div className="flex items-center justify-between gap-3 flex-wrap">
-            <div>
-              <h1 className="text-2xl font-black tracking-tight text-theme-text-primary">会话管理</h1>
-              <p className="mt-1 text-sm text-theme-text-muted">项目内所有 helper/agent 会话的全局视图，支持异常识别与批量终止。</p>
-            </div>
-            <div className="flex items-center gap-2">
+        <PageHeader
+          title="会话管理"
+          description="项目内所有 helper/agent 会话的全局视图，支持异常识别与批量终止。"
+          actions={<div className="flex items-center gap-2">
               <span className="text-[11px] text-theme-text-muted">最后同步: {compactTime(lastSyncedAt)}</span>
               <label className="inline-flex items-center gap-1.5 rounded-xl border border-theme-border px-2 py-1 text-xs text-theme-text-secondary">
                 <input
@@ -437,9 +435,8 @@ export const EnvAiAgentSessionManagePage: React.FC<{ projectId: string }> = ({ p
                 <RefreshCw size={15} />
                 手动同步状态
               </button>
-            </div>
-          </div>
-        </section>
+            </div>}
+        />
 
         <section className="grid grid-cols-2 gap-3 md:grid-cols-4">
  <div className="rounded-2xl border border-theme-border bg-theme-bg-app p-3">

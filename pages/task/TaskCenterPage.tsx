@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { PageHeader } from '../../design-system';
 import { ArrowRight, CheckCircle2, Loader2, Plus, RefreshCw, Rocket, Search, Shield, Square, SquareCheck, X } from 'lucide-react';
 import { api } from '../../clients/api';
 import { getAuthHeaders, handleResponse } from '../../clients/base';
@@ -403,45 +404,17 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects }) => {
       className="space-y-4 px-5 py-5 md:px-6 2xl:px-8"
       style={{ backgroundColor: LK.canvas, minHeight: '100%', color: LK.inkSoft }}
     >
-      <div className="flex flex-wrap items-start justify-between gap-3 pb-4" style={{ borderBottom:`1px solid ${LK.borderSoft}` }}>
-        <div>
-          <h1 className="mt-3 text-2xl font-semibold leading-8 tracking-tight" style={{ color: LK.ink }}>
-            任务中心
-          </h1>
-          <p className="mt-1.5 text-sm leading-6" style={{ color: LK.body }}>
-            统一展示当前项目下的所有测试任务，追踪分发、执行与同步状态
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          <button
-            onClick={openDeleteQueue}
-            className="inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition-colors"
-            style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}`, color: LK.inkSoft }}
-            onMouseEnter={(e) => { e.currentTarget.style.borderColor = LK.primary; e.currentTarget.style.color = LK.primarySoft; }}
-            onMouseLeave={(e) => { e.currentTarget.style.borderColor = LK.border; e.currentTarget.style.color = LK.inkSoft; }}
-          >
-            <Shield size={15} />删除队列
-          </button>
-          <button
-            onClick={() => void loadData()}
-            className="inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition-colors"
-            style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}`, color: LK.inkSoft }}
-            onMouseEnter={(e) => { e.currentTarget.style.borderColor = LK.primary; e.currentTarget.style.color = LK.primarySoft; }}
-            onMouseLeave={(e) => { e.currentTarget.style.borderColor = LK.border; e.currentTarget.style.color = LK.inkSoft; }}
-          >
-            <RefreshCw size={15} />刷新
-          </button>
-          <button
-            onClick={openCreateDialog}
-            className="inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition-colors"
-            style={{ backgroundColor: LK.primary, color: '#ffffff' }}
-            onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = LK.primaryDeep; }}
-            onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = LK.primary; }}
-          >
-            <Plus size={15} />创建任务
-          </button>
-        </div>
-      </div>
+      <PageHeader
+        title="任务中心"
+        description="统一展示当前项目下的所有测试任务，追踪分发、执行与同步状态"
+        actions={
+          <div className="flex items-center gap-2">
+            <button onClick={openDeleteQueue} className="inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition-colors" style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}`, color: LK.inkSoft }} onMouseEnter={(e) => { e.currentTarget.style.borderColor = LK.primary; e.currentTarget.style.color = LK.primarySoft; }} onMouseLeave={(e) => { e.currentTarget.style.borderColor = LK.border; e.currentTarget.style.color = LK.inkSoft; }}><Shield size={15} />删除队列</button>
+            <button onClick={() => void loadData()} className="inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition-colors" style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}`, color: LK.inkSoft }} onMouseEnter={(e) => { e.currentTarget.style.borderColor = LK.primary; e.currentTarget.style.color = LK.primarySoft; }} onMouseLeave={(e) => { e.currentTarget.style.borderColor = LK.border; e.currentTarget.style.color = LK.inkSoft; }}><RefreshCw size={15} />刷新</button>
+            <button onClick={openCreateDialog} className="inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition-colors" style={{ backgroundColor: LK.primary, color: '#ffffff' }} onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = LK.primaryDeep; }} onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = LK.primary; }}><Plus size={15} />创建任务</button>
+          </div>
+        }
+      />
 
       <div className="grid gap-3 md:grid-cols-5">
         {statsCards.map((item) => {

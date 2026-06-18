@@ -4,6 +4,7 @@ import { AlertTriangle, ArrowLeft, CheckCircle2, ChevronRight, Copy, FileText, F
 import { api } from '../../clients/api';
 import { KernelScanAdbDevice, KernelScanCategory, KernelScanBrowseResponse, KernelScanEntryResult, KernelScanFileEntry, KernelScanReadyState, KernelScanTaskDetail, KernelScanTaskSummary } from '../../clients/kernelScan';
 import { useUiFeedback } from '../../components/UiFeedback';
+import { PageHeader } from '../../design-system';
 
 const ACTIVE_TASK_STATUSES = new Set(['queued', 'running', 'cancel_requested']);
 const RESTARTABLE_TASK_STATUSES = new Set(['succeeded', 'partial_success', 'failed', 'cancelled']);
@@ -762,36 +763,29 @@ export const KernelScanPage: React.FC<{ projectId: string }> = ({ projectId }) =
     <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem', padding: '2.5rem', backgroundColor: LK.canvas, minHeight: '100vh' }}>
       {feedbackNodes}
 
-      <section style={{ borderRadius: '1.5rem', border: `1px solid ${LK.border}`, backgroundColor: LK.surface, padding: '1.5rem' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-          <Shield size={24} style={{ color: LK.inkSoft }} />
-          <div>
-            <h1 style={{ marginTop: '0.25rem', fontSize: '1.5rem', fontWeight: 600, color: LK.ink }}>内核扫描</h1>
-          </div>
+      <PageHeader title="内核扫描" />
+      {readyState ? (
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
+          {Object.entries(readyState.checks || {}).map(([key, passed]) => (
+            <span
+              key={key}
+              style={{
+                display: 'inline-flex', alignItems: 'center', gap: '0.375rem',
+                borderRadius: '9999px', border: `1px solid ${passed ? LK.success : LK.warning}`,
+                backgroundColor: passed ? 'rgba(69, 192, 111, 0.14)' : 'rgba(213, 161, 58, 0.14)',
+                padding: '0.25rem 0.75rem', fontSize: '0.75rem', fontWeight: 600,
+                color: passed ? LK.success : LK.warning
+              }}
+            >
+              {passed ? <CheckCircle2 size={14} /> : <AlertTriangle size={14} />}
+              {key}
+            </span>
+          ))}
         </div>
-        {readyState ? (
-          <div style={{ marginTop: '1rem', display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
-            {Object.entries(readyState.checks || {}).map(([key, passed]) => (
-              <span
-                key={key}
-                style={{
-                  display: 'inline-flex', alignItems: 'center', gap: '0.375rem',
-                  borderRadius: '9999px', border: `1px solid ${passed ? LK.success : LK.warning}`,
-                  backgroundColor: passed ? 'rgba(69, 192, 111, 0.14)' : 'rgba(213, 161, 58, 0.14)',
-                  padding: '0.25rem 0.75rem', fontSize: '0.75rem', fontWeight: 600,
-                  color: passed ? LK.success : LK.warning
-                }}
-              >
-                {passed ? <CheckCircle2 size={14} /> : <AlertTriangle size={14} />}
-                {key}
-              </span>
-            ))}
-          </div>
-        ) : null}
-        {overviewError ? (
-          <div style={{ marginTop: '1rem', borderRadius: '1.25rem', border: `1px solid ${LK.error}`, backgroundColor: 'rgba(241, 93, 93, 0.14)', padding: '0.75rem 1rem', fontSize: '0.875rem', fontWeight: 600, color: LK.error }}>{overviewError}</div>
-        ) : null}
-      </section>
+      ) : null}
+      {overviewError ? (
+        <div style={{ marginTop: '1rem', borderRadius: '1.25rem', border: `1px solid ${LK.error}`, backgroundColor: 'rgba(241, 93, 93, 0.14)', padding: '0.75rem 1rem', fontSize: '0.875rem', fontWeight: 600, color: LK.error }}>{overviewError}</div>
+      ) : null}
 
       <div style={{ display: 'flex', gap: '0.5rem' }}>
         {(['attack_entry', 'vuln_scan', 'vuln_verify'] as KernelScanCategory[]).map((cat) => (

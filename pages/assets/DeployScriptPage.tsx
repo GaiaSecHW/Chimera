@@ -32,7 +32,7 @@ import {
 } from 'lucide-react';
 import { api } from '../../clients/api';
 import { DeployScriptItem } from '../../types/types';
-import { DataTable, DataTableColumn, Modal } from '../../design-system';
+import { DataTable, DataTableColumn, Modal, PageHeader } from '../../design-system';
 
 export const DeployScriptPage: React.FC = () => {
   const assetApi = api.domains.assets;
@@ -208,33 +208,32 @@ export const DeployScriptPage: React.FC = () => {
   return (
     <div className="min-h-full bg-theme-bg-app px-4 py-5 md:px-6 2xl:px-8 flex flex-col animate-in fade-in duration-500">
       <div className="w-full space-y-4 flex flex-col flex-1 min-h-0">
-      {/* Header Section */}
-      <div className="flex flex-wrap items-center justify-between gap-2 shrink-0">
-        <div>
-          <h1 className="text-lg font-black text-theme-text-primary">部署脚本管理</h1>
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <button onClick={fetchItems} className="inline-flex items-center gap-2 rounded-xl border border-theme-border bg-theme-bg-app px-3 py-2 text-sm font-bold text-theme-text-secondary hover:bg-theme-elevated">
-            <RefreshCw size={16} className={loading ? 'animate-spin' : ''} /> 刷新
-          </button>
-          <button
-            onClick={() => { setNewName(''); setIsCreateFileOpen(true); }}
-            className="inline-flex items-center gap-2 rounded-xl border border-theme-border bg-theme-bg-app px-3 py-2 text-sm font-bold text-theme-text-secondary hover:bg-theme-elevated"
-          >
-            <FilePlus size={16} /> 新建文件
-          </button>
-          <button
-            onClick={() => { setNewName(''); setIsMkdirOpen(true); }}
-            className="inline-flex items-center gap-2 rounded-xl border border-theme-border bg-theme-bg-app px-3 py-2 text-sm font-bold text-theme-text-secondary hover:bg-theme-elevated"
-          >
-            <FolderPlus size={16} /> 新建目录
-          </button>
-          <button onClick={() => fileInputRef.current?.click()} className="inline-flex items-center gap-2 rounded-xl bg-theme-surface px-3 py-2 text-sm font-black text-white hover:bg-theme-elevated">
-            <Upload size={16} /> 上传文件
-          </button>
-          <input type="file" multiple hidden ref={fileInputRef} onChange={handleUpload} />
-        </div>
-      </div>
+      <PageHeader
+        title="部署脚本管理"
+        actions={
+          <div className="flex flex-wrap items-center gap-2">
+            <button onClick={fetchItems} className="inline-flex items-center gap-2 rounded-xl border border-theme-border bg-theme-bg-app px-3 py-2 text-sm font-bold text-theme-text-secondary hover:bg-theme-elevated">
+              <RefreshCw size={16} className={loading ? 'animate-spin' : ''} /> 刷新
+            </button>
+            <button
+              onClick={() => { setNewName(''); setIsCreateFileOpen(true); }}
+              className="inline-flex items-center gap-2 rounded-xl border border-theme-border bg-theme-bg-app px-3 py-2 text-sm font-bold text-theme-text-secondary hover:bg-theme-elevated"
+            >
+              <FilePlus size={16} /> 新建文件
+            </button>
+            <button
+              onClick={() => { setNewName(''); setIsMkdirOpen(true); }}
+              className="inline-flex items-center gap-2 rounded-xl border border-theme-border bg-theme-bg-app px-3 py-2 text-sm font-bold text-theme-text-secondary hover:bg-theme-elevated"
+            >
+              <FolderPlus size={16} /> 新建目录
+            </button>
+            <button onClick={() => fileInputRef.current?.click()} className="inline-flex items-center gap-2 rounded-xl bg-theme-surface px-3 py-2 text-sm font-black text-white hover:bg-theme-elevated">
+              <Upload size={16} /> 上传文件
+            </button>
+            <input type="file" multiple hidden ref={fileInputRef} onChange={handleUpload} />
+          </div>
+        }
+      />
 
       {/* Main Browser Window */}
  <div className="flex-1 min-h-0 bg-theme-bg-app overflow-hidden rounded-2xl border border-theme-border flex flex-col relative">

@@ -31,7 +31,7 @@ import {
   IpcAuditTaskTemplate,
   IpcAuditWorkspaceSummary,
 } from '../../clients/ipcAudit';
-import { StatisticCard } from '../../design-system';
+import { StatisticCard, PageHeader } from '../../design-system';
 import { AppSaSessionEvent, AppSaSessionMeta } from '../../types/types';
 import { useUiFeedback } from '../../components/UiFeedback';
 import { mergeAgentSessionToolResults } from './agentSessionParsing';
@@ -4090,70 +4090,60 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
 
   return (
     <div className="space-y-6 px-8 pt-8 pb-10">
- <section className="rounded-[2rem] border border-theme-border bg-theme-bg-app p-6">
-        <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
-          <div className="max-w-3xl">
-            <div className="inline-flex items-center gap-2 rounded-full border border-sky-500/20 bg-sky-500/15 px-3 py-1 text-[11px] font-black uppercase tracking-[0.18em] text-sky-400">
-              <SquareTerminal size={14} />
-              Mobile Security
-            </div>
-            <h1 className="mt-3 text-2xl font-black tracking-tight text-slate-950">IPC漏洞扫描</h1>
-            <p className="mt-2 max-w-2xl text-sm leading-6 text-theme-text-secondary">
-              面向 OpenHarmony IPC 服务入口的自动化漏洞扫描，覆盖代码审计、PoC 验证、执行日志和产物追踪。
-            </p>
+      <PageHeader
+        title="IPC漏洞扫描"
+        description="面向 OpenHarmony IPC 服务入口的自动化漏洞扫描，覆盖代码审计、PoC 验证、执行日志和产物追踪。"
+      />
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <MetricCard label="服务状态" value={baseDataLoading ? 'Loading' : readyState?.ready ? 'Ready' : readyState?.status || 'Unknown'} sub={capabilities?.service || 'chimera-app-ipc-audit'} />
+        <MetricCard label="工作区" value={baseDataLoading ? '加载中' : selectedWorkspace?.display_name || '-'} sub={baseDataLoading ? '等待工作区' : selectedWorkspace?.workspace_id || '未选择'} />
+        <div className="rounded-lg border border-theme-border bg-slate-50/90 px-4 py-3">
+          <div className="text-[11px] font-black uppercase tracking-[0.18em] text-theme-text-muted">并发上限</div>
+          <div className="mt-2 flex items-center gap-2">
+            <input
+              type="number"
+              min={1}
+              max={32}
+              value={maxParallelDraft}
+              onChange={(event) => setMaxParallelDraft(event.target.value)}
+              disabled={!readyState?.ready || savingRuntimeConfig}
+              className="w-20 rounded-lg border border-theme-border bg-theme-bg-app px-2 py-1.5 text-sm font-black text-theme-text-primary outline-none transition focus:border-sky-300 focus:ring-4 focus:ring-sky-100 disabled:cursor-not-allowed disabled:bg-theme-elevated disabled:text-theme-text-muted"
+            />
+            <button
+              type="button"
+              onClick={handleSaveMaxParallelTasks}
+              disabled={!readyState?.ready || savingRuntimeConfig || String(runtimeConfig?.max_parallel_tasks || capabilities?.max_parallel_tasks || '') === maxParallelDraft.trim()}
+              className="rounded-lg bg-theme-bg-app px-3 py-1.5 text-xs font-bold text-white transition hover:bg-theme-elevated disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {savingRuntimeConfig ? '保存中' : '保存'}
+            </button>
           </div>
-          <div className="grid w-full gap-3 sm:grid-cols-2 xl:max-w-4xl xl:grid-cols-4">
-            <MetricCard label="服务状态" value={baseDataLoading ? 'Loading' : readyState?.ready ? 'Ready' : readyState?.status || 'Unknown'} sub={capabilities?.service || 'chimera-app-ipc-audit'} />
-            <MetricCard label="工作区" value={baseDataLoading ? '加载中' : selectedWorkspace?.display_name || '-'} sub={baseDataLoading ? '等待工作区' : selectedWorkspace?.workspace_id || '未选择'} />
-            <div className="rounded-lg border border-theme-border bg-slate-50/90 px-4 py-3">
-              <div className="text-[11px] font-black uppercase tracking-[0.18em] text-theme-text-muted">并发上限</div>
-              <div className="mt-2 flex items-center gap-2">
-                <input
-                  type="number"
-                  min={1}
-                  max={32}
-                  value={maxParallelDraft}
-                  onChange={(event) => setMaxParallelDraft(event.target.value)}
-                  disabled={!readyState?.ready || savingRuntimeConfig}
-                  className="w-20 rounded-lg border border-theme-border bg-theme-bg-app px-2 py-1.5 text-sm font-black text-theme-text-primary outline-none transition focus:border-sky-300 focus:ring-4 focus:ring-sky-100 disabled:cursor-not-allowed disabled:bg-theme-elevated disabled:text-theme-text-muted"
-                />
-                <button
-                  type="button"
-                  onClick={handleSaveMaxParallelTasks}
-                  disabled={!readyState?.ready || savingRuntimeConfig || String(runtimeConfig?.max_parallel_tasks || capabilities?.max_parallel_tasks || '') === maxParallelDraft.trim()}
-                  className="rounded-lg bg-theme-bg-app px-3 py-1.5 text-xs font-bold text-white transition hover:bg-theme-elevated disabled:cursor-not-allowed disabled:opacity-50"
-                >
-                  {savingRuntimeConfig ? '保存中' : '保存'}
-                </button>
-              </div>
-              <div className="mt-1 text-xs font-medium text-theme-text-muted">
-                {baseDataLoading
-                  ? '正在同步运行时配置...'
-                  :`当前运行 ${runtimeConfig?.active_attempts ?? activeTaskCount} 个，默认 ${runtimeConfig?.default_max_parallel_tasks ?? capabilities?.max_parallel_tasks ?? 1}`}
-              </div>
-            </div>
-            <MetricCard label="PoC 能力" value={baseDataLoading ? '加载中' : selectedWorkspace?.supports_poc ? '开启' : '关闭'} sub={baseDataLoading ? '等待能力信息' : capabilities?.poc_runtime_available ? '运行环境可用' : '运行环境未就绪'} />
+          <div className="mt-1 text-xs font-medium text-theme-text-muted">
+            {baseDataLoading
+              ? '正在同步运行时配置...'
+              :`当前运行 ${runtimeConfig?.active_attempts ?? activeTaskCount} 个，默认 ${runtimeConfig?.default_max_parallel_tasks ?? capabilities?.max_parallel_tasks ?? 1}`}
           </div>
         </div>
-        {readyState ? (
-          <div className="mt-5 flex flex-wrap gap-2">
-            {Object.entries(readyState.checks || {})
-              .filter(([key]) => !HIDDEN_READY_CHECK_KEYS.has(key))
-              .map(([key, passed]) => (
-              <span
-                key={key}
-                className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-bold ${passed ? 'border-emerald-500/20 bg-emerald-500/15 text-emerald-400' : 'border-amber-500/20 bg-amber-500/15 text-amber-400'}`}
-              >
-                {passed ? <CheckCircle2 size={14} /> : <AlertTriangle size={14} />}
-                {key}
-              </span>
-            ))}
-          </div>
-        ) : null}
-        {overviewError ? (
-          <div className="mt-4 rounded-2xl border border-rose-500/20 bg-rose-500/15 px-4 py-3 text-sm font-semibold text-rose-400">{overviewError}</div>
-        ) : null}
-      </section>
+        <MetricCard label="PoC 能力" value={baseDataLoading ? '加载中' : selectedWorkspace?.supports_poc ? '开启' : '关闭'} sub={baseDataLoading ? '等待能力信息' : capabilities?.poc_runtime_available ? '运行环境可用' : '运行环境未就绪'} />
+      </div>
+      {readyState ? (
+        <div className="flex flex-wrap gap-2">
+          {Object.entries(readyState.checks || {})
+            .filter(([key]) => !HIDDEN_READY_CHECK_KEYS.has(key))
+            .map(([key, passed]) => (
+            <span
+              key={key}
+              className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-bold ${passed ? 'border-emerald-500/20 bg-emerald-500/15 text-emerald-400' : 'border-amber-500/20 bg-amber-500/15 text-amber-400'}`}
+            >
+              {passed ? <CheckCircle2 size={14} /> : <AlertTriangle size={14} />}
+              {key}
+            </span>
+          ))}
+        </div>
+      ) : null}
+      {overviewError ? (
+        <div className="rounded-2xl border border-rose-500/20 bg-rose-500/15 px-4 py-3 text-sm font-semibold text-rose-400">{overviewError}</div>
+      ) : null}
 
       <div className="space-y-6">
         {!showTaskDetail ? (

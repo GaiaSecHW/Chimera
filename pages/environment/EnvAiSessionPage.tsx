@@ -7,6 +7,7 @@ import { api } from '../../clients/api';
 import { AgentResponse, AgentTraceEvent, AiAgentSession, AiHelperService, AiSessionStreamEvent } from '../../types/types';
 import { useUiFeedback } from '../../components/UiFeedback';
 import { EmptyState, buildHelperKey, navigateToAppView, parseHelperKey, useAiHelpers } from './ai-agent/shared';
+import { PageHeader } from '../../design-system';
 
 const SESSION_AUTO_SYNC_ENABLED_KEY = 'chimera_ai_session_auto_sync_enabled';
 const SESSION_AUTO_SYNC_INTERVAL_KEY = 'chimera_ai_session_auto_sync_interval_ms';
@@ -599,20 +600,11 @@ export const EnvAiSessionPage: React.FC<{ projectId: string }> = ({ projectId })
     <div className="px-6 pt-6 pb-8">
       <div className="space-y-4">
         {feedbackNodes}
- <section className="rounded-3xl border border-theme-border bg-theme-bg-app p-5">
-          <div className="flex items-center justify-between gap-3 flex-wrap">
-            <div>
-              <h1 className="text-2xl font-black tracking-tight text-theme-text-primary">单会话</h1>
-              <p className="mt-1 text-sm text-theme-text-muted">更紧凑的单会话视图：左侧管理会话，右侧专注对话。</p>
-            </div>
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => navigateToAppView('env-ai-agent-session-manage')}
-                className="inline-flex items-center gap-2 rounded-xl border border-theme-border px-3.5 py-2 text-sm font-semibold text-theme-text-secondary"
-              >
-                <SquareTerminal size={15} />
-                会话管理
-              </button>
+        <PageHeader
+          title="单会话"
+          description="更紧凑的单会话视图：左侧管理会话，右侧专注对话。"
+          actions={<div className="flex items-center gap-2">
+              <button onClick={() => navigateToAppView('env-ai-agent-session-manage')} className="inline-flex items-center gap-2 rounded-xl border border-theme-border px-3.5 py-2 text-sm font-semibold text-theme-text-secondary"><SquareTerminal size={15} />会话管理</button>
               <span className="text-[11px] text-theme-text-muted">最后同步: {compactTime(lastSyncedAt)}</span>
               <label className="inline-flex items-center gap-1.5 rounded-xl border border-theme-border px-2 py-1 text-xs text-theme-text-secondary">
                 <input
@@ -632,17 +624,10 @@ export const EnvAiSessionPage: React.FC<{ projectId: string }> = ({ projectId })
                 <option value="10000">10s</option>
                 <option value="15000">15s</option>
               </select>
-              <button
-                onClick={() => void syncHelperSessions()}
-                className="inline-flex items-center gap-2 rounded-xl bg-theme-surface px-3.5 py-2 text-sm font-semibold text-white"
-              >
-                {busyAction === 'sync' ? <Loader2 size={15} className="animate-spin" /> : <RefreshCw size={15} />}
-                手动同步状态
-              </button>
+              <button onClick={() => void syncHelperSessions()} className="inline-flex items-center gap-2 rounded-xl bg-theme-surface px-3.5 py-2 text-sm font-semibold text-white">{busyAction === 'sync' ? <Loader2 size={15} className="animate-spin" /> : <RefreshCw size={15} />}手动同步状态</button>
               <button onClick={() => void reload(true)} className="inline-flex items-center gap-2 rounded-xl border border-theme-border px-3.5 py-2 text-sm font-semibold text-theme-text-secondary"><RefreshCw size={15} />刷新 helper</button>
-            </div>
-          </div>
-        </section>
+            </div>}
+        />
 
         <div className="grid grid-cols-1 gap-4 xl:grid-cols-[360px_minmax(0,1fr)]">
  <section className="rounded-2xl border border-theme-border bg-theme-bg-app p-4">

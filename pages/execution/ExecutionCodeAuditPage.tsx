@@ -42,6 +42,7 @@ import {
   Search
 } from 'lucide-react';
 import { api } from '../../clients/api';
+import { PageHeader } from '../../design-system';
 import { StatusBadge } from '../../components/StatusBadge';
 import { LlmProviderDetail, LlmProviderFileBinding, LlmProviderSummary, ProjectPVC, ProjectResource } from '../../types/types';
 import { ExecutionCodeAuditDetailPage } from './ExecutionCodeAuditDetailPage';
@@ -845,14 +846,10 @@ export const ExecutionCodeAuditPage: React.FC<ExecutionCodeAuditPageProps> = ({ 
     <div className="h-full overflow-y-auto custom-scrollbar p-4 md:p-6 lg:p-8 pb-16 space-y-4 animate-in fade-in duration-300">
  <div className="rounded-2xl border border-theme-border bg-theme-bg-app p-4">
         <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-          <div className="min-w-0">
-            <div className="flex items-center gap-2">
-              <Bot size={18} className="text-blue-400" />
-              <h2 className="text-xl font-black tracking-tight text-theme-text-primary">代码审计控制台</h2>
-              <span className="rounded-full border border-blue-500/20 bg-blue-500/15 px-2 py-0.5 text-[10px] font-black uppercase tracking-widest text-blue-400">VSCode AI</span>
-            </div>
-            <p className="mt-1 text-xs text-theme-text-muted">Namespace: <span className="font-mono text-theme-text-secondary">{projectNamespace || '...'}</span></p>
-          </div>
+          <PageHeader
+            title={<div className="flex items-center gap-2"><Bot size={18} className="text-blue-400" /><span>代码审计控制台</span><span className="rounded-full border border-blue-500/20 bg-blue-500/15 px-2 py-0.5 text-[10px] font-black uppercase tracking-widest text-blue-400">VSCode AI</span></div>}
+            description={<>Namespace: <span className="font-mono text-theme-text-secondary">{projectNamespace || '...'}</span></>}
+          />
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-6">
             <div className="rounded-xl border border-theme-border bg-theme-bg-app px-3 py-2">
               <p className="text-[10px] font-black uppercase tracking-widest text-theme-text-muted">运行中</p>

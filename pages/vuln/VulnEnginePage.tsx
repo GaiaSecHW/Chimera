@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { AlertTriangle, CheckCircle2, Cpu, RefreshCw, Sparkles } from 'lucide-react';
-import { Modal } from '../../design-system';
+import { Modal, PageHeader } from '../../design-system';
 import { api } from '../../clients/api';
 
 const LK = {
@@ -1040,28 +1040,20 @@ export const VulnEnginePage: React.FC<VulnEnginePageProps> = ({
           ? 'p-6 pb-16 space-y-5'
           : 'p-10 pb-24 space-y-8'
     }`} style={{ backgroundColor: LK.canvas, color: LK.inkSoft }}>
-      <div className="flex flex-col 2xl:flex-row 2xl:items-end 2xl:justify-between gap-6" style={{ borderBottom:`1px solid ${LK.borderSoft}`, paddingBottom: '1rem' }}>
-        <div>
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-xs font-semibold uppercase tracking-wider" style={{ backgroundColor: LK.primaryMuted, color: LK.primary }}>
-            <Cpu size={14} />
-            生命周期引擎
-          </div>
-          <h2 className="text-3xl font-semibold tracking-tight mt-4" style={{ color: LK.ink }}>{pageTitle}</h2>
-          <p className="mt-2 text-sm max-w-3xl" style={{ color: LK.body }}>{pageDescription}</p>
-        </div>
-        <div className="flex flex-wrap gap-3">
-          <button
-            onClick={refreshAll}
-            className="inline-flex items-center gap-2 px-5 py-3 rounded-lg text-sm font-semibold transition-colors"
-            style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}`, color: LK.inkSoft }}
-            onMouseEnter={(e) => { e.currentTarget.style.borderColor = LK.primary; e.currentTarget.style.color = LK.primarySoft; }}
-            onMouseLeave={(e) => { e.currentTarget.style.borderColor = LK.border; e.currentTarget.style.color = LK.inkSoft; }}
-          >
-            <RefreshCw size={16} />
-            刷新工作台
-          </button>
-        </div>
-      </div>
+      <PageHeader
+        title={pageTitle}
+        description={pageDescription}
+        actions={<button
+          onClick={refreshAll}
+          className="inline-flex items-center gap-2 px-5 py-3 rounded-lg text-sm font-semibold transition-colors"
+          style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}`, color: LK.inkSoft }}
+          onMouseEnter={(e) => { e.currentTarget.style.borderColor = LK.primary; e.currentTarget.style.color = LK.primarySoft; }}
+          onMouseLeave={(e) => { e.currentTarget.style.borderColor = LK.border; e.currentTarget.style.color = LK.inkSoft; }}
+        >
+          <RefreshCw size={16} />
+          刷新工作台
+        </button>}
+      />
 
       {error && (
         <div className="rounded-xl px-6 py-4 text-sm" style={{ backgroundColor: `${LK.error}14`, border: `1px solid ${LK.error}40`, color: LK.error }}>

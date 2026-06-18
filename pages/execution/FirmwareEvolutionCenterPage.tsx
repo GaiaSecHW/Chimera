@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { AlertCircle, BarChart3, CheckCircle2, ChevronDown, ChevronRight, Clock, FileText, Folder, Loader2, Package, Play, RefreshCw, RotateCcw, Search, Sparkles, Square, Terminal, Trash2, X, XCircle } from 'lucide-react';
 
 import { api } from '../../clients/api';
+import { PageHeader } from '../../design-system';
 import { FileWatchMessage } from '../../clients/fileserver';
 import {
   FirmwareEvolutionJob,
@@ -1622,16 +1623,11 @@ export const FirmwareEvolutionCenterPage: React.FC<Props> = ({ projectId }) => {
         onSubmit={handleCreate}
       />
 
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <div className="flex items-center gap-2">
-          <Sparkles size={18} className="text-amber-400" />
-          <div>
-            <h2 className="text-sm font-bold text-theme-text-primary">{showingDetail ? '进化固件解包 · 任务详情' : '进化固件解包 · 任务列表'}</h2>
-            {!showingDetail && hasRunning ? <p className="animate-pulse text-xs font-semibold text-blue-400">● 有进化任务运行中，每5秒自动刷新</p> : null}
-          </div>
-        </div>
-        <button onClick={() => void (showingDetail && activeJobId ? refreshJobDetail(activeJobId) : handleRefreshList())} className="inline-flex items-center gap-1.5 rounded-lg bg-theme-surface px-3 py-1.5 text-xs font-semibold text-white"><RefreshCw size={12} />{showingDetail ? '刷新详情' : '刷新列表'}</button>
-      </div>
+      <PageHeader
+        title={showingDetail ? '进化固件解包 · 任务详情' : '进化固件解包 · 任务列表'}
+        description={!showingDetail && hasRunning ? '有进化任务运行中，每5秒自动刷新' : undefined}
+        actions={<button onClick={() => void (showingDetail && activeJobId ? refreshJobDetail(activeJobId) : handleRefreshList())} className="inline-flex items-center gap-1.5 rounded-lg bg-theme-surface px-3 py-1.5 text-xs font-semibold text-white"><RefreshCw size={12} />{showingDetail ? '刷新详情' : '刷新列表'}</button>}
+      />
 
       {showingDetail ? renderDetail() : (
         <div className="space-y-4">

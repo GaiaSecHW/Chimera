@@ -3,6 +3,7 @@ import MonacoEditor from '@monaco-editor/react';
 import { Copy, Loader2, Network, Save, Server, Terminal } from 'lucide-react';
 import { API_BASE, getHeaders, handleResponse } from '../../clients/base';
 import { useUiFeedback } from '../../components/UiFeedback';
+import { PageHeader } from '../../design-system';
 
 const WEB_E2E_API_BASE = `${API_BASE}/api/app/web-e2e`;
 type DeployTab = 'normal-node' | 'k8s-cluster';
@@ -281,18 +282,11 @@ export const EnvAccessPage: React.FC<{ projectId: string }> = ({ projectId }) =>
     <div className="min-h-full bg-theme-bg-app px-8 py-8">
       {feedbackNodes}
       <div className="mx-auto max-w-7xl space-y-6">
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-          <div>
-            <h1 className="mt-4 text-3xl font-black tracking-tight text-theme-text-primary">环境接入</h1>
-            <p className="mt-2 max-w-3xl text-sm leading-6 text-theme-text-secondary">
-              面向测试环境的接入入口。选择部署方式后，在目标节点或集群执行命令，上线后的 Agent 会进入环境管理页面。
-            </p>
-          </div>
-          <div className="rounded-xl border border-theme-border bg-theme-surface px-4 py-3 text-sm text-theme-text-secondary shadow-sm">
-            <span className="font-bold text-theme-text-primary">项目 ID：</span>
-            <span className="font-mono">{projectId || '-'}</span>
-          </div>
-        </div>
+        <PageHeader
+          title="环境接入"
+          description="面向测试环境的接入入口。选择部署方式后，在目标节点或集群执行命令，上线后的 Agent 会进入环境管理页面。"
+          actions={<div className="rounded-xl border border-theme-border bg-theme-surface px-4 py-3 text-sm text-theme-text-secondary shadow-sm"><span className="font-bold text-theme-text-primary">项目 ID：</span><span className="font-mono">{projectId || '-'}</span></div>}
+        />
 
         <ProjectAccessInfoSection
           value={accessInfo}

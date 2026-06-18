@@ -4,7 +4,7 @@ import { api } from '../../clients/api';
 import { showAlert, showConfirm } from '../../components/DialogService';
 import { UserImportCommitResponse, UserImportPreviewResponse, UserInfo } from '../../types/types';
 import { getPlatformRoleLabel } from '../../utils/rbac';
-import { Modal, StatisticCard } from '../../design-system';
+import { Modal, PageHeader, StatisticCard } from '../../design-system';
 
 type ImportStage = 'upload' | 'preview' | 'result';
 
@@ -285,29 +285,20 @@ export const UserMgmtPage: React.FC = () => {
 
   return (
     <div className="p-10 space-y-8 animate-in fade-in duration-500 pb-24 h-full overflow-y-auto bg-theme-app">
-      <div className="flex justify-between items-end">
-        <div className="space-y-1">
-          <div className="flex items-center gap-3">
- <div className="p-3 bg-gradient-to-br from-blue-600 via-cyan-500 to-sky-500 text-white rounded-2xl">
-              <Users size={28} />
-            </div>
-            <div>
-              <h2 className="text-3xl font-black text-theme-text-primary tracking-tight">用户账号管理</h2>
-            </div>
-          </div>
-        </div>
-        <div className="flex gap-4">
- <button onClick={() => void fetchUsers()} className="p-4 bg-theme-bg-app backdrop-blur border border-theme-border text-theme-text-muted rounded-2xl hover:bg-theme-bg-app transition-all active:scale-95">
+      <PageHeader
+        title={<><div className="p-3 bg-gradient-to-br from-blue-600 via-cyan-500 to-sky-500 text-white rounded-2xl inline-flex"><Users size={28} /></div> 用户账号管理</>}
+        actions={<div className="flex gap-4">
+          <button onClick={() => void fetchUsers()} className="p-4 bg-theme-bg-app backdrop-blur border border-theme-border text-theme-text-muted rounded-2xl hover:bg-theme-bg-app transition-all active:scale-95">
             <RefreshCw size={20} className={loading ? 'animate-spin' : ''} />
           </button>
- <button onClick={openImportModal} className="bg-theme-bg-app backdrop-blur text-theme-text-secondary px-6 py-4 rounded-2xl font-black flex items-center gap-3 border border-theme-border hover:bg-theme-bg-app transition-all active:scale-95">
+          <button onClick={openImportModal} className="bg-theme-bg-app backdrop-blur text-theme-text-secondary px-6 py-4 rounded-2xl font-black flex items-center gap-3 border border-theme-border hover:bg-theme-bg-app transition-all active:scale-95">
             <Upload size={18} /> 批量导入
           </button>
- <button onClick={() => setIsCreateModalOpen(true)} className="bg-blue-600 text-white px-8 py-4 rounded-2xl font-black flex items-center gap-3 hover:bg-blue-700 transition-all active:scale-95">
+          <button onClick={() => setIsCreateModalOpen(true)} className="bg-blue-600 text-white px-8 py-4 rounded-2xl font-black flex items-center gap-3 hover:bg-blue-700 transition-all active:scale-95">
             <Plus size={20} /> 创建新用户
           </button>
-        </div>
-      </div>
+        </div>}
+      />
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
  <div className="bg-[linear-gradient(135deg,_#0f172a,_#1d4ed8_65%,_#38bdf8)] p-8 rounded-[3rem] text-white flex flex-col justify-between group overflow-hidden relative">

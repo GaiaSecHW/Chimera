@@ -4,6 +4,7 @@ import { Activity, Play, StopCircle, Trash2, RefreshCw, Search, Loader2, Clock, 
 import { WorkflowInstance } from '../../types/types';
 import { api } from '../../clients/api';
 import { StatusBadge } from '../../components/StatusBadge';
+import { PageHeader } from '../../design-system';
 
 export const WorkflowInstancePage: React.FC<{
   projectId: string;
@@ -205,33 +206,33 @@ export const WorkflowInstancePage: React.FC<{
 
   return (
     <div className="p-10 space-y-8 animate-in fade-in duration-500">
-      <div className="flex justify-between items-end">
-        <div>
-          <h2 className="text-3xl font-black text-theme-text-primary tracking-tight">工作流实例</h2>
-          <p className="text-theme-text-muted mt-1 font-medium italic">实时监控安全评估流水线的执行进度与底层容器负载</p>
-        </div>
-        <div className="flex gap-4">
-          {selectedIds.length > 0 && (
-            <button
-              onClick={() => {
-                setDeletingId(null);
-                setIsDeleteModalOpen(true);
-              }}
-              className="flex items-center gap-2 px-6 py-4 bg-red-500/15 text-red-400 rounded-2xl hover:bg-red-500/15 transition-all font-bold border border-red-500/20"
-            >
-              <Trash2 size={20} />
-              批量删除 ({selectedIds.length})
+      <PageHeader
+        title="工作流实例"
+        description="实时监控安全评估流水线的执行进度与底层容器负载"
+        actions={
+          <div className="flex gap-4">
+            {selectedIds.length > 0 && (
+              <button
+                onClick={() => {
+                  setDeletingId(null);
+                  setIsDeleteModalOpen(true);
+                }}
+                className="flex items-center gap-2 px-6 py-4 bg-red-500/15 text-red-400 rounded-2xl hover:bg-red-500/15 transition-all font-bold border border-red-500/20"
+              >
+                <Trash2 size={20} />
+                批量删除 ({selectedIds.length})
+              </button>
+            )}
+            <button onClick={() => loadInstances()} className="p-4 bg-theme-bg-app border border-theme-border text-theme-text-muted rounded-2xl hover:bg-theme-elevated transition-all">
+              <RefreshCw size={20} className={loading ? 'animate-spin' : ''} />
             </button>
-          )}
-          <button onClick={() => loadInstances()} className="p-4 bg-theme-bg-app border border-theme-border text-theme-text-muted rounded-2xl hover:bg-theme-elevated transition-all">
-            <RefreshCw size={20} className={loading ? 'animate-spin' : ''} />
-          </button>
- <button onClick={() => setIsCreateModalOpen(true)} className="flex items-center gap-2 px-6 py-4 bg-theme-surface text-white rounded-2xl hover:bg-theme-elevated transition-all font-bold">
-            <Plus size={20} />
-            创建实例
-          </button>
-        </div>
-      </div>
+            <button onClick={() => setIsCreateModalOpen(true)} className="flex items-center gap-2 px-6 py-4 bg-theme-surface text-white rounded-2xl hover:bg-theme-elevated transition-all font-bold">
+              <Plus size={20} />
+              创建实例
+            </button>
+          </div>
+        }
+      />
 
       <div className="flex gap-4">
         <div className="relative flex-1">

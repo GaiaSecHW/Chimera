@@ -10,6 +10,7 @@ import {
   Workflow,
 } from 'lucide-react';
 import { api } from '../clients/api';
+import { PageHeader } from '../design-system';
 import {
   AdminDashboardStats,
   Agent,
@@ -333,32 +334,11 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
       style={{ backgroundColor: LK.canvas, color: LK.inkSoft }}
     >
       <div className="mx-auto w-full max-w-[1600px] space-y-4">
-        <header className="flex flex-wrap items-end justify-between gap-3 pb-4" style={{ borderBottom:`1px solid ${LK.borderSoft}` }}>
-          <div>
-            <span
-              className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium"
-              style={{ backgroundColor: LK.primaryMuted, color: LK.primary }}
-            >
-              <BarChart3 size={13} /> 平台结果看板
-            </span>
-            <h1 className="mt-3 text-2xl font-semibold leading-8 tracking-tight" style={{ color: LK.ink }}>
-              Chimera 平台结果看板
-            </h1>
-            <p className="mt-1.5 max-w-3xl text-sm leading-6" style={{ color: LK.body }}>
-              汇总各模块的结果性数据：交付范围、节点状态、工作流执行、服务健康、资源占用与 AI 网关调用。
-            </p>
-          </div>
-          <button
-            type="button"
-            onClick={() => setCurrentView('aigw-dashboard')}
-            className="inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-medium transition-colors"
-            style={{ backgroundColor: LK.primary, color: '#ffffff' }}
-            onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = LK.primaryDeep)}
-            onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = LK.primary)}
-          >
-            AI 网关详情 <ArrowUpRight size={13} />
-          </button>
-        </header>
+        <PageHeader
+          title={<div className="flex flex-col gap-1"><span className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium" style={{ backgroundColor: LK.primaryMuted, color: LK.primary }}><BarChart3 size={13} /> 平台结果看板</span><span>Chimera 平台结果看板</span></div>}
+          description="汇总各模块的结果性数据：交付范围、节点状态、工作流执行、服务健康、资源占用与 AI 网关调用。"
+          actions={<button type="button" onClick={() => setCurrentView('aigw-dashboard')} className="inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-medium transition-colors" style={{ backgroundColor: LK.primary, color: '#ffffff' }} onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = LK.primaryDeep)} onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = LK.primary)}>AI 网关详情 <ArrowUpRight size={13} /></button>}
+        />
 
         <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
           <KpiCard

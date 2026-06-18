@@ -3,6 +3,7 @@ import { Activity, AlertCircle, Box, CheckCircle, ChevronLeft, ChevronRight, Loa
 import { api } from '../../clients/api';
 import { AppTemplate, AppWorkflow, AppWorkflowLlmBindingRequest, AppWorkflowStatus, ServicePort } from '../../types/types';
 import { AppWorkflowLlmBindingsEditor } from '../../components/orchestration/AppWorkflowLlmBindingsEditor';
+import { PageHeader } from '../../design-system';
 type CreateStep = 'select-template' | 'fill-form';
 
 type InputVolumeMountConfig = {
@@ -529,27 +530,27 @@ export const AppInstancePage: React.FC<{
 
   return (
     <div className="p-8">
-      <div className="mb-8 flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-black text-theme-text-primary tracking-tight">应用实例</h1>
-          <p className="mt-1 text-sm text-theme-text-muted">管理单应用工作流实例</p>
-        </div>
-        <div className="flex items-center gap-3">
-          <button
-            onClick={handleRefreshInstances}
-            disabled={loading || isRefreshingList}
- className="flex items-center gap-2 rounded-2xl border border-theme-border bg-theme-bg-app px-5 py-3 font-bold text-theme-text-secondary hover:border-blue-500/20 hover:bg-blue-500/15 hover:text-blue-400 disabled:cursor-not-allowed disabled:opacity-60"
-            title="刷新"
-            aria-label="刷新"
-          >
-            <RefreshCw size={16} className={isRefreshingList ? 'animate-spin' : ''} />
-          </button>
- <button onClick={openCreateModal} className="flex items-center gap-2 rounded-2xl bg-blue-600 px-6 py-3 font-bold text-white hover:bg-blue-500">
-            <Plus size={18} />
-            创建实例
-          </button>
-        </div>
-      </div>
+      <PageHeader
+        title="应用实例"
+        description="管理单应用工作流实例"
+        actions={
+          <div className="flex items-center gap-3">
+            <button
+              onClick={handleRefreshInstances}
+              disabled={loading || isRefreshingList}
+              className="flex items-center gap-2 rounded-2xl border border-theme-border bg-theme-bg-app px-5 py-3 font-bold text-theme-text-secondary hover:border-blue-500/20 hover:bg-blue-500/15 hover:text-blue-400 disabled:cursor-not-allowed disabled:opacity-60"
+              title="刷新"
+              aria-label="刷新"
+            >
+              <RefreshCw size={16} className={isRefreshingList ? 'animate-spin' : ''} />
+            </button>
+            <button onClick={openCreateModal} className="flex items-center gap-2 rounded-2xl bg-blue-600 px-6 py-3 font-bold text-white hover:bg-blue-500">
+              <Plus size={18} />
+              创建实例
+            </button>
+          </div>
+        }
+      />
       <div className="mb-6 flex items-center gap-4">
         <div className="relative flex-1">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-theme-text-muted" size={18} />

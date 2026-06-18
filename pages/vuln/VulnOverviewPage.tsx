@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { AlertTriangle, BarChart3, RefreshCw, ShieldAlert, TrendingUp } from 'lucide-react';
+import { PageHeader } from '../../design-system';
 import { api } from '../../clients/api';
 import {
   ACTION_STATUS_LABELS,
@@ -111,23 +112,10 @@ export const VulnOverviewPage: React.FC<VulnPageProps> = ({ projectId }) => {
       className="space-y-4 px-5 py-5 md:px-6 2xl:px-8"
       style={{ backgroundColor: LK.canvas, minHeight: '100%', color: LK.inkSoft }}
     >
-      <div className="flex flex-wrap items-start justify-between gap-3 pb-4" style={{ borderBottom:`1px solid ${LK.borderSoft}` }}>
-        <div>
-          <span
-            className="inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-medium uppercase tracking-wider"
-            style={{ backgroundColor: LK.primaryMuted, color: LK.primary }}
-          >
-            <BarChart3 size={13} />
-            生命周期总览
-          </span>
-          <h1 className="mt-3 text-2xl font-semibold leading-8 tracking-tight" style={{ color: LK.ink }}>
-            漏洞生命周期指挥台
-          </h1>
-          <p className="mt-2 max-w-3xl text-sm leading-6" style={{ color: LK.body }}>
-            把阶段堆积、风险密度、队列压力和结论收敛压缩到一屏内，快速判断项目当前最需要介入的位置。
-          </p>
-        </div>
-        <div className="flex flex-wrap items-center gap-3">
+      <PageHeader
+        title="漏洞生命周期指挥台"
+        description="把阶段堆积、风险密度、队列压力和结论收敛压缩到一屏内，快速判断项目当前最需要介入的位置。"
+        actions={<div className="flex flex-wrap items-center gap-3">
           <div
             className="rounded-xl px-4 py-2.5"
             style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}` }}
@@ -148,8 +136,8 @@ export const VulnOverviewPage: React.FC<VulnPageProps> = ({ projectId }) => {
             <RefreshCw size={15} />
             刷新统计
           </button>
-        </div>
-      </div>
+        </div>}
+      />
 
       <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
         <div

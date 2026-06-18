@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Activity, FileText, KeyRound, Layers3, RefreshCw, Route, ServerCog, Settings } from 'lucide-react';
 import { api } from '../../clients/api';
-import { DataTable, DataTableColumn, StatisticCard } from '../../design-system';
+import { DataTable, DataTableColumn, PageHeader, StatisticCard } from '../../design-system';
 import {
   AiGatewayBackendUnit,
   AiGatewayCapacityPool,
@@ -93,19 +93,17 @@ export const AiGatewayDashboardPage: React.FC<AiGatewayDashboardPageProps> = ({ 
 
   return (
     <div className="flex min-h-full flex-col gap-6 p-8">
-      <div className="flex shrink-0 items-center justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-black tracking-tight text-theme-text-primary">Dashboard</h1>
-        </div>
-        <button
+      <PageHeader
+        title="Dashboard"
+        actions={<button
           onClick={() => void loadDashboard(true)}
           disabled={refreshing || loading}
           className="inline-flex items-center gap-2 rounded-2xl bg-theme-surface px-4 py-2.5 text-sm font-bold text-white transition hover:bg-theme-elevated disabled:opacity-50"
         >
           <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
           刷新
-        </button>
-      </div>
+        </button>}
+      />
 
       {error ? <div className="rounded-2xl border border-rose-500/20 bg-rose-500/15 px-4 py-3 text-sm font-medium text-rose-400">{error}</div> : null}
 

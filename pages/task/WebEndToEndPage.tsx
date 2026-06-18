@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { PageHeader } from '../../design-system';
 import {
   AlertCircle,
   Bot,
@@ -956,33 +957,13 @@ export const WebEndToEndPage: React.FC<{ projectId: string }> = ({ projectId }) 
   return (
     <div className="min-h-full px-5 py-5" style={{ backgroundColor: LK.canvas }}>
       <div className="mx-auto max-w-7xl space-y-4">
-        <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-          <div>
-            <span
-              className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium"
-              style={{ backgroundColor: LK.primaryMuted, color: LK.primary }}
-            >
-              <Globe size={13} /> WEB 端到端
-            </span>
-            <h1 className="mt-3 text-2xl font-semibold leading-8 tracking-tight" style={{ color: LK.ink }}>
-              WEB 端到端分析
-            </h1>
-            <p className="mt-1.5 text-sm leading-6" style={{ color: LK.body }}>
-              面向用户的接入、Agent 和分析进度工作台。
-            </p>
-          </div>
-          <button
-            className="inline-flex items-center rounded-lg px-4 py-2 text-sm font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50"
-            style={{ backgroundColor: LK.surface, color: LK.body, border: `1px solid ${LK.border}` }}
-            disabled={loadState.loading}
-            onMouseEnter={(e) => { if (!e.currentTarget.disabled) { e.currentTarget.style.borderColor = LK.primary; e.currentTarget.style.color = LK.primarySoft; } }}
-            onMouseLeave={(e) => { if (!e.currentTarget.disabled) { e.currentTarget.style.borderColor = LK.border; e.currentTarget.style.color = LK.body; } }}
-            onClick={loadData}
-          >
-            <RefreshCw size={16} className={`mr-2 ${loadState.loading ? 'animate-spin' : ''}`} />
-            刷新状态
-          </button>
-        </div>
+        <PageHeader
+          title="WEB 端到端分析"
+          description="面向用户的接入、Agent 和分析进度工作台。"
+          actions={
+            <button className="inline-flex items-center rounded-lg px-4 py-2 text-sm font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50" style={{ backgroundColor: LK.surface, color: LK.body, border: `1px solid ${LK.border}` }} disabled={loadState.loading} onMouseEnter={(e) => { if (!e.currentTarget.disabled) { e.currentTarget.style.borderColor = LK.primary; e.currentTarget.style.color = LK.primarySoft; } }} onMouseLeave={(e) => { if (!e.currentTarget.disabled) { e.currentTarget.style.borderColor = LK.border; e.currentTarget.style.color = LK.body; } }} onClick={loadData}><RefreshCw size={16} className={`mr-2 ${loadState.loading ? 'animate-spin' : ''}`} />刷新状态</button>
+          }
+        />
 
         {notice ? (
           <div className="rounded-xl px-4 py-3 text-sm font-medium" style={{ border: notice.includes('失败') || notice.includes('未提供') || notice.includes('removed') ?`1px solid ${LK.error}40` :`1px solid ${LK.success}40`, backgroundColor: notice.includes('失败') || notice.includes('未提供') || notice.includes('removed') ? 'rgba(241, 93, 93, 0.14)' : 'rgba(69, 192, 111, 0.14)', color: notice.includes('失败') || notice.includes('未提供') || notice.includes('removed') ? LK.error : LK.success }}>

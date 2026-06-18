@@ -1,12 +1,13 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import Editor from '@monaco-editor/react';
-import { ArrowLeft, ChevronRight, Code2, FileText, Loader2, RefreshCw, ShieldCheck } from 'lucide-react';
+import { ChevronRight, Code2, FileText, Loader2, RefreshCw, ShieldCheck } from 'lucide-react';
 import { api } from '../../clients/api';
 import { B2SAdvancedFile, B2SAdvancedRun, B2SArtifact, B2SReviewAnalytics, B2STaskDetail, B2STaskItemAdvanced } from '../../clients/binaryToSource';
 import { FileWatchMessage, fileserverApi } from '../../clients/fileserver';
 import { parseAgentSessionJsonlDelta } from './agentSessionParsing';
 import { ReviewEffectivenessPanel } from './b2s-advanced/ReviewEffectivenessPanel';
 import { B2SSessionPreview } from './b2s-detail/B2SSessionPreview';
+import { PageHeader } from '../../design-system';
 
 const LK = {
   primary: '#4f73ff', primarySoft: '#7590ff', primaryDeep: '#3f63f1',
@@ -445,22 +446,9 @@ export const B2STaskAdvancedPage: React.FC<Props> = ({ projectId, taskId, itemId
 
   return (
     <div className="space-y-6 px-8 pb-10 pt-8">
-      <div className="flex flex-wrap items-center justify-between gap-3">
- <button type="button" onClick={onBack} className="inline-flex items-center gap-2 rounded-xl border border-theme-border bg-theme-bg-app px-4 py-2.5 text-sm font-bold text-theme-text-secondary hover:bg-theme-elevated">
-          <ArrowLeft size={16} />
-          返回执行明细
-        </button>
- <button type="button" onClick={() => void load()} disabled={loading} className="inline-flex items-center gap-2 rounded-xl border border-theme-border bg-theme-bg-app px-4 py-2.5 text-sm font-bold text-theme-text-secondary hover:bg-theme-elevated disabled:opacity-60">
-          <RefreshCw size={16} className={loading ? 'animate-spin' : ''} />
-          刷新
-        </button>
-      </div>
-
-      {error && <div className="rounded-none border border-rose-500/20 bg-rose-500/15 px-4 py-3 text-sm font-semibold text-rose-400">{error}</div>}
-
- <section className="rounded-none border border-theme-border bg-theme-bg-app px-5 py-3">
-        <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
-          <div className="min-w-0">
+      <PageHeader
+        title={
+          <div>
             <div className="flex flex-wrap items-center gap-2 text-xs font-black text-theme-text-muted">
               <span className="text-violet-400">反编译任务</span>
               <span className="text-theme-text-faint">·</span>
@@ -471,13 +459,22 @@ export const B2STaskAdvancedPage: React.FC<Props> = ({ projectId, taskId, itemId
             <div className="mt-1 break-words text-lg font-black tracking-tight text-slate-950">{fileNameOf(item?.elf_path)}</div>
             <div className="mt-0.5 break-all font-mono text-[10px] font-semibold text-theme-text-muted">task {taskId} · item {itemId}</div>
           </div>
-          <div className="flex flex-wrap gap-2 text-xs font-black">
-            <span className="rounded-full bg-violet-500/15 px-3 py-1.5 text-violet-400 ring-1 ring-violet-100">Batch {totalBatches}</span>
-            <span className="rounded-full bg-emerald-500/15 px-3 py-1.5 text-emerald-400 ring-1 ring-emerald-100">评审 {totalReviews}</span>
-            <span className="rounded-full bg-blue-500/15 px-3 py-1.5 text-blue-400 ring-1 ring-blue-100">会话 {totalSessions}</span>
+        }
+        back={{ label: '返回执行明细', onClick: onBack }}
+        actions={
+          <div className="flex flex-wrap gap-2">
+            <button type="button" onClick={() => void load()} disabled={loading} className="inline-flex items-center gap-2 rounded-xl border border-theme-border bg-theme-bg-app px-4 py-2.5 text-sm font-bold text-theme-text-secondary hover:bg-theme-elevated disabled:opacity-60">
+              <RefreshCw size={16} className={loading ? 'animate-spin' : ''} />
+              刷新
+            </button>
+            <span className="rounded-full bg-violet-500/15 px-3 py-1.5 text-violet-400 ring-1 ring-violet-100 text-xs font-black">Batch {totalBatches}</span>
+            <span className="rounded-full bg-emerald-500/15 px-3 py-1.5 text-emerald-400 ring-1 ring-emerald-100 text-xs font-black">评审 {totalReviews}</span>
+            <span className="rounded-full bg-blue-500/15 px-3 py-1.5 text-blue-400 ring-1 ring-blue-100 text-xs font-black">会话 {totalSessions}</span>
           </div>
-        </div>
-      </section>
+        }
+      />
+
+      {error && <div className="rounded-none border border-rose-500/20 bg-rose-500/15 px-4 py-3 text-sm font-semibold text-rose-400">{error}</div>}
 
       <ReviewEffectivenessPanel analytics={reviewAnalytics} />
 

@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { ArrowLeft, CheckCircle2, Circle, Loader2 } from 'lucide-react';
+import { CheckCircle2, Circle, Loader2 } from 'lucide-react';
 import { redlineVerificationApi, RedlineTask } from '../../clients/redlineVerification';
+import { PageHeader } from '../../design-system';
 import { TaskConfigStep } from './components/TaskConfigStep';
 import { TaskRunningStep } from './components/TaskRunningStep';
 import { TaskReportStep } from './components/TaskReportStep';
@@ -61,13 +62,10 @@ export const RedlineTaskDetailPage: React.FC<Props> = ({ projectId, taskId, onBa
 
   return (
     <div className="flex flex-col h-full">
-      {/* Header */}
-      <div className="flex items-center gap-4 px-6 py-4 border-b border-theme-border">
-        <button onClick={onBack} className="p-1.5 rounded-lg hover:bg-theme-surface-hover transition-colors">
-          <ArrowLeft className="w-5 h-5 text-theme-text-secondary" />
-        </button>
-        <h1 className="text-lg font-semibold text-theme-text-primary truncate">{task?.name || '任务详情'}</h1>
-        <div className="flex items-center gap-2 ml-auto">
+      <PageHeader
+        title={task?.name || '任务详情'}
+        back={{ onClick: onBack }}
+        actions={<div className="flex items-center gap-2">
           {STEPS.map((step, i) => (
             <React.Fragment key={step.key}>
               {i > 0 && <div className={`w-8 h-px ${i <= currentStep ? 'bg-blue-500' : 'bg-theme-border'}`} />}
@@ -85,8 +83,8 @@ export const RedlineTaskDetailPage: React.FC<Props> = ({ projectId, taskId, onBa
               </div>
             </React.Fragment>
           ))}
-        </div>
-      </div>
+        </div>}
+      />
 
       {/* Step content */}
       <div className="flex-1 overflow-y-auto">

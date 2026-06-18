@@ -3,6 +3,7 @@ import { ArrowLeft, ChevronRight } from 'lucide-react';
 import { secoctoClients } from '../../clients/secocto';
 import type { SecOctoTask, SecOctoTaskStats, SecOctoPagerState, SecOctoNavKey } from '../../types/secocto';
 import { SecOctoPager, PAGE_SIZE_OPTIONS } from './shared/Pager';
+import { PageHeader } from '../../design-system';
 
 const SCORE_CLASS = (score: number | null | undefined) => {
   if (score == null) return 'bg-gray-500/15 text-gray-600';
@@ -60,8 +61,7 @@ export const SecOctoOverviewPage: React.FC<OverviewProps> = ({ onNavigateTask })
 
   return (
     <div className="px-8 pt-8 pb-12 animate-in fade-in duration-300">
-      <h1 className="text-2xl font-bold text-theme-text-primary mb-2">总览</h1>
-      <p className="text-sm text-theme-text-secondary mb-6">多平台 Agent 实时态势与进化数据汇总</p>
+      <PageHeader title="总览" description="多平台 Agent 实时态势与进化数据汇总" />
 
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
         {[
@@ -158,14 +158,11 @@ export const SecOctoTaskDetailPage: React.FC<TaskDetailProps> = ({ taskId, onBac
 
   return (
     <div className="px-8 pt-8 pb-12 animate-in fade-in duration-300">
-      <button onClick={onBack} className="inline-flex items-center gap-1 text-sm text-theme-text-secondary hover:text-brand-primary mb-4 transition-colors">
-        <ArrowLeft size={14} />返回总览
-      </button>
+      <PageHeader title={task.task_id} back={{ label: '返回总览', onClick: onBack }} />
 
       <div className="rounded-xl border border-theme-border bg-theme-surface p-5 mb-6">
         <div className="flex items-start justify-between gap-6 flex-wrap">
           <div className="min-w-0">
-            <h1 className="text-lg font-bold text-theme-text-primary">{task.task_id}</h1>
             <div className="flex gap-2 mt-2">
               <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${STATUS_CLASS(task.status)}`}>{task.status === 'succeeded' ? '已完成' : task.status === 'running' ? '运行中' : task.status === 'failed' ? '失败' : task.status}</span>
               {task.agent_type && <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-gray-500/15 text-gray-600">{task.agent_type}</span>}

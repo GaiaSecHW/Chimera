@@ -5,6 +5,7 @@ import remarkGfm from 'remark-gfm';
 import { secoctoClients } from '../../clients/secocto';
 import type { SecOctoMemory, SecOctoMemoryStatus, SecOctoPagerState, SecOctoNavKey } from '../../types/secocto';
 import { SecOctoPager, PAGE_SIZE_OPTIONS } from './shared/Pager';
+import { PageHeader } from '../../design-system';
 
 interface Props {
   onNavigate: (navKey: SecOctoNavKey) => void;
@@ -129,22 +130,10 @@ export const SecOctoCardsPage: React.FC<Props> = ({ onNavigate }) => {
 
   return (
     <div className="px-8 pt-8 pb-12 animate-in fade-in duration-300">
-      <div className="flex items-end justify-between gap-3 flex-wrap pb-6">
-        <div>
-          <h1 className="text-2xl font-bold mb-1 text-theme-text-primary">
-            记忆<span className="gradient-text bg-gradient-to-r from-indigo-500 via-purple-500 to-violet-400 bg-clip-text text-transparent">卡片库</span>
-          </h1>
-          <p className="text-sm text-theme-text-secondary">
-            Agent 进化过程中沉淀的安全知识 · 共 {total} 张卡片 · {pendingCount ?? '—'} 张卡片未编译 ·
-            <button
-              onClick={() => onNavigate('compile')}
-              className="inline-flex items-center gap-1 ml-1 text-xs font-medium text-brand-primary hover:underline"
-            >
-              <Zap size={14} />执行编译
-            </button>
-          </p>
-        </div>
-        <div className="relative">
+      <PageHeader
+        title={<>记忆<span className="gradient-text bg-gradient-to-r from-indigo-500 via-purple-500 to-violet-400 bg-clip-text text-transparent">卡片库</span></>}
+        description={<>Agent 进化过程中沉淀的安全知识 · 共 {total} 张卡片 · {pendingCount ?? '—'} 张卡片未编译 · <button onClick={() => onNavigate('compile')} className="inline-flex items-center gap-1 ml-1 text-xs font-medium text-brand-primary hover:underline"><Zap size={14} />执行编译</button></>}
+        actions={<div className="relative">
           <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-theme-text-faint" />
           <input
             type="text"
@@ -154,8 +143,8 @@ export const SecOctoCardsPage: React.FC<Props> = ({ onNavigate }) => {
             placeholder="按标题搜索..."
             className="pl-9 pr-4 py-2 rounded-xl border border-theme-border bg-theme-surface text-theme-text-primary text-sm w-56 outline-none focus:border-brand-primary transition-colors"
           />
-        </div>
-      </div>
+        </div>}
+      />
 
       {loading && items.length === 0 ? (
         <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">

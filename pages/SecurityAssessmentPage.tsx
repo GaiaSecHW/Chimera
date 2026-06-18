@@ -1,6 +1,7 @@
 
 import React from 'react';
 import { ClipboardCheck, Play, Settings, History, ShieldAlert, CheckCircle, Activity, ArrowRight } from 'lucide-react';
+import { PageHeader } from '../design-system';
 
 export const SecurityAssessmentPage: React.FC = () => {
   const assessments = [
@@ -11,15 +12,11 @@ export const SecurityAssessmentPage: React.FC = () => {
 
   return (
     <div className="p-10 space-y-10 animate-in fade-in duration-500 pb-24">
-      <div className="flex justify-between items-end">
-        <div>
-          <h2 className="text-3xl font-black text-theme-text-primary tracking-tight">安全评估工作流</h2>
-          <p className="text-theme-text-muted mt-1 font-medium">标准化、自动化的安全风险评估与合规审计引擎</p>
-        </div>
- <button className="bg-blue-600 text-white px-8 py-4 rounded-2xl font-black flex items-center gap-2 hover:bg-blue-700 transition-all active:scale-95">
-          <Play size={18} /> 发起新评估
-        </button>
-      </div>
+      <PageHeader
+        title="安全评估工作流"
+        description="标准化、自动化的安全风险评估与合规审计引擎"
+        actions={<button className="bg-blue-600 text-white px-8 py-4 rounded-2xl font-black flex items-center gap-2 hover:bg-blue-700 transition-all active:scale-95"><Play size={18} /> 发起新评估</button>}
+      />
 
       {/* Workflow Steps */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">

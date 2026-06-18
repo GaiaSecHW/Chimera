@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { ArrowLeft, ChevronLeft, ChevronRight, FileText, RefreshCw, Search, TerminalSquare } from 'lucide-react';
 import { api } from '../../clients/api';
 import { WorkflowInstance, WorkflowInstanceNodeLogRecord } from '../../types/types';
+import { PageHeader } from '../../design-system';
 
 const formatTime = (value?: string) => {
   if (!value) return '暂无';
@@ -71,31 +72,20 @@ export const WorkflowInstanceLogsPage: React.FC<{ instanceId: string; onBack: ()
 
   return (
     <div className="p-10 space-y-8 animate-in fade-in duration-500">
-      <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
-        <div className="space-y-3">
+      <PageHeader
+        title="实例节点日志"
+        description={instance ? `${instance.name} · ${instance.id}` : '加载实例信息中...'}
+        back={{ label: '返回工作流实例', onClick: onBack }}
+        actions={
           <button
-            onClick={onBack}
-            className="inline-flex items-center gap-2 text-sm font-bold text-theme-text-muted hover:text-theme-text-primary transition-colors"
+            onClick={() => loadLogs(true)}
+            className="inline-flex items-center justify-center gap-2 px-5 py-3 bg-theme-bg-app border border-theme-border text-theme-text-secondary rounded-2xl hover:bg-theme-elevated transition-all font-bold"
           >
-            <ArrowLeft size={16} />
-            返回工作流实例
+            <RefreshCw size={18} className={refreshing ? 'animate-spin' : ''} />
+            刷新日志
           </button>
-          <div>
-            <h2 className="text-3xl font-black text-theme-text-primary tracking-tight">实例节点日志</h2>
-            <p className="text-theme-text-muted mt-1 font-medium italic">
-              {instance ?`${instance.name} · ${instance.id}` : '加载实例信息中...'}
-            </p>
-          </div>
-        </div>
-
-        <button
-          onClick={() => loadLogs(true)}
- className="inline-flex items-center justify-center gap-2 px-5 py-3 bg-theme-bg-app border border-theme-border text-theme-text-secondary rounded-2xl hover:bg-theme-elevated transition-all font-bold"
-        >
-          <RefreshCw size={18} className={refreshing ? 'animate-spin' : ''} />
-          刷新日志
-        </button>
-      </div>
+        }
+      />
 
       <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_220px_140px]">
         <div className="relative">

@@ -62,7 +62,7 @@ import {
 import type { DataflowVulnAiViewModel, DataflowVulnOverviewViewModel, DataflowVulnSampleScope } from './binarySecurityMetricsDataflowVuln';
 import { buildDataflowVulnAiViewModel, buildDataflowVulnOverviewViewModel, matchesDataflowVulnSampleScope } from './binarySecurityMetricsDataflowVulnBuilders';
 import { buildUnifiedAgentRuntimeViewModel, type UnifiedAgentPodCard } from './agentRuntimeViewModel';
-import { StatisticCard } from '../../design-system';
+import { StatisticCard, PageHeader } from '../../design-system';
 
 const LK = {
   primary: '#4f73ff', primarySoft: '#7590ff', primaryDeep: '#3f63f1',
@@ -3658,14 +3658,10 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', padding: '32px 32px 40px 32px' }}>
-      <section style={{ borderRadius: '12px', border: `1px solid ${LK.border}`, backgroundColor: LK.surface, padding: '24px' }}>
-        <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'flex-start', justifyContent: 'space-between', gap: '16px' }}>
-          <div>
-            <h1 style={{ marginTop: '12px', fontSize: '30px', fontWeight: 600, letterSpacing: '-0.02em', color: LK.ink }}>性能看板</h1>
-            <p style={{ marginTop: '8px', maxWidth: '48rem', fontSize: '14px', color: LK.muted }}>
-              面向二进制安全链路的轻量指标看板，按微服务和 Tab 拉取后端 summary 数据；原始 Prometheus 指标保留为兜底排查入口。
-            </p>
-          </div>
+      <PageHeader
+        title="性能看板"
+        description="面向二进制安全链路的轻量指标看板，按微服务和 Tab 拉取后端 summary 数据；原始 Prometheus 指标保留为兜底排查入口。"
+        actions={
           <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '12px' }}>
             <label style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', borderRadius: '8px', border: `1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised, padding: '8px 12px', fontSize: '14px', fontWeight: 600, color: LK.body }}>
               <input
@@ -3707,18 +3703,19 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
               刷新
             </button>
           </div>
-        </div>
-        <div style={{ marginTop: '20px', display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '12px', fontSize: '12px', fontWeight: 600, color: LK.muted }}>
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', borderRadius: '9999px', border: `1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised, padding: '4px 12px' }}>
-            <ServerCog size={13} />
-            {activeService.serviceName}
-          </span>
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', borderRadius: '9999px', border: `1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised, padding: '4px 12px' }}>
-            <TimerReset size={13} />
-            最近刷新：{formatTime(activeRefreshTimestamp)}
-          </span>
-        </div>
-      </section>
+        }
+      />
+
+      <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '12px', fontSize: '12px', fontWeight: 600, color: LK.muted }}>
+        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', borderRadius: '9999px', border: `1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised, padding: '4px 12px' }}>
+          <ServerCog size={13} />
+          {activeService.serviceName}
+        </span>
+        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', borderRadius: '9999px', border: `1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised, padding: '4px 12px' }}>
+          <TimerReset size={13} />
+          最近刷新：{formatTime(activeRefreshTimestamp)}
+        </span>
+      </div>
 
       <section style={{ borderRadius: '12px', border: `1px solid ${LK.border}`, backgroundColor: LK.surface, padding: '8px' }}>
         <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '8px' }}>

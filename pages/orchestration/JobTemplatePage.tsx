@@ -25,6 +25,7 @@ import {
 } from 'lucide-react';
 import { JobTemplate, TemplateScope, TemplateTag } from '../../types/types';
 import { api } from '../../clients/api';
+import { PageHeader } from '../../design-system';
 
 export const JobTemplatePage: React.FC<{ projectId: string, onNavigateToDetail: (id: string) => void }> = ({ projectId, onNavigateToDetail }) => {
   const orchestrationApi = api.domains.orchestration;
@@ -241,30 +242,30 @@ export const JobTemplatePage: React.FC<{ projectId: string, onNavigateToDetail: 
   return (
     <div className="p-10 space-y-10 animate-in fade-in duration-500 pb-24 h-full overflow-y-auto custom-scrollbar">
       {/* Header */}
-      <div className="flex flex-col md:flex-row justify-between items-end gap-6">
-        <div>
-          <h2 className="text-3xl font-black text-theme-text-primary tracking-tight">任务模板</h2>
-          <p className="text-theme-text-muted mt-1 font-medium italic">管理一次性安全探测任务（扫描、爆破、Fuzzing）的容器运行规范</p>
-        </div>
-        <div className="flex gap-4">
-          <button
-            onClick={loadTemplates}
- className="p-4 bg-theme-bg-app border border-theme-border text-theme-text-muted rounded-2xl hover:bg-theme-elevated transition-all active:scale-95 group"
-          >
-            <RefreshCw size={20} className={loading ? 'animate-spin' : 'group-hover:rotate-180 transition-transform duration-500'} />
-          </button>
- <div className="flex bg-theme-bg-app border border-theme-border rounded-2xl p-1">
- <button onClick={() => setScope('project')} className={`px-6 py-2.5 rounded-xl text-xs font-black uppercase transition-all ${scope === 'project' ? 'bg-blue-600 text-white ' : 'text-theme-text-muted hover:bg-theme-elevated'}`}>当前项目</button>
- <button onClick={() => setScope('global')} className={`px-6 py-2.5 rounded-xl text-xs font-black uppercase transition-all ${scope === 'global' ? 'bg-blue-600 text-white ' : 'text-theme-text-muted hover:bg-theme-elevated'}`}>全局库</button>
+      <PageHeader
+        title="任务模板"
+        description="管理一次性安全探测任务（扫描、爆破、Fuzzing）的容器运行规范"
+        actions={
+          <div className="flex gap-4">
+            <button
+              onClick={loadTemplates}
+              className="p-4 bg-theme-bg-app border border-theme-border text-theme-text-muted rounded-2xl hover:bg-theme-elevated transition-all active:scale-95 group"
+            >
+              <RefreshCw size={20} className={loading ? 'animate-spin' : 'group-hover:rotate-180 transition-transform duration-500'} />
+            </button>
+            <div className="flex bg-theme-bg-app border border-theme-border rounded-2xl p-1">
+              <button onClick={() => setScope('project')} className={`px-6 py-2.5 rounded-xl text-xs font-black uppercase transition-all ${scope === 'project' ? 'bg-blue-600 text-white ' : 'text-theme-text-muted hover:bg-theme-elevated'}`}>当前项目</button>
+              <button onClick={() => setScope('global')} className={`px-6 py-2.5 rounded-xl text-xs font-black uppercase transition-all ${scope === 'global' ? 'bg-blue-600 text-white ' : 'text-theme-text-muted hover:bg-theme-elevated'}`}>全局库</button>
+            </div>
+            <button
+              onClick={() => setIsModalOpen(true)}
+              className="bg-theme-surface text-white px-8 py-4 rounded-2xl font-black flex items-center gap-3 hover:bg-theme-elevated transition-all active:scale-95"
+            >
+              <Plus size={20} /> 注册任务组件
+            </button>
           </div>
-          <button
-            onClick={() => setIsModalOpen(true)}
- className="bg-theme-surface text-white px-8 py-4 rounded-2xl font-black flex items-center gap-3 hover:bg-theme-elevated transition-all active:scale-95"
-          >
-            <Plus size={20} /> 注册任务组件
-          </button>
-        </div>
-      </div>
+        }
+      />
 
       {/* Filter Bar */}
       <div className="relative group">

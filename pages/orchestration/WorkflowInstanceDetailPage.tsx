@@ -19,6 +19,7 @@ import { api } from '../../clients/api';
 import { AppTemplate, WorkflowInstance, WorkflowNodeInstance, WorkflowStatus } from '../../types/types';
 import { StatusBadge } from '../../components/StatusBadge';
 import { XTerminal } from '../../components/XTerminal';
+import { PageHeader } from '../../design-system';
 import { ProjectDirectoryPickerModal, ProjectDirectorySelection } from '../../components/assets/ProjectDirectoryPickerModal';
 
 const nodeColor = (status: WorkflowStatus) => {
@@ -1411,146 +1412,143 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
   return (
     <div className="flex flex-col h-full bg-theme-bg-app animate-in fade-in duration-500">
       {/* Header */}
-      <div className="flex items-center justify-between p-6 bg-theme-bg-app border-b border-theme-border shrink-0">
-        <div className="flex items-center gap-4">
-          <button onClick={onBack} className="p-2 text-theme-text-muted hover:text-theme-text-primary hover:bg-theme-elevated rounded-xl transition-all">
-            <ArrowLeft size={20} />
-          </button>
-          <div>
-            <div className="flex items-center gap-3">
-              <h2 className="text-2xl font-black text-theme-text-primary tracking-tight">{instance?.name}</h2>
-              {instance?.status && <StatusBadge status={instance.status} />}
-              {instance?.has_warning && (
-                <span className="px-2 py-0.5 bg-yellow-500/15 text-yellow-400 text-xs font-bold rounded-full flex items-center gap-1">
-                  <AlertCircle size={12} /> 警告
-                </span>
-              )}
-            </div>
-            <p className="text-xs font-mono text-theme-text-muted mt-1">ID: {instance?.id}</p>
+      <PageHeader
+        title={
+          <div className="flex items-center gap-3">
+            {instance?.name}
+            {instance?.status && <StatusBadge status={instance.status} />}
+            {instance?.has_warning && (
+              <span className="px-2 py-0.5 bg-yellow-500/15 text-yellow-400 text-xs font-bold rounded-full flex items-center gap-1">
+                <AlertCircle size={12} /> 警告
+              </span>
+            )}
           </div>
-        </div>
+        }
+        description={<p className="text-xs font-mono text-theme-text-muted mt-1">ID: {instance?.id}</p>}
+        back={{ label: '返回实例列表', onClick: onBack }}
+        actions={
+          <div className="flex items-center gap-3">
+            <button onClick={() => loadInstance()} className="p-3 text-theme-text-muted hover:bg-theme-elevated rounded-xl transition-all" title="刷新">
+              <RefreshCw size={18} />
+            </button>
 
-        <div className="flex items-center gap-3">
-          <button onClick={() => loadInstance()} className="p-3 text-theme-text-muted hover:bg-theme-elevated rounded-xl transition-all" title="刷新">
-            <RefreshCw size={18} />
-          </button>
-
-          {isEditMode ? (
-            <>
-              <button onClick={() => setIsEditMode(false)} className="px-5 py-2.5 text-sm font-bold text-theme-text-secondary bg-theme-elevated hover:bg-theme-elevated rounded-xl transition-all">
-                取消
-              </button>
- <button onClick={handleExitEdit} className="flex items-center gap-2 px-5 py-2.5 text-sm font-bold text-theme-text-secondary bg-theme-bg-app border border-theme-border hover:bg-theme-elevated rounded-xl transition-all">
-                <LogOut size={16} /> 退出编辑
-              </button>
- <button onClick={handleSave} className="flex items-center gap-2 px-5 py-2.5 text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-xl transition-all">
-                <Save size={16} /> 保存
-              </button>
-            </>
-          ) : (
-            <>
-              {workflowStatus === 'pending' && (
+            {isEditMode ? (
+              <>
+                <button onClick={() => setIsEditMode(false)} className="px-5 py-2.5 text-sm font-bold text-theme-text-secondary bg-theme-elevated hover:bg-theme-elevated rounded-xl transition-all">
+                  取消
+                </button>
+                <button onClick={handleExitEdit} className="flex items-center gap-2 px-5 py-2.5 text-sm font-bold text-theme-text-secondary bg-theme-bg-app border border-theme-border hover:bg-theme-elevated rounded-xl transition-all">
+                  <LogOut size={16} /> 退出编辑
+                </button>
+                <button onClick={handleSave} className="flex items-center gap-2 px-5 py-2.5 text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-xl transition-all">
+                  <Save size={16} /> 保存
+                </button>
+              </>
+            ) : (
+              <>
+                {workflowStatus === 'pending' && (
+                  <button
+                    onClick={async () => {
+                      try {
+                        setLoading(true);
+                        await orchestrationApi.workflow.initializeInstance(instanceId);
+                        await loadInstance();
+                        showToast("初始化成功","success");
+                      } catch (e: any) {
+                        showToast("初始化失败:" + e.message,"error");
+                      } finally {
+                        setLoading(false);
+                      }
+                    }}
+                    className="flex items-center gap-2 px-5 py-2.5 text-sm font-bold text-theme-text-secondary bg-theme-bg-app border border-theme-border hover:bg-theme-elevated rounded-xl transition-all"
+                  >
+                    <Activity size={16} /> 初始化
+                  </button>
+                )}
                 <button
                   onClick={async () => {
                     try {
                       setLoading(true);
-                      await orchestrationApi.workflow.initializeInstance(instanceId);
+                      await orchestrationApi.workflow.syncInstanceStatus(instanceId);
                       await loadInstance();
-                      showToast("初始化成功","success");
+                      showToast("同步成功","success");
                     } catch (e: any) {
-                      showToast("初始化失败:" + e.message,"error");
+                      showToast("同步失败:" + e.message,"error");
                     } finally {
                       setLoading(false);
                     }
                   }}
- className="flex items-center gap-2 px-5 py-2.5 text-sm font-bold text-theme-text-secondary bg-theme-bg-app border border-theme-border hover:bg-theme-elevated rounded-xl transition-all"
+                  className="flex items-center gap-2 px-5 py-2.5 text-sm font-bold text-theme-text-secondary bg-theme-bg-app border border-theme-border hover:bg-theme-elevated rounded-xl transition-all"
                 >
-                  <Activity size={16} /> 初始化
+                  <RefreshCw size={16} /> 同步状态
                 </button>
-              )}
-              <button
-                onClick={async () => {
-                  try {
-                    setLoading(true);
-                    await orchestrationApi.workflow.syncInstanceStatus(instanceId);
-                    await loadInstance();
-                    showToast("同步成功","success");
-                  } catch (e: any) {
-                    showToast("同步失败:" + e.message,"error");
-                  } finally {
-                    setLoading(false);
-                  }
-                }}
- className="flex items-center gap-2 px-5 py-2.5 text-sm font-bold text-theme-text-secondary bg-theme-bg-app border border-theme-border hover:bg-theme-elevated rounded-xl transition-all"
-              >
-                <RefreshCw size={16} /> 同步状态
-              </button>
 
-              {['unready', 'ready'].includes(workflowStatus) && (
-                <button
-                  onClick={() => setIsUninitModalOpen(true)}
- className="flex items-center gap-2 px-5 py-2.5 text-sm font-bold text-theme-text-secondary bg-theme-bg-app border border-theme-border hover:bg-theme-elevated rounded-xl transition-all"
-                >
-                  <RotateCcw size={16} /> 反初始化
-                </button>
-              )}
+                {['unready', 'ready'].includes(workflowStatus) && (
+                  <button
+                    onClick={() => setIsUninitModalOpen(true)}
+                    className="flex items-center gap-2 px-5 py-2.5 text-sm font-bold text-theme-text-secondary bg-theme-bg-app border border-theme-border hover:bg-theme-elevated rounded-xl transition-all"
+                  >
+                    <RotateCcw size={16} /> 反初始化
+                  </button>
+                )}
 
-              {workflowStatus === 'pending' && (
-                <button
-                  onClick={async () => {
-                    try {
-                      setLoading(true);
-                      await orchestrationApi.workflow.startInstance(instanceId);
-                      await loadInstance();
-                      showToast("启动成功","success");
-                    } catch (e: any) {
-                      showToast("启动失败:" + e.message,"error");
-                    } finally {
-                      setLoading(false);
-                    }
-                  }}
- className="flex items-center gap-2 px-5 py-2.5 text-sm font-bold text-white bg-green-600 hover:bg-green-700 rounded-xl transition-all shadow-green-500/20"
-                >
-                  <Play size={16} /> 启动
-                </button>
-              )}
+                {workflowStatus === 'pending' && (
+                  <button
+                    onClick={async () => {
+                      try {
+                        setLoading(true);
+                        await orchestrationApi.workflow.startInstance(instanceId);
+                        await loadInstance();
+                        showToast("启动成功","success");
+                      } catch (e: any) {
+                        showToast("启动失败:" + e.message,"error");
+                      } finally {
+                        setLoading(false);
+                      }
+                    }}
+                    className="flex items-center gap-2 px-5 py-2.5 text-sm font-bold text-white bg-green-600 hover:bg-green-700 rounded-xl transition-all shadow-green-500/20"
+                  >
+                    <Play size={16} /> 启动
+                  </button>
+                )}
 
-              {['unready', 'ready'].includes(workflowStatus) && (instance?.run_mode === 'once' || instance?.is_active) && (
-                <button
-                  onClick={async () => {
-                    try {
-                      setLoading(true);
-                      await orchestrationApi.workflow.triggerInstance(instanceId);
-                      await loadInstance();
-                      showToast("触发执行成功","success");
-                    } catch (e: any) {
-                      showToast("触发执行失败:" + e.message,"error");
-                    } finally {
-                      setLoading(false);
-                    }
-                  }}
- className="flex items-center gap-2 px-5 py-2.5 text-sm font-bold text-white bg-cyan-600 hover:bg-cyan-700 rounded-xl transition-all shadow-cyan-500/20"
-                >
-                  <Zap size={16} /> 触发执行
-                </button>
-              )}
+                {['unready', 'ready'].includes(workflowStatus) && (instance?.run_mode === 'once' || instance?.is_active) && (
+                  <button
+                    onClick={async () => {
+                      try {
+                        setLoading(true);
+                        await orchestrationApi.workflow.triggerInstance(instanceId);
+                        await loadInstance();
+                        showToast("触发执行成功","success");
+                      } catch (e: any) {
+                        showToast("触发执行失败:" + e.message,"error");
+                      } finally {
+                        setLoading(false);
+                      }
+                    }}
+                    className="flex items-center gap-2 px-5 py-2.5 text-sm font-bold text-white bg-cyan-600 hover:bg-cyan-700 rounded-xl transition-all shadow-cyan-500/20"
+                  >
+                    <Zap size={16} /> 触发执行
+                  </button>
+                )}
 
-              {workflowStatus === 'pending' && (
-                <button
-                  onClick={() => {
-                    setInitialNodes(nodes);
-                    setInitialEdges(edges);
-                    setIsEditMode(true);
-                  }}
- className="flex items-center gap-2 px-5 py-2.5 text-sm font-bold text-theme-text-secondary bg-theme-bg-app border border-theme-border hover:bg-theme-elevated rounded-xl transition-all"
-                >
-                  <Settings size={16} /> 编辑模式
-                </button>
-              )}
-            </>
-          )}
-        </div>
-      </div>
+                {workflowStatus === 'pending' && (
+                  <button
+                    onClick={() => {
+                      setInitialNodes(nodes);
+                      setInitialEdges(edges);
+                      setIsEditMode(true);
+                    }}
+                    className="flex items-center gap-2 px-5 py-2.5 text-sm font-bold text-theme-text-secondary bg-theme-bg-app border border-theme-border hover:bg-theme-elevated rounded-xl transition-all"
+                  >
+                    <Settings size={16} /> 编辑模式
+                  </button>
+                )}
+              </>
+            )}
+          </div>
+        }
+      />
 
       {/* Warning Banner */}
       {instance?.has_warning && instance?.message && (

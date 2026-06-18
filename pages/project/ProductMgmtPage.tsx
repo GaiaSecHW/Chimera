@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import { api } from '../../clients/api';
 import { ProductTreeNode, ProductVersionNode } from '../../types/types';
+import { PageHeader } from '../../design-system';
 
 interface ProductFormState {
   name: string;
@@ -240,27 +241,22 @@ export const ProductMgmtPage: React.FC = () => {
 
   return (
     <div className="space-y-8 p-10 pb-24">
-      <div className="flex items-center justify-between gap-4">
-        <div>
-          <div className="flex items-center gap-3">
-            <div className="rounded-2xl bg-theme-surface p-3 text-white">
-              <Package size={22} />
-            </div>
-            <h2 className="text-3xl font-black text-theme-text-primary">产品管理</h2>
-          </div>
-          <p className="mt-2 text-sm font-medium text-theme-text-muted">维护全局产品树与产品版本，项目创建时绑定到具体版本。</p>
-        </div>
-        <button
-          onClick={() => {
-            resetProductForm();
-            resetVersionForm();
-            void loadTree();
-          }}
-          className="rounded-2xl border border-theme-border bg-theme-bg-app px-5 py-3 text-sm font-black text-theme-text-secondary transition-all hover:bg-theme-elevated"
-        >
-          刷新目录
-        </button>
-      </div>
+      <PageHeader
+        title="产品管理"
+        description="维护全局产品树与产品版本，项目创建时绑定到具体版本。"
+        actions={
+          <button
+            onClick={() => {
+              resetProductForm();
+              resetVersionForm();
+              void loadTree();
+            }}
+            className="rounded-xl border border-theme-border bg-theme-elevated px-4 py-2 text-sm font-medium text-theme-text-secondary transition-all hover:bg-theme-surface"
+          >
+            刷新目录
+          </button>
+        }
+      />
 
       {error && (
         <div className="flex items-center gap-3 rounded-2xl border border-red-500/20 bg-red-500/15 px-5 py-4 text-sm font-semibold text-red-400">

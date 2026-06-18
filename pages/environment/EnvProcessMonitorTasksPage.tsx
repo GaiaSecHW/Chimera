@@ -3,6 +3,7 @@ import { CheckSquare, Loader2, RefreshCw, Square, Trash2, X } from 'lucide-react
 import { api } from '../../clients/api';
 import { ProcessMonitorNode, ProcessSyncTaskDetailResponse, ProcessSyncTaskHistoryItem } from '../../types/types';
 import { useUiFeedback } from '../../components/UiFeedback';
+import { PageHeader } from '../../design-system';
 
 type QueryMode = 'platform' | 'live';
 type DetailTab = 'overview' | 'progress' | 'events' | 'results';
@@ -296,48 +297,16 @@ export const EnvProcessMonitorTasksPage: React.FC<{ projectId: string }> = ({ pr
   return (
     <>
       <div className="p-10 space-y-6">
-        <div className="flex items-end justify-between">
-          <div>
-            <h2 className="text-3xl font-black text-theme-text-primary tracking-tight">节点进程监控 - 任务管理</h2>
-            <p className="text-theme-text-muted mt-1 font-medium">支持平台记录查询与指定节点实时任务查询</p>
-          </div>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => void loadData()}
-              disabled={loading || !projectId}
-              className="px-4 py-3 rounded-2xl border border-theme-border bg-theme-bg-app hover:bg-theme-elevated text-theme-text-secondary text-xs font-bold uppercase tracking-wider flex items-center gap-2"
-            >
-              {loading ? <Loader2 size={16} className="animate-spin" /> : <RefreshCw size={16} />}
-              刷新
-            </button>
-            <button
-              onClick={() => void clearCurrent('selected')}
-              disabled={!projectId || clearing || (mode === 'platform' ? selectedHistorySyncIds.size === 0 : selectedLiveTaskKeys.size === 0)}
-              className="px-4 py-3 rounded-2xl border border-rose-500/20 bg-rose-500/15 hover:bg-rose-600 hover:text-white text-rose-400 text-xs font-bold uppercase tracking-wider flex items-center gap-2 disabled:opacity-50"
-            >
-              {clearing ? <Loader2 size={16} className="animate-spin" /> : <Trash2 size={16} />}
-              清理选中
-            </button>
-            {mode === 'live' && (
-              <button
-                onClick={() => void clearCurrent('filtered')}
-                disabled={!projectId || clearing}
-                className="px-4 py-3 rounded-2xl border border-amber-500/20 bg-amber-500/15 hover:bg-amber-600 hover:text-white text-amber-400 text-xs font-bold uppercase tracking-wider flex items-center gap-2 disabled:opacity-50"
-              >
-                {clearing ? <Loader2 size={16} className="animate-spin" /> : <Trash2 size={16} />}
-                清理筛选节点
-              </button>
-            )}
-            <button
-              onClick={() => void clearCurrent('all')}
-              disabled={!projectId || clearing}
-              className="px-4 py-3 rounded-2xl border border-rose-300 bg-theme-bg-app hover:bg-rose-600 hover:text-white text-rose-400 text-xs font-bold uppercase tracking-wider flex items-center gap-2 disabled:opacity-50"
-            >
-              {clearing ? <Loader2 size={16} className="animate-spin" /> : <Trash2 size={16} />}
-              全量清理
-            </button>
-          </div>
-        </div>
+        <PageHeader
+          title="节点进程监控 - 任务管理"
+          description="支持平台记录查询与指定节点实时任务查询"
+          actions={<div className="flex items-center gap-2">
+              <button onClick={() => void loadData()} disabled={loading || !projectId} className="px-4 py-3 rounded-2xl border border-theme-border bg-theme-bg-app hover:bg-theme-elevated text-theme-text-secondary text-xs font-bold uppercase tracking-wider flex items-center gap-2">{loading ? <Loader2 size={16} className="animate-spin" /> : <RefreshCw size={16} />}刷新</button>
+              <button onClick={() => void clearCurrent('selected')} disabled={!projectId || clearing || (mode === 'platform' ? selectedHistorySyncIds.size === 0 : selectedLiveTaskKeys.size === 0)} className="px-4 py-3 rounded-2xl border border-rose-500/20 bg-rose-500/15 hover:bg-rose-600 hover:text-white text-rose-400 text-xs font-bold uppercase tracking-wider flex items-center gap-2 disabled:opacity-50">{clearing ? <Loader2 size={16} className="animate-spin" /> : <Trash2 size={16} />}清理选中</button>
+              {mode === 'live' && (<button onClick={() => void clearCurrent('filtered')} disabled={!projectId || clearing} className="px-4 py-3 rounded-2xl border border-amber-500/20 bg-amber-500/15 hover:bg-amber-600 hover:text-white text-amber-400 text-xs font-bold uppercase tracking-wider flex items-center gap-2 disabled:opacity-50">{clearing ? <Loader2 size={16} className="animate-spin" /> : <Trash2 size={16} />}清理筛选节点</button>)}
+              <button onClick={() => void clearCurrent('all')} disabled={!projectId || clearing} className="px-4 py-3 rounded-2xl border border-rose-300 bg-theme-bg-app hover:bg-rose-600 hover:text-white text-rose-400 text-xs font-bold uppercase tracking-wider flex items-center gap-2 disabled:opacity-50">{clearing ? <Loader2 size={16} className="animate-spin" /> : <Trash2 size={16} />}全量清理</button>
+            </div>}
+        />
 
         <div className="flex gap-2">
           <button

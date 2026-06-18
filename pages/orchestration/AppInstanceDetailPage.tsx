@@ -4,6 +4,7 @@ import { api } from '../../clients/api';
 import { AppWorkflow, AppWorkflowLlmBindingRequest, AppWorkflowStatus, ServiceAccessInfo } from '../../types/types';
 import { StatusBadge } from '../../components/StatusBadge';
 import { AppWorkflowLlmBindingsEditor } from '../../components/orchestration/AppWorkflowLlmBindingsEditor';
+import { PageHeader } from '../../design-system';
 
 type DetailTab = 'overview' | 'config' | 'access' | 'logs';
 
@@ -235,31 +236,29 @@ export const AppInstanceDetailPage: React.FC<{
 
   return (
     <div className="p-8">
-      <div className="mb-8 flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <button onClick={onBack} className="rounded-xl p-2 transition-colors hover:bg-theme-elevated"><ArrowLeft size={20} /></button>
-          <div>
-            <h1 className="text-3xl font-black text-theme-text-primary">{instance.name}</h1>
-            <p className="mt-1 text-sm text-theme-text-muted">{instance.description || '暂无描述'}</p>
+      <PageHeader
+        title={instance.name}
+        description={instance.description || '暂无描述'}
+        back={{ label: '返回实例列表', onClick: onBack }}
+        actions={
+          <div className="flex items-center gap-3">
+            <button
+              onClick={handleRefreshDetail}
+              disabled={!!operation || refreshingData}
+              className="flex items-center gap-2 rounded-xl border border-theme-border bg-theme-bg-app px-4 py-2.5 font-bold text-theme-text-secondary hover:border-blue-500/20 hover:bg-blue-500/15 hover:text-blue-400 disabled:cursor-not-allowed disabled:opacity-50"
+              title="刷新"
+              aria-label="刷新"
+            >
+              <RefreshCw size={16} className={refreshingData ? 'animate-spin' : ''} />
+            </button>
+            {actions.includes('initialize') && <button onClick={() => runOperation('初始化', () => orchestrationApi.workflow.initializeAppWorkflow(instanceId, false))} disabled={!!operation} className="flex items-center gap-2 rounded-xl bg-blue-600 px-5 py-2.5 font-bold text-white hover:bg-blue-500 disabled:opacity-50">{operation === '初始化' ? <Loader2 className="animate-spin" size={16} /> : <Power size={16} />}初始化</button>}
+            {actions.includes('start') && <button onClick={() => runOperation('启动', () => orchestrationApi.workflow.startAppWorkflow(instanceId))} disabled={!!operation} className="flex items-center gap-2 rounded-xl bg-green-600 px-5 py-2.5 font-bold text-white hover:bg-green-500 disabled:opacity-50">{operation === '启动' ? <Loader2 className="animate-spin" size={16} /> : <Play size={16} />}启动</button>}
+            {actions.includes('stop') && <button onClick={() => runOperation('停止', () => orchestrationApi.workflow.stopAppWorkflow(instanceId))} disabled={!!operation} className="flex items-center gap-2 rounded-xl bg-orange-600 px-5 py-2.5 font-bold text-white hover:bg-orange-500 disabled:opacity-50">{operation === '停止' ? <Loader2 className="animate-spin" size={16} /> : <Square size={16} />}停止</button>}
+            {actions.includes('sync') && <button onClick={() => runOperation('同步状态', () => orchestrationApi.workflow.syncAppWorkflowStatus(instanceId))} disabled={!!operation} className="flex items-center gap-2 rounded-xl bg-purple-600 px-5 py-2.5 font-bold text-white hover:bg-purple-500 disabled:opacity-50">{operation === '同步状态' ? <Loader2 className="animate-spin" size={16} /> : <RefreshCw size={16} />}同步状态</button>}
+            {actions.includes('rebuild') && <button onClick={() => runOperation('强制重建', () => orchestrationApi.workflow.initializeAppWorkflow(instanceId, true))} disabled={!!operation} className="flex items-center gap-2 rounded-xl bg-amber-600 px-5 py-2.5 font-bold text-white hover:bg-amber-500 disabled:opacity-50">{operation === '强制重建' ? <Loader2 className="animate-spin" size={16} /> : <RotateCcw size={16} />}强制重建</button>}
           </div>
-        </div>
-        <div className="flex items-center gap-3">
-          <button
-            onClick={handleRefreshDetail}
-            disabled={!!operation || refreshingData}
-            className="flex items-center gap-2 rounded-xl border border-theme-border bg-theme-bg-app px-4 py-2.5 font-bold text-theme-text-secondary hover:border-blue-500/20 hover:bg-blue-500/15 hover:text-blue-400 disabled:cursor-not-allowed disabled:opacity-50"
-            title="刷新"
-            aria-label="刷新"
-          >
-            <RefreshCw size={16} className={refreshingData ? 'animate-spin' : ''} />
-          </button>
-          {actions.includes('initialize') && <button onClick={() => runOperation('初始化', () => orchestrationApi.workflow.initializeAppWorkflow(instanceId, false))} disabled={!!operation} className="flex items-center gap-2 rounded-xl bg-blue-600 px-5 py-2.5 font-bold text-white hover:bg-blue-500 disabled:opacity-50">{operation === '初始化' ? <Loader2 className="animate-spin" size={16} /> : <Power size={16} />}初始化</button>}
-          {actions.includes('start') && <button onClick={() => runOperation('启动', () => orchestrationApi.workflow.startAppWorkflow(instanceId))} disabled={!!operation} className="flex items-center gap-2 rounded-xl bg-green-600 px-5 py-2.5 font-bold text-white hover:bg-green-500 disabled:opacity-50">{operation === '启动' ? <Loader2 className="animate-spin" size={16} /> : <Play size={16} />}启动</button>}
-          {actions.includes('stop') && <button onClick={() => runOperation('停止', () => orchestrationApi.workflow.stopAppWorkflow(instanceId))} disabled={!!operation} className="flex items-center gap-2 rounded-xl bg-orange-600 px-5 py-2.5 font-bold text-white hover:bg-orange-500 disabled:opacity-50">{operation === '停止' ? <Loader2 className="animate-spin" size={16} /> : <Square size={16} />}停止</button>}
-          {actions.includes('sync') && <button onClick={() => runOperation('同步状态', () => orchestrationApi.workflow.syncAppWorkflowStatus(instanceId))} disabled={!!operation} className="flex items-center gap-2 rounded-xl bg-purple-600 px-5 py-2.5 font-bold text-white hover:bg-purple-500 disabled:opacity-50">{operation === '同步状态' ? <Loader2 className="animate-spin" size={16} /> : <RefreshCw size={16} />}同步状态</button>}
-          {actions.includes('rebuild') && <button onClick={() => runOperation('强制重建', () => orchestrationApi.workflow.initializeAppWorkflow(instanceId, true))} disabled={!!operation} className="flex items-center gap-2 rounded-xl bg-amber-600 px-5 py-2.5 font-bold text-white hover:bg-amber-500 disabled:opacity-50">{operation === '强制重建' ? <Loader2 className="animate-spin" size={16} /> : <RotateCcw size={16} />}强制重建</button>}
-        </div>
-      </div>
+        }
+      />
 
       <div className="mb-8 grid grid-cols-1 gap-6 md:grid-cols-4">
  <div className="rounded-2xl border border-theme-border bg-theme-bg-app p-6">

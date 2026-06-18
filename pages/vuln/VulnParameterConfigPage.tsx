@@ -1,5 +1,6 @@
 import React from 'react';
 import { AlertTriangle, CheckCircle2, RefreshCw, Save, SlidersHorizontal } from 'lucide-react';
+import { PageHeader } from '../../design-system';
 import { api } from '../../clients/api';
 import { STAGE_LABELS, labelOf } from './vuln-engine/shared';
 
@@ -400,24 +401,10 @@ export const VulnParameterConfigPage: React.FC<VulnPageProps> = ({ projectId, on
       className="space-y-4 px-5 py-5 md:px-6 2xl:px-8"
       style={{ backgroundColor: LK.canvas, minHeight: '100%', color: LK.inkSoft }}
     >
-      <div className="flex flex-wrap items-start justify-between gap-3 pb-4" style={{ borderBottom:`1px solid ${LK.borderSoft}` }}>
-        <div>
-          <span
-            className="inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-medium uppercase tracking-wider"
-            style={{ backgroundColor: LK.primaryMuted, color: LK.primary }}
-          >
-            <SlidersHorizontal size={14} />
-            Vulnerability Engine Runtime Controls
-          </span>
-          <h1 className="mt-3 text-2xl font-semibold leading-8 tracking-tight" style={{ color: LK.ink }}>
-            漏洞引擎参数配置
-          </h1>
-          <p className="mt-2 max-w-2xl text-sm leading-7" style={{ color: LK.body }}>
-            将漏洞引擎的动态参数拆成全局、上报、研判、验证、结束五个维度管理。
-            参数保存后，后续案例在各阶段的调度、去重、验证与收敛策略会按这里的配置执行。
-          </p>
-        </div>
-        <div className="grid grid-cols-2 gap-3 xl:min-w-[22rem]">
+      <PageHeader
+        title="漏洞引擎参数配置"
+        description="将漏洞引擎的动态参数拆成全局、上报、研判、验证、结束五个维度管理。参数保存后，后续案例在各阶段的调度、去重、验证与收敛策略会按这里的配置执行。"
+        actions={<div className="grid grid-cols-2 gap-3 xl:min-w-[22rem]">
           <div
             className="rounded-xl px-4 py-4"
             style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}` }}
@@ -436,8 +423,8 @@ export const VulnParameterConfigPage: React.FC<VulnPageProps> = ({ projectId, on
             </div>
             <div className="mt-2 text-sm font-semibold break-all" style={{ color: LK.ink }}>{projectId}</div>
           </div>
-        </div>
-      </div>
+        </div>}
+      />
 
       <div className="flex flex-wrap items-center gap-3 text-xs" style={{ color: LK.muted }}>
         <span>最近保存：{updatedAt ? new Date(updatedAt).toLocaleString() : '尚未保存'}</span>

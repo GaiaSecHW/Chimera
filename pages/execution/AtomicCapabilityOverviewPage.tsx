@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 
 import { getAuthHeaders } from '../../clients/base';
+import { PageHeader } from '../../design-system';
 import type { ViewType } from '../../types/types';
 import {
   atomicCapabilityCatalog,
@@ -270,35 +271,24 @@ export const AtomicCapabilityOverviewPage: React.FC<AtomicCapabilityOverviewPage
 
   return (
     <div style={{ padding: '32px', paddingBottom: '40px', paddingTop: '32px' }}>
-      <section style={{ borderRadius: '24px', border: '1px solid #26324a', backgroundColor: 'linear-gradient(135deg, #111a2b 0%, rgba(79,115,255,0.08) 50%, rgba(73,197,255,0.08) 100%)', padding: '28px' }}>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', '@media (min-width: 1280px)': { flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between' } } as any}>
-          <div style={{ maxWidth: '56rem' }}>
-            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', borderRadius: '9999px', border: '1px solid #49c5ff', backgroundColor: 'rgba(73,197,255,0.1)', padding: '4px 12px', fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.3em', color: '#49c5ff' }}>
-              <Sparkles size={14} />
-              Atomic Capabilities
-            </div>
-            <h1 style={{ marginTop: '16px', fontSize: '30px', fontWeight: 600, letterSpacing: '-0.02em', color: '#f5f7ff' }}>原子能力总览</h1>
-            <p style={{ marginTop: '12px', maxWidth: '48rem', fontSize: '14px', lineHeight: '28px', color: '#d6def0' }}>
-              聚焦当前平台已上线的五类原子能力。每张卡片展示能力定位、输入输出链路、K8S 服务入口和核心 API。
-              点击卡片即可查看内置接口文档、K8S 内访问地址以及在线 OpenAPI 文档探测结果。
-            </p>
-          </div>
-          <div style={{ display: 'grid', gap: '12px', gridTemplateColumns: 'repeat(1, minmax(0, 1fr))', '@media (min-width: 640px)': { gridTemplateColumns: 'repeat(3, minmax(0, 1fr))' } } as any}>
-            <div style={{ borderRadius: '16px', border: '1px solid rgba(255,255,255,0.1)', backgroundColor: 'rgba(17,26,43,0.9)', padding: '20px' }}>
-              <div style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.2em', color: '#72809a' }}>原子能力</div>
-              <div style={{ marginTop: '8px', fontSize: '30px', fontWeight: 600, color: '#f5f7ff' }}>{atomicCapabilityCatalog.length}</div>
-            </div>
-            <div style={{ borderRadius: '16px', border: '1px solid rgba(255,255,255,0.1)', backgroundColor: 'rgba(17,26,43,0.9)', padding: '20px' }}>
-              <div style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.2em', color: '#72809a' }}>已选项目</div>
-              <div style={{ marginTop: '8px', wordBreak: 'break-all', fontSize: '14px', fontWeight: 600, color: '#d6def0' }}>{projectId || '未选择项目'}</div>
-            </div>
-            <div style={{ borderRadius: '16px', border: '1px solid rgba(255,255,255,0.1)', backgroundColor: 'rgba(17,26,43,0.9)', padding: '20px' }}>
-              <div style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.2em', color: '#72809a' }}>展示内容</div>
-              <div style={{ marginTop: '8px', fontSize: '14px', fontWeight: 600, color: '#d6def0' }}>能力简介 / K8S API / API 文档</div>
-            </div>
-          </div>
+      <PageHeader
+        title="原子能力总览"
+        description="聚焦当前平台已上线的五类原子能力。每张卡片展示能力定位、输入输出链路、K8S 服务入口和核心 API。点击卡片即可查看内置接口文档、K8S 内访问地址以及在线 OpenAPI 文档探测结果。"
+      />
+      <div style={{ display: 'grid', gap: '12px', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))' }}>
+        <div style={{ borderRadius: '16px', border: '1px solid rgba(255,255,255,0.1)', backgroundColor: 'rgba(17,26,43,0.9)', padding: '20px' }}>
+          <div style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.2em', color: '#72809a' }}>原子能力</div>
+          <div style={{ marginTop: '8px', fontSize: '30px', fontWeight: 600, color: '#f5f7ff' }}>{atomicCapabilityCatalog.length}</div>
         </div>
-      </section>
+        <div style={{ borderRadius: '16px', border: '1px solid rgba(255,255,255,0.1)', backgroundColor: 'rgba(17,26,43,0.9)', padding: '20px' }}>
+          <div style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.2em', color: '#72809a' }}>已选项目</div>
+          <div style={{ marginTop: '8px', wordBreak: 'break-all', fontSize: '14px', fontWeight: 600, color: '#d6def0' }}>{projectId || '未选择项目'}</div>
+        </div>
+        <div style={{ borderRadius: '16px', border: '1px solid rgba(255,255,255,0.1)', backgroundColor: 'rgba(17,26,43,0.9)', padding: '20px' }}>
+          <div style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.2em', color: '#72809a' }}>展示内容</div>
+          <div style={{ marginTop: '8px', fontSize: '14px', fontWeight: 600, color: '#d6def0' }}>能力简介 / K8S API / API 文档</div>
+        </div>
+      </div>
 
       <section style={{ marginTop: '32px', display: 'grid', gridTemplateColumns: 'repeat(1, minmax(0, 1fr))', gap: '20px', '@media (min-width: 1280px)': { gridTemplateColumns: 'repeat(2, minmax(0, 1fr))' }, '@media (min-width: 1536px)': { gridTemplateColumns: 'repeat(3, minmax(0, 1fr))' } } as any}>
         {atomicCapabilityCatalog.map((capability) => {

@@ -4,6 +4,7 @@ import { api } from '../../clients/api';
 import { API_BASE, getHeaders, handleResponse } from '../../clients/base';
 import { useUiFeedback } from '../../components/UiFeedback';
 import { Agent } from '../../types/types';
+import { PageHeader } from '../../design-system';
 
 const TEST_ENV_API_BASE = `${API_BASE}/api/app/web-e2e`;
 
@@ -1032,23 +1033,11 @@ export const EnvManagementPage: React.FC<{ projectId: string }> = ({ projectId }
     <div className="min-h-full bg-theme-bg-app px-8 py-8">
       {feedbackNodes}
       <div className="mx-auto max-w-7xl space-y-6">
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-          <div>
-            <h1 className="mt-4 text-3xl font-black tracking-tight text-theme-text-primary">环境管理</h1>
-            <p className="mt-2 max-w-3xl text-sm leading-6 text-theme-text-secondary">
-              查看当前项目已上线的 Agent、运行状态和最近心跳。该页面为独立入口，不影响现有环境管理页面。
-            </p>
-          </div>
-          <button
-            type="button"
-            onClick={() => loadAgents(true)}
-            disabled={!projectId || loading}
-            className="inline-flex items-center justify-center gap-2 rounded-lg border border-theme-border bg-theme-surface px-4 py-2 text-sm font-bold text-theme-text-secondary shadow-sm transition hover:bg-theme-elevated disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            {loading ? <Loader2 size={16} className="animate-spin" /> : <RefreshCw size={16} />}
-            刷新
-          </button>
-        </div>
+        <PageHeader
+          title="环境管理"
+          description="查看当前项目已上线的 Agent、运行状态和最近心跳。该页面为独立入口，不影响现有环境管理页面。"
+          actions={<button type="button" onClick={() => loadAgents(true)} disabled={!projectId || loading} className="inline-flex items-center justify-center gap-2 rounded-lg border border-theme-border bg-theme-surface px-4 py-2 text-sm font-bold text-theme-text-secondary shadow-sm transition hover:bg-theme-elevated disabled:cursor-not-allowed disabled:opacity-50">{loading ? <Loader2 size={16} className="animate-spin" /> : <RefreshCw size={16} />}刷新</button>}
+        />
 
         {error ? (
           <div className="rounded-xl border border-rose-500/20 bg-rose-500/15 px-4 py-3 text-sm font-semibold text-rose-400">{error}</div>

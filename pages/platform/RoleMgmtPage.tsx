@@ -4,7 +4,7 @@ import { Shield, Plus, Search, RefreshCw, Loader2, Trash2, Edit3, ShieldCheck, U
 import { api } from '../../clients/api';
 import { showConfirm } from '../../components/DialogService';
 import { Role } from '../../types/types';
-import { Modal, DataTable, DataTableColumn } from '../../design-system';
+import { Modal, DataTable, DataTableColumn, PageHeader } from '../../design-system';
 
 export const RoleMgmtPage: React.FC = () => {
   const platformApi = api.domains.platform;
@@ -139,26 +139,17 @@ export const RoleMgmtPage: React.FC = () => {
 
   return (
     <div className="p-10 space-y-8 animate-in fade-in duration-500 pb-24 h-full overflow-y-auto custom-scrollbar">
-      <div className="flex justify-between items-end">
-        <div className="space-y-1">
-          <div className="flex items-center gap-3">
- <div className="p-3 bg-indigo-600 text-white rounded-[1.25rem] shadow-indigo-500/20">
-               <Shield size={28} />
-             </div>
-             <div>
-               <h2 className="text-3xl font-black text-theme-text-primary tracking-tight">角色定义管理</h2>
-             </div>
-          </div>
-        </div>
-        <div className="flex gap-4">
- <button onClick={fetchRoles} className="p-4 bg-theme-bg-app border border-theme-border text-theme-text-muted rounded-2xl hover:bg-theme-elevated transition-all active:scale-95">
+      <PageHeader
+        title={<><div className="p-3 bg-indigo-600 text-white rounded-[1.25rem] shadow-indigo-500/20 inline-flex"><Shield size={28} /></div> 角色定义管理</>}
+        actions={<div className="flex gap-4">
+          <button onClick={fetchRoles} className="p-4 bg-theme-bg-app border border-theme-border text-theme-text-muted rounded-2xl hover:bg-theme-elevated transition-all active:scale-95">
             <RefreshCw size={20} className={loading ? 'animate-spin' : ''} />
           </button>
- <button onClick={() => { setEditingRole(null); setFormData({ name: '', description: '' }); setIsModalOpen(true); }} className="bg-indigo-600 text-white px-8 py-4 rounded-2xl font-black flex items-center gap-3 shadow-indigo-500/20 hover:bg-indigo-700 transition-all active:scale-95">
+          <button onClick={() => { setEditingRole(null); setFormData({ name: '', description: '' }); setIsModalOpen(true); }} className="bg-indigo-600 text-white px-8 py-4 rounded-2xl font-black flex items-center gap-3 shadow-indigo-500/20 hover:bg-indigo-700 transition-all active:scale-95">
             <Plus size={20} /> 定义新角色
           </button>
-        </div>
-      </div>
+        </div>}
+      />
 
       {/* Summary Row */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">

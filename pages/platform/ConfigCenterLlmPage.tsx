@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import MonacoEditor from '@monaco-editor/react';
 import { Bot, BookOpenText, Braces, CheckCircle2, Copy, Eye, EyeOff, FileCode2, LayoutPanelTop, Loader2, MessageSquare, Plus, RefreshCw, Save, ShieldAlert, Sparkles, Trash2, Wifi, X } from 'lucide-react';
-import { Modal } from '../../design-system';
+import { Modal, PageHeader } from '../../design-system';
 import { api } from '../../clients/api';
 import { showConfirm } from '../../components/DialogService';
 import { LlmProviderDetail, LlmProviderFileBinding, LlmProviderSummary, LlmProviderTestResult, LlmProviderUpsertRequest } from '../../types/types';
@@ -762,17 +762,10 @@ export const ConfigCenterLlmPage: React.FC<ConfigCenterLlmPageProps> = ({ onOpen
 
   return (
     <div className="p-8 space-y-8 animate-in fade-in duration-500">
-      <div className="flex items-center justify-between gap-6">
-        <div>
-          <h1 className="text-3xl font-black text-theme-text-primary tracking-tight flex items-center gap-3">
-            <Bot className="w-8 h-8 text-blue-400" />
-            LLM 对接配置
-          </h1>
-          <p className="mt-2 text-sm text-theme-text-muted">
-            在配置中心统一维护全局 LLM 渠道，让其他微服务可以按需拉取当前可用的模型配置。
-          </p>
-        </div>
-        <div className="flex items-center gap-3">
+      <PageHeader
+        title={<><Bot className="w-8 h-8 text-blue-400 inline" /> LLM 对接配置</>}
+        description="在配置中心统一维护全局 LLM 渠道，让其他微服务可以按需拉取当前可用的模型配置。"
+        actions={<div className="flex items-center gap-3">
           <button
             onClick={() => void handleRefresh()}
             className="inline-flex items-center gap-2 rounded-2xl border border-theme-border bg-theme-bg-app px-4 py-3 text-sm font-black text-theme-text-secondary"
@@ -782,27 +775,27 @@ export const ConfigCenterLlmPage: React.FC<ConfigCenterLlmPageProps> = ({ onOpen
           </button>
           <button
             onClick={handleCreateNew}
- className="inline-flex items-center gap-2 rounded-2xl bg-theme-bg-app px-4 py-3 text-sm font-black text-white"
+            className="inline-flex items-center gap-2 rounded-2xl bg-theme-bg-app px-4 py-3 text-sm font-black text-white"
           >
             <Plus size={16} />
             新建 Provider
           </button>
           <button
             onClick={onOpenChat}
- className="inline-flex items-center gap-2 rounded-2xl border border-theme-border bg-theme-bg-app px-4 py-3 text-sm font-black text-theme-text-secondary"
+            className="inline-flex items-center gap-2 rounded-2xl border border-theme-border bg-theme-bg-app px-4 py-3 text-sm font-black text-theme-text-secondary"
           >
             <MessageSquare size={16} />
             在线聊天
           </button>
           <button
             onClick={() => setShowUsageGuide(true)}
- className="inline-flex items-center gap-2 rounded-2xl border border-theme-border bg-theme-bg-app px-4 py-3 text-sm font-black text-theme-text-secondary"
+            className="inline-flex items-center gap-2 rounded-2xl border border-theme-border bg-theme-bg-app px-4 py-3 text-sm font-black text-theme-text-secondary"
           >
             <BookOpenText size={16} />
             使用指引
           </button>
-        </div>
-      </div>
+        </div>}
+      />
 
       {(message || error) && (
         <div className={`rounded-[2rem] border px-5 py-4 text-sm font-bold ${error ? 'border-red-500/20 bg-red-500/15 text-red-400' : 'border-green-500/20 bg-green-500/15 text-green-400'}`}>

@@ -29,6 +29,7 @@ import { FileServerPickerModal } from '../../components/assets/FileServerPickerM
 import { showConfirm } from '../../components/DialogService';
 import { ExecutionTable, ExecutionTableHead, ExecutionTableTh, ExecutionTableTd, executionTableInteractiveRowClassName } from '../../components/execution/ExecutionTable';
 import { ServicePageTitle, useServiceBuildVersion } from '../../components/execution/ServiceBuildVersion';
+import { PageHeader } from '../../design-system';
 import { useUiFeedback } from '../../components/UiFeedback';
 import { hasBinarySecurityReturnTarget, navigateBackByTaskOrigin, navigateBackToBinarySecurityTask } from '../../utils/executionReturnContext';
 import { TaskOriginCard, TaskOriginInline } from './taskOrigin';
@@ -4066,37 +4067,11 @@ export const FirmwareUnpackerPage: React.FC<Props> = ({ projectId, projects = []
         </div>
       )}
 
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <div className="flex items-center gap-2">
-          <Package size={18} className="text-indigo-400" />
-          <div>
-            <ServicePageTitle
-              title={showingDetail ? '固件解包 · 任务详情' : '固件解包 · 任务列表'}
-              version={buildVersion}
-              className=""
-              titleClassName="text-sm font-bold text-theme-text-primary"
-              badgeClassName="text-[10px]"
-            />
-            {!showingDetail && hasRunning && <p className="animate-pulse text-xs font-semibold text-blue-400">● 有任务运行中，每5秒自动刷新</p>}
-          </div>
-        </div>
-        <div className="flex gap-2">
-          <button
-            onClick={handlePageRefresh}
-            className="inline-flex items-center gap-1.5 rounded-lg bg-theme-surface px-3 py-1.5 text-xs font-semibold text-white"
-          >
-            {showingDetail ? (
-              <>
-                <RefreshCw size={12} /> 刷新详情
-              </>
-            ) : (
-              <>
-                <RefreshCw size={12} /> 刷新列表
-              </>
-            )}
-          </button>
-        </div>
-      </div>
+      <PageHeader
+        title={showingDetail ? '固件解包 · 任务详情' : '固件解包 · 任务列表'}
+        description={!showingDetail && hasRunning ? '有任务运行中，每5秒自动刷新' : undefined}
+        actions={<button onClick={handlePageRefresh} className="inline-flex items-center gap-1.5 rounded-lg bg-theme-surface px-3 py-1.5 text-xs font-semibold text-white">{showingDetail ? <><RefreshCw size={12} /> 刷新详情</> : <><RefreshCw size={12} /> 刷新列表</>}</button>}
+      />
 
       {showingDetail ? (
         <TaskDetailPanel

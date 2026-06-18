@@ -35,6 +35,7 @@ import {
   useAiHelpers,
   useProjectAiAgents,
 } from './ai-agent/shared';
+import { PageHeader } from '../../design-system';
 
 const environmentApi = api.domains.environment;
 
@@ -2685,18 +2686,11 @@ export const EnvAiAgentManagePage: React.FC<{ projectId: string }> = ({ projectI
         <div className="space-y-6">
           {feedbackNodes}
 
- <section className="rounded-[2rem] border border-theme-border bg-theme-bg-app p-6">
-            <div className="flex items-center justify-between gap-4 flex-wrap">
-              <div>
-                <h1 className="text-3xl font-black tracking-tight text-theme-text-primary">AI Agent 管理</h1>
-                <p className="mt-2 max-w-3xl text-sm text-theme-text-muted">
-                  先从列表查看当前项目下的全部 AI Agent，再按需进入右侧详情抽屉管理；LLM 快速应用已改为单个与批量两个对话框流程。
-                </p>
-              </div>
-              <div className="flex items-center gap-2">
-                <button onClick={() => setShowCreateAgent((v) => !v)} className="rounded-xl border border-theme-border px-3 py-2 text-sm font-semibold text-theme-text-secondary">
-                  新增 AI Agent
-                </button>
+          <PageHeader
+            title="AI Agent 管理"
+            description="先从列表查看当前项目下的全部 AI Agent，再按需进入右侧详情抽屉管理；LLM 快速应用已改为单个与批量两个对话框流程。"
+            actions={<div className="flex items-center gap-2">
+                <button onClick={() => setShowCreateAgent((v) => !v)} className="rounded-xl border border-theme-border px-3 py-2 text-sm font-semibold text-theme-text-secondary">新增 AI Agent</button>
                 <button
                   onClick={() => {
                     if (selectedAgents.length === 0) {
@@ -2714,9 +2708,8 @@ export const EnvAiAgentManagePage: React.FC<{ projectId: string }> = ({ projectI
                   <RefreshCw size={16} />
                   刷新
                 </button>
-              </div>
-            </div>
-          </section>
+              </div>}
+          />
 
           <StatsStrip agents={agents} selectedCount={selectedAgentKeys.length} />
 

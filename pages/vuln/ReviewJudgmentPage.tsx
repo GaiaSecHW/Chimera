@@ -1,5 +1,5 @@
 import React from 'react';
-import { DataTable, DataTableColumn } from '../../design-system';
+import { DataTable, DataTableColumn, PageHeader } from '../../design-system';
 
 interface ReviewJudgmentPageProps {
   projectId: string;
@@ -42,17 +42,10 @@ export const ReviewJudgmentPage: React.FC<ReviewJudgmentPageProps> = ({ projectI
       className="flex h-full flex-col"
       style={{ backgroundColor: LK.canvas, color: LK.inkSoft }}
     >
-      <div
-        className="shrink-0 px-6 py-5"
-        style={{ borderBottom:`1px solid ${LK.borderSoft}` }}
-      >
-        <h1 className="text-xl font-semibold tracking-tight" style={{ color: LK.ink }}>
-          评审研判
-        </h1>
-        <p className="mt-1 text-sm" style={{ color: LK.body }}>
-          围绕研判阶段的漏洞案例进行专家评审，形成评审结论、证据链与处置建议。
-        </p>
-      </div>
+      <PageHeader
+        title="评审研判"
+        description="围绕研判阶段的漏洞案例进行专家评审，形成评审结论、证据链与处置建议。"
+      />
 
       <div className="flex-1 overflow-auto p-6">
         <div className="grid grid-cols-4 gap-4 mb-6">

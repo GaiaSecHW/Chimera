@@ -18,6 +18,7 @@ import JSZip from 'jszip';
 
 import { getAuthHeaders, getHeaders, handleResponse } from '../../clients/base';
 import { agentManageApiPath } from '../../clients/agentManage';
+import { PageHeader } from '../../design-system';
 import { aigwApi } from '../../clients/aigw';
 import type { AiGatewayModelAlias, UserInfo, ViewType } from '../../types/types';
 
@@ -769,20 +770,12 @@ export const ToolOverviewPage: React.FC<ToolOverviewPageProps> = ({ projectId, u
 
   return (
     <div style={{ padding: '32px 32px 40px' }}>
-      <section style={{ borderRadius: '24px', border: `1px solid ${LK.border}`, background: `linear-gradient(to bottom right, ${LK.surface}, ${LK.primaryMuted.replace('0.14', '0.04')}, ${LK.primaryMuted.replace('0.14', '0.06')})`, padding: '28px' }}>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-          <div style={{ maxWidth: '64rem' }}>
-            <h1 style={{ fontSize: '30px', fontWeight: 600, letterSpacing: '-0.025em', color: LK.ink }}>工具总览</h1>
-            <p style={{ marginTop: '12px', maxWidth: '48rem', fontSize: '14px', lineHeight: '28px', color: LK.body }}>
-              统一管理 Agent 市场、AgentHarness 仓库、运行指标和平台内置扫描工具入口。页面参考 Agent 市场能力，并适配当前 Chimera 浅色卡片风格。
-            </p>
-          </div>
-          <div style={{ display: 'grid', gap: '12px', gridTemplateColumns: 'repeat(3, 1fr)' }}>
-            <div style={{ borderRadius: '12px', border: `1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised, padding: '20px' }}><div style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.2em', color: LK.muted }}>Agent</div><div style={{ marginTop: '8px', fontSize: '30px', fontWeight: 600, color: LK.ink }}>{apps.length}</div></div>
-            <div style={{ borderRadius: '12px', border: `1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised, padding: '20px' }}><div style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.2em', color: LK.muted }}>已选项目</div><div style={{ marginTop: '8px', wordBreak: 'break-all', fontSize: '14px', fontWeight: 600, color: LK.inkSoft }}>{projectId || '未选择项目'}</div></div>
-          </div>
-        </div>
-      </section>
+      <PageHeader title="工具总览" description="统一管理 Agent 市场、AgentHarness 仓库、运行指标和平台内置扫描工具入口。页面参考 Agent 市场能力，并适配当前 Chimera 浅色卡片风格。" />
+
+      <div style={{ display: 'grid', gap: '12px', gridTemplateColumns: 'repeat(3, 1fr)' }}>
+        <div style={{ borderRadius: '12px', border: `1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised, padding: '20px' }}><div style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.2em', color: LK.muted }}>Agent</div><div style={{ marginTop: '8px', fontSize: '30px', fontWeight: 600, color: LK.ink }}>{apps.length}</div></div>
+        <div style={{ borderRadius: '12px', border: `1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised, padding: '20px' }}><div style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.2em', color: LK.muted }}>已选项目</div><div style={{ marginTop: '8px', wordBreak: 'break-all', fontSize: '14px', fontWeight: 600, color: LK.inkSoft }}>{projectId || '未选择项目'}</div></div>
+      </div>
 
       {message ? (
         <div style={{ marginTop: '20px', borderRadius: '12px', border: `1px solid ${message.type === 'success' ? LK.success : LK.error}`, backgroundColor: message.type === 'success' ? LK.primaryMuted.replace('0.14', '0.08').replace('79, 115, 255', '69, 192, 111') : LK.primaryMuted.replace('0.14', '0.08').replace('79, 115, 255', '241, 93, 93'), padding: '12px 16px', fontSize: '14px', fontWeight: 600, color: message.type === 'success' ? LK.success : LK.error }}>

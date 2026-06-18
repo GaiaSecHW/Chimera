@@ -7,6 +7,7 @@ import { api } from '../../clients/api';
 import { AgentResponse, AgentTraceEvent, AiAgentItem, AiBatchRound, AiBatchSession, AiBatchSessionSummary, AiBatchStreamEvent, AiHelperService } from '../../types/types';
 import { useUiFeedback } from '../../components/UiFeedback';
 import { EmptyState, buildHelperKey, prettyJson, useAiHelpers } from './ai-agent/shared';
+import { PageHeader } from '../../design-system';
 
 const BATCH_SESSION_MODE_KEY = 'chimera_ai_batch_session_mode';
 
@@ -462,28 +463,14 @@ export const EnvAiBatchSessionPage: React.FC<{ projectId: string }> = ({ project
       <div className="space-y-6">
         {feedbackNodes}
 
- <section className="rounded-[2rem] border border-theme-border bg-theme-bg-app p-6">
-          <div className="flex items-center justify-between gap-4 flex-wrap">
-            <div>
-              <h1 className="text-3xl font-black tracking-tight text-theme-text-primary">批量会话</h1>
-              <p className="mt-2 text-sm text-theme-text-muted">先查看批量会话列表，再点击进入会话详情对话界面；支持创建与批量删除。</p>
-            </div>
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => void loadBatches(false)}
-                className="inline-flex items-center gap-2 rounded-xl border border-theme-border px-4 py-2 text-sm font-semibold text-theme-text-secondary"
-              >
-                <RefreshCw size={16} />刷新会话
-              </button>
-              <button
-                onClick={openCreateDialog}
-                className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white"
-              >
-                <Plus size={16} />创建批量会话
-              </button>
-            </div>
-          </div>
-        </section>
+        <PageHeader
+          title="批量会话"
+          description="先查看批量会话列表，再点击进入会话详情对话界面；支持创建与批量删除。"
+          actions={<div className="flex items-center gap-2">
+              <button onClick={() => void loadBatches(false)} className="inline-flex items-center gap-2 rounded-xl border border-theme-border px-4 py-2 text-sm font-semibold text-theme-text-secondary"><RefreshCw size={16} />刷新会话</button>
+              <button onClick={openCreateDialog} className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white"><Plus size={16} />创建批量会话</button>
+            </div>}
+        />
 
  <section className="rounded-2xl border border-theme-border bg-theme-bg-app p-4">
           <div className="mb-3 flex items-center justify-between gap-3 flex-wrap">

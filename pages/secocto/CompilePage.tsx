@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { secoctoClients } from '../../clients/secocto';
 import type { SecOctoCompileTask, SecOctoPagerState } from '../../types/secocto';
 import { SecOctoPager, PAGE_SIZE_OPTIONS } from './shared/Pager';
+import { PageHeader } from '../../design-system';
 
 interface Props {
   onBack: () => void;
@@ -91,11 +92,7 @@ export const SecOctoCompilePage: React.FC<Props> = ({ onBack }) => {
 
   return (
     <div className="px-8 pt-8 pb-12 animate-in fade-in duration-300">
-      <nav className="flex items-center gap-2 text-sm text-theme-text-secondary mb-4">
-        <button onClick={onBack} className="hover:text-brand-primary transition-colors">记忆进化</button>
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-4 h-4"><path d="m9 18 6-6-6-6" /></svg>
-        <span className="text-theme-text-primary font-medium">编译任务</span>
-      </nav>
+      <PageHeader title="编译任务" description="将未编译的记忆卡片批量编译为可检索的结构化知识" back={{ label: '记忆进化', onClick: onBack }} />
 
       <div className="rounded-xl border border-theme-border bg-theme-surface overflow-hidden">
         <div className="flex items-center justify-between gap-3 px-3 py-2 border-b border-theme-border bg-theme-elevated/5">

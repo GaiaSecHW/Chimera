@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { PageHeader } from '../../design-system';
 import {
   AlertCircle,
   FolderUp,
@@ -278,23 +279,21 @@ export const KnowledgeGraphPage: React.FC<Props> = ({ projectId, projects }) => 
         : null;
     return (
       <div className="flex h-full flex-col" style={{ backgroundColor: LK.canvas }}>
-        <div className="flex items-center justify-between px-5 py-4" style={{ borderBottom:`1px solid ${LK.border}`, backgroundColor: LK.surface }}>
-          <div className="flex items-center gap-2">
-            <Network size={18} style={{ color: LK.primary }} />
-            <h1 className="text-base font-semibold" style={{ color: LK.ink }}>知识图谱</h1>
-            <span className="text-sm" style={{ color: LK.muted }}>{projectName}</span>
-          </div>
-          <button
-            className="inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-medium transition-colors"
-            style={{ backgroundColor: LK.surfaceRaised, color: LK.body, border: `1px solid ${LK.border}` }}
-            onClick={() => void bootstrap()}
-            onMouseEnter={(e) => { e.currentTarget.style.color = LK.primarySoft; e.currentTarget.style.borderColor = LK.primary; }}
-            onMouseLeave={(e) => { e.currentTarget.style.color = LK.body; e.currentTarget.style.borderColor = LK.border; }}
-          >
-            <RefreshCw size={14} />
-            刷新
-          </button>
-        </div>
+        <PageHeader
+          title="知识图谱"
+          description={projectName}
+          actions={
+            <button
+              className="inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-medium transition-colors"
+              style={{ backgroundColor: LK.surfaceRaised, color: LK.body, border: `1px solid ${LK.border}` }}
+              onClick={() => void bootstrap()}
+              onMouseEnter={(e) => { e.currentTarget.style.color = LK.primarySoft; e.currentTarget.style.borderColor = LK.primary; }}
+              onMouseLeave={(e) => { e.currentTarget.style.color = LK.body; e.currentTarget.style.borderColor = LK.border; }}
+            >
+              <RefreshCw size={14} />刷新
+            </button>
+          }
+        />
         {building ? (
           <div className="flex items-center gap-3 px-5 py-2.5 text-xs" style={{ borderBottom:`1px solid ${LK.border}`, backgroundColor: `${LK.info}14`, color: LK.info }}>
             <Loader2 size={14} className="animate-spin" />
@@ -350,11 +349,7 @@ export const KnowledgeGraphPage: React.FC<Props> = ({ projectId, projects }) => 
   return (
     <div className="min-h-full px-5 py-5" style={{ backgroundColor: LK.canvas }}>
       <div className="mx-auto max-w-3xl">
-        <div className="mb-5 flex items-center gap-2 pb-4" style={{ borderBottom:`1px solid ${LK.borderSoft}` }}>
-          <Network size={20} style={{ color: LK.primary }} />
-          <h1 className="text-2xl font-semibold" style={{ color: LK.ink }}>知识图谱</h1>
-          <span className="text-sm" style={{ color: LK.muted }}>{projectName}</span>
-        </div>
+        <PageHeader title="知识图谱" description={projectName} />
         <PhaseCard
           phase={phase}
           message={message}

@@ -4,6 +4,7 @@ import { Loader2, Plus, RefreshCw, RotateCcw, Save, Trash2 } from 'lucide-react'
 import { api } from '../../clients/api';
 import { showConfirm } from '../../components/DialogService';
 import { useUiFeedback } from '../../components/UiFeedback';
+import { PageHeader } from '../../design-system';
 import {
   ScheduleRuntimeConfig,
   ScheduleRuntimeSchedulerPolicy,
@@ -315,12 +316,10 @@ export const ChimeraScheduleConfigPage: React.FC = () => {
     <div className="min-h-full bg-theme-bg-app px-4 py-5 md:px-6 2xl:px-8">
       {feedbackNodes}
       <div className="w-full space-y-4">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <div>
-            <h1 className="text-lg font-black text-theme-text-primary">调度参数</h1>
-            <p className="text-sm text-theme-text-muted">统一管理全局调度策略、任务同步参数、Task Key 默认额度与分时段覆盖。</p>
-          </div>
-          <div className="flex flex-wrap items-center gap-2">
+        <PageHeader
+          title="调度参数"
+          description="统一管理全局调度策略、任务同步参数、Task Key 默认额度与分时段覆盖。"
+          actions={<div className="flex flex-wrap items-center gap-2">
             <button onClick={() => void load()} className="inline-flex items-center gap-2 rounded-xl border border-theme-border bg-theme-bg-app px-3 py-2 text-sm font-bold text-theme-text-secondary hover:bg-theme-elevated">
               <RefreshCw size={16} />
               刷新
@@ -333,8 +332,8 @@ export const ChimeraScheduleConfigPage: React.FC = () => {
               {saving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
               保存配置
             </button>
-          </div>
-        </div>
+          </div>}
+        />
 
         {error ? (
           <div className="rounded-2xl border border-rose-500/20 bg-rose-500/15 px-4 py-3 text-sm font-semibold text-rose-400">{error}</div>

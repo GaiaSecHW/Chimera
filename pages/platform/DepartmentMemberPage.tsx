@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { DataTable, DataTableColumn, Modal, StatisticCard } from '../../design-system';
+import { DataTable, DataTableColumn, Modal, PageHeader, StatisticCard } from '../../design-system';
 import { ArrowRightLeft, Building2, ChevronDown, ChevronUp, Download, Edit3, FileSpreadsheet, Loader2, Lock, Plus, RefreshCw, Search, Shield, Trash2, Upload, UserCheck, UserCircle, Users } from 'lucide-react';
 import { api } from '../../clients/api';
 import { UserPermissionInfo } from '../../clients/org';
@@ -438,33 +438,24 @@ export const DepartmentMemberPage: React.FC = () => {
 
   return (
     <div className="p-10 space-y-8 animate-in fade-in duration-500 pb-24 h-full overflow-y-auto bg-theme-app">
-      <div className="flex justify-between items-end">
-        <div className="space-y-1">
-          <div className="flex items-center gap-3">
- <div className="p-3 bg-gradient-to-br from-blue-600 via-cyan-500 to-sky-500 text-white rounded-2xl">
-              <Users size={28} />
-            </div>
-            <div>
-              <h2 className="text-3xl font-black text-theme-text-primary tracking-tight">部门成员管理</h2>
-            </div>
-          </div>
-        </div>
-        <div className="flex gap-4">
- <button onClick={() => selectedDepartmentId && void fetchMembers(selectedDepartmentId)} className="p-4 bg-theme-bg-app backdrop-blur border border-theme-border text-theme-text-muted rounded-2xl hover:bg-theme-bg-app transition-all active:scale-95">
+      <PageHeader
+        title={<><div className="p-3 bg-gradient-to-br from-blue-600 via-cyan-500 to-sky-500 text-white rounded-2xl inline-flex"><Users size={28} /></div> 部门成员管理</>}
+        actions={<div className="flex gap-4">
+          <button onClick={() => selectedDepartmentId && void fetchMembers(selectedDepartmentId)} className="p-4 bg-theme-bg-app backdrop-blur border border-theme-border text-theme-text-muted rounded-2xl hover:bg-theme-bg-app transition-all active:scale-95">
             <RefreshCw size={20} className={loading ? 'animate-spin' : ''} />
           </button>
           {canImportMembers() && (
- <button onClick={openImportModal} className="bg-theme-bg-app backdrop-blur text-theme-text-secondary px-6 py-4 rounded-2xl font-black flex items-center gap-3 border border-theme-border hover:bg-theme-bg-app transition-all active:scale-95">
+            <button onClick={openImportModal} className="bg-theme-bg-app backdrop-blur text-theme-text-secondary px-6 py-4 rounded-2xl font-black flex items-center gap-3 border border-theme-border hover:bg-theme-bg-app transition-all active:scale-95">
               <Upload size={18} /> 导入成员
             </button>
           )}
           {userPermissions?.can_manage_department_members && canManageCurrentDepartment() && (
- <button onClick={openAddModal} className="bg-blue-600 text-white px-8 py-4 rounded-2xl font-black flex items-center gap-3 hover:bg-blue-700 transition-all active:scale-95">
+            <button onClick={openAddModal} className="bg-blue-600 text-white px-8 py-4 rounded-2xl font-black flex items-center gap-3 hover:bg-blue-700 transition-all active:scale-95">
               <Plus size={20} /> 添加成员
             </button>
           )}
-        </div>
-      </div>
+        </div>}
+      />
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
  <div className="bg-[linear-gradient(135deg,_#0f172a,_#1d4ed8_65%,_#38bdf8)] p-8 rounded-[3rem] text-white flex flex-col justify-between group overflow-hidden relative">

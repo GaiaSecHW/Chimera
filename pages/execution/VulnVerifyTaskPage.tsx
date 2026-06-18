@@ -4,6 +4,7 @@ import { vulnVerifyApi, VulnVerifyArtifact, VulnVerifyProjectStats, VulnVerifyRe
 import { ExecutionTable, ExecutionTableHead, ExecutionTableTh, ExecutionTableTd, executionTableInteractiveRowClassName } from '../../components/execution/ExecutionTable';
 import { ServicePageTitle, useServiceBuildVersion } from '../../components/execution/ServiceBuildVersion';
 import { VulnVerifyReportView } from './VulnVerifyReportView';
+import { PageHeader } from '../../design-system';
 
 const LK = {
   primary: '#4f73ff', primarySoft: '#7590ff', primaryDeep: '#3f63f1',
@@ -414,33 +415,28 @@ export const VulnVerifyTaskPage: React.FC<{ projectId: string }> = ({ projectId 
   return (
     <div className="min-h-full bg-theme-bg-app p-6">
       <div className="w-full space-y-6">
- <header className="rounded-[2rem] border border-theme-border bg-theme-bg-app p-6">
-          <div className="flex flex-wrap items-start justify-between gap-4">
-            <div>
-              <p className="text-xs font-black uppercase tracking-[0.3em] text-violet-400">漏洞验证原子能力</p>
-              <ServicePageTitle title="漏洞验证任务" version={buildVersion} />
-              <p className="mt-2 max-w-3xl text-sm text-theme-text-muted">
-                参考数据流漏洞挖掘的任务列表模式：集中查看任务状态，点击任务进入详情，使用右上角「新建任务」提交报告目录、源码、二进制与威胁模型。
-              </p>
-            </div>
+        <PageHeader
+          title={<ServicePageTitle title="漏洞验证任务" version={buildVersion} className="" />}
+          description="参考数据流漏洞挖掘的任务列表模式：集中查看任务状态，点击任务进入详情，使用右上角「新建任务」提交报告目录、源码、二进制与威胁模型。"
+          actions={
             <div className="flex flex-wrap items-center gap-2">
               <button
                 type="button"
                 onClick={() => void loadOverview()}
- className="inline-flex items-center gap-2 rounded-xl border border-theme-border bg-theme-bg-app px-4 py-2 text-sm font-black text-theme-text-secondary hover:bg-theme-elevated"
+                className="inline-flex items-center gap-2 rounded-xl border border-theme-border bg-theme-bg-app px-4 py-2 text-sm font-black text-theme-text-secondary hover:bg-theme-elevated"
               >
                 <RefreshCw size={16} className={loading || statsLoading ? 'animate-spin' : ''} /> 刷新
               </button>
               <button
                 type="button"
                 onClick={openCreateModal}
- className="inline-flex items-center gap-2 rounded-xl bg-violet-700 px-4 py-2 text-sm font-black text-white hover:bg-violet-800"
+                className="inline-flex items-center gap-2 rounded-xl bg-violet-700 px-4 py-2 text-sm font-black text-white hover:bg-violet-800"
               >
                 <Plus size={16} /> 新建任务
               </button>
             </div>
-          </div>
-        </header>
+          }
+        />
 
         {message ? (
           <div className="rounded-2xl border border-amber-500/20 bg-amber-500/15 px-4 py-3 text-sm font-bold text-amber-400">

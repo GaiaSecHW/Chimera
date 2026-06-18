@@ -1,6 +1,8 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Editor from '@monaco-editor/react';
 
+import { PageHeader } from '../../design-system';
+
 const LK = {
   primary: '#4f73ff', primarySoft: '#7590ff', primaryDeep: '#3f63f1',
   primaryMuted: 'rgba(79, 115, 255, 0.14)',
@@ -15,7 +17,6 @@ const LK = {
 const MONO = 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace';
 import {
   AlertTriangle,
-  ArrowLeft,
   Bot,
   CheckCircle2,
   Clock3,
@@ -2146,32 +2147,32 @@ export const B2STaskDetailPage: React.FC<Props> = ({ projectId, taskId, onBack, 
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', padding: '24px', paddingBottom: '32px', paddingTop: '24px' }}>
-      <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: '10px' }}>
-        <button type="button" onClick={handleBack} style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', borderRadius: '12px', border: `1px solid ${LK.borderSoft}`, backgroundColor: LK.surface, padding: '10px 14px', fontSize: '14px', fontWeight: 600, color: LK.body, cursor: 'pointer' }}>
-          <ArrowLeft size={16} />
-          {hasReturnContext ? '返回原任务' : '返回二进制逆向'}
-        </button>
-        <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '8px' }}>
-          <button type="button" onClick={() => void loadDetail()} disabled={loading} style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', borderRadius: '12px', border: `1px solid ${LK.borderSoft}`, backgroundColor: LK.surface, padding: '10px 14px', fontSize: '14px', fontWeight: 600, color: LK.body, cursor: loading ? 'not-allowed' : 'pointer', opacity: loading ? 0.6 : 1 }}>
-            <RefreshCw size={16} className={loading ? 'animate-spin' : ''} />
-            刷新
-          </button>
-          {detail && !B2S_TERMINAL_STATUSES.has(detail.status) ? (
-            <button type="button" onClick={() => void cancelTask()} disabled={cancelling} style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', borderRadius: '12px', border: `1px solid ${LK.warning}`, backgroundColor: 'rgba(213, 161, 58, 0.1)', padding: '10px 14px', fontSize: '14px', fontWeight: 600, color: LK.warning, cursor: cancelling ? 'not-allowed' : 'pointer', opacity: cancelling ? 0.6 : 1 }}>
-              <XCircle size={16} />
-              {cancelling ? '取消中...' : '取消任务'}
+      <PageHeader
+        title={detail ? (detail.name || detail.id) : '二进制逆向任务详情'}
+        back={{ label: hasReturnContext ? '返回原任务' : '返回二进制逆向', onClick: handleBack }}
+        actions={
+          <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '8px' }}>
+            <button type="button" onClick={() => void loadDetail()} disabled={loading} style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', borderRadius: '12px', border: `1px solid ${LK.borderSoft}`, backgroundColor: LK.surface, padding: '10px 14px', fontSize: '14px', fontWeight: 600, color: LK.body, cursor: loading ? 'not-allowed' : 'pointer', opacity: loading ? 0.6 : 1 }}>
+              <RefreshCw size={16} className={loading ? 'animate-spin' : ''} />
+              刷新
             </button>
-          ) : null}
-          <button type="button" onClick={() => void rerunTask()} disabled={rerunning} style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', borderRadius: '12px', border: `1px solid ${LK.primarySoft}`, backgroundColor: 'rgba(79, 115, 255, 0.1)', padding: '10px 14px', fontSize: '14px', fontWeight: 600, color: LK.primary, cursor: rerunning ? 'not-allowed' : 'pointer', opacity: rerunning ? 0.6 : 1 }}>
-            <RotateCcw size={16} />
-            {rerunning ? '重跑中...' : '从头重跑'}
-          </button>
-          <button type="button" onClick={() => void deleteTask()} disabled={deleting} style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', borderRadius: '12px', border: `1px solid ${LK.error}`, backgroundColor: 'rgba(241, 93, 93, 0.1)', padding: '10px 14px', fontSize: '14px', fontWeight: 600, color: LK.error, cursor: deleting ? 'not-allowed' : 'pointer', opacity: deleting ? 0.6 : 1 }}>
-            <Trash2 size={16} />
-            {deleting ? '删除中...' : '删除任务'}
-          </button>
-        </div>
-      </div>
+            {detail && !B2S_TERMINAL_STATUSES.has(detail.status) ? (
+              <button type="button" onClick={() => void cancelTask()} disabled={cancelling} style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', borderRadius: '12px', border: `1px solid ${LK.warning}`, backgroundColor: 'rgba(213, 161, 58, 0.1)', padding: '10px 14px', fontSize: '14px', fontWeight: 600, color: LK.warning, cursor: cancelling ? 'not-allowed' : 'pointer', opacity: cancelling ? 0.6 : 1 }}>
+                <XCircle size={16} />
+                {cancelling ? '取消中...' : '取消任务'}
+              </button>
+            ) : null}
+            <button type="button" onClick={() => void rerunTask()} disabled={rerunning} style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', borderRadius: '12px', border: `1px solid ${LK.primarySoft}`, backgroundColor: 'rgba(79, 115, 255, 0.1)', padding: '10px 14px', fontSize: '14px', fontWeight: 600, color: LK.primary, cursor: rerunning ? 'not-allowed' : 'pointer', opacity: rerunning ? 0.6 : 1 }}>
+              <RotateCcw size={16} />
+              {rerunning ? '重跑中...' : '从头重跑'}
+            </button>
+            <button type="button" onClick={() => void deleteTask()} disabled={deleting} style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', borderRadius: '12px', border: `1px solid ${LK.error}`, backgroundColor: 'rgba(241, 93, 93, 0.1)', padding: '10px 14px', fontSize: '14px', fontWeight: 600, color: LK.error, cursor: deleting ? 'not-allowed' : 'pointer', opacity: deleting ? 0.6 : 1 }}>
+              <Trash2 size={16} />
+              {deleting ? '删除中...' : '删除任务'}
+            </button>
+          </div>
+        }
+      />
 
       {error ? <div style={{ borderRadius: '16px', border: `1px solid ${LK.error}`, backgroundColor: 'rgba(241, 93, 93, 0.1)', padding: '12px 16px', fontSize: '14px', fontWeight: 600, color: LK.error }}>{error}</div> : null}
 

@@ -16,6 +16,7 @@ import {
   useAiHelpers,
   useFilteredHelpers,
 } from './ai-agent/shared';
+import { PageHeader } from '../../design-system';
 
 const statusTone = (status?: string) => {
   const text = String(status || '').toLowerCase();
@@ -107,26 +108,12 @@ export const EnvAiHelperPage: React.FC<{ projectId: string; initialHelperKey?: s
     <div className="px-8 pt-8 pb-10">
       <div className="space-y-6">
         {feedbackNodes}
- <section className="rounded-[2rem] border border-theme-border bg-theme-bg-app p-6">
-          <div className="mb-4">
-            <button
-              onClick={() => navigateToAppView('env-ai-agent-manage')}
-              className="inline-flex items-center gap-2 rounded-xl border border-theme-border px-3 py-2 text-sm font-semibold text-theme-text-secondary hover:bg-theme-elevated"
-            >
-              <ArrowLeft size={16} />
-              返回 AI Agent 管理
-            </button>
-          </div>
-          <div className="flex items-center justify-between gap-4 flex-wrap">
-            <div>
-              <h1 className="text-3xl font-black tracking-tight text-theme-text-primary">Helper 服务管理</h1>
-              <p className="mt-2 text-sm text-theme-text-muted">从 helper 服务实例视角查看节点、健康状态、内部 AI Agent 摘要与会话概况。</p>
-            </div>
-            <button onClick={() => void reload(true)} className="inline-flex items-center gap-2 rounded-xl bg-theme-surface px-4 py-2 text-sm font-semibold text-white">
-              <RefreshCw size={16} />刷新
-            </button>
-          </div>
-        </section>
+        <PageHeader
+          title="Helper 服务管理"
+          description="从 helper 服务实例视角查看节点、健康状态、内部 AI Agent 摘要与会话概况。"
+          back={{ label: '返回 AI Agent 管理', onClick: () => navigateToAppView('env-ai-agent-manage') }}
+          actions={<button onClick={() => void reload(true)} className="inline-flex items-center gap-2 rounded-xl bg-theme-surface px-4 py-2 text-sm font-semibold text-white"><RefreshCw size={16} />刷新</button>}
+        />
 
         <div className="grid grid-cols-1 gap-6 xl:grid-cols-[360px_minmax(0,1fr)]">
  <section className="rounded-2xl border border-theme-border bg-theme-bg-app p-4">

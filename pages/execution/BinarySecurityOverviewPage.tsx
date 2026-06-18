@@ -6,6 +6,7 @@ import { fileserverApi } from '../../clients/fileserver';
 import { api } from '../../clients/api';
 import { showConfirm } from '../../components/DialogService';
 import { ServicePageTitle, useServiceBuildVersion } from '../../components/execution/ServiceBuildVersion';
+import { PageHeader } from '../../design-system';
 
 interface Props {
   projectId: string;
@@ -888,24 +889,22 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
 
   return (
     <div className="px-8 pb-10 pt-8 space-y-6">
- <section className="rounded-[2rem] border border-theme-border bg-theme-bg-app p-6">
-        <div className="flex items-start justify-between gap-4">
-          <div>
-            <ServicePageTitle title={pageTitle} version={buildVersion} />
-            <p className="mt-2 max-w-3xl text-sm text-theme-text-muted">
-              {isSourceTask
-                ? '为当前项目统一编排系统分析、入口分析、数据流漏洞挖掘和数据流漏洞挖掘，聚合查看源码工程任务的阶段状态与结果。'
-                : isBinaryModuleTask
-                  ? '为当前项目统一编排模块级二进制逆向、入口分析、数据流漏洞挖掘和数据流漏洞挖掘，直接以单模块下的多个 ELF 作为输入自动推进。'
-                : '为当前项目统一编排固件解包、系统分析、反编译、入口分析、数据流漏洞挖掘和数据流漏洞挖掘，聚合查看多固件任务的阶段状态与结果。'}
-            </p>
-          </div>
+      <PageHeader
+        title={<ServicePageTitle title={pageTitle} version={buildVersion} className="" />}
+        description={
+          isSourceTask
+            ? '为当前项目统一编排系统分析、入口分析、数据流漏洞挖掘和数据流漏洞挖掘，聚合查看源码工程任务的阶段状态与结果。'
+            : isBinaryModuleTask
+              ? '为当前项目统一编排模块级二进制逆向、入口分析、数据流漏洞挖掘和数据流漏洞挖掘，直接以单模块下的多个 ELF 作为输入自动推进。'
+              : '为当前项目统一编排固件解包、系统分析、反编译、入口分析、数据流漏洞挖掘和数据流漏洞挖掘，聚合查看多固件任务的阶段状态与结果。'
+        }
+        actions={
           <div className="flex items-center gap-3">
             <button
               type="button"
               onClick={() => void openCreateDialog()}
               disabled={createDefaultsLoading}
- className="inline-flex items-center gap-2 rounded-xl bg-theme-surface px-4 py-2.5 text-sm font-bold text-white hover:bg-theme-elevated disabled:cursor-not-allowed disabled:opacity-60"
+              className="inline-flex items-center gap-2 rounded-xl bg-theme-surface px-4 py-2.5 text-sm font-bold text-white hover:bg-theme-elevated disabled:cursor-not-allowed disabled:opacity-60"
             >
               {createDefaultsLoading ? <Loader2 size={16} className="animate-spin" /> : <Plus size={16} />}
               {createDefaultsLoading ? '加载默认配置...' : '创建任务'}
@@ -914,14 +913,14 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
               type="button"
               onClick={() => void refresh()}
               disabled={refreshing}
- className="inline-flex items-center gap-2 rounded-xl border border-theme-border bg-theme-bg-app px-4 py-2.5 text-sm font-bold text-theme-text-secondary hover:bg-theme-elevated disabled:cursor-not-allowed disabled:opacity-60"
+              className="inline-flex items-center gap-2 rounded-xl border border-theme-border bg-theme-bg-app px-4 py-2.5 text-sm font-bold text-theme-text-secondary hover:bg-theme-elevated disabled:cursor-not-allowed disabled:opacity-60"
             >
               {refreshing ? <Loader2 size={16} className="animate-spin" /> : <RefreshCw size={16} />}
               {refreshing ? '刷新中...' : '刷新'}
             </button>
           </div>
-        </div>
-      </section>
+        }
+      />
 
       {createResult && (
         <div className="rounded-2xl border border-emerald-500/20 bg-emerald-500/15 px-4 py-3 text-sm font-semibold text-emerald-400">

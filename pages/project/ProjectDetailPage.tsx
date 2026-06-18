@@ -28,6 +28,7 @@ import { scheduleCenterApi } from '../../clients/scheduleCenter';
 import { environmentApi } from '../../clients/environment';
 import { api } from '../../clients/api';
 import { StatusBadge } from '../../components/StatusBadge';
+import { PageHeader } from '../../design-system';
 
 /* ── LOKI design tokens ─────────────────────────────────────── */
 const LK = {
@@ -323,46 +324,29 @@ export const ProjectDetailPage: React.FC<ProjectDetailPageProps> = ({ projectId,
     <div className="p-10 space-y-8 animate-in fade-in duration-500 pb-24" style={{ backgroundColor: LK.canvas }}>
 
       {/* ── Header ─────────────────────────────────────────── */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
-        <div className="flex items-center gap-6">
-          <button
-            onClick={onBack}
-            className="p-4 rounded-2xl transition-all group active:scale-95"
-            style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}` }}
-          >
-            <ChevronLeft size={20} className="group-hover:-translate-x-1 transition-transform" style={{ color: LK.body }} />
-          </button>
-          <div>
-            <div className="flex items-center gap-3">
-              <h2 className="text-3xl font-black tracking-tight" style={{ color: LK.ink }}>
-                {project?.name || '未知项目'}
-              </h2>
-              <StatusBadge status={project?.status || 'Active'} />
-            </div>
-            {project?.description && (
-              <p className="text-sm mt-2 leading-relaxed" style={{ color: LK.body }}>
-                {project.description}
-              </p>
-            )}
+      <PageHeader
+        title={<span className="inline-flex items-center gap-3">{project?.name || '未知项目'} <StatusBadge status={project?.status || 'Active'} /></span>}
+        description={project?.description || undefined}
+        back={{ label: '返回项目列表', onClick: onBack }}
+        actions={
+          <div className="flex items-center gap-2">
+            <button
+              onClick={loadAllData}
+              className="p-2.5 rounded-lg transition-all"
+              style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}`, color: LK.body }}
+            >
+              <RefreshCw size={20} />
+            </button>
+            <button
+              onClick={() => setShowMemberModal(true)}
+              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold transition-all hover:opacity-90"
+              style={{ backgroundColor: LK.primaryMuted, color: LK.primary, border: `1px solid ${LK.border}` }}
+            >
+              <Users size={18} /> 管理成员
+            </button>
           </div>
-        </div>
-        <div className="flex gap-3">
-          <button
-            onClick={loadAllData}
-            className="p-4 rounded-2xl transition-all hover:opacity-80"
-            style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}`, color: LK.body }}
-          >
-            <RefreshCw size={20} />
-          </button>
-          <button
-            onClick={() => setShowMemberModal(true)}
-            className="flex items-center gap-2 px-5 py-3 rounded-2xl text-sm font-semibold transition-all hover:opacity-90"
-            style={{ backgroundColor: LK.primaryMuted, color: LK.primary, border: `1px solid ${LK.border}` }}
-          >
-            <Users size={18} /> 管理成员
-          </button>
-        </div>
-      </div>
+        }
+      />
 
       {/* ── Stat Blocks (task / env / vuln) ─────────────────── */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">

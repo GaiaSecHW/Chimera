@@ -20,7 +20,7 @@ import {
 } from 'lucide-react';
 import { api } from '../../clients/api';
 import { StatusBadge } from '../../components/StatusBadge';
-import { Modal } from '../../design-system';
+import { Modal, PageHeader } from '../../design-system';
 import { ProjectInputUploadRecord, ProjectInputUploadStats } from '../../types/types';
 import {
   filterUploadRecords,
@@ -272,33 +272,28 @@ export const BaseResourcePage: React.FC<BaseResourcePageProps> = ({ type, title,
 
   return (
     <div className="p-10 space-y-8 animate-in fade-in duration-500 pb-24 h-full overflow-y-auto relative">
-      <div className="flex flex-col md:flex-row justify-between items-end gap-6">
-        <div className="space-y-1">
-          <div className="flex items-center gap-3">
- <div className="p-2.5 bg-blue-600 text-white rounded-2xl">
-              <Layers size={24} />
-            </div>
-            <h2 className="text-3xl font-black text-theme-text-primary tracking-tight">{title}</h2>
+      <PageHeader
+        title={title}
+        description={subtitle}
+        actions={
+          <div className="flex gap-4">
+            <button
+              onClick={() => loadData()}
+              className="p-4 bg-theme-bg-app border border-theme-border text-theme-text-muted rounded-2xl hover:bg-theme-elevated transition-all active:scale-95"
+              title="手动刷新数据"
+            >
+              <RefreshCw size={20} className={loading ? 'animate-spin' : ''} />
+            </button>
+            <button
+              onClick={openCreateModal}
+              disabled={!projectId}
+              className="flex items-center gap-2 bg-theme-surface text-white px-8 py-4 rounded-2xl font-black hover:bg-theme-elevated transition-all active:scale-95 disabled:opacity-50"
+            >
+              <Plus size={20} /> 新建上传记录
+            </button>
           </div>
-          <p className="text-theme-text-muted font-medium">{subtitle}</p>
-        </div>
-        <div className="flex gap-4">
-          <button
-            onClick={() => loadData()}
- className="p-4 bg-theme-bg-app border border-theme-border text-theme-text-muted rounded-2xl hover:bg-theme-elevated transition-all active:scale-95"
-            title="手动刷新数据"
-          >
-            <RefreshCw size={20} className={loading ? 'animate-spin' : ''} />
-          </button>
-          <button
-            onClick={openCreateModal}
-            disabled={!projectId}
- className="flex items-center gap-2 bg-theme-surface text-white px-8 py-4 rounded-2xl font-black hover:bg-theme-elevated transition-all active:scale-95 disabled:opacity-50"
-          >
-            <Plus size={20} /> 新建上传记录
-          </button>
-        </div>
-      </div>
+        }
+      />
 
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-4">
  <div className="bg-theme-bg-app border border-theme-border rounded-[2rem] p-5">

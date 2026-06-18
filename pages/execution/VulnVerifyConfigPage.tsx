@@ -3,6 +3,7 @@ import { RefreshCw, Save, ShieldCheck } from 'lucide-react';
 
 import { api } from '../../clients/api';
 import type { LlmProviderSummary } from '../../types/types';
+import { PageHeader } from '../../design-system';
 
 const sourceLabel = (source?: string) => {
   switch (source) {
@@ -92,26 +93,21 @@ export const VulnVerifyConfigPage: React.FC<{ projectId: string; embedded?: bool
   return (
     <div className={containerClass}>
       <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-        <div className="flex flex-wrap items-start justify-between gap-4">
-          <div>
-            <div className="flex items-center gap-2">
-              <ShieldCheck className="h-5 w-5 text-blue-600" />
-              <h2 className="text-xl font-black text-slate-900">漏洞验证参数配置</h2>
-            </div>
-            <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-500">
-              配置 secflow-app-vuln-verify 新建任务默认模型。保存后只影响后续新建任务，不影响已创建任务；留空则继承模型配置中心的全局默认模型。
-            </p>
-          </div>
-          <button
-            type="button"
-            onClick={() => void load()}
-            disabled={loading || saving}
-            className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-bold text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
-          >
-            <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
-            刷新
-          </button>
-        </div>
+        <PageHeader
+          title={<><ShieldCheck className="h-5 w-5 text-blue-600 inline" /> 漏洞验证参数配置</>}
+          description="配置 secflow-app-vuln-verify 新建任务默认模型。保存后只影响后续新建任务，不影响已创建任务；留空则继承模型配置中心的全局默认模型。"
+          actions={
+            <button
+              type="button"
+              onClick={() => void load()}
+              disabled={loading || saving}
+              className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-bold text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+              刷新
+            </button>
+          }
+        />
 
         {error ? <div className="mt-4 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-bold text-rose-700">{error}</div> : null}
         {message ? <div className="mt-4 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-bold text-emerald-700">{message}</div> : null}

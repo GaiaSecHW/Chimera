@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { PageHeader } from '../../design-system';
 import { ArrowLeft, Loader2, RefreshCw, Search } from 'lucide-react';
 import { api } from '../../clients/api';
 import { ScheduleCenterUserTask, ScheduleUserTaskEvent, ScheduleUserTaskEventListResponse } from '../../types/types';
@@ -127,41 +128,14 @@ export const TaskCenterTimelinePage: React.FC<Props> = ({ projectId, taskId, onB
       className="space-y-4 px-5 py-5 md:px-6 2xl:px-8"
       style={{ backgroundColor: LK.canvas, minHeight: '100%', color: LK.inkSoft }}
     >
-      <div className="flex flex-wrap items-start justify-between gap-3 pb-4" style={{ borderBottom:`1px solid ${LK.borderSoft}` }}>
-        <div>
-          <button
-            type="button"
-            onClick={onBack}
-            className="mb-3 inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-semibold transition-colors"
-            style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}`, color: LK.body }}
-            onMouseEnter={(e) => { e.currentTarget.style.borderColor = LK.primary; e.currentTarget.style.color = LK.primarySoft; }}
-            onMouseLeave={(e) => { e.currentTarget.style.borderColor = LK.border; e.currentTarget.style.color = LK.body; }}
-          >
-            <ArrowLeft size={16} />
-            返回任务中心
-          </button>
-          <h1 className="text-2xl font-semibold leading-8 tracking-tight" style={{ color: LK.ink }}>
-            任务调度事件
-          </h1>
-          <div className="mt-2 text-sm" style={{ color: LK.body }}>
-            {task?.name || '—'} <span style={{ color: LK.muted }}>/</span> {taskId || '—'}
-          </div>
-          <div className="mt-1 text-xs" style={{ color: LK.muted }}>
-            下游任务：{task?.downstream_task_id || '—'}，同步状态：{task?.sync_status || 'none'}
-          </div>
-        </div>
-        <button
-          type="button"
-          onClick={() => void loadEvents(page, pageSize, filters)}
-          className="inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition-colors"
-          style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}`, color: LK.inkSoft }}
-          onMouseEnter={(e) => { e.currentTarget.style.borderColor = LK.primary; e.currentTarget.style.color = LK.primarySoft; }}
-          onMouseLeave={(e) => { e.currentTarget.style.borderColor = LK.border; e.currentTarget.style.color = LK.inkSoft; }}
-        >
-          <RefreshCw size={15} className={loading ? 'animate-spin' : ''} />
-          刷新
-        </button>
-      </div>
+      <PageHeader
+        title="任务调度事件"
+        description={<div><div className="text-sm" style={{ color: LK.body }}>{task?.name || '—'} <span style={{ color: LK.muted }}>/</span> {taskId || '—'}</div><div className="mt-1 text-xs" style={{ color: LK.muted }}>下游任务：{task?.downstream_task_id || '—'}，同步状态：{task?.sync_status || 'none'}</div></div>}
+        back={{ label: '返回任务中心', onClick: onBack }}
+        actions={
+          <button type="button" onClick={() => void loadEvents(page, pageSize, filters)} className="inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition-colors" style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}`, color: LK.inkSoft }} onMouseEnter={(e) => { e.currentTarget.style.borderColor = LK.primary; e.currentTarget.style.color = LK.primarySoft; }} onMouseLeave={(e) => { e.currentTarget.style.borderColor = LK.border; e.currentTarget.style.color = LK.inkSoft; }}><RefreshCw size={15} className={loading ? 'animate-spin' : ''} />刷新</button>
+        }
+      />
 
       <form
         onSubmit={submitFilters}

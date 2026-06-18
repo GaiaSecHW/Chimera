@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { BarChart3, ChevronDown, ChevronRight, Coins, RefreshCw, TrendingUp, Zap } from 'lucide-react';
 import { api } from '../../clients/api';
-import { DataTable, DataTableColumn, StatisticCard } from '../../design-system';
+import { DataTable, DataTableColumn, PageHeader, StatisticCard } from '../../design-system';
 import {
   AiGatewayProjectTokenStats,
   AiGatewayTaskTokenStats,
@@ -149,12 +149,10 @@ export const AiGatewayTokenStatsPage: React.FC<AiGatewayTokenStatsPageProps> = (
 
   return (
     <div className="flex min-h-full flex-col gap-6 p-8">
-      <div className="flex shrink-0 items-center justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-black tracking-tight text-theme-text-primary">Token 用量统计</h1>
-          <p className="mt-2 text-sm font-medium text-theme-text-muted">按项目、任务、子任务维度分析 Token 使用情况</p>
-        </div>
-        <div className="flex items-center gap-3">
+      <PageHeader
+        title="Token 用量统计"
+        description="按项目、任务、子任务维度分析 Token 使用情况"
+        actions={<div className="flex items-center gap-3">
           <select
             value={daysRange}
             onChange={(e) => setDaysRange(Number(e.target.value))}
@@ -173,8 +171,8 @@ export const AiGatewayTokenStatsPage: React.FC<AiGatewayTokenStatsPageProps> = (
             <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
             刷新
           </button>
-        </div>
-      </div>
+        </div>}
+      />
 
       {error ? <div className="rounded-2xl border border-rose-500/20 bg-rose-500/15 px-4 py-3 text-sm font-medium text-rose-400">{error}</div> : null}
 

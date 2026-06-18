@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../clients/api';
+import { PageHeader } from '../design-system';
 import {
   IN_PROGRESS_STATUSES,
   STATUS_LABELS_SHORT,
@@ -700,12 +701,7 @@ export const TestInputPage: React.FC<TestInputPageProps> = ({ selectedProjectId,
   return (
  <div className="min-h-[calc(100vh-5rem)] bg-theme-bg-app p-4 md:p-6 xl:p-8">
       <div className="flex min-h-[calc(100vh-7rem)] w-full flex-col gap-5">
-        <div className="flex flex-col items-end justify-between gap-3 pb-4 md:flex-row" style={{ borderBottom: '1px solid var(--theme-border, rgba(255,255,255,0.08))' }}>
-          <div>
-            <h1 className="mt-3 text-2xl font-semibold leading-8 tracking-tight text-theme-text-primary">测试对象</h1>
-            <p className="mt-1.5 text-sm leading-6 text-theme-text-secondary">统一管理与查看当前项目的测试输入对象，包括文档、代码、软件和其他资料的上传与状态追踪</p>
-          </div>
-        </div>
+        <PageHeader title="测试对象" description="统一管理与查看当前项目的测试输入对象，包括文档、代码、软件和其他资料的上传与状态追踪" />
         <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
           {INPUT_TYPE_ORDER.map((inputType) => {
             const stats = statsMap.get(inputType) || emptyStats(projectId, inputType);
