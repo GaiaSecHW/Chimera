@@ -16,8 +16,10 @@ import {
   BinarySecurityOverviewResponse,
   BinarySecurityStageItemPage,
   BinarySecurityTaskDetail,
+  BinarySecurityTaskKeySnapshot,
   BinarySecurityTaskPolicy,
   BinarySecurityTaskType,
+  BinarySecurityWorkKeySnapshot,
 } from '../../clients/binarySecurity';
 import { api } from '../../clients/api';
 import { B2STaskDetail } from '../../clients/binaryToSource';
@@ -103,18 +105,6 @@ const STAGE_LABELS: Record<string, string> = {
   binary_to_source: '二进制逆向',
   entry_analysis: '入口分析',
   dataflow_vuln_scan: '数据流漏洞挖掘',
-};
-
-const RESULT_KIND_LABELS: Record<string, string> = {
-  recovered_source: '恢复源码',
-  recovered_header: '恢复头文件',
-  entry_descriptor: '入口描述',
-  analysis_metadata: '分析元数据',
-  agent_session: '智能体会话',
-  review_record: '评审记录',
-  batch_intermediate: '批处理过程',
-  final_report: '最终报告',
-  other: '其他',
 };
 
 const DOWNSTREAM_DETAIL_SUPPORT: Record<string, { supported: boolean; reason?: string }> = {
@@ -795,7 +785,7 @@ type DownstreamTaskState = {
   downstreamTaskId?: string;
 };
 
-type DetailTab = 'overview' | 'strategy' | 'modules' | 'timeline' | 'artifacts' | 'orchestration' | 'runtime_health';
+type DetailTab = 'overview' | 'strategy' | 'modules' | 'timeline' | 'api_keys' | 'orchestration' | 'runtime_health';
 type StageNodeKind = 'business' | 'archive';
 type ArchiveJob = BinarySecurityTaskDetail['archive_jobs'][number];
 type BlockingActionKind = '' | 'retry' | 'retry_failed_items';
@@ -1937,6 +1927,183 @@ function OrchestrationObservabilityPanel({ detail }: { detail: BinarySecurityTas
   );
 }
 
+function ApiKeysPanel({
+  detail,
+  stageSequence,
+  onCopy,
+}: {
+  detail: BinarySecurityTaskDetail;
+  stageSequence: string[];
+  onCopy: (value: string, successMessage: string) => Promise<void>;
+}) {
+  const snapshot: BinarySecurityTaskKeySnapshot = detail.task_key_snapshot || {
+    root_task_key: {
+      id: detail.root_task_key_id || null,
+      name: detail.root_task_key_name || null,
+      prefix: detail.root_task_key_prefix || null,
+      source: detail.task_key_source || null,
+      has_secret: Boolean(detail.has_root_task_key),
+      used: Boolean(
+        detail.has_root_task_key
+        || detail.root_task_key_id
+        || detail.root_task_key_name
+        || detail.root_task_key_prefix
+        || detail.task_key_source,
+      ),
+    },
+    work_keys: [],
+  };
+  const rootTaskKey = snapshot.root_task_key || {
+    id: null,
+    name: null,
+    prefix: null,
+    source: null,
+    has_secret: false,
+    used: false,
+  };
+  const workKeys = Array.isArray(snapshot.work_keys) ? snapshot.work_keys : [];
+  const stageGroups = stageSequence
+    .filter((stageName) => workKeys.some((workKey) => workKey.stage_name === stageName))
+    .concat(
+      Array.from(new Set(
+        workKeys
+          .map((workKey) => String(workKey.stage_name || '').trim())
+          .filter((stageName) => stageName && !stageSequence.includes(stageName)),
+      )),
+    );
+  const hasAnyKeys = Boolean(rootTaskKey.used) || workKeys.length > 0;
+
+  return (
+    <section className="space-y-6">
+      <section className="rounded-[2rem] border border-theme-border bg-theme-bg-app p-6">
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div>
+            <h2 className="text-xl font-black text-theme-text-primary">API 密钥</h2>
+            <p className="mt-1 text-sm text-theme-text-muted">展示当前任务使用的任务级密钥与各阶段派生的 work key。</p>
+          </div>
+          {!hasAnyKeys ? (
+            <span className="inline-flex rounded-full border border-amber-500/20 bg-amber-500/15 px-3 py-1 text-xs font-black text-amber-400">
+              未使用任务级密钥
+            </span>
+          ) : null}
+        </div>
+
+        <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-5">
+          <div className="rounded-2xl border border-theme-border bg-theme-bg-app px-4 py-4">
+            <div className="text-[11px] font-black uppercase tracking-[0.18em] text-theme-text-muted">Task Key ID</div>
+            <button type="button" onClick={() => void onCopy(String(rootTaskKey.id || ''), 'Task Key ID 已复制')} className="mt-2 break-all text-left font-mono text-xs font-bold text-theme-text-primary hover:text-sky-400">
+              {String(rootTaskKey.id || '-')}
+            </button>
+          </div>
+          <div className="rounded-2xl border border-theme-border bg-theme-bg-app px-4 py-4">
+            <div className="text-[11px] font-black uppercase tracking-[0.18em] text-theme-text-muted">名称</div>
+            <button type="button" onClick={() => void onCopy(String(rootTaskKey.name || ''), '任务级密钥名称已复制')} className="mt-2 break-all text-left text-xs font-bold text-theme-text-primary hover:text-sky-400">
+              {String(rootTaskKey.name || '-')}
+            </button>
+          </div>
+          <div className="rounded-2xl border border-theme-border bg-theme-bg-app px-4 py-4">
+            <div className="text-[11px] font-black uppercase tracking-[0.18em] text-theme-text-muted">前缀</div>
+            <div className="mt-2 break-all font-mono text-xs font-bold text-theme-text-primary">{String(rootTaskKey.prefix || '-')}</div>
+          </div>
+          <div className="rounded-2xl border border-theme-border bg-theme-bg-app px-4 py-4">
+            <div className="text-[11px] font-black uppercase tracking-[0.18em] text-theme-text-muted">来源</div>
+            <div className="mt-2 text-xs font-bold text-theme-text-primary">{String(rootTaskKey.source || '-')}</div>
+          </div>
+          <div className="rounded-2xl border border-theme-border bg-theme-bg-app px-4 py-4">
+            <div className="text-[11px] font-black uppercase tracking-[0.18em] text-theme-text-muted">Secret</div>
+            <div className={`mt-2 text-xs font-black ${rootTaskKey.has_secret ? 'text-emerald-400' : 'text-theme-text-muted'}`}>
+              {rootTaskKey.has_secret ? '已配置' : '未配置'}
+            </div>
+          </div>
+        </div>
+
+        {!hasAnyKeys ? (
+          <div className="mt-6 rounded-2xl border border-dashed border-theme-border bg-theme-bg-app px-6 py-10 text-center text-sm text-theme-text-muted">
+            当前任务未使用任务级密钥。系统未为该任务或其阶段派生 task key / work key。
+          </div>
+        ) : null}
+      </section>
+
+      {hasAnyKeys ? (
+        stageGroups.length > 0 ? (
+          <section className="space-y-4">
+            {stageGroups.map((stageName) => {
+              const rows = workKeys
+                .filter((workKey) => workKey.stage_name === stageName)
+                .slice()
+                .sort((left, right) => String(left.created_at || '').localeCompare(String(right.created_at || '')));
+              return (
+                <div key={stageName} className="rounded-[2rem] border border-theme-border bg-theme-bg-app p-5">
+                  <div className="mb-4 flex items-center justify-between gap-3">
+                    <div>
+                      <h3 className="text-lg font-black text-theme-text-primary">{STAGE_LABELS[stageName] || stageName}</h3>
+                      <p className="mt-1 text-xs text-theme-text-muted">当前阶段派生的 work key 与关联子任务。</p>
+                    </div>
+                    <span className="rounded-full border border-theme-border bg-theme-bg-app px-3 py-1 text-xs font-black text-theme-text-secondary">
+                      {rows.length} 条
+                    </span>
+                  </div>
+                  <div className="overflow-x-auto rounded-2xl border border-theme-border">
+                    <table className="min-w-[1040px] w-full divide-y divide-theme-border text-left text-xs">
+                      <thead className="bg-theme-bg-app text-[11px] font-black uppercase tracking-[0.12em] text-theme-text-muted">
+                        <tr>
+                          <th className="px-3 py-2">阶段</th>
+                          <th className="px-3 py-2">服务</th>
+                          <th className="px-3 py-2">Stage Item</th>
+                          <th className="px-3 py-2">下游任务</th>
+                          <th className="px-3 py-2">Work Key ID</th>
+                          <th className="px-3 py-2">名称</th>
+                          <th className="px-3 py-2">前缀</th>
+                          <th className="px-3 py-2">来源</th>
+                          <th className="px-3 py-2">创建时间</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-theme-border bg-theme-bg-app">
+                        {rows.map((workKey: BinarySecurityWorkKeySnapshot, index) => (
+                          <tr key={`${stageName}:${workKey.stage_item_id || index}:${workKey.agent_task_key_id || ''}`} className="hover:bg-slate-100/80">
+                            <td className="px-3 py-2 font-bold text-theme-text-primary">{STAGE_LABELS[stageName] || stageName}</td>
+                            <td className="px-3 py-2 font-mono text-theme-text-secondary">{String(workKey.service || '-')}</td>
+                            <td className="px-3 py-2">
+                              <div className="font-mono text-theme-text-secondary">{String(workKey.stage_item_id || '-')}</div>
+                              <div className="mt-1 text-[11px] text-theme-text-muted">{String(workKey.stage_item_key || '-')}</div>
+                            </td>
+                            <td className="px-3 py-2">
+                              <button type="button" onClick={() => void onCopy(String(workKey.downstream_task_id || ''), '下游任务 ID 已复制')} className="break-all text-left font-mono text-theme-text-secondary hover:text-sky-400">
+                                {String(workKey.downstream_task_id || '-')}
+                              </button>
+                            </td>
+                            <td className="px-3 py-2">
+                              <button type="button" onClick={() => void onCopy(String(workKey.agent_task_key_id || ''), 'Work Key ID 已复制')} className="break-all text-left font-mono text-theme-text-secondary hover:text-sky-400">
+                                {String(workKey.agent_task_key_id || '-')}
+                              </button>
+                            </td>
+                            <td className="px-3 py-2">
+                              <button type="button" onClick={() => void onCopy(String(workKey.agent_task_key_name || ''), 'Work Key 名称已复制')} className="break-all text-left text-theme-text-secondary hover:text-sky-400">
+                                {String(workKey.agent_task_key_name || '-')}
+                              </button>
+                            </td>
+                            <td className="px-3 py-2 font-mono text-theme-text-secondary">{String(workKey.agent_task_key_prefix || '-')}</td>
+                            <td className="px-3 py-2 text-theme-text-secondary">{String(workKey.agent_task_key_source || '-')}</td>
+                            <td className="px-3 py-2 text-theme-text-secondary">{fmt(workKey.created_at)}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              );
+            })}
+          </section>
+        ) : (
+          <section className="rounded-[2rem] border border-dashed border-theme-border bg-theme-bg-app px-6 py-10 text-center text-sm text-theme-text-muted">
+            当前任务未派生任何阶段 work key。
+          </section>
+        )
+      ) : null}
+    </section>
+  );
+}
+
 function deriveArchiveJobsFromStageSummaries(detail: BinarySecurityTaskDetail): ArchiveJob[] {
   const summaries = detail.stage_summaries || [];
   return summaries.flatMap((summary) => {
@@ -1980,13 +2147,10 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
   const [timeline, setTimeline] = useState<any[]>([]);
   const [timelineTotal, setTimelineTotal] = useState(0);
   const [timelineHasMore, setTimelineHasMore] = useState(false);
-  const [artifacts, setArtifacts] = useState<any | null>(null);
-  const [artifactsLoaded, setArtifactsLoaded] = useState(false);
   const [loading, setLoading] = useState(false);
   const [detailRefreshing, setDetailRefreshing] = useState(false);
   const [timelineLoading, setTimelineLoading] = useState(false);
   const [timelineClearing, setTimelineClearing] = useState(false);
-  const [artifactsLoading, setArtifactsLoading] = useState(false);
   const [overviewNodes, setOverviewNodes] = useState<BinarySecurityOverviewNode[]>([]);
   const [overviewLoading, setOverviewLoading] = useState(false);
   const [overviewLoaded, setOverviewLoaded] = useState(false);
@@ -2298,21 +2462,6 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
     }
   };
 
-  const loadArtifacts = async () => {
-    if (!projectId || !taskId) return;
-    setArtifactsLoading(true);
-    setError(null);
-    try {
-      const payload = await executionApi.binarySecurity.getArtifacts(projectId, taskId);
-      setArtifacts(payload || { workspace_root: '', files: [] });
-    } catch (e: any) {
-      setError(e?.message || '加载产物文件失败');
-    } finally {
-      setArtifactsLoaded(true);
-      setArtifactsLoading(false);
-    }
-  };
-
   const loadOverview = async () => {
     if (!projectId || !taskId) return;
     setOverviewLoading(true);
@@ -2496,10 +2645,6 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
         setTimelineHasMore(false);
         setExpandedEventKey(null);
       }
-      if (activeTab === 'artifacts') {
-        setArtifacts(null);
-        setArtifactsLoaded(false);
-      }
       if (activeTab === 'orchestration') {
         setOrchestrationObservability(null);
         setOrchestrationLoaded(false);
@@ -2513,7 +2658,6 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
       }
       if (activeTab === 'modules' && refreshedTask) await loadModuleSelection();
       if (activeTab === 'timeline') await loadTimeline(timelinePage, timelinePageSize);
-      if (activeTab === 'artifacts') await loadArtifacts();
       if (activeTab === 'orchestration') await loadOrchestrationObservability();
     } finally {
       setDetailRefreshing(false);
@@ -2526,11 +2670,6 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
 
   useEffect(() => {
     setNotice(null);
-  }, [projectId, taskId]);
-
-  useEffect(() => {
-    setArtifacts(null);
-    setArtifactsLoaded(false);
   }, [projectId, taskId]);
 
   useEffect(() => {
@@ -2665,12 +2804,6 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
       }));
     }
   };
-
-  useEffect(() => {
-    if (activeTab === 'artifacts' && !artifactsLoaded && !artifactsLoading) {
-      void loadArtifacts();
-    }
-  }, [activeTab, artifactsLoaded, artifactsLoading, projectId, taskId]);
 
   useEffect(() => {
     void loadStageItemsPage();
@@ -3125,7 +3258,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
     setSelectedModuleKeys([]);
   };
 
-  const copyModuleReportValue = async (value: string, successMessage: string) => {
+  const copyTextValue = async (value: string, successMessage: string) => {
     if (!value.trim()) {
       setNotice('没有可复制的内容');
       return;
@@ -3666,7 +3799,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
     { key: 'orchestration', label: '编排观测', hint: 'Reducer、事件队列、锁与归档健康' },
     { key: 'runtime_health', label: '线程与协程健康', hint: '任务 scoped 运行单元健康' },
     { key: 'timeline', label: '事件时间线', hint: '编排事件记录' },
-    { key: 'artifacts', label: '产物文件', hint: '归档输出文件' },
+    { key: 'api_keys', label: 'API 密钥', hint: '任务级密钥与阶段 work key' },
   ];
   const modalAction = blockingAction || pendingBlockingAction;
   const modalCopy = modalAction ? BLOCKING_ACTION_COPY[modalAction] : null;
@@ -3697,7 +3830,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                 <div className="flex items-center gap-2">
                   <button
                     type="button"
-                    onClick={() => void copyModuleReportValue(selectedModuleReportTarget.moduleKey, '模块键已复制')}
+                    onClick={() => void copyTextValue(selectedModuleReportTarget.moduleKey, '模块键已复制')}
                     className="inline-flex items-center gap-2 rounded-xl border border-theme-border bg-theme-bg-app px-3 py-2 text-xs font-bold text-theme-text-secondary hover:bg-theme-elevated"
                   >
                     <Copy size={14} />
@@ -3705,7 +3838,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                   </button>
                   <button
                     type="button"
-                    onClick={() => void copyModuleReportValue(selectedModuleReportDetail?.module_report_path || '', '报告路径已复制')}
+                    onClick={() => void copyTextValue(selectedModuleReportDetail?.module_report_path || '', '报告路径已复制')}
                     className="inline-flex items-center gap-2 rounded-xl border border-theme-border bg-theme-bg-app px-3 py-2 text-xs font-bold text-theme-text-secondary hover:bg-theme-elevated"
                   >
                     <Copy size={14} />
@@ -4436,7 +4569,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
               <div>
                 <div>
                   <h2 className="text-xl font-black text-theme-text-primary">任务总览</h2>
-                  <p className="mt-2 text-sm text-theme-text-muted">总览包含任务主详情、阶段流转和下游子任务；事件记录和产物文件会在打开对应 Tab 后再请求后端。</p>
+                  <p className="mt-2 text-sm text-theme-text-muted">总览包含任务主详情、阶段流转和下游子任务；事件记录和编排观测会在打开对应 Tab 后再请求后端。</p>
                   <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
                     <div className="rounded-2xl border border-theme-border bg-theme-bg-app px-4 py-3 text-sm">
                       <div className="text-xs font-bold text-theme-text-muted">任务类型</div>
@@ -5927,77 +6060,8 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
           </section>
           ) : null}
 
-          {activeTab === 'artifacts' ? (
- <section className="rounded-[2rem] border border-theme-border bg-theme-bg-app p-6">
-            <h2 className="text-xl font-black text-theme-text-primary">产物文件</h2>
-            <div className="mt-3 text-xs text-theme-text-muted">工作目录：{artifacts?.workspace_root || '-'}</div>
-            <div
-              className="mt-5 h-[420px] space-y-2 overflow-y-auto overflow-x-hidden pr-1"
-              style={{ scrollbarGutter: 'stable' }}
-            >
-              {artifactsLoading ? (
-                <div className="rounded-2xl border border-theme-border bg-theme-bg-app px-6 py-10 text-center text-sm text-theme-text-muted">
-                  正在加载产物文件...
-                </div>
-              ) : (artifacts?.artifact_groups || []).length > 0 ? (
-                <div className="space-y-4">
-                  {(artifacts?.artifact_groups || []).map((group: any) => (
-                    <div key={group.module_key || group.artifact_index_path} className="rounded-2xl border border-theme-border bg-theme-bg-app p-4">
-                      <div className="flex flex-wrap items-start justify-between gap-3">
-                        <div>
-                          <div className="text-sm font-black text-theme-text-primary">{group.module_name || group.module_key || '-'}</div>
-                          <div className="mt-1 font-mono text-[11px] text-theme-text-muted">{group.module_key || '-'}</div>
-                          <div className="mt-1 text-[11px] text-theme-text-muted">{group.source_root || '-'}</div>
-                        </div>
-                        <div className="flex flex-wrap gap-2">
-                          <span className="inline-flex rounded-full border border-sky-500/20 bg-sky-500/15 px-2 py-1 text-[11px] font-bold text-sky-400">
-                            {RESULT_KIND_LABELS[String(group.primary_result_kind || '')] || group.primary_result_kind || '-'}
-                          </span>
-                          {(group.result_kinds || []).map((kind: string) => (
-                            <span key={kind} className="inline-flex rounded-full border border-theme-border bg-theme-bg-app px-2 py-1 text-[11px] font-semibold text-theme-text-secondary">
-                              {RESULT_KIND_LABELS[kind] || kind}
-                            </span>
-                          ))}
-                        </div>
-                      </div>
-                      <div className="mt-3 grid gap-3 xl:grid-cols-[280px_minmax(0,1fr)]">
-                        <div className="space-y-2">
-                          {Object.entries(group.artifact_kind_summary || {}).map(([kind, count]) => (
-                            <div key={kind} className="flex items-center justify-between rounded-xl border border-theme-border bg-theme-bg-app px-3 py-2 text-xs">
-                              <span className="font-medium text-theme-text-muted">{kind}</span>
-                              <span className="font-black text-theme-text-primary">{String(count ?? 0)}</span>
-                            </div>
-                          ))}
-                        </div>
-                        <div className="space-y-2">
-                          {(group.artifacts || []).map((file: any) => (
-                            <div key={`${group.module_key}-${file.relative_path}`} className="rounded-xl border border-theme-border bg-theme-bg-app px-3 py-2">
-                              <div className="break-all font-mono text-xs text-theme-text-secondary">{file.relative_path}</div>
-                              <div className="mt-1 flex flex-wrap gap-2 text-[11px] text-theme-text-muted">
-                                <span>kind={file.kind || '-'}</span>
-                                <span>size={Number(file.size || 0)}</span>
-                                <span>stage={file.stage || '-'}</span>
-                                {file.batch_no != null ? <span>batch={file.batch_no}</span> : null}
-                                {file.attempt_no != null ? <span>attempt={file.attempt_no}</span> : null}
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (artifacts?.files || []).length === 0 ? (
-                <div className="rounded-2xl border border-dashed border-theme-border bg-theme-bg-app px-6 py-10 text-center text-sm text-theme-text-muted">
-                  暂无产物文件
-                </div>
-              ) : (artifacts?.files || []).map((file: any) => (
-                <div key={file.path} className="rounded-xl border border-theme-border bg-theme-bg-app px-3 py-2 font-mono text-xs text-theme-text-secondary">
-                  {file.path}
-                </div>
-              ))}
-            </div>
-          </section>
+          {activeTab === 'api_keys' ? (
+            <ApiKeysPanel detail={detail} stageSequence={stageSequence} onCopy={copyTextValue} />
           ) : null}
         </>
       ) : null}

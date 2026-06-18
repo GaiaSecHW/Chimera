@@ -71,6 +71,34 @@ export interface BinarySecurityAbnormalReasonEventSummary {
   reason: BinarySecurityAbnormalReason;
 }
 
+export interface BinarySecurityRootTaskKeySnapshot {
+  id?: string | null;
+  name?: string | null;
+  prefix?: string | null;
+  source?: string | null;
+  has_secret: boolean;
+  used: boolean;
+}
+
+export interface BinarySecurityWorkKeySnapshot {
+  stage_name?: string | null;
+  service?: string | null;
+  stage_item_id?: string | null;
+  stage_item_key?: string | null;
+  downstream_task_id?: string | null;
+  agent_task_key_id?: string | null;
+  agent_task_key_name?: string | null;
+  agent_task_key_prefix?: string | null;
+  agent_task_key_source?: string | null;
+  has_secret: boolean;
+  created_at?: string | null;
+}
+
+export interface BinarySecurityTaskKeySnapshot {
+  root_task_key: BinarySecurityRootTaskKeySnapshot;
+  work_keys: BinarySecurityWorkKeySnapshot[];
+}
+
 export interface BinarySecurityModuleContract {
   contract_version?: number;
   input_kind?: string | null;
@@ -407,6 +435,12 @@ export interface BinarySecurityTaskDetail extends BinarySecurityTask {
   output_root: string;
   workspace_root: string;
   fileserver_subproject_name?: string | null;
+  task_key_source?: string | null;
+  root_task_key_id?: string | null;
+  root_task_key_name?: string | null;
+  root_task_key_prefix?: string | null;
+  has_root_task_key?: boolean;
+  task_key_snapshot?: BinarySecurityTaskKeySnapshot;
   candidate_entry_count: number;
   policy: BinarySecurityTaskPolicy;
   summary: Record<string, any> & {
