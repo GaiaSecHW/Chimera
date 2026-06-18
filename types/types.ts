@@ -2606,6 +2606,7 @@ export type ViewType =
   | 'pentest-exec-b2s' | 'pentest-exec-b2s-root' | 'pentest-exec-b2s-task-list' | 'pentest-exec-b2s-create' | 'pentest-exec-b2s-queue' | 'pentest-exec-b2s-result' | 'pentest-exec-b2s-detail' | 'pentest-exec-b2s-advanced'
   | 'binary-security' | 'binary-security-root' | 'binary-security-task-list' | 'binary-security-detail' | 'binary-security-config'
   | 'source-security' | 'source-security-detail'
+  | 'kg-source-security' | 'kg-source-security-detail'
   | 'binary-module-security' | 'binary-module-security-detail'
   | 'app-security-scan' | 'app-security-scan-detail' | 'app-security-scan-monitor'
   | 'mobile-security-ipc-vuln'

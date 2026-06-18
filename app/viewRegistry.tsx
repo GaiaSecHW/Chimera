@@ -152,6 +152,7 @@ export interface ViewRegistryContext {
   activeFirmwareUnpackerTaskId: string;
   activeBinarySecurityTaskId: string;
   activeSourceSecurityTaskId: string;
+  activeKgSourceSecurityTaskId: string;
   activeBinaryModuleSecurityTaskId: string;
   activeAppScanTaskId: string;
   activeRedlineTaskId: string;
@@ -176,6 +177,7 @@ export interface ViewRegistryContext {
   setActiveFirmwareUnpackerTaskId: (id: string) => void;
   setActiveBinarySecurityTaskId: (id: string) => void;
   setActiveSourceSecurityTaskId: (id: string) => void;
+  setActiveKgSourceSecurityTaskId: (id: string) => void;
   setActiveBinaryModuleSecurityTaskId: (id: string) => void;
   setActiveAppScanTaskId: (id: string) => void;
   setActiveRedlineTaskId: (id: string) => void;
@@ -608,6 +610,7 @@ export const renderCurrentView = (ctx: ViewRegistryContext): React.ReactNode => 
         <BinarySecurityOverviewPage
           projectId={ctx.selectedProjectId}
           taskType="source"
+          sourcePipelineProfileMode="default"
           onOpenTask={(taskId) => {
             ctx.setActiveSourceSecurityTaskId(taskId);
             ctx.setCurrentView('source-security-detail');
@@ -620,6 +623,7 @@ export const renderCurrentView = (ctx: ViewRegistryContext): React.ReactNode => 
           <BinarySecurityOverviewPage
             projectId={ctx.selectedProjectId}
             taskType="source"
+            sourcePipelineProfileMode="default"
             onOpenTask={(taskId) => {
               ctx.setActiveSourceSecurityTaskId(taskId);
               ctx.setCurrentView('source-security-detail');
@@ -633,6 +637,40 @@ export const renderCurrentView = (ctx: ViewRegistryContext): React.ReactNode => 
           taskId={ctx.activeSourceSecurityTaskId}
           taskType="source"
           onBack={() => ctx.setCurrentView(consumeTaskCenterReturnContext() ? 'task-list' : 'source-security')}
+        />
+      );
+    case 'kg-source-security':
+      return (
+        <BinarySecurityOverviewPage
+          projectId={ctx.selectedProjectId}
+          taskType="source"
+          sourcePipelineProfileMode="kg_source_vuln_scan"
+          onOpenTask={(taskId) => {
+            ctx.setActiveKgSourceSecurityTaskId(taskId);
+            ctx.setCurrentView('kg-source-security-detail');
+          }}
+        />
+      );
+    case 'kg-source-security-detail':
+      if (!ctx.activeKgSourceSecurityTaskId) {
+        return (
+          <BinarySecurityOverviewPage
+            projectId={ctx.selectedProjectId}
+            taskType="source"
+            sourcePipelineProfileMode="kg_source_vuln_scan"
+            onOpenTask={(taskId) => {
+              ctx.setActiveKgSourceSecurityTaskId(taskId);
+              ctx.setCurrentView('kg-source-security-detail');
+            }}
+          />
+        );
+      }
+      return (
+        <BinarySecurityTaskDetailPage
+          projectId={ctx.selectedProjectId}
+          taskId={ctx.activeKgSourceSecurityTaskId}
+          taskType="source"
+          onBack={() => ctx.setCurrentView(consumeTaskCenterReturnContext() ? 'task-list' : 'kg-source-security')}
         />
       );
     case 'binary-module-security':

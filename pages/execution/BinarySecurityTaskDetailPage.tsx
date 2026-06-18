@@ -3500,7 +3500,12 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
     const detailSupport = downstreamDetailSupport(item.stage_name, downstreamTaskId, stageItemMissingDownstreamReason(item));
     if (!downstreamTaskId || !detailSupport.supported) return;
     saveBinarySecurityReturnContext({
-      view: taskType === 'source' ? 'source-security-detail' : taskType === 'binary_module' ? 'binary-module-security-detail' : 'binary-security-detail',
+      view:
+        taskType === 'source'
+          ? (detail?.pipeline_profile === 'kg_source_vuln_scan' ? 'kg-source-security-detail' : 'source-security-detail')
+          : taskType === 'binary_module'
+            ? 'binary-module-security-detail'
+            : 'binary-security-detail',
       taskId,
       taskType,
     });

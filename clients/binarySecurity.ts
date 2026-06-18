@@ -909,6 +909,7 @@ export const binarySecurityApi = {
     query?: {
       status?: string;
       taskType?: BinarySecurityTaskType;
+      pipelineProfile?: BinarySecurityPipelineProfile;
       search?: string;
       sortBy?: 'created_at' | 'updated_at' | 'started_at' | 'finished_at' | 'status' | 'name' | 'task_name';
       sortOrder?: 'asc' | 'desc';
@@ -930,6 +931,7 @@ export const binarySecurityApi = {
     const params = new URLSearchParams();
     if (query?.status) params.set('status', query.status);
     if (query?.taskType) params.set('task_type', query.taskType);
+    if (query?.pipelineProfile) params.set('pipeline_profile', query.pipelineProfile);
     if (query?.search) params.set('search', query.search);
     if (query?.sortBy) params.set('sort_by', query.sortBy);
     if (query?.sortOrder) params.set('sort_order', query.sortOrder);

@@ -12,6 +12,7 @@ interface Props {
   projectId: string;
   taskType: BinarySecurityTaskType;
   onOpenTask: (taskId: string) => void;
+  sourcePipelineProfileMode?: SourcePipelineProfile | 'select';
 }
 
 type CreateDialogTab = 'basic' | 'files' | 'strategy' | 'parallelism';
@@ -357,7 +358,7 @@ const StageAggregateCard: React.FC<{ aggregate: BinarySecurityProjectStageAggreg
   );
 };
 
-export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskType, onOpenTask }) => {
+export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskType, onOpenTask, sourcePipelineProfileMode = 'select' }) => {
   const executionApi = api.domains.execution;
   const buildVersion = useServiceBuildVersion(executionApi.binarySecurity.getHealth);
   const fallbackCreateDefaults = useMemo(() => ({
@@ -422,7 +423,7 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
   const [moduleSelectionMode, setModuleSelectionMode] = useState<'auto' | 'manual_confirm'>('auto');
   const [moduleRiskLevels, setModuleRiskLevels] = useState<string[]>(['高']);
   const [stageParallelism, setStageParallelism] = useState<Record<string, number>>(DEFAULT_STAGE_PARALLELISM);
-  const [sourcePipelineProfile, setSourcePipelineProfile] = useState<SourcePipelineProfile>('default');
+  const [sourcePipelineProfile, setSourcePipelineProfile] = useState<SourcePipelineProfile>(sourcePipelineProfileMode === 'kg_source_vuln_scan' ? 'kg_source_vuln_scan' : 'default');
 
   const toggleStatusQuickFilter = (status: string) => {
     setStatusFilter((current) => (current === status ? '' : status));
@@ -431,11 +432,13 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
 
   const isSourceTask = taskType === 'source';
   const isBinaryModuleTask = taskType === 'binary_module';
-  const pageTitle = isSourceTask ? '源码扫描' : isBinaryModuleTask ? '二进制模块扫描' : '二进制安全';
-  const createTitle = isSourceTask ? '创建源码扫描任务' : isBinaryModuleTask ? '创建二进制模块任务' : '创建二进制安全任务';
-  const emptyLabel = isSourceTask ? '当前项目还没有源码扫描任务。' : isBinaryModuleTask ? '当前项目还没有二进制模块任务。' : '当前项目还没有二进制安全任务。';
-  const namePrefix = isSourceTask ? 'source-security' : isBinaryModuleTask ? 'binary-module-security' : 'binary-security';
-  const stages = isSourceTask ? (sourcePipelineProfile === 'kg_source_vuln_scan' ? SOURCE_KG_STAGES : SOURCE_STAGES) : isBinaryModuleTask ? MODULE_STAGES : BINARY_STAGES;
+  const isKgSourcePage = isSourceTask && sourcePipelineProfileMode === 'kg_source_vuln_scan';
+  const showSourcePipelinePicker = isSourceTask && sourcePipelineProfileMode === 'select';
+  const pageTitle = isKgSourcePage ? '知识图谱-源码漏洞挖掘' : isSourceTask ? '源码扫描' : isBinaryModuleTask ? '二进制模块扫描' : '二进制安全';
+  const createTitle = isKgSourcePage ? '创建知识图谱源码漏洞挖掘任务' : isSourceTask ? '创建源码扫描任务' : isBinaryModuleTask ? '创建二进制模块任务' : '创建二进制安全任务';
+  const emptyLabel = isKgSourcePage ? '当前项目还没有知识图谱源码漏洞挖掘任务。' : isSourceTask ? '当前项目还没有源码扫描任务。' : isBinaryModuleTask ? '当前项目还没有二进制模块任务。' : '当前项目还没有二进制安全任务。';
+  const namePrefix = isKgSourcePage ? 'kg-source-security' : isSourceTask ? 'source-security' : isBinaryModuleTask ? 'binary-module-security' : 'binary-security';
+  const stages = isSourceTask ? (isKgSourcePage ? SOURCE_KG_STAGES : SOURCE_STAGES) : isBinaryModuleTask ? MODULE_STAGES : BINARY_STAGES;
 
   const fileKey = (file: File) => {
     const rel = (file as File & { webkitRelativePath?: string }).webkitRelativePath;
@@ -469,6 +472,9 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
       const data = await executionApi.binarySecurity.listTasks(projectId, {
         status: statusFilter || undefined,
         taskType,
+        pipelineProfile: isSourceTask
+          ? (isKgSourcePage ? 'kg_source_vuln_scan' : showSourcePipelinePicker ? sourcePipelineProfile : 'default')
+          : undefined,
         search: search || undefined,
         sortBy,
         sortOrder,
@@ -557,15 +563,19 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
   };
 
   useEffect(() => {
+    setSourcePipelineProfile(sourcePipelineProfileMode === 'kg_source_vuln_scan' ? 'kg_source_vuln_scan' : 'default');
+  }, [sourcePipelineProfileMode]);
+
+  useEffect(() => {
     void load();
-  }, [projectId, taskType, statusFilter, search, sortBy, sortOrder, page, pageSize]);
+  }, [projectId, taskType, isKgSourcePage, showSourcePipelinePicker, sourcePipelineProfile, statusFilter, search, sortBy, sortOrder, page, pageSize]);
 
   const hasActive = useMemo(() => items.some((item) => !TERMINAL.has(item.status)), [items]);
   useEffect(() => {
     if (!hasActive) return;
     const timer = window.setInterval(() => void load({ silent: true, skipIfInFlight: true }), 5000);
     return () => window.clearInterval(timer);
-  }, [hasActive, projectId, taskType, statusFilter, search, sortBy, sortOrder, page, pageSize]);
+  }, [hasActive, projectId, taskType, isKgSourcePage, showSourcePipelinePicker, sourcePipelineProfile, statusFilter, search, sortBy, sortOrder, page, pageSize]);
 
   useEffect(() => {
     if (!showCreateDialog) return;
@@ -643,7 +653,7 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
     });
     setModuleSelectionMode('auto');
     setModuleRiskLevels(['高']);
-    setSourcePipelineProfile('default');
+    setSourcePipelineProfile(sourcePipelineProfileMode === 'kg_source_vuln_scan' ? 'kg_source_vuln_scan' : 'default');
     setStageParallelism({
       ...defaults.stageParallelism,
     });
@@ -773,7 +783,7 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
         module_name: isBinaryModuleTask ? moduleName.trim() : undefined,
         input_files: inputFiles,
         policy_overrides: {
-          pipeline_profile: isSourceTask ? sourcePipelineProfile : 'default',
+          pipeline_profile: isKgSourcePage ? 'kg_source_vuln_scan' : isSourceTask ? sourcePipelineProfile : 'default',
           max_retries_per_item: maxRetries,
           continue_on_item_failure: continueOnFailure,
           pipeline_mode: pipelineMode,
@@ -783,8 +793,8 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
               .map((field) => [field.key, partialSuccessStageAdvancement[field.key] !== false]),
           ),
           stage_parallelism: Object.fromEntries(stages.map((stage) => [stage, stageParallelism[stage] ?? 1])),
-          module_selection_mode: isBinaryModuleTask || (isSourceTask && sourcePipelineProfile === 'kg_source_vuln_scan') ? undefined : moduleSelectionMode,
-          module_risk_levels: isBinaryModuleTask || (isSourceTask && sourcePipelineProfile === 'kg_source_vuln_scan') ? undefined : moduleRiskLevels,
+          module_selection_mode: isBinaryModuleTask || isKgSourcePage ? undefined : moduleSelectionMode,
+          module_risk_levels: isBinaryModuleTask || isKgSourcePage ? undefined : moduleRiskLevels,
         },
       });
       const inputDir = created.summary?.input_dir ||`/data/files/${projectId}/app/chimera-app-binary-security/${prepared.task_id}/input`;
@@ -855,11 +865,13 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
       <PageHeader
         title={<ServicePageTitle title={pageTitle} version={buildVersion} className="" />}
         description={
-          isSourceTask
-            ? '为当前项目统一编排系统分析、入口分析、数据流漏洞挖掘和数据流漏洞挖掘，聚合查看源码工程任务的阶段状态与结果。'
-            : isBinaryModuleTask
-              ? '为当前项目统一编排模块级二进制逆向、入口分析、数据流漏洞挖掘和数据流漏洞挖掘，直接以单模块下的多个 ELF 作为输入自动推进。'
-              : '为当前项目统一编排固件解包、系统分析、反编译、入口分析、数据流漏洞挖掘和数据流漏洞挖掘，聚合查看多固件任务的阶段状态与结果。'
+          isKgSourcePage
+            ? '为当前项目统一编排知识图谱入口获取与数据流漏洞挖掘，直接以外部入口结果驱动源码漏洞挖掘。'
+            : isSourceTask
+              ? '为当前项目统一编排系统分析、入口分析、数据流漏洞挖掘和数据流漏洞挖掘，聚合查看源码工程任务的阶段状态与结果。'
+              : isBinaryModuleTask
+                ? '为当前项目统一编排模块级二进制逆向、入口分析、数据流漏洞挖掘和数据流漏洞挖掘，直接以单模块下的多个 ELF 作为输入自动推进。'
+                : '为当前项目统一编排固件解包、系统分析、反编译、入口分析、数据流漏洞挖掘和数据流漏洞挖掘，聚合查看多固件任务的阶段状态与结果。'
         }
         actions={
           <div className="flex items-center gap-3">
@@ -1190,8 +1202,8 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
                 <h3 className="text-xl font-semibold text-theme-text-primary">{createTitle}</h3>
                 <p className="mt-1 text-sm text-theme-text-muted">
                   {isSourceTask
-                    ? sourcePipelineProfile === 'kg_source_vuln_scan'
-                      ? '知识图谱源码模式仅支持上传常见源码压缩包；任务会跳过系统分析和本地入口分析，直接先拉取知识图谱入口再推进漏洞挖掘。'
+                    ? isKgSourcePage
+                      ? '知识图谱源码页面固定使用外部入口结果源，任务会跳过系统分析和本地入口分析，直接先拉取知识图谱入口再推进漏洞挖掘。'
                       : '仅支持上传常见源码压缩包；文件会先上传到临时目录，再由后端解压到任务 input 目录。'
                     : isBinaryModuleTask
                       ? '请输入模块名并上传属于该模块的多个 ELF，任务会直接从二进制逆向阶段开始自动推进。'
@@ -1253,7 +1265,7 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
                       className="rounded-xl border border-theme-border bg-theme-surface px-4 py-3 text-sm text-theme-text-primary placeholder:text-theme-text-muted"
                     />
                   ) : null}
-                  {isSourceTask ? (
+                  {showSourcePipelinePicker ? (
                     <div className="rounded-xl border border-theme-border bg-theme-surface p-4">
                       <div className="text-sm font-semibold text-theme-text-primary">源码流程模式</div>
                       <div className="mt-3 grid grid-cols-1 gap-2 xl:grid-cols-2">
@@ -1358,7 +1370,7 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
                 </div>
               ) : null}
 
-              {createDialogTab === 'strategy' && !isBinaryModuleTask && !(isSourceTask && sourcePipelineProfile === 'kg_source_vuln_scan') ? (
+              {createDialogTab === 'strategy' && !isBinaryModuleTask && !(isKgSourcePage) ? (
                 <div className="rounded-xl border border-theme-border bg-theme-surface p-5">
                   <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
                     <div>

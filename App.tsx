@@ -36,6 +36,10 @@ const parseDeepLinkPath = (pathname: string): DeepLinkTarget | null => {
       view: 'source-security-detail',
     },
     {
+      regex: /^\/kg-source-security\/projects\/([^/]+)\/tasks\/([^/]+)\/?$/i,
+      view: 'kg-source-security-detail',
+    },
+    {
       regex: /^\/binary-module-security\/projects\/([^/]+)\/tasks\/([^/]+)\/?$/i,
       view: 'binary-module-security-detail',
     },
@@ -92,6 +96,7 @@ const AppShell: React.FC = () => {
   const [activeFirmwareUnpackerTaskId, setActiveFirmwareUnpackerTaskId] = useState<string>('');
   const [activeBinarySecurityTaskId, setActiveBinarySecurityTaskId] = useState<string>('');
   const [activeSourceSecurityTaskId, setActiveSourceSecurityTaskId] = useState<string>('');
+  const [activeKgSourceSecurityTaskId, setActiveKgSourceSecurityTaskId] = useState<string>('');
   const [activeBinaryModuleSecurityTaskId, setActiveBinaryModuleSecurityTaskId] = useState<string>('');
   const [activeAppScanTaskId, setActiveAppScanTaskId] = useState<string>('');
   const [activeRedlineTaskId, setActiveRedlineTaskId] = useState<string>('');
@@ -222,6 +227,11 @@ const AppShell: React.FC = () => {
           setActiveSourceSecurityTaskId(deepLinkTarget.taskId);
         }
         break;
+      case 'kg-source-security-detail':
+        if (deepLinkTarget.taskId && deepLinkTarget.taskId !== activeKgSourceSecurityTaskId) {
+          setActiveKgSourceSecurityTaskId(deepLinkTarget.taskId);
+        }
+        break;
       case 'binary-module-security-detail':
         if (deepLinkTarget.taskId && deepLinkTarget.taskId !== activeBinaryModuleSecurityTaskId) {
           setActiveBinaryModuleSecurityTaskId(deepLinkTarget.taskId);
@@ -233,6 +243,7 @@ const AppShell: React.FC = () => {
   }, [
     activeBinaryModuleSecurityTaskId,
     activeBinarySecurityTaskId,
+    activeKgSourceSecurityTaskId,
     activeSourceSecurityTaskId,
     deepLinkTarget,
     isServiceTerminalWindow,
@@ -262,6 +273,7 @@ const AppShell: React.FC = () => {
         firmwareUnpackerTaskId?: string;
         binarySecurityTaskId?: string;
         sourceSecurityTaskId?: string;
+        kgSourceSecurityTaskId?: string;
         binaryEvolutionTaskId?: string;
         redlineTaskId?: string;
         appScanTaskId?: string;
@@ -310,6 +322,10 @@ const AppShell: React.FC = () => {
       const sourceSecurityTaskId = String(detail?.sourceSecurityTaskId || '').trim();
       if (sourceSecurityTaskId) {
         setActiveSourceSecurityTaskId(sourceSecurityTaskId);
+      }
+      const kgSourceSecurityTaskId = String(detail?.kgSourceSecurityTaskId || '').trim();
+      if (kgSourceSecurityTaskId) {
+        setActiveKgSourceSecurityTaskId(kgSourceSecurityTaskId);
       }
       const redlineTaskId = String(detail?.redlineTaskId || '').trim();
       if (redlineTaskId) {
@@ -719,6 +735,7 @@ const AppShell: React.FC = () => {
                     activeFirmwareUnpackerTaskId,
                     activeBinarySecurityTaskId,
                     activeSourceSecurityTaskId,
+                    activeKgSourceSecurityTaskId,
                     activeBinaryModuleSecurityTaskId,
                     activeTaskCenterTimelineTaskId,
                     activeTaskVulnListTaskId,
@@ -742,6 +759,7 @@ const AppShell: React.FC = () => {
                     setActiveFirmwareUnpackerTaskId: (id) => setActiveFirmwareUnpackerTaskId(id),
                     setActiveBinarySecurityTaskId: (id) => setActiveBinarySecurityTaskId(id),
                     setActiveSourceSecurityTaskId: (id) => setActiveSourceSecurityTaskId(id),
+                    setActiveKgSourceSecurityTaskId: (id) => setActiveKgSourceSecurityTaskId(id),
                     setActiveBinaryModuleSecurityTaskId: (id) => setActiveBinaryModuleSecurityTaskId(id),
                     activeAppScanTaskId,
                     setActiveAppScanTaskId: (id) => setActiveAppScanTaskId(id),
