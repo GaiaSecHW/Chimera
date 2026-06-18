@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Bot, Boxes, Braces, Check, CheckCircle2, ChevronDown, ChevronUp, Copy, Cpu, FileJson2, Hash, Image as ImageIcon, Layers3, MessageSquareText, Route, ScrollText, X } from 'lucide-react';
 
 import { AiGatewayLogDetail } from '../../types/types';
@@ -486,6 +486,17 @@ export const AigwLogDetailsDialog: React.FC<AigwLogDetailsDialogProps> = ({ log,
   const requestTools = useMemo(() => extractRequestTools(requestJson), [requestJson]);
   const responseUsage = useMemo(() => getResponseUsage(responseJson), [responseJson]);
   const streamEvents = useMemo(() => parseStreamEvents(log?.stream_response), [log?.stream_response]);
+
+  useEffect(() => {
+    if (!open) return;
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape') return;
+      event.preventDefault();
+      onClose();
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [open, onClose]);
 
   if (!open || !log) return null;
 

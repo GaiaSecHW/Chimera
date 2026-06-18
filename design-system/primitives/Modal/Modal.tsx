@@ -34,13 +34,23 @@ export const Modal: React.FC<ModalProps> = ({
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const previousActiveRef = useRef<HTMLElement | null>(null);
+  const onCloseRef = useRef(onClose);
+  const closeOnEscRef = useRef(closeOnEsc);
   const labelId = useId();
+
+  useEffect(() => {
+    onCloseRef.current = onClose;
+  }, [onClose]);
+
+  useEffect(() => {
+    closeOnEscRef.current = closeOnEsc;
+  }, [closeOnEsc]);
 
   const handleKeyDown = useCallback(
     (event: KeyboardEvent) => {
-      if (closeOnEsc && event.key === 'Escape') {
+      if (closeOnEscRef.current && event.key === 'Escape') {
         event.stopPropagation();
-        onClose();
+        onCloseRef.current();
         return;
       }
       if (event.key !== 'Tab' || !containerRef.current) return;
@@ -61,7 +71,7 @@ export const Modal: React.FC<ModalProps> = ({
         first.focus();
       }
     },
-    [closeOnEsc, onClose],
+    [],
   );
 
   useEffect(() => {
