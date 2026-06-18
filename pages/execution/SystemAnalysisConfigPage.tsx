@@ -1033,6 +1033,38 @@ export const SystemAnalysisConfigPage: React.FC<{ projectId: string; embedded?: 
             </FieldRow>
 
             <FieldRow
+              label="超快速模式 (super_fast_mode)"
+              hint="super_fast_mode"
+              desc="⚡ 开启后: Worker LLM 保留但跳过所有 Judge 评审, 用 Python 脚本校验输出格式。不生成 details/ 文件预览, 分类依据只用文件名+路径+ELF符号。大幅减少 LLM 调用, 适合快速试跑。">
+              <div style={{ display: 'flex', gap: '8px' }}>
+                {([
+                  { value: true, label: '⚡ 开启超快速模式' },
+                  { value: false, label: '标准模式（默认）' },
+                ] as const).map(({ value, label }) => (
+                  <button
+                    key={String(value)}
+                    type="button"
+                    onClick={() => patch({ super_fast_mode: value })}
+                    style={{
+                      flex: 1,
+                      borderRadius: '8px',
+                      border: `1px solid ${config.super_fast_mode === value ? LK.warning : LK.border}`,
+                      padding: '10px 16px',
+                      fontSize: '14px',
+                      fontWeight: 600,
+                      backgroundColor: config.super_fast_mode === value ?`${LK.warning}1a` : LK.surface,
+                      color: config.super_fast_mode === value ? LK.warning : LK.body,
+                      cursor: 'pointer',
+                      transition: 'all 0.2s'
+                    } as React.CSSProperties}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+            </FieldRow>
+
+            <FieldRow
               label="单模块失败后继续"
               hint="continue_on_module_failure"
               desc="控制当单个模块在 refine/analyse/补做阶段失败时，是否继续推进其他模块和后续阶段。默认开启。开启后失败模块会保留在评估结果中，但不阻断整任务；关闭后任一模块失败都会使任务失败。">
