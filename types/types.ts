@@ -4744,6 +4744,7 @@ export interface AppDfaSessionMeta {
   message_count?: number;
   is_active: boolean;
   display_name: string;
+  agent_session?: Record<string, any>;
 }
 
 export type AppDfaSessionIndexNode = AppSaSessionIndexNode;
@@ -4801,6 +4802,20 @@ export interface AppDfaResultFile {
   mtime: number;
 }
 
+export interface AppDfaSourceSnippetLine {
+  n: number;
+  text: string;
+}
+
+export interface AppDfaSourceSnippet {
+  file?: string;
+  abs_path?: string;
+  start_line: number;
+  end_line: number;
+  focus_line?: number | null;
+  lines: AppDfaSourceSnippetLine[];
+}
+
 export interface AppDfaVulnFinding {
   id: string;
   severity: 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW' | 'INFO' | string;
@@ -4810,6 +4825,19 @@ export interface AppDfaVulnFinding {
   root_cause?: string;
   proposed_fix?: string;
   detail?: string;
+  function?: string;
+  vulnerability?: string;
+  confidence?: number | string;
+  flow?: string;
+  alarm?: string;
+  code?: string;
+  entry_point?: string[];
+  file?: string;
+  line?: number;
+  source?: Record<string, any>;
+  sink?: Record<string, any>;
+  dataflow_trace?: Array<Record<string, any>>;
+  source_snippet?: AppDfaSourceSnippet;
 }
 
 export interface AppDfaTaskResult {

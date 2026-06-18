@@ -497,11 +497,92 @@ const SEVERITY_STYLE: Record<string, { badge: string; bar: string; label: string
 };
 const SEVERITY_ORDER = ['CRITICAL', 'HIGH', 'MEDIUM', 'LOW', 'INFO'];
 
+function SourceSnippetBlock({ finding }: { finding: AppDfaVulnFinding }) {
+  const snippet = finding.source_snippet;
+  if (!snippet?.lines?.length && !finding.code) return null;
+  return (
+    <div>
+      <div className="mb-1 flex items-center gap-1 text-[11px] font-black uppercase tracking-[0.15em] text-violet-500"><FileText size={12} />函数源码</div>
+      {snippet?.lines?.length ? (
+        <div className="overflow-hidden rounded-xl border border-slate-200 bg-slate-950">
+          <div className="border-b border-slate-800 px-3 py-2 font-mono text-[11px] text-slate-400">{snippet.file || finding.file || 'source'} {snippet.focus_line ? `:${snippet.focus_line}` : ''}</div>
+          <pre className="max-h-96 overflow-auto p-0 text-xs leading-5 text-slate-200">
+            {snippet.lines.map((ln) => (
+              <div key={ln.n} className={`grid grid-cols-[4rem_minmax(0,1fr)] gap-3 px-3 ${ln.n === snippet.focus_line ? 'bg-rose-500/20 text-rose-100' : ''}`}>
+                <span className="select-none text-right text-slate-500">{ln.n}</span>
+                <code className="whitespace-pre">{ln.text || ' '}</code>
+              </div>
+            ))}
+          </pre>
+        </div>
+      ) : (
+        <pre className="max-h-72 overflow-auto rounded-xl border border-slate-200 bg-slate-950 px-3 py-3 text-xs leading-5 text-slate-100">{finding.code}</pre>
+      )}
+    </div>
+  );
+}
+
+function FlowTraceBlock({ finding }: { finding: AppDfaVulnFinding }) {
+  const trace = finding.dataflow_trace || [];
+  if (!trace.length && !finding.flow && !finding.source && !finding.sink) return null;
+  return (
+    <div>
+      <div className="mb-2 flex items-center gap-1 text-[11px] font-black uppercase tracking-[0.15em] text-cyan-600"><BarChart3 size={12} />数据流 / 调用链</div>
+      {trace.length ? (
+        <div className="space-y-2">
+          {trace.map((step, i) => (
+            <div key={i} className="rounded-xl border border-cyan-100 bg-cyan-50 px-3 py-2">
+              <div className="font-mono text-xs font-bold text-cyan-900">#{step.step ?? i + 1} {step.function || step.from || ''}{step.to ? ` → ${step.to}` : ''}</div>
+              <div className="mt-1 text-[11px] text-cyan-700">{step.file ? `${step.file}${step.line ? `:${step.line}` : ''}` : ''}</div>
+              {step.description ? <div className="mt-1 text-xs text-slate-700">{step.description}</div> : null}
+            </div>
+          ))}
+        </div>
+      ) : finding.flow ? (
+        <div className="rounded-xl border border-cyan-100 bg-cyan-50 px-3 py-3 font-mono text-xs leading-5 text-cyan-900">{finding.flow}</div>
+      ) : null}
+      {(finding.source || finding.sink) ? (
+        <div className="mt-2 grid gap-2 md:grid-cols-2">
+          {finding.source ? <pre className="overflow-auto rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-[11px] text-slate-700">source: {JSON.stringify(finding.source, null, 2)}</pre> : null}
+          {finding.sink ? <pre className="overflow-auto rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-[11px] text-slate-700">sink: {JSON.stringify(finding.sink, null, 2)}</pre> : null}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+function AgentSessionSummaryPanel({ session }: { session?: Record<string, any> | null }) {
+  if (!session) return null;
+  const steps = Array.isArray(session.steps) ? session.steps : [];
+  const candidates = Array.isArray(session.entry_candidates) ? session.entry_candidates : [];
+  return (
+    <section className="rounded-2xl border border-slate-200 bg-white p-5">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">智能体执行摘要</div>
+          <h2 className="mt-1 text-lg font-black text-slate-900">根审计会话时间线</h2>
+        </div>
+        <div className="flex flex-wrap gap-2 text-xs font-bold text-slate-600">
+          {session.model ? <span className="rounded-full bg-violet-50 px-3 py-1 text-violet-700">模型 {session.model}</span> : null}
+          {session.llm_duration_sec ? <span className="rounded-full bg-cyan-50 px-3 py-1 text-cyan-700">LLM {session.llm_duration_sec}s</span> : null}
+          {session.vuln_count !== undefined && session.vuln_count !== null ? <span className="rounded-full bg-rose-50 px-3 py-1 text-rose-700">解析漏洞 {session.vuln_count}</span> : null}
+        </div>
+      </div>
+      {steps.length ? <div className="mt-4 space-y-2">{steps.map((s: any, i: number) => <div key={i} className="flex gap-3 rounded-xl border border-slate-100 bg-slate-50 px-3 py-2"><div className="w-20 shrink-0 font-mono text-[11px] text-slate-400">{s.ts || '-'}</div><div className="min-w-0"><div className="text-sm font-bold text-slate-800">{s.label}</div><div className="mt-0.5 truncate text-xs text-slate-500">{s.detail}</div></div></div>)}</div> : null}
+      {candidates.length ? <details className="mt-4 rounded-xl border border-slate-200 bg-slate-50"><summary className="cursor-pointer px-3 py-2 text-xs font-black text-slate-600">入口函数解析候选 ({candidates.length})</summary><div className="space-y-2 border-t border-slate-100 p-3">{candidates.map((c: any, i: number) => <div key={i} className="rounded-lg bg-white px-3 py-2"><div className="font-mono text-xs font-bold text-slate-800">{c.signature || c.name}</div><div className="mt-1 text-[11px] text-slate-500">{c.file}{c.start_line ? `:${c.start_line}-${c.end_line || c.start_line}` : ''}</div></div>)}</div></details> : null}
+    </section>
+  );
+}
+
 function FindingCard({ finding, index }: { finding: AppDfaVulnFinding; index: number }) {
   const [open, setOpen] = useState(index < 3);
   const sev = (finding.severity || 'INFO').toUpperCase();
   const style = SEVERITY_STYLE[sev] || SEVERITY_STYLE.INFO;
-  const hasDetail = Boolean(finding.location || finding.root_cause || finding.proposed_fix || finding.detail);
+  const hasDetail = Boolean(
+    finding.location || finding.root_cause || finding.proposed_fix || finding.detail
+    || finding.flow || finding.code || finding.source_snippet || finding.alarm
+    || finding.dataflow_trace?.length
+  );
   return (
     <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
       <div className={`h-1 w-full ${style.bar}`} />
@@ -531,6 +612,14 @@ function FindingCard({ finding, index }: { finding: AppDfaVulnFinding; index: nu
               <div className="prose prose-sm prose-slate max-w-none prose-code:text-rose-700"><ReactMarkdown remarkPlugins={[remarkGfm]}>{finding.root_cause}</ReactMarkdown></div>
             </div>
           ) : null}
+          {finding.alarm && !finding.root_cause ? (
+            <div>
+              <div className="mb-1 flex items-center gap-1 text-[11px] font-black uppercase tracking-[0.15em] text-slate-400"><Search size={12} />判定理由</div>
+              <div className="prose prose-sm prose-slate max-w-none prose-code:text-rose-700"><ReactMarkdown remarkPlugins={[remarkGfm]}>{finding.alarm}</ReactMarkdown></div>
+            </div>
+          ) : null}
+          <FlowTraceBlock finding={finding} />
+          <SourceSnippetBlock finding={finding} />
           {finding.proposed_fix ? (
             <div>
               <div className="mb-1 flex items-center gap-1 text-[11px] font-black uppercase tracking-[0.15em] text-emerald-500"><Wrench size={12} />修复建议</div>
@@ -890,6 +979,8 @@ export const CfgGuidedExploreTaskDetailPage: React.FC<{ projectId: string; taskI
     return Array.from(groups.entries());
   }, [sessions]);
   const selectedSession = sessions.find((item) => item.relative_path === selectedSessionPath) || null;
+  const rootAgentSession = sessions.find((item) => item.agent_session)?.agent_session || null;
+  const displayedAgentSession = (selectedSession as any)?.agent_session || rootAgentSession;
   const activeSessions = useMemo(() => sessions.filter((item) => item.is_active), [sessions]);
   const filteredActiveSessions = useMemo(() => {
     const keyword = activeAgentKeyword.trim().toLowerCase();
@@ -1286,7 +1377,7 @@ export const CfgGuidedExploreTaskDetailPage: React.FC<{ projectId: string; taskI
         ) : activeTab === 'session' ? (
           <section className="grid gap-4 xl:grid-cols-[320px_minmax(0,1fr)]">
  <aside className="rounded-2xl border border-slate-200 bg-slate-50 p-4"><div className="flex items-center justify-between gap-3"><div><div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">会话列表</div><div className="mt-1 text-xs text-slate-500">{sessions.length} 个会话文件</div></div><button onClick={() => void loadSessions()} className="rounded-xl border border-slate-200 p-2 text-slate-500 hover:bg-slate-100"><RefreshCw size={14} className={sessionsLoading ? 'animate-spin' : ''} /></button></div>{sessionsError ? <div className="mt-4 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-4 text-sm text-rose-700">{sessionsError}</div> : null}{sessions.length === 0 ? <div className="mt-4 rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-4 py-10 text-center text-sm text-slate-500">{sessionsLoading ? '加载会话中...' : '当前任务暂无智能体会话文件'}</div> : <div className="mt-4 max-h-[calc(100vh-20rem)] space-y-4 overflow-auto pr-1">{groupedSessions.map(([group, items]) => <div key={group}><div className="mb-2 text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">{group === 'root' ? '根会话' : group}</div><div className="space-y-2">{items.map((session) => { const selected = session.relative_path === selectedSessionPath; return <button key={session.relative_path} onClick={() => setSelectedSessionPath(session.relative_path)} className={`w-full rounded-2xl border px-4 py-3 text-left transition ${selected ? 'border-slate-900 bg-slate-900 text-white' : 'border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-50'}`}><div className="flex items-start justify-between gap-3"><div className="min-w-0"><div className="truncate text-sm font-black">{session.display_name}</div><div className={`mt-1 truncate text-[11px] ${selected ? 'text-slate-300' : 'text-slate-500'}`}>{session.relative_path}</div></div><span className={`inline-flex shrink-0 whitespace-nowrap rounded-full border px-2 py-0.5 text-[10px] font-bold ${session.is_active ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-slate-200 bg-slate-50 text-slate-500'}`}>{session.is_active ? '活跃' : '历史'}</span></div><div className={`mt-3 flex flex-wrap gap-3 text-[11px] ${selected ? 'text-slate-300' : 'text-slate-500'}`}><span>事件 {session.event_count}</span><span>{new Date(session.mtime * 1000).toLocaleString('zh-CN')}</span></div></button>; })}</div></div>)}</div>}</aside>
-            <div className="space-y-4"><AgentSessionWarningPanel warnings={sessionWarnings} /><AgentSessionViewer sessionMeta={selectedSession as any} sessionHeader={sessionSnapshot?.session_meta} events={sessionEvents as any} loading={sessionLoading} live={sessionLive} error={sessionError} /></div>
+            <div className="space-y-4"><AgentSessionSummaryPanel session={displayedAgentSession} /><AgentSessionWarningPanel warnings={sessionWarnings} /><AgentSessionViewer sessionMeta={selectedSession as any} sessionHeader={sessionSnapshot?.session_meta} events={sessionEvents as any} loading={sessionLoading} live={sessionLive} error={sessionError} /></div>
           </section>
         ) : activeTab === 'relationship' ? (
           <section className="space-y-4"><WarningListPanel title="索引生成提示" items={sessionIndex?.warnings?.slice(0, 5) || []} /><AgentSessionWarningPanel warnings={sessionWarnings} /><SessionRelationshipGraph index={sessionIndex as any} selectedPath={selectedSessionPath} onSelect={setSelectedSessionPath} sessionPreview={{ path: selectedSessionPath, sessionMeta: selectedSession as any, sessionHeader: sessionSnapshot?.session_meta, events: sessionEvents as any, loading: sessionLoading, live: sessionLive, error: sessionError }} /></section>
