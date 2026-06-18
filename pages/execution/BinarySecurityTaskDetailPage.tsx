@@ -180,16 +180,7 @@ const taskDisplayStatus = (status?: string | null, operationState?: ManualOperat
 };
 
 const taskRuntimeOwnerSummary = (detail: BinarySecurityTaskDetail) => {
-  const runtimePhase = String(detail.runtime_phase || '').trim();
   const dispatcherOwner = String(detail.dispatcher_instance_id || detail.task_lease_owner_instance_id || '').trim();
-  const reconcileOwner = String(detail.reconcile_owner_instance_id || '').trim();
-  if (runtimePhase === 'tail_reconciliation') {
-    return {
-      label: '当前持有者',
-      value: reconcileOwner ?`reducer · ${reconcileOwner}` : 'reducer · -',
-      hint: detail.reconcile_lease_expires_at ?`lease 到期 ${fmt(detail.reconcile_lease_expires_at)}` : detail.tail_reconcile_state || '-',
-    };
-  }
   return {
     label: '当前持有者',
     value: dispatcherOwner ?`worker · ${dispatcherOwner}` : 'worker · -',

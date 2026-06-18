@@ -1232,7 +1232,7 @@ const canonicalLookup = (rows: DisplayMetricRow[]) => {
       matchSum((row) => /_ai_token_usage_total$/u.test(row.name) && row.labels.type === 'total') ||
       matchSum((row) => /token/u.test(row.name) && /(total|usage)/u.test(row.name)),
     costTotal: matchSum((row) => /_ai_token_cost_total$/u.test(row.name) || /token_cost_total|cost_usage/u.test(row.name)),
-    roleTotal: matchSum((row) => /_ai_role_count$/u.test(row.name)),
+    roleTotal: matchSum((row) => /_runtime_role_count$/u.test(row.name)),
     retryTotal: matchSum((row) => /_ai_retry_total$/u.test(row.name) || /retry/u.test(row.name)),
     timeoutTotal: matchSum((row) => /_ai_timeout_total$/u.test(row.name) || /timeout/u.test(row.name)),
     failureTotal: matchSum((row) => /_ai_failure_total$/u.test(row.name) || /error|fail/u.test(row.name)),
@@ -1244,13 +1244,13 @@ const canonicalLookup = (rows: DisplayMetricRow[]) => {
 const buildAiViewModel = (rows: DisplayMetricRow[], service: BinarySecurityMetricsServiceDefinition): AiViewModel => {
   const aiRows = rows.filter((row) => row.group === 'ai-agent' || isAiMetric(row));
   const byCanonicalFamily = new Set(
-    aiRows.filter((row) => /_ai_(role_count|session_total|round_total|retry_total|timeout_total|failure_total|token_usage_total|token_cost_total|review_total)$/u.test(row.name)).map((row) => row.familyName),
+    aiRows.filter((row) => /(_runtime_role_count|_ai_(session_total|round_total|retry_total|timeout_total|failure_total|token_usage_total|token_cost_total|review_total))$/u.test(row.name)).map((row) => row.familyName),
   );
   const lookup = canonicalLookup(aiRows);
-  const roleChart = ['worker', 'judge', 'agent', 'plugin', 'validator', 'advisor']
+  const roleChart = ['task_owner', 'lease_auditor']
     .map((role) => ({
       name: role,
-      value: aiRows.filter((row) => /_ai_role_count$/u.test(row.name) && row.labels.role === role).reduce((sum, row) => sum + row.value, 0),
+      value: aiRows.filter((row) => /_runtime_role_count$/u.test(row.name) && row.labels.role === role).reduce((sum, row) => sum + row.value, 0),
     }))
     .filter((item) => item.value > 0);
   const tokenChart = [
@@ -1275,7 +1275,7 @@ const buildAiViewModel = (rows: DisplayMetricRow[], service: BinarySecurityMetri
       { label: 'AI Token 总量', value: lookup.tokenTotal || lookup.tokenInput + lookup.tokenOutput, hint: 'input/output/cache/total 聚合', icon: <Brain size={16} /> },
       { label: 'AI 成本', value: lookup.costTotal, hint: 'token cost / cost usage', icon: <Coins size={16} /> },
       { label: 'AI 会话数', value: lookup.sessionTotal, hint: 'session / conversation / role session', icon: <Bot size={16} /> },
-      { label: 'Worker/Judge/Agent 活跃数', value: lookup.roleTotal, hint: 'role_count 聚合', icon: <Activity size={16} /> },
+      { label: '运行角色活跃数', value: lookup.roleTotal, hint: 'runtime_role_count 聚合', icon: <Activity size={16} /> },
       { label: '重试/超时/失败', value: lookup.retryTotal + lookup.timeoutTotal + lookup.failureTotal, hint: 'retry + timeout + failure', icon: <Gauge size={16} /> },
       { label: '轮次/周期/评审次数', value: lookup.roundTotal + lookup.reviewTotal, hint: 'round/cycle/review 聚合', icon: <BarChart3 size={16} /> },
     ],

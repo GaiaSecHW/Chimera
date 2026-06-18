@@ -247,11 +247,6 @@ export interface BinarySecurityTask {
   tail_has_downstream_refs?: boolean;
   tail_takeover_required?: boolean;
   tail_takeover_reason?: string | null;
-  reconcile_owner_instance_id?: string | null;
-  reconcile_lease_expires_at?: string | null;
-  reconcile_owner_pod_uid?: string | null;
-  reconcile_owner_boot_id?: string | null;
-  reconcile_generation?: number | null;
   created_by?: string | null;
   created_at?: string | null;
   updated_at?: string | null;
@@ -326,8 +321,6 @@ export interface BinarySecurityTask {
     operation_status?: string | null;
     operation_owner?: string | null;
     operation_started_at?: string | null;
-    operation_expires_at?: string | null;
-    operation_heartbeat_at?: string | null;
     current_step?: string | null;
     target_stage?: string | null;
     error_code?: string | null;
