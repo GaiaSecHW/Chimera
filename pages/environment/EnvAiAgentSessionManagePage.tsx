@@ -64,7 +64,7 @@ const resolveBackendPid = (item: Pick<ProjectAiAgentSessionItem, 'backend_pid' |
 
 export const EnvAiAgentSessionManagePage: React.FC<{ projectId: string }> = ({ projectId }) => {
   const environmentApi = api.domains.environment;
-  const { notify, feedbackNodes } = useUiFeedback();
+  const { notify, confirm, feedbackNodes } = useUiFeedback();
   const [loading, setLoading] = useState(true);
   const [items, setItems] = useState<ProjectAiAgentSessionItem[]>([]);
   const [total, setTotal] = useState(0);
@@ -341,7 +341,8 @@ export const EnvAiAgentSessionManagePage: React.FC<{ projectId: string }> = ({ p
       notify('请先选择至少一个会话', 'error');
       return;
     }
-    if (!window.confirm(`确认终止选中的 ${targets.length} 个会话？该操作会直接删除会话。`)) return;
+    const ok = await confirm({ message: `确认终止选中的 ${targets.length} 个会话？该操作会直接删除会话。`, danger: true });
+    if (!ok) return;
     setBusyKey('batch-terminate');
     try {
       const result = await environmentApi.environment.batchTerminateAiAgentSessions(projectId, terminateTargets(targets));
@@ -439,27 +440,27 @@ export const EnvAiAgentSessionManagePage: React.FC<{ projectId: string }> = ({ p
         />
 
         <section className="grid grid-cols-2 gap-3 md:grid-cols-4">
- <div className="rounded-2xl border border-theme-border bg-theme-bg-app p-3">
-            <div className="text-[11px] font-black uppercase tracking-[0.18em] text-theme-text-muted">总会话</div>
-            <div className="mt-1 text-2xl font-black text-theme-text-primary">{stats.total_sessions}</div>
+ <div className="rounded-xl border border-theme-border bg-theme-surface p-3">
+            <div className="text-[11px] font-medium uppercase tracking-[0.18em] text-theme-text-muted">总会话</div>
+            <div className="mt-1 text-2xl font-bold text-theme-text-primary">{stats.total_sessions}</div>
           </div>
- <div className="rounded-2xl border border-emerald-500/20 bg-emerald-500/15 p-3">
-            <div className="text-[11px] font-black uppercase tracking-[0.18em] text-emerald-400">正常</div>
-            <div className="mt-1 text-2xl font-black text-emerald-400">{stats.normal_count}</div>
+ <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/15 p-3">
+            <div className="text-[11px] font-medium uppercase tracking-[0.18em] text-emerald-400">正常</div>
+            <div className="mt-1 text-2xl font-medium text-emerald-400">{stats.normal_count}</div>
           </div>
- <div className="rounded-2xl border border-amber-500/20 bg-amber-500/15 p-3">
-            <div className="text-[11px] font-black uppercase tracking-[0.18em] text-amber-400">异常</div>
-            <div className="mt-1 text-2xl font-black text-amber-400">{stats.invalid_count}</div>
+ <div className="rounded-xl border border-amber-500/20 bg-amber-500/15 p-3">
+            <div className="text-[11px] font-medium uppercase tracking-[0.18em] text-amber-400">异常</div>
+            <div className="mt-1 text-2xl font-medium text-amber-400">{stats.invalid_count}</div>
           </div>
- <div className="rounded-2xl border border-rose-500/20 bg-rose-500/15 p-3">
-            <div className="text-[11px] font-black uppercase tracking-[0.18em] text-rose-400">Helper不可达</div>
-            <div className="mt-1 text-2xl font-black text-rose-400">{stats.helper_unreachable_count}</div>
+ <div className="rounded-xl border border-rose-500/20 bg-rose-500/15 p-3">
+            <div className="text-[11px] font-medium uppercase tracking-[0.18em] text-rose-400">Helper不可达</div>
+            <div className="mt-1 text-2xl font-medium text-rose-400">{stats.helper_unreachable_count}</div>
           </div>
         </section>
 
         {helperUnreachable.length > 0 ? (
-          <section className="rounded-2xl border border-rose-500/20 bg-rose-500/15 p-3 text-sm text-rose-400">
-            <div className="mb-1 inline-flex items-center gap-2 font-black"><AlertTriangle size={14} />以下 helper 当前不可达</div>
+          <section className="rounded-xl border border-rose-500/20 bg-rose-500/15 p-3 text-sm text-rose-400">
+            <div className="mb-1 inline-flex items-center gap-2 font-semibold"><AlertTriangle size={14} />以下 helper 当前不可达</div>
             <div className="space-y-1">
               {helperUnreachable.map((item) => (
                 <div key={`${item.agent_key}::${item.service_name}`} className="truncate">
@@ -470,7 +471,7 @@ export const EnvAiAgentSessionManagePage: React.FC<{ projectId: string }> = ({ p
           </section>
         ) : null}
 
- <section className="rounded-2xl border border-theme-border bg-theme-bg-app p-4">
+ <section className="rounded-xl border border-theme-border bg-theme-surface p-4">
           <div className="grid grid-cols-1 gap-2 xl:grid-cols-7">
             <input
               value={searchInput}
@@ -625,10 +626,10 @@ export const EnvAiAgentSessionManagePage: React.FC<{ projectId: string }> = ({ p
 
       {showResultModal && lastBatchResult ? (
         <div className="fixed inset-0 z-[300] flex items-center justify-center bg-slate-950/35 p-4">
- <div className="w-full max-w-3xl rounded-2xl border border-theme-border bg-theme-bg-app">
+ <div className="w-full max-w-3xl rounded-2xl border border-theme-border bg-theme-surface">
             <div className="flex items-center justify-between border-b border-theme-border px-5 py-3">
               <div>
-                <div className="text-sm font-black text-theme-text-primary">批量终止结果</div>
+                <div className="text-sm font-semibold text-theme-text-primary">批量终止结果</div>
                 <div className="text-xs text-theme-text-muted">{lastBatchResult.success_count}/{lastBatchResult.total} 成功</div>
               </div>
               <button onClick={() => setShowResultModal(false)} className="rounded-lg p-1 text-theme-text-muted hover:bg-theme-elevated"><X size={16} /></button>
@@ -674,10 +675,10 @@ export const EnvAiAgentSessionManagePage: React.FC<{ projectId: string }> = ({ p
 
       {detailTarget ? (
         <div className="fixed inset-0 z-[305] flex items-center justify-center bg-slate-950/40 p-4">
- <div className="w-full max-w-4xl rounded-2xl border border-theme-border bg-theme-bg-app">
+ <div className="w-full max-w-4xl rounded-2xl border border-theme-border bg-theme-surface">
             <div className="flex items-center justify-between border-b border-theme-border px-5 py-3">
               <div>
-                <div className="text-sm font-black text-theme-text-primary">会话详情</div>
+                <div className="text-sm font-semibold text-theme-text-primary">会话详情</div>
                 <div className="text-xs text-theme-text-muted">{detailTarget.agent_key}/{detailTarget.service_name}/{detailTarget.session_id}</div>
               </div>
               <button
@@ -707,7 +708,7 @@ export const EnvAiAgentSessionManagePage: React.FC<{ projectId: string }> = ({ p
                     <div className="rounded-lg border border-rose-500/20 bg-rose-500/15 px-3 py-2 text-xs text-rose-400">last_error: {detailSession.last_error}</div>
                   ) : null}
                   <div className="rounded-lg border border-theme-border p-3">
-                    <div className="mb-2 text-xs font-black uppercase tracking-[0.08em] text-theme-text-muted">Vendor 诊断</div>
+                    <div className="mb-2 text-xs font-medium uppercase tracking-[0.08em] text-theme-text-muted">Vendor 诊断</div>
                     <div className="grid grid-cols-1 gap-2 text-xs md:grid-cols-2">
                       <div className="rounded-lg border border-theme-border bg-theme-bg-app px-3 py-2">vendor_session_id: {detailSession.vendor_session_id || '-'}</div>
                       <div className="rounded-lg border border-theme-border bg-theme-bg-app px-3 py-2">vendor_session_kind: {detailSession.vendor_session_kind || '-'}</div>
@@ -721,7 +722,7 @@ export const EnvAiAgentSessionManagePage: React.FC<{ projectId: string }> = ({ p
                     </div>
                   </div>
                   <div className="rounded-lg border border-theme-border p-3">
-                    <div className="mb-2 text-xs font-black uppercase tracking-[0.08em] text-theme-text-muted">消息记录</div>
+                    <div className="mb-2 text-xs font-medium uppercase tracking-[0.08em] text-theme-text-muted">消息记录</div>
                     <div className="space-y-2">
                       {(detailSession.messages || []).length === 0 ? (
                         <div className="text-xs text-theme-text-muted">暂无消息。</div>

@@ -220,7 +220,7 @@ export const FileServerPickerModal: React.FC<FileServerPickerModalProps> = ({
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-theme-border">
           <div>
-            <h3 className="text-base font-black text-theme-text-primary">{modalTitle}</h3>
+            <h3 className="text-base font-semibold text-theme-text-primary">{modalTitle}</h3>
             <p className="mt-1 text-xs text-theme-text-faint">{modalDescription}</p>
           </div>
           <button type="button" onClick={onClose} className="rounded-lg p-1.5 text-theme-text-muted hover:text-theme-text-primary hover:bg-theme-elevated">

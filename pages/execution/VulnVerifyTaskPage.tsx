@@ -6,6 +6,7 @@ import { ExecutionTable, ExecutionTableHead, ExecutionTableTh, ExecutionTableTd,
 import { ServicePageTitle, useServiceBuildVersion } from '../../components/execution/ServiceBuildVersion';
 import { VulnVerifyReportView } from './VulnVerifyReportView';
 import { PageHeader } from '../../design-system';
+import { useUiFeedback } from '../../components/UiFeedback';
 
 const LK = {
   primary: '#4f73ff', primarySoft: '#7590ff', primaryDeep: '#3f63f1',
@@ -229,24 +230,24 @@ const SummaryCard: React.FC<{ label: string; value: React.ReactNode; hint?: Reac
             ? 'text-amber-400'
             : 'text-theme-text-primary';
   return (
- <div className="rounded-2xl border border-theme-border bg-theme-bg-app p-4">
-      <div className="text-[11px] font-black uppercase tracking-[0.18em] text-theme-text-muted">{label}</div>
-      <div className={`mt-2 text-2xl font-black ${accentClass}`}>{value}</div>
+ <div className="rounded-2xl border border-theme-border bg-theme-surface p-4">
+      <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-theme-text-muted">{label}</div>
+      <div className={`mt-2 text-2xl font-bold ${accentClass}`}>{value}</div>
       {hint ? <div className="mt-1 text-xs text-theme-text-muted">{hint}</div> : null}
     </div>
   );
 };
 
 const StatusBadge: React.FC<{ status?: string }> = ({ status }) => (
-  <span className={`inline-flex shrink-0 items-center rounded-full border px-2.5 py-1 text-xs font-black ${getStatusClass(status)}`}>
+  <span className={`inline-flex shrink-0 items-center rounded-full border px-2.5 py-1 text-xs font-semibold ${getStatusClass(status)}`}>
     {status === 'running' || status === 'cancelling' ? <Loader2 size={12} className="mr-1 animate-spin" /> : null}
     {getStatusLabel(status)}
   </span>
 );
 
 const InfoRow: React.FC<{ label: string; value: React.ReactNode }> = ({ label, value }) => (
-  <div className="rounded-2xl bg-theme-bg-app p-3">
-    <div className="text-[10px] font-black uppercase tracking-widest text-theme-text-muted">{label}</div>
+  <div className="rounded-2xl bg-theme-surface p-3">
+    <div className="text-[10px] font-semibold uppercase tracking-widest text-theme-text-muted">{label}</div>
     <div className="mt-1 break-all text-xs font-bold text-theme-text-secondary">{value || '-'}</div>
   </div>
 );
@@ -260,6 +261,7 @@ export const VulnVerifyTaskPage: React.FC<{ projectId: string }> = ({ projectId 
   const [loading, setLoading] = useState(false);
   const [statsLoading, setStatsLoading] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
+  const { confirm, feedbackNodes } = useUiFeedback();
 
   const [statusFilter, setStatusFilter] = useState('');
   const [resultVerdictFilter, setResultVerdictFilter] = useState('');
@@ -634,7 +636,8 @@ export const VulnVerifyTaskPage: React.FC<{ projectId: string }> = ({ projectId 
 
   const terminateTask = async (taskId: string) => {
     if (!projectId || !taskId) return;
-    if (!window.confirm('确认取消该漏洞验证任务？')) return;
+    const ok = await confirm({ message: '确认取消该漏洞验证任务？', danger: true });
+    if (!ok) return;
     try {
       await vulnVerifyApi.terminateTask(projectId, taskId);
       await loadOverview();
@@ -646,7 +649,8 @@ export const VulnVerifyTaskPage: React.FC<{ projectId: string }> = ({ projectId 
 
   const rerunTask = async (taskId: string) => {
     if (!projectId || !taskId) return;
-    if (!window.confirm('确认清空输出并重跑该任务？')) return;
+    const ok = await confirm({ message: '确认清空输出并重跑该任务？', danger: true });
+    if (!ok) return;
     try {
       await vulnVerifyApi.rerunTask(projectId, taskId);
       await loadOverview();
@@ -665,6 +669,7 @@ export const VulnVerifyTaskPage: React.FC<{ projectId: string }> = ({ projectId 
   return (
     <div className="min-h-full bg-theme-bg-app p-6">
       <div className="w-full space-y-6">
+        {feedbackNodes}
         <PageHeader
           title={<ServicePageTitle title="漏洞验证任务" version={buildVersion} className="" />}
           description="参考数据流漏洞挖掘的任务列表模式：集中查看任务状态，点击任务进入详情，使用右上角「新建任务」提交报告目录、源码、二进制与威胁模型。"
@@ -673,7 +678,7 @@ export const VulnVerifyTaskPage: React.FC<{ projectId: string }> = ({ projectId 
               <button
                 type="button"
                 onClick={() => void loadOverview()}
-                className="inline-flex items-center gap-2 rounded-xl border border-theme-border bg-theme-bg-app px-4 py-2 text-sm font-black text-theme-text-secondary hover:bg-theme-elevated"
+                className="inline-flex items-center gap-2 rounded-xl border border-theme-border bg-theme-surface px-4 py-2 text-sm font-semibold text-theme-text-secondary hover:bg-theme-elevated"
               >
                 <RefreshCw size={16} className={loading || statsLoading ? 'animate-spin' : ''} /> 刷新
               </button>
@@ -687,7 +692,7 @@ export const VulnVerifyTaskPage: React.FC<{ projectId: string }> = ({ projectId 
               <button
                 type="button"
                 onClick={openCreateModal}
-                className="inline-flex items-center gap-2 rounded-xl bg-violet-700 px-4 py-2 text-sm font-black text-white hover:bg-violet-800"
+                className="inline-flex items-center gap-2 rounded-xl bg-violet-700 px-4 py-2 text-sm font-semibold text-white hover:bg-violet-800"
               >
                 <Plus size={16} /> 新建任务
               </button>
@@ -841,10 +846,10 @@ export const VulnVerifyTaskPage: React.FC<{ projectId: string }> = ({ projectId 
           <SummaryCard label="总结果" value={projectStats?.total_results ?? '-'} accent="violet" hint={`项目全部任务${projectStats ?` · 已验证任务 ${projectStats.verified_tasks}` : ''}`} />
         </section>
 
- <section className="rounded-2xl border border-theme-border bg-theme-bg-app p-5">
+ <section className="rounded-2xl border border-theme-border bg-theme-surface p-5">
           <div className="mb-4 flex flex-wrap items-start justify-between gap-4">
             <div>
-              <h2 className="text-lg font-black text-theme-text-primary">任务列表 <span className="text-sm font-normal text-theme-text-muted">({total})</span></h2>
+              <h2 className="text-lg font-semibold text-theme-text-primary">任务列表 <span className="text-sm font-normal text-theme-text-muted">({total})</span></h2>
               <p className="mt-1 text-xs text-theme-text-muted">点击任务名称或查看按钮打开任务详情、结果和产物。</p>
             </div>
             <div className="flex flex-wrap items-center justify-end gap-2">
@@ -978,7 +983,7 @@ export const VulnVerifyTaskPage: React.FC<{ projectId: string }> = ({ projectId 
                 {tasks.map((task) => (
                   <tr key={task.id} className={executionTableInteractiveRowClassName} onClick={() => void openDetailModal(task.id)}>
                     <ExecutionTableTd className="min-w-[220px]">
-                      <button type="button" className="text-left text-sm font-black text-theme-text-primary hover:text-violet-400" onClick={(e) => { e.stopPropagation(); void openDetailModal(task.id); }}>
+                      <button type="button" className="text-left text-sm font-semibold text-theme-text-primary hover:text-violet-400" onClick={(e) => { e.stopPropagation(); void openDetailModal(task.id); }}>
                         {task.name}
                       </button>
                       <div className="mt-1 font-mono text-[11px] text-theme-text-muted">{task.id}</div>
@@ -1074,11 +1079,11 @@ export const VulnVerifyTaskPage: React.FC<{ projectId: string }> = ({ projectId 
       {createModalOpen ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setCreateModalOpen(false)} />
- <div className="relative z-10 max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-2xl border border-theme-border bg-theme-bg-app">
+ <div className="relative z-10 max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-2xl border border-theme-border bg-theme-surface">
             <form onSubmit={createTask} className="space-y-4 p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <h2 className="text-lg font-black text-theme-text-primary">新建漏洞验证任务</h2>
+                  <h2 className="text-lg font-semibold text-theme-text-primary">新建漏洞验证任务</h2>
                   <p className="mt-1 text-xs text-theme-text-muted">所有输入路径必须位于当前项目数据目录下。</p>
                 </div>
                 <button type="button" onClick={() => setCreateModalOpen(false)} className="rounded-lg p-1 text-theme-text-muted hover:text-theme-text-secondary"><X size={16} /></button>
@@ -1117,7 +1122,7 @@ export const VulnVerifyTaskPage: React.FC<{ projectId: string }> = ({ projectId 
 
               <div className="flex justify-end gap-2 pt-2">
                 <button type="button" onClick={() => setCreateModalOpen(false)} className="rounded-xl border border-theme-border px-4 py-2 text-sm font-semibold text-theme-text-secondary hover:bg-theme-elevated">取消</button>
-                <button type="submit" disabled={creating} className="inline-flex items-center gap-2 rounded-xl bg-violet-700 px-4 py-2 text-sm font-black text-white hover:bg-violet-800 disabled:opacity-50">
+                <button type="submit" disabled={creating} className="inline-flex items-center gap-2 rounded-xl bg-violet-700 px-4 py-2 text-sm font-medium text-white hover:bg-violet-800 disabled:opacity-50">
                   {creating ? <Loader2 size={14} className="animate-spin" /> : <Plus size={14} />}创建任务
                 </button>
               </div>
@@ -1129,19 +1134,19 @@ export const VulnVerifyTaskPage: React.FC<{ projectId: string }> = ({ projectId 
       {detailModalOpen ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setDetailModalOpen(false)} />
- <div className="relative z-10 flex max-h-[92vh] w-full max-w-6xl flex-col overflow-hidden rounded-2xl border border-theme-border bg-theme-bg-app">
+ <div className="relative z-10 flex max-h-[92vh] w-full max-w-6xl flex-col overflow-hidden rounded-2xl border border-theme-border bg-theme-surface">
             <div className="flex flex-wrap items-start justify-between gap-4 border-b border-theme-border p-5">
               <div>
                 <div className="flex flex-wrap items-center gap-3">
                   {detail?.status === 'success' ? <CheckCircle2 className="text-emerald-500" /> : detail?.status === 'failed' ? <XCircle className="text-rose-500" /> : detail?.status === 'running' ? <Loader2 className="animate-spin text-blue-500" /> : <ShieldCheck className="text-violet-500" />}
-                  <h2 className="text-xl font-black text-theme-text-primary">{detail?.name || selectedTaskId}</h2>
+                  <h2 className="text-xl font-semibold text-theme-text-primary">{detail?.name || selectedTaskId}</h2>
                   <StatusBadge status={detail?.status} />
                 </div>
                 <div className="mt-2 font-mono text-xs text-theme-text-muted">{selectedTaskId}</div>
               </div>
               <div className="flex items-center gap-2">
-                {detail && ACTIVE_STATUSES.has(detail.status) ? <button onClick={() => void terminateTask(detail.id)} className="inline-flex items-center gap-2 rounded-xl border border-rose-500/20 bg-rose-500/15 px-3 py-2 text-sm font-black text-rose-400"><Square size={14} />取消</button> : null}
-                {detail && TERMINAL_STATUSES.has(detail.status) ? <button onClick={() => void rerunTask(detail.id)} className="inline-flex items-center gap-2 rounded-xl border border-violet-500/20 bg-violet-500/15 px-3 py-2 text-sm font-black text-violet-400"><RotateCcw size={14} />重跑</button> : null}
+                {detail && ACTIVE_STATUSES.has(detail.status) ? <button onClick={() => void terminateTask(detail.id)} className="inline-flex items-center gap-2 rounded-xl border border-rose-500/20 bg-rose-500/15 px-3 py-2 text-sm font-medium text-rose-400"><Square size={14} />取消</button> : null}
+                {detail && TERMINAL_STATUSES.has(detail.status) ? <button onClick={() => void rerunTask(detail.id)} className="inline-flex items-center gap-2 rounded-xl border border-violet-500/20 bg-violet-500/15 px-3 py-2 text-sm font-medium text-violet-400"><RotateCcw size={14} />重跑</button> : null}
                 <button onClick={() => detail && void loadDetail(detail.id)} className="rounded-xl border border-theme-border p-2 text-theme-text-muted hover:bg-theme-elevated"><RefreshCw size={15} className={detailLoading ? 'animate-spin' : ''} /></button>
                 <button onClick={() => setDetailModalOpen(false)} className="rounded-xl p-2 text-theme-text-muted hover:bg-theme-elevated hover:text-theme-text-secondary"><X size={16} /></button>
               </div>
@@ -1176,19 +1181,19 @@ export const VulnVerifyTaskPage: React.FC<{ projectId: string }> = ({ projectId 
                   <VulnVerifyReportView data={reportData} loading={detailLoading && !reportData} error={reportDataError} />
 
                   <div className="grid gap-5 xl:grid-cols-[320px_minmax(0,1fr)]">
-                    <div className="rounded-2xl border border-theme-border bg-theme-bg-app p-4">
-                      <h3 className="text-sm font-black text-theme-text-primary">产物文件</h3>
+                    <div className="rounded-2xl border border-theme-border bg-theme-surface p-4">
+                      <h3 className="text-sm font-semibold text-theme-text-primary">产物文件</h3>
                       <div className="mt-3 max-h-[420px] space-y-2 overflow-auto pr-1">
                         {artifacts.length === 0 ? <div className="rounded-2xl border border-dashed border-theme-border p-8 text-center text-xs text-theme-text-muted">暂无产物</div> : artifacts.map((file) => (
-                          <button key={file.path} onClick={() => void openArtifact(file.path)} className="w-full rounded-2xl border border-theme-border bg-theme-bg-app p-3 text-left hover:bg-theme-elevated">
-                            <div className="flex items-center gap-2 text-xs font-black text-theme-text-secondary"><FileText size={14} /> <span className="break-all">{file.path}</span></div>
+                          <button key={file.path} onClick={() => void openArtifact(file.path)} className="w-full rounded-2xl border border-theme-border bg-theme-surface p-3 text-left hover:bg-theme-elevated">
+                            <div className="flex items-center gap-2 text-xs font-semibold text-theme-text-secondary"><FileText size={14} /> <span className="break-all">{file.path}</span></div>
                             <div className="mt-1 text-[10px] text-theme-text-muted">{formatBytes(file.size)}</div>
                           </button>
                         ))}
                       </div>
                     </div>
-                    <div className="rounded-2xl border border-theme-border bg-theme-bg-app p-4">
-                      <h3 className="text-sm font-black text-theme-text-primary">{artifactContent?.path || '结果预览'}</h3>
+                    <div className="rounded-2xl border border-theme-border bg-theme-surface p-4">
+                      <h3 className="text-sm font-semibold text-theme-text-primary">{artifactContent?.path || '结果预览'}</h3>
                       {artifactContent ? (
                         <pre className="mt-3 max-h-[420px] overflow-auto rounded-2xl border border-theme-border bg-theme-elevated p-4 font-mono text-xs leading-6 text-theme-text-primary">{artifactContent.content}{artifactContent.truncated ? '\n\n... truncated ...' : ''}</pre>
                       ) : result?.results?.length ? (
@@ -1199,13 +1204,13 @@ export const VulnVerifyTaskPage: React.FC<{ projectId: string }> = ({ projectId 
                     </div>
                   </div>
 
-                  <div className="rounded-2xl border border-theme-border bg-theme-bg-app p-4">
-                    <h3 className="text-sm font-black text-theme-text-primary">事件</h3>
+                  <div className="rounded-2xl border border-theme-border bg-theme-surface p-4">
+                    <h3 className="text-sm font-semibold text-theme-text-primary">事件</h3>
                     <div className="mt-3 max-h-56 space-y-2 overflow-auto pr-1">
                       {detail.events?.length ? detail.events.map((event) => (
-                        <div key={event.id} className="rounded-xl bg-theme-bg-app p-3 text-xs">
+                        <div key={event.id} className="rounded-xl bg-theme-surface p-3 text-xs">
                           <div className="flex flex-wrap items-center justify-between gap-2">
-                            <span className="font-black text-theme-text-secondary">{event.event_type}</span>
+                            <span className="font-semibold text-theme-text-secondary">{event.event_type}</span>
                             <span className="text-theme-text-muted">{formatDate(event.created_at)}</span>
                           </div>
                           <div className="mt-1 text-theme-text-secondary">{event.message}</div>

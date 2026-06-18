@@ -217,16 +217,16 @@ export const WorkflowInstancePage: React.FC<{
                   setDeletingId(null);
                   setIsDeleteModalOpen(true);
                 }}
-                className="flex items-center gap-2 px-6 py-4 bg-red-500/15 text-red-400 rounded-2xl hover:bg-red-500/15 transition-all font-bold border border-red-500/20"
+                className="flex items-center gap-2 px-6 py-4 bg-red-500/15 text-red-400 rounded-xl hover:bg-red-500/15 transition-all font-medium border border-red-500/20"
               >
                 <Trash2 size={20} />
                 批量删除 ({selectedIds.length})
               </button>
             )}
-            <button onClick={() => loadInstances()} className="p-4 bg-theme-bg-app border border-theme-border text-theme-text-muted rounded-2xl hover:bg-theme-elevated transition-all">
+            <button onClick={() => loadInstances()} className="p-4 bg-theme-bg-app border border-theme-border text-theme-text-muted rounded-lg hover:bg-theme-elevated transition-all">
               <RefreshCw size={20} className={loading ? 'animate-spin' : ''} />
             </button>
-            <button onClick={() => setIsCreateModalOpen(true)} className="flex items-center gap-2 px-6 py-4 bg-theme-surface text-white rounded-2xl hover:bg-theme-elevated transition-all font-bold">
+            <button onClick={() => setIsCreateModalOpen(true)} className="flex items-center gap-2 px-6 py-4 bg-theme-surface text-white rounded-lg hover:bg-theme-elevated transition-all font-medium">
               <Plus size={20} />
               创建实例
             </button>
@@ -239,7 +239,7 @@ export const WorkflowInstancePage: React.FC<{
         <Search className="absolute left-6 top-1/2 -translate-y-1/2 text-theme-text-faint" size={20} />
         <input
           type="text" placeholder="搜索实例名称或 ID..."
- className="w-full pl-16 pr-8 py-5 bg-theme-bg-app border border-theme-border rounded-[2rem] text-sm outline-none focus:ring-4 ring-blue-500/5 transition-all font-medium"
+ className="w-full pl-16 pr-8 py-5 bg-theme-bg-app border border-theme-border rounded-xl text-sm outline-none focus:ring-4 ring-blue-500/5 transition-all font-medium"
           value={searchTerm} onChange={e => setSearchTerm(e.target.value)}
         />
         </div>
@@ -249,7 +249,7 @@ export const WorkflowInstancePage: React.FC<{
             setStatusFilter(e.target.value);
             setPage(1);
           }}
- className="px-5 py-5 bg-theme-bg-app border border-theme-border rounded-[2rem] text-sm font-medium outline-none focus:ring-4 ring-blue-500/5 transition-all"
+ className="px-5 py-5 bg-theme-bg-app border border-theme-border rounded-xl text-sm font-medium outline-none focus:ring-4 ring-blue-500/5 transition-all"
         >
           <option value="">全部状态</option>
           <option value="pending">待初始化</option>
@@ -258,9 +258,9 @@ export const WorkflowInstancePage: React.FC<{
         </select>
       </div>
 
- <div className="bg-theme-bg-app border border-theme-border rounded-[2.5rem] overflow-hidden min-h-[500px]">
+ <div className="bg-theme-surface border border-theme-border rounded-xl overflow-hidden min-h-[500px]">
         <table className="w-full text-left">
-          <thead className="bg-slate-100/50 border-b border-theme-border font-black text-[10px] text-theme-text-muted uppercase tracking-widest">
+          <thead className="bg-slate-100/50 border-b border-theme-border font-semibold text-[10px] text-theme-text-muted uppercase tracking-widest">
             <tr>
               <th className="px-8 py-6 w-10">
                 <input
@@ -293,12 +293,12 @@ export const WorkflowInstancePage: React.FC<{
                 </td>
                 <td className="px-6 py-6">
                   <div className="flex items-center gap-4">
-                    <div className={`w-12 h-12 rounded-2xl flex items-center justify-center font-black shadow-inner transition-all ${(instance.status || '').toLowerCase() === 'running' ? 'bg-blue-600 text-white animate-pulse' : 'bg-theme-elevated text-theme-text-muted'}`}>
+                    <div className={`w-12 h-12 rounded-lg flex items-center justify-center font-semibold shadow-inner transition-all ${(instance.status || '').toLowerCase() === 'running' ? 'bg-blue-600 text-white animate-pulse' : 'bg-theme-elevated text-theme-text-muted'}`}>
                       <Activity size={22} />
                     </div>
                     <div>
                       <p
-                        className="text-sm font-black text-theme-text-primary cursor-pointer hover:text-blue-400 transition-colors"
+                        className="text-sm font-semibold text-theme-text-primary cursor-pointer hover:text-blue-400 transition-colors"
                         onClick={() => onNavigateToDetail(instance.id)}
                       >
                         {instance.name}
@@ -309,24 +309,24 @@ export const WorkflowInstancePage: React.FC<{
                 </td>
                 <td className="px-6 py-6">
                   <div className="flex flex-col gap-1">
-                    <span className="text-xs font-bold text-theme-text-secondary uppercase bg-theme-elevated px-2 py-1 rounded-md w-fit">
+                    <span className="text-xs font-medium text-theme-text-secondary uppercase bg-theme-elevated px-2 py-1 rounded-md w-fit">
                       {instance.run_mode === 'persistent' ? '持久化' : '一次性'}
                     </span>
                     {instance.run_mode === 'persistent' && (
-                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md w-fit ${instance.is_active ? 'bg-green-500/15 text-green-400' : 'bg-theme-elevated text-theme-text-muted'}`}>
+                      <span className={`text-[10px] font-medium px-2 py-0.5 rounded-md w-fit ${instance.is_active ? 'bg-green-500/15 text-green-400' : 'bg-theme-elevated text-theme-text-muted'}`}>
                         {instance.is_active ? '已激活' : '未激活'}
                       </span>
                     )}
                   </div>
                 </td>
                 <td className="px-6 py-6">
-                  <div className="flex items-center gap-2 text-xs font-bold text-theme-text-secondary">
+                  <div className="flex items-center gap-2 text-xs font-medium text-theme-text-secondary">
                     <Terminal size={14} className="text-blue-500" />
                     <span>{instance.nodes?.length || 0} 节点</span>
                   </div>
                 </td>
                 <td className="px-6 py-6">
-                  <div className="flex items-center gap-2 text-[10px] font-bold text-theme-text-muted uppercase">
+                  <div className="flex items-center gap-2 text-[10px] font-medium text-theme-text-muted uppercase">
                     <Clock size={12} /> {instance.last_run_at ? instance.last_run_at.replace('T', ' ').split('.')[0] : '尚未运行'}
                   </div>
                 </td>
@@ -421,7 +421,7 @@ export const WorkflowInstancePage: React.FC<{
               </tr>
             ))}
             {instances.length === 0 && !loading && (
-              <tr><td colSpan={7} className="py-40 text-center text-theme-text-muted font-black uppercase text-xs tracking-widest italic">暂无工作流实例</td></tr>
+              <tr><td colSpan={7} className="py-40 text-center text-theme-text-muted font-semibold uppercase text-xs tracking-widest italic">暂无工作流实例</td></tr>
             )}
           </tbody>
         </table>
@@ -429,20 +429,20 @@ export const WorkflowInstancePage: React.FC<{
 
       {/* Pagination */}
       {filteredInstances.length > 0 && (
- <div className="flex items-center justify-between px-8 py-4 bg-theme-bg-app border border-theme-border rounded-[2rem]">
+ <div className="flex items-center justify-between px-8 py-4 bg-theme-surface border border-theme-border rounded-xl">
           <div className="flex items-center gap-4">
-            <span className="text-[10px] font-black text-theme-text-muted uppercase tracking-widest">每页</span>
+            <span className="text-[10px] font-medium text-theme-text-muted uppercase tracking-widest">每页</span>
             <select
               value={pageSize}
               onChange={(e) => { setPageSize(Number(e.target.value)); setPage(1); }}
-              className="px-3 py-2 bg-theme-bg-app border border-theme-border rounded-xl text-sm font-bold text-theme-text-secondary outline-none focus:border-blue-500 transition-all"
+              className="px-3 py-2 bg-theme-bg-app border border-theme-border rounded-xl text-sm font-medium text-theme-text-secondary outline-none focus:border-blue-500 transition-all"
             >
               <option value={10}>10</option>
               <option value={20}>20</option>
               <option value={50}>50</option>
               <option value={100}>100</option>
             </select>
-            <span className="text-[10px] font-black text-theme-text-muted uppercase tracking-widest">
+            <span className="text-[10px] font-medium text-theme-text-muted uppercase tracking-widest">
               条 | 共 {filteredInstances.length} 条
             </span>
           </div>
@@ -454,7 +454,7 @@ export const WorkflowInstancePage: React.FC<{
             >
               <ChevronLeft size={20} />
             </button>
-            <span className="px-4 py-2 bg-theme-elevated rounded-xl text-sm font-black text-theme-text-primary">
+            <span className="px-4 py-2 bg-theme-elevated rounded-xl text-sm font-semibold text-theme-text-primary">
               {page} / {totalPages}
             </span>
             <button
@@ -470,30 +470,30 @@ export const WorkflowInstancePage: React.FC<{
 
       {isCreateModalOpen && (
         <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
- <div className="bg-theme-bg-app rounded-[2rem] w-full max-w-lg overflow-hidden animate-in zoom-in-95 duration-200">
+ <div className="bg-theme-bg-app rounded-2xl w-full max-w-lg overflow-hidden animate-in zoom-in-95 duration-200">
             <div className="p-8 border-b border-theme-border">
-              <h3 className="text-2xl font-black text-theme-text-primary">创建空白实例</h3>
+              <h3 className="text-2xl font-bold text-theme-text-primary">创建空白实例</h3>
               <p className="text-sm text-theme-text-muted mt-2 font-medium">创建一个不包含任何节点的空白工作流实例，稍后可添加节点。</p>
             </div>
             <form onSubmit={handleCreate} className="p-8 space-y-6">
               <div>
-                <label className="block text-sm font-bold text-theme-text-secondary mb-2">实例名称</label>
+                <label className="block text-sm font-medium text-theme-text-secondary mb-2">实例名称</label>
                 <input required type="text" className="w-full px-4 py-3 bg-theme-bg-app border border-theme-border rounded-xl text-sm focus:ring-2 ring-blue-500 outline-none transition-all" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} placeholder="例如: prod-security-scan" />
               </div>
               <div>
-                <label className="block text-sm font-bold text-theme-text-secondary mb-2">描述</label>
+                <label className="block text-sm font-medium text-theme-text-secondary mb-2">描述</label>
                 <textarea className="w-full px-4 py-3 bg-theme-bg-app border border-theme-border rounded-xl text-sm focus:ring-2 ring-blue-500 outline-none transition-all" rows={3} value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} placeholder="实例描述信息..." />
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-bold text-theme-text-secondary mb-2">运行模式</label>
+                  <label className="block text-sm font-medium text-theme-text-secondary mb-2">运行模式</label>
                   <select className="w-full px-4 py-3 bg-theme-bg-app border border-theme-border rounded-xl text-sm focus:ring-2 ring-blue-500 outline-none transition-all" value={formData.run_mode} onChange={e => setFormData({...formData, run_mode: e.target.value})}>
                     <option value="once">一次性 (Once)</option>
                     <option value="persistent">持久化 (Persistent)</option>
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-bold text-theme-text-secondary mb-2">触发类型</label>
+                  <label className="block text-sm font-medium text-theme-text-secondary mb-2">触发类型</label>
                   <select className="w-full px-4 py-3 bg-theme-bg-app border border-theme-border rounded-xl text-sm focus:ring-2 ring-blue-500 outline-none transition-all" value={formData.trigger_type} onChange={e => setFormData({...formData, trigger_type: e.target.value})}>
                     <option value="manual">手动 (Manual)</option>
                     <option value="http">HTTP触发 (HTTP)</option>
@@ -503,12 +503,12 @@ export const WorkflowInstancePage: React.FC<{
               {formData.run_mode === 'persistent' && formData.trigger_type === 'http' && (
                 <div className="flex items-center gap-3 p-4 bg-blue-500/15 rounded-xl border border-blue-500/20">
                   <input type="checkbox" id="trigger_enabled" className="w-4 h-4 text-blue-400 rounded border-theme-border focus:ring-blue-500" checked={formData.trigger_enabled} onChange={e => setFormData({...formData, trigger_enabled: e.target.checked})} />
-                  <label htmlFor="trigger_enabled" className="text-sm font-bold text-blue-300 cursor-pointer">启用触发器</label>
+                  <label htmlFor="trigger_enabled" className="text-sm font-medium text-blue-300 cursor-pointer">启用触发器</label>
                 </div>
               )}
               <div className="flex gap-4 pt-4">
-                <button type="button" onClick={() => setIsCreateModalOpen(false)} className="flex-1 py-4 bg-theme-elevated text-theme-text-secondary rounded-xl font-bold hover:bg-theme-elevated transition-all">取消</button>
- <button type="submit" className="flex-1 py-4 bg-theme-surface text-white rounded-xl font-bold hover:bg-theme-elevated transition-all">创建</button>
+                <button type="button" onClick={() => setIsCreateModalOpen(false)} className="flex-1 py-4 bg-theme-elevated text-theme-text-secondary rounded-xl font-medium hover:bg-theme-elevated transition-all">取消</button>
+ <button type="submit" className="flex-1 py-4 bg-theme-surface text-white rounded-xl font-medium hover:bg-theme-elevated transition-all">创建</button>
               </div>
             </form>
           </div>
@@ -518,16 +518,16 @@ export const WorkflowInstancePage: React.FC<{
       {/* Uninitialize Confirmation Modal */}
       {isUninitModalOpen && (
         <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
- <div className="bg-theme-bg-app rounded-[2rem] w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200">
+ <div className="bg-theme-bg-app rounded-2xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200">
             <div className="p-8 text-center">
-              <div className="w-20 h-20 bg-orange-500/15 text-orange-400 rounded-[2rem] flex items-center justify-center mx-auto mb-6">
+              <div className="w-20 h-20 bg-orange-500/15 text-orange-400 rounded-lg flex items-center justify-center mx-auto mb-6">
                 <RotateCcw size={40} />
               </div>
-              <h3 className="text-2xl font-black text-theme-text-primary">确认反初始化？</h3>
+              <h3 className="text-2xl font-bold text-theme-text-primary">确认反初始化？</h3>
               <p className="text-theme-text-muted mt-4 font-medium">
                 您确定要反初始化这个工作流实例吗？这将删除所有关联的 K8S 资源并重置状态。
               </p>
-              <p className="text-red-500 mt-2 font-bold text-sm bg-red-500/15 p-3 rounded-xl border border-red-500/20">
+              <p className="text-red-500 mt-2 font-semibold text-sm bg-red-500/15 p-3 rounded-xl border border-red-500/20">
                 警告：所有的非持久化数据将全部丢失！
               </p>
             </div>
@@ -537,14 +537,14 @@ export const WorkflowInstancePage: React.FC<{
                   setIsUninitModalOpen(false);
                   setUninitId(null);
                 }}
-                className="flex-1 py-4 bg-theme-bg-app border border-theme-border text-theme-text-secondary rounded-2xl font-bold hover:bg-theme-elevated transition-all"
+                className="flex-1 py-4 bg-theme-surface border border-theme-border text-theme-text-secondary rounded-xl font-medium hover:bg-theme-elevated transition-all"
               >
                 取消
               </button>
               <button
                 onClick={handleUninitialize}
                 disabled={loading}
- className="flex-1 py-4 bg-orange-600 text-white rounded-2xl font-bold hover:bg-orange-700 transition-all shadow-orange-600/20 disabled:opacity-50 flex items-center justify-center gap-2"
+ className="flex-1 py-4 bg-orange-600 text-white rounded-lg font-medium hover:bg-orange-700 transition-all shadow-orange-600/20 disabled:opacity-50 flex items-center justify-center gap-2"
               >
                 {loading && <Loader2 size={18} className="animate-spin" />}
                 确认反初始化
@@ -557,12 +557,12 @@ export const WorkflowInstancePage: React.FC<{
       {/* Delete Confirmation Modal */}
       {isDeleteModalOpen && (
         <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
- <div className="bg-theme-bg-app rounded-[2rem] w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200">
+ <div className="bg-theme-bg-app rounded-2xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200">
             <div className="p-8 text-center">
-              <div className="w-20 h-20 bg-red-500/15 text-red-400 rounded-[2rem] flex items-center justify-center mx-auto mb-6">
+              <div className="w-20 h-20 bg-red-500/15 text-red-400 rounded-lg flex items-center justify-center mx-auto mb-6">
                 <Trash2 size={40} />
               </div>
-              <h3 className="text-2xl font-black text-theme-text-primary">确认删除？</h3>
+              <h3 className="text-2xl font-bold text-theme-text-primary">确认删除？</h3>
               <p className="text-theme-text-muted mt-4 font-medium">
                 {deletingId
                   ?"您确定要删除这个工作流实例吗？此操作不可撤销，且会清理关联的 K8S 资源。"
@@ -575,14 +575,14 @@ export const WorkflowInstancePage: React.FC<{
                   setIsDeleteModalOpen(false);
                   setDeletingId(null);
                 }}
-                className="flex-1 py-4 bg-theme-bg-app border border-theme-border text-theme-text-secondary rounded-2xl font-bold hover:bg-theme-elevated transition-all"
+                className="flex-1 py-4 bg-theme-surface border border-theme-border text-theme-text-secondary rounded-xl font-medium hover:bg-theme-elevated transition-all"
               >
                 取消
               </button>
               <button
                 onClick={handleDelete}
                 disabled={loading}
- className="flex-1 py-4 bg-red-600 text-white rounded-2xl font-bold hover:bg-red-700 transition-all shadow-red-600/20 disabled:opacity-50 flex items-center justify-center gap-2"
+ className="flex-1 py-4 bg-red-600 text-white rounded-lg font-medium hover:bg-red-700 transition-all shadow-red-600/20 disabled:opacity-50 flex items-center justify-center gap-2"
               >
                 {loading && <Loader2 size={18} className="animate-spin" />}
                 确认删除
@@ -611,7 +611,7 @@ export const WorkflowInstancePage: React.FC<{
                 transform: translate(-50%, 0);
               }
             }`}</style>
- <div className={`px-6 py-3 rounded-xl border font-bold text-sm flex items-center gap-2 ${
+ <div className={`px-6 py-3 rounded-xl border font-semibold text-sm flex items-center gap-2 ${
             toast.type === 'success' ? 'bg-green-600 text-white border-green-500' :
             toast.type === 'error' ? 'bg-red-600 text-white border-red-500' :
             toast.type === 'warning' ? 'bg-yellow-500 text-yellow-300 border-yellow-400' :

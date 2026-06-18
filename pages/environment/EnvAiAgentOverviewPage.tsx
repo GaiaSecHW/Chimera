@@ -16,13 +16,13 @@ import {
 import { PageHeader } from '../../design-system';
 
 const StatCard: React.FC<{ label: string; value: number; icon: React.ReactNode }> = ({ label, value, icon }) => (
- <div className="rounded-2xl border border-theme-border bg-theme-bg-app p-5">
+ <div className="rounded-xl border border-theme-border bg-theme-surface p-5">
     <div className="flex items-center justify-between gap-3">
       <div>
-        <div className="text-xs font-black uppercase tracking-[0.2em] text-theme-text-muted">{label}</div>
-        <div className="mt-3 text-3xl font-black text-theme-text-primary">{value}</div>
+        <div className="text-xs font-medium uppercase tracking-[0.2em] text-theme-text-muted">{label}</div>
+        <div className="mt-3 text-3xl font-bold text-theme-text-primary">{value}</div>
       </div>
-      <div className="rounded-2xl bg-theme-elevated p-3 text-theme-text-secondary">{icon}</div>
+      <div className="rounded-lg bg-theme-elevated p-3 text-theme-text-secondary">{icon}</div>
     </div>
   </div>
 );
@@ -60,10 +60,10 @@ export const EnvAiAgentOverviewPage: React.FC<{ projectId: string }> = ({ projec
           <StatCard label="Active" value={stats.active} icon={<Bot size={20} />} />
         </div>
 
- <section className="rounded-[1.75rem] border border-theme-border bg-gradient-to-br from-slate-50 via-slate-50 to-cyan-50/40 p-6">
+ <section className="rounded-xl border border-theme-border bg-gradient-to-br from-slate-50 via-slate-50 to-cyan-50/40 p-6">
           <div className="flex items-center justify-between gap-3">
             <div>
-              <div className="text-sm font-black uppercase tracking-[0.2em] text-cyan-400">节点摘要</div>
+              <div className="text-sm font-medium uppercase tracking-[0.2em] text-cyan-400">节点摘要</div>
               <div className="mt-2 text-sm text-theme-text-secondary">按节点聚合 helper 与 AI Agent 分布，支持直接进入指定 helper 详情。</div>
             </div>
             {(helpersLoading || agentsLoading) ? <div className="text-sm text-theme-text-muted">加载中...</div> : null}
@@ -77,10 +77,10 @@ export const EnvAiAgentOverviewPage: React.FC<{ projectId: string }> = ({ projec
               const nodeRunningAgents = nodeAgents.filter((agent) => agent.running).length;
               const nodeActiveAgents = nodeAgents.filter((agent) => agent.active).length;
               return (
- <div key={node} className="rounded-[1.5rem] border border-theme-border bg-theme-bg-app p-5">
+ <div key={node} className="rounded-xl border border-theme-border bg-theme-surface p-5">
                   <div className="flex items-start justify-between gap-4 flex-wrap">
                     <div>
-                      <div className="text-xl font-black tracking-tight text-theme-text-primary">{node}</div>
+                      <div className="text-xl font-semibold tracking-tight text-theme-text-primary">{node}</div>
                       <div className="mt-2 flex flex-wrap items-center gap-2 text-xs font-semibold text-theme-text-secondary">
                         <span className="rounded-full bg-theme-elevated px-2.5 py-1">{helperItems.length} 个 helper</span>
                         <span className="rounded-full bg-cyan-500/15 px-2.5 py-1 text-cyan-400">{nodeHealthyHelpers} 个健康</span>
@@ -90,23 +90,23 @@ export const EnvAiAgentOverviewPage: React.FC<{ projectId: string }> = ({ projec
                       </div>
                     </div>
                     <div className="grid min-w-[240px] grid-cols-2 gap-2 text-center">
-                      <div className="rounded-xl border border-theme-border bg-theme-bg-app px-3 py-2">
-                        <div className="text-[11px] font-bold uppercase tracking-[0.14em] text-theme-text-muted">Helper</div>
-                        <div className="mt-1 text-2xl font-black text-theme-text-primary">{helperItems.length}</div>
+                      <div className="rounded-xl border border-theme-border bg-theme-surface px-3 py-2">
+                        <div className="text-[11px] font-medium uppercase tracking-[0.14em] text-theme-text-muted">Helper</div>
+                        <div className="mt-1 text-2xl font-bold text-theme-text-primary">{helperItems.length}</div>
                       </div>
-                      <div className="rounded-xl border border-theme-border bg-theme-bg-app px-3 py-2">
-                        <div className="text-[11px] font-bold uppercase tracking-[0.14em] text-theme-text-muted">Agent</div>
-                        <div className="mt-1 text-2xl font-black text-theme-text-primary">{nodeAgents.length}</div>
+                      <div className="rounded-xl border border-theme-border bg-theme-surface px-3 py-2">
+                        <div className="text-[11px] font-medium uppercase tracking-[0.14em] text-theme-text-muted">Agent</div>
+                        <div className="mt-1 text-2xl font-bold text-theme-text-primary">{nodeAgents.length}</div>
                       </div>
                     </div>
                   </div>
 
                   <div className="mt-4 grid grid-cols-1 gap-4 xl:grid-cols-[320px_minmax(0,1fr)]">
-                    <div className="rounded-2xl border border-theme-border bg-slate-50/70 p-3">
-                      <div className="mb-3 text-xs font-black uppercase tracking-[0.16em] text-theme-text-muted">Helper 服务</div>
+                    <div className="rounded-xl border border-theme-border bg-slate-50/70 p-3">
+                      <div className="mb-3 text-xs font-medium uppercase tracking-[0.16em] text-theme-text-muted">Helper 服务</div>
                       <div className="space-y-2">
                       {helperItems.map((helper) => (
- <div key={`${helper.agent_key}::${helper.service_name}`} className="rounded-xl border border-theme-border bg-theme-bg-app px-3 py-2 text-xs text-theme-text-secondary">
+ <div key={`${helper.agent_key}::${helper.service_name}`} className="rounded-xl border border-theme-border bg-theme-surface px-3 py-2 text-xs text-theme-text-secondary">
                           <div className="flex items-center justify-between gap-2">
                             <div className="font-semibold text-theme-text-primary">{helper.service_name}</div>
                             <HealthBadge status={helper.health_status} />
@@ -127,14 +127,14 @@ export const EnvAiAgentOverviewPage: React.FC<{ projectId: string }> = ({ projec
                       </div>
                     </div>
 
-                    <div className="rounded-2xl border border-theme-border bg-slate-50/70 p-3">
-                      <div className="mb-3 text-xs font-black uppercase tracking-[0.16em] text-theme-text-muted">AI Agent 列表</div>
+                    <div className="rounded-xl border border-theme-border bg-slate-50/70 p-3">
+                      <div className="mb-3 text-xs font-medium uppercase tracking-[0.16em] text-theme-text-muted">AI Agent 列表</div>
                       <div className="grid grid-cols-1 gap-3 md:grid-cols-2 2xl:grid-cols-3">
                         {nodeAgents.length === 0 ? <div className="text-sm text-theme-text-muted">当前节点暂无可用 AI Agent。</div> : nodeAgents.map((agent) => (
- <div key={`${agent.agent_key}::${agent.service_name}::${agent.agent_id}`} className="rounded-xl border border-theme-border bg-theme-bg-app p-3">
-                            <div className="text-sm font-bold text-theme-text-primary">{agent.agent_id}</div>
+ <div key={`${agent.agent_key}::${agent.service_name}::${agent.agent_id}`} className="rounded-xl border border-theme-border bg-theme-surface p-3">
+                            <div className="text-sm font-semibold text-theme-text-primary">{agent.agent_id}</div>
                             <div className="mt-1 text-xs text-theme-text-muted">{agent.service_name} · {agent.backend_type}</div>
-                            <div className="mt-2 flex flex-wrap gap-2 text-[11px] font-black uppercase tracking-[0.16em]">
+                            <div className="mt-2 flex flex-wrap gap-2 text-[11px] font-medium uppercase tracking-[0.16em]">
                               <span className={agent.installed ? 'text-green-400' : 'text-theme-text-muted'}>{agent.installed ? 'INSTALLED' : 'MISSING'}</span>
                               <span className={agent.running ? 'text-emerald-400' : 'text-theme-text-muted'}>{agent.running ? 'RUNNING' : 'STOPPED'}</span>
                               <span className={agent.active ? 'text-blue-400' : 'text-theme-text-muted'}>{agent.active ? 'ACTIVE' : 'INACTIVE'}</span>

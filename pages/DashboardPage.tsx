@@ -144,7 +144,7 @@ const KpiCard: React.FC<KpiCardProps> = ({ icon: Icon, value, label, caption, ac
       <ArrowUpRight size={14} style={{ color: LK.muted }} className="transition-colors group-hover:opacity-100" />
     </div>
     <div>
-      <div className="text-2xl font-semibold leading-8 tracking-tight" style={{ color: accent }}>
+      <div className="text-2xl font-bold leading-8 tracking-tight" style={{ color: accent }}>
         {value}
       </div>
       <div className="mt-0.5 text-sm font-semibold" style={{ color: LK.inkSoft }}>

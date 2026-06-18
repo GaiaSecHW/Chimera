@@ -429,7 +429,7 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects }) => {
                 <div className="text-xs" style={{ color: LK.muted }}>
                   {item.label}
                 </div>
-                <div className="mt-1 text-2xl font-semibold leading-7 tabular-nums" style={{ color: LK.ink }}>
+                <div className="mt-1 text-2xl font-bold leading-7 tabular-nums" style={{ color: LK.ink }}>
                   {item.value}
                 </div>
               </div>

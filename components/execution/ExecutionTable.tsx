@@ -1,7 +1,7 @@
 import React from 'react';
 
 export const executionTableHeaderClassName =
-  'border-b border-theme-border bg-theme-elevated/80 text-[11px] font-black uppercase tracking-[0.18em] text-theme-text-faint';
+  'border-b border-theme-border bg-theme-elevated/80 text-[11px] font-semibold uppercase tracking-[0.18em] text-theme-text-faint';
 
 export const executionTableCellClassName =
   'border-b border-theme-border px-4 py-3 align-top text-sm text-theme-text-secondary';

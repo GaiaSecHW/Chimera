@@ -53,7 +53,7 @@ export const ReportsPage: React.FC = () => {
       />
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
- <div className="p-8 rounded-[2rem] border flex flex-col justify-between"
+ <div className="p-8 rounded-xl border flex flex-col justify-between"
           style={{ backgroundColor: LK.surface, borderColor: LK.border }}>
           <div className="flex items-center justify-between">
             <p className="text-[10px] font-semibold uppercase tracking-widest" style={{ color: LK.muted }}>总计报告</p>
@@ -62,7 +62,7 @@ export const ReportsPage: React.FC = () => {
           <h3 className="text-4xl font-semibold mt-4" style={{ color: LK.ink }}>128</h3>
           <p className="text-[10px] font-bold mt-2 uppercase" style={{ color: LK.muted }}>Lifetime Assessments</p>
         </div>
- <div className="p-8 rounded-[2rem] border md:col-span-2 flex flex-col justify-between"
+ <div className="p-8 rounded-xl border md:col-span-2 flex flex-col justify-between"
           style={{ backgroundColor: LK.surface, borderColor: LK.border }}>
           <div className="flex items-center justify-between">
             <p className="text-[10px] font-semibold uppercase tracking-widest" style={{ color: LK.muted }}>风险分布态势</p>
@@ -82,7 +82,7 @@ export const ReportsPage: React.FC = () => {
             <span className="text-[9px] font-semibold uppercase" style={{ color: LK.muted }}>Today</span>
           </div>
         </div>
- <div className="p-8 rounded-[2rem] flex flex-col justify-between overflow-hidden relative group"
+ <div className="p-8 rounded-xl flex flex-col justify-between overflow-hidden relative group"
           style={{ backgroundColor: LK.surfaceRaised, color: '#ffffff' }}>
           <ShieldCheck className="absolute right-[-10px] top-[-10px] w-24 h-24 opacity-5 group-hover:scale-110 transition-transform" />
           <p className="text-[10px] font-semibold uppercase tracking-widest relative z-10" style={{ color: LK.muted }}>关键修复率</p>
@@ -103,7 +103,7 @@ export const ReportsPage: React.FC = () => {
             <input
               type="text"
               placeholder="搜索报告标题、报告 ID 或 编写人..."
- className="w-full pl-16 pr-8 py-5 rounded-[2rem] text-sm outline-none transition-all font-medium"
+ className="w-full pl-16 pr-8 py-5 rounded-xl text-sm outline-none transition-all font-medium"
               style={{ backgroundColor: LK.surface, borderColor: LK.border, color: LK.ink }}
               onFocus={(e) => { e.currentTarget.style.borderColor = LK.primary; }}
               onBlur={(e) => { e.currentTarget.style.borderColor = LK.border; }}
@@ -111,7 +111,7 @@ export const ReportsPage: React.FC = () => {
               onChange={(e) => setSearchTerm(e.target.value)}
             />
           </div>
- <button className="px-8 py-5 rounded-[2rem] text-[10px] font-semibold uppercase tracking-widest flex items-center gap-2 transition-colors"
+ <button className="px-8 py-5 rounded-xl text-[10px] font-semibold uppercase tracking-widest flex items-center gap-2 transition-colors"
             style={{ backgroundColor: LK.surface, borderColor: LK.border, color: LK.muted }}
             onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = LK.surfaceRaised; }}
             onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = LK.surface; }}>

@@ -25,9 +25,9 @@ const fmtNumber = (value: unknown, digits = 0) => {
 };
 
 const DetailBlock: React.FC<{ title: string; subtitle?: string; children: React.ReactNode }> = ({ title, subtitle, children }) => (
- <section className="rounded-2xl border border-theme-border bg-theme-bg-app p-5">
+ <section className="rounded-2xl border border-theme-border bg-theme-surface p-5">
     <div>
-      <h3 className="text-sm font-black uppercase tracking-[0.18em] text-theme-text-muted">{title}</h3>
+      <h3 className="text-sm font-semibold uppercase tracking-[0.18em] text-theme-text-muted">{title}</h3>
       {subtitle ? <p className="mt-1 text-xs text-theme-text-muted">{subtitle}</p> : null}
     </div>
     <div className="mt-4">{children}</div>
@@ -44,7 +44,7 @@ const InfoRow: React.FC<{ label: string; value: React.ReactNode }> = ({ label, v
 export const BinaryEvolutionTaskDetailPage: React.FC<Props> = ({ projectId, taskId }) => {
   const navigate = useNavigate();
   const executionApi = api.domains.execution;
-  const { notify, feedbackNodes } = useUiFeedback();
+  const { notify, confirm, feedbackNodes } = useUiFeedback();
   const [detail, setDetail] = useState<BinaryEvolutionTaskDetail | null>(null);
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -82,7 +82,8 @@ export const BinaryEvolutionTaskDetailPage: React.FC<Props> = ({ projectId, task
 
   const handleDelete = async () => {
     if (!detail) return;
-    if (!window.confirm(`确认删除进化任务 ${detail.task_id} 吗？`)) return;
+    const ok = await confirm({ message: `确认删除进化任务 ${detail.task_id} 吗？`, danger: true });
+    if (!ok) return;
     setSubmitting(true);
     try {
       await executionApi.binaryEvolution.deleteTask(projectId, detail.task_id);
@@ -126,7 +127,7 @@ export const BinaryEvolutionTaskDetailPage: React.FC<Props> = ({ projectId, task
               type="button"
               disabled={submitting || !detail}
               onClick={() => void handleDelete()}
-              className="inline-flex items-center gap-2 rounded-xl border border-red-500/20 bg-theme-bg-app px-4 py-2 text-sm font-semibold text-red-400 hover:bg-red-500/15 disabled:opacity-50"
+              className="inline-flex items-center gap-2 rounded-xl border border-red-500/20 bg-theme-surface px-4 py-2 text-sm font-semibold text-red-400 hover:bg-red-500/15 disabled:opacity-50"
             >
               <Trash2 size={14} />
               删除任务
@@ -136,30 +137,30 @@ export const BinaryEvolutionTaskDetailPage: React.FC<Props> = ({ projectId, task
       />
 
       {loading ? (
- <section className="rounded-2xl border border-theme-border bg-theme-bg-app p-10 text-center text-sm text-theme-text-muted">
+ <section className="rounded-2xl border border-theme-border bg-theme-surface p-10 text-center text-sm text-theme-text-muted">
           <div className="inline-flex items-center gap-2">
             <Loader2 size={15} className="animate-spin" />
             详情加载中...
           </div>
         </section>
       ) : !detail ? (
- <section className="rounded-2xl border border-theme-border bg-theme-bg-app p-10 text-center text-sm text-theme-text-muted">
+ <section className="rounded-2xl border border-theme-border bg-theme-surface p-10 text-center text-sm text-theme-text-muted">
           暂无详情。
         </section>
       ) : (
         <>
- <section className="rounded-2xl border border-theme-border bg-theme-bg-app p-5">
+ <section className="rounded-2xl border border-theme-border bg-theme-surface p-5">
             <div className="flex flex-wrap items-start justify-between gap-4">
               <div>
                 <div className="flex flex-wrap items-center gap-2">
-                  <span className={`rounded-full px-3 py-1 text-xs font-black ${STATUS_STYLE[detail.status] || STATUS_STYLE.pending}`}>
+                  <span className={`rounded-full px-3 py-1 text-xs font-semibold ${STATUS_STYLE[detail.status] || STATUS_STYLE.pending}`}>
                     {STATUS_LABEL[detail.status] || detail.status}
                   </span>
-                  <span className={`rounded-full px-3 py-1 text-xs font-black ${APPLY_STYLE[detail.apply_status] || 'bg-theme-elevated text-theme-text-secondary'}`}>
+                  <span className={`rounded-full px-3 py-1 text-xs font-semibold ${APPLY_STYLE[detail.apply_status] || 'bg-theme-elevated text-theme-text-secondary'}`}>
                     {detail.apply_status || 'pending'}
                   </span>
                 </div>
-                <h2 className="mt-3 text-2xl font-black tracking-tight text-theme-text-primary">{detail.title}</h2>
+                <h2 className="mt-3 text-2xl font-bold tracking-tight text-theme-text-primary">{detail.title}</h2>
                 <div className="mt-1 font-mono text-xs text-theme-text-muted">{detail.task_id}</div>
                 <p className="mt-3 text-sm leading-6 text-theme-text-secondary">{detail.objective || '未填写进化目标'}</p>
               </div>
@@ -192,10 +193,10 @@ export const BinaryEvolutionTaskDetailPage: React.FC<Props> = ({ projectId, task
                   <div className="text-sm text-theme-text-muted">暂无输入批次。</div>
                 ) : (
                   detail.preview.sources.map((source) => (
-                    <div key={source.source_task_id} className="rounded-2xl border border-theme-border bg-theme-bg-app p-4">
+                    <div key={source.source_task_id} className="rounded-2xl border border-theme-border bg-theme-surface p-4">
                       <div className="flex flex-wrap items-center justify-between gap-2">
-                        <div className="font-black text-theme-text-primary">{source.source_title || source.source_task_id}</div>
-                        <span className={`rounded-full px-2.5 py-1 text-[11px] font-black ${source.replay_ready ? 'bg-emerald-500/15 text-emerald-400' : 'bg-red-500/15 text-red-400'}`}>
+                        <div className="font-semibold text-theme-text-primary">{source.source_title || source.source_task_id}</div>
+                        <span className={`rounded-full px-2.5 py-1 text-[11px] font-medium ${source.replay_ready ? 'bg-emerald-500/15 text-emerald-400' : 'bg-red-500/15 text-red-400'}`}>
                           {source.replay_ready ? 'ready' : 'blocked'}
                         </span>
                       </div>
@@ -238,7 +239,7 @@ export const BinaryEvolutionTaskDetailPage: React.FC<Props> = ({ projectId, task
                   ) : (
                     detail.rounds.map((round) => (
                       <tr key={round.round_no}>
-                        <td className="px-3 py-3 font-black text-theme-text-primary">{round.round_no}</td>
+                        <td className="px-3 py-3 font-semibold text-theme-text-primary">{round.round_no}</td>
                         <td className="px-3 py-3">{round.status || '-'}</td>
                         <td className="px-3 py-3">{round.score ?? '-'}</td>
                         <td className="px-3 py-3">{fmtNumber(round.metrics?.false_negative_rate, 4)}</td>
@@ -260,8 +261,8 @@ export const BinaryEvolutionTaskDetailPage: React.FC<Props> = ({ projectId, task
                   <div className="text-sm text-theme-text-muted">暂无 agent 目录。</div>
                 ) : (
                   Object.entries(detail.agent_state_roots).map(([agentId, root]) => (
-                    <div key={agentId} className="rounded-2xl border border-theme-border bg-theme-bg-app p-4">
-                      <div className="font-black text-theme-text-primary">{agentId}</div>
+                    <div key={agentId} className="rounded-2xl border border-theme-border bg-theme-surface p-4">
+                      <div className="font-semibold text-theme-text-primary">{agentId}</div>
                       <div className="mt-2 text-xs text-theme-text-muted">evolution root</div>
                       <div className="mt-1 break-all font-mono text-xs text-theme-text-secondary">{root}</div>
                       <div className="mt-2 text-xs text-theme-text-muted">normal root</div>
@@ -281,9 +282,9 @@ export const BinaryEvolutionTaskDetailPage: React.FC<Props> = ({ projectId, task
                       <div className="text-sm text-theme-text-muted">暂无事件</div>
                     ) : (
                       detail.events.slice(0, 6).map((event) => (
-                        <div key={`${event.event_type}-${event.created_at}`} className="rounded-2xl border border-theme-border bg-theme-bg-app px-4 py-3">
+                        <div key={`${event.event_type}-${event.created_at}`} className="rounded-2xl border border-theme-border bg-theme-surface px-4 py-3">
                           <div className="flex items-center justify-between gap-3">
-                            <div className="font-black text-theme-text-primary">{event.summary || event.event_type}</div>
+                            <div className="font-semibold text-theme-text-primary">{event.summary || event.event_type}</div>
                             <div className="text-xs text-theme-text-muted">{fmtTime(String(event.created_at || ''))}</div>
                           </div>
                         </div>
@@ -298,8 +299,8 @@ export const BinaryEvolutionTaskDetailPage: React.FC<Props> = ({ projectId, task
                       <div className="text-sm text-theme-text-muted">暂无产物</div>
                     ) : (
                       detail.artifacts.map((artifact) => (
-                        <div key={`${artifact.artifact_type}-${artifact.path}`} className="rounded-2xl border border-theme-border bg-theme-bg-app px-4 py-3">
-                          <div className="font-black text-theme-text-primary">{artifact.artifact_type}</div>
+                        <div key={`${artifact.artifact_type}-${artifact.path}`} className="rounded-2xl border border-theme-border bg-theme-surface px-4 py-3">
+                          <div className="font-semibold text-theme-text-primary">{artifact.artifact_type}</div>
                           <div className="mt-2 break-all font-mono text-xs text-theme-text-secondary">{artifact.path}</div>
                         </div>
                       ))

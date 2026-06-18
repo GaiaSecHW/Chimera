@@ -3773,7 +3773,7 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
                 key={tab.key}
                 type="button"
                 onClick={() => setActiveSecondaryTab(tab.key)}
-                className={`rounded-2xl px-4 py-2.5 text-sm font-black transition ${
+                className={`rounded-2xl px-4 py-2.5 text-sm font-semibold transition ${
  active ? 'bg-teal-600 text-white' : 'bg-theme-bg-app text-theme-text-secondary hover:bg-theme-elevated'
                 }`}
               >
@@ -3846,7 +3846,7 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
                 {summaryObservabilityViewModel.overviewCards.map((item) => (
                   <div key={item.label} style={{ borderRadius: '12px', border: `1px solid #14b8a6`, backgroundColor: 'rgba(20, 184, 166, 0.1)', padding: '12px 16px' }}>
                     <div style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.16em', color: LK.muted }}>{item.label}</div>
-                    <div className={`mt-2 text-xl font-black ${item.tone}`}>{item.value}</div>
+                    <div className={`mt-2 text-xl font-semibold ${item.tone}`}>{item.value}</div>
                     <div style={{ marginTop: '4px', fontSize: '12px', color: LK.muted }}>{item.hint}</div>
                   </div>
                 ))}
@@ -3868,7 +3868,7 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
                     summaryObservabilityViewModel.statusRows.map((item) => (
                       <div key={item.label} style={{ borderRadius: '8px', border: `1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised, padding: '8px 12px' }}>
                         <div style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.14em', color: LK.muted }}>{item.label}</div>
-                        <div className={`mt-1 text-base font-black ${item.tone}`}>{formatNumber(item.value)}</div>
+                        <div className={`mt-1 text-base font-semibold ${item.tone}`}>{formatNumber(item.value)}</div>
                       </div>
                     ))
                   ) : (
@@ -3897,10 +3897,10 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
                 {binarySecurityObservabilityViewModel.overviewCards.map((item) => (
                   <div key={item.label} style={{ borderRadius: '12px', border: `1px solid ${LK.success}`, backgroundColor: 'rgba(69, 192, 111, 0.1)', padding: '16px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', color: LK.muted }}>
-                      <span className="text-[11px] font-black uppercase tracking-[0.16em]">{item.label}</span>
+                      <span className="text-[11px] font-semibold uppercase tracking-[0.16em]">{item.label}</span>
                       <span>{item.icon}</span>
                     </div>
-                    <div className={`mt-3 text-2xl font-black tracking-tight ${item.tone}`}>{item.value}</div>
+                    <div className={`mt-3 text-2xl font-bold tracking-tight ${item.tone}`}>{item.value}</div>
                     <div style={{ marginTop: '4px', fontSize: '12px', color: LK.muted }}>{item.hint}</div>
                   </div>
                 ))}
@@ -3932,7 +3932,7 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
                     {binarySecurityObservabilityViewModel.taskListPerformance.topCards.map((item) => (
                       <div key={item.label} style={{ borderRadius: '12px', border: `1px solid ${LK.borderSoft}`, backgroundColor: LK.surfaceRaised, padding: '12px 16px' }}>
                         <div style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.16em', color: LK.muted }}>{item.label}</div>
-                        <div className={`mt-2 text-lg font-black ${item.tone}`}>{item.value}</div>
+                        <div className={`mt-2 text-lg font-semibold ${item.tone}`}>{item.value}</div>
                         <div style={{ marginTop: '4px', fontSize: '12px', color: LK.muted }}>{item.hint}</div>
                       </div>
                     ))}
@@ -3982,9 +3982,9 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
 
               <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-5">
                 {binarySecurityObservabilityViewModel.groupCounts.map((item) => (
-                  <div key={item.group} className="rounded-xl border border-theme-border bg-theme-bg-app px-3 py-2">
+                  <div key={item.group} className="rounded-xl border border-theme-border bg-theme-surface px-3 py-2">
                     <div style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.14em', color: LK.muted }}>{GROUP_LABELS[item.group]}</div>
-                    <div className="mt-1 text-base font-black text-theme-text-primary">{formatNumber(item.count)}</div>
+                    <div className="mt-1 text-base font-semibold text-theme-text-primary">{formatNumber(item.count)}</div>
                   </div>
                 ))}
               </div>
@@ -3998,7 +3998,7 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
           )}
 
           {dataflowAnalysisViewModel ? (
- <section className="space-y-4 rounded-[2rem] border border-teal-500/20 bg-theme-bg-app p-5">
+ <section className="space-y-4 rounded-xl border border-teal-500/20 bg-theme-surface p-5">
               <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'flex-start', justifyContent: 'space-between', gap: '16px' }}>
                 <div>
                   <h2 style={{ marginTop: '8px', fontSize: '20px', fontWeight: 600, letterSpacing: '-0.02em', color: LK.ink }}>数据流分析聚合观测</h2>
@@ -4014,9 +4014,9 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
 
               <div style={{ display: 'grid', gap: '12px', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))' }}>
                 {dataflowAnalysisViewModel.kpis.map((item) => (
- <div key={item.label} className="rounded-2xl border border-teal-500/20 bg-theme-bg-app px-4 py-3">
+ <div key={item.label} className="rounded-2xl border border-teal-500/20 bg-theme-surface px-4 py-3">
                     <div style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.16em', color: LK.muted }}>{item.label}</div>
-                    <div className={`mt-2 text-xl font-black ${item.tone}`}>{item.value}</div>
+                    <div className={`mt-2 text-xl font-semibold ${item.tone}`}>{item.value}</div>
                     <div style={{ marginTop: '4px', fontSize: '12px', color: LK.muted }}>{item.hint}</div>
                   </div>
                 ))}
@@ -4039,7 +4039,7 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
                     {dataflowAnalysisViewModel.loadCards.map((item) => (
                       <div key={item.label} style={{ borderRadius: '12px', border: `1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised, padding: '12px 16px' }}>
                         <div style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.16em', color: LK.muted }}>{item.label}</div>
-                        <div className={`mt-2 text-lg font-black ${item.tone}`}>{item.value}</div>
+                        <div className={`mt-2 text-lg font-semibold ${item.tone}`}>{item.value}</div>
                         <div style={{ marginTop: '4px', fontSize: '12px', color: LK.muted }}>{item.hint}</div>
                       </div>
                     ))}
@@ -4055,7 +4055,7 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
                         dataflowAnalysisViewModel.failureCategories.slice(0, 6).map((item) => (
                           <div key={item.label} style={{ borderRadius: '12px', border: `1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised, padding: '12px 16px' }}>
                             <div style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.16em', color: LK.muted }}>{item.label}</div>
-                            <div className={`mt-2 text-lg font-black ${item.tone}`}>{formatNumber(item.value)}</div>
+                            <div className={`mt-2 text-lg font-semibold ${item.tone}`}>{formatNumber(item.value)}</div>
                             <div style={{ marginTop: '4px', fontSize: '12px', color: LK.muted }}>cluster failure category snapshot</div>
                           </div>
                         ))
@@ -4072,7 +4072,7 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
                           dataflowAnalysisViewModel.dispatchSummary.map((item) => (
                             <div key={item.label} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', borderRadius: '8px', border: `1px solid ${LK.borderSoft}`, backgroundColor: LK.surfaceRaised, padding: '8px 12px' }}>
                               <div className="min-w-0 truncate text-sm font-semibold text-theme-text-secondary">{item.label}</div>
-                              <div className={`font-mono text-sm font-black ${item.tone}`}>{formatNumber(item.value)}</div>
+                              <div className={`font-mono text-sm font-semibold ${item.tone}`}>{formatNumber(item.value)}</div>
                             </div>
                           ))
                         ) : (
@@ -4130,7 +4130,7 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
                       ].map((item) => (
                         <div key={item.label} style={{ borderRadius: '12px', border: `1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised, padding: '12px 16px' }}>
                           <div style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.16em', color: LK.muted }}>{item.label}</div>
-                          <div className="mt-2 text-lg font-black text-theme-text-primary">{item.value}</div>
+                          <div className="mt-2 text-lg font-semibold text-theme-text-primary">{item.value}</div>
                           <div style={{ marginTop: '4px', fontSize: '12px', color: LK.muted }}>{item.hint}</div>
                         </div>
                       ))}
@@ -4170,7 +4170,7 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
                             <div className="mt-3 grid gap-2 lg:grid-cols-2">
                               {asArray(worker.active_jobs).length ? (
                                 asArray(worker.active_jobs).map((job) => (
-                                  <div key={`${worker.worker_id}:${job.task_id}`} className="rounded-xl border border-theme-border bg-theme-bg-app px-3 py-3">
+                                  <div key={`${worker.worker_id}:${job.task_id}`} className="rounded-xl border border-theme-border bg-theme-surface px-3 py-3">
                                     <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '8px' }}>
                                       <div className="min-w-0 truncate text-sm font-bold text-theme-text-primary" title={job.task_name}>{job.task_name}</div>
                                       <span style={{ borderRadius: '9999px', backgroundColor: LK.surfaceRaised, padding: '2px 8px', fontSize: '10px', fontWeight: 600, color: LK.body }}>{job.status}</span>
@@ -4210,7 +4210,7 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
           ) : null}
 
           {entryAnalysisViewModel ? (
- <section className="space-y-4 rounded-[2rem] border border-indigo-500/20 bg-theme-bg-app p-5">
+ <section className="space-y-4 rounded-xl border border-indigo-500/20 bg-theme-surface p-5">
               <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'flex-start', justifyContent: 'space-between', gap: '16px' }}>
                 <div>
                   <h2 style={{ marginTop: '8px', fontSize: '20px', fontWeight: 600, letterSpacing: '-0.02em', color: LK.ink }}>入口分析业务聚合观测</h2>
@@ -4218,16 +4218,16 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
                     面向服务级聚合快照，重点看排队、执行、轮次、Worker/Judge 负载以及失败归因；这里不是单任务的 R1/R2/R3/R4 详情页，而是集群级健康视图。
                   </p>
                 </div>
- <span className="inline-flex rounded-full border border-indigo-500/20 bg-theme-bg-app px-3 py-1 text-xs font-black text-indigo-400">
+ <span className="inline-flex rounded-full border border-indigo-500/20 bg-theme-bg-app px-3 py-1 text-xs font-semibold text-indigo-400">
                   retry {formatNumber(metricValueByName(viewModel.rows, 'chimera_ea_retry_total'))} / timeout {formatNumber(metricValueByName(viewModel.rows, 'chimera_ea_timeout_total'))}
                 </span>
               </div>
 
               <div style={{ display: 'grid', gap: '12px', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))' }}>
                 {entryAnalysisViewModel.kpis.map((item) => (
- <div key={item.label} className="rounded-2xl border border-indigo-500/20 bg-theme-bg-app px-4 py-3">
+ <div key={item.label} className="rounded-2xl border border-indigo-500/20 bg-theme-surface px-4 py-3">
                     <div style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.16em', color: LK.muted }}>{item.label}</div>
-                    <div className={`mt-2 text-xl font-black ${item.tone}`}>{item.value}</div>
+                    <div className={`mt-2 text-xl font-semibold ${item.tone}`}>{item.value}</div>
                     <div style={{ marginTop: '4px', fontSize: '12px', color: LK.muted }}>{item.hint}</div>
                   </div>
                 ))}
@@ -4250,7 +4250,7 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
                           sessionStorage.setItem(ENTRY_ANALYSIS_RISK_FOCUS_STORAGE_KEY, entryAnalysisRiskKeyFromLabel(alert.label));
                           window.dispatchEvent(new CustomEvent('chimera-navigate-view', { detail: { view: 'entry-analysis-task' } }));
                         }}
- className="rounded-xl border border-current/20 bg-theme-bg-app px-3 py-2 text-[11px] font-black transition hover:bg-theme-bg-app"
+ className="rounded-xl border border-current/20 bg-theme-surface px-3 py-2 text-[11px] font-semibold transition hover:bg-theme-surface"
                       >
                         带着风险排查
                       </button>
@@ -4267,7 +4267,7 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
                     {entryAnalysisViewModel.roleSummary.map((item) => (
                       <div key={item.label} style={{ borderRadius: '12px', border: `1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised, padding: '12px 16px' }}>
                         <div style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.16em', color: LK.muted }}>{item.label}</div>
-                        <div className={`mt-2 text-lg font-black ${item.tone}`}>{item.value}</div>
+                        <div className={`mt-2 text-lg font-semibold ${item.tone}`}>{item.value}</div>
                         <div style={{ marginTop: '4px', fontSize: '12px', color: LK.muted }}>{item.hint}</div>
                       </div>
                     ))}
@@ -4282,7 +4282,7 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
                       {entryAnalysisViewModel.failureSummary.map((item) => (
                         <div key={item.label} style={{ borderRadius: '12px', border: `1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised, padding: '12px 16px' }}>
                           <div style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.16em', color: LK.muted }}>{item.label}</div>
-                          <div className={`mt-2 text-lg font-black ${item.tone}`}>{formatMetricValue(item.value ?? Number.NaN)}</div>
+                          <div className={`mt-2 text-lg font-semibold ${item.tone}`}>{formatMetricValue(item.value ?? Number.NaN)}</div>
                           <div style={{ marginTop: '4px', fontSize: '12px', color: LK.muted }}>{item.hint}</div>
                         </div>
                       ))}
@@ -4294,7 +4294,7 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
                           entryAnalysisViewModel.topModules.map((item) => (
                             <div key={item.name} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', borderRadius: '8px', border: `1px solid ${LK.borderSoft}`, backgroundColor: LK.surfaceRaised, padding: '8px 12px' }}>
                               <div className="min-w-0 truncate text-sm font-semibold text-theme-text-secondary">{item.name}</div>
-                              <div className="font-mono text-sm font-black text-indigo-400">{formatNumber(item.value)}</div>
+                              <div className="font-mono text-sm font-semibold text-indigo-400">{formatNumber(item.value)}</div>
                             </div>
                           ))
                         ) : (
@@ -4352,7 +4352,7 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
                       ].map((item) => (
                         <div key={item.label} style={{ borderRadius: '12px', border: `1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised, padding: '12px 16px' }}>
                           <div style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.16em', color: LK.muted }}>{item.label}</div>
-                          <div className="mt-2 text-lg font-black text-theme-text-primary">{item.value}</div>
+                          <div className="mt-2 text-lg font-semibold text-theme-text-primary">{item.value}</div>
                           <div style={{ marginTop: '4px', fontSize: '12px', color: LK.muted }}>{item.hint}</div>
                         </div>
                       ))}
@@ -4392,7 +4392,7 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
                             <div className="mt-3 grid gap-2 lg:grid-cols-2">
                               {asArray(worker.active_tasks).length ? (
                                 asArray(worker.active_tasks).map((job) => (
-                                  <div key={`${worker.worker_id}:${job.task_id}`} className="rounded-xl border border-theme-border bg-theme-bg-app px-3 py-3">
+                                  <div key={`${worker.worker_id}:${job.task_id}`} className="rounded-xl border border-theme-border bg-theme-surface px-3 py-3">
                                     <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '8px' }}>
                                       <div className="min-w-0 truncate text-sm font-bold text-theme-text-primary" title={job.task_id}>{job.task_id}</div>
                                       <span style={{ borderRadius: '9999px', backgroundColor: LK.surfaceRaised, padding: '2px 8px', fontSize: '10px', fontWeight: 600, color: LK.body }}>{job.status}</span>
@@ -4430,9 +4430,9 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
 
               <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-5">
                 {entryAnalysisViewModel.stageCards.map((item) => (
- <div key={item.label} className="rounded-2xl border border-indigo-500/20 bg-theme-bg-app px-4 py-3">
+ <div key={item.label} className="rounded-2xl border border-indigo-500/20 bg-theme-surface px-4 py-3">
                     <div style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.16em', color: LK.muted }}>{item.label}</div>
-                    <div className={`mt-2 text-xl font-black ${item.tone}`}>{item.value}</div>
+                    <div className={`mt-2 text-xl font-semibold ${item.tone}`}>{item.value}</div>
                     <div style={{ marginTop: '4px', fontSize: '12px', color: LK.muted }}>{item.hint}</div>
                   </div>
                 ))}
@@ -4449,7 +4449,7 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
                     <button
                       type="button"
                       onClick={() => setSelectedEntryStage('all')}
-                      className={`rounded-full border px-3 py-1 text-xs font-black transition ${
+                      className={`rounded-full border px-3 py-1 text-xs font-semibold transition ${
                         selectedEntryStage === 'all' ? 'border-indigo-600 bg-indigo-600 text-white' : 'border-theme-border bg-theme-bg-app text-theme-text-secondary hover:bg-theme-bg-app'
                       }`}
                     >
@@ -4460,7 +4460,7 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
                         key={item.stage}
                         type="button"
                         onClick={() => setSelectedEntryStage(item.stage as 'R1' | 'R2' | 'R3' | 'R4')}
-                        className={`rounded-full border px-3 py-1 text-xs font-black transition ${
+                        className={`rounded-full border px-3 py-1 text-xs font-semibold transition ${
                           selectedEntryStage === item.stage ? 'border-indigo-600 bg-indigo-600 text-white' : 'border-theme-border bg-theme-bg-app text-theme-text-secondary hover:bg-theme-bg-app'
                         }`}
                       >
@@ -4482,7 +4482,7 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
                     ].map((item) => (
                       <div key={item.label} className="rounded-2xl border border-indigo-500/20 bg-indigo-50/40 px-4 py-3">
                         <div style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.16em', color: LK.muted }}>{item.label}</div>
-                        <div className={`mt-2 text-xl font-black ${item.tone}`}>{item.value}</div>
+                        <div className={`mt-2 text-xl font-semibold ${item.tone}`}>{item.value}</div>
                         <div style={{ marginTop: '4px', fontSize: '12px', color: LK.muted }}>{item.hint}</div>
                       </div>
                     ))}
@@ -4499,7 +4499,7 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
                       setSearchKeyword(`stage=${focusedEntryStageRow.stage.toLowerCase()}`);
                     }}
                     disabled={!focusedEntryStageRow}
-                    className={`rounded-xl border px-3 py-2 text-xs font-black transition ${
+                    className={`rounded-xl border px-3 py-2 text-xs font-semibold transition ${
                       focusedEntryStageRow ? 'border-indigo-500/20 bg-indigo-500/15 text-indigo-400 hover:bg-indigo-500/15' : 'cursor-not-allowed border-theme-border bg-theme-bg-app text-theme-text-muted'
                     }`}
                   >
@@ -4511,7 +4511,7 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
                       setSelectedEntryStage('all');
                       setSearchKeyword('');
                     }}
-                    className="rounded-xl border border-theme-border bg-theme-bg-app px-3 py-2 text-xs font-black text-theme-text-secondary transition hover:bg-theme-bg-app"
+                    className="rounded-xl border border-theme-border bg-theme-surface px-3 py-2 text-xs font-semibold text-theme-text-secondary transition hover:bg-theme-surface"
                   >
                     清空阶段聚焦
                   </button>
@@ -4524,7 +4524,7 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
                       sessionStorage.removeItem(ENTRY_ANALYSIS_RISK_FOCUS_STORAGE_KEY);
                       window.dispatchEvent(new CustomEvent('chimera-navigate-view', { detail: { view: 'entry-analysis-task' } }));
                     }}
-                    className="rounded-xl border border-indigo-500/20 bg-indigo-500/15 px-3 py-2 text-xs font-black text-indigo-400 transition hover:bg-indigo-500/15"
+                    className="rounded-xl border border-indigo-500/20 bg-indigo-500/15 px-3 py-2 text-xs font-semibold text-indigo-400 transition hover:bg-indigo-500/15"
                   >
                     前往入口分析任务页
                   </button>
@@ -4578,7 +4578,7 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
                           entryAnalysisViewModel.stageRows.map((item) => (
                             <tr key={item.stage} className={`cursor-pointer hover:bg-theme-elevated ${selectedEntryStage === item.stage ? 'bg-indigo-50/70' : ''}`} onClick={() => setSelectedEntryStage(item.stage as 'R1' | 'R2' | 'R3' | 'R4')}>
                               <td className="px-3 py-3">
-                                <div className={`font-black ${item.healthTone}`}>{item.stage}</div>
+                                <div className={`font-semibold ${item.healthTone}`}>{item.stage}</div>
                               </td>
                               <td style={{ padding: '12px', fontFamily: MONO, color: LK.ink }}>{formatNumber(item.totalRuns, 0)}</td>
                               <td className="px-3 py-3 font-mono text-emerald-400">{formatNumber(item.passedRuns, 0)}</td>
@@ -4608,7 +4608,7 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
           ) : null}
 
           {b2sBusinessViewModel ? (
- <section className="rounded-[2rem] border border-cyan-500/20 bg-theme-bg-app p-5">
+ <section className="rounded-xl border border-cyan-500/20 bg-theme-surface p-5">
               <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'flex-start', justifyContent: 'space-between', gap: '16px' }}>
                 <div>
                   <h2 style={{ marginTop: '8px', fontSize: '20px', fontWeight: 600, letterSpacing: '-0.02em', color: LK.ink }}>二进制逆向业务指标</h2>
@@ -4617,26 +4617,26 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
                   </p>
                 </div>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
- <span className="inline-flex rounded-full border border-cyan-500/20 bg-theme-bg-app px-3 py-1 text-xs font-black text-cyan-400">
+ <span className="inline-flex rounded-full border border-cyan-500/20 bg-theme-bg-app px-3 py-1 text-xs font-semibold text-cyan-400">
                     覆盖率 {b2sBusinessViewModel.coverageRate == null ? '-' :`${formatNumber(b2sBusinessViewModel.coverageRate, 1)}%`}
                   </span>
- <span className="inline-flex rounded-full border border-cyan-500/20 bg-theme-bg-app px-3 py-1 text-xs font-black text-cyan-400">
+ <span className="inline-flex rounded-full border border-cyan-500/20 bg-theme-bg-app px-3 py-1 text-xs font-semibold text-cyan-400">
                     最近样本 {formatTime(b2sBusinessViewModel.latestSeenAt)}
                   </span>
                 </div>
               </div>
               {(b2sBusinessViewModel.availableItems || 0) <= 0 ? (
                 <div className="mt-4 rounded-2xl border border-amber-500/20 bg-amber-50/80 p-4">
-                  <div className="text-sm font-black text-amber-300">暂无有效 runtime metrics 样本</div>
+                  <div className="text-sm font-semibold text-amber-300">暂无有效 runtime metrics 样本</div>
                   <p className="mt-1 text-sm text-amber-400">
                     当前 B2S 已看到 {formatNumber(b2sBusinessViewModel.missingItems)} 个缺失项。看板不会用缺失样本推导平均耗时，避免把旧任务或尚未上报的任务误读为 0。
                   </p>
                   {b2sBusinessViewModel.missingReasons.length ? (
                     <div className="mt-3 grid gap-2 md:grid-cols-2 xl:grid-cols-4">
                       {b2sBusinessViewModel.missingReasons.map((item) => (
- <div key={item.reason} className="rounded-xl border border-amber-500/20 bg-theme-bg-app px-3 py-2">
-                          <div className="text-[11px] font-black uppercase tracking-[0.14em] text-amber-400">{item.reason}</div>
-                          <div className="mt-1 text-lg font-black text-amber-300">{formatNumber(item.value)}</div>
+ <div key={item.reason} className="rounded-xl border border-amber-500/20 bg-theme-surface px-3 py-2">
+                          <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-amber-400">{item.reason}</div>
+                          <div className="mt-1 text-lg font-semibold text-amber-300">{formatNumber(item.value)}</div>
                         </div>
                       ))}
                     </div>
@@ -4644,7 +4644,7 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
                 </div>
               ) : (
                 <>
-                  <div className="mt-4 text-xs font-black uppercase tracking-[0.18em] text-cyan-400">任务历史聚合（终态样本）</div>
+                  <div className="mt-4 text-xs font-semibold uppercase tracking-[0.18em] text-cyan-400">任务历史聚合（终态样本）</div>
                   <div className="mt-2 grid gap-3 md:grid-cols-2 xl:grid-cols-5">
                     {[
                       { label: '头文件平均耗时', value: formatSeconds(b2sBusinessViewModel.headerAvgSeconds), hint: 'terminal header_synthesis', tone: 'text-cyan-300' },
@@ -4658,24 +4658,24 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
                       { label: '平均 Attempts', value: formatNumber(b2sBusinessViewModel.avgAttemptsPerBatch, 2), hint: 'attempts per batch', tone: (b2sBusinessViewModel.avgAttemptsPerBatch || 0) > 1.2 ? 'text-amber-400' : 'text-theme-text-primary' },
                       { label: 'Token / 成本', value:`${formatNumber(b2sBusinessViewModel.tokenTotal)} / ${formatMetricValue(b2sBusinessViewModel.costTotal ?? Number.NaN)}`, hint: 'runtime llm summary', tone: 'text-indigo-400' },
                     ].map((item) => (
- <div key={item.label} className="rounded-2xl border border-cyan-500/20 bg-theme-bg-app px-4 py-3">
+ <div key={item.label} className="rounded-2xl border border-cyan-500/20 bg-theme-surface px-4 py-3">
                         <div style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.16em', color: LK.muted }}>{item.label}</div>
-                        <div className={`mt-2 text-xl font-black ${item.tone}`}>{item.value}</div>
+                        <div className={`mt-2 text-xl font-semibold ${item.tone}`}>{item.value}</div>
                         <div style={{ marginTop: '4px', fontSize: '12px', color: LK.muted }}>{item.hint}</div>
                       </div>
                     ))}
                   </div>
                   {b2sBusinessViewModel.runningHeaderAvgSeconds != null || b2sBusinessViewModel.runningBodyAvgSeconds != null ? (
                     <>
-                      <div className="mt-5 text-xs font-black uppercase tracking-[0.18em] text-cyan-400">运行中实时指标（不参与历史均值）</div>
+                      <div className="mt-5 text-xs font-semibold uppercase tracking-[0.18em] text-cyan-400">运行中实时指标（不参与历史均值）</div>
                       <div className="mt-2 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
                         {[
                           { label: '运行中头文件耗时', value: formatSeconds(b2sBusinessViewModel.runningHeaderAvgSeconds), hint: 'running header_synthesis', tone: 'text-cyan-300' },
                           { label: '运行中函数体耗时', value: formatSeconds(b2sBusinessViewModel.runningBodyAvgSeconds), hint: 'running body_generation', tone: 'text-cyan-300' },
                         ].map((item) => (
- <div key={item.label} className="rounded-2xl border border-cyan-500/20 bg-theme-bg-app px-4 py-3">
+ <div key={item.label} className="rounded-2xl border border-cyan-500/20 bg-theme-surface px-4 py-3">
                             <div style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.16em', color: LK.muted }}>{item.label}</div>
-                            <div className={`mt-2 text-xl font-black ${item.tone}`}>{item.value}</div>
+                            <div className={`mt-2 text-xl font-semibold ${item.tone}`}>{item.value}</div>
                             <div style={{ marginTop: '4px', fontSize: '12px', color: LK.muted }}>{item.hint}</div>
                           </div>
                         ))}
@@ -4688,7 +4688,7 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
           ) : null}
 
           {b2sCacheViewModel ? (
- <section className="rounded-[2rem] border border-emerald-500/20 bg-theme-bg-app p-5">
+ <section className="rounded-xl border border-emerald-500/20 bg-theme-surface p-5">
               <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'flex-start', justifyContent: 'space-between', gap: '16px' }}>
                 <div>
                   <h2 style={{ marginTop: '8px', fontSize: '20px', fontWeight: 600, letterSpacing: '-0.02em', color: LK.ink }}>二进制逆向缓存指标</h2>
@@ -4696,7 +4696,7 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
                     观察 ELF 级缓存请求、命中、绕过、覆盖和当前缓存条目数量，辅助判断相同输入是否被有效复用。
                   </p>
                 </div>
- <span className="inline-flex rounded-full border border-emerald-500/20 bg-theme-bg-app px-3 py-1 text-xs font-black text-emerald-400">
+ <span className="inline-flex rounded-full border border-emerald-500/20 bg-theme-bg-app px-3 py-1 text-xs font-semibold text-emerald-400">
                   命中率 {b2sCacheViewModel.hitRate == null ? '-' :`${formatNumber(b2sCacheViewModel.hitRate, 1)}%`}
                 </span>
               </div>
@@ -4709,9 +4709,9 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
                   { label: '缓存覆盖', value: formatNumber(b2sCacheViewModel.replacedTotal), hint: 'replace total', tone: 'text-indigo-400' },
                   { label: '当前条目', value: formatNumber(b2sCacheViewModel.entries), hint: 'ready cache entries', tone: 'text-theme-text-primary' },
                 ].map((item) => (
- <div key={item.label} className="rounded-2xl border border-emerald-500/20 bg-theme-bg-app px-4 py-3">
+ <div key={item.label} className="rounded-2xl border border-emerald-500/20 bg-theme-surface px-4 py-3">
                     <div style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.16em', color: LK.muted }}>{item.label}</div>
-                    <div className={`mt-2 text-xl font-black ${item.tone}`}>{item.value}</div>
+                    <div className={`mt-2 text-xl font-semibold ${item.tone}`}>{item.value}</div>
                     <div style={{ marginTop: '4px', fontSize: '12px', color: LK.muted }}>{item.hint}</div>
                   </div>
                 ))}
@@ -4720,7 +4720,7 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
           ) : null}
 
           {systemAnalysisViewModel ? (
- <section className="space-y-4 rounded-[2rem] border border-sky-500/20 bg-theme-bg-app p-5">
+ <section className="space-y-4 rounded-xl border border-sky-500/20 bg-theme-surface p-5">
               <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'flex-start', justifyContent: 'space-between', gap: '16px' }}>
                 <div>
                   <h2 style={{ marginTop: '8px', fontSize: '20px', fontWeight: 600, letterSpacing: '-0.02em', color: LK.ink }}>系统分析专属观测</h2>
@@ -4728,16 +4728,16 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
                     以运行总览、阶段健康、AI 成本、并发治理和质量收益为主视图，优先回答“卡在哪、贵不贵、并发是否打满、失败是否集中”。
                   </p>
                 </div>
- <span className="inline-flex rounded-full border border-sky-500/20 bg-theme-bg-app px-3 py-1 text-xs font-black text-sky-400">
+ <span className="inline-flex rounded-full border border-sky-500/20 bg-theme-bg-app px-3 py-1 text-xs font-semibold text-sky-400">
                   worker {formatNumber(systemWorkerDetailState.data?.worker_count)} / slots {formatNumber(systemWorkerDetailState.data?.total_capacity)}
                 </span>
               </div>
 
               <div style={{ display: 'grid', gap: '12px', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))' }}>
                 {systemAnalysisViewModel.overviewCards.map((item) => (
- <div key={item.label} className="rounded-2xl border border-sky-500/20 bg-theme-bg-app px-4 py-3">
+ <div key={item.label} className="rounded-2xl border border-sky-500/20 bg-theme-surface px-4 py-3">
                     <div style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.16em', color: LK.muted }}>{item.label}</div>
-                    <div className={`mt-2 text-2xl font-black ${item.tone}`}>{item.value}</div>
+                    <div className={`mt-2 text-2xl font-bold ${item.tone}`}>{item.value}</div>
                     <div style={{ marginTop: '4px', fontSize: '12px', color: LK.muted }}>{item.hint}</div>
                   </div>
                 ))}
@@ -4749,7 +4749,7 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
                   {systemAnalysisViewModel.compactSummary.map((item) => (
                     <div key={item.label} className="inline-flex items-center gap-2 text-sm">
                       <span style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.14em', color: LK.muted }}>{item.label}</span>
-                      <span className={`font-mono font-black ${item.tone}`}>{item.value}</span>
+                      <span className={`font-mono font-semibold ${item.tone}`}>{item.value}</span>
                     </div>
                   ))}
                 </div>
@@ -4801,7 +4801,7 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
                       ].map((item) => (
                         <div key={item.label} style={{ borderRadius: '12px', border: `1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised, padding: '12px 16px' }}>
                           <div style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.16em', color: LK.muted }}>{item.label}</div>
-                          <div className="mt-2 text-lg font-black text-theme-text-primary">{item.value}</div>
+                          <div className="mt-2 text-lg font-semibold text-theme-text-primary">{item.value}</div>
                           <div style={{ marginTop: '4px', fontSize: '12px', color: LK.muted }}>{item.hint}</div>
                         </div>
                       ))}
@@ -4841,7 +4841,7 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
                             <div className="mt-3 grid gap-2 lg:grid-cols-2">
                               {asArray(worker.active_jobs).length ? (
                                 asArray(worker.active_jobs).map((job) => (
-                                  <div key={`${worker.worker_id}:${job.task_id}`} className="rounded-xl border border-theme-border bg-theme-bg-app px-3 py-3">
+                                  <div key={`${worker.worker_id}:${job.task_id}`} className="rounded-xl border border-theme-border bg-theme-surface px-3 py-3">
                                     <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '8px' }}>
                                       <div className="min-w-0 truncate text-sm font-bold text-theme-text-primary" title={job.task_id}>{job.task_id}</div>
                                       <span style={{ borderRadius: '9999px', backgroundColor: LK.surfaceRaised, padding: '2px 8px', fontSize: '10px', fontWeight: 600, color: LK.body }}>{job.status}</span>
@@ -4952,7 +4952,7 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
                         systemAnalysisViewModel.failureCategories.slice(0, 6).map((item) => (
                           <div key={item.label} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', borderRadius: '8px', border: `1px solid ${LK.borderSoft}`, backgroundColor: LK.surfaceRaised, padding: '8px 12px' }}>
                             <div style={{ fontSize: '12px', fontWeight: 600, color: LK.inkSoft }}>{item.label}</div>
-                            <div className={`font-mono text-sm font-black ${item.tone}`}>{formatNumber(item.value)}</div>
+                            <div className={`font-mono text-sm font-semibold ${item.tone}`}>{formatNumber(item.value)}</div>
                           </div>
                         ))
                       ) : (
@@ -4978,7 +4978,7 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
                             <div style={{ fontSize: '12px', fontWeight: 600, color: LK.inkSoft }}>{item.label}</div>
                             <div style={{ fontSize: '11px', color: LK.muted }}>{item.hint}</div>
                           </div>
-                          <div className={`font-mono text-sm font-black ${item.tone}`}>{item.value}</div>
+                          <div className={`font-mono text-sm font-semibold ${item.tone}`}>{item.value}</div>
                         </div>
                       ))}
                     </div>
@@ -4994,7 +4994,7 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
                     {systemAnalysisViewModel.checkpointCards.map((item) => (
                       <div key={item.label} style={{ borderRadius: '12px', border: `1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised, padding: '12px 16px' }}>
                         <div style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.16em', color: LK.muted }}>{item.label}</div>
-                        <div className={`mt-2 text-xl font-black ${item.tone}`}>{item.value}</div>
+                        <div className={`mt-2 text-xl font-semibold ${item.tone}`}>{item.value}</div>
                         <div style={{ marginTop: '4px', fontSize: '12px', color: LK.muted }}>{item.hint}</div>
                       </div>
                     ))}
@@ -5061,7 +5061,7 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
                     {systemAnalysisViewModel.stagePressureCards.map((item) => (
                       <div key={item.label} style={{ borderRadius: '12px', border: `1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised, padding: '12px 16px' }}>
                         <div style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.16em', color: LK.muted }}>{item.label}</div>
-                        <div className={`mt-2 text-lg font-black ${item.tone}`}>{item.value}</div>
+                        <div className={`mt-2 text-lg font-semibold ${item.tone}`}>{item.value}</div>
                         <div style={{ marginTop: '4px', fontSize: '12px', color: LK.muted }}>{item.hint}</div>
                       </div>
                     ))}
@@ -5069,7 +5069,7 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
                 </div>
 
                 <div className="mt-4 grid gap-4 xl:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
-                  <div className="h-64 rounded-2xl border border-theme-border bg-theme-bg-app p-3">
+                  <div className="h-64 rounded-2xl border border-theme-border bg-theme-surface p-3">
                     {systemAnalysisViewModel.stagePressureRows.length ? (
                       <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={240}>
                         <BarChart data={systemAnalysisViewModel.stagePressureRows} margin={{ top: 8, right: 12, left: 0, bottom: 8 }}>
@@ -5092,14 +5092,14 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
                   <div className="space-y-2">
                     {systemAnalysisViewModel.stagePressureRows.length ? (
                       systemAnalysisViewModel.stagePressureRows.map((item) => (
-                        <div key={item.stage} className="flex items-center justify-between gap-3 rounded-xl border border-theme-border bg-theme-bg-app px-4 py-3">
+                        <div key={item.stage} className="flex items-center justify-between gap-3 rounded-xl border border-theme-border bg-theme-surface px-4 py-3">
                           <div style={{ minWidth: 0 }}>
-                            <div className="truncate text-sm font-black text-theme-text-primary">{item.stage}</div>
+                            <div className="truncate text-sm font-semibold text-theme-text-primary">{item.stage}</div>
                             <div style={{ marginTop: '4px', fontSize: '12px', color: LK.muted }}>
                               running {formatNumber(item.runningRuns)} · avg {formatSeconds(item.avgDurationSeconds)} · success {item.successRate == null ? '-' :`${formatNumber(item.successRate, 1)}%`}
                             </div>
                           </div>
-                          <div className={`font-mono text-sm font-black ${item.tone}`}>{formatNumber(item.pressureScore, 1)}</div>
+                          <div className={`font-mono text-sm font-semibold ${item.tone}`}>{formatNumber(item.pressureScore, 1)}</div>
                         </div>
                       ))
                     ) : (
@@ -5132,7 +5132,7 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
                     },
                   ].map((item) => (
                     <div key={item.label} style={{ borderRadius: '12px', border: `1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised, padding: '12px 16px' }}>
-                      <div className="text-xs font-black text-theme-text-primary">{item.label}</div>
+                      <div className="text-xs font-semibold text-theme-text-primary">{item.label}</div>
                       <div className="mt-2 text-[11px] leading-5 text-theme-text-muted">{item.text}</div>
                     </div>
                   ))}
@@ -5149,7 +5149,7 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
           ) : null}
 
           {firmwareUnpackerViewModel ? (
- <section className="space-y-4 rounded-[2rem] border border-amber-500/20 bg-theme-bg-app p-5">
+ <section className="space-y-4 rounded-xl border border-amber-500/20 bg-theme-surface p-5">
               <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'flex-start', justifyContent: 'space-between', gap: '16px' }}>
                 <div>
                   <h2 style={{ marginTop: '8px', fontSize: '20px', fontWeight: 600, letterSpacing: '-0.02em', color: LK.ink }}>固件解包运行健康</h2>
@@ -5157,16 +5157,16 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
                     优先展示任务状态、队列积压、Worker 在线能力、并发槽位和清理异常；原始 Prometheus 样本仍保留在下方用于排障。
                   </p>
                 </div>
- <span className="inline-flex rounded-full border border-amber-500/20 bg-theme-bg-app px-3 py-1 text-xs font-black text-amber-400">
+ <span className="inline-flex rounded-full border border-amber-500/20 bg-theme-bg-app px-3 py-1 text-xs font-semibold text-amber-400">
                   专属聚合视图
                 </span>
               </div>
 
               <div style={{ display: 'grid', gap: '12px', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))' }}>
                 {firmwareUnpackerViewModel.kpis.map((item) => (
- <div key={item.label} className="rounded-2xl border border-amber-500/20 bg-theme-bg-app px-4 py-3">
+ <div key={item.label} className="rounded-2xl border border-amber-500/20 bg-theme-surface px-4 py-3">
                     <div style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.16em', color: LK.muted }}>{item.label}</div>
-                    <div className={`mt-2 text-2xl font-black ${item.tone}`}>{item.value}</div>
+                    <div className={`mt-2 text-2xl font-bold ${item.tone}`}>{item.value}</div>
                     <div style={{ marginTop: '4px', fontSize: '12px', color: LK.muted }}>{item.hint}</div>
                   </div>
                 ))}
@@ -5218,9 +5218,9 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
                   <div style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.18em', color: LK.muted }}>异常 / 调度 / 清理</div>
                   <div className="mt-3 grid gap-2 md:grid-cols-2">
                     {firmwareUnpackerViewModel.operations.map((item) => (
-                      <div key={item.label} className="rounded-xl border border-theme-border bg-theme-bg-app px-3 py-2">
+                      <div key={item.label} className="rounded-xl border border-theme-border bg-theme-surface px-3 py-2">
                         <div style={{ fontSize: '12px', fontWeight: 600, color: LK.inkSoft }}>{item.label}</div>
-                        <div className={`mt-1 text-lg font-black ${item.tone}`}>{formatNumber(item.value)}</div>
+                        <div className={`mt-1 text-lg font-semibold ${item.tone}`}>{formatNumber(item.value)}</div>
                         <div style={{ fontSize: '11px', color: LK.muted }}>{item.hint}</div>
                       </div>
                     ))}
@@ -5235,7 +5235,7 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
                           <div style={{ fontSize: '12px', fontWeight: 600, color: LK.inkSoft }}>{item.label}</div>
                           <div style={{ fontSize: '11px', color: LK.muted }}>{item.hint}</div>
                         </div>
-                        <div className={`font-mono text-sm font-black ${item.tone}`}>{item.value}</div>
+                        <div className={`font-mono text-sm font-semibold ${item.tone}`}>{item.value}</div>
                       </div>
                     ))}
                   </div>
@@ -5288,11 +5288,11 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
                       <div key={item.label} style={{ borderRadius: '12px', border: `1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised, padding: '12px 16px' }}>
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px' }}>
                           <div>
-                            <div className="text-sm font-black text-theme-text-primary">{item.label}</div>
+                            <div className="text-sm font-semibold text-theme-text-primary">{item.label}</div>
                             <div style={{ marginTop: '4px', fontSize: '12px', color: LK.muted }}>{item.hint}</div>
                           </div>
                           <div className="text-right">
-                            <div className="text-lg font-black text-theme-text-primary">{formatMetricValue(item.value)}</div>
+                            <div className="text-lg font-semibold text-theme-text-primary">{formatMetricValue(item.value)}</div>
                             <span className={`mt-1 inline-flex rounded-full border px-2 py-0.5 text-[10px] font-bold ${GROUP_BADGE[item.group]}`}>
                               {GROUP_LABELS[item.group]}
                             </span>
@@ -5307,9 +5307,9 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
 
                 <div className="mt-5 grid gap-2 sm:grid-cols-2">
                   {viewModel.groupCounts.map((item) => (
-                    <div key={item.group} className="rounded-xl border border-theme-border bg-theme-bg-app px-3 py-2">
+                    <div key={item.group} className="rounded-xl border border-theme-border bg-theme-surface px-3 py-2">
                       <div style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.14em', color: LK.muted }}>{GROUP_LABELS[item.group]}</div>
-                      <div className="mt-1 text-base font-black text-theme-text-primary">{formatNumber(item.count)}</div>
+                      <div className="mt-1 text-base font-semibold text-theme-text-primary">{formatNumber(item.count)}</div>
                     </div>
                   ))}
                 </div>
@@ -5429,11 +5429,11 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
             <p className="mt-4 text-sm text-theme-text-muted">正在抓取 reducer 指标...</p>
           </section>
         ) : reducerMetricsState.error && !reducerMetricsState.rawText ? (
- <section className="rounded-[2rem] border border-rose-500/20 bg-rose-500/15 px-6 py-12 text-center">
+ <section className="rounded-xl border border-rose-500/20 bg-rose-500/15 px-6 py-12 text-center">
             <p className="text-sm font-semibold text-rose-400">{reducerMetricsState.error}</p>
           </section>
         ) : reducerViewModel ? (
- <section className="space-y-4 rounded-[2rem] border border-theme-border bg-theme-bg-app p-5">
+ <section className="space-y-4 rounded-xl border border-theme-border bg-theme-surface p-5">
             <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'flex-start', justifyContent: 'space-between', gap: '16px' }}>
               <div>
                 <h2 style={{ marginTop: '8px', fontSize: '24px', fontWeight: 600, letterSpacing: '-0.02em', color: LK.ink }}>状态收口观测</h2>
@@ -5481,8 +5481,8 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
                 },
               ].map((item) => (
  <div key={item.label} className={`rounded-[1.4rem] border px-4 py-4 ${item.tone}`}>
-                  <div className="text-[11px] font-black uppercase tracking-[0.18em]">{item.label}</div>
-                  <div className="mt-3 text-2xl font-black tracking-tight">{item.value}</div>
+                  <div className="text-[11px] font-semibold uppercase tracking-[0.18em]">{item.label}</div>
+                  <div className="mt-3 text-2xl font-bold tracking-tight">{item.value}</div>
                   <div className="mt-1 text-xs opacity-85">{item.hint}</div>
                 </div>
               ))}
@@ -5492,10 +5492,10 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
               {reducerViewModel.queueCards.map((item) => (
  <div key={item.label} className={`rounded-[1.4rem] border px-4 py-4 ${item.tone}`}>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px' }}>
-                    <div className="text-[11px] font-black uppercase tracking-[0.18em]">{item.label}</div>
+                    <div className="text-[11px] font-semibold uppercase tracking-[0.18em]">{item.label}</div>
                     <span>{item.icon}</span>
                   </div>
-                  <div className="mt-3 text-3xl font-black tracking-tight">{formatNumber(item.value)}</div>
+                  <div className="mt-3 text-3xl font-bold tracking-tight">{formatNumber(item.value)}</div>
                   <div className="mt-1 text-xs opacity-80">{item.hint}</div>
                 </div>
               ))}
@@ -5563,7 +5563,7 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
                   {reducerViewModel.healthSummary.map((item) => (
                     <div key={item.label} style={{ borderRadius: '12px', border: `1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised, padding: '12px 16px' }}>
                       <div style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.18em', color: LK.muted }}>{item.label}</div>
-                      <div className={`mt-2 text-2xl font-black ${item.tone}`}>{item.value}</div>
+                      <div className={`mt-2 text-2xl font-bold ${item.tone}`}>{item.value}</div>
                       <div style={{ marginTop: '4px', fontSize: '12px', color: LK.muted }}>{item.hint}</div>
                     </div>
                   ))}
@@ -5626,10 +5626,10 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
       ) : activeSecondaryTab === 'agent' ? (
         agentObservabilityEnabled ? (
           <div className="space-y-4">
- <section className="rounded-[2rem] border border-cyan-500/20 bg-theme-bg-app p-5">
+ <section className="rounded-xl border border-cyan-500/20 bg-theme-surface p-5">
               <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'flex-start', justifyContent: 'space-between', gap: '16px' }}>
                 <div>
-                  <div className="text-[11px] font-black uppercase tracking-[0.2em] text-cyan-400">
+                  <div className="text-[11px] font-semibold uppercase tracking-[0.2em] text-cyan-400">
                     {activeServiceKey === 'dataflow-analysis' ? 'DFA Agent Runtime' : activeServiceKey === 'entry-analysis' ? 'Entry Agent Runtime' : 'System Agent Runtime'}
                   </div>
                   <h2 style={{ marginTop: '8px', fontSize: '24px', fontWeight: 600, letterSpacing: '-0.02em', color: LK.ink }}>按 Worker Pod 展开的智能体运行面板</h2>
@@ -5641,7 +5641,7 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
                   <button
                     type="button"
                     onClick={() => void loadAgentObservability(activeServiceKey)}
-                    className="inline-flex items-center gap-2 rounded-xl border border-cyan-500/20 bg-theme-bg-app px-3 py-2 text-sm font-bold text-cyan-400 hover:bg-cyan-500/15"
+                    className="inline-flex items-center gap-2 rounded-xl border border-cyan-500/20 bg-theme-surface px-3 py-2 text-sm font-bold text-cyan-400 hover:bg-cyan-500/15"
                   >
                     <RefreshCw size={14} />
                     刷新概览
@@ -5649,7 +5649,7 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
                   <button
                     type="button"
                     onClick={() => void ensureAgentPodsLoaded(activeServiceKey)}
-                    className="inline-flex items-center gap-2 rounded-xl border border-theme-border bg-theme-bg-app px-3 py-2 text-sm font-bold text-theme-text-secondary hover:bg-theme-elevated"
+                    className="inline-flex items-center gap-2 rounded-xl border border-theme-border bg-theme-surface px-3 py-2 text-sm font-bold text-theme-text-secondary hover:bg-theme-elevated"
                   >
                     <Loader2 size={14} className={agentState.podsLoading ? 'animate-spin' : ''} />
                     {agentState.podsLoaded ? '刷新 Pod 列表' : '加载 Pod 列表'}
@@ -5695,7 +5695,7 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
 
               {unifiedAgentRuntimeViewModel?.aggregatePartial ? (
                 <div className="mt-4 rounded-2xl border border-amber-500/20 bg-amber-500/15 px-4 py-3 text-sm text-amber-300">
-                  <div className="font-black">{unifiedAgentRuntimeViewModel?.aggregateAllSourcesFailed ? '全部 Worker Pod 观测失败' : '部分 Pod 观测失败'}</div>
+                  <div className="font-semibold">{unifiedAgentRuntimeViewModel?.aggregateAllSourcesFailed ? '全部 Worker Pod 观测失败' : '部分 Pod 观测失败'}</div>
                   <div className="mt-1">
                     本次聚合仅覆盖 {formatNumber(unifiedAgentRuntimeViewModel?.aggregateSources)} 个来源，失败目标 {formatNumber(unifiedAgentRuntimeViewModel?.aggregateFailedTargetCount)} 个。
                     {unifiedAgentRuntimeViewModel?.aggregateAllSourcesFailed ? ' 当前展示的是失败态，而不是“真实 0 进程”。' : ' 页面仍会展示已成功返回的 Pod 数据。'}
@@ -5716,9 +5716,9 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
                   { label: '智能体上限 / 占用', value:`${formatNumber(unifiedAgentRuntimeViewModel?.agentTotalCapacity)} / ${formatNumber(unifiedAgentRuntimeViewModel?.agentInUse)}`, hint:`等待 ${formatNumber(unifiedAgentRuntimeViewModel?.agentWaitingRequests)} / RSS ${formatBytes(unifiedAgentRuntimeViewModel?.agentRssTotalBytes || 0)}`, tone: 'text-violet-400' },
                   { label: 'Pod 缺口', value:`${formatNumber(unifiedAgentRuntimeViewModel?.slotOnlyPods)} / ${formatNumber(unifiedAgentRuntimeViewModel?.agentOnlyPods)}`, hint: 'slot_only / agent_only', tone: (Number(unifiedAgentRuntimeViewModel?.slotOnlyPods || 0) + Number(unifiedAgentRuntimeViewModel?.agentOnlyPods || 0)) > 0 ? 'text-amber-400' : 'text-emerald-400' },
                 ].map((item) => (
- <div key={item.label} className="rounded-2xl border border-cyan-500/20 bg-theme-bg-app px-4 py-3">
+ <div key={item.label} className="rounded-2xl border border-cyan-500/20 bg-theme-surface px-4 py-3">
                     <div style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.16em', color: LK.muted }}>{item.label}</div>
-                    <div className={`mt-2 text-2xl font-black ${item.tone}`}>{item.value}</div>
+                    <div className={`mt-2 text-2xl font-bold ${item.tone}`}>{item.value}</div>
                     <div style={{ marginTop: '4px', fontSize: '12px', color: LK.muted }}>{item.hint}</div>
                   </div>
                 ))}
@@ -5778,7 +5778,7 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
                   </p>
                 </section>
               ) : !agentState.podsLoaded ? (
- <section className="rounded-[2rem] border border-dashed border-theme-border bg-theme-bg-app px-6 py-12 text-center">
+ <section className="rounded-xl border border-dashed border-theme-border bg-theme-surface px-6 py-12 text-center">
                   <p style={{ fontSize: '14px', color: LK.muted }}>当前只加载了聚合概览。点击“加载 Pod 列表”后再查看各 Worker Pod 详情。</p>
                 </section>
               ) : filteredDfaPods.length ? (
@@ -5792,7 +5792,7 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
                       >
                         <div style={{ minWidth: 0 }}>
                           <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '8px' }}>
-                            <div className="text-base font-black text-theme-text-primary">{pod.pod_name}</div>
+                            <div className="text-base font-semibold text-theme-text-primary">{pod.pod_name}</div>
                             <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${pod.healthy ? 'bg-emerald-500/15 text-emerald-400' : 'bg-rose-500/15 text-rose-400'}`}>
                               {pod.healthy ? 'healthy' : 'partial/unhealthy'}
                             </span>
@@ -5842,7 +5842,7 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
                 <div style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.18em', color: LK.muted }}>最近处置</div>
                 <div style={{ marginTop: '12px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
                   {agentKillHistory.map((entry) => (
-                    <div key={entry.id} className="rounded-xl border border-theme-border bg-theme-bg-app px-4 py-3 text-xs text-theme-text-secondary">
+                    <div key={entry.id} className="rounded-xl border border-theme-border bg-theme-surface px-4 py-3 text-xs text-theme-text-secondary">
                       <div className="font-bold text-theme-text-primary">{entry.scope}</div>
                       <div className="mt-1">requested {entry.response.requested} / matched {entry.response.matched} / ok {entry.response.succeeded} / failed {entry.response.failed} / skipped {entry.response.skipped}</div>
                     </div>
@@ -5856,7 +5856,7 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
                 onClick={closeAgentPodDialog}
               >
                 <div
- className="relative flex max-h-[92vh] w-[min(96vw,1720px)] flex-col overflow-hidden rounded-[2rem] border border-theme-border bg-theme-bg-app"
+ className="relative flex max-h-[92vh] w-[min(96vw,1720px)] flex-col overflow-hidden rounded-xl border border-theme-border bg-theme-surface"
                   onClick={(event) => event.stopPropagation()}
                 >
                   <button
@@ -5871,7 +5871,7 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
                   <div className="flex flex-wrap items-start justify-between gap-4 border-b border-theme-border px-6 py-5">
                     <div style={{ minWidth: 0 }}>
                       <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '8px' }}>
-                        <div className="text-xl font-black tracking-tight text-theme-text-primary">{activeAgentPodCard.pod_name}</div>
+                        <div className="text-xl font-semibold tracking-tight text-theme-text-primary">{activeAgentPodCard.pod_name}</div>
                         <span className={`rounded-full px-2.5 py-1 text-[11px] font-bold ${activeAgentPodCard.healthy ? 'bg-emerald-500/15 text-emerald-400' : 'bg-rose-500/15 text-rose-400'}`}>
                           {activeAgentPodCard.healthy ? 'healthy' : 'partial/unhealthy'}
                         </span>
@@ -5923,7 +5923,7 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
                       <button
                         type="button"
                         onClick={closeAgentPodDialog}
-                        className="rounded-xl border border-theme-border bg-theme-bg-app px-4 py-2 text-sm font-bold text-theme-text-secondary hover:bg-theme-elevated"
+                        className="rounded-xl border border-theme-border bg-theme-surface px-4 py-2 text-sm font-bold text-theme-text-secondary hover:bg-theme-elevated"
                       >
                         关闭
                       </button>
@@ -5932,12 +5932,12 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
 
                   <div className="flex-1 space-y-5 overflow-y-auto px-6 py-5">
                     {!activeAgentPodDetail?.loading && !activeAgentPodDetail?.loaded && !activeAgentPodDetail?.error ? (
-                      <div className="rounded-2xl border border-theme-border bg-theme-bg-app px-4 py-4 text-sm text-theme-text-muted">
+                      <div className="rounded-2xl border border-theme-border bg-theme-surface px-4 py-4 text-sm text-theme-text-muted">
                         当前 Pod 已保留在槽位/智能体并集视图中，进程与任务明细尚未加载。
                       </div>
                     ) : null}
                     {activeAgentPodDetail?.loading ? (
-                      <div className="rounded-2xl border border-theme-border bg-theme-bg-app px-4 py-4 text-sm text-theme-text-muted">
+                      <div className="rounded-2xl border border-theme-border bg-theme-surface px-4 py-4 text-sm text-theme-text-muted">
                         正在加载该 Pod 的进程与任务明细...
                       </div>
                     ) : null}
@@ -5955,7 +5955,7 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
                         </div>
                         <div className="text-xs font-semibold text-theme-text-muted">共 {formatNumber(activeAgentPodTasks.length)} 条</div>
                       </div>
-                      <div className="mt-4 overflow-auto rounded-2xl border border-theme-border bg-theme-bg-app">
+                      <div className="mt-4 overflow-auto rounded-2xl border border-theme-border bg-theme-surface">
                         <table className="min-w-[980px] divide-y divide-theme-border text-left text-xs">
                           <thead style={{ backgroundColor: LK.surfaceRaised, color: LK.muted }}>
                             <tr>
@@ -6027,7 +6027,7 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
                           共 {formatNumber(activeAgentPodProcesses.length)} 条，可终止 {formatNumber(activeAgentPodKillablePids.length)} 条
                         </div>
                       </div>
-                      <div className="mt-4 overflow-auto rounded-2xl border border-theme-border bg-theme-bg-app">
+                      <div className="mt-4 overflow-auto rounded-2xl border border-theme-border bg-theme-surface">
                         <table className="min-w-[1480px] divide-y divide-theme-border text-left text-xs">
                           <thead style={{ backgroundColor: LK.surfaceRaised, color: LK.muted }}>
                             <tr>
@@ -6165,11 +6165,11 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
           <section style={{ borderRadius: '12px', border: `1px solid ${LK.border}`, backgroundColor: LK.surface, padding: '24px' }}>
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
-                <div className="text-[11px] font-black uppercase tracking-[0.18em] text-fuchsia-500">AI/智能体</div>
+                <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-fuchsia-500">AI/智能体</div>
                 <h2 style={{ marginTop: '8px', fontSize: '24px', fontWeight: 600, letterSpacing: '-0.02em', color: LK.ink }}>AI专区</h2>
                 <p className="mt-2 max-w-3xl text-sm text-theme-text-muted">{effectiveAiViewModel.coverageText}</p>
               </div>
-              <div className={`inline-flex rounded-full border px-3 py-1 text-xs font-black ${AI_COVERAGE_BADGE[effectiveAiViewModel.coverage]}`}>
+              <div className={`inline-flex rounded-full border px-3 py-1 text-xs font-semibold ${AI_COVERAGE_BADGE[effectiveAiViewModel.coverage]}`}>
                 {effectiveAiViewModel.coverageLabel}
               </div>
             </div>
@@ -6197,16 +6197,16 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
                       <div style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.18em', color: LK.muted }}>埋点覆盖</div>
                       <h3 style={{ marginTop: '8px', fontSize: '20px', fontWeight: 600, letterSpacing: '-0.02em', color: LK.ink }}>AI 指标摘要</h3>
                       <div className="mt-4 grid gap-3 sm:grid-cols-2">
-                        <div className="rounded-2xl border border-theme-border bg-theme-bg-app px-4 py-4">
+                        <div className="rounded-2xl border border-theme-border bg-theme-surface px-4 py-4">
                           <div style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.18em', color: LK.muted }}>识别到的 AI 指标族</div>
-                          <div className="mt-3 text-3xl font-black text-theme-text-primary">{formatNumber(effectiveAiViewModel.familyCount)}</div>
+                          <div className="mt-3 text-3xl font-bold text-theme-text-primary">{formatNumber(effectiveAiViewModel.familyCount)}</div>
                         </div>
-                        <div className="rounded-2xl border border-theme-border bg-theme-bg-app px-4 py-4">
+                        <div className="rounded-2xl border border-theme-border bg-theme-surface px-4 py-4">
                           <div style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.18em', color: LK.muted }}>Canonical 契约</div>
-                          <div className="mt-3 text-base font-black text-theme-text-primary">{effectiveAiViewModel.coverageLabel}</div>
+                          <div className="mt-3 text-base font-semibold text-theme-text-primary">{effectiveAiViewModel.coverageLabel}</div>
                         </div>
                       </div>
-                      <div className="mt-4 rounded-2xl border border-theme-border bg-theme-bg-app px-4 py-4">
+                      <div className="mt-4 rounded-2xl border border-theme-border bg-theme-surface px-4 py-4">
                         <div className="text-sm font-bold text-theme-text-primary">已识别 canonical 维度</div>
                         <div className="mt-3 flex flex-wrap gap-2">
                           {BINARY_SECURITY_CANONICAL_AI_METRICS.map((item) => {

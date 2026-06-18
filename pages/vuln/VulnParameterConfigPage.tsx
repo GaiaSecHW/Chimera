@@ -412,7 +412,7 @@ export const VulnParameterConfigPage: React.FC<VulnPageProps> = ({ projectId, on
             <div className="text-xs font-semibold uppercase tracking-wider" style={{ color: LK.muted }}>
               阶段页签
             </div>
-            <div className="mt-2 text-2xl font-semibold tabular-nums" style={{ color: LK.ink }}>{PHASES.length}</div>
+            <div className="mt-2 text-2xl font-bold tabular-nums" style={{ color: LK.ink }}>{PHASES.length}</div>
           </div>
           <div
             className="rounded-xl px-4 py-4"
@@ -519,7 +519,7 @@ export const VulnParameterConfigPage: React.FC<VulnPageProps> = ({ projectId, on
                   <div className="text-xs font-semibold uppercase tracking-wider" style={{ color: 'rgba(255, 255, 255, 0.8)' }}>
                     {activePhase.badge}
                   </div>
-                  <h2 className="mt-2 text-2xl font-semibold">{activePhase.label}</h2>
+                  <h2 className="mt-2 text-2xl font-bold">{activePhase.label}</h2>
                   <p className="mt-2 text-sm leading-7" style={{ color: 'rgba(255, 255, 255, 0.9)' }}>{activePhase.summary}</p>
                 </div>
                 <div className="flex flex-wrap gap-3">

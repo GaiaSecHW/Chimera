@@ -315,7 +315,7 @@ export const RedlineOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) 
       {/* Create Task Dialog */}
       {showCreateDialog && (
         <div className="fixed inset-0 z-[120] flex items-center justify-center bg-black/50" onClick={closeDialogs}>
- <div className="bg-theme-surface rounded-2xl p-6 w-[480px] border border-theme-border" onClick={(e) => e.stopPropagation()}>
+ <div className="bg-theme-surface rounded-xl p-6 w-[480px] border border-theme-border" onClick={(e) => e.stopPropagation()}>
             <h3 className="text-base font-semibold text-theme-text-primary mb-4">新建任务</h3>
             <div className="flex flex-col gap-4">
               <div>
@@ -366,7 +366,7 @@ export const RedlineOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) 
       {/* Edit Task Dialog */}
       {showEditDialog && editingTask && (
         <div className="fixed inset-0 z-[120] flex items-center justify-center bg-black/50" onClick={closeDialogs}>
- <div className="bg-theme-surface rounded-2xl p-6 w-[480px] border border-theme-border" onClick={(e) => e.stopPropagation()}>
+ <div className="bg-theme-surface rounded-xl p-6 w-[480px] border border-theme-border" onClick={(e) => e.stopPropagation()}>
             <h3 className="text-base font-semibold text-theme-text-primary mb-4">编辑任务</h3>
             <div className="flex flex-col gap-4">
               <div>

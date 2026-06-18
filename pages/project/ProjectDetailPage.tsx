@@ -29,6 +29,7 @@ import { environmentApi } from '../../clients/environment';
 import { api } from '../../clients/api';
 import { StatusBadge } from '../../components/StatusBadge';
 import { PageHeader } from '../../design-system';
+import { useUiFeedback } from '../../components/UiFeedback';
 
 /* ── LOKI design tokens ─────────────────────────────────────── */
 const LK = {
@@ -144,6 +145,7 @@ interface ProjectDetailPageProps {
 
 export const ProjectDetailPage: React.FC<ProjectDetailPageProps> = ({ projectId, projects, onBack }) => {
   const [loading, setLoading] = useState(true);
+  const { confirm, feedbackNodes } = useUiFeedback();
 
   /* ── block-switched list area ── */
   const [activeBlock, setActiveBlock] = useState<'task' | 'env' | 'vuln'>('task');
@@ -215,7 +217,8 @@ export const ProjectDetailPage: React.FC<ProjectDetailPageProps> = ({ projectId,
   };
 
   const deleteTask = async (task: any) => {
-    if (!window.confirm(`确认删除任务"${task.name || task.id}"？此操作不可恢复。`)) return;
+    const ok = await confirm({ message: `确认删除任务"${task.name || task.id}"？此操作不可恢复。`, danger: true });
+    if (!ok) return;
     setDeletingTaskId(task.id);
     try {
       await scheduleCenterApi.deleteUserTask(projectId, task.id);
@@ -238,7 +241,8 @@ export const ProjectDetailPage: React.FC<ProjectDetailPageProps> = ({ projectId,
 
   /* ── Vuln actions ── */
   const deleteVuln = async (v: any) => {
-    if (!window.confirm(`确认删除漏洞"${v.title || v.id}"？此操作不可恢复。`)) return;
+    const ok = await confirm({ message: `确认删除漏洞"${v.title || v.id}"？此操作不可恢复。`, danger: true });
+    if (!ok) return;
     setDeletingVulnId(v.id);
     try {
       await api.vuln.deleteCase(v.id);
@@ -276,10 +280,11 @@ export const ProjectDetailPage: React.FC<ProjectDetailPageProps> = ({ projectId,
 
   const refreshProjectToken = async () => {
     if (projectToken?.token) {
-      const confirmed = window.confirm(
-        '刷新 Token 将导致当前 Token 立即失效。\n请先完成其他系统/脚本中的 Token 替换准备，再继续刷新。\n是否确认刷新？',
-      );
-      if (!confirmed) return;
+      const ok = await confirm({
+        message: '刷新 Token 将导致当前 Token 立即失效。\n请先完成其他系统/脚本中的 Token 替换准备，再继续刷新。\n是否确认刷新？',
+        danger: true,
+      });
+      if (!ok) return;
     }
     setTokenLoading(true);
     setTokenError(null);
@@ -313,7 +318,7 @@ export const ProjectDetailPage: React.FC<ProjectDetailPageProps> = ({ projectId,
     return (
       <div className="h-full flex flex-col items-center justify-center p-20 animate-in fade-in">
         <Loader2 className="animate-spin mb-6" size={48} style={{ color: LK.primary }} />
-        <p className="text-[10px] font-black uppercase tracking-[0.2em]" style={{ color: LK.muted }}>
+        <p className="text-[10px] font-semibold uppercase tracking-[0.2em]" style={{ color: LK.muted }}>
           正在加载项目数据...
         </p>
       </div>
@@ -322,6 +327,7 @@ export const ProjectDetailPage: React.FC<ProjectDetailPageProps> = ({ projectId,
 
   return (
     <div className="p-10 space-y-8 animate-in fade-in duration-500 pb-24" style={{ backgroundColor: LK.canvas }}>
+      {feedbackNodes}
 
       {/* ── Header ─────────────────────────────────────────── */}
       <PageHeader
@@ -366,14 +372,14 @@ export const ProjectDetailPage: React.FC<ProjectDetailPageProps> = ({ projectId,
             }}
           >
             <div
-              className="w-12 h-12 rounded-xl flex items-center justify-center"
+              className="w-12 h-12 rounded-lg flex items-center justify-center"
               style={{ backgroundColor: `${stat.accent}18`, color: stat.accent }}
             >
               {stat.icon}
             </div>
             <div>
-              <p className="text-[10px] font-black uppercase tracking-widest" style={{ color: LK.muted }}>{stat.label}</p>
-              <h4 className="text-2xl font-black" style={{ color: LK.ink }}>{stat.value}</h4>
+              <p className="text-[10px] font-semibold uppercase tracking-widest" style={{ color: LK.muted }}>{stat.label}</p>
+              <h4 className="text-2xl font-bold" style={{ color: LK.ink }}>{stat.value}</h4>
             </div>
           </button>
         ))}
@@ -650,7 +656,7 @@ export const ProjectDetailPage: React.FC<ProjectDetailPageProps> = ({ projectId,
             <div className="flex items-center justify-between gap-3">
               <div>
                 <p className="text-sm font-semibold" style={{ color: LK.inkSoft }}>第三方 SDK 专用项目凭证</p>
-                <p className="text-[10px] font-black uppercase tracking-widest mt-1" style={{ color: LK.muted }}>
+                <p className="text-[10px] font-semibold uppercase tracking-widest mt-1" style={{ color: LK.muted }}>
                   {projectToken?.machine_code || `project-sdk:${projectId}`}
                 </p>
               </div>
@@ -665,7 +671,7 @@ export const ProjectDetailPage: React.FC<ProjectDetailPageProps> = ({ projectId,
               </button>
             </div>
             <div className="space-y-2">
-              <p className="text-[10px] font-black uppercase tracking-widest" style={{ color: LK.muted }}>Token</p>
+              <p className="text-[10px] font-semibold uppercase tracking-widest" style={{ color: LK.muted }}>Token</p>
               <div className="relative">
                 <div
                   className="text-xs font-mono break-all rounded-lg p-5 pr-16 min-h-[96px]"

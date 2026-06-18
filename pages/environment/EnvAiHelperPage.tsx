@@ -116,7 +116,7 @@ export const EnvAiHelperPage: React.FC<{ projectId: string; initialHelperKey?: s
         />
 
         <div className="grid grid-cols-1 gap-6 xl:grid-cols-[360px_minmax(0,1fr)]">
- <section className="rounded-2xl border border-theme-border bg-theme-bg-app p-4">
+ <section className="rounded-xl border border-theme-border bg-theme-surface p-4">
           <div className="flex gap-2">
             <input value={search} onChange={(e) => setSearch(e.target.value)} className="flex-1 rounded-xl border border-theme-border px-3 py-2 text-sm" placeholder="搜索节点、服务名、agent_key" />
           </div>
@@ -143,11 +143,11 @@ export const EnvAiHelperPage: React.FC<{ projectId: string; initialHelperKey?: s
                 <button
                   key={key}
                   onClick={() => setSelectedKey(key)}
-                  className={`w-full rounded-2xl border px-4 py-3 text-left transition ${selected ? 'border-blue-500 bg-blue-500/15' : 'border-theme-border bg-theme-bg-app hover:border-theme-border'}`}
+                  className={`w-full rounded-xl border px-4 py-3 text-left transition ${selected ? 'border-blue-500 bg-blue-500/15' : 'border-theme-border bg-theme-bg-app hover:border-theme-border'}`}
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div>
-                      <div className="text-sm font-bold text-theme-text-primary">{helper.service_name}</div>
+                      <div className="text-sm font-semibold text-theme-text-primary">{helper.service_name}</div>
                       <div className="mt-1 text-xs text-theme-text-muted">{helper.agent_hostname} · {helper.agent_key}</div>
                     </div>
                     <HealthBadge status={helper.health_status} />
@@ -163,7 +163,7 @@ export const EnvAiHelperPage: React.FC<{ projectId: string; initialHelperKey?: s
           </div>
         </section>
 
- <section className="rounded-2xl border border-theme-border bg-theme-bg-app p-5">
+ <section className="rounded-xl border border-theme-border bg-theme-surface p-5">
           {!selectedHelper ? (
             <EmptyState text="请先从左侧选择一个 AI Helper 服务。" />
           ) : detailLoading ? (
@@ -172,8 +172,8 @@ export const EnvAiHelperPage: React.FC<{ projectId: string; initialHelperKey?: s
             <div className="space-y-6">
               <div className="flex items-start justify-between gap-4 flex-wrap">
                 <div>
-                  <div className="text-xs font-black uppercase tracking-[0.2em] text-theme-text-muted">Helper 服务</div>
-                  <h2 className="mt-2 text-2xl font-black text-theme-text-primary">{selectedHelper.service_name}</h2>
+                  <div className="text-xs font-medium uppercase tracking-[0.2em] text-theme-text-muted">Helper 服务</div>
+                  <h2 className="mt-2 text-2xl font-bold text-theme-text-primary">{selectedHelper.service_name}</h2>
                   <div className="mt-2 text-sm text-theme-text-secondary">{selectedHelper.agent_hostname} · {selectedHelper.agent_ip || '-'}</div>
                   <div className="mt-2 text-xs text-theme-text-muted break-all">Tags: {(selectedHelper.tags || []).join(', ') || '-'}</div>
                 </div>
@@ -181,22 +181,22 @@ export const EnvAiHelperPage: React.FC<{ projectId: string; initialHelperKey?: s
               </div>
 
               <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
-                <div className="rounded-2xl border border-theme-border bg-theme-bg-app p-4"><div className="text-xs font-black uppercase tracking-[0.16em] text-theme-text-muted">AI Agent 总数</div><div className="mt-3 text-3xl font-black text-theme-text-primary">{helperSummary.total}</div></div>
-                <div className="rounded-2xl border border-theme-border bg-theme-bg-app p-4"><div className="text-xs font-black uppercase tracking-[0.16em] text-theme-text-muted">Installed</div><div className="mt-3 text-3xl font-black text-theme-text-primary">{helperSummary.installed}</div></div>
-                <div className="rounded-2xl border border-theme-border bg-theme-bg-app p-4"><div className="text-xs font-black uppercase tracking-[0.16em] text-theme-text-muted">Running</div><div className="mt-3 text-3xl font-black text-theme-text-primary">{helperSummary.running}</div></div>
-                <div className="rounded-2xl border border-theme-border bg-theme-bg-app p-4"><div className="text-xs font-black uppercase tracking-[0.16em] text-theme-text-muted">Active</div><div className="mt-3 text-3xl font-black text-theme-text-primary">{helperSummary.active}</div></div>
+                <div className="rounded-xl border border-theme-border bg-theme-surface p-4"><div className="text-xs font-medium uppercase tracking-[0.16em] text-theme-text-muted">AI Agent 总数</div><div className="mt-3 text-3xl font-bold text-theme-text-primary">{helperSummary.total}</div></div>
+                <div className="rounded-xl border border-theme-border bg-theme-surface p-4"><div className="text-xs font-medium uppercase tracking-[0.16em] text-theme-text-muted">Installed</div><div className="mt-3 text-3xl font-bold text-theme-text-primary">{helperSummary.installed}</div></div>
+                <div className="rounded-xl border border-theme-border bg-theme-surface p-4"><div className="text-xs font-medium uppercase tracking-[0.16em] text-theme-text-muted">Running</div><div className="mt-3 text-3xl font-bold text-theme-text-primary">{helperSummary.running}</div></div>
+                <div className="rounded-xl border border-theme-border bg-theme-surface p-4"><div className="text-xs font-medium uppercase tracking-[0.16em] text-theme-text-muted">Active</div><div className="mt-3 text-3xl font-bold text-theme-text-primary">{helperSummary.active}</div></div>
               </div>
 
               <div className="grid grid-cols-1 gap-6 xl:grid-cols-[1.1fr_0.9fr]">
                 <div className="space-y-4">
-                  <div className="rounded-2xl border border-theme-border p-4">
-                    <div className="text-sm font-bold text-theme-text-primary">AI Agent 摘要</div>
+                  <div className="rounded-xl border border-theme-border p-4">
+                    <div className="text-sm font-semibold text-theme-text-primary">AI Agent 摘要</div>
                     <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2">
                       {(selectedHelper.agents || []).length === 0 ? <div className="text-sm text-theme-text-muted">当前 helper 下暂无 AI Agent。</div> : (selectedHelper.agents || []).map((agent) => (
                         <div key={agent.agent_id} className="rounded-xl border border-theme-border p-3">
-                          <div className="text-sm font-bold text-theme-text-primary">{agent.agent_id}</div>
+                          <div className="text-sm font-semibold text-theme-text-primary">{agent.agent_id}</div>
                           <div className="mt-1 text-xs text-theme-text-muted">{agent.backend_type} · {agent.command || '-'}</div>
-                          <div className="mt-2 flex flex-wrap gap-2 text-[11px] font-black uppercase tracking-[0.16em]">
+                          <div className="mt-2 flex flex-wrap gap-2 text-[11px] font-medium uppercase tracking-[0.16em]">
                             <span className={agent.installed ? 'text-green-400' : 'text-theme-text-muted'}>{agent.installed ? 'INSTALLED' : 'MISSING'}</span>
                             <span className={agent.running ? 'text-emerald-400' : 'text-theme-text-muted'}>{agent.running ? 'RUNNING' : 'STOPPED'}</span>
                             <span className={agent.active ? 'text-blue-400' : 'text-theme-text-muted'}>{agent.active ? 'ACTIVE' : 'INACTIVE'}</span>
@@ -208,11 +208,11 @@ export const EnvAiHelperPage: React.FC<{ projectId: string; initialHelperKey?: s
                   <JsonBlock title="Helper 健康详情" value={selectedHelper.health || {}} />
                 </div>
                 <div className="space-y-4">
-                  <div className="rounded-2xl border border-theme-border p-4">
-                    <div className="text-sm font-bold text-theme-text-primary">最近会话</div>
+                  <div className="rounded-xl border border-theme-border p-4">
+                    <div className="text-sm font-semibold text-theme-text-primary">最近会话</div>
                     <div className="mt-3 space-y-2">
                       {selectedSessions.length === 0 ? <div className="text-sm text-theme-text-muted">当前 helper 还没有会话记录。</div> : selectedSessions.map((session) => (
-                        <div key={session.session_id} className="rounded-xl border border-theme-border bg-theme-bg-app px-3 py-2.5">
+                        <div key={session.session_id} className="rounded-xl border border-theme-border bg-theme-surface px-3 py-2.5">
                           <div className="flex items-start justify-between gap-2">
                             <div className="min-w-0">
                               <div className="truncate font-mono text-[11px] font-semibold text-theme-text-primary">{session.session_id}</div>

@@ -332,9 +332,9 @@ function MarkdownContent({ content }: { content: string }) {
           ),
           ul: ({ children }) => <ul className="mb-3 list-disc space-y-1 pl-5 last:mb-0">{children}</ul>,
           ol: ({ children }) => <ol className="mb-3 list-decimal space-y-1 pl-5 last:mb-0">{children}</ol>,
-          h1: ({ children }) => <h1 className="mb-3 text-xl font-black text-theme-text-primary last:mb-0">{children}</h1>,
-          h2: ({ children }) => <h2 className="mb-3 text-lg font-black text-theme-text-primary last:mb-0">{children}</h2>,
-          h3: ({ children }) => <h3 className="mb-2 text-base font-black text-theme-text-primary last:mb-0">{children}</h3>,
+          h1: ({ children }) => <h1 className="mb-3 text-xl font-semibold text-theme-text-primary last:mb-0">{children}</h1>,
+          h2: ({ children }) => <h2 className="mb-3 text-lg font-semibold text-theme-text-primary last:mb-0">{children}</h2>,
+          h3: ({ children }) => <h3 className="mb-2 text-base font-semibold text-theme-text-primary last:mb-0">{children}</h3>,
           blockquote: ({ children }) => (
             <blockquote className="mb-3 border-l-4 border-theme-border bg-theme-bg-app px-4 py-2 italic text-theme-text-secondary last:mb-0">
               {children}
@@ -346,12 +346,12 @@ function MarkdownContent({ content }: { content: string }) {
             </div>
           ),
           thead: ({ children }) => <thead className="bg-theme-elevated">{children}</thead>,
-          th: ({ children }) => <th className="border border-theme-border px-3 py-2 font-black text-theme-text-primary">{children}</th>,
+          th: ({ children }) => <th className="border border-theme-border px-3 py-2 font-semibold text-theme-text-primary">{children}</th>,
           td: ({ children }) => <td className="border border-theme-border px-3 py-2 align-top">{children}</td>,
           code: ({ children, className }) => {
             const isBlock = Boolean(className);
             if (isBlock) {
-              return <code className="block overflow-x-auto rounded-2xl border border-theme-border bg-theme-bg-app px-4 py-3 font-mono text-xs text-theme-text-primary">{children}</code>;
+              return <code className="block overflow-x-auto rounded-2xl border border-theme-border bg-theme-surface px-4 py-3 font-mono text-xs text-theme-text-primary">{children}</code>;
             }
             return <code className="rounded bg-theme-elevated px-1.5 py-0.5 font-mono text-[0.9em] text-theme-text-primary">{children}</code>;
           },
@@ -1804,7 +1804,7 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
         />
       ) : null}
 
- <section className="rounded-[2rem] border border-theme-border bg-theme-bg-app p-6">
+ <section className="rounded-xl border border-theme-border bg-theme-surface p-6">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div className="min-w-0">
             <button
@@ -1815,7 +1815,7 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
               {hasReturnContext ? '返回原任务' : '返回任务列表'}
             </button>
             <div className="mt-3 flex flex-wrap items-center gap-3">
-              <h1 className="text-3xl font-black tracking-tight text-theme-text-primary">{detail?.task_name || '任务详情'}</h1>
+              <h1 className="text-3xl font-bold tracking-tight text-theme-text-primary">{detail?.task_name || '任务详情'}</h1>
               {detail ? (
                 <span className={`rounded-md px-2.5 py-1 text-xs font-semibold ${STATUS_COLOR[detail.status] ?? 'bg-theme-elevated text-theme-text-secondary'}`}>
                   {STATUS_LABEL[detail.status] ?? detail.status}
@@ -1889,7 +1889,7 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
               origin={detail}
               actions={canRepairOrigin ? (
                 <div className="flex flex-wrap items-center justify-end gap-2">
-                  <div className="inline-flex rounded-xl border border-theme-border bg-theme-bg-app p-1">
+                  <div className="inline-flex rounded-xl border border-theme-border bg-theme-surface p-1">
                     {([
                       { value: 'binary' as const, label: '二进制模式' },
                       { value: 'source' as const, label: '源码模式' },
@@ -1932,7 +1932,7 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
       </section>
 
       {loading && !detail ? (
- <section className="rounded-2xl border border-theme-border bg-theme-bg-app p-10">
+ <section className="rounded-2xl border border-theme-border bg-theme-surface p-10">
           <div className="flex items-center justify-center gap-2 text-sm text-theme-text-muted">
             <Loader2 size={16} className="animate-spin" />
             加载中...
@@ -1942,7 +1942,7 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
 
       {detail ? (
         <>
- <section className="rounded-2xl border border-theme-border bg-theme-bg-app p-2">
+ <section className="rounded-2xl border border-theme-border bg-theme-surface p-2">
             <div className="flex flex-wrap items-center gap-2">
                 {[
                   { id: 'overview' as DetailTab, label: '总览' },
@@ -1957,7 +1957,7 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
                   key={tab.id}
                   type="button"
                   onClick={() => setActiveTab(tab.id)}
-                  className={`rounded-2xl px-5 py-3 text-sm font-black transition ${
+                  className={`rounded-2xl px-5 py-3 text-sm font-semibold transition ${
                     activeTab === tab.id
  ? 'bg-theme-surface text-white'
                       : 'text-theme-text-muted hover:bg-theme-elevated hover:text-theme-text-secondary'
@@ -1972,8 +1972,8 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
           {activeTab === 'overview' ? (
             <>
               <section className="grid gap-4 lg:grid-cols-[1.1fr_0.9fr]">
- <div className="rounded-2xl border border-theme-border bg-theme-bg-app p-5">
-                  <h2 className="text-sm font-black uppercase tracking-[0.2em] text-theme-text-muted">任务概览</h2>
+ <div className="rounded-2xl border border-theme-border bg-theme-surface p-5">
+                  <h2 className="text-sm font-semibold uppercase tracking-[0.2em] text-theme-text-muted">任务概览</h2>
                   <div className="mt-4 grid gap-x-8 gap-y-3 md:grid-cols-2">
                     <InfoRow label="任务 ID" value={<span className="font-mono">{detail.task_id}</span>} />
                     <InfoRow label="创建时间" value={detail.created_at ? new Date(detail.created_at).toLocaleString('zh-CN') : '-'} />
@@ -1987,8 +1987,8 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
                   </div>
                 </div>
 
- <div className="rounded-2xl border border-theme-border bg-theme-bg-app p-5">
-                  <h2 className="text-sm font-black uppercase tracking-[0.2em] text-theme-text-muted">阶段进度</h2>
+ <div className="rounded-2xl border border-theme-border bg-theme-surface p-5">
+                  <h2 className="text-sm font-semibold uppercase tracking-[0.2em] text-theme-text-muted">阶段进度</h2>
                   <div className="mt-4 space-y-3">
                     {STAGE_STEPS.map((step, i) => {
                       const st = stageStatuses[i];
@@ -2023,7 +2023,7 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
                               <p className="mt-1 text-xs text-theme-text-muted">{step.desc}</p>
                               {st === 'completed' && metrics.length > 0 ? (
                                 <div className="mt-3 rounded-lg border border-theme-border bg-theme-bg-app px-3 py-2">
-                                  <div className="text-[10px] font-black tracking-[0.12em] text-theme-text-muted">
+                                  <div className="text-[10px] font-medium tracking-[0.12em] text-theme-text-muted">
                                     {metrics.map((item) => item.label).join(' / ')}
                                   </div>
                                   <div className="mt-1 text-sm font-bold text-theme-text-primary">
@@ -2059,10 +2059,10 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
                 </div>
               </section>
 
- <section className="rounded-2xl border border-theme-border bg-theme-bg-app p-5">
+ <section className="rounded-2xl border border-theme-border bg-theme-surface p-5">
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div>
-                    <h2 className="text-sm font-black uppercase tracking-[0.2em] text-theme-text-muted">当前运行智能体</h2>
+                    <h2 className="text-sm font-semibold uppercase tracking-[0.2em] text-theme-text-muted">当前运行智能体</h2>
                     <p className="mt-1 text-xs text-theme-text-muted">展示当前任务仍处于活跃状态的智能体会话与角色。</p>
                   </div>
                   <span className="rounded-full border border-theme-border bg-theme-bg-app px-3 py-1 text-[11px] font-bold text-theme-text-secondary">
@@ -2070,7 +2070,7 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
                   </span>
                 </div>
                 {sessionsLoading && sessions.length === 0 ? (
-                  <div className="mt-4 flex items-center gap-2 rounded-xl border border-theme-border bg-theme-bg-app px-4 py-4 text-sm text-theme-text-muted">
+                  <div className="mt-4 flex items-center gap-2 rounded-xl border border-theme-border bg-theme-surface px-4 py-4 text-sm text-theme-text-muted">
                     <Loader2 size={15} className="animate-spin" />
                     加载智能体状态中...
                   </div>
@@ -2086,7 +2086,7 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
                         >
                           <div className="flex flex-wrap items-start justify-between gap-3">
                             <div className="min-w-0 flex-1">
-                              <div className="truncate text-sm font-black text-theme-text-primary">{session.display_name}</div>
+                              <div className="truncate text-sm font-semibold text-theme-text-primary">{session.display_name}</div>
                               <div className="mt-1 truncate font-mono text-[11px] text-theme-text-muted">{session.relative_path}</div>
                               <div className="mt-2 flex flex-wrap gap-3 text-[11px] text-theme-text-muted">
                                 <span>分组 {session.stage_group || '-'}</span>
@@ -2108,7 +2108,7 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
                     </div>
                   </div>
                 ) : (
-                  <div className="mt-4 rounded-xl border border-dashed border-theme-border bg-theme-bg-app px-4 py-8 text-center text-sm text-theme-text-muted">
+                  <div className="mt-4 rounded-xl border border-dashed border-theme-border bg-theme-surface px-4 py-8 text-center text-sm text-theme-text-muted">
                     {detail.status === 'pending'
                       ? '任务尚未启动，当前没有活跃智能体。'
                       : ['running', 'pending'].includes(detail.status)
@@ -2122,32 +2122,32 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
 
               {detail.error ? (
  <section className="rounded-2xl border border-red-500/20 bg-red-500/15 p-5">
-                  <h2 className="text-sm font-black uppercase tracking-[0.2em] text-red-400">错误信息</h2>
- <pre className="mt-3 max-h-40 overflow-auto whitespace-pre-wrap break-all rounded-xl border border-red-500/20 bg-theme-bg-app px-3 py-3 text-xs text-red-400">{detail.error}</pre>
+                  <h2 className="text-sm font-semibold uppercase tracking-[0.2em] text-red-400">错误信息</h2>
+ <pre className="mt-3 max-h-40 overflow-auto whitespace-pre-wrap break-all rounded-xl border border-red-500/20 bg-theme-surface px-3 py-3 text-xs text-red-400">{detail.error}</pre>
                 </section>
               ) : null}
 
- <section className="rounded-2xl border border-theme-border bg-theme-bg-app p-5">
+ <section className="rounded-2xl border border-theme-border bg-theme-surface p-5">
                 <button
                   type="button"
                   onClick={() => setLogsExpanded((v) => !v)}
                   className="flex w-full items-center justify-between gap-3 text-left"
                 >
                   <div>
-                    <h2 className="text-sm font-black uppercase tracking-[0.2em] text-theme-text-muted">分析日志</h2>
+                    <h2 className="text-sm font-semibold uppercase tracking-[0.2em] text-theme-text-muted">分析日志</h2>
                     <p className="mt-1 text-xs text-theme-text-muted">{logLines.length} 条事件</p>
                   </div>
                   {logsExpanded ? <ChevronUp size={16} className="text-theme-text-muted" /> : <ChevronDown size={16} className="text-theme-text-muted" />}
                 </button>
                 {logsExpanded ? (
                   logLines.length === 0 ? (
-                    <div className="mt-4 rounded-xl border border-theme-border bg-theme-bg-app px-3 py-4 text-xs text-theme-text-muted">
+                    <div className="mt-4 rounded-xl border border-theme-border bg-theme-surface px-3 py-4 text-xs text-theme-text-muted">
                       {detail.status === 'pending' ? '任务尚未开始，暂无日志' : '暂无阶段事件（日志在任务运行期间每 5 秒刷新一次）'}
                     </div>
                   ) : (
                     <div
                       ref={logScrollRef}
-                      className="mt-4 max-h-[420px] overflow-auto rounded-xl border border-theme-border bg-theme-bg-app px-3 py-3 font-mono text-xs leading-relaxed text-theme-text-secondary"
+                      className="mt-4 max-h-[420px] overflow-auto rounded-xl border border-theme-border bg-theme-surface px-3 py-3 font-mono text-xs leading-relaxed text-theme-text-secondary"
                     >
                       {logLines.map((line, idx) => (
                         <div
@@ -2173,17 +2173,17 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
             </>
           ) : activeTab === 'timeline' ? (
             <section className="space-y-4">
- <section className="rounded-2xl border border-theme-border bg-theme-bg-app p-5">
+ <section className="rounded-2xl border border-theme-border bg-theme-surface p-5">
                 <div className="flex flex-wrap items-start justify-between gap-4">
                   <div>
-                    <h2 className="text-sm font-black uppercase tracking-[0.2em] text-theme-text-muted">事件时间线</h2>
+                    <h2 className="text-sm font-semibold uppercase tracking-[0.2em] text-theme-text-muted">事件时间线</h2>
                     <p className="mt-1 text-xs text-theme-text-muted">按时间查看系统分析任务的关键轨迹、阶段事件与异常链路。</p>
                   </div>
                   <div className="flex flex-wrap items-center gap-2">
-                    <div className="rounded-xl border border-theme-border bg-theme-bg-app px-3 py-2 text-xs font-semibold text-theme-text-muted">
+                    <div className="rounded-xl border border-theme-border bg-theme-surface px-3 py-2 text-xs font-semibold text-theme-text-muted">
                       展示 {timelineRangeStart}-{timelineRangeEnd} / {filteredTimeline.length}
                     </div>
-                    <div className="inline-flex items-center gap-2 rounded-xl border border-theme-border bg-theme-bg-app px-3 py-2 text-xs font-semibold text-theme-text-muted">
+                    <div className="inline-flex items-center gap-2 rounded-xl border border-theme-border bg-theme-surface px-3 py-2 text-xs font-semibold text-theme-text-muted">
                       <button
                         type="button"
                         onClick={() => setTimelinePage((current) => Math.max(1, current - 1))}
@@ -2204,13 +2204,13 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
                         下一页
                       </button>
                     </div>
-                    <label className="rounded-xl border border-theme-border bg-theme-bg-app px-3 py-2 text-xs font-semibold text-theme-text-muted">
+                    <label className="rounded-xl border border-theme-border bg-theme-surface px-3 py-2 text-xs font-semibold text-theme-text-muted">
                       每页
                       <select value={timelinePageSize} onChange={(event) => setTimelinePageSize(Math.min(2000, Math.max(50, Number(event.target.value) || 200)))} className="ml-2 rounded-lg border border-theme-border bg-theme-bg-app px-2 py-1 text-xs font-bold text-theme-text-secondary">
                         {[50, 100, 200, 500].map((size) => <option key={size} value={size}>{size}</option>)}
                       </select>
                     </label>
-                    <label className="rounded-xl border border-theme-border bg-theme-bg-app px-3 py-2 text-xs font-semibold text-theme-text-muted">
+                    <label className="rounded-xl border border-theme-border bg-theme-surface px-3 py-2 text-xs font-semibold text-theme-text-muted">
                       自动刷新
                       <select value={timelineAutoRefresh} onChange={(event) => setTimelineAutoRefresh(event.target.value as TimelineAutoRefreshValue)} className="ml-2 rounded-lg border border-theme-border bg-theme-bg-app px-2 py-1 text-xs font-bold text-theme-text-secondary">
                         <option value="off">关闭</option>
@@ -2219,7 +2219,7 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
                         <option value="60">60s</option>
                       </select>
                     </label>
-                    <button onClick={() => void loadTimeline()} disabled={timelineLoading} className="inline-flex items-center gap-1.5 rounded-xl border border-theme-border bg-theme-bg-app px-3 py-2 text-xs font-semibold text-theme-text-secondary hover:bg-theme-elevated disabled:opacity-50">
+                    <button onClick={() => void loadTimeline()} disabled={timelineLoading} className="inline-flex items-center gap-1.5 rounded-xl border border-theme-border bg-theme-surface px-3 py-2 text-xs font-semibold text-theme-text-secondary hover:bg-theme-elevated disabled:opacity-50">
                       {timelineLoading ? <Loader2 size={13} className="animate-spin" /> : <RefreshCw size={13} />}
                       刷新
                     </button>
@@ -2230,21 +2230,21 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
                   </div>
                 </div>
                 <div className="mt-4 flex flex-wrap gap-2">
-                  <select value={timelineStageFilter} onChange={(event) => setTimelineStageFilter(event.target.value)} className="rounded-xl border border-theme-border bg-theme-bg-app px-3 py-2 text-sm font-semibold text-theme-text-secondary">
+                  <select value={timelineStageFilter} onChange={(event) => setTimelineStageFilter(event.target.value)} className="rounded-xl border border-theme-border bg-theme-surface px-3 py-2 text-sm font-semibold text-theme-text-secondary">
                     <option value="__all__">全部阶段</option>
                     {timelineStageOptions.map((value) => <option key={value} value={value}>{stageLabel(value)}</option>)}
                   </select>
-                  <select value={timelineEventTypeFilter} onChange={(event) => setTimelineEventTypeFilter(event.target.value)} className="rounded-xl border border-theme-border bg-theme-bg-app px-3 py-2 text-sm font-semibold text-theme-text-secondary">
+                  <select value={timelineEventTypeFilter} onChange={(event) => setTimelineEventTypeFilter(event.target.value)} className="rounded-xl border border-theme-border bg-theme-surface px-3 py-2 text-sm font-semibold text-theme-text-secondary">
                     <option value="__all__">全部事件</option>
                     {timelineEventTypeOptions.map((value) => <option key={value} value={value}>{formatTimelineEventTypeLabel(value)}</option>)}
                   </select>
-                  <select value={timelineLevelFilter} onChange={(event) => setTimelineLevelFilter(event.target.value)} className="rounded-xl border border-theme-border bg-theme-bg-app px-3 py-2 text-sm font-semibold text-theme-text-secondary">
+                  <select value={timelineLevelFilter} onChange={(event) => setTimelineLevelFilter(event.target.value)} className="rounded-xl border border-theme-border bg-theme-surface px-3 py-2 text-sm font-semibold text-theme-text-secondary">
                     <option value="__all__">全部级别</option>
                     {timelineLevelOptions.map((value) => <option key={value} value={value}>{value}</option>)}
                   </select>
                 </div>
               </section>
- <section className="rounded-2xl border border-theme-border bg-theme-bg-app p-5">
+ <section className="rounded-2xl border border-theme-border bg-theme-surface p-5">
                 {timelineLoading ? (
                   <div className="py-10 text-center text-sm text-theme-text-muted">加载时间线中...</div>
                 ) : filteredTimeline.length === 0 ? (
@@ -2253,7 +2253,7 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
                   <div className="overflow-hidden rounded-2xl border border-theme-border">
                     <div className="overflow-x-auto">
                       <table className="min-w-[1120px] w-full divide-y divide-theme-border text-left text-xs">
-                        <thead className="bg-theme-bg-app text-[11px] font-black uppercase tracking-[0.12em] text-theme-text-muted">
+                        <thead className="bg-theme-bg-app text-[11px] font-semibold uppercase tracking-[0.12em] text-theme-text-muted">
                           <tr>
                             <th className="w-14 px-3 py-2">#</th>
                             <th className="w-44 px-3 py-2">时间</th>
@@ -2282,7 +2282,7 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
                                   <td className="px-3 py-2"><span className={`inline-flex rounded-full border px-2 py-0.5 text-[11px] font-bold ${timelineEventCategoryTone(event.event_type)}`}>{timelineEventCategoryLabel(event.event_type)}</span></td>
                                   <td className="px-3 py-2"><span className={`inline-flex rounded-full border px-2 py-0.5 text-[11px] font-bold ${timelineEventTypeTone(event.event_type)}`}>{formatTimelineEventTypeLabel(event.event_type)}</span></td>
                                   <td className="px-3 py-2">{event.stage_name ? <span className="inline-flex rounded-full border border-cyan-500/20 bg-cyan-500/15 px-2 py-0.5 text-[11px] font-bold text-cyan-400">{stageLabel(event.stage_name)}</span> : <span className="text-theme-text-muted">-</span>}</td>
-                                  <td className="px-3 py-2"><span className={`inline-flex rounded-full border px-2 py-0.5 text-[11px] font-black ${timelineLevelTone(event.level)}`}>{event.level || 'info'}</span></td>
+                                  <td className="px-3 py-2"><span className={`inline-flex rounded-full border px-2 py-0.5 text-[11px] font-medium ${timelineLevelTone(event.level)}`}>{event.level || 'info'}</span></td>
                                   <td className="max-w-[360px] px-3 py-2">
                                     <div className="truncate font-semibold text-theme-text-primary" title={timelineMessageSummary(event)}>{timelineMessageSummary(event)}</div>
                                     {auditSummary ? <div className="mt-1 truncate text-[11px] font-medium text-rose-400" title={auditSummary}>{auditSummary}</div> : null}
@@ -2290,8 +2290,8 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
                                   <td className="px-3 py-2 text-[11px] text-theme-text-muted"><div className="truncate font-mono" title={sourceLabel}>{sourceLabel}</div></td>
                                   <td className="px-3 py-2 text-right">
                                     <div className="flex items-center justify-end gap-3">
-                                      <button type="button" onClick={() => setExpandedTimelineEventId(expanded ? '' : event.id)} disabled={!hasPayload} className="text-[11px] font-black text-theme-text-muted transition hover:text-theme-text-primary disabled:opacity-30">{expanded ? '收起' : '查看'}</button>
-                                      <button type="button" onClick={() => void deleteTimelineEvent(event.id)} disabled={deletingTimelineEventId === event.id || timelineClearing} className="text-[11px] font-black text-rose-400 transition hover:text-rose-400 disabled:opacity-40">{deletingTimelineEventId === event.id ? '删除中' : '删除'}</button>
+                                      <button type="button" onClick={() => setExpandedTimelineEventId(expanded ? '' : event.id)} disabled={!hasPayload} className="text-[11px] font-semibold text-theme-text-muted transition hover:text-theme-text-primary disabled:opacity-30">{expanded ? '收起' : '查看'}</button>
+                                      <button type="button" onClick={() => void deleteTimelineEvent(event.id)} disabled={deletingTimelineEventId === event.id || timelineClearing} className="text-[11px] font-semibold text-rose-400 transition hover:text-rose-400 disabled:opacity-40">{deletingTimelineEventId === event.id ? '删除中' : '删除'}</button>
                                     </div>
                                   </td>
                                 </tr>
@@ -2306,7 +2306,7 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
                                           </div>
                                         ))}
                                       </div>
-                                      <pre className="mt-3 overflow-auto rounded-xl border border-theme-border bg-theme-bg-app px-3 py-3 text-xs leading-relaxed text-theme-text-primary">{JSON.stringify(payload, null, 2)}</pre>
+                                      <pre className="mt-3 overflow-auto rounded-xl border border-theme-border bg-theme-surface px-3 py-3 text-xs leading-relaxed text-theme-text-primary">{JSON.stringify(payload, null, 2)}</pre>
                                     </td>
                                   </tr>
                                 ) : null}
@@ -2345,10 +2345,10 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
             <SystemAnalysisTaskConfigPanel detail={detail} />
           ) : activeTab === 'session' ? (
             <section className="grid gap-4 xl:grid-cols-[320px_minmax(0,1fr)]">
- <aside className="rounded-2xl border border-theme-border bg-theme-bg-app p-4">
+ <aside className="rounded-2xl border border-theme-border bg-theme-surface p-4">
                 <div className="flex items-center justify-between gap-3">
                   <div>
-                    <div className="text-[11px] font-black uppercase tracking-[0.18em] text-theme-text-muted">会话列表</div>
+                    <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-theme-text-muted">会话列表</div>
                     <div className="mt-1 text-xs text-theme-text-muted">{sessions.length} 个会话文件</div>
                   </div>
                   <button
@@ -2374,19 +2374,19 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
                 />
 
                 {sessionsLoading && sessions.length === 0 ? (
-                  <div className="mt-4 flex min-h-[240px] items-center justify-center rounded-2xl border border-theme-border bg-theme-bg-app text-sm text-theme-text-muted">
+                  <div className="mt-4 flex min-h-[240px] items-center justify-center rounded-2xl border border-theme-border bg-theme-surface text-sm text-theme-text-muted">
                     <Loader2 size={16} className="mr-2 animate-spin" />
                     加载会话中...
                   </div>
                 ) : sessions.length === 0 ? (
-                  <div className="mt-4 rounded-2xl border border-dashed border-theme-border bg-theme-bg-app px-4 py-10 text-center text-sm text-theme-text-muted">
+                  <div className="mt-4 rounded-2xl border border-dashed border-theme-border bg-theme-surface px-4 py-10 text-center text-sm text-theme-text-muted">
                     当前任务暂无智能体会话文件
                   </div>
                 ) : (
                   <div className="mt-4 max-h-[calc(100vh-20rem)] space-y-4 overflow-auto pr-1">
                     {groupedSessions.map(([group, items]) => (
                       <div key={group}>
-                        <div className="mb-2 text-[11px] font-black uppercase tracking-[0.18em] text-theme-text-muted">
+                        <div className="mb-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-theme-text-muted">
                           {sessionGroupLabel(group)}
                         </div>
                         <div className="space-y-2">
@@ -2405,7 +2405,7 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
                               >
                                 <div className="flex items-start justify-between gap-3">
                                   <div className="min-w-0">
-                                    <div className="truncate text-sm font-black">{session.display_name}</div>
+                                    <div className="truncate text-sm font-semibold">{session.display_name}</div>
                                     <div className={`mt-1 truncate text-[11px] ${selected ? 'text-theme-text-faint' : 'text-theme-text-muted'}`}>
                                       {session.relative_path}
                                     </div>
@@ -2483,8 +2483,8 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
                 <MetricCard label="总文件数" value={result?.summary.total_file_count ?? 0} icon={<FolderOpen size={18} />} />
                 <MetricCard label="威胁总数" value={result?.summary.threat_count ?? 0} icon={<AlertTriangle size={18} />} />
                 <MetricCard label="报告来源" value={result?.report_generation_label || '-'} icon={<ScrollText size={18} />} />
- <div className="rounded-2xl border border-theme-border bg-theme-bg-app px-4 py-4">
-                  <div className="text-[11px] font-black uppercase tracking-[0.18em] text-theme-text-muted">结果目录</div>
+ <div className="rounded-2xl border border-theme-border bg-theme-surface px-4 py-4">
+                  <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-theme-text-muted">结果目录</div>
                   <div className="mt-2 text-sm font-semibold text-theme-text-secondary line-clamp-2">{result?.output_root || '-'}</div>
                   <div className="mt-3 flex flex-wrap gap-2">
                     <button
@@ -2510,18 +2510,18 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
               </div>
 
               {resultLoading ? (
- <section className="rounded-2xl border border-theme-border bg-theme-bg-app p-10">
+ <section className="rounded-2xl border border-theme-border bg-theme-surface p-10">
                   <div className="flex items-center justify-center gap-2 text-sm text-theme-text-muted">
                     <Loader2 size={16} className="animate-spin" />
                     加载结果中...
                   </div>
                 </section>
               ) : !result ? (
- <section className="rounded-2xl border border-theme-border bg-theme-bg-app p-10 text-center text-sm text-theme-text-muted">
+ <section className="rounded-2xl border border-theme-border bg-theme-surface p-10 text-center text-sm text-theme-text-muted">
                   暂无结果数据
                 </section>
               ) : !resultAvailable ? (
- <section className="rounded-2xl border border-dashed border-theme-border bg-theme-bg-app p-10 text-center">
+ <section className="rounded-2xl border border-dashed border-theme-border bg-theme-surface p-10 text-center">
                   <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-theme-elevated text-theme-text-muted">
                     <ScrollText size={20} />
                   </div>
@@ -2536,21 +2536,21 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
                   />
 
                   {result.module_dependency_graph ? (
- <section className="rounded-2xl border border-theme-border bg-theme-bg-app p-5">
+ <section className="rounded-2xl border border-theme-border bg-theme-surface p-5">
                       <div className="flex flex-wrap items-start justify-between gap-3">
                         <div>
-                          <div className="flex items-center gap-2 text-[11px] font-black uppercase tracking-[0.18em] text-theme-text-muted">
+                          <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-theme-text-muted">
                             <GitFork size={14} />
                             模块依赖关系图
                           </div>
-                          <h3 className="mt-2 text-lg font-black text-theme-text-primary">基于 ELF/SO 导入导出关系</h3>
+                          <h3 className="mt-2 text-lg font-semibold text-theme-text-primary">基于 ELF/SO 导入导出关系</h3>
                           <p className="mt-1 text-xs text-theme-text-muted">
                             连线方向 A → B 表示 A 依赖 B；依赖更少的模块更可能位于系统外层，风险排序会获得额外权重。
                           </p>
                         </div>
-                        <div className="rounded-2xl border border-theme-border bg-theme-bg-app px-4 py-3 text-xs text-theme-text-secondary">
-                          <div>模块：<span className="font-black text-theme-text-primary">{result.module_dependency_graph.summary?.module_count ?? result.module_dependency_graph.nodes?.length ?? 0}</span></div>
-                          <div>依赖边：<span className="font-black text-theme-text-primary">{result.module_dependency_graph.summary?.edge_count ?? result.module_dependency_graph.edges?.length ?? 0}</span></div>
+                        <div className="rounded-2xl border border-theme-border bg-theme-surface px-4 py-3 text-xs text-theme-text-secondary">
+                          <div>模块：<span className="font-semibold text-theme-text-primary">{result.module_dependency_graph.summary?.module_count ?? result.module_dependency_graph.nodes?.length ?? 0}</span></div>
+                          <div>依赖边：<span className="font-semibold text-theme-text-primary">{result.module_dependency_graph.summary?.edge_count ?? result.module_dependency_graph.edges?.length ?? 0}</span></div>
                         </div>
                       </div>
                       <div className="mt-4 grid gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
@@ -2560,10 +2560,10 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
                               const name = String(node.module_name || node.id || 'unknown');
                               const outgoing = (result.module_dependency_graph?.edges || []).filter((edge: any) => edge.source === name).slice(0, 8);
                               return (
- <div key={name} className="rounded-2xl border border-theme-border bg-theme-bg-app p-4">
+ <div key={name} className="rounded-2xl border border-theme-border bg-theme-surface p-4">
                                   <div className="flex items-start justify-between gap-2">
                                     <div className="min-w-0">
-                                      <div className="truncate text-sm font-black text-theme-text-primary">{name}</div>
+                                      <div className="truncate text-sm font-semibold text-theme-text-primary">{name}</div>
                                       <div className="mt-1 text-[11px] text-theme-text-muted">文件 {node.file_count ?? '-'}</div>
                                     </div>
                                     <span className={`rounded-full border px-2 py-0.5 text-[11px] font-bold ${riskTone(node.risk_level)}`}>{node.risk_level || '未知'}</span>
@@ -2590,14 +2590,14 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
                             })}
                           </div>
                         </div>
-                        <div className="rounded-2xl border border-theme-border bg-theme-bg-app p-4">
-                          <div className="text-xs font-black text-theme-text-secondary">依赖最少 / 优先复核</div>
+                        <div className="rounded-2xl border border-theme-border bg-theme-surface p-4">
+                          <div className="text-xs font-semibold text-theme-text-secondary">依赖最少 / 优先复核</div>
                           <div className="mt-3 space-y-2">
                             {[...(result.module_dependency_graph.nodes || [])]
                               .sort((a: any, b: any) => (a.dependency_count ?? 0) - (b.dependency_count ?? 0) || (b.risk_score ?? 0) - (a.risk_score ?? 0))
                               .slice(0, 10)
                               .map((node: any, index: number) => (
-                                <div key={String(node.module_name || node.id)} className="flex items-center justify-between gap-3 rounded-xl border border-theme-border bg-theme-bg-app px-3 py-2 text-xs">
+                                <div key={String(node.module_name || node.id)} className="flex items-center justify-between gap-3 rounded-xl border border-theme-border bg-theme-surface px-3 py-2 text-xs">
                                   <span className="font-mono text-theme-text-muted">#{index + 1}</span>
                                   <span className="min-w-0 flex-1 truncate font-bold text-theme-text-secondary">{node.module_name || node.id}</span>
                                   <span className="rounded-full bg-theme-elevated px-2 py-0.5 text-theme-text-muted">依赖 {node.dependency_count ?? 0}</span>
@@ -2610,8 +2610,8 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
                   ) : null}
 
                   <section className="grid gap-4 xl:grid-cols-[280px_minmax(0,1fr)_300px]">
- <aside className="rounded-2xl border border-theme-border bg-theme-bg-app p-4">
-                      <div className="text-[11px] font-black uppercase tracking-[0.18em] text-theme-text-muted">结果导航</div>
+ <aside className="rounded-2xl border border-theme-border bg-theme-surface p-4">
+                      <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-theme-text-muted">结果导航</div>
                       <div className="mt-3 space-y-2">
                         <button
                           type="button"
@@ -2622,7 +2622,7 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
                               : 'border-theme-border bg-theme-bg-app text-theme-text-secondary hover:bg-theme-bg-app'
                           }`}
                         >
-                          <div className="text-sm font-black">总报告</div>
+                          <div className="text-sm font-semibold">总报告</div>
                           <div className={`mt-1 text-xs ${selection.type === 'report' ? 'text-slate-200' : 'text-theme-text-muted'}`}>完整渲染 final_report.md</div>
                         </button>
 
@@ -2641,8 +2641,8 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
                             >
                               <div className="flex items-start justify-between gap-3">
                                 <div className="min-w-0">
-                                  <div className="text-[11px] font-black uppercase tracking-[0.18em] text-theme-text-muted">#{module.rank}</div>
-                                  <div className="mt-1 truncate text-sm font-black">{module.module_name}</div>
+                                  <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-theme-text-muted">#{module.rank}</div>
+                                  <div className="mt-1 truncate text-sm font-semibold">{module.module_name}</div>
                                 </div>
                                 <span className={`rounded-full border px-2 py-0.5 text-[11px] font-bold ${riskTone(module.risk_level)}`}>
                                   {module.risk_level || '未知'}
@@ -2659,13 +2659,13 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
                       </div>
                     </aside>
 
- <main className="rounded-2xl border border-theme-border bg-theme-bg-app p-5">
+ <main className="rounded-2xl border border-theme-border bg-theme-surface p-5">
                       <div className="flex flex-wrap items-start justify-between gap-3 border-b border-theme-border pb-4">
                         <div>
-                          <div className="text-[11px] font-black uppercase tracking-[0.18em] text-theme-text-muted">
+                          <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-theme-text-muted">
                             {selection.type === 'report' ? '最终结果' : '模块报告'}
                           </div>
-                          <h2 className="mt-2 text-2xl font-black tracking-tight text-theme-text-primary">
+                          <h2 className="mt-2 text-2xl font-bold tracking-tight text-theme-text-primary">
                             {selection.type === 'report' ? '总报告' : selectedModule?.module_name || '模块报告'}
                           </h2>
                         </div>
@@ -2690,21 +2690,21 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
                         {selectedMarkdown ? (
                           <MarkdownContent content={selectedMarkdown} />
                         ) : (
-                          <div className="rounded-2xl border border-dashed border-theme-border bg-theme-bg-app px-6 py-10 text-center text-sm text-theme-text-muted">
+                          <div className="rounded-2xl border border-dashed border-theme-border bg-theme-surface px-6 py-10 text-center text-sm text-theme-text-muted">
                             当前结果缺少可展示内容
                           </div>
                         )}
                       </div>
                     </main>
 
- <aside className="rounded-2xl border border-theme-border bg-theme-bg-app p-4">
-                      <div className="text-[11px] font-black uppercase tracking-[0.18em] text-theme-text-muted">
+ <aside className="rounded-2xl border border-theme-border bg-theme-surface p-4">
+                      <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-theme-text-muted">
                         {selection.type === 'report' ? '结果说明' : '模块辅助信息'}
                       </div>
 
                       {selection.type === 'report' ? (
                         <div className="mt-3 space-y-4">
-                          <div className="rounded-2xl border border-theme-border bg-theme-bg-app p-4">
+                          <div className="rounded-2xl border border-theme-border bg-theme-surface p-4">
                             <div className="text-xs font-bold text-theme-text-secondary">模块排序</div>
                             <div className="mt-2 space-y-2">
                               {result.modules.map((module) => (
@@ -2745,7 +2745,7 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
                         </div>
                       ) : selectedModule ? (
                         <div className="mt-3 space-y-4">
-                          <div className="rounded-2xl border border-theme-border bg-theme-bg-app p-4">
+                          <div className="rounded-2xl border border-theme-border bg-theme-surface p-4">
                             <div className="flex items-center justify-between gap-3">
                               <div>
                                 <div className="text-xs font-bold text-theme-text-secondary">文件列表</div>
@@ -2755,18 +2755,18 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
                             </div>
                             <div className="mt-3 max-h-[380px] space-y-2 overflow-auto pr-1">
                               {selectedModule.files.length > 0 ? selectedModule.files.map((file) => (
-                                <div key={file} className="rounded-xl border border-theme-border bg-theme-bg-app px-3 py-2 font-mono text-[11px] text-theme-text-secondary">
+                                <div key={file} className="rounded-xl border border-theme-border bg-theme-surface px-3 py-2 font-mono text-[11px] text-theme-text-secondary">
                                   {file}
                                 </div>
                               )) : (
-                                <div className="rounded-xl border border-dashed border-theme-border bg-theme-bg-app px-3 py-6 text-center text-xs text-theme-text-muted">
+                                <div className="rounded-xl border border-dashed border-theme-border bg-theme-surface px-3 py-6 text-center text-xs text-theme-text-muted">
                                   没有 files.list 内容
                                 </div>
                               )}
                             </div>
                           </div>
 
-                          <div className="rounded-2xl border border-theme-border bg-theme-bg-app p-4">
+                          <div className="rounded-2xl border border-theme-border bg-theme-surface p-4">
                             <div className="text-xs font-bold text-theme-text-secondary">报告结构</div>
                             <div className="mt-2 space-y-2">
                               {selectedModule.report_sections.length > 0 ? selectedModule.report_sections.map((section) => (
@@ -2828,7 +2828,7 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
           ) : (
             <section className="space-y-4">
               {evaluationLoading ? (
- <section className="rounded-2xl border border-theme-border bg-theme-bg-app p-10">
+ <section className="rounded-2xl border border-theme-border bg-theme-surface p-10">
                   <div className="flex items-center justify-center gap-2 text-sm text-theme-text-muted">
                     <Loader2 size={16} className="animate-spin" />
                     加载观测指标中...
@@ -2839,7 +2839,7 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
                   {evaluationError}
                 </section>
               ) : !evaluation || !evaluation.available ? (
- <section className="rounded-2xl border border-dashed border-theme-border bg-theme-bg-app p-10 text-center">
+ <section className="rounded-2xl border border-dashed border-theme-border bg-theme-surface p-10 text-center">
                   <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-theme-elevated text-theme-text-muted">
                     <BarChart3 size={20} />
                   </div>
@@ -2862,17 +2862,17 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
                   </section>
 
                   {evaluation.summary?.final_check_disabled ? (
- <section className="rounded-2xl border border-theme-border bg-theme-bg-app p-5">
+ <section className="rounded-2xl border border-theme-border bg-theme-surface p-5">
                       <div className="flex flex-wrap items-start justify-between gap-4">
                         <div>
-                          <h2 className="text-sm font-black uppercase tracking-[0.2em] text-theme-text-muted">Stage 4a 已关闭</h2>
+                          <h2 className="text-sm font-semibold uppercase tracking-[0.2em] text-theme-text-muted">Stage 4a 已关闭</h2>
                           <p className="mt-1 text-xs text-theme-text-muted">
                             当前任务未执行最终完整性检查，以下为基于当前模块归类结果推导出的遗漏文件。
                           </p>
                         </div>
                         <div className="text-right">
-                          <div className="text-[11px] font-black uppercase tracking-[0.16em] text-theme-text-muted">遗漏文件数</div>
-                          <div className="mt-2 text-2xl font-black tracking-tight text-theme-text-primary">
+                          <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-theme-text-muted">遗漏文件数</div>
+                          <div className="mt-2 text-2xl font-bold tracking-tight text-theme-text-primary">
                             {formatNumber(evaluation.summary?.missing_file_count ?? 0)}
                           </div>
                           <span
@@ -2891,10 +2891,10 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
                       </div>
                       {Number(evaluation.summary?.missing_file_count ?? 0) > 0 ? (
                         <div className="mt-4 space-y-3">
-                          <div className="max-h-56 overflow-auto rounded-2xl border border-theme-border bg-theme-bg-app p-3">
+                          <div className="max-h-56 overflow-auto rounded-2xl border border-theme-border bg-theme-surface p-3">
                             <div className="space-y-2">
                               {(evaluation.summary?.missing_files_preview || []).map((file: string) => (
-                                <div key={file} className="break-all rounded-xl border border-theme-border bg-theme-bg-app px-3 py-2 font-mono text-[11px] text-theme-text-secondary">
+                                <div key={file} className="break-all rounded-xl border border-theme-border bg-theme-surface px-3 py-2 font-mono text-[11px] text-theme-text-secondary">
                                   {file}
                                 </div>
                               ))}
@@ -2914,18 +2914,18 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
                     </section>
                   ) : null}
 
- <section className="rounded-2xl border border-theme-border bg-theme-bg-app p-5">
+ <section className="rounded-2xl border border-theme-border bg-theme-surface p-5">
                     <div className="flex flex-wrap items-center justify-between gap-3">
                       <div>
-                        <h2 className="text-sm font-black uppercase tracking-[0.2em] text-theme-text-muted">阶段汇总</h2>
+                        <h2 className="text-sm font-semibold uppercase tracking-[0.2em] text-theme-text-muted">阶段汇总</h2>
                         <p className="mt-1 text-xs text-theme-text-muted">按阶段聚合 Judge 分、通过率与轮次数</p>
                       </div>
                       <div className="text-xs text-theme-text-muted">生成时间：{evaluation.summary?.generated_at ? new Date(evaluation.summary.generated_at).toLocaleString('zh-CN') : '-'}</div>
                     </div>
                     <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
                       {Object.entries(evaluation.summary?.stage_summary || {}).map(([stage, item]) => (
-                        <div key={stage} className="rounded-2xl border border-theme-border bg-theme-bg-app p-4">
-                          <div className="text-sm font-black text-theme-text-primary">{stageLabel(stage)}</div>
+                        <div key={stage} className="rounded-2xl border border-theme-border bg-theme-surface p-4">
+                          <div className="text-sm font-semibold text-theme-text-primary">{stageLabel(stage)}</div>
                           <div className="mt-3 grid grid-cols-2 gap-2 text-xs text-theme-text-secondary">
                             <div>轮次 <span className="font-bold text-theme-text-primary">{formatNumber(item.round_count)}</span></div>
                             <div>通过 <span className="font-bold text-theme-text-primary">{formatNumber(item.passed_round_count)}</span></div>
@@ -2935,7 +2935,7 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
                         </div>
                       ))}
                       {Object.keys(evaluation.summary?.stage_summary || {}).length === 0 ? (
-                        <div className="rounded-2xl border border-dashed border-theme-border bg-theme-bg-app px-4 py-8 text-center text-sm text-theme-text-muted md:col-span-2 xl:col-span-4">
+                        <div className="rounded-2xl border border-dashed border-theme-border bg-theme-surface px-4 py-8 text-center text-sm text-theme-text-muted md:col-span-2 xl:col-span-4">
                           暂无阶段汇总
                         </div>
                       ) : null}
@@ -2944,7 +2944,7 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
 
                   {selectedEvaluationRound ? (
                     <section className="space-y-4">
- <section className="rounded-2xl border border-theme-border bg-theme-bg-app p-5">
+ <section className="rounded-2xl border border-theme-border bg-theme-surface p-5">
                         <div className="flex flex-wrap items-start justify-between gap-4">
                           <div>
                             <button
@@ -2955,7 +2955,7 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
                               <ArrowLeft size={14} />
                               返回轮次列表
                             </button>
-                            <h2 className="mt-2 text-2xl font-black tracking-tight text-theme-text-primary">
+                            <h2 className="mt-2 text-2xl font-bold tracking-tight text-theme-text-primary">
                               #{selectedEvaluationRound.round ?? '-'} · {selectedEvaluationRound.module_name || '全局任务'}
                             </h2>
                             <div className="mt-2 flex flex-wrap gap-2 text-xs">
@@ -2970,8 +2970,8 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
                               </span>
                             </div>
                           </div>
-                          <div className="rounded-2xl border border-theme-border bg-theme-bg-app px-4 py-3 text-xs text-theme-text-muted">
-                            <div className="font-black text-theme-text-secondary">来源文件</div>
+                          <div className="rounded-2xl border border-theme-border bg-theme-surface px-4 py-3 text-xs text-theme-text-muted">
+                            <div className="font-semibold text-theme-text-secondary">来源文件</div>
                             <div className="mt-1 max-w-xl break-all font-mono">{selectedEvaluationRound.source_path || '-'}</div>
                           </div>
                         </div>
@@ -2986,8 +2986,8 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
 
                       <section className="grid gap-4 xl:grid-cols-[0.9fr_1.1fr]">
                         <div className="space-y-4">
- <section className="rounded-2xl border border-theme-border bg-theme-bg-app p-5">
-                            <h3 className="text-sm font-black uppercase tracking-[0.18em] text-theme-text-muted">本轮执行摘要</h3>
+ <section className="rounded-2xl border border-theme-border bg-theme-surface p-5">
+                            <h3 className="text-sm font-semibold uppercase tracking-[0.18em] text-theme-text-muted">本轮执行摘要</h3>
                             <div className="mt-4 space-y-3">
                               <InfoRow label="开始时间" value={selectedEvaluationRound.started_at ? new Date(selectedEvaluationRound.started_at).toLocaleString('zh-CN') : '-'} />
                               <InfoRow label="结束时间" value={selectedEvaluationRound.ended_at ? new Date(selectedEvaluationRound.ended_at).toLocaleString('zh-CN') : '-'} />
@@ -3005,8 +3005,8 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
                             </div>
                           </section>
 
- <section className="rounded-2xl border border-theme-border bg-theme-bg-app p-5">
-                            <h3 className="text-sm font-black uppercase tracking-[0.18em] text-theme-text-muted">Worker</h3>
+ <section className="rounded-2xl border border-theme-border bg-theme-surface p-5">
+                            <h3 className="text-sm font-semibold uppercase tracking-[0.18em] text-theme-text-muted">Worker</h3>
                             <div className="mt-4 space-y-3">
                               <InfoRow label="模型" value={<span className="break-all font-mono">{selectedEvaluationRound.worker?.model || '-'}</span>} />
                               <InfoRow label="会话文件" value={<span className="break-all font-mono">{selectedEvaluationSessionPath?.rawPath || selectedEvaluationRound.worker?.session_file || '-'}</span>} />
@@ -3017,7 +3017,7 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
                                 <div className="text-xs font-bold text-theme-text-muted">产物路径</div>
                                 <div className="mt-2 space-y-2">
                                   {(selectedEvaluationRound.worker?.artifact_paths || []).slice(0, 8).map((path: string) => (
-                                    <div key={path} className="break-all rounded-xl border border-theme-border bg-theme-bg-app px-3 py-2 font-mono text-[11px] text-theme-text-secondary">{path}</div>
+                                    <div key={path} className="break-all rounded-xl border border-theme-border bg-theme-surface px-3 py-2 font-mono text-[11px] text-theme-text-secondary">{path}</div>
                                   ))}
                                 </div>
                               </div>
@@ -3025,10 +3025,10 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
                           </section>
                         </div>
 
- <section className="rounded-2xl border border-theme-border bg-theme-bg-app p-5">
+ <section className="rounded-2xl border border-theme-border bg-theme-surface p-5">
                           <div className="flex items-center justify-between gap-3">
                             <div>
-                              <h3 className="text-sm font-black uppercase tracking-[0.18em] text-theme-text-muted">Judge 评审</h3>
+                              <h3 className="text-sm font-semibold uppercase tracking-[0.18em] text-theme-text-muted">Judge 评审</h3>
                               <p className="mt-1 text-xs text-theme-text-muted">展示本轮所有 Judge 的评分、通过状态、会话文件和反馈摘要</p>
                             </div>
                             <span className="rounded-full border border-theme-border bg-theme-bg-app px-3 py-1 text-xs font-bold text-theme-text-secondary">
@@ -3037,7 +3037,7 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
                           </div>
                           <div className="mt-4 space-y-3">
                             {(selectedEvaluationRound.judges || []).map((judge, index) => (
-                              <div key={`${judge.judge_id || index}-${judge.model || ''}`} className="rounded-2xl border border-theme-border bg-theme-bg-app p-4">
+                              <div key={`${judge.judge_id || index}-${judge.model || ''}`} className="rounded-2xl border border-theme-border bg-theme-surface p-4">
                                 <div className="flex flex-wrap items-center justify-between gap-2">
                                   <div className="font-mono text-xs font-bold text-theme-text-secondary">{judge.judge_id ||`judge-${index + 1}`}</div>
                                   <div className="flex flex-wrap gap-2 text-[11px]">
@@ -3059,14 +3059,14 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
                                 <div className="mt-2 break-all font-mono text-[11px] text-theme-text-muted">{judge.model || '-'}</div>
                                 <div className="mt-2 break-all font-mono text-[11px] text-theme-text-muted">{judge.session_file || '未记录会话文件'}</div>
                                 {judge.feedback_excerpt ? (
-                                  <div className="mt-3 max-h-40 overflow-auto whitespace-pre-wrap rounded-xl border border-theme-border bg-theme-bg-app px-3 py-3 text-xs leading-6 text-theme-text-secondary">
+                                  <div className="mt-3 max-h-40 overflow-auto whitespace-pre-wrap rounded-xl border border-theme-border bg-theme-surface px-3 py-3 text-xs leading-6 text-theme-text-secondary">
                                     {judge.feedback_excerpt}
                                   </div>
                                 ) : null}
                               </div>
                             ))}
                             {(selectedEvaluationRound.judges || []).length === 0 ? (
-                              <div className="rounded-2xl border border-dashed border-theme-border bg-theme-bg-app px-4 py-10 text-center text-sm text-theme-text-muted">
+                              <div className="rounded-2xl border border-dashed border-theme-border bg-theme-surface px-4 py-10 text-center text-sm text-theme-text-muted">
                                 本轮没有 Judge 明细
                               </div>
                             ) : null}
@@ -3075,14 +3075,14 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
 
                         {selectedEvaluationJudge ? (
                           <section className="space-y-4">
- <section className="rounded-2xl border border-theme-border bg-theme-bg-app p-5">
+ <section className="rounded-2xl border border-theme-border bg-theme-surface p-5">
                               <div className="flex flex-wrap items-start justify-between gap-3">
                                 <div>
-                                  <h3 className="text-sm font-black uppercase tracking-[0.18em] text-theme-text-muted">Judge 会话</h3>
+                                  <h3 className="text-sm font-semibold uppercase tracking-[0.18em] text-theme-text-muted">Judge 会话</h3>
                                   <p className="mt-1 text-xs text-theme-text-muted">通过 fileserver 读取当前选中 Judge 的 session 文件；任务运行中会实时监听追加内容。</p>
                                 </div>
                                 {selectedEvaluationJudgeSessionPath ? (
-                                  <div className="max-w-xl break-all rounded-xl border border-theme-border bg-theme-bg-app px-3 py-2 font-mono text-[11px] text-theme-text-muted">
+                                  <div className="max-w-xl break-all rounded-xl border border-theme-border bg-theme-surface px-3 py-2 font-mono text-[11px] text-theme-text-muted">
                                     {selectedEvaluationJudgeSessionPath.fsPath}
                                   </div>
                                 ) : null}
@@ -3102,14 +3102,14 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
                       </section>
 
                       <section className="space-y-4">
- <section className="rounded-2xl border border-theme-border bg-theme-bg-app p-5">
+ <section className="rounded-2xl border border-theme-border bg-theme-surface p-5">
                           <div className="flex flex-wrap items-start justify-between gap-3">
                             <div>
-                              <h3 className="text-sm font-black uppercase tracking-[0.18em] text-theme-text-muted">Worker 会话</h3>
+                              <h3 className="text-sm font-semibold uppercase tracking-[0.18em] text-theme-text-muted">Worker 会话</h3>
                               <p className="mt-1 text-xs text-theme-text-muted">通过 fileserver 读取本轮 session 文件；任务运行中会实时监听追加内容。</p>
                             </div>
                             {selectedEvaluationSessionPath ? (
-                              <div className="max-w-xl break-all rounded-xl border border-theme-border bg-theme-bg-app px-3 py-2 font-mono text-[11px] text-theme-text-muted">
+                              <div className="max-w-xl break-all rounded-xl border border-theme-border bg-theme-surface px-3 py-2 font-mono text-[11px] text-theme-text-muted">
                                 {selectedEvaluationSessionPath.fsPath}
                               </div>
                             ) : null}
@@ -3127,10 +3127,10 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
                       </section>
                     </section>
                   ) : (
- <section className="rounded-2xl border border-theme-border bg-theme-bg-app p-5">
+ <section className="rounded-2xl border border-theme-border bg-theme-surface p-5">
                     <div className="flex flex-wrap items-start justify-between gap-4">
                       <div>
-                        <h2 className="text-sm font-black uppercase tracking-[0.2em] text-theme-text-muted">轮次明细</h2>
+                        <h2 className="text-sm font-semibold uppercase tracking-[0.2em] text-theme-text-muted">轮次明细</h2>
                         <p className="mt-1 text-xs text-theme-text-muted">展示每一轮 Worker/Judge 的观测指标，点击行进入轮次详情页</p>
                       </div>
                       <div className="flex flex-wrap gap-2">
@@ -3241,12 +3241,12 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
                     </div>
                     {evaluationRoundMenu ? (
                       <div
- className="fixed z-50 min-w-[180px] rounded-2xl border border-theme-border bg-theme-bg-app p-1"
+ className="fixed z-50 min-w-[180px] rounded-2xl border border-theme-border bg-theme-surface p-1"
                         style={{ left: evaluationRoundMenu.x, top: evaluationRoundMenu.y }}
                         onClick={(event) => event.stopPropagation()}
                       >
                         <div className="border-b border-theme-border px-3 py-2">
-                          <div className="text-[10px] font-black uppercase tracking-[0.18em] text-theme-text-muted">轮次操作</div>
+                          <div className="text-[10px] font-semibold uppercase tracking-[0.18em] text-theme-text-muted">轮次操作</div>
                           <div className="mt-1 truncate font-mono text-xs text-theme-text-secondary">{evaluationRoundMenu.moduleName}</div>
                         </div>
                         <button
@@ -3270,7 +3270,7 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
 
       {activeAgentSessionPath ? (
         <div className="fixed inset-0 z-[280] bg-slate-950/70 p-4 backdrop-blur-sm">
- <div className="mx-auto flex h-full max-w-6xl flex-col overflow-hidden rounded-[2rem] border border-theme-border bg-theme-bg-app">
+ <div className="mx-auto flex h-full max-w-6xl flex-col overflow-hidden rounded-xl border border-theme-border bg-theme-surface">
             <AgentSessionDialogHeader
               title={activeAgentSessionMeta?.display_name || activeAgentSessionPath}
               subtitle={activeAgentSessionMeta?.relative_path || activeAgentSessionPath}

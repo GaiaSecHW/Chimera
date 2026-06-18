@@ -141,7 +141,7 @@ const MarkdownContent: React.FC<{ content: string }> = ({ content }) => (
         ol: ({ children }) => <ol className="mb-2 list-decimal space-y-1 pl-5 last:mb-0">{children}</ol>,
         blockquote: ({ children }) => <blockquote className="mb-2 border-l-4 border-theme-border bg-theme-elevated px-3 py-1.5 italic last:mb-0">{children}</blockquote>,
         code: ({ children, className }) => (className
-          ? <code className="block overflow-x-auto rounded-xl border border-theme-border bg-theme-bg-app px-3 py-2 font-mono text-xs text-theme-text-primary">{children}</code>
+          ? <code className="block overflow-x-auto rounded-xl border border-theme-border bg-theme-surface px-3 py-2 font-mono text-xs text-theme-text-primary">{children}</code>
           : <code className="rounded bg-theme-elevated px-1.5 py-0.5 font-mono text-[0.9em]">{children}</code>),
         pre: ({ children }) => <pre className="mb-2 last:mb-0">{children}</pre>,
       }}
@@ -153,7 +153,7 @@ const MarkdownContent: React.FC<{ content: string }> = ({ content }) => (
 
 export const EnvAiSessionPage: React.FC<{ projectId: string }> = ({ projectId }) => {
   const environmentApi = api.domains.environment;
-  const { notify, feedbackNodes } = useUiFeedback();
+  const { notify, confirm, feedbackNodes } = useUiFeedback();
   const { loading, helpers, reload } = useAiHelpers(projectId, notify);
   const [selectedHelperKey, setSelectedHelperKey] = useState('');
   const [selectedHelper, setSelectedHelper] = useState<AiHelperService | null>(null);
@@ -354,7 +354,8 @@ export const EnvAiSessionPage: React.FC<{ projectId: string }> = ({ projectId })
       notify('请先选择 helper 服务', 'error');
       return;
     }
-    if (!window.confirm('确认删除该会话吗？删除后无法恢复。')) return;
+    const ok = await confirm({ message: '确认删除该会话吗？删除后无法恢复。', danger: true });
+    if (!ok) return;
     setBusyAction('delete_session');
     try {
       await environmentApi.environment.deleteAiHelperSession(
@@ -630,19 +631,19 @@ export const EnvAiSessionPage: React.FC<{ projectId: string }> = ({ projectId })
         />
 
         <div className="grid grid-cols-1 gap-4 xl:grid-cols-[360px_minmax(0,1fr)]">
- <section className="rounded-2xl border border-theme-border bg-theme-bg-app p-4">
+ <section className="rounded-xl border border-theme-border bg-theme-surface p-4">
             {loading ? <div className="mb-2 flex items-center gap-2 text-sm text-theme-text-muted"><Loader2 size={14} className="animate-spin" />加载中...</div> : null}
             <div className="space-y-3">
-              <div className="rounded-xl border border-theme-border bg-theme-bg-app p-3">
+              <div className="rounded-xl border border-theme-border bg-theme-surface p-3">
                 <div className="mb-2 flex items-center justify-between gap-2">
-                  <div className="text-[11px] font-black uppercase tracking-[0.16em] text-theme-text-muted">节点 Helper 服务</div>
+                  <div className="text-[11px] font-medium uppercase tracking-[0.16em] text-theme-text-muted">节点 Helper 服务</div>
                   <span className="rounded-full bg-theme-bg-app px-2 py-0.5 text-[11px] font-semibold text-theme-text-secondary">{filteredHelpers.length}/{helpers.length}</span>
                 </div>
                 <input
                   value={helperSearch}
                   onChange={(e) => setHelperSearch(e.target.value)}
                   placeholder="筛选 hostname / agent_key / service_name"
-                  className="mb-2 w-full rounded-xl border border-theme-border bg-theme-bg-app px-3 py-2 text-sm"
+                  className="mb-2 w-full rounded-xl border border-theme-border bg-theme-surface px-3 py-2 text-sm"
                 />
                 <select value={selectedHelperKey} onChange={(e) => setSelectedHelperKey(e.target.value)} className="w-full rounded-xl border border-theme-border bg-theme-bg-app px-3 py-2 text-sm">
                   {helperSelectOptions.map((helper) => (
@@ -653,7 +654,7 @@ export const EnvAiSessionPage: React.FC<{ projectId: string }> = ({ projectId })
 
  <div className="rounded-xl border border-blue-500/20 bg-theme-bg-app p-3">
                 <div className="mb-2 flex items-center justify-between gap-2">
-                  <div className="text-[11px] font-black uppercase tracking-[0.16em] text-blue-400">创建新会话</div>
+                  <div className="text-[11px] font-medium uppercase tracking-[0.16em] text-blue-400">创建新会话</div>
                   <button onClick={() => void refreshCurrentSession()} className="inline-flex items-center gap-1.5 rounded-lg border border-theme-border bg-theme-bg-app px-2.5 py-1.5 text-xs font-semibold text-theme-text-secondary whitespace-nowrap">
                     <RefreshCw size={13} />
                     刷新当前
@@ -662,8 +663,8 @@ export const EnvAiSessionPage: React.FC<{ projectId: string }> = ({ projectId })
                 <div className="text-xs text-theme-text-muted">
                   {isInvokeMode ? '经典模式无需创建会话，选择 Agent 后可直接发送。' : '先选择参与 Agent，再创建会话。'}
                 </div>
-                <div className="mt-2 rounded-xl border border-theme-border bg-theme-bg-app p-2.5">
-                  <div className="text-[11px] font-black uppercase tracking-[0.14em] text-theme-text-muted">会话模式</div>
+                <div className="mt-2 rounded-xl border border-theme-border bg-theme-surface p-2.5">
+                  <div className="text-[11px] font-medium uppercase tracking-[0.14em] text-theme-text-muted">会话模式</div>
                   <div className="mt-2 flex flex-wrap gap-3 text-xs">
                     <label className="inline-flex items-center gap-1.5">
                       <input type="radio" name="single-session-mode" checked={sessionMode === 'pipe'} onChange={() => setSessionMode('pipe')} />
@@ -706,7 +707,7 @@ export const EnvAiSessionPage: React.FC<{ projectId: string }> = ({ projectId })
 
               <div className="rounded-xl border border-theme-border p-3">
                 <div className="mb-2 flex items-center justify-between gap-2">
-                  <div className="text-sm font-black text-theme-text-primary">会话列表</div>
+                  <div className="text-sm font-semibold text-theme-text-primary">会话列表</div>
                   <span className="rounded-full bg-theme-elevated px-2 py-0.5 text-[11px] font-semibold text-theme-text-secondary">{sessions.length}</span>
                 </div>
                 <div className="space-y-2 max-h-[540px] overflow-auto pr-1">
@@ -722,8 +723,8 @@ export const EnvAiSessionPage: React.FC<{ projectId: string }> = ({ projectId })
                         className="min-w-0 flex-1 text-left"
                       >
                         <div className="flex flex-wrap items-center gap-2 text-xs">
-                          <span className="font-mono font-black text-theme-text-primary">{shortSessionId(session.session_id)}</span>
-                          <span className="inline-flex max-w-[210px] items-center gap-1 truncate rounded-full border border-cyan-500/20 bg-cyan-500/15 px-2 py-0.5 text-[11px] font-bold text-cyan-400">
+                          <span className="font-mono font-semibold text-theme-text-primary">{shortSessionId(session.session_id)}</span>
+                          <span className="inline-flex max-w-[210px] items-center gap-1 truncate rounded-full border border-cyan-500/20 bg-cyan-500/15 px-2 py-0.5 text-[11px] font-medium text-cyan-400">
                             <Bot size={11} />
                             {(session.agent_ids || []).join(', ') || session.backend || '-'}
                           </span>
@@ -767,14 +768,14 @@ export const EnvAiSessionPage: React.FC<{ projectId: string }> = ({ projectId })
             </div>
           </section>
 
- <section className="rounded-2xl border border-theme-border bg-theme-bg-app p-4">
+ <section className="rounded-xl border border-theme-border bg-theme-surface p-4">
             {!selectedHelper ? (
               <EmptyState text="请先选择一个 helper 服务。" />
             ) : (
               <div className="space-y-3">
- <div className="rounded-xl border border-theme-border bg-theme-bg-app px-3 py-2.5">
+ <div className="rounded-xl border border-theme-border bg-theme-surface px-3 py-2.5">
                   <div className="flex flex-wrap items-center gap-2 text-sm">
-                    <span className="font-black text-theme-text-primary">{selectedHelper.service_name}</span>
+                    <span className="font-semibold text-theme-text-primary">{selectedHelper.service_name}</span>
                     <span className="text-theme-text-muted">·</span>
                     <span className="text-theme-text-secondary">{selectedHelper.agent_hostname} / {selectedHelper.agent_key}</span>
                     <span className="text-theme-text-muted">·</span>
@@ -821,14 +822,14 @@ export const EnvAiSessionPage: React.FC<{ projectId: string }> = ({ projectId })
                   <div className="space-y-3">
                     <div className="rounded-xl border border-theme-border p-3">
                       <div className="mb-2 flex items-center justify-between gap-2">
-                        <div className="text-sm font-black text-theme-text-primary">当前会话消息</div>
+                        <div className="text-sm font-semibold text-theme-text-primary">当前会话消息</div>
                         <span className="rounded-full bg-theme-elevated px-2 py-0.5 text-[11px] font-semibold text-theme-text-secondary">{(currentSession.messages || []).length}</span>
                       </div>
                       <div className="space-y-2 max-h-[560px] overflow-auto pr-1">
                         {(currentSession.messages || []).map((item, index) => (
                           <div key={`${item.role}-${index}`} className={`rounded-lg border px-3 py-2 text-sm ${item.role === 'assistant' ? 'border-theme-border bg-theme-bg-app' : 'border-blue-500/20 bg-blue-500/15'}`}>
                             <div className="mb-1 flex items-center gap-2">
-                              <span className={`rounded-full px-2 py-0.5 text-[10px] font-black uppercase tracking-[0.14em] ${item.role === 'assistant' ? 'bg-theme-elevated text-theme-text-secondary' : 'bg-blue-200 text-blue-400'}`}>
+                              <span className={`rounded-full px-2 py-0.5 text-[10px] font-medium uppercase tracking-[0.14em] ${item.role === 'assistant' ? 'bg-theme-elevated text-theme-text-secondary' : 'bg-blue-200 text-blue-400'}`}>
                                 {item.role}
                               </span>
                             </div>
@@ -841,13 +842,13 @@ export const EnvAiSessionPage: React.FC<{ projectId: string }> = ({ projectId })
                     </div>
                     {currentReasoning ? (
                       <div className="rounded-xl border border-amber-500/20 bg-amber-500/15 p-3">
-                        <div className="text-xs font-black uppercase tracking-[0.16em] text-amber-400">当前轮思考</div>
+                        <div className="text-xs font-medium uppercase tracking-[0.16em] text-amber-400">当前轮思考</div>
                         <div className="mt-2 whitespace-pre-wrap text-sm text-amber-950">{currentReasoning}</div>
                       </div>
                     ) : null}
                     {currentTrace.length > 0 ? (
                       <div className="rounded-xl border border-theme-border p-3">
-                        <div className="text-xs font-black uppercase tracking-[0.16em] text-theme-text-muted">当前轮 Trace</div>
+                        <div className="text-xs font-medium uppercase tracking-[0.16em] text-theme-text-muted">当前轮 Trace</div>
                         <div className="mt-2 max-h-[240px] space-y-2 overflow-auto pr-1">
                           {currentTrace.map((item, index) => (
                             <div key={item.id ||`${item.category}-${index}`} className="rounded-lg border border-theme-border bg-theme-bg-app p-2 text-xs text-theme-text-secondary">
@@ -871,9 +872,9 @@ export const EnvAiSessionPage: React.FC<{ projectId: string }> = ({ projectId })
 
       {errorDialog ? (
         <div className="fixed inset-0 z-[320] flex items-center justify-center bg-slate-950/45 p-4">
- <div className="w-full max-w-3xl rounded-2xl border border-theme-border bg-theme-bg-app">
+ <div className="w-full max-w-3xl rounded-2xl border border-theme-border bg-theme-surface">
             <div className="flex items-center justify-between border-b border-theme-border px-5 py-3">
-              <div className="text-sm font-black text-theme-text-primary">{errorDialog.title}</div>
+              <div className="text-sm font-semibold text-theme-text-primary">{errorDialog.title}</div>
               <button
                 onClick={() => setErrorDialog(null)}
                 className="rounded-lg border border-theme-border px-2 py-1 text-xs font-semibold text-theme-text-secondary"

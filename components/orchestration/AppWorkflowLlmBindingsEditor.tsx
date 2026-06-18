@@ -244,7 +244,7 @@ export const AppWorkflowLlmBindingsEditor: React.FC<AppWorkflowLlmBindingsEditor
     <>
       <div className="mb-4 flex items-start justify-between gap-4">
         <div className="flex-1">
-          <div className="text-sm font-black text-sky-400">{title}</div>
+          <div className="text-sm font-semibold text-sky-400">{title}</div>
           <div className="mt-1 text-xs text-sky-700/80">{description}</div>
         </div>
         <div className="flex items-center gap-2">
@@ -293,7 +293,7 @@ export const AppWorkflowLlmBindingsEditor: React.FC<AppWorkflowLlmBindingsEditor
               <div key={`${binding.source}-${providerKey || 'custom'}-${index}`} className="rounded-xl border border-sky-500/20 bg-theme-surface p-4">
                 <div className="mb-3 flex items-center justify-between gap-3">
                   <div className="flex items-center gap-2">
-                    <span className="rounded-full bg-sky-100/10 px-2.5 py-1 text-[11px] font-black text-sky-400">#{index + 1}</span>
+                    <span className="rounded-full bg-sky-100/10 px-2.5 py-1 text-[11px] font-medium text-sky-400">#{index + 1}</span>
                     <select
                       value={binding.source}
                       disabled={disabled}
@@ -374,7 +374,7 @@ export const AppWorkflowLlmBindingsEditor: React.FC<AppWorkflowLlmBindingsEditor
                     <div className="rounded-xl border border-theme-border bg-theme-elevated/80 p-4">
                       <div className="mb-3 flex items-center justify-between gap-3">
                         <div>
-                          <div className="flex items-center gap-2 text-sm font-black text-theme-text-primary">
+                          <div className="flex items-center gap-2 text-sm font-semibold text-theme-text-primary">
                             <FileCode2 size={15} className="text-sky-400" />
                             配置文件注入
                           </div>
@@ -480,7 +480,7 @@ export const AppWorkflowLlmBindingsEditor: React.FC<AppWorkflowLlmBindingsEditor
         <div className="fixed inset-0 z-[70] flex items-center justify-center bg-slate-950/60 p-6">
           <div className="flex max-h-[90vh] w-full max-w-4xl flex-col overflow-hidden rounded-3xl bg-theme-surface shadow-2xl">
             <div className="border-b border-theme-border p-6">
-              <h3 className="text-2xl font-black text-theme-text-primary">自定义 LLM JSON 配置</h3>
+              <h3 className="text-2xl font-semibold text-theme-text-primary">自定义 LLM JSON 配置</h3>
               <p className="mt-1 text-sm text-theme-text-secondary">支持配置 `env_bindings` 与 `file_bindings`，保存后会作为当前实例的绑定快照。</p>
             </div>
             <div className="flex-1 overflow-auto p-6">

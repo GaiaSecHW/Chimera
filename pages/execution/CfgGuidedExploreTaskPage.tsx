@@ -1286,13 +1286,13 @@ export const CfgGuidedExploreTaskPage: React.FC<{ projectId: string; onOpenTask?
             <div className="flex items-center justify-between gap-3 px-6 py-4 border-b border-slate-100 bg-slate-50 shrink-0">
               {detail ? (
                 <div className="flex items-center gap-2.5 min-w-0">
-                  <h2 className="text-lg font-black text-slate-900 truncate">{detail.task_name}</h2>
+                  <h2 className="text-lg font-semibold text-slate-900 truncate">{detail.task_name}</h2>
                   <span className={`shrink-0 rounded-md px-2 py-0.5 text-xs font-semibold ${STATUS_COLOR[detail.status] ?? 'bg-slate-100 text-slate-600'}`}>
                     {STATUS_LABEL[detail.status] ?? detail.status}
                   </span>
                 </div>
               ) : (
-                <h2 className="text-lg font-black text-slate-900">任务详情</h2>
+                <h2 className="text-lg font-semibold text-slate-900">任务详情</h2>
               )}
               <div className="flex items-center gap-2 shrink-0">
                 {detail && (detail.status === 'running' || detail.status === 'pending') ? (
@@ -1443,7 +1443,7 @@ export const CfgGuidedExploreTaskPage: React.FC<{ projectId: string; onOpenTask?
                           <div className="flex flex-wrap items-start justify-between gap-3">
                             <div className="min-w-0 flex-1">
                               <div className="flex flex-wrap items-center gap-2">
-                                <div className="truncate text-sm font-black text-slate-900" title={agent.name}>{agent.name}</div>
+                                <div className="truncate text-sm font-semibold text-slate-900" title={agent.name}>{agent.name}</div>
                                 <span className="rounded-full bg-blue-50 px-2 py-0.5 text-[10px] font-bold text-blue-700">运行中</span>
                                 {agent.round ? (
                                   <span className="rounded-full bg-violet-50 px-2 py-0.5 text-[10px] font-bold text-violet-700">第 {agent.round} 轮</span>
@@ -1571,7 +1571,7 @@ export const CfgGuidedExploreTaskPage: React.FC<{ projectId: string; onOpenTask?
 
       {/* ── Page header ─────────────────────────────────────────────────────── */}
  <section className="rounded-[2rem] border border-slate-200 bg-slate-50 p-6">
-        <p className="text-xs font-black uppercase tracking-[0.3em] text-violet-600">CFG Guided Explore</p>
+        <p className="text-xs font-semibold uppercase tracking-[0.3em] text-violet-600">CFG Guided Explore</p>
         <ServicePageTitle title="CFG Guided Explore 任务" version={buildVersion} />
         <p className="mt-2 text-sm text-slate-500">单 Worker 同时跟踪函数内所有污点，脚本校验结构化图谱，并挖掘潜在漏洞。</p>
         <div className="mt-4 flex flex-wrap gap-2">
@@ -1591,7 +1591,7 @@ export const CfgGuidedExploreTaskPage: React.FC<{ projectId: string; onOpenTask?
             { label: '失败/取消', value: taskStats.failed + taskStats.error + taskStats.cancelled, bg: 'bg-red-50', text: 'text-red-700', border: 'border-red-200' },
           ].map((s) => (
             <div key={s.label} className={`min-w-[96px] rounded-xl border ${s.border} ${s.bg} px-3 py-2`}>
-              <p className={`text-lg font-black ${s.text}`}>{s.value}</p>
+              <p className={`text-lg font-semibold ${s.text}`}>{s.value}</p>
               <p className="mt-1 text-[11px] text-slate-500">{s.label}</p>
             </div>
           ))}
@@ -1603,7 +1603,7 @@ export const CfgGuidedExploreTaskPage: React.FC<{ projectId: string; onOpenTask?
             className="flex w-full flex-col gap-4 text-left lg:flex-row lg:items-start lg:justify-between"
           >
             <div>
-              <h2 className="text-xl font-black text-slate-900">执行槽位</h2>
+              <h2 className="text-xl font-semibold text-slate-900">执行槽位</h2>
               <p className="mt-1 text-sm text-slate-500">展示当前CFG Guided Explore worker 的执行槽位、活跃任务和心跳情况。</p>
             </div>
             <div className="flex flex-wrap items-center gap-3">
@@ -1649,8 +1649,8 @@ export const CfgGuidedExploreTaskPage: React.FC<{ projectId: string; onOpenTask?
               <div className="mt-5 grid gap-3 md:grid-cols-4">
                 {slotCards.map((card) => (
                   <div key={card.label} className={`rounded-2xl border ${card.border} ${card.bg} px-4 py-3`}>
-                    <div className={`text-[11px] font-black uppercase tracking-[0.24em] ${card.text}`}>{card.label}</div>
-                    <div className="mt-2 text-2xl font-black text-slate-900">{card.value}</div>
+                    <div className={`text-[11px] font-semibold uppercase tracking-[0.24em] ${card.text}`}>{card.label}</div>
+                    <div className="mt-2 text-2xl font-semibold text-slate-900">{card.value}</div>
                     <div className="mt-1 text-[11px] text-slate-500">{card.hint}</div>
                   </div>
                 ))}
@@ -1666,7 +1666,7 @@ export const CfgGuidedExploreTaskPage: React.FC<{ projectId: string; onOpenTask?
                     }`}
                   >
                     <div className="flex items-center justify-between gap-3">
-                      <div className="text-sm font-black text-slate-900" title={worker.worker_id}>{worker.host_name || worker.worker_id}</div>
+                      <div className="text-sm font-semibold text-slate-900" title={worker.worker_id}>{worker.host_name || worker.worker_id}</div>
                       <div className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${
                         worker.healthy ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'
                       }`}>
@@ -1749,8 +1749,8 @@ export const CfgGuidedExploreTaskPage: React.FC<{ projectId: string; onOpenTask?
           <div className="w-full max-w-5xl rounded-[2rem] border border-slate-200 bg-slate-50" onClick={(event) => event.stopPropagation()}>
             <div className="flex items-start justify-between gap-4 border-b border-slate-200 px-6 py-5">
               <div>
-                <div className="text-[11px] font-black uppercase tracking-[0.24em] text-cyan-700">槽位详情</div>
-                <h3 className="mt-2 text-2xl font-black tracking-tight text-slate-900">执行槽位详情</h3>
+                <div className="text-[11px] font-semibold uppercase tracking-[0.24em] text-cyan-700">槽位详情</div>
+                <h3 className="mt-2 text-2xl font-semibold tracking-tight text-slate-900">执行槽位详情</h3>
                 <p className="mt-2 text-sm text-slate-500">按 worker 展示当前执行中的CFG Guided Explore 任务与租约心跳状态。</p>
               </div>
               <div className="flex items-center gap-3">
@@ -1811,7 +1811,7 @@ export const CfgGuidedExploreTaskPage: React.FC<{ projectId: string; onOpenTask?
                         >
                           <div className="min-w-0">
                             <div className="flex flex-wrap items-center gap-2">
-                              <div className="text-sm font-black text-slate-900">{worker.host_name || worker.worker_id}</div>
+                              <div className="text-sm font-semibold text-slate-900">{worker.host_name || worker.worker_id}</div>
                               <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${
                                 worker.healthy ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'
                               }`}>
@@ -1869,7 +1869,7 @@ export const CfgGuidedExploreTaskPage: React.FC<{ projectId: string; onOpenTask?
                                     <div className="flex flex-wrap items-start justify-between gap-3">
                                       <div className="min-w-0 flex-1">
                                         <div className="flex flex-wrap items-center gap-2">
-                                          <div className="truncate text-sm font-black text-slate-900" title={job.task_name}>
+                                          <div className="truncate text-sm font-semibold text-slate-900" title={job.task_name}>
                                             {job.task_name}
                                           </div>
                                           <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${STATUS_COLOR[job.status] ?? 'bg-slate-100 text-slate-600'}`}>
@@ -1947,7 +1947,7 @@ export const CfgGuidedExploreTaskPage: React.FC<{ projectId: string; onOpenTask?
  <section className="rounded-2xl border border-slate-200 bg-slate-50 p-5">
         <div className="mb-4 flex flex-wrap items-start justify-between gap-4">
           <div>
-            <h2 className="text-lg font-black text-slate-900">任务列表 <span className="text-sm font-normal text-slate-400">({total})</span></h2>
+            <h2 className="text-lg font-semibold text-slate-900">任务列表 <span className="text-sm font-normal text-slate-400">({total})</span></h2>
           </div>
           <div className="flex flex-wrap items-center justify-end gap-2">
             <label className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs text-slate-600">
@@ -2308,7 +2308,7 @@ export const CfgGuidedExploreTaskPage: React.FC<{ projectId: string; onOpenTask?
  <div className="relative z-10 w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl border border-slate-200 bg-slate-50">
             <div className="p-6 space-y-4">
               <div className="flex items-center justify-between">
-                <h2 className="text-lg font-black text-slate-900">新建CFG Guided Explore 任务</h2>
+                <h2 className="text-lg font-semibold text-slate-900">新建CFG Guided Explore 任务</h2>
                 <button onClick={() => setCreateModalOpen(false)} className="rounded-lg p-1 text-slate-400 hover:text-slate-700"><X size={16} /></button>
               </div>
 

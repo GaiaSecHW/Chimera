@@ -71,7 +71,7 @@ const LiveIndicator: React.FC<{ status: string }> = ({ status }) => {
           <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
           <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
         </div>
-        <span className="text-[10px] font-black text-green-400 uppercase tracking-widest">LIVE / ONLINE</span>
+        <span className="text-[10px] font-medium text-green-400 uppercase tracking-widest">LIVE / ONLINE</span>
       </div>
     );
   }
@@ -79,14 +79,14 @@ const LiveIndicator: React.FC<{ status: string }> = ({ status }) => {
     return (
       <div className="flex items-center gap-2 px-3 py-1.5 bg-theme-elevated rounded-full border border-theme-border">
         <div className="h-2 w-2 rounded-full bg-slate-400"></div>
-        <span className="text-[10px] font-black text-theme-text-muted uppercase tracking-widest">{s.toUpperCase()}</span>
+        <span className="text-[10px] font-medium text-theme-text-muted uppercase tracking-widest">{s.toUpperCase()}</span>
       </div>
     );
   }
   return (
     <div className="flex items-center gap-2 px-3 py-1.5 bg-red-500/10 rounded-full border border-red-500/20">
       <div className="h-2 w-2 rounded-full bg-red-500"></div>
-      <span className="text-[10px] font-black text-red-400 uppercase tracking-widest">{status?.toUpperCase() || 'UNKNOWN'}</span>
+      <span className="text-[10px] font-medium text-red-400 uppercase tracking-widest">{status?.toUpperCase() || 'UNKNOWN'}</span>
     </div>
   );
 };
@@ -808,30 +808,30 @@ export const EnvAgentPage: React.FC<{ projectId: string }> = ({ projectId }) => 
     <>
     <div className="p-10 space-y-10 animate-in fade-in duration-500 pb-24 h-full overflow-y-auto custom-scrollbar">
       {!projectId && (
-        <div className="mb-6 p-4 bg-amber-500/15 border border-amber-500/20 text-amber-400 rounded-2xl text-xs font-bold flex items-center gap-3">
+        <div className="mb-6 p-4 bg-amber-500/15 border border-amber-500/20 text-amber-400 rounded-xl text-xs font-medium flex items-center gap-3">
           <AlertCircle size={16} /> 请先在顶部菜单选择一个项目
         </div>
       )}
 
       <PageHeader
-        title={<span className="flex items-center gap-3"><span className="p-3 bg-blue-600 text-white rounded-2xl inline-flex"><Monitor size={24} /></span>Agent 节点集群</span>}
+        title={<span className="flex items-center gap-3"><span className="p-3 bg-blue-600 text-white rounded-lg inline-flex"><Monitor size={24} /></span>Agent 节点集群</span>}
         description={<span className="italic">基于分布式容器化引擎的实时感知与安全探测底座</span>}
         actions={<div className="flex gap-4">
-            <button onClick={handleRefreshAgents} disabled={!projectId || refreshingAgents} className="p-4 bg-theme-bg-app border border-theme-border text-theme-text-muted rounded-2xl hover:bg-theme-elevated transition-all group active:scale-95 disabled:opacity-50"><RefreshCw size={20} className={(loading || refreshingAgents) ? 'animate-spin' : 'group-hover:rotate-180 transition-transform duration-500'} /></button>
-            <button onClick={handleCleanupOfflineWithK8s} disabled={isCleaning || !projectId} className="bg-rose-600 text-white px-6 py-4 rounded-2xl font-black flex items-center gap-2 shadow-rose-500/20 hover:bg-rose-700 transition-all active:scale-95 disabled:opacity-50">{isCleaning ? <Loader2 size={18} className="animate-spin" /> : <Trash2 size={18} />}一键清空下线节点</button>
-            <button onClick={openBatchDeployModal} disabled={!projectId || selectedAgentKeys.size === 0} className="bg-emerald-600 text-white px-6 py-4 rounded-2xl font-black flex items-center gap-2 shadow-emerald-500/20 hover:bg-emerald-700 transition-all active:scale-95 disabled:opacity-50"><Zap size={18} /> 批量部署服务</button>
-            <button onClick={handleForceSyncServices} disabled={!projectId || forceSyncing} className="bg-indigo-600 text-white px-6 py-4 rounded-2xl font-black flex items-center gap-2 shadow-indigo-500/20 hover:bg-indigo-700 transition-all active:scale-95 disabled:opacity-50" title="强制同步服务状态">{forceSyncing ? <Loader2 size={18} className="animate-spin" /> : <Sparkles size={18} />}强制同步服务</button>
-            <button onClick={() => { setIntegrationType(null); setIsIntegrationModalOpen(true); }} disabled={!projectId} className="bg-blue-600 text-white px-8 py-4 rounded-2xl font-black flex items-center gap-2 hover:bg-blue-700 transition-all active:scale-95 disabled:opacity-50"><Plus size={20} /> 接入新节点</button>
+            <button onClick={handleRefreshAgents} disabled={!projectId || refreshingAgents} className="p-4 bg-theme-bg-app border border-theme-border text-theme-text-muted rounded-lg hover:bg-theme-elevated transition-all group active:scale-95 disabled:opacity-50"><RefreshCw size={20} className={(loading || refreshingAgents) ? 'animate-spin' : 'group-hover:rotate-180 transition-transform duration-500'} /></button>
+            <button onClick={handleCleanupOfflineWithK8s} disabled={isCleaning || !projectId} className="bg-rose-600 text-white px-6 py-4 rounded-lg font-semibold flex items-center gap-2 shadow-rose-500/20 hover:bg-rose-700 transition-all active:scale-95 disabled:opacity-50">{isCleaning ? <Loader2 size={18} className="animate-spin" /> : <Trash2 size={18} />}一键清空下线节点</button>
+            <button onClick={openBatchDeployModal} disabled={!projectId || selectedAgentKeys.size === 0} className="bg-emerald-600 text-white px-6 py-4 rounded-lg font-semibold flex items-center gap-2 shadow-emerald-500/20 hover:bg-emerald-700 transition-all active:scale-95 disabled:opacity-50"><Zap size={18} /> 批量部署服务</button>
+            <button onClick={handleForceSyncServices} disabled={!projectId || forceSyncing} className="bg-indigo-600 text-white px-6 py-4 rounded-lg font-semibold flex items-center gap-2 shadow-indigo-500/20 hover:bg-indigo-700 transition-all active:scale-95 disabled:opacity-50" title="强制同步服务状态">{forceSyncing ? <Loader2 size={18} className="animate-spin" /> : <Sparkles size={18} />}强制同步服务</button>
+            <button onClick={() => { setIntegrationType(null); setIsIntegrationModalOpen(true); }} disabled={!projectId} className="bg-blue-600 text-white px-8 py-4 rounded-lg font-semibold flex items-center gap-2 hover:bg-blue-700 transition-all active:scale-95 disabled:opacity-50"><Plus size={20} /> 接入新节点</button>
           </div>}
       />
 
       <div className="space-y-3">
-        <div className="bg-theme-bg-app border border-theme-border rounded-2xl p-4 flex flex-col md:flex-row md:items-center gap-3">
-          <div className="text-[11px] font-black text-theme-text-muted uppercase tracking-wider">强制同步模式</div>
+        <div className="bg-theme-surface border border-theme-border rounded-xl p-4 flex flex-col md:flex-row md:items-center gap-3">
+          <div className="text-[11px] font-medium text-theme-text-muted uppercase tracking-wider">强制同步模式</div>
           <select
             value={syncScope}
             onChange={(e) => setSyncScope(e.target.value as 'project' | 'stale' | 'agent')}
-            className="px-3 py-2 border border-theme-border rounded-xl text-sm text-theme-text-secondary bg-theme-bg-app"
+            className="px-3 py-2 border border-theme-border rounded-xl text-sm text-theme-text-secondary bg-theme-surface"
           >
             <option value="stale">仅异常/过期Agent</option>
             <option value="project">当前项目全部在线Agent</option>
@@ -847,15 +847,15 @@ export const EnvAgentPage: React.FC<{ projectId: string }> = ({ projectId }) => 
             />
           )}
           {lastSyncMessage && (
-            <div className="text-xs font-bold text-theme-text-muted">{lastSyncMessage}</div>
+            <div className="text-xs font-medium text-theme-text-muted">{lastSyncMessage}</div>
           )}
         </div>
 
-        <div className="bg-theme-bg-app border border-theme-border rounded-2xl p-4">
+        <div className="bg-theme-surface border border-theme-border rounded-xl p-4">
           <div className="flex items-center justify-between mb-3">
             <button
               onClick={() => setSyncHistoryCollapsed(v => !v)}
-              className="text-[11px] font-black text-theme-text-muted uppercase tracking-wider flex items-center gap-2 hover:text-theme-text-secondary"
+              className="text-[11px] font-medium text-theme-text-muted uppercase tracking-wider flex items-center gap-2 hover:text-theme-text-secondary"
             >
               {syncHistoryCollapsed ? <ChevronRight size={14} /> : <ChevronDown size={14} />}
               <Clock size={14} /> 最近同步记录
@@ -865,14 +865,14 @@ export const EnvAgentPage: React.FC<{ projectId: string }> = ({ projectId }) => 
               <button
                 onClick={handleClearSyncHistory}
                 disabled={historyOperating || syncHistory.length === 0}
-                className="text-xs font-bold text-rose-400 hover:text-rose-400 disabled:opacity-40"
+                className="text-xs font-medium text-rose-400 hover:text-rose-400 disabled:opacity-40"
               >
                 清空
               </button>
               <button
                 onClick={loadSyncHistory}
                 disabled={historyOperating}
-                className="text-xs font-bold text-blue-400 hover:text-blue-400 disabled:opacity-40"
+                className="text-xs font-medium text-blue-400 hover:text-blue-400 disabled:opacity-40"
               >
                 刷新
               </button>
@@ -892,8 +892,8 @@ export const EnvAgentPage: React.FC<{ projectId: string }> = ({ projectId }) => 
                     onClick={() => setSelectedHistory(item)}
                     className="min-w-0 flex-1 text-left flex items-center gap-2"
                   >
-                    <span className="text-[10px] font-black uppercase text-theme-text-muted shrink-0">{item.scope}</span>
-                    <span className={`text-[10px] font-black uppercase px-2 py-0.5 rounded-md border shrink-0 ${syncStatusTone(item.status)}`}>
+                    <span className="text-[10px] font-medium uppercase text-theme-text-muted shrink-0">{item.scope}</span>
+                    <span className={`text-[10px] font-medium uppercase px-2 py-0.5 rounded-md border shrink-0 ${syncStatusTone(item.status)}`}>
                       {item.status || 'unknown'}
                     </span>
                     <span className="text-[10px] font-mono text-theme-text-muted shrink-0">
@@ -911,7 +911,7 @@ export const EnvAgentPage: React.FC<{ projectId: string }> = ({ projectId }) => 
                   <button
                     onClick={() => handleDeleteSyncHistoryItem(item.sync_id)}
                     disabled={historyOperating}
-                    className="text-[11px] font-bold text-rose-400 hover:text-rose-400 disabled:opacity-40 shrink-0"
+                    className="text-[11px] font-medium text-rose-400 hover:text-rose-400 disabled:opacity-40 shrink-0"
                   >
                     删除
                   </button>
@@ -922,38 +922,38 @@ export const EnvAgentPage: React.FC<{ projectId: string }> = ({ projectId }) => 
           )}
         </div>
 
-        <div className="bg-theme-bg-app border border-theme-border rounded-2xl p-4 space-y-3">
+        <div className="bg-theme-surface border border-theme-border rounded-xl p-4 space-y-3">
           <div className="flex flex-wrap items-center gap-2">
-            <p className="text-xs font-black text-theme-text-secondary">Agent 节点入口 Ingress 管理</p>
+            <p className="text-xs font-medium text-theme-text-secondary">Agent 节点入口 Ingress 管理</p>
             <span className="text-[11px] text-theme-text-muted">
               总计 {agentIngressStats?.total || 0} · 在线节点关联 {((agentIngressStats?.total || 0) - (agentIngressStats?.stale_agent_ingress || 0))} · 无效 {agentIngressStats?.stale_agent_ingress || 0}
             </span>
-            <button onClick={loadGlobalAgentIngress} className="px-3 py-1.5 rounded-lg bg-theme-elevated text-theme-text-secondary text-xs font-black hover:bg-theme-elevated">刷新</button>
+            <button onClick={loadGlobalAgentIngress} className="px-3 py-1.5 rounded-lg bg-theme-elevated text-theme-text-secondary text-xs font-medium hover:bg-theme-elevated">刷新</button>
             <button
               onClick={toggleSelectAllAgentIngress}
               disabled={agentIngressItems.length === 0}
-              className="px-3 py-1.5 rounded-lg bg-theme-elevated text-theme-text-secondary text-xs font-black hover:bg-theme-elevated disabled:opacity-50"
+              className="px-3 py-1.5 rounded-lg bg-theme-elevated text-theme-text-secondary text-xs font-medium hover:bg-theme-elevated disabled:opacity-50"
             >
               全选
             </button>
             <button
               onClick={deleteSelectedAgentIngress}
               disabled={agentIngressActionLoading || selectedAgentIngressRouteIds.size === 0}
-              className="px-3 py-1.5 rounded-lg bg-rose-600 text-white text-xs font-black hover:bg-rose-700 disabled:opacity-50"
+              className="px-3 py-1.5 rounded-lg bg-rose-600 text-white text-xs font-medium hover:bg-rose-700 disabled:opacity-50"
             >
               批量删除
             </button>
             <button
               onClick={cleanupStaleAgentIngress}
               disabled={agentIngressActionLoading}
-              className="px-3 py-1.5 rounded-lg bg-amber-600 text-white text-xs font-black hover:bg-amber-700 disabled:opacity-50"
+              className="px-3 py-1.5 rounded-lg bg-amber-600 text-white text-xs font-medium hover:bg-amber-700 disabled:opacity-50"
             >
               一键清理无效
             </button>
             <button
               onClick={clearAllAgentIngress}
               disabled={agentIngressActionLoading}
-              className="px-3 py-1.5 rounded-lg bg-theme-surface text-white text-xs font-black hover:bg-theme-elevated disabled:opacity-50"
+              className="px-3 py-1.5 rounded-lg bg-theme-surface text-white text-xs font-medium hover:bg-theme-elevated disabled:opacity-50"
             >
               清空全部Ingress
             </button>
@@ -962,7 +962,7 @@ export const EnvAgentPage: React.FC<{ projectId: string }> = ({ projectId }) => 
           <div className="border border-theme-border rounded-xl overflow-hidden">
             <table className="w-full text-left">
               <thead className="bg-theme-bg-app">
-                <tr className="text-[10px] font-black uppercase tracking-widest text-theme-text-muted">
+                <tr className="text-[10px] font-semibold uppercase tracking-widest text-theme-text-muted">
                   <th className="px-3 py-2">选</th>
                   <th className="px-3 py-2">Host/Path</th>
                   <th className="px-3 py-2">节点</th>
@@ -991,9 +991,9 @@ export const EnvAgentPage: React.FC<{ projectId: string }> = ({ projectId }) => 
                       <div className="text-xs font-mono text-theme-text-secondary truncate max-w-[360px]">{item.host}{item.path}</div>
                     </td>
                     <td className="px-3 py-2">
-                      <div className="text-xs font-bold text-theme-text-secondary">{agentNameMap.get(item.agent_key || '') || item.agent_key || '-'}</div>
+                      <div className="text-xs font-medium text-theme-text-secondary">{agentNameMap.get(item.agent_key || '') || item.agent_key || '-'}</div>
                       <div className="text-[10px] font-mono text-theme-text-muted">{item.agent_key || '-'}</div>
-                      <div className={`text-[10px] font-black ${item.agent_online ? 'text-green-400' : 'text-amber-400'}`}>
+                      <div className={`text-[10px] font-medium ${item.agent_online ? 'text-green-400' : 'text-amber-400'}`}>
                         {item.agent_online ? '节点在线' : '节点离线/无效'}
                       </div>
                     </td>
@@ -1002,11 +1002,11 @@ export const EnvAgentPage: React.FC<{ projectId: string }> = ({ projectId }) => 
                     </td>
                     <td className="px-3 py-2">
                       <div className="flex items-center gap-2">
-                        <span className={`text-[10px] font-black uppercase px-2 py-1 rounded-lg border ${item.status === 'ready' ? 'bg-green-500/15 text-green-400 border-green-500/20' : 'bg-amber-500/15 text-amber-400 border-amber-500/20'}`}>
+                        <span className={`text-[10px] font-medium uppercase px-2 py-1 rounded-lg border ${item.status === 'ready' ? 'bg-green-500/15 text-green-400 border-green-500/20' : 'bg-amber-500/15 text-amber-400 border-amber-500/20'}`}>
                           {item.status}
                         </span>
                         {item.access_url && (
-                          <a href={item.access_url} target="_blank" rel="noreferrer" className="text-[10px] font-black text-blue-400 hover:text-blue-400">
+                          <a href={item.access_url} target="_blank" rel="noreferrer" className="text-[10px] font-medium text-blue-400 hover:text-blue-400">
                             打开
                           </a>
                         )}
@@ -1059,14 +1059,14 @@ export const EnvAgentPage: React.FC<{ projectId: string }> = ({ projectId }) => 
           <input
             type="text"
             placeholder="通过主机名、IP 地址或 Agent Key 检索节点..."
- className="w-full pl-16 pr-8 py-5 bg-theme-bg-app border border-theme-border rounded-[2rem] text-sm outline-none focus:ring-4 ring-blue-500/5 transition-all font-medium"
+ className="w-full pl-16 pr-8 py-5 bg-theme-bg-app border border-theme-border rounded-xl text-sm outline-none focus:ring-4 ring-blue-500/5 transition-all font-medium"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
         <div className="flex items-center justify-between px-2">
-          <p className="text-xs font-bold text-theme-text-muted">
-            已选择 <span className="text-blue-400 font-black">{selectedAgentKeys.size}</span> / {agentsTotal} 个节点
+          <p className="text-xs font-medium text-theme-text-muted">
+            已选择 <span className="text-blue-400 font-semibold">{selectedAgentKeys.size}</span> / {agentsTotal} 个节点
           </p>
           <div className="flex items-center gap-2">
             <span className="text-xs text-theme-text-muted">每页</span>
@@ -1085,17 +1085,17 @@ export const EnvAgentPage: React.FC<{ projectId: string }> = ({ projectId }) => 
             <button
               onClick={toggleSelectAllFilteredAgents}
               disabled={!projectId || filteredAgents.length === 0}
-              className="px-4 py-2 bg-theme-bg-app border border-theme-border text-theme-text-secondary rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-theme-elevated disabled:opacity-50"
+              className="px-4 py-2 bg-theme-surface border border-theme-border text-theme-text-secondary rounded-xl text-[10px] font-semibold uppercase tracking-widest hover:bg-theme-elevated disabled:opacity-50"
             >
               {filteredAgents.length > 0 && filteredAgents.every(a => selectedAgentKeys.has(a.key)) ? '取消全选筛选项' : '全选筛选项'}
             </button>
           </div>
         </div>
 
- <div className="bg-theme-bg-app border border-theme-border rounded-[2.5rem] overflow-hidden min-h-[500px]">
+ <div className="bg-theme-surface border border-theme-border rounded-xl overflow-hidden min-h-[500px]">
           <table className="w-full text-left">
             <thead className="bg-slate-100/50 border-b border-theme-border">
-              <tr className="text-[10px] font-black text-theme-text-muted uppercase tracking-widest">
+              <tr className="text-[10px] font-medium text-theme-text-muted uppercase tracking-widest">
                 <th className="px-6 py-6 w-[72px] text-center">选择</th>
                 <th className="px-8 py-6">节点标识 (Hostname / OS)</th>
                 <th className="px-6 py-6">网络配置 (IP)</th>
@@ -1110,7 +1110,7 @@ export const EnvAgentPage: React.FC<{ projectId: string }> = ({ projectId }) => 
               {!projectId ? (
                 <tr>
                   <td colSpan={8} className="py-40 text-center">
-                    <p className="text-sm font-black text-theme-text-muted uppercase tracking-widest italic">请先在顶部菜单选择项目</p>
+                    <p className="text-sm font-semibold text-theme-text-muted uppercase tracking-widest italic">请先在顶部菜单选择项目</p>
                   </td>
                 </tr>
               ) : filteredAgents.map(agent => {
@@ -1144,7 +1144,7 @@ export const EnvAgentPage: React.FC<{ projectId: string }> = ({ projectId }) => 
                     </td>
                     <td className="px-8 py-6">
                       <div className="flex items-center gap-5">
- <div className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-all ${isOnline ? 'bg-green-500/15 text-green-400' : 'bg-theme-elevated text-theme-text-muted'}`}>
+ <div className={`w-12 h-12 rounded-lg flex items-center justify-center transition-all ${isOnline ? 'bg-green-500/15 text-green-400' : 'bg-theme-elevated text-theme-text-muted'}`}>
                           <Server size={22} />
                         </div>
                         <div>
@@ -1154,20 +1154,20 @@ export const EnvAgentPage: React.FC<{ projectId: string }> = ({ projectId }) => 
                               e.stopPropagation();
                               handleAgentClick(agent.key);
                             }}
-                            className="text-sm font-black text-theme-text-primary group-hover:text-blue-400 hover:text-blue-400 transition-colors underline decoration-dotted underline-offset-2"
+                            className="text-sm font-semibold text-theme-text-primary group-hover:text-blue-400 hover:text-blue-400 transition-colors underline decoration-dotted underline-offset-2"
                             title="查看 Agent 详情"
                           >
                             {agent.hostname || agent.key}
                           </button>
                           <div className="flex items-center gap-1.5 mt-0.5">
                              <div className="w-1.5 h-1.5 rounded-full bg-slate-300" />
-                             <span className="text-[10px] font-black text-theme-text-muted uppercase tracking-tighter">
+                             <span className="text-[10px] font-medium text-theme-text-muted uppercase tracking-tighter">
                                {sys?.os_name} {sys?.architecture} ({sys?.os_release})
                              </span>
                           </div>
                           <div className="flex items-center gap-1.5 mt-1">
                              <div className={`w-1.5 h-1.5 rounded-full ${daemon?.status === 'running' ? 'bg-green-400' : 'bg-slate-300'}`} />
-                             <span className="text-[10px] font-black text-theme-text-muted uppercase tracking-tighter">
+                             <span className="text-[10px] font-medium text-theme-text-muted uppercase tracking-tighter">
                                AGENT {daemon?.version || 'N/A'} / {daemon?.platform || 'N/A'}
                              </span>
                           </div>
@@ -1176,14 +1176,14 @@ export const EnvAgentPage: React.FC<{ projectId: string }> = ({ projectId }) => 
                     </td>
                     <td className="px-6 py-6">
                       <div className="flex flex-col">
-                        <span className="text-xs font-mono font-black text-blue-400 mb-1">{agent.ip_address}</span>
+                        <span className="text-xs font-mono font-semibold text-blue-400 mb-1">{agent.ip_address}</span>
                         <span className="text-[9px] font-mono text-theme-text-faint uppercase truncate max-w-[120px]">Key: {agent.key.slice(0, 12)}...</span>
                       </div>
                     </td>
                     <td className="px-6 py-6">
                       <div className="space-y-3 w-56">
                         <div className="space-y-1.5">
-                           <div className="flex justify-between text-[9px] font-black uppercase text-theme-text-muted tracking-tighter">
+                           <div className="flex justify-between text-[9px] font-medium uppercase text-theme-text-muted tracking-tighter">
                              <span>CPU Usage</span>
                              <span className={ (sys?.cpu?.usage_percent || 0) > 80 ? 'text-red-500' : 'text-theme-text-secondary' }>{sys?.cpu?.usage_percent || 0}%</span>
                            </div>
@@ -1192,7 +1192,7 @@ export const EnvAgentPage: React.FC<{ projectId: string }> = ({ projectId }) => 
                            </div>
                         </div>
                         <div className="space-y-1.5">
-                           <div className="flex justify-between text-[9px] font-black uppercase text-theme-text-muted tracking-tighter">
+                           <div className="flex justify-between text-[9px] font-medium uppercase text-theme-text-muted tracking-tighter">
                              <span>Memory ({formatted?.memory?.used} / {formatted?.memory?.total})</span>
                              <span className="text-theme-text-secondary">{sys?.memory?.usage_percent || 0}%</span>
                            </div>
@@ -1204,11 +1204,11 @@ export const EnvAgentPage: React.FC<{ projectId: string }> = ({ projectId }) => 
                     </td>
                     <td className="px-6 py-6">
                       <div className="flex flex-col gap-1">
-                         <div className="flex items-center gap-2 text-xs font-black text-theme-text-secondary">
+                         <div className="flex items-center gap-2 text-xs font-medium text-theme-text-secondary">
                             <Activity size={14} className="text-green-500" />
                             <span>{formatted?.uptime || 'Updating...'}</span>
                          </div>
-                         <p className="text-[9px] font-black text-theme-text-faint uppercase ml-5 tracking-widest truncate max-w-[180px]">Last: {agent.last_seen?.split('.')[0].replace('T', ' ')}</p>
+                         <p className="text-[9px] font-medium text-theme-text-faint uppercase ml-5 tracking-widest truncate max-w-[180px]">Last: {agent.last_seen?.split('.')[0].replace('T', ' ')}</p>
                       </div>
                     </td>
                     <td className="px-6 py-6">
@@ -1218,7 +1218,7 @@ export const EnvAgentPage: React.FC<{ projectId: string }> = ({ projectId }) => 
                     </td>
                     <td className="px-6 py-6">
                       <div className="flex flex-col gap-2">
-                        <span className={`inline-flex w-fit px-3 py-1 rounded-full border text-[10px] font-black uppercase tracking-widest ${permission.className}`}>
+                        <span className={`inline-flex w-fit px-3 py-1 rounded-full border text-[10px] font-semibold uppercase tracking-widest ${permission.className}`}>
                           {permission.label}
                         </span>
                         {agent.allow_reason && (
@@ -1251,7 +1251,7 @@ export const EnvAgentPage: React.FC<{ projectId: string }> = ({ projectId }) => 
                     <div className="w-20 h-20 bg-theme-bg-app rounded-full flex items-center justify-center mx-auto mb-4 text-slate-200">
                       <Monitor size={40} />
                     </div>
-                    <p className="text-sm font-black text-theme-text-muted uppercase tracking-widest">未检索到匹配的 Agent 资产</p>
+                    <p className="text-sm font-semibold text-theme-text-muted uppercase tracking-widest">未检索到匹配的 Agent 资产</p>
                   </td>
                 </tr>
               )}
@@ -1281,15 +1281,15 @@ export const EnvAgentPage: React.FC<{ projectId: string }> = ({ projectId }) => 
 
       {selectedHistory && (
         <div className="fixed inset-0 z-[220] bg-slate-900/70 backdrop-blur-sm flex items-center justify-center p-6" onClick={() => setSelectedHistory(null)}>
- <div className="w-full max-w-6xl h-[78vh] bg-theme-bg-app border border-theme-border rounded-3xl flex flex-col overflow-hidden" onClick={(e) => e.stopPropagation()}>
+ <div className="w-full max-w-6xl h-[78vh] bg-theme-bg-app border border-theme-border rounded-2xl flex flex-col overflow-hidden" onClick={(e) => e.stopPropagation()}>
             <div className="px-6 py-4 border-b border-theme-border flex items-center justify-between">
               <div>
-                <p className="text-[10px] font-black uppercase tracking-widest text-theme-text-muted">同步记录详情</p>
-                <p className="text-sm font-black text-theme-text-primary mt-1">
+                <p className="text-[10px] font-semibold uppercase tracking-widest text-theme-text-muted">同步记录详情</p>
+                <p className="text-sm font-semibold text-theme-text-primary mt-1">
                   {selectedHistory.scope.toUpperCase()} · {selectedHistory.sync_id}
                 </p>
               </div>
-              <button onClick={() => setSelectedHistory(null)} className="px-3 py-1.5 text-xs font-bold text-theme-text-muted hover:text-theme-text-secondary">关闭</button>
+              <button onClick={() => setSelectedHistory(null)} className="px-3 py-1.5 text-xs font-medium text-theme-text-muted hover:text-theme-text-secondary">关闭</button>
             </div>
             <div className="px-6 py-3 border-b border-theme-border text-xs text-theme-text-secondary flex flex-wrap gap-4">
               <span>status={selectedHistory.status}</span>
@@ -1304,7 +1304,7 @@ export const EnvAgentPage: React.FC<{ projectId: string }> = ({ projectId }) => 
             <div className="flex-1 overflow-auto p-4 custom-scrollbar">
               {Array.isArray(selectedHistory.details) && selectedHistory.details.length > 0 ? (
                 <table className="w-full text-left">
-                  <thead className="bg-theme-bg-app border border-theme-border text-[10px] uppercase text-theme-text-muted font-black tracking-wider">
+                  <thead className="bg-theme-bg-app border border-theme-border text-[10px] uppercase text-theme-text-muted font-semibold tracking-wider">
                     <tr>
                       <th className="px-3 py-2">Agent</th>
                       <th className="px-3 py-2">Result</th>
@@ -1319,9 +1319,9 @@ export const EnvAgentPage: React.FC<{ projectId: string }> = ({ projectId }) => 
                         <td className="px-3 py-2 font-mono text-theme-text-secondary">{d.agent_key || '-'}</td>
                         <td className="px-3 py-2">
                           {d.phase ? (
-                            <span className="font-black text-blue-400 uppercase">{String(d.phase)}</span>
+                            <span className="font-semibold text-blue-400 uppercase">{String(d.phase)}</span>
                           ) : (
-                            <span className={`font-black ${d.ok ? 'text-green-400' : 'text-red-400'}`}>{d.ok ? 'OK' : 'FAILED'}</span>
+                            <span className={`font-semibold ${d.ok ? 'text-green-400' : 'text-red-400'}`}>{d.ok ? 'OK' : 'FAILED'}</span>
                           )}
                         </td>
                         <td className="px-3 py-2">{d.seen ?? '-'}</td>
@@ -1342,15 +1342,15 @@ export const EnvAgentPage: React.FC<{ projectId: string }> = ({ projectId }) => 
       {/* Batch Deploy Modal */}
       {isBatchDeployModalOpen && (
         <div className="fixed inset-0 z-[119] flex items-center justify-center p-6 bg-slate-950/80 backdrop-blur-xl animate-in fade-in">
- <div className="bg-theme-bg-app w-full max-w-5xl rounded-[3rem] overflow-hidden animate-in zoom-in-95 flex flex-col max-h-[88vh]">
+ <div className="bg-theme-bg-app w-full max-w-5xl rounded-2xl overflow-hidden animate-in zoom-in-95 flex flex-col max-h-[88vh]">
             <div className="p-8 border-b border-theme-border flex items-center justify-between">
               <div>
-                <h3 className="text-2xl font-black text-theme-text-primary tracking-tight">批量部署环境模板服务</h3>
-                <p className="text-xs text-theme-text-muted font-bold uppercase tracking-widest mt-1">
+                <h3 className="text-2xl font-bold text-theme-text-primary tracking-tight">批量部署环境模板服务</h3>
+                <p className="text-xs text-theme-text-muted font-semibold uppercase tracking-widest mt-1">
                   已选 Agent: {selectedAgentKeys.size}，请选择要部署的模板
                 </p>
               </div>
-              <button onClick={() => setIsBatchDeployModalOpen(false)} className="p-3 bg-theme-bg-app text-theme-text-muted hover:text-theme-text-primary rounded-2xl transition-all">
+              <button onClick={() => setIsBatchDeployModalOpen(false)} className="p-3 bg-theme-bg-app text-theme-text-muted hover:text-theme-text-primary rounded-lg transition-all">
                 <X size={20} />
               </button>
             </div>
@@ -1364,13 +1364,13 @@ export const EnvAgentPage: React.FC<{ projectId: string }> = ({ projectId }) => 
                     value={templateSearch}
                     onChange={(e) => setTemplateSearch(e.target.value)}
                     placeholder="检索模板名称或描述..."
-                    className="w-full pl-11 pr-4 py-3 bg-theme-bg-app border border-theme-border rounded-2xl text-sm outline-none focus:ring-4 ring-blue-500/10"
+                    className="w-full pl-11 pr-4 py-3 bg-theme-bg-app border border-theme-border rounded-xl text-sm outline-none focus:ring-4 ring-blue-500/10"
                   />
                 </div>
                 <button
                   onClick={toggleSelectAllFilteredTemplates}
                   disabled={filteredTemplates.length === 0}
-                  className="px-5 py-3 bg-theme-bg-app border border-theme-border text-theme-text-secondary rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-theme-elevated disabled:opacity-50 flex items-center gap-2"
+                  className="px-5 py-3 bg-theme-surface border border-theme-border text-theme-text-secondary rounded-xl text-xs font-semibold uppercase tracking-widest hover:bg-theme-elevated disabled:opacity-50 flex items-center gap-2"
                 >
                   <CheckSquare size={15} />
                   {filteredTemplates.length > 0 && filteredTemplates.every(t => selectedTemplateNames.has(t.name)) ? '取消全选' : '全选筛选模板'}
@@ -1380,7 +1380,7 @@ export const EnvAgentPage: React.FC<{ projectId: string }> = ({ projectId }) => 
               {templatesLoading ? (
                 <div className="py-24 text-center">
                   <Loader2 className="animate-spin mx-auto text-blue-400" size={28} />
-                  <p className="mt-3 text-xs font-bold text-theme-text-muted">正在加载模板...</p>
+                  <p className="mt-3 text-xs font-medium text-theme-text-muted">正在加载模板...</p>
                 </div>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -1388,7 +1388,7 @@ export const EnvAgentPage: React.FC<{ projectId: string }> = ({ projectId }) => 
                     <button
                       key={template.name}
                       onClick={() => toggleTemplateSelect(template.name)}
-                      className={`p-5 rounded-2xl border-2 transition-all text-left ${
+                      className={`p-5 rounded-xl border-2 transition-all text-left ${
                         selectedTemplateNames.has(template.name)
                           ? 'bg-blue-500/15 border-blue-600'
                           : 'bg-theme-bg-app border-theme-border hover:border-blue-500/20'
@@ -1396,7 +1396,7 @@ export const EnvAgentPage: React.FC<{ projectId: string }> = ({ projectId }) => 
                     >
                       <div className="flex items-start justify-between gap-3">
                         <div>
-                          <p className="text-sm font-black text-theme-text-primary">{template.name}</p>
+                          <p className="text-sm font-semibold text-theme-text-primary">{template.name}</p>
                           <p className="text-[11px] text-theme-text-muted mt-1 line-clamp-2">{template.description || '无描述'}</p>
                           <p className="text-[10px] text-theme-text-muted mt-1">
                             作者: {template.owner_name || template.owner_id || 'system'}
@@ -1413,7 +1413,7 @@ export const EnvAgentPage: React.FC<{ projectId: string }> = ({ projectId }) => 
                     </button>
                   ))}
                   {!templatesLoading && filteredTemplates.length === 0 && (
-                    <div className="col-span-2 py-16 text-center text-theme-text-muted text-sm font-bold">无匹配模板</div>
+                    <div className="col-span-2 py-16 text-center text-theme-text-muted text-sm font-medium">无匹配模板</div>
                   )}
                 </div>
               )}
@@ -1429,22 +1429,22 @@ export const EnvAgentPage: React.FC<{ projectId: string }> = ({ projectId }) => 
             </div>
 
             <div className="p-8 bg-theme-bg-app border-t border-theme-border flex items-center justify-between">
-              <p className="text-xs font-bold text-theme-text-muted">
-                本次将提交 <span className="text-blue-400 font-black">{selectedTemplateNames.size}</span> 个模板 ×
-                <span className="text-blue-400 font-black"> {selectedAgentKeys.size}</span> 个 Agent 的部署任务
+              <p className="text-xs font-medium text-theme-text-muted">
+                本次将提交 <span className="text-blue-400 font-semibold">{selectedTemplateNames.size}</span> 个模板 ×
+                <span className="text-blue-400 font-semibold"> {selectedAgentKeys.size}</span> 个 Agent 的部署任务
               </p>
               <div className="flex gap-3">
                 <button
                   onClick={() => setIsBatchDeployModalOpen(false)}
                   disabled={deployingBatch}
-                  className="px-6 py-3 bg-theme-bg-app border border-theme-border rounded-xl text-theme-text-secondary font-black hover:bg-theme-elevated disabled:opacity-50"
+                  className="px-6 py-3 bg-theme-surface border border-theme-border rounded-xl text-theme-text-secondary font-semibold hover:bg-theme-elevated disabled:opacity-50"
                 >
                   取消
                 </button>
                 <button
                   onClick={executeBatchDeploy}
                   disabled={deployingBatch || selectedTemplateNames.size === 0 || selectedAgentKeys.size === 0}
-                  className="px-8 py-3 bg-blue-600 text-white rounded-xl font-black hover:bg-blue-700 transition-all disabled:opacity-50 flex items-center gap-2"
+                  className="px-8 py-3 bg-blue-600 text-white rounded-xl font-semibold hover:bg-blue-700 transition-all disabled:opacity-50 flex items-center gap-2"
                 >
                   {deployingBatch ? <Loader2 className="animate-spin" size={16} /> : <Zap size={16} />}
                   提交批量部署
@@ -1461,15 +1461,15 @@ export const EnvAgentPage: React.FC<{ projectId: string }> = ({ projectId }) => 
  <div className="bg-theme-bg-app w-full max-w-2xl rounded-[3.5rem] overflow-hidden animate-in zoom-in-95 flex flex-col">
               <div className="p-10 pb-8 border-b border-slate-50 flex items-center justify-between">
                 <div className="flex items-center gap-5">
- <div className="w-14 h-14 bg-blue-600 rounded-[1.5rem] flex items-center justify-center text-white">
+ <div className="w-14 h-14 bg-blue-600 rounded-xl flex items-center justify-center text-white">
                      <Terminal size={28} />
                    </div>
                    <div>
-                     <h3 className="text-2xl font-black text-theme-text-primary tracking-tight">接入新执行节点</h3>
-                     <p className="text-xs text-theme-text-muted font-bold uppercase tracking-widest mt-1">扩展分布式安全探测网络</p>
+                     <h3 className="text-2xl font-bold text-theme-text-primary tracking-tight">接入新执行节点</h3>
+                     <p className="text-xs text-theme-text-muted font-semibold uppercase tracking-widest mt-1">扩展分布式安全探测网络</p>
                    </div>
                 </div>
-                <button onClick={() => setIsIntegrationModalOpen(false)} className="p-4 bg-theme-bg-app text-theme-text-muted hover:text-theme-text-primary rounded-2xl transition-all">
+                <button onClick={() => setIsIntegrationModalOpen(false)} className="p-4 bg-theme-bg-app text-theme-text-muted hover:text-theme-text-primary rounded-lg transition-all">
                   <X size={24} />
                 </button>
               </div>
@@ -1479,31 +1479,31 @@ export const EnvAgentPage: React.FC<{ projectId: string }> = ({ projectId }) => 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <button
                       onClick={() => setIntegrationType('manual')}
- className="group p-8 bg-theme-bg-app border-2 border-transparent hover:border-blue-600 rounded-[2.5rem] text-left transition-all hover:bg-theme-bg-app hover:"
+ className="group p-8 bg-theme-bg-app border-2 border-transparent hover:border-blue-600 rounded-xl text-left transition-all hover:bg-theme-bg-app hover:"
                     >
- <div className="w-12 h-12 bg-theme-bg-app rounded-2xl flex items-center justify-center text-theme-text-muted group-hover:text-blue-400 transition-colors mb-6">
+ <div className="w-12 h-12 bg-theme-bg-app rounded-lg flex items-center justify-center text-theme-text-muted group-hover:text-blue-400 transition-colors mb-6">
                           <Terminal size={24} />
                        </div>
-                       <h4 className="text-lg font-black text-theme-text-primary mb-2">手动脚本接入</h4>
+                       <h4 className="text-lg font-semibold text-theme-text-primary mb-2">手动脚本接入</h4>
                        <p className="text-xs text-theme-text-muted font-medium leading-relaxed">在 Linux 主机一键执行初始化脚本，建立加密指令隧道。</p>
-                       <div className="mt-6 flex items-center gap-2 text-blue-400 text-[10px] font-black uppercase">
+                       <div className="mt-6 flex items-center gap-2 text-blue-400 text-[10px] font-medium uppercase">
                          查看指令 <ChevronRight size={14} />
                        </div>
                     </button>
 
                     <button
                       onClick={() => setIntegrationType('auto')}
- className="group p-8 bg-theme-bg-app border-2 border-transparent hover:border-indigo-600 rounded-[2.5rem] text-left transition-all hover:bg-theme-elevated relative overflow-hidden"
+ className="group p-8 bg-theme-bg-app border-2 border-transparent hover:border-indigo-600 rounded-xl text-left transition-all hover:bg-theme-elevated relative overflow-hidden"
                     >
                        <div className="absolute top-6 right-6">
-                          <span className="bg-amber-500/15 text-amber-400 px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest">Developing</span>
+                          <span className="bg-amber-500/15 text-amber-400 px-3 py-1 rounded-full text-[9px] font-semibold uppercase tracking-widest">Developing</span>
                        </div>
- <div className="w-12 h-12 bg-theme-bg-app rounded-2xl flex items-center justify-center text-theme-text-muted group-hover:text-indigo-400 transition-colors mb-6">
+ <div className="w-12 h-12 bg-theme-bg-app rounded-lg flex items-center justify-center text-theme-text-muted group-hover:text-indigo-400 transition-colors mb-6">
                           <Zap size={24} />
                        </div>
-                       <h4 className="text-lg font-black text-theme-text-primary mb-2">自动化扫描接入</h4>
+                       <h4 className="text-lg font-semibold text-theme-text-primary mb-2">自动化扫描接入</h4>
                        <p className="text-xs text-theme-text-muted font-medium leading-relaxed">基于 SSH 凭据池自动探测内网存活资产并批量静默分发 Agent。</p>
-                       <div className="mt-6 flex items-center gap-2 text-theme-text-faint text-[10px] font-black uppercase">
+                       <div className="mt-6 flex items-center gap-2 text-theme-text-faint text-[10px] font-medium uppercase">
                          开发中 <ChevronRight size={14} />
                        </div>
                     </button>
@@ -1512,14 +1512,14 @@ export const EnvAgentPage: React.FC<{ projectId: string }> = ({ projectId }) => 
                   <div className="space-y-8 animate-in slide-in-from-bottom-4">
                     {/* IP Selection UI */}
                     <div className="space-y-4">
-                       <h5 className="text-[10px] font-black text-theme-text-muted uppercase tracking-widest flex items-center gap-2">
+                       <h5 className="text-[10px] font-medium text-theme-text-muted uppercase tracking-widest flex items-center gap-2">
                          <Globe size={14} className="text-blue-500" /> 选择接入代理 IP (External Gateway)
                        </h5>
 
                        {ipsLoading ? (
-                         <div className="flex items-center gap-3 p-6 bg-theme-bg-app rounded-2xl border border-theme-border">
+                         <div className="flex items-center gap-3 p-6 bg-theme-surface rounded-xl border border-theme-border">
                            <Loader2 size={16} className="animate-spin text-blue-400" />
-                           <span className="text-xs font-bold text-theme-text-muted uppercase tracking-widest">正在拉取可用路由节点...</span>
+                           <span className="text-xs font-medium text-theme-text-muted uppercase tracking-widest">正在拉取可用路由节点...</span>
                          </div>
                        ) : externalIps.length > 0 ? (
                          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
@@ -1527,7 +1527,7 @@ export const EnvAgentPage: React.FC<{ projectId: string }> = ({ projectId }) => 
                               <button
                                 key={ip}
                                 onClick={() => setSelectedIp(ip)}
-                                className={`px-4 py-3 rounded-2xl border-2 transition-all font-mono text-xs font-black flex items-center justify-between group ${
+                                className={`px-4 py-3 rounded-xl border-2 transition-all font-mono text-xs font-medium flex items-center justify-between group ${
                                   selectedIp === ip
  ? 'bg-blue-500/15 border-blue-600 text-blue-400'
                                     : 'bg-theme-bg-app border-theme-border text-theme-text-muted hover:border-blue-500/20'
@@ -1541,20 +1541,20 @@ export const EnvAgentPage: React.FC<{ projectId: string }> = ({ projectId }) => 
                             ))}
                          </div>
                        ) : (
-                         <div className="p-6 bg-red-500/15 rounded-2xl border border-red-500/20 flex items-center gap-3 text-red-500">
+                         <div className="p-6 bg-red-500/15 rounded-xl border border-red-500/20 flex items-center gap-3 text-red-500">
                             <AlertCircle size={18} />
-                            <p className="text-xs font-bold">未获取到后台配置的接入 IP，请联系系统管理员。</p>
+                            <p className="text-xs font-medium">未获取到后台配置的接入 IP，请联系系统管理员。</p>
                          </div>
                        )}
                     </div>
 
                     <div className="space-y-4">
-                       <h5 className="text-[10px] font-black text-theme-text-muted uppercase tracking-widest flex items-center gap-2">
+                       <h5 className="text-[10px] font-medium text-theme-text-muted uppercase tracking-widest flex items-center gap-2">
                          <Command size={14} className="text-blue-500" /> 请在目标服务器终端执行 (Root Auth)
                        </h5>
                        <div className="relative group">
                           <div className="absolute inset-0 bg-blue-600/5 blur-2xl opacity-0 group-hover:opacity-100 transition-opacity" />
- <div className="relative bg-theme-surface p-8 rounded-[2rem] border border-slate-200/5 font-mono text-[11px] leading-relaxed group shadow-inner">
+ <div className="relative bg-theme-surface p-8 rounded-xl border border-slate-200/5 font-mono text-[11px] leading-relaxed group shadow-inner">
                              <p className="text-blue-300/90 break-all select-all font-mono">
                                {getIntegrationCommand()}
                              </p>
@@ -1570,10 +1570,10 @@ export const EnvAgentPage: React.FC<{ projectId: string }> = ({ projectId }) => 
                        </div>
                     </div>
 
-                    <div className="p-6 bg-theme-bg-app rounded-3xl border border-theme-border space-y-3">
+                    <div className="p-6 bg-theme-surface rounded-xl border border-theme-border space-y-3">
                        <div className="flex items-center gap-3 text-theme-text-secondary">
                           <AlertCircle size={18} className="text-blue-400" />
-                          <h6 className="text-[10px] font-black uppercase tracking-widest">配置说明</h6>
+                          <h6 className="text-[10px] font-semibold uppercase tracking-widest">配置说明</h6>
                        </div>
                        <ul className="text-[11px] text-theme-text-muted space-y-1.5 font-medium list-disc pl-5 leading-relaxed">
                           <li>脚本会自动配置 Docker 运行时并建立与 Nacos 的长连接。</li>
@@ -1584,16 +1584,16 @@ export const EnvAgentPage: React.FC<{ projectId: string }> = ({ projectId }) => 
                   </div>
                 ) : (
                   <div className="py-20 text-center space-y-6 animate-in zoom-in-95">
-                     <div className="w-20 h-20 bg-indigo-500/15 text-indigo-400 rounded-[2rem] flex items-center justify-center mx-auto shadow-inner">
+                     <div className="w-20 h-20 bg-indigo-500/15 text-indigo-400 rounded-lg flex items-center justify-center mx-auto shadow-inner">
                         <Sparkles size={40} className="animate-pulse" />
                      </div>
                      <div>
-                        <h4 className="text-xl font-black text-theme-text-primary">自动接入功能开发中</h4>
+                        <h4 className="text-xl font-semibold text-theme-text-primary">自动接入功能开发中</h4>
                         <p className="text-sm text-theme-text-muted mt-2 font-medium italic">正在对接企业级资产指纹库与 SSH 自动化运维通道</p>
                      </div>
                      <button
                         onClick={() => setIntegrationType('manual')}
-                        className="text-blue-400 font-black text-[10px] uppercase hover:underline"
+                        className="text-blue-400 font-semibold text-[10px] uppercase hover:underline"
                       >
                         返回使用手动脚本接入
                       </button>
@@ -1605,7 +1605,7 @@ export const EnvAgentPage: React.FC<{ projectId: string }> = ({ projectId }) => 
                  {integrationType && (
                    <button
                      onClick={() => setIntegrationType(null)}
-                     className="text-[10px] font-black text-theme-text-muted uppercase hover:text-theme-text-secondary transition-all flex items-center gap-2"
+                     className="text-[10px] font-medium text-theme-text-muted uppercase hover:text-theme-text-secondary transition-all flex items-center gap-2"
                    >
                      <RefreshCw size={14} /> 切换接入方案
                    </button>
@@ -1613,7 +1613,7 @@ export const EnvAgentPage: React.FC<{ projectId: string }> = ({ projectId }) => 
                  <div className="flex-1" />
                  <button
                    onClick={() => setIsIntegrationModalOpen(false)}
- className="px-10 py-4 bg-theme-surface text-white rounded-[1.5rem] font-black text-sm hover:bg-theme-elevated transition-all"
+ className="px-10 py-4 bg-theme-surface text-white rounded-xl font-semibold text-sm hover:bg-theme-elevated transition-all"
                  >
                    关闭界面
                  </button>

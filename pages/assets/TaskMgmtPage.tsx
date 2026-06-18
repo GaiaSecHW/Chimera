@@ -215,49 +215,49 @@ export const TaskMgmtPage: React.FC<{ projectId: string }> = ({ projectId }) => 
     <div className="p-2.5 space-y-3 animate-in fade-in duration-500 h-full overflow-y-auto lg:p-3">
       <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-5">
  <div className="rounded-xl border border-theme-border bg-theme-surface p-4">
-          <div className="text-[10px] font-black uppercase tracking-[0.2em] text-theme-text-muted">总任务</div>
-          <div className="mt-2 text-3xl font-black leading-none text-theme-text-primary">{stats.total}</div>
+          <div className="text-[10px] font-semibold uppercase tracking-[0.2em] text-theme-text-muted">总任务</div>
+          <div className="mt-2 text-3xl font-bold leading-none text-theme-text-primary">{stats.total}</div>
         </div>
  <div className="rounded-xl border border-theme-border bg-theme-surface p-4">
-          <div className="text-[10px] font-black uppercase tracking-[0.2em] text-theme-text-muted">运行中</div>
-          <div className="mt-2 text-3xl font-black leading-none text-blue-400">{stats.running}</div>
+          <div className="text-[10px] font-semibold uppercase tracking-[0.2em] text-theme-text-muted">运行中</div>
+          <div className="mt-2 text-3xl font-bold leading-none text-blue-400">{stats.running}</div>
         </div>
  <div className="rounded-xl border border-theme-border bg-theme-surface p-4">
-          <div className="text-[10px] font-black uppercase tracking-[0.2em] text-theme-text-muted">成功</div>
-          <div className="mt-2 text-3xl font-black leading-none text-emerald-400">{stats.succeeded}</div>
+          <div className="text-[10px] font-semibold uppercase tracking-[0.2em] text-theme-text-muted">成功</div>
+          <div className="mt-2 text-3xl font-bold leading-none text-emerald-400">{stats.succeeded}</div>
         </div>
  <div className="rounded-xl border border-theme-border bg-theme-surface p-4">
-          <div className="text-[10px] font-black uppercase tracking-[0.2em] text-theme-text-muted">失败</div>
-          <div className="mt-2 text-3xl font-black leading-none text-rose-400">{stats.failed}</div>
+          <div className="text-[10px] font-semibold uppercase tracking-[0.2em] text-theme-text-muted">失败</div>
+          <div className="mt-2 text-3xl font-bold leading-none text-rose-400">{stats.failed}</div>
         </div>
  <div className="rounded-xl border border-theme-border bg-theme-surface p-4">
-          <div className="text-[10px] font-black uppercase tracking-[0.2em] text-theme-text-muted">已取消</div>
-          <div className="mt-2 text-3xl font-black leading-none text-theme-text-secondary">{stats.cancelled}</div>
+          <div className="text-[10px] font-semibold uppercase tracking-[0.2em] text-theme-text-muted">已取消</div>
+          <div className="mt-2 text-3xl font-bold leading-none text-theme-text-secondary">{stats.cancelled}</div>
         </div>
       </div>
 
       <div className="grid grid-cols-1 gap-3 xl:grid-cols-[minmax(0,1fr)_360px]">
  <div className="rounded-xl border border-theme-border bg-theme-surface p-3">
           <div className="flex flex-wrap items-center justify-between gap-2">
-            <div className="text-sm font-black text-theme-text-primary">任务列表</div>
+            <div className="text-sm font-semibold text-theme-text-primary">任务列表</div>
             <div className="flex flex-wrap items-center gap-1.5">
               <button
                 onClick={handleDeleteBatchClick}
                 disabled={selectedTaskIds.size === 0}
- className="rounded-lg border border-rose-500/20 bg-rose-500/15 px-2.5 py-2 text-xs font-black text-rose-400 disabled:opacity-50 disabled:cursor-not-allowed"
+ className="rounded-lg border border-rose-500/20 bg-rose-500/15 px-2.5 py-2 text-xs font-medium text-rose-400 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 批量删除（{selectedTaskIds.size}）
               </button>
               <button
                 onClick={handleDeleteAllClick}
                 disabled={filteredTasks.length === 0}
- className="rounded-lg border border-rose-500/20 bg-theme-bg-app px-2.5 py-2 text-xs font-black text-rose-400 disabled:opacity-50 disabled:cursor-not-allowed"
+ className="rounded-lg border border-rose-500/20 bg-theme-bg-app px-2.5 py-2 text-xs font-medium text-rose-400 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 一键删除全部
               </button>
               <button
                 onClick={() => void loadTasks()}
- className="rounded-lg border border-theme-border bg-theme-surface px-2.5 py-2 text-xs font-black text-theme-text-secondary"
+ className="rounded-lg border border-theme-border bg-theme-surface px-2.5 py-2 text-xs font-medium text-theme-text-secondary"
               >
                 <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
               </button>
@@ -319,7 +319,7 @@ export const TaskMgmtPage: React.FC<{ projectId: string }> = ({ projectId }) => 
                         <Workflow size={14} />
                       </div>
                       <div>
-                        <div className="text-xs font-black text-theme-text-secondary capitalize">{(task.task_type || 'Task').replace('_', ' ')}</div>
+                        <div className="text-xs font-medium text-theme-text-secondary capitalize">{(task.task_type || 'Task').replace('_', ' ')}</div>
                         <div className="text-[10px] font-mono text-theme-text-muted">{task.task_id}</div>
                       </div>
                     </div>
@@ -346,7 +346,7 @@ export const TaskMgmtPage: React.FC<{ projectId: string }> = ({ projectId }) => 
                           style={{ width: `${task.progress || 0}%` }}
                         />
                       </div>
-                      <span className="text-[11px] font-black text-theme-text-muted">{task.progress || 0}%</span>
+                      <span className="text-[11px] font-medium text-theme-text-muted">{task.progress || 0}%</span>
                     </div>
                   ),
                 },
@@ -424,26 +424,26 @@ export const TaskMgmtPage: React.FC<{ projectId: string }> = ({ projectId }) => 
           ) : (
             <div className="space-y-3">
               <div className="rounded-lg bg-theme-bg-app p-3">
-                <div className="text-[10px] font-black uppercase tracking-[0.24em] text-theme-text-muted">任务详情</div>
-                <div className="mt-1.5 text-sm font-black text-theme-text-primary">{selectedTask.task_type}</div>
+                <div className="text-[10px] font-semibold uppercase tracking-[0.24em] text-theme-text-muted">任务详情</div>
+                <div className="mt-1.5 text-sm font-semibold text-theme-text-primary">{selectedTask.task_type}</div>
                 <div className="mt-1 font-mono text-[11px] text-theme-text-muted">{selectedTask.task_id}</div>
                 <div className="mt-3 grid grid-cols-2 gap-2 text-[11px]">
-                  <div><div className="text-theme-text-muted">项目ID</div><div className="mt-1 font-black text-theme-text-primary">{selectedTask.project_id}</div></div>
-                  <div><div className="text-theme-text-muted">资源ID</div><div className="mt-1 font-black text-theme-text-primary">{selectedTask.resource_id}</div></div>
-                  <div><div className="text-theme-text-muted">进度</div><div className="mt-1 font-black text-theme-text-primary">{selectedTask.progress || 0}%</div></div>
+                  <div><div className="text-theme-text-muted">项目ID</div><div className="mt-1 font-medium text-theme-text-primary">{selectedTask.project_id}</div></div>
+                  <div><div className="text-theme-text-muted">资源ID</div><div className="mt-1 font-medium text-theme-text-primary">{selectedTask.resource_id}</div></div>
+                  <div><div className="text-theme-text-muted">进度</div><div className="mt-1 font-medium text-theme-text-primary">{selectedTask.progress || 0}%</div></div>
                   <div><div className="text-theme-text-muted">状态</div><div className="mt-1"><StatusBadge status={selectedTask.status} /></div></div>
                   <div className="col-span-2"><div className="text-theme-text-muted">消息</div><div className="mt-1 font-semibold text-theme-text-secondary">{selectedTask.message || selectedTask.error_message || '-'}</div></div>
                 </div>
                 <div className="mt-3 flex flex-wrap gap-1.5">
                   <button
                     onClick={() => void loadTaskLogs(selectedTask.task_id)}
-                    className="inline-flex items-center gap-1.5 rounded-lg border border-theme-border bg-theme-surface px-2.5 py-1.5 text-[11px] font-black text-theme-text-secondary"
+                    className="inline-flex items-center gap-1.5 rounded-lg border border-theme-border bg-theme-surface px-2.5 py-1.5 text-[11px] font-medium text-theme-text-secondary"
                   >
                     <Terminal size={13} /> 刷新日志
                   </button>
                   <button
                     onClick={() => handleDeleteClick(selectedTask.task_id)}
-                    className="inline-flex items-center gap-1.5 rounded-lg border border-rose-500/20 bg-rose-500/15 px-2.5 py-1.5 text-[11px] font-black text-rose-400"
+                    className="inline-flex items-center gap-1.5 rounded-lg border border-rose-500/20 bg-rose-500/15 px-2.5 py-1.5 text-[11px] font-medium text-rose-400"
                   >
                     <Trash2 size={13} /> 删除任务
                   </button>
@@ -451,7 +451,7 @@ export const TaskMgmtPage: React.FC<{ projectId: string }> = ({ projectId }) => 
               </div>
 
               <div className="overflow-hidden rounded-lg border border-theme-border bg-theme-bg-app">
-                <div className="border-b border-theme-border px-3 py-2 text-[10px] font-black uppercase tracking-[0.24em] text-theme-text-muted">任务日志</div>
+                <div className="border-b border-theme-border px-3 py-2 text-[10px] font-semibold uppercase tracking-[0.24em] text-theme-text-muted">任务日志</div>
                 <div className="max-h-[46vh] overflow-y-auto p-3 font-mono text-[11px] text-slate-200 custom-scrollbar">
                   {detailLogLoading ? (
                     <div className="flex min-h-[150px] items-center justify-center gap-2 text-blue-300"><Loader2 size={16} className="animate-spin" />加载日志中...</div>
@@ -484,16 +484,16 @@ export const TaskMgmtPage: React.FC<{ projectId: string }> = ({ projectId }) => 
           <div className="w-16 h-16 bg-red-500/15 text-red-400 rounded-2xl flex items-center justify-center mx-auto mb-6">
             <AlertTriangle size={36} />
           </div>
-          <h3 className="text-xl font-black text-theme-text-primary">终止异步任务？</h3>
+          <h3 className="text-xl font-semibold text-theme-text-primary">终止异步任务？</h3>
           <p className="text-theme-text-muted mt-3 font-medium leading-relaxed text-sm">
             {deleteConfirm.mode === 'single' ? (
               <>
-                您正准备移除或终止任务 <span className="text-red-400 font-black font-mono">{deleteConfirm.taskId}</span>。
+                您正准备移除或终止任务 <span className="text-red-400 font-medium font-mono">{deleteConfirm.taskId}</span>。
               </>
             ) : deleteConfirm.mode === 'batch' ? (
-              <>您正准备批量删除 <span className="text-red-400 font-black">{deleteConfirm.taskIds.length}</span> 个任务。</>
+              <>您正准备批量删除 <span className="text-red-400 font-medium">{deleteConfirm.taskIds.length}</span> 个任务。</>
             ) : (
-              <>您正准备一键删除当前筛选结果中的 <span className="text-red-400 font-black">{deleteConfirm.taskIds.length}</span> 个任务。</>
+              <>您正准备一键删除当前筛选结果中的 <span className="text-red-400 font-medium">{deleteConfirm.taskIds.length}</span> 个任务。</>
             )}
             <br />
             如果任务正在运行中，系统会尝试中断关联 K8S Job，该操作不可逆。
@@ -503,14 +503,14 @@ export const TaskMgmtPage: React.FC<{ projectId: string }> = ({ projectId }) => 
           <button
             onClick={() => setDeleteConfirm({ show: false, mode: 'single', taskId: null, taskIds: [] })}
             disabled={isDeleting}
-            className="flex-1 py-3 bg-theme-elevated text-theme-text-secondary rounded-xl font-black hover:bg-theme-elevated transition-all disabled:opacity-50"
+            className="flex-1 py-3 bg-theme-elevated text-theme-text-secondary rounded-xl font-medium hover:bg-theme-elevated transition-all disabled:opacity-50"
           >
             保留
           </button>
           <button
             onClick={executeDeleteTask}
             disabled={isDeleting}
-            className="flex-1 py-3 bg-red-600 text-white rounded-xl font-black hover:bg-red-700 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+            className="flex-1 py-3 bg-red-600 text-white rounded-xl font-medium hover:bg-red-700 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
           >
             {isDeleting ? <Loader2 className="animate-spin" size={16} /> : <Trash2 size={16} />}
             确认销毁

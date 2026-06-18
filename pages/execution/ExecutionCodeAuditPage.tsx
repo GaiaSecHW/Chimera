@@ -93,11 +93,11 @@ const PasswordDisplay: React.FC<{ password?: string; label: string }> = ({ passw
   if (!password) return null;
 
   return (
-    <div className="flex items-center gap-2 bg-theme-bg-app border border-theme-border px-3 py-1.5 rounded-xl group/pwd relative">
-      <span className="text-[9px] font-black text-theme-text-muted uppercase tracking-tighter border-r border-theme-border pr-2 mr-1">
+    <div className="flex items-center gap-2 bg-theme-surface border border-theme-border px-3 py-1.5 rounded-xl group/pwd relative">
+      <span className="text-[9px] font-semibold text-theme-text-muted uppercase tracking-tighter border-r border-theme-border pr-2 mr-1">
         {label}
       </span>
-      <span className="text-[10px] font-mono font-black text-theme-text-secondary tracking-wider">
+      <span className="text-[10px] font-mono font-semibold text-theme-text-secondary tracking-wider">
         {isVisible ? password : '••••••••'}
       </span>
       <div className="flex items-center gap-1 border-l border-theme-border ml-1 pl-1">
@@ -844,41 +844,41 @@ export const ExecutionCodeAuditPage: React.FC<ExecutionCodeAuditPageProps> = ({ 
 
   return (
     <div className="h-full overflow-y-auto custom-scrollbar p-4 md:p-6 lg:p-8 pb-16 space-y-4 animate-in fade-in duration-300">
- <div className="rounded-2xl border border-theme-border bg-theme-bg-app p-4">
+ <div className="rounded-2xl border border-theme-border bg-theme-surface p-4">
         <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
           <PageHeader
-            title={<div className="flex items-center gap-2"><Bot size={18} className="text-blue-400" /><span>代码审计控制台</span><span className="rounded-full border border-blue-500/20 bg-blue-500/15 px-2 py-0.5 text-[10px] font-black uppercase tracking-widest text-blue-400">VSCode AI</span></div>}
+            title={<div className="flex items-center gap-2"><Bot size={18} className="text-blue-400" /><span>代码审计控制台</span><span className="rounded-full border border-blue-500/20 bg-blue-500/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-widest text-blue-400">VSCode AI</span></div>}
             description={<>Namespace: <span className="font-mono text-theme-text-secondary">{projectNamespace || '...'}</span></>}
           />
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-6">
-            <div className="rounded-xl border border-theme-border bg-theme-bg-app px-3 py-2">
-              <p className="text-[10px] font-black uppercase tracking-widest text-theme-text-muted">运行中</p>
-              <p className="text-lg font-black text-theme-text-primary leading-none mt-1">{stats.running}<span className="ml-1 text-xs text-theme-text-muted">/ {stats.total}</span></p>
+            <div className="rounded-xl border border-theme-border bg-theme-surface px-3 py-2">
+              <p className="text-[10px] font-semibold uppercase tracking-widest text-theme-text-muted">运行中</p>
+              <p className="text-lg font-semibold text-theme-text-primary leading-none mt-1">{stats.running}<span className="ml-1 text-xs text-theme-text-muted">/ {stats.total}</span></p>
             </div>
-            <div className="rounded-xl border border-theme-border bg-theme-bg-app px-3 py-2">
-              <p className="text-[10px] font-black uppercase tracking-widest text-theme-text-muted">已停止</p>
-              <p className="text-lg font-black text-theme-text-primary leading-none mt-1">{stats.stopped}</p>
+            <div className="rounded-xl border border-theme-border bg-theme-surface px-3 py-2">
+              <p className="text-[10px] font-semibold uppercase tracking-widest text-theme-text-muted">已停止</p>
+              <p className="text-lg font-semibold text-theme-text-primary leading-none mt-1">{stats.stopped}</p>
             </div>
-            <div className="rounded-xl border border-theme-border bg-theme-bg-app px-3 py-2">
-              <p className="text-[10px] font-black uppercase tracking-widest text-theme-text-muted">已绑定LLM</p>
-              <p className="text-lg font-black text-theme-text-primary leading-none mt-1">{stats.bound}</p>
+            <div className="rounded-xl border border-theme-border bg-theme-surface px-3 py-2">
+              <p className="text-[10px] font-semibold uppercase tracking-widest text-theme-text-muted">已绑定LLM</p>
+              <p className="text-lg font-semibold text-theme-text-primary leading-none mt-1">{stats.bound}</p>
             </div>
-            <div className="rounded-xl border border-theme-border bg-theme-bg-app px-3 py-2">
-              <p className="text-[10px] font-black uppercase tracking-widest text-theme-text-muted">未绑定LLM</p>
-              <p className="text-lg font-black text-theme-text-primary leading-none mt-1">{stats.unbound}</p>
+            <div className="rounded-xl border border-theme-border bg-theme-surface px-3 py-2">
+              <p className="text-[10px] font-semibold uppercase tracking-widest text-theme-text-muted">未绑定LLM</p>
+              <p className="text-lg font-semibold text-theme-text-primary leading-none mt-1">{stats.unbound}</p>
             </div>
-            <div className="rounded-xl border border-theme-border bg-theme-bg-app px-3 py-2">
-              <p className="text-[10px] font-black uppercase tracking-widest text-theme-text-muted">任务中</p>
-              <p className="text-lg font-black text-theme-text-primary leading-none mt-1">{stats.activeTasks}</p>
+            <div className="rounded-xl border border-theme-border bg-theme-surface px-3 py-2">
+              <p className="text-[10px] font-semibold uppercase tracking-widest text-theme-text-muted">任务中</p>
+              <p className="text-lg font-semibold text-theme-text-primary leading-none mt-1">{stats.activeTasks}</p>
             </div>
-            <div className="rounded-xl border border-theme-border bg-theme-bg-app px-3 py-2">
-              <p className="text-[10px] font-black uppercase tracking-widest text-theme-text-muted">任务失败</p>
-              <p className="text-lg font-black text-rose-400 leading-none mt-1">{stats.failedTasks}</p>
+            <div className="rounded-xl border border-theme-border bg-theme-surface px-3 py-2">
+              <p className="text-[10px] font-semibold uppercase tracking-widest text-theme-text-muted">任务失败</p>
+              <p className="text-lg font-semibold text-rose-400 leading-none mt-1">{stats.failedTasks}</p>
             </div>
           </div>
           <div className="mt-2 grid grid-cols-1 gap-2 md:grid-cols-2">
-            <div className="rounded-xl border border-theme-border bg-theme-bg-app px-3 py-2">
-              <div className="flex items-center justify-between text-[10px] font-black uppercase tracking-widest text-theme-text-muted">
+            <div className="rounded-xl border border-theme-border bg-theme-surface px-3 py-2">
+              <div className="flex items-center justify-between text-[10px] font-semibold uppercase tracking-widest text-theme-text-muted">
                 <span>实例运行率</span>
                 <span>{stats.total > 0 ? Math.round((stats.running / stats.total) * 100) : 0}%</span>
               </div>
@@ -889,8 +889,8 @@ export const ExecutionCodeAuditPage: React.FC<ExecutionCodeAuditPageProps> = ({ 
                 />
               </div>
             </div>
-            <div className="rounded-xl border border-theme-border bg-theme-bg-app px-3 py-2">
-              <div className="flex items-center justify-between text-[10px] font-black uppercase tracking-widest text-theme-text-muted">
+            <div className="rounded-xl border border-theme-border bg-theme-surface px-3 py-2">
+              <div className="flex items-center justify-between text-[10px] font-semibold uppercase tracking-widest text-theme-text-muted">
                 <span>LLM绑定率</span>
                 <span>{stats.total > 0 ? Math.round((stats.bound / stats.total) * 100) : 0}%</span>
               </div>
@@ -909,13 +909,13 @@ export const ExecutionCodeAuditPage: React.FC<ExecutionCodeAuditPageProps> = ({ 
             <input
               type="text"
               placeholder="搜索实例名称或描述..."
-              className="w-full rounded-xl border border-theme-border bg-theme-bg-app py-2 pl-10 pr-3 text-sm outline-none transition-all focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
+              className="w-full rounded-xl border border-theme-border bg-theme-surface py-2 pl-10 pr-3 text-sm outline-none transition-all focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
               value={searchTerm}
               onChange={e => setSearchTerm(e.target.value)}
             />
           </div>
           <select
-            className="rounded-xl border border-theme-border bg-theme-bg-app px-3 py-2 text-xs font-bold text-theme-text-secondary outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
+            className="rounded-xl border border-theme-border bg-theme-surface px-3 py-2 text-xs font-bold text-theme-text-secondary outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
             value={bindingFilter}
             onChange={(e) => setBindingFilter(e.target.value as BindingStatusFilter)}
           >
@@ -923,7 +923,7 @@ export const ExecutionCodeAuditPage: React.FC<ExecutionCodeAuditPageProps> = ({ 
             <option value="bound">绑定状态: 已绑定</option>
             <option value="unbound">绑定状态: 未绑定</option>
           </select>
-          <div className="flex items-center gap-2 rounded-xl border border-theme-border bg-theme-bg-app px-2 py-1">
+          <div className="flex items-center gap-2 rounded-xl border border-theme-border bg-theme-surface px-2 py-1">
             <select
               className="min-w-[190px] bg-transparent px-2 py-1 text-xs font-bold text-theme-text-secondary outline-none"
               value={providerFilterToAdd}
@@ -942,14 +942,14 @@ export const ExecutionCodeAuditPage: React.FC<ExecutionCodeAuditPageProps> = ({ 
                 if (!providerFilterToAdd || providerFilterKeys.includes(providerFilterToAdd)) return;
                 setProviderFilterKeys([...providerFilterKeys, providerFilterToAdd]);
               }}
-              className="rounded-lg border border-theme-border bg-theme-bg-app px-2 py-1 text-[10px] font-black text-theme-text-secondary hover:bg-theme-elevated"
+              className="rounded-lg border border-theme-border bg-theme-bg-app px-2 py-1 text-[10px] font-semibold text-theme-text-secondary hover:bg-theme-elevated"
             >
               添加
             </button>
             <button
               type="button"
               onClick={() => setProviderFilterKeys([])}
-              className="rounded-lg border border-theme-border bg-theme-bg-app px-2 py-1 text-[10px] font-black text-theme-text-secondary hover:bg-theme-elevated"
+              className="rounded-lg border border-theme-border bg-theme-bg-app px-2 py-1 text-[10px] font-semibold text-theme-text-secondary hover:bg-theme-elevated"
             >
               清空
             </button>
@@ -957,17 +957,17 @@ export const ExecutionCodeAuditPage: React.FC<ExecutionCodeAuditPageProps> = ({ 
           <div className="flex items-center gap-2">
             <button
               onClick={() => setIsTaskModalOpen(true)}
-              className="rounded-xl border border-theme-border bg-theme-bg-app px-3 py-2 text-[11px] font-black uppercase tracking-widest text-theme-text-secondary transition hover:bg-theme-elevated"
+              className="rounded-xl border border-theme-border bg-theme-surface px-3 py-2 text-[11px] font-semibold uppercase tracking-widest text-theme-text-secondary transition hover:bg-theme-elevated"
             >
               任务流水
             </button>
-            <button onClick={loadAll} className="rounded-xl border border-theme-border bg-theme-bg-app p-2.5 text-theme-text-muted transition hover:bg-theme-elevated">
+            <button onClick={loadAll} className="rounded-xl border border-theme-border bg-theme-surface p-2.5 text-theme-text-muted transition hover:bg-theme-elevated">
               <RefreshCw size={16} className={loading ? 'animate-spin' : ''} />
             </button>
             <button
               onClick={() => setIsCreateModalOpen(true)}
               disabled={!projectId}
-              className="rounded-xl bg-blue-600 px-4 py-2.5 text-xs font-black uppercase tracking-widest text-white transition hover:bg-blue-700 disabled:opacity-50"
+              className="rounded-xl bg-blue-600 px-4 py-2.5 text-xs font-semibold uppercase tracking-widest text-white transition hover:bg-blue-700 disabled:opacity-50"
             >
               部署审计环境
             </button>
@@ -976,7 +976,7 @@ export const ExecutionCodeAuditPage: React.FC<ExecutionCodeAuditPageProps> = ({ 
         {providerFilterKeys.length > 0 && (
           <div className="mt-2 flex flex-wrap gap-1.5">
             {providerFilterKeys.map((key) => (
-              <span key={key} className="inline-flex items-center gap-1 rounded-full border border-blue-500/20 bg-blue-500/15 px-2 py-0.5 text-[10px] font-black text-blue-400">
+              <span key={key} className="inline-flex items-center gap-1 rounded-full border border-blue-500/20 bg-blue-500/15 px-2 py-0.5 text-[10px] font-medium text-blue-400">
                 {providerMap.get(key)?.display_name || key}
                 <button type="button" onClick={() => setProviderFilterKeys(providerFilterKeys.filter((item) => item !== key))}>
                   <X size={10} />
@@ -989,14 +989,14 @@ export const ExecutionCodeAuditPage: React.FC<ExecutionCodeAuditPageProps> = ({ 
 
       <div className="space-y-3">
           <div className="flex items-center justify-between px-1">
-            <p className="text-[11px] font-black uppercase tracking-widest text-theme-text-muted">实例列表</p>
+            <p className="text-[11px] font-semibold uppercase tracking-widest text-theme-text-muted">实例列表</p>
             <p className="text-[11px] font-bold text-theme-text-muted">共 {filteredInstances.length} 个</p>
           </div>
           {filteredInstances.length > 0 ? (
- <div className="overflow-x-auto rounded-2xl border border-theme-border bg-theme-bg-app">
+ <div className="overflow-x-auto rounded-2xl border border-theme-border bg-theme-surface">
               <table className="min-w-full text-left">
                 <thead className="bg-theme-bg-app">
-                  <tr className="text-[11px] font-black uppercase tracking-widest text-theme-text-muted">
+                  <tr className="text-[11px] font-semibold uppercase tracking-widest text-theme-text-muted">
                     <th className="px-3 py-2.5">实例</th>
                     <th className="px-3 py-2.5">状态</th>
                     <th className="px-3 py-2.5">入口地址</th>
@@ -1019,7 +1019,7 @@ export const ExecutionCodeAuditPage: React.FC<ExecutionCodeAuditPageProps> = ({ 
                           <button
                             type="button"
                             onClick={() => setSelectedInstanceName(item.name)}
-                            className="max-w-[260px] truncate text-sm font-black text-theme-text-primary hover:text-blue-400"
+                            className="max-w-[260px] truncate text-sm font-semibold text-theme-text-primary hover:text-blue-400"
                             title={item.name}
                           >
                             {item.name}
@@ -1033,7 +1033,7 @@ export const ExecutionCodeAuditPage: React.FC<ExecutionCodeAuditPageProps> = ({ 
                               href={item.access_url}
                               target="_blank"
                               rel="noreferrer"
-                              className="text-[11px] font-black text-blue-400 underline decoration-dotted underline-offset-2 hover:text-blue-400"
+                              className="text-[11px] font-semibold text-blue-400 underline decoration-dotted underline-offset-2 hover:text-blue-400"
                             >
                               入口地址
                             </a>
@@ -1056,9 +1056,9 @@ export const ExecutionCodeAuditPage: React.FC<ExecutionCodeAuditPageProps> = ({ 
                                     const mappedName = pvcDisplayMap.get(rawName);
                                     return (
                                       <>
-                                        <span className="font-black">{mappedName || rawName || '-'}</span>
+                                        <span className="font-semibold">{mappedName || rawName || '-'}</span>
                                         {!mappedName && rawName && (
-                                          <span className="ml-1 rounded-md bg-amber-500/15 px-1 py-0.5 text-[9px] font-black text-amber-400">原始</span>
+                                          <span className="ml-1 rounded-md bg-amber-500/15 px-1 py-0.5 text-[9px] font-semibold text-amber-400">原始</span>
                                         )}
                                       </>
                                     );
@@ -1082,9 +1082,9 @@ export const ExecutionCodeAuditPage: React.FC<ExecutionCodeAuditPageProps> = ({ 
                                     const mappedName = pvcDisplayMap.get(rawName);
                                     return (
                                       <>
-                                        <span className="font-black">{mappedName || rawName || '-'}</span>
+                                        <span className="font-semibold">{mappedName || rawName || '-'}</span>
                                         {!mappedName && rawName && (
-                                          <span className="ml-1 rounded-md bg-amber-500/15 px-1 py-0.5 text-[9px] font-black text-amber-400">原始</span>
+                                          <span className="ml-1 rounded-md bg-amber-500/15 px-1 py-0.5 text-[9px] font-semibold text-amber-400">原始</span>
                                         )}
                                       </>
                                     );
@@ -1099,18 +1099,18 @@ export const ExecutionCodeAuditPage: React.FC<ExecutionCodeAuditPageProps> = ({ 
                           </div>
                         </td>
                         <td className="px-3 py-3">
-                          <span className={`rounded-full px-2 py-0.5 text-[10px] font-black uppercase tracking-widest ${hasBinding ? 'bg-violet-500/15 text-violet-400' : 'bg-theme-elevated text-theme-text-muted'}`}>
+                          <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-widest ${hasBinding ? 'bg-violet-500/15 text-violet-400' : 'bg-theme-elevated text-theme-text-muted'}`}>
                             {hasBinding ?`已绑定 ${itemProviderKeys.length}` : '未绑定'}
                           </span>
                           {hasBinding && (
                             <div className="mt-1 flex max-w-[220px] flex-wrap gap-1">
                               {itemProviderKeys.slice(0, 2).map((providerKey: string) => (
-                                <span key={providerKey} className="rounded-full border border-violet-500/20 bg-violet-500/15 px-2 py-0.5 text-[10px] font-black text-violet-400">
+                                <span key={providerKey} className="rounded-full border border-violet-500/20 bg-violet-500/15 px-2 py-0.5 text-[10px] font-medium text-violet-400">
                                   {providerMap.get(providerKey)?.display_name || providerKey}
                                 </span>
                               ))}
                               {itemProviderKeys.length > 2 && (
-                                <span className="rounded-full border border-theme-border bg-theme-elevated px-2 py-0.5 text-[10px] font-black text-theme-text-muted">
+                                <span className="rounded-full border border-theme-border bg-theme-elevated px-2 py-0.5 text-[10px] font-medium text-theme-text-muted">
                                   +{itemProviderKeys.length - 2}
                                 </span>
                               )}
@@ -1134,7 +1134,7 @@ export const ExecutionCodeAuditPage: React.FC<ExecutionCodeAuditPageProps> = ({ 
                                 href={item.access_url}
                                 target="_blank"
                                 rel="noreferrer"
-                                className="rounded-lg bg-blue-600 px-2.5 py-1.5 text-[10px] font-black uppercase tracking-widest text-white transition hover:bg-blue-700"
+                                className="rounded-lg bg-blue-600 px-2.5 py-1.5 text-[10px] font-semibold uppercase tracking-widest text-white transition hover:bg-blue-700"
                               >
                                 打开
                               </a>
@@ -1142,7 +1142,7 @@ export const ExecutionCodeAuditPage: React.FC<ExecutionCodeAuditPageProps> = ({ 
                             <button
                               type="button"
                               onClick={() => setRebuildConfirm({ show: true, name: item.name })}
-                              className="rounded-lg border border-amber-500/20 bg-amber-500/15 px-2.5 py-1.5 text-[10px] font-black tracking-widest text-amber-400 transition hover:bg-amber-500/15"
+                              className="rounded-lg border border-amber-500/20 bg-amber-500/15 px-2.5 py-1.5 text-[10px] font-semibold tracking-widest text-amber-400 transition hover:bg-amber-500/15"
                             >
                               重建实例
                             </button>
@@ -1162,8 +1162,8 @@ export const ExecutionCodeAuditPage: React.FC<ExecutionCodeAuditPageProps> = ({ 
               </table>
             </div>
           ) : (
-            <div className="rounded-2xl border border-dashed border-theme-border bg-theme-bg-app p-10 text-center">
-              <p className="text-sm font-black text-theme-text-muted">未检索到审计实例</p>
+            <div className="rounded-2xl border border-dashed border-theme-border bg-theme-surface p-10 text-center">
+              <p className="text-sm font-semibold text-theme-text-muted">未检索到审计实例</p>
               <p className="mt-1 text-xs text-theme-text-muted">点击右上角“部署审计环境”创建首个实例</p>
             </div>
           )}
@@ -1171,10 +1171,10 @@ export const ExecutionCodeAuditPage: React.FC<ExecutionCodeAuditPageProps> = ({ 
 
       {isTaskModalOpen && (
         <div className="fixed inset-0 z-[220] flex items-center justify-center bg-slate-950/70 p-4 backdrop-blur-sm">
- <div className="flex max-h-[88vh] w-full max-w-5xl flex-col overflow-hidden rounded-2xl border border-theme-border bg-theme-bg-app">
+ <div className="flex max-h-[88vh] w-full max-w-5xl flex-col overflow-hidden rounded-2xl border border-theme-border bg-theme-surface">
             <div className="flex items-center justify-between border-b border-theme-border px-4 py-3">
               <div>
-                <h4 className="text-sm font-black uppercase tracking-widest text-theme-text-secondary">任务流水</h4>
+                <h4 className="text-sm font-semibold uppercase tracking-widest text-theme-text-secondary">任务流水</h4>
                 <p className="text-xs text-theme-text-muted">共 {tasks.length} 条任务记录，已选 {selectedTaskIds.size} 条</p>
               </div>
               <div className="flex items-center gap-2">
@@ -1182,7 +1182,7 @@ export const ExecutionCodeAuditPage: React.FC<ExecutionCodeAuditPageProps> = ({ 
                   type="button"
                   disabled={selectedTaskIds.size === 0 || batchTaskDeleting}
                   onClick={handleBatchDeleteTasks}
-                  className="rounded-lg border border-red-500/20 bg-red-500/15 px-2.5 py-2 text-[11px] font-black uppercase tracking-widest text-red-400 hover:bg-red-500/15 disabled:cursor-not-allowed disabled:opacity-50"
+                  className="rounded-lg border border-red-500/20 bg-red-500/15 px-2.5 py-2 text-[11px] font-semibold uppercase tracking-widest text-red-400 hover:bg-red-500/15 disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   {batchTaskDeleting ? '删除中...' :`批量删除(${selectedTaskIds.size})`}
                 </button>
@@ -1206,7 +1206,7 @@ export const ExecutionCodeAuditPage: React.FC<ExecutionCodeAuditPageProps> = ({ 
               {tasks.length > 0 ? (
                 <table className="min-w-full text-left">
                   <thead className="sticky top-0 bg-theme-bg-app">
-                    <tr className="text-[11px] font-black uppercase tracking-widest text-theme-text-muted">
+                    <tr className="text-[11px] font-semibold uppercase tracking-widest text-theme-text-muted">
                       <th className="px-3 py-2">
                         <input
                           type="checkbox"
@@ -1245,7 +1245,7 @@ export const ExecutionCodeAuditPage: React.FC<ExecutionCodeAuditPageProps> = ({ 
                             <button
                               type="button"
                               onClick={() => handleOpenTaskDetail(task)}
-                              className="rounded-md border border-theme-border bg-theme-bg-app px-2 py-1 text-[10px] font-black text-theme-text-secondary hover:bg-theme-elevated"
+                              className="rounded-md border border-theme-border bg-theme-bg-app px-2 py-1 text-[10px] font-semibold text-theme-text-secondary hover:bg-theme-elevated"
                             >
                               详情
                             </button>
@@ -1263,15 +1263,15 @@ export const ExecutionCodeAuditPage: React.FC<ExecutionCodeAuditPageProps> = ({ 
                   </tbody>
                 </table>
               ) : (
-                <div className="py-20 text-center text-[11px] font-black uppercase tracking-widest text-theme-text-muted">暂无任务记录</div>
+                <div className="py-20 text-center text-[11px] font-semibold uppercase tracking-widest text-theme-text-muted">暂无任务记录</div>
               )}
             </div>
             <div className="border-t border-theme-border bg-slate-50/70 p-3">
               <div className="mb-2 flex items-center justify-between">
-                <p className="text-[11px] font-black uppercase tracking-widest text-theme-text-secondary">任务详情</p>
+                <p className="text-[11px] font-semibold uppercase tracking-widest text-theme-text-secondary">任务详情</p>
                 {activeTaskId && <p className="text-[11px] font-mono text-theme-text-muted">{activeTaskId}</p>}
               </div>
-              <div className="max-h-56 overflow-auto rounded-xl border border-theme-border bg-theme-bg-app p-3">
+              <div className="max-h-56 overflow-auto rounded-xl border border-theme-border bg-theme-surface p-3">
                 {!activeTaskId && <p className="text-xs text-theme-text-muted">点击任务行中的“详情”查看完整信息。</p>}
                 {activeTaskId && taskDetailLoadingId === activeTaskId && <p className="text-xs text-theme-text-muted">详情加载中...</p>}
                 {activeTaskId && taskDetailLoadingId !== activeTaskId && (
@@ -1288,11 +1288,11 @@ export const ExecutionCodeAuditPage: React.FC<ExecutionCodeAuditPageProps> = ({ 
         <div className="fixed inset-0 z-[250] flex items-center justify-center p-6 bg-slate-950/70 backdrop-blur-md animate-in fade-in">
  <div className="bg-theme-bg-app w-full max-w-md rounded-[3rem] overflow-hidden animate-in zoom-in-95">
             <div className="p-10 text-center space-y-6">
-              <div className="w-20 h-20 bg-amber-500/15 text-amber-400 rounded-[2rem] flex items-center justify-center mx-auto shadow-inner">
+              <div className="w-20 h-20 bg-amber-500/15 text-amber-400 rounded-xl flex items-center justify-center mx-auto shadow-inner">
                 <RefreshCw size={40} className="animate-spin-slow" />
               </div>
               <div className="space-y-2">
-                <h3 className="text-2xl font-black text-theme-text-primary tracking-tight">确认重建环境？</h3>
+                <h3 className="text-2xl font-bold text-theme-text-primary tracking-tight">确认重建环境？</h3>
                 <p className="text-theme-text-muted text-sm font-medium leading-relaxed italic">
                   您正准备重新构建实例 <span className="font-bold text-theme-text-primary underline">"{rebuildConfirm.name}"</span>。
                   这会导致当前的编辑器会话中断。除挂载的 PVC 存储外，所有内部插件配置及临时文件都将被清空。
@@ -1300,8 +1300,8 @@ export const ExecutionCodeAuditPage: React.FC<ExecutionCodeAuditPageProps> = ({ 
               </div>
             </div>
             <div className="px-10 pb-10 flex gap-4">
-              <button onClick={() => setRebuildConfirm({ show: false, name: null })} disabled={isActionLoading} className="flex-1 py-4 bg-theme-elevated text-theme-text-secondary rounded-2xl font-black hover:bg-theme-elevated transition-all">取消</button>
- <button onClick={executeRebuild} disabled={isActionLoading} className="flex-1 py-4 bg-amber-600 text-white rounded-2xl font-black hover:bg-amber-700 flex items-center justify-center gap-2 shadow-amber-500/20 active:scale-95 transition-all">
+              <button onClick={() => setRebuildConfirm({ show: false, name: null })} disabled={isActionLoading} className="flex-1 py-4 bg-theme-elevated text-theme-text-secondary rounded-2xl font-medium hover:bg-theme-elevated transition-all">取消</button>
+ <button onClick={executeRebuild} disabled={isActionLoading} className="flex-1 py-4 bg-amber-600 text-white rounded-2xl font-medium hover:bg-amber-700 flex items-center justify-center gap-2 shadow-amber-500/20 active:scale-95 transition-all">
                 {isActionLoading ? <Loader2 size={18} className="animate-spin" /> : <RefreshCw size={18} />} 确认并重启
               </button>
             </div>
@@ -1314,20 +1314,20 @@ export const ExecutionCodeAuditPage: React.FC<ExecutionCodeAuditPageProps> = ({ 
         <div className="fixed inset-0 z-[250] flex items-center justify-center p-6 bg-slate-950/70 backdrop-blur-md animate-in fade-in">
  <div className="bg-theme-bg-app w-full max-w-md rounded-[3rem] overflow-hidden animate-in zoom-in-95">
             <div className="p-10 text-center space-y-6">
-              <div className="w-20 h-20 bg-red-500/15 text-red-400 rounded-[2rem] flex items-center justify-center mx-auto shadow-inner">
+              <div className="w-20 h-20 bg-red-500/15 text-red-400 rounded-xl flex items-center justify-center mx-auto shadow-inner">
                 <Trash2 size={40} />
               </div>
               <div className="space-y-2">
-                <h3 className="text-2xl font-black text-theme-text-primary tracking-tight">永久销毁实例？</h3>
+                <h3 className="text-2xl font-bold text-theme-text-primary tracking-tight">永久销毁实例？</h3>
                 <p className="text-theme-text-muted text-sm font-medium leading-relaxed italic">
-                  您将移除以下实例：<br/><span className="font-black text-red-400">{deleteConfirm.names.join(', ')}</span><br/>
+                  您将移除以下实例：<br/><span className="font-semibold text-red-400">{deleteConfirm.names.join(', ')}</span><br/>
                   该操作将彻底从 K8S 集群中擦除 Deployment、Service 及 Ingress 入口。此过程<span className="font-bold underline">不可撤销</span>。
                 </p>
               </div>
             </div>
             <div className="px-10 pb-10 flex gap-4">
-              <button onClick={() => setDeleteConfirm({ show: false, names: [] })} disabled={isActionLoading} className="flex-1 py-4 bg-theme-elevated text-theme-text-secondary rounded-2xl font-black hover:bg-theme-elevated transition-all">保留实例</button>
- <button onClick={executeDelete} disabled={isActionLoading} className="flex-1 py-4 bg-red-600 text-white rounded-2xl font-black hover:bg-red-700 flex items-center justify-center gap-2 shadow-red-500/20 active:scale-95 transition-all">
+              <button onClick={() => setDeleteConfirm({ show: false, names: [] })} disabled={isActionLoading} className="flex-1 py-4 bg-theme-elevated text-theme-text-secondary rounded-2xl font-medium hover:bg-theme-elevated transition-all">保留实例</button>
+ <button onClick={executeDelete} disabled={isActionLoading} className="flex-1 py-4 bg-red-600 text-white rounded-2xl font-medium hover:bg-red-700 flex items-center justify-center gap-2 shadow-red-500/20 active:scale-95 transition-all">
                 {isActionLoading ? <Loader2 size={18} className="animate-spin" /> : <Trash2 size={18} />} 立即销毁
               </button>
             </div>
@@ -1338,13 +1338,13 @@ export const ExecutionCodeAuditPage: React.FC<ExecutionCodeAuditPageProps> = ({ 
       {/* Create Modal */}
       {isCreateModalOpen && (
         <div className="fixed inset-0 z-[150] flex items-center justify-center bg-slate-950/75 p-3 md:p-6 backdrop-blur-sm animate-in fade-in">
- <div className="flex max-h-[92vh] w-full max-w-6xl flex-col overflow-hidden rounded-2xl border border-theme-border bg-theme-bg-app animate-in zoom-in-95">
+ <div className="flex max-h-[92vh] w-full max-w-6xl flex-col overflow-hidden rounded-2xl border border-theme-border bg-theme-surface animate-in zoom-in-95">
             <div className="flex items-start justify-between gap-4 border-b border-theme-border px-4 py-3 md:px-5">
               <div className="min-w-0">
                 <div className="flex items-center gap-2">
                   <Plus size={16} className="text-blue-400" />
-                  <h3 className="text-lg font-black tracking-tight text-theme-text-primary">部署审计环境</h3>
-                  <span className="rounded-full bg-theme-elevated px-2 py-0.5 text-[10px] font-black uppercase tracking-widest text-theme-text-secondary">Compact</span>
+                  <h3 className="text-lg font-semibold tracking-tight text-theme-text-primary">部署审计环境</h3>
+                  <span className="rounded-full bg-theme-elevated px-2 py-0.5 text-[10px] font-semibold uppercase tracking-widest text-theme-text-secondary">Compact</span>
                 </div>
                 <p className="mt-1 text-xs text-theme-text-muted">按需绑定 LLM Provider、PVC 和自定义环境变量。</p>
               </div>
@@ -1354,7 +1354,7 @@ export const ExecutionCodeAuditPage: React.FC<ExecutionCodeAuditPageProps> = ({ 
             </div>
 
             <form onSubmit={handleCreate} className="min-h-0 flex-1 overflow-y-auto p-4 md:p-5 custom-scrollbar">
-              <div className="mb-3 grid grid-cols-2 gap-2 rounded-xl border border-theme-border bg-theme-bg-app p-2 md:grid-cols-4">
+              <div className="mb-3 grid grid-cols-2 gap-2 rounded-xl border border-theme-border bg-theme-surface p-2 md:grid-cols-4">
                 {[
                   { key: 'base' as const, label: '基础配置' },
                   { key: 'mounts' as const, label: '挂载配置' },
@@ -1365,7 +1365,7 @@ export const ExecutionCodeAuditPage: React.FC<ExecutionCodeAuditPageProps> = ({ 
                     key={tab.key}
                     type="button"
                     onClick={() => setActiveCreateTab(tab.key)}
-                    className={`rounded-lg px-3 py-2 text-[11px] font-black transition ${
+                    className={`rounded-lg px-3 py-2 text-[11px] font-semibold transition ${
                       activeCreateTab === tab.key
                         ? 'bg-blue-600 text-white'
                         : 'bg-theme-bg-app text-theme-text-secondary hover:bg-theme-elevated'
@@ -1378,11 +1378,11 @@ export const ExecutionCodeAuditPage: React.FC<ExecutionCodeAuditPageProps> = ({ 
               <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
                 {activeCreateTab === 'base' && (
                   <>
-                <section className="space-y-3 rounded-xl border border-theme-border bg-theme-bg-app p-3">
-                  <h4 className="text-[11px] font-black uppercase tracking-widest text-theme-text-secondary">基础信息</h4>
+                <section className="space-y-3 rounded-xl border border-theme-border bg-theme-surface p-3">
+                  <h4 className="text-[11px] font-semibold uppercase tracking-widest text-theme-text-secondary">基础信息</h4>
                   <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
                     <div>
-                      <label className="text-[10px] font-black uppercase tracking-widest text-theme-text-muted">实例名称 *</label>
+                      <label className="text-[10px] font-semibold uppercase tracking-widest text-theme-text-muted">实例名称 *</label>
                       <input
                         required
                         placeholder="auth-service-review"
@@ -1392,7 +1392,7 @@ export const ExecutionCodeAuditPage: React.FC<ExecutionCodeAuditPageProps> = ({ 
                       />
                     </div>
                     <div>
-                      <label className="text-[10px] font-black uppercase tracking-widest text-theme-text-muted">访问密码</label>
+                      <label className="text-[10px] font-semibold uppercase tracking-widest text-theme-text-muted">访问密码</label>
                       <input
                         type="password"
                         placeholder="留空随机生成"
@@ -1406,7 +1406,7 @@ export const ExecutionCodeAuditPage: React.FC<ExecutionCodeAuditPageProps> = ({ 
                     </div>
                   </div>
                   <div>
-                    <label className="text-[10px] font-black uppercase tracking-widest text-theme-text-muted">运行镜像</label>
+                    <label className="text-[10px] font-semibold uppercase tracking-widest text-theme-text-muted">运行镜像</label>
                     <input
                       placeholder={defaultImage ?`默认: ${defaultImage}` :"留空使用默认镜像"}
                       className="mt-1 w-full rounded-lg border border-theme-border bg-theme-bg-app px-3 py-2.5 text-xs font-mono text-theme-text-secondary outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
@@ -1418,7 +1418,7 @@ export const ExecutionCodeAuditPage: React.FC<ExecutionCodeAuditPageProps> = ({ 
                     </p>
                   </div>
                   <div>
-                    <label className="text-[10px] font-black uppercase tracking-widest text-theme-text-muted">审计目标简述</label>
+                    <label className="text-[10px] font-semibold uppercase tracking-widest text-theme-text-muted">审计目标简述</label>
                     <textarea
                       placeholder="描述审计目标..."
                       rows={3}
@@ -1429,8 +1429,8 @@ export const ExecutionCodeAuditPage: React.FC<ExecutionCodeAuditPageProps> = ({ 
                   </div>
                 </section>
 
-                <section className="min-w-0 space-y-3 overflow-hidden rounded-xl border border-theme-border bg-theme-bg-app p-3">
-                  <h4 className="text-[11px] font-black uppercase tracking-widest text-theme-text-secondary">LLM Provider</h4>
+                <section className="min-w-0 space-y-3 overflow-hidden rounded-xl border border-theme-border bg-theme-surface p-3">
+                  <h4 className="text-[11px] font-semibold uppercase tracking-widest text-theme-text-secondary">LLM Provider</h4>
                   <div className="grid grid-cols-1 gap-2 sm:grid-cols-[minmax(0,1fr)_auto_auto]">
                     <select
                       className="w-full min-w-0 rounded-lg border border-theme-border bg-theme-bg-app px-3 py-2.5 text-xs font-bold text-theme-text-secondary outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 disabled:bg-theme-elevated"
@@ -1448,14 +1448,14 @@ export const ExecutionCodeAuditPage: React.FC<ExecutionCodeAuditPageProps> = ({ 
                     <button
                       type="button"
                       onClick={handleAddProvider}
-                      className="inline-flex items-center justify-center rounded-lg border border-blue-500/20 bg-blue-500/15 px-3 py-2 text-[11px] font-black text-blue-400 hover:bg-blue-500/15"
+                      className="inline-flex items-center justify-center rounded-lg border border-blue-500/20 bg-blue-500/15 px-3 py-2 text-[11px] font-semibold text-blue-400 hover:bg-blue-500/15"
                     >
                       + 添加
                     </button>
                     <button
                       type="button"
                       onClick={() => setFormData({ ...formData, llm_provider_keys: [] })}
-                      className="inline-flex items-center justify-center rounded-lg border border-theme-border bg-theme-bg-app px-3 py-2 text-[11px] font-black text-theme-text-secondary hover:bg-theme-elevated"
+                      className="inline-flex items-center justify-center rounded-lg border border-theme-border bg-theme-bg-app px-3 py-2 text-[11px] font-semibold text-theme-text-secondary hover:bg-theme-elevated"
                     >
                       清空
                     </button>
@@ -1472,7 +1472,7 @@ export const ExecutionCodeAuditPage: React.FC<ExecutionCodeAuditPageProps> = ({ 
                       selectedProviderKeys.map((providerKey, index) => (
                         <div key={providerKey} className="flex min-w-0 items-center justify-between gap-2 rounded-lg border border-theme-border bg-theme-bg-app px-3 py-2">
                           <div className="min-w-0 flex-1">
-                            <p className="truncate text-xs font-black text-theme-text-secondary">{providerMap.get(providerKey)?.display_name || providerKey}</p>
+                            <p className="truncate text-xs font-semibold text-theme-text-secondary">{providerMap.get(providerKey)?.display_name || providerKey}</p>
                             <p className="truncate text-[10px] text-theme-text-muted">{providerKey} · {providerMap.get(providerKey)?.provider_type || '-'}</p>
                           </div>
                           <div className="flex shrink-0 items-center gap-1">
@@ -1486,7 +1486,7 @@ export const ExecutionCodeAuditPage: React.FC<ExecutionCodeAuditPageProps> = ({ 
                                 next.splice(index - 1, 0, item);
                                 setFormData({ ...formData, llm_provider_keys: next });
                               }}
-                              className="rounded-md border border-theme-border bg-theme-bg-app px-2 py-1 text-[10px] font-black text-theme-text-secondary disabled:opacity-40"
+                              className="rounded-md border border-theme-border bg-theme-bg-app px-2 py-1 text-[10px] font-semibold text-theme-text-secondary disabled:opacity-40"
                             >
                               上移
                             </button>
@@ -1500,14 +1500,14 @@ export const ExecutionCodeAuditPage: React.FC<ExecutionCodeAuditPageProps> = ({ 
                                 next.splice(index + 1, 0, item);
                                 setFormData({ ...formData, llm_provider_keys: next });
                               }}
-                              className="rounded-md border border-theme-border bg-theme-bg-app px-2 py-1 text-[10px] font-black text-theme-text-secondary disabled:opacity-40"
+                              className="rounded-md border border-theme-border bg-theme-bg-app px-2 py-1 text-[10px] font-semibold text-theme-text-secondary disabled:opacity-40"
                             >
                               下移
                             </button>
                             <button
                               type="button"
                               onClick={() => setFormData({ ...formData, llm_provider_keys: selectedProviderKeys.filter((key) => key !== providerKey) })}
-                              className="rounded-md border border-red-500/20 bg-red-500/15 px-2 py-1 text-[10px] font-black text-red-400"
+                              className="rounded-md border border-red-500/20 bg-red-500/15 px-2 py-1 text-[10px] font-semibold text-red-400"
                             >
                               删除
                             </button>
@@ -1517,7 +1517,7 @@ export const ExecutionCodeAuditPage: React.FC<ExecutionCodeAuditPageProps> = ({ 
                     )}
                   </div>
                   <div className="min-w-0 rounded-lg border border-theme-border bg-theme-bg-app p-2.5 space-y-2">
-                    <p className="text-[10px] font-black uppercase tracking-widest text-theme-text-muted">Provider 单独预览（不混合）</p>
+                    <p className="text-[10px] font-semibold uppercase tracking-widest text-theme-text-muted">Provider 单独预览（不混合）</p>
                     {providerPreviewLoading && <p className="text-[10px] text-theme-text-muted">加载 Provider 预览中...</p>}
                     {providerPreviewError && <p className="text-[10px] text-red-500">{providerPreviewError}</p>}
                     {!providerPreviewLoading && !providerPreviewError && selectedProviderKeys.length === 0 && (
@@ -1535,18 +1535,18 @@ export const ExecutionCodeAuditPage: React.FC<ExecutionCodeAuditPageProps> = ({ 
                             : [];
                           return (
                             <div key={`preview-${providerKey}`} className="rounded-lg border border-theme-border bg-theme-bg-app p-2">
-                              <p className="truncate text-[10px] font-black text-theme-text-secondary">
+                              <p className="truncate text-[10px] font-semibold text-theme-text-secondary">
                                 {providerMap.get(providerKey)?.display_name || providerKey} · {providerKey}
                               </p>
                               <div className="mt-2 space-y-1">
-                                <p className="text-[10px] font-black text-theme-text-muted">环境变量</p>
+                                <p className="text-[10px] font-semibold text-theme-text-muted">环境变量</p>
                                 {envEntries.length === 0 ? (
                                   <p className="text-[10px] text-theme-text-muted">无环境变量</p>
                                 ) : (
                                   <div className="max-h-24 space-y-1 overflow-y-auto custom-scrollbar">
                                     {envEntries.map(([key, value]) => (
                                       <div key={`${providerKey}-env-${key}`} className="grid grid-cols-[minmax(0,120px)_1fr] gap-2 rounded bg-theme-bg-app px-2 py-1 text-[10px] font-mono">
-                                        <div className="truncate font-black text-theme-text-secondary">{key}</div>
+                                        <div className="truncate font-semibold text-theme-text-secondary">{key}</div>
                                         <div className="truncate text-theme-text-muted">{String(value ?? '')}</div>
                                       </div>
                                     ))}
@@ -1554,7 +1554,7 @@ export const ExecutionCodeAuditPage: React.FC<ExecutionCodeAuditPageProps> = ({ 
                                 )}
                               </div>
                               <div className="mt-2 space-y-1">
-                                <p className="text-[10px] font-black text-theme-text-muted">文件注入</p>
+                                <p className="text-[10px] font-semibold text-theme-text-muted">文件注入</p>
                                 {fileItems.length === 0 ? (
                                   <p className="text-[10px] text-theme-text-muted">无文件注入</p>
                                 ) : (
@@ -1569,7 +1569,7 @@ export const ExecutionCodeAuditPage: React.FC<ExecutionCodeAuditPageProps> = ({ 
                                             <button
                                               type="button"
                                               onClick={() => setLlmPreviewFileKey((prev) => (prev === fileKey ? '' : fileKey))}
-                                              className="rounded border border-theme-border bg-theme-bg-app px-1.5 py-0.5 text-[10px] font-black text-theme-text-secondary hover:bg-theme-elevated"
+                                              className="rounded border border-theme-border bg-theme-bg-app px-1.5 py-0.5 text-[10px] font-semibold text-theme-text-secondary hover:bg-theme-elevated"
                                             >
                                               {isOpen ? '收起' : '预览'}
                                             </button>
@@ -1593,7 +1593,7 @@ export const ExecutionCodeAuditPage: React.FC<ExecutionCodeAuditPageProps> = ({ 
                   </div>
                   <div className="rounded-lg border border-theme-border bg-theme-bg-app p-2">
                     <p className="text-[10px] text-theme-text-secondary">
-                      环境变量最终注入优先级：<span className="font-black">用户手工</span> &gt; <span className="font-black">LLM Provider</span> &gt; <span className="font-black">程序预制</span>
+                      环境变量最终注入优先级：<span className="font-semibold">用户手工</span> &gt; <span className="font-semibold">LLM Provider</span> &gt; <span className="font-semibold">程序预制</span>
                     </p>
                     <p className="mt-1 text-[10px] text-theme-text-muted">
                       已绑定 Provider: {selectedProviderKeys.length}，合并后环境变量: {providerMerged.mappedEnvKeys.length}，文件: {providerMerged.mappedFilePaths.length}
@@ -1605,13 +1605,13 @@ export const ExecutionCodeAuditPage: React.FC<ExecutionCodeAuditPageProps> = ({ 
 
                 {activeCreateTab === 'mounts' && (
                   <>
-                <section className="space-y-2 rounded-xl border border-theme-border bg-theme-bg-app p-3">
+                <section className="space-y-2 rounded-xl border border-theme-border bg-theme-surface p-3">
                   <div className="flex items-center justify-between">
-                    <h4 className="text-[11px] font-black uppercase tracking-widest text-theme-text-secondary">源码挂载</h4>
+                    <h4 className="text-[11px] font-semibold uppercase tracking-widest text-theme-text-secondary">源码挂载</h4>
                     <button
                       type="button"
                       onClick={() => setFormData({ ...formData, source_pvcs: [...formData.source_pvcs, { pvc_name: '', mount_path: '' }] })}
-                      className="text-[10px] font-black uppercase tracking-widest text-blue-400 hover:underline"
+                      className="text-[10px] font-semibold uppercase tracking-widest text-blue-400 hover:underline"
                     >
                       + 添加
                     </button>
@@ -1664,13 +1664,13 @@ export const ExecutionCodeAuditPage: React.FC<ExecutionCodeAuditPageProps> = ({ 
                   </div>
                 </section>
 
-                <section className="space-y-2 rounded-xl border border-theme-border bg-theme-bg-app p-3">
+                <section className="space-y-2 rounded-xl border border-theme-border bg-theme-surface p-3">
                   <div className="flex items-center justify-between">
-                    <h4 className="text-[11px] font-black uppercase tracking-widest text-theme-text-secondary">输出挂载</h4>
+                    <h4 className="text-[11px] font-semibold uppercase tracking-widest text-theme-text-secondary">输出挂载</h4>
                     <button
                       type="button"
                       onClick={() => setFormData({ ...formData, output_pvcs: [...formData.output_pvcs, { pvc_name: '', mount_path: '' }] })}
-                      className="text-[10px] font-black uppercase tracking-widest text-indigo-400 hover:underline"
+                      className="text-[10px] font-semibold uppercase tracking-widest text-indigo-400 hover:underline"
                     >
                       + 添加
                     </button>
@@ -1727,15 +1727,15 @@ export const ExecutionCodeAuditPage: React.FC<ExecutionCodeAuditPageProps> = ({ 
                 )}
 
                 {activeCreateTab === 'env' && (
-                <section className="space-y-2 rounded-xl border border-theme-border bg-theme-bg-app p-3 lg:col-span-2">
+                <section className="space-y-2 rounded-xl border border-theme-border bg-theme-surface p-3 lg:col-span-2">
                   <div className="flex items-center justify-between">
-                    <h4 className="text-[11px] font-black uppercase tracking-widest text-theme-text-secondary">最终环境变量注入区</h4>
+                    <h4 className="text-[11px] font-semibold uppercase tracking-widest text-theme-text-secondary">最终环境变量注入区</h4>
                     <div className="flex items-center gap-3">
                       <button
                         type="button"
                         onClick={() => setDeletedEnvKeys([])}
                         disabled={deletedEnvKeys.length === 0}
-                        className="text-[10px] font-black uppercase tracking-widest text-theme-text-secondary hover:underline disabled:text-theme-text-faint disabled:no-underline"
+                        className="text-[10px] font-semibold uppercase tracking-widest text-theme-text-secondary hover:underline disabled:text-theme-text-faint disabled:no-underline"
                       >
                         恢复删除项
                       </button>
@@ -1746,14 +1746,14 @@ export const ExecutionCodeAuditPage: React.FC<ExecutionCodeAuditPageProps> = ({ 
                           setDeletedEnvKeys(effectiveEnv.keys);
                         }}
                         disabled={effectiveEnv.keys.length === 0}
-                        className="text-[10px] font-black uppercase tracking-widest text-red-400 hover:underline disabled:text-theme-text-faint disabled:no-underline"
+                        className="text-[10px] font-semibold uppercase tracking-widest text-red-400 hover:underline disabled:text-theme-text-faint disabled:no-underline"
                       >
                         一键清空
                       </button>
                       <button
                         type="button"
                         onClick={() => setFormData({ ...formData, custom_envs: [...formData.custom_envs, { key: '', value: '' }] })}
-                        className="text-[10px] font-black uppercase tracking-widest text-indigo-400 hover:underline"
+                        className="text-[10px] font-semibold uppercase tracking-widest text-indigo-400 hover:underline"
                       >
                         + 添加
                       </button>
@@ -1773,7 +1773,7 @@ export const ExecutionCodeAuditPage: React.FC<ExecutionCodeAuditPageProps> = ({ 
                         }`}
                       >
                         <div className="col-span-3">
-                          <p className="truncate text-[11px] font-mono font-black text-theme-text-secondary">{key}</p>
+                          <p className="truncate text-[11px] font-mono font-semibold text-theme-text-secondary">{key}</p>
                         </div>
                         <div className="col-span-6">
                           <input
@@ -1784,7 +1784,7 @@ export const ExecutionCodeAuditPage: React.FC<ExecutionCodeAuditPageProps> = ({ 
                           />
                         </div>
                         <div className="col-span-2 text-center">
-                          <span className={`inline-block max-w-full truncate rounded px-1.5 py-0.5 text-[9px] font-black ${
+                          <span className={`inline-block max-w-full truncate rounded px-1.5 py-0.5 text-[9px] font-semibold ${
                             effectiveEnv.sourceByKey[key] === 'manual'
                               ? 'bg-amber-500/15 text-amber-400'
                               : effectiveEnv.sourceByKey[key] === 'provider'
@@ -1809,7 +1809,7 @@ export const ExecutionCodeAuditPage: React.FC<ExecutionCodeAuditPageProps> = ({ 
                         </div>
                         {effectiveEnv.overrideHintsByKey[key] && (
                           <div className="col-span-12">
-                            <p className="text-[10px] font-black text-amber-400">{effectiveEnv.overrideHintsByKey[key]}</p>
+                            <p className="text-[10px] font-semibold text-amber-400">{effectiveEnv.overrideHintsByKey[key]}</p>
                           </div>
                         )}
                       </div>
@@ -1822,7 +1822,7 @@ export const ExecutionCodeAuditPage: React.FC<ExecutionCodeAuditPageProps> = ({ 
                         <div className="col-span-3">
                           <input
                             placeholder="ENV_KEY"
-                            className="w-full rounded-md border border-theme-border bg-theme-bg-app px-2 py-1.5 text-[11px] font-mono font-black uppercase outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
+                            className="w-full rounded-md border border-theme-border bg-theme-bg-app px-2 py-1.5 text-[11px] font-mono font-semibold uppercase outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
                             value={env.key}
                             onChange={e => {
                               const n = [...formData.custom_envs];
@@ -1844,7 +1844,7 @@ export const ExecutionCodeAuditPage: React.FC<ExecutionCodeAuditPageProps> = ({ 
                           />
                         </div>
                         <div className="col-span-2 text-center">
-                          <span className="inline-block max-w-full truncate rounded bg-amber-500/15 px-1.5 py-0.5 text-[9px] font-black text-amber-400">
+                          <span className="inline-block max-w-full truncate rounded bg-amber-500/15 px-1.5 py-0.5 text-[9px] font-semibold text-amber-400">
                             手工环境变量
                           </span>
                         </div>
@@ -1865,9 +1865,9 @@ export const ExecutionCodeAuditPage: React.FC<ExecutionCodeAuditPageProps> = ({ 
                 )}
 
                 {activeCreateTab === 'files' && (
-                <section className="space-y-2 rounded-xl border border-theme-border bg-theme-bg-app p-3 lg:col-span-2">
+                <section className="space-y-2 rounded-xl border border-theme-border bg-theme-surface p-3 lg:col-span-2">
                   <div className="flex items-center justify-between">
-                    <h4 className="text-[11px] font-black uppercase tracking-widest text-theme-text-secondary">最终文件注入区</h4>
+                    <h4 className="text-[11px] font-semibold uppercase tracking-widest text-theme-text-secondary">最终文件注入区</h4>
                     <p className="text-[10px] text-theme-text-muted">默认查看，点击“编辑”后可修改内容</p>
                   </div>
                   {providerPreviewLoading && <p className="text-[10px] text-theme-text-muted">加载 Provider 文件中...</p>}
@@ -1885,7 +1885,7 @@ export const ExecutionCodeAuditPage: React.FC<ExecutionCodeAuditPageProps> = ({ 
                             <div className="flex items-center justify-between gap-2">
                               <div className="min-w-0 flex-1">
                                 <input
-                                  className="w-full rounded border border-theme-border bg-theme-bg-app px-2 py-1 text-[11px] font-mono font-black text-theme-text-secondary outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
+                                  className="w-full rounded border border-theme-border bg-theme-bg-app px-2 py-1 text-[11px] font-mono font-semibold text-theme-text-secondary outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
                                   value={filePathOverrides[item.path] !== undefined ? filePathOverrides[item.path] : item.path}
                                   onChange={(e) => setFilePathOverrides((prev) => ({ ...prev, [item.path]: e.target.value }))}
                                   placeholder="/abs/path/in/container"
@@ -1896,14 +1896,14 @@ export const ExecutionCodeAuditPage: React.FC<ExecutionCodeAuditPageProps> = ({ 
                                 <button
                                   type="button"
                                   onClick={() => setPreviewFilePath((prev) => (prev === item.path ? '' : item.path))}
-                                  className="rounded border border-theme-border bg-theme-bg-app px-2 py-1 text-[10px] font-black text-theme-text-secondary hover:bg-theme-elevated"
+                                  className="rounded border border-theme-border bg-theme-bg-app px-2 py-1 text-[10px] font-semibold text-theme-text-secondary hover:bg-theme-elevated"
                                 >
                                   {previewFilePath === item.path ? '收起' : '预览'}
                                 </button>
                                 <button
                                   type="button"
                                   onClick={() => toggleFileEditing(item.path)}
-                                  className={`rounded border px-2 py-1 text-[10px] font-black ${
+                                  className={`rounded border px-2 py-1 text-[10px] font-semibold ${
                                     isEditing
                                       ? 'border-amber-500/20 bg-amber-500/15 text-amber-400'
                                       : 'border-blue-500/20 bg-blue-500/15 text-blue-400'
@@ -1937,7 +1937,7 @@ export const ExecutionCodeAuditPage: React.FC<ExecutionCodeAuditPageProps> = ({ 
 
                 {activeCreateTab === 'mounts' && isAllMountEmpty && (
                   <section className="rounded-xl border border-amber-300 bg-amber-500/15 p-3 lg:col-span-2">
-                    <p className="text-xs font-black text-amber-400">风险告警：当前为全空挂载</p>
+                    <p className="text-xs font-semibold text-amber-400">风险告警：当前为全空挂载</p>
                     <p className="mt-1 text-[11px] text-amber-400">
                       当前未配置源码挂载和输出挂载。此环境中的数据将仅存在于容器内，一旦环境删除将导致全部数据丢失。
                     </p>
@@ -1950,7 +1950,7 @@ export const ExecutionCodeAuditPage: React.FC<ExecutionCodeAuditPageProps> = ({ 
               <button
                 type="button"
                 onClick={() => setIsCreateModalOpen(false)}
-                className="flex-1 rounded-lg border border-theme-border bg-theme-bg-app px-4 py-2.5 text-sm font-black text-theme-text-secondary transition hover:bg-theme-elevated"
+                className="flex-1 rounded-lg border border-theme-border bg-theme-bg-app px-4 py-2.5 text-sm font-semibold text-theme-text-secondary transition hover:bg-theme-elevated"
               >
                 取消
               </button>
@@ -1958,7 +1958,7 @@ export const ExecutionCodeAuditPage: React.FC<ExecutionCodeAuditPageProps> = ({ 
                 type="button"
                 onClick={handlePreviewPayload}
                 disabled={createLoading}
-                className="flex-1 rounded-lg border border-indigo-500/20 bg-indigo-500/15 px-4 py-2.5 text-sm font-black text-indigo-400 transition hover:bg-indigo-500/15 disabled:opacity-50"
+                className="flex-1 rounded-lg border border-indigo-500/20 bg-indigo-500/15 px-4 py-2.5 text-sm font-semibold text-indigo-400 transition hover:bg-indigo-500/15 disabled:opacity-50"
               >
                 <span className="inline-flex items-center gap-2">
                   <Eye size={16} />
@@ -1969,7 +1969,7 @@ export const ExecutionCodeAuditPage: React.FC<ExecutionCodeAuditPageProps> = ({ 
                 type="button"
                 onClick={handleCreate}
                 disabled={createLoading}
-                className="flex-1 rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-black text-white transition hover:bg-blue-700 disabled:opacity-50"
+                className="flex-1 rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-700 disabled:opacity-50"
               >
                 <span className="inline-flex items-center gap-2">
                   {createLoading ? <Loader2 className="animate-spin" size={16} /> : <Terminal size={16} />}
@@ -1982,10 +1982,10 @@ export const ExecutionCodeAuditPage: React.FC<ExecutionCodeAuditPageProps> = ({ 
       )}
       {isPayloadPreviewOpen && (
         <div className="fixed inset-0 z-[180] flex items-center justify-center bg-slate-950/75 p-3 md:p-6 backdrop-blur-sm animate-in fade-in">
- <div className="flex max-h-[90vh] w-full max-w-4xl flex-col overflow-hidden rounded-2xl border border-theme-border bg-theme-bg-app">
+ <div className="flex max-h-[90vh] w-full max-w-4xl flex-col overflow-hidden rounded-2xl border border-theme-border bg-theme-surface">
             <div className="flex items-center justify-between gap-3 border-b border-theme-border px-4 py-3">
               <div>
-                <h4 className="text-sm font-black tracking-wide text-theme-text-primary">最终请求预览</h4>
+                <h4 className="text-sm font-semibold tracking-wide text-theme-text-primary">最终请求预览</h4>
                 <p className="text-[10px] text-theme-text-muted">以下为当前表单将提交的请求体（JSON）</p>
               </div>
               <button
@@ -2003,7 +2003,7 @@ export const ExecutionCodeAuditPage: React.FC<ExecutionCodeAuditPageProps> = ({ 
               <button
                 type="button"
                 onClick={() => setIsPayloadPreviewOpen(false)}
-                className="rounded-lg border border-theme-border bg-theme-bg-app px-4 py-2 text-xs font-black text-theme-text-secondary hover:bg-theme-elevated"
+                className="rounded-lg border border-theme-border bg-theme-bg-app px-4 py-2 text-xs font-semibold text-theme-text-secondary hover:bg-theme-elevated"
               >
                 关闭
               </button>

@@ -441,16 +441,16 @@ export const DepartmentMemberPage: React.FC = () => {
       <PageHeader
         title={<><div className="p-3 bg-gradient-to-br from-blue-600 via-cyan-500 to-sky-500 text-white rounded-2xl inline-flex"><Users size={28} /></div> 部门成员管理</>}
         actions={<div className="flex gap-4">
-          <button onClick={() => selectedDepartmentId && void fetchMembers(selectedDepartmentId)} className="p-4 bg-theme-bg-app backdrop-blur border border-theme-border text-theme-text-muted rounded-2xl hover:bg-theme-bg-app transition-all active:scale-95">
+          <button onClick={() => selectedDepartmentId && void fetchMembers(selectedDepartmentId)} className="p-4 bg-theme-surface backdrop-blur border border-theme-border text-theme-text-muted rounded-lg hover:bg-theme-surface transition-all active:scale-95">
             <RefreshCw size={20} className={loading ? 'animate-spin' : ''} />
           </button>
           {canImportMembers() && (
-            <button onClick={openImportModal} className="bg-theme-bg-app backdrop-blur text-theme-text-secondary px-6 py-4 rounded-2xl font-black flex items-center gap-3 border border-theme-border hover:bg-theme-bg-app transition-all active:scale-95">
+            <button onClick={openImportModal} className="bg-theme-surface backdrop-blur text-theme-text-secondary px-6 py-4 rounded-lg font-medium flex items-center gap-3 border border-theme-border hover:bg-theme-surface transition-all active:scale-95">
               <Upload size={18} /> 导入成员
             </button>
           )}
           {userPermissions?.can_manage_department_members && canManageCurrentDepartment() && (
-            <button onClick={openAddModal} className="bg-blue-600 text-white px-8 py-4 rounded-2xl font-black flex items-center gap-3 hover:bg-blue-700 transition-all active:scale-95">
+            <button onClick={openAddModal} className="bg-blue-600 text-white px-8 py-4 rounded-lg font-medium flex items-center gap-3 hover:bg-blue-700 transition-all active:scale-95">
               <Plus size={20} /> 添加成员
             </button>
           )}
@@ -458,40 +458,40 @@ export const DepartmentMemberPage: React.FC = () => {
       />
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
- <div className="bg-[linear-gradient(135deg,_#0f172a,_#1d4ed8_65%,_#38bdf8)] p-8 rounded-[3rem] text-white flex flex-col justify-between group overflow-hidden relative">
+ <div className="bg-[linear-gradient(135deg,_#0f172a,_#1d4ed8_65%,_#38bdf8)] p-8 rounded-xl text-white flex flex-col justify-between group overflow-hidden relative">
           <Users className="absolute right-[-20px] top-[-20px] w-32 h-32 opacity-5 rotate-12 group-hover:rotate-0 transition-transform duration-700" />
-          <p className="text-slate-200 text-[10px] font-black uppercase tracking-widest relative z-10">当前部门成员</p>
-          <h3 className="text-5xl font-black mt-4 relative z-10">{memberStats.total}</h3>
-          <p className="text-sky-100 text-[10px] font-black uppercase mt-4 relative z-10 flex items-center gap-2">
+          <p className="text-slate-200 text-[10px] font-semibold uppercase tracking-widest relative z-10">当前部门成员</p>
+          <h3 className="text-5xl font-bold mt-4 relative z-10">{memberStats.total}</h3>
+          <p className="text-sky-100 text-[10px] font-medium uppercase mt-4 relative z-10 flex items-center gap-2">
             <UserCheck size={12} /> Team Members
           </p>
         </div>
- <div className="bg-theme-bg-app backdrop-blur p-8 rounded-[3rem] border border-amber-500/20 flex flex-col justify-between">
-          <p className="text-theme-text-muted text-[10px] font-black uppercase tracking-widest">组长数量</p>
-          <h3 className="text-4xl font-black mt-4 text-amber-400">{memberStats.leaderCount}</h3>
+ <div className="bg-theme-surface backdrop-blur p-8 rounded-xl border border-amber-500/20 flex flex-col justify-between">
+          <p className="text-theme-text-muted text-[10px] font-semibold uppercase tracking-widest">组长数量</p>
+          <h3 className="text-4xl font-bold mt-4 text-amber-400">{memberStats.leaderCount}</h3>
           <div className="h-1 bg-theme-elevated rounded-full mt-4 overflow-hidden">
             <div className="h-full bg-amber-500" style={{ width: `${memberStats.total ? (memberStats.leaderCount / memberStats.total) * 100 : 0}%` }} />
           </div>
         </div>
- <div className="bg-theme-bg-app backdrop-blur p-8 rounded-[3rem] border border-indigo-500/20 flex flex-col justify-between">
-          <p className="text-theme-text-muted text-[10px] font-black uppercase tracking-widest">角色结构</p>
+ <div className="bg-theme-surface backdrop-blur p-8 rounded-xl border border-indigo-500/20 flex flex-col justify-between">
+          <p className="text-theme-text-muted text-[10px] font-semibold uppercase tracking-widest">角色结构</p>
           <div className="mt-4 grid grid-cols-2 gap-4">
-            <div className="rounded-[1.75rem] bg-indigo-500/15 px-5 py-4">
-              <p className="text-[10px] font-black uppercase tracking-widest text-indigo-400">副组长</p>
-              <p className="mt-2 text-3xl font-black text-indigo-400">{memberStats.viceLeaderCount}</p>
+            <div className="rounded-xl bg-indigo-500/15 px-5 py-4">
+              <p className="text-[10px] font-semibold uppercase tracking-widest text-indigo-400">副组长</p>
+              <p className="mt-2 text-3xl font-bold text-indigo-400">{memberStats.viceLeaderCount}</p>
             </div>
-            <div className="rounded-[1.75rem] bg-blue-500/15 px-5 py-4">
-              <p className="text-[10px] font-black uppercase tracking-widest text-blue-400">普通成员</p>
-              <p className="mt-2 text-3xl font-black text-blue-400">{memberStats.memberCount}</p>
+            <div className="rounded-xl bg-blue-500/15 px-5 py-4">
+              <p className="text-[10px] font-semibold uppercase tracking-widest text-blue-400">普通成员</p>
+              <p className="mt-2 text-3xl font-bold text-blue-400">{memberStats.memberCount}</p>
             </div>
           </div>
         </div>
- <div className="bg-theme-bg-app backdrop-blur p-8 rounded-[3rem] border border-theme-border flex items-center gap-8">
-          <div className="w-16 h-16 bg-cyan-500/15 text-cyan-400 rounded-3xl flex items-center justify-center shrink-0">
+ <div className="bg-theme-surface backdrop-blur p-8 rounded-xl border border-theme-border flex items-center gap-8">
+          <div className="w-16 h-16 bg-cyan-500/15 text-cyan-400 rounded-lg flex items-center justify-center shrink-0">
             <Shield size={32} />
           </div>
           <div>
-            <h4 className="text-lg font-black text-theme-text-primary">批量导入说明</h4>
+            <h4 className="text-lg font-semibold text-theme-text-primary">批量导入说明</h4>
             <p className="text-sm text-theme-text-muted mt-1 font-medium">普通管理员仅能向可管理部门导入普通成员；超级管理员可按模板批量导入并按需更新已有成员角色。</p>
           </div>
         </div>
@@ -504,7 +504,7 @@ export const DepartmentMemberPage: React.FC = () => {
             <input
               type="text"
               placeholder="搜索成员名称..."
- className="w-full pl-16 pr-8 py-5 bg-theme-bg-app backdrop-blur border border-theme-border rounded-[2.5rem] text-sm outline-none focus:ring-4 ring-blue-500/5 transition-all font-medium"
+ className="w-full pl-16 pr-8 py-5 bg-theme-bg-app backdrop-blur border border-theme-border rounded-xl text-sm outline-none focus:ring-4 ring-blue-500/5 transition-all font-medium"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
@@ -512,7 +512,7 @@ export const DepartmentMemberPage: React.FC = () => {
           <div ref={departmentFilterRef} className="relative min-w-[200px]">
             <button
               type="button"
- className="w-full px-8 pr-14 py-5 bg-theme-bg-app backdrop-blur border border-theme-border rounded-[2.5rem] text-sm text-left outline-none focus:ring-4 ring-blue-500/5 transition-all font-medium text-theme-text-secondary"
+ className="w-full px-8 pr-14 py-5 bg-theme-bg-app backdrop-blur border border-theme-border rounded-xl text-sm text-left outline-none focus:ring-4 ring-blue-500/5 transition-all font-medium text-theme-text-secondary"
               onClick={() => setIsDepartmentFilterOpen((open) => !open)}
             >
               {selectedDepartment?.name || '请选择部门'}
@@ -521,7 +521,7 @@ export const DepartmentMemberPage: React.FC = () => {
               {isDepartmentFilterOpen ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
             </span>
             {isDepartmentFilterOpen && (
- <div className="absolute right-0 top-[calc(100%+10px)] z-20 w-full overflow-hidden rounded-[1.75rem] border border-theme-border bg-theme-bg-app backdrop-blur p-2 shadow-slate-200/60">
+ <div className="absolute right-0 top-[calc(100%+10px)] z-20 w-full overflow-hidden rounded-xl border border-theme-border bg-theme-surface backdrop-blur p-2 shadow-slate-200/60">
                 <div className="max-h-72 overflow-y-auto py-1">
                   {departments.map((dept) => {
                     const isSelected = dept.id === selectedDepartmentId;
@@ -556,7 +556,7 @@ export const DepartmentMemberPage: React.FC = () => {
               header: '成员信息',
               render: (member) => (
                 <div className="flex items-center gap-4">
-                  <div className={`w-12 h-12 rounded-2xl flex items-center justify-center font-black shadow-inner ${
+                  <div className={`w-12 h-12 rounded-lg flex items-center justify-center font-semibold shadow-inner ${
                     member.role === 'leader'
                       ? 'bg-amber-500/15 text-amber-400'
                       : member.role === 'vice_leader'
@@ -566,7 +566,7 @@ export const DepartmentMemberPage: React.FC = () => {
                     {member.username[0].toUpperCase()}
                   </div>
                   <div>
-                    <p className="text-sm font-black text-theme-text-primary">{member.username}</p>
+                    <p className="text-sm font-semibold text-theme-text-primary">{member.username}</p>
                     <p className="text-[10px] text-theme-text-muted font-mono mt-0.5">UID: {member.user_id.toString().padStart(5, '0')}</p>
                   </div>
                 </div>
@@ -576,7 +576,7 @@ export const DepartmentMemberPage: React.FC = () => {
               key: 'department_name',
               header: '所属部门',
               render: (member) => (
-                <span className="inline-flex items-center rounded-full border border-theme-border bg-theme-bg-app px-3 py-1.5 text-xs font-black text-theme-text-secondary">
+                <span className="inline-flex items-center rounded-full border border-theme-border bg-theme-bg-app px-3 py-1.5 text-xs font-medium text-theme-text-secondary">
                   {member.department_name}
                 </span>
               ),
@@ -586,7 +586,7 @@ export const DepartmentMemberPage: React.FC = () => {
               header: '角色',
               align: 'center',
               render: (member) => (
-                <span className={`px-4 py-1.5 rounded-full text-[10px] font-black uppercase border transition-all ${getRoleBadgeStyle(member.role)}`}>
+                <span className={`px-4 py-1.5 rounded-full text-[10px] font-medium uppercase border transition-all ${getRoleBadgeStyle(member.role)}`}>
                   {getRoleDisplayName(member.role)}
                 </span>
               ),
@@ -614,7 +614,7 @@ export const DepartmentMemberPage: React.FC = () => {
                         </button>
                       )}
                       {canEditRole() && (
-                        <button onClick={() => openEditModal(member)} className="p-3 bg-theme-bg-app border border-theme-border text-theme-text-muted hover:text-blue-400 rounded-xl transition-all" title="编辑角色">
+                        <button onClick={() => openEditModal(member)} className="p-3 bg-theme-surface border border-theme-border text-theme-text-muted hover:text-blue-400 rounded-xl transition-all" title="编辑角色">
                           <Edit3 size={16} />
                         </button>
                       )}
@@ -655,11 +655,11 @@ export const DepartmentMemberPage: React.FC = () => {
 
             <div className="p-10 pb-4 border-b border-slate-50 flex items-center justify-between">
               <div className="flex items-center gap-4">
- <div className="w-12 h-12 bg-blue-600 rounded-2xl flex items-center justify-center text-white">
+ <div className="w-12 h-12 bg-blue-600 rounded-lg flex items-center justify-center text-white">
                   <Plus size={24} />
                 </div>
                 <div>
-                  <h3 className="text-xl font-black text-theme-text-primary">添加部门成员</h3>
+                  <h3 className="text-xl font-semibold text-theme-text-primary">添加部门成员</h3>
                   <p className="text-[10px] text-theme-text-muted font-bold uppercase mt-0.5">Add Department Member</p>
                 </div>
               </div>
@@ -670,11 +670,11 @@ export const DepartmentMemberPage: React.FC = () => {
                 <div className="grid grid-cols-1 xl:grid-cols-[1fr_auto_1fr] gap-4 items-end">
                   <div className="space-y-3">
                     <div className="flex items-center justify-between gap-3">
-                      <label className="text-[10px] font-black text-theme-text-muted uppercase tracking-widest ml-1">选择部门 *</label>
+                      <label className="text-[10px] font-medium text-theme-text-muted uppercase tracking-widest ml-1">选择部门 *</label>
                       <button
                         type="button"
                         onClick={() => setDepartmentPickerSearchOpen((open) => !open)}
-                        className={`inline-flex items-center gap-2 px-3 py-2 rounded-xl border text-[11px] font-black transition-all ${departmentPickerSearchOpen ? 'bg-blue-600 text-white border-blue-600' : 'bg-theme-bg-app text-theme-text-secondary border-theme-border hover:bg-theme-elevated'}`}
+                        className={`inline-flex items-center gap-2 px-3 py-2 rounded-xl border text-[11px] font-medium transition-all ${departmentPickerSearchOpen ? 'bg-blue-600 text-white border-blue-600' : 'bg-theme-surface text-theme-text-secondary border-theme-border hover:bg-theme-elevated'}`}
                       >
                         <Search size={14} />
                         查询
@@ -686,7 +686,7 @@ export const DepartmentMemberPage: React.FC = () => {
                         <input
                           type="text"
                           placeholder="输入部门名称筛选"
-                          className="w-full pl-11 pr-4 py-3 bg-theme-bg-app border border-theme-border rounded-2xl outline-none focus:ring-4 ring-blue-500/10 text-sm font-semibold text-theme-text-secondary"
+                          className="w-full pl-11 pr-4 py-3 bg-theme-bg-app border border-theme-border rounded-lg outline-none focus:ring-4 ring-blue-500/10 text-sm font-semibold text-theme-text-secondary"
                           value={departmentPickerSearchTerm}
                           onChange={(e) => setDepartmentPickerSearchTerm(e.target.value)}
                         />
@@ -694,7 +694,7 @@ export const DepartmentMemberPage: React.FC = () => {
                     )}
                     <select
                       required
-                      className="w-full px-6 py-4 bg-theme-bg-app rounded-2xl border-none outline-none focus:ring-4 ring-blue-500/10 font-bold text-theme-text-primary"
+                      className="w-full px-6 py-4 bg-theme-bg-app rounded-lg border-none outline-none focus:ring-4 ring-blue-500/10 font-bold text-theme-text-primary"
                       value={formData.department_id}
                       onChange={(e) => setFormData({ ...formData, department_id: e.target.value })}
                     >
@@ -709,18 +709,18 @@ export const DepartmentMemberPage: React.FC = () => {
                   </div>
 
                   <div className="hidden xl:flex items-center justify-center pb-9">
-                    <div className="w-12 h-12 rounded-2xl bg-theme-elevated text-theme-text-muted flex items-center justify-center">
+                    <div className="w-12 h-12 rounded-lg bg-theme-elevated text-theme-text-muted flex items-center justify-center">
                       <ArrowRightLeft size={18} />
                     </div>
                   </div>
 
                   <div className="space-y-3">
                     <div className="flex items-center justify-between gap-3">
-                      <label className="text-[10px] font-black text-theme-text-muted uppercase tracking-widest ml-1">选择用户 *</label>
+                      <label className="text-[10px] font-medium text-theme-text-muted uppercase tracking-widest ml-1">选择用户 *</label>
                       <button
                         type="button"
                         onClick={() => setUserPickerSearchOpen((open) => !open)}
-                        className={`inline-flex items-center gap-2 px-3 py-2 rounded-xl border text-[11px] font-black transition-all ${userPickerSearchOpen ? 'bg-blue-600 text-white border-blue-600' : 'bg-theme-bg-app text-theme-text-secondary border-theme-border hover:bg-theme-elevated'}`}
+                        className={`inline-flex items-center gap-2 px-3 py-2 rounded-xl border text-[11px] font-medium transition-all ${userPickerSearchOpen ? 'bg-blue-600 text-white border-blue-600' : 'bg-theme-surface text-theme-text-secondary border-theme-border hover:bg-theme-elevated'}`}
                       >
                         <Search size={14} />
                         查询
@@ -732,7 +732,7 @@ export const DepartmentMemberPage: React.FC = () => {
                         <input
                           type="text"
                           placeholder="输入用户名筛选"
-                          className="w-full pl-11 pr-4 py-3 bg-theme-bg-app border border-theme-border rounded-2xl outline-none focus:ring-4 ring-blue-500/10 text-sm font-semibold text-theme-text-secondary"
+                          className="w-full pl-11 pr-4 py-3 bg-theme-bg-app border border-theme-border rounded-lg outline-none focus:ring-4 ring-blue-500/10 text-sm font-semibold text-theme-text-secondary"
                           value={userPickerSearchTerm}
                           onChange={(e) => setUserPickerSearchTerm(e.target.value)}
                         />
@@ -740,7 +740,7 @@ export const DepartmentMemberPage: React.FC = () => {
                     )}
                     <select
                       required
-                      className="w-full px-6 py-4 bg-theme-bg-app rounded-2xl border-none outline-none focus:ring-4 ring-blue-500/10 font-bold text-theme-text-primary"
+                      className="w-full px-6 py-4 bg-theme-bg-app rounded-lg border-none outline-none focus:ring-4 ring-blue-500/10 font-bold text-theme-text-primary"
                       value={formData.user_id}
                       onChange={(e) => setFormData({ ...formData, user_id: e.target.value })}
                     >
@@ -756,14 +756,14 @@ export const DepartmentMemberPage: React.FC = () => {
                 </div>
               </div>
               <div className="space-y-1.5">
-                <label className="text-[10px] font-black text-theme-text-muted uppercase tracking-widest ml-1">角色 *</label>
-                <select required className="w-full px-6 py-4 bg-theme-bg-app rounded-2xl border-none outline-none focus:ring-4 ring-blue-500/10 font-bold text-theme-text-primary" value={formData.role} onChange={(e) => setFormData({ ...formData, role: e.target.value })}>
+                <label className="text-[10px] font-medium text-theme-text-muted uppercase tracking-widest ml-1">角色 *</label>
+                <select required className="w-full px-6 py-4 bg-theme-bg-app rounded-lg border-none outline-none focus:ring-4 ring-blue-500/10 font-bold text-theme-text-primary" value={formData.role} onChange={(e) => setFormData({ ...formData, role: e.target.value })}>
                   {getAvailableRoles().map((role) => (
                     <option key={role.value} value={role.value}>{role.label}</option>
                   ))}
                 </select>
               </div>
- <button disabled={formLoading} className="w-full py-5 bg-blue-600 text-white rounded-2xl font-black hover:bg-blue-700 transition-all flex items-center justify-center gap-3">
+ <button disabled={formLoading} className="w-full py-5 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-all flex items-center justify-center gap-3">
                 {formLoading ? <Loader2 className="animate-spin" size={20} /> : <UserCircle size={20} />}
                 确认添加成员
               </button>
@@ -774,11 +774,11 @@ export const DepartmentMemberPage: React.FC = () => {
 
             <div className="p-10 pb-4 border-b border-slate-50 flex items-center justify-between">
               <div className="flex items-center gap-4">
-                <div className="w-12 h-12 bg-indigo-600 rounded-2xl flex items-center justify-center text-white">
+                <div className="w-12 h-12 bg-indigo-600 rounded-lg flex items-center justify-center text-white">
                   <Building2 size={24} />
                 </div>
                 <div>
-                  <h3 className="text-xl font-black text-theme-text-primary tracking-tight">调整所属部门: {selectedMember.username}</h3>
+                  <h3 className="text-xl font-semibold text-theme-text-primary tracking-tight">调整所属部门: {selectedMember.username}</h3>
                   <p className="text-[10px] text-theme-text-muted font-bold uppercase mt-0.5">Move Department</p>
                 </div>
               </div>
@@ -786,14 +786,14 @@ export const DepartmentMemberPage: React.FC = () => {
             </div>
             <form onSubmit={handleMoveMember} className="p-10 space-y-6">
               <div className="space-y-1.5">
-                <label className="text-[10px] font-black text-theme-text-muted uppercase tracking-widest ml-1">目标部门 *</label>
-                <select required className="w-full px-6 py-4 bg-theme-bg-app rounded-2xl border-none outline-none focus:ring-4 ring-indigo-500/10 font-bold text-theme-text-primary" value={moveDepartmentId} onChange={(e) => setMoveDepartmentId(e.target.value)}>
+                <label className="text-[10px] font-medium text-theme-text-muted uppercase tracking-widest ml-1">目标部门 *</label>
+                <select required className="w-full px-6 py-4 bg-theme-bg-app rounded-lg border-none outline-none focus:ring-4 ring-indigo-500/10 font-bold text-theme-text-primary" value={moveDepartmentId} onChange={(e) => setMoveDepartmentId(e.target.value)}>
                   {departments.map((dept) => (
                     <option key={dept.id} value={dept.id}>{dept.name}</option>
                   ))}
                 </select>
               </div>
- <button disabled={formLoading} className="w-full py-5 bg-indigo-600 text-white rounded-2xl font-black shadow-indigo-500/20 hover:bg-indigo-700 transition-all flex items-center justify-center gap-3">
+ <button disabled={formLoading} className="w-full py-5 bg-indigo-600 text-white rounded-lg font-medium shadow-indigo-500/20 hover:bg-indigo-700 transition-all flex items-center justify-center gap-3">
                 {formLoading ? <Loader2 className="animate-spin" size={20} /> : <ArrowRightLeft size={20} />}
                 确认调整部门
               </button>
@@ -804,11 +804,11 @@ export const DepartmentMemberPage: React.FC = () => {
 
             <div className="p-10 pb-4 border-b border-slate-50 flex items-center justify-between">
               <div className="flex items-center gap-4">
-                <div className="w-12 h-12 bg-amber-600 rounded-2xl flex items-center justify-center text-white">
+                <div className="w-12 h-12 bg-amber-600 rounded-lg flex items-center justify-center text-white">
                   <Edit3 size={24} />
                 </div>
                 <div>
-                  <h3 className="text-xl font-black text-theme-text-primary tracking-tight">编辑成员角色: {selectedMember.username}</h3>
+                  <h3 className="text-xl font-semibold text-theme-text-primary tracking-tight">编辑成员角色: {selectedMember.username}</h3>
                   <p className="text-[10px] text-theme-text-muted font-bold uppercase mt-0.5">Edit Member Role</p>
                 </div>
               </div>
@@ -816,14 +816,14 @@ export const DepartmentMemberPage: React.FC = () => {
             </div>
             <form onSubmit={handleEditMember} className="p-10 space-y-6">
               <div className="space-y-1.5">
-                <label className="text-[10px] font-black text-theme-text-muted uppercase tracking-widest ml-1">角色 *</label>
-                <select required className="w-full px-6 py-4 bg-theme-bg-app rounded-2xl border-none outline-none focus:ring-4 ring-amber-500/10 font-bold text-theme-text-primary" value={formData.role} onChange={(e) => setFormData({ ...formData, role: e.target.value })}>
+                <label className="text-[10px] font-medium text-theme-text-muted uppercase tracking-widest ml-1">角色 *</label>
+                <select required className="w-full px-6 py-4 bg-theme-bg-app rounded-lg border-none outline-none focus:ring-4 ring-amber-500/10 font-bold text-theme-text-primary" value={formData.role} onChange={(e) => setFormData({ ...formData, role: e.target.value })}>
                   {getAvailableRoles().map((role) => (
                     <option key={role.value} value={role.value}>{role.label}</option>
                   ))}
                 </select>
               </div>
- <button disabled={formLoading} className="w-full py-5 bg-amber-600 text-white rounded-2xl font-black shadow-amber-500/20 hover:bg-amber-700 transition-all flex items-center justify-center gap-3">
+ <button disabled={formLoading} className="w-full py-5 bg-amber-600 text-white rounded-lg font-medium shadow-amber-500/20 hover:bg-amber-700 transition-all flex items-center justify-center gap-3">
                 {formLoading ? <Loader2 className="animate-spin" size={20} /> : <RefreshCw size={20} />}
                 立即更新角色
               </button>
@@ -832,14 +832,14 @@ export const DepartmentMemberPage: React.FC = () => {
 
       {isImportModalOpen && selectedDepartment && (
         <div className="fixed inset-0 z-[160] flex items-center justify-center p-6 bg-slate-950/65 backdrop-blur-md animate-in fade-in">
- <div className="w-full max-w-6xl bg-theme-bg-app rounded-[2.5rem] overflow-hidden animate-in zoom-in-95 max-h-[92vh] flex flex-col">
+ <div className="w-full max-w-6xl bg-theme-surface rounded-2xl overflow-hidden animate-in zoom-in-95 max-h-[92vh] flex flex-col">
             <div className="px-10 py-8 border-b border-theme-border flex items-center justify-between">
               <div className="flex items-center gap-4">
- <div className="w-14 h-14 rounded-3xl bg-blue-600 text-white flex items-center justify-center">
+ <div className="w-14 h-14 rounded-lg bg-blue-600 text-white flex items-center justify-center">
                   <FileSpreadsheet size={26} />
                 </div>
                 <div>
-                  <h3 className="text-2xl font-black text-theme-text-primary">导入部门成员</h3>
+                  <h3 className="text-2xl font-bold text-theme-text-primary">导入部门成员</h3>
                   <p className="text-xs font-bold uppercase tracking-[0.24em] text-theme-text-muted mt-1">{selectedDepartment.name}</p>
                 </div>
               </div>
@@ -848,7 +848,7 @@ export const DepartmentMemberPage: React.FC = () => {
 
             <div className="px-10 pt-6 flex gap-3 flex-wrap">
               {['upload', 'preview', 'result'].map((stage) => (
-                <div key={stage} className={`px-4 py-2 rounded-full border text-[11px] font-black uppercase tracking-[0.2em] ${importStage === stage ? 'bg-blue-600 text-white border-blue-600' : 'bg-theme-bg-app text-theme-text-muted border-theme-border'}`}>
+                <div key={stage} className={`px-4 py-2 rounded-full border text-[11px] font-semibold uppercase tracking-[0.2em] ${importStage === stage ? 'bg-blue-600 text-white border-blue-600' : 'bg-theme-bg-app text-theme-text-muted border-theme-border'}`}>
                   {stage}
                 </div>
               ))}
@@ -857,15 +857,15 @@ export const DepartmentMemberPage: React.FC = () => {
             <div className="p-10 pt-8 overflow-y-auto space-y-8">
               {importStage === 'upload' && (
                 <div className="grid grid-cols-1 lg:grid-cols-[1.2fr_0.8fr] gap-8">
-                  <div className="rounded-[2rem] border border-theme-border bg-slate-50/70 p-8 space-y-6">
+                  <div className="rounded-xl border border-theme-border bg-slate-50/70 p-8 space-y-6">
                     <div className="space-y-2">
-                      <h4 className="text-xl font-black text-theme-text-primary">1. 准备成员导入文件</h4>
+                      <h4 className="text-xl font-semibold text-theme-text-primary">1. 准备成员导入文件</h4>
                       <p className="text-sm text-theme-text-muted font-medium">模板只要求填写已有账号的用户名。普通管理员仅允许导入`member`。</p>
                     </div>
 
                     <div className="space-y-3">
-                      <label className="text-[10px] font-black text-theme-text-muted uppercase tracking-widest">导入策略</label>
-                      <select value={importMode} onChange={(e) => setImportMode(e.target.value as ImportMode)} disabled={!isAdmin()} className="w-full px-6 py-4 bg-theme-bg-app rounded-2xl border border-theme-border outline-none focus:ring-4 ring-blue-500/10 font-bold text-theme-text-primary disabled:bg-theme-elevated disabled:text-theme-text-muted">
+                      <label className="text-[10px] font-medium text-theme-text-muted uppercase tracking-widest">导入策略</label>
+                      <select value={importMode} onChange={(e) => setImportMode(e.target.value as ImportMode)} disabled={!isAdmin()} className="w-full px-6 py-4 bg-theme-bg-app rounded-lg border border-theme-border outline-none focus:ring-4 ring-blue-500/10 font-bold text-theme-text-primary disabled:bg-theme-elevated disabled:text-theme-text-muted">
                         <option value="skip_existing">已存在则跳过</option>
                         {isAdmin() && <option value="update_role">已存在则更新角色</option>}
                       </select>
@@ -873,31 +873,31 @@ export const DepartmentMemberPage: React.FC = () => {
                     </div>
 
                     <div className="flex flex-wrap gap-4">
- <button onClick={() => void handleDownloadImportTemplate()} className="px-6 py-4 rounded-2xl bg-theme-bg-app border border-theme-border font-black text-theme-text-secondary flex items-center gap-3 hover:bg-theme-elevated">
+ <button onClick={() => void handleDownloadImportTemplate()} className="px-6 py-4 rounded-lg bg-theme-surface border border-theme-border font-medium text-theme-text-secondary flex items-center gap-3 hover:bg-theme-elevated">
                         <Download size={18} />
                         下载模板
                       </button>
- <button onClick={() => fileInputRef.current?.click()} className="px-6 py-4 rounded-2xl bg-blue-600 text-white font-black flex items-center gap-3 hover:bg-blue-700">
+ <button onClick={() => fileInputRef.current?.click()} className="px-6 py-4 rounded-lg bg-blue-600 text-white font-medium flex items-center gap-3 hover:bg-blue-700">
                         <Upload size={18} />
                         选择 Excel / CSV
                       </button>
                       <input ref={fileInputRef} type="file" accept=".xlsx,.csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,text/csv" className="hidden" onChange={handleImportFileSelected} />
                     </div>
 
-                    <div className="rounded-[2rem] border border-dashed border-theme-border bg-theme-bg-app p-6">
-                      <p className="text-xs font-black uppercase tracking-[0.24em] text-theme-text-muted">当前文件</p>
-                      <p className="mt-3 text-lg font-black text-theme-text-primary">{importFileName || '尚未选择文件'}</p>
+                    <div className="rounded-xl border border-dashed border-theme-border bg-theme-surface p-6">
+                      <p className="text-xs font-semibold uppercase tracking-[0.24em] text-theme-text-muted">当前文件</p>
+                      <p className="mt-3 text-lg font-semibold text-theme-text-primary">{importFileName || '尚未选择文件'}</p>
                       <p className="mt-2 text-sm text-theme-text-muted">推荐直接下载 Excel 模板后填写。文件里只需要两列：`username` 必填，`role` 选填。</p>
                     </div>
 
-                    <button disabled={importLoading || !importFileContentBase64.trim()} onClick={() => void handlePreviewImport()} className="w-full py-5 rounded-2xl bg-theme-surface text-white font-black flex items-center justify-center gap-3 disabled:opacity-50">
+                    <button disabled={importLoading || !importFileContentBase64.trim()} onClick={() => void handlePreviewImport()} className="w-full py-5 rounded-lg bg-theme-surface text-white font-medium flex items-center justify-center gap-3 disabled:opacity-50">
                       {importLoading ? <Loader2 size={20} className="animate-spin" /> : <Shield size={20} />}
                       开始预校验
                     </button>
                   </div>
 
- <div className="rounded-[2rem] border border-theme-border bg-theme-bg-app p-8 space-y-5">
-                    <h4 className="text-xl font-black text-theme-text-primary">填写说明</h4>
+ <div className="rounded-xl border border-theme-border bg-theme-surface p-8 space-y-5">
+                    <h4 className="text-xl font-semibold text-theme-text-primary">填写说明</h4>
                     <div className="space-y-3 text-sm font-medium text-theme-text-secondary">
                       <p>1. 下载模板后，第一列填用户名`username`，第二列填角色`role`。</p>
                       <p>2.`username` 必填，且必须是系统里已经存在的账号。</p>
@@ -919,12 +919,12 @@ export const DepartmentMemberPage: React.FC = () => {
                   </div>
                   <div className="flex justify-between items-center gap-4">
                     <div>
-                      <h4 className="text-xl font-black text-theme-text-primary">2. 预校验结果</h4>
+                      <h4 className="text-xl font-semibold text-theme-text-primary">2. 预校验结果</h4>
                       <p className="text-sm text-theme-text-muted font-medium">修正错误后重新预校验，再执行导入。</p>
                     </div>
                     <div className="flex gap-3">
-                      <button onClick={() => setImportStage('upload')} className="px-5 py-3 rounded-2xl bg-theme-bg-app border border-theme-border font-black text-theme-text-secondary">返回修改</button>
-                      <button disabled={importLoading || importPreview.error_rows > 0} onClick={() => void handleCommitImport()} className="px-6 py-3 rounded-2xl bg-blue-600 text-white font-black disabled:opacity-50 flex items-center gap-3">
+                      <button onClick={() => setImportStage('upload')} className="px-5 py-3 rounded-lg bg-theme-surface border border-theme-border font-medium text-theme-text-secondary">返回修改</button>
+                      <button disabled={importLoading || importPreview.error_rows > 0} onClick={() => void handleCommitImport()} className="px-6 py-3 rounded-lg bg-blue-600 text-white font-medium disabled:opacity-50 flex items-center gap-3">
                         {importLoading ? <Loader2 size={18} className="animate-spin" /> : <Upload size={18} />}
                         确认导入
                       </button>
@@ -944,10 +944,10 @@ export const DepartmentMemberPage: React.FC = () => {
                   </div>
                   <div className="flex justify-between items-center gap-4">
                     <div>
-                      <h4 className="text-xl font-black text-theme-text-primary">3. 导入结果</h4>
+                      <h4 className="text-xl font-semibold text-theme-text-primary">3. 导入结果</h4>
                       <p className="text-sm text-theme-text-muted font-medium">成功、跳过和失败都会逐行展示，失败数据可修正后再次导入。</p>
                     </div>
-                    <button onClick={closeImportModal} className="px-6 py-3 rounded-2xl bg-theme-surface text-white font-black">完成</button>
+                    <button onClick={closeImportModal} className="px-6 py-3 rounded-lg bg-theme-surface text-white font-medium">完成</button>
                   </div>
                   <DepartmentMemberImportTable rows={importResult.rows} getRoleDisplayName={getRoleDisplayName} />
                 </div>
@@ -972,10 +972,10 @@ const DepartmentMemberImportTable = ({
   rows: DepartmentMemberImportPreviewResponse['rows'] | DepartmentMemberImportCommitResponse['rows'];
   getRoleDisplayName: (role: string) => string;
 }) => (
-  <div className="rounded-[2rem] border border-theme-border overflow-hidden bg-theme-bg-app">
+  <div className="rounded-xl border border-theme-border overflow-hidden bg-theme-surface">
     <table className="w-full text-left">
       <thead className="bg-theme-bg-app border-b border-theme-border">
-        <tr className="text-[10px] font-black uppercase tracking-[0.24em] text-theme-text-muted">
+        <tr className="text-[10px] font-semibold uppercase tracking-[0.24em] text-theme-text-muted">
           <th className="px-6 py-4">行号</th>
           <th className="px-6 py-4">用户名</th>
           <th className="px-6 py-4">目标角色 / 动作</th>
@@ -986,9 +986,9 @@ const DepartmentMemberImportTable = ({
       <tbody className="divide-y divide-theme-border">
         {rows.map((row) => (
           <tr key={row.row_no} className="align-top">
-            <td className="px-6 py-5 text-sm font-black text-theme-text-muted">#{row.row_no}</td>
+            <td className="px-6 py-5 text-sm font-semibold text-theme-text-muted">#{row.row_no}</td>
             <td className="px-6 py-5">
-              <p className="text-sm font-black text-theme-text-primary">{row.username || '-'}</p>
+              <p className="text-sm font-semibold text-theme-text-primary">{row.username || '-'}</p>
               {row.normalized?.existing_department_name && (
                 <p className="mt-1 text-xs text-theme-text-muted">现有部门：{row.normalized.existing_department_name}</p>
               )}
@@ -998,7 +998,7 @@ const DepartmentMemberImportTable = ({
               <p className="mt-1 text-xs text-theme-text-muted">{row.normalized?.action || '-'}</p>
             </td>
             <td className="px-6 py-5">
-              <span className={`inline-flex px-3 py-1 rounded-full border text-[10px] font-black uppercase tracking-[0.18em] ${IMPORT_STATUS_STYLES[row.status] || IMPORT_STATUS_STYLES.error}`}>
+              <span className={`inline-flex px-3 py-1 rounded-full border text-[10px] font-semibold uppercase tracking-[0.18em] ${IMPORT_STATUS_STYLES[row.status] || IMPORT_STATUS_STYLES.error}`}>
                 {row.status}
               </span>
             </td>

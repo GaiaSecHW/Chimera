@@ -627,7 +627,7 @@ export const SystemAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask: (
     <div className="px-8 pt-8 pb-10 space-y-6">
       {feedbackNodes}
 
- <section className="rounded-[2rem] border border-theme-border bg-theme-bg-app p-6">
+ <section className="rounded-xl border border-theme-border bg-theme-surface p-6">
         <ServicePageTitle title="分析任务" version={buildVersion} />
         <p className="mt-2 text-sm text-theme-text-muted">指定分析路径，启动安全分析任务。</p>
         <div className="mt-5 grid grid-cols-2 gap-2 sm:grid-cols-4">
@@ -638,7 +638,7 @@ export const SystemAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask: (
               { label: '失败/取消', value: taskStats.failed + taskStats.error + taskStats.cancelled, bg: 'bg-red-500/15', text: 'text-red-400', border: 'border-red-500/20' },
           ].map((s) => (
             <div key={s.label} className={`min-w-[96px] rounded-xl border ${s.border} ${s.bg} px-3 py-2`}>
-              <p className={`text-lg font-black ${s.text}`}>{s.value}</p>
+              <p className={`text-lg font-semibold ${s.text}`}>{s.value}</p>
               <p className="mt-1 text-[11px] text-theme-text-muted">{s.label}</p>
             </div>
           ))}
@@ -650,15 +650,15 @@ export const SystemAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask: (
         ) : null}
       </section>
 
- <section className="rounded-[2rem] border border-theme-border bg-theme-bg-app">
+ <section className="rounded-xl border border-theme-border bg-theme-surface">
         <button
           type="button"
           onClick={() => setSlotOverviewExpanded((current) => !current)}
           className="flex w-full flex-wrap items-start justify-between gap-3 px-5 pb-4 pt-5 text-left"
         >
           <div>
-            <h2 className="text-sm font-black uppercase tracking-[0.2em] text-theme-text-muted">EXECUTION SLOTS</h2>
-            <div className="mt-2 text-lg font-black text-theme-text-primary">执行槽位总览</div>
+            <h2 className="text-sm font-semibold uppercase tracking-[0.2em] text-theme-text-muted">EXECUTION SLOTS</h2>
+            <div className="mt-2 text-lg font-semibold text-theme-text-primary">执行槽位总览</div>
             <p className="mt-1 text-xs text-theme-text-muted">对齐入口分析的运行态展示方式，先给出集群槽位摘要，再按需查看 worker 和活跃任务详情。</p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
@@ -670,7 +670,7 @@ export const SystemAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask: (
                 setShowSlotDetailModal(true);
                 void loadClusterCapacityDetail();
               }}
-              className="rounded-xl border border-theme-border bg-theme-bg-app px-4 py-2 text-xs font-bold text-theme-text-secondary hover:bg-theme-elevated"
+              className="rounded-xl border border-theme-border bg-theme-surface px-4 py-2 text-xs font-bold text-theme-text-secondary hover:bg-theme-elevated"
             >
               查看槽位详情
             </button>
@@ -680,7 +680,7 @@ export const SystemAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask: (
                 event.stopPropagation();
                 void loadClusterCapacity();
               }}
-              className="inline-flex items-center gap-2 rounded-xl border border-theme-border bg-theme-bg-app px-3 py-2 text-xs font-bold text-theme-text-secondary hover:bg-theme-elevated"
+              className="inline-flex items-center gap-2 rounded-xl border border-theme-border bg-theme-surface px-3 py-2 text-xs font-bold text-theme-text-secondary hover:bg-theme-elevated"
               title="手动刷新执行槽位"
               aria-label="手动刷新执行槽位"
             >
@@ -690,7 +690,7 @@ export const SystemAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask: (
             <span className="rounded-full border border-theme-border bg-theme-bg-app px-3 py-1 text-[11px] font-bold text-theme-text-secondary">
               {clusterCapacitySummary ?`${clusterCapacitySummary.busy_slots} / ${clusterCapacitySummary.total_capacity} 槽位运行中` : '槽位摘要待加载'}
             </span>
-            <span className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-theme-border bg-theme-bg-app text-theme-text-muted">
+            <span className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-theme-border bg-theme-surface text-theme-text-muted">
               {slotOverviewExpanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
             </span>
           </div>
@@ -716,8 +716,8 @@ export const SystemAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask: (
                 { label: 'Stale', value: clusterCapacitySummary.stale_workers, bg: 'bg-rose-50/70', text: 'text-rose-400', border: 'border-rose-500/20' },
                 { label: 'Live Pod', value: clusterCapacityDetail ? slotLivePodCount : '-', bg: 'bg-sky-50/70', text: 'text-sky-400', border: 'border-sky-500/20' },
               ].map((item) => (
-                <div key={item.label} className={`rounded-[1.5rem] border ${item.border} ${item.bg} px-4 py-4`}>
-                  <div className={`text-2xl font-black leading-none ${item.text}`}>{item.value}</div>
+                <div key={item.label} className={`rounded-xl border ${item.border} ${item.bg} px-4 py-4`}>
+                  <div className={`text-2xl font-bold leading-none ${item.text}`}>{item.value}</div>
                   <div className="mt-2 text-xs font-bold text-theme-text-muted">{item.label}</div>
                 </div>
               ))}
@@ -762,7 +762,7 @@ export const SystemAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask: (
             <div className="mt-5 border-t border-theme-border pt-5">
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
-                  <div className="text-[11px] font-black uppercase tracking-[0.18em] text-theme-text-muted">当前运行槽位</div>
+                  <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-theme-text-muted">当前运行槽位</div>
                   <div className="mt-1 text-sm text-theme-text-muted">这里直接前置展示两个 worker 槽位，完整明细继续在“查看槽位详情”中展开。</div>
                 </div>
                 <span className="rounded-full border border-theme-border bg-theme-bg-app px-3 py-1 text-[11px] font-bold text-theme-text-secondary">
@@ -770,7 +770,7 @@ export const SystemAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask: (
                 </span>
               </div>
               {previewWorkers.length === 0 ? (
-                <div className="mt-4 rounded-xl border border-dashed border-theme-border bg-theme-bg-app px-4 py-8 text-center text-sm text-theme-text-muted">
+                <div className="mt-4 rounded-xl border border-dashed border-theme-border bg-theme-surface px-4 py-8 text-center text-sm text-theme-text-muted">
                   当前没有可预览的执行槽位 worker。
                 </div>
               ) : (
@@ -780,13 +780,13 @@ export const SystemAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask: (
                     return (
                       <section
                         key={worker.worker_id}
-                        className={`overflow-hidden rounded-[1.5rem] border ${worker.healthy ? 'border-theme-border bg-theme-bg-app' : 'border-rose-500/20 bg-rose-50/70'}`}
+                        className={`overflow-hidden rounded-xl border ${worker.healthy ? 'border-theme-border bg-theme-surface' : 'border-rose-500/20 bg-rose-50/70'}`}
                       >
                         <div className="px-5 py-4">
                           <div className="flex flex-wrap items-start justify-between gap-3">
                             <div className="min-w-0 flex-1">
                               <div className="flex flex-wrap items-center gap-2">
-                                <div className="text-sm font-black text-theme-text-primary">{worker.host_name || worker.worker_id}</div>
+                                <div className="text-sm font-semibold text-theme-text-primary">{worker.host_name || worker.worker_id}</div>
                                 <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${worker.healthy ? 'bg-emerald-500/15 text-emerald-400' : 'bg-rose-500/15 text-rose-400'}`}>
                                   {worker.healthy ? 'healthy' : 'unhealthy'}
                                 </span>
@@ -824,7 +824,7 @@ export const SystemAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask: (
                                   <div className="flex flex-wrap items-start justify-between gap-3">
                                     <div className="min-w-0 flex-1">
                                       <div className="flex flex-wrap items-center gap-2">
-                                        <div className="truncate text-sm font-black text-theme-text-primary" title={job.task_name}>{job.task_name}</div>
+                                        <div className="truncate text-sm font-semibold text-theme-text-primary" title={job.task_name}>{job.task_name}</div>
                                         <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${job.mapped ? 'bg-cyan-500/15 text-cyan-400' : 'bg-amber-500/15 text-amber-400'}`}>
                                           {job.mapped ? '已关联任务' : '未关联任务'}
                                         </span>
@@ -832,7 +832,7 @@ export const SystemAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask: (
                                       </div>
                                       <div className="mt-1 break-all font-mono text-[11px] text-theme-text-muted">{job.input_path || '-'}</div>
                                     </div>
-                                    <div className="rounded-xl border border-theme-border bg-theme-bg-app px-3 py-2 text-[11px] text-theme-text-muted">
+                                    <div className="rounded-xl border border-theme-border bg-theme-surface px-3 py-2 text-[11px] text-theme-text-muted">
                                       <div className="font-semibold text-theme-text-secondary">task id</div>
                                       <div className="mt-1 font-mono">{job.task_id}</div>
                                     </div>
@@ -860,7 +860,7 @@ export const SystemAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask: (
             <button
               type="button"
               onClick={() => void loadClusterCapacity()}
-              className="mt-4 rounded-xl border border-theme-border bg-theme-bg-app px-4 py-2 text-xs font-bold text-theme-text-secondary hover:bg-theme-elevated"
+              className="mt-4 rounded-xl border border-theme-border bg-theme-surface px-4 py-2 text-xs font-bold text-theme-text-secondary hover:bg-theme-elevated"
             >
               加载执行槽位摘要
             </button>
@@ -879,10 +879,10 @@ export const SystemAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask: (
       </section>
 
       {/* Task list */}
- <section className="rounded-2xl border border-theme-border bg-theme-bg-app p-5">
+ <section className="rounded-2xl border border-theme-border bg-theme-surface p-5">
         <div className="mb-4 flex flex-wrap items-start justify-between gap-4">
           <div>
-            <h2 className="text-lg font-black text-theme-text-primary">任务列表 <span className="text-sm font-normal text-theme-text-muted">({total})</span></h2>
+            <h2 className="text-lg font-semibold text-theme-text-primary">任务列表 <span className="text-sm font-normal text-theme-text-muted">({total})</span></h2>
           </div>
           <div className="flex flex-wrap items-center justify-end gap-2">
             <label className="inline-flex items-center gap-2 rounded-lg border border-theme-border bg-theme-bg-app px-3 py-1.5 text-xs text-theme-text-secondary">
@@ -997,7 +997,7 @@ export const SystemAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask: (
               <button
                 onClick={() => void handleBatchCancel()}
                 disabled={batchCancelling || batchDeleting || batchRestarting}
-                className="inline-flex items-center gap-2 rounded-xl border border-amber-500/20 bg-theme-bg-app px-4 py-2 text-sm font-semibold text-amber-400 hover:bg-amber-500/15 disabled:opacity-50"
+                className="inline-flex items-center gap-2 rounded-xl border border-amber-500/20 bg-theme-surface px-4 py-2 text-sm font-semibold text-amber-400 hover:bg-amber-500/15 disabled:opacity-50"
               >
                 {batchCancelling ? <Loader2 size={14} className="animate-spin" /> : <XCircle size={14} />}
                 批量停止
@@ -1005,7 +1005,7 @@ export const SystemAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask: (
               <button
                 onClick={() => void handleBatchRestart()}
                 disabled={batchRestarting || batchCancelling || batchDeleting}
-                className="inline-flex items-center gap-2 rounded-xl border border-violet-500/20 bg-theme-bg-app px-4 py-2 text-sm font-semibold text-violet-400 hover:bg-violet-500/15 disabled:opacity-50"
+                className="inline-flex items-center gap-2 rounded-xl border border-violet-500/20 bg-theme-surface px-4 py-2 text-sm font-semibold text-violet-400 hover:bg-violet-500/15 disabled:opacity-50"
               >
                 {batchRestarting ? <Loader2 size={14} className="animate-spin" /> : <RotateCcw size={14} />}
                 批量重试
@@ -1013,14 +1013,14 @@ export const SystemAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask: (
               <button
                 onClick={() => setSelectedTaskIds(new Set())}
                 disabled={batchDeleting || batchCancelling || batchRestarting}
-                className="inline-flex items-center gap-2 rounded-xl border border-theme-border bg-theme-bg-app px-4 py-2 text-sm font-semibold text-theme-text-secondary hover:bg-theme-elevated disabled:opacity-50"
+                className="inline-flex items-center gap-2 rounded-xl border border-theme-border bg-theme-surface px-4 py-2 text-sm font-semibold text-theme-text-secondary hover:bg-theme-elevated disabled:opacity-50"
               >
                 清除选择
               </button>
               <button
                 onClick={() => void handleBatchDelete()}
                 disabled={batchDeleting || batchCancelling || batchRestarting}
-                className="inline-flex items-center gap-2 rounded-xl border border-red-500/20 bg-theme-bg-app px-4 py-2 text-sm font-semibold text-red-400 hover:bg-red-500/15 disabled:opacity-50"
+                className="inline-flex items-center gap-2 rounded-xl border border-red-500/20 bg-theme-surface px-4 py-2 text-sm font-semibold text-red-400 hover:bg-red-500/15 disabled:opacity-50"
               >
                 {batchDeleting ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
                 批量删除（{selectedTaskIds.size}）
@@ -1034,7 +1034,7 @@ export const SystemAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask: (
             <Loader2 size={20} className="mr-2 animate-spin" /> 加载中...
           </div>
         ) : tasks.length === 0 ? (
-          <div className="rounded-xl border border-dashed border-theme-border bg-theme-bg-app py-10 text-center text-xs text-theme-text-muted">
+          <div className="rounded-xl border border-dashed border-theme-border bg-theme-surface py-10 text-center text-xs text-theme-text-muted">
             暂无任务，点击右上角「新建任务」创建
           </div>
         ) : (
@@ -1265,10 +1265,10 @@ export const SystemAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask: (
 
       {showSlotDetailModal ? (
         <div className="fixed inset-0 z-[180] flex items-center justify-center bg-slate-950/65 p-4 backdrop-blur-sm" onClick={() => setShowSlotDetailModal(false)}>
-          <div className="w-full max-w-5xl rounded-[2rem] border border-theme-border bg-theme-bg-app" onClick={(event) => event.stopPropagation()}>
+          <div className="w-full max-w-5xl rounded-2xl border border-theme-border bg-theme-surface" onClick={(event) => event.stopPropagation()}>
             <div className="flex items-start justify-between gap-4 border-b border-theme-border px-6 py-5">
               <div>
-                <h3 className="mt-2 text-2xl font-black tracking-tight text-theme-text-primary">执行槽位详情</h3>
+                <h3 className="mt-2 text-2xl font-bold tracking-tight text-theme-text-primary">执行槽位详情</h3>
                 <p className="mt-2 text-sm text-theme-text-muted">按 worker 展示当前系统分析任务执行情况；点击每个 worker 头部展开或收起详细信息。</p>
               </div>
               <div className="flex items-center gap-3">
@@ -1279,7 +1279,7 @@ export const SystemAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask: (
                 <button
                   type="button"
                   onClick={() => setShowSlotDetailModal(false)}
-                  className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-theme-border bg-theme-bg-app text-theme-text-secondary hover:bg-theme-elevated"
+                  className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-theme-border bg-theme-surface text-theme-text-secondary hover:bg-theme-elevated"
                   aria-label="关闭执行槽位详情"
                 >
                   <X size={16} />
@@ -1288,7 +1288,7 @@ export const SystemAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask: (
             </div>
             <div className="max-h-[75vh] overflow-auto px-6 py-5">
               {(clusterCapacityDetail?.workers || []).length === 0 ? (
-                <div className="rounded-2xl border border-dashed border-theme-border bg-theme-bg-app px-4 py-10 text-center text-sm text-theme-text-muted">
+                <div className="rounded-2xl border border-dashed border-theme-border bg-theme-surface px-4 py-10 text-center text-sm text-theme-text-muted">
                   当前未发现可用的系统分析 worker。
                 </div>
               ) : (
@@ -1299,7 +1299,7 @@ export const SystemAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask: (
                     return (
                       <section
                         key={worker.worker_id}
-                        className={`overflow-hidden rounded-[1.5rem] border ${worker.healthy ? 'border-theme-border bg-theme-bg-app' : 'border-rose-500/20 bg-rose-50/70'}`}
+                        className={`overflow-hidden rounded-xl border ${worker.healthy ? 'border-theme-border bg-theme-surface' : 'border-rose-500/20 bg-rose-50/70'}`}
                       >
                         <button
                           type="button"
@@ -1308,7 +1308,7 @@ export const SystemAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask: (
                         >
                           <div className="min-w-0">
                             <div className="flex flex-wrap items-center gap-2">
-                              <div className="text-sm font-black text-theme-text-primary">{worker.host_name || worker.worker_id}</div>
+                              <div className="text-sm font-semibold text-theme-text-primary">{worker.host_name || worker.worker_id}</div>
                               <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${worker.healthy ? 'bg-emerald-500/15 text-emerald-400' : 'bg-rose-500/15 text-rose-400'}`}>
                                 {worker.healthy ? 'healthy' : 'unhealthy'}
                               </span>
@@ -1334,7 +1334,7 @@ export const SystemAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask: (
                               />
                             </div>
                           </div>
-                          <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-theme-border bg-theme-bg-app text-theme-text-muted">
+                          <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-theme-border bg-theme-surface text-theme-text-muted">
                             {expanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
                           </div>
                         </button>
@@ -1345,7 +1345,7 @@ export const SystemAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask: (
                                 Worker 当前不可用。{worker.error ?`原因：${worker.error}` : ''}
                               </div>
                             ) : activeJobs.length === 0 ? (
-                              <div className="rounded-2xl border border-dashed border-theme-border bg-theme-bg-app px-4 py-8 text-center text-sm text-theme-text-muted">
+                              <div className="rounded-2xl border border-dashed border-theme-border bg-theme-surface px-4 py-8 text-center text-sm text-theme-text-muted">
                                 当前无活跃系统分析任务。
                               </div>
                             ) : (
@@ -1355,7 +1355,7 @@ export const SystemAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask: (
                                     <div className="flex flex-wrap items-start justify-between gap-3">
                                       <div className="min-w-0 flex-1">
                                         <div className="flex flex-wrap items-center gap-2">
-                                          <div className="truncate text-sm font-black text-theme-text-primary" title={job.task_name}>{job.task_name}</div>
+                                          <div className="truncate text-sm font-semibold text-theme-text-primary" title={job.task_name}>{job.task_name}</div>
                                           <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${job.mapped ? 'bg-cyan-500/15 text-cyan-400' : 'bg-amber-500/15 text-amber-400'}`}>
                                             {job.mapped ? '已关联任务' : '未关联任务'}
                                           </span>
@@ -1363,34 +1363,34 @@ export const SystemAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask: (
                                         </div>
                                         <div className="mt-1 break-all font-mono text-[11px] text-theme-text-muted">{job.input_path || '-'}</div>
                                       </div>
-                                      <div className="rounded-xl border border-theme-border bg-theme-bg-app px-3 py-2 text-[11px] text-theme-text-muted">
+                                      <div className="rounded-xl border border-theme-border bg-theme-surface px-3 py-2 text-[11px] text-theme-text-muted">
                                         <div className="font-semibold text-theme-text-secondary">task id</div>
                                         <div className="mt-1 font-mono">{job.task_id}</div>
                                       </div>
                                     </div>
                                     <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
- <div className="rounded-xl border border-theme-border bg-theme-bg-app px-3 py-3">
-                                        <div className="text-[10px] font-black uppercase tracking-[0.2em] text-theme-text-muted">分析模式</div>
+ <div className="rounded-xl border border-theme-border bg-theme-surface px-3 py-3">
+                                        <div className="text-[10px] font-semibold uppercase tracking-[0.2em] text-theme-text-muted">分析模式</div>
                                         <div className="mt-1 text-sm font-semibold text-theme-text-secondary">{job.analysis_mode === 'source' ? '源码' : job.analysis_mode === 'binary' ? '二进制' : '-'}</div>
                                       </div>
- <div className="rounded-xl border border-theme-border bg-theme-bg-app px-3 py-3">
-                                        <div className="text-[10px] font-black uppercase tracking-[0.2em] text-theme-text-muted">主任务</div>
+ <div className="rounded-xl border border-theme-border bg-theme-surface px-3 py-3">
+                                        <div className="text-[10px] font-semibold uppercase tracking-[0.2em] text-theme-text-muted">主任务</div>
                                         <div className="mt-1 break-all font-mono text-[11px] text-theme-text-secondary">{job.parent_task_id || '-'}</div>
                                       </div>
- <div className="rounded-xl border border-theme-border bg-theme-bg-app px-3 py-3">
-                                        <div className="text-[10px] font-black uppercase tracking-[0.2em] text-theme-text-muted">租约</div>
+ <div className="rounded-xl border border-theme-border bg-theme-surface px-3 py-3">
+                                        <div className="text-[10px] font-semibold uppercase tracking-[0.2em] text-theme-text-muted">租约</div>
                                         <div className="mt-1 text-sm font-semibold text-theme-text-secondary">{formatDateTime(job.execution_lease_until)}</div>
                                       </div>
- <div className="rounded-xl border border-theme-border bg-theme-bg-app px-3 py-3">
-                                        <div className="text-[10px] font-black uppercase tracking-[0.2em] text-theme-text-muted">调度开始</div>
+ <div className="rounded-xl border border-theme-border bg-theme-surface px-3 py-3">
+                                        <div className="text-[10px] font-semibold uppercase tracking-[0.2em] text-theme-text-muted">调度开始</div>
                                         <div className="mt-1 text-sm font-semibold text-theme-text-secondary">{formatDateTime(job.dispatch_started_at)}</div>
                                       </div>
- <div className="rounded-xl border border-theme-border bg-theme-bg-app px-3 py-3">
-                                        <div className="text-[10px] font-black uppercase tracking-[0.2em] text-theme-text-muted">最近更新</div>
+ <div className="rounded-xl border border-theme-border bg-theme-surface px-3 py-3">
+                                        <div className="text-[10px] font-semibold uppercase tracking-[0.2em] text-theme-text-muted">最近更新</div>
                                         <div className="mt-1 text-sm font-semibold text-theme-text-secondary">{formatDateTime(job.updated_at)}</div>
                                       </div>
- <div className="rounded-xl border border-theme-border bg-theme-bg-app px-3 py-3">
-                                        <div className="text-[10px] font-black uppercase tracking-[0.2em] text-theme-text-muted">映射结果</div>
+ <div className="rounded-xl border border-theme-border bg-theme-surface px-3 py-3">
+                                        <div className="text-[10px] font-semibold uppercase tracking-[0.2em] text-theme-text-muted">映射结果</div>
                                         <div className="mt-1 text-sm font-semibold text-theme-text-secondary">{job.mapping_reason}</div>
                                       </div>
                                     </div>

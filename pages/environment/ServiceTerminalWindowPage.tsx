@@ -288,7 +288,7 @@ export const ServiceTerminalWindowPage: React.FC = () => {
           <TerminalSquare size={16} className="text-blue-400" />
           <div className="min-w-0 flex-1">
             <div className="flex items-start gap-2 min-w-0">
-              <p className="text-sm font-black leading-5 break-all">{serviceName || 'Service Terminal'}</p>
+              <p className="text-sm font-semibold leading-5 break-all">{serviceName || 'Service Terminal'}</p>
               <span className="text-[10px] text-theme-text-muted font-mono leading-4 break-all max-w-[180px]">
                 {agentKey}
               </span>
@@ -334,7 +334,7 @@ export const ServiceTerminalWindowPage: React.FC = () => {
         <button
           onClick={() => void connectTerminal(mode)}
           disabled={connecting}
-          className="px-3 py-1.5 rounded-lg bg-blue-600 text-white text-xs font-black hover:bg-blue-500 disabled:opacity-60 flex items-center gap-2 shrink-0"
+          className="px-3 py-1.5 rounded-lg bg-blue-600 text-white text-xs font-medium hover:bg-blue-500 disabled:opacity-60 flex items-center gap-2 shrink-0"
         >
           {connecting ? <Loader2 size={13} className="animate-spin" /> : <Plug size={13} />}
           连接
@@ -346,7 +346,7 @@ export const ServiceTerminalWindowPage: React.FC = () => {
             setTerminalWs(null);
             setConnected(false);
           }}
-          className="px-3 py-1.5 rounded-lg bg-theme-elevated text-slate-200 text-xs font-black hover:bg-theme-elevated flex items-center gap-2 shrink-0"
+          className="px-3 py-1.5 rounded-lg bg-theme-elevated text-slate-200 text-xs font-medium hover:bg-theme-elevated flex items-center gap-2 shrink-0"
         >
           <PlugZap size={13} />
           断开
@@ -386,7 +386,7 @@ export const ServiceTerminalWindowPage: React.FC = () => {
                   <div className="flex items-center gap-2 mb-1">
                     <span className="font-bold">{item.label}</span>
                     {item.active ? (
-                      <span className="px-1.5 py-0.5 rounded bg-emerald-400/20 text-emerald-300 text-[10px] font-black">
+                      <span className="px-1.5 py-0.5 rounded bg-emerald-400/20 text-emerald-300 text-[10px] font-semibold">
                         当前连接
                       </span>
                     ) : null}

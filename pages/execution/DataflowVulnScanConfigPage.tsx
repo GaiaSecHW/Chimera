@@ -113,7 +113,7 @@ const AgentInstanceList: React.FC<{
   return (
     <div className="space-y-2">
       {agents.map((agent, i) => (
-        <div key={i} className="flex items-center gap-2 rounded-xl border border-theme-border bg-theme-bg-app p-3">
+        <div key={i} className="flex items-center gap-2 rounded-xl border border-theme-border bg-theme-surface p-3">
           <div className="flex-1">
             <ModelSelect value={agent.model} options={modelOptions} onChange={(v) => update(i, { model: v })} />
           </div>
@@ -319,8 +319,8 @@ export const DataflowVulnScanConfigPage: React.FC<{ projectId: string; embedded?
       {feedbackNodes}
 
       {!embedded ? (
- <section className="rounded-[2rem] border border-theme-border bg-theme-bg-app p-6">
-          <h1 className="mt-3 text-3xl font-black tracking-tight text-theme-text-primary">分析配置</h1>
+ <section className="rounded-xl border border-theme-border bg-theme-surface p-6">
+          <h1 className="mt-3 text-3xl font-bold tracking-tight text-theme-text-primary">分析配置</h1>
           <p className="mt-2 text-sm text-theme-text-muted">
             配置 secflow-app-dataflow-vuln-scan 全局运行参数，保存后会对所有项目生效。
           </p>
@@ -329,13 +329,13 @@ export const DataflowVulnScanConfigPage: React.FC<{ projectId: string; embedded?
           )}
         </section>
       ) : (
- <section className="rounded-[2rem] border border-theme-border bg-slate-50/70 p-6">
+ <section className="rounded-xl border border-theme-border bg-slate-50/70 p-6">
           <div className="flex items-start justify-between gap-4">
             <div>
               <div className="flex flex-wrap items-center gap-2">
                 <Settings size={18} className="text-rose-400" />
-                <h2 className="text-xl font-black text-theme-text-primary">数据流漏洞挖掘参数配置</h2>
-                <span className="rounded-full border border-rose-500/20 bg-rose-500/15 px-3 py-1 text-[11px] font-black tracking-[0.12em] text-rose-400">
+                <h2 className="text-xl font-semibold text-theme-text-primary">数据流漏洞挖掘参数配置</h2>
+                <span className="rounded-full border border-rose-500/20 bg-rose-500/15 px-3 py-1 text-[11px] font-medium tracking-[0.12em] text-rose-400">
                   secflow-app-dataflow-vuln-scan
                 </span>
               </div>
@@ -350,7 +350,7 @@ export const DataflowVulnScanConfigPage: React.FC<{ projectId: string; embedded?
               type="button"
               onClick={() => { void reload(); }}
               disabled={loading || saving}
- className="inline-flex items-center gap-2 rounded-xl border border-theme-border bg-theme-bg-app px-4 py-2.5 text-sm font-bold text-theme-text-secondary hover:bg-theme-elevated disabled:opacity-50"
+ className="inline-flex items-center gap-2 rounded-xl border border-theme-border bg-theme-surface px-4 py-2.5 text-sm font-bold text-theme-text-secondary hover:bg-theme-elevated disabled:opacity-50"
             >
               {loading ? <Loader2 size={14} className="animate-spin" /> : <RefreshCw size={14} />}
               刷新
@@ -360,7 +360,7 @@ export const DataflowVulnScanConfigPage: React.FC<{ projectId: string; embedded?
       )}
 
       {loading ? (
-        <div className="inline-flex items-center gap-2 rounded-xl border border-theme-border bg-theme-bg-app px-4 py-3 text-sm text-theme-text-secondary">
+        <div className="inline-flex items-center gap-2 rounded-xl border border-theme-border bg-theme-surface px-4 py-3 text-sm text-theme-text-secondary">
           <Loader2 size={15} className="animate-spin" />加载中...
         </div>
       ) : (

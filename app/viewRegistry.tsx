@@ -189,7 +189,7 @@ export interface ViewRegistryContext {
 
 const EmptyPlaceholderPage: React.FC<{ title: string }> = ({ title }) => (
   <div className="p-10 h-full flex items-center justify-center">
-    <h2 className="text-2xl font-black text-theme-text-faint">{title}</h2>
+    <h2 className="text-2xl font-semibold text-theme-text-faint">{title}</h2>
   </div>
 );
 
@@ -377,7 +377,7 @@ export const renderCurrentView = (ctx: ViewRegistryContext): React.ReactNode => 
     case 'dataflow-analysis-config':
       return (
         <div className="p-20 text-center">
-          <h3 className="text-xl font-black text-slate-400">数据流漏洞挖掘前端页面已下线</h3>
+          <h3 className="text-xl font-semibold text-slate-400">数据流漏洞挖掘前端页面已下线</h3>
           <p className="mt-3 text-sm text-slate-500">该功能入口已从导航中移除。</p>
         </div>
       );
@@ -870,7 +870,7 @@ export const renderCurrentView = (ctx: ViewRegistryContext): React.ReactNode => 
       }
       return (
         <div className="p-20 text-center">
-          <h3 className="text-xl font-black text-slate-400">模块 "{ctx.currentView}" 开发中...</h3>
+          <h3 className="text-xl font-semibold text-slate-400">模块 "{ctx.currentView}" 开发中...</h3>
         </div>
       );
     }

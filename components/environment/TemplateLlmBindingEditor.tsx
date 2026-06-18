@@ -211,7 +211,7 @@ export const TemplateLlmBindingEditor: React.FC<TemplateLlmBindingEditorProps> =
     <div className="rounded-2xl border border-theme-border bg-theme-surface p-4 space-y-4">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <h4 className="text-sm font-black text-theme-text-primary">{title}</h4>
+          <h4 className="text-sm font-semibold text-theme-text-primary">{title}</h4>
           <p className="text-xs text-theme-text-muted mt-1">{description}</p>
         </div>
         {providersLoading && <Loader2 size={16} className="animate-spin text-theme-text-muted shrink-0" />}
@@ -236,7 +236,7 @@ export const TemplateLlmBindingEditor: React.FC<TemplateLlmBindingEditorProps> =
               type="button"
               disabled={disabled || !providerToAdd}
               onClick={addProvider}
-              className="px-3 py-2 rounded-xl bg-blue-600 text-white text-xs font-black hover:bg-blue-700 disabled:opacity-50 flex items-center gap-2"
+              className="px-3 py-2 rounded-xl bg-blue-600 text-white text-xs font-medium hover:bg-blue-700 disabled:opacity-50 flex items-center gap-2"
             >
               <Plus size={14} /> 添加 Provider
             </button>
@@ -251,7 +251,7 @@ export const TemplateLlmBindingEditor: React.FC<TemplateLlmBindingEditorProps> =
                 return (
                   <div key={providerKey} className="flex items-center justify-between gap-3 rounded-xl border border-theme-border px-3 py-2">
                     <div className="min-w-0">
-                      <div className="text-xs font-black text-theme-text-primary truncate">{provider?.display_name || providerKey}</div>
+                      <div className="text-xs font-medium text-theme-text-primary truncate">{provider?.display_name || providerKey}</div>
                       <div className="text-[11px] text-theme-text-muted truncate">{providerKey} · {provider?.provider_type || 'unknown'}</div>
                     </div>
                     <div className="flex items-center gap-1 shrink-0">
@@ -266,7 +266,7 @@ export const TemplateLlmBindingEditor: React.FC<TemplateLlmBindingEditorProps> =
           </div>
 
           <div className="rounded-xl border border-theme-border p-3 space-y-3">
-            <div className="text-xs font-black text-theme-text-primary">注入目标</div>
+            <div className="text-xs font-medium text-theme-text-primary">注入目标</div>
             <label className="flex items-center gap-2 text-xs text-theme-text-primary">
               <input
                 type="radio"
@@ -310,7 +310,7 @@ export const TemplateLlmBindingEditor: React.FC<TemplateLlmBindingEditorProps> =
           <div className="rounded-xl border border-theme-border p-3 space-y-3">
             <div className="flex items-center justify-between gap-3">
               <div>
-                <div className="text-xs font-black text-theme-text-primary">最终环境变量预览</div>
+                <div className="text-xs font-medium text-theme-text-primary">最终环境变量预览</div>
                 <div className="text-[11px] text-theme-text-muted mt-1">按当前 Provider 顺序合并，后者覆盖前者。</div>
               </div>
               {previewLoading && <Loader2 size={14} className="animate-spin text-theme-text-muted" />}
@@ -337,7 +337,7 @@ export const TemplateLlmBindingEditor: React.FC<TemplateLlmBindingEditorProps> =
           <div className="rounded-xl border border-theme-border p-3 space-y-3">
             <div className="flex items-center justify-between gap-3">
               <div>
-                <div className="text-xs font-black text-theme-text-primary">最终文件注入预览</div>
+                <div className="text-xs font-medium text-theme-text-primary">最终文件注入预览</div>
                 <div className="text-[11px] text-theme-text-muted mt-1">按当前 Provider 顺序合并，同路径后者覆盖前者。</div>
               </div>
               {previewLoading && <Loader2 size={14} className="animate-spin text-theme-text-muted" />}

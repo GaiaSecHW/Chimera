@@ -118,7 +118,7 @@ export const SecOctoOverviewPage: React.FC<OverviewProps> = ({ onNavigateTask })
                   <td className="px-3 py-2 text-theme-text-secondary truncate max-w-xs">{t.title || '—'}</td>
                   <td className="px-3 py-2 text-xs text-theme-text-secondary">{t.agent_type || '—'}</td>
                   <td className="px-3 py-2 text-center"><span className={`px-2 py-0.5 rounded-full text-xs font-medium ${STATUS_CLASS(t.status)}`}>{t.status === 'succeeded' ? '已完成' : t.status === 'running' ? '运行中' : t.status === 'failed' ? '失败' : t.status}</span></td>
-                  <td className="px-3 py-2 text-center"><span className={`px-2.5 py-0.5 rounded-full text-xs font-bold ${SCORE_CLASS(t.score)}`}>{t.score ?? '—'}</span></td>
+                  <td className="px-3 py-2 text-center"><span className={`px-2.5 py-0.5 rounded-full text-xs font-medium ${SCORE_CLASS(t.score)}`}>{t.score ?? '—'}</span></td>
                   <td className="px-3 py-2 text-center font-semibold text-theme-text-secondary">{t.vulns_discovered ?? '—'}</td>
                 </tr>
               ))}

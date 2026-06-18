@@ -175,14 +175,14 @@ export const EnvTasksPage: React.FC<{ projectId: string }> = ({ projectId }) => 
         title="环境模板部署/卸载任务管理"
         description="分布式节点部署任务队列与实时执行审计"
         actions={<div className="flex gap-4">
-            <button onClick={handleClearAllTasks} disabled={!projectId || clearingAll || tasks.length === 0} className="px-5 py-3 bg-rose-500/15 border border-rose-500/20 text-rose-400 rounded-2xl hover:bg-rose-600 hover:text-white transition-all disabled:opacity-50 font-black text-xs tracking-wider uppercase flex items-center gap-2">{clearingAll ? <Loader2 size={16} className="animate-spin" /> : <Trash2 size={16} />}清空记录</button>
-            <button onClick={loadTasks} disabled={!projectId} className="p-4 bg-theme-bg-app border border-theme-border text-theme-text-muted rounded-2xl hover:bg-theme-elevated transition-all disabled:opacity-50"><RefreshCw size={20} className={loading ? 'animate-spin' : ''} /></button>
+            <button onClick={handleClearAllTasks} disabled={!projectId || clearingAll || tasks.length === 0} className="px-5 py-3 bg-rose-500/15 border border-rose-500/20 text-rose-400 rounded-lg hover:bg-rose-600 hover:text-white transition-all disabled:opacity-50 font-semibold text-xs tracking-wider uppercase flex items-center gap-2">{clearingAll ? <Loader2 size={16} className="animate-spin" /> : <Trash2 size={16} />}清空记录</button>
+            <button onClick={loadTasks} disabled={!projectId} className="p-4 bg-theme-bg-app border border-theme-border text-theme-text-muted rounded-lg hover:bg-theme-elevated transition-all disabled:opacity-50"><RefreshCw size={20} className={loading ? 'animate-spin' : ''} /></button>
           </div>}
       />
 
       <div className="space-y-4">
         {!projectId && (
-          <div className="p-4 bg-amber-500/15 border border-amber-500/20 text-amber-400 rounded-2xl text-xs font-bold flex items-center gap-3">
+          <div className="p-4 bg-amber-500/15 border border-amber-500/20 text-amber-400 rounded-xl text-xs font-medium flex items-center gap-3">
             <AlertTriangle size={16} /> 请先在顶部菜单选择一个项目
           </div>
         )}
@@ -191,15 +191,15 @@ export const EnvTasksPage: React.FC<{ projectId: string }> = ({ projectId }) => 
           <input
             type="text"
             placeholder="检索任务 ID、服务名称或目标节点..."
- className="w-full pl-16 pr-8 py-5 bg-theme-bg-app border border-theme-border rounded-[2rem] text-sm outline-none focus:ring-4 ring-blue-500/5 transition-all font-medium"
+ className="w-full pl-16 pr-8 py-5 bg-theme-bg-app border border-theme-border rounded-xl text-sm outline-none focus:ring-4 ring-blue-500/5 transition-all font-medium"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
 
- <div className="bg-theme-bg-app border border-theme-border rounded-[2.5rem] overflow-hidden min-h-[500px]">
+ <div className="bg-theme-surface border border-theme-border rounded-xl overflow-hidden min-h-[500px]">
           <table className="w-full text-left">
-            <thead className="bg-slate-100/50 border-b border-theme-border font-black text-[10px] text-theme-text-muted uppercase tracking-widest">
+            <thead className="bg-slate-100/50 border-b border-theme-border font-semibold text-[10px] text-theme-text-muted uppercase tracking-widest">
               <tr>
                 <th className="px-8 py-5">任务/服务标识</th>
                 <th className="px-6 py-5">类型</th>
@@ -225,7 +225,7 @@ export const EnvTasksPage: React.FC<{ projectId: string }> = ({ projectId }) => 
                         <div>
                           <button
                             onClick={() => void openTaskDetail(t)}
-                            className="text-sm font-black text-theme-text-primary hover:text-blue-400 transition-colors text-left"
+                            className="text-sm font-semibold text-theme-text-primary hover:text-blue-400 transition-colors text-left"
                             title="查看任务详情"
                           >
                             {t.service_name || 'Unknown'}
@@ -234,10 +234,10 @@ export const EnvTasksPage: React.FC<{ projectId: string }> = ({ projectId }) => 
                         </div>
                       </div>
                     </td>
-                    <td className="px-6 py-5 uppercase text-[10px] font-black text-theme-text-muted">{t.type}</td>
+                    <td className="px-6 py-5 uppercase text-[10px] font-medium text-theme-text-muted">{t.type}</td>
                     <td className="px-6 py-5">
                       <div className="max-w-[220px]">
-                        <div className="text-xs font-bold text-theme-text-secondary truncate" title={nodeInfo.primary}>{nodeInfo.primary}</div>
+                        <div className="text-xs font-medium text-theme-text-secondary truncate" title={nodeInfo.primary}>{nodeInfo.primary}</div>
                         {nodeInfo.secondary && nodeInfo.secondary !== nodeInfo.primary ? (
                           <div className="mt-0.5 text-[10px] text-theme-text-muted truncate" title={nodeInfo.secondary}>{nodeInfo.secondary}</div>
                         ) : null}
@@ -252,15 +252,15 @@ export const EnvTasksPage: React.FC<{ projectId: string }> = ({ projectId }) => 
                             style={{ width: `${t.progress || 0}%` }}
                           />
                         </div>
-                        <span className="text-[10px] font-black text-theme-text-muted">{t.progress || 0}%</span>
+                        <span className="text-[10px] font-medium text-theme-text-muted">{t.progress || 0}%</span>
                       </div>
                     </td>
                     <td className="px-6 py-5">
                       <div className="flex flex-col gap-0.5">
-                        <div className="flex items-center gap-1.5 text-[10px] font-bold text-theme-text-muted uppercase tracking-widest">
+                        <div className="flex items-center gap-1.5 text-[10px] font-medium text-theme-text-muted uppercase tracking-widest">
                           <Clock size={10} /> {timeInfo.date}
                         </div>
-                        <div className="text-[10px] font-black text-theme-text-faint ml-4 font-mono">
+                        <div className="text-[10px] font-medium text-theme-text-faint ml-4 font-mono">
                           {timeInfo.time}
                         </div>
                       </div>
@@ -293,7 +293,7 @@ export const EnvTasksPage: React.FC<{ projectId: string }> = ({ projectId }) => 
                     <div className="w-20 h-20 bg-theme-bg-app rounded-full flex items-center justify-center mx-auto mb-4 text-slate-200">
                       <History size={40} />
                     </div>
-                    <p className="text-sm font-black text-theme-text-muted uppercase tracking-widest">暂无活跃部署任务</p>
+                    <p className="text-sm font-semibold text-theme-text-muted uppercase tracking-widest">暂无活跃部署任务</p>
                   </td>
                 </tr>
               )}
@@ -307,13 +307,13 @@ export const EnvTasksPage: React.FC<{ projectId: string }> = ({ projectId }) => 
           onClick={() => setSelectedTask(null)}
         >
           <div
- className="w-full max-w-[72rem] h-[72vh] bg-theme-bg-app border border-theme-border rounded-2xl flex flex-col overflow-hidden"
+ className="w-full max-w-[72rem] h-[72vh] bg-theme-bg-app border border-theme-border rounded-xl flex flex-col overflow-hidden"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="px-5 py-4 border-b border-theme-border flex items-center justify-between">
               <div className="min-w-0">
-                <p className="text-[10px] font-black tracking-widest text-theme-text-muted uppercase">任务执行细节</p>
-                <p className="text-xs font-black text-white truncate mt-1">
+                <p className="text-[10px] font-medium tracking-widest text-theme-text-muted uppercase">任务执行细节</p>
+                <p className="text-xs font-medium text-white truncate mt-1">
                   {selectedTask.service_name || 'Unknown'} · {selectedTask.id}
                 </p>
               </div>
@@ -329,45 +329,45 @@ export const EnvTasksPage: React.FC<{ projectId: string }> = ({ projectId }) => 
             <div className="flex-1 overflow-auto p-4 space-y-4 custom-scrollbar">
               <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3">
                 <div className="rounded-xl border border-theme-border bg-theme-surface px-3 py-3">
-                  <div className="text-[10px] font-black tracking-widest text-theme-text-muted uppercase">任务类型</div>
-                  <div className="mt-1 text-sm font-bold text-slate-100">{selectedTask.type || '-'}</div>
+                  <div className="text-[10px] font-medium tracking-widest text-theme-text-muted uppercase">任务类型</div>
+                  <div className="mt-1 text-sm font-semibold text-slate-100">{selectedTask.type || '-'}</div>
                 </div>
                 <div className="rounded-xl border border-theme-border bg-theme-surface px-3 py-3">
-                  <div className="text-[10px] font-black tracking-widest text-theme-text-muted uppercase">任务状态</div>
+                  <div className="text-[10px] font-medium tracking-widest text-theme-text-muted uppercase">任务状态</div>
                   <div className="mt-2"><StatusBadge status={selectedTask.status} /></div>
                 </div>
                 <div className="rounded-xl border border-theme-border bg-theme-surface px-3 py-3">
-                  <div className="text-[10px] font-black tracking-widest text-theme-text-muted uppercase">目标节点</div>
-                  <div className="mt-1 text-sm font-bold text-slate-100 break-all">{selectedTaskNode?.primary || '-'}</div>
+                  <div className="text-[10px] font-medium tracking-widest text-theme-text-muted uppercase">目标节点</div>
+                  <div className="mt-1 text-sm font-semibold text-slate-100 break-all">{selectedTaskNode?.primary || '-'}</div>
                   {selectedTaskNode?.secondary && selectedTaskNode.secondary !== selectedTaskNode.primary ? (
                     <div className="mt-0.5 text-xs text-theme-text-faint break-all">{selectedTaskNode.secondary}</div>
                   ) : null}
                   <div className="mt-0.5 text-xs font-mono text-theme-text-faint break-all">{selectedTaskNode?.key || '-'}</div>
                 </div>
                 <div className="rounded-xl border border-theme-border bg-theme-surface px-3 py-3">
-                  <div className="text-[10px] font-black tracking-widest text-theme-text-muted uppercase">执行进度</div>
-                  <div className="mt-1 text-sm font-bold text-slate-100">{selectedTask.progress || 0}%</div>
+                  <div className="text-[10px] font-medium tracking-widest text-theme-text-muted uppercase">执行进度</div>
+                  <div className="mt-1 text-sm font-semibold text-slate-100">{selectedTask.progress || 0}%</div>
                 </div>
                 <div className="rounded-xl border border-theme-border bg-theme-surface px-3 py-3">
-                  <div className="text-[10px] font-black tracking-widest text-theme-text-muted uppercase">创建时间</div>
+                  <div className="text-[10px] font-medium tracking-widest text-theme-text-muted uppercase">创建时间</div>
                   <div className="mt-1">{renderTaskTime(selectedTask.created_at || selectedTask.create_time)}</div>
                 </div>
                 <div className="rounded-xl border border-theme-border bg-theme-surface px-3 py-3">
-                  <div className="text-[10px] font-black tracking-widest text-theme-text-muted uppercase">开始时间</div>
+                  <div className="text-[10px] font-medium tracking-widest text-theme-text-muted uppercase">开始时间</div>
                   <div className="mt-1">{renderTaskTime(selectedTask.started_at)}</div>
                 </div>
                 <div className="rounded-xl border border-theme-border bg-theme-surface px-3 py-3">
-                  <div className="text-[10px] font-black tracking-widest text-theme-text-muted uppercase">完成时间</div>
+                  <div className="text-[10px] font-medium tracking-widest text-theme-text-muted uppercase">完成时间</div>
                   <div className="mt-1">{renderTaskTime(selectedTask.completed_at)}</div>
                 </div>
                 <div className="rounded-xl border border-theme-border bg-theme-surface px-3 py-3">
-                  <div className="text-[10px] font-black tracking-widest text-theme-text-muted uppercase">日志条数</div>
-                  <div className="mt-1 text-sm font-bold text-slate-100">{selectedTask.log_count ?? logs.length}</div>
+                  <div className="text-[10px] font-medium tracking-widest text-theme-text-muted uppercase">日志条数</div>
+                  <div className="mt-1 text-sm font-semibold text-slate-100">{selectedTask.log_count ?? logs.length}</div>
                 </div>
               </div>
 
               <div className="rounded-xl border border-theme-border bg-theme-surface px-3 py-3">
-                <div className="text-[10px] font-black tracking-widest text-theme-text-muted uppercase">任务消息</div>
+                <div className="text-[10px] font-medium tracking-widest text-theme-text-muted uppercase">任务消息</div>
                 <div className="mt-1 text-xs leading-relaxed text-slate-200 whitespace-pre-wrap break-words">
                   {selectedTask.message || '暂无任务消息'}
                 </div>
@@ -380,13 +380,13 @@ export const EnvTasksPage: React.FC<{ projectId: string }> = ({ projectId }) => 
               ) : logs.length === 0 ? (
                 <div className="h-full flex flex-col items-center justify-center text-theme-text-muted gap-3">
                   <CheckCircle2 size={22} />
-                  <p className="text-xs font-bold">暂无执行日志</p>
+                  <p className="text-xs font-medium">暂无执行日志</p>
                 </div>
               ) : (
                 logs.map((log, index) => (
                   <div key={`${log.timestamp}-${index}`} className="bg-theme-surface border border-theme-border rounded-xl px-3 py-2.5">
                     <div className="flex items-center justify-between gap-3 mb-1">
-                      <span className={`text-[9px] font-black uppercase tracking-widest ${log.level === 'ERROR' ? 'text-red-400' : log.level === 'WARNING' || log.level === 'WARN' ? 'text-amber-400' : 'text-blue-400'}`}>
+                      <span className={`text-[9px] font-semibold uppercase tracking-widest ${log.level === 'ERROR' ? 'text-red-400' : log.level === 'WARNING' || log.level === 'WARN' ? 'text-amber-400' : 'text-blue-400'}`}>
                         {log.level}
                       </span>
                       <span className="text-[9px] font-mono text-theme-text-muted">{log.timestamp || '-'}</span>

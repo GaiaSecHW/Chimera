@@ -60,7 +60,7 @@ export const ReviewJudgmentPage: React.FC<ReviewJudgmentPageProps> = ({ projectI
               className="rounded-xl p-4"
               style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}` }}
             >
-              <div className="text-2xl font-semibold" style={{ color: stat.color }}>
+              <div className="text-2xl font-bold" style={{ color: stat.color }}>
                 {stat.value}
               </div>
               <div className="mt-1 text-xs font-semibold uppercase tracking-wider" style={{ color: LK.muted }}>

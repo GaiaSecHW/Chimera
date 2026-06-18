@@ -225,7 +225,7 @@ export const SystemAnalysisTaskFormModal: React.FC<SystemAnalysisTaskFormModalPr
  <div className="relative z-10 max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-2xl border border-theme-border bg-theme-bg-app">
           <div className="space-y-4 p-6">
             <div className="flex items-center justify-between">
-              <h2 className="text-lg font-black text-theme-text-primary">{title}</h2>
+              <h2 className="text-lg font-semibold text-theme-text-primary">{title}</h2>
               <button onClick={onClose} disabled={creating} className="rounded-lg p-1 text-theme-text-muted hover:text-theme-text-secondary disabled:opacity-50">
                 <X size={16} />
               </button>

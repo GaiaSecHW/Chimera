@@ -46,8 +46,8 @@ const EmptyCard: React.FC<{ text: string }> = ({ text }) => (
 
 export const HeadlineMetricCard: React.FC<{ label: string; value: string; hint: string; tone: string }> = ({ label, value, hint, tone }) => (
  <div className="rounded-2xl border border-theme-border bg-theme-bg-app px-4 py-3">
-    <div className="text-[11px] font-black uppercase tracking-[0.16em] text-theme-text-muted">{label}</div>
-    <div className={`mt-2 text-2xl font-black ${tone}`}>{value}</div>
+    <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-theme-text-muted">{label}</div>
+    <div className={`mt-2 text-2xl font-semibold ${tone}`}>{value}</div>
     <div className="mt-1 text-xs text-theme-text-muted">{hint}</div>
   </div>
 );
@@ -68,24 +68,24 @@ export const DataflowVulnObservabilitySection: React.FC<{
  <section className="space-y-4 rounded-[2rem] border border-rose-500/20 bg-theme-bg-app p-5">
     <div className="flex flex-wrap items-start justify-between gap-4">
       <div>
-        <div className="text-[11px] font-black uppercase tracking-[0.22em] text-rose-400">Dataflow Vuln Observability</div>
-        <h2 className="mt-2 text-xl font-black tracking-tight text-theme-text-primary">数据流漏洞挖掘专属观测</h2>
+        <div className="text-[11px] font-semibold uppercase tracking-[0.22em] text-rose-400">Dataflow Vuln Observability</div>
+        <h2 className="mt-2 text-xl font-semibold tracking-tight text-theme-text-primary">数据流漏洞挖掘专属观测</h2>
         <p className="mt-2 max-w-3xl text-sm text-theme-text-secondary">
           这部分优先回答四个问题：当前 run 是否在推进、漏洞产出是否在收敛、是否进入平台期、运行时调用面是否在放大失败或输出截断。
         </p>
       </div>
- <span className="inline-flex rounded-full border border-rose-500/20 bg-theme-bg-app px-3 py-1 text-xs font-black text-rose-400">dataflow-vuln MVP</span>
+ <span className="inline-flex rounded-full border border-rose-500/20 bg-theme-bg-app px-3 py-1 text-xs font-medium text-rose-400">dataflow-vuln MVP</span>
     </div>
 
     <div className="grid gap-4 xl:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)]">
  <div className="rounded-[1.6rem] border border-rose-500/20 bg-theme-bg-app p-4">
-        <div className="text-[11px] font-black uppercase tracking-[0.18em] text-theme-text-muted">漏洞产出与评审收敛</div>
-        <h3 className="mt-2 text-lg font-black tracking-tight text-theme-text-primary">Latest Cycle Snapshot</h3>
+        <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-theme-text-muted">漏洞产出与评审收敛</div>
+        <h3 className="mt-2 text-lg font-semibold tracking-tight text-theme-text-primary">Latest Cycle Snapshot</h3>
         <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
           {viewModel.cycleCards.map((item) => (
             <div key={item.label} className="rounded-2xl border border-theme-border bg-theme-bg-app px-4 py-3">
-              <div className="text-[11px] font-black uppercase tracking-[0.16em] text-theme-text-muted">{item.label}</div>
-              <div className={`mt-2 text-xl font-black ${item.tone}`}>{item.value}</div>
+              <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-theme-text-muted">{item.label}</div>
+              <div className={`mt-2 text-xl font-semibold ${item.tone}`}>{item.value}</div>
               <div className="mt-1 text-xs text-theme-text-muted">{item.hint}</div>
             </div>
           ))}
@@ -93,8 +93,8 @@ export const DataflowVulnObservabilitySection: React.FC<{
       </div>
 
  <div className="rounded-[1.6rem] border border-rose-500/20 bg-theme-bg-app p-4">
-        <div className="text-[11px] font-black uppercase tracking-[0.18em] text-theme-text-muted">平台期与闭环状态</div>
-        <h3 className="mt-2 text-lg font-black tracking-tight text-theme-text-primary">Plateau / Closure Flags</h3>
+        <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-theme-text-muted">平台期与闭环状态</div>
+        <h3 className="mt-2 text-lg font-semibold tracking-tight text-theme-text-primary">Plateau / Closure Flags</h3>
         <div className="mt-4 grid gap-3 sm:grid-cols-2">
           {viewModel.plateauFlags.map((item) => (
             <div
@@ -103,9 +103,9 @@ export const DataflowVulnObservabilitySection: React.FC<{
                 item.active ? 'border-rose-500/20 bg-rose-500/15 text-rose-400' : 'border-emerald-500/20 bg-emerald-500/15 text-emerald-400'
               }`}
             >
-              <div className="text-sm font-black">{item.label}</div>
+              <div className="text-sm font-semibold">{item.label}</div>
               <div className="mt-1 text-xs leading-5 opacity-85">{item.hint}</div>
-              <div className="mt-2 text-[11px] font-black uppercase tracking-[0.16em]">{item.active ? 'Active' : 'Inactive'}</div>
+              <div className="mt-2 text-[11px] font-semibold uppercase tracking-[0.16em]">{item.active ? 'Active' : 'Inactive'}</div>
             </div>
           ))}
         </div>
@@ -115,8 +115,8 @@ export const DataflowVulnObservabilitySection: React.FC<{
  <div className="rounded-[1.6rem] border border-rose-500/20 bg-theme-bg-app p-4">
       <div className="flex items-center justify-between gap-3">
         <div>
-          <div className="text-[11px] font-black uppercase tracking-[0.18em] text-theme-text-muted">运行时调用面</div>
-          <h3 className="mt-2 text-lg font-black tracking-tight text-theme-text-primary">Runtime Trace By Mode</h3>
+          <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-theme-text-muted">运行时调用面</div>
+          <h3 className="mt-2 text-lg font-semibold tracking-tight text-theme-text-primary">Runtime Trace By Mode</h3>
         </div>
         <span className="inline-flex rounded-full border border-theme-border bg-theme-bg-app px-3 py-1 text-[11px] font-bold text-theme-text-muted">
           calls / attempts / duration / truncation
@@ -176,8 +176,8 @@ export const DataflowVulnSignalsSection: React.FC<{
  <div className="rounded-[2rem] border border-rose-500/20 bg-theme-bg-app p-5">
       <div className="flex items-center justify-between gap-3">
         <div>
-          <div className="text-[11px] font-black uppercase tracking-[0.18em] text-theme-text-muted">热点指标</div>
-          <h2 className="mt-2 text-xl font-black tracking-tight text-theme-text-primary">数据流漏洞挖掘 Top Signals</h2>
+          <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-theme-text-muted">热点指标</div>
+          <h2 className="mt-2 text-xl font-semibold tracking-tight text-theme-text-primary">数据流漏洞挖掘 Top Signals</h2>
         </div>
         <span className="inline-flex items-center gap-2 rounded-full border border-rose-500/20 bg-rose-500/15 px-3 py-1 text-[11px] font-bold text-rose-400">
           <BarChart3 size={12} />
@@ -206,17 +206,17 @@ export const DataflowVulnSignalsSection: React.FC<{
     </div>
 
  <div className="rounded-[2rem] border border-rose-500/20 bg-theme-bg-app p-5">
-      <div className="text-[11px] font-black uppercase tracking-[0.18em] text-theme-text-muted">关键摘要</div>
-      <h2 className="mt-2 text-xl font-black tracking-tight text-theme-text-primary">运行与收敛摘要</h2>
+      <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-theme-text-muted">关键摘要</div>
+      <h2 className="mt-2 text-xl font-semibold tracking-tight text-theme-text-primary">运行与收敛摘要</h2>
       <div className="mt-4 space-y-3">
         {viewModel.insightCards.map((item) => (
           <div key={item.label} className="rounded-2xl border border-theme-border bg-theme-bg-app px-4 py-3">
             <div className="flex items-center justify-between gap-3">
               <div>
-                <div className="text-sm font-black text-theme-text-primary">{item.label}</div>
+                <div className="text-sm font-semibold text-theme-text-primary">{item.label}</div>
                 <div className="mt-1 text-xs text-theme-text-muted">{item.hint}</div>
               </div>
-              <div className={`text-right text-lg font-black ${item.tone}`}>{item.value}</div>
+              <div className={`text-right text-lg font-semibold ${item.tone}`}>{item.value}</div>
             </div>
           </div>
         ))}
@@ -225,8 +225,8 @@ export const DataflowVulnSignalsSection: React.FC<{
       <div className="mt-5 grid gap-2 sm:grid-cols-2">
         {viewModel.runtimeModes.map((item) => (
           <div key={item.mode} className="rounded-xl border border-theme-border bg-theme-bg-app px-3 py-2">
-            <div className="text-[11px] font-black uppercase tracking-[0.14em] text-theme-text-muted">{item.mode}</div>
-            <div className="mt-1 text-base font-black text-theme-text-primary">
+            <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-theme-text-muted">{item.mode}</div>
+            <div className="mt-1 text-base font-semibold text-theme-text-primary">
               {formatters.formatNumber(item.calls)} call / {formatters.formatSeconds(item.avgDurationSeconds)}
             </div>
           </div>
@@ -249,13 +249,13 @@ export const DataflowVulnAiSection: React.FC<{
 
     <section className="grid gap-4 xl:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)]">
  <div className="rounded-[2rem] border border-fuchsia-500/20 bg-theme-bg-app p-5">
-        <div className="text-[11px] font-black uppercase tracking-[0.18em] text-fuchsia-500">Cycle / Review / Runtime</div>
-        <h3 className="mt-2 text-xl font-black tracking-tight text-theme-text-primary">AI 分层摘要</h3>
+        <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-fuchsia-500">Cycle / Review / Runtime</div>
+        <h3 className="mt-2 text-xl font-semibold tracking-tight text-theme-text-primary">AI 分层摘要</h3>
         <div className="mt-4 grid gap-3 sm:grid-cols-2">
           {viewModel.phaseCards.map((item) => (
  <div key={item.label} className="rounded-2xl border border-fuchsia-500/20 bg-theme-bg-app px-4 py-3">
-              <div className="text-[11px] font-black uppercase tracking-[0.16em] text-theme-text-muted">{item.label}</div>
-              <div className={`mt-2 text-xl font-black ${item.tone}`}>{item.value}</div>
+              <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-theme-text-muted">{item.label}</div>
+              <div className={`mt-2 text-xl font-semibold ${item.tone}`}>{item.value}</div>
               <div className="mt-1 text-xs text-theme-text-muted">{item.hint}</div>
             </div>
           ))}
@@ -263,8 +263,8 @@ export const DataflowVulnAiSection: React.FC<{
       </div>
 
  <div className="rounded-[2rem] border border-fuchsia-500/20 bg-theme-bg-app p-5">
-        <div className="text-[11px] font-black uppercase tracking-[0.18em] text-theme-text-muted">Token / Cost</div>
-        <h3 className="mt-2 text-xl font-black tracking-tight text-theme-text-primary">Token 结构</h3>
+        <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-theme-text-muted">Token / Cost</div>
+        <h3 className="mt-2 text-xl font-semibold tracking-tight text-theme-text-primary">Token 结构</h3>
         <div className="mt-4 h-72">
           {viewModel.tokenChart.length ? (
             <ResponsiveContainer width="100%" height="100%">
@@ -289,8 +289,8 @@ export const DataflowVulnAiSection: React.FC<{
 
     <section className="grid gap-4 xl:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
  <div className="rounded-[2rem] border border-fuchsia-500/20 bg-theme-bg-app p-5">
-        <div className="text-[11px] font-black uppercase tracking-[0.18em] text-theme-text-muted">角色与插件</div>
-        <h3 className="mt-2 text-xl font-black tracking-tight text-theme-text-primary">Agent / Plugin 活跃度</h3>
+        <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-theme-text-muted">角色与插件</div>
+        <h3 className="mt-2 text-xl font-semibold tracking-tight text-theme-text-primary">Agent / Plugin 活跃度</h3>
         <div className="mt-4 h-72">
           {viewModel.roleChart.length ? (
             <ResponsiveContainer width="100%" height="100%">
@@ -313,13 +313,13 @@ export const DataflowVulnAiSection: React.FC<{
       </div>
 
  <div className="rounded-[2rem] border border-fuchsia-500/20 bg-theme-bg-app p-5">
-        <div className="text-[11px] font-black uppercase tracking-[0.18em] text-theme-text-muted">Plugin Review</div>
-        <h3 className="mt-2 text-xl font-black tracking-tight text-theme-text-primary">插件结果摘要</h3>
+        <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-theme-text-muted">Plugin Review</div>
+        <h3 className="mt-2 text-xl font-semibold tracking-tight text-theme-text-primary">插件结果摘要</h3>
         <div className="mt-4 grid gap-3 sm:grid-cols-2">
           {viewModel.reviewCards.map((item) => (
             <div key={item.label} className="rounded-2xl border border-theme-border bg-theme-bg-app px-4 py-3">
-              <div className="text-[11px] font-black uppercase tracking-[0.16em] text-theme-text-muted">{item.label}</div>
-              <div className={`mt-2 text-xl font-black ${item.tone}`}>{item.value}</div>
+              <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-theme-text-muted">{item.label}</div>
+              <div className={`mt-2 text-xl font-semibold ${item.tone}`}>{item.value}</div>
               <div className="mt-1 text-xs text-theme-text-muted">{item.hint}</div>
             </div>
           ))}
@@ -341,7 +341,7 @@ export const DataflowVulnSampleScopeFilter: React.FC<{
           key={item.key}
           type="button"
           onClick={() => onChange(item.key)}
-          className={`rounded-full border px-3 py-1 text-xs font-black transition ${
+          className={`rounded-full border px-3 py-1 text-xs font-medium transition ${
             active ? 'border-rose-500/20 bg-rose-500/15 text-rose-400' : 'border-theme-border bg-theme-bg-app text-theme-text-secondary hover:bg-theme-bg-app'
           }`}
         >

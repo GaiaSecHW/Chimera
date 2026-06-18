@@ -249,17 +249,17 @@ export const JobTemplatePage: React.FC<{ projectId: string, onNavigateToDetail: 
           <div className="flex gap-4">
             <button
               onClick={loadTemplates}
-              className="p-4 bg-theme-bg-app border border-theme-border text-theme-text-muted rounded-2xl hover:bg-theme-elevated transition-all active:scale-95 group"
+              className="p-4 bg-theme-bg-app border border-theme-border text-theme-text-muted rounded-lg hover:bg-theme-elevated transition-all active:scale-95 group"
             >
               <RefreshCw size={20} className={loading ? 'animate-spin' : 'group-hover:rotate-180 transition-transform duration-500'} />
             </button>
-            <div className="flex bg-theme-bg-app border border-theme-border rounded-2xl p-1">
-              <button onClick={() => setScope('project')} className={`px-6 py-2.5 rounded-xl text-xs font-black uppercase transition-all ${scope === 'project' ? 'bg-blue-600 text-white ' : 'text-theme-text-muted hover:bg-theme-elevated'}`}>当前项目</button>
-              <button onClick={() => setScope('global')} className={`px-6 py-2.5 rounded-xl text-xs font-black uppercase transition-all ${scope === 'global' ? 'bg-blue-600 text-white ' : 'text-theme-text-muted hover:bg-theme-elevated'}`}>全局库</button>
+            <div className="flex bg-theme-surface border border-theme-border rounded-xl p-1">
+              <button onClick={() => setScope('project')} className={`px-6 py-2.5 rounded-xl text-xs font-medium uppercase transition-all ${scope === 'project' ? 'bg-blue-600 text-white ' : 'text-theme-text-muted hover:bg-theme-elevated'}`}>当前项目</button>
+              <button onClick={() => setScope('global')} className={`px-6 py-2.5 rounded-xl text-xs font-medium uppercase transition-all ${scope === 'global' ? 'bg-blue-600 text-white ' : 'text-theme-text-muted hover:bg-theme-elevated'}`}>全局库</button>
             </div>
             <button
               onClick={() => setIsModalOpen(true)}
-              className="bg-theme-surface text-white px-8 py-4 rounded-2xl font-black flex items-center gap-3 hover:bg-theme-elevated transition-all active:scale-95"
+              className="bg-theme-surface text-white px-8 py-4 rounded-lg font-semibold flex items-center gap-3 hover:bg-theme-elevated transition-all active:scale-95"
             >
               <Plus size={20} /> 注册任务组件
             </button>
@@ -273,16 +273,16 @@ export const JobTemplatePage: React.FC<{ projectId: string, onNavigateToDetail: 
         <input
           type="text"
           placeholder="搜索任务模板名称或 ID..."
- className="w-full pl-16 pr-8 py-5 bg-theme-bg-app border border-theme-border rounded-[2rem] text-sm outline-none focus:ring-4 ring-blue-500/5 transition-all font-medium"
+ className="w-full pl-16 pr-8 py-5 bg-theme-bg-app border border-theme-border rounded-xl text-sm outline-none focus:ring-4 ring-blue-500/5 transition-all font-medium"
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
         />
       </div>
 
       {availableTags.length > 0 && (
- <div className="bg-theme-bg-app border border-theme-border rounded-[2rem] p-5 space-y-3">
+ <div className="bg-theme-surface border border-theme-border rounded-xl p-5 space-y-3">
           <div className="flex items-center justify-between gap-4">
-            <div className="flex items-center gap-2 text-[10px] font-black text-theme-text-muted uppercase tracking-widest">
+            <div className="flex items-center gap-2 text-[10px] font-medium text-theme-text-muted uppercase tracking-widest">
               <Hash size={12} className="text-amber-500" />
               模板标签筛选
             </div>
@@ -290,7 +290,7 @@ export const JobTemplatePage: React.FC<{ projectId: string, onNavigateToDetail: 
               <button
                 type="button"
                 onClick={() => setSelectedTagKeys([])}
-                className="text-[10px] font-black text-theme-text-muted hover:text-blue-400 uppercase tracking-widest transition-colors"
+                className="text-[10px] font-medium text-theme-text-muted hover:text-blue-400 uppercase tracking-widest transition-colors"
               >
                 清空筛选
               </button>
@@ -304,7 +304,7 @@ export const JobTemplatePage: React.FC<{ projectId: string, onNavigateToDetail: 
                   key={tag.tag_key}
                   type="button"
                   onClick={() => toggleTagFilter(tag.tag_key)}
-                  className={`px-3 py-1.5 rounded-full border text-[11px] font-black transition-all ${
+                  className={`px-3 py-1.5 rounded-full border text-[11px] font-medium transition-all ${
  selected ? 'bg-theme-surface text-white border-theme-border ' : getTagClasses(tag.color)
                   }`}
                 >
@@ -317,18 +317,18 @@ export const JobTemplatePage: React.FC<{ projectId: string, onNavigateToDetail: 
       )}
 
       {/* List Content - Card Grid */}
- <div className="bg-theme-bg-app border border-theme-border rounded-[2.5rem] overflow-hidden p-6">
+ <div className="bg-theme-surface border border-theme-border rounded-xl overflow-hidden p-6">
         {loading ? (
           <div className="py-32 text-center">
             <Loader2 className="animate-spin mx-auto text-blue-400" size={40} />
-            <p className="text-[10px] font-black text-theme-text-muted uppercase tracking-widest mt-4">同步仓库数据中...</p>
+            <p className="text-[10px] font-medium text-theme-text-muted uppercase tracking-widest mt-4">同步仓库数据中...</p>
           </div>
         ) : paginatedItems.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {paginatedItems.map(t => (
               <div
                 key={t.id}
- className="group relative bg-theme-bg-app hover:bg-theme-bg-app border-2 border-theme-border hover:border-blue-500/20 rounded-2xl p-6 transition-all cursor-pointer"
+ className="group relative bg-theme-bg-app hover:bg-theme-bg-app border-2 border-theme-border hover:border-blue-500/20 rounded-xl p-6 transition-all cursor-pointer"
                 onClick={() => onNavigateToDetail(t.id)}
               >
                 {/* Header */}
@@ -338,10 +338,10 @@ export const JobTemplatePage: React.FC<{ projectId: string, onNavigateToDetail: 
                       <Zap className="text-amber-400 group-hover:text-white transition-colors" size={22} />
                     </div>
                     <div className="min-w-0">
-                      <h4 className="text-sm font-black text-theme-text-primary tracking-tight truncate group-hover:text-blue-400 transition-colors">
+                      <h4 className="text-sm font-semibold text-theme-text-primary tracking-tight truncate group-hover:text-blue-400 transition-colors">
                         {t.name}
                       </h4>
-                      <span className="text-[10px] font-mono text-theme-text-muted font-bold truncate block max-w-[150px]">
+                      <span className="text-[10px] font-mono text-theme-text-muted font-medium truncate block max-w-[150px]">
                         {t.id.slice(0, 8)}
                       </span>
                     </div>
@@ -358,13 +358,13 @@ export const JobTemplatePage: React.FC<{ projectId: string, onNavigateToDetail: 
                     {t.tags.slice(0, 4).map((tag) => (
                       <span
                         key={tag.tag_key}
-                        className={`px-2.5 py-1 rounded-full border text-[10px] font-black ${getTagClasses(tag.color)}`}
+                        className={`px-2.5 py-1 rounded-full border text-[10px] font-medium ${getTagClasses(tag.color)}`}
                       >
                         #{tag.tag_label}
                       </span>
                     ))}
                     {t.tags.length > 4 && (
-                      <span className="px-2.5 py-1 rounded-full border border-theme-border bg-theme-elevated text-theme-text-muted text-[10px] font-black">
+                      <span className="px-2.5 py-1 rounded-full border border-theme-border bg-theme-elevated text-theme-text-muted text-[10px] font-medium">
                         +{t.tags.length - 4}
                       </span>
                     )}
@@ -373,15 +373,15 @@ export const JobTemplatePage: React.FC<{ projectId: string, onNavigateToDetail: 
 
                 {/* Containers */}
                 <div className="mb-4">
-                  <div className="text-[9px] font-black text-theme-text-muted uppercase tracking-widest mb-2">容器编排</div>
+                  <div className="text-[9px] font-medium text-theme-text-muted uppercase tracking-widest mb-2">容器编排</div>
                   <div className="flex flex-wrap gap-1.5">
                     {t.containers?.slice(0, 3).map((c, idx) => (
-                      <span key={idx} className="px-2 py-0.5 bg-blue-500/15 text-blue-400 rounded-lg border border-blue-500/20 text-[9px] font-black uppercase">
+                      <span key={idx} className="px-2 py-0.5 bg-blue-500/15 text-blue-400 rounded-lg border border-blue-500/20 text-[9px] font-medium uppercase">
                         {c.name}
                       </span>
                     ))}
                     {t.containers && t.containers.length > 3 && (
-                      <span className="px-2 py-0.5 bg-theme-elevated text-theme-text-muted rounded-lg text-[9px] font-bold">
+                      <span className="px-2 py-0.5 bg-theme-elevated text-theme-text-muted rounded-lg text-[9px] font-medium">
                         +{t.containers.length - 3}
                       </span>
                     )}
@@ -390,13 +390,13 @@ export const JobTemplatePage: React.FC<{ projectId: string, onNavigateToDetail: 
 
                 {/* Stats */}
                 <div className="flex items-center gap-4 mb-4">
-                  <div className="flex-1 bg-theme-bg-app rounded-xl p-3 border border-theme-border">
-                    <div className="text-[8px] font-black text-theme-text-faint uppercase tracking-widest mb-1">Retry</div>
-                    <div className="text-sm font-black text-theme-text-secondary">{t.backoff_limit}</div>
+                  <div className="flex-1 bg-theme-surface rounded-xl p-3 border border-theme-border">
+                    <div className="text-[8px] font-medium text-theme-text-faint uppercase tracking-widest mb-1">Retry</div>
+                    <div className="text-sm font-semibold text-theme-text-secondary">{t.backoff_limit}</div>
                   </div>
-                  <div className="flex-1 bg-theme-bg-app rounded-xl p-3 border border-theme-border">
-                    <div className="text-[8px] font-black text-theme-text-faint uppercase tracking-widest mb-1">TTL</div>
-                    <div className="text-sm font-black text-theme-text-secondary">{t.ttl_seconds_after_finished}s</div>
+                  <div className="flex-1 bg-theme-surface rounded-xl p-3 border border-theme-border">
+                    <div className="text-[8px] font-medium text-theme-text-faint uppercase tracking-widest mb-1">TTL</div>
+                    <div className="text-sm font-semibold text-theme-text-secondary">{t.ttl_seconds_after_finished}s</div>
                   </div>
                 </div>
 
@@ -410,16 +410,16 @@ export const JobTemplatePage: React.FC<{ projectId: string, onNavigateToDetail: 
                         <div className="flex-1 bg-emerald-500/15 rounded-xl p-2.5 border border-emerald-500/20">
                           <div className="flex items-center gap-1.5">
                             <FileText size={12} className="text-emerald-500" />
-                            <span className="text-[8px] font-black text-emerald-400 uppercase tracking-widest">环境依赖</span>
+                            <span className="text-[8px] font-medium text-emerald-400 uppercase tracking-widest">环境依赖</span>
                           </div>
-                          <div className="text-sm font-black text-emerald-400 mt-1">{inputEnvCount}</div>
+                          <div className="text-sm font-semibold text-emerald-400 mt-1">{inputEnvCount}</div>
                         </div>
                         <div className="flex-1 bg-violet-500/15 rounded-xl p-2.5 border border-violet-500/20">
                           <div className="flex items-center gap-1.5">
                             <HardDrive size={12} className="text-violet-500" />
-                            <span className="text-[8px] font-black text-violet-400 uppercase tracking-widest">挂载依赖</span>
+                            <span className="text-[8px] font-medium text-violet-400 uppercase tracking-widest">挂载依赖</span>
                           </div>
-                          <div className="text-sm font-black text-violet-400 mt-1">{inputMountCount}</div>
+                          <div className="text-sm font-semibold text-violet-400 mt-1">{inputMountCount}</div>
                         </div>
                       </>
                     );
@@ -457,25 +457,25 @@ export const JobTemplatePage: React.FC<{ projectId: string, onNavigateToDetail: 
             <div className="w-16 h-16 bg-theme-elevated rounded-full flex items-center justify-center mx-auto mb-4 text-theme-text-faint">
               <Zap size={32} />
             </div>
-            <p className="text-sm font-black text-theme-text-muted uppercase tracking-widest italic">暂无匹配的任务模板资产</p>
+            <p className="text-sm font-semibold text-theme-text-muted uppercase tracking-widest italic">暂无匹配的任务模板资产</p>
           </div>
         )}
 
         {/* Footer Pagination */}
         <div className="px-8 py-6 bg-slate-100/50 border-t border-theme-border flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <span className="text-[10px] font-black text-theme-text-muted uppercase tracking-widest">每页</span>
+            <span className="text-[10px] font-medium text-theme-text-muted uppercase tracking-widest">每页</span>
             <select
               value={pageSize}
               onChange={(e) => { setPageSize(Number(e.target.value)); setCurrentPage(1); }}
-              className="px-3 py-2 bg-theme-bg-app border border-theme-border rounded-xl text-sm font-bold text-theme-text-secondary outline-none focus:border-blue-500 transition-all"
+              className="px-3 py-2 bg-theme-bg-app border border-theme-border rounded-xl text-sm font-medium text-theme-text-secondary outline-none focus:border-blue-500 transition-all"
             >
               <option value={10}>10</option>
               <option value={20}>20</option>
               <option value={50}>50</option>
               <option value={100}>100</option>
             </select>
-            <span className="text-[10px] font-black text-theme-text-muted uppercase tracking-widest">
+            <span className="text-[10px] font-medium text-theme-text-muted uppercase tracking-widest">
               条 | 共 {filteredTemplates.length} 条
             </span>
           </div>
@@ -483,7 +483,7 @@ export const JobTemplatePage: React.FC<{ projectId: string, onNavigateToDetail: 
             <button
               disabled={currentPage === 1 || loading}
               onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
- className="p-2.5 bg-theme-bg-app border border-theme-border rounded-xl text-theme-text-muted hover:text-blue-400 disabled:opacity-30 transition-all"
+ className="p-2.5 bg-theme-surface border border-theme-border rounded-xl text-theme-text-muted hover:text-blue-400 disabled:opacity-30 transition-all"
             >
               <ChevronLeft size={18} />
             </button>
@@ -492,7 +492,7 @@ export const JobTemplatePage: React.FC<{ projectId: string, onNavigateToDetail: 
                 <button
                   key={i}
                   onClick={() => setCurrentPage(i + 1)}
- className={`w-9 h-9 rounded-xl text-[10px] font-black transition-all ${currentPage === i + 1 ? 'bg-blue-600 text-white ' : 'bg-theme-bg-app text-theme-text-muted hover:bg-theme-elevated border border-theme-border'}`}
+ className={`w-9 h-9 rounded-xl text-[10px] font-medium transition-all ${currentPage === i + 1 ? 'bg-blue-600 text-white ' : 'bg-theme-surface text-theme-text-muted hover:bg-theme-elevated border border-theme-border'}`}
                 >
                   {i + 1}
                 </button>
@@ -501,7 +501,7 @@ export const JobTemplatePage: React.FC<{ projectId: string, onNavigateToDetail: 
             <button
               disabled={currentPage === totalPages || loading}
               onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
- className="p-2.5 bg-theme-bg-app border border-theme-border rounded-xl text-theme-text-muted hover:text-blue-400 disabled:opacity-30 transition-all"
+ className="p-2.5 bg-theme-surface border border-theme-border rounded-xl text-theme-text-muted hover:text-blue-400 disabled:opacity-30 transition-all"
             >
               <ChevronRight size={18} />
             </button>
@@ -512,14 +512,14 @@ export const JobTemplatePage: React.FC<{ projectId: string, onNavigateToDetail: 
       {/* Registration Modal */}
       {isModalOpen && (
         <div className="fixed inset-0 z-[200] flex items-center justify-center p-6 bg-slate-900/60 backdrop-blur-md animate-in fade-in">
- <div className="bg-theme-bg-app w-full max-w-4xl rounded-[3rem] overflow-hidden animate-in zoom-in-95 flex flex-col max-h-[90vh]">
+ <div className="bg-theme-bg-app w-full max-w-4xl rounded-2xl overflow-hidden animate-in zoom-in-95 flex flex-col max-h-[90vh]">
             <div className="p-8 border-b border-slate-50 bg-slate-100/30 flex items-center justify-between shrink-0">
                <div className="flex items-center gap-4">
- <div className="w-14 h-14 bg-theme-surface text-white rounded-[1.5rem] flex items-center justify-center">
+ <div className="w-14 h-14 bg-theme-surface text-white rounded-xl flex items-center justify-center">
                    <Plus size={28} />
                  </div>
                  <div>
-                   <h3 className="text-2xl font-black text-theme-text-primary tracking-tight">注册任务组件</h3>
+                   <h3 className="text-2xl font-bold text-theme-text-primary tracking-tight">注册任务组件</h3>
                  </div>
                </div>
                <button onClick={() => setIsModalOpen(false)} className="p-4 text-theme-text-muted hover:text-theme-text-secondary transition-colors">
@@ -531,17 +531,17 @@ export const JobTemplatePage: React.FC<{ projectId: string, onNavigateToDetail: 
                {/* Basic Info */}
                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-1.5">
-                    <label className="text-[10px] font-black text-theme-text-muted uppercase tracking-widest ml-1">模板名称 *</label>
+                    <label className="text-[10px] font-medium text-theme-text-muted uppercase tracking-widest ml-1">模板名称 *</label>
                     <input
                       required placeholder="e.g. nmap-scanner"
-                      className="w-full px-4 py-3 bg-theme-bg-app rounded-xl border-none outline-none focus:ring-4 ring-blue-500/10 text-sm font-bold text-theme-text-primary transition-all"
+                      className="w-full px-4 py-3 bg-theme-bg-app rounded-xl border-none outline-none focus:ring-4 ring-blue-500/10 text-sm font-semibold text-theme-text-primary transition-all"
                       value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})}
                     />
                   </div>
                   <div className="space-y-1.5">
-                    <label className="text-[10px] font-black text-theme-text-muted uppercase tracking-widest ml-1">发布范围</label>
+                    <label className="text-[10px] font-medium text-theme-text-muted uppercase tracking-widest ml-1">发布范围</label>
                     <select
-                      className="w-full px-4 py-3 bg-theme-bg-app rounded-xl border-none outline-none focus:ring-4 ring-blue-500/10 text-sm font-bold text-theme-text-primary"
+                      className="w-full px-4 py-3 bg-theme-bg-app rounded-xl border-none outline-none focus:ring-4 ring-blue-500/10 text-sm font-semibold text-theme-text-primary"
                       value={formData.scope} onChange={e => setFormData({...formData, scope: e.target.value as any})}
                     >
                       <option value="project">仅限当前项目 (Project-only)</option>
@@ -552,42 +552,42 @@ export const JobTemplatePage: React.FC<{ projectId: string, onNavigateToDetail: 
 
                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-1.5">
-                    <label className="text-[10px] font-black text-theme-text-muted uppercase tracking-widest ml-1">重试次数 (Backoff Limit)</label>
+                    <label className="text-[10px] font-medium text-theme-text-muted uppercase tracking-widest ml-1">重试次数 (Backoff Limit)</label>
                     <input
                       type="number" min="0" max="10"
-                      className="w-full px-4 py-3 bg-theme-bg-app rounded-xl border-none outline-none focus:ring-4 ring-blue-500/10 text-sm font-bold text-theme-text-primary transition-all"
+                      className="w-full px-4 py-3 bg-theme-bg-app rounded-xl border-none outline-none focus:ring-4 ring-blue-500/10 text-sm font-semibold text-theme-text-primary transition-all"
                       value={formData.backoff_limit} onChange={e => setFormData({...formData, backoff_limit: parseInt(e.target.value)})}
                     />
                   </div>
                   <div className="space-y-1.5">
-                    <label className="text-[10px] font-black text-theme-text-muted uppercase tracking-widest ml-1">完成后保留时间 (TTL Seconds)</label>
+                    <label className="text-[10px] font-medium text-theme-text-muted uppercase tracking-widest ml-1">完成后保留时间 (TTL Seconds)</label>
                     <input
                       type="number" min="0"
-                      className="w-full px-4 py-3 bg-theme-bg-app rounded-xl border-none outline-none focus:ring-4 ring-blue-500/10 text-sm font-bold text-theme-text-primary transition-all"
+                      className="w-full px-4 py-3 bg-theme-bg-app rounded-xl border-none outline-none focus:ring-4 ring-blue-500/10 text-sm font-semibold text-theme-text-primary transition-all"
                       value={formData.ttl_seconds_after_finished} onChange={e => setFormData({...formData, ttl_seconds_after_finished: parseInt(e.target.value)})}
                     />
                   </div>
                </div>
 
                <div className="space-y-1.5">
-                  <label className="text-[10px] font-black text-theme-text-muted uppercase tracking-widest ml-1">组件描述</label>
+                  <label className="text-[10px] font-medium text-theme-text-muted uppercase tracking-widest ml-1">组件描述</label>
                   <textarea
                     placeholder="描述该任务组件的功能、输入输出要求..." rows={2}
-                    className="w-full px-4 py-3 bg-theme-bg-app rounded-xl border-none outline-none focus:ring-4 ring-blue-500/10 text-sm font-bold text-theme-text-primary transition-all resize-none"
+                    className="w-full px-4 py-3 bg-theme-bg-app rounded-xl border-none outline-none focus:ring-4 ring-blue-500/10 text-sm font-semibold text-theme-text-primary transition-all resize-none"
                     value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})}
                   />
                </div>
 
-               <div className="space-y-3 rounded-2xl border border-theme-border bg-slate-50/70 p-5">
+               <div className="space-y-3 rounded-xl border border-theme-border bg-slate-50/70 p-5">
                   <div className="flex items-center gap-2">
                     <Hash size={15} className="text-amber-500" />
-                    <label className="text-[10px] font-black text-theme-text-muted uppercase tracking-widest">模板 TAG</label>
+                    <label className="text-[10px] font-medium text-theme-text-muted uppercase tracking-widest">模板 TAG</label>
                   </div>
                   <div className="flex flex-col gap-3 md:flex-row">
                     <input
                       type="text"
                       placeholder="输入标签名后回车，例如 port-scan / weak-password"
-                      className="flex-1 px-4 py-3 bg-theme-bg-app rounded-xl border border-theme-border outline-none focus:ring-4 ring-blue-500/10 text-sm font-bold text-theme-text-primary transition-all"
+                      className="flex-1 px-4 py-3 bg-theme-bg-app rounded-xl border border-theme-border outline-none focus:ring-4 ring-blue-500/10 text-sm font-semibold text-theme-text-primary transition-all"
                       value={tagInputValue}
                       onChange={(e) => setTagInputValue(e.target.value)}
                       onKeyDown={(e) => {
@@ -600,7 +600,7 @@ export const JobTemplatePage: React.FC<{ projectId: string, onNavigateToDetail: 
                     <button
                       type="button"
                       onClick={() => addTagToForm(tagInputValue)}
-                      className="px-5 py-3 rounded-xl bg-theme-surface text-white text-xs font-black uppercase tracking-widest hover:bg-theme-elevated transition-colors"
+                      className="px-5 py-3 rounded-xl bg-theme-surface text-white text-xs font-semibold uppercase tracking-widest hover:bg-theme-elevated transition-colors"
                     >
                       添加标签
                     </button>
@@ -612,7 +612,7 @@ export const JobTemplatePage: React.FC<{ projectId: string, onNavigateToDetail: 
                           key={tag.tag_key}
                           type="button"
                           onClick={() => removeTagFromForm(tag.tag_key)}
-                          className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-[11px] font-black transition-all ${getTagClasses(tag.color)}`}
+                          className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-[11px] font-medium transition-all ${getTagClasses(tag.color)}`}
                         >
                           <span>#{tag.tag_label}</span>
                           <X size={12} />
@@ -622,7 +622,7 @@ export const JobTemplatePage: React.FC<{ projectId: string, onNavigateToDetail: 
                   )}
                   {availableTags.length > 0 && (
                     <div className="space-y-2">
-                      <div className="text-[10px] font-black text-theme-text-muted uppercase tracking-widest">快捷选择</div>
+                      <div className="text-[10px] font-medium text-theme-text-muted uppercase tracking-widest">快捷选择</div>
                       <div className="flex flex-wrap gap-2">
                         {availableTags
                           .filter((tag) => !formData.tags.some((selected) => selected.tag_key === tag.tag_key))
@@ -632,7 +632,7 @@ export const JobTemplatePage: React.FC<{ projectId: string, onNavigateToDetail: 
                               key={tag.tag_key}
                               type="button"
                               onClick={() => addTagToForm(tag.tag_label || tag.tag_key)}
-                              className={`px-3 py-1.5 rounded-full border text-[11px] font-black transition-all hover:-translate-y-0.5 ${getTagClasses(tag.color)}`}
+                              className={`px-3 py-1.5 rounded-full border text-[11px] font-medium transition-all hover:-translate-y-0.5 ${getTagClasses(tag.color)}`}
                             >
                               #{tag.tag_label}
                             </button>
@@ -645,13 +645,13 @@ export const JobTemplatePage: React.FC<{ projectId: string, onNavigateToDetail: 
                {/* Container Stack */}
                <div className="pt-4 border-t border-theme-border space-y-4">
                   <div className="flex justify-between items-center">
-                    <h4 className="text-xs font-black text-theme-text-secondary uppercase tracking-widest flex items-center gap-2">
+                    <h4 className="text-xs font-medium text-theme-text-secondary uppercase tracking-widest flex items-center gap-2">
                       <Container size={16} className="text-amber-500" /> 容器编排栈 (Container Stack)
                     </h4>
                     <button
                       type="button"
                       onClick={() => setFormData({...formData, containers: [...formData.containers, JSON.parse(JSON.stringify(defaultContainer))]})}
-                      className="text-[10px] font-black text-blue-400 hover:underline uppercase tracking-widest"
+                      className="text-[10px] font-medium text-blue-400 hover:underline uppercase tracking-widest"
                     >
                        + 添加辅助容器
                     </button>
@@ -659,13 +659,13 @@ export const JobTemplatePage: React.FC<{ projectId: string, onNavigateToDetail: 
 
                   <div className="space-y-4">
                     {formData.containers.map((container: any, idx) => (
-                      <div key={idx} className="p-4 bg-theme-bg-app rounded-2xl border border-theme-border relative group/c space-y-4">
+                      <div key={idx} className="p-4 bg-theme-surface rounded-xl border border-theme-border relative group/c space-y-4">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                           <div className="space-y-1.5">
-                            <label className="text-[9px] font-black text-theme-text-muted uppercase ml-1">容器名称</label>
+                            <label className="text-[9px] font-medium text-theme-text-muted uppercase ml-1">容器名称</label>
                             <input
                               required placeholder="e.g. main-task"
-                              className="w-full px-4 py-2 bg-theme-bg-app rounded-xl border border-theme-border outline-none text-xs font-bold"
+                              className="w-full px-4 py-2 bg-theme-bg-app rounded-xl border border-theme-border outline-none text-xs font-medium"
                               value={container.name}
                               onChange={e => {
                                 const n = [...formData.containers];
@@ -675,10 +675,10 @@ export const JobTemplatePage: React.FC<{ projectId: string, onNavigateToDetail: 
                             />
                           </div>
                           <div className="space-y-1.5">
-                            <label className="text-[9px] font-black text-theme-text-muted uppercase ml-1">镜像 (Image) *</label>
+                            <label className="text-[9px] font-medium text-theme-text-muted uppercase ml-1">镜像 (Image) *</label>
                             <input
                               required placeholder="e.g. nmap:latest"
-                              className="w-full px-4 py-2 bg-theme-bg-app rounded-xl border border-theme-border outline-none text-xs font-mono font-bold text-blue-400"
+                              className="w-full px-4 py-2 bg-theme-bg-app rounded-xl border border-theme-border outline-none text-xs font-mono font-medium text-blue-400"
                               value={container.image}
                               onChange={e => {
                                 const n = [...formData.containers];
@@ -691,7 +691,7 @@ export const JobTemplatePage: React.FC<{ projectId: string, onNavigateToDetail: 
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                           <div className="space-y-1.5">
-                            <label className="text-[9px] font-black text-theme-text-muted uppercase ml-1">启动命令 (Command)</label>
+                            <label className="text-[9px] font-medium text-theme-text-muted uppercase ml-1">启动命令 (Command)</label>
                             <input
                               placeholder="e.g. /bin/sh, -c (逗号分隔)"
                               className="w-full px-4 py-2 bg-theme-bg-app rounded-xl border border-theme-border outline-none text-xs font-mono"
@@ -704,7 +704,7 @@ export const JobTemplatePage: React.FC<{ projectId: string, onNavigateToDetail: 
                             />
                           </div>
                           <div className="space-y-1.5">
-                            <label className="text-[9px] font-black text-theme-text-muted uppercase ml-1">命令参数 (Args)</label>
+                            <label className="text-[9px] font-medium text-theme-text-muted uppercase ml-1">命令参数 (Args)</label>
                             <input
                               placeholder="e.g. -p, 80 (逗号分隔)"
                               className="w-full px-4 py-2 bg-theme-bg-app rounded-xl border border-theme-border outline-none text-xs font-mono"
@@ -720,9 +720,9 @@ export const JobTemplatePage: React.FC<{ projectId: string, onNavigateToDetail: 
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                           <div className="space-y-1.5">
-                            <label className="text-[9px] font-black text-theme-text-muted uppercase ml-1">拉取策略 (Image Pull Policy)</label>
+                            <label className="text-[9px] font-medium text-theme-text-muted uppercase ml-1">拉取策略 (Image Pull Policy)</label>
                             <select
-                              className="w-full px-4 py-2 bg-theme-bg-app rounded-xl border border-theme-border outline-none text-xs font-bold"
+                              className="w-full px-4 py-2 bg-theme-bg-app rounded-xl border border-theme-border outline-none text-xs font-medium"
                               value={container.image_pull_policy}
                               onChange={e => {
                                 const n = [...formData.containers];
@@ -747,14 +747,14 @@ export const JobTemplatePage: React.FC<{ projectId: string, onNavigateToDetail: 
                                   setFormData({...formData, containers: n});
                                 }}
                               />
-                              <span className="text-xs font-black text-theme-text-secondary uppercase">特权模式 (Privileged)</span>
+                              <span className="text-xs font-medium text-theme-text-secondary uppercase">特权模式 (Privileged)</span>
                             </label>
                           </div>
                         </div>
 
                         <div className="space-y-1.5">
                           <div className="flex justify-between items-center">
-                            <label className="text-[9px] font-black text-theme-text-muted uppercase ml-1">环境变量 (Env Vars)</label>
+                            <label className="text-[9px] font-medium text-theme-text-muted uppercase ml-1">环境变量 (Env Vars)</label>
                             <button
                               type="button"
                               onClick={() => {
@@ -762,7 +762,7 @@ export const JobTemplatePage: React.FC<{ projectId: string, onNavigateToDetail: 
                                 n[idx].env_vars.push({ name: '', value: '' });
                                 setFormData({...formData, containers: n});
                               }}
-                              className="text-[9px] font-black text-blue-400 hover:underline uppercase"
+                              className="text-[9px] font-medium text-blue-400 hover:underline uppercase"
                             >
                               + 添加变量
                             </button>
@@ -808,7 +808,7 @@ export const JobTemplatePage: React.FC<{ projectId: string, onNavigateToDetail: 
 
                         <div className="space-y-1.5">
                           <div className="flex justify-between items-center">
-                            <label className="text-[9px] font-black text-theme-text-muted uppercase ml-1">固定挂载 (Volume Mounts)</label>
+                            <label className="text-[9px] font-medium text-theme-text-muted uppercase ml-1">固定挂载 (Volume Mounts)</label>
                             <button
                               type="button"
                               onClick={() => {
@@ -816,7 +816,7 @@ export const JobTemplatePage: React.FC<{ projectId: string, onNavigateToDetail: 
                                 n[idx].volume_mounts.push({ pvc_name: '', mount_path: '', sub_path: '', read_only: false });
                                 setFormData({...formData, containers: n});
                               }}
-                              className="text-[9px] font-black text-blue-400 hover:underline uppercase"
+                              className="text-[9px] font-medium text-blue-400 hover:underline uppercase"
                             >
                               + 添加挂载
                             </button>
@@ -865,7 +865,7 @@ export const JobTemplatePage: React.FC<{ projectId: string, onNavigateToDetail: 
                                       setFormData({...formData, containers: n});
                                     }}
                                   />
-                                  <span className="text-[9px] font-bold text-theme-text-muted uppercase">RO</span>
+                                  <span className="text-[9px] font-medium text-theme-text-muted uppercase">RO</span>
                                 </label>
                                 <button
                                   type="button"
@@ -885,7 +885,7 @@ export const JobTemplatePage: React.FC<{ projectId: string, onNavigateToDetail: 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                           <div className="space-y-1.5">
                             <div className="flex justify-between items-center">
-                              <label className="text-[9px] font-black text-theme-text-muted uppercase ml-1">输入环境变量依赖 (Input Env Vars)</label>
+                              <label className="text-[9px] font-medium text-theme-text-muted uppercase ml-1">输入环境变量依赖 (Input Env Vars)</label>
                               <button
                                 type="button"
                                 onClick={() => {
@@ -893,7 +893,7 @@ export const JobTemplatePage: React.FC<{ projectId: string, onNavigateToDetail: 
                                   n[idx].input_env_vars.push({ name: '', default_value: '' });
                                   setFormData({...formData, containers: n});
                                 }}
-                                className="text-[9px] font-black text-blue-400 hover:underline uppercase"
+                                className="text-[9px] font-medium text-blue-400 hover:underline uppercase"
                               >
                                 + 添加依赖
                               </button>
@@ -938,7 +938,7 @@ export const JobTemplatePage: React.FC<{ projectId: string, onNavigateToDetail: 
                           </div>
                           <div className="space-y-1.5">
                             <div className="flex justify-between items-center">
-                              <label className="text-[9px] font-black text-theme-text-muted uppercase ml-1">输入挂载依赖 (Input Mounts)</label>
+                              <label className="text-[9px] font-medium text-theme-text-muted uppercase ml-1">输入挂载依赖 (Input Mounts)</label>
                               <button
                                 type="button"
                                 onClick={() => {
@@ -946,7 +946,7 @@ export const JobTemplatePage: React.FC<{ projectId: string, onNavigateToDetail: 
                                   n[idx].input_volume_mounts.push({ mount_path: '', read_only: true });
                                   setFormData({...formData, containers: n});
                                 }}
-                                className="text-[9px] font-black text-blue-400 hover:underline uppercase"
+                                className="text-[9px] font-medium text-blue-400 hover:underline uppercase"
                               >
                                 + 添加依赖
                               </button>
@@ -975,7 +975,7 @@ export const JobTemplatePage: React.FC<{ projectId: string, onNavigateToDetail: 
                                         setFormData({...formData, containers: n});
                                       }}
                                     />
-                                    <span className="text-[9px] font-bold text-theme-text-muted uppercase">RO</span>
+                                    <span className="text-[9px] font-medium text-theme-text-muted uppercase">RO</span>
                                   </label>
                                   <button
                                     type="button"
@@ -995,7 +995,7 @@ export const JobTemplatePage: React.FC<{ projectId: string, onNavigateToDetail: 
                         </div>
 
                         <div className="space-y-1.5">
-                          <label className="text-[9px] font-black text-theme-text-muted uppercase ml-1">资源限制 (Resources)</label>
+                          <label className="text-[9px] font-medium text-theme-text-muted uppercase ml-1">资源限制 (Resources)</label>
                           <div className="grid grid-cols-2 lg:grid-cols-4 gap-2">
                             <input
                               placeholder="Req CPU (100m)"
@@ -1041,11 +1041,11 @@ export const JobTemplatePage: React.FC<{ projectId: string, onNavigateToDetail: 
                         </div>
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
-                          <div className="space-y-2 p-3 bg-theme-bg-app rounded-2xl border border-theme-border">
-                            <label className="text-[9px] font-black text-theme-text-muted uppercase ml-1">存活探针 (Liveness Probe)</label>
+                          <div className="space-y-2 p-3 bg-theme-surface rounded-xl border border-theme-border">
+                            <label className="text-[9px] font-medium text-theme-text-muted uppercase ml-1">存活探针 (Liveness Probe)</label>
                             <div className="grid grid-cols-3 gap-2">
                               <select
-                                className="px-3 py-1.5 bg-theme-bg-app rounded-lg outline-none text-[10px] font-bold"
+                                className="px-3 py-1.5 bg-theme-bg-app rounded-lg outline-none text-[10px] font-medium"
                                 value={container.liveness_probe.type}
                                 onChange={e => {
                                   const n = [...formData.containers];
@@ -1097,7 +1097,7 @@ export const JobTemplatePage: React.FC<{ projectId: string, onNavigateToDetail: 
                             </div>
                             <div className="grid grid-cols-2 lg:grid-cols-5 gap-2 mt-2">
                                <div className="flex items-center justify-between px-2 py-1 bg-theme-bg-app rounded-lg">
-                                 <span className="text-[8px] font-black text-theme-text-muted uppercase">Delay</span>
+                                 <span className="text-[8px] font-medium text-theme-text-muted uppercase">Delay</span>
                                  <input
                                    type="number" className="w-8 bg-transparent text-right outline-none text-[10px] font-mono"
                                    value={container.liveness_probe.initial_delay_seconds}
@@ -1109,7 +1109,7 @@ export const JobTemplatePage: React.FC<{ projectId: string, onNavigateToDetail: 
                                  />
                                </div>
                                <div className="flex items-center justify-between px-2 py-1 bg-theme-bg-app rounded-lg">
-                                 <span className="text-[8px] font-black text-theme-text-muted uppercase">Period</span>
+                                 <span className="text-[8px] font-medium text-theme-text-muted uppercase">Period</span>
                                  <input
                                    type="number" className="w-8 bg-transparent text-right outline-none text-[10px] font-mono"
                                    value={container.liveness_probe.period_seconds}
@@ -1121,7 +1121,7 @@ export const JobTemplatePage: React.FC<{ projectId: string, onNavigateToDetail: 
                                  />
                                </div>
                                <div className="flex items-center justify-between px-2 py-1 bg-theme-bg-app rounded-lg">
-                                 <span className="text-[8px] font-black text-theme-text-muted uppercase">Timeout</span>
+                                 <span className="text-[8px] font-medium text-theme-text-muted uppercase">Timeout</span>
                                  <input
                                    type="number" className="w-8 bg-transparent text-right outline-none text-[10px] font-mono"
                                    value={container.liveness_probe.timeout_seconds}
@@ -1133,7 +1133,7 @@ export const JobTemplatePage: React.FC<{ projectId: string, onNavigateToDetail: 
                                  />
                                </div>
                                <div className="flex items-center justify-between px-2 py-1 bg-theme-bg-app rounded-lg">
-                                 <span className="text-[8px] font-black text-theme-text-muted uppercase">Fail</span>
+                                 <span className="text-[8px] font-medium text-theme-text-muted uppercase">Fail</span>
                                  <input
                                    type="number" className="w-8 bg-transparent text-right outline-none text-[10px] font-mono"
                                    value={container.liveness_probe.failure_threshold}
@@ -1145,7 +1145,7 @@ export const JobTemplatePage: React.FC<{ projectId: string, onNavigateToDetail: 
                                  />
                                </div>
                                <div className="flex items-center justify-between px-2 py-1 bg-theme-bg-app rounded-lg">
-                                 <span className="text-[8px] font-black text-theme-text-muted uppercase">Succ</span>
+                                 <span className="text-[8px] font-medium text-theme-text-muted uppercase">Succ</span>
                                  <input
                                    type="number" className="w-8 bg-transparent text-right outline-none text-[10px] font-mono"
                                    value={container.liveness_probe.success_threshold}
@@ -1159,11 +1159,11 @@ export const JobTemplatePage: React.FC<{ projectId: string, onNavigateToDetail: 
                             </div>
                           </div>
 
-                          <div className="space-y-2 p-3 bg-theme-bg-app rounded-2xl border border-theme-border">
-                            <label className="text-[9px] font-black text-theme-text-muted uppercase ml-1">就绪探针 (Readiness Probe)</label>
+                          <div className="space-y-2 p-3 bg-theme-surface rounded-xl border border-theme-border">
+                            <label className="text-[9px] font-medium text-theme-text-muted uppercase ml-1">就绪探针 (Readiness Probe)</label>
                             <div className="grid grid-cols-3 gap-2">
                               <select
-                                className="px-3 py-1.5 bg-theme-bg-app rounded-lg outline-none text-[10px] font-bold"
+                                className="px-3 py-1.5 bg-theme-bg-app rounded-lg outline-none text-[10px] font-medium"
                                 value={container.readiness_probe.type}
                                 onChange={e => {
                                   const n = [...formData.containers];
@@ -1215,7 +1215,7 @@ export const JobTemplatePage: React.FC<{ projectId: string, onNavigateToDetail: 
                             </div>
                             <div className="grid grid-cols-2 lg:grid-cols-5 gap-2 mt-2">
                                <div className="flex items-center justify-between px-2 py-1 bg-theme-bg-app rounded-lg">
-                                 <span className="text-[8px] font-black text-theme-text-muted uppercase">Delay</span>
+                                 <span className="text-[8px] font-medium text-theme-text-muted uppercase">Delay</span>
                                  <input
                                    type="number" className="w-8 bg-transparent text-right outline-none text-[10px] font-mono"
                                    value={container.readiness_probe.initial_delay_seconds}
@@ -1227,7 +1227,7 @@ export const JobTemplatePage: React.FC<{ projectId: string, onNavigateToDetail: 
                                  />
                                </div>
                                <div className="flex items-center justify-between px-2 py-1 bg-theme-bg-app rounded-lg">
-                                 <span className="text-[8px] font-black text-theme-text-muted uppercase">Period</span>
+                                 <span className="text-[8px] font-medium text-theme-text-muted uppercase">Period</span>
                                  <input
                                    type="number" className="w-8 bg-transparent text-right outline-none text-[10px] font-mono"
                                    value={container.readiness_probe.period_seconds}
@@ -1239,7 +1239,7 @@ export const JobTemplatePage: React.FC<{ projectId: string, onNavigateToDetail: 
                                  />
                                </div>
                                <div className="flex items-center justify-between px-2 py-1 bg-theme-bg-app rounded-lg">
-                                 <span className="text-[8px] font-black text-theme-text-muted uppercase">Timeout</span>
+                                 <span className="text-[8px] font-medium text-theme-text-muted uppercase">Timeout</span>
                                  <input
                                    type="number" className="w-8 bg-transparent text-right outline-none text-[10px] font-mono"
                                    value={container.readiness_probe.timeout_seconds}
@@ -1251,7 +1251,7 @@ export const JobTemplatePage: React.FC<{ projectId: string, onNavigateToDetail: 
                                  />
                                </div>
                                <div className="flex items-center justify-between px-2 py-1 bg-theme-bg-app rounded-lg">
-                                 <span className="text-[8px] font-black text-theme-text-muted uppercase">Fail</span>
+                                 <span className="text-[8px] font-medium text-theme-text-muted uppercase">Fail</span>
                                  <input
                                    type="number" className="w-8 bg-transparent text-right outline-none text-[10px] font-mono"
                                    value={container.readiness_probe.failure_threshold}
@@ -1263,7 +1263,7 @@ export const JobTemplatePage: React.FC<{ projectId: string, onNavigateToDetail: 
                                  />
                                </div>
                                <div className="flex items-center justify-between px-2 py-1 bg-theme-bg-app rounded-lg">
-                                 <span className="text-[8px] font-black text-theme-text-muted uppercase">Succ</span>
+                                 <span className="text-[8px] font-medium text-theme-text-muted uppercase">Succ</span>
                                  <input
                                    type="number" className="w-8 bg-transparent text-right outline-none text-[10px] font-mono"
                                    value={container.readiness_probe.success_threshold}
@@ -1295,13 +1295,13 @@ export const JobTemplatePage: React.FC<{ projectId: string, onNavigateToDetail: 
             <div className="p-8 border-t border-slate-50 bg-slate-100/50 flex gap-4 shrink-0">
                <button
                  type="button" onClick={() => setIsModalOpen(false)} disabled={isSubmitting}
-                 className="flex-1 py-3 bg-theme-bg-app border border-theme-border text-theme-text-secondary rounded-xl font-black hover:bg-theme-elevated transition-all"
+                 className="flex-1 py-3 bg-theme-surface border border-theme-border text-theme-text-secondary rounded-xl font-semibold hover:bg-theme-elevated transition-all"
                >
                  取消
                </button>
                <button
                  onClick={handleCreate} disabled={isSubmitting}
- className="flex-1 py-3 bg-theme-surface text-white rounded-xl font-black hover:bg-theme-elevated transition-all flex items-center justify-center gap-3 disabled:opacity-50"
+ className="flex-1 py-3 bg-theme-surface text-white rounded-xl font-semibold hover:bg-theme-elevated transition-all flex items-center justify-center gap-3 disabled:opacity-50"
                >
                   {isSubmitting ? <Loader2 className="animate-spin" size={20} /> : <Zap size={20} className="text-amber-400" />}
                   确认注册任务组件
@@ -1313,12 +1313,12 @@ export const JobTemplatePage: React.FC<{ projectId: string, onNavigateToDetail: 
       {/* Delete Confirmation Modal */}
       {isDeleteModalOpen && (
         <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
- <div className="bg-theme-bg-app rounded-[2rem] w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200">
+ <div className="bg-theme-bg-app rounded-2xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200">
             <div className="p-8 text-center">
-              <div className="w-20 h-20 bg-red-500/15 text-red-500 rounded-[2rem] flex items-center justify-center mx-auto mb-6">
+              <div className="w-20 h-20 bg-red-500/15 text-red-500 rounded-lg flex items-center justify-center mx-auto mb-6">
                 <Trash2 size={40} />
               </div>
-              <h3 className="text-2xl font-black text-theme-text-primary">确认删除？</h3>
+              <h3 className="text-2xl font-bold text-theme-text-primary">确认删除？</h3>
               <p className="text-theme-text-muted mt-4 font-medium">
                 您确定要删除这个任务模板吗？此操作无法撤销。
               </p>
@@ -1329,13 +1329,13 @@ export const JobTemplatePage: React.FC<{ projectId: string, onNavigateToDetail: 
                   setIsDeleteModalOpen(false);
                   setDeletingId(null);
                 }}
-                className="flex-1 py-4 bg-theme-bg-app border border-theme-border text-theme-text-secondary rounded-2xl font-bold hover:bg-theme-elevated transition-all"
+                className="flex-1 py-4 bg-theme-surface border border-theme-border text-theme-text-secondary rounded-xl font-medium hover:bg-theme-elevated transition-all"
               >
                 取消
               </button>
               <button
                 onClick={confirmDelete}
- className="flex-1 py-4 bg-red-500 text-white rounded-2xl font-bold hover:bg-red-600 transition-all shadow-red-500/20"
+ className="flex-1 py-4 bg-red-500 text-white rounded-lg font-medium hover:bg-red-600 transition-all shadow-red-500/20"
               >
                 确认删除
               </button>

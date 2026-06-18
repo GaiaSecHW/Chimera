@@ -169,13 +169,13 @@ export const AiGatewayDashboardPage: React.FC<AiGatewayDashboardPageProps> = ({ 
       </div>
 
       <div className="grid gap-6 xl:grid-cols-3">
-        <section className="rounded-[2rem] border border-theme-border bg-theme-bg-app p-6">
+        <section className="rounded-xl border border-theme-border bg-theme-surface p-6">
           <div className="flex items-start justify-between gap-4">
             <div>
-              <div className="text-[11px] font-black uppercase tracking-[0.2em] text-theme-text-muted">{rangeLabel}统计</div>
-              <h2 className="mt-2 text-xl font-black text-theme-text-primary">活跃任务</h2>
+              <div className="text-[11px] font-semibold uppercase tracking-[0.2em] text-theme-text-muted">{rangeLabel}统计</div>
+              <h2 className="mt-2 text-xl font-semibold text-theme-text-primary">活跃任务</h2>
             </div>
-            <button onClick={() => onNavigate('aigw-keys')} className="inline-flex items-center gap-2 rounded-2xl bg-theme-elevated px-4 py-2.5 text-sm font-bold text-theme-text-secondary hover:bg-theme-elevated">
+            <button onClick={() => onNavigate('aigw-keys')} className="inline-flex items-center gap-2 rounded-lg bg-theme-elevated px-4 py-2.5 text-sm font-bold text-theme-text-secondary hover:bg-theme-elevated">
               <KeyRound className="h-4 w-4" />
               密钥管理
             </button>
@@ -195,7 +195,7 @@ export const AiGatewayDashboardPage: React.FC<AiGatewayDashboardPageProps> = ({ 
                     <td className="px-3 py-3">
                       <div className="truncate font-bold text-theme-text-primary">{item.task_key_name || item.task_key_prefix}</div>
                     </td>
-                    <td className="px-3 py-3 text-right font-black text-theme-text-primary">{compactNumber(item.total_tokens || 0)}</td>
+                    <td className="px-3 py-3 text-right font-bold text-theme-text-primary">{compactNumber(item.total_tokens || 0)}</td>
                     <td className="px-3 py-3 text-right text-theme-text-secondary">{item.request_count || 0}</td>
                   </tr>
                 ))}
@@ -209,13 +209,13 @@ export const AiGatewayDashboardPage: React.FC<AiGatewayDashboardPageProps> = ({ 
           </div>
         </section>
 
-        <section className="rounded-[2rem] border border-theme-border bg-theme-bg-app p-6">
+        <section className="rounded-xl border border-theme-border bg-theme-surface p-6">
           <div className="flex items-start justify-between gap-4">
             <div>
-              <div className="text-[11px] font-black uppercase tracking-[0.2em] text-theme-text-muted">模型视图</div>
-              <h2 className="mt-2 text-xl font-black text-theme-text-primary">活跃模型</h2>
+              <div className="text-[11px] font-semibold uppercase tracking-[0.2em] text-theme-text-muted">模型视图</div>
+              <h2 className="mt-2 text-xl font-semibold text-theme-text-primary">活跃模型</h2>
             </div>
-            <button onClick={() => onNavigate('aigw-config')} className="inline-flex items-center gap-2 rounded-2xl bg-theme-elevated px-4 py-2.5 text-sm font-bold text-theme-text-secondary hover:bg-theme-elevated">
+            <button onClick={() => onNavigate('aigw-config')} className="inline-flex items-center gap-2 rounded-lg bg-theme-elevated px-4 py-2.5 text-sm font-bold text-theme-text-secondary hover:bg-theme-elevated">
               <Settings className="h-4 w-4" />
               网关配置
             </button>
@@ -236,7 +236,7 @@ export const AiGatewayDashboardPage: React.FC<AiGatewayDashboardPageProps> = ({ 
                     <td className="px-3 py-3">
                       <div className="truncate font-bold text-theme-text-primary">{item.display_name || item.backend_model_name || item.model_name}</div>
                     </td>
-                    <td className="px-3 py-3 text-right font-black text-theme-text-primary">{numberText(item.active_requests || 0)}</td>
+                    <td className="px-3 py-3 text-right font-bold text-theme-text-primary">{numberText(item.active_requests || 0)}</td>
                     <td className="px-3 py-3 text-right text-theme-text-secondary">{numberText(item.waiting_requests || 0)}</td>
                     <td className="px-3 py-3 text-right text-theme-text-secondary">{formatPercent(Number(item.success_rate || 0))}</td>
                   </tr>
@@ -251,13 +251,13 @@ export const AiGatewayDashboardPage: React.FC<AiGatewayDashboardPageProps> = ({ 
           </div>
         </section>
 
-        <section className="rounded-[2rem] border border-theme-border bg-theme-bg-app p-6">
+        <section className="rounded-xl border border-theme-border bg-theme-surface p-6">
           <div className="flex items-start justify-between gap-4">
             <div>
-              <div className="text-[11px] font-black uppercase tracking-[0.2em] text-theme-text-muted">近期请求</div>
-              <h2 className="mt-2 text-xl font-black text-theme-text-primary">网关调用日志</h2>
+              <div className="text-[11px] font-semibold uppercase tracking-[0.2em] text-theme-text-muted">近期请求</div>
+              <h2 className="mt-2 text-xl font-semibold text-theme-text-primary">网关调用日志</h2>
             </div>
-            <button onClick={() => onNavigate('aigw-logs')} className="inline-flex items-center gap-2 rounded-2xl bg-theme-elevated px-4 py-2.5 text-sm font-bold text-theme-text-secondary hover:bg-theme-elevated">
+            <button onClick={() => onNavigate('aigw-logs')} className="inline-flex items-center gap-2 rounded-lg bg-theme-elevated px-4 py-2.5 text-sm font-bold text-theme-text-secondary hover:bg-theme-elevated">
               <FileText className="h-4 w-4" />
               全部日志
             </button>
@@ -296,6 +296,7 @@ export const AiGatewayDashboardPage: React.FC<AiGatewayDashboardPageProps> = ({ 
           </div>
           <div className="mt-4 text-xs font-bold text-theme-text-muted">共 {numberText(logsTotal)} 条日志，当前预览 {logs.length} 条，错误预览 {errorLogs} 条。</div>
         </section>
+
       </div>
     </div>
   );

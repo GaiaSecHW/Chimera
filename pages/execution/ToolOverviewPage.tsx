@@ -19,6 +19,7 @@ import JSZip from 'jszip';
 import { getAuthHeaders, getHeaders, handleResponse } from '../../clients/base';
 import { agentManageApiPath } from '../../clients/agentManage';
 import { PageHeader } from '../../design-system';
+import { useUiFeedback } from '../../components/UiFeedback';
 import { aigwApi } from '../../clients/aigw';
 import type { AiGatewayModelAlias, UserInfo, ViewType } from '../../types/types';
 
@@ -610,6 +611,7 @@ export const ToolOverviewPage: React.FC<ToolOverviewPageProps> = ({ projectId, u
   const [pipelineApp, setPipelineApp] = useState<AgentApp | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const effectiveUser = useMemo(() => user || getLocalUserInfo(), [user]);
+  const { confirm, feedbackNodes } = useUiFeedback();
 
   const selectedApp = useMemo(
     () => apps.find((item) => item.id === selectedAppId) || null,
@@ -683,7 +685,8 @@ export const ToolOverviewPage: React.FC<ToolOverviewPageProps> = ({ projectId, u
   };
 
   const handleSync = async () => {
-    if (!window.confirm('确定要从 Gitea 同步所有 AgentHarness 仓库吗？')) return;
+    const ok = await confirm({ message: '确定要从 Gitea 同步所有 AgentHarness 仓库吗？', danger: true });
+    if (!ok) return;
     setSyncing(true);
     setMessage(null);
     try {
@@ -732,7 +735,8 @@ export const ToolOverviewPage: React.FC<ToolOverviewPageProps> = ({ projectId, u
   };
 
   const handleDelete = async (app: AgentApp) => {
-    if (!window.confirm(`确定要删除 Agent"${app.name}" 吗？此操作不可恢复。`)) return;
+    const ok = await confirm({ message: `确定要删除 Agent"${app.name}" 吗？此操作不可恢复。`, danger: true });
+    if (!ok) return;
     setDeletingId(app.id);
     setMessage(null);
     try {
@@ -770,6 +774,7 @@ export const ToolOverviewPage: React.FC<ToolOverviewPageProps> = ({ projectId, u
 
   return (
     <div style={{ padding: '32px 32px 40px' }}>
+      {feedbackNodes}
       <PageHeader title="工具总览" description="统一管理 Agent 市场、AgentHarness 仓库、运行指标和平台内置扫描工具入口。页面参考 Agent 市场能力，并适配当前 Chimera 浅色卡片风格。" />
 
       <div style={{ display: 'grid', gap: '12px', gridTemplateColumns: 'repeat(3, 1fr)' }}>
@@ -788,17 +793,17 @@ export const ToolOverviewPage: React.FC<ToolOverviewPageProps> = ({ projectId, u
           <div>
           </div>
           <div className="flex flex-wrap gap-3">
-            <button type="button" onClick={() => void handleRefresh()} disabled={refreshing} className="inline-flex items-center gap-2 rounded-2xl border border-theme-border bg-theme-bg-app px-4 py-3 text-sm font-black text-theme-text-secondary transition hover:bg-theme-elevated disabled:opacity-60">
+            <button type="button" onClick={() => void handleRefresh()} disabled={refreshing} className="inline-flex items-center gap-2 rounded-2xl border border-theme-border bg-theme-surface px-4 py-3 text-sm font-medium text-theme-text-secondary transition hover:bg-theme-elevated disabled:opacity-60">
               <RefreshCw size={16} className={refreshing ? 'animate-spin' : ''} />
               刷新
             </button>
             {isAdmin ? (
-              <button type="button" onClick={() => void handleSync()} disabled={syncing} className="inline-flex items-center gap-2 rounded-2xl border border-teal-500/20 bg-teal-500/15 px-4 py-3 text-sm font-black text-teal-400 transition hover:bg-teal-500/15 disabled:opacity-60">
+              <button type="button" onClick={() => void handleSync()} disabled={syncing} className="inline-flex items-center gap-2 rounded-2xl border border-teal-500/20 bg-teal-500/15 px-4 py-3 text-sm font-medium text-teal-400 transition hover:bg-teal-500/15 disabled:opacity-60">
                 {syncing ? <RefreshCw size={16} className="animate-spin" /> : <RefreshCw size={16} />}
                 同步仓库
               </button>
             ) : null}
-            <button type="button" onClick={() => setCreateOpen(true)} className="inline-flex items-center gap-2 rounded-2xl bg-theme-surface px-4 py-3 text-sm font-black text-white transition hover:bg-theme-elevated">
+            <button type="button" onClick={() => setCreateOpen(true)} className="inline-flex items-center gap-2 rounded-2xl bg-theme-surface px-4 py-3 text-sm font-medium text-white transition hover:bg-theme-elevated">
               <Plus size={16} />
               创建新工具
             </button>
@@ -806,26 +811,26 @@ export const ToolOverviewPage: React.FC<ToolOverviewPageProps> = ({ projectId, u
         </div>
 
         {loading ? (
-          <div className="mt-6 flex items-center justify-center rounded-2xl border border-theme-border bg-theme-bg-app px-4 py-12 text-sm font-semibold text-theme-text-muted" aria-busy="true">
+          <div className="mt-6 flex items-center justify-center rounded-2xl border border-theme-border bg-theme-surface px-4 py-12 text-sm font-semibold text-theme-text-muted" aria-busy="true">
             <Loader2 size={18} className="mr-2 animate-spin" />
             正在加载 Agent 列表
           </div>
         ) : apps.length === 0 ? (
-          <div className="mt-6 rounded-2xl border border-dashed border-theme-border bg-theme-bg-app px-6 py-10 text-center">
+          <div className="mt-6 rounded-2xl border border-dashed border-theme-border bg-theme-surface px-6 py-10 text-center">
             <Box className="mx-auto text-theme-text-muted" size={34} />
-            <h3 className="mt-3 text-base font-black text-theme-text-primary">暂无 Agent</h3>
+            <h3 className="mt-3 text-base font-semibold text-theme-text-primary">暂无 Agent</h3>
             <p className="mt-2 text-sm text-theme-text-muted">点击右上角创建新工具，或检查后端 Agent 管理服务是否已接入。</p>
           </div>
         ) : (
           <div className="mt-6 grid grid-cols-1 gap-4 xl:grid-cols-2 2xl:grid-cols-3">
             {apps.map((app) => (
- <article key={app.id} className="group flex flex-col overflow-hidden rounded-[1.5rem] border border-theme-border bg-theme-bg-app transition hover:-translate-y-0.5 hover:border-cyan-500/20 hover:">
+ <article key={app.id} className="group flex flex-col overflow-hidden rounded-xl border border-theme-border bg-theme-surface transition hover:-translate-y-0.5 hover:border-cyan-500/20 hover:">
                 <div className="flex items-start gap-3 p-5 pb-4">
  <div className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br ${engineTone(app.engine)} text-white`}><Bot size={19} /></div>
                   <button type="button" onClick={() => setSelectedAppId(app.id)} className="min-w-0 flex-1 text-left">
-                    <h3 className="truncate text-lg font-black text-theme-text-primary">{app.name}</h3>
+                    <h3 className="truncate text-lg font-semibold text-theme-text-primary">{app.name}</h3>
                     <div className="mt-1 flex flex-wrap items-center gap-2">
-                      <span className="rounded-full border border-theme-border bg-theme-bg-app px-2.5 py-1 text-[11px] font-black text-theme-text-secondary">{engineLabel(app.engine)}</span>
+                      <span className="rounded-full border border-theme-border bg-theme-bg-app px-2.5 py-1 text-[11px] font-medium text-theme-text-secondary">{engineLabel(app.engine)}</span>
                       <span className="inline-flex items-center gap-1 rounded-full border border-theme-border bg-theme-bg-app px-2.5 py-1 text-[11px] font-bold text-theme-text-muted">{app.isPublic ? <Globe size={11} className="text-emerald-400" /> : <Lock size={11} />}{app.isPublic ? '公开' :`私有 · ${effectiveUser?.department_name ||`部门${app.departmentId ?? ''}`}`}</span>
                     </div>
                   </button>
@@ -839,9 +844,9 @@ export const ToolOverviewPage: React.FC<ToolOverviewPageProps> = ({ projectId, u
                 <div className="mx-5 border-t border-theme-border" />
                 <div className="grid grid-cols-3 gap-2 p-5 py-4">
                   {visibleMetrics(app).map(({ icon, value, label, color }) => (
-                    <div key={label} className="flex flex-col items-center rounded-2xl bg-theme-bg-app px-2 py-3 text-center">
+                    <div key={label} className="flex flex-col items-center rounded-2xl bg-theme-surface px-2 py-3 text-center">
                       <span className={color}>{icon}</span>
-                      <span className="mt-1 text-sm font-black leading-tight text-theme-text-primary">{value}</span>
+                      <span className="mt-1 text-sm font-semibold leading-tight text-theme-text-primary">{value}</span>
                       <span className="mt-0.5 text-[10px] font-bold text-theme-text-muted">{label}</span>
                     </div>
                   ))}
@@ -862,12 +867,12 @@ export const ToolOverviewPage: React.FC<ToolOverviewPageProps> = ({ projectId, u
 
       {pipelineApp ? (
         <div className="fixed inset-0 z-[260] bg-slate-950/55 p-4 backdrop-blur-sm md:p-8" onClick={() => setPipelineApp(null)}>
- <div className="mx-auto w-full max-w-2xl rounded-[2rem] border border-theme-border bg-theme-bg-app p-6" onClick={(event) => event.stopPropagation()}>
+ <div className="mx-auto w-full max-w-2xl rounded-xl border border-theme-border bg-theme-surface p-6" onClick={(event) => event.stopPropagation()}>
             <div className="flex items-start justify-between gap-4">
-              <div><h2 className="text-2xl font-black text-theme-text-primary">流程预览</h2></div>
-              <button type="button" onClick={() => setPipelineApp(null)} className="rounded-2xl border border-theme-border bg-theme-bg-app p-3 text-theme-text-muted transition hover:text-theme-text-primary" aria-label="关闭流程预览"><X size={20} /></button>
+              <div><h2 className="text-2xl font-bold text-theme-text-primary">流程预览</h2></div>
+              <button type="button" onClick={() => setPipelineApp(null)} className="rounded-2xl border border-theme-border bg-theme-surface p-3 text-theme-text-muted transition hover:text-theme-text-primary" aria-label="关闭流程预览"><X size={20} /></button>
             </div>
-            <div className="mt-6 rounded-2xl border border-theme-border bg-theme-bg-app p-5 text-sm leading-7 text-theme-text-secondary">{pipelineApp.name} 的 AgentFlow 流程入口已保留；当前 Chimera 未包含 SecHPS 的 PipelineViewModal 组件，因此这里展示轻量占位，避免引入额外跨系统依赖。</div>
+            <div className="mt-6 rounded-2xl border border-theme-border bg-theme-surface p-5 text-sm leading-7 text-theme-text-secondary">{pipelineApp.name} 的 AgentFlow 流程入口已保留；当前 Chimera 未包含 SecHPS 的 PipelineViewModal 组件，因此这里展示轻量占位，避免引入额外跨系统依赖。</div>
           </div>
         </div>
       ) : null}

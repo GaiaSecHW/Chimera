@@ -503,13 +503,13 @@ function EventDetailBlock({ detail }: { detail: Record<string, any> | null }) {
   if (rows.length === 0) return null;
   return (
     <div className="mt-3 rounded-2xl border border-theme-border bg-slate-50/80 px-3 py-3">
-      <div className="mb-2 flex items-center gap-2 text-[11px] font-black uppercase tracking-[0.16em] text-theme-text-muted">
+      <div className="mb-2 flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-theme-text-muted">
         <Info size={12} />
         事件细节
       </div>
       <div className="grid gap-2 md:grid-cols-2">
         {rows.slice(0, 8).map((row) => (
- <div key={row.key} className="min-w-0 rounded-xl border border-theme-border bg-theme-bg-app px-3 py-2 text-xs">
+ <div key={row.key} className="min-w-0 rounded-xl border border-theme-border bg-theme-surface px-3 py-2 text-xs">
             <div className="font-bold text-theme-text-muted">{row.label}</div>
             <div className="mt-1 break-all font-mono text-theme-text-secondary">{row.value}</div>
           </div>
@@ -519,7 +519,7 @@ function EventDetailBlock({ detail }: { detail: Record<string, any> | null }) {
         <summary className="cursor-pointer text-xs font-bold text-theme-text-muted hover:text-theme-text-primary">
           查看原始 JSON
         </summary>
-        <pre className="mt-2 max-h-48 overflow-auto rounded-xl border border-theme-border bg-theme-bg-app px-3 py-3 text-xs leading-6 text-theme-text-secondary">
+        <pre className="mt-2 max-h-48 overflow-auto rounded-xl border border-theme-border bg-theme-surface px-3 py-3 text-xs leading-6 text-theme-text-secondary">
           {JSON.stringify(detail, null, 2)}
         </pre>
       </details>
@@ -599,9 +599,9 @@ function TaskStatusBadge({ status }: { status: string }) {
 
 function RoundDetailMetricCard({ label, value, hint }: { label: string; value: string; hint?: string | null }) {
   return (
-    <div className="rounded-2xl border border-theme-border bg-theme-bg-app px-4 py-3">
-      <div className="text-[11px] font-black uppercase tracking-[0.16em] text-theme-text-muted">{label}</div>
-      <div className="mt-2 text-xl font-black text-theme-text-primary">{value}</div>
+    <div className="rounded-2xl border border-theme-border bg-theme-surface px-4 py-3">
+      <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-theme-text-muted">{label}</div>
+      <div className="mt-2 text-xl font-semibold text-theme-text-primary">{value}</div>
       {hint ? <div className="mt-1 text-xs text-theme-text-muted">{hint}</div> : null}
     </div>
   );
@@ -609,8 +609,8 @@ function RoundDetailMetricCard({ label, value, hint }: { label: string; value: s
 
 function RoundDetailField({ label, value, mono = false }: { label: string; value: React.ReactNode; mono?: boolean }) {
   return (
-    <div className="rounded-xl border border-theme-border bg-theme-bg-app px-3 py-3">
-      <div className="text-[11px] font-black uppercase tracking-[0.12em] text-theme-text-muted">{label}</div>
+    <div className="rounded-xl border border-theme-border bg-theme-surface px-3 py-3">
+      <div className="text-[11px] font-semibold uppercase tracking-[0.12em] text-theme-text-muted">{label}</div>
       <div className={`mt-1 text-sm text-theme-text-secondary ${mono ? 'break-all font-mono text-[12px]' : ''}`}>{value}</div>
     </div>
   );
@@ -661,9 +661,9 @@ function RoundAgentCard({
       )
     : (agent.status || '-');
   return (
- <section className="rounded-2xl border border-theme-border bg-theme-bg-app p-4">
+ <section className="rounded-2xl border border-theme-border bg-theme-surface p-4">
       <div className="flex items-center justify-between gap-3">
-        <div className="text-sm font-black text-theme-text-primary">{title}</div>
+        <div className="text-sm font-semibold text-theme-text-primary">{title}</div>
         <span className={`rounded-full border px-2 py-0.5 text-[11px] font-bold ${kind === 'reviewer' ? (round.reviewer.passed ? 'border-emerald-500/20 bg-emerald-500/15 text-emerald-400' : 'border-amber-500/20 bg-amber-500/15 text-amber-400') : 'border-theme-border bg-theme-bg-app text-theme-text-secondary'}`}>
           {statusNode}
         </span>
@@ -674,8 +674,8 @@ function RoundAgentCard({
         <RoundDetailField label="会话文件" value={agent.session_file || '-'} mono />
         <RoundDetailField label="状态" value={kind === 'reviewer' ? statusNode : (agent.status || '-')} />
       </div>
-      <div className="mt-3 rounded-2xl border border-theme-border bg-theme-bg-app px-4 py-3">
-        <div className="text-[11px] font-black uppercase tracking-[0.12em] text-theme-text-muted">摘要</div>
+      <div className="mt-3 rounded-2xl border border-theme-border bg-theme-surface px-4 py-3">
+        <div className="text-[11px] font-semibold uppercase tracking-[0.12em] text-theme-text-muted">摘要</div>
         <div className="mt-2 text-sm leading-6 text-theme-text-secondary">{preview || '暂无摘要'}</div>
       </div>
     </section>
@@ -707,10 +707,10 @@ function RoundDetailModal({
       };
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/65 p-6 backdrop-blur-sm">
- <div className="flex max-h-[88vh] w-full max-w-6xl flex-col overflow-hidden rounded-[2rem] border border-theme-border bg-theme-bg-app">
+ <div className="flex max-h-[88vh] w-full max-w-6xl flex-col overflow-hidden rounded-xl border border-theme-border bg-theme-surface">
         <div className="flex items-start justify-between gap-4 border-b border-theme-border px-6 py-5">
           <div>
-            <h3 className="mt-2 text-xl font-black text-theme-text-primary">轮次 #{round.round} 结果详情</h3>
+            <h3 className="mt-2 text-xl font-semibold text-theme-text-primary">轮次 #{round.round} 结果详情</h3>
             <div className="mt-2 flex flex-wrap items-center gap-2">
               <span className={`rounded-full border px-2.5 py-1 text-[11px] font-bold ${roundStatusTone(round.status)}`}>{roundStatusLabel(round.status)}</span>
               {round.context.fallback_to_llm ? <span className="rounded-full bg-blue-500/15 px-2.5 py-1 text-[11px] font-bold text-blue-400">回退 LLM</span> : null}
@@ -736,8 +736,8 @@ function RoundDetailModal({
             <RoundDetailMetricCard label="告警数" value={String(round.artifacts.warnings.length)} hint={round.artifacts.summary_present || round.artifacts.reason_present ? '已生成文档产物' : '未生成文档产物'} />
           </div>
 
- <section className="rounded-2xl border border-theme-border bg-theme-bg-app p-4">
-            <div className="text-sm font-black text-theme-text-primary">策略与来源</div>
+ <section className="rounded-2xl border border-theme-border bg-theme-surface p-4">
+            <div className="text-sm font-semibold text-theme-text-primary">策略与来源</div>
             <div className="mt-3 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
               <RoundDetailField label="命中工具" value={round.context.matched_skill || '-'} />
               <RoundDetailField label="回退到 LLM" value={round.context.fallback_to_llm ? '是' : '否'} />
@@ -745,17 +745,17 @@ function RoundDetailModal({
               <RoundDetailField label="基线轮次" value={round.output_delta.baseline_round == null ? '-' :`#${round.output_delta.baseline_round}`} />
             </div>
             {round.source_path ? (
-              <div className="mt-3 rounded-2xl border border-theme-border bg-theme-bg-app px-4 py-3">
-                <div className="text-[11px] font-black uppercase tracking-[0.12em] text-theme-text-muted">results.json 路径</div>
+              <div className="mt-3 rounded-2xl border border-theme-border bg-theme-surface px-4 py-3">
+                <div className="text-[11px] font-semibold uppercase tracking-[0.12em] text-theme-text-muted">results.json 路径</div>
                 <div className="mt-2 break-all font-mono text-[12px] text-theme-text-secondary">{round.source_path}</div>
               </div>
             ) : null}
           </section>
 
- <section className="rounded-2xl border border-theme-border bg-theme-bg-app p-4">
+ <section className="rounded-2xl border border-theme-border bg-theme-surface p-4">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
-                <div className="text-sm font-black text-theme-text-primary">工作与评审总结</div>
+                <div className="text-sm font-semibold text-theme-text-primary">工作与评审总结</div>
                 <div className="mt-1 text-xs text-theme-text-muted">默认展示结构化摘要，原始 JSON 仅作为额外信息折叠查看</div>
               </div>
               <div className="flex flex-wrap gap-2">
@@ -769,7 +769,7 @@ function RoundDetailModal({
                       key={tab.key}
                       type="button"
                       onClick={() => setActiveSummaryTab(tab.key)}
-                      className={`rounded-xl border px-3 py-2 text-xs font-bold transition ${active ? 'border-theme-border bg-theme-surface text-white' : 'border-theme-border bg-theme-bg-app text-theme-text-secondary hover:bg-theme-elevated'}`}
+                      className={`rounded-xl border px-3 py-2 text-xs font-bold transition ${active ? 'border-theme-border bg-theme-surface text-white' : 'border-theme-border bg-theme-surface text-theme-text-secondary hover:bg-theme-elevated'}`}
                     >
                       {tab.label}
                       <span className={`ml-2 rounded-full px-2 py-0.5 text-[10px] ${active ? 'bg-slate-50/15 text-slate-100' : 'bg-theme-elevated text-theme-text-muted'}`}>
@@ -789,7 +789,7 @@ function RoundDetailModal({
               <div className="rounded-[1.75rem] border border-theme-border bg-theme-bg-app p-4">
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <div>
-                    <div className="text-sm font-black text-theme-text-primary">{activeSummaryTitle}</div>
+                    <div className="text-sm font-semibold text-theme-text-primary">{activeSummaryTitle}</div>
                   </div>
                   <div className="flex flex-wrap gap-2 text-[11px]">
                     <span className="rounded-full border border-theme-border bg-theme-bg-app px-2.5 py-1 font-bold text-theme-text-secondary">状态：{activeSummaryMeta.status}</span>
@@ -797,10 +797,10 @@ function RoundDetailModal({
                     <span className="rounded-full border border-theme-border bg-theme-bg-app px-2.5 py-1 font-bold text-theme-text-secondary">角色：{activeSummaryMeta.role}</span>
                   </div>
                 </div>
-                <div className="mt-4 rounded-[1.5rem] border border-theme-border bg-theme-bg-app p-5">
-                  <div className="mb-3 text-[11px] font-black uppercase tracking-[0.14em] text-theme-text-muted">会话文件</div>
+                <div className="mt-4 rounded-xl border border-theme-border bg-theme-surface p-5">
+                  <div className="mb-3 text-[11px] font-semibold uppercase tracking-[0.14em] text-theme-text-muted">会话文件</div>
                   <div className="break-all font-mono text-[12px] text-theme-text-secondary">{activeSummaryMeta.session}</div>
-                  <article className="prose prose-slate mt-5 max-w-none text-sm leading-7 prose-headings:font-black prose-headings:text-theme-text-primary prose-p:text-theme-text-secondary prose-li:text-theme-text-secondary">
+                  <article className="prose prose-slate mt-5 max-w-none text-sm leading-7 prose-headings:font-semibold prose-headings:text-theme-text-primary prose-p:text-theme-text-secondary prose-li:text-theme-text-secondary">
                     <ReactMarkdown remarkPlugins={[remarkGfm]}>
                       {activeSummaryText}
                     </ReactMarkdown>
@@ -811,8 +811,8 @@ function RoundDetailModal({
           </section>
 
           <div className="grid gap-4 xl:grid-cols-2">
- <section className="rounded-2xl border border-theme-border bg-theme-bg-app p-4">
-              <div className="text-sm font-black text-theme-text-primary">产物快照</div>
+ <section className="rounded-2xl border border-theme-border bg-theme-surface p-4">
+              <div className="text-sm font-semibold text-theme-text-primary">产物快照</div>
               <div className="mt-3 grid gap-3 md:grid-cols-2">
                 <RoundDetailField label="输出文件数" value={String(round.output_snapshot.output_file_count)} />
                 <RoundDetailField label="输出目录数" value={String(round.output_snapshot.output_dir_count)} />
@@ -821,18 +821,18 @@ function RoundDetailModal({
               </div>
             </section>
 
- <section className="rounded-2xl border border-theme-border bg-theme-bg-app p-4">
-              <div className="text-sm font-black text-theme-text-primary">文档与告警</div>
+ <section className="rounded-2xl border border-theme-border bg-theme-surface p-4">
+              <div className="text-sm font-semibold text-theme-text-primary">文档与告警</div>
               <div className="mt-3 grid gap-3 md:grid-cols-2">
                 <RoundDetailField label="总结文档" value={round.artifacts.summary_present ? '已生成' : '未生成'} />
                 <RoundDetailField label="改进文档" value={round.artifacts.reason_present ? '已生成' : '未生成'} />
               </div>
               {round.artifacts.warnings.length > 0 ? (
                 <div className="mt-3 rounded-2xl border border-amber-500/20 bg-amber-500/15 px-4 py-3">
-                  <div className="text-[11px] font-black uppercase tracking-[0.12em] text-amber-400">告警</div>
+                  <div className="text-[11px] font-semibold uppercase tracking-[0.12em] text-amber-400">告警</div>
                   <div className="mt-2 space-y-2 text-sm text-amber-400">
                     {round.artifacts.warnings.map((warning, index) => (
- <div key={`${warning}-${index}`} className="rounded-xl border border-amber-500/20 bg-theme-bg-app px-3 py-2">
+ <div key={`${warning}-${index}`} className="rounded-xl border border-amber-500/20 bg-theme-surface px-3 py-2">
                         {warning}
                       </div>
                     ))}
@@ -842,11 +842,11 @@ function RoundDetailModal({
             </section>
           </div>
 
-          <details className="rounded-2xl border border-theme-border bg-theme-bg-app px-4 py-4">
-            <summary className="cursor-pointer text-sm font-black text-theme-text-secondary">
+          <details className="rounded-2xl border border-theme-border bg-theme-surface px-4 py-4">
+            <summary className="cursor-pointer text-sm font-semibold text-theme-text-secondary">
               查看原始 results.json
             </summary>
-            <pre className="mt-3 max-h-[420px] overflow-auto rounded-2xl border border-theme-border bg-theme-bg-app px-4 py-4 text-[12px] leading-6 text-theme-text-primary whitespace-pre-wrap break-words">
+            <pre className="mt-3 max-h-[420px] overflow-auto rounded-2xl border border-theme-border bg-theme-surface px-4 py-4 text-[12px] leading-6 text-theme-text-primary whitespace-pre-wrap break-words">
               {JSON.stringify(round.raw || round, null, 2)}
             </pre>
           </details>
@@ -1796,7 +1796,7 @@ function TaskDetailPanel({
 
   if (!task) {
     return (
- <div className="rounded-2xl border border-theme-border bg-theme-bg-app p-6">
+ <div className="rounded-2xl border border-theme-border bg-theme-surface p-6">
         <div className="flex min-h-[280px] flex-col items-center justify-center gap-3 text-center">
           <div className="rounded-2xl bg-theme-elevated p-4 text-theme-text-muted">
             <ChevronRight size={22} />
@@ -1888,12 +1888,12 @@ function TaskDetailPanel({
   };
 
   return (
- <div className="rounded-2xl border border-theme-border bg-theme-bg-app">
+ <div className="rounded-2xl border border-theme-border bg-theme-surface">
       <div className="border-b border-theme-border p-5">
         <button
           type="button"
           onClick={onBack}
- className="inline-flex items-center gap-2 rounded-xl border border-theme-border bg-theme-bg-app px-4 py-2.5 text-sm font-bold text-theme-text-secondary hover:bg-theme-elevated"
+ className="inline-flex items-center gap-2 rounded-xl border border-theme-border bg-theme-surface px-4 py-2.5 text-sm font-bold text-theme-text-secondary hover:bg-theme-elevated"
         >
           <ArrowLeft size={16} />
           {hasReturnContext ? '返回原任务' : '返回任务列表'}
@@ -1909,7 +1909,7 @@ function TaskDetailPanel({
                 </span>
               )}
             </div>
-            <h3 className="mt-3 break-all text-lg font-black text-theme-text-primary">{task.firmware_path}</h3>
+            <h3 className="mt-3 break-all text-lg font-semibold text-theme-text-primary">{task.firmware_path}</h3>
             <p className="mt-2 break-all font-mono text-[11px] text-theme-text-muted">{task.id}</p>
           </div>
           <button
@@ -1960,7 +1960,7 @@ function TaskDetailPanel({
       </div>
 
       <div className="space-y-4 p-5">
- <section className="rounded-2xl border border-theme-border bg-theme-bg-app p-2">
+ <section className="rounded-2xl border border-theme-border bg-theme-surface p-2">
           <div className="flex flex-wrap items-center gap-2">
             {[
               { id: 'overview' as const, label: '总览' },
@@ -1974,7 +1974,7 @@ function TaskDetailPanel({
                 key={tab.id}
                 type="button"
                 onClick={() => setActiveTab(tab.id)}
-                className={`rounded-2xl px-5 py-3 text-sm font-black transition ${
+                className={`rounded-2xl px-5 py-3 text-sm font-semibold transition ${
                   activeTab === tab.id
  ? 'bg-theme-surface text-white '
                     : 'text-theme-text-muted hover:bg-theme-elevated hover:text-theme-text-secondary'
@@ -2003,14 +2003,14 @@ function TaskDetailPanel({
                 ['输出 Token 消耗',`${result?.summary.output_tokens ?? progress?.output_tokens ?? 0} tokens`],
                 ['AI 轮次', task.rounds ?? '-'],
               ].map(([label, value], index) => (
-                <div key={index} className="rounded-xl border border-theme-border bg-theme-bg-app px-4 py-3">
+                <div key={index} className="rounded-xl border border-theme-border bg-theme-surface px-4 py-3">
                   <p className="mb-1 text-[11px] font-bold uppercase tracking-wide text-theme-text-muted">{label}</p>
                   <div className="text-xs text-theme-text-secondary">{value}</div>
                 </div>
               ))}
             </div>
 
-            <div className="rounded-xl border border-theme-border bg-theme-bg-app px-4 py-3">
+            <div className="rounded-xl border border-theme-border bg-theme-surface px-4 py-3">
               <p className="mb-2 text-[11px] font-bold uppercase tracking-wide text-theme-text-muted">实时进展</p>
               {progressLoading ? (
                 <div className="flex items-center gap-2 text-xs text-theme-text-muted">
@@ -2026,7 +2026,7 @@ function TaskDetailPanel({
                     </div>
                   )}
                   <div className="overflow-x-auto pb-1">
-                    <div ref={progressCanvasRef} className="relative min-w-[1080px] rounded-2xl border border-theme-border bg-theme-bg-app px-4 py-4">
+                    <div ref={progressCanvasRef} className="relative min-w-[1080px] rounded-2xl border border-theme-border bg-theme-surface px-4 py-4">
                       {progressConnectorPaths.length > 0 ? (
                         <svg className="pointer-events-none absolute inset-0 h-full w-full overflow-visible" aria-hidden="true">
                           {progressConnectorPaths.map((path) => (
@@ -2045,7 +2045,7 @@ function TaskDetailPanel({
                       ) : null}
                       <div className="grid grid-cols-[160px_1fr_160px] items-start gap-4">
                         <div className="pt-28">
-                          <div className="rounded-2xl border border-theme-border bg-theme-bg-app px-3 py-4 text-center">
+                          <div className="rounded-2xl border border-theme-border bg-theme-surface px-3 py-4 text-center">
                             <div ref={preprocessNodeRef} className={`mx-auto flex h-9 w-9 items-center justify-center rounded-full border-2 text-xs font-bold ${phaseNodeTone(layeredProgress.preprocess.status)}`}>
                               <PhaseNodeStatusIcon status={layeredProgress.preprocess.status} index={0} />
                             </div>
@@ -2132,7 +2132,7 @@ function TaskDetailPanel({
                                           </div>
                                         ) : null}
                                         {node.rounds && node.rounds.length > 0 ? (
-                                          <div className="mt-3 space-y-1 rounded-xl border border-theme-border bg-theme-bg-app px-2 py-2 text-left">
+                                          <div className="mt-3 space-y-1 rounded-xl border border-theme-border bg-theme-surface px-2 py-2 text-left">
                                             {node.rounds.map((roundPhase) => (
                                               <div key={roundPhase.key} className="rounded-lg border border-theme-border bg-theme-bg-app px-2 py-2">
                                                 <div className="flex items-center justify-between gap-2 text-[10px] text-theme-text-muted">
@@ -2171,7 +2171,7 @@ function TaskDetailPanel({
                         </div>
 
                         <div className="pt-28">
-                          <div className="rounded-2xl border border-theme-border bg-theme-bg-app px-3 py-4 text-center">
+                          <div className="rounded-2xl border border-theme-border bg-theme-surface px-3 py-4 text-center">
                             <div ref={cleanupNodeRef} className={`mx-auto flex h-9 w-9 items-center justify-center rounded-full border-2 text-xs font-bold ${phaseNodeTone(layeredProgress.cleanup.status)}`}>
                               <PhaseNodeStatusIcon status={layeredProgress.cleanup.status} index={99} />
                             </div>
@@ -2202,7 +2202,7 @@ function TaskDetailPanel({
               )}
             </div>
 
-            <div className="rounded-xl border border-theme-border bg-theme-bg-app px-4 py-3">
+            <div className="rounded-xl border border-theme-border bg-theme-surface px-4 py-3">
               <p className="mb-2 text-[11px] font-bold uppercase tracking-wide text-theme-text-muted">资源使用情况</p>
               {resourceLoading ? (
                 <div className="flex items-center gap-2 text-xs text-theme-text-muted">
@@ -2233,7 +2233,7 @@ function TaskDetailPanel({
             </div>
 
             {task.result_message && (
-              <div className="rounded-xl border border-theme-border bg-theme-bg-app px-4 py-3">
+              <div className="rounded-xl border border-theme-border bg-theme-surface px-4 py-3">
                 <p className="mb-2 text-[11px] font-bold uppercase tracking-wide text-theme-text-muted">结果摘要</p>
                 <div className="text-xs leading-6 text-theme-text-secondary">{task.result_message}</div>
               </div>
@@ -2260,7 +2260,7 @@ function TaskDetailPanel({
         {activeTab === 'metrics' ? (
           <section className="space-y-4">
             {metricsLoading ? (
-              <div className="flex items-center gap-2 rounded-2xl border border-theme-border bg-theme-bg-app px-4 py-4 text-sm text-theme-text-muted">
+              <div className="flex items-center gap-2 rounded-2xl border border-theme-border bg-theme-surface px-4 py-4 text-sm text-theme-text-muted">
                 <Loader2 size={14} className="animate-spin" />
                 加载观测指标中...
               </div>
@@ -2269,19 +2269,19 @@ function TaskDetailPanel({
                 {metricsError}
               </div>
             ) : !metrics ? (
-              <div className="rounded-2xl border border-dashed border-theme-border bg-theme-bg-app px-6 py-10 text-center text-sm text-theme-text-muted">
+              <div className="rounded-2xl border border-dashed border-theme-border bg-theme-surface px-6 py-10 text-center text-sm text-theme-text-muted">
                 暂无观测指标
               </div>
             ) : (
               <>
- <section className="rounded-[1.5rem] border border-theme-border bg-theme-bg-app p-5">
+ <section className="rounded-xl border border-theme-border bg-theme-surface p-5">
                   <div className="flex flex-wrap items-start justify-between gap-4">
                     <div>
-                      <div className="flex items-center gap-2 text-[11px] font-black uppercase tracking-[0.2em] text-theme-text-muted">
+                      <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-theme-text-muted">
                         <Activity size={14} />
                         观测指标
                       </div>
-                      <h2 className="mt-2 text-xl font-black text-theme-text-primary">
+                      <h2 className="mt-2 text-xl font-semibold text-theme-text-primary">
                         {phaseDisplayLabel(metrics.task.current_stage || metrics.progress.current_phase)}
                       </h2>
                       <p className="mt-1 text-sm text-theme-text-muted">
@@ -2298,7 +2298,7 @@ function TaskDetailPanel({
                           type="button"
                           onClick={() => onRefreshResultCache(task.id)}
                           disabled={resultRefreshingTaskId === task.id}
-                          className="inline-flex items-center gap-2 rounded-xl border border-theme-border px-3 py-2 text-xs font-black text-theme-text-secondary hover:bg-theme-elevated disabled:opacity-60"
+                          className="inline-flex items-center gap-2 rounded-xl border border-theme-border px-3 py-2 text-xs font-semibold text-theme-text-secondary hover:bg-theme-elevated disabled:opacity-60"
                         >
                           <RefreshCw size={13} className={resultRefreshingTaskId === task.id ? 'animate-spin' : ''} />
                           刷新缓存
@@ -2323,45 +2323,45 @@ function TaskDetailPanel({
                 ) : null}
 
                 <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-6">
- <div className="rounded-2xl border border-theme-border bg-theme-bg-app px-4 py-4">
-                    <div className="flex items-center gap-2 text-[11px] font-black uppercase tracking-[0.18em] text-theme-text-muted">
+ <div className="rounded-2xl border border-theme-border bg-theme-surface px-4 py-4">
+                    <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-theme-text-muted">
                       <BarChart3 size={14} />
                       总轮数
                     </div>
-                    <div className="mt-2 text-2xl font-black text-theme-text-primary">{formatNumber(metrics.rounds.round_count)}</div>
+                    <div className="mt-2 text-2xl font-bold text-theme-text-primary">{formatNumber(metrics.rounds.round_count)}</div>
                     <div className="mt-1 text-xs text-theme-text-muted">完成 {metrics.rounds.completed_round_count} · 失败 {metrics.rounds.failed_round_count}</div>
                   </div>
- <div className="rounded-2xl border border-theme-border bg-theme-bg-app px-4 py-4">
-                    <div className="text-[11px] font-black uppercase tracking-[0.18em] text-theme-text-muted">当前 / 最新轮次</div>
-                    <div className="mt-2 text-2xl font-black text-theme-text-primary">
+ <div className="rounded-2xl border border-theme-border bg-theme-surface px-4 py-4">
+                    <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-theme-text-muted">当前 / 最新轮次</div>
+                    <div className="mt-2 text-2xl font-bold text-theme-text-primary">
                       #{metrics.progress.current_round ?? metrics.rounds.running_round ?? metrics.rounds.latest_round ?? '-'}
                     </div>
                     <div className="mt-1 text-xs text-theme-text-muted">计划 {metrics.progress.total_rounds ?? '-'} 轮</div>
                   </div>
- <div className="rounded-2xl border border-theme-border bg-theme-bg-app px-4 py-4">
-                    <div className="text-[11px] font-black uppercase tracking-[0.18em] text-theme-text-muted">总 Token</div>
-                    <div className="mt-2 text-2xl font-black text-theme-text-primary">{formatNumber(metrics.rounds.total_tokens)}</div>
+ <div className="rounded-2xl border border-theme-border bg-theme-surface px-4 py-4">
+                    <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-theme-text-muted">总 Token</div>
+                    <div className="mt-2 text-2xl font-bold text-theme-text-primary">{formatNumber(metrics.rounds.total_tokens)}</div>
                     <div className="mt-1 text-xs text-theme-text-muted">Cost {formatCost(metrics.rounds.total_cost)}</div>
                   </div>
- <div className="rounded-2xl border border-theme-border bg-theme-bg-app px-4 py-4">
-                    <div className="text-[11px] font-black uppercase tracking-[0.18em] text-theme-text-muted">轮次总耗时</div>
-                    <div className="mt-2 text-2xl font-black text-theme-text-primary">{formatSeconds(metrics.rounds.total_duration_seconds)}</div>
+ <div className="rounded-2xl border border-theme-border bg-theme-surface px-4 py-4">
+                    <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-theme-text-muted">轮次总耗时</div>
+                    <div className="mt-2 text-2xl font-bold text-theme-text-primary">{formatSeconds(metrics.rounds.total_duration_seconds)}</div>
                     <div className="mt-1 text-xs text-theme-text-muted">输出增长 {formatBytes(metrics.rounds.output_growth_bytes)}</div>
                   </div>
- <div className="rounded-2xl border border-theme-border bg-theme-bg-app px-4 py-4">
-                    <div className="text-[11px] font-black uppercase tracking-[0.18em] text-theme-text-muted">当前输出文件</div>
-                    <div className="mt-2 text-2xl font-black text-theme-text-primary">{formatNumber(metrics.result.output_file_count)}</div>
+ <div className="rounded-2xl border border-theme-border bg-theme-surface px-4 py-4">
+                    <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-theme-text-muted">当前输出文件</div>
+                    <div className="mt-2 text-2xl font-bold text-theme-text-primary">{formatNumber(metrics.result.output_file_count)}</div>
                     <div className="mt-1 text-xs text-theme-text-muted">目录 {metrics.result.output_dir_count} · {formatBytes(metrics.result.output_total_size_bytes)}</div>
                   </div>
- <div className="rounded-2xl border border-theme-border bg-theme-bg-app px-4 py-4">
-                    <div className="text-[11px] font-black uppercase tracking-[0.18em] text-theme-text-muted">最大文件</div>
-                    <div className="mt-2 text-2xl font-black text-theme-text-primary">{formatBytes(metrics.result.largest_file_size_bytes)}</div>
+ <div className="rounded-2xl border border-theme-border bg-theme-surface px-4 py-4">
+                    <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-theme-text-muted">最大文件</div>
+                    <div className="mt-2 text-2xl font-bold text-theme-text-primary">{formatBytes(metrics.result.largest_file_size_bytes)}</div>
                     <div className="mt-1 text-xs text-theme-text-muted">顶层条目 {metrics.result.top_level_entry_count}</div>
                   </div>
                 </div>
 
                 {!metrics.rounds.available ? (
- <section className="rounded-2xl border border-dashed border-theme-border bg-theme-bg-app p-10 text-center">
+ <section className="rounded-2xl border border-dashed border-theme-border bg-theme-surface p-10 text-center">
                     <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-theme-elevated text-theme-text-muted">
                       <BarChart3 size={20} />
                     </div>
@@ -2370,10 +2370,10 @@ function TaskDetailPanel({
                   </section>
                 ) : (
                   <>
- <section className="rounded-2xl border border-theme-border bg-theme-bg-app p-5">
+ <section className="rounded-2xl border border-theme-border bg-theme-surface p-5">
                       <div className="flex flex-wrap items-center justify-between gap-3">
                         <div>
-                          <h2 className="text-sm font-black uppercase tracking-[0.2em] text-theme-text-muted">轮次汇总</h2>
+                          <h2 className="text-sm font-semibold uppercase tracking-[0.2em] text-theme-text-muted">轮次汇总</h2>
                           <p className="mt-1 text-xs text-theme-text-muted">按轮次聚合执行、评审、Token 与 output 增长指标</p>
                         </div>
                         <div className="text-xs text-theme-text-muted">
@@ -2381,8 +2381,8 @@ function TaskDetailPanel({
                         </div>
                       </div>
                       <div className="mt-4 grid gap-3 xl:grid-cols-3">
-                        <div className="rounded-2xl border border-theme-border bg-theme-bg-app p-4">
-                          <div className="text-xs font-black text-theme-text-secondary">状态分布</div>
+                        <div className="rounded-2xl border border-theme-border bg-theme-surface p-4">
+                          <div className="text-xs font-semibold text-theme-text-secondary">状态分布</div>
                           <div className="mt-3 flex flex-wrap gap-2">
                             {Object.entries(metrics.rounds.summary.status_counts).map(([status, count]) => (
                               <span key={status} className={`rounded-full border px-3 py-1 text-xs font-bold ${roundStatusTone(status)}`}>
@@ -2392,8 +2392,8 @@ function TaskDetailPanel({
                           </div>
                         </div>
                         {Object.entries(metrics.rounds.summary.stage_summary).map(([stage, item]) => (
-                          <div key={stage} className="rounded-2xl border border-theme-border bg-theme-bg-app p-4">
-                            <div className="text-xs font-black text-theme-text-secondary">{phaseDisplayLabel(stage)}</div>
+                          <div key={stage} className="rounded-2xl border border-theme-border bg-theme-surface p-4">
+                            <div className="text-xs font-semibold text-theme-text-secondary">{phaseDisplayLabel(stage)}</div>
                             <div className="mt-3 grid grid-cols-3 gap-2 text-xs text-theme-text-secondary">
                               <div>轮次 <span className="font-bold text-theme-text-primary">{item.round_count}</span></div>
                               <div>耗时 <span className="font-bold text-theme-text-primary">{formatSeconds(item.duration_seconds)}</span></div>
@@ -2404,10 +2404,10 @@ function TaskDetailPanel({
                       </div>
                     </section>
 
- <section className="rounded-2xl border border-theme-border bg-theme-bg-app p-5">
+ <section className="rounded-2xl border border-theme-border bg-theme-surface p-5">
                       <div className="flex flex-wrap items-start justify-between gap-4">
                         <div>
-                          <h2 className="text-sm font-black uppercase tracking-[0.2em] text-theme-text-muted">轮次明细</h2>
+                          <h2 className="text-sm font-semibold uppercase tracking-[0.2em] text-theme-text-muted">轮次明细</h2>
                           <p className="mt-1 text-xs text-theme-text-muted">展示每一轮执行和评审的产物、耗时、Token 与输出变化，点击行打开结构化轮次详情</p>
                         </div>
                         <div className="flex flex-wrap gap-2">
@@ -2524,10 +2524,10 @@ function TaskDetailPanel({
                   </>
                 )}
 
- <section className="rounded-2xl border border-theme-border bg-theme-bg-app p-5">
+ <section className="rounded-2xl border border-theme-border bg-theme-surface p-5">
                   <div className="flex flex-wrap items-center justify-between gap-3">
                     <div>
-                      <h2 className="text-sm font-black uppercase tracking-[0.2em] text-theme-text-muted">运行健康</h2>
+                      <h2 className="text-sm font-semibold uppercase tracking-[0.2em] text-theme-text-muted">运行健康</h2>
                       <p className="mt-1 text-xs text-theme-text-muted">只保留排障需要的任务、资源、事件和会话摘要</p>
                     </div>
                     <div className="flex flex-wrap gap-2">
@@ -2539,17 +2539,17 @@ function TaskDetailPanel({
                     </div>
                   </div>
                   <div className="mt-4 grid gap-4 lg:grid-cols-3">
-                    <div className="rounded-2xl border border-theme-border bg-theme-bg-app p-4">
-                      <div className="text-xs font-black text-theme-text-secondary">任务</div>
+                    <div className="rounded-2xl border border-theme-border bg-theme-surface p-4">
+                      <div className="text-xs font-semibold text-theme-text-secondary">任务</div>
                       <div className="mt-3 grid gap-2 text-xs text-theme-text-secondary">
                         <div className="flex justify-between gap-3"><span>Owner</span><span className="break-all text-right font-mono text-theme-text-primary">{metrics.task.owner_id || '-'}</span></div>
                         <div className="flex justify-between gap-3"><span>运行耗时</span><span className="font-mono text-theme-text-primary">{formatSeconds(metrics.task.running_seconds ?? metrics.task.duration_seconds)}</span></div>
                         <div className="flex justify-between gap-3"><span>最近进展</span><span className="font-mono text-theme-text-primary">{fmtTime(metrics.task.last_progress_at)}</span></div>
                       </div>
                     </div>
-                    <div className="rounded-2xl border border-theme-border bg-theme-bg-app p-4">
+                    <div className="rounded-2xl border border-theme-border bg-theme-surface p-4">
                       <div className="flex items-center justify-between gap-3">
-                        <div className="text-xs font-black text-theme-text-secondary">资源</div>
+                        <div className="text-xs font-semibold text-theme-text-secondary">资源</div>
                         <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${metrics.resource.available ? 'bg-emerald-500/15 text-emerald-400' : 'bg-theme-elevated text-theme-text-muted'}`}>
                           {metrics.resource.available ? '可用' : '不可用'}
                         </span>
@@ -2559,12 +2559,12 @@ function TaskDetailPanel({
                         <MetricBar label="内存" value={metrics.resource.memory_usage_percent} tone={clampPercent(metrics.resource.memory_usage_percent) >= 90 ? 'rose' : 'emerald'} />
                       </div>
                     </div>
-                    <div className="rounded-2xl border border-theme-border bg-theme-bg-app p-4">
-                      <div className="text-xs font-black text-theme-text-secondary">事件与会话</div>
+                    <div className="rounded-2xl border border-theme-border bg-theme-surface p-4">
+                      <div className="text-xs font-semibold text-theme-text-secondary">事件与会话</div>
                       <div className="mt-3 grid grid-cols-3 gap-2 text-center text-xs">
-                        <div className="rounded-xl bg-theme-bg-app px-2 py-2"><div className="text-theme-text-muted">事件</div><div className="mt-1 font-black text-theme-text-primary">{formatNumber(metrics.events.event_count)}</div></div>
-                        <div className="rounded-xl bg-theme-bg-app px-2 py-2"><div className="text-theme-text-muted">会话</div><div className="mt-1 font-black text-theme-text-primary">{formatNumber(metrics.sessions.session_count)}</div></div>
-                        <div className="rounded-xl bg-theme-bg-app px-2 py-2"><div className="text-theme-text-muted">运行</div><div className="mt-1 font-black text-blue-400">{formatNumber(metrics.sessions.running_session_count)}</div></div>
+                        <div className="rounded-xl bg-theme-surface px-2 py-2"><div className="text-theme-text-muted">事件</div><div className="mt-1 font-semibold text-theme-text-primary">{formatNumber(metrics.events.event_count)}</div></div>
+                        <div className="rounded-xl bg-theme-surface px-2 py-2"><div className="text-theme-text-muted">会话</div><div className="mt-1 font-semibold text-theme-text-primary">{formatNumber(metrics.sessions.session_count)}</div></div>
+                        <div className="rounded-xl bg-theme-surface px-2 py-2"><div className="text-theme-text-muted">运行</div><div className="mt-1 font-semibold text-blue-400">{formatNumber(metrics.sessions.running_session_count)}</div></div>
                       </div>
                       <div className="mt-3 truncate text-xs text-theme-text-muted">
                         最近事件：{metrics.events.latest_event_type ? formatEventTypeLabel(metrics.events.latest_event_type) : '暂无'}
@@ -2587,19 +2587,19 @@ function TaskDetailPanel({
         ) : null}
 
         {activeTab === 'events' ? (
- <section className="rounded-[1.5rem] border border-theme-border bg-theme-bg-app p-5">
+ <section className="rounded-xl border border-theme-border bg-theme-surface p-5">
             <div className="flex flex-wrap items-start justify-between gap-4">
               <div>
-                <h2 className="text-lg font-black text-theme-text-primary">事件记录</h2>
+                <h2 className="text-lg font-semibold text-theme-text-primary">事件记录</h2>
                 <p className="mt-1 text-sm text-theme-text-muted">紧凑展示后台记录的关键事件，点击详情查看结构化数据</p>
               </div>
               <div className="flex flex-wrap gap-2">
-                <div className="rounded-xl border border-theme-border bg-theme-bg-app px-3 py-2">
-                  <div className="text-[11px] font-black uppercase tracking-[0.16em] text-theme-text-muted">总事件数</div>
-                  <div className="mt-1 text-lg font-black text-theme-text-primary">{timeline.length}</div>
+                <div className="rounded-xl border border-theme-border bg-theme-surface px-3 py-2">
+                  <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-theme-text-muted">总事件数</div>
+                  <div className="mt-1 text-lg font-semibold text-theme-text-primary">{timeline.length}</div>
                 </div>
-                <div className="rounded-xl border border-theme-border bg-theme-bg-app px-3 py-2">
-                  <div className="text-[11px] font-black uppercase tracking-[0.16em] text-theme-text-muted">展示区间</div>
+                <div className="rounded-xl border border-theme-border bg-theme-surface px-3 py-2">
+                  <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-theme-text-muted">展示区间</div>
                   <div className="mt-1 text-sm font-bold text-theme-text-secondary">
                     {timelineItems.length > 0 ?`${fmtTime(timelineItems[0].created_at)} -> ${fmtTime(timelineItems[timelineItems.length - 1].created_at)}` : '-'}
                   </div>
@@ -2609,7 +2609,7 @@ function TaskDetailPanel({
 
             <div className="mt-5">
               {timelineLoading ? (
-                <div className="flex items-center gap-2 rounded-2xl border border-theme-border bg-theme-bg-app px-4 py-4 text-sm text-theme-text-muted">
+                <div className="flex items-center gap-2 rounded-2xl border border-theme-border bg-theme-surface px-4 py-4 text-sm text-theme-text-muted">
                   <Loader2 size={14} className="animate-spin" />
                   加载事件时间线中...
                 </div>
@@ -2618,14 +2618,14 @@ function TaskDetailPanel({
                   {timelineError}
                 </div>
               ) : timelineItems.length === 0 ? (
-                <div className="rounded-2xl border border-dashed border-theme-border bg-theme-bg-app px-6 py-10 text-center text-sm text-theme-text-muted">
+                <div className="rounded-2xl border border-dashed border-theme-border bg-theme-surface px-6 py-10 text-center text-sm text-theme-text-muted">
                   暂无事件
                 </div>
               ) : (
                 <div className="overflow-hidden rounded-2xl border border-theme-border">
                   <div className="overflow-x-auto">
                     <table className="min-w-[1080px] w-full divide-y divide-theme-border text-left text-xs">
-                      <thead className="bg-theme-bg-app text-[11px] font-black uppercase tracking-[0.12em] text-theme-text-muted">
+                      <thead className="bg-theme-bg-app text-[11px] font-semibold uppercase tracking-[0.12em] text-theme-text-muted">
                         <tr>
                           <th className="w-14 px-3 py-2">#</th>
                           <th className="w-40 px-3 py-2">时间</th>
@@ -2649,7 +2649,7 @@ function TaskDetailPanel({
                                   {fmtTime(event.created_at)}
                                 </td>
                                 <td className="px-3 py-2">
-                                  <span className="inline-flex max-w-[150px] items-center rounded-full border border-sky-500/20 bg-sky-500/15 px-2 py-0.5 text-[11px] font-black text-sky-400">
+                                  <span className="inline-flex max-w-[150px] items-center rounded-full border border-sky-500/20 bg-sky-500/15 px-2 py-0.5 text-[11px] font-medium text-sky-400">
                                     <span className="truncate">{formatEventTypeLabel(event.event_type)}</span>
                                   </span>
                                 </td>
@@ -2720,10 +2720,10 @@ function TaskDetailPanel({
 
         {activeTab === 'session' ? (
           <section className="grid gap-4 xl:grid-cols-[320px_minmax(0,1fr)]">
- <aside className="rounded-2xl border border-theme-border bg-theme-bg-app p-4">
+ <aside className="rounded-2xl border border-theme-border bg-theme-surface p-4">
               <div className="flex items-center justify-between gap-3">
                 <div>
-                  <div className="text-[11px] font-black uppercase tracking-[0.18em] text-theme-text-muted">会话列表</div>
+                  <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-theme-text-muted">会话列表</div>
                   <div className="mt-1 text-xs text-theme-text-muted">{sessionItems.length} 个会话文件</div>
                 </div>
                 <button
@@ -2737,19 +2737,19 @@ function TaskDetailPanel({
               </div>
               {sessionsError ? <div className="mt-4 rounded-2xl border border-rose-500/20 bg-rose-500/15 px-4 py-4 text-sm text-rose-400">{sessionsError}</div> : null}
               {sessionsLoading && sessions.length === 0 ? (
-                <div className="mt-4 flex min-h-[240px] items-center justify-center rounded-2xl border border-theme-border bg-theme-bg-app text-sm text-theme-text-muted">
+                <div className="mt-4 flex min-h-[240px] items-center justify-center rounded-2xl border border-theme-border bg-theme-surface text-sm text-theme-text-muted">
                   <Loader2 size={16} className="mr-2 animate-spin" />
                   加载会话中...
                 </div>
               ) : sessions.length === 0 ? (
-                <div className="mt-4 rounded-2xl border border-dashed border-theme-border bg-theme-bg-app px-4 py-10 text-center text-sm text-theme-text-muted">
+                <div className="mt-4 rounded-2xl border border-dashed border-theme-border bg-theme-surface px-4 py-10 text-center text-sm text-theme-text-muted">
                   暂无智能体会话
                 </div>
               ) : (
                 <div className="mt-4 max-h-[calc(100vh-20rem)] space-y-4 overflow-auto pr-1">
                   {groupedSessions.map(([group, items]) => (
                     <div key={group}>
-                      <div className="mb-2 text-[11px] font-black uppercase tracking-[0.18em] text-theme-text-muted">{group}</div>
+                      <div className="mb-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-theme-text-muted">{group}</div>
                       <div className="space-y-2">
                         {items.map((session) => {
                           const indexItem = sessionItems.find((item) => item.session_file === session.relative_path);
@@ -2767,7 +2767,7 @@ function TaskDetailPanel({
                             >
                               <div className="flex items-start justify-between gap-3">
                                 <div className="min-w-0">
-                                  <div className="truncate text-sm font-black">{session.display_name}</div>
+                                  <div className="truncate text-sm font-semibold">{session.display_name}</div>
                                   <div className={`mt-1 text-[11px] ${selected ? 'text-theme-text-faint' : 'text-theme-text-muted'}`}>
                                     {session.relative_path}
                                   </div>
@@ -2816,11 +2816,11 @@ function TaskDetailPanel({
 
         {activeTab === 'evolution' ? (
           <section className="space-y-4">
- <section className="rounded-2xl border border-theme-border bg-theme-bg-app p-5">
+ <section className="rounded-2xl border border-theme-border bg-theme-surface p-5">
               <div className="flex flex-wrap items-start justify-between gap-4">
                 <div>
-                  <div className="text-[11px] font-black uppercase tracking-[0.18em] text-theme-text-muted">Manual Evolution</div>
-                  <h4 className="mt-2 text-lg font-black text-theme-text-primary">手动自进化</h4>
+                  <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-theme-text-muted">Manual Evolution</div>
+                  <h4 className="mt-2 text-lg font-semibold text-theme-text-primary">手动自进化</h4>
                   <p className="mt-2 text-sm text-theme-text-muted">
                     主解包任务成功后，才允许单独发起工具进化。若主任务已命中工具，则基于备份副本进化；若未命中工具，则从进化器生成首个工具开始。进化任务不会改写主任务状态，只会独立产生日志、会话和覆盖结果。
                   </p>
@@ -2836,7 +2836,7 @@ function TaskDetailPanel({
                 </button>
               </div>
               {!canCreateEvolution ? (
-                <div className="mt-4 rounded-xl border border-theme-border bg-theme-bg-app px-4 py-3 text-xs text-theme-text-secondary">
+                <div className="mt-4 rounded-xl border border-theme-border bg-theme-surface px-4 py-3 text-xs text-theme-text-secondary">
                   {task.status !== 'success'
                     ? '仅主解包任务 success 后允许发起进化。'
                     : evolutionJobs.some((item) => ['pending', 'running'].includes(item.status))
@@ -2847,23 +2847,23 @@ function TaskDetailPanel({
             </section>
 
             <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
- <div className="rounded-2xl border border-theme-border bg-theme-bg-app px-4 py-4">
-                <div className="text-[11px] font-black uppercase tracking-[0.18em] text-theme-text-muted">最近一次状态</div>
+ <div className="rounded-2xl border border-theme-border bg-theme-surface px-4 py-4">
+                <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-theme-text-muted">最近一次状态</div>
                 <div className="mt-3">
                   <span className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-bold ${evolutionStatusTone(activeEvolutionJob?.status)}`}>
                     {formatEvolutionStatus(activeEvolutionJob?.status)}
                   </span>
                 </div>
               </div>
- <div className="rounded-2xl border border-theme-border bg-theme-bg-app px-4 py-4">
-                <div className="text-[11px] font-black uppercase tracking-[0.18em] text-theme-text-muted">轮次 / 阶段</div>
+ <div className="rounded-2xl border border-theme-border bg-theme-surface px-4 py-4">
+                <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-theme-text-muted">轮次 / 阶段</div>
                 <div className="mt-3 text-sm font-bold text-theme-text-primary">
                   {activeEvolutionJob ?`${activeEvolutionJob.current_round ?? 0}/${activeEvolutionJob.max_rounds}` : '-'}
                 </div>
                 <div className="mt-1 text-xs text-theme-text-muted">{evolutionStageLabel(activeEvolutionJob?.current_stage)}</div>
               </div>
- <div className="rounded-2xl border border-theme-border bg-theme-bg-app px-4 py-4">
-                <div className="text-[11px] font-black uppercase tracking-[0.18em] text-theme-text-muted">最终工具脚本</div>
+ <div className="rounded-2xl border border-theme-border bg-theme-surface px-4 py-4">
+                <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-theme-text-muted">最终工具脚本</div>
                 <div className="mt-3 break-all font-mono text-xs text-theme-text-secondary">
                   {activeEvolutionJob?.final_tool_path || activeEvolutionJob?.final_skill_path || task.latest_evolution_final_skill_path || '-'}
                 </div>
@@ -2871,16 +2871,16 @@ function TaskDetailPanel({
             </section>
 
             <section className="grid gap-4 xl:grid-cols-[320px_minmax(0,1fr)]">
- <div className="rounded-2xl border border-theme-border bg-theme-bg-app p-4">
+ <div className="rounded-2xl border border-theme-border bg-theme-surface p-4">
                 <div className="flex items-center justify-between gap-3">
-                  <div className="text-sm font-black text-theme-text-primary">历史任务列表</div>
+                  <div className="text-sm font-semibold text-theme-text-primary">历史任务列表</div>
                   {evolutionJobsLoading ? <Loader2 size={14} className="animate-spin text-theme-text-muted" /> : null}
                 </div>
                 {evolutionJobsError ? (
                   <div className="mt-3 rounded-xl border border-red-500/20 bg-red-500/15 px-3 py-3 text-xs text-red-400">{evolutionJobsError}</div>
                 ) : null}
                 {!evolutionJobsLoading && evolutionJobs.length === 0 ? (
-                  <div className="mt-3 rounded-xl border border-dashed border-theme-border bg-theme-bg-app px-3 py-6 text-center text-sm text-theme-text-muted">
+                  <div className="mt-3 rounded-xl border border-dashed border-theme-border bg-theme-surface px-3 py-6 text-center text-sm text-theme-text-muted">
                     暂无手动进化任务
                   </div>
                 ) : (
@@ -2920,10 +2920,10 @@ function TaskDetailPanel({
               </div>
 
               <div className="space-y-4">
- <section className="rounded-2xl border border-theme-border bg-theme-bg-app p-5">
+ <section className="rounded-2xl border border-theme-border bg-theme-surface p-5">
                   <div className="flex flex-wrap items-center justify-between gap-3">
                     <div>
-                      <div className="text-sm font-black text-theme-text-primary">最近一次进化状态</div>
+                      <div className="text-sm font-semibold text-theme-text-primary">最近一次进化状态</div>
                       <div className="mt-1 text-xs text-theme-text-muted">展示当前选中进化任务的状态、起始方式和最终 Python 工具脚本结果。</div>
                     </div>
                     {evolutionDetailLoading ? <Loader2 size={15} className="animate-spin text-theme-text-muted" /> : null}
@@ -2966,29 +2966,29 @@ function TaskDetailPanel({
                       </div>
                     </div>
                   ) : null}
-                  <div className="mt-3 rounded-xl border border-theme-border bg-theme-bg-app px-4 py-3">
-                    <div className="text-[11px] font-black uppercase tracking-[0.12em] text-theme-text-muted">错误信息</div>
+                  <div className="mt-3 rounded-xl border border-theme-border bg-theme-surface px-4 py-3">
+                    <div className="text-[11px] font-semibold uppercase tracking-[0.12em] text-theme-text-muted">错误信息</div>
                     <div className="mt-2 text-sm text-theme-text-secondary">{activeEvolutionJob?.error_message || '无'}</div>
                   </div>
                 </section>
 
- <section className="rounded-2xl border border-theme-border bg-theme-bg-app p-5">
-                  <div className="text-sm font-black text-theme-text-primary">轮次时间线</div>
+ <section className="rounded-2xl border border-theme-border bg-theme-surface p-5">
+                  <div className="text-sm font-semibold text-theme-text-primary">轮次时间线</div>
                   {!activeEvolutionJob ? (
-                    <div className="mt-3 rounded-xl border border-dashed border-theme-border bg-theme-bg-app px-3 py-6 text-center text-sm text-theme-text-muted">
+                    <div className="mt-3 rounded-xl border border-dashed border-theme-border bg-theme-surface px-3 py-6 text-center text-sm text-theme-text-muted">
                       选择一条进化任务后查看轮次详情
                     </div>
                   ) : activeEvolutionRounds.length === 0 ? (
-                    <div className="mt-3 rounded-xl border border-dashed border-theme-border bg-theme-bg-app px-3 py-6 text-center text-sm text-theme-text-muted">
+                    <div className="mt-3 rounded-xl border border-dashed border-theme-border bg-theme-surface px-3 py-6 text-center text-sm text-theme-text-muted">
                       当前进化任务暂未产出轮次记录
                     </div>
                   ) : (
                     <div className="mt-4 space-y-4">
                       {activeEvolutionRounds.map((round) => (
-                        <div key={round.id} className="rounded-2xl border border-theme-border bg-theme-bg-app px-4 py-4">
+                        <div key={round.id} className="rounded-2xl border border-theme-border bg-theme-surface px-4 py-4">
                           <div className="flex flex-wrap items-center justify-between gap-3">
                             <div>
-                              <div className="text-sm font-black text-theme-text-primary">第 {round.round} 轮</div>
+                              <div className="text-sm font-semibold text-theme-text-primary">第 {round.round} 轮</div>
                               <div className="mt-1 text-xs text-theme-text-muted">
                                 {fmtTime(round.created_at)} {'->'} {fmtTime(round.completed_at)}
                               </div>
@@ -3007,7 +3007,7 @@ function TaskDetailPanel({
                             <button
                               type="button"
                               onClick={() => handleOpenEvolutionLog(activeEvolutionJob.id, round.round, 'tool_executor')}
-                              className="inline-flex items-center justify-center gap-2 rounded-xl border border-theme-border bg-theme-bg-app px-3 py-2 text-xs font-bold text-theme-text-secondary hover:bg-theme-elevated"
+                              className="inline-flex items-center justify-center gap-2 rounded-xl border border-theme-border bg-theme-surface px-3 py-2 text-xs font-bold text-theme-text-secondary hover:bg-theme-elevated"
                             >
                               <Terminal size={12} />
                               工具执行器日志
@@ -3015,7 +3015,7 @@ function TaskDetailPanel({
                             <button
                               type="button"
                               onClick={() => handleOpenEvolutionLog(activeEvolutionJob.id, round.round, 'reviewer')}
-                              className="inline-flex items-center justify-center gap-2 rounded-xl border border-theme-border bg-theme-bg-app px-3 py-2 text-xs font-bold text-theme-text-secondary hover:bg-theme-elevated"
+                              className="inline-flex items-center justify-center gap-2 rounded-xl border border-theme-border bg-theme-surface px-3 py-2 text-xs font-bold text-theme-text-secondary hover:bg-theme-elevated"
                             >
                               <Terminal size={12} />
                               评审器日志
@@ -3023,7 +3023,7 @@ function TaskDetailPanel({
                             <button
                               type="button"
                               onClick={() => handleOpenEvolutionLog(activeEvolutionJob.id, round.round, 'evolver')}
-                              className="inline-flex items-center justify-center gap-2 rounded-xl border border-theme-border bg-theme-bg-app px-3 py-2 text-xs font-bold text-theme-text-secondary hover:bg-theme-elevated"
+                              className="inline-flex items-center justify-center gap-2 rounded-xl border border-theme-border bg-theme-surface px-3 py-2 text-xs font-bold text-theme-text-secondary hover:bg-theme-elevated"
                             >
                               <Terminal size={12} />
                               工具进化器日志
@@ -3035,19 +3035,19 @@ function TaskDetailPanel({
                   )}
                 </section>
 
- <section className="rounded-2xl border border-theme-border bg-theme-bg-app p-5">
+ <section className="rounded-2xl border border-theme-border bg-theme-surface p-5">
                   <div className="flex flex-wrap items-center justify-between gap-3">
                     <div>
-                      <div className="text-sm font-black text-theme-text-primary">进化效果</div>
+                      <div className="text-sm font-semibold text-theme-text-primary">进化效果</div>
                       <div className="mt-1 text-xs text-theme-text-muted">按轮展示工具脚本实际执行时间，便于直观看出工具是否越进化越快。</div>
                     </div>
                   </div>
                   {!activeEvolutionJob ? (
-                    <div className="mt-3 rounded-xl border border-dashed border-theme-border bg-theme-bg-app px-3 py-6 text-center text-sm text-theme-text-muted">
+                    <div className="mt-3 rounded-xl border border-dashed border-theme-border bg-theme-surface px-3 py-6 text-center text-sm text-theme-text-muted">
                       选择一条进化任务后查看效果指标
                     </div>
                   ) : activeEvolutionRounds.length === 0 ? (
-                    <div className="mt-3 rounded-xl border border-dashed border-theme-border bg-theme-bg-app px-3 py-6 text-center text-sm text-theme-text-muted">
+                    <div className="mt-3 rounded-xl border border-dashed border-theme-border bg-theme-surface px-3 py-6 text-center text-sm text-theme-text-muted">
                       当前进化任务暂未产出可展示的效果指标
                     </div>
                   ) : (
@@ -3083,23 +3083,23 @@ function TaskDetailPanel({
                   )}
                 </section>
 
- <section className="rounded-2xl border border-theme-border bg-theme-bg-app p-5">
-                  <div className="text-sm font-black text-theme-text-primary">进化会话索引</div>
+ <section className="rounded-2xl border border-theme-border bg-theme-surface p-5">
+                  <div className="text-sm font-semibold text-theme-text-primary">进化会话索引</div>
                   <div className="mt-1 text-xs text-theme-text-muted">当前展示所选进化任务的 session 索引，便于定位工具执行器、评审器和工具进化器对话文件。</div>
-                  <div className="mt-3 rounded-xl border border-theme-border bg-theme-bg-app px-4 py-3">
-                    <div className="text-[11px] font-black uppercase tracking-[0.12em] text-theme-text-muted">Session Root</div>
+                  <div className="mt-3 rounded-xl border border-theme-border bg-theme-surface px-4 py-3">
+                    <div className="text-[11px] font-semibold uppercase tracking-[0.12em] text-theme-text-muted">Session Root</div>
                     <div className="mt-1 break-all font-mono text-xs text-theme-text-secondary">{evolutionSessions?.session_root || '-'}</div>
                   </div>
                   {evolutionSessionItems.length === 0 ? (
-                    <div className="mt-3 rounded-xl border border-dashed border-theme-border bg-theme-bg-app px-3 py-6 text-center text-sm text-theme-text-muted">
+                    <div className="mt-3 rounded-xl border border-dashed border-theme-border bg-theme-surface px-3 py-6 text-center text-sm text-theme-text-muted">
                       暂无进化会话索引
                     </div>
                   ) : (
                     <div className="mt-3 grid gap-3 md:grid-cols-2">
                       {evolutionSessionItems.map((item) => (
-                        <div key={`${item.session_file}-${item.role}-${item.name}`} className="rounded-xl border border-theme-border bg-theme-bg-app px-3 py-3">
+                        <div key={`${item.session_file}-${item.role}-${item.name}`} className="rounded-xl border border-theme-border bg-theme-surface px-3 py-3">
                           <div className="flex items-center justify-between gap-3">
-                            <div className="text-xs font-black text-theme-text-primary">{item.role}/{item.name}</div>
+                            <div className="text-xs font-semibold text-theme-text-primary">{item.role}/{item.name}</div>
                             <span className={`inline-flex shrink-0 whitespace-nowrap rounded-full border px-2 py-0.5 text-[10px] font-bold ${item.status === 'running' ? 'border-blue-500/20 bg-blue-500/15 text-blue-400' : 'border-theme-border bg-theme-bg-app text-theme-text-secondary'}`}>
                               {item.status === 'running' ? '运行中' : '历史'}
                             </span>
@@ -3125,41 +3125,41 @@ function TaskDetailPanel({
                 type="button"
                 onClick={() => onRefreshResultCache(task.id)}
                 disabled={resultRefreshingTaskId === task.id}
- className="inline-flex items-center gap-2 rounded-xl border border-theme-border bg-theme-bg-app px-4 py-2 text-sm font-bold text-theme-text-secondary hover:bg-theme-elevated disabled:opacity-60"
+ className="inline-flex items-center gap-2 rounded-xl border border-theme-border bg-theme-surface px-4 py-2 text-sm font-bold text-theme-text-secondary hover:bg-theme-elevated disabled:opacity-60"
               >
                 {resultRefreshingTaskId === task.id ? <Loader2 size={14} className="animate-spin" /> : <RefreshCw size={14} />}
                 刷新结果缓存
               </button>
             </div>
             <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
- <div className="rounded-2xl border border-theme-border bg-theme-bg-app px-4 py-4">
-                <div className="text-[11px] font-black uppercase tracking-[0.18em] text-theme-text-muted">输出文件数</div>
-                <div className="mt-2 text-2xl font-black text-theme-text-primary">{result?.summary.output_file_count ?? 0}</div>
+ <div className="rounded-2xl border border-theme-border bg-theme-surface px-4 py-4">
+                <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-theme-text-muted">输出文件数</div>
+                <div className="mt-2 text-2xl font-bold text-theme-text-primary">{result?.summary.output_file_count ?? 0}</div>
               </div>
- <div className="rounded-2xl border border-theme-border bg-theme-bg-app px-4 py-4">
-                <div className="text-[11px] font-black uppercase tracking-[0.18em] text-theme-text-muted">输出目录数</div>
-                <div className="mt-2 text-2xl font-black text-theme-text-primary">{result?.summary.output_dir_count ?? 0}</div>
+ <div className="rounded-2xl border border-theme-border bg-theme-surface px-4 py-4">
+                <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-theme-text-muted">输出目录数</div>
+                <div className="mt-2 text-2xl font-bold text-theme-text-primary">{result?.summary.output_dir_count ?? 0}</div>
               </div>
- <div className="rounded-2xl border border-theme-border bg-theme-bg-app px-4 py-4">
-                <div className="text-[11px] font-black uppercase tracking-[0.18em] text-theme-text-muted">输出大小</div>
-                <div className="mt-2 text-2xl font-black text-theme-text-primary">{formatBytes(result?.summary.output_total_size_bytes ?? 0)}</div>
+ <div className="rounded-2xl border border-theme-border bg-theme-surface px-4 py-4">
+                <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-theme-text-muted">输出大小</div>
+                <div className="mt-2 text-2xl font-bold text-theme-text-primary">{formatBytes(result?.summary.output_total_size_bytes ?? 0)}</div>
               </div>
- <div className="rounded-2xl border border-theme-border bg-theme-bg-app px-4 py-4">
-                <div className="text-[11px] font-black uppercase tracking-[0.18em] text-theme-text-muted">顶层条目数</div>
-                <div className="mt-2 text-2xl font-black text-theme-text-primary">{result?.summary.top_level_entry_count ?? 0}</div>
+ <div className="rounded-2xl border border-theme-border bg-theme-surface px-4 py-4">
+                <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-theme-text-muted">顶层条目数</div>
+                <div className="mt-2 text-2xl font-bold text-theme-text-primary">{result?.summary.top_level_entry_count ?? 0}</div>
               </div>
- <div className="rounded-2xl border border-theme-border bg-theme-bg-app px-4 py-4">
-                <div className="text-[11px] font-black uppercase tracking-[0.18em] text-theme-text-muted">最大文件大小</div>
-                <div className="mt-2 text-2xl font-black text-theme-text-primary">{formatBytes(result?.summary.largest_file_size_bytes ?? 0)}</div>
+ <div className="rounded-2xl border border-theme-border bg-theme-surface px-4 py-4">
+                <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-theme-text-muted">最大文件大小</div>
+                <div className="mt-2 text-2xl font-bold text-theme-text-primary">{formatBytes(result?.summary.largest_file_size_bytes ?? 0)}</div>
               </div>
- <div className="rounded-2xl border border-theme-border bg-theme-bg-app px-4 py-4">
-                <div className="text-[11px] font-black uppercase tracking-[0.18em] text-theme-text-muted">平均文件大小</div>
-                <div className="mt-2 text-2xl font-black text-theme-text-primary">{formatBytes(result?.summary.avg_file_size_bytes ?? 0)}</div>
+ <div className="rounded-2xl border border-theme-border bg-theme-surface px-4 py-4">
+                <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-theme-text-muted">平均文件大小</div>
+                <div className="mt-2 text-2xl font-bold text-theme-text-primary">{formatBytes(result?.summary.avg_file_size_bytes ?? 0)}</div>
               </div>
             </div>
 
             {resultLoading ? (
- <section className="rounded-2xl border border-theme-border bg-theme-bg-app p-10">
+ <section className="rounded-2xl border border-theme-border bg-theme-surface p-10">
                 <div className="flex items-center justify-center gap-2 text-sm text-theme-text-muted">
                   <Loader2 size={16} className="animate-spin" />
                   加载结果中...
@@ -3170,21 +3170,21 @@ function TaskDetailPanel({
                 {resultError}
               </section>
             ) : !result?.available ? (
- <section className="rounded-2xl border border-dashed border-theme-border bg-theme-bg-app px-6 py-10 text-center text-sm text-theme-text-muted">
+ <section className="rounded-2xl border border-dashed border-theme-border bg-theme-surface px-6 py-10 text-center text-sm text-theme-text-muted">
                 {result?.warnings?.[0] || '任务完成后可查看结果'}
               </section>
             ) : (
               <>
- <section className="rounded-2xl border border-theme-border bg-theme-bg-app p-5">
+ <section className="rounded-2xl border border-theme-border bg-theme-surface p-5">
                   <div className="flex items-center justify-between gap-3">
                     <div>
-                      <div className="text-[11px] font-black uppercase tracking-[0.18em] text-theme-text-muted">输出结构</div>
+                      <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-theme-text-muted">输出结构</div>
                       <div className="mt-1 text-sm text-theme-text-muted">按 output 顶层条目聚合结果分布</div>
                     </div>
                     <div className="text-xs text-theme-text-muted">按大小降序</div>
                   </div>
                   {result.summary.top_level_entries.length === 0 ? (
-                    <div className="mt-4 rounded-2xl border border-dashed border-theme-border bg-theme-bg-app px-4 py-8 text-center text-sm text-theme-text-muted">
+                    <div className="mt-4 rounded-2xl border border-dashed border-theme-border bg-theme-surface px-4 py-8 text-center text-sm text-theme-text-muted">
                       当前 output 目录为空
                     </div>
                   ) : (
@@ -3224,32 +3224,32 @@ function TaskDetailPanel({
 
                 <section className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_380px]">
                   <div className="space-y-4">
- <div className="rounded-2xl border border-theme-border bg-theme-bg-app p-5">
-                      <div className="text-[11px] font-black uppercase tracking-[0.18em] text-theme-text-muted">文件画像</div>
+ <div className="rounded-2xl border border-theme-border bg-theme-surface p-5">
+                      <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-theme-text-muted">文件画像</div>
                       <div className="mt-4 grid gap-3 md:grid-cols-3">
-                        <div className="rounded-xl border border-theme-border bg-theme-bg-app px-4 py-3">
+                        <div className="rounded-xl border border-theme-border bg-theme-surface px-4 py-3">
                           <div className="text-[11px] font-bold uppercase tracking-wide text-theme-text-muted">小文件 &lt; 4 KiB</div>
-                          <div className="mt-2 text-xl font-black text-theme-text-primary">{result.summary.small_file_count}</div>
+                          <div className="mt-2 text-xl font-semibold text-theme-text-primary">{result.summary.small_file_count}</div>
                         </div>
-                        <div className="rounded-xl border border-theme-border bg-theme-bg-app px-4 py-3">
+                        <div className="rounded-xl border border-theme-border bg-theme-surface px-4 py-3">
                           <div className="text-[11px] font-bold uppercase tracking-wide text-theme-text-muted">中文件 4 KiB - 1 MiB</div>
-                          <div className="mt-2 text-xl font-black text-theme-text-primary">{result.summary.medium_file_count}</div>
+                          <div className="mt-2 text-xl font-semibold text-theme-text-primary">{result.summary.medium_file_count}</div>
                         </div>
-                        <div className="rounded-xl border border-theme-border bg-theme-bg-app px-4 py-3">
+                        <div className="rounded-xl border border-theme-border bg-theme-surface px-4 py-3">
                           <div className="text-[11px] font-bold uppercase tracking-wide text-theme-text-muted">大文件 ≥ 1 MiB</div>
-                          <div className="mt-2 text-xl font-black text-theme-text-primary">{result.summary.large_file_count}</div>
+                          <div className="mt-2 text-xl font-semibold text-theme-text-primary">{result.summary.large_file_count}</div>
                         </div>
                       </div>
 
                       <div className="mt-5">
                         <div>
-                          <div className="text-xs font-black text-theme-text-muted">扩展名分布</div>
+                          <div className="text-xs font-semibold text-theme-text-muted">扩展名分布</div>
                           {result.summary.file_extension_breakdown.length === 0 ? (
                             <div className="mt-3 text-sm text-theme-text-muted">暂无统计数据</div>
                           ) : (
                             <div className="mt-3 space-y-2">
                               {result.summary.file_extension_breakdown.slice(0, 8).map((item) => (
-                                <div key={item.extension} className="flex items-center justify-between gap-3 rounded-xl border border-theme-border bg-theme-bg-app px-3 py-2 text-xs">
+                                <div key={item.extension} className="flex items-center justify-between gap-3 rounded-xl border border-theme-border bg-theme-surface px-3 py-2 text-xs">
                                   <span className="font-mono text-theme-text-secondary">{item.extension}</span>
                                   <span className="text-theme-text-muted">{item.file_count} 个</span>
                                   <span className="font-bold text-theme-text-primary">{formatBytes(item.total_size_bytes)}</span>
@@ -3261,11 +3261,11 @@ function TaskDetailPanel({
                       </div>
                     </div>
 
- <div className="rounded-2xl border border-theme-border bg-theme-bg-app p-5">
-                      <div className="text-[11px] font-black uppercase tracking-[0.18em] text-theme-text-muted">文本结果</div>
+ <div className="rounded-2xl border border-theme-border bg-theme-surface p-5">
+                      <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-theme-text-muted">文本结果</div>
                       <div className="mt-4">
                         <div className="space-y-4">
-                          <div className="rounded-2xl border border-theme-border bg-theme-bg-app p-3">
+                          <div className="rounded-2xl border border-theme-border bg-theme-surface p-3">
                             <div className="flex flex-wrap items-center gap-2">
                               {[
                                 {
@@ -3305,22 +3305,22 @@ function TaskDetailPanel({
                             </div>
 
                             {!resultDocumentState.hasSummary && !resultDocumentState.hasReason ? (
-                              <div className="mt-4 rounded-xl border border-dashed border-theme-border bg-theme-bg-app px-4 py-8 text-center text-sm text-theme-text-muted">
+                              <div className="mt-4 rounded-xl border border-dashed border-theme-border bg-theme-surface px-4 py-8 text-center text-sm text-theme-text-muted">
                                 暂无结果文档
                               </div>
                             ) : !resultDocumentState.selectedText ? (
-                              <div className="mt-4 rounded-xl border border-dashed border-theme-border bg-theme-bg-app px-4 py-8 text-center text-sm text-theme-text-muted">
+                              <div className="mt-4 rounded-xl border border-dashed border-theme-border bg-theme-surface px-4 py-8 text-center text-sm text-theme-text-muted">
                                 {resultDocumentState.selectedDoc === 'summary' ? '当前文档未生成' : '当前文档未生成'}
                               </div>
                             ) : (
  <div className="mt-4 rounded-[1.75rem] border border-theme-border bg-theme-bg-app p-6">
-                                <div className="text-[11px] font-black uppercase tracking-[0.18em] text-theme-text-muted">
+                                <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-theme-text-muted">
                                   {resultDocumentState.selectedDoc === 'summary' ? '报告总结' : '改进总结'}
                                 </div>
-                                <div className="mt-3 rounded-xl border border-theme-border bg-theme-bg-app px-3 py-2 break-all font-mono text-[11px] text-theme-text-muted">
+                                <div className="mt-3 rounded-xl border border-theme-border bg-theme-surface px-3 py-2 break-all font-mono text-[11px] text-theme-text-muted">
                                   {resultDocumentState.selectedPath || '-'}
                                 </div>
-                                <div className="mt-5 rounded-[1.5rem] border border-theme-border bg-theme-bg-app px-6 py-5">
+                                <div className="mt-5 rounded-xl border border-theme-border bg-theme-surface px-6 py-5">
                                   <div className="mb-4 flex items-center justify-between gap-3 border-b border-theme-border pb-3">
                                     <div className="rounded-full border border-theme-border bg-theme-bg-app px-3 py-1 text-[11px] font-bold text-theme-text-muted">
                                       {resultDocumentState.selectedDoc === 'summary' ? 'summary.md' : 'reason.md'}
@@ -3329,7 +3329,7 @@ function TaskDetailPanel({
                                   <div
                                     className="
                                       prose prose-slate max-w-none text-[15px] leading-7
-                                      prose-headings:scroll-mt-24 prose-headings:font-black prose-headings:text-theme-text-primary
+                                      prose-headings:scroll-mt-24 prose-headings:font-semibold prose-headings:text-theme-text-primary
                                       prose-h1:text-3xl prose-h1:tracking-tight prose-h1:border-b prose-h1:border-theme-border prose-h1:pb-3
                                       prose-h2:text-xl prose-h2:mt-8 prose-h2:border-b prose-h2:border-theme-border prose-h2:pb-2
                                       prose-h3:text-base prose-h3:mt-6
@@ -3346,7 +3346,7 @@ function TaskDetailPanel({
                                       prose-pre:
                                       prose-table:block prose-table:w-full prose-table:overflow-x-auto
                                       prose-thead:border-b prose-thead:border-theme-border
-                                      prose-th:bg-theme-elevated prose-th:px-3 prose-th:py-2 prose-th:text-left prose-th:text-[12px] prose-th:font-black prose-th:uppercase prose-th:tracking-wide prose-th:text-theme-text-secondary
+                                      prose-th:bg-theme-elevated prose-th:px-3 prose-th:py-2 prose-th:text-left prose-th:text-[12px] prose-th:font-semibold prose-th:uppercase prose-th:tracking-wide prose-th:text-theme-text-secondary
                                       prose-td:px-3 prose-td:py-2 prose-td:border-b prose-td:border-theme-border prose-td:text-theme-text-secondary"
                                   >
                                   <ReactMarkdown remarkPlugins={[remarkGfm]}>{resultDocumentState.selectedText}</ReactMarkdown>
@@ -3361,8 +3361,8 @@ function TaskDetailPanel({
                   </div>
 
                   <aside className="space-y-4">
- <div className="rounded-2xl border border-theme-border bg-theme-bg-app p-5">
-                      <div className="text-[11px] font-black uppercase tracking-[0.18em] text-theme-text-muted">运行统计</div>
+ <div className="rounded-2xl border border-theme-border bg-theme-surface p-5">
+                      <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-theme-text-muted">运行统计</div>
                       <div className="mt-4 space-y-2 text-xs text-theme-text-secondary">
                         <div className="flex items-center justify-between gap-3"><span>状态</span><span className="font-bold text-theme-text-primary">{result.status}</span></div>
                         <div className="flex items-center justify-between gap-3"><span>会话数</span><span className="font-bold text-theme-text-primary">{result.summary.session_count}</span></div>
@@ -3378,7 +3378,7 @@ function TaskDetailPanel({
 
                     {result.warnings.length > 0 ? (
  <div className="rounded-2xl border border-amber-500/20 bg-amber-500/15 p-5">
-                        <div className="text-[11px] font-black uppercase tracking-[0.18em] text-amber-400">警告</div>
+                        <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-amber-400">警告</div>
                         <ul className="mt-3 list-disc space-y-1 pl-5 text-xs text-amber-400">
                           {result.warnings.map((warning, index) => (
                             <li key={`${warning}-${index}`}>{warning}</li>
@@ -3396,10 +3396,10 @@ function TaskDetailPanel({
 
       {logModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/65 p-6 backdrop-blur-sm">
- <div className="flex max-h-[85vh] w-full max-w-5xl flex-col overflow-hidden rounded-[2rem] border border-theme-border bg-theme-bg-app">
+ <div className="flex max-h-[85vh] w-full max-w-5xl flex-col overflow-hidden rounded-2xl border border-theme-border bg-theme-surface">
             <div className="flex items-start justify-between gap-4 border-b border-theme-border px-6 py-5">
               <div>
-                <h3 className="mt-2 text-xl font-black text-theme-text-primary">{logModalTitle}</h3>
+                <h3 className="mt-2 text-xl font-semibold text-theme-text-primary">{logModalTitle}</h3>
                 <p className="mt-1 text-xs text-theme-text-muted">阶段标识：<span className="font-mono text-theme-text-secondary">{logModalPhase || '-'}</span></p>
               </div>
               <button
@@ -3423,16 +3423,16 @@ function TaskDetailPanel({
               ) : (
                 <>
                   <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                    <div className="rounded-xl border border-theme-border bg-theme-bg-app px-4 py-3">
+                    <div className="rounded-xl border border-theme-border bg-theme-surface px-4 py-3">
                       <p className="text-[11px] font-bold uppercase tracking-wide text-theme-text-muted">日志目录</p>
                       <p className="mt-1 break-all font-mono text-xs text-theme-text-secondary">{taskLog.run_path || '-'}</p>
                     </div>
-                    <div className="rounded-xl border border-theme-border bg-theme-bg-app px-4 py-3">
+                    <div className="rounded-xl border border-theme-border bg-theme-surface px-4 py-3">
                       <p className="text-[11px] font-bold uppercase tracking-wide text-theme-text-muted">日志文件</p>
                       <p className="mt-1 break-all font-mono text-xs text-theme-text-secondary">{taskLog.files?.join(', ') || '-'}</p>
                     </div>
                   </div>
-                  <pre className="min-h-[320px] overflow-auto rounded-2xl border border-theme-border bg-theme-bg-app px-4 py-4 text-[12px] leading-6 text-theme-text-primary whitespace-pre-wrap break-words">{taskLog.log_text || taskLog.message || '暂无日志内容'}</pre>
+                  <pre className="min-h-[320px] overflow-auto rounded-2xl border border-theme-border bg-theme-surface px-4 py-4 text-[12px] leading-6 text-theme-text-primary whitespace-pre-wrap break-words">{taskLog.log_text || taskLog.message || '暂无日志内容'}</pre>
                 </>
               )}
             </div>
@@ -3442,10 +3442,10 @@ function TaskDetailPanel({
 
       {evolutionLogModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/65 p-6 backdrop-blur-sm">
- <div className="flex max-h-[85vh] w-full max-w-5xl flex-col overflow-hidden rounded-[2rem] border border-theme-border bg-theme-bg-app">
+ <div className="flex max-h-[85vh] w-full max-w-5xl flex-col overflow-hidden rounded-2xl border border-theme-border bg-theme-surface">
             <div className="flex items-start justify-between gap-4 border-b border-theme-border px-6 py-5">
               <div>
-                <h3 className="mt-2 text-xl font-black text-theme-text-primary">{evolutionLogModalTitle}</h3>
+                <h3 className="mt-2 text-xl font-semibold text-theme-text-primary">{evolutionLogModalTitle}</h3>
               </div>
               <button
                 type="button"
@@ -3468,16 +3468,16 @@ function TaskDetailPanel({
               ) : (
                 <>
                   <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                    <div className="rounded-xl border border-theme-border bg-theme-bg-app px-4 py-3">
+                    <div className="rounded-xl border border-theme-border bg-theme-surface px-4 py-3">
                       <p className="text-[11px] font-bold uppercase tracking-wide text-theme-text-muted">日志目录</p>
                       <p className="mt-1 break-all font-mono text-xs text-theme-text-secondary">{evolutionLog.run_path || '-'}</p>
                     </div>
-                    <div className="rounded-xl border border-theme-border bg-theme-bg-app px-4 py-3">
+                    <div className="rounded-xl border border-theme-border bg-theme-surface px-4 py-3">
                       <p className="text-[11px] font-bold uppercase tracking-wide text-theme-text-muted">日志文件</p>
                       <p className="mt-1 break-all font-mono text-xs text-theme-text-secondary">{evolutionLog.files?.join(', ') || '-'}</p>
                     </div>
                   </div>
-                  <pre className="min-h-[320px] overflow-auto rounded-2xl border border-theme-border bg-theme-bg-app px-4 py-4 text-[12px] leading-6 text-theme-text-primary whitespace-pre-wrap break-words">{evolutionLog.log_text || evolutionLog.message || '暂无日志内容'}</pre>
+                  <pre className="min-h-[320px] overflow-auto rounded-2xl border border-theme-border bg-theme-surface px-4 py-4 text-[12px] leading-6 text-theme-text-primary whitespace-pre-wrap break-words">{evolutionLog.log_text || evolutionLog.message || '暂无日志内容'}</pre>
                 </>
               )}
             </div>
@@ -3960,10 +3960,10 @@ export const FirmwareUnpackerPage: React.FC<Props> = ({ projectId, projects = []
 
       {createModalOpen && (
         <div className="fixed inset-0 z-40 flex items-center justify-center bg-slate-950/65 p-6 backdrop-blur-sm">
- <div className="w-full max-w-2xl rounded-[2rem] border border-theme-border bg-theme-bg-app">
+ <div className="w-full max-w-2xl rounded-xl border border-theme-border bg-theme-surface">
             <div className="flex items-start justify-between gap-4 border-b border-theme-border px-6 py-5">
               <div>
-                <h3 className="mt-2 text-2xl font-black text-theme-text-primary">新建解包任务</h3>
+                <h3 className="mt-2 text-2xl font-bold text-theme-text-primary">新建解包任务</h3>
                 <p className="mt-2 text-sm text-theme-text-muted">使用右上角当前项目，从该项目文件系统中选择待解包固件文件。</p>
               </div>
               <button
@@ -3979,7 +3979,7 @@ export const FirmwareUnpackerPage: React.FC<Props> = ({ projectId, projects = []
             </div>
 
             <form className="space-y-5 px-6 py-6" onSubmit={handleSubmit}>
-              <div className="rounded-2xl border border-theme-border bg-theme-bg-app px-4 py-3">
+              <div className="rounded-2xl border border-theme-border bg-theme-surface px-4 py-3">
                 <p className="text-sm font-semibold text-theme-text-secondary">所属项目</p>
                 <p className="mt-2 text-sm font-bold text-theme-text-primary">{activeProject?.name || '未选择项目'}</p>
                 <p className="mt-1 text-xs text-theme-text-muted">
@@ -4017,7 +4017,7 @@ export const FirmwareUnpackerPage: React.FC<Props> = ({ projectId, projects = []
                 <span className="mt-2 block text-xs font-normal text-theme-text-muted">支持手工输入路径，也支持从项目文件系统直接选择固件文件。</span>
               </label>
 
-              <div className="rounded-2xl border border-theme-border bg-theme-bg-app px-4 py-4">
+              <div className="rounded-2xl border border-theme-border bg-theme-surface px-4 py-4">
                 <p className="text-sm font-semibold text-theme-text-secondary">任务工作目录</p>
                 <p className="mt-2 text-xs leading-6 text-theme-text-muted">
                   提交后会在当前项目根目录自动创建`app/chimera-app-firmware-unpacker/&lt;task-id&gt;`，
@@ -4105,7 +4105,7 @@ export const FirmwareUnpackerPage: React.FC<Props> = ({ projectId, projects = []
         />
       ) : (
       <div className="space-y-4">
- <div className="rounded-2xl border border-theme-border bg-theme-bg-app p-3">
+ <div className="rounded-2xl border border-theme-border bg-theme-surface p-3">
           <div className="grid grid-cols-4 gap-1 text-center">
             {[
               ['总计', total, 'text-theme-text-secondary'],
@@ -4113,20 +4113,20 @@ export const FirmwareUnpackerPage: React.FC<Props> = ({ projectId, projects = []
               ['成功', taskItems.filter((task) => task.status === 'success').length, 'text-emerald-400'],
               ['失败', taskItems.filter((task) => task.status === 'failed').length, 'text-red-400'],
             ].map(([label, count, color]) => (
-              <div key={String(label)} className="rounded-xl bg-theme-bg-app py-1.5">
-                <p className={`text-base font-black ${color}`}>{count}</p>
+              <div key={String(label)} className="rounded-xl bg-theme-surface py-1.5">
+                <p className={`text-base font-semibold ${color}`}>{count}</p>
                 <p className="text-[10px] text-theme-text-muted">{label}</p>
               </div>
             ))}
           </div>
         </div>
 
- <div className="rounded-2xl border border-theme-border bg-theme-bg-app p-4">
+ <div className="rounded-2xl border border-theme-border bg-theme-surface p-4">
           <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
             <div className="min-w-0">
               <div className="flex items-center gap-2">
                 <ListTodo size={14} className="shrink-0 text-violet-400" />
-                <h3 className="text-lg font-black text-theme-text-primary">任务列表</h3>
+                <h3 className="text-lg font-semibold text-theme-text-primary">任务列表</h3>
                 <span className="text-sm font-normal text-theme-text-muted">({total})</span>
               </div>
               <p className="mt-1 text-xs text-theme-text-muted">
@@ -4233,7 +4233,7 @@ export const FirmwareUnpackerPage: React.FC<Props> = ({ projectId, projects = []
           )}
 
           {taskItems.length > 0 && (
-            <div className="mb-2 flex items-center gap-2 rounded-xl bg-theme-bg-app px-3 py-1.5">
+            <div className="mb-2 flex items-center gap-2 rounded-xl bg-theme-surface px-3 py-1.5">
               <input
                 type="checkbox"
                 checked={selected.size === taskItems.length && taskItems.length > 0}
@@ -4245,7 +4245,7 @@ export const FirmwareUnpackerPage: React.FC<Props> = ({ projectId, projects = []
           )}
 
           {!projectId ? (
-            <div className="rounded-xl border border-dashed border-theme-border bg-theme-bg-app py-10 text-center text-xs text-theme-text-muted">
+            <div className="rounded-xl border border-dashed border-theme-border bg-theme-surface py-10 text-center text-xs text-theme-text-muted">
               请先在右上角选择项目，再查看该项目下的固件解包任务
             </div>
           ) : loading && taskItems.length === 0 ? (
@@ -4253,7 +4253,7 @@ export const FirmwareUnpackerPage: React.FC<Props> = ({ projectId, projects = []
               <Loader2 size={20} className="mr-2 animate-spin" /> 加载中...
             </div>
           ) : taskItems.length === 0 ? (
-            <div className="rounded-xl border border-dashed border-theme-border bg-theme-bg-app py-10 text-center text-xs text-theme-text-muted">
+            <div className="rounded-xl border border-dashed border-theme-border bg-theme-surface py-10 text-center text-xs text-theme-text-muted">
               暂无任务记录
             </div>
           ) : (

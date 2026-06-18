@@ -224,7 +224,7 @@ export const TaskVulnListPage: React.FC<Props> = ({ projectId, taskId, onBack })
                     className="absolute right-0 z-20 mt-1 max-h-[60vh] w-56 overflow-auto rounded-lg p-2"
                     style={{ backgroundColor: LK.surfaceRaised, border: `1px solid ${LK.border}` }}
                   >
-                    <div className="px-2 py-1 text-[10px] font-black uppercase tracking-widest" style={{ color: LK.mutedSoft }}>
+                    <div className="px-2 py-1 text-[10px] font-semibold uppercase tracking-widest" style={{ color: LK.mutedSoft }}>
                       可选列
                     </div>
                     {OPTIONAL_COLUMNS.map((col) => {
@@ -279,7 +279,7 @@ export const TaskVulnListPage: React.FC<Props> = ({ projectId, taskId, onBack })
             >
               <div>
                 <div className="text-xs" style={{ color: LK.muted }}>{stat.label}</div>
-                <div className="mt-1 text-2xl font-semibold tabular-nums" style={{ color: LK.ink }}>{stat.value}</div>
+                <div className="mt-1 text-2xl font-bold tabular-nums" style={{ color: LK.ink }}>{stat.value}</div>
               </div>
               <div className="flex h-9 w-9 items-center justify-center rounded-md" style={{ backgroundColor: LK.surfaceRaised, color: LK.body }}>
                 <Icon size={18} />

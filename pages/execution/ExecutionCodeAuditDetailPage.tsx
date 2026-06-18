@@ -77,11 +77,11 @@ const CredentialItem: React.FC<{ label: string; value?: string }> = ({ label, va
 
   return (
     <div className="flex flex-col gap-1.5">
-      <span className="text-[9px] font-black text-theme-text-muted uppercase tracking-[0.2em] ml-1">{label}</span>
- <div className="bg-theme-bg-app border border-theme-border p-4 rounded-2xl flex items-center justify-between group relative overflow-hidden hover:border-blue-500/20 transition-colors">
+      <span className="text-[9px] font-semibold text-theme-text-muted uppercase tracking-[0.2em] ml-1">{label}</span>
+ <div className="bg-theme-surface border border-theme-border p-4 rounded-2xl flex items-center justify-between group relative overflow-hidden hover:border-blue-500/20 transition-colors">
         <div className="flex items-center gap-3 min-w-0">
           <Key size={14} className="text-blue-500 shrink-0" />
-          <span className="text-sm font-mono font-black text-theme-text-secondary truncate">
+          <span className="text-sm font-mono font-semibold text-theme-text-secondary truncate">
             {isVisible ? value : '••••••••••••••••'}
           </span>
         </div>
@@ -211,7 +211,7 @@ export const ExecutionCodeAuditDetailPage: React.FC<ExecutionCodeAuditDetailPage
     return (
       <div className="h-full flex flex-col items-center justify-center p-20 animate-in fade-in">
         <Loader2 className="animate-spin text-blue-400 mb-6" size={64} />
-        <p className="text-[11px] font-black text-theme-text-muted uppercase tracking-[0.3em]"> Establishing Encrypted Session with K8S Engine...</p>
+        <p className="text-[11px] font-medium text-theme-text-muted uppercase tracking-[0.3em]"> Establishing Encrypted Session with K8S Engine...</p>
       </div>
     );
   }
@@ -236,16 +236,16 @@ export const ExecutionCodeAuditDetailPage: React.FC<ExecutionCodeAuditDetailPage
         <div className="flex items-center gap-6">
           <button
             onClick={onBack}
- className="p-4 bg-theme-bg-app border border-theme-border rounded-2xl hover:bg-theme-elevated transition-all group active:scale-95"
+ className="p-4 bg-theme-surface border border-theme-border rounded-2xl hover:bg-theme-elevated transition-all group active:scale-95"
           >
             <ChevronLeft size={24} className="group-hover:-translate-x-1 transition-transform text-theme-text-secondary" />
           </button>
           <div className="space-y-1">
             <div className="flex items-center gap-4">
-              <h2 className="text-3xl font-black text-theme-text-primary tracking-tighter">{instanceName}</h2>
+              <h2 className="text-3xl font-bold text-theme-text-primary tracking-tighter">{instanceName}</h2>
               <StatusBadge status={currentStatus} />
               {podStatus && podStatus !== 'Running' && (
-                <span className={`text-[9px] font-black px-2 py-0.5 rounded-lg border uppercase animate-pulse ${
+                <span className={`text-[9px] font-semibold px-2 py-0.5 rounded-lg border uppercase animate-pulse ${
                   isPending ? 'bg-amber-500/15 text-amber-400 border-amber-500/20' : 'bg-red-500/15 text-red-400 border-red-500/20'
                 }`}>
                    {podStatus}
@@ -253,11 +253,11 @@ export const ExecutionCodeAuditDetailPage: React.FC<ExecutionCodeAuditDetailPage
               )}
             </div>
             <div className="flex items-center gap-4 pt-1">
-               <div className="flex items-center gap-2 text-theme-text-muted font-black text-[10px] uppercase tracking-widest">
+               <div className="flex items-center gap-2 text-theme-text-muted font-semibold text-[10px] uppercase tracking-widest">
                  <Box size={14} className="text-blue-500" /> UUID: <span className="text-theme-text-secondary font-mono">{(k8sStatus?.id || instance?.id)?.slice(0, 8)}</span>
                </div>
                <div className="w-1 h-1 bg-theme-elevated rounded-full" />
-               <div className="flex items-center gap-2 text-theme-text-muted font-black text-[10px] uppercase tracking-widest">
+               <div className="flex items-center gap-2 text-theme-text-muted font-semibold text-[10px] uppercase tracking-widest">
                  <Calendar size={14} className="text-indigo-500" /> DEPLOYED: <span className="text-theme-text-secondary">{instance?.created_at?.split('T')[0]}</span>
                </div>
             </div>
@@ -268,7 +268,7 @@ export const ExecutionCodeAuditDetailPage: React.FC<ExecutionCodeAuditDetailPage
           {instance?.access_url && currentStatus === 'running' && (
             <a
               href={instance.access_url} target="_blank" rel="noreferrer"
- className="px-6 py-3 bg-blue-600 text-white rounded-2xl font-black text-xs hover:bg-blue-700 transition-all flex items-center gap-2 active:scale-95"
+ className="px-6 py-3 bg-blue-600 text-white rounded-2xl font-semibold text-xs hover:bg-blue-700 transition-all flex items-center gap-2 active:scale-95"
             >
               LAUNCH VSCODE <ArrowUpRight size={16} />
             </a>
@@ -277,7 +277,7 @@ export const ExecutionCodeAuditDetailPage: React.FC<ExecutionCodeAuditDetailPage
           <div className="flex items-center gap-2">
              <button
                onClick={loadAll}
- className="p-3 bg-theme-bg-app border border-theme-border text-theme-text-muted hover:text-blue-400 rounded-xl transition-all group"
+ className="p-3 bg-theme-surface border border-theme-border text-theme-text-muted hover:text-blue-400 rounded-xl transition-all group"
                title="Refresh Remote Context"
              >
                <RefreshCw size={18} className={loading ? 'animate-spin' : 'group-hover:rotate-180 transition-transform duration-500'} />
@@ -285,13 +285,13 @@ export const ExecutionCodeAuditDetailPage: React.FC<ExecutionCodeAuditDetailPage
              <button
                onClick={() => setShowRebuildConfirm(true)}
                disabled={isPending || isActionProcessing}
-               className="px-5 py-3 bg-amber-500/15 text-amber-400 border border-amber-500/20 rounded-2xl font-black text-xs hover:bg-amber-600 hover:text-white transition-all flex items-center gap-2 disabled:opacity-50"
+               className="px-5 py-3 bg-amber-500/15 text-amber-400 border border-amber-500/20 rounded-2xl font-semibold text-xs hover:bg-amber-600 hover:text-white transition-all flex items-center gap-2 disabled:opacity-50"
              >
                <RefreshCw size={14} /> REBUILD
              </button>
              <button
                onClick={() => setShowDeleteConfirm(true)}
- className="px-5 py-3 bg-red-600 text-white rounded-2xl font-black text-xs hover:bg-red-700 transition-all flex items-center gap-2 shadow-red-500/20"
+ className="px-5 py-3 bg-red-600 text-white rounded-2xl font-semibold text-xs hover:bg-red-700 transition-all flex items-center gap-2 shadow-red-500/20"
              >
                <Trash2 size={14} /> DESTROY
              </button>
@@ -299,7 +299,7 @@ export const ExecutionCodeAuditDetailPage: React.FC<ExecutionCodeAuditDetailPage
         </div>
       </div>
 
- <div className="rounded-2xl border border-theme-border bg-theme-bg-app p-2">
+ <div className="rounded-2xl border border-theme-border bg-theme-surface p-2">
         <div className="grid grid-cols-2 gap-2 md:grid-cols-4">
           {[
             { key: 'overview' as const, label: '概览' },
@@ -311,7 +311,7 @@ export const ExecutionCodeAuditDetailPage: React.FC<ExecutionCodeAuditDetailPage
               key={tab.key}
               type="button"
               onClick={() => setActiveTab(tab.key)}
-              className={`rounded-xl px-3 py-2 text-[11px] font-black uppercase tracking-widest transition ${
+              className={`rounded-xl px-3 py-2 text-[11px] font-semibold uppercase tracking-widest transition ${
                 activeTab === tab.key ? 'bg-blue-600 text-white' : 'bg-theme-bg-app text-theme-text-secondary hover:bg-theme-elevated'
               }`}
             >
@@ -328,29 +328,29 @@ export const ExecutionCodeAuditDetailPage: React.FC<ExecutionCodeAuditDetailPage
            {/* Telemetry Section */}
  <div className="bg-theme-bg-app p-8 rounded-[2.5rem] border border-theme-border space-y-6">
               <div className="flex items-center justify-between">
-                 <h4 className="text-[10px] font-black text-theme-text-muted uppercase tracking-[0.25em] flex items-center gap-2">
+                 <h4 className="text-[10px] font-medium text-theme-text-muted uppercase tracking-[0.25em] flex items-center gap-2">
                    <Activity size={16} className="text-blue-500" /> K8S Telemetry
                  </h4>
-                 {currentStatus === 'running' && <div className="flex items-center gap-1.5 px-2 py-0.5 bg-green-500/15 text-green-400 rounded-full text-[8px] font-black uppercase"><div className="w-1 h-1 rounded-full bg-green-500 animate-pulse" /> Live</div>}
+                 {currentStatus === 'running' && <div className="flex items-center gap-1.5 px-2 py-0.5 bg-green-500/15 text-green-400 rounded-full text-[8px] font-semibold uppercase"><div className="w-1 h-1 rounded-full bg-green-500 animate-pulse" /> Live</div>}
               </div>
 
               <div className="space-y-4">
                  <div className="flex justify-between items-center border-b border-slate-50 pb-3">
-                    <span className="text-[9px] font-black text-theme-text-muted uppercase">POD IP Address</span>
-                    <span className={`text-xs font-mono font-black ${k8sStatus?.pod_ip ? 'text-blue-400' : 'text-theme-text-faint'}`}>
+                    <span className="text-[9px] font-semibold text-theme-text-muted uppercase">POD IP Address</span>
+                    <span className={`text-xs font-mono font-semibold ${k8sStatus?.pod_ip ? 'text-blue-400' : 'text-theme-text-faint'}`}>
                        {k8sStatus?.pod_ip || 'PENDING...'}
                     </span>
                  </div>
                  <div className="flex justify-between items-center border-b border-slate-50 pb-3">
-                    <span className="text-[9px] font-black text-theme-text-muted uppercase">Host Node</span>
-                    <span className={`text-[10px] font-black ${k8sStatus?.node_name ? 'text-theme-text-secondary' : 'text-theme-text-faint'}`}>
+                    <span className="text-[9px] font-semibold text-theme-text-muted uppercase">Host Node</span>
+                    <span className={`text-[10px] font-semibold ${k8sStatus?.node_name ? 'text-theme-text-secondary' : 'text-theme-text-faint'}`}>
                        {k8sStatus?.node_name || 'SCHEDULING...'}
                     </span>
                  </div>
                  <div className="flex justify-between items-center border-b border-slate-50 pb-3">
-                    <span className="text-[9px] font-black text-theme-text-muted uppercase">Instance Replicas</span>
+                    <span className="text-[9px] font-semibold text-theme-text-muted uppercase">Instance Replicas</span>
                     <div className="flex items-center gap-2">
-                       <span className="text-xs font-black text-theme-text-secondary">
+                       <span className="text-xs font-semibold text-theme-text-secondary">
                           {k8sStatus?.ready_replicas ?? 0} / {k8sStatus?.total_replicas ?? 1}
                        </span>
                        <div className="w-16 h-1.5 bg-theme-elevated rounded-full overflow-hidden">
@@ -362,7 +362,7 @@ export const ExecutionCodeAuditDetailPage: React.FC<ExecutionCodeAuditDetailPage
                     </div>
                  </div>
                  <div className="flex justify-between items-center">
-                    <span className="text-[9px] font-black text-theme-text-muted uppercase">Access Endpoint</span>
+                    <span className="text-[9px] font-semibold text-theme-text-muted uppercase">Access Endpoint</span>
                     <div className="flex items-center gap-2 min-w-0 flex-1 justify-end ml-4">
                        <Globe size={12} className="text-blue-500 shrink-0" />
                        <span className="text-[10px] font-mono font-bold text-theme-text-secondary truncate hover:text-blue-400 transition-colors">
@@ -375,7 +375,7 @@ export const ExecutionCodeAuditDetailPage: React.FC<ExecutionCodeAuditDetailPage
 
            {/* Credentials Section */}
            <div className="bg-theme-bg-app p-8 rounded-[2.5rem] border border-theme-border space-y-6">
-              <h4 className="text-[10px] font-black text-theme-text-muted uppercase tracking-[0.25em] flex items-center gap-2">
+              <h4 className="text-[10px] font-medium text-theme-text-muted uppercase tracking-[0.25em] flex items-center gap-2">
                 <Lock size={16} className="text-amber-500" /> Access Credentials
               </h4>
 
@@ -388,16 +388,16 @@ export const ExecutionCodeAuditDetailPage: React.FC<ExecutionCodeAuditDetailPage
            {/* Storage Persistence */}
  <div className="bg-theme-bg-app p-8 rounded-[2.5rem] border border-theme-border space-y-6 overflow-hidden relative">
               <Database className="absolute right-[-10px] bottom-[-10px] w-20 h-20 opacity-5" />
-              <h4 className="text-[10px] font-black text-theme-text-muted uppercase tracking-[0.25em] flex items-center gap-2">
+              <h4 className="text-[10px] font-medium text-theme-text-muted uppercase tracking-[0.25em] flex items-center gap-2">
                 <HardDrive size={16} className="text-indigo-500" /> Persistence Mapping
               </h4>
 
               <div className="space-y-3 max-h-40 overflow-y-auto custom-scrollbar pr-2">
                  {instance?.source_pvcs?.map((pvc: any, i: number) => (
-                    <div key={i} className="flex items-center gap-3 p-3 bg-theme-bg-app rounded-xl border border-theme-border">
+                    <div key={i} className="flex items-center gap-3 p-3 bg-theme-surface rounded-xl border border-theme-border">
                        <FileCode size={14} className="text-blue-500 shrink-0" />
                        <div className="min-w-0">
-                          <p className="text-[10px] font-black text-theme-text-secondary truncate">{pvc.pvc_name}</p>
+                          <p className="text-[10px] font-semibold text-theme-text-secondary truncate">{pvc.pvc_name}</p>
                           <p className="text-[8px] font-mono text-theme-text-muted uppercase truncate">MT: {pvc.mount_path}</p>
                        </div>
                     </div>
@@ -406,13 +406,13 @@ export const ExecutionCodeAuditDetailPage: React.FC<ExecutionCodeAuditDetailPage
                     <div key={i} className="flex items-center gap-3 p-3 bg-theme-surface rounded-xl text-white">
                        <Database size={14} className="text-indigo-400 shrink-0" />
                        <div className="min-w-0">
-                          <p className="text-[10px] font-black truncate">{pvc.pvc_name}</p>
+                          <p className="text-[10px] font-semibold truncate">{pvc.pvc_name}</p>
                           <p className="text-[8px] font-mono text-theme-text-muted uppercase truncate">MT: {pvc.mount_path}</p>
                        </div>
                     </div>
                  ))}
                  {(!instance?.source_pvcs?.length && !instance?.output_pvcs?.length) && (
-                    <div className="p-4 bg-theme-bg-app rounded-2xl text-[10px] font-bold text-theme-text-muted italic text-center">No storage attached</div>
+                    <div className="p-4 bg-theme-surface rounded-2xl text-[10px] font-bold text-theme-text-muted italic text-center">No storage attached</div>
                  )}
               </div>
            </div>
@@ -421,30 +421,30 @@ export const ExecutionCodeAuditDetailPage: React.FC<ExecutionCodeAuditDetailPage
 
         {activeTab === 'mounts' && (
  <div className="bg-theme-bg-app p-8 rounded-[2.5rem] border border-theme-border space-y-6">
-            <h4 className="text-[10px] font-black text-theme-text-muted uppercase tracking-[0.25em] flex items-center gap-2">
+            <h4 className="text-[10px] font-medium text-theme-text-muted uppercase tracking-[0.25em] flex items-center gap-2">
               <HardDrive size={16} className="text-indigo-500" /> 挂载明细
             </h4>
             <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
               <div className="space-y-3">
-                <p className="text-[10px] font-black uppercase tracking-widest text-theme-text-muted">输入挂载（源码）</p>
+                <p className="text-[10px] font-semibold uppercase tracking-widest text-theme-text-muted">输入挂载（源码）</p>
                 {(instance?.source_pvcs || []).length > 0 ? (instance.source_pvcs || []).map((pvc: any, i: number) => (
-                  <div key={`source-${i}`} className="rounded-xl border border-theme-border bg-theme-bg-app p-3">
-                    <p className="text-xs font-black text-theme-text-secondary">{pvc.pvc_name || '-'}</p>
+                  <div key={`source-${i}`} className="rounded-xl border border-theme-border bg-theme-surface p-3">
+                    <p className="text-xs font-semibold text-theme-text-secondary">{pvc.pvc_name || '-'}</p>
                     <p className="mt-1 text-[11px] font-mono text-theme-text-muted">{pvc.mount_path || '-'}</p>
                   </div>
                 )) : (
-                  <div className="rounded-xl border border-dashed border-theme-border bg-theme-bg-app p-4 text-xs text-theme-text-muted">无输入挂载</div>
+                  <div className="rounded-xl border border-dashed border-theme-border bg-theme-surface p-4 text-xs text-theme-text-muted">无输入挂载</div>
                 )}
               </div>
               <div className="space-y-3">
-                <p className="text-[10px] font-black uppercase tracking-widest text-theme-text-muted">输出挂载（结果）</p>
+                <p className="text-[10px] font-semibold uppercase tracking-widest text-theme-text-muted">输出挂载（结果）</p>
                 {(instance?.output_pvcs || []).length > 0 ? (instance.output_pvcs || []).map((pvc: any, i: number) => (
-                  <div key={`output-${i}`} className="rounded-xl border border-theme-border bg-theme-bg-app p-3">
-                    <p className="text-xs font-black text-theme-text-secondary">{pvc.pvc_name || '-'}</p>
+                  <div key={`output-${i}`} className="rounded-xl border border-theme-border bg-theme-surface p-3">
+                    <p className="text-xs font-semibold text-theme-text-secondary">{pvc.pvc_name || '-'}</p>
                     <p className="mt-1 text-[11px] font-mono text-theme-text-muted">{pvc.mount_path || '-'}</p>
                   </div>
                 )) : (
-                  <div className="rounded-xl border border-dashed border-theme-border bg-theme-bg-app p-4 text-xs text-theme-text-muted">无输出挂载</div>
+                  <div className="rounded-xl border border-dashed border-theme-border bg-theme-surface p-4 text-xs text-theme-text-muted">无输出挂载</div>
                 )}
               </div>
             </div>
@@ -454,26 +454,26 @@ export const ExecutionCodeAuditDetailPage: React.FC<ExecutionCodeAuditDetailPage
         {activeTab === 'llm' && (
  <div className="bg-theme-bg-app p-8 rounded-[2.5rem] border border-theme-border space-y-6">
           <div className="flex items-center justify-between">
-            <h4 className="text-[10px] font-black text-theme-text-muted uppercase tracking-[0.25em] flex items-center gap-2">
+            <h4 className="text-[10px] font-medium text-theme-text-muted uppercase tracking-[0.25em] flex items-center gap-2">
               <Bot size={16} className="text-violet-500" /> LLM Provider Binding
             </h4>
             {llmProviderKeys.length > 0 ? (
-              <span className="px-3 py-1 rounded-full bg-violet-500/15 text-violet-400 text-[10px] font-black uppercase tracking-widest">
+              <span className="px-3 py-1 rounded-full bg-violet-500/15 text-violet-400 text-[10px] font-semibold uppercase tracking-widest">
                 Bound
               </span>
             ) : (
-              <span className="px-3 py-1 rounded-full bg-theme-elevated text-theme-text-muted text-[10px] font-black uppercase tracking-widest">
+              <span className="px-3 py-1 rounded-full bg-theme-elevated text-theme-text-muted text-[10px] font-semibold uppercase tracking-widest">
                 Not Bound
               </span>
             )}
           </div>
           {llmProviderKeys.length > 0 ? (
             <div className="space-y-4">
-              <div className="p-4 rounded-2xl border border-theme-border bg-theme-bg-app">
-                <p className="text-[10px] font-black text-theme-text-muted uppercase tracking-widest">Provider Keys</p>
+              <div className="p-4 rounded-2xl border border-theme-border bg-theme-surface">
+                <p className="text-[10px] font-semibold text-theme-text-muted uppercase tracking-widest">Provider Keys</p>
                 <div className="mt-2 flex flex-wrap gap-2">
                   {llmProviderKeys.map((key: string) => (
-                    <span key={key} className="rounded-full border border-violet-500/20 bg-violet-500/15 px-2 py-0.5 text-[10px] font-black text-violet-400">
+                    <span key={key} className="rounded-full border border-violet-500/20 bg-violet-500/15 px-2 py-0.5 text-[10px] font-medium text-violet-400">
                       {key}
                     </span>
                   ))}
@@ -481,46 +481,46 @@ export const ExecutionCodeAuditDetailPage: React.FC<ExecutionCodeAuditDetailPage
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
                 {llmProviderSnapshots.map((snapshot: any, idx: number) => (
-                  <div key={`${snapshot?.provider_key || 'provider'}-${idx}`} className="p-4 rounded-2xl border border-theme-border bg-theme-bg-app">
-                    <p className="text-[10px] font-black text-theme-text-muted uppercase tracking-widest">Provider {idx + 1}</p>
-                    <p className="mt-2 text-xs font-black text-theme-text-secondary">{snapshot?.display_name || snapshot?.provider_key || '-'}</p>
+                  <div key={`${snapshot?.provider_key || 'provider'}-${idx}`} className="p-4 rounded-2xl border border-theme-border bg-theme-surface">
+                    <p className="text-[10px] font-semibold text-theme-text-muted uppercase tracking-widest">Provider {idx + 1}</p>
+                    <p className="mt-2 text-xs font-semibold text-theme-text-secondary">{snapshot?.display_name || snapshot?.provider_key || '-'}</p>
                     <p className="mt-1 text-[11px] text-theme-text-muted">{snapshot?.provider_type || '-'} · {snapshot?.model || '-'}</p>
                   </div>
                 ))}
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
-              <div className="p-4 rounded-2xl border border-theme-border bg-theme-bg-app">
-                <p className="text-[10px] font-black text-theme-text-muted uppercase tracking-widest">Provider Key</p>
-                <p className="mt-2 text-xs font-mono font-black text-theme-text-secondary break-all">{instance?.llm_provider_key || '-'}</p>
+              <div className="p-4 rounded-2xl border border-theme-border bg-theme-surface">
+                <p className="text-[10px] font-semibold text-theme-text-muted uppercase tracking-widest">Provider Key</p>
+                <p className="mt-2 text-xs font-mono font-semibold text-theme-text-secondary break-all">{instance?.llm_provider_key || '-'}</p>
               </div>
-              <div className="p-4 rounded-2xl border border-theme-border bg-theme-bg-app">
-                <p className="text-[10px] font-black text-theme-text-muted uppercase tracking-widest">Display Name</p>
-                <p className="mt-2 text-xs font-black text-theme-text-secondary">{llmSnapshot?.display_name || '-'}</p>
+              <div className="p-4 rounded-2xl border border-theme-border bg-theme-surface">
+                <p className="text-[10px] font-semibold text-theme-text-muted uppercase tracking-widest">Display Name</p>
+                <p className="mt-2 text-xs font-semibold text-theme-text-secondary">{llmSnapshot?.display_name || '-'}</p>
               </div>
-              <div className="p-4 rounded-2xl border border-theme-border bg-theme-bg-app">
-                <p className="text-[10px] font-black text-theme-text-muted uppercase tracking-widest">Provider Type</p>
-                <p className="mt-2 text-xs font-black text-theme-text-secondary">{llmSnapshot?.provider_type || '-'}</p>
+              <div className="p-4 rounded-2xl border border-theme-border bg-theme-surface">
+                <p className="text-[10px] font-semibold text-theme-text-muted uppercase tracking-widest">Provider Type</p>
+                <p className="mt-2 text-xs font-semibold text-theme-text-secondary">{llmSnapshot?.provider_type || '-'}</p>
               </div>
-              <div className="p-4 rounded-2xl border border-theme-border bg-theme-bg-app">
-                <p className="text-[10px] font-black text-theme-text-muted uppercase tracking-widest">Model</p>
-                <p className="mt-2 text-xs font-black text-theme-text-secondary">{llmSnapshot?.model || '-'}</p>
+              <div className="p-4 rounded-2xl border border-theme-border bg-theme-surface">
+                <p className="text-[10px] font-semibold text-theme-text-muted uppercase tracking-widest">Model</p>
+                <p className="mt-2 text-xs font-semibold text-theme-text-secondary">{llmSnapshot?.model || '-'}</p>
               </div>
-              <div className="p-4 rounded-2xl border border-theme-border bg-theme-bg-app">
-                <p className="text-[10px] font-black text-theme-text-muted uppercase tracking-widest">Mapped Env Keys</p>
-                <p className="mt-2 text-xs font-black text-theme-text-secondary">{llmMappedEnvKeys.length}</p>
+              <div className="p-4 rounded-2xl border border-theme-border bg-theme-surface">
+                <p className="text-[10px] font-semibold text-theme-text-muted uppercase tracking-widest">Mapped Env Keys</p>
+                <p className="mt-2 text-xs font-semibold text-theme-text-secondary">{llmMappedEnvKeys.length}</p>
               </div>
-              <div className="p-4 rounded-2xl border border-theme-border bg-theme-bg-app">
-                <p className="text-[10px] font-black text-theme-text-muted uppercase tracking-widest">File Bindings</p>
-                <p className="mt-2 text-xs font-black text-theme-text-secondary">{llmFileBindings.length}</p>
+              <div className="p-4 rounded-2xl border border-theme-border bg-theme-surface">
+                <p className="text-[10px] font-semibold text-theme-text-muted uppercase tracking-widest">File Bindings</p>
+                <p className="mt-2 text-xs font-semibold text-theme-text-secondary">{llmFileBindings.length}</p>
               </div>
-              <div className="p-4 rounded-2xl border border-theme-border bg-theme-bg-app md:col-span-2 xl:col-span-2">
-                <p className="text-[10px] font-black text-theme-text-muted uppercase tracking-widest">ConfigMap</p>
-                <p className="mt-2 text-xs font-mono font-black text-theme-text-secondary break-all">{instance?.llm_configmap_name || '-'}</p>
+              <div className="p-4 rounded-2xl border border-theme-border bg-theme-surface md:col-span-2 xl:col-span-2">
+                <p className="text-[10px] font-semibold text-theme-text-muted uppercase tracking-widest">ConfigMap</p>
+                <p className="mt-2 text-xs font-mono font-semibold text-theme-text-secondary break-all">{instance?.llm_configmap_name || '-'}</p>
               </div>
             </div>
             </div>
           ) : (
-            <div className="p-4 rounded-2xl border border-dashed border-theme-border bg-theme-bg-app text-xs text-theme-text-muted">
+            <div className="p-4 rounded-2xl border border-dashed border-theme-border bg-theme-surface text-xs text-theme-text-muted">
               当前实例未绑定 LLM Provider。
             </div>
           )}
@@ -537,7 +537,7 @@ export const ExecutionCodeAuditDetailPage: React.FC<ExecutionCodeAuditDetailPage
                     <Terminal size={24} />
                  </div>
                  <div>
-                    <h3 className="text-xl font-black text-white tracking-wide">实时运行日志</h3>
+                    <h3 className="text-xl font-semibold text-white tracking-wide">实时运行日志</h3>
                     <div className="flex items-center gap-3 mt-1">
                        <div className="text-[10px] text-theme-text-muted font-bold uppercase tracking-widest flex items-center gap-2">
                           <div className={`w-1.5 h-1.5 rounded-full ${currentStatus === 'running' ? 'bg-green-500 animate-pulse' : 'bg-theme-elevated'}`} />
@@ -554,7 +554,7 @@ export const ExecutionCodeAuditDetailPage: React.FC<ExecutionCodeAuditDetailPage
                        <button
                          key={val}
                          onClick={() => setTailLines(val)}
- className={`px-3 py-1.5 rounded-lg text-[9px] font-black uppercase transition-all ${tailLines === val ? 'bg-blue-600 text-white ' : 'text-theme-text-muted hover:text-theme-text-faint'}`}
+ className={`px-3 py-1.5 rounded-lg text-[9px] font-semibold uppercase transition-all ${tailLines === val ? 'bg-blue-600 text-white ' : 'text-theme-text-muted hover:text-theme-text-faint'}`}
                        >
                          {val} Lines
                        </button>
@@ -576,7 +576,7 @@ export const ExecutionCodeAuditDetailPage: React.FC<ExecutionCodeAuditDetailPage
                 <div className="space-y-1">
                    {logs.split('\n').map((line, i) => (
                      <div key={i} className="flex gap-6 group hover:bg-slate-100/10 px-3 py-0.5 -mx-3 rounded-lg transition-colors">
-                        <span className="text-theme-text-secondary w-10 shrink-0 text-right select-none opacity-40 group-hover:opacity-100 font-black">{i + 1}</span>
+                        <span className="text-theme-text-secondary w-10 shrink-0 text-right select-none opacity-40 group-hover:opacity-100 font-semibold">{i + 1}</span>
                         <span className={`break-all whitespace-pre-wrap ${
                           line.toLowerCase().includes('error') ? 'text-red-400 font-bold bg-red-400/5' :
                           line.toLowerCase().includes('warn') ? 'text-amber-300' :
@@ -594,7 +594,7 @@ export const ExecutionCodeAuditDetailPage: React.FC<ExecutionCodeAuditDetailPage
                    <div className="w-16 h-16 bg-slate-100/10 rounded-full flex items-center justify-center animate-pulse">
                       <Monitor size={40} className="text-theme-text-secondary" />
                    </div>
-                   <p className="text-[10px] font-black uppercase tracking-[0.4em] text-theme-text-secondary">Awaiting Log Buffer Sync...</p>
+                   <p className="text-[10px] font-semibold uppercase tracking-[0.4em] text-theme-text-secondary">Awaiting Log Buffer Sync...</p>
                 </div>
               )}
            </div>
@@ -604,16 +604,16 @@ export const ExecutionCodeAuditDetailPage: React.FC<ExecutionCodeAuditDetailPage
               <div className="flex items-center gap-8">
                  <div className="flex items-center gap-2">
                     <div className={`w-1.5 h-1.5 rounded-full ${logs ? 'bg-green-500' : 'bg-theme-elevated'}`} />
-                    <span className="text-[9px] font-black text-theme-text-muted uppercase tracking-widest">Connection: Established</span>
+                    <span className="text-[9px] font-semibold text-theme-text-muted uppercase tracking-widest">Connection: Established</span>
                  </div>
                  <div className="flex items-center gap-2 text-theme-text-secondary">
                     <Clock size={12} />
-                    <span className="text-[9px] font-black text-theme-text-muted uppercase tracking-widest">Last Poll: {new Date().toLocaleTimeString()}</span>
+                    <span className="text-[9px] font-semibold text-theme-text-muted uppercase tracking-widest">Last Poll: {new Date().toLocaleTimeString()}</span>
                  </div>
               </div>
               <div className="flex items-center gap-4">
-                 <p className="text-[9px] font-black text-theme-text-secondary uppercase">Rows: {logs ? logs.split('\n').length : 0}</p>
-                 <button onClick={() => setLogs('')} className="text-[9px] font-black text-blue-500/60 hover:text-blue-400 uppercase tracking-widest transition-colors">Clear Interface</button>
+                 <p className="text-[9px] font-semibold text-theme-text-secondary uppercase">Rows: {logs ? logs.split('\n').length : 0}</p>
+                 <button onClick={() => setLogs('')} className="text-[9px] font-semibold text-blue-500/60 hover:text-blue-400 uppercase tracking-widest transition-colors">Clear Interface</button>
               </div>
            </div>
         </div>
@@ -629,9 +629,9 @@ export const ExecutionCodeAuditDetailPage: React.FC<ExecutionCodeAuditDetailPage
                 <Trash2 size={48} />
               </div>
               <div className="space-y-4">
-                <h3 className="text-3xl font-black text-theme-text-primary tracking-tight">销毁审计会话？</h3>
+                <h3 className="text-3xl font-bold text-theme-text-primary tracking-tight">销毁审计会话？</h3>
                 <p className="text-theme-text-muted text-sm font-medium leading-relaxed italic px-2">
-                  确认永久移除实例 <span className="font-black text-theme-text-primary underline">"{instanceName}"</span>？<br/>
+                  确认永久移除实例 <span className="font-semibold text-theme-text-primary underline">"{instanceName}"</span>？<br/>
                   该操作将中断所有 Ingress 连接并回收 K8S 负载资源。已保存至 PVC 的源码不受影响。
                 </p>
               </div>
@@ -640,14 +640,14 @@ export const ExecutionCodeAuditDetailPage: React.FC<ExecutionCodeAuditDetailPage
               <button
                 onClick={() => setShowDeleteConfirm(false)}
                 disabled={isActionProcessing}
-                className="flex-1 py-5 bg-theme-elevated text-theme-text-secondary rounded-2xl font-black hover:bg-theme-elevated transition-all"
+                className="flex-1 py-5 bg-theme-elevated text-theme-text-secondary rounded-2xl font-semibold hover:bg-theme-elevated transition-all"
               >
                 保留实例
               </button>
               <button
                 onClick={handleDelete}
                 disabled={isActionProcessing}
- className="flex-1 py-5 bg-red-600 text-white rounded-2xl font-black hover:bg-red-700 flex items-center justify-center gap-3 shadow-red-500/30 active:scale-95 transition-all"
+ className="flex-1 py-5 bg-red-600 text-white rounded-2xl font-semibold hover:bg-red-700 flex items-center justify-center gap-3 shadow-red-500/30 active:scale-95 transition-all"
               >
                 {isActionProcessing ? <Loader2 size={18} className="animate-spin" /> : <Trash2 size={20} />}
                 确认销毁
@@ -665,9 +665,9 @@ export const ExecutionCodeAuditDetailPage: React.FC<ExecutionCodeAuditDetailPage
                 <RefreshCw size={48} className="animate-spin-slow" />
               </div>
               <div className="space-y-4">
-                <h3 className="text-3xl font-black text-theme-text-primary tracking-tight">彻底重建容器？</h3>
-                <div className="p-5 bg-red-500/15 rounded-3xl border border-red-500/20">
-                  <p className="text-red-500 text-xs font-black leading-relaxed text-left flex gap-3">
+                <h3 className="text-3xl font-bold text-theme-text-primary tracking-tight">彻底重建容器？</h3>
+                <div className="p-5 bg-red-500/15 rounded-xl border border-red-500/20">
+                  <p className="text-red-500 text-xs font-semibold leading-relaxed text-left flex gap-3">
                     <ShieldAlert size={18} className="shrink-0" />
                     <span>警告：重建过程将重新部署 Pod。容器内的所有本地环境修改、插件及临时配置都会重置。</span>
                   </p>
@@ -678,14 +678,14 @@ export const ExecutionCodeAuditDetailPage: React.FC<ExecutionCodeAuditDetailPage
               <button
                 onClick={() => setShowRebuildConfirm(false)}
                 disabled={isActionProcessing}
-                className="flex-1 py-5 bg-theme-elevated text-theme-text-secondary rounded-2xl font-black hover:bg-theme-elevated transition-all"
+                className="flex-1 py-5 bg-theme-elevated text-theme-text-secondary rounded-2xl font-semibold hover:bg-theme-elevated transition-all"
               >
                 放弃操作
               </button>
               <button
                 onClick={handleRestart}
                 disabled={isActionProcessing}
- className="flex-1 py-5 bg-amber-600 text-white rounded-2xl font-black hover:bg-amber-700 flex items-center justify-center gap-3 shadow-amber-500/30 active:scale-95 transition-all"
+ className="flex-1 py-5 bg-amber-600 text-white rounded-2xl font-semibold hover:bg-amber-700 flex items-center justify-center gap-3 shadow-amber-500/30 active:scale-95 transition-all"
               >
                 {isActionProcessing ? <Loader2 size={18} className="animate-spin" /> : <RefreshCw size={20} />}
                 执行重建

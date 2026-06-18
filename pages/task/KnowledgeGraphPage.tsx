@@ -463,4 +463,3 @@ const CenteredCardInner: React.FC<{
     {action ? <div className="mt-5">{action}</div> : null}
   </div>
 );
-

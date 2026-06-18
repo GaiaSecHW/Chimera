@@ -32,6 +32,7 @@ import { api } from '../../clients/api';
 import { authApi } from '../../clients/auth';
 import { API_BASE } from '../../clients/base';
 import { Modal, PageHeader, PageSection, SegmentedControl, StatisticCard } from '../../design-system';
+import { useUiFeedback } from '../../components/UiFeedback';
 
 const vulnApi = api.domains.vuln;
 const assetApi = api.domains.assets;
@@ -513,6 +514,7 @@ const DetailSectionCard: React.FC<{
 
 export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateToView }) => {
   const [rootTab, setRootTab] = useState<IntakeRootTab>('cases');
+  const { confirm, feedbackNodes } = useUiFeedback();
   const [loading, setLoading] = useState(true);
   const [detailLoading, setDetailLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -908,10 +910,11 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
   const refreshProjectToken = async () => {
     if (!projectId) return;
     if (projectToken?.token) {
-      const confirmed = window.confirm(
-        '刷新 Token 将导致当前 Token 立即失效。\n请先完成其他系统/脚本中的 Token 替换准备，再继续刷新。\n是否确认刷新？',
-      );
-      if (!confirmed) return;
+      const ok = await confirm({
+        message: '刷新 Token 将导致当前 Token 立即失效。\n请先完成其他系统/脚本中的 Token 替换准备，再继续刷新。\n是否确认刷新？',
+        danger: true,
+      });
+      if (!ok) return;
     }
     setTokenLoading(true);
     setTokenError(null);
@@ -1357,8 +1360,8 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
 
   const handleDeleteSuspicion = async () => {
     if (!selectedDetail?.id) return;
-    const confirmed = window.confirm(`确认删除漏洞“${selectedDetail.title}”吗？此操作不可恢复。`);
-    if (!confirmed) return;
+    const ok = await confirm({ message: `确认删除漏洞"${selectedDetail.title}"吗？此操作不可恢复。`, danger: true });
+    if (!ok) return;
     setProcessingAction('delete');
     setError(null);
     setSuccessMessage(null);
@@ -1379,8 +1382,8 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
   };
 
   const handleDeleteSingleFromList = async (caseId: string, title: string) => {
-    const confirmed = window.confirm(`确认删除漏洞“${title}”吗？此操作不可恢复。`);
-    if (!confirmed) return;
+    const ok = await confirm({ message: `确认删除漏洞"${title}"吗？此操作不可恢复。`, danger: true });
+    if (!ok) return;
     setRowDeletingId(caseId);
     setError(null);
     setSuccessMessage(null);
@@ -1399,8 +1402,8 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
 
   const handleDeleteSelectedFromList = async () => {
     if (selectedSuspicionIds.length === 0) return;
-    const confirmed = window.confirm(`确认删除已选择的 ${selectedSuspicionIds.length} 条漏洞吗？此操作不可恢复。`);
-    if (!confirmed) return;
+    const ok = await confirm({ message: `确认删除已选择的 ${selectedSuspicionIds.length} 条漏洞吗？此操作不可恢复。`, danger: true });
+    if (!ok) return;
     setBulkDeleting(true);
     setError(null);
     setSuccessMessage(null);
@@ -1475,8 +1478,8 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
   };
 
   const handleDeleteDownloadJob = async (jobId: string) => {
-    const confirmed = window.confirm('确认删除这个下载任务吗？产物文件也会一起删除。');
-    if (!confirmed) return;
+    const ok = await confirm({ message: '确认删除这个下载任务吗？产物文件也会一起删除。', danger: true });
+    if (!ok) return;
     setDownloadActionJobId(jobId);
     setError(null);
     setSuccessMessage(null);
@@ -1535,23 +1538,23 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
       <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-5">
         <div className="metric-card rounded-xl px-4 py-3.5">
           <div className="metric-label text-[11px] font-semibold uppercase tracking-wider text-theme-text-muted-soft">下载任务总数</div>
-          <div className="metric-value mt-2 text-2xl font-semibold tabular-nums text-theme-text-primary">{downloadStats.total || 0}</div>
+          <div className="metric-value mt-2 text-2xl font-bold tabular-nums text-theme-text-primary">{downloadStats.total || 0}</div>
         </div>
         <div className="metric-card rounded-xl px-4 py-3.5">
           <div className="metric-label text-[11px] font-semibold uppercase tracking-wider text-theme-text-muted-soft">处理中</div>
-          <div className="metric-value mt-2 text-2xl font-semibold tabular-nums text-state-warning">{(downloadStats.pending || 0) + (downloadStats.processing || 0)}</div>
+          <div className="metric-value mt-2 text-2xl font-bold tabular-nums text-state-warning">{(downloadStats.pending || 0) + (downloadStats.processing || 0)}</div>
         </div>
         <div className="metric-card rounded-xl px-4 py-3.5">
           <div className="metric-label text-[11px] font-semibold uppercase tracking-wider text-theme-text-muted-soft">可下载</div>
-          <div className="metric-value mt-2 text-2xl font-semibold tabular-nums text-state-success">{downloadStats.downloadable || 0}</div>
+          <div className="metric-value mt-2 text-2xl font-bold tabular-nums text-state-success">{downloadStats.downloadable || 0}</div>
         </div>
         <div className="metric-card rounded-xl px-4 py-3.5">
           <div className="metric-label text-[11px] font-semibold uppercase tracking-wider text-theme-text-muted-soft">失败</div>
-          <div className="metric-value mt-2 text-2xl font-semibold tabular-nums text-state-danger">{downloadStats.failed || 0}</div>
+          <div className="metric-value mt-2 text-2xl font-bold tabular-nums text-state-danger">{downloadStats.failed || 0}</div>
         </div>
         <div className="metric-card rounded-xl px-4 py-3.5">
           <div className="metric-label text-[11px] font-semibold uppercase tracking-wider text-theme-text-muted-soft">已过期</div>
-          <div className="metric-value mt-2 text-2xl font-semibold tabular-nums text-theme-text-faint">{downloadStats.expired || 0}</div>
+          <div className="metric-value mt-2 text-2xl font-bold tabular-nums text-theme-text-faint">{downloadStats.expired || 0}</div>
         </div>
       </div>
 
@@ -2475,6 +2478,7 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
 
   return (
     <div className="animate-in fade-in space-y-5 p-6 pb-16 duration-500 xl:p-8 xl:pb-20">
+      {feedbackNodes}
       {!selectedSuspicionId ? (
         <>
           <PageHeader

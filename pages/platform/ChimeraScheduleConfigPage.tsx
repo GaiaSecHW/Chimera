@@ -318,7 +318,7 @@ export const ChimeraScheduleConfigPage: React.FC = () => {
           title="调度参数"
           description="统一管理全局调度策略、任务同步参数、Task Key 默认额度与分时段覆盖。"
           actions={<div className="flex flex-wrap items-center gap-2">
-            <button onClick={() => void load()} className="inline-flex items-center gap-2 rounded-xl border border-theme-border bg-theme-bg-app px-3 py-2 text-sm font-bold text-theme-text-secondary hover:bg-theme-elevated">
+            <button onClick={() => void load()} className="inline-flex items-center gap-2 rounded-xl border border-theme-border bg-theme-surface px-3 py-2 text-sm font-bold text-theme-text-secondary hover:bg-theme-elevated">
               <RefreshCw size={16} />
               刷新
             </button>
@@ -326,7 +326,7 @@ export const ChimeraScheduleConfigPage: React.FC = () => {
               <RotateCcw size={16} />
               恢复默认
             </button>
-            <button onClick={() => void handleSave()} disabled={saving || !dirty} className="inline-flex items-center gap-2 rounded-xl bg-theme-surface px-3 py-2 text-sm font-black text-white hover:bg-theme-elevated disabled:cursor-not-allowed disabled:opacity-60">
+            <button onClick={() => void handleSave()} disabled={saving || !dirty} className="inline-flex items-center gap-2 rounded-xl bg-theme-surface px-3 py-2 text-sm font-medium text-white hover:bg-theme-elevated disabled:cursor-not-allowed disabled:opacity-60">
               {saving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
               保存配置
             </button>
@@ -356,9 +356,9 @@ export const ChimeraScheduleConfigPage: React.FC = () => {
           </article>
         </section>
 
-        <section className="overflow-hidden rounded-2xl border border-theme-border bg-theme-bg-app">
+        <section className="overflow-hidden rounded-2xl border border-theme-border bg-theme-surface">
           <div className="border-b border-theme-border bg-slate-50/70 px-4 py-4 md:px-5">
-            <h2 className="text-lg font-black text-theme-text-primary">任务同步参数</h2>
+            <h2 className="text-lg font-semibold text-theme-text-primary">任务同步参数</h2>
           </div>
           <div className="grid gap-4 p-4 md:grid-cols-2 xl:grid-cols-3">
             {[
@@ -379,7 +379,7 @@ export const ChimeraScheduleConfigPage: React.FC = () => {
             ].map(([key, label, type]) => {
               const value = (draft.user_task_sync_policy as any)?.[key];
               return (
-                <label key={key} className="block rounded-xl border border-theme-border bg-theme-bg-app p-4">
+                <label key={key} className="block rounded-xl border border-theme-border bg-theme-surface p-4">
                   <div className="text-sm font-bold text-theme-text-secondary">{label}</div>
                   {type === 'checkbox' ? (
                     <input
@@ -415,9 +415,9 @@ export const ChimeraScheduleConfigPage: React.FC = () => {
           </div>
         </section>
 
- <section className="overflow-hidden rounded-2xl border border-theme-border bg-theme-bg-app">
+ <section className="overflow-hidden rounded-2xl border border-theme-border bg-theme-surface">
           <div className="border-b border-theme-border bg-slate-50/70 px-4 py-4 md:px-5">
-            <h2 className="text-lg font-black text-theme-text-primary">调度策略</h2>
+            <h2 className="text-lg font-semibold text-theme-text-primary">调度策略</h2>
           </div>
           <div className="grid gap-4 p-4 md:grid-cols-2 md:p-5 xl:grid-cols-3">
             {[
@@ -427,7 +427,7 @@ export const ChimeraScheduleConfigPage: React.FC = () => {
               ['ready_backfill_batch_size', 'Ready 回填批量'],
               ['db_fallback_batch_size', 'DB 回扫批量'],
             ].map(([key, label]) => (
-              <label key={key} className="block rounded-xl border border-theme-border bg-theme-bg-app p-4">
+              <label key={key} className="block rounded-xl border border-theme-border bg-theme-surface p-4">
                 <div className="text-sm font-bold text-theme-text-secondary">{label}</div>
                 <input
                   type="number"
@@ -438,7 +438,7 @@ export const ChimeraScheduleConfigPage: React.FC = () => {
                 />
               </label>
             ))}
-            <label className="block rounded-xl border border-theme-border bg-theme-bg-app p-4">
+            <label className="block rounded-xl border border-theme-border bg-theme-surface p-4">
               <div className="text-sm font-bold text-theme-text-secondary">分发策略</div>
               <select value={draft.scheduler_policy.dispatch_mode} onChange={(event) => updateSchedulerPolicy('dispatch_mode', event.target.value)} className="mt-3 w-full rounded-xl border border-theme-border bg-theme-bg-app px-3 py-2 text-sm font-semibold text-theme-text-primary outline-none focus:border-cyan-400">
                 <option value="balanced">balanced</option>
@@ -446,7 +446,7 @@ export const ChimeraScheduleConfigPage: React.FC = () => {
                 <option value="priority_first">priority_first</option>
               </select>
             </label>
-            <label className="block rounded-xl border border-theme-border bg-theme-bg-app p-4">
+            <label className="block rounded-xl border border-theme-border bg-theme-surface p-4">
               <div className="text-sm font-bold text-theme-text-secondary">队列策略</div>
               <select value={draft.scheduler_policy.queue_strategy} onChange={(event) => updateSchedulerPolicy('queue_strategy', event.target.value)} className="mt-3 w-full rounded-xl border border-theme-border bg-theme-bg-app px-3 py-2 text-sm font-semibold text-theme-text-primary outline-none focus:border-cyan-400">
                 <option value="capacity_aware">capacity_aware</option>
@@ -456,14 +456,14 @@ export const ChimeraScheduleConfigPage: React.FC = () => {
           </div>
         </section>
 
- <section className="overflow-hidden rounded-2xl border border-theme-border bg-theme-bg-app">
+ <section className="overflow-hidden rounded-2xl border border-theme-border bg-theme-surface">
           <div className="border-b border-theme-border bg-slate-50/70 px-4 py-4 md:px-5">
-            <h2 className="text-lg font-black text-theme-text-primary">工具默认配置</h2>
+            <h2 className="text-lg font-semibold text-theme-text-primary">工具默认配置</h2>
           </div>
           <div className="grid gap-4 p-4 md:p-5 xl:grid-cols-2">
             {draft.tool_defaults.map((item) => (
-              <div key={item.task_type} className="rounded-2xl border border-theme-border bg-theme-bg-app p-5">
-                <div className="text-lg font-black text-theme-text-primary">{item.label}</div>
+              <div key={item.task_type} className="rounded-2xl border border-theme-border bg-theme-surface p-5">
+                <div className="text-lg font-semibold text-theme-text-primary">{item.label}</div>
                 <div className="mt-4 grid gap-4 md:grid-cols-2">
                   <label className="block">
                     <div className="text-sm font-bold text-theme-text-secondary">Task Key 最大并发</div>
@@ -479,20 +479,20 @@ export const ChimeraScheduleConfigPage: React.FC = () => {
           </div>
         </section>
 
- <section className="overflow-hidden rounded-2xl border border-theme-border bg-theme-bg-app">
+ <section className="overflow-hidden rounded-2xl border border-theme-border bg-theme-surface">
           <div className="flex flex-wrap items-center justify-between gap-3 border-b border-theme-border bg-slate-50/70 px-4 py-4 md:px-5">
             <div>
-              <h2 className="text-lg font-black text-theme-text-primary">时段规则</h2>
+              <h2 className="text-lg font-semibold text-theme-text-primary">时段规则</h2>
               <p className="mt-1 text-sm text-theme-text-muted">支持配置多个白天/夜间时段，命中后覆盖基础调度参数。</p>
             </div>
-            <button onClick={addWindow} className="inline-flex items-center gap-2 rounded-xl border border-theme-border bg-theme-bg-app px-3 py-2 text-sm font-bold text-theme-text-secondary hover:bg-theme-elevated">
+            <button onClick={addWindow} className="inline-flex items-center gap-2 rounded-xl border border-theme-border bg-theme-surface px-3 py-2 text-sm font-bold text-theme-text-secondary hover:bg-theme-elevated">
               <Plus size={16} />
               新增时段
             </button>
           </div>
           <div className="space-y-5 p-4 md:p-5">
             {draft.time_windows.map((window, index) => (
-              <div key={`${window.name}-${index}`} className="rounded-2xl border border-theme-border bg-theme-bg-app p-5">
+              <div key={`${window.name}-${index}`} className="rounded-2xl border border-theme-border bg-theme-surface p-5">
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <div className="flex flex-wrap items-center gap-3">
                     <input value={window.name} onChange={(event) => updateTimeWindow(index, { name: event.target.value })} className="rounded-xl border border-theme-border bg-theme-bg-app px-3 py-2 text-sm font-bold text-theme-text-primary outline-none focus:border-cyan-400" />
@@ -517,7 +517,7 @@ export const ChimeraScheduleConfigPage: React.FC = () => {
                     ['ready_backfill_batch_size', 'Ready 回填批量'],
                     ['db_fallback_batch_size', 'DB 回扫批量'],
                   ].map(([key, label]) => (
-                    <label key={`${window.name}-${key}`} className="block rounded-xl border border-theme-border bg-theme-bg-app p-4">
+                    <label key={`${window.name}-${key}`} className="block rounded-xl border border-theme-border bg-theme-surface p-4">
                       <div className="text-sm font-bold text-theme-text-secondary">{label}</div>
                       <input type="number" min={1} value={(window.scheduler_policy as any)?.[key] ?? 0} onChange={(event) => updateTimeWindowPolicy(index, key as keyof ScheduleRuntimeSchedulerPolicy, event.target.value)} className="mt-3 w-full rounded-xl border border-theme-border bg-theme-bg-app px-3 py-2 text-sm font-semibold text-theme-text-primary outline-none focus:border-cyan-400" />
                     </label>
@@ -529,7 +529,7 @@ export const ChimeraScheduleConfigPage: React.FC = () => {
                     ['db_fallback_batch_size', 'DB 回扫批量'],
                     ['reclaim_batch_size', '回收扫描批量'],
                   ].map(([key, label]) => (
-                    <label key={`${window.name}-sync-${key}`} className="block rounded-xl border border-theme-border bg-theme-bg-app p-4">
+                    <label key={`${window.name}-sync-${key}`} className="block rounded-xl border border-theme-border bg-theme-surface p-4">
                       <div className="text-sm font-bold text-theme-text-secondary">{label}</div>
                       <input
                         type="number"
@@ -548,8 +548,8 @@ export const ChimeraScheduleConfigPage: React.FC = () => {
                 </div>
                 <div className="mt-5 grid gap-4 xl:grid-cols-2">
                   {window.tool_defaults.map((tool) => (
-                    <div key={`${window.name}-${tool.task_type}`} className="rounded-xl border border-theme-border bg-theme-bg-app p-4">
-                      <div className="text-sm font-black text-theme-text-primary">{tool.label}</div>
+                    <div key={`${window.name}-${tool.task_type}`} className="rounded-xl border border-theme-border bg-theme-surface p-4">
+                      <div className="text-sm font-semibold text-theme-text-primary">{tool.label}</div>
                       <div className="mt-3 grid gap-3 md:grid-cols-2">
                         <label className="block">
                           <div className="text-xs font-bold uppercase tracking-wider text-theme-text-muted">Task Key 最大并发</div>
@@ -566,7 +566,7 @@ export const ChimeraScheduleConfigPage: React.FC = () => {
               </div>
             ))}
             {draft.time_windows.length === 0 ? (
-              <div className="rounded-2xl border border-dashed border-theme-border bg-theme-bg-app p-8 text-center text-sm font-semibold text-theme-text-muted">当前没有时段规则，系统将始终使用基础配置。</div>
+              <div className="rounded-2xl border border-dashed border-theme-border bg-theme-surface p-8 text-center text-sm font-semibold text-theme-text-muted">当前没有时段规则，系统将始终使用基础配置。</div>
             ) : null}
           </div>
         </section>

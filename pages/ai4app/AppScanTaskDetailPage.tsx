@@ -200,8 +200,8 @@ const PhaseCard: React.FC<{ phase: string; progress: AppScanPhaseProgress; index
   return (
     <div className={`rounded-xl border ${phaseBorderColor(index)} bg-theme-bg-app p-4`}>
       <div className="flex items-center justify-between">
-        <h4 className={`text-sm font-black ${phaseColor(index)}`}>{phaseLabel(phase)}</h4>
-        <span className="text-xs font-bold text-theme-text-muted">{completedPercent}%</span>
+        <h4 className={`text-sm font-semibold ${phaseColor(index)}`}>{phaseLabel(phase)}</h4>
+        <span className="text-xs font-medium text-theme-text-muted">{completedPercent}%</span>
       </div>
 
       {/* Progress bar */}
@@ -224,23 +224,23 @@ const PhaseCard: React.FC<{ phase: string; progress: AppScanPhaseProgress; index
       {/* Counts */}
       <div className="mt-3 grid grid-cols-5 gap-1 text-center">
         <div>
-          <div className="text-xs font-bold text-theme-text-primary">{total}</div>
+          <div className="text-xs font-medium text-theme-text-primary">{total}</div>
           <div className="text-[10px] text-theme-text-muted">总计</div>
         </div>
         <div>
-          <div className="text-xs font-bold text-theme-text-muted">{pending}</div>
+          <div className="text-xs font-medium text-theme-text-muted">{pending}</div>
           <div className="text-[10px] text-theme-text-muted">等待</div>
         </div>
         <div>
-          <div className="text-xs font-bold text-sky-400">{running}</div>
+          <div className="text-xs font-medium text-sky-400">{running}</div>
           <div className="text-[10px] text-theme-text-muted">运行</div>
         </div>
         <div>
-          <div className="text-xs font-bold text-emerald-400">{success}</div>
+          <div className="text-xs font-medium text-emerald-400">{success}</div>
           <div className="text-[10px] text-theme-text-muted">成功</div>
         </div>
         <div>
-          <div className="text-xs font-bold text-rose-400">{failed}</div>
+          <div className="text-xs font-medium text-rose-400">{failed}</div>
           <div className="text-[10px] text-theme-text-muted">失败</div>
         </div>
       </div>
@@ -249,8 +249,8 @@ const PhaseCard: React.FC<{ phase: string; progress: AppScanPhaseProgress; index
 };
 
 const SummaryStat: React.FC<{ label: string; value: number; tone?: string }> = ({ label, value, tone = 'text-theme-text-primary' }) => (
-  <div className="rounded-xl border border-theme-border bg-theme-bg-app p-3 text-center">
-    <div className={`text-2xl font-black ${tone}`}>{value}</div>
+  <div className="rounded-xl border border-theme-border bg-theme-surface p-3 text-center">
+    <div className={`text-2xl font-bold ${tone}`}>{value}</div>
     <div className="mt-0.5 text-xs font-semibold text-theme-text-muted">{label}</div>
   </div>
 );
@@ -271,7 +271,7 @@ const CallChain: React.FC<{ steps: AppScanCallChainStep[] }> = ({ steps }) => {
   };
   return (
     <div className="rounded-lg bg-theme-bg-app p-3">
-      <h4 className="mb-2 text-xs font-bold text-indigo-400">调用链</h4>
+      <h4 className="mb-2 text-xs font-medium text-indigo-400">调用链</h4>
       <div className="space-y-2">
         {steps.map((s, i) => {
           const role = s.role || 'propagation';
@@ -280,7 +280,7 @@ const CallChain: React.FC<{ steps: AppScanCallChainStep[] }> = ({ steps }) => {
           const tone = roleTone[role] || 'bg-indigo-500';
           return (
             <div key={i} className="flex items-start gap-2">
-              <div className={`${tone} mt-0.5 flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full text-[0.65rem] font-bold text-white`}>
+              <div className={`${tone} mt-0.5 flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full text-[0.65rem] font-medium text-white`}>
                 {s.step || i + 1}
               </div>
               <div className="min-w-0 flex-1 text-xs">
@@ -324,15 +324,15 @@ const FindingCard: React.FC<{ finding: AppScanFinding; defaultOpen?: boolean }> 
         <div className="flex min-w-0 flex-1 items-center gap-2">
           {hasDetail && <ChevronDown size={14} className={`flex-shrink-0 text-theme-text-muted transition ${open ? 'rotate-180' : ''}`} />}
           <div className="min-w-0">
-            <div className="truncate text-sm font-bold text-theme-text-primary">{finding.title || fDisp}</div>
+            <div className="truncate text-sm font-semibold text-theme-text-primary">{finding.title || fDisp}</div>
             <div className="mt-0.5 truncate font-mono text-[11px] text-theme-text-muted">{fDisp} · {finding.vuln_type}</div>
           </div>
         </div>
         <div className="flex flex-shrink-0 items-center gap-1.5">
-          <span className={`rounded px-2 py-0.5 text-xs font-bold ${severityTone(finding.severity)}`}>{finding.severity || '-'}</span>
-          <span className={`rounded px-2 py-0.5 text-xs font-bold ${resultTone(finding.validation_result || '')}`}>{resultLabel(finding.validation_result || '')}</span>
+          <span className={`rounded px-2 py-0.5 text-xs font-medium ${severityTone(finding.severity)}`}>{finding.severity || '-'}</span>
+          <span className={`rounded px-2 py-0.5 text-xs font-medium ${resultTone(finding.validation_result || '')}`}>{resultLabel(finding.validation_result || '')}</span>
           {finding.total_score != null && (
-            <span className="rounded bg-indigo-500/15 px-2 py-0.5 text-xs font-bold text-indigo-400">{finding.total_score}分</span>
+            <span className="rounded bg-indigo-500/15 px-2 py-0.5 text-xs font-medium text-indigo-400">{finding.total_score}分</span>
           )}
         </div>
       </button>
@@ -352,8 +352,8 @@ const FindingCard: React.FC<{ finding: AppScanFinding; defaultOpen?: boolean }> 
             )}
             {finding.cvss_vector || finding.cvss_explanation ? (
               <div className={`rounded-lg bg-theme-bg-app p-3 ${!finding.fix_suggestion ? 'md:col-span-2' : ''}`}>
-                <h4 className="mb-1 text-xs font-bold text-indigo-400">
-                  CVSS 评分{finding.cvss_score != null && <span className="ml-1 font-bold text-indigo-400">{finding.cvss_score}</span>}
+                <h4 className="mb-1 text-xs font-medium text-indigo-400">
+                  CVSS 评分{finding.cvss_score != null && <span className="ml-1 font-medium text-indigo-400">{finding.cvss_score}</span>}
                 </h4>
                 {finding.cvss_vector && <div className="mb-1 font-mono text-xs text-indigo-400">{finding.cvss_vector}</div>}
                 {finding.cvss_explanation && (
@@ -363,14 +363,14 @@ const FindingCard: React.FC<{ finding: AppScanFinding; defaultOpen?: boolean }> 
             ) : null}
             {finding.fix_suggestion ? (
               <div className={`rounded-lg bg-theme-bg-app p-3 ${!finding.cvss_vector && !finding.cvss_explanation ? 'md:col-span-2' : ''}`}>
-                <h4 className="mb-1 text-xs font-bold text-indigo-400">修复建议</h4>
+                <h4 className="mb-1 text-xs font-medium text-indigo-400">修复建议</h4>
                 <pre className="max-h-48 overflow-auto whitespace-pre-wrap text-xs text-theme-text-secondary">{renderAny(finding.fix_suggestion)}</pre>
               </div>
             ) : null}
             {finding.analysis ? (
               <div className="md:col-span-2">
                 <div className="rounded-lg bg-theme-bg-app p-3">
-                  <h4 className="mb-1 text-xs font-bold text-indigo-400">分析</h4>
+                  <h4 className="mb-1 text-xs font-medium text-indigo-400">分析</h4>
                   <pre className="max-h-64 overflow-auto whitespace-pre-wrap text-xs text-theme-text-secondary">{renderAny(finding.analysis)}</pre>
                 </div>
               </div>
@@ -382,19 +382,19 @@ const FindingCard: React.FC<{ finding: AppScanFinding; defaultOpen?: boolean }> 
             <div className="mt-3 flex flex-wrap gap-4 border-t border-theme-border pt-3">
               {finding.total_score != null && (
                 <div className="text-center">
-                  <div className="text-lg font-bold text-indigo-400">{finding.total_score}</div>
+                  <div className="text-lg font-medium text-indigo-400">{finding.total_score}</div>
                   <div className="text-[0.65rem] text-theme-text-muted">总分</div>
                 </div>
               )}
               {finding.cvss_score != null && (
                 <div className="text-center">
-                  <div className="text-lg font-bold text-indigo-400">{finding.cvss_score}</div>
+                  <div className="text-lg font-medium text-indigo-400">{finding.cvss_score}</div>
                   <div className="text-[0.65rem] text-theme-text-muted">CVSS</div>
                 </div>
               )}
               {finding.created_at && (
                 <div className="text-center">
-                  <div className="text-sm font-bold text-theme-text-secondary">{fmtStringTimestamp(finding.created_at)}</div>
+                  <div className="text-sm font-medium text-theme-text-secondary">{fmtStringTimestamp(finding.created_at)}</div>
                   <div className="text-[0.65rem] text-theme-text-muted">发现时间</div>
                 </div>
               )}
@@ -598,7 +598,7 @@ export const AppScanTaskDetailPage: React.FC<Props> = ({ projectId, toolTaskId, 
           <div className="flex items-center gap-3">
             <span className="font-mono text-xs text-theme-text-muted">{toolTaskId}</span>
             {task && (
-              <span className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-bold ${statusTone(task.status)}`}>
+              <span className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium ${statusTone(task.status)}`}>
                 {isActive && <span className="mr-1.5 inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-sky-500" />}
                 {statusLabel(task.status)}
               </span>
@@ -612,7 +612,7 @@ export const AppScanTaskDetailPage: React.FC<Props> = ({ projectId, toolTaskId, 
                 type="button"
                 onClick={() => void handlePause()}
                 disabled={actionLoading}
-                className="inline-flex items-center gap-2 rounded-xl border border-amber-500/20 bg-amber-500/15 px-4 py-2.5 text-sm font-bold text-amber-400 hover:bg-amber-500/15 disabled:opacity-60"
+                className="inline-flex items-center gap-2 rounded-xl border border-amber-500/20 bg-amber-500/15 px-4 py-2.5 text-sm font-medium text-amber-400 hover:bg-amber-500/15 disabled:opacity-60"
               >
                 {actionLoading ? <Loader2 size={14} className="animate-spin" /> : <Pause size={14} />}
                 暂停
@@ -623,7 +623,7 @@ export const AppScanTaskDetailPage: React.FC<Props> = ({ projectId, toolTaskId, 
                 type="button"
                 onClick={() => void handleResume()}
                 disabled={actionLoading}
-                className="inline-flex items-center gap-2 rounded-xl border border-emerald-500/20 bg-emerald-500/15 px-4 py-2.5 text-sm font-bold text-emerald-400 hover:bg-emerald-500/15 disabled:opacity-60"
+                className="inline-flex items-center gap-2 rounded-xl border border-emerald-500/20 bg-emerald-500/15 px-4 py-2.5 text-sm font-medium text-emerald-400 hover:bg-emerald-500/15 disabled:opacity-60"
               >
                 {actionLoading ? <Loader2 size={14} className="animate-spin" /> : <Play size={14} />}
                 恢复
@@ -634,7 +634,7 @@ export const AppScanTaskDetailPage: React.FC<Props> = ({ projectId, toolTaskId, 
                 type="button"
                 onClick={() => void handleDelete()}
                 disabled={actionLoading}
-                className="inline-flex items-center gap-2 rounded-xl border border-rose-500/20 bg-rose-500/15 px-4 py-2.5 text-sm font-bold text-rose-400 hover:bg-rose-500/15 disabled:opacity-60"
+                className="inline-flex items-center gap-2 rounded-xl border border-rose-500/20 bg-rose-500/15 px-4 py-2.5 text-sm font-medium text-rose-400 hover:bg-rose-500/15 disabled:opacity-60"
               >
                 <Trash2 size={14} />
                 删除
@@ -645,7 +645,7 @@ export const AppScanTaskDetailPage: React.FC<Props> = ({ projectId, toolTaskId, 
                 type="button"
                 onClick={() => void handleDelete()}
                 disabled={actionLoading}
-                className="inline-flex items-center gap-2 rounded-xl border border-theme-border bg-theme-bg-app px-4 py-2.5 text-sm font-bold text-theme-text-secondary hover:bg-theme-elevated disabled:opacity-60"
+                className="inline-flex items-center gap-2 rounded-xl border border-theme-border bg-theme-surface px-4 py-2.5 text-sm font-medium text-theme-text-secondary hover:bg-theme-elevated disabled:opacity-60"
               >
                 <Trash2 size={14} />
                 删除
@@ -665,14 +665,14 @@ export const AppScanTaskDetailPage: React.FC<Props> = ({ projectId, toolTaskId, 
 
       {/* Error */}
       {!loading && error && (
-        <div className="rounded-2xl border border-rose-500/20 bg-rose-500/15 px-4 py-3 text-sm font-semibold text-rose-400">
+        <div className="rounded-xl border border-rose-500/20 bg-rose-500/15 px-4 py-3 text-sm font-semibold text-rose-400">
           {error}
         </div>
       )}
 
       {/* Task error from backend */}
       {!loading && task?.error && (
-        <div className="rounded-2xl border border-rose-500/20 bg-rose-500/15 px-4 py-3 text-sm font-semibold text-rose-400">
+        <div className="rounded-xl border border-rose-500/20 bg-rose-500/15 px-4 py-3 text-sm font-semibold text-rose-400">
           错误信息: {task.error}
         </div>
       )}
@@ -681,30 +681,30 @@ export const AppScanTaskDetailPage: React.FC<Props> = ({ projectId, toolTaskId, 
       {!loading && task && (
         <>
           {/* Timeline */}
- <section className="rounded-[2rem] border border-theme-border bg-theme-bg-app p-6">
-            <h2 className="text-lg font-black text-theme-text-primary">时间线</h2>
+ <section className="rounded-xl border border-theme-border bg-theme-surface p-6">
+            <h2 className="text-lg font-semibold text-theme-text-primary">时间线</h2>
             <div className="mt-4 grid grid-cols-3 gap-4">
-              <div className="rounded-xl border border-theme-border bg-theme-bg-app p-3">
-                <div className="text-xs font-bold text-theme-text-muted">创建时间</div>
+              <div className="rounded-xl border border-theme-border bg-theme-surface p-3">
+                <div className="text-xs font-medium text-theme-text-muted">创建时间</div>
                 <div className="mt-1 text-sm font-semibold text-theme-text-secondary">{fmtTimestamp(task.created_at)}</div>
               </div>
-              <div className="rounded-xl border border-theme-border bg-theme-bg-app p-3">
-                <div className="text-xs font-bold text-theme-text-muted">开始时间</div>
+              <div className="rounded-xl border border-theme-border bg-theme-surface p-3">
+                <div className="text-xs font-medium text-theme-text-muted">开始时间</div>
                 <div className="mt-1 text-sm font-semibold text-theme-text-secondary">{fmtTimestamp(task.started_at)}</div>
               </div>
-              <div className="rounded-xl border border-theme-border bg-theme-bg-app p-3">
-                <div className="text-xs font-bold text-theme-text-muted">完成时间</div>
+              <div className="rounded-xl border border-theme-border bg-theme-surface p-3">
+                <div className="text-xs font-medium text-theme-text-muted">完成时间</div>
                 <div className="mt-1 text-sm font-semibold text-theme-text-secondary">{fmtTimestamp(task.completed_at)}</div>
               </div>
             </div>
           </section>
 
           {/* Phase progress */}
- <section className="rounded-[2rem] border border-theme-border bg-theme-bg-app p-6">
+ <section className="rounded-xl border border-theme-border bg-theme-surface p-6">
             <div className="flex items-center gap-2">
-              <h2 className="text-lg font-black text-theme-text-primary">阶段进度</h2>
+              <h2 className="text-lg font-semibold text-theme-text-primary">阶段进度</h2>
               {isActive && (
-                <span className="inline-flex items-center gap-1.5 rounded-full bg-sky-500/15 px-2.5 py-0.5 text-xs font-bold text-sky-400">
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-sky-500/15 px-2.5 py-0.5 text-xs font-medium text-sky-400">
                   <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-sky-500" />
                   实时更新
                 </span>
@@ -729,13 +729,13 @@ export const AppScanTaskDetailPage: React.FC<Props> = ({ projectId, toolTaskId, 
           </section>
 
           {/* Vulnerability findings */}
- <section className="rounded-[2rem] border border-theme-border bg-theme-bg-app p-6">
+ <section className="rounded-xl border border-theme-border bg-theme-surface p-6">
             <div className="flex items-center justify-between gap-4">
               <div className="flex items-center gap-2">
                 <ShieldAlert size={18} className="text-rose-500" />
-                <h2 className="text-lg font-black text-theme-text-primary">漏洞报告</h2>
+                <h2 className="text-lg font-semibold text-theme-text-primary">漏洞报告</h2>
                 {isActive && (
-                  <span className="inline-flex items-center gap-1.5 rounded-full bg-sky-500/15 px-2.5 py-0.5 text-xs font-bold text-sky-400">
+                  <span className="inline-flex items-center gap-1.5 rounded-full bg-sky-500/15 px-2.5 py-0.5 text-xs font-medium text-sky-400">
                     <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-sky-500" />
                     扫描中
                   </span>
@@ -745,7 +745,7 @@ export const AppScanTaskDetailPage: React.FC<Props> = ({ projectId, toolTaskId, 
                 type="button"
                 onClick={() => void loadFindings()}
                 disabled={findingsLoading}
- className="inline-flex items-center gap-2 rounded-xl border border-theme-border bg-theme-bg-app px-3 py-1.5 text-xs font-bold text-theme-text-secondary hover:bg-theme-elevated disabled:opacity-60"
+ className="inline-flex items-center gap-2 rounded-xl border border-theme-border bg-theme-surface px-3 py-1.5 text-xs font-medium text-theme-text-secondary hover:bg-theme-elevated disabled:opacity-60"
               >
                 {findingsLoading ? <Loader2 size={13} className="animate-spin" /> : <ShieldAlert size={13} />}
                 刷新
@@ -770,7 +770,7 @@ export const AppScanTaskDetailPage: React.FC<Props> = ({ projectId, toolTaskId, 
                 <select
                   value={severityFilter}
                   onChange={(e) => setSeverityFilter(e.target.value)}
-                  className="rounded-xl border border-theme-border bg-theme-bg-app px-3 py-2 text-sm text-theme-text-secondary"
+                  className="rounded-xl border border-theme-border bg-theme-surface px-3 py-2 text-sm text-theme-text-secondary"
                 >
                   <option value="">全部严重程度</option>
                   <option value="CRITICAL">CRITICAL</option>
@@ -782,7 +782,7 @@ export const AppScanTaskDetailPage: React.FC<Props> = ({ projectId, toolTaskId, 
                 <select
                   value={resultFilter}
                   onChange={(e) => setResultFilter(e.target.value)}
-                  className="rounded-xl border border-theme-border bg-theme-bg-app px-3 py-2 text-sm text-theme-text-secondary"
+                  className="rounded-xl border border-theme-border bg-theme-surface px-3 py-2 text-sm text-theme-text-secondary"
                 >
                   <option value="">全部验证结果</option>
                   <option value="CONFIRMED">已确认</option>

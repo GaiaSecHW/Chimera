@@ -449,7 +449,7 @@ const SummaryMetricCard: React.FC<{ label: string; value: React.ReactNode; hint?
       <div className="flex items-start justify-between gap-3">
         <div>
           <div className="text-[11px] font-semibold uppercase tracking-[0.18em]" style={{ color: LK.mutedSoft }}>{label}</div>
-          <div className="mt-2 text-2xl font-semibold leading-7 tabular-nums" style={{ color: LK.ink }}>{value}</div>
+          <div className="mt-2 text-2xl font-bold leading-7 tabular-nums" style={{ color: LK.ink }}>{value}</div>
         </div>
         <div className="rounded-lg p-2" style={{ backgroundColor: toneConfig.bg, color: toneConfig.color, border: `1px solid ${toneConfig.border}` }}>{icon}</div>
       </div>

@@ -156,7 +156,7 @@ export const AiGatewayTokenStatsPage: React.FC<AiGatewayTokenStatsPageProps> = (
           <select
             value={daysRange}
             onChange={(e) => setDaysRange(Number(e.target.value))}
-            className="rounded-2xl border border-theme-border bg-theme-bg-app px-4 py-2.5 text-sm font-bold text-theme-text-secondary"
+            className="rounded-2xl border border-theme-border bg-theme-surface px-4 py-2.5 text-sm font-bold text-theme-text-secondary"
           >
             <option value={1}>今日</option>
             <option value={7}>近 7 天</option>
@@ -206,9 +206,9 @@ export const AiGatewayTokenStatsPage: React.FC<AiGatewayTokenStatsPageProps> = (
       </div>
 
       {trendChartData ? (
- <section className="rounded-[2rem] border border-theme-border bg-theme-bg-app p-6">
-          <div className="text-[11px] font-black uppercase tracking-[0.2em] text-theme-text-muted">用量趋势</div>
-          <h2 className="mt-2 text-xl font-black text-theme-text-primary">Token 使用趋势图</h2>
+ <section className="rounded-xl border border-theme-border bg-theme-surface p-6">
+          <div className="text-[11px] font-semibold uppercase tracking-[0.2em] text-theme-text-muted">用量趋势</div>
+          <h2 className="mt-2 text-xl font-semibold text-theme-text-primary">Token 使用趋势图</h2>
           <div className="mt-6 flex items-end gap-2 h-32">
             {trendChartData.bars.map((bar) => (
               <div key={bar.date} className="flex-1 flex flex-col items-center gap-1">
@@ -231,10 +231,10 @@ export const AiGatewayTokenStatsPage: React.FC<AiGatewayTokenStatsPageProps> = (
         </section>
       ) : null}
 
- <section className="rounded-[2rem] border border-theme-border bg-theme-bg-app overflow-hidden">
+ <section className="rounded-xl border border-theme-border bg-theme-surface overflow-hidden">
         <div className="p-6">
-          <div className="text-[11px] font-black uppercase tracking-[0.2em] text-theme-text-muted">项目维度</div>
-          <h2 className="mt-2 text-xl font-black text-theme-text-primary">按项目统计</h2>
+          <div className="text-[11px] font-semibold uppercase tracking-[0.2em] text-theme-text-muted">项目维度</div>
+          <h2 className="mt-2 text-xl font-semibold text-theme-text-primary">按项目统计</h2>
         </div>
         {(() => {
           type TableRow =
@@ -312,7 +312,7 @@ export const AiGatewayTokenStatsPage: React.FC<AiGatewayTokenStatsPageProps> = (
               key: 'total_tokens',
               header: '总 Token',
               align: 'right',
-              render: (row) => <span className={row.type === 'subtask' ? 'font-bold text-theme-text-primary' : 'font-black text-theme-text-primary'}>{formatNumber(row.data.total_tokens)}</span>,
+              render: (row) => <span className={row.type === 'subtask' ? 'font-bold text-theme-text-primary' : 'font-semibold text-theme-text-primary'}>{formatNumber(row.data.total_tokens)}</span>,
             },
             {
               key: 'estimated_cost',

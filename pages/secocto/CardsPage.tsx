@@ -201,12 +201,12 @@ export const SecOctoCardsPage: React.FC<Props> = ({ onNavigate }) => {
       {modalItem && (
         <div className="fixed inset-0 z-50 flex items-center justify-center">
           <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={closeModal} />
-          <div className="relative w-full max-w-2xl mx-4 bg-theme-surface rounded-2xl border border-theme-border shadow-xl overflow-hidden">
+          <div className="relative w-full max-w-2xl mx-4 bg-theme-surface rounded-xl border border-theme-border shadow-xl overflow-hidden">
             <button onClick={closeModal} className="absolute top-4 right-4 p-2 rounded-xl bg-theme-elevated text-theme-text-secondary hover:text-theme-text-inverse transition-colors">
               <X size={20} />
             </button>
             <div className="p-6 overflow-y-auto max-h-[80vh]">
-              <h2 className="text-xl font-bold text-theme-text-primary mb-4">{modalItem.title || '—'}</h2>
+              <h2 className="text-xl font-semibold text-theme-text-primary mb-4">{modalItem.title || '—'}</h2>
               <div className="flex flex-col gap-2 mb-4">
                 {modalItem.scope && (
                   <div className="flex items-center gap-2">

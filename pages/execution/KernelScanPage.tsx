@@ -154,7 +154,7 @@ const LK = {
 } as const;
 const MONO = 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace';
 
-const panelClassName = 'rounded-[2rem] border border-theme-border bg-theme-bg-app p-6 ';
+const panelClassName = 'rounded-xl border border-theme-border bg-theme-surface p-6 ';
 
 export const KernelScanPage: React.FC<{ projectId: string }> = ({ projectId }) => {
   const executionApi = api.domains.execution.kernelScan;
@@ -1132,7 +1132,7 @@ export const KernelScanPage: React.FC<{ projectId: string }> = ({ projectId }) =
             <div className="mt-6 space-y-4">
               <div className="rounded-lg border border-theme-border bg-theme-bg-app px-4 py-3">
                 <div className="flex items-center justify-between gap-2">
-                  <div className="text-[11px] font-black uppercase tracking-[0.18em] text-theme-text-muted">任务 ID</div>
+                  <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-theme-text-muted">任务 ID</div>
                   <button
                     type="button"
                     onClick={async () => {
@@ -1163,22 +1163,22 @@ export const KernelScanPage: React.FC<{ projectId: string }> = ({ projectId }) =
                 </div>
               </div>
               <div className="rounded-lg border border-theme-border bg-theme-bg-app px-4 py-3">
-                <div className="text-[11px] font-black uppercase tracking-[0.18em] text-theme-text-muted">目标路径</div>
+                <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-theme-text-muted">目标路径</div>
                 <div className="mt-2 break-all font-mono text-sm text-theme-text-primary">{selectedTask.kernel_dir || '-'}</div>
               </div>
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="rounded-lg border border-theme-border bg-theme-bg-app px-4 py-3">
-                  <div className="text-[11px] font-black uppercase tracking-[0.18em] text-theme-text-muted">创建时间</div>
+                  <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-theme-text-muted">创建时间</div>
                   <div className="mt-2 text-sm font-semibold text-theme-text-primary">{formatDateTime(selectedTask.created_at)}</div>
                 </div>
                 <div className="rounded-lg border border-theme-border bg-theme-bg-app px-4 py-3">
-                  <div className="text-[11px] font-black uppercase tracking-[0.18em] text-theme-text-muted">完成时间</div>
+                  <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-theme-text-muted">完成时间</div>
                   <div className="mt-2 text-sm font-semibold text-theme-text-primary">{formatDateTime(selectedTask.finished_at)}</div>
                 </div>
               </div>
               {selectedTask.notes ? (
                 <div className="rounded-lg border border-theme-border bg-theme-bg-app px-4 py-3">
-                  <div className="text-[11px] font-black uppercase tracking-[0.18em] text-theme-text-muted">备注</div>
+                  <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-theme-text-muted">备注</div>
                   <div className="mt-2 whitespace-pre-wrap text-sm text-theme-text-primary">{selectedTask.notes}</div>
                 </div>
               ) : null}
@@ -1188,7 +1188,7 @@ export const KernelScanPage: React.FC<{ projectId: string }> = ({ projectId }) =
                     <div className="min-w-0">
                       <div className="flex items-center gap-2">
                         <FolderOpen size={14} className="text-theme-text-muted" />
-                        <div className="text-[11px] font-black uppercase tracking-[0.18em] text-theme-text-muted">{isVulnVerifyDetail ? '扫描结果预览' : '任务 Workspace 文件'}</div>
+                        <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-theme-text-muted">{isVulnVerifyDetail ? '扫描结果预览' : '任务 Workspace 文件'}</div>
                       </div>
                       <div className="mt-2 break-all font-mono text-[11px] text-theme-text-muted">{taskWorkspaceDisplayPath}</div>
                     </div>
@@ -1304,7 +1304,7 @@ export const KernelScanPage: React.FC<{ projectId: string }> = ({ projectId }) =
                 <div className="flex items-center justify-between gap-2">
                   <div className="flex items-center gap-2">
                     <FileText size={14} className="text-theme-text-muted" />
-                    <div className="text-[11px] font-black uppercase tracking-[0.18em] text-theme-text-muted">扫描结果预览</div>
+                    <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-theme-text-muted">扫描结果预览</div>
                   </div>
                   <div className="flex items-center gap-2">
                     {ACTIVE_TASK_STATUSES.has(String(selectedTask.status || '').toLowerCase()) ? (
@@ -1353,13 +1353,13 @@ export const KernelScanPage: React.FC<{ projectId: string }> = ({ projectId }) =
 
       {createModalOpen ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 px-4 py-6 backdrop-blur-sm">
- <div className="flex w-full max-w-lg flex-col overflow-hidden rounded-2xl border border-theme-border bg-theme-bg-app">
+ <div className="flex w-full max-w-lg flex-col overflow-hidden rounded-2xl border border-theme-border bg-theme-surface">
             <div className="shrink-0 border-b border-theme-border bg-slate-50/90 px-5 py-4">
-              <h3 className="text-lg font-black text-slate-950">新建{CATEGORY_LABELS[activeTab]}任务</h3>
+              <h3 className="text-lg font-semibold text-slate-950">新建{CATEGORY_LABELS[activeTab]}任务</h3>
             </div>
             <div className="flex-1 space-y-5 overflow-auto p-5">
               <label className="block">
-                <div className="mb-2 text-xs font-black uppercase tracking-[0.18em] text-theme-text-muted">
+                <div className="mb-2 text-xs font-semibold uppercase tracking-[0.18em] text-theme-text-muted">
                   {activeTab === 'vuln_verify' ? '自定义任务名' : '任务标题'}
                 </div>
                 <input
@@ -1370,7 +1370,7 @@ export const KernelScanPage: React.FC<{ projectId: string }> = ({ projectId }) =
                 />
               </label>
               <label className="block">
-                <div className="mb-2 text-xs font-black uppercase tracking-[0.18em] text-theme-text-muted">{activeTab === 'vuln_verify' ? '源码目录' : '目标路径（内核源码目录）'}</div>
+                <div className="mb-2 text-xs font-semibold uppercase tracking-[0.18em] text-theme-text-muted">{activeTab === 'vuln_verify' ? '源码目录' : '目标路径（内核源码目录）'}</div>
                 <div className="flex items-center gap-2">
                   <input
                     value={createTargetPath}
@@ -1390,7 +1390,7 @@ export const KernelScanPage: React.FC<{ projectId: string }> = ({ projectId }) =
               </label>
               {activeTab === 'vuln_scan' ? (
                 <label className="block">
-                  <div className="mb-2 text-xs font-black uppercase tracking-[0.18em] text-theme-text-muted">Devlist 文件路径</div>
+                  <div className="mb-2 text-xs font-semibold uppercase tracking-[0.18em] text-theme-text-muted">Devlist 文件路径</div>
                   <div className="flex items-center gap-2">
                     <input
                       value={createDevlistPath}
@@ -1411,7 +1411,7 @@ export const KernelScanPage: React.FC<{ projectId: string }> = ({ projectId }) =
               ) : null}
               {activeTab === 'vuln_verify' ? (
                 <label className="block">
-                  <div className="mb-2 text-xs font-black uppercase tracking-[0.18em] text-theme-text-muted">漏洞报告目录</div>
+                  <div className="mb-2 text-xs font-semibold uppercase tracking-[0.18em] text-theme-text-muted">漏洞报告目录</div>
                   <div className="flex items-center gap-2">
                     <input
                       value={createReportDir}
@@ -1432,7 +1432,7 @@ export const KernelScanPage: React.FC<{ projectId: string }> = ({ projectId }) =
               ) : null}
               {activeTab !== 'vuln_verify' ? (
                 <label className="block">
-                  <div className="mb-2 text-xs font-black uppercase tracking-[0.18em] text-theme-text-muted">并行数</div>
+                  <div className="mb-2 text-xs font-semibold uppercase tracking-[0.18em] text-theme-text-muted">并行数</div>
                   <input
                     type="number"
                     min={1}
@@ -1472,10 +1472,10 @@ export const KernelScanPage: React.FC<{ projectId: string }> = ({ projectId }) =
 
       {showPathPicker ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 px-4 py-6 backdrop-blur-sm">
- <div className="flex h-[70vh] w-full max-w-xl flex-col overflow-hidden rounded-2xl border border-theme-border bg-theme-bg-app">
+ <div className="flex h-[70vh] w-full max-w-xl flex-col overflow-hidden rounded-2xl border border-theme-border bg-theme-surface">
             <div className="flex shrink-0 items-center justify-between border-b border-theme-border bg-slate-50/90 px-5 py-4">
               <div>
-                <h3 className="text-lg font-black text-slate-950">{pathPickerTitle}</h3>
+                <h3 className="text-lg font-semibold text-slate-950">{pathPickerTitle}</h3>
                 <div className="mt-1 break-all font-mono text-xs text-theme-text-muted">{formatWorkspaceDisplayPath(browsePath)}</div>
               </div>
               <button type="button" onClick={() => setShowPathPicker(false)} className="rounded-lg p-1.5 text-theme-text-muted transition hover:bg-theme-elevated">

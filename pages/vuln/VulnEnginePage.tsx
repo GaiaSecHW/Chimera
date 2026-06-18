@@ -267,11 +267,11 @@ export const VulnEnginePage: React.FC<VulnEnginePageProps> = ({
           <div className="grid grid-cols-2 gap-3">
             <div className="rounded-lg px-4 py-3" style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}` }}>
               <div className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: LK.mutedSoft }}>推荐动作</div>
-              <div className="mt-2 text-2xl font-semibold tabular-nums" style={{ color: LK.ink }}>{recommendedActions.length}</div>
+              <div className="mt-2 text-2xl font-bold tabular-nums" style={{ color: LK.ink }}>{recommendedActions.length}</div>
             </div>
             <div className="rounded-lg px-4 py-3" style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}` }}>
               <div className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: LK.mutedSoft }}>待处理人工任务</div>
-              <div className="mt-2 text-2xl font-semibold tabular-nums" style={{ color: LK.ink }}>{openTaskCount}</div>
+              <div className="mt-2 text-2xl font-bold tabular-nums" style={{ color: LK.ink }}>{openTaskCount}</div>
             </div>
           </div>
           <div>
@@ -297,11 +297,11 @@ export const VulnEnginePage: React.FC<VulnEnginePageProps> = ({
           <div className="grid grid-cols-2 gap-3">
             <div className="rounded-lg px-4 py-3" style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}` }}>
               <div className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: LK.mutedSoft }}>运行中动作</div>
-              <div className="mt-2 text-2xl font-semibold tabular-nums" style={{ color: LK.ink }}>{runningActionCount}</div>
+              <div className="mt-2 text-2xl font-bold tabular-nums" style={{ color: LK.ink }}>{runningActionCount}</div>
             </div>
             <div className="rounded-lg px-4 py-3" style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}` }}>
               <div className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: LK.mutedSoft }}>人工验证任务</div>
-              <div className="mt-2 text-2xl font-semibold tabular-nums" style={{ color: LK.ink }}>{openTaskCount}</div>
+              <div className="mt-2 text-2xl font-bold tabular-nums" style={{ color: LK.ink }}>{openTaskCount}</div>
             </div>
           </div>
           <div>
@@ -336,7 +336,7 @@ export const VulnEnginePage: React.FC<VulnEnginePageProps> = ({
             </div>
             <div className="rounded-lg px-4 py-3" style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}` }}>
               <div className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: LK.mutedSoft }}>历史报告数</div>
-              <div className="mt-2 text-2xl font-semibold tabular-nums" style={{ color: LK.ink }}>{caseReports.length}</div>
+              <div className="mt-2 text-2xl font-bold tabular-nums" style={{ color: LK.ink }}>{caseReports.length}</div>
             </div>
           </div>
           <div className="rounded-lg px-4 py-3 text-sm leading-6" style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}`, color: LK.body }}>
@@ -1172,11 +1172,11 @@ export const VulnEnginePage: React.FC<VulnEnginePageProps> = ({
               <div className="mt-4 grid grid-cols-2 gap-3">
                 <div className="rounded-lg px-4 py-3" style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}` }}>
                   <div className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: LK.mutedSoft }}>阶段内案例</div>
-                  <div className="mt-1 text-2xl font-semibold tabular-nums" style={{ color: LK.ink }}>{stageScopeCount}</div>
+                  <div className="mt-1 text-2xl font-bold tabular-nums" style={{ color: LK.ink }}>{stageScopeCount}</div>
                 </div>
                 <div className="rounded-lg px-4 py-3" style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}` }}>
                   <div className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: LK.mutedSoft }}>覆盖阶段数</div>
-                  <div className="mt-1 text-2xl font-semibold tabular-nums" style={{ color: LK.ink }}>{stageScope.length}</div>
+                  <div className="mt-1 text-2xl font-bold tabular-nums" style={{ color: LK.ink }}>{stageScope.length}</div>
                 </div>
               </div>
             ) : null}
@@ -1354,7 +1354,7 @@ export const VulnEnginePage: React.FC<VulnEnginePageProps> = ({
                   type="button"
                   onClick={() => void handleBatchSyncAutoVerify(selectedEvolutionCaseIds)}
                   disabled={batchSyncingAutoVerify || selectedEvolutionCaseIds.length === 0}
-                  className="inline-flex items-center gap-2 rounded-xl bg-theme-surface px-3 py-2 text-xs font-black text-white disabled:cursor-not-allowed disabled:opacity-50"
+                  className="inline-flex items-center gap-2 rounded-xl bg-theme-surface px-3 py-2 text-xs font-medium text-white disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   <RefreshCw size={14} className={batchSyncingAutoVerify ? 'animate-spin' : ''} />
                   {batchSyncingAutoVerify ? '同步中...' : '同步选中'}
@@ -1363,7 +1363,7 @@ export const VulnEnginePage: React.FC<VulnEnginePageProps> = ({
                   type="button"
                   onClick={() => void handleBatchSyncAutoVerify(currentBatchSyncCaseIds)}
                   disabled={batchSyncingAutoVerify || currentBatchSyncCaseIds.length === 0}
-                  className="inline-flex items-center gap-2 rounded-xl border border-theme-border bg-theme-bg-app px-3 py-2 text-xs font-black text-theme-text-secondary disabled:cursor-not-allowed disabled:opacity-50"
+                  className="inline-flex items-center gap-2 rounded-xl border border-theme-border bg-theme-surface px-3 py-2 text-xs font-medium text-theme-text-secondary disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   <RefreshCw size={14} className={batchSyncingAutoVerify ? 'animate-spin' : ''} />
                   {batchSyncingAutoVerify ? '同步中...' : '同步当前筛选前100条'}
@@ -1382,7 +1382,7 @@ export const VulnEnginePage: React.FC<VulnEnginePageProps> = ({
                   setEvolutionPreview(null);
                 }}
                 disabled={selectedEvolutionCaseIds.length === 0}
-                className="inline-flex items-center gap-2 rounded-xl bg-theme-surface px-3 py-2 text-xs font-black text-white disabled:cursor-not-allowed disabled:opacity-50"
+                className="inline-flex items-center gap-2 rounded-xl bg-theme-surface px-3 py-2 text-xs font-medium text-white disabled:cursor-not-allowed disabled:opacity-50"
               >
                 <Sparkles size={14} />
                 创建进化任务
@@ -1457,7 +1457,7 @@ export const VulnEnginePage: React.FC<VulnEnginePageProps> = ({
                   <Sparkles size={14} />
                   漏洞台账 {'->'} 进化中心
                 </div>
-                <h2 className="mt-3 text-2xl font-semibold" style={{ color: LK.ink }}>从已选案例创建进化任务</h2>
+                <h2 className="mt-3 text-2xl font-bold" style={{ color: LK.ink }}>从已选案例创建进化任务</h2>
                 <p className="mt-2 text-sm" style={{ color: LK.body }}>先预览整批，再确认创建。若同一 normal 任务存在遗漏案例，预览会自动补齐。</p>
               </div>
               <button

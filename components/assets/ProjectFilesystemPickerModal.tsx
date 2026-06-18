@@ -249,7 +249,7 @@ export const ProjectFilesystemPickerModal: React.FC<{
       <div className="flex max-h-[86vh] w-full max-w-5xl flex-col overflow-hidden rounded-[2rem] bg-theme-surface shadow-2xl">
         <div className="flex items-center justify-between border-b border-theme-border px-8 py-6">
           <div>
-            <h3 className="text-xl font-black text-theme-text-primary">{title}</h3>
+            <h3 className="text-xl font-semibold text-theme-text-primary">{title}</h3>
             <p className="mt-1 text-sm text-theme-text-secondary">{description}</p>
           </div>
           <button onClick={onClose} className="rounded-2xl p-3 text-theme-text-muted hover:bg-theme-elevated hover:text-theme-text-primary">
@@ -272,7 +272,7 @@ export const ProjectFilesystemPickerModal: React.FC<{
 
           <div className="flex flex-col justify-between p-6">
             <div>
-              <div className="text-xs font-black uppercase tracking-widest text-theme-text-muted">{allowMultiple ? '已选路径' : '已选路径'}</div>
+              <div className="text-xs font-semibold uppercase tracking-widest text-theme-text-muted">{allowMultiple ? '已选路径' : '已选路径'}</div>
               {allowMultiple ? (
                 <div className="mt-4 rounded-2xl border border-cyan-500/20 bg-cyan-50/10 p-5">
                   <div className="text-sm font-bold text-theme-text-primary">已选择 {selectedValidNodes.length} 个{selectionMode === 'file' ? '文件' : '目录'}</div>
@@ -292,11 +292,11 @@ export const ProjectFilesystemPickerModal: React.FC<{
               ) : selectedNode ? (
                 <div className="mt-4 space-y-4 rounded-2xl border border-cyan-500/20 bg-cyan-50/10 p-5">
                   <div>
-                    <div className="text-xs font-black uppercase tracking-widest text-cyan-400">类型</div>
+                    <div className="text-xs font-semibold uppercase tracking-widest text-cyan-400">类型</div>
                     <div className="mt-1 text-sm font-bold text-theme-text-primary">{formatNodeType(selectedNode.node_type)}</div>
                   </div>
                   <div>
-                    <div className="text-xs font-black uppercase tracking-widest text-cyan-400">路径</div>
+                    <div className="text-xs font-semibold uppercase tracking-widest text-cyan-400">路径</div>
                     <div className="mt-1 break-all rounded-xl bg-theme-elevated px-3 py-2 font-mono text-sm text-theme-text-primary">
                       {selectedNode.path}
                     </div>

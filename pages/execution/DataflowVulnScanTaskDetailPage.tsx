@@ -357,7 +357,7 @@ function buildDfaTree(events: AppDfaStageEvent[], taskStatus: string): DfaTreeNo
 function TreeNodeView({ node }: { node: DfaTreeNode }) {
   return (
     <div className="space-y-2">
-      <div className="flex items-center gap-2 rounded-xl border border-theme-border bg-theme-bg-app px-3 py-2 text-xs">
+      <div className="flex items-center gap-2 rounded-xl border border-theme-border bg-theme-surface px-3 py-2 text-xs">
         <span className={`h-2 w-2 rounded-full ${node.status === 'done' ? 'bg-emerald-500' : node.status === 'running' ? 'bg-blue-500' : 'bg-slate-300'}`} />
         <span className="font-mono text-theme-text-secondary">{node.name}</span>
       </div>
@@ -457,12 +457,12 @@ function TraceTreeNodeCard({
       <button
         type="button"
         onClick={() => onSelect(node)}
-        className={`w-full rounded-2xl border px-4 py-3 text-left transition ${selected ? 'border-theme-border bg-theme-surface text-white' : 'border-theme-border bg-theme-bg-app hover:bg-theme-elevated'}`}
+        className={`w-full rounded-2xl border px-4 py-3 text-left transition ${selected ? 'border-theme-border bg-theme-surface text-white' : 'border-theme-border bg-theme-surface hover:bg-theme-elevated'}`}
         style={{ marginLeft:`${level * 16}px` }}
       >
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
-            <div className="truncate font-mono text-sm font-black">{node.function_name || '-'}</div>
+            <div className="truncate font-mono text-sm font-semibold">{node.function_name || '-'}</div>
             <div className={`mt-1 truncate text-[11px] ${selected ? 'text-theme-text-faint' : 'text-theme-text-muted'}`}>{node.source_file || '-'} {node.line_hint || ''}</div>
             <div className={`mt-2 text-xs ${selected ? 'text-theme-text-faint' : 'text-theme-text-secondary'}`}>污点: {node.taint_inputs?.length ? node.taint_inputs.map((item) => item.symbol).join(', ') : '未识别'}</div>
           </div>
@@ -484,7 +484,7 @@ function TraceTreeNodeCard({
 }
 
 function MarkdownContent({ content }: { content: string }) {
-  return <article className="prose prose-slate max-w-none prose-headings:font-black prose-pre:border prose-pre:border-theme-border prose-pre:bg-theme-bg-app prose-pre:text-theme-text-primary prose-code:text-rose-400"><ReactMarkdown remarkPlugins={[remarkGfm]}>{content}</ReactMarkdown></article>;
+  return <article className="prose prose-slate max-w-none prose-headings:font-semibold prose-pre:border prose-pre:border-theme-border prose-pre:bg-theme-bg-app prose-pre:text-theme-text-primary prose-code:text-rose-400"><ReactMarkdown remarkPlugins={[remarkGfm]}>{content}</ReactMarkdown></article>;
 }
 
 export const DataflowVulnScanTaskDetailPage: React.FC<{ projectId: string; taskId: string; onBack: () => void }> = ({ projectId, taskId, onBack }) => {
@@ -902,10 +902,10 @@ export const DataflowVulnScanTaskDetailPage: React.FC<{ projectId: string; taskI
       {feedbackNodes}
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div className="flex min-w-0 items-start gap-4">
- <button onClick={handleBack} className="mt-1 rounded-2xl border border-theme-border bg-theme-bg-app p-3 text-theme-text-secondary hover:bg-theme-elevated"><ArrowLeft size={18} /></button>
+ <button onClick={handleBack} className="mt-1 rounded-2xl border border-theme-border bg-theme-surface p-3 text-theme-text-secondary hover:bg-theme-elevated"><ArrowLeft size={18} /></button>
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-3">
-              <h1 className="truncate text-2xl font-black tracking-tight text-theme-text-primary">{detail?.task_name || '数据流漏洞挖掘任务详情'}</h1>
+              <h1 className="truncate text-2xl font-bold tracking-tight text-theme-text-primary">{detail?.task_name || '数据流漏洞挖掘任务详情'}</h1>
               {detail ? <span className={`rounded-full px-3 py-1 text-xs font-bold ${STATUS_COLOR[detail.status] || 'bg-theme-elevated text-theme-text-secondary'}`}>{STATUS_LABEL[detail.status] || detail.status}</span> : null}
               {hasReturnContext ? <span className="rounded-full border border-cyan-500/20 bg-cyan-500/15 px-3 py-1 text-xs font-bold text-cyan-400">来自二进制安全总任务</span> : null}
             </div>
@@ -913,16 +913,16 @@ export const DataflowVulnScanTaskDetailPage: React.FC<{ projectId: string; taskI
           </div>
         </div>
         <div className="flex flex-wrap gap-2">
-          <button onClick={() => void loadDetail()} className="inline-flex items-center gap-2 rounded-xl border border-theme-border bg-theme-bg-app px-4 py-2 text-sm font-semibold text-theme-text-secondary hover:bg-theme-elevated"><RefreshCw size={15} className={loading ? 'animate-spin' : ''} />刷新</button>
-          {detail && ['pending', 'running'].includes(detail.status) ? <button onClick={() => void cancelTask()} className="inline-flex items-center gap-2 rounded-xl border border-rose-500/20 bg-theme-bg-app px-4 py-2 text-sm font-semibold text-rose-400 hover:bg-rose-500/15"><XCircle size={15} />取消</button> : null}
-          {detail && !['pending', 'running'].includes(detail.status) ? <button onClick={() => void restartTask()} className="inline-flex items-center gap-2 rounded-xl border border-violet-500/20 bg-theme-bg-app px-4 py-2 text-sm font-semibold text-violet-400 hover:bg-violet-500/15"><RotateCcw size={15} />重试</button> : null}
+          <button onClick={() => void loadDetail()} className="inline-flex items-center gap-2 rounded-xl border border-theme-border bg-theme-surface px-4 py-2 text-sm font-semibold text-theme-text-secondary hover:bg-theme-elevated"><RefreshCw size={15} className={loading ? 'animate-spin' : ''} />刷新</button>
+          {detail && ['pending', 'running'].includes(detail.status) ? <button onClick={() => void cancelTask()} className="inline-flex items-center gap-2 rounded-xl border border-rose-500/20 bg-theme-surface px-4 py-2 text-sm font-semibold text-rose-400 hover:bg-rose-500/15"><XCircle size={15} />取消</button> : null}
+          {detail && !['pending', 'running'].includes(detail.status) ? <button onClick={() => void restartTask()} className="inline-flex items-center gap-2 rounded-xl border border-violet-500/20 bg-theme-surface px-4 py-2 text-sm font-semibold text-violet-400 hover:bg-violet-500/15"><RotateCcw size={15} />重试</button> : null}
           {detail ? <DownstreamTaskCreator projectId={projectId} sourceKind="dataflow_analysis" task={detail} buttonClassName="inline-flex items-center gap-2 rounded-xl border border-emerald-500/20 bg-emerald-500/15 px-4 py-2 text-sm font-semibold text-emerald-400 hover:bg-emerald-500/15 disabled:cursor-not-allowed disabled:opacity-50" /> : null}
-          {detail?.started_at ? <button onClick={() => void resumeTask()} className="inline-flex items-center gap-2 rounded-xl border border-emerald-500/20 bg-theme-bg-app px-4 py-2 text-sm font-semibold text-emerald-400 hover:bg-emerald-500/15"><CheckCircle2 size={15} />继续</button> : null}
-          {detail ? <button onClick={() => void deleteTask()} className="inline-flex items-center gap-2 rounded-xl border border-rose-500/20 bg-theme-bg-app px-4 py-2 text-sm font-semibold text-rose-400 hover:bg-rose-500/15"><Trash2 size={15} />删除</button> : null}
+          {detail?.started_at ? <button onClick={() => void resumeTask()} className="inline-flex items-center gap-2 rounded-xl border border-emerald-500/20 bg-theme-surface px-4 py-2 text-sm font-semibold text-emerald-400 hover:bg-emerald-500/15"><CheckCircle2 size={15} />继续</button> : null}
+          {detail ? <button onClick={() => void deleteTask()} className="inline-flex items-center gap-2 rounded-xl border border-rose-500/20 bg-theme-surface px-4 py-2 text-sm font-semibold text-rose-400 hover:bg-rose-500/15"><Trash2 size={15} />删除</button> : null}
         </div>
       </div>
 
- <div className="flex gap-2 rounded-2xl border border-theme-border bg-theme-bg-app p-1">
+ <div className="flex gap-2 rounded-2xl border border-theme-border bg-theme-surface p-1">
         {[
           ['overview', '总览'],
           ['timeline', '事件时间线'],
@@ -940,8 +940,8 @@ export const DataflowVulnScanTaskDetailPage: React.FC<{ projectId: string; taskI
           <section className="space-y-4">
             <TaskOriginCard origin={detail} />
             <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_360px]">
- <div className="rounded-2xl border border-theme-border bg-theme-bg-app p-5">
-                <h2 className="text-sm font-black uppercase tracking-[0.2em] text-theme-text-muted">任务信息</h2>
+ <div className="rounded-2xl border border-theme-border bg-theme-surface p-5">
+                <h2 className="text-sm font-semibold uppercase tracking-[0.2em] text-theme-text-muted">任务信息</h2>
                 <div className="mt-4 grid gap-3 md:grid-cols-2">
                   <InfoRow label="任务 ID" value={<span className="font-mono">{detail.task_id}</span>} />
                   <InfoRow label="创建时间" value={new Date(detail.created_at).toLocaleString('zh-CN')} />
@@ -958,29 +958,29 @@ export const DataflowVulnScanTaskDetailPage: React.FC<{ projectId: string; taskI
                   <InfoRow label="描述" value={detail.task_description || '-'} />
                 </div>
               </div>
- <div className="rounded-2xl border border-theme-border bg-theme-bg-app p-5">
-                <h2 className="text-sm font-black uppercase tracking-[0.2em] text-theme-text-muted">阶段进度</h2>
+ <div className="rounded-2xl border border-theme-border bg-theme-surface p-5">
+                <h2 className="text-sm font-semibold uppercase tracking-[0.2em] text-theme-text-muted">阶段进度</h2>
                 <div className="mt-4 space-y-3">{STAGE_STEPS.map((step, index) => {
                   const state = statusSteps[index];
                   const artifactPath = detail.output_path ? extractFsRelPath(`${detail.output_path}/${detail.task_id}/${step.artifactSubpath}`, projectId) : null;
-                  return <div key={step.key} className="rounded-xl border border-theme-border bg-slate-50/70 px-4 py-3"><div className="flex items-start gap-3"><div className={`mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-2 ${state === 'completed' ? 'border-emerald-500 bg-emerald-500/15 text-emerald-400' : state === 'running' ? 'border-blue-500 bg-blue-500/15 text-blue-400' : state === 'failed' ? 'border-red-400 bg-red-500/15 text-red-400' : 'border-theme-border bg-theme-bg-app text-theme-text-muted'}`}>{state === 'completed' ? <CheckCircle2 size={16} /> : state === 'running' ? <Loader2 size={14} className="animate-spin" /> : state === 'failed' ? <XCircle size={16} /> : index + 1}</div><div className="min-w-0 flex-1"><p className="text-sm font-bold text-theme-text-primary">{step.label}</p><p className="mt-1 text-xs text-theme-text-muted">{step.desc}</p>{artifactPath && state !== 'pending' ? <button onClick={() => openInFileExplorer(artifactPath)} className="mt-2 inline-flex items-center gap-1 rounded-lg border border-violet-500/20 px-2 py-1 text-[11px] font-semibold text-violet-400 hover:bg-violet-500/15"><FolderOpen size={11} />打开阶段输出</button> : null}</div></div></div>;
+                  return <div key={step.key} className="rounded-xl border border-theme-border bg-slate-50/70 px-4 py-3"><div className="flex items-start gap-3"><div className={`mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-2 ${state === 'completed' ? 'border-emerald-500 bg-emerald-500/15 text-emerald-400' : state === 'running' ? 'border-blue-500 bg-blue-500/15 text-blue-400' : state === 'failed' ? 'border-red-400 bg-red-500/15 text-red-400' : 'border-theme-border bg-theme-surface text-theme-text-muted'}`}>{state === 'completed' ? <CheckCircle2 size={16} /> : state === 'running' ? <Loader2 size={14} className="animate-spin" /> : state === 'failed' ? <XCircle size={16} /> : index + 1}</div><div className="min-w-0 flex-1"><p className="text-sm font-bold text-theme-text-primary">{step.label}</p><p className="mt-1 text-xs text-theme-text-muted">{step.desc}</p>{artifactPath && state !== 'pending' ? <button onClick={() => openInFileExplorer(artifactPath)} className="mt-2 inline-flex items-center gap-1 rounded-lg border border-violet-500/20 px-2 py-1 text-[11px] font-semibold text-violet-400 hover:bg-violet-500/15"><FolderOpen size={11} />打开阶段输出</button> : null}</div></div></div>;
                 })}</div>
               </div>
             </div>
             <section className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_360px]">
- <div className="rounded-2xl border border-theme-border bg-theme-bg-app p-5">
-                <h2 className="text-sm font-black uppercase tracking-[0.2em] text-theme-text-muted">数据流调用树</h2>
-                <div className="mt-4 max-h-[420px] overflow-auto rounded-2xl border border-theme-border bg-theme-bg-app p-4">{dfaTree ? <TreeNodeView node={dfaTree} /> : <div className="py-10 text-center text-sm text-theme-text-muted">暂无调用树事件</div>}</div>
+ <div className="rounded-2xl border border-theme-border bg-theme-surface p-5">
+                <h2 className="text-sm font-semibold uppercase tracking-[0.2em] text-theme-text-muted">数据流调用树</h2>
+                <div className="mt-4 max-h-[420px] overflow-auto rounded-2xl border border-theme-border bg-theme-surface p-4">{dfaTree ? <TreeNodeView node={dfaTree} /> : <div className="py-10 text-center text-sm text-theme-text-muted">暂无调用树事件</div>}</div>
               </div>
- <div className="rounded-2xl border border-theme-border bg-theme-bg-app p-5">
-                <button onClick={() => setLogsExpanded((value) => !value)} className="flex w-full items-center justify-between gap-3 text-left"><div><h2 className="text-sm font-black uppercase tracking-[0.2em] text-theme-text-muted">分析日志</h2><p className="mt-1 text-xs text-theme-text-muted">{logLines.length} 条事件</p></div>{logsExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}</button>
-                {logsExpanded ? <div ref={logRef} className="mt-4 max-h-[420px] overflow-auto rounded-xl border border-theme-border bg-theme-bg-app px-3 py-3 font-mono text-xs leading-relaxed text-theme-text-secondary">{logLines.length ? logLines.map((line, index) => <div key={index} className={line.includes('✗') ? 'text-red-500' : line.includes('▶') ? 'text-violet-400' : line.includes('✓') ? 'text-emerald-400' : 'text-theme-text-secondary'}>{line}</div>) : <div className="text-theme-text-muted">暂无阶段事件</div>}</div> : null}
+ <div className="rounded-2xl border border-theme-border bg-theme-surface p-5">
+                <button onClick={() => setLogsExpanded((value) => !value)} className="flex w-full items-center justify-between gap-3 text-left"><div><h2 className="text-sm font-semibold uppercase tracking-[0.2em] text-theme-text-muted">分析日志</h2><p className="mt-1 text-xs text-theme-text-muted">{logLines.length} 条事件</p></div>{logsExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}</button>
+                {logsExpanded ? <div ref={logRef} className="mt-4 max-h-[420px] overflow-auto rounded-xl border border-theme-border bg-theme-surface px-3 py-3 font-mono text-xs leading-relaxed text-theme-text-secondary">{logLines.length ? logLines.map((line, index) => <div key={index} className={line.includes('✗') ? 'text-red-500' : line.includes('▶') ? 'text-violet-400' : line.includes('✓') ? 'text-emerald-400' : 'text-theme-text-secondary'}>{line}</div>) : <div className="text-theme-text-muted">暂无阶段事件</div>}</div> : null}
               </div>
             </section>
- <section className="rounded-2xl border border-theme-border bg-theme-bg-app p-5">
+ <section className="rounded-2xl border border-theme-border bg-theme-surface p-5">
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div>
-                  <h2 className="text-sm font-black uppercase tracking-[0.2em] text-theme-text-muted">当前运行智能体</h2>
+                  <h2 className="text-sm font-semibold uppercase tracking-[0.2em] text-theme-text-muted">当前运行智能体</h2>
                   <p className="mt-1 text-xs text-theme-text-muted">展示当前任务仍处于活跃状态的智能体会话与角色，点击可查看实时会话。</p>
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
@@ -991,11 +991,11 @@ export const DataflowVulnScanTaskDetailPage: React.FC<{ projectId: string; taskI
                 </div>
               </div>
               {sessionsLoading && sessions.length === 0 ? (
-                <div className="mt-4 flex items-center gap-2 rounded-xl border border-theme-border bg-theme-bg-app px-4 py-4 text-sm text-theme-text-muted"><Loader2 size={15} className="animate-spin" />加载智能体状态中...</div>
+                <div className="mt-4 flex items-center gap-2 rounded-xl border border-theme-border bg-theme-surface px-4 py-4 text-sm text-theme-text-muted"><Loader2 size={15} className="animate-spin" />加载智能体状态中...</div>
               ) : activeSessions.length > 0 ? (
                 <>
                   <div className="mt-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-                    <div className="flex min-w-0 flex-1 items-center gap-2 rounded-xl border border-theme-border bg-theme-bg-app px-3 py-2">
+                    <div className="flex min-w-0 flex-1 items-center gap-2 rounded-xl border border-theme-border bg-theme-surface px-3 py-2">
                       <Search size={14} className="text-theme-text-muted" />
                       <input
                         value={activeAgentKeyword}
@@ -1004,7 +1004,7 @@ export const DataflowVulnScanTaskDetailPage: React.FC<{ projectId: string; taskI
                         className="w-full bg-transparent text-sm font-medium text-theme-text-secondary outline-none placeholder:text-theme-text-muted"
                       />
                     </div>
-                    <label className="rounded-xl border border-theme-border bg-theme-bg-app px-3 py-2 text-xs font-semibold text-theme-text-muted">
+                    <label className="rounded-xl border border-theme-border bg-theme-surface px-3 py-2 text-xs font-semibold text-theme-text-muted">
                       每页
                       <select
                         value={activeAgentPageSize}
@@ -1022,7 +1022,7 @@ export const DataflowVulnScanTaskDetailPage: React.FC<{ projectId: string; taskI
                           <button key={session.relative_path} type="button" onClick={() => openActiveAgentSession(session.relative_path)} className="w-full px-4 py-4 text-left transition hover:bg-theme-elevated">
                             <div className="flex flex-wrap items-start justify-between gap-3">
                               <div className="min-w-0 flex-1">
-                                <div className="truncate text-sm font-black text-theme-text-primary">{session.display_name}</div>
+                                <div className="truncate text-sm font-semibold text-theme-text-primary">{session.display_name}</div>
                                 <div className="mt-1 truncate font-mono text-[11px] text-theme-text-muted">{session.relative_path}</div>
                                 <div className="mt-2 flex flex-wrap gap-3 text-[11px] text-theme-text-muted">
                                   <span>分组 {session.stage_group || '-'}</span>
@@ -1042,7 +1042,7 @@ export const DataflowVulnScanTaskDetailPage: React.FC<{ projectId: string; taskI
                       </div>
                     </div>
                   ) : (
-                    <div className="mt-4 rounded-xl border border-dashed border-theme-border bg-theme-bg-app px-4 py-8 text-center text-sm text-theme-text-muted">
+                    <div className="mt-4 rounded-xl border border-dashed border-theme-border bg-theme-surface px-4 py-8 text-center text-sm text-theme-text-muted">
                       当前筛选条件下没有匹配的活跃智能体会话。
                     </div>
                   )}
@@ -1071,28 +1071,28 @@ export const DataflowVulnScanTaskDetailPage: React.FC<{ projectId: string; taskI
                   ) : null}
                 </>
               ) : (
-                <div className="mt-4 rounded-xl border border-dashed border-theme-border bg-theme-bg-app px-4 py-8 text-center text-sm text-theme-text-muted">
+                <div className="mt-4 rounded-xl border border-dashed border-theme-border bg-theme-surface px-4 py-8 text-center text-sm text-theme-text-muted">
                   {detail.status === 'pending' ? '任务尚未启动，当前没有活跃智能体。' : ['running', 'pending'].includes(detail.status) ? '当前没有检测到活跃智能体会话。' : '任务已结束，当前没有活跃智能体。'}
                 </div>
               )}
             </section>
             {detail.abnormal_reason ? <AbnormalReasonCard reason={detail.abnormal_reason} history={detail.abnormal_reason_history} /> : null}
- {detail.error ? <section className="rounded-2xl border border-red-500/20 bg-red-500/15 p-5"><h2 className="text-sm font-black uppercase tracking-[0.2em] text-red-400">错误信息</h2><pre className="mt-3 max-h-40 overflow-auto whitespace-pre-wrap break-all rounded-xl border border-red-500/20 bg-theme-bg-app px-3 py-3 text-xs text-red-400">{detail.error}</pre></section> : null}
- {detail.prompt_content ? <section className="rounded-2xl border border-theme-border bg-theme-bg-app overflow-hidden"><details><summary className="cursor-pointer select-none px-6 py-4 text-sm font-black text-theme-text-secondary hover:bg-theme-elevated">分析 Prompt</summary><pre className="px-6 py-4 text-xs text-theme-text-secondary whitespace-pre-wrap break-all bg-theme-bg-app max-h-72 overflow-auto border-t border-theme-border">{detail.prompt_content}</pre></details></section> : null}
+ {detail.error ? <section className="rounded-2xl border border-red-500/20 bg-red-500/15 p-5"><h2 className="text-sm font-semibold uppercase tracking-[0.2em] text-red-400">错误信息</h2><pre className="mt-3 max-h-40 overflow-auto whitespace-pre-wrap break-all rounded-xl border border-red-500/20 bg-theme-surface px-3 py-3 text-xs text-red-400">{detail.error}</pre></section> : null}
+ {detail.prompt_content ? <section className="rounded-2xl border border-theme-border bg-theme-surface overflow-hidden"><details><summary className="cursor-pointer select-none px-6 py-4 text-sm font-semibold text-theme-text-secondary hover:bg-theme-elevated">分析 Prompt</summary><pre className="px-6 py-4 text-xs text-theme-text-secondary whitespace-pre-wrap break-all bg-theme-surface max-h-72 overflow-auto border-t border-theme-border">{detail.prompt_content}</pre></details></section> : null}
           </section>
         ) : activeTab === 'timeline' ? (
           <section className="space-y-4">
- <section className="rounded-2xl border border-theme-border bg-theme-bg-app p-5">
+ <section className="rounded-2xl border border-theme-border bg-theme-surface p-5">
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
-                  <h2 className="text-sm font-black uppercase tracking-[0.2em] text-theme-text-muted">事件时间线</h2>
+                  <h2 className="text-sm font-semibold uppercase tracking-[0.2em] text-theme-text-muted">事件时间线</h2>
                   <p className="mt-1 text-xs text-theme-text-muted">记录任务关键时间点和运行轨迹，用于分析调度、租约、控制权和执行阶段问题。</p>
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
-                  <div className="rounded-xl border border-theme-border bg-theme-bg-app px-3 py-2 text-xs font-semibold text-theme-text-muted">
+                  <div className="rounded-xl border border-theme-border bg-theme-surface px-3 py-2 text-xs font-semibold text-theme-text-muted">
                     展示 {timelineRangeStart}-{timelineRangeEnd} / {filteredTimeline.length}
                   </div>
-                  <label className="rounded-xl border border-theme-border bg-theme-bg-app px-3 py-2 text-xs font-semibold text-theme-text-muted">
+                  <label className="rounded-xl border border-theme-border bg-theme-surface px-3 py-2 text-xs font-semibold text-theme-text-muted">
                     每页
                     <select value={timelinePageSize} onChange={(event) => setTimelinePageSize(Math.min(2000, Math.max(50, Number(event.target.value) || 200)))} className="ml-2 rounded-lg border border-theme-border bg-theme-bg-app px-2 py-1 text-xs font-bold text-theme-text-secondary">
                       {[50, 100, 200, 500].map((size) => <option key={size} value={size}>{size}</option>)}
@@ -1109,30 +1109,30 @@ export const DataflowVulnScanTaskDetailPage: React.FC<{ projectId: string; taskI
                 </div>
               </div>
               <div className="mt-4 flex flex-wrap gap-2">
-                <select value={timelineEventTypeFilter} onChange={(event) => setTimelineEventTypeFilter(event.target.value)} className="rounded-xl border border-theme-border bg-theme-bg-app px-3 py-2 text-sm font-semibold text-theme-text-secondary">
+                <select value={timelineEventTypeFilter} onChange={(event) => setTimelineEventTypeFilter(event.target.value)} className="rounded-xl border border-theme-border bg-theme-surface px-3 py-2 text-sm font-semibold text-theme-text-secondary">
                   <option value="__all__">全部事件</option>
                   {timelineEventTypeOptions.map((value) => <option key={value} value={value}>{formatTimelineEventTypeLabel(value)}</option>)}
                 </select>
-                <select value={timelineLevelFilter} onChange={(event) => setTimelineLevelFilter(event.target.value)} className="rounded-xl border border-theme-border bg-theme-bg-app px-3 py-2 text-sm font-semibold text-theme-text-secondary">
+                <select value={timelineLevelFilter} onChange={(event) => setTimelineLevelFilter(event.target.value)} className="rounded-xl border border-theme-border bg-theme-surface px-3 py-2 text-sm font-semibold text-theme-text-secondary">
                   <option value="__all__">全部级别</option>
                   {timelineLevelOptions.map((value) => <option key={value} value={value}>{value}</option>)}
                 </select>
-                <select value={timelineStatusFilter} onChange={(event) => setTimelineStatusFilter(event.target.value)} className="rounded-xl border border-theme-border bg-theme-bg-app px-3 py-2 text-sm font-semibold text-theme-text-secondary">
+                <select value={timelineStatusFilter} onChange={(event) => setTimelineStatusFilter(event.target.value)} className="rounded-xl border border-theme-border bg-theme-surface px-3 py-2 text-sm font-semibold text-theme-text-secondary">
                   <option value="__all__">全部状态</option>
                   {timelineStatusOptions.map((value) => <option key={value} value={value}>{value}</option>)}
                 </select>
               </div>
             </section>
- <section className="rounded-2xl border border-theme-border bg-theme-bg-app p-5">
+ <section className="rounded-2xl border border-theme-border bg-theme-surface p-5">
               {timelineLoading && timeline.length === 0 ? (
-                <div className="rounded-xl border border-theme-border bg-theme-bg-app px-4 py-10 text-center text-sm text-theme-text-muted">加载事件时间线中...</div>
+                <div className="rounded-xl border border-theme-border bg-theme-surface px-4 py-10 text-center text-sm text-theme-text-muted">加载事件时间线中...</div>
               ) : filteredTimeline.length === 0 ? (
-                <div className="rounded-xl border border-dashed border-theme-border bg-theme-bg-app px-4 py-10 text-center text-sm text-theme-text-muted">当前暂无数据库事件时间线</div>
+                <div className="rounded-xl border border-dashed border-theme-border bg-theme-surface px-4 py-10 text-center text-sm text-theme-text-muted">当前暂无数据库事件时间线</div>
               ) : (
                 <div className="overflow-hidden rounded-2xl border border-theme-border">
                   <div className="overflow-x-auto">
                     <table className="min-w-[1180px] w-full divide-y divide-theme-border text-left text-xs">
-                      <thead className="bg-theme-bg-app text-[11px] font-black uppercase tracking-[0.12em] text-theme-text-muted">
+                      <thead className="bg-theme-bg-app text-[11px] font-semibold uppercase tracking-[0.12em] text-theme-text-muted">
                         <tr>
                           <th className="w-14 px-3 py-2">#</th>
                           <th className="w-44 px-3 py-2">时间</th>
@@ -1162,7 +1162,7 @@ export const DataflowVulnScanTaskDetailPage: React.FC<{ projectId: string; taskI
                                 <td className="px-3 py-2"><span className={`inline-flex rounded-full border px-2 py-0.5 text-[11px] font-bold ${timelineEventCategoryTone(event.event_type)}`}>{timelineEventCategoryLabel(event.event_type)}</span></td>
                                 <td className="px-3 py-2"><span className={`inline-flex rounded-full border px-2 py-0.5 text-[11px] font-bold ${timelineEventTypeTone(event.event_type)}`}>{formatTimelineEventTypeLabel(event.event_type)}</span></td>
                                 <td className="px-3 py-2"><span className={`inline-flex rounded-full px-2 py-0.5 text-[11px] font-bold ${STATUS_COLOR[event.status || 'pending'] || 'bg-theme-elevated text-theme-text-secondary'}`}>{STATUS_LABEL[event.status || 'pending'] || statusText}</span></td>
-                                <td className="px-3 py-2"><span className={`inline-flex rounded-full border px-2 py-0.5 text-[11px] font-black ${timelineLevelTone(event.level)}`}>{event.level || 'info'}</span></td>
+                                <td className="px-3 py-2"><span className={`inline-flex rounded-full border px-2 py-0.5 text-[11px] font-medium ${timelineLevelTone(event.level)}`}>{event.level || 'info'}</span></td>
                                 <td className="max-w-[360px] px-3 py-2">
                                   <div className="truncate font-semibold text-theme-text-primary" title={timelineMessageSummary(event)}>{timelineMessageSummary(event)}</div>
                                   {auditSummary ? <div className="mt-1 truncate text-[11px] font-medium text-rose-400" title={auditSummary}>{auditSummary}</div> : null}
@@ -1170,8 +1170,8 @@ export const DataflowVulnScanTaskDetailPage: React.FC<{ projectId: string; taskI
                                 <td className="px-3 py-2 text-[11px] text-theme-text-muted"><div className="truncate font-mono" title={sourceLabel}>{sourceLabel}</div></td>
                                 <td className="px-3 py-2 text-right">
                                   <div className="flex items-center justify-end gap-3">
-                                    <button type="button" onClick={() => setExpandedTimelineEventId(expanded ? '' : event.id)} disabled={!hasPayload} className="text-[11px] font-black text-theme-text-muted transition hover:text-theme-text-primary disabled:opacity-30">{expanded ? '收起' : '查看'}</button>
-                                    <button onClick={() => void deleteTimelineEvent(event.id)} disabled={deletingEventId === event.id || timelineClearing} className="text-[11px] font-black text-rose-400 transition hover:text-rose-400 disabled:opacity-40">{deletingEventId === event.id ? '删除中' : '删除'}</button>
+                                    <button type="button" onClick={() => setExpandedTimelineEventId(expanded ? '' : event.id)} disabled={!hasPayload} className="text-[11px] font-semibold text-theme-text-muted transition hover:text-theme-text-primary disabled:opacity-30">{expanded ? '收起' : '查看'}</button>
+                                    <button onClick={() => void deleteTimelineEvent(event.id)} disabled={deletingEventId === event.id || timelineClearing} className="text-[11px] font-semibold text-rose-400 transition hover:text-rose-400 disabled:opacity-40">{deletingEventId === event.id ? '删除中' : '删除'}</button>
                                   </div>
                                 </td>
                               </tr>
@@ -1186,7 +1186,7 @@ export const DataflowVulnScanTaskDetailPage: React.FC<{ projectId: string; taskI
                                         </div>
                                       ))}
                                     </div>
-                                    <pre className="mt-3 overflow-auto rounded-xl border border-theme-border bg-theme-bg-app px-3 py-3 text-xs leading-relaxed text-theme-text-primary">{JSON.stringify(payload, null, 2)}</pre>
+                                    <pre className="mt-3 overflow-auto rounded-xl border border-theme-border bg-theme-surface px-3 py-3 text-xs leading-relaxed text-theme-text-primary">{JSON.stringify(payload, null, 2)}</pre>
                                   </td>
                                 </tr>
                               ) : null}
@@ -1204,15 +1204,15 @@ export const DataflowVulnScanTaskDetailPage: React.FC<{ projectId: string; taskI
           <DataflowAnalysisTaskConfigPanel detail={detail} />
         ) : activeTab === 'session' ? (
           <section className="grid gap-4 xl:grid-cols-[320px_minmax(0,1fr)]">
- <aside className="rounded-2xl border border-theme-border bg-theme-bg-app p-4"><div className="flex items-center justify-between gap-3"><div><div className="text-[11px] font-black uppercase tracking-[0.18em] text-theme-text-muted">会话列表</div><div className="mt-1 text-xs text-theme-text-muted">{sessions.length} 个会话文件</div></div><button onClick={() => void loadSessions()} className="rounded-xl border border-theme-border p-2 text-theme-text-muted hover:bg-theme-elevated"><RefreshCw size={14} className={sessionsLoading ? 'animate-spin' : ''} /></button></div>{sessionsError ? <div className="mt-4 rounded-2xl border border-rose-500/20 bg-rose-500/15 px-4 py-4 text-sm text-rose-400">{sessionsError}</div> : null}{sessions.length === 0 ? <div className="mt-4 rounded-2xl border border-dashed border-theme-border bg-theme-bg-app px-4 py-10 text-center text-sm text-theme-text-muted">{sessionsLoading ? '加载会话中...' : '当前任务暂无智能体会话文件'}</div> : <div className="mt-4 max-h-[calc(100vh-20rem)] space-y-4 overflow-auto pr-1">{groupedSessions.map(([group, items]) => <div key={group}><div className="mb-2 text-[11px] font-black uppercase tracking-[0.18em] text-theme-text-muted">{group === 'root' ? '根会话' : group}</div><div className="space-y-2">{items.map((session) => { const selected = session.relative_path === selectedSessionPath; return <button key={session.relative_path} onClick={() => setSelectedSessionPath(session.relative_path)} className={`w-full rounded-2xl border px-4 py-3 text-left transition ${selected ? 'border-theme-border bg-theme-surface text-white' : 'border-theme-border bg-theme-bg-app text-theme-text-secondary hover:bg-theme-bg-app'}`}><div className="flex items-start justify-between gap-3"><div className="min-w-0"><div className="truncate text-sm font-black">{session.display_name}</div><div className={`mt-1 truncate text-[11px] ${selected ? 'text-theme-text-faint' : 'text-theme-text-muted'}`}>{session.relative_path}</div></div><span className={`inline-flex shrink-0 whitespace-nowrap rounded-full border px-2 py-0.5 text-[10px] font-bold ${session.is_active ? 'border-emerald-500/20 bg-emerald-500/15 text-emerald-400' : 'border-theme-border bg-theme-bg-app text-theme-text-muted'}`}>{session.is_active ? '活跃' : '历史'}</span></div><div className={`mt-3 flex flex-wrap gap-3 text-[11px] ${selected ? 'text-theme-text-faint' : 'text-theme-text-muted'}`}><span>事件 {session.event_count}</span><span>{new Date(session.mtime * 1000).toLocaleString('zh-CN')}</span></div></button>; })}</div></div>)}</div>}</aside>
+ <aside className="rounded-2xl border border-theme-border bg-theme-surface p-4"><div className="flex items-center justify-between gap-3"><div><div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-theme-text-muted">会话列表</div><div className="mt-1 text-xs text-theme-text-muted">{sessions.length} 个会话文件</div></div><button onClick={() => void loadSessions()} className="rounded-xl border border-theme-border p-2 text-theme-text-muted hover:bg-theme-elevated"><RefreshCw size={14} className={sessionsLoading ? 'animate-spin' : ''} /></button></div>{sessionsError ? <div className="mt-4 rounded-2xl border border-rose-500/20 bg-rose-500/15 px-4 py-4 text-sm text-rose-400">{sessionsError}</div> : null}{sessions.length === 0 ? <div className="mt-4 rounded-2xl border border-dashed border-theme-border bg-theme-surface px-4 py-10 text-center text-sm text-theme-text-muted">{sessionsLoading ? '加载会话中...' : '当前任务暂无智能体会话文件'}</div> : <div className="mt-4 max-h-[calc(100vh-20rem)] space-y-4 overflow-auto pr-1">{groupedSessions.map(([group, items]) => <div key={group}><div className="mb-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-theme-text-muted">{group === 'root' ? '根会话' : group}</div><div className="space-y-2">{items.map((session) => { const selected = session.relative_path === selectedSessionPath; return <button key={session.relative_path} onClick={() => setSelectedSessionPath(session.relative_path)} className={`w-full rounded-2xl border px-4 py-3 text-left transition ${selected ? 'border-theme-border bg-theme-surface text-white' : 'border-theme-border bg-theme-surface text-theme-text-secondary hover:bg-theme-surface'}`}><div className="flex items-start justify-between gap-3"><div className="min-w-0"><div className="truncate text-sm font-semibold">{session.display_name}</div><div className={`mt-1 truncate text-[11px] ${selected ? 'text-theme-text-faint' : 'text-theme-text-muted'}`}>{session.relative_path}</div></div><span className={`inline-flex shrink-0 whitespace-nowrap rounded-full border px-2 py-0.5 text-[10px] font-bold ${session.is_active ? 'border-emerald-500/20 bg-emerald-500/15 text-emerald-400' : 'border-theme-border bg-theme-surface text-theme-text-muted'}`}>{session.is_active ? '活跃' : '历史'}</span></div><div className={`mt-3 flex flex-wrap gap-3 text-[11px] ${selected ? 'text-theme-text-faint' : 'text-theme-text-muted'}`}><span>事件 {session.event_count}</span><span>{new Date(session.mtime * 1000).toLocaleString('zh-CN')}</span></div></button>; })}</div></div>)}</div>}</aside>
             <div className="space-y-4"><AgentSessionWarningPanel warnings={sessionWarnings} /><AgentSessionViewer sessionMeta={selectedSession as any} sessionHeader={sessionSnapshot?.session_meta} events={sessionEvents as any} loading={sessionLoading} live={sessionLive} error={sessionError} /></div>
           </section>
         ) : activeTab === 'relationship' ? (
           <section className="space-y-4"><WarningListPanel title="索引生成提示" items={sessionIndex?.warnings?.slice(0, 5) || []} /><AgentSessionWarningPanel warnings={sessionWarnings} /><SessionRelationshipGraph index={sessionIndex as any} selectedPath={selectedSessionPath} onSelect={setSelectedSessionPath} sessionPreview={{ path: selectedSessionPath, sessionMeta: selectedSession as any, sessionHeader: sessionSnapshot?.session_meta, events: sessionEvents as any, loading: sessionLoading, live: sessionLive, error: sessionError }} /></section>
         ) : activeTab === 'result' ? (
           <section className="space-y-4">
- <div className="grid gap-4 xl:grid-cols-5"><MetricCard label="追踪函数" value={result?.summary.function_count ?? 0} icon={<ScrollText size={18} />} /><MetricCard label="轮次数" value={result?.summary.round_count ?? 0} icon={<BarChart3 size={18} />} /><MetricCard label="通过轮次" value={result?.summary.passed_round_count ?? 0} icon={<CheckCircle2 size={18} />} /><MetricCard label="总 Token" value={formatNumber(result?.summary.total_tokens)} icon={<ScrollText size={18} />} /><div className="rounded-2xl border border-theme-border bg-theme-bg-app px-4 py-4"><div className="text-[11px] font-black uppercase tracking-[0.18em] text-theme-text-muted">结果目录</div><div className="mt-2 text-sm font-semibold text-theme-text-secondary line-clamp-2">{result?.output_root || '-'}</div><div className="mt-3 flex flex-wrap gap-2"><button disabled={!resultRootFsPath} onClick={() => resultRootFsPath && openInFileExplorer(resultRootFsPath)} className="inline-flex items-center gap-1 rounded-lg border border-violet-500/20 px-2 py-1 text-[11px] font-semibold text-violet-400 hover:bg-violet-500/15 disabled:opacity-50"><FolderOpen size={11} />打开目录</button><button disabled={!result?.output_root} onClick={() => result?.output_root && navigator.clipboard.writeText(result.output_root)} className="inline-flex items-center gap-1 rounded-lg border border-theme-border px-2 py-1 text-[11px] font-semibold text-theme-text-muted hover:bg-theme-elevated disabled:opacity-50"><ClipboardCopy size={10} />复制路径</button></div></div></div>
- {resultLoading ? <section className="rounded-2xl border border-theme-border bg-theme-bg-app p-10 text-center text-sm text-theme-text-muted">加载结果中...</section> : !result || !result.available ? <section className="rounded-2xl border border-dashed border-theme-border bg-theme-bg-app p-10 text-center text-sm text-theme-text-muted">当前任务尚未生成可展示结果。</section> : <section className="grid gap-4 xl:grid-cols-[260px_minmax(0,1fr)_320px]"><aside className="rounded-2xl border border-theme-border bg-theme-bg-app p-4"><div className="text-[11px] font-black uppercase tracking-[0.18em] text-theme-text-muted">结果导航</div><div className="mt-3 space-y-2">{[['final', '最终报告'], ['report', '运行报告'], ['dataflow', '函数级结果'], ['json', '结构化 JSON']].map(([id, label]) => <button key={id} onClick={() => setResultView(id as any)} className={`w-full rounded-2xl border px-4 py-3 text-left text-sm font-black transition ${resultView === id ? 'border-theme-border bg-theme-surface text-white' : 'border-theme-border bg-theme-bg-app text-theme-text-secondary hover:bg-theme-bg-app'}`}>{label}</button>)}</div>{resultView === 'dataflow' ? <div className="mt-4 max-h-80 space-y-2 overflow-auto">{result.dataflow_files.map((file) => <button key={file.relative_path} onClick={() => setSelectedDataflowFile(file.relative_path)} className={`w-full rounded-xl border px-3 py-2 text-left text-xs ${selectedDataflow?.relative_path === file.relative_path ? 'border-cyan-300 bg-cyan-500/15 text-cyan-400' : 'border-theme-border bg-theme-bg-app text-theme-text-secondary'}`}>{file.name}</button>)}</div> : null}</aside><main className="rounded-2xl border border-theme-border bg-theme-bg-app p-5"><h2 className="border-b border-theme-border pb-4 text-2xl font-black tracking-tight text-theme-text-primary">{resultView === 'final' ? '最终报告' : resultView === 'report' ? '运行报告' : resultView === 'dataflow' ? selectedDataflow?.name || '函数级结果' : '结构化 JSON'}</h2><div className="mt-5 max-h-[calc(100vh-24rem)] overflow-auto pr-2">{resultContent ? resultView === 'json' ? <pre className="rounded-2xl border border-theme-border bg-theme-bg-app p-4 text-xs text-theme-text-primary">{resultContent}</pre> : <MarkdownContent content={resultContent} /> : <div className="rounded-2xl border border-dashed border-theme-border bg-theme-bg-app px-6 py-10 text-center text-sm text-theme-text-muted">当前结果缺少可展示内容</div>}</div></main><aside className="rounded-2xl border border-theme-border bg-theme-bg-app p-4"><div className="text-[11px] font-black uppercase tracking-[0.18em] text-theme-text-muted">关键文件</div><div className="mt-3 space-y-2">{[...(result.output_files || []), ...(result.dataflow_files || [])].map((file) => <div key={file.relative_path} className="rounded-xl border border-theme-border bg-theme-bg-app px-3 py-2"><div className="font-mono text-[11px] text-theme-text-secondary break-all">{file.relative_path}</div><div className="mt-1 text-[10px] text-theme-text-muted">{formatNumber(file.size)} bytes</div></div>)}</div></aside></section>}
+ <div className="grid gap-4 xl:grid-cols-5"><MetricCard label="追踪函数" value={result?.summary.function_count ?? 0} icon={<ScrollText size={18} />} /><MetricCard label="轮次数" value={result?.summary.round_count ?? 0} icon={<BarChart3 size={18} />} /><MetricCard label="通过轮次" value={result?.summary.passed_round_count ?? 0} icon={<CheckCircle2 size={18} />} /><MetricCard label="总 Token" value={formatNumber(result?.summary.total_tokens)} icon={<ScrollText size={18} />} /><div className="rounded-2xl border border-theme-border bg-theme-surface px-4 py-4"><div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-theme-text-muted">结果目录</div><div className="mt-2 text-sm font-semibold text-theme-text-secondary line-clamp-2">{result?.output_root || '-'}</div><div className="mt-3 flex flex-wrap gap-2"><button disabled={!resultRootFsPath} onClick={() => resultRootFsPath && openInFileExplorer(resultRootFsPath)} className="inline-flex items-center gap-1 rounded-lg border border-violet-500/20 px-2 py-1 text-[11px] font-semibold text-violet-400 hover:bg-violet-500/15 disabled:opacity-50"><FolderOpen size={11} />打开目录</button><button disabled={!result?.output_root} onClick={() => result?.output_root && navigator.clipboard.writeText(result.output_root)} className="inline-flex items-center gap-1 rounded-lg border border-theme-border px-2 py-1 text-[11px] font-semibold text-theme-text-muted hover:bg-theme-elevated disabled:opacity-50"><ClipboardCopy size={10} />复制路径</button></div></div></div>
+ {resultLoading ? <section className="rounded-2xl border border-theme-border bg-theme-surface p-10 text-center text-sm text-theme-text-muted">加载结果中...</section> : !result || !result.available ? <section className="rounded-2xl border border-dashed border-theme-border bg-theme-surface p-10 text-center text-sm text-theme-text-muted">当前任务尚未生成可展示结果。</section> : <section className="grid gap-4 xl:grid-cols-[260px_minmax(0,1fr)_320px]"><aside className="rounded-2xl border border-theme-border bg-theme-surface p-4"><div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-theme-text-muted">结果导航</div><div className="mt-3 space-y-2">{[['final', '最终报告'], ['report', '运行报告'], ['dataflow', '函数级结果'], ['json', '结构化 JSON']].map(([id, label]) => <button key={id} onClick={() => setResultView(id as any)} className={`w-full rounded-2xl border px-4 py-3 text-left text-sm font-semibold transition ${resultView === id ? 'border-theme-border bg-theme-surface text-white' : 'border-theme-border bg-theme-surface text-theme-text-secondary hover:bg-theme-surface'}`}>{label}</button>)}</div>{resultView === 'dataflow' ? <div className="mt-4 max-h-80 space-y-2 overflow-auto">{result.dataflow_files.map((file) => <button key={file.relative_path} onClick={() => setSelectedDataflowFile(file.relative_path)} className={`w-full rounded-xl border px-3 py-2 text-left text-xs ${selectedDataflow?.relative_path === file.relative_path ? 'border-cyan-300 bg-cyan-500/15 text-cyan-400' : 'border-theme-border bg-theme-surface text-theme-text-secondary'}`}>{file.name}</button>)}</div> : null}</aside><main className="rounded-2xl border border-theme-border bg-theme-surface p-5"><h2 className="border-b border-theme-border pb-4 text-2xl font-semibold tracking-tight text-theme-text-primary">{resultView === 'final' ? '最终报告' : resultView === 'report' ? '运行报告' : resultView === 'dataflow' ? selectedDataflow?.name || '函数级结果' : '结构化 JSON'}</h2><div className="mt-5 max-h-[calc(100vh-24rem)] overflow-auto pr-2">{resultContent ? resultView === 'json' ? <pre className="rounded-2xl border border-theme-border bg-theme-surface p-4 text-xs text-theme-text-primary">{resultContent}</pre> : <MarkdownContent content={resultContent} /> : <div className="rounded-2xl border border-dashed border-theme-border bg-theme-surface px-6 py-10 text-center text-sm text-theme-text-muted">当前结果缺少可展示内容</div>}</div></main><aside className="rounded-2xl border border-theme-border bg-theme-surface p-4"><div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-theme-text-muted">关键文件</div><div className="mt-3 space-y-2">{[...(result.output_files || []), ...(result.dataflow_files || [])].map((file) => <div key={file.relative_path} className="rounded-xl border border-theme-border bg-theme-surface px-3 py-2"><div className="font-mono text-[11px] text-theme-text-secondary break-all">{file.relative_path}</div><div className="mt-1 text-[10px] text-theme-text-muted">{formatNumber(file.size)} bytes</div></div>)}</div></aside></section>}
           </section>
         ) : activeTab === 'vuln-graph' ? (
           <section className="space-y-4">
@@ -1221,16 +1221,16 @@ export const DataflowVulnScanTaskDetailPage: React.FC<{ projectId: string; taskI
               <MetricCard label="传播边" value={formatNumber(vulnGraph?.summary?.edges)} icon={<BarChart3 size={18} />} />
               <MetricCard label="跟入点" value={formatNumber(vulnGraph?.summary?.followups)} icon={<ChevronDown size={18} />} />
               <MetricCard label="漏洞数" value={formatNumber(vulnGraph?.summary?.findings)} icon={<XCircle size={18} />} />
- <div className="rounded-2xl border border-theme-border bg-theme-bg-app px-4 py-4"><div className="text-[11px] font-black uppercase tracking-[0.18em] text-theme-text-muted">图数据库</div><div className="mt-2 break-all text-xs font-semibold text-theme-text-secondary">{vulnGraph?.run_root || '-'}</div><button onClick={() => void loadVulnGraph()} className="mt-3 inline-flex items-center gap-1 rounded-lg border border-theme-border px-2 py-1 text-[11px] font-semibold text-theme-text-muted hover:bg-theme-elevated"><RefreshCw size={10} className={vulnGraphLoading ? 'animate-spin' : ''} />刷新</button></div>
+ <div className="rounded-2xl border border-theme-border bg-theme-surface px-4 py-4"><div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-theme-text-muted">图数据库</div><div className="mt-2 break-all text-xs font-semibold text-theme-text-secondary">{vulnGraph?.run_root || '-'}</div><button onClick={() => void loadVulnGraph()} className="mt-3 inline-flex items-center gap-1 rounded-lg border border-theme-border px-2 py-1 text-[11px] font-semibold text-theme-text-muted hover:bg-theme-elevated"><RefreshCw size={10} className={vulnGraphLoading ? 'animate-spin' : ''} />刷新</button></div>
             </section>
- {vulnGraphLoading ? <section className="rounded-2xl border border-theme-border bg-theme-bg-app p-10 text-center text-sm text-theme-text-muted">加载漏洞图谱中...</section> : !vulnGraph?.available ? <section className="rounded-2xl border border-dashed border-theme-border bg-theme-bg-app p-10 text-center text-sm text-theme-text-muted">当前任务尚未生成漏洞图谱。</section> : <section className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_360px]"><main className="rounded-2xl border border-theme-border bg-theme-bg-app p-5"><h2 className="border-b border-theme-border pb-4 text-2xl font-black tracking-tight text-theme-text-primary">污点传播树 / 图数据库</h2><div className="mt-5 grid gap-4 lg:grid-cols-2"><div><div className="text-[11px] font-black uppercase tracking-[0.18em] text-theme-text-muted">传播边</div><div className="mt-3 max-h-[32rem] space-y-2 overflow-auto pr-1">{(vulnGraph.graph?.taint_edges || []).map((edge: any) => <div key={edge.edge_id} className="rounded-2xl border border-theme-border bg-theme-bg-app px-4 py-3"><div className="font-mono text-xs font-bold text-theme-text-primary">{edge.from_symbol} → {edge.to_symbol}</div><div className="mt-1 text-[11px] text-theme-text-muted">{edge.source_file}::{edge.function_name} {edge.line}</div><div className="mt-2 text-xs text-theme-text-secondary">{edge.evidence || '-'}</div><div className="mt-2 flex flex-wrap gap-2 text-[10px]"><span className="rounded-full bg-cyan-500/15 px-2 py-0.5 font-bold text-cyan-400">{edge.operation || 'unknown'}</span><span className="rounded-full bg-amber-500/15 px-2 py-0.5 font-bold text-amber-400">清洗: {edge.sanitizer_effect || 'none'}</span>{edge.termination_reason ? <span className="rounded-full bg-theme-elevated px-2 py-0.5 font-bold text-theme-text-secondary">终止: {edge.termination_reason}</span> : null}</div></div>)}</div></div><div><div className="text-[11px] font-black uppercase tracking-[0.18em] text-theme-text-muted">跟入点</div><div className="mt-3 max-h-[32rem] space-y-2 overflow-auto pr-1">{(vulnGraph.graph?.followups || []).map((item: any) => <div key={item.followup_id} className="rounded-2xl border border-theme-border bg-theme-bg-app px-4 py-3"><div className="font-mono text-xs font-bold text-theme-text-primary">{item.callee_function}</div><div className="mt-1 text-[11px] text-theme-text-muted">{item.callee_file} {item.callee_line}</div><div className="mt-2 text-xs text-theme-text-secondary">污点参数: {item.tainted_params_json || '[]'}</div><span className="mt-2 inline-flex rounded-full bg-theme-elevated px-2 py-0.5 text-[10px] font-bold text-theme-text-secondary">{item.status}</span></div>)}</div></div></div></main><aside className="rounded-2xl border border-theme-border bg-theme-bg-app p-4"><div className="text-[11px] font-black uppercase tracking-[0.18em] text-theme-text-muted">漏洞发现</div><div className="mt-3 space-y-3">{(vulnGraph.graph?.vulnerability_findings || []).length === 0 ? <div className="rounded-2xl border border-dashed border-theme-border bg-theme-bg-app px-4 py-8 text-center text-sm text-theme-text-muted">暂无漏洞发现</div> : (vulnGraph.graph?.vulnerability_findings || []).map((finding: any) => <div key={finding.finding_id} className="rounded-2xl border border-rose-500/20 bg-rose-500/15 px-4 py-3"><div className="text-sm font-black text-rose-400">{finding.title || finding.finding_id}</div><div className="mt-1 text-xs text-rose-400">{finding.vuln_type} · {finding.severity} · 置信度 {finding.confidence}</div><p className="mt-2 text-xs leading-5 text-theme-text-secondary">{finding.summary}</p><div className="mt-2 break-all font-mono text-[10px] text-theme-text-muted">{finding.output_dir}</div></div>)}</div></aside></section>}
+ {vulnGraphLoading ? <section className="rounded-2xl border border-theme-border bg-theme-surface p-10 text-center text-sm text-theme-text-muted">加载漏洞图谱中...</section> : !vulnGraph?.available ? <section className="rounded-2xl border border-dashed border-theme-border bg-theme-surface p-10 text-center text-sm text-theme-text-muted">当前任务尚未生成漏洞图谱。</section> : <section className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_360px]"><main className="rounded-2xl border border-theme-border bg-theme-surface p-5"><h2 className="border-b border-theme-border pb-4 text-2xl font-semibold tracking-tight text-theme-text-primary">污点传播树 / 图数据库</h2><div className="mt-5 grid gap-4 lg:grid-cols-2"><div><div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-theme-text-muted">传播边</div><div className="mt-3 max-h-[32rem] space-y-2 overflow-auto pr-1">{(vulnGraph.graph?.taint_edges || []).map((edge: any) => <div key={edge.edge_id} className="rounded-2xl border border-theme-border bg-theme-surface px-4 py-3"><div className="font-mono text-xs font-bold text-theme-text-primary">{edge.from_symbol} → {edge.to_symbol}</div><div className="mt-1 text-[11px] text-theme-text-muted">{edge.source_file}::{edge.function_name} {edge.line}</div><div className="mt-2 text-xs text-theme-text-secondary">{edge.evidence || '-'}</div><div className="mt-2 flex flex-wrap gap-2 text-[10px]"><span className="rounded-full bg-cyan-500/15 px-2 py-0.5 font-bold text-cyan-400">{edge.operation || 'unknown'}</span><span className="rounded-full bg-amber-500/15 px-2 py-0.5 font-bold text-amber-400">清洗: {edge.sanitizer_effect || 'none'}</span>{edge.termination_reason ? <span className="rounded-full bg-theme-elevated px-2 py-0.5 font-bold text-theme-text-secondary">终止: {edge.termination_reason}</span> : null}</div></div>)}</div></div><div><div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-theme-text-muted">跟入点</div><div className="mt-3 max-h-[32rem] space-y-2 overflow-auto pr-1">{(vulnGraph.graph?.followups || []).map((item: any) => <div key={item.followup_id} className="rounded-2xl border border-theme-border bg-theme-surface px-4 py-3"><div className="font-mono text-xs font-bold text-theme-text-primary">{item.callee_function}</div><div className="mt-1 text-[11px] text-theme-text-muted">{item.callee_file} {item.callee_line}</div><div className="mt-2 text-xs text-theme-text-secondary">污点参数: {item.tainted_params_json || '[]'}</div><span className="mt-2 inline-flex rounded-full bg-theme-elevated px-2 py-0.5 text-[10px] font-bold text-theme-text-secondary">{item.status}</span></div>)}</div></div></div></main><aside className="rounded-2xl border border-theme-border bg-theme-surface p-4"><div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-theme-text-muted">漏洞发现</div><div className="mt-3 space-y-3">{(vulnGraph.graph?.vulnerability_findings || []).length === 0 ? <div className="rounded-2xl border border-dashed border-theme-border bg-theme-surface px-4 py-8 text-center text-sm text-theme-text-muted">暂无漏洞发现</div> : (vulnGraph.graph?.vulnerability_findings || []).map((finding: any) => <div key={finding.finding_id} className="rounded-2xl border border-rose-500/20 bg-rose-500/15 px-4 py-3"><div className="text-sm font-semibold text-rose-400">{finding.title || finding.finding_id}</div><div className="mt-1 text-xs text-rose-400">{finding.vuln_type} · {finding.severity} · 置信度 {finding.confidence}</div><p className="mt-2 text-xs leading-5 text-theme-text-secondary">{finding.summary}</p><div className="mt-2 break-all font-mono text-[10px] text-theme-text-muted">{finding.output_dir}</div></div>)}</div></aside></section>}
           </section>
         ) : (
           <section className="space-y-4">
             {vulnGraphLoading ? (
- <section className="rounded-2xl border border-theme-border bg-theme-bg-app p-10 text-center text-sm text-theme-text-muted">加载跟踪过程图谱中...</section>
+ <section className="rounded-2xl border border-theme-border bg-theme-surface p-10 text-center text-sm text-theme-text-muted">加载跟踪过程图谱中...</section>
             ) : !vulnGraph?.available || !traceTreeRoot ? (
- <section className="rounded-2xl border border-dashed border-theme-border bg-theme-bg-app p-10 text-center">
+ <section className="rounded-2xl border border-dashed border-theme-border bg-theme-surface p-10 text-center">
                 <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-theme-elevated text-theme-text-muted"><BarChart3 size={20} /></div>
                 <div className="mt-4 text-base font-bold text-theme-text-primary">当前任务尚未生成跟踪过程</div>
                 <div className="mt-2 text-sm text-theme-text-muted">任务至少完成根函数分析后，才会生成函数调用树与污点跟踪过程。</div>
@@ -1244,10 +1244,10 @@ export const DataflowVulnScanTaskDetailPage: React.FC<{ projectId: string; taskI
                   <MetricCard label="漏洞发现" value={formatNumber(vulnGraph?.summary?.findings)} icon={<BarChart3 size={18} />} />
                 </section>
                 <section className="grid gap-4 xl:grid-cols-[minmax(0,0.95fr)_minmax(360px,1.05fr)]">
- <section className="rounded-2xl border border-theme-border bg-theme-bg-app p-5">
+ <section className="rounded-2xl border border-theme-border bg-theme-surface p-5">
                     <div className="flex items-center justify-between gap-3">
                       <div>
-                        <h2 className="text-sm font-black uppercase tracking-[0.2em] text-theme-text-muted">函数调用树</h2>
+                        <h2 className="text-sm font-semibold uppercase tracking-[0.2em] text-theme-text-muted">函数调用树</h2>
                         <p className="mt-1 text-xs text-theme-text-muted">按调用深度展示整个污点跟踪过程，点击节点查看详情。</p>
                       </div>
                       <button onClick={() => void loadVulnGraph()} className="inline-flex items-center gap-2 rounded-xl border border-theme-border px-3 py-2 text-xs font-semibold text-theme-text-secondary hover:bg-theme-elevated">
@@ -1259,20 +1259,20 @@ export const DataflowVulnScanTaskDetailPage: React.FC<{ projectId: string; taskI
                       <TraceTreeNodeCard node={traceTreeRoot} selectedRunId={selectedTraceNode?.run_id} onSelect={(node) => setSelectedTraceRunId(node.run_id || null)} />
                     </div>
                   </section>
- <section className="rounded-2xl border border-theme-border bg-theme-bg-app p-5">
+ <section className="rounded-2xl border border-theme-border bg-theme-surface p-5">
                     <div className="flex items-start justify-between gap-3">
                       <div>
-                        <h2 className="text-sm font-black uppercase tracking-[0.2em] text-theme-text-muted">节点详情</h2>
+                        <h2 className="text-sm font-semibold uppercase tracking-[0.2em] text-theme-text-muted">节点详情</h2>
                         <p className="mt-1 text-xs text-theme-text-muted">展示当前函数的污点输入、传播摘要、终止原因和子调用状态。</p>
                       </div>
                       {selectedTraceNode ? <span className={`rounded-full border px-3 py-1 text-xs font-bold ${traceNodeTone(selectedTraceNode.followup_status || selectedTraceNode.status)}`}>{selectedTraceNode.followup_status || selectedTraceNode.status || '-'}</span> : null}
                     </div>
                     {!selectedTraceNode ? (
-                      <div className="mt-6 rounded-2xl border border-dashed border-theme-border bg-theme-bg-app px-4 py-10 text-center text-sm text-theme-text-muted">请选择一个函数节点</div>
+                      <div className="mt-6 rounded-2xl border border-dashed border-theme-border bg-theme-surface px-4 py-10 text-center text-sm text-theme-text-muted">请选择一个函数节点</div>
                     ) : (
                       <div className="mt-4 space-y-5">
-                        <div className="rounded-2xl border border-theme-border bg-theme-bg-app px-4 py-4">
-                          <div className="font-mono text-sm font-black text-theme-text-primary">{selectedTraceNode.function_name || '-'}</div>
+                        <div className="rounded-2xl border border-theme-border bg-theme-surface px-4 py-4">
+                          <div className="font-mono text-sm font-semibold text-theme-text-primary">{selectedTraceNode.function_name || '-'}</div>
                           <div className="mt-2 break-all text-xs text-theme-text-muted">{selectedTraceNode.source_file || '-'} {selectedTraceNode.line_hint || ''}</div>
                         </div>
                         <div className="space-y-3">
@@ -1283,32 +1283,32 @@ export const DataflowVulnScanTaskDetailPage: React.FC<{ projectId: string; taskI
                           <InfoRow label="跟入原因" value={selectedTraceNode.followup_reason || '-'} />
                         </div>
                         <div>
-                          <div className="text-xs font-black uppercase tracking-[0.18em] text-theme-text-muted">污点输入</div>
+                          <div className="text-xs font-semibold uppercase tracking-[0.18em] text-theme-text-muted">污点输入</div>
                           <div className="mt-3 space-y-2">
                             {selectedTraceNode.taint_inputs?.length ? selectedTraceNode.taint_inputs.map((item, index) => (
-                              <div key={`${item.symbol}-${index}`} className="rounded-xl border border-theme-border bg-theme-bg-app px-3 py-3 text-xs">
+                              <div key={`${item.symbol}-${index}`} className="rounded-xl border border-theme-border bg-theme-surface px-3 py-3 text-xs">
                                 <div className="font-mono font-bold text-theme-text-primary">{item.symbol}</div>
                                 <div className="mt-1 text-theme-text-muted">{item.kind || 'param'} {item.line ?`· ${item.line}` : ''}</div>
                                 {item.description ? <div className="mt-2 text-theme-text-secondary">{item.description}</div> : null}
                               </div>
-                            )) : <div className="rounded-xl border border-dashed border-theme-border bg-theme-bg-app px-3 py-6 text-center text-xs text-theme-text-muted">未记录污点输入</div>}
+                            )) : <div className="rounded-xl border border-dashed border-theme-border bg-theme-surface px-3 py-6 text-center text-xs text-theme-text-muted">未记录污点输入</div>}
                           </div>
                         </div>
                         <div>
-                          <div className="text-xs font-black uppercase tracking-[0.18em] text-theme-text-muted">关键传播摘要</div>
+                          <div className="text-xs font-semibold uppercase tracking-[0.18em] text-theme-text-muted">关键传播摘要</div>
                           <div className="mt-3 space-y-2">
                             {selectedTraceNode.taint_summary?.length ? selectedTraceNode.taint_summary.map((item, index) => (
-                              <div key={`${item.from_symbol}-${item.to_symbol}-${index}`} className="rounded-xl border border-theme-border bg-theme-bg-app px-3 py-3 text-xs">
+                              <div key={`${item.from_symbol}-${item.to_symbol}-${index}`} className="rounded-xl border border-theme-border bg-theme-surface px-3 py-3 text-xs">
                                 <div className="font-mono font-bold text-theme-text-primary">{item.from_symbol || '-'} → {item.to_symbol || '-'}</div>
                                 <div className="mt-1 text-theme-text-muted">{item.operation || 'unknown'} {item.line ?`· ${item.line}` : ''}</div>
                                 {item.evidence ? <div className="mt-2 text-theme-text-secondary">{item.evidence}</div> : null}
                                 {item.termination_reason ? <div className="mt-2 text-amber-400">终止原因：{item.termination_reason}</div> : null}
                               </div>
-                            )) : <div className="rounded-xl border border-dashed border-theme-border bg-theme-bg-app px-3 py-6 text-center text-xs text-theme-text-muted">当前节点暂无传播摘要</div>}
+                            )) : <div className="rounded-xl border border-dashed border-theme-border bg-theme-surface px-3 py-6 text-center text-xs text-theme-text-muted">当前节点暂无传播摘要</div>}
                           </div>
                         </div>
                         <div>
-                          <div className="text-xs font-black uppercase tracking-[0.18em] text-theme-text-muted">终止原因</div>
+                          <div className="text-xs font-semibold uppercase tracking-[0.18em] text-theme-text-muted">终止原因</div>
                           <div className="mt-3 flex flex-wrap gap-2">
                             {selectedTraceNode.termination_reasons?.length ? selectedTraceNode.termination_reasons.map((item) => (
                               <span key={item} className="rounded-full bg-amber-500/15 px-3 py-1 text-xs font-bold text-amber-400">{item}</span>
@@ -1327,7 +1327,7 @@ export const DataflowVulnScanTaskDetailPage: React.FC<{ projectId: string; taskI
 
       {activeAgentSessionPath ? (
         <div className="fixed inset-0 z-[280] bg-slate-950/70 p-4 backdrop-blur-sm">
-          <div className="mx-auto flex h-full max-w-6xl flex-col overflow-hidden rounded-[2rem] border border-theme-border bg-theme-surface shadow-panel">
+          <div className="mx-auto flex h-full max-w-6xl flex-col overflow-hidden rounded-2xl border border-theme-border bg-theme-surface shadow-panel">
             <AgentSessionDialogHeader
               title={activeAgentSessionMeta?.display_name || activeAgentSessionPath}
               subtitle={activeAgentSessionMeta?.relative_path || activeAgentSessionPath}

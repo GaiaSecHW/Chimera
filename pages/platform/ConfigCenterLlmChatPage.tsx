@@ -48,12 +48,12 @@ export const ConfigCenterLlmChatPage: React.FC<ConfigCenterLlmChatPageProps> = (
       />
 
       {loading ? (
-        <div className="rounded-[2.5rem] border border-theme-border bg-theme-bg-app px-6 py-16 text-center">
+        <div className="rounded-xl border border-theme-border bg-theme-surface px-6 py-16 text-center">
           <Loader2 className="mx-auto h-6 w-6 animate-spin text-theme-text-muted" />
-          <p className="mt-4 text-sm font-black text-theme-text-secondary">正在加载可用的 LLM Provider...</p>
+          <p className="mt-4 text-sm font-medium text-theme-text-secondary">正在加载可用的 LLM Provider...</p>
         </div>
       ) : error ? (
-        <div className="rounded-[2rem] border border-red-500/20 bg-red-500/15 px-5 py-4 text-sm font-bold text-red-400">
+        <div className="rounded-xl border border-red-500/20 bg-red-500/15 px-5 py-4 text-sm font-bold text-red-400">
           {error}
         </div>
       ) : (

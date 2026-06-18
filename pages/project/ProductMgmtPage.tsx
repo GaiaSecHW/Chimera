@@ -15,6 +15,7 @@ import {
 import { api } from '../../clients/api';
 import { ProductTreeNode, ProductVersionNode } from '../../types/types';
 import { PageHeader } from '../../design-system';
+import { useUiFeedback } from '../../components/UiFeedback';
 
 interface ProductFormState {
   name: string;
@@ -46,6 +47,7 @@ const flattenProducts = (nodes: ProductTreeNode[]): ProductTreeNode[] =>
   nodes.flatMap((node) => [node, ...flattenProducts(node.children)]);
 
 export const ProductMgmtPage: React.FC = () => {
+  const { confirm, feedbackNodes } = useUiFeedback();
   const productApi = api.domains.project.products;
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -181,8 +183,8 @@ export const ProductMgmtPage: React.FC = () => {
   };
 
   const deleteProduct = async (product: ProductTreeNode) => {
-    const confirmed = window.confirm(`确认删除产品“${product.name}”吗？`);
-    if (!confirmed) return;
+    const ok = await confirm({ message: `确认删除产品"${product.name}"吗？`, danger: true });
+    if (!ok) return;
     try {
       await productApi.delete(product.id);
       if (selectedProductId === product.id) {
@@ -197,8 +199,8 @@ export const ProductMgmtPage: React.FC = () => {
   };
 
   const deleteVersion = async (version: ProductVersionNode) => {
-    const confirmed = window.confirm(`确认删除版本“${version.version}”吗？`);
-    if (!confirmed) return;
+    const ok = await confirm({ message: `确认删除版本"${version.version}"吗？`, danger: true });
+    if (!ok) return;
     try {
       await productApi.deleteVersion(version.id);
       setSuccessMsg('版本删除成功');
@@ -224,7 +226,7 @@ export const ProductMgmtPage: React.FC = () => {
           <div className="min-w-0">
             <div className="flex items-center gap-2">
               <FolderTree size={16} className="text-theme-text-muted" />
-              <span className="truncate text-sm font-black">{node.name}</span>
+              <span className="truncate text-sm font-semibold">{node.name}</span>
             </div>
             <div className="mt-1 flex items-center gap-3 text-[11px] font-semibold text-theme-text-muted">
               <span>{node.code}</span>
@@ -241,6 +243,7 @@ export const ProductMgmtPage: React.FC = () => {
 
   return (
     <div className="space-y-8 p-10 pb-24">
+      {feedbackNodes}
       <PageHeader
         title="产品管理"
         description="维护全局产品树与产品版本，项目创建时绑定到具体版本。"
@@ -273,10 +276,10 @@ export const ProductMgmtPage: React.FC = () => {
       )}
 
       <div className="grid grid-cols-1 gap-8 xl:grid-cols-[1.1fr_0.9fr]">
- <section className="space-y-6 rounded-[2rem] border border-theme-border bg-theme-bg-app p-6">
+ <section className="space-y-6 rounded-xl border border-theme-border bg-theme-surface p-6">
           <div className="flex items-center justify-between">
             <div>
-              <h3 className="text-xl font-black text-theme-text-primary">产品树</h3>
+              <h3 className="text-xl font-semibold text-theme-text-primary">产品树</h3>
               <p className="mt-1 text-sm text-theme-text-muted">支持多级目录，只有叶子产品可维护版本。</p>
             </div>
             <button
@@ -284,7 +287,7 @@ export const ProductMgmtPage: React.FC = () => {
                 resetProductForm();
                 resetVersionForm();
               }}
-              className="rounded-xl bg-theme-surface px-4 py-2 text-xs font-black text-white"
+              className="rounded-xl bg-theme-surface px-4 py-2 text-xs font-medium text-white"
             >
               <span className="inline-flex items-center gap-2">
                 <Plus size={14} />
@@ -308,10 +311,10 @@ export const ProductMgmtPage: React.FC = () => {
           )}
         </section>
 
- <section className="space-y-6 rounded-[2rem] border border-theme-border bg-theme-bg-app p-6">
+ <section className="space-y-6 rounded-xl border border-theme-border bg-theme-surface p-6">
           <div className="flex items-center justify-between">
             <div>
-              <h3 className="text-xl font-black text-theme-text-primary">版本与编辑</h3>
+              <h3 className="text-xl font-semibold text-theme-text-primary">版本与编辑</h3>
               <p className="mt-1 text-sm text-theme-text-muted">
                 {selectedProduct ?`当前产品：${selectedProduct.name}` : '先从左侧选择一个产品节点'}
               </p>
@@ -320,19 +323,19 @@ export const ProductMgmtPage: React.FC = () => {
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => openCreateChild(selectedProduct.id)}
-                  className="rounded-xl border border-theme-border px-3 py-2 text-xs font-black text-theme-text-secondary"
+                  className="rounded-xl border border-theme-border px-3 py-2 text-xs font-medium text-theme-text-secondary"
                 >
                   新增子产品
                 </button>
                 <button
                   onClick={() => openEditProduct(selectedProduct)}
-                  className="rounded-xl border border-theme-border px-3 py-2 text-xs font-black text-theme-text-secondary"
+                  className="rounded-xl border border-theme-border px-3 py-2 text-xs font-medium text-theme-text-secondary"
                 >
                   编辑产品
                 </button>
                 <button
                   onClick={() => void deleteProduct(selectedProduct)}
-                  className="rounded-xl border border-red-500/20 px-3 py-2 text-xs font-black text-red-400"
+                  className="rounded-xl border border-red-500/20 px-3 py-2 text-xs font-medium text-red-400"
                 >
                   删除产品
                 </button>
@@ -340,8 +343,8 @@ export const ProductMgmtPage: React.FC = () => {
             )}
           </div>
 
-          <form onSubmit={submitProduct} className="space-y-4 rounded-2xl bg-theme-bg-app p-5">
-            <div className="flex items-center gap-2 text-sm font-black text-theme-text-secondary">
+          <form onSubmit={submitProduct} className="space-y-4 rounded-2xl bg-theme-surface p-5">
+            <div className="flex items-center gap-2 text-sm font-medium text-theme-text-secondary">
               <FolderTree size={16} />
               {editingProductId ? '编辑产品' : createChildForId ? '新增子产品' : '新增根产品'}
             </div>
@@ -351,44 +354,44 @@ export const ProductMgmtPage: React.FC = () => {
               value={productForm.name}
               onChange={(event) => setProductForm((prev) => ({ ...prev, name: event.target.value }))}
               placeholder="产品名称"
-              className="w-full rounded-2xl border border-theme-border bg-theme-bg-app px-4 py-3 text-sm font-semibold outline-none"
+              className="w-full rounded-lg border border-theme-border bg-theme-bg-app px-4 py-3 text-sm font-semibold outline-none"
             />
             <input
               required
               value={productForm.code}
               onChange={(event) => setProductForm((prev) => ({ ...prev, code: event.target.value }))}
               placeholder="产品编码"
-              className="w-full rounded-2xl border border-theme-border bg-theme-bg-app px-4 py-3 text-sm font-semibold outline-none"
+              className="w-full rounded-lg border border-theme-border bg-theme-bg-app px-4 py-3 text-sm font-semibold outline-none"
             />
             <input
               value={productForm.sort_order}
               onChange={(event) => setProductForm((prev) => ({ ...prev, sort_order: event.target.value }))}
               placeholder="排序"
-              className="w-full rounded-2xl border border-theme-border bg-theme-bg-app px-4 py-3 text-sm font-semibold outline-none"
+              className="w-full rounded-lg border border-theme-border bg-theme-bg-app px-4 py-3 text-sm font-semibold outline-none"
             />
             <textarea
               value={productForm.description}
               onChange={(event) => setProductForm((prev) => ({ ...prev, description: event.target.value }))}
               placeholder="产品说明"
               rows={3}
-              className="w-full rounded-2xl border border-theme-border bg-theme-bg-app px-4 py-3 text-sm font-semibold outline-none"
+              className="w-full rounded-lg border border-theme-border bg-theme-bg-app px-4 py-3 text-sm font-semibold outline-none"
             />
             <div className="flex items-center gap-3">
               <button
                 type="submit"
                 disabled={saving}
-                className="rounded-xl bg-theme-surface px-4 py-2 text-xs font-black text-white"
+                className="rounded-xl bg-theme-surface px-4 py-2 text-xs font-medium text-white"
               >
                 {saving ? '提交中...' : '保存产品'}
               </button>
-              <button type="button" onClick={resetProductForm} className="rounded-xl px-4 py-2 text-xs font-black text-theme-text-muted">
+              <button type="button" onClick={resetProductForm} className="rounded-xl px-4 py-2 text-xs font-medium text-theme-text-muted">
                 重置
               </button>
             </div>
           </form>
 
-          <div className="space-y-4 rounded-2xl bg-theme-bg-app p-5">
-            <div className="flex items-center gap-2 text-sm font-black text-theme-text-secondary">
+          <div className="space-y-4 rounded-2xl bg-theme-surface p-5">
+            <div className="flex items-center gap-2 text-sm font-medium text-theme-text-secondary">
               <GitBranch size={16} />
               产品版本
             </div>
@@ -402,26 +405,26 @@ export const ProductMgmtPage: React.FC = () => {
                       value={versionForm.version}
                       onChange={(event) => setVersionForm((prev) => ({ ...prev, version: event.target.value }))}
                       placeholder="版本号，例如 1.0.0"
-                      className="w-full rounded-2xl border border-theme-border bg-theme-bg-app px-4 py-3 text-sm font-semibold outline-none"
+                      className="w-full rounded-lg border border-theme-border bg-theme-bg-app px-4 py-3 text-sm font-semibold outline-none"
                     />
                     <input
                       value={versionForm.name}
                       onChange={(event) => setVersionForm((prev) => ({ ...prev, name: event.target.value }))}
                       placeholder="版本名称"
-                      className="w-full rounded-2xl border border-theme-border bg-theme-bg-app px-4 py-3 text-sm font-semibold outline-none"
+                      className="w-full rounded-lg border border-theme-border bg-theme-bg-app px-4 py-3 text-sm font-semibold outline-none"
                     />
                     <textarea
                       value={versionForm.description}
                       onChange={(event) => setVersionForm((prev) => ({ ...prev, description: event.target.value }))}
                       placeholder="版本说明"
                       rows={3}
-                      className="w-full rounded-2xl border border-theme-border bg-theme-bg-app px-4 py-3 text-sm font-semibold outline-none"
+                      className="w-full rounded-lg border border-theme-border bg-theme-bg-app px-4 py-3 text-sm font-semibold outline-none"
                     />
                     <div className="flex items-center gap-3">
-                      <button type="submit" disabled={saving} className="rounded-xl bg-blue-600 px-4 py-2 text-xs font-black text-white">
+                      <button type="submit" disabled={saving} className="rounded-xl bg-blue-600 px-4 py-2 text-xs font-medium text-white">
                         {saving ? '提交中...' : editingVersionId ? '更新版本' : '新增版本'}
                       </button>
-                      <button type="button" onClick={resetVersionForm} className="rounded-xl px-4 py-2 text-xs font-black text-theme-text-muted">
+                      <button type="button" onClick={resetVersionForm} className="rounded-xl px-4 py-2 text-xs font-medium text-theme-text-muted">
                         重置
                       </button>
                     </div>
@@ -429,11 +432,11 @@ export const ProductMgmtPage: React.FC = () => {
 
                   <div className="space-y-3">
                     {selectedVersions.length > 0 ? selectedVersions.map((version) => (
-                      <div key={version.id} className="rounded-2xl border border-theme-border bg-theme-bg-app px-4 py-4">
+                      <div key={version.id} className="rounded-2xl border border-theme-border bg-theme-surface px-4 py-4">
                         <div className="flex items-start justify-between gap-3">
                           <div>
                             <div className="flex items-center gap-2">
-                              <span className="text-sm font-black text-theme-text-primary">{version.version}</span>
+                              <span className="text-sm font-semibold text-theme-text-primary">{version.version}</span>
                               {version.name ? <span className="text-xs font-semibold text-theme-text-muted">{version.name}</span> : null}
                             </div>
                             <div className="mt-1 text-xs font-semibold text-theme-text-muted">

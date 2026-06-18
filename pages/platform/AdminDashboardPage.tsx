@@ -105,8 +105,8 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
       />
 
       {/* Service Health Overview */}
- <div className="bg-theme-bg-app p-8 rounded-[3rem] border border-theme-border">
-        <h3 className="text-xl font-black text-theme-text-primary mb-6 flex items-center gap-2">
+ <div className="bg-theme-surface p-8 rounded-xl border border-theme-border">
+        <h3 className="text-xl font-semibold text-theme-text-primary mb-6 flex items-center gap-2">
           <Server className="w-5 h-5" />
           服务健康状态
         </h3>
@@ -115,9 +115,9 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
             <div key={status} className={`p-4 rounded-2xl border ${meta.panelClass}`}>
               <div className="flex items-center gap-2 mb-2">
                 {meta.icon}
-                <span className={`text-xs font-black uppercase ${meta.textClass}`}>{meta.label}</span>
+                <span className={`text-xs font-medium uppercase ${meta.textClass}`}>{meta.label}</span>
               </div>
-              <p className="text-2xl font-black text-theme-text-primary">{serviceStatusCounts[status] || 0}</p>
+              <p className="text-2xl font-bold text-theme-text-primary">{serviceStatusCounts[status] || 0}</p>
             </div>
           ))}
         </div>
@@ -153,84 +153,84 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
         {/* Users */}
         <div
           onClick={() => setCurrentView('user-mgmt-access')}
- className="bg-theme-bg-app p-6 rounded-[2.5rem] border border-theme-border transition-all cursor-pointer group"
+ className="bg-theme-surface p-6 rounded-xl border border-theme-border transition-all cursor-pointer group"
         >
-          <div className="w-12 h-12 bg-blue-500/15 text-blue-400 rounded-2xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+          <div className="w-12 h-12 bg-blue-500/15 text-blue-400 rounded-lg flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
             <Users size={24} />
           </div>
           <p className="text-theme-text-muted text-sm font-bold uppercase tracking-wider">用户总数</p>
-          <div className="text-3xl font-black mt-2 text-theme-text-primary">{stats.users.total}</div>
+          <div className="text-3xl font-bold mt-2 text-theme-text-primary">{stats.users.total}</div>
           <p className="text-xs font-bold text-theme-text-muted mt-1">活跃: {stats.users.active} · 在线: {stats.users.online}</p>
         </div>
 
         {/* Roles */}
         <div
           onClick={() => setCurrentView('user-mgmt-access')}
- className="bg-theme-bg-app p-6 rounded-[2.5rem] border border-theme-border transition-all cursor-pointer group"
+ className="bg-theme-surface p-6 rounded-xl border border-theme-border transition-all cursor-pointer group"
         >
-          <div className="w-12 h-12 bg-indigo-500/15 text-indigo-400 rounded-2xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+          <div className="w-12 h-12 bg-indigo-500/15 text-indigo-400 rounded-lg flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
             <Shield size={24} />
           </div>
           <p className="text-theme-text-muted text-sm font-bold uppercase tracking-wider">角色定义</p>
-          <div className="text-3xl font-black mt-2 text-theme-text-primary">{stats.roles.total}</div>
+          <div className="text-3xl font-bold mt-2 text-theme-text-primary">{stats.roles.total}</div>
         </div>
 
         {/* Projects */}
         <div
           onClick={() => setCurrentView('project-mgmt')}
- className="bg-theme-bg-app p-6 rounded-[2.5rem] border border-theme-border transition-all cursor-pointer group"
+ className="bg-theme-surface p-6 rounded-xl border border-theme-border transition-all cursor-pointer group"
         >
-          <div className="w-12 h-12 bg-amber-500/15 text-amber-400 rounded-2xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+          <div className="w-12 h-12 bg-amber-500/15 text-amber-400 rounded-lg flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
             <Briefcase size={24} />
           </div>
           <p className="text-theme-text-muted text-sm font-bold uppercase tracking-wider">项目空间</p>
-          <div className="text-3xl font-black mt-2 text-theme-text-primary">{stats.projects.total}</div>
+          <div className="text-3xl font-bold mt-2 text-theme-text-primary">{stats.projects.total}</div>
         </div>
 
         {/* Agents */}
         <div
           onClick={() => setCurrentView('env-agent')}
- className="bg-theme-bg-app p-6 rounded-[2.5rem] border border-theme-border transition-all cursor-pointer group"
+ className="bg-theme-surface p-6 rounded-xl border border-theme-border transition-all cursor-pointer group"
         >
-          <div className="w-12 h-12 bg-green-500/15 text-green-400 rounded-2xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+          <div className="w-12 h-12 bg-green-500/15 text-green-400 rounded-lg flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
             <Monitor size={24} />
           </div>
           <p className="text-theme-text-muted text-sm font-bold uppercase tracking-wider">Agent 节点</p>
-          <div className="text-3xl font-black mt-2 text-theme-text-primary">{stats.agents.total}</div>
+          <div className="text-3xl font-bold mt-2 text-theme-text-primary">{stats.agents.total}</div>
           <p className="text-xs font-bold text-theme-text-muted mt-1">在线: {stats.agents.online}</p>
         </div>
 
         {/* PVC Storage */}
         <div
           onClick={() => setCurrentView('pvc-management')}
- className="bg-theme-bg-app p-6 rounded-[2.5rem] border border-theme-border transition-all cursor-pointer group"
+ className="bg-theme-surface p-6 rounded-xl border border-theme-border transition-all cursor-pointer group"
         >
-          <div className="w-12 h-12 bg-cyan-500/15 text-cyan-400 rounded-2xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+          <div className="w-12 h-12 bg-cyan-500/15 text-cyan-400 rounded-lg flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
             <HardDrive size={24} />
           </div>
           <p className="text-theme-text-muted text-sm font-bold uppercase tracking-wider">PVC 存储</p>
-          <div className="text-3xl font-black mt-2 text-theme-text-primary">{stats.resources.totalPvcs}</div>
+          <div className="text-3xl font-bold mt-2 text-theme-text-primary">{stats.resources.totalPvcs}</div>
           <p className="text-xs font-bold text-theme-text-muted mt-1">{stats.resources.totalStorageGi.toFixed(2)} Gi</p>
         </div>
 
         {/* Workflows */}
         <div
           onClick={() => setCurrentView('workflow-instances')}
- className="bg-theme-bg-app p-6 rounded-[2.5rem] border border-theme-border transition-all cursor-pointer group"
+ className="bg-theme-surface p-6 rounded-xl border border-theme-border transition-all cursor-pointer group"
         >
-          <div className="w-12 h-12 bg-purple-500/15 text-purple-400 rounded-2xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+          <div className="w-12 h-12 bg-purple-500/15 text-purple-400 rounded-lg flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
             <Workflow size={24} />
           </div>
           <p className="text-theme-text-muted text-sm font-bold uppercase tracking-wider">工作流实例</p>
-          <div className="text-3xl font-black mt-2 text-theme-text-primary">{stats.workflows.totalInstances}</div>
+          <div className="text-3xl font-bold mt-2 text-theme-text-primary">{stats.workflows.totalInstances}</div>
         </div>
       </div>
 
       {/* Detailed Stats Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         {/* Agent Status Distribution */}
- <div className="bg-theme-bg-app p-8 rounded-[3rem] border border-theme-border">
-          <h3 className="text-xl font-black text-theme-text-primary mb-6 flex items-center gap-2">
+ <div className="bg-theme-surface p-8 rounded-xl border border-theme-border">
+          <h3 className="text-xl font-semibold text-theme-text-primary mb-6 flex items-center gap-2">
             <Monitor className="w-5 h-5" />
             Agent 状态分布
           </h3>
@@ -245,7 +245,7 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
                   }`} />
                   <span className="text-sm font-bold text-theme-text-secondary capitalize">{status}</span>
                 </div>
-                <span className="text-sm font-black text-theme-text-primary">{count}</span>
+                <span className="text-sm font-semibold text-theme-text-primary">{count}</span>
               </div>
             ))}
             <div className="h-2 bg-theme-elevated rounded-full overflow-hidden flex mt-4">
@@ -276,8 +276,8 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
         </div>
 
         {/* Workflow Status Distribution */}
- <div className="bg-theme-bg-app p-8 rounded-[3rem] border border-theme-border">
-          <h3 className="text-xl font-black text-theme-text-primary mb-6 flex items-center gap-2">
+ <div className="bg-theme-surface p-8 rounded-xl border border-theme-border">
+          <h3 className="text-xl font-semibold text-theme-text-primary mb-6 flex items-center gap-2">
             <Activity className="w-5 h-5" />
             工作流状态分布
           </h3>
@@ -293,34 +293,34 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
                   }`} />
                   <span className="text-sm font-bold text-theme-text-secondary capitalize">{status}</span>
                 </div>
-                <span className="text-sm font-black text-theme-text-primary">{count}</span>
+                <span className="text-sm font-semibold text-theme-text-primary">{count}</span>
               </div>
             ))}
           </div>
           <div className="mt-6 pt-6 border-t border-theme-border">
             <h4 className="text-sm font-bold text-theme-text-muted mb-4">模板统计</h4>
             <div className="flex gap-4">
-              <div className="flex-1 p-4 bg-theme-bg-app rounded-2xl">
+              <div className="flex-1 p-4 bg-theme-surface rounded-2xl">
                 <div className="flex items-center gap-2 mb-2">
                   <Layers className="w-4 h-4 text-purple-500" />
                   <span className="text-xs font-bold text-theme-text-muted">应用模板</span>
                 </div>
-                <p className="text-2xl font-black text-theme-text-primary">{stats.workflows.templates.appTemplates}</p>
+                <p className="text-2xl font-bold text-theme-text-primary">{stats.workflows.templates.appTemplates}</p>
               </div>
-              <div className="flex-1 p-4 bg-theme-bg-app rounded-2xl">
+              <div className="flex-1 p-4 bg-theme-surface rounded-2xl">
                 <div className="flex items-center gap-2 mb-2">
                   <Zap className="w-4 h-4 text-amber-500" />
                   <span className="text-xs font-bold text-theme-text-muted">任务模板</span>
                 </div>
-                <p className="text-2xl font-black text-theme-text-primary">{stats.workflows.templates.jobTemplates}</p>
+                <p className="text-2xl font-bold text-theme-text-primary">{stats.workflows.templates.jobTemplates}</p>
               </div>
             </div>
           </div>
         </div>
 
         {/* PVC Status Distribution */}
- <div className="bg-theme-bg-app p-8 rounded-[3rem] border border-theme-border">
-          <h3 className="text-xl font-black text-theme-text-primary mb-6 flex items-center gap-2">
+ <div className="bg-theme-surface p-8 rounded-xl border border-theme-border">
+          <h3 className="text-xl font-semibold text-theme-text-primary mb-6 flex items-center gap-2">
             <HardDrive className="w-5 h-5" />
             PVC 状态分布
           </h3>
@@ -335,16 +335,16 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
                   }`} />
                   <span className="text-sm font-bold text-theme-text-secondary">{status}</span>
                 </div>
-                <span className="text-sm font-black text-theme-text-primary">{count}</span>
+                <span className="text-sm font-semibold text-theme-text-primary">{count}</span>
               </div>
             ))}
           </div>
         </div>
 
         {/* Quick Actions */}
-        <div className="bg-theme-surface p-8 rounded-[3rem] text-white relative overflow-hidden group">
+        <div className="bg-theme-surface p-8 rounded-xl text-white relative overflow-hidden group">
           <div className="absolute right-[-20px] top-[-20px] w-40 h-40 bg-blue-500 opacity-10 rounded-full blur-[80px]" />
-          <h3 className="text-xl font-black mb-6 relative z-10 flex items-center gap-2">
+          <h3 className="text-xl font-semibold mb-6 relative z-10 flex items-center gap-2">
             <Clock className="w-5 h-5" />
             快速操作
           </h3>

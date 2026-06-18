@@ -569,11 +569,11 @@ const AppShell: React.FC = () => {
 
           <form onSubmit={handleLogin} className="space-y-5">
             <div className="space-y-1">
-              <label className="text-[10px] font-black text-theme-text-faint uppercase ml-2">账户名称</label>
+              <label className="text-[10px] font-semibold text-theme-text-faint uppercase ml-2">账户名称</label>
               <input name="username" required className="theme-login-input" placeholder="Username" />
             </div>
             <div className="space-y-1">
-              <label className="text-[10px] font-black text-theme-text-faint uppercase ml-2">身份凭证</label>
+              <label className="text-[10px] font-semibold text-theme-text-faint uppercase ml-2">身份凭证</label>
               <input name="password" type="password" required className="theme-login-input" placeholder="Password" />
             </div>
             <button disabled={isLoading} className="theme-primary-button w-full py-4 active:scale-[0.98] disabled:opacity-50 disabled:active:scale-100">
@@ -637,8 +637,8 @@ const AppShell: React.FC = () => {
                         <Lock size={26} />
                       </div>
                       <div>
-                        <h2 className="text-2xl font-black text-theme-text-primary">首次登录请先修改密码</h2>
-                        <p className="mt-1 text-sm font-medium text-theme-text-secondary">账号 <span className="font-black text-theme-text-primary">{user.username}</span> 当前被设置为首次登录强制改密，修改完成后才可继续使用系统。</p>
+                        <h2 className="text-2xl font-semibold text-theme-text-primary">首次登录请先修改密码</h2>
+                        <p className="mt-1 text-sm font-medium text-theme-text-secondary">账号 <span className="font-semibold text-theme-text-primary">{user.username}</span> 当前被设置为首次登录强制改密，修改完成后才可继续使用系统。</p>
                       </div>
                     </div>
                     {forcedPasswordError && (
@@ -648,7 +648,7 @@ const AppShell: React.FC = () => {
                     )}
                     <form onSubmit={handleForcedPasswordChange} className="mt-8 space-y-5">
                       <div className="space-y-1.5">
-                        <label className="text-[10px] font-black uppercase tracking-widest text-theme-text-faint ml-1">当前密码</label>
+                        <label className="text-[10px] font-semibold uppercase tracking-widest text-theme-text-faint ml-1">当前密码</label>
                         <input
                           type="password"
                           required
@@ -658,7 +658,7 @@ const AppShell: React.FC = () => {
                         />
                       </div>
                       <div className="space-y-1.5">
-                        <label className="text-[10px] font-black uppercase tracking-widest text-theme-text-faint ml-1">新密码</label>
+                        <label className="text-[10px] font-semibold uppercase tracking-widest text-theme-text-faint ml-1">新密码</label>
                         <input
                           type="password"
                           required
@@ -669,7 +669,7 @@ const AppShell: React.FC = () => {
                         />
                       </div>
                       <div className="space-y-1.5">
-                        <label className="text-[10px] font-black uppercase tracking-widest text-theme-text-faint ml-1">确认新密码</label>
+                        <label className="text-[10px] font-semibold uppercase tracking-widest text-theme-text-faint ml-1">确认新密码</label>
                         <input
                           type="password"
                           required
@@ -687,7 +687,7 @@ const AppShell: React.FC = () => {
                 </div>
               ) : (
                 user && !canAccessView(user, currentView) ? (
-                  <div className="p-20 text-center"><h3 className="text-xl font-black text-theme-text-faint">当前账号无权访问该页面。</h3></div>
+                  <div className="p-20 text-center"><h3 className="text-xl font-semibold text-theme-text-faint">当前账号无权访问该页面。</h3></div>
                 ) : (
                   renderCurrentView({
                     currentView: String(currentView),

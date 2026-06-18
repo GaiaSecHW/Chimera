@@ -1133,7 +1133,7 @@ function DownstreamSummaryGrid({
 }) {
   if (!payload || Object.keys(payload).length === 0) {
     return (
-      <div className="rounded-xl border border-dashed border-theme-border bg-theme-bg-app px-3 py-4 text-xs text-theme-text-muted">
+      <div className="rounded-xl border border-dashed border-theme-border bg-theme-surface px-3 py-4 text-xs text-theme-text-muted">
         {emptyText}
       </div>
     );
@@ -1145,7 +1145,7 @@ function DownstreamSummaryGrid({
   const rows = [...selectedKeys, ...fallbackKeys].slice(0, 8);
   if (rows.length === 0) {
     return (
-      <div className="rounded-xl border border-dashed border-theme-border bg-theme-bg-app px-3 py-4 text-xs text-theme-text-muted">
+      <div className="rounded-xl border border-dashed border-theme-border bg-theme-surface px-3 py-4 text-xs text-theme-text-muted">
         {emptyText}
       </div>
     );
@@ -1153,7 +1153,7 @@ function DownstreamSummaryGrid({
   return (
     <div className="grid grid-cols-1 gap-3 text-xs text-theme-text-secondary md:grid-cols-2 xl:grid-cols-4">
       {rows.map((key) => (
-        <div key={key} className="rounded-xl border border-theme-border bg-theme-bg-app px-3 py-2">
+        <div key={key} className="rounded-xl border border-theme-border bg-theme-surface px-3 py-2">
           <div className="text-theme-text-muted">{DOWNSTREAM_SUMMARY_LABELS[key] || key}</div>
           <div className="mt-1 break-all font-semibold text-theme-text-primary">{formatDownstreamSummaryValue(key, payload[key])}</div>
         </div>
@@ -1231,13 +1231,13 @@ function TimelineDetailBlock({ payload }: { payload: Record<string, any> | null 
   if (rows.length === 0) return null;
   return (
     <div className="rounded-2xl border border-theme-border bg-slate-50/80 px-3 py-3">
-      <div className="mb-2 flex items-center gap-2 text-[11px] font-black uppercase tracking-[0.16em] text-theme-text-muted">
+      <div className="mb-2 flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-theme-text-muted">
         <Info size={12} />
         事件细节
       </div>
       <div className="grid gap-2 md:grid-cols-2">
         {rows.slice(0, 8).map((row) => (
- <div key={row.key} className="min-w-0 rounded-xl border border-theme-border bg-theme-bg-app px-3 py-2 text-xs">
+ <div key={row.key} className="min-w-0 rounded-xl border border-theme-border bg-theme-surface px-3 py-2 text-xs">
             <div className="font-bold text-theme-text-muted">{row.label}</div>
             <div className="mt-1 break-all font-mono text-theme-text-secondary">{row.value}</div>
           </div>
@@ -1247,7 +1247,7 @@ function TimelineDetailBlock({ payload }: { payload: Record<string, any> | null 
         <summary className="cursor-pointer text-xs font-bold text-theme-text-muted hover:text-theme-text-primary">
           查看原始 JSON
         </summary>
-        <pre className="mt-2 max-h-48 overflow-auto rounded-xl border border-theme-border bg-theme-bg-app px-3 py-3 text-xs leading-6 text-theme-text-secondary">
+        <pre className="mt-2 max-h-48 overflow-auto rounded-xl border border-theme-border bg-theme-surface px-3 py-3 text-xs leading-6 text-theme-text-secondary">
           {JSON.stringify(payload, null, 2)}
         </pre>
       </details>
@@ -1691,16 +1691,16 @@ function AbnormalReasonCard({
     <div className={`rounded-2xl border px-3 py-3 ${reasonToneClass(tone)}`}>
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
-          <div className="text-[10px] font-black uppercase tracking-[0.18em] opacity-60">异常原因</div>
+          <div className="text-[10px] font-semibold uppercase tracking-[0.18em] opacity-60">异常原因</div>
           <div className="mt-1 flex flex-wrap items-center gap-2">
-            <div className="text-sm font-black">{reason.title}</div>
- <span className="rounded-full border border-current/15 bg-theme-bg-app px-2 py-0.5 text-[10px] font-black uppercase tracking-[0.14em]">
+            <div className="text-sm font-semibold">{reason.title}</div>
+ <span className="rounded-full border border-current/15 bg-theme-bg-app px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.14em]">
               {reason.code}
             </span>
           </div>
           <div className="mt-1 text-xs leading-5 opacity-85">{reason.message}</div>
           {reason.recommended_action ? (
- <div className="mt-2 rounded-xl border border-current/10 bg-theme-bg-app px-2.5 py-2 text-xs">
+ <div className="mt-2 rounded-xl border border-current/10 bg-theme-surface px-2.5 py-2 text-xs">
               建议动作：{reason.recommended_action}
             </div>
           ) : null}
@@ -1709,7 +1709,7 @@ function AbnormalReasonCard({
           {(reason.evidence || []).slice(0, 4).map((item) => (
             <div key={`${item.key}-${item.value}`} className="min-w-0 rounded-xl border border-current/10 bg-slate-100/105 px-2.5 py-2 text-xs">
               <div className="font-bold opacity-55">{item.label}</div>
-              <div className="mt-1 break-words font-black">{item.value || '-'}</div>
+              <div className="mt-1 break-words font-semibold">{item.value || '-'}</div>
             </div>
           ))}
         </div>
@@ -1732,15 +1732,15 @@ function TaskStatusReasonCard({ reason }: { reason: TaskStatusReason }) {
     <div className={`rounded-2xl border px-3 py-3 ${reasonToneClass(reason.tone)}`}>
       <div className="grid gap-3 xl:grid-cols-[minmax(0,1fr)_minmax(240px,0.95fr)] xl:items-start">
         <div className="min-w-0">
-          <div className="text-[10px] font-black uppercase tracking-[0.18em] opacity-60">状态原因</div>
-          <div className="mt-1 text-sm font-black">{reason.title}</div>
+          <div className="text-[10px] font-semibold uppercase tracking-[0.18em] opacity-60">状态原因</div>
+          <div className="mt-1 text-sm font-semibold">{reason.title}</div>
           <div className="mt-1 text-xs leading-5 opacity-85">{reason.description}</div>
         </div>
         <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-3">
           {reason.evidence.slice(0, 3).map((item) => (
             <div key={item.label} className="min-w-0 rounded-xl border border-current/10 bg-slate-100/105 px-2.5 py-2 text-xs">
               <div className="font-bold opacity-55">{item.label}</div>
-              <div className="mt-1 break-words font-black">{item.value || '-'}</div>
+              <div className="mt-1 break-words font-semibold">{item.value || '-'}</div>
             </div>
           ))}
         </div>
@@ -1779,31 +1779,31 @@ function ManualOperationStateCard({ state }: { state: ManualOperationState }) {
   return (
     <div className={`rounded-2xl border px-4 py-3 ${manualOperationTone(state.overall)}`}>
       <div className="flex flex-wrap items-center gap-3">
- <span className="rounded-full border border-current/20 bg-theme-bg-app px-3 py-1 text-[11px] font-black">
+ <span className="rounded-full border border-current/20 bg-theme-bg-app px-3 py-1 text-[11px] font-medium">
           {manualOperationLabel(state.overall)}
         </span>
-        <span className="text-sm font-black">{state.summary || '-'}</span>
+        <span className="text-sm font-semibold">{state.summary || '-'}</span>
       </div>
       <div className="mt-2 grid gap-2 text-xs sm:grid-cols-2 xl:grid-cols-4">
         <div className="rounded-xl border border-current/10 bg-slate-100/105 px-3 py-2">
           <div className="font-bold opacity-60">当前操作</div>
-          <div className="mt-1 font-black">{state.operation_type || '-'}</div>
+          <div className="mt-1 font-semibold">{state.operation_type || '-'}</div>
         </div>
         <div className="rounded-xl border border-current/10 bg-slate-100/105 px-3 py-2">
           <div className="font-bold opacity-60">操作状态 / 步骤</div>
-          <div className="mt-1 break-all font-black">{state.operation_status || '-'} / {state.current_step || '-'}</div>
+          <div className="mt-1 break-all font-semibold">{state.operation_status || '-'} / {state.current_step || '-'}</div>
         </div>
         <div className="rounded-xl border border-current/10 bg-slate-100/105 px-3 py-2">
           <div className="font-bold opacity-60">锁持有实例</div>
-          <div className="mt-1 break-all font-black">{state.operation_owner || '-'}</div>
+          <div className="mt-1 break-all font-semibold">{state.operation_owner || '-'}</div>
         </div>
         <div className="rounded-xl border border-current/10 bg-slate-100/105 px-3 py-2">
           <div className="font-bold opacity-60">最近心跳</div>
-          <div className="mt-1 font-black">{fmt(state.operation_heartbeat_at)}</div>
+          <div className="mt-1 font-semibold">{fmt(state.operation_heartbeat_at)}</div>
         </div>
         <div className="rounded-xl border border-current/10 bg-slate-100/105 px-3 py-2">
           <div className="font-bold opacity-60">预计释放</div>
-          <div className="mt-1 font-black">{fmt(state.operation_expires_at)}</div>
+          <div className="mt-1 font-semibold">{fmt(state.operation_expires_at)}</div>
         </div>
       </div>
       {state.error_message ? (
@@ -1858,39 +1858,39 @@ function OrchestrationObservabilityPanel({ detail }: { detail: BinarySecurityTas
   return (
     <section className="space-y-4">
       <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-5">
- <div className="rounded-2xl border border-theme-border bg-theme-bg-app px-4 py-4">
-          <div className="text-[11px] font-black uppercase tracking-[0.18em] text-theme-text-muted">事件积压</div>
-          <div className="mt-2 text-2xl font-black text-theme-text-primary">{activeEventCount}</div>
+ <div className="rounded-2xl border border-theme-border bg-theme-surface px-4 py-4">
+          <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-theme-text-muted">事件积压</div>
+          <div className="mt-2 text-2xl font-bold text-theme-text-primary">{activeEventCount}</div>
           <div className="mt-1 text-xs text-theme-text-muted">最老 {Math.round(Number(stateEvents.oldest_active_age_seconds || 0))} 秒</div>
         </div>
- <div className="rounded-2xl border border-theme-border bg-theme-bg-app px-4 py-4">
-          <div className="text-[11px] font-black uppercase tracking-[0.18em] text-theme-text-muted">死信事件</div>
-          <div className={`mt-2 text-2xl font-black ${deadLetterCount > 0 ? 'text-rose-400' : 'text-theme-text-primary'}`}>{deadLetterCount}</div>
+ <div className="rounded-2xl border border-theme-border bg-theme-surface px-4 py-4">
+          <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-theme-text-muted">死信事件</div>
+          <div className={`mt-2 text-2xl font-bold ${deadLetterCount > 0 ? 'text-rose-400' : 'text-theme-text-primary'}`}>{deadLetterCount}</div>
           <div className="mt-1 text-xs text-theme-text-muted">超过重试上限后进入死信</div>
         </div>
- <div className="rounded-2xl border border-theme-border bg-theme-bg-app px-4 py-4">
-          <div className="text-[11px] font-black uppercase tracking-[0.18em] text-theme-text-muted">状态锁</div>
-          <div className={`mt-2 text-sm font-black ${lock.active ? 'text-blue-400' : 'text-emerald-400'}`}>{lock.active ? '持锁中' : '空闲'}</div>
+ <div className="rounded-2xl border border-theme-border bg-theme-surface px-4 py-4">
+          <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-theme-text-muted">状态锁</div>
+          <div className={`mt-2 text-sm font-semibold ${lock.active ? 'text-blue-400' : 'text-emerald-400'}`}>{lock.active ? '持锁中' : '空闲'}</div>
           <div className="mt-1 break-all text-xs text-theme-text-muted">{lock.owner_id || '-'}</div>
         </div>
- <div className="rounded-2xl border border-theme-border bg-theme-bg-app px-4 py-4">
-          <div className="text-[11px] font-black uppercase tracking-[0.18em] text-theme-text-muted">最近 Reconcile</div>
-          <div className="mt-2 text-sm font-black text-theme-text-primary">{obs.reconcile?.latest_event_type || '-'}</div>
+ <div className="rounded-2xl border border-theme-border bg-theme-surface px-4 py-4">
+          <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-theme-text-muted">最近 Reconcile</div>
+          <div className="mt-2 text-sm font-semibold text-theme-text-primary">{obs.reconcile?.latest_event_type || '-'}</div>
           <div className="mt-1 text-xs text-theme-text-muted">{fmt(obs.reconcile?.latest_event_at)}</div>
         </div>
- <div className="rounded-2xl border border-theme-border bg-theme-bg-app px-4 py-4">
-          <div className="text-[11px] font-black uppercase tracking-[0.18em] text-theme-text-muted">文件写入目标</div>
+ <div className="rounded-2xl border border-theme-border bg-theme-surface px-4 py-4">
+          <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-theme-text-muted">文件写入目标</div>
           <div className="mt-2 break-all font-mono text-[11px] text-theme-text-secondary">{obs.files?.metadata_path || '-'}</div>
         </div>
       </section>
 
       <section className="grid gap-4 xl:grid-cols-[1fr_1fr]">
- <div className="rounded-[2rem] border border-theme-border bg-theme-bg-app p-5">
-          <h3 className="text-sm font-black uppercase tracking-[0.2em] text-theme-text-muted">归档状态分布</h3>
+ <div className="rounded-xl border border-theme-border bg-theme-surface p-5">
+          <h3 className="text-sm font-semibold uppercase tracking-[0.2em] text-theme-text-muted">归档状态分布</h3>
           <div className="mt-4 space-y-2">
             {Object.entries(archiveByStage).map(([stage, counts]) => (
-              <div key={stage} className="rounded-2xl border border-theme-border bg-theme-bg-app px-4 py-3">
-                <div className="font-black text-theme-text-primary">{STAGE_LABELS[stage] || stage}</div>
+              <div key={stage} className="rounded-2xl border border-theme-border bg-theme-surface px-4 py-3">
+                <div className="font-semibold text-theme-text-primary">{STAGE_LABELS[stage] || stage}</div>
                 <div className="mt-2 flex flex-wrap gap-2 text-xs">
                   {Object.entries(counts || {}).map(([status, count]) => (
                     <span key={status} style={{ borderRadius: '9999px', border: '1px solid', padding: '4px 8px', fontWeight: 600, ...statusTone(status), borderColor: statusTone(status).borderColor }}>{formatBinarySecurityStatus(status)} {count}</span>
@@ -1901,21 +1901,21 @@ function OrchestrationObservabilityPanel({ detail }: { detail: BinarySecurityTas
             {Object.keys(archiveByStage).length === 0 ? <div className="rounded-2xl border border-dashed border-theme-border px-4 py-8 text-center text-sm text-theme-text-muted">暂无归档任务</div> : null}
           </div>
         </div>
- <div className="rounded-[2rem] border border-theme-border bg-theme-bg-app p-5">
-          <h3 className="text-sm font-black uppercase tracking-[0.2em] text-theme-text-muted">状态事件</h3>
+ <div className="rounded-xl border border-theme-border bg-theme-surface p-5">
+          <h3 className="text-sm font-semibold uppercase tracking-[0.2em] text-theme-text-muted">状态事件</h3>
           <div className="mt-4 grid gap-2 text-xs sm:grid-cols-2">
             {Object.entries(statusCounts).map(([status, count]) => (
-              <div key={status} className="rounded-xl border border-theme-border bg-theme-bg-app px-3 py-2">
+              <div key={status} className="rounded-xl border border-theme-border bg-theme-surface px-3 py-2">
                 <div className="font-bold text-theme-text-muted">{status}</div>
-                <div className="mt-1 text-lg font-black text-theme-text-primary">{count}</div>
+                <div className="mt-1 text-lg font-semibold text-theme-text-primary">{count}</div>
               </div>
             ))}
           </div>
           <div className="mt-4 space-y-2">
             {[...processing, ...deadLetters, ...recent].slice(0, 8).map((event: any) => (
-              <div key={event.id} className="rounded-xl border border-theme-border bg-theme-bg-app px-3 py-2 text-xs">
+              <div key={event.id} className="rounded-xl border border-theme-border bg-theme-surface px-3 py-2 text-xs">
                 <div className="flex flex-wrap items-center justify-between gap-2">
-                  <span className="font-mono font-black text-theme-text-primary">{event.event_type}</span>
+                  <span className="font-mono font-semibold text-theme-text-primary">{event.event_type}</span>
                   <span style={{ borderRadius: '9999px', border: '1px solid', padding: '2px 8px', fontWeight: 600, ...statusTone(event.status), borderColor: statusTone(event.status).borderColor }}>{event.status}</span>
                 </div>
                 <div className="mt-1 break-all text-theme-text-muted">owner={event.leased_by || '-'} · attempts={event.attempts ?? 0} · {fmt(event.created_at)}</div>
@@ -1977,50 +1977,50 @@ function ApiKeysPanel({
 
   return (
     <section className="space-y-6">
-      <section className="rounded-[2rem] border border-theme-border bg-theme-bg-app p-6">
+      <section className="rounded-xl border border-theme-border bg-theme-surface p-6">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
-            <h2 className="text-xl font-black text-theme-text-primary">API 密钥</h2>
+            <h2 className="text-xl font-semibold text-theme-text-primary">API 密钥</h2>
             <p className="mt-1 text-sm text-theme-text-muted">展示当前任务使用的任务级密钥与各阶段派生的 work key。</p>
           </div>
           {!hasAnyKeys ? (
-            <span className="inline-flex rounded-full border border-amber-500/20 bg-amber-500/15 px-3 py-1 text-xs font-black text-amber-400">
+            <span className="inline-flex rounded-full border border-amber-500/20 bg-amber-500/15 px-3 py-1 text-xs font-semibold text-amber-400">
               未使用任务级密钥
             </span>
           ) : null}
         </div>
 
         <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-5">
-          <div className="rounded-2xl border border-theme-border bg-theme-bg-app px-4 py-4">
-            <div className="text-[11px] font-black uppercase tracking-[0.18em] text-theme-text-muted">Task Key ID</div>
+          <div className="rounded-2xl border border-theme-border bg-theme-surface px-4 py-4">
+            <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-theme-text-muted">Task Key ID</div>
             <button type="button" onClick={() => void onCopy(String(rootTaskKey.id || ''), 'Task Key ID 已复制')} className="mt-2 break-all text-left font-mono text-xs font-bold text-theme-text-primary hover:text-sky-400">
               {String(rootTaskKey.id || '-')}
             </button>
           </div>
-          <div className="rounded-2xl border border-theme-border bg-theme-bg-app px-4 py-4">
-            <div className="text-[11px] font-black uppercase tracking-[0.18em] text-theme-text-muted">名称</div>
+          <div className="rounded-2xl border border-theme-border bg-theme-surface px-4 py-4">
+            <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-theme-text-muted">名称</div>
             <button type="button" onClick={() => void onCopy(String(rootTaskKey.name || ''), '任务级密钥名称已复制')} className="mt-2 break-all text-left text-xs font-bold text-theme-text-primary hover:text-sky-400">
               {String(rootTaskKey.name || '-')}
             </button>
           </div>
-          <div className="rounded-2xl border border-theme-border bg-theme-bg-app px-4 py-4">
-            <div className="text-[11px] font-black uppercase tracking-[0.18em] text-theme-text-muted">前缀</div>
+          <div className="rounded-2xl border border-theme-border bg-theme-surface px-4 py-4">
+            <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-theme-text-muted">前缀</div>
             <div className="mt-2 break-all font-mono text-xs font-bold text-theme-text-primary">{String(rootTaskKey.prefix || '-')}</div>
           </div>
-          <div className="rounded-2xl border border-theme-border bg-theme-bg-app px-4 py-4">
-            <div className="text-[11px] font-black uppercase tracking-[0.18em] text-theme-text-muted">来源</div>
+          <div className="rounded-2xl border border-theme-border bg-theme-surface px-4 py-4">
+            <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-theme-text-muted">来源</div>
             <div className="mt-2 text-xs font-bold text-theme-text-primary">{String(rootTaskKey.source || '-')}</div>
           </div>
-          <div className="rounded-2xl border border-theme-border bg-theme-bg-app px-4 py-4">
-            <div className="text-[11px] font-black uppercase tracking-[0.18em] text-theme-text-muted">Secret</div>
-            <div className={`mt-2 text-xs font-black ${rootTaskKey.has_secret ? 'text-emerald-400' : 'text-theme-text-muted'}`}>
+          <div className="rounded-2xl border border-theme-border bg-theme-surface px-4 py-4">
+            <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-theme-text-muted">Secret</div>
+            <div className={`mt-2 text-xs font-semibold ${rootTaskKey.has_secret ? 'text-emerald-400' : 'text-theme-text-muted'}`}>
               {rootTaskKey.has_secret ? '已配置' : '未配置'}
             </div>
           </div>
         </div>
 
         {!hasAnyKeys ? (
-          <div className="mt-6 rounded-2xl border border-dashed border-theme-border bg-theme-bg-app px-6 py-10 text-center text-sm text-theme-text-muted">
+          <div className="mt-6 rounded-2xl border border-dashed border-theme-border bg-theme-surface px-6 py-10 text-center text-sm text-theme-text-muted">
             当前任务未使用任务级密钥。系统未为该任务或其阶段派生 task key / work key。
           </div>
         ) : null}
@@ -2035,19 +2035,19 @@ function ApiKeysPanel({
                 .slice()
                 .sort((left, right) => String(left.created_at || '').localeCompare(String(right.created_at || '')));
               return (
-                <div key={stageName} className="rounded-[2rem] border border-theme-border bg-theme-bg-app p-5">
+                <div key={stageName} className="rounded-xl border border-theme-border bg-theme-surface p-5">
                   <div className="mb-4 flex items-center justify-between gap-3">
                     <div>
-                      <h3 className="text-lg font-black text-theme-text-primary">{STAGE_LABELS[stageName] || stageName}</h3>
+                      <h3 className="text-lg font-semibold text-theme-text-primary">{STAGE_LABELS[stageName] || stageName}</h3>
                       <p className="mt-1 text-xs text-theme-text-muted">当前阶段派生的 work key 与关联子任务。</p>
                     </div>
-                    <span className="rounded-full border border-theme-border bg-theme-bg-app px-3 py-1 text-xs font-black text-theme-text-secondary">
+                    <span className="rounded-full border border-theme-border bg-theme-bg-app px-3 py-1 text-xs font-semibold text-theme-text-secondary">
                       {rows.length} 条
                     </span>
                   </div>
                   <div className="overflow-x-auto rounded-2xl border border-theme-border">
                     <table className="min-w-[1040px] w-full divide-y divide-theme-border text-left text-xs">
-                      <thead className="bg-theme-bg-app text-[11px] font-black uppercase tracking-[0.12em] text-theme-text-muted">
+                      <thead className="bg-theme-bg-app text-[11px] font-semibold uppercase tracking-[0.12em] text-theme-text-muted">
                         <tr>
                           <th className="px-3 py-2">阶段</th>
                           <th className="px-3 py-2">服务</th>
@@ -2097,7 +2097,7 @@ function ApiKeysPanel({
             })}
           </section>
         ) : (
-          <section className="rounded-[2rem] border border-dashed border-theme-border bg-theme-bg-app px-6 py-10 text-center text-sm text-theme-text-muted">
+          <section className="rounded-xl border border-dashed border-theme-border bg-theme-surface px-6 py-10 text-center text-sm text-theme-text-muted">
             当前任务未派生任何阶段 work key。
           </section>
         )
@@ -3368,7 +3368,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
       <button
         type="button"
         onClick={() => setStageItemTimeSort((current) => nextStageItemSort(current, key))}
-        className={`inline-flex items-center gap-1 rounded-lg px-2 py-1 text-left font-black transition ${
+        className={`inline-flex items-center gap-1 rounded-lg px-2 py-1 text-left font-semibold transition ${
           active ? 'bg-theme-surface text-white' : 'text-theme-text-muted hover:bg-theme-elevated hover:text-theme-text-primary'
         }`}
         title={`按${label}${active && stageItemTimeSort.direction === 'desc' ? '正序' : '倒序'}排序`}
@@ -3509,15 +3509,15 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
     const state = downstreamByItemId[item.id];
     const stateMatchesCurrent = state?.downstreamTaskId === item.downstream_task_id;
     if (item.downstream_task_id && state?.loading && stateMatchesCurrent) {
-      return <div className="rounded-xl bg-theme-bg-app px-3 py-3 text-xs text-theme-text-muted">正在加载下游任务详情...</div>;
+      return <div className="rounded-xl bg-theme-surface px-3 py-3 text-xs text-theme-text-muted">正在加载下游任务详情...</div>;
     }
     if (state?.error && stateMatchesCurrent) {
       return <div className="rounded-xl border border-rose-500/20 bg-rose-500/15 px-3 py-3 text-xs font-semibold text-rose-400">{state.error}</div>;
     }
     if (!state?.detail || !stateMatchesCurrent) {
       return item.downstream_task_id
-        ? <div className="rounded-xl bg-theme-bg-app px-3 py-3 text-xs text-theme-text-muted">展开详情后按需加载下游任务摘要。</div>
-        : <div className="rounded-xl bg-theme-bg-app px-3 py-3 text-xs text-theme-text-muted">{stageItemMissingDownstreamReason(item)}</div>;
+        ? <div className="rounded-xl bg-theme-surface px-3 py-3 text-xs text-theme-text-muted">展开详情后按需加载下游任务摘要。</div>
+        : <div className="rounded-xl bg-theme-surface px-3 py-3 text-xs text-theme-text-muted">{stageItemMissingDownstreamReason(item)}</div>;
     }
 
     const detailState = state.detail;
@@ -3554,7 +3554,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
           </div>
           <div className="space-y-2">
             {task.items.slice(0, 4).map((taskItem) => (
-              <div key={taskItem.id} className="rounded-xl border border-theme-border bg-theme-bg-app px-3 py-3 text-xs text-theme-text-secondary">
+              <div key={taskItem.id} className="rounded-xl border border-theme-border bg-theme-surface px-3 py-3 text-xs text-theme-text-secondary">
                 <div className="font-bold text-theme-text-primary">{taskItem.elf_path}</div>
                 <div className="mt-2 grid grid-cols-1 gap-2 xl:grid-cols-3">
                   <div className="rounded-lg bg-theme-bg-app px-2.5 py-2">阶段：{taskItem.phase_label || taskItem.phase || '-'}</div>
@@ -3607,7 +3607,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
  <section className="binary-security-modules-table rounded-[1.75rem] border border-theme-border bg-theme-bg-app">
       <div className="flex flex-col gap-3 border-b border-theme-border px-5 py-4 lg:flex-row lg:items-center lg:justify-between">
         <div>
-          <div className="text-sm font-black text-theme-text-primary">{isBinaryModuleTask ? '模块输入表' : '全部模块表'}</div>
+          <div className="text-sm font-semibold text-theme-text-primary">{isBinaryModuleTask ? '模块输入表' : '全部模块表'}</div>
           <div className="mt-1 text-xs text-theme-text-muted">
             用统一表格展示系统分析产出的全部模块、候选推进模块和已确认模块；确认态可直接勾选后继续推进。
           </div>
@@ -3627,12 +3627,12 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
             value={moduleTableNameFilter}
             onChange={(event) => setModuleTableNameFilter(event.target.value)}
             placeholder="按模块名/模块键快速筛选"
-            className="w-full rounded-xl border border-theme-border bg-theme-bg-app px-3 py-2 text-sm text-theme-text-secondary outline-none lg:max-w-sm"
+            className="w-full rounded-xl border border-theme-border bg-theme-surface px-3 py-2 text-sm text-theme-text-secondary outline-none lg:max-w-sm"
           />
           <select
             value={moduleTableRiskFilter}
             onChange={(event) => setModuleTableRiskFilter(event.target.value as 'all' | '高' | '中' | '低')}
-            className="rounded-xl border border-theme-border bg-theme-bg-app px-3 py-2 text-sm font-bold text-theme-text-secondary outline-none"
+            className="rounded-xl border border-theme-border bg-theme-surface px-3 py-2 text-sm font-bold text-theme-text-secondary outline-none"
           >
             <option value="all">全部风险</option>
             <option value="高">高</option>
@@ -3642,7 +3642,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
           <select
             value={moduleTableSourceFilter}
             onChange={(event) => setModuleTableSourceFilter(event.target.value as 'all' | '系统分析' | '候选' | '已选')}
-            className="rounded-xl border border-theme-border bg-theme-bg-app px-3 py-2 text-sm font-bold text-theme-text-secondary outline-none"
+            className="rounded-xl border border-theme-border bg-theme-surface px-3 py-2 text-sm font-bold text-theme-text-secondary outline-none"
           >
             <option value="all">全部来源</option>
             <option value="系统分析">系统分析</option>
@@ -3655,7 +3655,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                 type="button"
                 onClick={selectAllVisibleModules}
                 disabled={selectableFilteredModuleKeys.length === 0}
-                className="rounded-xl border border-theme-border bg-theme-bg-app px-3 py-2 text-sm font-bold text-theme-text-secondary outline-none disabled:cursor-not-allowed disabled:opacity-50"
+                className="rounded-xl border border-theme-border bg-theme-surface px-3 py-2 text-sm font-bold text-theme-text-secondary outline-none disabled:cursor-not-allowed disabled:opacity-50"
               >
                 一键全选
               </button>
@@ -3663,7 +3663,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                 type="button"
                 onClick={clearAllSelectedModules}
                 disabled={selectedModuleKeys.length === 0}
-                className="rounded-xl border border-theme-border bg-theme-bg-app px-3 py-2 text-sm font-bold text-theme-text-secondary outline-none disabled:cursor-not-allowed disabled:opacity-50"
+                className="rounded-xl border border-theme-border bg-theme-surface px-3 py-2 text-sm font-bold text-theme-text-secondary outline-none disabled:cursor-not-allowed disabled:opacity-50"
               >
                 一键清除全选
               </button>
@@ -3677,25 +3677,25 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
       ) : (
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-theme-border text-left text-xs">
-            <thead className="bg-theme-bg-app text-[11px] font-black uppercase tracking-[0.12em] text-theme-text-muted">
+            <thead className="bg-theme-bg-app text-[11px] font-semibold uppercase tracking-[0.12em] text-theme-text-muted">
               <tr>
                 {requiresModuleConfirmation ? <th className="w-16 px-4 py-3">勾选</th> : null}
                 <th className="min-w-[220px] px-4 py-3">
-                  <button type="button" onClick={() => { setModuleTableSortKey('module_name'); setModuleTableSortDirection((current) => moduleTableSortKey === 'module_name' && current === 'asc' ? 'desc' : 'asc'); }} className="font-black text-theme-text-muted hover:text-theme-text-primary">模块</button>
+                  <button type="button" onClick={() => { setModuleTableSortKey('module_name'); setModuleTableSortDirection((current) => moduleTableSortKey === 'module_name' && current === 'asc' ? 'desc' : 'asc'); }} className="font-semibold text-theme-text-muted hover:text-theme-text-primary">模块</button>
                 </th>
                 <th className="w-28 px-4 py-3">
-                  <button type="button" onClick={() => { setModuleTableSortKey('risk_level'); setModuleTableSortDirection((current) => moduleTableSortKey === 'risk_level' && current === 'asc' ? 'desc' : 'asc'); }} className="font-black text-theme-text-muted hover:text-theme-text-primary">风险高危程度</button>
+                  <button type="button" onClick={() => { setModuleTableSortKey('risk_level'); setModuleTableSortDirection((current) => moduleTableSortKey === 'risk_level' && current === 'asc' ? 'desc' : 'asc'); }} className="font-semibold text-theme-text-muted hover:text-theme-text-primary">风险高危程度</button>
                 </th>
                 <th className="w-44 px-4 py-3">模块归类</th>
                 <th className="w-36 px-4 py-3">模块报告</th>
                 <th className="w-24 px-4 py-3">
-                  <button type="button" onClick={() => { setModuleTableSortKey('risk_score'); setModuleTableSortDirection((current) => moduleTableSortKey === 'risk_score' && current === 'asc' ? 'desc' : 'asc'); }} className="font-black text-theme-text-muted hover:text-theme-text-primary">分数</button>
+                  <button type="button" onClick={() => { setModuleTableSortKey('risk_score'); setModuleTableSortDirection((current) => moduleTableSortKey === 'risk_score' && current === 'asc' ? 'desc' : 'asc'); }} className="font-semibold text-theme-text-muted hover:text-theme-text-primary">分数</button>
                 </th>
                 <th className="w-24 px-4 py-3">
-                  <button type="button" onClick={() => { setModuleTableSortKey('file_count'); setModuleTableSortDirection((current) => moduleTableSortKey === 'file_count' && current === 'asc' ? 'desc' : 'asc'); }} className="font-black text-theme-text-muted hover:text-theme-text-primary">文件数</button>
+                  <button type="button" onClick={() => { setModuleTableSortKey('file_count'); setModuleTableSortDirection((current) => moduleTableSortKey === 'file_count' && current === 'asc' ? 'desc' : 'asc'); }} className="font-semibold text-theme-text-muted hover:text-theme-text-primary">文件数</button>
                 </th>
                 <th className="min-w-[220px] px-4 py-3">
-                  <button type="button" onClick={() => { setModuleTableSortKey('module_key'); setModuleTableSortDirection((current) => moduleTableSortKey === 'module_key' && current === 'asc' ? 'desc' : 'asc'); }} className="font-black text-theme-text-muted hover:text-theme-text-primary">模块键</button>
+                  <button type="button" onClick={() => { setModuleTableSortKey('module_key'); setModuleTableSortDirection((current) => moduleTableSortKey === 'module_key' && current === 'asc' ? 'desc' : 'asc'); }} className="font-semibold text-theme-text-muted hover:text-theme-text-primary">模块键</button>
                 </th>
               </tr>
             </thead>
@@ -3813,12 +3813,12 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
         <div className="fixed inset-0 z-[125] bg-slate-950/55 backdrop-blur-sm" onClick={() => setModuleReportDialogOpen(false)}>
           <div className="flex h-full w-full items-center justify-center p-4 sm:p-6">
             <div
-              className="flex max-h-[calc(100vh-2.5rem)] w-full max-w-6xl flex-col overflow-hidden rounded-[2rem] border border-theme-border bg-theme-bg-app"
+              className="flex max-h-[calc(100vh-2.5rem)] w-full max-w-6xl flex-col overflow-hidden rounded-xl border border-theme-border bg-theme-surface"
               onClick={(event) => event.stopPropagation()}
             >
               <div className="flex flex-wrap items-start justify-between gap-4 border-b border-theme-border bg-slate-50/80 px-6 py-5 sm:px-8">
                 <div>
-                  <h3 className="text-2xl font-black tracking-tight text-theme-text-primary">{selectedModuleReportDetail?.module_name || selectedModuleReportTarget.moduleName}</h3>
+                  <h3 className="text-2xl font-bold tracking-tight text-theme-text-primary">{selectedModuleReportDetail?.module_name || selectedModuleReportTarget.moduleName}</h3>
                   <div className="mt-3 flex flex-wrap gap-2 text-[11px] font-bold">
                     <span className="rounded-full border border-theme-border bg-theme-bg-app px-3 py-1 text-theme-text-secondary">{selectedModuleReportTarget.moduleKey}</span>
                     {selectedModuleReportDetail?.risk_level ? <span className="rounded-full border border-rose-500/20 bg-rose-500/15 px-3 py-1 text-rose-400">风险 {selectedModuleReportDetail.risk_level}</span> : null}
@@ -3833,7 +3833,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                   <button
                     type="button"
                     onClick={() => void copyTextValue(selectedModuleReportTarget.moduleKey, '模块键已复制')}
-                    className="inline-flex items-center gap-2 rounded-xl border border-theme-border bg-theme-bg-app px-3 py-2 text-xs font-bold text-theme-text-secondary hover:bg-theme-elevated"
+                    className="inline-flex items-center gap-2 rounded-xl border border-theme-border bg-theme-surface px-3 py-2 text-xs font-bold text-theme-text-secondary hover:bg-theme-elevated"
                   >
                     <Copy size={14} />
                     复制模块键
@@ -3841,7 +3841,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                   <button
                     type="button"
                     onClick={() => void copyTextValue(selectedModuleReportDetail?.module_report_path || '', '报告路径已复制')}
-                    className="inline-flex items-center gap-2 rounded-xl border border-theme-border bg-theme-bg-app px-3 py-2 text-xs font-bold text-theme-text-secondary hover:bg-theme-elevated"
+                    className="inline-flex items-center gap-2 rounded-xl border border-theme-border bg-theme-surface px-3 py-2 text-xs font-bold text-theme-text-secondary hover:bg-theme-elevated"
                   >
                     <Copy size={14} />
                     复制路径
@@ -3858,24 +3858,24 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
               </div>
               <div className="flex-1 overflow-y-auto px-6 py-6 sm:px-8">
                 {moduleReportLoading ? (
-                  <div className="flex min-h-[240px] items-center justify-center gap-3 rounded-[1.5rem] border border-theme-border bg-theme-bg-app text-theme-text-muted">
+                  <div className="flex min-h-[240px] items-center justify-center gap-3 rounded-xl border border-theme-border bg-theme-surface text-theme-text-muted">
                     <Loader2 size={18} className="animate-spin" />
                     正在加载模块报告...
                   </div>
                 ) : moduleReportError ? (
-                  <div className="rounded-[1.5rem] border border-rose-500/20 bg-rose-500/15 px-6 py-8 text-sm text-rose-400">{moduleReportError}</div>
+                  <div className="rounded-xl border border-rose-500/20 bg-rose-500/15 px-6 py-8 text-sm text-rose-400">{moduleReportError}</div>
                 ) : selectedModuleReportDetail?.available && selectedModuleReportDetail.module_report_markdown ? (
                   <div className="space-y-4">
                     {selectedModuleReportDetail.warning ? (
                       <div className="rounded-2xl border border-amber-500/20 bg-amber-500/15 px-4 py-3 text-sm text-amber-400">{selectedModuleReportDetail.warning}</div>
                     ) : null}
                     {selectedModuleReportDetail.module_report_path ? (
-                      <div className="rounded-2xl border border-theme-border bg-theme-bg-app px-4 py-3 text-xs text-theme-text-secondary">
-                        <div className="text-[11px] font-black uppercase tracking-[0.18em] text-theme-text-muted">报告路径</div>
+                      <div className="rounded-2xl border border-theme-border bg-theme-surface px-4 py-3 text-xs text-theme-text-secondary">
+                        <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-theme-text-muted">报告路径</div>
                         <div className="mt-2 break-all font-mono">{selectedModuleReportDetail.module_report_path}</div>
                       </div>
                     ) : null}
-                    <div className="markdown-body break-words rounded-[1.5rem] border border-theme-border bg-theme-bg-app px-6 py-6 text-sm leading-7 text-theme-text-secondary">
+                    <div className="markdown-body break-words rounded-xl border border-theme-border bg-theme-surface px-6 py-6 text-sm leading-7 text-theme-text-secondary">
                       <ReactMarkdown remarkPlugins={[remarkGfm]}>
                         {selectedModuleReportDetail.module_report_markdown}
                       </ReactMarkdown>
@@ -3884,12 +3884,12 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                 ) : (
                   <div className="space-y-4">
                     {selectedModuleReportDetail?.module_report_path ? (
-                      <div className="rounded-2xl border border-theme-border bg-theme-bg-app px-4 py-3 text-xs text-theme-text-secondary">
-                        <div className="text-[11px] font-black uppercase tracking-[0.18em] text-theme-text-muted">报告路径</div>
+                      <div className="rounded-2xl border border-theme-border bg-theme-surface px-4 py-3 text-xs text-theme-text-secondary">
+                        <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-theme-text-muted">报告路径</div>
                         <div className="mt-2 break-all font-mono">{selectedModuleReportDetail.module_report_path}</div>
                       </div>
                     ) : null}
-                    <div className="rounded-[1.5rem] border border-dashed border-theme-border bg-theme-bg-app px-6 py-10 text-center text-sm text-theme-text-muted">
+                    <div className="rounded-xl border border-dashed border-theme-border bg-theme-surface px-6 py-10 text-center text-sm text-theme-text-muted">
                       {selectedModuleReportDetail?.error_message || '该模块尚未生成可展示的系统分析报告'}
                     </div>
                   </div>
@@ -3902,15 +3902,15 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
       {modalAction && modalCopy ? (
         <div className="fixed inset-0 z-[120] bg-slate-950/50 backdrop-blur-sm">
           <div className="flex h-full w-full items-center justify-center p-4 sm:p-6">
-            <div className="flex w-full max-w-5xl max-h-[calc(100vh-3rem)] flex-col overflow-hidden rounded-[2rem] border border-theme-border bg-theme-bg-app sm:max-h-[calc(100vh-4rem)]">
+            <div className="flex w-full max-w-5xl max-h-[calc(100vh-3rem)] flex-col overflow-hidden rounded-2xl border border-theme-border bg-theme-surface sm:max-h-[calc(100vh-4rem)]">
               <div className="border-b border-theme-border bg-slate-50/80 px-6 py-5 sm:px-8">
-                <div className="text-[11px] font-black uppercase tracking-[0.28em] text-theme-text-muted">Task Action</div>
+                <div className="text-[11px] font-semibold uppercase tracking-[0.28em] text-theme-text-muted">Task Action</div>
                 <div className="mt-2 flex items-center gap-3">
                   <div className="rounded-2xl bg-sky-500/15 p-3 text-sky-400">
                     <Loader2 size={24} className={modalRunning ? 'animate-spin' : ''} />
                   </div>
                   <div>
-                    <h3 className="text-2xl font-black tracking-tight text-theme-text-primary">
+                    <h3 className="text-2xl font-bold tracking-tight text-theme-text-primary">
                       {modalRunning ? modalCopy.progressTitle : modalCopy.confirmTitle}
                     </h3>
                     <p className="mt-1 text-sm text-theme-text-muted">
@@ -3921,19 +3921,19 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
               </div>
               <div className="flex-1 overflow-auto px-6 py-6 sm:px-8 sm:py-8">
                 <div className="grid gap-6 xl:grid-cols-[minmax(0,1.2fr)_320px]">
-                  <div className="rounded-[1.5rem] border border-theme-border bg-theme-bg-app p-5 sm:p-6">
-                    <div className="text-[11px] font-black uppercase tracking-[0.22em] text-theme-text-muted">
+                  <div className="rounded-xl border border-theme-border bg-theme-surface p-5 sm:p-6">
+                    <div className="text-[11px] font-semibold uppercase tracking-[0.22em] text-theme-text-muted">
                       {modalRunning ? '执行中' : '确认操作'}
                     </div>
                     <p className="mt-4 text-base leading-7 text-theme-text-secondary">
                       {modalRunning ? modalCopy.progressMessage : modalCopy.confirmMessage}
                     </p>
                     <div className="mt-6 grid gap-3 sm:grid-cols-2">
-                      <div className="rounded-2xl bg-theme-bg-app px-4 py-3 text-sm text-theme-text-secondary">
+                      <div className="rounded-2xl bg-theme-surface px-4 py-3 text-sm text-theme-text-secondary">
                         <div className="text-xs font-bold uppercase tracking-[0.14em] text-theme-text-muted">任务</div>
                         <div className="mt-2 break-all font-mono text-xs text-theme-text-secondary">{taskId}</div>
                       </div>
-                      <div className="rounded-2xl bg-theme-bg-app px-4 py-3 text-sm text-theme-text-secondary">
+                      <div className="rounded-2xl bg-theme-surface px-4 py-3 text-sm text-theme-text-secondary">
                         <div className="text-xs font-bold uppercase tracking-[0.14em] text-theme-text-muted">当前阶段</div>
                         <div className="mt-2 font-bold text-theme-text-primary">
                           {STAGE_LABELS[detail?.current_stage || ''] || detail?.current_stage || '-'}
@@ -3946,14 +3946,14 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                         : '确认后接口会立即受理，后台准备完成后任务会自动重新排队。'}
                     </div>
                   </div>
-                  <div className="rounded-[1.5rem] border border-theme-border bg-slate-50/80 p-5 sm:p-6">
-                    <div className="text-[11px] font-black uppercase tracking-[0.22em] text-theme-text-muted">状态</div>
+                  <div className="rounded-xl border border-theme-border bg-slate-50/80 p-5 sm:p-6">
+                    <div className="text-[11px] font-semibold uppercase tracking-[0.22em] text-theme-text-muted">状态</div>
                     <div className="mt-4 space-y-3">
-                      <div className="rounded-2xl border border-theme-border bg-theme-bg-app px-4 py-3">
+                      <div className="rounded-2xl border border-theme-border bg-theme-surface px-4 py-3">
                         <div className="text-xs font-bold text-theme-text-muted">任务名称</div>
-                        <div className="mt-1 text-sm font-black text-theme-text-primary">{detail?.name || '-'}</div>
+                        <div className="mt-1 text-sm font-semibold text-theme-text-primary">{detail?.name || '-'}</div>
                       </div>
-                      <div className="rounded-2xl border border-theme-border bg-theme-bg-app px-4 py-3">
+                      <div className="rounded-2xl border border-theme-border bg-theme-surface px-4 py-3">
                         <div className="text-xs font-bold text-theme-text-muted">当前状态</div>
                         <div className="mt-2">
                           <span style={{ display: 'inline-flex', borderRadius: '9999px', border: '1px solid', padding: '4px 12px', fontSize: '12px', fontWeight: 600, ...statusTone(taskDisplayStatus(detail?.status, detail?.manual_operation_state)), borderColor: statusTone(taskDisplayStatus(detail?.status, detail?.manual_operation_state)).borderColor }}>
@@ -3961,9 +3961,9 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                           </span>
                         </div>
                       </div>
-                      <div className="rounded-2xl border border-theme-border bg-theme-bg-app px-4 py-3">
+                      <div className="rounded-2xl border border-theme-border bg-theme-surface px-4 py-3">
                         <div className="text-xs font-bold text-theme-text-muted">操作类型</div>
-                        <div className="mt-1 text-sm font-black text-theme-text-primary">
+                        <div className="mt-1 text-sm font-semibold text-theme-text-primary">
                           {modalAction === 'retry' ? '清空并从头开始' : '重试失败项'}
                         </div>
                       </div>
@@ -3975,7 +3975,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                     <button
                       type="button"
                       onClick={() => setPendingBlockingAction('')}
-                      className="rounded-xl border border-theme-border bg-theme-bg-app px-5 py-3 text-sm font-bold text-theme-text-secondary transition hover:bg-theme-elevated"
+                      className="rounded-xl border border-theme-border bg-theme-surface px-5 py-3 text-sm font-bold text-theme-text-secondary transition hover:bg-theme-elevated"
                     >
                       取消
                     </button>
@@ -4008,7 +4008,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
               type="button"
               onClick={() => void refreshActiveTab()}
               disabled={detailRefreshing}
-              className="inline-flex items-center gap-2 rounded-xl border border-theme-border bg-theme-bg-app px-4 py-2.5 text-sm font-bold text-theme-text-secondary hover:bg-theme-elevated disabled:cursor-not-allowed disabled:opacity-60"
+              className="inline-flex items-center gap-2 rounded-xl border border-theme-border bg-theme-surface px-4 py-2.5 text-sm font-bold text-theme-text-secondary hover:bg-theme-elevated disabled:cursor-not-allowed disabled:opacity-60"
             >
               {detailRefreshing ? <Loader2 size={16} className="animate-spin" /> : <RefreshCw size={16} />}
               {detailRefreshing ? '刷新中...' : '刷新'}
@@ -4042,7 +4042,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
             >
               {actionLoading === 'retry_failed_items' ? '重试中...' : '重试失败项'}
             </button>
-            <button type="button" title={taskDeleteSupported ? undefined : (manualOperationState?.blocking_reason || '当前任务不可删除')} onClick={() => void runAction('delete')} disabled={actionLoading !== '' || !taskDeleteSupported || isManualOperationInProgress} className="rounded-xl border border-rose-300 bg-theme-bg-app px-4 py-2.5 text-sm font-bold text-rose-400 disabled:opacity-60">删除</button>
+            <button type="button" title={taskDeleteSupported ? undefined : (manualOperationState?.blocking_reason || '当前任务不可删除')} onClick={() => void runAction('delete')} disabled={actionLoading !== '' || !taskDeleteSupported || isManualOperationInProgress} className="rounded-xl border border-rose-300 bg-theme-surface px-4 py-2.5 text-sm font-bold text-rose-400 disabled:opacity-60">删除</button>
             <button
               type="button"
               title={taskDeleteSupported ? '忽略下游删除失败并强制删除主任务' : (manualOperationState?.blocking_reason || '当前任务不可强制删除')}
@@ -4066,14 +4066,14 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
  <section className="rounded-[1.75rem] border border-theme-border bg-theme-bg-app p-4">
             <div className="grid gap-4 xl:grid-cols-[minmax(0,1.35fr)_minmax(320px,0.85fr)] xl:items-start">
               <div className="min-w-0">
-                <h1 className="text-2xl font-black tracking-tight text-theme-text-primary">{detail.name}</h1>
+                <h1 className="text-2xl font-bold tracking-tight text-theme-text-primary">{detail.name}</h1>
                 <div className="mt-2 break-all font-mono text-xs text-theme-text-muted">{detail.id}</div>
                 <div className="mt-3 flex flex-wrap items-center gap-3">
                   <span style={{ borderRadius: '9999px', border: '1px solid', padding: '4px 12px', fontSize: '12px', fontWeight: 600, ...statusTone(displayTaskStatus), borderColor: statusTone(displayTaskStatus).borderColor }}>{formatBinarySecurityStatus(displayTaskStatus)}</span>
                   <span className="text-sm text-theme-text-muted">当前阶段：{STAGE_LABELS[detail.current_stage || ''] || detail.current_stage || '-'}</span>
                 </div>
                 {runtimeOwner ? (
-                  <div className="mt-4 rounded-2xl border border-theme-border bg-theme-bg-app px-4 py-3">
+                  <div className="mt-4 rounded-2xl border border-theme-border bg-theme-surface px-4 py-3">
                     <div className="text-[10px] font-bold uppercase tracking-[0.18em] text-theme-text-muted">{runtimeOwner.label}</div>
                     <div className="mt-1 break-all font-mono text-xs font-bold text-theme-text-primary">{runtimeOwner.value}</div>
                     <div className="mt-1 text-[11px] text-theme-text-muted">{runtimeOwner.hint}</div>
@@ -4105,22 +4105,22 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                 ) : null}
                 {cleanupPartialFailed ? (
                   <div className="mt-4 rounded-2xl border border-amber-500/20 bg-amber-500/15 px-4 py-3 text-sm text-amber-300">
-                    <div className="font-black">下游清理部分失败，系统会后台重试，不影响当前分析结果</div>
+                    <div className="font-semibold">下游清理部分失败，系统会后台重试，不影响当前分析结果</div>
                     <div className="mt-1 text-xs text-amber-400">
                       待补偿下游任务数：{cleanupDeferredCount}；最近错误：{cleanupState?.last_error || '-'}；下次重试：{fmt(cleanupState?.next_retry_at)}
                     </div>
                   </div>
                 ) : null}
                 <div className="mt-4 grid gap-2">
-                  <div className="rounded-2xl bg-theme-bg-app px-3 py-2.5">
+                  <div className="rounded-2xl bg-theme-surface px-3 py-2.5">
                     <div className="text-[10px] font-bold uppercase tracking-[0.18em] text-theme-text-muted">{isSourceTask ? '源码目录' : isBinaryModuleTask ? '模块输入目录' : '输入目录'}</div>
                     <div className="mt-1 break-all font-mono text-xs text-theme-text-secondary">{detail.firmware_path}</div>
                   </div>
-                  <div className="rounded-2xl bg-theme-bg-app px-3 py-2.5">
+                  <div className="rounded-2xl bg-theme-surface px-3 py-2.5">
                     <div className="text-[10px] font-bold uppercase tracking-[0.18em] text-theme-text-muted">产物目录</div>
                     <div className="mt-1 break-all font-mono text-xs text-theme-text-secondary">{detail.output_root}</div>
                   </div>
-                  <div className="rounded-2xl bg-theme-bg-app px-3 py-2.5">
+                  <div className="rounded-2xl bg-theme-surface px-3 py-2.5">
                     <div className="text-[10px] font-bold uppercase tracking-[0.18em] text-theme-text-muted">{isBinaryModuleTask ? '模块输入' : '模块策略'}</div>
                     <div className="mt-1 text-xs text-theme-text-secondary">
                       {isBinaryModuleTask
@@ -4131,40 +4131,40 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                 </div>
               </div>
               <div className="min-w-0 grid grid-cols-2 gap-2">
-                <div className="min-w-0 rounded-2xl bg-theme-bg-app px-3 py-2.5 text-xs text-theme-text-secondary">
+                <div className="min-w-0 rounded-2xl bg-theme-surface px-3 py-2.5 text-xs text-theme-text-secondary">
                   <div className="text-theme-text-muted">创建时间</div>
                   <div className="mt-1 break-words font-bold text-theme-text-primary">{fmt(detail.created_at)}</div>
                 </div>
-                <div className="min-w-0 rounded-2xl bg-theme-bg-app px-3 py-2.5 text-xs text-theme-text-secondary">
+                <div className="min-w-0 rounded-2xl bg-theme-surface px-3 py-2.5 text-xs text-theme-text-secondary">
                   <div className="text-theme-text-muted">完成时间</div>
                   <div className="mt-1 break-words font-bold text-theme-text-primary">{fmt(detail.finished_at)}</div>
                 </div>
-                <div className="min-w-0 rounded-2xl bg-theme-bg-app px-3 py-2.5 text-xs text-theme-text-secondary">
+                <div className="min-w-0 rounded-2xl bg-theme-surface px-3 py-2.5 text-xs text-theme-text-secondary">
                   <div className="text-theme-text-muted">{isSourceTask ? '源码文件数' : isBinaryModuleTask ? 'ELF 数量' : '固件数量'}</div>
-                  <div className="mt-1 break-words text-lg font-black text-theme-text-primary">{detail.firmware_item_count}</div>
+                  <div className="mt-1 break-words text-lg font-semibold text-theme-text-primary">{detail.firmware_item_count}</div>
                 </div>
-                <div className="min-w-0 rounded-2xl bg-theme-bg-app px-3 py-2.5 text-xs text-theme-text-secondary">
+                <div className="min-w-0 rounded-2xl bg-theme-surface px-3 py-2.5 text-xs text-theme-text-secondary">
                   <div className="text-theme-text-muted">{isSourceTask ? '入口数量' : isBinaryModuleTask ? '当前模式' : '已解包/失败'}</div>
-                  <div className="mt-1 break-words text-lg font-black text-theme-text-primary">{isSourceTask ? detail.entry_count : isBinaryModuleTask ? '模块级' :`${detail.unpacked_firmware_count} / ${detail.failed_firmware_count}`}</div>
+                  <div className="mt-1 break-words text-lg font-semibold text-theme-text-primary">{isSourceTask ? detail.entry_count : isBinaryModuleTask ? '模块级' :`${detail.unpacked_firmware_count} / ${detail.failed_firmware_count}`}</div>
                 </div>
-                <div className="min-w-0 rounded-2xl bg-theme-bg-app px-3 py-2.5 text-xs text-theme-text-secondary">
+                <div className="min-w-0 rounded-2xl bg-theme-surface px-3 py-2.5 text-xs text-theme-text-secondary">
                   <div className="text-theme-text-muted">{isBinaryModuleTask ? '模块数量' : '已选模块'}</div>
-                  <div className="mt-1 break-words text-lg font-black text-theme-text-primary">{isBinaryModuleTask ? Math.max(1, detail.selected_module_count || 1) : detail.selected_module_count}</div>
+                  <div className="mt-1 break-words text-lg font-semibold text-theme-text-primary">{isBinaryModuleTask ? Math.max(1, detail.selected_module_count || 1) : detail.selected_module_count}</div>
                 </div>
-                <div className="min-w-0 rounded-2xl bg-theme-bg-app px-3 py-2.5 text-xs text-theme-text-secondary">
+                <div className="min-w-0 rounded-2xl bg-theme-surface px-3 py-2.5 text-xs text-theme-text-secondary">
                   <div className="text-theme-text-muted">{isBinaryModuleTask ? '候选模块' : '全部模块'}</div>
-                  <div className="mt-1 break-words text-lg font-black text-theme-text-primary">{isBinaryModuleTask ? Math.max(1, detail.candidate_module_count || 1) : detail.high_risk_module_count}</div>
+                  <div className="mt-1 break-words text-lg font-semibold text-theme-text-primary">{isBinaryModuleTask ? Math.max(1, detail.candidate_module_count || 1) : detail.high_risk_module_count}</div>
                 </div>
-                <div className="min-w-0 rounded-2xl bg-theme-bg-app px-3 py-2.5 text-xs text-theme-text-secondary">
+                <div className="min-w-0 rounded-2xl bg-theme-surface px-3 py-2.5 text-xs text-theme-text-secondary">
                   <div className="text-theme-text-muted">漏洞结果</div>
-                  <div className="mt-1 break-words text-lg font-black text-theme-text-primary">{detail.vuln_result_count}</div>
+                  <div className="mt-1 break-words text-lg font-semibold text-theme-text-primary">{detail.vuln_result_count}</div>
                 </div>
               </div>
             </div>
-            <div className="mt-4 rounded-[1.5rem] border border-theme-border bg-slate-50/80 p-4">
+            <div className="mt-4 rounded-xl border border-theme-border bg-slate-50/80 p-4">
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
-                  <div className="text-[11px] font-black uppercase tracking-[0.18em] text-theme-text-muted">下游同步总览</div>
+                  <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-theme-text-muted">下游同步总览</div>
                   <div className="mt-1 text-sm text-theme-text-secondary">区分最近一次尝试、最近一次成功和最近一次失败，避免把“很久没同步”和“最近同步失败”混在一起。</div>
                 </div>
                 <div className="flex flex-wrap gap-2 text-[11px] font-bold">
@@ -4180,15 +4180,15 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                 </div>
               </div>
               <div className="mt-4 grid gap-2 md:grid-cols-3">
-                <div className="rounded-2xl border border-theme-border bg-theme-bg-app px-3 py-3 text-xs text-theme-text-secondary">
+                <div className="rounded-2xl border border-theme-border bg-theme-surface px-3 py-3 text-xs text-theme-text-secondary">
                   <div className="text-theme-text-muted">最近尝试</div>
                   <div className="mt-1 break-words font-mono font-bold text-theme-text-primary">{fmt(detail.last_sync_attempt_at)}</div>
                 </div>
-                <div className="rounded-2xl border border-theme-border bg-theme-bg-app px-3 py-3 text-xs text-theme-text-secondary">
+                <div className="rounded-2xl border border-theme-border bg-theme-surface px-3 py-3 text-xs text-theme-text-secondary">
                   <div className="text-theme-text-muted">最近成功</div>
                   <div className="mt-1 break-words font-mono font-bold text-theme-text-primary">{fmt(detail.last_successful_downstream_sync_at)}</div>
                 </div>
-                <div className="rounded-2xl border border-theme-border bg-theme-bg-app px-3 py-3 text-xs text-theme-text-secondary">
+                <div className="rounded-2xl border border-theme-border bg-theme-surface px-3 py-3 text-xs text-theme-text-secondary">
                   <div className="text-theme-text-muted">最近失败</div>
                   <div className="mt-1 break-words font-mono font-bold text-theme-text-primary">{fmt(detail.last_sync_error_at)}</div>
                   <div className="mt-1 break-all text-[11px] text-theme-text-muted">
@@ -4201,7 +4201,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
             </div>
           </section>
 
- <section className="rounded-[1.5rem] border border-theme-border bg-theme-bg-app p-2">
+ <section className="rounded-xl border border-theme-border bg-theme-surface p-2">
             <div
               className="grid grid-flow-col auto-cols-[minmax(220px,1fr)] gap-2 overflow-x-auto"
               style={{ gridTemplateColumns:`repeat(${tabs.length}, minmax(220px, 1fr))` }}
@@ -4217,7 +4217,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                       : 'bg-theme-bg-app text-theme-text-secondary hover:bg-theme-elevated'
                   }`}
                 >
-                  <div className="text-sm font-black">{tab.label}</div>
+                  <div className="text-sm font-semibold">{tab.label}</div>
                   <div className={`mt-1 text-[11px] ${activeTab === tab.key ? 'text-theme-text-faint' : 'text-theme-text-muted'}`}>{tab.hint}</div>
                 </button>
               ))}
@@ -4226,10 +4226,10 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
 
           {activeTab === 'strategy' && strategyDraft ? (
             <section className="space-y-6">
- <section className="rounded-[2rem] border border-theme-border bg-theme-bg-app p-6">
+ <section className="rounded-xl border border-theme-border bg-theme-surface p-6">
                 <div>
                   <div>
-                    <h2 className="text-xl font-black text-theme-text-primary">任务策略</h2>
+                    <h2 className="text-xl font-semibold text-theme-text-primary">任务策略</h2>
                     <p className="mt-2 text-sm text-theme-text-muted">
                       任务策略只会影响尚未开始的阶段、继续任务、阶段重试和清空重跑后的重新调度，不会改写已完成阶段或正在运行中的阶段项。
                     </p>
@@ -4251,14 +4251,14 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                 ) : null}
               </section>
 
- <section className="rounded-[2rem] border border-theme-border bg-theme-bg-app p-6">
+ <section className="rounded-xl border border-theme-border bg-theme-surface p-6">
                 <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
                   <div className="flex items-center gap-3">
                     <div className="rounded-2xl bg-theme-elevated p-3 text-theme-text-secondary">
                       <SlidersHorizontal size={18} />
                     </div>
                     <div>
-                      <h3 className="text-lg font-black text-theme-text-primary">阶段启停</h3>
+                      <h3 className="text-lg font-semibold text-theme-text-primary">阶段启停</h3>
                       <p className="mt-1 text-sm text-theme-text-muted">控制当前任务后续阶段是否继续参与流程；已完成阶段仅做展示，修改只对后续执行生效。</p>
                     </div>
                   </div>
@@ -4267,7 +4267,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                       type="button"
                       onClick={() => resetStrategySection('stage_options')}
                       disabled={!stageOptionsDirty || Boolean(strategySavingSection)}
-                      className="rounded-xl border border-theme-border bg-theme-bg-app px-4 py-2.5 text-sm font-bold text-theme-text-secondary transition hover:bg-theme-elevated disabled:opacity-60"
+                      className="rounded-xl border border-theme-border bg-theme-surface px-4 py-2.5 text-sm font-bold text-theme-text-secondary transition hover:bg-theme-elevated disabled:opacity-60"
                     >
                       重置阶段启停
                     </button>
@@ -4294,10 +4294,10 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                         ? '已完成，不受本次修改影响'
                         : '尚未开始，修改会在后续执行时生效';
                     return (
-                      <label key={stageName} className="rounded-[1.5rem] border border-theme-border bg-theme-bg-app px-4 py-4">
+                      <label key={stageName} className="rounded-xl border border-theme-border bg-theme-surface px-4 py-4">
                         <div className="flex items-start justify-between gap-3">
                           <div>
-                            <div className="text-sm font-black text-theme-text-primary">{STAGE_LABELS[stageName] || stageName}</div>
+                            <div className="text-sm font-semibold text-theme-text-primary">{STAGE_LABELS[stageName] || stageName}</div>
                             <div className="mt-1 text-xs text-theme-text-muted">当前状态：{formatBinarySecurityStatus(summaryStatus || 'pending')}</div>
                           </div>
                           <input
@@ -4307,7 +4307,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                             onChange={(event) => updateStrategyStageEnabled(stageName, event.target.checked)}
                           />
                         </div>
-                        <div className="mt-4 grid gap-1 rounded-xl border border-theme-border bg-theme-bg-app px-3 py-2 text-xs text-theme-text-secondary">
+                        <div className="mt-4 grid gap-1 rounded-xl border border-theme-border bg-theme-surface px-3 py-2 text-xs text-theme-text-secondary">
                           <div className="flex items-center justify-between gap-3">
                             <span className="text-theme-text-muted">开始时间</span>
                             <span className="font-mono text-right text-theme-text-secondary">{fmt(summary?.started_at)}</span>
@@ -4318,10 +4318,10 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                           </div>
                           <div className="flex items-center justify-between gap-3">
                             <span className="text-theme-text-muted">耗时</span>
-                            <span className="text-right font-black text-theme-text-primary">{durationLabel(summary?.started_at, summary?.finished_at)}</span>
+                            <span className="text-right font-semibold text-theme-text-primary">{durationLabel(summary?.started_at, summary?.finished_at)}</span>
                           </div>
                         </div>
-                        <div className="mt-4 rounded-xl border border-theme-border bg-theme-bg-app px-3 py-2 text-xs text-theme-text-secondary">
+                        <div className="mt-4 rounded-xl border border-theme-border bg-theme-surface px-3 py-2 text-xs text-theme-text-secondary">
                           {stageMessage}
                         </div>
                       </label>
@@ -4331,10 +4331,10 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
               </section>
 
               {!isBinaryModuleTask ? (
- <section className="rounded-[2rem] border border-theme-border bg-theme-bg-app p-6">
+ <section className="rounded-xl border border-theme-border bg-theme-surface p-6">
                   <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
                     <div>
-                      <h3 className="text-lg font-black text-theme-text-primary">模块推进策略</h3>
+                      <h3 className="text-lg font-semibold text-theme-text-primary">模块推进策略</h3>
                       <p className="mt-1 text-sm text-theme-text-muted">与创建任务页保持一致，只影响后续模块筛选、人工确认与自动推进行为。</p>
                     </div>
                     <div className="flex flex-wrap gap-3">
@@ -4342,7 +4342,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                         type="button"
                         onClick={() => resetStrategySection('module_strategy')}
                         disabled={!moduleStrategyDirty || Boolean(strategySavingSection)}
-                        className="rounded-xl border border-theme-border bg-theme-bg-app px-4 py-2.5 text-sm font-bold text-theme-text-secondary transition hover:bg-theme-elevated disabled:opacity-60"
+                        className="rounded-xl border border-theme-border bg-theme-surface px-4 py-2.5 text-sm font-bold text-theme-text-secondary transition hover:bg-theme-elevated disabled:opacity-60"
                       >
                         重置模块策略
                       </button>
@@ -4362,7 +4362,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                       <div className="text-sm font-bold text-theme-text-primary">推进方式</div>
                       <div className="mt-3 grid gap-2">
                         {MODULE_SELECTION_OPTIONS.map((option) => (
-                          <label key={option.value} className="flex items-center gap-3 rounded-xl border border-theme-border bg-theme-bg-app px-4 py-3 text-sm font-semibold text-theme-text-secondary">
+                          <label key={option.value} className="flex items-center gap-3 rounded-xl border border-theme-border bg-theme-surface px-4 py-3 text-sm font-semibold text-theme-text-secondary">
                             <input
                               type="radio"
                               name="taskStrategyModuleSelection"
@@ -4387,7 +4387,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                       <div className="text-sm font-bold text-theme-text-primary">风险等级</div>
                       <div className="mt-3 grid grid-cols-3 gap-2">
                         {MODULE_RISK_OPTIONS.map((risk) => (
-                          <label key={risk} className="flex items-center justify-center gap-2 rounded-xl border border-theme-border bg-theme-bg-app px-4 py-3 text-sm font-semibold text-theme-text-secondary">
+                          <label key={risk} className="flex items-center justify-center gap-2 rounded-xl border border-theme-border bg-theme-surface px-4 py-3 text-sm font-semibold text-theme-text-secondary">
                             <input
                               type="checkbox"
                               checked={strategyDraft.module_risk_levels.includes(risk)}
@@ -4420,10 +4420,10 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
               ) : null}
 
               {!isSourceTask ? (
- <section className="rounded-[2rem] border border-theme-border bg-theme-bg-app p-6">
+ <section className="rounded-xl border border-theme-border bg-theme-surface p-6">
                   <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
                     <div>
-                      <h3 className="text-lg font-black text-theme-text-primary">入口推进策略</h3>
+                      <h3 className="text-lg font-semibold text-theme-text-primary">入口推进策略</h3>
                       <p className="mt-1 text-sm text-theme-text-muted">控制入口分析产出的入口函数是自动进入下游，还是先由人工确认后再继续。</p>
                     </div>
                     <div className="flex flex-wrap gap-3">
@@ -4431,7 +4431,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                         type="button"
                         onClick={() => resetStrategySection('entry_strategy')}
                         disabled={!entryStrategySectionDirty || Boolean(strategySavingSection)}
-                        className="rounded-xl border border-theme-border bg-theme-bg-app px-4 py-2.5 text-sm font-bold text-theme-text-secondary transition hover:bg-theme-elevated disabled:opacity-60"
+                        className="rounded-xl border border-theme-border bg-theme-surface px-4 py-2.5 text-sm font-bold text-theme-text-secondary transition hover:bg-theme-elevated disabled:opacity-60"
                       >
                         重置入口策略
                       </button>
@@ -4451,7 +4451,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                       { value: 'auto', label: '自动选择入口函数', description: '入口分析结果直接进入数据流分析与后续漏洞扫描。' },
                       { value: 'manual_confirm', label: '人工确认入口函数', description: '入口分析后暂停，需手动选择候选入口再继续。' },
                     ].map((option) => (
-                      <label key={option.value} className="flex items-center gap-3 rounded-xl border border-theme-border bg-theme-bg-app px-4 py-3 text-sm font-semibold text-theme-text-secondary">
+                      <label key={option.value} className="flex items-center gap-3 rounded-xl border border-theme-border bg-theme-surface px-4 py-3 text-sm font-semibold text-theme-text-secondary">
                         <input
                           type="radio"
                           name="taskStrategyEntrySelection"
@@ -4469,10 +4469,10 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                 </section>
               ) : null}
 
- <section className="rounded-[2rem] border border-theme-border bg-theme-bg-app p-6">
+ <section className="rounded-xl border border-theme-border bg-theme-surface p-6">
                 <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
                   <div>
-                    <h3 className="text-lg font-black text-theme-text-primary">任务并发与失败处理</h3>
+                    <h3 className="text-lg font-semibold text-theme-text-primary">任务并发与失败处理</h3>
                     <p className="mt-1 text-sm text-theme-text-muted">这里配置的是任务级阶段并发，不是服务全局并发；仅影响尚未开始的阶段、继续、阶段重试与清空重跑。</p>
                   </div>
                   <div className="flex flex-wrap gap-3">
@@ -4480,7 +4480,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                       type="button"
                       onClick={() => resetStrategySection('execution_policy')}
                       disabled={!executionPolicyDirty || Boolean(strategySavingSection)}
-                      className="rounded-xl border border-theme-border bg-theme-bg-app px-4 py-2.5 text-sm font-bold text-theme-text-secondary transition hover:bg-theme-elevated disabled:opacity-60"
+                      className="rounded-xl border border-theme-border bg-theme-surface px-4 py-2.5 text-sm font-bold text-theme-text-secondary transition hover:bg-theme-elevated disabled:opacity-60"
                     >
                       重置并发策略
                     </button>
@@ -4495,13 +4495,13 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                     </button>
                   </div>
                 </div>
-                <div className="mt-4 rounded-2xl border border-theme-border bg-theme-bg-app px-4 py-3 text-xs text-theme-text-secondary">
+                <div className="mt-4 rounded-2xl border border-theme-border bg-theme-surface px-4 py-3 text-xs text-theme-text-secondary">
                   阶段并发按当前任务流程分别生效；源码任务只展示源码流程阶段，二进制任务展示完整流程阶段，模块任务展示模块级四阶段流程。
                 </div>
                 <div className="mt-5 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
                   {stageSequence.map((stageName) => (
-                    <label key={stageName} className="rounded-2xl border border-theme-border bg-theme-bg-app px-4 py-4">
-                      <span className="block text-sm font-black text-theme-text-primary">{STAGE_LABELS[stageName] || stageName}</span>
+                    <label key={stageName} className="rounded-2xl border border-theme-border bg-theme-surface px-4 py-4">
+                      <span className="block text-sm font-semibold text-theme-text-primary">{STAGE_LABELS[stageName] || stageName}</span>
                       <span className="mt-1 block text-xs text-theme-text-muted">任务级阶段并发，范围 1-32</span>
                       <input
                         type="number"
@@ -4510,12 +4510,12 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                         value={strategyDraft.stage_parallelism[stageName] ?? 1}
                         disabled={!strategyEditable || Boolean(strategySavingSection)}
                         onChange={(event) => updateStrategyStageParallelism(stageName, Number(event.target.value || 1))}
-                        className="mt-3 w-full rounded-xl border border-theme-border bg-theme-bg-app px-3 py-2.5 text-sm font-bold text-theme-text-primary outline-none focus:border-slate-400"
+                        className="mt-3 w-full rounded-xl border border-theme-border bg-theme-surface px-3 py-2.5 text-sm font-bold text-theme-text-primary outline-none focus:border-slate-400"
                       />
                     </label>
                   ))}
-                  <label className="rounded-2xl border border-theme-border bg-theme-bg-app px-4 py-4">
-                    <span className="block text-sm font-black text-theme-text-primary">子任务重试次数</span>
+                  <label className="rounded-2xl border border-theme-border bg-theme-surface px-4 py-4">
+                    <span className="block text-sm font-semibold text-theme-text-primary">子任务重试次数</span>
                     <span className="mt-1 block text-xs text-theme-text-muted">范围 0-20</span>
                     <input
                       type="number"
@@ -4527,11 +4527,11 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                         const value = Math.max(0, Math.min(20, Number(event.target.value) || 0));
                         setStrategyDraft((current) => (current ? { ...current, max_retries_per_item: value } : current));
                       }}
-                      className="mt-3 w-full rounded-xl border border-theme-border bg-theme-bg-app px-3 py-2.5 text-sm font-bold text-theme-text-primary outline-none focus:border-slate-400"
+                      className="mt-3 w-full rounded-xl border border-theme-border bg-theme-surface px-3 py-2.5 text-sm font-bold text-theme-text-primary outline-none focus:border-slate-400"
                     />
                   </label>
                 </div>
-                <label className="mt-4 flex items-center gap-3 rounded-2xl border border-theme-border bg-theme-bg-app px-4 py-4 text-sm font-semibold text-theme-text-secondary">
+                <label className="mt-4 flex items-center gap-3 rounded-2xl border border-theme-border bg-theme-surface px-4 py-4 text-sm font-semibold text-theme-text-secondary">
                   <input
                     type="checkbox"
                     checked={strategyDraft.continue_on_item_failure}
@@ -4542,7 +4542,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                 </label>
                 <div className="mt-4 grid gap-3 xl:grid-cols-2">
                   {PARTIAL_SUCCESS_ADVANCEMENT_FIELDS.filter((field) => stageSequence.includes(field.key)).map((field) => (
-                    <label key={field.key} className="flex items-center gap-3 rounded-2xl border border-theme-border bg-theme-bg-app px-4 py-4 text-sm font-semibold text-theme-text-secondary">
+                    <label key={field.key} className="flex items-center gap-3 rounded-2xl border border-theme-border bg-theme-surface px-4 py-4 text-sm font-semibold text-theme-text-secondary">
                       <input
                         type="checkbox"
                         checked={strategyDraft.partial_success_stage_advancement[field.key] !== false}
@@ -4568,31 +4568,31 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
           ) : null}
 
           {activeTab === 'overview' ? (
- <section className="rounded-[2rem] border border-theme-border bg-theme-bg-app p-6">
+ <section className="rounded-xl border border-theme-border bg-theme-surface p-6">
               <div>
                 <div>
-                  <h2 className="text-xl font-black text-theme-text-primary">任务总览</h2>
+                  <h2 className="text-xl font-semibold text-theme-text-primary">任务总览</h2>
                   <p className="mt-2 text-sm text-theme-text-muted">总览包含任务主详情、阶段流转和下游子任务；事件记录和编排观测会在打开对应 Tab 后再请求后端。</p>
                   <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-                    <div className="rounded-2xl border border-theme-border bg-theme-bg-app px-4 py-3 text-sm">
+                    <div className="rounded-2xl border border-theme-border bg-theme-surface px-4 py-3 text-sm">
                       <div className="text-xs font-bold text-theme-text-muted">任务类型</div>
-                      <div className="mt-1 font-black text-theme-text-primary">{taskTypeLabel(taskType)}</div>
+                      <div className="mt-1 font-semibold text-theme-text-primary">{taskTypeLabel(taskType)}</div>
                     </div>
-                    <div className="rounded-2xl border border-theme-border bg-theme-bg-app px-4 py-3 text-sm">
+                    <div className="rounded-2xl border border-theme-border bg-theme-surface px-4 py-3 text-sm">
                       <div className="text-xs font-bold text-theme-text-muted">执行代次</div>
-                      <div className="mt-1 font-black text-theme-text-primary">第 {detail.execution_epoch} 轮</div>
+                      <div className="mt-1 font-semibold text-theme-text-primary">第 {detail.execution_epoch} 轮</div>
                     </div>
-                    <div className="rounded-2xl border border-theme-border bg-theme-bg-app px-4 py-3 text-sm">
+                    <div className="rounded-2xl border border-theme-border bg-theme-surface px-4 py-3 text-sm">
                       <div className="text-xs font-bold text-theme-text-muted">阶段数</div>
-                      <div className="mt-1 font-black text-theme-text-primary">{stageSequence.length}</div>
+                      <div className="mt-1 font-semibold text-theme-text-primary">{stageSequence.length}</div>
                     </div>
-                    <div className="rounded-2xl border border-theme-border bg-theme-bg-app px-4 py-3 text-sm">
+                    <div className="rounded-2xl border border-theme-border bg-theme-surface px-4 py-3 text-sm">
                       <div className="text-xs font-bold text-theme-text-muted">当前状态</div>
-                      <div className="mt-1 font-black text-theme-text-primary">{formatBinarySecurityStatus(displayTaskStatus)}</div>
+                      <div className="mt-1 font-semibold text-theme-text-primary">{formatBinarySecurityStatus(displayTaskStatus)}</div>
                     </div>
-                    <div className="rounded-2xl border border-theme-border bg-theme-bg-app px-4 py-3 text-sm">
+                    <div className="rounded-2xl border border-theme-border bg-theme-surface px-4 py-3 text-sm">
                       <div className="text-xs font-bold text-theme-text-muted">队列位置</div>
-                      <div className="mt-1 font-black text-theme-text-primary">{detail.is_queued ?`第 ${detail.queue_position || '-'} 位` : '未排队'}</div>
+                      <div className="mt-1 font-semibold text-theme-text-primary">{detail.is_queued ?`第 ${detail.queue_position || '-'} 位` : '未排队'}</div>
                     </div>
                   </div>
                 </div>
@@ -4601,10 +4601,10 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
           ) : null}
 
           {activeTab === 'runtime_health' ? (
- <section className="rounded-[2rem] border border-theme-border bg-theme-bg-app p-6">
+ <section className="rounded-xl border border-theme-border bg-theme-surface p-6">
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div>
-                  <h2 className="text-xl font-black text-theme-text-primary">线程与协程健康</h2>
+                  <h2 className="text-xl font-semibold text-theme-text-primary">线程与协程健康</h2>
                   <p className="mt-2 text-sm text-theme-text-muted">仅展示当前 binary-security 父任务自身相关的 task-scoped 运行单元。</p>
                 </div>
                 <span style={{ display: 'inline-flex', borderRadius: '9999px', border: '1px solid', padding: '4px 12px', fontSize: '12px', fontWeight: 600, ...runtimeHealthTone(runtimeHealthSummary?.overall_status), borderColor: runtimeHealthTone(runtimeHealthSummary?.overall_status).borderColor }}>
@@ -4612,32 +4612,32 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                 </span>
               </div>
               <div className="mt-5 grid grid-cols-2 gap-3 text-sm xl:grid-cols-4">
-                <div className="rounded-2xl border border-theme-border bg-theme-bg-app px-4 py-3">
+                <div className="rounded-2xl border border-theme-border bg-theme-surface px-4 py-3">
                   <div className="text-xs font-bold text-theme-text-muted">活跃单元</div>
-                  <div className="mt-1 text-lg font-black text-theme-text-primary">{runtimeHealthSummary?.active_unit_count ?? 0}</div>
+                  <div className="mt-1 text-lg font-semibold text-theme-text-primary">{runtimeHealthSummary?.active_unit_count ?? 0}</div>
                 </div>
-                <div className="rounded-2xl border border-theme-border bg-theme-bg-app px-4 py-3">
+                <div className="rounded-2xl border border-theme-border bg-theme-surface px-4 py-3">
                   <div className="text-xs font-bold text-theme-text-muted">健康 / 风险</div>
-                  <div className="mt-1 text-lg font-black text-theme-text-primary">
+                  <div className="mt-1 text-lg font-semibold text-theme-text-primary">
                     {runtimeHealthSummary?.healthy_unit_count ?? 0} / {runtimeHealthSummary?.degraded_unit_count ?? 0}
                   </div>
                 </div>
-                <div className="rounded-2xl border border-theme-border bg-theme-bg-app px-4 py-3">
+                <div className="rounded-2xl border border-theme-border bg-theme-surface px-4 py-3">
                   <div className="text-xs font-bold text-theme-text-muted">异常单元</div>
-                  <div className="mt-1 text-lg font-black text-theme-text-primary">{runtimeHealthSummary?.unhealthy_unit_count ?? 0}</div>
+                  <div className="mt-1 text-lg font-semibold text-theme-text-primary">{runtimeHealthSummary?.unhealthy_unit_count ?? 0}</div>
                 </div>
-                <div className="rounded-2xl border border-theme-border bg-theme-bg-app px-4 py-3">
+                <div className="rounded-2xl border border-theme-border bg-theme-surface px-4 py-3">
                   <div className="text-xs font-bold text-theme-text-muted">最近刷新</div>
-                  <div className="mt-1 text-sm font-black text-theme-text-primary">{fmt(runtimeHealthSummary?.last_updated_at)}</div>
+                  <div className="mt-1 text-sm font-semibold text-theme-text-primary">{fmt(runtimeHealthSummary?.last_updated_at)}</div>
                 </div>
               </div>
-              <div className="mt-4 rounded-2xl border border-theme-border bg-theme-bg-app px-4 py-3 text-sm text-theme-text-secondary">
+              <div className="mt-4 rounded-2xl border border-theme-border bg-theme-surface px-4 py-3 text-sm text-theme-text-secondary">
                 {runtimeHealthSummary?.message || '当前暂无可展示的任务线程/协程健康快照。'}
               </div>
-              <div className="mt-4 overflow-hidden rounded-2xl border border-theme-border bg-theme-bg-app">
+              <div className="mt-4 overflow-hidden rounded-2xl border border-theme-border bg-theme-surface">
                 <div className="overflow-x-auto">
                   <table className="min-w-full divide-y divide-theme-border text-left text-xs">
-                    <thead className="bg-theme-bg-app text-[11px] font-black uppercase tracking-[0.12em] text-theme-text-muted">
+                    <thead className="bg-theme-bg-app text-[11px] font-semibold uppercase tracking-[0.12em] text-theme-text-muted">
                       <tr>
                         <th className="min-w-[150px] px-4 py-3">名称</th>
                         <th className="w-24 px-4 py-3">类型</th>
@@ -4703,44 +4703,44 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
           ) : null}
 
           {activeTab === 'overview' && cleanupSnapshot && (cleanupDownstreamRefs.length > 0 || Object.keys(cleanupCounts).length > 0) ? (
- <section className="rounded-[2rem] border border-orange-500/20 bg-orange-50/60 p-6">
+ <section className="rounded-xl border border-orange-500/20 bg-orange-50/60 p-6">
               <div className="flex flex-col gap-2 xl:flex-row xl:items-center xl:justify-between">
                 <div>
-                  <h3 className="text-lg font-black text-theme-text-primary">严格清理快照</h3>
+                  <h3 className="text-lg font-semibold text-theme-text-primary">严格清理快照</h3>
                   <p className="mt-1 text-sm text-theme-text-secondary">本次“清空并从头开始”会先删除旧执行世界，再进入新的执行代次。</p>
                 </div>
                 <div className="text-xs font-semibold text-theme-text-muted">{cleanupSnapshot.requested_at ?`记录时间：${fmt(cleanupSnapshot.requested_at)}` : '记录时间：-'}</div>
               </div>
               <div className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-                <div className="rounded-2xl border border-orange-500/20 bg-theme-bg-app px-4 py-3 text-sm">
+                <div className="rounded-2xl border border-orange-500/20 bg-theme-surface px-4 py-3 text-sm">
                   <div className="text-xs font-bold text-theme-text-muted">上一执行代次</div>
-                  <div className="mt-1 font-black text-theme-text-primary">第 {cleanupSnapshot.previous_epoch ?? '-'} 轮</div>
+                  <div className="mt-1 font-semibold text-theme-text-primary">第 {cleanupSnapshot.previous_epoch ?? '-'} 轮</div>
                 </div>
-                <div className="rounded-2xl border border-orange-500/20 bg-theme-bg-app px-4 py-3 text-sm">
+                <div className="rounded-2xl border border-orange-500/20 bg-theme-surface px-4 py-3 text-sm">
                   <div className="text-xs font-bold text-theme-text-muted">下游清理目标</div>
-                  <div className="mt-1 font-black text-theme-text-primary">{cleanupDownstreamRefs.length}</div>
+                  <div className="mt-1 font-semibold text-theme-text-primary">{cleanupDownstreamRefs.length}</div>
                 </div>
-                <div className="rounded-2xl border border-orange-500/20 bg-theme-bg-app px-4 py-3 text-sm">
+                <div className="rounded-2xl border border-orange-500/20 bg-theme-surface px-4 py-3 text-sm">
                   <div className="text-xs font-bold text-theme-text-muted">阶段子任务删除</div>
-                  <div className="mt-1 font-black text-theme-text-primary">{cleanupCounts.stage_items_deleted ?? '-'}</div>
+                  <div className="mt-1 font-semibold text-theme-text-primary">{cleanupCounts.stage_items_deleted ?? '-'}</div>
                 </div>
-                <div className="rounded-2xl border border-orange-500/20 bg-theme-bg-app px-4 py-3 text-sm">
+                <div className="rounded-2xl border border-orange-500/20 bg-theme-surface px-4 py-3 text-sm">
                   <div className="text-xs font-bold text-theme-text-muted">归档记录删除</div>
-                  <div className="mt-1 font-black text-theme-text-primary">{cleanupCounts.archive_jobs_deleted ?? '-'}</div>
+                  <div className="mt-1 font-semibold text-theme-text-primary">{cleanupCounts.archive_jobs_deleted ?? '-'}</div>
                 </div>
               </div>
               <div className="mt-4 grid gap-4 md:grid-cols-3">
-                <div className="rounded-2xl border border-orange-500/20 bg-theme-bg-app px-4 py-3 text-sm">
+                <div className="rounded-2xl border border-orange-500/20 bg-theme-surface px-4 py-3 text-sm">
                   <div className="text-xs font-bold text-theme-text-muted">阶段运行记录删除</div>
-                  <div className="mt-1 font-black text-theme-text-primary">{cleanupCounts.stage_runs_deleted ?? '-'}</div>
+                  <div className="mt-1 font-semibold text-theme-text-primary">{cleanupCounts.stage_runs_deleted ?? '-'}</div>
                 </div>
-                <div className="rounded-2xl border border-orange-500/20 bg-theme-bg-app px-4 py-3 text-sm">
+                <div className="rounded-2xl border border-orange-500/20 bg-theme-surface px-4 py-3 text-sm">
                   <div className="text-xs font-bold text-theme-text-muted">时间线事件删除</div>
-                  <div className="mt-1 font-black text-theme-text-primary">{cleanupCounts.timeline_events_deleted ?? '-'}</div>
+                  <div className="mt-1 font-semibold text-theme-text-primary">{cleanupCounts.timeline_events_deleted ?? '-'}</div>
                 </div>
-                <div className="rounded-2xl border border-orange-500/20 bg-theme-bg-app px-4 py-3 text-sm">
+                <div className="rounded-2xl border border-orange-500/20 bg-theme-surface px-4 py-3 text-sm">
                   <div className="text-xs font-bold text-theme-text-muted">状态事件删除</div>
-                  <div className="mt-1 font-black text-theme-text-primary">{cleanupCounts.state_events_deleted ?? '-'}</div>
+                  <div className="mt-1 font-semibold text-theme-text-primary">{cleanupCounts.state_events_deleted ?? '-'}</div>
                 </div>
               </div>
             </section>
@@ -4748,10 +4748,10 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
 
           {activeTab === 'overview' ? (
             <>
- <section className="rounded-[2rem] border border-theme-border bg-theme-bg-app p-6">
+ <section className="rounded-xl border border-theme-border bg-theme-surface p-6">
             <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
               <div>
-                <h2 className="text-xl font-black text-theme-text-primary">阶段概览</h2>
+                <h2 className="text-xl font-semibold text-theme-text-primary">阶段概览</h2>
                 <p className="mt-1 text-sm text-theme-text-muted">点击阶段筛选下方子任务；阶段重试会重跑当前阶段全部子任务，并尽量复用当前阶段旧下游任务，后续阶段会等待当前阶段完成后重新推进。</p>
               </div>
             </div>
@@ -4763,12 +4763,12 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
 
             <div ref={stageFlowRef} className="mt-6 overflow-x-auto">
               {overviewLoading && stageDisplayNodes.length === 0 ? (
-                <div className="flex min-h-[160px] items-center justify-center rounded-2xl border border-dashed border-theme-border bg-theme-bg-app text-sm font-semibold text-theme-text-muted">
+                <div className="flex min-h-[160px] items-center justify-center rounded-2xl border border-dashed border-theme-border bg-theme-surface text-sm font-semibold text-theme-text-muted">
                   正在加载阶段总览与归档节点…
                 </div>
               ) : null}
               {!overviewLoading && overviewLoaded && stageDisplayNodes.length === 0 ? (
-                <div className="flex min-h-[160px] items-center justify-center rounded-2xl border border-dashed border-theme-border bg-theme-bg-app text-sm font-semibold text-theme-text-muted">
+                <div className="flex min-h-[160px] items-center justify-center rounded-2xl border border-dashed border-theme-border bg-theme-surface text-sm font-semibold text-theme-text-muted">
                   当前暂无可展示的阶段总览节点
                 </div>
               ) : null}
@@ -4809,7 +4809,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                       >
                         {stage.abnormal_reason ? (
                           <div className="mb-2">
- <span className="inline-flex max-w-full rounded-full border border-current/15 bg-theme-bg-app px-2 py-0.5 text-[10px] font-black uppercase tracking-[0.12em]">
+ <span className="inline-flex max-w-full rounded-full border border-current/15 bg-theme-bg-app px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em]">
                               <span className="truncate">{stage.abnormal_reason.code}</span>
                             </span>
                           </div>
@@ -4817,11 +4817,11 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                         {stage.kind === 'archive' ? (
                           <>
                             <div className="flex items-center justify-between gap-2">
-                              <div className="text-[10px] font-black uppercase tracking-[0.18em] opacity-60">Archive</div>
+                              <div className="text-[10px] font-semibold uppercase tracking-[0.18em] opacity-60">Archive</div>
                               <div className="h-2.5 w-2.5 rounded-full border border-current bg-current/15" />
                             </div>
                             <div className="space-y-1">
-                              <div className="text-sm font-black leading-none">产物归档</div>
+                              <div className="text-sm font-semibold leading-none">产物归档</div>
                               <div className="text-[11px] font-semibold leading-tight opacity-75">{STAGE_LABELS[stage.stage_name] || stage.stage_name}</div>
                             </div>
                             <div className="mt-3 space-y-1 rounded-2xl border border-current/15 bg-slate-100/105 px-3 py-2 text-[10px] font-semibold leading-4">
@@ -4835,10 +4835,10 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                               </div>
                               <div className="flex items-center justify-between gap-2">
                                 <span className="shrink-0 whitespace-nowrap opacity-60">耗时</span>
-                                <span className="shrink-0 whitespace-nowrap text-right font-black">{durationLabel(stage.started_at, stage.finished_at)}</span>
+                                <span className="shrink-0 whitespace-nowrap text-right font-semibold">{durationLabel(stage.started_at, stage.finished_at)}</span>
                               </div>
                             </div>
- <div className="rounded-full border border-current/20 bg-theme-bg-app px-2 py-1 text-center text-[10px] font-black leading-none">
+ <div className="rounded-full border border-current/20 bg-theme-bg-app px-2 py-1 text-center text-[10px] font-medium leading-none">
                               {formatBinarySecurityStatus(stage.status_label || archiveStatusLabel(stage.status))}
                             </div>
                           </>
@@ -4846,10 +4846,10 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                           <>
                             <div className="flex items-start justify-between gap-3">
                               <div>
-                                <div className="text-[11px] font-black uppercase tracking-[0.24em] opacity-60">
+                                <div className="text-[11px] font-semibold uppercase tracking-[0.24em] opacity-60">
                                   {`Stage ${stage.sequence_no}`}
                                 </div>
-                                <div className="mt-2 text-base font-black">{stage.label}</div>
+                                <div className="mt-2 text-base font-semibold">{stage.label}</div>
                               </div>
                               <div className="h-3 w-3 rounded-full border border-current bg-current/15" />
                             </div>
@@ -4870,15 +4870,15 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                               </div>
                               <div className="flex items-center justify-between gap-2">
                                 <span className="shrink-0 whitespace-nowrap opacity-60">耗时</span>
-                                <span className="shrink-0 whitespace-nowrap text-right font-black">{durationLabel(stage.started_at, stage.finished_at)}</span>
+                                <span className="shrink-0 whitespace-nowrap text-right font-semibold">{durationLabel(stage.started_at, stage.finished_at)}</span>
                               </div>
                             </div>
- <div className="mt-3 rounded-full border border-current/20 bg-theme-bg-app px-3 py-1 text-center text-[11px] font-black">
+ <div className="mt-3 rounded-full border border-current/20 bg-theme-bg-app px-3 py-1 text-center text-[11px] font-medium">
                               {formatBinarySecurityStatus(stage.status_label || stage.status)}
                             </div>
                             <div className="mt-3 flex items-center justify-between gap-2">
                               {staleStages.has(stage.stage_name) ? (
-                                <span className="rounded-full border border-amber-500/20 bg-amber-500/15 px-2.5 py-1 text-[11px] font-black text-amber-400">
+                                <span className="rounded-full border border-amber-500/20 bg-amber-500/15 px-2.5 py-1 text-[11px] font-medium text-amber-400">
                                   结果已过期
                                 </span>
                               ) : (
@@ -4917,10 +4917,10 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
             </div>
           </section>
 
- <section className="rounded-[2rem] border border-theme-border bg-theme-bg-app p-6">
+ <section className="rounded-xl border border-theme-border bg-theme-surface p-6">
             <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
               <div>
-                <h2 className="text-xl font-black text-theme-text-primary">{selectedNodeKind === 'archive' ? '产物归档任务' : '阶段子任务'}</h2>
+                <h2 className="text-xl font-semibold text-theme-text-primary">{selectedNodeKind === 'archive' ? '产物归档任务' : '阶段子任务'}</h2>
                 <p className="mt-1 text-sm text-theme-text-muted">
                   当前筛选：
                   <span className="ml-2 font-bold text-theme-text-primary">{STAGE_LABELS[selectedStage] || selectedStage}</span>
@@ -4932,29 +4932,29 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
 	            {selectedNodeKind === 'business' && selectedBusinessStageNode ? (
                 <>
 	              <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-5">
-                  <div className="rounded-2xl border border-theme-border bg-theme-bg-app px-4 py-3">
+                  <div className="rounded-2xl border border-theme-border bg-theme-surface px-4 py-3">
                   <div className="text-xs font-bold text-theme-text-muted">阶段状态</div>
                   <div className="mt-1">
-                    <span className={`inline-flex rounded-full border px-3 py-1 text-xs font-black ${statusTone(selectedBusinessStageNode.status)}`}>
+                    <span className={`inline-flex rounded-full border px-3 py-1 text-xs font-semibold ${statusTone(selectedBusinessStageNode.status)}`}>
                       {formatBinarySecurityStatus(selectedBusinessStageNode.status_label || selectedBusinessStageNode.status)}
                     </span>
                   </div>
                 </div>
-                <div className="rounded-2xl border border-theme-border bg-theme-bg-app px-4 py-3">
+                <div className="rounded-2xl border border-theme-border bg-theme-surface px-4 py-3">
                   <div className="text-xs font-bold text-theme-text-muted">开始时间</div>
-                  <div className="mt-1 text-sm font-black text-theme-text-primary">{fmt(selectedBusinessStageNode.started_at)}</div>
+                  <div className="mt-1 text-sm font-semibold text-theme-text-primary">{fmt(selectedBusinessStageNode.started_at)}</div>
                 </div>
-                <div className="rounded-2xl border border-theme-border bg-theme-bg-app px-4 py-3">
+                <div className="rounded-2xl border border-theme-border bg-theme-surface px-4 py-3">
                   <div className="text-xs font-bold text-theme-text-muted">结束时间</div>
-                  <div className="mt-1 text-sm font-black text-theme-text-primary">{fmt(selectedBusinessStageNode.finished_at)}</div>
+                  <div className="mt-1 text-sm font-semibold text-theme-text-primary">{fmt(selectedBusinessStageNode.finished_at)}</div>
                 </div>
-                <div className="rounded-2xl border border-theme-border bg-theme-bg-app px-4 py-3">
+                <div className="rounded-2xl border border-theme-border bg-theme-surface px-4 py-3">
                   <div className="text-xs font-bold text-theme-text-muted">阶段耗时</div>
-                  <div className="mt-1 text-sm font-black text-theme-text-primary">{durationLabel(selectedBusinessStageNode.started_at, selectedBusinessStageNode.finished_at)}</div>
+                  <div className="mt-1 text-sm font-semibold text-theme-text-primary">{durationLabel(selectedBusinessStageNode.started_at, selectedBusinessStageNode.finished_at)}</div>
                 </div>
-                <div className="rounded-2xl border border-theme-border bg-theme-bg-app px-4 py-3">
+                <div className="rounded-2xl border border-theme-border bg-theme-surface px-4 py-3">
                   <div className="text-xs font-bold text-theme-text-muted">子任务</div>
-                  <div className="mt-1 text-sm font-black text-theme-text-primary">
+                  <div className="mt-1 text-sm font-semibold text-theme-text-primary">
                     {(selectedBusinessStageNode.detail as any)?.success_items ?? 0} / {(selectedBusinessStageNode.detail as any)?.total_items ?? 0} 成功
                   </div>
                 </div>
@@ -4980,7 +4980,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                           <button
                             type="button"
                             title={archiveRetryFailedReason}
-                            className={`rounded-full px-4 py-2 text-sm font-black ${
+                            className={`rounded-full px-4 py-2 text-sm font-semibold ${
                               archiveRetryFailedSupported && actionLoading === ''
                                 ? 'bg-emerald-600 text-white'
                                 : 'bg-theme-elevated text-theme-text-muted'
@@ -4996,7 +4996,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                           <button
                             type="button"
                             title={archiveRetryFullReason}
-                            className={`rounded-full px-4 py-2 text-sm font-black ${
+                            className={`rounded-full px-4 py-2 text-sm font-semibold ${
                               archiveRetryFullSupported && actionLoading === ''
                                 ? 'bg-theme-surface text-white'
                                 : 'bg-theme-elevated text-theme-text-muted'
@@ -5012,42 +5012,42 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                         </div>
                       </div>
                       <div className="grid grid-cols-2 gap-3 text-sm md:grid-cols-4">
-                        <div className="rounded-2xl border border-theme-border bg-theme-bg-app px-4 py-3">
+                        <div className="rounded-2xl border border-theme-border bg-theme-surface px-4 py-3">
                           <div className="text-xs font-bold text-theme-text-muted">归档任务</div>
-                          <div className="mt-1 text-lg font-black text-theme-text-primary">{(selectedArchiveNode.detail as any)?.job_count ?? 0}</div>
+                          <div className="mt-1 text-lg font-semibold text-theme-text-primary">{(selectedArchiveNode.detail as any)?.job_count ?? 0}</div>
                         </div>
                         <div className="rounded-2xl border border-emerald-500/20 bg-emerald-500/15 px-4 py-3">
                           <div className="text-xs font-bold text-emerald-500">完成</div>
-                          <div className="mt-1 text-lg font-black text-emerald-400">{(selectedArchiveNode.detail as any)?.success_count ?? 0}</div>
+                          <div className="mt-1 text-lg font-semibold text-emerald-400">{(selectedArchiveNode.detail as any)?.success_count ?? 0}</div>
                         </div>
                         <div className="rounded-2xl border border-rose-500/20 bg-rose-500/15 px-4 py-3">
                           <div className="text-xs font-bold text-rose-500">失败</div>
-                          <div className="mt-1 text-lg font-black text-rose-400">{(selectedArchiveNode.detail as any)?.failed_count ?? 0}</div>
+                          <div className="mt-1 text-lg font-semibold text-rose-400">{(selectedArchiveNode.detail as any)?.failed_count ?? 0}</div>
                         </div>
                         <div className="rounded-2xl border border-blue-500/20 bg-blue-500/15 px-4 py-3">
                           <div className="text-xs font-bold text-blue-500">总耗时</div>
-                          <div className="mt-1 text-lg font-black text-blue-400">{durationLabel((selectedArchiveNode.detail as any)?.first_created_at, (selectedArchiveNode.detail as any)?.last_updated_at)}</div>
+                          <div className="mt-1 text-lg font-semibold text-blue-400">{durationLabel((selectedArchiveNode.detail as any)?.first_created_at, (selectedArchiveNode.detail as any)?.last_updated_at)}</div>
                         </div>
                       </div>
                     </div>
                   ) : null}
                   {selectedArchiveJobs.length === 0 ? (
-                    <div className="rounded-2xl border border-dashed border-theme-border bg-theme-bg-app px-6 py-10 text-center text-sm text-theme-text-muted">
+                    <div className="rounded-2xl border border-dashed border-theme-border bg-theme-surface px-6 py-10 text-center text-sm text-theme-text-muted">
                       当前阶段暂无归档记录，等待下游阶段产物归档。
                     </div>
                   ) : selectedArchiveJobs.map((job) => (
-                    <div key={job.id} className={`rounded-[1.5rem] border p-5 ${stageNodeTone(job.stage_name, 'archive', job.archive_status === 'archived' || job.archive_status === 'applying' ? 'running' : job.archive_status, false)}`}>
+                    <div key={job.id} className={`rounded-xl border p-5 ${stageNodeTone(job.stage_name, 'archive', job.archive_status === 'archived' || job.archive_status === 'applying' ? 'running' : job.archive_status, false)}`}>
                       <div className="flex flex-col gap-3 xl:flex-row xl:items-start xl:justify-between">
                         <div className="min-w-0">
                           <div className="flex flex-wrap items-center gap-2">
-                            <span className={`rounded-full border px-3 py-1 text-xs font-black ${statusTone(job.archive_status === 'archived' || job.archive_status === 'applying' ? 'running' : job.archive_status)}`}>
+                            <span className={`rounded-full border px-3 py-1 text-xs font-semibold ${statusTone(job.archive_status === 'archived' || job.archive_status === 'applying' ? 'running' : job.archive_status)}`}>
                               {archiveStatusLabel(job.archive_status)}
                             </span>
                             <span className="rounded-full border border-theme-border bg-theme-bg-app px-2.5 py-1 text-[11px] font-bold text-theme-text-muted">
                               尝试 {job.attempts || 0}
                             </span>
                           </div>
-                          <div className="mt-3 break-all text-base font-black text-theme-text-primary">{job.item_key || job.item_id}</div>
+                          <div className="mt-3 break-all text-base font-semibold text-theme-text-primary">{job.item_key || job.item_id}</div>
                         </div>
                         <div className="flex shrink-0 flex-col items-end gap-2">
                           <button
@@ -5057,7 +5057,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                                 ? (manualOperationState?.blocking_reason || '当前任务暂不可进行归档重试')
                                 : (job.retry_reason || undefined)
                             }
-                            className={`rounded-full px-3 py-1 text-xs font-black ${
+                            className={`rounded-full px-3 py-1 text-xs font-semibold ${
                               job.retry_supported && manualOperationState?.can_retry_archive !== false && actionLoading === ''
                                 ? 'bg-theme-surface text-white'
                                 : 'bg-theme-elevated text-theme-text-muted'
@@ -5070,28 +5070,28 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                           >
                             {actionLoading ===`archive-job:${job.id}` ? '重试中' : '重试归档'}
                           </button>
- <div className="whitespace-nowrap rounded-xl border border-theme-border bg-theme-bg-app px-3 py-2 font-mono text-xs text-theme-text-secondary">
+ <div className="whitespace-nowrap rounded-xl border border-theme-border bg-theme-surface px-3 py-2 font-mono text-xs text-theme-text-secondary">
                             {fmt(job.created_at)} {'->'} {fmt(job.completed_at || job.updated_at)}
                           </div>
                         </div>
                       </div>
                       <div className="mt-4 grid grid-cols-1 gap-3 text-xs text-theme-text-secondary xl:grid-cols-2">
- <div className="rounded-xl border border-theme-border bg-theme-bg-app px-3 py-2">
+ <div className="rounded-xl border border-theme-border bg-theme-surface px-3 py-2">
                           <span className="text-theme-text-muted">下游服务</span>
                           <div className="mt-1 font-mono text-theme-text-primary">{job.downstream_service || '-'}</div>
                         </div>
- <div className="rounded-xl border border-theme-border bg-theme-bg-app px-3 py-2">
+ <div className="rounded-xl border border-theme-border bg-theme-surface px-3 py-2">
                           <span className="text-theme-text-muted">下游任务 ID</span>
                           <div className="mt-1 break-all font-mono text-theme-text-primary">{job.downstream_task_id || '-'}</div>
                         </div>
- <div className="rounded-xl border border-theme-border bg-theme-bg-app px-3 py-2 xl:col-span-2">
+ <div className="rounded-xl border border-theme-border bg-theme-surface px-3 py-2 xl:col-span-2">
                           <span className="text-theme-text-muted">归档源路径</span>
                           <div className="mt-1">
                             <ProjectDirectoryValue path={archiveJobSourcePath(job)} projectId={projectId} />
                           </div>
                         </div>
                         {(job.archive_source_paths || []).length > 1 ? (
- <div className="rounded-xl border border-theme-border bg-theme-bg-app px-3 py-2 xl:col-span-2">
+ <div className="rounded-xl border border-theme-border bg-theme-surface px-3 py-2 xl:col-span-2">
                             <span className="text-theme-text-muted">归档源路径（全部）</span>
                             <div className="mt-1 space-y-1">
                               {(job.archive_source_paths || []).map((path, index) => (
@@ -5100,7 +5100,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                             </div>
                           </div>
                         ) : null}
- <div className="rounded-xl border border-theme-border bg-theme-bg-app px-3 py-2 xl:col-span-2">
+ <div className="rounded-xl border border-theme-border bg-theme-surface px-3 py-2 xl:col-span-2">
                           <span className="text-theme-text-muted">归档路径</span>
                           <div className="mt-1">
                             <ProjectDirectoryValue path={job.archive_root} projectId={projectId} />
@@ -5108,23 +5108,23 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                         </div>
                       </div>
                       {job.copy_stats ? (
- <div className="mt-3 rounded-xl border border-theme-border bg-theme-bg-app p-3">
+ <div className="mt-3 rounded-xl border border-theme-border bg-theme-surface p-3">
                           <div className="grid grid-cols-2 gap-2 text-xs text-theme-text-secondary xl:grid-cols-4">
                             <div>
                               <div className="text-theme-text-muted">文件</div>
-                              <div className="mt-1 font-black text-theme-text-primary">{job.copy_stats.copied_files || 0}</div>
+                              <div className="mt-1 font-semibold text-theme-text-primary">{job.copy_stats.copied_files || 0}</div>
                             </div>
                             <div>
                               <div className="text-theme-text-muted">目录</div>
-                              <div className="mt-1 font-black text-theme-text-primary">{job.copy_stats.copied_dirs || 0}</div>
+                              <div className="mt-1 font-semibold text-theme-text-primary">{job.copy_stats.copied_dirs || 0}</div>
                             </div>
                             <div>
                               <div className="text-theme-text-muted">符号链接</div>
-                              <div className="mt-1 font-black text-theme-text-primary">{job.copy_stats.copied_symlinks || 0}</div>
+                              <div className="mt-1 font-semibold text-theme-text-primary">{job.copy_stats.copied_symlinks || 0}</div>
                             </div>
                             <div>
                               <div className="text-theme-text-muted">跳过错误</div>
-                              <div className={`mt-1 font-black ${(job.copy_stats.skipped_errors || 0) > 0 ? 'text-amber-400' : 'text-theme-text-primary'}`}>
+                              <div className={`mt-1 font-semibold ${(job.copy_stats.skipped_errors || 0) > 0 ? 'text-amber-400' : 'text-theme-text-primary'}`}>
                                 {job.copy_stats.skipped_errors || 0}
                               </div>
                             </div>
@@ -5173,7 +5173,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                           ? (manualOperationState?.blocking_reason || '当前任务暂不可重试失败项')
                           : (selectedBusinessStageNode?.retry_failed_reason || undefined)
                       }
-                      className={`rounded-full px-4 py-2 text-sm font-black ${
+                      className={`rounded-full px-4 py-2 text-sm font-semibold ${
                         selectedBusinessStageNode?.retry_failed_supported && manualOperationState?.can_retry_stage_failed_items !== false && actionLoading === ''
                           ? 'bg-emerald-600 text-white'
                           : 'bg-theme-elevated text-theme-text-muted'
@@ -5193,7 +5193,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                           ? (manualOperationState?.blocking_reason || '当前任务暂不可完全重试')
                           : (selectedBusinessStageNode?.retry_full_reason || undefined)
                       }
-                      className={`rounded-full px-4 py-2 text-sm font-black ${
+                      className={`rounded-full px-4 py-2 text-sm font-semibold ${
                         selectedBusinessStageNode?.retry_full_supported && manualOperationState?.can_retry_stage_full !== false && actionLoading === ''
                           ? 'bg-theme-surface text-white'
                           : 'bg-theme-elevated text-theme-text-muted'
@@ -5208,12 +5208,12 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                     </button>
                   </div>
                 </div>
-	              <div className="flex flex-col gap-3 rounded-[1.5rem] border border-theme-border bg-slate-50/80 px-4 py-4 xl:flex-row xl:items-center xl:justify-between">
+	              <div className="flex flex-col gap-3 rounded-xl border border-theme-border bg-slate-50/80 px-4 py-4 xl:flex-row xl:items-center xl:justify-between">
 	                <div className="flex flex-wrap items-center gap-2">
 	                  <button
 	                    type="button"
 	                    onClick={() => setStageStatusFilter('all')}
-	                    className={`rounded-full border px-3 py-2 text-xs font-black transition ${
+	                    className={`rounded-full border px-3 py-2 text-xs font-semibold transition ${
 	                      stageStatusFilter === 'all'
 	                        ? 'border-theme-border bg-theme-surface text-white'
 	                        : 'border-theme-border bg-theme-bg-app text-theme-text-secondary hover:bg-theme-elevated'
@@ -5226,7 +5226,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
 	                      key={option.status}
 	                      type="button"
 	                      onClick={() => setStageStatusFilter(option.status)}
-	                      className={`rounded-full border px-3 py-2 text-xs font-black transition ${
+	                      className={`rounded-full border px-3 py-2 text-xs font-semibold transition ${
 	                        stageStatusFilter === option.status
 	                          ? 'border-theme-border bg-theme-surface text-white'
 	                          : 'border-theme-border bg-theme-bg-app text-theme-text-secondary hover:bg-theme-elevated'
@@ -5244,7 +5244,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
 	                    type="button"
 	                    disabled={visibleStageItems.length === 0}
 	                    onClick={() => setSelectedStageItemIds(visibleStageItems.map((item) => item.id))}
-	                    className="rounded-full border border-theme-border bg-theme-bg-app px-3 py-2 font-black text-theme-text-secondary disabled:opacity-50"
+	                    className="rounded-full border border-theme-border bg-theme-bg-app px-3 py-2 font-semibold text-theme-text-secondary disabled:opacity-50"
 	                  >
 	                    全选当前页
 	                  </button>
@@ -5252,7 +5252,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
 	                    type="button"
 	                    disabled={selectedStageItemIds.length === 0}
 	                    onClick={() => setSelectedStageItemIds([])}
-	                    className="rounded-full border border-theme-border bg-theme-bg-app px-3 py-2 font-black text-theme-text-secondary disabled:opacity-50"
+	                    className="rounded-full border border-theme-border bg-theme-bg-app px-3 py-2 font-semibold text-theme-text-secondary disabled:opacity-50"
 	                  >
 	                    清空选择
 	                  </button>
@@ -5260,20 +5260,20 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
 	                    type="button"
 	                    disabled={actionLoading !== '' || selectedSyncableStageItems.length === 0}
 	                    onClick={() => void batchSyncSelectedStageItems()}
-	                    className="rounded-full border border-sky-500/20 bg-sky-500/15 px-3 py-2 font-black text-sky-400 disabled:opacity-50"
+	                    className="rounded-full border border-sky-500/20 bg-sky-500/15 px-3 py-2 font-semibold text-sky-400 disabled:opacity-50"
 	                  >
 	                    {actionLoading === 'sync-selected-items' ? '同步中...' :`批量同步状态 ${selectedSyncableStageItems.length > 0 ?`(${selectedSyncableStageItems.length})` : ''}`}
 	                  </button>
 	                </div>
 	              </div>
-                <div className="flex flex-col gap-3 rounded-[1.5rem] border border-theme-border bg-theme-bg-app px-4 py-4 xl:flex-row xl:items-center xl:justify-between">
+                <div className="flex flex-col gap-3 rounded-xl border border-theme-border bg-theme-surface px-4 py-4 xl:flex-row xl:items-center xl:justify-between">
                   <div className="text-sm text-theme-text-muted">
                     阶段子任务分页：
                     <span className="ml-2 font-bold text-theme-text-primary">第 {stageItemsCurrentPage} / {stageItemsTotalPages} 页</span>
                     <span className="ml-2 text-theme-text-muted">共 {stageItemsTotal} 条，每页 {stageItemsPerPage} 条</span>
                   </div>
                   <div className="flex flex-wrap items-center gap-2">
-                    <label className="inline-flex items-center gap-2 rounded-full border border-theme-border bg-theme-bg-app px-3 py-2 text-xs font-black text-theme-text-secondary">
+                    <label className="inline-flex items-center gap-2 rounded-full border border-theme-border bg-theme-bg-app px-3 py-2 text-xs font-semibold text-theme-text-secondary">
                       每页
                       <select
                         value={stageItemsPerPage}
@@ -5293,7 +5293,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                       type="button"
                       disabled={stageItemsPageLoading || stageItemsCurrentPage <= 1}
                       onClick={() => setStageItemsCurrentPage((current) => Math.max(1, current - 1))}
-                      className="rounded-full border border-theme-border bg-theme-bg-app px-3 py-2 text-xs font-black text-theme-text-secondary disabled:opacity-50"
+                      className="rounded-full border border-theme-border bg-theme-bg-app px-3 py-2 text-xs font-semibold text-theme-text-secondary disabled:opacity-50"
                     >
                       上一页
                     </button>
@@ -5301,7 +5301,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                       type="button"
                       disabled={stageItemsPageLoading || stageItemsCurrentPage >= stageItemsTotalPages}
                       onClick={() => setStageItemsCurrentPage((current) => Math.min(stageItemsTotalPages, current + 1))}
-                      className="rounded-full border border-theme-border bg-theme-bg-app px-3 py-2 text-xs font-black text-theme-text-secondary disabled:opacity-50"
+                      className="rounded-full border border-theme-border bg-theme-bg-app px-3 py-2 text-xs font-semibold text-theme-text-secondary disabled:opacity-50"
                     >
                       下一页
                     </button>
@@ -5318,14 +5318,14 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
 	                </div>
 	              ) : null}
 	              {visibleStageItems.length === 0 ? (
-	                <div className="rounded-2xl border border-dashed border-theme-border bg-theme-bg-app px-6 py-10 text-center text-sm text-theme-text-muted">
+	                <div className="rounded-2xl border border-dashed border-theme-border bg-theme-surface px-6 py-10 text-center text-sm text-theme-text-muted">
 	                  {stageItemsTotal === 0 ? '当前阶段暂无子任务' : '当前筛选下本页暂无子任务'}
 	                </div>
 	              ) : (
-	                <div className="overflow-hidden rounded-[1.5rem] border border-theme-border">
+	                <div className="overflow-hidden rounded-xl border border-theme-border">
 	                  <div className="overflow-x-auto">
 	                    <table className="min-w-[1200px] w-full divide-y divide-theme-border text-left text-xs">
-	                      <thead className="bg-theme-bg-app text-[11px] font-black uppercase tracking-[0.12em] text-theme-text-muted">
+	                      <thead className="bg-theme-bg-app text-[11px] font-semibold uppercase tracking-[0.12em] text-theme-text-muted">
 	                        <tr>
 	                          <th className="w-14 px-3 py-3">
 	                            <input
@@ -5398,14 +5398,14 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
 	                                </td>
 	                                <td className="px-3 py-3">
 	                                  <div className="flex flex-col gap-2">
-	                                    <span className={`inline-flex w-fit rounded-full border px-3 py-1 text-xs font-black ${statusTone(item.status)}`}>
+	                                    <span className={`inline-flex w-fit rounded-full border px-3 py-1 text-xs font-semibold ${statusTone(item.status)}`}>
                                       {formatBinarySecurityStatus(item.status)}
 	                                    </span>
 	                                  </div>
 	                                </td>
                                   <td className="px-3 py-3">
                                     <div className="flex flex-col gap-2">
-                                      <span className={`inline-flex w-fit rounded-full border px-3 py-1 text-xs font-black ${statusTone(stageItemDownstreamToneStatus(item))}`}>
+                                      <span className={`inline-flex w-fit rounded-full border px-3 py-1 text-xs font-semibold ${statusTone(stageItemDownstreamToneStatus(item))}`}>
                                         {stageItemDisplayDownstreamStatus(item)}
                                       </span>
                                       {!item.downstream_task_id && item.downstream_binding_message ? (
@@ -5427,7 +5427,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                                   </td>
                                 <td className="px-3 py-3">
                                   <div className="min-w-0">
-                                    <div className="break-all text-sm font-black text-theme-text-primary">
+                                    <div className="break-all text-sm font-semibold text-theme-text-primary">
                                       {item.item_name || item.item_key}
                                     </div>
                                     <div className="mt-1 break-all font-mono text-[11px] text-theme-text-muted">
@@ -5443,17 +5443,17 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                                 </td>
                                 {isSystemAnalysisStageTable ? (
                                   <>
-                                    <td className="px-3 py-3 font-black text-theme-text-primary">{riskCounts.high}</td>
-                                    <td className="px-3 py-3 font-black text-theme-text-primary">{riskCounts.medium}</td>
-                                    <td className="px-3 py-3 font-black text-theme-text-primary">{riskCounts.low}</td>
+                                    <td className="px-3 py-3 font-semibold text-theme-text-primary">{riskCounts.high}</td>
+                                    <td className="px-3 py-3 font-semibold text-theme-text-primary">{riskCounts.medium}</td>
+                                    <td className="px-3 py-3 font-semibold text-theme-text-primary">{riskCounts.low}</td>
                                   </>
                                 ) : null}
                                 {isEntryAnalysisStageTable ? (
-                                  <td className="px-3 py-3 font-black text-theme-text-primary">{stageItemEntryCountLabel(item, entryAnalysisEntryCountByItemKey)}</td>
+                                  <td className="px-3 py-3 font-semibold text-theme-text-primary">{stageItemEntryCountLabel(item, entryAnalysisEntryCountByItemKey)}</td>
                                 ) : null}
                                 <td className="whitespace-nowrap px-3 py-3 font-mono text-[11px] text-theme-text-secondary">{fmt(item.first_started_at || item.started_at)}</td>
                                 <td className="whitespace-nowrap px-3 py-3 font-mono text-[11px] text-theme-text-secondary">{fmt(item.finished_at)}</td>
-                                <td className="px-3 py-3 font-black text-theme-text-primary">{durationLabel(item.latest_started_at || item.started_at, item.finished_at)}</td>
+                                <td className="px-3 py-3 font-semibold text-theme-text-primary">{durationLabel(item.latest_started_at || item.started_at, item.finished_at)}</td>
                                 <td className="whitespace-nowrap px-3 py-3 font-mono text-[11px] text-theme-text-secondary">
                                   {displayStageItemSyncTime(item.last_sync_attempt_at, item.downstream_task_id ? '未尝试' : '不适用')}
                                 </td>
@@ -5465,10 +5465,10 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                                 </td>
                                 <td className="px-3 py-3">
                                   <div className="flex flex-col gap-2">
-                                    <span className={`inline-flex w-fit rounded-full border px-3 py-1 text-xs font-black ${statusTone(stageItemSyncFreshnessTone(item))}`}>
+                                    <span className={`inline-flex w-fit rounded-full border px-3 py-1 text-xs font-semibold ${statusTone(stageItemSyncFreshnessTone(item))}`}>
                                       {formatStageItemSyncFreshness(item.sync_freshness_state, item)}
                                     </span>
-                                    <span className={`inline-flex w-fit rounded-full border px-3 py-1 text-xs font-black ${statusTone(
+                                    <span className={`inline-flex w-fit rounded-full border px-3 py-1 text-xs font-semibold ${statusTone(
                                       item.sync_status === 'transport_error'
                                         ? 'failed'
                                         : item.sync_status === 'synced'
@@ -5488,14 +5488,14 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                                     <button
                                       type="button"
                                       onClick={() => setExpandedStageItemId(expanded ? null : item.id)}
-                                      className="rounded-full border border-theme-border bg-theme-bg-app px-3 py-2 text-[11px] font-black text-theme-text-secondary transition hover:bg-theme-elevated"
+                                      className="rounded-full border border-theme-border bg-theme-bg-app px-3 py-2 text-[11px] font-medium text-theme-text-secondary transition hover:bg-theme-elevated"
                                     >
                                       {expanded ? '收起详情' : '查看详情'}
                                     </button>
                                     {item.downstream_task_id ? (
                                       <button
                                         type="button"
-                                        className="rounded-full border border-sky-500/20 bg-sky-500/15 px-3 py-2 text-[11px] font-black text-sky-400 disabled:opacity-60"
+                                        className="rounded-full border border-sky-500/20 bg-sky-500/15 px-3 py-2 text-[11px] font-medium text-sky-400 disabled:opacity-60"
                                         disabled={actionLoading !== ''}
                                         onClick={() => void syncDownstreamStatus({ stageName: item.stage_name, itemId: item.id })}
                                       >
@@ -5505,7 +5505,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                                     {isRetryableCreateFailure(item) ? (
                                       <button
                                         type="button"
-                                        className="rounded-full border border-amber-500/20 bg-amber-500/15 px-3 py-2 text-[11px] font-black text-amber-400 disabled:opacity-60"
+                                        className="rounded-full border border-amber-500/20 bg-amber-500/15 px-3 py-2 text-[11px] font-medium text-amber-400 disabled:opacity-60"
                                         disabled={actionLoading !== ''}
                                         onClick={() => void syncDownstreamStatus({ stageName: item.stage_name, itemId: item.id, force: true })}
                                       >
@@ -5515,7 +5515,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                                     {detailSupport.supported ? (
                                       <button
                                         type="button"
-                                        className="rounded-full border border-theme-border bg-theme-surface px-3 py-2 text-[11px] font-black text-white"
+                                        className="rounded-full border border-theme-border bg-theme-surface px-3 py-2 text-[11px] font-medium text-white"
                                         onClick={() => openDownstreamTaskDetail(item)}
                                       >
                                         查看任务详情
@@ -5537,8 +5537,8 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
 	                                  <td colSpan={isSystemAnalysisStageTable ? 13 : isEntryAnalysisStageTable ? 11 : 10} className="px-4 py-4">
 	                                    <div className={`rounded-[1.25rem] border p-4 ${stageItemTone(item.stage_name === selectedStage)}`}>
 	                                      <div className="grid gap-4 xl:grid-cols-[320px_minmax(0,1fr)]">
- <aside className="rounded-2xl border border-theme-border bg-theme-bg-app p-4">
-                                          <div className="text-[11px] font-black uppercase tracking-[0.16em] text-theme-text-muted">下游任务</div>
+ <aside className="rounded-2xl border border-theme-border bg-theme-surface p-4">
+                                          <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-theme-text-muted">下游任务</div>
                                           <div className="mt-3 space-y-3 text-xs text-theme-text-secondary">
                                             <div>
                                               <div className="text-theme-text-muted">服务</div>
@@ -5568,12 +5568,12 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                                             ) : null}
                                           </div>
                                           {!detailSupport.supported ? (
-                                            <div className="mt-3 rounded-xl border border-theme-border bg-theme-bg-app px-3 py-2 text-xs font-semibold text-theme-text-secondary">
+                                            <div className="mt-3 rounded-xl border border-theme-border bg-theme-surface px-3 py-2 text-xs font-semibold text-theme-text-secondary">
                                               {detailSupport.reason}
                                             </div>
                                           ) : null}
-                                          <div className="mt-3 rounded-xl border border-theme-border bg-theme-bg-app px-3 py-3 text-xs text-theme-text-secondary">
-                                            <div className="text-[11px] font-black uppercase tracking-[0.16em] text-theme-text-muted">同步诊断</div>
+                                          <div className="mt-3 rounded-xl border border-theme-border bg-theme-surface px-3 py-3 text-xs text-theme-text-secondary">
+                                            <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-theme-text-muted">同步诊断</div>
                                             <div className="mt-3 space-y-3">
                                               <div>
                                                 <div className="text-theme-text-muted">首次开始</div>
@@ -5629,17 +5629,17 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                                           ) : null}
                                           {(inputContractRows.length > 0 || contractRows.output.length > 0) ? (
                                             <div className={`grid gap-4 ${item.error_message ? 'mt-4' : 'mt-4'} xl:grid-cols-2`}>
- <div className="rounded-2xl border border-theme-border bg-theme-bg-app p-4">
-                                                <div className="text-[11px] font-black uppercase tracking-[0.16em] text-theme-text-muted">输入 Contract</div>
+ <div className="rounded-2xl border border-theme-border bg-theme-surface p-4">
+                                                <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-theme-text-muted">输入 Contract</div>
                                                 <div className="mt-1 text-[11px] text-theme-text-muted">直接展示当前阶段子任务记录的原始输入合约，不做字段推断。</div>
                                                 <div className="mt-3 space-y-2">
                                                   {inputContractRows.length > 0 ? inputContractRows.map((row) => (
-                                                    <div key={`${item.id}-input-${row.label}`} className="rounded-xl border border-theme-border bg-theme-bg-app px-3 py-2">
+                                                    <div key={`${item.id}-input-${row.label}`} className="rounded-xl border border-theme-border bg-theme-surface px-3 py-2">
                                                       <div className="text-[11px] font-bold uppercase tracking-[0.12em] text-theme-text-muted">{row.label}</div>
                                                       {renderStageItemDetailValue(row.label, row.value, projectId)}
                                                     </div>
                                                   )) : (
-                                                    <div className="rounded-xl border border-dashed border-theme-border bg-theme-bg-app px-3 py-3 text-xs text-theme-text-muted">
+                                                    <div className="rounded-xl border border-dashed border-theme-border bg-theme-surface px-3 py-3 text-xs text-theme-text-muted">
                                                       当前子任务未记录结构化输入 Contract。
                                                     </div>
                                                   )}
@@ -5649,23 +5649,23 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                                                     <summary className="cursor-pointer text-xs font-bold text-theme-text-muted hover:text-theme-text-primary">
                                                       查看原始 JSON
                                                     </summary>
-                                                    <pre className="mt-2 max-h-72 overflow-auto rounded-xl border border-theme-border bg-theme-bg-app px-3 py-3 text-xs leading-6 text-theme-text-primary">
+                                                    <pre className="mt-2 max-h-72 overflow-auto rounded-xl border border-theme-border bg-theme-surface px-3 py-3 text-xs leading-6 text-theme-text-primary">
                                                       {JSON.stringify(item.input_ref, null, 2)}
                                                     </pre>
                                                   </details>
                                                 ) : null}
                                               </div>
- <div className="rounded-2xl border border-theme-border bg-theme-bg-app p-4">
-                                                <div className="text-[11px] font-black uppercase tracking-[0.16em] text-theme-text-muted">输出 Contract</div>
+ <div className="rounded-2xl border border-theme-border bg-theme-surface p-4">
+                                                <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-theme-text-muted">输出 Contract</div>
                                                 <div className="mt-1 text-[11px] text-theme-text-muted">展示当前阶段子任务记录的结构化输出合约；原始 JSON 见下方。</div>
                                                 <div className="mt-3 space-y-2">
                                                   {contractRows.output.length > 0 ? contractRows.output.map((row) => (
-                                                    <div key={`${item.id}-output-${row.label}`} className="rounded-xl border border-theme-border bg-theme-bg-app px-3 py-2">
+                                                    <div key={`${item.id}-output-${row.label}`} className="rounded-xl border border-theme-border bg-theme-surface px-3 py-2">
                                                       <div className="text-[11px] font-bold uppercase tracking-[0.12em] text-theme-text-muted">{row.label}</div>
                                                       {renderStageItemDetailValue(row.label, row.value, projectId)}
                                                     </div>
                                                   )) : (
-                                                    <div className="rounded-xl border border-dashed border-theme-border bg-theme-bg-app px-3 py-3 text-xs text-theme-text-muted">
+                                                    <div className="rounded-xl border border-dashed border-theme-border bg-theme-surface px-3 py-3 text-xs text-theme-text-muted">
                                                       当前子任务未记录结构化输出 Contract。
                                                     </div>
                                                   )}
@@ -5679,7 +5679,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                                                       {item.output_ref ? (
                                                         <div>
                                                           <div className="mb-1 text-[11px] font-bold uppercase tracking-[0.12em] text-theme-text-muted">output_ref</div>
-                                                          <pre className="max-h-56 overflow-auto rounded-xl border border-theme-border bg-theme-bg-app px-3 py-3 text-xs leading-6 text-theme-text-primary">
+                                                          <pre className="max-h-56 overflow-auto rounded-xl border border-theme-border bg-theme-surface px-3 py-3 text-xs leading-6 text-theme-text-primary">
                                                             {JSON.stringify(item.output_ref, null, 2)}
                                                           </pre>
                                                         </div>
@@ -5687,7 +5687,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                                                       {item.result ? (
                                                         <div>
                                                           <div className="mb-1 text-[11px] font-bold uppercase tracking-[0.12em] text-theme-text-muted">result</div>
-                                                          <pre className="max-h-56 overflow-auto rounded-xl border border-theme-border bg-theme-bg-app px-3 py-3 text-xs leading-6 text-theme-text-primary">
+                                                          <pre className="max-h-56 overflow-auto rounded-xl border border-theme-border bg-theme-surface px-3 py-3 text-xs leading-6 text-theme-text-primary">
                                                             {JSON.stringify(item.result, null, 2)}
                                                           </pre>
                                                         </div>
@@ -5728,10 +5728,10 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
 
           {activeTab === 'modules' ? (
             <div className="space-y-6">
- <section className={`binary-security-modules-confirmation rounded-[2rem] border p-6 ${requiresModuleConfirmation ? 'border-amber-500/20 bg-amber-50/70' : 'border-theme-border bg-theme-bg-app'}`}>
+ <section className={`binary-security-modules-confirmation rounded-xl border p-6 ${requiresModuleConfirmation ? 'border-amber-500/20 bg-amber-50/70' : 'border-theme-border bg-theme-surface'}`}>
                 <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
                   <div>
-                    <h2 className="text-xl font-black text-theme-text-primary">{isBinaryModuleTask ? '模块输入' : '模块确认'}</h2>
+                    <h2 className="text-xl font-semibold text-theme-text-primary">{isBinaryModuleTask ? '模块输入' : '模块确认'}</h2>
                     <p className="mt-1 text-sm text-theme-text-secondary">
                       {isBinaryModuleTask
                         ? '当前任务绕过系统分析，直接以手工输入的单模块多 ELF 作为后续阶段的统一输入。'
@@ -5741,21 +5741,21 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                     </p>
                   </div>
                   <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-                    <div className="rounded-2xl bg-theme-bg-app px-3 py-2.5 text-xs text-theme-text-secondary">
+                    <div className="rounded-2xl bg-theme-surface px-3 py-2.5 text-xs text-theme-text-secondary">
                       <div className="text-theme-text-muted">全部模块</div>
-                      <div className="mt-1 text-lg font-black text-theme-text-primary">{systemAnalysisModuleCount}</div>
+                      <div className="mt-1 text-lg font-semibold text-theme-text-primary">{systemAnalysisModuleCount}</div>
                     </div>
-                    <div className="rounded-2xl bg-theme-bg-app px-3 py-2.5 text-xs text-theme-text-secondary">
+                    <div className="rounded-2xl bg-theme-surface px-3 py-2.5 text-xs text-theme-text-secondary">
                       <div className="text-theme-text-muted">候选模块</div>
-                      <div className="mt-1 text-lg font-black text-theme-text-primary">{candidateModules.length || detail.candidate_module_count || 0}</div>
+                      <div className="mt-1 text-lg font-semibold text-theme-text-primary">{candidateModules.length || detail.candidate_module_count || 0}</div>
                     </div>
-                    <div className="rounded-2xl bg-theme-bg-app px-3 py-2.5 text-xs text-theme-text-secondary">
+                    <div className="rounded-2xl bg-theme-surface px-3 py-2.5 text-xs text-theme-text-secondary">
                       <div className="text-theme-text-muted">已选模块</div>
-                      <div className="mt-1 text-lg font-black text-theme-text-primary">{selectedModules.length || detail.selected_module_count || 0}</div>
+                      <div className="mt-1 text-lg font-semibold text-theme-text-primary">{selectedModules.length || detail.selected_module_count || 0}</div>
                     </div>
-                    <div className="rounded-2xl bg-theme-bg-app px-3 py-2.5 text-xs text-theme-text-secondary">
+                    <div className="rounded-2xl bg-theme-surface px-3 py-2.5 text-xs text-theme-text-secondary">
                       <div className="text-theme-text-muted">风险等级</div>
-                      <div className="mt-1 text-sm font-black text-theme-text-primary">{moduleRiskLevels.join(' / ') || '-'}</div>
+                      <div className="mt-1 text-sm font-semibold text-theme-text-primary">{moduleRiskLevels.join(' / ') || '-'}</div>
                     </div>
                   </div>
                 </div>
@@ -5768,7 +5768,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                       type="button"
                       onClick={selectAllVisibleModules}
                       disabled={selectableModuleKeys.length === 0}
-                      className="rounded-full border border-theme-border bg-theme-bg-app px-3 py-2 text-xs font-black text-theme-text-secondary"
+                      className="rounded-full border border-theme-border bg-theme-bg-app px-3 py-2 text-xs font-semibold text-theme-text-secondary"
                     >
                       全选全部模块
                     </button>
@@ -5776,7 +5776,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                       type="button"
                       onClick={clearAllSelectedModules}
                       disabled={selectedModuleKeys.length === 0}
-                      className="rounded-full border border-theme-border bg-theme-bg-app px-3 py-2 text-xs font-black text-theme-text-secondary"
+                      className="rounded-full border border-theme-border bg-theme-bg-app px-3 py-2 text-xs font-semibold text-theme-text-secondary"
                     >
                       清空勾选
                     </button>
@@ -5794,9 +5794,9 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
               </section>
 
               {moduleSelectionLoading ? (
- <section className="rounded-[2rem] border border-theme-border bg-theme-bg-app p-6 text-sm text-theme-text-muted">正在加载模块确认信息...</section>
+ <section className="rounded-xl border border-theme-border bg-theme-surface p-6 text-sm text-theme-text-muted">正在加载模块确认信息...</section>
               ) : !moduleSelection ? (
- <section className="rounded-[2rem] border border-dashed border-theme-border bg-theme-bg-app px-6 py-12 text-center text-sm text-theme-text-muted">
+ <section className="rounded-xl border border-dashed border-theme-border bg-theme-surface px-6 py-12 text-center text-sm text-theme-text-muted">
                   {isBinaryModuleTask ? '当前任务未生成额外模块表数据，可继续通过总览与阶段详情查看该模块的 ELF 输入和执行进度。' : '当前任务尚未生成可展示的模块确认数据。'}
                 </section>
               ) : (
@@ -5809,34 +5809,34 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
           ) : null}
 
           {activeTab === 'modules' && (detail?.status === 'pending_entry_confirmation' || entrySelection) ? (
- <section className="rounded-[2rem] border border-amber-500/20 bg-amber-50/70 p-6">
+ <section className="rounded-xl border border-amber-500/20 bg-amber-50/70 p-6">
               <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
                 <div>
-                  <h2 className="text-xl font-black text-theme-text-primary">入口确认</h2>
+                  <h2 className="text-xl font-semibold text-theme-text-primary">入口确认</h2>
                   <p className="mt-1 text-sm text-theme-text-secondary">入口分析已完成，当前需要确认候选入口函数后，任务才会继续进入数据流分析。</p>
                 </div>
                 <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-                  <div className="rounded-2xl bg-theme-bg-app px-3 py-2.5 text-xs text-theme-text-secondary">
+                  <div className="rounded-2xl bg-theme-surface px-3 py-2.5 text-xs text-theme-text-secondary">
                     <div className="text-theme-text-muted">候选入口</div>
-                    <div className="mt-1 text-lg font-black text-theme-text-primary">{entrySelection?.candidate_entries.length || detail?.candidate_entry_count || 0}</div>
+                    <div className="mt-1 text-lg font-semibold text-theme-text-primary">{entrySelection?.candidate_entries.length || detail?.candidate_entry_count || 0}</div>
                   </div>
-                  <div className="rounded-2xl bg-theme-bg-app px-3 py-2.5 text-xs text-theme-text-secondary">
+                  <div className="rounded-2xl bg-theme-surface px-3 py-2.5 text-xs text-theme-text-secondary">
                     <div className="text-theme-text-muted">已勾选</div>
-                    <div className="mt-1 text-lg font-black text-theme-text-primary">{selectedEntryKeys.length}</div>
+                    <div className="mt-1 text-lg font-semibold text-theme-text-primary">{selectedEntryKeys.length}</div>
                   </div>
-                  <div className="rounded-2xl bg-theme-bg-app px-3 py-2.5 text-xs text-theme-text-secondary">
+                  <div className="rounded-2xl bg-theme-surface px-3 py-2.5 text-xs text-theme-text-secondary">
                     <div className="text-theme-text-muted">选择模式</div>
-                    <div className="mt-1 text-sm font-black text-theme-text-primary">{entrySelection?.selection_mode === 'manual_confirm' ? '人工确认' : '自动选择'}</div>
+                    <div className="mt-1 text-sm font-semibold text-theme-text-primary">{entrySelection?.selection_mode === 'manual_confirm' ? '人工确认' : '自动选择'}</div>
                   </div>
-                  <div className="rounded-2xl bg-theme-bg-app px-3 py-2.5 text-xs text-theme-text-secondary">
+                  <div className="rounded-2xl bg-theme-surface px-3 py-2.5 text-xs text-theme-text-secondary">
                     <div className="text-theme-text-muted">状态</div>
-                    <div className="mt-1 text-sm font-black text-theme-text-primary">{entrySelectionLoading ? '加载中...' : (entrySelection?.requires_confirmation ? '等待确认' : '自动推进')}</div>
+                    <div className="mt-1 text-sm font-semibold text-theme-text-primary">{entrySelectionLoading ? '加载中...' : (entrySelection?.requires_confirmation ? '等待确认' : '自动推进')}</div>
                   </div>
                 </div>
               </div>
               <div className="mt-4 flex flex-wrap items-center gap-3">
-                <button type="button" onClick={() => setSelectedEntryKeys((entrySelection?.candidate_entries || []).map((item) => String(item.entry_key || '').trim()).filter(Boolean))} className="rounded-full border border-theme-border bg-theme-bg-app px-3 py-2 text-xs font-black text-theme-text-secondary">全选候选入口</button>
-                <button type="button" onClick={() => setSelectedEntryKeys([])} className="rounded-full border border-theme-border bg-theme-bg-app px-3 py-2 text-xs font-black text-theme-text-secondary">清空勾选</button>
+                <button type="button" onClick={() => setSelectedEntryKeys((entrySelection?.candidate_entries || []).map((item) => String(item.entry_key || '').trim()).filter(Boolean))} className="rounded-full border border-theme-border bg-theme-bg-app px-3 py-2 text-xs font-semibold text-theme-text-secondary">全选候选入口</button>
+                <button type="button" onClick={() => setSelectedEntryKeys([])} className="rounded-full border border-theme-border bg-theme-bg-app px-3 py-2 text-xs font-semibold text-theme-text-secondary">清空勾选</button>
                 <button type="button" onClick={() => void confirmEntrySelection()} disabled={actionLoading === 'confirm-entries' || selectedEntryKeys.length === 0 || !entryConfirmSupported} className="rounded-xl bg-theme-surface px-4 py-2.5 text-sm font-bold text-white disabled:opacity-60">
                   {actionLoading === 'confirm-entries' ? '确认中...' : '确认并继续'}
                 </button>
@@ -5846,11 +5846,11 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                   const key = String(entry.entry_key || '').trim();
                   const checked = selectedEntryKeys.includes(key);
                   return (
-                    <label key={key ||`${entry.module_key}-${entry.function_name}`} className="rounded-2xl border border-theme-border bg-theme-bg-app px-4 py-3">
+                    <label key={key ||`${entry.module_key}-${entry.function_name}`} className="rounded-2xl border border-theme-border bg-theme-surface px-4 py-3">
                       <div className="flex items-start gap-3">
                         <input type="checkbox" checked={checked} onChange={(event) => setSelectedEntryKeys((current) => event.target.checked ? (current.includes(key) ? current : current.concat(key)) : current.filter((item) => item !== key))} />
                         <div className="min-w-0">
-                          <div className="font-black text-theme-text-primary">{entry.function_name || '-'}</div>
+                          <div className="font-semibold text-theme-text-primary">{entry.function_name || '-'}</div>
                           <div className="mt-1 text-xs text-theme-text-muted break-all">{entry.module_name || '-'} · {entry.definition_file || entry.file_name || '-'}{entry.definition_line ?`:${entry.definition_line}` : ''}</div>
                           <div className="mt-2 text-xs text-theme-text-secondary">{entry.entry_reason || '-'}</div>
                         </div>
@@ -5859,7 +5859,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                   );
                 })}
                 {entrySelectionLoading || (entrySelection?.candidate_entries || []).length === 0 ? (
-                  <div className="rounded-2xl border border-dashed border-theme-border bg-theme-bg-app px-6 py-10 text-center text-sm text-theme-text-muted">
+                  <div className="rounded-2xl border border-dashed border-theme-border bg-theme-surface px-6 py-10 text-center text-sm text-theme-text-muted">
                     {entrySelectionLoading ? '正在加载入口候选...' : '暂无入口候选'}
                   </div>
                 ) : null}
@@ -5868,28 +5868,28 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
           ) : null}
 
           {activeTab === 'timeline' ? (
- <section className="rounded-[2rem] border border-theme-border bg-theme-bg-app p-6">
+ <section className="rounded-xl border border-theme-border bg-theme-surface p-6">
             <div className="flex flex-wrap items-start justify-between gap-4">
               <div>
-                <h2 className="text-xl font-black text-theme-text-primary">事件时间线</h2>
+                <h2 className="text-xl font-semibold text-theme-text-primary">事件时间线</h2>
                 <p className="mt-1 text-sm text-theme-text-muted">按时间顺序展示最近 80 条编排事件</p>
               </div>
               <div className="flex flex-wrap items-start gap-2">
-                <div className="rounded-2xl border border-theme-border bg-theme-bg-app px-3 py-2">
-                  <div className="text-[11px] font-black uppercase tracking-[0.16em] text-theme-text-muted">总事件数</div>
-                  <div className="mt-1 text-lg font-black text-theme-text-primary">{timelineTotal}</div>
+                <div className="rounded-2xl border border-theme-border bg-theme-surface px-3 py-2">
+                  <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-theme-text-muted">总事件数</div>
+                  <div className="mt-1 text-lg font-semibold text-theme-text-primary">{timelineTotal}</div>
                 </div>
-                <div className="rounded-2xl border border-theme-border bg-theme-bg-app px-3 py-2">
-                  <div className="text-[11px] font-black uppercase tracking-[0.16em] text-theme-text-muted">展示区间</div>
+                <div className="rounded-2xl border border-theme-border bg-theme-surface px-3 py-2">
+                  <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-theme-text-muted">展示区间</div>
                   <div className="mt-1 text-sm font-bold text-theme-text-secondary">{pagedTimelineItems.length > 0 ?`${fmtTime(pagedTimelineItems[0].created_at)} -> ${fmtTime(pagedTimelineItems[pagedTimelineItems.length - 1].created_at)}` : '-'}</div>
                 </div>
-                <div className="rounded-2xl border border-theme-border bg-theme-bg-app px-3 py-2">
-                  <div className="text-[11px] font-black uppercase tracking-[0.16em] text-theme-text-muted">分页</div>
+                <div className="rounded-2xl border border-theme-border bg-theme-surface px-3 py-2">
+                  <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-theme-text-muted">分页</div>
                   <div className="mt-1 text-sm font-bold text-theme-text-secondary">
                     {timelineRangeStart}-{timelineRangeEnd} / {timelineTotal}
                   </div>
                 </div>
-                <label className="rounded-2xl border border-theme-border bg-theme-bg-app px-3 py-2 text-xs font-bold text-theme-text-muted">
+                <label className="rounded-2xl border border-theme-border bg-theme-surface px-3 py-2 text-xs font-bold text-theme-text-muted">
                   <span className="mr-2 uppercase tracking-[0.16em] text-theme-text-muted">每页</span>
                   <select
                     value={timelinePageSize}
@@ -5908,7 +5908,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                   type="button"
                   onClick={() => void loadTimeline(timelinePage, timelinePageSize)}
                   disabled={timelineClearing || timelineLoading}
-                  className="inline-flex items-center gap-2 rounded-2xl border border-theme-border bg-theme-bg-app px-4 py-3 text-sm font-black text-theme-text-secondary transition hover:bg-theme-elevated disabled:cursor-not-allowed disabled:opacity-50"
+                  className="inline-flex items-center gap-2 rounded-2xl border border-theme-border bg-theme-surface px-4 py-3 text-sm font-semibold text-theme-text-secondary transition hover:bg-theme-elevated disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   {timelineLoading ? <Loader2 size={16} className="animate-spin" /> : <RefreshCw size={16} />}
                   刷新时间线
@@ -5917,7 +5917,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                   type="button"
                   onClick={() => void clearTimeline()}
                   disabled={timelineClearing || timelineLoading || timelineTotal === 0}
-                  className="inline-flex items-center gap-2 rounded-2xl border border-rose-500/20 bg-rose-500/15 px-4 py-3 text-sm font-black text-rose-400 transition hover:bg-rose-500/15 disabled:cursor-not-allowed disabled:opacity-50"
+                  className="inline-flex items-center gap-2 rounded-2xl border border-rose-500/20 bg-rose-500/15 px-4 py-3 text-sm font-semibold text-rose-400 transition hover:bg-rose-500/15 disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   {timelineClearing ? <Loader2 size={16} className="animate-spin" /> : <Trash2 size={16} />}
                   清空时间线
@@ -5927,18 +5927,18 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
 
             <div className="mt-4">
               {timelineLoading ? (
-                <div className="rounded-2xl border border-theme-border bg-theme-bg-app px-6 py-10 text-center text-sm text-theme-text-muted">
+                <div className="rounded-2xl border border-theme-border bg-theme-surface px-6 py-10 text-center text-sm text-theme-text-muted">
                   正在加载事件时间线...
                 </div>
               ) : timelineItems.length === 0 ? (
-                <div className="rounded-2xl border border-dashed border-theme-border bg-theme-bg-app px-6 py-10 text-center text-sm text-theme-text-muted">
+                <div className="rounded-2xl border border-dashed border-theme-border bg-theme-surface px-6 py-10 text-center text-sm text-theme-text-muted">
                   暂无事件
                 </div>
               ) : (
                 <div className="overflow-hidden rounded-2xl border border-theme-border">
                   <div className="overflow-x-auto">
                     <table className="min-w-[1080px] w-full divide-y divide-theme-border text-left text-xs">
-                      <thead className="bg-theme-bg-app text-[11px] font-black uppercase tracking-[0.12em] text-theme-text-muted">
+                      <thead className="bg-theme-bg-app text-[11px] font-semibold uppercase tracking-[0.12em] text-theme-text-muted">
                         <tr>
                           <th className="w-14 px-3 py-2">#</th>
                           <th className="w-44 px-3 py-2">时间</th>
@@ -5962,7 +5962,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                                   {fmt(event.created_at)}
                                 </td>
                                 <td className="px-3 py-2">
-                                  <span className={`inline-flex max-w-[160px] items-center rounded-full border px-2 py-0.5 text-[11px] font-black ${
+                                  <span className={`inline-flex max-w-[160px] items-center rounded-full border px-2 py-0.5 text-[11px] font-medium ${
                                     isAbnormalReasonEvent
                                       ? 'border-amber-500/20 bg-amber-500/15 text-amber-400'
                                       : 'border-sky-500/20 bg-sky-500/15 text-sky-400'
@@ -5988,7 +5988,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                                   <div className="truncate font-bold text-theme-text-primary" title={event.message || '系统事件'}>
                                     {event.message || '系统事件'}
                                     {event._isCompressed ? (
-                                      <span className="ml-2 rounded-full border border-amber-500/20 bg-amber-500/15 px-2 py-0.5 text-[10px] font-black text-amber-400">
+                                      <span className="ml-2 rounded-full border border-amber-500/20 bg-amber-500/15 px-2 py-0.5 text-[10px] font-medium text-amber-400">
                                         x{event._repeatCount}
                                       </span>
                                     ) : null}
@@ -6004,7 +6004,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                                     <button
                                       type="button"
                                       onClick={() => setExpandedEventKey(expanded ? null : event._key)}
-                                      className="text-[11px] font-black text-theme-text-muted transition hover:text-theme-text-primary"
+                                      className="text-[11px] font-semibold text-theme-text-muted transition hover:text-theme-text-primary"
                                     >
                                       {expanded ? '收起' : '查看'}
                                     </button>
@@ -6012,7 +6012,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                                       type="button"
                                       onClick={() => void deleteTimelineEvent(event.id, event._key)}
                                       disabled={deletingEventId === event.id || timelineClearing}
-                                      className="text-[11px] font-black text-rose-400 transition hover:text-rose-400 disabled:opacity-40"
+                                      className="text-[11px] font-semibold text-rose-400 transition hover:text-rose-400 disabled:opacity-40"
                                     >
                                       {deletingEventId === event.id ? '删除中' : '删除'}
                                     </button>
@@ -6044,7 +6044,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                       type="button"
                       onClick={() => setTimelinePage((current) => Math.max(1, current - 1))}
                       disabled={normalizedTimelinePage <= 1}
-                      className="rounded-xl border border-theme-border bg-theme-bg-app px-3 py-2 text-sm font-bold text-theme-text-secondary disabled:opacity-40"
+                      className="rounded-xl border border-theme-border bg-theme-surface px-3 py-2 text-sm font-bold text-theme-text-secondary disabled:opacity-40"
                     >
                       上一页
                     </button>
@@ -6052,7 +6052,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                       type="button"
                       onClick={() => setTimelinePage((current) => Math.min(timelineTotalPages, current + 1))}
                       disabled={normalizedTimelinePage >= timelineTotalPages}
-                      className="rounded-xl border border-theme-border bg-theme-bg-app px-3 py-2 text-sm font-bold text-theme-text-secondary disabled:opacity-40"
+                      className="rounded-xl border border-theme-border bg-theme-surface px-3 py-2 text-sm font-bold text-theme-text-secondary disabled:opacity-40"
                     >
                       下一页
                     </button>

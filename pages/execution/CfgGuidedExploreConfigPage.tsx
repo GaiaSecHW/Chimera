@@ -70,7 +70,7 @@ const SectionCard: React.FC<{ title: string; subtitle?: string; actions?: React.
  <section className="rounded-2xl border border-slate-200 bg-slate-50 p-6 space-y-4">
     <div className="flex items-start justify-between gap-4">
       <div>
-        <h2 className="text-base font-black text-slate-900">{title}</h2>
+        <h2 className="text-base font-semibold text-slate-900">{title}</h2>
         {subtitle && <p className="mt-0.5 text-xs text-slate-500">{subtitle}</p>}
       </div>
       {actions}
@@ -354,7 +354,7 @@ export const CfgGuidedExploreConfigPage: React.FC<{ projectId: string; embedded?
 
       {!embedded ? (
  <section className="rounded-[2rem] border border-slate-200 bg-slate-50 p-6">
-          <h1 className="mt-3 text-3xl font-black tracking-tight text-slate-900">分析配置</h1>
+          <h1 className="mt-3 text-3xl font-semibold tracking-tight text-slate-900">分析配置</h1>
           <p className="mt-2 text-sm text-slate-500">
             配置 secflow-app-cfg-guided-explore CFG Guided Explore引擎的运行参数，修改后点击「保存配置」生效。
           </p>
@@ -368,8 +368,8 @@ export const CfgGuidedExploreConfigPage: React.FC<{ projectId: string; embedded?
             <div>
               <div className="flex flex-wrap items-center gap-2">
                 <Settings size={18} className="text-rose-600" />
-                <h2 className="text-xl font-black text-slate-900">CFG Guided Explore参数配置</h2>
-                <span className="rounded-full border border-rose-200 bg-rose-50 px-3 py-1 text-[11px] font-black tracking-[0.12em] text-rose-700">
+                <h2 className="text-xl font-semibold text-slate-900">CFG Guided Explore参数配置</h2>
+                <span className="rounded-full border border-rose-200 bg-rose-50 px-3 py-1 text-[11px] font-medium tracking-[0.12em] text-rose-700">
                   secflow-app-cfg-guided-explore
                 </span>
               </div>

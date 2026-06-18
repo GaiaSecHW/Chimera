@@ -63,16 +63,16 @@ const queueAgeText = (sec?: number) => {
 // ---------------------------------------------------------------------------
 
 const StatCard: React.FC<{ label: string; children: React.ReactNode }> = ({ label, children }) => (
- <div className="rounded-xl border border-theme-border bg-theme-bg-app p-4">
-    <p className="mb-1 text-xs font-bold uppercase tracking-wider text-theme-text-muted">{label}</p>
+ <div className="rounded-xl border border-theme-border bg-theme-surface p-4">
+    <p className="mb-1 text-xs font-medium uppercase tracking-wider text-theme-text-muted">{label}</p>
     {children}
   </div>
 );
 
 const SectionCard: React.FC<{ title: string; extra?: React.ReactNode; children: React.ReactNode }> = ({ title, extra, children }) => (
- <section className="rounded-[2rem] border border-theme-border bg-theme-bg-app p-6">
+ <section className="rounded-xl border border-theme-border bg-theme-surface p-6">
     <div className="flex items-center justify-between gap-3">
-      <h2 className="text-lg font-black text-theme-text-primary">{title}</h2>
+      <h2 className="text-lg font-semibold text-theme-text-primary">{title}</h2>
       {extra}
     </div>
     <div className="mt-4">{children}</div>
@@ -119,7 +119,7 @@ const OcServerTable: React.FC<{ servers: AppScanOcServer[]; urlToJob: Record<str
   <div className="overflow-x-auto">
     <table className="w-full text-sm">
       <thead>
-        <tr className="border-b border-theme-border text-left text-xs font-bold uppercase tracking-wider text-theme-text-muted">
+        <tr className="border-b border-theme-border text-left text-xs font-medium uppercase tracking-wider text-theme-text-muted">
           <th className="px-3 py-2">ID</th>
           <th className="px-3 py-2">状态</th>
           <th className="px-3 py-2">URL</th>
@@ -137,7 +137,7 @@ const OcServerTable: React.FC<{ servers: AppScanOcServer[]; urlToJob: Record<str
             <tr key={s.instance_id || i} className="border-b border-slate-50 hover:bg-slate-100/70">
               <td className="px-3 py-2 font-mono text-xs text-theme-text-secondary">{(s.instance_id || '').slice(0, 8)}</td>
               <td className="px-3 py-2">
-                <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-bold ${ocStatusTone(s.status)}`}>{s.status || '-'}</span>
+                <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${ocStatusTone(s.status)}`}>{s.status || '-'}</span>
               </td>
               <td className="px-3 py-2 text-xs text-theme-text-secondary">{(s.base_url || '--').replace(/^https?:\/\//, '')}</td>
               <td className="px-3 py-2 text-xs text-theme-text-muted">{s.provider_id || '-'}</td>
@@ -277,7 +277,7 @@ export const AppScanMonitorPage: React.FC<Props> = ({ onBack }) => {
             type="button"
             onClick={() => void loadPool()}
             disabled={refreshing}
-            className="inline-flex items-center gap-2 rounded-xl border border-theme-border bg-theme-bg-app px-4 py-2.5 text-sm font-bold text-theme-text-secondary hover:bg-theme-elevated disabled:opacity-60"
+            className="inline-flex items-center gap-2 rounded-xl border border-theme-border bg-theme-surface px-4 py-2.5 text-sm font-medium text-theme-text-secondary hover:bg-theme-elevated disabled:opacity-60"
           >
             {refreshing ? <Loader2 size={16} className="animate-spin" /> : <RefreshCw size={16} />}
             {refreshing ? '刷新中...' : '刷新'}
@@ -295,7 +295,7 @@ export const AppScanMonitorPage: React.FC<Props> = ({ onBack }) => {
 
       {/* Error */}
       {!loading && error && (
-        <div className="rounded-2xl border border-rose-500/20 bg-rose-500/15 px-4 py-3 text-sm font-semibold text-rose-400">
+        <div className="rounded-xl border border-rose-500/20 bg-rose-500/15 px-4 py-3 text-sm font-semibold text-rose-400">
           {error}
         </div>
       )}
@@ -307,26 +307,26 @@ export const AppScanMonitorPage: React.FC<Props> = ({ onBack }) => {
             <StatCard label="引擎状态">
               <div className="flex items-center gap-2">
                 <span className={`inline-block h-2.5 w-2.5 rounded-full ${pool.engine_running ? 'bg-emerald-500' : 'bg-slate-400'}`} />
-                <span className="text-sm font-bold text-theme-text-secondary">{pool.engine_running ? '运行中' : '已停止'}</span>
+                <span className="text-sm font-medium text-theme-text-secondary">{pool.engine_running ? '运行中' : '已停止'}</span>
               </div>
             </StatCard>
             <StatCard label="进行中的扫描">
-              <span className="text-2xl font-black text-indigo-400">{activeProjects.length}</span>
+              <span className="text-2xl font-medium text-indigo-400">{activeProjects.length}</span>
             </StatCard>
             <StatCard label="调度中">
               <div className="flex items-baseline gap-1">
-                <span className="text-2xl font-black text-sky-400">{scheduling.in_flight}</span>
+                <span className="text-2xl font-medium text-sky-400">{scheduling.in_flight}</span>
                 <span className="text-xs text-theme-text-muted">/ {scheduling.total_slots}</span>
               </div>
             </StatCard>
             <StatCard label="排队中">
-              <span className="text-2xl font-black text-amber-500">{taskCounts.PENDING || 0}</span>
+              <span className="text-2xl font-bold text-amber-500">{taskCounts.PENDING || 0}</span>
             </StatCard>
             <StatCard label="累计调度">
-              <span className="text-2xl font-black text-theme-text-secondary">{scheduling.total_dispatched}</span>
+              <span className="text-2xl font-medium text-theme-text-secondary">{scheduling.total_dispatched}</span>
             </StatCard>
             <StatCard label="Redis 队列深度">
-              <span className="text-2xl font-black text-orange-500">{queue.length}</span>
+              <span className="text-2xl font-bold text-orange-500">{queue.length}</span>
               <p className="mt-1 text-xs text-theme-text-muted">{queueAgeText(queue.oldest_age_seconds)}</p>
             </StatCard>
           </div>
@@ -356,7 +356,7 @@ export const AppScanMonitorPage: React.FC<Props> = ({ onBack }) => {
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
-                    <tr className="border-b border-theme-border text-left text-xs font-bold uppercase tracking-wider text-theme-text-muted">
+                    <tr className="border-b border-theme-border text-left text-xs font-medium uppercase tracking-wider text-theme-text-muted">
                       <th className="px-3 py-2">Key</th>
                       <th className="px-3 py-2">调度中 / 并发槽</th>
                     </tr>
@@ -385,20 +385,20 @@ export const AppScanMonitorPage: React.FC<Props> = ({ onBack }) => {
               <>
                 {/* Summary */}
                 <div className="mb-4 grid grid-cols-2 gap-4 md:grid-cols-4">
-                  <div className="rounded-xl border border-theme-border bg-theme-bg-app p-3 text-center">
-                    <div className="text-xl font-black text-theme-text-secondary">{oc?.total_instances || 0}</div>
+                  <div className="rounded-xl border border-theme-border bg-theme-surface p-3 text-center">
+                    <div className="text-xl font-semibold text-theme-text-secondary">{oc?.total_instances || 0}</div>
                     <div className="text-xs text-theme-text-muted">总实例</div>
                   </div>
-                  <div className="rounded-xl border border-theme-border bg-theme-bg-app p-3 text-center">
-                    <div className="text-xl font-black text-emerald-400">{oc?.total_active || 0}</div>
+                  <div className="rounded-xl border border-theme-border bg-theme-surface p-3 text-center">
+                    <div className="text-xl font-semibold text-emerald-400">{oc?.total_active || 0}</div>
                     <div className="text-xs text-theme-text-muted">Active</div>
                   </div>
-                  <div className="rounded-xl border border-theme-border bg-theme-bg-app p-3 text-center">
-                    <div className="text-xl font-black text-amber-400">{totalDraining}</div>
+                  <div className="rounded-xl border border-theme-border bg-theme-surface p-3 text-center">
+                    <div className="text-xl font-semibold text-amber-400">{totalDraining}</div>
                     <div className="text-xs text-theme-text-muted">Draining</div>
                   </div>
-                  <div className="rounded-xl border border-theme-border bg-theme-bg-app p-3 text-center">
-                    <div className="text-xl font-black text-theme-text-muted">{totalCapacity}</div>
+                  <div className="rounded-xl border border-theme-border bg-theme-surface p-3 text-center">
+                    <div className="text-xl font-semibold text-theme-text-muted">{totalCapacity}</div>
                     <div className="text-xs text-theme-text-muted">总容量</div>
                   </div>
                 </div>
@@ -417,7 +417,7 @@ export const AppScanMonitorPage: React.FC<Props> = ({ onBack }) => {
                 {/* Job bindings */}
                 {(oc?.job_bindings || []).length > 0 && (
                   <div className="mt-4 border-t border-theme-border pt-4">
-                    <p className="mb-2 text-xs font-bold text-theme-text-muted">Job 绑定 ({(oc?.job_bindings || []).length})</p>
+                    <p className="mb-2 text-xs font-medium text-theme-text-muted">Job 绑定 ({(oc?.job_bindings || []).length})</p>
                     <div className="flex flex-wrap gap-2">
                       {(oc?.job_bindings || []).map((b, i) => (
                         <span key={i} className="inline-flex items-center gap-1 rounded bg-indigo-500/15 px-2 py-1 text-xs">
@@ -443,7 +443,7 @@ export const AppScanMonitorPage: React.FC<Props> = ({ onBack }) => {
                     key={r}
                     type="button"
                     onClick={() => handleTokenRangeChange(r)}
-                    className={`rounded px-2.5 py-1 text-xs font-bold transition ${
+                    className={`rounded px-2.5 py-1 text-xs font-medium transition ${
                       tokenRange === r ? 'bg-indigo-500/15 text-indigo-400' : 'text-theme-text-muted hover:bg-theme-elevated'
                     }`}
                   >
@@ -456,19 +456,19 @@ export const AppScanMonitorPage: React.FC<Props> = ({ onBack }) => {
             {/* Summary cards */}
             <div className="mb-4 grid grid-cols-2 gap-4 md:grid-cols-4">
               <StatCard label="总 Token">
-                <span className="text-2xl font-black text-indigo-400">
+                <span className="text-2xl font-medium text-indigo-400">
                   {fmtTk(tokenSummary.input + tokenSummary.cache_read + tokenSummary.output)}
                 </span>
               </StatCard>
               <StatCard label="输入">
-                <span className="text-2xl font-black text-sky-400">{fmtTk(tokenSummary.input + tokenSummary.cache_read)}</span>
+                <span className="text-2xl font-medium text-sky-400">{fmtTk(tokenSummary.input + tokenSummary.cache_read)}</span>
                 <p className="mt-1 text-xs text-theme-text-muted">缓存命中: {fmtTk(tokenSummary.cache_read)}</p>
               </StatCard>
               <StatCard label="输出">
-                <span className="text-2xl font-black text-emerald-400">{fmtTk(tokenSummary.output)}</span>
+                <span className="text-2xl font-medium text-emerald-400">{fmtTk(tokenSummary.output)}</span>
               </StatCard>
               <StatCard label="费用">
-                <span className="text-2xl font-black text-theme-text-secondary">{tokenSummary.cost ?`$${tokenSummary.cost.toFixed(2)}` : '--'}</span>
+                <span className="text-2xl font-medium text-theme-text-secondary">{tokenSummary.cost ?`$${tokenSummary.cost.toFixed(2)}` : '--'}</span>
               </StatCard>
             </div>
 
@@ -479,7 +479,7 @@ export const AppScanMonitorPage: React.FC<Props> = ({ onBack }) => {
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
-                    <tr className="border-b border-theme-border text-left text-xs font-bold uppercase tracking-wider text-theme-text-muted">
+                    <tr className="border-b border-theme-border text-left text-xs font-medium uppercase tracking-wider text-theme-text-muted">
                       <th className="px-3 py-2">项目</th>
                       <th className="px-3 py-2">扫描时间</th>
                       <th className="px-3 py-2">状态</th>
@@ -502,10 +502,10 @@ export const AppScanMonitorPage: React.FC<Props> = ({ onBack }) => {
                             {(j.started_at || j.created_at) && <span className="text-theme-text-muted"> ({fmtDuration(start, j.completed_at)})</span>}
                           </td>
                           <td className="px-3 py-2.5">
-                            <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-bold ${jobStatusTone(j.status)}`}>{j.status || '-'}</span>
+                            <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${jobStatusTone(j.status)}`}>{j.status || '-'}</span>
                           </td>
                           <td className="px-3 py-2.5 text-xs text-theme-text-muted">{j.model_name || '自动'}</td>
-                          <td className="px-3 py-2.5 text-right text-sm font-bold text-indigo-400">{fmtTk(total)}</td>
+                          <td className="px-3 py-2.5 text-right text-sm font-medium text-indigo-400">{fmtTk(total)}</td>
                           <td className="px-3 py-2.5 text-right text-xs text-theme-text-secondary">{fmtTk((j.token_input || 0) + (j.token_cache_read || 0))}</td>
                           <td className="px-3 py-2.5 text-right text-xs text-sky-500">{fmtTk(j.token_cache_read)}</td>
                           <td className="px-3 py-2.5 text-right text-xs text-theme-text-secondary">{fmtTk(j.token_output)}</td>

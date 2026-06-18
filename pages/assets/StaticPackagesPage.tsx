@@ -93,7 +93,7 @@ export const StaticPackagesPage: React.FC<StaticPackagesPageProps> = ({
               <button
                 onClick={handleRefresh}
                 disabled={isRefreshing}
-                className="inline-flex items-center gap-2 rounded-xl border border-theme-border bg-theme-bg-app px-3 py-2 text-sm font-bold text-theme-text-secondary hover:bg-theme-elevated disabled:opacity-60"
+                className="inline-flex items-center gap-2 rounded-xl border border-theme-border bg-theme-surface px-3 py-2 text-sm font-medium text-theme-text-secondary hover:bg-theme-elevated disabled:opacity-60"
                 title="手动刷新列表"
               >
                 <RefreshCw size={16} className={isRefreshing ? 'animate-spin' : ''} />
@@ -101,11 +101,11 @@ export const StaticPackagesPage: React.FC<StaticPackagesPageProps> = ({
               </button>
               <button
                 onClick={() => assetApi.staticPackages.checkAll().then(fetchStaticPackages)}
-                className="inline-flex items-center gap-2 rounded-xl border border-theme-border bg-theme-bg-app px-3 py-2 text-sm font-bold text-theme-text-secondary hover:bg-theme-elevated"
+                className="inline-flex items-center gap-2 rounded-xl border border-theme-border bg-theme-surface px-3 py-2 text-sm font-medium text-theme-text-secondary hover:bg-theme-elevated"
               >
                 <CheckCircle2 size={16} /> 全量校验
               </button>
-              <button className="inline-flex items-center gap-2 rounded-xl bg-theme-surface px-3 py-2 text-sm font-black text-white hover:bg-theme-elevated">
+              <button className="inline-flex items-center gap-2 rounded-xl bg-theme-surface px-3 py-2 text-sm font-semibold text-white hover:bg-theme-elevated">
                 <Upload size={16} /> 极速上传
               </button>
             </div>
@@ -115,25 +115,25 @@ export const StaticPackagesPage: React.FC<StaticPackagesPageProps> = ({
         {/* Stats Section */}
         <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4 2xl:grid-cols-8">
  <article className="rounded-xl border bg-gradient-to-br p-4 from-slate-50 via-slate-50 to-slate-100/70 border-slate-200/70">
-            <div className="truncate text-center text-xs font-bold text-theme-text-muted">存储总量</div>
+            <div className="truncate text-center text-xs font-medium text-theme-text-muted">存储总量</div>
             <div className="mt-1.5 truncate text-center text-sm font-semibold tabular-nums text-theme-text-primary">{packageStats?.summary.total_size_human || '0.00 GB'}</div>
           </article>
  <article className="rounded-xl border bg-gradient-to-br p-4 from-slate-50 via-slate-50 to-slate-100/70 border-slate-200/70">
-            <div className="truncate text-center text-xs font-bold text-theme-text-muted">组件总数</div>
+            <div className="truncate text-center text-xs font-medium text-theme-text-muted">组件总数</div>
             <div className="mt-1.5 truncate text-center text-sm font-semibold tabular-nums text-theme-text-primary">{packageStats?.summary.total_packages ?? 0}</div>
           </article>
  <article className="rounded-xl border bg-gradient-to-br p-4 from-sky-50 via-slate-50 to-sky-100/70 border-sky-200/70">
-            <div className="truncate text-center text-xs font-bold text-theme-text-muted">累计下载</div>
+            <div className="truncate text-center text-xs font-medium text-theme-text-muted">累计下载</div>
             <div className="mt-1.5 truncate text-center text-sm font-semibold tabular-nums text-theme-text-primary">{packageStats?.summary.total_downloads.toLocaleString() || 0}</div>
           </article>
  <article className="rounded-xl border bg-gradient-to-br p-4 from-slate-50 via-slate-50 to-slate-100/70 border-slate-200/70">
-            <div className="truncate text-center text-xs font-bold text-theme-text-muted">架构种类数</div>
+            <div className="truncate text-center text-xs font-medium text-theme-text-muted">架构种类数</div>
             <div className="mt-1.5 truncate text-center text-sm font-semibold tabular-nums text-theme-text-primary">{packageStats?.by_architecture.length ?? 0}</div>
           </article>
         </section>
 
         {/* Filter Bar */}
- <div className="flex flex-col md:flex-row gap-3 items-center justify-between rounded-2xl border border-theme-border bg-theme-bg-app p-3">
+ <div className="flex flex-col md:flex-row gap-3 items-center justify-between rounded-xl border border-theme-border bg-theme-surface p-3">
           <div className="flex-1 w-full relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-theme-text-muted" size={16} />
             <input
@@ -150,7 +150,7 @@ export const StaticPackagesPage: React.FC<StaticPackagesPageProps> = ({
                 <button
                   onClick={handleBatchCheck}
                   disabled={isValidating}
-                  className="inline-flex items-center gap-2 rounded-xl bg-indigo-500/15 text-indigo-400 px-3 py-2 text-sm font-black hover:bg-indigo-600 hover:text-white transition-colors disabled:opacity-50"
+                  className="inline-flex items-center gap-2 rounded-xl bg-indigo-500/15 text-indigo-400 px-3 py-2 text-sm font-semibold hover:bg-indigo-600 hover:text-white transition-colors disabled:opacity-50"
                 >
                   {isValidating ? <Loader2 size={16} className="animate-spin" /> : <ShieldCheck size={16} />}
                   验证选中 ({selectedIds.size})
@@ -158,7 +158,7 @@ export const StaticPackagesPage: React.FC<StaticPackagesPageProps> = ({
                 <button
                   onClick={() => handleDeleteClick(Array.from(selectedIds))}
                   disabled={isDeleting}
-                  className="inline-flex items-center gap-2 rounded-xl bg-red-500/15 text-red-400 px-3 py-2 text-sm font-black hover:bg-red-600 hover:text-white transition-colors disabled:opacity-50"
+                  className="inline-flex items-center gap-2 rounded-xl bg-red-500/15 text-red-400 px-3 py-2 text-sm font-semibold hover:bg-red-600 hover:text-white transition-colors disabled:opacity-50"
                 >
                   {isDeleting ? <Loader2 size={16} className="animate-spin" /> : <Trash2 size={16} />}
                   删除选中 ({selectedIds.size})
@@ -170,24 +170,24 @@ export const StaticPackagesPage: React.FC<StaticPackagesPageProps> = ({
 
         {/* Architecture chips panel */}
         {packageStats && packageStats.by_architecture.length > 0 && (
- <section className="overflow-hidden rounded-2xl border border-theme-border bg-theme-bg-app">
+ <section className="overflow-hidden rounded-xl border border-theme-border bg-theme-surface">
             <div className="border-b border-theme-border bg-slate-50/70 px-4 py-4 md:px-5">
-              <h2 className="text-lg font-black text-theme-text-primary">架构分布</h2>
+              <h2 className="text-lg font-semibold text-theme-text-primary">架构分布</h2>
             </div>
             <div className="flex flex-wrap gap-2 px-4 py-4 md:px-5">
               {packageStats.by_architecture.slice(0, 6).map(arch => (
-                <div key={arch.architecture} className="px-3 py-1.5 bg-theme-bg-app border border-theme-border rounded-xl flex items-center gap-2">
-                  <span className="text-[10px] font-black text-theme-text-secondary uppercase">{arch.architecture}</span>
-                  <span className="text-[10px] font-bold text-blue-400 bg-blue-500/15 px-2 py-0.5 rounded-full">{arch.package_count}</span>
+                <div key={arch.architecture} className="px-3 py-1.5 bg-theme-surface border border-theme-border rounded-xl flex items-center gap-2">
+                  <span className="text-[10px] font-medium text-theme-text-secondary uppercase">{arch.architecture}</span>
+                  <span className="text-[10px] font-medium text-blue-400 bg-blue-500/15 px-2 py-0.5 rounded-full">{arch.package_count}</span>
                 </div>
               ))}
             </div>
           </section>
         )}
 
- <section className="overflow-hidden rounded-2xl border border-theme-border bg-theme-bg-app">
+ <section className="overflow-hidden rounded-xl border border-theme-border bg-theme-surface">
           <div className="border-b border-theme-border bg-slate-50/70 px-4 py-4 md:px-5">
-            <h2 className="text-lg font-black text-theme-text-primary">软件包列表</h2>
+            <h2 className="text-lg font-semibold text-theme-text-primary">软件包列表</h2>
           </div>
            {(() => {
               const columns: DataTableColumn<StaticPackage>[] = [
@@ -215,12 +215,12 @@ export const StaticPackagesPage: React.FC<StaticPackagesPageProps> = ({
                   header: '软件包',
                   render: (pkg) => (
                     <div className="flex items-center gap-4">
-                      <div className="w-12 h-12 bg-theme-bg-app border border-theme-border text-blue-400 rounded-xl flex items-center justify-center font-black group-hover:bg-blue-600 group-hover:text-white transition-all">
+                      <div className="w-12 h-12 bg-theme-surface border border-theme-border text-blue-400 rounded-xl flex items-center justify-center font-semibold group-hover:bg-blue-600 group-hover:text-white transition-all">
                         {pkg.name[0].toUpperCase()}
                       </div>
                       <div className="min-w-0">
-                        <p className="text-sm font-black text-theme-text-primary truncate">{pkg.name}</p>
-                        <p className="text-[10px] text-theme-text-muted font-bold uppercase tracking-tighter">VERSION: {pkg.version}</p>
+                        <p className="text-sm font-semibold text-theme-text-primary truncate">{pkg.name}</p>
+                        <p className="text-[10px] text-theme-text-muted font-medium uppercase tracking-tighter">VERSION: {pkg.version}</p>
                       </div>
                     </div>
                   ),
@@ -230,10 +230,10 @@ export const StaticPackagesPage: React.FC<StaticPackagesPageProps> = ({
                   header: '系统 / 架构',
                   render: (pkg) => (
                     <div className="space-y-1">
-                      <div className="flex items-center gap-2 text-[10px] font-black text-theme-text-muted uppercase">
+                      <div className="flex items-center gap-2 text-[10px] font-medium text-theme-text-muted uppercase">
                         <Globe size={12} /> {pkg.system || 'linux'}
                       </div>
-                      <div className="flex items-center gap-2 text-xs font-black text-theme-text-secondary uppercase">
+                      <div className="flex items-center gap-2 text-xs font-medium text-theme-text-secondary uppercase">
                         <Server size={14} className="text-blue-500" /> {pkg.architecture}
                       </div>
                     </div>
@@ -244,8 +244,8 @@ export const StaticPackagesPage: React.FC<StaticPackagesPageProps> = ({
                   header: '统计指标',
                   render: (pkg) => (
                     <div className="flex flex-col items-center">
-                      <span className="text-xs font-black text-theme-text-secondary">{(pkg.total_size / 1024 / 1024).toFixed(1)}MB</span>
-                      <span className="text-[10px] text-theme-text-muted font-bold uppercase tracking-tighter">{pkg.download_count} 下载</span>
+                      <span className="text-xs font-medium text-theme-text-secondary">{(pkg.total_size / 1024 / 1024).toFixed(1)}MB</span>
+                      <span className="text-[10px] text-theme-text-muted font-medium uppercase tracking-tighter">{pkg.download_count} 下载</span>
                     </div>
                   ),
                 },
@@ -291,27 +291,27 @@ export const StaticPackagesPage: React.FC<StaticPackagesPageProps> = ({
           className="max-w-md"
         >
           <div className="p-8 text-center">
-            <div className="w-16 h-16 bg-red-500/15 text-red-400 rounded-2xl flex items-center justify-center mx-auto mb-6">
+            <div className="w-16 h-16 bg-red-500/15 text-red-400 rounded-lg flex items-center justify-center mx-auto mb-6">
               <AlertTriangle size={40} />
             </div>
-            <h3 className="text-lg font-black text-theme-text-primary">确认删除资产？</h3>
+            <h3 className="text-lg font-semibold text-theme-text-primary">确认删除资产？</h3>
             <p className="text-sm text-theme-text-muted mt-3 font-medium leading-relaxed">
-              您正准备移除 <span className="text-red-400 font-black">{showConfirm.ids.length}</span> 个受信任的软件包资产。
-              此操作将永久清理二进制文件及其所有分发记录，且<span className="font-black">无法撤回</span>。
+              您正准备移除 <span className="text-red-400 font-semibold">{showConfirm.ids.length}</span> 个受信任的软件包资产。
+              此操作将永久清理二进制文件及其所有分发记录，且<span className="font-semibold">无法撤回</span>。
             </p>
           </div>
           <div className="px-8 pb-8 flex gap-3">
             <button
               onClick={() => setShowConfirm({ show: false, ids: [] })}
               disabled={isDeleting}
-              className="flex-1 py-2.5 rounded-xl border border-theme-border bg-theme-bg-app text-sm font-bold text-theme-text-secondary hover:bg-theme-elevated disabled:opacity-50"
+              className="flex-1 py-2.5 rounded-xl border border-theme-border bg-theme-surface text-sm font-medium text-theme-text-secondary hover:bg-theme-elevated disabled:opacity-50"
             >
               取消
             </button>
             <button
               onClick={confirmDelete}
               disabled={isDeleting}
-              className="flex-1 py-2.5 rounded-xl bg-red-600 text-white text-sm font-black hover:bg-red-700 transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
+              className="flex-1 py-2.5 rounded-xl bg-red-600 text-white text-sm font-semibold hover:bg-red-700 transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
             >
               {isDeleting ? <Loader2 className="animate-spin" size={16} /> : <Trash2 size={16} />}
               立即删除
