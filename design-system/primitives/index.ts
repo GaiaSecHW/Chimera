@@ -15,3 +15,6 @@ export type { CardProps, CardPadding } from './Card';
 
 export { Modal } from './Modal';
 export type { ModalProps } from './Modal';
+
+export { SegmentedControl } from './SegmentedControl';
+export type { SegmentedControlProps, SegmentedOption } from './SegmentedControl';

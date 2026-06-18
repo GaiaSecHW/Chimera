@@ -31,7 +31,7 @@ import {
 import { api } from '../../clients/api';
 import { authApi } from '../../clients/auth';
 import { API_BASE } from '../../clients/base';
-import { Modal, PageHeader, PageSection, StatisticCard } from '../../design-system';
+import { Modal, PageHeader, PageSection, SegmentedControl, StatisticCard } from '../../design-system';
 
 const vulnApi = api.domains.vuln;
 const assetApi = api.domains.assets;
@@ -2483,7 +2483,7 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
           />
           {rootTab === 'download-center' ? renderDownloadCenter() : (
           <>
-          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6">
             <StatisticCard label="漏洞总数" value={stats.total} />
             <StatisticCard label="待验证" value={stats.pendingVerify} />
             <StatisticCard label="验证中" value={stats.validating} tone="warning" />
@@ -2504,19 +2504,13 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
                 />
               </div>
               <div className="flex items-center gap-1.5">
-                {Object.entries(STAGE_LABELS).map(([key, label]) => (
-                  <button
-                    key={key}
-                    type="button"
-                    onClick={() => setStageFilter(key)}
-                    className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-semibold uppercase tracking-wider ${
-                      stageFilter === key ? 'theme-shell-active' : 'btn btn-secondary'
-                    }`}
-                  >
-                    <Filter size={12} />
-                    {label}
-                  </button>
-                ))}
+                <SegmentedControl
+                  value={stageFilter}
+                  onChange={setStageFilter}
+                  icon={<Filter size={12} />}
+                  aria-label="阶段过滤"
+                  options={Object.entries(STAGE_LABELS).map(([key, label]) => ({ value: key, label }))}
+                />
                 <select
                   value={severityFilter}
                   onChange={(event) => setSeverityFilter(event.target.value)}
