@@ -763,7 +763,21 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
                         className="rounded-lg px-4 py-3 text-sm"
                         style={{ backgroundColor: `${LK.warning}14`, border: `1px solid ${LK.warning}40`, color: LK.warning }}
                       >
-                        没有可用输入，请先到"测试对象"上传记录。
+                        没有可用输入，请先到
+                        <button
+                          type="button"
+                          onClick={() => {
+                            onClose();
+                            window.dispatchEvent(new CustomEvent('chimera-navigate-view', {
+                              detail: { view: 'test-input-root' },
+                            }));
+                          }}
+                          className="mx-1 font-semibold underline underline-offset-2 transition-opacity hover:opacity-80"
+                          style={{ color: LK.warning }}
+                        >
+                          "测试对象"
+                        </button>
+                        上传记录。
                       </div>
                     ) : (
                       <div className="space-y-3">
