@@ -4801,6 +4801,17 @@ export interface AppDfaResultFile {
   mtime: number;
 }
 
+export interface AppDfaVulnFinding {
+  id: string;
+  severity: 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW' | 'INFO' | string;
+  title: string;
+  count?: number;
+  location?: string;
+  root_cause?: string;
+  proposed_fix?: string;
+  detail?: string;
+}
+
 export interface AppDfaTaskResult {
   task_id: string;
   available: boolean;
@@ -4812,6 +4823,7 @@ export interface AppDfaTaskResult {
   result_json?: Record<string, any> | null;
   output_files: AppDfaResultFile[];
   dataflow_files: AppDfaResultFile[];
+  findings?: AppDfaVulnFinding[];
   summary: {
     function_count: number;
     round_count: number;
@@ -4819,6 +4831,8 @@ export interface AppDfaTaskResult {
     total_tokens: number;
     total_cost: number;
     effectiveness?: Record<string, any>;
+    total_findings?: number;
+    findings_by_severity?: Record<string, number>;
   };
 }
 

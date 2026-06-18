@@ -4,6 +4,7 @@ import remarkGfm from 'remark-gfm';
 import {
   ArrowLeft, BarChart3, CheckCircle2, ChevronDown, ChevronUp, ClipboardCopy,
   FolderOpen, Loader2, RefreshCw, RotateCcw, Search, ScrollText, Trash2, XCircle,
+  ShieldAlert, MapPin, Wrench, FileText,
 } from 'lucide-react';
 
 const LK = {
@@ -31,6 +32,7 @@ import {
   AppDfaTaskDetail,
   AppDfaTaskEvent,
   AppDfaTaskResult,
+  AppDfaVulnFinding,
 } from '../../types/types';
 import { showConfirm } from '../../components/DialogService';
 import { useUiFeedback } from '../../components/UiFeedback';
@@ -485,6 +487,86 @@ function TraceTreeNodeCard({
 function MarkdownContent({ content }: { content: string }) {
   return <article className="prose prose-slate max-w-none prose-headings:font-black prose-pre:border prose-pre:border-slate-200 prose-pre:bg-slate-50 prose-pre:text-slate-900 prose-code:text-rose-700"><ReactMarkdown remarkPlugins={[remarkGfm]}>{content}</ReactMarkdown></article>;
 }
+
+const SEVERITY_STYLE: Record<string, { badge: string; bar: string; label: string }> = {
+  CRITICAL: { badge: 'bg-rose-100 text-rose-700 border-rose-200', bar: 'bg-rose-500', label: '严重' },
+  HIGH: { badge: 'bg-orange-100 text-orange-700 border-orange-200', bar: 'bg-orange-500', label: '高危' },
+  MEDIUM: { badge: 'bg-amber-100 text-amber-700 border-amber-200', bar: 'bg-amber-500', label: '中危' },
+  LOW: { badge: 'bg-sky-100 text-sky-700 border-sky-200', bar: 'bg-sky-500', label: '低危' },
+  INFO: { badge: 'bg-slate-100 text-slate-600 border-slate-200', bar: 'bg-slate-400', label: '提示' },
+};
+const SEVERITY_ORDER = ['CRITICAL', 'HIGH', 'MEDIUM', 'LOW', 'INFO'];
+
+function FindingCard({ finding, index }: { finding: AppDfaVulnFinding; index: number }) {
+  const [open, setOpen] = useState(index < 3);
+  const sev = (finding.severity || 'INFO').toUpperCase();
+  const style = SEVERITY_STYLE[sev] || SEVERITY_STYLE.INFO;
+  const hasDetail = Boolean(finding.location || finding.root_cause || finding.proposed_fix || finding.detail);
+  return (
+    <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
+      <div className={`h-1 w-full ${style.bar}`} />
+      <button
+        onClick={() => hasDetail && setOpen((v) => !v)}
+        className={`flex w-full items-start gap-3 px-5 py-4 text-left ${hasDetail ? 'cursor-pointer hover:bg-slate-50' : 'cursor-default'}`}
+      >
+        <span className="mt-0.5 text-xs font-black text-slate-400">#{index + 1}</span>
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-black ${style.badge}`}>
+              <ShieldAlert size={11} />{style.label} · {sev}
+            </span>
+            {finding.location ? <span className="inline-flex items-center gap-1 font-mono text-[11px] text-slate-500"><MapPin size={11} />{finding.location}</span> : null}
+          </div>
+          <div className="mt-2 text-sm font-bold leading-5 text-slate-900">
+            <ReactMarkdown remarkPlugins={[remarkGfm]} components={{ p: ({ children }) => <span>{children}</span> }}>{finding.title}</ReactMarkdown>
+          </div>
+        </div>
+        {hasDetail ? <span className="mt-1 text-slate-400">{open ? <ChevronUp size={16} /> : <ChevronDown size={16} />}</span> : null}
+      </button>
+      {open && hasDetail ? (
+        <div className="space-y-4 border-t border-slate-100 px-5 py-4">
+          {finding.root_cause ? (
+            <div>
+              <div className="mb-1 flex items-center gap-1 text-[11px] font-black uppercase tracking-[0.15em] text-slate-400"><Search size={12} />根因分析</div>
+              <div className="prose prose-sm prose-slate max-w-none prose-code:text-rose-700"><ReactMarkdown remarkPlugins={[remarkGfm]}>{finding.root_cause}</ReactMarkdown></div>
+            </div>
+          ) : null}
+          {finding.proposed_fix ? (
+            <div>
+              <div className="mb-1 flex items-center gap-1 text-[11px] font-black uppercase tracking-[0.15em] text-emerald-500"><Wrench size={12} />修复建议</div>
+              <div className="prose prose-sm prose-slate max-w-none prose-pre:bg-slate-900 prose-pre:text-slate-100 prose-code:text-emerald-700"><ReactMarkdown remarkPlugins={[remarkGfm]}>{finding.proposed_fix}</ReactMarkdown></div>
+            </div>
+          ) : null}
+          {!finding.root_cause && !finding.proposed_fix && finding.detail ? (
+            <div className="prose prose-sm prose-slate max-w-none prose-pre:bg-slate-50 prose-code:text-rose-700"><ReactMarkdown remarkPlugins={[remarkGfm]}>{finding.detail}</ReactMarkdown></div>
+          ) : null}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+function FindingCards({ findings, bySeverity }: { findings: AppDfaVulnFinding[]; bySeverity?: Record<string, number> }) {
+  const sorted = useMemo(
+    () => [...findings].sort((a, b) => SEVERITY_ORDER.indexOf((a.severity || 'INFO').toUpperCase()) - SEVERITY_ORDER.indexOf((b.severity || 'INFO').toUpperCase())),
+    [findings],
+  );
+  return (
+    <div className="space-y-4">
+      <div className="flex flex-wrap items-center gap-2">
+        {SEVERITY_ORDER.map((sev) => {
+          const n = bySeverity?.[sev] ?? sorted.filter((f) => (f.severity || 'INFO').toUpperCase() === sev).length;
+          if (!n) return null;
+          const style = SEVERITY_STYLE[sev];
+          return <span key={sev} className={`inline-flex items-center gap-1 rounded-full border px-3 py-1 text-xs font-black ${style.badge}`}>{style.label} {n}</span>;
+        })}
+        <span className="text-xs font-semibold text-slate-400">共 {sorted.length} 个漏洞</span>
+      </div>
+      {sorted.map((f, i) => <FindingCard key={f.id || i} finding={f} index={i} />)}
+    </div>
+  );
+}
+
 
 export const CfgGuidedExploreTaskDetailPage: React.FC<{ projectId: string; taskId: string; onBack: () => void }> = ({ projectId, taskId, onBack }) => {
   const appApi = api.domains.execution.cfgGuidedExplore;
@@ -1211,7 +1293,7 @@ export const CfgGuidedExploreTaskDetailPage: React.FC<{ projectId: string; taskI
         ) : activeTab === 'result' ? (
           <section className="space-y-4">
  <div className="grid gap-4 xl:grid-cols-5"><MetricCard label="追踪函数" value={result?.summary.function_count ?? 0} icon={<ScrollText size={18} />} /><MetricCard label="轮次数" value={result?.summary.round_count ?? 0} icon={<BarChart3 size={18} />} /><MetricCard label="通过轮次" value={result?.summary.passed_round_count ?? 0} icon={<CheckCircle2 size={18} />} /><MetricCard label="总 Token" value={formatNumber(result?.summary.total_tokens)} icon={<ScrollText size={18} />} /><div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4"><div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">结果目录</div><div className="mt-2 text-sm font-semibold text-slate-700 line-clamp-2">{result?.output_root || '-'}</div><div className="mt-3 flex flex-wrap gap-2"><button disabled={!resultRootFsPath} onClick={() => resultRootFsPath && openInFileExplorer(resultRootFsPath)} className="inline-flex items-center gap-1 rounded-lg border border-violet-200 px-2 py-1 text-[11px] font-semibold text-violet-700 hover:bg-violet-50 disabled:opacity-50"><FolderOpen size={11} />打开目录</button><button disabled={!result?.output_root} onClick={() => result?.output_root && navigator.clipboard.writeText(result.output_root)} className="inline-flex items-center gap-1 rounded-lg border border-slate-200 px-2 py-1 text-[11px] font-semibold text-slate-500 hover:bg-slate-100 disabled:opacity-50"><ClipboardCopy size={10} />复制路径</button></div></div></div>
- {resultLoading ? <section className="rounded-2xl border border-slate-200 bg-slate-50 p-10 text-center text-sm text-slate-500">加载结果中...</section> : !result || !result.available ? <section className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-10 text-center text-sm text-slate-500">当前任务尚未生成可展示结果。</section> : <section className="grid gap-4 xl:grid-cols-[260px_minmax(0,1fr)_320px]"><aside className="rounded-2xl border border-slate-200 bg-slate-50 p-4"><div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">结果导航</div><div className="mt-3 space-y-2">{[['final', '最终报告'], ['report', '运行报告'], ['dataflow', '函数级结果'], ['json', '结构化 JSON']].map(([id, label]) => <button key={id} onClick={() => setResultView(id as any)} className={`w-full rounded-2xl border px-4 py-3 text-left text-sm font-black transition ${resultView === id ? 'border-slate-900 bg-slate-900 text-white' : 'border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-50'}`}>{label}</button>)}</div>{resultView === 'dataflow' ? <div className="mt-4 max-h-80 space-y-2 overflow-auto">{result.dataflow_files.map((file) => <button key={file.relative_path} onClick={() => setSelectedDataflowFile(file.relative_path)} className={`w-full rounded-xl border px-3 py-2 text-left text-xs ${selectedDataflow?.relative_path === file.relative_path ? 'border-cyan-300 bg-cyan-50 text-cyan-800' : 'border-slate-200 bg-slate-50 text-slate-600'}`}>{file.name}</button>)}</div> : null}</aside><main className="rounded-2xl border border-slate-200 bg-slate-50 p-5"><h2 className="border-b border-slate-200 pb-4 text-2xl font-black tracking-tight text-slate-900">{resultView === 'final' ? '最终报告' : resultView === 'report' ? '运行报告' : resultView === 'dataflow' ? selectedDataflow?.name || '函数级结果' : '结构化 JSON'}</h2><div className="mt-5 max-h-[calc(100vh-24rem)] overflow-auto pr-2">{resultContent ? resultView === 'json' ? <pre className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-xs text-slate-900">{resultContent}</pre> : <MarkdownContent content={resultContent} /> : <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-6 py-10 text-center text-sm text-slate-500">当前结果缺少可展示内容</div>}</div></main><aside className="rounded-2xl border border-slate-200 bg-slate-50 p-4"><div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">关键文件</div><div className="mt-3 space-y-2">{[...(result.output_files || []), ...(result.dataflow_files || [])].map((file) => <div key={file.relative_path} className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2"><div className="font-mono text-[11px] text-slate-700 break-all">{file.relative_path}</div><div className="mt-1 text-[10px] text-slate-400">{formatNumber(file.size)} bytes</div></div>)}</div></aside></section>}
+ {resultLoading ? <section className="rounded-2xl border border-slate-200 bg-slate-50 p-10 text-center text-sm text-slate-500">加载结果中...</section> : !result || !result.available ? <section className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-10 text-center text-sm text-slate-500">当前任务尚未生成可展示结果。</section> : <section className="grid gap-4 xl:grid-cols-[260px_minmax(0,1fr)_320px]"><aside className="rounded-2xl border border-slate-200 bg-slate-50 p-4"><div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">结果导航</div><div className="mt-3 space-y-2">{[['final', '最终报告'], ['report', '运行报告'], ['dataflow', '函数级结果'], ['json', '结构化 JSON']].map(([id, label]) => <button key={id} onClick={() => setResultView(id as any)} className={`w-full rounded-2xl border px-4 py-3 text-left text-sm font-black transition ${resultView === id ? 'border-slate-900 bg-slate-900 text-white' : 'border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-50'}`}>{label}</button>)}</div>{resultView === 'dataflow' ? <div className="mt-4 max-h-80 space-y-2 overflow-auto">{result.dataflow_files.map((file) => <button key={file.relative_path} onClick={() => setSelectedDataflowFile(file.relative_path)} className={`w-full rounded-xl border px-3 py-2 text-left text-xs ${selectedDataflow?.relative_path === file.relative_path ? 'border-cyan-300 bg-cyan-50 text-cyan-800' : 'border-slate-200 bg-slate-50 text-slate-600'}`}>{file.name}</button>)}</div> : null}</aside><main className="rounded-2xl border border-slate-200 bg-slate-50 p-5"><h2 className="border-b border-slate-200 pb-4 text-2xl font-black tracking-tight text-slate-900">{resultView === 'final' ? '最终报告' : resultView === 'report' ? '运行报告' : resultView === 'dataflow' ? selectedDataflow?.name || '函数级结果' : '结构化 JSON'}</h2><div className="mt-5 max-h-[calc(100vh-24rem)] overflow-auto pr-2">{resultView === 'final' && (result.findings?.length || 0) > 0 ? <div className="space-y-5"><FindingCards findings={result.findings || []} bySeverity={result.summary?.findings_by_severity} /><details className="rounded-2xl border border-slate-200 bg-slate-50"><summary className="flex cursor-pointer select-none items-center gap-2 px-4 py-3 text-xs font-black text-slate-500 hover:bg-slate-100"><FileText size={13} />查看原始报告 (Markdown)</summary><div className="border-t border-slate-100 px-4 py-4">{resultContent ? <MarkdownContent content={resultContent} /> : null}</div></details></div> : resultContent ? resultView === 'json' ? <pre className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-xs text-slate-900">{resultContent}</pre> : <MarkdownContent content={resultContent} /> : <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-6 py-10 text-center text-sm text-slate-500">当前结果缺少可展示内容</div>}</div></main><aside className="rounded-2xl border border-slate-200 bg-slate-50 p-4"><div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">关键文件</div><div className="mt-3 space-y-2">{[...(result.output_files || []), ...(result.dataflow_files || [])].map((file) => <div key={file.relative_path} className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2"><div className="font-mono text-[11px] text-slate-700 break-all">{file.relative_path}</div><div className="mt-1 text-[10px] text-slate-400">{formatNumber(file.size)} bytes</div></div>)}</div></aside></section>}
           </section>
         ) : activeTab === 'vuln-graph' ? (
           <section className="space-y-4">
