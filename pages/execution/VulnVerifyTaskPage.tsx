@@ -26,7 +26,8 @@ const TERMINAL_STATUSES = new Set(['success', 'failed', 'cancelled']);
 const VERIFY_OPEN_TASK_ID_KEY = 'chimera-vuln-verify-open-task-id';
 const VERIFY_OPEN_PROJECT_ID_KEY = 'chimera-vuln-verify-open-project-id';
 const BATCH_CREATE_CONCURRENCY = 3;
-const MAX_BATCH_CREATE = 100;
+const PENDING_CASE_LOAD_LIMIT = 500;
+const MAX_BATCH_CREATE = 500;
 
 const STATUS_LABEL: Record<string, string> = {
   pending: '等待中',
@@ -286,6 +287,7 @@ export const VulnVerifyTaskPage: React.FC<{ projectId: string }> = ({ projectId 
 
   const [batchPanelOpen, setBatchPanelOpen] = useState(false);
   const [pendingCases, setPendingCases] = useState<PendingVerifyCase[]>([]);
+  const [pendingCasesTotal, setPendingCasesTotal] = useState(0);
   const [pendingCasesLoading, setPendingCasesLoading] = useState(false);
   const [selectedCaseIds, setSelectedCaseIds] = useState<Set<string>>(() => new Set());
   const [batchObjectFilter, setBatchObjectFilter] = useState('');
@@ -406,6 +408,7 @@ export const VulnVerifyTaskPage: React.FC<{ projectId: string }> = ({ projectId 
     setPage(1);
     setProjectStats(null);
     setPendingCases([]);
+    setPendingCasesTotal(0);
     setSelectedCaseIds(new Set());
     setBatchObjectFilter('');
     setBatchConfirmOpen(false);
@@ -435,7 +438,7 @@ export const VulnVerifyTaskPage: React.FC<{ projectId: string }> = ({ projectId 
           project_id: projectId,
           current_stage: stage,
           page: '1',
-          page_size: '1000',
+          page_size: String(PENDING_CASE_LOAD_LIMIT),
         });
         return `${API_BASE}/api/vuln/cases?${query.toString()}`;
       };
@@ -447,11 +450,12 @@ export const VulnVerifyTaskPage: React.FC<{ projectId: string }> = ({ projectId 
         handleResponse(receiveResponse),
         handleResponse(triageResponse),
       ]);
-      const items = [
-        ...((receivePayload?.items || []) as PendingVerifyCase[]),
-        ...((triagePayload?.items || []) as PendingVerifyCase[]),
-      ];
+      const receiveItems = (receivePayload?.items || []) as PendingVerifyCase[];
+      const triageItems = (triagePayload?.items || []) as PendingVerifyCase[];
+      const items = [...receiveItems, ...triageItems].slice(0, PENDING_CASE_LOAD_LIMIT);
+      const totalCount = Number(receivePayload?.total || 0) + Number(triagePayload?.total || 0);
       setPendingCases(items);
+      setPendingCasesTotal(totalCount);
       setSelectedCaseIds((prev) => {
         const next = new Set<string>();
         const availableIds = new Set(items.map((item) => item.id));
@@ -461,6 +465,7 @@ export const VulnVerifyTaskPage: React.FC<{ projectId: string }> = ({ projectId 
       setMessage(null);
     } catch (error: any) {
       setPendingCases([]);
+      setPendingCasesTotal(0);
       setMessage(error?.message || String(error));
     } finally {
       setPendingCasesLoading(false);
@@ -726,7 +731,7 @@ export const VulnVerifyTaskPage: React.FC<{ projectId: string }> = ({ projectId 
             </div>
 
             <div className="mt-4 flex flex-wrap items-center gap-3 text-xs text-theme-text-muted">
-              <span>待验证漏洞：{pendingCases.length}</span>
+              <span>待验证漏洞：已加载 {pendingCases.length} / 总计 {pendingCasesTotal}</span>
               <span>当前筛选：{filteredPendingCases.length}</span>
               <span>已选择：{selectedCaseIds.size}</span>
               <span>单次最多：{MAX_BATCH_CREATE}</span>
