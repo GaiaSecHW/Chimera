@@ -101,7 +101,9 @@ const CodemapProgressChip: React.FC<{
   status: CodemapTaskStatus | null;
   onRebuild?: () => void;
   rebuilding?: boolean;
-}> = ({ status, onRebuild, rebuilding }) => {
+  onCorrect?: () => void;
+  correcting?: boolean;
+}> = ({ status, onRebuild, rebuilding, onCorrect, correcting }) => {
   if (!status) return null;
   const s = status.status;
   const progress = status.progress;
@@ -127,6 +129,20 @@ const CodemapProgressChip: React.FC<{
       className="rounded-xl border border-theme-border px-3 py-2 text-xs font-black text-theme-text-secondary hover:bg-theme-elevated disabled:cursor-not-allowed disabled:opacity-50"
     >
       {rebuilding ? '重派中…' : '重新构建'}
+    </button>
+  ) : null;
+  // 「图谱为空」更正按钮:status=completed 但 progress.total===0(silent-success
+  // 失败模式 — analyze 扫了空目录/错路径,exit 0 但 0 函数,任务标 completed。
+  // failed 走 rebuildButton,这里只覆盖 completed+空进度。
+  const showCorrect = s === 'completed' && !hasRepairProgress && !!onCorrect;
+  const correctButton = showCorrect ? (
+    <button
+      type="button"
+      onClick={(e) => { e.stopPropagation(); onCorrect?.(); }}
+      disabled={correcting}
+      className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs font-black text-amber-400 hover:bg-amber-500/20 disabled:cursor-not-allowed disabled:opacity-50"
+    >
+      {correcting ? '更正中…' : '更正代码目录'}
     </button>
   ) : null;
   if (hasRepairProgress) {
@@ -164,8 +180,14 @@ const CodemapProgressChip: React.FC<{
     );
   }
   if (s === 'completed') {
-    // 兜底:理论上 completed 应有 progress;真无 progress 就只能说"已完成"。
-    return <span className={`${pillBase} ${toneSuccess}`}>已完成</span>;
+    // 兜底:理论上 completed 应有 progress;真无 progress = silent-success 0 函数
+    // 失败模式(target_dir 错位、analyze 扫空目录),给「更正代码目录」按钮做出口。
+    return (
+      <span className="inline-flex items-center gap-2">
+        <span className={`${pillBase} ${toneSuccess}`}>已完成</span>
+        {correctButton}
+      </span>
+    );
   }
   const label = STATUS_LABELS_SHORT[s] || s;
   return <span className={`${pillBase} ${toneNeutral}`}>{label}</span>;
@@ -219,6 +241,8 @@ export const TestInputPage: React.FC<TestInputPageProps> = ({ selectedProjectId,
   const [codemapStatus, setCodemapStatus] = useState<CodemapTaskStatus | null>(null);
   // 重派按钮的本地态(DELETE 期间禁用,error 仅 console)。
   const [codemapRebuilding, setCodemapRebuilding] = useState(false);
+  // 「更正代码目录」按钮的本地态(purge+重派期间禁用)。
+  const [codemapCorrecting, setCodemapCorrecting] = useState(false);
   // 详情对话框里"打开知识图谱"按钮的本地态(启动 serve 时禁用 + 错误回显)。
   const [openServeLoading, setOpenServeLoading] = useState(false);
   const [openServeError, setOpenServeError] = useState<string | null>(null);
@@ -327,6 +351,31 @@ export const TestInputPage: React.FC<TestInputPageProps> = ({ selectedProjectId,
       console.warn('[codemap] deleteTask failed', error);
     } finally {
       setCodemapRebuilding(false);
+    }
+  };
+
+  // completed+0 函数 chip 旁的「更正代码目录」按钮:silent-success 失败
+  // (target_dir 错位、analyze 扫空目录但 exit 0)的恢复出口。purge 销毁式
+  // 清掉旧空项目(停 serve、DROP 库、删 manager 工作区目录),再 setStatus(null)
+  // 让派发 effect 用最新有效上传的真实路径重建。
+  const handleCodemapCorrect = async () => {
+    if (!codemapStatus || codemapCorrecting) return;
+    const dbName = codemapStatus.db_name;
+    const taskId = codemapStatus.task_id;
+    setCodemapCorrecting(true);
+    try {
+      if (dbName) {
+        await api.codemapManager.purgeProject(dbName);
+      } else {
+        // 兜底:没有 db_name 时退化为 deleteTask;后续派发 effect 仍能重派。
+        await api.codemapManager.deleteTask(taskId).catch(() => {});
+      }
+      setCodemapStatus(null);
+    } catch (error) {
+      // eslint-disable-next-line no-console
+      console.warn('[codemap] purgeProject failed', error);
+    } finally {
+      setCodemapCorrecting(false);
     }
   };
 
@@ -811,6 +860,8 @@ export const TestInputPage: React.FC<TestInputPageProps> = ({ selectedProjectId,
                                   status={codemapStatus}
                                   onRebuild={handleCodemapRebuild}
                                   rebuilding={codemapRebuilding}
+                                  onCorrect={handleCodemapCorrect}
+                                  correcting={codemapCorrecting}
                                 />
                               ) : null}
                               <button onClick={() => { void openUploadDetailDialog(record); }} className="rounded-xl border border-theme-border px-3 py-2 text-xs font-black text-theme-text-secondary hover:bg-theme-elevated">
