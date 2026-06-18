@@ -180,11 +180,12 @@ const CodemapProgressChip: React.FC<{
     );
   }
   if (s === 'completed') {
-    // 兜底:理论上 completed 应有 progress;真无 progress = silent-success 0 函数
-    // 失败模式(target_dir 错位、analyze 扫空目录),给「更正代码目录」按钮做出口。
+    // completed 但无 repair progress = silent-success 0 函数失败模式
+    // (target_dir 错位、analyze 扫空目录但 exit 0)。语义就是异常,展示
+    // 红色,后台自动触发一次更正(封顶 1 次)兜底,用户无需手动点。
     return (
       <span className="inline-flex items-center gap-2">
-        <span className={`${pillBase} ${toneSuccess}`}>已完成</span>
+        <span className={`${pillBase} ${toneFail}`}>异常 · 0 函数</span>
         {correctButton}
       </span>
     );
@@ -243,6 +244,9 @@ export const TestInputPage: React.FC<TestInputPageProps> = ({ selectedProjectId,
   const [codemapRebuilding, setCodemapRebuilding] = useState(false);
   // 「更正代码目录」按钮的本地态(purge+重派期间禁用)。
   const [codemapCorrecting, setCodemapCorrecting] = useState(false);
+  // 自动更正封顶:每个 task_id 只自动 purge 一次,避免「上传本身没源码」之类
+  // 永远 0 函数的场景陷入死循环。手动点按钮不受此 ref 限制。
+  const autoCorrectedRef = useRef<Set<string>>(new Set());
   // 详情对话框里"打开知识图谱"按钮的本地态(启动 serve 时禁用 + 错误回显)。
   const [openServeLoading, setOpenServeLoading] = useState(false);
   const [openServeError, setOpenServeError] = useState<string | null>(null);
@@ -378,6 +382,25 @@ export const TestInputPage: React.FC<TestInputPageProps> = ({ selectedProjectId,
       setCodemapCorrecting(false);
     }
   };
+
+  // 自动更正 effect:status=completed 但 progress.total===0(silent-success
+  // 失败模式)时,后台自动触发一次 purge+重派,无需用户手动。封顶 1 次/task,
+  // 防止"上传压缩包本身没源码"之类永远 0 函数的场景陷入死循环;循环回来还是 0
+  // 函数就由用户手动点按钮决定下一步(或检查上传)。
+  useEffect(() => {
+    if (!codemapStatus) return;
+    if (codemapStatus.status !== 'completed') return;
+    const progress = codemapStatus.progress;
+    if (progress && progress.total > 0) return;  // 真正有结果,不动
+    const taskId = codemapStatus.task_id;
+    if (autoCorrectedRef.current.has(taskId)) return;  // 已自动试过,不再循环
+    if (codemapCorrecting) return;
+    autoCorrectedRef.current.add(taskId);
+    void handleCodemapCorrect();
+    // 故意只依赖 codemapStatus 的"标识 + 终态判据",handleCodemapCorrect 闭包
+    // 通过 ref 读最新 codemapCorrecting,不进依赖列表避免抖动。
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [codemapStatus]);
 
   const loadOverview = async () => {
     setOverviewLoading(true);
