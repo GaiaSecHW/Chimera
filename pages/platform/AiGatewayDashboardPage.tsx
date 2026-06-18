@@ -107,7 +107,7 @@ export const AiGatewayDashboardPage: React.FC<AiGatewayDashboardPageProps> = ({ 
         platformApi.aigw.getDashboardSummary({ range: '24h' }),
         platformApi.aigw.getDashboardActiveTaskKeys({ range: '24h', limit: 10 }),
         platformApi.aigw.getDashboardActiveModels({ range: '24h', limit: 10 }),
-        platformApi.aigw.getDashboardRecentLogs({ limit: 8 }),
+        platformApi.aigw.getDashboardRecentLogs({ limit: 10 }),
       ]);
       setSummary((summaryResp || null) as DashboardSummaryResponse | null);
       setActiveTaskKeys(Array.isArray(taskResp?.items) ? taskResp.items as DashboardActiveTaskKeyItem[] : []);
@@ -127,7 +127,7 @@ export const AiGatewayDashboardPage: React.FC<AiGatewayDashboardPageProps> = ({ 
   }, []);
 
   const errorLogs = logs.filter((item) => Number(item.status_code || 0) >= 400).length;
-  const rangeLabel = summary?.range?.preset === '24h' ? '1 天内' : (summary?.range?.preset || '当前');
+  const rangeLabel = summary?.range?.preset === '24h' ? '最近 24 小时' : (summary?.range?.preset || '当前');
 
   return (
     <div className="flex min-h-full flex-col gap-6 p-8">
