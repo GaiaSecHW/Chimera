@@ -123,11 +123,11 @@ export const ProjectMgmtPage: React.FC<ProjectMgmtPageProps> = ({
         .catch(() => null),
     );
     const [taskRes, vulnRes, ...envResults] = await Promise.allSettled([
-      scheduleApi.getTaskOverview(),
+      scheduleApi.listGlobalTasks({ page: 1, page_size: 1 }),
       vulnApi.getOverview(),
       ...envStats,
     ]);
-    setTaskCount(taskRes.status === 'fulfilled' ? Number(taskRes.value?.stats?.total_tasks || 0) : null);
+    setTaskCount(taskRes.status === 'fulfilled' ? Number(taskRes.value?.total || 0) : null);
     setVulnCount(vulnRes.status === 'fulfilled' ? Number(vulnRes.value?.metrics?.total_cases || 0) : null);
     const envTotal = envResults.reduce<number>((sum, res) => {
       if (res.status === 'fulfilled' && res.value) {
