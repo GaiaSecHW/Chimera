@@ -10,8 +10,8 @@ export interface VulnVerifyTaskCreateRequest {
   description?: string;
   reports_dir: string;
   source_root: string;
-  binary_root: string;
-  threat_path: string;
+  binary_root?: string | null;
+  threat_path?: string | null;
   model?: string;
   concurrency?: number;
   resume?: boolean;
@@ -25,8 +25,8 @@ export interface VulnVerifyTask {
   status: VulnVerifyStatus;
   reports_dir: string;
   source_root: string;
-  binary_root: string;
-  threat_path: string;
+  binary_root: string | null;
+  threat_path: string | null;
   output_dir: string;
   model?: string | null;
   concurrency: number;

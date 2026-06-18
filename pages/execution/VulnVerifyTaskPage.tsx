@@ -363,8 +363,8 @@ export const VulnVerifyTaskPage: React.FC<{ projectId: string }> = ({ projectId 
         description: form.description.trim() || undefined,
         reports_dir: form.reports_dir.trim(),
         source_root: form.source_root.trim(),
-        binary_root: form.binary_root.trim(),
-        threat_path: form.threat_path.trim(),
+        binary_root: form.binary_root.trim() || undefined,
+        threat_path: form.threat_path.trim() || undefined,
         model: form.model.trim() || undefined,
         concurrency: Number(form.concurrency || 1),
         resume: false,
@@ -673,18 +673,18 @@ export const VulnVerifyTaskPage: React.FC<{ projectId: string }> = ({ projectId 
               {[
                 ['reports_dir', '报告目录', '扫描报告所在目录'],
                 ['source_root', '源码根目录', '源码文件根目录'],
-                ['binary_root', '二进制根目录', '二进制文件根目录'],
-                ['threat_path', '威胁模型文件', 'threat_model.md 路径'],
+                ['binary_root', '二进制根目录', '二进制文件根目录（可选）'],
+                ['threat_path', '威胁模型文件', 'threat_model.md 路径（可选，留空使用内置威胁模型）'],
                 ['model', '模型', DEFAULT_MODEL_HINT],
               ].map(([key, label, help]) => (
                 <label key={key} className="block text-sm font-semibold text-theme-text-secondary">
-                  {label} {key !== 'model' ? <span className="text-rose-500">*</span> : null}
+                  {label} {key !== 'model' && key !== 'binary_root' && key !== 'threat_path' ? <span className="text-rose-500">*</span> : null}
                   <input
                     className="mt-1 w-full rounded-lg border border-theme-border px-3 py-2 font-mono text-xs"
                     value={(form as any)[key]}
                     onChange={(e) => setForm((p) => ({ ...p, [key]: e.target.value }))}
                     placeholder={help}
-                    required={key !== 'model'}
+                    required={key !== 'model' && key !== 'binary_root' && key !== 'threat_path'}
                   />
                 </label>
               ))}

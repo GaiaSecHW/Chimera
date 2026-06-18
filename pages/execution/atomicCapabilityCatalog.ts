@@ -641,7 +641,7 @@ export const atomicCapabilityCatalog: AtomicCapabilityDescriptor[] = [
         description: '服务健康、任务创建、任务列表与状态查询。',
         endpoints: [
           { method: 'GET', path: '/health', purpose: '获取服务健康状态。', requestSummary: '无请求体。', responseSummary: '返回 status 与 service。' },
-          { method: 'POST', path: '/projects/{project_id}/tasks', purpose: '创建漏洞验证任务。', requestSummary: '提交 reports_dir、source_root、binary_root、threat_path、model、concurrency。', responseSummary: '返回任务状态、输出目录和进度。' },
+          { method: 'POST', path: '/projects/{project_id}/tasks', purpose: '创建漏洞验证任务。', requestSummary: '提交 reports_dir、source_root、binary_root（可选）、threat_path（可选）、model、concurrency。', responseSummary: '返回任务状态、输出目录和进度。' },
           { method: 'GET', path: '/projects/{project_id}/tasks', purpose: '查询任务列表。', requestSummary: '支持 status、search、limit、offset。', responseSummary: '返回任务列表和总数。' },
           { method: 'GET', path: '/projects/{project_id}/tasks/{task_id}', purpose: '查看任务详情和事件。', requestSummary: '路径参数 project_id/task_id。', responseSummary: '返回任务详情、进度和事件列表。' },
         ],
