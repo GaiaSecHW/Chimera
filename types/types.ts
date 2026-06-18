@@ -3083,6 +3083,7 @@ export interface SystemAnalysisServiceConfig {
   filter_engine: 'script' | 'agent';
   enable_final_check: boolean;
   super_fast_mode: boolean;
+  super_fast_mode: boolean;
   worker_task_concurrency: number;
   parallel_modules: number;
   parallel_sub_workers: number;
