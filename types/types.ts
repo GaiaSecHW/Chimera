@@ -2491,7 +2491,6 @@ export type ScheduleRuntimeTaskType =
   | 'source_scan_e2e'
   | 'binary_module_e2e'
   | 'ai4red'
-  | 'ai4apk'
   | 'ai4app_fast'
   | 'ai4app_deep'
   | 'ai4web_fast'
