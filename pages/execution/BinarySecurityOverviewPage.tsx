@@ -243,13 +243,6 @@ const archiveResultLabel = (archive?: BinarySecurityProjectStageAggregate['archi
   return`成功 ${successCount} · 失败 ${failedCount}`;
 };
 
-const formatDeleteStageTaskIds = (stageName: string, ids: string[]) => {
-  if (ids.length === 0) return`${formatStageLabel(stageName)}：无子任务`;
-  const visibleIds = ids.slice(0, DELETE_STAGE_ITEM_PREVIEW_LIMIT);
-  const hiddenCount = Math.max(0, ids.length - visibleIds.length);
-  return`${formatStageLabel(stageName)}：${visibleIds.join(', ')}${hiddenCount > 0 ?` 等 ${hiddenCount} 个` : ''}`;
-};
-
 const manualOperationBadgeTone = (overall?: string) => {
   switch (overall) {
     case 'ready':
@@ -520,50 +513,10 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
   const deleteTasks = async (taskIds: string[]) => {
     if (!projectId) return;
     if (taskIds.length === 0) return;
-    let deleteMessage =
+    const deleteMessage =
       taskIds.length === 1
         ? '删除会先取消并删除所有下游阶段任务，然后删除当前任务记录并清空任务目录。删除后不可恢复，是否继续？'
         :`将删除选中的 ${taskIds.length} 个任务。删除会先取消并删除所有下游阶段任务，然后删除当前任务记录并清空任务目录。删除后不可恢复，是否继续？`;
-
-    if (taskIds.length === 1) {
-      try {
-        const detail = await executionApi.binarySecurity.getTask(projectId, taskIds[0]);
-        const taskIdsByStage = new Map<string, string[]>();
-        for (const stageName of (detail.stage_sequence || stages)) {
-          let page = 1;
-          while (true) {
-            const payload = await executionApi.binarySecurity.getTaskStageItems(projectId, taskIds[0], {
-              stage_name: stageName,
-              page,
-              per_page: STAGE_ITEMS_PER_PAGE,
-            });
-            (payload.items || []).forEach((item) => {
-              const downstreamTaskId = item.downstream_task_id?.trim();
-              if (!downstreamTaskId) return;
-              const current = taskIdsByStage.get(item.stage_name) || [];
-              if (!current.includes(downstreamTaskId)) current.push(downstreamTaskId);
-              taskIdsByStage.set(item.stage_name, current);
-            });
-            if ((payload.page || page) * (payload.per_page || STAGE_ITEMS_PER_PAGE) >= (payload.total || 0)) {
-              break;
-            }
-            page += 1;
-          }
-        }
-        const stageLines = (detail.stage_sequence || stages).map((stageName) => {
-          const ids = taskIdsByStage.get(stageName) || [];
-          return formatDeleteStageTaskIds(stageName, ids);
-        });
-        deleteMessage = [
-          '删除会先取消并删除所有下游阶段任务，然后删除当前任务记录并清空任务目录。删除后不可恢复，是否继续？',
-          '',
-          '将删除的阶段子任务 ID：',
-          ...stageLines,
-        ].join('\n');
-      } catch {
-        // Ignore detail fetch failure and fall back to the generic prompt.
-      }
-    }
 
     const confirmed = await showConfirm({
       title: taskIds.length === 1 ? '删除任务' : '批量删除任务',
