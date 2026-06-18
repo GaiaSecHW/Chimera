@@ -3082,6 +3082,7 @@ export interface SystemAnalysisServiceConfig {
   module_granularity: string;
   filter_engine: 'script' | 'agent';
   enable_final_check: boolean;
+  super_fast_mode: boolean;
   worker_task_concurrency: number;
   parallel_modules: number;
   parallel_sub_workers: number;
@@ -4492,6 +4493,8 @@ export interface EntryAnalysisServiceConfig {
   // 快速模式：R2 完成后批量 LLM 预筛入口（不保证全面性）
   fast_mode: boolean;
   fast_mode_batch_size: number;
+  // 极速模式：关闭所有 Judge，跳过报告阶段
+  super_fast_mode: boolean;
   updated_at?: string | null;
 }
 
