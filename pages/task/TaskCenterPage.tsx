@@ -76,6 +76,14 @@ const getTaskTypeLabel = (taskType: string) => TASK_TYPES.find((item) => item.va
 const getTaskHarnessLabel = (task: Pick<ScheduleCenterUserTask, 'task_type' | 'agent_app_name'>) =>
   task.task_type === 'sechps_tool' ? (task.agent_app_name || 'Agent Harness') : getTaskTypeLabel(String(task.task_type || ''));
 const getDeleteQueueTypeLabel = (taskType: string) => taskType === 'sechps_tool' ? 'Agent Harness 任务' : getTaskTypeLabel(taskType);
+const getDeleteStatusLabel = (status: string) => {
+  if (status === 'queued') return '排队中';
+  if (status === 'running') return '删除中';
+  if (status === 'blocked') return '阻塞';
+  if (status === 'failed') return '失败';
+  if (status === 'deleted') return '已删除';
+  return status || '—';
+};
 const truncateText = (value?: string | null, max = 80) => {
   const normalized = String(value || '').trim();
   if (!normalized) return '—';
@@ -331,6 +339,7 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects }) => {
     const status = String(task.delete_status || 'none');
     if (status === 'queued') return '删除排队中';
     if (status === 'running') return '删除中';
+    if (status === 'blocked') return task.delete_error || task.last_error || '删除被阻塞';
     if (status === 'failed') return task.delete_error || task.last_error || '删除失败';
     return '';
   };
@@ -856,7 +865,7 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects }) => {
                     {deleteQueueLoading ? <tr><td className="px-4 py-10 text-center" colSpan={10} style={{ color: LK.muted }}><span className="inline-flex items-center gap-2"><Loader2 size={16} className="animate-spin" />加载中...</span></td></tr> : null}
                     {!deleteQueueLoading && deleteQueueItems.length === 0 ? <tr><td className="px-4 py-10 text-center" colSpan={10} style={{ color: LK.muted }}>当前项目暂无删除队列任务</td></tr> : null}
                     {!deleteQueueLoading && deleteQueueItems.map((item) => {
-                      const statusColor = item.delete_status === 'failed' ? LK.error : item.delete_status === 'running' ? LK.info : LK.warning;
+                      const statusColor = item.delete_status === 'failed' ? LK.error : item.delete_status === 'blocked' ? LK.warning : item.delete_status === 'running' ? LK.info : LK.warning;
                       return (
                         <tr
                           key={item.id}
@@ -865,6 +874,8 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects }) => {
                             borderBottom:`1px solid ${LK.borderSoft}`,
                             backgroundColor: item.delete_status === 'failed'
                               ?`${LK.error}10`
+                              : item.delete_status === 'blocked'
+                                ? `${LK.warning}10`
                               : item.delete_status === 'running'
                                 ?`${LK.info}10`
                                 :`${LK.warning}10`,
@@ -875,7 +886,7 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects }) => {
                           <td className="px-4 py-3" style={{ color: LK.body }}>{item.display_status}</td>
                           <td className="px-4 py-3">
                             <span style={{ color: statusColor }}>
-                              {item.delete_status}
+                              {getDeleteStatusLabel(String(item.delete_status || ''))}
                             </span>
                           </td>
                           <td className="px-4 py-3 text-xs" style={{ color: LK.body }} title={item.delete_error || item.last_error || ''}>{truncateText(item.delete_error || item.last_error, 120)}</td>
