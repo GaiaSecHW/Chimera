@@ -5,6 +5,7 @@ import remarkGfm from 'remark-gfm';
 import { useNavigate } from 'react-router-dom';
 
 import { PageHeader } from '../../design-system';
+import { BinarySecurityRuntimeHealthTab } from './BinarySecurityRuntimeHealthTab';
 
 import {
   BinarySecurityAbnormalReason,
@@ -16,6 +17,9 @@ import {
   BinarySecurityOrchestrationObservability,
   BinarySecurityOverviewNode,
   BinarySecurityOverviewResponse,
+  BinarySecurityRuntimeHealthGroup,
+  BinarySecurityRuntimeHealthLoopSnapshot,
+  BinarySecurityRuntimeHealthUnit,
   BinarySecurityStageItemPage,
   BinarySecurityTaskDetail,
   BinarySecurityTaskKeySnapshot,
@@ -38,6 +42,7 @@ import {
   moduleContractText,
   renderContractValue,
 } from '../../utils/binarySecurityContracts';
+import { deriveRuntimeDiagnoses, deriveRuntimeOwnerTopology, type RuntimeDiagnosis } from '../../utils/binarySecurityRuntimeHealth';
 import { clearExecutionReturnContext, saveBinarySecurityReturnContext } from '../../utils/executionReturnContext';
 
 const LK = {
@@ -73,6 +78,10 @@ const DEFAULT_SOURCE_STAGE_SEQUENCE = [
   'entry_analysis',
   'dataflow_vuln_scan',
 ];
+const DEFAULT_SOURCE_KG_STAGE_SEQUENCE = [
+  'knowledge_graph_entry_fetch',
+  'dataflow_vuln_scan',
+];
 const DEFAULT_MODULE_STAGE_SEQUENCE = [
   'binary_to_source',
   'entry_analysis',
@@ -86,6 +95,7 @@ const MODULE_SELECTION_OPTIONS = [
 const PARTIAL_SUCCESS_ADVANCEMENT_FIELDS = [
   { key: 'binary_to_source', label: '二进制逆向部分成功后继续推进' },
   { key: 'entry_analysis', label: '入口分析部分成功后继续推进' },
+  { key: 'knowledge_graph_entry_fetch', label: '知识图谱入口获取成功后继续推进' },
   { key: 'dataflow_vuln_scan', label: '数据流漏洞挖掘部分成功后继续推进' },
 ] as const;
 const DEFAULT_PARTIAL_SUCCESS_STAGE_ADVANCEMENT = Object.fromEntries(
@@ -106,6 +116,7 @@ const STAGE_LABELS: Record<string, string> = {
   system_analysis: '系统分析',
   binary_to_source: '二进制逆向',
   entry_analysis: '入口分析',
+  knowledge_graph_entry_fetch: '知识图谱入口获取',
   dataflow_vuln_scan: '数据流漏洞挖掘',
 };
 
@@ -662,70 +673,6 @@ const normalizeDownstreamDetailError = (error: any) => {
 
 const fmt = (value?: string | null) => (value ? new Date(value).toLocaleString() : '-');
 
-const formatRuntimeHealthStatus = (status?: string | null) => {
-  switch (String(status || '').trim().toLowerCase()) {
-    case 'healthy':
-      return '健康';
-    case 'degraded':
-      return '有风险';
-    case 'unhealthy':
-      return '异常';
-    case 'idle':
-      return '当前未启用';
-    case 'done':
-      return '已结束';
-    case 'terminal':
-      return '已结束';
-    case 'unknown':
-      return '未知';
-    default:
-      return status || '-';
-  }
-};
-
-const runtimeHealthTone = (status?: string | null): { backgroundColor: string; color: string; borderColor: string } => {
-  switch (String(status || '').trim().toLowerCase()) {
-    case 'healthy':
-    case 'done':
-    case 'terminal':
-      return { backgroundColor: 'rgba(69, 192, 111, 0.1)', color: LK.success, borderColor: LK.success };
-    case 'degraded':
-      return { backgroundColor: 'rgba(213, 161, 58, 0.1)', color: LK.warning, borderColor: LK.warning };
-    case 'unhealthy':
-      return { backgroundColor: 'rgba(241, 93, 93, 0.1)', color: LK.error, borderColor: LK.error };
-    case 'idle':
-    case 'unknown':
-    default:
-      return { backgroundColor: LK.surfaceRaised, color: LK.body, borderColor: LK.border };
-  }
-};
-
-const formatRuntimeUnitKind = (kind?: string | null) => {
-  switch (String(kind || '').trim().toLowerCase()) {
-    case 'thread':
-      return '线程';
-    case 'coroutine':
-      return '协程';
-    case 'task_owner':
-      return '保活';
-    case 'operation':
-      return '操作';
-    case 'archive':
-      return '归档';
-    case 'sync':
-      return '同步';
-    default:
-      return kind || '-';
-  }
-};
-
-const formatAgeSeconds = (value?: number | null) => {
-  if (typeof value !== 'number' || Number.isNaN(value) || value < 0) return '-';
-  if (value < 60) return`${Math.round(value)}s`;
-  if (value < 3600) return`${Math.round(value / 60)}m`;
-  if (value < 86400) return`${Math.round(value / 3600)}h`;
-  return`${Math.round(value / 86400)}d`;
-};
 const fmtTime = (value?: string | null) => (value ? new Date(value).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }) : '-');
 const safeInt = (value: unknown, fallback = 0) => {
   const parsed = Number(value);
@@ -2211,8 +2158,12 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
   const stageSequence = useMemo(
     () => (detail?.stage_sequence?.length
       ? detail.stage_sequence
-      : (isSourceTask ? DEFAULT_SOURCE_STAGE_SEQUENCE : isBinaryModuleTask ? DEFAULT_MODULE_STAGE_SEQUENCE : DEFAULT_BINARY_STAGE_SEQUENCE)),
-    [detail?.stage_sequence, isBinaryModuleTask, isSourceTask],
+      : (isSourceTask
+        ? (detail?.pipeline_profile === 'kg_source_vuln_scan' ? DEFAULT_SOURCE_KG_STAGE_SEQUENCE : DEFAULT_SOURCE_STAGE_SEQUENCE)
+        : isBinaryModuleTask
+          ? DEFAULT_MODULE_STAGE_SEQUENCE
+          : DEFAULT_BINARY_STAGE_SEQUENCE)),
+    [detail?.pipeline_profile, detail?.stage_sequence, isBinaryModuleTask, isSourceTask],
   );
   const canActOnTask = Boolean(detail);
   const manualOperationState = detail?.manual_operation_state;
@@ -2237,6 +2188,92 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
   const runtimeHealth = detail?.runtime_health || null;
   const runtimeHealthSummary = runtimeHealth?.summary || null;
   const runtimeHealthUnits = runtimeHealth?.units || [];
+  const runtimeHealthSpotlight = runtimeHealth?.spotlight || [];
+  const runtimeHealthSnapshotCards = runtimeHealth?.snapshot_cards || [];
+  const runtimeHealthRelatedLoops = runtimeHealth?.related_loops || [];
+  const runtimeHealthGroups = useMemo<BinarySecurityRuntimeHealthGroup[]>(() => {
+    if (runtimeHealth?.groups?.length) return runtimeHealth.groups;
+    if (!runtimeHealthUnits.length) return [];
+    const groupOrder = ['execution', 'lease', 'tail', 'stage_workers', 'operation', 'archive', 'other'];
+    const groupMeta = (unit: BinarySecurityRuntimeHealthUnit) => {
+      switch (unit.unit_key) {
+        case 'task_worker':
+          return { group_key: 'execution', group_label: '任务执行', description: '主任务执行协程与 owner/lease 一致性' };
+        case 'task_heartbeat':
+          return { group_key: 'lease', group_label: '保活与心跳', description: '任务级保活单元、lease 与心跳新鲜度' };
+        case 'downstream_sync':
+          return { group_key: 'tail', group_label: 'Tail 收口', description: '下游同步、tail reconcile 与最终收口推进' };
+        case 'stage_workers':
+          return { group_key: 'stage_workers', group_label: '阶段子协程', description: '活跃 stage item 对应的父任务侧协程观察' };
+        case 'task_operation':
+          return { group_key: 'operation', group_label: '任务操作', description: 'retry/continue/cancel 操作协程与锁' };
+        case 'archive_workers':
+          return { group_key: 'archive', group_label: '归档执行', description: '归档 worker 与归档任务活动状态' };
+        default:
+          return { group_key: 'other', group_label: '其他单元', description: '未归类的任务 scoped 运行单元' };
+      }
+    };
+    const statusRank = (status?: string | null) => {
+      switch (String(status || '').trim().toLowerCase()) {
+        case 'unhealthy':
+          return 5;
+        case 'degraded':
+          return 4;
+        case 'healthy':
+          return 3;
+        case 'unknown':
+          return 2;
+        case 'idle':
+          return 1;
+        default:
+          return 0;
+      }
+    };
+    const grouped = new Map<string, BinarySecurityRuntimeHealthGroup>();
+    runtimeHealthUnits.forEach((unit) => {
+      const meta = groupMeta(unit);
+      const current = grouped.get(meta.group_key);
+      if (current) {
+        current.units.push(unit);
+        current.active_unit_count += ['healthy', 'degraded', 'unhealthy'].includes(String(unit.status || '').trim().toLowerCase()) ? 1 : 0;
+        if (statusRank(unit.status) > statusRank(current.status)) current.status = unit.status;
+        return;
+      }
+      grouped.set(meta.group_key, {
+        group_key: meta.group_key,
+        group_label: meta.group_label,
+        description: meta.description,
+        status: unit.status,
+        active_unit_count: ['healthy', 'degraded', 'unhealthy'].includes(String(unit.status || '').trim().toLowerCase()) ? 1 : 0,
+        units: [unit],
+      });
+    });
+    return Array.from(grouped.values()).sort(
+      (left, right) => groupOrder.indexOf(left.group_key) - groupOrder.indexOf(right.group_key),
+    );
+  }, [runtimeHealth?.groups, runtimeHealthUnits]);
+  const runtimeHealthAlerts = useMemo(
+    () => runtimeHealthUnits.filter((unit) => ['unhealthy', 'degraded'].includes(String(unit.status || '').trim().toLowerCase())),
+    [runtimeHealthUnits],
+  );
+  const runtimeHealthHotLoops = useMemo<BinarySecurityRuntimeHealthLoopSnapshot[]>(
+    () => runtimeHealthRelatedLoops.filter((loop) => ['healthy', 'degraded', 'unhealthy'].includes(String(loop.status || '').trim().toLowerCase())),
+    [runtimeHealthRelatedLoops],
+  );
+  const runtimeOwnerTopology = useMemo(
+    () => deriveRuntimeOwnerTopology(detail, runtimeHealthUnits, runtimeHealthSnapshotCards),
+    [detail, runtimeHealthSnapshotCards, runtimeHealthUnits],
+  );
+  const runtimeDiagnoses = useMemo<RuntimeDiagnosis[]>(
+    () => deriveRuntimeDiagnoses({
+      detail,
+      runtimeHealthUnits,
+      runtimeHealthRelatedLoops,
+      runtimeHealthSnapshotCards,
+      runtimeOwnerTopology,
+    }),
+    [detail, runtimeHealthRelatedLoops, runtimeHealthSnapshotCards, runtimeHealthUnits, runtimeOwnerTopology],
+  );
   const visibleRuntimeHealthUnits = runtimeHealthExpanded ? runtimeHealthUnits : runtimeHealthUnits.slice(0, 5);
   const effectiveDetail = useMemo(() => {
     if (!detail) return null;
@@ -4592,105 +4629,23 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
           ) : null}
 
           {activeTab === 'runtime_health' ? (
- <section className="rounded-xl border border-theme-border bg-theme-surface p-6">
-              <div className="flex flex-wrap items-start justify-between gap-3">
-                <div>
-                  <h2 className="text-xl font-semibold text-theme-text-primary">线程与协程健康</h2>
-                  <p className="mt-2 text-sm text-theme-text-muted">仅展示当前 binary-security 父任务自身相关的 task-scoped 运行单元。</p>
-                </div>
-                <span style={{ display: 'inline-flex', borderRadius: '9999px', border: '1px solid', padding: '4px 12px', fontSize: '12px', fontWeight: 600, ...runtimeHealthTone(runtimeHealthSummary?.overall_status), borderColor: runtimeHealthTone(runtimeHealthSummary?.overall_status).borderColor }}>
-                  {formatRuntimeHealthStatus(runtimeHealthSummary?.overall_status)}
-                </span>
-              </div>
-              <div className="mt-5 grid grid-cols-2 gap-3 text-sm xl:grid-cols-4">
-                <div className="rounded-2xl border border-theme-border bg-theme-surface px-4 py-3">
-                  <div className="text-xs font-bold text-theme-text-muted">活跃单元</div>
-                  <div className="mt-1 text-lg font-semibold text-theme-text-primary">{runtimeHealthSummary?.active_unit_count ?? 0}</div>
-                </div>
-                <div className="rounded-2xl border border-theme-border bg-theme-surface px-4 py-3">
-                  <div className="text-xs font-bold text-theme-text-muted">健康 / 风险</div>
-                  <div className="mt-1 text-lg font-semibold text-theme-text-primary">
-                    {runtimeHealthSummary?.healthy_unit_count ?? 0} / {runtimeHealthSummary?.degraded_unit_count ?? 0}
-                  </div>
-                </div>
-                <div className="rounded-2xl border border-theme-border bg-theme-surface px-4 py-3">
-                  <div className="text-xs font-bold text-theme-text-muted">异常单元</div>
-                  <div className="mt-1 text-lg font-semibold text-theme-text-primary">{runtimeHealthSummary?.unhealthy_unit_count ?? 0}</div>
-                </div>
-                <div className="rounded-2xl border border-theme-border bg-theme-surface px-4 py-3">
-                  <div className="text-xs font-bold text-theme-text-muted">最近刷新</div>
-                  <div className="mt-1 text-sm font-semibold text-theme-text-primary">{fmt(runtimeHealthSummary?.last_updated_at)}</div>
-                </div>
-              </div>
-              <div className="mt-4 rounded-2xl border border-theme-border bg-theme-surface px-4 py-3 text-sm text-theme-text-secondary">
-                {runtimeHealthSummary?.message || '当前暂无可展示的任务线程/协程健康快照。'}
-              </div>
-              <div className="mt-4 overflow-hidden rounded-2xl border border-theme-border bg-theme-surface">
-                <div className="overflow-x-auto">
-                  <table className="min-w-full divide-y divide-theme-border text-left text-xs">
-                    <thead className="bg-theme-bg-app text-[11px] font-semibold uppercase tracking-[0.12em] text-theme-text-muted">
-                      <tr>
-                        <th className="min-w-[150px] px-4 py-3">名称</th>
-                        <th className="w-24 px-4 py-3">类型</th>
-                        <th className="w-24 px-4 py-3">状态</th>
-                        <th className="min-w-[140px] px-4 py-3">Owner</th>
-                        <th className="min-w-[150px] px-4 py-3">最近心跳</th>
-                        <th className="w-24 px-4 py-3">持续/年龄</th>
-                        <th className="min-w-[260px] px-4 py-3">原因 / 证据</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-theme-border bg-theme-bg-app">
-                      {visibleRuntimeHealthUnits.length > 0 ? visibleRuntimeHealthUnits.map((unit) => (
-                        <tr key={unit.unit_key}>
-                          <td className="px-4 py-3 align-top">
-                            <div className="font-bold text-theme-text-primary">{unit.unit_label}</div>
-                            {unit.detail ? <div className="mt-1 text-[11px] text-theme-text-muted">{unit.detail}</div> : null}
-                          </td>
-                          <td className="px-4 py-3 align-top text-theme-text-secondary">{formatRuntimeUnitKind(unit.unit_kind)}</td>
-                          <td className="px-4 py-3 align-top">
-                            <span style={{ display: 'inline-flex', borderRadius: '9999px', border: '1px solid', padding: '4px 10px', fontWeight: 600, ...runtimeHealthTone(unit.status), borderColor: runtimeHealthTone(unit.status).borderColor }}>
-                              {formatRuntimeHealthStatus(unit.status)}
-                            </span>
-                          </td>
-                          <td className="px-4 py-3 align-top font-mono text-[11px] text-theme-text-secondary">{unit.owner_instance_id || '-'}</td>
-                          <td className="px-4 py-3 align-top font-mono text-[11px] text-theme-text-secondary">{fmt(unit.last_heartbeat_at || unit.started_at)}</td>
-                          <td className="px-4 py-3 align-top text-theme-text-secondary">{formatAgeSeconds(unit.age_seconds)}</td>
-                          <td className="px-4 py-3 align-top">
-                            {unit.reason ? <div className="text-theme-text-secondary">{unit.reason}</div> : <div className="text-theme-text-muted">-</div>}
-                            {unit.evidence?.length ? (
-                              <div className="mt-2 flex flex-wrap gap-1.5">
-                                {unit.evidence.slice(0, 3).map((evidence) => (
-                                  <span key={`${unit.unit_key}-${evidence.label}`} className="inline-flex rounded-full border border-theme-border bg-theme-bg-app px-2 py-1 text-[11px] text-theme-text-muted">
-                                    {evidence.label}:{evidence.value ?? '-'}
-                                  </span>
-                                ))}
-                              </div>
-                            ) : null}
-                          </td>
-                        </tr>
-                      )) : (
-                        <tr>
-                          <td colSpan={7} className="px-4 py-8 text-center text-sm text-theme-text-muted">
-                            当前暂无可展示的任务线程/协程健康快照
-                          </td>
-                        </tr>
-                      )}
-                    </tbody>
-                  </table>
-                </div>
-                {runtimeHealthUnits.length > 5 ? (
-                  <div className="border-t border-theme-border px-4 py-3">
-                    <button
-                      type="button"
-                      onClick={() => setRuntimeHealthExpanded((current) => !current)}
-                      className="text-xs font-bold text-sky-400 transition hover:text-sky-400"
-                    >
-                      {runtimeHealthExpanded ? '收起' :`查看全部 ${runtimeHealthUnits.length} 个运行单元`}
-                    </button>
-                  </div>
-                ) : null}
-              </div>
-            </section>
+            <BinarySecurityRuntimeHealthTab
+              detail={detail || null}
+              runtimeHealthSummary={runtimeHealthSummary}
+              runtimeHealthUnits={runtimeHealthUnits}
+              runtimeHealthSpotlight={runtimeHealthSpotlight}
+              runtimeHealthGroups={runtimeHealthGroups}
+              runtimeHealthAlerts={runtimeHealthAlerts}
+              runtimeHealthSnapshotCards={runtimeHealthSnapshotCards}
+              runtimeHealthRelatedLoops={runtimeHealthRelatedLoops}
+              runtimeHealthHotLoops={runtimeHealthHotLoops}
+              runtimeOwnerTopology={runtimeOwnerTopology}
+              runtimeDiagnoses={runtimeDiagnoses}
+              runtimeHealthExpanded={runtimeHealthExpanded}
+              visibleRuntimeHealthUnits={visibleRuntimeHealthUnits}
+              onToggleExpanded={() => setRuntimeHealthExpanded((current) => !current)}
+              fmt={fmt}
+            />
           ) : null}
 
           {activeTab === 'overview' && cleanupSnapshot && (cleanupDownstreamRefs.length > 0 || Object.keys(cleanupCounts).length > 0) ? (

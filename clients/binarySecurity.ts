@@ -16,6 +16,7 @@ export interface BinarySecurityInputFile {
 }
 
 export type BinarySecurityTaskType = 'binary' | 'source' | 'binary_module';
+export type BinarySecurityPipelineProfile = 'default' | 'kg_source_vuln_scan' | string;
 export type BinarySecurityModuleSelectionMode = 'auto' | 'manual_confirm' | string;
 export type BinarySecurityEntrySelectionMode = 'auto' | 'manual_confirm' | string;
 export type BinarySecurityPipelineMode = 'barrier' | 'mixed_streaming';
@@ -25,6 +26,7 @@ export interface BinarySecurityStageOption {
 }
 
 export interface BinarySecurityTaskPolicy {
+  pipeline_profile?: BinarySecurityPipelineProfile;
   max_stage_parallelism?: number;
   max_retries_per_item?: number;
   continue_on_item_failure?: boolean;
@@ -35,6 +37,7 @@ export interface BinarySecurityTaskPolicy {
   module_selection_mode?: BinarySecurityModuleSelectionMode;
   entry_selection_mode?: BinarySecurityEntrySelectionMode;
   module_risk_levels?: string[];
+  knowledge_graph_entries_url?: string;
   [key: string]: any;
 }
 
@@ -208,6 +211,7 @@ export interface BinarySecurityTask {
   id: string;
   project_id: string;
   task_type: BinarySecurityTaskType;
+  pipeline_profile?: BinarySecurityPipelineProfile;
   name: string;
   status: string;
   runtime_phase?: string;
@@ -563,6 +567,50 @@ export interface BinarySecurityRuntimeHealthUnit {
   evidence: BinarySecurityRuntimeHealthEvidence[];
 }
 
+export interface BinarySecurityRuntimeHealthSpotlightItem {
+  slot_key: string;
+  title: string;
+  subtitle?: string | null;
+  status: string;
+  unit_key?: string | null;
+  owner_instance_id?: string | null;
+  last_heartbeat_at?: string | null;
+  age_seconds?: number | null;
+  reason?: string | null;
+  evidence: BinarySecurityRuntimeHealthEvidence[];
+}
+
+export interface BinarySecurityRuntimeHealthGroup {
+  group_key: string;
+  group_label: string;
+  description?: string | null;
+  status: string;
+  active_unit_count: number;
+  units: BinarySecurityRuntimeHealthUnit[];
+}
+
+export interface BinarySecurityRuntimeHealthSnapshotCard {
+  card_key: string;
+  title: string;
+  subtitle?: string | null;
+  status: string;
+  message?: string | null;
+  rows: BinarySecurityRuntimeHealthEvidence[];
+}
+
+export interface BinarySecurityRuntimeHealthLoopSnapshot {
+  loop_key: string;
+  loop_label: string;
+  status: string;
+  alive: boolean;
+  task_running: boolean;
+  heartbeat_alive: boolean;
+  heartbeat_at?: string | null;
+  heartbeat_age_seconds?: number | null;
+  stale_after_seconds?: number | null;
+  message?: string | null;
+}
+
 export interface BinarySecurityRuntimeHealthSummary {
   overall_status: string;
   active_unit_count: number;
@@ -575,6 +623,10 @@ export interface BinarySecurityRuntimeHealthSummary {
 
 export interface BinarySecurityRuntimeHealth {
   summary: BinarySecurityRuntimeHealthSummary;
+  spotlight: BinarySecurityRuntimeHealthSpotlightItem[];
+  snapshot_cards: BinarySecurityRuntimeHealthSnapshotCard[];
+  related_loops: BinarySecurityRuntimeHealthLoopSnapshot[];
+  groups: BinarySecurityRuntimeHealthGroup[];
   units: BinarySecurityRuntimeHealthUnit[];
 }
 
@@ -1084,6 +1136,7 @@ export const binarySecurityApi = {
       output_root?: string;
       stage_options?: Record<string, { enabled: boolean }>;
       policy_overrides?: {
+        pipeline_profile?: BinarySecurityPipelineProfile;
         max_stage_parallelism?: number;
         max_retries_per_item?: number;
         continue_on_item_failure?: boolean;
@@ -1093,6 +1146,7 @@ export const binarySecurityApi = {
         module_selection_mode?: 'auto' | 'manual_confirm';
         entry_selection_mode?: 'auto' | 'manual_confirm';
         module_risk_levels?: string[];
+        knowledge_graph_entries_url?: string;
       };
     },
   ): Promise<BinarySecurityTaskDetail> => {
