@@ -31,6 +31,7 @@ import {
 import { api } from '../../clients/api';
 import { authApi } from '../../clients/auth';
 import { API_BASE } from '../../clients/base';
+import { Modal, PageHeader, PageSection, StatisticCard } from '../../design-system';
 
 const vulnApi = api.domains.vuln;
 const assetApi = api.domains.assets;
@@ -457,38 +458,16 @@ const DialogShell: React.FC<{
   onClose: () => void;
   children: React.ReactNode;
 }> = ({ title, subtitle, onClose, children }) => (
-  <div className="modal-overlay animate-in fade-in">
-    <div className="modal-container modal-xl animate-in rounded-2xl">
-      <div className="modal-header flex items-start justify-between gap-6 px-8 py-6 border-b border-theme-border-subtle">
-        <div>
-          <div className="text-[11px] font-semibold uppercase tracking-wider text-theme-text-muted-soft">漏洞上报中心</div>
-          <h3 className="mt-2 text-2xl font-semibold text-theme-text-primary">{title}</h3>
-          {subtitle ? <p className="mt-2 max-w-3xl text-sm leading-6 text-theme-text-muted">{subtitle}</p> : null}
-        </div>
-        <button
-          type="button"
-          onClick={onClose}
-          className="btn btn-icon"
-        >
-          <X size={18} />
-        </button>
-      </div>
-      <div className="max-h-[80vh] overflow-y-auto px-8 py-8">{children}</div>
-    </div>
-  </div>
+  <Modal open onClose={onClose} size="xl" title={title} description={subtitle}>
+    {children}
+  </Modal>
 );
 
 const DetailMetricCard: React.FC<{
   label: string;
   value: React.ReactNode;
   hint?: React.ReactNode;
-}> = ({ label, value, hint }) => (
-  <div className="metric-card rounded-xl px-4 py-4 bg-theme-elevated border border-theme-border">
-    <div className="text-[11px] font-semibold uppercase tracking-wider text-theme-text-muted-soft">{label}</div>
-    <div className="mt-2 text-2xl font-semibold tabular-nums text-theme-text-primary">{value}</div>
-    {hint ? <div className="mt-1 text-xs text-theme-text-muted">{hint}</div> : null}
-  </div>
-);
+}> = ({ label, value, hint }) => <StatisticCard label={label} value={value} hint={hint} />;
 
 const slugifyHeading = (value: string) =>
   value
@@ -522,16 +501,14 @@ const DetailSectionCard: React.FC<{
   actions?: React.ReactNode;
   compact?: boolean;
 }> = ({ title, subtitle, children, actions, compact = false }) => (
-  <div className={`rounded-xl bg-theme-surface border border-theme-border ${compact ? 'p-4' : 'p-5'}`}>
-    <div className="flex flex-wrap items-start justify-between gap-3">
-      <div>
-        <div className="text-[11px] font-semibold uppercase tracking-wider text-theme-text-muted-soft">{title}</div>
-        {subtitle ? <div className="mt-1 text-xs leading-5 text-theme-text-muted">{subtitle}</div> : null}
-      </div>
-      {actions ? <div className="shrink-0">{actions}</div> : null}
-    </div>
-    <div className="mt-4">{children}</div>
-  </div>
+  <PageSection
+    title={title}
+    description={subtitle}
+    actions={actions}
+    className={compact ? 'p-4' : undefined}
+  >
+    {children}
+  </PageSection>
 );
 
 export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateToView }) => {
@@ -2500,39 +2477,19 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
     <div className="animate-in fade-in space-y-5 p-6 pb-16 duration-500 xl:p-8 xl:pb-20">
       {!selectedSuspicionId ? (
         <>
-          <div className="flex flex-col items-end justify-between gap-3 pb-4 md:flex-row" style={{ borderBottom: '1px solid var(--theme-border, rgba(255,255,255,0.08))' }}>
-            <div>
-              <h1 className="mt-3 text-2xl font-semibold leading-8 tracking-tight text-theme-text-primary">漏洞中心</h1>
-              <p className="mt-1.5 text-sm leading-6 text-theme-text-secondary">统一管理当前项目的漏洞生命周期，覆盖上报、研判、验证与处置全流程</p>
-            </div>
-          </div>
+          <PageHeader
+            title="漏洞中心"
+            description="统一管理当前项目的漏洞生命周期，覆盖上报、研判、验证与处置全流程"
+          />
           {rootTab === 'download-center' ? renderDownloadCenter() : (
           <>
           <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-            <div className="metric-card">
-              <div className="text-[11px] font-semibold uppercase tracking-wider text-theme-text-muted-soft">漏洞总数</div>
-              <div className="mt-2 text-2xl font-semibold text-theme-text-primary">{stats.total}</div>
-            </div>
-            <div className="metric-card">
-              <div className="text-[11px] font-semibold uppercase tracking-wider text-theme-text-muted-soft">待验证</div>
-              <div className="mt-2 text-2xl font-semibold text-theme-text-faint">{stats.pendingVerify}</div>
-            </div>
-            <div className="metric-card">
-              <div className="text-[11px] font-semibold uppercase tracking-wider text-theme-text-muted-soft">验证中</div>
-              <div className="mt-2 text-2xl font-semibold text-state-warning">{stats.validating}</div>
-            </div>
-            <div className="metric-card">
-              <div className="text-[11px] font-semibold uppercase tracking-wider text-theme-text-muted-soft">已验证</div>
-              <div className="mt-2 text-2xl font-semibold text-brand-primary">{stats.verified}</div>
-            </div>
-            <div className="metric-card">
-              <div className="text-[11px] font-semibold uppercase tracking-wider text-theme-text-muted-soft">漏洞</div>
-              <div className="mt-2 text-2xl font-semibold text-state-danger">{stats.confirmed}</div>
-            </div>
-            <div className="metric-card">
-              <div className="text-[11px] font-semibold uppercase tracking-wider text-theme-text-muted-soft">非漏洞</div>
-              <div className="mt-2 text-2xl font-semibold text-state-success">{stats.ruledOut}</div>
-            </div>
+            <StatisticCard label="漏洞总数" value={stats.total} />
+            <StatisticCard label="待验证" value={stats.pendingVerify} />
+            <StatisticCard label="验证中" value={stats.validating} tone="warning" />
+            <StatisticCard label="已验证" value={stats.verified} tone="brand" />
+            <StatisticCard label="漏洞" value={stats.confirmed} tone="danger" />
+            <StatisticCard label="非漏洞" value={stats.ruledOut} tone="success" />
           </div>
 
           <div className="table-container">
