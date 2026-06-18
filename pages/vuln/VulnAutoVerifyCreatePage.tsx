@@ -143,7 +143,7 @@ export const VulnAutoVerifyCreatePage: React.FC<VulnAutoVerifyCreatePageProps> =
     try {
       const payload = await vulnApi.createAutoVerifyTask(context.case_id, {
         name: taskName.trim(),
-        threat_model_markdown: threatModel.trim(),
+        threat_model_markdown: threatModel.trim() || null,
         template_id: selectedTemplateId || null,
         model: model.trim() || DEFAULT_MODEL,
         concurrency: normalizeConcurrency(concurrency),
@@ -288,8 +288,8 @@ export const VulnAutoVerifyCreatePage: React.FC<VulnAutoVerifyCreatePageProps> =
               </div>
 
               <div className="space-y-3">
-                <PathCard label="源码路径 source_root" value={context?.source_root} status={context?.path_status?.source_root} />
-                <PathCard label="二进制路径 binary_root" value={context?.binary_root} status={context?.path_status?.binary_root} />
+                <PathCard label="源码路径 source_root" value={context?.source_root} status={context?.path_status?.source_root} missingLabel="未解析（必需）" />
+                <PathCard label="二进制路径 binary_root" value={context?.binary_root} status={context?.path_status?.binary_root} optional missingLabel="未提供（可选）" />
               </div>
 
               <div className="rounded-lg p-4" style={{ border: `1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>
@@ -445,8 +445,23 @@ export const VulnAutoVerifyCreatePage: React.FC<VulnAutoVerifyCreatePageProps> =
   );
 };
 
-function PathCard({ label, value, status }: { label: string; value?: string | null; status?: { ok: boolean; source?: string | null; message?: string | null } }) {
-  const tone = statusTone(status?.ok);
+function PathCard({
+  label,
+  value,
+  status,
+  optional = false,
+  missingLabel,
+}: {
+  label: string;
+  value?: string | null;
+  status?: { ok: boolean; source?: string | null; message?: string | null };
+  optional?: boolean;
+  missingLabel?: string;
+}) {
+  const ok = Boolean(status?.ok || value);
+  const tone = optional && !ok
+    ? { border: LK.border, bg: LK.surfaceRaised, text: LK.mutedSoft }
+    : statusTone(ok);
   return (
     <div
       className="rounded-lg px-4 py-3"
@@ -454,7 +469,7 @@ function PathCard({ label, value, status }: { label: string; value?: string | nu
     >
       <div className="text-[10px] font-semibold uppercase tracking-[0.18em] opacity-70">{label}</div>
       <div className="mt-2 break-all text-xs font-semibold" style={{ fontFamily: MONO }}>
-        {value || status?.message || '未解析'}
+        {value || missingLabel || (optional ? '未提供（可选）' : '未解析（必需）')}
       </div>
       {status?.source ? <div className="mt-2 text-[11px] opacity-70">来源：{status.source}</div> : null}
     </div>
