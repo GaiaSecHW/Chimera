@@ -4,6 +4,7 @@ import { api } from '../../clients/api';
 import { UserPermissionInfo } from '../../clients/org';
 import { showConfirm } from '../../components/DialogService';
 import { Department, Project } from '../../types/types';
+import { DataTable, DataTableColumn, Modal } from '../../design-system';
 
 export const ProjectPage: React.FC = () => {
   const platformApi = api.domains.platform;
@@ -279,102 +280,105 @@ export const ProjectPage: React.FC = () => {
           />
         </div>
 
- <div className="bg-theme-bg-app backdrop-blur border border-theme-border rounded-[3rem] overflow-hidden">
-          <table className="w-full text-left">
-            <thead className="bg-slate-100/50 border-b border-theme-border font-black text-[10px] text-theme-text-muted uppercase tracking-widest">
-              <tr>
-                <th className="px-8 py-6">项目信息</th>
-                <th className="px-6 py-6">部门范围</th>
-                <th className="px-6 py-6 text-center">类型</th>
-                <th className="px-6 py-6">创建时间</th>
-                <th className="px-8 py-6 text-right">操作</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-50">
-              {loading ? (
-                <tr><td colSpan={5} className="py-32 text-center"><Loader2 className="animate-spin mx-auto text-blue-400" size={40} /></td></tr>
-              ) : filteredProjects.length === 0 ? (
-                <tr><td colSpan={5} className="py-32 text-center text-theme-text-muted font-bold">暂无项目数据</td></tr>
-              ) : filteredProjects.map((project) => (
-                <tr key={project.id} className="hover:bg-theme-elevated transition-all group">
-                  <td className="px-8 py-6">
-                    <div className="flex items-center gap-4">
-                      <div className={`w-12 h-12 rounded-2xl flex items-center justify-center font-black shadow-inner ${project.is_public ? 'bg-emerald-500/15 text-emerald-400' : 'bg-blue-500/15 text-blue-400'}`}>
-                        <FolderOpen size={18} />
-                      </div>
-                      <div>
-                        <p className="text-sm font-black text-theme-text-primary">{project.name}</p>
-                        <p className="text-[10px] text-theme-text-muted font-mono mt-0.5">{project.description || '无描述'}</p>
-                        {project.owner_department_name && (
-                          <p className="mt-2 text-[10px] font-bold text-theme-text-muted flex items-center gap-1.5">
-                            <Building2 size={12} />
-                            归属部门: {project.owner_department_name}
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                  </td>
-                  <td className="px-6 py-6">
-                    <div className="flex flex-wrap gap-2">
-                      {(project.departments || []).length > 0 ? (
-                        (project.departments || []).map((department) => (
-                          <span key={`${project.id}-${department.id}`} className="inline-flex items-center rounded-full border border-blue-500/20 bg-blue-500/15 px-3 py-1 text-[10px] font-black text-blue-400">
-                            {department.name}
-                          </span>
-                        ))
-                      ) : (
-                        <span className="inline-flex items-center rounded-full border border-theme-border bg-theme-bg-app px-3 py-1 text-[10px] font-black text-theme-text-muted">
-                          {project.is_public ? '全员可访问' : '未绑定'}
-                        </span>
-                      )}
-                    </div>
-                  </td>
-                  <td className="px-6 py-6 text-center">
-                    <span className={`px-4 py-1.5 rounded-full text-[10px] font-black uppercase border transition-all ${
-                      project.is_public
-                        ? 'bg-green-500/15 text-green-400 border-green-500/20'
-                        : 'bg-amber-500/15 text-amber-400 border-amber-500/20'
-                    }`}>
-                      {project.is_public ? '公开' : '私有'}
+        {(() => {
+          const columns: DataTableColumn<Project>[] = [
+            {
+              key: 'name',
+              header: '项目信息',
+              render: (project) => (
+                <div className="flex items-center gap-4">
+                  <div className={`w-12 h-12 rounded-2xl flex items-center justify-center font-black shadow-inner ${project.is_public ? 'bg-emerald-500/15 text-emerald-400' : 'bg-blue-500/15 text-blue-400'}`}>
+                    <FolderOpen size={18} />
+                  </div>
+                  <div>
+                    <p className="text-sm font-black text-theme-text-primary">{project.name}</p>
+                    <p className="text-[10px] text-theme-text-muted font-mono mt-0.5">{project.description || '无描述'}</p>
+                    {project.owner_department_name && (
+                      <p className="mt-2 text-[10px] font-bold text-theme-text-muted flex items-center gap-1.5">
+                        <Building2 size={12} />
+                        归属部门: {project.owner_department_name}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              ),
+            },
+            {
+              key: 'departments',
+              header: '部门范围',
+              render: (project) => (
+                <div className="flex flex-wrap gap-2">
+                  {(project.departments || []).length > 0 ? (
+                    (project.departments || []).map((department) => (
+                      <span key={`${project.id}-${department.id}`} className="inline-flex items-center rounded-full border border-blue-500/20 bg-blue-500/15 px-3 py-1 text-[10px] font-black text-blue-400">
+                        {department.name}
+                      </span>
+                    ))
+                  ) : (
+                    <span className="inline-flex items-center rounded-full border border-theme-border bg-theme-bg-app px-3 py-1 text-[10px] font-black text-theme-text-muted">
+                      {project.is_public ? '全员可访问' : '未绑定'}
                     </span>
-                  </td>
-                  <td className="px-6 py-6 text-xs font-bold text-theme-text-muted">
-                    {project.created_at?.split('T')[0] || '2024-01-01'}
-                  </td>
-                  <td className="px-8 py-6 text-right">
-                    <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-all">
-                      {canManageProject(project) ? (
-                        <>
-                          <button
-                            onClick={() => openEditModal(project)}
- className="p-3 bg-theme-bg-app border border-theme-border text-theme-text-muted hover:text-blue-400 rounded-xl transition-all"
-                            title="编辑项目"
-                          >
-                            <Edit3 size={16} />
-                          </button>
-                          <button
-                            onClick={() => void handleDelete(project)}
- className="p-3 bg-red-500/15 text-red-400 border border-transparent hover:border-red-500/20 rounded-xl transition-all"
-                            title="删除项目"
-                          >
-                            <Trash2 size={16} />
-                          </button>
-                        </>
-                      ) : (
-                        <span className="text-[10px] text-theme-text-faint font-medium px-3 py-1.5 bg-theme-bg-app rounded-full">只读</span>
-                      )}
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+                  )}
+                </div>
+              ),
+            },
+            {
+              key: 'is_public',
+              header: '类型',
+              align: 'center',
+              render: (project) => (
+                <span className={`px-4 py-1.5 rounded-full text-[10px] font-black uppercase border transition-all ${
+                  project.is_public
+                    ? 'bg-green-500/15 text-green-400 border-green-500/20'
+                    : 'bg-amber-500/15 text-amber-400 border-amber-500/20'
+                }`}>
+                  {project.is_public ? '公开' : '私有'}
+                </span>
+              ),
+            },
+            {
+              key: 'created_at',
+              header: '创建时间',
+              render: (project) => (
+                <span className="text-xs font-bold text-theme-text-muted">{project.created_at?.split('T')[0] || '2024-01-01'}</span>
+              ),
+            },
+            {
+              key: 'actions',
+              header: '操作',
+              align: 'right',
+              render: (project) => (
+                <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-all">
+                  {canManageProject(project) ? (
+                    <>
+                      <button onClick={() => openEditModal(project)} className="p-3 bg-theme-bg-app border border-theme-border text-theme-text-muted hover:text-blue-400 rounded-xl transition-all" title="编辑项目">
+                        <Edit3 size={16} />
+                      </button>
+                      <button onClick={() => void handleDelete(project)} className="p-3 bg-red-500/15 text-red-400 border border-transparent hover:border-red-500/20 rounded-xl transition-all" title="删除项目">
+                        <Trash2 size={16} />
+                      </button>
+                    </>
+                  ) : (
+                    <span className="text-[10px] text-theme-text-faint font-medium px-3 py-1.5 bg-theme-bg-app rounded-full">只读</span>
+                  )}
+                </div>
+              ),
+            },
+          ];
+          return (
+            <DataTable<Project>
+              columns={columns}
+              data={filteredProjects}
+              rowKey={(p) => String(p.id)}
+              loading={loading}
+              empty={<div className="text-center text-theme-text-muted font-bold py-8">暂无项目数据</div>}
+              minWidth={900}
+            />
+          );
+        })()}
       </div>
 
-      {isCreateModalOpen && (
-        <div className="fixed inset-0 z-[150] flex items-center justify-center p-6 bg-slate-900/60 backdrop-blur-md animate-in fade-in">
- <div className="bg-theme-bg-app w-full max-w-md rounded-[3rem] overflow-hidden animate-in zoom-in-95">
+      <Modal open={isCreateModalOpen} onClose={() => setIsCreateModalOpen(false)} className="max-w-md">
             <div className="p-10 pb-4 border-b border-slate-50 flex items-center justify-between">
               <div className="flex items-center gap-4">
  <div className="w-12 h-12 bg-blue-600 rounded-2xl flex items-center justify-center text-white">
@@ -478,13 +482,9 @@ export const ProjectPage: React.FC = () => {
                 确认创建项目
               </button>
             </form>
-          </div>
-        </div>
-      )}
+      </Modal>
 
-      {isEditModalOpen && selectedProject && (
-        <div className="fixed inset-0 z-[150] flex items-center justify-center p-6 bg-slate-900/60 backdrop-blur-md animate-in fade-in">
- <div className="bg-theme-bg-app w-full max-w-md rounded-[3rem] overflow-hidden animate-in zoom-in-95">
+      {selectedProject && <Modal open={isEditModalOpen} onClose={() => setIsEditModalOpen(false)} className="max-w-md">
             <div className="p-10 pb-4 border-b border-slate-50 flex items-center justify-between">
               <div className="flex items-center gap-4">
                 <div className="w-12 h-12 bg-amber-600 rounded-2xl flex items-center justify-center text-white">
@@ -564,9 +564,7 @@ export const ProjectPage: React.FC = () => {
                 立即更新项目
               </button>
             </form>
-          </div>
-        </div>
-      )}
+      </Modal>}
     </div>
   );
 };

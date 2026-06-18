@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { DataTable, DataTableColumn, Modal, StatisticCard } from '../../design-system';
 import { ArrowRightLeft, Building2, ChevronDown, ChevronUp, Download, Edit3, FileSpreadsheet, Loader2, Lock, Plus, RefreshCw, Search, Shield, Trash2, Upload, UserCheck, UserCircle, Users } from 'lucide-react';
 import { api } from '../../clients/api';
 import { UserPermissionInfo } from '../../clients/org';
@@ -557,96 +558,110 @@ export const DepartmentMemberPage: React.FC = () => {
           </div>
         </div>
 
- <div className="bg-theme-bg-app backdrop-blur border border-theme-border rounded-[3rem] overflow-hidden">
-          <table className="w-full text-left">
-            <thead className="bg-slate-100/50 border-b border-theme-border font-black text-[10px] text-theme-text-muted uppercase tracking-widest">
-              <tr>
-                <th className="px-8 py-6">成员信息</th>
-                <th className="px-6 py-6">所属部门</th>
-                <th className="px-6 py-6 text-center">角色</th>
-                <th className="px-6 py-6">加入时间</th>
-                <th className="px-8 py-6 text-right">操作</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-50">
-              {loading ? (
-                <tr><td colSpan={5} className="py-32 text-center"><Loader2 className="animate-spin mx-auto text-blue-400" size={40} /></td></tr>
-              ) : filteredMembers.length === 0 ? (
-                <tr><td colSpan={5} className="py-32 text-center text-theme-text-muted font-bold">暂无成员数据</td></tr>
-              ) : filteredMembers.map((member) => (
-                <tr key={member.id} className="hover:bg-theme-elevated transition-all group">
-                  <td className="px-8 py-6">
-                    <div className="flex items-center gap-4">
-                      <div className={`w-12 h-12 rounded-2xl flex items-center justify-center font-black shadow-inner ${
-                        member.role === 'leader'
-                          ? 'bg-amber-500/15 text-amber-400'
-                          : member.role === 'vice_leader'
-                            ? 'bg-indigo-500/15 text-indigo-400'
-                            : 'bg-blue-500/15 text-blue-400'
-                      }`}>
-                        {member.username[0].toUpperCase()}
-                      </div>
-                      <div>
-                        <p className="text-sm font-black text-theme-text-primary">{member.username}</p>
-                        <p className="text-[10px] text-theme-text-muted font-mono mt-0.5">UID: {member.user_id.toString().padStart(5, '0')}</p>
-                      </div>
-                    </div>
-                  </td>
-                  <td className="px-6 py-6">
-                    <span className="inline-flex items-center rounded-full border border-theme-border bg-theme-bg-app px-3 py-1.5 text-xs font-black text-theme-text-secondary">
-                      {member.department_name}
-                    </span>
-                  </td>
-                  <td className="px-6 py-6 text-center">
-                    <span className={`px-4 py-1.5 rounded-full text-[10px] font-black uppercase border transition-all ${getRoleBadgeStyle(member.role)}`}>
-                      {getRoleDisplayName(member.role)}
-                    </span>
-                  </td>
-                  <td className="px-6 py-6 text-xs font-bold text-theme-text-muted">
-                    {member.created_at?.split('T')[0] || '2024-01-01'}
-                  </td>
-                  <td className="px-8 py-6 text-right">
-                    <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-all">
-                      {canManageCurrentDepartment() ? (
-                        <>
-                          {canMoveMember(member) && (
- <button onClick={() => openMoveModal(member)} className="p-3 bg-indigo-500/15 text-indigo-500 border border-transparent hover:border-indigo-500/20 rounded-xl transition-all" title="调整所属部门">
-                              <ArrowRightLeft size={16} />
-                            </button>
-                          )}
-                          {canEditRole() && (
- <button onClick={() => openEditModal(member)} className="p-3 bg-theme-bg-app border border-theme-border text-theme-text-muted hover:text-blue-400 rounded-xl transition-all" title="编辑角色">
-                              <Edit3 size={16} />
-                            </button>
-                          )}
-                          {canRemoveMember(member) && (
- <button onClick={() => void handleRemoveMember(member.id)} className="p-3 bg-red-500/15 text-red-400 border border-transparent hover:border-red-500/20 rounded-xl transition-all" title="移除成员">
-                              <Trash2 size={16} />
-                            </button>
-                          )}
-                          {!canMoveMember(member) && !canEditRole() && !canRemoveMember(member) && (
-                            <span className="text-[10px] text-theme-text-muted font-medium px-2 py-1 bg-theme-elevated rounded-lg">
-                              <Lock size={10} className="inline mr-1" />无权操作
-                            </span>
-                          )}
-                        </>
-                      ) : (
+        {(() => {
+          const memberColumns: DataTableColumn<DepartmentMember>[] = [
+            {
+              key: 'username',
+              header: '成员信息',
+              render: (member) => (
+                <div className="flex items-center gap-4">
+                  <div className={`w-12 h-12 rounded-2xl flex items-center justify-center font-black shadow-inner ${
+                    member.role === 'leader'
+                      ? 'bg-amber-500/15 text-amber-400'
+                      : member.role === 'vice_leader'
+                        ? 'bg-indigo-500/15 text-indigo-400'
+                        : 'bg-blue-500/15 text-blue-400'
+                  }`}>
+                    {member.username[0].toUpperCase()}
+                  </div>
+                  <div>
+                    <p className="text-sm font-black text-theme-text-primary">{member.username}</p>
+                    <p className="text-[10px] text-theme-text-muted font-mono mt-0.5">UID: {member.user_id.toString().padStart(5, '0')}</p>
+                  </div>
+                </div>
+              ),
+            },
+            {
+              key: 'department_name',
+              header: '所属部门',
+              render: (member) => (
+                <span className="inline-flex items-center rounded-full border border-theme-border bg-theme-bg-app px-3 py-1.5 text-xs font-black text-theme-text-secondary">
+                  {member.department_name}
+                </span>
+              ),
+            },
+            {
+              key: 'role',
+              header: '角色',
+              align: 'center',
+              render: (member) => (
+                <span className={`px-4 py-1.5 rounded-full text-[10px] font-black uppercase border transition-all ${getRoleBadgeStyle(member.role)}`}>
+                  {getRoleDisplayName(member.role)}
+                </span>
+              ),
+            },
+            {
+              key: 'created_at',
+              header: '加入时间',
+              render: (member) => (
+                <span className="text-xs font-bold text-theme-text-muted">
+                  {member.created_at?.split('T')[0] || '2024-01-01'}
+                </span>
+              ),
+            },
+            {
+              key: 'id',
+              header: '操作',
+              align: 'right',
+              render: (member) => (
+                <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-all">
+                  {canManageCurrentDepartment() ? (
+                    <>
+                      {canMoveMember(member) && (
+                        <button onClick={() => openMoveModal(member)} className="p-3 bg-indigo-500/15 text-indigo-500 border border-transparent hover:border-indigo-500/20 rounded-xl transition-all" title="调整所属部门">
+                          <ArrowRightLeft size={16} />
+                        </button>
+                      )}
+                      {canEditRole() && (
+                        <button onClick={() => openEditModal(member)} className="p-3 bg-theme-bg-app border border-theme-border text-theme-text-muted hover:text-blue-400 rounded-xl transition-all" title="编辑角色">
+                          <Edit3 size={16} />
+                        </button>
+                      )}
+                      {canRemoveMember(member) && (
+                        <button onClick={() => void handleRemoveMember(member.id)} className="p-3 bg-red-500/15 text-red-400 border border-transparent hover:border-red-500/20 rounded-xl transition-all" title="移除成员">
+                          <Trash2 size={16} />
+                        </button>
+                      )}
+                      {!canMoveMember(member) && !canEditRole() && !canRemoveMember(member) && (
                         <span className="text-[10px] text-theme-text-muted font-medium px-2 py-1 bg-theme-elevated rounded-lg">
-                          <Lock size={10} className="inline mr-1" />只读
+                          <Lock size={10} className="inline mr-1" />无权操作
                         </span>
                       )}
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+                    </>
+                  ) : (
+                    <span className="text-[10px] text-theme-text-muted font-medium px-2 py-1 bg-theme-elevated rounded-lg">
+                      <Lock size={10} className="inline mr-1" />只读
+                    </span>
+                  )}
+                </div>
+              ),
+            },
+          ];
+          return (
+            <DataTable
+              columns={memberColumns}
+              data={filteredMembers}
+              rowKey={(m) => String(m.id ?? m.user_id)}
+              loading={loading}
+              empty="暂无成员数据"
+              minWidth={900}
+            />
+          );
+        })()}
       </div>
 
-      {isAddModalOpen && userPermissions?.can_manage_department_members && (
-        <div className="fixed inset-0 z-[150] flex items-center justify-center p-6 bg-slate-900/60 backdrop-blur-md animate-in fade-in">
- <div className="bg-theme-bg-app w-full max-w-3xl rounded-[3rem] overflow-hidden animate-in zoom-in-95">
+      <Modal open={!!(isAddModalOpen && userPermissions?.can_manage_department_members)} onClose={() => setIsAddModalOpen(false)} className="max-w-3xl">
+
             <div className="p-10 pb-4 border-b border-slate-50 flex items-center justify-between">
               <div className="flex items-center gap-4">
  <div className="w-12 h-12 bg-blue-600 rounded-2xl flex items-center justify-center text-white">
@@ -762,13 +777,10 @@ export const DepartmentMemberPage: React.FC = () => {
                 确认添加成员
               </button>
             </form>
-          </div>
-        </div>
-      )}
+      </Modal>
 
-      {isMoveModalOpen && selectedMember && (
-        <div className="fixed inset-0 z-[150] flex items-center justify-center p-6 bg-slate-900/60 backdrop-blur-md animate-in fade-in">
- <div className="bg-theme-bg-app w-full max-w-md rounded-[3rem] overflow-hidden animate-in zoom-in-95">
+      {selectedMember && <Modal open={isMoveModalOpen} onClose={() => setIsMoveModalOpen(false)} className="max-w-md">
+
             <div className="p-10 pb-4 border-b border-slate-50 flex items-center justify-between">
               <div className="flex items-center gap-4">
                 <div className="w-12 h-12 bg-indigo-600 rounded-2xl flex items-center justify-center text-white">
@@ -795,13 +807,10 @@ export const DepartmentMemberPage: React.FC = () => {
                 确认调整部门
               </button>
             </form>
-          </div>
-        </div>
-      )}
+      </Modal>}
 
-      {isEditModalOpen && selectedMember && userPermissions?.can_manage_department_members && (
-        <div className="fixed inset-0 z-[150] flex items-center justify-center p-6 bg-slate-900/60 backdrop-blur-md animate-in fade-in">
- <div className="bg-theme-bg-app w-full max-w-md rounded-[3rem] overflow-hidden animate-in zoom-in-95">
+      {selectedMember && userPermissions?.can_manage_department_members && <Modal open={isEditModalOpen} onClose={() => setIsEditModalOpen(false)} className="max-w-md">
+
             <div className="p-10 pb-4 border-b border-slate-50 flex items-center justify-between">
               <div className="flex items-center gap-4">
                 <div className="w-12 h-12 bg-amber-600 rounded-2xl flex items-center justify-center text-white">
@@ -828,9 +837,7 @@ export const DepartmentMemberPage: React.FC = () => {
                 立即更新角色
               </button>
             </form>
-          </div>
-        </div>
-      )}
+      </Modal>}
 
       {isImportModalOpen && selectedDepartment && (
         <div className="fixed inset-0 z-[160] flex items-center justify-center p-6 bg-slate-950/65 backdrop-blur-md animate-in fade-in">
@@ -963,18 +970,8 @@ export const DepartmentMemberPage: React.FC = () => {
 };
 
 const SummaryCard = ({ label, value, tone }: { label: string; value: string; tone: 'slate' | 'emerald' | 'rose' | 'amber' }) => {
-  const styles = {
-    slate: 'bg-theme-surface text-white',
-    emerald: 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/20',
-    rose: 'bg-rose-500/15 text-rose-400 border border-rose-500/20',
-    amber: 'bg-amber-500/15 text-amber-400 border border-amber-500/20',
-  };
-  return (
-    <div className={`rounded-[2rem] p-6 ${styles[tone]}`}>
-      <p className="text-[10px] font-black uppercase tracking-[0.24em] opacity-70">{label}</p>
-      <p className="mt-3 text-4xl font-black">{value}</p>
-    </div>
-  );
+  const toneMap = { slate: 'default', emerald: 'success', rose: 'danger', amber: 'warning' } as const;
+  return <StatisticCard label={label} value={value} tone={toneMap[tone]} />;
 };
 
 const DepartmentMemberImportTable = ({

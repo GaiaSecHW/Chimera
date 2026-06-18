@@ -3,6 +3,7 @@ import { ArrowRightLeft, Building2, Loader2, RefreshCw, Search, Shield, ShieldCh
 import { api } from '../../clients/api';
 import { Department, UserInfo } from '../../types/types';
 import { getPlatformRoleLabel } from '../../utils/rbac';
+import { DataTable, DataTableColumn } from '../../design-system';
 
 interface UserDraft {
   platformRole: 'ordinary_admin' | 'developer' | 'ordinary_user';
@@ -406,128 +407,144 @@ export const UserPermissionPage: React.FC = () => {
             </div>
           </div>
 
-          <div className="overflow-x-auto">
-            <table className="min-w-full text-left">
-              <thead className="bg-theme-bg-app text-[11px] font-black uppercase tracking-[0.22em] text-theme-text-muted">
-                <tr>
-                  <th className="px-8 py-4">用户</th>
-                  <th className="px-6 py-4">当前角色</th>
-                  <th className="px-6 py-4">目标角色</th>
-                  <th className="px-6 py-4">当前部门</th>
-                  <th className="px-6 py-4">目标部门</th>
-                  <th className="px-6 py-4">状态</th>
-                  <th className="px-8 py-4 text-right">操作</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-theme-border">
-                {loading ? (
-                  <tr>
-                    <td colSpan={7} className="px-8 py-24 text-center">
-                      <Loader2 className="mx-auto animate-spin text-sky-400" size={34} />
-                    </td>
-                  </tr>
-                ) : filteredUsers.length === 0 ? (
-                  <tr>
-                    <td colSpan={7} className="px-8 py-20 text-center">
-                      <p className="text-base font-black text-theme-text-muted">暂无匹配用户</p>
-                      <p className="mt-2 text-sm font-medium text-theme-text-muted">可以试试切换筛选条件或清空搜索关键字。</p>
-                    </td>
-                  </tr>
-                ) : (
-                  paginatedUsers.map((user) => {
-                    const draft = drafts[user.id];
-                    const editable = isEditableUser(user);
-                    const hasChanged = getDraftChanged(user, draft);
-                    const isSaving = !!savingUserIds[user.id];
-
-                    return (
-                      <tr key={user.id} className="transition hover:bg-[rgba(79,115,255,0.10)]">
-                        <td className="px-8 py-5">
-                          <div className="flex items-center gap-4">
-                            <div className="flex h-12 w-12 items-center justify-center rounded-[1.2rem] bg-theme-elevated font-black text-theme-text-secondary shadow-inner">
-                              {getUserInitial(user.username)}
-                            </div>
-                            <div>
-                              <p className="text-sm font-black text-theme-text-primary">{user.username}</p>
-                              <p className="mt-1 text-[11px] font-mono text-theme-text-muted">UID: {String(user.id).padStart(5, '0')}</p>
-                            </div>
-                          </div>
-                        </td>
-                        <td className="px-6 py-5">
-                          <span
-                            className={`inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-[11px] font-black ${
-                              user.platform_role === 'super_admin'
-                                ? 'border-theme-border bg-theme-surface text-white'
-                                : user.platform_role === 'ordinary_admin'
-                                  ? 'border-amber-500/20 bg-amber-500/15 text-amber-400'
-                                  : user.platform_role === 'developer'
-                                    ? 'border-fuchsia-500/20 bg-fuchsia-500/15 text-fuchsia-400'
-                                  : 'border-sky-500/20 bg-sky-500/15 text-sky-400'
-                            }`}
-                          >
-                            <Shield size={12} />
-                            {getPlatformRoleLabel((user.platform_role || 'ordinary_user') as any)}
-                          </span>
-                        </td>
-                        <td className="px-6 py-5">
-                          <select
-                            disabled={!editable}
-                            value={draft?.platformRole || 'ordinary_user'}
-                            onChange={(event) => updateDraft(user.id, { platformRole: event.target.value as UserDraft['platformRole'] })}
-                            className="w-full rounded-2xl border border-theme-border bg-theme-bg-app px-4 py-3 text-sm font-medium text-theme-text-secondary outline-none transition focus:border-sky-300 focus:bg-theme-bg-app focus:ring-4 focus:ring-sky-500/10 disabled:cursor-not-allowed disabled:opacity-60"
-                          >
-                            <option value="ordinary_user">普通用户</option>
-                            <option value="developer">开发者</option>
-                            <option value="ordinary_admin">普通管理员</option>
-                          </select>
-                        </td>
-                        <td className="px-6 py-5">
-                          <div className="text-sm font-bold text-theme-text-secondary">{user.department_name || '未分配'}</div>
-                        </td>
-                        <td className="px-6 py-5">
-                          <select
-                            disabled={!editable}
-                            value={draft?.departmentId || ''}
-                            onChange={(event) => updateDraft(user.id, { departmentId: event.target.value })}
-                            className="w-full rounded-2xl border border-theme-border bg-theme-bg-app px-4 py-3 text-sm font-medium text-theme-text-secondary outline-none transition focus:border-sky-300 focus:bg-theme-bg-app focus:ring-4 focus:ring-sky-500/10 disabled:cursor-not-allowed disabled:opacity-60"
-                          >
-                            <option value="">未分配</option>
-                            {departmentOptions.map((department) => (
-                              <option key={department.id} value={department.id}>
-                                {department.path}
-                              </option>
-                            ))}
-                          </select>
-                        </td>
-                        <td className="px-6 py-5">
-                          {!editable ? (
-                            <span className="inline-flex rounded-full bg-theme-elevated px-3 py-1.5 text-[11px] font-black text-theme-text-muted">保留账户</span>
-                          ) : hasChanged ? (
-                            <span className="inline-flex rounded-full bg-emerald-500/15 px-3 py-1.5 text-[11px] font-black text-emerald-400">待保存</span>
-                          ) : (
-                            <span className="inline-flex rounded-full bg-theme-elevated px-3 py-1.5 text-[11px] font-black text-theme-text-muted">已同步</span>
-                          )}
-                        </td>
-                        <td className="px-8 py-5 text-right">
-                          {editable ? (
-                            <button
-                              onClick={() => void saveUserPermission(user)}
-                              disabled={!hasChanged || isSaving}
-                              className="inline-flex min-w-[112px] items-center justify-center gap-2 rounded-2xl bg-theme-surface px-5 py-3 text-sm font-black text-white transition hover:bg-theme-elevated disabled:cursor-not-allowed disabled:opacity-50"
-                            >
-                              {isSaving ? <Loader2 size={16} className="animate-spin" /> : '保存变更'}
-                            </button>
-                          ) : (
-                            <span className="text-[11px] font-black uppercase tracking-[0.24em] text-theme-text-muted">只读</span>
-                          )}
-                        </td>
-                      </tr>
-                    );
-                  })
-                )}
-              </tbody>
-            </table>
-          </div>
+          {(() => {
+            const columns: DataTableColumn<UserInfo>[] = [
+              {
+                key: 'username',
+                header: '用户',
+                render: (user) => (
+                  <div className="flex items-center gap-4">
+                    <div className="flex h-12 w-12 items-center justify-center rounded-[1.2rem] bg-theme-elevated font-black text-theme-text-secondary shadow-inner">
+                      {getUserInitial(user.username)}
+                    </div>
+                    <div>
+                      <p className="text-sm font-black text-theme-text-primary">{user.username}</p>
+                      <p className="mt-1 text-[11px] font-mono text-theme-text-muted">UID: {String(user.id).padStart(5, '0')}</p>
+                    </div>
+                  </div>
+                ),
+              },
+              {
+                key: 'platform_role',
+                header: '当前角色',
+                render: (user) => (
+                  <span className={`inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-[11px] font-black ${
+                    user.platform_role === 'super_admin'
+                      ? 'border-theme-border bg-theme-surface text-white'
+                      : user.platform_role === 'ordinary_admin'
+                        ? 'border-amber-500/20 bg-amber-500/15 text-amber-400'
+                        : user.platform_role === 'developer'
+                          ? 'border-fuchsia-500/20 bg-fuchsia-500/15 text-fuchsia-400'
+                        : 'border-sky-500/20 bg-sky-500/15 text-sky-400'
+                  }`}>
+                    <Shield size={12} />
+                    {getPlatformRoleLabel((user.platform_role || 'ordinary_user') as any)}
+                  </span>
+                ),
+              },
+              {
+                key: 'target_role',
+                header: '目标角色',
+                render: (user) => {
+                  const draft = drafts[user.id];
+                  const editable = isEditableUser(user);
+                  return (
+                    <select
+                      disabled={!editable}
+                      value={draft?.platformRole || 'ordinary_user'}
+                      onChange={(event) => updateDraft(user.id, { platformRole: event.target.value as UserDraft['platformRole'] })}
+                      className="w-full rounded-2xl border border-theme-border bg-theme-bg-app px-4 py-3 text-sm font-medium text-theme-text-secondary outline-none transition focus:border-sky-300 focus:bg-theme-bg-app focus:ring-4 focus:ring-sky-500/10 disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                      <option value="ordinary_user">普通用户</option>
+                      <option value="developer">开发者</option>
+                      <option value="ordinary_admin">普通管理员</option>
+                    </select>
+                  );
+                },
+              },
+              {
+                key: 'department_name',
+                header: '当前部门',
+                render: (user) => (
+                  <div className="text-sm font-bold text-theme-text-secondary">{user.department_name || '未分配'}</div>
+                ),
+              },
+              {
+                key: 'target_dept',
+                header: '目标部门',
+                render: (user) => {
+                  const draft = drafts[user.id];
+                  const editable = isEditableUser(user);
+                  return (
+                    <select
+                      disabled={!editable}
+                      value={draft?.departmentId || ''}
+                      onChange={(event) => updateDraft(user.id, { departmentId: event.target.value })}
+                      className="w-full rounded-2xl border border-theme-border bg-theme-bg-app px-4 py-3 text-sm font-medium text-theme-text-secondary outline-none transition focus:border-sky-300 focus:bg-theme-bg-app focus:ring-4 focus:ring-sky-500/10 disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                      <option value="">未分配</option>
+                      {departmentOptions.map((department) => (
+                        <option key={department.id} value={department.id}>{department.path}</option>
+                      ))}
+                    </select>
+                  );
+                },
+              },
+              {
+                key: 'status',
+                header: '状态',
+                render: (user) => {
+                  const draft = drafts[user.id];
+                  const editable = isEditableUser(user);
+                  const hasChanged = getDraftChanged(user, draft);
+                  return !editable ? (
+                    <span className="inline-flex rounded-full bg-theme-elevated px-3 py-1.5 text-[11px] font-black text-theme-text-muted">保留账户</span>
+                  ) : hasChanged ? (
+                    <span className="inline-flex rounded-full bg-emerald-500/15 px-3 py-1.5 text-[11px] font-black text-emerald-400">待保存</span>
+                  ) : (
+                    <span className="inline-flex rounded-full bg-theme-elevated px-3 py-1.5 text-[11px] font-black text-theme-text-muted">已同步</span>
+                  );
+                },
+              },
+              {
+                key: 'actions',
+                header: '操作',
+                align: 'right',
+                render: (user) => {
+                  const draft = drafts[user.id];
+                  const editable = isEditableUser(user);
+                  const hasChanged = getDraftChanged(user, draft);
+                  const isSaving = !!savingUserIds[user.id];
+                  return editable ? (
+                    <button
+                      onClick={() => void saveUserPermission(user)}
+                      disabled={!hasChanged || isSaving}
+                      className="inline-flex min-w-[112px] items-center justify-center gap-2 rounded-2xl bg-theme-surface px-5 py-3 text-sm font-black text-white transition hover:bg-theme-elevated disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      {isSaving ? <Loader2 size={16} className="animate-spin" /> : '保存变更'}
+                    </button>
+                  ) : (
+                    <span className="text-[11px] font-black uppercase tracking-[0.24em] text-theme-text-muted">只读</span>
+                  );
+                },
+              },
+            ];
+            return (
+              <DataTable<UserInfo>
+                columns={columns}
+                data={paginatedUsers}
+                rowKey={(u) => String(u.id)}
+                loading={loading && filteredUsers.length === 0}
+                empty={
+                  <div className="text-center py-8">
+                    <p className="text-base font-black text-theme-text-muted">暂无匹配用户</p>
+                    <p className="mt-2 text-sm font-medium text-theme-text-muted">可以试试切换筛选条件或清空搜索关键字。</p>
+                  </div>
+                }
+                minWidth={1000}
+              />
+            );
+          })()}
 
           {!loading && filteredUsers.length > 0 && (
             <div className="flex flex-col gap-4 border-t border-theme-border px-6 py-5 md:flex-row md:items-center md:justify-between md:px-8">

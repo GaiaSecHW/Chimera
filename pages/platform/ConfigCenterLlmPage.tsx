@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import MonacoEditor from '@monaco-editor/react';
 import { Bot, BookOpenText, Braces, CheckCircle2, Copy, Eye, EyeOff, FileCode2, LayoutPanelTop, Loader2, MessageSquare, Plus, RefreshCw, Save, ShieldAlert, Sparkles, Trash2, Wifi, X } from 'lucide-react';
+import { Modal } from '../../design-system';
 import { api } from '../../clients/api';
 import { showConfirm } from '../../components/DialogService';
 import { LlmProviderDetail, LlmProviderFileBinding, LlmProviderSummary, LlmProviderTestResult, LlmProviderUpsertRequest } from '../../types/types';
@@ -1370,9 +1371,8 @@ API_TIMEOUT_MS=600000`}
         </div>
       </div>
 
-      {showUsageGuide && (
-        <div className="fixed inset-0 z-[320] flex items-center justify-center bg-slate-950/65 backdrop-blur-md p-6" onClick={() => setShowUsageGuide(false)}>
-          <div className="w-full max-w-4xl overflow-hidden rounded-[2rem] border border-theme-border bg-theme-elevated shadow-panel" onClick={(event) => event.stopPropagation()}>
+      <Modal open={showUsageGuide} onClose={() => setShowUsageGuide(false)} className="max-w-4xl">
+          <div className="overflow-hidden rounded-[2rem] border border-theme-border bg-theme-elevated shadow-panel">
             <div className="flex items-start justify-between gap-4 border-b border-slate-200/80 px-8 py-7">
               <div>
                 <div className="inline-flex rounded-full border border-blue-500/30 bg-blue-950 px-3 py-1 text-[10px] font-black uppercase tracking-[0.24em] text-blue-400">
@@ -1530,8 +1530,7 @@ Authorization: Bearer <machine-token>`}
               </section>
             </div>
           </div>
-        </div>
-      )}
+      </Modal>
     </div>
   );
 };

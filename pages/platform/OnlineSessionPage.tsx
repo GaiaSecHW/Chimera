@@ -3,6 +3,7 @@ import { Clock, Globe, Loader2, MapPin, Monitor, RefreshCw, Search, ShieldCheck,
 import { api } from '../../clients/api';
 import { showConfirm } from '../../components/DialogService';
 import { UserSession } from '../../types/types';
+import { DataTable, DataTableColumn } from '../../design-system';
 
 export const OnlineSessionPage: React.FC = () => {
   const platformApi = api.domains.platform;
@@ -200,94 +201,92 @@ export const OnlineSessionPage: React.FC = () => {
             </div>
           </div>
 
-          <div className="overflow-x-auto">
-            <table className="min-w-full text-left">
-              <thead className="bg-theme-bg-app text-[11px] font-black uppercase tracking-[0.22em] text-theme-text-muted">
-                <tr>
-                  <th className="px-8 py-4">在线身份</th>
-                  <th className="px-6 py-4">网络地址</th>
-                  <th className="px-6 py-4">设备指纹</th>
-                  <th className="px-6 py-4">建立时间</th>
-                  <th className="px-8 py-4 text-right">风险处置</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-theme-border">
-                {loading && sessions.length === 0 ? (
-                  <tr>
-                    <td colSpan={5} className="px-8 py-32 text-center">
-                      <Loader2 className="mx-auto animate-spin text-emerald-400" size={38} />
-                    </td>
-                  </tr>
-                ) : filteredSessions.length > 0 ? (
-                  paginatedSessions.map((session, index) => (
-                    <tr key={`${session.user_id}-${index}`} className="transition hover:bg-emerald-50/30">
-                      <td className="px-8 py-5">
-                        <div className="flex items-center gap-4">
-                          <div className="flex h-12 w-12 items-center justify-center rounded-[1.2rem] bg-emerald-500/15 font-black text-emerald-400 shadow-inner">
-                            {session.username.slice(0, 1).toUpperCase()}
-                          </div>
-                          <div>
-                            <p className="text-sm font-black text-theme-text-primary">{session.username}</p>
-                            <div className="mt-2 flex flex-wrap gap-1.5">
-                              {session.role?.length ? session.role.map((role) => (
-                                <span key={role} className="rounded-full border border-theme-border bg-theme-elevated px-2.5 py-1 text-[10px] font-black uppercase text-theme-text-muted">
-                                  {role}
-                                </span>
-                              )) : (
-                                <span className="rounded-full border border-theme-border bg-theme-elevated px-2.5 py-1 text-[10px] font-black uppercase text-theme-text-muted">
-                                  Guest
-                                </span>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-6 py-5">
-                        <div className="inline-flex items-center gap-2 rounded-xl bg-sky-500/15 px-3 py-2 text-xs font-black text-sky-400">
-                          <MapPin size={12} className="text-sky-400" />
-                          {session.ip_address}
-                        </div>
-                      </td>
-                      <td className="px-6 py-5">
-                        <div className="max-w-[280px] rounded-[1.2rem] border border-theme-border bg-theme-bg-app px-4 py-3 text-xs font-medium leading-6 text-theme-text-muted">
-                          {session.user_agent || '未知设备'}
-                        </div>
-                      </td>
-                      <td className="px-6 py-5">
-                        <div className="flex flex-col gap-1">
-                          <div className="inline-flex items-center gap-2 text-xs font-black text-theme-text-secondary">
-                            <Clock size={12} className="text-theme-text-faint" />
-                            {session.login_at?.split('T')[1]?.split('.')[0] || '12:00:00'}
-                          </div>
-                          <span className="text-[11px] font-medium text-theme-text-muted">{session.login_at?.split('T')[0] || '2024-01-01'}</span>
-                        </div>
-                      </td>
-                      <td className="px-8 py-5 text-right">
-                        <button
-                          onClick={() => void handleKick(session.user_id, session.username)}
-                          disabled={isActionLoading}
-                          className="inline-flex items-center gap-2 rounded-2xl bg-rose-500/15 px-5 py-3 text-sm font-black text-rose-400 transition hover:bg-rose-600 hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
-                        >
-                          <UserX size={15} />
-                          吊销会话
-                        </button>
-                      </td>
-                    </tr>
-                  ))
-                ) : (
-                  <tr>
-                    <td colSpan={5} className="px-8 py-32 text-center">
-                      <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-theme-elevated text-theme-text-faint">
-                        <ShieldCheck size={36} />
+          {(() => {
+            const columns: DataTableColumn<UserSession>[] = [
+              {
+                key: 'identity',
+                header: '在线身份',
+                render: (session) => (
+                  <div className="flex items-center gap-4">
+                    <div className="flex h-12 w-12 items-center justify-center rounded-[1.2rem] bg-emerald-500/15 font-black text-emerald-400 shadow-inner">
+                      {session.username.slice(0, 1).toUpperCase()}
+                    </div>
+                    <div>
+                      <p className="text-sm font-black text-theme-text-primary">{session.username}</p>
+                      <div className="mt-2 flex flex-wrap gap-1.5">
+                        {session.role?.length ? session.role.map((role) => (
+                          <span key={role} className="rounded-full border border-theme-border bg-theme-elevated px-2.5 py-1 text-[10px] font-black uppercase text-theme-text-muted">
+                            {role}
+                          </span>
+                        )) : (
+                          <span className="rounded-full border border-theme-border bg-theme-elevated px-2.5 py-1 text-[10px] font-black uppercase text-theme-text-muted">
+                            Guest
+                          </span>
+                        )}
                       </div>
-                      <p className="mt-5 text-base font-black text-theme-text-muted">暂无匹配的在线会话</p>
-                      <p className="mt-2 text-sm font-medium text-theme-text-muted">可以尝试调整搜索条件，或等待下一轮自动同步。</p>
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
+                    </div>
+                  </div>
+                ),
+              },
+              {
+                key: 'ip_address',
+                header: '网络地址',
+                render: (session) => (
+                  <div className="inline-flex items-center gap-2 rounded-xl bg-sky-500/15 px-3 py-2 text-xs font-black text-sky-400">
+                    <MapPin size={12} className="text-sky-400" />
+                    {session.ip_address}
+                  </div>
+                ),
+              },
+              {
+                key: 'user_agent',
+                header: '设备指纹',
+                render: (session) => (
+                  <div className="max-w-[280px] rounded-[1.2rem] border border-theme-border bg-theme-bg-app px-4 py-3 text-xs font-medium leading-6 text-theme-text-muted">
+                    {session.user_agent || '未知设备'}
+                  </div>
+                ),
+              },
+              {
+                key: 'login_at',
+                header: '建立时间',
+                render: (session) => (
+                  <div className="flex flex-col gap-1">
+                    <div className="inline-flex items-center gap-2 text-xs font-black text-theme-text-secondary">
+                      <Clock size={12} className="text-theme-text-faint" />
+                      {session.login_at?.split('T')[1]?.split('.')[0] || '12:00:00'}
+                    </div>
+                    <span className="text-[11px] font-medium text-theme-text-muted">{session.login_at?.split('T')[0] || '2024-01-01'}</span>
+                  </div>
+                ),
+              },
+              {
+                key: 'action',
+                header: '风险处置',
+                align: 'right',
+                render: (session) => (
+                  <button
+                    onClick={() => void handleKick(session.user_id, session.username)}
+                    disabled={isActionLoading}
+                    className="inline-flex items-center gap-2 rounded-2xl bg-rose-500/15 px-5 py-3 text-sm font-black text-rose-400 transition hover:bg-rose-600 hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    <UserX size={15} />
+                    吊销会话
+                  </button>
+                ),
+              },
+            ];
+
+            return (
+              <DataTable<UserSession>
+                columns={columns}
+                data={paginatedSessions}
+                rowKey={(session) => `${session.user_id}-${session.ip_address}`}
+                loading={loading && sessions.length === 0}
+                minWidth={900}
+              />
+            );
+          })()}
 
           {!loading && filteredSessions.length > 0 && (
             <div className="flex flex-col gap-4 border-t border-theme-border px-6 py-5 md:flex-row md:items-center md:justify-between md:px-8">

@@ -4,6 +4,7 @@ import { Shield, Plus, Search, RefreshCw, Loader2, Trash2, Edit3, ShieldCheck, U
 import { api } from '../../clients/api';
 import { showConfirm } from '../../components/DialogService';
 import { Role } from '../../types/types';
+import { Modal, DataTable, DataTableColumn } from '../../design-system';
 
 export const RoleMgmtPage: React.FC = () => {
   const platformApi = api.domains.platform;
@@ -55,6 +56,73 @@ export const RoleMgmtPage: React.FC = () => {
     r.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     r.description.toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  const columns: DataTableColumn<Role>[] = [
+    {
+      key: 'name',
+      header: '角色标识 / ID',
+      render: (role) => (
+        <div className="flex items-center gap-4">
+          <div className="w-12 h-12 bg-indigo-500/15 text-indigo-400 rounded-2xl flex items-center justify-center font-black shadow-inner group-hover:bg-indigo-600 group-hover:text-white transition-all">
+            <Shield size={20} />
+          </div>
+          <div>
+            <p className="text-sm font-black text-theme-text-primary uppercase tracking-tight">{role.name}</p>
+            <p className="text-[10px] text-theme-text-muted font-mono mt-0.5">RID: {role.id.toString().padStart(4, '0')}</p>
+          </div>
+        </div>
+      ),
+    },
+    {
+      key: 'description',
+      header: '职责权限描述',
+      render: (role) => (
+        <p className="text-xs font-medium text-theme-text-muted line-clamp-1 italic max-w-[300px]">"{role.description || '未提供详细职责描述信息。'}"</p>
+      ),
+    },
+    {
+      key: 'user_count',
+      header: '关联用户数',
+      align: 'center',
+      render: (role) => (
+        <div className="inline-flex items-center gap-2 px-3 py-1 bg-theme-elevated text-theme-text-secondary rounded-full text-[10px] font-black border border-theme-border">
+          <Users size={12} /> {(role as any).user_ids?.length || 0}
+        </div>
+      ),
+    },
+    {
+      key: 'updated_at',
+      header: '最近更新',
+      render: (role) => (
+        <div className="flex items-center gap-2 text-[10px] font-bold text-theme-text-muted uppercase">
+          <Clock size={12} /> {role.updated_at?.split('T')[0] || '2024-01-01'}
+        </div>
+      ),
+    },
+    {
+      key: 'actions',
+      header: '操作',
+      align: 'right',
+      render: (role) => (
+        <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-all">
+          <button
+            onClick={() => { setEditingRole(role); setFormData({ name: role.name, description: role.description }); setIsModalOpen(true); }}
+            className="p-3 bg-theme-bg-app border border-theme-border text-theme-text-muted hover:text-indigo-400 rounded-xl transition-all"
+            title="编辑角色"
+          >
+            <Edit3 size={16} />
+          </button>
+          <button
+            onClick={() => void handleDeleteRole(role)}
+            className="p-3 bg-red-500/15 text-red-400 border border-transparent hover:border-red-500/20 rounded-xl transition-all"
+            title="彻底删除"
+          >
+            <Trash2 size={16} />
+          </button>
+        </div>
+      ),
+    },
+  ];
 
   const handleDeleteRole = async (role: Role) => {
     const confirmed = await showConfirm({
@@ -122,85 +190,25 @@ export const RoleMgmtPage: React.FC = () => {
           />
         </div>
 
- <div className="bg-theme-bg-app border border-theme-border rounded-[3rem] overflow-hidden min-h-[500px]">
-          <table className="w-full text-left">
-            <thead className="bg-slate-100/50 border-b border-theme-border font-black text-[10px] text-theme-text-muted uppercase tracking-widest">
-              <tr>
-                <th className="px-8 py-6">角色标识 / ID</th>
-                <th className="px-6 py-6">职责权限描述</th>
-                <th className="px-6 py-6 text-center">关联用户数</th>
-                <th className="px-6 py-6">最近更新</th>
-                <th className="px-8 py-6 text-right">操作</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-50">
-              {loading && roles.length === 0 ? (
-                <tr><td colSpan={5} className="py-32 text-center"><Loader2 className="animate-spin mx-auto text-indigo-400" size={40} /></td></tr>
-              ) : filteredRoles.length > 0 ? filteredRoles.map(role => (
-                <tr key={role.id} className="hover:bg-theme-elevated transition-all group border-l-4 border-transparent hover:border-indigo-600">
-                  <td className="px-8 py-6">
-                    <div className="flex items-center gap-4">
-                      <div className="w-12 h-12 bg-indigo-500/15 text-indigo-400 rounded-2xl flex items-center justify-center font-black shadow-inner group-hover:bg-indigo-600 group-hover:text-white transition-all">
-                        <Shield size={20} />
-                      </div>
-                      <div>
-                        <p className="text-sm font-black text-theme-text-primary uppercase tracking-tight">{role.name}</p>
-                        <p className="text-[10px] text-theme-text-muted font-mono mt-0.5">RID: {role.id.toString().padStart(4, '0')}</p>
-                      </div>
-                    </div>
-                  </td>
-                  <td className="px-6 py-6">
-                    <p className="text-xs font-medium text-theme-text-muted line-clamp-1 italic italic max-w-[300px]">"{role.description || '未提供详细职责描述信息。'}"
-                    </p>
-                  </td>
-                  <td className="px-6 py-6 text-center">
-                    <div className="inline-flex items-center gap-2 px-3 py-1 bg-theme-elevated text-theme-text-secondary rounded-full text-[10px] font-black border border-theme-border">
-                       <Users size={12} /> {(role as any).user_ids?.length || 0}
-                    </div>
-                  </td>
-                  <td className="px-6 py-6">
-                    <div className="flex items-center gap-2 text-[10px] font-bold text-theme-text-muted uppercase">
-                       <Clock size={12} /> {role.updated_at?.split('T')[0] || '2024-01-01'}
-                    </div>
-                  </td>
-                  <td className="px-8 py-6 text-right">
-                    <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-all">
-                       <button
-                         onClick={() => { setEditingRole(role); setFormData({ name: role.name, description: role.description }); setIsModalOpen(true); }}
- className="p-3 bg-theme-bg-app border border-theme-border text-theme-text-muted hover:text-indigo-400 rounded-xl transition-all"
-                         title="编辑角色"
-                       >
-                          <Edit3 size={16} />
-                       </button>
-                       <button
-                         onClick={() => void handleDeleteRole(role)}
- className="p-3 bg-red-500/15 text-red-400 border border-transparent hover:border-red-500/20 rounded-xl transition-all"
-                         title="彻底删除"
-                       >
-                          <Trash2 size={16} />
-                       </button>
-                    </div>
-                  </td>
-                </tr>
-              )) : (
-                <tr>
-                  <td colSpan={5} className="py-40 text-center">
-                    <div className="w-20 h-20 bg-theme-bg-app rounded-full flex items-center justify-center mx-auto mb-4 text-slate-200">
-                      <ShieldCheck size={40} />
-                    </div>
-                    <p className="text-sm font-black text-theme-text-muted uppercase tracking-widest">目前暂无匹配的角色定义</p>
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
+        <DataTable
+            columns={columns}
+            data={filteredRoles}
+            rowKey={role => String(role.id)}
+            loading={loading && roles.length === 0}
+            empty={
+              <div className="py-40 text-center">
+                <div className="w-20 h-20 bg-theme-bg-app rounded-full flex items-center justify-center mx-auto mb-4 text-slate-200">
+                  <ShieldCheck size={40} />
+                </div>
+                <p className="text-sm font-black text-theme-text-muted uppercase tracking-widest">目前暂无匹配的角色定义</p>
+              </div>
+            }
+            minWidth={800}
+          />
       </div>
 
       {/* Create/Edit Modal */}
-      {isModalOpen && (
-        <div className="fixed inset-0 z-[150] flex items-center justify-center p-6 bg-slate-900/60 backdrop-blur-md animate-in fade-in">
- <div className="bg-theme-bg-app w-full max-w-md rounded-[3rem] overflow-hidden animate-in zoom-in-95">
+      <Modal open={isModalOpen} onClose={() => setIsModalOpen(false)} className="max-w-md">
               <div className="p-10 pb-4 border-b border-slate-50 flex items-center justify-between">
                 <div className="flex items-center gap-4">
  <div className="w-12 h-12 bg-indigo-600 rounded-2xl flex items-center justify-center text-white shadow-indigo-500/20">
@@ -238,9 +246,7 @@ export const RoleMgmtPage: React.FC = () => {
                     </button>
                  </div>
               </form>
-           </div>
-        </div>
-      )}
+      </Modal>
     </div>
   );
 };

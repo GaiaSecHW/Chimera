@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Check, Copy, Cpu, Key, Loader2, Plus, Power, PowerOff, RefreshCw, Search, Server, ShieldCheck, Trash2, X, Zap } from 'lucide-react';
 import { api } from '../../clients/api';
 import { showConfirm } from '../../components/DialogService';
+import { DataTable, DataTableColumn, Modal } from '../../design-system';
 import { MachineToken } from '../../types/types';
 
 export const MachineTokenPage: React.FC = () => {
@@ -251,107 +252,115 @@ export const MachineTokenPage: React.FC = () => {
             </div>
           </div>
 
-          <div className="overflow-x-auto">
-            <table className="min-w-full text-left">
-              <thead className="bg-theme-bg-app text-[11px] font-black uppercase tracking-[0.22em] text-theme-text-muted">
-                <tr>
-                  <th className="px-8 py-4">机器标识</th>
-                  <th className="px-6 py-4">用途描述</th>
-                  <th className="px-6 py-4">过期策略</th>
-                  <th className="px-6 py-4 text-center">状态</th>
-                  <th className="px-8 py-4 text-right">操作</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-theme-border">
-                {loading && tokens.length === 0 ? (
-                  <tr>
-                    <td colSpan={5} className="px-8 py-32 text-center">
-                      <Loader2 className="mx-auto animate-spin text-theme-text-muted" size={38} />
-                    </td>
-                  </tr>
-                ) : filteredTokens.length > 0 ? (
-                  paginatedTokens.map((token) => (
-                    <tr key={token.id} className="transition hover:bg-blue-50/20">
-                      <td className="px-8 py-5">
-                        <div className="flex items-center gap-4">
- <div className="flex h-11 w-11 items-center justify-center rounded-[1rem] bg-theme-surface text-white">
-                            <Key size={16} />
-                          </div>
-                          <div>
-                            <p className="text-sm font-black text-theme-text-primary">{token.machine_code}</p>
-                            <p className="mt-1 text-[11px] font-medium text-theme-text-muted">Token ID: #{token.id}</p>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-6 py-5">
-                        <div className="max-w-[280px] rounded-[1.2rem] border border-theme-border bg-theme-bg-app px-4 py-3 text-sm font-medium leading-6 text-theme-text-muted">
-                          {token.description || '未填写用途描述'}
-                        </div>
-                      </td>
-                      <td className="px-6 py-5">
-                        <div className={`inline-flex items-center gap-2 rounded-xl px-3 py-2 text-xs font-black ${token.expires_at ? 'bg-amber-500/15 text-amber-400' : 'bg-emerald-500/15 text-emerald-400'}`}>
-                          {token.expires_at ? (
-                            <>
-                              <Zap size={12} className="text-amber-400" />
-                              {token.expires_at.split('T')[0]}
-                            </>
-                          ) : (
-                            <>
-                              <ShieldCheck size={12} className="text-emerald-400" />
-                              PERMANENT
-                            </>
-                          )}
-                        </div>
-                      </td>
-                      <td className="px-6 py-5 text-center">
-                        <button
-                          onClick={() => void handleToggleStatus(token)}
-                          className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-[10px] font-black uppercase tracking-[0.18em] transition ${
-                            token.is_active
-                              ? 'bg-emerald-500/15 text-emerald-400 hover:bg-amber-500/15 hover:text-amber-400'
-                              : 'bg-rose-500/15 text-rose-400 hover:bg-emerald-500/15 hover:text-emerald-400'
-                          }`}
-                        >
-                          {token.is_active ? <Power size={12} /> : <PowerOff size={12} />}
-                          {token.is_active ? 'Enabled' : 'Disabled'}
-                        </button>
-                      </td>
-                      <td className="px-8 py-5 text-right">
-                        <div className="flex justify-end gap-2">
-                          <button
-                            onClick={() => void handleRegenerate(token)}
-                            className="inline-flex items-center gap-2 rounded-2xl border border-theme-border bg-theme-bg-app px-4 py-3 text-sm font-black text-theme-text-secondary transition hover:border-blue-500/20 hover:text-blue-400"
-                            title="重新生成凭证值"
-                          >
-                            <Zap size={14} />
-                            重签发
-                          </button>
-                          <button
-                            onClick={() => void handleDeleteToken(token)}
-                            className="inline-flex items-center gap-2 rounded-2xl bg-rose-500/15 px-4 py-3 text-sm font-black text-rose-400 transition hover:bg-rose-600 hover:text-white"
-                            title="彻底删除"
-                          >
-                            <Trash2 size={14} />
-                            撤销
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))
-                ) : (
-                  <tr>
-                    <td colSpan={5} className="px-8 py-32 text-center">
-                      <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-theme-elevated text-theme-text-faint">
-                        <Key size={34} />
-                      </div>
-                      <p className="mt-5 text-base font-black text-theme-text-muted">暂无匹配的机机凭证</p>
-                      <p className="mt-2 text-sm font-medium text-theme-text-muted">可以尝试调整搜索条件，或先创建新的机器 Token。</p>
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
+          {(() => {
+            const columns: DataTableColumn<MachineToken>[] = [
+              {
+                key: 'machine_code',
+                header: '机器标识',
+                render: (token) => (
+                  <div className="flex items-center gap-4">
+                    <div className="flex h-11 w-11 items-center justify-center rounded-[1rem] bg-theme-surface text-white">
+                      <Key size={16} />
+                    </div>
+                    <div>
+                      <p className="text-sm font-black text-theme-text-primary">{token.machine_code}</p>
+                      <p className="mt-1 text-[11px] font-medium text-theme-text-muted">Token ID: #{token.id}</p>
+                    </div>
+                  </div>
+                ),
+              },
+              {
+                key: 'description',
+                header: '用途描述',
+                render: (token) => (
+                  <div className="max-w-[280px] rounded-[1.2rem] border border-theme-border bg-theme-bg-app px-4 py-3 text-sm font-medium leading-6 text-theme-text-muted">
+                    {token.description || '未填写用途描述'}
+                  </div>
+                ),
+              },
+              {
+                key: 'expires_at',
+                header: '过期策略',
+                render: (token) => (
+                  <div className={`inline-flex items-center gap-2 rounded-xl px-3 py-2 text-xs font-black ${token.expires_at ? 'bg-amber-500/15 text-amber-400' : 'bg-emerald-500/15 text-emerald-400'}`}>
+                    {token.expires_at ? (
+                      <>
+                        <Zap size={12} className="text-amber-400" />
+                        {token.expires_at.split('T')[0]}
+                      </>
+                    ) : (
+                      <>
+                        <ShieldCheck size={12} className="text-emerald-400" />
+                        PERMANENT
+                      </>
+                    )}
+                  </div>
+                ),
+              },
+              {
+                key: 'is_active',
+                header: '状态',
+                align: 'center',
+                render: (token) => (
+                  <button
+                    onClick={() => void handleToggleStatus(token)}
+                    className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-[10px] font-black uppercase tracking-[0.18em] transition ${
+                      token.is_active
+                        ? 'bg-emerald-500/15 text-emerald-400 hover:bg-amber-500/15 hover:text-amber-400'
+                        : 'bg-rose-500/15 text-rose-400 hover:bg-emerald-500/15 hover:text-emerald-400'
+                    }`}
+                  >
+                    {token.is_active ? <Power size={12} /> : <PowerOff size={12} />}
+                    {token.is_active ? 'Enabled' : 'Disabled'}
+                  </button>
+                ),
+              },
+              {
+                key: 'actions',
+                header: '操作',
+                align: 'right',
+                render: (token) => (
+                  <div className="flex justify-end gap-2">
+                    <button
+                      onClick={() => void handleRegenerate(token)}
+                      className="inline-flex items-center gap-2 rounded-2xl border border-theme-border bg-theme-bg-app px-4 py-3 text-sm font-black text-theme-text-secondary transition hover:border-blue-500/20 hover:text-blue-400"
+                      title="重新生成凭证值"
+                    >
+                      <Zap size={14} />
+                      重签发
+                    </button>
+                    <button
+                      onClick={() => void handleDeleteToken(token)}
+                      className="inline-flex items-center gap-2 rounded-2xl bg-rose-500/15 px-4 py-3 text-sm font-black text-rose-400 transition hover:bg-rose-600 hover:text-white"
+                      title="彻底删除"
+                    >
+                      <Trash2 size={14} />
+                      撤销
+                    </button>
+                  </div>
+                ),
+              },
+            ];
+
+            return (
+              <DataTable<MachineToken>
+                columns={columns}
+                data={paginatedTokens}
+                rowKey={(t) => String(t.id)}
+                loading={loading && tokens.length === 0}
+                empty={
+                  <div className="px-8 py-32 text-center">
+                    <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-theme-elevated text-theme-text-faint">
+                      <Key size={34} />
+                    </div>
+                    <p className="mt-5 text-base font-black text-theme-text-muted">暂无匹配的机机凭证</p>
+                    <p className="mt-2 text-sm font-medium text-theme-text-muted">可以尝试调整搜索条件，或先创建新的机器 Token。</p>
+                  </div>
+                }
+                minWidth={860}
+              />
+            );
+          })()}
 
           {!loading && filteredTokens.length > 0 && (
             <div className="flex flex-col gap-4 border-t border-theme-border px-6 py-5 md:flex-row md:items-center md:justify-between md:px-8">
@@ -397,9 +406,7 @@ export const MachineTokenPage: React.FC = () => {
           )}
         </section>
 
-        {isCreateModalOpen && (
-          <div className="fixed inset-0 z-[150] flex items-center justify-center bg-slate-950/60 p-6 backdrop-blur-md animate-in fade-in">
- <div className="flex max-h-[92vh] w-full max-w-2xl flex-col overflow-hidden rounded-[2.5rem] bg-theme-bg-app animate-in zoom-in-95">
+        <Modal open={isCreateModalOpen} onClose={() => setIsCreateModalOpen(false)} className="max-w-2xl">
               <div className="flex items-center justify-between border-b border-theme-border px-8 py-7">
                 <div className="flex items-center gap-4">
  <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-theme-surface text-white">
@@ -480,9 +487,7 @@ export const MachineTokenPage: React.FC = () => {
                   </button>
                 </form>
               )}
-            </div>
-          </div>
-        )}
+        </Modal>
       </div>
     </div>
   );

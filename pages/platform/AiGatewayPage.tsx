@@ -5,6 +5,7 @@ import { api } from '../../clients/api';
 import { showConfirm } from '../../components/DialogService';
 import { AigwLogDetailsDialog } from '../../components/platform/AigwLogDetailsDialog';
 import { useUiFeedback } from '../../components/UiFeedback';
+import { DataTable, DataTableColumn, Modal } from '../../design-system';
 import { AiGatewayTokenStatsPage } from './AiGatewayTokenStatsPage';
 import {
   AiGatewayBackendUnit,
@@ -1044,56 +1045,77 @@ export const AiGatewayPage: React.FC<AiGatewayPageProps> = ({ entryView = 'aigw-
       </div>
 
       <div className="min-h-0 flex-1 overflow-auto">
-        <table className="min-w-full text-sm">
-          <thead>
-            <tr className="border-b border-theme-border text-left text-theme-text-muted">
-              <th className="px-3 py-2 font-bold">时间</th>
-              <th className="px-3 py-2 font-bold">模型</th>
-              <th className="px-3 py-2 font-bold">归因</th>
-              <th className="px-3 py-2 font-bold">别名 / 单元</th>
-              <th className="px-3 py-2 font-bold">状态</th>
-              <th className="px-3 py-2 font-bold">延迟</th>
-              <th className="px-3 py-2 font-bold">请求预览</th>
-              <th className="px-3 py-2 font-bold">操作</th>
-            </tr>
-          </thead>
-          <tbody>
-            {logs.map((log) => (
-              <tr key={log.id} className="border-b border-theme-border">
-                <td className="px-3 py-2 text-theme-text-secondary">{new Date(log.created_at).toLocaleString('zh-CN')}</td>
-                <td className="px-3 py-2">
-                  <div className="truncate font-bold text-theme-text-primary" title={`后端: ${log.backend_model_name || '-'}`}>{log.model_name || '-'}</div>
-                </td>
-                <td className="px-3 py-2">
+        {(() => {
+          const columns: DataTableColumn<typeof logs[number]>[] = [
+            {
+              key: 'created_at',
+              header: '时间',
+              render: (log) => <span className="text-theme-text-secondary">{new Date(log.created_at).toLocaleString('zh-CN')}</span>,
+            },
+            {
+              key: 'model_name',
+              header: '模型',
+              render: (log) => <div className="truncate font-bold text-theme-text-primary" title={`后端: ${log.backend_model_name || '-'}`}>{log.model_name || '-'}</div>,
+            },
+            {
+              key: 'attribution',
+              header: '归因',
+              render: (log) => (
+                <>
                   <div className="truncate font-mono text-xs text-theme-text-secondary" title={log.app_id ? (log.app_name ? `${log.app_name} / ${log.app_id}` : log.app_id) : (log.sub_task_id || log.task_id || '-')}>
                     {log.app_id ? (log.app_name ? `${log.app_name} / ${log.app_id}` : log.app_id) : (log.task_id || '-')}
                   </div>
                   {!log.app_id && log.sub_task_id ? <div className="mt-0.5 truncate text-[11px] text-theme-text-muted">{log.sub_task_id}</div> : null}
-                </td>
-                <td className="px-3 py-2 text-theme-text-secondary text-xs">A{log.model_alias_id || '-'} / U{log.backend_unit_id || '-'}</td>
-                <td className="px-3 py-2">
-                  <div className="flex items-center gap-1.5">
-                    <span className={`rounded-full px-2 py-0.5 text-xs font-bold ${log.status_code >= 200 && log.status_code < 300 ? 'bg-emerald-500/15 text-emerald-400' : log.status_code >= 400 ? 'bg-rose-500/15 text-rose-400' : 'bg-theme-elevated text-theme-text-secondary'}`}>{log.status_code || '-'}</span>
-                    <span className="text-xs text-theme-text-muted">{log.is_stream ? 'stream' : 'json'}</span>
-                  </div>
-                </td>
-                <td className="px-3 py-2 text-theme-text-secondary text-xs">{log.response_time || 0} ms / 首 Token {log.first_token_latency || 0} ms</td>
-                <td className="max-w-[300px] px-3 py-2 text-theme-text-secondary"><div className="truncate text-xs" title={log.request_preview}>{log.request_preview || '-'}</div></td>
-                <td className="px-3 py-2">
-                  <div className="flex items-center gap-1.5">
-                    <button onClick={() => openLogDetail(log.id)} disabled={detailLoading} className="rounded-lg bg-theme-elevated px-2 py-1 text-xs font-bold text-theme-text-secondary hover:bg-theme-elevated disabled:opacity-50"><Eye className="h-3 w-3" /></button>
-                    <button onClick={() => replayLog(log.id)} disabled={replayingLogId === log.id} className="rounded-lg bg-amber-500/15 px-2 py-1 text-xs font-bold text-amber-400 hover:bg-amber-200 disabled:opacity-50"><RefreshCw className={`h-3 w-3 ${replayingLogId === log.id ? 'animate-spin' : ''}`} /></button>
-                  </div>
-                </td>
-              </tr>
-            ))}
-            {!logs.length && !logsLoading ? (
-              <tr>
-                <td colSpan={8} className="px-3 py-10 text-center text-theme-text-muted">暂无日志</td>
-              </tr>
-            ) : null}
-          </tbody>
-        </table>
+                </>
+              ),
+            },
+            {
+              key: 'alias_unit',
+              header: '别名 / 单元',
+              render: (log) => <span className="text-theme-text-secondary text-xs">A{log.model_alias_id || '-'} / U{log.backend_unit_id || '-'}</span>,
+            },
+            {
+              key: 'status_code',
+              header: '状态',
+              render: (log) => (
+                <div className="flex items-center gap-1.5">
+                  <span className={`rounded-full px-2 py-0.5 text-xs font-bold ${log.status_code >= 200 && log.status_code < 300 ? 'bg-emerald-500/15 text-emerald-400' : log.status_code >= 400 ? 'bg-rose-500/15 text-rose-400' : 'bg-theme-elevated text-theme-text-secondary'}`}>{log.status_code || '-'}</span>
+                  <span className="text-xs text-theme-text-muted">{log.is_stream ? 'stream' : 'json'}</span>
+                </div>
+              ),
+            },
+            {
+              key: 'response_time',
+              header: '延迟',
+              render: (log) => <span className="text-theme-text-secondary text-xs">{log.response_time || 0} ms / 首 Token {log.first_token_latency || 0} ms</span>,
+            },
+            {
+              key: 'request_preview',
+              header: '请求预览',
+              render: (log) => <div className="max-w-[300px]"><div className="truncate text-xs text-theme-text-secondary" title={log.request_preview}>{log.request_preview || '-'}</div></div>,
+            },
+            {
+              key: 'actions',
+              header: '操作',
+              render: (log) => (
+                <div className="flex items-center gap-1.5">
+                  <button onClick={() => openLogDetail(log.id)} disabled={detailLoading} className="rounded-lg bg-theme-elevated px-2 py-1 text-xs font-bold text-theme-text-secondary hover:bg-theme-elevated disabled:opacity-50"><Eye className="h-3 w-3" /></button>
+                  <button onClick={() => replayLog(log.id)} disabled={replayingLogId === log.id} className="rounded-lg bg-amber-500/15 px-2 py-1 text-xs font-bold text-amber-400 hover:bg-amber-200 disabled:opacity-50"><RefreshCw className={`h-3 w-3 ${replayingLogId === log.id ? 'animate-spin' : ''}`} /></button>
+                </div>
+              ),
+            },
+          ];
+          return (
+            <DataTable
+              columns={columns}
+              data={logs}
+              rowKey={(log) => String(log.id)}
+              loading={logsLoading}
+              empty="暂无日志"
+              minWidth={1000}
+            />
+          );
+        })()}
       </div>
 
       <div className="mt-5 flex shrink-0 items-center justify-between">
@@ -1165,46 +1187,62 @@ export const AiGatewayPage: React.FC<AiGatewayPageProps> = ({ entryView = 'aigw-
       </div>
 
       <div className="min-h-0 flex-1 overflow-auto">
-        <table className="min-w-full text-sm">
-          <thead>
-            <tr className="border-b border-theme-border text-left text-theme-text-muted">
-              <th className="px-3 py-2 font-bold">名称</th>
-              <th className="px-3 py-2 font-bold">类型</th>
-              <th className="px-3 py-2 font-bold">最大并发</th>
-              <th className="px-3 py-2 font-bold">身份范围</th>
-              <th className="px-3 py-2 font-bold">状态</th>
-              <th className="px-3 py-2 font-bold">更新时间</th>
-              <th className="px-3 py-2 font-bold">操作</th>
-            </tr>
-          </thead>
-          <tbody>
-            {llmKeys.map((item) => (
-              <tr className="border-b border-theme-border">
-                <td className="px-3 py-2">
-                  <div className="truncate font-bold text-theme-text-primary" title={item.description || '无备注'}>{item.key_name ||`密钥 #${item.id}`}</div>
-                </td>
-                <td className="px-3 py-2 text-theme-text-secondary">{getLlmKeyTypeLabel(item.key_type)}</td>
-                <td className="px-3 py-2 text-theme-text-secondary">{item.max_concurrency || 0}</td>
-                <td className="px-3 py-2 text-theme-text-secondary">{getLlmKeyScopeLabel(item)}</td>
-                <td className="px-3 py-2"><span className={`rounded-full px-2 py-0.5 text-xs font-bold ${item.enabled ? 'bg-emerald-500/15 text-emerald-400' : 'bg-theme-elevated text-theme-text-muted'}`}>{item.enabled ? '启用' : '禁用'}</span></td>
-                <td className="px-3 py-2 text-theme-text-secondary">{item.updated_at ? new Date(item.updated_at).toLocaleString('zh-CN') : '-'}</td>
-                <td className="px-3 py-2">
-                  <div className="flex items-center gap-1.5">
-                    <button onClick={() => openLlmKeyModal(item)} className="rounded-lg bg-theme-elevated px-2 py-1 text-xs font-bold text-theme-text-secondary hover:bg-theme-elevated"><Pencil className="h-3 w-3" /></button>
-                    <button onClick={() => openLogsDrawer({ title:`${item.key_name ||`密钥 #${item.id}`} 日志`, llmKeyId: String(item.id), appId: item.key_type === 'app' ? (item.app_id || '') : undefined, taskId: item.key_type !== 'app' ? (item.task_id || '') : undefined, subTaskId: item.key_type === 'work' ? (item.sub_task_id || '') : undefined })} className="rounded-lg bg-theme-elevated px-2 py-1 text-xs font-bold text-theme-text-secondary hover:bg-theme-elevated"><FileText className="h-3 w-3" /></button>
-                    <button onClick={() => openLlmKeyDetail(item.id)} className="rounded-lg bg-theme-elevated px-2 py-1 text-xs font-bold text-theme-text-secondary hover:bg-theme-elevated"><Eye className="h-3 w-3" /></button>
-                    <button onClick={() => deleteLlmKey(item)} className="rounded-lg bg-rose-500/15 px-2 py-1 text-xs font-bold text-rose-400 hover:bg-rose-200"><Trash2 className="h-3 w-3" /></button>
-                  </div>
-                </td>
-              </tr>
-            ))}
-            {!llmKeys.length && !llmKeysLoading ? (
-              <tr>
-                <td colSpan={7} className="px-3 py-10 text-center text-theme-text-muted">暂无调用密钥</td>
-              </tr>
-            ) : null}
-          </tbody>
-        </table>
+        {(() => {
+          const columns: DataTableColumn<typeof llmKeys[number]>[] = [
+            {
+              key: 'key_name',
+              header: '名称',
+              render: (item) => <div className="truncate font-bold text-theme-text-primary" title={item.description || '无备注'}>{item.key_name || `密钥 #${item.id}`}</div>,
+            },
+            {
+              key: 'key_type',
+              header: '类型',
+              render: (item) => <span className="text-theme-text-secondary">{getLlmKeyTypeLabel(item.key_type)}</span>,
+            },
+            {
+              key: 'max_concurrency',
+              header: '最大并发',
+              render: (item) => <span className="text-theme-text-secondary">{item.max_concurrency || 0}</span>,
+            },
+            {
+              key: 'scope',
+              header: '身份范围',
+              render: (item) => <span className="text-theme-text-secondary">{getLlmKeyScopeLabel(item)}</span>,
+            },
+            {
+              key: 'enabled',
+              header: '状态',
+              render: (item) => <span className={`rounded-full px-2 py-0.5 text-xs font-bold ${item.enabled ? 'bg-emerald-500/15 text-emerald-400' : 'bg-theme-elevated text-theme-text-muted'}`}>{item.enabled ? '启用' : '禁用'}</span>,
+            },
+            {
+              key: 'updated_at',
+              header: '更新时间',
+              render: (item) => <span className="text-theme-text-secondary">{item.updated_at ? new Date(item.updated_at).toLocaleString('zh-CN') : '-'}</span>,
+            },
+            {
+              key: 'actions',
+              header: '操作',
+              render: (item) => (
+                <div className="flex items-center gap-1.5">
+                  <button onClick={() => openLlmKeyModal(item)} className="rounded-lg bg-theme-elevated px-2 py-1 text-xs font-bold text-theme-text-secondary hover:bg-theme-elevated"><Pencil className="h-3 w-3" /></button>
+                  <button onClick={() => openLogsDrawer({ title: `${item.key_name || `密钥 #${item.id}`} 日志`, llmKeyId: String(item.id), appId: item.key_type === 'app' ? (item.app_id || '') : undefined, taskId: item.key_type !== 'app' ? (item.task_id || '') : undefined, subTaskId: item.key_type === 'work' ? (item.sub_task_id || '') : undefined })} className="rounded-lg bg-theme-elevated px-2 py-1 text-xs font-bold text-theme-text-secondary hover:bg-theme-elevated"><FileText className="h-3 w-3" /></button>
+                  <button onClick={() => openLlmKeyDetail(item.id)} className="rounded-lg bg-theme-elevated px-2 py-1 text-xs font-bold text-theme-text-secondary hover:bg-theme-elevated"><Eye className="h-3 w-3" /></button>
+                  <button onClick={() => deleteLlmKey(item)} className="rounded-lg bg-rose-500/15 px-2 py-1 text-xs font-bold text-rose-400 hover:bg-rose-200"><Trash2 className="h-3 w-3" /></button>
+                </div>
+              ),
+            },
+          ];
+          return (
+            <DataTable
+              columns={columns}
+              data={llmKeys}
+              rowKey={(item) => String(item.id)}
+              loading={llmKeysLoading}
+              empty="暂无调用密钥"
+              minWidth={900}
+            />
+          );
+        })()}
       </div>
 
       <div className="mt-5 flex shrink-0 items-center justify-between">
@@ -1520,9 +1558,7 @@ export const AiGatewayPage: React.FC<AiGatewayPageProps> = ({ entryView = 'aigw-
       </section>
       )}
 
-      {aliasModalOpen ? (
-        <div className="fixed inset-0 z-[280] flex items-center justify-center bg-slate-950/60 p-6 backdrop-blur-sm">
- <div className="w-full max-w-2xl overflow-hidden rounded-[2rem] bg-theme-bg-app">
+      <Modal open={aliasModalOpen} onClose={resetAliasForm} className="max-w-2xl">
             <div className="flex items-center justify-between border-b border-theme-border px-6 py-5">
               <div>
                 <h3 className="text-xl font-black text-theme-text-primary">{editingAliasId ? '编辑模型别名' : '新增模型别名'}</h3>
@@ -1545,13 +1581,8 @@ export const AiGatewayPage: React.FC<AiGatewayPageProps> = ({ entryView = 'aigw-
               <button onClick={resetAliasForm} className="rounded-2xl bg-theme-elevated px-4 py-2.5 text-sm font-bold text-theme-text-secondary">取消</button>
               <button onClick={submitAlias} disabled={saving} className="inline-flex items-center gap-2 rounded-2xl bg-theme-surface px-4 py-2.5 text-sm font-bold text-white disabled:opacity-50"><Save className="h-4 w-4" />保存</button>
             </div>
-          </div>
-        </div>
-      ) : null}
-
-      {backendModalOpen ? (
-        <div className="fixed inset-0 z-[280] flex items-center justify-center bg-slate-950/60 p-6 backdrop-blur-sm">
- <div className="w-full max-w-3xl overflow-hidden rounded-[2rem] bg-theme-bg-app">
+      </Modal>
+      <Modal open={backendModalOpen} onClose={resetBackendUnitForm} className="max-w-3xl">
             <div className="flex items-center justify-between border-b border-theme-border px-6 py-5">
               <div>
                 <h3 className="text-xl font-black text-theme-text-primary">{editingBackendUnitId ? '编辑模型' : '新增模型'}</h3>
@@ -1591,13 +1622,9 @@ export const AiGatewayPage: React.FC<AiGatewayPageProps> = ({ entryView = 'aigw-
               <button onClick={resetBackendUnitForm} className="rounded-2xl bg-theme-elevated px-4 py-2.5 text-sm font-bold text-theme-text-secondary">取消</button>
               <button onClick={submitBackendUnit} disabled={saving} className="inline-flex items-center gap-2 rounded-2xl bg-theme-surface px-4 py-2.5 text-sm font-bold text-white disabled:opacity-50"><Save className="h-4 w-4" />保存</button>
             </div>
-          </div>
-        </div>
-      ) : null}
+      </Modal>
 
-      {bindingModalOpen ? (
-        <div className="fixed inset-0 z-[280] flex items-center justify-center bg-slate-950/60 p-6 backdrop-blur-sm">
- <div className="w-full max-w-2xl overflow-hidden rounded-[2rem] bg-theme-bg-app">
+      <Modal open={bindingModalOpen} onClose={resetBindingForm} className="max-w-2xl">
             <div className="flex items-center justify-between border-b border-theme-border px-6 py-5">
               <div>
                 <h3 className="text-xl font-black text-theme-text-primary">{editingBindingId ? '编辑绑定关系' : '新增绑定关系'}</h3>
@@ -1629,13 +1656,9 @@ export const AiGatewayPage: React.FC<AiGatewayPageProps> = ({ entryView = 'aigw-
               <button onClick={resetBindingForm} className="rounded-2xl bg-theme-elevated px-4 py-2.5 text-sm font-bold text-theme-text-secondary">取消</button>
               <button onClick={submitBinding} disabled={saving} className="inline-flex items-center gap-2 rounded-2xl bg-theme-surface px-4 py-2.5 text-sm font-bold text-white disabled:opacity-50"><Save className="h-4 w-4" />保存</button>
             </div>
-          </div>
-        </div>
-      ) : null}
+      </Modal>
 
-      {capacityPoolModalOpen ? (
-        <div className="fixed inset-0 z-[280] flex items-center justify-center bg-slate-950/60 p-6 backdrop-blur-sm">
- <div className="w-full max-w-2xl overflow-hidden rounded-[2rem] bg-theme-bg-app">
+      <Modal open={capacityPoolModalOpen} onClose={resetCapacityPoolForm} className="max-w-2xl">
             <div className="flex items-center justify-between border-b border-theme-border px-6 py-5">
               <div>
                 <h3 className="text-xl font-black text-theme-text-primary">{editingCapacityPoolId ? '编辑算力池' : '新增算力池'}</h3>
@@ -1653,9 +1676,7 @@ export const AiGatewayPage: React.FC<AiGatewayPageProps> = ({ entryView = 'aigw-
               <button onClick={resetCapacityPoolForm} className="rounded-2xl bg-theme-elevated px-4 py-2.5 text-sm font-bold text-theme-text-secondary">取消</button>
               <button onClick={submitCapacityPool} disabled={saving} className="inline-flex items-center gap-2 rounded-2xl bg-theme-surface px-4 py-2.5 text-sm font-bold text-white disabled:opacity-50"><Save className="h-4 w-4" />保存算力池</button>
             </div>
-          </div>
-        </div>
-      ) : null}
+      </Modal>
 
       {keyManagementOpen ? createPortal((
         <div className="fixed inset-0 z-[260]">
@@ -1711,47 +1732,66 @@ export const AiGatewayPage: React.FC<AiGatewayPageProps> = ({ entryView = 'aigw-
         </div>
 
         <div className="min-h-0 flex-1 overflow-auto">
-          <table className="min-w-full text-sm">
-            <thead>
-              <tr className="border-b border-theme-border text-left text-theme-text-muted">
-                <th className="px-3 py-2 font-bold">名称</th>
-                <th className="px-3 py-2 font-bold">前缀</th>
-                <th className="px-3 py-2 font-bold">类型</th>
-                <th className="px-3 py-2 font-bold">最大并发</th>
-                <th className="px-3 py-2 font-bold">身份范围</th>
-                <th className="px-3 py-2 font-bold">状态</th>
-                <th className="px-3 py-2 font-bold">更新时间</th>
-                <th className="px-3 py-2 font-bold">操作</th>
-              </tr>
-            </thead>
-            <tbody>
-              {llmKeys.map((item) => (
-                <tr key={item.id} className="border-b border-theme-border">
-                  <td className="px-3 py-2">
-                    <div className="truncate font-bold text-theme-text-primary" title={item.description || '无备注'}>{item.key_name ||`密钥 #${item.id}`}</div>
-                  </td>
-                  <td className="px-3 py-2 font-mono text-xs text-theme-text-secondary">{item.key_prefix || '-'}</td>
-                  <td className="px-3 py-2 text-theme-text-secondary">{getLlmKeyTypeLabel(item.key_type)}</td>
-                  <td className="px-3 py-2 text-theme-text-secondary">{item.max_concurrency || 0}</td>
-                  <td className="px-3 py-2 text-theme-text-secondary">{getLlmKeyScopeLabel(item)}</td>
-                  <td className="px-3 py-2"><span className={`rounded-full px-2 py-0.5 text-xs font-bold ${item.enabled ? 'bg-emerald-500/15 text-emerald-400' : 'bg-theme-elevated text-theme-text-muted'}`}>{item.enabled ? '启用' : '禁用'}</span></td>
-                  <td className="px-3 py-2 text-theme-text-secondary">{item.updated_at ? new Date(item.updated_at).toLocaleString('zh-CN') : '-'}</td>
-                  <td className="px-3 py-2">
-                    <div className="flex items-center gap-1.5">
-                      <button onClick={() => openLlmKeyModal(item)} className="rounded-lg bg-theme-elevated px-2 py-1 text-xs font-bold text-theme-text-secondary hover:bg-theme-elevated">编辑</button>
-                      <button onClick={() => openLlmKeyDetail(item.id)} className="rounded-lg bg-theme-elevated px-2 py-1 text-xs font-bold text-theme-text-secondary hover:bg-theme-elevated">查看</button>
-                      <button onClick={() => deleteLlmKey(item)} className="rounded-lg bg-rose-500/15 px-2 py-1 text-xs font-bold text-rose-400 hover:bg-rose-200"><Trash2 className="h-3 w-3" /></button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-              {!llmKeys.length && !llmKeysLoading ? (
-                <tr>
-                  <td colSpan={8} className="px-3 py-10 text-center text-theme-text-muted">暂无调用密钥</td>
-                </tr>
-              ) : null}
-            </tbody>
-          </table>
+          {(() => {
+            const columns: DataTableColumn<typeof llmKeys[number]>[] = [
+              {
+                key: 'key_name',
+                header: '名称',
+                render: (item) => <div className="truncate font-bold text-theme-text-primary" title={item.description || '无备注'}>{item.key_name || `密钥 #${item.id}`}</div>,
+              },
+              {
+                key: 'key_prefix',
+                header: '前缀',
+                render: (item) => <span className="font-mono text-xs text-theme-text-secondary">{item.key_prefix || '-'}</span>,
+              },
+              {
+                key: 'key_type',
+                header: '类型',
+                render: (item) => <span className="text-theme-text-secondary">{getLlmKeyTypeLabel(item.key_type)}</span>,
+              },
+              {
+                key: 'max_concurrency',
+                header: '最大并发',
+                render: (item) => <span className="text-theme-text-secondary">{item.max_concurrency || 0}</span>,
+              },
+              {
+                key: 'scope',
+                header: '身份范围',
+                render: (item) => <span className="text-theme-text-secondary">{getLlmKeyScopeLabel(item)}</span>,
+              },
+              {
+                key: 'enabled',
+                header: '状态',
+                render: (item) => <span className={`rounded-full px-2 py-0.5 text-xs font-bold ${item.enabled ? 'bg-emerald-500/15 text-emerald-400' : 'bg-theme-elevated text-theme-text-muted'}`}>{item.enabled ? '启用' : '禁用'}</span>,
+              },
+              {
+                key: 'updated_at',
+                header: '更新时间',
+                render: (item) => <span className="text-theme-text-secondary">{item.updated_at ? new Date(item.updated_at).toLocaleString('zh-CN') : '-'}</span>,
+              },
+              {
+                key: 'actions',
+                header: '操作',
+                render: (item) => (
+                  <div className="flex items-center gap-1.5">
+                    <button onClick={() => openLlmKeyModal(item)} className="rounded-lg bg-theme-elevated px-2 py-1 text-xs font-bold text-theme-text-secondary hover:bg-theme-elevated">编辑</button>
+                    <button onClick={() => openLlmKeyDetail(item.id)} className="rounded-lg bg-theme-elevated px-2 py-1 text-xs font-bold text-theme-text-secondary hover:bg-theme-elevated">查看</button>
+                    <button onClick={() => deleteLlmKey(item)} className="rounded-lg bg-rose-500/15 px-2 py-1 text-xs font-bold text-rose-400 hover:bg-rose-200"><Trash2 className="h-3 w-3" /></button>
+                  </div>
+                ),
+              },
+            ];
+            return (
+              <DataTable
+                columns={columns}
+                data={llmKeys}
+                rowKey={(item) => String(item.id)}
+                loading={llmKeysLoading}
+                empty="暂无调用密钥"
+                minWidth={1000}
+              />
+            );
+          })()}
         </div>
 
         <div className="mt-5 flex shrink-0 items-center justify-between">

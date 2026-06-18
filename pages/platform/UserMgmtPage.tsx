@@ -4,6 +4,7 @@ import { api } from '../../clients/api';
 import { showAlert, showConfirm } from '../../components/DialogService';
 import { UserImportCommitResponse, UserImportPreviewResponse, UserInfo } from '../../types/types';
 import { getPlatformRoleLabel } from '../../utils/rbac';
+import { Modal, StatisticCard } from '../../design-system';
 
 type ImportStage = 'upload' | 'preview' | 'result';
 
@@ -496,9 +497,7 @@ export const UserMgmtPage: React.FC = () => {
         </div>
       </div>
 
-      {isCreateModalOpen && (
-        <div className="fixed inset-0 z-[150] flex items-center justify-center p-6 bg-slate-900/60 backdrop-blur-md animate-in fade-in">
- <div className="bg-theme-bg-app w-full max-w-md rounded-[3rem] overflow-hidden animate-in zoom-in-95">
+      <Modal open={isCreateModalOpen} onClose={() => setIsCreateModalOpen(false)} className="max-w-md">
             <div className="p-10 pb-4 border-b border-slate-50 flex items-center justify-between">
               <div className="flex items-center gap-4">
  <div className="w-12 h-12 bg-blue-600 rounded-2xl flex items-center justify-center text-white">
@@ -538,20 +537,16 @@ export const UserMgmtPage: React.FC = () => {
                 确认创建身份
               </button>
             </form>
-          </div>
-        </div>
-      )}
+      </Modal>
 
-      {isResetModalOpen && selectedUser && (
-        <div className="fixed inset-0 z-[150] flex items-center justify-center p-6 bg-slate-900/60 backdrop-blur-md animate-in fade-in">
- <div className="bg-theme-bg-app w-full max-w-md rounded-[3rem] overflow-hidden animate-in zoom-in-95">
+      {selectedUser && <Modal open={isResetModalOpen} onClose={() => setIsResetModalOpen(false)} className="max-w-md">
             <div className="p-10 pb-4 border-b border-slate-50 flex items-center justify-between">
               <div className="flex items-center gap-4">
                 <div className="w-12 h-12 bg-amber-600 rounded-2xl flex items-center justify-center text-white">
                   <Key size={24} />
                 </div>
                 <div>
-                  <h3 className="text-xl font-black text-theme-text-primary tracking-tight">重置密码: {selectedUser.username}</h3>
+                  <h3 className="text-xl font-black text-theme-text-primary tracking-tight">重置密码: {selectedUser?.username}</h3>
                   <p className="text-[10px] text-theme-text-muted font-bold uppercase mt-0.5">Credential Reset</p>
                 </div>
               </div>
@@ -585,10 +580,7 @@ export const UserMgmtPage: React.FC = () => {
                 立即应用新凭据
               </button>
             </form>
-          </div>
-        </div>
-      )}
-
+      </Modal>}
       {isImportModalOpen && (
         <div className="fixed inset-0 z-[160] flex items-center justify-center p-6 bg-slate-950/65 backdrop-blur-md animate-in fade-in">
  <div className="w-full max-w-6xl bg-theme-bg-app rounded-[2.5rem] overflow-hidden animate-in zoom-in-95 max-h-[92vh] flex flex-col">
@@ -754,17 +746,8 @@ export const UserMgmtPage: React.FC = () => {
 };
 
 const SummaryCard = ({ label, value, tone }: { label: string; value: string; tone: 'slate' | 'emerald' | 'rose' }) => {
-  const styles = {
-    slate: 'bg-theme-surface text-white',
-    emerald: 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/20',
-    rose: 'bg-rose-500/15 text-rose-400 border border-rose-500/20',
-  };
-  return (
-    <div className={`rounded-[2rem] p-6 ${styles[tone]}`}>
-      <p className="text-[10px] font-black uppercase tracking-[0.24em] opacity-70">{label}</p>
-      <p className="mt-3 text-4xl font-black">{value}</p>
-    </div>
-  );
+  const toneMap = { slate: 'default', emerald: 'success', rose: 'danger' } as const;
+  return <StatisticCard label={label} value={value} tone={toneMap[tone]} />;
 };
 
 const ImportResultTable = ({ rows }: { rows: UserImportPreviewResponse['rows'] | UserImportCommitResponse['rows'] }) => (

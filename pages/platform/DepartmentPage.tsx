@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Building2, ChevronDown, Edit3, GitBranch, Loader2, Lock, Plus, RefreshCw, Search, Trash2, Users } from 'lucide-react';
+import { Modal } from '../../design-system';
 import { api } from '../../clients/api';
 import { UserPermissionInfo } from '../../clients/org';
 import { showConfirm } from '../../components/DialogService';
@@ -388,9 +389,7 @@ export const DepartmentPage: React.FC = () => {
         </div>
       </div>
 
-      {isCreateModalOpen && (
-        <div className="fixed inset-0 z-[150] flex items-center justify-center p-6 bg-slate-900/60 backdrop-blur-md animate-in fade-in">
- <div className="bg-theme-bg-app w-full max-w-md rounded-[3rem] overflow-hidden animate-in zoom-in-95">
+      <Modal open={isCreateModalOpen} onClose={() => setIsCreateModalOpen(false)} className="max-w-md">
             <div className="p-10 pb-4 border-b border-slate-50 flex items-center justify-between">
               <div className="flex items-center gap-4">
  <div className="w-12 h-12 bg-blue-600 rounded-2xl flex items-center justify-center text-white">
@@ -444,13 +443,9 @@ export const DepartmentPage: React.FC = () => {
                 确认创建部门
               </button>
             </form>
-          </div>
-        </div>
-      )}
+      </Modal>
 
-      {isEditModalOpen && selectedDepartment && (
-        <div className="fixed inset-0 z-[150] flex items-center justify-center p-6 bg-slate-900/60 backdrop-blur-md animate-in fade-in">
- <div className="bg-theme-bg-app w-full max-w-md rounded-[3rem] overflow-hidden animate-in zoom-in-95">
+      {selectedDepartment && <Modal open={isEditModalOpen} onClose={() => setIsEditModalOpen(false)} className="max-w-md">
             <div className="p-10 pb-4 border-b border-slate-50 flex items-center justify-between">
               <div className="flex items-center gap-4">
                 <div className="w-12 h-12 bg-amber-600 rounded-2xl flex items-center justify-center text-white">
@@ -504,9 +499,7 @@ export const DepartmentPage: React.FC = () => {
                 立即更新部门
               </button>
             </form>
-          </div>
-        </div>
-      )}
+      </Modal>}
     </div>
   );
 };

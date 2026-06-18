@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Activity, FileText, KeyRound, Layers3, RefreshCw, Route, ServerCog, Settings } from 'lucide-react';
 import { api } from '../../clients/api';
+import { DataTable, DataTableColumn, StatisticCard } from '../../design-system';
 import {
   AiGatewayBackendUnit,
   AiGatewayCapacityPool,
@@ -20,20 +21,8 @@ const numberText = (value: unknown) => Number(value || 0).toLocaleString('zh-CN'
 
 const formatDateTime = (value?: string | null) => value ? new Date(value).toLocaleString('zh-CN') : '-';
 
-const MetricCard: React.FC<{
-  icon: React.ReactNode;
-  label: string;
-  value: string | number;
-  hint: string;
-}> = ({ icon, label, value, hint }) => (
- <div className="rounded-[1.5rem] border border-theme-border bg-theme-bg-app p-5">
-    <div className="flex items-center justify-between gap-3">
-      <div className="rounded-2xl bg-theme-elevated p-3 text-theme-text-secondary">{icon}</div>
-      <div className="text-right text-[11px] font-black uppercase tracking-[0.18em] text-theme-text-muted">{label}</div>
-    </div>
-    <div className="mt-5 text-3xl font-black tracking-tight text-theme-text-primary">{value}</div>
-    <div className="mt-2 text-sm font-medium text-theme-text-muted">{hint}</div>
-  </div>
+const MetricCard: React.FC<{ icon: React.ReactNode; label: string; value: string | number; hint: string }> = ({ icon, label, value, hint }) => (
+  <StatisticCard label={label} value={value} icon={icon} hint={hint} />
 );
 
 export const AiGatewayDashboardPage: React.FC<AiGatewayDashboardPageProps> = ({ onNavigate }) => {
@@ -140,36 +129,50 @@ export const AiGatewayDashboardPage: React.FC<AiGatewayDashboardPageProps> = ({ 
             </button>
           </div>
           <div className="mt-5 overflow-auto">
-            <table className="min-w-full text-left text-sm">
-              <thead>
-                <tr className="border-b border-theme-border text-theme-text-muted">
-                  <th className="px-3 py-3 font-bold">时间</th>
-                  <th className="px-3 py-3 font-bold">模型</th>
-                  <th className="px-3 py-3 font-bold">状态</th>
-                  <th className="px-3 py-3 font-bold">延迟</th>
-                </tr>
-              </thead>
-              <tbody>
-                {logs.map((log) => (
-                  <tr key={log.id} className="border-b border-theme-border">
-                    <td className="px-3 py-3 text-theme-text-secondary">{formatDateTime(log.created_at)}</td>
-                    <td className="px-3 py-3">
+            {(() => {
+              type LogRow = AiGatewayLogSummary;
+              const columns: DataTableColumn<LogRow>[] = [
+                {
+                  key: 'created_at',
+                  header: '时间',
+                  render: (log) => <span className="text-theme-text-secondary">{formatDateTime(log.created_at)}</span>,
+                },
+                {
+                  key: 'model_name',
+                  header: '模型',
+                  render: (log) => (
+                    <div>
                       <div className="font-bold text-theme-text-primary">{log.model_name || '-'}</div>
                       <div className="text-xs text-theme-text-muted">{log.backend_model_name || '-'}</div>
-                    </td>
-                    <td className="px-3 py-3">
-                      <span className={`rounded-full px-2.5 py-1 text-xs font-bold ${Number(log.status_code || 0) >= 200 && Number(log.status_code || 0) < 300 ? 'bg-emerald-500/15 text-emerald-400' : Number(log.status_code || 0) >= 400 ? 'bg-rose-500/15 text-rose-400' : 'bg-theme-elevated text-theme-text-secondary'}`}>{log.status_code || '-'}</span>
-                    </td>
-                    <td className="px-3 py-3 text-theme-text-secondary">{log.response_time || 0} ms</td>
-                  </tr>
-                ))}
-                {!logs.length && !loading ? (
-                  <tr>
-                    <td colSpan={4} className="px-3 py-10 text-center text-theme-text-muted">暂无请求日志</td>
-                  </tr>
-                ) : null}
-              </tbody>
-            </table>
+                    </div>
+                  ),
+                },
+                {
+                  key: 'status_code',
+                  header: '状态',
+                  render: (log) => (
+                    <span className={`rounded-full px-2.5 py-1 text-xs font-bold ${Number(log.status_code || 0) >= 200 && Number(log.status_code || 0) < 300 ? 'bg-emerald-500/15 text-emerald-400' : Number(log.status_code || 0) >= 400 ? 'bg-rose-500/15 text-rose-400' : 'bg-theme-elevated text-theme-text-secondary'}`}>
+                      {log.status_code || '-'}
+                    </span>
+                  ),
+                },
+                {
+                  key: 'response_time',
+                  header: '延迟',
+                  render: (log) => <span className="text-theme-text-secondary">{log.response_time || 0} ms</span>,
+                },
+              ];
+              return (
+                <DataTable<LogRow>
+                  columns={columns}
+                  data={logs}
+                  rowKey={(log) => String(log.id)}
+                  loading={loading && logs.length === 0}
+                  empty={<div className="text-center py-8 text-theme-text-muted">暂无请求日志</div>}
+                  minWidth={600}
+                />
+              );
+            })()}
           </div>
           <div className="mt-4 text-xs font-bold text-theme-text-muted">共 {numberText(logsTotal)} 条日志，当前预览 {logs.length} 条，错误预览 {summary.errorLogs} 条。</div>
         </section>

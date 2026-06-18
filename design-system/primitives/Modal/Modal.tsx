@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useId, useRef } from 'react';
+import ReactDOM from 'react-dom';
 import { X } from 'lucide-react';
 
 import { cx } from '../../utils/cx';
@@ -85,9 +86,19 @@ export const Modal: React.FC<ModalProps> = ({
 
   if (!open) return null;
 
-  return (
+  return ReactDOM.createPortal(
     <div
-      className="modal-overlay"
+      style={{
+        position: 'fixed',
+        inset: 0,
+        zIndex: 9999,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '24px',
+        backgroundColor: 'rgba(5,10,20,0.72)',
+        backdropFilter: 'blur(6px)',
+      }}
       onMouseDown={(e) => {
         if (closeOnOverlay && e.target === e.currentTarget) onClose();
       }}
@@ -127,6 +138,7 @@ export const Modal: React.FC<ModalProps> = ({
           <div className="flex items-center justify-end gap-2 border-t border-theme-border p-4">{footer}</div>
         )}
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 };
