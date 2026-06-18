@@ -4172,16 +4172,40 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                   <div className="mt-1 break-words text-lg font-semibold text-theme-text-primary">{detail.firmware_item_count}</div>
                 </div>
                 <div className="min-w-0 rounded-2xl bg-theme-surface px-3 py-2.5 text-xs text-theme-text-secondary">
-                  <div className="text-theme-text-muted">{isSourceTask ? '入口数量' : isBinaryModuleTask ? '当前模式' : '已解包/失败'}</div>
-                  <div className="mt-1 break-words text-lg font-semibold text-theme-text-primary">{isSourceTask ? detail.entry_count : isBinaryModuleTask ? '模块级' :`${detail.unpacked_firmware_count} / ${detail.failed_firmware_count}`}</div>
+                  <div className="text-theme-text-muted">
+                    {isSourceTask
+                      ? (detail.pipeline_profile === 'kg_source_vuln_scan' ? '已选知识图谱入口' : '入口数量')
+                      : isBinaryModuleTask ? '当前模式' : '已解包/失败'}
+                  </div>
+                  <div className="mt-1 break-words text-lg font-semibold text-theme-text-primary">
+                    {isSourceTask
+                      ? (detail.pipeline_profile === 'kg_source_vuln_scan' ? (detail.selected_entry_count || detail.entry_count) : detail.entry_count)
+                      : isBinaryModuleTask ? '模块级' :`${detail.unpacked_firmware_count} / ${detail.failed_firmware_count}`}
+                  </div>
                 </div>
                 <div className="min-w-0 rounded-2xl bg-theme-surface px-3 py-2.5 text-xs text-theme-text-secondary">
-                  <div className="text-theme-text-muted">{isBinaryModuleTask ? '模块数量' : '已选模块'}</div>
-                  <div className="mt-1 break-words text-lg font-semibold text-theme-text-primary">{isBinaryModuleTask ? Math.max(1, detail.selected_module_count || 1) : detail.selected_module_count}</div>
+                  <div className="text-theme-text-muted">
+                    {isBinaryModuleTask ? '模块数量' : isSourceTask && detail.pipeline_profile === 'kg_source_vuln_scan' ? '原始入口数' : '已选模块'}
+                  </div>
+                  <div className="mt-1 break-words text-lg font-semibold text-theme-text-primary">
+                    {isBinaryModuleTask
+                      ? Math.max(1, detail.selected_module_count || 1)
+                      : isSourceTask && detail.pipeline_profile === 'kg_source_vuln_scan'
+                        ? (detail.knowledge_graph_raw_entry_count || detail.candidate_entry_count || 0)
+                        : detail.selected_module_count}
+                  </div>
                 </div>
                 <div className="min-w-0 rounded-2xl bg-theme-surface px-3 py-2.5 text-xs text-theme-text-secondary">
-                  <div className="text-theme-text-muted">{isBinaryModuleTask ? '候选模块' : '全部模块'}</div>
-                  <div className="mt-1 break-words text-lg font-semibold text-theme-text-primary">{isBinaryModuleTask ? Math.max(1, detail.candidate_module_count || 1) : detail.high_risk_module_count}</div>
+                  <div className="text-theme-text-muted">
+                    {isBinaryModuleTask ? '候选模块' : isSourceTask && detail.pipeline_profile === 'kg_source_vuln_scan' ? '过滤掉的入口' : '全部模块'}
+                  </div>
+                  <div className="mt-1 break-words text-lg font-semibold text-theme-text-primary">
+                    {isBinaryModuleTask
+                      ? Math.max(1, detail.candidate_module_count || 1)
+                      : isSourceTask && detail.pipeline_profile === 'kg_source_vuln_scan'
+                        ? (detail.knowledge_graph_filtered_out_count || 0)
+                        : detail.high_risk_module_count}
+                  </div>
                 </div>
                 <div className="min-w-0 rounded-2xl bg-theme-surface px-3 py-2.5 text-xs text-theme-text-secondary">
                   <div className="text-theme-text-muted">漏洞结果</div>
