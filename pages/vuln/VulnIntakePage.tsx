@@ -645,9 +645,11 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
     ).length;
     return {
       total: Number(overview?.metrics?.total_cases || 0),
-      highRisk: Number(overview?.severity_counts?.critical || 0) + Number(overview?.severity_counts?.high || 0),
-      pendingAnalyze: Number(overview?.stage_counts?.triage || 0),
-      authenticated: Number(overview?.created_by_type_counts?.human || 0),
+      pendingVerify: Number(overview?.stage_counts?.receive || 0) + Number(overview?.stage_counts?.triage || 0),
+      validating: Number(overview?.stage_counts?.validation || 0),
+      verified: Number(overview?.metrics?.finished_cases || 0),
+      confirmed: Number(overview?.finished_reason_counts?.vulnerable || 0),
+      ruledOut: Number(overview?.finished_reason_counts?.non_vulnerable || 0),
       openTasks,
     };
   }, [overview, selectedDetail]);
@@ -2499,22 +2501,30 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
       {!selectedSuspicionId ? (
         rootTab === 'download-center' ? renderDownloadCenter() : (
         <>
-          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
             <div className="metric-card">
               <div className="text-[11px] font-semibold uppercase tracking-wider text-theme-text-muted-soft">漏洞总数</div>
               <div className="mt-2 text-2xl font-semibold text-theme-text-primary">{stats.total}</div>
             </div>
             <div className="metric-card">
-              <div className="text-[11px] font-semibold uppercase tracking-wider text-theme-text-muted-soft">高风险漏洞</div>
-              <div className="mt-2 text-2xl font-semibold text-state-danger">{stats.highRisk}</div>
-            </div>
-            <div className="metric-card">
               <div className="text-[11px] font-semibold uppercase tracking-wider text-theme-text-muted-soft">待验证</div>
-              <div className="mt-2 text-2xl font-semibold text-state-warning">{stats.pendingAnalyze}</div>
+              <div className="mt-2 text-2xl font-semibold text-theme-text-faint">{stats.pendingVerify}</div>
             </div>
             <div className="metric-card">
-              <div className="text-[11px] font-semibold uppercase tracking-wider text-theme-text-muted-soft">认证接入上报</div>
-              <div className="mt-2 text-2xl font-semibold text-brand-primary">{stats.authenticated}</div>
+              <div className="text-[11px] font-semibold uppercase tracking-wider text-theme-text-muted-soft">验证中</div>
+              <div className="mt-2 text-2xl font-semibold text-state-warning">{stats.validating}</div>
+            </div>
+            <div className="metric-card">
+              <div className="text-[11px] font-semibold uppercase tracking-wider text-theme-text-muted-soft">已验证</div>
+              <div className="mt-2 text-2xl font-semibold text-brand-primary">{stats.verified}</div>
+            </div>
+            <div className="metric-card">
+              <div className="text-[11px] font-semibold uppercase tracking-wider text-theme-text-muted-soft">漏洞</div>
+              <div className="mt-2 text-2xl font-semibold text-state-danger">{stats.confirmed}</div>
+            </div>
+            <div className="metric-card">
+              <div className="text-[11px] font-semibold uppercase tracking-wider text-theme-text-muted-soft">非漏洞</div>
+              <div className="mt-2 text-2xl font-semibold text-state-success">{stats.ruledOut}</div>
             </div>
           </div>
 
