@@ -285,6 +285,7 @@ const applySystemAnalysisPanel = (
         module_granularity: source.module_granularity,
         filter_engine: source.filter_engine,
         enable_final_check: source.enable_final_check,
+        super_fast_mode: source.super_fast_mode,
         continue_on_module_failure: source.continue_on_module_failure,
       };
     case 'concurrency':
