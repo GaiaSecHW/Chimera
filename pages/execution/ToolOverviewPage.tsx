@@ -40,7 +40,7 @@ interface ToolOverviewPageProps {
   onNavigate: (view: ViewType) => void;
 }
 
-type AgentAppEngine = 'opencode' | 'claudecode' | 'agentflow';
+type AgentAppEngine = 'opencode' | 'claudecode' | 'agentflow' | 'script';
 type AgentHarnessFileType = 'folder' | 'archive';
 
 interface AgentApp {
@@ -148,6 +148,7 @@ const engineLabel = (engine: string): string => {
   if (engine === 'opencode') return 'OpenCode';
   if (engine === 'claudecode') return 'Claude Code';
   if (engine === 'agentflow') return 'AgentFlow';
+  if (engine === 'script') return 'Script';
   return engine || '-';
 };
 
@@ -155,6 +156,7 @@ const engineTone = (engine: string): string => {
   if (engine === 'opencode') return 'from-teal-500 to-cyan-600';
   if (engine === 'claudecode') return 'from-violet-500 to-fuchsia-600';
   if (engine === 'agentflow') return 'from-sky-500 to-blue-600';
+  if (engine === 'script') return 'from-amber-500 to-orange-600';
   return 'from-slate-500 to-slate-700';
 };
 
@@ -286,7 +288,7 @@ const isAdminUser = (): boolean => {
 };
 
 const validateHarnessStructure = (fileData: AgentHarnessFileData, engine: AgentAppEngine): { valid: boolean; message: string } => {
-  if (engine === 'agentflow' || fileData.type !== 'folder' || !fileData.files) return { valid: true, message: '' };
+  if ((engine !== 'opencode' && engine !== 'claudecode') || fileData.type !== 'folder' || !fileData.files) return { valid: true, message: '' };
   const requiredFolder = engine === 'opencode' ? '.opencode' : '.claude';
   const hasRequiredFolder = fileData.files.some((file) => {
     const normalized = (file.webkitRelativePath || file.name).replace(/\\/g, '/');
@@ -371,7 +373,7 @@ const detectClaudeCodeFromZip = async (file: File): Promise<ClaudeCodeInfo> => {
 };
 
 const validateHarnessZip = async (fileData: AgentHarnessFileData, engine: AgentAppEngine): Promise<{ valid: boolean; message: string }> => {
-  if (engine === 'agentflow') return { valid: true, message: '' };
+  if (engine !== 'opencode' && engine !== 'claudecode') return { valid: true, message: '' };
   if (fileData.type !== 'archive' || !fileData.file || !fileData.name.match(/\.zip$/i)) return { valid: true, message: '' };
   const requiredFolder = engine === 'opencode' ? '.opencode' : '.claude';
   try {
@@ -551,9 +553,9 @@ const AgentAppModal: React.FC<AgentAppModalProps> = ({ mode, app, saving, depart
 
           <div className="grid gap-5 md:grid-cols-2">
             <label style={{ display: 'block', fontSize: '14px', fontWeight: 600, color: LK.inkSoft }}>Agent 名称 <span style={{ color: LK.error }}>*</span><input style={inputClass} value={formState.name} onChange={(event) => setFormState({ ...formState, name: event.target.value })} disabled={saving} /></label>
-            <label style={{ display: 'block', fontSize: '14px', fontWeight: 600, color: LK.inkSoft }}>使用引擎 <span style={{ color: LK.error }}>*</span><select style={inputClass} value={formState.engine} onChange={async (event) => { const newEngine = event.target.value as AgentAppEngine; setFormState((cur) => ({ ...cur, engine: newEngine, defaultAgentName: '', startCommand: '' })); setClaudeCodeInfo(null); if (agentHarnessFile?.type === 'archive' && agentHarnessFile.file && agentHarnessFile.name.match(/\.zip$/i)) { await applyZipDetection(agentHarnessFile.file, newEngine); } else if (agentHarnessFile?.type === 'folder' && agentHarnessFile.files) { await applyFolderDetection(agentHarnessFile.files, newEngine); } }} disabled={saving}><option value="opencode">OpenCode</option><option value="claudecode">Claude Code</option><option value="agentflow">AgentFlow</option></select></label>
+            <label style={{ display: 'block', fontSize: '14px', fontWeight: 600, color: LK.inkSoft }}>使用引擎 <span style={{ color: LK.error }}>*</span><select style={inputClass} value={formState.engine} onChange={async (event) => { const newEngine = event.target.value as AgentAppEngine; setFormState((cur) => ({ ...cur, engine: newEngine, defaultAgentName: '', startCommand: '' })); setClaudeCodeInfo(null); if (agentHarnessFile?.type === 'archive' && agentHarnessFile.file && agentHarnessFile.name.match(/\.zip$/i)) { await applyZipDetection(agentHarnessFile.file, newEngine); } else if (agentHarnessFile?.type === 'folder' && agentHarnessFile.files) { await applyFolderDetection(agentHarnessFile.files, newEngine); } }} disabled={saving}><option value="opencode">OpenCode</option><option value="claudecode">Claude Code</option><option value="agentflow">AgentFlow</option><option value="script">Script</option></select></label>
             <label style={{ display: 'block', fontSize: '14px', fontWeight: 600, color: LK.inkSoft }}>默认 Agent<input style={inputClass} value={formState.defaultAgentName} onChange={(event) => setFormState({ ...formState, defaultAgentName: event.target.value })} disabled={saving} placeholder="例如 security-reviewer" /></label>
-            <label style={{ display: 'block', fontSize: '14px', fontWeight: 600, color: LK.inkSoft }}>启动命令<input style={inputClass} value={formState.startCommand} onChange={(event) => setFormState({ ...formState, startCommand: event.target.value })} disabled={saving} placeholder="例如 /project:review" /></label>
+            <label style={{ display: 'block', fontSize: '14px', fontWeight: 600, color: LK.inkSoft }}>启动命令<input style={inputClass} value={formState.startCommand} onChange={(event) => setFormState({ ...formState, startCommand: event.target.value })} disabled={saving} placeholder={formState.engine === 'script' ? '例如 python run.py' : '例如 /project:review'} /></label>
           </div>
 
           <label style={{ marginTop: '20px', display: 'block', fontSize: '14px', fontWeight: 600, color: LK.inkSoft }}>部门范围<select style={inputClass} value={formState.departmentId} onChange={(event) => setFormState({ ...formState, departmentId: event.target.value })} disabled={saving}><option value="">请选择部门范围</option>{canChoosePublic ? <option value="__public__">公开</option> : null}{departments.map((department) => <option key={department.id} value={String(department.id)}>{department.name}</option>)}</select></label>
