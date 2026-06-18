@@ -134,8 +134,8 @@ export const USABLE_UPLOAD_STATUSES: ReadonlySet<string> = new Set([
 // 长文案,用于 KnowledgeGraphPage 的顶部横幅(空间充足)。
 export const STATUS_LABELS: Record<string, string> = {
   queued: '排队中',
-  accepted: '静态分析中…',
-  building_analyze: '解析代码中',
+  accepted: '已受理',
+  building_analyze: '静态分析中…',
   building_repair: '补全调用关系中',
   completed: '已完成',
   failed: '构建失败',
@@ -144,7 +144,7 @@ export const STATUS_LABELS: Record<string, string> = {
 // 短文案,用于 TestInputPage 行内 chip(表格"操作"列空间紧张)。
 export const STATUS_LABELS_SHORT: Record<string, string> = {
   queued: '排队中',
-  accepted: '静态分析中',
+  accepted: '已受理',
   building_analyze: '静态分析中',
   building_repair: '调用链修复中',
   completed: '已完成',
