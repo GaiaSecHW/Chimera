@@ -2499,8 +2499,15 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
   return (
     <div className="animate-in fade-in space-y-5 p-6 pb-16 duration-500 xl:p-8 xl:pb-20">
       {!selectedSuspicionId ? (
-        rootTab === 'download-center' ? renderDownloadCenter() : (
         <>
+          <div className="flex flex-col items-end justify-between gap-3 pb-4 md:flex-row" style={{ borderBottom: '1px solid var(--theme-border, rgba(255,255,255,0.08))' }}>
+            <div>
+              <h1 className="mt-3 text-2xl font-semibold leading-8 tracking-tight text-theme-text-primary">漏洞中心</h1>
+              <p className="mt-1.5 text-sm leading-6 text-theme-text-secondary">统一管理当前项目的漏洞生命周期，覆盖上报、研判、验证与处置全流程</p>
+            </div>
+          </div>
+          {rootTab === 'download-center' ? renderDownloadCenter() : (
+          <>
           <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
             <div className="metric-card">
               <div className="text-[11px] font-semibold uppercase tracking-wider text-theme-text-muted-soft">漏洞总数</div>
@@ -2761,7 +2768,8 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
             </div>
           </div>
         </>
-        )
+        )}
+        </>
       ) : (
         renderDetailView()
       )}
