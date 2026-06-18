@@ -8,6 +8,7 @@ import {
   FileText,
   HardDrive,
   Loader2,
+  Network,
   Package,
   Plus,
   RefreshCw,
@@ -18,6 +19,14 @@ import {
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../clients/api';
+import {
+  IN_PROGRESS_STATUSES,
+  STATUS_LABELS_SHORT,
+  USABLE_UPLOAD_STATUSES,
+  buildCodemapTaskId,
+  buildManagerTargetDir,
+} from '../clients/codemapManager';
+import type { CodemapTaskStatus } from '../clients/codemapManager';
 import { StatusBadge } from '../components/StatusBadge';
 import type { ProjectInputOverview, ProjectInputUploadDetail, ProjectInputUploadRecord, ProjectInputUploadStats, SecurityProject, UserInfo } from '../types/types';
 import { formatUploadBytes, getLatestBatchSummary, getUploadModeLabel, getUploadRecordDisplayName, isAllowedArchiveFileName } from './assets/baseResourcePageModel';
@@ -79,6 +88,94 @@ const normalizeType = (value: string): InputType => {
   return 'other';
 };
 
+// codemap_lite 进度 chip。仅 input_type === 'code' 的行会调用本组件。
+// 文案分档对应 manager FSM:queued/accepted/building_analyze 灰色,building_repair
+// 可带百分比(progress 仅在 repair 阶段非 null,见 manager/app.py:189-193),
+// completed 绿色,failed 红色 + hover tooltip(title 属性)。
+const truncateError = (msg: string | null | undefined): string => {
+  if (!msg) return '构建失败';
+  return msg.length > 300 ? `${msg.slice(0, 300)}…` : msg;
+};
+
+const CodemapProgressChip: React.FC<{
+  status: CodemapTaskStatus | null;
+  onRebuild?: () => void;
+  rebuilding?: boolean;
+}> = ({ status, onRebuild, rebuilding }) => {
+  if (!status) return null;
+  const s = status.status;
+  const progress = status.progress;
+  // 进入过 repair 阶段就有 progress.sources(building_repair/completed/failed 都算)。
+  // 显示"静态分析成功 · 调用链修复 X/Y"——静态分析必然已经成功了才会到这里。
+  const hasRepairProgress = progress && progress.total > 0;
+  // 终态失败可重派的提示按钮。仅在 status 终态 failed 时显示;部分成功(repair
+  // 失败但有进度)和构建中不显示——前者图已经有数据,后者还没结果。
+  const showRebuild = s === 'failed' && !hasRepairProgress && !!onRebuild;
+  const rebuildButton = showRebuild ? (
+    <button
+      type="button"
+      onClick={(e) => { e.stopPropagation(); onRebuild?.(); }}
+      disabled={rebuilding}
+      className="ml-1 inline-flex items-center rounded-full border border-rose-300 bg-white px-2 py-0.5 text-[11px] font-black text-rose-700 hover:bg-rose-50 disabled:cursor-not-allowed disabled:opacity-50"
+    >
+      {rebuilding ? '重派中…' : '重新构建'}
+    </button>
+  ) : null;
+  if (hasRepairProgress) {
+    const total = progress.total;
+    const completed = progress.completed;
+    if (s === 'completed') {
+      return (
+        <span className="inline-flex items-center rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[11px] font-black text-emerald-700">
+          静态分析成功 · 调用链修复 {completed}/{total}
+        </span>
+      );
+    }
+    // building_repair / failed(部分成功)都用"修复中"语义,色调按比例区分。
+    const allDone = completed === total;
+    const tone = s === 'failed'
+      ? 'border-amber-200 bg-amber-50 text-amber-700'  // 终态但未全成,黄色提示
+      : 'border-indigo-200 bg-indigo-50 text-indigo-700'; // 进行中,蓝色
+    const label = s === 'building_repair' ? '调用链修复中' : (allDone ? '调用链修复完成' : '调用链修复');
+    return (
+      <span
+        title={s === 'failed' ? `${truncateError(status.error)} (${completed}/${total} 源点已修复)` : undefined}
+        className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[11px] font-black ${tone}`}
+      >
+        静态分析成功 · {label} {completed}/{total}
+      </span>
+    );
+  }
+  // 没有 repair progress 才回到原始状态文案。
+  if (s === 'failed') {
+    return (
+      <span className="inline-flex items-center gap-1">
+        <span
+          title={truncateError(status.error)}
+          className="inline-flex items-center rounded-full border border-rose-200 bg-rose-50 px-2 py-0.5 text-[11px] font-black text-rose-700"
+        >
+          静态分析失败
+        </span>
+        {rebuildButton}
+      </span>
+    );
+  }
+  if (s === 'completed') {
+    // 兜底:理论上 completed 应有 progress;真无 progress 就只能说"已完成"。
+    return (
+      <span className="inline-flex items-center rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[11px] font-black text-emerald-700">
+        已完成
+      </span>
+    );
+  }
+  const label = STATUS_LABELS_SHORT[s] || s;
+  return (
+    <span className="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-[11px] font-black text-slate-600">
+      {label}
+    </span>
+  );
+};
+
 const emptyStats = (projectId: string, inputType: InputType): ProjectInputUploadStats => ({
   project_id: projectId,
   input_type: inputType,
@@ -122,6 +219,14 @@ export const TestInputPage: React.FC<TestInputPageProps> = ({ selectedProjectId,
   const [detailDialogTarget, setDetailDialogTarget] = useState<UploadDetailDialogState | null>(null);
   const [createTaskOpen, setCreateTaskOpen] = useState(false);
   const [selectedRecordForTask, setSelectedRecordForTask] = useState<string | undefined>(undefined);
+  // codemap_lite 项目级任务状态(全项目共一份,与知识图谱 tab 同 task_id)。
+  // null = 尚未派发(进 tab 时若 getTaskStatus 404 进入此态)。
+  const [codemapStatus, setCodemapStatus] = useState<CodemapTaskStatus | null>(null);
+  // 重派按钮的本地态(DELETE 期间禁用,error 仅 console)。
+  const [codemapRebuilding, setCodemapRebuilding] = useState(false);
+  // 详情对话框里"打开知识图谱"按钮的本地态(启动 serve 时禁用 + 错误回显)。
+  const [openServeLoading, setOpenServeLoading] = useState(false);
+  const [openServeError, setOpenServeError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -134,6 +239,101 @@ export const TestInputPage: React.FC<TestInputPageProps> = ({ selectedProjectId,
     if (!projectId) return;
     void loadRecords();
   }, [projectId, selectedType, selectedStatus, page, pageSize]);
+
+  // 切项目时立即查 codemap 任务状态(不依赖 records,确保切到非首页也能显示)。
+  // 404 → null,进入下方"派发 effect"判断;5xx/网络错误 → 留空隐藏 chip。
+  useEffect(() => {
+    if (!projectId) {
+      setCodemapStatus(null);
+      return;
+    }
+    let aborted = false;
+    void (async () => {
+      try {
+        const s = await api.codemapManager.getTaskStatus(buildCodemapTaskId(projectId));
+        if (!aborted) setCodemapStatus(s);
+      } catch (error) {
+        if ((error as any)?.status === 404) {
+          if (!aborted) setCodemapStatus(null);
+          return;
+        }
+        // eslint-disable-next-line no-console
+        console.warn('[codemap] getTaskStatus failed', error);
+      }
+    })();
+    return () => { aborted = true; };
+  }, [projectId]);
+
+  // 派发 effect:仅当 codemapStatus === null 且当前可见 records 中存在 USABLE 的 code
+  // 上传(latest)时触发。manager POST /tasks 按 task_id 幂等,与知识图谱 tab
+  // 并发触发也只起一份。失败仅日志,不阻断表格交互。
+  useEffect(() => {
+    if (!projectId) return;
+    if (codemapStatus !== null) return;
+    const codeRecords = records
+      .filter((r) => r.input_type === 'code' && USABLE_UPLOAD_STATUSES.has(r.status))
+      .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+    const latest = codeRecords[0];
+    if (!latest) return;
+    let aborted = false;
+    void (async () => {
+      try {
+        const productName = projects.find((p) => p.id === projectId)?.name || projectId;
+        const triggered = await api.codemapManager.triggerBuild({
+          task_id: buildCodemapTaskId(projectId),
+          product_id: projectId,
+          product_name: productName,
+          target_dir: buildManagerTargetDir(projectId, latest.target_path),
+        });
+        if (aborted) return;
+        setCodemapStatus({
+          task_id: triggered.task_id,
+          status: triggered.status,
+          mode: 'full',
+          db_name: triggered.db_name,
+          error: null,
+        });
+      } catch (error) {
+        // eslint-disable-next-line no-console
+        console.warn('[codemap] triggerBuild failed', error);
+      }
+    })();
+    return () => { aborted = true; };
+  }, [projectId, codemapStatus, records, projects]);
+
+  // 3s 轮询:仅在进行中状态运行,终态停止;组件卸载/项目切换由 cleanup 处理。
+  useEffect(() => {
+    if (!codemapStatus || !IN_PROGRESS_STATUSES.has(codemapStatus.status)) return undefined;
+    const taskId = codemapStatus.task_id;
+    const timer = window.setInterval(async () => {
+      try {
+        const next = await api.codemapManager.getTaskStatus(taskId);
+        setCodemapStatus(next);
+        if (!IN_PROGRESS_STATUSES.has(next.status)) window.clearInterval(timer);
+      } catch (error) {
+        if ((error as any)?.status === 404) return; // 瞬时,下一拍重试
+      }
+    }, 3000);
+    return () => window.clearInterval(timer);
+  }, [codemapStatus]);
+
+  // failed chip 旁的"重新构建"按钮:DELETE 旧 task → setCodemapStatus(null) →
+  // 派发 effect 用最新的 records 重派(target_dir 跟着上传记录走,自动修正
+  // 上次因目录错位等 422 / 0 函数失败的 task)。
+  const handleCodemapRebuild = async () => {
+    if (!codemapStatus || codemapRebuilding) return;
+    const taskId = codemapStatus.task_id;
+    setCodemapRebuilding(true);
+    try {
+      await api.codemapManager.deleteTask(taskId);
+      setCodemapStatus(null);   // 触发派发 effect 重派
+    } catch (error) {
+      // eslint-disable-next-line no-console
+      console.warn('[codemap] deleteTask failed', error);
+    } finally {
+      setCodemapRebuilding(false);
+    }
+  };
 
   const loadOverview = async () => {
     setOverviewLoading(true);
@@ -203,7 +403,26 @@ export const TestInputPage: React.FC<TestInputPageProps> = ({ selectedProjectId,
 
   const openUploadDetailDialog = async (record: ProjectInputUploadRecord) => {
     setDetailDialogTarget({ uploadId: record.upload_id, record });
+    setOpenServeError(null);
     await loadUploadDetail(record.upload_id);
+  };
+
+  // 详情对话框里点击"打开知识图谱"——拿当前项目级 task 的 db_name 起(或复用)
+  // per-project serve 子进程,新 tab 打开 codemap_lite serve 静态页。
+  // 与知识图谱 tab 走��是同一份 db,POST /projects/{db}/serve 幂等。
+  const handleOpenServe = async () => {
+    if (!codemapStatus?.db_name) return;
+    setOpenServeLoading(true);
+    setOpenServeError(null);
+    try {
+      const serve = await api.codemapManager.startServe(codemapStatus.db_name);
+      const url = `http://${serve.ip}:${serve.port}/static/index.html`;
+      window.open(url, '_blank', 'noopener,noreferrer');
+    } catch (error: any) {
+      setOpenServeError(error?.message || '启动 codemap-lite serve 失败');
+    } finally {
+      setOpenServeLoading(false);
+    }
   };
 
   const statsMap = useMemo(() => {
@@ -585,7 +804,14 @@ export const TestInputPage: React.FC<TestInputPageProps> = ({ selectedProjectId,
                             <div className="mt-1 text-xs text-theme-text-muted">完成 {formatDateTime(record.finished_at)}</div>
                           </td>
                           <td className="px-4 py-4">
-                            <div className="flex justify-end gap-2" onClick={(event) => event.stopPropagation()}>
+                            <div className="flex items-center justify-end gap-2" onClick={(event) => event.stopPropagation()}>
+                              {inputType === 'code' ? (
+                                <CodemapProgressChip
+                                  status={codemapStatus}
+                                  onRebuild={handleCodemapRebuild}
+                                  rebuilding={codemapRebuilding}
+                                />
+                              ) : null}
                               <button onClick={() => { void openUploadDetailDialog(record); }} className="rounded-xl border border-theme-border px-3 py-2 text-xs font-black text-theme-text-secondary hover:bg-theme-elevated">
                                 <Eye size={14} className="mr-1 inline-block" />
                                 详情
@@ -735,6 +961,31 @@ export const TestInputPage: React.FC<TestInputPageProps> = ({ selectedProjectId,
                     {latestBatch ? <span className="rounded-full bg-theme-elevated px-3 py-1 font-semibold text-theme-text-secondary">最新批次：{latestBatch.status}</span> : null}
                     <span className="rounded-full bg-theme-elevated px-3 py-1 font-semibold text-theme-text-secondary">类型：{INPUT_TYPE_META[normalizeType(record.input_type)].label}</span>
                   </div>
+                  {/* 仅 code 类型记录:点击启动 codemap_lite serve 并跳转。
+                      db_name 由 manager 在 task accepted 时生成;queued 阶段还没,按钮置灰。 */}
+                  {normalizeType(record.input_type) === 'code' ? (
+                    <div className="mt-3 flex items-center gap-3">
+                      <button
+                        type="button"
+                        disabled={!codemapStatus?.db_name || openServeLoading}
+                        onClick={() => { void handleOpenServe(); }}
+                        title={!codemapStatus
+                          ? '知识图谱任务尚未派发'
+                          : !codemapStatus.db_name
+                            ? '任务排队中,db_name 未分配'
+                            : '在新标签页打开 codemap_lite 知识图谱'}
+                        className="inline-flex items-center gap-2 rounded-xl border border-indigo-200 bg-indigo-50 px-3 py-2 text-xs font-black text-indigo-700 transition hover:bg-indigo-100 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-400"
+                      >
+                        {openServeLoading
+                          ? <Loader2 size={14} className="animate-spin" />
+                          : <Network size={14} />}
+                        {openServeLoading ? '启动中…' : '打开知识图谱'}
+                      </button>
+                      {openServeError ? (
+                        <span className="text-xs font-semibold text-rose-600">{openServeError}</span>
+                      ) : null}
+                    </div>
+                  ) : null}
                 </div>
                 <button
                   type="button"

@@ -80,4 +80,61 @@ export const codemapManagerApi = {
     });
     return handleResponse(response);
   },
+
+  // DELETE /tasks/{id} — 清掉脏 task(例如 422 拒绝 / 0 函数失败后),前端紧接
+  // setCodemapStatus(null) 即可让自动派发 effect 用当前正确的 target_path 重派。
+  deleteTask: async (taskId: string): Promise<void> => {
+    const response = await fetch(`${MANAGER_BASE}/tasks/${encodeURIComponent(taskId)}`, {
+      method: 'DELETE',
+      headers: getHeaders(),
+    });
+    await handleResponse(response);
+  },
+};
+
+// 知识图谱构建是项目维度、幂等的:固定 task_id = kg-<projectId>,product_id=projectId
+// → manager 算出的 db_name 不变 → 一个项目始终一张图。KnowledgeGraphPage 与
+// TestInputPage 都用同一份 task_id,确保切 tab 不会重复派发(POST /tasks 幂等兜底)。
+export const buildCodemapTaskId = (projectId: string): string => `kg-${projectId}`;
+
+// manager 读取代码的文件系统根。manager 挂载了平台 fileserver 的共享卷到 /data,
+// 上传代码物理路径是 /data/files/<projectId>/<target_path>;而 fileserver API 返回的
+// target_path 只是 /user_input/code/<id>(缺前缀)。这里补全成 manager 视角的绝对路径。
+export const MANAGER_SOURCE_ROOT = '/data/files';
+export const buildManagerTargetDir = (projectId: string, targetPath: string): string =>
+  `${MANAGER_SOURCE_ROOT}/${projectId}${targetPath.startsWith('/') ? '' : '/'}${targetPath}`;
+
+// manager FSM 仍在进行的状态;completed/failed/paused/deleted 为终态(不再轮询)。
+export const IN_PROGRESS_STATUSES: ReadonlySet<string> = new Set([
+  'queued',
+  'accepted',
+  'building_analyze',
+  'building_repair',
+]);
+
+// fileserver 上传记录里"文件已落盘、可被 analyze 扫描"的状态。
+// 派发 manager 任务前必须命中其一,否则 analyze 扫到空目录直接失败。
+export const USABLE_UPLOAD_STATUSES: ReadonlySet<string> = new Set([
+  'succeeded',
+  'partial_failed',
+]);
+
+// 长文案,用于 KnowledgeGraphPage 的顶部横幅(空间充足)。
+export const STATUS_LABELS: Record<string, string> = {
+  queued: '排队中',
+  accepted: '已受理',
+  building_analyze: '解析代码中',
+  building_repair: '补全调用关系中',
+  completed: '已完成',
+  failed: '构建失败',
+};
+
+// 短文案,用于 TestInputPage 行内 chip(表格"操作"列空间紧张)。
+export const STATUS_LABELS_SHORT: Record<string, string> = {
+  queued: '排队中',
+  accepted: '已受理',
+  building_analyze: '静态分析中',
+  building_repair: '调用链修复中',
+  completed: '已完成',
+  failed: '失败',
 };
