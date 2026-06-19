@@ -34,6 +34,8 @@ type DashboardActiveTaskKeyItem = {
   task_key_id: number;
   task_key_prefix: string;
   task_key_name: string;
+  active_requests?: number;
+  waiting_requests?: number;
   request_count: number;
   total_tokens: number;
 };
@@ -147,7 +149,7 @@ export const AiGatewayDashboardPage: React.FC<AiGatewayDashboardPageProps> = ({ 
 
       {error ? <div className="rounded-2xl border border-rose-500/20 bg-rose-500/15 px-4 py-3 text-sm font-medium text-rose-400">{error}</div> : null}
 
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+      <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-[1.4fr_1fr_1fr]">
         <MetricCard
           icon={<Activity className="h-5 w-5" />}
           label="实时队列"
@@ -168,8 +170,8 @@ export const AiGatewayDashboardPage: React.FC<AiGatewayDashboardPageProps> = ({ 
         />
       </div>
 
-      <div className="grid gap-6 xl:grid-cols-3">
-        <section className="rounded-xl border border-theme-border bg-theme-surface p-6">
+      <div className="grid gap-6 xl:grid-cols-[1.4fr_1fr_1fr]">
+        <section className="rounded-[2rem] border border-theme-border bg-theme-bg-app p-6">
           <div className="flex items-start justify-between gap-4">
             <div>
               <div className="text-[11px] font-semibold uppercase tracking-[0.2em] text-theme-text-muted">{rangeLabel}统计</div>
@@ -185,6 +187,8 @@ export const AiGatewayDashboardPage: React.FC<AiGatewayDashboardPageProps> = ({ 
               <thead>
                 <tr className="border-b border-theme-border text-theme-text-muted">
                   <th className="px-3 py-3 font-bold">Key Name</th>
+                  <th className="px-3 py-3 font-bold text-right">活跃请求</th>
+                  <th className="px-3 py-3 font-bold text-right">排队请求</th>
                   <th className="px-3 py-3 font-bold text-right">Token 用量</th>
                   <th className="px-3 py-3 font-bold text-right">请求次数</th>
                 </tr>
@@ -193,15 +197,17 @@ export const AiGatewayDashboardPage: React.FC<AiGatewayDashboardPageProps> = ({ 
                 {activeTaskKeys.map((item) => (
                   <tr key={item.task_key_id} className="border-b border-theme-border">
                     <td className="px-3 py-3">
-                      <div className="truncate font-bold text-theme-text-primary">{item.task_key_name || item.task_key_prefix}</div>
+                      <div className="line-clamp-2 break-words font-bold leading-6 text-theme-text-primary">{item.task_key_name || item.task_key_prefix}</div>
                     </td>
-                    <td className="px-3 py-3 text-right font-bold text-theme-text-primary">{compactNumber(item.total_tokens || 0)}</td>
+                    <td className="px-3 py-3 text-right font-black text-theme-text-primary">{numberText(item.active_requests || 0)}</td>
+                    <td className="px-3 py-3 text-right text-theme-text-secondary">{numberText(item.waiting_requests || 0)}</td>
+                    <td className="px-3 py-3 text-right font-black text-theme-text-primary">{compactNumber(item.total_tokens || 0)}</td>
                     <td className="px-3 py-3 text-right text-theme-text-secondary">{item.request_count || 0}</td>
                   </tr>
                 ))}
                 {!activeTaskKeys.length && !loading ? (
                   <tr>
-                    <td colSpan={3} className="px-3 py-10 text-center text-theme-text-muted">{rangeLabel}暂无活跃任务记录</td>
+                    <td colSpan={5} className="px-3 py-10 text-center text-theme-text-muted">{rangeLabel}暂无活跃任务记录</td>
                   </tr>
                 ) : null}
               </tbody>
