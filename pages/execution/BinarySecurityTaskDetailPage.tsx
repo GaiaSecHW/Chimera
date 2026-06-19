@@ -776,6 +776,16 @@ const taskDetailViewLabel = (taskType: BinarySecurityTaskType) => {
   return '二进制任务总览详情';
 };
 
+const pipelineModeLabel = (value?: string | null) => (
+  value === 'mixed_streaming' ? '深度优先（Mixed Streaming）' : '广度优先（Barrier）'
+);
+
+const pipelineModeHint = (value?: string | null) => (
+  value === 'mixed_streaming'
+    ? '前序阶段产出后会尽快向后续阶段流式推进。'
+    : '按阶段聚合推进，上一阶段完成后再开始下一阶段。'
+);
+
 const BLOCKING_ACTION_COPY: Record<
   Exclude<BlockingActionKind, ''>,
   {
@@ -4154,6 +4164,11 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                     <div className="mt-1 break-all font-mono text-xs text-theme-text-secondary">{detail.output_root}</div>
                   </div>
                   <div className="rounded-2xl bg-theme-surface px-3 py-2.5">
+                    <div className="text-[10px] font-bold uppercase tracking-[0.18em] text-theme-text-muted">推进模式</div>
+                    <div className="mt-1 text-xs font-semibold text-theme-text-primary">{pipelineModeLabel(detail.policy?.pipeline_mode)}</div>
+                    <div className="mt-1 text-xs text-theme-text-muted">{pipelineModeHint(detail.policy?.pipeline_mode)}</div>
+                  </div>
+                  <div className="rounded-2xl bg-theme-surface px-3 py-2.5">
                     <div className="text-[10px] font-bold uppercase tracking-[0.18em] text-theme-text-muted">{isBinaryModuleTask ? '模块输入' : '模块策略'}</div>
                     <div className="mt-1 text-xs text-theme-text-secondary">
                       {isBinaryModuleTask
@@ -4306,6 +4321,10 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                     当前存在未保存的策略修改。请在对应模块内分别保存。
                   </div>
                 ) : null}
+                <div className="mt-5 rounded-2xl border border-theme-border bg-theme-bg-app px-4 py-3 text-sm">
+                  <div className="font-semibold text-theme-text-primary">当前推进模式：{pipelineModeLabel(detail.policy?.pipeline_mode)}</div>
+                  <div className="mt-1 text-theme-text-muted">{pipelineModeHint(detail.policy?.pipeline_mode)}</div>
+                </div>
               </section>
 
  <section className="rounded-xl border border-theme-border bg-theme-surface p-6">
