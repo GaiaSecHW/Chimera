@@ -2885,7 +2885,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
     return () => observer.disconnect();
   }, [activeTab, stageSequence]);
 
-  const runAction = async (action: 'cancel' | 'retry' | 'continue' | 'delete', options?: { force?: boolean }) => {
+  const runAction = async (action: 'cancel' | 'retry' | 'continue' | 'delete' | 'force-reset', options?: { force?: boolean }) => {
     if (!projectId || !taskId) return;
     if (action === 'delete') {
       const confirmed = await showConfirm(
@@ -2908,9 +2908,25 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
       );
       if (!confirmed) return;
     }
+    if (action === 'force-reset') {
+      const confirmed = await showConfirm({
+        title: '强制重置任务状态',
+        message: '将清理当前任务悬挂的操作、owner、lease 和运行时信号，并把任务重置为待调度。该操作不会删除现有下游子任务，是否继续？',
+        confirmText: '确认重置',
+        cancelText: '取消',
+        danger: true,
+      });
+      if (!confirmed) return;
+    }
     setActionLoading(action);
     try {
       if (action === 'cancel') await executionApi.binarySecurity.cancelTask(projectId, taskId);
+      if (action === 'force-reset') {
+        const result = await executionApi.binarySecurity.forceResetTaskToPending(projectId, taskId);
+        setNotice(result?.message || '任务已强制重置为待调度');
+        await refreshActiveTab();
+        return;
+      }
       if (action === 'delete') {
         const result = await executionApi.binarySecurity.deleteTask(projectId, taskId, options);
         setNotice(result?.message || (options?.force ? '强制删除已受理，后台正在处理中' : '删除已受理，后台正在处理中'));
@@ -4075,6 +4091,15 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
               className="rounded-xl border border-theme-border bg-theme-elevated px-4 py-2.5 text-sm font-bold text-theme-text-secondary disabled:opacity-60"
             >
               清空并从头开始
+            </button>
+            <button
+              type="button"
+              title="清理悬挂 operation / owner / lease，并将任务恢复为待调度"
+              onClick={() => void runAction('force-reset')}
+              disabled={actionLoading !== '' || loading}
+              className="rounded-xl border border-amber-500/20 bg-amber-500/15 px-4 py-2.5 text-sm font-bold text-amber-300 disabled:opacity-60"
+            >
+              {actionLoading === 'force-reset' ? '重置中...' : '强制重置状态'}
             </button>
             <button
               type="button"
