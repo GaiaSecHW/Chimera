@@ -3515,15 +3515,15 @@ export interface AppSaTaskDetail extends AppSaTaskItem {
     [key: string]: any;
   } | null;
   stages_json?: AppSaStagesJson | null;
-  task_config_json?: { analyse_targets?: string[]; binary_arch?: string[]; security_focus_categories?: string[]; module_granularity?: string; filter_engine?: 'script' | 'agent'; enable_final_check?: boolean; continue_on_module_failure?: boolean; start_stage?: number; resume_workspace?: string; resolved_config_snapshot?: Record<string, any> } | null;
+  task_config_json?: { analyse_targets?: string[]; binary_arch?: string[]; security_focus_categories?: string[]; module_granularity?: string; filter_engine?: 'script' | 'agent'; enable_final_check?: boolean; continue_on_module_failure?: boolean; super_fast_mode?: boolean; start_stage?: number; resume_workspace?: string; resolved_config_snapshot?: Record<string, any> } | null;
   agent_auth_json?: Record<string, any> | null;
   role_config_snapshot?: Record<string, any> | null;
   provider_runtime_summary?: Record<string, any> | null;
   llm_binding_snapshot?: Record<string, any> | null;
   /** 实际生效配置（task_config_json 覆盖项目配置后的合并结果） */
-  effective_config_json?: { analyse_targets?: string[]; binary_arch?: string[]; security_focus_categories?: string[]; module_granularity?: string; filter_engine?: 'script' | 'agent'; enable_final_check?: boolean; continue_on_module_failure?: boolean } | null;
+  effective_config_json?: { analyse_targets?: string[]; binary_arch?: string[]; security_focus_categories?: string[]; module_granularity?: string; filter_engine?: 'script' | 'agent'; enable_final_check?: boolean; continue_on_module_failure?: boolean; super_fast_mode?: boolean } | null;
   /** 每个字段的来源："task" = 任务级覆盖，"project" = 项目默认 */
-  effective_config_source?: { analyse_targets?: 'task' | 'project'; binary_arch?: 'task' | 'project'; security_focus_categories?: 'task' | 'project'; module_granularity?: 'task' | 'project'; filter_engine?: 'task' | 'project'; enable_final_check?: 'task' | 'project'; continue_on_module_failure?: 'task' | 'project' } | null;
+  effective_config_source?: { analyse_targets?: 'task' | 'project'; binary_arch?: 'task' | 'project'; security_focus_categories?: 'task' | 'project'; module_granularity?: 'task' | 'project'; filter_engine?: 'task' | 'project'; enable_final_check?: 'task' | 'project'; continue_on_module_failure?: 'task' | 'project'; super_fast_mode?: 'task' | 'project' } | null;
   task_root?: string | null;
   run_root?: string | null;
   workspace_root?: string | null;

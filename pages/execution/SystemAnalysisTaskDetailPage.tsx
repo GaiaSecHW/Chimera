@@ -136,6 +136,15 @@ function formatTsDuration(startTs: number | null, endTs: number | null): string 
   return`${m}m${s}s`;
 }
 
+function getExecutionModeInfo(detail: AppSaTaskDetail | null): { label: string; hint: string } | null {
+  if (!detail) return null;
+  const superFastMode = detail.effective_config_json?.super_fast_mode
+    ?? detail.task_config_json?.super_fast_mode;
+  return superFastMode
+    ? { label: '超快速模式', hint: '跳过 Judge 评审，优先追求快速试跑。' }
+    : { label: '标准模式', hint: '保留完整评审与校验流程。' };
+}
+
 function computeStageTimes(events: AppSaStageEvent[]): Array<{ startTs: number | null; endTs: number | null }> {
   const result = STAGE_STEPS.map(() => ({ startTs: null as number | null, endTs: null as number | null }));
   let taskEndTs: number | null = null;
@@ -1421,6 +1430,7 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
   const moduleCount = result?.summary.module_count || result?.modules.length || 0;
   const highRiskCount = result?.summary.high_risk_module_count || result?.modules.filter((item) => item.risk_level === '高').length || 0;
   const analysisModeInfo = detail ? getAnalysisModeInfo(detail) : null;
+  const executionModeInfo = detail ? getExecutionModeInfo(detail) : null;
   const canRepairOrigin = Boolean(
     detail &&
     !['pending', 'running'].includes(detail.status) &&
@@ -1826,6 +1836,14 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
                   {analysisModeInfo.label}
                 </span>
               ) : null}
+              {executionModeInfo ? (
+                <span
+                  className="rounded-md border border-amber-500/20 bg-amber-500/15 px-2.5 py-1 text-xs font-semibold text-amber-400"
+                  title={executionModeInfo.hint}
+                >
+                  {executionModeInfo.label}
+                </span>
+              ) : null}
             </div>
             <p className="mt-2 text-sm text-theme-text-muted break-all">{detail?.input_path || '正在加载任务详情。'}</p>
           </div>
@@ -1927,6 +1945,13 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
                 </span>
               )}
             />
+            {executionModeInfo ? (
+              <div className="mt-4 rounded-xl border border-theme-border bg-theme-bg-app px-4 py-3">
+                <div className="text-[11px] font-semibold uppercase tracking-[0.12em] text-theme-text-muted">任务执行模式</div>
+                <div className="mt-2 text-sm font-semibold text-theme-text-primary">{executionModeInfo.label}</div>
+                <div className="mt-1 text-xs text-theme-text-muted">{executionModeInfo.hint}</div>
+              </div>
+            ) : null}
           </div>
         ) : null}
       </section>

@@ -539,6 +539,7 @@ export const SystemAnalysisTaskConfigPanel: React.FC<{ detail: AppSaTaskDetail }
 
 export const EntryAnalysisTaskConfigPanel: React.FC<{ detail: AppEaTaskDetail }> = ({ detail }) => {
   const taskConfig = asRecord(detail.task_config_json);
+  const resolvedConfig = asRecord(taskConfig.resolved_config_snapshot);
   const agentAuthJson = asRecord(detail.agent_auth_json || taskConfig.agent_auth_json);
   const roleConfigSnapshot = asRecord(detail.role_config_snapshot || taskConfig.role_config_snapshot);
   const providerRuntimeSummary = asRecord(detail.provider_runtime_summary || taskConfig.provider_runtime_summary);
@@ -556,6 +557,19 @@ export const EntryAnalysisTaskConfigPanel: React.FC<{ detail: AppEaTaskDetail }>
   const resumeTaskId = recordText(taskConfig, 'resume_task_id');
   const resumeStage = recordText(taskConfig, 'resume_stage');
   const resumeWorkspace = recordText(taskConfig, 'resume_workspace');
+  const fastMode = taskConfig.fast_mode ?? resolvedConfig.fast_mode;
+  const fastModeBatchSize = taskConfig.fast_mode_batch_size ?? resolvedConfig.fast_mode_batch_size;
+  const superFastMode = taskConfig.super_fast_mode ?? resolvedConfig.super_fast_mode;
+  const entryExecutionModeLabel = superFastMode
+    ? '极速模式'
+    : fastMode
+      ? '快速模式'
+      : '标准模式';
+  const entryExecutionModeHint = superFastMode
+    ? '关闭 Judge，跳过完整评审，优先追求极限速度。'
+    : fastMode
+      ? `启用批量快速预筛${typeof fastModeBatchSize === 'number' ? `，当前批大小 ${fastModeBatchSize}` : ''}。`
+      : '使用完整标准流程。';
   const roleKeys = Array.from(
     new Set([
       ...Object.keys(roleConfigSnapshot),
@@ -585,6 +599,20 @@ export const EntryAnalysisTaskConfigPanel: React.FC<{ detail: AppEaTaskDetail }>
           { label: 'Prompt 模板', value: detail.prompt_template_id || '-' },
         ]}
       />
+
+      <SectionCard title="任务运行模式">
+        <div style={{ display: 'flex', flexDirection: 'column' }}>
+          <ConfigRow label="当前模式">{entryExecutionModeLabel}</ConfigRow>
+          <Divider />
+          <ConfigRow label="模式说明">{entryExecutionModeHint}</ConfigRow>
+          {fastMode ? (
+            <>
+              <Divider />
+              <ConfigRow label="快速模式批大小">{typeof fastModeBatchSize === 'number' ? String(fastModeBatchSize) : '-'}</ConfigRow>
+            </>
+          ) : null}
+        </div>
+      </SectionCard>
 
       <PathSummarySection
         title="输入信息"
