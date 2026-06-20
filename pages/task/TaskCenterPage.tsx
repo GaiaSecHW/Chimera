@@ -66,13 +66,6 @@ const formatDateTime = (value?: string | null) => (value ? new Date(value).toLoc
 const getRootTaskKeyDisplay = (task: Pick<ScheduleCenterUserTask, 'root_task_key_name' | 'root_task_key_prefix'>) =>
   [task.root_task_key_name, task.root_task_key_prefix].filter(Boolean).join(' / ') || '—';
 const getDisplayStatus = (task: ScheduleCenterUserTask) => task.display_status || task.business_status || task.dispatch_status || task.create_status || 'unknown';
-const getSyncSummary = (task: ScheduleCenterUserTask) => {
-  const pieces = [task.sync_status || 'none'];
-  if (task.downstream_status_raw) pieces.push(`downstream=${task.downstream_status_raw}`);
-  if (task.next_sync_at) pieces.push(`next=${formatDateTime(task.next_sync_at)}`);
-  if (task.last_sync_error) pieces.push(`error=${task.last_sync_error}`);
-  return pieces.join(' | ');
-};
 const getTaskTypeLabel = (taskType: string) => TASK_TYPES.find((item) => item.value === taskType)?.label || taskType;
 const getTaskHarnessLabel = (task: Pick<ScheduleCenterUserTask, 'task_type' | 'agent_app_name'>) =>
   task.task_type === 'sechps_tool' ? (task.agent_app_name || 'Agent Harness') : getTaskTypeLabel(String(task.task_type || ''));
@@ -314,33 +307,6 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects }) => {
     }
   };
 
-  const submitDeleteAllFiltered = async () => {
-    if (!filteredTasks.length || deleteSubmitting) return;
-    const confirmed = await confirm({
-      title: '确认删除全部任务',
-      message:`会删除当前项目下任务列表中可删除的全部 ${deletableTaskIds.length} 项任务，并联动删除下游子任务。此操作不可撤销。`,
-      confirmText:`删除全部 ${deletableTaskIds.length} 项`,
-      cancelText: '取消',
-      danger: true,
-    });
-    if (!confirmed) return;
-    setDeleteSubmitting(true);
-    try {
-      await scheduleApi.bulkDeleteUserTasks(projectId, {
-        task_ids: [],
-        select_all_matching: true,
-        filters: {},
-      });
-      notify('已加入全部任务删除队列', 'success');
-      setSelectedTaskIds([]);
-      await loadData();
-    } catch (err: any) {
-      notify(err?.message || '全部删除入队失败', 'error');
-    } finally {
-      setDeleteSubmitting(false);
-    }
-  };
-
   const deleteStatusText = (task: ScheduleCenterUserTask) => {
     const status = String(task.delete_status || 'none');
     if (status === 'queued') return '删除排队中';
@@ -492,18 +458,6 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects }) => {
         </div>
         <div className="flex items-center gap-2">
           <button
-            type="button"
-            onClick={() => void submitDeleteAllFiltered()}
-            disabled={!deletableTaskIds.length || deleteSubmitting}
-            className="inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-50"
-            style={{ backgroundColor: `${LK.error}22`, color: LK.error, border: `1px solid ${LK.error}40` }}
-            onMouseEnter={(e) => { if (!e.currentTarget.disabled) e.currentTarget.style.backgroundColor =`${LK.error}3a`; }}
-            onMouseLeave={(e) => { e.currentTarget.style.backgroundColor =`${LK.error}22`; }}
-          >
-            {deleteSubmitting ? <Loader2 size={14} className="animate-spin" /> : <X size={14} />}
-            删除全部任务（{deletableTaskIds.length}）
-          </button>
-          <button
             onClick={() => void submitDelete(selectedTaskIds)}
             disabled={!selectedTaskIds.length || deleteSubmitting}
             className="inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-50"
@@ -541,15 +495,14 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects }) => {
               <th className="px-4 py-2.5 font-medium whitespace-nowrap" style={{ borderBottom:`1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>任务名</th>
               <th className="px-4 py-2.5 font-medium whitespace-nowrap" style={{ borderBottom:`1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>类型</th>
               <th className="px-4 py-2.5 font-medium whitespace-nowrap" style={{ borderBottom:`1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>任务状态</th>
-              <th className="px-4 py-2.5 font-medium whitespace-nowrap" style={{ borderBottom:`1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>同步状态</th>
               <th className="px-4 py-2.5 font-medium whitespace-nowrap" style={{ borderBottom:`1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>下游任务 ID</th>
               <th className="px-4 py-2.5 font-medium whitespace-nowrap" style={{ borderBottom:`1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>更新时间</th>
               <th className="px-4 py-2.5 font-medium whitespace-nowrap" style={{ borderBottom:`1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>操作</th>
             </tr>
           </thead>
           <tbody>
-            {loading ? <tr><td className="px-4 py-10 text-center" colSpan={9} style={{ color: LK.muted }}><span className="inline-flex items-center gap-2"><Loader2 size={16} className="animate-spin" />加载中...</span></td></tr> : null}
-            {!loading && filteredTasks.length === 0 ? <tr><td className="px-4 py-10 text-center" colSpan={9} style={{ color: LK.muted }}>暂无任务</td></tr> : null}
+            {loading ? <tr><td className="px-4 py-10 text-center" colSpan={7} style={{ color: LK.muted }}><span className="inline-flex items-center gap-2"><Loader2 size={16} className="animate-spin" />加载中...</span></td></tr> : null}
+            {!loading && filteredTasks.length === 0 ? <tr><td className="px-4 py-10 text-center" colSpan={7} style={{ color: LK.muted }}>暂无任务</td></tr> : null}
             {filteredTasks.map((task) => (
               <tr
                 key={task.id}
@@ -581,9 +534,6 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects }) => {
                 <td className="px-4 py-3 whitespace-nowrap">
                   <div className="font-semibold" style={{ color: LK.inkSoft }}>{getDisplayStatus(task)}</div>
                   <div className="text-xs" style={{ color: LK.muted }}>{task.dispatch_status} / {task.business_status}</div>
-                </td>
-                <td className="px-4 py-3 text-xs whitespace-nowrap" style={{ color: LK.body }} title={getSyncSummary(task)}>
-                  {task.sync_status || 'none'}
                 </td>
                 <td className="px-4 py-3 whitespace-nowrap" style={{ fontFamily: MONO, fontSize: '12px', color: LK.body }}>
                   {task.downstream_task_id || '—'}

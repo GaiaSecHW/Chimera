@@ -114,10 +114,10 @@ export const NAV_ROLE_CONFIG: Record<string, { label: string; color: string; act
 export const TOP_LEVEL_NAV_ITEMS: TopLevelNavItem[] = [
   { id: 'home', label: '首页', role: null },
   { id: 'project-mgmt-nav', label: '项目管理', role: null },
-  { id: 'test-object', label: '测试对象', role: null },
   { id: 'test-task', label: '测试任务', role: null },
-  { id: 'test-env', label: '测试环境', role: null },
   { id: 'vuln-center', label: '漏洞中心', role: null },
+  { id: 'test-object', label: '测试对象', role: null },
+  { id: 'test-env', label: '测试环境', role: null },
   { id: 'assets', label: '资产', role: 'developer', showDividerBefore: true },
   { id: 'assessment', label: '评测', role: 'developer' },
   { id: 'observe', label: '观测', role: 'developer' },
