@@ -3,6 +3,8 @@ import { ArrowLeft, RefreshCw, Download, Loader2, Pencil } from 'lucide-react';
 import ReactMarkdown, { Components } from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import rehypeRaw from 'rehype-raw';
+import rehypeSanitize from 'rehype-sanitize';
+import { reportSanitizeSchema } from './reportMarkdownSanitize';
 import {
   redlineVerificationApi,
   RedlineTask,
@@ -341,7 +343,7 @@ export const TaskReportStep: React.FC<Props> = ({ taskId, task, onTaskUpdated, o
                 {/* Markdown rendered result */}
                 <div className="break-words leading-6 mb-6">
                   {text ? (
-                    <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeRaw]} components={mdComponents}>{text}</ReactMarkdown>
+                    <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeRaw, [rehypeSanitize, reportSanitizeSchema]]} components={mdComponents}>{text}</ReactMarkdown>
                   ) : (
                     <p className="text-theme-text-secondary italic">无结果</p>
                   )}
