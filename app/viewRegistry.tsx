@@ -44,6 +44,7 @@ import { CfgGuidedExploreTaskPage } from '../pages/execution/CfgGuidedExploreTas
 import { CfgGuidedExploreTaskDetailPage } from '../pages/execution/CfgGuidedExploreTaskDetailPage';
 import { CfgGuidedExploreConfigPage } from '../pages/execution/CfgGuidedExploreConfigPage';
 import { VulnVerifyTaskPage } from '../pages/execution/VulnVerifyTaskPage';
+import { VulnVerifyV2TaskPage } from '../pages/execution/VulnVerifyV2TaskPage';
 import { EntryAnalysisTaskPage } from '../pages/execution/EntryAnalysisTaskPage';
 import { EntryAnalysisTaskDetailPage } from '../pages/execution/EntryAnalysisTaskDetailPage';
 import { EntryAnalysisConfigPage } from '../pages/execution/EntryAnalysisConfigPage';
@@ -434,6 +435,8 @@ export const renderCurrentView = (ctx: ViewRegistryContext): React.ReactNode => 
     case 'pentest-vuln-verify':
     case 'vuln-verify-task':
       return <VulnVerifyTaskPage projectId={ctx.selectedProjectId} />;
+    case 'pentest-vuln-verify-v2':
+      return <VulnVerifyV2TaskPage projectId={ctx.selectedProjectId} />;
     case 'workflow-instances':
       return (
         <WorkflowInstancePage
