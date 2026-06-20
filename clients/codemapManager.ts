@@ -20,7 +20,7 @@ export interface CodemapBuildProgress {
 }
 
 // GET /tasks/{id} 的返回。status: queued | accepted | building_analyze |
-// building_repair | completed | failed | paused | deleted。
+// building_attack_surface | building_repair | completed | failed | paused | deleted。
 export interface CodemapTaskStatus {
   task_id: string;
   status: string;
@@ -28,6 +28,10 @@ export interface CodemapTaskStatus {
   db_name: string | null;
   error: string | null;
   progress?: CodemapBuildProgress | null;
+  // 攻击入口识别(基础版)子阶段。status: running | ok | failed(非阻塞,
+  // 即便失败主构建仍继续 repair)。entries: 已识别攻击入口数(实时累计)。
+  // 仅当该阶段已启动时后端才返回此字段。
+  attack?: { status: string; entries: number } | null;
 }
 
 export interface CodemapTriggerResponse {
@@ -121,6 +125,7 @@ export const IN_PROGRESS_STATUSES: ReadonlySet<string> = new Set([
   'queued',
   'accepted',
   'building_analyze',
+  'building_attack_surface',
   'building_repair',
 ]);
 
@@ -136,6 +141,7 @@ export const STATUS_LABELS: Record<string, string> = {
   queued: '排队中',
   accepted: '已受理',
   building_analyze: '静态分析中…',
+  building_attack_surface: '攻击入口识别中…',
   building_repair: '补全调用关系中',
   completed: '已完成',
   failed: '构建失败',
@@ -146,6 +152,7 @@ export const STATUS_LABELS_SHORT: Record<string, string> = {
   queued: '排队中',
   accepted: '已受理',
   building_analyze: '静态分析中',
+  building_attack_surface: '攻击入口识别中',
   building_repair: '调用链修复中',
   completed: '已完成',
   failed: '失败',

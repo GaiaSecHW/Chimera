@@ -299,6 +299,9 @@ export const KnowledgeGraphPage: React.FC<Props> = ({ projectId, projects }) => 
             <Loader2 size={14} className="animate-spin" />
             <span>
               图谱构建中 · {STATUS_LABELS[status?.status || ''] || '处理中'}
+              {status?.status === 'building_attack_surface' && (status?.attack?.entries ?? 0) > 0
+                ? ` · 已识别 ${status?.attack?.entries} 入口`
+                : ''}
               {pct !== null ?` · ${progress?.completed}/${progress?.total}（${pct}%）` : ''}
               ，结果会持续补全，可刷新查看最新。
             </span>

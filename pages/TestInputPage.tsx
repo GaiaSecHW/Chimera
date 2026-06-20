@@ -147,13 +147,24 @@ const CodemapProgressChip: React.FC<{
       {correcting ? '更正中…' : '更正代码目录'}
     </button>
   ) : null;
+  // 攻击入口识别(基础版)非阻塞:即便失败主构建仍继续 repair。失败时给一个
+  // 小字附注,在后续 building_repair/completed 的 chip 旁提示「入口分析失败」,
+  // 不影响主流程展示。attack?.status==='failed' 才出现。
+  const attackFailedNote = status.attack?.status === 'failed' ? (
+    <span className="text-[11px] font-semibold text-amber-400/80" title="攻击入口识别阶段失败,不影响调用链修复">
+      入口分析失败
+    </span>
+  ) : null;
   if (hasRepairProgress) {
     const total = progress.total;
     const completed = progress.completed;
     if (s === 'completed') {
       return (
-        <span className={`${pillBase} ${toneSuccess}`}>
-          静态分析成功 · 调用链修复 {completed}/{total}
+        <span className="inline-flex items-center gap-2">
+          <span className={`${pillBase} ${toneSuccess}`}>
+            静态分析成功 · 调用链修复 {completed}/{total}
+          </span>
+          {attackFailedNote}
         </span>
       );
     }
@@ -162,11 +173,23 @@ const CodemapProgressChip: React.FC<{
     const tone = s === 'failed' ? toneWarn : toneProgress;
     const label = s === 'building_repair' ? '调用链修复中' : (allDone ? '调用链修复完成' : '调用链修复');
     return (
-      <span
-        title={s === 'failed' ? `${truncateError(status.error)} (${completed}/${total} 源点已修复)` : undefined}
-        className={`${pillBase} ${tone}`}
-      >
-        静态分析成功 · {label} {completed}/{total}
+      <span className="inline-flex items-center gap-2">
+        <span
+          title={s === 'failed' ? `${truncateError(status.error)} (${completed}/${total} 源点已修复)` : undefined}
+          className={`${pillBase} ${tone}`}
+        >
+          静态分析成功 · {label} {completed}/{total}
+        </span>
+        {attackFailedNote}
+      </span>
+    );
+  }
+  // 攻击入口识别阶段(在 analyze 与 repair 之间)。实时展示已识别入口数。
+  if (s === 'building_attack_surface') {
+    const entries = status.attack?.entries ?? 0;
+    return (
+      <span className={`${pillBase} ${toneProgress}`}>
+        攻击入口识别中{entries > 0 ? ` · 已识别 ${entries} 入口` : ''}
       </span>
     );
   }
