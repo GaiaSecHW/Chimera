@@ -29,6 +29,12 @@ export default defineConfig(({ mode }) => {
     //   172.31.30.101 codemap-manager.ai.icsl.huawei.com
     // 可用 VITE_CODEMAP_MANAGER_TARGET 覆盖(如 port-forward 时填 http://127.0.0.1:8090)。
     const codemapManagerTarget = String(env.VITE_CODEMAP_MANAGER_TARGET || 'http://codemap-manager.ai.icsl.huawei.com').trim();
+    // SecOcto 统一代理入口:浏览器对 /api/secocto/v1/<svc>/<path> 的请求统一转发到
+    // secocto-ui (VITE_SECOCTO_TARGET, 默认 http://127.0.0.1:18888),由 secocto-ui
+    // 内部按 service 前缀分发到 vulns/skills/tasks/wiki/memories/gitea 六个后端服务。
+    // 此处不做 rewrite——剥前缀的工作交给 secocto-ui 的 serve.py / nginx 统一处理。
+    const secoctoTarget = String(env.VITE_SECOCTO_TARGET || 'http://127.0.0.1:18888').trim();
+    const secoctoAgent = new http.Agent({ keepAlive: true, maxSockets: 20, keepAliveMsecs: 3000 });
     return {
       // Use an absolute base in dev so HMR/module requests stay rooted at the
       // Vite server, while production builds keep relative assets for static hosting.
@@ -102,47 +108,13 @@ export default defineConfig(({ mode }) => {
               });
             },
           },
-          '/api/secocto-vuln': {
-            target: 'http://27.106.118.208:8301',
+          '/api/secocto/v1': {
+            target: secoctoTarget,
             changeOrigin: true,
             secure: false,
-            rewrite: (path) => path.replace(/^\/api\/secocto-vuln/, ''),
-            agent: keepAliveHttpAgent,
-          },
-          '/api/memories-api': {
-            target: 'http://27.106.118.208:18790',
-            changeOrigin: true,
-            secure: false,
-            rewrite: (path) => path.replace(/^\/api\/memories-api/, ''),
-            agent: keepAliveHttpAgent,
-          },
-          '/api/tasks-api': {
-            target: 'http://27.106.118.208:8300',
-            changeOrigin: true,
-            secure: false,
-            rewrite: (path) => path.replace(/^\/api\/tasks-api/, ''),
-            agent: keepAliveHttpAgent,
-          },
-          '/api/skills-api': {
-            target: 'http://27.106.118.208:8090',
-            changeOrigin: true,
-            secure: false,
-            rewrite: (path) => path.replace(/^\/api\/skills-api/, ''),
-            agent: keepAliveHttpAgent,
-          },
-          '/api/wiki-api': {
-            target: 'http://27.106.118.208:18780',
-            changeOrigin: true,
-            secure: false,
-            rewrite: (path) => path.replace(/^\/api\/wiki-api/, ''),
-            agent: keepAliveHttpAgent,
-          },
-          '/api/gitea': {
-            target: 'http://27.106.118.208:3010',
-            changeOrigin: true,
-            secure: false,
-            rewrite: (path) => path.replace(/^\/api\/gitea/, ''),
-            agent: keepAliveHttpAgent,
+            agent: secoctoAgent,
+            // 不 rewrite：完整保留 /api/secocto/v1/<svc>/<path> 透传给 secocto-ui，
+            // 由 secocto-ui 的 serve.py / nginx 负责按 <svc> 前缀分发到对应后端。
           },
           '/api': {
             target: 'http://secflow.ai.icsl.huawei.com',

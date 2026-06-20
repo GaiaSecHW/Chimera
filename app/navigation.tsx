@@ -353,8 +353,8 @@ const EVOLUTION_VIEWS = new Set([
   'binary-security-config',
   'binary-security-metrics',
   'secocto-overview',
-  'secocto-browse',
-  'secocto-cards',
+  'secocto-skills',
+  'secocto-memories',
   'secocto-vulns',
 ]);
 
@@ -596,11 +596,11 @@ const SYSTEM_ADMIN_SIDEBAR_MAP: Record<string, NavSection[]> = {
       ],
     },
     {
-      title: 'SecEvo',
+      title: 'SecOcto',
       items: [
         { id: 'secocto-overview', label: '总览', icon: LayoutDashboard },
-        { id: 'secocto-browse', label: '技能进化', icon: GraduationCap },
-        { id: 'secocto-cards', label: '记忆进化', icon: Brain },
+        { id: 'secocto-skills', label: '技能进化', icon: GraduationCap },
+        { id: 'secocto-memories', label: '记忆进化', icon: Brain },
         { id: 'secocto-vulns', label: '漏洞管理', icon: ShieldAlert },
       ],
     },
