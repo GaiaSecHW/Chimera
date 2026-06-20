@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Loader2, Plus, RefreshCw, RotateCcw, Save, Trash2 } from 'lucide-react';
 
 import { api } from '../../clients/api';
+import { ServicePageTitle, useServiceBuildVersion } from '../../components/execution/ServiceBuildVersion';
 import { showConfirm } from '../../components/DialogService';
 import { useUiFeedback } from '../../components/UiFeedback';
 import { PageHeader } from '../../design-system';
@@ -147,6 +148,7 @@ const overlaps = (rows: ScheduleRuntimeTimeWindow[]) => {
 export const ChimeraScheduleConfigPage: React.FC = () => {
   const scheduleApi = api.domains.platform.scheduleCenter;
   const { notify, feedbackNodes } = useUiFeedback();
+  const buildVersion = useServiceBuildVersion(scheduleApi.getHealth);
   const [config, setConfig] = useState<ScheduleRuntimeConfig | null>(null);
   const [draft, setDraft] = useState<ScheduleRuntimeConfig | null>(null);
   const [loading, setLoading] = useState(true);
@@ -315,7 +317,7 @@ export const ChimeraScheduleConfigPage: React.FC = () => {
       {feedbackNodes}
       <div className="w-full space-y-4">
         <PageHeader
-          title="调度参数"
+          title={<ServicePageTitle title="调度参数" version={buildVersion} className="" titleClassName="text-2xl font-semibold tracking-tight text-theme-text-primary" />}
           description="统一管理全局调度策略、任务同步参数、Task Key 默认额度与分时段覆盖。"
           actions={<div className="flex flex-wrap items-center gap-2">
             <button onClick={() => void load()} className="inline-flex items-center gap-2 rounded-xl border border-theme-border bg-theme-surface px-3 py-2 text-sm font-bold text-theme-text-secondary hover:bg-theme-elevated">
