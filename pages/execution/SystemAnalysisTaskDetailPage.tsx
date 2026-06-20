@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { startTransition, useEffect, useMemo, useRef, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import {
@@ -35,6 +35,7 @@ import {
   AppSaTaskEvaluation,
   AppSaEvaluationRound,
   AppSaTaskResult,
+  AppSaTaskStageEvents,
 } from '../../types/types';
 import { FileWatchMessage } from '../../clients/fileserver';
 import { showConfirm } from '../../components/DialogService';
@@ -53,6 +54,7 @@ import { DownstreamTaskCreator } from './DownstreamTaskCreator';
 import { parseAgentSessionJsonlDelta } from './agentSessionParsing';
 import { blobToText, buildSessionSnapshotFromText, parseSessionJsonlDelta } from './sessionParsing';
 import { SessionRelationshipGraph } from './SessionRelationshipGraph';
+import StageEventsWorker from './workers/systemAnalysisStageEvents.worker.ts?worker';
 import { buildCloneFormFromTask, SystemAnalysisTaskFormModal } from './SystemAnalysisTaskFormModal';
 import { SystemAnalysisTaskConfigPanel } from './TaskConfigPanels';
 import { WarningListPanel } from './WarningListPanel';
@@ -555,7 +557,7 @@ function buildOverviewStageMetrics(
 ): Record<string, StageOverviewMetric[]> {
   if (!detail) return {};
 
-  const events = detail.stages_json?.events ?? [];
+  const latestStageData = detail.stages_json?.latest_stage_data ?? {};
   const stageSummary = evaluation?.summary?.stage_summary ?? {};
   const preprocessMetrics: StageOverviewMetric[] = [];
   const classifyMetrics: StageOverviewMetric[] = [];
@@ -563,8 +565,8 @@ function buildOverviewStageMetrics(
   const analyseMetrics: StageOverviewMetric[] = [];
   const reportMetrics: StageOverviewMetric[] = [];
 
-  const filterResult = findLatestStageEventData(events, ['filter-engine', 'filter']);
-  const prescanResult = findLatestStageEventData(events, ['prescan']);
+  const filterResult = latestStageData.preprocess ?? null;
+  const prescanResult = latestStageData.preprocess ?? null;
   const preprocessSummary = detail.result_json?.preprocess_summary;
   appendMetric(
     preprocessMetrics,
@@ -796,7 +798,7 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
   const [originEditMode, setOriginEditMode] = useState<'binary' | 'source' | null>(null);
   const [cloneModalOpen, setCloneModalOpen] = useState(false);
   const [clockNow, setClockNow] = useState(() => Math.floor(Date.now() / 1000));
-  const [logsExpanded, setLogsExpanded] = useState(true);
+  const [logsExpanded, setLogsExpanded] = useState(false);
   const [activeTab, setActiveTab] = useState<DetailTab>('overview');
   const [timeline, setTimeline] = useState<AppSaTaskEvent[]>([]);
   const [timelineLoading, setTimelineLoading] = useState(false);
@@ -811,10 +813,20 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
   const [timelineAutoRefresh, setTimelineAutoRefresh] = useState<TimelineAutoRefreshValue>('off');
   const [selection, setSelection] = useState<ResultSelection>({ type: 'report' });
   const logScrollRef = useRef<HTMLDivElement>(null);
+  const [stageEvents, setStageEvents] = useState<AppSaStageEvent[]>([]);
+  const [stageEventsLoading, setStageEventsLoading] = useState(false);
+  const [stageEventsLoaded, setStageEventsLoaded] = useState(false);
+  const [stageEventsError, setStageEventsError] = useState<string | null>(null);
+  const [asyncLogLines, setAsyncLogLines] = useState<string[]>([]);
+  const [asyncStageStatuses, setAsyncStageStatuses] = useState<StepStatus[]>(STAGE_STEPS.map((): StepStatus => 'pending'));
+  const [asyncStageTimes, setAsyncStageTimes] = useState(STAGE_STEPS.map(() => ({ startTs: null as number | null, endTs: null as number | null })));
+  const stageEventsWorkerRef = useRef<Worker | null>(null);
+  const stageEventsWorkerRequestRef = useRef(0);
   const [sessions, setSessions] = useState<AppSaSessionMeta[]>([]);
   const [sessionIndex, setSessionIndex] = useState<AppSaSessionIndex | null>(null);
   const [sessionsLoading, setSessionsLoading] = useState(false);
   const [sessionsError, setSessionsError] = useState<string | null>(null);
+  const [sessionsLoaded, setSessionsLoaded] = useState(false);
   const [selectedSessionPath, setSelectedSessionPath] = useState<string | null>(null);
   const [activeAgentSessionPath, setActiveAgentSessionPath] = useState<string | null>(null);
   const [sessionSnapshot, setSessionSnapshot] = useState<AppSaSessionSnapshot | null>(null);
@@ -842,6 +854,23 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
       notify(`加载任务详情失败: ${err?.message || err}`, 'error');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadStageEvents = async () => {
+    if (!taskId || stageEventsLoading) return;
+    setStageEventsLoading(true);
+    setStageEventsError(null);
+    try {
+      const data: AppSaTaskStageEvents = await appApi.getTaskStageEvents(taskId);
+      setStageEvents(data.events || []);
+      setStageEventsLoaded(true);
+    } catch (err: any) {
+      const message = err?.message || String(err);
+      setStageEventsError(message);
+      notify(`加载阶段事件失败: ${message}`, 'error');
+    } finally {
+      setStageEventsLoading(false);
     }
   };
 
@@ -992,6 +1021,7 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
       ]);
       setSessions(data);
       setSessionIndex(index);
+      setSessionsLoaded(true);
       setSessionsError(null);
       setSelectedSessionPath((current) => {
         if (current && data.some((item) => item.relative_path === current)) {
@@ -1080,7 +1110,45 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
 
   useEffect(() => {
     void loadDetail();
+    setResult(null);
+    setEvaluation(null);
+    setTimeline([]);
+    setSessions([]);
+    setSessionIndex(null);
+    setSessionsLoaded(false);
+    setSelectedSessionPath(null);
+    setActiveAgentSessionPath(null);
+    setSessionSnapshot(null);
+    setSessionEvents([]);
+    setSessionWarnings([]);
+    setSessionError(null);
+    setStageEvents([]);
+    setStageEventsLoaded(false);
+    setStageEventsError(null);
+    setAsyncLogLines([]);
+    setAsyncStageStatuses(STAGE_STEPS.map((): StepStatus => 'pending'));
+    setAsyncStageTimes(STAGE_STEPS.map(() => ({ startTs: null as number | null, endTs: null as number | null })));
   }, [taskId]);
+
+  useEffect(() => {
+    const worker = new StageEventsWorker();
+    stageEventsWorkerRef.current = worker;
+    worker.onmessage = (event: MessageEvent<{
+      logLines: string[];
+      stageStatuses: StepStatus[];
+      stageTimes: Array<{ startTs: number | null; endTs: number | null }>;
+    }>) => {
+      startTransition(() => {
+        setAsyncLogLines(event.data.logLines || []);
+        setAsyncStageStatuses(event.data.stageStatuses || STAGE_STEPS.map((): StepStatus => 'pending'));
+        setAsyncStageTimes(event.data.stageTimes || STAGE_STEPS.map(() => ({ startTs: null, endTs: null })));
+      });
+    };
+    return () => {
+      worker.terminate();
+      stageEventsWorkerRef.current = null;
+    };
+  }, []);
 
   useEffect(() => () => {
     closeSessionSocket();
@@ -1117,27 +1185,37 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
     if (logsExpanded && logScrollRef.current) {
       logScrollRef.current.scrollTop = logScrollRef.current.scrollHeight;
     }
-  }, [detail?.stages_json?.events?.length, logsExpanded]);
+  }, [asyncLogLines.length, logsExpanded]);
 
   useEffect(() => {
     if (activeTab !== 'result') return;
-    void loadResult();
+    if (!result && !resultLoading) void loadResult();
   }, [activeTab, taskId]);
-
-  useEffect(() => {
-    if (activeTab !== 'overview' || !detail || detail.status === 'pending' || resultLoading || result) return;
-    void loadResult();
-  }, [activeTab, detail, result, resultLoading]);
 
   useEffect(() => {
     if (activeTab !== 'evaluation') return;
-    void loadEvaluation();
+    if (!evaluation && !evaluationLoading) void loadEvaluation();
   }, [activeTab, taskId]);
 
   useEffect(() => {
-    if (activeTab !== 'overview' || !detail || ['pending', 'running'].includes(detail.status) || evaluationLoading || evaluation) return;
-    void loadEvaluation();
-  }, [activeTab, detail, evaluation, evaluationLoading]);
+    if ((activeTab !== 'session' && activeTab !== 'relationship' && !activeAgentSessionPath) || sessionsLoaded) return;
+    void loadSessions();
+  }, [activeTab, taskId, activeAgentSessionPath, sessionsLoaded]);
+
+  useEffect(() => {
+    if ((activeTab !== 'relationship' && !logsExpanded) || stageEventsLoaded) return;
+    void loadStageEvents();
+  }, [activeTab, logsExpanded, taskId, stageEventsLoaded]);
+
+  useEffect(() => {
+    if (!detail || stageEvents.length === 0 || !stageEventsWorkerRef.current) return;
+    stageEventsWorkerRequestRef.current += 1;
+    stageEventsWorkerRef.current.postMessage({
+      requestId: stageEventsWorkerRequestRef.current,
+      taskStatus: detail.status,
+      events: stageEvents,
+    });
+  }, [detail?.status, stageEvents]);
 
   const timelineStageOptions = useMemo(() => Array.from(new Set(timeline.map((event) => String(event.stage_name || event.stage_key || '').trim()).filter(Boolean))), [timeline]);
   const timelineEventTypeOptions = useMemo(() => Array.from(new Set(timeline.map((event) => String(event.event_type || '').trim()).filter(Boolean))), [timeline]);
@@ -1200,15 +1278,14 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
   }, [evaluationRoundMenu]);
 
   useEffect(() => {
-    if (activeTab !== 'session' && activeTab !== 'overview' && activeTab !== 'relationship' && !activeAgentSessionPath) {
+    if (activeTab !== 'session' && activeTab !== 'relationship' && !activeAgentSessionPath) {
       closeSessionSocket();
       return;
     }
-    void loadSessions();
   }, [activeTab, taskId, activeAgentSessionPath]);
 
   useEffect(() => {
-    if (activeTab !== 'session' && activeTab !== 'overview' && activeTab !== 'relationship' && !activeAgentSessionPath) return;
+    if (activeTab !== 'session' && activeTab !== 'relationship' && !activeAgentSessionPath) return;
     if (!detail || !['pending', 'running'].includes(detail.status)) return;
     const timer = window.setInterval(() => void loadSessions({ silent: true }), 12000);
     return () => window.clearInterval(timer);
@@ -1411,13 +1488,21 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
     }
   };
 
-  const stageStatuses = detail
-    ? deriveStepStatuses(detail.status, detail.stages_json?.events ?? [])
-    : STAGE_STEPS.map((): StepStatus => 'pending');
-  const stageTimes = detail
-    ? computeStageTimes(detail.stages_json?.events ?? [])
-    : STAGE_STEPS.map(() => ({ startTs: null as number | null, endTs: null as number | null }));
-  const logLines = detail?.stages_json?.events?.map(formatEventLog).filter((l): l is string => l.length > 0) ?? [];
+  const lightweightStepSummary = detail?.stages_json?.step_summary ?? {};
+  const stageStatuses = stageEventsLoaded
+    ? asyncStageStatuses
+    : STAGE_STEPS.map((step): StepStatus => {
+      const status = lightweightStepSummary[step.key]?.status;
+      if (status === 'completed' || status === 'failed' || status === 'running') return status;
+      return 'pending';
+    });
+  const stageTimes = stageEventsLoaded
+    ? asyncStageTimes
+    : STAGE_STEPS.map((step) => ({
+      startTs: lightweightStepSummary[step.key]?.start_ts ?? null,
+      endTs: lightweightStepSummary[step.key]?.end_ts ?? null,
+    }));
+  const logLines = asyncLogLines;
   const selectedModule = useMemo<AppSaResultModule | null>(() => {
     if (!result || selection.type !== 'module') return null;
     return result.modules.find((item) => item.module_name === selection.moduleName) || null;
@@ -2084,17 +2169,33 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
                 </div>
               </section>
 
- <section className="rounded-2xl border border-theme-border bg-theme-surface p-5">
+              <section className="rounded-2xl border border-theme-border bg-theme-surface p-5">
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div>
                     <h2 className="text-sm font-semibold uppercase tracking-[0.2em] text-theme-text-muted">当前运行智能体</h2>
-                    <p className="mt-1 text-xs text-theme-text-muted">展示当前任务仍处于活跃状态的智能体会话与角色。</p>
+                    <p className="mt-1 text-xs text-theme-text-muted">按需加载当前任务的活跃会话，避免首屏阻塞。</p>
                   </div>
-                  <span className="rounded-full border border-theme-border bg-theme-bg-app px-3 py-1 text-[11px] font-bold text-theme-text-secondary">
-                    {activeSessions.length} 个活跃会话
-                  </span>
+                  <div className="flex items-center gap-2">
+                    <span className="rounded-full border border-theme-border bg-theme-bg-app px-3 py-1 text-[11px] font-bold text-theme-text-secondary">
+                      {sessionsLoaded ? `${activeSessions.length} 个活跃会话` : '未加载'}
+                    </span>
+                    {!sessionsLoaded ? (
+                      <button
+                        type="button"
+                        onClick={() => void loadSessions()}
+                        className="inline-flex items-center gap-1 rounded-lg border border-theme-border px-3 py-1 text-[11px] font-semibold text-theme-text-secondary hover:bg-theme-elevated"
+                      >
+                        <RefreshCw size={12} />
+                        加载会话
+                      </button>
+                    ) : null}
+                  </div>
                 </div>
-                {sessionsLoading && sessions.length === 0 ? (
+                {!sessionsLoaded ? (
+                  <div className="mt-4 rounded-xl border border-dashed border-theme-border bg-theme-surface px-4 py-8 text-center text-sm text-theme-text-muted">
+                    首屏默认不加载会话列表，点击“加载会话”后再查看当前运行智能体。
+                  </div>
+                ) : sessionsLoading && sessions.length === 0 ? (
                   <div className="mt-4 flex items-center gap-2 rounded-xl border border-theme-border bg-theme-surface px-4 py-4 text-sm text-theme-text-muted">
                     <Loader2 size={15} className="animate-spin" />
                     加载智能体状态中...
@@ -2160,12 +2261,23 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
                 >
                   <div>
                     <h2 className="text-sm font-semibold uppercase tracking-[0.2em] text-theme-text-muted">分析日志</h2>
-                    <p className="mt-1 text-xs text-theme-text-muted">{logLines.length} 条事件</p>
+                    <p className="mt-1 text-xs text-theme-text-muted">
+                      {stageEventsLoaded ? `${logLines.length} 条事件` : detail?.stages_json?.event_count != null ? `${detail.stages_json.event_count} 条事件（按需加载）` : '按需加载'}
+                    </p>
                   </div>
                   {logsExpanded ? <ChevronUp size={16} className="text-theme-text-muted" /> : <ChevronDown size={16} className="text-theme-text-muted" />}
                 </button>
                 {logsExpanded ? (
-                  logLines.length === 0 ? (
+                  stageEventsLoading ? (
+                    <div className="mt-4 rounded-xl border border-theme-border bg-theme-surface px-3 py-4 text-xs text-theme-text-muted">
+                      <Loader2 size={14} className="mr-2 inline animate-spin" />
+                      加载阶段事件中...
+                    </div>
+                  ) : stageEventsError ? (
+                    <div className="mt-4 rounded-xl border border-red-500/20 bg-red-500/15 px-3 py-4 text-xs text-red-400">
+                      {stageEventsError}
+                    </div>
+                  ) : logLines.length === 0 ? (
                     <div className="mt-4 rounded-xl border border-theme-border bg-theme-surface px-3 py-4 text-xs text-theme-text-muted">
                       {detail.status === 'pending' ? '任务尚未开始，暂无日志' : '暂无阶段事件（日志在任务运行期间每 5 秒刷新一次）'}
                     </div>

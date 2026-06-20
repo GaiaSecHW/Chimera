@@ -3490,6 +3490,14 @@ export interface AppSaStageEvent {
 export interface AppSaStagesJson {
   events: AppSaStageEvent[];
   final?: boolean;
+  event_count?: number;
+  last_event_ts?: number | null;
+  step_summary?: Record<string, {
+    start_ts?: number | null;
+    end_ts?: number | null;
+    status?: 'pending' | 'running' | 'completed' | 'failed' | string;
+  }>;
+  latest_stage_data?: Record<string, Record<string, any>>;
 }
 
 export interface AppSaTaskDetail extends AppSaTaskItem {
@@ -3686,6 +3694,13 @@ export interface AppSaTaskEvent {
 export interface AppSaTaskTimeline {
   task_id: string;
   events: AppSaTaskEvent[];
+}
+
+export interface AppSaTaskStageEvents {
+  task_id: string;
+  status: string;
+  final: boolean;
+  events: AppSaStageEvent[];
 }
 
 export interface AppSaTaskActionResponse {

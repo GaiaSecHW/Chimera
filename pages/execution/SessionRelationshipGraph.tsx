@@ -1,9 +1,10 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { ArrowDown, Expand, GitBranch, Radar, TimerReset, X } from 'lucide-react';
 
 import { AppSaSessionIndex, AppSaSessionIndexEdge, AppSaSessionIndexNode } from '../../types/types';
 import { AgentSessionDialogHeader } from './AgentSessionDialogHeader';
 import { AgentSessionViewer } from './AgentSessionViewer';
+import SessionRelationshipGraphWorker from './workers/sessionRelationshipGraph.worker.ts?worker';
 
 const LK = {
   primary: '#4f73ff', primarySoft: '#7590ff', primaryDeep: '#3f63f1',
@@ -96,50 +97,10 @@ const SessionNodeCard: React.FC<{
   </button>
 );
 
-function buildStageStatus(items: AppSaSessionIndexNode[]) {
-  if (items.some((item) => item.is_active || item.status === 'running')) return 'running';
-  if (items.some((item) => item.status === 'blocked')) return 'blocked';
-  if (items.some((item) => item.status === 'waiting')) return 'waiting';
-  return 'completed';
-}
-
-function buildGraph(index: AppSaSessionIndex | null) {
-  const nodes = index?.nodes || [];
-  const edges = index?.edges || [];
-  const nodeMap = new Map(nodes.map((node) => [node.node_id, node]));
-  const childMap = new Map<string, AppSaSessionIndexEdge[]>();
-  for (const edge of edges) {
-    const list = childMap.get(edge.source_node_id) || [];
-    list.push(edge);
-    childMap.set(edge.source_node_id, list);
-  }
-  const stages = new Map<string, AppSaSessionIndexNode[]>();
-  for (const node of nodes) {
-    const key = node.stage_key || 'unknown';
-    const list = stages.get(key) || [];
-    list.push(node);
-    stages.set(key, list);
-  }
-  const orderedStages: StageSummary[] = Array.from(stages.entries())
-    .map(([stageKey, items]) => {
-      const sortedItems = [...items].sort((a, b) => (a.started_ts || a.mtime || 0) - (b.started_ts || b.mtime || 0));
-      const parallelGroups = new Set(sortedItems.map((item) => item.parallel_group).filter(Boolean));
-      return {
-        stageKey,
-        stageLabel: sortedItems[0]?.stage_label || stageKey,
-        stageOrder: sortedItems[0]?.stage_order || 999,
-        items: sortedItems,
-        workerCount: sortedItems.filter((item) => item.role === 'worker').length,
-        judgeCount: sortedItems.filter((item) => item.role === 'judge').length,
-        subWorkerCount: sortedItems.filter((item) => item.role === 'sub_worker').length,
-        activeCount: sortedItems.filter((item) => item.is_active).length,
-        parallelGroupCount: parallelGroups.size,
-        status: buildStageStatus(sortedItems),
-      };
-    })
-    .sort((a, b) => a.stageOrder - b.stageOrder);
-  return { nodeMap, childMap, orderedStages };
-}
+type GraphSnapshot = {
+  childMap: Record<string, AppSaSessionIndexEdge[]>;
+  orderedStages: StageSummary[];
+};
 
 const DetailedStageGraph: React.FC<{
   stage: StageSummary;
@@ -239,7 +200,31 @@ export const SessionRelationshipGraph: React.FC<{
     error?: string | null;
   };
 }> = ({ index, selectedPath, onSelect, focusedStageKey, sessionPreview }) => {
-  const graph = useMemo(() => buildGraph(index), [index]);
+  const [graph, setGraph] = useState<GraphSnapshot>({ childMap: {}, orderedStages: [] });
+  const [graphLoading, setGraphLoading] = useState(false);
+  const workerRef = useRef<Worker | null>(null);
+  const nodeMap = useMemo(() => new Map((index?.nodes || []).map((node) => [node.node_id, node])), [index]);
+  useEffect(() => {
+    const worker = new SessionRelationshipGraphWorker();
+    workerRef.current = worker;
+    worker.onmessage = (event: MessageEvent<GraphSnapshot>) => {
+      setGraph(event.data || { childMap: {}, orderedStages: [] });
+      setGraphLoading(false);
+    };
+    return () => {
+      worker.terminate();
+      workerRef.current = null;
+    };
+  }, []);
+  useEffect(() => {
+    if (!index) {
+      setGraph({ childMap: {}, orderedStages: [] });
+      setGraphLoading(false);
+      return;
+    }
+    setGraphLoading(true);
+    workerRef.current?.postMessage({ index });
+  }, [index]);
   const normalizedFocusedStageKey = String(focusedStageKey || '').trim().toLowerCase();
   const [expandedStageKey, setExpandedStageKey] = useState<string | null>(null);
   const [inspectedPath, setInspectedPath] = useState<string | null>(null);
@@ -258,7 +243,23 @@ export const SessionRelationshipGraph: React.FC<{
     setInspectedPath(path);
   };
 
-  if (!index || graph.orderedStages.length === 0) {
+  if (!index) {
+    return (
+      <div style={{ borderRadius: '16px', border: `1px dashed ${LK.borderSoft}`, backgroundColor: LK.surfaceRaised, paddingLeft: '16px', paddingRight: '16px', paddingTop: '40px', paddingBottom: '40px', textAlign: 'center', fontSize: '14px', color: LK.body }}>
+        暂无可视化会话关系
+      </div>
+    );
+  }
+
+  if (graphLoading) {
+    return (
+      <div style={{ borderRadius: '16px', border: `1px solid ${LK.borderSoft}`, backgroundColor: LK.surfaceRaised, paddingLeft: '16px', paddingRight: '16px', paddingTop: '40px', paddingBottom: '40px', textAlign: 'center', fontSize: '14px', color: LK.body }}>
+        正在异步构建关系图...
+      </div>
+    );
+  }
+
+  if (graph.orderedStages.length === 0) {
     return (
       <div style={{ borderRadius: '16px', border: `1px dashed ${LK.borderSoft}`, backgroundColor: LK.surfaceRaised, paddingLeft: '16px', paddingRight: '16px', paddingTop: '40px', paddingBottom: '40px', textAlign: 'center', fontSize: '14px', color: LK.body }}>
         暂无可视化会话关系
@@ -396,8 +397,8 @@ export const SessionRelationshipGraph: React.FC<{
             <div style={{ flex: 1, overflow: 'auto', paddingLeft: '24px', paddingRight: '24px', paddingTop: '24px', paddingBottom: '24px' }}>
               <DetailedStageGraph
                 stage={expandedStage}
-                nodeMap={graph.nodeMap}
-                childMap={graph.childMap}
+                nodeMap={nodeMap}
+                childMap={new Map(Object.entries(graph.childMap))}
                 selectedPath={selectedPath}
                 onSelect={handleInspectNode}
               />
