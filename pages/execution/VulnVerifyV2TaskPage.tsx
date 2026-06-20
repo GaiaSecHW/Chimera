@@ -62,6 +62,12 @@ interface BatchCreateResult {
   items: BatchCreateResultItem[];
 }
 
+interface TaskRuntime {
+  status?: string | null;
+  started_at?: string | null;
+  completed_at?: string | null;
+}
+
 function fmtDate(value?: string | null): string {
   if (!value) return '-';
   const d = new Date(value);
@@ -70,6 +76,25 @@ function fmtDate(value?: string | null): string {
 
 function fmtStatus(status?: string): string {
   return STATUS_LABEL[status || ''] || status || '-';
+}
+
+function fmtDurationMs(ms: number): string {
+  if (!Number.isFinite(ms) || ms < 0) return '-';
+  const totalSeconds = Math.floor(ms / 1000);
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+  if (hours > 0) return `${hours}h ${minutes}m ${seconds}s`;
+  if (minutes > 0) return `${minutes}m ${seconds}s`;
+  return `${seconds}s`;
+}
+
+function fmtRuntime(runtime?: TaskRuntime | null): string {
+  if (!runtime?.started_at) return '-';
+  const start = new Date(runtime.started_at).getTime();
+  const end = runtime.completed_at ? new Date(runtime.completed_at).getTime() : Date.now();
+  if (!Number.isFinite(start) || !Number.isFinite(end)) return '-';
+  return fmtDurationMs(end - start);
 }
 
 function statusClass(status?: string): string {
@@ -182,6 +207,7 @@ export const VulnVerifyV2TaskPage: React.FC<{ projectId: string }> = ({ projectI
 
   const [tasks, setTasks] = useState<VulnVerifyV2Task[]>([]);
   const [taskResults, setTaskResults] = useState<Record<string, VulnVerifyV2Result>>({});
+  const [taskRuntimes, setTaskRuntimes] = useState<Record<string, TaskRuntime>>({});
   const [total, setTotal] = useState(0);
   const [stats, setStats] = useState<VulnVerifyV2ProjectStats | null>(null);
   const [loading, setLoading] = useState(false);
@@ -217,10 +243,24 @@ export const VulnVerifyV2TaskPage: React.FC<{ projectId: string }> = ({ projectI
         vulnVerifyV2Api.getProjectStats(projectId).catch(() => null),
         vulnVerifyV2Api.getProjectResults(projectId).catch(() => []),
       ]);
+      const items = list.items || [];
       const resultMap: Record<string, VulnVerifyV2Result> = {};
       (results || []).forEach((result) => { resultMap[result.task_id] = result; });
-      setTasks(list.items || []);
+      const runtimeEntries = await Promise.all(items.map(async (task) => {
+        try {
+          const detail = await vulnVerifyV2Api.getTask(projectId, task.id);
+          const attempts = detail.attempts || [];
+          const latest = attempts[attempts.length - 1];
+          return [task.id, latest ? { status: latest.status, started_at: latest.started_at, completed_at: latest.completed_at } : null] as const;
+        } catch {
+          return [task.id, null] as const;
+        }
+      }));
+      const runtimeMap: Record<string, TaskRuntime> = {};
+      runtimeEntries.forEach(([taskId, runtime]) => { if (runtime) runtimeMap[taskId] = runtime; });
+      setTasks(items);
       setTaskResults(resultMap);
+      setTaskRuntimes(runtimeMap);
       setTotal(Number(list.total || 0));
       setStats(stat);
       setMessage(null);
@@ -463,6 +503,7 @@ export const VulnVerifyV2TaskPage: React.FC<{ projectId: string }> = ({ projectI
                 <ExecutionTableTh>case_id</ExecutionTableTh>
                 <ExecutionTableTh>code_root</ExecutionTableTh>
                 <ExecutionTableTh>模型</ExecutionTableTh>
+                <ExecutionTableTh>执行时间</ExecutionTableTh>
                 <ExecutionTableTh>创建时间</ExecutionTableTh>
                 <ExecutionTableTh>操作</ExecutionTableTh>
               </tr>
@@ -470,6 +511,7 @@ export const VulnVerifyV2TaskPage: React.FC<{ projectId: string }> = ({ projectI
             <tbody>
               {tasks.map((task) => {
                 const result = taskResults[task.id];
+                const runtime = taskRuntimes[task.id];
                 const summary = resultSummary(result);
                 return (
                 <tr key={task.id} className={executionTableInteractiveRowClassName} onClick={() => void openDetail(task.id)}>
@@ -486,6 +528,10 @@ export const VulnVerifyV2TaskPage: React.FC<{ projectId: string }> = ({ projectI
                   <ExecutionTableTd><span className="font-mono text-xs">{task.case_id}</span></ExecutionTableTd>
                   <ExecutionTableTd><span className="line-clamp-2 max-w-[280px] text-xs text-theme-text-muted">{task.code_root}</span></ExecutionTableTd>
                   <ExecutionTableTd>{task.model || <span className="text-theme-text-muted">默认</span>}</ExecutionTableTd>
+                  <ExecutionTableTd>
+                    <span className="font-mono text-xs text-theme-text-secondary">{fmtRuntime(runtime)}</span>
+                    {runtime?.status === 'running' ? <div className="mt-1 text-[11px] text-blue-400">执行中</div> : null}
+                  </ExecutionTableTd>
                   <ExecutionTableTd>{fmtDate(task.created_at)}</ExecutionTableTd>
                   <ExecutionTableTd>
                     <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
@@ -497,7 +543,7 @@ export const VulnVerifyV2TaskPage: React.FC<{ projectId: string }> = ({ projectI
                 );
               })}
               {!tasks.length && !loading ? (
-                <tr><ExecutionTableTd colSpan={8}><div className="py-10 text-center text-sm text-theme-text-muted">暂无任务</div></ExecutionTableTd></tr>
+                <tr><ExecutionTableTd colSpan={9}><div className="py-10 text-center text-sm text-theme-text-muted">暂无任务</div></ExecutionTableTd></tr>
               ) : null}
             </tbody>
           </ExecutionTable>
