@@ -17,6 +17,7 @@ export interface RedlineTask {
   deliveryFileName?: string;
   deliveryFilePath?: string;
   parseErrorMessage?: string;
+  execErrorMessage?: string;
   reportContent?: string;
   createdBy: string;
   updatedBy: string;
