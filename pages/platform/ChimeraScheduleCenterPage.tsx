@@ -581,7 +581,7 @@ export const ChimeraScheduleCenterPage: React.FC<ChimeraScheduleCenterPageProps>
   const [queuePreviewLoading, setQueuePreviewLoading] = useState(false);
   const [queuePreviewAutoRefresh, setQueuePreviewAutoRefresh] = useState(true);
   const [taskEventFilters, setTaskEventFilters] = useState<TaskEventFilters>({
-    scope: 'project',
+    scope: 'global',
     projectId: '',
     taskId: '',
     taskType: '',
@@ -755,6 +755,14 @@ export const ChimeraScheduleCenterPage: React.FC<ChimeraScheduleCenterPageProps>
   const loadTaskEventLogs = async () => {
     setTaskEventLoading(true);
     try {
+      const effectiveProjectId = taskEventFilters.projectId || filters.projectId;
+      if (taskEventFilters.scope === 'project' && !effectiveProjectId) {
+        setTaskEventItems([]);
+        setTaskEventTotal(0);
+        setError('');
+        setNotice('查看项目级调度日志前，请先选择项目。');
+        return;
+      }
       const params = {
         task_id: taskEventFilters.taskId || undefined,
         task_type: taskEventFilters.taskType || undefined,
@@ -772,9 +780,12 @@ export const ChimeraScheduleCenterPage: React.FC<ChimeraScheduleCenterPageProps>
             ...params,
             project_id: taskEventFilters.projectId || undefined,
           }) as ScheduleUserTaskEventListResponse
-        : await scheduleApi.listProjectUserTaskEvents(taskEventFilters.projectId || filters.projectId, params) as ScheduleUserTaskEventListResponse;
+        : await scheduleApi.listProjectUserTaskEvents(effectiveProjectId, params) as ScheduleUserTaskEventListResponse;
       setTaskEventItems(payload.items || []);
       setTaskEventTotal(Number(payload.total || 0));
+      if (taskEventFilters.scope === 'project') {
+        setNotice(`当前查看项目级调度日志: ${projectNameMap.get(effectiveProjectId) || effectiveProjectId}`);
+      }
     } catch (err: any) {
       setTaskEventItems([]);
       setTaskEventTotal(0);
@@ -1575,10 +1586,14 @@ export const ChimeraScheduleCenterPage: React.FC<ChimeraScheduleCenterPageProps>
                     <option value="global">全局</option>
                   </select>
                 </label>
-                <label className="text-sm font-bold text-theme-text-secondary">
+                  <label className="text-sm font-bold text-theme-text-secondary">
                   项目
                   <select value={taskEventFilters.projectId} onChange={(e) => { setTaskEventFilters((current) => ({ ...current, projectId: e.target.value })); setTaskEventPage(1); }} className="mt-2 w-full rounded-xl border border-theme-border bg-theme-surface px-3 py-2 text-sm text-theme-text-primary">
-                    <option value="">{taskEventFilters.scope === 'global' ? '全部项目' : '跟随当前项目'}</option>
+                    <option value="">
+                      {taskEventFilters.scope === 'global'
+                        ? '全部项目'
+                        : (filters.projectId ? '跟随当前项目' : '请选择项目')}
+                    </option>
                     {projects.map((project) => <option key={project.id} value={project.id}>{project.name || project.id}</option>)}
                   </select>
                 </label>
