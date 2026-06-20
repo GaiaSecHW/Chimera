@@ -1,6 +1,7 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { ChevronRight, Folder, FolderOpen, Loader2, Square, SquareCheck, X } from 'lucide-react';
 import { api } from '../../clients/api';
+import { TestInputUploader, TestInputUploaderHandle } from '../../components/TestInputUploader';
 import { getAuthHeaders, handleResponse } from '../../clients/base';
 import { agentManageApiPath } from '../../clients/agentManage';
 import { getUploadRecordDisplayName } from '../assets/baseResourcePageModel';
@@ -173,7 +174,9 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
   const [agentAppsLoadError, setAgentAppsLoadError] = useState('');
 
   /* --- input source toggle --- */
-  const [inputSource, setInputSource] = useState<'existing' | 'upload'>('existing');
+  const [inputSource, setInputSource] = useState<'existing' | 'upload'>('upload');
+  const uploaderRef = useRef<TestInputUploaderHandle>(null);
+  const [uploading, setUploading] = useState(false);
 
   /* --- derived --- */
   const selectionMode = useMemo(() => INPUT_MODES[taskType] || 'file', [taskType]);
@@ -205,13 +208,17 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
     return '请选择一个文件作为测试对象。';
   }, [selectionMode, taskType]);
 
-  const canCreateTask = mode !== 'lion-head' && (taskType === 'sechps_tool'
-    ? Boolean(name && selectedAgentApp && selectedInputId && isDirectorySelectionValid)
-    : Boolean(name && selectedInputId && (
-      (selectionMode === 'file' && selectedRelativePath) ||
-      (selectionMode === 'file_list' && selectedRelativePaths.length > 0) ||
-      (selectionMode === 'directory' && isDirectorySelectionValid)
-    ) && (taskType !== 'binary_module_e2e' || moduleName.trim())));
+  const canCreateTask = mode !== 'lion-head' && (
+    inputSource === 'upload'
+      ? Boolean(name)
+      : (taskType === 'sechps_tool'
+        ? Boolean(name && selectedAgentApp && selectedInputId && isDirectorySelectionValid)
+        : Boolean(name && selectedInputId && (
+          (selectionMode === 'file' && selectedRelativePath) ||
+          (selectionMode === 'file_list' && selectedRelativePaths.length > 0) ||
+          (selectionMode === 'directory' && isDirectorySelectionValid)
+        ) && (taskType !== 'binary_module_e2e' || moduleName.trim())))
+  );
 
   const activeCreateTabIndex = useMemo(() => CREATE_TABS.findIndex((item) => item.key === activeCreateTab), [activeCreateTab]);
 
@@ -370,6 +377,30 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
     setSaving(true);
     setError('');
     try {
+      let finalInputUploadId = selectedInputId;
+      let finalInputBinding = {
+        upload_id: selectedInputId,
+        selection_type: selectionMode,
+        relative_path: selectionMode === 'file_list' ? undefined : (selectionMode === 'directory' ? (selectedRelativePath !== null ? selectedRelativePath : undefined) : (selectedRelativePath || undefined)),
+        relative_paths: selectionMode === 'file_list' ? selectedRelativePaths : undefined,
+      };
+
+      if (inputSource === 'upload') {
+        if (!uploaderRef.current?.hasFiles()) {
+          setError('请先选择要上传的文件');
+          setSaving(false);
+          return;
+        }
+        const uploadResult = await uploaderRef.current.triggerUpload();
+        finalInputUploadId = uploadResult.uploadId;
+        finalInputBinding = {
+          upload_id: uploadResult.uploadId,
+          selection_type: 'directory',
+          relative_path: '',
+          relative_paths: undefined,
+        };
+      }
+
       const sechpsInstruction = taskType === 'sechps_tool'
         ? resolveSechpsInstruction(instruction, selectedAgentApp?.startCommand)
         : '';
@@ -377,13 +408,8 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
         task_type: taskType,
         name,
         description,
-        input_upload_ids: [selectedInputId],
-        input_binding: {
-          upload_id: selectedInputId,
-          selection_type: selectionMode,
-          relative_path: selectionMode === 'file_list' ? undefined : (selectionMode === 'directory' ? (selectedRelativePath !== null ? selectedRelativePath : undefined) : (selectedRelativePath || undefined)),
-          relative_paths: selectionMode === 'file_list' ? selectedRelativePaths : undefined,
-        },
+        input_upload_ids: [finalInputUploadId],
+        input_binding: finalInputBinding,
         policy: {},
         dispatch_policy: {},
         module_name: taskType === 'binary_module_e2e' ? moduleName : undefined,
@@ -408,6 +434,7 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
       setInputCurrentPath('');
       setDirectorySelectionTouched(false);
       setActiveCreateTab('basic');
+      uploaderRef.current?.reset();
       onCreated();
     } catch (err: any) {
       setError(err?.message || '创建失败');
@@ -741,9 +768,13 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
                 </div>
 
                 {inputSource === 'upload' ? (
-                  <div className="flex flex-col items-center gap-4 py-8">
-                    <p className="text-sm" style={{ color: LK.muted }}>直接上传功能即将支持</p>
-                  </div>
+                  <TestInputUploader
+                    ref={uploaderRef}
+                    projectId={projectId}
+                    displayName={name}
+                    compact={true}
+                    onUploadStateChange={setUploading}
+                  />
                 ) : (
                   <div className="space-y-3">
                     {/* hint block */}
@@ -961,13 +992,13 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
             ) : (
               <button
                 onClick={() => void createTask()}
-                disabled={saving || !canCreateTask}
+                disabled={saving || uploading || !canCreateTask}
                 className="rounded-lg px-4 py-2 text-sm font-semibold transition-colors disabled:opacity-50"
                 style={{ backgroundColor: LK.primary, color: '#ffffff' }}
                 onMouseEnter={(e) => { if (!e.currentTarget.disabled) e.currentTarget.style.backgroundColor = LK.primaryDeep; }}
                 onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = LK.primary; }}
               >
-                {saving ? '创建中...' : '创建任务'}
+                {saving ? '创建中...' : uploading ? '上传中...' : '创建任务'}
               </button>
             )}
           </div>
