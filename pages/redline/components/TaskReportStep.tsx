@@ -72,6 +72,7 @@ export const TaskReportStep: React.FC<Props> = ({ taskId, task, onTaskUpdated, o
   const [results, setResults] = useState<RedlineRedLineResult[]>([]);
   const [savingResult, setSavingResult] = useState<string | null>(null);
   const [editingClause, setEditingClause] = useState<string | null>(null);
+  const [reportingId, setReportingId] = useState<string | null>(null);
 
   const loadClauseDetailsForAgent = useCallback(async (agentId: string) => {
     if (loadingClauses[agentId]) return;
@@ -156,16 +157,35 @@ export const TaskReportStep: React.FC<Props> = ({ taskId, task, onTaskUpdated, o
     }
   };
 
+  const handleReportVuln = async (agent: RedlineTaskAgent) => {
+    setReportingId(agent.id);
+    try {
+      const resp = await redlineVerificationApi.reportVuln(taskId, agent.id);
+      if (resp.code === 200) {
+        await loadData();
+      } else {
+        alert(resp.message || '上报失败');
+      }
+    } catch (e: any) {
+      alert(e?.message || '上报失败');
+    } finally {
+      setReportingId(null);
+    }
+  };
+
   const handleExport = () => {
     let content =`# ${task.name} - 测试报告\n\n`;
     content +=`## 汇总\n\n`;
-    content +=`| 智能体 | 执行结果 | 用例结果 |\n`;
-    content +=`|--------|----------|----------|\n`;
+    content +=`| 智能体 | 执行结果 | 用例结果 | 漏洞上报状态 |\n`;
+    content +=`|--------|----------|----------|------------|\n`;
     for (const agent of agents) {
       // 执行结果取 status（智能体任务是否执行成功），用例结果取返回文本解析（业务是否通过）
       const execResult = agent.status === 'SUCCESS' ? '成功' : agent.status === 'FAILED' ? '失败' : agent.status === 'CANCELLED' ? '已取消' : '-';
       const testResult = extractTestResult(agent.result);
-      content +=`| ${agent.agentName || agent.agentId} | ${execResult} | ${testResult} |\n`;
+      const vulnCell = testResult !== '不通过'
+        ? 'NA'
+        : (agent.vulnReportStatus === 'REPORTED' && agent.vulnId ? agent.vulnId : '未上报');
+      content +=`| ${agent.agentName || agent.agentId} | ${execResult} | ${testResult} | ${vulnCell} |\n`;
     }
     content += '\n---\n\n';
     for (const agent of agents) {
@@ -297,6 +317,7 @@ export const TaskReportStep: React.FC<Props> = ({ taskId, task, onTaskUpdated, o
                   <th className="text-left py-2 px-3 text-theme-text-secondary font-medium">执行结果</th>
                   <th className="text-left py-2 px-3 text-theme-text-secondary font-medium">用例结果</th>
                   <th className="text-left py-2 px-3 text-theme-text-secondary font-medium">红线</th>
+                  <th className="text-left py-2 px-3 text-theme-text-secondary font-medium">漏洞上报状态</th>
                 </tr>
               </thead>
               <tbody>
@@ -322,6 +343,23 @@ export const TaskReportStep: React.FC<Props> = ({ taskId, task, onTaskUpdated, o
                         </span>
                       </td>
                       <td className="py-2 px-3 text-theme-text-secondary text-xs">{redLineStat}</td>
+                      <td className="py-2 px-3">
+                        {testResult !== '不通过' ? (
+                          <span className="text-theme-text-secondary">NA</span>
+                        ) : agent.vulnReportStatus === 'REPORTED' && agent.vulnId ? (
+                          <span className="text-theme-text-primary text-xs">{agent.vulnId}</span>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => handleReportVuln(agent)}
+                            disabled={reportingId === agent.id}
+                            className="inline-flex items-center gap-1 px-2 py-1 text-xs rounded border border-theme-border text-theme-text-primary hover:bg-theme-bg-secondary disabled:opacity-50"
+                          >
+                            {reportingId === agent.id ? <Loader2 className="w-3 h-3 animate-spin" /> : null}
+                            上报
+                          </button>
+                        )}
+                      </td>
                     </tr>
                   );
                 })}
