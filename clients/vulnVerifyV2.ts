@@ -111,6 +111,9 @@ export const vulnVerifyV2Api = {
   getResults: async (projectId: string, taskId: string): Promise<VulnVerifyV2Result[]> =>
     handleResponse(await fetch(`${BASE}/projects/${encodeURIComponent(projectId)}/tasks/${encodeURIComponent(taskId)}/results`, { headers: getHeaders() })),
 
+  getProjectResults: async (projectId: string): Promise<VulnVerifyV2Result[]> =>
+    handleResponse(await fetch(`${BASE}/projects/${encodeURIComponent(projectId)}/results`, { headers: getHeaders() })),
+
   terminateTask: async (projectId: string, taskId: string): Promise<any> =>
     handleResponse(await fetch(`${BASE}/projects/${encodeURIComponent(projectId)}/tasks/${encodeURIComponent(taskId)}/terminate`, {
       method: 'POST',

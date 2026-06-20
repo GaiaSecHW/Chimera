@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { CheckCircle2, Eye, Loader2, RefreshCw, RotateCcw, Search, Square, X, XCircle, Zap } from 'lucide-react';
+import { CheckCircle2, Eye, Loader2, RefreshCw, RotateCcw, Search, X, XCircle, Zap } from 'lucide-react';
 import { vulnApi } from '../../clients/vuln';
 import { vulnVerifyV2Api, VulnVerifyV2ProjectStats, VulnVerifyV2Result, VulnVerifyV2Task, VulnVerifyV2TaskDetail } from '../../clients/vulnVerifyV2';
 import { ExecutionTable, ExecutionTableHead, ExecutionTableTd, ExecutionTableTh, executionTableInteractiveRowClassName } from '../../components/execution/ExecutionTable';
@@ -118,6 +118,16 @@ function caseLocator(item: PendingVerifyCase): string {
   return String(subject.locator || subject.path || subject.id || subject.name || '').trim() || '未指定对象定位';
 }
 
+function caseSubjectType(item: PendingVerifyCase): string {
+  const subject = item.subject || {};
+  return String(subject.type || subject.kind || '').trim() || '未知类型';
+}
+
+function caseSubjectName(item: PendingVerifyCase): string {
+  const subject = item.subject || {};
+  return String(subject.name || subject.function || subject.symbol || '').trim();
+}
+
 function caseSearchText(item: PendingVerifyCase): string {
   const subject = item.subject || {};
   return [item.id, item.global_vuln_id, item.title, item.severity, item.current_stage, item.current_status, subject.locator, subject.path, subject.name, subject.type]
@@ -127,6 +137,27 @@ function caseSearchText(item: PendingVerifyCase): string {
 function verdictFromResults(results: VulnVerifyV2Result[]): string {
   return results?.[0]?.verdict || '-';
 }
+
+function resultSummary(result?: VulnVerifyV2Result | null): string {
+  const raw = result?.raw_result || {};
+  return String(raw.root_cause_summary || raw.summary || '').trim();
+}
+
+function ruledOutBy(result?: VulnVerifyV2Result | null): string {
+  const raw = result?.raw_result || {};
+  const value = raw.ruled_out_by;
+  return Array.isArray(value) ? value.join(', ') : value ? String(value) : '-';
+}
+
+const VerdictBadge: React.FC<{ verdict?: string | null }> = ({ verdict }) => {
+  if (!verdict) return <span className="text-xs text-theme-text-muted">未产出</span>;
+  const cls = verdict === 'confirmed'
+    ? 'bg-rose-500/15 text-rose-400 border-rose-500/20'
+    : verdict === 'ruled_out'
+      ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/20'
+      : 'bg-amber-500/15 text-amber-400 border-amber-500/20';
+  return <span className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-semibold ${cls}`}>{VERDICT_LABEL[verdict] || verdict}</span>;
+};
 
 const StatusBadge: React.FC<{ status?: string }> = ({ status }) => (
   <span className={`inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-semibold ${statusClass(status)}`}>
@@ -151,6 +182,7 @@ export const VulnVerifyV2TaskPage: React.FC<{ projectId: string }> = ({ projectI
   const { confirm, feedbackNodes } = useUiFeedback();
 
   const [tasks, setTasks] = useState<VulnVerifyV2Task[]>([]);
+  const [taskResults, setTaskResults] = useState<Record<string, VulnVerifyV2Result>>({});
   const [total, setTotal] = useState(0);
   const [stats, setStats] = useState<VulnVerifyV2ProjectStats | null>(null);
   const [loading, setLoading] = useState(false);
@@ -181,11 +213,15 @@ export const VulnVerifyV2TaskPage: React.FC<{ projectId: string }> = ({ projectI
     if (!projectId) return;
     setLoading(true);
     try {
-      const [list, stat] = await Promise.all([
+      const [list, stat, results] = await Promise.all([
         vulnVerifyV2Api.listTasks(projectId, { status: statusFilter || undefined, search: search.trim() || undefined, limit: perPage, offset }),
         vulnVerifyV2Api.getProjectStats(projectId).catch(() => null),
+        vulnVerifyV2Api.getProjectResults(projectId).catch(() => []),
       ]);
+      const resultMap: Record<string, VulnVerifyV2Result> = {};
+      (results || []).forEach((result) => { resultMap[result.task_id] = result; });
       setTasks(list.items || []);
+      setTaskResults(resultMap);
       setTotal(Number(list.total || 0));
       setStats(stat);
       setMessage(null);
@@ -427,6 +463,7 @@ export const VulnVerifyV2TaskPage: React.FC<{ projectId: string }> = ({ projectI
               <tr>
                 <ExecutionTableTh>任务</ExecutionTableTh>
                 <ExecutionTableTh>状态</ExecutionTableTh>
+                <ExecutionTableTh>验证结果</ExecutionTableTh>
                 <ExecutionTableTh>case_id</ExecutionTableTh>
                 <ExecutionTableTh>code_root</ExecutionTableTh>
                 <ExecutionTableTh>模型</ExecutionTableTh>
@@ -435,13 +472,21 @@ export const VulnVerifyV2TaskPage: React.FC<{ projectId: string }> = ({ projectI
               </tr>
             </ExecutionTableHead>
             <tbody>
-              {tasks.map((task) => (
+              {tasks.map((task) => {
+                const result = taskResults[task.id];
+                const summary = resultSummary(result);
+                return (
                 <tr key={task.id} className={executionTableInteractiveRowClassName} onClick={() => void openDetail(task.id)}>
                   <ExecutionTableTd>
                     <div className="font-semibold text-theme-text-primary">{task.name}</div>
                     <div className="mt-1 text-[11px] text-theme-text-muted">{task.id}</div>
                   </ExecutionTableTd>
                   <ExecutionTableTd><StatusBadge status={task.status} /></ExecutionTableTd>
+                  <ExecutionTableTd>
+                    <VerdictBadge verdict={result?.verdict} />
+                    {summary ? <div className="mt-1 line-clamp-2 max-w-[260px] text-xs text-theme-text-muted" title={summary}>{summary}</div> : null}
+                    {result?.verdict === 'ruled_out' ? <div className="mt-1 max-w-[260px] truncate font-mono text-[11px] text-theme-text-muted" title={ruledOutBy(result)}>ruled_out_by: {ruledOutBy(result)}</div> : null}
+                  </ExecutionTableTd>
                   <ExecutionTableTd><span className="font-mono text-xs">{task.case_id}</span></ExecutionTableTd>
                   <ExecutionTableTd><span className="line-clamp-2 max-w-[280px] text-xs text-theme-text-muted">{task.code_root}</span></ExecutionTableTd>
                   <ExecutionTableTd>{task.model || <span className="text-theme-text-muted">默认</span>}</ExecutionTableTd>
@@ -453,9 +498,10 @@ export const VulnVerifyV2TaskPage: React.FC<{ projectId: string }> = ({ projectI
                     </div>
                   </ExecutionTableTd>
                 </tr>
-              ))}
+                );
+              })}
               {!tasks.length && !loading ? (
-                <tr><ExecutionTableTd colSpan={7}><div className="py-10 text-center text-sm text-theme-text-muted">暂无任务</div></ExecutionTableTd></tr>
+                <tr><ExecutionTableTd colSpan={8}><div className="py-10 text-center text-sm text-theme-text-muted">暂无任务</div></ExecutionTableTd></tr>
               ) : null}
             </tbody>
           </ExecutionTable>
@@ -496,31 +542,66 @@ export const VulnVerifyV2TaskPage: React.FC<{ projectId: string }> = ({ projectI
             </div>
 
             <div className="rounded-2xl border border-theme-border bg-theme-surface">
-              <div className="flex items-center gap-3 border-b border-theme-border px-4 py-3">
-                <button onClick={toggleAllVisible} className="inline-flex items-center gap-2 text-xs font-semibold text-theme-text-secondary hover:text-theme-text-primary"><Square size={14} />全选可见</button>
-              </div>
-              <div className="max-h-[46vh] overflow-y-auto divide-y divide-theme-border/60">
-                {filteredCases.map((item) => {
-                  const selected = selectedCaseIds.has(item.id);
-                  const codeRoot = resolveCaseCodeRoot(item);
-                  return (
-                    <button key={item.id} type="button" onClick={() => toggleCase(item.id)} className={`flex w-full items-start gap-3 px-4 py-3 text-left hover:bg-theme-elevated ${selected ? 'bg-violet-500/10' : ''}`}>
-                      <span className={`mt-1 h-4 w-4 rounded border ${selected ? 'border-violet-400 bg-violet-500' : 'border-theme-border'}`} />
-                      <div className="min-w-0 flex-1">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <span className="font-mono text-xs text-theme-text-muted">{item.id}</span>
-                          <span className="rounded-full border border-theme-border px-2 py-0.5 text-[10px] text-theme-text-muted">{item.current_stage}</span>
-                          {item.severity ? <span className="rounded-full border border-amber-500/20 bg-amber-500/10 px-2 py-0.5 text-[10px] text-amber-300">{item.severity}</span> : null}
-                        </div>
-                        <div className="mt-1 font-semibold text-theme-text-primary">{caseDisplayName(item)}</div>
-                        <div className="mt-1 text-xs text-theme-text-muted">对象：{caseLocator(item)}</div>
-                        <div className={`mt-1 text-xs ${codeRoot ? 'text-theme-text-muted' : 'text-rose-300'}`}>code_root：{codeRoot || '缺失'}</div>
-                      </div>
-                    </button>
-                  );
-                })}
-                {!filteredCases.length ? <div className="py-12 text-center text-sm text-theme-text-muted">暂无待验证漏洞</div> : null}
-              </div>
+              {pendingLoading ? (
+                <div className="flex items-center gap-2 p-8 text-sm text-theme-text-muted"><Loader2 size={14} className="animate-spin" />加载待验证漏洞...</div>
+              ) : pendingCases.length === 0 ? (
+                <div className="p-10 text-center text-sm text-theme-text-muted">当前项目暂无待验证漏洞。</div>
+              ) : filteredCases.length === 0 ? (
+                <div className="p-10 text-center text-sm text-theme-text-muted">当前筛选条件下暂无待验证漏洞。</div>
+              ) : (
+                <div className="max-h-[46vh] overflow-auto">
+                  <table className="w-full min-w-[980px] text-left text-xs">
+                    <thead className="sticky top-0 z-10 bg-theme-surface text-theme-text-muted">
+                      <tr className="border-b border-theme-border">
+                        <th className="w-12 px-4 py-3">
+                          <input
+                            type="checkbox"
+                            checked={filteredCases.length > 0 && filteredCases.every((item) => selectedCaseIds.has(item.id))}
+                            onChange={toggleAllVisible}
+                            disabled={batchCreating}
+                          />
+                        </th>
+                        <th className="px-4 py-3 font-black">漏洞</th>
+                        <th className="px-4 py-3 font-black">对象定位</th>
+                        <th className="px-4 py-3 font-black">风险</th>
+                        <th className="px-4 py-3 font-black">阶段</th>
+                        <th className="px-4 py-3 font-black">code_root</th>
+                        <th className="px-4 py-3 font-black">更新时间</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {filteredCases.map((item) => {
+                        const codeRoot = resolveCaseCodeRoot(item);
+                        return (
+                          <tr key={item.id} className="border-b border-theme-border/60 hover:bg-theme-elevated/60">
+                            <td className="px-4 py-3">
+                              <input
+                                type="checkbox"
+                                checked={selectedCaseIds.has(item.id)}
+                                onChange={() => toggleCase(item.id)}
+                                disabled={batchCreating}
+                              />
+                            </td>
+                            <td className="px-4 py-3">
+                              <div className="max-w-[320px] truncate font-bold text-theme-text-primary" title={caseDisplayName(item)}>{caseDisplayName(item)}</div>
+                              <div className="mt-1 font-mono text-[11px] text-theme-text-muted">{item.id}</div>
+                              {item.global_vuln_id ? <div className="mt-1 font-mono text-[11px] text-theme-text-muted">{item.global_vuln_id}</div> : null}
+                            </td>
+                            <td className="px-4 py-3">
+                              <div className="break-all font-mono text-[11px] font-semibold leading-5 text-theme-text-secondary" title={caseLocator(item)}>{caseLocator(item)}</div>
+                              <div className="mt-1 text-[11px] text-theme-text-muted">{caseSubjectType(item)}{caseSubjectName(item) ? ` · ${caseSubjectName(item)}` : ''}</div>
+                            </td>
+                            <td className="px-4 py-3 text-theme-text-secondary">{item.severity || '-'}</td>
+                            <td className="px-4 py-3 text-theme-text-secondary">{item.current_stage || '-'}{item.current_status ? ` / ${item.current_status}` : ''}</td>
+                            <td className={`px-4 py-3 break-all font-mono text-[11px] ${codeRoot ? 'text-theme-text-muted' : 'text-rose-300'}`}>{codeRoot || '缺失'}</td>
+                            <td className="px-4 py-3 whitespace-nowrap text-theme-text-muted">{fmtDate(item.updated_at)}</td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
             </div>
 
             {batchResult ? (
