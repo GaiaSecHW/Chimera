@@ -51,7 +51,6 @@ interface BatchCreateResultItem {
   title?: string | null;
   taskId?: string;
   codeRoot?: string;
-  synced?: boolean;
   reused?: boolean;
   error?: string;
 }
@@ -293,14 +292,9 @@ export const VulnVerifyV2TaskPage: React.FC<{ projectId: string }> = ({ projectI
     return (list.items || []).find((task) => task.case_id === caseId) || null;
   }, [projectId]);
 
-  const syncCaseStage = useCallback(async (caseId: string, task: VulnVerifyV2Task) => {
-    await vulnApi.syncAutoVerifyTask(caseId, { vuln_verify_task_id: task.id } as any);
-  }, []);
-
   const createTaskFromCase = useCallback(async (item: PendingVerifyCase) => {
     const existing = await findExistingTaskByCaseId(item.id);
     if (existing) {
-      await syncCaseStage(item.id, existing);
       return { task: existing, codeRoot: existing.code_root, reused: true };
     }
 
@@ -325,9 +319,8 @@ export const VulnVerifyV2TaskPage: React.FC<{ projectId: string }> = ({ projectI
       function: parsed.function,
     });
 
-    await syncCaseStage(item.id, task);
     return { task, codeRoot, reused: false };
-  }, [findExistingTaskByCaseId, projectId, syncCaseStage]);
+  }, [findExistingTaskByCaseId, projectId]);
 
   const openBatch = () => {
     setBatchOpen(true);
@@ -366,7 +359,7 @@ export const VulnVerifyV2TaskPage: React.FC<{ projectId: string }> = ({ projectI
     }
     const ok = await confirm({
       title: '确认批量创建验证任务',
-      message: `将为 ${selectedCases.length} 个待验证漏洞创建 v2 验证任务，并在创建成功后推进到 validation 阶段。`,
+      message: `将为 ${selectedCases.length} 个待验证漏洞创建 v2 验证任务。v2 不会自动推进漏洞中心阶段。`,
       confirmText: '开始创建',
     });
     if (!ok) return;
@@ -386,7 +379,6 @@ export const VulnVerifyV2TaskPage: React.FC<{ projectId: string }> = ({ projectI
             title: item.title,
             taskId: data.task.id,
             codeRoot: data.codeRoot,
-            synced: true,
             reused: data.reused,
           });
         } catch (e: any) {
@@ -418,7 +410,7 @@ export const VulnVerifyV2TaskPage: React.FC<{ projectId: string }> = ({ projectI
         {feedbackNodes}
         <PageHeader
           title={<ServicePageTitle title="漏洞验证 v2" version={buildVersion} />}
-          description="原子能力 / 漏洞验证v2：从漏洞中心待验证漏洞批量创建 v2 验证任务，创建成功后自动推进到 validation 阶段。"
+          description="原子能力 / 漏洞验证v2：从漏洞中心待验证漏洞批量创建 v2 验证任务。v2 只负责创建与执行验证任务，不在这里推进漏洞中心阶段。"
           actions={
             <div className="flex flex-wrap items-center gap-2">
               <button type="button" onClick={() => void loadOverview()} className="inline-flex items-center gap-2 rounded-xl border border-theme-border bg-theme-surface px-4 py-2 text-sm font-semibold text-theme-text-secondary hover:bg-theme-elevated">
@@ -522,7 +514,7 @@ export const VulnVerifyV2TaskPage: React.FC<{ projectId: string }> = ({ projectI
             <div className="mb-5 flex shrink-0 items-start justify-between gap-4">
               <div>
                 <h2 className="text-xl font-bold text-theme-text-primary">从待验证漏洞批量创建 v2 任务</h2>
-                <p className="mt-1 text-sm text-theme-text-muted">加载 receive / triage 阶段漏洞，创建成功后调用漏洞中心 auto-verify/sync 推进到 validation。</p>
+                <p className="mt-1 text-sm text-theme-text-muted">加载 receive / triage 阶段漏洞；每个漏洞创建一个 v2 验证任务。创建后不调用漏洞中心 sync，不自动推进阶段。</p>
               </div>
               <button onClick={() => setBatchOpen(false)} className="rounded-xl border border-theme-border p-2 text-theme-text-muted hover:bg-theme-elevated"><X size={18} /></button>
             </div>
@@ -620,7 +612,7 @@ export const VulnVerifyV2TaskPage: React.FC<{ projectId: string }> = ({ projectI
                         {item.reused ? <span className="rounded-full bg-blue-500/10 px-2 py-0.5 text-blue-300">已存在复用</span> : null}
                       </div>
                       <div className="mt-1 text-theme-text-muted">{item.title}</div>
-                      {item.ok ? <div className="mt-1 text-emerald-300">task: {item.taskId}，阶段已推进</div> : <div className="mt-1 text-rose-300">{item.error}</div>}
+                      {item.ok ? <div className="mt-1 text-emerald-300">task: {item.taskId}，任务已创建</div> : <div className="mt-1 text-rose-300">{item.error}</div>}
                     </div>
                   ))}
                 </div>
