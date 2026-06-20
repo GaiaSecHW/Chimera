@@ -25,11 +25,11 @@ export const HealthBadge: React.FC<{ status?: string }> = ({ status }) => {
     : normalized === 'unhealthy'
       ? 'bg-rose-500/15 text-rose-400 border-rose-500/20'
       : 'bg-theme-elevated text-theme-text-secondary border-theme-border';
-  return <span className={`inline-flex items-center rounded-full border px-2.5 py-1 text-[11px] font-black uppercase tracking-[0.16em] ${cls}`}>{normalized}</span>;
+  return <span className={`inline-flex items-center rounded-full border px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] ${cls}`}>{normalized}</span>;
 };
 
 export const AgentStateBadges: React.FC<{ agent: Pick<AiAgentItem, 'installed' | 'running' | 'active'> }> = ({ agent }) => (
-  <div className="flex flex-wrap items-center gap-2 text-[11px] font-black uppercase tracking-[0.16em]">
+  <div className="flex flex-wrap items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.16em]">
     <span className={agent.installed ? 'text-emerald-400' : 'text-theme-text-faint'}>{agent.installed ? 'INSTALLED' : 'MISSING'}</span>
     <span className={agent.running ? 'text-emerald-400' : 'text-theme-text-faint'}>{agent.running ? 'RUNNING' : 'STOPPED'}</span>
     <span className={agent.active ? 'text-blue-400' : 'text-theme-text-faint'}>{agent.active ? 'ACTIVE' : 'INACTIVE'}</span>

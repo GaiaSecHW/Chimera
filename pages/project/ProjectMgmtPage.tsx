@@ -19,6 +19,7 @@ import {
 import { api } from '../../clients/api';
 import { API_BASE, getHeaders, handleResponse } from '../../clients/base';
 import { orgApi, UserPermissionInfo } from '../../clients/org';
+import { PageHeader } from '../../design-system';
 import { Department, ProductTreeNode, ProductVersionNode, SecurityProject } from '../../types/types';
 import { StatusBadge } from '../../components/StatusBadge';
 
@@ -525,38 +526,34 @@ export const ProjectMgmtPage: React.FC<ProjectMgmtPageProps> = ({
       style={{ backgroundColor: LK.canvas, minHeight: '100%', color: LK.inkSoft }}
     >
       {/* Page header */}
-      <div className="flex flex-col items-end justify-between gap-3 pb-4 md:flex-row" style={{ borderBottom: `1px solid ${LK.borderSoft}` }}>
-        <div>
-          <h1 className="mt-3 text-2xl font-semibold leading-8 tracking-tight" style={{ color: LK.ink }}>
-            项目概览
-          </h1>
-          <p className="mt-1.5 text-sm leading-6" style={{ color: LK.body }}>
-            统一展示用户权限范围内的所有项目
-          </p>
-        </div>
-        <div className="flex gap-2">
-          <button
-            onClick={handleRefresh}
-            className="rounded-lg p-2.5 transition-colors"
-            style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}`, color: LK.body }}
-            onMouseEnter={(e) => { e.currentTarget.style.borderColor = LK.primary; e.currentTarget.style.color = LK.primarySoft; }}
-            onMouseLeave={(e) => { e.currentTarget.style.borderColor = LK.border; e.currentTarget.style.color = LK.body; }}
-            title="刷新列表"
-          >
-            <RefreshCw size={16} className={isRefreshing ? 'animate-spin' : ''} />
-          </button>
-          <button
-            onClick={openCreateModal}
-            disabled={!userPermissions || selectableDepartments.length === 0}
-            className="inline-flex items-center gap-1.5 rounded-lg px-3.5 py-2.5 text-sm font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50"
-            style={{ backgroundColor: LK.primary, color: '#ffffff' }}
-            onMouseEnter={(e) => { if (!e.currentTarget.disabled) e.currentTarget.style.backgroundColor = LK.primaryDeep; }}
-            onMouseLeave={(e) => { if (!e.currentTarget.disabled) e.currentTarget.style.backgroundColor = LK.primary; }}
-          >
-            <Plus size={16} /> 初始化项目
-          </button>
-        </div>
-      </div>
+      <PageHeader
+        title="项目概览"
+        description="统一展示用户权限范围内的所有项目"
+        actions={
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handleRefresh}
+              className="rounded-lg p-2.5 transition-colors"
+              style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}`, color: LK.body }}
+              onMouseEnter={(e) => { e.currentTarget.style.borderColor = LK.primary; e.currentTarget.style.color = LK.primarySoft; }}
+              onMouseLeave={(e) => { e.currentTarget.style.borderColor = LK.border; e.currentTarget.style.color = LK.body; }}
+              title="刷新列表"
+            >
+              <RefreshCw size={16} className={isRefreshing ? 'animate-spin' : ''} />
+            </button>
+            <button
+              onClick={openCreateModal}
+              disabled={!userPermissions || selectableDepartments.length === 0}
+              className="inline-flex items-center gap-1.5 rounded-lg px-3.5 py-2.5 text-sm font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50"
+              style={{ backgroundColor: LK.primary, color: '#ffffff' }}
+              onMouseEnter={(e) => { if (!e.currentTarget.disabled) e.currentTarget.style.backgroundColor = LK.primaryDeep; }}
+              onMouseLeave={(e) => { if (!e.currentTarget.disabled) e.currentTarget.style.backgroundColor = LK.primary; }}
+            >
+              <Plus size={16} /> 初始化项目
+            </button>
+          </div>
+        }
+      />
 
       {/* Batch selection bar */}
       {selectedIds.size > 0 && (

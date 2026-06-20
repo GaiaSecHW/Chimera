@@ -16,6 +16,7 @@ export interface BinarySecurityInputFile {
 }
 
 export type BinarySecurityTaskType = 'binary' | 'source' | 'binary_module';
+export type BinarySecurityPipelineProfile = 'default' | 'kg_source_vuln_scan' | string;
 export type BinarySecurityModuleSelectionMode = 'auto' | 'manual_confirm' | string;
 export type BinarySecurityEntrySelectionMode = 'auto' | 'manual_confirm' | string;
 export type BinarySecurityPipelineMode = 'barrier' | 'mixed_streaming';
@@ -25,6 +26,7 @@ export interface BinarySecurityStageOption {
 }
 
 export interface BinarySecurityTaskPolicy {
+  pipeline_profile?: BinarySecurityPipelineProfile;
   max_stage_parallelism?: number;
   max_retries_per_item?: number;
   continue_on_item_failure?: boolean;
@@ -35,6 +37,7 @@ export interface BinarySecurityTaskPolicy {
   module_selection_mode?: BinarySecurityModuleSelectionMode;
   entry_selection_mode?: BinarySecurityEntrySelectionMode;
   module_risk_levels?: string[];
+  knowledge_graph_entries_url?: string;
   [key: string]: any;
 }
 
@@ -69,6 +72,34 @@ export interface BinarySecurityAbnormalReasonEventSummary {
   event_id: string;
   created_at: string;
   reason: BinarySecurityAbnormalReason;
+}
+
+export interface BinarySecurityRootTaskKeySnapshot {
+  id?: string | null;
+  name?: string | null;
+  prefix?: string | null;
+  source?: string | null;
+  has_secret: boolean;
+  used: boolean;
+}
+
+export interface BinarySecurityWorkKeySnapshot {
+  stage_name?: string | null;
+  service?: string | null;
+  stage_item_id?: string | null;
+  stage_item_key?: string | null;
+  downstream_task_id?: string | null;
+  agent_task_key_id?: string | null;
+  agent_task_key_name?: string | null;
+  agent_task_key_prefix?: string | null;
+  agent_task_key_source?: string | null;
+  has_secret: boolean;
+  created_at?: string | null;
+}
+
+export interface BinarySecurityTaskKeySnapshot {
+  root_task_key: BinarySecurityRootTaskKeySnapshot;
+  work_keys: BinarySecurityWorkKeySnapshot[];
 }
 
 export interface BinarySecurityModuleContract {
@@ -180,6 +211,7 @@ export interface BinarySecurityTask {
   id: string;
   project_id: string;
   task_type: BinarySecurityTaskType;
+  pipeline_profile?: BinarySecurityPipelineProfile;
   name: string;
   status: string;
   runtime_phase?: string;
@@ -219,11 +251,6 @@ export interface BinarySecurityTask {
   tail_has_downstream_refs?: boolean;
   tail_takeover_required?: boolean;
   tail_takeover_reason?: string | null;
-  reconcile_owner_instance_id?: string | null;
-  reconcile_lease_expires_at?: string | null;
-  reconcile_owner_pod_uid?: string | null;
-  reconcile_owner_boot_id?: string | null;
-  reconcile_generation?: number | null;
   created_by?: string | null;
   created_at?: string | null;
   updated_at?: string | null;
@@ -298,8 +325,6 @@ export interface BinarySecurityTask {
     operation_status?: string | null;
     operation_owner?: string | null;
     operation_started_at?: string | null;
-    operation_expires_at?: string | null;
-    operation_heartbeat_at?: string | null;
     current_step?: string | null;
     target_stage?: string | null;
     error_code?: string | null;
@@ -407,6 +432,12 @@ export interface BinarySecurityTaskDetail extends BinarySecurityTask {
   output_root: string;
   workspace_root: string;
   fileserver_subproject_name?: string | null;
+  task_key_source?: string | null;
+  root_task_key_id?: string | null;
+  root_task_key_name?: string | null;
+  root_task_key_prefix?: string | null;
+  has_root_task_key?: boolean;
+  task_key_snapshot?: BinarySecurityTaskKeySnapshot;
   candidate_entry_count: number;
   policy: BinarySecurityTaskPolicy;
   summary: Record<string, any> & {
@@ -536,6 +567,50 @@ export interface BinarySecurityRuntimeHealthUnit {
   evidence: BinarySecurityRuntimeHealthEvidence[];
 }
 
+export interface BinarySecurityRuntimeHealthSpotlightItem {
+  slot_key: string;
+  title: string;
+  subtitle?: string | null;
+  status: string;
+  unit_key?: string | null;
+  owner_instance_id?: string | null;
+  last_heartbeat_at?: string | null;
+  age_seconds?: number | null;
+  reason?: string | null;
+  evidence: BinarySecurityRuntimeHealthEvidence[];
+}
+
+export interface BinarySecurityRuntimeHealthGroup {
+  group_key: string;
+  group_label: string;
+  description?: string | null;
+  status: string;
+  active_unit_count: number;
+  units: BinarySecurityRuntimeHealthUnit[];
+}
+
+export interface BinarySecurityRuntimeHealthSnapshotCard {
+  card_key: string;
+  title: string;
+  subtitle?: string | null;
+  status: string;
+  message?: string | null;
+  rows: BinarySecurityRuntimeHealthEvidence[];
+}
+
+export interface BinarySecurityRuntimeHealthLoopSnapshot {
+  loop_key: string;
+  loop_label: string;
+  status: string;
+  alive: boolean;
+  task_running: boolean;
+  heartbeat_alive: boolean;
+  heartbeat_at?: string | null;
+  heartbeat_age_seconds?: number | null;
+  stale_after_seconds?: number | null;
+  message?: string | null;
+}
+
 export interface BinarySecurityRuntimeHealthSummary {
   overall_status: string;
   active_unit_count: number;
@@ -548,6 +623,10 @@ export interface BinarySecurityRuntimeHealthSummary {
 
 export interface BinarySecurityRuntimeHealth {
   summary: BinarySecurityRuntimeHealthSummary;
+  spotlight: BinarySecurityRuntimeHealthSpotlightItem[];
+  snapshot_cards: BinarySecurityRuntimeHealthSnapshotCard[];
+  related_loops: BinarySecurityRuntimeHealthLoopSnapshot[];
+  groups: BinarySecurityRuntimeHealthGroup[];
   units: BinarySecurityRuntimeHealthUnit[];
 }
 
@@ -830,6 +909,7 @@ export const binarySecurityApi = {
     query?: {
       status?: string;
       taskType?: BinarySecurityTaskType;
+      pipelineProfile?: BinarySecurityPipelineProfile;
       search?: string;
       sortBy?: 'created_at' | 'updated_at' | 'started_at' | 'finished_at' | 'status' | 'name' | 'task_name';
       sortOrder?: 'asc' | 'desc';
@@ -851,6 +931,7 @@ export const binarySecurityApi = {
     const params = new URLSearchParams();
     if (query?.status) params.set('status', query.status);
     if (query?.taskType) params.set('task_type', query.taskType);
+    if (query?.pipelineProfile) params.set('pipeline_profile', query.pipelineProfile);
     if (query?.search) params.set('search', query.search);
     if (query?.sortBy) params.set('sort_by', query.sortBy);
     if (query?.sortOrder) params.set('sort_order', query.sortOrder);
@@ -1057,6 +1138,7 @@ export const binarySecurityApi = {
       output_root?: string;
       stage_options?: Record<string, { enabled: boolean }>;
       policy_overrides?: {
+        pipeline_profile?: BinarySecurityPipelineProfile;
         max_stage_parallelism?: number;
         max_retries_per_item?: number;
         continue_on_item_failure?: boolean;
@@ -1066,6 +1148,7 @@ export const binarySecurityApi = {
         module_selection_mode?: 'auto' | 'manual_confirm';
         entry_selection_mode?: 'auto' | 'manual_confirm';
         module_risk_levels?: string[];
+        knowledge_graph_entries_url?: string;
       };
     },
   ): Promise<BinarySecurityTaskDetail> => {
@@ -1123,6 +1206,14 @@ export const binarySecurityApi = {
 
   continueTask: async (projectId: string, taskId: string): Promise<BinarySecurityActionResult> => {
     const resp = await fetch(`${API_BASE}/api/app/binary-security/projects/${projectId}/tasks/${taskId}/continue`, {
+      method: 'POST',
+      headers: getHeaders(),
+    });
+    return handleResponse(resp);
+  },
+
+  forceResetTaskToPending: async (projectId: string, taskId: string): Promise<BinarySecurityActionResult> => {
+    const resp = await fetch(`${API_BASE}/api/app/binary-security/projects/${projectId}/tasks/${taskId}/force-reset`, {
       method: 'POST',
       headers: getHeaders(),
     });

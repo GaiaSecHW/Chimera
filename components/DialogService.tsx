@@ -194,10 +194,10 @@ export const DialogViewport: React.FC = () => {
                 {active.kind === 'prompt' ? <MessageSquareQuote size={20} className="text-violet-400" /> : style.icon}
               </div>
               <div>
-                <div className={`inline-flex rounded-full border px-3 py-1 text-[10px] font-black uppercase tracking-[0.24em] ${style.chip}`}>
+                <div className={`inline-flex rounded-full border px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.24em] ${style.chip}`}>
                   {active.kind === 'alert' ? 'Notice' : active.kind === 'confirm' ? 'Confirm' : 'Input'}
                 </div>
-                <h3 className="mt-3 text-2xl font-black tracking-tight text-theme-text-primary">{active.title}</h3>
+                <h3 className="mt-3 text-2xl font-semibold tracking-tight text-theme-text-primary">{active.title}</h3>
               </div>
             </div>
             <p className="mt-5 whitespace-pre-wrap text-sm font-medium leading-7 text-theme-text-secondary">{active.message}</p>
@@ -219,7 +219,7 @@ export const DialogViewport: React.FC = () => {
             {active.kind === 'alert' ? (
               <button
                 onClick={closeAlert}
-                className={`rounded-2xl px-5 py-3 text-sm font-black text-white transition-all ${style.button}`}
+                className={`rounded-2xl px-5 py-3 text-sm font-medium text-white transition-all ${style.button}`}
               >
                 {active.confirmText}
               </button>
@@ -227,13 +227,13 @@ export const DialogViewport: React.FC = () => {
               <>
                 <button
                   onClick={() => resolveConfirm(false)}
-                  className="rounded-2xl bg-theme-elevated px-5 py-3 text-sm font-black text-theme-text-primary transition-all hover:bg-theme-surface"
+                  className="rounded-2xl bg-theme-elevated px-5 py-3 text-sm font-medium text-theme-text-primary transition-all hover:bg-theme-surface"
                 >
                   {active.cancelText}
                 </button>
                 <button
                   onClick={() => resolveConfirm(true)}
-                  className={`rounded-2xl px-5 py-3 text-sm font-black text-white transition-all ${active.danger ? 'bg-rose-600 hover:bg-rose-700' : 'bg-sky-600 hover:bg-sky-700'}`}
+                  className={`rounded-2xl px-5 py-3 text-sm font-medium text-white transition-all ${active.danger ? 'bg-rose-600 hover:bg-rose-700' : 'bg-sky-600 hover:bg-sky-700'}`}
                 >
                   {active.confirmText}
                 </button>
@@ -242,13 +242,13 @@ export const DialogViewport: React.FC = () => {
               <>
                 <button
                   onClick={() => resolvePrompt(null)}
-                  className="rounded-2xl bg-theme-elevated px-5 py-3 text-sm font-black text-theme-text-primary transition-all hover:bg-theme-surface"
+                  className="rounded-2xl bg-theme-elevated px-5 py-3 text-sm font-medium text-theme-text-primary transition-all hover:bg-theme-surface"
                 >
                   {active.cancelText}
                 </button>
                 <button
                   onClick={() => resolvePrompt(promptValue.trim())}
-                  className="rounded-2xl bg-violet-600 px-5 py-3 text-sm font-black text-white transition-all hover:bg-violet-700"
+                  className="rounded-2xl bg-violet-600 px-5 py-3 text-sm font-medium text-white transition-all hover:bg-violet-700"
                 >
                   {active.confirmText}
                 </button>

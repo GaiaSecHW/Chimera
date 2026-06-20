@@ -13,6 +13,7 @@ import {
 import { showConfirm } from '../../components/DialogService';
 import { ExecutionTable, ExecutionTableEmptyRow, ExecutionTableHead, ExecutionTableTd, ExecutionTableTh, executionTableRowClassName } from '../../components/execution/ExecutionTable';
 import { useUiFeedback } from '../../components/UiFeedback';
+import { PageSection, FormField, FormActionBar, PageHeader } from '../../design-system';
 import { StaticPipelineFlow } from './StaticPipelineFlow';
 
 const LK = {
@@ -92,48 +93,15 @@ const SectionCard: React.FC<{ title: string; subtitle?: string; actions?: React.
   actions,
   children,
 }) => (
-  <section style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}`, borderRadius: '12px', padding: '24px', boxShadow: 'none' }}>
-    <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '16px' }}>
-      <div>
-        <h2 style={{ fontSize: '16px', fontWeight: 600, color: LK.ink }}>{title}</h2>
-        {subtitle && <p style={{ marginTop: '2px', fontSize: '12px', color: LK.body }}>{subtitle}</p>}
-      </div>
-      {actions}
-    </div>
-    {children}
-  </section>
+  <PageSection title={title} description={subtitle} actions={actions}>{children}</PageSection>
 );
 
 const FieldRow: React.FC<{ label: string; hint?: string; children: React.ReactNode }> = ({ label, hint, children }) => (
-  <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-    <label style={{ fontSize: '14px', fontWeight: 600, color: LK.inkSoft }}>
-      {label}
-      {hint && <span style={{ marginLeft: '8px', fontSize: '12px', fontWeight: 400, color: LK.muted }}>{hint}</span>}
-    </label>
-    {children}
-  </div>
+  <FormField label={label} hint={hint}>{children}</FormField>
 );
 
 const PanelActions: React.FC<{ saving: boolean; onSave: () => void; onReset: () => void }> = ({ saving, onSave, onReset }) => (
-  <div style={{ display: 'flex', flexShrink: 0, alignItems: 'center', gap: '8px' }}>
-    <button
-      type="button"
-      onClick={onReset}
-      disabled={saving}
-      style={{ borderRadius: '8px', border: `1px solid ${LK.border}`, backgroundColor: LK.surface, padding: '8px 12px', fontSize: '12px', fontWeight: 600, color: LK.body, cursor: saving ? 'not-allowed' : 'pointer', opacity: saving ? 0.5 : 1 }}
-    >
-      重置为默认
-    </button>
-    <button
-      type="button"
-      onClick={onSave}
-      disabled={saving}
-      style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', borderRadius: '8px', backgroundColor: LK.primary, padding: '8px 12px', fontSize: '12px', fontWeight: 600, color: '#ffffff', cursor: saving ? 'not-allowed' : 'pointer', opacity: saving ? 0.6 : 1 }}
-    >
-      {saving ? <Loader2 size={12} className="animate-spin" /> : <Save size={12} />}
-      保存配置
-    </button>
-  </div>
+  <FormActionBar saving={saving} onSave={onSave} onReset={onReset} saveText="保存配置" resetText="重置为默认" />
 );
 
 function formatDateTime(value?: string | null): string {
@@ -454,22 +422,24 @@ export const B2SConfigPage: React.FC<{ projectId: string; embedded?: boolean }> 
       {feedbackNodes}
 
       {embedded ? (
-        <section style={{ borderRadius: '20px', border: `1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised, padding: '24px' }}>
-          <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '16px' }}>
-            <div>
-              <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '8px' }}>
-                <Settings size={18} style={{ color: LK.error }} />
-                <h2 style={{ fontSize: '20px', fontWeight: 600, color: LK.ink }}>二进制逆向参数配置</h2>
-                <span style={{ borderRadius: '999px', border: `1px solid ${LK.error}`, backgroundColor: LK.primaryMuted.replace('0.14', '0.08'), padding: '4px 12px', fontSize: '11px', fontWeight: 600, letterSpacing: '0.12em', color: LK.error }}>
-                  chimera-app-binary-to-source
-                </span>
-              </div>
-              <p style={{ marginTop: '8px', fontSize: '14px', color: LK.body }}>
-                这里既管理二进制逆向运行配置，也管理共享结果缓存。缓存页面默认只按当前项目做上下文筛选，但缓存本体仍是共享缓存池。
-              </p>
-              {config.updated_at && <p style={{ marginTop: '4px', fontSize: '12px', color: LK.muted }}>上次保存：{new Date(config.updated_at).toLocaleString()}</p>}
+        <PageHeader
+          title={
+            <div className="flex flex-wrap items-center gap-2">
+              <Settings size={18} style={{ color: LK.error }} />
+              <span>二进制逆向参数配置</span>
+              <span style={{ borderRadius: '999px', border: `1px solid ${LK.error}`, backgroundColor: LK.primaryMuted.replace('0.14', '0.08'), padding: '4px 12px', fontSize: '11px', fontWeight: 600, letterSpacing: '0.12em', color: LK.error }}>
+                chimera-app-binary-to-source
+              </span>
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          }
+          description={
+            <>
+              这里既管理二进制逆向运行配置，也管理共享结果缓存。缓存页面默认只按当前项目做上下文筛选，但缓存本体仍是共享缓存池。
+              {config.updated_at && <span className="ml-2 text-xs text-theme-text-muted">上次保存：{new Date(config.updated_at).toLocaleString()}</span>}
+            </>
+          }
+          actions={
+            <div className="flex items-center gap-2">
               <button
                 type="button"
                 onClick={() => { void loadRuntimeConfig(); }}
@@ -489,8 +459,8 @@ export const B2SConfigPage: React.FC<{ projectId: string; embedded?: boolean }> 
                 刷新缓存
               </button>
             </div>
-          </div>
-        </section>
+          }
+        />
       ) : null}
 
       <section style={{ borderRadius: '12px', border: `1px solid ${LK.border}`, backgroundColor: LK.surface, padding: '8px' }}>

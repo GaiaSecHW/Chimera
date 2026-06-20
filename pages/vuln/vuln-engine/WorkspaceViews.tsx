@@ -446,23 +446,23 @@ export const ServicesWorkspace: React.FC<{
                 <div className="flex items-start justify-between gap-4">
                   <div className="space-y-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <p className="text-sm font-black text-theme-text-primary">{item.service_name}</p>
-                      <span className={`px-2 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest ${item.status === 'active' ? 'bg-emerald-500/15 text-emerald-400' : 'bg-amber-500/15 text-amber-400'}`}>{item.status}</span>
-                      {!item.healthcheck_url && <span className="px-2 py-1 rounded-lg bg-sky-500/15 text-[10px] font-black uppercase tracking-widest text-sky-400">缺健康检查</span>}
-                      {(item.capabilities || []).length === 0 && <span className="px-2 py-1 rounded-lg bg-rose-500/15 text-[10px] font-black uppercase tracking-widest text-rose-400">缺能力声明</span>}
+                      <p className="text-sm font-semibold text-theme-text-primary">{item.service_name}</p>
+                      <span className={`px-2 py-1 rounded-lg text-[10px] font-semibold uppercase tracking-widest ${item.status === 'active' ? 'bg-emerald-500/15 text-emerald-400' : 'bg-amber-500/15 text-amber-400'}`}>{item.status}</span>
+                      {!item.healthcheck_url && <span className="px-2 py-1 rounded-lg bg-sky-500/15 text-[10px] font-semibold uppercase tracking-widest text-sky-400">缺健康检查</span>}
+                      {(item.capabilities || []).length === 0 && <span className="px-2 py-1 rounded-lg bg-rose-500/15 text-[10px] font-semibold uppercase tracking-widest text-rose-400">缺能力声明</span>}
                     </div>
                     <p className="text-xs text-theme-text-muted">{labelOf(item.service_type, SERVICE_TYPE_LABELS)} · {item.endpoint}</p>
                     <p className="text-[11px] text-theme-text-muted">heartbeat: {formatTime(item.last_heartbeat_at)} · callback: {item.callback_mode || 'push'} · auth: {item.auth_mode || 'machine_token'}</p>
                   </div>
                   <div className="text-right text-xs text-theme-text-muted shrink-0">
                     <p>版本</p>
-                    <p className="mt-1 font-black text-theme-text-secondary">{item.version || '暂无'}</p>
+                    <p className="mt-1 font-medium text-theme-text-secondary">{item.version || '暂无'}</p>
                   </div>
                 </div>
 
                 {(item.meta?.association_note || item.meta?.bind_stage || item.meta?.module_role) && (
                   <div className="rounded-2xl border border-theme-border bg-theme-bg-app px-4 py-3 text-xs text-theme-text-secondary">
-                    <div className="font-black text-theme-text-secondary">服务元数据</div>
+                    <div className="font-medium text-theme-text-secondary">服务元数据</div>
                     <div className="mt-2 flex flex-wrap gap-2">
                       {item.meta?.bind_stage && <span>阶段：{labelOf(item.meta.bind_stage, STAGE_LABELS)}</span>}
                       {item.meta?.module_role && <span>角色：{labelOf(item.meta.module_role, MODULE_ROLE_LABELS)}</span>}
@@ -474,17 +474,17 @@ export const ServicesWorkspace: React.FC<{
 
                 <div className="flex flex-wrap gap-2 text-[11px]">
                   {item.meta?.bind_stage && (
-                    <span className="rounded-xl bg-violet-500/15 px-3 py-2 font-black text-violet-400">
+                    <span className="rounded-xl bg-violet-500/15 px-3 py-2 font-medium text-violet-400">
                       绑定阶段 {labelOf(item.meta.bind_stage, STAGE_LABELS)}
                     </span>
                   )}
                   {item.meta?.module_role && (
-                    <span className="rounded-xl bg-theme-elevated px-3 py-2 font-black text-theme-text-secondary">
+                    <span className="rounded-xl bg-theme-elevated px-3 py-2 font-medium text-theme-text-secondary">
                       角色 {labelOf(item.meta.module_role, MODULE_ROLE_LABELS)}
                     </span>
                   )}
                   {item.callback_mode && (
-                    <span className="rounded-xl bg-emerald-500/15 px-3 py-2 font-black text-emerald-400">
+                    <span className="rounded-xl bg-emerald-500/15 px-3 py-2 font-medium text-emerald-400">
                       回调 {item.callback_mode}
                     </span>
                   )}
@@ -496,13 +496,13 @@ export const ServicesWorkspace: React.FC<{
                       <div className="flex items-start justify-between gap-3">
                         <div className="space-y-2 min-w-0">
                           <div className="flex flex-wrap gap-2">
-                            <span className="px-2 py-1 rounded-lg bg-blue-500/15 text-[10px] font-black uppercase tracking-widest text-blue-400">{labelOf(cap.action_type, ACTION_TYPE_LABELS)}</span>
-                            <span className="px-2 py-1 rounded-lg bg-theme-elevated text-[10px] font-black uppercase tracking-widest text-theme-text-secondary">{cap.capability_code}</span>
+                            <span className="px-2 py-1 rounded-lg bg-blue-500/15 text-[10px] font-semibold uppercase tracking-widest text-blue-400">{labelOf(cap.action_type, ACTION_TYPE_LABELS)}</span>
+                            <span className="px-2 py-1 rounded-lg bg-theme-elevated text-[10px] font-semibold uppercase tracking-widest text-theme-text-secondary">{cap.capability_code}</span>
                             {(cap.timeout_seconds ?? 0) < 60 && (
-                              <span className="px-2 py-1 rounded-lg bg-amber-500/15 text-[10px] font-black uppercase tracking-widest text-amber-400">短超时</span>
+                              <span className="px-2 py-1 rounded-lg bg-amber-500/15 text-[10px] font-semibold uppercase tracking-widest text-amber-400">短超时</span>
                             )}
                             {(cap.concurrency_limit ?? 0) <= 1 && (
-                              <span className="px-2 py-1 rounded-lg bg-sky-500/15 text-[10px] font-black uppercase tracking-widest text-sky-400">低并发</span>
+                              <span className="px-2 py-1 rounded-lg bg-sky-500/15 text-[10px] font-semibold uppercase tracking-widest text-sky-400">低并发</span>
                             )}
                           </div>
                           <div className="flex flex-wrap gap-3 text-[11px] text-theme-text-muted">
@@ -516,7 +516,7 @@ export const ServicesWorkspace: React.FC<{
                         </div>
                         <button
                           onClick={() => loadServiceToForm(item)}
-                          className="px-3 py-2 rounded-xl bg-theme-elevated text-xs font-black text-theme-text-secondary shrink-0"
+                          className="px-3 py-2 rounded-xl bg-theme-elevated text-xs font-medium text-theme-text-secondary shrink-0"
                         >
                           编辑
                         </button>
@@ -526,13 +526,13 @@ export const ServicesWorkspace: React.FC<{
                 </div>
 
                 <div className="flex gap-2">
-                  <button onClick={() => handleServiceHeartbeat(item.service_id)} disabled={serviceOperatingId === item.service_id} className="px-3 py-2 rounded-xl bg-theme-elevated text-xs font-black text-theme-text-secondary">
+                  <button onClick={() => handleServiceHeartbeat(item.service_id)} disabled={serviceOperatingId === item.service_id} className="px-3 py-2 rounded-xl bg-theme-elevated text-xs font-medium text-theme-text-secondary">
                     {serviceOperatingId === item.service_id ? '处理中...' : '刷新心跳'}
                   </button>
-                  <button onClick={() => loadServiceToForm(item)} className="px-3 py-2 rounded-xl bg-blue-500/15 text-xs font-black text-blue-400">
+                  <button onClick={() => loadServiceToForm(item)} className="px-3 py-2 rounded-xl bg-blue-500/15 text-xs font-medium text-blue-400">
                     回填到表单
                   </button>
-                  <button onClick={() => handleServiceUnregister(item.service_id)} disabled={serviceOperatingId === item.service_id} className="px-3 py-2 rounded-xl bg-rose-500/15 text-xs font-black text-rose-400 flex items-center gap-2">
+                  <button onClick={() => handleServiceUnregister(item.service_id)} disabled={serviceOperatingId === item.service_id} className="px-3 py-2 rounded-xl bg-rose-500/15 text-xs font-medium text-rose-400 flex items-center gap-2">
                     <Trash2 size={12} />
                     注销
                   </button>

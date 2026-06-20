@@ -57,6 +57,7 @@ import { useUiFeedback } from '../../components/UiFeedback';
 import { DataflowFileserverRunDashboardPage } from './DataflowFileserverRunDashboardPage';
 import { StaticPipelineFlow } from './StaticPipelineFlow';
 import { navigateBackByTaskOrigin, navigateBackToBinarySecurityTask } from '../../utils/executionReturnContext';
+import { StatisticCard } from '../../design-system';
 
 const LK = {
   primary: '#4f73ff', primarySoft: '#7590ff', primaryDeep: '#3f63f1',
@@ -585,24 +586,13 @@ const StatusBadge: React.FC<{ status?: string | null }> = ({ status }) => {
   );
 };
 
-const MetricCard: React.FC<{ label: string; value: React.ReactNode; icon: React.ReactNode; tone?: string; hint?: string }> = ({
-  label,
-  value,
-  icon,
-  tone = 'bg-theme-bg-app',
-  hint,
-}) => {
-  const bgColor = tone === 'bg-theme-bg-app' ? LK.surface : tone === 'bg-emerald-50/70' ?`${LK.success}20` : tone === 'bg-rose-50/70' ?`${LK.error}20` : LK.surface;
-  return (
-  <div style={{ borderRadius: 12, border: `1px solid ${LK.borderSoft}`, backgroundColor: bgColor, padding: 16 }}>
-    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
-      <span style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.16em', color: LK.muted }}>{label}</span>
-      <span style={{ color: LK.muted }}>{icon}</span>
-    </div>
-    <div style={{ marginTop: 12, fontSize: 24, fontWeight: 600, color: LK.ink }}>{value}</div>
-    {hint ? <div style={{ marginTop: 4, fontSize: 12, color: LK.muted }}>{hint}</div> : null}
-  </div>
-  );
+const MetricCard: React.FC<{ label: string; value: React.ReactNode; icon: React.ReactNode; tone?: string; hint?: string }> = ({ label, value, icon, tone, hint }) => {
+  const toneMap: Record<string, 'default' | 'success' | 'warning' | 'danger' | 'info' | 'brand'> = {
+    success: 'success', warning: 'warning', danger: 'danger', info: 'info', brand: 'brand',
+    emerald: 'success', rose: 'danger', amber: 'warning', red: 'danger', green: 'success',
+    'bg-emerald-50/70': 'success', 'bg-rose-50/70': 'danger', 'bg-theme-bg-app': 'default',
+  };
+  return <StatisticCard label={label} value={value} icon={icon} hint={hint} tone={tone ? (toneMap[tone] ?? 'default') : 'default'} />;
 };
 
 const EmptyPanel: React.FC<{ title: string; description: string; icon?: React.ReactNode }> = ({ title, description, icon = <FileSearch size={22} /> }) => (
@@ -1325,7 +1315,7 @@ export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ proj
               setShowCreate(true);
               void loadProfiles();
             }}
- className="inline-flex items-center gap-2 rounded-lg bg-cyan-700 px-4 py-2 text-sm font-black text-white hover:bg-cyan-800"
+ className="inline-flex items-center gap-2 rounded-lg bg-cyan-700 px-4 py-2 text-sm font-medium text-white hover:bg-cyan-800"
           >
             <Plus size={16} />
             创建任务
@@ -1354,7 +1344,7 @@ export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ proj
               className="flex flex-1 items-start justify-between gap-4 text-left"
             >
               <div>
-                <h2 className="mt-2 text-2xl font-black tracking-tight text-theme-text-primary">执行槽位总览</h2>
+                <h2 className="mt-2 text-2xl font-semibold tracking-tight text-theme-text-primary">执行槽位总览</h2>
                 <p className="mt-2 text-sm text-theme-text-muted">展示数据流漏洞挖掘服务全局 worker 槽位、活跃任务和心跳状态，不区分项目。</p>
               </div>
               <span className="mt-1 inline-flex h-9 w-9 items-center justify-center rounded-xl border border-theme-border bg-theme-bg-app text-theme-text-muted">
@@ -1392,8 +1382,8 @@ export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ proj
               <div className="mt-5 grid gap-3 md:grid-cols-4">
                 {slotCards.map((card) => (
                   <div key={card.label} className={`rounded-2xl border ${card.border} ${card.bg} px-4 py-3`}>
-                    <div className={`text-[11px] font-black uppercase tracking-[0.24em] ${card.text}`}>{card.label}</div>
-                    <div className="mt-2 text-2xl font-black text-theme-text-primary">{card.value}</div>
+                    <div className={`text-[11px] font-semibold uppercase tracking-[0.24em] ${card.text}`}>{card.label}</div>
+                    <div className="mt-2 text-2xl font-semibold text-theme-text-primary">{card.value}</div>
                     <div className="mt-1 text-[11px] text-theme-text-muted">{card.hint}</div>
                   </div>
                 ))}
@@ -1405,7 +1395,7 @@ export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ proj
                     className={`min-w-[220px] rounded-2xl border px-4 py-3 ${worker.healthy ? 'border-theme-border bg-theme-bg-app' : 'border-rose-500/20 bg-rose-500/15'}`}
                   >
                     <div className="flex items-center justify-between gap-3">
-                      <div className="text-sm font-black text-theme-text-primary" title={worker.worker_id}>{worker.host_name || worker.worker_id}</div>
+                      <div className="text-sm font-semibold text-theme-text-primary" title={worker.worker_id}>{worker.host_name || worker.worker_id}</div>
                       <div className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${worker.healthy ? 'bg-emerald-500/15 text-emerald-400' : 'bg-rose-500/15 text-rose-400'}`}>
                         {worker.healthy ? 'healthy' : 'unhealthy'}
                       </div>
@@ -1436,7 +1426,7 @@ export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ proj
             <div className="border-b border-theme-border p-4">
               <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
                 <div>
-                  <div className="text-sm font-black text-theme-text-primary">任务 / Run 列表</div>
+                  <div className="text-sm font-semibold text-theme-text-primary">任务 / Run 列表</div>
                   <div className="mt-1 text-xs text-theme-text-muted">对齐数据流分析 / 入口分析列表：筛选、快速筛选、分页和排序都基于当前项目下的全量任务做服务端查询。</div>
                 </div>
                 <div className="text-xs font-bold text-theme-text-muted">
@@ -1539,7 +1529,7 @@ export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ proj
                       />
                       全选当前页结果（{tasks.length} 条）
                     </label>
-                    <span className="font-black text-cyan-400">已选择 {selectedTaskIds.size} 个任务</span>
+                    <span className="font-medium text-cyan-400">已选择 {selectedTaskIds.size} 个任务</span>
                   </div>
                   <div className="flex flex-wrap items-center gap-2">
                     <button
@@ -1554,7 +1544,7 @@ export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ proj
                       type="button"
                       onClick={() => void handleBatchDelete()}
                       disabled={batchDeleting}
-                      className="inline-flex items-center gap-2 rounded-lg border border-rose-500/20 bg-theme-bg-app px-3 py-2 text-xs font-black text-rose-400 hover:bg-rose-500/15 disabled:opacity-50"
+                      className="inline-flex items-center gap-2 rounded-lg border border-rose-500/20 bg-theme-bg-app px-3 py-2 text-xs font-medium text-rose-400 hover:bg-rose-500/15 disabled:opacity-50"
                     >
                       {batchDeleting ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
                       批量删除（{selectedTaskIds.size}）
@@ -1628,8 +1618,8 @@ export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ proj
                             </div>
                             <div className="min-w-0">
                               <div className="flex flex-wrap items-center gap-2">
-                                <div className="font-black text-theme-text-primary">{shortId(displayName, 32)}</div>
-                                <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-black ${purposeMeta.className}`}>
+                                <div className="font-medium text-theme-text-primary">{shortId(displayName, 32)}</div>
+                                <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-semibold ${purposeMeta.className}`}>
                                   {purposeMeta.label}
                                 </span>
                               </div>
@@ -1699,7 +1689,7 @@ export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ proj
                           <button
                             type="button"
                             onClick={() => toggleQuickFilter('report', reportStatus.label)}
-                            className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-black ${reportStatus.className} ${reportQuickFilter === reportStatus.label ? 'ring-2 ring-cyan-500/20' : ''}`}
+                            className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-medium ${reportStatus.className} ${reportQuickFilter === reportStatus.label ? 'ring-2 ring-cyan-500/20' : ''}`}
                             title={reportQuickFilter === reportStatus.label ? '点击取消漏洞上报筛选' : '点击按漏洞上报状态快速筛选'}
                           >
                             {reportStatus.label}
@@ -1784,7 +1774,7 @@ export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ proj
  <div className="rounded-lg border border-theme-border bg-theme-bg-app px-4 py-4">
             <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
               <div>
-                <div className="text-sm font-black text-theme-text-primary">Profile / 参数配置</div>
+                <div className="text-sm font-semibold text-theme-text-primary">Profile / 参数配置</div>
                 <div className="mt-1 text-xs text-theme-text-muted">Profile 维护已合入「参数配置」一级菜单；只有在需要调整默认模板、Worker 或版本快照时再进入。</div>
               </div>
               <button
@@ -1817,7 +1807,7 @@ export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ proj
  <div className="w-full max-w-5xl rounded-[2rem] border border-theme-border bg-theme-bg-app" onClick={(event) => event.stopPropagation()}>
             <div className="flex items-start justify-between gap-4 border-b border-theme-border px-6 py-5">
               <div>
-                <h3 className="mt-2 text-2xl font-black tracking-tight text-theme-text-primary">执行槽位详情</h3>
+                <h3 className="mt-2 text-2xl font-semibold tracking-tight text-theme-text-primary">执行槽位详情</h3>
                 <p className="mt-2 text-sm text-theme-text-muted">按 worker 展示当前正在执行的数据流漏洞挖掘任务。</p>
               </div>
               <div className="flex items-center gap-3">
@@ -1854,7 +1844,7 @@ export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ proj
                         >
                           <div className="min-w-0">
                             <div className="flex flex-wrap items-center gap-2">
-                              <div className="text-sm font-black text-theme-text-primary">{worker.host_name || worker.worker_id}</div>
+                              <div className="text-sm font-semibold text-theme-text-primary">{worker.host_name || worker.worker_id}</div>
                               <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${worker.healthy ? 'bg-emerald-500/15 text-emerald-400' : 'bg-rose-500/15 text-rose-400'}`}>{worker.healthy ? 'healthy' : 'unhealthy'}</span>
                               <span className="rounded-full bg-theme-elevated px-2 py-0.5 text-[10px] font-bold text-theme-text-secondary">活动任务 {activeJobs.length}</span>
                             </div>
@@ -1890,12 +1880,12 @@ export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ proj
                                             <button
                                               type="button"
                                               onClick={() => void openTaskDetail({ task_id: job.task_id || '', latest_execution_id: job.execution_id || '' })}
-                                              className="truncate text-left text-sm font-black text-cyan-400 hover:text-cyan-400"
+                                              className="truncate text-left text-sm font-semibold text-cyan-400 hover:text-cyan-400"
                                             >
                                               {job.task_title || job.task_id}
                                             </button>
                                           ) : (
-                                            <div className="truncate text-sm font-black text-theme-text-primary">{job.task_title || '未关联任务'}</div>
+                                            <div className="truncate text-sm font-semibold text-theme-text-primary">{job.task_title || '未关联任务'}</div>
                                           )}
                                           <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${job.mapped ? 'bg-cyan-500/15 text-cyan-400' : 'bg-amber-500/15 text-amber-400'}`}>
                                             {job.mapped ? '已关联任务' : '未关联任务'}
@@ -2222,7 +2212,7 @@ export const DataflowVulnTaskDetailPage: React.FC<{ projectId: string; onBack?: 
           <button
             type="button"
             onClick={goBack}
- className="inline-flex items-center gap-2 rounded-lg border border-theme-border bg-theme-bg-app px-4 py-2 text-sm font-black text-theme-text-secondary hover:bg-theme-elevated"
+ className="inline-flex items-center gap-2 rounded-lg border border-theme-border bg-theme-bg-app px-4 py-2 text-sm font-medium text-theme-text-secondary hover:bg-theme-elevated"
           >
             <ArrowLeft size={16} />
             返回任务列表
@@ -2264,8 +2254,8 @@ const CreateTaskDialog: React.FC<{
  <div className="flex max-h-[92vh] w-full max-w-5xl flex-col overflow-hidden rounded-lg border border-theme-border bg-theme-bg-app">
           <div className="flex items-center justify-between border-b border-theme-border px-5 py-4">
             <div>
-              <div className="text-[11px] font-black uppercase tracking-[0.18em] text-cyan-400">New Scan Task</div>
-              <h3 className="mt-1 text-xl font-black text-slate-950">创建数据流漏洞挖掘任务</h3>
+              <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-cyan-400">New Scan Task</div>
+              <h3 className="mt-1 text-xl font-semibold text-slate-950">创建数据流漏洞挖掘任务</h3>
             </div>
             <button onClick={onClose} disabled={submitting} className="rounded-lg p-2 text-theme-text-muted hover:bg-theme-elevated disabled:opacity-40">
               <X size={18} />
@@ -2274,7 +2264,7 @@ const CreateTaskDialog: React.FC<{
           <div className="overflow-auto p-5">
             <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
               <label className="lg:col-span-2">
-                <span className="text-xs font-black text-theme-text-secondary">任务标题 / Run 文件夹名</span>
+                <span className="text-xs font-medium text-theme-text-secondary">任务标题 / Run 文件夹名</span>
                 <input
                   value={state.title}
                   onChange={(event) => onChange({ ...state, title: event.target.value })}
@@ -2285,7 +2275,7 @@ const CreateTaskDialog: React.FC<{
                 </span>
               </label>
               <label className="lg:col-span-2">
-                <span className="text-xs font-black text-theme-text-secondary">Profile</span>
+                <span className="text-xs font-medium text-theme-text-secondary">Profile</span>
                 <select
                   value={state.profileId}
                   onChange={(event) => {
@@ -2324,7 +2314,7 @@ const CreateTaskDialog: React.FC<{
 
             <div className="mt-5 grid grid-cols-1 gap-4 xl:grid-cols-2">
               <div className="rounded-lg border border-theme-border bg-theme-bg-app p-4">
-                <div className="flex items-center gap-2 text-sm font-black text-theme-text-primary">
+                <div className="flex items-center gap-2 text-sm font-semibold text-theme-text-primary">
                   <FolderOpen size={16} />
                   Runs 根目录
                 </div>
@@ -2336,14 +2326,14 @@ const CreateTaskDialog: React.FC<{
                     placeholder={DEFAULT_DATAFLOW_VULN_RUNS_ROOT}
                     style={FORM_INPUT_STYLE}
                   />
-                  <button type="button" onClick={() => setPickerField('workspacePath')} className="shrink-0 rounded-lg border border-theme-border bg-theme-bg-app px-3 py-2 text-xs font-black text-theme-text-secondary hover:bg-theme-elevated">
+                  <button type="button" onClick={() => setPickerField('workspacePath')} className="shrink-0 rounded-lg border border-theme-border bg-theme-bg-app px-3 py-2 text-xs font-medium text-theme-text-secondary hover:bg-theme-elevated">
                     选择
                   </button>
                 </div>
               </div>
 
               <div className="rounded-lg border border-theme-border bg-theme-bg-app p-4">
-                <div className="flex items-center gap-2 text-sm font-black text-theme-text-primary">
+                <div className="flex items-center gap-2 text-sm font-semibold text-theme-text-primary">
                   <FolderOpen size={16} />
                   数据流目录
                 </div>
@@ -2355,14 +2345,14 @@ const CreateTaskDialog: React.FC<{
                     placeholder="/case-a/data_flow"
                     style={FORM_INPUT_STYLE}
                   />
-                  <button type="button" onClick={() => setPickerField('dataFlowPath')} className="shrink-0 rounded-lg border border-theme-border bg-theme-bg-app px-3 py-2 text-xs font-black text-theme-text-secondary hover:bg-theme-elevated">
+                  <button type="button" onClick={() => setPickerField('dataFlowPath')} className="shrink-0 rounded-lg border border-theme-border bg-theme-bg-app px-3 py-2 text-xs font-medium text-theme-text-secondary hover:bg-theme-elevated">
                     选择
                   </button>
                 </div>
               </div>
 
               <div className="rounded-lg border border-theme-border bg-theme-bg-app p-4">
-                <div className="flex items-center gap-2 text-sm font-black text-theme-text-primary">
+                <div className="flex items-center gap-2 text-sm font-semibold text-theme-text-primary">
                   <FolderOpen size={16} />
                   代码目录
                 </div>
@@ -2374,7 +2364,7 @@ const CreateTaskDialog: React.FC<{
                     placeholder="/case-a/source"
                     style={FORM_INPUT_STYLE}
                   />
-                  <button type="button" onClick={() => setPickerField('sourcePath')} className="shrink-0 rounded-lg border border-theme-border bg-theme-bg-app px-3 py-2 text-xs font-black text-theme-text-secondary hover:bg-theme-elevated">
+                  <button type="button" onClick={() => setPickerField('sourcePath')} className="shrink-0 rounded-lg border border-theme-border bg-theme-bg-app px-3 py-2 text-xs font-medium text-theme-text-secondary hover:bg-theme-elevated">
                     选择
                   </button>
                 </div>
@@ -2383,15 +2373,15 @@ const CreateTaskDialog: React.FC<{
 
             <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-3">
               <label>
-                <span className="text-xs font-black text-theme-text-secondary">模型</span>
+                <span className="text-xs font-medium text-theme-text-secondary">模型</span>
                 <input value={state.model} onChange={(event) => onChange({ ...state, model: event.target.value })} style={FORM_INPUT_STYLE} />
               </label>
               <label>
-                <span className="text-xs font-black text-theme-text-secondary">Provider（可选）</span>
+                <span className="text-xs font-medium text-theme-text-secondary">Provider（可选）</span>
                 <input value={state.provider} onChange={(event) => onChange({ ...state, provider: event.target.value })} placeholder="openai / anthropic" style={FORM_INPUT_STYLE} />
               </label>
               <label>
-                <span className="text-xs font-black text-theme-text-secondary">Review Profile</span>
+                <span className="text-xs font-medium text-theme-text-secondary">Review Profile</span>
                 <select
                   value={state.reviewProfile}
                   onChange={(event) => {
@@ -2411,21 +2401,21 @@ const CreateTaskDialog: React.FC<{
                 ) : null}
               </label>
               <label>
-                <span className="text-xs font-black text-theme-text-secondary">最大评审轮次</span>
+                <span className="text-xs font-medium text-theme-text-secondary">最大评审轮次</span>
                 <input type="number" min={1} value={state.maxReviewCycles} onChange={(event) => onChange({ ...state, maxReviewCycles: Number(event.target.value) || 1 })} style={FORM_INPUT_STYLE} />
               </label>
               <label>
-                <span className="text-xs font-black text-theme-text-secondary">Pi Timeout 最大次数</span>
+                <span className="text-xs font-medium text-theme-text-secondary">Pi Timeout 最大次数</span>
                 <input type="number" min={1} value={state.timeoutMaxRetries} onChange={(event) => onChange({ ...state, timeoutMaxRetries: Number(event.target.value) || 1 })} style={FORM_INPUT_STYLE} />
                 <span className="mt-1 block text-[11px] leading-4 text-theme-text-muted">默认 3；Pi/provider 返回 timeout 时按该次数重发同一提示词。</span>
               </label>
               <label>
-                <span className="text-xs font-black text-theme-text-secondary">Pi Timeout 重试间隔（秒）</span>
+                <span className="text-xs font-medium text-theme-text-secondary">Pi Timeout 重试间隔（秒）</span>
                 <input type="number" min={0} value={state.timeoutRetryIntervalSeconds} onChange={(event) => onChange({ ...state, timeoutRetryIntervalSeconds: Math.max(0, Number(event.target.value) || 0) })} style={FORM_INPUT_STYLE} />
                 <span className="mt-1 block text-[11px] leading-4 text-theme-text-muted">默认 30；仅在最大次数大于 1 时生效。</span>
               </label>
               <label>
-                <span className="text-xs font-black text-theme-text-secondary">结果评审并发</span>
+                <span className="text-xs font-medium text-theme-text-secondary">结果评审并发</span>
                 <input type="number" min={1} value={state.resultReviewConcurrency} onChange={(event) => onChange({ ...state, resultReviewConcurrency: Number(event.target.value) || 1 })} style={FORM_INPUT_STYLE} />
               </label>
             </div>
@@ -2439,7 +2429,7 @@ const CreateTaskDialog: React.FC<{
                   className="mt-1 h-4 w-4 rounded border-emerald-300 text-emerald-400 focus:ring-emerald-600"
                 />
                 <span>
-                  <span className="flex items-center gap-2 text-sm font-black text-emerald-950">
+                  <span className="flex items-center gap-2 text-sm font-semibold text-emerald-950">
                     <ShieldCheck size={16} />
                     自动上报漏洞漏洞
                   </span>
@@ -2452,7 +2442,7 @@ const CreateTaskDialog: React.FC<{
 
             <div className="mt-4">
               <label>
-                <span className="text-xs font-black text-theme-text-secondary">运行时覆盖 JSON</span>
+                <span className="text-xs font-medium text-theme-text-secondary">运行时覆盖 JSON</span>
                 <textarea
                   value={state.runtimeOverridesText}
                   onChange={(event) => onChange({ ...state, runtimeOverridesText: event.target.value })}
@@ -2464,7 +2454,7 @@ const CreateTaskDialog: React.FC<{
           </div>
           <div className="flex justify-end gap-3 border-t border-theme-border px-5 py-4">
             <button onClick={onClose} disabled={submitting} className="rounded-lg border border-theme-border px-4 py-2 text-sm font-bold text-theme-text-secondary disabled:opacity-40">取消</button>
-            <button onClick={onSubmit} disabled={submitting} className="inline-flex items-center gap-2 rounded-lg bg-cyan-700 px-4 py-2 text-sm font-black text-white disabled:opacity-50">
+            <button onClick={onSubmit} disabled={submitting} className="inline-flex items-center gap-2 rounded-lg bg-cyan-700 px-4 py-2 text-sm font-medium text-white disabled:opacity-50">
               {submitting ? <Loader2 size={16} className="animate-spin" /> : <Play size={16} />}
               提交任务
             </button>
@@ -2798,8 +2788,8 @@ export const DataflowVulnConfigPage: React.FC<{ projectId: string; embedded?: bo
               <div>
                 <div className="flex flex-wrap items-center gap-2">
                   <Settings size={18} className="text-rose-400" />
-                  <h2 className="text-xl font-black text-theme-text-primary">数据流漏洞挖掘参数配置</h2>
-                  <span className="rounded-full border border-rose-500/20 bg-rose-500/15 px-3 py-1 text-[11px] font-black tracking-[0.12em] text-rose-400">
+                  <h2 className="text-xl font-semibold text-theme-text-primary">数据流漏洞挖掘参数配置</h2>
+                  <span className="rounded-full border border-rose-500/20 bg-rose-500/15 px-3 py-1 text-[11px] font-medium tracking-[0.12em] text-rose-400">
                     secflow-app-dataflow-vuln-scan
                   </span>
                 </div>
@@ -2836,7 +2826,7 @@ export const DataflowVulnConfigPage: React.FC<{ projectId: string; embedded?: bo
         <section className="grid grid-cols-1 gap-4 xl:grid-cols-[360px_minmax(680px,1fr)_420px]">
           <div className="space-y-4">
  <div className="rounded-lg border border-theme-border bg-theme-bg-app">
-              <div className="border-b border-theme-border px-4 py-3 text-sm font-black text-theme-text-primary">Profile 列表</div>
+              <div className="border-b border-theme-border px-4 py-3 text-sm font-semibold text-theme-text-primary">Profile 列表</div>
               <div className="max-h-[640px] overflow-auto p-2">
                 {profiles.map((profile) => (
                   <button
@@ -2850,8 +2840,8 @@ export const DataflowVulnConfigPage: React.FC<{ projectId: string; embedded?: bo
                     }`}
                   >
                     <div className="flex items-center justify-between gap-2">
-                      <span className="truncate text-sm font-black text-theme-text-primary">{profile.name}</span>
-                      {profile.is_default ? <span className="rounded-full bg-cyan-500/15 px-2 py-0.5 text-[10px] font-black text-cyan-400">默认</span> : null}
+                      <span className="truncate text-sm font-semibold text-theme-text-primary">{profile.name}</span>
+                      {profile.is_default ? <span className="rounded-full bg-cyan-500/15 px-2 py-0.5 text-[10px] font-semibold text-cyan-400">默认</span> : null}
                     </div>
                     <div className="mt-2 flex items-center gap-2 text-xs text-theme-text-muted">
                       <span>v{profile.version}</span>
@@ -2871,13 +2861,13 @@ export const DataflowVulnConfigPage: React.FC<{ projectId: string; embedded?: bo
                   <button
                     onClick={() => void setDefaultProfile(selectedProfile)}
                     disabled={selectedProfile.is_default}
-                    className="rounded-lg border border-theme-border px-3 py-2 text-xs font-black text-theme-text-secondary disabled:opacity-40"
+                    className="rounded-lg border border-theme-border px-3 py-2 text-xs font-medium text-theme-text-secondary disabled:opacity-40"
                   >
                     设为默认
                   </button>
                   <button
                     onClick={() => void toggleProfile(selectedProfile)}
-                    className={`rounded-lg px-3 py-2 text-xs font-black ${
+                    className={`rounded-lg px-3 py-2 text-xs font-medium ${
                       selectedProfile.enabled ? 'bg-rose-500/15 text-rose-400 border border-rose-500/20' : 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/20'
                     }`}
                   >
@@ -2891,13 +2881,13 @@ export const DataflowVulnConfigPage: React.FC<{ projectId: string; embedded?: bo
           <div className="space-y-4">
  <div className="rounded-lg border border-theme-border bg-theme-bg-app">
               <div className="border-b border-theme-border px-5 py-4">
-                <div className="text-sm font-black text-theme-text-primary">{form.profileId ? '编辑 Profile' : '新建 Profile'}</div>
+                <div className="text-sm font-semibold text-theme-text-primary">{form.profileId ? '编辑 Profile' : '新建 Profile'}</div>
                 <div className="mt-1 text-xs text-theme-text-muted">{form.profileId || '尚未保存'}</div>
               </div>
               <div className="space-y-5 p-5">
                 <div className="flex items-start justify-between gap-4">
                   <div>
-                    <div className="text-sm font-black text-theme-text-primary">基础信息</div>
+                    <div className="text-sm font-semibold text-theme-text-primary">基础信息</div>
                     <div className="mt-1 text-xs text-theme-text-muted">名称、模板类型、描述和默认启用状态。</div>
                   </div>
                   <PanelActions
@@ -2937,7 +2927,7 @@ export const DataflowVulnConfigPage: React.FC<{ projectId: string; embedded?: bo
               <div className="space-y-5 p-5">
                 <div className="flex items-start justify-between gap-4">
                   <div>
-                    <div className="text-sm font-black text-theme-text-primary">挖掘与评审参数</div>
+                    <div className="text-sm font-semibold text-theme-text-primary">挖掘与评审参数</div>
                     <div className="mt-1 text-xs text-theme-text-muted">模型、评审档位、评审轮次和结果评审并发。</div>
                   </div>
                   <PanelActions
@@ -2970,7 +2960,7 @@ export const DataflowVulnConfigPage: React.FC<{ projectId: string; embedded?: bo
               <div className="space-y-5 p-5">
                 <div className="flex items-start justify-between gap-4">
                   <div>
-                    <div className="text-sm font-black text-theme-text-primary">运行时覆盖</div>
+                    <div className="text-sm font-semibold text-theme-text-primary">运行时覆盖</div>
                     <div className="mt-1 text-xs text-theme-text-muted">针对当前 Profile 的`runtime_overrides` JSON。</div>
                   </div>
                   <PanelActions
@@ -2993,12 +2983,12 @@ export const DataflowVulnConfigPage: React.FC<{ projectId: string; embedded?: bo
 
           <div className="space-y-4">
  <div className="rounded-lg border border-theme-border bg-theme-bg-app">
-              <div className="border-b border-theme-border px-4 py-3 text-sm font-black text-theme-text-primary">版本记录</div>
+              <div className="border-b border-theme-border px-4 py-3 text-sm font-semibold text-theme-text-primary">版本记录</div>
               <div className="max-h-72 overflow-auto p-3">
                 {versions.map((version) => (
                   <div key={version.version_id} className="mb-2 rounded-lg border border-theme-border bg-theme-bg-app p-3">
                     <div className="flex items-center justify-between gap-3">
-                      <span className="text-sm font-black text-theme-text-primary">v{version.version}</span>
+                      <span className="text-sm font-semibold text-theme-text-primary">v{version.version}</span>
                       <span className="text-xs text-theme-text-muted">{formatDateTime(version.created_at)}</span>
                     </div>
                     <div className="mt-1 text-xs text-theme-text-muted">{version.created_by}</div>
@@ -3014,13 +3004,13 @@ export const DataflowVulnConfigPage: React.FC<{ projectId: string; embedded?: bo
  <div className="rounded-lg border border-theme-border bg-theme-bg-app p-4 xl:col-span-2">
             <div className="mb-4 flex items-center justify-between gap-3">
               <div>
-                <div className="flex items-center gap-2 text-sm font-black text-theme-text-primary"><Settings size={16} />调度与并发</div>
+                <div className="flex items-center gap-2 text-sm font-semibold text-theme-text-primary"><Settings size={16} />调度与并发</div>
                 <div className="mt-1 text-xs text-theme-text-muted">控制动态扩容自发现、槽位预留、批量分发、失联回收等关键参数。</div>
               </div>
               <button
                 onClick={() => void saveRuntimeConfig()}
                 disabled={!serviceRuntimeConfig || savingServiceConfig}
-                className="inline-flex items-center gap-2 rounded-lg bg-rose-600 px-4 py-2 text-sm font-black text-white disabled:opacity-50"
+                className="inline-flex items-center gap-2 rounded-lg bg-rose-600 px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
               >
                 <Save size={16} />
                 {savingServiceConfig ? '保存中...' : '保存调度参数'}
@@ -3071,11 +3061,11 @@ export const DataflowVulnConfigPage: React.FC<{ projectId: string; embedded?: bo
             </div>
           </div>
  <div className="rounded-lg border border-theme-border bg-theme-bg-app p-4">
-            <div className="mb-3 flex items-center gap-2 text-sm font-black text-theme-text-primary"><ServerCog size={16} />Agent 默认存储目录</div>
+            <div className="mb-3 flex items-center gap-2 text-sm font-semibold text-theme-text-primary"><ServerCog size={16} />Agent 默认存储目录</div>
             {serviceConfig?.agent_storage?.agents?.length ? (
               <div className="overflow-auto">
                 <table className="w-full min-w-[640px] text-left text-sm">
-                  <thead className="bg-theme-bg-app text-[11px] font-black uppercase tracking-[0.14em] text-theme-text-muted">
+                  <thead className="bg-theme-bg-app text-[11px] font-semibold uppercase tracking-[0.14em] text-theme-text-muted">
                     <tr>
                       <th className="px-3 py-2">Agent</th>
                       <th className="px-3 py-2">Root</th>
@@ -3102,11 +3092,11 @@ export const DataflowVulnConfigPage: React.FC<{ projectId: string; embedded?: bo
             )}
           </div>
  <div className="rounded-lg border border-theme-border bg-theme-bg-app p-4">
-            <div className="mb-3 flex items-center gap-2 text-sm font-black text-theme-text-primary"><Settings size={16} />项目有效配置</div>
+            <div className="mb-3 flex items-center gap-2 text-sm font-semibold text-theme-text-primary"><Settings size={16} />项目有效配置</div>
             <JsonBlock value={effectiveConfig || {}} />
           </div>
  <div className="rounded-lg border border-theme-border bg-theme-bg-app p-4">
-            <div className="mb-3 flex items-center gap-2 text-sm font-black text-theme-text-primary"><ServerCog size={16} />服务有效配置</div>
+            <div className="mb-3 flex items-center gap-2 text-sm font-semibold text-theme-text-primary"><ServerCog size={16} />服务有效配置</div>
             <JsonBlock value={serviceConfig || {}} />
           </div>
         </section>
@@ -3117,7 +3107,7 @@ export const DataflowVulnConfigPage: React.FC<{ projectId: string; embedded?: bo
 
 const Field: React.FC<{ label: string; children: React.ReactNode }> = ({ label, children }) => (
   <label className="block">
-    <span className="text-xs font-black text-theme-text-secondary">{label}</span>
+    <span className="text-xs font-medium text-theme-text-secondary">{label}</span>
     <div className="mt-2">{children}</div>
   </label>
 );

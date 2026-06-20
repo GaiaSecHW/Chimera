@@ -39,6 +39,9 @@ import { SystemAnalysisConfigPage } from '../pages/execution/SystemAnalysisConfi
 import { DataflowVulnScanTaskPage } from '../pages/execution/DataflowVulnScanTaskPage';
 import { DataflowVulnScanTaskDetailPage } from '../pages/execution/DataflowVulnScanTaskDetailPage';
 import { DataflowVulnScanConfigPage } from '../pages/execution/DataflowVulnScanConfigPage';
+import { CfgGuidedExploreTaskPage } from '../pages/execution/CfgGuidedExploreTaskPage';
+import { CfgGuidedExploreTaskDetailPage } from '../pages/execution/CfgGuidedExploreTaskDetailPage';
+import { CfgGuidedExploreConfigPage } from '../pages/execution/CfgGuidedExploreConfigPage';
 import { VulnVerifyTaskPage } from '../pages/execution/VulnVerifyTaskPage';
 import { EntryAnalysisTaskPage } from '../pages/execution/EntryAnalysisTaskPage';
 import { EntryAnalysisTaskDetailPage } from '../pages/execution/EntryAnalysisTaskDetailPage';
@@ -141,9 +144,11 @@ export interface ViewRegistryContext {
   activeEntryAnalysisTaskId: string;
   activeDataflowAnalysisTaskId: string;
   activeDataflowVulnScanTaskId: string;
+  activeCfgGuidedExploreTaskId: string;
   activeFirmwareUnpackerTaskId: string;
   activeBinarySecurityTaskId: string;
   activeSourceSecurityTaskId: string;
+  activeKgSourceSecurityTaskId: string;
   activeBinaryModuleSecurityTaskId: string;
   activeAppScanTaskId: string;
   activeRedlineTaskId: string;
@@ -164,9 +169,11 @@ export interface ViewRegistryContext {
   setActiveEntryAnalysisTaskId: (id: string) => void;
   setActiveDataflowAnalysisTaskId: (id: string) => void;
   setActiveDataflowVulnScanTaskId: (id: string) => void;
+  setActiveCfgGuidedExploreTaskId: (id: string) => void;
   setActiveFirmwareUnpackerTaskId: (id: string) => void;
   setActiveBinarySecurityTaskId: (id: string) => void;
   setActiveSourceSecurityTaskId: (id: string) => void;
+  setActiveKgSourceSecurityTaskId: (id: string) => void;
   setActiveBinaryModuleSecurityTaskId: (id: string) => void;
   setActiveAppScanTaskId: (id: string) => void;
   setActiveRedlineTaskId: (id: string) => void;
@@ -180,7 +187,7 @@ export interface ViewRegistryContext {
 
 const EmptyPlaceholderPage: React.FC<{ title: string }> = ({ title }) => (
   <div className="p-10 h-full flex items-center justify-center">
-    <h2 className="text-2xl font-black text-theme-text-faint">{title}</h2>
+    <h2 className="text-2xl font-semibold text-theme-text-faint">{title}</h2>
   </div>
 );
 
@@ -374,7 +381,7 @@ export const renderCurrentView = (ctx: ViewRegistryContext): React.ReactNode => 
     case 'dataflow-analysis-config':
       return (
         <div className="p-20 text-center">
-          <h3 className="text-xl font-black text-slate-400">数据流漏洞挖掘前端页面已下线</h3>
+          <h3 className="text-xl font-semibold text-slate-400">数据流漏洞挖掘前端页面已下线</h3>
           <p className="mt-3 text-sm text-slate-500">该功能入口已从导航中移除。</p>
         </div>
       );
@@ -400,6 +407,28 @@ export const renderCurrentView = (ctx: ViewRegistryContext): React.ReactNode => 
       );
     case 'dataflow-vuln-scan-config':
       return <DataflowVulnScanConfigPage projectId={ctx.selectedProjectId} />;
+    case 'pentest-cfg-guided-explore':
+    case 'cfg-guided-explore-task':
+      return (
+        <CfgGuidedExploreTaskPage
+          projectId={ctx.selectedProjectId}
+          onOpenTask={(taskId) => {
+            saveExecutionReturnContext({ view: 'cfg-guided-explore-task' });
+            ctx.setActiveCfgGuidedExploreTaskId(taskId);
+            ctx.setCurrentView('cfg-guided-explore-detail');
+          }}
+        />
+      );
+    case 'cfg-guided-explore-detail':
+      return (
+        <CfgGuidedExploreTaskDetailPage
+          projectId={ctx.selectedProjectId}
+          taskId={ctx.activeCfgGuidedExploreTaskId}
+          onBack={() => ctx.setCurrentView('cfg-guided-explore-task')}
+        />
+      );
+    case 'cfg-guided-explore-config':
+      return <CfgGuidedExploreConfigPage projectId={ctx.selectedProjectId} />;
     case 'pentest-vuln-verify':
     case 'vuln-verify-task':
       return <VulnVerifyTaskPage projectId={ctx.selectedProjectId} />;
@@ -583,6 +612,7 @@ export const renderCurrentView = (ctx: ViewRegistryContext): React.ReactNode => 
         <BinarySecurityOverviewPage
           projectId={ctx.selectedProjectId}
           taskType="source"
+          sourcePipelineProfileMode="default"
           onOpenTask={(taskId) => {
             ctx.setActiveSourceSecurityTaskId(taskId);
             ctx.setCurrentView('source-security-detail');
@@ -595,6 +625,7 @@ export const renderCurrentView = (ctx: ViewRegistryContext): React.ReactNode => 
           <BinarySecurityOverviewPage
             projectId={ctx.selectedProjectId}
             taskType="source"
+            sourcePipelineProfileMode="default"
             onOpenTask={(taskId) => {
               ctx.setActiveSourceSecurityTaskId(taskId);
               ctx.setCurrentView('source-security-detail');
@@ -608,6 +639,40 @@ export const renderCurrentView = (ctx: ViewRegistryContext): React.ReactNode => 
           taskId={ctx.activeSourceSecurityTaskId}
           taskType="source"
           onBack={() => ctx.setCurrentView(consumeTaskCenterReturnContext() ? 'task-list' : 'source-security')}
+        />
+      );
+    case 'kg-source-security':
+      return (
+        <BinarySecurityOverviewPage
+          projectId={ctx.selectedProjectId}
+          taskType="source"
+          sourcePipelineProfileMode="kg_source_vuln_scan"
+          onOpenTask={(taskId) => {
+            ctx.setActiveKgSourceSecurityTaskId(taskId);
+            ctx.setCurrentView('kg-source-security-detail');
+          }}
+        />
+      );
+    case 'kg-source-security-detail':
+      if (!ctx.activeKgSourceSecurityTaskId) {
+        return (
+          <BinarySecurityOverviewPage
+            projectId={ctx.selectedProjectId}
+            taskType="source"
+            sourcePipelineProfileMode="kg_source_vuln_scan"
+            onOpenTask={(taskId) => {
+              ctx.setActiveKgSourceSecurityTaskId(taskId);
+              ctx.setCurrentView('kg-source-security-detail');
+            }}
+          />
+        );
+      }
+      return (
+        <BinarySecurityTaskDetailPage
+          projectId={ctx.selectedProjectId}
+          taskId={ctx.activeKgSourceSecurityTaskId}
+          taskType="source"
+          onBack={() => ctx.setCurrentView(consumeTaskCenterReturnContext() ? 'task-list' : 'kg-source-security')}
         />
       );
     case 'binary-module-security':
@@ -808,7 +873,7 @@ export const renderCurrentView = (ctx: ViewRegistryContext): React.ReactNode => 
     default: {
       return (
         <div className="p-20 text-center">
-          <h3 className="text-xl font-black text-slate-400">模块 "{ctx.currentView}" 开发中...</h3>
+          <h3 className="text-xl font-semibold text-slate-400">模块 "{ctx.currentView}" 开发中...</h3>
         </div>
       );
     }

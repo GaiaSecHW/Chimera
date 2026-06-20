@@ -10,6 +10,7 @@ import { ServicePageTitle, useServiceBuildVersion } from '../../components/execu
 import { B2SStatusBadge, B2S_TERMINAL_STATUSES, formatB2SOverallProgressBasis, formatB2SStatus, formatDateTime, pct } from './b2sPresentation';
 import { SlotResourceBlock } from './slotResourceBlock';
 import { showConfirm } from '../../components/DialogService';
+import { PageHeader } from '../../design-system';
 
 interface Props {
   projectId: string;
@@ -528,19 +529,15 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
 
   return (
     <div className="px-8 pb-10 pt-8 space-y-6">
- <section className="rounded-[2rem] border border-theme-border bg-theme-bg-app p-6">
-        <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
-          <div>
-            <ServicePageTitle title="二进制逆向" version={buildVersion} />
-            <p className="mt-2 max-w-3xl text-sm text-theme-text-muted">
-              集中查看当前项目关联的代码逆向还原任务，统一管理状态、进度、阶段与结果，并从同一入口创建新的逆向任务。
-            </p>
-          </div>
+      <PageHeader
+        title={<ServicePageTitle title="二进制逆向" version={buildVersion} className="" />}
+        description="集中查看当前项目关联的代码逆向还原任务，统一管理状态、进度、阶段与结果，并从同一入口创建新的逆向任务。"
+        actions={
           <div className="flex items-center gap-3">
             <button
               type="button"
               onClick={openCreateDialog}
- className="inline-flex items-center gap-2 rounded-xl bg-theme-surface px-4 py-2.5 text-sm font-bold text-white hover:bg-theme-elevated"
+              className="inline-flex items-center gap-2 rounded-xl bg-theme-surface px-4 py-2.5 text-sm font-bold text-white hover:bg-theme-elevated"
             >
               <Plus size={16} />
               创建任务
@@ -551,14 +548,14 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
                 void load(false);
                 void loadPiClusterCapacity();
               }}
- className="inline-flex items-center gap-2 rounded-xl border border-theme-border bg-theme-bg-app px-4 py-2.5 text-sm font-bold text-theme-text-secondary hover:bg-theme-elevated"
+              className="inline-flex items-center gap-2 rounded-xl border border-theme-border bg-theme-surface px-4 py-2.5 text-sm font-bold text-theme-text-secondary hover:bg-theme-elevated"
             >
               {refreshing ? <Loader2 size={16} className="animate-spin" /> : <RefreshCw size={16} />}
               {refreshing ? '刷新中...' : '刷新'}
             </button>
           </div>
-        </div>
-      </section>
+        }
+      />
 
       {error && (
         <div className="rounded-2xl border border-rose-500/20 bg-rose-500/15 px-4 py-3 text-sm font-semibold text-rose-400">
@@ -571,18 +568,18 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
         </div>
       )}
 
- <section className="rounded-[2rem] border border-theme-border bg-slate-50/70 p-5">
+ <section className="rounded-xl border border-theme-border bg-slate-50/70 p-5">
         <B2SStatsHeader stats={stats} title="当前项目逆向统计" />
       </section>
 
- <section className="rounded-[2rem] border border-theme-border bg-theme-bg-app p-5">
+ <section className="rounded-xl border border-theme-border bg-theme-surface p-5">
         <button
           type="button"
           onClick={() => setSlotPanelExpanded((current) => !current)}
           className="flex w-full flex-col gap-4 text-left lg:flex-row lg:items-start lg:justify-between"
         >
           <div>
-            <h2 className="text-xl font-black text-theme-text-primary">执行槽位</h2>
+            <h2 className="text-xl font-semibold text-theme-text-primary">执行槽位</h2>
             <p className="mt-1 text-sm text-theme-text-muted">展示当前 PI RE Agent 集群的缓存快照、运行中的 job 数量和各 worker 健康度。</p>
           </div>
           <div className="flex flex-wrap items-center gap-3">
@@ -596,7 +593,7 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
                 event.stopPropagation();
                 setShowSlotDetailModal(true);
               }}
-              className="inline-flex items-center gap-2 rounded-xl border border-theme-border bg-theme-bg-app px-3 py-2 text-xs font-bold text-theme-text-secondary hover:bg-theme-elevated"
+              className="inline-flex items-center gap-2 rounded-xl border border-theme-border bg-theme-surface px-3 py-2 text-xs font-bold text-theme-text-secondary hover:bg-theme-elevated"
             >
               查看详情
             </button>
@@ -606,14 +603,14 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
                 event.stopPropagation();
                 void loadPiClusterCapacity();
               }}
-              className="inline-flex items-center gap-2 rounded-xl border border-theme-border bg-theme-bg-app px-3 py-2 text-xs font-bold text-theme-text-secondary hover:bg-theme-elevated"
+              className="inline-flex items-center gap-2 rounded-xl border border-theme-border bg-theme-surface px-3 py-2 text-xs font-bold text-theme-text-secondary hover:bg-theme-elevated"
               title="手动刷新执行槽位"
               aria-label="手动刷新执行槽位"
             >
               <RefreshCw size={14} />
               手动刷新
             </button>
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-theme-border bg-theme-bg-app text-theme-text-muted">
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-theme-border bg-theme-surface text-theme-text-muted">
               {slotPanelExpanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
             </div>
           </div>
@@ -622,20 +619,20 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
           <>
             <div className="mt-5 grid gap-3 md:grid-cols-4">
               <div className="rounded-2xl border border-cyan-500/20 bg-cyan-500/15 px-4 py-3">
-                <div className="text-[11px] font-black uppercase tracking-[0.24em] text-cyan-400">总槽位</div>
-                <div className="mt-2 text-2xl font-black text-theme-text-primary">{piClusterCapacity?.total_capacity ?? '-'}</div>
+                <div className="text-[11px] font-semibold uppercase tracking-[0.24em] text-cyan-400">总槽位</div>
+                <div className="mt-2 text-2xl font-bold text-theme-text-primary">{piClusterCapacity?.total_capacity ?? '-'}</div>
               </div>
               <div className="rounded-2xl border border-amber-500/20 bg-amber-500/15 px-4 py-3">
-                <div className="text-[11px] font-black uppercase tracking-[0.24em] text-amber-400">运行中</div>
-                <div className="mt-2 text-2xl font-black text-theme-text-primary">{piClusterCapacity?.running_jobs ?? '-'}</div>
+                <div className="text-[11px] font-semibold uppercase tracking-[0.24em] text-amber-400">运行中</div>
+                <div className="mt-2 text-2xl font-bold text-theme-text-primary">{piClusterCapacity?.running_jobs ?? '-'}</div>
               </div>
               <div className="rounded-2xl border border-emerald-500/20 bg-emerald-500/15 px-4 py-3">
-                <div className="text-[11px] font-black uppercase tracking-[0.24em] text-emerald-400">空闲槽位</div>
-                <div className="mt-2 text-2xl font-black text-theme-text-primary">{piClusterCapacity?.available_slots ?? '-'}</div>
+                <div className="text-[11px] font-semibold uppercase tracking-[0.24em] text-emerald-400">空闲槽位</div>
+                <div className="mt-2 text-2xl font-bold text-theme-text-primary">{piClusterCapacity?.available_slots ?? '-'}</div>
               </div>
-              <div className="rounded-2xl border border-theme-border bg-theme-bg-app px-4 py-3">
-                <div className="text-[11px] font-black uppercase tracking-[0.24em] text-theme-text-secondary">排队 Job</div>
-                <div className="mt-2 text-2xl font-black text-theme-text-primary">{piClusterCapacity?.queued_jobs ?? '-'}</div>
+              <div className="rounded-2xl border border-theme-border bg-theme-surface px-4 py-3">
+                <div className="text-[11px] font-semibold uppercase tracking-[0.24em] text-theme-text-secondary">排队 Job</div>
+                <div className="mt-2 text-2xl font-bold text-theme-text-primary">{piClusterCapacity?.queued_jobs ?? '-'}</div>
               </div>
             </div>
             <div className="mt-4 flex flex-wrap gap-3">
@@ -649,7 +646,7 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
                   }`}
                 >
                   <div className="flex items-center justify-between gap-3">
-                    <div className="text-sm font-black text-theme-text-primary">{worker.worker_id}</div>
+                    <div className="text-sm font-semibold text-theme-text-primary">{worker.worker_id}</div>
                     <div className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${
                       worker.healthy ? 'bg-emerald-500/15 text-emerald-400' : 'bg-rose-500/15 text-rose-400'
                     }`}>
@@ -681,7 +678,7 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
                 </div>
               ))}
               {piClusterCapacity && (piClusterCapacity.workers || []).length === 0 ? (
-                <div className="rounded-2xl border border-dashed border-theme-border bg-theme-bg-app px-4 py-6 text-sm text-theme-text-muted">
+                <div className="rounded-2xl border border-dashed border-theme-border bg-theme-surface px-4 py-6 text-sm text-theme-text-muted">
                   当前未发现可用的 PI RE Agent worker。
                 </div>
               ) : null}
@@ -692,10 +689,10 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
 
       {showSlotDetailModal ? (
         <div className="fixed inset-0 z-[180] flex items-center justify-center bg-slate-950/65 p-4 backdrop-blur-sm" onClick={() => setShowSlotDetailModal(false)}>
-          <div className="w-full max-w-5xl rounded-[2rem] border border-theme-border bg-theme-elevated shadow-panel" onClick={(event) => event.stopPropagation()}>
+          <div className="w-full max-w-5xl rounded-2xl border border-theme-border bg-theme-elevated shadow-panel" onClick={(event) => event.stopPropagation()}>
             <div className="flex items-start justify-between gap-4 border-b border-theme-border px-6 py-5">
               <div>
-                <h3 className="text-2xl font-black tracking-tight text-slate-200">执行槽位详情</h3>
+                <h3 className="text-2xl font-bold tracking-tight text-slate-200">执行槽位详情</h3>
                 <p className="mt-2 text-sm text-theme-text-muted">按 worker 展示当前正在执行的逆向任务；点击每个 worker 头部展开或收起详细信息。</p>
               </div>
               <div className="flex items-center gap-3">
@@ -708,7 +705,7 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
                 <button
                   type="button"
                   onClick={() => setShowSlotDetailModal(false)}
-                  className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-theme-border bg-theme-bg-app text-theme-text-secondary hover:bg-theme-elevated"
+                  className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-theme-border bg-theme-surface text-theme-text-secondary hover:bg-theme-elevated"
                   aria-label="关闭执行槽位详情"
                 >
                   <X size={16} />
@@ -717,7 +714,7 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
             </div>
             <div className="max-h-[75vh] overflow-auto px-6 py-5">
               {(piClusterCapacity?.workers || []).length === 0 ? (
-                <div className="rounded-2xl border border-dashed border-theme-border bg-theme-bg-app px-4 py-10 text-center text-sm text-theme-text-muted">
+                <div className="rounded-2xl border border-dashed border-theme-border bg-theme-surface px-4 py-10 text-center text-sm text-theme-text-muted">
                   当前未发现可用的 PI RE Agent worker。
                 </div>
               ) : (
@@ -729,7 +726,7 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
                     return (
                       <section
                         key={worker.worker_id}
-                        className={`overflow-hidden rounded-[1.5rem] border ${
+                        className={`overflow-hidden rounded-xl border ${
                           worker.healthy ? 'border-theme-border bg-theme-bg-app' : 'border-rose-500/20 bg-rose-50/70'
                         }`}
                       >
@@ -740,7 +737,7 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
                         >
                           <div className="min-w-0">
                             <div className="flex flex-wrap items-center gap-2">
-                              <div className="text-sm font-black text-theme-text-primary">{worker.worker_id}</div>
+                              <div className="text-sm font-semibold text-theme-text-primary">{worker.worker_id}</div>
                               <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${
                                 worker.healthy ? 'bg-emerald-500/15 text-emerald-400' : 'bg-rose-500/15 text-rose-400'
                               }`}>
@@ -768,7 +765,7 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
                               />
                             </div>
                           </div>
-                          <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-theme-border bg-theme-bg-app text-theme-text-muted">
+                          <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-theme-border bg-theme-surface text-theme-text-muted">
                             {expanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
                           </div>
                         </button>
@@ -783,7 +780,7 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
                                 明细拉取失败。{worker.error}
                               </div>
                             ) : activeJobs.length === 0 ? (
-                              <div className="rounded-2xl border border-dashed border-theme-border bg-theme-bg-app px-4 py-8 text-center text-sm text-theme-text-muted">
+                              <div className="rounded-2xl border border-dashed border-theme-border bg-theme-surface px-4 py-8 text-center text-sm text-theme-text-muted">
                                 当前无运行中逆向任务。
                               </div>
                             ) : (
@@ -800,7 +797,7 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
                                     <div className="flex flex-wrap items-start justify-between gap-3">
                                       <div className="min-w-0 flex-1">
                                         <div className="flex flex-wrap items-center gap-2">
-                                          <div className="truncate text-sm font-black text-theme-text-primary" title={job.elf_name || job.elf_path || job.pi_job_id}>
+                                          <div className="truncate text-sm font-semibold text-theme-text-primary" title={job.elf_name || job.elf_path || job.pi_job_id}>
                                             {job.elf_name || job.elf_path || job.pi_job_id}
                                           </div>
                                           <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${
@@ -811,14 +808,14 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
                                         </div>
                                         <div className="mt-1 break-all font-mono text-[11px] text-theme-text-muted">{job.elf_path || '-'}</div>
                                       </div>
-                                      <div className="rounded-xl border border-theme-border bg-theme-bg-app px-3 py-2 text-[11px] text-theme-text-muted">
+                                      <div className="rounded-xl border border-theme-border bg-theme-surface px-3 py-2 text-[11px] text-theme-text-muted">
                                         <div className="font-semibold text-theme-text-secondary">pi job</div>
                                         <div className="mt-1 font-mono">{job.pi_job_id}</div>
                                       </div>
                                     </div>
                                     <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
                                       <div className="rounded-xl border border-theme-border bg-theme-elevated px-3 py-3">
-                                        <div className="text-[10px] font-black uppercase tracking-[0.2em] text-theme-text-muted">归属任务</div>
+                                        <div className="text-[10px] font-semibold uppercase tracking-[0.2em] text-theme-text-muted">归属任务</div>
                                         {job.mapped && job.task_id ? (
                                           <>
                                             <button
@@ -838,24 +835,24 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
                                         )}
                                       </div>
                                       <div className="rounded-xl border border-theme-border bg-theme-elevated px-3 py-3">
-                                        <div className="text-[10px] font-black uppercase tracking-[0.2em] text-theme-text-muted">总任务 ID</div>
+                                        <div className="text-[10px] font-semibold uppercase tracking-[0.2em] text-theme-text-muted">总任务 ID</div>
                                         <div className="mt-2 break-all font-mono text-sm text-theme-text-faint">{job.parent_task_id || '-'}</div>
                                       </div>
                                       <div className="rounded-xl border border-theme-border bg-theme-elevated px-3 py-3">
-                                        <div className="text-[10px] font-black uppercase tracking-[0.2em] text-theme-text-muted">执行位置</div>
+                                        <div className="text-[10px] font-semibold uppercase tracking-[0.2em] text-theme-text-muted">执行位置</div>
                                         <div className="mt-2 text-sm font-semibold text-theme-text-faint">{formatPiJobStage(job)}</div>
                                         <div className="mt-1 text-[11px] text-theme-text-muted">{job.current_function || '当前函数信息暂缺'}</div>
                                       </div>
                                       <div className="rounded-xl border border-theme-border bg-theme-elevated px-3 py-3">
-                                        <div className="text-[10px] font-black uppercase tracking-[0.2em] text-theme-text-muted">开始时间</div>
+                                        <div className="text-[10px] font-semibold uppercase tracking-[0.2em] text-theme-text-muted">开始时间</div>
                                         <div className="mt-2 text-sm font-semibold text-theme-text-faint">{formatDateTime(job.started_at)}</div>
                                       </div>
                                       <div className="rounded-xl border border-theme-border bg-theme-elevated px-3 py-3">
-                                        <div className="text-[10px] font-black uppercase tracking-[0.2em] text-theme-text-muted">最近更新时间</div>
+                                        <div className="text-[10px] font-semibold uppercase tracking-[0.2em] text-theme-text-muted">最近更新时间</div>
                                         <div className="mt-2 text-sm font-semibold text-theme-text-faint">{formatDateTime(job.updated_at)}</div>
                                       </div>
                                       <div className="rounded-xl border border-theme-border bg-theme-elevated px-3 py-3">
-                                        <div className="text-[10px] font-black uppercase tracking-[0.2em] text-theme-text-muted">任务项</div>
+                                        <div className="text-[10px] font-semibold uppercase tracking-[0.2em] text-theme-text-muted">任务项</div>
                                         <div className="mt-2 text-sm font-semibold text-theme-text-faint">
                                           {job.sequence_no != null ?`#${job.sequence_no}` : '-'}
                                         </div>
@@ -878,10 +875,10 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
         </div>
       ) : null}
 
- <section className="rounded-[2rem] border border-theme-border bg-theme-bg-app p-5">
+ <section className="rounded-xl border border-theme-border bg-theme-surface p-5">
         <div className="flex items-center justify-between gap-3 border-b border-theme-border pb-4">
           <div>
-            <h2 className="text-xl font-black text-theme-text-primary">任务列表</h2>
+            <h2 className="text-xl font-semibold text-theme-text-primary">任务列表</h2>
             <p className="mt-1 text-sm text-theme-text-muted">
               展示任务状态、进度、阶段摘要与最近更新时间，并支持筛选、分页和自动刷新。点击“任务”列进入详情；点击“状态”或“总任务 ID”单元格可快速切换筛选。
             </p>
@@ -994,7 +991,7 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
               </div>
             ) : null}
             {pagedItems.length === 0 ? (
-              <div className="rounded-xl border border-dashed border-theme-border bg-theme-bg-app py-10 text-center text-xs text-theme-text-muted">
+              <div className="rounded-xl border border-dashed border-theme-border bg-theme-surface py-10 text-center text-xs text-theme-text-muted">
                 当前筛选条件下没有匹配的任务。
               </div>
             ) : (
@@ -1113,7 +1110,7 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
                           <button
                             type="button"
                             onClick={() => onOpenTask(task.id)}
-                            className="truncate text-left text-sm font-black text-theme-text-primary hover:text-cyan-400"
+                            className="truncate text-left text-sm font-semibold text-theme-text-primary hover:text-cyan-400"
                             title={task.name || task.id}
                           >
                             {task.name || task.id}
@@ -1274,10 +1271,10 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
 
       {showCreateDialog && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/40 px-4">
- <div className="w-full max-w-5xl rounded-[2rem] border border-theme-border bg-theme-bg-app">
+ <div className="w-full max-w-5xl rounded-2xl border border-theme-border bg-theme-surface">
             <div className="flex items-center justify-between border-b border-theme-border px-6 py-5">
               <div>
-                <h3 className="text-xl font-black text-theme-text-primary">创建二进制逆向任务</h3>
+                <h3 className="text-xl font-semibold text-theme-text-primary">创建二进制逆向任务</h3>
                 <p className="mt-1 text-sm text-theme-text-muted">上传 ELF 文件并发起代码逆向还原任务。</p>
               </div>
               <button type="button" onClick={closeCreateDialog} disabled={submitting} className="text-sm font-semibold text-theme-text-muted hover:text-theme-text-secondary disabled:opacity-50">
@@ -1329,11 +1326,11 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
                         setModeOverridden(true);
                       }}
                       disabled={submitting}
-                      className={`rounded-3xl border px-4 py-4 text-left transition-all ${runMode === 'turbo' ? 'border-amber-300 bg-amber-500/15 ring-2 ring-amber-100' : 'border-theme-border bg-theme-bg-app hover:bg-theme-elevated'} disabled:opacity-60`}
+                      className={`rounded-xl border px-4 py-4 text-left transition-all ${runMode === 'turbo' ? 'border-amber-300 bg-amber-500/15 ring-2 ring-amber-100' : 'border-theme-border bg-theme-surface hover:bg-theme-elevated'} disabled:opacity-60`}
                     >
                       <div className="flex items-center justify-between gap-3">
-                        <div className="text-sm font-black text-theme-text-primary">极速模式</div>
-                        <div className="rounded-full bg-theme-bg-app px-2.5 py-1 text-[10px] font-black tracking-[0.08em] text-amber-400 ring-1 ring-amber-100">极速</div>
+                        <div className="text-sm font-semibold text-theme-text-primary">极速模式</div>
+                        <div className="rounded-full bg-theme-bg-app px-2.5 py-1 text-[10px] font-medium tracking-[0.08em] text-amber-400 ring-1 ring-amber-100">极速</div>
                       </div>
                       <div className="mt-2 text-xs font-semibold leading-5 text-theme-text-muted">优先命中缓存和极速收敛，适合大批量快速扫一遍。</div>
                     </button>
@@ -1344,11 +1341,11 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
                         setModeOverridden(true);
                       }}
                       disabled={submitting}
-                      className={`rounded-3xl border px-4 py-4 text-left transition-all ${runMode === 'fast' ? 'border-cyan-300 bg-cyan-500/15 ring-2 ring-cyan-100' : 'border-theme-border bg-theme-bg-app hover:bg-theme-elevated'} disabled:opacity-60`}
+                      className={`rounded-xl border px-4 py-4 text-left transition-all ${runMode === 'fast' ? 'border-cyan-300 bg-cyan-500/15 ring-2 ring-cyan-100' : 'border-theme-border bg-theme-surface hover:bg-theme-elevated'} disabled:opacity-60`}
                     >
                       <div className="flex items-center justify-between gap-3">
-                        <div className="text-sm font-black text-theme-text-primary">快速模式</div>
-                        <div className="rounded-full bg-theme-bg-app px-2.5 py-1 text-[10px] font-black tracking-[0.08em] text-cyan-400 ring-1 ring-cyan-100">推荐</div>
+                        <div className="text-sm font-semibold text-theme-text-primary">快速模式</div>
+                        <div className="rounded-full bg-theme-bg-app px-2.5 py-1 text-[10px] font-medium tracking-[0.08em] text-cyan-400 ring-1 ring-cyan-100">推荐</div>
                       </div>
                       <div className="mt-2 text-xs font-semibold leading-5 text-theme-text-muted">优先速度，使用混合流水线，适合初步分析和批量还原。</div>
                     </button>
@@ -1359,11 +1356,11 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
                         setModeOverridden(true);
                       }}
                       disabled={submitting}
-                      className={`rounded-3xl border px-4 py-4 text-left transition-all ${runMode === 'deep' ? 'border-violet-300 bg-violet-500/15 ring-2 ring-violet-100' : 'border-theme-border bg-theme-bg-app hover:bg-theme-elevated'} disabled:opacity-60`}
+                      className={`rounded-xl border px-4 py-4 text-left transition-all ${runMode === 'deep' ? 'border-violet-300 bg-violet-500/15 ring-2 ring-violet-100' : 'border-theme-border bg-theme-surface hover:bg-theme-elevated'} disabled:opacity-60`}
                     >
                       <div className="flex items-center justify-between gap-3">
-                        <div className="text-sm font-black text-theme-text-primary">深度模式</div>
-                        <div className="rounded-full bg-theme-bg-app px-2.5 py-1 text-[10px] font-black tracking-[0.08em] text-violet-400 ring-1 ring-violet-100">高质量</div>
+                        <div className="text-sm font-semibold text-theme-text-primary">深度模式</div>
+                        <div className="rounded-full bg-theme-bg-app px-2.5 py-1 text-[10px] font-medium tracking-[0.08em] text-violet-400 ring-1 ring-violet-100">高质量</div>
                       </div>
                       <div className="mt-2 text-xs font-semibold leading-5 text-theme-text-muted">使用 Agent 深度推理，速度较慢，适合关键二进制和高质量还原。</div>
                     </button>
@@ -1379,7 +1376,7 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
                     value={llmProviderKey}
                     onChange={(e) => setLlmProviderKey(e.target.value)}
                     disabled={llmProvidersLoading || llmProviders.length === 0}
-                    className="mt-2 w-full rounded-2xl border border-theme-border px-4 py-3 text-sm disabled:bg-theme-bg-app disabled:text-theme-text-muted"
+                    className="mt-2 w-full rounded-2xl border border-theme-border px-4 py-3 text-sm disabled:bg-theme-surface disabled:text-theme-text-muted"
                   >
                     {llmProviders.length === 0 && <option value="">{llmProvidersLoading ? '加载中...' : '使用后端默认 Provider'}</option>}
                     {!hasSelectedProviderInList && llmProviderKey ? (
@@ -1394,15 +1391,15 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
                     ))}
                   </select>
                 </label>
-                <div className="rounded-3xl border border-emerald-500/20 bg-emerald-50/70 p-4">
+                <div className="rounded-xl border border-emerald-500/20 bg-emerald-50/70 p-4">
                   <div className="flex items-start justify-between gap-4">
                     <div>
-                      <div className="text-sm font-black text-theme-text-primary">复用已有缓存</div>
+                      <div className="text-sm font-semibold text-theme-text-primary">复用已有缓存</div>
                       <div className="mt-1 text-xs font-semibold leading-5 text-theme-text-secondary">
                         默认开启。关闭后，本次会忽略历史缓存；如果任务成功，会覆盖当前 ELF 在 {B2S_MODE_LABELS[runMode]} 下的缓存结果。
                       </div>
                     </div>
-                    <label className="inline-flex items-center gap-2 rounded-full border border-emerald-500/20 bg-theme-bg-app px-3 py-1.5 text-xs font-black text-emerald-400">
+                    <label className="inline-flex items-center gap-2 rounded-full border border-emerald-500/20 bg-theme-bg-app px-3 py-1.5 text-xs font-semibold text-emerald-400">
                       <input
                         type="checkbox"
                         checked={reuseCache}
@@ -1421,9 +1418,9 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
                   <span className="text-xs font-semibold text-theme-text-muted">本地 {selectedFiles.length} · 文件服务 {selectedServerFiles.length}</span>
                 </div>
                 <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-                  <label className="flex cursor-pointer flex-col items-center justify-center rounded-3xl border-2 border-dashed border-theme-border bg-theme-bg-app px-6 py-8 text-center hover:border-slate-400 hover:bg-theme-elevated">
+                  <label className="flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed border-theme-border bg-theme-surface px-6 py-8 text-center hover:border-slate-400 hover:bg-theme-elevated">
                     <UploadCloud size={28} className="text-theme-text-muted" />
-                    <span className="mt-3 text-sm font-black text-theme-text-primary">上传本地文件</span>
+                    <span className="mt-3 text-sm font-semibold text-theme-text-primary">上传本地文件</span>
                     <span className="mt-1 text-xs text-theme-text-muted">默认显示所有文件，支持批量上传。</span>
                     <input
                       type="file"
@@ -1435,14 +1432,14 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
                   <button
                     type="button"
                     onClick={() => setShowFilesystemPicker(true)}
-                    className="flex flex-col items-center justify-center rounded-3xl border-2 border-dashed border-cyan-300 bg-cyan-500/15 px-6 py-8 text-center hover:border-cyan-500 hover:bg-cyan-500/15"
+                    className="flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-cyan-300 bg-cyan-500/15 px-6 py-8 text-center hover:border-cyan-500 hover:bg-cyan-500/15"
                   >
                     <UploadCloud size={28} className="text-cyan-400" />
-                    <span className="mt-3 text-sm font-black text-cyan-300">从文件服务选择</span>
+                    <span className="mt-3 text-sm font-semibold text-cyan-300">从文件服务选择</span>
                     <span className="mt-1 text-xs text-cyan-400">选择项目文件系统中已有的 ELF，不重复上传。</span>
                   </button>
                 </div>
-                <div className="max-h-64 overflow-auto rounded-2xl border border-theme-border bg-theme-bg-app">
+                <div className="max-h-64 overflow-auto rounded-2xl border border-theme-border bg-theme-surface">
                   {selectedFiles.length === 0 && selectedServerFiles.length === 0 && <div className="px-4 py-5 text-center text-sm text-theme-text-muted">未选择文件</div>}
                   {selectedFiles.map((file, idx) => (
                     <div key={`local-${file.name}-${idx}`} className="flex items-center justify-between border-t border-theme-border px-4 py-3 text-sm first:border-t-0">

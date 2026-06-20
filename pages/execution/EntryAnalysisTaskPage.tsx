@@ -1,4 +1,4 @@
-﻿import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AlertTriangle, ArrowDownUp, CheckCircle2, ChevronDown, ChevronRight, ChevronUp, FolderOpen, Loader2, PlayCircle, Plus, RefreshCw, RotateCcw, Trash2, X, XCircle } from 'lucide-react';
 
 import { api } from '../../clients/api';
@@ -1066,8 +1066,8 @@ export const EntryAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?: (
           <div className="relative z-10 w-full max-w-5xl max-h-[90vh] overflow-hidden rounded-2xl border border-theme-border bg-theme-surface shadow-2xl">
             <div className="flex items-center justify-between border-b border-theme-border px-6 py-4">
               <div>
-                <div className="text-xs font-black uppercase tracking-[0.18em] text-violet-400">Slot Detail</div>
-                <h2 className="mt-1 text-lg font-black text-theme-text-primary">执行槽位明细</h2>
+                <div className="text-xs font-semibold uppercase tracking-[0.18em] text-violet-400">Slot Detail</div>
+                <h2 className="mt-1 text-lg font-semibold text-theme-text-primary">执行槽位明细</h2>
               </div>
               <div className="flex items-center gap-3">
                 <div className="flex items-center gap-2 text-xs text-theme-text-muted">
@@ -1102,7 +1102,7 @@ export const EntryAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?: (
                     <div className="flex flex-wrap items-start justify-between gap-3">
                       <div className="min-w-0">
                         <div className="flex flex-wrap items-center gap-2">
-                          <span className="text-sm font-black text-theme-text-primary">{worker.pod_name}</span>
+                          <span className="text-sm font-semibold text-theme-text-primary">{worker.pod_name}</span>
                           <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${worker.healthy ? 'bg-emerald-500/15 text-emerald-400' : 'bg-rose-500/15 text-rose-400'}`}>
                             {worker.healthy ? 'Healthy' : worker.source === 'stale_owner' ? 'Stale Owner' : 'Stale'}
                           </span>
@@ -1171,17 +1171,17 @@ export const EntryAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?: (
                               </div>
                               <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
                                 <div className="rounded-xl border border-white/80 bg-theme-surface px-3 py-3">
-                                  <div className="text-[10px] font-black uppercase tracking-[0.2em] text-theme-text-muted">归属任务</div>
+                                  <div className="text-[10px] font-semibold uppercase tracking-[0.2em] text-theme-text-muted">归属任务</div>
                                   <div className="mt-2 font-mono text-[11px] font-semibold text-theme-text-secondary">{task.task_id}</div>
                                   <div className="mt-1 text-[11px] text-theme-text-muted">入口 {task.entry_id || '-'}</div>
                                 </div>
                                 <div className="rounded-xl border border-white/80 bg-theme-surface px-3 py-3">
-                                  <div className="text-[10px] font-black uppercase tracking-[0.2em] text-theme-text-muted">运行状态</div>
+                                  <div className="text-[10px] font-semibold uppercase tracking-[0.2em] text-theme-text-muted">运行状态</div>
                                   <div className="mt-2 text-[11px] font-semibold text-theme-text-secondary">{SLOT_TASK_STATUS_LABEL[task.status] || task.status}</div>
                                   <div className="mt-1 text-[11px] text-theme-text-muted">租约到期 {formatDateTime(task.lease_expires_at)}</div>
                                 </div>
                                 <div className="rounded-xl border border-white/80 bg-theme-surface px-3 py-3">
-                                  <div className="text-[10px] font-black uppercase tracking-[0.2em] text-theme-text-muted">槽位映射</div>
+                                  <div className="text-[10px] font-semibold uppercase tracking-[0.2em] text-theme-text-muted">槽位映射</div>
                                   <div className="mt-2 text-[11px] font-semibold text-theme-text-secondary">{worker.source || 'worker_registry'}</div>
                                   <div className="mt-1 text-[11px] text-theme-text-muted">{worker.url || worker.pod_ip || worker.pod_name}</div>
                                 </div>
@@ -1201,8 +1201,8 @@ export const EntryAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?: (
         </div>
       ) : null}
       {stageFocusHint ? (
-        <section className="rounded-[2rem] border border-indigo-500/20 bg-indigo-50/80 px-5 py-4 shadow-sm">
-          <div className="text-[11px] font-black uppercase tracking-[0.18em] text-indigo-400">Stage Focus</div>
+        <section className="rounded-xl border border-indigo-500/20 bg-indigo-50/80 px-5 py-4 shadow-sm">
+          <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-indigo-400">Stage Focus</div>
           <div className="mt-2 text-sm font-bold text-indigo-300">当前从性能看板带入了 {stageFocusHint} 阶段线索</div>
           <div className="mt-1 text-xs leading-6 text-indigo-400">
             打开任务详情后，系统会优先尝试切到该阶段的智能体会话视角，帮助你直接查看对应阶段的 session 和日志。
@@ -1210,10 +1210,10 @@ export const EntryAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?: (
         </section>
       ) : null}
       {riskPreset ? (
-        <section className="rounded-[2rem] border border-amber-500/20 bg-amber-50/80 px-5 py-4 shadow-sm">
+        <section className="rounded-xl border border-amber-500/20 bg-amber-50/80 px-5 py-4 shadow-sm">
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div>
-              <div className="text-[11px] font-black uppercase tracking-[0.18em] text-amber-400">Risk Focus</div>
+              <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-amber-400">Risk Focus</div>
               <div className="mt-2 text-sm font-bold text-amber-300">当前正按“{riskPreset.label}”风险意图排查任务</div>
               <div className="mt-1 text-xs leading-6 text-amber-400">
                 {riskPreset.description} {riskPreset.statusReason}
@@ -1226,7 +1226,7 @@ export const EntryAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?: (
                   setStatusFilter(riskPreset.suggestedStatus);
                   setPage(1);
                 }}
-                className="rounded-xl border border-amber-500/20 bg-theme-surface px-3 py-2 text-xs font-black text-amber-400 transition hover:bg-amber-500/15"
+                className="rounded-xl border border-amber-500/20 bg-theme-surface px-3 py-2 text-xs font-semibold text-amber-400 transition hover:bg-amber-500/15"
               >
                 应用推荐状态筛选
               </button>
@@ -1236,7 +1236,7 @@ export const EntryAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?: (
                   sessionStorage.removeItem(riskFocusStorageKey);
                   setRiskFocusHint('');
                 }}
-                className="rounded-xl border border-theme-border bg-theme-surface px-3 py-2 text-xs font-black text-theme-text-secondary transition hover:bg-theme-bg-app"
+                className="rounded-xl border border-theme-border bg-theme-surface px-3 py-2 text-xs font-semibold text-theme-text-secondary transition hover:bg-theme-surface"
               >
                 清除风险线索
               </button>
@@ -1269,13 +1269,13 @@ export const EntryAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?: (
             <div className="flex items-center justify-between gap-3 px-6 py-4 border-b border-theme-border bg-theme-surface shrink-0">
               {detail ? (
                 <div className="flex items-center gap-2.5 min-w-0">
-                  <h2 className="text-lg font-black text-theme-text-primary truncate">{detail.task_name}</h2>
+                  <h2 className="text-lg font-semibold text-theme-text-primary truncate">{detail.task_name}</h2>
                   <span className={`shrink-0 rounded-md px-2 py-0.5 text-xs font-semibold ${STATUS_COLOR[detail.cancel_requested && ['running','pending'].includes(detail.status) ? 'cancelling' : detail.status] ?? 'bg-theme-elevated text-theme-text-secondary'}`}>
                     {STATUS_LABEL[detail.cancel_requested && ['running','pending'].includes(detail.status) ? 'cancelling' : detail.status] ?? detail.status}
                   </span>
                 </div>
               ) : (
-                <h2 className="text-lg font-black text-theme-text-primary">任务详情</h2>
+                <h2 className="text-lg font-semibold text-theme-text-primary">任务详情</h2>
               )}
               <div className="flex items-center gap-2 shrink-0">
                 {detail && (detail.status === 'running' || detail.status === 'pending') ? (
@@ -1462,8 +1462,8 @@ export const EntryAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?: (
         </div>
       ) : null}
 
-      <section className="rounded-[2rem] border border-theme-border bg-white/90 p-6 shadow-sm">
-        <p className="text-xs font-black uppercase tracking-[0.3em] text-violet-400">Entry Analysis</p>
+      <section className="rounded-xl border border-theme-border bg-white/90 p-6 shadow-sm">
+        <p className="text-xs font-semibold uppercase tracking-[0.3em] text-violet-400">Entry Analysis</p>
         <ServicePageTitle title="入口分析任务" version={buildVersion} />
         <p className="mt-2 text-sm text-theme-text-muted">指定目标模块路径，自动生成 Prompt 并启动入口点分析任务。</p>
         <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-5">
@@ -1475,14 +1475,14 @@ export const EntryAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?: (
             { label: '失败/取消', value: tasks.filter((t) => t.status === 'failed' || t.status === 'error' || t.status === 'cancelled').length, bg: 'bg-red-500/15', text: 'text-red-400', border: 'border-red-500/20' },
           ].map((s) => (
             <div key={s.label} className={`min-w-[96px] rounded-xl border ${s.border} ${s.bg} px-3 py-2`}>
-              <p className={`text-lg font-black ${s.text}`}>{s.value}</p>
+              <p className={`text-lg font-semibold ${s.text}`}>{s.value}</p>
               <p className="mt-1 text-[11px] text-theme-text-muted">{s.label}</p>
             </div>
           ))}
         </div>
       </section>
 
-      <section className="rounded-[2rem] border border-theme-border bg-white/90 p-6 shadow-sm">
+      <section className="rounded-xl border border-theme-border bg-white/90 p-6 shadow-sm">
         <div
           onClick={() => setSlotPanelExpanded((current) => !current)}
           className="flex w-full flex-wrap items-start justify-between gap-4 text-left cursor-pointer"
@@ -1491,8 +1491,8 @@ export const EntryAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?: (
           onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') setSlotPanelExpanded((c) => !c); }}
         >
           <div>
-            <p className="text-xs font-black uppercase tracking-[0.3em] text-violet-400">Execution Slots</p>
-            <h2 className="mt-2 text-2xl font-black tracking-tight text-theme-text-primary">执行槽位总览</h2>
+            <p className="text-xs font-semibold uppercase tracking-[0.3em] text-violet-400">Execution Slots</p>
+            <h2 className="mt-2 text-2xl font-bold tracking-tight text-theme-text-primary">执行槽位总览</h2>
             <p className="mt-2 text-sm text-theme-text-muted">展示入口分析 Worker Pod 的真实槽位占用、空闲容量与失联 Owner。</p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
@@ -1514,7 +1514,7 @@ export const EntryAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?: (
                   setSlotWorkerPage(1);
                   setSlotDetailOpen(true);
                 }}
-                className="rounded-xl border border-violet-500/20 bg-violet-500/15 px-3 py-2 text-xs font-black text-violet-400 hover:bg-violet-500/15"
+                className="rounded-xl border border-violet-500/20 bg-violet-500/15 px-3 py-2 text-xs font-semibold text-violet-400 hover:bg-violet-500/15"
               >
                 查看 Worker 明细
               </button>
@@ -1530,7 +1530,7 @@ export const EntryAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?: (
               <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
                 {slotSummaryCards.map((item) => (
                   <div key={item.label} className={`min-w-[96px] rounded-xl border px-3 py-3 ${item.className}`}>
-                    <p className="text-lg font-black">{item.value}</p>
+                    <p className="text-lg font-semibold">{item.value}</p>
                     <p className="mt-1 text-[11px] text-theme-text-muted">{item.label}</p>
                   </div>
                 ))}
@@ -1551,7 +1551,7 @@ export const EntryAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?: (
                   <div key={worker.worker_id} className={`rounded-2xl border px-4 py-4 ${worker.healthy ? 'border-theme-border bg-slate-50/70' : worker.worker_role_state === 'retired' ? 'border-amber-500/20 bg-amber-50/70' : 'border-rose-500/20 bg-rose-50/70'}`}>
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0">
-                        <div className="truncate text-sm font-black text-theme-text-primary">{worker.pod_name}</div>
+                        <div className="truncate text-sm font-semibold text-theme-text-primary">{worker.pod_name}</div>
                         <div className="mt-1 truncate text-[11px] text-theme-text-muted">{worker.url || worker.pod_ip || '-'}</div>
                       </div>
                       {!worker.healthy ? <AlertTriangle size={16} className="shrink-0 text-rose-500" /> : null}
@@ -1597,7 +1597,7 @@ export const EntryAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?: (
                 ))}
               </div>
               {slotWorkers.length > SLOT_WORKER_PAGE_SIZE ? (
-                <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-theme-border bg-theme-bg-app px-4 py-3">
+                <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-theme-border bg-theme-surface px-4 py-3">
                   <div className="text-xs text-theme-text-muted">
                     当前显示 {Math.min((slotWorkerPageSafe - 1) * SLOT_WORKER_PAGE_SIZE + 1, slotWorkers.length)}
                     {' - '}
@@ -1628,7 +1628,7 @@ export const EntryAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?: (
               ) : null}
             </>
           ) : (
-            <div className="mt-4 rounded-2xl border border-dashed border-theme-border bg-theme-bg-app px-4 py-6 text-sm text-theme-text-muted">
+            <div className="mt-4 rounded-2xl border border-dashed border-theme-border bg-theme-surface px-4 py-6 text-sm text-theme-text-muted">
               {slotClusterError || '暂无可用槽位信息'}
             </div>
           )
@@ -1636,11 +1636,11 @@ export const EntryAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?: (
       </section>
 
       {stageFocusHint || riskPreset ? (
-        <section className="rounded-[2rem] border border-indigo-500/20 bg-[radial-gradient(circle_at_top_left,_rgba(99,102,241,0.10),_transparent_38%),linear-gradient(180deg,#ffffff_0%,#eef2ff_100%)] p-5 shadow-sm">
+        <section className="rounded-xl border border-indigo-500/20 bg-[radial-gradient(circle_at_top_left,_rgba(99,102,241,0.10),_transparent_38%),linear-gradient(180deg,#ffffff_0%,#eef2ff_100%)] p-5 shadow-sm">
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div>
-              <div className="text-[11px] font-black uppercase tracking-[0.18em] text-indigo-400">Stage Guided Tasks</div>
-              <h2 className="mt-2 text-lg font-black tracking-tight text-theme-text-primary">{stageFocusHint || '风险引导'} 推荐任务</h2>
+              <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-indigo-400">Stage Guided Tasks</div>
+              <h2 className="mt-2 text-lg font-semibold tracking-tight text-theme-text-primary">{stageFocusHint || '风险引导'} 推荐任务</h2>
               <div className="mt-1 max-w-3xl text-xs leading-6 text-theme-text-secondary">
                 当前列表接口没有直接返回“任务正处于哪个阶段”的结构化字段，所以这里使用启发式排序：
                 优先推荐{riskPreset?.suggestedStatus === 'pending' ? '等待中' : riskPreset?.suggestedStatus === 'failed' ? '失败' : '运行中'}、最近更新的任务，
@@ -1654,7 +1654,7 @@ export const EntryAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?: (
                   sessionStorage.removeItem(stageFocusStorageKey);
                   setStageFocusHint('');
                 }}
-                className="rounded-xl border border-theme-border bg-theme-surface px-3 py-2 text-xs font-black text-theme-text-secondary transition hover:bg-theme-bg-app"
+                className="rounded-xl border border-theme-border bg-theme-surface px-3 py-2 text-xs font-semibold text-theme-text-secondary transition hover:bg-theme-surface"
               >
                 清除阶段线索
               </button>
@@ -1665,7 +1665,7 @@ export const EntryAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?: (
                     sessionStorage.removeItem(riskFocusStorageKey);
                     setRiskFocusHint('');
                   }}
-                  className="rounded-xl border border-theme-border bg-theme-surface px-3 py-2 text-xs font-black text-theme-text-secondary transition hover:bg-theme-bg-app"
+                  className="rounded-xl border border-theme-border bg-theme-surface px-3 py-2 text-xs font-semibold text-theme-text-secondary transition hover:bg-theme-surface"
                 >
                   清除风险线索
                 </button>
@@ -1684,7 +1684,7 @@ export const EntryAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?: (
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
-                      <div className="truncate text-sm font-black text-theme-text-primary">{task.task_name}</div>
+                      <div className="truncate text-sm font-semibold text-theme-text-primary">{task.task_name}</div>
                       <div className="mt-1 truncate font-mono text-[11px] text-theme-text-muted">{task.task_id}</div>
                     </div>
                     <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${STATUS_COLOR[task.cancel_requested && ['running','pending'].includes(task.status) ? 'cancelling' : task.status] ?? 'bg-theme-elevated text-theme-text-secondary'}`}>
@@ -1697,7 +1697,7 @@ export const EntryAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?: (
                     <div>输入路径：<span className="font-mono text-theme-text-secondary">{task.input_path}</span></div>
                   </div>
                   <div className="mt-3 rounded-xl border border-indigo-500/20 bg-indigo-50/60 px-3 py-2 text-[11px] leading-5 text-indigo-300">
-                    <span className="font-black">推荐依据：</span>{reason}
+                    <span className="font-semibold">推荐依据：</span>{reason}
                   </div>
                 </button>
               ))
@@ -1714,7 +1714,7 @@ export const EntryAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?: (
       <section className="rounded-2xl border border-theme-border bg-theme-surface p-5 shadow-sm">
         <div className="mb-4 flex flex-wrap items-start justify-between gap-4">
           <div>
-            <h2 className="text-lg font-black text-theme-text-primary">任务列表 <span className="text-sm font-normal text-theme-text-muted">({total})</span></h2>
+            <h2 className="text-lg font-semibold text-theme-text-primary">任务列表 <span className="text-sm font-normal text-theme-text-muted">({total})</span></h2>
           </div>
           <div className="flex flex-wrap items-center justify-end gap-2">
             <label className="inline-flex items-center gap-2 rounded-lg border border-theme-border bg-theme-bg-app px-3 py-1.5 text-xs text-theme-text-secondary">
@@ -1853,7 +1853,7 @@ export const EntryAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?: (
               <button
                 onClick={() => setSelectedTaskIds(new Set())}
                 disabled={batchDeleting || batchCancelling || batchRestarting}
-                className="inline-flex items-center gap-2 rounded-xl border border-theme-border bg-theme-surface px-4 py-2 text-sm font-semibold text-theme-text-secondary hover:bg-theme-bg-app disabled:opacity-50"
+                className="inline-flex items-center gap-2 rounded-xl border border-theme-border bg-theme-surface px-4 py-2 text-sm font-semibold text-theme-text-secondary hover:bg-theme-surface disabled:opacity-50"
               >
                 清除选择
               </button>
@@ -1975,27 +1975,27 @@ export const EntryAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?: (
                     </button>
                     <div className="mt-2 flex flex-wrap gap-1.5">
                       {recommended ? (
-                        <span className="rounded-full border border-indigo-500/20 bg-indigo-500/15 px-2 py-0.5 text-[10px] font-black text-indigo-400">
+                        <span className="rounded-full border border-indigo-500/20 bg-indigo-500/15 px-2 py-0.5 text-[10px] font-medium text-indigo-400">
                           推荐任务
                         </span>
                       ) : null}
                       {matchedRisk && riskMatch ? (
-                        <span className="rounded-full border border-amber-500/20 bg-amber-500/15 px-2 py-0.5 text-[10px] font-black text-amber-400">
+                        <span className="rounded-full border border-amber-500/20 bg-amber-500/15 px-2 py-0.5 text-[10px] font-medium text-amber-400">
                           {riskMatch.label}
                         </span>
                       ) : null}
                       {stageFocusHint ? (
-                        <span className="rounded-full border border-cyan-500/20 bg-cyan-500/15 px-2 py-0.5 text-[10px] font-black text-cyan-400">
+                        <span className="rounded-full border border-cyan-500/20 bg-cyan-500/15 px-2 py-0.5 text-[10px] font-medium text-cyan-400">
                           {stageFocusHint} 阶段线索
                         </span>
                       ) : null}
                       {isAwaitingTakeover ? (
-                        <span className="rounded-full border border-amber-500/20 bg-amber-500/15 px-2 py-0.5 text-[10px] font-black text-amber-400">
+                        <span className="rounded-full border border-amber-500/20 bg-amber-500/15 px-2 py-0.5 text-[10px] font-medium text-amber-400">
                           等待接管
                         </span>
                       ) : null}
                       {hasInvalidOwner ? (
-                        <span className="rounded-full border border-rose-500/20 bg-rose-500/15 px-2 py-0.5 text-[10px] font-black text-rose-400">
+                        <span className="rounded-full border border-rose-500/20 bg-rose-500/15 px-2 py-0.5 text-[10px] font-medium text-rose-400">
                           非法 Owner
                         </span>
                       ) : null}
@@ -2140,7 +2140,7 @@ export const EntryAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?: (
             <div className="p-6 space-y-4">
               {detail ? <TaskOriginCard origin={detail} /> : null}
               <div className="flex items-center justify-between">
-                <h2 className="text-lg font-black text-theme-text-primary">新建任务</h2>
+                <h2 className="text-lg font-semibold text-theme-text-primary">新建任务</h2>
                 <button onClick={() => setCreateModalOpen(false)} className="rounded-lg p-1 text-theme-text-muted hover:text-theme-text-secondary"><X size={16} /></button>
               </div>
 

@@ -2510,10 +2510,26 @@ export interface ScheduleRuntimeSchedulerPolicy {
   db_fallback_batch_size: number;
 }
 
+export interface ScheduleRuntimeUserTaskSyncPolicy {
+  enabled: boolean;
+  worker_concurrency: number;
+  lease_seconds: number;
+  heartbeat_interval_seconds: number;
+  db_fallback_batch_size: number;
+  queue_pop_timeout_seconds: number;
+  reclaim_batch_size: number;
+  dispatching_seconds: number;
+  running_seconds: number;
+  paused_seconds: number;
+  terminal_verify_seconds: number;
+  retry_initial_seconds: number;
+  retry_max_seconds: number;
+  failure_threshold: number;
+}
+
 export interface ScheduleRuntimeToolDefault {
   task_type: ScheduleRuntimeTaskType;
   label: string;
-  default_concurrency: number;
   root_task_key_max_concurrency: number;
   capacity_pool_ids: number[];
   root_task_key_expires_at?: string | null;
@@ -2525,6 +2541,7 @@ export interface ScheduleRuntimeTimeWindow {
   start_time: string;
   end_time: string;
   scheduler_policy?: ScheduleRuntimeSchedulerPolicy | null;
+  user_task_sync_policy?: ScheduleRuntimeUserTaskSyncPolicy | null;
   tool_defaults: ScheduleRuntimeToolDefault[];
 }
 
@@ -2533,6 +2550,7 @@ export interface ScheduleRuntimeEffectiveConfig {
   active_time_window_name?: string | null;
   timezone: string;
   scheduler_policy: ScheduleRuntimeSchedulerPolicy;
+  user_task_sync_policy: ScheduleRuntimeUserTaskSyncPolicy;
   tool_defaults: ScheduleRuntimeToolDefault[];
 }
 
@@ -2540,6 +2558,7 @@ export interface ScheduleRuntimeConfig {
   config_key: string;
   timezone: string;
   scheduler_policy: ScheduleRuntimeSchedulerPolicy;
+  user_task_sync_policy: ScheduleRuntimeUserTaskSyncPolicy;
   tool_defaults: ScheduleRuntimeToolDefault[];
   time_windows: ScheduleRuntimeTimeWindow[];
   version: number;
@@ -2587,6 +2606,7 @@ export type ViewType =
   | 'pentest-exec-b2s' | 'pentest-exec-b2s-root' | 'pentest-exec-b2s-task-list' | 'pentest-exec-b2s-create' | 'pentest-exec-b2s-queue' | 'pentest-exec-b2s-result' | 'pentest-exec-b2s-detail' | 'pentest-exec-b2s-advanced'
   | 'binary-security' | 'binary-security-root' | 'binary-security-task-list' | 'binary-security-detail' | 'binary-security-config'
   | 'source-security' | 'source-security-detail'
+  | 'kg-source-security' | 'kg-source-security-detail'
   | 'binary-module-security' | 'binary-module-security-detail'
   | 'app-security-scan' | 'app-security-scan-detail' | 'app-security-scan-monitor'
   | 'mobile-security-ipc-vuln'
@@ -3495,15 +3515,15 @@ export interface AppSaTaskDetail extends AppSaTaskItem {
     [key: string]: any;
   } | null;
   stages_json?: AppSaStagesJson | null;
-  task_config_json?: { analyse_targets?: string[]; binary_arch?: string[]; security_focus_categories?: string[]; module_granularity?: string; filter_engine?: 'script' | 'agent'; enable_final_check?: boolean; continue_on_module_failure?: boolean; start_stage?: number; resume_workspace?: string; resolved_config_snapshot?: Record<string, any> } | null;
+  task_config_json?: { analyse_targets?: string[]; binary_arch?: string[]; security_focus_categories?: string[]; module_granularity?: string; filter_engine?: 'script' | 'agent'; enable_final_check?: boolean; continue_on_module_failure?: boolean; super_fast_mode?: boolean; start_stage?: number; resume_workspace?: string; resolved_config_snapshot?: Record<string, any> } | null;
   agent_auth_json?: Record<string, any> | null;
   role_config_snapshot?: Record<string, any> | null;
   provider_runtime_summary?: Record<string, any> | null;
   llm_binding_snapshot?: Record<string, any> | null;
   /** 实际生效配置（task_config_json 覆盖项目配置后的合并结果） */
-  effective_config_json?: { analyse_targets?: string[]; binary_arch?: string[]; security_focus_categories?: string[]; module_granularity?: string; filter_engine?: 'script' | 'agent'; enable_final_check?: boolean; continue_on_module_failure?: boolean } | null;
+  effective_config_json?: { analyse_targets?: string[]; binary_arch?: string[]; security_focus_categories?: string[]; module_granularity?: string; filter_engine?: 'script' | 'agent'; enable_final_check?: boolean; continue_on_module_failure?: boolean; super_fast_mode?: boolean } | null;
   /** 每个字段的来源："task" = 任务级覆盖，"project" = 项目默认 */
-  effective_config_source?: { analyse_targets?: 'task' | 'project'; binary_arch?: 'task' | 'project'; security_focus_categories?: 'task' | 'project'; module_granularity?: 'task' | 'project'; filter_engine?: 'task' | 'project'; enable_final_check?: 'task' | 'project'; continue_on_module_failure?: 'task' | 'project' } | null;
+  effective_config_source?: { analyse_targets?: 'task' | 'project'; binary_arch?: 'task' | 'project'; security_focus_categories?: 'task' | 'project'; module_granularity?: 'task' | 'project'; filter_engine?: 'task' | 'project'; enable_final_check?: 'task' | 'project'; continue_on_module_failure?: 'task' | 'project'; super_fast_mode?: 'task' | 'project' } | null;
   task_root?: string | null;
   run_root?: string | null;
   workspace_root?: string | null;
@@ -4724,6 +4744,7 @@ export interface AppDfaSessionMeta {
   message_count?: number;
   is_active: boolean;
   display_name: string;
+  agent_session?: Record<string, any>;
 }
 
 export type AppDfaSessionIndexNode = AppSaSessionIndexNode;
@@ -4781,6 +4802,44 @@ export interface AppDfaResultFile {
   mtime: number;
 }
 
+export interface AppDfaSourceSnippetLine {
+  n: number;
+  text: string;
+}
+
+export interface AppDfaSourceSnippet {
+  file?: string;
+  abs_path?: string;
+  start_line: number;
+  end_line: number;
+  focus_line?: number | null;
+  lines: AppDfaSourceSnippetLine[];
+}
+
+export interface AppDfaVulnFinding {
+  id: string;
+  severity: 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW' | 'INFO' | string;
+  title: string;
+  count?: number;
+  location?: string;
+  root_cause?: string;
+  proposed_fix?: string;
+  detail?: string;
+  function?: string;
+  vulnerability?: string;
+  confidence?: number | string;
+  flow?: string;
+  alarm?: string;
+  code?: string;
+  entry_point?: string[];
+  file?: string;
+  line?: number;
+  source?: Record<string, any>;
+  sink?: Record<string, any>;
+  dataflow_trace?: Array<Record<string, any>>;
+  source_snippet?: AppDfaSourceSnippet;
+}
+
 export interface AppDfaTaskResult {
   task_id: string;
   available: boolean;
@@ -4792,6 +4851,7 @@ export interface AppDfaTaskResult {
   result_json?: Record<string, any> | null;
   output_files: AppDfaResultFile[];
   dataflow_files: AppDfaResultFile[];
+  findings?: AppDfaVulnFinding[];
   summary: {
     function_count: number;
     round_count: number;
@@ -4799,6 +4859,8 @@ export interface AppDfaTaskResult {
     total_tokens: number;
     total_cost: number;
     effectiveness?: Record<string, any>;
+    total_findings?: number;
+    findings_by_severity?: Record<string, number>;
   };
 }
 

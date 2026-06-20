@@ -170,6 +170,7 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
   const [moduleName, setModuleName] = useState('');
   const [selectedAgentAppId, setSelectedAgentAppId] = useState('');
   const [instruction, setInstruction] = useState('');
+  const [agentAppsLoadError, setAgentAppsLoadError] = useState('');
 
   /* --- input source toggle --- */
   const [inputSource, setInputSource] = useState<'existing' | 'upload'>('existing');
@@ -217,22 +218,27 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
   /* --- data loading --- */
   const loadDialogData = async () => {
     if (!projectId) return;
+    setAgentAppsLoadError('');
     try {
-      const [inputResp, appResp] = await Promise.all([
-        fileserverApi.listProjectInputUploads(projectId, { pageSize: 200 }) as Promise<{ items: ProjectInputUploadRecord[] }>,
-        loadAgentApps(currentUser?.department_id, currentUser?.department_id),
-      ]);
+      const inputResp = await fileserverApi.listProjectInputUploads(projectId, { pageSize: 200 }) as Promise<{ items: ProjectInputUploadRecord[] }>;
       const nextInputs = inputResp.items || [];
       setInputs(nextInputs);
-      setAgentApps(appResp || []);
       if (preSelectedInputId && nextInputs.some((item) => item.upload_id === preSelectedInputId)) {
         setSelectedInputId(preSelectedInputId);
       } else {
         setSelectedInputId((current) => current || nextInputs[0]?.upload_id || '');
       }
-      setSelectedAgentAppId((current) => current || appResp?.[0]?.id || '');
     } catch {
-      /* swallow — parent page handles global error */
+      setInputs([]);
+    }
+    try {
+      const appResp = await loadAgentApps(currentUser?.department_id, currentUser?.department_id);
+      setAgentApps(appResp || []);
+      setSelectedAgentAppId((current) => current || appResp?.[0]?.id || '');
+    } catch (err: any) {
+      setAgentApps([]);
+      setSelectedAgentAppId('');
+      setAgentAppsLoadError(err?.message || '加载 Agent Harness 失败');
     }
   };
 
@@ -661,6 +667,14 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
                       {agentApps.map((item) => <option key={item.id} value={item.id}>{`${item.name} / ${item.engine}`}</option>)}
                     </select>
                   </label>
+                  {agentAppsLoadError ? (
+                    <div
+                      className="rounded-lg px-4 py-3 text-sm"
+                      style={{ backgroundColor: `${LK.warning}14`, border: `1px solid ${LK.warning}40`, color: LK.warning }}
+                    >
+                      {agentAppsLoadError}。不影响上传记录加载，但当前无法创建 Agent Harness 任务。
+                    </div>
+                  ) : null}
                   {selectedAgentApp ? (
                     <div className="rounded-lg px-4 py-3 text-xs" style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}`, color: LK.body }}>
                       <div>Harness: <span className="font-semibold" style={{ color: LK.ink }}>{selectedAgentApp.name}</span></div>

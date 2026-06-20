@@ -90,6 +90,18 @@ export const codemapManagerApi = {
     });
     await handleResponse(response);
   },
+
+  // DELETE /projects/{db}/purge — 销毁式清理:停 serve、DROP 空库、删 manager
+  // 工作区目录、清 registry 行。用户在「图谱为空」横幅点「更正代码目录」时调用,
+  // 让接下来的 triggerBuild 用正确 target_dir 从零重建。注意:只读卷上的用户
+  // 上传源码绝不会被动到,只清 manager 自己的 workspace + 图谱 DB。
+  purgeProject: async (dbName: string): Promise<void> => {
+    const response = await fetch(
+      `${MANAGER_BASE}/projects/${encodeURIComponent(dbName)}/purge`,
+      { method: 'DELETE', headers: getHeaders() },
+    );
+    await handleResponse(response);
+  },
 };
 
 // 知识图谱构建是项目维度、幂等的:固定 task_id = kg-<projectId>,product_id=projectId
@@ -123,7 +135,7 @@ export const USABLE_UPLOAD_STATUSES: ReadonlySet<string> = new Set([
 export const STATUS_LABELS: Record<string, string> = {
   queued: '排队中',
   accepted: '已受理',
-  building_analyze: '解析代码中',
+  building_analyze: '静态分析中…',
   building_repair: '补全调用关系中',
   completed: '已完成',
   failed: '构建失败',

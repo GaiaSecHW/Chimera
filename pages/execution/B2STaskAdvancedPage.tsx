@@ -1,12 +1,13 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import Editor from '@monaco-editor/react';
-import { ArrowLeft, ChevronRight, Code2, FileText, Loader2, RefreshCw, ShieldCheck } from 'lucide-react';
+import { ChevronRight, Code2, FileText, Loader2, RefreshCw, ShieldCheck } from 'lucide-react';
 import { api } from '../../clients/api';
 import { B2SAdvancedFile, B2SAdvancedRun, B2SArtifact, B2SReviewAnalytics, B2STaskDetail, B2STaskItemAdvanced } from '../../clients/binaryToSource';
 import { FileWatchMessage, fileserverApi } from '../../clients/fileserver';
 import { parseAgentSessionJsonlDelta } from './agentSessionParsing';
 import { ReviewEffectivenessPanel } from './b2s-advanced/ReviewEffectivenessPanel';
 import { B2SSessionPreview } from './b2s-detail/B2SSessionPreview';
+import { PageHeader } from '../../design-system';
 
 const LK = {
   primary: '#4f73ff', primarySoft: '#7590ff', primaryDeep: '#3f63f1',
@@ -445,39 +446,35 @@ export const B2STaskAdvancedPage: React.FC<Props> = ({ projectId, taskId, itemId
 
   return (
     <div className="space-y-6 px-8 pb-10 pt-8">
-      <div className="flex flex-wrap items-center justify-between gap-3">
- <button type="button" onClick={onBack} className="inline-flex items-center gap-2 rounded-xl border border-theme-border bg-theme-bg-app px-4 py-2.5 text-sm font-bold text-theme-text-secondary hover:bg-theme-elevated">
-          <ArrowLeft size={16} />
-          返回执行明细
-        </button>
- <button type="button" onClick={() => void load()} disabled={loading} className="inline-flex items-center gap-2 rounded-xl border border-theme-border bg-theme-bg-app px-4 py-2.5 text-sm font-bold text-theme-text-secondary hover:bg-theme-elevated disabled:opacity-60">
-          <RefreshCw size={16} className={loading ? 'animate-spin' : ''} />
-          刷新
-        </button>
-      </div>
-
-      {error && <div className="rounded-none border border-rose-500/20 bg-rose-500/15 px-4 py-3 text-sm font-semibold text-rose-400">{error}</div>}
-
- <section className="rounded-none border border-theme-border bg-theme-bg-app px-5 py-3">
-        <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
-          <div className="min-w-0">
-            <div className="flex flex-wrap items-center gap-2 text-xs font-black text-theme-text-muted">
+      <PageHeader
+        title={
+          <div>
+            <div className="flex flex-wrap items-center gap-2 text-xs font-semibold text-theme-text-muted">
               <span className="text-violet-400">反编译任务</span>
               <span className="text-theme-text-faint">·</span>
               <span>#{advanced?.sequence_no || item?.sequence_no || '-'}</span>
               <span className="text-theme-text-faint">·</span>
               <span>{advanced?.mode_label || detail?.mode_label || '-'}</span>
             </div>
-            <div className="mt-1 break-words text-lg font-black tracking-tight text-slate-950">{fileNameOf(item?.elf_path)}</div>
+            <div className="mt-1 break-words text-lg font-semibold tracking-tight text-slate-950">{fileNameOf(item?.elf_path)}</div>
             <div className="mt-0.5 break-all font-mono text-[10px] font-semibold text-theme-text-muted">task {taskId} · item {itemId}</div>
           </div>
-          <div className="flex flex-wrap gap-2 text-xs font-black">
-            <span className="rounded-full bg-violet-500/15 px-3 py-1.5 text-violet-400 ring-1 ring-violet-100">Batch {totalBatches}</span>
-            <span className="rounded-full bg-emerald-500/15 px-3 py-1.5 text-emerald-400 ring-1 ring-emerald-100">评审 {totalReviews}</span>
-            <span className="rounded-full bg-blue-500/15 px-3 py-1.5 text-blue-400 ring-1 ring-blue-100">会话 {totalSessions}</span>
+        }
+        back={{ label: '返回执行明细', onClick: onBack }}
+        actions={
+          <div className="flex flex-wrap gap-2">
+            <button type="button" onClick={() => void load()} disabled={loading} className="inline-flex items-center gap-2 rounded-xl border border-theme-border bg-theme-surface px-4 py-2.5 text-sm font-bold text-theme-text-secondary hover:bg-theme-elevated disabled:opacity-60">
+              <RefreshCw size={16} className={loading ? 'animate-spin' : ''} />
+              刷新
+            </button>
+            <span className="rounded-full bg-violet-500/15 px-3 py-1.5 text-violet-400 ring-1 ring-violet-100 text-xs font-semibold">Batch {totalBatches}</span>
+            <span className="rounded-full bg-emerald-500/15 px-3 py-1.5 text-emerald-400 ring-1 ring-emerald-100 text-xs font-semibold">评审 {totalReviews}</span>
+            <span className="rounded-full bg-blue-500/15 px-3 py-1.5 text-blue-400 ring-1 ring-blue-100 text-xs font-semibold">会话 {totalSessions}</span>
           </div>
-        </div>
-      </section>
+        }
+      />
+
+      {error && <div className="rounded-none border border-rose-500/20 bg-rose-500/15 px-4 py-3 text-sm font-semibold text-rose-400">{error}</div>}
 
       <ReviewEffectivenessPanel analytics={reviewAnalytics} />
 
@@ -489,17 +486,17 @@ export const B2STaskAdvancedPage: React.FC<Props> = ({ projectId, taskId, itemId
         ) : (
           <div className="grid min-h-[680px] grid-cols-1 xl:grid-cols-[430px_minmax(0,1fr)]">
             <aside className="border-b border-theme-border bg-slate-50/80 xl:border-b-0 xl:border-r">
-              <div className="border-b border-theme-border px-4 py-3 text-xs font-black uppercase tracking-[0.2em] text-theme-text-muted">中间产物</div>
+              <div className="border-b border-theme-border px-4 py-3 text-xs font-semibold uppercase tracking-[0.2em] text-theme-text-muted">中间产物</div>
               <div className="max-h-[680px] overflow-auto p-3">
                 {groupedFiles.map((group) => (
                   <div key={group.stage} className="mb-5">
-                    <div className="mb-2 border-b border-theme-border bg-theme-bg-app px-1 pb-2 pt-1 text-[10px] font-black uppercase tracking-[0.18em] text-theme-text-muted">{group.stage}</div>
+                    <div className="mb-2 border-b border-theme-border bg-theme-bg-app px-1 pb-2 pt-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-theme-text-muted">{group.stage}</div>
                     {group.sections.map((section) => (
                       <div key={`${group.stage}-${section.name}`} className="mb-3 pl-1">
-                        <div className="mb-2 text-[11px] font-black tracking-[0.12em] text-theme-text-secondary">{section.name}</div>
+                        <div className="mb-2 text-[11px] font-medium tracking-[0.12em] text-theme-text-secondary">{section.name}</div>
                         {section.rounds.map((round) => (
                           <div key={`${group.stage}-${section.name}-${round.name}`} className="mb-2">
-                            <div className="mb-1 text-[10px] font-black text-violet-400">{round.name}</div>
+                            <div className="mb-1 text-[10px] font-semibold text-violet-400">{round.name}</div>
                             {round.entries.map(({ file, agent, role }) => {
                               const active = selectedPath === file.path;
                               const metaLine = [agent, role].filter(Boolean).join(' · ');
@@ -509,12 +506,12 @@ export const B2STaskAdvancedPage: React.FC<Props> = ({ projectId, taskId, itemId
                                     {languageFromPath(file.name) === 'plaintext' ? <FileText size={15} /> : <Code2 size={15} />}
                                   </div>
                                   <div className="min-w-0 flex-1">
-                                    <div className="truncate text-sm font-black leading-5 text-theme-text-primary" title={file.name}>{file.name}</div>
-                                    {metaLine && <div className="mt-0.5 truncate text-[11px] font-black text-violet-400" title={metaLine}>{metaLine}</div>}
+                                    <div className="truncate text-sm font-semibold leading-5 text-theme-text-primary" title={file.name}>{file.name}</div>
+                                    {metaLine && <div className="mt-0.5 truncate text-[11px] font-semibold text-violet-400" title={metaLine}>{metaLine}</div>}
                                     <div className="mt-0.5 flex min-w-0 items-center gap-2 text-[10px] font-semibold text-theme-text-muted">
-                                      <span className="shrink-0 font-black uppercase tracking-[0.08em] text-theme-text-muted">{fileKindLabel(file)}</span>
+                                      <span className="shrink-0 font-semibold uppercase tracking-[0.08em] text-theme-text-muted">{fileKindLabel(file)}</span>
                                       <span className="shrink-0">{formatSize(file.size)}</span>
-                                      {file.truncated && <span className="shrink-0 font-black text-amber-400">已截断</span>}
+                                      {file.truncated && <span className="shrink-0 font-semibold text-amber-400">已截断</span>}
                                       <span className="truncate font-mono" title={file.path}>{shortPath(file.path)}</span>
                                     </div>
                                   </div>
@@ -533,21 +530,21 @@ export const B2STaskAdvancedPage: React.FC<Props> = ({ projectId, taskId, itemId
             <div className="min-w-0 bg-theme-bg-app">
               <div className="flex min-h-[54px] items-center justify-between gap-3 border-b border-theme-border bg-theme-surface px-4 py-3">
                 <div className="min-w-0">
-                  <div className="truncate text-sm font-black text-slate-100" title={selected?.name || ''}>{selected?.name || '-'}</div>
+                  <div className="truncate text-sm font-semibold text-slate-100" title={selected?.name || ''}>{selected?.name || '-'}</div>
                   {(() => {
                     const entry = files.find((candidate) => candidate.file.path === selectedPath);
                     const metaLine = [entry?.stage, entry?.section, entry?.round, entry?.agent, entry?.role].filter(Boolean).join(' / ');
-                    return metaLine ? <div className="mt-0.5 truncate text-[11px] font-black text-violet-300" title={metaLine}>{metaLine}</div> : null;
+                    return metaLine ? <div className="mt-0.5 truncate text-[11px] font-semibold text-violet-300" title={metaLine}>{metaLine}</div> : null;
                   })()}
                   <div className="mt-0.5 truncate font-mono text-[11px] text-theme-text-muted" title={selected?.path || ''}>{selected?.path || '-'}</div>
                 </div>
                 <div className="flex shrink-0 items-center gap-2">
                   {isSelectedJsonlSession && (
-                    <span className={`rounded-full px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] ${sessionLive ? 'bg-emerald-900/70 text-emerald-200' : isTaskRunning ? 'bg-amber-900/70 text-amber-200' : 'bg-theme-elevated text-theme-text-muted'}`}>
+                    <span className={`rounded-full px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] ${sessionLive ? 'bg-emerald-900/70 text-emerald-200' : isTaskRunning ? 'bg-amber-900/70 text-amber-200' : 'bg-theme-elevated text-theme-text-muted'}`}>
                       {sessionRefreshing ? '连接中' : sessionLive ? 'WebSocket 实时中' : isTaskRunning ? '等待实时连接' : '历史会话'}
                     </span>
                   )}
-                  <div className="rounded-full bg-theme-elevated px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-theme-text-faint">{selected ? fileKindLabel(selected) : '-'}</div>
+                  <div className="rounded-full bg-theme-elevated px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-theme-text-faint">{selected ? fileKindLabel(selected) : '-'}</div>
                 </div>
               </div>
               <div className="h-[680px]">

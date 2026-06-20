@@ -14,6 +14,7 @@
     "smoke:agent-manage-api-path": "node --experimental-strip-types scripts/agentManageApiPath.smoke.ts",
     "smoke:task-center-instruction": "node --experimental-strip-types scripts/taskCenterInstruction.smoke.ts",
     "smoke:dataflow-vuln-metrics": "node --experimental-strip-types scripts/dataflowVulnMetrics.smoke.ts",
+    "smoke:binary-security-runtime-health": "node --experimental-strip-types scripts/binarySecurityRuntimeHealth.smoke.ts",
     "e2e": "playwright test",
     "e2e:headed": "playwright test --headed",
     "e2e:report": "playwright show-report"

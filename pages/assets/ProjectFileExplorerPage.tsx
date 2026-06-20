@@ -1768,7 +1768,7 @@ const getPvcDirectoryPath = (target: UnifiedExplorerNode) => {
           </button>
           {gatewayLoading ? <RefreshCw size={14} className="text-sky-500 animate-spin" /> : renderNodeIcon(node, expanded)}
           <span className="truncate flex-1">{node.name}</span>
-          {node.specialBadge && <span className="rounded bg-sky-500/15 px-1.5 py-0.5 text-[9px] font-black text-sky-400">{node.specialBadge}</span>}
+          {node.specialBadge && <span className="rounded bg-sky-500/15 px-1.5 py-0.5 text-[9px] font-medium text-sky-400">{node.specialBadge}</span>}
         </div>
         {expanded && node.children.length > 0 && (
           <div>{node.children.map((child) => renderTree(child, depth + 1))}</div>
@@ -1802,7 +1802,7 @@ const getPvcDirectoryPath = (target: UnifiedExplorerNode) => {
                   ul: ({ children }) => <ul className="mb-2 list-disc space-y-0.5 pl-4 last:mb-0 text-sm">{children}</ul>,
                   ol: ({ children }) => <ol className="mb-2 list-decimal space-y-0.5 pl-4 last:mb-0 text-sm">{children}</ol>,
                   li: ({ children }) => <li className="text-sm">{children}</li>,
-                  h1: ({ children }) => <h1 className="mb-3 text-xl font-black text-theme-text-primary border-b border-theme-border pb-1">{children}</h1>,
+                  h1: ({ children }) => <h1 className="mb-3 text-xl font-semibold text-theme-text-primary border-b border-theme-border pb-1">{children}</h1>,
                   h2: ({ children }) => <h2 className="mb-2 text-base font-bold text-theme-text-primary mt-4">{children}</h2>,
                   h3: ({ children }) => <h3 className="mb-1 text-sm font-bold text-theme-text-secondary mt-3">{children}</h3>,
                   blockquote: ({ children }) => <blockquote className="mb-2 border-l-4 border-cyan-300 bg-cyan-500/15 px-3 py-1.5 italic text-sm last:mb-0">{children}</blockquote>,
@@ -1856,7 +1856,7 @@ const getPvcDirectoryPath = (target: UnifiedExplorerNode) => {
         <div className="text-xs text-theme-text-muted">文件类型：{preview.contentType || previewFile.contentType || 'unknown'}</div>
         <button
           type="button"
-          className="rounded-xl bg-brand-primary px-4 py-2 text-xs font-black text-white"
+          className="rounded-xl bg-brand-primary px-4 py-2 text-xs font-medium text-white"
           onClick={() => void handleDownload(previewFile)}
         >
           下载文件
@@ -1962,7 +1962,7 @@ const getPvcDirectoryPath = (target: UnifiedExplorerNode) => {
  <div className="rounded-[2rem] border border-theme-border bg-theme-surface px-6 py-5 backdrop-blur">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
             <div>
-              <h2 className="mt-2 text-3xl font-black text-theme-text-primary">项目文件资源管理</h2>
+              <h2 className="mt-2 text-3xl font-semibold text-theme-text-primary">项目文件资源管理</h2>
               <p className="mt-1 text-sm text-theme-text-muted">{projectName}</p>
               <p className="mt-1 text-xs text-theme-text-muted">文件夹上传仅支持 Chromium/WebKit 浏览器，支持递归子目录与空文件夹。</p>
             </div>
@@ -1981,19 +1981,19 @@ const getPvcDirectoryPath = (target: UnifiedExplorerNode) => {
                   </button>
                 )}
               </div>
-              <button type="button" onClick={() => void refreshCurrentView()} className="rounded-2xl border border-theme-border bg-theme-surface px-4 py-2 text-xs font-black text-theme-text-secondary">
+              <button type="button" onClick={() => void refreshCurrentView()} className="rounded-2xl border border-theme-border bg-theme-surface px-4 py-2 text-xs font-medium text-theme-text-secondary">
                 <span className="inline-flex items-center gap-2"><RefreshCw size={14} /> 刷新</span>
               </button>
-              <button type="button" onClick={() => void handleCreateSubproject()} className="rounded-2xl border border-sky-500/20 bg-sky-500/15 px-4 py-2 text-xs font-black text-sky-400">
+              <button type="button" onClick={() => void handleCreateSubproject()} className="rounded-2xl border border-sky-500/20 bg-sky-500/15 px-4 py-2 text-xs font-medium text-sky-400">
                 <span className="inline-flex items-center gap-2"><HardDrive size={14} /> 新建子项目</span>
               </button>
-              <button type="button" onClick={() => void handleCreateDirectory()} className="rounded-2xl border border-amber-500/20 bg-amber-500/15 px-4 py-2 text-xs font-black text-amber-400">
+              <button type="button" onClick={() => void handleCreateDirectory()} className="rounded-2xl border border-amber-500/20 bg-amber-500/15 px-4 py-2 text-xs font-medium text-amber-400">
                 <span className="inline-flex items-center gap-2"><FolderPlus size={14} /> 新建文件夹</span>
               </button>
-              <button type="button" onClick={() => triggerUpload(selectedNode || null)} className="rounded-2xl bg-brand-primary px-4 py-2 text-xs font-black text-white">
+              <button type="button" onClick={() => triggerUpload(selectedNode || null)} className="rounded-2xl bg-brand-primary px-4 py-2 text-xs font-medium text-white">
                 <span className="inline-flex items-center gap-2"><Upload size={14} /> 上传文件</span>
               </button>
-              <button type="button" onClick={() => void triggerDirectoryUpload(selectedNode || null)} className="rounded-2xl bg-sky-600 px-4 py-2 text-xs font-black text-white">
+              <button type="button" onClick={() => void triggerDirectoryUpload(selectedNode || null)} className="rounded-2xl bg-sky-600 px-4 py-2 text-xs font-medium text-white">
                 <span className="inline-flex items-center gap-2"><FolderUp size={14} /> 上传文件夹</span>
               </button>
             </div>
@@ -2031,7 +2031,7 @@ const getPvcDirectoryPath = (target: UnifiedExplorerNode) => {
               setContextMenu({ x: event.clientX, y: event.clientY, node: null });
             }}
           >
-            <div className="mb-3 flex items-center gap-2 px-2 text-[11px] font-black uppercase tracking-[0.25em] text-theme-text-muted">
+            <div className="mb-3 flex items-center gap-2 px-2 text-[11px] font-semibold uppercase tracking-[0.25em] text-theme-text-muted">
               <FolderTree size={14} />
               文件树
             </div>
@@ -2073,7 +2073,7 @@ const getPvcDirectoryPath = (target: UnifiedExplorerNode) => {
             <div className="flex h-full min-h-0 flex-col">
               <div className="flex items-center justify-between border-b border-theme-border px-5 py-4">
                 <div>
-                  <div className="text-sm font-black text-theme-text-primary">{selectedNode?.name || '项目文件资源'}</div>
+                  <div className="text-sm font-semibold text-theme-text-primary">{selectedNode?.name || '项目文件资源'}</div>
                   <div className="mt-1 text-[11px] text-theme-text-muted">{busyAction ?`执行中: ${busyAction}` : '双击目录进入，单击文件预览'}</div>
                 </div>
               </div>
@@ -2082,7 +2082,7 @@ const getPvcDirectoryPath = (target: UnifiedExplorerNode) => {
                 <div className="grid min-h-0 flex-1 grid-cols-[minmax(0,1fr)_280px] gap-0">
                   <div className="min-h-0 p-4">{renderPreview()}</div>
                   <div className="border-l border-theme-border p-5 text-sm text-theme-text-secondary">
-                    <div className="text-[11px] font-black uppercase tracking-[0.24em] text-theme-text-muted">文件信息</div>
+                    <div className="text-[11px] font-semibold uppercase tracking-[0.24em] text-theme-text-muted">文件信息</div>
                     <div className="mt-4 space-y-3">
                       <div><div className="text-xs text-theme-text-muted">文件名</div><div className="font-bold text-theme-text-primary break-all">{previewFile?.filename}</div></div>
                       <div><div className="text-xs text-theme-text-muted">内容类型</div><div className="font-semibold">{previewFile?.contentType || preview.contentType || 'unknown'}</div></div>
@@ -2092,7 +2092,7 @@ const getPvcDirectoryPath = (target: UnifiedExplorerNode) => {
                     {previewFile && (
                       <button
                         type="button"
-                        className="mt-6 inline-flex items-center gap-2 rounded-xl bg-brand-primary px-4 py-2 text-xs font-black text-white"
+                        className="mt-6 inline-flex items-center gap-2 rounded-xl bg-brand-primary px-4 py-2 text-xs font-medium text-white"
                         onClick={() => void handleDownload(previewFile)}
                       >
                         <Download size={14} />
@@ -2142,7 +2142,7 @@ const getPvcDirectoryPath = (target: UnifiedExplorerNode) => {
                       </button>
                     </div>
                   </div>
-                  <div className="grid grid-cols-[minmax(0,1fr)_120px_190px] gap-3 rounded-2xl bg-theme-bg-app px-4 py-3 text-[11px] font-black uppercase tracking-[0.2em] text-theme-text-muted">
+                  <div className="grid grid-cols-[minmax(0,1fr)_120px_190px] gap-3 rounded-2xl bg-theme-bg-app px-4 py-3 text-[11px] font-semibold uppercase tracking-[0.2em] text-theme-text-muted">
                     <div>名称</div>
                     <div>大小</div>
                     <div>更新时间</div>
@@ -2209,7 +2209,7 @@ const getPvcDirectoryPath = (target: UnifiedExplorerNode) => {
                           />
                           {renderNodeIcon(item, expandedNodes.has(item.id))}
                           <span className="truncate font-semibold text-theme-text-secondary">{item.name}</span>
-                          {item.specialBadge && <span className="rounded bg-sky-500/15 px-1.5 py-0.5 text-[9px] font-black text-sky-400">{item.specialBadge}</span>}
+                          {item.specialBadge && <span className="rounded bg-sky-500/15 px-1.5 py-0.5 text-[9px] font-medium text-sky-400">{item.specialBadge}</span>}
                         </div>
                         <div className="text-xs text-theme-text-muted">{item.nodeType === 'file' || item.nodeType === 'pvc-file' ?`${item.size || 0} bytes` : '--'}</div>
                         <div className="truncate text-xs text-theme-text-muted">{item.updatedAt || '--'}</div>

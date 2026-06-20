@@ -4,9 +4,11 @@ import { Loader2, Plus, RefreshCw, RotateCcw, Save, Trash2 } from 'lucide-react'
 import { api } from '../../clients/api';
 import { showConfirm } from '../../components/DialogService';
 import { useUiFeedback } from '../../components/UiFeedback';
+import { PageHeader } from '../../design-system';
 import {
   ScheduleRuntimeConfig,
   ScheduleRuntimeSchedulerPolicy,
+  ScheduleRuntimeUserTaskSyncPolicy,
   ScheduleRuntimeTaskType,
   ScheduleRuntimeTimeWindow,
   ScheduleRuntimeToolDefault,
@@ -46,10 +48,26 @@ const emptySchedulerPolicy = (): ScheduleRuntimeSchedulerPolicy => ({
   db_fallback_batch_size: 20,
 });
 
+const emptyUserTaskSyncPolicy = (): ScheduleRuntimeUserTaskSyncPolicy => ({
+  enabled: true,
+  worker_concurrency: 8,
+  lease_seconds: 45,
+  heartbeat_interval_seconds: 10,
+  db_fallback_batch_size: 20,
+  queue_pop_timeout_seconds: 1,
+  reclaim_batch_size: 50,
+  dispatching_seconds: 5,
+  running_seconds: 15,
+  paused_seconds: 60,
+  terminal_verify_seconds: 10,
+  retry_initial_seconds: 30,
+  retry_max_seconds: 300,
+  failure_threshold: 5,
+});
+
 const emptyToolDefault = (taskType: ScheduleRuntimeTaskType, label: string): ScheduleRuntimeToolDefault => ({
   task_type: taskType,
   label,
-  default_concurrency: 1,
   root_task_key_max_concurrency: 0,
   capacity_pool_ids: [...(DEFAULT_CAPACITY_POOL_IDS[taskType] || [])],
   root_task_key_expires_at: '',
@@ -66,10 +84,12 @@ const normalizeConfig = (value?: ScheduleRuntimeConfig | null): ScheduleRuntimeC
     config_key: value?.config_key || 'global_default',
     timezone: value?.timezone || 'Asia/Shanghai',
     scheduler_policy: value?.scheduler_policy || emptySchedulerPolicy(),
+    user_task_sync_policy: value?.user_task_sync_policy || emptyUserTaskSyncPolicy(),
     tool_defaults: normalizedTools,
     time_windows: (value?.time_windows || []).map((item) => ({
       ...item,
       scheduler_policy: item.scheduler_policy || emptySchedulerPolicy(),
+      user_task_sync_policy: item.user_task_sync_policy || emptyUserTaskSyncPolicy(),
       tool_defaults: TASK_TYPE_ORDER.map((taskType) => {
         const match = (item.tool_defaults || []).find((tool) => tool.task_type === taskType);
         const base = normalizedTools.find((tool) => tool.task_type === taskType);
@@ -85,6 +105,7 @@ const normalizeConfig = (value?: ScheduleRuntimeConfig | null): ScheduleRuntimeC
       active_time_window_name: null,
       timezone: 'Asia/Shanghai',
       scheduler_policy: emptySchedulerPolicy(),
+      user_task_sync_policy: emptyUserTaskSyncPolicy(),
       tool_defaults: normalizedTools,
     },
   };
@@ -210,6 +231,7 @@ export const ChimeraScheduleConfigPage: React.FC = () => {
           start_time: '19:00',
           end_time: '23:00',
           scheduler_policy: { ...current.scheduler_policy },
+          user_task_sync_policy: { ...current.user_task_sync_policy },
           tool_defaults: current.tool_defaults.map((item) => ({ ...item })),
         },
       ],
@@ -253,6 +275,7 @@ export const ChimeraScheduleConfigPage: React.FC = () => {
       const payload = {
         timezone: draft.timezone,
         scheduler_policy: draft.scheduler_policy,
+        user_task_sync_policy: draft.user_task_sync_policy,
         tool_defaults: draft.tool_defaults.map((item) => ({
           ...item,
           root_task_key_expires_at: item.root_task_key_expires_at || null,
@@ -260,6 +283,7 @@ export const ChimeraScheduleConfigPage: React.FC = () => {
         time_windows: draft.time_windows.map((item) => ({
           ...item,
           scheduler_policy: item.scheduler_policy,
+          user_task_sync_policy: item.user_task_sync_policy,
           tool_defaults: item.tool_defaults.map((tool) => ({
             ...tool,
             root_task_key_expires_at: tool.root_task_key_expires_at || null,
@@ -290,13 +314,11 @@ export const ChimeraScheduleConfigPage: React.FC = () => {
     <div className="min-h-full bg-theme-bg-app px-4 py-5 md:px-6 2xl:px-8">
       {feedbackNodes}
       <div className="w-full space-y-4">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <div>
-            <h1 className="text-lg font-black text-theme-text-primary">调度参数</h1>
-            <p className="text-sm text-theme-text-muted">统一管理全局调度策略、工具默认并发与分时段并发覆盖。</p>
-          </div>
-          <div className="flex flex-wrap items-center gap-2">
-            <button onClick={() => void load()} className="inline-flex items-center gap-2 rounded-xl border border-theme-border bg-theme-bg-app px-3 py-2 text-sm font-bold text-theme-text-secondary hover:bg-theme-elevated">
+        <PageHeader
+          title="调度参数"
+          description="统一管理全局调度策略、任务同步参数、Task Key 默认额度与分时段覆盖。"
+          actions={<div className="flex flex-wrap items-center gap-2">
+            <button onClick={() => void load()} className="inline-flex items-center gap-2 rounded-xl border border-theme-border bg-theme-surface px-3 py-2 text-sm font-bold text-theme-text-secondary hover:bg-theme-elevated">
               <RefreshCw size={16} />
               刷新
             </button>
@@ -304,12 +326,12 @@ export const ChimeraScheduleConfigPage: React.FC = () => {
               <RotateCcw size={16} />
               恢复默认
             </button>
-            <button onClick={() => void handleSave()} disabled={saving || !dirty} className="inline-flex items-center gap-2 rounded-xl bg-theme-surface px-3 py-2 text-sm font-black text-white hover:bg-theme-elevated disabled:cursor-not-allowed disabled:opacity-60">
+            <button onClick={() => void handleSave()} disabled={saving || !dirty} className="inline-flex items-center gap-2 rounded-xl bg-theme-surface px-3 py-2 text-sm font-medium text-white hover:bg-theme-elevated disabled:cursor-not-allowed disabled:opacity-60">
               {saving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
               保存配置
             </button>
-          </div>
-        </div>
+          </div>}
+        />
 
         {error ? (
           <div className="rounded-2xl border border-rose-500/20 bg-rose-500/15 px-4 py-3 text-sm font-semibold text-rose-400">{error}</div>
@@ -334,19 +356,78 @@ export const ChimeraScheduleConfigPage: React.FC = () => {
           </article>
         </section>
 
- <section className="overflow-hidden rounded-2xl border border-theme-border bg-theme-bg-app">
+        <section className="overflow-hidden rounded-2xl border border-theme-border bg-theme-surface">
           <div className="border-b border-theme-border bg-slate-50/70 px-4 py-4 md:px-5">
-            <h2 className="text-lg font-black text-theme-text-primary">调度策略</h2>
+            <h2 className="text-lg font-semibold text-theme-text-primary">任务同步参数</h2>
+          </div>
+          <div className="grid gap-4 p-4 md:grid-cols-2 xl:grid-cols-3">
+            {[
+              ['enabled', '启用', 'checkbox'],
+              ['worker_concurrency', '任务同步 Worker 并发', 'number'],
+              ['lease_seconds', 'Lease 秒数', 'number'],
+              ['heartbeat_interval_seconds', '心跳间隔秒数', 'number'],
+              ['db_fallback_batch_size', 'DB 回扫批量', 'number'],
+              ['queue_pop_timeout_seconds', '队列弹出超时', 'number'],
+              ['reclaim_batch_size', '回收批量', 'number'],
+              ['dispatching_seconds', 'Dispatching 超时', 'number'],
+              ['running_seconds', 'Running 超时', 'number'],
+              ['paused_seconds', 'Paused 超时', 'number'],
+              ['terminal_verify_seconds', '终态校验秒数', 'number'],
+              ['retry_initial_seconds', '重试初始秒数', 'number'],
+              ['retry_max_seconds', '重试最大秒数', 'number'],
+              ['failure_threshold', '失败阈值', 'number'],
+            ].map(([key, label, type]) => {
+              const value = (draft.user_task_sync_policy as any)?.[key];
+              return (
+                <label key={key} className="block rounded-xl border border-theme-border bg-theme-surface p-4">
+                  <div className="text-sm font-bold text-theme-text-secondary">{label}</div>
+                  {type === 'checkbox' ? (
+                    <input
+                      type="checkbox"
+                      checked={Boolean(value)}
+                      onChange={(event) => setDraft((current) => current ? ({
+                        ...current,
+                        user_task_sync_policy: {
+                          ...current.user_task_sync_policy,
+                          enabled: event.target.checked,
+                        },
+                      }) : current)}
+                      className="mt-3 h-4 w-4"
+                    />
+                  ) : (
+                    <input
+                      type="number"
+                      min={1}
+                      value={value ?? 0}
+                      onChange={(event) => setDraft((current) => current ? ({
+                        ...current,
+                        user_task_sync_policy: {
+                          ...current.user_task_sync_policy,
+                          [key]: Number(event.target.value || 0),
+                        },
+                      }) : current)}
+                      className="mt-3 w-full rounded-xl border border-theme-border bg-theme-bg-app px-3 py-2 text-sm font-semibold text-theme-text-primary outline-none focus:border-cyan-400"
+                    />
+                  )}
+                </label>
+              );
+            })}
+          </div>
+        </section>
+
+ <section className="overflow-hidden rounded-2xl border border-theme-border bg-theme-surface">
+          <div className="border-b border-theme-border bg-slate-50/70 px-4 py-4 md:px-5">
+            <h2 className="text-lg font-semibold text-theme-text-primary">调度策略</h2>
           </div>
           <div className="grid gap-4 p-4 md:grid-cols-2 md:p-5 xl:grid-cols-3">
             {[
               ['project_default_concurrency', '项目默认并发'],
               ['target_default_concurrency', '目标默认并发'],
-              ['worker_concurrency', 'Worker 并发'],
+              ['worker_concurrency', '调度执行 Worker 并发'],
               ['ready_backfill_batch_size', 'Ready 回填批量'],
               ['db_fallback_batch_size', 'DB 回扫批量'],
             ].map(([key, label]) => (
-              <label key={key} className="block rounded-xl border border-theme-border bg-theme-bg-app p-4">
+              <label key={key} className="block rounded-xl border border-theme-border bg-theme-surface p-4">
                 <div className="text-sm font-bold text-theme-text-secondary">{label}</div>
                 <input
                   type="number"
@@ -357,7 +438,7 @@ export const ChimeraScheduleConfigPage: React.FC = () => {
                 />
               </label>
             ))}
-            <label className="block rounded-xl border border-theme-border bg-theme-bg-app p-4">
+            <label className="block rounded-xl border border-theme-border bg-theme-surface p-4">
               <div className="text-sm font-bold text-theme-text-secondary">分发策略</div>
               <select value={draft.scheduler_policy.dispatch_mode} onChange={(event) => updateSchedulerPolicy('dispatch_mode', event.target.value)} className="mt-3 w-full rounded-xl border border-theme-border bg-theme-bg-app px-3 py-2 text-sm font-semibold text-theme-text-primary outline-none focus:border-cyan-400">
                 <option value="balanced">balanced</option>
@@ -365,7 +446,7 @@ export const ChimeraScheduleConfigPage: React.FC = () => {
                 <option value="priority_first">priority_first</option>
               </select>
             </label>
-            <label className="block rounded-xl border border-theme-border bg-theme-bg-app p-4">
+            <label className="block rounded-xl border border-theme-border bg-theme-surface p-4">
               <div className="text-sm font-bold text-theme-text-secondary">队列策略</div>
               <select value={draft.scheduler_policy.queue_strategy} onChange={(event) => updateSchedulerPolicy('queue_strategy', event.target.value)} className="mt-3 w-full rounded-xl border border-theme-border bg-theme-bg-app px-3 py-2 text-sm font-semibold text-theme-text-primary outline-none focus:border-cyan-400">
                 <option value="capacity_aware">capacity_aware</option>
@@ -375,24 +456,20 @@ export const ChimeraScheduleConfigPage: React.FC = () => {
           </div>
         </section>
 
- <section className="overflow-hidden rounded-2xl border border-theme-border bg-theme-bg-app">
+ <section className="overflow-hidden rounded-2xl border border-theme-border bg-theme-surface">
           <div className="border-b border-theme-border bg-slate-50/70 px-4 py-4 md:px-5">
-            <h2 className="text-lg font-black text-theme-text-primary">工具默认并发</h2>
+            <h2 className="text-lg font-semibold text-theme-text-primary">工具默认配置</h2>
           </div>
           <div className="grid gap-4 p-4 md:p-5 xl:grid-cols-2">
             {draft.tool_defaults.map((item) => (
-              <div key={item.task_type} className="rounded-2xl border border-theme-border bg-theme-bg-app p-5">
-                <div className="text-lg font-black text-theme-text-primary">{item.label}</div>
+              <div key={item.task_type} className="rounded-2xl border border-theme-border bg-theme-surface p-5">
+                <div className="text-lg font-semibold text-theme-text-primary">{item.label}</div>
                 <div className="mt-4 grid gap-4 md:grid-cols-2">
                   <label className="block">
-                    <div className="text-sm font-bold text-theme-text-secondary">默认并发</div>
-                    <input type="number" min={1} value={item.default_concurrency} onChange={(event) => updateToolDefault(item.task_type, { default_concurrency: Number(event.target.value || 0) })} className="mt-2 w-full rounded-xl border border-theme-border bg-theme-bg-app px-3 py-2 text-sm font-semibold text-theme-text-primary outline-none focus:border-cyan-400" />
-                  </label>
-                  <label className="block">
-                    <div className="text-sm font-bold text-theme-text-secondary">Root Task Key 默认并发</div>
+                    <div className="text-sm font-bold text-theme-text-secondary">Task Key 最大并发</div>
                     <input type="number" min={0} value={item.root_task_key_max_concurrency} onChange={(event) => updateToolDefault(item.task_type, { root_task_key_max_concurrency: Number(event.target.value || 0) })} className="mt-2 w-full rounded-xl border border-theme-border bg-theme-bg-app px-3 py-2 text-sm font-semibold text-theme-text-primary outline-none focus:border-cyan-400" />
                   </label>
-                  <label className="block md:col-span-2">
+                  <label className="block">
                     <div className="text-sm font-bold text-theme-text-secondary">Capacity Pool IDs</div>
                     <input value={formatPoolIds(item.capacity_pool_ids)} onChange={(event) => updateToolDefault(item.task_type, { capacity_pool_ids: parsePoolIds(event.target.value) })} placeholder="例如 1,2,3" className="mt-2 w-full rounded-xl border border-theme-border bg-theme-bg-app px-3 py-2 text-sm font-semibold text-theme-text-primary outline-none focus:border-cyan-400" />
                   </label>
@@ -402,20 +479,20 @@ export const ChimeraScheduleConfigPage: React.FC = () => {
           </div>
         </section>
 
- <section className="overflow-hidden rounded-2xl border border-theme-border bg-theme-bg-app">
+ <section className="overflow-hidden rounded-2xl border border-theme-border bg-theme-surface">
           <div className="flex flex-wrap items-center justify-between gap-3 border-b border-theme-border bg-slate-50/70 px-4 py-4 md:px-5">
             <div>
-              <h2 className="text-lg font-black text-theme-text-primary">时段规则</h2>
+              <h2 className="text-lg font-semibold text-theme-text-primary">时段规则</h2>
               <p className="mt-1 text-sm text-theme-text-muted">支持配置多个白天/夜间时段，命中后覆盖基础调度参数。</p>
             </div>
-            <button onClick={addWindow} className="inline-flex items-center gap-2 rounded-xl border border-theme-border bg-theme-bg-app px-3 py-2 text-sm font-bold text-theme-text-secondary hover:bg-theme-elevated">
+            <button onClick={addWindow} className="inline-flex items-center gap-2 rounded-xl border border-theme-border bg-theme-surface px-3 py-2 text-sm font-bold text-theme-text-secondary hover:bg-theme-elevated">
               <Plus size={16} />
               新增时段
             </button>
           </div>
           <div className="space-y-5 p-4 md:p-5">
             {draft.time_windows.map((window, index) => (
-              <div key={`${window.name}-${index}`} className="rounded-2xl border border-theme-border bg-theme-bg-app p-5">
+              <div key={`${window.name}-${index}`} className="rounded-2xl border border-theme-border bg-theme-surface p-5">
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <div className="flex flex-wrap items-center gap-3">
                     <input value={window.name} onChange={(event) => updateTimeWindow(index, { name: event.target.value })} className="rounded-xl border border-theme-border bg-theme-bg-app px-3 py-2 text-sm font-bold text-theme-text-primary outline-none focus:border-cyan-400" />
@@ -436,28 +513,51 @@ export const ChimeraScheduleConfigPage: React.FC = () => {
                   {[
                     ['project_default_concurrency', '项目默认并发'],
                     ['target_default_concurrency', '目标默认并发'],
-                    ['worker_concurrency', 'Worker 并发'],
+                    ['worker_concurrency', '调度执行 Worker 并发'],
                     ['ready_backfill_batch_size', 'Ready 回填批量'],
                     ['db_fallback_batch_size', 'DB 回扫批量'],
                   ].map(([key, label]) => (
-                    <label key={`${window.name}-${key}`} className="block rounded-xl border border-theme-border bg-theme-bg-app p-4">
+                    <label key={`${window.name}-${key}`} className="block rounded-xl border border-theme-border bg-theme-surface p-4">
                       <div className="text-sm font-bold text-theme-text-secondary">{label}</div>
                       <input type="number" min={1} value={(window.scheduler_policy as any)?.[key] ?? 0} onChange={(event) => updateTimeWindowPolicy(index, key as keyof ScheduleRuntimeSchedulerPolicy, event.target.value)} className="mt-3 w-full rounded-xl border border-theme-border bg-theme-bg-app px-3 py-2 text-sm font-semibold text-theme-text-primary outline-none focus:border-cyan-400" />
                     </label>
                   ))}
                 </div>
+                <div className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+                  {[
+                    ['worker_concurrency', '任务同步 Worker 并发'],
+                    ['db_fallback_batch_size', 'DB 回扫批量'],
+                    ['reclaim_batch_size', '回收扫描批量'],
+                  ].map(([key, label]) => (
+                    <label key={`${window.name}-sync-${key}`} className="block rounded-xl border border-theme-border bg-theme-surface p-4">
+                      <div className="text-sm font-bold text-theme-text-secondary">{label}</div>
+                      <input
+                        type="number"
+                        min={1}
+                        value={(window.user_task_sync_policy as any)?.[key] ?? (draft.user_task_sync_policy as any)?.[key] ?? 0}
+                        onChange={(event) => updateTimeWindow(index, {
+                          user_task_sync_policy: {
+                            ...(window.user_task_sync_policy || draft.user_task_sync_policy),
+                            [key]: Number(event.target.value || 0),
+                          },
+                        })}
+                        className="mt-3 w-full rounded-xl border border-theme-border bg-theme-bg-app px-3 py-2 text-sm font-semibold text-theme-text-primary outline-none focus:border-cyan-400"
+                      />
+                    </label>
+                  ))}
+                </div>
                 <div className="mt-5 grid gap-4 xl:grid-cols-2">
                   {window.tool_defaults.map((tool) => (
-                    <div key={`${window.name}-${tool.task_type}`} className="rounded-xl border border-theme-border bg-theme-bg-app p-4">
-                      <div className="text-sm font-black text-theme-text-primary">{tool.label}</div>
+                    <div key={`${window.name}-${tool.task_type}`} className="rounded-xl border border-theme-border bg-theme-surface p-4">
+                      <div className="text-sm font-semibold text-theme-text-primary">{tool.label}</div>
                       <div className="mt-3 grid gap-3 md:grid-cols-2">
                         <label className="block">
-                          <div className="text-xs font-bold uppercase tracking-wider text-theme-text-muted">默认并发</div>
-                          <input type="number" min={1} value={tool.default_concurrency} onChange={(event) => updateTimeWindowTool(index, tool.task_type, { default_concurrency: Number(event.target.value || 0) })} className="mt-2 w-full rounded-xl border border-theme-border bg-theme-bg-app px-3 py-2 text-sm font-semibold text-theme-text-primary outline-none focus:border-cyan-400" />
+                          <div className="text-xs font-bold uppercase tracking-wider text-theme-text-muted">Task Key 最大并发</div>
+                          <input type="number" min={0} value={tool.root_task_key_max_concurrency} onChange={(event) => updateTimeWindowTool(index, tool.task_type, { root_task_key_max_concurrency: Number(event.target.value || 0) })} className="mt-2 w-full rounded-xl border border-theme-border bg-theme-bg-app px-3 py-2 text-sm font-semibold text-theme-text-primary outline-none focus:border-cyan-400" />
                         </label>
                         <label className="block">
-                          <div className="text-xs font-bold uppercase tracking-wider text-theme-text-muted">Root Key 并发</div>
-                          <input type="number" min={0} value={tool.root_task_key_max_concurrency} onChange={(event) => updateTimeWindowTool(index, tool.task_type, { root_task_key_max_concurrency: Number(event.target.value || 0) })} className="mt-2 w-full rounded-xl border border-theme-border bg-theme-bg-app px-3 py-2 text-sm font-semibold text-theme-text-primary outline-none focus:border-cyan-400" />
+                          <div className="text-xs font-bold uppercase tracking-wider text-theme-text-muted">Capacity Pool IDs</div>
+                          <input value={formatPoolIds(tool.capacity_pool_ids)} onChange={(event) => updateTimeWindowTool(index, tool.task_type, { capacity_pool_ids: parsePoolIds(event.target.value) })} placeholder="例如 1,2,3" className="mt-2 w-full rounded-xl border border-theme-border bg-theme-bg-app px-3 py-2 text-sm font-semibold text-theme-text-primary outline-none focus:border-cyan-400" />
                         </label>
                       </div>
                     </div>
@@ -466,7 +566,7 @@ export const ChimeraScheduleConfigPage: React.FC = () => {
               </div>
             ))}
             {draft.time_windows.length === 0 ? (
-              <div className="rounded-2xl border border-dashed border-theme-border bg-theme-bg-app p-8 text-center text-sm font-semibold text-theme-text-muted">当前没有时段规则，系统将始终使用基础配置。</div>
+              <div className="rounded-2xl border border-dashed border-theme-border bg-theme-surface p-8 text-center text-sm font-semibold text-theme-text-muted">当前没有时段规则，系统将始终使用基础配置。</div>
             ) : null}
           </div>
         </section>

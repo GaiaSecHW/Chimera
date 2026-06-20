@@ -239,7 +239,7 @@ export const ProjectDirectoryPickerModal: React.FC<{
       <div className="flex max-h-[85vh] w-full max-w-5xl flex-col overflow-hidden rounded-[2rem] bg-theme-surface shadow-2xl">
         <div className="flex items-center justify-between border-b border-theme-border px-8 py-6">
           <div>
-            <h3 className="text-xl font-black text-theme-text-primary">选择项目文件夹</h3>
+            <h3 className="text-xl font-semibold text-theme-text-primary">选择项目文件夹</h3>
             <p className="mt-1 text-sm text-theme-text-faint">可以选择子项目根目录，或者任意层级的文件夹作为挂载来源。</p>
           </div>
           <button onClick={onClose} className="rounded-2xl p-3 text-theme-text-muted hover:bg-theme-elevated hover:text-theme-text-primary">
@@ -262,15 +262,15 @@ export const ProjectDirectoryPickerModal: React.FC<{
 
           <div className="flex flex-col justify-between p-6">
             <div>
-              <div className="text-xs font-black uppercase tracking-widest text-theme-text-faint">已选目录</div>
+              <div className="text-xs font-semibold uppercase tracking-widest text-theme-text-faint">已选目录</div>
               {selectedFolder ? (
                 <div className="mt-4 space-y-4 rounded-2xl border border-blue-500/20 bg-blue-50/10 p-5">
                   <div>
-                    <div className="text-xs font-black uppercase tracking-widest text-blue-500">子项目</div>
+                    <div className="text-xs font-semibold uppercase tracking-widest text-blue-500">子项目</div>
                     <div className="mt-1 text-sm font-bold text-theme-text-primary">{selectedFolder.subproject_name}</div>
                   </div>
                   <div>
-                    <div className="text-xs font-black uppercase tracking-widest text-blue-500">目录路径</div>
+                    <div className="text-xs font-semibold uppercase tracking-widest text-blue-500">目录路径</div>
                     <div className="mt-1 break-all rounded-xl bg-theme-elevated px-3 py-2 font-mono text-sm text-theme-text-primary">
                       {selectedFolder.display_path}
                     </div>

@@ -1,8 +1,9 @@
-﻿import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Activity, AlertCircle, Box, CheckCircle, ChevronLeft, ChevronRight, Loader2, Play, Plus, RefreshCw, RotateCcw, Search, StopCircle, Trash2, XCircle } from 'lucide-react';
 import { api } from '../../clients/api';
 import { AppTemplate, AppWorkflow, AppWorkflowLlmBindingRequest, AppWorkflowStatus, ServicePort } from '../../types/types';
 import { AppWorkflowLlmBindingsEditor } from '../../components/orchestration/AppWorkflowLlmBindingsEditor';
+import { PageHeader } from '../../design-system';
 type CreateStep = 'select-template' | 'fill-form';
 
 type InputVolumeMountConfig = {
@@ -238,7 +239,7 @@ export const AppInstancePage: React.FC<{
           aria-expanded={isOpen}
           aria-controls={panelId}
           onClick={() => setOpenHelpSection((current) => (current === section ? null : section))}
- className={`inline-flex h-4 w-4 items-center justify-center rounded-full border text-[8px] font-black leading-none transition-all duration-200 ease-out focus:outline-none focus:ring-2 focus:ring-offset-2 ${tone.button} ${isOpen ? 'scale-105 ' : 'hover:scale-105'}`}
+ className={`inline-flex h-4 w-4 items-center justify-center rounded-full border text-[8px] font-medium leading-none transition-all duration-200 ease-out focus:outline-none focus:ring-2 focus:ring-offset-2 ${tone.button} ${isOpen ? 'scale-105 ' : 'hover:scale-105'}`}
         >
           ?
         </button>
@@ -529,33 +530,33 @@ export const AppInstancePage: React.FC<{
 
   return (
     <div className="p-8">
-      <div className="mb-8 flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-black text-theme-text-primary tracking-tight">应用实例</h1>
-          <p className="mt-1 text-sm text-theme-text-muted">管理单应用工作流实例</p>
-        </div>
-        <div className="flex items-center gap-3">
-          <button
-            onClick={handleRefreshInstances}
-            disabled={loading || isRefreshingList}
- className="flex items-center gap-2 rounded-2xl border border-theme-border bg-theme-bg-app px-5 py-3 font-bold text-theme-text-secondary hover:border-blue-500/20 hover:bg-blue-500/15 hover:text-blue-400 disabled:cursor-not-allowed disabled:opacity-60"
-            title="刷新"
-            aria-label="刷新"
-          >
-            <RefreshCw size={16} className={isRefreshingList ? 'animate-spin' : ''} />
-          </button>
- <button onClick={openCreateModal} className="flex items-center gap-2 rounded-2xl bg-blue-600 px-6 py-3 font-bold text-white hover:bg-blue-500">
-            <Plus size={18} />
-            创建实例
-          </button>
-        </div>
-      </div>
+      <PageHeader
+        title="应用实例"
+        description="管理单应用工作流实例"
+        actions={
+          <div className="flex items-center gap-3">
+            <button
+              onClick={handleRefreshInstances}
+              disabled={loading || isRefreshingList}
+              className="flex items-center gap-2 rounded-xl border border-theme-border bg-theme-surface px-5 py-3 font-medium text-theme-text-secondary hover:border-blue-500/20 hover:bg-blue-500/15 hover:text-blue-400 disabled:cursor-not-allowed disabled:opacity-60"
+              title="刷新"
+              aria-label="刷新"
+            >
+              <RefreshCw size={16} className={isRefreshingList ? 'animate-spin' : ''} />
+            </button>
+            <button onClick={openCreateModal} className="flex items-center gap-2 rounded-lg bg-blue-600 px-6 py-3 font-medium text-white hover:bg-blue-500">
+              <Plus size={18} />
+              创建实例
+            </button>
+          </div>
+        }
+      />
       <div className="mb-6 flex items-center gap-4">
         <div className="relative flex-1">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-theme-text-muted" size={18} />
-          <input type="text" value={searchTerm} onChange={(event) => setSearchTerm(event.target.value)} placeholder="搜索实例名称、ID 或模板名称" className="w-full rounded-2xl border border-theme-border bg-theme-bg-app py-3 pl-12 pr-4 text-sm outline-none focus:border-blue-500" />
+          <input type="text" value={searchTerm} onChange={(event) => setSearchTerm(event.target.value)} placeholder="搜索实例名称、ID 或模板名称" className="w-full rounded-xl border border-theme-border bg-theme-bg-app py-3 pl-12 pr-4 text-sm outline-none focus:border-blue-500" />
         </div>
-        <select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)} className="rounded-2xl border border-theme-border bg-theme-bg-app px-5 py-3 text-sm outline-none focus:border-blue-500">
+        <select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)} className="rounded-xl border border-theme-border bg-theme-bg-app px-5 py-3 text-sm outline-none focus:border-blue-500">
           <option value="">全部状态</option>
           <option value="pending">待初始化</option>
           <option value="unready">未就绪</option>
@@ -570,16 +571,16 @@ export const AppInstancePage: React.FC<{
           <p className="font-medium text-theme-text-muted">暂无应用实例</p>
         </div>
       ) : (
- <div className="overflow-hidden rounded-3xl border border-theme-border bg-theme-bg-app">
+ <div className="overflow-hidden rounded-xl border border-theme-border bg-theme-surface">
           <table className="w-full">
             <thead className="border-b border-theme-border bg-theme-bg-app">
               <tr>
-                <th className="px-6 py-4 text-left text-xs font-black uppercase tracking-wider text-theme-text-muted">实例名称</th>
-                <th className="px-6 py-4 text-left text-xs font-black uppercase tracking-wider text-theme-text-muted">模板</th>
-                <th className="px-6 py-4 text-left text-xs font-black uppercase tracking-wider text-theme-text-muted">状态</th>
-                <th className="px-6 py-4 text-left text-xs font-black uppercase tracking-wider text-theme-text-muted">Service</th>
-                <th className="px-6 py-4 text-left text-xs font-black uppercase tracking-wider text-theme-text-muted">创建时间</th>
-                <th className="px-6 py-4 text-right text-xs font-black uppercase tracking-wider text-theme-text-muted">操作</th>
+                <th className="px-6 py-4 text-left text-xs font-medium uppercase tracking-wider text-theme-text-muted">实例名称</th>
+                <th className="px-6 py-4 text-left text-xs font-medium uppercase tracking-wider text-theme-text-muted">模板</th>
+                <th className="px-6 py-4 text-left text-xs font-medium uppercase tracking-wider text-theme-text-muted">状态</th>
+                <th className="px-6 py-4 text-left text-xs font-medium uppercase tracking-wider text-theme-text-muted">Service</th>
+                <th className="px-6 py-4 text-left text-xs font-medium uppercase tracking-wider text-theme-text-muted">创建时间</th>
+                <th className="px-6 py-4 text-right text-xs font-medium uppercase tracking-wider text-theme-text-muted">操作</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-theme-border">
@@ -588,11 +589,11 @@ export const AppInstancePage: React.FC<{
                 return (
                   <tr key={instance.id} className="group hover:bg-theme-elevated">
                     <td className="px-6 py-4">
-                      <button onClick={() => onNavigateToDetail(instance.id)} className="text-left text-sm font-bold text-blue-400 hover:text-blue-400">{instance.name}</button>
+                      <button onClick={() => onNavigateToDetail(instance.id)} className="text-left text-sm font-medium text-blue-400 hover:text-blue-400">{instance.name}</button>
                       <p className="mt-1 text-xs text-theme-text-muted">{instance.id}</p>
                     </td>
                     <td className="px-6 py-4 text-sm text-theme-text-secondary">{instance.template_name || '-'}</td>
-                    <td className="px-6 py-4"><span className={`rounded-full px-3 py-1 text-xs font-bold ${getStatusColor(instance.status)}`}>{getStatusText(instance.status)}</span></td>
+                    <td className="px-6 py-4"><span className={`rounded-full px-3 py-1 text-xs font-medium ${getStatusColor(instance.status)}`}>{getStatusText(instance.status)}</span></td>
                     <td className="px-6 py-4 text-sm text-theme-text-secondary">{instance.service_name || '-'}</td>
                     <td className="px-6 py-4 text-sm text-theme-text-muted">{new Date(instance.created_at).toLocaleString('zh-CN')}</td>
                     <td className="px-6 py-4">
@@ -613,18 +614,18 @@ export const AppInstancePage: React.FC<{
           </table>
           <div className="flex items-center justify-between border-t border-theme-border bg-slate-100/50 px-8 py-4">
             <div className="flex items-center gap-4">
-              <span className="text-xs font-bold uppercase tracking-widest text-theme-text-muted">每页</span>
-              <select value={pageSize} onChange={(event) => { setPageSize(Number(event.target.value)); setCurrentPage(1); }} className="rounded-xl border border-theme-border bg-theme-bg-app px-3 py-2 text-sm font-bold text-theme-text-secondary outline-none focus:border-blue-500">
+              <span className="text-xs font-semibold uppercase tracking-widest text-theme-text-muted">每页</span>
+              <select value={pageSize} onChange={(event) => { setPageSize(Number(event.target.value)); setCurrentPage(1); }} className="rounded-xl border border-theme-border bg-theme-bg-app px-3 py-2 text-sm font-medium text-theme-text-secondary outline-none focus:border-blue-500">
                 <option value={10}>10</option>
                 <option value={20}>20</option>
                 <option value={50}>50</option>
                 <option value={100}>100</option>
               </select>
-              <span className="text-xs font-bold uppercase tracking-widest text-theme-text-muted">共 {filteredInstances.length} 条</span>
+              <span className="text-xs font-semibold uppercase tracking-widest text-theme-text-muted">共 {filteredInstances.length} 条</span>
             </div>
             <div className="flex items-center gap-2">
               <button disabled={currentPage === 1} onClick={() => setCurrentPage((page) => page - 1)} className="p-2 text-theme-text-muted hover:text-theme-text-primary disabled:opacity-30"><ChevronLeft size={20} /></button>
-              <span className="rounded-xl bg-theme-elevated px-4 py-2 text-sm font-black text-theme-text-primary">{currentPage} / {totalPages}</span>
+              <span className="rounded-xl bg-theme-elevated px-4 py-2 text-sm font-semibold text-theme-text-primary">{currentPage} / {totalPages}</span>
               <button disabled={currentPage >= totalPages} onClick={() => setCurrentPage((page) => page + 1)} className="p-2 text-theme-text-muted hover:text-theme-text-primary disabled:opacity-30"><ChevronRight size={20} /></button>
             </div>
           </div>
@@ -632,13 +633,13 @@ export const AppInstancePage: React.FC<{
       )}
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-8">
- <div className="max-h-[94vh] w-full max-w-5xl overflow-auto rounded-3xl bg-theme-bg-app">
+ <div className="max-h-[94vh] w-full max-w-5xl overflow-auto rounded-2xl bg-theme-bg-app">
             {createStep === 'select-template' ? (
               <>
                 <div className="border-b border-theme-border p-6">
                   <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
                     <div>
-                      <h2 className="text-2xl font-black text-theme-text-primary">选择应用模板</h2>
+                      <h2 className="text-2xl font-bold text-theme-text-primary">选择应用模板</h2>
                     </div>
                     <div className="w-full max-w-xs">
                       <div className="relative">
@@ -648,7 +649,7 @@ export const AppInstancePage: React.FC<{
                           value={templateSearchTerm}
                           onChange={(event) => setTemplateSearchTerm(event.target.value)}
                           placeholder="搜索模板名称、描述、标签或创建人"
-                          className="w-full rounded-2xl border border-theme-border bg-theme-bg-app py-2.5 pl-10 pr-3.5 text-[13px] text-theme-text-secondary outline-none transition-all focus:border-blue-500 focus:bg-theme-bg-app"
+                          className="w-full rounded-xl border border-theme-border bg-theme-bg-app py-2.5 pl-10 pr-3.5 text-[13px] text-theme-text-secondary outline-none transition-all focus:border-blue-500 focus:bg-theme-bg-app"
                         />
                       </div>
                     </div>
@@ -664,7 +665,7 @@ export const AppInstancePage: React.FC<{
                           key={option.key}
                           type="button"
                           onClick={() => setTemplateScopeFilter(option.key as TemplateScopeFilter)}
-                          className={`rounded-2xl px-4 py-2 text-sm font-bold transition-all ${
+                          className={`rounded-lg px-4 py-2 text-sm font-medium transition-all ${
                             isActive
  ? 'bg-blue-600 text-white '
                               : 'bg-theme-elevated text-theme-text-secondary hover:bg-theme-elevated'
@@ -682,16 +683,16 @@ export const AppInstancePage: React.FC<{
                   ) : templates.length === 0 ? (
                     <div className="py-12 text-center text-theme-text-muted">暂无可用模板</div>
                   ) : filteredTemplates.length === 0 ? (
-                    <div className="rounded-3xl border border-dashed border-theme-border bg-slate-50/80 px-6 py-14 text-center">
- <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-theme-bg-app text-theme-text-faint">
+                    <div className="rounded-xl border border-dashed border-theme-border bg-slate-50/80 px-6 py-14 text-center">
+ <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-lg bg-theme-bg-app text-theme-text-faint">
                         <Search size={22} />
                       </div>
-                      <div className="text-base font-bold text-theme-text-secondary">没有找到匹配的模板</div>
+                      <div className="text-base font-medium text-theme-text-secondary">没有找到匹配的模板</div>
                       <p className="mt-2 text-sm text-theme-text-muted">可以尝试更短的关键词，或按模板名称、标签重新检索。</p>
                     </div>
                   ) : (
                     <div className="space-y-5">
-                      <div className="max-h-[68vh] overflow-y-auto rounded-[1.75rem] border border-theme-border bg-theme-bg-app shadow-inner shadow-slate-100/70">
+                      <div className="max-h-[68vh] overflow-y-auto rounded-xl border border-theme-border bg-theme-surface shadow-inner shadow-slate-100/70">
                         <div className="divide-y divide-theme-border">
                           {paginatedTemplates.map((template) => (
                             <button
@@ -706,8 +707,8 @@ export const AppInstancePage: React.FC<{
                                       <Box size={16} />
                                     </div>
                                     <div className="min-w-0">
-                                      <div className="truncate text-[15px] font-black text-theme-text-primary md:text-base">{template.name}</div>
-                                      <div className="mt-0.5 flex flex-wrap items-center gap-2 text-[10px] font-bold uppercase tracking-[0.12em] text-theme-text-muted">
+                                      <div className="truncate text-[15px] font-semibold text-theme-text-primary md:text-base">{template.name}</div>
+                                      <div className="mt-0.5 flex flex-wrap items-center gap-2 text-[10px] font-medium uppercase tracking-[0.12em] text-theme-text-muted">
                                         <span>{template.scope === 'global' ? '全局模板' : '项目模板'}</span>
                                         {template.created_by && (
                                           <>
@@ -728,13 +729,13 @@ export const AppInstancePage: React.FC<{
                                       {template.tags.slice(0, 4).map((tag) => (
                                         <span
                                           key={`${template.id}-${tag.tag_key}`}
-                                          className="rounded-full border border-theme-border bg-theme-bg-app px-2.5 py-1 text-[11px] font-bold text-theme-text-secondary"
+                                          className="rounded-full border border-theme-border bg-theme-bg-app px-2.5 py-1 text-[11px] font-medium text-theme-text-secondary"
                                         >
                                           {tag.tag_label}
                                         </span>
                                       ))}
                                       {template.tags.length > 4 && (
-                                        <span className="rounded-full border border-dashed border-theme-border px-2.5 py-1 text-[11px] font-bold text-theme-text-muted">
+                                        <span className="rounded-full border border-dashed border-theme-border px-2.5 py-1 text-[11px] font-medium text-theme-text-muted">
                                           +{template.tags.length - 4}
                                         </span>
                                       )}
@@ -743,14 +744,14 @@ export const AppInstancePage: React.FC<{
                                 </div>
 
                                 <div className="flex shrink-0 flex-wrap gap-1.5 xl:max-w-[15rem] xl:justify-end">
-                                  <span className="rounded-full bg-theme-elevated px-2.5 py-1 text-[11px] font-bold text-theme-text-secondary">
+                                  <span className="rounded-full bg-theme-elevated px-2.5 py-1 text-[11px] font-medium text-theme-text-secondary">
                                     容器 {template.containers.length}
                                   </span>
-                                  <span className="rounded-full bg-theme-elevated px-2.5 py-1 text-[11px] font-bold text-theme-text-secondary">
+                                  <span className="rounded-full bg-theme-elevated px-2.5 py-1 text-[11px] font-medium text-theme-text-secondary">
                                     副本 {template.replicas}
                                   </span>
                                   {template.service_ports && template.service_ports.length > 0 && (
-                                    <span className="rounded-full bg-emerald-500/15 px-2.5 py-1 text-[11px] font-bold text-emerald-400">
+                                    <span className="rounded-full bg-emerald-500/15 px-2.5 py-1 text-[11px] font-medium text-emerald-400">
                                       端口 {template.service_ports.length}
                                     </span>
                                   )}
@@ -761,21 +762,21 @@ export const AppInstancePage: React.FC<{
                         </div>
                       </div>
 
-                      <div className="flex flex-col gap-3 rounded-[1.75rem] border border-theme-border bg-gradient-to-r from-slate-50 via-slate-50 to-blue-50/70 px-5 py-4 md:flex-row md:items-center md:justify-between">
+                      <div className="flex flex-col gap-3 rounded-xl border border-theme-border bg-gradient-to-r from-slate-50 via-slate-50 to-blue-50/70 px-5 py-4 md:flex-row md:items-center md:justify-between">
                         <div>
-                          <div className="text-[11px] font-black uppercase tracking-[0.18em] text-theme-text-muted">分页浏览</div>
-                          <div className="mt-1 text-sm text-theme-text-secondary">共 <span className="font-black text-theme-text-primary">{filteredTemplates.length}</span> 个模板</div>
+                          <div className="text-[11px] font-medium uppercase tracking-[0.18em] text-theme-text-muted">分页浏览</div>
+                          <div className="mt-1 text-sm text-theme-text-secondary">共 <span className="font-semibold text-theme-text-primary">{filteredTemplates.length}</span> 个模板</div>
                         </div>
                         <div className="flex flex-wrap items-center gap-3">
                           <div className="flex items-center gap-2">
-                            <span className="text-xs font-bold uppercase tracking-widest text-theme-text-muted">每页</span>
+                            <span className="text-xs font-semibold uppercase tracking-widest text-theme-text-muted">每页</span>
                             <select
                               value={templatePageSize}
                               onChange={(event) => {
                                 setTemplatePageSize(Number(event.target.value));
                                 setTemplatePage(1);
                               }}
-                              className="rounded-xl border border-theme-border bg-theme-bg-app px-3 py-2 text-sm font-bold text-theme-text-secondary outline-none focus:border-blue-500"
+                              className="rounded-xl border border-theme-border bg-theme-bg-app px-3 py-2 text-sm font-medium text-theme-text-secondary outline-none focus:border-blue-500"
                             >
                               <option value={5}>5</option>
                               <option value={10}>10</option>
@@ -791,7 +792,7 @@ export const AppInstancePage: React.FC<{
                             >
                               <ChevronLeft size={18} />
                             </button>
-                            <span className="rounded-xl bg-theme-bg-app px-4 py-2 text-sm font-black text-theme-text-primary ring-1 ring-theme-border">
+                            <span className="rounded-xl bg-theme-bg-app px-4 py-2 text-sm font-semibold text-theme-text-primary ring-1 ring-theme-border">
                               {templatePage} / {templateTotalPages}
                             </span>
                             <button
@@ -814,55 +815,55 @@ export const AppInstancePage: React.FC<{
             ) : (
               <>
                 <div className="border-b border-theme-border p-8">
-                  <h2 className="text-2xl font-black text-theme-text-primary">配置应用实例</h2>
+                  <h2 className="text-2xl font-bold text-theme-text-primary">配置应用实例</h2>
                   <p className="mt-1 text-sm text-theme-text-muted">补充实例、Service 和域名访问参数。</p>
                 </div>
                 <div className="space-y-6 p-8">
                   {selectedTemplate && (
-                    <div className="rounded-2xl border border-theme-border bg-theme-bg-app p-5">
+                    <div className="rounded-xl border border-theme-border bg-theme-surface p-5">
                       <div className="grid grid-cols-2 gap-4 text-sm md:grid-cols-4">
-                        <div><div className="text-xs text-theme-text-muted">模板</div><div className="font-bold text-theme-text-primary">{selectedTemplate.name}</div></div>
-                        <div><div className="text-xs text-theme-text-muted">范围</div><div className="font-bold text-theme-text-primary">{selectedTemplate.scope}</div></div>
-                        <div><div className="text-xs text-theme-text-muted">容器数</div><div className="font-bold text-theme-text-primary">{selectedTemplate.containers.length}</div></div>
-                        <div><div className="text-xs text-theme-text-muted">副本</div><div className="font-bold text-theme-text-primary">{selectedTemplate.replicas}</div></div>
+                        <div><div className="text-xs text-theme-text-muted">模板</div><div className="font-semibold text-theme-text-primary">{selectedTemplate.name}</div></div>
+                        <div><div className="text-xs text-theme-text-muted">范围</div><div className="font-semibold text-theme-text-primary">{selectedTemplate.scope}</div></div>
+                        <div><div className="text-xs text-theme-text-muted">容器数</div><div className="font-semibold text-theme-text-primary">{selectedTemplate.containers.length}</div></div>
+                        <div><div className="text-xs text-theme-text-muted">副本</div><div className="font-semibold text-theme-text-primary">{selectedTemplate.replicas}</div></div>
                       </div>
                     </div>
                   )}
                   <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                     <div>
-                      <label className="mb-2 block text-xs font-black uppercase text-theme-text-muted">实例名称 *</label>
-                      <input value={formData.name} onChange={(event) => setFormData({ ...formData, name: event.target.value })} className="w-full rounded-2xl border border-theme-border bg-theme-bg-app px-4 py-3 text-sm outline-none focus:border-blue-500" placeholder="例如：demo-nginx" />
+                      <label className="mb-2 block text-xs font-medium uppercase text-theme-text-muted">实例名称 *</label>
+                      <input value={formData.name} onChange={(event) => setFormData({ ...formData, name: event.target.value })} className="w-full rounded-xl border border-theme-border bg-theme-bg-app px-4 py-3 text-sm outline-none focus:border-blue-500" placeholder="例如：demo-nginx" />
                     </div>
                     <div>
-                      <label className="mb-2 block text-xs font-black uppercase text-theme-text-muted">Service 名称 *</label>
-                      <input value={formData.service_name} onChange={(event) => setFormData({ ...formData, service_name: event.target.value })} className="w-full rounded-2xl border border-theme-border bg-theme-bg-app px-4 py-3 text-sm outline-none focus:border-blue-500" placeholder="例如：nginx-svc" />
+                      <label className="mb-2 block text-xs font-medium uppercase text-theme-text-muted">Service 名称 *</label>
+                      <input value={formData.service_name} onChange={(event) => setFormData({ ...formData, service_name: event.target.value })} className="w-full rounded-xl border border-theme-border bg-theme-bg-app px-4 py-3 text-sm outline-none focus:border-blue-500" placeholder="例如：nginx-svc" />
                     </div>
                     <div className="md:col-span-2">
-                      <label className="mb-2 block text-xs font-black uppercase text-theme-text-muted">描述</label>
-                      <textarea value={formData.description} onChange={(event) => setFormData({ ...formData, description: event.target.value })} rows={3} className="w-full rounded-2xl border border-theme-border bg-theme-bg-app px-4 py-3 text-sm outline-none focus:border-blue-500" />
+                      <label className="mb-2 block text-xs font-medium uppercase text-theme-text-muted">描述</label>
+                      <textarea value={formData.description} onChange={(event) => setFormData({ ...formData, description: event.target.value })} rows={3} className="w-full rounded-xl border border-theme-border bg-theme-bg-app px-4 py-3 text-sm outline-none focus:border-blue-500" />
                     </div>
                     <div>
-                      <label className="mb-2 block text-xs font-black uppercase text-theme-text-muted">Service 类型</label>
-                      <select value={formData.service_type} onChange={(event) => setFormData({ ...formData, service_type: event.target.value as any })} className="w-full rounded-2xl border border-theme-border bg-theme-bg-app px-4 py-3 text-sm outline-none focus:border-blue-500">
+                      <label className="mb-2 block text-xs font-medium uppercase text-theme-text-muted">Service 类型</label>
+                      <select value={formData.service_type} onChange={(event) => setFormData({ ...formData, service_type: event.target.value as any })} className="w-full rounded-xl border border-theme-border bg-theme-bg-app px-4 py-3 text-sm outline-none focus:border-blue-500">
                         <option value="ClusterIP">集群内部访问</option>
                         <option value="NodePort">节点端口访问</option>
                         <option value="LoadBalancer">负载均衡访问</option>
                       </select>
                     </div>
                     <div>
-                      <label className="mb-2 block text-xs font-black uppercase text-theme-text-muted">副本数</label>
-                      <input type="number" min="1" value={formData.replicas} onChange={(event) => setFormData({ ...formData, replicas: parseInt(event.target.value, 10) || 1 })} className="w-full rounded-2xl border border-theme-border bg-theme-bg-app px-4 py-3 text-sm outline-none focus:border-blue-500" />
+                      <label className="mb-2 block text-xs font-medium uppercase text-theme-text-muted">副本数</label>
+                      <input type="number" min="1" value={formData.replicas} onChange={(event) => setFormData({ ...formData, replicas: parseInt(event.target.value, 10) || 1 })} className="w-full rounded-xl border border-theme-border bg-theme-bg-app px-4 py-3 text-sm outline-none focus:border-blue-500" />
                     </div>
                   </div>
                   {selectedTemplate?.containers.some((container) => (container.input_env_vars || []).length > 0) && (
-                    <div className="rounded-2xl border border-blue-500/20 bg-blue-500/15 p-5">
-                      <div className="mb-4 text-sm font-black text-blue-400">环境变量依赖</div>
+                    <div className="rounded-xl border border-blue-500/20 bg-blue-500/15 p-5">
+                      <div className="mb-4 text-sm font-semibold text-blue-400">环境变量依赖</div>
                       <div className="space-y-4">
                         {selectedTemplate.containers.map((container) => (container.input_env_vars || []).map((envVar) => {
                           const key =`${container.name}.${envVar.name}`;
                           return (
                             <div key={key}>
-                              <label className="mb-1 block text-xs font-bold text-theme-text-secondary">{envVar.name}<span className="ml-2 text-theme-text-muted">容器：{container.name}</span></label>
+                              <label className="mb-1 block text-xs font-medium text-theme-text-secondary">{envVar.name}<span className="ml-2 text-theme-text-muted">容器：{container.name}</span></label>
                               <input value={inputEnvVarValues[key] || ''} onChange={(event) => setInputEnvVarValues({ ...inputEnvVarValues, [key]: event.target.value })} placeholder={envVar.default_value || '请输入变量值'} className="w-full rounded-xl border border-theme-border bg-theme-bg-app px-3 py-2 text-sm outline-none focus:border-blue-500" />
                             </div>
                           );
@@ -871,15 +872,15 @@ export const AppInstancePage: React.FC<{
                     </div>
                   )}
                   {selectedTemplate?.containers.some((container) => (container.input_volume_mounts || []).length > 0) && (
-                    <div className="rounded-2xl border border-purple-500/20 bg-purple-500/15 p-5">
-                      <div className="mb-4 text-sm font-black text-purple-400">PVC 挂载依赖</div>
+                    <div className="rounded-xl border border-purple-500/20 bg-purple-500/15 p-5">
+                      <div className="mb-4 text-sm font-semibold text-purple-400">PVC 挂载依赖</div>
                       <div className="space-y-4">
                         {selectedTemplate.containers.map((container) => (container.input_volume_mounts || []).map((mount) => {
                           const key =`${container.name}.${mount.mount_path}`;
                           const config = inputVolumeMountConfigs[key] || createMountConfig(mount.read_only ?? true);
                           return (
                             <div key={key} className="rounded-xl border border-purple-500/20 bg-theme-bg-app p-4">
-                              <div className="mb-3 text-sm font-bold text-theme-text-secondary">挂载路径：{mount.mount_path}<span className="ml-2 text-xs text-theme-text-muted">容器：{container.name}</span></div>
+                              <div className="mb-3 text-sm font-medium text-theme-text-secondary">挂载路径：{mount.mount_path}<span className="ml-2 text-xs text-theme-text-muted">容器：{container.name}</span></div>
                               <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
                                 <select value={config.pvc_name} onChange={(event) => setInputVolumeMountConfigs({ ...inputVolumeMountConfigs, [key]: { ...config, pvc_name: event.target.value } })} className="rounded-lg border border-theme-border px-3 py-2 text-sm outline-none focus:border-purple-500">
                                   <option value="">选择 PVC</option>
@@ -893,16 +894,16 @@ export const AppInstancePage: React.FC<{
                       </div>
                     </div>
                   )}
-                  <div className="rounded-2xl border border-amber-500/20 bg-amber-500/15 p-5">
+                  <div className="rounded-xl border border-amber-500/20 bg-amber-500/15 p-5">
                     <div className="mb-4 flex items-center justify-between gap-4">
                       <div className="flex-1">
-                        <div className="text-sm font-black text-amber-400">附加 PVC 挂载</div>
+                        <div className="text-sm font-semibold text-amber-400">附加 PVC 挂载</div>
                         <div className="mt-1 text-xs text-amber-700/80">从公共资源管理的 PVC 资源中选择，并绑定到实例容器路径。</div>
                       </div>
                       <button
                         type="button"
                         onClick={() => setAdditionalPvcMounts([...additionalPvcMounts, createAdditionalPvcMountDraft()])}
-                        className="flex items-center gap-2 rounded-xl bg-amber-600 px-4 py-2 text-sm font-bold text-white hover:bg-amber-500"
+                        className="flex items-center gap-2 rounded-xl bg-amber-600 px-4 py-2 text-sm font-medium text-white hover:bg-amber-500"
                       >
                         <Plus size={16} />
                         添加 PVC
@@ -917,7 +918,7 @@ export const AppInstancePage: React.FC<{
                         {additionalPvcMounts.map((mount, index) => (
                           <div key={index} className="rounded-xl border border-amber-500/20 bg-theme-bg-app p-4">
                             <div className="mb-3 flex items-center justify-between gap-3">
-                              <div className="text-sm font-bold text-theme-text-secondary">附加 PVC 挂载 #{index + 1}</div>
+                              <div className="text-sm font-medium text-theme-text-secondary">附加 PVC 挂载 #{index + 1}</div>
                               <button
                                 type="button"
                                 onClick={() => setAdditionalPvcMounts(additionalPvcMounts.filter((_, itemIndex) => itemIndex !== index))}
@@ -970,10 +971,10 @@ export const AppInstancePage: React.FC<{
                     value={llmBindings}
                     onChange={setLlmBindings}
                   />
-                  <div className="rounded-2xl border border-green-500/20 bg-green-500/15 p-5">
+                  <div className="rounded-xl border border-green-500/20 bg-green-500/15 p-5">
                     <div className="mb-4 flex items-center justify-between">
                       <div className="flex-1">
-                        <div className="text-sm font-black text-green-400">绑定 Ingress</div>
+                        <div className="text-sm font-semibold text-green-400">绑定 Ingress</div>
                       </div>
                       {renderHelpToggle(
                         'ingress-binding',
@@ -1001,7 +1002,7 @@ export const AppInstancePage: React.FC<{
                   <button onClick={() => setCreateStep('select-template')} className="px-6 py-3 font-medium text-theme-text-secondary hover:text-theme-text-secondary">返回模板列表</button>
                   <div className="flex items-center gap-3">
                     <button onClick={() => setIsModalOpen(false)} className="px-6 py-3 font-medium text-theme-text-secondary hover:text-theme-text-secondary">取消</button>
- <button onClick={handleCreate} disabled={isSubmitting} className="flex items-center gap-2 rounded-2xl bg-blue-600 px-6 py-3 font-bold text-white hover:bg-blue-500 disabled:opacity-50">
+ <button onClick={handleCreate} disabled={isSubmitting} className="flex items-center gap-2 rounded-lg bg-blue-600 px-6 py-3 font-medium text-white hover:bg-blue-500 disabled:opacity-50">
                       {isSubmitting && <Loader2 className="animate-spin" size={16} />}
                       {enableIngress ? '创建并启动实例' : '创建实例'}
                     </button>
@@ -1014,15 +1015,15 @@ export const AppInstancePage: React.FC<{
       )}
       {isUninitModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4 backdrop-blur-sm">
- <div className="w-full max-w-md overflow-hidden rounded-[2rem] bg-theme-bg-app animate-in zoom-in-95 duration-200">
+ <div className="w-full max-w-md overflow-hidden rounded-2xl bg-theme-bg-app animate-in zoom-in-95 duration-200">
             <div className="p-8 text-center">
-              <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-[2rem] bg-orange-500/15 text-orange-400">
+              <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-xl bg-orange-500/15 text-orange-400">
                 <RotateCcw size={40} />
               </div>
-              <h3 className="text-2xl font-black text-theme-text-primary">确认反初始化？</h3>
+              <h3 className="text-2xl font-bold text-theme-text-primary">确认反初始化？</h3>
               <p className="mt-4 font-medium text-theme-text-muted">
                 您确定要反初始化这个应用实例吗？这将删除所有关联的 K8S 资源并重置状态。</p>
-              <p className="mt-2 rounded-xl border border-red-500/20 bg-red-500/15 p-3 text-sm font-bold text-red-500">
+              <p className="mt-2 rounded-xl border border-red-500/20 bg-red-500/15 p-3 text-sm font-medium text-red-500">
                 警告：所有的非持久化数据将全部丢失！
               </p>
             </div>
@@ -1032,14 +1033,14 @@ export const AppInstancePage: React.FC<{
                   setIsUninitModalOpen(false);
                   setUninitializingId(null);
                 }}
-                className="flex-1 rounded-2xl border border-theme-border bg-theme-bg-app py-4 font-bold text-theme-text-secondary transition-all hover:bg-theme-elevated"
+                className="flex-1 rounded-xl border border-theme-border bg-theme-surface py-4 font-medium text-theme-text-secondary transition-all hover:bg-theme-elevated"
               >
                 取消
               </button>
               <button
                 onClick={handleUninitialize}
                 disabled={isUninitializing}
- className="flex flex-1 items-center justify-center gap-2 rounded-2xl bg-orange-600 py-4 font-bold text-white shadow-orange-600/20 transition-all hover:bg-orange-700 disabled:opacity-50"
+ className="flex flex-1 items-center justify-center gap-2 rounded-2xl bg-orange-600 py-4 font-medium text-white shadow-orange-600/20 transition-all hover:bg-orange-700 disabled:opacity-50"
               >
                 {isUninitializing && <Loader2 size={18} className="animate-spin" />}
                 确认反初始化
@@ -1050,12 +1051,12 @@ export const AppInstancePage: React.FC<{
       )}
       {isDeleteModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-8">
- <div className="w-full max-w-md rounded-3xl bg-theme-bg-app">
+ <div className="w-full max-w-md rounded-2xl bg-theme-bg-app">
             <div className="p-8">
               <div className="mb-6 flex items-center gap-4">
-                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-red-500/15"><AlertCircle className="text-red-400" size={24} /></div>
+                <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-red-500/15"><AlertCircle className="text-red-400" size={24} /></div>
                 <div>
-                  <h3 className="text-xl font-black text-theme-text-primary">确认删除</h3>
+                  <h3 className="text-xl font-semibold text-theme-text-primary">确认删除</h3>
                   <p className="mt-1 text-sm text-theme-text-muted">此操作不可撤销。</p>
                 </div>
               </div>
@@ -1063,7 +1064,7 @@ export const AppInstancePage: React.FC<{
             </div>
             <div className="flex items-center justify-end gap-3 border-t border-theme-border p-8">
               <button onClick={() => { setIsDeleteModalOpen(false); setDeletingId(null); }} className="px-6 py-3 font-medium text-theme-text-secondary hover:text-theme-text-secondary">取消</button>
- <button onClick={handleDelete} className="rounded-2xl bg-red-600 px-6 py-3 font-bold text-white shadow-red-500/20 hover:bg-red-500">确认删除</button>
+ <button onClick={handleDelete} className="rounded-lg bg-red-600 px-6 py-3 font-medium text-white shadow-red-500/20 hover:bg-red-500">确认删除</button>
             </div>
           </div>
         </div>
@@ -1088,7 +1089,7 @@ export const AppInstancePage: React.FC<{
                 transform: translate(-50%, 0);
               }
             }`}</style>
- <div className={`flex items-center gap-2 rounded-xl border px-6 py-3 text-sm font-bold ${
+ <div className={`flex items-center gap-2 rounded-xl border px-6 py-3 text-sm font-medium ${
             toast.type === 'success' ? 'border-green-500 bg-green-600 text-white' :
             toast.type === 'error' ? 'border-red-500 bg-red-600 text-white' :
             toast.type === 'warning' ? 'border-yellow-400 bg-yellow-500 text-yellow-300' :

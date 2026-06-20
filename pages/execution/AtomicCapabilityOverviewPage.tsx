@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 
 import { getAuthHeaders } from '../../clients/base';
+import { PageHeader } from '../../design-system';
 import type { ViewType } from '../../types/types';
 import {
   atomicCapabilityCatalog,
@@ -270,35 +271,24 @@ export const AtomicCapabilityOverviewPage: React.FC<AtomicCapabilityOverviewPage
 
   return (
     <div style={{ padding: '32px', paddingBottom: '40px', paddingTop: '32px' }}>
-      <section style={{ borderRadius: '24px', border: '1px solid #26324a', backgroundColor: 'linear-gradient(135deg, #111a2b 0%, rgba(79,115,255,0.08) 50%, rgba(73,197,255,0.08) 100%)', padding: '28px' }}>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', '@media (min-width: 1280px)': { flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between' } } as any}>
-          <div style={{ maxWidth: '56rem' }}>
-            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', borderRadius: '9999px', border: '1px solid #49c5ff', backgroundColor: 'rgba(73,197,255,0.1)', padding: '4px 12px', fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.3em', color: '#49c5ff' }}>
-              <Sparkles size={14} />
-              Atomic Capabilities
-            </div>
-            <h1 style={{ marginTop: '16px', fontSize: '30px', fontWeight: 600, letterSpacing: '-0.02em', color: '#f5f7ff' }}>原子能力总览</h1>
-            <p style={{ marginTop: '12px', maxWidth: '48rem', fontSize: '14px', lineHeight: '28px', color: '#d6def0' }}>
-              聚焦当前平台已上线的五类原子能力。每张卡片展示能力定位、输入输出链路、K8S 服务入口和核心 API。
-              点击卡片即可查看内置接口文档、K8S 内访问地址以及在线 OpenAPI 文档探测结果。
-            </p>
-          </div>
-          <div style={{ display: 'grid', gap: '12px', gridTemplateColumns: 'repeat(1, minmax(0, 1fr))', '@media (min-width: 640px)': { gridTemplateColumns: 'repeat(3, minmax(0, 1fr))' } } as any}>
-            <div style={{ borderRadius: '16px', border: '1px solid rgba(255,255,255,0.1)', backgroundColor: 'rgba(17,26,43,0.9)', padding: '20px' }}>
-              <div style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.2em', color: '#72809a' }}>原子能力</div>
-              <div style={{ marginTop: '8px', fontSize: '30px', fontWeight: 600, color: '#f5f7ff' }}>{atomicCapabilityCatalog.length}</div>
-            </div>
-            <div style={{ borderRadius: '16px', border: '1px solid rgba(255,255,255,0.1)', backgroundColor: 'rgba(17,26,43,0.9)', padding: '20px' }}>
-              <div style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.2em', color: '#72809a' }}>已选项目</div>
-              <div style={{ marginTop: '8px', wordBreak: 'break-all', fontSize: '14px', fontWeight: 600, color: '#d6def0' }}>{projectId || '未选择项目'}</div>
-            </div>
-            <div style={{ borderRadius: '16px', border: '1px solid rgba(255,255,255,0.1)', backgroundColor: 'rgba(17,26,43,0.9)', padding: '20px' }}>
-              <div style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.2em', color: '#72809a' }}>展示内容</div>
-              <div style={{ marginTop: '8px', fontSize: '14px', fontWeight: 600, color: '#d6def0' }}>能力简介 / K8S API / API 文档</div>
-            </div>
-          </div>
+      <PageHeader
+        title="原子能力总览"
+        description="聚焦当前平台已上线的五类原子能力。每张卡片展示能力定位、输入输出链路、K8S 服务入口和核心 API。点击卡片即可查看内置接口文档、K8S 内访问地址以及在线 OpenAPI 文档探测结果。"
+      />
+      <div style={{ display: 'grid', gap: '12px', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))' }}>
+        <div style={{ borderRadius: '16px', border: '1px solid rgba(255,255,255,0.1)', backgroundColor: 'rgba(17,26,43,0.9)', padding: '20px' }}>
+          <div style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.2em', color: '#72809a' }}>原子能力</div>
+          <div style={{ marginTop: '8px', fontSize: '30px', fontWeight: 600, color: '#f5f7ff' }}>{atomicCapabilityCatalog.length}</div>
         </div>
-      </section>
+        <div style={{ borderRadius: '16px', border: '1px solid rgba(255,255,255,0.1)', backgroundColor: 'rgba(17,26,43,0.9)', padding: '20px' }}>
+          <div style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.2em', color: '#72809a' }}>已选项目</div>
+          <div style={{ marginTop: '8px', wordBreak: 'break-all', fontSize: '14px', fontWeight: 600, color: '#d6def0' }}>{projectId || '未选择项目'}</div>
+        </div>
+        <div style={{ borderRadius: '16px', border: '1px solid rgba(255,255,255,0.1)', backgroundColor: 'rgba(17,26,43,0.9)', padding: '20px' }}>
+          <div style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.2em', color: '#72809a' }}>展示内容</div>
+          <div style={{ marginTop: '8px', fontSize: '14px', fontWeight: 600, color: '#d6def0' }}>能力简介 / K8S API / API 文档</div>
+        </div>
+      </div>
 
       <section style={{ marginTop: '32px', display: 'grid', gridTemplateColumns: 'repeat(1, minmax(0, 1fr))', gap: '20px', '@media (min-width: 1280px)': { gridTemplateColumns: 'repeat(2, minmax(0, 1fr))' }, '@media (min-width: 1536px)': { gridTemplateColumns: 'repeat(3, minmax(0, 1fr))' } } as any}>
         {atomicCapabilityCatalog.map((capability) => {
@@ -426,22 +416,22 @@ export const AtomicCapabilityOverviewPage: React.FC<AtomicCapabilityOverviewPage
                       <ShieldCheck size={20} />
                     </div>
                     <div>
-                      <div className="text-[11px] font-black uppercase tracking-[0.2em] text-cyan-400">能力简介</div>
-                      <h3 className="mt-1 text-lg font-black text-theme-text-primary">面向分析链路的能力定位</h3>
+                      <div className="text-[11px] font-semibold uppercase tracking-[0.2em] text-cyan-400">能力简介</div>
+                      <h3 className="mt-1 text-lg font-semibold text-theme-text-primary">面向分析链路的能力定位</h3>
                     </div>
                   </div>
                   <p className="mt-4 text-sm leading-7 text-theme-text-secondary">{selectedCapability.summary}</p>
                   <div className="mt-5 grid gap-3 md:grid-cols-2">
-                    <div className="rounded-2xl border border-theme-border bg-theme-bg-app p-4">
-                      <div className="text-[11px] font-black uppercase tracking-[0.2em] text-theme-text-muted">输入</div>
+                    <div className="rounded-2xl border border-theme-border bg-theme-surface p-4">
+                      <div className="text-[11px] font-semibold uppercase tracking-[0.2em] text-theme-text-muted">输入</div>
                       <div className="mt-3 text-sm leading-7 text-theme-text-secondary">{selectedCapability.inputDescription}</div>
                     </div>
-                    <div className="rounded-2xl border border-theme-border bg-theme-bg-app p-4">
-                      <div className="text-[11px] font-black uppercase tracking-[0.2em] text-theme-text-muted">输出</div>
+                    <div className="rounded-2xl border border-theme-border bg-theme-surface p-4">
+                      <div className="text-[11px] font-semibold uppercase tracking-[0.2em] text-theme-text-muted">输出</div>
                       <div className="mt-3 text-sm leading-7 text-theme-text-secondary">{selectedCapability.outputDescription}</div>
                     </div>
-                    <div className="rounded-2xl border border-theme-border bg-theme-bg-app p-4 md:col-span-2">
-                      <div className="text-[11px] font-black uppercase tracking-[0.2em] text-theme-text-muted">关键标签</div>
+                    <div className="rounded-2xl border border-theme-border bg-theme-surface p-4 md:col-span-2">
+                      <div className="text-[11px] font-semibold uppercase tracking-[0.2em] text-theme-text-muted">关键标签</div>
                       <div className="mt-3 flex flex-wrap gap-2">
                         {selectedCapability.tags.map((tag) => (
                           <span key={tag} className="rounded-full border border-cyan-500/20 bg-cyan-500/15 px-3 py-1 text-xs font-bold text-cyan-400">
@@ -459,21 +449,21 @@ export const AtomicCapabilityOverviewPage: React.FC<AtomicCapabilityOverviewPage
                       <Network size={20} />
                     </div>
                     <div>
-                      <div className="text-[11px] font-black uppercase tracking-[0.2em] text-emerald-400">K8S API 访问</div>
-                      <h3 className="mt-1 text-lg font-black text-theme-text-primary">集群内 Service 与 API 路径</h3>
+                      <div className="text-[11px] font-semibold uppercase tracking-[0.2em] text-emerald-400">K8S API 访问</div>
+                      <h3 className="mt-1 text-lg font-semibold text-theme-text-primary">集群内 Service 与 API 路径</h3>
                     </div>
                   </div>
                   <div className="mt-5 space-y-3 text-sm">
-                    <div className="rounded-2xl border border-theme-border bg-theme-bg-app px-4 py-3">
-                      <div className="text-[11px] font-black uppercase tracking-[0.2em] text-theme-text-muted">Service 根地址</div>
+                    <div className="rounded-2xl border border-theme-border bg-theme-surface px-4 py-3">
+                      <div className="text-[11px] font-semibold uppercase tracking-[0.2em] text-theme-text-muted">Service 根地址</div>
                       <code className="mt-2 block break-all font-mono text-theme-text-primary">{buildK8sRootUrl(selectedCapability)}</code>
                     </div>
-                    <div className="rounded-2xl border border-theme-border bg-theme-bg-app px-4 py-3">
-                      <div className="text-[11px] font-black uppercase tracking-[0.2em] text-theme-text-muted">API Base</div>
+                    <div className="rounded-2xl border border-theme-border bg-theme-surface px-4 py-3">
+                      <div className="text-[11px] font-semibold uppercase tracking-[0.2em] text-theme-text-muted">API Base</div>
                       <code className="mt-2 block break-all font-mono text-theme-text-primary">{buildK8sApiBase(selectedCapability)}</code>
                     </div>
-                    <div className="rounded-2xl border border-theme-border bg-theme-bg-app px-4 py-3">
-                      <div className="text-[11px] font-black uppercase tracking-[0.2em] text-theme-text-muted">示例访问地址</div>
+                    <div className="rounded-2xl border border-theme-border bg-theme-surface px-4 py-3">
+                      <div className="text-[11px] font-semibold uppercase tracking-[0.2em] text-theme-text-muted">示例访问地址</div>
                       <div className="mt-2 space-y-2">
                         <code className="block break-all font-mono text-theme-text-primary">{`${buildK8sApiBase(selectedCapability)}/health`}</code>
                         <code className="block break-all font-mono text-theme-text-primary">{`${buildK8sApiBase(selectedCapability)}/tasks`}</code>
@@ -491,8 +481,8 @@ export const AtomicCapabilityOverviewPage: React.FC<AtomicCapabilityOverviewPage
                       <Server size={20} />
                     </div>
                     <div>
-                      <div className="text-[11px] font-black uppercase tracking-[0.2em] text-violet-400">项目 API 文档</div>
-                      <h3 className="mt-1 text-lg font-black text-theme-text-primary">在线文档入口与 OpenAPI 探测</h3>
+                      <div className="text-[11px] font-semibold uppercase tracking-[0.2em] text-violet-400">项目 API 文档</div>
+                      <h3 className="mt-1 text-lg font-semibold text-theme-text-primary">在线文档入口与 OpenAPI 探测</h3>
                     </div>
                   </div>
                   {onlineDocsState.loading ? (
@@ -513,34 +503,34 @@ export const AtomicCapabilityOverviewPage: React.FC<AtomicCapabilityOverviewPage
                 </div>
 
                 <div className="mt-5 grid gap-4 xl:grid-cols-[1.15fr_0.85fr]">
-                  <div className="rounded-2xl border border-theme-border bg-theme-bg-app p-4">
-                    <div className="text-[11px] font-black uppercase tracking-[0.2em] text-theme-text-muted">探测结果</div>
+                  <div className="rounded-2xl border border-theme-border bg-theme-surface p-4">
+                    <div className="text-[11px] font-semibold uppercase tracking-[0.2em] text-theme-text-muted">探测结果</div>
                     <p className="mt-2 text-sm leading-7 text-theme-text-secondary">{onlineDocsState.statusMessage}</p>
                     <div className="mt-4 grid gap-3 md:grid-cols-3">
- <div className="rounded-xl border border-theme-border bg-theme-bg-app px-3 py-3">
-                        <div className="text-[11px] font-black uppercase tracking-[0.18em] text-theme-text-muted">OpenAPI 标题</div>
+ <div className="rounded-xl border border-theme-border bg-theme-surface px-3 py-3">
+                        <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-theme-text-muted">OpenAPI 标题</div>
                         <div className="mt-2 text-sm font-semibold text-theme-text-primary">{onlineDocsState.title || '未探测到'}</div>
                       </div>
- <div className="rounded-xl border border-theme-border bg-theme-bg-app px-3 py-3">
-                        <div className="text-[11px] font-black uppercase tracking-[0.18em] text-theme-text-muted">版本</div>
+ <div className="rounded-xl border border-theme-border bg-theme-surface px-3 py-3">
+                        <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-theme-text-muted">版本</div>
                         <div className="mt-2 text-sm font-semibold text-theme-text-primary">{onlineDocsState.version || '未探测到'}</div>
                       </div>
- <div className="rounded-xl border border-theme-border bg-theme-bg-app px-3 py-3">
-                        <div className="text-[11px] font-black uppercase tracking-[0.18em] text-theme-text-muted">接口路径数</div>
+ <div className="rounded-xl border border-theme-border bg-theme-surface px-3 py-3">
+                        <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-theme-text-muted">接口路径数</div>
                         <div className="mt-2 text-sm font-semibold text-theme-text-primary">{onlineDocsState.pathCount ?? '未探测到'}</div>
                       </div>
                     </div>
                   </div>
 
-                  <div className="rounded-2xl border border-theme-border bg-theme-bg-app p-4">
-                    <div className="text-[11px] font-black uppercase tracking-[0.2em] text-theme-text-muted">文档入口</div>
+                  <div className="rounded-2xl border border-theme-border bg-theme-surface p-4">
+                    <div className="text-[11px] font-semibold uppercase tracking-[0.2em] text-theme-text-muted">文档入口</div>
                     <div className="mt-3 space-y-3">
- <div className="rounded-xl border border-theme-border bg-theme-bg-app px-3 py-3">
-                        <div className="text-[11px] font-black uppercase tracking-[0.18em] text-theme-text-muted">K8S Swagger UI</div>
+ <div className="rounded-xl border border-theme-border bg-theme-surface px-3 py-3">
+                        <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-theme-text-muted">K8S Swagger UI</div>
                         <code className="mt-2 block break-all font-mono text-sm text-theme-text-primary">{`${buildK8sRootUrl(selectedCapability)}${selectedCapability.docsPath}`}</code>
                       </div>
- <div className="rounded-xl border border-theme-border bg-theme-bg-app px-3 py-3">
-                        <div className="text-[11px] font-black uppercase tracking-[0.18em] text-theme-text-muted">K8S OpenAPI JSON</div>
+ <div className="rounded-xl border border-theme-border bg-theme-surface px-3 py-3">
+                        <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-theme-text-muted">K8S OpenAPI JSON</div>
                         <code className="mt-2 block break-all font-mono text-sm text-theme-text-primary">{`${buildK8sRootUrl(selectedCapability)}${selectedCapability.openapiPath}`}</code>
                       </div>
                       <div className="flex flex-wrap gap-3 pt-1">
@@ -548,7 +538,7 @@ export const AtomicCapabilityOverviewPage: React.FC<AtomicCapabilityOverviewPage
                           <button
                             type="button"
                             onClick={() => window.open(buildAbsolutePlatformUrl(onlineDocsState.docsUrl || ''), '_blank', 'noopener,noreferrer')}
-                            className="inline-flex items-center gap-2 rounded-2xl bg-theme-surface px-4 py-3 text-sm font-black text-white transition hover:bg-theme-elevated"
+                            className="inline-flex items-center gap-2 rounded-2xl bg-theme-surface px-4 py-3 text-sm font-semibold text-white transition hover:bg-theme-elevated"
                           >
                             Swagger UI
                             <ExternalLink size={15} />
@@ -558,7 +548,7 @@ export const AtomicCapabilityOverviewPage: React.FC<AtomicCapabilityOverviewPage
                           <button
                             type="button"
                             onClick={() => window.open(buildAbsolutePlatformUrl(onlineDocsState.openapiUrl || ''), '_blank', 'noopener,noreferrer')}
-                            className="inline-flex items-center gap-2 rounded-2xl border border-theme-border bg-theme-bg-app px-4 py-3 text-sm font-black text-theme-text-secondary transition hover:bg-theme-elevated"
+                            className="inline-flex items-center gap-2 rounded-2xl border border-theme-border bg-theme-surface px-4 py-3 text-sm font-semibold text-theme-text-secondary transition hover:bg-theme-elevated"
                           >
                             OpenAPI JSON
                             <ExternalLink size={15} />
@@ -568,7 +558,7 @@ export const AtomicCapabilityOverviewPage: React.FC<AtomicCapabilityOverviewPage
                           <button
                             type="button"
                             onClick={() => window.open(buildAbsolutePlatformUrl(onlineDocsState.redocUrl || ''), '_blank', 'noopener,noreferrer')}
-                            className="inline-flex items-center gap-2 rounded-2xl border border-theme-border bg-theme-bg-app px-4 py-3 text-sm font-black text-theme-text-secondary transition hover:bg-theme-elevated"
+                            className="inline-flex items-center gap-2 rounded-2xl border border-theme-border bg-theme-surface px-4 py-3 text-sm font-semibold text-theme-text-secondary transition hover:bg-theme-elevated"
                           >
                             Redoc
                             <ExternalLink size={15} />
@@ -583,8 +573,8 @@ export const AtomicCapabilityOverviewPage: React.FC<AtomicCapabilityOverviewPage
               <div className="mt-5 space-y-5">
                 <div className="flex items-center justify-between gap-4">
                   <div>
-                    <div className="text-[11px] font-black uppercase tracking-[0.2em] text-theme-text-muted">核心接口清单</div>
-                    <h3 className="mt-1 text-xl font-black text-theme-text-primary">按能力分组的稳定 API 说明</h3>
+                    <div className="text-[11px] font-semibold uppercase tracking-[0.2em] text-theme-text-muted">核心接口清单</div>
+                    <h3 className="mt-1 text-xl font-semibold text-theme-text-primary">按能力分组的稳定 API 说明</h3>
                   </div>
                   <div className="rounded-full border border-theme-border bg-theme-bg-app px-4 py-2 text-sm font-semibold text-theme-text-secondary">
                     共 {selectedCapability.apiGroups.reduce((total, group) => total + group.endpoints.length, 0)} 个核心接口

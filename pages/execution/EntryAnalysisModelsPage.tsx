@@ -9,6 +9,7 @@ import {
   EntryAnalysisProviderConfig,
 } from '../../types/types';
 import { useUiFeedback } from '../../components/UiFeedback';
+import { PageSection, FormField } from '../../design-system';
 
 const LK = {
   primary: '#4f73ff', primarySoft: '#7590ff', primaryDeep: '#3f63f1',
@@ -39,23 +40,11 @@ const emptyConfig = (): EntryAnalysisModelsConfig => ({ providers: {} });
 // ─── 子组件 ────────────────────────────────────────────────────────────────────
 
 const SectionCard: React.FC<{ title: string; subtitle?: string; children: React.ReactNode }> = ({ title, subtitle, children }) => (
-  <section style={{ borderRadius: '16px', border: `1px solid ${LK.borderSoft}`, backgroundColor: LK.surface, padding: '24px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
-    <div>
-      <h2 style={{ fontSize: '16px', fontWeight: 600, color: LK.ink }}>{title}</h2>
-      {subtitle && <p style={{ marginTop: '2px', fontSize: '12px', color: LK.body }}>{subtitle}</p>}
-    </div>
-    {children}
-  </section>
+  <PageSection title={title} description={subtitle}>{children}</PageSection>
 );
 
 const FieldRow: React.FC<{ label: string; hint?: string; children: React.ReactNode }> = ({ label, hint, children }) => (
-  <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-    <label style={{ fontSize: '14px', fontWeight: 600, color: LK.inkSoft }}>
-      {label}
-      {hint && <span style={{ marginLeft: '8px', fontSize: '12px', fontWeight: 400, color: LK.muted }}>{hint}</span>}
-    </label>
-    {children}
-  </div>
+  <FormField label={label} hint={hint}>{children}</FormField>
 );
 
 const ApiKeyInput: React.FC<{ value: string; onChange: (v: string) => void }> = ({ value, onChange }) => {

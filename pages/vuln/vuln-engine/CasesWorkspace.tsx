@@ -1173,12 +1173,12 @@ export const CasesWorkspace: React.FC<any> = ({
                         <div key={`summary-${item.id}`} className="rounded-[1.5rem] border border-indigo-500/20 bg-indigo-50/50 px-4 py-4">
                           <div className="flex items-center justify-between gap-3">
                             <div className="flex flex-wrap items-center gap-2">
-                              <span className="px-2 py-1 rounded-lg bg-indigo-500/15 text-[10px] font-black uppercase tracking-widest text-indigo-400">{item.resultType}</span>
-                              <span className="px-2 py-1 rounded-lg bg-theme-bg-app text-[10px] font-black uppercase tracking-widest text-theme-text-secondary">{item.status}</span>
+                              <span className="px-2 py-1 rounded-lg bg-indigo-500/15 text-[10px] font-semibold uppercase tracking-widest text-indigo-400">{item.resultType}</span>
+                              <span className="px-2 py-1 rounded-lg bg-theme-bg-app text-[10px] font-semibold uppercase tracking-widest text-theme-text-secondary">{item.status}</span>
                             </div>
-                            <div className="text-[10px] font-black uppercase tracking-widest text-theme-text-muted">置信度 {item.confidence}</div>
+                            <div className="text-[10px] font-semibold uppercase tracking-widest text-theme-text-muted">置信度 {item.confidence}</div>
                           </div>
-                          <div className="mt-3 text-sm font-black text-theme-text-primary">{item.title}</div>
+                          <div className="mt-3 text-sm font-semibold text-theme-text-primary">{item.title}</div>
                           <div className="mt-2 flex flex-wrap gap-3 text-[11px] text-theme-text-muted">
                             <span>来源：{item.source}</span>
                             {item.suggestedDecision ? <span>建议结论：{item.suggestedDecision}</span> : null}
@@ -1193,24 +1193,24 @@ export const CasesWorkspace: React.FC<any> = ({
                       <div className="flex items-start justify-between gap-4">
                         <div>
                           <div className="flex flex-wrap items-center gap-2">
-                            <span className="px-2 py-1 rounded-lg bg-indigo-500/15 text-[10px] font-black uppercase tracking-widest text-indigo-400">{item.result_type}</span>
-                            <span className="px-2 py-1 rounded-lg bg-theme-elevated text-[10px] font-black uppercase tracking-widest text-theme-text-secondary">{item.status}</span>
-                            {item.source_service_id && <span className="px-2 py-1 rounded-lg bg-emerald-500/15 text-[10px] font-black uppercase tracking-widest text-emerald-400">{item.source_service_id}</span>}
+                            <span className="px-2 py-1 rounded-lg bg-indigo-500/15 text-[10px] font-semibold uppercase tracking-widest text-indigo-400">{item.result_type}</span>
+                            <span className="px-2 py-1 rounded-lg bg-theme-elevated text-[10px] font-semibold uppercase tracking-widest text-theme-text-secondary">{item.status}</span>
+                            {item.source_service_id && <span className="px-2 py-1 rounded-lg bg-emerald-500/15 text-[10px] font-semibold uppercase tracking-widest text-emerald-400">{item.source_service_id}</span>}
                           </div>
-                          <p className="mt-3 text-sm font-black text-theme-text-primary">{item.summary || '未填写摘要'}</p>
+                          <p className="mt-3 text-sm font-semibold text-theme-text-primary">{item.summary || '未填写摘要'}</p>
                         </div>
                         <div className="text-right">
-                          <div className="text-[10px] font-black uppercase tracking-widest text-theme-text-muted">置信度</div>
-                          <div className="mt-1 text-xl font-black text-theme-text-primary">{item.confidence}</div>
+                          <div className="text-[10px] font-semibold uppercase tracking-widest text-theme-text-muted">置信度</div>
+                          <div className="mt-1 text-xl font-semibold text-theme-text-primary">{item.confidence}</div>
                         </div>
                       </div>
                       <div className="grid grid-cols-1 xl:grid-cols-2 gap-3 mt-4">
                         <div className="rounded-2xl bg-theme-bg-app p-3">
-                          <div className="text-[10px] font-black uppercase tracking-widest text-theme-text-muted">结果元数据</div>
+                          <div className="text-[10px] font-semibold uppercase tracking-widest text-theme-text-muted">结果元数据</div>
                           <pre className="mt-2 text-xs text-theme-text-secondary whitespace-pre-wrap break-words">{JSON.stringify(item.result_meta, null, 2)}</pre>
                         </div>
                         <div className="rounded-2xl bg-theme-bg-app p-3">
-                          <div className="text-[10px] font-black uppercase tracking-widest text-theme-text-muted">原始内容与建议</div>
+                          <div className="text-[10px] font-semibold uppercase tracking-widest text-theme-text-muted">原始内容与建议</div>
                           <pre className="mt-2 text-xs text-theme-text-secondary whitespace-pre-wrap break-words">{JSON.stringify({ suggested_stage: item.suggested_stage, suggested_decision: item.suggested_decision, raw_payload: item.raw_payload }, null, 2)}</pre>
                         </div>
                       </div>
@@ -1233,7 +1233,7 @@ export const CasesWorkspace: React.FC<any> = ({
                   <input value={taskForm.assignee} onChange={(event) => setTaskForm({ ...taskForm, assignee: event.target.value })} placeholder="指派给谁" className="px-4 py-3 rounded-2xl border border-theme-border outline-none" />
                   <input value={taskForm.title} onChange={(event) => setTaskForm({ ...taskForm, title: event.target.value })} placeholder="任务标题" className="px-4 py-3 rounded-2xl border border-theme-border outline-none xl:col-span-2" required />
                   <textarea value={taskForm.summary} onChange={(event) => setTaskForm({ ...taskForm, summary: event.target.value })} placeholder="任务说明" className="min-h-[6rem] px-4 py-3 rounded-2xl border border-theme-border outline-none resize-none xl:col-span-2" />
-                  <button type="submit" disabled={creatingTask} className="xl:col-span-2 px-5 py-3 rounded-2xl bg-amber-500 text-white font-black">{creatingTask ? '创建中...' : '创建人工任务'}</button>
+                  <button type="submit" disabled={creatingTask} className="xl:col-span-2 px-5 py-3 rounded-2xl bg-amber-500 text-white font-medium">{creatingTask ? '创建中...' : '创建人工任务'}</button>
                 </form>
 
                 <div className="space-y-3 max-h-[20rem] overflow-y-auto pr-1">
@@ -1244,11 +1244,11 @@ export const CasesWorkspace: React.FC<any> = ({
                       <div key={item.id} className="rounded-[1.5rem] border border-theme-border px-4 py-4 bg-[rgba(255,255,255,0.04)]">
                         <div className="flex items-center justify-between gap-3">
                           <div>
-                            <p className="text-sm font-black text-theme-text-primary">{item.title}</p>
+                            <p className="text-sm font-semibold text-theme-text-primary">{item.title}</p>
                             <p className="text-xs text-theme-text-muted mt-1">{item.summary || '暂无说明'}</p>
                           </div>
                           <div className="text-right">
-                            <span className="px-2 py-1 rounded-lg bg-amber-500/15 text-[10px] font-black uppercase tracking-widest text-amber-400">{item.status}</span>
+                            <span className="px-2 py-1 rounded-lg bg-amber-500/15 text-[10px] font-semibold uppercase tracking-widest text-amber-400">{item.status}</span>
                           </div>
                         </div>
                         <div className="flex flex-wrap gap-3 mt-3 text-[11px] text-theme-text-muted">
@@ -1257,8 +1257,8 @@ export const CasesWorkspace: React.FC<any> = ({
                           <span>创建：{formatTime(item.created_at)}</span>
                         </div>
                         <div className="flex gap-2 mt-3">
-                          <button onClick={() => handleTaskStatus(item.id, 'in_progress')} disabled={taskOperatingId === item.id} className="px-3 py-2 rounded-xl bg-theme-elevated text-xs font-black text-theme-text-secondary">进行中</button>
-                          <button onClick={() => handleTaskStatus(item.id, 'completed')} disabled={taskOperatingId === item.id} className="px-3 py-2 rounded-xl bg-emerald-600 text-xs font-black text-white">完成</button>
+                          <button onClick={() => handleTaskStatus(item.id, 'in_progress')} disabled={taskOperatingId === item.id} className="px-3 py-2 rounded-xl bg-theme-elevated text-xs font-medium text-theme-text-secondary">进行中</button>
+                          <button onClick={() => handleTaskStatus(item.id, 'completed')} disabled={taskOperatingId === item.id} className="px-3 py-2 rounded-xl bg-emerald-600 text-xs font-medium text-white">完成</button>
                         </div>
                       </div>
                     ))
@@ -1270,11 +1270,11 @@ export const CasesWorkspace: React.FC<any> = ({
             {compactLayout && (
               <div className="rounded-[1.25rem] border border-theme-border p-4 space-y-3">
                 <div className="flex items-center justify-between gap-3">
-                  <div className="text-[11px] font-black uppercase tracking-widest text-theme-text-muted">自定义 Panels</div>
+                  <div className="text-[11px] font-semibold uppercase tracking-widest text-theme-text-muted">自定义 Panels</div>
                   <button
                     type="button"
                     onClick={() => setShowPanelEditor((prev) => !prev)}
-                    className="inline-flex items-center gap-1.5 rounded-lg border border-theme-border bg-theme-bg-app px-2.5 py-1.5 text-[11px] font-black text-theme-text-secondary"
+                    className="inline-flex items-center gap-1.5 rounded-lg border border-theme-border bg-theme-bg-app px-2.5 py-1.5 text-[11px] font-medium text-theme-text-secondary"
                   >
                     <Plus size={12} />
                     新增 Panel
@@ -1298,7 +1298,7 @@ export const CasesWorkspace: React.FC<any> = ({
                       <button
                         type="button"
                         onClick={handleAddPanel}
-                        className="rounded-lg bg-theme-surface px-3 py-2 text-xs font-black text-white"
+                        className="rounded-lg bg-theme-surface px-3 py-2 text-xs font-medium text-white"
                       >
                         添加
                       </button>
@@ -1312,11 +1312,11 @@ export const CasesWorkspace: React.FC<any> = ({
                     {customPanels.map((panel) => (
                       <div key={panel.id} className="rounded-xl border border-theme-border bg-theme-bg-app px-3 py-3">
                         <div className="flex items-start justify-between gap-2">
-                          <div className="text-sm font-black text-theme-text-primary">{panel.title}</div>
+                          <div className="text-sm font-semibold text-theme-text-primary">{panel.title}</div>
                           <button
                             type="button"
                             onClick={() => handleDeletePanel(panel.id)}
-                            className="inline-flex items-center gap-1 rounded-md border border-rose-500/20 bg-rose-500/15 px-2 py-1 text-[10px] font-black text-rose-400"
+                            className="inline-flex items-center gap-1 rounded-md border border-rose-500/20 bg-rose-500/15 px-2 py-1 text-[10px] font-semibold text-rose-400"
                           >
                             <Trash2 size={10} />
                             删除
@@ -1338,7 +1338,7 @@ export const CasesWorkspace: React.FC<any> = ({
     {!compactLayout && !hideCasePool && <div className="space-y-6">
       <div className={cardClass}>
         <div className="px-6 py-5 border-b border-theme-border">
-          <h3 className="text-lg font-black text-theme-text-primary">阶段分布与运行趋势</h3>
+          <h3 className="text-lg font-semibold text-theme-text-primary">阶段分布与运行趋势</h3>
         </div>
         <div className="p-6 space-y-4">
           {Object.entries(overview?.stage_counts || {}).length === 0 ? (
@@ -1347,7 +1347,7 @@ export const CasesWorkspace: React.FC<any> = ({
             Object.entries(overview?.stage_counts || {}).map(([stage, count]) => (
               <div key={stage} className="space-y-2">
                 <div className="flex items-center justify-between text-sm">
-                  <span className="font-black text-theme-text-secondary">{stage}</span>
+                  <span className="font-medium text-theme-text-secondary">{stage}</span>
                   <span className="text-theme-text-muted">{count as number}</span>
                 </div>
                 <div className="h-2 rounded-full bg-theme-elevated overflow-hidden">
@@ -1359,7 +1359,7 @@ export const CasesWorkspace: React.FC<any> = ({
         </div>
       </div>
  <div className="bg-gradient-to-br from-slate-900 via-slate-900 to-blue-950 p-6 rounded-[2rem] text-white">
-        <div className="flex items-center gap-3"><Bot size={18} className="text-blue-300" /><h3 className="text-lg font-black">案例运行提示</h3></div>
+        <div className="flex items-center gap-3"><Bot size={18} className="text-blue-300" /><h3 className="text-lg font-semibold">案例运行提示</h3></div>
         <div className="mt-4 space-y-3 text-sm text-slate-200">
           <div className="flex items-start gap-3"><Sparkles size={15} className="mt-0.5 text-blue-300" /><p>优先看自动推进信号和推荐动作，再决定手动派发还是一键自动编排。</p></div>
           <div className="flex items-start gap-3"><ListTodo size={15} className="mt-0.5 text-amber-300" /><p>当结果失败或低置信度时，引擎会自动创建人工任务，记得在任务页统一处理。</p></div>

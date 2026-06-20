@@ -3,6 +3,7 @@ import MonacoEditor from '@monaco-editor/react';
 import { Copy, Loader2, Network, Save, Server, Terminal } from 'lucide-react';
 import { API_BASE, getHeaders, handleResponse } from '../../clients/base';
 import { useUiFeedback } from '../../components/UiFeedback';
+import { PageHeader } from '../../design-system';
 
 const WEB_E2E_API_BASE = `${API_BASE}/api/app/web-e2e`;
 type DeployTab = 'normal-node' | 'k8s-cluster';
@@ -127,9 +128,9 @@ const formatTime = (value?: string | null): string => {
 };
 
 const Section: React.FC<{ title: string; description: string; children: React.ReactNode }> = ({ title, description, children }) => (
-  <section className="rounded-2xl border border-theme-border bg-theme-surface p-6 shadow-sm">
+  <section className="rounded-xl border border-theme-border bg-theme-surface p-6 shadow-sm">
     <div>
-      <h2 className="text-lg font-black text-theme-text-primary">{title}</h2>
+      <h2 className="text-lg font-semibold text-theme-text-primary">{title}</h2>
       <p className="mt-1 text-sm leading-6 text-theme-text-muted">{description}</p>
     </div>
     <div className="mt-5">{children}</div>
@@ -151,7 +152,7 @@ const ProjectAccessInfoSection: React.FC<{
           type="button"
           onClick={onSave}
           disabled={loading || saving}
-          className="inline-flex items-center justify-center gap-2 rounded-lg bg-cyan-500 px-4 py-2 text-sm font-bold text-white transition hover:bg-cyan-400 disabled:cursor-not-allowed disabled:opacity-60"
+          className="inline-flex items-center justify-center gap-2 rounded-lg bg-cyan-500 px-4 py-2 text-sm font-medium text-white transition hover:bg-cyan-400 disabled:cursor-not-allowed disabled:opacity-60"
         >
           {saving ? <Loader2 size={15} className="animate-spin" /> : <Save size={15} />}
           保存配置
@@ -159,7 +160,7 @@ const ProjectAccessInfoSection: React.FC<{
       </div>
       {error ? <div className="rounded-xl border border-rose-500/20 bg-rose-500/10 px-4 py-3 text-sm font-medium text-rose-400">{error}</div> : null}
       <label className="block">
-        <div className="text-[11px] font-black uppercase tracking-[0.18em] text-theme-text-muted">Description</div>
+        <div className="text-[11px] font-medium uppercase tracking-[0.18em] text-theme-text-muted">Description</div>
         <textarea
           value={value.description}
           disabled={loading}
@@ -168,7 +169,7 @@ const ProjectAccessInfoSection: React.FC<{
           className="mt-2 min-h-44 w-full resize-y rounded-xl border border-theme-border bg-theme-bg-app px-4 py-3 text-sm leading-6 text-theme-text-primary outline-none transition focus:border-cyan-400 disabled:cursor-not-allowed disabled:opacity-70"
         />
       </label>
-      <div className="rounded-xl border border-theme-border bg-theme-bg-app px-4 py-3 text-sm text-theme-text-secondary">
+      <div className="rounded-xl border border-theme-border bg-theme-surface px-4 py-3 text-sm text-theme-text-secondary">
         {loading ? '正在加载配置...' : value.updated_at ? `最近更新：${formatTime(value.updated_at)}` : '尚未保存 WEB 访问配置'}
       </div>
     </div>
@@ -184,16 +185,16 @@ const CommandBlock: React.FC<{
   tall?: boolean;
   compact?: boolean;
 }> = ({ title, description, command, language, onCopy, tall = false, compact = false }) => (
-  <div className="rounded-xl border border-theme-border bg-theme-bg-app p-4">
+  <div className="rounded-xl border border-theme-border bg-theme-surface p-4">
     <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
       <div>
-        <div className="text-sm font-bold text-theme-text-primary">{title}</div>
+        <div className="text-sm font-semibold text-theme-text-primary">{title}</div>
         <div className="mt-1 text-sm leading-6 text-theme-text-muted">{description}</div>
       </div>
       <button
         type="button"
         onClick={() => onCopy(command)}
-        className="inline-flex shrink-0 items-center justify-center gap-2 rounded-lg bg-theme-surface px-3 py-2 text-xs font-bold text-white transition hover:bg-theme-elevated"
+        className="inline-flex shrink-0 items-center justify-center gap-2 rounded-lg bg-theme-surface px-3 py-2 text-xs font-medium text-white transition hover:bg-theme-elevated"
       >
         <Copy size={14} />
         复制
@@ -281,18 +282,11 @@ export const EnvAccessPage: React.FC<{ projectId: string }> = ({ projectId }) =>
     <div className="min-h-full bg-theme-bg-app px-8 py-8">
       {feedbackNodes}
       <div className="mx-auto max-w-7xl space-y-6">
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-          <div>
-            <h1 className="mt-4 text-3xl font-black tracking-tight text-theme-text-primary">环境接入</h1>
-            <p className="mt-2 max-w-3xl text-sm leading-6 text-theme-text-secondary">
-              面向测试环境的接入入口。选择部署方式后，在目标节点或集群执行命令，上线后的 Agent 会进入环境管理页面。
-            </p>
-          </div>
-          <div className="rounded-xl border border-theme-border bg-theme-surface px-4 py-3 text-sm text-theme-text-secondary shadow-sm">
-            <span className="font-bold text-theme-text-primary">项目 ID：</span>
-            <span className="font-mono">{projectId || '-'}</span>
-          </div>
-        </div>
+        <PageHeader
+          title="环境接入"
+          description="面向测试环境的接入入口。选择部署方式后，在目标节点或集群执行命令，上线后的 Agent 会进入环境管理页面。"
+          actions={<div className="rounded-xl border border-theme-border bg-theme-surface px-4 py-3 text-sm text-theme-text-secondary shadow-sm"><span className="font-semibold text-theme-text-primary">项目 ID：</span><span className="font-mono">{projectId || '-'}</span></div>}
+        />
 
         <ProjectAccessInfoSection
           value={accessInfo}
@@ -304,19 +298,19 @@ export const EnvAccessPage: React.FC<{ projectId: string }> = ({ projectId }) =>
         />
 
         <div className="grid gap-4 lg:grid-cols-3">
-          <div className="rounded-2xl border border-theme-border bg-theme-surface p-5 shadow-sm">
+          <div className="rounded-xl border border-theme-border bg-theme-surface p-5 shadow-sm">
             <Server className="text-blue-400" size={22} />
-            <div className="mt-3 text-base font-black text-theme-text-primary">普通节点</div>
+            <div className="mt-3 text-base font-semibold text-theme-text-primary">普通节点</div>
             <p className="mt-2 text-sm leading-6 text-theme-text-muted">适合单机、虚机和物理机，直接部署 Agent 到目标环境。</p>
           </div>
-          <div className="rounded-2xl border border-theme-border bg-theme-surface p-5 shadow-sm">
+          <div className="rounded-xl border border-theme-border bg-theme-surface p-5 shadow-sm">
             <Network className="text-cyan-400" size={22} />
-            <div className="mt-3 text-base font-black text-theme-text-primary">代理接入</div>
+            <div className="mt-3 text-base font-semibold text-theme-text-primary">代理接入</div>
             <p className="mt-2 text-sm leading-6 text-theme-text-muted">适合网络受限环境，通过代理模式完成 Agent 接入。</p>
           </div>
-          <div className="rounded-2xl border border-theme-border bg-theme-surface p-5 shadow-sm">
+          <div className="rounded-xl border border-theme-border bg-theme-surface p-5 shadow-sm">
             <Terminal className="text-emerald-400" size={22} />
-            <div className="mt-3 text-base font-black text-theme-text-primary">K8s 集群</div>
+            <div className="mt-3 text-base font-semibold text-theme-text-primary">K8s 集群</div>
             <p className="mt-2 text-sm leading-6 text-theme-text-muted">适合集群节点批量覆盖，通过 DaemonSet 统一上线。</p>
           </div>
         </div>
@@ -326,14 +320,14 @@ export const EnvAccessPage: React.FC<{ projectId: string }> = ({ projectId }) =>
             <button
               type="button"
               onClick={() => setActiveTab('normal-node')}
-              className={`rounded-lg px-4 py-2 text-sm font-bold transition ${activeTab === 'normal-node' ? 'bg-theme-surface text-theme-text-primary shadow-sm' : 'text-theme-text-muted hover:text-theme-text-primary'}`}
+              className={`rounded-lg px-4 py-2 text-sm font-medium transition ${activeTab === 'normal-node' ? 'bg-theme-surface text-theme-text-primary shadow-sm' : 'text-theme-text-muted hover:text-theme-text-primary'}`}
             >
               普通节点
             </button>
             <button
               type="button"
               onClick={() => setActiveTab('k8s-cluster')}
-              className={`rounded-lg px-4 py-2 text-sm font-bold transition ${activeTab === 'k8s-cluster' ? 'bg-theme-surface text-theme-text-primary shadow-sm' : 'text-theme-text-muted hover:text-theme-text-primary'}`}
+              className={`rounded-lg px-4 py-2 text-sm font-medium transition ${activeTab === 'k8s-cluster' ? 'bg-theme-surface text-theme-text-primary shadow-sm' : 'text-theme-text-muted hover:text-theme-text-primary'}`}
             >
               K8s 部署
             </button>

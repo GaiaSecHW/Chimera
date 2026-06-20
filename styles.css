@@ -160,7 +160,6 @@
   .theme-shell-active {
     background: var(--brand-primary);
     color: #ffffff;
-    box-shadow: 0 2px 12px rgba(59, 130, 246, 0.32);
   }
   .theme-shell-muted {
     background: var(--shell-muted-bg);
@@ -194,14 +193,12 @@
   .shadow-panel { box-shadow: var(--shadow-panel); }
   .shadow-brand { box-shadow: var(--shadow-brand); }
   .theme-primary-button {
-    @apply rounded-xl font-black transition-all flex items-center justify-center text-white;
+    @apply rounded-xl font-semibold transition-all flex items-center justify-center text-white;
     background: var(--brand-primary);
-    box-shadow: 0 2px 12px rgba(59, 130, 246, 0.28);
     border: none;
   }
   .theme-primary-button:hover {
     background: var(--brand-primary-hover);
-    box-shadow: 0 4px 18px rgba(59, 130, 246, 0.36);
   }
   .theme-form-input {
     @apply rounded-xl border outline-none font-semibold transition-all;
@@ -218,7 +215,7 @@
   .theme-form-input:focus,
   .theme-login-input:focus {
     border-color: var(--brand-primary);
-    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.18);
+    box-shadow: 0 0 0 2px var(--brand-soft);
   }
   .theme-login-input::placeholder {
     color: var(--text-faint);
@@ -235,6 +232,16 @@
     color: var(--text-secondary);
   }
   .form-input:focus {
+    border-color: var(--brand-primary);
+    box-shadow: 0 0 0 2px var(--brand-soft);
+  }
+  .form-textarea {
+    @apply rounded-lg border px-3 py-2.5 text-sm outline-none transition-colors;
+    background-color: var(--bg-elevated);
+    border-color: var(--border-default);
+    color: var(--text-secondary);
+  }
+  .form-textarea:focus {
     border-color: var(--brand-primary);
     box-shadow: 0 0 0 2px var(--brand-soft);
   }

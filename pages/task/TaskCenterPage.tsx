@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { PageHeader } from '../../design-system';
 import { ArrowRight, CheckCircle2, Loader2, Plus, RefreshCw, Rocket, Search, Shield, Square, SquareCheck, X } from 'lucide-react';
 import { api } from '../../clients/api';
 import { getAuthHeaders, handleResponse } from '../../clients/base';
@@ -130,6 +131,7 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects }) => {
   const [selectedAgentAppFilter, setSelectedAgentAppFilter] = useState('');
   const [createOpen, setCreateOpen] = useState(false);
   const [error, setError] = useState('');
+  const [agentAppsLoadError, setAgentAppsLoadError] = useState('');
   const [selectedTaskIds, setSelectedTaskIds] = useState<string[]>([]);
   const [deleteSubmitting, setDeleteSubmitting] = useState(false);
   const [deleteQueueOpen, setDeleteQueueOpen] = useState(false);
@@ -179,16 +181,20 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects }) => {
     if (!projectId) return;
     setLoading(true);
     setError('');
+    setAgentAppsLoadError('');
     try {
-      const [taskResp, appResp] = await Promise.all([
-        scheduleApi.listUserTasks(projectId, selectedAgentAppFilter ? { agent_app_id: selectedAgentAppFilter } : {}) as Promise<ScheduleCenterUserTaskListResponse>,
-        loadAgentApps(currentUser?.department_id, currentUser?.department_id),
-      ]);
+      const taskResp = await scheduleApi.listUserTasks(projectId, selectedAgentAppFilter ? { agent_app_id: selectedAgentAppFilter } : {}) as Promise<ScheduleCenterUserTaskListResponse>;
       setTasks(taskResp.items || []);
       setStats(taskResp.stats || {});
-      setAgentApps(appResp || []);
     } catch (err: any) {
       setError(err?.message || '加载失败');
+    }
+    try {
+      const appResp = await loadAgentApps(currentUser?.department_id, currentUser?.department_id);
+      setAgentApps(appResp || []);
+    } catch (err: any) {
+      setAgentApps([]);
+      setAgentAppsLoadError(err?.message || '加载 Agent Harness 列表失败');
     } finally {
       setLoading(false);
     }
@@ -403,45 +409,17 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects }) => {
       className="space-y-4 px-5 py-5 md:px-6 2xl:px-8"
       style={{ backgroundColor: LK.canvas, minHeight: '100%', color: LK.inkSoft }}
     >
-      <div className="flex flex-wrap items-start justify-between gap-3 pb-4" style={{ borderBottom:`1px solid ${LK.borderSoft}` }}>
-        <div>
-          <h1 className="mt-3 text-2xl font-semibold leading-8 tracking-tight" style={{ color: LK.ink }}>
-            任务中心
-          </h1>
-          <p className="mt-1.5 text-sm leading-6" style={{ color: LK.body }}>
-            统一展示当前项目下的所有测试任务，追踪分发、执行与同步状态
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          <button
-            onClick={openDeleteQueue}
-            className="inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition-colors"
-            style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}`, color: LK.inkSoft }}
-            onMouseEnter={(e) => { e.currentTarget.style.borderColor = LK.primary; e.currentTarget.style.color = LK.primarySoft; }}
-            onMouseLeave={(e) => { e.currentTarget.style.borderColor = LK.border; e.currentTarget.style.color = LK.inkSoft; }}
-          >
-            <Shield size={15} />删除队列
-          </button>
-          <button
-            onClick={() => void loadData()}
-            className="inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition-colors"
-            style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}`, color: LK.inkSoft }}
-            onMouseEnter={(e) => { e.currentTarget.style.borderColor = LK.primary; e.currentTarget.style.color = LK.primarySoft; }}
-            onMouseLeave={(e) => { e.currentTarget.style.borderColor = LK.border; e.currentTarget.style.color = LK.inkSoft; }}
-          >
-            <RefreshCw size={15} />刷新
-          </button>
-          <button
-            onClick={openCreateDialog}
-            className="inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition-colors"
-            style={{ backgroundColor: LK.primary, color: '#ffffff' }}
-            onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = LK.primaryDeep; }}
-            onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = LK.primary; }}
-          >
-            <Plus size={15} />创建任务
-          </button>
-        </div>
-      </div>
+      <PageHeader
+        title="任务中心"
+        description="统一展示当前项目下的所有测试任务，追踪分发、执行与同步状态"
+        actions={
+          <div className="flex items-center gap-2">
+            <button onClick={openDeleteQueue} className="inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition-colors" style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}`, color: LK.inkSoft }} onMouseEnter={(e) => { e.currentTarget.style.borderColor = LK.primary; e.currentTarget.style.color = LK.primarySoft; }} onMouseLeave={(e) => { e.currentTarget.style.borderColor = LK.border; e.currentTarget.style.color = LK.inkSoft; }}><Shield size={15} />删除队列</button>
+            <button onClick={() => void loadData()} className="inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition-colors" style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}`, color: LK.inkSoft }} onMouseEnter={(e) => { e.currentTarget.style.borderColor = LK.primary; e.currentTarget.style.color = LK.primarySoft; }} onMouseLeave={(e) => { e.currentTarget.style.borderColor = LK.border; e.currentTarget.style.color = LK.inkSoft; }}><RefreshCw size={15} />刷新</button>
+            <button onClick={openCreateDialog} className="inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition-colors" style={{ backgroundColor: LK.primary, color: '#ffffff' }} onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = LK.primaryDeep; }} onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = LK.primary; }}><Plus size={15} />创建任务</button>
+          </div>
+        }
+      />
 
       <div className="grid gap-3 md:grid-cols-5">
         {statsCards.map((item) => {
@@ -456,7 +434,7 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects }) => {
                 <div className="text-xs" style={{ color: LK.muted }}>
                   {item.label}
                 </div>
-                <div className="mt-1 text-2xl font-semibold leading-7 tabular-nums" style={{ color: LK.ink }}>
+                <div className="mt-1 text-2xl font-bold leading-7 tabular-nums" style={{ color: LK.ink }}>
                   {item.value}
                 </div>
               </div>
@@ -495,6 +473,15 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects }) => {
           {agentApps.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
         </select>
       </div>
+
+      {agentAppsLoadError ? (
+        <div
+          className="rounded-lg px-4 py-3 text-sm"
+          style={{ backgroundColor: `${LK.warning}14`, border: `1px solid ${LK.warning}40`, color: LK.warning }}
+        >
+          {agentAppsLoadError}。当前任务列表已正常加载，但 Harness 筛选与 Agent Harness 创建能力暂时不可用。
+        </div>
+      ) : null}
 
       <div
         className="flex items-center justify-between gap-3 rounded-lg px-4 py-3"

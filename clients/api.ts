@@ -43,6 +43,7 @@ export const api = {
   binaryEvolution: executionClients.binaryEvolution,
   binarySecurity: executionClients.binarySecurity,
   binaryToSource: executionClients.binaryToSource,
+  cfgGuidedExplore: executionClients.cfgGuidedExplore,
   dataflowVulnScanner: executionClients.dataflowVulnScanner,
   ipcAudit: executionClients.ipcAudit,
   redlineVerification: executionClients.redlineVerification,

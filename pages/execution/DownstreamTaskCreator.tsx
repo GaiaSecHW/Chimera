@@ -1099,14 +1099,14 @@ export const DownstreamTaskCreator: React.FC<Props> = ({
                                 key={item}
                                 type="button"
                                 onClick={() => setMode(item)}
-                                className={`rounded-xl border px-3 py-2 text-xs font-black ${mode === item ? 'border-theme-border bg-theme-surface text-white' : 'border-theme-border bg-theme-bg-app text-theme-text-secondary hover:bg-theme-elevated'}`}
+                                className={`rounded-xl border px-3 py-2 text-xs font-medium ${mode === item ? 'border-theme-border bg-theme-surface text-white' : 'border-theme-border bg-theme-bg-app text-theme-text-secondary hover:bg-theme-elevated'}`}
                               >
                                 {item === 'binary' ? '二进制任务模式' : '源码任务模式'}
                               </button>
                             ))}
                           </div>
                         ) : modeOptions.length === 1 ? (
-                          <div className="mt-4 inline-flex rounded-xl border border-theme-border bg-theme-bg-app px-3 py-2 text-xs font-black text-theme-text-secondary">
+                          <div className="mt-4 inline-flex rounded-xl border border-theme-border bg-theme-bg-app px-3 py-2 text-xs font-medium text-theme-text-secondary">
                             {modeOptions[0] === 'binary' ? '二进制任务模式' : '源码任务模式'}
                           </div>
                         ) : null}
@@ -1115,7 +1115,7 @@ export const DownstreamTaskCreator: React.FC<Props> = ({
                       <section className="overflow-hidden rounded-2xl border border-theme-border bg-theme-bg-app">
                         <div className="flex items-center justify-between gap-3 border-b border-theme-border bg-theme-bg-app px-4 py-3">
                           <div>
-                            <div className="text-sm font-black text-theme-text-primary">候选输入</div>
+                            <div className="text-sm font-semibold text-theme-text-primary">候选输入</div>
                             <div className="mt-1 text-xs text-theme-text-muted">可选 {selectableCandidates.length} / 总计 {candidates.length}</div>
                           </div>
                           <button type="button" onClick={toggleAll} className="rounded-lg border border-theme-border bg-theme-bg-app px-3 py-1.5 text-xs font-bold text-theme-text-secondary hover:bg-theme-elevated">
@@ -1149,7 +1149,7 @@ export const DownstreamTaskCreator: React.FC<Props> = ({
                                     className="mt-1"
                                   />
                                   <div className="min-w-0 flex-1">
-                                    <div className="break-all text-sm font-black text-theme-text-primary">{candidate.label}</div>
+                                    <div className="break-all text-sm font-semibold text-theme-text-primary">{candidate.label}</div>
                                     {candidate.description ? <div className="mt-1 break-all text-xs text-theme-text-muted">{candidate.description}</div> : null}
                                     {candidate.disabledReason ? <div className="mt-1 text-xs font-semibold text-amber-400">{candidate.disabledReason}</div> : null}
                                   </div>
@@ -1165,52 +1165,52 @@ export const DownstreamTaskCreator: React.FC<Props> = ({
 
                 <aside className="space-y-4">
                   <div className="rounded-2xl border border-emerald-500/20 bg-emerald-500/15 p-4">
-                    <div className="text-xs font-black uppercase tracking-[0.18em] text-emerald-400">目标阶段</div>
-                    <div className="mt-2 text-xl font-black text-theme-text-primary">{TARGET_LABEL[targetStage]}</div>
+                    <div className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-400">目标阶段</div>
+                    <div className="mt-2 text-xl font-semibold text-theme-text-primary">{TARGET_LABEL[targetStage]}</div>
                     <div className="mt-2 text-xs leading-5 text-theme-text-secondary">
                       将创建 {isVulnDownstream ? 1 : selectedCandidates.length} 个手动下游任务。
                     </div>
                   </div>
                   {isVulnDownstream && vulnCreateState ? (
                     <div className="rounded-2xl border border-cyan-500/20 bg-cyan-50/70 p-4">
-                      <div className="text-xs font-black uppercase tracking-[0.18em] text-cyan-400">当前默认填充值</div>
+                      <div className="text-xs font-semibold uppercase tracking-[0.18em] text-cyan-400">当前默认填充值</div>
                       <div className="mt-3 space-y-3 text-xs text-theme-text-secondary">
                         <div>
-                          <div className="font-black text-theme-text-muted">Runs 根目录</div>
+                          <div className="font-medium text-theme-text-muted">Runs 根目录</div>
                           <div className="mt-1 break-all font-mono">{vulnCreateState.workspacePath || '-'}</div>
                         </div>
                         <div>
-                          <div className="font-black text-theme-text-muted">数据流目录</div>
+                          <div className="font-medium text-theme-text-muted">数据流目录</div>
                           <div className="mt-1 break-all font-mono">{vulnCreateState.dataFlowPath || '-'}</div>
                         </div>
                         <div>
-                          <div className="font-black text-theme-text-muted">代码目录</div>
+                          <div className="font-medium text-theme-text-muted">代码目录</div>
                           <div className="mt-1 break-all font-mono">{vulnCreateState.sourcePath || '-'}</div>
                         </div>
                         <div>
-                          <div className="font-black text-theme-text-muted">模型</div>
+                          <div className="font-medium text-theme-text-muted">模型</div>
                           <div className="mt-1 break-all font-mono">{vulnCreateState.model || DEFAULT_DATAFLOW_VULN_MODEL}</div>
                         </div>
                       </div>
                     </div>
                   ) : dataflowVulnPreview ? (
                     <div className="rounded-2xl border border-cyan-500/20 bg-cyan-50/70 p-4">
-                      <div className="text-xs font-black uppercase tracking-[0.18em] text-cyan-400">漏洞挖掘默认参数</div>
+                      <div className="text-xs font-semibold uppercase tracking-[0.18em] text-cyan-400">漏洞挖掘默认参数</div>
                       <div className="mt-3 space-y-3 text-xs text-theme-text-secondary">
                         <div>
-                          <div className="font-black text-theme-text-muted">Runs 根目录</div>
+                          <div className="font-medium text-theme-text-muted">Runs 根目录</div>
                           <div className="mt-1 break-all font-mono">{String(dataflowVulnPreview.runsRoot || DEFAULT_DATAFLOW_VULN_RUNS_ROOT)}</div>
                         </div>
                         <div>
-                          <div className="font-black text-theme-text-muted">数据流目录</div>
+                          <div className="font-medium text-theme-text-muted">数据流目录</div>
                           <div className="mt-1 break-all font-mono">{String(dataflowVulnPreview.dataFlowDir || '-')}</div>
                         </div>
                         <div>
-                          <div className="font-black text-theme-text-muted">代码目录</div>
+                          <div className="font-medium text-theme-text-muted">代码目录</div>
                           <div className="mt-1 break-all font-mono">{String(dataflowVulnPreview.sourceDir || '-')}</div>
                         </div>
                         <div>
-                          <div className="font-black text-theme-text-muted">模型</div>
+                          <div className="font-medium text-theme-text-muted">模型</div>
                           <div className="mt-1 break-all font-mono">{DEFAULT_DATAFLOW_VULN_MODEL}</div>
                         </div>
                       </div>
@@ -1223,7 +1223,7 @@ export const DownstreamTaskCreator: React.FC<Props> = ({
                   ) : null}
                   {created.length > 0 ? (
                     <div className="rounded-2xl border border-theme-border bg-theme-bg-app p-4">
-                      <div className="mb-3 text-sm font-black text-theme-text-primary">已创建任务</div>
+                      <div className="mb-3 text-sm font-semibold text-theme-text-primary">已创建任务</div>
                       <div className="space-y-2">
                         {created.map((item) => (
                           <button
@@ -1234,7 +1234,7 @@ export const DownstreamTaskCreator: React.FC<Props> = ({
                           >
                             <CheckCircle2 size={14} className="mt-0.5 shrink-0 text-emerald-400" />
                             <span className="min-w-0">
-                              <span className="block truncate font-black text-theme-text-primary">{item.label}</span>
+                              <span className="block truncate font-medium text-theme-text-primary">{item.label}</span>
                               <span className="block font-mono text-theme-text-muted">{item.id}</span>
                             </span>
                           </button>
@@ -1244,7 +1244,7 @@ export const DownstreamTaskCreator: React.FC<Props> = ({
                   ) : null}
                   {result ? (
                     <div className="rounded-2xl border border-theme-border bg-theme-bg-app p-4">
-                      <button type="button" onClick={() => setShowRaw((value) => !value)} className="flex w-full items-center justify-between text-left text-xs font-black text-theme-text-secondary">
+                      <button type="button" onClick={() => setShowRaw((value) => !value)} className="flex w-full items-center justify-between text-left text-xs font-medium text-theme-text-secondary">
                         结果原始摘要
                         {showRaw ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
                       </button>
@@ -1263,7 +1263,7 @@ export const DownstreamTaskCreator: React.FC<Props> = ({
                 type="button"
                 onClick={() => void createTasks()}
                 disabled={submitting || loading || (isVulnDownstream ? !vulnCreateState : selectedCandidates.length === 0)}
-                className="inline-flex items-center gap-2 rounded-xl border border-emerald-500/20 bg-emerald-600 px-4 py-2 text-sm font-black text-white hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-50"
+                className="inline-flex items-center gap-2 rounded-xl border border-emerald-500/20 bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {submitting ? <Loader2 size={15} className="animate-spin" /> : <PlayCircle size={15} />}
                 创建下游任务

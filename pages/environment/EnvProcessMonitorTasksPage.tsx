@@ -3,6 +3,7 @@ import { CheckSquare, Loader2, RefreshCw, Square, Trash2, X } from 'lucide-react
 import { api } from '../../clients/api';
 import { ProcessMonitorNode, ProcessSyncTaskDetailResponse, ProcessSyncTaskHistoryItem } from '../../types/types';
 import { useUiFeedback } from '../../components/UiFeedback';
+import { PageHeader } from '../../design-system';
 
 type QueryMode = 'platform' | 'live';
 type DetailTab = 'overview' | 'progress' | 'events' | 'results';
@@ -296,67 +297,35 @@ export const EnvProcessMonitorTasksPage: React.FC<{ projectId: string }> = ({ pr
   return (
     <>
       <div className="p-10 space-y-6">
-        <div className="flex items-end justify-between">
-          <div>
-            <h2 className="text-3xl font-black text-theme-text-primary tracking-tight">节点进程监控 - 任务管理</h2>
-            <p className="text-theme-text-muted mt-1 font-medium">支持平台记录查询与指定节点实时任务查询</p>
-          </div>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => void loadData()}
-              disabled={loading || !projectId}
-              className="px-4 py-3 rounded-2xl border border-theme-border bg-theme-bg-app hover:bg-theme-elevated text-theme-text-secondary text-xs font-bold uppercase tracking-wider flex items-center gap-2"
-            >
-              {loading ? <Loader2 size={16} className="animate-spin" /> : <RefreshCw size={16} />}
-              刷新
-            </button>
-            <button
-              onClick={() => void clearCurrent('selected')}
-              disabled={!projectId || clearing || (mode === 'platform' ? selectedHistorySyncIds.size === 0 : selectedLiveTaskKeys.size === 0)}
-              className="px-4 py-3 rounded-2xl border border-rose-500/20 bg-rose-500/15 hover:bg-rose-600 hover:text-white text-rose-400 text-xs font-bold uppercase tracking-wider flex items-center gap-2 disabled:opacity-50"
-            >
-              {clearing ? <Loader2 size={16} className="animate-spin" /> : <Trash2 size={16} />}
-              清理选中
-            </button>
-            {mode === 'live' && (
-              <button
-                onClick={() => void clearCurrent('filtered')}
-                disabled={!projectId || clearing}
-                className="px-4 py-3 rounded-2xl border border-amber-500/20 bg-amber-500/15 hover:bg-amber-600 hover:text-white text-amber-400 text-xs font-bold uppercase tracking-wider flex items-center gap-2 disabled:opacity-50"
-              >
-                {clearing ? <Loader2 size={16} className="animate-spin" /> : <Trash2 size={16} />}
-                清理筛选节点
-              </button>
-            )}
-            <button
-              onClick={() => void clearCurrent('all')}
-              disabled={!projectId || clearing}
-              className="px-4 py-3 rounded-2xl border border-rose-300 bg-theme-bg-app hover:bg-rose-600 hover:text-white text-rose-400 text-xs font-bold uppercase tracking-wider flex items-center gap-2 disabled:opacity-50"
-            >
-              {clearing ? <Loader2 size={16} className="animate-spin" /> : <Trash2 size={16} />}
-              全量清理
-            </button>
-          </div>
-        </div>
+        <PageHeader
+          title="节点进程监控 - 任务管理"
+          description="支持平台记录查询与指定节点实时任务查询"
+          actions={<div className="flex items-center gap-2">
+              <button onClick={() => void loadData()} disabled={loading || !projectId} className="px-4 py-3 rounded-lg border border-theme-border bg-theme-surface hover:bg-theme-elevated text-theme-text-secondary text-xs font-medium uppercase tracking-wider flex items-center gap-2">{loading ? <Loader2 size={16} className="animate-spin" /> : <RefreshCw size={16} />}刷新</button>
+              <button onClick={() => void clearCurrent('selected')} disabled={!projectId || clearing || (mode === 'platform' ? selectedHistorySyncIds.size === 0 : selectedLiveTaskKeys.size === 0)} className="px-4 py-3 rounded-lg border border-rose-500/20 bg-rose-500/15 hover:bg-rose-600 hover:text-white text-rose-400 text-xs font-medium uppercase tracking-wider flex items-center gap-2 disabled:opacity-50">{clearing ? <Loader2 size={16} className="animate-spin" /> : <Trash2 size={16} />}清理选中</button>
+              {mode === 'live' && (<button onClick={() => void clearCurrent('filtered')} disabled={!projectId || clearing} className="px-4 py-3 rounded-lg border border-amber-500/20 bg-amber-500/15 hover:bg-amber-600 hover:text-white text-amber-400 text-xs font-medium uppercase tracking-wider flex items-center gap-2 disabled:opacity-50">{clearing ? <Loader2 size={16} className="animate-spin" /> : <Trash2 size={16} />}清理筛选节点</button>)}
+              <button onClick={() => void clearCurrent('all')} disabled={!projectId || clearing} className="px-4 py-3 rounded-lg border border-rose-300 bg-theme-bg-app hover:bg-rose-600 hover:text-white text-rose-400 text-xs font-medium uppercase tracking-wider flex items-center gap-2 disabled:opacity-50">{clearing ? <Loader2 size={16} className="animate-spin" /> : <Trash2 size={16} />}全量清理</button>
+            </div>}
+        />
 
         <div className="flex gap-2">
           <button
             onClick={() => setMode('platform')}
-            className={`px-4 py-2 rounded-xl text-sm font-black ${mode === 'platform' ? 'bg-blue-600 text-white' : 'bg-theme-elevated text-theme-text-secondary'}`}
+            className={`px-4 py-2 rounded-xl text-sm font-semibold ${mode === 'platform' ? 'bg-blue-600 text-white' : 'bg-theme-elevated text-theme-text-secondary'}`}
           >
             平台记录模式
           </button>
           <button
             onClick={() => setMode('live')}
-            className={`px-4 py-2 rounded-xl text-sm font-black ${mode === 'live' ? 'bg-blue-600 text-white' : 'bg-theme-elevated text-theme-text-secondary'}`}
+            className={`px-4 py-2 rounded-xl text-sm font-semibold ${mode === 'live' ? 'bg-blue-600 text-white' : 'bg-theme-elevated text-theme-text-secondary'}`}
           >
             节点实时模式
           </button>
         </div>
 
         {mode === 'live' && (
-          <div className="rounded-2xl border border-theme-border bg-theme-bg-app p-4">
-            <div className="text-xs font-black uppercase tracking-widest text-theme-text-muted mb-3">节点筛选（可多选）</div>
+          <div className="rounded-xl border border-theme-border bg-theme-surface p-4">
+            <div className="text-xs font-semibold uppercase tracking-widest text-theme-text-muted mb-3">节点筛选（可多选）</div>
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-2">
               {nodes.map((node) => {
                 const checked = selectedAgentKeys.has(node.agent_key);
@@ -369,7 +338,7 @@ export const EnvProcessMonitorTasksPage: React.FC<{ projectId: string }> = ({ pr
                   >
                     <div className="flex items-center gap-2">
                       {checked ? <CheckSquare size={14} className="text-blue-400" /> : <Square size={14} className="text-theme-text-muted" />}
-                      <div className="text-sm font-bold text-theme-text-secondary">{node.agent_key}</div>
+                      <div className="text-sm font-medium text-theme-text-secondary">{node.agent_key}</div>
                     </div>
                     <div className="text-xs text-theme-text-muted mt-1">{resolveNodeName(node.agent_key, node.agent_hostname)} / {node.service_name}</div>
                   </button>
@@ -379,7 +348,7 @@ export const EnvProcessMonitorTasksPage: React.FC<{ projectId: string }> = ({ pr
           </div>
         )}
 
-        <div className="rounded-3xl border border-theme-border bg-theme-bg-app overflow-hidden">
+        <div className="rounded-xl border border-theme-border bg-theme-surface overflow-hidden">
           <table className="w-full text-left">
             <thead className="bg-theme-bg-app text-[11px] uppercase tracking-widest text-theme-text-muted">
               <tr>
@@ -475,9 +444,9 @@ export const EnvProcessMonitorTasksPage: React.FC<{ projectId: string }> = ({ pr
                     <td className="px-4 py-4 text-xs uppercase text-theme-text-secondary">{readNodeStatusFromHistory(item)}</td>
                     <td className="px-4 py-4 text-xs">
                       {item.id_consistent === false ? (
-                        <span className="inline-flex rounded-full bg-rose-500/15 px-2 py-1 text-rose-400 font-bold">不一致</span>
+                        <span className="inline-flex rounded-full bg-rose-500/15 px-2 py-1 text-rose-400 font-medium">不一致</span>
                       ) : (
-                        <span className="inline-flex rounded-full bg-emerald-500/15 px-2 py-1 text-emerald-400 font-bold">一致</span>
+                        <span className="inline-flex rounded-full bg-emerald-500/15 px-2 py-1 text-emerald-400 font-medium">一致</span>
                       )}
                     </td>
                     <td className="px-4 py-4 text-xs text-theme-text-muted">{item.created_at || '-'}</td>
@@ -535,7 +504,7 @@ export const EnvProcessMonitorTasksPage: React.FC<{ projectId: string }> = ({ pr
  <div className="absolute inset-y-0 right-0 w-[min(980px,92vw)] bg-theme-bg-app border-l border-theme-border flex flex-col" onClick={(event) => event.stopPropagation()}>
             <div className="flex items-center justify-between px-6 py-4 border-b border-theme-border">
               <div>
-                <h3 className="text-xl font-black text-theme-text-primary">同步任务详情</h3>
+                <h3 className="text-xl font-semibold text-theme-text-primary">同步任务详情</h3>
                 <p className="text-xs text-theme-text-muted font-mono">
                   {(detailData?.sync_id || detailData?.platform?.sync_id || detailData?.node_task_id || '-') as string}
                 </p>
@@ -553,7 +522,7 @@ export const EnvProcessMonitorTasksPage: React.FC<{ projectId: string }> = ({ pr
                 <button
                   key={tab.id}
                   onClick={() => setDetailTab(tab.id as DetailTab)}
-                  className={`px-3 py-2 rounded-t-xl text-xs font-black uppercase tracking-wider ${
+                  className={`px-3 py-2 rounded-t-xl text-xs font-medium uppercase tracking-wider ${
                     detailTab === tab.id ? 'bg-blue-500/15 text-blue-400 border border-blue-500/20 border-b-0' : 'text-theme-text-muted hover:text-theme-text-primary'
                   }`}
                 >
@@ -566,7 +535,7 @@ export const EnvProcessMonitorTasksPage: React.FC<{ projectId: string }> = ({ pr
               {detailLoading ? (
                 <div className="py-16 text-center"><Loader2 className="animate-spin mx-auto text-blue-400" /></div>
               ) : detailError ? (
-                <div className="rounded-2xl border border-rose-500/20 bg-rose-500/15 text-rose-400 px-4 py-3 text-sm">{detailError}</div>
+                <div className="rounded-xl border border-rose-500/20 bg-rose-500/15 text-rose-400 px-4 py-3 text-sm">{detailError}</div>
               ) : !detailData ? (
                 <div className="py-16 text-center text-theme-text-muted">暂无详情数据</div>
               ) : (
@@ -574,16 +543,16 @@ export const EnvProcessMonitorTasksPage: React.FC<{ projectId: string }> = ({ pr
                   {detailTab === 'overview' && (
                     <div className="space-y-3">
                       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                        <div className="rounded-2xl border border-theme-border p-4"><div className="text-xs text-theme-text-muted">平台ID</div><div className="mt-1 text-xs font-mono break-all text-theme-text-secondary">{detailData.sync_id || detailData.platform?.sync_id || '-'}</div></div>
-                        <div className="rounded-2xl border border-theme-border p-4"><div className="text-xs text-theme-text-muted">节点ID</div><div className="mt-1 text-xs font-mono break-all text-theme-text-secondary">{detailData.node_task_id || '-'}</div></div>
-                        <div className="rounded-2xl border border-theme-border p-4"><div className="text-xs text-theme-text-muted">状态</div><div className="mt-1 text-sm font-bold text-theme-text-secondary">{detailData.platform?.status || detailData.live?.task?.status || '-'}</div></div>
-                        <div className="rounded-2xl border border-theme-border p-4"><div className="text-xs text-theme-text-muted">ID一致性</div><div className="mt-1 text-sm font-bold text-theme-text-secondary">{detailData.id_consistent === false ? '不一致' : '一致'}</div></div>
+                        <div className="rounded-xl border border-theme-border p-4"><div className="text-xs text-theme-text-muted">平台ID</div><div className="mt-1 text-xs font-mono break-all text-theme-text-secondary">{detailData.sync_id || detailData.platform?.sync_id || '-'}</div></div>
+                        <div className="rounded-xl border border-theme-border p-4"><div className="text-xs text-theme-text-muted">节点ID</div><div className="mt-1 text-xs font-mono break-all text-theme-text-secondary">{detailData.node_task_id || '-'}</div></div>
+                        <div className="rounded-xl border border-theme-border p-4"><div className="text-xs text-theme-text-muted">状态</div><div className="mt-1 text-sm font-medium text-theme-text-secondary">{detailData.platform?.status || detailData.live?.task?.status || '-'}</div></div>
+                        <div className="rounded-xl border border-theme-border p-4"><div className="text-xs text-theme-text-muted">ID一致性</div><div className="mt-1 text-sm font-medium text-theme-text-secondary">{detailData.id_consistent === false ? '不一致' : '一致'}</div></div>
                       </div>
-                      <div className="rounded-2xl border border-theme-border p-4">
+                      <div className="rounded-xl border border-theme-border p-4">
                         <div className="text-xs uppercase tracking-wider text-theme-text-muted">错误摘要</div>
                         <pre className="mt-2 text-xs font-mono whitespace-pre-wrap break-all text-theme-text-secondary">{pretty(detailData.failure_summary || detailData.live?.errors || [])}</pre>
                       </div>
-                      <div className="rounded-2xl border border-theme-border p-4">
+                      <div className="rounded-xl border border-theme-border p-4">
                         <div className="text-xs uppercase tracking-wider text-theme-text-muted">平台请求</div>
                         <pre className="mt-2 text-xs font-mono whitespace-pre-wrap break-all text-theme-text-secondary">{pretty(detailData.platform?.request || {})}</pre>
                       </div>
@@ -592,11 +561,11 @@ export const EnvProcessMonitorTasksPage: React.FC<{ projectId: string }> = ({ pr
 
                   {detailTab === 'progress' && (
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                      <div className="rounded-2xl border border-theme-border p-4">
+                      <div className="rounded-xl border border-theme-border p-4">
                         <div className="text-xs uppercase tracking-wider text-theme-text-muted">节点进度</div>
                         <pre className="mt-2 text-xs font-mono whitespace-pre-wrap break-all text-theme-text-secondary">{pretty(detailData.live?.progress || {})}</pre>
                       </div>
-                      <div className="rounded-2xl border border-theme-border p-4">
+                      <div className="rounded-xl border border-theme-border p-4">
                         <div className="text-xs uppercase tracking-wider text-theme-text-muted">平台快照</div>
                         <pre className="mt-2 text-xs font-mono whitespace-pre-wrap break-all text-theme-text-secondary">{pretty(detailData.platform?.node_snapshot || {})}</pre>
                       </div>
@@ -604,14 +573,14 @@ export const EnvProcessMonitorTasksPage: React.FC<{ projectId: string }> = ({ pr
                   )}
 
                   {detailTab === 'events' && (
-                    <div className="rounded-2xl border border-theme-border p-4">
+                    <div className="rounded-xl border border-theme-border p-4">
                       <div className="text-xs uppercase tracking-wider text-theme-text-muted">Events</div>
                       <pre className="mt-2 max-h-[58vh] overflow-auto text-xs font-mono whitespace-pre-wrap break-all text-theme-text-secondary">{pretty(detailData.live?.events || {})}</pre>
                     </div>
                   )}
 
                   {detailTab === 'results' && (
-                    <div className="rounded-2xl border border-theme-border p-4">
+                    <div className="rounded-xl border border-theme-border p-4">
                       <div className="text-xs uppercase tracking-wider text-theme-text-muted">Results</div>
                       <pre className="mt-2 max-h-[58vh] overflow-auto text-xs font-mono whitespace-pre-wrap break-all text-theme-text-secondary">{pretty(detailData.live?.results || {})}</pre>
                     </div>

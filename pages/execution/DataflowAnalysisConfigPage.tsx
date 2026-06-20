@@ -6,6 +6,7 @@ import { api } from '../../clients/api';
 import { AppDfaAgentInstance, AppDfaRoleConfig, AppDfaServiceConfig, LlmProviderSummary } from '../../types/types';
 import { useUiFeedback } from '../../components/UiFeedback';
 import { StaticPipelineFlow } from './StaticPipelineFlow';
+import { PageSection, FormField, FormActionBar } from '../../design-system';
 
 const DATAFLOW_ANALYSIS_FLOW = {
   title: '数据流分析阶段推进关系',
@@ -67,26 +68,11 @@ const defaultConfig = (projectId: string): AppDfaServiceConfig => ({
 // ─── 子组件 ────────────────────────────────────────────────────────────────────
 
 const SectionCard: React.FC<{ title: string; subtitle?: string; actions?: React.ReactNode; children: React.ReactNode }> = ({ title, subtitle, actions, children }) => (
- <section className="rounded-2xl border border-theme-border bg-theme-bg-app p-6 space-y-4">
-    <div className="flex items-start justify-between gap-4">
-      <div>
-        <h2 className="text-base font-black text-theme-text-primary">{title}</h2>
-        {subtitle && <p className="mt-0.5 text-xs text-theme-text-muted">{subtitle}</p>}
-      </div>
-      {actions}
-    </div>
-    {children}
-  </section>
+  <PageSection title={title} description={subtitle} actions={actions}>{children}</PageSection>
 );
 
 const FieldRow: React.FC<{ label: string; hint?: string; children: React.ReactNode }> = ({ label, hint, children }) => (
-  <div className="flex flex-col gap-1">
-    <label className="text-sm font-semibold text-theme-text-secondary">
-      {label}
-      {hint && <span className="ml-2 text-xs font-normal text-theme-text-muted">{hint}</span>}
-    </label>
-    {children}
-  </div>
+  <FormField label={label} hint={hint}>{children}</FormField>
 );
 
 const NumberInput: React.FC<{ value: number; min?: number; max?: number; step?: number; onChange: (v: number) => void }> = ({ value, min, max, step = 1, onChange }) => {
@@ -128,7 +114,7 @@ const AgentInstanceList: React.FC<{
   return (
     <div className="space-y-2">
       {agents.map((agent, i) => (
-        <div key={i} className="flex items-center gap-2 rounded-xl border border-theme-border bg-theme-bg-app p-3">
+        <div key={i} className="flex items-center gap-2 rounded-xl border border-theme-border bg-theme-surface p-3">
           <div className="flex-1">
             <ModelSelect value={agent.model} options={modelOptions} onChange={(v) => update(i, { model: v })} />
           </div>
@@ -223,25 +209,7 @@ const restoreOtherDfaPanels = (
 };
 
 const PanelActions: React.FC<{ saving: boolean; onSave: () => void; onReset: () => void }> = ({ saving, onSave, onReset }) => (
-  <div className="flex shrink-0 items-center gap-2">
-    <button
-      type="button"
-      onClick={onReset}
-      disabled={saving}
-      className="rounded-xl border border-theme-border bg-theme-bg-app px-3 py-2 text-xs font-semibold text-theme-text-secondary hover:bg-theme-elevated disabled:opacity-50"
-    >
-      重置为默认
-    </button>
-    <button
-      type="button"
-      onClick={onSave}
-      disabled={saving}
-      className="inline-flex items-center gap-2 rounded-xl bg-theme-surface px-3 py-2 text-xs font-semibold text-white disabled:opacity-50"
-    >
-      {saving && <Loader2 size={12} className="animate-spin" />}
-      保存配置
-    </button>
-  </div>
+  <FormActionBar saving={saving} onSave={onSave} onReset={onReset} saveText="保存配置" resetText="重置为默认" />
 );
 
 // ─── 主页面 ────────────────────────────────────────────────────────────────────
@@ -359,8 +327,8 @@ export const DataflowAnalysisConfigPage: React.FC<{ projectId: string; embedded?
       {feedbackNodes}
 
       {!embedded ? (
- <section className="rounded-[2rem] border border-theme-border bg-theme-bg-app p-6">
-          <h1 className="mt-3 text-3xl font-black tracking-tight text-theme-text-primary">分析配置</h1>
+ <section className="rounded-xl border border-theme-border bg-theme-surface p-6">
+          <h1 className="mt-3 text-3xl font-bold tracking-tight text-theme-text-primary">分析配置</h1>
           <p className="mt-2 text-sm text-theme-text-muted">
             配置 chimera-app-dataflow-analyse 数据流分析引擎的运行参数，修改后点击「保存配置」生效。
           </p>
@@ -369,13 +337,13 @@ export const DataflowAnalysisConfigPage: React.FC<{ projectId: string; embedded?
           )}
         </section>
       ) : (
- <section className="rounded-[2rem] border border-theme-border bg-slate-50/70 p-6">
+ <section className="rounded-xl border border-theme-border bg-slate-50/70 p-6">
           <div className="flex items-start justify-between gap-4">
             <div>
               <div className="flex flex-wrap items-center gap-2">
                 <Settings size={18} className="text-rose-400" />
-                <h2 className="text-xl font-black text-theme-text-primary">数据流分析参数配置</h2>
-                <span className="rounded-full border border-rose-500/20 bg-rose-500/15 px-3 py-1 text-[11px] font-black tracking-[0.12em] text-rose-400">
+                <h2 className="text-xl font-semibold text-theme-text-primary">数据流分析参数配置</h2>
+                <span className="rounded-full border border-rose-500/20 bg-rose-500/15 px-3 py-1 text-[11px] font-medium tracking-[0.12em] text-rose-400">
                   chimera-app-dataflow-analyse
                 </span>
               </div>
@@ -390,7 +358,7 @@ export const DataflowAnalysisConfigPage: React.FC<{ projectId: string; embedded?
               type="button"
               onClick={() => { void reload(); }}
               disabled={loading || saving}
- className="inline-flex items-center gap-2 rounded-xl border border-theme-border bg-theme-bg-app px-4 py-2.5 text-sm font-bold text-theme-text-secondary hover:bg-theme-elevated disabled:opacity-50"
+ className="inline-flex items-center gap-2 rounded-xl border border-theme-border bg-theme-surface px-4 py-2.5 text-sm font-bold text-theme-text-secondary hover:bg-theme-elevated disabled:opacity-50"
             >
               {loading ? <Loader2 size={14} className="animate-spin" /> : <RefreshCw size={14} />}
               刷新
@@ -400,7 +368,7 @@ export const DataflowAnalysisConfigPage: React.FC<{ projectId: string; embedded?
       )}
 
       {loading ? (
-        <div className="inline-flex items-center gap-2 rounded-xl border border-theme-border bg-theme-bg-app px-4 py-3 text-sm text-theme-text-secondary">
+        <div className="inline-flex items-center gap-2 rounded-xl border border-theme-border bg-theme-surface px-4 py-3 text-sm text-theme-text-secondary">
           <Loader2 size={15} className="animate-spin" />加载中...
         </div>
       ) : (

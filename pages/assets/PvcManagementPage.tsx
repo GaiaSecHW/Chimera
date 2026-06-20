@@ -24,6 +24,7 @@ import {
 import { api } from '../../clients/api';
 import { showConfirm, showPrompt } from '../../components/DialogService';
 import { StatusBadge } from '../../components/StatusBadge';
+import { Modal } from '../../design-system';
 import {
   OutputPvcDetail,
   ProjectPVC,
@@ -1128,20 +1129,20 @@ export const PvcManagementPage: React.FC<{ projectId: string }> = ({ projectId }
           <>
             <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
  <div className="rounded-xl bg-brand-primary p-4 text-white">
-                <div className="text-[10px] font-black uppercase tracking-[0.24em] text-theme-text-muted">总 PVC</div>
-                <div className="mt-2 text-3xl font-black leading-none">{pvcs.length}</div>
+                <div className="text-[10px] font-semibold uppercase tracking-[0.24em] text-theme-text-muted">总 PVC</div>
+                <div className="mt-2 text-3xl font-bold leading-none">{pvcs.length}</div>
               </div>
               {RESOURCE_TYPE_ORDER.map((type) => (
  <div key={type} className="rounded-xl border border-theme-border bg-theme-surface p-4">
-                  <div className="text-[10px] font-black uppercase tracking-[0.2em] text-theme-text-muted">{RESOURCE_TYPE_LABEL[type]}</div>
-                  <div className="mt-2 text-3xl font-black leading-none text-theme-text-primary">{resourceTypeStats[type]}</div>
+                  <div className="text-[10px] font-semibold uppercase tracking-[0.2em] text-theme-text-muted">{RESOURCE_TYPE_LABEL[type]}</div>
+                  <div className="mt-2 text-3xl font-bold leading-none text-theme-text-primary">{resourceTypeStats[type]}</div>
                 </div>
               ))}
             </div>
 
  <div className="rounded-xl border border-theme-border bg-theme-surface p-3">
               <div className="flex flex-wrap items-center justify-between gap-2">
-                <div className="text-sm font-black text-theme-text-primary">
+                <div className="text-sm font-semibold text-theme-text-primary">
                   PVC 列表
                   <span className="ml-2 text-xs text-theme-text-muted">
                     {selectedPvc ?`当前详情：${selectedPvc.name}` : '未选择 PVC'}
@@ -1151,14 +1152,14 @@ export const PvcManagementPage: React.FC<{ projectId: string }> = ({ projectId }
                   </span>
                 </div>
                 <div className="flex flex-wrap gap-1.5">
- <button data-testid="pvc-list-refresh-btn" onClick={() => void loadPvcList()} className="rounded-lg border border-theme-border bg-theme-surface px-2.5 py-2 text-xs font-black text-theme-text-secondary">
+ <button data-testid="pvc-list-refresh-btn" onClick={() => void loadPvcList()} className="rounded-lg border border-theme-border bg-theme-surface px-2.5 py-2 text-xs font-medium text-theme-text-secondary">
                     <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
                   </button>
- <button data-testid="pvc-create-blank-btn" onClick={openCreatePvcModal} className="inline-flex items-center gap-1.5 rounded-lg bg-blue-600 px-3 py-2 text-xs font-black text-white">
+ <button data-testid="pvc-create-blank-btn" onClick={openCreatePvcModal} className="inline-flex items-center gap-1.5 rounded-lg bg-blue-600 px-3 py-2 text-xs font-medium text-white">
                     <Plus size={14} />
                     创建空白PVC
                   </button>
- <button data-testid="pvc-upload-archive-btn" onClick={openArchiveUploadModal} className="inline-flex items-center gap-1.5 rounded-lg bg-brand-primary px-3 py-2 text-xs font-black text-white">
+ <button data-testid="pvc-upload-archive-btn" onClick={openArchiveUploadModal} className="inline-flex items-center gap-1.5 rounded-lg bg-brand-primary px-3 py-2 text-xs font-medium text-white">
                     <Upload size={14} />
                     上传PVC压缩包
                   </button>
@@ -1166,7 +1167,7 @@ export const PvcManagementPage: React.FC<{ projectId: string }> = ({ projectId }
                     data-testid="pvc-list-delete-btn"
                     onClick={() => void handleDeleteSelectedPvcs()}
                     disabled={selectedDeleteItems.length === 0 || busy === 'delete-pvc-bulk'}
- className="rounded-lg border border-rose-500/20 bg-rose-500/15 px-3 py-2 text-xs font-black text-rose-400 disabled:cursor-not-allowed disabled:opacity-50"
+ className="rounded-lg border border-rose-500/20 bg-rose-500/15 px-3 py-2 text-xs font-medium text-rose-400 disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     删除选中 PVC
                   </button>
@@ -1183,7 +1184,7 @@ export const PvcManagementPage: React.FC<{ projectId: string }> = ({ projectId }
                 <div className="mt-3 rounded-xl border border-theme-border bg-theme-surface px-4 py-3">
                   <div className="flex items-start justify-between gap-3">
                     <div>
-                      <div className="text-xs font-black text-theme-text-primary">{folderUploadState.completed ? '文件夹上传完成' : '文件夹上传中'}</div>
+                      <div className="text-xs font-medium text-theme-text-primary">{folderUploadState.completed ? '文件夹上传完成' : '文件夹上传中'}</div>
                       <div className="mt-1 text-xs font-semibold text-theme-text-muted">
                         阶段：{folderUploadState.phase === 'creating_directories' ? '创建目录' : '上传文件'} · {Math.min(folderUploadState.processed, folderUploadState.total)} / {folderUploadState.total}
                       </div>
@@ -1197,7 +1198,7 @@ export const PvcManagementPage: React.FC<{ projectId: string }> = ({ projectId }
                       )}
                     </div>
                     {!folderUploadState.completed && !folderUploadState.canceled && (
-                      <button type="button" onClick={cancelFolderUpload} className="rounded-xl border border-rose-500/20 bg-rose-500/15 px-3 py-1.5 text-xs font-black text-rose-400">
+                      <button type="button" onClick={cancelFolderUpload} className="rounded-xl border border-rose-500/20 bg-rose-500/15 px-3 py-1.5 text-xs font-medium text-rose-400">
                         取消
                       </button>
                     )}
@@ -1221,7 +1222,7 @@ export const PvcManagementPage: React.FC<{ projectId: string }> = ({ projectId }
 
               <div className="mt-3 overflow-hidden rounded-lg border border-theme-border" data-testid="pvc-list-table-wrap">
                 <table className="w-full text-left">
-                  <thead className="bg-theme-bg-app text-[10px] font-black uppercase tracking-[0.2em] text-theme-text-muted">
+                  <thead className="bg-theme-bg-app text-[10px] font-semibold uppercase tracking-[0.2em] text-theme-text-muted">
                     <tr>
                       <th className="px-3 py-3">
                         <label className="inline-flex items-center gap-2">
@@ -1258,14 +1259,14 @@ export const PvcManagementPage: React.FC<{ projectId: string }> = ({ projectId }
                               onChange={(event) => handleTogglePvcSelection(item.id, event.target.checked)}
                             />
                           </td>
-                          <td className="px-3 py-2.5 font-black text-theme-text-primary">{item.name}</td>
+                          <td className="px-3 py-2.5 font-medium text-theme-text-primary">{item.name}</td>
                           <td className="px-3 py-2.5 font-mono text-[11px] text-theme-text-muted">{item.pvc_name}</td>
                           <td className="px-3 py-2.5 font-bold text-theme-text-secondary">{RESOURCE_TYPE_LABEL[item.resource_type] || item.resource_type}</td>
                           <td className="px-3 py-2.5 font-bold text-theme-text-secondary">{item.pvc_size}</td>
                           <td className="px-3 py-2.5"><StatusBadge status={item.pvc_k8s_status?.status || 'Unknown'} /></td>
                           <td className="px-3 py-2.5">
                             <div className="space-y-1">
-                              <div className="text-[11px] font-black text-theme-text-secondary">{getWorkerStatusText(item.file_gateway)}</div>
+                              <div className="text-[11px] font-medium text-theme-text-secondary">{getWorkerStatusText(item.file_gateway)}</div>
                               <div className="max-w-[220px] truncate font-mono text-[10px] text-theme-text-muted">
                                 {item.file_gateway?.worker_name || '-'}
                               </div>
@@ -1279,7 +1280,7 @@ export const PvcManagementPage: React.FC<{ projectId: string }> = ({ projectId }
                                 event.stopPropagation();
                                 void openPvcDetail(item.id);
                               }}
-                              className="rounded-lg border border-theme-border bg-theme-surface px-2.5 py-1.5 text-[11px] font-black text-theme-text-secondary hover:bg-theme-elevated"
+                              className="rounded-lg border border-theme-border bg-theme-surface px-2.5 py-1.5 text-[11px] font-medium text-theme-text-secondary hover:bg-theme-elevated"
                             >
                               进入详情
                             </button>
@@ -1297,12 +1298,12 @@ export const PvcManagementPage: React.FC<{ projectId: string }> = ({ projectId }
  <div className="rounded-xl border border-theme-border bg-theme-surface p-3">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <div className="flex items-center gap-2">
-                  <button data-testid="pvc-detail-back-btn" onClick={() => setViewMode('list')} className="rounded-lg border border-theme-border bg-theme-surface px-3 py-2 text-xs font-black text-theme-text-secondary">
+                  <button data-testid="pvc-detail-back-btn" onClick={() => setViewMode('list')} className="rounded-lg border border-theme-border bg-theme-surface px-3 py-2 text-xs font-medium text-theme-text-secondary">
                     返回列表
                   </button>
                   <div>
-                    <div className="text-[10px] font-black uppercase tracking-[0.24em] text-theme-text-muted">PVC 详情</div>
-                    <div className="mt-1 text-lg font-black text-theme-text-primary">{selectedPvcDetail?.name || '-'}</div>
+                    <div className="text-[10px] font-semibold uppercase tracking-[0.24em] text-theme-text-muted">PVC 详情</div>
+                    <div className="mt-1 text-lg font-semibold text-theme-text-primary">{selectedPvcDetail?.name || '-'}</div>
                   </div>
                 </div>
                 {selectedPvc && (
@@ -1310,17 +1311,17 @@ export const PvcManagementPage: React.FC<{ projectId: string }> = ({ projectId }
  <button data-testid="pvc-detail-refresh-btn" onClick={() => void refreshBrowser(selectedPvc.id)} className="rounded-lg border border-theme-border bg-theme-surface p-2 text-theme-text-muted">
                       <RefreshCw size={14} className={busy ? 'animate-spin' : ''} />
                     </button>
- <button data-testid="pvc-detail-create-dir-btn" onClick={() => void handleCreateDirectory()} className="rounded-lg border border-theme-border bg-theme-surface px-2.5 py-2 text-xs font-black text-theme-text-secondary">新建目录</button>
- <button data-testid="pvc-detail-upload-file-btn" onClick={() => handleUploadClick()} className="inline-flex items-center gap-1.5 rounded-lg bg-brand-primary px-2.5 py-2 text-xs font-black text-white">
+ <button data-testid="pvc-detail-create-dir-btn" onClick={() => void handleCreateDirectory()} className="rounded-lg border border-theme-border bg-theme-surface px-2.5 py-2 text-xs font-medium text-theme-text-secondary">新建目录</button>
+ <button data-testid="pvc-detail-upload-file-btn" onClick={() => handleUploadClick()} className="inline-flex items-center gap-1.5 rounded-lg bg-brand-primary px-2.5 py-2 text-xs font-medium text-white">
                       <Upload size={14} />
                       上传文件到目录
                     </button>
- <button data-testid="pvc-detail-upload-folder-btn" onClick={() => handleUploadFolderClick()} className="inline-flex items-center gap-1.5 rounded-lg border border-theme-border bg-theme-surface px-2.5 py-2 text-xs font-black text-theme-text-secondary">
+ <button data-testid="pvc-detail-upload-folder-btn" onClick={() => handleUploadFolderClick()} className="inline-flex items-center gap-1.5 rounded-lg border border-theme-border bg-theme-surface px-2.5 py-2 text-xs font-medium text-theme-text-secondary">
                       <FolderOpen size={14} />
                       上传文件夹到目录
                     </button>
                     {selectedPvcDetail && (
- <button data-testid="pvc-detail-delete-pvc-btn" onClick={() => void handleDeletePvc(selectedPvcDetail)} className="rounded-lg border border-rose-500/20 bg-rose-500/15 px-3 py-2 text-xs font-black text-rose-400">
+ <button data-testid="pvc-detail-delete-pvc-btn" onClick={() => void handleDeletePvc(selectedPvcDetail)} className="rounded-lg border border-rose-500/20 bg-rose-500/15 px-3 py-2 text-xs font-medium text-rose-400">
                         删除 PVC
                       </button>
                     )}
@@ -1338,7 +1339,7 @@ export const PvcManagementPage: React.FC<{ projectId: string }> = ({ projectId }
               <div className="rounded-xl border border-theme-border bg-theme-surface px-4 py-3">
                 <div className="flex items-start justify-between gap-3">
                   <div>
-                    <div className="text-xs font-black text-theme-text-primary">{folderUploadState.completed ? '文件夹上传完成' : '文件夹上传中'}</div>
+                    <div className="text-xs font-medium text-theme-text-primary">{folderUploadState.completed ? '文件夹上传完成' : '文件夹上传中'}</div>
                     <div className="mt-1 text-xs font-semibold text-theme-text-muted">
                       阶段：{folderUploadState.phase === 'creating_directories' ? '创建目录' : '上传文件'} · {Math.min(folderUploadState.processed, folderUploadState.total)} / {folderUploadState.total}
                     </div>
@@ -1352,7 +1353,7 @@ export const PvcManagementPage: React.FC<{ projectId: string }> = ({ projectId }
                     )}
                   </div>
                   {!folderUploadState.completed && !folderUploadState.canceled && (
-                    <button type="button" onClick={cancelFolderUpload} className="rounded-xl border border-rose-500/20 bg-rose-500/15 px-3 py-1.5 text-xs font-black text-rose-400">
+                    <button type="button" onClick={cancelFolderUpload} className="rounded-xl border border-rose-500/20 bg-rose-500/15 px-3 py-1.5 text-xs font-medium text-rose-400">
                       取消
                     </button>
                   )}
@@ -1366,7 +1367,7 @@ export const PvcManagementPage: React.FC<{ projectId: string }> = ({ projectId }
             {fileUploadState.visible && (
               <div className="rounded-xl border border-blue-500/20 bg-blue-50/60 px-4 py-3">
                 <div>
-                  <div className="text-xs font-black text-blue-300">{fileUploadState.completed ? '文件上传完成' : '文件上传中'}</div>
+                  <div className="text-xs font-medium text-blue-300">{fileUploadState.completed ? '文件上传完成' : '文件上传中'}</div>
                   <div className="mt-1 text-xs font-semibold text-blue-400">
                     {Math.min(fileUploadState.processed, fileUploadState.total)} / {fileUploadState.total}
                   </div>
@@ -1392,7 +1393,7 @@ export const PvcManagementPage: React.FC<{ projectId: string }> = ({ projectId }
 
             <div className="grid grid-cols-1 gap-2.5 xl:grid-cols-[220px_minmax(300px,1fr)_320px]">
               <div className="overflow-hidden rounded-xl border border-theme-border bg-theme-surface" data-testid="pvc-detail-tree-panel">
-                <div className="border-b border-theme-border px-3 py-2 text-[10px] font-black uppercase tracking-[0.24em] text-theme-text-muted">目录树</div>
+                <div className="border-b border-theme-border px-3 py-2 text-[10px] font-semibold uppercase tracking-[0.24em] text-theme-text-muted">目录树</div>
                 <div className="max-h-[62vh] space-y-1 overflow-y-auto p-2 custom-scrollbar" data-testid="pvc-detail-tree" onContextMenu={(event) => openContextMenu(event, null)}>
                   <button
                     onClick={() => void openDirectory('/')}
@@ -1420,7 +1421,7 @@ export const PvcManagementPage: React.FC<{ projectId: string }> = ({ projectId }
                 </div>
                 <div className="max-h-[62vh] overflow-y-auto custom-scrollbar" data-testid="pvc-detail-directory-list" onContextMenu={(event) => openContextMenu(event, null)}>
                   <table className="w-full">
-                    <thead className="bg-theme-bg-app text-left text-[9px] font-black uppercase tracking-[0.2em] text-theme-text-muted">
+                    <thead className="bg-theme-bg-app text-left text-[9px] font-semibold uppercase tracking-[0.2em] text-theme-text-muted">
                       <tr>
                         <th className="px-4 py-3">名称</th>
                         <th className="px-4 py-3">大小</th>
@@ -1448,7 +1449,7 @@ export const PvcManagementPage: React.FC<{ projectId: string }> = ({ projectId }
                             >
                               {renderNodeIcon(node)}
                               <div>
-                                <div className="text-xs font-black text-theme-text-primary">{node.name}</div>
+                                <div className="text-xs font-medium text-theme-text-primary">{node.name}</div>
                                 <div className="font-mono text-[11px] text-theme-text-muted">{node.path}</div>
                               </div>
                             </button>
@@ -1491,20 +1492,20 @@ export const PvcManagementPage: React.FC<{ projectId: string }> = ({ projectId }
                 ) : (
                   <div className="space-y-2.5">
                     <div className="rounded-lg bg-theme-bg-app p-3">
-                      <div className="text-[10px] font-black uppercase tracking-[0.24em] text-theme-text-muted">PVC 元信息</div>
-                      <div className="mt-1.5 text-lg font-black text-theme-text-primary">{selectedPvcDetail.name}</div>
+                      <div className="text-[10px] font-semibold uppercase tracking-[0.24em] text-theme-text-muted">PVC 元信息</div>
+                      <div className="mt-1.5 text-lg font-semibold text-theme-text-primary">{selectedPvcDetail.name}</div>
                       <div className="mt-1 font-mono text-[11px] text-theme-text-muted">{selectedPvcDetail.pvc_name}</div>
                       <div className="mt-3 grid grid-cols-2 gap-2.5 text-[11px]">
-                        <div><div className="text-theme-text-muted">容量</div><div className="mt-1 font-black text-theme-text-primary">{selectedPvcDetail.pvc_size}</div></div>
-                        <div><div className="text-theme-text-muted">资源类型</div><div className="mt-1 font-black text-theme-text-primary">{RESOURCE_TYPE_LABEL[selectedPvcDetail.resource_type] || selectedPvcDetail.resource_type}</div></div>
-                        <div><div className="text-theme-text-muted">挂载状态</div><div className="mt-1 font-black text-theme-text-primary">{selectedPvcDetail.in_use ? '使用中' : '空闲'}</div></div>
-                        <div><div className="text-theme-text-muted">StorageClass</div><div className="mt-1 font-black text-theme-text-primary">{selectedPvcDetail.pvc_k8s_status?.storage_class || '-'}</div></div>
+                        <div><div className="text-theme-text-muted">容量</div><div className="mt-1 font-medium text-theme-text-primary">{selectedPvcDetail.pvc_size}</div></div>
+                        <div><div className="text-theme-text-muted">资源类型</div><div className="mt-1 font-medium text-theme-text-primary">{RESOURCE_TYPE_LABEL[selectedPvcDetail.resource_type] || selectedPvcDetail.resource_type}</div></div>
+                        <div><div className="text-theme-text-muted">挂载状态</div><div className="mt-1 font-medium text-theme-text-primary">{selectedPvcDetail.in_use ? '使用中' : '空闲'}</div></div>
+                        <div><div className="text-theme-text-muted">StorageClass</div><div className="mt-1 font-medium text-theme-text-primary">{selectedPvcDetail.pvc_k8s_status?.storage_class || '-'}</div></div>
                       </div>
                       <div className="mt-2"><StatusBadge status={selectedPvcDetail.pvc_k8s_status?.status || 'Unknown'} /></div>
                     </div>
 
                     <div className="rounded-lg border border-theme-border bg-theme-surface p-3">
-                      <div className="text-[10px] font-black uppercase tracking-[0.24em] text-theme-text-muted">占用信息</div>
+                      <div className="text-[10px] font-semibold uppercase tracking-[0.24em] text-theme-text-muted">占用信息</div>
                       <div className="mt-2 text-[11px] font-semibold text-theme-text-secondary">
                         当前状态：{selectedPvcDetail.in_use ? '占用中' : '未占用'}
                       </div>
@@ -1513,7 +1514,7 @@ export const PvcManagementPage: React.FC<{ projectId: string }> = ({ projectId }
                       )}
                       <div className="mt-2 space-y-2">
                         <div>
-                          <div className="text-[10px] font-black uppercase tracking-[0.12em] text-theme-text-muted">Pods</div>
+                          <div className="text-[10px] font-semibold uppercase tracking-[0.12em] text-theme-text-muted">Pods</div>
                           {(selectedPvcDetail.in_use_pods || []).length > 0 ? (
                             <div className="mt-1 space-y-1">
                               {(selectedPvcDetail.in_use_pods || []).map((pod) => (
@@ -1527,7 +1528,7 @@ export const PvcManagementPage: React.FC<{ projectId: string }> = ({ projectId }
                           )}
                         </div>
                         <div>
-                          <div className="text-[10px] font-black uppercase tracking-[0.12em] text-theme-text-muted">Jobs</div>
+                          <div className="text-[10px] font-semibold uppercase tracking-[0.12em] text-theme-text-muted">Jobs</div>
                           {(selectedPvcDetail.in_use_jobs || []).length > 0 ? (
                             <div className="mt-1 space-y-1">
                               {(selectedPvcDetail.in_use_jobs || []).map((job) => (
@@ -1544,17 +1545,17 @@ export const PvcManagementPage: React.FC<{ projectId: string }> = ({ projectId }
                     </div>
 
                     <div className="rounded-lg border border-theme-border bg-theme-surface p-3">
-                      <div className="text-[10px] font-black uppercase tracking-[0.24em] text-theme-text-muted">Worker 信息</div>
+                      <div className="text-[10px] font-semibold uppercase tracking-[0.24em] text-theme-text-muted">Worker 信息</div>
                       {selectedPvcDetail.file_gateway ? (
                         <div className="mt-2 space-y-2">
                           <div className="grid grid-cols-2 gap-2 text-[11px]">
                             <div>
                               <div className="text-theme-text-muted">网关开关</div>
-                              <div className="mt-1 font-black text-theme-text-primary">{selectedPvcDetail.file_gateway.enabled ? '已启用' : '已禁用'}</div>
+                              <div className="mt-1 font-medium text-theme-text-primary">{selectedPvcDetail.file_gateway.enabled ? '已启用' : '已禁用'}</div>
                             </div>
                             <div>
                               <div className="text-theme-text-muted">运行状态</div>
-                              <div className="mt-1 font-black text-theme-text-primary">
+                              <div className="mt-1 font-medium text-theme-text-primary">
                                 {selectedPvcDetail.file_gateway.ready_replicas > 0 ? '运行中' : selectedPvcDetail.file_gateway.deployment_exists ? '启动中' : '未创建'}
                               </div>
                             </div>
@@ -1570,15 +1571,15 @@ export const PvcManagementPage: React.FC<{ projectId: string }> = ({ projectId }
                           <div className="grid grid-cols-3 gap-2 text-[11px]">
                             <div className="rounded-md bg-theme-bg-app p-2">
                               <div className="text-theme-text-muted">期望副本</div>
-                              <div className="mt-0.5 font-black text-theme-text-primary">{selectedPvcDetail.file_gateway.replicas}</div>
+                              <div className="mt-0.5 font-medium text-theme-text-primary">{selectedPvcDetail.file_gateway.replicas}</div>
                             </div>
                             <div className="rounded-md bg-theme-bg-app p-2">
                               <div className="text-theme-text-muted">就绪副本</div>
-                              <div className="mt-0.5 font-black text-theme-text-primary">{selectedPvcDetail.file_gateway.ready_replicas}</div>
+                              <div className="mt-0.5 font-medium text-theme-text-primary">{selectedPvcDetail.file_gateway.ready_replicas}</div>
                             </div>
                             <div className="rounded-md bg-theme-bg-app p-2">
                               <div className="text-theme-text-muted">可用副本</div>
-                              <div className="mt-0.5 font-black text-theme-text-primary">{selectedPvcDetail.file_gateway.available_replicas}</div>
+                              <div className="mt-0.5 font-medium text-theme-text-primary">{selectedPvcDetail.file_gateway.available_replicas}</div>
                             </div>
                           </div>
                         </div>
@@ -1589,8 +1590,8 @@ export const PvcManagementPage: React.FC<{ projectId: string }> = ({ projectId }
 
                     <div className="rounded-lg border border-theme-border bg-theme-surface" data-testid="pvc-detail-preview-panel">
                       <div className="border-b border-theme-border px-3 py-2.5">
-                        <div className="text-[10px] font-black uppercase tracking-[0.24em] text-theme-text-muted">文件预览</div>
-                        <div className="mt-1.5 text-xs font-black text-theme-text-primary">{previewNode?.name || '未选择文件'}</div>
+                        <div className="text-[10px] font-semibold uppercase tracking-[0.24em] text-theme-text-muted">文件预览</div>
+                        <div className="mt-1.5 text-xs font-medium text-theme-text-primary">{previewNode?.name || '未选择文件'}</div>
                       </div>
                       <div className="min-h-[180px] p-3" data-testid="pvc-detail-preview-content">
                         {preview.mode === 'empty' ? (
@@ -1626,15 +1627,13 @@ export const PvcManagementPage: React.FC<{ projectId: string }> = ({ projectId }
         )}
       </div>
 
-      {previewModalState.visible && (
-        <div className="fixed inset-0 z-[190] flex items-center justify-center bg-slate-950/70 p-5 backdrop-blur-sm" onClick={closePreviewModal}>
- <div className="h-[86vh] w-full max-w-6xl rounded-2xl border border-theme-border bg-theme-surface" onClick={(event) => event.stopPropagation()}>
+      <Modal open={previewModalState.visible} onClose={closePreviewModal} className="max-w-6xl h-[86vh]">
             <div className="flex items-center justify-between border-b border-theme-border px-4 py-3">
               <div>
-                <div className="text-[10px] font-black uppercase tracking-[0.24em] text-theme-text-muted">弹框预览</div>
-                <div className="mt-1 text-sm font-black text-theme-text-primary">{previewModalState.node?.name || '-'}</div>
+                <div className="text-[10px] font-semibold uppercase tracking-[0.24em] text-theme-text-muted">弹框预览</div>
+                <div className="mt-1 text-sm font-semibold text-theme-text-primary">{previewModalState.node?.name || '-'}</div>
               </div>
-              <button className="rounded-lg border border-theme-border bg-theme-surface px-3 py-1.5 text-xs font-black text-theme-text-secondary" onClick={closePreviewModal}>
+              <button className="rounded-lg border border-theme-border bg-theme-surface px-3 py-1.5 text-xs font-medium text-theme-text-secondary" onClick={closePreviewModal}>
                 关闭
               </button>
             </div>
@@ -1667,15 +1666,11 @@ export const PvcManagementPage: React.FC<{ projectId: string }> = ({ projectId }
                 <div className="flex h-full items-center justify-center text-xs font-semibold text-theme-text-muted">该文件类型不支持弹框预览。</div>
               )}
             </div>
-          </div>
-        </div>
-      )}
+        </Modal>
       {renderContextMenu()}
 
-      {showCreateModal && (
-        <div data-testid="pvc-create-modal" className="fixed inset-0 z-[200] flex items-center justify-center bg-slate-950/60 p-6 backdrop-blur-sm">
- <div className="w-full max-w-xl rounded-[2rem] bg-theme-bg-app p-8">
-            <div className="text-2xl font-black text-theme-text-primary">创建 PVC</div>
+      <Modal open={showCreateModal} onClose={() => setShowCreateModal(false)} className="max-w-xl">
+            <div className="text-2xl font-semibold text-theme-text-primary">创建 PVC</div>
             <p className="mt-2 text-sm font-medium text-theme-text-muted">为当前项目创建任意资源类型的持久化存储。</p>
             <form onSubmit={handleCreatePvc} className="mt-6 space-y-5">
               <input data-testid="pvc-create-name-input" value={createForm.name} onChange={(e) => setCreateForm((prev) => ({ ...prev, name: e.target.value }))} placeholder="PVC 名称" required className="w-full rounded-2xl border border-theme-border px-4 py-3 font-semibold outline-none" />
@@ -1693,7 +1688,7 @@ export const PvcManagementPage: React.FC<{ projectId: string }> = ({ projectId }
                 <option value="output_pvc">输出资源 PVC</option>
               </select>
               <div>
-                <div className="mb-2 flex items-center justify-between text-xs font-black uppercase tracking-[0.2em] text-theme-text-muted">
+                <div className="mb-2 flex items-center justify-between text-xs font-semibold uppercase tracking-[0.2em] text-theme-text-muted">
                   <span>容量</span>
                   <span>{createForm.pvc_size} Gi</span>
                 </div>
@@ -1703,21 +1698,17 @@ export const PvcManagementPage: React.FC<{ projectId: string }> = ({ projectId }
                 <div className="rounded-xl border border-rose-500/20 bg-rose-500/15 px-3 py-2 text-xs font-semibold text-rose-400">{createError}</div>
               )}
               <div className="flex justify-end gap-3">
-                <button type="button" onClick={() => { setShowCreateModal(false); setCreateError(''); }} className="rounded-2xl bg-theme-elevated px-5 py-3 text-sm font-black text-theme-text-secondary">取消</button>
-                <button data-testid="pvc-create-submit-btn" type="submit" disabled={createLoading} className="inline-flex items-center gap-2 rounded-2xl bg-blue-600 px-5 py-3 text-sm font-black text-white">
+                <button type="button" onClick={() => { setShowCreateModal(false); setCreateError(''); }} className="rounded-2xl bg-theme-elevated px-5 py-3 text-sm font-medium text-theme-text-secondary">取消</button>
+                <button data-testid="pvc-create-submit-btn" type="submit" disabled={createLoading} className="inline-flex items-center gap-2 rounded-2xl bg-blue-600 px-5 py-3 text-sm font-medium text-white">
                   {createLoading ? <Loader2 size={16} className="animate-spin" /> : <Plus size={16} />}
                   创建空白PVC
                 </button>
               </div>
             </form>
-          </div>
-        </div>
-      )}
+      </Modal>
 
-      {showArchiveUploadModal && (
-        <div data-testid="pvc-archive-upload-modal" className="fixed inset-0 z-[210] flex items-center justify-center bg-slate-950/60 p-6 backdrop-blur-sm">
- <div className="w-full max-w-2xl rounded-[2rem] bg-theme-bg-app p-6">
-            <div className="text-2xl font-black text-theme-text-primary">上传 PVC 压缩包</div>
+      <Modal open={showArchiveUploadModal} onClose={() => setShowArchiveUploadModal(false)} className="max-w-2xl">
+            <div className="text-2xl font-semibold text-theme-text-primary">上传 PVC 压缩包</div>
             <p className="mt-2 text-sm font-medium text-theme-text-muted">沿用历史流程：上传压缩包后由任务自动下载并解压到新创建的 PVC 根目录。</p>
             <form onSubmit={submitArchiveUpload} className="mt-5 space-y-4">
               <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
@@ -1770,7 +1761,7 @@ export const PvcManagementPage: React.FC<{ projectId: string }> = ({ projectId }
                   handleArchiveFileSelection(event.dataTransfer.files);
                 }}
               >
- <label className="inline-flex cursor-pointer items-center gap-2 rounded-lg bg-theme-bg-app px-3 py-2 text-xs font-black text-theme-text-secondary">
+ <label className="inline-flex cursor-pointer items-center gap-2 rounded-lg bg-theme-bg-app px-3 py-2 text-xs font-medium text-theme-text-secondary">
                   <Upload size={14} />
                   选择压缩包
                   <input
@@ -1802,21 +1793,19 @@ export const PvcManagementPage: React.FC<{ projectId: string }> = ({ projectId }
                 <div className="rounded-xl border border-rose-500/20 bg-rose-500/15 px-3 py-2 text-xs font-semibold text-rose-400">{archiveUploadError}</div>
               )}
               <div className="flex justify-end gap-3">
-                <button type="button" disabled={archiveUploadLoading} onClick={() => setShowArchiveUploadModal(false)} className="rounded-xl bg-theme-elevated px-4 py-2 text-sm font-black text-theme-text-secondary">
+                <button type="button" disabled={archiveUploadLoading} onClick={() => setShowArchiveUploadModal(false)} className="rounded-xl bg-theme-elevated px-4 py-2 text-sm font-medium text-theme-text-secondary">
                   取消
                 </button>
-                <button data-testid="pvc-archive-submit-btn" type="submit" disabled={archiveUploadLoading || archiveFiles.length === 0} className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-4 py-2 text-sm font-black text-white disabled:opacity-50">
+                <button data-testid="pvc-archive-submit-btn" type="submit" disabled={archiveUploadLoading || archiveFiles.length === 0} className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-4 py-2 text-sm font-medium text-white disabled:opacity-50">
                   {archiveUploadLoading ? <Loader2 size={15} className="animate-spin" /> : <Upload size={15} />}
                   上传并解压
                 </button>
               </div>
             </form>
-          </div>
-        </div>
-      )}
+      </Modal>
 
       {busy && (
- <div className="fixed bottom-6 right-6 inline-flex items-center gap-2 rounded-2xl bg-brand-primary px-4 py-3 text-sm font-black text-white">
+ <div className="fixed bottom-6 right-6 inline-flex items-center gap-2 rounded-2xl bg-brand-primary px-4 py-3 text-sm font-medium text-white">
           <Loader2 size={16} className="animate-spin" />
           正在处理请求
         </div>

@@ -90,7 +90,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
       {!isSidebarCollapsed && roleConfig && (
         <div className="px-5 pt-4 pb-1 flex items-center gap-2">
           <span className="w-1.5 h-1.5 rounded-full" style={{ background: roleConfig.color }} />
-          <span className="text-[10px] font-black uppercase tracking-[0.22em]" style={{ color: roleConfig.color }}>
+          <span className="text-[10px] font-medium uppercase tracking-[0.22em]" style={{ color: roleConfig.color }}>
             {roleConfig.label}
           </span>
         </div>
@@ -100,7 +100,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           {sections.map((section) => (
             <div key={section.title} className="space-y-2">
               {!isSidebarCollapsed && (
-                <div className="px-3 text-[10px] font-black uppercase tracking-[0.22em] text-theme-text-faint">
+                <div className="px-3 text-[10px] font-medium uppercase tracking-[0.22em] text-theme-text-faint">
                   {section.title}
                 </div>
               )}
@@ -126,7 +126,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                           else setCurrentView(item.id);
                         }}
                         title={disabled ? projectGuardTitle : undefined}
-                        className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-2xl text-left transition-all ${
+                        className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left transition-all ${
                           disabled
                             ? 'bg-theme-sidebar/50 text-theme-text-faint cursor-not-allowed opacity-60'
                             : hasActiveSubItem
@@ -139,7 +139,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                         <span className={`shrink-0 ${!isActive && !hasActiveSubItem ? healthColor : ''}`}><Icon size={16} /></span>
                         {!isSidebarCollapsed && (
                           <>
-                            <span className={`flex-1 text-sm font-bold truncate ${isActive || hasActiveSubItem ? 'text-theme-text-inverse' : ''}`}>{item.label}</span>
+                            <span className={`flex-1 text-sm font-medium truncate ${isActive || hasActiveSubItem ? 'text-theme-text-inverse' : ''}`}>{item.label}</span>
                             {hasSubItems && (
                               <span className="shrink-0 text-theme-text-faint">
                                 {isExpanded ? <ChevronDown size={13} /> : <ChevronRight size={13} />}
@@ -188,11 +188,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
       <div className={`${isSidebarCollapsed ? 'p-2' : 'p-5'} border-t border-theme-sidebar`}>
         <div className="flex items-center justify-center">
           {!isSidebarCollapsed ? (
-            <button onClick={() => setIsSidebarCollapsed(true)} className="p-3 rounded-2xl bg-theme-sidebar-muted/60 text-theme-text-faint hover:text-theme-text-inverse hover:bg-theme-sidebar-muted transition-colors">
+            <button onClick={() => setIsSidebarCollapsed(true)} className="p-3 rounded-lg bg-theme-sidebar-muted/60 text-theme-text-faint hover:text-theme-text-inverse hover:bg-theme-sidebar-muted transition-colors">
               <PanelLeftClose size={18} />
             </button>
           ) : (
-            <button onClick={() => setIsSidebarCollapsed(false)} className="p-3 rounded-2xl bg-theme-sidebar-muted/60 text-theme-text-faint hover:text-theme-text-inverse hover:bg-theme-sidebar-muted transition-colors">
+            <button onClick={() => setIsSidebarCollapsed(false)} className="p-3 rounded-lg bg-theme-sidebar-muted/60 text-theme-text-faint hover:text-theme-text-inverse hover:bg-theme-sidebar-muted transition-colors">
               <PanelLeftOpen size={18} />
             </button>
           )}

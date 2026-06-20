@@ -31,6 +31,8 @@ import {
 import { api } from '../../clients/api';
 import { authApi } from '../../clients/auth';
 import { API_BASE } from '../../clients/base';
+import { Modal, PageHeader, PageSection, SegmentedControl, StatisticCard } from '../../design-system';
+import { useUiFeedback } from '../../components/UiFeedback';
 
 const vulnApi = api.domains.vuln;
 const assetApi = api.domains.assets;
@@ -457,38 +459,16 @@ const DialogShell: React.FC<{
   onClose: () => void;
   children: React.ReactNode;
 }> = ({ title, subtitle, onClose, children }) => (
-  <div className="modal-overlay animate-in fade-in">
-    <div className="modal-container modal-xl animate-in rounded-2xl">
-      <div className="modal-header flex items-start justify-between gap-6 px-8 py-6 border-b border-theme-border-subtle">
-        <div>
-          <div className="text-[11px] font-semibold uppercase tracking-wider text-theme-text-muted-soft">漏洞上报中心</div>
-          <h3 className="mt-2 text-2xl font-semibold text-theme-text-primary">{title}</h3>
-          {subtitle ? <p className="mt-2 max-w-3xl text-sm leading-6 text-theme-text-muted">{subtitle}</p> : null}
-        </div>
-        <button
-          type="button"
-          onClick={onClose}
-          className="btn btn-icon"
-        >
-          <X size={18} />
-        </button>
-      </div>
-      <div className="max-h-[80vh] overflow-y-auto px-8 py-8">{children}</div>
-    </div>
-  </div>
+  <Modal open onClose={onClose} size="xl" title={title} description={subtitle}>
+    {children}
+  </Modal>
 );
 
 const DetailMetricCard: React.FC<{
   label: string;
   value: React.ReactNode;
   hint?: React.ReactNode;
-}> = ({ label, value, hint }) => (
-  <div className="metric-card rounded-xl px-4 py-4 bg-theme-elevated border border-theme-border">
-    <div className="text-[11px] font-semibold uppercase tracking-wider text-theme-text-muted-soft">{label}</div>
-    <div className="mt-2 text-2xl font-semibold tabular-nums text-theme-text-primary">{value}</div>
-    {hint ? <div className="mt-1 text-xs text-theme-text-muted">{hint}</div> : null}
-  </div>
-);
+}> = ({ label, value, hint }) => <StatisticCard label={label} value={value} hint={hint} />;
 
 const slugifyHeading = (value: string) =>
   value
@@ -522,20 +502,19 @@ const DetailSectionCard: React.FC<{
   actions?: React.ReactNode;
   compact?: boolean;
 }> = ({ title, subtitle, children, actions, compact = false }) => (
-  <div className={`rounded-xl bg-theme-surface border border-theme-border ${compact ? 'p-4' : 'p-5'}`}>
-    <div className="flex flex-wrap items-start justify-between gap-3">
-      <div>
-        <div className="text-[11px] font-semibold uppercase tracking-wider text-theme-text-muted-soft">{title}</div>
-        {subtitle ? <div className="mt-1 text-xs leading-5 text-theme-text-muted">{subtitle}</div> : null}
-      </div>
-      {actions ? <div className="shrink-0">{actions}</div> : null}
-    </div>
-    <div className="mt-4">{children}</div>
-  </div>
+  <PageSection
+    title={title}
+    description={subtitle}
+    actions={actions}
+    className={compact ? 'p-4' : undefined}
+  >
+    {children}
+  </PageSection>
 );
 
 export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateToView }) => {
   const [rootTab, setRootTab] = useState<IntakeRootTab>('cases');
+  const { confirm, feedbackNodes } = useUiFeedback();
   const [loading, setLoading] = useState(true);
   const [detailLoading, setDetailLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -931,10 +910,11 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
   const refreshProjectToken = async () => {
     if (!projectId) return;
     if (projectToken?.token) {
-      const confirmed = window.confirm(
-        '刷新 Token 将导致当前 Token 立即失效。\n请先完成其他系统/脚本中的 Token 替换准备，再继续刷新。\n是否确认刷新？',
-      );
-      if (!confirmed) return;
+      const ok = await confirm({
+        message: '刷新 Token 将导致当前 Token 立即失效。\n请先完成其他系统/脚本中的 Token 替换准备，再继续刷新。\n是否确认刷新？',
+        danger: true,
+      });
+      if (!ok) return;
     }
     setTokenLoading(true);
     setTokenError(null);
@@ -1380,8 +1360,8 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
 
   const handleDeleteSuspicion = async () => {
     if (!selectedDetail?.id) return;
-    const confirmed = window.confirm(`确认删除漏洞“${selectedDetail.title}”吗？此操作不可恢复。`);
-    if (!confirmed) return;
+    const ok = await confirm({ message: `确认删除漏洞"${selectedDetail.title}"吗？此操作不可恢复。`, danger: true });
+    if (!ok) return;
     setProcessingAction('delete');
     setError(null);
     setSuccessMessage(null);
@@ -1402,8 +1382,8 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
   };
 
   const handleDeleteSingleFromList = async (caseId: string, title: string) => {
-    const confirmed = window.confirm(`确认删除漏洞“${title}”吗？此操作不可恢复。`);
-    if (!confirmed) return;
+    const ok = await confirm({ message: `确认删除漏洞"${title}"吗？此操作不可恢复。`, danger: true });
+    if (!ok) return;
     setRowDeletingId(caseId);
     setError(null);
     setSuccessMessage(null);
@@ -1422,8 +1402,8 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
 
   const handleDeleteSelectedFromList = async () => {
     if (selectedSuspicionIds.length === 0) return;
-    const confirmed = window.confirm(`确认删除已选择的 ${selectedSuspicionIds.length} 条漏洞吗？此操作不可恢复。`);
-    if (!confirmed) return;
+    const ok = await confirm({ message: `确认删除已选择的 ${selectedSuspicionIds.length} 条漏洞吗？此操作不可恢复。`, danger: true });
+    if (!ok) return;
     setBulkDeleting(true);
     setError(null);
     setSuccessMessage(null);
@@ -1498,8 +1478,8 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
   };
 
   const handleDeleteDownloadJob = async (jobId: string) => {
-    const confirmed = window.confirm('确认删除这个下载任务吗？产物文件也会一起删除。');
-    if (!confirmed) return;
+    const ok = await confirm({ message: '确认删除这个下载任务吗？产物文件也会一起删除。', danger: true });
+    if (!ok) return;
     setDownloadActionJobId(jobId);
     setError(null);
     setSuccessMessage(null);
@@ -1558,23 +1538,23 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
       <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-5">
         <div className="metric-card rounded-xl px-4 py-3.5">
           <div className="metric-label text-[11px] font-semibold uppercase tracking-wider text-theme-text-muted-soft">下载任务总数</div>
-          <div className="metric-value mt-2 text-2xl font-semibold tabular-nums text-theme-text-primary">{downloadStats.total || 0}</div>
+          <div className="metric-value mt-2 text-2xl font-bold tabular-nums text-theme-text-primary">{downloadStats.total || 0}</div>
         </div>
         <div className="metric-card rounded-xl px-4 py-3.5">
           <div className="metric-label text-[11px] font-semibold uppercase tracking-wider text-theme-text-muted-soft">处理中</div>
-          <div className="metric-value mt-2 text-2xl font-semibold tabular-nums text-state-warning">{(downloadStats.pending || 0) + (downloadStats.processing || 0)}</div>
+          <div className="metric-value mt-2 text-2xl font-bold tabular-nums text-state-warning">{(downloadStats.pending || 0) + (downloadStats.processing || 0)}</div>
         </div>
         <div className="metric-card rounded-xl px-4 py-3.5">
           <div className="metric-label text-[11px] font-semibold uppercase tracking-wider text-theme-text-muted-soft">可下载</div>
-          <div className="metric-value mt-2 text-2xl font-semibold tabular-nums text-state-success">{downloadStats.downloadable || 0}</div>
+          <div className="metric-value mt-2 text-2xl font-bold tabular-nums text-state-success">{downloadStats.downloadable || 0}</div>
         </div>
         <div className="metric-card rounded-xl px-4 py-3.5">
           <div className="metric-label text-[11px] font-semibold uppercase tracking-wider text-theme-text-muted-soft">失败</div>
-          <div className="metric-value mt-2 text-2xl font-semibold tabular-nums text-state-danger">{downloadStats.failed || 0}</div>
+          <div className="metric-value mt-2 text-2xl font-bold tabular-nums text-state-danger">{downloadStats.failed || 0}</div>
         </div>
         <div className="metric-card rounded-xl px-4 py-3.5">
           <div className="metric-label text-[11px] font-semibold uppercase tracking-wider text-theme-text-muted-soft">已过期</div>
-          <div className="metric-value mt-2 text-2xl font-semibold tabular-nums text-theme-text-faint">{downloadStats.expired || 0}</div>
+          <div className="metric-value mt-2 text-2xl font-bold tabular-nums text-theme-text-faint">{downloadStats.expired || 0}</div>
         </div>
       </div>
 
@@ -2498,34 +2478,22 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
 
   return (
     <div className="animate-in fade-in space-y-5 p-6 pb-16 duration-500 xl:p-8 xl:pb-20">
+      {feedbackNodes}
       {!selectedSuspicionId ? (
-        rootTab === 'download-center' ? renderDownloadCenter() : (
         <>
-          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-            <div className="metric-card">
-              <div className="text-[11px] font-semibold uppercase tracking-wider text-theme-text-muted-soft">漏洞总数</div>
-              <div className="mt-2 text-2xl font-semibold text-theme-text-primary">{stats.total}</div>
-            </div>
-            <div className="metric-card">
-              <div className="text-[11px] font-semibold uppercase tracking-wider text-theme-text-muted-soft">待验证</div>
-              <div className="mt-2 text-2xl font-semibold text-theme-text-faint">{stats.pendingVerify}</div>
-            </div>
-            <div className="metric-card">
-              <div className="text-[11px] font-semibold uppercase tracking-wider text-theme-text-muted-soft">验证中</div>
-              <div className="mt-2 text-2xl font-semibold text-state-warning">{stats.validating}</div>
-            </div>
-            <div className="metric-card">
-              <div className="text-[11px] font-semibold uppercase tracking-wider text-theme-text-muted-soft">已验证</div>
-              <div className="mt-2 text-2xl font-semibold text-brand-primary">{stats.verified}</div>
-            </div>
-            <div className="metric-card">
-              <div className="text-[11px] font-semibold uppercase tracking-wider text-theme-text-muted-soft">漏洞</div>
-              <div className="mt-2 text-2xl font-semibold text-state-danger">{stats.confirmed}</div>
-            </div>
-            <div className="metric-card">
-              <div className="text-[11px] font-semibold uppercase tracking-wider text-theme-text-muted-soft">非漏洞</div>
-              <div className="mt-2 text-2xl font-semibold text-state-success">{stats.ruledOut}</div>
-            </div>
+          <PageHeader
+            title="漏洞中心"
+            description="统一管理当前项目的漏洞生命周期，覆盖上报、研判、验证与处置全流程"
+          />
+          {rootTab === 'download-center' ? renderDownloadCenter() : (
+          <>
+          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6">
+            <StatisticCard label="漏洞总数" value={stats.total} />
+            <StatisticCard label="待验证" value={stats.pendingVerify} />
+            <StatisticCard label="验证中" value={stats.validating} tone="warning" />
+            <StatisticCard label="已验证" value={stats.verified} tone="brand" />
+            <StatisticCard label="漏洞" value={stats.confirmed} tone="danger" />
+            <StatisticCard label="非漏洞" value={stats.ruledOut} tone="success" />
           </div>
 
           <div className="table-container">
@@ -2540,19 +2508,13 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
                 />
               </div>
               <div className="flex items-center gap-1.5">
-                {Object.entries(STAGE_LABELS).map(([key, label]) => (
-                  <button
-                    key={key}
-                    type="button"
-                    onClick={() => setStageFilter(key)}
-                    className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-semibold uppercase tracking-wider ${
-                      stageFilter === key ? 'theme-shell-active' : 'btn btn-secondary'
-                    }`}
-                  >
-                    <Filter size={12} />
-                    {label}
-                  </button>
-                ))}
+                <SegmentedControl
+                  value={stageFilter}
+                  onChange={setStageFilter}
+                  icon={<Filter size={12} />}
+                  aria-label="阶段过滤"
+                  options={Object.entries(STAGE_LABELS).map(([key, label]) => ({ value: key, label }))}
+                />
                 <select
                   value={severityFilter}
                   onChange={(event) => setSeverityFilter(event.target.value)}
@@ -2761,7 +2723,8 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
             </div>
           </div>
         </>
-        )
+        )}
+        </>
       ) : (
         renderDetailView()
       )}

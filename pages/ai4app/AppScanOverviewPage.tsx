@@ -4,6 +4,7 @@ import { ChevronRight, Loader2, Monitor, Pause, Play, Plus, RefreshCw, Search, S
 import type { AppScanPlatform, AppScanScanMode, AppScanStatus, AppScanTaskSummary } from './appScan';
 import { appScanApi } from './appScan';
 import { showConfirm } from '../../components/DialogService';
+import { PageHeader } from '../../design-system';
 
 // ---------------------------------------------------------------------------
 //  Props
@@ -264,20 +265,15 @@ export const AppScanOverviewPage: React.FC<Props> = ({ projectId, onOpenTask, on
   // ---- Render ----
   return (
     <div className="px-8 pb-10 pt-8 space-y-6">
-      {/* Header */}
- <section className="rounded-[2rem] border border-theme-border bg-theme-bg-app p-6">
-        <div className="flex items-start justify-between gap-4">
-          <div>
-            <h1 className="text-2xl font-black text-theme-text-primary">turing 扫描工具</h1>
-            <p className="mt-2 max-w-3xl text-sm text-theme-text-muted">
-              上传 APK/HAP 应用包或源码压缩包，按平台线别（APP 直接反编译 / WEB 预处理拆分服务）启动检测→挖掘→验证三阶段扫描流水线，实现 AI 驱动的端到端安全审计。
-            </p>
-          </div>
+      <PageHeader
+        title="turing 扫描工具"
+        description="上传 APK/HAP 应用包或源码压缩包，按平台线别（APP 直接反编译 / WEB 预处理拆分服务）启动检测→挖掘→验证三阶段扫描流水线，实现 AI 驱动的端到端安全审计。"
+        actions={
           <div className="flex items-center gap-3">
             <button
               type="button"
               onClick={() => setShowCreateDialog(true)}
- className="inline-flex items-center gap-2 rounded-xl bg-theme-surface px-4 py-2.5 text-sm font-bold text-white hover:bg-theme-elevated"
+              className="inline-flex items-center gap-2 rounded-xl bg-theme-surface px-4 py-2.5 text-sm font-medium text-white hover:bg-theme-elevated"
             >
               <Plus size={16} />
               创建任务
@@ -285,7 +281,7 @@ export const AppScanOverviewPage: React.FC<Props> = ({ projectId, onOpenTask, on
             <button
               type="button"
               onClick={onOpenMonitor}
- className="inline-flex items-center gap-2 rounded-xl border border-theme-border bg-theme-bg-app px-4 py-2.5 text-sm font-bold text-theme-text-secondary hover:bg-theme-elevated"
+              className="inline-flex items-center gap-2 rounded-xl border border-theme-border bg-theme-surface px-4 py-2.5 text-sm font-medium text-theme-text-secondary hover:bg-theme-elevated"
             >
               <Monitor size={16} />
               引擎监控
@@ -294,30 +290,30 @@ export const AppScanOverviewPage: React.FC<Props> = ({ projectId, onOpenTask, on
               type="button"
               onClick={() => void refresh()}
               disabled={refreshing}
- className="inline-flex items-center gap-2 rounded-xl border border-theme-border bg-theme-bg-app px-4 py-2.5 text-sm font-bold text-theme-text-secondary hover:bg-theme-elevated disabled:opacity-60"
+              className="inline-flex items-center gap-2 rounded-xl border border-theme-border bg-theme-surface px-4 py-2.5 text-sm font-medium text-theme-text-secondary hover:bg-theme-elevated disabled:opacity-60"
             >
               {refreshing ? <Loader2 size={16} className="animate-spin" /> : <RefreshCw size={16} />}
               {refreshing ? '刷新中...' : '刷新'}
             </button>
           </div>
-        </div>
-      </section>
+        }
+      />
 
       {/* Error banner */}
       {error && (
-        <div className="rounded-2xl border border-rose-500/20 bg-rose-500/15 px-4 py-3 text-sm font-semibold text-rose-400">
+        <div className="rounded-xl border border-rose-500/20 bg-rose-500/15 px-4 py-3 text-sm font-semibold text-rose-400">
           {error}
         </div>
       )}
 
       {/* Task list */}
- <section className="rounded-[2rem] border border-theme-border bg-theme-bg-app p-6">
+ <section className="rounded-xl border border-theme-border bg-theme-surface p-6">
         <div className="flex items-center justify-between gap-4">
           <div className="flex items-center gap-3">
-            <h2 className="text-xl font-black text-theme-text-primary">任务列表</h2>
+            <h2 className="text-xl font-semibold text-theme-text-primary">任务列表</h2>
           </div>
           <div className="flex items-center gap-3">
-            <label className="flex min-w-0 flex-1 items-center gap-2 rounded-xl border border-theme-border bg-theme-bg-app px-3 py-2">
+            <label className="flex min-w-0 flex-1 items-center gap-2 rounded-xl border border-theme-border bg-theme-surface px-3 py-2">
               <Search size={16} className="text-theme-text-muted" />
               <input
                 value={searchInput}
@@ -329,7 +325,7 @@ export const AppScanOverviewPage: React.FC<Props> = ({ projectId, onOpenTask, on
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
-              className="rounded-xl border border-theme-border bg-theme-bg-app px-3 py-2 text-sm text-theme-text-secondary"
+              className="rounded-xl border border-theme-border bg-theme-surface px-3 py-2 text-sm text-theme-text-secondary"
             >
               <option value="">全部状态</option>
               <option value="pending">等待中</option>
@@ -353,7 +349,7 @@ export const AppScanOverviewPage: React.FC<Props> = ({ projectId, onOpenTask, on
 
         {/* Empty */}
         {!loading && filteredItems.length === 0 && (
-          <div className="mt-8 rounded-2xl border border-dashed border-theme-border bg-theme-bg-app px-6 py-12 text-center">
+          <div className="mt-8 rounded-xl border border-dashed border-theme-border bg-theme-bg-app px-6 py-12 text-center">
             <Smartphone size={32} className="mx-auto mb-3 text-theme-text-faint" />
             <p className="text-sm font-semibold text-theme-text-muted">
               {items.length === 0 ? '当前项目还没有应用扫描任务，点击「创建任务」开始。' : '没有匹配的任务。'}
@@ -366,7 +362,7 @@ export const AppScanOverviewPage: React.FC<Props> = ({ projectId, onOpenTask, on
           <div className="mt-4 overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-theme-border text-left text-xs font-bold uppercase tracking-wider text-theme-text-muted">
+                <tr className="border-b border-theme-border text-left text-xs font-medium uppercase tracking-wider text-theme-text-muted">
                   <th className="px-3 py-3">任务 ID</th>
                   <th className="px-3 py-3">类型</th>
                   <th className="px-3 py-3">状态</th>
@@ -395,7 +391,7 @@ export const AppScanOverviewPage: React.FC<Props> = ({ projectId, onOpenTask, on
                         </span>
                       </td>
                       <td className="px-3 py-3">
-                        <span className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-bold ${statusTone(item.status)}`}>
+                        <span className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium ${statusTone(item.status)}`}>
                           {statusLabel(item.status)}
                         </span>
                       </td>
@@ -454,14 +450,14 @@ export const AppScanOverviewPage: React.FC<Props> = ({ projectId, onOpenTask, on
       {/* Create dialog */}
       {showCreateDialog && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={() => !submitting && setShowCreateDialog(false)}>
- <div className="w-full max-w-lg rounded-2xl border border-theme-border bg-theme-bg-app p-6" onClick={(e) => e.stopPropagation()}>
-            <h3 className="text-lg font-black text-theme-text-primary">创建扫描任务</h3>
+ <div className="w-full max-w-lg rounded-xl border border-theme-border bg-theme-surface p-6" onClick={(e) => e.stopPropagation()}>
+            <h3 className="text-lg font-semibold text-theme-text-primary">创建扫描任务</h3>
             <p className="mt-1 text-sm text-theme-text-muted">上传应用包或源码压缩包，选择平台线别与扫描模式后启动三阶段扫描。</p>
 
             <div className="mt-5 space-y-4">
               {/* File upload */}
               <div>
-                <label className="mb-1.5 block text-sm font-bold text-theme-text-secondary">扫描文件</label>
+                <label className="mb-1.5 block text-sm font-medium text-theme-text-secondary">扫描文件</label>
                 <label className="flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed border-theme-border bg-theme-bg-app px-4 py-6 transition hover:border-theme-border hover:bg-theme-elevated">
                   <Upload size={24} className="mb-2 text-theme-text-muted" />
                   <span className="text-sm font-semibold text-theme-text-secondary">
@@ -479,7 +475,7 @@ export const AppScanOverviewPage: React.FC<Props> = ({ projectId, onOpenTask, on
 
               {/* Task name */}
               <div>
-                <label className="mb-1.5 block text-sm font-bold text-theme-text-secondary">任务名称</label>
+                <label className="mb-1.5 block text-sm font-medium text-theme-text-secondary">任务名称</label>
                 <input
                   type="text"
                   value={taskName}
@@ -491,11 +487,11 @@ export const AppScanOverviewPage: React.FC<Props> = ({ projectId, onOpenTask, on
 
               {/* Platform */}
               <div>
-                <label className="mb-1.5 block text-sm font-bold text-theme-text-secondary">平台线别</label>
+                <label className="mb-1.5 block text-sm font-medium text-theme-text-secondary">平台线别</label>
                 <select
                   value={platform}
                   onChange={(e) => setPlatform(e.target.value as AppScanPlatform)}
-                  className="w-full rounded-xl border border-theme-border bg-theme-bg-app px-3 py-2.5 text-sm text-theme-text-secondary"
+                  className="w-full rounded-xl border border-theme-border bg-theme-surface px-3 py-2.5 text-sm text-theme-text-secondary"
                 >
                   <option value="APP">APP（APK/HAP/源码包，直接反编译）</option>
                   <option value="WEB">WEB（源码包，预处理 Agent 拆分服务）</option>
@@ -504,11 +500,11 @@ export const AppScanOverviewPage: React.FC<Props> = ({ projectId, onOpenTask, on
 
               {/* Scan mode */}
               <div>
-                <label className="mb-1.5 block text-sm font-bold text-theme-text-secondary">扫描模式</label>
+                <label className="mb-1.5 block text-sm font-medium text-theme-text-secondary">扫描模式</label>
                 <select
                   value={scanMode}
                   onChange={(e) => setScanMode(e.target.value as AppScanScanMode)}
-                  className="w-full rounded-xl border border-theme-border bg-theme-bg-app px-3 py-2.5 text-sm text-theme-text-secondary"
+                  className="w-full rounded-xl border border-theme-border bg-theme-surface px-3 py-2.5 text-sm text-theme-text-secondary"
                 >
                   <option value="fast">fast（仅 sink/taint，速度优先）</option>
                   <option value="deep">deep（source/surface + 深度挖掘）</option>
@@ -517,7 +513,7 @@ export const AppScanOverviewPage: React.FC<Props> = ({ projectId, onOpenTask, on
 
               {/* Upload progress */}
               {uploadProgress !== null && (
-                <div className="rounded-xl border border-theme-border bg-theme-bg-app px-4 py-3">
+                <div className="rounded-xl border border-theme-border bg-theme-surface px-4 py-3">
                   <div className="flex items-center justify-between text-xs font-semibold text-theme-text-secondary">
                     <span>上传进度</span>
                     <span>{uploadProgress}%</span>
@@ -548,7 +544,7 @@ export const AppScanOverviewPage: React.FC<Props> = ({ projectId, onOpenTask, on
                   resetCreateForm();
                 }}
                 disabled={submitting}
- className="rounded-xl border border-theme-border bg-theme-bg-app px-4 py-2.5 text-sm font-bold text-theme-text-secondary hover:bg-theme-elevated disabled:opacity-60"
+ className="rounded-xl border border-theme-border bg-theme-surface px-4 py-2.5 text-sm font-medium text-theme-text-secondary hover:bg-theme-elevated disabled:opacity-60"
               >
                 取消
               </button>
@@ -556,7 +552,7 @@ export const AppScanOverviewPage: React.FC<Props> = ({ projectId, onOpenTask, on
                 type="button"
                 onClick={() => void handleCreate()}
                 disabled={submitting || !uploadFile}
- className="inline-flex items-center gap-2 rounded-xl bg-theme-surface px-4 py-2.5 text-sm font-bold text-white hover:bg-theme-elevated disabled:cursor-not-allowed disabled:opacity-60"
+ className="inline-flex items-center gap-2 rounded-xl bg-theme-surface px-4 py-2.5 text-sm font-medium text-white hover:bg-theme-elevated disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {submitting ? <Loader2 size={14} className="animate-spin" /> : <Upload size={14} />}
                 {submitting ? '创建中...' : '上传并创建'}

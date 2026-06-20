@@ -18,6 +18,8 @@ import JSZip from 'jszip';
 
 import { getAuthHeaders, getHeaders, handleResponse } from '../../clients/base';
 import { agentManageApiPath } from '../../clients/agentManage';
+import { PageHeader } from '../../design-system';
+import { useUiFeedback } from '../../components/UiFeedback';
 import { aigwApi } from '../../clients/aigw';
 import type { AiGatewayModelAlias, UserInfo, ViewType } from '../../types/types';
 
@@ -40,7 +42,7 @@ interface ToolOverviewPageProps {
   onNavigate: (view: ViewType) => void;
 }
 
-type AgentAppEngine = 'opencode' | 'claudecode' | 'agentflow';
+type AgentAppEngine = 'opencode' | 'claudecode' | 'agentflow' | 'script';
 type AgentHarnessFileType = 'folder' | 'archive';
 
 interface AgentApp {
@@ -148,6 +150,7 @@ const engineLabel = (engine: string): string => {
   if (engine === 'opencode') return 'OpenCode';
   if (engine === 'claudecode') return 'Claude Code';
   if (engine === 'agentflow') return 'AgentFlow';
+  if (engine === 'script') return 'Script';
   return engine || '-';
 };
 
@@ -155,6 +158,7 @@ const engineTone = (engine: string): string => {
   if (engine === 'opencode') return 'from-teal-500 to-cyan-600';
   if (engine === 'claudecode') return 'from-violet-500 to-fuchsia-600';
   if (engine === 'agentflow') return 'from-sky-500 to-blue-600';
+  if (engine === 'script') return 'from-amber-500 to-orange-600';
   return 'from-slate-500 to-slate-700';
 };
 
@@ -286,7 +290,7 @@ const isAdminUser = (): boolean => {
 };
 
 const validateHarnessStructure = (fileData: AgentHarnessFileData, engine: AgentAppEngine): { valid: boolean; message: string } => {
-  if (engine === 'agentflow' || fileData.type !== 'folder' || !fileData.files) return { valid: true, message: '' };
+  if ((engine !== 'opencode' && engine !== 'claudecode') || fileData.type !== 'folder' || !fileData.files) return { valid: true, message: '' };
   const requiredFolder = engine === 'opencode' ? '.opencode' : '.claude';
   const hasRequiredFolder = fileData.files.some((file) => {
     const normalized = (file.webkitRelativePath || file.name).replace(/\\/g, '/');
@@ -371,7 +375,7 @@ const detectClaudeCodeFromZip = async (file: File): Promise<ClaudeCodeInfo> => {
 };
 
 const validateHarnessZip = async (fileData: AgentHarnessFileData, engine: AgentAppEngine): Promise<{ valid: boolean; message: string }> => {
-  if (engine === 'agentflow') return { valid: true, message: '' };
+  if (engine !== 'opencode' && engine !== 'claudecode') return { valid: true, message: '' };
   if (fileData.type !== 'archive' || !fileData.file || !fileData.name.match(/\.zip$/i)) return { valid: true, message: '' };
   const requiredFolder = engine === 'opencode' ? '.opencode' : '.claude';
   try {
@@ -551,9 +555,9 @@ const AgentAppModal: React.FC<AgentAppModalProps> = ({ mode, app, saving, depart
 
           <div className="grid gap-5 md:grid-cols-2">
             <label style={{ display: 'block', fontSize: '14px', fontWeight: 600, color: LK.inkSoft }}>Agent 名称 <span style={{ color: LK.error }}>*</span><input style={inputClass} value={formState.name} onChange={(event) => setFormState({ ...formState, name: event.target.value })} disabled={saving} /></label>
-            <label style={{ display: 'block', fontSize: '14px', fontWeight: 600, color: LK.inkSoft }}>使用引擎 <span style={{ color: LK.error }}>*</span><select style={inputClass} value={formState.engine} onChange={async (event) => { const newEngine = event.target.value as AgentAppEngine; setFormState((cur) => ({ ...cur, engine: newEngine, defaultAgentName: '', startCommand: '' })); setClaudeCodeInfo(null); if (agentHarnessFile?.type === 'archive' && agentHarnessFile.file && agentHarnessFile.name.match(/\.zip$/i)) { await applyZipDetection(agentHarnessFile.file, newEngine); } else if (agentHarnessFile?.type === 'folder' && agentHarnessFile.files) { await applyFolderDetection(agentHarnessFile.files, newEngine); } }} disabled={saving}><option value="opencode">OpenCode</option><option value="claudecode">Claude Code</option><option value="agentflow">AgentFlow</option></select></label>
+            <label style={{ display: 'block', fontSize: '14px', fontWeight: 600, color: LK.inkSoft }}>使用引擎 <span style={{ color: LK.error }}>*</span><select style={inputClass} value={formState.engine} onChange={async (event) => { const newEngine = event.target.value as AgentAppEngine; setFormState((cur) => ({ ...cur, engine: newEngine, defaultAgentName: '', startCommand: '' })); setClaudeCodeInfo(null); if (agentHarnessFile?.type === 'archive' && agentHarnessFile.file && agentHarnessFile.name.match(/\.zip$/i)) { await applyZipDetection(agentHarnessFile.file, newEngine); } else if (agentHarnessFile?.type === 'folder' && agentHarnessFile.files) { await applyFolderDetection(agentHarnessFile.files, newEngine); } }} disabled={saving}><option value="opencode">OpenCode</option><option value="claudecode">Claude Code</option><option value="agentflow">AgentFlow</option><option value="script">Script</option></select></label>
             <label style={{ display: 'block', fontSize: '14px', fontWeight: 600, color: LK.inkSoft }}>默认 Agent<input style={inputClass} value={formState.defaultAgentName} onChange={(event) => setFormState({ ...formState, defaultAgentName: event.target.value })} disabled={saving} placeholder="例如 security-reviewer" /></label>
-            <label style={{ display: 'block', fontSize: '14px', fontWeight: 600, color: LK.inkSoft }}>启动命令<input style={inputClass} value={formState.startCommand} onChange={(event) => setFormState({ ...formState, startCommand: event.target.value })} disabled={saving} placeholder="例如 /project:review" /></label>
+            <label style={{ display: 'block', fontSize: '14px', fontWeight: 600, color: LK.inkSoft }}>启动命令<input style={inputClass} value={formState.startCommand} onChange={(event) => setFormState({ ...formState, startCommand: event.target.value })} disabled={saving} placeholder={formState.engine === 'script' ? '例如 python run.py' : '例如 /project:review'} /></label>
           </div>
 
           <label style={{ marginTop: '20px', display: 'block', fontSize: '14px', fontWeight: 600, color: LK.inkSoft }}>部门范围<select style={inputClass} value={formState.departmentId} onChange={(event) => setFormState({ ...formState, departmentId: event.target.value })} disabled={saving}><option value="">请选择部门范围</option>{canChoosePublic ? <option value="__public__">公开</option> : null}{departments.map((department) => <option key={department.id} value={String(department.id)}>{department.name}</option>)}</select></label>
@@ -607,6 +611,7 @@ export const ToolOverviewPage: React.FC<ToolOverviewPageProps> = ({ projectId, u
   const [pipelineApp, setPipelineApp] = useState<AgentApp | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const effectiveUser = useMemo(() => user || getLocalUserInfo(), [user]);
+  const { confirm, feedbackNodes } = useUiFeedback();
 
   const selectedApp = useMemo(
     () => apps.find((item) => item.id === selectedAppId) || null,
@@ -680,7 +685,8 @@ export const ToolOverviewPage: React.FC<ToolOverviewPageProps> = ({ projectId, u
   };
 
   const handleSync = async () => {
-    if (!window.confirm('确定要从 Gitea 同步所有 AgentHarness 仓库吗？')) return;
+    const ok = await confirm({ message: '确定要从 Gitea 同步所有 AgentHarness 仓库吗？', danger: true });
+    if (!ok) return;
     setSyncing(true);
     setMessage(null);
     try {
@@ -729,7 +735,8 @@ export const ToolOverviewPage: React.FC<ToolOverviewPageProps> = ({ projectId, u
   };
 
   const handleDelete = async (app: AgentApp) => {
-    if (!window.confirm(`确定要删除 Agent"${app.name}" 吗？此操作不可恢复。`)) return;
+    const ok = await confirm({ message: `确定要删除 Agent"${app.name}" 吗？此操作不可恢复。`, danger: true });
+    if (!ok) return;
     setDeletingId(app.id);
     setMessage(null);
     try {
@@ -767,20 +774,13 @@ export const ToolOverviewPage: React.FC<ToolOverviewPageProps> = ({ projectId, u
 
   return (
     <div style={{ padding: '32px 32px 40px' }}>
-      <section style={{ borderRadius: '24px', border: `1px solid ${LK.border}`, background: `linear-gradient(to bottom right, ${LK.surface}, ${LK.primaryMuted.replace('0.14', '0.04')}, ${LK.primaryMuted.replace('0.14', '0.06')})`, padding: '28px' }}>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-          <div style={{ maxWidth: '64rem' }}>
-            <h1 style={{ fontSize: '30px', fontWeight: 600, letterSpacing: '-0.025em', color: LK.ink }}>工具总览</h1>
-            <p style={{ marginTop: '12px', maxWidth: '48rem', fontSize: '14px', lineHeight: '28px', color: LK.body }}>
-              统一管理 Agent 市场、AgentHarness 仓库、运行指标和平台内置扫描工具入口。页面参考 Agent 市场能力，并适配当前 Chimera 浅色卡片风格。
-            </p>
-          </div>
-          <div style={{ display: 'grid', gap: '12px', gridTemplateColumns: 'repeat(3, 1fr)' }}>
-            <div style={{ borderRadius: '12px', border: `1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised, padding: '20px' }}><div style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.2em', color: LK.muted }}>Agent</div><div style={{ marginTop: '8px', fontSize: '30px', fontWeight: 600, color: LK.ink }}>{apps.length}</div></div>
-            <div style={{ borderRadius: '12px', border: `1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised, padding: '20px' }}><div style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.2em', color: LK.muted }}>已选项目</div><div style={{ marginTop: '8px', wordBreak: 'break-all', fontSize: '14px', fontWeight: 600, color: LK.inkSoft }}>{projectId || '未选择项目'}</div></div>
-          </div>
-        </div>
-      </section>
+      {feedbackNodes}
+      <PageHeader title="工具总览" description="统一管理 Agent 市场、AgentHarness 仓库、运行指标和平台内置扫描工具入口。页面参考 Agent 市场能力，并适配当前 Chimera 浅色卡片风格。" />
+
+      <div style={{ display: 'grid', gap: '12px', gridTemplateColumns: 'repeat(3, 1fr)' }}>
+        <div style={{ borderRadius: '12px', border: `1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised, padding: '20px' }}><div style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.2em', color: LK.muted }}>Agent</div><div style={{ marginTop: '8px', fontSize: '30px', fontWeight: 600, color: LK.ink }}>{apps.length}</div></div>
+        <div style={{ borderRadius: '12px', border: `1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised, padding: '20px' }}><div style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.2em', color: LK.muted }}>已选项目</div><div style={{ marginTop: '8px', wordBreak: 'break-all', fontSize: '14px', fontWeight: 600, color: LK.inkSoft }}>{projectId || '未选择项目'}</div></div>
+      </div>
 
       {message ? (
         <div style={{ marginTop: '20px', borderRadius: '12px', border: `1px solid ${message.type === 'success' ? LK.success : LK.error}`, backgroundColor: message.type === 'success' ? LK.primaryMuted.replace('0.14', '0.08').replace('79, 115, 255', '69, 192, 111') : LK.primaryMuted.replace('0.14', '0.08').replace('79, 115, 255', '241, 93, 93'), padding: '12px 16px', fontSize: '14px', fontWeight: 600, color: message.type === 'success' ? LK.success : LK.error }}>
@@ -793,17 +793,17 @@ export const ToolOverviewPage: React.FC<ToolOverviewPageProps> = ({ projectId, u
           <div>
           </div>
           <div className="flex flex-wrap gap-3">
-            <button type="button" onClick={() => void handleRefresh()} disabled={refreshing} className="inline-flex items-center gap-2 rounded-2xl border border-theme-border bg-theme-bg-app px-4 py-3 text-sm font-black text-theme-text-secondary transition hover:bg-theme-elevated disabled:opacity-60">
+            <button type="button" onClick={() => void handleRefresh()} disabled={refreshing} className="inline-flex items-center gap-2 rounded-2xl border border-theme-border bg-theme-surface px-4 py-3 text-sm font-medium text-theme-text-secondary transition hover:bg-theme-elevated disabled:opacity-60">
               <RefreshCw size={16} className={refreshing ? 'animate-spin' : ''} />
               刷新
             </button>
             {isAdmin ? (
-              <button type="button" onClick={() => void handleSync()} disabled={syncing} className="inline-flex items-center gap-2 rounded-2xl border border-teal-500/20 bg-teal-500/15 px-4 py-3 text-sm font-black text-teal-400 transition hover:bg-teal-500/15 disabled:opacity-60">
+              <button type="button" onClick={() => void handleSync()} disabled={syncing} className="inline-flex items-center gap-2 rounded-2xl border border-teal-500/20 bg-teal-500/15 px-4 py-3 text-sm font-medium text-teal-400 transition hover:bg-teal-500/15 disabled:opacity-60">
                 {syncing ? <RefreshCw size={16} className="animate-spin" /> : <RefreshCw size={16} />}
                 同步仓库
               </button>
             ) : null}
-            <button type="button" onClick={() => setCreateOpen(true)} className="inline-flex items-center gap-2 rounded-2xl bg-theme-surface px-4 py-3 text-sm font-black text-white transition hover:bg-theme-elevated">
+            <button type="button" onClick={() => setCreateOpen(true)} className="inline-flex items-center gap-2 rounded-2xl bg-theme-surface px-4 py-3 text-sm font-medium text-white transition hover:bg-theme-elevated">
               <Plus size={16} />
               创建新工具
             </button>
@@ -811,26 +811,26 @@ export const ToolOverviewPage: React.FC<ToolOverviewPageProps> = ({ projectId, u
         </div>
 
         {loading ? (
-          <div className="mt-6 flex items-center justify-center rounded-2xl border border-theme-border bg-theme-bg-app px-4 py-12 text-sm font-semibold text-theme-text-muted" aria-busy="true">
+          <div className="mt-6 flex items-center justify-center rounded-2xl border border-theme-border bg-theme-surface px-4 py-12 text-sm font-semibold text-theme-text-muted" aria-busy="true">
             <Loader2 size={18} className="mr-2 animate-spin" />
             正在加载 Agent 列表
           </div>
         ) : apps.length === 0 ? (
-          <div className="mt-6 rounded-2xl border border-dashed border-theme-border bg-theme-bg-app px-6 py-10 text-center">
+          <div className="mt-6 rounded-2xl border border-dashed border-theme-border bg-theme-surface px-6 py-10 text-center">
             <Box className="mx-auto text-theme-text-muted" size={34} />
-            <h3 className="mt-3 text-base font-black text-theme-text-primary">暂无 Agent</h3>
+            <h3 className="mt-3 text-base font-semibold text-theme-text-primary">暂无 Agent</h3>
             <p className="mt-2 text-sm text-theme-text-muted">点击右上角创建新工具，或检查后端 Agent 管理服务是否已接入。</p>
           </div>
         ) : (
           <div className="mt-6 grid grid-cols-1 gap-4 xl:grid-cols-2 2xl:grid-cols-3">
             {apps.map((app) => (
- <article key={app.id} className="group flex flex-col overflow-hidden rounded-[1.5rem] border border-theme-border bg-theme-bg-app transition hover:-translate-y-0.5 hover:border-cyan-500/20 hover:">
+ <article key={app.id} className="group flex flex-col overflow-hidden rounded-xl border border-theme-border bg-theme-surface transition hover:-translate-y-0.5 hover:border-cyan-500/20 hover:">
                 <div className="flex items-start gap-3 p-5 pb-4">
  <div className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br ${engineTone(app.engine)} text-white`}><Bot size={19} /></div>
                   <button type="button" onClick={() => setSelectedAppId(app.id)} className="min-w-0 flex-1 text-left">
-                    <h3 className="truncate text-lg font-black text-theme-text-primary">{app.name}</h3>
+                    <h3 className="truncate text-lg font-semibold text-theme-text-primary">{app.name}</h3>
                     <div className="mt-1 flex flex-wrap items-center gap-2">
-                      <span className="rounded-full border border-theme-border bg-theme-bg-app px-2.5 py-1 text-[11px] font-black text-theme-text-secondary">{engineLabel(app.engine)}</span>
+                      <span className="rounded-full border border-theme-border bg-theme-bg-app px-2.5 py-1 text-[11px] font-medium text-theme-text-secondary">{engineLabel(app.engine)}</span>
                       <span className="inline-flex items-center gap-1 rounded-full border border-theme-border bg-theme-bg-app px-2.5 py-1 text-[11px] font-bold text-theme-text-muted">{app.isPublic ? <Globe size={11} className="text-emerald-400" /> : <Lock size={11} />}{app.isPublic ? '公开' :`私有 · ${effectiveUser?.department_name ||`部门${app.departmentId ?? ''}`}`}</span>
                     </div>
                   </button>
@@ -844,9 +844,9 @@ export const ToolOverviewPage: React.FC<ToolOverviewPageProps> = ({ projectId, u
                 <div className="mx-5 border-t border-theme-border" />
                 <div className="grid grid-cols-3 gap-2 p-5 py-4">
                   {visibleMetrics(app).map(({ icon, value, label, color }) => (
-                    <div key={label} className="flex flex-col items-center rounded-2xl bg-theme-bg-app px-2 py-3 text-center">
+                    <div key={label} className="flex flex-col items-center rounded-2xl bg-theme-surface px-2 py-3 text-center">
                       <span className={color}>{icon}</span>
-                      <span className="mt-1 text-sm font-black leading-tight text-theme-text-primary">{value}</span>
+                      <span className="mt-1 text-sm font-semibold leading-tight text-theme-text-primary">{value}</span>
                       <span className="mt-0.5 text-[10px] font-bold text-theme-text-muted">{label}</span>
                     </div>
                   ))}
@@ -867,12 +867,12 @@ export const ToolOverviewPage: React.FC<ToolOverviewPageProps> = ({ projectId, u
 
       {pipelineApp ? (
         <div className="fixed inset-0 z-[260] bg-slate-950/55 p-4 backdrop-blur-sm md:p-8" onClick={() => setPipelineApp(null)}>
- <div className="mx-auto w-full max-w-2xl rounded-[2rem] border border-theme-border bg-theme-bg-app p-6" onClick={(event) => event.stopPropagation()}>
+ <div className="mx-auto w-full max-w-2xl rounded-xl border border-theme-border bg-theme-surface p-6" onClick={(event) => event.stopPropagation()}>
             <div className="flex items-start justify-between gap-4">
-              <div><h2 className="text-2xl font-black text-theme-text-primary">流程预览</h2></div>
-              <button type="button" onClick={() => setPipelineApp(null)} className="rounded-2xl border border-theme-border bg-theme-bg-app p-3 text-theme-text-muted transition hover:text-theme-text-primary" aria-label="关闭流程预览"><X size={20} /></button>
+              <div><h2 className="text-2xl font-bold text-theme-text-primary">流程预览</h2></div>
+              <button type="button" onClick={() => setPipelineApp(null)} className="rounded-2xl border border-theme-border bg-theme-surface p-3 text-theme-text-muted transition hover:text-theme-text-primary" aria-label="关闭流程预览"><X size={20} /></button>
             </div>
-            <div className="mt-6 rounded-2xl border border-theme-border bg-theme-bg-app p-5 text-sm leading-7 text-theme-text-secondary">{pipelineApp.name} 的 AgentFlow 流程入口已保留；当前 Chimera 未包含 SecHPS 的 PipelineViewModal 组件，因此这里展示轻量占位，避免引入额外跨系统依赖。</div>
+            <div className="mt-6 rounded-2xl border border-theme-border bg-theme-surface p-5 text-sm leading-7 text-theme-text-secondary">{pipelineApp.name} 的 AgentFlow 流程入口已保留；当前 Chimera 未包含 SecHPS 的 PipelineViewModal 组件，因此这里展示轻量占位，避免引入额外跨系统依赖。</div>
           </div>
         </div>
       ) : null}

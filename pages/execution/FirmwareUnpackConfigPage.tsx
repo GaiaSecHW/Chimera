@@ -6,6 +6,7 @@ import {
 import { api } from '../../clients/api';
 import { FirmwareClusterInfo, FirmwareConfigEntry, FirmwareLlmConfigFileSummary } from '../../clients/firmwareUnpacker';
 import { StaticPipelineFlow } from './StaticPipelineFlow';
+import { PageSection, FormActionBar, PageHeader } from '../../design-system';
 
 const LK = {
   primary: '#4f73ff',
@@ -148,16 +149,7 @@ const SectionCard: React.FC<{ title: string; subtitle?: string; actions?: React.
   actions,
   children,
 }) => (
-  <section className="rounded-2xl p-5" style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}` }}>
-    <div className="flex items-start justify-between gap-4">
-      <div>
-        <div className="text-sm font-semibold" style={{ color: LK.ink }}>{title}</div>
-        {subtitle ? <div className="mt-2 text-xs" style={{ color: LK.muted }}>{subtitle}</div> : null}
-      </div>
-      {actions}
-    </div>
-    <div className="mt-4">{children}</div>
-  </section>
+  <PageSection title={title} description={subtitle} actions={actions}>{children}</PageSection>
 );
 
 const PanelActions: React.FC<{ saving: boolean; disabled?: boolean; onSave: () => void; onReset: () => void }> = ({
@@ -166,37 +158,7 @@ const PanelActions: React.FC<{ saving: boolean; disabled?: boolean; onSave: () =
   onSave,
   onReset,
 }) => (
-  <div className="flex shrink-0 items-center gap-2">
-    <button
-      type="button"
-      onClick={onReset}
-      disabled={saving}
-      className="rounded-xl border px-3 py-2 text-xs font-semibold transition"
-      style={{
-        backgroundColor: LK.surfaceRaised,
-        border: `1px solid ${LK.border}`,
-        color: LK.body,
-      }}
-      onMouseEnter={(e) => { if (!saving) e.currentTarget.style.backgroundColor = LK.surface; }}
-      onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = LK.surfaceRaised; }}
-    >
-      重置为默认
-    </button>
-    <button
-      type="button"
-      onClick={onSave}
-      disabled={saving || disabled}
-      className="inline-flex items-center gap-2 rounded-xl px-3 py-2 text-xs font-semibold transition"
-      style={{
-        backgroundColor: disabled ? LK.surfaceRaised : LK.primary,
-        color: '#ffffff',
-        opacity: disabled ? 0.5 : 1,
-      }}
-    >
-      {saving ? <Loader2 size={12} className="animate-spin" /> : <Save size={12} />}
-      保存配置
-    </button>
-  </div>
+  <FormActionBar saving={saving} disabled={disabled} onSave={onSave} onReset={onReset} saveText="保存配置" resetText="重置为默认" />
 );
 
 // ──────────────────────────────────────────────────────────
@@ -427,32 +389,14 @@ export const FirmwareUnpackConfigPage: React.FC<Props> = ({ projectId: _projectI
   return (
     <div className={embedded ? 'space-y-4' : 'p-4 space-y-4'} style={{ backgroundColor: LK.canvas, color: LK.inkSoft }}>
       {!embedded && (
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Settings size={18} style={{ color: LK.primarySoft }} />
-            <div>
-              <h2 className="text-sm font-semibold" style={{ color: LK.ink }}>固件解包 · 配置</h2>
-              <p className="text-xs" style={{ color: LK.muted }}>动态配置参数</p>
-            </div>
-          </div>
-          <div className="flex gap-2">
-            <button onClick={() => { loadConfig(); loadCluster(); loadLlmConfigFiles(); }}
-              className="inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-semibold transition"
-              style={{
-                backgroundColor: LK.surface,
-                border: `1px solid ${LK.border}`,
-                color: LK.body,
-              }}
-              onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = LK.surfaceRaised; }}
-              onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = LK.surface; }}
-            >
-              <RefreshCw size={12} /> 刷新
-            </button>
-          </div>
-        </div>
+        <PageHeader
+          title="固件解包 · 配置"
+          description="动态配置参数"
+          actions={<button onClick={() => { loadConfig(); loadCluster(); loadLlmConfigFiles(); }} className="inline-flex items-center gap-1.5 rounded-lg border border-theme-border bg-theme-bg-app px-3 py-1.5 text-xs font-semibold text-theme-text-secondary hover:bg-theme-elevated transition-all"><RefreshCw size={12} />刷新</button>}
+        />
       )}
 
- <section className={`${embedded ? 'rounded-[2rem] border p-6 ' : 'rounded-2xl border p-4 '}`} style={{ backgroundColor: embedded ? LK.surfaceGlass : LK.surface, border: `1px solid ${LK.border}` }}>
+ <section className={`${embedded ? 'rounded-xl border p-6 ' : 'rounded-2xl border p-4 '}`} style={{ backgroundColor: embedded ? LK.surfaceGlass : LK.surface, border: `1px solid ${LK.border}` }}>
         <div className="mb-5 flex items-start justify-between gap-4">
           <div>
             <div className="flex flex-wrap items-center gap-2">
@@ -581,7 +525,7 @@ export const FirmwareUnpackConfigPage: React.FC<Props> = ({ projectId: _projectI
             </div>
           </div>
           <div className="mt-3 grid grid-cols-1 gap-2 text-xs sm:grid-cols-2">
-            <div className="rounded-xl bg-theme-bg-app px-3 py-2">
+            <div className="rounded-xl bg-theme-surface px-3 py-2">
               <p className="font-semibold text-theme-text-secondary">自动计算依据</p>
               <p className="mt-1 text-theme-text-muted">
                 Pod 总资源上限：CPU {cluster?.concurrency.pod_cpu_limit_millicores ?? '-'}m / 内存 {cluster?.concurrency.pod_memory_limit_mib ?? '-'}Mi
@@ -590,7 +534,7 @@ export const FirmwareUnpackConfigPage: React.FC<Props> = ({ projectId: _projectI
                 系统按单任务预算估算：CPU {cluster?.concurrency.cpu_millis_per_task ?? '-'}m / 内存 {cluster?.concurrency.memory_mb_per_task ?? '-'}Mi
               </p>
             </div>
-            <div className="rounded-xl bg-theme-bg-app px-3 py-2">
+            <div className="rounded-xl bg-theme-surface px-3 py-2">
               <p className="font-semibold text-theme-text-secondary">自动计算结果</p>
               <p className="mt-1 text-theme-text-muted">
                 CPU 档位 {cluster?.concurrency.cpu_based_limit ?? '-'}，内存档位 {cluster?.concurrency.memory_based_limit ?? '-'}
@@ -960,7 +904,7 @@ export const FirmwareUnpackConfigPage: React.FC<Props> = ({ projectId: _projectI
             <Loader2 size={18} className="animate-spin mr-2" /> 加载配置中...
           </div>
         ) : genericConfigItems.length === 0 ? (
-          <div className="rounded-2xl border border-dashed border-theme-border bg-theme-bg-app py-6 text-center text-xs text-theme-text-muted">
+          <div className="rounded-2xl border border-dashed border-theme-border bg-theme-surface py-6 text-center text-xs text-theme-text-muted">
             暂无配置项
           </div>
         ) : (

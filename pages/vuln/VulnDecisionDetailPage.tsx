@@ -1,5 +1,6 @@
 import React, { useMemo } from 'react';
 import { ArrowLeft } from 'lucide-react';
+import { PageHeader } from '../../design-system';
 import { VulnEnginePage } from './VulnEnginePage';
 
 interface VulnPageProps {
@@ -14,16 +15,10 @@ export const VulnDecisionDetailPage: React.FC<VulnPageProps> = ({ projectId, onN
 
   return (
     <div className="animate-in fade-in duration-300">
-      <div className="px-6 pt-6 xl:px-8">
-        <button
-          type="button"
-          onClick={() => onNavigateToView?.('vuln-decision')}
- className="inline-flex items-center gap-2 rounded-xl border border-theme-border bg-theme-bg-app px-4 py-2.5 text-sm font-black text-theme-text-secondary"
-        >
-          <ArrowLeft size={16} />
-          返回漏洞中心
-        </button>
-      </div>
+      <PageHeader
+        title="漏洞详情"
+        back={{ label: '返回漏洞中心', onClick: () => onNavigateToView?.('vuln-decision') }}
+      />
       <VulnEnginePage
         projectId={projectId}
         currentViewId="vuln-decision-detail"

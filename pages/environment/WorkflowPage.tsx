@@ -66,17 +66,17 @@ export const WorkflowPage: React.FC<{ projectId: string }> = ({ projectId }) => 
                <Workflow size={28} />
              </div>
              <div>
-               <h2 className="text-3xl font-black text-theme-text-primary tracking-tight">安全测试工作流</h2>
+               <h2 className="text-3xl font-semibold text-theme-text-primary tracking-tight">安全测试工作流</h2>
              </div>
           </div>
         </div>
         <div className="flex gap-4">
           {!projectId && (
-            <div className="flex items-center gap-2 text-amber-400 bg-amber-500/15 px-4 py-2 rounded-xl border border-amber-500/20 text-[10px] font-black uppercase">
+            <div className="flex items-center gap-2 text-amber-400 bg-amber-500/15 px-4 py-2 rounded-xl border border-amber-500/20 text-[10px] font-semibold uppercase">
               <AlertCircle size={14} /> Please select a project
             </div>
           )}
- <button className="bg-theme-surface text-white px-8 py-4 rounded-2xl font-black flex items-center gap-2 hover:bg-theme-elevated transition-all active:scale-95">
+ <button className="bg-theme-surface text-white px-8 py-4 rounded-2xl font-medium flex items-center gap-2 hover:bg-theme-elevated transition-all active:scale-95">
             <Plus size={18} /> 设计新工作流
           </button>
         </div>
@@ -86,16 +86,16 @@ export const WorkflowPage: React.FC<{ projectId: string }> = ({ projectId }) => 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
  <div className="bg-theme-surface p-8 rounded-[3rem] text-white flex flex-col justify-between group overflow-hidden relative min-h-[180px]">
            <Zap className="absolute right-[-10px] top-[-10px] w-32 h-32 opacity-10 rotate-12 group-hover:rotate-0 transition-transform duration-700" />
-           <p className="text-theme-text-muted text-[10px] font-black uppercase tracking-widest relative z-10">当前活跃实例</p>
-           <h3 className="text-6xl font-black mt-4 relative z-10">4</h3>
-           <div className="mt-4 flex items-center gap-2 text-blue-400 text-[10px] font-black uppercase tracking-widest relative z-10">
+           <p className="text-theme-text-muted text-[10px] font-semibold uppercase tracking-widest relative z-10">当前活跃实例</p>
+           <h3 className="text-6xl font-medium mt-4 relative z-10">4</h3>
+           <div className="mt-4 flex items-center gap-2 text-blue-400 text-[10px] font-semibold uppercase tracking-widest relative z-10">
              <Activity size={12} className="animate-pulse" /> Nodes Executing
            </div>
         </div>
 
  <div className="bg-theme-bg-app p-8 rounded-[3rem] border border-theme-border flex flex-col justify-between">
-           <p className="text-theme-text-muted text-[10px] font-black uppercase tracking-widest">任务平均耗时</p>
-           <h3 className="text-4xl font-black mt-4 text-theme-text-primary">12m 45s</h3>
+           <p className="text-theme-text-muted text-[10px] font-semibold uppercase tracking-widest">任务平均耗时</p>
+           <h3 className="text-4xl font-medium mt-4 text-theme-text-primary">12m 45s</h3>
            <p className="text-theme-text-muted text-[10px] font-bold mt-2 uppercase">System Efficiency: 94%</p>
         </div>
 
@@ -105,16 +105,16 @@ export const WorkflowPage: React.FC<{ projectId: string }> = ({ projectId }) => 
            </div>
            <div className="space-y-4">
              <div>
-                <h4 className="text-lg font-black text-theme-text-primary tracking-tight">AI 辅助测试编排已开启</h4>
+                <h4 className="text-lg font-semibold text-theme-text-primary tracking-tight">AI 辅助测试编排已开启</h4>
                 <p className="text-sm text-theme-text-muted mt-1 font-medium leading-relaxed max-w-2xl">
                    Chimera 工作流支持基于 LLM 的意图识别。您可以直接描述测试目标，系统将自动从「环境服务」与「脚本库」中提取最匹配的资产进行编排。
                 </p>
              </div>
              <div className="flex gap-4">
-                <div className="flex items-center gap-2 text-[10px] font-black text-theme-text-muted uppercase">
+                <div className="flex items-center gap-2 text-[10px] font-semibold text-theme-text-muted uppercase">
                    <ShieldCheck size={14} className="text-green-500" /> Policy Verified
                 </div>
-                <div className="flex items-center gap-2 text-[10px] font-black text-theme-text-muted uppercase">
+                <div className="flex items-center gap-2 text-[10px] font-semibold text-theme-text-muted uppercase">
                    <Layers size={14} className="text-blue-500" /> Auto-Scaling Ready
                 </div>
              </div>
@@ -135,10 +135,10 @@ export const WorkflowPage: React.FC<{ projectId: string }> = ({ projectId }) => 
               />
            </div>
            <div className="flex gap-3">
-              <button className="px-6 py-4 bg-theme-bg-app border border-theme-border rounded-2xl text-[10px] font-black text-theme-text-muted uppercase tracking-widest hover:bg-theme-elevated transition-all flex items-center gap-2">
+              <button className="px-6 py-4 bg-theme-bg-app border border-theme-border rounded-2xl text-[10px] font-semibold text-theme-text-muted uppercase tracking-widest hover:bg-theme-elevated transition-all flex items-center gap-2">
                 <Filter size={14} /> Type
               </button>
-              <button className="px-6 py-4 bg-theme-bg-app border border-theme-border rounded-2xl text-[10px] font-black text-theme-text-muted uppercase tracking-widest hover:bg-theme-elevated transition-all flex items-center gap-2">
+              <button className="px-6 py-4 bg-theme-bg-app border border-theme-border rounded-2xl text-[10px] font-semibold text-theme-text-muted uppercase tracking-widest hover:bg-theme-elevated transition-all flex items-center gap-2">
                 <History size={14} /> Execution Logs
               </button>
            </div>
@@ -158,9 +158,9 @@ export const WorkflowPage: React.FC<{ projectId: string }> = ({ projectId }) => 
 
                 <div className="flex-1 min-w-0 space-y-4">
                    <div className="flex items-center gap-4 flex-wrap">
-                      <h5 className="text-2xl font-black text-theme-text-primary tracking-tight group-hover:text-blue-400 transition-colors">{wf.name}</h5>
+                      <h5 className="text-2xl font-semibold text-theme-text-primary tracking-tight group-hover:text-blue-400 transition-colors">{wf.name}</h5>
                       <StatusBadge status={wf.status} />
-                      <span className="text-[10px] font-black bg-theme-elevated text-theme-text-muted px-2.5 py-1 rounded-lg uppercase border border-theme-border">{wf.type}</span>
+                      <span className="text-[10px] font-semibold bg-theme-elevated text-theme-text-muted px-2.5 py-1 rounded-lg uppercase border border-theme-border">{wf.type}</span>
                    </div>
 
                    <p className="text-sm text-theme-text-muted font-medium line-clamp-1 italic max-w-2xl">"{wf.description}"</p>
@@ -168,7 +168,7 @@ export const WorkflowPage: React.FC<{ projectId: string }> = ({ projectId }) => 
                    <div className="flex flex-wrap gap-3 items-center">
                       {wf.steps.map((step, idx) => (
                         <React.Fragment key={step}>
-                           <div className={`flex items-center gap-2 px-3 py-1 rounded-full text-[9px] font-black uppercase border ${
+                           <div className={`flex items-center gap-2 px-3 py-1 rounded-full text-[9px] font-medium uppercase border ${
                              idx < (wf.progress / 25) ? 'bg-blue-600 text-white border-blue-600' : 'bg-theme-bg-app text-theme-text-faint border-theme-border'
                            }`}>
                               {idx + 1}. {step}
@@ -182,13 +182,13 @@ export const WorkflowPage: React.FC<{ projectId: string }> = ({ projectId }) => 
                 <div className="flex flex-col gap-2 items-end shrink-0">
                    <div className="flex items-center gap-2 mb-2">
                       <Clock size={12} className="text-theme-text-faint" />
-                      <span className="text-[10px] font-black text-theme-text-muted uppercase tracking-tighter">Last Run: {wf.lastRun}</span>
+                      <span className="text-[10px] font-semibold text-theme-text-muted uppercase tracking-tighter">Last Run: {wf.lastRun}</span>
                    </div>
                    <div className="flex items-center gap-3">
  <button className="p-3.5 bg-theme-bg-app text-theme-text-muted hover:text-blue-400 border border-theme-border rounded-2xl transition-all">
                         <Settings size={18} />
                       </button>
- <button className={`px-8 py-3.5 rounded-2xl font-black text-xs flex items-center gap-2 transition-all active:scale-95 ${
+ <button className={`px-8 py-3.5 rounded-2xl font-medium text-xs flex items-center gap-2 transition-all active:scale-95 ${
                         wf.status === 'Running'
                         ? 'bg-amber-500/15 text-amber-400 hover:bg-amber-500/15'
  : 'bg-blue-600 text-white hover:bg-blue-700 '
@@ -211,7 +211,7 @@ export const WorkflowPage: React.FC<{ projectId: string }> = ({ projectId }) => 
                 <Workflow size={48} />
              </div>
              <div className="space-y-1">
-                <p className="text-xl font-black text-theme-text-muted">未检索到工作流模版</p>
+                <p className="text-xl font-semibold text-theme-text-muted">未检索到工作流模版</p>
                 <p className="text-sm text-theme-text-faint font-medium">点击右上角按钮开始设计您的第一个自动化安全测试工作流</p>
              </div>
           </div>

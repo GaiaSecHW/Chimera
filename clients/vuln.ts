@@ -121,7 +121,7 @@ export interface VulnAutoVerifyContext {
 
 export interface VulnAutoVerifyTaskCreatePayload {
   name: string;
-  threat_model_markdown: string;
+  threat_model_markdown?: string | null;
   template_id?: string | null;
   model: string;
   concurrency: number;

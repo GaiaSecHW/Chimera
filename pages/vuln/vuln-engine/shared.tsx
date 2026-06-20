@@ -1,5 +1,6 @@
 import React from 'react';
 import { ListTodo, ServerCog, ShieldAlert, Waypoints } from 'lucide-react';
+import { StatisticCard } from '../../../design-system';
 
 export const DEFAULT_CASE_FORM = {
   title: '',
@@ -307,79 +308,33 @@ interface StatCardsProps {
 
 export const StatCards: React.FC<StatCardsProps> = ({ overview }) => (
   <div className="grid grid-cols-1 lg:grid-cols-2 2xl:grid-cols-4 gap-3">
-    <div
-      className="flex items-center justify-between rounded-xl px-4 py-3"
-      style={{ backgroundColor: LK.surface, border: '1px solid ' + LK.border }}
-    >
-      <div>
-        <div className="text-xs" style={{ color: LK.muted }}>案例总数</div>
-        <div className="mt-1 text-2xl font-semibold leading-7 tabular-nums" style={{ color: LK.ink }}>
-          {overview?.metrics?.total_cases || 0}
-        </div>
-        <p className="mt-1 text-xs" style={{ color: LK.body }}>当前项目内纳入引擎管理的全部案例</p>
-      </div>
-      <div
-        className="flex h-9 w-9 items-center justify-center rounded-md"
-        style={{ backgroundColor: `${LK.error}22`, color: LK.error }}
-      >
-        <ShieldAlert size={18} />
-      </div>
-    </div>
-    <div
-      className="flex items-center justify-between rounded-xl px-4 py-3"
-      style={{ backgroundColor: LK.surface, border: '1px solid ' + LK.border }}
-    >
-      <div>
-        <div className="text-xs" style={{ color: LK.muted }}>等待外部结果</div>
-        <div className="mt-1 text-2xl font-semibold leading-7 tabular-nums" style={{ color: LK.ink }}>
-          {overview?.metrics?.waiting_external || 0}
-        </div>
-        <p className="mt-1 text-xs" style={{ color: LK.body }}>已派发动作，等待分析、验证或证明服务回调</p>
-      </div>
-      <div
-        className="flex h-9 w-9 items-center justify-center rounded-md"
-        style={{ backgroundColor: `${LK.primary}22`, color: LK.primary }}
-      >
-        <Waypoints size={18} />
-      </div>
-    </div>
-    <div
-      className="flex items-center justify-between rounded-xl px-4 py-3"
-      style={{ backgroundColor: LK.surface, border: '1px solid ' + LK.border }}
-    >
-      <div>
-        <div className="text-xs" style={{ color: LK.muted }}>人工待办</div>
-        <div className="mt-1 text-2xl font-semibold leading-7 tabular-nums" style={{ color: LK.ink }}>
-          {overview?.metrics?.manual_tasks_open || 0}
-        </div>
-        <p className="mt-1 text-xs" style={{ color: LK.body }}>需要人工分析、复核或裁决的手动工作项</p>
-      </div>
-      <div
-        className="flex h-9 w-9 items-center justify-center rounded-md"
-        style={{ backgroundColor: `${LK.warning}22`, color: LK.warning }}
-      >
-        <ListTodo size={18} />
-      </div>
-    </div>
-    <div
-      className="flex items-center justify-between rounded-xl px-4 py-3"
-      style={{ backgroundColor: LK.surface, border: '1px solid ' + LK.border }}
-    >
-      <div>
-        <div className="text-xs" style={{ color: LK.muted }}>活跃能力服务</div>
-        <div className="mt-1 text-2xl font-semibold leading-7 tabular-nums" style={{ color: LK.ink }}>
-          {overview?.metrics?.active_services || 0}
-        </div>
-        <p className="mt-1 text-xs" style={{ color: LK.body }}>
-          注册服务 {overview?.metrics?.registered_services || 0} 个，排队动作 {overview?.metrics?.queued_actions || 0} 个
-        </p>
-      </div>
-      <div
-        className="flex h-9 w-9 items-center justify-center rounded-md"
-        style={{ backgroundColor: `${LK.success}22`, color: LK.success }}
-      >
-        <ServerCog size={18} />
-      </div>
-    </div>
+    <StatisticCard
+      label="案例总数"
+      value={overview?.metrics?.total_cases || 0}
+      hint="当前项目内纳入引擎管理的全部案例"
+      icon={<ShieldAlert size={18} />}
+      tone="danger"
+    />
+    <StatisticCard
+      label="等待外部结果"
+      value={overview?.metrics?.waiting_external || 0}
+      hint="已派发动作，等待分析、验证或证明服务回调"
+      icon={<Waypoints size={18} />}
+      tone="info"
+    />
+    <StatisticCard
+      label="人工待办"
+      value={overview?.metrics?.manual_tasks_open || 0}
+      hint="需要人工分析、复核或裁决的手动工作项"
+      icon={<ListTodo size={18} />}
+      tone="warning"
+    />
+    <StatisticCard
+      label="活跃能力服务"
+      value={overview?.metrics?.active_services || 0}
+      hint={`注册服务 ${overview?.metrics?.registered_services || 0} 个，排队动作 ${overview?.metrics?.queued_actions || 0} 个`}
+      icon={<ServerCog size={18} />}
+      tone="success"
+    />
   </div>
 );

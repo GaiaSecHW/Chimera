@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { History, Loader2, Pencil, Play, Plus, RefreshCw, Search, Share2, Trash2 } from 'lucide-react';
+import { PageHeader } from '../../design-system';
 import {
   ExecutionTable,
   ExecutionTableEmptyRow,
@@ -200,26 +201,13 @@ export const RedlineOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) 
 
   return (
     <div className="flex flex-col gap-5 p-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <h1 className="text-xl font-semibold text-theme-text-primary">红线验证</h1>
-        <div className="flex items-center gap-2">
-          <button
-            onClick={fetchTasks}
-            className="p-1.5 rounded-lg hover:bg-theme-surface-hover transition-colors"
-            title="刷新"
-          >
-            <RefreshCw className="h-4 w-4 text-theme-text-secondary" />
-          </button>
-          <button
-            onClick={openCreateDialog}
-            className="px-4 py-2 text-sm rounded-lg bg-blue-600 text-white hover:bg-blue-700 flex items-center gap-1.5"
-          >
-            <Plus className="h-4 w-4" />
-            新建任务
-          </button>
-        </div>
-      </div>
+      <PageHeader
+        title="红线验证"
+        actions={<div className="flex items-center gap-2">
+          <button onClick={fetchTasks} className="p-1.5 rounded-lg hover:bg-theme-surface-hover transition-colors" title="刷新"><RefreshCw className="h-4 w-4 text-theme-text-secondary" /></button>
+          <button onClick={openCreateDialog} className="px-4 py-2 text-sm rounded-lg bg-blue-600 text-white hover:bg-blue-700 flex items-center gap-1.5"><Plus className="h-4 w-4" />新建任务</button>
+        </div>}
+      />
 
       {/* Filters */}
       <div className="flex items-center gap-3">
@@ -327,7 +315,7 @@ export const RedlineOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) 
       {/* Create Task Dialog */}
       {showCreateDialog && (
         <div className="fixed inset-0 z-[120] flex items-center justify-center bg-black/50" onClick={closeDialogs}>
- <div className="bg-theme-surface rounded-2xl p-6 w-[480px] border border-theme-border" onClick={(e) => e.stopPropagation()}>
+ <div className="bg-theme-surface rounded-xl p-6 w-[480px] border border-theme-border" onClick={(e) => e.stopPropagation()}>
             <h3 className="text-base font-semibold text-theme-text-primary mb-4">新建任务</h3>
             <div className="flex flex-col gap-4">
               <div>
@@ -378,7 +366,7 @@ export const RedlineOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) 
       {/* Edit Task Dialog */}
       {showEditDialog && editingTask && (
         <div className="fixed inset-0 z-[120] flex items-center justify-center bg-black/50" onClick={closeDialogs}>
- <div className="bg-theme-surface rounded-2xl p-6 w-[480px] border border-theme-border" onClick={(e) => e.stopPropagation()}>
+ <div className="bg-theme-surface rounded-xl p-6 w-[480px] border border-theme-border" onClick={(e) => e.stopPropagation()}>
             <h3 className="text-base font-semibold text-theme-text-primary mb-4">编辑任务</h3>
             <div className="flex flex-col gap-4">
               <div>

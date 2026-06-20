@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Download, RefreshCw } from 'lucide-react';
 import { api } from '../../clients/api';
+import { PageHeader } from '../../design-system';
 
 const assetApi = api.domains.assets;
 
@@ -85,27 +86,25 @@ export const FileserverArchiveTasksPage: React.FC<Props> = ({ projectId }) => {
   return (
     <div className="h-full overflow-auto p-6">
       <div className="mx-auto max-w-[1400px] space-y-4">
-        <div className="rounded-3xl border border-theme-border bg-theme-elevated p-5 shadow-panel">
-          <div className="flex items-center justify-between">
-            <div>
-              <h2 className="mt-1 text-2xl font-black text-theme-text-primary">打包下载任务</h2>
-              <div className="mt-1 text-xs text-theme-text-muted">项目: {projectId || '未选择'}</div>
-            </div>
+        <PageHeader
+          title="打包下载任务"
+          description={`项目: ${projectId || '未选择'}`}
+          actions={
             <button
               type="button"
               onClick={() => void loadTasks()}
-              className="inline-flex items-center gap-2 rounded-xl border border-theme-border bg-theme-bg-app px-3 py-2 text-xs font-black text-theme-text-secondary"
+              className="inline-flex items-center gap-2 rounded-xl border border-theme-border bg-theme-surface px-3 py-2 text-xs font-medium text-theme-text-secondary"
             >
               <RefreshCw size={14} />
               刷新
             </button>
-          </div>
-        </div>
+          }
+        />
 
         {error ? <div className="rounded-xl border border-rose-500/20 bg-rose-500/15 px-4 py-3 text-sm font-semibold text-rose-400">{error}</div> : null}
 
-        <div className="overflow-hidden rounded-3xl border border-theme-border bg-theme-elevated shadow-panel">
-          <div className="grid grid-cols-[1.7fr_1fr_0.8fr_0.7fr_0.8fr_1fr_1fr_0.9fr] gap-3 border-b border-theme-border bg-theme-elevated px-4 py-3 text-[11px] font-black uppercase tracking-[0.18em] text-theme-text-muted">
+        <div className="overflow-hidden rounded-xl border border-theme-border bg-theme-elevated shadow-panel">
+          <div className="grid grid-cols-[1.7fr_1fr_0.8fr_0.7fr_0.8fr_1fr_1fr_0.9fr] gap-3 border-b border-theme-border bg-theme-elevated px-4 py-3 text-[11px] font-medium uppercase tracking-[0.18em] text-theme-text-muted">
             <div>任务ID</div>
             <div>提交时间</div>
             <div>状态</div>
@@ -130,7 +129,7 @@ export const FileserverArchiveTasksPage: React.FC<Props> = ({ projectId }) => {
                 >
                   <div className="truncate font-mono text-xs font-semibold text-theme-text-faint">{task.task_id}</div>
                   <div className="text-xs text-theme-text-muted">{fmt(task.accepted_at)}</div>
-                  <div className="text-xs font-black text-theme-text-faint">{task.status}</div>
+                  <div className="text-xs font-medium text-theme-text-faint">{task.status}</div>
                   <div className="text-xs text-theme-text-secondary">{Number(task?.result?.file_count || 0)}</div>
                   <div className="text-xs text-theme-text-secondary">{Number(task?.result?.archive_size || 0)} bytes</div>
                   <div className="text-xs text-theme-text-secondary">{fmt(task?.result?.expires_at)}</div>
@@ -140,7 +139,7 @@ export const FileserverArchiveTasksPage: React.FC<Props> = ({ projectId }) => {
                       type="button"
                       onClick={() => void handleDownload(task)}
                       disabled={!canDownload || busyTaskId === task.task_id}
-                      className="inline-flex items-center gap-1 rounded-lg bg-theme-surface px-2.5 py-1.5 text-xs font-black text-white disabled:opacity-40"
+                      className="inline-flex items-center gap-1 rounded-lg bg-theme-surface px-2.5 py-1.5 text-xs font-medium text-white disabled:opacity-40"
                     >
                       <Download size={12} />
                       下载zip
@@ -155,4 +154,3 @@ export const FileserverArchiveTasksPage: React.FC<Props> = ({ projectId }) => {
     </div>
   );
 };
-

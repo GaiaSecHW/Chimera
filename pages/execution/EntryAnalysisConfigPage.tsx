@@ -10,6 +10,7 @@ import {
 } from '../../types/types';
 import { useUiFeedback } from '../../components/UiFeedback';
 import { StaticPipelineFlow } from './StaticPipelineFlow';
+import { PageSection, FormField, FormActionBar } from '../../design-system';
 
 const ENTRY_ANALYSIS_FLOW = {
   title: '入口分析阶段推进关系',
@@ -86,26 +87,11 @@ const defaultConfig = (projectId: string): EntryAnalysisServiceConfig => ({
 // ─── 子组件 ────────────────────────────────────────────────────────────────────
 
 const SectionCard: React.FC<{ title: string; subtitle?: string; actions?: React.ReactNode; children: React.ReactNode }> = ({ title, subtitle, actions, children }) => (
-  <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm space-y-4">
-    <div className="flex items-start justify-between gap-4">
-      <div>
-        <h2 className="text-base font-black text-slate-900">{title}</h2>
-        {subtitle && <p className="mt-0.5 text-xs text-slate-500">{subtitle}</p>}
-      </div>
-      {actions}
-    </div>
-    {children}
-  </section>
+  <PageSection title={title} description={subtitle} actions={actions}>{children}</PageSection>
 );
 
 const FieldRow: React.FC<{ label: string; hint?: string; children: React.ReactNode }> = ({ label, hint, children }) => (
-  <div className="flex flex-col gap-1">
-    <label className="text-sm font-semibold text-slate-700">
-      {label}
-      {hint && <span className="ml-2 text-xs font-normal text-slate-400">{hint}</span>}
-    </label>
-    {children}
-  </div>
+  <FormField label={label} hint={hint}>{children}</FormField>
 );
 
 const NumberInput: React.FC<{ value: number; min?: number; max?: number; step?: number; onChange: (v: number) => void }> = ({ value, min, max, step = 1, onChange }) => {
@@ -244,25 +230,7 @@ const restoreOtherEntryPanels = (
 };
 
 const PanelActions: React.FC<{ saving: boolean; onSave: () => void; onReset: () => void }> = ({ saving, onSave, onReset }) => (
-  <div className="flex shrink-0 items-center gap-2">
-    <button
-      type="button"
-      onClick={onReset}
-      disabled={saving}
-      className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-50 disabled:opacity-50"
-    >
-      重置为默认
-    </button>
-    <button
-      type="button"
-      onClick={onSave}
-      disabled={saving}
-      className="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-3 py-2 text-xs font-semibold text-white disabled:opacity-50"
-    >
-      {saving && <Loader2 size={12} className="animate-spin" />}
-      保存配置
-    </button>
-  </div>
+  <FormActionBar saving={saving} onSave={onSave} onReset={onReset} saveText="保存配置" resetText="重置为默认" />
 );
 
 // ─── 主页面 ────────────────────────────────────────────────────────────────────
@@ -397,9 +365,9 @@ export const EntryAnalysisConfigPage: React.FC<{ projectId: string; embedded?: b
       {feedbackNodes}
 
       {!embedded && (
-        <section className="rounded-[2rem] border border-slate-200 bg-white/90 p-6 shadow-sm">
-          <p className="text-xs font-black uppercase tracking-[0.3em] text-violet-600">Entry Analysis</p>
-          <h1 className="mt-3 text-3xl font-black tracking-tight text-slate-900">分析配置</h1>
+        <section className="rounded-xl border border-slate-200 bg-white/90 p-6 shadow-sm">
+          <p className="text-xs font-semibold uppercase tracking-[0.3em] text-violet-600">Entry Analysis</p>
+          <h1 className="mt-3 text-3xl font-bold tracking-tight text-slate-900">分析配置</h1>
           <p className="mt-2 text-sm text-slate-500">配置 chimera-app-entry-analyse 分析引擎的运行参数，修改后点击「保存配置」生效。</p>
           {config.updated_at && (
             <p className="mt-1 text-xs text-slate-400">上次保存：{new Date(config.updated_at).toLocaleString()}</p>
@@ -451,7 +419,7 @@ export const EntryAnalysisConfigPage: React.FC<{ projectId: string; embedded?: b
             }`}>
               <div className="flex items-center justify-between gap-4">
                 <div>
-                  <div className="text-sm font-black text-slate-900">
+                  <div className="text-sm font-semibold text-slate-900">
                     快速模式 <span className="font-mono text-xs font-normal text-slate-500">Fast Mode</span>
                   </div>
                   <p className="mt-1 text-xs text-slate-500">
@@ -498,7 +466,7 @@ export const EntryAnalysisConfigPage: React.FC<{ projectId: string; embedded?: b
               }`}>
                 <div className="flex items-center justify-between gap-4">
                   <div>
-                    <div className="text-sm font-black text-slate-900">
+                    <div className="text-sm font-semibold text-slate-900">
                       极速模式 <span className="font-mono text-xs font-normal text-slate-500">Super Fast</span>
                     </div>
                     <p className="mt-1 text-xs text-slate-500">

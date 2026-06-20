@@ -9,6 +9,7 @@ import {
   SystemAnalysisProviderConfig,
 } from '../../types/types';
 import { useUiFeedback } from '../../components/UiFeedback';
+import { PageSection, FormField } from '../../design-system';
 
 const LK = {
   primary: '#4f73ff', primarySoft: '#7590ff', primaryDeep: '#3f63f1',
@@ -39,23 +40,11 @@ const emptyConfig = (): SystemAnalysisModelsConfig => ({ providers: {} });
 // ─── 子组件 ────────────────────────────────────────────────────────────────────
 
 const SectionCard: React.FC<{ title: string; subtitle?: string; children: React.ReactNode }> = ({ title, subtitle, children }) => (
-  <section className="rounded-lg p-4 space-y-3" style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}` }}>
-    <div>
-      <h2 className="text-base font-semibold" style={{ color: LK.ink }}>{title}</h2>
-      {subtitle && <p className="mt-0.5 text-xs" style={{ color: LK.muted }}>{subtitle}</p>}
-    </div>
-    {children}
-  </section>
+  <PageSection title={title} description={subtitle}>{children}</PageSection>
 );
 
 const FieldRow: React.FC<{ label: string; hint?: string; children: React.ReactNode }> = ({ label, hint, children }) => (
-  <div className="flex flex-col gap-1">
-    <label className="text-sm font-medium" style={{ color: LK.inkSoft }}>
-      {label}
-      {hint && <span className="ml-2 text-xs font-normal" style={{ color: LK.muted }}>{hint}</span>}
-    </label>
-    {children}
-  </div>
+  <FormField label={label} hint={hint}>{children}</FormField>
 );
 
 interface ApiKeyInputProps {
@@ -104,7 +93,7 @@ const ModelsList: React.FC<{
     <div className="space-y-2">
       <p className="text-xs font-semibold text-theme-text-muted uppercase tracking-wider">模型列表</p>
       {models.map((model, i) => (
-        <div key={i} className="flex items-center gap-2 rounded-xl border border-theme-border bg-theme-bg-app px-3 py-2">
+        <div key={i} className="flex items-center gap-2 rounded-xl border border-theme-border bg-theme-surface px-3 py-2">
           <input
             type="text"
             value={model.id}
@@ -164,7 +153,7 @@ const ProviderCard: React.FC<{
   };
 
   return (
- <div className="rounded-2xl border border-theme-border bg-theme-bg-app">
+ <div className="rounded-2xl border border-theme-border bg-theme-surface">
       {/* Header */}
       <div className="flex items-center gap-3 px-4 py-3 border-b border-theme-border">
         <button
@@ -323,8 +312,8 @@ export const SystemAnalysisModelsPage: React.FC = () => {
       {feedbackNodes}
 
       {/* 页头 */}
- <section className="rounded-[2rem] border border-theme-border bg-theme-bg-app p-6">
-        <h1 className="mt-3 text-3xl font-black tracking-tight text-theme-text-primary">模型配置</h1>
+ <section className="rounded-xl border border-theme-border bg-theme-surface p-6">
+        <h1 className="mt-3 text-3xl font-bold tracking-tight text-theme-text-primary">模型配置</h1>
         <p className="mt-2 text-sm text-theme-text-muted">
           管理分析引擎使用的 LLM 提供商及模型列表。模型引用格式：
           <code className="mx-1 rounded bg-theme-elevated px-1.5 py-0.5 font-mono text-xs text-theme-text-secondary">
@@ -337,7 +326,7 @@ export const SystemAnalysisModelsPage: React.FC = () => {
       </section>
 
       {loading ? (
-        <div className="inline-flex items-center gap-2 rounded-xl border border-theme-border bg-theme-bg-app px-4 py-3 text-sm text-theme-text-secondary">
+        <div className="inline-flex items-center gap-2 rounded-xl border border-theme-border bg-theme-surface px-4 py-3 text-sm text-theme-text-secondary">
           <Loader2 size={15} className="animate-spin" />加载中...
         </div>
       ) : (

@@ -4,6 +4,7 @@ import { api } from '../../clients/api';
 import { API_BASE, getHeaders, handleResponse } from '../../clients/base';
 import { useUiFeedback } from '../../components/UiFeedback';
 import { Agent } from '../../types/types';
+import { PageHeader } from '../../design-system';
 
 const TEST_ENV_API_BASE = `${API_BASE}/api/app/web-e2e`;
 
@@ -333,16 +334,16 @@ const getStatusDotClass = (agent: Agent): string => {
 };
 
 const StatCard: React.FC<{ label: string; value: React.ReactNode; hint: string; tone?: string }> = ({ label, value, hint, tone = 'text-theme-text-primary' }) => (
-  <div className="rounded-2xl border border-theme-border bg-theme-surface p-5 shadow-sm">
-    <div className="text-xs font-black uppercase tracking-[0.18em] text-theme-text-muted">{label}</div>
-    <div className={`mt-3 text-3xl font-black ${tone}`}>{value}</div>
+  <div className="rounded-xl border border-theme-border bg-theme-surface p-5 shadow-sm">
+    <div className="text-xs font-medium uppercase tracking-[0.18em] text-theme-text-muted">{label}</div>
+    <div className={`mt-3 text-3xl font-bold ${tone}`}>{value}</div>
     <div className="mt-2 text-sm text-theme-text-muted">{hint}</div>
   </div>
 );
 
 const DetailItem: React.FC<{ label: string; children: React.ReactNode }> = ({ label, children }) => (
-  <div className="rounded-xl border border-theme-border bg-theme-bg-app px-4 py-3">
-    <div className="text-[11px] font-black uppercase tracking-[0.16em] text-theme-text-muted">{label}</div>
+  <div className="rounded-xl border border-theme-border bg-theme-surface px-4 py-3">
+    <div className="text-[11px] font-medium uppercase tracking-[0.16em] text-theme-text-muted">{label}</div>
     <div className="mt-2 break-words text-sm font-semibold text-theme-text-primary">{children || '-'}</div>
   </div>
 );
@@ -501,8 +502,8 @@ const AgentDetailModal: React.FC<{ agent: Agent | null; onClose: () => void }> =
       <div className="w-full max-w-3xl overflow-hidden rounded-2xl border border-theme-border bg-theme-surface shadow-2xl" onClick={(event) => event.stopPropagation()}>
         <div className="flex items-start justify-between gap-4 border-b border-theme-border px-6 py-5">
           <div className="min-w-0">
-            <div className="text-xs font-black uppercase tracking-[0.18em] text-cyan-400">Agent Detail</div>
-            <h3 className="mt-2 truncate text-2xl font-black text-theme-text-primary">{getAgentName(agent)}</h3>
+            <div className="text-xs font-medium uppercase tracking-[0.18em] text-cyan-400">Agent Detail</div>
+            <h3 className="mt-2 truncate text-2xl font-bold text-theme-text-primary">{getAgentName(agent)}</h3>
             <div className="mt-2 break-all font-mono text-xs text-theme-text-muted">{getAgentKey(agent) || '-'}</div>
           </div>
           <button type="button" onClick={onClose} className="rounded-lg p-2 text-theme-text-muted transition hover:bg-theme-elevated hover:text-theme-text-secondary">
@@ -511,12 +512,12 @@ const AgentDetailModal: React.FC<{ agent: Agent | null; onClose: () => void }> =
         </div>
         <div className="max-h-[72vh] overflow-auto p-6">
           <div className="mb-5 flex flex-wrap gap-2">
-            <span className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-bold ${meta.cls}`}>
+            <span className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium ${meta.cls}`}>
               <StatusIcon size={13} />
               {meta.label}
             </span>
-            <span className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-bold ${getAgentTypeClass(type)}`}>{getAgentTypeLabel(type)}</span>
-            {getAgentVersion(agent) ? <span className="inline-flex rounded-full border border-theme-border bg-theme-bg-app px-2.5 py-1 text-xs font-bold text-theme-text-secondary">v{getAgentVersion(agent)}</span> : null}
+            <span className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-medium ${getAgentTypeClass(type)}`}>{getAgentTypeLabel(type)}</span>
+            {getAgentVersion(agent) ? <span className="inline-flex rounded-full border border-theme-border bg-theme-bg-app px-2.5 py-1 text-xs font-medium text-theme-text-secondary">v{getAgentVersion(agent)}</span> : null}
           </div>
           <div className="grid gap-3 md:grid-cols-2">
             <DetailItem label="主机名">{agent.hostname || '-'}</DetailItem>
@@ -658,7 +659,7 @@ const ArchitectureOverview: React.FC<{ routes: ArchitectureRoute[]; agent: Agent
           {stats.map((item) => (
             <div key={item.label} className="rounded border border-theme-border bg-theme-surface px-4 py-3">
               <div className="flex items-center gap-2 text-xs text-theme-text-muted">{item.icon}{item.label}</div>
-              <div className="mt-2 text-2xl font-semibold text-theme-text-primary">{item.value}</div>
+              <div className="mt-2 text-2xl font-bold text-theme-text-primary">{item.value}</div>
             </div>
           ))}
         </div>
@@ -1032,23 +1033,11 @@ export const EnvManagementPage: React.FC<{ projectId: string }> = ({ projectId }
     <div className="min-h-full bg-theme-bg-app px-8 py-8">
       {feedbackNodes}
       <div className="mx-auto max-w-7xl space-y-6">
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-          <div>
-            <h1 className="mt-4 text-3xl font-black tracking-tight text-theme-text-primary">环境管理</h1>
-            <p className="mt-2 max-w-3xl text-sm leading-6 text-theme-text-secondary">
-              查看当前项目已上线的 Agent、运行状态和最近心跳。该页面为独立入口，不影响现有环境管理页面。
-            </p>
-          </div>
-          <button
-            type="button"
-            onClick={() => loadAgents(true)}
-            disabled={!projectId || loading}
-            className="inline-flex items-center justify-center gap-2 rounded-lg border border-theme-border bg-theme-surface px-4 py-2 text-sm font-bold text-theme-text-secondary shadow-sm transition hover:bg-theme-elevated disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            {loading ? <Loader2 size={16} className="animate-spin" /> : <RefreshCw size={16} />}
-            刷新
-          </button>
-        </div>
+        <PageHeader
+          title="环境管理"
+          description="查看当前项目已上线的 Agent、运行状态和最近心跳。该页面为独立入口，不影响现有环境管理页面。"
+          actions={<button type="button" onClick={() => loadAgents(true)} disabled={!projectId || loading} className="inline-flex items-center justify-center gap-2 rounded-lg border border-theme-border bg-theme-surface px-4 py-2 text-sm font-medium text-theme-text-secondary shadow-sm transition hover:bg-theme-elevated disabled:cursor-not-allowed disabled:opacity-50">{loading ? <Loader2 size={16} className="animate-spin" /> : <RefreshCw size={16} />}刷新</button>}
+        />
 
         {error ? (
           <div className="rounded-xl border border-rose-500/20 bg-rose-500/15 px-4 py-3 text-sm font-semibold text-rose-400">{error}</div>
@@ -1061,11 +1050,11 @@ export const EnvManagementPage: React.FC<{ projectId: string }> = ({ projectId }
           <StatCard label="最近心跳" value={<span className="text-lg">{formatTime(latestSeen)}</span>} hint="按 Agent last_seen 汇总" />
         </div>
 
-        <section className="overflow-hidden rounded-2xl border border-theme-border bg-theme-surface shadow-sm">
+        <section className="overflow-hidden rounded-xl border border-theme-border bg-theme-surface shadow-sm">
           <div className="flex flex-col gap-4 border-b border-theme-border px-6 py-4">
             <div className="flex items-center justify-between gap-3">
               <div>
-                <h2 className="text-lg font-black text-theme-text-primary">上线 Agent</h2>
+                <h2 className="text-lg font-semibold text-theme-text-primary">上线 Agent</h2>
                 <p className="mt-1 text-sm text-theme-text-muted">环境接入完成后，Agent 会在这里进行统一查看。</p>
               </div>
               <div className="flex flex-wrap items-center justify-end gap-3">
@@ -1110,7 +1099,7 @@ export const EnvManagementPage: React.FC<{ projectId: string }> = ({ projectId }
               <button
                 type="button"
                 onClick={() => { setTypeFilter(''); setStatusFilter(''); setSearchText(''); }}
-                className="rounded-lg border border-theme-border bg-theme-surface px-4 py-2 text-sm font-bold text-theme-text-secondary transition hover:bg-theme-elevated"
+                className="rounded-lg border border-theme-border bg-theme-surface px-4 py-2 text-sm font-medium text-theme-text-secondary transition hover:bg-theme-elevated"
               >
                 重置
               </button>
@@ -1127,7 +1116,7 @@ export const EnvManagementPage: React.FC<{ projectId: string }> = ({ projectId }
               <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl bg-theme-elevated text-theme-text-muted">
                 <Bot size={22} />
               </div>
-              <div className="mt-4 text-base font-black text-theme-text-primary">暂无上线 Agent</div>
+              <div className="mt-4 text-base font-semibold text-theme-text-primary">暂无上线 Agent</div>
               <div className="mt-2 text-sm text-theme-text-muted">请先在环境接入页面完成节点部署。</div>
             </div>
           ) : filteredAgents.length === 0 ? (
@@ -1135,7 +1124,7 @@ export const EnvManagementPage: React.FC<{ projectId: string }> = ({ projectId }
               <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl bg-theme-elevated text-theme-text-muted">
                 <Search size={22} />
               </div>
-              <div className="mt-4 text-base font-black text-theme-text-primary">没有匹配的 Agent</div>
+              <div className="mt-4 text-base font-semibold text-theme-text-primary">没有匹配的 Agent</div>
               <div className="mt-2 text-sm text-theme-text-muted">请调整类型、状态或搜索条件。</div>
             </div>
           ) : (

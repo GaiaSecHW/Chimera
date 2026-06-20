@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { BarChart3, ChevronDown, ChevronRight, Coins, RefreshCw, TrendingUp, Zap } from 'lucide-react';
 import { api } from '../../clients/api';
+import { DataTable, DataTableColumn, PageHeader, StatisticCard } from '../../design-system';
 import {
   AiGatewayProjectTokenStats,
   AiGatewayTaskTokenStats,
@@ -25,22 +26,20 @@ const formatCost = (value: number) => {
   return`$${value.toFixed(4)}`;
 };
 
-const MetricCard: React.FC<{
-  icon: React.ReactNode;
-  label: string;
-  value: string;
-  subValue?: string;
-  colorClass?: string;
-}> = ({ icon, label, value, subValue, colorClass = 'text-theme-text-primary' }) => (
- <div className="rounded-[1.5rem] border border-theme-border bg-theme-bg-app p-5">
-    <div className="flex items-center justify-between gap-3">
-      <div className="rounded-2xl bg-theme-elevated p-3 text-theme-text-secondary">{icon}</div>
-      <div className="text-right text-[11px] font-black uppercase tracking-[0.18em] text-theme-text-muted">{label}</div>
-    </div>
-    <div className={`mt-5 text-3xl font-black tracking-tight ${colorClass}`}>{value}</div>
-    {subValue ? <div className="mt-2 text-sm font-medium text-theme-text-muted">{subValue}</div> : null}
-  </div>
-);
+const MetricCard: React.FC<{ icon: React.ReactNode; label: string; value: string; subValue?: string; colorClass?: string }> = ({ icon, label, value, subValue, colorClass = 'text-theme-text-primary' }) => {
+  const toneMap: Record<string, 'default' | 'success' | 'warning' | 'danger' | 'info' | 'brand'> = {
+    'text-theme-text-primary': 'default',
+    'emerald': 'success',
+    'rose': 'danger',
+    'amber': 'warning',
+    'blue': 'info',
+    'indigo': 'brand',
+    'violet': 'brand',
+    'brand': 'brand',
+  };
+  const tone = Object.entries(toneMap).find(([k]) => colorClass.includes(k))?.[1] ?? 'default';
+  return <StatisticCard label={label} value={value} icon={icon} hint={subValue} tone={tone} />;
+};
 
 export const AiGatewayTokenStatsPage: React.FC<AiGatewayTokenStatsPageProps> = () => {
   const platformApi = api.domains.platform;
@@ -150,16 +149,14 @@ export const AiGatewayTokenStatsPage: React.FC<AiGatewayTokenStatsPageProps> = (
 
   return (
     <div className="flex min-h-full flex-col gap-6 p-8">
-      <div className="flex shrink-0 items-center justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-black tracking-tight text-theme-text-primary">Token 用量统计</h1>
-          <p className="mt-2 text-sm font-medium text-theme-text-muted">按项目、任务、子任务维度分析 Token 使用情况</p>
-        </div>
-        <div className="flex items-center gap-3">
+      <PageHeader
+        title="Token 用量统计"
+        description="按项目、任务、子任务维度分析 Token 使用情况"
+        actions={<div className="flex items-center gap-3">
           <select
             value={daysRange}
             onChange={(e) => setDaysRange(Number(e.target.value))}
-            className="rounded-2xl border border-theme-border bg-theme-bg-app px-4 py-2.5 text-sm font-bold text-theme-text-secondary"
+            className="rounded-2xl border border-theme-border bg-theme-surface px-4 py-2.5 text-sm font-bold text-theme-text-secondary"
           >
             <option value={1}>今日</option>
             <option value={7}>近 7 天</option>
@@ -174,8 +171,8 @@ export const AiGatewayTokenStatsPage: React.FC<AiGatewayTokenStatsPageProps> = (
             <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
             刷新
           </button>
-        </div>
-      </div>
+        </div>}
+      />
 
       {error ? <div className="rounded-2xl border border-rose-500/20 bg-rose-500/15 px-4 py-3 text-sm font-medium text-rose-400">{error}</div> : null}
 
@@ -209,9 +206,9 @@ export const AiGatewayTokenStatsPage: React.FC<AiGatewayTokenStatsPageProps> = (
       </div>
 
       {trendChartData ? (
- <section className="rounded-[2rem] border border-theme-border bg-theme-bg-app p-6">
-          <div className="text-[11px] font-black uppercase tracking-[0.2em] text-theme-text-muted">用量趋势</div>
-          <h2 className="mt-2 text-xl font-black text-theme-text-primary">Token 使用趋势图</h2>
+ <section className="rounded-xl border border-theme-border bg-theme-surface p-6">
+          <div className="text-[11px] font-semibold uppercase tracking-[0.2em] text-theme-text-muted">用量趋势</div>
+          <h2 className="mt-2 text-xl font-semibold text-theme-text-primary">Token 使用趋势图</h2>
           <div className="mt-6 flex items-end gap-2 h-32">
             {trendChartData.bars.map((bar) => (
               <div key={bar.date} className="flex-1 flex flex-col items-center gap-1">
@@ -234,92 +231,118 @@ export const AiGatewayTokenStatsPage: React.FC<AiGatewayTokenStatsPageProps> = (
         </section>
       ) : null}
 
- <section className="rounded-[2rem] border border-theme-border bg-theme-bg-app overflow-hidden">
+ <section className="rounded-xl border border-theme-border bg-theme-surface overflow-hidden">
         <div className="p-6">
-          <div className="text-[11px] font-black uppercase tracking-[0.2em] text-theme-text-muted">项目维度</div>
-          <h2 className="mt-2 text-xl font-black text-theme-text-primary">按项目统计</h2>
+          <div className="text-[11px] font-semibold uppercase tracking-[0.2em] text-theme-text-muted">项目维度</div>
+          <h2 className="mt-2 text-xl font-semibold text-theme-text-primary">按项目统计</h2>
         </div>
-        <div className="overflow-x-auto">
-          <table className="min-w-full text-left text-sm">
-            <thead>
-              <tr className="border-b border-theme-border bg-theme-bg-app text-theme-text-muted">
-                <th className="px-6 py-4 font-black">项目</th>
-                <th className="px-6 py-4 font-black text-right">请求数</th>
-                <th className="px-6 py-4 font-black text-right">Prompt</th>
-                <th className="px-6 py-4 font-black text-right">Completion</th>
-                <th className="px-6 py-4 font-black text-right">总 Token</th>
-                <th className="px-6 py-4 font-black text-right">费用</th>
-                <th className="px-6 py-4 font-black text-right">缓存节省</th>
-              </tr>
-            </thead>
-            <tbody>
-              {projectStats.map((project) => (
-                <React.Fragment key={project.project_id}>
-                  <tr
-                    className="border-b border-theme-border hover:bg-theme-elevated cursor-pointer"
-                    onClick={() => handleExpandProject(project.project_id)}
-                  >
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-2 font-bold text-theme-text-primary">
-                        {expandedProject === project.project_id ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
-                        {project.project_name || project.project_id}
-                        <span className="text-xs font-medium text-theme-text-muted">{project.task_count} 任务</span>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 text-right font-medium text-theme-text-secondary">{formatNumber(project.request_count)}</td>
-                    <td className="px-6 py-4 text-right font-medium text-theme-text-secondary">{formatNumber(project.prompt_tokens)}</td>
-                    <td className="px-6 py-4 text-right font-medium text-theme-text-secondary">{formatNumber(project.completion_tokens)}</td>
-                    <td className="px-6 py-4 text-right font-black text-theme-text-primary">{formatNumber(project.total_tokens)}</td>
-                    <td className="px-6 py-4 text-right font-bold text-emerald-400">{formatCost(project.estimated_cost)}</td>
-                    <td className="px-6 py-4 text-right font-medium text-blue-400">{formatNumber(project.cache_saved_tokens)}</td>
-                  </tr>
-                  {expandedProject === project.project_id && taskStats.filter(t => t.project_id === project.project_id).map((task) => (
-                    <React.Fragment key={task.task_id}>
-                      <tr
-                        className="border-b border-theme-border bg-theme-bg-app hover:bg-theme-elevated cursor-pointer"
-                        onClick={() => handleExpandTask(task.task_id)}
-                      >
-                        <td className="px-6 py-4 pl-10">
-                          <div className="flex items-center gap-2 font-bold text-theme-text-primary">
-                            {expandedTask === task.task_id ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
-                            {task.task_name || task.task_id}
-                            <span className="text-xs font-medium text-theme-text-muted">{task.sub_task_count} 子任务</span>
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 text-right font-medium text-theme-text-secondary">{formatNumber(task.request_count)}</td>
-                        <td className="px-6 py-4 text-right font-medium text-theme-text-secondary">{formatNumber(task.prompt_tokens)}</td>
-                        <td className="px-6 py-4 text-right font-medium text-theme-text-secondary">{formatNumber(task.completion_tokens)}</td>
-                        <td className="px-6 py-4 text-right font-black text-theme-text-primary">{formatNumber(task.total_tokens)}</td>
-                        <td className="px-6 py-4 text-right font-bold text-emerald-400">{formatCost(task.estimated_cost)}</td>
-                        <td className="px-6 py-4 text-right font-medium text-blue-400">{formatNumber(task.cache_saved_tokens)}</td>
-                      </tr>
-                      {expandedTask === task.task_id && subTaskStats.filter(s => s.task_id === task.task_id).map((subTask) => (
-                        <tr key={subTask.sub_task_id} className="border-b border-theme-border bg-theme-elevated">
-                          <td className="px-6 py-4 pl-16">
-                            <div className="font-medium text-theme-text-secondary">
-                              {subTask.sub_task_name || subTask.sub_task_id}
-                            </div>
-                          </td>
-                          <td className="px-6 py-4 text-right font-medium text-theme-text-secondary">{formatNumber(subTask.request_count)}</td>
-                          <td className="px-6 py-4 text-right font-medium text-theme-text-secondary">{formatNumber(subTask.prompt_tokens)}</td>
-                          <td className="px-6 py-4 text-right font-medium text-theme-text-secondary">{formatNumber(subTask.completion_tokens)}</td>
-                          <td className="px-6 py-4 text-right font-bold text-theme-text-primary">{formatNumber(subTask.total_tokens)}</td>
-                          <td className="px-6 py-4 text-right font-bold text-emerald-400">{formatCost(subTask.estimated_cost)}</td>
-                          <td className="px-6 py-4 text-right font-medium text-blue-500">{formatNumber(subTask.cache_saved_tokens)}</td>
-                        </tr>
-                      ))}
-                    </React.Fragment>
-                  ))}
-                </React.Fragment>
-              ))}
-              {!projectStats.length && !loading ? (
-                <tr>
-                  <td colSpan={7} className="px-6 py-10 text-center text-theme-text-muted">暂无项目统计数据</td>
-                </tr>
-              ) : null}
-            </tbody>
-          </table>
-        </div>
+        {(() => {
+          type TableRow =
+            | { type: 'project'; id: string; data: AiGatewayProjectTokenStats }
+            | { type: 'task'; id: string; data: AiGatewayTaskTokenStats }
+            | { type: 'subtask'; id: string; data: AiGatewaySubTaskTokenStats };
+
+          const rows: TableRow[] = [];
+          for (const project of projectStats) {
+            rows.push({ type: 'project', id: project.project_id, data: project });
+            if (expandedProject === project.project_id) {
+              for (const task of taskStats.filter(t => t.project_id === project.project_id)) {
+                rows.push({ type: 'task', id: task.task_id, data: task });
+                if (expandedTask === task.task_id) {
+                  for (const subTask of subTaskStats.filter(s => s.task_id === task.task_id)) {
+                    rows.push({ type: 'subtask', id: subTask.sub_task_id, data: subTask });
+                  }
+                }
+              }
+            }
+          }
+
+          const columns: DataTableColumn<TableRow>[] = [
+            {
+              key: 'name',
+              header: '项目',
+              render: (row) => {
+                if (row.type === 'project') {
+                  const p = row.data as AiGatewayProjectTokenStats;
+                  return (
+                    <div className="flex items-center gap-2 font-bold text-theme-text-primary">
+                      {expandedProject === p.project_id ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+                      {p.project_name || p.project_id}
+                      <span className="text-xs font-medium text-theme-text-muted">{p.task_count} 任务</span>
+                    </div>
+                  );
+                }
+                if (row.type === 'task') {
+                  const t = row.data as AiGatewayTaskTokenStats;
+                  return (
+                    <div className="flex items-center gap-2 font-bold text-theme-text-primary pl-6">
+                      {expandedTask === t.task_id ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+                      {t.task_name || t.task_id}
+                      <span className="text-xs font-medium text-theme-text-muted">{t.sub_task_count} 子任务</span>
+                    </div>
+                  );
+                }
+                const s = row.data as AiGatewaySubTaskTokenStats;
+                return (
+                  <div className="font-medium text-theme-text-secondary pl-12">
+                    {s.sub_task_name || s.sub_task_id}
+                  </div>
+                );
+              },
+            },
+            {
+              key: 'request_count',
+              header: '请求数',
+              align: 'right',
+              render: (row) => <span className="font-medium text-theme-text-secondary">{formatNumber(row.data.request_count)}</span>,
+            },
+            {
+              key: 'prompt_tokens',
+              header: 'Prompt',
+              align: 'right',
+              render: (row) => <span className="font-medium text-theme-text-secondary">{formatNumber(row.data.prompt_tokens)}</span>,
+            },
+            {
+              key: 'completion_tokens',
+              header: 'Completion',
+              align: 'right',
+              render: (row) => <span className="font-medium text-theme-text-secondary">{formatNumber(row.data.completion_tokens)}</span>,
+            },
+            {
+              key: 'total_tokens',
+              header: '总 Token',
+              align: 'right',
+              render: (row) => <span className={row.type === 'subtask' ? 'font-bold text-theme-text-primary' : 'font-semibold text-theme-text-primary'}>{formatNumber(row.data.total_tokens)}</span>,
+            },
+            {
+              key: 'estimated_cost',
+              header: '费用',
+              align: 'right',
+              render: (row) => <span className="font-bold text-emerald-400">{formatCost(row.data.estimated_cost)}</span>,
+            },
+            {
+              key: 'cache_saved_tokens',
+              header: '缓存节省',
+              align: 'right',
+              render: (row) => <span className={`font-medium ${row.type === 'subtask' ? 'text-blue-500' : 'text-blue-400'}`}>{formatNumber(row.data.cache_saved_tokens)}</span>,
+            },
+          ];
+
+          return (
+            <DataTable<TableRow>
+              columns={columns}
+              data={rows}
+              rowKey={(row) => row.id}
+              loading={loading}
+              empty={<div className="px-6 py-10 text-center text-theme-text-muted">暂无项目统计数据</div>}
+              onRowClick={(row) => {
+                if (row.type === 'project') handleExpandProject((row.data as AiGatewayProjectTokenStats).project_id);
+                else if (row.type === 'task') handleExpandTask((row.data as AiGatewayTaskTokenStats).task_id);
+              }}
+              minWidth={900}
+            />
+          );
+        })()}
       </section>
     </div>
   );

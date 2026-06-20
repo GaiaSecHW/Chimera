@@ -7,6 +7,7 @@ import { api } from '../../clients/api';
 import { AgentResponse, AgentTraceEvent, AiAgentItem, AiBatchRound, AiBatchSession, AiBatchSessionSummary, AiBatchStreamEvent, AiHelperService } from '../../types/types';
 import { useUiFeedback } from '../../components/UiFeedback';
 import { EmptyState, buildHelperKey, prettyJson, useAiHelpers } from './ai-agent/shared';
+import { PageHeader } from '../../design-system';
 
 const BATCH_SESSION_MODE_KEY = 'chimera_ai_batch_session_mode';
 
@@ -63,7 +64,7 @@ const MarkdownContent: React.FC<{ content: string }> = ({ content }) => (
         ol: ({ children }) => <ol className="mb-2 list-decimal space-y-1 pl-5 last:mb-0">{children}</ol>,
         blockquote: ({ children }) => <blockquote className="mb-2 border-l-4 border-theme-border bg-theme-elevated px-3 py-1.5 italic last:mb-0">{children}</blockquote>,
         code: ({ children, className }) => (className
-          ? <code className="block overflow-x-auto rounded-xl border border-theme-border bg-theme-bg-app px-3 py-2 font-mono text-xs text-theme-text-primary">{children}</code>
+          ? <code className="block overflow-x-auto rounded-xl border border-theme-border bg-theme-surface px-3 py-2 font-mono text-xs text-theme-text-primary">{children}</code>
           : <code className="rounded bg-theme-elevated px-1.5 py-0.5 font-mono text-[0.9em]">{children}</code>),
         pre: ({ children }) => <pre className="mb-2 last:mb-0">{children}</pre>,
       }}
@@ -157,7 +158,7 @@ const resolveRoundResultForHelper = (round: AiBatchRound, helper?: { agent_key?:
 
 export const EnvAiBatchSessionPage: React.FC<{ projectId: string }> = ({ projectId }) => {
   const environmentApi = api.domains.environment;
-  const { notify, feedbackNodes } = useUiFeedback();
+  const { notify, confirm, feedbackNodes } = useUiFeedback();
   const { loading: helperLoading, helpers, reload: reloadHelpers } = useAiHelpers(projectId, notify);
 
   const [batches, setBatches] = useState<AiBatchSessionSummary[]>([]);
@@ -356,7 +357,8 @@ export const EnvAiBatchSessionPage: React.FC<{ projectId: string }> = ({ project
 
   const deleteOneBatch = async (batchId: string) => {
     if (!batchId) return;
-    if (!window.confirm(`确认删除批量会话 ${shortId(batchId)} 吗？`)) return;
+    const ok = await confirm({ message: `确认删除批量会话 ${shortId(batchId)} 吗？`, danger: true });
+    if (!ok) return;
     setBusyAction('delete_single');
     try {
       await environmentApi.environment.deleteAiBatchSession(batchId);
@@ -380,7 +382,8 @@ export const EnvAiBatchSessionPage: React.FC<{ projectId: string }> = ({ project
       notify('请先勾选要删除的批量会话', 'error');
       return;
     }
-    if (!window.confirm(`确认批量删除 ${selectedBatchIds.length} 个会话吗？`)) return;
+    const ok = await confirm({ message: `确认批量删除 ${selectedBatchIds.length} 个会话吗？`, danger: true });
+    if (!ok) return;
     setBusyAction('delete_batch');
     try {
       let success = 0;
@@ -462,30 +465,16 @@ export const EnvAiBatchSessionPage: React.FC<{ projectId: string }> = ({ project
       <div className="space-y-6">
         {feedbackNodes}
 
- <section className="rounded-[2rem] border border-theme-border bg-theme-bg-app p-6">
-          <div className="flex items-center justify-between gap-4 flex-wrap">
-            <div>
-              <h1 className="text-3xl font-black tracking-tight text-theme-text-primary">批量会话</h1>
-              <p className="mt-2 text-sm text-theme-text-muted">先查看批量会话列表，再点击进入会话详情对话界面；支持创建与批量删除。</p>
-            </div>
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => void loadBatches(false)}
-                className="inline-flex items-center gap-2 rounded-xl border border-theme-border px-4 py-2 text-sm font-semibold text-theme-text-secondary"
-              >
-                <RefreshCw size={16} />刷新会话
-              </button>
-              <button
-                onClick={openCreateDialog}
-                className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white"
-              >
-                <Plus size={16} />创建批量会话
-              </button>
-            </div>
-          </div>
-        </section>
+        <PageHeader
+          title="批量会话"
+          description="先查看批量会话列表，再点击进入会话详情对话界面；支持创建与批量删除。"
+          actions={<div className="flex items-center gap-2">
+              <button onClick={() => void loadBatches(false)} className="inline-flex items-center gap-2 rounded-xl border border-theme-border px-4 py-2 text-sm font-semibold text-theme-text-secondary"><RefreshCw size={16} />刷新会话</button>
+              <button onClick={openCreateDialog} className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white"><Plus size={16} />创建批量会话</button>
+            </div>}
+        />
 
- <section className="rounded-2xl border border-theme-border bg-theme-bg-app p-4">
+ <section className="rounded-xl border border-theme-border bg-theme-surface p-4">
           <div className="mb-3 flex items-center justify-between gap-3 flex-wrap">
             <input
               value={keyword}
@@ -594,17 +583,17 @@ export const EnvAiBatchSessionPage: React.FC<{ projectId: string }> = ({ project
 
       {createOpen ? (
         <div className="fixed inset-0 z-40 flex items-center justify-center bg-slate-950/40 p-4">
- <div className="w-full max-w-5xl rounded-2xl border border-theme-border bg-theme-bg-app">
+ <div className="w-full max-w-5xl rounded-2xl border border-theme-border bg-theme-surface">
             <div className="flex items-center justify-between border-b border-theme-border px-5 py-4">
               <div>
-                <h3 className="text-lg font-black text-theme-text-primary">创建批量会话</h3>
+                <h3 className="text-lg font-semibold text-theme-text-primary">创建批量会话</h3>
               </div>
               <button onClick={() => setCreateOpen(false)} className="rounded-lg border border-theme-border p-2 text-theme-text-muted"><X size={16} /></button>
             </div>
 
             <div className="grid grid-cols-1 gap-4 p-5 lg:grid-cols-[1.2fr_1fr]">
               <section className="rounded-xl border border-theme-border p-4">
-                <div className="text-xs font-black uppercase tracking-[0.18em] text-theme-text-muted">1. 选择节点（可多选）</div>
+                <div className="text-xs font-medium uppercase tracking-[0.18em] text-theme-text-muted">1. 选择节点（可多选）</div>
                 <input
                   value={createKeyword}
                   onChange={(event) => setCreateKeyword(event.target.value)}
@@ -630,7 +619,7 @@ export const EnvAiBatchSessionPage: React.FC<{ projectId: string }> = ({ project
               </section>
 
               <section className="rounded-xl border border-theme-border p-4">
-                <div className="text-xs font-black uppercase tracking-[0.18em] text-theme-text-muted">2. 选择统一 Agent</div>
+                <div className="text-xs font-medium uppercase tracking-[0.18em] text-theme-text-muted">2. 选择统一 Agent</div>
                 <p className="mt-2 text-xs text-theme-text-muted">所有已选节点共享同一个 Agent 类型，不允许节点间选择不同 Agent。</p>
                 <select
                   value={createSelectedAgentId}
@@ -644,8 +633,8 @@ export const EnvAiBatchSessionPage: React.FC<{ projectId: string }> = ({ project
                   ))}
                 </select>
 
-                <div className="mt-4 rounded-xl border border-theme-border bg-theme-bg-app p-3">
-                  <div className="text-xs font-black uppercase tracking-[0.16em] text-theme-text-muted">会话模式</div>
+                <div className="mt-4 rounded-xl border border-theme-border bg-theme-surface p-3">
+                  <div className="text-xs font-medium uppercase tracking-[0.16em] text-theme-text-muted">会话模式</div>
                   <div className="mt-2 flex flex-wrap gap-3 text-sm">
                     <label className="inline-flex items-center gap-2">
                       <input type="radio" name="create-batch-mode" checked={batchSessionMode === 'pipe'} onChange={() => setBatchSessionMode('pipe')} />
@@ -686,10 +675,10 @@ export const EnvAiBatchSessionPage: React.FC<{ projectId: string }> = ({ project
 
       {detailOpen && batchDetail ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/45 p-3">
- <div className="flex h-[92vh] w-full max-w-7xl flex-col rounded-2xl border border-theme-border bg-theme-bg-app">
+ <div className="flex h-[92vh] w-full max-w-7xl flex-col rounded-2xl border border-theme-border bg-theme-surface">
             <div className="flex items-center justify-between border-b border-theme-border px-5 py-3">
               <div className="min-w-0">
-                <h3 className="truncate text-lg font-black text-theme-text-primary">{batchDetail.batch_id}</h3>
+                <h3 className="truncate text-lg font-semibold text-theme-text-primary">{batchDetail.batch_id}</h3>
                 <div className="mt-1 text-xs text-theme-text-muted">状态：{batchDetail.status} · 目标：{batchDetail.items.length} · 模式：{modeLabel(batchDetail.session_mode)}</div>
               </div>
               <div className="flex items-center gap-2">
@@ -702,7 +691,7 @@ export const EnvAiBatchSessionPage: React.FC<{ projectId: string }> = ({ project
 
             <div className="grid min-h-0 flex-1 grid-cols-1 gap-4 p-4 xl:grid-cols-[340px_minmax(0,1fr)]">
               <section className="min-h-0 overflow-auto rounded-xl border border-theme-border p-3">
-                <div className="text-xs font-black uppercase tracking-[0.16em] text-theme-text-muted">目标 Agent</div>
+                <div className="text-xs font-medium uppercase tracking-[0.16em] text-theme-text-muted">目标 Agent</div>
                 <div className="mt-3 space-y-2">
                   {batchDetail.items.map((item) => (
                     <button
@@ -754,8 +743,8 @@ export const EnvAiBatchSessionPage: React.FC<{ projectId: string }> = ({ project
                 </div>
 
                 {streamEvents.length > 0 ? (
-                  <div className="mt-3 rounded-xl border border-theme-border bg-theme-bg-app p-3">
-                    <div className="text-xs font-black uppercase tracking-[0.16em] text-theme-text-muted">流式进度</div>
+                  <div className="mt-3 rounded-xl border border-theme-border bg-theme-surface p-3">
+                    <div className="text-xs font-medium uppercase tracking-[0.16em] text-theme-text-muted">流式进度</div>
                     <div className="mt-2 max-h-28 space-y-1 overflow-auto pr-1 text-xs text-theme-text-secondary">
                       {streamEvents
                         .filter((event) => (
@@ -785,18 +774,18 @@ export const EnvAiBatchSessionPage: React.FC<{ projectId: string }> = ({ project
                 ) : null}
 
                 <div className="mt-4 rounded-xl border border-theme-border p-3">
-                  <div className="text-sm font-bold text-theme-text-primary">
+                  <div className="text-sm font-semibold text-theme-text-primary">
                     会话记录（{activeHelperItem ?`${activeHelperItem.service_name} / ${activeHelperItem.agent_key}` : '未选择 Agent'}）
                   </div>
                   <div className="mt-3 space-y-3 max-h-[50vh] overflow-auto pr-1">
                     {helperRounds.length === 0 ? <div className="text-sm text-theme-text-muted">暂无多轮记录。</div> : helperRounds.map(({ round, result, outputs, reasoning, trace }) => (
                       <div key={round.round_no} className="rounded-xl border border-theme-border p-3">
-                        <div className="text-xs font-black uppercase tracking-[0.18em] text-theme-text-muted">Round {round.round_no}</div>
-                        <div className="mt-2 rounded-xl border border-theme-border bg-theme-bg-app p-3">
+                        <div className="text-xs font-medium uppercase tracking-[0.18em] text-theme-text-muted">Round {round.round_no}</div>
+                        <div className="mt-2 rounded-xl border border-theme-border bg-theme-surface p-3">
                           <div className="text-xs font-semibold uppercase tracking-[0.14em] text-theme-text-muted">User</div>
                           <div className="mt-1 whitespace-pre-wrap text-sm text-theme-text-primary">{round.content}</div>
                         </div>
-                        <div className="mt-3 rounded-xl border border-theme-border bg-theme-bg-app p-3">
+                        <div className="mt-3 rounded-xl border border-theme-border bg-theme-surface p-3">
                           <div className="text-xs font-semibold uppercase tracking-[0.14em] text-theme-text-muted">Assistant</div>
                           {outputs.length > 0 ? (
                             <div className="mt-2 space-y-3">
@@ -826,7 +815,7 @@ export const EnvAiBatchSessionPage: React.FC<{ projectId: string }> = ({ project
                             <summary className="cursor-pointer text-xs font-semibold text-theme-text-secondary hover:text-theme-text-primary">查看 Trace（{trace.length}）</summary>
                             <div className="mt-2 space-y-2">
                               {trace.map((item, index) => (
-                                <div key={item.id ||`${item.category}-${index}`} className="rounded-xl border border-theme-border bg-theme-bg-app p-3 text-xs text-theme-text-secondary">
+                                <div key={item.id ||`${item.category}-${index}`} className="rounded-xl border border-theme-border bg-theme-surface p-3 text-xs text-theme-text-secondary">
                                   <div className="font-semibold text-theme-text-primary">{item.category}</div>
                                   {item.message ? <div className="mt-1 whitespace-pre-wrap">{item.message}</div> : null}
                                   {item.payload !== undefined ? (
@@ -839,11 +828,11 @@ export const EnvAiBatchSessionPage: React.FC<{ projectId: string }> = ({ project
                         ) : null}
                         <details className="mt-3">
                           <summary className="cursor-pointer text-xs font-semibold text-theme-text-secondary hover:text-theme-text-primary">查看该 Agent 原始结果 JSON</summary>
-                          <pre className="mt-2 overflow-auto rounded-xl border border-theme-border bg-theme-bg-app p-3 text-xs text-theme-text-primary">{prettyJson(result || {})}</pre>
+                          <pre className="mt-2 overflow-auto rounded-xl border border-theme-border bg-theme-surface p-3 text-xs text-theme-text-primary">{prettyJson(result || {})}</pre>
                         </details>
                         <details className="mt-2">
                           <summary className="cursor-pointer text-xs font-semibold text-theme-text-secondary hover:text-theme-text-primary">查看整轮原始 JSON</summary>
-                          <pre className="mt-2 overflow-auto rounded-xl border border-theme-border bg-theme-bg-app p-3 text-xs text-theme-text-primary">{prettyJson(round.response)}</pre>
+                          <pre className="mt-2 overflow-auto rounded-xl border border-theme-border bg-theme-surface p-3 text-xs text-theme-text-primary">{prettyJson(round.response)}</pre>
                         </details>
                       </div>
                     ))}

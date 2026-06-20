@@ -119,7 +119,7 @@ export const useUiFeedback = () => {
               <div className="flex items-start gap-3">
                 <div className="mt-0.5">{noticeStyles[notice.level].icon}</div>
                 <div className="min-w-0">
-                  <p className="text-xs font-black tracking-widest uppercase">{notice.title}</p>
+                  <p className="text-xs font-semibold tracking-widest uppercase">{notice.title}</p>
                   <p className="text-sm font-semibold mt-1 leading-relaxed break-words">{notice.message}</p>
                 </div>
                 <button
@@ -137,8 +137,8 @@ export const useUiFeedback = () => {
           <div className="fixed inset-0 z-[270] bg-slate-900/65 backdrop-blur-sm flex items-center justify-center p-6">
             <div className="w-full max-w-lg bg-theme-surface rounded-3xl border border-theme-border shadow-section overflow-hidden">
               <div className="p-7 border-b border-theme-border">
-                <p className="text-[10px] font-black tracking-widest text-theme-text-faint uppercase">确认操作</p>
-                <h3 className="text-2xl font-black text-theme-text-primary mt-2">{confirmState.title}</h3>
+                <p className="text-[10px] font-semibold tracking-widest text-theme-text-faint uppercase">确认操作</p>
+                <h3 className="text-2xl font-semibold text-theme-text-primary mt-2">{confirmState.title}</h3>
                 <p className="text-sm text-theme-text-secondary mt-3 leading-relaxed whitespace-pre-wrap">{confirmState.message}</p>
               </div>
               <div className="p-6 flex justify-end gap-3">
@@ -171,8 +171,8 @@ export const useUiFeedback = () => {
           <div className="fixed inset-0 z-[270] bg-slate-900/65 backdrop-blur-sm flex items-center justify-center p-6">
             <div className="w-full max-w-lg bg-theme-surface rounded-3xl border border-theme-border shadow-section overflow-hidden">
               <div className="p-7 border-b border-theme-border">
-                <p className="text-[10px] font-black tracking-widest text-theme-text-faint uppercase">输入信息</p>
-                <h3 className="text-2xl font-black text-theme-text-primary mt-2">{promptState.title}</h3>
+                <p className="text-[10px] font-semibold tracking-widest text-theme-text-faint uppercase">输入信息</p>
+                <h3 className="text-2xl font-semibold text-theme-text-primary mt-2">{promptState.title}</h3>
                 <p className="text-sm text-theme-text-secondary mt-3 leading-relaxed whitespace-pre-wrap">{promptState.message}</p>
                 <input
                   autoFocus

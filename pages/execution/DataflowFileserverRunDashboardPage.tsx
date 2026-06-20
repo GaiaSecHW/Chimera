@@ -25,6 +25,7 @@ import { FileWatchMessage, fileserverApi } from '../../clients/fileserver';
 import { AppSaSessionEvent } from '../../types/types';
 import { DATAFLOW_DASHBOARD_MIRROR_CSS } from './DataflowFileserverRunDashboardCss';
 import { mergeAgentSessionToolResults, parseAgentSessionJsonlDelta } from './agentSessionParsing';
+import { useUiFeedback } from '../../components/UiFeedback';
 
 const LK = {
   primary: '#4f73ff',
@@ -2845,9 +2846,10 @@ interface DashboardAppOptions {
   initialSummary?: DataflowFileserverRunSummary | null;
   onBack?: () => void;
   root: ShadowRoot;
+  confirm: (options: { message: string; danger?: boolean; title?: string; confirmText?: string; cancelText?: string }) => Promise<boolean>;
 }
 
-const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummary = null, onBack, root }: DashboardAppOptions) => {
+const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummary = null, onBack, root, confirm }: DashboardAppOptions) => {
   const app: any = {
     runs: initialSummary ? [initialSummary] as DataflowFileserverRunSummary[] : [] as DataflowFileserverRunSummary[],
     currentRun: initialRunName || null,
@@ -4543,7 +4545,8 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
       const overview = runCache.overview || (this.currentRunData?.name === normalizedRun ? this.currentRunData : null);
       const taskId = String(overview?.linked_task_id || '').trim();
       if (!taskId || runCache.timelineClearing) return;
-      if (!window.confirm('将删除当前任务的全部事件时间线记录。该操作不影响任务状态、结果和产物文件，删除后不可恢复，是否继续？')) return;
+      const ok = await confirm({ message: '将删除当前任务的全部事件时间线记录。该操作不影响任务状态、结果和产物文件，删除后不可恢复，是否继续？', danger: true });
+      if (!ok) return;
       runCache.timelineClearing = true;
       runCache.timelineError = '';
       if (this.currentRun === normalizedRun && this.currentRunData) this.renderTaskTimeline(this.currentRunData);
@@ -4568,7 +4571,8 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
       const overview = runCache.overview || (this.currentRunData?.name === normalizedRun ? this.currentRunData : null);
       const taskId = String(overview?.linked_task_id || '').trim();
       if (!taskId || runCache.deletingTimelineEventId) return;
-      if (!window.confirm('将删除当前事件记录。该操作不影响任务状态、结果和产物文件，删除后不可恢复，是否继续？')) return;
+      const ok = await confirm({ message: '将删除当前事件记录。该操作不影响任务状态、结果和产物文件，删除后不可恢复，是否继续？', danger: true });
+      if (!ok) return;
       runCache.deletingTimelineEventId = eventId;
       runCache.timelineError = '';
       if (this.currentRun === normalizedRun && this.currentRunData) this.renderTaskTimeline(this.currentRunData);
@@ -7610,7 +7614,8 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
 
     async cancelCurrentRun() {
       if (!this.currentRun || !this.currentRunId()) return;
-      if (!window.confirm(`确认取消 Run ${this.currentRun}？`)) return;
+      const ok = await confirm({ message: `确认取消 Run ${this.currentRun}？`, danger: true });
+      if (!ok) return;
       this.setMutationBusy('cancel');
       try {
         const result = await cancelDataflowFileserverRun(projectId, this.runsRootPath, this.currentRun);
@@ -7676,7 +7681,8 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
         '后端将执行结点级断点续跑，而不是从头开始：',`- 恢复结点：Cycle ${targetCycle} / ${targetPhase} / ${targetStep}`,`- 结点类型：${targetKind}`,`- 策略：${policy === 'rerun_current_node' ? '重跑当前未完成结点，跳过此前已完成结点' : policy}`,`- 已完成轮次：${preflight.completed_cycles ?? '-'}`,`- 追加轮次：${extraCycles}`,`- 总轮次上限：${preflight.resume_total_cycle_limit ?? '-'}`,
         commandDisplay ?`- 命令：${commandDisplay}` : '',
       ].filter(Boolean);
-      if (!window.confirm(confirmLines.join('\n'))) return;
+      const ok = await confirm({ message: confirmLines.join('\n'), danger: true });
+      if (!ok) return;
       this.setMutationBusy('retry');
       try {
         const result = await retryDataflowFileserverRun(projectId, this.runsRootPath, this.currentRun, { extra_cycles: extraCycles });
@@ -7870,6 +7876,7 @@ export const DataflowFileserverRunDashboardPage: React.FC<{
   initialSummary?: DataflowFileserverRunSummary | null;
   onBack?: () => void;
 }> = ({ projectId, initialRunName, rootPath, initialSummary = null, onBack }) => {
+  const { confirm, feedbackNodes } = useUiFeedback();
   const hostRef = useRef<HTMLDivElement>(null);
   const onBackRef = useRef<typeof onBack>(onBack);
   const initialSummaryRef = useRef<DataflowFileserverRunSummary | null | undefined>(initialSummary);
@@ -7909,6 +7916,7 @@ export const DataflowFileserverRunDashboardPage: React.FC<{
         onBack: () => onBackRef.current?.(),
         rootPath: rootPath || DEFAULT_DATAFLOW_FILESERVER_RUNS_ROOT,
         root: shadow,
+        confirm,
       });
       (window as any).App = app;
       void app.init().catch(renderInitError);
@@ -7926,12 +7934,15 @@ export const DataflowFileserverRunDashboardPage: React.FC<{
   }, [projectId, initialRunName, rootPath]);
 
   return (
-    <div
-      ref={hostRef}
-      style={{
-        minHeight: 'calc(100vh - 80px)',
-        width: '100%',
-      }}
-    />
+    <>
+      {feedbackNodes}
+      <div
+        ref={hostRef}
+        style={{
+          minHeight: 'calc(100vh - 80px)',
+          width: '100%',
+        }}
+      />
+    </>
   );
 };

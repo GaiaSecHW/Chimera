@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { PageHeader } from '../../design-system';
 import {
   AlertCircle,
   FolderUp,
@@ -68,6 +69,11 @@ export const KnowledgeGraphPage: React.FC<Props> = ({ projectId, projects }) => 
   const [message, setMessage] = useState<string | null>(null);
   // failed 横幅的"重新构建"按钮:DELETE → setStatus(null) → bootstrap 重派。
   const [rebuilding, setRebuilding] = useState(false);
+  // 「图谱为空」横幅:status=completed 但库里 0 函数(target_dir 错位等
+  // silent-success 情形)。轮询 serve 的 /api/v1/stats 探测,零节点才显示
+  // 「更正代码目录」按钮(走 purge → 重派,用最新有效上传的真实路径)。
+  const [emptyGraph, setEmptyGraph] = useState(false);
+  const [correcting, setCorrecting] = useState(false);
   // 防止 serve 重复启动。
   const startingServeRef = useRef(false);
 
@@ -102,6 +108,7 @@ export const KnowledgeGraphPage: React.FC<Props> = ({ projectId, projects }) => 
     setPhase('loading');
     setMessage(null);
     setServeUrl(null);
+    setEmptyGraph(false);
     try {
       const uploads = await api.fileserver.listProjectInputUploads(projectId, {
         inputType: 'code',
@@ -176,6 +183,32 @@ export const KnowledgeGraphPage: React.FC<Props> = ({ projectId, projects }) => 
     }
   }, [taskId, bootstrap, rebuilding]);
 
+  // 「图谱为空」横幅旁的「更正代码目录」按钮:status=completed 但 0 函数
+  // (target_dir 写错时 analyze 静默成功的失败模式)。purge 销毁旧空项目
+  // (停 serve、DROP 库、删 manager 工作区目录),然后 bootstrap 重派 ——
+  // bootstrap 会重新拉 fileserver 的最新有效上传,用对的 target_dir 重建。
+  const handleCorrectPath = useCallback(async () => {
+    if (correcting) return;
+    setCorrecting(true);
+    try {
+      const dbName = status?.db_name;
+      if (dbName) {
+        await api.codemapManager.purgeProject(dbName);
+      } else {
+        // 兜底:没有 db_name 也尝试删 task,后续 bootstrap 仍能重派。
+        await api.codemapManager.deleteTask(taskId).catch(() => {});
+      }
+      setStatus(null);
+      setEmptyGraph(false);
+      await bootstrap();
+    } catch (error) {
+      setMessage(errorMessage(error));
+      setPhase('error');
+    } finally {
+      setCorrecting(false);
+    }
+  }, [status, taskId, bootstrap, correcting]);
+
   useEffect(() => {
     void bootstrap();
   }, [bootstrap]);
@@ -199,6 +232,32 @@ export const KnowledgeGraphPage: React.FC<Props> = ({ projectId, projects }) => 
     return () => window.clearInterval(timer);
   }, [phase, status, taskId]);
 
+  // 零节点探测:任务到达终态后拉一次 serve 的 /api/v1/stats,
+  // total_functions===0 视为「图谱为空」(target_dir 错位的 silent-success
+  // 失败模式)。仅在 ready + 终态时触发,且只跑一次(emptyGraph 已 true 则跳过)。
+  useEffect(() => {
+    if (phase !== 'ready' || !serveUrl || !status) return;
+    if (IN_PROGRESS_STATUSES.has(status.status)) return;
+    if (emptyGraph) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const origin = new URL(serveUrl).origin;
+        const resp = await fetch(`${origin}/api/v1/stats`);
+        if (!resp.ok) return;
+        const data = await resp.json();
+        if (!cancelled && data?.total_functions === 0) {
+          setEmptyGraph(true);
+        }
+      } catch {
+        // 网络/解析失败不暴露给用户;横幅按现状显示即可。
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [phase, serveUrl, status, emptyGraph]);
+
   if (!projectId) {
     return (
       <CenteredState
@@ -220,23 +279,21 @@ export const KnowledgeGraphPage: React.FC<Props> = ({ projectId, projects }) => 
         : null;
     return (
       <div className="flex h-full flex-col" style={{ backgroundColor: LK.canvas }}>
-        <div className="flex items-center justify-between px-5 py-4" style={{ borderBottom:`1px solid ${LK.border}`, backgroundColor: LK.surface }}>
-          <div className="flex items-center gap-2">
-            <Network size={18} style={{ color: LK.primary }} />
-            <h1 className="text-base font-semibold" style={{ color: LK.ink }}>知识图谱</h1>
-            <span className="text-sm" style={{ color: LK.muted }}>{projectName}</span>
-          </div>
-          <button
-            className="inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-medium transition-colors"
-            style={{ backgroundColor: LK.surfaceRaised, color: LK.body, border: `1px solid ${LK.border}` }}
-            onClick={() => void bootstrap()}
-            onMouseEnter={(e) => { e.currentTarget.style.color = LK.primarySoft; e.currentTarget.style.borderColor = LK.primary; }}
-            onMouseLeave={(e) => { e.currentTarget.style.color = LK.body; e.currentTarget.style.borderColor = LK.border; }}
-          >
-            <RefreshCw size={14} />
-            刷新
-          </button>
-        </div>
+        <PageHeader
+          title="知识图谱"
+          description={projectName}
+          actions={
+            <button
+              className="inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-medium transition-colors"
+              style={{ backgroundColor: LK.surfaceRaised, color: LK.body, border: `1px solid ${LK.border}` }}
+              onClick={() => void bootstrap()}
+              onMouseEnter={(e) => { e.currentTarget.style.color = LK.primarySoft; e.currentTarget.style.borderColor = LK.primary; }}
+              onMouseLeave={(e) => { e.currentTarget.style.color = LK.body; e.currentTarget.style.borderColor = LK.border; }}
+            >
+              <RefreshCw size={14} />刷新
+            </button>
+          }
+        />
         {building ? (
           <div className="flex items-center gap-3 px-5 py-2.5 text-xs" style={{ borderBottom:`1px solid ${LK.border}`, backgroundColor: `${LK.info}14`, color: LK.info }}>
             <Loader2 size={14} className="animate-spin" />
@@ -261,6 +318,23 @@ export const KnowledgeGraphPage: React.FC<Props> = ({ projectId, projects }) => 
               {rebuilding ? '重派中…' : '重新构建'}
             </button>
           </div>
+        ) : emptyGraph ? (
+          <div className="flex items-center gap-3 px-5 py-2.5 text-xs" style={{ borderBottom:`1px solid ${LK.border}`, backgroundColor: `${LK.warning}14`, color: LK.warning }}>
+            <AlertCircle size={14} />
+            <span className="flex-1">
+              图谱为空 —— 代码目录可能未对齐已上传文件，点击「更正代码目录」用最新有效上传重新构建。
+            </span>
+            <button
+              type="button"
+              onClick={() => void handleCorrectPath()}
+              disabled={correcting}
+              className="inline-flex items-center gap-1 rounded-md border px-2 py-1 text-[11px] font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-50"
+              style={{ borderColor: LK.warning, color: LK.warning, backgroundColor: 'transparent' }}
+            >
+              <RefreshCw size={12} />
+              {correcting ? '更正中…' : '更正代码目录'}
+            </button>
+          </div>
         ) : null}
         <iframe
           title="codemap-knowledge-graph"
@@ -275,11 +349,7 @@ export const KnowledgeGraphPage: React.FC<Props> = ({ projectId, projects }) => 
   return (
     <div className="min-h-full px-5 py-5" style={{ backgroundColor: LK.canvas }}>
       <div className="mx-auto max-w-3xl">
-        <div className="mb-5 flex items-center gap-2 pb-4" style={{ borderBottom:`1px solid ${LK.borderSoft}` }}>
-          <Network size={20} style={{ color: LK.primary }} />
-          <h1 className="text-2xl font-semibold" style={{ color: LK.ink }}>知识图谱</h1>
-          <span className="text-sm" style={{ color: LK.muted }}>{projectName}</span>
-        </div>
+        <PageHeader title="知识图谱" description={projectName} />
         <PhaseCard
           phase={phase}
           message={message}
@@ -393,4 +463,3 @@ const CenteredCardInner: React.FC<{
     {action ? <div className="mt-5">{action}</div> : null}
   </div>
 );
-

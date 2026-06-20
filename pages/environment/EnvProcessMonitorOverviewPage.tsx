@@ -3,6 +3,7 @@ import { ChevronLeft, ChevronRight, Loader2, RefreshCw, Search, Server } from 'l
 import { api } from '../../clients/api';
 import { ProcessMonitorNode } from '../../types/types';
 import { navigateToAppView } from './ai-agent/shared';
+import { PageHeader } from '../../design-system';
 
 export const EnvProcessMonitorOverviewPage: React.FC<{ projectId: string }> = ({ projectId }) => {
   const environmentApi = api.domains.environment;
@@ -61,38 +62,29 @@ export const EnvProcessMonitorOverviewPage: React.FC<{ projectId: string }> = ({
 
   return (
     <div className="p-10 space-y-6">
-      <div className="flex items-end justify-between">
-        <div>
-          <h2 className="text-3xl font-black text-theme-text-primary tracking-tight">节点进程监控 - 节点总览</h2>
-          <p className="text-theme-text-muted mt-1 font-medium">展示当前项目下支持 PROCESS_MONITOR 的节点服务</p>
-        </div>
-        <button
-          onClick={() => void load()}
-          disabled={!projectId || loading}
-          className="px-4 py-3 rounded-2xl border border-theme-border bg-theme-bg-app hover:bg-theme-elevated text-theme-text-secondary font-bold text-xs uppercase tracking-wider disabled:opacity-50 flex items-center gap-2"
-        >
-          {loading ? <Loader2 size={16} className="animate-spin" /> : <RefreshCw size={16} />}
-          刷新
-        </button>
-      </div>
+      <PageHeader
+        title="节点进程监控 - 节点总览"
+        description="展示当前项目下支持 PROCESS_MONITOR 的节点服务"
+        actions={<button onClick={() => void load()} disabled={!projectId || loading} className="px-4 py-3 rounded-lg border border-theme-border bg-theme-surface hover:bg-theme-elevated text-theme-text-secondary font-medium text-xs uppercase tracking-wider disabled:opacity-50 flex items-center gap-2">{loading ? <Loader2 size={16} className="animate-spin" /> : <RefreshCw size={16} />}刷新</button>}
+      />
 
       <div className="relative">
         <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-theme-text-faint" size={18} />
         <input
           value={search}
           onChange={(event) => setSearch(event.target.value)}
-          className="w-full pl-12 pr-4 py-3 rounded-2xl border border-theme-border bg-theme-bg-app"
+          className="w-full pl-12 pr-4 py-3 rounded-xl border border-theme-border bg-theme-surface"
           placeholder="按节点、IP、服务名筛选"
         />
       </div>
 
       {!projectId ? (
-        <div className="rounded-2xl border border-amber-500/20 bg-amber-500/15 p-4 text-amber-400 text-sm font-semibold">请先选择项目</div>
+        <div className="rounded-xl border border-amber-500/20 bg-amber-500/15 p-4 text-amber-400 text-sm font-semibold">请先选择项目</div>
       ) : (
-        <div className="rounded-3xl border border-theme-border bg-theme-bg-app overflow-hidden">
+        <div className="rounded-xl border border-theme-border bg-theme-surface overflow-hidden">
           <div className="flex flex-wrap items-center justify-between gap-3 border-b border-theme-border px-4 py-3 bg-slate-50/70">
             <div className="text-xs font-semibold text-theme-text-muted">
-              共 <span className="font-black text-theme-text-secondary">{total}</span> 条，当前第 <span className="font-black text-theme-text-secondary">{page}</span> / {totalPages} 页
+              共 <span className="font-semibold text-theme-text-secondary">{total}</span> 条，当前第 <span className="font-semibold text-theme-text-secondary">{page}</span> / {totalPages} 页
             </div>
             <div className="flex items-center gap-2">
               <span className="text-xs text-theme-text-muted">每页</span>
@@ -162,7 +154,7 @@ export const EnvProcessMonitorOverviewPage: React.FC<{ projectId: string }> = ({
                       <div className="flex items-center gap-2">
                         <Server size={14} className="text-theme-text-muted" />
                         <div>
-                          <div className="text-sm font-black text-theme-text-primary">{item.agent_hostname || item.agent_key}</div>
+                          <div className="text-sm font-semibold text-theme-text-primary">{item.agent_hostname || item.agent_key}</div>
                           <div className="text-[11px] text-theme-text-muted">{item.agent_key}</div>
                         </div>
                       </div>
@@ -173,7 +165,7 @@ export const EnvProcessMonitorOverviewPage: React.FC<{ projectId: string }> = ({
                       <div className="text-sm font-semibold text-theme-text-secondary">{item.template_name || '-'}</div>
                       <div className="text-[11px] text-theme-text-muted">{(item.template_tags || []).join(', ') || '-'}</div>
                     </td>
-                    <td className="px-4 py-4 text-xs font-bold uppercase text-theme-text-secondary">{item.status || 'unknown'}</td>
+                    <td className="px-4 py-4 text-xs font-medium uppercase text-theme-text-secondary">{item.status || 'unknown'}</td>
                     <td className="px-4 py-4 text-xs text-theme-text-muted">{item.last_seen_at || '-'}</td>
                   </tr>
                 ))
