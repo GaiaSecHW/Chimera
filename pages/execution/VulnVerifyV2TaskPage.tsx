@@ -9,7 +9,7 @@ import { useUiFeedback } from '../../components/UiFeedback';
 
 const BATCH_CREATE_CONCURRENCY = 3;
 const PENDING_CASE_LOAD_LIMIT = 500;
-const PENDING_CASE_PAGE_SIZE = 50;
+const PENDING_CASE_PAGE_SIZE = 500;
 const MAX_BATCH_CREATE = 500;
 
 const STATUS_LABEL: Record<string, string> = {
