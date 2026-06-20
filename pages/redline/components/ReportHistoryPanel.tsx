@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import ReactMarkdown, { Components } from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import rehypeRaw from 'rehype-raw';
 
 import { ArrowLeft, Loader2, X } from 'lucide-react';
 import { redlineVerificationApi } from '../../../clients/redlineVerification';
@@ -86,7 +87,7 @@ export const ReportHistoryPanel: React.FC<Props> = ({ taskId, visible, onClose }
           ))}
           {!loading && selectedReport && (
             <div className="break-words leading-6">
-              <ReactMarkdown remarkPlugins={[remarkGfm]} components={mdComponents}>
+              <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeRaw]} components={mdComponents}>
                 {selectedReport.reportContent || '无报告内容'}
               </ReactMarkdown>
             </div>
