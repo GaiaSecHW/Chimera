@@ -4918,6 +4918,9 @@ export interface AppDfaServiceConfig {
   max_trace_depth: number;
   deep_trace_enabled: boolean;
   callee_concurrency: number;
+  entry_screen_enabled?: boolean;
+  entry_screen_whitelist?: string[];
+  entry_screen_thinking_level?: string;
   workers: AppDfaRoleConfig;
   judges: AppDfaRoleConfig;
   output_dir: string;
