@@ -9,6 +9,7 @@ import { useUiFeedback } from '../../components/UiFeedback';
 
 const BATCH_CREATE_CONCURRENCY = 3;
 const PENDING_CASE_LOAD_LIMIT = 500;
+const PENDING_CASE_PAGE_SIZE = 50;
 const MAX_BATCH_CREATE = 500;
 
 const STATUS_LABEL: Record<string, string> = {
@@ -229,6 +230,7 @@ export const VulnVerifyV2TaskPage: React.FC<{ projectId: string }> = ({ projectI
   const [pendingLoading, setPendingLoading] = useState(false);
   const [selectedCaseIds, setSelectedCaseIds] = useState<Set<string>>(() => new Set());
   const [batchFilter, setBatchFilter] = useState('');
+  const [batchPage, setBatchPage] = useState(1);
   const [batchCreating, setBatchCreating] = useState(false);
   const [batchResult, setBatchResult] = useState<BatchCreateResult | null>(null);
 
@@ -306,9 +308,10 @@ export const VulnVerifyV2TaskPage: React.FC<{ projectId: string }> = ({ projectI
         vulnApi.listCases({ project_id: projectId, current_stage: 'receive', page: 1, page_size: PENDING_CASE_LOAD_LIMIT }),
         vulnApi.listCases({ project_id: projectId, current_stage: 'triage', page: 1, page_size: PENDING_CASE_LOAD_LIMIT }),
       ]);
-      const items = [...(receive.items || []), ...(triage.items || [])].slice(0, PENDING_CASE_LOAD_LIMIT) as PendingVerifyCase[];
+      const items = [...(receive.items || []), ...(triage.items || [])] as PendingVerifyCase[];
       setPendingCases(items);
       setPendingTotal(Number(receive.total || 0) + Number(triage.total || 0));
+      setBatchPage(1);
       setSelectedCaseIds((prev) => {
         const available = new Set(items.map((x) => x.id));
         const next = new Set<string>();
@@ -330,6 +333,12 @@ export const VulnVerifyV2TaskPage: React.FC<{ projectId: string }> = ({ projectI
     if (!q) return pendingCases;
     return pendingCases.filter((item) => caseSearchText(item).includes(q));
   }, [pendingCases, batchFilter]);
+  const batchTotalPages = Math.max(1, Math.ceil(filteredCases.length / PENDING_CASE_PAGE_SIZE));
+  const batchSafePage = Math.min(batchPage, batchTotalPages);
+  const pagedCases = useMemo(() => {
+    const start = (batchSafePage - 1) * PENDING_CASE_PAGE_SIZE;
+    return filteredCases.slice(start, start + PENDING_CASE_PAGE_SIZE);
+  }, [filteredCases, batchSafePage]);
 
   const selectedCases = useMemo(() => pendingCases.filter((item) => selectedCaseIds.has(item.id)), [pendingCases, selectedCaseIds]);
 
@@ -384,7 +393,7 @@ export const VulnVerifyV2TaskPage: React.FC<{ projectId: string }> = ({ projectI
   };
 
   const toggleAllVisible = () => {
-    const ids = filteredCases.map((x) => x.id);
+    const ids = pagedCases.map((x) => x.id);
     setSelectedCaseIds((prev) => {
       const all = ids.length > 0 && ids.every((id) => prev.has(id));
       const next = new Set(prev);
@@ -590,9 +599,9 @@ export const VulnVerifyV2TaskPage: React.FC<{ projectId: string }> = ({ projectI
               </button>
               <div className="relative min-w-[260px] flex-1">
                 <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-theme-text-muted" />
-                <input value={batchFilter} onChange={(e) => setBatchFilter(e.target.value)} placeholder="搜索 case_id / 标题 / 对象定位" className="w-full rounded-xl border border-theme-border bg-theme-surface py-2 pl-9 pr-3 text-sm text-theme-text-primary" />
+                <input value={batchFilter} onChange={(e) => { setBatchFilter(e.target.value); setBatchPage(1); }} placeholder="搜索 case_id / 标题 / 对象定位" className="w-full rounded-xl border border-theme-border bg-theme-surface py-2 pl-9 pr-3 text-sm text-theme-text-primary" />
               </div>
-              <span className="text-xs text-theme-text-muted">已选 {selectedCaseIds.size} / 可见 {filteredCases.length} / 总计 {pendingTotal}</span>
+              <span className="text-xs text-theme-text-muted">已选 {selectedCaseIds.size} / 本页 {pagedCases.length} / 筛选 {filteredCases.length} / 总计 {pendingTotal}</span>
               <button onClick={() => void runBatchCreate()} disabled={batchCreating || !selectedCaseIds.size} className="inline-flex items-center gap-2 rounded-xl bg-violet-500 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50">
                 {batchCreating ? <Loader2 size={16} className="animate-spin" /> : <CheckCircle2 size={16} />}开始创建
               </button>
@@ -613,7 +622,7 @@ export const VulnVerifyV2TaskPage: React.FC<{ projectId: string }> = ({ projectI
                         <th className="w-12 px-4 py-3">
                           <input
                             type="checkbox"
-                            checked={filteredCases.length > 0 && filteredCases.every((item) => selectedCaseIds.has(item.id))}
+                            checked={pagedCases.length > 0 && pagedCases.every((item) => selectedCaseIds.has(item.id))}
                             onChange={toggleAllVisible}
                             disabled={batchCreating}
                           />
@@ -627,7 +636,7 @@ export const VulnVerifyV2TaskPage: React.FC<{ projectId: string }> = ({ projectI
                       </tr>
                     </thead>
                     <tbody>
-                      {filteredCases.map((item) => {
+                      {pagedCases.map((item) => {
                         const codeRoot = resolveCaseCodeRoot(item);
                         return (
                           <tr key={item.id} className="border-b border-theme-border/60 hover:bg-theme-elevated/60">
@@ -659,6 +668,15 @@ export const VulnVerifyV2TaskPage: React.FC<{ projectId: string }> = ({ projectI
                   </table>
                 </div>
               )}
+              {!pendingLoading && pendingCases.length > 0 && filteredCases.length > 0 ? (
+                <div className="flex shrink-0 items-center justify-between border-t border-theme-border px-4 py-3 text-xs text-theme-text-muted">
+                  <span>第 {batchSafePage}/{batchTotalPages} 页，每页 {PENDING_CASE_PAGE_SIZE} 条</span>
+                  <div className="flex items-center gap-2">
+                    <button disabled={batchSafePage <= 1 || batchCreating} onClick={() => setBatchPage((p) => Math.max(1, p - 1))} className="rounded-lg border border-theme-border px-3 py-1 disabled:opacity-40">上一页</button>
+                    <button disabled={batchSafePage >= batchTotalPages || batchCreating} onClick={() => setBatchPage((p) => Math.min(batchTotalPages, p + 1))} className="rounded-lg border border-theme-border px-3 py-1 disabled:opacity-40">下一页</button>
+                  </div>
+                </div>
+              ) : null}
             </div>
 
             {batchResult ? (
