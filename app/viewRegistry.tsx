@@ -3,6 +3,7 @@ import { Settings } from 'lucide-react';
 import { api } from '../clients/api';
 import { WorkflowPlaceholder } from '../components/WorkflowPlaceholder';
 import { AssessmentLeaderboardPage } from '../pages/assessment/AssessmentLeaderboardPage';
+import { AgentTraceObserverPage } from '../pages/observe/AgentTraceObserverPage';
 import { DashboardPage } from '../pages/DashboardPage';
 import { HomePage } from '../pages/HomePage';
 import { ProjectMgmtPage } from '../pages/project/ProjectMgmtPage';
@@ -256,6 +257,7 @@ export const renderCurrentView = (ctx: ViewRegistryContext): React.ReactNode => 
     case 'assessment-coming-soon':
       return <AssessmentLeaderboardPage projectId={ctx.selectedProjectId} />;
     case 'observe-coming-soon':
+      return <AgentTraceObserverPage />;
     case 'skill-coming-soon':
       return <EmptyPlaceholderPage title="开发中" />;
     case 'developer-atomic-capability':
