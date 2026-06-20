@@ -515,6 +515,18 @@ export const VulnVerifyTaskPage: React.FC<{ projectId: string }> = ({ projectId 
       source_root: sourceRoot,
       reports_dir: reportsDir,
     });
+    // KISS 去重：创建任务后推进漏洞案例到 validation 阶段，
+    // 下次筛选 receive/triage 时即不再出现该案例。
+    const syncResp = await fetch(`${API_BASE}/api/vuln/cases/${encodeURIComponent(caseItem.id)}/auto-verify/sync`, {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify({ vuln_verify_task_id: task.id }),
+    });
+    try {
+      await handleResponse(syncResp);
+    } catch (e: any) {
+      throw new Error(`验证任务已创建(${task.id})但阶段推进失败：${e?.message || String(e)}`);
+    }
     return { task, sourceRoot, reportsDir };
   }, [projectId]);
 
@@ -1082,7 +1094,7 @@ export const VulnVerifyTaskPage: React.FC<{ projectId: string }> = ({ projectId 
                   将为已选的 <span className="font-black text-violet-400">{selectedPendingCases.length}</span> 个待验证漏洞生成验证任务。
                 </p>
                 <p className="mt-1 text-xs leading-5 text-theme-text-muted">
-                  任务创建后可在漏洞验证任务列表查看；系统仅从漏洞案例提取 source_root 和 reports_dir，其余参数使用默认值。
+                  任务创建后，对应漏洞将推进到「验证中」阶段，下次筛选不再重复出现；系统仅从漏洞案例提取 source_root 和 reports_dir，其余参数使用默认值。
                 </p>
               </div>
             </div>
