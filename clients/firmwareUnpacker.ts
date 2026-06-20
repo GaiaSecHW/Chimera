@@ -171,6 +171,17 @@ export interface FirmwareTaskEvent {
   owner_id: string | null;
   created_by: string | null;
   created_at: string | null;
+  recorder_instance_id: string | null;
+  recorder_hostname: string | null;
+  recorder_pod_name: string | null;
+  recorder_node_name: string | null;
+  recorder_pod_ip: string | null;
+  recorder_role: string | null;
+  origin_instance_id: string | null;
+  origin_hostname: string | null;
+  origin_pod_name: string | null;
+  origin_node_name: string | null;
+  origin_role: string | null;
 }
 
 export interface FirmwareTaskEventList {
@@ -885,6 +896,17 @@ const normalizeTaskEvent = (value: unknown): FirmwareTaskEvent => {
     owner_id: asNullableString(record.owner_id),
     created_by: asNullableString(record.created_by),
     created_at: asNullableString(record.created_at),
+    recorder_instance_id: asNullableString(record.recorder_instance_id),
+    recorder_hostname: asNullableString(record.recorder_hostname),
+    recorder_pod_name: asNullableString(record.recorder_pod_name),
+    recorder_node_name: asNullableString(record.recorder_node_name),
+    recorder_pod_ip: asNullableString(record.recorder_pod_ip),
+    recorder_role: asNullableString(record.recorder_role),
+    origin_instance_id: asNullableString(record.origin_instance_id),
+    origin_hostname: asNullableString(record.origin_hostname),
+    origin_pod_name: asNullableString(record.origin_pod_name),
+    origin_node_name: asNullableString(record.origin_node_name),
+    origin_role: asNullableString(record.origin_role),
   };
 };
 

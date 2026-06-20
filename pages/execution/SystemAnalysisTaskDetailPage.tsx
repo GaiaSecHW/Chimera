@@ -2296,7 +2296,17 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
                             const expanded = expandedTimelineEventId === event.id;
                             const payload = event.payload || event.payload_json || {};
                             const hasPayload = Object.keys(payload).length > 0;
-                            const sourceLabel = event.project_id || '-';
+                            const recorderName = event.recorder_pod_name || event.recorder_hostname || '-';
+                            const recorderRole = event.recorder_role || '-';
+                            const originName = event.origin_pod_name || event.origin_hostname || '-';
+                            const showOrigin = Boolean(
+                              (event.origin_pod_name || event.origin_hostname || event.origin_role)
+                              && (
+                                event.origin_pod_name !== event.recorder_pod_name
+                                || event.origin_hostname !== event.recorder_hostname
+                                || event.origin_role !== event.recorder_role
+                              )
+                            );
                             const auditEvent = isAgentKillTimelineEvent(event.event_type);
                             const auditSummary = auditEvent ? timelineAuditSummary(payload) : '';
                             return (
@@ -2312,7 +2322,13 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
                                     <div className="truncate font-semibold text-theme-text-primary" title={timelineMessageSummary(event)}>{timelineMessageSummary(event)}</div>
                                     {auditSummary ? <div className="mt-1 truncate text-[11px] font-medium text-rose-400" title={auditSummary}>{auditSummary}</div> : null}
                                   </td>
-                                  <td className="px-3 py-2 text-[11px] text-theme-text-muted"><div className="truncate font-mono" title={sourceLabel}>{sourceLabel}</div></td>
+                                  <td className="px-3 py-2 text-[11px] text-theme-text-muted">
+                                    <div className="truncate" title={`${recorderName} · ${recorderRole}`}>记录者：{recorderName} · {recorderRole}</div>
+                                    <div className="mt-0.5 truncate" title={event.recorder_node_name || '-'}>节点：{event.recorder_node_name || '-'}</div>
+                                    {showOrigin ? (
+                                      <div className="mt-0.5 truncate" title={`${originName} · ${event.origin_role || '-'}`}>来源：{originName} · {event.origin_role || '-'}</div>
+                                    ) : null}
+                                  </td>
                                   <td className="px-3 py-2 text-right">
                                     <div className="flex items-center justify-end gap-3">
                                       <button type="button" onClick={() => setExpandedTimelineEventId(expanded ? '' : event.id)} disabled={!hasPayload} className="text-[11px] font-semibold text-theme-text-muted transition hover:text-theme-text-primary disabled:opacity-30">{expanded ? '收起' : '查看'}</button>
