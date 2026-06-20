@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { AlertCircle, CheckCircle2, Clock3, Eye, FileText, Loader2, Plus, RefreshCw, RotateCcw, Search, ShieldCheck, Square, X, XCircle } from 'lucide-react';
 import { API_BASE, getHeaders, handleResponse } from '../../clients/base';
 import { vulnVerifyApi, VulnVerifyArtifact, VulnVerifyProjectStats, VulnVerifyReportData, VulnVerifyResult, VulnVerifyTask, VulnVerifyTaskDetail } from '../../clients/vulnVerify';
+import { vulnApi } from '../../clients/vuln';
 import { ExecutionTable, ExecutionTableHead, ExecutionTableTh, ExecutionTableTd, executionTableInteractiveRowClassName } from '../../components/execution/ExecutionTable';
 import { ServicePageTitle, useServiceBuildVersion } from '../../components/execution/ServiceBuildVersion';
 import { VulnVerifyReportView } from './VulnVerifyReportView';
@@ -92,7 +93,6 @@ interface BatchCreateResultItem {
   title?: string | null;
   taskId?: string;
   sourceRoot?: string;
-  reportsDir?: string;
   error?: string;
 }
 
@@ -218,17 +218,6 @@ function resolveCaseSourceRoot(item: PendingVerifyCase): string | null {
     metadata.verification_context?.source_root,
     metadata.source?.source_root,
     metadata.dataflow_vuln_scan?.source_root,
-  );
-}
-
-function resolveCaseReportsDir(item: PendingVerifyCase): string | null {
-  const metadata = item.metadata || {};
-  return firstNonEmptyString(
-    metadata.verification_context?.reports_dir,
-    metadata.dataflow_vuln_scan?.output_dir,
-    metadata.source?.reports_dir,
-    metadata.source?.output_dir,
-    metadata.source?.result_dir,
   );
 }
 
@@ -507,13 +496,14 @@ export const VulnVerifyTaskPage: React.FC<{ projectId: string }> = ({ projectId 
 
   const createCaseVerifyTask = useCallback(async (caseItem: PendingVerifyCase) => {
     const sourceRoot = resolveCaseSourceRoot(caseItem);
-    const reportsDir = resolveCaseReportsDir(caseItem);
     if (!sourceRoot) throw new Error('缺少 source_root');
-    if (!reportsDir) throw new Error('缺少 reports_dir');
+    const report = await vulnApi.getCaseReport(caseItem.id);
+    const rawReport = String(report?.content || '').trim();
+    if (!rawReport) throw new Error('缺少 raw_report');
     const task = await vulnVerifyApi.createTask(projectId, {
       name: getBatchTaskName(caseItem),
       source_root: sourceRoot,
-      reports_dir: reportsDir,
+      raw_report: rawReport,
     });
     // KISS 去重：创建任务后推进漏洞案例到 validation 阶段，
     // 下次筛选 receive/triage 时即不再出现该案例。
@@ -527,7 +517,7 @@ export const VulnVerifyTaskPage: React.FC<{ projectId: string }> = ({ projectId 
     } catch (e: any) {
       throw new Error(`验证任务已创建(${task.id})但阶段推进失败：${e?.message || String(e)}`);
     }
-    return { task, sourceRoot, reportsDir };
+    return { task, sourceRoot };
   }, [projectId]);
 
   const openBatchPanel = () => {
@@ -600,7 +590,6 @@ export const VulnVerifyTaskPage: React.FC<{ projectId: string }> = ({ projectId 
             title: item.title,
             taskId: String(data?.task?.id || ''),
             sourceRoot: data?.sourceRoot,
-            reportsDir: data?.reportsDir,
           });
         } catch (error: any) {
           results.push({
@@ -1094,7 +1083,7 @@ export const VulnVerifyTaskPage: React.FC<{ projectId: string }> = ({ projectId 
                   将为已选的 <span className="font-black text-violet-400">{selectedPendingCases.length}</span> 个待验证漏洞生成验证任务。
                 </p>
                 <p className="mt-1 text-xs leading-5 text-theme-text-muted">
-                  任务创建后，对应漏洞将推进到「验证中」阶段，下次筛选不再重复出现；系统仅从漏洞案例提取 source_root 和 reports_dir，其余参数使用默认值。
+                  任务创建后，对应漏洞将推进到「验证中」阶段，下次筛选不再重复出现；系统从漏洞案例提取 source_root，并将 case raw_report 作为验证输入，其余参数使用默认值。
                 </p>
               </div>
             </div>
