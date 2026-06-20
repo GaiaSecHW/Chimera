@@ -8,7 +8,8 @@ export type VulnVerifyStatus = 'pending' | 'running' | 'success' | 'failed' | 'c
 export interface VulnVerifyTaskCreateRequest {
   name: string;
   description?: string;
-  reports_dir: string;
+  reports_dir?: string;
+  raw_report?: string;
   source_root: string;
   binary_root?: string | null;
   threat_path?: string | null;
