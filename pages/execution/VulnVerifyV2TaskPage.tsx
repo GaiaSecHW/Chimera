@@ -66,6 +66,7 @@ interface TaskRuntime {
   status?: string | null;
   started_at?: string | null;
   completed_at?: string | null;
+  resolved_model?: string | null;
 }
 
 function fmtDate(value?: string | null): string {
@@ -251,7 +252,12 @@ export const VulnVerifyV2TaskPage: React.FC<{ projectId: string }> = ({ projectI
           const detail = await vulnVerifyV2Api.getTask(projectId, task.id);
           const attempts = detail.attempts || [];
           const latest = attempts[attempts.length - 1];
-          return [task.id, latest ? { status: latest.status, started_at: latest.started_at, completed_at: latest.completed_at } : null] as const;
+          return [task.id, latest ? {
+            status: latest.status,
+            started_at: latest.started_at,
+            completed_at: latest.completed_at,
+            resolved_model: typeof latest.result?.resolved_model === 'string' ? latest.result.resolved_model : null,
+          } : null] as const;
         } catch {
           return [task.id, null] as const;
         }
@@ -527,7 +533,16 @@ export const VulnVerifyV2TaskPage: React.FC<{ projectId: string }> = ({ projectI
                   </ExecutionTableTd>
                   <ExecutionTableTd><span className="font-mono text-xs">{task.case_id}</span></ExecutionTableTd>
                   <ExecutionTableTd><span className="line-clamp-2 max-w-[280px] text-xs text-theme-text-muted">{task.code_root}</span></ExecutionTableTd>
-                  <ExecutionTableTd>{task.model || <span className="text-theme-text-muted">默认</span>}</ExecutionTableTd>
+                  <ExecutionTableTd>
+                    {runtime?.resolved_model ? (
+                      <span className="font-mono text-xs text-theme-text-secondary">{runtime.resolved_model}</span>
+                    ) : task.model ? (
+                      <span className="font-mono text-xs text-theme-text-secondary">{task.model}</span>
+                    ) : (
+                      <span className="text-theme-text-muted">默认模型</span>
+                    )}
+                    {runtime?.resolved_model && !task.model ? <div className="mt-1 text-[11px] text-theme-text-muted">默认生效</div> : null}
+                  </ExecutionTableTd>
                   <ExecutionTableTd>
                     <span className="font-mono text-xs text-theme-text-secondary">{fmtRuntime(runtime)}</span>
                     {runtime?.status === 'running' ? <div className="mt-1 text-[11px] text-blue-400">执行中</div> : null}
