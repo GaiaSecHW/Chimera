@@ -618,8 +618,7 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
           className="min-h-0 flex-1 overflow-y-auto px-6 py-3 [&::-webkit-scrollbar]:hidden [scrollbar-width:none] [-ms-overflow-style:none]"
         >
           {/* =============== TAB: basic =============== */}
-          {activeCreateTab === 'basic' ? (
-            <div className="flex h-full flex-col space-y-3">
+            <div className="flex h-full flex-col space-y-3" style={{ display: activeCreateTab === 'basic' ? undefined : 'none' }}>
               {/* 任务名称 */}
               <label className="block text-sm font-semibold" style={{ color: LK.inkSoft }}>
                 任务名称
@@ -943,14 +942,11 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
                 </>
               )}
             </div>
-          ) : null}
 
           {/* =============== TAB: dynamic-env =============== */}
-          {activeCreateTab === 'dynamic-env' ? (
-            <div className="flex flex-col items-center gap-4 py-12">
-              <p className="text-sm" style={{ color: LK.muted }}>后续支持动态验证环境配置</p>
-            </div>
-          ) : null}
+          <div className="flex flex-col items-center gap-4 py-12" style={{ display: activeCreateTab === 'dynamic-env' ? undefined : 'none' }}>
+            <p className="text-sm" style={{ color: LK.muted }}>后续支持动态验证环境配置</p>
+          </div>
         </div>
 
         {/* footer */}
