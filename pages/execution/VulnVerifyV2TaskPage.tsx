@@ -517,9 +517,9 @@ export const VulnVerifyV2TaskPage: React.FC<{ projectId: string }> = ({ projectI
       </div>
 
       {batchOpen ? (
-        <div className="fixed inset-0 z-50 flex justify-end bg-black/60">
-          <div className="h-full w-full max-w-5xl overflow-y-auto border-l border-theme-border bg-theme-bg-app p-6 shadow-2xl">
-            <div className="mb-5 flex items-start justify-between gap-4">
+        <div className="fixed inset-0 z-50 bg-theme-bg-app">
+          <div className="flex h-full w-full flex-col overflow-hidden p-6 shadow-2xl">
+            <div className="mb-5 flex shrink-0 items-start justify-between gap-4">
               <div>
                 <h2 className="text-xl font-bold text-theme-text-primary">从待验证漏洞批量创建 v2 任务</h2>
                 <p className="mt-1 text-sm text-theme-text-muted">加载 receive / triage 阶段漏洞，创建成功后调用漏洞中心 auto-verify/sync 推进到 validation。</p>
@@ -527,7 +527,7 @@ export const VulnVerifyV2TaskPage: React.FC<{ projectId: string }> = ({ projectI
               <button onClick={() => setBatchOpen(false)} className="rounded-xl border border-theme-border p-2 text-theme-text-muted hover:bg-theme-elevated"><X size={18} /></button>
             </div>
 
-            <div className="mb-4 flex flex-wrap items-center gap-3">
+            <div className="mb-4 flex shrink-0 flex-wrap items-center gap-3">
               <button onClick={() => void fetchPendingCases()} className="inline-flex items-center gap-2 rounded-xl border border-theme-border bg-theme-surface px-4 py-2 text-sm font-semibold text-theme-text-secondary hover:bg-theme-elevated">
                 <RefreshCw size={16} className={pendingLoading ? 'animate-spin' : ''} />加载待验证漏洞
               </button>
@@ -541,7 +541,7 @@ export const VulnVerifyV2TaskPage: React.FC<{ projectId: string }> = ({ projectI
               </button>
             </div>
 
-            <div className="rounded-2xl border border-theme-border bg-theme-surface">
+            <div className="flex min-h-0 flex-1 flex-col rounded-2xl border border-theme-border bg-theme-surface">
               {pendingLoading ? (
                 <div className="flex items-center gap-2 p-8 text-sm text-theme-text-muted"><Loader2 size={14} className="animate-spin" />加载待验证漏洞...</div>
               ) : pendingCases.length === 0 ? (
@@ -549,8 +549,8 @@ export const VulnVerifyV2TaskPage: React.FC<{ projectId: string }> = ({ projectI
               ) : filteredCases.length === 0 ? (
                 <div className="p-10 text-center text-sm text-theme-text-muted">当前筛选条件下暂无待验证漏洞。</div>
               ) : (
-                <div className="max-h-[46vh] overflow-auto">
-                  <table className="w-full min-w-[980px] text-left text-xs">
+                <div className="min-h-0 flex-1 overflow-auto">
+                  <table className="w-full min-w-[1180px] text-left text-xs">
                     <thead className="sticky top-0 z-10 bg-theme-surface text-theme-text-muted">
                       <tr className="border-b border-theme-border">
                         <th className="w-12 px-4 py-3">
@@ -605,13 +605,13 @@ export const VulnVerifyV2TaskPage: React.FC<{ projectId: string }> = ({ projectI
             </div>
 
             {batchResult ? (
-              <div className="mt-5 rounded-2xl border border-theme-border bg-theme-surface p-4">
+              <div className="mt-4 max-h-48 shrink-0 overflow-hidden rounded-2xl border border-theme-border bg-theme-surface p-4">
                 <div className="mb-3 flex items-center gap-3 text-sm">
                   <span>总数 {batchResult.total}</span>
                   <span className="text-emerald-400">成功 {batchResult.success}</span>
                   <span className="text-rose-400">失败 {batchResult.failed}</span>
                 </div>
-                <div className="max-h-64 overflow-y-auto space-y-2 text-xs">
+                <div className="max-h-32 overflow-y-auto space-y-2 text-xs">
                   {batchResult.items.map((item) => (
                     <div key={item.caseId} className="rounded-xl border border-theme-border bg-theme-bg-app p-3">
                       <div className="flex items-center gap-2">
