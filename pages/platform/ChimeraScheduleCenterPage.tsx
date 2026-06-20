@@ -544,109 +544,6 @@ const DetailDrawer: React.FC<{
   );
 };
 
-const TaskTimelineModal: React.FC<{
-  open: boolean;
-  loading: boolean;
-  taskLabel: string;
-  events: ScheduleUserTaskEvent[];
-  onClose: () => void;
-}> = ({ open, loading, taskLabel, events, onClose }) => {
-  const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (!open) {
-      setSelectedEventId(null);
-    }
-  }, [open]);
-
-  if (!open) return null;
-
-  const selectedEvent = events.find((item) => item.id === selectedEventId) || events[0] || null;
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 backdrop-blur-[2px]">
-      <button className="absolute inset-0" aria-label="关闭任务时间线" onClick={onClose} />
-      <div className="relative mx-4 flex max-h-[88vh] w-full max-w-6xl flex-col overflow-hidden rounded-2xl border border-theme-border bg-theme-bg-app shadow-2xl">
-        <div className="flex items-center justify-between gap-4 border-b border-theme-border px-6 py-4">
-          <div>
-            <div className="text-xs font-semibold uppercase tracking-[0.2em] text-theme-text-muted">任务时间线</div>
-            <div className="mt-1 text-lg font-semibold text-theme-text-primary">{taskLabel}</div>
-          </div>
-          <button onClick={onClose} className="rounded-lg border border-theme-border p-2 text-theme-text-muted transition hover:bg-theme-elevated hover:text-theme-text-primary">
-            <X size={18} />
-          </button>
-        </div>
-
-        <div className="grid min-h-0 flex-1 gap-0 md:grid-cols-[1.2fr_0.9fr]">
-          <div className="min-h-0 overflow-y-auto border-r border-theme-border">
-            {loading ? (
-              <div className="px-6 py-12 text-center text-sm font-bold text-theme-text-muted">任务时间线加载中...</div>
-            ) : events.length === 0 ? (
-              <div className="px-6 py-12 text-center text-sm font-bold text-theme-text-muted">当前任务暂无可展示的时间线事件</div>
-            ) : (
-              <div className="divide-y divide-theme-border">
-                {events.map((event) => (
-                  <button
-                    key={event.id}
-                    type="button"
-                    onClick={() => setSelectedEventId(event.id)}
-                    className={`w-full px-6 py-4 text-left transition hover:bg-slate-100/80 ${selectedEvent?.id === event.id ? 'bg-slate-100/80' : ''}`}
-                  >
-                    <div className="flex items-start justify-between gap-4">
-                      <div className="min-w-0">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <span className="text-sm font-semibold text-theme-text-primary">{event.event_type}</span>
-                          <span className={`rounded-full border px-2 py-0.5 text-[11px] font-bold ${statusTone(event.result_status)}`}>
-                            {event.result_status}
-                          </span>
-                          {event.event_category ? (
-                            <span className="rounded-full border border-theme-border bg-theme-surface px-2 py-0.5 text-[11px] font-semibold text-theme-text-secondary">
-                              {event.event_category}
-                            </span>
-                          ) : null}
-                        </div>
-                        <div className="mt-2 text-sm text-theme-text-secondary">{event.message || '-'}</div>
-                        <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-theme-text-muted">
-                          <span>时间：{formatTime(event.created_at)}</span>
-                          <span>来源：{event.event_source}{event.actor ? ` / ${event.actor}` : ''}</span>
-                          <span>队列：{formatMainSyncQueue(event.sync_queue) || event.sync_queue || '-'}</span>
-                        </div>
-                      </div>
-                    </div>
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-
-          <div className="min-h-0 overflow-y-auto bg-theme-surface px-6 py-5">
-            <div className="text-xs font-semibold uppercase tracking-[0.2em] text-theme-text-muted">事件详情</div>
-            {selectedEvent ? (
-              <>
-                <div className="mt-4 space-y-2 text-sm text-theme-text-secondary">
-                  <div><span className="font-semibold text-theme-text-primary">事件类型：</span>{selectedEvent.event_type}</div>
-                  <div><span className="font-semibold text-theme-text-primary">结果：</span>{selectedEvent.result_status}</div>
-                  <div><span className="font-semibold text-theme-text-primary">发生时间：</span>{formatTime(selectedEvent.created_at)}</div>
-                  <div><span className="font-semibold text-theme-text-primary">下游任务：</span>{selectedEvent.downstream_task_id || '-'}</div>
-                  <div><span className="font-semibold text-theme-text-primary">Dispatch ID：</span>{selectedEvent.dispatch_id || '-'}</div>
-                </div>
-                <div className="mt-4 rounded-2xl border border-theme-border bg-theme-bg-app p-4">
-                  <div className="text-xs font-semibold uppercase tracking-[0.2em] text-theme-text-muted">Payload</div>
-                  <pre className="mt-3 overflow-auto whitespace-pre-wrap break-all text-xs text-theme-text-secondary">
-                    {JSON.stringify(selectedEvent.payload || {}, null, 2)}
-                  </pre>
-                </div>
-              </>
-            ) : (
-              <div className="mt-4 text-sm font-medium text-theme-text-muted">请选择左侧事件查看详情。</div>
-            )}
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-};
-
 export const ChimeraScheduleCenterPage: React.FC<ChimeraScheduleCenterPageProps> = ({ projects }) => {
   const scheduleApi = api.domains.platform.scheduleCenter;
   const [nav, setNav] = useState<OverviewNav>('overview');
@@ -677,10 +574,6 @@ export const ChimeraScheduleCenterPage: React.FC<ChimeraScheduleCenterPageProps>
   const [selectedTaskIds, setSelectedTaskIds] = useState<string[]>([]);
   const [selectAllMatching, setSelectAllMatching] = useState(false);
   const [detailOpen, setDetailOpen] = useState(false);
-  const [taskTimelineOpen, setTaskTimelineOpen] = useState(false);
-  const [taskTimelineLoading, setTaskTimelineLoading] = useState(false);
-  const [taskTimelineEvents, setTaskTimelineEvents] = useState<ScheduleUserTaskEvent[]>([]);
-  const [taskTimelineTaskLabel, setTaskTimelineTaskLabel] = useState('');
   const [loadingOverview, setLoadingOverview] = useState(false);
   const [loadingTable, setLoadingTable] = useState(false);
   const [loadingDetail, setLoadingDetail] = useState(false);
@@ -1015,29 +908,22 @@ export const ChimeraScheduleCenterPage: React.FC<ChimeraScheduleCenterPageProps>
     }
   };
 
-  const openTaskTimeline = async (item: Pick<ScheduleGlobalTaskListItem, 'project_id' | 'task_id' | 'task_name'>) => {
+  const openTaskTimeline = (item: Pick<ScheduleGlobalTaskListItem, 'project_id' | 'task_id'>) => {
     if (!item.project_id || !item.task_id) {
-      setError('缺少 project_id 或 task_id，暂时无法加载任务时间线');
+      setError('缺少 project_id 或 task_id，暂时无法跳转任务时间线');
       return;
     }
     startTransition(() => {
-      setTaskTimelineTaskLabel(item.task_name || item.task_id);
-      setTaskTimelineOpen(true);
-      setTaskTimelineLoading(true);
+      setFilters((current) => ({ ...current, projectId: item.project_id || current.projectId }));
     });
-    try {
-      const payload = await scheduleApi.listUserTaskEvents(item.project_id, item.task_id, {
-        page: 1,
-        page_size: 200,
-        only_failed: false,
-      }) as ScheduleUserTaskEventListResponse;
-      setTaskTimelineEvents(payload.items || []);
-    } catch (err: any) {
-      setTaskTimelineEvents([]);
-      setError(err?.message || '加载任务时间线失败');
-    } finally {
-      setTaskTimelineLoading(false);
-    }
+    window.dispatchEvent(new CustomEvent('chimera-navigate-view', {
+      detail: {
+        view: 'task-center-timeline',
+        projectId: item.project_id,
+        taskCenterTimelineTaskId: item.task_id,
+        taskCenterTimelineBackView: 'chimera-platform-schedule',
+      },
+    }));
   };
 
   const handleRetryDispatch = async (item: ScheduleGlobalTaskListItem | ScheduleGlobalTaskDetail | null) => {
@@ -2039,22 +1925,10 @@ export const ChimeraScheduleCenterPage: React.FC<ChimeraScheduleCenterPageProps>
           setSelectedTaskId('');
         }}
         onViewTimeline={() => {
-          if (selectedTaskDetail) void openTaskTimeline(selectedTaskDetail);
+          if (selectedTaskDetail) openTaskTimeline(selectedTaskDetail);
         }}
         onRetryDispatch={() => void handleRetryDispatch(selectedTaskDetail)}
         onDeleteTask={() => void handleDeleteTasks('selected', selectedTaskDetail)}
-      />
-
-      <TaskTimelineModal
-        open={taskTimelineOpen}
-        loading={taskTimelineLoading}
-        taskLabel={taskTimelineTaskLabel}
-        events={taskTimelineEvents}
-        onClose={() => {
-          setTaskTimelineOpen(false);
-          setTaskTimelineEvents([]);
-          setTaskTimelineTaskLabel('');
-        }}
       />
 
       {errorPopupText !== null ? (

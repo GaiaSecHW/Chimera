@@ -101,6 +101,7 @@ const AppShell: React.FC = () => {
   const [activeAppScanTaskId, setActiveAppScanTaskId] = useState<string>('');
   const [activeRedlineTaskId, setActiveRedlineTaskId] = useState<string>('');
   const [activeTaskCenterTimelineTaskId, setActiveTaskCenterTimelineTaskId] = useState<string>('');
+  const [activeTaskCenterTimelineBackView, setActiveTaskCenterTimelineBackView] = useState<string>('task-list');
   const [activeTaskVulnListTaskId, setActiveTaskVulnListTaskId] = useState<string>('');
   const [isLoading, setIsLoading] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -247,6 +248,7 @@ const AppShell: React.FC = () => {
     const handleNavigateView = (event: Event) => {
       const detail = (event as CustomEvent<{
         view?: string;
+        projectId?: string;
         helperKey?: string;
         processMonitorServiceKey?: string;
         b2sTaskId?: string;
@@ -264,10 +266,15 @@ const AppShell: React.FC = () => {
         redlineTaskId?: string;
         appScanTaskId?: string;
         taskCenterTimelineTaskId?: string;
+        taskCenterTimelineBackView?: string;
         taskVulnListTaskId?: string;
         path?: string;
       }>).detail;
       const nextView = String(detail?.view || '').trim();
+      const nextProjectId = String(detail?.projectId || '').trim();
+      if (nextProjectId) {
+        setSelectedProjectId(nextProjectId);
+      }
       const requestedPath = String(detail?.path || '').trim();
       const b2sTaskId = String(detail?.b2sTaskId || '').trim();
       if (b2sTaskId) {
@@ -320,6 +327,7 @@ const AppShell: React.FC = () => {
       const taskCenterTimelineTaskId = String(detail?.taskCenterTimelineTaskId || '').trim();
       if (taskCenterTimelineTaskId) {
         setActiveTaskCenterTimelineTaskId(taskCenterTimelineTaskId);
+        setActiveTaskCenterTimelineBackView(String(detail?.taskCenterTimelineBackView || '').trim() || 'task-list');
       }
       const taskVulnListTaskId = String(detail?.taskVulnListTaskId || '').trim();
       if (taskVulnListTaskId) {
@@ -749,6 +757,7 @@ const AppShell: React.FC = () => {
                     setActiveAppScanTaskId: (id) => setActiveAppScanTaskId(id),
                     setActiveRedlineTaskId: (id) => setActiveRedlineTaskId(id),
                     setActiveTaskCenterTimelineTaskId: (id) => setActiveTaskCenterTimelineTaskId(id),
+                    activeTaskCenterTimelineBackView,
                     setActiveTaskVulnListTaskId: (id) => setActiveTaskVulnListTaskId(id),
                     setSelectedStaticPkgIds: (ids) => setSelectedStaticPkgIds(ids),
                     fetchProjects,

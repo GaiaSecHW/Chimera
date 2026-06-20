@@ -155,6 +155,7 @@ export interface ViewRegistryContext {
   activeAppScanTaskId: string;
   activeRedlineTaskId: string;
   activeTaskCenterTimelineTaskId: string;
+  activeTaskCenterTimelineBackView?: string;
   activeTaskVulnListTaskId: string;
   selectedStaticPkgIds: Set<string>;
   setCurrentView: (view: string) => void;
@@ -297,7 +298,7 @@ export const renderCurrentView = (ctx: ViewRegistryContext): React.ReactNode => 
         <TaskCenterTimelinePage
           projectId={ctx.selectedProjectId}
           taskId={ctx.activeTaskCenterTimelineTaskId}
-          onBack={() => ctx.setCurrentView('task-list')}
+          onBack={() => ctx.setCurrentView((ctx.activeTaskCenterTimelineBackView as any) || 'task-list')}
         />
       );
     case 'task-vuln-list':
