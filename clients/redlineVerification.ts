@@ -45,6 +45,8 @@ export interface RedlineTaskAgent {
   isSuccess?: boolean;
   result?: string;
   errorMessage?: string;
+  vulnReportStatus?: string;
+  vulnId?: string;
   startedAt?: string;
   completedAt?: string;
 }
@@ -256,6 +258,17 @@ export const redlineVerificationApi = {
 
   resetAndExecute: async (taskId: string): Promise<{ code: number; message: string; data: any }> => {
     const resp = await fetch(`${BASE}/tasks/${taskId}/reset-and-execute`, {
+      method: 'POST',
+      headers: getHeaders(),
+    });
+    return handleResponse(resp);
+  },
+
+  reportVuln: async (
+    taskId: string,
+    executionId: string,
+  ): Promise<{ code: number; message: string; data: { vulnReportStatus?: string; vulnId?: string } | null }> => {
+    const resp = await fetch(`${BASE}/tasks/${taskId}/agents/${executionId}/vuln-report`, {
       method: 'POST',
       headers: getHeaders(),
     });
