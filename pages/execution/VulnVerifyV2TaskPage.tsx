@@ -403,6 +403,11 @@ export const VulnVerifyV2TaskPage: React.FC<{ projectId: string }> = ({ projectI
   const selectedResult = detailResults[0];
   const raw = selectedResult?.raw_result || {};
   const dimensions = (raw.dimensions || selectedResult?.dimensions || {}) as Record<string, { status?: boolean | null; detail?: string }>;
+  const totalVulns = Number(stats?.total_tasks ?? total ?? 0);
+  const confirmedVulns = Number(stats?.confirmed_count ?? stats?.confirmed ?? stats?.verdict_counts?.confirmed ?? 0);
+  const ruledOutVulns = Number(stats?.ruled_out_count ?? stats?.ruled_out ?? stats?.verdict_counts?.ruled_out ?? 0);
+  const unresolvedVulnsFromStats = Number(stats?.unresolved_count ?? stats?.unresolved ?? stats?.verdict_counts?.unresolved ?? 0);
+  const pendingConfirmVulns = Math.max(0, totalVulns - confirmedVulns - ruledOutVulns);
 
   return (
     <div className="min-h-full bg-theme-bg-app text-theme-text-primary">
@@ -425,12 +430,11 @@ export const VulnVerifyV2TaskPage: React.FC<{ projectId: string }> = ({ projectI
 
         {message ? <div className="rounded-2xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-200">{message}</div> : null}
 
-        <div className="grid gap-4 md:grid-cols-5">
-          <SummaryCard label="总任务" value={stats?.total_tasks ?? total} />
-          <SummaryCard label="等待中" value={stats?.pending ?? 0} accent="amber" />
-          <SummaryCard label="执行中" value={stats?.running ?? 0} accent="blue" />
-          <SummaryCard label="成功" value={stats?.success ?? 0} accent="emerald" />
-          <SummaryCard label="失败/取消" value={(stats?.failed ?? 0) + (stats?.cancelled ?? 0)} accent="rose" />
+        <div className="grid gap-4 md:grid-cols-4">
+          <SummaryCard label="总漏洞" value={totalVulns} hint="已创建 v2 验证任务的漏洞数" />
+          <SummaryCard label="已确认" value={confirmedVulns} accent="rose" hint="verdict = confirmed" />
+          <SummaryCard label="已排除" value={ruledOutVulns} accent="emerald" hint="verdict = ruled_out" />
+          <SummaryCard label="待确认" value={pendingConfirmVulns} accent="amber" hint={unresolvedVulnsFromStats ? `其中不可证 ${unresolvedVulnsFromStats}` : '尚无 confirmed/ruled_out 结论'} />
         </div>
 
         <section className="rounded-2xl border border-theme-border bg-theme-surface p-4">

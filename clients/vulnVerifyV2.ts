@@ -78,6 +78,12 @@ export interface VulnVerifyV2ProjectStats {
   failed: number;
   cancelled: number;
   total_results: number;
+  confirmed?: number;
+  ruled_out?: number;
+  unresolved?: number;
+  confirmed_count?: number;
+  ruled_out_count?: number;
+  unresolved_count?: number;
   verdict_counts?: Record<string, number>;
 }
 
