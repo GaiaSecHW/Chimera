@@ -600,6 +600,40 @@ const fetchRunDetailWithFallback = async <T,>(runId: string): Promise<T> => {
   return handleResponse(fallback);
 };
 
+const asRecord = (value: unknown): Record<string, unknown> => (
+  value && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, unknown> : {}
+);
+
+const asString = (value: unknown, fallback = ''): string => (
+  typeof value === 'string' ? value : value == null ? fallback : String(value)
+);
+
+const asNullableString = (value: unknown): string | null => {
+  const normalized = asString(value).trim();
+  return normalized ? normalized : null;
+};
+
+const normalizeHealth = (value: unknown): DataflowVulnScanHealth => {
+  const record = asRecord(value);
+  return {
+    status: asString(record.status, typeof value === 'string' ? value : 'unknown'),
+    pod_id: asString(record.pod_id),
+    database: asString(record.database),
+    scheduler: asString(record.scheduler),
+    scheduler_role: asNullableString(record.scheduler_role),
+    worker_enabled: asNullableString(record.worker_enabled),
+    service_id: asNullableString(record.service_id),
+    service_name: asNullableString(record.service_name),
+    build_version: asNullableString(record.build_version),
+    service_version: asNullableString(record.service_version),
+    image_tag: asNullableString(record.image_tag),
+    git_tag: asNullableString(record.git_tag),
+    git_commit: asNullableString(record.git_commit),
+    built_at: asNullableString(record.built_at),
+    version: asNullableString(record.version),
+  };
+};
+
 const unwrapList = <T,>(payload: unknown): T[] => {
   if (Array.isArray(payload)) return payload as T[];
   if (!payload || typeof payload !== 'object') return [];
@@ -657,7 +691,7 @@ const unwrapPagedList = <T,>(
 export const dataflowVulnScannerApi = {
   getHealth: async (): Promise<DataflowVulnScanHealth> => {
     const response = await fetch(`${PREFIX}/health`, { headers: getHeaders() });
-    return handleResponse(response);
+    return normalizeHealth(await handleResponse<unknown>(response));
   },
 
   getCapabilities: async (): Promise<Record<string, any>> => {

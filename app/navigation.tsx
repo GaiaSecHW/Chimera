@@ -114,10 +114,10 @@ export const NAV_ROLE_CONFIG: Record<string, { label: string; color: string; act
 export const TOP_LEVEL_NAV_ITEMS: TopLevelNavItem[] = [
   { id: 'home', label: '首页', role: null },
   { id: 'project-mgmt-nav', label: '项目管理', role: null },
-  { id: 'test-object', label: '测试对象', role: null },
   { id: 'test-task', label: '测试任务', role: null },
-  { id: 'test-env', label: '测试环境', role: null },
   { id: 'vuln-center', label: '漏洞中心', role: null },
+  { id: 'test-object', label: '测试对象', role: null },
+  { id: 'test-env', label: '测试环境', role: null },
   { id: 'assets', label: '资产', role: 'developer', showDividerBefore: true },
   { id: 'assessment', label: '评测', role: 'developer' },
   { id: 'observe', label: '观测', role: 'developer' },
@@ -187,6 +187,7 @@ export const PROJECT_REQUIRED_VIEWS = new Set<string>([
   'cfg-guided-explore-config',
   'pentest-vuln-verify',
   'vuln-verify-task',
+  'pentest-vuln-verify-v2',
   'entry-analysis-root',
   'entry-analysis-task',
   'entry-analysis-config',
@@ -281,6 +282,7 @@ const DEVELOPER_ATOMIC_CAPABILITY_VIEWS = new Set<string>([
   'cfg-guided-explore-config',
   'pentest-vuln-verify',
   'vuln-verify-task',
+  'pentest-vuln-verify-v2',
 ]);
 
 const DEVELOPER_TOOL_VIEWS = new Set<string>([
@@ -353,8 +355,8 @@ const EVOLUTION_VIEWS = new Set([
   'binary-security-config',
   'binary-security-metrics',
   'secocto-overview',
-  'secocto-browse',
-  'secocto-cards',
+  'secocto-skills',
+  'secocto-memories',
   'secocto-vulns',
 ]);
 
@@ -548,6 +550,7 @@ export const SIDEBAR_SECTIONS: Record<string, NavSection[]> = {
         { id: 'pentest-dataflow-vuln-scan', label: '数据流漏洞挖掘', icon: Zap, aliases: ['dataflow-vuln-scan-task', 'dataflow-vuln-scan-detail', 'dataflow-vuln-scan-config'], requiresProject: true },
         { id: 'pentest-cfg-guided-explore', label: 'CFG Guided Explore', icon: Zap, aliases: ['cfg-guided-explore-task', 'cfg-guided-explore-detail', 'cfg-guided-explore-config'], requiresProject: true },
         { id: 'pentest-vuln-verify', label: '漏洞验证', icon: Zap, aliases: ['vuln-verify-task'], requiresProject: true },
+        { id: 'pentest-vuln-verify-v2', label: '漏洞验证v2', icon: Zap, requiresProject: true },
       ],
     },
   ],
@@ -596,11 +599,11 @@ const SYSTEM_ADMIN_SIDEBAR_MAP: Record<string, NavSection[]> = {
       ],
     },
     {
-      title: 'SecEvo',
+      title: 'SecOcto',
       items: [
         { id: 'secocto-overview', label: '总览', icon: LayoutDashboard },
-        { id: 'secocto-browse', label: '技能进化', icon: GraduationCap },
-        { id: 'secocto-cards', label: '记忆进化', icon: Brain },
+        { id: 'secocto-skills', label: '技能进化', icon: GraduationCap },
+        { id: 'secocto-memories', label: '记忆进化', icon: Brain },
         { id: 'secocto-vulns', label: '漏洞管理', icon: ShieldAlert },
       ],
     },

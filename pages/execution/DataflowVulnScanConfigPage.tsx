@@ -57,6 +57,9 @@ const defaultConfig = (): AppDfaServiceConfig => ({
   max_trace_depth: 5,
   deep_trace_enabled: false,
   callee_concurrency: 4,
+  entry_screen_enabled: false,
+  entry_screen_whitelist: ['recv', 'read', 'proc', 'process', 'handle', 'parse', 'decode', 'dispatch', 'on_', 'callback', 'ioctl', 'input', 'msg', 'packet', 'request', 'cmd'],
+  entry_screen_thinking_level: 'off',
   workers: defaultRole(),
   judges: { ...defaultRole(), agents: [] },
   output_dir: '/data/output',
@@ -97,6 +100,44 @@ const ModelSelect: React.FC<{ value: string; options: string[]; onChange: (v: st
       <option value="">— 选择模型 —</option>
       {allOpts.map((opt) => <option key={opt} value={opt}>{opt}</option>)}
     </select>
+  );
+};
+
+const KeywordListEditor: React.FC<{ value: string[]; onChange: (v: string[]) => void }> = ({ value, onChange }) => {
+  const [input, setInput] = React.useState('');
+  const add = () => {
+    const kw = input.trim().toLowerCase();
+    if (!kw) return;
+    if (!value.includes(kw)) onChange([...value, kw]);
+    setInput('');
+  };
+  const remove = (kw: string) => onChange(value.filter((k) => k !== kw));
+  return (
+    <div className="space-y-2">
+      <div className="flex flex-wrap gap-2">
+        {value.length === 0 ? (
+          <span className="text-xs text-theme-text-muted">（暂无关键字，所有根函数都将走 agent 判断）</span>
+        ) : value.map((kw) => (
+          <span key={kw} className="inline-flex items-center gap-1 rounded-full border border-theme-border bg-theme-elevated px-3 py-1 text-xs text-theme-text-secondary">
+            {kw}
+            <button type="button" onClick={() => remove(kw)} className="text-red-400 hover:text-red-300"><Trash2 size={11} /></button>
+          </span>
+        ))}
+      </div>
+      <div className="flex items-center gap-2">
+        <input
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); add(); } }}
+          placeholder="输入关键字后回车，如 recv / handle"
+          className="flex-1 rounded-lg border border-theme-border px-3 py-2 text-sm"
+        />
+        <button type="button" onClick={add}
+          className="inline-flex items-center gap-1.5 rounded-xl border border-dashed border-theme-border px-4 py-2 text-sm text-theme-text-muted hover:bg-theme-elevated">
+          <Plus size={14} /> 添加
+        </button>
+      </div>
+    </div>
   );
 };
 
@@ -150,9 +191,9 @@ const RoleConfigBlock: React.FC<{
   </SectionCard>
 );
 
-type DfaPanelKey = 'basic' | 'analysis' | 'retry' | 'workers';
+type DfaPanelKey = 'basic' | 'analysis' | 'entry' | 'retry' | 'workers';
 
-const DFA_PANEL_KEYS: DfaPanelKey[] = ['basic', 'analysis', 'retry', 'workers'];
+const DFA_PANEL_KEYS: DfaPanelKey[] = ['basic', 'analysis', 'entry', 'retry', 'workers'];
 
 const applyDfaPanel = (
   base: AppDfaServiceConfig,
@@ -174,6 +215,13 @@ const applyDfaPanel = (
         max_trace_depth: source.max_trace_depth,
         deep_trace_enabled: source.deep_trace_enabled,
         callee_concurrency: source.callee_concurrency,
+      };
+    case 'entry':
+      return {
+        ...base,
+        entry_screen_enabled: source.entry_screen_enabled,
+        entry_screen_whitelist: source.entry_screen_whitelist,
+        entry_screen_thinking_level: source.entry_screen_thinking_level,
       };
     case 'retry':
       return {
@@ -446,6 +494,36 @@ export const DataflowVulnScanConfigPage: React.FC<{ projectId: string; embedded?
                 <NumberInput value={config.callee_concurrency} min={1} max={64} onChange={(v) => patch({ callee_concurrency: v })} />
               </FieldRow>
             </div>
+          </SectionCard>
+
+          {/* 入口快速筛查 */}
+          <SectionCard
+            title="入口快速筛查"
+            subtitle="分析前先判断根函数是否为模块入口，非入口直接以 PASSED 结束（跳过数据流分析）"
+            actions={(
+              <PanelActions
+                saving={savingPanel === 'entry'}
+                onSave={() => { void handlePanelSave('entry', '入口快速筛查'); }}
+                onReset={() => handlePanelReset('entry', '入口快速筛查')}
+              />
+            )}
+          >
+            <FieldRow label="entry_screen_enabled" hint="开启后：函数名命中白名单直接放行；未命中则用一轮独立提示词的 agent 判断是否为模块入口">
+              <label className="inline-flex cursor-pointer items-center gap-3 rounded-lg border border-theme-border px-3 py-2">
+                <div className="relative">
+                  <input type="checkbox" className="peer sr-only" checked={!!config.entry_screen_enabled} onChange={(e) => patch({ entry_screen_enabled: e.target.checked })} />
+                  <div className="h-6 w-11 rounded-full bg-theme-elevated peer-checked:bg-violet-600 transition-colors" />
+                  <div className="absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-theme-bg-app shadow transition-transform peer-checked:translate-x-5" />
+                </div>
+                <span className="text-sm text-theme-text-secondary">{config.entry_screen_enabled ? '入口快速筛查已开启' : '入口快速筛查已关闭'}</span>
+              </label>
+            </FieldRow>
+            <div className="mt-4 rounded-2xl border border-amber-500/20 bg-amber-500/15 px-4 py-3 text-sm leading-6 text-amber-500">
+              非入口判定为 <b>保守优先</b>：拿不准 / 信息不足 / 任何异常都会按「是入口」继续分析，避免误杀真实入口。被判为非入口的任务状态仍为 <b>PASSED</b>，并在日志 / 报告中注明「非入口」及理由。
+            </div>
+            <FieldRow label="entry_screen_whitelist" hint="函数名（大小写不敏感子串）命中任一关键字即直接判为入口、跳过 agent（0 token）">
+              <KeywordListEditor value={config.entry_screen_whitelist ?? []} onChange={(v) => patch({ entry_screen_whitelist: v })} />
+            </FieldRow>
           </SectionCard>
 
           {/* 重试配置 */}

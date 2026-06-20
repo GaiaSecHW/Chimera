@@ -3439,7 +3439,20 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
       _key: event.id ||`${event.event_type || 'event'}-${event.created_at || index}-${index}`,
       _index: (Math.max(1, timelinePage) - 1) * Math.max(1, timelinePageSize) + index + 1,
       _eventLabel: formatTimelineEventTypeLabel(event.event_type),
-      _sourceLabel: event.item_key || event.item_id || event.payload?.item_key || event.payload?.downstream_task_id || '-',
+      _recorderName: event.recorder_pod_name || event.recorder_hostname || '-',
+      _recorderRole: event.recorder_role || null,
+      _recorderNode: event.recorder_node_name || null,
+      _originName: event.origin_pod_name || event.origin_hostname || null,
+      _originRole: event.origin_role || null,
+      _originNode: event.origin_node_name || null,
+      _showOrigin: Boolean(
+        (event.origin_pod_name || event.origin_hostname || event.origin_role)
+        && (
+          (event.origin_pod_name || event.origin_hostname || '') !== (event.recorder_pod_name || event.recorder_hostname || '')
+          || (event.origin_role || '') !== (event.recorder_role || '')
+        )
+      ),
+      _sourceLabel: event.recorder_pod_name || event.recorder_hostname || event.item_key || event.item_id || event.payload?.item_key || event.payload?.downstream_task_id || '-',
       _repeatCount: Math.max(1, Number(event.repeat_count || 1)),
       _isCompressed: Boolean(event.compressed),
     }));
@@ -6014,8 +6027,20 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                                   </div>
                                 </td>
                                 <td className="px-3 py-2 text-[11px] text-theme-text-muted">
-                                  <div className="truncate font-mono" title={event._sourceLabel}>
-                                    {event._sourceLabel}
+                                  <div className="space-y-1">
+                                    <div className="truncate font-mono" title={event._recorderName}>
+                                      记录者: {event._recorderName}{event._recorderRole ? ` · ${event._recorderRole}` : ''}
+                                    </div>
+                                    {event._recorderNode ? (
+                                      <div className="truncate" title={event._recorderNode}>
+                                        节点: {event._recorderNode}
+                                      </div>
+                                    ) : null}
+                                    {event._showOrigin ? (
+                                      <div className="truncate font-mono" title={event._originName || '-'}>
+                                        来源: {event._originName || '-'}{event._originRole ? ` · ${event._originRole}` : ''}
+                                      </div>
+                                    ) : null}
                                   </div>
                                 </td>
                                 <td className="px-3 py-2 text-right">

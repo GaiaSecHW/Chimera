@@ -32,6 +32,7 @@ import { api } from '../../clients/api';
 import { authApi } from '../../clients/auth';
 import { API_BASE } from '../../clients/base';
 import { Modal, PageHeader, PageSection, SegmentedControl, StatisticCard } from '../../design-system';
+import { ServiceBuildVersionBadge, useServiceBuildVersion } from '../../components/execution/ServiceBuildVersion';
 import { useUiFeedback } from '../../components/UiFeedback';
 
 const vulnApi = api.domains.vuln;
@@ -514,6 +515,7 @@ const DetailSectionCard: React.FC<{
 
 export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateToView }) => {
   const [rootTab, setRootTab] = useState<IntakeRootTab>('cases');
+  const buildVersion = useServiceBuildVersion(vulnApi.vuln.getHealth);
   const { confirm, feedbackNodes } = useUiFeedback();
   const [loading, setLoading] = useState(true);
   const [detailLoading, setDetailLoading] = useState(false);
@@ -2508,7 +2510,12 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
       {!selectedSuspicionId ? (
         <>
           <PageHeader
-            title="漏洞中心"
+            title={(
+              <span className="inline-flex flex-wrap items-center gap-3">
+                <span>漏洞中心</span>
+                <ServiceBuildVersionBadge version={buildVersion} />
+              </span>
+            )}
             description="统一管理当前项目的漏洞生命周期，覆盖上报、研判、验证与处置全流程"
           />
           {rootTab === 'download-center' ? renderDownloadCenter() : (

@@ -65,6 +65,7 @@ export const TaskConfigStep: React.FC<Props> = ({ taskId, task, onTaskUpdated, o
   // Parse state
   const [parseStatus, setParseStatus] = useState<string>(task.status);
   const [parseError, setParseError] = useState<string | null>(task.parseErrorMessage || null);
+  const [execError, setExecError] = useState<string | null>(task.execErrorMessage || null);
   const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // Agent state
@@ -148,7 +149,11 @@ export const TaskConfigStep: React.FC<Props> = ({ taskId, task, onTaskUpdated, o
           if (status === 'PARSED' || status === 'FAILED' || status === 'UPLOAD_FAILED') {
             stopPolling();
             if (status === 'FAILED' || status === 'UPLOAD_FAILED') {
-              setParseError(res.data.parseErrorMessage || '解析失败');
+              if (res.data.execErrorMessage) {
+                setExecError(res.data.execErrorMessage);
+              } else {
+                setParseError(res.data.parseErrorMessage || '解析失败');
+              }
             }
             onTaskUpdated();
             if (status === 'PARSED') { loadAgentsAndVariables(); }
@@ -335,7 +340,11 @@ export const TaskConfigStep: React.FC<Props> = ({ taskId, task, onTaskUpdated, o
           </button>
         </div>
       )}
-      {isFailed && <div className="flex items-center gap-2 text-sm text-red-500"><XCircle className="w-4 h-4 flex-shrink-0" /><span>解析失败{parseError ?`: ${parseError}` : ''}</span></div>}
+      {isFailed && (
+        execError
+          ? <div className="flex items-center gap-2 text-sm text-red-500"><XCircle className="w-4 h-4 flex-shrink-0" /><span>无法执行: {execError}</span></div>
+          : <div className="flex items-center gap-2 text-sm text-red-500"><XCircle className="w-4 h-4 flex-shrink-0" /><span>解析失败{parseError ? `: ${parseError}` : ''}</span></div>
+      )}
 
       {/* Env Check Alert */}
       {isParsed && envCheckFailed && (

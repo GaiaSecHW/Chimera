@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { AlertTriangle, BarChart3, RefreshCw, ShieldAlert, TrendingUp } from 'lucide-react';
 import { PageHeader } from '../../design-system';
 import { api } from '../../clients/api';
+import { ServiceBuildVersionBadge, useServiceBuildVersion } from '../../components/execution/ServiceBuildVersion';
 import {
   ACTION_STATUS_LABELS,
   FINISHED_REASON_LABELS,
@@ -56,6 +57,7 @@ const STAGE_EXPLANATIONS: Record<string, string> = {
 };
 
 export const VulnOverviewPage: React.FC<VulnPageProps> = ({ projectId }) => {
+  const buildVersion = useServiceBuildVersion(vulnApi.vuln.getHealth);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [overview, setOverview] = useState<any | null>(null);
@@ -113,7 +115,12 @@ export const VulnOverviewPage: React.FC<VulnPageProps> = ({ projectId }) => {
       style={{ backgroundColor: LK.canvas, minHeight: '100%', color: LK.inkSoft }}
     >
       <PageHeader
-        title="漏洞生命周期指挥台"
+        title={(
+          <span className="inline-flex flex-wrap items-center gap-3">
+            <span>漏洞生命周期指挥台</span>
+            <ServiceBuildVersionBadge version={buildVersion} />
+          </span>
+        )}
         description="把阶段堆积、风险密度、队列压力和结论收敛压缩到一屏内，快速判断项目当前最需要介入的位置。"
         actions={<div className="flex flex-wrap items-center gap-3">
           <div

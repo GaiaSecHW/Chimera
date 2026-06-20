@@ -2641,6 +2641,17 @@ function TaskDetailPanel({
                         {timelineItems.map((event) => {
                           const expanded = expandedEventKey === event._key;
                           const detailRows = eventDetailRows(event.detail);
+                          const recorderName = event.recorder_pod_name || event.recorder_hostname || '-';
+                          const recorderRole = event.recorder_role || '-';
+                          const originName = event.origin_pod_name || event.origin_hostname || '-';
+                          const showOrigin = Boolean(
+                            (event.origin_pod_name || event.origin_hostname || event.origin_role)
+                            && (
+                              event.origin_pod_name !== event.recorder_pod_name
+                              || event.origin_hostname !== event.recorder_hostname
+                              || event.origin_role !== event.recorder_role
+                            )
+                          );
                           return (
                             <React.Fragment key={event._key}>
                               <tr className="align-middle hover:bg-slate-100/80">
@@ -2677,11 +2688,19 @@ function TaskDetailPanel({
                                   </div>
                                 </td>
                                 <td className="max-w-[176px] px-3 py-2 text-[11px] text-theme-text-muted">
-                                  <div className="truncate" title={event.created_by || '-'}>
-                                    {event.created_by || '-'}
+                                  <div className="truncate" title={`${recorderName} · ${recorderRole}`}>
+                                    记录者：{recorderName} · {recorderRole}
                                   </div>
+                                  <div className="mt-0.5 truncate" title={event.recorder_node_name || '-'}>
+                                    节点：{event.recorder_node_name || '-'}
+                                  </div>
+                                  {showOrigin ? (
+                                    <div className="mt-0.5 truncate" title={`${originName} · ${event.origin_role || '-'}`}>
+                                      来源：{originName} · {event.origin_role || '-'}
+                                    </div>
+                                  ) : null}
                                   {event.owner_id ? (
-                                    <div className="mt-0.5 truncate font-mono text-[10px] text-theme-text-muted" title={event.owner_id}>
+                                    <div className="mt-1 truncate font-mono text-[10px] text-theme-text-muted" title={event.owner_id}>
                                       {event.owner_id}
                                     </div>
                                   ) : null}

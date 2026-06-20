@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { AlertTriangle, CheckCircle2, Cpu, RefreshCw, Sparkles } from 'lucide-react';
 import { Modal, PageHeader } from '../../design-system';
 import { api } from '../../clients/api';
+import { ServiceBuildVersionBadge, useServiceBuildVersion } from '../../components/execution/ServiceBuildVersion';
 
 const LK = {
   primary: '#4f73ff',
@@ -143,6 +144,7 @@ export const VulnEnginePage: React.FC<VulnEnginePageProps> = ({
   detailEntryLabel = '查看详情',
   summaryCards = [],
 }) => {
+  const buildVersion = useServiceBuildVersion(vulnApi.vuln.getHealth);
   const mergedServiceForm = useMemo(
     () => ({ ...DEFAULT_SERVICE_FORM, ...(initialServiceForm || {}) }),
     [initialServiceForm],
@@ -1039,9 +1041,14 @@ export const VulnEnginePage: React.FC<VulnEnginePageProps> = ({
         : effectiveListEntryMode
           ? 'p-6 pb-16 space-y-5'
           : 'p-10 pb-24 space-y-8'
-    }`} style={{ backgroundColor: LK.canvas, color: LK.inkSoft }}>
+      }`} style={{ backgroundColor: LK.canvas, color: LK.inkSoft }}>
       <PageHeader
-        title={pageTitle}
+        title={(
+          <span className="inline-flex flex-wrap items-center gap-3">
+            <span>{pageTitle}</span>
+            <ServiceBuildVersionBadge version={buildVersion} />
+          </span>
+        )}
         description={pageDescription}
         actions={<button
           onClick={refreshAll}

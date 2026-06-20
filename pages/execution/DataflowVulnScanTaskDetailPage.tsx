@@ -259,6 +259,22 @@ function timelineMessageSummary(event: AppDfaTaskEvent) {
   return summary || event.message || '-';
 }
 
+function timelineRecorderLabel(event: AppDfaTaskEvent) {
+  const primary = event.recorder_pod_name || event.recorder_hostname || '-';
+  const role = event.recorder_role || '-';
+  return `记录者: ${primary} · ${role}`;
+}
+
+function timelineOriginLabel(event: AppDfaTaskEvent) {
+  const primary = event.origin_pod_name || event.origin_hostname;
+  const role = event.origin_role;
+  if (!primary && !role) return '';
+  const recorderPrimary = event.recorder_pod_name || event.recorder_hostname || '';
+  const recorderRole = event.recorder_role || '';
+  if (primary === recorderPrimary && (role || '') === recorderRole) return '';
+  return `来源: ${primary || '-'} · ${role || '-'}`;
+}
+
 function deriveStepStatuses(taskStatus: string, events: AppDfaStageEvent[]): StepStatus[] {
   const statuses: StepStatus[] = STAGE_STEPS.map(() => 'pending');
   if (taskStatus === 'pending') return statuses;
@@ -296,6 +312,10 @@ function formatEventLog(evt: AppDfaStageEvent): string {
     case 'judge_start': return`[${ts}] ▶ Judge ${d.judge_id || d.judge_idx || ''} 开始`;
     case 'judge_done': return`[${ts}] ✓ Judge ${d.judge_id || d.judge_idx || ''} 完成`;
     case 'round_end': return`[${ts}] ✓ 第 ${d.round || ''} 轮结束 passed=${d.passed ?? ''}`;
+    case 'entry_screen_start': return`[${ts}] ▶ 入口快速筛查: ${d.function || ''}`;
+    case 'entry_screen_whitelisted': return`[${ts}] ✓ 入口筛查通过（白名单命中 \`${d.matched_keyword || ''}\`）`;
+    case 'entry_screen_pass': return`[${ts}] ✓ 入口筛查通过（${d.screened_by || 'agent'}${d.confidence ? '/' + d.confidence : ''}）${d.reason ? ': ' + d.reason : ''}`;
+    case 'entry_screen_reject': return`[${ts}] ⛔ 判定为非入口，已跳过数据流分析${d.confidence ? '（置信度 ' + d.confidence + '）' : ''}: ${d.reason || ''}`;
     case 'error': return`[${ts}] ✗ 错误: ${d.error || JSON.stringify(d)}`;
     case 'task_end': return`[${ts}] 任务结束 status=${d.status || ''}`;
     default: return`[${ts}] ${evt.type}: ${String(d.text || d.output || JSON.stringify(d)).replace(/\n+/g, ' ').slice(0, 150)}`;
@@ -1150,6 +1170,9 @@ export const DataflowVulnScanTaskDetailPage: React.FC<{ projectId: string; taskI
                           const expanded = expandedTimelineEventId === event.id;
                           const payload = event.payload || {};
                           const sourceLabel = [event.source, event.worker_id || event.execution_owner_id, event.execution_epoch != null ?`Epoch ${event.execution_epoch}` : '', event.dispatch_status].filter(Boolean).join(' · ') || '-';
+                          const recorderLabel = timelineRecorderLabel(event);
+                          const originLabel = timelineOriginLabel(event);
+                          const nodeLabel = event.recorder_node_name ? `节点: ${event.recorder_node_name}` : '节点: -';
                           const hasPayload = Object.keys(payload).length > 0;
                           const statusText = event.status || event.dispatch_status || '-';
                           const auditEvent = isAgentKillTimelineEvent(event.event_type);
@@ -1167,7 +1190,12 @@ export const DataflowVulnScanTaskDetailPage: React.FC<{ projectId: string; taskI
                                   <div className="truncate font-semibold text-theme-text-primary" title={timelineMessageSummary(event)}>{timelineMessageSummary(event)}</div>
                                   {auditSummary ? <div className="mt-1 truncate text-[11px] font-medium text-rose-400" title={auditSummary}>{auditSummary}</div> : null}
                                 </td>
-                                <td className="px-3 py-2 text-[11px] text-theme-text-muted"><div className="truncate font-mono" title={sourceLabel}>{sourceLabel}</div></td>
+                                <td className="px-3 py-2 text-[11px] text-theme-text-muted">
+                                  <div className="truncate font-mono" title={recorderLabel}>{recorderLabel}</div>
+                                  <div className="truncate font-mono" title={nodeLabel}>{nodeLabel}</div>
+                                  {originLabel ? <div className="truncate font-mono" title={originLabel}>{originLabel}</div> : null}
+                                  <div className="truncate font-mono opacity-70" title={sourceLabel}>{sourceLabel}</div>
+                                </td>
                                 <td className="px-3 py-2 text-right">
                                   <div className="flex items-center justify-end gap-3">
                                     <button type="button" onClick={() => setExpandedTimelineEventId(expanded ? '' : event.id)} disabled={!hasPayload} className="text-[11px] font-semibold text-theme-text-muted transition hover:text-theme-text-primary disabled:opacity-30">{expanded ? '收起' : '查看'}</button>

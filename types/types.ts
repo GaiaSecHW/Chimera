@@ -2601,7 +2601,7 @@ export type ViewType =
   | 'pentest-root' | 'pentest-system'
   | 'pentest-threat' | 'pentest-exec-code' | 'pentest-exec-work' | 'pentest-dataflow'
   | 'pentest-dataflow-vuln-scan'
-  | 'pentest-vuln-verify' | 'vuln-verify-task'
+  | 'pentest-vuln-verify' | 'vuln-verify-task' | 'pentest-vuln-verify-v2'
   | 'pentest-exec-firmware-unpacker' | 'pentest-exec-firmware-task-list' | 'pentest-exec-firmware-config'
   | 'pentest-exec-b2s' | 'pentest-exec-b2s-root' | 'pentest-exec-b2s-task-list' | 'pentest-exec-b2s-create' | 'pentest-exec-b2s-queue' | 'pentest-exec-b2s-result' | 'pentest-exec-b2s-detail' | 'pentest-exec-b2s-advanced'
   | 'binary-security' | 'binary-security-root' | 'binary-security-task-list' | 'binary-security-detail' | 'binary-security-config'
@@ -3670,6 +3670,17 @@ export interface AppSaTaskEvent {
   payload?: Record<string, any> | null;
   payload_json?: Record<string, any> | null;
   created_at?: string | null;
+  recorder_instance_id?: string | null;
+  recorder_hostname?: string | null;
+  recorder_pod_name?: string | null;
+  recorder_node_name?: string | null;
+  recorder_pod_ip?: string | null;
+  recorder_role?: string | null;
+  origin_instance_id?: string | null;
+  origin_hostname?: string | null;
+  origin_pod_name?: string | null;
+  origin_node_name?: string | null;
+  origin_role?: string | null;
 }
 
 export interface AppSaTaskTimeline {
@@ -4199,6 +4210,18 @@ export interface AppEaTaskEvent {
   message?: string | null;
   payload?: Record<string, any> | null;
   payload_json?: Record<string, any> | null;
+  recorder_instance_id?: string | null;
+  recorder_hostname?: string | null;
+  recorder_pod_name?: string | null;
+  recorder_node_name?: string | null;
+  recorder_pod_ip?: string | null;
+  recorder_role?: string | null;
+  origin_instance_id?: string | null;
+  origin_hostname?: string | null;
+  origin_pod_name?: string | null;
+  origin_node_name?: string | null;
+  origin_pod_ip?: string | null;
+  origin_role?: string | null;
   dedupe_key?: string | null;
   created_at: string;
 }
@@ -4564,6 +4587,18 @@ export interface AppDfaTaskEvent {
   parent_stage_item_id?: string | null;
   message: string;
   payload?: Record<string, any> | null;
+  recorder_instance_id?: string | null;
+  recorder_hostname?: string | null;
+  recorder_pod_name?: string | null;
+  recorder_node_name?: string | null;
+  recorder_pod_ip?: string | null;
+  recorder_role?: string | null;
+  origin_instance_id?: string | null;
+  origin_hostname?: string | null;
+  origin_pod_name?: string | null;
+  origin_node_name?: string | null;
+  origin_pod_ip?: string | null;
+  origin_role?: string | null;
   created_at?: string | null;
 }
 
@@ -4918,6 +4953,9 @@ export interface AppDfaServiceConfig {
   max_trace_depth: number;
   deep_trace_enabled: boolean;
   callee_concurrency: number;
+  entry_screen_enabled?: boolean;
+  entry_screen_whitelist?: string[];
+  entry_screen_thinking_level?: string;
   workers: AppDfaRoleConfig;
   judges: AppDfaRoleConfig;
   output_dir: string;

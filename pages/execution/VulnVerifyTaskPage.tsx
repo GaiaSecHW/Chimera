@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { AlertCircle, CheckCircle2, Clock3, Eye, FileText, Loader2, Plus, RefreshCw, RotateCcw, Search, ShieldCheck, Square, X, XCircle } from 'lucide-react';
 import { API_BASE, getHeaders, handleResponse } from '../../clients/base';
 import { vulnVerifyApi, VulnVerifyArtifact, VulnVerifyProjectStats, VulnVerifyReportData, VulnVerifyResult, VulnVerifyTask, VulnVerifyTaskDetail } from '../../clients/vulnVerify';
+import { vulnApi } from '../../clients/vuln';
 import { ExecutionTable, ExecutionTableHead, ExecutionTableTh, ExecutionTableTd, executionTableInteractiveRowClassName } from '../../components/execution/ExecutionTable';
 import { ServicePageTitle, useServiceBuildVersion } from '../../components/execution/ServiceBuildVersion';
 import { VulnVerifyReportView } from './VulnVerifyReportView';
@@ -80,6 +81,7 @@ interface PendingVerifyCase {
   title?: string | null;
   severity?: string | null;
   subject?: Record<string, any> | null;
+  metadata?: Record<string, any> | null;
   current_stage: string;
   current_status?: string | null;
   updated_at?: string | null;
@@ -90,6 +92,7 @@ interface BatchCreateResultItem {
   caseId: string;
   title?: string | null;
   taskId?: string;
+  sourceRoot?: string;
   error?: string;
 }
 
@@ -199,6 +202,23 @@ function getCaseSearchText(item: PendingVerifyCase): string {
 function getBatchTaskName(item: PendingVerifyCase): string {
   const suffix = new Date().toISOString().replace(/[-:T.Z]/g, '').slice(0, 14);
   return `批量验证-${item.global_vuln_id || item.id}-${suffix}`;
+}
+
+function firstNonEmptyString(...values: any[]): string | null {
+  for (const value of values) {
+    const text = String(value || '').trim();
+    if (text) return text;
+  }
+  return null;
+}
+
+function resolveCaseSourceRoot(item: PendingVerifyCase): string | null {
+  const metadata = item.metadata || {};
+  return firstNonEmptyString(
+    metadata.verification_context?.source_root,
+    metadata.source?.source_root,
+    metadata.dataflow_vuln_scan?.source_root,
+  );
 }
 
 function getFilterChipClassName(active: boolean): string {
@@ -475,17 +495,30 @@ export const VulnVerifyTaskPage: React.FC<{ projectId: string }> = ({ projectId 
   }, [projectId]);
 
   const createCaseVerifyTask = useCallback(async (caseItem: PendingVerifyCase) => {
-    const response = await fetch(`${API_BASE}/api/vuln/cases/${encodeURIComponent(caseItem.id)}/auto-verify/tasks`, {
+    const sourceRoot = resolveCaseSourceRoot(caseItem);
+    if (!sourceRoot) throw new Error('缺少 source_root');
+    const report = await vulnApi.getCaseReport(caseItem.id);
+    const rawReport = String(report?.content || '').trim();
+    if (!rawReport) throw new Error('缺少 raw_report');
+    const task = await vulnVerifyApi.createTask(projectId, {
+      name: getBatchTaskName(caseItem),
+      source_root: sourceRoot,
+      raw_report: rawReport,
+    });
+    // KISS 去重：创建任务后推进漏洞案例到 validation 阶段，
+    // 下次筛选 receive/triage 时即不再出现该案例。
+    const syncResp = await fetch(`${API_BASE}/api/vuln/cases/${encodeURIComponent(caseItem.id)}/auto-verify/sync`, {
       method: 'POST',
       headers: getHeaders(),
-      body: JSON.stringify({
-        name: getBatchTaskName(caseItem),
-        threat_model_markdown: '',
-        advance_to_validation: true,
-      }),
+      body: JSON.stringify({ vuln_verify_task_id: task.id }),
     });
-    return handleResponse(response);
-  }, []);
+    try {
+      await handleResponse(syncResp);
+    } catch (e: any) {
+      throw new Error(`验证任务已创建(${task.id})但阶段推进失败：${e?.message || String(e)}`);
+    }
+    return { task, sourceRoot };
+  }, [projectId]);
 
   const openBatchPanel = () => {
     setBatchPanelOpen(true);
@@ -555,7 +588,8 @@ export const VulnVerifyTaskPage: React.FC<{ projectId: string }> = ({ projectId 
             ok: true,
             caseId: item.id,
             title: item.title,
-            taskId: String(data?.vuln_verify_task_id || data?.task?.id || ''),
+            taskId: String(data?.task?.id || ''),
+            sourceRoot: data?.sourceRoot,
           });
         } catch (error: any) {
           results.push({
@@ -1049,7 +1083,7 @@ export const VulnVerifyTaskPage: React.FC<{ projectId: string }> = ({ projectId 
                   将为已选的 <span className="font-black text-violet-400">{selectedPendingCases.length}</span> 个待验证漏洞生成验证任务。
                 </p>
                 <p className="mt-1 text-xs leading-5 text-theme-text-muted">
-                  任务创建后，这些漏洞将进入「验证中」阶段；系统将使用默认模型和默认威胁模型。
+                  任务创建后，对应漏洞将推进到「验证中」阶段，下次筛选不再重复出现；系统从漏洞案例提取 source_root，并将 case raw_report 作为验证输入，其余参数使用默认值。
                 </p>
               </div>
             </div>

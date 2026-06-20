@@ -786,6 +786,16 @@ export interface BinarySecurityTimeline {
     event_type: string;
     message: string;
     payload: Record<string, any>;
+    recorder_instance_id?: string | null;
+    recorder_hostname?: string | null;
+    recorder_pod_name?: string | null;
+    recorder_node_name?: string | null;
+    recorder_role?: string | null;
+    origin_instance_id?: string | null;
+    origin_hostname?: string | null;
+    origin_pod_name?: string | null;
+    origin_node_name?: string | null;
+    origin_role?: string | null;
     compressed?: boolean;
     repeat_count?: number;
     created_at: string;
