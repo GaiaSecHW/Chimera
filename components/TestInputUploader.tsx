@@ -102,6 +102,7 @@ export const TestInputUploader = forwardRef<TestInputUploaderHandle, TestInputUp
               files: readyFiles,
             },
             {
+              trackGlobal: false,
               onProgress: (progress) => {
                 setUploadQueue((current) =>
                   current.map((item) =>
