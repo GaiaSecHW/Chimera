@@ -110,21 +110,19 @@ const TASK_TYPE_OPTIONS = [
 
 const PAGE_SIZE_OPTIONS = [20, 50, 100];
 
-type ColumnKey = 'name' | 'taskType' | 'status' | 'project' | 'queueState' | 'retryCount' | 'createdBy' | 'createdAt' | 'updatedAt' | 'startedAt' | 'finishedAt' | 'lastError' | 'actions';
+type ColumnKey = 'name' | 'taskType' | 'status' | 'project' | 'queueState' | 'retryCount' | 'createdBy' | 'createdAt' | 'updatedAt' | 'timeRange' | 'actions';
 
 const ALL_COLUMNS: Array<{ key: ColumnKey; label: string; defaultVisible: boolean }> = [
   { key: 'name', label: '任务名称', defaultVisible: true },
   { key: 'taskType', label: '任务类型', defaultVisible: true },
   { key: 'status', label: '状态', defaultVisible: true },
   { key: 'project', label: '项目', defaultVisible: true },
-  { key: 'queueState', label: '队列状态', defaultVisible: false },
+  { key: 'queueState', label: '当前主队列', defaultVisible: true },
   { key: 'retryCount', label: '重试次数', defaultVisible: false },
   { key: 'createdBy', label: '创建人', defaultVisible: true },
   { key: 'createdAt', label: '创建时间', defaultVisible: false },
   { key: 'updatedAt', label: '更新时间', defaultVisible: false },
-  { key: 'startedAt', label: '开始时间', defaultVisible: true },
-  { key: 'finishedAt', label: '结束时间', defaultVisible: true },
-  { key: 'lastError', label: '失败原因', defaultVisible: true },
+  { key: 'timeRange', label: '开始 / 结束时间', defaultVisible: true },
   { key: 'actions', label: '操作', defaultVisible: true },
 ];
 
@@ -173,6 +171,13 @@ const formatTime = (value?: string | null) => {
   const date = new Date(value);
   return Number.isNaN(date.getTime()) ? value : date.toLocaleString('zh-CN');
 };
+
+const renderTaskTimeRange = (startedAt?: string | null, finishedAt?: string | null) => (
+  <div className="space-y-1 text-xs font-medium text-theme-text-secondary">
+    <div>开始：{formatTime(startedAt)}</div>
+    <div>结束：{formatTime(finishedAt)}</div>
+  </div>
+);
 
 const formatCount = (value?: number | null) =>`${Number(value || 0)}`;
 
@@ -231,6 +236,15 @@ const normalizeTaskTypeLabel = (taskType?: string | null) => {
   return taskType || '-';
 };
 
+const formatMainSyncQueue = (queue?: string | null) => {
+  if (queue === 'dispatching') return '分发队列';
+  if (queue === 'running') return '运行队列';
+  if (queue === 'paused') return '暂停队列';
+  if (queue === 'retry_wait') return '重试等待队列';
+  if (queue === 'terminal_verify') return '终态校验队列';
+  return queue || null;
+};
+
 const mapUserTaskToGlobalTaskItem = (
   task: ScheduleCenterUserTask,
   projectNameMap: Map<string, string>,
@@ -246,7 +260,7 @@ const mapUserTaskToGlobalTaskItem = (
   create_status: task.create_status,
   dispatch_status: task.dispatch_status,
   business_status: task.business_status,
-  queue_state: task.dispatch_status,
+  queue_state: formatMainSyncQueue(task.sync_queue),
   current_status: task.display_status || task.downstream_status_mapped || task.business_status || task.dispatch_status || task.create_status,
   display_status_group: task.display_status || task.downstream_status_mapped || task.business_status || task.dispatch_status || task.create_status,
   retry_count: 0,
@@ -1350,21 +1364,7 @@ export const ChimeraScheduleCenterPage: React.FC<ChimeraScheduleCenterPageProps>
                           </button>
                         </th>
                       ) : null}
-                      {visibleColumns.has('startedAt') ? <th className="px-4 py-2">开始时间</th> : null}
-                      {visibleColumns.has('finishedAt') ? <th className="px-4 py-2">结束时间</th> : null}
-                      {visibleColumns.has('lastError') ? (
-                        <th className="relative px-4 py-2">
-                          <div className="inline-flex items-center gap-2">
-                            失败原因
-                            <button type="button" onClick={() => {
-                              setFilters((current) => ({ ...current, hasError: !current.hasError }));
-                              setPage(1);
-                            }} className={`rounded-full border px-2 py-0.5 text-[10px] font-bold ${filters.hasError ? 'border-rose-300 bg-rose-500/15 text-rose-400' : 'border-theme-border bg-theme-bg-app text-theme-text-muted'}`}>
-                              {filters.hasError ? '仅失败' : '全部'}
-                            </button>
-                          </div>
-                        </th>
-                      ) : null}
+                      {visibleColumns.has('timeRange') ? <th className="px-4 py-2">开始 / 结束时间</th> : null}
                       {visibleColumns.has('actions') ? <th className="px-4 py-2">操作</th> : null}
                       <th className="relative px-4 py-2">
                         <button type="button" onClick={() => setColumnPickerOpen((v) => !v)} className="inline-flex items-center gap-1 text-theme-text-muted hover:text-theme-text-secondary" title="选择列">
@@ -1427,29 +1427,16 @@ export const ChimeraScheduleCenterPage: React.FC<ChimeraScheduleCenterPageProps>
                             </td>
                           ) : null}
                           {visibleColumns.has('project') ? <td className="px-4 py-3 align-top text-sm font-medium text-theme-text-secondary">{item.project_name || item.project_id || '-'}</td> : null}
-                          {visibleColumns.has('queueState') ? <td className="px-4 py-3 align-top text-sm font-medium text-theme-text-secondary">{item.queue_state || '-'}</td> : null}
+                          {visibleColumns.has('queueState') ? (
+                            <td className="px-4 py-3 align-top text-sm font-medium text-theme-text-secondary" title={item.queue_state || undefined}>
+                              {item.queue_state || '-'}
+                            </td>
+                          ) : null}
                           {visibleColumns.has('retryCount') ? <td className="px-4 py-3 align-top text-sm font-medium text-theme-text-secondary">{item.retry_count ?? 0}</td> : null}
                           {visibleColumns.has('createdBy') ? <td className="max-w-[100px] truncate px-4 py-3 align-top text-sm font-medium text-theme-text-secondary" title={item.created_by || undefined}>{item.created_by || '-'}</td> : null}
                           {visibleColumns.has('createdAt') ? <td className="px-4 py-3 align-top text-xs font-medium text-theme-text-secondary">{formatTime(item.created_at)}</td> : null}
                           {visibleColumns.has('updatedAt') ? <td className="px-4 py-3 align-top text-xs font-medium text-theme-text-secondary">{formatTime(item.updated_at)}</td> : null}
-                          {visibleColumns.has('startedAt') ? <td className="px-4 py-3 align-top text-xs font-medium text-theme-text-secondary">{formatTime(item.started_at)}</td> : null}
-                          {visibleColumns.has('finishedAt') ? <td className="px-4 py-3 align-top text-xs font-medium text-theme-text-secondary">{formatTime(item.finished_at)}</td> : null}
-                          {visibleColumns.has('lastError') ? (
-                            <td className="px-4 py-3 align-top">
-                              {item.last_error ? (
-                                <button
-                                  type="button"
-                                  onClick={() => setErrorPopupText(item.last_error || '')}
-                                  className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-rose-500/20 bg-rose-500/15 px-2.5 text-xs font-medium text-rose-400 transition hover:bg-rose-500/15"
-                                >
-                                  <AlertCircle size={13} />
-                                  查看原因
-                                </button>
-                              ) : (
-                                <span className="text-xs text-theme-text-muted">-</span>
-                              )}
-                            </td>
-                          ) : null}
+                          {visibleColumns.has('timeRange') ? <td className="px-4 py-3 align-top">{renderTaskTimeRange(item.started_at, item.finished_at)}</td> : null}
                           {visibleColumns.has('actions') ? (
                             <td className="px-4 py-3 align-top">
                               <div className="flex items-center gap-1.5">
