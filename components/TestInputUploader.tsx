@@ -1,5 +1,5 @@
 import React, { forwardRef, useImperativeHandle, useRef, useState } from 'react';
-import { Loader2, Upload } from 'lucide-react';
+import { Upload } from 'lucide-react';
 import { api } from '../clients/api';
 import { formatUploadBytes, isAllowedArchiveFileName } from '../pages/assets/baseResourcePageModel';
 

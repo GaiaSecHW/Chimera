@@ -607,7 +607,10 @@ export const TestInputPage: React.FC<TestInputPageProps> = ({ selectedProjectId,
         setIsUploading(false);
       }
     } else {
-      if (!uploaderRef.current?.hasFiles()) return;
+      if (!uploaderRef.current?.hasFiles()) {
+        setErrorMessage('请先选择上传文件');
+        return;
+      }
       if (!uploadDisplayName.trim()) {
         setErrorMessage('请填写上传记录名称');
         return;
