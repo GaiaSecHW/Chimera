@@ -262,13 +262,13 @@ export const TestInputPage: React.FC<TestInputPageProps> = ({ selectedProjectId,
   const [detailDialogTarget, setDetailDialogTarget] = useState<UploadDetailDialogState | null>(null);
   const [createTaskOpen, setCreateTaskOpen] = useState(false);
   const [selectedRecordForTask, setSelectedRecordForTask] = useState<string | undefined>(undefined);
-  // codemap_lite 项目级任务状态(全项目共一份,与知识图谱 tab 同 task_id)。
-  // null = 尚未派发(进 tab 时若 getTaskStatus 404 进入此态)。
-  const [codemapStatus, setCodemapStatus] = useState<CodemapTaskStatus | null>(null);
-  // 重派按钮的本地态(DELETE 期间禁用,error 仅 console)。
-  const [codemapRebuilding, setCodemapRebuilding] = useState(false);
-  // 「更正代码目录」按钮的本地态(purge+重派期间禁用)。
-  const [codemapCorrecting, setCodemapCorrecting] = useState(false);
+  // codemap_lite 任务状态:下沉到「每条 code 上传一图」。key = upload_id,
+  // value=null 表示该上传尚未派发(getTaskStatus 404)。每条上传各自独立的
+  // task_id(kg-<uploadId>)、状态与图。
+  const [codemapStatusByUpload, setCodemapStatusByUpload] = useState<Record<string, CodemapTaskStatus | null>>({});
+  // 重派 / 更正按钮的本地态(按 upload_id 记录哪几条正在处理)。
+  const [codemapRebuildingIds, setCodemapRebuildingIds] = useState<string[]>([]);
+  const [codemapCorrectingIds, setCodemapCorrectingIds] = useState<string[]>([]);
   // 自动更正封顶:每个 task_id 只自动 purge 一次,避免「上传本身没源码」之类
   // 永远 0 函数的场景陷入死循环。手动点按钮不受此 ref 限制。
   const autoCorrectedRef = useRef<Set<string>>(new Set());
@@ -289,144 +289,158 @@ export const TestInputPage: React.FC<TestInputPageProps> = ({ selectedProjectId,
     void loadRecords();
   }, [projectId, selectedType, selectedStatus, page, pageSize]);
 
-  // 切项目时立即查 codemap 任务状态(不依赖 records,确保切到非首页也能显示)。
-  // 404 → null,进入下方"派发 effect"判断;5xx/网络错误 → 留空隐藏 chip。
+  // 多图谱:真 product_id(空回退 projectId),所有 code 上传同属一个 product,
+  // manager 据 upload_id 在该 product 的 active 图里找 fork 源。
+  const codemapProductId = useMemo(
+    () => projects.find((p) => p.id === projectId)?.product_id || projectId,
+    [projectId, projects],
+  );
+
+  // 当前可见的 code 上传记录(派发/查询/轮询都按它逐条处理)。
+  const codeRecords = useMemo(
+    () => records.filter((r) => normalizeType(r.input_type) === 'code'),
+    [records],
+  );
+
+  // 切项目 / 刷新记录时,为每条尚未知状态的 code 上传查一次 codemap 任务状态。
+  // 404 → null(进入下方派发判断);5xx/网络错误 → 留空(下拍重试)。
   useEffect(() => {
-    if (!projectId) {
-      setCodemapStatus(null);
-      return;
-    }
+    if (!projectId || codeRecords.length === 0) return;
     let aborted = false;
     void (async () => {
-      try {
-        const s = await api.codemapManager.getTaskStatus(buildCodemapTaskId(projectId));
-        if (!aborted) setCodemapStatus(s);
-      } catch (error) {
-        if ((error as any)?.status === 404) {
-          if (!aborted) setCodemapStatus(null);
-          return;
+      await Promise.all(codeRecords.map(async (record) => {
+        const uid = record.upload_id;
+        if (uid in codemapStatusByUpload) return;   // 已知(含 null),不重复查
+        try {
+          const s = await api.codemapManager.getTaskStatus(buildCodemapTaskId(uid));
+          if (!aborted) setCodemapStatusByUpload((cur) => ({ ...cur, [uid]: s }));
+        } catch (error) {
+          if ((error as any)?.status === 404) {
+            if (!aborted) setCodemapStatusByUpload((cur) => ({ ...cur, [uid]: null }));
+            return;
+          }
+          // eslint-disable-next-line no-console
+          console.warn('[codemap] getTaskStatus failed', uid, error);
         }
-        // eslint-disable-next-line no-console
-        console.warn('[codemap] getTaskStatus failed', error);
-      }
+      }));
     })();
     return () => { aborted = true; };
-  }, [projectId]);
+  }, [projectId, codeRecords]);
 
-  // 派发 effect:仅当 codemapStatus === null 且当前可见 records 中存在 USABLE 的 code
-  // 上传(latest)时触发。manager POST /tasks 按 task_id 幂等,与知识图谱 tab
-  // 并发触发也只起一份。失败仅日志,不阻断表格交互。
+  // 派发 effect:对每条「状态已知为 null 且上传已落盘(USABLE)」的 code 上传各
+  // 触发一次构建。task_id=kg-<uploadId> 幂等,与知识图谱 tab 并发触发也只起一份。
   useEffect(() => {
     if (!projectId) return;
-    if (codemapStatus !== null) return;
-    const codeRecords = records
-      .filter((r) => r.input_type === 'code' && USABLE_UPLOAD_STATUSES.has(r.status))
-      .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
-    const latest = codeRecords[0];
-    if (!latest) return;
     let aborted = false;
+    const productName = projects.find((p) => p.id === projectId)?.name || projectId;
     void (async () => {
-      try {
-        const productName = projects.find((p) => p.id === projectId)?.name || projectId;
-        const triggered = await api.codemapManager.triggerBuild({
-          task_id: buildCodemapTaskId(projectId),
-          product_id: projectId,
-          product_name: productName,
-          target_dir: buildManagerTargetDir(projectId, latest.target_path),
-        });
-        if (aborted) return;
-        setCodemapStatus({
-          task_id: triggered.task_id,
-          status: triggered.status,
-          mode: 'full',
-          db_name: triggered.db_name,
-          error: null,
-        });
-      } catch (error) {
-        // eslint-disable-next-line no-console
-        console.warn('[codemap] triggerBuild failed', error);
-      }
+      await Promise.all(codeRecords.map(async (record) => {
+        const uid = record.upload_id;
+        if (codemapStatusByUpload[uid] !== null) return;   // 未知 or 已有状态
+        if (!USABLE_UPLOAD_STATUSES.has(record.status)) return;
+        try {
+          const triggered = await api.codemapManager.triggerBuild({
+            task_id: buildCodemapTaskId(uid),
+            product_id: codemapProductId,
+            product_name: productName,
+            target_dir: buildManagerTargetDir(projectId, record.target_path),
+            project_id: projectId,
+            upload_id: uid,
+          });
+          if (aborted) return;
+          setCodemapStatusByUpload((cur) => ({
+            ...cur,
+            [uid]: {
+              task_id: triggered.task_id,
+              status: triggered.status,
+              mode: 'full',
+              db_name: triggered.db_name,
+              error: null,
+            },
+          }));
+        } catch (error) {
+          // eslint-disable-next-line no-console
+          console.warn('[codemap] triggerBuild failed', uid, error);
+        }
+      }));
     })();
     return () => { aborted = true; };
-  }, [projectId, codemapStatus, records, projects]);
+  }, [projectId, codeRecords, codemapStatusByUpload, codemapProductId, projects]);
 
-  // 3s 轮询:仅在进行中状态运行,终态停止;组件卸载/项目切换由 cleanup 处理。
+  // 3s 轮询:对每条处于进行中状态的上传各拉一次状态;全部到终态即停。
   useEffect(() => {
-    if (!codemapStatus || !IN_PROGRESS_STATUSES.has(codemapStatus.status)) return undefined;
-    const taskId = codemapStatus.task_id;
+    const inProgress = Object.entries(codemapStatusByUpload)
+      .filter(([, s]) => s && IN_PROGRESS_STATUSES.has(s.status))
+      .map(([uid]) => uid);
+    if (inProgress.length === 0) return undefined;
     const timer = window.setInterval(async () => {
-      try {
-        const next = await api.codemapManager.getTaskStatus(taskId);
-        setCodemapStatus(next);
-        if (!IN_PROGRESS_STATUSES.has(next.status)) window.clearInterval(timer);
-      } catch (error) {
-        if ((error as any)?.status === 404) return; // 瞬时,下一拍重试
-      }
+      await Promise.all(inProgress.map(async (uid) => {
+        try {
+          const next = await api.codemapManager.getTaskStatus(buildCodemapTaskId(uid));
+          setCodemapStatusByUpload((cur) => ({ ...cur, [uid]: next }));
+        } catch (error) {
+          if ((error as any)?.status === 404) return; // 瞬时,下一拍重试
+        }
+      }));
     }, 3000);
     return () => window.clearInterval(timer);
-  }, [codemapStatus]);
+  }, [codemapStatusByUpload]);
 
-  // failed chip 旁的"重新构建"按钮:DELETE 旧 task → setCodemapStatus(null) →
-  // 派发 effect 用最新的 records 重派(target_dir 跟着上传记录走,自动修正
-  // 上次因目录错位等 422 / 0 函数失败的 task)。
-  const handleCodemapRebuild = async () => {
-    if (!codemapStatus || codemapRebuilding) return;
-    const taskId = codemapStatus.task_id;
-    setCodemapRebuilding(true);
+  // failed chip 旁的"重新构建"按钮:DELETE 旧 task → 置 null → 派发 effect 用
+  // 该上传记录重派(自动修正上次因目录错位等 422 / 0 函数失败的 task)。
+  const handleCodemapRebuild = async (uploadId: string) => {
+    if (codemapRebuildingIds.includes(uploadId)) return;
+    setCodemapRebuildingIds((cur) => [...cur, uploadId]);
     try {
-      await api.codemapManager.deleteTask(taskId);
-      setCodemapStatus(null);   // 触发派发 effect 重派
+      await api.codemapManager.deleteTask(buildCodemapTaskId(uploadId));
+      setCodemapStatusByUpload((cur) => ({ ...cur, [uploadId]: null }));
     } catch (error) {
       // eslint-disable-next-line no-console
       console.warn('[codemap] deleteTask failed', error);
     } finally {
-      setCodemapRebuilding(false);
+      setCodemapRebuildingIds((cur) => cur.filter((id) => id !== uploadId));
     }
   };
 
-  // completed+0 函数 chip 旁的「更正代码目录」按钮:silent-success 失败
-  // (target_dir 错位、analyze 扫空目录但 exit 0)的恢复出口。purge 销毁式
-  // 清掉旧空项目(停 serve、DROP 库、删 manager 工作区目录),再 setStatus(null)
-  // 让派发 effect 用最新有效上传的真实路径重建。
-  const handleCodemapCorrect = async () => {
-    if (!codemapStatus || codemapCorrecting) return;
-    const dbName = codemapStatus.db_name;
-    const taskId = codemapStatus.task_id;
-    setCodemapCorrecting(true);
+  // completed+0 函数 chip 旁的「更正代码目录」按钮:silent-success 失败恢复出口。
+  // purge 销毁式清掉旧空图(停 serve、DROP 库、删工作区目录),再置 null 让派发
+  // effect 用该上传记录的真实路径重建。
+  const handleCodemapCorrect = async (uploadId: string) => {
+    if (codemapCorrectingIds.includes(uploadId)) return;
+    const status = codemapStatusByUpload[uploadId];
+    setCodemapCorrectingIds((cur) => [...cur, uploadId]);
     try {
-      if (dbName) {
-        await api.codemapManager.purgeProject(dbName);
+      if (status?.db_name) {
+        await api.codemapManager.purgeProject(status.db_name);
       } else {
-        // 兜底:没有 db_name 时退化为 deleteTask;后续派发 effect 仍能重派。
-        await api.codemapManager.deleteTask(taskId).catch(() => {});
+        await api.codemapManager.deleteTask(buildCodemapTaskId(uploadId)).catch(() => {});
       }
-      setCodemapStatus(null);
+      setCodemapStatusByUpload((cur) => ({ ...cur, [uploadId]: null }));
     } catch (error) {
       // eslint-disable-next-line no-console
       console.warn('[codemap] purgeProject failed', error);
     } finally {
-      setCodemapCorrecting(false);
+      setCodemapCorrectingIds((cur) => cur.filter((id) => id !== uploadId));
     }
   };
 
-  // 自动更正 effect:status=completed 但 progress.total===0(silent-success
-  // 失败模式)时,后台自动触发一次 purge+重派,无需用户手动。封顶 1 次/task,
+  // 自动更正 effect:对每条 status=completed 但 progress.total===0(silent-success
+  // 失败模式)的上传,后台自动触发一次 purge+重派,无需用户手动。封顶 1 次/task,
   // 防止"上传压缩包本身没源码"之类永远 0 函数的场景陷入死循环;循环回来还是 0
   // 函数就由用户手动点按钮决定下一步(或检查上传)。
   useEffect(() => {
-    if (!codemapStatus) return;
-    if (codemapStatus.status !== 'completed') return;
-    const progress = codemapStatus.progress;
-    if (progress && progress.total > 0) return;  // 真正有结果,不动
-    const taskId = codemapStatus.task_id;
-    if (autoCorrectedRef.current.has(taskId)) return;  // 已自动试过,不再循环
-    if (codemapCorrecting) return;
-    autoCorrectedRef.current.add(taskId);
-    void handleCodemapCorrect();
-    // 故意只依赖 codemapStatus 的"标识 + 终态判据",handleCodemapCorrect 闭包
-    // 通过 ref 读最新 codemapCorrecting,不进依赖列表避免抖动。
+    Object.entries(codemapStatusByUpload).forEach(([uid, status]) => {
+      if (!status || status.status !== 'completed') return;
+      if (status.progress && status.progress.total > 0) return;  // 有结果,不动
+      const taskId = status.task_id;
+      if (autoCorrectedRef.current.has(taskId)) return;  // 已自动试过,不再循环
+      if (codemapCorrectingIds.includes(uid)) return;
+      autoCorrectedRef.current.add(taskId);
+      void handleCodemapCorrect(uid);
+    });
+    // 故意只依赖状态 map;handleCodemapCorrect 闭包读最新 correcting 列表。
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [codemapStatus]);
+  }, [codemapStatusByUpload]);
 
   const loadOverview = async () => {
     setOverviewLoading(true);
@@ -503,12 +517,13 @@ export const TestInputPage: React.FC<TestInputPageProps> = ({ selectedProjectId,
   // 详情对话框里点击"打开知识图谱"——拿当前项目级 task 的 db_name 起(或复用)
   // per-project serve 子进程,新 tab 打开 codemap_lite serve 静态页。
   // 与知识图谱 tab 走��是同一份 db,POST /projects/{db}/serve 幂等。
-  const handleOpenServe = async () => {
-    if (!codemapStatus?.db_name) return;
+  const handleOpenServe = async (uploadId: string) => {
+    const status = codemapStatusByUpload[uploadId];
+    if (!status?.db_name) return;
     setOpenServeLoading(true);
     setOpenServeError(null);
     try {
-      const serve = await api.codemapManager.startServe(codemapStatus.db_name);
+      const serve = await api.codemapManager.startServe(status.db_name);
       const url = `http://${serve.ip}:${serve.port}/static/index.html`;
       window.open(url, '_blank', 'noopener,noreferrer');
     } catch (error: any) {
@@ -887,11 +902,11 @@ export const TestInputPage: React.FC<TestInputPageProps> = ({ selectedProjectId,
                             <div className="flex items-center justify-end gap-2" onClick={(event) => event.stopPropagation()}>
                               {inputType === 'code' ? (
                                 <CodemapProgressChip
-                                  status={codemapStatus}
-                                  onRebuild={handleCodemapRebuild}
-                                  rebuilding={codemapRebuilding}
-                                  onCorrect={handleCodemapCorrect}
-                                  correcting={codemapCorrecting}
+                                  status={codemapStatusByUpload[record.upload_id] ?? null}
+                                  onRebuild={() => { void handleCodemapRebuild(record.upload_id); }}
+                                  rebuilding={codemapRebuildingIds.includes(record.upload_id)}
+                                  onCorrect={() => { void handleCodemapCorrect(record.upload_id); }}
+                                  correcting={codemapCorrectingIds.includes(record.upload_id)}
                                 />
                               ) : null}
                               <button onClick={() => { void openUploadDetailDialog(record); }} className="rounded-xl border border-theme-border px-3 py-2 text-xs font-medium text-theme-text-secondary hover:bg-theme-elevated">
@@ -1043,17 +1058,20 @@ export const TestInputPage: React.FC<TestInputPageProps> = ({ selectedProjectId,
                     {latestBatch ? <span className="rounded-full bg-theme-elevated px-3 py-1 font-semibold text-theme-text-secondary">最新批次：{latestBatch.status}</span> : null}
                     <span className="rounded-full bg-theme-elevated px-3 py-1 font-semibold text-theme-text-secondary">类型：{INPUT_TYPE_META[normalizeType(record.input_type)].label}</span>
                   </div>
-                  {/* 仅 code 类型记录:点击启动 codemap_lite serve 并跳转。
-                      db_name 由 manager 在 task accepted 时生成;queued 阶段还没,按钮置灰。 */}
-                  {normalizeType(record.input_type) === 'code' ? (
+                  {/* 仅 code 类型记录:点击启动 codemap_lite serve 并跳转。该上传
+                      记录有自己的图;db_name 由 manager 在 task accepted 时生成;
+                      queued 阶段还没,按钮置灰。 */}
+                  {normalizeType(record.input_type) === 'code' ? (() => {
+                    const uploadStatus = codemapStatusByUpload[uploadId] ?? null;
+                    return (
                     <div className="mt-3 flex items-center gap-3">
                       <button
                         type="button"
-                        disabled={!codemapStatus?.db_name || openServeLoading}
-                        onClick={() => { void handleOpenServe(); }}
-                        title={!codemapStatus
+                        disabled={!uploadStatus?.db_name || openServeLoading}
+                        onClick={() => { void handleOpenServe(uploadId); }}
+                        title={!uploadStatus
                           ? '知识图谱任务尚未派发'
-                          : !codemapStatus.db_name
+                          : !uploadStatus.db_name
                             ? '任务排队中,db_name 未分配'
                             : '在新标签页打开 codemap_lite 知识图谱'}
                         className="inline-flex items-center gap-2 rounded-xl border border-indigo-200 bg-indigo-50 px-3 py-2 text-xs font-medium text-indigo-700 transition hover:bg-indigo-100 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-400"
@@ -1067,7 +1085,8 @@ export const TestInputPage: React.FC<TestInputPageProps> = ({ selectedProjectId,
                         <span className="text-xs font-semibold text-rose-600">{openServeError}</span>
                       ) : null}
                     </div>
-                  ) : null}
+                    );
+                  })() : null}
                 </div>
                 <button
                   type="button"

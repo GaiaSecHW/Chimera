@@ -81,7 +81,15 @@ export const KnowledgeGraphPage: React.FC<Props> = ({ projectId, projects }) => 
     () => projects.find((item) => item.id === projectId)?.name || projectId,
     [projectId, projects],
   );
-  const taskId = useMemo(() => buildCodemapTaskId(projectId), [projectId]);
+  // 多图谱:真 product_id(空回退 projectId),manager 据此在该 product 的 active
+  // 图里给本次上传找 fork 源。
+  const productId = useMemo(
+    () => projects.find((item) => item.id === projectId)?.product_id || projectId,
+    [projectId, projects],
+  );
+  // task_id 下沉到「每条上传一图」:由 bootstrap 选中的最新 code 上传的 upload_id
+  // 决定(kg-<uploadId>)。null = 尚未确定(还没拉到上传记录)。
+  const [taskId, setTaskId] = useState<string | null>(null);
 
   // 起 serve → iframe。serve 子进程端口立即绑定,即使库还空着也能起,
   // 图谱随后台 analyze/repair 进度渐进填充。幂等:已在起则跳过。
@@ -119,15 +127,17 @@ export const KnowledgeGraphPage: React.FC<Props> = ({ projectId, projects }) => 
         setPhase('no-upload');
         return;
       }
-      // 取最新一条 code 上传(按创建时间倒序)。
+      // 取最新一条 code 上传(按创建时间倒序)。该上传的 upload_id 决定本图身份。
       const latest = [...items].sort(
         (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
       )[0];
+      const uploadTaskId = buildCodemapTaskId(latest.upload_id);
+      setTaskId(uploadTaskId);
 
-      // 查构建状态;404 表示这个项目还没构建过。
+      // 查构建状态;404 表示这条上传还没构建过。
       let current: CodemapTaskStatus | null = null;
       try {
-        current = await api.codemapManager.getTaskStatus(taskId);
+        current = await api.codemapManager.getTaskStatus(uploadTaskId);
       } catch (error) {
         if ((error as any)?.status !== 404) throw error;
       }
@@ -139,10 +149,12 @@ export const KnowledgeGraphPage: React.FC<Props> = ({ projectId, projects }) => 
           return;
         }
         const triggered = await api.codemapManager.triggerBuild({
-          task_id: taskId,
-          product_id: projectId,
+          task_id: uploadTaskId,
+          product_id: productId,
           product_name: projectName,
           target_dir: buildManagerTargetDir(projectId, latest.target_path),
+          project_id: projectId,
+          upload_id: latest.upload_id,
         });
         current = {
           task_id: triggered.task_id,
@@ -165,12 +177,12 @@ export const KnowledgeGraphPage: React.FC<Props> = ({ projectId, projects }) => 
       setMessage(errorMessage(error));
       setPhase('error');
     }
-  }, [projectId, projectName, taskId, startServe]);
+  }, [projectId, projectName, productId, startServe]);
 
   // failed 红色横幅旁的"重新构建"按钮:bootstrap 里只在 status===null 时 trigger,
   // 老 failed task 一直存在 → 永远不会重派。先 DELETE 清掉再 bootstrap。
   const handleRebuild = useCallback(async () => {
-    if (rebuilding) return;
+    if (rebuilding || !taskId) return;
     setRebuilding(true);
     try {
       await api.codemapManager.deleteTask(taskId);
@@ -194,7 +206,7 @@ export const KnowledgeGraphPage: React.FC<Props> = ({ projectId, projects }) => 
       const dbName = status?.db_name;
       if (dbName) {
         await api.codemapManager.purgeProject(dbName);
-      } else {
+      } else if (taskId) {
         // 兜底:没有 db_name 也尝试删 task,后续 bootstrap 仍能重派。
         await api.codemapManager.deleteTask(taskId).catch(() => {});
       }
@@ -217,6 +229,7 @@ export const KnowledgeGraphPage: React.FC<Props> = ({ projectId, projects }) => 
   // 到达终态(completed/failed)即停止。
   useEffect(() => {
     if (phase !== 'ready') return undefined;
+    if (!taskId) return undefined;
     if (status && !IN_PROGRESS_STATUSES.has(status.status)) return undefined;
     const timer = window.setInterval(async () => {
       try {

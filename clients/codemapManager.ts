@@ -50,11 +50,15 @@ export interface CodemapServeResponse {
 export const codemapManagerApi = {
   // POST /tasks — 提交构建(按 task_id 幂等)。target_dir 是 manager 可见的
   // 文件系统路径(与 fileserver 共享卷),来自 fileserver 的 resolve.target_path。
+  // 多图谱(每条上传一图):task_id=kg-<uploadId>,携带真 product_id(空回退
+  // projectId)、project_id、upload_id,manager 据 upload_id 走匹配→clone→增量。
   triggerBuild: async (payload: {
     task_id: string;
     product_id: string;
     product_name: string;
     target_dir: string;
+    project_id?: string;
+    upload_id?: string;
     mode?: string;
   }): Promise<CodemapTriggerResponse> => {
     const response = await fetch(`${MANAGER_BASE}/tasks`, {
@@ -108,10 +112,12 @@ export const codemapManagerApi = {
   },
 };
 
-// 知识图谱构建是项目维度、幂等的:固定 task_id = kg-<projectId>,product_id=projectId
-// → manager 算出的 db_name 不变 → 一个项目始终一张图。KnowledgeGraphPage 与
-// TestInputPage 都用同一份 task_id,确保切 tab 不会重复派发(POST /tasks 幂等兜底)。
-export const buildCodemapTaskId = (projectId: string): string => `kg-${projectId}`;
+// 知识图谱身份下沉到「每条代码上传一图」(多图谱模型)。task_id = kg-<uploadId>,
+// 每条 code 上传记录各自独立的构建状态与图;被 superseded 的历史上传点进去即历史
+// 快照。manager 据 upload_id 在该 product 的 active 图里按路径相似度匹配,命中则
+// clone 源图 + 增量复用,未命中则全量新建。KnowledgeGraphPage 与 TestInputPage
+// 都用同一 uploadId 算 task_id,切 tab 不重复派发(POST /tasks 幂等兜底)。
+export const buildCodemapTaskId = (uploadId: string): string => `kg-${uploadId}`;
 
 // manager 读取代码的文件系统根。manager 挂载了平台 fileserver 的共享卷到 /data,
 // 上传代码物理路径是 /data/files/<projectId>/<target_path>;而 fileserver API 返回的
