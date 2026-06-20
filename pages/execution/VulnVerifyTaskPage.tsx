@@ -80,6 +80,7 @@ interface PendingVerifyCase {
   title?: string | null;
   severity?: string | null;
   subject?: Record<string, any> | null;
+  metadata?: Record<string, any> | null;
   current_stage: string;
   current_status?: string | null;
   updated_at?: string | null;
@@ -90,6 +91,8 @@ interface BatchCreateResultItem {
   caseId: string;
   title?: string | null;
   taskId?: string;
+  sourceRoot?: string;
+  reportsDir?: string;
   error?: string;
 }
 
@@ -199,6 +202,34 @@ function getCaseSearchText(item: PendingVerifyCase): string {
 function getBatchTaskName(item: PendingVerifyCase): string {
   const suffix = new Date().toISOString().replace(/[-:T.Z]/g, '').slice(0, 14);
   return `批量验证-${item.global_vuln_id || item.id}-${suffix}`;
+}
+
+function firstNonEmptyString(...values: any[]): string | null {
+  for (const value of values) {
+    const text = String(value || '').trim();
+    if (text) return text;
+  }
+  return null;
+}
+
+function resolveCaseSourceRoot(item: PendingVerifyCase): string | null {
+  const metadata = item.metadata || {};
+  return firstNonEmptyString(
+    metadata.verification_context?.source_root,
+    metadata.source?.source_root,
+    metadata.dataflow_vuln_scan?.source_root,
+  );
+}
+
+function resolveCaseReportsDir(item: PendingVerifyCase): string | null {
+  const metadata = item.metadata || {};
+  return firstNonEmptyString(
+    metadata.verification_context?.reports_dir,
+    metadata.dataflow_vuln_scan?.output_dir,
+    metadata.source?.reports_dir,
+    metadata.source?.output_dir,
+    metadata.source?.result_dir,
+  );
 }
 
 function getFilterChipClassName(active: boolean): string {
@@ -475,17 +506,17 @@ export const VulnVerifyTaskPage: React.FC<{ projectId: string }> = ({ projectId 
   }, [projectId]);
 
   const createCaseVerifyTask = useCallback(async (caseItem: PendingVerifyCase) => {
-    const response = await fetch(`${API_BASE}/api/vuln/cases/${encodeURIComponent(caseItem.id)}/auto-verify/tasks`, {
-      method: 'POST',
-      headers: getHeaders(),
-      body: JSON.stringify({
-        name: getBatchTaskName(caseItem),
-        threat_model_markdown: '',
-        advance_to_validation: true,
-      }),
+    const sourceRoot = resolveCaseSourceRoot(caseItem);
+    const reportsDir = resolveCaseReportsDir(caseItem);
+    if (!sourceRoot) throw new Error('缺少 source_root');
+    if (!reportsDir) throw new Error('缺少 reports_dir');
+    const task = await vulnVerifyApi.createTask(projectId, {
+      name: getBatchTaskName(caseItem),
+      source_root: sourceRoot,
+      reports_dir: reportsDir,
     });
-    return handleResponse(response);
-  }, []);
+    return { task, sourceRoot, reportsDir };
+  }, [projectId]);
 
   const openBatchPanel = () => {
     setBatchPanelOpen(true);
@@ -555,7 +586,9 @@ export const VulnVerifyTaskPage: React.FC<{ projectId: string }> = ({ projectId 
             ok: true,
             caseId: item.id,
             title: item.title,
-            taskId: String(data?.vuln_verify_task_id || data?.task?.id || ''),
+            taskId: String(data?.task?.id || ''),
+            sourceRoot: data?.sourceRoot,
+            reportsDir: data?.reportsDir,
           });
         } catch (error: any) {
           results.push({
