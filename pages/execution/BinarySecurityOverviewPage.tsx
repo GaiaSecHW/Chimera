@@ -1116,12 +1116,8 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
                         {item.abnormal_reason_code ? <span className="ml-2 text-xs uppercase tracking-[0.12em] text-amber-400">{item.abnormal_reason_code}</span> : null}
                       </div>
                     ) : null}
-                    <div className="mt-4 grid grid-cols-2 gap-3 text-sm text-theme-text-secondary xl:grid-cols-6">
+                    <div className="mt-4 grid grid-cols-2 gap-3 text-sm text-theme-text-secondary xl:grid-cols-2">
                       <div>当前阶段：<span className="font-bold text-theme-text-primary">{formatStageLabel(item.current_stage)}</span></div>
-                      <div>{isSourceTask ? '源码文件' : isBinaryModuleTask ? 'ELF 数' : '固件数'}：<span className="font-bold text-theme-text-primary">{item.firmware_item_count}</span></div>
-                      <div>{isSourceTask ? '已选模块' : isBinaryModuleTask ? '模块数' : '已解包'}：<span className="font-bold text-theme-text-primary">{isSourceTask ? item.selected_module_count : isBinaryModuleTask ? item.selected_module_count || 1 : item.unpacked_firmware_count}</span></div>
-                      <div>{isSourceTask ? '入口数量' : isBinaryModuleTask ? '任务模式' : '解包失败'}：<span className="font-bold text-theme-text-primary">{isSourceTask ? item.entry_count : isBinaryModuleTask ? '模块级' : item.failed_firmware_count}</span></div>
-                      <div>漏洞结果：<span className="font-bold text-theme-text-primary">{item.vuln_result_count}</span></div>
                       <div>开始时间：<span className="font-bold text-theme-text-primary">{fmt(item.started_at)}</span></div>
                     </div>
                     <div className="mt-4 flex flex-wrap gap-2">
