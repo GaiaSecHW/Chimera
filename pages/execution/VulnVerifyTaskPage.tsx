@@ -1082,7 +1082,7 @@ export const VulnVerifyTaskPage: React.FC<{ projectId: string }> = ({ projectId 
                   将为已选的 <span className="font-black text-violet-400">{selectedPendingCases.length}</span> 个待验证漏洞生成验证任务。
                 </p>
                 <p className="mt-1 text-xs leading-5 text-theme-text-muted">
-                  任务创建后，这些漏洞将进入「验证中」阶段；系统将使用默认模型和默认威胁模型。
+                  任务创建后可在漏洞验证任务列表查看；系统仅从漏洞案例提取 source_root 和 reports_dir，其余参数使用默认值。
                 </p>
               </div>
             </div>
