@@ -1,4 +1,5 @@
 import { API_BASE, getHeaders, getJsonWithDedupe, handleResponse } from './base';
+import type { ServiceHealthMeta } from '../components/execution/serviceHealthMeta';
 
 export interface VulnCaseDisplaySummary {
   title?: string;
@@ -188,6 +189,41 @@ export interface VulnAutoVerifyTaskBatchSyncResponse {
   }>;
 }
 
+const asRecord = (value: unknown): Record<string, unknown> => (
+  value && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, unknown> : {}
+);
+
+const asString = (value: unknown, fallback = ''): string => (
+  typeof value === 'string' ? value : value == null ? fallback : String(value)
+);
+
+const asNullableString = (value: unknown): string | null => {
+  const normalized = asString(value).trim();
+  return normalized ? normalized : null;
+};
+
+type VulnHealthResponse = {
+  status: string;
+  service: string;
+} & ServiceHealthMeta;
+
+const normalizeHealth = (value: unknown): VulnHealthResponse => {
+  const record = asRecord(value);
+  return {
+    status: asString(record.status, typeof value === 'string' ? value : 'unknown'),
+    service: asString(record.service),
+    service_id: asNullableString(record.service_id),
+    service_name: asNullableString(record.service_name),
+    build_version: asNullableString(record.build_version),
+    service_version: asNullableString(record.service_version),
+    image_tag: asNullableString(record.image_tag),
+    git_tag: asNullableString(record.git_tag),
+    git_commit: asNullableString(record.git_commit),
+    built_at: asNullableString(record.built_at),
+    version: asNullableString(record.version),
+  };
+};
+
 const publicJson = async (url: string, init?: RequestInit) => {
   const response = await fetch(url, init);
   if (!response.ok) {
@@ -238,8 +274,8 @@ const buildQueryString = (params: Record<string, any>): string => {
 };
 
 export const vulnApi = {
-  getHealth: async (): Promise<{ status: string; service: string }> =>
-    handleResponse(await fetch(`${API_BASE}/api/vuln/health`, { headers: getHeaders() })),
+  getHealth: async (): Promise<VulnHealthResponse> =>
+    normalizeHealth(await handleResponse<unknown>(await fetch(`${API_BASE}/api/vuln/health`, { headers: getHeaders() }))),
 
   getOverview: async (projectId?: string): Promise<any> => {
     const query = new URLSearchParams(projectId ? { project_id: projectId } : {}).toString();
