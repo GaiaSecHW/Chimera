@@ -130,6 +130,17 @@ export const TestInputUploader = forwardRef<TestInputUploaderHandle, TestInputUp
               display_name: displayName.trim(),
             });
           }
+          // Poll until server finishes processing (extracting/indexing)
+          const uploadId = result.upload_id;
+          if (uploadId) {
+            const maxAttempts = 120;
+            for (let i = 0; i < maxAttempts; i++) {
+              const detail = await fileserverApi.getProjectInputUploadDetail(uploadId);
+              if (detail.status === 'succeeded' || detail.status === 'partial_failed') break;
+              if (detail.status === 'failed') throw new Error(detail.last_error || '服务器处理上传文件失败');
+              await new Promise((r) => setTimeout(r, 2000));
+            }
+          }
           setUploadQueue((current) =>
             current.map((item) =>
               item.status === 'failed' ? item : { ...item, status: 'completed', progress: 100, speedBytesPerSec: 0 },
