@@ -87,6 +87,11 @@ export interface VulnVerifyV2ProjectStats {
   verdict_counts?: Record<string, number>;
 }
 
+export interface VulnVerifyV2TaskCaseIdsResponse {
+  total: number;
+  items: string[];
+}
+
 export const vulnVerifyV2Api = {
   getHealth: async (): Promise<{ status: string; service?: string } & ServiceHealthMeta> =>
     getJsonWithDedupe(`${BASE}/health`, { headers: getHeaders() }),
@@ -102,6 +107,16 @@ export const vulnVerifyV2Api = {
     if (params?.offset) query.set('offset', String(params.offset));
     const suffix = query.toString() ? `?${query}` : '';
     return getJsonWithDedupe(`${BASE}/projects/${encodeURIComponent(projectId)}/tasks${suffix}`, { headers: getHeaders() });
+  },
+
+  listTaskCaseIds: async (projectId: string, params?: { caseIds?: string[] }): Promise<VulnVerifyV2TaskCaseIdsResponse> => {
+    const query = new URLSearchParams();
+    (params?.caseIds || []).forEach((caseId) => {
+      const normalized = String(caseId || '').trim();
+      if (normalized) query.append('case_ids', normalized);
+    });
+    const suffix = query.toString() ? `?${query}` : '';
+    return getJsonWithDedupe(`${BASE}/projects/${encodeURIComponent(projectId)}/task-case-ids${suffix}`, { headers: getHeaders() });
   },
 
   createTask: async (projectId: string, payload: VulnVerifyV2TaskCreateRequest): Promise<VulnVerifyV2Task> =>
