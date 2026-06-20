@@ -8,8 +8,9 @@ import { PageHeader } from '../../design-system';
 import { useUiFeedback } from '../../components/UiFeedback';
 
 const BATCH_CREATE_CONCURRENCY = 3;
-const PENDING_CASE_LOAD_LIMIT = 500;
+const PENDING_CASE_FETCH_PAGE_SIZE = 500;
 const PENDING_CASE_PAGE_SIZE = 500;
+const PENDING_CASE_MAX_FETCH = 20000;
 const MAX_BATCH_CREATE = 500;
 
 const STATUS_LABEL: Record<string, string> = {
@@ -304,11 +305,38 @@ export const VulnVerifyV2TaskPage: React.FC<{ projectId: string }> = ({ projectI
     if (!projectId) return;
     setPendingLoading(true);
     try {
+      const loadStageCases = async (stage: 'receive' | 'triage'): Promise<{ items: PendingVerifyCase[]; total: number }> => {
+        const merged: PendingVerifyCase[] = [];
+        let pageNo = 1;
+        let declaredTotal = 0;
+
+        while (merged.length < PENDING_CASE_MAX_FETCH) {
+          const response = await vulnApi.listCases({
+            project_id: projectId,
+            current_stage: stage,
+            page: pageNo,
+            page_size: PENDING_CASE_FETCH_PAGE_SIZE,
+          });
+          const pageItems = Array.isArray(response.items) ? (response.items as PendingVerifyCase[]) : [];
+          declaredTotal = Math.max(declaredTotal, Number(response.total || 0));
+          if (!pageItems.length) break;
+          merged.push(...pageItems);
+          if (pageItems.length < PENDING_CASE_FETCH_PAGE_SIZE) break;
+          if (declaredTotal > 0 && merged.length >= declaredTotal) break;
+          pageNo += 1;
+        }
+
+        return {
+          items: merged.slice(0, PENDING_CASE_MAX_FETCH),
+          total: declaredTotal || merged.length,
+        };
+      };
+
       const [receive, triage] = await Promise.all([
-        vulnApi.listCases({ project_id: projectId, current_stage: 'receive', page: 1, page_size: PENDING_CASE_LOAD_LIMIT }),
-        vulnApi.listCases({ project_id: projectId, current_stage: 'triage', page: 1, page_size: PENDING_CASE_LOAD_LIMIT }),
+        loadStageCases('receive'),
+        loadStageCases('triage'),
       ]);
-      const items = [...(receive.items || []), ...(triage.items || [])] as PendingVerifyCase[];
+      const items = [...receive.items, ...triage.items] as PendingVerifyCase[];
       setPendingCases(items);
       setPendingTotal(Number(receive.total || 0) + Number(triage.total || 0));
       setBatchPage(1);
