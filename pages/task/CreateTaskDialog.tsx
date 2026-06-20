@@ -220,7 +220,6 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
         ) && (taskType !== 'binary_module_e2e' || moduleName.trim())))
   );
 
-  const activeCreateTabIndex = useMemo(() => CREATE_TABS.findIndex((item) => item.key === activeCreateTab), [activeCreateTab]);
 
   /* --- data loading --- */
   const loadDialogData = async () => {
@@ -443,11 +442,6 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
     }
   };
 
-  /* --- tab navigation --- */
-  const goCreateTab = (step: -1 | 1) => {
-    const nextTab = CREATE_TABS[activeCreateTabIndex + step];
-    if (nextTab) setActiveCreateTab(nextTab.key);
-  };
 
   /* --- tree rendering --- */
   const renderTreeRows = (relativePath: string, depth: number): React.ReactNode[] => {
@@ -950,12 +944,7 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
         </div>
 
         {/* footer */}
-        <div
-          className="flex items-center justify-between px-6 py-3"
-          style={{ borderTop: `1px solid ${LK.border}` }}
-        >
-          <div className="text-xs" style={{ color: LK.muted }}>第 {activeCreateTabIndex + 1} 步 / 共 {CREATE_TABS.length} 步</div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center justify-end gap-2 px-6 py-3" style={{ borderTop: `1px solid ${LK.border}` }}>
             <button
               onClick={onClose}
               className="rounded-lg px-4 py-2 text-sm font-semibold transition-colors"
@@ -966,39 +955,16 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
               取消
             </button>
             <button
-              onClick={() => goCreateTab(-1)}
-              disabled={activeCreateTabIndex === 0}
-              className="rounded-lg px-4 py-2 text-sm font-semibold transition-colors disabled:opacity-40"
-              style={{ backgroundColor: LK.surfaceRaised, color: LK.body, border: `1px solid ${LK.border}` }}
-              onMouseEnter={(e) => { if (!e.currentTarget.disabled) e.currentTarget.style.color = LK.ink; }}
-              onMouseLeave={(e) => { e.currentTarget.style.color = LK.body; }}
+              onClick={() => void createTask()}
+              disabled={saving || uploading || !canCreateTask}
+              className="rounded-lg px-4 py-2 text-sm font-semibold transition-colors disabled:opacity-50"
+              style={{ backgroundColor: LK.primary, color: '#ffffff' }}
+              onMouseEnter={(e) => { if (!e.currentTarget.disabled) e.currentTarget.style.backgroundColor = LK.primaryDeep; }}
+              onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = LK.primary; }}
             >
-              上一步
+              {saving ? '创建中...' : uploading ? '上传中...' : '创建任务'}
             </button>
-            {activeCreateTabIndex < CREATE_TABS.length - 1 ? (
-              <button
-                onClick={() => goCreateTab(1)}
-                className="rounded-lg px-4 py-2 text-sm font-semibold transition-colors"
-                style={{ backgroundColor: LK.surfaceRaised, color: LK.inkSoft, border: `1px solid ${LK.border}` }}
-                onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = LK.primaryMuted; e.currentTarget.style.color = LK.primary; e.currentTarget.style.borderColor = LK.primary; }}
-                onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = LK.surfaceRaised; e.currentTarget.style.color = LK.inkSoft; e.currentTarget.style.borderColor = LK.border; }}
-              >
-                下一步
-              </button>
-            ) : (
-              <button
-                onClick={() => void createTask()}
-                disabled={saving || uploading || !canCreateTask}
-                className="rounded-lg px-4 py-2 text-sm font-semibold transition-colors disabled:opacity-50"
-                style={{ backgroundColor: LK.primary, color: '#ffffff' }}
-                onMouseEnter={(e) => { if (!e.currentTarget.disabled) e.currentTarget.style.backgroundColor = LK.primaryDeep; }}
-                onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = LK.primary; }}
-              >
-                {saving ? '创建中...' : uploading ? '上传中...' : '创建任务'}
-              </button>
-            )}
           </div>
-        </div>
       </div>
     </div>
   );
