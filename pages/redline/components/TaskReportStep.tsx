@@ -159,7 +159,8 @@ export const TaskReportStep: React.FC<Props> = ({ taskId, task, onTaskUpdated, o
     content +=`| 智能体 | 执行结果 | 用例结果 |\n`;
     content +=`|--------|----------|----------|\n`;
     for (const agent of agents) {
-      const execResult = agent.isSuccess === true ? '成功' : agent.isSuccess === false ? '失败' : '-';
+      // 执行结果取 status（智能体任务是否执行成功），用例结果取返回文本解析（业务是否通过）
+      const execResult = agent.status === 'SUCCESS' ? '成功' : agent.status === 'FAILED' ? '失败' : agent.status === 'CANCELLED' ? '已取消' : '-';
       const testResult = extractTestResult(agent.result);
       content +=`| ${agent.agentName || agent.agentId} | ${execResult} | ${testResult} |\n`;
     }
@@ -297,8 +298,9 @@ export const TaskReportStep: React.FC<Props> = ({ taskId, task, onTaskUpdated, o
               </thead>
               <tbody>
                 {agents.map((agent) => {
+                  // 执行结果取 status（智能体任务是否执行成功），用例结果取返回文本解析（业务是否通过）
                   const execResult =
-                    agent.isSuccess === true ? '成功' : agent.isSuccess === false ? '失败' : '-';
+                    agent.status === 'SUCCESS' ? '成功' : agent.status === 'FAILED' ? '失败' : agent.status === 'CANCELLED' ? '已取消' : '-';
                   const testResult = extractTestResult(agent.result);
                   const redLineStat = getRedLineStats(agent);
                   return (
