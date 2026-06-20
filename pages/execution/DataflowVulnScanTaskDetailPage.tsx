@@ -259,6 +259,22 @@ function timelineMessageSummary(event: AppDfaTaskEvent) {
   return summary || event.message || '-';
 }
 
+function timelineRecorderLabel(event: AppDfaTaskEvent) {
+  const primary = event.recorder_pod_name || event.recorder_hostname || '-';
+  const role = event.recorder_role || '-';
+  return `记录者: ${primary} · ${role}`;
+}
+
+function timelineOriginLabel(event: AppDfaTaskEvent) {
+  const primary = event.origin_pod_name || event.origin_hostname;
+  const role = event.origin_role;
+  if (!primary && !role) return '';
+  const recorderPrimary = event.recorder_pod_name || event.recorder_hostname || '';
+  const recorderRole = event.recorder_role || '';
+  if (primary === recorderPrimary && (role || '') === recorderRole) return '';
+  return `来源: ${primary || '-'} · ${role || '-'}`;
+}
+
 function deriveStepStatuses(taskStatus: string, events: AppDfaStageEvent[]): StepStatus[] {
   const statuses: StepStatus[] = STAGE_STEPS.map(() => 'pending');
   if (taskStatus === 'pending') return statuses;
@@ -1154,6 +1170,9 @@ export const DataflowVulnScanTaskDetailPage: React.FC<{ projectId: string; taskI
                           const expanded = expandedTimelineEventId === event.id;
                           const payload = event.payload || {};
                           const sourceLabel = [event.source, event.worker_id || event.execution_owner_id, event.execution_epoch != null ?`Epoch ${event.execution_epoch}` : '', event.dispatch_status].filter(Boolean).join(' · ') || '-';
+                          const recorderLabel = timelineRecorderLabel(event);
+                          const originLabel = timelineOriginLabel(event);
+                          const nodeLabel = event.recorder_node_name ? `节点: ${event.recorder_node_name}` : '节点: -';
                           const hasPayload = Object.keys(payload).length > 0;
                           const statusText = event.status || event.dispatch_status || '-';
                           const auditEvent = isAgentKillTimelineEvent(event.event_type);
@@ -1171,7 +1190,12 @@ export const DataflowVulnScanTaskDetailPage: React.FC<{ projectId: string; taskI
                                   <div className="truncate font-semibold text-theme-text-primary" title={timelineMessageSummary(event)}>{timelineMessageSummary(event)}</div>
                                   {auditSummary ? <div className="mt-1 truncate text-[11px] font-medium text-rose-400" title={auditSummary}>{auditSummary}</div> : null}
                                 </td>
-                                <td className="px-3 py-2 text-[11px] text-theme-text-muted"><div className="truncate font-mono" title={sourceLabel}>{sourceLabel}</div></td>
+                                <td className="px-3 py-2 text-[11px] text-theme-text-muted">
+                                  <div className="truncate font-mono" title={recorderLabel}>{recorderLabel}</div>
+                                  <div className="truncate font-mono" title={nodeLabel}>{nodeLabel}</div>
+                                  {originLabel ? <div className="truncate font-mono" title={originLabel}>{originLabel}</div> : null}
+                                  <div className="truncate font-mono opacity-70" title={sourceLabel}>{sourceLabel}</div>
+                                </td>
                                 <td className="px-3 py-2 text-right">
                                   <div className="flex items-center justify-end gap-3">
                                     <button type="button" onClick={() => setExpandedTimelineEventId(expanded ? '' : event.id)} disabled={!hasPayload} className="text-[11px] font-semibold text-theme-text-muted transition hover:text-theme-text-primary disabled:opacity-30">{expanded ? '收起' : '查看'}</button>

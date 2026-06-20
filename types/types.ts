@@ -4564,6 +4564,18 @@ export interface AppDfaTaskEvent {
   parent_stage_item_id?: string | null;
   message: string;
   payload?: Record<string, any> | null;
+  recorder_instance_id?: string | null;
+  recorder_hostname?: string | null;
+  recorder_pod_name?: string | null;
+  recorder_node_name?: string | null;
+  recorder_pod_ip?: string | null;
+  recorder_role?: string | null;
+  origin_instance_id?: string | null;
+  origin_hostname?: string | null;
+  origin_pod_name?: string | null;
+  origin_node_name?: string | null;
+  origin_pod_ip?: string | null;
+  origin_role?: string | null;
   created_at?: string | null;
 }
 
