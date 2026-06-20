@@ -296,6 +296,10 @@ function formatEventLog(evt: AppDfaStageEvent): string {
     case 'judge_start': return`[${ts}] ▶ Judge ${d.judge_id || d.judge_idx || ''} 开始`;
     case 'judge_done': return`[${ts}] ✓ Judge ${d.judge_id || d.judge_idx || ''} 完成`;
     case 'round_end': return`[${ts}] ✓ 第 ${d.round || ''} 轮结束 passed=${d.passed ?? ''}`;
+    case 'entry_screen_start': return`[${ts}] ▶ 入口快速筛查: ${d.function || ''}`;
+    case 'entry_screen_whitelisted': return`[${ts}] ✓ 入口筛查通过（白名单命中 \`${d.matched_keyword || ''}\`）`;
+    case 'entry_screen_pass': return`[${ts}] ✓ 入口筛查通过（${d.screened_by || 'agent'}${d.confidence ? '/' + d.confidence : ''}）${d.reason ? ': ' + d.reason : ''}`;
+    case 'entry_screen_reject': return`[${ts}] ⛔ 判定为非入口，已跳过数据流分析${d.confidence ? '（置信度 ' + d.confidence + '）' : ''}: ${d.reason || ''}`;
     case 'error': return`[${ts}] ✗ 错误: ${d.error || JSON.stringify(d)}`;
     case 'task_end': return`[${ts}] 任务结束 status=${d.status || ''}`;
     default: return`[${ts}] ${evt.type}: ${String(d.text || d.output || JSON.stringify(d)).replace(/\n+/g, ' ').slice(0, 150)}`;
