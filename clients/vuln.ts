@@ -217,6 +217,7 @@ export interface VulnCaseListParams {
   evolution_task_id?: string;
   evolution_round?: number;
   global_vuln_id?: string;
+  final_result?: 'vulnerable' | 'not_vulnerable' | 'inconclusive' | 'analyzing';
 }
 
 export interface VulnCaseListResponse {

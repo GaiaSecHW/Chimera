@@ -539,6 +539,9 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
   const [severityFilter, setSeverityFilter] = useState('all');
   const [cvssBandFilter, setCvssBandFilter] = useState('all');
   const [reporterTypeFilter, setReporterTypeFilter] = useState('all');
+  const [taskFilter, setTaskFilter] = useState('all');
+  const [taskOptions, setTaskOptions] = useState<Array<{ id: string; name?: string }>>([]);
+  const [finalResultFilter, setFinalResultFilter] = useState('all');
   const [sortField, setSortField] = useState<SortField>('updated_at');
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
   const [currentPage, setCurrentPage] = useState(1);
@@ -682,6 +685,8 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
         severity: severityFilter === 'all' ? undefined : severityFilter,
         reporter_type: reporterTypeFilter === 'all' ? undefined : reporterTypeFilter,
         cvss_band: cvssBandFilter === 'all' ? undefined : cvssBandFilter,
+        source_task_id: taskFilter === 'all' ? undefined : taskFilter,
+        final_result: finalResultFilter === 'all' ? undefined : (finalResultFilter as any),
         search: search.trim() || undefined,
         sort_field: sortField,
         sort_direction: sortDirection,
@@ -961,8 +966,29 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
   }, [projectId]);
 
   useEffect(() => {
+    setTaskFilter('all');
+    if (!projectId) {
+      setTaskOptions([]);
+      return;
+    }
+    let cancelled = false;
+    api.domains.platform.scheduleCenter
+      .listUserTasks(projectId, { page_size: 200 })
+      .then((resp: any) => {
+        if (cancelled) return;
+        setTaskOptions(resp.items || []);
+      })
+      .catch(() => {
+        if (!cancelled) setTaskOptions([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [projectId]);
+
+  useEffect(() => {
     void loadSuspicions();
-  }, [projectId, currentPage, pageSize, search, stageFilter, severityFilter, reporterTypeFilter, cvssBandFilter, sortField, sortDirection]);
+  }, [projectId, currentPage, pageSize, search, stageFilter, severityFilter, reporterTypeFilter, cvssBandFilter, taskFilter, finalResultFilter, sortField, sortDirection]);
 
   useEffect(() => {
     if (rootTab !== 'download-center') return;
@@ -1070,7 +1096,7 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [search, stageFilter, severityFilter, reporterTypeFilter, cvssBandFilter, pageSize, sortField, sortDirection]);
+  }, [search, stageFilter, severityFilter, reporterTypeFilter, cvssBandFilter, taskFilter, finalResultFilter, pageSize, sortField, sortDirection]);
 
   useEffect(() => {
     if (currentPage > totalPages) {
@@ -2553,6 +2579,31 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
                   <option value="high">high (7.0-8.9)</option>
                   <option value="medium">medium (4.0-6.9)</option>
                   <option value="low">low (0.1-3.9)</option>
+                </select>
+                <select
+                  value={taskFilter}
+                  onChange={(event) => setTaskFilter(event.target.value)}
+                  className="form-select"
+                  style={{ width: '220px' }}
+                >
+                  <option value="all">全部任务</option>
+                  {taskOptions.map((task) => (
+                    <option key={task.id} value={task.id}>
+                      {task.name?.trim() || task.id}
+                    </option>
+                  ))}
+                </select>
+                <select
+                  value={finalResultFilter}
+                  onChange={(event) => setFinalResultFilter(event.target.value)}
+                  className="form-select"
+                  style={{ width: '140px' }}
+                >
+                  <option value="all">全部结果</option>
+                  <option value="vulnerable">是漏洞</option>
+                  <option value="not_vulnerable">不是漏洞</option>
+                  <option value="inconclusive">无法判定</option>
+                  <option value="analyzing">分析中</option>
                 </select>
               </div>
             </div>
