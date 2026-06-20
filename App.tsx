@@ -105,20 +105,6 @@ const AppShell: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState<boolean>(() => {
-    try {
-      return localStorage.getItem('chimera:sidebarCollapsed') !== 'false';
-    } catch {
-      return true;
-    }
-  });
-  useEffect(() => {
-    try {
-      localStorage.setItem('chimera:sidebarCollapsed', String(isSidebarCollapsed));
-    } catch {
-      /* ignore quota / privacy mode */
-    }
-  }, [isSidebarCollapsed]);
   const [isProjectDropdownOpen, setIsProjectDropdownOpen] = useState(false);
 
   // Data States
@@ -625,14 +611,12 @@ const AppShell: React.FC = () => {
         />
 
         <div className="flex flex-1 min-h-0 overflow-hidden">
-          <Sidebar 
-            user={user} 
-            currentView={currentView} 
+          <Sidebar
+            user={user}
+            currentView={currentView}
             activeTopLevelNav={activeTopLevelNav}
             hasSelectedProject={!!selectedProjectId}
-            isSidebarCollapsed={isSidebarCollapsed} 
-            setIsSidebarCollapsed={setIsSidebarCollapsed} 
-            setCurrentView={navigateToView} 
+            setCurrentView={navigateToView}
             resourceHealth={resourceServiceHealthy}
             staticPackageHealth={staticPackageHealthy}
             projectHealth={projectServiceHealthy}

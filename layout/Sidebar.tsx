@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ChevronDown, ChevronRight, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
+import { ChevronDown, ChevronRight } from 'lucide-react';
 import { SIDEBAR_SECTIONS, SidebarHealthStatus, TOP_LEVEL_NAV_ITEMS, NAV_ROLE_CONFIG, getSystemAdminSidebarSections } from '../app/navigation';
 import { UserInfo, ViewType } from '../types/types';
 import { canAccessView } from '../utils/rbac';
@@ -9,8 +9,6 @@ interface SidebarProps {
   currentView: ViewType | string;
   activeTopLevelNav: string;
   hasSelectedProject: boolean;
-  isSidebarCollapsed: boolean;
-  setIsSidebarCollapsed: (v: boolean) => void;
   setCurrentView: (v: ViewType | string) => void;
   resourceHealth?: SidebarHealthStatus['resourceHealth'];
   staticPackageHealth?: SidebarHealthStatus['staticPackageHealth'];
@@ -27,8 +25,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
   currentView,
   activeTopLevelNav,
   hasSelectedProject,
-  isSidebarCollapsed,
-  setIsSidebarCollapsed,
   setCurrentView,
   resourceHealth = null,
   staticPackageHealth = null,
@@ -86,8 +82,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const roleConfig = navRole ? NAV_ROLE_CONFIG[navRole] : null;
 
   return (
-    <aside className={`${isSidebarCollapsed ? 'w-15' : 'w-60'} bg-theme-sidebar text-theme-text-soft flex flex-col transition-all duration-300 z-30 shadow-brand shrink-0`}>
-      {!isSidebarCollapsed && roleConfig && (
+    <aside className="w-60 bg-theme-sidebar text-theme-text-soft flex flex-col z-30 shadow-brand shrink-0">
+      {roleConfig && (
         <div className="px-5 pt-4 pb-1 flex items-center gap-2">
           <span className="w-1.5 h-1.5 rounded-full" style={{ background: roleConfig.color }} />
           <span className="text-[10px] font-medium uppercase tracking-[0.22em]" style={{ color: roleConfig.color }}>
@@ -95,15 +91,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
           </span>
         </div>
       )}
-      <nav className={`flex-1 ${isSidebarCollapsed ? 'px-2' : 'px-4'} py-5 overflow-y-auto custom-scrollbar`}>
+      <nav className="flex-1 px-4 py-5 overflow-y-auto custom-scrollbar">
         <div className="space-y-5">
           {sections.map((section) => (
             <div key={section.title} className="space-y-2">
-              {!isSidebarCollapsed && (
-                <div className="px-3 text-[10px] font-medium uppercase tracking-[0.22em] text-theme-text-faint">
-                  {section.title}
-                </div>
-              )}
+              <div className="px-3 text-[10px] font-medium uppercase tracking-[0.22em] text-theme-text-faint">
+                {section.title}
+              </div>
               <div className="space-y-1">
                 {section.items.map((item) => {
                   const disabled = !!item.requiresProject && projectGuard;
@@ -137,20 +131,16 @@ export const Sidebar: React.FC<SidebarProps> = ({
                         }`}
                       >
                         <span className={`shrink-0 ${!isActive && !hasActiveSubItem ? healthColor : ''}`}><Icon size={16} /></span>
-                        {!isSidebarCollapsed && (
-                          <>
-                            <span className={`flex-1 text-sm font-medium truncate ${isActive || hasActiveSubItem ? 'text-theme-text-inverse' : ''}`}>{item.label}</span>
-                            {hasSubItems && (
-                              <span className="shrink-0 text-theme-text-faint">
-                                {isExpanded ? <ChevronDown size={13} /> : <ChevronRight size={13} />}
-                              </span>
-                            )}
-                          </>
+                        <span className={`flex-1 text-sm font-medium truncate ${isActive || hasActiveSubItem ? 'text-theme-text-inverse' : ''}`}>{item.label}</span>
+                        {hasSubItems && (
+                          <span className="shrink-0 text-theme-text-faint">
+                            {isExpanded ? <ChevronDown size={13} /> : <ChevronRight size={13} />}
+                          </span>
                         )}
                       </button>
 
                       {/* Sub-items */}
-                      {hasSubItems && isExpanded && !isSidebarCollapsed && (
+                      {hasSubItems && isExpanded && (
                         <div className="mt-1 ml-4 space-y-0.5 border-l border-theme-sidebar pl-3">
                           {item.subItems!
                             .filter((sub) => canAccessView(user, sub.id))
@@ -184,20 +174,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
           ))}
         </div>
       </nav>
-
-      <div className={`${isSidebarCollapsed ? 'p-2' : 'p-5'} border-t border-theme-sidebar`}>
-        <div className="flex items-center justify-center">
-          {!isSidebarCollapsed ? (
-            <button onClick={() => setIsSidebarCollapsed(true)} className="p-3 rounded-lg bg-theme-sidebar-muted/60 text-theme-text-faint hover:text-theme-text-inverse hover:bg-theme-sidebar-muted transition-colors">
-              <PanelLeftClose size={18} />
-            </button>
-          ) : (
-            <button onClick={() => setIsSidebarCollapsed(false)} className="p-3 rounded-lg bg-theme-sidebar-muted/60 text-theme-text-faint hover:text-theme-text-inverse hover:bg-theme-sidebar-muted transition-colors">
-              <PanelLeftOpen size={18} />
-            </button>
-          )}
-        </div>
-      </div>
     </aside>
   );
 };

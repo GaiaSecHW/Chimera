@@ -718,7 +718,7 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
                 <div className="mb-2 text-sm font-semibold" style={{ color: LK.inkSoft }}>测试对象</div>
                 {/* sub-mode toggle */}
                 <div className="mb-3 flex gap-2">
-                  {(['existing', 'upload'] as const).map((src) => {
+                  {(['upload', 'existing'] as const).map((src) => {
                     const active = inputSource === src;
                     return (
                       <button

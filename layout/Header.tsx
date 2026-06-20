@@ -70,6 +70,7 @@ export const Header: React.FC<HeaderProps> = ({
   const userAccess = getUserAccess(user);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const userMenuRef = useRef<HTMLDivElement>(null);
+  const projectDropdownRef = useRef<HTMLDivElement>(null);
 
   const [isSystemAdminOpen, setIsSystemAdminOpen] = useState(false);
   const systemAdminRef = useRef<HTMLDivElement>(null);
@@ -91,6 +92,7 @@ export const Header: React.FC<HeaderProps> = ({
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (userMenuRef.current && !userMenuRef.current.contains(event.target as Node)) setIsUserMenuOpen(false);
+      if (projectDropdownRef.current && !projectDropdownRef.current.contains(event.target as Node)) setIsProjectDropdownOpen(false);
     };
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
@@ -179,7 +181,7 @@ export const Header: React.FC<HeaderProps> = ({
         </div>
 
         <div className="flex items-center justify-end gap-3 min-w-0">
-          <div className="relative min-w-0 max-w-[18rem]">
+          <div className="relative min-w-0 max-w-[18rem]" ref={projectDropdownRef}>
             <button
               onClick={() => setIsProjectDropdownOpen(!isProjectDropdownOpen)}
               className="flex items-center gap-3 px-4 py-2.5 theme-shell-muted rounded-lg text-sm font-semibold min-w-[12rem] max-w-[18rem]"
