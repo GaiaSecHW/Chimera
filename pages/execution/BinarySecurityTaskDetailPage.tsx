@@ -863,6 +863,19 @@ const TIMELINE_EVENT_LABELS: Record<string, string> = {
   downstream_retry_failed: '下游重试失败',
   downstream_cancel_succeeded: '下游子任务已取消',
   downstream_delete_succeeded: '下游子任务已删除',
+  child_task_cancel_requested: '请求取消下游子任务',
+  child_task_cancel_succeeded: '下游子任务取消完成',
+  child_task_cancel_failed: '下游子任务取消失败',
+  child_task_inactive_check_requested: '检查下游是否已静止',
+  child_task_inactive_check_succeeded: '下游已静止，可继续清理',
+  child_task_inactive_check_blocked: '下游仍在运行，清理被阻断',
+  child_task_delete_requested: '请求删除下游子任务',
+  child_task_delete_succeeded: '下游子任务删除完成',
+  child_task_delete_verified_absent: '下游已不存在，删除视为完成',
+  child_task_delete_failed_but_ignored: '下游删除失败但已忽略',
+  child_task_delete_failed_blocking: '下游删除失败并阻断操作',
+  stage_retry_full_cleanup_started: '严格清理开始',
+  stage_retry_full_cleanup_finished: '严格清理完成',
   stage_waiting_downstream_progress: '等待下游继续推进',
   downstream_marked_stale: '下游结果过期',
   task_cancelled: '任务取消',
@@ -871,6 +884,22 @@ const TIMELINE_EVENT_LABELS: Record<string, string> = {
   task_failed: '任务失败',
   task_partial_success: '部分成功',
   ...ARCHIVE_EVENT_LABELS,
+};
+
+const CLEANUP_TIMELINE_EVENT_CATEGORIES: Record<string, { label: string; tone: string }> = {
+  child_task_cancel_requested: { label: '下游清理 / 取消', tone: 'border-cyan-500/20 bg-cyan-500/15 text-cyan-400' },
+  child_task_cancel_succeeded: { label: '下游清理 / 取消', tone: 'border-cyan-500/20 bg-cyan-500/15 text-cyan-400' },
+  child_task_cancel_failed: { label: '下游清理 / 取消失败', tone: 'border-amber-500/20 bg-amber-500/15 text-amber-400' },
+  child_task_inactive_check_requested: { label: '下游清理 / 静止检查', tone: 'border-indigo-500/20 bg-indigo-500/15 text-indigo-400' },
+  child_task_inactive_check_succeeded: { label: '下游清理 / 静止检查', tone: 'border-indigo-500/20 bg-indigo-500/15 text-indigo-400' },
+  child_task_inactive_check_blocked: { label: '下游清理 / 阻断', tone: 'border-rose-500/20 bg-rose-500/15 text-rose-400' },
+  child_task_delete_requested: { label: '下游清理 / 删除', tone: 'border-fuchsia-500/20 bg-fuchsia-500/15 text-fuchsia-400' },
+  child_task_delete_succeeded: { label: '下游清理 / 删除', tone: 'border-fuchsia-500/20 bg-fuchsia-500/15 text-fuchsia-400' },
+  child_task_delete_verified_absent: { label: '下游清理 / 删除', tone: 'border-emerald-500/20 bg-emerald-500/15 text-emerald-400' },
+  child_task_delete_failed_but_ignored: { label: '下游清理 / 已忽略', tone: 'border-amber-500/20 bg-amber-500/15 text-amber-400' },
+  child_task_delete_failed_blocking: { label: '下游清理 / 删除阻断', tone: 'border-rose-500/20 bg-rose-500/15 text-rose-400' },
+  stage_retry_full_cleanup_started: { label: '严格清理', tone: 'border-violet-500/20 bg-violet-500/15 text-violet-400' },
+  stage_retry_full_cleanup_finished: { label: '严格清理', tone: 'border-violet-500/20 bg-violet-500/15 text-violet-400' },
 };
 
 const DOWNSTREAM_SUMMARY_LABELS: Record<string, string> = {
@@ -1029,6 +1058,8 @@ const formatTimelineLevelLabel = (level?: string | null) => {
 };
 
 const formatTimelineEventTypeLabel = (eventType?: string | null) => TIMELINE_EVENT_LABELS[String(eventType || '')] || eventType || 'event';
+
+const timelineEventCategoryMeta = (eventType?: string | null) => CLEANUP_TIMELINE_EVENT_CATEGORIES[String(eventType || '')] || null;
 
 const formatDurationMs = (value: unknown): string => {
   const ms = Number(value);
@@ -3439,6 +3470,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
       _key: event.id ||`${event.event_type || 'event'}-${event.created_at || index}-${index}`,
       _index: (Math.max(1, timelinePage) - 1) * Math.max(1, timelinePageSize) + index + 1,
       _eventLabel: formatTimelineEventTypeLabel(event.event_type),
+      _eventCategory: timelineEventCategoryMeta(event.event_type),
       _recorderName: event.recorder_pod_name || event.recorder_hostname || '-',
       _recorderRole: event.recorder_role || null,
       _recorderNode: event.recorder_node_name || null,
@@ -5994,13 +6026,20 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                                   {fmt(event.created_at)}
                                 </td>
                                 <td className="px-3 py-2">
-                                  <span className={`inline-flex max-w-[160px] items-center rounded-full border px-2 py-0.5 text-[11px] font-medium ${
-                                    isAbnormalReasonEvent
-                                      ? 'border-amber-500/20 bg-amber-500/15 text-amber-400'
-                                      : 'border-sky-500/20 bg-sky-500/15 text-sky-400'
-                                  }`}>
-                                    <span className="truncate">{event._eventLabel}</span>
-                                  </span>
+                                  <div className="flex max-w-[220px] flex-wrap items-center gap-1">
+                                    {event._eventCategory ? (
+                                      <span className={`inline-flex max-w-[120px] items-center rounded-full border px-2 py-0.5 text-[10px] font-semibold ${event._eventCategory.tone}`}>
+                                        <span className="truncate">{event._eventCategory.label}</span>
+                                      </span>
+                                    ) : null}
+                                    <span className={`inline-flex max-w-[160px] items-center rounded-full border px-2 py-0.5 text-[11px] font-medium ${
+                                      isAbnormalReasonEvent
+                                        ? 'border-amber-500/20 bg-amber-500/15 text-amber-400'
+                                        : event._eventCategory?.tone || 'border-sky-500/20 bg-sky-500/15 text-sky-400'
+                                    }`}>
+                                      <span className="truncate">{event._eventLabel}</span>
+                                    </span>
+                                  </div>
                                 </td>
                                 <td className="px-3 py-2">
                                   {event.stage_name ? (
