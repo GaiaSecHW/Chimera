@@ -13,7 +13,6 @@ import {
   Download,
   FileCode2,
   FileClock,
-  Filter,
   FolderOpen,
   Key,
   Layers3,
@@ -32,7 +31,7 @@ import {
 import { api } from '../../clients/api';
 import { authApi } from '../../clients/auth';
 import { API_BASE } from '../../clients/base';
-import { Modal, PageHeader, PageSection, SegmentedControl, StatisticCard } from '../../design-system';
+import { Modal, PageHeader, PageSection, StatisticCard } from '../../design-system';
 import { ServiceBuildVersionBadge, useServiceBuildVersion } from '../../components/execution/ServiceBuildVersion';
 import { useUiFeedback } from '../../components/UiFeedback';
 
@@ -171,14 +170,6 @@ const NORMAL_AUTH_PAYLOAD = {
       note: 'normal mode payload',
     },
   },
-};
-
-const STAGE_LABELS: Record<string, string> = {
-  all: '全部阶段',
-  receive: '接收阶段',
-  triage: '研判阶段',
-  validation: '验证阶段',
-  finished: '已结束',
 };
 
 const PUBLIC_FIELDS = [
@@ -360,27 +351,27 @@ const getLatestAutoVerifyTaskRef = (detail: any, timeline: any[], fallbackProjec
 };
 
 const STAGE_TEXT: Record<string, string> = {
-  receive: '接收阶段',
-  triage: '研判阶段',
-  validation: '验证阶段',
+  receive: '接收',
+  triage: '研判',
+  validation: '研判',
   finished: '已结束',
 };
 
 const STATUS_TEXT: Record<string, string> = {
-  intake_created: '已接收',
-  files_collecting: '文件收集中',
-  ready_for_triage: '待验证',
-  waiting: '等待中',
-  ai_assessing: 'AI 研判中',
-  manual_assessing: '人工研判中',
-  awaiting_manual_gate: '待人工确认',
-  triage_completed: '研判完成',
-  queued: '待验证',
-  poc_generating: 'POC 生成中',
-  exp_generating: 'EXP 生成中',
-  reproducing: '漏洞复现中',
-  evidence_collecting: '证据收集中',
-  validation_completed: '验证完成',
+  intake_created: '接收',
+  files_collecting: '接收',
+  ready_for_triage: '接收',
+  waiting: '接收',
+  ai_assessing: '研判',
+  manual_assessing: '研判',
+  awaiting_manual_gate: '研判',
+  queued: '研判',
+  poc_generating: '研判',
+  exp_generating: '研判',
+  reproducing: '研判',
+  evidence_collecting: '研判',
+  triage_completed: '已结束',
+  validation_completed: '已结束',
   finished: '已结束',
 };
 
@@ -392,6 +383,17 @@ const DECISION_TEXT: Record<string, string> = {
   unknown: '未知',
 };
 
+const toUserVulnStatusText = (itemOrStage?: any, status?: string) => {
+  if (itemOrStage && typeof itemOrStage === 'object') {
+    const conclusion = itemOrStage.finished_reason || itemOrStage.final_result || itemOrStage.validation_result || itemOrStage.result_summary?.validation_result;
+    if (conclusion && conclusion !== 'analyzing') return '已结束';
+    status = itemOrStage.current_status;
+    itemOrStage = itemOrStage.current_stage;
+  }
+  if (status && STATUS_TEXT[status]) return STATUS_TEXT[status];
+  if (itemOrStage && STAGE_TEXT[itemOrStage]) return STAGE_TEXT[itemOrStage];
+  return '未知';
+};
 const toStageText = (value?: string) => (value ? STAGE_TEXT[value] || value : '未知');
 const toStatusText = (value?: string) => (value ? STATUS_TEXT[value] || value : '未知');
 const toDecisionText = (value?: string) => (value ? DECISION_TEXT[value] || value : '未知');
@@ -1846,8 +1848,7 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
       );
     }
     const overviewCards = [
-      { label: '当前阶段', value: toStageText(selectedDetail.current_stage), hint: selectedDetail.current_stage || 'n/a' },
-      { label: '当前状态', value: toStatusText(selectedDetail.current_status), hint: selectedDetail.current_status || 'n/a' },
+      { label: '当前状态', value: toUserVulnStatusText(selectedDetail), hint: selectedDetail.current_status || selectedDetail.current_stage || 'n/a' },
       { label: '置信度', value: selectedDetail.confidence ?? 'n/a', hint:`决策：${toDecisionText(selectedDetail.decision_status)}` },
       { label: 'CVSS', value: Number(selectedDetail.cvss_score || 0).toFixed(1), hint: selectedDetail.severity || 'n/a' },
       { label: '上报者', value: selectedDetail.reporter?.name || '未提供', hint: selectedDetail.reporter?.type || '未知类型' },
@@ -1917,7 +1918,7 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
                 {selectedDetail.severity}
               </span>
               <span className="rounded-lg px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider bg-state-info-soft text-state-info">
-                {toStageText(selectedDetail.current_stage)}
+                {toUserVulnStatusText(selectedDetail)}
               </span>
               <span className="rounded-lg px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider bg-state-warning-soft text-state-warning">
                 {toDecisionText(selectedDetail.decision_status)}
@@ -1961,14 +1962,10 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
               )}
             </div>
           </div>
-          <div className="mt-3 grid gap-2 sm:grid-cols-2 xl:grid-cols-5">
-            <div className="rounded-lg px-3 py-2.5 bg-theme-elevated border border-theme-border">
-              <div className="text-[11px] font-semibold uppercase tracking-wider text-theme-text-muted-soft">阶段</div>
-              <div className="mt-1 text-sm font-semibold text-theme-text-primary">{toStageText(selectedDetail.current_stage)}</div>
-            </div>
+          <div className="mt-3 grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
             <div className="rounded-lg px-3 py-2.5 bg-theme-elevated border border-theme-border">
               <div className="text-[11px] font-semibold uppercase tracking-wider text-theme-text-muted-soft">状态</div>
-              <div className="mt-1 text-sm font-semibold text-theme-text-primary">{toStatusText(selectedDetail.current_status)}</div>
+              <div className="mt-1 text-sm font-semibold text-theme-text-primary">{toUserVulnStatusText(selectedDetail)}</div>
             </div>
             <div className="rounded-lg px-3 py-2.5 bg-theme-elevated border border-theme-border">
               <div className="text-[11px] font-semibold uppercase tracking-wider text-theme-text-muted-soft">置信度</div>
@@ -2091,9 +2088,9 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
                       </div>
                     </div>
                   </DetailSectionCard>
-                  <DetailSectionCard title="阶段流转与来源" subtitle="展示当前阶段、处置状态和来源任务上下文。">
+                  <DetailSectionCard title="状态流转与来源" subtitle="展示当前用户可见状态和来源任务上下文。">
                     <div className="mt-4 grid gap-3 md:grid-cols-2">
-                      <DetailMetricCard label="当前阶段" value={toStageText(selectedDetail.current_stage)} hint={selectedDetail.current_status || 'n/a'} />
+                      <DetailMetricCard label="当前状态" value={toUserVulnStatusText(selectedDetail)} hint={selectedDetail.current_status || selectedDetail.current_stage || 'n/a'} />
                       <DetailMetricCard label="处置状态" value={toDecisionText(selectedDetail.decision_status)} hint={selectedDetail.validation_result || '未验证'} />
                       <DetailMetricCard label="来源服务" value={selectedDetail.source_service || displaySummary?.source_task?.service_name || '未提供'} hint={selectedDetail.created_by_type || 'n/a'} />
                       <DetailMetricCard label="来源任务" value={selectedDetail.source_task_id || displaySummary?.source_task?.task_id || '未提供'} hint={selectedDetail.source_execution_id || '无执行引用'} />
@@ -2697,13 +2694,6 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
                 />
               </div>
               <div className="flex items-center gap-1.5">
-                <SegmentedControl
-                  value={stageFilter}
-                  onChange={setStageFilter}
-                  icon={<Filter size={12} />}
-                  aria-label="阶段过滤"
-                  options={Object.entries(STAGE_LABELS).map(([key, label]) => ({ value: key, label }))}
-                />
                 <select
                   value={severityFilter}
                   onChange={(event) => setSeverityFilter(event.target.value)}
@@ -2715,33 +2705,6 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
                   <option value="high">high</option>
                   <option value="medium">medium</option>
                   <option value="low">low</option>
-                </select>
-                <select
-                  value={reporterTypeFilter}
-                  onChange={(event) => setReporterTypeFilter(event.target.value)}
-                  className="form-select"
-                  style={{ width: '150px' }}
-                >
-                  <option value="all">全部来源方式</option>
-                  <option value="plugin">plugin</option>
-                  <option value="service">service</option>
-                  <option value="cli">cli</option>
-                  <option value="skill">skill</option>
-                  <option value="api">api</option>
-                  <option value="human">human</option>
-                  <option value="other">other</option>
-                </select>
-                <select
-                  value={cvssBandFilter}
-                  onChange={(event) => setCvssBandFilter(event.target.value)}
-                  className="form-select"
-                  style={{ width: '160px' }}
-                >
-                  <option value="all">全部 CVSS 档位</option>
-                  <option value="critical">critical (9.0-10.0)</option>
-                  <option value="high">high (7.0-8.9)</option>
-                  <option value="medium">medium (4.0-6.9)</option>
-                  <option value="low">low (0.1-3.9)</option>
                 </select>
                 <div ref={taskFilterRef} className="relative">
                   <button
@@ -2875,10 +2838,7 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
                         )}
                       </div>
                       <div className="min-w-0">
-                        <div className="text-sm font-semibold text-theme-text-secondary">{toStageText(item.current_stage)}</div>
-                        <div className="mt-1 inline-flex items-center rounded-md bg-theme-elevated px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-theme-text-muted">
-                          {toStatusText(item.current_status)}
-                        </div>
+                        <div className="text-sm font-semibold text-theme-text-secondary">{toUserVulnStatusText(item)}</div>
                         {item.finished_reason ? (
                           <div className="mt-1 text-[10px] font-semibold text-theme-text-muted">
                             结论: {item.finished_reason}
