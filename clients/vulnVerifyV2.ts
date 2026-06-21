@@ -133,7 +133,7 @@ export const vulnVerifyV2Api = {
   listTaskCaseIds: async (projectId: string, params?: { caseIds?: string[] }): Promise<VulnVerifyV2TaskCaseIdsResponse> => {
     const normalizedCaseIds = normalizeCaseIds(params?.caseIds);
     if (!normalizedCaseIds.length) {
-      const response = await getJsonWithDedupe(`${BASE}/projects/${encodeURIComponent(projectId)}/task-case-ids`, { headers: getHeaders() });
+      const response = await getJsonWithDedupe<VulnVerifyV2TaskCaseIdsResponse>(`${BASE}/projects/${encodeURIComponent(projectId)}/task-case-ids`, { headers: getHeaders() });
       const items = Array.isArray(response?.items) ? response.items.map((item: unknown) => String(item || '').trim()).filter(Boolean) : [];
       return {
         total: Number(response?.total || items.length),

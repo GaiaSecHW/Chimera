@@ -274,7 +274,7 @@ export const EntryAnalysisConfigPage: React.FC<{ projectId: string; embedded?: b
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
-    entryAnalysis.getConfig(projectId)
+    entryAnalysis.getConfig()
       .then((cfg) => {
         if (!cancelled) {
           const base = defaultConfig(projectId);

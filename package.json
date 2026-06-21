@@ -15,6 +15,7 @@
     "smoke:task-center-instruction": "node --experimental-strip-types scripts/taskCenterInstruction.smoke.ts",
     "smoke:dataflow-vuln-metrics": "node --experimental-strip-types scripts/dataflowVulnMetrics.smoke.ts",
     "smoke:binary-security-runtime-health": "node --experimental-strip-types scripts/binarySecurityRuntimeHealth.smoke.ts",
+    "smoke:vuln-verify-v2-batch-create": "node --experimental-strip-types scripts/vulnVerifyV2BatchCreate.smoke.ts",
     "e2e": "playwright test",
     "e2e:headed": "playwright test --headed",
     "e2e:report": "playwright show-report"

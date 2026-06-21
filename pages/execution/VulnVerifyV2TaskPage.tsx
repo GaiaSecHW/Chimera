@@ -6,6 +6,7 @@ import { ExecutionTable, ExecutionTableHead, ExecutionTableTd, ExecutionTableTh,
 import { ServicePageTitle, useServiceBuildVersion } from '../../components/execution/ServiceBuildVersion';
 import { PageHeader } from '../../design-system';
 import { useUiFeedback } from '../../components/UiFeedback';
+import { resolveBatchCreateCodeRoot, resolveCaseCodeRoot, type CodeRootMode, type PendingVerifyCase } from './vulnVerifyV2BatchCreate';
 
 const BATCH_CREATE_CONCURRENCY = 3;
 const PENDING_CASE_FETCH_PAGE_SIZE = 500;
@@ -34,18 +35,6 @@ const VERDICT_LABEL: Record<string, string> = {
   ruled_out: '排除漏洞',
   unresolved: '不可证',
 };
-
-interface PendingVerifyCase {
-  id: string;
-  global_vuln_id?: string | null;
-  title?: string | null;
-  severity?: string | null;
-  subject?: Record<string, any> | null;
-  metadata?: Record<string, any> | null;
-  current_stage: string;
-  current_status?: string | null;
-  updated_at?: string | null;
-}
 
 interface BatchCreateResultItem {
   ok: boolean;
@@ -104,29 +93,6 @@ function fmtRuntime(runtime?: TaskRuntime | null): string {
 
 function statusClass(status?: string): string {
   return STATUS_CLASS[status || ''] || 'bg-theme-elevated text-theme-text-secondary border-theme-border';
-}
-
-function firstNonEmpty(...values: any[]): string | null {
-  for (const v of values) {
-    const text = String(v || '').trim();
-    if (text) return text;
-  }
-  return null;
-}
-
-function resolveCaseCodeRoot(item: PendingVerifyCase): string | null {
-  const m = item.metadata || {};
-  return firstNonEmpty(
-    m.verification_context?.code_root,
-    m.verification_context?.binary_root,
-    m.verification_context?.source_root,
-    m.source?.code_root,
-    m.source?.binary_root,
-    m.source?.source_root,
-    m.dataflow_vuln_scan?.code_root,
-    m.dataflow_vuln_scan?.binary_root,
-    m.dataflow_vuln_scan?.source_root,
-  );
 }
 
 function parseSubjectLocator(locator?: string | null): { file?: string; function?: string } {
@@ -240,6 +206,8 @@ export const VulnVerifyV2TaskPage: React.FC<{ projectId: string }> = ({ projectI
   const [batchResult, setBatchResult] = useState<BatchCreateResult | null>(null);
   const [existingTaskCaseIds, setExistingTaskCaseIds] = useState<Set<string>>(() => new Set());
   const [batchCreateProgress, setBatchCreateProgress] = useState<Record<string, BatchCreateProgressState>>({});
+  const [codeRootMode, setCodeRootMode] = useState<CodeRootMode>('auto');
+  const [manualCodeRoot, setManualCodeRoot] = useState('');
 
   const offset = (page - 1) * perPage;
   const totalPages = Math.max(1, Math.ceil(total / perPage));
@@ -403,8 +371,14 @@ export const VulnVerifyV2TaskPage: React.FC<{ projectId: string }> = ({ projectI
       return { task: existing, codeRoot: existing.code_root, reused: true };
     }
 
-    const codeRoot = resolveCaseCodeRoot(item);
-    if (!codeRoot) throw new Error('缺少 code_root（case metadata 中未找到 verification_context/source/dataflow_vuln_scan 路径）');
+    const codeRoot = resolveBatchCreateCodeRoot(item, codeRootMode, manualCodeRoot);
+    if (!codeRoot) {
+      throw new Error(
+        codeRootMode === 'manual'
+          ? '缺少手动填写的 code_root'
+          : '缺少 code_root（case metadata 中未找到 verification_context/source/dataflow_vuln_scan 路径）',
+      );
+    }
     const report = await vulnApi.getCaseReport(item.id);
     const rawReport = String(report?.content || '').trim();
     if (!rawReport) throw new Error('漏洞报告为空');
@@ -425,13 +399,23 @@ export const VulnVerifyV2TaskPage: React.FC<{ projectId: string }> = ({ projectI
     });
 
     return { task, codeRoot, reused: false };
-  }, [findExistingTaskByCaseId, projectId]);
+  }, [codeRootMode, findExistingTaskByCaseId, manualCodeRoot, projectId]);
 
   const openBatch = () => {
     setBatchOpen(true);
     setBatchResult(null);
     setBatchCreateProgress({});
+    setCodeRootMode('auto');
+    setManualCodeRoot('');
     void fetchPendingCases();
+  };
+
+  const closeBatch = () => {
+    setBatchOpen(false);
+    setCodeRootMode('auto');
+    setManualCodeRoot('');
+    setBatchResult(null);
+    setBatchCreateProgress({});
   };
 
   const toggleCase = (id: string) => {
@@ -464,6 +448,10 @@ export const VulnVerifyV2TaskPage: React.FC<{ projectId: string }> = ({ projectI
   const runBatchCreate = async () => {
     if (!selectedCases.length) {
       setMessage('请选择待验证漏洞。');
+      return;
+    }
+    if (codeRootMode === 'manual' && !manualCodeRoot.trim()) {
+      setMessage('请填写 code_root。');
       return;
     }
     if (selectedCases.length > MAX_BATCH_CREATE) {
@@ -674,9 +662,13 @@ export const VulnVerifyV2TaskPage: React.FC<{ projectId: string }> = ({ projectI
             <div className="mb-5 flex shrink-0 items-start justify-between gap-4">
               <div>
                 <h2 className="text-xl font-bold text-theme-text-primary">从待验证漏洞批量创建 v2 任务</h2>
-                <p className="mt-1 text-sm text-theme-text-muted">加载 receive / triage 阶段漏洞；每个漏洞创建一个 v2 验证任务。创建后不调用漏洞中心 sync，不自动推进阶段。</p>
+                <p className="mt-1 text-sm text-theme-text-muted">
+                  {codeRootMode === 'manual'
+                    ? '加载 receive / triage 阶段漏洞；本次选中的所有漏洞都将使用同一个手动填写的 code_root。创建后不调用漏洞中心 sync，不自动推进阶段。'
+                    : '加载 receive / triage 阶段漏洞；每个漏洞按 metadata 自动解析 code_root 创建一个 v2 验证任务。创建后不调用漏洞中心 sync，不自动推进阶段。'}
+                </p>
               </div>
-              <button onClick={() => setBatchOpen(false)} className="rounded-xl border border-theme-border p-2 text-theme-text-muted hover:bg-theme-elevated"><X size={18} /></button>
+              <button onClick={closeBatch} className="rounded-xl border border-theme-border p-2 text-theme-text-muted hover:bg-theme-elevated"><X size={18} /></button>
             </div>
 
             <div className="mb-4 flex shrink-0 flex-wrap items-center gap-3">
@@ -714,6 +706,32 @@ export const VulnVerifyV2TaskPage: React.FC<{ projectId: string }> = ({ projectI
                   {PAGE_SIZE_OPTIONS.map((size) => <option key={size} value={size}>{size}</option>)}
                 </select>
               </label>
+              <div className="flex items-center gap-2 rounded-xl border border-theme-border bg-theme-surface p-1 text-sm">
+                <button
+                  type="button"
+                  onClick={() => setCodeRootMode('auto')}
+                  className={`rounded-lg px-3 py-1.5 font-semibold transition-colors ${codeRootMode === 'auto' ? 'bg-theme-elevated text-theme-text-primary' : 'text-theme-text-secondary hover:bg-theme-elevated/70'}`}
+                >
+                  自动解析
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setCodeRootMode('manual')}
+                  className={`rounded-lg px-3 py-1.5 font-semibold transition-colors ${codeRootMode === 'manual' ? 'bg-violet-500 text-white' : 'text-theme-text-secondary hover:bg-theme-elevated/70'}`}
+                >
+                  手动填写
+                </button>
+              </div>
+              {codeRootMode === 'manual' ? (
+                <div className="min-w-[320px] flex-[1.2]">
+                  <input
+                    value={manualCodeRoot}
+                    onChange={(e) => setManualCodeRoot(e.target.value)}
+                    placeholder="填写本次批量创建统一使用的 code_root"
+                    className="w-full rounded-xl border border-theme-border bg-theme-surface px-3 py-2 text-sm text-theme-text-primary"
+                  />
+                </div>
+              ) : null}
               <span className="text-xs text-theme-text-muted">已选 {selectedCaseIds.size} / 本页 {pagedCases.length} / 筛选 {filteredCases.length} / 已存在任务 {existingTaskCaseIds.size} / 总计 {pendingTotal}</span>
               <button
                 type="button"
@@ -759,7 +777,8 @@ export const VulnVerifyV2TaskPage: React.FC<{ projectId: string }> = ({ projectI
                     </thead>
                     <tbody>
                       {pagedCases.map((item) => {
-                        const codeRoot = resolveCaseCodeRoot(item);
+                        const autoCodeRoot = resolveCaseCodeRoot(item);
+                        const codeRoot = codeRootMode === 'manual' ? manualCodeRoot.trim() : autoCodeRoot;
                         const hasExistingTask = existingTaskCaseIds.has(item.id);
                         const createState = batchCreateProgress[item.id] || 'idle';
                         const dotClass = createState === 'success'
@@ -800,7 +819,10 @@ export const VulnVerifyV2TaskPage: React.FC<{ projectId: string }> = ({ projectI
                             </td>
                             <td className="px-4 py-3 text-theme-text-secondary">{item.severity || '-'}</td>
                             <td className="px-4 py-3 text-theme-text-secondary">{item.current_stage || '-'}{item.current_status ? ` / ${item.current_status}` : ''}</td>
-                            <td className={`px-4 py-3 break-all font-mono text-[11px] ${codeRoot ? 'text-theme-text-muted' : 'text-rose-300'}`}>{codeRoot || '缺失'}</td>
+                            <td className={`px-4 py-3 break-all font-mono text-[11px] ${codeRoot ? 'text-theme-text-muted' : 'text-rose-300'}`}>
+                              {codeRoot || (codeRootMode === 'manual' ? '未填写' : '缺失')}
+                              {codeRootMode === 'manual' ? <span className="ml-2 rounded-full border border-violet-500/30 bg-violet-500/10 px-2 py-0.5 text-[10px] font-semibold text-violet-300">手动覆盖</span> : null}
+                            </td>
                             <td className="px-4 py-3 whitespace-nowrap text-theme-text-muted">{fmtDate(item.updated_at)}</td>
                             <td className="px-4 py-3">
                               <div className="flex items-center gap-2">

@@ -325,6 +325,8 @@ export interface BinarySecurityTask {
     operation_status?: string | null;
     operation_owner?: string | null;
     operation_started_at?: string | null;
+    operation_heartbeat_at?: string | null;
+    operation_expires_at?: string | null;
     current_step?: string | null;
     target_stage?: string | null;
     error_code?: string | null;
@@ -450,6 +452,8 @@ export interface BinarySecurityTaskDetail extends BinarySecurityTask {
   };
   metrics: Record<string, any>;
   item_stats: Record<string, Record<string, number>>;
+  knowledge_graph_raw_entry_count?: number;
+  knowledge_graph_filtered_out_count?: number;
   stage_items_total?: number;
   stage_items_truncated?: boolean;
   stage_items: Array<{
