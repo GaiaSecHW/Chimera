@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Archive, BarChart3, ChevronRight, Layers3, Loader2, Plus, RefreshCw, Search, ShieldAlert, Upload } from 'lucide-react';
 
-import { BinarySecurityInputFile, BinarySecurityPipelineMode, BinarySecurityPipelineProfile, BinarySecurityProjectStageAggregate, BinarySecurityProjectStats, BinarySecurityTask, BinarySecurityTaskType } from '../../clients/binarySecurity';
+import { BinarySecurityInputFile, BinarySecurityPipelineMode, BinarySecurityProjectStageAggregate, BinarySecurityProjectStats, BinarySecurityTask, BinarySecurityTaskType } from '../../clients/binarySecurity';
 import { fileserverApi } from '../../clients/fileserver';
 import { api } from '../../clients/api';
 import { showConfirm } from '../../components/DialogService';
@@ -22,7 +22,9 @@ const BINARY_STAGES = ['firmware_unpack', 'system_analysis', 'binary_to_source',
 const SOURCE_STAGES = ['system_analysis', 'entry_analysis', 'dataflow_vuln_scan'];
 const SOURCE_KG_STAGES = ['knowledge_graph_entry_fetch', 'dataflow_vuln_scan'];
 const MODULE_STAGES = ['binary_to_source', 'entry_analysis', 'dataflow_vuln_scan'];
-type SourcePipelineProfile = Extract<BinarySecurityPipelineProfile, 'default' | 'kg_source_vuln_scan'>;
+// BinarySecurityPipelineProfile 末尾带 `| string`,会把 union 坍缩成 string,
+// 令 Extract<...> 退化为 never。这里直接写两个字面量,保留真实的可选集合。
+type SourcePipelineProfile = 'default' | 'kg_source_vuln_scan';
 
 type ManualOperationDisplayState = {
   operation_in_progress?: boolean;

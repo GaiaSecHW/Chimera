@@ -93,6 +93,7 @@ const AppShell: React.FC = () => {
   const [activeDataflowAnalysisTaskId, setActiveDataflowAnalysisTaskId] = useState<string>('');
   const [activeDataflowVulnScanTaskId, setActiveDataflowVulnScanTaskId] = useState<string>('');
   const [activeCfgGuidedExploreTaskId, setActiveCfgGuidedExploreTaskId] = useState<string>('');
+  const [activeCfgDbVulnTaskId, setActiveCfgDbVulnTaskId] = useState<string>('');
   const [activeFirmwareUnpackerTaskId, setActiveFirmwareUnpackerTaskId] = useState<string>('');
   const [activeBinarySecurityTaskId, setActiveBinarySecurityTaskId] = useState<string>('');
   const [activeSourceSecurityTaskId, setActiveSourceSecurityTaskId] = useState<string>('');
@@ -258,6 +259,7 @@ const AppShell: React.FC = () => {
         dataflowAnalysisTaskId?: string;
         dataflowVulnScanTaskId?: string;
         cfgGuidedExploreTaskId?: string;
+        cfgDbVulnTaskId?: string;
         firmwareUnpackerTaskId?: string;
         binarySecurityTaskId?: string;
         sourceSecurityTaskId?: string;
@@ -303,6 +305,10 @@ const AppShell: React.FC = () => {
       const cfgGuidedExploreTaskId = String(detail?.cfgGuidedExploreTaskId || '').trim();
       if (cfgGuidedExploreTaskId) {
         setActiveCfgGuidedExploreTaskId(cfgGuidedExploreTaskId);
+      }
+      const cfgDbVulnTaskId = String(detail?.cfgDbVulnTaskId || '').trim();
+      if (cfgDbVulnTaskId) {
+        setActiveCfgDbVulnTaskId(cfgDbVulnTaskId);
       }
       const firmwareUnpackerTaskId = String(detail?.firmwareUnpackerTaskId || '').trim();
       if (firmwareUnpackerTaskId) {
@@ -724,6 +730,7 @@ const AppShell: React.FC = () => {
                     activeDataflowAnalysisTaskId,
                     activeDataflowVulnScanTaskId,
                     activeCfgGuidedExploreTaskId,
+                    activeCfgDbVulnTaskId,
                     activeFirmwareUnpackerTaskId,
                     activeBinarySecurityTaskId,
                     activeSourceSecurityTaskId,
@@ -748,6 +755,7 @@ const AppShell: React.FC = () => {
                     setActiveDataflowAnalysisTaskId: (id) => setActiveDataflowAnalysisTaskId(id),
                     setActiveDataflowVulnScanTaskId: (id) => setActiveDataflowVulnScanTaskId(id),
                     setActiveCfgGuidedExploreTaskId: (id) => setActiveCfgGuidedExploreTaskId(id),
+                    setActiveCfgDbVulnTaskId: (id) => setActiveCfgDbVulnTaskId(id),
                     setActiveFirmwareUnpackerTaskId: (id) => setActiveFirmwareUnpackerTaskId(id),
                     setActiveBinarySecurityTaskId: (id) => setActiveBinarySecurityTaskId(id),
                     setActiveSourceSecurityTaskId: (id) => setActiveSourceSecurityTaskId(id),
