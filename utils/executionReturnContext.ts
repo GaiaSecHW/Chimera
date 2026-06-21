@@ -1,5 +1,5 @@
 export type BinarySecurityReturnContext = {
-  view: 'binary-security-detail' | 'source-security-detail' | 'binary-module-security-detail';
+  view: 'binary-security-detail' | 'source-security-detail' | 'kg-source-security-detail' | 'binary-module-security-detail';
   taskId: string;
   taskType: 'binary' | 'source' | 'binary_module';
 };
@@ -45,7 +45,7 @@ export const getBinarySecurityReturnContext = (): BinarySecurityReturnContext | 
   try {
     const parsed = JSON.parse(raw) as Partial<BinarySecurityReturnContext>;
     if (
-      (parsed.view === 'binary-security-detail' || parsed.view === 'source-security-detail' || parsed.view === 'binary-module-security-detail')
+      (parsed.view === 'binary-security-detail' || parsed.view === 'source-security-detail' || parsed.view === 'kg-source-security-detail' || parsed.view === 'binary-module-security-detail')
       && (parsed.taskType === 'binary' || parsed.taskType === 'source' || parsed.taskType === 'binary_module')
       && typeof parsed.taskId === 'string'
       && parsed.taskId.trim()

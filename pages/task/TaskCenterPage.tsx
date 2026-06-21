@@ -192,7 +192,7 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects }) => {
     setError('');
     setAgentAppsLoadError('');
     try {
-      const taskResp = await scheduleApi.listUserTasks(projectId, selectedAgentAppFilter ? { agent_app_id: selectedAgentAppFilter } : {}) as ScheduleCenterUserTaskListResponse;
+      const taskResp = await scheduleApi.listUserTasks(projectId, selectedAgentAppFilter ? { agent_app_id: selectedAgentAppFilter } : {});
       const taskItems = taskResp.items || [];
       setTasks(taskItems);
       setStats(taskResp.stats || {});

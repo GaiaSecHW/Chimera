@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Archive, BarChart3, ChevronRight, Layers3, Loader2, Plus, RefreshCw, Search, ShieldAlert, Upload } from 'lucide-react';
 
-import { BinarySecurityInputFile, BinarySecurityPipelineMode, BinarySecurityProjectStageAggregate, BinarySecurityProjectStats, BinarySecurityTask, BinarySecurityTaskType } from '../../clients/binarySecurity';
+import { BinarySecurityInputFile, BinarySecurityPipelineMode, BinarySecurityPipelineProfile, BinarySecurityProjectStageAggregate, BinarySecurityProjectStats, BinarySecurityTask, BinarySecurityTaskType } from '../../clients/binarySecurity';
 import { fileserverApi } from '../../clients/fileserver';
 import { api } from '../../clients/api';
 import { showConfirm } from '../../components/DialogService';
@@ -12,7 +12,7 @@ interface Props {
   projectId: string;
   taskType: BinarySecurityTaskType;
   onOpenTask: (taskId: string) => void;
-  sourcePipelineProfileMode?: SourcePipelineProfile | 'select';
+  sourcePipelineProfileMode?: BinarySecurityPipelineProfile | 'select';
 }
 
 type CreateDialogTab = 'basic' | 'files' | 'strategy' | 'parallelism';

@@ -691,7 +691,7 @@ const unwrapPagedList = <T,>(
 export const dataflowVulnScannerApi = {
   getHealth: async (): Promise<DataflowVulnScanHealth> => {
     const response = await fetch(`${PREFIX}/health`, { headers: getHeaders() });
-    return normalizeHealth(await handleResponse<unknown>(response));
+    return normalizeHealth(await handleResponse(response));
   },
 
   getCapabilities: async (): Promise<Record<string, any>> => {

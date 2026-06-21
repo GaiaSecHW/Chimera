@@ -170,6 +170,7 @@ const defaultConfig = (): SystemAnalysisServiceConfig => ({
   module_granularity: 'fine',
   filter_engine: 'script',
   enable_final_check: false,
+  super_fast_mode: false,
   worker_task_concurrency: 4,
   parallel_modules: 1,
   parallel_sub_workers: 1,

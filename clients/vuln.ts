@@ -276,7 +276,7 @@ const buildQueryString = (params: Record<string, any>): string => {
 
 export const vulnApi = {
   getHealth: async (): Promise<VulnHealthResponse> =>
-    normalizeHealth(await handleResponse<unknown>(await fetch(`${API_BASE}/api/vuln/health`, { headers: getHeaders() }))),
+    normalizeHealth(await handleResponse(await fetch(`${API_BASE}/api/vuln/health`, { headers: getHeaders() }))),
 
   getOverview: async (projectId?: string): Promise<any> => {
     const query = new URLSearchParams(projectId ? { project_id: projectId } : {}).toString();

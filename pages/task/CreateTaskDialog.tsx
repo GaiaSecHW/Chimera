@@ -226,7 +226,7 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
     if (!projectId) return;
     setAgentAppsLoadError('');
     try {
-      const inputResp = await fileserverApi.listProjectInputUploads(projectId, { pageSize: 200 }) as Promise<{ items: ProjectInputUploadRecord[] }>;
+      const inputResp = await fileserverApi.listProjectInputUploads(projectId, { pageSize: 200 });
       const nextInputs = inputResp.items || [];
       setInputs(nextInputs);
       if (preSelectedInputId && nextInputs.some((item) => item.upload_id === preSelectedInputId)) {
