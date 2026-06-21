@@ -2,6 +2,7 @@ import { API_BASE, fetchWithRetry, getHeaders, getJsonWithDedupe, handleResponse
 import type { ServiceHealthMeta } from '../components/execution/serviceHealthMeta';
 
 const BASE = `${API_BASE}/api/app/vuln-verify-v2`;
+const TASK_CASE_IDS_QUERY_CHUNK_SIZE = 100;
 
 export type VulnVerifyV2Status = 'pending' | 'running' | 'success' | 'failed' | 'cancelled' | string;
 
@@ -92,6 +93,26 @@ export interface VulnVerifyV2TaskCaseIdsResponse {
   items: string[];
 }
 
+function normalizeCaseIds(caseIds?: string[] | null): string[] {
+  if (!Array.isArray(caseIds)) return [];
+  return caseIds
+    .map((caseId) => String(caseId || '').trim())
+    .filter(Boolean);
+}
+
+async function fetchTaskCaseIdsChunk(projectId: string, caseIds: string[]): Promise<VulnVerifyV2TaskCaseIdsResponse> {
+  const response = await handleResponse(await fetchWithRetry(`${BASE}/projects/${encodeURIComponent(projectId)}/task-case-ids/query`, {
+    method: 'POST',
+    headers: getHeaders(),
+    body: JSON.stringify({ case_ids: caseIds }),
+  }, { retries: 2, retryDelayMs: 300, retryOnStatus: [408, 429, 500, 502, 503, 504] }));
+  const items = Array.isArray(response?.items) ? response.items.map((item: unknown) => String(item || '').trim()).filter(Boolean) : [];
+  return {
+    total: Number(response?.total || items.length),
+    items,
+  };
+}
+
 export const vulnVerifyV2Api = {
   getHealth: async (): Promise<{ status: string; service?: string } & ServiceHealthMeta> =>
     getJsonWithDedupe(`${BASE}/health`, { headers: getHeaders() }),
@@ -110,13 +131,25 @@ export const vulnVerifyV2Api = {
   },
 
   listTaskCaseIds: async (projectId: string, params?: { caseIds?: string[] }): Promise<VulnVerifyV2TaskCaseIdsResponse> => {
-    const query = new URLSearchParams();
-    (params?.caseIds || []).forEach((caseId) => {
-      const normalized = String(caseId || '').trim();
-      if (normalized) query.append('case_ids', normalized);
-    });
-    const suffix = query.toString() ? `?${query}` : '';
-    return getJsonWithDedupe(`${BASE}/projects/${encodeURIComponent(projectId)}/task-case-ids${suffix}`, { headers: getHeaders() });
+    const normalizedCaseIds = normalizeCaseIds(params?.caseIds);
+    if (!normalizedCaseIds.length) {
+      const response = await getJsonWithDedupe(`${BASE}/projects/${encodeURIComponent(projectId)}/task-case-ids`, { headers: getHeaders() });
+      const items = Array.isArray(response?.items) ? response.items.map((item: unknown) => String(item || '').trim()).filter(Boolean) : [];
+      return {
+        total: Number(response?.total || items.length),
+        items,
+      };
+    }
+
+    const deduped = Array.from(new Set(normalizedCaseIds));
+    const merged = new Set<string>();
+    for (let index = 0; index < deduped.length; index += TASK_CASE_IDS_QUERY_CHUNK_SIZE) {
+      const chunk = deduped.slice(index, index + TASK_CASE_IDS_QUERY_CHUNK_SIZE);
+      const response = await fetchTaskCaseIdsChunk(projectId, chunk);
+      response.items.forEach((item) => merged.add(item));
+    }
+    const items = Array.from(merged);
+    return { total: items.length, items };
   },
 
   createTask: async (projectId: string, payload: VulnVerifyV2TaskCreateRequest): Promise<VulnVerifyV2Task> =>
