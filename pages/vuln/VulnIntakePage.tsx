@@ -7,6 +7,7 @@ import {
   ArrowUpDown,
   BookOpen,
   Check,
+  ChevronDown,
   ClipboardCopy,
   Copy,
   Download,
@@ -300,6 +301,24 @@ const parseTimeMs = (value?: string) => {
   return Number.isFinite(ts) ? ts : 0;
 };
 
+const getCaseSortValue = (item: any, field: SortField) => {
+  if (field === 'reporter') return item?.reporter?.name || '';
+  if (field === 'subject') return item?.subject?.locator || '';
+  if (field === 'updated_at') return parseTimeMs(item?.updated_at || item?.created_at);
+  if (field === 'confidence' || field === 'cvss_score') return Number(item?.[field] || 0);
+  return String(item?.[field] || '').toLowerCase();
+};
+
+const sortCases = (items: any[], field: SortField, direction: SortDirection) => {
+  const sign = direction === 'asc' ? 1 : -1;
+  return [...items].sort((a, b) => {
+    const left = getCaseSortValue(a, field);
+    const right = getCaseSortValue(b, field);
+    if (typeof left === 'number' && typeof right === 'number') return (left - right) * sign;
+    return String(left).localeCompare(String(right), 'zh-CN') * sign;
+  });
+};
+
 const collectArray = (value: any): any[] => {
   if (Array.isArray(value)) return value;
   if (Array.isArray(value?.items)) return value.items;
@@ -541,8 +560,9 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
   const [severityFilter, setSeverityFilter] = useState('all');
   const [cvssBandFilter, setCvssBandFilter] = useState('all');
   const [reporterTypeFilter, setReporterTypeFilter] = useState('all');
-  const [taskFilter, setTaskFilter] = useState('all');
+  const [taskFilter, setTaskFilter] = useState<string[]>([]);
   const [taskOptions, setTaskOptions] = useState<Array<{ id: string; name?: string }>>([]);
+  const [taskFilterOpen, setTaskFilterOpen] = useState(false);
   const [finalResultFilter, setFinalResultFilter] = useState('all');
   const [sortField, setSortField] = useState<SortField>('updated_at');
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
@@ -593,6 +613,8 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
   const [reportLoading, setReportLoading] = useState(false);
   const [reportError, setReportError] = useState<string | null>(null);
   const reportScrollRef = useRef<HTMLDivElement | null>(null);
+  const taskFilterRef = useRef<HTMLDivElement | null>(null);
+  const suspicionRequestSeq = useRef(0);
   const [activeReportHeadingId, setActiveReportHeadingId] = useState('');
 
   const selectedExamplePayload = useMemo(() => examples[selectedExample], [examples, selectedExample]);
@@ -678,32 +700,77 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
       setLoading(false);
       return;
     }
+    const requestSeq = ++suspicionRequestSeq.current;
     setLoading(true);
     setError(null);
     try {
-      const response = await vulnApi.vuln.listCases({
+      const baseParams = {
         project_id: projectId,
         current_stage: stageFilter === 'all' ? undefined : stageFilter,
         severity: severityFilter === 'all' ? undefined : severityFilter,
         reporter_type: reporterTypeFilter === 'all' ? undefined : reporterTypeFilter,
         cvss_band: cvssBandFilter === 'all' ? undefined : cvssBandFilter,
-        source_task_id: taskFilter === 'all' ? undefined : taskFilter,
         final_result: finalResultFilter === 'all' ? undefined : (finalResultFilter as any),
         search: search.trim() || undefined,
         sort_field: sortField,
         sort_direction: sortDirection,
-        page: pageOverride ?? currentPage,
-        page_size: pageSize,
-      });
-      setSuspicions(response.items || []);
-      setListTotal(Number(response.total || 0));
-      if (response.page && response.page !== currentPage) {
-        setCurrentPage(response.page);
+      };
+      if (taskFilter.length <= 1) {
+        const response = await vulnApi.vuln.listCases({
+          ...baseParams,
+          source_task_id: taskFilter[0],
+          page: pageOverride ?? currentPage,
+          page_size: pageSize,
+        });
+        if (requestSeq !== suspicionRequestSeq.current) return;
+        setSuspicions(response.items || []);
+        setListTotal(Number(response.total || 0));
+        if (response.page && response.page !== currentPage) {
+          setCurrentPage(response.page);
+        }
+      } else {
+        const fetchAllForTask = async (taskId: string): Promise<any[]> => {
+          const first = await vulnApi.vuln.listCases({
+            ...baseParams,
+            source_task_id: taskId,
+            page: 1,
+            page_size: 500,
+          });
+          const total = Number(first.total || 0);
+          const items = [...(first.items || [])];
+          const pages = Math.ceil(total / 500);
+          for (let page = 2; page <= pages; page += 1) {
+            const next = await vulnApi.vuln.listCases({
+              ...baseParams,
+              source_task_id: taskId,
+              page,
+              page_size: 500,
+            });
+            items.push(...(next.items || []));
+          }
+          return items;
+        };
+        const chunks: any[][] = [];
+        for (const taskId of taskFilter) {
+          if (requestSeq !== suspicionRequestSeq.current) return;
+          chunks.push(await fetchAllForTask(taskId));
+        }
+        if (requestSeq !== suspicionRequestSeq.current) return;
+        const merged = sortCases(
+          Array.from(new Map(chunks.flat().map((item: any) => [item.id, item])).values()),
+          sortField,
+          sortDirection,
+        );
+        const nextPage = pageOverride ?? currentPage;
+        setSuspicions(merged.slice((nextPage - 1) * pageSize, nextPage * pageSize));
+        setListTotal(merged.length);
       }
     } catch (err: any) {
       setError(err?.message || '加载漏洞列表失败');
     } finally {
-      setLoading(false);
+      if (requestSeq === suspicionRequestSeq.current) {
+        setLoading(false);
+      }
     }
   };
 
@@ -968,7 +1035,7 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
   }, [projectId]);
 
   useEffect(() => {
-    setTaskFilter('all');
+    setTaskFilter([]);
     if (!projectId) {
       setTaskOptions([]);
       return;
@@ -1083,6 +1150,24 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
   useEffect(() => {
     setSelectedSuspicionIds((previous) => previous.filter((id) => suspicions.some((item) => item.id === id)));
   }, [suspicions]);
+
+  useEffect(() => {
+    if (!taskFilterOpen) return;
+    const handlePointerDown = (event: MouseEvent) => {
+      if (!taskFilterRef.current?.contains(event.target as Node)) {
+        setTaskFilterOpen(false);
+      }
+    };
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setTaskFilterOpen(false);
+    };
+    document.addEventListener('mousedown', handlePointerDown);
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('mousedown', handlePointerDown);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [taskFilterOpen]);
 
   useEffect(() => {
     if (showSdkDialog && !catalog) {
@@ -1469,6 +1554,49 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
     }
   };
 
+  const handleCreateTaskDownloadJob = async () => {
+    if (!projectId || taskFilter.length === 0) return;
+    setCreatingDownload(true);
+    setError(null);
+    setSuccessMessage(null);
+    try {
+      const baseParams = {
+        project_id: projectId,
+        current_stage: stageFilter === 'all' ? undefined : stageFilter,
+        severity: severityFilter === 'all' ? undefined : severityFilter,
+        reporter_type: reporterTypeFilter === 'all' ? undefined : reporterTypeFilter,
+        cvss_band: cvssBandFilter === 'all' ? undefined : cvssBandFilter,
+        final_result: finalResultFilter === 'all' ? undefined : (finalResultFilter as any),
+        search: search.trim() || undefined,
+        sort_field: sortField,
+        sort_direction: sortDirection,
+      };
+      const ids: string[] = [];
+      for (const taskId of taskFilter) {
+        const first = await vulnApi.vuln.listCases({ ...baseParams, source_task_id: taskId, page: 1, page_size: 500 });
+        ids.push(...(first.items || []).map((item: any) => item.id).filter(Boolean));
+        const pages = Math.ceil(Number(first.total || 0) / 500);
+        for (let page = 2; page <= pages; page += 1) {
+          const next = await vulnApi.vuln.listCases({ ...baseParams, source_task_id: taskId, page, page_size: 500 });
+          ids.push(...(next.items || []).map((item: any) => item.id).filter(Boolean));
+        }
+      }
+      const reportIds = Array.from(new Set(ids));
+      if (reportIds.length === 0) {
+        setError('当前任务筛选下没有可导出的漏洞。');
+        return;
+      }
+      await vulnApi.vuln.createDownloadJob({ project_id: projectId, report_ids: reportIds });
+      setRootTab('download-center');
+      await loadDownloadCenter();
+      setSuccessMessage(`已创建 ${reportIds.length} 条漏洞的任务批量导出，请到下载中心查看。`);
+    } catch (err: any) {
+      setError(err?.message || '创建任务批量导出失败');
+    } finally {
+      setCreatingDownload(false);
+    }
+  };
+
   const handleDownloadJobFile = async (job: any) => {
     if (!job?.job_id) return;
     setDownloadActionJobId(job.job_id);
@@ -1529,6 +1657,34 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
     }
     setSortField(field);
     setSortDirection(field === 'updated_at' || field === 'confidence' ? 'desc' : 'asc');
+  };
+
+  const selectedTaskFilterLabel = taskFilter.length === 0
+    ? '全部任务'
+    : taskFilter.length === 1
+      ? taskOptions.find((task) => task.id === taskFilter[0])?.name?.trim() || taskFilter[0]
+      : `已选 ${taskFilter.length} 个任务`;
+
+  const taskNameById = useMemo(
+    () => new Map(taskOptions.map((task) => [task.id, task.name?.trim() || task.id])),
+    [taskOptions],
+  );
+
+  const getTaskName = (item: any) => {
+    const taskId = String(item.source_task_id || item.display_summary?.source_task?.task_id || item.source_task?.task_id || '').trim();
+    return taskId ? taskNameById.get(taskId) || taskId : '未提供';
+  };
+
+  const clearTaskFilter = () => {
+    setTaskFilter([]);
+    setCurrentPage(1);
+  };
+
+  const toggleTaskFilter = (taskId: string) => {
+    setTaskFilter((previous) => (
+      previous.includes(taskId) ? previous.filter((id) => id !== taskId) : [...previous, taskId]
+    ));
+    setCurrentPage(1);
   };
 
   const visibleSuspicionIds = pagedSuspicions.map((item) => item.id);
@@ -2587,19 +2743,44 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
                   <option value="medium">medium (4.0-6.9)</option>
                   <option value="low">low (0.1-3.9)</option>
                 </select>
-                <select
-                  value={taskFilter}
-                  onChange={(event) => setTaskFilter(event.target.value)}
-                  className="form-select"
-                  style={{ width: '220px' }}
-                >
-                  <option value="all">全部任务</option>
-                  {taskOptions.map((task) => (
-                    <option key={task.id} value={task.id}>
-                      {task.name?.trim() || task.id}
-                    </option>
-                  ))}
-                </select>
+                <div ref={taskFilterRef} className="relative">
+                  <button
+                    type="button"
+                    onClick={() => setTaskFilterOpen((open) => !open)}
+                    className="form-select flex items-center justify-between gap-2 text-left"
+                    style={{ width: '220px' }}
+                  >
+                    <span className="truncate">{selectedTaskFilterLabel}</span>
+                    <ChevronDown size={14} />
+                  </button>
+                  {taskFilterOpen && (
+                    <div className="absolute right-0 top-full z-50 mt-2 max-h-72 w-72 overflow-auto rounded-xl border border-theme-border bg-theme-surface p-2 shadow-xl">
+                      <label className="flex cursor-pointer items-center gap-2 rounded-lg px-3 py-2 text-sm text-theme-text-secondary hover:bg-theme-elevated">
+                        <input
+                          type="checkbox"
+                          checked={taskFilter.length === 0}
+                          onChange={clearTaskFilter}
+                          className="h-4 w-4 rounded border-theme-border"
+                        />
+                        全部任务
+                      </label>
+                      {taskOptions.map((task) => {
+                        const checked = taskFilter.includes(task.id);
+                        return (
+                          <label key={task.id} className="flex cursor-pointer items-center gap-2 rounded-lg px-3 py-2 text-sm text-theme-text-secondary hover:bg-theme-elevated">
+                            <input
+                              type="checkbox"
+                              checked={checked}
+                              onChange={() => toggleTaskFilter(task.id)}
+                              className="h-4 w-4 rounded border-theme-border"
+                            />
+                            <span className="min-w-0 truncate" title={task.name?.trim() || task.id}>{task.name?.trim() || task.id}</span>
+                          </label>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
                 <select
                   value={finalResultFilter}
                   onChange={(event) => setFinalResultFilter(event.target.value)}
@@ -2612,12 +2793,22 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
                   <option value="inconclusive">无法判定</option>
                   <option value="analyzing">分析中</option>
                 </select>
+                <button
+                  type="button"
+                  onClick={handleCreateTaskDownloadJob}
+                  disabled={creatingDownload || taskFilter.length === 0}
+                  className="btn btn-secondary btn-sm"
+                  title={taskFilter.length === 0 ? '请先在全部任务下拉菜单中选择一个或多个任务' : undefined}
+                >
+                  <Download size={12} />
+                  {creatingDownload ? '创建中...' : '导出所选任务'}
+                </button>
               </div>
             </div>
 
             <div className="space-y-4 px-5 py-4 xl:px-6">
               <div className="overflow-hidden rounded-xl border border-theme-border">
-                  <div className="grid grid-cols-[0.45fr_2.1fr_0.6fr_1.2fr_0.8fr_0.8fr_1fr_1.5fr_0.9fr_1.1fr_0.7fr_0.9fr] gap-3 border-b border-theme-border bg-theme-elevated px-4 py-2.5">
+                  <div className="grid grid-cols-[0.45fr_2.1fr_0.6fr_1.2fr_0.8fr_0.8fr_1fr_1.5fr_1.2fr_1.1fr_0.9fr] gap-3 border-b border-theme-border bg-theme-elevated px-4 py-2.5">
                   <div className="flex items-center justify-center">
                     <input
                       type="checkbox"
@@ -2634,9 +2825,8 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
                   {renderSortHeader('CVSS', 'cvss_score')}
                   {renderSortHeader('上报者', 'reporter')}
                   {renderSortHeader('对象', 'subject')}
-                  <div className="text-xs font-semibold uppercase tracking-wider text-theme-text-muted-soft">来源方式</div>
+                  <div className="text-xs font-semibold uppercase tracking-wider text-theme-text-muted-soft">任务名称</div>
                   {renderSortHeader('更新时间', 'updated_at')}
-                  {renderSortHeader('置信度', 'confidence')}
                   <div className="text-xs font-semibold uppercase tracking-wider text-theme-text-muted-soft">操作</div>
                 </div>
                 {loading ? (
@@ -2656,7 +2846,7 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
                           setSelectedSuspicionId(item.id);
                         }
                       }}
-                      className="grid cursor-pointer grid-cols-[0.45fr_2.1fr_0.6fr_1.2fr_0.8fr_0.8fr_1fr_1.5fr_0.9fr_1.1fr_0.7fr_0.9fr] gap-3 border-b border-theme-border-subtle bg-theme-surface px-4 py-3.5 text-left transition hover:bg-theme-elevated last:border-b-0"
+                      className="grid cursor-pointer grid-cols-[0.45fr_2.1fr_0.6fr_1.2fr_0.8fr_0.8fr_1fr_1.5fr_1.2fr_1.1fr_0.9fr] gap-3 border-b border-theme-border-subtle bg-theme-surface px-4 py-3.5 text-left transition hover:bg-theme-elevated last:border-b-0"
                     >
                       <div className="flex items-center justify-center">
                         <input
@@ -2713,9 +2903,10 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
                         <div className="truncate text-sm font-semibold text-theme-text-secondary">{item.subject?.locator || 'unscoped asset'}</div>
                         <div className="mt-0.5 text-xs text-theme-text-faint">{item.subject?.type || 'generic'}</div>
                       </div>
-                      <div className="text-sm font-semibold text-theme-text-secondary">{item.reporter?.type || 'other'}</div>
+                      <div className="min-w-0 text-sm font-semibold text-theme-text-secondary" title={getTaskName(item)}>
+                        <div className="truncate">{getTaskName(item)}</div>
+                      </div>
                       <div className="text-sm text-theme-text-muted">{formatTime(item.updated_at || item.created_at)}</div>
-                      <div className="text-right text-xl font-semibold text-theme-text-primary">{item.confidence}</div>
                       <div>
                         <div className="flex flex-wrap gap-1.5">
                           <button

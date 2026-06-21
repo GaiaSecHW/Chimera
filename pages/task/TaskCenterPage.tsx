@@ -176,8 +176,7 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects }) => {
     const entries = await Promise.all(
       taskItems.map(async (t) => {
         try {
-          const sourceTaskId = t.downstream_task_id || t.id;
-          const resp = await api.vuln.listCases({ project_id: projectId, source_task_id: sourceTaskId, page: 1, page_size: 1 });
+          const resp = await api.vuln.listCases({ project_id: projectId, source_task_id: t.id, page: 1, page_size: 1 });
           return [t.id, Number(resp.total || 0)] as const;
         } catch {
           return [t.id, 0] as const;

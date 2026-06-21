@@ -532,7 +532,7 @@ const AgentAppModal: React.FC<AgentAppModalProps> = ({ mode, app, saving, depart
   const inputClass = {'marginTop': '8px', 'width': '100%', 'borderRadius': '12px', 'border':`1px solid ${LK.border}`, 'backgroundColor': LK.surfaceRaised, 'padding': '12px 16px', 'fontSize': '14px', 'color': LK.ink, 'outline': 'none', 'transition': 'all 0.2s', 'cursor': 'text'};
 
   return (
-    <div style={{ position: 'fixed', inset: 0, zIndex: 260, backgroundColor: 'rgba(7, 13, 24, 0.55)', padding: '16px', backdropFilter: 'blur(4px)' }} onClick={onClose}>
+    <div style={{ position: 'fixed', inset: 0, zIndex: 260, backgroundColor: 'rgba(7, 13, 24, 0.55)', padding: '16px', backdropFilter: 'blur(4px)' }}>
       <form onSubmit={handleSubmit} style={{ margin: '0 auto', display: 'flex', height: '100%', width: '100%', maxWidth: '64rem', flexDirection: 'column', overflow: 'hidden', borderRadius: '24px', border: `1px solid ${LK.border}`, backgroundColor: LK.surface, boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)' }} onClick={(event) => event.stopPropagation()}>
         <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '16px', borderBottom:`1px solid ${LK.border}`, padding: '20px 24px', background: `linear-gradient(to right, ${LK.surface}, ${LK.surfaceRaised})` }}>
           <div>
