@@ -416,6 +416,7 @@ export const getTopLevelNavForView = (view: string): TopLevelNavKey => {
   if (TENANT_VIEWS.has(view)) return 'system-admin';
   if (ROLE_VIEWS.has(view)) return 'system-admin';
   if (view === 'sys-settings' || view === 'change-password') return 'system-admin';
+  if (view === 'vuln-confirm-engines') return 'system-admin';
   return 'home';
 };
 
@@ -609,6 +610,14 @@ const SYSTEM_ADMIN_SIDEBAR_MAP: Record<string, NavSection[]> = {
     },
   ],
   tenant: PLATFORM_ACCOUNT_ORG_SECTIONS,
+  vulnConfig: [
+    {
+      title: '漏洞配置',
+      items: [
+        { id: 'vuln-confirm-engines', label: '漏洞确认引擎', icon: ShieldCheck },
+      ],
+    },
+  ],
   environment: [
     {
       title: '测试环境',
@@ -645,7 +654,7 @@ const SYSTEM_ADMIN_SIDEBAR_MAP: Record<string, NavSection[]> = {
   ],
 };
 
-export type SystemAdminChildKey = 'dashboard' | 'aigw' | 'schedule' | 'evolution' | 'tenant' | 'environment';
+export type SystemAdminChildKey = 'dashboard' | 'aigw' | 'schedule' | 'evolution' | 'tenant' | 'environment' | 'vulnConfig';
 
 export const SYSTEM_ADMIN_CHILDREN: { key: SystemAdminChildKey; label: string; defaultView: string }[] = [
   { key: 'dashboard', label: '仪表盘', defaultView: 'dashboard' },
@@ -654,6 +663,7 @@ export const SYSTEM_ADMIN_CHILDREN: { key: SystemAdminChildKey; label: string; d
   { key: 'evolution', label: '进化', defaultView: 'binary-evolution-center' },
   { key: 'tenant', label: '租户', defaultView: 'user-mgmt-access' },
   { key: 'environment', label: '环境', defaultView: 'env-agent' },
+  { key: 'vulnConfig', label: '漏洞配置', defaultView: 'vuln-confirm-engines' },
 ];
 
 export const getSystemAdminActiveChild = (currentView: string): SystemAdminChildKey => {
@@ -662,6 +672,7 @@ export const getSystemAdminActiveChild = (currentView: string): SystemAdminChild
   if (SCHEDULE_VIEWS.has(currentView) || currentView === 'chimera-platform-schedule-config') return 'schedule';
   if (EVOLUTION_VIEWS.has(currentView) || currentView.startsWith('binary-evolution-') || currentView.startsWith('secocto-')) return 'evolution';
   if (TENANT_VIEWS.has(currentView) || ROLE_VIEWS.has(currentView) || currentView.startsWith('user-mgmt-') || currentView.startsWith('org-mgmt-')) return 'tenant';
+  if (currentView === 'vuln-confirm-engines') return 'vulnConfig';
   return 'dashboard';
 };
 

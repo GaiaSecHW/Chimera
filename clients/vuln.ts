@@ -315,6 +315,31 @@ export const vulnApi = {
       body: JSON.stringify(payload)
     })),
 
+  listConfirmEngines: async (): Promise<{ engines: any[] }> =>
+    handleResponse(await fetch(`${API_BASE}/api/vuln/admin/vuln-confirm/engines`, { headers: getHeaders() })),
+
+  createConfirmEngine: async (payload: { engine_name: string; endpoint: string; version: string; bind_tools: string[] }) =>
+    handleResponse(await fetch(`${API_BASE}/api/vuln/admin/vuln-confirm/engines`, {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify(payload),
+    })),
+
+  updateConfirmEngine: async (engineName: string, payload: { endpoint: string; version: string; bind_tools: string[] }) =>
+    handleResponse(await fetch(`${API_BASE}/api/vuln/admin/vuln-confirm/engines/${encodeURIComponent(engineName)}`, {
+      method: 'PUT',
+      headers: getHeaders(),
+      body: JSON.stringify(payload),
+    })),
+
+  deleteConfirmEngine: async (engineName: string): Promise<void> => {
+    const resp = await fetch(`${API_BASE}/api/vuln/admin/vuln-confirm/engines/${encodeURIComponent(engineName)}`, {
+      method: 'DELETE',
+      headers: getHeaders(),
+    });
+    if (resp.status !== 204) await handleResponse(resp);
+  },
+
   createCase: async (payload: any): Promise<any> =>
     handleResponse(await fetch(`${API_BASE}/api/vuln/cases`, {
       method: 'POST',
