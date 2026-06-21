@@ -79,7 +79,7 @@ const MetricCard: React.FC<{
   value: string | number;
   hint: string;
 }> = ({ icon, label, value, hint }) => (
-  <div className="rounded-[1.5rem] border border-theme-border bg-theme-bg-app p-5">
+  <div className="rounded-xl border border-theme-border bg-theme-surface p-5 shadow-panel">
     <div className="flex items-center justify-between gap-3">
       <div className="rounded-2xl bg-theme-elevated p-3 text-theme-text-secondary">{icon}</div>
       <div className="text-right text-[11px] font-black uppercase tracking-[0.18em] text-theme-text-muted">{label}</div>
@@ -171,7 +171,7 @@ export const AiGatewayDashboardPage: React.FC<AiGatewayDashboardPageProps> = ({ 
       </div>
 
       <div className="grid gap-6 xl:grid-cols-[1.4fr_1fr_1fr]">
-        <section className="rounded-[2rem] border border-theme-border bg-theme-bg-app p-6">
+        <section className="rounded-xl border border-theme-border bg-theme-surface p-6 shadow-panel">
           <div className="flex items-start justify-between gap-4">
             <div>
               <div className="text-[11px] font-semibold uppercase tracking-[0.2em] text-theme-text-muted">{rangeLabel}统计</div>
@@ -215,7 +215,7 @@ export const AiGatewayDashboardPage: React.FC<AiGatewayDashboardPageProps> = ({ 
           </div>
         </section>
 
-        <section className="rounded-xl border border-theme-border bg-theme-surface p-6">
+        <section className="rounded-xl border border-theme-border bg-theme-surface p-6 shadow-panel">
           <div className="flex items-start justify-between gap-4">
             <div>
               <div className="text-[11px] font-semibold uppercase tracking-[0.2em] text-theme-text-muted">模型视图</div>
@@ -257,7 +257,7 @@ export const AiGatewayDashboardPage: React.FC<AiGatewayDashboardPageProps> = ({ 
           </div>
         </section>
 
-        <section className="rounded-xl border border-theme-border bg-theme-surface p-6">
+        <section className="rounded-xl border border-theme-border bg-theme-surface p-6 shadow-panel">
           <div className="flex items-start justify-between gap-4">
             <div>
               <div className="text-[11px] font-semibold uppercase tracking-[0.2em] text-theme-text-muted">近期请求</div>
