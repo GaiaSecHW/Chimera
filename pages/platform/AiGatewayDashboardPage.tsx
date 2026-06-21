@@ -73,6 +73,17 @@ const formatCost = (value: number) => {
 const formatDateTime = (value?: string | null) => value ? new Date(value).toLocaleString('zh-CN') : '-';
 const formatPercent = (value: number) => `${(value <= 1 ? value * 100 : value).toFixed(1)}%`;
 
+const DASHBOARD_RANGE_OPTIONS = [
+  { value: '15m', label: '最近 15 分钟' },
+  { value: '1h', label: '最近 1 小时' },
+  { value: '24h', label: '最近 24 小时' },
+  { value: '7d', label: '最近 7 天' },
+  { value: '30d', label: '最近 30 天' },
+];
+
+const getRangeLabel = (value?: string | null) =>
+  DASHBOARD_RANGE_OPTIONS.find((item) => item.value === value)?.label || value || '当前';
+
 const MetricCard: React.FC<{
   icon: React.ReactNode;
   label: string;
@@ -99,16 +110,17 @@ export const AiGatewayDashboardPage: React.FC<AiGatewayDashboardPageProps> = ({ 
   const [activeModels, setActiveModels] = useState<DashboardActiveModelItem[]>([]);
   const [logs, setLogs] = useState<DashboardRecentLogItem[]>([]);
   const [logsTotal, setLogsTotal] = useState(0);
+  const [rangePreset, setRangePreset] = useState('24h');
 
-  const loadDashboard = async (silent = false) => {
+  const loadDashboard = async (silent = false, range = rangePreset) => {
     if (silent) setRefreshing(true);
     else setLoading(true);
     setError('');
     try {
       const [summaryResp, taskResp, modelResp, logResp] = await Promise.all([
-        platformApi.aigw.getDashboardSummary({ range: '24h' }),
-        platformApi.aigw.getDashboardActiveTaskKeys({ range: '24h', limit: 10 }),
-        platformApi.aigw.getDashboardActiveModels({ range: '24h', limit: 10 }),
+        platformApi.aigw.getDashboardSummary({ range }),
+        platformApi.aigw.getDashboardActiveTaskKeys({ range, limit: 10 }),
+        platformApi.aigw.getDashboardActiveModels({ range, limit: 10 }),
         platformApi.aigw.getDashboardRecentLogs({ limit: 10 }),
       ]);
       setSummary((summaryResp || null) as DashboardSummaryResponse | null);
@@ -125,11 +137,11 @@ export const AiGatewayDashboardPage: React.FC<AiGatewayDashboardPageProps> = ({ 
   };
 
   useEffect(() => {
-    void loadDashboard();
-  }, []);
+    void loadDashboard(false, rangePreset);
+  }, [rangePreset]);
 
   const errorLogs = logs.filter((item) => Number(item.status_code || 0) >= 400).length;
-  const rangeLabel = summary?.range?.preset === '24h' ? '最近 24 小时' : (summary?.range?.preset || '当前');
+  const rangeLabel = getRangeLabel(summary?.range?.preset || rangePreset);
 
   return (
     <div className="flex min-h-full flex-col gap-6 p-8">
@@ -177,10 +189,22 @@ export const AiGatewayDashboardPage: React.FC<AiGatewayDashboardPageProps> = ({ 
               <div className="text-[11px] font-semibold uppercase tracking-[0.2em] text-theme-text-muted">{rangeLabel}统计</div>
               <h2 className="mt-2 text-xl font-semibold text-theme-text-primary">活跃任务</h2>
             </div>
-            <button onClick={() => onNavigate('aigw-keys')} className="inline-flex items-center gap-2 rounded-lg bg-theme-elevated px-4 py-2.5 text-sm font-bold text-theme-text-secondary hover:bg-theme-elevated">
-              <KeyRound className="h-4 w-4" />
-              密钥管理
-            </button>
+            <div className="flex flex-wrap items-center justify-end gap-2">
+              <select
+                value={rangePreset}
+                onChange={(event) => setRangePreset(event.target.value)}
+                disabled={loading || refreshing}
+                className="rounded-lg border border-theme-border bg-theme-elevated px-3 py-2.5 text-sm font-bold text-theme-text-secondary outline-none transition hover:bg-theme-surface disabled:opacity-50"
+              >
+                {DASHBOARD_RANGE_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value}>{option.label}</option>
+                ))}
+              </select>
+              <button onClick={() => onNavigate('aigw-keys')} className="inline-flex items-center gap-2 rounded-lg bg-theme-elevated px-4 py-2.5 text-sm font-bold text-theme-text-secondary hover:bg-theme-elevated">
+                <KeyRound className="h-4 w-4" />
+                密钥管理
+              </button>
+            </div>
           </div>
           <div className="mt-5 overflow-auto">
             <table className="min-w-full text-left text-sm">
