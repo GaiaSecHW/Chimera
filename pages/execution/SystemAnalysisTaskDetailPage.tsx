@@ -837,6 +837,7 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
   const [sessionError, setSessionError] = useState<string | null>(null);
   const [sessionLive, setSessionLive] = useState(false);
   const sessionSocketRef = useRef<WebSocket | null>(null);
+  const detailRequestInFlightRef = useRef<Promise<AppSaTaskDetail> | null>(null);
 
   const handleBack = () => {
     if (navigateBackToExecutionView()) return;
@@ -846,13 +847,24 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
 
   const loadDetail = async () => {
     if (!taskId) return;
+    if (detailRequestInFlightRef.current) {
+      try {
+        await detailRequestInFlightRef.current;
+      } catch {
+        // let the original caller surface the error
+      }
+      return;
+    }
     setLoading(true);
+    const request = appApi.getTask(taskId);
+    detailRequestInFlightRef.current = request;
     try {
-      const data = await appApi.getTask(taskId);
+      const data = await request;
       setDetail(data);
     } catch (err: any) {
       notify(`加载任务详情失败: ${err?.message || err}`, 'error');
     } finally {
+      detailRequestInFlightRef.current = null;
       setLoading(false);
     }
   };
@@ -1159,7 +1171,7 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
   useEffect(() => {
     if (activeTab === 'timeline') return;
     if (!detail || !['running', 'pending'].includes(detail.status)) return;
-    const timer = window.setInterval(() => void loadDetail(), 5000);
+    const timer = window.setInterval(() => void loadDetail(), 20000);
     return () => window.clearInterval(timer);
   }, [activeTab, detail?.status, taskId]);
 

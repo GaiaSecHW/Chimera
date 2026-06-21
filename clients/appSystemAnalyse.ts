@@ -115,7 +115,7 @@ export const appSystemAnalyseApi = {
     getJsonWithDedupe(`${BASE}/workers/cluster-capacity`, { headers: getHeaders() }),
 
   getTask: async (taskId: string): Promise<AppSaTaskDetail> =>
-    handleResponse(await fetch(`${BASE}/tasks/${encodeURIComponent(taskId)}`, { headers: getHeaders() })),
+    getJsonWithDedupe(`${BASE}/tasks/${encodeURIComponent(taskId)}`, { headers: getHeaders() }),
 
   getTimeline: async (taskId: string): Promise<AppSaTaskTimeline> =>
     handleResponse(await fetch(`${BASE}/tasks/${encodeURIComponent(taskId)}/timeline`, { headers: getHeaders() })),
