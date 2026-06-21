@@ -558,7 +558,7 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects }) => {
                       <button
                         onClick={() => {
                           window.dispatchEvent(new CustomEvent('chimera-navigate-view', {
-                            detail: { view: 'task-vuln-list', taskVulnListTaskId: task.downstream_task_id || task.id },
+                            detail: { view: 'task-vuln-list', taskVulnListTaskId: task.id },
                           }));
                         }}
                         className="inline-flex items-center gap-1 rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors"

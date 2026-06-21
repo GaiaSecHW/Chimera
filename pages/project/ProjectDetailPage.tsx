@@ -206,7 +206,7 @@ export const ProjectDetailPage: React.FC<ProjectDetailPageProps> = ({ projectId,
 
   const openTaskVulns = (task: any) => {
     window.dispatchEvent(new CustomEvent('chimera-navigate-view', {
-      detail: { view: 'task-vuln-list', taskVulnListTaskId: task.downstream_task_id || task.id },
+      detail: { view: 'task-vuln-list', taskVulnListTaskId: task.id },
     }));
   };
 
