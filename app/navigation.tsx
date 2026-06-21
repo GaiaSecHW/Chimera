@@ -202,6 +202,8 @@ export const PROJECT_REQUIRED_VIEWS = new Set<string>([
   'source-security-detail',
   'kg-source-security',
   'kg-source-security-detail',
+  'cfg-db-vuln-tool',
+  'cfg-db-vuln-detail',
   'mobile-security-ipc-vuln',
   'kernel-scan',
   'security-assessment',
@@ -294,6 +296,8 @@ const DEVELOPER_TOOL_VIEWS = new Set<string>([
   'source-security-detail',
   'kg-source-security',
   'kg-source-security-detail',
+  'cfg-db-vuln-tool',
+  'cfg-db-vuln-detail',
   'binary-module-security',
   'binary-module-security-detail',
   'app-security-scan',
@@ -416,6 +420,7 @@ export const getTopLevelNavForView = (view: string): TopLevelNavKey => {
   if (TENANT_VIEWS.has(view)) return 'system-admin';
   if (ROLE_VIEWS.has(view)) return 'system-admin';
   if (view === 'sys-settings' || view === 'change-password') return 'system-admin';
+  if (view === 'vuln-confirm-engines') return 'system-admin';
   return 'home';
 };
 
@@ -532,6 +537,7 @@ export const SIDEBAR_SECTIONS: Record<string, NavSection[]> = {
         { id: 'binary-security', label: '盖亚-二进制固件', icon: Settings, aliases: ['binary-security-root', 'binary-security-task-list', 'binary-security-detail'], requiresProject: true },
         { id: 'source-security', label: '盖亚-源码', icon: Settings, aliases: ['source-security-detail'], requiresProject: true },
         { id: 'kg-source-security', label: '知识图谱-源码漏洞挖掘', icon: Settings, aliases: ['kg-source-security-detail'], requiresProject: true },
+        { id: 'cfg-db-vuln-tool', label: 'CFG-数据库漏洞挖掘', icon: GitBranch, aliases: ['cfg-db-vuln-detail'], requiresProject: true },
         { id: 'binary-module-security', label: '盖亚-二进制模块', icon: Settings, aliases: ['binary-module-security-detail'], requiresProject: true },
         { id: 'app-security-scan', label: 'turing 扫描工具', icon: Smartphone, aliases: ['app-security-scan-detail', 'app-security-scan-monitor'], requiresProject: true },
         { id: 'redline-verification', label: '红线验证', icon: ShieldCheck, aliases: ['redline-verification-detail'], requiresProject: true },
@@ -609,6 +615,14 @@ const SYSTEM_ADMIN_SIDEBAR_MAP: Record<string, NavSection[]> = {
     },
   ],
   tenant: PLATFORM_ACCOUNT_ORG_SECTIONS,
+  vulnConfig: [
+    {
+      title: '漏洞配置',
+      items: [
+        { id: 'vuln-confirm-engines', label: '漏洞确认引擎', icon: ShieldCheck },
+      ],
+    },
+  ],
   environment: [
     {
       title: '测试环境',
@@ -645,7 +659,7 @@ const SYSTEM_ADMIN_SIDEBAR_MAP: Record<string, NavSection[]> = {
   ],
 };
 
-export type SystemAdminChildKey = 'dashboard' | 'aigw' | 'schedule' | 'evolution' | 'tenant' | 'environment';
+export type SystemAdminChildKey = 'dashboard' | 'aigw' | 'schedule' | 'evolution' | 'tenant' | 'environment' | 'vulnConfig';
 
 export const SYSTEM_ADMIN_CHILDREN: { key: SystemAdminChildKey; label: string; defaultView: string }[] = [
   { key: 'dashboard', label: '仪表盘', defaultView: 'dashboard' },
@@ -654,6 +668,7 @@ export const SYSTEM_ADMIN_CHILDREN: { key: SystemAdminChildKey; label: string; d
   { key: 'evolution', label: '进化', defaultView: 'binary-evolution-center' },
   { key: 'tenant', label: '租户', defaultView: 'user-mgmt-access' },
   { key: 'environment', label: '环境', defaultView: 'env-agent' },
+  { key: 'vulnConfig', label: '漏洞配置', defaultView: 'vuln-confirm-engines' },
 ];
 
 export const getSystemAdminActiveChild = (currentView: string): SystemAdminChildKey => {
@@ -662,6 +677,7 @@ export const getSystemAdminActiveChild = (currentView: string): SystemAdminChild
   if (SCHEDULE_VIEWS.has(currentView) || currentView === 'chimera-platform-schedule-config') return 'schedule';
   if (EVOLUTION_VIEWS.has(currentView) || currentView.startsWith('binary-evolution-') || currentView.startsWith('secocto-')) return 'evolution';
   if (TENANT_VIEWS.has(currentView) || ROLE_VIEWS.has(currentView) || currentView.startsWith('user-mgmt-') || currentView.startsWith('org-mgmt-')) return 'tenant';
+  if (currentView === 'vuln-confirm-engines') return 'vulnConfig';
   return 'dashboard';
 };
 

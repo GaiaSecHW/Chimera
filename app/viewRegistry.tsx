@@ -43,6 +43,8 @@ import { DataflowVulnScanConfigPage } from '../pages/execution/DataflowVulnScanC
 import { CfgGuidedExploreTaskPage } from '../pages/execution/CfgGuidedExploreTaskPage';
 import { CfgGuidedExploreTaskDetailPage } from '../pages/execution/CfgGuidedExploreTaskDetailPage';
 import { CfgGuidedExploreConfigPage } from '../pages/execution/CfgGuidedExploreConfigPage';
+import { CfgDbVulnToolPage } from '../pages/execution/CfgDbVulnToolPage';
+import { CfgDbVulnDetailPage } from '../pages/execution/CfgDbVulnDetailPage';
 import { VulnVerifyTaskPage } from '../pages/execution/VulnVerifyTaskPage';
 import { VulnVerifyV2TaskPage } from '../pages/execution/VulnVerifyV2TaskPage';
 import { EntryAnalysisTaskPage } from '../pages/execution/EntryAnalysisTaskPage';
@@ -106,6 +108,7 @@ import { RedlineOverviewPage } from '../pages/redline/RedlineOverviewPage';
 import { RedlineTaskDetailPage } from '../pages/redline/RedlineTaskDetailPage';
 import { UserMgmtPage } from '../pages/platform/UserMgmtPage';
 import { RoleMgmtPage } from '../pages/platform/RoleMgmtPage';
+import { VulnConfirmEnginesPage } from '../pages/platform/VulnConfirmEnginesPage';
 import { PermMgmtPage } from '../pages/platform/PermMgmtPage';
 import { OnlineSessionPage } from '../pages/platform/OnlineSessionPage';
 import { MachineTokenPage } from '../pages/platform/MachineTokenPage';
@@ -147,6 +150,7 @@ export interface ViewRegistryContext {
   activeDataflowAnalysisTaskId: string;
   activeDataflowVulnScanTaskId: string;
   activeCfgGuidedExploreTaskId: string;
+  activeCfgDbVulnTaskId: string;
   activeFirmwareUnpackerTaskId: string;
   activeBinarySecurityTaskId: string;
   activeSourceSecurityTaskId: string;
@@ -173,6 +177,7 @@ export interface ViewRegistryContext {
   setActiveDataflowAnalysisTaskId: (id: string) => void;
   setActiveDataflowVulnScanTaskId: (id: string) => void;
   setActiveCfgGuidedExploreTaskId: (id: string) => void;
+  setActiveCfgDbVulnTaskId: (id: string) => void;
   setActiveFirmwareUnpackerTaskId: (id: string) => void;
   setActiveBinarySecurityTaskId: (id: string) => void;
   setActiveSourceSecurityTaskId: (id: string) => void;
@@ -433,6 +438,24 @@ export const renderCurrentView = (ctx: ViewRegistryContext): React.ReactNode => 
       );
     case 'cfg-guided-explore-config':
       return <CfgGuidedExploreConfigPage projectId={ctx.selectedProjectId} />;
+    case 'cfg-db-vuln-tool':
+      return (
+        <CfgDbVulnToolPage
+          projectId={ctx.selectedProjectId}
+          onOpenTask={(taskId) => {
+            ctx.setActiveCfgDbVulnTaskId(taskId);
+            ctx.setCurrentView('cfg-db-vuln-detail');
+          }}
+        />
+      );
+    case 'cfg-db-vuln-detail':
+      return (
+        <CfgDbVulnDetailPage
+          projectId={ctx.selectedProjectId}
+          taskId={ctx.activeCfgDbVulnTaskId}
+          onBack={() => ctx.setCurrentView('cfg-db-vuln-tool')}
+        />
+      );
     case 'pentest-vuln-verify':
     case 'vuln-verify-task':
       return <VulnVerifyTaskPage projectId={ctx.selectedProjectId} />;
@@ -864,6 +887,8 @@ export const renderCurrentView = (ctx: ViewRegistryContext): React.ReactNode => 
       return <UserPermissionPage />;
     case 'user-mgmt-roles':
       return <RoleMgmtPage />;
+    case 'vuln-confirm-engines':
+      return <VulnConfirmEnginesPage />;
     case 'user-mgmt-perms':
       return <PermMgmtPage />;
     case 'user-mgmt-online':

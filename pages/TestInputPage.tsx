@@ -105,8 +105,44 @@ const CodemapProgressChip: React.FC<{
   rebuilding?: boolean;
   onCorrect?: () => void;
   correcting?: boolean;
-}> = ({ status, onRebuild, rebuilding, onCorrect, correcting }) => {
-  if (!status) return null;
+  usable?: boolean;
+  dispatchError?: string;
+  onRetryDispatch?: () => void;
+  retrying?: boolean;
+}> = ({ status, onRebuild, rebuilding, onCorrect, correcting, usable, dispatchError, onRetryDispatch, retrying }) => {
+  // status===null:任务尚未派发。三种子态:
+  //  ① triggerBuild 失败过(dispatchError)→ 红色「派发失败 · 重试」+ 手动重试按钮。
+  //  ② 上传还没到 USABLE 终态(!usable)→ 灰色「等上传完成」,本就不该派,不给重试。
+  //  ③ 已 USABLE、无错误 → 灰色「待派发」(瞬时态,派发 effect 马上会触发)。
+  if (!status) {
+    const pillBase = 'inline-flex items-center rounded-xl border px-3 py-2 text-xs font-medium';
+    if (dispatchError) {
+      return (
+        <span className="inline-flex items-center gap-2">
+          <span title={dispatchError} className={`${pillBase} border-rose-500/20 bg-rose-500/15 text-rose-400`}>
+            知识图谱 · 派发失败
+          </span>
+          {onRetryDispatch ? (
+            <button
+              type="button"
+              onClick={(e) => { e.stopPropagation(); onRetryDispatch(); }}
+              disabled={retrying}
+              className="rounded-xl border border-theme-border px-3 py-2 text-xs font-medium text-theme-text-secondary hover:bg-theme-elevated disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {retrying ? '重试中…' : '重试'}
+            </button>
+          ) : null}
+        </span>
+      );
+    }
+    const label = usable === false ? '知识图谱 · 等上传完成' : '知识图谱 · 待派发';
+    return (
+      <span title={usable === false ? '上传尚未完成(未达可分析状态),完成后将自动派发' : undefined}
+        className={`${pillBase} border-theme-border bg-theme-elevated text-theme-text-muted`}>
+        {label}
+      </span>
+    );
+  }
   const s = status.status;
   const progress = status.progress;
   // 与同行「详情/打开目录」按钮统一外形:rounded-xl + px-3 py-2 + text-xs +
@@ -266,6 +302,10 @@ export const TestInputPage: React.FC<TestInputPageProps> = ({ selectedProjectId,
   // value=null 表示该上传尚未派发(getTaskStatus 404)。每条上传各自独立的
   // task_id(kg-<uploadId>)、状态与图。
   const [codemapStatusByUpload, setCodemapStatusByUpload] = useState<Record<string, CodemapTaskStatus | null>>({});
+  // 派发(triggerBuild)失败的 upload。status 仍为 null,靠这张表区分「等上传完成」
+  // (上传未到 USABLE,本就不该派)与「派发失败」(已 USABLE 但 triggerBuild 报错),
+  // 后者给重试按钮;否则两种 null 在 UI 上无法区分,会一直显示「待派发」。
+  const [codemapDispatchErrorByUpload, setCodemapDispatchErrorByUpload] = useState<Record<string, string>>({});
   // 重派 / 更正按钮的本地态(按 upload_id 记录哪几条正在处理)。
   const [codemapRebuildingIds, setCodemapRebuildingIds] = useState<string[]>([]);
   const [codemapCorrectingIds, setCodemapCorrectingIds] = useState<string[]>([]);
@@ -358,9 +398,21 @@ export const TestInputPage: React.FC<TestInputPageProps> = ({ selectedProjectId,
               error: null,
             },
           }));
+          setCodemapDispatchErrorByUpload((cur) => {
+            if (!(uid in cur)) return cur;
+            const next = { ...cur };
+            delete next[uid];
+            return next;
+          });
         } catch (error) {
+          if (aborted) return;
           // eslint-disable-next-line no-console
           console.warn('[codemap] triggerBuild failed', uid, error);
+          // 记下派发失败,chip 转「派发失败 · 重试」。status 保持 null。
+          setCodemapDispatchErrorByUpload((cur) => ({
+            ...cur,
+            [uid]: (error as any)?.message || '触发知识图谱构建失败',
+          }));
         }
       }));
     })();
@@ -385,6 +437,50 @@ export const TestInputPage: React.FC<TestInputPageProps> = ({ selectedProjectId,
     }, 3000);
     return () => window.clearInterval(timer);
   }, [codemapStatusByUpload]);
+
+  // 「派发失败 · 重试」按钮:直接对该上传重发一次 triggerBuild(派发 effect 不依赖
+  // dispatchError，清错误标记不会让它自跑,故这里直接重试)。成功落 status 并清错误。
+  const handleCodemapRetryDispatch = async (uploadId: string) => {
+    if (codemapRebuildingIds.includes(uploadId)) return;
+    const record = codeRecords.find((r) => r.upload_id === uploadId);
+    if (!projectId || !record) return;
+    const productName = projects.find((p) => p.id === projectId)?.name || projectId;
+    setCodemapRebuildingIds((cur) => [...cur, uploadId]);
+    try {
+      const triggered = await api.codemapManager.triggerBuild({
+        task_id: buildCodemapTaskId(uploadId),
+        product_id: codemapProductId,
+        product_name: productName,
+        target_dir: buildManagerTargetDir(projectId, record.target_path),
+        project_id: projectId,
+        upload_id: uploadId,
+      });
+      setCodemapStatusByUpload((cur) => ({
+        ...cur,
+        [uploadId]: {
+          task_id: triggered.task_id,
+          status: triggered.status,
+          mode: 'full',
+          db_name: triggered.db_name,
+          error: null,
+        },
+      }));
+      setCodemapDispatchErrorByUpload((cur) => {
+        const next = { ...cur };
+        delete next[uploadId];
+        return next;
+      });
+    } catch (error) {
+      // eslint-disable-next-line no-console
+      console.warn('[codemap] retry triggerBuild failed', uploadId, error);
+      setCodemapDispatchErrorByUpload((cur) => ({
+        ...cur,
+        [uploadId]: (error as any)?.message || '触发知识图谱构建失败',
+      }));
+    } finally {
+      setCodemapRebuildingIds((cur) => cur.filter((id) => id !== uploadId));
+    }
+  };
 
   // failed chip 旁的"重新构建"按钮:DELETE 旧 task → 置 null → 派发 effect 用
   // 该上传记录重派(自动修正上次因目录错位等 422 / 0 函数失败的 task)。
@@ -907,6 +1003,10 @@ export const TestInputPage: React.FC<TestInputPageProps> = ({ selectedProjectId,
                                   rebuilding={codemapRebuildingIds.includes(record.upload_id)}
                                   onCorrect={() => { void handleCodemapCorrect(record.upload_id); }}
                                   correcting={codemapCorrectingIds.includes(record.upload_id)}
+                                  usable={USABLE_UPLOAD_STATUSES.has(record.status)}
+                                  dispatchError={codemapDispatchErrorByUpload[record.upload_id]}
+                                  onRetryDispatch={() => { void handleCodemapRetryDispatch(record.upload_id); }}
+                                  retrying={codemapRebuildingIds.includes(record.upload_id)}
                                 />
                               ) : null}
                               <button onClick={() => { void openUploadDetailDialog(record); }} className="rounded-xl border border-theme-border px-3 py-2 text-xs font-medium text-theme-text-secondary hover:bg-theme-elevated">
@@ -1081,6 +1181,17 @@ export const TestInputPage: React.FC<TestInputPageProps> = ({ selectedProjectId,
                           : <Network size={14} />}
                         {openServeLoading ? '启动中…' : '打开知识图谱'}
                       </button>
+                      {/* 任务尚未派发时,灰按钮旁复用同一 chip 区分「等上传完成 /
+                          待派发 / 派发失败·重试」,与行内 chip 一致。 */}
+                      {!uploadStatus ? (
+                        <CodemapProgressChip
+                          status={null}
+                          usable={USABLE_UPLOAD_STATUSES.has(record.status)}
+                          dispatchError={codemapDispatchErrorByUpload[uploadId]}
+                          onRetryDispatch={() => { void handleCodemapRetryDispatch(uploadId); }}
+                          retrying={codemapRebuildingIds.includes(uploadId)}
+                        />
+                      ) : null}
                       {openServeError ? (
                         <span className="text-xs font-semibold text-rose-600">{openServeError}</span>
                       ) : null}

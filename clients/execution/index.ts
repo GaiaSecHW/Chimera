@@ -7,6 +7,7 @@ import { binarySecurityMetricsApi } from '../binarySecurityMetrics';
 import { binarySecurityApi } from '../binarySecurity';
 import { binaryToSourceApi } from '../binaryToSource';
 import { cfgGuidedExploreApi } from '../cfgGuidedExplore';
+import { cfgPipelineApi } from '../cfgPipeline';
 import { codeServerApi } from '../codeServer';
 import { dataflowVulnScannerApi } from '../dataflowVulnScanner';
 import { firmwareUnpackerApi } from '../firmwareUnpacker';
@@ -24,6 +25,7 @@ export { binaryEvolutionApi } from '../binaryEvolution';
 export { binarySecurityMetricsApi } from '../binarySecurityMetrics';
 export { binarySecurityApi } from '../binarySecurity';
 export { cfgGuidedExploreApi } from '../cfgGuidedExplore';
+export { cfgPipelineApi } from '../cfgPipeline';
 export { systemAnalysisApi } from '../systemAnalysis';
 export { vulnVerifyApi } from '../vulnVerify';
 export { codeServerApi } from '../codeServer';
@@ -41,6 +43,7 @@ export const executionClients = {
   appSystemAnalyse: appSystemAnalyseApi,
   systemAnalysis: systemAnalysisApi,
   cfgGuidedExplore: cfgGuidedExploreApi,
+  cfgPipeline: cfgPipelineApi,
   codeServer: codeServerApi,
   dataflowVulnScanner: dataflowVulnScannerApi,
   firmwareUnpacker: firmwareUnpackerApi,

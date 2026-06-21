@@ -10,6 +10,7 @@ export type ExecutionReturnContext =
   | { view: 'dataflow-analysis-task' }
   | { view: 'dataflow-vuln-scan-task' }
   | { view: 'cfg-guided-explore-task' }
+  | { view: 'cfg-db-vuln-tool' }
   | { view: 'pentest-exec-b2s' }
   | { view: 'pentest-exec-b2s-detail'; b2sTaskId: string };
 

@@ -153,6 +153,7 @@ export const ProjectDetailPage: React.FC<ProjectDetailPageProps> = ({ projectId,
   const [envCount, setEnvCount] = useState(0);
   const [vulnCount, setVulnCount] = useState(0);
   const [tasks, setTasks] = useState<any[]>([]);
+  const [taskVulnCounts, setTaskVulnCounts] = useState<Record<string, number | undefined>>({});
   const [envAgents, setEnvAgents] = useState<any[]>([]);
   const [vulnCases, setVulnCases] = useState<any[]>([]);
   const [deletingTaskId, setDeletingTaskId] = useState<string | null>(null);
@@ -175,6 +176,21 @@ export const ProjectDetailPage: React.FC<ProjectDetailPageProps> = ({ projectId,
     loadAllData();
   }, [projectId]);
 
+  const fetchTaskVulnCounts = async (taskItems: any[]) => {
+    if (!projectId || taskItems.length === 0) return;
+    const entries = await Promise.all(
+      taskItems.map(async (t) => {
+        try {
+          const resp = await api.vuln.listCases({ project_id: projectId, source_task_id: t.id, page: 1, page_size: 1 });
+          return [t.id, Number(resp.total || 0)] as const;
+        } catch {
+          return [t.id, 0] as const;
+        }
+      }),
+    );
+    setTaskVulnCounts((prev) => entries.reduce((acc, [id, n]) => { acc[id] = n; return acc; }, { ...prev }));
+  };
+
   const loadAllData = async () => {
     setLoading(true);
     try {
@@ -184,7 +200,9 @@ export const ProjectDetailPage: React.FC<ProjectDetailPageProps> = ({ projectId,
         api.vuln.listCases({ project_id: projectId, page: 1, page_size: 20 }).catch(() => ({ items: [], total: 0 })),
       ]);
       setTaskCount(Number(taskResp.total || 0));
-      setTasks(taskResp.items || []);
+      const taskItems = taskResp.items || [];
+      setTasks(taskItems);
+      void fetchTaskVulnCounts(taskItems);
       setEnvCount(Number(envResp.total || 0));
       setEnvAgents(envResp.agents || []);
       setVulnCount(Number(vulnResp.total || 0));
@@ -206,7 +224,7 @@ export const ProjectDetailPage: React.FC<ProjectDetailPageProps> = ({ projectId,
 
   const openTaskVulns = (task: any) => {
     window.dispatchEvent(new CustomEvent('chimera-navigate-view', {
-      detail: { view: 'task-vuln-list', taskVulnListTaskId: task.downstream_task_id || task.id },
+      detail: { view: 'task-vuln-list', taskVulnListTaskId: task.id },
     }));
   };
 
@@ -445,7 +463,7 @@ export const ProjectDetailPage: React.FC<ProjectDetailPageProps> = ({ projectId,
                         )}
                         {task.task_type !== 'sechps_tool' && (
                           <button className={actionBtnClass} style={actionBtnStyle} onClick={() => openTaskVulns(task)}>
-                            查看漏洞 <ArrowRight size={12} />
+                            查看漏洞 ({taskVulnCounts[task.id] === undefined ? '…' : taskVulnCounts[task.id]})
                           </button>
                         )}
                         {task.sync_required && (

@@ -186,7 +186,7 @@ export const DialogViewport: React.FC = () => {
     const tone = active.kind === 'alert' ? active.tone || 'info' : active.kind === 'confirm' && active.danger ? 'error' : 'info';
     const style = alertStyles[tone];
     return (
-      <div className="fixed inset-0 z-[320] flex items-center justify-center bg-slate-950/65 backdrop-blur-md p-6">
+      <div className="fixed inset-0 z-[10000] flex items-center justify-center bg-slate-950/65 backdrop-blur-md p-6">
         <div className="w-full max-w-xl overflow-hidden rounded-[2rem] border border-theme-border bg-theme-surface shadow-[0_30px_120px_rgba(15,23,42,0.32)] animate-in fade-in zoom-in-95 duration-200">
           <div className="border-b border-theme-border px-8 py-7">
             <div className="flex items-center gap-3">

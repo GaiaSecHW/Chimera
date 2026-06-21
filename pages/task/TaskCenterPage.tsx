@@ -118,6 +118,7 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects }) => {
   }, [currentUser]);
   const [loading, setLoading] = useState(true);
   const [tasks, setTasks] = useState<ScheduleCenterUserTask[]>([]);
+  const [taskVulnCounts, setTaskVulnCounts] = useState<Record<string, number | undefined>>({});
   const [stats, setStats] = useState<Record<string, number>>({});
   const [agentApps, setAgentApps] = useState<AgentAppSummary[]>([]);
   const [query, setQuery] = useState('');
@@ -170,15 +171,32 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects }) => {
     [deleteQueuePageSize, deleteQueueTotal],
   );
 
+  const fetchTaskVulnCounts = async (taskItems: ScheduleCenterUserTask[]) => {
+    if (!projectId || taskItems.length === 0) return;
+    const entries = await Promise.all(
+      taskItems.map(async (t) => {
+        try {
+          const resp = await api.vuln.listCases({ project_id: projectId, source_task_id: t.id, page: 1, page_size: 1 });
+          return [t.id, Number(resp.total || 0)] as const;
+        } catch {
+          return [t.id, 0] as const;
+        }
+      }),
+    );
+    setTaskVulnCounts((prev) => entries.reduce((acc, [id, n]) => { acc[id] = n; return acc; }, { ...prev }));
+  };
+
   const loadData = async () => {
     if (!projectId) return;
     setLoading(true);
     setError('');
     setAgentAppsLoadError('');
     try {
-      const taskResp = await scheduleApi.listUserTasks(projectId, selectedAgentAppFilter ? { agent_app_id: selectedAgentAppFilter } : {}) as Promise<ScheduleCenterUserTaskListResponse>;
-      setTasks(taskResp.items || []);
+      const taskResp = await scheduleApi.listUserTasks(projectId, selectedAgentAppFilter ? { agent_app_id: selectedAgentAppFilter } : {}) as ScheduleCenterUserTaskListResponse;
+      const taskItems = taskResp.items || [];
+      setTasks(taskItems);
       setStats(taskResp.stats || {});
+      void fetchTaskVulnCounts(taskItems);
     } catch (err: any) {
       setError(err?.message || '加载失败');
     }
@@ -558,7 +576,7 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects }) => {
                       <button
                         onClick={() => {
                           window.dispatchEvent(new CustomEvent('chimera-navigate-view', {
-                            detail: { view: 'task-vuln-list', taskVulnListTaskId: task.downstream_task_id || task.id },
+                            detail: { view: 'task-vuln-list', taskVulnListTaskId: task.id },
                           }));
                         }}
                         className="inline-flex items-center gap-1 rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors"
@@ -566,7 +584,7 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects }) => {
                         onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = LK.primaryMuted; e.currentTarget.style.color = LK.primary; e.currentTarget.style.borderColor = LK.primary; }}
                         onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = LK.surfaceRaised; e.currentTarget.style.color = LK.body; e.currentTarget.style.borderColor = LK.border; }}
                       >
-                        查看漏洞 <ArrowRight size={12} />
+                        查看漏洞 ({taskVulnCounts[task.id] === undefined ? '…' : taskVulnCounts[task.id]})
                       </button>
                     ) : null}
                     {task.sync_required ? (
