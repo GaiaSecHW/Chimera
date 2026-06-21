@@ -108,6 +108,7 @@ import { RedlineOverviewPage } from '../pages/redline/RedlineOverviewPage';
 import { RedlineTaskDetailPage } from '../pages/redline/RedlineTaskDetailPage';
 import { UserMgmtPage } from '../pages/platform/UserMgmtPage';
 import { RoleMgmtPage } from '../pages/platform/RoleMgmtPage';
+import { VulnConfirmEnginesPage } from '../pages/platform/VulnConfirmEnginesPage';
 import { PermMgmtPage } from '../pages/platform/PermMgmtPage';
 import { OnlineSessionPage } from '../pages/platform/OnlineSessionPage';
 import { MachineTokenPage } from '../pages/platform/MachineTokenPage';
@@ -886,6 +887,8 @@ export const renderCurrentView = (ctx: ViewRegistryContext): React.ReactNode => 
       return <UserPermissionPage />;
     case 'user-mgmt-roles':
       return <RoleMgmtPage />;
+    case 'vuln-confirm-engines':
+      return <VulnConfirmEnginesPage />;
     case 'user-mgmt-perms':
       return <PermMgmtPage />;
     case 'user-mgmt-online':
