@@ -64,6 +64,8 @@ interface BatchCreateResult {
   items: BatchCreateResultItem[];
 }
 
+type BatchCreateProgressState = 'idle' | 'pending' | 'success' | 'failed';
+
 interface TaskRuntime {
   status?: string | null;
   started_at?: string | null;
@@ -231,11 +233,13 @@ export const VulnVerifyV2TaskPage: React.FC<{ projectId: string }> = ({ projectI
   const [pendingLoading, setPendingLoading] = useState(false);
   const [selectedCaseIds, setSelectedCaseIds] = useState<Set<string>>(() => new Set());
   const [batchFilter, setBatchFilter] = useState('');
+  const [existingTaskFilter, setExistingTaskFilter] = useState<'all' | 'existing' | 'new'>('all');
   const [batchPage, setBatchPage] = useState(1);
   const [batchPerPage, setBatchPerPage] = useState<number>(50);
   const [batchCreating, setBatchCreating] = useState(false);
   const [batchResult, setBatchResult] = useState<BatchCreateResult | null>(null);
   const [existingTaskCaseIds, setExistingTaskCaseIds] = useState<Set<string>>(() => new Set());
+  const [batchCreateProgress, setBatchCreateProgress] = useState<Record<string, BatchCreateProgressState>>({});
 
   const offset = (page - 1) * perPage;
   const totalPages = Math.max(1, Math.ceil(total / perPage));
@@ -368,9 +372,15 @@ export const VulnVerifyV2TaskPage: React.FC<{ projectId: string }> = ({ projectI
 
   const filteredCases = useMemo(() => {
     const q = batchFilter.trim().toLowerCase();
-    if (!q) return pendingCases;
-    return pendingCases.filter((item) => caseSearchText(item).includes(q));
-  }, [pendingCases, batchFilter]);
+    return pendingCases.filter((item) => {
+      const matchesSearch = !q || caseSearchText(item).includes(q);
+      if (!matchesSearch) return false;
+      const hasExistingTask = existingTaskCaseIds.has(item.id);
+      if (existingTaskFilter === 'existing') return hasExistingTask;
+      if (existingTaskFilter === 'new') return !hasExistingTask;
+      return true;
+    });
+  }, [pendingCases, batchFilter, existingTaskCaseIds, existingTaskFilter]);
   const batchTotalPages = Math.max(1, Math.ceil(filteredCases.length / batchPerPage));
   const batchSafePage = Math.min(batchPage, batchTotalPages);
   const pagedCases = useMemo(() => {
@@ -420,6 +430,7 @@ export const VulnVerifyV2TaskPage: React.FC<{ projectId: string }> = ({ projectI
   const openBatch = () => {
     setBatchOpen(true);
     setBatchResult(null);
+    setBatchCreateProgress({});
     void fetchPendingCases();
   };
 
@@ -443,6 +454,13 @@ export const VulnVerifyV2TaskPage: React.FC<{ projectId: string }> = ({ projectI
     });
   };
 
+  const selectAllUncreatedCases = () => {
+    const ids = filteredCases
+      .filter((item) => !existingTaskCaseIds.has(item.id))
+      .map((item) => item.id);
+    setSelectedCaseIds(new Set(ids));
+  };
+
   const runBatchCreate = async () => {
     if (!selectedCases.length) {
       setMessage('请选择待验证漏洞。');
@@ -461,6 +479,13 @@ export const VulnVerifyV2TaskPage: React.FC<{ projectId: string }> = ({ projectI
 
     setBatchCreating(true);
     setBatchResult(null);
+    setBatchCreateProgress(() => {
+      const next: Record<string, BatchCreateProgressState> = {};
+      selectedCases.forEach((item) => {
+        next[item.id] = 'pending';
+      });
+      return next;
+    });
     const results: BatchCreateResultItem[] = [];
     let cursor = 0;
     async function worker() {
@@ -468,6 +493,7 @@ export const VulnVerifyV2TaskPage: React.FC<{ projectId: string }> = ({ projectI
         const item = selectedCases[cursor++];
         try {
           const data = await createTaskFromCase(item);
+          setBatchCreateProgress((prev) => ({ ...prev, [item.id]: 'success' }));
           setExistingTaskCaseIds((prev) => {
             const next = new Set(prev);
             next.add(item.id);
@@ -482,6 +508,7 @@ export const VulnVerifyV2TaskPage: React.FC<{ projectId: string }> = ({ projectI
             reused: data.reused,
           });
         } catch (e: any) {
+          setBatchCreateProgress((prev) => ({ ...prev, [item.id]: 'failed' }));
           results.push({ ok: false, caseId: item.id, title: item.title, error: e?.message || String(e) });
         }
       }
@@ -660,6 +687,19 @@ export const VulnVerifyV2TaskPage: React.FC<{ projectId: string }> = ({ projectI
                 <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-theme-text-muted" />
                 <input value={batchFilter} onChange={(e) => { setBatchFilter(e.target.value); setBatchPage(1); }} placeholder="搜索 case_id / 标题 / 对象定位" className="w-full rounded-xl border border-theme-border bg-theme-surface py-2 pl-9 pr-3 text-sm text-theme-text-primary" />
               </div>
+              <select
+                value={existingTaskFilter}
+                onChange={(e) => {
+                  const next = e.target.value as 'all' | 'existing' | 'new';
+                  setExistingTaskFilter(next);
+                  setBatchPage(1);
+                }}
+                className="rounded-xl border border-theme-border bg-theme-surface px-3 py-2 text-sm text-theme-text-primary"
+              >
+                <option value="all">全部漏洞</option>
+                <option value="existing">已创建过验证任务</option>
+                <option value="new">未创建验证任务</option>
+              </select>
               <label className="flex items-center gap-2 text-xs text-theme-text-muted">
                 <span>每页</span>
                 <select
@@ -675,6 +715,14 @@ export const VulnVerifyV2TaskPage: React.FC<{ projectId: string }> = ({ projectI
                 </select>
               </label>
               <span className="text-xs text-theme-text-muted">已选 {selectedCaseIds.size} / 本页 {pagedCases.length} / 筛选 {filteredCases.length} / 已存在任务 {existingTaskCaseIds.size} / 总计 {pendingTotal}</span>
+              <button
+                type="button"
+                onClick={selectAllUncreatedCases}
+                disabled={batchCreating || filteredCases.every((item) => existingTaskCaseIds.has(item.id))}
+                className="inline-flex items-center gap-2 rounded-xl border border-theme-border bg-theme-surface px-4 py-2 text-sm font-semibold text-theme-text-secondary hover:bg-theme-elevated disabled:opacity-50"
+              >
+                选中全部未创建
+              </button>
               <button onClick={() => void runBatchCreate()} disabled={batchCreating || !selectedCaseIds.size} className="inline-flex items-center gap-2 rounded-xl bg-violet-500 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50">
                 {batchCreating ? <Loader2 size={16} className="animate-spin" /> : <CheckCircle2 size={16} />}开始创建
               </button>
@@ -706,12 +754,28 @@ export const VulnVerifyV2TaskPage: React.FC<{ projectId: string }> = ({ projectI
                         <th className="px-4 py-3 font-black">阶段</th>
                         <th className="px-4 py-3 font-black">code_root</th>
                         <th className="px-4 py-3 font-black">更新时间</th>
+                        <th className="px-4 py-3 font-black">创建状态</th>
                       </tr>
                     </thead>
                     <tbody>
                       {pagedCases.map((item) => {
                         const codeRoot = resolveCaseCodeRoot(item);
                         const hasExistingTask = existingTaskCaseIds.has(item.id);
+                        const createState = batchCreateProgress[item.id] || 'idle';
+                        const dotClass = createState === 'success'
+                          ? 'bg-emerald-400 shadow-emerald-400/50'
+                          : createState === 'failed'
+                            ? 'bg-rose-400 shadow-rose-400/50'
+                            : createState === 'pending'
+                              ? 'bg-amber-400 shadow-amber-400/50'
+                              : 'bg-theme-border';
+                        const createLabel = createState === 'success'
+                          ? '已创建'
+                          : createState === 'failed'
+                            ? '创建失败'
+                            : createState === 'pending'
+                              ? '待创建'
+                              : '未开始';
                         return (
                           <tr key={item.id} className={`border-b border-theme-border/60 hover:bg-theme-elevated/60 ${hasExistingTask ? 'bg-rose-500/8' : ''}`.trim()}>
                             <td className="px-4 py-3">
@@ -738,6 +802,12 @@ export const VulnVerifyV2TaskPage: React.FC<{ projectId: string }> = ({ projectI
                             <td className="px-4 py-3 text-theme-text-secondary">{item.current_stage || '-'}{item.current_status ? ` / ${item.current_status}` : ''}</td>
                             <td className={`px-4 py-3 break-all font-mono text-[11px] ${codeRoot ? 'text-theme-text-muted' : 'text-rose-300'}`}>{codeRoot || '缺失'}</td>
                             <td className="px-4 py-3 whitespace-nowrap text-theme-text-muted">{fmtDate(item.updated_at)}</td>
+                            <td className="px-4 py-3">
+                              <div className="flex items-center gap-2">
+                                <span className={`inline-block h-2.5 w-2.5 rounded-full shadow-[0_0_10px_currentColor] ${dotClass}`} />
+                                <span className="text-xs text-theme-text-muted">{createLabel}</span>
+                              </div>
+                            </td>
                           </tr>
                         );
                       })}
