@@ -268,7 +268,7 @@ export const DeployScriptPage: React.FC = () => {
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-theme-text-faint" size={16} />
               <input
                 placeholder="搜索当前目录..."
-                className="w-full pl-10 pr-4 py-2 bg-theme-bg-app border border-theme-border rounded-xl text-xs outline-none focus:ring-2 ring-blue-500/10 transition-all font-medium"
+                className="w-full pl-10 pr-4 py-2 bg-theme-elevated border border-theme-border rounded-xl text-xs outline-none focus:ring-2 ring-blue-500/10 transition-all font-medium"
                 value={searchTerm}
                 onChange={e => setSearchTerm(e.target.value)}
               />
@@ -369,7 +369,7 @@ export const DeployScriptPage: React.FC = () => {
                    empty={
                      !loading && (
                        <div className="py-32 text-center">
-                         <div className="w-16 h-16 bg-theme-bg-app rounded-full flex items-center justify-center mx-auto mb-4 text-slate-200">
+                         <div className="w-16 h-16 bg-theme-surface rounded-full flex items-center justify-center mx-auto mb-4 text-slate-200">
                            <HardDrive size={32} />
                          </div>
                          <p className="text-xs font-medium text-theme-text-muted uppercase tracking-widest">Directory is currently empty</p>
@@ -426,7 +426,7 @@ export const DeployScriptPage: React.FC = () => {
               <button
                 onClick={saveFile}
                 disabled={isActionLoading}
-                className="inline-flex items-center gap-2 rounded-xl bg-theme-elevated px-3 py-2 text-sm font-semibold text-theme-text-primary hover:bg-theme-bg-app transition-all disabled:opacity-50"
+                className="inline-flex items-center gap-2 rounded-xl bg-theme-elevated px-3 py-2 text-sm font-semibold text-theme-text-primary hover:bg-theme-surface transition-all disabled:opacity-50"
               >
                 {isActionLoading ? <Loader2 className="animate-spin" size={16} /> : <Save size={16} />}
                 保存至服务器
@@ -449,7 +449,7 @@ export const DeployScriptPage: React.FC = () => {
         <div className="px-5 pb-5 space-y-4">
           <input
             autoFocus
-            className="w-full rounded-xl border border-theme-border bg-theme-bg-app px-3 py-2 text-sm font-medium text-theme-text-primary outline-none focus:ring-2 ring-slate-900/10"
+            className="w-full rounded-xl border border-theme-border bg-theme-elevated px-3 py-2 text-sm font-medium text-theme-text-primary outline-none focus:ring-2 ring-slate-900/10"
             value={newName} onChange={e => setNewName(e.target.value)}
             onKeyDown={e => e.key === 'Enter' && handleRename()}
           />
@@ -473,7 +473,7 @@ export const DeployScriptPage: React.FC = () => {
         <div className="px-5 pb-5 space-y-4">
           <input
             autoFocus placeholder="请输入目录名"
-            className="w-full rounded-xl border border-theme-border bg-theme-bg-app px-3 py-2 text-sm font-medium text-theme-text-primary outline-none focus:ring-2 ring-slate-900/10"
+            className="w-full rounded-xl border border-theme-border bg-theme-elevated px-3 py-2 text-sm font-medium text-theme-text-primary outline-none focus:ring-2 ring-slate-900/10"
             value={newName} onChange={e => setNewName(e.target.value)}
             onKeyDown={e => e.key === 'Enter' && handleCreateDir()}
           />
@@ -497,7 +497,7 @@ export const DeployScriptPage: React.FC = () => {
         <div className="px-5 pb-5 space-y-4">
           <input
             autoFocus placeholder="e.g. exploit.sh"
-            className="w-full rounded-xl border border-theme-border bg-theme-bg-app px-3 py-2 text-sm font-medium text-theme-text-primary outline-none focus:ring-2 ring-slate-900/10"
+            className="w-full rounded-xl border border-theme-border bg-theme-elevated px-3 py-2 text-sm font-medium text-theme-text-primary outline-none focus:ring-2 ring-slate-900/10"
             value={newName} onChange={e => setNewName(e.target.value)}
             onKeyDown={e => e.key === 'Enter' && handleCreateFile()}
           />

@@ -279,7 +279,7 @@ export const BaseResourcePage: React.FC<BaseResourcePageProps> = ({ type, title,
           <div className="flex gap-4">
             <button
               onClick={() => loadData()}
-              className="p-4 bg-theme-bg-app border border-theme-border text-theme-text-muted rounded-lg hover:bg-theme-elevated transition-all active:scale-95"
+              className="p-4 bg-theme-surface border border-theme-border text-theme-text-muted rounded-lg hover:bg-theme-elevated transition-all active:scale-95"
               title="手动刷新数据"
             >
               <RefreshCw size={20} className={loading ? 'animate-spin' : ''} />
@@ -366,7 +366,7 @@ export const BaseResourcePage: React.FC<BaseResourcePageProps> = ({ type, title,
           <input
             type="text"
             placeholder="搜索上传记录 ID、目录路径或失败信息..."
- className="w-full pl-16 pr-8 py-5 bg-theme-bg-app border border-theme-border rounded-xl text-sm outline-none focus:ring-4 ring-blue-500/5 transition-all font-medium"
+ className="w-full pl-16 pr-8 py-5 bg-theme-surface border border-theme-border rounded-xl text-sm outline-none focus:ring-4 ring-blue-500/5 transition-all font-medium"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
@@ -424,7 +424,7 @@ export const BaseResourcePage: React.FC<BaseResourcePageProps> = ({ type, title,
                     </td>
                     <td className="px-4 py-6">
                       <div className="flex items-center gap-4">
- <div className={`w-11 h-11 rounded-xl flex items-center justify-center font-semibold transition-all ${selectedIds.has(record.upload_id) ? 'bg-blue-600 text-white' : 'bg-theme-bg-app text-theme-text-muted group-hover:bg-blue-600 group-hover:text-white'}`}>
+ <div className={`w-11 h-11 rounded-xl flex items-center justify-center font-semibold transition-all ${selectedIds.has(record.upload_id) ? 'bg-blue-600 text-white' : 'bg-theme-surface text-theme-text-muted group-hover:bg-blue-600 group-hover:text-white'}`}>
                           <FileArchive size={18} />
                         </div>
                         <div className="min-w-0">
@@ -531,7 +531,7 @@ export const BaseResourcePage: React.FC<BaseResourcePageProps> = ({ type, title,
 
       {isUploadModalOpen && (
         <Modal open={isUploadModalOpen} onClose={() => !isUploadingBatch && setIsUploadModalOpen(false)} className="max-w-2xl">
- <div className="p-8 border-b border-theme-border bg-theme-bg-app flex items-center justify-between shrink-0">
+ <div className="p-8 border-b border-theme-border bg-theme-surface flex items-center justify-between shrink-0">
               <div className="flex items-center gap-4">
  <div className="w-14 h-14 bg-blue-600 text-white rounded-xl flex items-center justify-center">
                   <Upload size={28} />
@@ -554,7 +554,7 @@ export const BaseResourcePage: React.FC<BaseResourcePageProps> = ({ type, title,
                     <input
                       value={uploadDisplayName}
                       onChange={(e) => setUploadDisplayName(e.target.value)}
- className="mt-3 w-full rounded-xl border border-theme-border bg-theme-bg-app px-4 py-3 text-sm font-semibold text-theme-text-primary outline-none focus:border-blue-400"
+ className="mt-3 w-full rounded-xl border border-theme-border bg-theme-surface px-4 py-3 text-sm font-semibold text-theme-text-primary outline-none focus:border-blue-400"
                       placeholder="请输入上传记录名称"
                     />
                   </label>
@@ -611,7 +611,7 @@ export const BaseResourcePage: React.FC<BaseResourcePageProps> = ({ type, title,
                         <div className="flex items-center gap-4 min-w-0">
                           <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${
                             item.status === 'completed' ? 'bg-green-500/15 text-green-400' :
-                            item.status === 'failed' ? 'bg-red-500/15 text-red-400' : 'bg-theme-bg-app text-theme-text-muted'
+                            item.status === 'failed' ? 'bg-red-500/15 text-red-400' : 'bg-theme-surface text-theme-text-muted'
                           }`}>
                             {item.status === 'completed' ? <Archive size={18} /> : <FileBox size={18} />}
                           </div>
@@ -652,7 +652,7 @@ export const BaseResourcePage: React.FC<BaseResourcePageProps> = ({ type, title,
               ) : null}
             </div>
 
- <div className="p-10 border-t border-theme-border bg-theme-bg-app flex gap-4 shrink-0">
+ <div className="p-10 border-t border-theme-border bg-theme-surface flex gap-4 shrink-0">
               <button
                 type="button"
                 onClick={() => setIsUploadModalOpen(false)}

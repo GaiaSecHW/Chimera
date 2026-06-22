@@ -349,7 +349,7 @@ export const AppScanOverviewPage: React.FC<Props> = ({ projectId, onOpenTask, on
 
         {/* Empty */}
         {!loading && filteredItems.length === 0 && (
-          <div className="mt-8 rounded-xl border border-dashed border-theme-border bg-theme-bg-app px-6 py-12 text-center">
+          <div className="mt-8 rounded-xl border border-dashed border-theme-border bg-theme-surface px-6 py-12 text-center">
             <Smartphone size={32} className="mx-auto mb-3 text-theme-text-faint" />
             <p className="text-sm font-semibold text-theme-text-muted">
               {items.length === 0 ? '当前项目还没有应用扫描任务，点击「创建任务」开始。' : '没有匹配的任务。'}
@@ -458,7 +458,7 @@ export const AppScanOverviewPage: React.FC<Props> = ({ projectId, onOpenTask, on
               {/* File upload */}
               <div>
                 <label className="mb-1.5 block text-sm font-medium text-theme-text-secondary">扫描文件</label>
-                <label className="flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed border-theme-border bg-theme-bg-app px-4 py-6 transition hover:border-theme-border hover:bg-theme-elevated">
+                <label className="flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed border-theme-border bg-theme-surface px-4 py-6 transition hover:border-theme-border hover:bg-theme-elevated">
                   <Upload size={24} className="mb-2 text-theme-text-muted" />
                   <span className="text-sm font-semibold text-theme-text-secondary">
                     {uploadFile ? uploadFile.name : '点击选择应用包 / 源码压缩包'}

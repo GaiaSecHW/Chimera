@@ -198,7 +198,7 @@ const PhaseCard: React.FC<{ phase: string; progress: AppScanPhaseProgress; index
   const completedPercent = total > 0 ? Math.round(((success + failed) / total) * 100) : 0;
 
   return (
-    <div className={`rounded-xl border ${phaseBorderColor(index)} bg-theme-bg-app p-4`}>
+    <div className={`rounded-xl border ${phaseBorderColor(index)} bg-theme-surface p-4`}>
       <div className="flex items-center justify-between">
         <h4 className={`text-sm font-semibold ${phaseColor(index)}`}>{phaseLabel(phase)}</h4>
         <span className="text-xs font-medium text-theme-text-muted">{completedPercent}%</span>
@@ -270,7 +270,7 @@ const CallChain: React.FC<{ steps: AppScanCallChainStep[] }> = ({ steps }) => {
     propagation: 'Step',
   };
   return (
-    <div className="rounded-lg bg-theme-bg-app p-3">
+    <div className="rounded-lg bg-theme-surface p-3">
       <h4 className="mb-2 text-xs font-medium text-indigo-400">调用链</h4>
       <div className="space-y-2">
         {steps.map((s, i) => {
@@ -289,7 +289,7 @@ const CallChain: React.FC<{ steps: AppScanCallChainStep[] }> = ({ steps }) => {
                   <span className={`${tone} rounded px-1 py-px text-[0.6rem] text-white opacity-80`}>{roleLabel[role] || role}</span>
                 </div>
                 {s.code && (
-                  <pre className="mt-0.5 overflow-x-auto rounded border border-theme-border bg-theme-bg-app px-2 py-1 font-mono text-[0.7rem] text-theme-text-secondary">{s.code}</pre>
+                  <pre className="mt-0.5 overflow-x-auto rounded border border-theme-border bg-theme-surface px-2 py-1 font-mono text-[0.7rem] text-theme-text-secondary">{s.code}</pre>
                 )}
                 {loc && <div className="mt-0.5 break-all font-mono text-[0.7rem] text-indigo-500">{loc}</div>}
               </div>
@@ -314,7 +314,7 @@ const FindingCard: React.FC<{ finding: AppScanFinding; defaultOpen?: boolean }> 
   );
 
   return (
- <div className="mb-3 rounded-lg border border-theme-border bg-theme-bg-app transition hover:border-theme-border">
+ <div className="mb-3 rounded-lg border border-theme-border bg-theme-surface transition hover:border-theme-border">
       {/* Header (click to expand) */}
       <button
         type="button"
@@ -351,7 +351,7 @@ const FindingCard: React.FC<{ finding: AppScanFinding; defaultOpen?: boolean }> 
               </div>
             )}
             {finding.cvss_vector || finding.cvss_explanation ? (
-              <div className={`rounded-lg bg-theme-bg-app p-3 ${!finding.fix_suggestion ? 'md:col-span-2' : ''}`}>
+              <div className={`rounded-lg bg-theme-surface p-3 ${!finding.fix_suggestion ? 'md:col-span-2' : ''}`}>
                 <h4 className="mb-1 text-xs font-medium text-indigo-400">
                   CVSS 评分{finding.cvss_score != null && <span className="ml-1 font-medium text-indigo-400">{finding.cvss_score}</span>}
                 </h4>
@@ -362,14 +362,14 @@ const FindingCard: React.FC<{ finding: AppScanFinding; defaultOpen?: boolean }> 
               </div>
             ) : null}
             {finding.fix_suggestion ? (
-              <div className={`rounded-lg bg-theme-bg-app p-3 ${!finding.cvss_vector && !finding.cvss_explanation ? 'md:col-span-2' : ''}`}>
+              <div className={`rounded-lg bg-theme-surface p-3 ${!finding.cvss_vector && !finding.cvss_explanation ? 'md:col-span-2' : ''}`}>
                 <h4 className="mb-1 text-xs font-medium text-indigo-400">修复建议</h4>
                 <pre className="max-h-48 overflow-auto whitespace-pre-wrap text-xs text-theme-text-secondary">{renderAny(finding.fix_suggestion)}</pre>
               </div>
             ) : null}
             {finding.analysis ? (
               <div className="md:col-span-2">
-                <div className="rounded-lg bg-theme-bg-app p-3">
+                <div className="rounded-lg bg-theme-surface p-3">
                   <h4 className="mb-1 text-xs font-medium text-indigo-400">分析</h4>
                   <pre className="max-h-64 overflow-auto whitespace-pre-wrap text-xs text-theme-text-secondary">{renderAny(finding.analysis)}</pre>
                 </div>
@@ -722,7 +722,7 @@ export const AppScanTaskDetailPage: React.FC<Props> = ({ projectId, toolTaskId, 
                 </div>
               </>
             ) : (
-              <div className="mt-4 rounded-xl border border-dashed border-theme-border bg-theme-bg-app py-8 text-center text-sm text-theme-text-muted">
+              <div className="mt-4 rounded-xl border border-dashed border-theme-border bg-theme-surface py-8 text-center text-sm text-theme-text-muted">
                 暂无阶段进度数据
               </div>
             )}
@@ -804,7 +804,7 @@ export const AppScanTaskDetailPage: React.FC<Props> = ({ projectId, toolTaskId, 
               ) : filteredFindings.length > 0 ? (
                 filteredFindings.map((finding) => <FindingCard key={finding.id} finding={finding} />)
               ) : (
-                <div className="rounded-xl border border-dashed border-theme-border bg-theme-bg-app py-10 text-center">
+                <div className="rounded-xl border border-dashed border-theme-border bg-theme-surface py-10 text-center">
                   <ShieldAlert size={28} className="mx-auto mb-2 text-theme-text-faint" />
                   <p className="text-sm font-semibold text-theme-text-muted">
                     {hasFindings ? '没有匹配的漏洞。' : '暂无漏洞数据，扫描完成后将在此展示。'}

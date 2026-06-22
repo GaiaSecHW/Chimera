@@ -1222,7 +1222,7 @@ export const PvcManagementPage: React.FC<{ projectId: string }> = ({ projectId }
 
               <div className="mt-3 overflow-hidden rounded-lg border border-theme-border" data-testid="pvc-list-table-wrap">
                 <table className="w-full text-left">
-                  <thead className="bg-theme-bg-app text-[10px] font-semibold uppercase tracking-[0.2em] text-theme-text-muted">
+                  <thead className="bg-theme-elevated text-[10px] font-semibold uppercase tracking-[0.2em] text-theme-text-muted">
                     <tr>
                       <th className="px-3 py-3">
                         <label className="inline-flex items-center gap-2">
@@ -1400,7 +1400,7 @@ export const PvcManagementPage: React.FC<{ projectId: string }> = ({ projectId }
                     onContextMenu={(event) =>
                       openContextMenu(event, { path: '/', name: '/', node_type: 'directory', has_children: true, children: browserTree })
                     }
-                    className={`flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-left ${selectedNodePath === '/' ? 'bg-blue-500/15 text-blue-400' : 'hover:bg-theme-bg-app text-theme-text-secondary'}`}
+                    className={`flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-left ${selectedNodePath === '/' ? 'bg-blue-500/15 text-blue-400' : 'hover:bg-theme-elevated text-theme-text-secondary'}`}
                   >
                     <Database size={14} className="text-blue-400" />
                     <span className="text-xs font-semibold">/</span>
@@ -1421,7 +1421,7 @@ export const PvcManagementPage: React.FC<{ projectId: string }> = ({ projectId }
                 </div>
                 <div className="max-h-[62vh] overflow-y-auto custom-scrollbar" data-testid="pvc-detail-directory-list" onContextMenu={(event) => openContextMenu(event, null)}>
                   <table className="w-full">
-                    <thead className="bg-theme-bg-app text-left text-[9px] font-semibold uppercase tracking-[0.2em] text-theme-text-muted">
+                    <thead className="bg-theme-elevated text-left text-[9px] font-semibold uppercase tracking-[0.2em] text-theme-text-muted">
                       <tr>
                         <th className="px-4 py-3">名称</th>
                         <th className="px-4 py-3">大小</th>
@@ -1491,7 +1491,7 @@ export const PvcManagementPage: React.FC<{ projectId: string }> = ({ projectId }
                   <div className="flex min-h-[230px] items-center justify-center text-center text-xs font-semibold text-theme-text-muted">右侧会显示 PVC 元信息与文件预览。</div>
                 ) : (
                   <div className="space-y-2.5">
-                    <div className="rounded-lg bg-theme-bg-app p-3">
+                    <div className="rounded-lg bg-theme-elevated p-3">
                       <div className="text-[10px] font-semibold uppercase tracking-[0.24em] text-theme-text-muted">PVC 元信息</div>
                       <div className="mt-1.5 text-lg font-semibold text-theme-text-primary">{selectedPvcDetail.name}</div>
                       <div className="mt-1 font-mono text-[11px] text-theme-text-muted">{selectedPvcDetail.pvc_name}</div>
@@ -1518,7 +1518,7 @@ export const PvcManagementPage: React.FC<{ projectId: string }> = ({ projectId }
                           {(selectedPvcDetail.in_use_pods || []).length > 0 ? (
                             <div className="mt-1 space-y-1">
                               {(selectedPvcDetail.in_use_pods || []).map((pod) => (
-                                <div key={pod} className="rounded-md bg-theme-bg-app px-2 py-1 font-mono text-[11px] text-theme-text-secondary">
+                                <div key={pod} className="rounded-md bg-theme-elevated px-2 py-1 font-mono text-[11px] text-theme-text-secondary">
                                   {pod}
                                 </div>
                               ))}
@@ -1532,7 +1532,7 @@ export const PvcManagementPage: React.FC<{ projectId: string }> = ({ projectId }
                           {(selectedPvcDetail.in_use_jobs || []).length > 0 ? (
                             <div className="mt-1 space-y-1">
                               {(selectedPvcDetail.in_use_jobs || []).map((job) => (
-                                <div key={job} className="rounded-md bg-theme-bg-app px-2 py-1 font-mono text-[11px] text-theme-text-secondary">
+                                <div key={job} className="rounded-md bg-theme-elevated px-2 py-1 font-mono text-[11px] text-theme-text-secondary">
                                   {job}
                                 </div>
                               ))}
@@ -1560,24 +1560,24 @@ export const PvcManagementPage: React.FC<{ projectId: string }> = ({ projectId }
                               </div>
                             </div>
                           </div>
-                          <div className="rounded-md bg-theme-bg-app p-2">
+                          <div className="rounded-md bg-theme-elevated p-2">
                             <div className="text-[10px] text-theme-text-muted">Worker Pod 前缀</div>
                             <div className="mt-0.5 break-all font-mono text-[11px] font-semibold text-theme-text-secondary">{selectedPvcDetail.file_gateway.worker_name}</div>
                           </div>
-                          <div className="rounded-md bg-theme-bg-app p-2">
+                          <div className="rounded-md bg-theme-elevated p-2">
                             <div className="text-[10px] text-theme-text-muted">Service</div>
                             <div className="mt-0.5 break-all font-mono text-[11px] font-semibold text-theme-text-secondary">{selectedPvcDetail.file_gateway.service_name}</div>
                           </div>
                           <div className="grid grid-cols-3 gap-2 text-[11px]">
-                            <div className="rounded-md bg-theme-bg-app p-2">
+                            <div className="rounded-md bg-theme-elevated p-2">
                               <div className="text-theme-text-muted">期望副本</div>
                               <div className="mt-0.5 font-medium text-theme-text-primary">{selectedPvcDetail.file_gateway.replicas}</div>
                             </div>
-                            <div className="rounded-md bg-theme-bg-app p-2">
+                            <div className="rounded-md bg-theme-elevated p-2">
                               <div className="text-theme-text-muted">就绪副本</div>
                               <div className="mt-0.5 font-medium text-theme-text-primary">{selectedPvcDetail.file_gateway.ready_replicas}</div>
                             </div>
-                            <div className="rounded-md bg-theme-bg-app p-2">
+                            <div className="rounded-md bg-theme-elevated p-2">
                               <div className="text-theme-text-muted">可用副本</div>
                               <div className="mt-0.5 font-medium text-theme-text-primary">{selectedPvcDetail.file_gateway.available_replicas}</div>
                             </div>
@@ -1599,13 +1599,13 @@ export const PvcManagementPage: React.FC<{ projectId: string }> = ({ projectId }
                         ) : preview.mode === 'text' ? (
                           <pre className="max-h-[34vh] overflow-auto whitespace-pre-wrap break-words rounded-lg border border-theme-border bg-theme-surface p-2.5 text-[11px] leading-5 text-theme-text-primary custom-scrollbar">{preview.text}</pre>
                         ) : preview.mode === 'image' ? (
-                          <img src={preview.url} alt={previewNode?.name} className="max-h-[34vh] w-full rounded-lg object-contain bg-theme-bg-app" />
+                          <img src={preview.url} alt={previewNode?.name} className="max-h-[34vh] w-full rounded-lg object-contain bg-theme-surface" />
                         ) : preview.mode === 'pdf' ? (
                           <iframe src={preview.url} title={previewNode?.name} className="h-[34vh] w-full rounded-lg border border-theme-border" />
                         ) : preview.mode === 'audio' ? (
                           <audio controls src={preview.url} className="w-full" />
                         ) : preview.mode === 'video' ? (
-                          <video controls src={preview.url} className="max-h-[34vh] w-full rounded-lg bg-theme-bg-app" />
+                          <video controls src={preview.url} className="max-h-[34vh] w-full rounded-lg bg-theme-surface" />
                         ) : preview.mode === 'binary' ? (
                           <div className="space-y-2">
                             <div className="rounded-md bg-theme-elevated px-2.5 py-2 text-[10px] font-semibold text-theme-text-secondary">
@@ -1645,7 +1645,7 @@ export const PvcManagementPage: React.FC<{ projectId: string }> = ({ projectId }
               ) : previewModalState.preview.mode === 'text' ? (
                 <pre className="h-full overflow-auto whitespace-pre-wrap break-words rounded-lg border border-theme-border bg-theme-surface p-3 text-xs leading-6 text-theme-text-primary custom-scrollbar">{previewModalState.preview.text}</pre>
               ) : previewModalState.preview.mode === 'image' ? (
-                <img src={previewModalState.preview.url} alt={previewModalState.node?.name} className="max-h-full w-full rounded-lg object-contain bg-theme-bg-app" />
+                <img src={previewModalState.preview.url} alt={previewModalState.node?.name} className="max-h-full w-full rounded-lg object-contain bg-theme-surface" />
               ) : previewModalState.preview.mode === 'pdf' ? (
                 <iframe src={previewModalState.preview.url} title={previewModalState.node?.name} className="h-full min-h-[70vh] w-full rounded-lg border border-theme-border" />
               ) : previewModalState.preview.mode === 'audio' ? (
@@ -1653,7 +1653,7 @@ export const PvcManagementPage: React.FC<{ projectId: string }> = ({ projectId }
                   <audio controls src={previewModalState.preview.url} className="w-full max-w-2xl" />
                 </div>
               ) : previewModalState.preview.mode === 'video' ? (
-                <video controls src={previewModalState.preview.url} className="h-full max-h-[75vh] w-full rounded-lg bg-theme-bg-app" />
+                <video controls src={previewModalState.preview.url} className="h-full max-h-[75vh] w-full rounded-lg bg-theme-surface" />
               ) : previewModalState.preview.mode === 'binary' ? (
                 <div className="space-y-2">
                   <div className="rounded-md bg-theme-elevated px-2.5 py-2 text-[11px] font-semibold text-theme-text-secondary">
@@ -1761,7 +1761,7 @@ className="form-select w-full"
                   handleArchiveFileSelection(event.dataTransfer.files);
                 }}
               >
- <label className="inline-flex cursor-pointer items-center gap-2 rounded-lg bg-theme-bg-app px-3 py-2 text-xs font-medium text-theme-text-secondary">
+ <label className="inline-flex cursor-pointer items-center gap-2 rounded-lg bg-theme-elevated px-3 py-2 text-xs font-medium text-theme-text-secondary">
                   <Upload size={14} />
                   选择压缩包
                   <input
