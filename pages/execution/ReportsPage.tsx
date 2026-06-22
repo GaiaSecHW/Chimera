@@ -119,7 +119,7 @@ export const ReportsPage: React.FC = () => {
           </button>
         </div>
 
- <div className="rounded-[2.5rem] border overflow-hidden"
+ <div className="rounded-xl border overflow-hidden"
           style={{ backgroundColor: LK.surface, borderColor: LK.border }}>
           <table className="w-full text-left">
             <thead className="border-b"

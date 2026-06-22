@@ -57,7 +57,7 @@ export const HomePage: React.FC<HomePageProps> = ({ setCurrentView }) => {
         {/* Hero */}
         <section className="flex flex-col items-center text-center pt-2 pb-16">
           <h1
-            className="mt-7 text-5xl font-black tracking-tight"
+            className="mt-7 text-5xl font-semibold tracking-tight"
             style={{ color: LK.ink }}
           >
             奇美拉 <span style={{ color: LK.primarySoft }}>Chimera</span>
@@ -82,7 +82,7 @@ export const HomePage: React.FC<HomePageProps> = ({ setCurrentView }) => {
         {/* Modes — 突出 3 种模式 */}
         <section className="pb-16">
           <div className="mb-8 flex flex-col items-center text-center">
-            <h2 className="text-3xl font-black" style={{ color: LK.ink }}>
+            <h2 className="text-3xl font-semibold" style={{ color: LK.ink }}>
               三种执行模式，覆盖全场景
             </h2>
             <p className="mt-3 text-sm" style={{ color: LK.muted }}>
@@ -105,7 +105,7 @@ export const HomePage: React.FC<HomePageProps> = ({ setCurrentView }) => {
                   style={{ backgroundColor: mode.accent }}
                 />
                 <div className="flex items-baseline justify-between">
-                  <span className="text-2xl font-black" style={{ color: LK.ink }}>
+                  <span className="text-2xl font-semibold" style={{ color: LK.ink }}>
                     {mode.name}
                   </span>
                   <span
@@ -153,7 +153,7 @@ export const HomePage: React.FC<HomePageProps> = ({ setCurrentView }) => {
         <section className="flex justify-center pb-8">
           <button
             onClick={() => setCurrentView('project-mgmt')}
-            className="rounded-xl px-8 py-3 text-sm font-black text-white transition-all hover:brightness-110 active:scale-95"
+            className="rounded-xl px-8 py-3 text-sm font-semibold text-white transition-all hover:brightness-110 active:scale-95"
             style={{ backgroundColor: LK.primary }}
           >
             进入平台 →

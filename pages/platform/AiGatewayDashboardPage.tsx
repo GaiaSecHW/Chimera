@@ -93,9 +93,9 @@ const MetricCard: React.FC<{
   <div className="rounded-xl border border-theme-border bg-theme-surface p-5 shadow-panel">
     <div className="flex items-center justify-between gap-3">
       <div className="rounded-2xl bg-theme-elevated p-3 text-theme-text-secondary">{icon}</div>
-      <div className="text-right text-[11px] font-black uppercase tracking-[0.18em] text-theme-text-muted">{label}</div>
+      <div className="text-right text-[11px] font-semibold uppercase tracking-[0.18em] text-theme-text-muted">{label}</div>
     </div>
-    <div className="mt-5 text-3xl font-black tracking-tight text-theme-text-primary">{value}</div>
+    <div className="mt-5 text-3xl font-semibold tracking-tight text-theme-text-primary">{value}</div>
     <div className="mt-2 text-sm font-medium text-theme-text-muted">{hint}</div>
   </div>
 );
@@ -147,7 +147,7 @@ export const AiGatewayDashboardPage: React.FC<AiGatewayDashboardPageProps> = ({ 
     <div className="flex min-h-full flex-col gap-6 p-8">
       <div className="flex shrink-0 items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-black tracking-tight text-theme-text-primary">Dashboard</h1>
+          <h1 className="text-3xl font-semibold tracking-tight text-theme-text-primary">Dashboard</h1>
         </div>
         <button
           onClick={() => void loadDashboard(true)}
@@ -223,9 +223,9 @@ export const AiGatewayDashboardPage: React.FC<AiGatewayDashboardPageProps> = ({ 
                     <td className="px-3 py-3">
                       <div className="line-clamp-2 break-words font-bold leading-6 text-theme-text-primary">{item.task_key_name || item.task_key_prefix}</div>
                     </td>
-                    <td className="px-3 py-3 text-right font-black text-theme-text-primary">{numberText(item.active_requests || 0)}</td>
+                    <td className="px-3 py-3 text-right font-semibold text-theme-text-primary">{numberText(item.active_requests || 0)}</td>
                     <td className="px-3 py-3 text-right text-theme-text-secondary">{numberText(item.waiting_requests || 0)}</td>
-                    <td className="px-3 py-3 text-right font-black text-theme-text-primary">{compactNumber(item.total_tokens || 0)}</td>
+                    <td className="px-3 py-3 text-right font-semibold text-theme-text-primary">{compactNumber(item.total_tokens || 0)}</td>
                     <td className="px-3 py-3 text-right text-theme-text-secondary">{item.request_count || 0}</td>
                   </tr>
                 ))}

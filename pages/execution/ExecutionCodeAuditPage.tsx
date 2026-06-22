@@ -1286,7 +1286,7 @@ export const ExecutionCodeAuditPage: React.FC<ExecutionCodeAuditPageProps> = ({ 
       {/* Rebuild Confirmation Dialog */}
       {rebuildConfirm.show && (
         <div className="fixed inset-0 z-[250] flex items-center justify-center p-6 bg-slate-950/70 backdrop-blur-md animate-in fade-in">
- <div className="bg-theme-bg-app w-full max-w-md rounded-[3rem] overflow-hidden animate-in zoom-in-95">
+ <div className="bg-theme-bg-app w-full max-w-md rounded-2xl overflow-hidden animate-in zoom-in-95">
             <div className="p-10 text-center space-y-6">
               <div className="w-20 h-20 bg-amber-500/15 text-amber-400 rounded-xl flex items-center justify-center mx-auto shadow-inner">
                 <RefreshCw size={40} className="animate-spin-slow" />
@@ -1312,7 +1312,7 @@ export const ExecutionCodeAuditPage: React.FC<ExecutionCodeAuditPageProps> = ({ 
       {/* Delete Confirmation Dialog */}
       {deleteConfirm.show && (
         <div className="fixed inset-0 z-[250] flex items-center justify-center p-6 bg-slate-950/70 backdrop-blur-md animate-in fade-in">
- <div className="bg-theme-bg-app w-full max-w-md rounded-[3rem] overflow-hidden animate-in zoom-in-95">
+ <div className="bg-theme-bg-app w-full max-w-md rounded-2xl overflow-hidden animate-in zoom-in-95">
             <div className="p-10 text-center space-y-6">
               <div className="w-20 h-20 bg-red-500/15 text-red-400 rounded-xl flex items-center justify-center mx-auto shadow-inner">
                 <Trash2 size={40} />

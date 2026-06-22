@@ -232,7 +232,7 @@ export const ExecutionCodeAuditDetailPage: React.FC<ExecutionCodeAuditDetailPage
   return (
     <div className="px-5 py-5 md:px-6 2xl:px-8 space-y-4 animate-in slide-in-from-right duration-500 pb-24 h-full overflow-y-auto custom-scrollbar">
       {/* Detail Header - More Compact */}
- <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 bg-theme-bg-app p-6 rounded-[2.5rem] border border-theme-border shadow-slate-200/40">
+ <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 bg-theme-bg-app p-6 rounded-xl border border-theme-border shadow-slate-200/40">
         <div className="flex items-center gap-6">
           <button
             onClick={onBack}
@@ -326,7 +326,7 @@ export const ExecutionCodeAuditDetailPage: React.FC<ExecutionCodeAuditDetailPage
         {activeTab === 'overview' && (
         <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
            {/* Telemetry Section */}
- <div className="bg-theme-bg-app p-8 rounded-[2.5rem] border border-theme-border space-y-6">
+ <div className="bg-theme-bg-app p-8 rounded-xl border border-theme-border space-y-6">
               <div className="flex items-center justify-between">
                  <h4 className="text-[10px] font-medium text-theme-text-muted uppercase tracking-[0.25em] flex items-center gap-2">
                    <Activity size={16} className="text-blue-500" /> K8S Telemetry
@@ -374,7 +374,7 @@ export const ExecutionCodeAuditDetailPage: React.FC<ExecutionCodeAuditDetailPage
            </div>
 
            {/* Credentials Section */}
-           <div className="bg-theme-bg-app p-8 rounded-[2.5rem] border border-theme-border space-y-6">
+           <div className="bg-theme-bg-app p-8 rounded-xl border border-theme-border space-y-6">
               <h4 className="text-[10px] font-medium text-theme-text-muted uppercase tracking-[0.25em] flex items-center gap-2">
                 <Lock size={16} className="text-amber-500" /> Access Credentials
               </h4>
@@ -386,7 +386,7 @@ export const ExecutionCodeAuditDetailPage: React.FC<ExecutionCodeAuditDetailPage
            </div>
 
            {/* Storage Persistence */}
- <div className="bg-theme-bg-app p-8 rounded-[2.5rem] border border-theme-border space-y-6 overflow-hidden relative">
+ <div className="bg-theme-bg-app p-8 rounded-xl border border-theme-border space-y-6 overflow-hidden relative">
               <Database className="absolute right-[-10px] bottom-[-10px] w-20 h-20 opacity-5" />
               <h4 className="text-[10px] font-medium text-theme-text-muted uppercase tracking-[0.25em] flex items-center gap-2">
                 <HardDrive size={16} className="text-indigo-500" /> Persistence Mapping
@@ -420,7 +420,7 @@ export const ExecutionCodeAuditDetailPage: React.FC<ExecutionCodeAuditDetailPage
         )}
 
         {activeTab === 'mounts' && (
- <div className="bg-theme-bg-app p-8 rounded-[2.5rem] border border-theme-border space-y-6">
+ <div className="bg-theme-bg-app p-8 rounded-xl border border-theme-border space-y-6">
             <h4 className="text-[10px] font-medium text-theme-text-muted uppercase tracking-[0.25em] flex items-center gap-2">
               <HardDrive size={16} className="text-indigo-500" /> 挂载明细
             </h4>
@@ -452,7 +452,7 @@ export const ExecutionCodeAuditDetailPage: React.FC<ExecutionCodeAuditDetailPage
         )}
 
         {activeTab === 'llm' && (
- <div className="bg-theme-bg-app p-8 rounded-[2.5rem] border border-theme-border space-y-6">
+ <div className="bg-theme-bg-app p-8 rounded-xl border border-theme-border space-y-6">
           <div className="flex items-center justify-between">
             <h4 className="text-[10px] font-medium text-theme-text-muted uppercase tracking-[0.25em] flex items-center gap-2">
               <Bot size={16} className="text-violet-500" /> LLM Provider Binding
@@ -529,7 +529,7 @@ export const ExecutionCodeAuditDetailPage: React.FC<ExecutionCodeAuditDetailPage
 
         {/* Full-width Terminal Section */}
         {activeTab === 'logs' && (
- <div className="flex flex-col h-[750px] bg-theme-surface rounded-[2.5rem] overflow-hidden border border-slate-200/5">
+ <div className="flex flex-col h-[750px] bg-theme-surface rounded-xl overflow-hidden border border-slate-200/5">
            {/* Terminal Header */}
  <div className="px-10 py-8 border-b border-slate-200/5 flex items-center justify-between bg-slate-100/10 shrink-0">
               <div className="flex items-center gap-5">
@@ -623,9 +623,9 @@ export const ExecutionCodeAuditDetailPage: React.FC<ExecutionCodeAuditDetailPage
       {/* Confirmation Modals */}
       {showDeleteConfirm && (
         <div className="fixed inset-0 z-[250] flex items-center justify-center p-6 bg-slate-950/80 backdrop-blur-xl animate-in fade-in">
- <div className="bg-theme-bg-app w-full max-w-md rounded-[3rem] overflow-hidden animate-in zoom-in-95">
+ <div className="bg-theme-bg-app w-full max-w-md rounded-2xl overflow-hidden animate-in zoom-in-95">
             <div className="p-10 text-center space-y-8">
-              <div className="w-24 h-24 bg-red-500/15 text-red-400 rounded-[2.5rem] flex items-center justify-center mx-auto shadow-inner">
+              <div className="w-24 h-24 bg-red-500/15 text-red-400 rounded-xl flex items-center justify-center mx-auto shadow-inner">
                 <Trash2 size={48} />
               </div>
               <div className="space-y-4">
@@ -659,9 +659,9 @@ export const ExecutionCodeAuditDetailPage: React.FC<ExecutionCodeAuditDetailPage
 
       {showRebuildConfirm && (
         <div className="fixed inset-0 z-[250] flex items-center justify-center p-6 bg-slate-950/80 backdrop-blur-xl animate-in fade-in">
- <div className="bg-theme-bg-app w-full max-w-md rounded-[3rem] overflow-hidden animate-in zoom-in-95">
+ <div className="bg-theme-bg-app w-full max-w-md rounded-2xl overflow-hidden animate-in zoom-in-95">
             <div className="p-10 text-center space-y-8">
-              <div className="w-24 h-24 bg-amber-500/15 text-amber-400 rounded-[2.5rem] flex items-center justify-center mx-auto shadow-inner">
+              <div className="w-24 h-24 bg-amber-500/15 text-amber-400 rounded-xl flex items-center justify-center mx-auto shadow-inner">
                 <RefreshCw size={48} className="animate-spin-slow" />
               </div>
               <div className="space-y-4">

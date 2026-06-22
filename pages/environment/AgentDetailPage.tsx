@@ -695,7 +695,7 @@ export const AgentDetailPage: React.FC<AgentDetailPageProps> = ({ agentKey, proj
           {activeTab === 'overview' && (
             <div className="space-y-8 animate-in fade-in slide-in-from-bottom-2">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
- <div className="bg-theme-bg-app p-8 rounded-[2.5rem] border border-theme-border space-y-6">
+ <div className="bg-theme-bg-app p-8 rounded-xl border border-theme-border space-y-6">
                    <div className="flex items-center justify-between">
                      <h4 className="text-[10px] font-semibold text-theme-text-muted uppercase tracking-widest flex items-center gap-2">
                        <CpuIcon size={14} className="text-blue-500" /> 处理器负载
@@ -718,7 +718,7 @@ export const AgentDetailPage: React.FC<AgentDetailPageProps> = ({ agentKey, proj
                       </div>
                    </div>
                 </div>
- <div className="bg-theme-bg-app p-8 rounded-[2.5rem] border border-theme-border space-y-6">
+ <div className="bg-theme-bg-app p-8 rounded-xl border border-theme-border space-y-6">
                    <div className="flex items-center justify-between">
                      <h4 className="text-[10px] font-semibold text-theme-text-muted uppercase tracking-widest flex items-center gap-2">
                        <Database size={14} className="text-indigo-500" /> 内存状态
@@ -748,7 +748,7 @@ export const AgentDetailPage: React.FC<AgentDetailPageProps> = ({ agentKey, proj
               </div>
 
               {/* Docker Runtime Section */}
- <div className="bg-theme-bg-app p-8 rounded-[2.5rem] border border-theme-border space-y-6">
+ <div className="bg-theme-bg-app p-8 rounded-xl border border-theme-border space-y-6">
                  <div className="flex items-center justify-between">
                     <h4 className="text-[10px] font-semibold text-theme-text-muted uppercase tracking-widest flex items-center gap-2">
                       <Container size={16} className="text-blue-400" /> Docker 运行时摘要
@@ -778,7 +778,7 @@ export const AgentDetailPage: React.FC<AgentDetailPageProps> = ({ agentKey, proj
           )}
 
           {activeTab === 'processes' && (
- <div className="bg-theme-bg-app rounded-[2.5rem] border border-theme-border overflow-hidden animate-in fade-in">
+ <div className="bg-theme-bg-app rounded-xl border border-theme-border overflow-hidden animate-in fade-in">
               <div className="px-8 py-6 border-b border-theme-border bg-slate-100/50 flex justify-between items-center">
                  <h4 className="text-[10px] font-semibold text-theme-text-muted uppercase tracking-widest flex items-center gap-2">
                    <TerminalSquare size={16} /> 进程列表 (Top 10)
@@ -880,7 +880,7 @@ export const AgentDetailPage: React.FC<AgentDetailPageProps> = ({ agentKey, proj
           {activeTab === 'disks' && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 animate-in fade-in">
                {formatted?.disks?.map((disk: any, idx: number) => (
- <div key={idx} className="bg-theme-bg-app p-8 rounded-[2.5rem] border border-theme-border space-y-6 group">
+ <div key={idx} className="bg-theme-bg-app p-8 rounded-xl border border-theme-border space-y-6 group">
                      <div className="flex justify-between items-start">
                         <div className="flex items-center gap-4">
                            <div className="w-12 h-12 bg-amber-500/15 text-amber-400 rounded-2xl flex items-center justify-center group-hover:bg-amber-600 group-hover:text-white transition-all">
@@ -912,7 +912,7 @@ export const AgentDetailPage: React.FC<AgentDetailPageProps> = ({ agentKey, proj
           )}
 
           {activeTab === 'services' && (
- <div className="bg-theme-bg-app rounded-[2.5rem] border border-theme-border overflow-hidden animate-in fade-in">
+ <div className="bg-theme-bg-app rounded-xl border border-theme-border overflow-hidden animate-in fade-in">
                 <div className="px-8 py-6 border-b border-theme-border bg-slate-100/50 flex items-center justify-between gap-4">
                   <h4 className="text-[10px] font-semibold text-theme-text-muted uppercase tracking-widest flex items-center gap-2">
                     <Zap size={16} className="text-blue-500" /> 节点服务
@@ -1015,7 +1015,7 @@ export const AgentDetailPage: React.FC<AgentDetailPageProps> = ({ agentKey, proj
                 </div>
               )}
 
- <div className="bg-theme-bg-app rounded-[2.5rem] border border-theme-border p-8">
+ <div className="bg-theme-bg-app rounded-xl border border-theme-border p-8">
                 <div className="flex items-center justify-between mb-4">
                   <h4 className="text-[10px] font-semibold text-theme-text-muted uppercase tracking-widest flex items-center gap-2">
                     <Activity size={16} className="text-cyan-400" /> 诊断信息
@@ -1140,7 +1140,7 @@ export const AgentDetailPage: React.FC<AgentDetailPageProps> = ({ agentKey, proj
                 )}
               </div>
 
- <div className="bg-theme-bg-app rounded-[2.5rem] border border-theme-border p-8">
+ <div className="bg-theme-bg-app rounded-xl border border-theme-border p-8">
                 <div className="flex items-center justify-between mb-4">
                   <h4 className="text-[10px] font-semibold text-theme-text-muted uppercase tracking-widest flex items-center gap-2">
                     <Clock size={16} className="text-indigo-400" /> 节点上下线记录
@@ -1233,7 +1233,7 @@ export const AgentDetailPage: React.FC<AgentDetailPageProps> = ({ agentKey, proj
                 )}
               </div>
 
- <div className="bg-theme-bg-app rounded-[2.5rem] border border-theme-border p-8">
+ <div className="bg-theme-bg-app rounded-xl border border-theme-border p-8">
                 <div className="flex items-center justify-between mb-6">
                   <h4 className="text-[10px] font-semibold text-theme-text-muted uppercase tracking-widest flex items-center gap-2">
                     <SquareTerminal size={16} className="text-emerald-400" /> TTYD 终端转发
@@ -1295,7 +1295,7 @@ export const AgentDetailPage: React.FC<AgentDetailPageProps> = ({ agentKey, proj
                 )}
               </div>
 
- <div className="bg-theme-bg-app rounded-[2.5rem] border border-theme-border p-8">
+ <div className="bg-theme-bg-app rounded-xl border border-theme-border p-8">
                 <div className="flex items-center justify-between mb-6">
                   <h4 className="text-[10px] font-semibold text-theme-text-muted uppercase tracking-widest flex items-center gap-2">
                     <Globe size={16} className="text-blue-400" /> 动态 Ingress 转发
@@ -1368,7 +1368,7 @@ export const AgentDetailPage: React.FC<AgentDetailPageProps> = ({ agentKey, proj
                 )}
               </div>
 
- <div className="bg-theme-bg-app rounded-[2.5rem] border border-theme-border p-8">
+ <div className="bg-theme-bg-app rounded-xl border border-theme-border p-8">
                 <div className="flex items-center justify-between mb-6">
                   <h4 className="text-[10px] font-semibold text-theme-text-muted uppercase tracking-widest flex items-center gap-2">
                     <Info size={16} className="text-blue-500" /> Agent 运行信息
@@ -1446,7 +1446,7 @@ export const AgentDetailPage: React.FC<AgentDetailPageProps> = ({ agentKey, proj
               </div>
 
               {/* 服务列表 */}
- <div className="bg-theme-bg-app rounded-[2.5rem] border border-theme-border overflow-hidden">
+ <div className="bg-theme-bg-app rounded-xl border border-theme-border overflow-hidden">
                 <div className="px-8 py-6 border-b border-theme-border bg-slate-100/50 flex justify-between items-center">
                   <h4 className="text-[10px] font-semibold text-theme-text-muted uppercase tracking-widest flex items-center gap-2">
                     <Zap size={16} className="text-blue-500" /> 守护进程服务
@@ -1589,7 +1589,7 @@ export const AgentDetailPage: React.FC<AgentDetailPageProps> = ({ agentKey, proj
 
         <div className="space-y-8">
           {activeTab === 'services' ? (
- <div className="bg-theme-bg-app border border-theme-border p-10 rounded-[3rem] space-y-8 relative overflow-hidden group">
+ <div className="bg-theme-bg-app border border-theme-border p-10 rounded-2xl space-y-8 relative overflow-hidden group">
               <div className="absolute right-[-20px] top-[-20px] w-40 h-40 bg-blue-500 opacity-5 blur-3xl group-hover:opacity-10 transition-opacity" />
               <div className="flex items-center justify-between gap-4">
                 <div>
@@ -1674,7 +1674,7 @@ export const AgentDetailPage: React.FC<AgentDetailPageProps> = ({ agentKey, proj
               )}
             </div>
           ) : (
- <div className="bg-theme-bg-app border border-theme-border p-10 rounded-[3rem] space-y-8 relative overflow-hidden group">
+ <div className="bg-theme-bg-app border border-theme-border p-10 rounded-2xl space-y-8 relative overflow-hidden group">
                <div className="absolute right-[-20px] top-[-20px] w-40 h-40 bg-blue-500 opacity-5 blur-3xl group-hover:opacity-10 transition-opacity" />
                <div className="space-y-2">
                   <p className="text-theme-text-muted text-[10px] font-semibold uppercase tracking-widest">节点元数据</p>
@@ -1722,7 +1722,7 @@ export const AgentDetailPage: React.FC<AgentDetailPageProps> = ({ agentKey, proj
           )}
 
           {/* Activity Log / Tasks Card */}
- <div className="bg-theme-bg-app p-8 rounded-[3rem] border border-theme-border space-y-6">
+ <div className="bg-theme-bg-app p-8 rounded-2xl border border-theme-border space-y-6">
              <h4 className="text-[10px] font-semibold text-theme-text-muted uppercase tracking-widest flex items-center gap-2">
                 <History size={16} /> 关联部署任务 (Latest 5)
              </h4>
@@ -1753,7 +1753,7 @@ export const AgentDetailPage: React.FC<AgentDetailPageProps> = ({ agentKey, proj
 
       {isBatchDeployModalOpen && (
         <div className="fixed inset-0 z-[119] flex items-center justify-center p-6 bg-slate-950/80 backdrop-blur-xl animate-in fade-in">
- <div className="bg-theme-bg-app w-full max-w-4xl rounded-[3rem] overflow-hidden animate-in zoom-in-95 flex flex-col max-h-[86vh]">
+ <div className="bg-theme-bg-app w-full max-w-4xl rounded-2xl overflow-hidden animate-in zoom-in-95 flex flex-col max-h-[86vh]">
             <div className="p-8 border-b border-theme-border flex items-center justify-between">
               <div>
                 <h3 className="text-2xl font-semibold text-theme-text-primary tracking-tight">批量部署模板到当前 Agent</h3>

@@ -719,7 +719,7 @@ export const VulnVerifyTaskPage: React.FC<{ projectId: string }> = ({ projectId 
               <button
                 type="button"
                 onClick={openBatchPanel}
- className="inline-flex items-center gap-2 rounded-xl border border-violet-500/25 bg-violet-500/15 px-4 py-2 text-sm font-black text-violet-400 hover:bg-violet-500/20"
+ className="inline-flex items-center gap-2 rounded-xl border border-violet-500/25 bg-violet-500/15 px-4 py-2 text-sm font-semibold text-violet-400 hover:bg-violet-500/20"
               >
                 <ShieldCheck size={16} /> 从待验证漏洞批量创建
               </button>
@@ -744,7 +744,7 @@ export const VulnVerifyTaskPage: React.FC<{ projectId: string }> = ({ projectId 
           <section className="rounded-2xl border border-violet-500/20 bg-violet-500/10 p-5">
             <div className="flex flex-wrap items-start justify-between gap-4">
               <div>
-                <h2 className="text-lg font-black text-theme-text-primary">从待验证漏洞批量创建验证任务</h2>
+                <h2 className="text-lg font-semibold text-theme-text-primary">从待验证漏洞批量创建验证任务</h2>
                 <p className="mt-1 text-xs text-theme-text-muted">仅加载当前项目 receive / triage 阶段漏洞；每个漏洞创建一个 vuln-verify 任务，使用默认模型和默认威胁模型。</p>
               </div>
               <div className="flex flex-wrap items-center gap-2">
@@ -760,7 +760,7 @@ export const VulnVerifyTaskPage: React.FC<{ projectId: string }> = ({ projectId 
                   type="button"
                   onClick={requestBatchCreateVerifyTasks}
                   disabled={!selectedPendingCases.length || batchCreating || pendingCasesLoading}
-                  className="inline-flex items-center gap-1.5 rounded-lg bg-violet-700 px-3 py-1.5 text-xs font-black text-white hover:bg-violet-800 disabled:cursor-not-allowed disabled:opacity-50"
+                  className="inline-flex items-center gap-1.5 rounded-lg bg-violet-700 px-3 py-1.5 text-xs font-semibold text-white hover:bg-violet-800 disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   {batchCreating ? <Loader2 size={13} className="animate-spin" /> : <ShieldCheck size={13} />}
                   {batchCreating ? '创建中...' : '批量生成验证任务'}
@@ -794,7 +794,7 @@ export const VulnVerifyTaskPage: React.FC<{ projectId: string }> = ({ projectId 
 
             {batchResult ? (
               <div className="mt-4 rounded-2xl border border-theme-border bg-theme-bg-app p-4 text-sm">
-                <div className="font-black text-theme-text-primary">批量创建结果：成功 {batchResult.success} 个，失败 {batchResult.failed} 个</div>
+                <div className="font-semibold text-theme-text-primary">批量创建结果：成功 {batchResult.success} 个，失败 {batchResult.failed} 个</div>
                 {batchResult.failed ? (
                   <div className="mt-3 space-y-2 text-xs text-rose-400">
                     {batchResult.items.filter((item) => !item.ok).slice(0, 8).map((item) => (
@@ -828,10 +828,10 @@ export const VulnVerifyTaskPage: React.FC<{ projectId: string }> = ({ projectId 
                             disabled={batchCreating}
                           />
                         </th>
-                        <th className="px-4 py-3 font-black">漏洞</th>
-                        <th className="px-4 py-3 font-black">对象定位</th>
-                        <th className="px-4 py-3 font-black">风险</th>
-                        <th className="px-4 py-3 font-black">更新时间</th>
+                        <th className="px-4 py-3 font-semibold">漏洞</th>
+                        <th className="px-4 py-3 font-semibold">对象定位</th>
+                        <th className="px-4 py-3 font-semibold">风险</th>
+                        <th className="px-4 py-3 font-semibold">更新时间</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -1078,9 +1078,9 @@ export const VulnVerifyTaskPage: React.FC<{ projectId: string }> = ({ projectId 
                 <ShieldCheck size={22} />
               </div>
               <div>
-                <h2 className="text-lg font-black text-theme-text-primary">确认批量生成验证任务</h2>
+                <h2 className="text-lg font-semibold text-theme-text-primary">确认批量生成验证任务</h2>
                 <p className="mt-2 text-sm leading-6 text-theme-text-secondary">
-                  将为已选的 <span className="font-black text-violet-400">{selectedPendingCases.length}</span> 个待验证漏洞生成验证任务。
+                  将为已选的 <span className="font-semibold text-violet-400">{selectedPendingCases.length}</span> 个待验证漏洞生成验证任务。
                 </p>
                 <p className="mt-1 text-xs leading-5 text-theme-text-muted">
                   任务创建后，对应漏洞将推进到「验证中」阶段，下次筛选不再重复出现；系统从漏洞案例提取 source_root，并将 case raw_report 作为验证输入，其余参数使用默认值。
@@ -1100,7 +1100,7 @@ export const VulnVerifyTaskPage: React.FC<{ projectId: string }> = ({ projectId 
                 type="button"
                 onClick={() => void handleBatchCreateVerifyTasks()}
                 disabled={batchCreating}
-                className="inline-flex items-center gap-2 rounded-xl bg-violet-700 px-4 py-2 text-sm font-black text-white hover:bg-violet-800 disabled:opacity-50"
+                className="inline-flex items-center gap-2 rounded-xl bg-violet-700 px-4 py-2 text-sm font-semibold text-white hover:bg-violet-800 disabled:opacity-50"
               >
                 {batchCreating ? <Loader2 size={14} className="animate-spin" /> : <ShieldCheck size={14} />}
                 确认生成

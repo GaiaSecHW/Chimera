@@ -769,13 +769,13 @@ export const VulnVerifyV2TaskPage: React.FC<{ projectId: string }> = ({ projectI
                             disabled={batchCreating}
                           />
                         </th>
-                        <th className="px-4 py-3 font-black">漏洞</th>
-                        <th className="px-4 py-3 font-black">对象定位</th>
-                        <th className="px-4 py-3 font-black">风险</th>
-                        <th className="px-4 py-3 font-black">阶段</th>
-                        <th className="px-4 py-3 font-black">code_root</th>
-                        <th className="px-4 py-3 font-black">更新时间</th>
-                        <th className="px-4 py-3 font-black">创建状态</th>
+                        <th className="px-4 py-3 font-semibold">漏洞</th>
+                        <th className="px-4 py-3 font-semibold">对象定位</th>
+                        <th className="px-4 py-3 font-semibold">风险</th>
+                        <th className="px-4 py-3 font-semibold">阶段</th>
+                        <th className="px-4 py-3 font-semibold">code_root</th>
+                        <th className="px-4 py-3 font-semibold">更新时间</th>
+                        <th className="px-4 py-3 font-semibold">创建状态</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -879,7 +879,7 @@ export const VulnVerifyV2TaskPage: React.FC<{ projectId: string }> = ({ projectI
 
       {detailOpen ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-6">
-          <div className="max-h-[88vh] w-full max-w-5xl overflow-y-auto rounded-3xl border border-theme-border bg-theme-bg-app p-6 shadow-2xl">
+          <div className="max-h-[88vh] w-full max-w-5xl overflow-y-auto rounded-2xl border border-theme-border bg-theme-bg-app p-6 shadow-2xl">
             <div className="mb-5 flex items-start justify-between gap-4">
               <div>
                 <h2 className="text-xl font-bold text-theme-text-primary">任务详情</h2>
