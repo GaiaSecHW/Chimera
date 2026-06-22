@@ -637,7 +637,7 @@ export const EnvAiSessionPage: React.FC<{ projectId: string }> = ({ projectId })
               <div className="rounded-xl border border-theme-border bg-theme-surface p-3">
                 <div className="mb-2 flex items-center justify-between gap-2">
                   <div className="text-[11px] font-medium uppercase tracking-[0.16em] text-theme-text-muted">节点 Helper 服务</div>
-                  <span className="rounded-full bg-theme-bg-app px-2 py-0.5 text-[11px] font-semibold text-theme-text-secondary">{filteredHelpers.length}/{helpers.length}</span>
+                  <span className="rounded-full bg-theme-elevated px-2 py-0.5 text-[11px] font-semibold text-theme-text-secondary">{filteredHelpers.length}/{helpers.length}</span>
                 </div>
                 <input
                   value={helperSearch}
@@ -652,10 +652,10 @@ export const EnvAiSessionPage: React.FC<{ projectId: string }> = ({ projectId })
                 </select>
               </div>
 
- <div className="rounded-xl border border-blue-500/20 bg-theme-bg-app p-3">
+ <div className="rounded-xl border border-blue-500/20 bg-theme-elevated p-3">
                 <div className="mb-2 flex items-center justify-between gap-2">
                   <div className="text-[11px] font-medium uppercase tracking-[0.16em] text-blue-400">创建新会话</div>
-                  <button onClick={() => void refreshCurrentSession()} className="inline-flex items-center gap-1.5 rounded-lg border border-theme-border bg-theme-bg-app px-2.5 py-1.5 text-xs font-semibold text-theme-text-secondary whitespace-nowrap">
+                  <button onClick={() => void refreshCurrentSession()} className="inline-flex items-center gap-1.5 rounded-lg border border-theme-border bg-theme-elevated px-2.5 py-1.5 text-xs font-semibold text-theme-text-secondary whitespace-nowrap">
                     <RefreshCw size={13} />
                     刷新当前
                   </button>
@@ -684,7 +684,7 @@ export const EnvAiSessionPage: React.FC<{ projectId: string }> = ({ projectId })
                   {helperAgentOptions.length === 0 ? <div className="text-xs text-theme-text-muted">当前 helper 没有可选 agent。</div> : helperAgentOptions.map((agent) => {
                     const checked = selectedAgentId === agent.agent_id;
                     return (
-                      <label key={agent.agent_id} className={`cursor-pointer rounded-lg border px-2.5 py-1.5 text-xs ${checked ? 'border-blue-500 bg-blue-600 text-white' : 'border-theme-border text-theme-text-secondary bg-theme-bg-app'}`}>
+                      <label key={agent.agent_id} className={`cursor-pointer rounded-lg border px-2.5 py-1.5 text-xs ${checked ? 'border-blue-500 bg-blue-600 text-white' : 'border-theme-border text-theme-text-secondary bg-theme-elevated'}`}>
                         <input
                           type="radio"
                           name="single-session-agent"
@@ -712,7 +712,7 @@ export const EnvAiSessionPage: React.FC<{ projectId: string }> = ({ projectId })
                 </div>
                 <div className="space-y-2 max-h-[540px] overflow-auto pr-1">
                   {sessions.length === 0 ? <div className="text-sm text-theme-text-muted">暂无会话。</div> : sessions.map((session) => (
-                    <div key={session.session_id} className={`flex items-center gap-2 rounded-xl border px-3 py-2.5 ${currentSessionId === session.session_id ? 'border-blue-400 bg-blue-500/15' : 'border-theme-border bg-theme-bg-app'}`}>
+                    <div key={session.session_id} className={`flex items-center gap-2 rounded-xl border px-3 py-2.5 ${currentSessionId === session.session_id ? 'border-blue-400 bg-blue-500/15' : 'border-theme-border bg-theme-elevated'}`}>
                       <button
                         onClick={async () => {
                           if (!selectedHelper) return;
@@ -732,7 +732,7 @@ export const EnvAiSessionPage: React.FC<{ projectId: string }> = ({ projectId })
                         <div className="mt-1 flex flex-wrap items-center gap-1.5 text-[11px]">
                           <span className={`rounded-full border px-1.5 py-0.5 text-[10px] font-semibold ${sessionModeTone(session.session_mode)}`}>{sessionModeLabel(session.session_mode)}</span>
                           <span className={`rounded-full border px-1.5 py-0.5 text-[10px] font-semibold ${statusTone(session.status)}`}>{session.status || 'unknown'}</span>
-                          <span className="rounded-full border border-theme-border bg-theme-bg-app px-1.5 py-0.5 text-[10px] font-semibold text-theme-text-secondary">
+                          <span className="rounded-full border border-theme-border bg-theme-elevated px-1.5 py-0.5 text-[10px] font-semibold text-theme-text-secondary">
                             PID {resolveBackendPid(session) ?? '-'}
                           </span>
                         </div>
@@ -793,7 +793,7 @@ export const EnvAiSessionPage: React.FC<{ projectId: string }> = ({ projectId })
                         <span className="text-theme-text-secondary">Backend PID: {resolveBackendPid(currentSession) ?? '-'}</span>
                       </>
                     ) : null}
-                    <span className="ml-auto inline-flex rounded-full border border-theme-border bg-theme-bg-app p-0.5">
+                    <span className="ml-auto inline-flex rounded-full border border-theme-border bg-theme-elevated p-0.5">
                       <button
                         onClick={() => setTransportMode('stream')}
                         className={`rounded-md px-2 py-1 text-xs font-semibold ${transportMode === 'stream' ? 'bg-theme-surface text-white' : 'text-theme-text-secondary'}`}
@@ -827,7 +827,7 @@ export const EnvAiSessionPage: React.FC<{ projectId: string }> = ({ projectId })
                       </div>
                       <div className="space-y-2 max-h-[560px] overflow-auto pr-1">
                         {(currentSession.messages || []).map((item, index) => (
-                          <div key={`${item.role}-${index}`} className={`rounded-lg border px-3 py-2 text-sm ${item.role === 'assistant' ? 'border-theme-border bg-theme-bg-app' : 'border-blue-500/20 bg-blue-500/15'}`}>
+                          <div key={`${item.role}-${index}`} className={`rounded-lg border px-3 py-2 text-sm ${item.role === 'assistant' ? 'border-theme-border bg-theme-elevated' : 'border-blue-500/20 bg-blue-500/15'}`}>
                             <div className="mb-1 flex items-center gap-2">
                               <span className={`rounded-full px-2 py-0.5 text-[10px] font-medium uppercase tracking-[0.14em] ${item.role === 'assistant' ? 'bg-theme-elevated text-theme-text-secondary' : 'bg-blue-200 text-blue-400'}`}>
                                 {item.role}
@@ -851,11 +851,11 @@ export const EnvAiSessionPage: React.FC<{ projectId: string }> = ({ projectId })
                         <div className="text-xs font-medium uppercase tracking-[0.16em] text-theme-text-muted">当前轮 Trace</div>
                         <div className="mt-2 max-h-[240px] space-y-2 overflow-auto pr-1">
                           {currentTrace.map((item, index) => (
-                            <div key={item.id ||`${item.category}-${index}`} className="rounded-lg border border-theme-border bg-theme-bg-app p-2 text-xs text-theme-text-secondary">
+                            <div key={item.id ||`${item.category}-${index}`} className="rounded-lg border border-theme-border bg-theme-elevated p-2 text-xs text-theme-text-secondary">
                               <div className="font-semibold text-theme-text-primary">{item.category}</div>
                               {item.message ? <div className="mt-1 whitespace-pre-wrap">{item.message}</div> : null}
                               {item.payload !== undefined ? (
-                                <pre className="mt-2 overflow-auto rounded border border-theme-border bg-theme-bg-app p-2 text-[11px] text-theme-text-primary">{JSON.stringify(item.payload, null, 2)}</pre>
+                                <pre className="mt-2 overflow-auto rounded border border-theme-border bg-theme-elevated p-2 text-[11px] text-theme-text-primary">{JSON.stringify(item.payload, null, 2)}</pre>
                               ) : null}
                             </div>
                           ))}

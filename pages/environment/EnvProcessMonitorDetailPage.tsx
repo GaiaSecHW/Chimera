@@ -498,7 +498,7 @@ export const EnvProcessMonitorDetailPage: React.FC<{ projectId: string; initialS
           <div className="relative" style={{ height: '68vh' }}>
             <div className="absolute inset-0 flex">
               <div style={{ width: `${leftPaneWidth}%` }} className="h-full border-r border-theme-border overflow-auto">
-                <div className="sticky top-0 bg-theme-bg-app border-b border-theme-border px-3 py-2 text-xs font-semibold uppercase tracking-widest text-theme-text-muted flex items-center gap-2">
+                <div className="sticky top-0 bg-theme-elevated border-b border-theme-border px-3 py-2 text-xs font-semibold uppercase tracking-widest text-theme-text-muted flex items-center gap-2">
                   <FolderTree size={14} />
                   全局文件系统树
                 </div>
@@ -549,7 +549,7 @@ export const EnvProcessMonitorDetailPage: React.FC<{ projectId: string; initialS
               />
 
               <div style={{ width: `${100 - leftPaneWidth}%` }} className="h-full overflow-auto">
-                <div className="sticky top-0 bg-theme-bg-app border-b border-theme-border px-3 py-2 text-xs font-semibold uppercase tracking-widest text-theme-text-muted">进程树（单击查看详情，右键同步）</div>
+                <div className="sticky top-0 bg-theme-elevated border-b border-theme-border px-3 py-2 text-xs font-semibold uppercase tracking-widest text-theme-text-muted">进程树（单击查看详情，右键同步）</div>
                 <div className="p-2">
                   {loadingProcesses ? (
                     <div className="py-10 text-center"><Loader2 className="animate-spin mx-auto text-blue-400" /></div>
@@ -599,7 +599,7 @@ export const EnvProcessMonitorDetailPage: React.FC<{ projectId: string; initialS
 
         {processDetailPid !== null && (
           <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-6" onClick={() => setProcessDetailPid(null)}>
- <div className="w-[min(1200px,95vw)] h-[85vh] rounded-2xl bg-theme-bg-app border border-theme-border flex flex-col" onClick={(event) => event.stopPropagation()}>
+ <div className="w-[min(1200px,95vw)] h-[85vh] rounded-2xl bg-theme-elevated border border-theme-border flex flex-col" onClick={(event) => event.stopPropagation()}>
               <div className="flex items-center justify-between px-6 py-4 border-b border-theme-border">
                 <div>
                   <h3 className="text-xl font-semibold text-theme-text-primary">进程详情 / PID {processDetailPid}</h3>
@@ -704,7 +704,7 @@ export const EnvProcessMonitorDetailPage: React.FC<{ projectId: string; initialS
 
         {syncPreviewOpen && (
           <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-6" onClick={() => setSyncPreviewOpen(false)}>
- <div className="w-[min(920px,95vw)] max-h-[85vh] rounded-2xl bg-theme-bg-app border border-theme-border flex flex-col" onClick={(event) => event.stopPropagation()}>
+ <div className="w-[min(920px,95vw)] max-h-[85vh] rounded-2xl bg-theme-elevated border border-theme-border flex flex-col" onClick={(event) => event.stopPropagation()}>
               <div className="flex items-center justify-between px-6 py-4 border-b border-theme-border">
                 <div>
                   <h3 className="text-xl font-semibold text-theme-text-primary">同步预览确认</h3>

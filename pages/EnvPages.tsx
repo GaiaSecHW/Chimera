@@ -32,7 +32,7 @@ export const EnvTemplatePage: React.FC<{ templates: EnvTemplate[]; isLoading: bo
     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
       {isLoading ? <Loader2 className="animate-spin text-blue-400" /> : templates.map(t => (
  <div key={t.name} className="bg-theme-surface p-8 rounded-xl border border-theme-border transition-all group">
-          <div className="w-14 h-14 bg-theme-bg-app text-theme-text-muted rounded-lg flex items-center justify-center mb-6 group-hover:bg-blue-600 group-hover:text-white transition-all"><Box size={24} /></div>
+          <div className="w-14 h-14 bg-theme-elevated text-theme-text-muted rounded-lg flex items-center justify-center mb-6 group-hover:bg-blue-600 group-hover:text-white transition-all"><Box size={24} /></div>
           <h4 className="text-xl font-semibold text-theme-text-primary">{t.name}</h4>
           <p className="text-theme-text-muted text-sm mt-2 line-clamp-2">{t.description}</p>
           <div className="mt-8 pt-6 border-t border-theme-border flex items-center justify-between"><StatusBadge status={t.type} /><span className="text-[10px] font-medium text-theme-text-faint uppercase">{t.updated_at?.split('T')[0]}</span></div>

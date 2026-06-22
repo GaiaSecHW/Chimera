@@ -1679,7 +1679,7 @@ export const AiGatewayPage: React.FC<AiGatewayPageProps> = ({ entryView = 'aigw-
       {keyManagementOpen ? createPortal((
         <div className="fixed inset-0 z-[260]">
           <div className="absolute inset-0 bg-slate-950/40" onClick={() => setKeyManagementOpen(false)} />
- <section className="absolute inset-0 flex h-full w-full flex-col overflow-hidden bg-theme-bg-app p-6">
+ <section className="absolute inset-0 flex h-full w-full flex-col overflow-hidden bg-theme-elevated p-6">
         <div className="mb-5 flex shrink-0 items-start justify-between gap-4">
           <div>
             <div className="text-[11px] font-semibold uppercase tracking-[0.2em] text-theme-text-muted">调用凭证</div>
@@ -1810,9 +1810,9 @@ export const AiGatewayPage: React.FC<AiGatewayPageProps> = ({ entryView = 'aigw-
       {logDrawerOpen ? createPortal((
         <div className="fixed inset-0 z-[260]">
           <div className="absolute inset-0 bg-slate-950/40" onClick={() => setLogDrawerOpen(false)} />
- <div className="absolute inset-0 h-full w-full overflow-hidden bg-theme-bg-app">
+ <div className="absolute inset-0 h-full w-full overflow-hidden bg-theme-elevated">
             <div className="flex h-full flex-col">
-              <div className="flex items-center justify-between border-b border-theme-border bg-theme-bg-app px-6 py-5">
+              <div className="flex items-center justify-between border-b border-theme-border bg-theme-elevated px-6 py-5">
                 <div>
                   <div className="text-[11px] font-semibold uppercase tracking-[0.2em] text-theme-text-muted">日志抽屉</div>
                   <h2 className="mt-2 text-xl font-semibold text-theme-text-primary">{logDrawerPreset?.title || '请求日志'}</h2>
@@ -1927,7 +1927,7 @@ export const AiGatewayPage: React.FC<AiGatewayPageProps> = ({ entryView = 'aigw-
                   {capacityPools.map((item) => {
                     const checked = llmKeyForm.capacity_pool_ids.includes(item.id);
                     return (
-                      <label key={item.id} className={`rounded-full border px-3 py-1.5 text-xs font-bold ${checked ? 'border-theme-border bg-theme-surface text-white' : 'border-theme-border bg-theme-bg-app text-theme-text-secondary'} ${llmKeyForm.key_type === 'work' ? 'opacity-50' : ''}`}>
+                      <label key={item.id} className={`rounded-full border px-3 py-1.5 text-xs font-bold ${checked ? 'border-theme-border bg-theme-surface text-white' : 'border-theme-border bg-theme-elevated text-theme-text-secondary'} ${llmKeyForm.key_type === 'work' ? 'opacity-50' : ''}`}>
                         <input
                           type="checkbox"
                           className="hidden"

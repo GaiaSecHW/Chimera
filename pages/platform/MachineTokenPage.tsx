@@ -369,7 +369,7 @@ export const MachineTokenPage: React.FC = () => {
                 <select
                   value={pageSize}
                   onChange={(event) => setPageSize(Number(event.target.value))}
-                  className="rounded-xl border border-theme-border bg-theme-bg-app px-3 py-2 text-sm font-bold text-theme-text-secondary outline-none transition focus:border-blue-300 focus:ring-4 focus:ring-blue-500/10"
+                  className="rounded-xl border border-theme-border bg-theme-elevated px-3 py-2 text-sm font-bold text-theme-text-secondary outline-none transition focus:border-blue-300 focus:ring-4 focus:ring-blue-500/10"
                 >
                   <option value={10}>10</option>
                   <option value={20}>20</option>

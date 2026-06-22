@@ -526,7 +526,7 @@ export const EnvAiAgentSessionManagePage: React.FC<{ projectId: string }> = ({ p
 
           <div className="mt-3 overflow-auto rounded-xl border border-theme-border">
             <table className="min-w-full text-xs">
-              <thead className="bg-theme-bg-app text-[11px] uppercase tracking-[0.08em] text-theme-text-muted">
+              <thead className="bg-theme-elevated text-[11px] uppercase tracking-[0.08em] text-theme-text-muted">
                 <tr>
                   <th className="px-2 py-2 text-left">选择</th>
                   <th className="px-2 py-2 text-left">节点 / helper</th>
@@ -547,7 +547,7 @@ export const EnvAiAgentSessionManagePage: React.FC<{ projectId: string }> = ({ p
                 ) : items.map((item) => {
                   const rowKey = buildSessionKey(item);
                   return (
-                    <tr key={rowKey} className={item.is_invalid ? 'bg-amber-50/40' : 'bg-theme-bg-app'}>
+                    <tr key={rowKey} className={item.is_invalid ? 'bg-amber-50/40' : 'bg-theme-elevated'}>
                       <td className="px-2 py-2.5 align-top"><input type="checkbox" checked={selectedKeys.includes(rowKey)} onChange={(event) => toggleSelected(item, event.target.checked)} /></td>
                       <td className="px-2 py-2.5 align-top"><div className="font-semibold text-theme-text-primary">{item.agent_hostname || item.agent_key}</div><div className="text-theme-text-muted">{item.agent_key}</div></td>
                       <td className="px-2 py-2.5 align-top">{item.service_name}</td>
@@ -566,7 +566,7 @@ export const EnvAiAgentSessionManagePage: React.FC<{ projectId: string }> = ({ p
                         </div>
                       </td>
                       <td className="px-2 py-2.5 align-top">
-                        <span className="rounded-full border border-theme-border bg-theme-bg-app px-1.5 py-0.5 text-[10px] font-semibold text-theme-text-secondary">
+                        <span className="rounded-full border border-theme-border bg-theme-elevated px-1.5 py-0.5 text-[10px] font-semibold text-theme-text-secondary">
                           PID {resolveBackendPid(item) ?? '-'}
                         </span>
                       </td>
@@ -581,7 +581,7 @@ export const EnvAiAgentSessionManagePage: React.FC<{ projectId: string }> = ({ p
                         <button
                           onClick={() => void openSessionDetail(item)}
                           disabled={!!busyKey}
-                          className="mr-1 inline-flex items-center gap-1 rounded-lg border border-theme-border bg-theme-bg-app px-2 py-1 text-[11px] font-semibold text-theme-text-secondary disabled:cursor-not-allowed disabled:opacity-60"
+                          className="mr-1 inline-flex items-center gap-1 rounded-lg border border-theme-border bg-theme-elevated px-2 py-1 text-[11px] font-semibold text-theme-text-secondary disabled:cursor-not-allowed disabled:opacity-60"
                         >
                           详情
                         </button>
@@ -636,7 +636,7 @@ export const EnvAiAgentSessionManagePage: React.FC<{ projectId: string }> = ({ p
             </div>
             <div className="max-h-[60vh] overflow-auto p-5 text-xs">
               <div className="mb-3 grid grid-cols-3 gap-2">
-                <div className="rounded-lg border border-theme-border bg-theme-bg-app p-2">总数: {lastBatchResult.total}</div>
+                <div className="rounded-lg border border-theme-border bg-theme-elevated p-2">总数: {lastBatchResult.total}</div>
                 <div className="rounded-lg border border-emerald-500/20 bg-emerald-500/15 p-2 text-emerald-400">成功: {lastBatchResult.success_count}</div>
                 <div className="rounded-lg border border-rose-500/20 bg-rose-500/15 p-2 text-rose-400">失败: {lastBatchResult.failed_count}</div>
               </div>
@@ -699,10 +699,10 @@ export const EnvAiAgentSessionManagePage: React.FC<{ projectId: string }> = ({ p
               ) : (
                 <>
                   <div className="grid grid-cols-2 gap-2 text-xs">
-                    <div className="rounded-lg border border-theme-border bg-theme-bg-app px-3 py-2">状态: {detailSession.status || '-'}</div>
-                    <div className="rounded-lg border border-theme-border bg-theme-bg-app px-3 py-2">模式: {detailSession.session_mode || '-'}</div>
-                    <div className="rounded-lg border border-theme-border bg-theme-bg-app px-3 py-2">backend_pid: {detailSession.backend_pid ?? detailSession.pty_pid ?? '-'}</div>
-                    <div className="rounded-lg border border-theme-border bg-theme-bg-app px-3 py-2">agent_ids: {(detailSession.agent_ids || []).join(', ') || '-'}</div>
+                    <div className="rounded-lg border border-theme-border bg-theme-elevated px-3 py-2">状态: {detailSession.status || '-'}</div>
+                    <div className="rounded-lg border border-theme-border bg-theme-elevated px-3 py-2">模式: {detailSession.session_mode || '-'}</div>
+                    <div className="rounded-lg border border-theme-border bg-theme-elevated px-3 py-2">backend_pid: {detailSession.backend_pid ?? detailSession.pty_pid ?? '-'}</div>
+                    <div className="rounded-lg border border-theme-border bg-theme-elevated px-3 py-2">agent_ids: {(detailSession.agent_ids || []).join(', ') || '-'}</div>
                   </div>
                   {detailSession.last_error ? (
                     <div className="rounded-lg border border-rose-500/20 bg-rose-500/15 px-3 py-2 text-xs text-rose-400">last_error: {detailSession.last_error}</div>
@@ -710,15 +710,15 @@ export const EnvAiAgentSessionManagePage: React.FC<{ projectId: string }> = ({ p
                   <div className="rounded-lg border border-theme-border p-3">
                     <div className="mb-2 text-xs font-medium uppercase tracking-[0.08em] text-theme-text-muted">Vendor 诊断</div>
                     <div className="grid grid-cols-1 gap-2 text-xs md:grid-cols-2">
-                      <div className="rounded-lg border border-theme-border bg-theme-bg-app px-3 py-2">vendor_session_id: {detailSession.vendor_session_id || '-'}</div>
-                      <div className="rounded-lg border border-theme-border bg-theme-bg-app px-3 py-2">vendor_session_kind: {detailSession.vendor_session_kind || '-'}</div>
-                      <div className="rounded-lg border border-theme-border bg-theme-bg-app px-3 py-2">vendor_resume_mode: {detailSession.vendor_resume_mode || '-'}</div>
-                      <div className="rounded-lg border border-theme-border bg-theme-bg-app px-3 py-2">vendor_last_mode: {detailSession.vendor_last_mode || '-'}</div>
-                      <div className="rounded-lg border border-theme-border bg-theme-bg-app px-3 py-2">vendor_session_initialized: {String(detailSession.vendor_session_initialized ?? '-')}</div>
-                      <div className="rounded-lg border border-theme-border bg-theme-bg-app px-3 py-2">claude_workdir: {detailSession.claude_workdir || '-'}</div>
-                      <div className="rounded-lg border border-theme-border bg-theme-bg-app px-3 py-2 md:col-span-2">claude_session_id: {detailSession.claude_session_id || '-'}</div>
-                      <div className="rounded-lg border border-theme-border bg-theme-bg-app px-3 py-2 md:col-span-2">vendor_last_cmd: {detailSession.vendor_last_cmd || '-'}</div>
-                      <div className="rounded-lg border border-theme-border bg-theme-bg-app px-3 py-2 md:col-span-2">vendor_last_error: {detailSession.vendor_last_error || '-'}</div>
+                      <div className="rounded-lg border border-theme-border bg-theme-elevated px-3 py-2">vendor_session_id: {detailSession.vendor_session_id || '-'}</div>
+                      <div className="rounded-lg border border-theme-border bg-theme-elevated px-3 py-2">vendor_session_kind: {detailSession.vendor_session_kind || '-'}</div>
+                      <div className="rounded-lg border border-theme-border bg-theme-elevated px-3 py-2">vendor_resume_mode: {detailSession.vendor_resume_mode || '-'}</div>
+                      <div className="rounded-lg border border-theme-border bg-theme-elevated px-3 py-2">vendor_last_mode: {detailSession.vendor_last_mode || '-'}</div>
+                      <div className="rounded-lg border border-theme-border bg-theme-elevated px-3 py-2">vendor_session_initialized: {String(detailSession.vendor_session_initialized ?? '-')}</div>
+                      <div className="rounded-lg border border-theme-border bg-theme-elevated px-3 py-2">claude_workdir: {detailSession.claude_workdir || '-'}</div>
+                      <div className="rounded-lg border border-theme-border bg-theme-elevated px-3 py-2 md:col-span-2">claude_session_id: {detailSession.claude_session_id || '-'}</div>
+                      <div className="rounded-lg border border-theme-border bg-theme-elevated px-3 py-2 md:col-span-2">vendor_last_cmd: {detailSession.vendor_last_cmd || '-'}</div>
+                      <div className="rounded-lg border border-theme-border bg-theme-elevated px-3 py-2 md:col-span-2">vendor_last_error: {detailSession.vendor_last_error || '-'}</div>
                     </div>
                   </div>
                   <div className="rounded-lg border border-theme-border p-3">
@@ -728,7 +728,7 @@ export const EnvAiAgentSessionManagePage: React.FC<{ projectId: string }> = ({ p
                         <div className="text-xs text-theme-text-muted">暂无消息。</div>
                       ) : (
                         (detailSession.messages || []).map((msg, idx) => (
-                          <div key={`${msg.role}-${idx}`} className="rounded-lg border border-theme-border bg-theme-bg-app px-3 py-2 text-xs">
+                          <div key={`${msg.role}-${idx}`} className="rounded-lg border border-theme-border bg-theme-elevated px-3 py-2 text-xs">
                             <div className="mb-1 font-semibold text-theme-text-secondary">{msg.role || 'assistant'}</div>
                             <div className="whitespace-pre-wrap text-theme-text-primary">{String(msg.content || '')}</div>
                           </div>

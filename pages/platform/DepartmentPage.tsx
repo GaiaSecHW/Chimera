@@ -419,7 +419,7 @@ placeholder="Department Name"
               <div className="space-y-1.5">
                 <label className="text-[10px] font-medium text-theme-text-muted uppercase tracking-widest ml-1">上级部门</label>
                 <select
-                  className="w-full px-6 py-4 bg-theme-bg-app rounded-lg border-none outline-none focus:ring-4 ring-blue-500/10 font-bold text-theme-text-primary"
+                  className="w-full px-6 py-4 bg-theme-elevated rounded-lg border-none outline-none focus:ring-4 ring-blue-500/10 font-bold text-theme-text-primary"
                   value={formData.parent_id}
                   onChange={(e) => setFormData({ ...formData, parent_id: e.target.value })}
                 >
@@ -475,7 +475,7 @@ placeholder="Department Name"
               <div className="space-y-1.5">
                 <label className="text-[10px] font-medium text-theme-text-muted uppercase tracking-widest ml-1">上级部门</label>
                 <select
-                  className="w-full px-6 py-4 bg-theme-bg-app rounded-lg border-none outline-none focus:ring-4 ring-amber-500/10 font-bold text-theme-text-primary"
+                  className="w-full px-6 py-4 bg-theme-elevated rounded-lg border-none outline-none focus:ring-4 ring-amber-500/10 font-bold text-theme-text-primary"
                   value={formData.parent_id}
                   onChange={(e) => setFormData({ ...formData, parent_id: e.target.value })}
                 >

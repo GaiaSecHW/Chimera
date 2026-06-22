@@ -208,7 +208,7 @@ const getAgentTypeClass = (type: string): string => {
     case 'PACKAGE':
       return 'border-violet-500/20 bg-violet-500/15 text-violet-400';
     default:
-      return 'border-theme-border bg-theme-bg-app text-theme-text-secondary';
+      return 'border-theme-border bg-theme-elevated text-theme-text-secondary';
   }
 };
 
@@ -322,7 +322,7 @@ const statusMeta = (agent: Agent) => {
   if (['connecting', 'pending'].includes(status)) {
     return { label: '连接中', icon: Clock3, cls: 'border-amber-500/20 bg-amber-500/15 text-amber-400' };
   }
-  return { label: agent.status || '未知', icon: Clock3, cls: 'border-theme-border bg-theme-bg-app text-theme-text-secondary' };
+  return { label: agent.status || '未知', icon: Clock3, cls: 'border-theme-border bg-theme-elevated text-theme-text-secondary' };
 };
 
 const getStatusDotClass = (agent: Agent): string => {
@@ -517,7 +517,7 @@ const AgentDetailModal: React.FC<{ agent: Agent | null; onClose: () => void }> =
               {meta.label}
             </span>
             <span className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-medium ${getAgentTypeClass(type)}`}>{getAgentTypeLabel(type)}</span>
-            {getAgentVersion(agent) ? <span className="inline-flex rounded-full border border-theme-border bg-theme-bg-app px-2.5 py-1 text-xs font-medium text-theme-text-secondary">v{getAgentVersion(agent)}</span> : null}
+            {getAgentVersion(agent) ? <span className="inline-flex rounded-full border border-theme-border bg-theme-elevated px-2.5 py-1 text-xs font-medium text-theme-text-secondary">v{getAgentVersion(agent)}</span> : null}
           </div>
           <div className="grid gap-3 md:grid-cols-2">
             <DetailItem label="主机名">{agent.hostname || '-'}</DetailItem>
@@ -576,7 +576,7 @@ const DescriptionGrid: React.FC<{ items: Array<{ label: string; value: React.Rea
   <div className="grid overflow-hidden rounded border border-theme-border md:grid-cols-3">
     {items.map((item) => (
       <div key={item.label} className={`${item.span ? 'md:col-span-3' : ''} grid grid-cols-[110px_minmax(0,1fr)] border-b border-r border-theme-border last:border-b-0`}>
-        <div className="bg-theme-bg-app px-3 py-2 text-xs font-semibold text-theme-text-muted">{item.label}</div>
+        <div className="bg-theme-elevated px-3 py-2 text-xs font-semibold text-theme-text-muted">{item.label}</div>
         <div className="break-words px-3 py-2 text-xs text-theme-text-primary">{item.value || '-'}</div>
       </div>
     ))}
@@ -704,7 +704,7 @@ const RouteTableWithSearch: React.FC<{
       </div>
       <div className="overflow-hidden rounded border border-theme-border">
         <table className="min-w-full table-fixed text-left text-xs">
-          <thead className="bg-theme-bg-app text-theme-text-muted">
+          <thead className="bg-theme-elevated text-theme-text-muted">
             <tr>
               <th className="w-24 px-3 py-2 font-semibold">Method</th>
               <th className="px-3 py-2 font-semibold">Pattern</th>
@@ -773,7 +773,7 @@ const ArchitectureTabs: React.FC<{
     { id: 'sca', label: 'SCA' },
   ];
   return (
-    <div className="border-b border-theme-border bg-theme-bg-app">
+    <div className="border-b border-theme-border bg-theme-elevated">
       <div className="flex overflow-x-auto">
         {tabs.map((tab) => (
           <button
@@ -857,7 +857,7 @@ const ProcessArchitectureModal: React.FC<{
         <div className="flex items-center justify-between gap-4 border-b border-theme-border bg-theme-surface px-5 py-4">
           <h3 className="truncate text-lg font-semibold text-theme-text-primary">进程架构 - {getAgentName(agent)}</h3>
           <div className="flex shrink-0 items-center gap-2">
-            <button type="button" onClick={() => loadRoutes(false)} disabled={loading} className="inline-flex items-center gap-2 rounded border border-theme-border bg-theme-surface px-3 py-2 text-xs font-semibold text-theme-text-secondary transition hover:bg-theme-bg-app disabled:opacity-60">
+            <button type="button" onClick={() => loadRoutes(false)} disabled={loading} className="inline-flex items-center gap-2 rounded border border-theme-border bg-theme-surface px-3 py-2 text-xs font-semibold text-theme-text-secondary transition hover:bg-theme-elevated disabled:opacity-60">
               {loading ? <Loader2 size={14} className="animate-spin" /> : <RefreshCw size={14} />}
               刷新
             </button>
@@ -888,7 +888,7 @@ const ProcessArchitectureModal: React.FC<{
         </div>
 
         <div className="flex justify-end border-t border-theme-border bg-theme-surface px-5 py-3">
-          <button type="button" onClick={onClose} className="rounded border border-theme-border bg-theme-surface px-4 py-2 text-sm font-semibold text-theme-text-secondary transition hover:bg-theme-bg-app">关闭</button>
+          <button type="button" onClick={onClose} className="rounded border border-theme-border bg-theme-surface px-4 py-2 text-sm font-semibold text-theme-text-secondary transition hover:bg-theme-elevated">关闭</button>
         </div>
       </div>
     </div>
@@ -1030,7 +1030,7 @@ export const EnvManagementPage: React.FC<{ projectId: string }> = ({ projectId }
   }, [parentAgentKeys]);
 
   return (
-    <div className="min-h-full bg-theme-bg-app px-8 py-8">
+    <div className="min-h-full bg-theme-elevated px-8 py-8">
       {feedbackNodes}
       <div className="mx-auto max-w-7xl space-y-6">
         <PageHeader

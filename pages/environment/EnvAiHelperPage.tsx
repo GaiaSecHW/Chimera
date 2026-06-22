@@ -143,7 +143,7 @@ export const EnvAiHelperPage: React.FC<{ projectId: string; initialHelperKey?: s
                 <button
                   key={key}
                   onClick={() => setSelectedKey(key)}
-                  className={`w-full rounded-xl border px-4 py-3 text-left transition ${selected ? 'border-blue-500 bg-blue-500/15' : 'border-theme-border bg-theme-bg-app hover:border-theme-border'}`}
+                  className={`w-full rounded-xl border px-4 py-3 text-left transition ${selected ? 'border-blue-500 bg-blue-500/15' : 'border-theme-border bg-theme-elevated hover:border-theme-border'}`}
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div>
@@ -222,10 +222,10 @@ export const EnvAiHelperPage: React.FC<{ projectId: string; initialHelperKey?: s
                               <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
                                 <span className={`rounded-full border px-1.5 py-0.5 text-[10px] font-semibold ${sessionModeTone(session.session_mode)}`}>{sessionModeLabel(session.session_mode)}</span>
                                 <span className={`rounded-full border px-1.5 py-0.5 text-[10px] font-semibold ${statusTone(session.status)}`}>{session.status || 'unknown'}</span>
-                                <span className="rounded-full border border-theme-border bg-theme-bg-app px-1.5 py-0.5 text-[10px] font-semibold text-theme-text-secondary">PID {resolveBackendPid(session) ?? '-'}</span>
+                                <span className="rounded-full border border-theme-border bg-theme-elevated px-1.5 py-0.5 text-[10px] font-semibold text-theme-text-secondary">PID {resolveBackendPid(session) ?? '-'}</span>
                               </div>
                             </div>
-                            <span className="shrink-0 rounded-full border border-theme-border bg-theme-bg-app px-2 py-0.5 text-[10px] font-semibold text-theme-text-secondary">
+                            <span className="shrink-0 rounded-full border border-theme-border bg-theme-elevated px-2 py-0.5 text-[10px] font-semibold text-theme-text-secondary">
                               消息 {session.messages?.length || 0}
                             </span>
                           </div>

@@ -188,7 +188,7 @@ export const RoleMgmtPage: React.FC = () => {
             loading={loading && roles.length === 0}
             empty={
               <div className="py-40 text-center">
-                <div className="w-20 h-20 bg-theme-bg-app rounded-full flex items-center justify-center mx-auto mb-4 text-slate-200">
+                <div className="w-20 h-20 bg-theme-elevated rounded-full flex items-center justify-center mx-auto mb-4 text-slate-200">
                   <ShieldCheck size={40} />
                 </div>
                 <p className="text-sm font-semibold text-theme-text-muted uppercase tracking-widest">目前暂无匹配的角色定义</p>

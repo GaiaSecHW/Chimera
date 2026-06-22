@@ -200,7 +200,7 @@ const CommandBlock: React.FC<{
         复制
       </button>
     </div>
-    <div className={`mt-3 overflow-hidden rounded-lg border border-theme-border bg-theme-bg-app ${tall ? 'h-[520px]' : compact ? 'h-[104px]' : 'h-[260px]'}`}>
+    <div className={`mt-3 overflow-hidden rounded-lg border border-theme-border bg-theme-elevated ${tall ? 'h-[520px]' : compact ? 'h-[104px]' : 'h-[260px]'}`}>
       <MonacoEditor
         height="100%"
         language={language}
@@ -279,7 +279,7 @@ export const EnvAccessPage: React.FC<{ projectId: string }> = ({ projectId }) =>
   }, [accessInfo, notify, projectId]);
 
   return (
-    <div className="min-h-full bg-theme-bg-app px-8 py-8">
+    <div className="min-h-full bg-theme-elevated px-8 py-8">
       {feedbackNodes}
       <div className="mx-auto max-w-7xl space-y-6">
         <PageHeader

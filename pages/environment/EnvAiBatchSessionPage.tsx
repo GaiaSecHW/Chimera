@@ -509,7 +509,7 @@ export const EnvAiBatchSessionPage: React.FC<{ projectId: string }> = ({ project
                   <col className="w-48" />
                   <col className="w-24" />
                 </colgroup>
-                <thead className="bg-theme-bg-app text-theme-text-muted">
+                <thead className="bg-theme-elevated text-theme-text-muted">
                   <tr>
                     <th className="px-3 py-2 text-left">
                       <button
@@ -606,7 +606,7 @@ export const EnvAiBatchSessionPage: React.FC<{ projectId: string }> = ({ project
                     const key = buildHelperKey(helper.agent_key, helper.service_name);
                     const checked = createSelectedHelpers.includes(key);
                     return (
-                      <label key={key} className={`flex cursor-pointer items-start gap-3 rounded-xl border px-3 py-2 ${checked ? 'border-blue-500 bg-blue-500/15' : 'border-theme-border bg-theme-bg-app'}`}>
+                      <label key={key} className={`flex cursor-pointer items-start gap-3 rounded-xl border px-3 py-2 ${checked ? 'border-blue-500 bg-blue-500/15' : 'border-theme-border bg-theme-elevated'}`}>
                         <input type="checkbox" checked={checked} onChange={() => void toggleCreateHelper(helper)} className="mt-1" />
                         <div className="min-w-0">
                           <div className="text-sm font-semibold text-theme-text-primary">{helper.agent_hostname || helper.agent_key}</div>
@@ -700,7 +700,7 @@ export const EnvAiBatchSessionPage: React.FC<{ projectId: string }> = ({ project
                       className={`w-full rounded-xl border p-3 text-left transition ${
                         helperItemKey(item) === helperItemKey(activeHelperItem)
                           ? 'border-blue-500 bg-blue-500/15'
-                          : 'border-theme-border bg-theme-bg-app hover:border-theme-border'
+                          : 'border-theme-border bg-theme-elevated hover:border-theme-border'
                       }`}
                     >
                       <div className="text-sm font-semibold text-theme-text-primary">{item.service_name}</div>
@@ -790,7 +790,7 @@ export const EnvAiBatchSessionPage: React.FC<{ projectId: string }> = ({ project
                           {outputs.length > 0 ? (
                             <div className="mt-2 space-y-3">
                               {outputs.map((part, index) => (
-                                <div key={`${round.round_no}-output-${index}`} className="rounded-lg border border-theme-border bg-theme-bg-app p-3 text-sm text-theme-text-primary">
+                                <div key={`${round.round_no}-output-${index}`} className="rounded-lg border border-theme-border bg-theme-elevated p-3 text-sm text-theme-text-primary">
                                   <MarkdownContent content={part} />
                                 </div>
                               ))}
@@ -819,7 +819,7 @@ export const EnvAiBatchSessionPage: React.FC<{ projectId: string }> = ({ project
                                   <div className="font-semibold text-theme-text-primary">{item.category}</div>
                                   {item.message ? <div className="mt-1 whitespace-pre-wrap">{item.message}</div> : null}
                                   {item.payload !== undefined ? (
-                                    <pre className="mt-2 overflow-auto rounded-lg border border-theme-border bg-theme-bg-app p-3 text-[11px] text-theme-text-primary">{prettyJson(item.payload)}</pre>
+                                    <pre className="mt-2 overflow-auto rounded-lg border border-theme-border bg-theme-elevated p-3 text-[11px] text-theme-text-primary">{prettyJson(item.payload)}</pre>
                                   ) : null}
                                 </div>
                               ))}

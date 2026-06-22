@@ -817,7 +817,7 @@ export const EnvAgentPage: React.FC<{ projectId: string }> = ({ projectId }) => 
         title={<span className="flex items-center gap-3"><span className="p-3 bg-blue-600 text-white rounded-lg inline-flex"><Monitor size={24} /></span>Agent 节点集群</span>}
         description={<span className="italic">基于分布式容器化引擎的实时感知与安全探测底座</span>}
         actions={<div className="flex gap-4">
-            <button onClick={handleRefreshAgents} disabled={!projectId || refreshingAgents} className="p-4 bg-theme-bg-app border border-theme-border text-theme-text-muted rounded-lg hover:bg-theme-elevated transition-all group active:scale-95 disabled:opacity-50"><RefreshCw size={20} className={(loading || refreshingAgents) ? 'animate-spin' : 'group-hover:rotate-180 transition-transform duration-500'} /></button>
+            <button onClick={handleRefreshAgents} disabled={!projectId || refreshingAgents} className="p-4 bg-theme-elevated border border-theme-border text-theme-text-muted rounded-lg hover:bg-theme-elevated transition-all group active:scale-95 disabled:opacity-50"><RefreshCw size={20} className={(loading || refreshingAgents) ? 'animate-spin' : 'group-hover:rotate-180 transition-transform duration-500'} /></button>
             <button onClick={handleCleanupOfflineWithK8s} disabled={isCleaning || !projectId} className="bg-rose-600 text-white px-6 py-4 rounded-lg font-semibold flex items-center gap-2 shadow-rose-500/20 hover:bg-rose-700 transition-all active:scale-95 disabled:opacity-50">{isCleaning ? <Loader2 size={18} className="animate-spin" /> : <Trash2 size={18} />}一键清空下线节点</button>
             <button onClick={openBatchDeployModal} disabled={!projectId || selectedAgentKeys.size === 0} className="bg-emerald-600 text-white px-6 py-4 rounded-lg font-semibold flex items-center gap-2 shadow-emerald-500/20 hover:bg-emerald-700 transition-all active:scale-95 disabled:opacity-50"><Zap size={18} /> 批量部署服务</button>
             <button onClick={handleForceSyncServices} disabled={!projectId || forceSyncing} className="bg-indigo-600 text-white px-6 py-4 rounded-lg font-semibold flex items-center gap-2 shadow-indigo-500/20 hover:bg-indigo-700 transition-all active:scale-95 disabled:opacity-50" title="强制同步服务状态">{forceSyncing ? <Loader2 size={18} className="animate-spin" /> : <Sparkles size={18} />}强制同步服务</button>
@@ -961,7 +961,7 @@ export const EnvAgentPage: React.FC<{ projectId: string }> = ({ projectId }) => 
           </div>
           <div className="border border-theme-border rounded-xl overflow-hidden">
             <table className="w-full text-left">
-              <thead className="bg-theme-bg-app">
+              <thead className="bg-theme-elevated">
                 <tr className="text-[10px] font-semibold uppercase tracking-widest text-theme-text-muted">
                   <th className="px-3 py-2">选</th>
                   <th className="px-3 py-2">Host/Path</th>
@@ -1059,7 +1059,7 @@ export const EnvAgentPage: React.FC<{ projectId: string }> = ({ projectId }) => 
           <input
             type="text"
             placeholder="通过主机名、IP 地址或 Agent Key 检索节点..."
- className="w-full pl-16 pr-8 py-5 bg-theme-bg-app border border-theme-border rounded-xl text-sm outline-none focus:ring-4 ring-blue-500/5 transition-all font-medium"
+ className="w-full pl-16 pr-8 py-5 bg-theme-elevated border border-theme-border rounded-xl text-sm outline-none focus:ring-4 ring-blue-500/5 transition-all font-medium"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
@@ -1248,7 +1248,7 @@ export const EnvAgentPage: React.FC<{ projectId: string }> = ({ projectId }) => 
               {!loading && projectId && filteredAgents.length === 0 && (
                 <tr>
                   <td colSpan={8} className="py-40 text-center">
-                    <div className="w-20 h-20 bg-theme-bg-app rounded-full flex items-center justify-center mx-auto mb-4 text-slate-200">
+                    <div className="w-20 h-20 bg-theme-elevated rounded-full flex items-center justify-center mx-auto mb-4 text-slate-200">
                       <Monitor size={40} />
                     </div>
                     <p className="text-sm font-semibold text-theme-text-muted uppercase tracking-widest">未检索到匹配的 Agent 资产</p>
@@ -1281,7 +1281,7 @@ export const EnvAgentPage: React.FC<{ projectId: string }> = ({ projectId }) => 
 
       {selectedHistory && (
         <div className="fixed inset-0 z-[220] bg-slate-900/70 backdrop-blur-sm flex items-center justify-center p-6" onClick={() => setSelectedHistory(null)}>
- <div className="w-full max-w-6xl h-[78vh] bg-theme-bg-app border border-theme-border rounded-2xl flex flex-col overflow-hidden" onClick={(e) => e.stopPropagation()}>
+ <div className="w-full max-w-6xl h-[78vh] bg-theme-elevated border border-theme-border rounded-2xl flex flex-col overflow-hidden" onClick={(e) => e.stopPropagation()}>
             <div className="px-6 py-4 border-b border-theme-border flex items-center justify-between">
               <div>
                 <p className="text-[10px] font-semibold uppercase tracking-widest text-theme-text-muted">同步记录详情</p>
@@ -1304,7 +1304,7 @@ export const EnvAgentPage: React.FC<{ projectId: string }> = ({ projectId }) => 
             <div className="flex-1 overflow-auto p-4 custom-scrollbar">
               {Array.isArray(selectedHistory.details) && selectedHistory.details.length > 0 ? (
                 <table className="w-full text-left">
-                  <thead className="bg-theme-bg-app border border-theme-border text-[10px] uppercase text-theme-text-muted font-semibold tracking-wider">
+                  <thead className="bg-theme-elevated border border-theme-border text-[10px] uppercase text-theme-text-muted font-semibold tracking-wider">
                     <tr>
                       <th className="px-3 py-2">Agent</th>
                       <th className="px-3 py-2">Result</th>
@@ -1342,7 +1342,7 @@ export const EnvAgentPage: React.FC<{ projectId: string }> = ({ projectId }) => 
       {/* Batch Deploy Modal */}
       {isBatchDeployModalOpen && (
         <div className="fixed inset-0 z-[119] flex items-center justify-center p-6 bg-slate-950/80 backdrop-blur-xl animate-in fade-in">
- <div className="bg-theme-bg-app w-full max-w-5xl rounded-2xl overflow-hidden animate-in zoom-in-95 flex flex-col max-h-[88vh]">
+ <div className="bg-theme-elevated w-full max-w-5xl rounded-2xl overflow-hidden animate-in zoom-in-95 flex flex-col max-h-[88vh]">
             <div className="p-8 border-b border-theme-border flex items-center justify-between">
               <div>
                 <h3 className="text-2xl font-bold text-theme-text-primary tracking-tight">批量部署环境模板服务</h3>
@@ -1350,7 +1350,7 @@ export const EnvAgentPage: React.FC<{ projectId: string }> = ({ projectId }) => 
                   已选 Agent: {selectedAgentKeys.size}，请选择要部署的模板
                 </p>
               </div>
-              <button onClick={() => setIsBatchDeployModalOpen(false)} className="p-3 bg-theme-bg-app text-theme-text-muted hover:text-theme-text-primary rounded-lg transition-all">
+              <button onClick={() => setIsBatchDeployModalOpen(false)} className="p-3 bg-theme-elevated text-theme-text-muted hover:text-theme-text-primary rounded-lg transition-all">
                 <X size={20} />
               </button>
             </div>
@@ -1364,7 +1364,7 @@ export const EnvAgentPage: React.FC<{ projectId: string }> = ({ projectId }) => 
                     value={templateSearch}
                     onChange={(e) => setTemplateSearch(e.target.value)}
                     placeholder="检索模板名称或描述..."
-                    className="w-full pl-11 pr-4 py-3 bg-theme-bg-app border border-theme-border rounded-xl text-sm outline-none focus:ring-4 ring-blue-500/10"
+                    className="w-full pl-11 pr-4 py-3 bg-theme-elevated border border-theme-border rounded-xl text-sm outline-none focus:ring-4 ring-blue-500/10"
                   />
                 </div>
                 <button
@@ -1391,7 +1391,7 @@ export const EnvAgentPage: React.FC<{ projectId: string }> = ({ projectId }) => 
                       className={`p-5 rounded-xl border-2 transition-all text-left ${
                         selectedTemplateNames.has(template.name)
                           ? 'bg-blue-500/15 border-blue-600'
-                          : 'bg-theme-bg-app border-theme-border hover:border-blue-500/20'
+                          : 'bg-theme-elevated border-theme-border hover:border-blue-500/20'
                       }`}
                     >
                       <div className="flex items-start justify-between gap-3">
@@ -1428,7 +1428,7 @@ export const EnvAgentPage: React.FC<{ projectId: string }> = ({ projectId }) => 
               />
             </div>
 
-            <div className="p-8 bg-theme-bg-app border-t border-theme-border flex items-center justify-between">
+            <div className="p-8 bg-theme-elevated border-t border-theme-border flex items-center justify-between">
               <p className="text-xs font-medium text-theme-text-muted">
                 本次将提交 <span className="text-blue-400 font-semibold">{selectedTemplateNames.size}</span> 个模板 ×
                 <span className="text-blue-400 font-semibold"> {selectedAgentKeys.size}</span> 个 Agent 的部署任务
@@ -1458,7 +1458,7 @@ export const EnvAgentPage: React.FC<{ projectId: string }> = ({ projectId }) => 
       {/* Integration Choice Modal */}
       {isIntegrationModalOpen && (
         <div className="fixed inset-0 z-[120] flex items-center justify-center p-6 bg-slate-950/80 backdrop-blur-xl animate-in fade-in">
- <div className="bg-theme-bg-app w-full max-w-2xl rounded-[3.5rem] overflow-hidden animate-in zoom-in-95 flex flex-col">
+ <div className="bg-theme-elevated w-full max-w-2xl rounded-[3.5rem] overflow-hidden animate-in zoom-in-95 flex flex-col">
               <div className="p-10 pb-8 border-b border-theme-border flex items-center justify-between">
                 <div className="flex items-center gap-5">
  <div className="w-14 h-14 bg-blue-600 rounded-xl flex items-center justify-center text-white">
@@ -1469,7 +1469,7 @@ export const EnvAgentPage: React.FC<{ projectId: string }> = ({ projectId }) => 
                      <p className="text-xs text-theme-text-muted font-semibold uppercase tracking-widest mt-1">扩展分布式安全探测网络</p>
                    </div>
                 </div>
-                <button onClick={() => setIsIntegrationModalOpen(false)} className="p-4 bg-theme-bg-app text-theme-text-muted hover:text-theme-text-primary rounded-lg transition-all">
+                <button onClick={() => setIsIntegrationModalOpen(false)} className="p-4 bg-theme-elevated text-theme-text-muted hover:text-theme-text-primary rounded-lg transition-all">
                   <X size={24} />
                 </button>
               </div>
@@ -1479,9 +1479,9 @@ export const EnvAgentPage: React.FC<{ projectId: string }> = ({ projectId }) => 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <button
                       onClick={() => setIntegrationType('manual')}
- className="group p-8 bg-theme-bg-app border-2 border-transparent hover:border-blue-600 rounded-xl text-left transition-all hover:bg-theme-bg-app hover:"
+ className="group p-8 bg-theme-elevated border-2 border-transparent hover:border-blue-600 rounded-xl text-left transition-all hover:bg-theme-elevated hover:"
                     >
- <div className="w-12 h-12 bg-theme-bg-app rounded-lg flex items-center justify-center text-theme-text-muted group-hover:text-blue-400 transition-colors mb-6">
+ <div className="w-12 h-12 bg-theme-elevated rounded-lg flex items-center justify-center text-theme-text-muted group-hover:text-blue-400 transition-colors mb-6">
                           <Terminal size={24} />
                        </div>
                        <h4 className="text-lg font-semibold text-theme-text-primary mb-2">手动脚本接入</h4>
@@ -1493,12 +1493,12 @@ export const EnvAgentPage: React.FC<{ projectId: string }> = ({ projectId }) => 
 
                     <button
                       onClick={() => setIntegrationType('auto')}
- className="group p-8 bg-theme-bg-app border-2 border-transparent hover:border-indigo-600 rounded-xl text-left transition-all hover:bg-theme-elevated relative overflow-hidden"
+ className="group p-8 bg-theme-elevated border-2 border-transparent hover:border-indigo-600 rounded-xl text-left transition-all hover:bg-theme-elevated relative overflow-hidden"
                     >
                        <div className="absolute top-6 right-6">
                           <span className="bg-amber-500/15 text-amber-400 px-3 py-1 rounded-full text-[9px] font-semibold uppercase tracking-widest">Developing</span>
                        </div>
- <div className="w-12 h-12 bg-theme-bg-app rounded-lg flex items-center justify-center text-theme-text-muted group-hover:text-indigo-400 transition-colors mb-6">
+ <div className="w-12 h-12 bg-theme-elevated rounded-lg flex items-center justify-center text-theme-text-muted group-hover:text-indigo-400 transition-colors mb-6">
                           <Zap size={24} />
                        </div>
                        <h4 className="text-lg font-semibold text-theme-text-primary mb-2">自动化扫描接入</h4>
@@ -1530,7 +1530,7 @@ export const EnvAgentPage: React.FC<{ projectId: string }> = ({ projectId }) => 
                                 className={`px-4 py-3 rounded-xl border-2 transition-all font-mono text-xs font-medium flex items-center justify-between group ${
                                   selectedIp === ip
  ? 'bg-blue-500/15 border-blue-600 text-blue-400'
-                                    : 'bg-theme-bg-app border-theme-border text-theme-text-muted hover:border-blue-500/20'
+                                    : 'bg-theme-elevated border-theme-border text-theme-text-muted hover:border-blue-500/20'
                                 }`}
                               >
                                 {ip}
@@ -1601,7 +1601,7 @@ export const EnvAgentPage: React.FC<{ projectId: string }> = ({ projectId }) => 
                 )}
               </div>
 
-              <div className="p-10 bg-theme-bg-app border-t border-theme-border flex justify-between items-center">
+              <div className="p-10 bg-theme-elevated border-t border-theme-border flex justify-between items-center">
                  {integrationType && (
                    <button
                      onClick={() => setIntegrationType(null)}
